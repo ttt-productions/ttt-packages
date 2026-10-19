@@ -112,7 +112,9 @@ describe('atom schemas', () => {
       expect(() => storedTitleSchema.parse('')).toThrow();
     });
     it('rejects title longer than MAX_WORK_PROJECT_TITLE_LENGTH', () => {
-      expect(() => storedTitleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH + 1))).toThrow();
+      expect(() =>
+        storedTitleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH + 1)),
+      ).toThrow();
     });
     it('accepts exactly MAX_WORK_PROJECT_TITLE_LENGTH chars', () => {
       expect(storedTitleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH))).toBe(
@@ -121,5 +123,3 @@ describe('atom schemas', () => {
     });
   });
 });
-
-

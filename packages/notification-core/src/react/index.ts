@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Hooks
 export { useActiveNotifications } from './hooks/useActiveNotifications.js';

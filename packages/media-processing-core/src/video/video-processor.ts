@@ -1,25 +1,33 @@
-import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-schemas";
-import { mkdir, stat } from "node:fs/promises";
-import path from "node:path";
-import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg.js";
-import { probeVideo } from "./probe.js";
-import { unreadableLengthError } from "../duration/media-duration.js";
-import { safeOutputPathFor } from "../utils/safe-path.js";
-import type { ProcessMediaOptions } from "../types.js";
-import { TIMED_MEDIA_MAIN_OUTPUT_KEY, VIDEO_POSTER_OUTPUT_KEY } from "@ttt-productions/media-schemas";
+import type {
+  MediaOutput,
+  MediaProcessingResult,
+  MediaProcessingSpec,
+  VideoOrientation,
+} from '@ttt-productions/media-schemas';
+import { mkdir, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { ensureFfmpegAvailable, runFfmpeg } from './ffmpeg.js';
+import { probeVideo } from './probe.js';
+import { unreadableLengthError } from '../duration/media-duration.js';
+import { safeOutputPathFor } from '../utils/safe-path.js';
+import type { ProcessMediaOptions } from '../types.js';
+import {
+  TIMED_MEDIA_MAIN_OUTPUT_KEY,
+  VIDEO_POSTER_OUTPUT_KEY,
+} from '@ttt-productions/media-schemas';
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
   const m = actual.trim().toLowerCase();
   if (!a) return true;
-  if (a === "*/*") return true;
-  if (a.endsWith("/*")) return m.startsWith(a.slice(0, -1));
+  if (a === '*/*') return true;
+  if (a.endsWith('/*')) return m.startsWith(a.slice(0, -1));
   return a === m;
 }
 
 function acceptAllowsVideo(spec: MediaProcessingSpec): boolean {
   const kinds = spec.accept?.kinds?.filter(Boolean) ?? [];
-  return kinds.length === 0 ? true : kinds.includes("video");
+  return kinds.length === 0 ? true : kinds.includes('video');
 }
 
 function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boolean {
@@ -40,13 +48,16 @@ function aspectClose(a: number, b: number, tolerance: number): boolean {
 
 function orientationOf(width?: number, height?: number): VideoOrientation | undefined {
   if (!width || !height) return undefined;
-  if (width === height) return "any";
-  return height > width ? "vertical" : "horizontal";
+  if (width === height) return 'any';
+  return height > width ? 'vertical' : 'horizontal';
 }
 
-function orientationOk(required: VideoOrientation | undefined, actual: VideoOrientation | undefined): boolean {
-  if (!required || required === "any") return true;
-  if (!actual || actual === "any") return true; // treat square/unknown as ok
+function orientationOk(
+  required: VideoOrientation | undefined,
+  actual: VideoOrientation | undefined,
+): boolean {
+  if (!required || required === 'any') return true;
+  if (!actual || actual === 'any') return true; // treat square/unknown as ok
   return required === actual;
 }
 
@@ -55,8 +66,8 @@ function outputPathFor(base: string, key: string, ext: string): string {
 }
 
 function mimeFromExt(ext: string): string | undefined {
-  if (ext === "mp4") return "video/mp4";
-  if (ext === "webm") return "video/webm";
+  if (ext === 'mp4') return 'video/mp4';
+  if (ext === 'webm') return 'video/webm';
   return undefined;
 }
 
@@ -67,27 +78,39 @@ export async function processVideo(
     outputBasePath: string;
     inputMime?: string;
   },
-  opts?: ProcessMediaOptions
+  opts?: ProcessMediaOptions,
 ): Promise<MediaProcessingResult> {
   const tempFiles: string[] = [];
 
   try {
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'video',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
     if (!acceptAllowsVideo(spec)) {
       return {
         ok: false,
-        mediaType: "video",
-        error: { code: "invalid_mime", message: "Spec does not allow video uploads.", details: { accept: spec.accept } },
+        mediaType: 'video',
+        error: {
+          code: 'invalid_mime',
+          message: 'Spec does not allow video uploads.',
+          details: { accept: spec.accept },
+        },
       };
     }
 
     if (!acceptAllowsMime(spec, ctx.inputMime)) {
       return {
         ok: false,
-        mediaType: "video",
-        error: { code: "invalid_mime", message: "Video mime type is not allowed.", details: { inputMime: ctx.inputMime, accept: spec.accept } },
+        mediaType: 'video',
+        error: {
+          code: 'invalid_mime',
+          message: 'Video mime type is not allowed.',
+          details: { inputMime: ctx.inputMime, accept: spec.accept },
+        },
       };
     }
 
@@ -95,11 +118,11 @@ export async function processVideo(
     if (!ff.ok) {
       return {
         ok: false,
-        mediaType: "video",
+        mediaType: 'video',
         error: {
-          code: "processing_failed",
-          message: "ffmpeg is not available.",
-          details: { error: String((ff as any).error ?? "unknown") },
+          code: 'processing_failed',
+          message: 'ffmpeg is not available.',
+          details: { error: String((ff as any).error ?? 'unknown') },
         },
       };
     }
@@ -110,21 +133,25 @@ export async function processVideo(
     const probe = await probeVideo(ctx.inputPath, { signal: opts?.signal });
 
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'video',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
 
     // duration enforcement
     const maxDur = spec.maxDurationSec ?? spec.video?.maxDurationSec;
     if (maxDur && probe.durationSec === undefined) {
-      return { ok: false, mediaType: "video", error: unreadableLengthError("video", maxDur) };
+      return { ok: false, mediaType: 'video', error: unreadableLengthError('video', maxDur) };
     }
     if (maxDur && probe.durationSec !== undefined && probe.durationSec > maxDur) {
       return {
         ok: false,
-        mediaType: "video",
+        mediaType: 'video',
         error: {
-          code: "too_long",
-          message: "Video is too long.",
+          code: 'too_long',
+          message: 'Video is too long.',
           details: { durationSec: probe.durationSec, maxDurationSec: maxDur },
         },
       };
@@ -141,8 +168,13 @@ export async function processVideo(
 
     const okOri = orientationOk(requiredOri, actualOri);
     const tol = spec.aspectRatioTolerance ?? 0.02;
-    const okAspect = requiredAspect ? (actualAspect ? aspectClose(actualAspect, requiredAspect, tol) : false) : true;
-    const okDims = !requiredW || !requiredH ? true : probe.width === requiredW && probe.height === requiredH;
+    const okAspect = requiredAspect
+      ? actualAspect
+        ? aspectClose(actualAspect, requiredAspect, tol)
+        : false
+      : true;
+    const okDims =
+      !requiredW || !requiredH ? true : probe.width === requiredW && probe.height === requiredH;
 
     const needsAuto = !okOri || !okAspect || !okDims;
 
@@ -150,10 +182,10 @@ export async function processVideo(
       if (!okOri) {
         return {
           ok: false,
-          mediaType: "video",
+          mediaType: 'video',
           error: {
-            code: "orientation_mismatch",
-            message: "Video orientation does not match the required format.",
+            code: 'orientation_mismatch',
+            message: 'Video orientation does not match the required format.',
             details: { requiredOri, actualOri, width: probe.width, height: probe.height },
           },
         };
@@ -161,29 +193,39 @@ export async function processVideo(
       if (!okAspect) {
         return {
           ok: false,
-          mediaType: "video",
+          mediaType: 'video',
           error: {
-            code: "aspect_ratio_mismatch",
-            message: "Video aspect ratio does not match the required format.",
-            details: { requiredAspectRatio: requiredAspect, aspectRatio: actualAspect, width: probe.width, height: probe.height },
+            code: 'aspect_ratio_mismatch',
+            message: 'Video aspect ratio does not match the required format.',
+            details: {
+              requiredAspectRatio: requiredAspect,
+              aspectRatio: actualAspect,
+              width: probe.width,
+              height: probe.height,
+            },
           },
         };
       }
       if (!okDims) {
         return {
           ok: false,
-          mediaType: "video",
+          mediaType: 'video',
           error: {
-            code: "dimensions_mismatch",
-            message: "Video dimensions do not match the required format.",
-            details: { requiredWidth: requiredW, requiredHeight: requiredH, width: probe.width, height: probe.height },
+            code: 'dimensions_mismatch',
+            message: 'Video dimensions do not match the required format.',
+            details: {
+              requiredWidth: requiredW,
+              requiredHeight: requiredH,
+              width: probe.width,
+              height: probe.height,
+            },
           },
         };
       }
     }
 
-    const videoOut = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, "mp4");
-    const posterOut = outputPathFor(ctx.outputBasePath, VIDEO_POSTER_OUTPUT_KEY, "jpg");
+    const videoOut = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, 'mp4');
+    const posterOut = outputPathFor(ctx.outputBasePath, VIDEO_POSTER_OUTPUT_KEY, 'jpg');
 
     tempFiles.push(videoOut, posterOut);
 
@@ -191,12 +233,12 @@ export async function processVideo(
     // - If exact WxH required: scale+crop to WxH
     // - Else if aspect required: crop to aspect then scale to original (or keep)
     // - Else: keep original
-    const scaleMode = spec.video?.scaleMode ?? "fit";
-    let vf = "";
+    const scaleMode = spec.video?.scaleMode ?? 'fit';
+    let vf = '';
 
     if (spec.allowAutoFormat) {
       if (requiredW && requiredH) {
-        if (scaleMode === "fit") {
+        if (scaleMode === 'fit') {
           // letterbox: scale to fit inside, pad with black bars
           vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=decrease,pad=${requiredW}:${requiredH}:(ow-iw)/2:(oh-ih)/2`;
         } else {
@@ -204,7 +246,7 @@ export async function processVideo(
           vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=increase,crop=${requiredW}:${requiredH}`;
         }
       } else if (requiredAspect) {
-        if (scaleMode === "fit") {
+        if (scaleMode === 'fit') {
           // fit to aspect ratio without forced dimensions — no padding possible without target size, just crop
           vf = `crop='if(gt(iw/ih,${requiredAspect}),ih*${requiredAspect},iw)':'if(gt(iw/ih,${requiredAspect}),ih,iw/${requiredAspect})'`;
         } else {
@@ -213,25 +255,25 @@ export async function processVideo(
       }
     }
 
-    const videoPreset = spec.video?.preset ?? "veryfast";
+    const videoPreset = spec.video?.preset ?? 'veryfast';
     const videoCrf = spec.video?.crf ?? 23;
 
     const ffmpegArgs = [
-      "-y",
-      "-i",
+      '-y',
+      '-i',
       ctx.inputPath,
-      ...(vf ? ["-vf", vf] : []),
-      "-c:v",
-      "libx264",
-      "-preset",
+      ...(vf ? ['-vf', vf] : []),
+      '-c:v',
+      'libx264',
+      '-preset',
       videoPreset,
-      "-crf",
+      '-crf',
       String(videoCrf),
-      "-pix_fmt",
-      "yuv420p",
-      "-movflags",
-      "+faststart",
-      ...(probe.hasAudio ? ["-c:a", "aac", "-b:a", "128k"] : ["-an"]),
+      '-pix_fmt',
+      'yuv420p',
+      '-movflags',
+      '+faststart',
+      ...(probe.hasAudio ? ['-c:a', 'aac', '-b:a', '128k'] : ['-an']),
       videoOut,
     ];
 
@@ -239,30 +281,38 @@ export async function processVideo(
       signal: opts?.signal,
       durationMs: probe.durationSec ? probe.durationSec * 1000 : undefined,
       onProgress: (p) => {
-        opts?.onProgress?.({ phase: "process", percent: p.percent, detail: { step: "transcode", outTimeMs: p.outTimeMs } });
+        opts?.onProgress?.({
+          phase: 'process',
+          percent: p.percent,
+          detail: { step: 'transcode', outTimeMs: p.outTimeMs },
+        });
       },
-      phase: "transcode",
+      phase: 'transcode',
     });
     if (r1.code !== 0) {
       return {
         ok: false,
-        mediaType: "video",
+        mediaType: 'video',
         error: {
-          code: "processing_failed",
-          message: "ffmpeg video transcode failed.",
+          code: 'processing_failed',
+          message: 'ffmpeg video transcode failed.',
           details: { stderr: r1.stderr, stdout: r1.stdout },
         },
       };
     }
 
     // Poster (frame at 1s; fallback to 0 if needed)
-    const posterArgs = ["-y", "-ss", "1", "-i", videoOut, "-frames:v", "1", "-q:v", "2", posterOut];
+    const posterArgs = ['-y', '-ss', '1', '-i', videoOut, '-frames:v', '1', '-q:v', '2', posterOut];
     const r2 = await runFfmpeg(posterArgs, {
       signal: opts?.signal,
       onProgress: (p) => {
-        opts?.onProgress?.({ phase: "process", percent: p.percent, detail: { step: "poster", outTimeMs: p.outTimeMs } });
+        opts?.onProgress?.({
+          phase: 'process',
+          percent: p.percent,
+          detail: { step: 'poster', outTimeMs: p.outTimeMs },
+        });
       },
-      phase: "poster",
+      phase: 'poster',
     });
     if (r2.code !== 0) {
       // non-fatal; still succeed with video
@@ -273,14 +323,14 @@ export async function processVideo(
     try {
       const ps = await stat(posterOut);
       psSize = ps.size;
-    } catch { }
+    } catch {}
 
     const outputs: MediaOutput[] = [
       {
         key: TIMED_MEDIA_MAIN_OUTPUT_KEY,
         url: `file://${videoOut}`,
         path: videoOut,
-        mime: mimeFromExt("mp4"),
+        mime: mimeFromExt('mp4'),
         sizeBytes: vs.size,
         width: requiredW ?? probe.width,
         height: requiredH ?? probe.height,
@@ -289,15 +339,15 @@ export async function processVideo(
     ];
 
     const warnings: string[] = [];
-    if (needsAuto && spec.allowAutoFormat) warnings.push("auto_formatted");
-    if (r2.code !== 0) warnings.push("poster_failed");
+    if (needsAuto && spec.allowAutoFormat) warnings.push('auto_formatted');
+    if (r2.code !== 0) warnings.push('poster_failed');
 
     if (psSize > 0) {
       outputs.push({
         key: VIDEO_POSTER_OUTPUT_KEY,
         url: `file://${posterOut}`,
         path: posterOut,
-        mime: "image/jpeg",
+        mime: 'image/jpeg',
         sizeBytes: psSize,
       });
     }
@@ -306,7 +356,7 @@ export async function processVideo(
 
     return {
       ok: true,
-      mediaType: "video",
+      mediaType: 'video',
       outputs,
       meta: {
         mime: ctx.inputMime,
@@ -319,21 +369,25 @@ export async function processVideo(
     };
   } catch (e: any) {
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'video',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
     return {
       ok: false,
-      mediaType: "video",
+      mediaType: 'video',
       error: {
-        code: "processing_failed",
-        message: e?.message ? String(e.message) : "Video processing failed",
+        code: 'processing_failed',
+        message: e?.message ? String(e.message) : 'Video processing failed',
         details: { name: e?.name },
       },
     };
   } finally {
     if (tempFiles.length) {
-      const { rm } = await import("node:fs/promises");
-      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => { })));
+      const { rm } = await import('node:fs/promises');
+      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
     }
   }
 }

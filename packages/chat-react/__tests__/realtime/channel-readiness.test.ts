@@ -30,7 +30,14 @@ function makeChannel() {
   return { client, harness, clock };
 }
 
-const row = (seq: number) => ({ seq, senderUid: 'u-a', clientMessageId: `srv-${seq}`, text: `m${seq}`, createdAt: 1000 + seq, epoch: 1 });
+const row = (seq: number) => ({
+  seq,
+  senderUid: 'u-a',
+  clientMessageId: `srv-${seq}`,
+  text: `m${seq}`,
+  createdAt: 1000 + seq,
+  epoch: 1,
+});
 
 describe('ChannelClient — isSynced', () => {
   it('is not current before connecting, nor when the socket has only opened', async () => {
@@ -46,7 +53,9 @@ describe('ChannelClient — isSynced', () => {
     const { client, harness } = makeChannel();
     await client.connect();
     harness.last().serverOpen();
-    harness.last().serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
+    harness
+      .last()
+      .serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
     expect(client.getState().messages).toEqual([]);
     expect(client.getState().isSynced).toBe(true);
   });
@@ -66,7 +75,9 @@ describe('ChannelClient — isSynced', () => {
     const { client, harness, clock } = makeChannel();
     await client.connect();
     harness.last().serverOpen();
-    harness.last().serverFrame('snapshot', { lastMessageSeq: 3, readSeq: 0, resync: false, delta: [row(3)] });
+    harness
+      .last()
+      .serverFrame('snapshot', { lastMessageSeq: 3, readSeq: 0, resync: false, delta: [row(3)] });
     expect(client.getState().isSynced).toBe(true);
 
     harness.last().serverClose(1006, 'drop');
@@ -87,7 +98,9 @@ describe('ChannelClient — isSynced', () => {
     const { client, harness, clock } = makeChannel();
     await client.connect();
     harness.last().serverOpen();
-    harness.last().serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 0, resync: false, delta: [row(9)] });
+    harness
+      .last()
+      .serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 0, resync: false, delta: [row(9)] });
     harness.last().serverClose(1006, 'drop');
     await advance(clock, 2500);
     const next = harness.last();

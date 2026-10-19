@@ -4,5 +4,5 @@ export type KeyboardState = {
   isOpen: boolean;
   height: number; // px
   // best-effort: iOS visualViewport + focus heuristics
-  source: "visualViewport" | "fallback";
+  source: 'visualViewport' | 'fallback';
 };

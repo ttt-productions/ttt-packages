@@ -4,12 +4,25 @@ import { FileOriginSchema, type FileOrigin } from '../src/media/file-origin.js';
 describe('FileOriginSchema', () => {
   it('accepts every known origin', () => {
     const origins: FileOrigin[] = [
-      'profile-picture', 'craft-skill-media', 'squareStreetz', 'commission-posting',
-      'commission-proposal', 'audition-prompt', 'audition-entry',
-      'admin-audition-prompt', 'hallLibrary-cover-square',
-      'hallLibrary-cover-poster', 'hallLibrary-cover-cinematic',
-      'chapter-photo', 'tune-track-photo', 'tune-track-audio', 'television-episode-photo',
-      'television-episode-video', 'conversation-file', 'work-asset', 'system-content',
+      'profile-picture',
+      'craft-skill-media',
+      'squareStreetz',
+      'commission-posting',
+      'commission-proposal',
+      'audition-prompt',
+      'audition-entry',
+      'admin-audition-prompt',
+      'hallLibrary-cover-square',
+      'hallLibrary-cover-poster',
+      'hallLibrary-cover-cinematic',
+      'chapter-photo',
+      'tune-track-photo',
+      'tune-track-audio',
+      'television-episode-photo',
+      'television-episode-video',
+      'conversation-file',
+      'work-asset',
+      'system-content',
     ];
     for (const o of origins) {
       expect(FileOriginSchema.parse(o)).toBe(o);
@@ -24,4 +37,3 @@ describe('FileOriginSchema', () => {
     expect(() => FileOriginSchema.parse('guild-chat-message-attachment')).toThrow();
   });
 });
-

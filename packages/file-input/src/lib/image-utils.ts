@@ -1,18 +1,18 @@
-import type { Area } from "react-easy-crop";
-import { MEDIA_FORMATS, type MediaCropSpec } from "@ttt-productions/media-schemas";
+import type { Area } from 'react-easy-crop';
+import { MEDIA_FORMATS, type MediaCropSpec } from '@ttt-productions/media-schemas';
 
 /** How a crop is encoded; the fields an origin's crop spec declares. */
-export type CropEncoding = Pick<MediaCropSpec, "format" | "quality">;
+export type CropEncoding = Pick<MediaCropSpec, 'format' | 'quality'>;
 
-const DEFAULT_CROP_FORMAT: NonNullable<MediaCropSpec["format"]> = "jpeg";
+const DEFAULT_CROP_FORMAT: NonNullable<MediaCropSpec['format']> = 'jpeg';
 const DEFAULT_CROP_QUALITY = 80;
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.setAttribute("crossOrigin", "anonymous");
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
     image.src = url;
   });
 
@@ -35,11 +35,11 @@ export async function getCroppedImg(
   flip = { horizontal: false, vertical: false },
   outputWidth?: number,
   outputHeight?: number,
-  encoding: CropEncoding = {}
+  encoding: CropEncoding = {},
 ): Promise<Blob | null> {
   const image = await createImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
   const rotRad = getRadianAngle(rotation);
@@ -54,8 +54,8 @@ export async function getCroppedImg(
   ctx.translate(-image.width / 2, -image.height / 2);
   ctx.drawImage(image, 0, 0);
 
-  const croppedCanvas = document.createElement("canvas");
-  const croppedCtx = croppedCanvas.getContext("2d");
+  const croppedCanvas = document.createElement('canvas');
+  const croppedCtx = croppedCanvas.getContext('2d');
   if (!croppedCtx) return null;
 
   croppedCanvas.width = outputWidth || pixelCrop.width;
@@ -70,7 +70,7 @@ export async function getCroppedImg(
     0,
     0,
     croppedCanvas.width,
-    croppedCanvas.height
+    croppedCanvas.height,
   );
 
   // This is the first lossy encode the image gets, so it uses the origin's declared format and
@@ -80,9 +80,9 @@ export async function getCroppedImg(
 
   return new Promise((resolve, reject) => {
     croppedCanvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Canvas to Blob conversion failed"))),
+      (blob) => (blob ? resolve(blob) : reject(new Error('Canvas to Blob conversion failed'))),
       mime,
-      quality
+      quality,
     );
   });
 }

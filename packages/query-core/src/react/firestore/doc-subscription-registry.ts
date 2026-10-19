@@ -111,7 +111,11 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
 
   let entry = registry.get(key);
   if (!entry) {
-    const created: Entry = { unsubscribe: () => {}, subscribers: new Set<Subscriber>(), error: null };
+    const created: Entry = {
+      unsubscribe: () => {},
+      subscribers: new Set<Subscriber>(),
+      error: null,
+    };
     const subscribers = created.subscribers;
     const ref = doc(db, collectionPath, id);
     created.unsubscribe = onSnapshot(

@@ -3,7 +3,13 @@
 
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
-import { matchPattern, ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
+import {
+  matchPattern,
+  ownerOnly,
+  reviewedAllowlist,
+  type Hit,
+  type Matcher,
+} from '../../shapes/shapes.js';
 import { cssBlocks } from './css.js';
 import { requirePathOrNull } from './facts.js';
 import { objectProblem, pathProblem } from '../../support/facts.js';
@@ -39,7 +45,10 @@ export const untokenedTransitions: Matcher = (file) => {
   const hits: Hit[] = [];
   for (const block of cssBlocks(file.code)) {
     for (const d of block.declarations) {
-      if ((d.property === 'transition' || d.property === 'transition-property') && untokenedTransition(d.value)) {
+      if (
+        (d.property === 'transition' || d.property === 'transition-property') &&
+        untokenedTransition(d.value)
+      ) {
         hits.push({ index: d.index, detail: `${d.property}: ${d.value}` });
       }
     }
@@ -60,14 +69,18 @@ export const motionGuard: GenericGuardDefinition<MotionFacts> = {
   },
   build(facts): Guard[] {
     const keeper = {
-      title: "the mobile package's focused-input keeper is called only through the app's motion adapter",
+      title:
+        "the mobile package's focused-input keeper is called only through the app's motion adapter",
       description:
-        "useKeepFocusedInputVisible scrolls smoothly unless it is handed the effective motion, so it is called once, from " +
+        'useKeepFocusedInputVisible scrolls smoothly unless it is handed the effective motion, so it is called once, from ' +
         'the adapter that hands it the effective reduced-motion preference; everything else calls the adapter. An app ' +
         'with no adapter calls it nowhere.',
       scope: APP_CODE,
       match: focusedInputKeeperCalls,
-      samples: { flags: [tsx('useKeepFocusedInputVisible(ref);')], passes: [tsx('useKeepFocusedInputVisibleWithMotion(ref);')] },
+      samples: {
+        flags: [tsx('useKeepFocusedInputVisible(ref);')],
+        passes: [tsx('useKeepFocusedInputVisibleWithMotion(ref);')],
+      },
     };
     return [
       reviewedAllowlist({
@@ -79,7 +92,13 @@ export const motionGuard: GenericGuardDefinition<MotionFacts> = {
         scope: APP_CODE,
         match: motionUtilities,
         allowlist: [],
-        samples: { flags: [tsx('<div className="transition-all" />'), tsx('<div className="duration-300" />')], passes: [tsx('<div className="transition-colors" />')] },
+        samples: {
+          flags: [
+            tsx('<div className="transition-all" />'),
+            tsx('<div className="duration-300" />'),
+          ],
+          passes: [tsx('<div className="transition-colors" />')],
+        },
       }),
       ownerOnly({
         title: 'a smooth scroll is requested only by the effective-motion helper',
@@ -89,7 +108,10 @@ export const motionGuard: GenericGuardDefinition<MotionFacts> = {
         scope: APP_CODE,
         match: smoothScrollRequests,
         owners: [facts.motionHelper],
-        samples: { flags: [tsx("el.scrollIntoView({ behavior: 'smooth' });")], passes: [tsx('el.scrollIntoView({ behavior: preferredScrollBehavior() });')] },
+        samples: {
+          flags: [tsx("el.scrollIntoView({ behavior: 'smooth' });")],
+          passes: [tsx('el.scrollIntoView({ behavior: preferredScrollBehavior() });')],
+        },
       }),
       facts.focusedInputKeeperAdapter
         ? ownerOnly({ ...keeper, owners: [facts.focusedInputKeeperAdapter] })
@@ -103,8 +125,15 @@ export const motionGuard: GenericGuardDefinition<MotionFacts> = {
         match: untokenedTransitions,
         allowlist: [],
         samples: {
-          flags: [css('.a { transition: all var(--motion-base) var(--motion-ease); }'), css('.a { transition: background-color 0.15s ease; }'), css('.a { transition: transform 700ms ease; }')],
-          passes: [css('.a { transition: opacity var(--motion-base) var(--motion-ease); }'), css('.a { transition: transform var(--walk-ms, 750ms) var(--motion-ease); }')],
+          flags: [
+            css('.a { transition: all var(--motion-base) var(--motion-ease); }'),
+            css('.a { transition: background-color 0.15s ease; }'),
+            css('.a { transition: transform 700ms ease; }'),
+          ],
+          passes: [
+            css('.a { transition: opacity var(--motion-base) var(--motion-ease); }'),
+            css('.a { transition: transform var(--walk-ms, 750ms) var(--motion-ease); }'),
+          ],
         },
       }),
       {
@@ -114,20 +143,28 @@ export const motionGuard: GenericGuardDefinition<MotionFacts> = {
           '--default-transition-timing-function to var(--motion-ease), so every transition utility that names no timing ' +
           'follows the tokens.',
         run(context) {
-          if (!context.reader.exists(facts.entryStylesheet)) return [{ file: facts.entryStylesheet, detail: 'the entry stylesheet does not exist' }];
+          if (!context.reader.exists(facts.entryStylesheet))
+            return [{ file: facts.entryStylesheet, detail: 'the entry stylesheet does not exist' }];
           const entry = context.file(facts.entryStylesheet);
           const declared = new Map<string, string>();
           for (const block of cssBlocks(entry.code)) {
-            if (block.prelude.startsWith('@theme')) for (const d of block.declarations) declared.set(d.property, d.value);
+            if (block.prelude.startsWith('@theme'))
+              for (const d of block.declarations) declared.set(d.property, d.value);
           }
           const findings: Finding[] = [];
           const duration = declared.get('--default-transition-duration');
           if (!duration || !/^var\(--motion-(?:fast|base|slow)\)$/.test(duration)) {
-            findings.push({ file: entry.path, detail: `--default-transition-duration is ${duration ?? 'not declared'}; bind it to var(--motion-fast), var(--motion-base), or var(--motion-slow)` });
+            findings.push({
+              file: entry.path,
+              detail: `--default-transition-duration is ${duration ?? 'not declared'}; bind it to var(--motion-fast), var(--motion-base), or var(--motion-slow)`,
+            });
           }
           const timing = declared.get('--default-transition-timing-function');
           if (timing !== 'var(--motion-ease)') {
-            findings.push({ file: entry.path, detail: `--default-transition-timing-function is ${timing ?? 'not declared'}; bind it to var(--motion-ease)` });
+            findings.push({
+              file: entry.path,
+              detail: `--default-transition-timing-function is ${timing ?? 'not declared'}; bind it to var(--motion-ease)`,
+            });
           }
           return findings;
         },

@@ -24,7 +24,12 @@ describe('upload row display copy', () => {
   });
 
   it('names every file kind', () => {
-    expect(UPLOAD_ROW_DISPLAY_COPY.fileType).toEqual({ image: 'Image', video: 'Video', audio: 'Audio', other: 'File' });
+    expect(UPLOAD_ROW_DISPLAY_COPY.fileType).toEqual({
+      image: 'Image',
+      video: 'Video',
+      audio: 'Audio',
+      other: 'File',
+    });
   });
 
   it('keeps a row relative for six hours', () => {

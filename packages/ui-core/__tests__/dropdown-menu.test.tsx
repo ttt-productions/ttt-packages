@@ -23,7 +23,9 @@ function renderOpenMenu(item: React.ReactNode) {
 
 describe('DropdownMenuItem', () => {
   it('renders its leading icon when idle', () => {
-    renderOpenMenu(<DropdownMenuItem icon={<svg data-testid="item-icon" />}>Hide this work</DropdownMenuItem>);
+    renderOpenMenu(
+      <DropdownMenuItem icon={<svg data-testid="item-icon" />}>Hide this work</DropdownMenuItem>,
+    );
     const item = screen.getByRole('menuitem', { name: 'Hide this work' });
     expect(item).toContainElement(screen.getByTestId('item-icon'));
     expect(item).not.toHaveAttribute('aria-busy');
@@ -50,15 +52,25 @@ describe('DropdownMenuItem', () => {
   it('pending and disabled: stays an inert, focusable item while pending, and is disabled once pending ends', () => {
     const onSelect = vi.fn();
     const { rerender } = renderOpenMenu(
-      <DropdownMenuItem pending disabled onSelect={onSelect}>Hide this work</DropdownMenuItem>,
+      <DropdownMenuItem pending disabled onSelect={onSelect}>
+        Hide this work
+      </DropdownMenuItem>,
     );
     const item = screen.getByRole('menuitem', { name: 'Hide this work' });
     expect(item).not.toHaveAttribute('data-disabled');
     expect(item).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(item);
     expect(onSelect).not.toHaveBeenCalled();
-    rerender(menuWith(<DropdownMenuItem disabled onSelect={onSelect}>Hide this work</DropdownMenuItem>));
-    expect(screen.getByRole('menuitem', { name: 'Hide this work' })).toHaveAttribute('data-disabled');
+    rerender(
+      menuWith(
+        <DropdownMenuItem disabled onSelect={onSelect}>
+          Hide this work
+        </DropdownMenuItem>,
+      ),
+    );
+    expect(screen.getByRole('menuitem', { name: 'Hide this work' })).toHaveAttribute(
+      'data-disabled',
+    );
   });
 
   it('pending: stays in the menu focus order — ArrowDown from the item above lands on it', async () => {
@@ -85,7 +97,9 @@ describe('a pending Button as a menu trigger (asChild)', () => {
     return render(
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button pending={pending} onKeyDown={onKeyDown}>Actions</Button>
+          <Button pending={pending} onKeyDown={onKeyDown}>
+            Actions
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem>Edit</DropdownMenuItem>

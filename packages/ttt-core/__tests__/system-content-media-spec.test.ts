@@ -48,7 +48,9 @@ describe('system-content media spec', () => {
         const spec = (await specsInMode(mode))['system-content'];
         const fullTelevision = (await specsInMode('full'))['television-episode-video'];
         expect(spec.maxBytes).toBe(fullTelevision.maxBytes);
-        expect(spec.processing?.video?.maxOutputBytes).toBe(fullTelevision.processing?.video?.maxOutputBytes);
+        expect(spec.processing?.video?.maxOutputBytes).toBe(
+          fullTelevision.processing?.video?.maxOutputBytes,
+        );
       });
 
       it('does not take the short-video output cap from its template origin', async () => {

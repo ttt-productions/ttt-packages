@@ -6,15 +6,15 @@
 // live in @ttt-productions/chat-react. The realtime wire contract and the pure
 // chat Zod schemas live in @ttt-productions/chat-schemas.
 
-export { GROUP_GAP_SEC } from "./types.js";
-export { isContinuation } from "./grouping.js";
+export { GROUP_GAP_SEC } from './types.js';
+export { isContinuation } from './grouping.js';
 export type {
-    ChatId,
-    ChatThreadV1,
-    ChatMessageV1,
-    ChatMessageGroupKey,
-    ModerationHandlers,
-    ChatNameResolver,
-    ChatNameResolution,
-    ChatPrewarmSenders,
-} from "./types.js";
+  ChatId,
+  ChatThreadV1,
+  ChatMessageV1,
+  ChatMessageGroupKey,
+  ModerationHandlers,
+  ChatNameResolver,
+  ChatNameResolution,
+  ChatPrewarmSenders,
+} from './types.js';

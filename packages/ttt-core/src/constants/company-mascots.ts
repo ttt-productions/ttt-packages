@@ -37,7 +37,11 @@ export type CompanyBillingKind = 'foundingPlayer' | 'player' | 'standIn';
 export type CompanyPerformanceIntent = 'bow' | 'hop' | 'wave';
 
 /** The performance intents, in demo-button order; consumers derive from this array. */
-export const COMPANY_PERFORMANCE_INTENTS: readonly CompanyPerformanceIntent[] = ['bow', 'hop', 'wave'];
+export const COMPANY_PERFORMANCE_INTENTS: readonly CompanyPerformanceIntent[] = [
+  'bow',
+  'hop',
+  'wave',
+];
 
 /** The characters a user may cast as their dock companion (never a Stand-In). */
 export type SelectableCompanionId = 'bill' | 'kit';
@@ -183,18 +187,27 @@ const BILL: CompanyMascot = {
     textRun('Rehearsing my big role: your guide to everything TTT. No spoilers.'),
     textRun("They say one day I'll have real personalities. Plural. I'm excited too."),
     textRun("I'll never make the art — that's your job. I'll just help you find your people."),
-    textRun("Every great production starts with somebody standing in the wings. That's me. Literally."),
-    textRun("Someday you'll ask me anything about this place and I'll actually answer. Bold, I know."),
+    textRun(
+      "Every great production starts with somebody standing in the wings. That's me. Literally.",
+    ),
+    textRun(
+      "Someday you'll ask me anything about this place and I'll actually answer. Bold, I know.",
+    ),
     textRun('The Town Crier gets to shout. I get to practice my bow. For now.'),
     textRun("I've read the whole script of this town. Well... skimmed. I'm working on it."),
     textRun('Big dreams for a stick figure: guide, helper, friend. In that order.'),
     [
-      { kind: 'text', text: "When the curtain rises on my real role, you'll be the first to know. You " },
+      {
+        kind: 'text',
+        text: "When the curtain rises on my real role, you'll be the first to know. You ",
+      },
       { kind: 'emphasis', text: 'did' },
       { kind: 'text', text: ' click me first.' },
     ],
     textRun('Until my big debut, consider me the most enthusiastic understudy in show business.'),
-    textRun("Even the greatest playwright who ever lived starts over as an understudy in a town this good. That's my story, anyway."),
+    textRun(
+      "Even the greatest playwright who ever lived starts over as an understudy in a town this good. That's my story, anyway.",
+    ),
     textRun('Four hundred years of theatre experience. My résumé? A drawing of myself.'),
   ],
   footer: dockFooter('Bill', BILL_FOOTER_TAIL),
@@ -229,20 +242,32 @@ const KIT: CompanyMascot = {
   choreographyCaption: 'Choreography by — to be determined',
   performances: SHARED_PERFORMANCES,
   lines: [
-    textRun("Yes, I'm the Stand-In. Permanently. The irony isn't lost on me — it lives with me now."),
-    textRun("I was FIRST in line at the founding audition. They went with a stick figure who 'waves well.'"),
+    textRun(
+      "Yes, I'm the Stand-In. Permanently. The irony isn't lost on me — it lives with me now.",
+    ),
+    textRun(
+      "I was FIRST in line at the founding audition. They went with a stick figure who 'waves well.'",
+    ),
     textRun("Bill rehearses roles nobody wrote. I've already memorized them. We are not the same."),
     textRun("One day this whole town will know my name. Today it's 'the other one.' Fine."),
     textRun("I don't do warm-ups. I arrive brilliant."),
     textRun('Founding mascot. FOUNDING. He waved at a login page and they gave him a title.'),
     textRun('My five-year plan is center stage. My five-century plan is also center stage.'),
-    textRun('History remembers a playwright who died before his rival got famous. Anyway. No reason.'),
+    textRun(
+      'History remembers a playwright who died before his rival got famous. Anyway. No reason.',
+    ),
     textRun('Click Bill for encouragement. Click me to hear the truth, beautifully delivered.'),
     textRun('I keep my rejection letter framed. Motivation is motivation.'),
-    textRun("You clicked me first today. I rehearsed being gracious about this — give me a moment."),
+    textRun(
+      'You clicked me first today. I rehearsed being gracious about this — give me a moment.',
+    ),
     textRun("When the curtain finally rises on my lead role, act surprised. I won't."),
-    textRun('They say I might have been a spy in a past life. I neither confirm nor deny. Mystique.'),
-    textRun('The Understudy and the Stand-In on one stage. Somewhere a playwright is laughing at us both.'),
+    textRun(
+      'They say I might have been a spy in a past life. I neither confirm nor deny. Mystique.',
+    ),
+    textRun(
+      'The Understudy and the Stand-In on one stage. Somewhere a playwright is laughing at us both.',
+    ),
   ],
   footer: dockFooter('Kit', KIT_FOOTER_TAIL),
   selectable: true,
@@ -272,11 +297,15 @@ const YORICK: CompanyMascot = {
   performances: SHARED_PERFORMANCES,
   lines: [
     textRun("Oh! A visitor. Nobody visits the Wings. I'd know — I keep the guestbook. It's empty."),
-    textRun("I used to kill at court, you know. Standing ovations. Kings weeping. ...You'll take my word for it."),
+    textRun(
+      "I used to kill at court, you know. Standing ovations. Kings weeping. ...You'll take my word for it.",
+    ),
     textRun("Don't get attached. I'm told I'm temporary. The skull agrees."),
     textRun('Alas, poor me. I knew me well.'),
     textRun('Infinite jest, they said. INFINITE. And yet here I am, finite-ly employed.'),
-    textRun("One day they'll cast this role properly and I'll be forgotten. Ahead of schedule, honestly."),
+    textRun(
+      "One day they'll cast this role properly and I'll be forgotten. Ahead of schedule, honestly.",
+    ),
   ],
   selectable: false,
 };
@@ -317,7 +346,10 @@ export const COMPANION_SWITCH_EXCHANGES: Readonly<
   // Switching TO Kit — Bill exits, Kit enters.
   kit: [
     {
-      outgoing: { id: 'bill', line: "Kit?! ...No, it's fine. It's fine. I'll be in the wings. Rehearsing. Alone." },
+      outgoing: {
+        id: 'bill',
+        line: "Kit?! ...No, it's fine. It's fine. I'll be in the wings. Rehearsing. Alone.",
+      },
       incoming: { id: 'kit', line: 'Finally. Someone with taste.' },
     },
     {
@@ -348,7 +380,10 @@ export const COMPANION_SWITCH_EXCHANGES: Readonly<
       incoming: { id: 'bill', line: "I also bow now! I've been practicing." },
     },
     {
-      outgoing: { id: 'kit', line: 'I was BRILLIANT and you choose the stick figure with the cap.' },
+      outgoing: {
+        id: 'kit',
+        line: 'I was BRILLIANT and you choose the stick figure with the cap.',
+      },
       incoming: { id: 'bill', line: "He means 'welcome back.' We're working on it." },
     },
     {
@@ -431,8 +466,7 @@ export interface SiteTourStepCopy {
 export const SITE_TOUR_INVITATION_LINES: readonly SiteTourLine[] = [
   {
     speaker: 'bill',
-    text:
-      'Welcome to TTT! Before the curtain rises, may we show you the few controls that will help you find your way around?',
+    text: 'Welcome to TTT! Before the curtain rises, may we show you the few controls that will help you find your way around?',
   },
   { speaker: 'kit', text: 'Four quick stops. He rehearsed twelve.' },
   { speaker: 'yorick', text: 'I was told there would be snacks.' },

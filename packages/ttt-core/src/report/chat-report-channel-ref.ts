@@ -22,10 +22,16 @@ export function parseChatChannelRef(
   if (!parentItemId) return null;
   // A report's parent id is the conversation's neutral id, so it is read by the one mapping.
   if (reportedItemType === 'guild-invite-message') {
-    return fromChatConversationRef({ kind: CHAT_CONVERSATION_REF_KIND_BY_GUILD_KIND.invite, id: parentItemId });
+    return fromChatConversationRef({
+      kind: CHAT_CONVERSATION_REF_KIND_BY_GUILD_KIND.invite,
+      id: parentItemId,
+    });
   }
   if (reportedItemType === 'guild-chat-message') {
-    return fromChatConversationRef({ kind: CHAT_CONVERSATION_REF_KIND_BY_GUILD_KIND.channel, id: parentItemId });
+    return fromChatConversationRef({
+      kind: CHAT_CONVERSATION_REF_KIND_BY_GUILD_KIND.channel,
+      id: parentItemId,
+    });
   }
   return null;
 }

@@ -79,7 +79,10 @@ export function createReleaseTaskHandler({
         return { success: true };
       }
       if (checkoutDetails.userId !== userId) {
-        throw new ReportCoreTaskError('failed-precondition', 'You do not have this task checked out.');
+        throw new ReportCoreTaskError(
+          'failed-precondition',
+          'You do not have this task checked out.',
+        );
       }
 
       transaction.update(taskRef, {

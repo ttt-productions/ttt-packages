@@ -78,32 +78,52 @@ export const PICTURE_KINDS = {
     aspect: 'landscape',
     format: 'jpeg',
     cropShape: 'rect',
-    sizes: { sm: { width: 480, height: 270 }, md: { width: 960, height: 540 }, lg: { width: 1920, height: 1080 } },
+    sizes: {
+      sm: { width: 480, height: 270 },
+      md: { width: 960, height: 540 },
+      lg: { width: 1920, height: 1080 },
+    },
   },
   'team-picture': {
     aspect: 'classic',
     format: 'jpeg',
     cropShape: 'rect',
-    sizes: { sm: { width: 480, height: 360 }, md: { width: 960, height: 720 }, lg: { width: 1600, height: 1200 } },
+    sizes: {
+      sm: { width: 480, height: 360 },
+      md: { width: 960, height: 720 },
+      lg: { width: 1600, height: 1200 },
+    },
   },
   'landing-picture': {
     aspect: 'banner',
     format: 'jpeg',
     cropShape: 'rect',
-    sizes: { sm: { width: 720, height: 240 }, md: { width: 1440, height: 480 }, lg: { width: 2400, height: 800 } },
+    sizes: {
+      sm: { width: 720, height: 240 },
+      md: { width: 1440, height: 480 },
+      lg: { width: 2400, height: 800 },
+    },
   },
   'location-picture': {
     aspect: 'landscape',
     format: 'jpeg',
     cropShape: 'rect',
-    sizes: { sm: { width: 480, height: 270 }, md: { width: 960, height: 540 }, lg: { width: 1280, height: 720 } },
+    sizes: {
+      sm: { width: 480, height: 270 },
+      md: { width: 960, height: 540 },
+      lg: { width: 1280, height: 720 },
+    },
   },
   // A badge is cropped in a round mask and kept square, at the sizes every award has always had.
   'award-badge': {
     aspect: 'square',
     format: 'png',
     cropShape: 'round',
-    sizes: { sm: { width: 64, height: 64 }, md: { width: 256, height: 256 }, lg: { width: 512, height: 512 } },
+    sizes: {
+      sm: { width: 64, height: 64 },
+      md: { width: 256, height: 256 },
+      lg: { width: 512, height: 512 },
+    },
   },
 } as const satisfies Record<PictureOrigin, PictureKind>;
 
@@ -112,7 +132,11 @@ function pictureOriginSpec(kind: PictureKind): MediaOriginSpec {
   const { width, height } = PICTURE_ASPECT_RATIOS[kind.aspect];
   const variants = PICTURE_VARIANT_KEYS.map((key) => ({
     key,
-    crop: { width: kind.sizes[key].width, height: kind.sizes[key].height, gravity: 'center' as const },
+    crop: {
+      width: kind.sizes[key].width,
+      height: kind.sizes[key].height,
+      gravity: 'center' as const,
+    },
     format: kind.format,
     ...(kind.format === 'jpeg' ? { quality: PICTURE_JPEG_QUALITY } : {}),
   }));

@@ -65,7 +65,9 @@ describe('ImageViewer', () => {
 
     it('unmounts img when exiting view and unloadOnExit=true', () => {
       mockInView = true;
-      const { container, rerender } = render(<ImageViewer url="https://example.com/a.jpg" unloadOnExit />);
+      const { container, rerender } = render(
+        <ImageViewer url="https://example.com/a.jpg" unloadOnExit />,
+      );
       expect(container.querySelector('img')).toBeInTheDocument();
 
       mockInView = false;
@@ -76,7 +78,7 @@ describe('ImageViewer', () => {
     it('does not unmount img when unloadOnExit=true but priority=true', () => {
       mockInView = true;
       const { container, rerender } = render(
-        <ImageViewer url="https://example.com/a.jpg" unloadOnExit priority />
+        <ImageViewer url="https://example.com/a.jpg" unloadOnExit priority />,
       );
       expect(container.querySelector('img')).toBeInTheDocument();
 
@@ -90,7 +92,7 @@ describe('ImageViewer', () => {
     it('calls onLoad when img fires load event', () => {
       const onLoad = vi.fn();
       const { container } = render(
-        <ImageViewer url="https://example.com/a.jpg" priority onLoad={onLoad} />
+        <ImageViewer url="https://example.com/a.jpg" priority onLoad={onLoad} />,
       );
       fireEvent.load(container.querySelector('img')!);
       expect(onLoad).toHaveBeenCalledTimes(1);
@@ -99,7 +101,7 @@ describe('ImageViewer', () => {
     it('calls onError when img fires error event', () => {
       const onError = vi.fn();
       const { container } = render(
-        <ImageViewer url="https://example.com/a.jpg" priority onError={onError} />
+        <ImageViewer url="https://example.com/a.jpg" priority onError={onError} />,
       );
       fireEvent.error(container.querySelector('img')!);
       expect(onError).toHaveBeenCalledTimes(1);
@@ -111,7 +113,7 @@ describe('ImageViewer', () => {
           url="https://example.com/a.jpg"
           priority
           fallback={<div data-testid="custom-fallback">broken</div>}
-        />
+        />,
       );
       fireEvent.error(container.querySelector('img')!);
       expect(screen.getByTestId('custom-fallback')).toBeInTheDocument();
@@ -135,13 +137,21 @@ describe('ImageViewer', () => {
   describe('URL change reset', () => {
     it('resets error state when URL changes', () => {
       const { container, rerender } = render(
-        <ImageViewer url="https://example.com/a.jpg" priority fallback={<div data-testid="fb">fb</div>} />
+        <ImageViewer
+          url="https://example.com/a.jpg"
+          priority
+          fallback={<div data-testid="fb">fb</div>}
+        />,
       );
       fireEvent.error(container.querySelector('img')!);
       expect(screen.getByTestId('fb')).toBeInTheDocument();
 
       rerender(
-        <ImageViewer url="https://example.com/b.jpg" priority fallback={<div data-testid="fb">fb</div>} />
+        <ImageViewer
+          url="https://example.com/b.jpg"
+          priority
+          fallback={<div data-testid="fb">fb</div>}
+        />,
       );
       expect(screen.queryByTestId('fb')).not.toBeInTheDocument();
       expect(container.querySelector('img')).toHaveAttribute('src', 'https://example.com/b.jpg');
@@ -190,7 +200,7 @@ describe('ImageViewer', () => {
 
     it('does not toggle when enableZoom=false', () => {
       const { container } = render(
-        <ImageViewer url="https://example.com/a.jpg" priority enableZoom={false} />
+        <ImageViewer url="https://example.com/a.jpg" priority enableZoom={false} />,
       );
       const img = container.querySelector('img')!;
       const wrapper = img.parentElement!;
@@ -207,7 +217,7 @@ describe('ImageViewer', () => {
 
     it('applies mediaClassName to the img', () => {
       const { container } = render(
-        <ImageViewer url="https://example.com/a.jpg" priority mediaClassName="img-y" />
+        <ImageViewer url="https://example.com/a.jpg" priority mediaClassName="img-y" />,
       );
       expect(container.querySelector('img')).toHaveClass('img-y');
     });

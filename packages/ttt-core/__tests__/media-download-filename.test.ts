@@ -221,18 +221,18 @@ describe('normalizeDownloadFilename', () => {
 
   it('takes the basename only — POSIX and Windows paths alike', () => {
     expect(normalizeDownloadFilename('../../etc/passwd')).toBe('passwd');
-    expect(normalizeDownloadFilename('C:\\Users\\dj\\secret.png', { contentType: 'image/png' })).toBe(
-      'secret.png',
-    );
+    expect(
+      normalizeDownloadFilename('C:\\Users\\dj\\secret.png', { contentType: 'image/png' }),
+    ).toBe('secret.png');
     expect(normalizeDownloadFilename('a/b/c/photo.jpg', { contentType: 'image/jpeg' })).toBe(
       'photo.jpg',
     );
   });
 
   it('never leaves a path separator in the output', () => {
-    expect(normalizeDownloadFilename('we/ird\\name.jpg', { contentType: 'image/jpeg' })).not.toMatch(
-      /[/\\]/,
-    );
+    expect(
+      normalizeDownloadFilename('we/ird\\name.jpg', { contentType: 'image/jpeg' }),
+    ).not.toMatch(/[/\\]/);
   });
 
   it('trims trailing dots and spaces', () => {

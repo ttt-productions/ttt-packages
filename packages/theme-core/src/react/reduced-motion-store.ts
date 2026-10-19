@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useSyncExternalStore } from "react";
-import { REDUCED_MOTION_ATTRIBUTE } from "../reduced-motion.js";
-import { createDevicePreferenceStore } from "./device-preference-store.js";
+import { useEffect, useSyncExternalStore } from 'react';
+import { REDUCED_MOTION_ATTRIBUTE } from '../reduced-motion.js';
+import { createDevicePreferenceStore } from './device-preference-store.js';
 
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 export interface ReducedMotionStoreConfig {
   /** localStorage key for the device's saved preference: `"true"` reduced, `"false"` full, absent when nothing is saved. */
@@ -50,7 +50,7 @@ export function createReducedMotionStore({
   changeEvent,
 }: ReducedMotionStoreConfig): ReducedMotionStore {
   function mediaQueryList(): MediaQueryList | null {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return null;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null;
     return window.matchMedia(REDUCED_MOTION_QUERY);
   }
 
@@ -61,7 +61,7 @@ export function createReducedMotionStore({
   const saved = createDevicePreferenceStore<boolean | null>({
     storageKey,
     changeEvent,
-    parse: (stored) => (stored === "true" ? true : stored === "false" ? false : undefined),
+    parse: (stored) => (stored === 'true' ? true : stored === 'false' ? false : undefined),
     serialize: String,
     fallback: null,
   });
@@ -75,8 +75,8 @@ export function createReducedMotionStore({
   }
 
   function applyAttribute(reduced: boolean): void {
-    if (typeof document === "undefined") return;
-    if (reduced) document.documentElement.setAttribute(REDUCED_MOTION_ATTRIBUTE, "true");
+    if (typeof document === 'undefined') return;
+    if (reduced) document.documentElement.setAttribute(REDUCED_MOTION_ATTRIBUTE, 'true');
     else document.documentElement.removeAttribute(REDUCED_MOTION_ATTRIBUTE);
   }
 
@@ -87,10 +87,10 @@ export function createReducedMotionStore({
 
   function subscribe(onChange: () => void): () => void {
     const mql = mediaQueryList();
-    mql?.addEventListener("change", onChange);
+    mql?.addEventListener('change', onChange);
     const unsubscribeSaved = saved.subscribe(onChange);
     return () => {
-      mql?.removeEventListener("change", onChange);
+      mql?.removeEventListener('change', onChange);
       unsubscribeSaved();
     };
   }

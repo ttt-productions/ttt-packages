@@ -19,9 +19,7 @@ import {
 import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
 import { SquareStreetzPostTextSchema } from '../src/media/atoms.js';
 import { CreateSquareStreetzTextPostInputSchema } from '../src/schemas/social.js';
-import {
-  MAX_WORK_PROJECT_STAKE_SHARES,
-} from '../src/constants/business-work-project.js';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
 import {
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
@@ -29,9 +27,7 @@ import {
   MAX_MENTIONS,
   MAX_POST_LENGTH,
 } from '../src/constants/business-content.js';
-import {
-  MAX_CRAFT_SKILL_TAGS,
-} from '../src/constants/business-user.js';
+import { MAX_CRAFT_SKILL_TAGS } from '../src/constants/business-user.js';
 import { CRAFT_SKILL_STATEMENT_VERSION } from '../src/constants/craft-skill-statements.js';
 import { CRAFT_SKILL_TAG_OPTIONS } from '../src/constants/options.js';
 
@@ -60,12 +56,16 @@ describe('CraftSkillMediaTargetInfoSchema', () => {
     attestation,
     tags: [tag],
   };
-  it('accepts valid', () => { expect(() => CraftSkillMediaTargetInfoSchema.parse(valid)).not.toThrow(); });
+  it('accepts valid', () => {
+    expect(() => CraftSkillMediaTargetInfoSchema.parse(valid)).not.toThrow();
+  });
   it('rejects unknown skillType', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, skillType: 'pdf' })).toThrow();
   });
   it('rejects a client-supplied craftSkillId (backend mints the doc id from pendingMedia)', () => {
-    expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, craftSkillId: 'sk_1' })).toThrow();
+    expect(() =>
+      CraftSkillMediaTargetInfoSchema.parse({ ...valid, craftSkillId: 'sk_1' }),
+    ).toThrow();
   });
   it('rejects unknown fields', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, extra: 1 })).toThrow();
@@ -113,8 +113,12 @@ describe('CraftSkillMediaTargetInfoSchema', () => {
 
   it('enforces the tag floor of 1, the allowlist, the cap, and dedupe', () => {
     expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: [] }).success).toBe(false);
-    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: ['not-a-real-tag'] }).success).toBe(false);
-    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: [tag, tag] }).success).toBe(false);
+    expect(
+      CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: ['not-a-real-tag'] }).success,
+    ).toBe(false);
+    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: [tag, tag] }).success).toBe(
+      false,
+    );
     expect(
       CraftSkillMediaTargetInfoSchema.safeParse({
         ...valid,
@@ -171,9 +175,11 @@ describe('SquareStreetzTargetInfoSchema', () => {
     expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: ['user_1'] })).toThrow();
   });
   it('rejects mention with invalid type enum', () => {
-    expect(() => SquareStreetzTargetInfoSchema.parse({
-      mentions: [{ ...validMention, type: 'bogus' }]
-    })).toThrow();
+    expect(() =>
+      SquareStreetzTargetInfoSchema.parse({
+        mentions: [{ ...validMention, type: 'bogus' }],
+      }),
+    ).toThrow();
   });
   it('rejects missing mentions', () => {
     expect(() => SquareStreetzTargetInfoSchema.parse({})).toThrow();
@@ -186,29 +192,39 @@ describe('SquareStreetzTargetInfoSchema', () => {
     expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: tooMany })).toThrow();
   });
   it('strips/rejects a client-supplied mention.text (no text field on the wire shape)', () => {
-    expect(() => SquareStreetzTargetInfoSchema.parse({
-      mentions: [{ ...validMention, text: '@John Doe' }],
-    })).toThrow();
+    expect(() =>
+      SquareStreetzTargetInfoSchema.parse({
+        mentions: [{ ...validMention, text: '@John Doe' }],
+      }),
+    ).toThrow();
   });
   it('rejects a placeholder longer than 32 chars', () => {
-    expect(() => SquareStreetzTargetInfoSchema.parse({
-      mentions: [{ ...validMention, placeholder: '@'.padEnd(33, 'm') }],
-    })).toThrow();
+    expect(() =>
+      SquareStreetzTargetInfoSchema.parse({
+        mentions: [{ ...validMention, placeholder: '@'.padEnd(33, 'm') }],
+      }),
+    ).toThrow();
   });
   it('rejects an id longer than 128 chars', () => {
-    expect(() => SquareStreetzTargetInfoSchema.parse({
-      mentions: [{ ...validMention, id: 'u'.repeat(129) }],
-    })).toThrow();
+    expect(() =>
+      SquareStreetzTargetInfoSchema.parse({
+        mentions: [{ ...validMention, id: 'u'.repeat(129) }],
+      }),
+    ).toThrow();
   });
   it('rejects a placeholder outside the @m grammar', () => {
-    expect(() => SquareStreetzTargetInfoSchema.parse({
-      mentions: [{ ...validMention, placeholder: '@user1' }],
-    })).toThrow();
+    expect(() =>
+      SquareStreetzTargetInfoSchema.parse({
+        mentions: [{ ...validMention, placeholder: '@user1' }],
+      }),
+    ).toThrow();
   });
   it('rejects duplicate mention placeholders', () => {
-    expect(() => SquareStreetzTargetInfoSchema.parse({
-      mentions: [validMention, { ...validMention, id: 'user_def' }],
-    })).toThrow();
+    expect(() =>
+      SquareStreetzTargetInfoSchema.parse({
+        mentions: [validMention, { ...validMention, id: 'user_def' }],
+      }),
+    ).toThrow();
   });
 });
 
@@ -227,8 +243,12 @@ describe('SquareStreetzPostTextSchema (the text post and the media caption)', ()
     expect(SquareStreetzPostTextSchema.parse('  hello  ')).toBe('hello');
   });
   it('is the text post schema too', () => {
-    expect(CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: '   ' }).success).toBe(false);
-    expect(CreateSquareStreetzTextPostInputSchema.parse({ textContent: ' hi ' }).textContent).toBe('hi');
+    expect(CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: '   ' }).success).toBe(
+      false,
+    );
+    expect(CreateSquareStreetzTextPostInputSchema.parse({ textContent: ' hi ' }).textContent).toBe(
+      'hi',
+    );
   });
 });
 
@@ -240,9 +260,13 @@ describe('CommissionPostingTargetInfoSchema', () => {
     stakeSharesOffered: 5,
     workProjectId: 'p_1',
   };
-  it('accepts valid', () => { expect(() => CommissionPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
+  it('accepts valid', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse(valid)).not.toThrow();
+  });
   it('rejects a client-supplied commissionListingId (backend mints the listing id)', () => {
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, commissionListingId: 'job_1' })).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({ ...valid, commissionListingId: 'job_1' }),
+    ).toThrow();
   });
   it('rejects missing workProjectId', () => {
     const { workProjectId, ...rest } = valid;
@@ -250,32 +274,57 @@ describe('CommissionPostingTargetInfoSchema', () => {
   });
   // Identity is server-derived — a client-supplied createdBy must be rejected.
   it('rejects a client-supplied createdBy', () => {
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } }),
+    ).toThrow();
   });
   it('rejects an unknown trade profession', () => {
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, requiredTradeProfessions: ['Astronaut'] })).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({
+        ...valid,
+        requiredTradeProfessions: ['Astronaut'],
+      }),
+    ).toThrow();
   });
   it('rejects an over-long description', () => {
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, description: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1) })).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({
+        ...valid,
+        description: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1),
+      }),
+    ).toThrow();
   });
   it('rejects stakeSharesOffered above the cap', () => {
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1 })).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({
+        ...valid,
+        stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1,
+      }),
+    ).toThrow();
   });
   it('rejects a negative or non-integer stakeSharesOffered', () => {
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: -1 })).toThrow();
-    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: 1.5 })).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: -1 }),
+    ).toThrow();
+    expect(() =>
+      CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: 1.5 }),
+    ).toThrow();
   });
 });
 
 describe('CommissionProposalTargetInfoSchema', () => {
   it('accepts valid', () => {
-    expect(() => CommissionProposalTargetInfoSchema.parse({ commissionListingId: 'j', replyText: 'r' })).not.toThrow();
+    expect(() =>
+      CommissionProposalTargetInfoSchema.parse({ commissionListingId: 'j', replyText: 'r' }),
+    ).not.toThrow();
   });
   it('rejects an over-long replyText', () => {
-    expect(() => CommissionProposalTargetInfoSchema.parse({
-      commissionListingId: 'j',
-      replyText: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1),
-    })).toThrow();
+    expect(() =>
+      CommissionProposalTargetInfoSchema.parse({
+        commissionListingId: 'j',
+        replyText: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1),
+      }),
+    ).toThrow();
   });
 });
 
@@ -293,15 +342,23 @@ describe('AuditionPromptTargetInfoSchema', () => {
     expect(() => AuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it("rejects type: 'platformAudition'", () => {
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, type: 'platformAudition' })).toThrow();
+    expect(() =>
+      AuditionPromptTargetInfoSchema.parse({ ...valid, type: 'platformAudition' }),
+    ).toThrow();
   });
   it('rejects a client-supplied createdBy', () => {
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
+    expect(() =>
+      AuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } }),
+    ).toThrow();
   });
   it('rejects a non-positive or non-integer deadline', () => {
     for (const bad of [0, -1, 1.5]) {
-      expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, entriesCloseAt: bad })).toThrow();
-      expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: bad })).toThrow();
+      expect(() =>
+        AuditionPromptTargetInfoSchema.parse({ ...valid, entriesCloseAt: bad }),
+      ).toThrow();
+      expect(() =>
+        AuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: bad }),
+      ).toThrow();
     }
   });
   it('requires both deadlines', () => {
@@ -312,17 +369,32 @@ describe('AuditionPromptTargetInfoSchema', () => {
   });
   it('refuses an audition that closes less than 24 hours after entries close', () => {
     expect(() =>
-      AuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: valid.entriesCloseAt + DAY_MS - 1 }),
+      AuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        auditionCloseAt: valid.entriesCloseAt + DAY_MS - 1,
+      }),
     ).toThrow();
   });
   it('refuses a stake offer of zero, like the stored audition', () => {
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, stakeSharesOffered: 0 })).toThrow();
+    expect(() =>
+      AuditionPromptTargetInfoSchema.parse({ ...valid, stakeSharesOffered: 0 }),
+    ).toThrow();
   });
   it('rejects an over-long description', () => {
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, description: 'x'.repeat(MAX_AUDITION_DESCRIPTION_LENGTH + 1) })).toThrow();
+    expect(() =>
+      AuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        description: 'x'.repeat(MAX_AUDITION_DESCRIPTION_LENGTH + 1),
+      }),
+    ).toThrow();
   });
   it('rejects stakeSharesOffered above the cap', () => {
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1 })).toThrow();
+    expect(() =>
+      AuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1,
+      }),
+    ).toThrow();
   });
 });
 
@@ -339,39 +411,70 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
     expect(() => AdminAuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it('accepts sponsoredAudition with sponsoredAuditionAmountUSD', () => {
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({
-      ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: 5000,
-    })).not.toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        type: 'sponsoredAudition',
+        sponsoredAuditionAmountUSD: 5000,
+      }),
+    ).not.toThrow();
   });
   it("rejects type: 'workAudition'", () => {
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, type: 'workAudition' })).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, type: 'workAudition' }),
+    ).toThrow();
   });
   it('rejects a client-supplied createdBy', () => {
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } }),
+    ).toThrow();
   });
   it('rejects a sponsoredAuditionAmountUSD above the cap or negative', () => {
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({
-      ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD + 1,
-    })).toThrow();
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({
-      ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: -1,
-    })).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        type: 'sponsoredAudition',
+        sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD + 1,
+      }),
+    ).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        type: 'sponsoredAudition',
+        sponsoredAuditionAmountUSD: -1,
+      }),
+    ).toThrow();
   });
   it('requires a sponsored audition to carry a positive prize amount', () => {
     const sponsored = { ...valid, type: 'sponsoredAudition' as const };
     expect(() => AdminAuditionPromptTargetInfoSchema.parse(sponsored)).toThrow();
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: 0 })).toThrow();
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: Infinity })).toThrow();
     expect(() =>
-      AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD }),
+      AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: 0 }),
+    ).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({
+        ...sponsored,
+        sponsoredAuditionAmountUSD: Infinity,
+      }),
+    ).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({
+        ...sponsored,
+        sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD,
+      }),
     ).not.toThrow();
   });
   it('refuses a prize amount on a platform audition', () => {
-    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, sponsoredAuditionAmountUSD: 100 })).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, sponsoredAuditionAmountUSD: 100 }),
+    ).toThrow();
   });
   it('refuses an audition that closes less than 24 hours after entries close', () => {
     expect(() =>
-      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: valid.entriesCloseAt + DAY_MS - 1 }),
+      AdminAuditionPromptTargetInfoSchema.parse({
+        ...valid,
+        auditionCloseAt: valid.entriesCloseAt + DAY_MS - 1,
+      }),
     ).toThrow();
   });
 });
@@ -388,18 +491,27 @@ describe('HallLibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
     expect(() => HallLibraryCoverSquareTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it('accepts itemType tune', () => {
-    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'tune' })).not.toThrow();
+    expect(() =>
+      HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'tune' }),
+    ).not.toThrow();
   });
   it('accepts itemType television', () => {
-    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'television' })).not.toThrow();
+    expect(() =>
+      HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'television' }),
+    ).not.toThrow();
   });
   it('rejects a { docPath, fields } shape', () => {
     expect(() =>
-      HallLibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
+      HallLibraryCoverSquareTargetInfoSchema.parse({
+        docPath: 'allWorkProjects/p_1/workProjectTales/tale_1',
+        fields: { full: 'coverPhotoSquare' },
+      }),
     ).toThrow();
   });
   it('rejects unknown itemType', () => {
-    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'film' })).toThrow();
+    expect(() =>
+      HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'film' }),
+    ).toThrow();
   });
   it('rejects missing workProjectId', () => {
     const { workProjectId, ...rest } = valid;
@@ -417,7 +529,10 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects a { docPath, fields } shape', () => {
     expect(() =>
-      ChapterPhotoTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
+      ChapterPhotoTargetInfoSchema.parse({
+        docPath: 'allWorkProjects/p_1/workProjectTales/tale_1/taleChapters/ch_1',
+        fields: { full: 'photoUrl' },
+      }),
     ).toThrow();
   });
   it('rejects missing chapterId', () => {
@@ -431,43 +546,70 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
 
 describe('ConversationFileTargetInfoSchema (strict — the ConversationFileRef and nothing else)', () => {
   it('accepts the guildInvite scope', () => {
-    expect(ConversationFileTargetInfoSchema.parse({ kind: 'guildInvite', guildInviteId: 'inv_1' }))
-      .toEqual({ kind: 'guildInvite', guildInviteId: 'inv_1' });
+    expect(
+      ConversationFileTargetInfoSchema.parse({ kind: 'guildInvite', guildInviteId: 'inv_1' }),
+    ).toEqual({ kind: 'guildInvite', guildInviteId: 'inv_1' });
   });
   it('accepts the adminSupport scope', () => {
-    expect(ConversationFileTargetInfoSchema.parse({ kind: 'adminSupport', adminDispatchId: 'ad_1' }))
-      .toEqual({ kind: 'adminSupport', adminDispatchId: 'ad_1' });
+    expect(
+      ConversationFileTargetInfoSchema.parse({ kind: 'adminSupport', adminDispatchId: 'ad_1' }),
+    ).toEqual({ kind: 'adminSupport', adminDispatchId: 'ad_1' });
   });
   it('rejects guildChannel — guild chat channels have NO Conversation Files', () => {
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      kind: 'guildChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1',
-    })).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        kind: 'guildChannel',
+        workProjectId: 'p_1',
+        guildChatChannelId: 'c_1',
+      }),
+    ).toThrow();
   });
   it('rejects MIXED scope identifiers', () => {
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      kind: 'guildInvite', guildInviteId: 'inv_1', adminDispatchId: 'ad_1',
-    })).toThrow();
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      kind: 'adminSupport', adminDispatchId: 'ad_1', guildInviteId: 'inv_1',
-    })).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        kind: 'guildInvite',
+        guildInviteId: 'inv_1',
+        adminDispatchId: 'ad_1',
+      }),
+    ).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        kind: 'adminSupport',
+        adminDispatchId: 'ad_1',
+        guildInviteId: 'inv_1',
+      }),
+    ).toThrow();
   });
   it('rejects chat-attachment payload fields (text, replyTo, messageId, isUserReply)', () => {
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      kind: 'adminSupport', adminDispatchId: 'ad_1', isUserReply: true,
-    })).toThrow();
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      kind: 'guildInvite',
-      guildInviteId: 'inv_1',
-      replyTo: { messageId: 'm_1', senderId: 'u_1', messagePreview: 'hi' },
-    })).toThrow();
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      kind: 'guildInvite', guildInviteId: 'inv_1', messageId: 'm_1',
-    })).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        kind: 'adminSupport',
+        adminDispatchId: 'ad_1',
+        isUserReply: true,
+      }),
+    ).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        kind: 'guildInvite',
+        guildInviteId: 'inv_1',
+        replyTo: { messageId: 'm_1', senderId: 'u_1', messagePreview: 'hi' },
+      }),
+    ).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        kind: 'guildInvite',
+        guildInviteId: 'inv_1',
+        messageId: 'm_1',
+      }),
+    ).toThrow();
   });
   it('rejects a threadKind discriminant', () => {
-    expect(() => ConversationFileTargetInfoSchema.parse({
-      threadKind: 'guildInvite', guildInviteId: 'inv_1',
-    })).toThrow();
+    expect(() =>
+      ConversationFileTargetInfoSchema.parse({
+        threadKind: 'guildInvite',
+        guildInviteId: 'inv_1',
+      }),
+    ).toThrow();
   });
   it('rejects a missing scope id', () => {
     expect(() => ConversationFileTargetInfoSchema.parse({ kind: 'guildInvite' })).toThrow();
@@ -482,7 +624,7 @@ describe('TuneTrackPhotoTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects a { docPath, fields } shape', () => {
     expect(() =>
-      TuneTrackPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
+      TuneTrackPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } }),
     ).toThrow();
   });
 });
@@ -494,7 +636,7 @@ describe('TelevisionEpisodePhotoTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects a { docPath, fields } shape', () => {
     expect(() =>
-      TelevisionEpisodePhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
+      TelevisionEpisodePhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } }),
     ).toThrow();
   });
 });
@@ -542,31 +684,39 @@ describe('parseTargetInfo dispatch', () => {
       },
       tags: [CRAFT_SKILL_TAG_OPTIONS[0]],
     });
-    expect(result).toMatchObject({ skillType: 'image', originalFileName: 'a.jpg', kind: 'original' });
+    expect(result).toMatchObject({
+      skillType: 'image',
+      originalFileName: 'a.jpg',
+      kind: 'original',
+    });
   });
   it('dispatches to conversation-file schema', () => {
-    expect(parseTargetInfo('conversation-file', { kind: 'guildInvite', guildInviteId: 'inv_1' }))
-      .toMatchObject({ kind: 'guildInvite', guildInviteId: 'inv_1' });
-    expect(parseTargetInfo('conversation-file', { kind: 'adminSupport', adminDispatchId: 'ad_1' }))
-      .toMatchObject({ kind: 'adminSupport', adminDispatchId: 'ad_1' });
+    expect(
+      parseTargetInfo('conversation-file', { kind: 'guildInvite', guildInviteId: 'inv_1' }),
+    ).toMatchObject({ kind: 'guildInvite', guildInviteId: 'inv_1' });
+    expect(
+      parseTargetInfo('conversation-file', { kind: 'adminSupport', adminDispatchId: 'ad_1' }),
+    ).toMatchObject({ kind: 'adminSupport', adminDispatchId: 'ad_1' });
   });
   it('conversation-file dispatch rejects a guildChannel scope', () => {
-    expect(() => parseTargetInfo('conversation-file', {
-      kind: 'guildChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1',
-    })).toThrow();
+    expect(() =>
+      parseTargetInfo('conversation-file', {
+        kind: 'guildChannel',
+        workProjectId: 'p_1',
+        guildChatChannelId: 'c_1',
+      }),
+    ).toThrow();
   });
   it('throws on schema mismatch', () => {
     expect(() => parseTargetInfo('craft-skill-media', { wrongShape: true })).toThrow();
   });
 });
 
-
-
-
-
 describe('RealmCoverTargetInfoSchema (realm-cover)', () => {
   it('accepts a valid workRealmId and dispatches via parseTargetInfo', () => {
-    expect(parseTargetInfo('realm-cover', { workRealmId: 'realm_1' })).toEqual({ workRealmId: 'realm_1' });
+    expect(parseTargetInfo('realm-cover', { workRealmId: 'realm_1' })).toEqual({
+      workRealmId: 'realm_1',
+    });
   });
   it('rejects a missing workRealmId', () => {
     expect(() => parseTargetInfo('realm-cover', {})).toThrow();

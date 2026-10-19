@@ -6,10 +6,10 @@
 // and where the caller's accepted level is stored (a custom claim named by the app). The package
 // only compares the two numbers and reports a refusal in one recognisable shape.
 
-import { failedPreconditionDetails } from "./refusal.js";
+import { failedPreconditionDetails } from './refusal.js';
 
 /** The `details.reason` of the refusal a caller below the required level receives. */
-export const ACCEPTANCE_REQUIRED_REASON = "acceptance-required" as const;
+export const ACCEPTANCE_REQUIRED_REASON = 'acceptance-required' as const;
 
 /**
  * Structured details carried by the acceptance refusal. Server side it rides
@@ -31,18 +31,20 @@ export interface AcceptanceRequiredDetails {
  * required level requires nothing.
  */
 export function normalizeAcceptanceLevel(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return 0;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return 0;
   return Math.floor(value);
 }
 
 /** True when `details` is the acceptance refusal's structured details. */
-export function isAcceptanceRequiredDetails(details: unknown): details is AcceptanceRequiredDetails {
-  if (!details || typeof details !== "object") return false;
+export function isAcceptanceRequiredDetails(
+  details: unknown,
+): details is AcceptanceRequiredDetails {
+  if (!details || typeof details !== 'object') return false;
   const d = details as Record<string, unknown>;
   return (
     d.reason === ACCEPTANCE_REQUIRED_REASON &&
-    typeof d.requiredLevel === "number" &&
-    typeof d.acceptedLevel === "number"
+    typeof d.requiredLevel === 'number' &&
+    typeof d.acceptedLevel === 'number'
   );
 }
 

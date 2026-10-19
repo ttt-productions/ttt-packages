@@ -10,7 +10,14 @@ const deadlines = { entriesCloseAt: 1_700_000_000_000, auditionCloseAt: 1_700_00
 const onProgress = () => {};
 
 describe('audition upload variables carry the same deadline contract as the target info', () => {
-  const work = { title: 'T', description: 'D', videoFile: file, workProjectId: 'p1', onProgress, ...deadlines };
+  const work = {
+    title: 'T',
+    description: 'D',
+    videoFile: file,
+    workProjectId: 'p1',
+    onProgress,
+    ...deadlines,
+  };
 
   it('accepts both deadlines as epoch ms', () => {
     expect(CreateWorkProjectAuditionVariablesSchema.safeParse(work).success).toBe(true);
@@ -22,8 +29,14 @@ describe('audition upload variables carry the same deadline contract as the targ
   });
 
   it('refuses a stake offer of zero, like its target info', () => {
-    expect(CreateWorkProjectAuditionVariablesSchema.safeParse({ ...work, stakeSharesOffered: 0 }).success).toBe(false);
-    expect(CreateWorkProjectAuditionVariablesSchema.safeParse({ ...work, stakeSharesOffered: 1 }).success).toBe(true);
+    expect(
+      CreateWorkProjectAuditionVariablesSchema.safeParse({ ...work, stakeSharesOffered: 0 })
+        .success,
+    ).toBe(false);
+    expect(
+      CreateWorkProjectAuditionVariablesSchema.safeParse({ ...work, stakeSharesOffered: 1 })
+        .success,
+    ).toBe(true);
   });
 });
 
@@ -45,13 +58,21 @@ describe('admin audition upload variables are discriminated by type', () => {
   it('refuses a prize amount on a platform audition', () => {
     const platform = { ...admin, type: 'platformAudition' as const };
     expect(CreateAdminAuditionVariablesSchema.safeParse(platform).success).toBe(true);
-    expect(CreateAdminAuditionVariablesSchema.safeParse({ ...platform, sponsoredAuditionAmountUSD: 10 }).success).toBe(false);
+    expect(
+      CreateAdminAuditionVariablesSchema.safeParse({ ...platform, sponsoredAuditionAmountUSD: 10 })
+        .success,
+    ).toBe(false);
   });
 });
 
 describe('commission upload variables', () => {
   it('refuses a stake offer of zero, like its target info', () => {
-    const listing = { title: 'T', description: 'D', requiredTradeProfessions: [], stakeSharesOffered: 0 };
+    const listing = {
+      title: 'T',
+      description: 'D',
+      requiredTradeProfessions: [],
+      stakeSharesOffered: 0,
+    };
     const base = { workProjectId: 'p1', file, onProgress, commissionListingData: listing };
     expect(CreateCommissionVariablesSchema.safeParse(base).success).toBe(false);
     const one = { ...base, commissionListingData: { ...listing, stakeSharesOffered: 1 } };

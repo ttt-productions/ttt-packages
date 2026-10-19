@@ -22,7 +22,7 @@ export interface AuditEvent<
   region: string | null;
 
   metadata: TMetadata;
-  result: "success" | "failure";
+  result: 'success' | 'failure';
   failureReason: string | null;
 
   correlationId: string | null;

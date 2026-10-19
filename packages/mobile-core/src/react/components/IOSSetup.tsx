@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useIosSafariFixes } from "../ios/useIosSafariFixes.js";
-import type { CssPrefixOptions } from "../css-prefix.js";
+import { useIosSafariFixes } from '../ios/useIosSafariFixes.js';
+import type { CssPrefixOptions } from '../css-prefix.js';
 
 /**
  * Applies iOS-specific Safari fixes on mount. Renders nothing.

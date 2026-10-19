@@ -6,12 +6,17 @@
 
 import { z } from 'zod';
 import { parseNotificationArchiveAllJobId } from '../ids/notification-ids.js';
-import { ADMIN_NOTIFICATION_CATEGORY, NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS } from '../types/notifications.js';
+import {
+  ADMIN_NOTIFICATION_CATEGORY,
+  NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS,
+} from '../types/notifications.js';
 import { countSchema } from '../doc-schemas/atoms.js';
 
 // A card's document id as notification-core derives it: a hex digest. Bounding it to letters and
 // digits keeps a client-sent id from addressing anything but a document of the card collection.
-export const adminNotificationIdSchema = z.string().regex(/^[A-Za-z0-9]{1,128}$/, 'Not a notification id.');
+export const adminNotificationIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9]{1,128}$/, 'Not a notification id.');
 
 // The opaque generation token a card carried when the admin saw it. An action on the card applies
 // only while the card still carries it, so activity that arrived after the admin looked is never
@@ -39,17 +44,25 @@ export type AdminArchiveNotificationInput = z.infer<typeof AdminArchiveNotificat
 export const AdminArchiveNotificationResultSchema = z.object({ archived: z.boolean() }).strict();
 export type AdminArchiveNotificationResult = z.infer<typeof AdminArchiveNotificationResultSchema>;
 
-export const AdminArchiveAllNotificationsInputSchema = z.object({ requestId: notificationRequestIdSchema }).strict();
-export type AdminArchiveAllNotificationsInput = z.infer<typeof AdminArchiveAllNotificationsInputSchema>;
+export const AdminArchiveAllNotificationsInputSchema = z
+  .object({ requestId: notificationRequestIdSchema })
+  .strict();
+export type AdminArchiveAllNotificationsInput = z.infer<
+  typeof AdminArchiveAllNotificationsInputSchema
+>;
 export const AdminArchiveAllNotificationsResultSchema = z
   .object({ jobId: notificationArchiveAllJobIdSchema })
   .strict();
-export type AdminArchiveAllNotificationsResult = z.infer<typeof AdminArchiveAllNotificationsResultSchema>;
+export type AdminArchiveAllNotificationsResult = z.infer<
+  typeof AdminArchiveAllNotificationsResultSchema
+>;
 
 export const AdminGetNotificationArchiveAllStatusInputSchema = z
   .object({ jobId: notificationArchiveAllJobIdSchema })
   .strict();
-export type AdminGetNotificationArchiveAllStatusInput = z.infer<typeof AdminGetNotificationArchiveAllStatusInputSchema>;
+export type AdminGetNotificationArchiveAllStatusInput = z.infer<
+  typeof AdminGetNotificationArchiveAllStatusInputSchema
+>;
 // notification-core's archive-all snapshot: the job's state, the category it drains, how many
 // cards it has archived, and — on a completed job that left cards behind — how many it could not.
 // A job that ran out of attempts with cards left reads as `incomplete`.
@@ -62,4 +75,6 @@ export const AdminGetNotificationArchiveAllStatusResultSchema = z
     error: z.string().optional(),
   })
   .strict();
-export type AdminGetNotificationArchiveAllStatusResult = z.infer<typeof AdminGetNotificationArchiveAllStatusResultSchema>;
+export type AdminGetNotificationArchiveAllStatusResult = z.infer<
+  typeof AdminGetNotificationArchiveAllStatusResultSchema
+>;

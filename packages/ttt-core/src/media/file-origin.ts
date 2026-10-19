@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const FileOriginSchema = z.enum([
   'profile-picture',
@@ -36,4 +36,3 @@ export const FileOriginSchema = z.enum([
 ]);
 
 export type FileOrigin = z.infer<typeof FileOriginSchema>;
-

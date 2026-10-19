@@ -1,6 +1,6 @@
-import * as React from "react";
-import { CheckCircle2 } from "lucide-react";
-import { cn } from "../../lib/utils.js";
+import * as React from 'react';
+import { CheckCircle2 } from 'lucide-react';
+import { cn } from '../../lib/utils.js';
 
 export interface EndOfListIndicatorProps {
   message?: string;
@@ -16,7 +16,7 @@ export function EndOfListIndicator({
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-2 py-8 text-center text-muted-foreground",
+        'flex flex-col items-center gap-2 py-8 text-center text-muted-foreground',
         className,
       )}
     >

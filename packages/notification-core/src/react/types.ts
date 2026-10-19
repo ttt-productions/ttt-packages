@@ -79,5 +79,8 @@ export interface NotificationHistoryListProps {
    * read-only (no re-archive), so `actions.archive` is absent — the consumer
    * typically renders only an ArrowRight "go to". Omit for a row with no controls.
    */
-  renderRowAction?: (notification: NotificationHistoryItem, actions: NotificationRowActions) => ReactNode;
+  renderRowAction?: (
+    notification: NotificationHistoryItem,
+    actions: NotificationRowActions,
+  ) => ReactNode;
 }

@@ -33,7 +33,10 @@ export type StatEventBody = DistributiveOmit<
   'eventId' | 'recordedAt' | StatEventRecorderField | StatEventSnapshotField
 >;
 export type StatVoidBody = Extract<StatEventBody, { type: typeof STAT_VOID_EVENT_TYPE }>;
-export type StatCorrectionBody = Extract<StatEventBody, { type: typeof STAT_CORRECTION_EVENT_TYPE }>;
+export type StatCorrectionBody = Extract<
+  StatEventBody,
+  { type: typeof STAT_CORRECTION_EVENT_TYPE }
+>;
 /** One of a sport's own events, as opposed to the store-level void and correction. */
 export type SportStatEventBody = Exclude<StatEventBody, StatVoidBody | StatCorrectionBody>;
 
@@ -69,7 +72,8 @@ export interface StatEventRoster {
   readonly rosterPlayerIds: ReadonlySet<string>;
 }
 
-export type StatEventVerdict = { readonly ok: true } | { readonly ok: false; readonly code: StatEventRefusalCode };
+export type StatEventVerdict =
+  { readonly ok: true } | { readonly ok: false; readonly code: StatEventRefusalCode };
 
 export const STAT_EVENT_ACCEPTED: StatEventVerdict = { ok: true };
 
@@ -78,8 +82,7 @@ export function refuseStatEvent(code: StatEventRefusalCode): StatEventVerdict {
 }
 
 export type FinalizationReadiness =
-  | { readonly ready: true }
-  | { readonly ready: false; readonly reason: FinalizationNotReadyReason };
+  { readonly ready: true } | { readonly ready: false; readonly reason: FinalizationNotReadyReason };
 
 export const FINALIZATION_READY: FinalizationReadiness = { ready: true };
 
@@ -96,7 +99,11 @@ export interface SportScoring {
    * result. Only the store driver calls it, and only for a new event — a replay never re-validates
    * what was already accepted.
    */
-  readonly validate: (state: GameStats, event: StatEventBody, roster: StatEventRoster) => StatEventVerdict;
+  readonly validate: (
+    state: GameStats,
+    event: StatEventBody,
+    roster: StatEventRoster,
+  ) => StatEventVerdict;
   /**
    * `state` with one sport event or one `STAT_CORRECTION` applied. A missing line is created from
    * the sport's empty line (SPORT-105); a player line whose counters all return to zero is dropped;

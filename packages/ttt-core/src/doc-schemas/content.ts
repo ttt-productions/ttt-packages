@@ -121,10 +121,12 @@ export type FullTelevisionEpisode = z.infer<typeof FullTelevisionEpisodeSchema>;
 /** `allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation` — the Work's ONE
  * hall-entry reservation, created (never updated) inside the first threshold submit's
  * transaction; every later submit converges on its `hallItemId`. Backend-only. */
-export const HallSubmissionReservationSchema = z.object({
-  hallItemId: z.string().min(1),
-  createdAt: z.number(),
-}).strict();
+export const HallSubmissionReservationSchema = z
+  .object({
+    hallItemId: z.string().min(1),
+    createdAt: z.number(),
+  })
+  .strict();
 export type HallSubmissionReservation = z.infer<typeof HallSubmissionReservationSchema>;
 
 export const ThresholdItemSchema = z.object({

@@ -49,17 +49,42 @@ describe('useActiveNotifications', () => {
 
   it("holds a failed page's failure through its retry, and never carries it onto another page", () => {
     const failure = new Error('unavailable');
-    mocks.useFirestorePaginated.mockReturnValue({ page: 1, error: failure, isFetching: false, isLoading: false });
-    const { result, rerender } = renderHook(() => useActiveNotifications({ config, userId: 'u1', category: 'user' }));
-    expect(result.current.retryState).toEqual({ error: failure, isRetrying: false, isLoading: false });
+    mocks.useFirestorePaginated.mockReturnValue({
+      page: 1,
+      error: failure,
+      isFetching: false,
+      isLoading: false,
+    });
+    const { result, rerender } = renderHook(() =>
+      useActiveNotifications({ config, userId: 'u1', category: 'user' }),
+    );
+    expect(result.current.retryState).toEqual({
+      error: failure,
+      isRetrying: false,
+      isLoading: false,
+    });
 
     // The retry of a never-succeeded page: TanStack clears the error and reports loading.
-    mocks.useFirestorePaginated.mockReturnValue({ page: 1, error: null, isFetching: true, isLoading: true });
+    mocks.useFirestorePaginated.mockReturnValue({
+      page: 1,
+      error: null,
+      isFetching: true,
+      isLoading: true,
+    });
     rerender();
-    expect(result.current.retryState).toEqual({ error: failure, isRetrying: true, isLoading: false });
+    expect(result.current.retryState).toEqual({
+      error: failure,
+      isRetrying: true,
+      isLoading: false,
+    });
 
     // Another page is another read: its loading is loading, not the first page's failure.
-    mocks.useFirestorePaginated.mockReturnValue({ page: 2, error: null, isFetching: true, isLoading: true });
+    mocks.useFirestorePaginated.mockReturnValue({
+      page: 2,
+      error: null,
+      isFetching: true,
+      isLoading: true,
+    });
     rerender();
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: true });
   });

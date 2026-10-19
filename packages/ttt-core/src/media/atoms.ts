@@ -1,13 +1,19 @@
-import { z } from "zod";
-import { documentIdSegmentSchema } from "../schemas/atoms.js";
-import { MAX_MENTIONS, MAX_MENTION_PLACEHOLDER_LENGTH } from "../constants/business-content.js";
-import { SQUARE_POST_TEXT_INPUT } from "../constants/text-fields.js";
-import { textFieldSchema } from "../schemas/text-field.js";
+import { z } from 'zod';
+import { documentIdSegmentSchema } from '../schemas/atoms.js';
+import { MAX_MENTIONS, MAX_MENTION_PLACEHOLDER_LENGTH } from '../constants/business-content.js';
+import { SQUARE_POST_TEXT_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 
 /** A Square post's text — the ONE schema for a text post's text and a media post's caption. */
 export const SquareStreetzPostTextSchema = textFieldSchema(SQUARE_POST_TEXT_INPUT);
 
-export const MentionTypeSchema = z.enum(['user', 'workProject', 'workRealm', 'commission', 'audition']);
+export const MentionTypeSchema = z.enum([
+  'user',
+  'workProject',
+  'workRealm',
+  'commission',
+  'audition',
+]);
 
 // The persisted + wire Mention shape carries ids ONLY — never display text. Display
 // identity (names/titles) is resolved by id at render time (Display Identity Invariant).
@@ -72,8 +78,7 @@ export function buildMentionPlaceholder(counter: number): string {
 }
 
 export type MentionContentSegment =
-  | { kind: 'text'; text: string }
-  | { kind: 'mention'; placeholder: string };
+  { kind: 'text'; text: string } | { kind: 'mention'; placeholder: string };
 
 /** Splits post text into text and mention segments, in order; adjacent text is one segment. */
 export function tokenizeMentionContent(
@@ -118,7 +123,8 @@ export function validateMentionCorrespondence(
 ): MentionCorrespondenceIssue[] {
   const counts = new Map<string, number>();
   for (const segment of tokenizeMentionContent(content, mentions)) {
-    if (segment.kind === 'mention') counts.set(segment.placeholder, (counts.get(segment.placeholder) ?? 0) + 1);
+    if (segment.kind === 'mention')
+      counts.set(segment.placeholder, (counts.get(segment.placeholder) ?? 0) + 1);
   }
   const issues: MentionCorrespondenceIssue[] = [];
   mentions.forEach(({ placeholder }, index) => {

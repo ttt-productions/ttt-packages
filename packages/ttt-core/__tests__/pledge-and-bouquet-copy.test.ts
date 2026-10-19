@@ -15,7 +15,9 @@ describe('pledge badge recognition copy', () => {
 
 describe('Bouquets and payouts planned-not-built copy', () => {
   it('is the settled wording, verbatim', () => {
-    expect(BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY).toBe('Bouquets and artisan payouts are planned, not built yet.');
+    expect(BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY).toBe(
+      'Bouquets and artisan payouts are planned, not built yet.',
+    );
   });
 
   it('is only true while neither Bouquet purchasing nor payouts is live', () => {
@@ -23,4 +25,3 @@ describe('Bouquets and payouts planned-not-built copy', () => {
     expect(BOUQUET_STAGE_3_LIVE).toBe(false);
   });
 });
-

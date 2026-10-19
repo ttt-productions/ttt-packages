@@ -19,7 +19,9 @@ describe('fileOriginRowLabel', () => {
   it('labels the admin audition origin neutrally — it creates BOTH audition types', () => {
     // The origin's own target-info accepts platformAudition AND sponsoredAudition, so a
     // type-specific label (it used to say "Sponsored audition") is wrong half the time.
-    const accepted = AdminAuditionPromptTargetInfoSchema.options.map((member) => member.shape.type.value);
+    const accepted = AdminAuditionPromptTargetInfoSchema.options.map(
+      (member) => member.shape.type.value,
+    );
     expect([...accepted].sort()).toEqual(['platformAudition', 'sponsoredAudition']);
     expect(fileOriginRowLabel['admin-audition-prompt']).toBe('Admin audition');
   });
@@ -35,7 +37,12 @@ describe('upload row display copy', () => {
   });
 
   it('names every file kind', () => {
-    expect(UPLOAD_ROW_DISPLAY_COPY.fileType).toEqual({ image: 'Image', video: 'Video', audio: 'Audio', other: 'File' });
+    expect(UPLOAD_ROW_DISPLAY_COPY.fileType).toEqual({
+      image: 'Image',
+      video: 'Video',
+      audio: 'Audio',
+      other: 'File',
+    });
   });
 
   it('keeps a row relative for six hours', () => {
@@ -47,7 +54,15 @@ describe('MAX_UPLOADS_MARKED_SEEN_PER_CALL', () => {
   const ids = (count: number) => Array.from({ length: count }, (_, i) => `pm${i}`);
 
   it('is the mark-seen wire cap: a full call is accepted and one more id is refused', () => {
-    expect(MarkUploadsSeenRequestSchema.safeParse({ pendingMediaIds: ids(MAX_UPLOADS_MARKED_SEEN_PER_CALL) }).success).toBe(true);
-    expect(MarkUploadsSeenRequestSchema.safeParse({ pendingMediaIds: ids(MAX_UPLOADS_MARKED_SEEN_PER_CALL + 1) }).success).toBe(false);
+    expect(
+      MarkUploadsSeenRequestSchema.safeParse({
+        pendingMediaIds: ids(MAX_UPLOADS_MARKED_SEEN_PER_CALL),
+      }).success,
+    ).toBe(true);
+    expect(
+      MarkUploadsSeenRequestSchema.safeParse({
+        pendingMediaIds: ids(MAX_UPLOADS_MARKED_SEEN_PER_CALL + 1),
+      }).success,
+    ).toBe(false);
   });
 });

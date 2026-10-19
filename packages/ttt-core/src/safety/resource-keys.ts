@@ -119,7 +119,9 @@ export function storageObjectResourceKey(
  *
  * Order is stable: index 0 = the asset itself; index 1 (if any) = the rootIngest.
  */
-export function mediaAssetResourceKeys(asset: Pick<MediaAsset, 'mediaAssetId' | 'originLineage'>): ResourceKey[] {
+export function mediaAssetResourceKeys(
+  asset: Pick<MediaAsset, 'mediaAssetId' | 'originLineage'>,
+): ResourceKey[] {
   const keys: ResourceKey[] = [
     buildKey('mediaAsset', asset.mediaAssetId, 'asset', asset.mediaAssetId),
   ];

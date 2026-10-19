@@ -44,29 +44,33 @@ export type EventProvenanceRetentionClass = z.infer<typeof EventProvenanceRetent
 
 /** §A6 `subjectRefs` — a TYPED object, NOT an open array. Each field is the
  * relevant id for the source event's kind. */
-export const EventProvenanceSubjectRefsSchema = z.object({
-  uid: z.string().min(1).optional(),
-  assetId: z.string().min(1).optional(),
-  channelId: z.string().min(1).optional(),
-  messageSeq: z.number().optional(),
-  reportId: z.string().min(1).optional(),
-}).strict();
+export const EventProvenanceSubjectRefsSchema = z
+  .object({
+    uid: z.string().min(1).optional(),
+    assetId: z.string().min(1).optional(),
+    channelId: z.string().min(1).optional(),
+    messageSeq: z.number().optional(),
+    reportId: z.string().min(1).optional(),
+  })
+  .strict();
 export type EventProvenanceSubjectRefs = z.infer<typeof EventProvenanceSubjectRefsSchema>;
 
 /** `eventProvenance/{eventId}` — server-only, restricted provenance row. Doc id is
  * deterministic per source event. `trustedClientIp` is derived behind Firebase/
  * Cloudflare and is a restricted, INDEX-EXEMPT field; `userAgent` is truncated to
  * 256 chars + normalized. NO reuse for ads/engagement-profiling/analytics. */
-export const EventProvenanceV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  kind: EventProvenanceKindSchema,
-  subjectRefs: EventProvenanceSubjectRefsSchema, // typed object, not an open array
-  trustedClientIp: z.string(), // derived behind Firebase/Cloudflare; restricted, INDEX-EXEMPT field
-  userAgent: z.string().max(256), // truncated to 256 chars, normalized
-  at: z.number(),
-  sessionId: z.string(),
-  retentionClass: EventProvenanceRetentionClassSchema,
-}).strict();
+export const EventProvenanceV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    kind: EventProvenanceKindSchema,
+    subjectRefs: EventProvenanceSubjectRefsSchema, // typed object, not an open array
+    trustedClientIp: z.string(), // derived behind Firebase/Cloudflare; restricted, INDEX-EXEMPT field
+    userAgent: z.string().max(256), // truncated to 256 chars, normalized
+    at: z.number(),
+    sessionId: z.string(),
+    retentionClass: EventProvenanceRetentionClassSchema,
+  })
+  .strict();
 export type EventProvenanceV1 = z.infer<typeof EventProvenanceV1Schema>;
 
 // ===========================================================================

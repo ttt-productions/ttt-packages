@@ -62,7 +62,11 @@ export const RulesAndAgreementsContentSchema = RulesAndAgreementsSchema.pick({
   rules: true,
   agreements: true,
 });
-export const FuturePlansContentSchema = FuturePlansDocumentSchema.pick({ intro: true, groups: true, plans: true });
+export const FuturePlansContentSchema = FuturePlansDocumentSchema.pick({
+  intro: true,
+  groups: true,
+  plans: true,
+});
 export const TakeItDownPageCopyContentSchema = TakeItDownPageCopySchema.pick({ strings: true });
 export const DmcaPolicyContentSchema = DmcaPolicyDocumentSchema.pick({
   intro: true,
@@ -85,8 +89,14 @@ export type PublicDocumentContent<D extends PublicDocumentId = PublicDocumentId>
   (typeof PUBLIC_DOCUMENT_CONTENT_SCHEMAS)[D]
 >;
 
-function projection<const D extends PublicDocumentId, const S extends z.ZodType>(documentId: D, schema: S) {
-  return { path: (): [string, string] => PATH_BUILDERS.publicDocumentProjection(documentId), schema };
+function projection<const D extends PublicDocumentId, const S extends z.ZodType>(
+  documentId: D,
+  schema: S,
+) {
+  return {
+    path: (): [string, string] => PATH_BUILDERS.publicDocumentProjection(documentId),
+    schema,
+  };
 }
 
 /**
@@ -97,11 +107,19 @@ function projection<const D extends PublicDocumentId, const S extends z.ZodType>
 export const PUBLIC_DOCUMENT_PROJECTIONS = {
   [SPECIAL_DOCS.TERMS_PAGE]: projection(SPECIAL_DOCS.TERMS_PAGE, LegalPageDocumentSchema),
   [SPECIAL_DOCS.PRIVACY_PAGE]: projection(SPECIAL_DOCS.PRIVACY_PAGE, LegalPageDocumentSchema),
-  [SPECIAL_DOCS.RULES_AND_AGREEMENTS]: projection(SPECIAL_DOCS.RULES_AND_AGREEMENTS, RulesAndAgreementsSchema),
+  [SPECIAL_DOCS.RULES_AND_AGREEMENTS]: projection(
+    SPECIAL_DOCS.RULES_AND_AGREEMENTS,
+    RulesAndAgreementsSchema,
+  ),
   [SPECIAL_DOCS.FUTURE_PLANS]: projection(SPECIAL_DOCS.FUTURE_PLANS, FuturePlansDocumentSchema),
   [SPECIAL_DOCS.DMCA_POLICY]: projection(SPECIAL_DOCS.DMCA_POLICY, DmcaPolicyDocumentSchema),
-  [SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]: projection(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY, TakeItDownPageCopySchema),
-} as const satisfies { [D in PublicDocumentId]: { path: () => [string, string]; schema: z.ZodType } };
+  [SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]: projection(
+    SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY,
+    TakeItDownPageCopySchema,
+  ),
+} as const satisfies {
+  [D in PublicDocumentId]: { path: () => [string, string]; schema: z.ZodType };
+};
 
 /**
  * The current projection the publish writes for document `D`: its content plus the version and
@@ -114,7 +132,11 @@ export type PublicDocumentProjection<D extends PublicDocumentId = PublicDocument
 // `documentId`.
 function perDocument<const S extends z.ZodRawShape>(shape: S) {
   const branch = <const D extends PublicDocumentId>(documentId: D) =>
-    z.object({ documentId: z.literal(documentId), content: PUBLIC_DOCUMENT_CONTENT_SCHEMAS[documentId], ...shape });
+    z.object({
+      documentId: z.literal(documentId),
+      content: PUBLIC_DOCUMENT_CONTENT_SCHEMAS[documentId],
+      ...shape,
+    });
   return z.discriminatedUnion('documentId', [
     branch(SPECIAL_DOCS.TERMS_PAGE),
     branch(SPECIAL_DOCS.PRIVACY_PAGE),

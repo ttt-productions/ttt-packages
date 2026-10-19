@@ -66,7 +66,9 @@ describe('commitInBatches', () => {
     const items = ['a', 'b', 'c'];
     const applied: string[] = [];
     await commitInBatches(db, items, {
-      apply: (_, item) => { applied.push(item); },
+      apply: (_, item) => {
+        applied.push(item);
+      },
     });
     expect(applied).toEqual(['a', 'b', 'c']);
   });
@@ -108,7 +110,9 @@ describe('commitInBatches', () => {
   it('supports async apply function', async () => {
     const db = {} as any;
     const items = [1, 2];
-    const apply = vi.fn(async () => { /* async */ });
+    const apply = vi.fn(async () => {
+      /* async */
+    });
     const result = await commitInBatches(db, items, { apply });
     expect(result.success).toBe(true);
     expect(apply).toHaveBeenCalledTimes(2);

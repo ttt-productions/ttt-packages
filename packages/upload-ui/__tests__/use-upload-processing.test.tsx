@@ -30,7 +30,9 @@ function makeDriver() {
     driver = args.onSnapshot;
     return () => {};
   };
-  const drive = (changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>) => {
+  const drive = (
+    changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>,
+  ) => {
     if (!driver) throw new Error('No subscriber');
     driver({
       docChanges: () =>
@@ -54,7 +56,9 @@ describe('useUploadProcessing', () => {
   it('returns idle when no upload exists', () => {
     const adapter = makeAdapter();
     const { subscribe } = makeDriver();
-    const { result } = renderHook(() => useUploadProcessing(null), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useUploadProcessing(null), {
+      wrapper: wrap(adapter, subscribe),
+    });
     expect(result.current.status).toBe('idle');
     expect(result.current.isProcessing).toBe(false);
   });
@@ -62,9 +66,24 @@ describe('useUploadProcessing', () => {
   it('returns processing state for a pending upload', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useUploadProcessing('d1'), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useUploadProcessing('d1'), {
+      wrapper: wrap(adapter, subscribe),
+    });
     act(() => {
-      drive([{ type: 'added', id: 'd1', data: { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: Date.now(), surface: '/x' } }]);
+      drive([
+        {
+          type: 'added',
+          id: 'd1',
+          data: {
+            id: 'd1',
+            userId: 'user1',
+            fileOrigin: 'sample-origin',
+            status: 'pending',
+            createdAt: Date.now(),
+            surface: '/x',
+          },
+        },
+      ]);
     });
     expect(result.current.isProcessing).toBe(true);
     expect(result.current.status).toBe('pending');
@@ -75,12 +94,24 @@ describe('useUploadProcessing', () => {
     const { subscribe, drive } = makeDriver();
     const onTerminal = vi.fn();
     renderHook(() => useUploadProcessing('d1', onTerminal), { wrapper: wrap(adapter, subscribe) });
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/x' };
+    const base = {
+      id: 'd1',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/x',
+    };
     act(() => {
       drive([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]);
     });
     act(() => {
-      drive([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now() } }]);
+      drive([
+        {
+          type: 'modified',
+          id: 'd1',
+          data: { ...base, status: 'completed', completedAt: Date.now() },
+        },
+      ]);
     });
     expect(onTerminal).toHaveBeenCalledTimes(1);
     expect(onTerminal.mock.calls[0][0]).toMatchObject({ status: 'success', isComplete: true });
@@ -91,15 +122,38 @@ describe('useUploadProcessing', () => {
     const { subscribe, drive } = makeDriver();
     const onTerminal = vi.fn();
     renderHook(() => useUploadProcessing('d1', onTerminal), { wrapper: wrap(adapter, subscribe) });
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/x' };
+    const base = {
+      id: 'd1',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/x',
+    };
     act(() => {
       drive([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]);
     });
     act(() => {
-      drive([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now() } }]);
+      drive([
+        {
+          type: 'modified',
+          id: 'd1',
+          data: { ...base, status: 'completed', completedAt: Date.now() },
+        },
+      ]);
     });
     act(() => {
-      drive([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now(), uploadTrayClearedAt: Date.now() } }]);
+      drive([
+        {
+          type: 'modified',
+          id: 'd1',
+          data: {
+            ...base,
+            status: 'completed',
+            completedAt: Date.now(),
+            uploadTrayClearedAt: Date.now(),
+          },
+        },
+      ]);
     });
     expect(onTerminal).toHaveBeenCalledTimes(1);
   });
@@ -107,11 +161,27 @@ describe('useUploadProcessing', () => {
   it('supports message overrides', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useUploadProcessing('d1', undefined, { processingMessage: 'Working on it...' }), {
-      wrapper: wrap(adapter, subscribe),
-    });
+    const { result } = renderHook(
+      () => useUploadProcessing('d1', undefined, { processingMessage: 'Working on it...' }),
+      {
+        wrapper: wrap(adapter, subscribe),
+      },
+    );
     act(() => {
-      drive([{ type: 'added', id: 'd1', data: { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: Date.now(), surface: '/x' } }]);
+      drive([
+        {
+          type: 'added',
+          id: 'd1',
+          data: {
+            id: 'd1',
+            userId: 'user1',
+            fileOrigin: 'sample-origin',
+            status: 'pending',
+            createdAt: Date.now(),
+            surface: '/x',
+          },
+        },
+      ]);
     });
     expect(result.current.message).toBe('Working on it...');
   });

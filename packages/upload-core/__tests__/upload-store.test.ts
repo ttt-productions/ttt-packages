@@ -53,7 +53,7 @@ describe('upload-store', () => {
     store.upsertUploadSession({ id: 'c', status: 'idle', path: 'c', updatedAt: 2000 });
 
     const sessions = store.listUploadSessions();
-    expect(sessions.map(s => s.id)).toEqual(['b', 'c', 'a']);
+    expect(sessions.map((s) => s.id)).toEqual(['b', 'c', 'a']);
   });
 
   it('removeUploadSession deletes a session', async () => {
@@ -65,7 +65,14 @@ describe('upload-store', () => {
 
   it('progress values never go backwards', async () => {
     const store = await getStore();
-    store.upsertUploadSession({ id: 'prog', status: 'uploading', path: '', transferred: 500, total: 1000, percent: 50 });
+    store.upsertUploadSession({
+      id: 'prog',
+      status: 'uploading',
+      path: '',
+      transferred: 500,
+      total: 1000,
+      percent: 50,
+    });
     // Try to lower progress
     store.upsertUploadSession({ id: 'prog', transferred: 100, total: 1000, percent: 10 });
     const session = store.getUploadSession('prog');
@@ -75,7 +82,14 @@ describe('upload-store', () => {
 
   it('progress increases normally', async () => {
     const store = await getStore();
-    store.upsertUploadSession({ id: 'prog2', status: 'uploading', path: '', transferred: 200, total: 1000, percent: 20 });
+    store.upsertUploadSession({
+      id: 'prog2',
+      status: 'uploading',
+      path: '',
+      transferred: 200,
+      total: 1000,
+      percent: 20,
+    });
     store.upsertUploadSession({ id: 'prog2', transferred: 700, total: 1000, percent: 70 });
     const session = store.getUploadSession('prog2');
     expect(session?.transferred).toBe(700);
@@ -105,7 +119,13 @@ describe('upload-store', () => {
 
   it('out-of-order updates rejected by updatedAt guard', async () => {
     const store = await getStore();
-    store.upsertUploadSession({ id: 'order', status: 'uploading', path: '', percent: 50, updatedAt: 2000 });
+    store.upsertUploadSession({
+      id: 'order',
+      status: 'uploading',
+      path: '',
+      percent: 50,
+      updatedAt: 2000,
+    });
     // Earlier update
     store.upsertUploadSession({ id: 'order', status: 'idle', percent: 10, updatedAt: 1000 });
     expect(store.getUploadSession('order')?.status).toBe('uploading');
@@ -179,8 +199,13 @@ describe('upload-store', () => {
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
 
-      const pastTime = Date.now() - (25 * 60 * 60 * 1000); // 25h ago
-      store.upsertUploadSession({ id: 'old-success', status: 'success', path: '', updatedAt: pastTime });
+      const pastTime = Date.now() - 25 * 60 * 60 * 1000; // 25h ago
+      store.upsertUploadSession({
+        id: 'old-success',
+        status: 'success',
+        path: '',
+        updatedAt: pastTime,
+      });
       nowMock.mockReturnValue(Date.now());
       const pruned = store.pruneOldUploadSessions();
       expect(pruned).toBeGreaterThanOrEqual(1);
@@ -191,8 +216,13 @@ describe('upload-store', () => {
       const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
-      const recentTime = Date.now() - (1 * 60 * 60 * 1000); // 1h ago
-      store.upsertUploadSession({ id: 'fresh-success', status: 'success', path: '', updatedAt: recentTime });
+      const recentTime = Date.now() - 1 * 60 * 60 * 1000; // 1h ago
+      store.upsertUploadSession({
+        id: 'fresh-success',
+        status: 'success',
+        path: '',
+        updatedAt: recentTime,
+      });
       nowMock.mockReturnValue(Date.now());
       store.pruneOldUploadSessions();
       expect(store.getUploadSession('fresh-success')).toBeDefined();
@@ -202,8 +232,13 @@ describe('upload-store', () => {
       const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
-      const pastTime = Date.now() - (8 * 24 * 60 * 60 * 1000); // 8 days ago
-      store.upsertUploadSession({ id: 'old-error', status: 'error', path: '', updatedAt: pastTime });
+      const pastTime = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
+      store.upsertUploadSession({
+        id: 'old-error',
+        status: 'error',
+        path: '',
+        updatedAt: pastTime,
+      });
       nowMock.mockReturnValue(Date.now());
       const pruned = store.pruneOldUploadSessions();
       expect(pruned).toBeGreaterThanOrEqual(1);
@@ -214,7 +249,7 @@ describe('upload-store', () => {
       const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
-      const pastTime = Date.now() - (25 * 60 * 60 * 1000);
+      const pastTime = Date.now() - 25 * 60 * 60 * 1000;
       store.upsertUploadSession({ id: 'p1', status: 'success', path: '', updatedAt: pastTime });
       store.upsertUploadSession({ id: 'p2', status: 'success', path: '', updatedAt: pastTime });
       nowMock.mockReturnValue(Date.now());

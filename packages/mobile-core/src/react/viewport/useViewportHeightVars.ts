@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { isBrowser } from "../../env.js";
-import { resolvePrefix, type CssPrefixOptions } from "../css-prefix.js";
+import { useEffect } from 'react';
+import { isBrowser } from '../../env.js';
+import { resolvePrefix, type CssPrefixOptions } from '../css-prefix.js';
 
 /**
  * Sets:
@@ -26,11 +26,11 @@ export function useViewportHeightVars(options?: CssPrefixOptions) {
     };
 
     apply();
-    window.addEventListener("resize", apply, { passive: true });
-    window.visualViewport?.addEventListener("resize", apply, { passive: true });
+    window.addEventListener('resize', apply, { passive: true });
+    window.visualViewport?.addEventListener('resize', apply, { passive: true });
     return () => {
-      window.removeEventListener("resize", apply);
-      window.visualViewport?.removeEventListener("resize", apply);
+      window.removeEventListener('resize', apply);
+      window.visualViewport?.removeEventListener('resize', apply);
     };
   }, [prefix]);
 }

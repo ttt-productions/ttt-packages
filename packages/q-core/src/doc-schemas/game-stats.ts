@@ -151,7 +151,8 @@ export const BasketballAssistableShotEventSchema = z
     assistedByDisplayNameSnapshot: z.string().optional(),
   })
   .refine(
-    (event) => event.assistedByDisplayNameSnapshot === undefined || event.assistedByUserId !== undefined,
+    (event) =>
+      event.assistedByDisplayNameSnapshot === undefined || event.assistedByUserId !== undefined,
     'An assister snapshot needs the assister.',
   );
 
@@ -252,10 +253,16 @@ export const StatCorrectionEventSchema = z
         event.operationId,
         event.playerUserId === undefined
           ? event.teamId
-          : buildGameRosterPlayerId(event.teamId, event.rekeyedFromGhostUserId ?? event.playerUserId),
+          : buildGameRosterPlayerId(
+              event.teamId,
+              event.rekeyedFromGhostUserId ?? event.playerUserId,
+            ),
         event.stat,
       ),
-    { message: 'A correction is stored at the id its operation, line, and field derive.', path: ['eventId'] },
+    {
+      message: 'A correction is stored at the id its operation, line, and field derive.',
+      path: ['eventId'],
+    },
   );
 
 // Recorder facts are all present or all absent, and a team is named exactly when the authority is a
@@ -269,7 +276,9 @@ function recorderFactsAgree(event: {
   const facts = [event.acceptedAt, event.recordedByUserId, event.recordedByAuthority];
   const present = facts.filter((fact) => fact !== undefined).length;
   if (present !== 0 && present !== facts.length) return false;
-  const teamAuthority = (CAPTAIN_TEAM_ROLES as readonly string[]).includes(event.recordedByAuthority ?? '');
+  const teamAuthority = (CAPTAIN_TEAM_ROLES as readonly string[]).includes(
+    event.recordedByAuthority ?? '',
+  );
   return teamAuthority === (event.recordedByTeamId !== undefined);
 }
 
@@ -284,10 +293,14 @@ function snapshotsOnlyOnCopiedEvents(event: {
   displayNameSnapshot?: string;
   assistedByDisplayNameSnapshot?: string;
 }): boolean {
-  const snapshot = event.displayNameSnapshot !== undefined || event.assistedByDisplayNameSnapshot !== undefined;
-  const recorded = [event.acceptedAt, event.recordedByUserId, event.recordedByAuthority, event.recordedByTeamId].some(
-    (fact) => fact !== undefined,
-  );
+  const snapshot =
+    event.displayNameSnapshot !== undefined || event.assistedByDisplayNameSnapshot !== undefined;
+  const recorded = [
+    event.acceptedAt,
+    event.recordedByUserId,
+    event.recordedByAuthority,
+    event.recordedByTeamId,
+  ].some((fact) => fact !== undefined);
   return !(snapshot && recorded);
 }
 
@@ -306,8 +319,14 @@ export const GameStatEventSchema = z
     StatVoidEventSchema,
     StatCorrectionEventSchema,
   ])
-  .refine(recorderFactsAgree, 'Recorder facts are all present, or all absent, with a team only for a team role.')
-  .refine(snapshotsOnlyOnCopiedEvents, 'A name snapshot belongs to a copied event, which carries no recorder facts.');
+  .refine(
+    recorderFactsAgree,
+    'Recorder facts are all present, or all absent, with a team only for a team role.',
+  )
+  .refine(
+    snapshotsOnlyOnCopiedEvents,
+    'A name snapshot belongs to a copied event, which carries no recorder facts.',
+  );
 export type GameStatEvent = z.infer<typeof GameStatEventSchema>;
 export type GameStatEventType = GameStatEvent['type'];
 

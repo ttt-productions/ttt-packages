@@ -29,7 +29,11 @@ describe('Skeleton', () => {
   });
 
   it('renders children', () => {
-    const { container } = render(<Skeleton><span>Loading...</span></Skeleton>);
+    const { container } = render(
+      <Skeleton>
+        <span>Loading...</span>
+      </Skeleton>,
+    );
     expect(container.querySelector('span')).toBeInTheDocument();
   });
 });

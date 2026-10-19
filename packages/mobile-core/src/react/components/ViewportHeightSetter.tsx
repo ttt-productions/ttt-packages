@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useViewportHeightVars } from "../viewport/useViewportHeightVars.js";
-import { useKeepFocusedInputVisible } from "../keyboard/useKeepFocusedInputVisible.js";
-import type { CssPrefixOptions } from "../css-prefix.js";
+import { useViewportHeightVars } from '../viewport/useViewportHeightVars.js';
+import { useKeepFocusedInputVisible } from '../keyboard/useKeepFocusedInputVisible.js';
+import type { CssPrefixOptions } from '../css-prefix.js';
 
 export interface ViewportHeightSetterProps extends CssPrefixOptions {
   /**

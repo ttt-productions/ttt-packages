@@ -244,7 +244,9 @@ export interface NotificationArchiveResult {
  * observed (e.g. the row's activity generation). It rejects on failure and resolves
  * whether the card was archived.
  */
-export type NotificationArchiveFn = (notification: NotificationDoc) => Promise<NotificationArchiveResult>;
+export type NotificationArchiveFn = (
+  notification: NotificationDoc,
+) => Promise<NotificationArchiveResult>;
 
 export interface UseArchiveNotificationOptions {
   userId: string;
@@ -281,12 +283,7 @@ export interface UseArchiveNotificationOptions {
  * - `failed`      — TERMINAL: the enqueue call threw, or the job dead-lettered / reported failure.
  */
 export type ArchiveAllJobStatus =
-  | 'idle'
-  | 'enqueuing'
-  | 'in-progress'
-  | 'complete'
-  | 'incomplete'
-  | 'failed';
+  'idle' | 'enqueuing' | 'in-progress' | 'complete' | 'incomplete' | 'failed';
 
 /**
  * Result of the INJECTED enqueue adapter — triggers exactly one server-owned archive-all job for

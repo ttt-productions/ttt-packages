@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { FileOriginSchema } from "./file-origin.js";
-import { SystemAccountSlotIdSchema } from "../system-slots/system-slots.js";
+import { z } from 'zod';
+import { FileOriginSchema } from './file-origin.js';
+import { SystemAccountSlotIdSchema } from '../system-slots/system-slots.js';
 
 // DomainEvent schemas for the admin/moderation domain — content violations,
 // threshold-library review decisions, admin dispatch, and appeals. Assembled

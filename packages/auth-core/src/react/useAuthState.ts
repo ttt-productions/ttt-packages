@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import type { Auth, User } from "firebase/auth";
-import { onAuthStateChanged } from "../client/auth.js";
+import { useEffect, useState } from 'react';
+import type { Auth, User } from 'firebase/auth';
+import { onAuthStateChanged } from '../client/auth.js';
 
 export type AuthState = {
   user: User | null;
@@ -32,7 +32,7 @@ export function useAuthState(auth: Auth): AuthState {
       (e) => {
         setError(e);
         setLoading(false);
-      }
+      },
     );
     return unsub;
   }, [auth]);

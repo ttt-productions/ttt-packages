@@ -49,7 +49,9 @@ describe('inferContentType', () => {
     // byte inspector is the classification authority.
     expect(inferContentType(makeFile('noext', ''))).toBe('application/octet-stream');
     expect(inferContentType(makeFile('data.xyz', ''))).toBe('application/octet-stream');
-    expect(inferContentType(makeFile('report.pdf', 'application/pdf'))).toBe('application/octet-stream');
+    expect(inferContentType(makeFile('report.pdf', 'application/pdf'))).toBe(
+      'application/octet-stream',
+    );
   });
 
   it('handles files with no extension at all', () => {
@@ -58,19 +60,31 @@ describe('inferContentType', () => {
 
   it('strips codec parameters and returns the parameter-less base type', () => {
     // Chrome MediaRecorder's default audio container — the recorded-audio defect.
-    expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'))).toBe('audio/webm');
-    expect(inferContentType(makeFile('x.mp4', 'video/mp4;codecs=avc1.42e01e,mp4a.40.2'))).toBe('video/mp4');
+    expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'))).toBe(
+      'audio/webm',
+    );
+    expect(inferContentType(makeFile('x.mp4', 'video/mp4;codecs=avc1.42e01e,mp4a.40.2'))).toBe(
+      'video/mp4',
+    );
     // Whitespace around the base or parameters is tolerated.
-    expect(inferContentType(makeFile('recording.webm', 'audio/webm ; codecs=opus'))).toBe('audio/webm');
+    expect(inferContentType(makeFile('recording.webm', 'audio/webm ; codecs=opus'))).toBe(
+      'audio/webm',
+    );
   });
 
   it('parameterized types still respect the fallbackKind match', () => {
-    expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'), 'audio')).toBe('audio/webm');
-    expect(inferContentType(makeFile('recording.m4a', 'audio/mp4;codecs=mp4a.40.2'), 'audio')).toBe('audio/mp4');
+    expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'), 'audio')).toBe(
+      'audio/webm',
+    );
+    expect(inferContentType(makeFile('recording.m4a', 'audio/mp4;codecs=mp4a.40.2'), 'audio')).toBe(
+      'audio/mp4',
+    );
   });
 
   it('rejects a type whose base is not a media MIME even with parameters', () => {
-    expect(inferContentType(makeFile('x.png', 'application/octet-stream;foo=bar'))).toBe('image/png');
+    expect(inferContentType(makeFile('x.png', 'application/octet-stream;foo=bar'))).toBe(
+      'image/png',
+    );
     expect(inferContentType(makeFile('x.wav', 'text/plain;charset=utf-8'))).toBe('audio/wav');
   });
 
@@ -91,7 +105,9 @@ describe('inferContentType', () => {
 
   it('conflicting video/* type on a chosen-audio recording: chosen kind wins via the ambiguous container', () => {
     expect(inferContentType(makeFile('recording.webm', 'video/webm'), 'audio')).toBe('audio/webm');
-    expect(inferContentType(makeFile('recording.ogg', 'video/ogg;codecs=theora'), 'audio')).toBe('audio/ogg');
+    expect(inferContentType(makeFile('recording.ogg', 'video/ogg;codecs=theora'), 'audio')).toBe(
+      'audio/ogg',
+    );
   });
 
   it('a declared type that MATCHES the chosen kind wins over the extension (current behavior preserved)', () => {

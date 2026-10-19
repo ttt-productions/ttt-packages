@@ -8,9 +8,7 @@ export type ExpectedKind = SingleKind | 'any' | readonly SingleKind[];
  * Diagnostic codes emitted by validateAndNormalizeUploadFile when validation
  * fails. Consumers can route these to monitoring/Sentry via the onError option.
  */
-export type ValidateUploadFileErrorCode =
-  | 'upload_kind_indeterminate'
-  | 'upload_kind_mismatch';
+export type ValidateUploadFileErrorCode = 'upload_kind_indeterminate' | 'upload_kind_mismatch';
 
 export interface ValidateUploadFileOptions {
   /**
@@ -19,14 +17,17 @@ export interface ValidateUploadFileOptions {
    * carries the user-facing message; this callback gets the machine
    * code + structured extras.
    */
-  onError?: (code: ValidateUploadFileErrorCode, extra: {
-    fileOrigin: string;
-    expectedKind: string;
-    detectedKind?: SingleKind | 'other';
-    fileName: string;
-    fileSize: number;
-    fileType: string;
-  }) => void;
+  onError?: (
+    code: ValidateUploadFileErrorCode,
+    extra: {
+      fileOrigin: string;
+      expectedKind: string;
+      detectedKind?: SingleKind | 'other';
+      fileName: string;
+      fileSize: number;
+      fileType: string;
+    },
+  ) => void;
   /**
    * FAIL-OPEN for indeterminate picker metadata: when the file's kind cannot
    * be determined from browser MIME/extension, pass it through with the
@@ -89,7 +90,7 @@ export function validateAndNormalizeUploadFile(
       fileType: file.type,
     });
     throw new Error(
-      'Could not determine the file type. Please try a different file or re-export it in a common format.'
+      'Could not determine the file type. Please try a different file or re-export it in a common format.',
     );
   }
 
@@ -103,7 +104,7 @@ export function validateAndNormalizeUploadFile(
       fileType: file.type,
     });
     throw new Error(
-      `This slot only accepts ${describeExpected(expectedKind)} files. The selected file is ${detected}.`
+      `This slot only accepts ${describeExpected(expectedKind)} files. The selected file is ${detected}.`,
     );
   }
 

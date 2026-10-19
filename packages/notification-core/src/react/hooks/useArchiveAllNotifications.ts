@@ -1,10 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type {
-  ArchiveAllPollResult,
-  UseArchiveAllNotificationsOptions,
-} from '../../types.js';
+import type { ArchiveAllPollResult, UseArchiveAllNotificationsOptions } from '../../types.js';
 
 const DEFAULT_POLL_INTERVAL_MS = 1500;
 const DEFAULT_MAX_POLLS = 120; // ~3 min at the default interval
@@ -86,7 +83,13 @@ export function useArchiveAllNotifications({
           };
         }
         if (snap.state === 'incomplete') {
-          return { status: 'incomplete', category, archived: lastArchived, notArchived: 0, complete: false };
+          return {
+            status: 'incomplete',
+            category,
+            archived: lastArchived,
+            notArchived: 0,
+            complete: false,
+          };
         }
         if (snap.state === 'failed') {
           return {
@@ -104,7 +107,13 @@ export function useArchiveAllNotifications({
       }
 
       // Guard: the job never reached a terminal state within the poll budget — report incomplete.
-      return { status: 'incomplete', category, archived: lastArchived, notArchived: 0, complete: false };
+      return {
+        status: 'incomplete',
+        category,
+        archived: lastArchived,
+        notArchived: 0,
+        complete: false,
+      };
     },
     onSuccess: (result) => {
       // Only a completed drain changed the active set; still invalidate on an incomplete drain since

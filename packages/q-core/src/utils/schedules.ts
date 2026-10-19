@@ -25,7 +25,11 @@ export interface ScheduleConflictGame {
 }
 
 export type ScheduleConflict =
-  | { readonly kind: typeof SHARED_LOCATION_CONFLICT; readonly startTime: number; readonly gameKeys: string[] }
+  | {
+      readonly kind: typeof SHARED_LOCATION_CONFLICT;
+      readonly startTime: number;
+      readonly gameKeys: string[];
+    }
   | {
       readonly kind: typeof TEAM_DOUBLE_BOOKED_CONFLICT;
       readonly startTime: number;
@@ -38,7 +42,8 @@ export type ScheduleConflict =
  * venue, else its label, trimmed and case-folded.
  */
 function locationKey(game: ScheduleConflictGame): string {
-  if (game.gameLocationId !== undefined) return `venue:${game.gameLocationId}:${game.subLocation ?? ''}`;
+  if (game.gameLocationId !== undefined)
+    return `venue:${game.gameLocationId}:${game.subLocation ?? ''}`;
   return `label:${game.locationLabel.trim().toLowerCase()}`;
 }
 
@@ -80,7 +85,8 @@ export function findScheduleConflicts(
   const byTeam = new Map<string, ConflictGroup>();
   for (const game of games) {
     addToGroup(byLocation, `${game.startTime}|${locationKey(game)}`, game, null);
-    for (const teamId of new Set(game.teamIds)) addToGroup(byTeam, `${game.startTime}|${teamId}`, game, teamId);
+    for (const teamId of new Set(game.teamIds))
+      addToGroup(byTeam, `${game.startTime}|${teamId}`, game, teamId);
   }
 
   const conflicts: ScheduleConflict[] = [];
@@ -90,7 +96,11 @@ export function findScheduleConflicts(
 
   for (const group of byLocation.values()) {
     if (!reported(group)) continue;
-    conflicts.push({ kind: SHARED_LOCATION_CONFLICT, startTime: group.startTime, gameKeys: keysOf(group) });
+    conflicts.push({
+      kind: SHARED_LOCATION_CONFLICT,
+      startTime: group.startTime,
+      gameKeys: keysOf(group),
+    });
   }
   for (const group of byTeam.values()) {
     if (!reported(group) || group.teamId === null) continue;
@@ -102,7 +112,8 @@ export function findScheduleConflicts(
     });
   }
 
-  const teamOf = (conflict: ScheduleConflict) => (conflict.kind === TEAM_DOUBLE_BOOKED_CONFLICT ? conflict.teamId : '');
+  const teamOf = (conflict: ScheduleConflict) =>
+    conflict.kind === TEAM_DOUBLE_BOOKED_CONFLICT ? conflict.teamId : '';
   return conflicts.sort(
     (a, b) =>
       a.startTime - b.startTime ||

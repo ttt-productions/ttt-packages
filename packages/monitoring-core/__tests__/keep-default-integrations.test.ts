@@ -48,21 +48,33 @@ describe('keepDefaultIntegrations', () => {
   it.each([
     ['sentry' as const, browserSdk],
     ['sentry-node' as const, nodeSdk],
-  ])('runs only the named %s defaults, by their SDK name — every other default is off', async (provider, sdk) => {
-    const { initMonitoring } = await import('../src/init.js');
-    await initMonitoring({ provider, dsn: DSN, keepDefaultIntegrations: ['LinkedErrors', 'Dedupe'] });
+  ])(
+    'runs only the named %s defaults, by their SDK name — every other default is off',
+    async (provider, sdk) => {
+      const { initMonitoring } = await import('../src/init.js');
+      await initMonitoring({
+        provider,
+        dsn: DSN,
+        keepDefaultIntegrations: ['LinkedErrors', 'Dedupe'],
+      });
 
-    expect(sdk.init).toHaveBeenCalledTimes(1);
-    const sdkOptions = sdk.init.mock.calls[0][0];
-    expect(integrationsTheSdkRuns(sdkOptions)).toEqual([linkedErrors, dedupe]);
-    expect(sdkOptions).not.toHaveProperty('keepDefaultIntegrations');
-    expect(sdkOptions).not.toHaveProperty('defaultIntegrations');
-  });
+      expect(sdk.init).toHaveBeenCalledTimes(1);
+      const sdkOptions = sdk.init.mock.calls[0][0];
+      expect(integrationsTheSdkRuns(sdkOptions)).toEqual([linkedErrors, dedupe]);
+      expect(sdkOptions).not.toHaveProperty('keepDefaultIntegrations');
+      expect(sdkOptions).not.toHaveProperty('defaultIntegrations');
+    },
+  );
 
   it('still adds the integrations the caller lists, after the kept defaults', async () => {
     const { initMonitoring } = await import('../src/init.js');
     const extra: Integration = { name: 'Extra' };
-    await initMonitoring({ provider: 'sentry-node', dsn: DSN, keepDefaultIntegrations: ['LinkedErrors'], integrations: [extra] });
+    await initMonitoring({
+      provider: 'sentry-node',
+      dsn: DSN,
+      keepDefaultIntegrations: ['LinkedErrors'],
+      integrations: [extra],
+    });
 
     expect(integrationsTheSdkRuns(nodeSdk.init.mock.calls[0][0])).toEqual([linkedErrors, extra]);
   });
@@ -81,7 +93,12 @@ describe('keepDefaultIntegrations', () => {
       const { NoopAdapter } = await import('../src/adapters/noop.js');
 
       await expect(
-        initMonitoring({ provider, dsn: DSN, keepDefaultIntegrations: ['LinkedErrors'], defaultIntegrations: false }),
+        initMonitoring({
+          provider,
+          dsn: DSN,
+          keepDefaultIntegrations: ['LinkedErrors'],
+          defaultIntegrations: false,
+        }),
       ).rejects.toThrow(/keepDefaultIntegrations/);
       expect(nodeSdk.init).not.toHaveBeenCalled();
       expect(getMonitoringAdapter()).toBe(NoopAdapter);
@@ -90,11 +107,23 @@ describe('keepDefaultIntegrations', () => {
 
   it('re-initializes when the kept set changes, and not for an equal set', async () => {
     const { initMonitoring } = await import('../src/init.js');
-    await initMonitoring({ provider: 'sentry-node', dsn: DSN, keepDefaultIntegrations: ['LinkedErrors'] });
-    await initMonitoring({ provider: 'sentry-node', dsn: DSN, keepDefaultIntegrations: ['LinkedErrors'] });
+    await initMonitoring({
+      provider: 'sentry-node',
+      dsn: DSN,
+      keepDefaultIntegrations: ['LinkedErrors'],
+    });
+    await initMonitoring({
+      provider: 'sentry-node',
+      dsn: DSN,
+      keepDefaultIntegrations: ['LinkedErrors'],
+    });
     expect(nodeSdk.init).toHaveBeenCalledTimes(1);
 
-    await initMonitoring({ provider: 'sentry-node', dsn: DSN, keepDefaultIntegrations: ['LinkedErrors', 'Dedupe'] });
+    await initMonitoring({
+      provider: 'sentry-node',
+      dsn: DSN,
+      keepDefaultIntegrations: ['LinkedErrors', 'Dedupe'],
+    });
     expect(nodeSdk.init).toHaveBeenCalledTimes(2);
     expect(integrationsTheSdkRuns(nodeSdk.init.mock.calls[1][0])).toEqual([linkedErrors, dedupe]);
   });

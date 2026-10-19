@@ -49,7 +49,11 @@ describe('useCheckoutNextImportantTask', () => {
     const invalidate = vi.spyOn(client, 'invalidateQueries');
 
     const { result } = renderHook(
-      () => useCheckoutNextImportantTask({ checkoutNextImportantTaskFn: vi.fn().mockResolvedValue(answer), userId: 'u1' }),
+      () =>
+        useCheckoutNextImportantTask({
+          checkoutNextImportantTaskFn: vi.fn().mockResolvedValue(answer),
+          userId: 'u1',
+        }),
       { wrapper: makeWrapper(client) },
     );
     await result.current.mutateAsync();

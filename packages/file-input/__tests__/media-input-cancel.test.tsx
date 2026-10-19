@@ -30,7 +30,7 @@ describe('MediaInput cancel button', () => {
         uploadState={{ phase: 'preparing', percent: null }}
         onCancel={vi.fn()}
         onChange={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByLabelText('Cancel upload')).toBeTruthy();
   });
@@ -43,7 +43,7 @@ describe('MediaInput cancel button', () => {
         uploadState={{ phase: 'uploading', percent: 50 }}
         onCancel={vi.fn()}
         onChange={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByLabelText('Cancel upload')).toBeTruthy();
   });
@@ -56,7 +56,7 @@ describe('MediaInput cancel button', () => {
         uploadState={{ phase: 'finalizing', percent: null }}
         onCancel={vi.fn()}
         onChange={vi.fn()}
-      />
+      />,
     );
     expect(screen.queryByLabelText('Cancel upload')).toBeNull();
   });
@@ -68,7 +68,7 @@ describe('MediaInput cancel button', () => {
         isLoading
         uploadState={{ phase: 'uploading', percent: 25 }}
         onChange={vi.fn()}
-      />
+      />,
     );
     expect(screen.queryByLabelText('Cancel upload')).toBeNull();
   });
@@ -81,7 +81,7 @@ describe('MediaInput cancel button', () => {
         uploadState={{ phase: 'uploading', percent: 25 }}
         onCancel={vi.fn()}
         onChange={vi.fn()}
-      />
+      />,
     );
     expect(screen.queryByLabelText('Cancel upload')).toBeNull();
   });
@@ -95,7 +95,7 @@ describe('MediaInput cancel button', () => {
         uploadState={{ phase: 'uploading', percent: 75 }}
         onCancel={onCancel}
         onChange={vi.fn()}
-      />
+      />,
     );
     await userEvent.click(screen.getByLabelText('Cancel upload'));
     expect(onCancel).toHaveBeenCalledTimes(1);

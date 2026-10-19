@@ -52,9 +52,12 @@ describe('useMarkUploadActivitySeen', () => {
       if (batch[0] === 'upload-3') throw refused;
     });
     const onError = vi.fn();
-    const { result } = renderHook(() => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 2, onError }), {
-      wrapper: makeWrapper(),
-    });
+    const { result } = renderHook(
+      () => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 2, onError }),
+      {
+        wrapper: makeWrapper(),
+      },
+    );
     let failure: unknown;
     await act(async () => {
       failure = await result.current.mutateAsync(ids(5)).catch((err) => err);

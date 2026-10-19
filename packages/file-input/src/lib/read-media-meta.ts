@@ -1,5 +1,5 @@
-import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
-import type { MediaKind, VideoOrientation } from "@ttt-productions/media-schemas";
+import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
+import type { MediaKind, VideoOrientation } from '@ttt-productions/media-schemas';
 
 export interface ReadMediaMetaResult {
   kind: MediaKind;
@@ -13,17 +13,19 @@ export interface ReadMediaMetaResult {
 }
 
 function simplifiedToKind(s: ReturnType<typeof getSimplifiedMediaType>): MediaKind {
-  if (s === "image" || s === "video" || s === "audio") return s;
-  return "file";
+  if (s === 'image' || s === 'video' || s === 'audio') return s;
+  return 'file';
 }
 
 function computeOrientation(width?: number, height?: number): VideoOrientation | undefined {
   if (!width || !height) return undefined;
-  if (width === height) return "any";
-  return height > width ? "vertical" : "horizontal";
+  if (width === height) return 'any';
+  return height > width ? 'vertical' : 'horizontal';
 }
 
-async function readImage(file: File): Promise<Pick<ReadMediaMetaResult, "width" | "height" | "aspectRatio">> {
+async function readImage(
+  file: File,
+): Promise<Pick<ReadMediaMetaResult, 'width' | 'height' | 'aspectRatio'>> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -47,23 +49,30 @@ async function readImage(file: File): Promise<Pick<ReadMediaMetaResult, "width" 
 }
 
 async function readAV(
-  file: File
-): Promise<Pick<ReadMediaMetaResult, "width" | "height" | "durationSec" | "aspectRatio">> {
+  file: File,
+): Promise<Pick<ReadMediaMetaResult, 'width' | 'height' | 'durationSec' | 'aspectRatio'>> {
   return new Promise((resolve) => {
-    const isVideo = file.type.startsWith("video/");
-    const el = document.createElement(isVideo ? "video" : "audio");
-    el.preload = "metadata";
+    const isVideo = file.type.startsWith('video/');
+    const el = document.createElement(isVideo ? 'video' : 'audio');
+    el.preload = 'metadata';
 
     const url = URL.createObjectURL(file);
 
     el.onloadedmetadata = () => {
       try {
-        const durationSec = Number.isFinite((el as any).duration) ? (el as any).duration : undefined;
+        const durationSec = Number.isFinite((el as any).duration)
+          ? (el as any).duration
+          : undefined;
         if (isVideo) {
           const v = el as HTMLVideoElement;
           const width = v.videoWidth || undefined;
           const height = v.videoHeight || undefined;
-          resolve({ width, height, durationSec, aspectRatio: height ? width! / height : undefined });
+          resolve({
+            width,
+            height,
+            durationSec,
+            aspectRatio: height ? width! / height : undefined,
+          });
         } else {
           resolve({ durationSec });
         }
@@ -95,7 +104,7 @@ export async function readMediaMeta(file: File): Promise<ReadMediaMetaResult> {
     sizeBytes: file.size,
   };
 
-  if (kind === "image") {
+  if (kind === 'image') {
     const img = await readImage(file);
     return {
       ...base,
@@ -104,12 +113,12 @@ export async function readMediaMeta(file: File): Promise<ReadMediaMetaResult> {
     };
   }
 
-  if (kind === "video" || kind === "audio") {
+  if (kind === 'video' || kind === 'audio') {
     const av = await readAV(file);
     return {
       ...base,
       ...av,
-      orientation: kind === "video" ? computeOrientation(av.width, av.height) : undefined,
+      orientation: kind === 'video' ? computeOrientation(av.width, av.height) : undefined,
     };
   }
 

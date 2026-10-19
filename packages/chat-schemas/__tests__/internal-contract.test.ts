@@ -69,29 +69,46 @@ describe('a room parked-delivery report', () => {
     expect(ChatConversationRefSchema.safeParse({ kind, id }).success).toBe(true);
     // The Worker's room address: a product, an environment, the room kind, the conversation kind and id.
     const targetDo = `ttt:prod:channel:${kind}:${id}`;
-    expect(ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, targetDo }).success).toBe(true);
+    expect(
+      ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, targetDo }).success,
+    ).toBe(true);
   });
 
   it('refuses a report for a room kind that keeps no outbox, and any extra field', () => {
-    expect(ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, roomKind: 'worker' }).success).toBe(false);
-    expect(ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, text: 'hi' }).success).toBe(false);
+    expect(
+      ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, roomKind: 'worker' })
+        .success,
+    ).toBe(false);
+    expect(
+      ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, text: 'hi' }).success,
+    ).toBe(false);
   });
 
   it('refuses a report with no room or no row to replay', () => {
-    expect(ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, targetDo: '' }).success).toBe(false);
-    expect(ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, eventId: '' }).success).toBe(false);
+    expect(
+      ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, targetDo: '' }).success,
+    ).toBe(false);
+    expect(
+      ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, eventId: '' }).success,
+    ).toBe(false);
   });
 });
 
 describe('a parked-delivery replay', () => {
   it('names the room and the parked row', () => {
-    expect(ChatParkedDeliveryReplayRequestSchema.parse({ targetDo: 'room', eventId: 'e1' })).toEqual({ targetDo: 'room', eventId: 'e1' });
-    expect(ChatParkedDeliveryReplayRequestSchema.safeParse({ targetDo: 'room' }).success).toBe(false);
+    expect(
+      ChatParkedDeliveryReplayRequestSchema.parse({ targetDo: 'room', eventId: 'e1' }),
+    ).toEqual({ targetDo: 'room', eventId: 'e1' });
+    expect(ChatParkedDeliveryReplayRequestSchema.safeParse({ targetDo: 'room' }).success).toBe(
+      false,
+    );
   });
 
   it('is answered requeued, or not-parked when the room holds no such parked row', () => {
     expect(CHAT_PARKED_DELIVERY_REPLAY_OUTCOMES).toEqual(['requeued', 'not-parked']);
-    expect(ChatParkedDeliveryReplayResultSchema.safeParse({ outcome: 'delivered' }).success).toBe(false);
+    expect(ChatParkedDeliveryReplayResultSchema.safeParse({ outcome: 'delivered' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -104,12 +121,21 @@ describe('a server-written message keeps the accounts it names beside its text',
   it('bounds the referenced ids and the text, and refuses any other field', () => {
     const base = { senderId: CHAT_SYSTEM_SENDER_ID, text: 'x' };
     const tooMany = Array.from({ length: CHAT_MESSAGE_REFERENCED_UIDS_MAX + 1 }, (_, i) => `u${i}`);
-    expect(ChatServerMessagePayloadSchema.safeParse({ ...base, referencedUids: tooMany }).success).toBe(false);
-    expect(ChatServerMessagePayloadSchema.safeParse({ ...base, referencedUids: [''] }).success).toBe(false);
     expect(
-      ChatServerMessagePayloadSchema.safeParse({ ...base, text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1) }).success,
+      ChatServerMessagePayloadSchema.safeParse({ ...base, referencedUids: tooMany }).success,
     ).toBe(false);
-    expect(ChatServerMessagePayloadSchema.safeParse({ ...base, replyTo: 'm1' }).success).toBe(false);
+    expect(
+      ChatServerMessagePayloadSchema.safeParse({ ...base, referencedUids: [''] }).success,
+    ).toBe(false);
+    expect(
+      ChatServerMessagePayloadSchema.safeParse({
+        ...base,
+        text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1),
+      }).success,
+    ).toBe(false);
+    expect(ChatServerMessagePayloadSchema.safeParse({ ...base, replyTo: 'm1' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -126,7 +152,9 @@ describe('a signed chat internal call is signed for one direction', () => {
 
   it('never gives two directions or environments the same audience, so one signature verifies in one direction only', () => {
     const audiences = CHAT_INTERNAL_CALL_DIRECTIONS.flatMap((direction) =>
-      ['prod', 'dev', 'test', 'to-room', 'to-server:prod'].map((env) => chatInternalAudience(direction, env)),
+      ['prod', 'dev', 'test', 'to-room', 'to-server:prod'].map((env) =>
+        chatInternalAudience(direction, env),
+      ),
     );
     expect(new Set(audiences).size).toBe(audiences.length);
   });
@@ -163,11 +191,14 @@ describe('a sync event the server applies to a room', () => {
 
   it('syncs only the three authoritative facts a room applies', () => {
     expect(CHAT_SYNC_APPLY_KINDS).toEqual(['channelAuth', 'accountAccess', 'config']);
-    expect(ChatSyncApplyRequestSchema.safeParse({ ...event, kind: 'serverMessage' }).success).toBe(false);
+    expect(ChatSyncApplyRequestSchema.safeParse({ ...event, kind: 'serverMessage' }).success).toBe(
+      false,
+    );
   });
 
   it('refuses a coerced or missing field rather than guessing it', () => {
-    const parse = (over: Record<string, unknown>) => ChatSyncApplyRequestSchema.safeParse({ ...event, ...over }).success;
+    const parse = (over: Record<string, unknown>) =>
+      ChatSyncApplyRequestSchema.safeParse({ ...event, ...over }).success;
     expect(parse({ version: '3' })).toBe(false);
     expect(parse({ version: -1 })).toBe(false);
     expect(parse({ version: 1.5 })).toBe(false);
@@ -181,7 +212,9 @@ describe('a sync event the server applies to a room', () => {
   });
 
   it('refuses any other field', () => {
-    expect(ChatSyncApplyRequestSchema.safeParse({ ...event, status: 'pending' }).success).toBe(false);
+    expect(ChatSyncApplyRequestSchema.safeParse({ ...event, status: 'pending' }).success).toBe(
+      false,
+    );
   });
 
   it('accepts the largest room address and operation id', () => {
@@ -192,8 +225,13 @@ describe('a sync event the server applies to a room', () => {
       payloadHash: 'h'.repeat(CHAT_DIGEST_MAX_LENGTH),
     };
     expect(ChatSyncApplyRequestSchema.safeParse(largest).success).toBe(true);
-    expect(ChatSyncApplyRequestSchema.safeParse({ ...largest, eventId: `${largest.eventId}e` }).success).toBe(false);
-    expect(ChatSyncApplyRequestSchema.safeParse({ ...largest, payloadHash: `${largest.payloadHash}h` }).success).toBe(false);
+    expect(
+      ChatSyncApplyRequestSchema.safeParse({ ...largest, eventId: `${largest.eventId}e` }).success,
+    ).toBe(false);
+    expect(
+      ChatSyncApplyRequestSchema.safeParse({ ...largest, payloadHash: `${largest.payloadHash}h` })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -211,11 +249,14 @@ describe('a server-originated message the server appends to a room', () => {
 
   it('is either a member message the server sends or a system line', () => {
     expect(CHAT_OUTBOX_COMMAND_KINDS).toEqual(['userMsg', 'systemMsg']);
-    expect(ChatOutboxAppendRequestSchema.safeParse({ ...command, kind: 'attachment' }).success).toBe(false);
+    expect(
+      ChatOutboxAppendRequestSchema.safeParse({ ...command, kind: 'attachment' }).success,
+    ).toBe(false);
   });
 
   it('refuses a message the server-message contract refuses, a missing room, and any other field', () => {
-    const parse = (over: Record<string, unknown>) => ChatOutboxAppendRequestSchema.safeParse({ ...command, ...over }).success;
+    const parse = (over: Record<string, unknown>) =>
+      ChatOutboxAppendRequestSchema.safeParse({ ...command, ...over }).success;
     expect(parse({ payload: { senderId: 'system', text: 'x', replyTo: 'm1' } })).toBe(false);
     expect(parse({ payload: { text: 'x' } })).toBe(false);
     expect(parse({ threadRef: '' })).toBe(false);
@@ -232,7 +273,8 @@ describe('the word-list snapshot the server publishes', () => {
   });
 
   it('refuses a malformed version, a missing hash, a non-string word, and any other field', () => {
-    const parse = (over: Record<string, unknown>) => ChatWordListSnapshotSchema.safeParse({ ...snapshot, ...over }).success;
+    const parse = (over: Record<string, unknown>) =>
+      ChatWordListSnapshotSchema.safeParse({ ...snapshot, ...over }).success;
     expect(parse({ wordListVersion: -1 })).toBe(false);
     expect(parse({ wordListVersion: '4' })).toBe(false);
     expect(parse({ hash: '' })).toBe(false);

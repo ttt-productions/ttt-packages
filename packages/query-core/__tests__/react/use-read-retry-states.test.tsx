@@ -52,7 +52,10 @@ function renderReads(reads: ReturnType<typeof makeReads>, ids: string[]) {
   );
 }
 
-async function failBoth(reads: ReturnType<typeof makeReads>, result: { current: ReturnType<typeof renderReads>['result']['current'] }) {
+async function failBoth(
+  reads: ReturnType<typeof makeReads>,
+  result: { current: ReturnType<typeof renderReads>['result']['current'] },
+) {
   await waitFor(() => expect(reads.isWaiting('a') && reads.isWaiting('b')).toBe(true));
   const failA = new Error('a failed');
   const failB = new Error('b failed');
@@ -74,7 +77,7 @@ describe('useReadRetryStates', () => {
     ]);
   });
 
-  it('holds each read\'s own failure through its own retry, and never shows it on another read', async () => {
+  it("holds each read's own failure through its own retry, and never shows it on another read", async () => {
     const reads = makeReads();
     const { result } = renderReads(reads, ['a', 'b']);
     const { failA, failB } = await failBoth(reads, result);
@@ -99,7 +102,7 @@ describe('useReadRetryStates', () => {
     expect(result.current.states[1]).toEqual({ error: failB, isRetrying: false, isLoading: false });
   });
 
-  it('drops a read\'s held failure when it leaves the set, and a read joining it starts as loading', async () => {
+  it("drops a read's held failure when it leaves the set, and a read joining it starts as loading", async () => {
     const reads = makeReads();
     const { result, rerender } = renderReads(reads, ['a', 'b']);
     await failBoth(reads, result);

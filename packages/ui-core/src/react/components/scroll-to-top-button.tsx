@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { ChevronUp } from "lucide-react";
-import { Button, type ButtonProps } from "./button.js";
-import { cn } from "../../lib/utils.js";
+import * as React from 'react';
+import { ChevronUp } from 'lucide-react';
+import { Button, type ButtonProps } from './button.js';
+import { cn } from '../../lib/utils.js';
 
 /**
  * Standard button DOM props forwarded to the rendered element, minus the props
@@ -17,8 +17,8 @@ import { cn } from "../../lib/utils.js";
  * `Button` destructures its owned `className` out of the forwarded `...props`.
  */
 type ScrollToTopButtonPassthrough = Omit<
-  React.ComponentPropsWithoutRef<"button">,
-  "className" | "onClick" | "aria-label" | "children"
+  React.ComponentPropsWithoutRef<'button'>,
+  'className' | 'onClick' | 'aria-label' | 'children'
 >;
 
 export interface ScrollToTopButtonProps extends ScrollToTopButtonPassthrough {
@@ -31,9 +31,9 @@ export interface ScrollToTopButtonProps extends ScrollToTopButtonPassthrough {
   /** Optional override for the icon. */
   icon?: React.ReactNode;
   /** Button variant. Forwarded to the underlying Button. Defaults to Button's own default. */
-  variant?: ButtonProps["variant"];
+  variant?: ButtonProps['variant'];
   /** Button size. Forwarded to the underlying Button. Default "icon". */
-  size?: ButtonProps["size"];
+  size?: ButtonProps['size'];
   /**
    * Scroll behavior passed to `window.scrollTo`. Default "smooth". Pass "auto"
    * to skip the smooth animation (e.g. for a reduced-motion mode). The package
@@ -47,12 +47,12 @@ export interface ScrollToTopButtonProps extends ScrollToTopButtonPassthrough {
 
 export function ScrollToTopButton({
   threshold = 400,
-  ariaLabel = "Scroll to top",
+  ariaLabel = 'Scroll to top',
   className,
   icon,
   variant,
-  size = "icon",
-  scrollBehavior = "smooth",
+  size = 'icon',
+  scrollBehavior = 'smooth',
   ...rest
 }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -60,8 +60,8 @@ export function ScrollToTopButton({
   React.useEffect(() => {
     const toggle = () => setIsVisible(window.scrollY > threshold);
     toggle();
-    window.addEventListener("scroll", toggle, { passive: true });
-    return () => window.removeEventListener("scroll", toggle);
+    window.addEventListener('scroll', toggle, { passive: true });
+    return () => window.removeEventListener('scroll', toggle);
   }, [threshold]);
 
   const onClick = () => window.scrollTo({ top: 0, behavior: scrollBehavior });
@@ -74,8 +74,8 @@ export function ScrollToTopButton({
       onClick={onClick}
       aria-label={ariaLabel}
       className={cn(
-        "fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full elevation-raised transition-opacity duration-[var(--motion-base)] ease-[var(--motion-ease)]",
-        isVisible ? "opacity-100" : "opacity-0 pointer-events-none",
+        'fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full elevation-raised transition-opacity duration-[var(--motion-base)] ease-[var(--motion-ease)]',
+        isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
         className,
       )}
     >

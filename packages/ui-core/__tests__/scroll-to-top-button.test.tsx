@@ -86,9 +86,7 @@ describe('ScrollToTopButton — rest-prop passthrough', () => {
   });
 
   it("preserves the component's own aria-label and scroll onClick when passthrough props are supplied", () => {
-    const scrollToSpy = vi
-      .spyOn(window, 'scrollTo')
-      .mockImplementation(() => {});
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     try {
       render(<ScrollToTopButton data-tour-anchor="scroll-top" />);
       // Owned aria-label survives — still queryable by its default accessible name.

@@ -102,17 +102,23 @@ describe('MediaViewer', () => {
     });
 
     it('accepts MIME-form type and takes the primary segment: "image/png" -> image', () => {
-      const { container } = render(<MediaViewer url="https://example.com/x" type={'image/png' as any} />);
+      const { container } = render(
+        <MediaViewer url="https://example.com/x" type={'image/png' as any} />,
+      );
       expect(container.querySelector('img')).toBeInTheDocument();
     });
 
     it('accepts MIME-form type "video/mp4" -> video', () => {
-      const { container } = render(<MediaViewer url="https://example.com/x" type={'video/mp4' as any} />);
+      const { container } = render(
+        <MediaViewer url="https://example.com/x" type={'video/mp4' as any} />,
+      );
       expect(container.querySelector('video')).toBeInTheDocument();
     });
 
     it('accepts MIME-form type "audio/mpeg" -> audio', () => {
-      const { container } = render(<MediaViewer url="https://example.com/x" type={'audio/mpeg' as any} />);
+      const { container } = render(
+        <MediaViewer url="https://example.com/x" type={'audio/mpeg' as any} />,
+      );
       expect(container.querySelector('audio')).toBeInTheDocument();
     });
   });
@@ -147,14 +153,14 @@ describe('MediaViewer', () => {
   describe('fallback link / fallbackMode', () => {
     it('fallback link uses filename as download attribute', () => {
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="other" filename="report.pdf" />
+        <MediaViewer url="https://example.com/x" type="other" filename="report.pdf" />,
       );
       expect(container.querySelector('a')).toHaveAttribute('download', 'report.pdf');
     });
 
     it('fallback link uses fallbackLabel', () => {
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="other" fallbackLabel="Open file" />
+        <MediaViewer url="https://example.com/x" type="other" fallbackLabel="Open file" />,
       );
       expect(container.querySelector('a')?.textContent).toBe('Open file');
     });
@@ -166,7 +172,7 @@ describe('MediaViewer', () => {
 
     it('returns null when fallbackMode="none" and type is other', () => {
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="other" fallbackMode="none" />
+        <MediaViewer url="https://example.com/x" type="other" fallbackMode="none" />,
       );
       expect(container).toBeEmptyDOMElement();
     });
@@ -206,7 +212,7 @@ describe('MediaViewer', () => {
     it('onError callback from props is called', () => {
       const onError = vi.fn();
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="image" onError={onError} />
+        <MediaViewer url="https://example.com/x" type="image" onError={onError} />,
       );
       fireEvent.error(container.querySelector('img')!);
       expect(onError).toHaveBeenCalledTimes(1);
@@ -220,7 +226,7 @@ describe('MediaViewer', () => {
 
     it('resets hasError when url prop changes to a new URL', () => {
       const { container, rerender } = render(
-        <MediaViewer url="https://example.com/a" type="image" />
+        <MediaViewer url="https://example.com/a" type="image" />,
       );
       fireEvent.error(container.querySelector('img')!);
       expect(container.querySelector('.mv-error-fallback')).toBeInTheDocument();
@@ -234,14 +240,14 @@ describe('MediaViewer', () => {
   describe('styling pass-through', () => {
     it('applies className to outer wrapper', () => {
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="image" className="outer-x" />
+        <MediaViewer url="https://example.com/x" type="image" className="outer-x" />,
       );
       expect(container.firstChild).toHaveClass('outer-x');
     });
 
     it('applies circular style when isCircular=true', () => {
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="image" isCircular />
+        <MediaViewer url="https://example.com/x" type="image" isCircular />,
       );
       expect(container.firstChild).toHaveStyle({ borderRadius: '50%', overflow: 'hidden' });
     });
@@ -251,7 +257,7 @@ describe('MediaViewer', () => {
     it('image onLoad forwards to parent onLoad', () => {
       const onLoad = vi.fn();
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="image" onLoad={onLoad} />
+        <MediaViewer url="https://example.com/x" type="image" onLoad={onLoad} />,
       );
       fireEvent.load(container.querySelector('img')!);
       expect(onLoad).toHaveBeenCalledTimes(1);
@@ -260,7 +266,7 @@ describe('MediaViewer', () => {
     it('video onLoad (via loadeddata) forwards to parent onLoad', () => {
       const onLoad = vi.fn();
       const { container } = render(
-        <MediaViewer url="https://example.com/x" type="video" onLoad={onLoad} />
+        <MediaViewer url="https://example.com/x" type="video" onLoad={onLoad} />,
       );
       fireEvent.loadedData(container.querySelector('video')!);
       expect(onLoad).toHaveBeenCalledTimes(1);

@@ -9,17 +9,28 @@ describe('CheckDisplayNameAvailableResultSchema', () => {
   it('answers available, or unavailable with one of the three reasons', () => {
     expect(CheckDisplayNameAvailableResultSchema.safeParse({ available: true }).success).toBe(true);
     for (const reason of ['taken', 'reserved', 'disallowed']) {
-      expect(CheckDisplayNameAvailableResultSchema.safeParse({ available: false, reason }).success).toBe(true);
+      expect(
+        CheckDisplayNameAvailableResultSchema.safeParse({ available: false, reason }).success,
+      ).toBe(true);
     }
   });
 
   it('refuses a reason the availability check never gives', () => {
-    expect(CheckDisplayNameAvailableResultSchema.safeParse({ available: false, reason: 'tooLong' }).success).toBe(false);
+    expect(
+      CheckDisplayNameAvailableResultSchema.safeParse({ available: false, reason: 'tooLong' })
+        .success,
+    ).toBe(false);
   });
 });
 
 describe('LookupUserByEmailOrUidResultSchema', () => {
-  const user = { uid: 'u'.repeat(28), displayName: 'Jane', email: 'jane@example.com', status: 'suspended', isAdmin: false };
+  const user = {
+    uid: 'u'.repeat(28),
+    displayName: 'Jane',
+    email: 'jane@example.com',
+    status: 'suspended',
+    isAdmin: false,
+  };
 
   it('carries the one matched account, or null when none resolves', () => {
     expect(LookupUserByEmailOrUidResultSchema.parse({ user })).toEqual({ user });
@@ -29,7 +40,9 @@ describe('LookupUserByEmailOrUidResultSchema', () => {
   it('refuses an account with no status or an unknown one — never read as active', () => {
     const { status: _status, ...noStatus } = user;
     expect(LookupUserByEmailOrUidResultSchema.safeParse({ user: noStatus }).success).toBe(false);
-    expect(LookupUserByEmailOrUidResultSchema.safeParse({ user: { ...user, status: 'paused' } }).success).toBe(false);
+    expect(
+      LookupUserByEmailOrUidResultSchema.safeParse({ user: { ...user, status: 'paused' } }).success,
+    ).toBe(false);
   });
 });
 

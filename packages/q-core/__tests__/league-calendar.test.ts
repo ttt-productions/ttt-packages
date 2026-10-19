@@ -4,7 +4,11 @@
 // four.
 
 import { describe, it, expect } from 'vitest';
-import { leagueInstantOf, toLeagueDayKey, toLeagueTimeOfDay } from '../src/utils/league-calendar.js';
+import {
+  leagueInstantOf,
+  toLeagueDayKey,
+  toLeagueTimeOfDay,
+} from '../src/utils/league-calendar.js';
 
 describe('leagueInstantOf', () => {
   it('reads a winter evening on standard time, five hours behind UTC', () => {
@@ -47,7 +51,7 @@ describe('leagueInstantOf', () => {
 });
 
 describe('toLeagueTimeOfDay', () => {
-  it('reads an instant on a 24-hour clock in the leagues\' zone, never the viewer\'s', () => {
+  it("reads an instant on a 24-hour clock in the leagues' zone, never the viewer's", () => {
     expect(toLeagueTimeOfDay(Date.UTC(2026, 0, 16, 0, 30))).toBe('19:30');
     expect(toLeagueTimeOfDay(Date.UTC(2026, 6, 15, 23, 30))).toBe('19:30');
   });

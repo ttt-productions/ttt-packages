@@ -4,7 +4,7 @@
 // `admin.apps` / `admin.app()` / `admin.app.App` / `admin.credential.Credential` are
 // gone there. The modular entries have existed since v10, so this file works on every
 // version the peer range allows.
-import admin from "firebase-admin";
+import admin from 'firebase-admin';
 import {
   getApp,
   getApps,
@@ -12,10 +12,10 @@ import {
   type App,
   type AppOptions,
   type Credential,
-} from "firebase-admin/app";
-import { getAuth, type Auth } from "firebase-admin/auth";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { getStorage, type Storage } from "firebase-admin/storage";
+} from 'firebase-admin/app';
+import { getAuth, type Auth } from 'firebase-admin/auth';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getStorage, type Storage } from 'firebase-admin/storage';
 
 let cachedApp: App | undefined;
 

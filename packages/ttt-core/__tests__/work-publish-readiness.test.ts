@@ -45,7 +45,13 @@ describe('checkWorkPublishReadiness — first publication', () => {
       ready({ realm: { realmType: 'public', realmStatus: 'draft', realmCoverAssetId: 'c' } }),
     );
     expect(result.checks.map((check) => check.requirement)).toEqual([
-      'title', 'description', 'covers', 'genres', 'realmCover', 'shares', 'collaborators',
+      'title',
+      'description',
+      'covers',
+      'genres',
+      'realmCover',
+      'shares',
+      'collaborators',
     ]);
   });
 
@@ -61,14 +67,23 @@ describe('checkWorkPublishReadiness — first publication', () => {
 
   it('requires all three covers', () => {
     const result = checkWorkPublishReadiness(
-      ready({ section: { coverSquareAssetId: 'sq', coverPosterAssetId: 'po', workGenres: ['Fantasy'] } }),
+      ready({
+        section: { coverSquareAssetId: 'sq', coverPosterAssetId: 'po', workGenres: ['Fantasy'] },
+      }),
     );
     expect(result.unmet).toEqual(['covers']);
   });
 
   it('requires at least one genre', () => {
     const result = checkWorkPublishReadiness(
-      ready({ section: { coverSquareAssetId: 'sq', coverPosterAssetId: 'po', coverCinematicAssetId: 'ci', workGenres: [] } }),
+      ready({
+        section: {
+          coverSquareAssetId: 'sq',
+          coverPosterAssetId: 'po',
+          coverCinematicAssetId: 'ci',
+          workGenres: [],
+        },
+      }),
     );
     expect(result.unmet).toEqual(['genres']);
   });
@@ -77,7 +92,12 @@ describe('checkWorkPublishReadiness — first publication', () => {
     const half = MAX_WORK_PROJECT_STAKE_SHARES / 2;
     const guildmates: WorkPublishReadinessGuildmate[] = [
       { status: 'active', stakeShareCount: half, tradeProfessions: ['Writer'] },
-      { status: 'active', stakeShareCount: half, tradeProfessions: [], holderType: FOUNDING_WORK_HOLDER_TYPE },
+      {
+        status: 'active',
+        stakeShareCount: half,
+        tradeProfessions: [],
+        holderType: FOUNDING_WORK_HOLDER_TYPE,
+      },
       { status: 'departed', stakeShareCount: 7, tradeProfessions: ['Editor'] },
     ];
     const result = checkWorkPublishReadiness(ready({ guildmates }));
@@ -100,7 +120,15 @@ describe('checkWorkPublishReadiness — first publication', () => {
     expect(result.unmet).toEqual(['collaborators']);
 
     const noProfession = checkWorkPublishReadiness(
-      ready({ guildmates: [{ status: 'active', stakeShareCount: MAX_WORK_PROJECT_STAKE_SHARES, tradeProfessions: [] }] }),
+      ready({
+        guildmates: [
+          {
+            status: 'active',
+            stakeShareCount: MAX_WORK_PROJECT_STAKE_SHARES,
+            tradeProfessions: [],
+          },
+        ],
+      }),
     );
     expect(noProfession.unmet).toEqual(['collaborators']);
   });
@@ -110,7 +138,11 @@ describe('checkWorkPublishReadiness — after the first publication', () => {
   it("skips every first-publication requirement, so a departed member's retained shares never block the next item", () => {
     const result = checkWorkPublishReadiness(
       ready({
-        work: { status: 'published', workingTitle: 'The Long Night', workingDescription: 'A story.' },
+        work: {
+          status: 'published',
+          workingTitle: 'The Long Night',
+          workingDescription: 'A story.',
+        },
         guildmates: [{ status: 'active', stakeShareCount: 600, tradeProfessions: ['Writer'] }],
         section: { workGenres: [] },
       }),
@@ -140,9 +172,15 @@ describe('the first-publication phase', () => {
 
 describe('realmCoverSubmitRule', () => {
   it('applies to a public draft Realm, met only with a cover', () => {
-    expect(realmCoverSubmitRule({ realmType: 'public', realmStatus: 'draft' })).toEqual({ met: false });
-    expect(realmCoverSubmitRule({ realmType: 'public', realmStatus: 'draft', realmCoverAssetId: '' })).toEqual({ met: false });
-    expect(realmCoverSubmitRule({ realmType: 'public', realmStatus: 'draft', realmCoverAssetId: 'c' })).toEqual({ met: true });
+    expect(realmCoverSubmitRule({ realmType: 'public', realmStatus: 'draft' })).toEqual({
+      met: false,
+    });
+    expect(
+      realmCoverSubmitRule({ realmType: 'public', realmStatus: 'draft', realmCoverAssetId: '' }),
+    ).toEqual({ met: false });
+    expect(
+      realmCoverSubmitRule({ realmType: 'public', realmStatus: 'draft', realmCoverAssetId: 'c' }),
+    ).toEqual({ met: true });
   });
 
   it('does not apply to a released Realm, a standalone Realm, or no Realm', () => {
@@ -152,13 +190,17 @@ describe('realmCoverSubmitRule', () => {
   });
 
   it('blocks a first publication whose public draft Realm has no cover', () => {
-    const result = checkWorkPublishReadiness(ready({ realm: { realmType: 'public', realmStatus: 'draft' } }));
+    const result = checkWorkPublishReadiness(
+      ready({ realm: { realmType: 'public', realmStatus: 'draft' } }),
+    );
     expect(result.unmet).toEqual(['realmCover']);
   });
 });
 
 describe('WORK_PUBLISH_REQUIREMENT_LABELS', () => {
   it('words the share requirement from the Work total', () => {
-    expect(WORK_PUBLISH_REQUIREMENT_LABELS.shares).toBe(`Total work project shares equal ${MAX_WORK_PROJECT_STAKE_SHARES}`);
+    expect(WORK_PUBLISH_REQUIREMENT_LABELS.shares).toBe(
+      `Total work project shares equal ${MAX_WORK_PROJECT_STAKE_SHARES}`,
+    );
   });
 });

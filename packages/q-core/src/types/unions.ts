@@ -21,7 +21,8 @@ export const BANNED_USER_STATUS = 'banned' satisfies UserStatus;
 // claim write.
 export const STATUS_RECONCILE_QUEUE_AUTH_EFFECTS = ['accountStatus', 'roleClaims'] as const;
 export type StatusReconcileQueueAuthEffect = (typeof STATUS_RECONCILE_QUEUE_AUTH_EFFECTS)[number];
-export const ACCOUNT_STATUS_AUTH_EFFECT = 'accountStatus' as const satisfies StatusReconcileQueueAuthEffect;
+export const ACCOUNT_STATUS_AUTH_EFFECT =
+  'accountStatus' as const satisfies StatusReconcileQueueAuthEffect;
 export const ROLE_CLAIMS_EFFECT = 'roleClaims' as const satisfies StatusReconcileQueueAuthEffect;
 
 export const TEAM_ROLE_KEYS = ['captain', 'coCaptain', 'player'] as const;
@@ -43,7 +44,10 @@ export const TEAM_PLAYER_ROLE = 'player' as const satisfies TeamRole;
 // The roles a member's role change moves a membership between — promoting a player to co-captain,
 // or demoting a co-captain to player. The captain's role moves only through the admin's captain
 // change, so it is never one of them.
-export const MEMBER_ASSIGNABLE_TEAM_ROLES = [TEAM_CO_CAPTAIN_ROLE, TEAM_PLAYER_ROLE] as const satisfies readonly TeamRole[];
+export const MEMBER_ASSIGNABLE_TEAM_ROLES = [
+  TEAM_CO_CAPTAIN_ROLE,
+  TEAM_PLAYER_ROLE,
+] as const satisfies readonly TeamRole[];
 export type MemberAssignableTeamRole = (typeof MEMBER_ASSIGNABLE_TEAM_ROLES)[number];
 
 // A ghost link that merges a ghost's membership into the account's keeps one membership with the
@@ -93,10 +97,13 @@ export const LEAGUE_STATUS_TRANSITIONS: Readonly<Record<LeagueStatus, readonly L
 
 // Every status but closed: a league still being set up, published, or played. Whatever such a
 // league is configured with — its waiver template among them — is still in use.
-export const OPEN_LEAGUE_STATUS_KEYS: readonly Exclude<LeagueStatus, typeof CLOSED_LEAGUE_STATUS>[] =
-  LEAGUE_STATUS_KEYS.filter(
-    (status): status is Exclude<LeagueStatus, typeof CLOSED_LEAGUE_STATUS> => status !== CLOSED_LEAGUE_STATUS,
-  );
+export const OPEN_LEAGUE_STATUS_KEYS: readonly Exclude<
+  LeagueStatus,
+  typeof CLOSED_LEAGUE_STATUS
+>[] = LEAGUE_STATUS_KEYS.filter(
+  (status): status is Exclude<LeagueStatus, typeof CLOSED_LEAGUE_STATUS> =>
+    status !== CLOSED_LEAGUE_STATUS,
+);
 
 // A league players are part of now or next: published and not yet closed. The admin dashboard's
 // active free-agent count covers only these leagues.
@@ -135,7 +142,12 @@ export const GAME_STATUS_ON_REOPEN = 'inprogress' as const satisfies GameStatus;
 
 // An invitation is pending until the invitee accepts (`approved`) or declines (`rejected`) it, or the
 // team withdraws it (`cancelled`). A membership on its team made any other way closes it `approved`.
-export const TEAM_INVITATION_STATUS_KEYS = ['pending', 'approved', 'rejected', 'cancelled'] as const;
+export const TEAM_INVITATION_STATUS_KEYS = [
+  'pending',
+  'approved',
+  'rejected',
+  'cancelled',
+] as const;
 export type TeamInvitationStatus = (typeof TEAM_INVITATION_STATUS_KEYS)[number];
 
 export const PENDING_TEAM_INVITATION_STATUS = 'pending' as const satisfies TeamInvitationStatus;
@@ -146,13 +158,21 @@ export const CANCELLED_TEAM_INVITATION_STATUS = 'cancelled' as const satisfies T
 // A join request is pending until the team's leaders accept (`approved`) or reject (`rejected`) it,
 // or the requester withdraws it (`cancelled`). A membership on its team made any other way closes it
 // `approved`.
-export const TEAM_JOIN_REQUEST_STATUS_KEYS = ['pending', 'approved', 'rejected', 'cancelled'] as const;
+export const TEAM_JOIN_REQUEST_STATUS_KEYS = [
+  'pending',
+  'approved',
+  'rejected',
+  'cancelled',
+] as const;
 export type TeamJoinRequestStatus = (typeof TEAM_JOIN_REQUEST_STATUS_KEYS)[number];
 
 export const PENDING_TEAM_JOIN_REQUEST_STATUS = 'pending' as const satisfies TeamJoinRequestStatus;
-export const APPROVED_TEAM_JOIN_REQUEST_STATUS = 'approved' as const satisfies TeamJoinRequestStatus;
-export const REJECTED_TEAM_JOIN_REQUEST_STATUS = 'rejected' as const satisfies TeamJoinRequestStatus;
-export const CANCELLED_TEAM_JOIN_REQUEST_STATUS = 'cancelled' as const satisfies TeamJoinRequestStatus;
+export const APPROVED_TEAM_JOIN_REQUEST_STATUS =
+  'approved' as const satisfies TeamJoinRequestStatus;
+export const REJECTED_TEAM_JOIN_REQUEST_STATUS =
+  'rejected' as const satisfies TeamJoinRequestStatus;
+export const CANCELLED_TEAM_JOIN_REQUEST_STATUS =
+  'cancelled' as const satisfies TeamJoinRequestStatus;
 
 export const HARDWARE_LOAN_CONTRACT_STATUS_KEYS = ['pending', 'loaned', 'returned'] as const;
 export type HardwareLoanContractStatus = (typeof HARDWARE_LOAN_CONTRACT_STATUS_KEYS)[number];
@@ -183,9 +203,12 @@ export type AwardGroupGrantStatus = (typeof AWARD_GROUP_GRANT_STATUS_KEYS)[numbe
 export const AWARD_GROUP_REVOKE_SKIP_KEYS = ['heldBefore', 'heldByAnotherGrant'] as const;
 export type AwardGroupRevokeSkip = (typeof AWARD_GROUP_REVOKE_SKIP_KEYS)[number];
 
-export const PENDING_HARDWARE_LOAN_CONTRACT_STATUS = 'pending' as const satisfies HardwareLoanContractStatus;
-export const LOANED_HARDWARE_LOAN_CONTRACT_STATUS = 'loaned' as const satisfies HardwareLoanContractStatus;
-export const RETURNED_HARDWARE_LOAN_CONTRACT_STATUS = 'returned' as const satisfies HardwareLoanContractStatus;
+export const PENDING_HARDWARE_LOAN_CONTRACT_STATUS =
+  'pending' as const satisfies HardwareLoanContractStatus;
+export const LOANED_HARDWARE_LOAN_CONTRACT_STATUS =
+  'loaned' as const satisfies HardwareLoanContractStatus;
+export const RETURNED_HARDWARE_LOAN_CONTRACT_STATUS =
+  'returned' as const satisfies HardwareLoanContractStatus;
 
 // What deleting a waiver template did. A template nothing names is deleted with its versions; one a
 // signature or a closed league still names is retired — kept for them, offered to no new league.
@@ -194,17 +217,30 @@ export type WaiverTemplateDeleteOutcome = (typeof WAIVER_TEMPLATE_DELETE_OUTCOME
 
 // What last changed the stats, as announced on the stats beacon; `link` is a ghost link moving a
 // game's lines onto an account.
-export const STATS_BEACON_ACTION_KEYS = ['finalize', 'reopen', 'recalculate', 'correct', 'historical-update', 'link'] as const;
+export const STATS_BEACON_ACTION_KEYS = [
+  'finalize',
+  'reopen',
+  'recalculate',
+  'correct',
+  'historical-update',
+  'link',
+] as const;
 export type StatsBeaconAction = (typeof STATS_BEACON_ACTION_KEYS)[number];
 
 // The actions that describe one game, so a beacon announcing one names the game, its league, and its
 // teams; every other action names no game, and a game id left beside it would point at a stale one.
-export const GAME_SCOPED_STATS_BEACON_ACTION_KEYS = ['finalize', 'reopen'] as const satisfies readonly StatsBeaconAction[];
+export const GAME_SCOPED_STATS_BEACON_ACTION_KEYS = [
+  'finalize',
+  'reopen',
+] as const satisfies readonly StatsBeaconAction[];
 export type GameScopedStatsBeaconAction = (typeof GAME_SCOPED_STATS_BEACON_ACTION_KEYS)[number];
 
 // The statuses a game's roster still follows its teams' memberships in: listed explicitly, so a
 // status added later is closed until it is named here, never open by default.
-export const OPEN_GAME_STATUS_KEYS = ['scheduled', 'inprogress'] as const satisfies readonly GameStatus[];
+export const OPEN_GAME_STATUS_KEYS = [
+  'scheduled',
+  'inprogress',
+] as const satisfies readonly GameStatus[];
 export type OpenGameStatus = (typeof OPEN_GAME_STATUS_KEYS)[number];
 
 // Whether a game is still open — not yet finalized — so a scorer may still change it. Both app roots
@@ -218,7 +254,8 @@ export function isOpenGameStatus(status: GameStatus): status is OpenGameStatus {
 export const MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS = ['pending', 'reconciled', 'failed'] as const;
 export type MembershipRosterSyncStatus = (typeof MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS)[number];
 export const PENDING_ROSTER_SYNC_STATUS = 'pending' as const satisfies MembershipRosterSyncStatus;
-export const RECONCILED_ROSTER_SYNC_STATUS = 'reconciled' as const satisfies MembershipRosterSyncStatus;
+export const RECONCILED_ROSTER_SYNC_STATUS =
+  'reconciled' as const satisfies MembershipRosterSyncStatus;
 export const FAILED_ROSTER_SYNC_STATUS = 'failed' as const satisfies MembershipRosterSyncStatus;
 
 // The authority a ghost's waiver was signed under: the witness's captaincy on the ghost's team, or

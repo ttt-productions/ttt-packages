@@ -17,7 +17,10 @@
 
 import { SPECIAL_DOCS } from '../paths/collections.js';
 import { PUBLIC_DOCUMENT_LABELS, type PublicDocumentId } from './public-documents.js';
-import { LEGAL_REVIEW_NOTICE_ACTIVE, LEGAL_REVIEW_NOTICE_REVISION } from './legal-review-notice-state.js';
+import {
+  LEGAL_REVIEW_NOTICE_ACTIVE,
+  LEGAL_REVIEW_NOTICE_REVISION,
+} from './legal-review-notice-state.js';
 import type { LegalReviewNoticeReceipt } from '../doc-schemas/legal-review-notice.js';
 
 // ── Copy model ───────────────────────────────────────────────────────────────
@@ -46,7 +49,10 @@ export const LEGAL_REVIEW_NOTICE_BODY =
 
 /** The short line. Its closing sentence links to the full note. */
 export const LEGAL_REVIEW_NOTICE_SHORT_LINE: readonly LegalReviewNoticeSegment[] = [
-  { kind: 'text', text: "TTT's terms are my intentions, written by me and not yet reviewed by a lawyer. " },
+  {
+    kind: 'text',
+    text: "TTT's terms are my intentions, written by me and not yet reviewed by a lawyer. ",
+  },
   { kind: 'link', label: "Read the founder's note.", target: 'founderNote' },
 ];
 
@@ -59,14 +65,25 @@ export const LEGAL_REVIEW_NOTICE_CHECKBOX =
 // otherwise it is the plain agreement. Both link the two documents by their canonical labels.
 const REGISTRATION_TERMS_AGREEMENT_LEAD: readonly LegalReviewNoticeSegment[] = [
   { kind: 'text', text: 'I have read and agree to the ' },
-  { kind: 'link', label: PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.TERMS_PAGE], target: SPECIAL_DOCS.TERMS_PAGE },
+  {
+    kind: 'link',
+    label: PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.TERMS_PAGE],
+    target: SPECIAL_DOCS.TERMS_PAGE,
+  },
   { kind: 'text', text: ' and ' },
-  { kind: 'link', label: PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.PRIVACY_PAGE], target: SPECIAL_DOCS.PRIVACY_PAGE },
+  {
+    kind: 'link',
+    label: PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.PRIVACY_PAGE],
+    target: SPECIAL_DOCS.PRIVACY_PAGE,
+  },
 ];
 
 const REGISTRATION_TERMS_AGREEMENT_WITH_NOTICE: readonly LegalReviewNoticeSegment[] = [
   ...REGISTRATION_TERMS_AGREEMENT_LEAD,
-  { kind: 'text', text: ", and I understand they express the founder's intentions and have not had legal review." },
+  {
+    kind: 'text',
+    text: ", and I understand they express the founder's intentions and have not had legal review.",
+  },
 ];
 
 const REGISTRATION_TERMS_AGREEMENT_WITHOUT_NOTICE: readonly LegalReviewNoticeSegment[] = [
@@ -93,7 +110,10 @@ export function registrationTermsAgreementSegments(): readonly LegalReviewNotice
 export const LEGAL_REVIEW_NOTICE_VARIANTS = ['inline', 'strip', 'card', 'checkbox'] as const;
 export type LegalReviewNoticeVariant = (typeof LEGAL_REVIEW_NOTICE_VARIANTS)[number];
 
-type LegalReviewNoticeVariantList = readonly [LegalReviewNoticeVariant, ...LegalReviewNoticeVariant[]];
+type LegalReviewNoticeVariantList = readonly [
+  LegalReviewNoticeVariant,
+  ...LegalReviewNoticeVariant[],
+];
 
 /**
  * Every placement of the notice and the variants it may render (the first is its default).
@@ -174,8 +194,12 @@ export function publicDocumentCarriesLegalReviewNotice(documentId: PublicDocumen
 // ── Plain text (backend-owned copy) ──────────────────────────────────────────
 
 /** Flatten segments to plain text: text as written, a link as its label. */
-export function legalReviewNoticeSegmentsText(segments: readonly LegalReviewNoticeSegment[]): string {
-  return segments.map((segment) => (segment.kind === 'text' ? segment.text : segment.label)).join('');
+export function legalReviewNoticeSegmentsText(
+  segments: readonly LegalReviewNoticeSegment[],
+): string {
+  return segments
+    .map((segment) => (segment.kind === 'text' ? segment.text : segment.label))
+    .join('');
 }
 
 /**
@@ -216,7 +240,9 @@ export function activeLegalReviewNoticeRevision(): string | null {
  * threshold item): the active revision and the server time. `null` while the notice is off —
  * nothing is required, so nothing is recorded.
  */
-export function buildLegalReviewNoticeReceipt(acknowledgedAt: number): LegalReviewNoticeReceipt | null {
+export function buildLegalReviewNoticeReceipt(
+  acknowledgedAt: number,
+): LegalReviewNoticeReceipt | null {
   const revision = activeLegalReviewNoticeRevision();
   return revision === null ? null : { revision, acknowledgedAt };
 }

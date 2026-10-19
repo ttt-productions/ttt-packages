@@ -24,7 +24,13 @@ interface FixtureGameLine {
 }
 
 const seasonColumns: StatColumn<FixtureSeasonLine>[] = [
-  { id: 'gamesPlayed', label: 'Games played', shortLabel: 'GP', value: (line) => line.gamesPlayed, sort: 'desc' },
+  {
+    id: 'gamesPlayed',
+    label: 'Games played',
+    shortLabel: 'GP',
+    value: (line) => line.gamesPlayed,
+    sort: 'desc',
+  },
   {
     id: 'goals',
     label: 'Goals',
@@ -48,7 +54,11 @@ const gameColumns: StatColumn<FixtureGameLine>[] = [
   { id: 'saves', label: 'Saves', shortLabel: 'SV', value: (line) => line.saves, sort: 'desc' },
 ];
 
-const totals: ColumnPreset = { id: 'totals', label: 'Totals', columnIds: ['gamesPlayed', 'goals', 'goalsAgainst'] };
+const totals: ColumnPreset = {
+  id: 'totals',
+  label: 'Totals',
+  columnIds: ['gamesPlayed', 'goals', 'goalsAgainst'],
+};
 const perGame: ColumnPreset = {
   id: 'perGame',
   label: 'Per game',
@@ -117,24 +127,46 @@ describe('column catalog', () => {
 
   it('refuses a catalog declaring both layouts, neither, or an empty preset list', () => {
     // @ts-expect-error — presets and a default layout together
-    const both: ColumnCatalog<FixtureGameLine> = { columns: gameColumns, defaultSort: byGoals, presets: [totals], defaultLayout: ['goals'] };
+    const both: ColumnCatalog<FixtureGameLine> = {
+      columns: gameColumns,
+      defaultSort: byGoals,
+      presets: [totals],
+      defaultLayout: ['goals'],
+    };
     // @ts-expect-error — no default layout at all
     const neither: ColumnCatalog<FixtureGameLine> = { columns: gameColumns, defaultSort: byGoals };
-    // @ts-expect-error — a preset catalog names at least one preset, the default
-    const noPresets: ColumnCatalog<FixtureGameLine> = { columns: gameColumns, defaultSort: byGoals, presets: [] };
+    const noPresets: ColumnCatalog<FixtureGameLine> = {
+      columns: gameColumns,
+      defaultSort: byGoals,
+      // @ts-expect-error — a preset catalog names at least one preset, the default
+      presets: [],
+    };
     expect([both, neither, noPresets]).toHaveLength(3);
   });
 
   it('offers a per-game variant only on lines that carry games played', () => {
-    // @ts-expect-error — a game line has no games played to average over
-    const perGameOnGameLine: StatColumn<FixtureGameLine> = { id: 'goals', label: 'Goals', shortLabel: 'G', value: (line) => line.goals, perGame: { id: 'goalsPerGame', label: 'Goals per game', shortLabel: 'G/G' }, sort: 'desc' };
+    const perGameOnGameLine: StatColumn<FixtureGameLine> = {
+      id: 'goals',
+      label: 'Goals',
+      shortLabel: 'G',
+      value: (line) => line.goals,
+      // @ts-expect-error — a game line has no games played to average over
+      perGame: { id: 'goalsPerGame', label: 'Goals per game', shortLabel: 'G/G' },
+      sort: 'desc',
+    };
     expect(perGameOnGameLine.id).toBe('goals');
     expect(seasonColumns[1].perGame?.id).toBe('goalsPerGame');
   });
 
   it('refuses a first sort outside the two directions', () => {
-    // @ts-expect-error — `up` is not a sort direction
-    const sideways: StatColumn<FixtureGameLine> = { id: 'saves', label: 'Saves', shortLabel: 'SV', value: (line) => line.saves, sort: 'up' };
+    const sideways: StatColumn<FixtureGameLine> = {
+      id: 'saves',
+      label: 'Saves',
+      shortLabel: 'SV',
+      value: (line) => line.saves,
+      // @ts-expect-error — `up` is not a sort direction
+      sort: 'up',
+    };
     expect(sideways.id).toBe('saves');
   });
 });

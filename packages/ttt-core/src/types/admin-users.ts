@@ -14,4 +14,3 @@ export interface PublicUserSearchResult {
   displayName: string;
   status: UserAccountStatus;
 }
-

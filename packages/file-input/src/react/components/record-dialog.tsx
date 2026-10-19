@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Video, Mic, X, RotateCcw, Check } from "lucide-react";
-import { startWaveformLoop } from "@ttt-productions/media-viewer";
-import { MediaPreview } from "@ttt-productions/media-viewer/react";
-import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Camera, Video, Mic, X, RotateCcw, Check } from 'lucide-react';
+import { startWaveformLoop } from '@ttt-productions/media-viewer';
+import { MediaPreview } from '@ttt-productions/media-viewer/react';
+import { ensureFileWithContentType } from '../../lib/infer-content-type.js';
 import {
   Button,
   Dialog,
@@ -23,9 +23,9 @@ import {
   AlertDialogTitle,
   Spinner,
   useAsyncAction,
-} from "@ttt-productions/ui-core/react";
+} from '@ttt-productions/ui-core/react';
 
-type RecorderState = "idle" | "recording" | "preview";
+type RecorderState = 'idle' | 'recording' | 'preview';
 
 // Explicit MediaRecorder container preferences, probed via isTypeSupported.
 // A no-argument MediaRecorder leaves the container to the browser (Chrome
@@ -34,16 +34,13 @@ type RecorderState = "idle" | "recording" | "preview";
 // webm support and falls through to mp4. When isTypeSupported is unavailable
 // or nothing matches (test environments), we fall back to the no-argument
 // constructor and normalize whatever the recorder produced.
-const RECORDER_MIME_CANDIDATES: Record<"audio" | "video", readonly string[]> = {
-  audio: ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"],
-  video: ["video/webm;codecs=vp9,opus", "video/webm", "video/mp4"],
+const RECORDER_MIME_CANDIDATES: Record<'audio' | 'video', readonly string[]> = {
+  audio: ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'],
+  video: ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'],
 };
 
-function pickRecorderMimeType(kind: "audio" | "video"): string | undefined {
-  if (
-    typeof MediaRecorder === "undefined" ||
-    typeof MediaRecorder.isTypeSupported !== "function"
-  ) {
+function pickRecorderMimeType(kind: 'audio' | 'video'): string | undefined {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
     return undefined;
   }
   for (const candidate of RECORDER_MIME_CANDIDATES[kind]) {
@@ -66,16 +63,16 @@ function pickRecorderMimeType(kind: "audio" | "video"): string | undefined {
 // track can exist. A surprising `video/mp4` mimeType on that audio recording is
 // therefore still named `.m4a`; ensureFileWithContentType distrusts the
 // kind-mismatched video/mp4 type and the `.m4a` extension yields audio/mp4.
-function recordingFileName(mime: string, kind: "audio" | "video"): string {
-  const base = mime.split(";")[0].trim().toLowerCase();
+function recordingFileName(mime: string, kind: 'audio' | 'video'): string {
+  const base = mime.split(';')[0].trim().toLowerCase();
   const ext =
-    base === "audio/mp4" || base === "video/mp4"
-      ? kind === "audio"
-        ? "m4a"
-        : "mp4"
-      : base === "audio/ogg" || base === "video/ogg"
-        ? "ogg"
-        : "webm";
+    base === 'audio/mp4' || base === 'video/mp4'
+      ? kind === 'audio'
+        ? 'm4a'
+        : 'mp4'
+      : base === 'audio/ogg' || base === 'video/ogg'
+        ? 'ogg'
+        : 'webm';
   return `recording.${ext}`;
 }
 
@@ -112,11 +109,11 @@ export function autoStopDelayMs(maxRecordDurationSec: number): number {
 interface RecordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialKind: "audio" | "video";
+  initialKind: 'audio' | 'video';
   canPhoto: boolean;
   canRecVideo: boolean;
   canRecAudio: boolean;
-  cameraFacingMode?: "user" | "environment";
+  cameraFacingMode?: 'user' | 'environment';
   maxRecordDurationSec?: number;
   disabled?: boolean;
   isLoading?: boolean;
@@ -124,7 +121,11 @@ interface RecordDialogProps {
    *  own state at Save time, which tracks the requested MediaStream — audio
    *  requests `video:false`). It feeds the STRONG `media-recorder` client
    *  claim, so it must never be re-derived from the blob's reported MIME. */
-  onRecorded: (file: File, previewUrl: string, recordedKind: "audio" | "video") => void | Promise<void>;
+  onRecorded: (
+    file: File,
+    previewUrl: string,
+    recordedKind: 'audio' | 'video',
+  ) => void | Promise<void>;
   onRequestPhoto?: () => void;
 }
 
@@ -132,7 +133,7 @@ function formatDuration(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function RecordDialog({
@@ -149,8 +150,8 @@ export function RecordDialog({
   onRecorded,
   onRequestPhoto,
 }: RecordDialogProps) {
-  const [recordKind, setRecordKind] = useState<"audio" | "video">(initialKind);
-  const [recorderState, setRecorderState] = useState<RecorderState>("idle");
+  const [recordKind, setRecordKind] = useState<'audio' | 'video'>(initialKind);
+  const [recorderState, setRecorderState] = useState<RecorderState>('idle');
   const [recordPreviewUrl, setRecordPreviewUrl] = useState<string | null>(null);
   const [recordedFile, setRecordedFile] = useState<File | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -160,7 +161,7 @@ export function RecordDialog({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordStreamRef = useRef<MediaStream | null>(null);
-  const liveStreamKindRef = useRef<"audio" | "video" | null>(null);
+  const liveStreamKindRef = useRef<'audio' | 'video' | null>(null);
   const recordChunksRef = useRef<BlobPart[]>([]);
   const lastRecordUrlRef = useRef<string | null>(null);
   const livePreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -183,7 +184,7 @@ export function RecordDialog({
   useEffect(() => {
     if (open) {
       setRecordKind(initialKind);
-      setRecorderState("idle");
+      setRecorderState('idle');
       setRecordedFile(null);
       setRecordPreviewUrl(null);
       setElapsedMs(0);
@@ -207,7 +208,7 @@ export function RecordDialog({
       lastRecordUrlRef.current = url;
       return url;
     },
-    [revokeLastRecordUrl]
+    [revokeLastRecordUrl],
   );
 
   const stopElapsedTimer = useCallback(() => {
@@ -236,7 +237,7 @@ export function RecordDialog({
     audioAnalyserRef.current = null;
     const ctx = audioContextRef.current;
     audioContextRef.current = null;
-    if (ctx && ctx.state !== "closed") {
+    if (ctx && ctx.state !== 'closed') {
       ctx.close().catch(() => {});
     }
   }, []);
@@ -265,13 +266,13 @@ export function RecordDialog({
         waveformStopRef.current = startWaveformLoop({
           analyser,
           getCanvas: () => waveformCanvasRef.current,
-          mode: "line",
+          mode: 'line',
         });
       } catch {
         // Waveform is best-effort; silent failures are acceptable.
       }
     },
-    [stopWaveform]
+    [stopWaveform],
   );
 
   // Teardown MediaRecorder / MediaStream / auto-stop timeout / timer / waveform.
@@ -302,9 +303,9 @@ export function RecordDialog({
   // Acquire camera/mic and attach the live preview (video) or waveform (audio)
   // WITHOUT starting the recorder. Returns the live stream for reuse on Start.
   const acquireStream = useCallback(
-    async (kind: "audio" | "video") => {
-      const wantVideo = kind === "video";
-      const facingMode = cameraFacingMode ?? "user";
+    async (kind: 'audio' | 'video') => {
+      const wantVideo = kind === 'video';
+      const facingMode = cameraFacingMode ?? 'user';
       const gen = acquireGenRef.current;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -328,25 +329,25 @@ export function RecordDialog({
       }
       return stream;
     },
-    [cameraFacingMode, startWaveform]
+    [cameraFacingMode, startWaveform],
   );
 
   // Start a live preview for the given kind (used on open and on kind switch),
   // tearing down any existing stream first. Surfaces permission errors inline.
   const startLivePreview = useCallback(
-    async (kind: "audio" | "video") => {
+    async (kind: 'audio' | 'video') => {
       teardownCapture();
       const req = ++previewReqRef.current;
       setAcquiring(true);
       try {
         await acquireStream(kind);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Camera/microphone access denied.");
+        setError(e instanceof Error ? e.message : 'Camera/microphone access denied.');
       } finally {
         if (req === previewReqRef.current) setAcquiring(false);
       }
     },
-    [teardownCapture, acquireStream]
+    [teardownCapture, acquireStream],
   );
 
   // Request camera/mic as soon as the dialog opens (parity with PhotoCaptureModal)
@@ -363,14 +364,14 @@ export function RecordDialog({
   }, [open, initialKind, startLivePreview, teardownCapture, revokeLastRecordUrl]);
 
   const startRecording = useCallback(
-    async (kind: "audio" | "video") => {
+    async (kind: 'audio' | 'video') => {
       // Discard any previous preview before starting fresh.
       revokeLastRecordUrl();
       setRecordPreviewUrl(null);
       setRecordedFile(null);
       setRecordKind(kind);
 
-      const wantVideo = kind === "video";
+      const wantVideo = kind === 'video';
 
       // Reuse the live-preview stream when it matches the requested kind;
       // otherwise acquire a fresh one (also (re)triggers the permission prompt).
@@ -379,7 +380,7 @@ export function RecordDialog({
         try {
           stream = await acquireStream(kind);
         } catch (e) {
-          setError(e instanceof Error ? e.message : "Camera/microphone access denied.");
+          setError(e instanceof Error ? e.message : 'Camera/microphone access denied.');
           return;
         }
       }
@@ -406,10 +407,7 @@ export function RecordDialog({
 
       mr.onstop = () => {
         const blob = new Blob(recordChunksRef.current, {
-          type:
-            mr.mimeType ||
-            preferredMimeType ||
-            (wantVideo ? "video/webm" : "audio/webm"),
+          type: mr.mimeType || preferredMimeType || (wantVideo ? 'video/webm' : 'audio/webm'),
         });
 
         const rawFile = new File([blob], recordingFileName(blob.type, kind), { type: blob.type });
@@ -417,19 +415,19 @@ export function RecordDialog({
         // ("audio/webm;codecs=opus" → "audio/webm"). The chosen kind is
         // authoritative: an audio recording must never emit a video/* type
         // even if the recorder reports a surprising container.
-        const file = ensureFileWithContentType(rawFile, wantVideo ? "video" : "audio");
+        const file = ensureFileWithContentType(rawFile, wantVideo ? 'video' : 'audio');
         const url = makeRecordUrl(file);
 
         setRecordedFile(file);
         setRecordPreviewUrl(url);
-        setRecorderState("preview");
+        setRecorderState('preview');
 
         // Release devices but keep the recorded file/url in state.
         teardownCapture();
       };
 
       mr.start();
-      setRecorderState("recording");
+      setRecorderState('recording');
       startElapsedTimer();
 
       // Hard cap. Stops with deliberate headroom (autoStopDelayMs) so the blob
@@ -437,7 +435,7 @@ export function RecordDialog({
       if (maxRecordDurationSec && maxRecordDurationSec > 0) {
         autoStopTimeoutRef.current = setTimeout(() => {
           try {
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
               mediaRecorderRef.current.stop();
             }
           } catch {}
@@ -451,21 +449,21 @@ export function RecordDialog({
       revokeLastRecordUrl,
       teardownCapture,
       startElapsedTimer,
-    ]
+    ],
   );
 
   const stopRecording = useCallback(() => {
     const mr = mediaRecorderRef.current;
-    if (mr && mr.state === "recording") {
+    if (mr && mr.state === 'recording') {
       try {
         mr.stop();
       } catch {
         teardownCapture();
-        setRecorderState("idle");
+        setRecorderState('idle');
       }
     } else {
       teardownCapture();
-      setRecorderState("idle");
+      setRecorderState('idle');
     }
   }, [teardownCapture]);
 
@@ -475,28 +473,30 @@ export function RecordDialog({
     setRecordedFile(null);
     setElapsedMs(0);
     setError(null);
-    setRecorderState("idle");
+    setRecorderState('idle');
     void startLivePreview(recordKind);
   }, [revokeLastRecordUrl, startLivePreview, recordKind]);
 
   // Switching kind in idle restarts the live preview for the new kind so the
   // correct device prompt/preview shows before recording.
   const handleSelectKind = useCallback(
-    (kind: "audio" | "video") => {
+    (kind: 'audio' | 'video') => {
       setRecordKind(kind);
       setError(null);
       void startLivePreview(kind);
     },
-    [startLivePreview]
+    [startLivePreview],
   );
 
   const reportError = useCallback((e: unknown) => {
-    setError(e instanceof Error ? e.message : "Something went wrong with the recording.");
+    setError(e instanceof Error ? e.message : 'Something went wrong with the recording.');
   }, []);
 
   // Start may need to acquire a device first; pending covers that and a repeat click
   // is ignored, so two clicks can never start two recorders.
-  const start = useAsyncAction((kind: "audio" | "video") => startRecording(kind), { onError: reportError });
+  const start = useAsyncAction((kind: 'audio' | 'video') => startRecording(kind), {
+    onError: reportError,
+  });
 
   // Save hands the recording off (the consumer validates and emits it). Pending covers
   // the hand-off and a repeat click is ignored, so a double click can never emit twice.
@@ -513,7 +513,7 @@ export function RecordDialog({
   // states and as the "Discard" action in the confirm AlertDialog.
   const closeDialogImmediately = useCallback(() => {
     const mr = mediaRecorderRef.current;
-    if (mr && mr.state === "recording") {
+    if (mr && mr.state === 'recording') {
       try {
         mr.stop();
       } catch {}
@@ -523,7 +523,7 @@ export function RecordDialog({
     setRecordedFile(null);
     setRecordPreviewUrl(null);
     setElapsedMs(0);
-    setRecorderState("idle");
+    setRecorderState('idle');
     setDiscardConfirmOpen(false);
     onOpenChange(false);
   }, [teardownCapture, revokeLastRecordUrl, onOpenChange]);
@@ -534,18 +534,18 @@ export function RecordDialog({
     (v: boolean) => {
       if (v) return; // opening is parent-driven via the `open` prop
       if (save.pending) return; // never drop a recording mid-hand-off
-      if (recorderState === "preview") {
+      if (recorderState === 'preview') {
         setDiscardConfirmOpen(true);
         return;
       }
       closeDialogImmediately();
     },
-    [recorderState, save.pending, closeDialogImmediately]
+    [recorderState, save.pending, closeDialogImmediately],
   );
 
-  const isRecording = recorderState === "recording";
-  const isPreview = recorderState === "preview";
-  const isIdle = recorderState === "idle";
+  const isRecording = recorderState === 'recording';
+  const isPreview = recorderState === 'preview';
+  const isIdle = recorderState === 'idle';
 
   // The label shows the REAL cap ("0:42 / 1:00"), not the earlier auto-stop
   // point — the promise to the user is the cap; the margin is internal.
@@ -560,9 +560,9 @@ export function RecordDialog({
           <DialogHeader>
             <DialogTitle>Record</DialogTitle>
             <DialogDescription>
-              {isIdle && "Choose audio or video, then press Start."}
-              {isRecording && "Recording…"}
-              {isPreview && "Review your recording. Save to upload, or Re-record to try again."}
+              {isIdle && 'Choose audio or video, then press Start.'}
+              {isRecording && 'Recording…'}
+              {isPreview && 'Review your recording. Save to upload, or Re-record to try again.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -571,9 +571,9 @@ export function RecordDialog({
             {canRecVideo && (
               <Button
                 type="button"
-                variant={recordKind === "video" ? "default" : "secondary"}
-                aria-pressed={recordKind === "video"}
-                onClick={() => handleSelectKind("video")}
+                variant={recordKind === 'video' ? 'default' : 'secondary'}
+                aria-pressed={recordKind === 'video'}
+                onClick={() => handleSelectKind('video')}
                 disabled={!isIdle || acquiring}
                 icon={<Video className="icon-xs" />}
               >
@@ -583,9 +583,9 @@ export function RecordDialog({
             {canRecAudio && (
               <Button
                 type="button"
-                variant={recordKind === "audio" ? "default" : "secondary"}
-                aria-pressed={recordKind === "audio"}
-                onClick={() => handleSelectKind("audio")}
+                variant={recordKind === 'audio' ? 'default' : 'secondary'}
+                aria-pressed={recordKind === 'audio'}
+                onClick={() => handleSelectKind('audio')}
                 disabled={!isIdle || acquiring}
                 icon={<Mic className="icon-xs" />}
               >
@@ -609,7 +609,7 @@ export function RecordDialog({
           </div>
 
           {/* Live video preview — rendered in idle+recording states for video kind */}
-          {recordKind === "video" && !isPreview && (
+          {recordKind === 'video' && !isPreview && (
             <div className="relative mt-2 rounded-md overflow-hidden bg-[hsl(var(--neutral-black))] aspect-video">
               <video
                 ref={livePreviewRef}
@@ -626,7 +626,7 @@ export function RecordDialog({
           )}
 
           {/* Audio waveform — live mic level (idle = ready indicator, recording = active) */}
-          {recordKind === "audio" && !isPreview && (
+          {recordKind === 'audio' && !isPreview && (
             <div className="relative mt-2 rounded-md bg-muted p-2 text-primary">
               <canvas
                 ref={waveformCanvasRef}
@@ -691,7 +691,13 @@ export function RecordDialog({
                 onClick={() => void start.run(recordKind)}
                 disabled={disabled || isLoading || acquiring}
                 pending={start.pending}
-                icon={recordKind === "video" ? <Video className="icon-xs" /> : <Mic className="icon-xs" />}
+                icon={
+                  recordKind === 'video' ? (
+                    <Video className="icon-xs" />
+                  ) : (
+                    <Mic className="icon-xs" />
+                  )
+                }
               >
                 Start
               </Button>
@@ -705,7 +711,13 @@ export function RecordDialog({
 
             {isPreview && (
               <div className="flex gap-2">
-                <Button type="button" variant="secondary" onClick={handleReRecord} disabled={save.pending} icon={<RotateCcw className="icon-xs" />}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleReRecord}
+                  disabled={save.pending}
+                  icon={<RotateCcw className="icon-xs" />}
+                >
                   Re-record
                 </Button>
                 <Button
@@ -734,9 +746,7 @@ export function RecordDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep recording</AlertDialogCancel>
-            <AlertDialogAction onClick={closeDialogImmediately}>
-              Discard
-            </AlertDialogAction>
+            <AlertDialogAction onClick={closeDialogImmediately}>Discard</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

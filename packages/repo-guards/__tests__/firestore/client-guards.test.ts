@@ -2,7 +2,10 @@
 // and a Firestore runtime import in a component or route fails outside the sanctioned providers.
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { firestoreRuntimeInUiGuard, liveSubscriptionGuard } from '../../src/modules/firestore/client-guards.js';
+import {
+  firestoreRuntimeInUiGuard,
+  liveSubscriptionGuard,
+} from '../../src/modules/firestore/client-guards.js';
 import { checkSamples } from '../../src/node/suite/run.js';
 import type { Guard } from '../../src/guard.js';
 import { createRepoReader } from '../../src/node/reader.js';
@@ -14,14 +17,19 @@ afterEach(() => repo?.remove());
 
 async function run(guard: Guard, files: Record<string, string>) {
   repo = tempRepo({ 'src/anchor.ts': 'export {};', ...files });
-  const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } } });
+  const reader = createRepoReader({
+    repoRoot: repo.root,
+    roots: { app: { path: 'src', anchor: 'src/anchor.ts' } },
+  });
   return guard.run(contextOf(reader));
 }
 
-const lines = (findings: Array<{ file: string; line?: number }>) => findings.map((f) => `${f.file}:${f.line ?? '-'}`);
+const lines = (findings: Array<{ file: string; line?: number }>) =>
+  findings.map((f) => `${f.file}:${f.line ?? '-'}`);
 
 describe('every live Firestore subscription is on the reviewed list', () => {
-  const build = (allowlist: Array<{ path: string; why: string }>) => liveSubscriptionGuard.build({ allowlist })[0];
+  const build = (allowlist: Array<{ path: string; why: string }>) =>
+    liveSubscriptionGuard.build({ allowlist })[0];
 
   it('proves its matcher on its samples', () => {
     expect(() => checkSamples(build([]))).not.toThrow();
@@ -32,11 +40,21 @@ describe('every live Firestore subscription is on the reviewed list', () => {
       'src/hooks/a.ts': 'useFirestoreDoc({ docPath, queryKey, subscribe:true });',
       'src/hooks/b.ts': 'useBatchFirestoreDocs({ ids, subscribe: process.env.LIVE === "1" });',
       'src/hooks/c.ts': 'useFirestoreCollection({ collectionPath, subscribe });',
-      'src/hooks/d.ts': "import { doc, onSnapshot as listen } from 'firebase/firestore';\nconst stop = listen(doc(db, p), render);",
-      'src/hooks/e.ts': 'import * as fs from "firebase/firestore";\nconst stop = fs.onSnapshot(ref, handle);',
-      'src/hooks/f.ts': "import { onSnapshot } from 'firebase/firestore';\nconst stop = onSnapshot(ref, handle);",
+      'src/hooks/d.ts':
+        "import { doc, onSnapshot as listen } from 'firebase/firestore';\nconst stop = listen(doc(db, p), render);",
+      'src/hooks/e.ts':
+        'import * as fs from "firebase/firestore";\nconst stop = fs.onSnapshot(ref, handle);',
+      'src/hooks/f.ts':
+        "import { onSnapshot } from 'firebase/firestore';\nconst stop = onSnapshot(ref, handle);",
     });
-    expect(lines(findings)).toEqual(['src/hooks/a.ts:1', 'src/hooks/b.ts:1', 'src/hooks/c.ts:1', 'src/hooks/d.ts:2', 'src/hooks/e.ts:2', 'src/hooks/f.ts:2']);
+    expect(lines(findings)).toEqual([
+      'src/hooks/a.ts:1',
+      'src/hooks/b.ts:1',
+      'src/hooks/c.ts:1',
+      'src/hooks/d.ts:2',
+      'src/hooks/e.ts:2',
+      'src/hooks/f.ts:2',
+    ]);
   });
 
   it('PASSES a reviewed file, one-shot reads, an opt-out, a store subscriber, a type, and prose; FLAGS a stale entry', async () => {
@@ -60,12 +78,18 @@ describe('every live Firestore subscription is on the reviewed list', () => {
   });
 
   it('reads no test code', async () => {
-    expect(await run(build([]), { 'src/hooks/a.test.ts': 'useFirestoreDoc({ subscribe: true });' })).toEqual([]);
+    expect(
+      await run(build([]), { 'src/hooks/a.test.ts': 'useFirestoreDoc({ subscribe: true });' }),
+    ).toEqual([]);
   });
 
   it('refuses a missing list and an entry with no why', () => {
-    expect(liveSubscriptionGuard.factProblems({} as never)).toEqual(['allowlist is missing (declare [] when there is none)']);
-    expect(liveSubscriptionGuard.factProblems({ allowlist: [{ path: 'a.ts', why: ' ' }] })).toEqual(['allowlist entry a.ts carries no why']);
+    expect(liveSubscriptionGuard.factProblems({} as never)).toEqual([
+      'allowlist is missing (declare [] when there is none)',
+    ]);
+    expect(liveSubscriptionGuard.factProblems({ allowlist: [{ path: 'a.ts', why: ' ' }] })).toEqual(
+      ['allowlist entry a.ts carries no why'],
+    );
   });
 });
 
@@ -104,7 +128,8 @@ describe('no component or route imports the Firestore runtime', () => {
         'src/components/typed.tsx': "import type { Timestamp } from 'firebase/firestore';",
         'src/components/inline-typed.tsx': "import { type Timestamp } from 'firebase/firestore';",
         'src/hooks/use-probe.ts': "import { where } from 'firebase/firestore';",
-        'src/components/config-provider.tsx': "import { doc, onSnapshot } from 'firebase/firestore';",
+        'src/components/config-provider.tsx':
+          "import { doc, onSnapshot } from 'firebase/firestore';",
         'src/components/old-provider.tsx': 'export {};',
       },
     );
@@ -112,9 +137,8 @@ describe('no component or route imports the Firestore runtime', () => {
   });
 
   it('refuses missing UI folders and a sanctioned entry with no why', () => {
-    expect(firestoreRuntimeInUiGuard.factProblems({ sanctioned: [{ path: 'a.tsx', why: '' }] } as never)).toEqual([
-      'uiFolders is missing',
-      'sanctioned entry a.tsx carries no why',
-    ]);
+    expect(
+      firestoreRuntimeInUiGuard.factProblems({ sanctioned: [{ path: 'a.tsx', why: '' }] } as never),
+    ).toEqual(['uiFolders is missing', 'sanctioned entry a.tsx carries no why']);
   });
 });

@@ -32,7 +32,9 @@ function serve(q: { __c: Array<Record<string, unknown>> }) {
   const after = q.__c.find((c) => '__startAfter' in c)?.__startAfter as string | undefined;
   const lim = q.__c.find((c) => '__limit' in c)?.__limit as number;
   const start = after ? h.rows.indexOf(after) + 1 : 0;
-  const docs: FakeDoc[] = h.rows.slice(start, start + lim).map((id) => ({ id, data: () => ({ n: id }) }));
+  const docs: FakeDoc[] = h.rows
+    .slice(start, start + lim)
+    .map((id) => ({ id, data: () => ({ n: id }) }));
   return Promise.resolve({ docs });
 }
 function startedAfter(callIndex: number): string | undefined {
@@ -125,7 +127,9 @@ describe('useFirestorePaginated', () => {
 
   it('re-reads the page chain when a previous page is no longer cached', async () => {
     const client = makeClient();
-    const { result } = renderHook(() => useFirestorePaginated(base), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useFirestorePaginated(base), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
@@ -163,9 +167,12 @@ describe('useFirestorePaginated', () => {
 
   it('re-reads the displayed page on its refetch interval', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    const { result } = renderHook(() => useFirestorePaginated({ ...base, refetchInterval: 30_000 }), {
-      wrapper: wrapperFor(makeClient()),
-    });
+    const { result } = renderHook(
+      () => useFirestorePaginated({ ...base, refetchInterval: 30_000 }),
+      {
+        wrapper: wrapperFor(makeClient()),
+      },
+    );
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b', 'c']));
     const callsBefore = h.getDocs.mock.calls.length;
     h.rows = ['new', ...h.rows];
@@ -181,7 +188,9 @@ describe('a page re-read moves where the next page starts', () => {
   const fresh = { ...base, staleTime: Infinity };
 
   it('re-reads a cached later page whose start no longer follows the re-read earlier page', async () => {
-    const { result } = renderHook(() => useFirestorePaginated(fresh), { wrapper: wrapperFor(makeClient()) });
+    const { result } = renderHook(() => useFirestorePaginated(fresh), {
+      wrapper: wrapperFor(makeClient()),
+    });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
@@ -201,7 +210,9 @@ describe('a page re-read moves where the next page starts', () => {
 
   it('keeps the chain after a prepend once page 1 is read again', async () => {
     const client = makeClient();
-    const { result } = renderHook(() => useFirestorePaginated(fresh), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useFirestorePaginated(fresh), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
@@ -240,14 +251,20 @@ describe('paginated cache updaters', () => {
 
   it('prepends a new row onto page 1 only, keeping page 2 aligned', async () => {
     const client = makeClient();
-    const { result } = renderHook(() => useFirestorePaginated(base), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useFirestorePaginated(base), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
 
     act(() => prependToFirstPaginatedPage(client, base.queryKey, { id: 'new', n: 'new' }));
-    const page1 = client.getQueryData<{ items: Array<{ id: string }> }>(paginatedPageKey(base.queryKey, 1));
-    const page2 = client.getQueryData<{ items: Array<{ id: string }> }>(paginatedPageKey(base.queryKey, 2));
+    const page1 = client.getQueryData<{ items: Array<{ id: string }> }>(
+      paginatedPageKey(base.queryKey, 1),
+    );
+    const page2 = client.getQueryData<{ items: Array<{ id: string }> }>(
+      paginatedPageKey(base.queryKey, 2),
+    );
     expect(ids(page1?.items)).toEqual(['new', 'a', 'b', 'c']);
     expect(ids(page2?.items)).toEqual(['d', 'e', 'f']);
   });

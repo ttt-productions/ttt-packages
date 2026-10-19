@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { CommissionProposalSchema, FullCommissionListingSchema } from '../src/doc-schemas/commissions.js';
+import {
+  CommissionProposalSchema,
+  FullCommissionListingSchema,
+} from '../src/doc-schemas/commissions.js';
 
 const validListing = {
   commissionListingId: 'cl1',
@@ -61,13 +64,25 @@ describe('CommissionProposalSchema — the attached file kind', () => {
 
   it('stores the server-inspected media kind of the attached file', () => {
     for (const kind of ['image', 'video', 'audio'] as const) {
-      expect(CommissionProposalSchema.parse({ ...proposal, proposalFileAssetId: 'a1', proposalFileType: kind }).proposalFileType).toBe(kind);
+      expect(
+        CommissionProposalSchema.parse({
+          ...proposal,
+          proposalFileAssetId: 'a1',
+          proposalFileType: kind,
+        }).proposalFileType,
+      ).toBe(kind);
     }
   });
 
   it('refuses a file kind outside the stored media kinds', () => {
     for (const kind of ['', 'image/png', 'document']) {
-      expect(CommissionProposalSchema.safeParse({ ...proposal, proposalFileAssetId: 'a1', proposalFileType: kind }).success).toBe(false);
+      expect(
+        CommissionProposalSchema.safeParse({
+          ...proposal,
+          proposalFileAssetId: 'a1',
+          proposalFileType: kind,
+        }).success,
+      ).toBe(false);
     }
   });
 

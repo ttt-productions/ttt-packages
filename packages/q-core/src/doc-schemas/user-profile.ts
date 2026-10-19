@@ -76,4 +76,6 @@ const HISTORICAL_STAT_ENTRY: Record<keyof HistoricalStats, true> = {
 };
 
 /** A baseline's totals, in the order an admin enters them. */
-export const HISTORICAL_STAT_KEYS = Object.keys(HISTORICAL_STAT_ENTRY) as readonly (keyof HistoricalStats)[];
+export const HISTORICAL_STAT_KEYS = Object.keys(
+  HISTORICAL_STAT_ENTRY,
+) as readonly (keyof HistoricalStats)[];

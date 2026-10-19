@@ -53,12 +53,13 @@ export const CHILD_SAFETY_ACTIVE_WORK_STATUSES: readonly ChildSafetyWorkStatus[]
 );
 
 /** NCII case statuses still open (the `internalStatus` an active-case query matches). */
-export const NCII_ACTIVE_INTERNAL_STATUSES: readonly NciiInternalStatus[] = activeStatusesOf(NCII_INTERNAL_STATUS_IS_ACTIVE);
+export const NCII_ACTIVE_INTERNAL_STATUSES: readonly NciiInternalStatus[] = activeStatusesOf(
+  NCII_INTERNAL_STATUS_IS_ACTIVE,
+);
 
 /** Take-it-down request statuses still open (the `publicStatus` an active-request query matches). */
-export const TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES: readonly TakeItDownPublicStatus[] = activeStatusesOf(
-  TAKE_IT_DOWN_PUBLIC_STATUS_IS_ACTIVE,
-);
+export const TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES: readonly TakeItDownPublicStatus[] =
+  activeStatusesOf(TAKE_IT_DOWN_PUBLIC_STATUS_IS_ACTIVE);
 
 // Keyed by the canonical lane union: a lane added to or renamed in SafetyCaseLaneSchema does not
 // build until its status set is placed here.
@@ -69,7 +70,10 @@ const STATUS_IS_ACTIVE_BY_LANE = {
 
 /** A safety case's lane and its status in that lane's own status set. */
 export type SafetyCaseStatusRef = {
-  [Lane in SafetyCaseLane]: { caseType: Lane; status: keyof (typeof STATUS_IS_ACTIVE_BY_LANE)[Lane] };
+  [Lane in SafetyCaseLane]: {
+    caseType: Lane;
+    status: keyof (typeof STATUS_IS_ACTIVE_BY_LANE)[Lane];
+  };
 }[SafetyCaseLane];
 
 /** Whether a safety case is still open work, read from its own lane's status set. */

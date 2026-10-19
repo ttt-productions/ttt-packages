@@ -13,7 +13,8 @@ import { isUnder } from '../../support/text.js';
 export function calleePath(call: ts.CallExpression): string | undefined {
   const callee = call.expression;
   if (ts.isIdentifier(callee)) return callee.text;
-  if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression)) return `${callee.expression.text}.${callee.name.text}`;
+  if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression))
+    return `${callee.expression.text}.${callee.name.text}`;
   return undefined;
 }
 
@@ -32,9 +33,15 @@ export interface ServerZone {
   serverModules: readonly string[];
 }
 
-export function serverZoneProblems(zone: ServerZone | undefined, what: string, problems: string[]): void {
+export function serverZoneProblems(
+  zone: ServerZone | undefined,
+  what: string,
+  problems: string[],
+): void {
   if (!zone || typeof zone !== 'object') {
-    problems.push(`${what} is missing (an app with no server code in its app root declares { folders: [], serverModules: [] })`);
+    problems.push(
+      `${what} is missing (an app with no server code in its app root declares { folders: [], serverModules: [] })`,
+    );
     return;
   }
   namesProblem(zone.folders, `${what}.folders`, problems, { nonEmpty: false });
@@ -43,7 +50,9 @@ export function serverZoneProblems(zone: ServerZone | undefined, what: string, p
 
 export function inServerZone(file: FileView, zone: ServerZone): boolean {
   if (zone.folders.some((folder) => isUnder(file.path, folder))) return true;
-  return moduleImports(file.sourceFile, MODULE_LOADS).some(({ spec }) => zone.serverModules.some((m) => namesModule(spec, m)));
+  return moduleImports(file.sourceFile, MODULE_LOADS).some(({ spec }) =>
+    zone.serverModules.some((m) => namesModule(spec, m)),
+  );
 }
 
 /** Each declared server folder that no longer exists. */
@@ -61,7 +70,8 @@ export function serverZoneContext(context: GuardContext, zone: ServerZone): Guar
   return {
     reader: context.reader,
     file: (relPath) => context.file(relPath),
-    files: (scope: Scope) => context.files(scope).filter((file) => file.role !== 'app' || inServerZone(file, zone)),
+    files: (scope: Scope) =>
+      context.files(scope).filter((file) => file.role !== 'app' || inServerZone(file, zone)),
     rulesFiles: (service) => context.rulesFiles(service),
   };
 }

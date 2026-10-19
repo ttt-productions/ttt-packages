@@ -144,9 +144,9 @@ describe('createCheckinTaskHandler', () => {
     const { db } = createMockDb(taskData);
     const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
-    await expect(
-      handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' }),
-    ).rejects.toThrow('do not have this task checked out');
+    await expect(handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' })).rejects.toThrow(
+      'do not have this task checked out',
+    );
   });
 
   it('writes no adminActivityLog doc (auditEvents is the canonical trail)', async () => {
@@ -233,7 +233,6 @@ describe('createCheckinTaskHandler', () => {
     );
   });
 
-
   describe('a task whose resolution a domain resolver owns', () => {
     const heldGuidedTask = () => ({
       taskType: 'guidedDecision',
@@ -263,7 +262,9 @@ describe('createCheckinTaskHandler', () => {
       const { db, updates } = createMockDb(heldGuidedTask());
       const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
-      await expect(handler({ taskId: 'task1', resolved: false }, { uid: 'admin1' })).resolves.toEqual({ success: true });
+      await expect(
+        handler({ taskId: 'task1', resolved: false }, { uid: 'admin1' }),
+      ).resolves.toEqual({ success: true });
       expect(updates[0].data.status).toBe('pending');
     });
 
@@ -271,7 +272,9 @@ describe('createCheckinTaskHandler', () => {
       const { db } = createMockDb(null);
       const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
-      await expect(handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' })).resolves.toEqual({
+      await expect(
+        handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' }),
+      ).resolves.toEqual({
         success: true,
         alreadyResolved: true,
       });

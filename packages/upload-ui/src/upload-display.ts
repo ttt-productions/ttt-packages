@@ -1,7 +1,7 @@
 // What an upload row shows besides its title: the file's size, its kind, and when it was accepted.
 // The mechanics are shared; every word, the relative-time cutoff and the locale are the app's.
 
-import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
+import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
 
 /** A byte count as a short size: `850 B`, `24 KB`, `1.2 MB`, `3 GB`. `null` for no usable count. */
 export function formatFileSize(bytes: number | undefined): string | null {
@@ -50,10 +50,16 @@ export interface UploadDisplayFormatters {
 }
 
 function sameCalendarDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
-export function createUploadDisplayFormatters(config: UploadDisplayConfig): UploadDisplayFormatters {
+export function createUploadDisplayFormatters(
+  config: UploadDisplayConfig,
+): UploadDisplayFormatters {
   const { copy, relativeTimeCutoffMs, locale } = config;
 
   const formatUploadTimestamp = (createdAtMs: number, nowMs: number): string => {
@@ -67,7 +73,7 @@ export function createUploadDisplayFormatters(config: UploadDisplayConfig): Uplo
 
     const created = new Date(createdAtMs);
     const now = new Date(nowMs);
-    const time = created.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
+    const time = created.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
     if (sameCalendarDay(created, now)) return time;
 
     // The previous calendar day, found by stepping the date rather than subtracting 24 hours: a
@@ -75,17 +81,20 @@ export function createUploadDisplayFormatters(config: UploadDisplayConfig): Uplo
     const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     if (sameCalendarDay(created, yesterday)) return copy.yesterdayAt(time);
 
-    return copy.dateAt(created.toLocaleDateString(locale, { month: "short", day: "numeric" }), time);
+    return copy.dateAt(
+      created.toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
+      time,
+    );
   };
 
   const getFileTypeLabel = (contentType: string | undefined): string | null => {
     if (!contentType) return null;
     switch (getSimplifiedMediaType(contentType)) {
-      case "image":
+      case 'image':
         return copy.fileType.image;
-      case "video":
+      case 'video':
         return copy.fileType.video;
-      case "audio":
+      case 'audio':
         return copy.fileType.audio;
       default:
         return copy.fileType.other;

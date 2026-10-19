@@ -79,26 +79,28 @@ import {
   PublicDocumentReleaseSchema,
   PUBLIC_DOCUMENT_PROJECTIONS,
 } from './public-documents.js';
-import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema, AppModeMarkerSchema } from './system.js';
+import {
+  AppConfigSchema,
+  AdminListSchema,
+  ProfanityListSchema,
+  ReservedUsernamesSchema,
+  BlockedFranchiseNamesSchema,
+  AppModeMarkerSchema,
+} from './system.js';
 import { SystemUidSlotsDocumentSchema, SystemVideoSlotsDocumentSchema } from './system-slots.js';
 import {
   ContentViolationSchema,
   ModerationCascadeManifestSchema,
   ModerationCascadeChangedDocSchema,
 } from './moderation.js';
-import {
-  AdminTaskDocSchema,
-} from './report-docs.js';
+import { AdminTaskDocSchema } from './report-docs.js';
 import { TTTAuditEventSchema } from './audit.js';
 import {
   NotificationDocSchema,
   NotificationHistoryDocSchema,
   PendingNotificationSchema,
 } from './notifications.js';
-import {
-  NotificationDeliverySchema,
-  NotificationFanoutJobSchema,
-} from './notification-ledger.js';
+import { NotificationDeliverySchema, NotificationFanoutJobSchema } from './notification-ledger.js';
 import { NotificationArchiveAllJobSchema } from './notification-archive-all-jobs.js';
 import { AdminDispatchReadMarkerSchema } from './admin-dispatch-read-markers.js';
 import {
@@ -151,9 +153,7 @@ import {
   ChildSafetyNcmecSubmissionFileV1Schema,
   ChildSafetyLegalProcessEventV1Schema,
 } from './safety/case.js';
-import {
-  ChildSafetyOwningAliasV1Schema,
-} from './safety/case-aliases.js';
+import { ChildSafetyOwningAliasV1Schema } from './safety/case-aliases.js';
 import {
   SafetyHoldRefV1Schema,
   SafetyHoldResourceV1Schema,
@@ -174,10 +174,7 @@ import {
   NcmecSubmissionJobV1Schema,
   AccountActionCommandV1Schema,
 } from './safety/sagas.js';
-import {
-  SafetySlaMonitorV1Schema,
-  SafetyMonitorHeartbeatV1Schema,
-} from './safety/monitors.js';
+import { SafetySlaMonitorV1Schema, SafetyMonitorHeartbeatV1Schema } from './safety/monitors.js';
 import { AgeAttestationNonceV1Schema, AgePolicyConfigV1Schema } from './safety/age.js';
 // ===== Trust & Safety — NCII / TAKE IT DOWN =====
 import { NciiAllegationV1Schema } from './ncii/allegations.js';
@@ -200,10 +197,7 @@ import {
   NciiCaseClosureEventV1Schema,
 } from './ncii/cases.js';
 import { NciiTemporaryHoldV1Schema } from './ncii/holds.js';
-import {
-  NciiRemovalJobV1Schema,
-  NciiRemovalTargetV1Schema,
-} from './ncii/removal.js';
+import { NciiRemovalJobV1Schema, NciiRemovalTargetV1Schema } from './ncii/removal.js';
 import {
   NciiPolicyConfigV1Schema,
   PrivilegedReviewerSecurityProfileV1Schema,
@@ -225,7 +219,8 @@ export const COLLECTION_SCHEMAS = {
   'userProfiles/{userId}/auditionVotes/{auditionId}': UserAuditionVoteSchema,
   'userProfiles/{userId}/mentionHistory/{docId}': MentionHistoryDocumentSchema,
   'userProfiles/{userId}/notificationHistory/{notificationId}': NotificationHistoryDocSchema,
-  'userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}': SquareStreetzLikeSchema,
+  'userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}':
+    SquareStreetzLikeSchema,
   'publicUsers/{uid}': PublicUserSchema,
 
   // ===== Work / Realm / Guild =====
@@ -233,14 +228,19 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}/guildmateUsers/{uid}': GuildmateUserSchema,
   'allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}': PublicGuildmateUserSchema,
   'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}': WorkFileFolderSchema,
-  'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}': WorkFileSchema,
-  'allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation': HallSubmissionReservationSchema,
+  'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}':
+    WorkFileSchema,
+  'allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation':
+    HallSubmissionReservationSchema,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': FullTaleSchema,
-  'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}': FullChapterSchema,
+  'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}':
+    FullChapterSchema,
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}': FullTuneSchema,
-  'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}': FullTuneTrackSchema,
+  'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}':
+    FullTuneTrackSchema,
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': FullTelevisionSchema,
-  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': FullTelevisionEpisodeSchema,
+  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}':
+    FullTelevisionEpisodeSchema,
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': GuildChatChannelSchema,
   // Guild channel + invite messages are REALTIME-ONLY (chat Worker DO) — no Firestore schema.
   'publicWorkProjects/{workProjectId}': PublicWorkProjectSchema,
@@ -251,7 +251,8 @@ export const COLLECTION_SCHEMAS = {
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
   // Conversation Files — the flat per-conversation file list. Backend-only writes;
   // client-readable only while the caller holds conversation read access.
-  'guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}': ConversationFileSchema,
+  'guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}':
+    ConversationFileSchema,
 
   // ===== Square / Social =====
   // SquareStreetzPostSchema is a refined ZodObject (superRefine for the MEDIA-101
@@ -288,7 +289,8 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== Commission / Audition =====
   'commissionListings/{commissionListingId}': FullCommissionListingSchema,
-  'commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}': CommissionProposalSchema,
+  'commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}':
+    CommissionProposalSchema,
   'auditionBoard/{auditionId}': AuditionSchema,
   'auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}': AuditionEntrySchema,
 
@@ -304,17 +306,22 @@ export const COLLECTION_SCHEMAS = {
   // (ENG-002): the same NarrativeRecordV1Schema binds both docs, never a duplicate schema.
   'contentReports/{reportId}/privateDetails/narrativeEscalation': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
-  'activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}': ReportGroupCountedReportSchema,
+  'activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}':
+    ReportGroupCountedReportSchema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
   'contentViolations/{violationId}': ContentViolationSchema,
   'moderationCascadeManifests/{cascadeId}': ModerationCascadeManifestSchema,
-  'moderationCascadeManifests/{cascadeId}/changedDocs/{changedDocId}': ModerationCascadeChangedDocSchema,
+  'moderationCascadeManifests/{cascadeId}/changedDocs/{changedDocId}':
+    ModerationCascadeChangedDocSchema,
   'auditEvents/{eventId}': TTTAuditEventSchema,
   'stakeShareAuditEvents/{eventId}': StakeShareAuditEventSchema,
   'pendingAdminDispatches/{adminDispatchId}': AdminDispatchSchema,
-  'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': ChatMessageV1Schema,
-  'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}': ConversationFileSchema,
-  'pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}': AdminDispatchReadMarkerSchema,
+  'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}':
+    ChatMessageV1Schema,
+  'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}':
+    ConversationFileSchema,
+  'pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}':
+    AdminDispatchReadMarkerSchema,
 
   // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
@@ -343,7 +350,8 @@ export const COLLECTION_SCHEMAS = {
   'chatMessageOutbox/{commandId}': ChatMessageOutboxSchema,
   'chatAdminActionCommands/{requestId}': ChatAdminActionCommandSchema,
   'chatHistoryAnonymizationJobs/{jobId}': ChatHistoryAnonymizationJobSchema,
-  'chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}': ChatHistoryAnonymizationAffectedChunkSchema,
+  'chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}':
+    ChatHistoryAnonymizationAffectedChunkSchema,
   'chatParkedDeliveries/{deliveryId}': ChatParkedDeliverySchema,
 
   // ===== Craft skills index =====
@@ -368,28 +376,37 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}': ChildSafetyCaseV1Schema,
   'childSafetyCases/{caseId}/sourceSignals/{signalId}': ChildSafetySourceSignalV1Schema,
   'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}': ChildSafetyDecisionV1Schema,
-  'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}/childSafetyDecisionViews/{viewId}': ChildSafetyDecisionViewV1Schema,
+  'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}/childSafetyDecisionViews/{viewId}':
+    ChildSafetyDecisionViewV1Schema,
   'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}': ChildSafetyCaseAccountV1Schema,
-  'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}': ChildSafetyCaseAccountHistoryV1Schema,
-  'childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}': ChildSafetyCrossoverItemV1Schema,
+  'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}':
+    ChildSafetyCaseAccountHistoryV1Schema,
+  'childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}':
+    ChildSafetyCrossoverItemV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
-  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}':
+    ChildSafetyNcmecSubmissionFileV1Schema,
   // The submission's single immutable completion-proof record (fixed doc id). Backend-only,
   // so its shape lives in doc-schemas/backend-state.ts alongside the portal artifacts.
-  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record': NcmecCompletionProofRecordV1Schema,
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record':
+    NcmecCompletionProofRecordV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
   // Portal-filed NCMEC artifacts recorded by the two step-up-gated operator callables. Both
   // are backend-only (no client reader), so their shapes live in doc-schemas/backend-state.ts.
-  'childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}': NcmecPortalReceiptArtifactV1Schema,
-  'childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}': NcmecPortalCorrectionRecordV1Schema,
+  'childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}':
+    NcmecPortalReceiptArtifactV1Schema,
+  'childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}':
+    NcmecPortalCorrectionRecordV1Schema,
   'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
 
   // ===== Trust & Safety — holds + resource commands =====
   'safetyHoldRefs/{holdRefId}': SafetyHoldRefV1Schema,
   'safetyHoldResources/{resourceKeyHash}': SafetyHoldResourceV1Schema,
   'safetyResourceCommands/{commandDocId}': SafetyResourceCommandV1Schema,
-  'safetyResourceCommands/{commandDocId}/authorizedRequests/{requestId}': SafetyResourceCommandAuthorizedRequestV1Schema,
-  'safetyResourceCommands/{commandDocId}/bypassRefs/{refId}': SafetyResourceCommandBypassRefV1Schema,
+  'safetyResourceCommands/{commandDocId}/authorizedRequests/{requestId}':
+    SafetyResourceCommandAuthorizedRequestV1Schema,
+  'safetyResourceCommands/{commandDocId}/bypassRefs/{refId}':
+    SafetyResourceCommandBypassRefV1Schema,
 
   // ===== Trust & Safety — evidence + provenance =====
   // SafetyEvidenceManifestV1Schema is a refined ZodObject (superRefine for the
@@ -398,7 +415,8 @@ export const COLLECTION_SCHEMAS = {
   'safetyEvidenceManifests/{manifestId}': SafetyEvidenceManifestV1Schema,
   'safetyEvidenceJobs/{jobId}': SafetyEvidenceJobV1Schema,
   'safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}': SafetyEvidenceJobItemDocV1Schema,
-  'safetyEvidenceJobs/{jobId}/safetyEvidenceJobDisposition/{locationId}': SafetyEvidenceDispositionV1Schema,
+  'safetyEvidenceJobs/{jobId}/safetyEvidenceJobDisposition/{locationId}':
+    SafetyEvidenceDispositionV1Schema,
   'eventProvenance/{eventId}': EventProvenanceV1Schema,
 
   // ===== Trust & Safety — sagas + closure =====
@@ -425,13 +443,17 @@ export const COLLECTION_SCHEMAS = {
   'nciiAllegations/{allegationId}': NciiAllegationV1Schema,
   'takeItDownRequests/{requestId}': TakeItDownRequestRootV1Schema,
   'takeItDownRequests/{requestId}/privateDetails/requester': TakeItDownRequesterPrivateV1Schema,
-  'takeItDownRequests/{requestId}/takeItDownSubmissions/{submissionId}': TakeItDownSubmissionV1Schema,
-  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': TakeItDownValidityDecisionV1Schema,
-  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record': TakeItDownValidityRationaleV1Schema,
+  'takeItDownRequests/{requestId}/takeItDownSubmissions/{submissionId}':
+    TakeItDownSubmissionV1Schema,
+  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}':
+    TakeItDownValidityDecisionV1Schema,
+  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record':
+    TakeItDownValidityRationaleV1Schema,
   'takeItDownRequests/{requestId}/takeItDownActions/{actionId}': TakeItDownRequestActionV1Schema,
   // Deletion-verification record per evidence object — see SafetyEvidenceDispositionV1Schema for what
   // `result: 'gone'` means in THIS bucket (absent from the live bucket, not permanent destruction).
-  'takeItDownRequests/{requestId}/takeItDownEvidenceDisposition/{evidenceId}': SafetyEvidenceDispositionV1Schema,
+  'takeItDownRequests/{requestId}/takeItDownEvidenceDisposition/{evidenceId}':
+    SafetyEvidenceDispositionV1Schema,
   'takeItDownRequests/{requestId}/takeItDownEvidence/{evidenceId}': TakeItDownEvidenceV1Schema,
   'nciiCases/{caseId}': NciiCaseV1Schema,
   'nciiCases/{caseId}/allegationLinks/{allegationId}': NciiCaseAllegationLinkV1Schema,
@@ -496,7 +518,8 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}': 'uid',
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}': 'uid',
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': 'uid',
-  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': 'uid',
+  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}':
+    'uid',
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': 'guildChatChannelId',
   // Published hall sub-items: the doc id IS the live sub-item's id; `uid` is injected at
   // read (the publish writer spreads the live doc's stored body, which has no `uid`).

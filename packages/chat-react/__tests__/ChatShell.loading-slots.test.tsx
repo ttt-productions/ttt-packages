@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render } from "@testing-library/react";
-import type { ChatCoreConfig } from "../src/types.js";
-import type { UseRealtimeChatMessagesResult } from "../src/realtime/useRealtimeChatMessages.js";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render } from '@testing-library/react';
+import type { ChatCoreConfig } from '../src/types.js';
+import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
 
 // Drive the realtime data hook's result directly so we exercise the ChatShell
 // `isInitialLoading` branch deterministically. Two contracts are under test:
@@ -13,13 +13,15 @@ import type { UseRealtimeChatMessagesResult } from "../src/realtime/useRealtimeC
 //     polite live region, and the reconnect banner must NOT compete with it.
 // `mock`-prefixed so vitest allows referencing it inside the hoisted factory.
 const mockRealtimeResult: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
-vi.mock("../src/realtime/useRealtimeChatMessages.js", () => ({
+vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
   useRealtimeChatMessages: () => mockRealtimeResult.current,
 }));
 
-import { ChatShell } from "../src/ui/ChatShell.js";
+import { ChatShell } from '../src/ui/ChatShell.js';
 
-function loadingResult(status: UseRealtimeChatMessagesResult["status"]): Partial<UseRealtimeChatMessagesResult> {
+function loadingResult(
+  status: UseRealtimeChatMessagesResult['status'],
+): Partial<UseRealtimeChatMessagesResult> {
   return {
     allowed: true,
     isInitialLoading: true,
@@ -39,25 +41,25 @@ function loadingResult(status: UseRealtimeChatMessagesResult["status"]): Partial
 
 function realtimeConfig(): ChatCoreConfig {
   return {
-    transport: "realtime",
-    chatCollectionPath: "guildChatChannels",
-    threadId: "ch1",
-    currentUserId: "u1",
+    transport: 'realtime',
+    chatCollectionPath: 'guildChatChannels',
+    threadId: 'ch1',
+    currentUserId: 'u1',
     isAdmin: false,
     allowed: true,
     realtime: {
-      channelRef: { kind: "room", id: "ch1" },
+      channelRef: { kind: 'room', id: 'ch1' },
       client: { subscribe: () => {}, send: () => {} },
     },
   };
 }
 
 beforeEach(() => {
-  mockRealtimeResult.current = loadingResult("connecting");
+  mockRealtimeResult.current = loadingResult('connecting');
 });
 
-describe("ChatShell — initial-loading state", () => {
-  it("renders the header + above/below/footer slots while the realtime socket is still connecting", () => {
+describe('ChatShell — initial-loading state', () => {
+  it('renders the header + above/below/footer slots while the realtime socket is still connecting', () => {
     const { getByText, getByRole } = render(
       <ChatShell
         config={realtimeConfig()}
@@ -68,39 +70,49 @@ describe("ChatShell — initial-loading state", () => {
         renderFooter={() => <div>FINAL FOOTER</div>}
       />,
     );
-    expect(getByText("INVITE HEADER")).toBeTruthy();
-    expect(getByText("BINDING NOTICE")).toBeTruthy();
-    expect(getByRole("button", { name: "Agree to Terms" })).toBeTruthy();
-    expect(getByText("FINAL FOOTER")).toBeTruthy();
+    expect(getByText('INVITE HEADER')).toBeTruthy();
+    expect(getByText('BINDING NOTICE')).toBeTruthy();
+    expect(getByRole('button', { name: 'Agree to Terms' })).toBeTruthy();
+    expect(getByText('FINAL FOOTER')).toBeTruthy();
     // The honest working state is shown in place of the message list.
     expect(getByText(/Opening chat/i)).toBeTruthy();
   });
 
-  it("paints NO above-messages wrapper (no bordered strip) when the slot renders null", () => {
+  it('paints NO above-messages wrapper (no bordered strip) when the slot renders null', () => {
     // A collapsed conversation-files section returns null from the slot; the
     // wrapper's border must not paint an empty 1px strip under the header.
     const { container, rerender } = render(
-      <ChatShell config={realtimeConfig()} renderLoadError={() => null} renderAboveMessages={() => null} />,
+      <ChatShell
+        config={realtimeConfig()}
+        renderLoadError={() => null}
+        renderAboveMessages={() => null}
+      />,
     );
-    expect(container.querySelector(".border-b")).toBeNull();
+    expect(container.querySelector('.border-b')).toBeNull();
     // The wrapper appears the moment the slot produces content.
     rerender(
-      <ChatShell config={realtimeConfig()} renderLoadError={() => null} renderAboveMessages={() => <div>FILES SECTION</div>} />,
+      <ChatShell
+        config={realtimeConfig()}
+        renderLoadError={() => null}
+        renderAboveMessages={() => <div>FILES SECTION</div>}
+      />,
     );
-    const wrapper = container.querySelector(".border-b");
+    const wrapper = container.querySelector('.border-b');
     expect(wrapper).not.toBeNull();
-    expect(wrapper).toHaveTextContent("FILES SECTION");
+    expect(wrapper).toHaveTextContent('FILES SECTION');
   });
 
   it('shows an "Opening chat…" indicator in a polite live region and NOT a reconnect banner', () => {
     // Even while the transport is 'reconnecting' during INITIAL loading, the opening
     // indicator wins — the reconnect/disconnected banner must not compete with it.
-    mockRealtimeResult.current = loadingResult("reconnecting");
-    const { getByText, getByRole, queryByText } = render(<ChatShell config={realtimeConfig()} renderLoadError={() => null} />);
+    mockRealtimeResult.current = loadingResult('reconnecting');
+    const { getByText, getByRole, queryByText } = render(
+      <ChatShell config={realtimeConfig()} renderLoadError={() => null} />,
+    );
 
-    const status = getByRole("status");
+    const status = getByRole('status');
     expect(status).toHaveTextContent(/Opening chat/i);
-    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(status).toHaveAttribute('aria-live', 'polite');
     expect(getByText(/Opening chat/i)).toBeTruthy();
 
     // The reconnect/disconnected banner copy must be absent during initial opening.

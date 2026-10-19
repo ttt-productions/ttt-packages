@@ -40,7 +40,9 @@ describe('WorkFileSchema', () => {
   });
 
   it('is the registered schema for the workFiles path', () => {
-    const entry = Object.entries(COLLECTION_SCHEMAS).find(([path]) => path.endsWith('/workFiles/{workFileId}'));
+    const entry = Object.entries(COLLECTION_SCHEMAS).find(([path]) =>
+      path.endsWith('/workFiles/{workFileId}'),
+    );
     expect(entry?.[1]).toBe(WorkFileSchema);
   });
 });

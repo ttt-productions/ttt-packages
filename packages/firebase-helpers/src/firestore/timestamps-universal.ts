@@ -1,5 +1,5 @@
-import { format } from "date-fns";
-import { isSerializedTimestamp, hasToDateMethod } from "./types.js";
+import { format } from 'date-fns';
+import { isSerializedTimestamp, hasToDateMethod } from './types.js';
 
 /**
  * Convert any timestamp-like value to milliseconds since epoch.
@@ -7,8 +7,8 @@ import { isSerializedTimestamp, hasToDateMethod } from "./types.js";
  */
 export function toMillis(value: unknown): number {
   if (value === null || value === undefined) return 0;
-  
-  if (typeof value === "number") return value;
+
+  if (typeof value === 'number') return value;
 
   // Handle Firestore Timestamp via duck-typing (works for both SDKs)
   if (hasToDateMethod(value)) {
@@ -24,7 +24,7 @@ export function toMillis(value: unknown): number {
     return value.getTime();
   }
 
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     const date = new Date(value);
     if (!isNaN(date.getTime())) {
       return date.getTime();
@@ -54,7 +54,7 @@ export function toDate(value: unknown): Date {
     return value;
   }
 
-  if (typeof value === "number" || typeof value === "string") {
+  if (typeof value === 'number' || typeof value === 'string') {
     return new Date(value);
   }
 
@@ -67,22 +67,22 @@ export function now(): number {
 
 export function formatDate(
   millis: number | undefined | null,
-  formatType: "short" | "long" = "short"
+  formatType: 'short' | 'long' = 'short',
 ): string {
-  if (typeof millis !== "number" || millis === 0) {
-    return "Invalid Date";
+  if (typeof millis !== 'number' || millis === 0) {
+    return 'Invalid Date';
   }
 
   try {
     const date = new Date(millis);
     if (isNaN(date.getTime())) {
-      return "Invalid Date";
+      return 'Invalid Date';
     }
 
-    return formatType === "long"
+    return formatType === 'long'
       ? format(date, "MMM d, yyyy 'at' h:mm a")
-      : format(date, "MMM d, yyyy");
+      : format(date, 'MMM d, yyyy');
   } catch {
-    return "Invalid Date";
+    return 'Invalid Date';
   }
 }

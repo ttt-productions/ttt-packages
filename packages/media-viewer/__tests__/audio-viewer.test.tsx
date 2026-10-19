@@ -64,7 +64,7 @@ describe('AudioViewer', () => {
 
     it('does not render skeleton when skeleton=false and not yet loaded', () => {
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" skeleton={false} />
+        <AudioViewer url="https://example.com/a.mp3" skeleton={false} />,
       );
       expect(container.querySelector('[data-ai-hint]')).not.toBeInTheDocument();
     });
@@ -74,7 +74,7 @@ describe('AudioViewer', () => {
     it('calls onLoad when audio fires loadeddata', () => {
       const onLoad = vi.fn();
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority onLoad={onLoad} />
+        <AudioViewer url="https://example.com/a.mp3" priority onLoad={onLoad} />,
       );
       fireEvent.loadedData(container.querySelector('audio')!);
       expect(onLoad).toHaveBeenCalledTimes(1);
@@ -91,7 +91,7 @@ describe('AudioViewer', () => {
     it('calls onError when audio fires error', () => {
       const onError = vi.fn();
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority onError={onError} />
+        <AudioViewer url="https://example.com/a.mp3" priority onError={onError} />,
       );
       fireEvent.error(container.querySelector('audio')!);
       expect(onError).toHaveBeenCalledTimes(1);
@@ -103,7 +103,7 @@ describe('AudioViewer', () => {
           url="https://example.com/a.mp3"
           priority
           fallback={<div data-testid="custom-fallback">broken</div>}
-        />
+        />,
       );
       fireEvent.error(container.querySelector('audio')!);
       expect(getByTestId('custom-fallback')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('AudioViewer', () => {
 
     it('renders default error UI when error and no fallback', () => {
       const { container, getByText } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority />
+        <AudioViewer url="https://example.com/a.mp3" priority />,
       );
       fireEvent.error(container.querySelector('audio')!);
       expect(getByText('Failed to load audio')).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('AudioViewer', () => {
     it('calls onLoadChange(false) after loadeddata', () => {
       const onLoadChange = vi.fn();
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority onLoadChange={onLoadChange} />
+        <AudioViewer url="https://example.com/a.mp3" priority onLoadChange={onLoadChange} />,
       );
       fireEvent.loadedData(container.querySelector('audio')!);
       expect(onLoadChange).toHaveBeenLastCalledWith(false);
@@ -146,7 +146,7 @@ describe('AudioViewer', () => {
   describe('URL change reset', () => {
     it('resets error state when URL changes', () => {
       const { container, queryByText, rerender } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority />
+        <AudioViewer url="https://example.com/a.mp3" priority />,
       );
       fireEvent.error(container.querySelector('audio')!);
       expect(queryByText('Failed to load audio')).toBeInTheDocument();
@@ -166,21 +166,19 @@ describe('AudioViewer', () => {
 
     it('passes autoPlay prop', () => {
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority autoPlay />
+        <AudioViewer url="https://example.com/a.mp3" priority autoPlay />,
       );
       expect(container.querySelector('audio')).toHaveAttribute('autoplay');
     });
 
     it('passes loop prop', () => {
-      const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority loop />
-      );
+      const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority loop />);
       expect(container.querySelector('audio')).toHaveAttribute('loop');
     });
 
     it('passes explicit preload prop through', () => {
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority preload="none" />
+        <AudioViewer url="https://example.com/a.mp3" priority preload="none" />,
       );
       expect(container.querySelector('audio')).toHaveAttribute('preload', 'none');
     });
@@ -194,7 +192,9 @@ describe('AudioViewer', () => {
   describe('wrapper semantics', () => {
     it('leaves playback interaction to the real player controls', () => {
       const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
-      expect(container.querySelector('[role="button"][aria-label="Toggle audio playback"]')).toBeNull();
+      expect(
+        container.querySelector('[role="button"][aria-label="Toggle audio playback"]'),
+      ).toBeNull();
       expect(container.querySelector('[data-mv-player]')).toBeInTheDocument();
     });
   });
@@ -202,14 +202,14 @@ describe('AudioViewer', () => {
   describe('styling props', () => {
     it('applies className to wrapper', () => {
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority className="wrap-x" />
+        <AudioViewer url="https://example.com/a.mp3" priority className="wrap-x" />,
       );
       expect(container.firstChild).toHaveClass('wrap-x');
     });
 
     it('applies mediaClassName to the audio', () => {
       const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority mediaClassName="aud-y" />
+        <AudioViewer url="https://example.com/a.mp3" priority mediaClassName="aud-y" />,
       );
       expect(container.querySelector('audio')).toHaveClass('aud-y');
     });

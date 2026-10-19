@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { DATE_OF_BIRTH_MIN_YEAR, DATE_OF_BIRTH_PART_DIGITS } from '../src/constants/business-user.js';
+import {
+  DATE_OF_BIRTH_MIN_YEAR,
+  DATE_OF_BIRTH_PART_DIGITS,
+} from '../src/constants/business-user.js';
 import { deriveAgeBracket } from '../src/utils/age-derivation.js';
 import { DateOfBirthSchema } from '../src/schemas/users.js';
 

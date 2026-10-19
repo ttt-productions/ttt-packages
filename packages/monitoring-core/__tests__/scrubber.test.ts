@@ -9,8 +9,7 @@ import {
 } from '../src/scrubber.js';
 
 // --- Synthetic FORBIDDEN canary values (all fake — never real) ---------------
-const FAKE_EVIDENCE_URL =
-  'https://storage.googleapis.com/app-ncii-evidence/case_9f/abcd1234';
+const FAKE_EVIDENCE_URL = 'https://storage.googleapis.com/app-ncii-evidence/case_9f/abcd1234';
 const FAKE_EVIDENCE_PREFIX = 'https://storage.googleapis.com/app-ncii-evidence/';
 const FAKE_IPV4 = '203.0.113.42';
 const FAKE_IPV6 = '2001:0db8:85a3:0000:0000:8a2e:0370:7334';
@@ -77,7 +76,7 @@ describe('redactString (generic defaults)', () => {
     // Second call must redact both occurrences (no stale lastIndex leak).
     expect(re.lastIndex).toBeTypeOf('number');
     expect(redactString(`${FAKE_IPV4} and ${FAKE_IPV4}`)).toBe(
-      `${REDACTION_PLACEHOLDER} and ${REDACTION_PLACEHOLDER}`
+      `${REDACTION_PLACEHOLDER} and ${REDACTION_PLACEHOLDER}`,
     );
   });
 });
@@ -380,7 +379,8 @@ describe('redactEvent — direct backend use', () => {
 });
 
 describe('transaction and replay events — every place a page URL rides', () => {
-  const RESET_URL = 'https://example.test/auth/action?mode=resetPassword&oobCode=AbCdEfGh123456&lang=en';
+  const RESET_URL =
+    'https://example.test/auth/action?mode=resetPassword&oobCode=AbCdEfGh123456&lang=en';
 
   it('redacts the reset code from a page-load transaction name', () => {
     const event: ScrubbableEvent = { type: 'transaction', transaction: RESET_URL };
@@ -393,7 +393,12 @@ describe('transaction and replay events — every place a page URL rides', () =>
     const event: ScrubbableEvent = {
       type: 'transaction',
       spans: [
-        { op: 'browser.request', description: RESET_URL, span_id: 'aaaa1111bbbb2222', data: { url: RESET_URL } },
+        {
+          op: 'browser.request',
+          description: RESET_URL,
+          span_id: 'aaaa1111bbbb2222',
+          data: { url: RESET_URL },
+        },
         { op: 'navigation', description: 'GET /home', span_id: 'cccc3333dddd4444' },
       ],
     };
@@ -405,10 +410,17 @@ describe('transaction and replay events — every place a page URL rides', () =>
     expect(spans[1].description).toBe('GET /home');
   });
 
-  it('leaves a span\'s ids and op intact so the trace still assembles', () => {
+  it("leaves a span's ids and op intact so the trace still assembles", () => {
     const event: ScrubbableEvent = {
       type: 'transaction',
-      spans: [{ op: 'browser.request', span_id: 'aaaa1111bbbb2222', trace_id: 'f'.repeat(32), description: RESET_URL }],
+      spans: [
+        {
+          op: 'browser.request',
+          span_id: 'aaaa1111bbbb2222',
+          trace_id: 'f'.repeat(32),
+          description: RESET_URL,
+        },
+      ],
     };
     const out = createTelemetryScrubber()(event)!;
     const span = (out.spans as Array<Record<string, unknown>>)[0];
@@ -417,8 +429,11 @@ describe('transaction and replay events — every place a page URL rides', () =>
     expect(span.op).toBe('browser.request');
   });
 
-  it('redacts the reset code from a replay event\'s visited URLs', () => {
-    const event: ScrubbableEvent = { type: 'replay_event', urls: ['https://example.test/home', RESET_URL] };
+  it("redacts the reset code from a replay event's visited URLs", () => {
+    const event: ScrubbableEvent = {
+      type: 'replay_event',
+      urls: ['https://example.test/home', RESET_URL],
+    };
     const out = createTelemetryScrubber()(event)!;
     const urls = out.urls as string[];
     expect(urls[0]).toBe('https://example.test/home');

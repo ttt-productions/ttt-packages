@@ -125,7 +125,10 @@ export const UserLifetimeStatsSchema = z.strictObject(
   Object.fromEntries(
     LEAGUE_TYPE_KEYS.map(
       (leagueType) =>
-        [SPORT_KEY_BY_LEAGUE_TYPE[leagueType], SPORT_LINE_SCHEMAS[leagueType].lifetime.optional()] as const,
+        [
+          SPORT_KEY_BY_LEAGUE_TYPE[leagueType],
+          SPORT_LINE_SCHEMAS[leagueType].lifetime.optional(),
+        ] as const,
     ),
   ) as LifetimeLinesShape,
 );

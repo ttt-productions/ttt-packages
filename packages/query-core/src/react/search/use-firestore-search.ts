@@ -78,7 +78,13 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
   const shouldSearch = enabled && isSearchableText(debouncedQuery);
 
   const searchQuery = useQuery({
-    queryKey: keys.custom('search', collectionPath, searchField, normalizedQuery, JSON.stringify(equalityFilters)),
+    queryKey: keys.custom(
+      'search',
+      collectionPath,
+      searchField,
+      normalizedQuery,
+      JSON.stringify(equalityFilters),
+    ),
     queryFn: async (): Promise<WithId<T>[]> => {
       if (!shouldSearch) {
         return [];
@@ -154,4 +160,3 @@ function withoutAnswer<R extends UseQueryResult<unknown, Error>>(result: R, sear
   }
   return view;
 }
-

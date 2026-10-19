@@ -1,19 +1,21 @@
 import { z } from 'zod';
-import { commissionListingIdSchema, commissionProposalIdSchema, userIdSchema, workProjectIdSchema } from './atoms.js';
+import {
+  commissionListingIdSchema,
+  commissionProposalIdSchema,
+  userIdSchema,
+  workProjectIdSchema,
+} from './atoms.js';
 import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
 
-export const CommissionProposalStatusSchema = z.enum([
-  'open',
-  'invited',
-  'accepted',
-  'rejected',
-]);
+export const CommissionProposalStatusSchema = z.enum(['open', 'invited', 'accepted', 'rejected']);
 export type CommissionProposalStatus = z.infer<typeof CommissionProposalStatusSchema>;
 
-export const CloseCommissionInputSchema = z.object({
-  commissionListingId: commissionListingIdSchema,
-}).strict();
+export const CloseCommissionInputSchema = z
+  .object({
+    commissionListingId: commissionListingIdSchema,
+  })
+  .strict();
 export type CloseCommissionInput = z.infer<typeof CloseCommissionInputSchema>;
 
 // ONE result for the member close and its admin-review twin.
@@ -24,10 +26,12 @@ export const CloseCommissionResultSchema = z.object({
 });
 export type CloseCommissionResult = z.infer<typeof CloseCommissionResultSchema>;
 
-export const RejectCommissionProposalInputSchema = z.object({
-  commissionListingId: commissionListingIdSchema,
-  commissionProposalId: commissionProposalIdSchema,
-}).strict();
+export const RejectCommissionProposalInputSchema = z
+  .object({
+    commissionListingId: commissionListingIdSchema,
+    commissionProposalId: commissionProposalIdSchema,
+  })
+  .strict();
 export type RejectCommissionProposalInput = z.infer<typeof RejectCommissionProposalInputSchema>;
 
 export const RejectCommissionProposalResultSchema = z.object({
@@ -38,11 +42,13 @@ export const RejectCommissionProposalResultSchema = z.object({
 });
 export type RejectCommissionProposalResult = z.infer<typeof RejectCommissionProposalResultSchema>;
 
-export const SetCommissionProposalSavedInputSchema = z.object({
-  commissionListingId: commissionListingIdSchema,
-  commissionProposalId: commissionProposalIdSchema,
-  saved: z.boolean(),
-}).strict();
+export const SetCommissionProposalSavedInputSchema = z
+  .object({
+    commissionListingId: commissionListingIdSchema,
+    commissionProposalId: commissionProposalIdSchema,
+    saved: z.boolean(),
+  })
+  .strict();
 export type SetCommissionProposalSavedInput = z.infer<typeof SetCommissionProposalSavedInputSchema>;
 
 export const SetCommissionProposalSavedResultSchema = z.object({
@@ -51,13 +57,19 @@ export const SetCommissionProposalSavedResultSchema = z.object({
   commissionProposalId: commissionProposalIdSchema,
   saved: z.boolean(),
 });
-export type SetCommissionProposalSavedResult = z.infer<typeof SetCommissionProposalSavedResultSchema>;
+export type SetCommissionProposalSavedResult = z.infer<
+  typeof SetCommissionProposalSavedResultSchema
+>;
 
-export const CreateCommissionProposalTextInputSchema = z.object({
-  commissionListingId: commissionListingIdSchema,
-  coverLetterText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
-}).strict();
-export type CreateCommissionProposalTextInput = z.infer<typeof CreateCommissionProposalTextInputSchema>;
+export const CreateCommissionProposalTextInputSchema = z
+  .object({
+    commissionListingId: commissionListingIdSchema,
+    coverLetterText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
+  })
+  .strict();
+export type CreateCommissionProposalTextInput = z.infer<
+  typeof CreateCommissionProposalTextInputSchema
+>;
 
 // Acceptance result of the commission-proposal MEDIA path (startUpload with fileOrigin
 // 'commission-proposal'). Creation itself is asynchronous via the media pipeline; the
@@ -75,5 +87,3 @@ export const ApplyToCommissionAcceptedResultSchema = z.object({
   commissionProposalId: commissionProposalIdSchema,
 });
 export type ApplyToCommissionAcceptedResult = z.infer<typeof ApplyToCommissionAcceptedResultSchema>;
-
-

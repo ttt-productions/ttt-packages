@@ -151,4 +151,7 @@ export const MIGRATION_ACTION_IDS = {
 export type MigrationActionId = (typeof MIGRATION_ACTION_IDS)[keyof typeof MIGRATION_ACTION_IDS];
 
 /** Every action id, for the wire schemas that name one. */
-export const MIGRATION_ACTION_ID_KEYS = Object.values(MIGRATION_ACTION_IDS) as [MigrationActionId, ...MigrationActionId[]];
+export const MIGRATION_ACTION_ID_KEYS = Object.values(MIGRATION_ACTION_IDS) as [
+  MigrationActionId,
+  ...MigrationActionId[],
+];

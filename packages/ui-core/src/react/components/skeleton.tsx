@@ -1,16 +1,16 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { cn } from "../../lib/utils.js"
+import * as React from 'react';
+import { cn } from '../../lib/utils.js';
 
 function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
+      className={cn('animate-pulse rounded-md bg-muted', className)}
       data-ai-hint="loading placeholder"
       {...props}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export { Skeleton };

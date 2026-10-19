@@ -88,7 +88,9 @@ describe('PledgePaymentSchema (public-safe ledger)', () => {
   });
 
   it('rejects a non-numeric amount', () => {
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, amount: '1000' }).success).toBe(false);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, amount: '1000' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -268,7 +270,9 @@ describe('PledgeRefundRequestSchema (user-initiated refund request)', () => {
   });
 
   it('constrains status to the refund request lifecycle', () => {
-    expect(PledgeRefundRequestSchema.safeParse({ ...validRequest, status: 'cancelled' }).success).toBe(false);
+    expect(
+      PledgeRefundRequestSchema.safeParse({ ...validRequest, status: 'cancelled' }).success,
+    ).toBe(false);
   });
 
   it('carries no Stripe ids on the shape (they stay on the provider-refs doc)', () => {
@@ -283,24 +287,56 @@ describe('the dispute number on the member-readable pledge', () => {
   it('is required: 0 until the first dispute, then the count of disputes the pledge has had', () => {
     const { disputeNumber: _number, ...withoutNumber } = validPledgePayment;
     expect(PledgePaymentSchema.safeParse(withoutNumber).success).toBe(false);
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 0 }).success).toBe(true);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 0 }).success).toBe(
+      true,
+    );
     expect(
-      PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 1, disputeState: 'underReview' }).success,
+      PledgePaymentSchema.safeParse({
+        ...validPledgePayment,
+        disputeNumber: 1,
+        disputeState: 'underReview',
+      }).success,
     ).toBe(true);
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 2, disputeState: 'won' }).success).toBe(true);
+    expect(
+      PledgePaymentSchema.safeParse({
+        ...validPledgePayment,
+        disputeNumber: 2,
+        disputeState: 'won',
+      }).success,
+    ).toBe(true);
   });
 
   it('is a whole count, never a Stripe dispute id', () => {
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 'dp_123' }).success).toBe(false);
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: -1 }).success).toBe(false);
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 1.5, disputeState: 'won' }).success).toBe(false);
+    expect(
+      PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 'dp_123' }).success,
+    ).toBe(false);
+    expect(
+      PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: -1 }).success,
+    ).toBe(false);
+    expect(
+      PledgePaymentSchema.safeParse({
+        ...validPledgePayment,
+        disputeNumber: 1.5,
+        disputeState: 'won',
+      }).success,
+    ).toBe(false);
   });
 
   it('agrees with the dispute state: no dispute is number 0, and a dispute is number 1 or more', () => {
     expect(
-      PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 0, disputeState: 'underReview' }).success,
+      PledgePaymentSchema.safeParse({
+        ...validPledgePayment,
+        disputeNumber: 0,
+        disputeState: 'underReview',
+      }).success,
     ).toBe(false);
-    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 1, disputeState: 'none' }).success).toBe(false);
+    expect(
+      PledgePaymentSchema.safeParse({
+        ...validPledgePayment,
+        disputeNumber: 1,
+        disputeState: 'none',
+      }).success,
+    ).toBe(false);
   });
 
   it('numbers the first dispute 1, keeps the number for a later event of the same dispute, and adds one for a new dispute', () => {
@@ -311,7 +347,10 @@ describe('the dispute number on the member-readable pledge', () => {
   });
 
   describe('which dispute transitions a pledge may make', () => {
-    const at = (disputeNumber: number, disputeState: 'none' | 'underReview' | 'won' | 'lost') => ({ disputeNumber, disputeState });
+    const at = (disputeNumber: number, disputeState: 'none' | 'underReview' | 'won' | 'lost') => ({
+      disputeNumber,
+      disputeState,
+    });
 
     it('within one dispute, only up the ladder (or unchanged, as a redelivery or a refund leaves it)', () => {
       expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(0, 'none'))).toBe(true);

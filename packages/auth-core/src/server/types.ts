@@ -1,9 +1,9 @@
 // Types for the createAssertAuth factory. Fully generic over the consuming
 // app's user document shape. The package contains no app-specific knowledge.
 
-import type { CallableRequest } from "firebase-functions/v2/https";
-import type { DecodedIdToken } from "firebase-admin/auth";
-import type { Firestore } from "firebase-admin/firestore";
+import type { CallableRequest } from 'firebase-functions/v2/https';
+import type { DecodedIdToken } from 'firebase-admin/auth';
+import type { Firestore } from 'firebase-admin/firestore';
 
 /**
  * Per-callable requirements passed at every assertAuth call site.
@@ -84,7 +84,7 @@ export interface AuthContext<TUser = unknown, TAdmin = void> {
  * Status the consuming app reports for a user doc. The package only
  * interprets these three values.
  */
-export type UserStatus = "active" | "suspended" | "banned";
+export type UserStatus = 'active' | 'suspended' | 'banned';
 
 /**
  * Configuration for createAssertAuth. The consuming app supplies every
@@ -116,11 +116,7 @@ export interface AssertAuthConfig<TUser, TAdmin = void> {
    * package forwards uid, token, and the admin options verbatim. The
    * callback throws (typically HttpsError) on failure.
    */
-  requireAdmin: (
-    uid: string,
-    token: DecodedIdToken,
-    options: AdminCheckOptions
-  ) => Promise<TAdmin>;
+  requireAdmin: (uid: string, token: DecodedIdToken, options: AdminCheckOptions) => Promise<TAdmin>;
 
   /**
    * Optional acceptance-level gate. When set, every assertAuth call that does not pass
@@ -153,5 +149,5 @@ export interface AcceptanceGateConfig {
  */
 export type AssertAuthFn<TUser, TAdmin = void> = (
   request: CallableRequest,
-  requirements?: AuthRequirements
+  requirements?: AuthRequirements,
 ) => Promise<AuthContext<TUser, TAdmin>>;

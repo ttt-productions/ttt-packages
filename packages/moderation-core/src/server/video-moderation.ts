@@ -1,15 +1,7 @@
-import {
-  isRejectionLikelihood,
-  likelihoodToString,
-  LIKELIHOOD_ORDER,
-} from "../likelihood.js";
-import type {
-  Likelihood,
-  MediaModerationResult,
-  ModerationLogger,
-} from "../types.js";
+import { isRejectionLikelihood, likelihoodToString, LIKELIHOOD_ORDER } from '../likelihood.js';
+import type { Likelihood, MediaModerationResult, ModerationLogger } from '../types.js';
 
-import type { VideoIntelligenceServiceClient } from "@google-cloud/video-intelligence";
+import type { VideoIntelligenceServiceClient } from '@google-cloud/video-intelligence';
 
 /** Poll cadence for the annotateVideo long-running operation. */
 export interface VideoPollBackoff {
@@ -39,7 +31,7 @@ export interface VideoModerationOptions {
 let _defaultClient: VideoIntelligenceServiceClient | null = null;
 async function defaultGetVideoClient(): Promise<VideoIntelligenceServiceClient> {
   if (_defaultClient) return _defaultClient;
-  const mod = await import("@google-cloud/video-intelligence");
+  const mod = await import('@google-cloud/video-intelligence');
   _defaultClient = new mod.VideoIntelligenceServiceClient();
   return _defaultClient;
 }
@@ -57,16 +49,14 @@ export async function moderateVideo(
 
   logger?.info?.(`[moderation-core] Video moderation: ${gcsUri}`);
 
-  const { protos } = await import("@google-cloud/video-intelligence");
+  const { protos } = await import('@google-cloud/video-intelligence');
   const client = await getClient();
 
   const pollBackoff = options.pollBackoff ?? DEFAULT_VIDEO_POLL_BACKOFF;
   const [operation] = await client.annotateVideo(
     {
       inputUri: gcsUri,
-      features: [
-        protos.google.cloud.videointelligence.v1.Feature.EXPLICIT_CONTENT_DETECTION,
-      ],
+      features: [protos.google.cloud.videointelligence.v1.Feature.EXPLICIT_CONTENT_DETECTION],
     },
     {
       longrunning: {
@@ -82,11 +72,11 @@ export async function moderateVideo(
   const explicitAnnotation = annotation?.explicitAnnotation;
 
   if (!explicitAnnotation?.frames?.length) {
-    logger?.warn?.("[moderation-core] No explicit-content frames returned; allowing content");
-    return { safe: true, scores: { adult: "UNKNOWN", violence: "UNKNOWN", racy: "UNKNOWN" } };
+    logger?.warn?.('[moderation-core] No explicit-content frames returned; allowing content');
+    return { safe: true, scores: { adult: 'UNKNOWN', violence: 'UNKNOWN', racy: 'UNKNOWN' } };
   }
 
-  let maxAdult: Likelihood = "VERY_UNLIKELY";
+  let maxAdult: Likelihood = 'VERY_UNLIKELY';
   let foundExplicit = false;
 
   for (const frame of explicitAnnotation.frames) {
@@ -102,12 +92,12 @@ export async function moderateVideo(
   }
 
   const safe = !foundExplicit;
-  const reason = safe ? undefined : "Adult or sexually explicit content is not allowed";
+  const reason = safe ? undefined : 'Adult or sexually explicit content is not allowed';
 
   return {
     safe,
     reason,
-    scores: { adult: maxAdult, violence: "NOT_CHECKED", racy: "NOT_CHECKED" },
+    scores: { adult: maxAdult, violence: 'NOT_CHECKED', racy: 'NOT_CHECKED' },
   };
 }
 

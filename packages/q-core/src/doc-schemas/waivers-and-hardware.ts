@@ -46,9 +46,15 @@ export const SignedWaiverSchema = z
   })
   .refine(
     (waiver) => {
-      const full = [waiver.teamId, waiver.witnessUserId, waiver.witnessAuthority, waiver.subjectDisplayNameSnapshot];
+      const full = [
+        waiver.teamId,
+        waiver.witnessUserId,
+        waiver.witnessAuthority,
+        waiver.subjectDisplayNameSnapshot,
+      ];
       const legacy = [waiver.teamId, waiver.witnessUserId, waiver.witnessDisplayNameSnapshot];
-      const present = (fields: readonly unknown[]) => fields.filter((field) => field !== undefined).length;
+      const present = (fields: readonly unknown[]) =>
+        fields.filter((field) => field !== undefined).length;
       if (present([...full, waiver.witnessDisplayNameSnapshot]) === 0) return true;
       if (present(full) === full.length) return waiver.witnessDisplayNameSnapshot === undefined;
       return (
@@ -94,10 +100,18 @@ export const HardwareLoanContractSchema = z
       contract.status === PENDING_HARDWARE_LOAN_CONTRACT_STATUS
         ? contract.signatureFile === undefined && contract.loanedAt === undefined
         : contract.signatureFile !== undefined && contract.loanedAt !== undefined,
-    { message: 'A contract carries its signature and loan date exactly once it is signed.', path: ['signatureFile'] },
+    {
+      message: 'A contract carries its signature and loan date exactly once it is signed.',
+      path: ['signatureFile'],
+    },
   )
   .refine(
-    (contract) => (contract.status === RETURNED_HARDWARE_LOAN_CONTRACT_STATUS) === (contract.returnedAt !== undefined),
-    { message: 'A contract carries its return date exactly while it is returned.', path: ['returnedAt'] },
+    (contract) =>
+      (contract.status === RETURNED_HARDWARE_LOAN_CONTRACT_STATUS) ===
+      (contract.returnedAt !== undefined),
+    {
+      message: 'A contract carries its return date exactly while it is returned.',
+      path: ['returnedAt'],
+    },
   );
 export type HardwareLoanContract = z.infer<typeof HardwareLoanContractSchema>;

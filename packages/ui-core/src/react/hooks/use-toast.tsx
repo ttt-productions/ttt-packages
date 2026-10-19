@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 
 const TOAST_LIMIT = 3;
 // Time between Radix flipping `open=false` and the toast actually unmounting.
@@ -6,7 +6,7 @@ const TOAST_LIMIT = 3;
 // visible dead-air gap after the countdown bar reaches empty.
 const TOAST_REMOVE_DELAY = 150;
 
-export type ToastVariant = "default" | "destructive" | "success" | "warning" | "error";
+export type ToastVariant = 'default' | 'destructive' | 'success' | 'warning' | 'error';
 
 export type ToasterToast = {
   id: string;
@@ -36,10 +36,10 @@ export type ToasterToast = {
 type ToastProps = ToasterToast;
 
 type Action =
-  | { type: "ADD_TOAST"; toast: ToastProps }
-  | { type: "UPDATE_TOAST"; toast: Partial<ToastProps> & { id: string } }
-  | { type: "DISMISS_TOAST"; toastId?: string }
-  | { type: "REMOVE_TOAST"; toastId?: string };
+  | { type: 'ADD_TOAST'; toast: ToastProps }
+  | { type: 'UPDATE_TOAST'; toast: Partial<ToastProps> & { id: string } }
+  | { type: 'DISMISS_TOAST'; toastId?: string }
+  | { type: 'REMOVE_TOAST'; toastId?: string };
 
 interface State {
   toasts: ToastProps[];
@@ -52,16 +52,16 @@ let memoryState: State = { toasts: [] };
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case 'ADD_TOAST':
       return { ...state, toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT) };
 
-    case "UPDATE_TOAST":
+    case 'UPDATE_TOAST':
       return {
         ...state,
         toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
       };
 
-    case "DISMISS_TOAST": {
+    case 'DISMISS_TOAST': {
       const { toastId } = action;
 
       if (toastId) {
@@ -74,7 +74,7 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, toasts: state.toasts.map((t) => ({ ...t, open: false })) };
     }
 
-    case "REMOVE_TOAST": {
+    case 'REMOVE_TOAST': {
       const { toastId } = action;
       if (!toastId) return { ...state, toasts: [] };
       return { ...state, toasts: state.toasts.filter((t) => t.id !== toastId) };
@@ -99,7 +99,7 @@ function addToRemoveQueue(toastId: string) {
 
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId);
-    dispatch({ type: "REMOVE_TOAST", toastId });
+    dispatch({ type: 'REMOVE_TOAST', toastId });
   }, TOAST_REMOVE_DELAY);
 
   toastTimeouts.set(toastId, timeout);
@@ -107,37 +107,38 @@ function addToRemoveQueue(toastId: string) {
 
 function defaultDurationForVariant(variant: ToastVariant | undefined): number {
   switch (variant) {
-    case "success":
+    case 'success':
       return 3000;
-    case "destructive":
-    case "error":
+    case 'destructive':
+    case 'error':
       return 6000;
-    case "warning":
+    case 'warning':
       return 5000;
-    case "default":
+    case 'default':
     default:
       return 4000;
   }
 }
 
-export function toast(input: Omit<ToastProps, "id">) {
+export function toast(input: Omit<ToastProps, 'id'>) {
   const id = genId();
 
   const dismiss = () => {
-    dispatch({ type: "DISMISS_TOAST", toastId: id });
+    dispatch({ type: 'DISMISS_TOAST', toastId: id });
     addToRemoveQueue(id);
   };
 
-  const update = (props: Partial<ToastProps>) => dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } });
+  const update = (props: Partial<ToastProps>) =>
+    dispatch({ type: 'UPDATE_TOAST', toast: { ...props, id } });
 
-  const variant = input.variant ?? "default";
+  const variant = input.variant ?? 'default';
   // Persistent toasts disable auto-dismiss entirely; Radix accepts `Infinity`.
   const duration = input.persistent
     ? Infinity
-    : input.duration ?? defaultDurationForVariant(variant);
+    : (input.duration ?? defaultDurationForVariant(variant));
 
   dispatch({
-    type: "ADD_TOAST",
+    type: 'ADD_TOAST',
     toast: {
       id,
       open: true,
@@ -169,7 +170,7 @@ export function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => {
-      dispatch({ type: "DISMISS_TOAST", toastId });
+      dispatch({ type: 'DISMISS_TOAST', toastId });
       if (toastId) addToRemoveQueue(toastId);
     },
   };

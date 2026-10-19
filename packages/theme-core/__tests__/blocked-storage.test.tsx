@@ -55,9 +55,12 @@ describe.each(BLOCKING_MODES)('with blocked storage (%s)', (_mode, block) => {
     removeMatchMedia();
   });
 
-  it('reads nothing saved, and the shell\'s motion hook renders', () => {
+  it("reads nothing saved, and the shell's motion hook renders", () => {
     const prefix = uniquePrefix();
-    const store = createReducedMotionStore({ storageKey: `${prefix}-motion`, changeEvent: `${prefix}-change` });
+    const store = createReducedMotionStore({
+      storageKey: `${prefix}-motion`,
+      changeEvent: `${prefix}-change`,
+    });
     function Shell() {
       store.useApplyReducedMotion();
       return <span data-testid="reduced">{String(store.useReducedMotion())}</span>;
@@ -70,7 +73,10 @@ describe.each(BLOCKING_MODES)('with blocked storage (%s)', (_mode, block) => {
 
   it('still applies a motion save for the rest of the page', () => {
     const prefix = uniquePrefix();
-    const store = createReducedMotionStore({ storageKey: `${prefix}-motion`, changeEvent: `${prefix}-change` });
+    const store = createReducedMotionStore({
+      storageKey: `${prefix}-motion`,
+      changeEvent: `${prefix}-change`,
+    });
     function Shell() {
       store.useApplyReducedMotion();
       return <span data-testid="reduced">{String(store.useReducedMotion())}</span>;
@@ -96,7 +102,7 @@ describe.each(BLOCKING_MODES)('with blocked storage (%s)', (_mode, block) => {
     expect(motion.prefersReducedMotion()).toBe(true);
   });
 
-  it('signed in, takes the account\'s values and still honours a dismissal', () => {
+  it("signed in, takes the account's values and still honours a dismissal", () => {
     const { Harness, motion, sync, promptText } = createSyncFixture(uniquePrefix());
     const account = fakeAccount();
     render(<Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />);
@@ -106,7 +112,9 @@ describe.each(BLOCKING_MODES)('with blocked storage (%s)', (_mode, block) => {
     expect(promptText()).toBe('none');
 
     act(() => account.setSettings({ theme: 'dark', reducedMotion: false }));
-    expect(sync().prompt?.differences).toEqual([{ setting: 'reducedMotion', device: true, account: false }]);
+    expect(sync().prompt?.differences).toEqual([
+      { setting: 'reducedMotion', device: true, account: false },
+    ]);
     act(() => sync().prompt!.dismiss());
     expect(promptText()).toBe('none');
   });
@@ -118,7 +126,9 @@ describe.each(BLOCKING_MODES)('with blocked storage (%s)', (_mode, block) => {
     expect(document.documentElement.classList.contains('dark')).toBe(true);
 
     act(() => account.setSettings({ theme: 'light', reducedMotion: null }));
-    expect(sync().prompt?.differences).toEqual([{ setting: 'theme', device: 'dark', account: 'light' }]);
+    expect(sync().prompt?.differences).toEqual([
+      { setting: 'theme', device: 'dark', account: 'light' },
+    ]);
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 });

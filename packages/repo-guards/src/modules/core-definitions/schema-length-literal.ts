@@ -22,8 +22,14 @@ const MIN_LITERAL = /\.min\(\s*(\d[\d_]*)\s*[,)]/g;
 const numberOf = (digits: string) => Number(digits.replace(/_/g, ''));
 
 /** Every literal bound of one kind in a file's code, with where it sits. */
-export function literalBounds(file: FileView, pattern: RegExp): Array<{ value: number; index: number }> {
-  return [...file.code.matchAll(new RegExp(pattern.source, pattern.flags))].map((m) => ({ value: numberOf(m[1]), index: m.index ?? 0 }));
+export function literalBounds(
+  file: FileView,
+  pattern: RegExp,
+): Array<{ value: number; index: number }> {
+  return [...file.code.matchAll(new RegExp(pattern.source, pattern.flags))].map((m) => ({
+    value: numberOf(m[1]),
+    index: m.index ?? 0,
+  }));
 }
 
 export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLiteralFacts> = {
@@ -36,7 +42,11 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
       key: 'file',
       extra(entry, label) {
         const values = entry.values;
-        if (!Array.isArray(values) || !values.length || !values.every((v) => Number.isInteger(v) && (v as number) >= 0)) {
+        if (
+          !Array.isArray(values) ||
+          !values.length ||
+          !values.every((v) => Number.isInteger(v) && (v as number) >= 0)
+        ) {
           problems.push(`${label} needs its reviewed values, each a whole number`);
         }
       },
@@ -44,10 +54,12 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
     return problems;
   },
   build(facts) {
-    const schemaFiles = (files: FileView[], findings: Finding[]) => filesIn(files, facts.schemaFolders, findings);
+    const schemaFiles = (files: FileView[], findings: Finding[]) =>
+      filesIn(files, facts.schemaFolders, findings);
     return [
       {
-        title: 'every core schema bound derives from a named constant outside the reviewed structural bounds',
+        title:
+          'every core schema bound derives from a named constant outside the reviewed structural bounds',
         description:
           'A business text or count limit is declared once as a named core constant and every zod .max() that enforces ' +
           'it derives from that constant. Only reviewed structural bounds stay literal; each file lists its exact literal ' +
@@ -65,13 +77,26 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
             if (reviewed.has(file.path)) seen.add(file.path);
             for (const bound of bounds) {
               const at = remaining.indexOf(bound.value);
-              if (at === -1) findings.push({ file: file.path, line: file.lineOf(bound.index), detail: `.max(${bound.value}) is a literal bound not on the reviewed list` });
+              if (at === -1)
+                findings.push({
+                  file: file.path,
+                  line: file.lineOf(bound.index),
+                  detail: `.max(${bound.value}) is a literal bound not on the reviewed list`,
+                });
               else remaining.splice(at, 1);
             }
-            for (const value of remaining) findings.push({ file: file.path, detail: `stale reviewed bound: .max(${value}) is no longer in the file` });
+            for (const value of remaining)
+              findings.push({
+                file: file.path,
+                detail: `stale reviewed bound: .max(${value}) is no longer in the file`,
+              });
           }
           for (const entry of facts.reviewedMaxLiterals) {
-            if (!seen.has(entry.file)) findings.push({ file: entry.file, detail: 'stale reviewed entry: the module is gone or outside the schema folders' });
+            if (!seen.has(entry.file))
+              findings.push({
+                file: entry.file,
+                detail: 'stale reviewed entry: the module is gone or outside the schema folders',
+              });
           }
           return findings;
         },
@@ -86,7 +111,12 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
           const findings: Finding[] = [];
           for (const file of schemaFiles(context.files(CORE_CODE), findings)) {
             for (const bound of literalBounds(file, MIN_LITERAL)) {
-              if (bound.value > 1) findings.push({ file: file.path, line: file.lineOf(bound.index), detail: `.min(${bound.value}) is a literal minimum` });
+              if (bound.value > 1)
+                findings.push({
+                  file: file.path,
+                  line: file.lineOf(bound.index),
+                  detail: `.min(${bound.value}) is a literal minimum`,
+                });
             }
           }
           return findings;

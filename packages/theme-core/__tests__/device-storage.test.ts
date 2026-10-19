@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readStoredValue, writeStoredValue, type DeviceStorageArea } from '../src/device-storage.js';
+import {
+  readStoredValue,
+  writeStoredValue,
+  type DeviceStorageArea,
+} from '../src/device-storage.js';
 
 // Values held for a blocked page live for the module's life, so every test takes its own keys.
 let nextKey = 0;
@@ -94,12 +98,15 @@ describe('when reading the storage area itself throws', () => {
     if (own.session) Object.defineProperty(window, 'sessionStorage', own.session);
   });
 
-  it.each(['local', 'session'] as const)('reads nothing, then holds a write for the page (%s)', (area) => {
-    const key = uniqueKey();
-    expect(readStoredValue(key, area)).toBeNull();
-    expect(() => writeStoredValue(key, 'held', area)).not.toThrow();
-    expect(readStoredValue(key, area)).toBe('held');
-  });
+  it.each(['local', 'session'] as const)(
+    'reads nothing, then holds a write for the page (%s)',
+    (area) => {
+      const key = uniqueKey();
+      expect(readStoredValue(key, area)).toBeNull();
+      expect(() => writeStoredValue(key, 'held', area)).not.toThrow();
+      expect(readStoredValue(key, area)).toBe('held');
+    },
+  );
 });
 
 describe('the default area', () => {

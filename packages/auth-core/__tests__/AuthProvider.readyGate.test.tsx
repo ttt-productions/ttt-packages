@@ -16,7 +16,9 @@ import type { AuthProviderConfig } from '../src/react/types.js';
 
 type Claims = Record<string, unknown>;
 
-function makeConfig(overrides: Partial<AuthProviderConfig<Claims>> = {}): AuthProviderConfig<Claims> {
+function makeConfig(
+  overrides: Partial<AuthProviderConfig<Claims>> = {},
+): AuthProviderConfig<Claims> {
   return {
     auth: {} as never,
     parseClaims: (raw) => raw,
@@ -139,7 +141,9 @@ describe('AuthProvider readyGate', () => {
       throw new Error('sync boom');
     };
     const { result } = renderHook(() => useAuth(), {
-      wrapper: makeWrapper(makeConfig({ readyGate: gate as unknown as () => Promise<unknown>, onError })),
+      wrapper: makeWrapper(
+        makeConfig({ readyGate: gate as unknown as () => Promise<unknown>, onError }),
+      ),
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));

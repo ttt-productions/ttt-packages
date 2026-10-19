@@ -73,7 +73,9 @@ export function createRegistrySeedWriter({ schemas, write, registryName }) {
     if (!parsed.success) {
       throw new Error(
         `Seed fixture does not match its ${registryName} schema: ${docPath}\n` +
-          parsed.error.issues.map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`).join('\n') +
+          parsed.error.issues
+            .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
+            .join('\n') +
           '\nFix the fixture to a shape a real writer produces, or add the field to the ' +
           `document schema in ${registryName} first.`,
       );
@@ -89,7 +91,8 @@ export function createRegistrySeedWriter({ schemas, write, registryName }) {
    */
   const mergeSeededDoc = async (docPath, patch) => {
     const schema = registered(docPath, 'patch');
-    const shape = schema && typeof schema === 'object' && 'shape' in schema ? schema.shape : undefined;
+    const shape =
+      schema && typeof schema === 'object' && 'shape' in schema ? schema.shape : undefined;
     if (!shape || typeof shape !== 'object') {
       throw new Error(
         `Cannot check a seed patch against ${docPath}: its ${registryName} schema exposes no readable ` +

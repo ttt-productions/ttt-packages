@@ -22,7 +22,8 @@ describe('lazyModule', () => {
 
   it('a failed import rejects every caller waiting on it, and the next call imports again', async () => {
     const failure = new Error('chunk failed to load');
-    const load = vi.fn<() => Promise<{ value: number }>>()
+    const load = vi
+      .fn<() => Promise<{ value: number }>>()
       .mockRejectedValueOnce(failure)
       .mockResolvedValueOnce({ value: 7 });
     const loader = lazyModule(load);

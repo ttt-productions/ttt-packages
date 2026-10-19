@@ -5,8 +5,8 @@
 export const FIRESTORE_IN_FILTER_LIMIT = 30;
 
 export function chunk<T>(items: T[], size: number): T[][] {
-    if (!Number.isFinite(size) || size <= 0) throw new Error(`chunk size must be > 0 (got ${size})`);
-    const out: T[][] = [];
-    for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-    return out;
-  }
+  if (!Number.isFinite(size) || size <= 0) throw new Error(`chunk size must be > 0 (got ${size})`);
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}

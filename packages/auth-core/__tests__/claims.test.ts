@@ -10,7 +10,10 @@ function makeUser(opts: {
   const getIdTokenResult = vi.fn(async (force?: boolean) => ({
     claims: force ? (opts.freshClaims ?? opts.cachedClaims) : opts.cachedClaims,
   }));
-  return { user: { emailVerified: opts.emailVerified, getIdTokenResult } as unknown as User, getIdTokenResult };
+  return {
+    user: { emailVerified: opts.emailVerified, getIdTokenResult } as unknown as User,
+    getIdTokenResult,
+  };
 }
 
 describe('getIdTokenClaims — stale-verification reconciliation', () => {

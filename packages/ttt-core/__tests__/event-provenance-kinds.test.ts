@@ -17,7 +17,9 @@ describe('event provenance kinds', () => {
   });
 
   it('gives every routine kind a time to live and keeps report provenance with its case', () => {
-    const routineKinds = EventProvenanceKindSchema.options.filter((kind) => kind !== 'reportSubmit');
+    const routineKinds = EventProvenanceKindSchema.options.filter(
+      (kind) => kind !== 'reportSubmit',
+    );
     expect(Object.keys(EVENT_PROVENANCE_ROUTINE_TTL_DAYS).sort()).toEqual([...routineKinds].sort());
   });
 });

@@ -6,7 +6,7 @@
 const memory = new Map<string, string>();
 
 function inBrowser(): boolean {
-  return typeof window !== "undefined";
+  return typeof window !== 'undefined';
 }
 
 function storage(): Storage | null {

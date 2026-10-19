@@ -33,14 +33,18 @@ const STORAGE_KEYS = [
   ...STATS_TABLE_VIEW_KEYS,
   statQueueStorageKey('scorer-1', 'game-1'),
 ];
-const CHANGE_EVENTS = [REDUCED_MOTION_CHANGE_EVENT, ADMIN_SIDEBAR_COLLAPSED_CHANGE_EVENT, STATS_TABLE_VIEW_CHANGE_EVENT];
+const CHANGE_EVENTS = [
+  REDUCED_MOTION_CHANGE_EVENT,
+  ADMIN_SIDEBAR_COLLAPSED_CHANGE_EVENT,
+  STATS_TABLE_VIEW_CHANGE_EVENT,
+];
 
 describe('device storage keys', () => {
-  it('store the theme under next-themes\' default key, where saved themes already live', () => {
+  it("store the theme under next-themes' default key, where saved themes already live", () => {
     expect(THEME_STORAGE_KEY).toBe('theme');
   });
 
-  it('hold the exact values viewers\' saved preferences are stored under', () => {
+  it("hold the exact values viewers' saved preferences are stored under", () => {
     expect(REDUCED_MOTION_STORAGE_KEY).toBe('q-sports-reduced-motion');
     expect(REDUCED_MOTION_CHANGE_EVENT).toBe('q-sports-reduced-motion-change');
     expect(VIEWER_SETTINGS_DISMISSAL_STORAGE_KEY).toBe('q-sports-viewer-settings-dismissed');
@@ -60,12 +64,18 @@ describe('device storage keys', () => {
   });
 
   it('key a stats table View state by table type and sport, one key per pair', () => {
-    expect(statsTableViewStorageKey('playerTotals', 'basketball')).toBe('q-sports-stats-table-view:playerTotals:basketball');
-    expect(new Set(STATS_TABLE_VIEW_KEYS).size).toBe(COLUMN_CATALOG_KEYS.length * SPORT_KEYS.length);
+    expect(statsTableViewStorageKey('playerTotals', 'basketball')).toBe(
+      'q-sports-stats-table-view:playerTotals:basketball',
+    );
+    expect(new Set(STATS_TABLE_VIEW_KEYS).size).toBe(
+      COLUMN_CATALOG_KEYS.length * SPORT_KEYS.length,
+    );
   });
 
   it("key a scorer's stat queue by the account and the game, so no other account or game meets it", () => {
-    expect(statQueueStorageKey('scorer-1', 'game-1')).toBe(`${STAT_QUEUE_STORAGE_KEY_PREFIX}:scorer-1:game-1`);
+    expect(statQueueStorageKey('scorer-1', 'game-1')).toBe(
+      `${STAT_QUEUE_STORAGE_KEY_PREFIX}:scorer-1:game-1`,
+    );
     expect(STAT_QUEUE_STORAGE_KEY_PREFIX).toBe('q-sports-stat-queue');
     const keys = [
       statQueueStorageKey('scorer-1', 'game-1'),

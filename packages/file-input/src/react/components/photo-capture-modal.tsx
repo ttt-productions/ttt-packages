@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -11,18 +11,18 @@ import {
   DialogTitle,
   Spinner,
   useAsyncAction,
-} from "@ttt-productions/ui-core/react";
-import { Camera, SwitchCamera, X } from "lucide-react";
+} from '@ttt-productions/ui-core/react';
+import { Camera, SwitchCamera, X } from 'lucide-react';
 
 export interface PhotoCaptureModalProps {
   open: boolean;
-  facingMode?: "user" | "environment";
+  facingMode?: 'user' | 'environment';
   onCapture: (file: File) => void;
   onClose: () => void;
 }
 
 export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
-  const { open, facingMode = "user", onCapture, onClose } = props;
+  const { open, facingMode = 'user', onCapture, onClose } = props;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -43,7 +43,7 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
   }, []);
 
   const startStream = useCallback(
-    async (facing: "user" | "environment") => {
+    async (facing: 'user' | 'environment') => {
       stopStream();
       setError(null);
       const gen = acquireGenRef.current;
@@ -66,7 +66,7 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
         }
       } catch (e) {
         if (gen !== acquireGenRef.current) return;
-        const msg = e instanceof Error ? e.message : "Camera access denied.";
+        const msg = e instanceof Error ? e.message : 'Camera access denied.';
         setError(msg);
       }
     },
@@ -84,12 +84,12 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
   }, [open]);
 
   const reportError = useCallback((e: unknown) => {
-    setError(e instanceof Error ? e.message : "Camera access denied.");
+    setError(e instanceof Error ? e.message : 'Camera access denied.');
   }, []);
 
   const flip = useAsyncAction(
     async () => {
-      const next = activeFacing === "user" ? "environment" : "user";
+      const next = activeFacing === 'user' ? 'environment' : 'user';
       setActiveFacing(next);
       await startStream(next);
     },
@@ -103,18 +103,20 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
       const video = videoRef.current;
       if (!video) return;
 
-      const canvas = document.createElement("canvas");
+      const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Could not capture a photo.");
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not capture a photo.');
 
       ctx.drawImage(video, 0, 0);
 
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
-      if (!blob) throw new Error("Could not capture a photo.");
-      const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.9),
+      );
+      if (!blob) throw new Error('Could not capture a photo.');
+      const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
       stopStream();
       onCapture(file);
     },
@@ -140,14 +142,17 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
           <DialogDescription>Position yourself and tap capture.</DialogDescription>
         </DialogHeader>
 
-        <div className="relative w-full overflow-hidden rounded-md bg-muted" style={{ aspectRatio: "4/3" }}>
+        <div
+          className="relative w-full overflow-hidden rounded-md bg-muted"
+          style={{ aspectRatio: '4/3' }}
+        >
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
             className="h-full w-full object-cover"
-            style={{ transform: activeFacing === "user" ? "scaleX(-1)" : undefined }}
+            style={{ transform: activeFacing === 'user' ? 'scaleX(-1)' : undefined }}
           />
           {open && !ready && !error && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -162,7 +167,13 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
         </div>
 
         <DialogFooter className="flex-row justify-between gap-2">
-          <Button type="button" variant="outline" onClick={handleClose} disabled={capture.pending} icon={<X className="icon-xs" />}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={capture.pending}
+            icon={<X className="icon-xs" />}
+          >
             Close
           </Button>
 

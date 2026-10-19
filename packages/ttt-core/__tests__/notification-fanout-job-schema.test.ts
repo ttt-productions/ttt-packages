@@ -51,27 +51,61 @@ describe('a fanout phase selector carries exactly the arguments its kind needs',
   }
 
   it('refuses a target-id selector whose target id is empty', () => {
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'workFollowers', workProjectId: '' }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'realmFollowers', workRealmId: '' }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'userFollowers', artisanUid: '' }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'workGuildMembers', workProjectId: '' }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'realmMembers', workRealmId: '' }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'workFollowers', workProjectId: '' })
+        .success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'realmFollowers', workRealmId: '' })
+        .success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'userFollowers', artisanUid: '' })
+        .success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({
+        kind: 'workGuildMembers',
+        workProjectId: '',
+      }).success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'realmMembers', workRealmId: '' })
+        .success,
+    ).toBe(false);
   });
 
   it('refuses a list selector whose list is not a list of uid strings', () => {
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'workMembers', memberUids: 'u1' }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'userFollowersMany', memberUids: [1, 2] }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'explicitUids', uids: [{}] }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'workMembers', memberUids: 'u1' })
+        .success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({
+        kind: 'userFollowersMany',
+        memberUids: [1, 2],
+      }).success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'explicitUids', uids: [{}] }).success,
+    ).toBe(false);
   });
 
   it('refuses an unknown selector kind and a selector with no kind', () => {
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'somethingElse', workProjectId: 'w1' }).success).toBe(false);
-    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'allFollowers' }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSelectorSchema.safeParse({
+        kind: 'somethingElse',
+        workProjectId: 'w1',
+      }).success,
+    ).toBe(false);
+    expect(NotificationFanoutPhaseSelectorSchema.safeParse({ kind: 'allFollowers' }).success).toBe(
+      false,
+    );
     expect(NotificationFanoutPhaseSelectorSchema.safeParse({}).success).toBe(false);
   });
 });
 
-describe('a fanout phase stores its cursor in its selector kind\'s shape', () => {
+describe("a fanout phase stores its cursor in its selector kind's shape", () => {
   const validCursorByKind: Record<string, unknown> = {
     workFollowers: 'edge-doc-1',
     realmFollowers: 'edge-doc-1',
@@ -100,39 +134,73 @@ describe('a fanout phase stores its cursor in its selector kind\'s shape', () =>
 
   for (const [kind, selector] of Object.entries(validSelectorByKind)) {
     it(`accepts a ${kind} phase with its cursor shape`, () => {
-      expect(NotificationFanoutPhaseSchema.safeParse({ selector, cursor: validCursorByKind[kind], done: false }).success).toBe(true);
+      expect(
+        NotificationFanoutPhaseSchema.safeParse({
+          selector,
+          cursor: validCursorByKind[kind],
+          done: false,
+        }).success,
+      ).toBe(true);
     });
 
     it(`accepts a ${kind} phase with a null cursor`, () => {
-      expect(NotificationFanoutPhaseSchema.safeParse({ selector, cursor: null, done: false }).success).toBe(true);
+      expect(
+        NotificationFanoutPhaseSchema.safeParse({ selector, cursor: null, done: false }).success,
+      ).toBe(true);
     });
 
     it(`refuses a ${kind} phase whose cursor has another kind's shape`, () => {
-      expect(NotificationFanoutPhaseSchema.safeParse({ selector, cursor: wrongCursorByKind[kind], done: false }).success).toBe(false);
+      expect(
+        NotificationFanoutPhaseSchema.safeParse({
+          selector,
+          cursor: wrongCursorByKind[kind],
+          done: false,
+        }).success,
+      ).toBe(false);
     });
   }
 
   it('refuses an allArtisans cursor that is not JSON', () => {
-    expect(NotificationFanoutPhaseSchema.safeParse({
-      selector: { kind: 'allArtisans' }, cursor: 'not json at all', done: false,
-    }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSchema.safeParse({
+        selector: { kind: 'allArtisans' },
+        cursor: 'not json at all',
+        done: false,
+      }).success,
+    ).toBe(false);
   });
 
   it('refuses a userFollowersMany cursor missing memberGroupIndex', () => {
-    expect(NotificationFanoutPhaseSchema.safeParse({
-      selector: { kind: 'userFollowersMany', memberUids: ['u1'] }, cursor: { lastEdgeDocId: 'edge-doc-1' }, done: false,
-    }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSchema.safeParse({
+        selector: { kind: 'userFollowersMany', memberUids: ['u1'] },
+        cursor: { lastEdgeDocId: 'edge-doc-1' },
+        done: false,
+      }).success,
+    ).toBe(false);
   });
 
   it('refuses a realmMembers cursor with a non-string field', () => {
-    expect(NotificationFanoutPhaseSchema.safeParse({
-      selector: { kind: 'realmMembers', workRealmId: 'r1' }, cursor: { workId: 1, workCursor: 'wc1', memberCursor: 'mc1' }, done: false,
-    }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSchema.safeParse({
+        selector: { kind: 'realmMembers', workRealmId: 'r1' },
+        cursor: { workId: 1, workCursor: 'wc1', memberCursor: 'mc1' },
+        done: false,
+      }).success,
+    ).toBe(false);
   });
 
   it('refuses a phase missing its cursor or its done flag', () => {
-    expect(NotificationFanoutPhaseSchema.safeParse({ selector: { kind: 'allActiveUsers' }, done: false }).success).toBe(false);
-    expect(NotificationFanoutPhaseSchema.safeParse({ selector: { kind: 'allActiveUsers' }, cursor: null }).success).toBe(false);
+    expect(
+      NotificationFanoutPhaseSchema.safeParse({ selector: { kind: 'allActiveUsers' }, done: false })
+        .success,
+    ).toBe(false);
+    expect(
+      NotificationFanoutPhaseSchema.safeParse({
+        selector: { kind: 'allActiveUsers' },
+        cursor: null,
+      }).success,
+    ).toBe(false);
   });
 });
 
@@ -182,22 +250,32 @@ describe('the stored notificationFanoutJobs row', () => {
   it('refuses a negative or fractional phaseIndex, revision, or attemptCount', () => {
     expect(NotificationFanoutJobSchema.safeParse(makeJob({ phaseIndex: -1 })).success).toBe(false);
     expect(NotificationFanoutJobSchema.safeParse(makeJob({ revision: 0.5 })).success).toBe(false);
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({ attemptCount: -1 })).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse(makeJob({ attemptCount: -1 })).success).toBe(
+      false,
+    );
   });
 
   it('refuses a row with no phases', () => {
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({ phases: [], phaseIndex: 0 })).success).toBe(false);
+    expect(
+      NotificationFanoutJobSchema.safeParse(makeJob({ phases: [], phaseIndex: 0 })).success,
+    ).toBe(false);
   });
 
   it('refuses a row with an unknown selector kind in a phase', () => {
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({
-      phases: [{ selector: { kind: 'mysterySelector' }, cursor: null, done: false }],
-    })).success).toBe(false);
+    expect(
+      NotificationFanoutJobSchema.safeParse(
+        makeJob({
+          phases: [{ selector: { kind: 'mysterySelector' }, cursor: null, done: false }],
+        }),
+      ).success,
+    ).toBe(false);
   });
 
   it('refuses a row with an empty jobId, notificationType, or eventId', () => {
     expect(NotificationFanoutJobSchema.safeParse(makeJob({ jobId: '' })).success).toBe(false);
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({ notificationType: '' })).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse(makeJob({ notificationType: '' })).success).toBe(
+      false,
+    );
     expect(NotificationFanoutJobSchema.safeParse(makeJob({ eventId: '' })).success).toBe(false);
   });
 
@@ -206,7 +284,9 @@ describe('the stored notificationFanoutJobs row', () => {
   });
 
   it('refuses a status outside pending, complete, and deadLetter', () => {
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({ status: 'parked' })).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse(makeJob({ status: 'parked' })).success).toBe(
+      false,
+    );
   });
 
   it('refuses a row missing deadLetteredAt', () => {
@@ -222,14 +302,26 @@ describe('the stored notificationFanoutJobs row', () => {
   }
 
   it('accepts a completed row carrying its TTL stamp', () => {
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({
-      status: 'complete', completedAt: 5, expireAt: { seconds: 1, nanoseconds: 0 },
-    })).success).toBe(true);
+    expect(
+      NotificationFanoutJobSchema.safeParse(
+        makeJob({
+          status: 'complete',
+          completedAt: 5,
+          expireAt: { seconds: 1, nanoseconds: 0 },
+        }),
+      ).success,
+    ).toBe(true);
   });
 
   it('accepts a dead-lettered row with its dead-letter time', () => {
-    expect(NotificationFanoutJobSchema.safeParse(makeJob({
-      status: 'deadLetter', deadLetteredAt: 9, lastError: 'selector failed',
-    })).success).toBe(true);
+    expect(
+      NotificationFanoutJobSchema.safeParse(
+        makeJob({
+          status: 'deadLetter',
+          deadLetteredAt: 9,
+          lastError: 'selector failed',
+        }),
+      ).success,
+    ).toBe(true);
   });
 });

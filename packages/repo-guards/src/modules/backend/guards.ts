@@ -49,7 +49,6 @@ import {
   type UnusedServiceFacts,
 } from './monitoring.js';
 
-
 /** The facts each guard in this area needs, by its id. */
 export interface BackendGuardFacts {
   auditWriter: AuditWriterFacts | Absent;

@@ -44,10 +44,18 @@ export function refineLeagueSettings<
   },
 >(league: T, ctx: z.core.$RefinementCtx<T>): void {
   if (league.leagueEndDate < league.leagueStartDate) {
-    ctx.addIssue({ code: 'custom', path: ['leagueEndDate'], message: LEAGUE_DATES_OUT_OF_ORDER_MESSAGE });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['leagueEndDate'],
+      message: LEAGUE_DATES_OUT_OF_ORDER_MESSAGE,
+    });
   }
   if (!hasConsistentWaiverRequirement(league)) {
-    ctx.addIssue({ code: 'custom', path: ['waiverTemplateId'], message: WAIVER_REQUIREMENT_MISMATCH_MESSAGE });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['waiverTemplateId'],
+      message: WAIVER_REQUIREMENT_MISMATCH_MESSAGE,
+    });
   }
 }
 

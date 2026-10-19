@@ -22,14 +22,19 @@ const readManifest = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as
 const manifest = readManifest(join(PACKAGE_DIR, 'package.json'));
 
 function installedManifest(name: string): Manifest {
-  for (const dir of [join(PACKAGE_DIR, 'node_modules', name), join(REPO_ROOT, 'node_modules', name)]) {
+  for (const dir of [
+    join(PACKAGE_DIR, 'node_modules', name),
+    join(REPO_ROOT, 'node_modules', name),
+  ]) {
     if (existsSync(join(dir, 'package.json'))) return readManifest(join(dir, 'package.json'));
   }
   throw new Error(`${name} is not installed`);
 }
 
 const requiredPeers = (m: Manifest) =>
-  Object.keys(m.peerDependencies ?? {}).filter((name) => m.peerDependenciesMeta?.[name]?.optional !== true);
+  Object.keys(m.peerDependencies ?? {}).filter(
+    (name) => m.peerDependenciesMeta?.[name]?.optional !== true,
+  );
 
 /** What a server-only install of a package with this manifest is forced to install beside it. */
 const forcedInstalls = (m: Manifest) => [...Object.keys(m.dependencies ?? {}), ...requiredPeers(m)];
@@ -52,7 +57,10 @@ function sourceFiles(dir: string): string[] {
 
 const IMPORT = /(?:^|[\s;])(?:import|export)\s(?!type\s)[^'"]*?from\s*['"]([^'"./][^'"]*)['"]/g;
 const packageName = (specifier: string) =>
-  specifier.split('/').slice(0, specifier.startsWith('@') ? 2 : 1).join('/');
+  specifier
+    .split('/')
+    .slice(0, specifier.startsWith('@') ? 2 : 1)
+    .join('/');
 
 const importedPackages = new Set(
   sourceFiles(join(PACKAGE_DIR, 'src')).flatMap((file) =>
@@ -74,7 +82,8 @@ describe('a server-only install of theme-core', () => {
     const reactDependent = [...importedPackages].filter((name) => pullsReact(name));
     const notOptionalPeers = reactDependent.filter(
       (name) =>
-        manifest.peerDependencies?.[name] === undefined || manifest.peerDependenciesMeta?.[name]?.optional !== true,
+        manifest.peerDependencies?.[name] === undefined ||
+        manifest.peerDependenciesMeta?.[name]?.optional !== true,
     );
     expect(notOptionalPeers).toEqual([]);
   });

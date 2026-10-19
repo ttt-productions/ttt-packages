@@ -20,7 +20,9 @@ describe('public document identity', () => {
   });
 
   it("exports the re-acceptance prompt's agreement line from the server-safe constants entry", () => {
-    expect(constants.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT);
+    expect(constants.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(
+      PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
+    );
   });
 });
 
@@ -51,6 +53,8 @@ describe('audit payloads', () => {
     expect(schemasBarrel.SquareStreetzAgreementsAcceptedAuditPayloadSchema).toBe(
       SquareStreetzAgreementsAcceptedAuditPayloadSchema,
     );
-    expect(docSchemasBarrel.PublicDocumentVersionOrNoneSchema).toBe(PublicDocumentVersionOrNoneSchema);
+    expect(docSchemasBarrel.PublicDocumentVersionOrNoneSchema).toBe(
+      PublicDocumentVersionOrNoneSchema,
+    );
   });
 });

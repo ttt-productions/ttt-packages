@@ -18,7 +18,15 @@ export function kindOf(s) {
 export function unwrap(s) {
   for (let i = 0; i < 12 && s && s._def; i++) {
     const t = kindOf(s);
-    if (t === 'optional' || t === 'nullable' || t === 'default' || t === 'nonoptional' || t === 'readonly' || t === 'catch') s = s._def.innerType;
+    if (
+      t === 'optional' ||
+      t === 'nullable' ||
+      t === 'default' ||
+      t === 'nonoptional' ||
+      t === 'readonly' ||
+      t === 'catch'
+    )
+      s = s._def.innerType;
     else if (t === 'effects') s = s._def.schema;
     else if (t === 'pipe') s = s._def.in;
     else break;
@@ -67,7 +75,8 @@ export function compositeMembers(schema) {
   }
   if (kind === 'intersection') return [def.left, def.right].filter(Boolean);
   if (kind === 'record') return def.valueType ? [def.valueType] : null;
-  if (kind === 'tuple') return [...(Array.isArray(def.items) ? def.items : []), ...(def.rest ? [def.rest] : [])];
+  if (kind === 'tuple')
+    return [...(Array.isArray(def.items) ? def.items : []), ...(def.rest ? [def.rest] : [])];
   return null;
 }
 

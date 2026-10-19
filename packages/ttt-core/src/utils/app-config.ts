@@ -81,7 +81,9 @@ const MAINTENANCE_REFUSAL_CODES: ReadonlySet<string> = new Set([
 ]);
 
 /** True when `details` is the maintenance refusal's structured details. */
-export function isMaintenanceRefusalDetails(details: unknown): details is MaintenanceRefusalDetails {
+export function isMaintenanceRefusalDetails(
+  details: unknown,
+): details is MaintenanceRefusalDetails {
   if (!details || typeof details !== 'object') return false;
   return (details as Record<string, unknown>).reason === MAINTENANCE_REFUSAL_REASON;
 }
@@ -96,7 +98,9 @@ export function isMaintenanceRefusalError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { code?: unknown; details?: unknown };
   return (
-    typeof e.code === 'string' && MAINTENANCE_REFUSAL_CODES.has(e.code) && isMaintenanceRefusalDetails(e.details)
+    typeof e.code === 'string' &&
+    MAINTENANCE_REFUSAL_CODES.has(e.code) &&
+    isMaintenanceRefusalDetails(e.details)
   );
 }
 
@@ -151,7 +155,8 @@ export function mergeAppConfigUpdate(
   const stored = definedFields(existing ?? {});
   const repairs: AppConfigLeverRepair[] = [];
   for (const lever of Object.keys(DEFAULT_APP_CONFIG) as AppConfigLeverKey[]) {
-    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success) continue;
+    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success)
+      continue;
     repairs.push({ lever, storedValue: stored[lever] });
     delete stored[lever];
   }

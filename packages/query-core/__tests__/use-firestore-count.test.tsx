@@ -6,7 +6,10 @@ import React from 'react';
 
 const { getCountFromServerMock, queryMock } = vi.hoisted(() => ({
   getCountFromServerMock: vi.fn(),
-  queryMock: vi.fn((ref: unknown, ...constraints: unknown[]) => ({ __ref: ref, __constraints: constraints })),
+  queryMock: vi.fn((ref: unknown, ...constraints: unknown[]) => ({
+    __ref: ref,
+    __constraints: constraints,
+  })),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -49,7 +52,12 @@ describe('useFirestoreCount', () => {
 
   it('does not fetch when disabled', async () => {
     const { result } = renderHook(
-      () => useFirestoreCount({ collectionPath: 'items', queryKey: ['items', 'count', 'off'], enabled: false }),
+      () =>
+        useFirestoreCount({
+          collectionPath: 'items',
+          queryKey: ['items', 'count', 'off'],
+          enabled: false,
+        }),
       { wrapper: makeWrapper() },
     );
     await Promise.resolve();

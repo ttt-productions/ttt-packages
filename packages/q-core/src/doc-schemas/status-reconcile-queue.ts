@@ -28,7 +28,9 @@ export const StatusReconcileQueueAccountStatusEntrySchema = z.strictObject({
   targetStatus: userStatusSchema,
   writeId: documentIdSegmentSchema,
 });
-export type StatusReconcileQueueAccountStatusEntry = z.infer<typeof StatusReconcileQueueAccountStatusEntrySchema>;
+export type StatusReconcileQueueAccountStatusEntry = z.infer<
+  typeof StatusReconcileQueueAccountStatusEntrySchema
+>;
 
 /** A failed `admin` / `referee` claim write. It carries no status. */
 export const StatusReconcileQueueRoleClaimsEntrySchema = z.strictObject({
@@ -36,7 +38,9 @@ export const StatusReconcileQueueRoleClaimsEntrySchema = z.strictObject({
   authEffect: z.literal(ROLE_CLAIMS_EFFECT),
   reason: z.literal('postCommitAuthEffectFailed'),
 });
-export type StatusReconcileQueueRoleClaimsEntry = z.infer<typeof StatusReconcileQueueRoleClaimsEntrySchema>;
+export type StatusReconcileQueueRoleClaimsEntry = z.infer<
+  typeof StatusReconcileQueueRoleClaimsEntrySchema
+>;
 
 export const StatusReconcileQueueEntrySchema = z.discriminatedUnion('authEffect', [
   StatusReconcileQueueAccountStatusEntrySchema,

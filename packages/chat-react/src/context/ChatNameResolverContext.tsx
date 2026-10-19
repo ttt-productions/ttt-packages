@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import type {
   ChatNameResolution,
   ChatNameResolver,
   ChatPrewarmSenders,
-} from "@ttt-productions/chat-core";
+} from '@ttt-productions/chat-core';
 
 /** A sender name the app could not resolve: pending, unavailable, or failed. */
-export type UnresolvedChatName = Exclude<ChatNameResolution, { status: "resolved" }>;
+export type UnresolvedChatName = Exclude<ChatNameResolution, { status: 'resolved' }>;
 
 type ChatNameResolverContextValue = {
   resolveName: ChatNameResolver;
@@ -43,9 +43,7 @@ export function ChatNameResolverProvider(props: ChatNameResolverProviderProps) {
     [resolveName, prewarm, renderUnresolvedName],
   );
   return (
-    <ChatNameResolverContext.Provider value={value}>
-      {children}
-    </ChatNameResolverContext.Provider>
+    <ChatNameResolverContext.Provider value={value}>{children}</ChatNameResolverContext.Provider>
   );
 }
 
@@ -58,7 +56,7 @@ export function useChatNameResolver(): ChatNameResolverContextValue {
   const ctx = React.useContext(ChatNameResolverContext);
   if (!ctx) {
     throw new Error(
-      "[chat-react] ChatNameResolverProvider is required. Wrap your ChatShell tree with <ChatNameResolverProvider>."
+      '[chat-react] ChatNameResolverProvider is required. Wrap your ChatShell tree with <ChatNameResolverProvider>.',
     );
   }
   return ctx;

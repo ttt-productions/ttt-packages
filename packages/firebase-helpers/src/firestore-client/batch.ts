@@ -1,13 +1,16 @@
-import type { Firestore, DocumentData, DocumentReference } from "firebase/firestore";
-import { writeBatch } from "firebase/firestore";
-import { chunk } from "../utils/chunk.js";
+import type { Firestore, DocumentData, DocumentReference } from 'firebase/firestore';
+import { writeBatch } from 'firebase/firestore';
+import { chunk } from '../utils/chunk.js';
 
 /**
  * Firestore writeBatch has an operation limit (commonly 500).
  * We keep this generic: caller provides the "apply" function for each item.
  */
 
-export type BatchApplyFn<T> = (batch: ReturnType<typeof writeBatch>, item: T) => void | Promise<void>;
+export type BatchApplyFn<T> = (
+  batch: ReturnType<typeof writeBatch>,
+  item: T,
+) => void | Promise<void>;
 
 export interface CommitInBatchesResult {
   committedBatches: number;
@@ -24,7 +27,7 @@ export async function commitInBatches<T>(
   opts: {
     batchSize?: number;
     apply: BatchApplyFn<T>;
-  }
+  },
 ): Promise<CommitInBatchesResult> {
   const batchSize = opts.batchSize ?? 450; // leave headroom
   const groups = chunk(items, batchSize);
@@ -72,7 +75,7 @@ export async function commitInBatches<T>(
 export async function batchSet<T extends DocumentData>(
   db: Firestore,
   items: Array<{ ref: DocumentReference<T>; data: T; merge?: boolean }>,
-  opts?: { batchSize?: number }
+  opts?: { batchSize?: number },
 ): Promise<CommitInBatchesResult> {
   const result = await commitInBatches(db, items, {
     batchSize: opts?.batchSize,
@@ -88,7 +91,7 @@ export async function batchSet<T extends DocumentData>(
   if (!result.success) {
     console.error(
       `[batchSet] Partial failure: ${result.committedOps}/${result.totalOps} operations committed`,
-      result.error
+      result.error,
     );
   }
 

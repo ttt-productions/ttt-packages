@@ -4,8 +4,9 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import type { MediaInputChangePayload } from '../src/types.js';
 import { MediaInput } from '../src/react/components/media-input.js';
 
-vi.mock('@ttt-productions/media-viewer/react', async () =>
-  import('../../media-viewer/src/react/index.js'),
+vi.mock(
+  '@ttt-productions/media-viewer/react',
+  async () => import('../../media-viewer/src/react/index.js'),
 );
 
 // jsdom cannot decode real media, so meta reading (Image/video element probes)
@@ -34,7 +35,12 @@ vi.mock('../src/lib/read-media-meta.js', () => ({
 const SPEC_MULTI_KIND: MediaOriginSpec = {
   kind: 'generic',
   accept: { kinds: ['image', 'video', 'audio'] },
-  client: { allowPick: true, allowCapturePhoto: false, allowRecordVideo: false, allowRecordAudio: false },
+  client: {
+    allowPick: true,
+    allowCapturePhoto: false,
+    allowRecordVideo: false,
+    allowRecordAudio: false,
+  },
 };
 
 describe('MediaInput picker claims', () => {
@@ -98,7 +104,9 @@ describe('MediaInput picker claims', () => {
     };
     render(<MediaInput spec={imageOnly} onChange={onChange} />);
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File(['x'], 'clip.mp4', { type: 'video/mp4' })] } });
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'clip.mp4', { type: 'video/mp4' })] },
+    });
     await waitFor(() => expect(onChange).toHaveBeenCalled());
     const payload = onChange.mock.calls.at(-1)![0];
     expect(payload.error?.code).toBe('invalid_type');
@@ -109,7 +117,12 @@ describe('MediaInput picker claims', () => {
     const withFormats: MediaOriginSpec = {
       kind: 'generic',
       accept: { kinds: ['audio'], formats: ['mp3', 'isobmff', 'webm'] },
-      client: { allowPick: true, allowCapturePhoto: false, allowRecordVideo: false, allowRecordAudio: false },
+      client: {
+        allowPick: true,
+        allowCapturePhoto: false,
+        allowRecordVideo: false,
+        allowRecordAudio: false,
+      },
     };
     render(<MediaInput spec={withFormats} onChange={onChange} />);
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;

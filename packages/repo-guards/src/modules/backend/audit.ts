@@ -11,7 +11,12 @@ import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shap
 import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
 import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports, namesModule } from '../../support/imports.js';
-import { serverZoneContext, serverZoneProblems, staleServerFolders, type ServerZone } from './shared.js';
+import {
+  serverZoneContext,
+  serverZoneProblems,
+  staleServerFolders,
+  type ServerZone,
+} from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
@@ -43,15 +48,21 @@ const AUDIT_WRITER_SCOPE: Scope = {
 };
 
 /** Every place a file names the audit collection or imports a package that writes it. */
-export function auditCollectionMatcher(facts: Pick<AuditWriterFacts, 'collectionName' | 'collectionHandles' | 'writerPackages'>): Matcher {
+export function auditCollectionMatcher(
+  facts: Pick<AuditWriterFacts, 'collectionName' | 'collectionHandles' | 'writerPackages'>,
+): Matcher {
   const handles = new Set(facts.collectionHandles);
-  const namesCollection = (text: string) => text === facts.collectionName || text.startsWith(`${facts.collectionName}/`);
+  const namesCollection = (text: string) =>
+    text === facts.collectionName || text.startsWith(`${facts.collectionName}/`);
   return (file) => {
     const hits: Hit[] = [];
     const sf = file.sourceFile;
     const loads = new Map(moduleImports(sf, MODULE_LOADS).map((site) => [site.node, site.spec]));
     forEachNode(sf, (node) => {
-      if (ts.isPropertyAccessExpression(node) && handles.has(`${node.expression.getText(sf)}.${node.name.text}`)) {
+      if (
+        ts.isPropertyAccessExpression(node) &&
+        handles.has(`${node.expression.getText(sf)}.${node.name.text}`)
+      ) {
         hits.push({ index: node.getStart(sf), detail: node.getText(sf) });
       }
       const specifier = loads.get(node);
@@ -59,7 +70,9 @@ export function auditCollectionMatcher(facts: Pick<AuditWriterFacts, 'collection
         hits.push({ index: node.getStart(sf), detail: `imports ${specifier}` });
         return;
       }
-      const isSpecifier = !!node.parent && (ts.isImportDeclaration(node.parent) || ts.isExportDeclaration(node.parent));
+      const isSpecifier =
+        !!node.parent &&
+        (ts.isImportDeclaration(node.parent) || ts.isExportDeclaration(node.parent));
       if (isPlainString(node) && !isSpecifier && namesCollection(node.text)) {
         hits.push({ index: node.getStart(sf), detail: `'${node.text}'` });
       }
@@ -80,7 +93,11 @@ export function personActorMatcher(facts: AuditWriterFacts['personActor']): Matc
     forEachNode(sf, (node) => {
       if (!ts.isObjectLiteralExpression(node)) return;
       for (const prop of node.properties) {
-        if (!ts.isPropertyAssignment(prop) || prop.name.getText(sf).replace(/^['"]|['"]$/g, '') !== facts.modeField) continue;
+        if (
+          !ts.isPropertyAssignment(prop) ||
+          prop.name.getText(sf).replace(/^['"]|['"]$/g, '') !== facts.modeField
+        )
+          continue;
         const init = unwrap(prop.initializer);
         if (ts.isStringLiteralLike(init) && modes.has(init.text)) {
           hits.push({ index: prop.getStart(sf), detail: `${facts.modeField}: '${init.text}'` });
@@ -100,11 +117,13 @@ export const auditWriterGuard: GenericGuardDefinition<AuditWriterFacts> = {
     textProblem(facts?.collectionName, 'collectionName', problems);
     namesProblem(facts?.collectionHandles, 'collectionHandles', problems);
     for (const handle of facts?.collectionHandles ?? []) {
-      if (typeof handle === 'string' && !/^[\w$]+\.[\w$]+$/.test(handle)) problems.push(`collection handle ${handle} is not OWNER.member`);
+      if (typeof handle === 'string' && !/^[\w$]+\.[\w$]+$/.test(handle))
+        problems.push(`collection handle ${handle} is not OWNER.member`);
     }
     namesProblem(facts?.writerPackages, 'writerPackages', problems, { nonEmpty: false });
     reviewedProblems(facts?.readers, 'readers', problems);
-    if (facts?.readers?.some((r) => r?.path === facts.writer)) problems.push('the writer is listed as a reader');
+    if (facts?.readers?.some((r) => r?.path === facts.writer))
+      problems.push('the writer is listed as a reader');
     textProblem(facts?.personActor?.constructors, 'personActor.constructors', problems);
     textProblem(facts?.personActor?.modeField, 'personActor.modeField', problems);
     namesProblem(facts?.personActor?.modes, 'personActor.modes', problems);
@@ -128,7 +147,9 @@ export const auditWriterGuard: GenericGuardDefinition<AuditWriterFacts> = {
           `db.doc(\`${facts.collectionName}/\${id}\`).set(event);`,
           `db.collection(${facts.collectionHandles[0]}).doc(id).set(event);`,
         ],
-        passes: [`// writes ${facts.collectionName} through ${facts.collectionHandles[0]}\nconst label = '${facts.collectionName}Count';`],
+        passes: [
+          `// writes ${facts.collectionName} through ${facts.collectionHandles[0]}\nconst label = '${facts.collectionName}Count';`,
+        ],
       },
     });
     const actors = ownerOnly({
@@ -141,14 +162,21 @@ export const auditWriterGuard: GenericGuardDefinition<AuditWriterFacts> = {
       match: personActorMatcher(facts.personActor),
       owners: [facts.personActor.constructors],
       samples: {
-        flags: [`const actor = { ${facts.personActor.modeField}: '${facts.personActor.modes[0]}' as const, uid };`],
-        passes: [`type A = { ${facts.personActor.modeField}: '${facts.personActor.modes[0]}' };\nconst b = { other${facts.personActor.modeField}: '${facts.personActor.modes[0]}' };`],
+        flags: [
+          `const actor = { ${facts.personActor.modeField}: '${facts.personActor.modes[0]}' as const, uid };`,
+        ],
+        passes: [
+          `type A = { ${facts.personActor.modeField}: '${facts.personActor.modes[0]}' };\nconst b = { other${facts.personActor.modeField}: '${facts.personActor.modes[0]}' };`,
+        ],
       },
     });
     const inZone = (guard: Guard): Guard => ({
       ...guard,
       async run(context: GuardContext) {
-        return [...staleServerFolders(context, facts.appServerZone), ...(await guard.run(serverZoneContext(context, facts.appServerZone)))];
+        return [
+          ...staleServerFolders(context, facts.appServerZone),
+          ...(await guard.run(serverZoneContext(context, facts.appServerZone))),
+        ];
       },
     });
     return [inZone(collection), inZone(actors)];
@@ -170,17 +198,22 @@ export interface AuditPayloadFacts {
 }
 
 /** A key named like prose: a title, a name, a body of text. */
-const PROSE_KEY = /(title|name|description|subject|body|text|message|content|caption|narrative|comment|bio|words)$/i;
+const PROSE_KEY =
+  /(title|name|description|subject|body|text|message|content|caption|narrative|comment|bio|words)$/i;
 /** A map whose keys NAME fields rather than carry their text (`changedFieldLengths`). */
 const NAMES_NOT_TEXT = /(Lengths|Fields)$/;
 
 /** Every prose-named key, at any depth, of the payload literals a file hands to an audit entry point. */
-export function proseKeysInAuditPayloads(file: FileView, facts: AuditPayloadFacts): Array<{ key: string; node: ts.Node }> {
+export function proseKeysInAuditPayloads(
+  file: FileView,
+  facts: AuditPayloadFacts,
+): Array<{ key: string; node: ts.Node }> {
   const sf = file.sourceFile;
   const entryPoints = new Set(facts.entryPoints);
   const forwarded = new Set(facts.forwardedPayloadKeys);
   const hits: Array<{ key: string; node: ts.Node }> = [];
-  const keyOf = (prop: ts.ObjectLiteralElementLike) => prop.name?.getText(sf).replace(/^['"`]|['"`]$/g, '') ?? '';
+  const keyOf = (prop: ts.ObjectLiteralElementLike) =>
+    prop.name?.getText(sf).replace(/^['"`]|['"`]$/g, '') ?? '';
   const walkPayload = (obj: ts.ObjectLiteralExpression) => {
     for (const prop of obj.properties) {
       if (!ts.isPropertyAssignment(prop) && !ts.isShorthandPropertyAssignment(prop)) continue;
@@ -219,10 +252,13 @@ export const auditPayloadGuard: GenericGuardDefinition<AuditPayloadFacts> = {
     const problems: string[] = [];
     namesProblem(facts?.entryPoints, 'entryPoints', problems);
     textProblem(facts?.payloadKey, 'payloadKey', problems);
-    namesProblem(facts?.forwardedPayloadKeys, 'forwardedPayloadKeys', problems, { nonEmpty: false });
+    namesProblem(facts?.forwardedPayloadKeys, 'forwardedPayloadKeys', problems, {
+      nonEmpty: false,
+    });
     reviewedProblems(facts?.operatorCopy, 'operatorCopy', problems, { key: 'site' });
     for (const entry of facts?.operatorCopy ?? []) {
-      if (typeof entry?.site === 'string' && !/^[^#]+#[^#]+$/.test(entry.site)) problems.push(`operatorCopy site ${entry.site} is not file#key`);
+      if (typeof entry?.site === 'string' && !/^[^#]+#[^#]+$/.test(entry.site))
+        problems.push(`operatorCopy site ${entry.site} is not file#key`);
     }
     return problems;
   },
@@ -244,10 +280,20 @@ export const auditPayloadGuard: GenericGuardDefinition<AuditPayloadFacts> = {
             for (const { key, node } of proseKeysInAuditPayloads(file, facts)) {
               const site = `${file.path}#${key}`;
               seen.add(site);
-              if (!reviewed.has(site)) findings.push({ file: file.path, line: lineOfNode(file, node), detail: `prose-named payload key ${key}` });
+              if (!reviewed.has(site))
+                findings.push({
+                  file: file.path,
+                  line: lineOfNode(file, node),
+                  detail: `prose-named payload key ${key}`,
+                });
             }
           }
-          for (const site of reviewed) if (!seen.has(site)) findings.push({ file: site, detail: 'stale operator-copy entry: the key no longer occurs' });
+          for (const site of reviewed)
+            if (!seen.has(site))
+              findings.push({
+                file: site,
+                detail: 'stale operator-copy entry: the key no longer occurs',
+              });
           return findings;
         },
       },
@@ -264,18 +310,35 @@ export interface FailureAuditFacts {
 }
 
 /** Each aliased import of a failure entry point, and each call with a handler chained onto it. */
-export function chainedFailureAudits(file: FileView, names: ReadonlySet<string>): Array<{ node: ts.Node; detail: string; name?: string }> {
+export function chainedFailureAudits(
+  file: FileView,
+  names: ReadonlySet<string>,
+): Array<{ node: ts.Node; detail: string; name?: string }> {
   const sf = file.sourceFile;
   const hits: Array<{ node: ts.Node; detail: string; name?: string }> = [];
   forEachNode(sf, (node) => {
-    if (ts.isImportSpecifier(node) && node.propertyName && names.has(node.propertyName.text) && node.propertyName.text !== node.name.text) {
+    if (
+      ts.isImportSpecifier(node) &&
+      node.propertyName &&
+      names.has(node.propertyName.text) &&
+      node.propertyName.text !== node.name.text
+    ) {
       hits.push({ node, detail: `imports ${node.propertyName.text} under another name` });
     }
     const name = ts.isCallExpression(node) ? calleeName(node) : undefined;
     if (ts.isCallExpression(node) && name && names.has(name)) {
       const parent = node.parent;
-      const chained = ts.isPropertyAccessExpression(parent) && parent.expression === node && ['catch', 'then', 'finally'].includes(parent.name.text);
-      hits.push({ node, name, detail: chained ? `chains .${(parent as ts.PropertyAccessExpression).name.text} onto ${name}` : '' });
+      const chained =
+        ts.isPropertyAccessExpression(parent) &&
+        parent.expression === node &&
+        ['catch', 'then', 'finally'].includes(parent.name.text);
+      hits.push({
+        node,
+        name,
+        detail: chained
+          ? `chains .${(parent as ts.PropertyAccessExpression).name.text} onto ${name}`
+          : '',
+      });
     }
   });
   return hits;
@@ -305,10 +368,17 @@ export const failureAuditGuard: GenericGuardDefinition<FailureAuditFacts> = {
           for (const file of context.files(FUNCTIONS_CODE)) {
             for (const hit of chainedFailureAudits(file, names)) {
               if (hit.name) called.add(hit.name);
-              if (hit.detail) findings.push({ file: file.path, line: lineOfNode(file, hit.node), detail: hit.detail });
+              if (hit.detail)
+                findings.push({
+                  file: file.path,
+                  line: lineOfNode(file, hit.node),
+                  detail: hit.detail,
+                });
             }
           }
-          for (const name of names) if (!called.has(name)) findings.push({ file: '(failureEntryPoints)', detail: `${name} is called nowhere` });
+          for (const name of names)
+            if (!called.has(name))
+              findings.push({ file: '(failureEntryPoints)', detail: `${name} is called nowhere` });
           return findings;
         },
       },
@@ -333,11 +403,16 @@ export function fireAndForgetShapes(file: FileView, auditWrites: ReadonlySet<str
   const swallowed: Array<{ node: ts.Node; name: string }> = [];
   const writes: string[] = [];
   forEachNode(sf, (node) => {
-    if (ts.isVoidExpression(node) && ts.isCallExpression(unwrap(node.expression))) voided.push(node);
+    if (ts.isVoidExpression(node) && ts.isCallExpression(unwrap(node.expression)))
+      voided.push(node);
     if (!ts.isCallExpression(node)) return;
     const name = calleeName(node);
     if (name && auditWrites.has(name)) writes.push(name);
-    if (name === 'catch' && ts.isPropertyAccessExpression(node.expression) && ts.isCallExpression(node.expression.expression)) {
+    if (
+      name === 'catch' &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isCallExpression(node.expression.expression)
+    ) {
       const inner = calleeName(node.expression.expression);
       if (inner && auditWrites.has(inner)) swallowed.push({ node, name: inner });
     }
@@ -377,12 +452,29 @@ export const fireAndForgetGuard: GenericGuardDefinition<FireAndForgetFacts> = {
             writes.forEach((w) => called.add(w));
             if (voided.length) voidFiles.add(file.path);
             if (!reviewed.has(file.path)) {
-              for (const node of voided) findings.push({ file: file.path, line: lineOfNode(file, node), detail: `fire-and-forget: ${node.getText(file.sourceFile).slice(0, 80)}` });
+              for (const node of voided)
+                findings.push({
+                  file: file.path,
+                  line: lineOfNode(file, node),
+                  detail: `fire-and-forget: ${node.getText(file.sourceFile).slice(0, 80)}`,
+                });
             }
-            for (const { node, name } of swallowed) findings.push({ file: file.path, line: lineOfNode(file, node), detail: `${name}(…).catch(…) swallows an audit write` });
+            for (const { node, name } of swallowed)
+              findings.push({
+                file: file.path,
+                line: lineOfNode(file, node),
+                detail: `${name}(…).catch(…) swallows an audit write`,
+              });
           }
-          for (const path of reviewed) if (!voidFiles.has(path)) findings.push({ file: path, detail: 'stale void site: the file has no void-ed call' });
-          for (const name of auditWrites) if (!called.has(name)) findings.push({ file: '(auditWrites)', detail: `${name} is called nowhere` });
+          for (const path of reviewed)
+            if (!voidFiles.has(path))
+              findings.push({
+                file: path,
+                detail: 'stale void site: the file has no void-ed call',
+              });
+          for (const name of auditWrites)
+            if (!called.has(name))
+              findings.push({ file: '(auditWrites)', detail: `${name} is called nowhere` });
           return findings;
         },
       },

@@ -34,10 +34,12 @@ function makeWrapper() {
 
 // The prefix read answers with one row named after the searched text.
 function answerWithSearchedText() {
-  getDocsMock.mockImplementation(async (q: { __constraints: Array<{ op?: string; value?: unknown }> }) => {
-    const prefix = q.__constraints.find((c) => c.op === '>=')?.value as string;
-    return { docs: [{ id: prefix, data: () => ({ name: prefix }) }] };
-  });
+  getDocsMock.mockImplementation(
+    async (q: { __constraints: Array<{ op?: string; value?: unknown }> }) => {
+      const prefix = q.__constraints.find((c) => c.op === '>=')?.value as string;
+      return { docs: [{ id: prefix, data: () => ({ name: prefix }) }] };
+    },
+  );
 }
 
 function renderSearch(initialText: string, enabled = true) {

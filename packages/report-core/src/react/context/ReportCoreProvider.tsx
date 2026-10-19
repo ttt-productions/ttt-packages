@@ -53,11 +53,18 @@ export interface ReportCoreProviderProps {
  * </FirestoreProvider>
  * ```
  */
-export function ReportCoreProvider({ config, submitReportFn, children, additionalReportActions = [] }: ReportCoreProviderProps) {
+export function ReportCoreProvider({
+  config,
+  submitReportFn,
+  children,
+  additionalReportActions = [],
+}: ReportCoreProviderProps) {
   const priorityThresholds = config.priorityThresholds ?? DEFAULT_PRIORITY_THRESHOLDS;
 
   return (
-    <ReportCoreContext.Provider value={{ config, submitReportFn, priorityThresholds, additionalReportActions }}>
+    <ReportCoreContext.Provider
+      value={{ config, submitReportFn, priorityThresholds, additionalReportActions }}
+    >
       {children}
     </ReportCoreContext.Provider>
   );
@@ -68,7 +75,7 @@ export function useReportCoreContext(): ReportCoreContextValue {
   if (!context) {
     throw new Error(
       'useReportCoreContext must be used within a ReportCoreProvider. ' +
-      'Wrap your app or admin layout with <ReportCoreProvider config={...} submitReportFn={...}>.'
+        'Wrap your app or admin layout with <ReportCoreProvider config={...} submitReportFn={...}>.',
     );
   }
   return context;

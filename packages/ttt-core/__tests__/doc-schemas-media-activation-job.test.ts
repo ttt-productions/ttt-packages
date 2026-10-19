@@ -84,15 +84,17 @@ describe('MediaActivationJobSchema — parent-publication dependency fields', ()
 
   it('rejects a Firestore Timestamp for parentWaitStartedAt — only the TTL field is one (ARCH-105)', () => {
     expect(
-      MediaActivationJobSchema.safeParse({ ...legacyJob, parentWaitStartedAt: ts(1_700_000_123_000) })
-        .success,
+      MediaActivationJobSchema.safeParse({
+        ...legacyJob,
+        parentWaitStartedAt: ts(1_700_000_123_000),
+      }).success,
     ).toBe(false);
   });
 
   it('stays strict — a look-alike misspelling is rejected, not silently ignored', () => {
-    expect(
-      MediaActivationJobSchema.safeParse({ ...legacyJob, parentId: 'aud-1' }).success,
-    ).toBe(false);
+    expect(MediaActivationJobSchema.safeParse({ ...legacyJob, parentId: 'aud-1' }).success).toBe(
+      false,
+    );
   });
 
   it('leaves the job status machine untouched (parking is an outcome, never a stored status)', () => {

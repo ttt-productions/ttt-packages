@@ -351,16 +351,55 @@ describe('promotion approval-gate callable inputs', () => {
   });
 
   it('every approval-gate input is strict — an unknown key is rejected, not ignored', () => {
-    const strictCases: Array<[string, { safeParse: (v: unknown) => { success: boolean } }, Record<string, unknown>]> = [
-      ['share request', UpdateWorkFileRealmShareInputSchema, { workProjectId: 'w', workFileId: 'f', requestId: 'r' }],
-      ['withdraw', WithdrawRealmFilePromotionRequestInputSchema, { workProjectId: 'w', workFileId: 'f', requestId: 'r' }],
-      ['approve', ApproveRealmFilePromotionInputSchema, { workRealmId: 'r1', mediaAssetId: 'a', realmFileFolderId: 'f', requestId: 'r' }],
-      ['decline', DeclineRealmFilePromotionInputSchema, { workRealmId: 'r1', mediaAssetId: 'a', requestId: 'r' }],
-      ['admin un-share', AdminUpdateWorkFileRealmUnshareInputSchema, { workProjectId: 'w', workFileId: 'f' }],
+    const strictCases: Array<
+      [string, { safeParse: (v: unknown) => { success: boolean } }, Record<string, unknown>]
+    > = [
+      [
+        'share request',
+        UpdateWorkFileRealmShareInputSchema,
+        { workProjectId: 'w', workFileId: 'f', requestId: 'r' },
+      ],
+      [
+        'withdraw',
+        WithdrawRealmFilePromotionRequestInputSchema,
+        { workProjectId: 'w', workFileId: 'f', requestId: 'r' },
+      ],
+      [
+        'approve',
+        ApproveRealmFilePromotionInputSchema,
+        { workRealmId: 'r1', mediaAssetId: 'a', realmFileFolderId: 'f', requestId: 'r' },
+      ],
+      [
+        'decline',
+        DeclineRealmFilePromotionInputSchema,
+        { workRealmId: 'r1', mediaAssetId: 'a', requestId: 'r' },
+      ],
+      [
+        'admin un-share',
+        AdminUpdateWorkFileRealmUnshareInputSchema,
+        { workProjectId: 'w', workFileId: 'f' },
+      ],
       ['create folder', CreateRealmFileFolderInputSchema, { workRealmId: 'r1', name: 'n' }],
-      ['update folder', UpdateRealmFileFolderInputSchema, { workRealmId: 'r1', realmFileFolderId: 'f', name: 'n' }],
-      ['delete folder', DeleteRealmFileFolderInputSchema, { workRealmId: 'r1', realmFileFolderId: 'f' }],
-      ['move file', UpdateRealmFileFolderAssignmentInputSchema, { workRealmId: 'r1', mediaAssetId: 'a', expectedRealmFileFolderId: 'f1', realmFileFolderId: 'f2' }],
+      [
+        'update folder',
+        UpdateRealmFileFolderInputSchema,
+        { workRealmId: 'r1', realmFileFolderId: 'f', name: 'n' },
+      ],
+      [
+        'delete folder',
+        DeleteRealmFileFolderInputSchema,
+        { workRealmId: 'r1', realmFileFolderId: 'f' },
+      ],
+      [
+        'move file',
+        UpdateRealmFileFolderAssignmentInputSchema,
+        {
+          workRealmId: 'r1',
+          mediaAssetId: 'a',
+          expectedRealmFileFolderId: 'f1',
+          realmFileFolderId: 'f2',
+        },
+      ],
       ['gallery', GetRealmSharedFilesInputSchema, { realmId: 'r1' }],
       ['promotion queue', GetRealmFilePromotionQueueInputSchema, { workRealmId: 'r1' }],
     ];
@@ -389,13 +428,17 @@ describe('gallery projection (APPROVED files only)', () => {
 
   it('accepts an approved file carrying its folder AND the work-file name', () => {
     expect(RealmSharedFileProjectionSchema.parse(file)).toMatchObject(file);
-    expect(RealmSharedFileProjectionSchema.safeParse({ ...file, realmFileCanonStatus: 'canon' }).success).toBe(true);
+    expect(
+      RealmSharedFileProjectionSchema.safeParse({ ...file, realmFileCanonStatus: 'canon' }).success,
+    ).toBe(true);
   });
 
   it('REJECTS a pending or unshared row — the approved lane cannot express one', () => {
     expect(
-      RealmSharedFileProjectionSchema.safeParse({ ...file, realmFileCanonStatus: 'pendingApproval' })
-        .success,
+      RealmSharedFileProjectionSchema.safeParse({
+        ...file,
+        realmFileCanonStatus: 'pendingApproval',
+      }).success,
     ).toBe(false);
     expect(
       RealmSharedFileProjectionSchema.safeParse({ ...file, realmFileCanonStatus: 'none' }).success,
@@ -413,7 +456,12 @@ describe('gallery projection (APPROVED files only)', () => {
   it('stores no display-identity snapshot — only the creator uid', () => {
     const fields = Object.keys(RealmSharedFileProjectionSchema.shape);
     expect(fields).toContain('creatorUid');
-    for (const absent of ['creatorDisplayName', 'creatorProfilePictureUrl', 'realmTitle', 'workTitle']) {
+    for (const absent of [
+      'creatorDisplayName',
+      'creatorProfilePictureUrl',
+      'realmTitle',
+      'workTitle',
+    ]) {
       expect(fields).not.toContain(absent);
     }
   });
@@ -431,14 +479,17 @@ describe('gallery projection (APPROVED files only)', () => {
         limit: REALM_SHARED_FILES_PAGE_LIMIT + 1,
       }).success,
     ).toBe(false);
-    expect(GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', limit: 0 }).success).toBe(false);
+    expect(GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', limit: 0 }).success).toBe(
+      false,
+    );
     expect(
       GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', cursor: 'opaque-token' })
         .success,
     ).toBe(true);
     // A caller must not be able to ask the artisan gallery for pending rows.
     expect(
-      GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', includePending: true }).success,
+      GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', includePending: true })
+        .success,
     ).toBe(false);
   });
 
@@ -474,12 +525,16 @@ describe('folder projection fileCount', () => {
   });
 
   it('accepts zero (an empty folder is a real, deletable state)', () => {
-    expect(RealmFileFolderProjectionSchema.safeParse({ ...folder, fileCount: 0 }).success).toBe(true);
+    expect(RealmFileFolderProjectionSchema.safeParse({ ...folder, fileCount: 0 }).success).toBe(
+      true,
+    );
   });
 
   it('rejects a negative or fractional count', () => {
     for (const fileCount of [-1, 1.5, '3', null]) {
-      expect(RealmFileFolderProjectionSchema.safeParse({ ...folder, fileCount }).success).toBe(false);
+      expect(RealmFileFolderProjectionSchema.safeParse({ ...folder, fileCount }).success).toBe(
+        false,
+      );
     }
   });
 
@@ -510,7 +565,8 @@ describe('promotion-queue projection (PENDING rows only)', () => {
   it('REJECTS an approved or unshared row — the queue lane cannot express one', () => {
     for (const status of ['nonCanon', 'canon', 'none']) {
       expect(
-        RealmFilePromotionQueueRowSchema.safeParse({ ...row, realmFileCanonStatus: status }).success,
+        RealmFilePromotionQueueRowSchema.safeParse({ ...row, realmFileCanonStatus: status })
+          .success,
       ).toBe(false);
     }
   });
@@ -566,7 +622,9 @@ describe('work-side share-state projection', () => {
     expect(
       GetWorkFileRealmShareStatesInputSchema.safeParse({ workProjectId: 'work-1' }).success,
     ).toBe(true);
-    expect(GetWorkFileRealmShareStatesInputSchema.safeParse({ workProjectId: '' }).success).toBe(false);
+    expect(GetWorkFileRealmShareStatesInputSchema.safeParse({ workProjectId: '' }).success).toBe(
+      false,
+    );
     expect(GetWorkFileRealmShareStatesInputSchema.safeParse({}).success).toBe(false);
     expect(Object.keys(GetWorkFileRealmShareStatesInputSchema.shape)).toEqual(['workProjectId']);
   });
@@ -582,8 +640,10 @@ describe('work-side share-state projection', () => {
 
   it("REJECTS 'none' — an unshared file has no row at all", () => {
     expect(
-      WorkFileRealmShareStateSchema.safeParse({ workFileId: 'file-3', realmFileCanonStatus: 'none' })
-        .success,
+      WorkFileRealmShareStateSchema.safeParse({
+        workFileId: 'file-3',
+        realmFileCanonStatus: 'none',
+      }).success,
     ).toBe(false);
   });
 
@@ -605,13 +665,17 @@ describe('work-side share-state projection', () => {
       });
       expect(result.success, status).toBe(false);
       if (!result.success) {
-        expect(result.error.issues.map((i) => i.path.join('.'))).toContain('realmFileShareRequestId');
+        expect(result.error.issues.map((i) => i.path.join('.'))).toContain(
+          'realmFileShareRequestId',
+        );
       }
     }
   });
 
   it('is strict and enforces the shared request-id cap', () => {
-    expect(WorkFileRealmShareStateSchema.safeParse({ ...pendingRow, sneaky: true }).success).toBe(false);
+    expect(WorkFileRealmShareStateSchema.safeParse({ ...pendingRow, sneaky: true }).success).toBe(
+      false,
+    );
     expect(
       WorkFileRealmShareStateSchema.safeParse({
         ...pendingRow,

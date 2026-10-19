@@ -79,11 +79,7 @@ const WORKING_SUB_ITEM_SCHEMA = {
 
 const WORKING_SECTION_SCHEMAS = [FullTaleSchema, FullTuneSchema, FullTelevisionSchema];
 
-const COVER_FIELDS = [
-  'coverSquareAssetId',
-  'coverPosterAssetId',
-  'coverCinematicAssetId',
-] as const;
+const COVER_FIELDS = ['coverSquareAssetId', 'coverPosterAssetId', 'coverCinematicAssetId'] as const;
 
 describe('published hall covers are required', () => {
   it('PublishedHallItem requires all three covers, non-empty', () => {
@@ -104,7 +100,9 @@ describe('published hall covers are required', () => {
     };
     expect(PublishedHallItemSchema.safeParse(base).success).toBe(true);
     for (const field of COVER_FIELDS) {
-      expect(PublishedHallItemSchema.safeParse({ ...base, [field]: undefined }).success).toBe(false);
+      expect(PublishedHallItemSchema.safeParse({ ...base, [field]: undefined }).success).toBe(
+        false,
+      );
       expect(PublishedHallItemSchema.safeParse({ ...base, [field]: '' }).success).toBe(false);
     }
   });
@@ -128,12 +126,26 @@ describe('published sub-item media is required', () => {
   it('a published track requires its audio and a published episode its video', () => {
     expect(requires(PublishedTuneTrackSchema as AnySchema, 'audioAssetId')).toBe(true);
     expect(requires(PublishedTelevisionEpisodeSchema as AnySchema, 'videoAssetId')).toBe(true);
-    expect(PublishedTuneTrackSchema.safeParse({
-      uid: 'u1', title: 't', order: 1, audioAssetId: '', photoAssetId: 'p', hidden: false,
-    }).success).toBe(false);
-    expect(PublishedTelevisionEpisodeSchema.safeParse({
-      uid: 'u1', title: 't', order: 1, videoAssetId: 'v', photoAssetId: '', hidden: false,
-    }).success).toBe(false);
+    expect(
+      PublishedTuneTrackSchema.safeParse({
+        uid: 'u1',
+        title: 't',
+        order: 1,
+        audioAssetId: '',
+        photoAssetId: 'p',
+        hidden: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      PublishedTelevisionEpisodeSchema.safeParse({
+        uid: 'u1',
+        title: 't',
+        order: 1,
+        videoAssetId: 'v',
+        photoAssetId: '',
+        hidden: false,
+      }).success,
+    ).toBe(false);
   });
 
   it('the working sub-item shapes stay able to represent incomplete content', () => {
@@ -146,17 +158,27 @@ describe('published sub-item media is required', () => {
 
 describe('HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE', () => {
   it('routes every canonical work-project type (completeness)', () => {
-    expect(Object.keys(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE).sort())
-      .toEqual([...WORK_PROJECT_TYPE_KEYS].sort());
+    expect(Object.keys(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE).sort()).toEqual(
+      [...WORK_PROJECT_TYPE_KEYS].sort(),
+    );
   });
 
   it('carries the settled per-type rule', () => {
-    expect(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tales)
-      .toEqual(['title', 'photoAssetId', 'content']);
-    expect(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tunes)
-      .toEqual(['title', 'photoAssetId', 'audioAssetId']);
-    expect(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Television)
-      .toEqual(['title', 'photoAssetId', 'videoAssetId']);
+    expect(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tales).toEqual([
+      'title',
+      'photoAssetId',
+      'content',
+    ]);
+    expect(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tunes).toEqual([
+      'title',
+      'photoAssetId',
+      'audioAssetId',
+    ]);
+    expect(HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Television).toEqual([
+      'title',
+      'photoAssetId',
+      'videoAssetId',
+    ]);
   });
 
   it('every required field is REQUIRED on the matching published sub-item schema', () => {
@@ -194,15 +216,25 @@ describe('unmetHallSubItemRequirements', () => {
   });
 
   it('treats a blank string as missing', () => {
-    expect(unmetHallSubItemRequirements('Tunes', {
-      title: '   ', photoAssetId: 'p', audioAssetId: 'a',
-    })).toEqual([HALL_SUB_ITEM_REQUIREMENT_LABELS.title]);
+    expect(
+      unmetHallSubItemRequirements('Tunes', {
+        title: '   ',
+        photoAssetId: 'p',
+        audioAssetId: 'a',
+      }),
+    ).toEqual([HALL_SUB_ITEM_REQUIREMENT_LABELS.title]);
   });
 
   it('a complete sub-item of each type is publishable', () => {
-    expect(isHallSubItemPublishable('Tales', { title: 't', photoAssetId: 'p', content: 'c' })).toBe(true);
-    expect(isHallSubItemPublishable('Tunes', { title: 't', photoAssetId: 'p', audioAssetId: 'a' })).toBe(true);
-    expect(isHallSubItemPublishable('Television', { title: 't', photoAssetId: 'p', videoAssetId: 'v' })).toBe(true);
+    expect(isHallSubItemPublishable('Tales', { title: 't', photoAssetId: 'p', content: 'c' })).toBe(
+      true,
+    );
+    expect(
+      isHallSubItemPublishable('Tunes', { title: 't', photoAssetId: 'p', audioAssetId: 'a' }),
+    ).toBe(true);
+    expect(
+      isHallSubItemPublishable('Television', { title: 't', photoAssetId: 'p', videoAssetId: 'v' }),
+    ).toBe(true);
   });
 
   it('a picture is required for every type — the rule no surface may restate away', () => {
@@ -240,15 +272,19 @@ describe('threshold item parked-publication state', () => {
   });
 
   it('accepts a stamped park and bounds the reason', () => {
-    expect(ThresholdItemSchema.safeParse({
-      ...base,
-      publishParkedReason: 'media field photoAssetId source a1 is ineligible to copy',
-      publishParkedAt: 1_700_000_000_000,
-    }).success).toBe(true);
-    expect(ThresholdItemSchema.safeParse({
-      ...base,
-      publishParkedReason: 'x'.repeat(MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH + 1),
-    }).success).toBe(false);
+    expect(
+      ThresholdItemSchema.safeParse({
+        ...base,
+        publishParkedReason: 'media field photoAssetId source a1 is ineligible to copy',
+        publishParkedAt: 1_700_000_000_000,
+      }).success,
+    ).toBe(true);
+    expect(
+      ThresholdItemSchema.safeParse({
+        ...base,
+        publishParkedReason: 'x'.repeat(MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH + 1),
+      }).success,
+    ).toBe(false);
   });
 
   it('adds no status value — reviewStatus keeps its three states', () => {
@@ -266,21 +302,31 @@ const HALL_LIBRARY_ORIGIN_TARGETS: Record<string, AnySchema[]> = {
   'chapter-photo': [FullChapterSchema as AnySchema, PublishedChapterSchema as AnySchema],
   'tune-track-photo': [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
   'tune-track-audio': [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
-  'television-episode-photo': [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
-  'television-episode-video': [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
+  'television-episode-photo': [
+    FullTelevisionEpisodeSchema as AnySchema,
+    PublishedTelevisionEpisodeSchema as AnySchema,
+  ],
+  'television-episode-video': [
+    FullTelevisionEpisodeSchema as AnySchema,
+    PublishedTelevisionEpisodeSchema as AnySchema,
+  ],
 };
 
 describe('HALL_LIBRARY_TARGET_FIELDS values are declared keys on the docs they target', () => {
   it('binds every origin in the map to the schemas it writes', () => {
-    expect(Object.keys(HALL_LIBRARY_ORIGIN_TARGETS).sort())
-      .toEqual(Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort());
+    expect(Object.keys(HALL_LIBRARY_ORIGIN_TARGETS).sort()).toEqual(
+      Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort(),
+    );
   });
 
   it('every mapped field is declared on each target schema', () => {
     for (const [origin, field] of Object.entries(HALL_LIBRARY_TARGET_FIELDS)) {
       for (const schema of HALL_LIBRARY_ORIGIN_TARGETS[origin]) {
-        expect({ origin, field, declared: declares(schema, field) })
-          .toEqual({ origin, field, declared: true });
+        expect({ origin, field, declared: declares(schema, field) }).toEqual({
+          origin,
+          field,
+          declared: true,
+        });
       }
     }
   });
@@ -297,8 +343,9 @@ describe('the hall-library target-field map splits by write level', () => {
     const coverOrigins = Object.keys(HALL_LIBRARY_COVER_TARGET_FIELDS);
     const subItemOrigins = Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS);
 
-    expect([...coverOrigins, ...subItemOrigins].sort())
-      .toEqual(Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort());
+    expect([...coverOrigins, ...subItemOrigins].sort()).toEqual(
+      Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort(),
+    );
     expect(coverOrigins.filter((origin) => subItemOrigins.includes(origin))).toEqual([]);
   });
 
@@ -307,8 +354,10 @@ describe('the hall-library target-field map splits by write level', () => {
       ...Object.entries(HALL_LIBRARY_COVER_TARGET_FIELDS),
       ...Object.entries(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS),
     ]) {
-      expect({ origin, field })
-        .toEqual({ origin, field: HALL_LIBRARY_TARGET_FIELDS[origin as keyof typeof HALL_LIBRARY_TARGET_FIELDS] });
+      expect({ origin, field }).toEqual({
+        origin,
+        field: HALL_LIBRARY_TARGET_FIELDS[origin as keyof typeof HALL_LIBRARY_TARGET_FIELDS],
+      });
     }
   });
 
@@ -320,47 +369,65 @@ describe('the hall-library target-field map splits by write level', () => {
       'television-episode-photo': 'televisionEpisode',
       'television-episode-video': 'televisionEpisode',
     });
-    expect(Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN).sort())
-      .toEqual(Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort());
-    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['chapter-photo'])
-      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.subItemSurface);
-    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['tune-track-photo'])
-      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface);
-    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['tune-track-audio'])
-      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface);
-    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['television-episode-photo'])
-      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface);
-    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['television-episode-video'])
-      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface);
+    expect(Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN).sort()).toEqual(
+      Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort(),
+    );
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['chapter-photo']).toBe(
+      HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.subItemSurface,
+    );
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['tune-track-photo']).toBe(
+      HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface,
+    );
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['tune-track-audio']).toBe(
+      HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface,
+    );
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['television-episode-photo']).toBe(
+      HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface,
+    );
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['television-episode-video']).toBe(
+      HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface,
+    );
     for (const workType of WORK_PROJECT_TYPE_KEYS) {
-      expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE[workType].detailSurface)
-        .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].detailSurface);
-      expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE[workType].subItemSurface)
-        .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].subItemSurface);
+      expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE[workType].detailSurface).toBe(
+        HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].detailSurface,
+      );
+      expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE[workType].subItemSurface).toBe(
+        HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].subItemSurface,
+      );
     }
-
   });
 
   it('one media slot per sub-item origin names its surface, the sub-item document of the Work type that owns that surface, and its field', () => {
-    expect(Object.keys(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS).sort()).toEqual(Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort());
+    expect(Object.keys(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS).sort()).toEqual(
+      Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort(),
+    );
     for (const [origin, slot] of Object.entries(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS) as Array<
-      [keyof typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS, (typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS)[keyof typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS]]
+      [
+        keyof typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS,
+        (typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS)[keyof typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS],
+      ]
     >) {
       expect(slot.surface).toBe(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin]);
       expect(slot.field).toBe(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS[origin]);
-      const owner = WORK_PROJECT_TYPE_KEYS.find((type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].subItemSurface === slot.surface);
+      const owner = WORK_PROJECT_TYPE_KEYS.find(
+        (type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].subItemSurface === slot.surface,
+      );
       expect(owner).toBeDefined();
-      expect(slot.ownerDoc('wp', 'section', 'item')).toEqual(WORK_SECTION_PATHS_BY_TYPE[owner!].subItem('wp', 'section', 'item'));
+      expect(slot.ownerDoc('wp', 'section', 'item')).toEqual(
+        WORK_SECTION_PATHS_BY_TYPE[owner!].subItem('wp', 'section', 'item'),
+      );
     }
-    expect(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS['tune-track-audio'].ownerDoc('wp', 'tune', 'track')).toEqual(
-      ['allWorkProjects', 'wp', 'workProjectTunes', 'tune', 'tuneTracks', 'track'],
-    );
+    expect(
+      HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS['tune-track-audio'].ownerDoc('wp', 'tune', 'track'),
+    ).toEqual(['allWorkProjects', 'wp', 'workProjectTunes', 'tune', 'tuneTracks', 'track']);
   });
 
   it('the type guards answer for exactly their own subset', () => {
     for (const origin of Object.keys(HALL_LIBRARY_TARGET_FIELDS)) {
       expect(isHallLibraryCoverFileOrigin(origin)).toBe(origin in HALL_LIBRARY_COVER_TARGET_FIELDS);
-      expect(isHallLibrarySubItemFileOrigin(origin)).toBe(origin in HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS);
+      expect(isHallLibrarySubItemFileOrigin(origin)).toBe(
+        origin in HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS,
+      );
     }
     expect(isHallLibraryCoverFileOrigin('profile-picture')).toBe(false);
     expect(isHallLibrarySubItemFileOrigin('profile-picture')).toBe(false);
@@ -369,8 +436,11 @@ describe('the hall-library target-field map splits by write level', () => {
   it('every cover field is declared on the hall parent the cover writer targets', () => {
     for (const [origin, field] of Object.entries(HALL_LIBRARY_COVER_TARGET_FIELDS)) {
       for (const schema of HALL_LIBRARY_ORIGIN_TARGETS[origin]) {
-        expect({ origin, field, declared: declares(schema, field) })
-          .toEqual({ origin, field, declared: true });
+        expect({ origin, field, declared: declares(schema, field) }).toEqual({
+          origin,
+          field,
+          declared: true,
+        });
       }
       expect(declares(PublishedHallItemSchema as AnySchema, field)).toBe(true);
     }
@@ -379,13 +449,16 @@ describe('the hall-library target-field map splits by write level', () => {
   it('every sub-item field is declared on the chapter / track / episode doc it targets', () => {
     for (const [origin, field] of Object.entries(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS)) {
       for (const schema of HALL_LIBRARY_ORIGIN_TARGETS[origin]) {
-        expect({ origin, field, declared: declares(schema, field) })
-          .toEqual({ origin, field, declared: true });
+        expect({ origin, field, declared: declares(schema, field) }).toEqual({
+          origin,
+          field,
+          declared: true,
+        });
       }
     }
   });
 
-  it('neither level can write the other level\'s fields', () => {
+  it("neither level can write the other level's fields", () => {
     const coverFields = Object.values(HALL_LIBRARY_COVER_TARGET_FIELDS) as string[];
     const subItemFields = Object.values(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS) as string[];
 
@@ -415,20 +488,27 @@ describe('MODERATION_CLEARABLE_TEXT_FIELDS values are declared keys on the docs 
     television: [PublishedHallItemSchema as AnySchema],
     chapter: [FullChapterSchema as AnySchema, PublishedChapterSchema as AnySchema],
     tuneTrack: [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
-    televisionEpisode: [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
+    televisionEpisode: [
+      FullTelevisionEpisodeSchema as AnySchema,
+      PublishedTelevisionEpisodeSchema as AnySchema,
+    ],
   };
 
   it('binds every clearable surface to the schemas its writers touch', () => {
-    expect(Object.keys(TARGETS).sort())
-      .toEqual(Object.keys(MODERATION_CLEARABLE_TEXT_FIELDS).sort());
+    expect(Object.keys(TARGETS).sort()).toEqual(
+      Object.keys(MODERATION_CLEARABLE_TEXT_FIELDS).sort(),
+    );
   });
 
   it('every clearable field is declared on each target schema', () => {
     for (const [surface, fields] of Object.entries(MODERATION_CLEARABLE_TEXT_FIELDS)) {
       for (const field of fields) {
         for (const schema of TARGETS[surface]) {
-          expect({ surface, field, declared: declares(schema, field) })
-            .toEqual({ surface, field, declared: true });
+          expect({ surface, field, declared: declares(schema, field) }).toEqual({
+            surface,
+            field,
+            declared: true,
+          });
         }
       }
     }
@@ -476,12 +556,15 @@ describe('WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD', () => {
   });
 
   it('covers every clearable shell field', () => {
-    expect(Object.keys(WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD).sort())
-      .toEqual([...MODERATION_CLEARABLE_TEXT_FIELDS.workProject].sort());
+    expect(Object.keys(WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD).sort()).toEqual(
+      [...MODERATION_CLEARABLE_TEXT_FIELDS.workProject].sort(),
+    );
   });
 
   it('keys are declared on the work shell and values on the published hall item', () => {
-    for (const [shellField, hallField] of Object.entries(WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD)) {
+    for (const [shellField, hallField] of Object.entries(
+      WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
+    )) {
       expect(declares(FullWorkProjectSchema as AnySchema, shellField)).toBe(true);
       expect(declares(PublishedHallItemSchema as AnySchema, hallField)).toBe(true);
     }

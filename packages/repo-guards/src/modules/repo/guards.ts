@@ -16,7 +16,10 @@ import { ciParityGuard, type CiParityFacts } from './ci-parity.js';
 import { dependencyOverrideGuard, type DependencyOverrideFacts } from './dependency-overrides.js';
 import { documentDriftGuard, type DocumentDriftFacts } from './document-drift.js';
 import { envPublicValuesGuard, type EnvPublicValuesFacts } from './env-public-values.js';
-import { installedPackagesAgnosticGuard, type InstalledPackagesAgnosticFacts } from './installed-packages-agnostic.js';
+import {
+  installedPackagesAgnosticGuard,
+  type InstalledPackagesAgnosticFacts,
+} from './installed-packages-agnostic.js';
 import { localOnlyVariablesGuard, type LocalOnlyVariablesFacts } from './local-only-variables.js';
 import { projectScriptGuard, type ProjectScriptFacts } from './project-scripts.js';
 import { secretBindingGuard, type SecretBindingFacts } from './secret-bindings.js';
@@ -25,7 +28,6 @@ import { testSourceRootGuard, type TestSourceRootFacts } from './test-source-roo
 import { walkerReadFailureGuard, type WalkerReadFailureFacts } from './walker-read-failure.js';
 import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from './worker-bounded-body.js';
 import { workerConfigGuard, type WorkerConfigFacts } from './worker-config.js';
-
 
 /** The facts each guard in this area needs, by its id. */
 export interface RepoGuardFacts {

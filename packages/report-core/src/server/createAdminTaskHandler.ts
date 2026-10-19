@@ -18,11 +18,7 @@ export interface AdminTaskHandlerConfig {
  *
  * @returns An async handler: (groupData, groupId) => Promise<void>
  */
-export function createAdminTaskHandler({
-  config,
-  db,
-  logger = console,
-}: AdminTaskHandlerConfig) {
+export function createAdminTaskHandler({ config, db, logger = console }: AdminTaskHandlerConfig) {
   return async (groupData: Record<string, unknown>, groupId: string): Promise<void> => {
     if (!groupData) return;
 
@@ -35,6 +31,8 @@ export function createAdminTaskHandler({
     const adminTaskRef = db.collection(config.collections.adminTasks).doc(adminTaskId);
     await adminTaskRef.set(doc);
 
-    logger.info(`Created adminTask ${adminTaskId} for report group ${groupId} with priority ${doc.priority}`);
+    logger.info(
+      `Created adminTask ${adminTaskId} for report group ${groupId} with priority ${doc.priority}`,
+    );
   };
 }

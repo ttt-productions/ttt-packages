@@ -5,7 +5,11 @@ import { ActionRow } from '../src/react/components/action-row.js';
 describe('ActionRow', () => {
   it("is one button named by the row's content, which runs the row's action", () => {
     const onClick = vi.fn();
-    render(<ActionRow onClick={onClick}><span>Help needed</span> · <span>Ada</span></ActionRow>);
+    render(
+      <ActionRow onClick={onClick}>
+        <span>Help needed</span> · <span>Ada</span>
+      </ActionRow>,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Help needed · Ada' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
@@ -16,7 +20,9 @@ describe('ActionRow', () => {
     render(
       <ActionRow onClick={onClick}>
         <span>Help needed</span>
-        <button type="button" onClick={onRetry}>Try again</button>
+        <button type="button" onClick={onRetry}>
+          Try again
+        </button>
       </ActionRow>,
     );
     const retry = screen.getByRole('button', { name: 'Try again' });
@@ -41,12 +47,20 @@ describe('ActionRow', () => {
 
   it('a disabled row runs nothing, and a busy row says so', () => {
     const onClick = vi.fn();
-    const { rerender } = render(<ActionRow onClick={onClick} disabled><span>Task</span></ActionRow>);
+    const { rerender } = render(
+      <ActionRow onClick={onClick} disabled>
+        <span>Task</span>
+      </ActionRow>,
+    );
     const row = screen.getByRole('button', { name: 'Task' });
     expect(row).toBeDisabled();
     fireEvent.click(row);
     expect(onClick).not.toHaveBeenCalled();
-    rerender(<ActionRow onClick={onClick} disabled busy><span>Task</span></ActionRow>);
+    rerender(
+      <ActionRow onClick={onClick} disabled busy>
+        <span>Task</span>
+      </ActionRow>,
+    );
     expect(screen.getByRole('button', { name: 'Task' })).toHaveAttribute('aria-busy', 'true');
   });
 
@@ -55,7 +69,9 @@ describe('ActionRow', () => {
     render(
       <ActionRow renderLink={(target) => <a href="/teams/7" data-app-link="" {...target} />}>
         <span>Team Seven</span>
-        <button type="button" onClick={onRetry}>Retry</button>
+        <button type="button" onClick={onRetry}>
+          Retry
+        </button>
       </ActionRow>,
     );
     const link = screen.getByRole('link', { name: /Team Seven/ });

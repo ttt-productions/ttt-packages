@@ -123,13 +123,19 @@ describe('WORK_PROJECT_ACTIONS', () => {
   });
 
   it('every guildChatChannel lifecycle action is a distinct, labelled, described action id', () => {
-    const lifecycle = ['guildChatChannel.archive', 'guildChatChannel.unarchive', 'guildChatChannel.delete'] as const;
+    const lifecycle = [
+      'guildChatChannel.archive',
+      'guildChatChannel.unarchive',
+      'guildChatChannel.delete',
+    ] as const;
     for (const actionId of lifecycle) {
       expect(WORK_PROJECT_ACTION_IDS).toContain(actionId);
       expect(WORK_PROJECT_ACTIONS[actionId].label.length).toBeGreaterThan(0);
       expect(WORK_PROJECT_ACTIONS[actionId].description.length).toBeGreaterThan(0);
     }
-    expect(new Set(lifecycle.map((id) => WORK_PROJECT_ACTIONS[id].label)).size).toBe(lifecycle.length);
+    expect(new Set(lifecycle.map((id) => WORK_PROJECT_ACTIONS[id].label)).size).toBe(
+      lifecycle.length,
+    );
   });
 
   it('getActionsForGuildStanding returns only valid action IDs', () => {
@@ -216,7 +222,9 @@ describe('canAssignGuildStanding', () => {
 
   it('non-stewardOwner WorkProjectManager can assign non-steward-only, assignable guild standings', () => {
     const stewardOnlyGuildStandingValues = new Set(
-      STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS.map((guildStandingId) => getGuildStandingValueFromId(guildStandingId)),
+      STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS.map((guildStandingId) =>
+        getGuildStandingValueFromId(guildStandingId),
+      ),
     );
 
     for (const targetGuildStanding of GUILD_STANDING_VALUES) {
@@ -334,39 +342,79 @@ describe('every defined action is enforced or gone', () => {
 
 describe('the standing lists the invite, stake, and file rules read', () => {
   it('invite handlers are exactly Steward, WorkProject Manager, Invite Manager, and Stake Share Manager, and they send, list, and cancel', () => {
-    expect([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort()).toEqual(['InviteManager', 'StakeShareManager', 'StewardOwner', 'WorkProjectManager']);
-    for (const action of ['guildInvite.send', 'guildInvite.list', 'guildInvite.revokeAny'] as const) {
-      expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort());
+    expect([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort()).toEqual([
+      'InviteManager',
+      'StakeShareManager',
+      'StewardOwner',
+      'WorkProjectManager',
+    ]);
+    for (const action of [
+      'guildInvite.send',
+      'guildInvite.list',
+      'guildInvite.revokeAny',
+    ] as const) {
+      expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual(
+        [...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort(),
+      );
     }
   });
 
   it('only the stake-power standings change stake amounts — an Invite Manager cannot change an invite offer', () => {
-    expect([...STAKE_SHARE_POWER_GUILD_STANDING_IDS].sort()).toEqual(['StakeShareManager', 'StewardOwner', 'WorkProjectManager']);
+    expect([...STAKE_SHARE_POWER_GUILD_STANDING_IDS].sort()).toEqual([
+      'StakeShareManager',
+      'StewardOwner',
+      'WorkProjectManager',
+    ]);
     expect([...WORK_PROJECT_ACTIONS['guildInvite.stakeShares.update'].grantedTo].sort()).toEqual(
       [...STAKE_SHARE_POWER_GUILD_STANDING_IDS].sort(),
     );
-    expect(guildStandingsGrantAction(['InviteManager'], 'guildInvite.stakeShares.update')).toBe(false);
-    expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.stakeShares.update')).toBe(true);
+    expect(guildStandingsGrantAction(['InviteManager'], 'guildInvite.stakeShares.update')).toBe(
+      false,
+    );
+    expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.stakeShares.update')).toBe(
+      true,
+    );
   });
 
   it('a Stake Share Manager handles invites like an Invite Manager and also changes their offers', () => {
-    for (const action of ['guildInvite.send', 'guildInvite.list', 'guildInvite.revokeAny', 'guildInvite.stakeShares.update'] as const) {
+    for (const action of [
+      'guildInvite.send',
+      'guildInvite.list',
+      'guildInvite.revokeAny',
+      'guildInvite.stakeShares.update',
+    ] as const) {
       expect(guildStandingsGrantAction(['StakeShareManager'], action)).toBe(true);
     }
-    expect(guildStandingsGrantAction(['InviteManager'], 'guildInvite.stakeShares.update')).toBe(false);
+    expect(guildStandingsGrantAction(['InviteManager'], 'guildInvite.stakeShares.update')).toBe(
+      false,
+    );
   });
 
   it('file admins are Steward, WorkProject Manager, and Work Asset Admin, and every file-admin action reads that list', () => {
-    expect([...WORK_FILE_ADMIN_GUILD_STANDING_IDS].sort()).toEqual(['StewardOwner', 'WorkAssetAdmin', 'WorkProjectManager']);
-    for (const action of ['fileFolder.create', 'fileFolder.manage', 'fileFolder.viewAll', 'workFile.uploadAny', 'workFile.deleteAny'] as const) {
-      expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual([...WORK_FILE_ADMIN_GUILD_STANDING_IDS].sort());
+    expect([...WORK_FILE_ADMIN_GUILD_STANDING_IDS].sort()).toEqual([
+      'StewardOwner',
+      'WorkAssetAdmin',
+      'WorkProjectManager',
+    ]);
+    for (const action of [
+      'fileFolder.create',
+      'fileFolder.manage',
+      'fileFolder.viewAll',
+      'workFile.uploadAny',
+      'workFile.deleteAny',
+    ] as const) {
+      expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual(
+        [...WORK_FILE_ADMIN_GUILD_STANDING_IDS].sort(),
+      );
     }
   });
 });
 
 describe('guildStandingsGrantAction', () => {
   it('grants when any held standing is in the action grant list', () => {
-    expect(guildStandingsGrantAction(['HallLibraryEditor', 'InviteManager'], 'guildInvite.send')).toBe(true);
+    expect(
+      guildStandingsGrantAction(['HallLibraryEditor', 'InviteManager'], 'guildInvite.send'),
+    ).toBe(true);
   });
 
   it('refuses when no held standing is granted, and for an empty or absent list', () => {

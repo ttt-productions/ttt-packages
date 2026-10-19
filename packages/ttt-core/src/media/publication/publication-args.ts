@@ -6,26 +6,26 @@
 // The adapter judges it with its declaration after the parse, so a refused text ends the job
 // terminally instead of failing the parse on every retry.
 
-import { z } from "zod";
-import { CRAFT_SKILL_TAG_VALUES } from "../../constants/options.js";
-import { MAX_CRAFT_SKILL_TAGS } from "../../constants/business-user.js";
+import { z } from 'zod';
+import { CRAFT_SKILL_TAG_VALUES } from '../../constants/options.js';
+import { MAX_CRAFT_SKILL_TAGS } from '../../constants/business-user.js';
 import {
   HALL_CONTENT_DETAIL_SURFACES,
   HALL_CONTENT_SUB_ITEM_SURFACES,
-} from "../../constants/hall-content-routing.js";
+} from '../../constants/hall-content-routing.js';
 import {
   ContentMediaKindSchema,
   type MediaPublicationKind,
-} from "../../doc-schemas/media-assets.js";
+} from '../../doc-schemas/media-assets.js';
 import {
   CraftSkillAttestationSchema,
   CraftSkillKindSchema,
   CraftSkillSourceReferenceSchema,
-} from "../../doc-schemas/user.js";
-import { AuditionModeSchema, AuditionTypeSchema } from "../../doc-schemas/commissions.js";
-import { SystemVideoSlotIdSchema } from "../../system-slots/system-slots.js";
-import { ConversationFileRefSchema } from "../conversation-file-ref.js";
-import { SquareStreetzPostMentionsSchema } from "../atoms.js";
+} from '../../doc-schemas/user.js';
+import { AuditionModeSchema, AuditionTypeSchema } from '../../doc-schemas/commissions.js';
+import { SystemVideoSlotIdSchema } from '../../system-slots/system-slots.js';
+import { ConversationFileRefSchema } from '../conversation-file-ref.js';
+import { SquareStreetzPostMentionsSchema } from '../atoms.js';
 import {
   auditionEntryIdSchema,
   auditionIdSchema,
@@ -40,7 +40,7 @@ import {
   workFileIdSchema,
   workProjectIdSchema,
   workRealmIdSchema,
-} from "../../schemas/atoms.js";
+} from '../../schemas/atoms.js';
 
 export const ProfilePicturePublicationArgsSchema = z
   .object({
@@ -87,7 +87,9 @@ export const HallCoverPublicationArgsSchema = z
   .strict();
 export type HallCoverPublicationArgs = z.infer<typeof HallCoverPublicationArgsSchema>;
 
-export const RealmCoverPublicationArgsSchema = z.object({ workRealmId: workRealmIdSchema }).strict();
+export const RealmCoverPublicationArgsSchema = z
+  .object({ workRealmId: workRealmIdSchema })
+  .strict();
 export type RealmCoverPublicationArgs = z.infer<typeof RealmCoverPublicationArgsSchema>;
 
 export const WorkContentMediaPublicationArgsSchema = z
@@ -146,7 +148,9 @@ export const CommissionListingMediaPublicationArgsSchema = z
       .strict(),
   })
   .strict();
-export type CommissionListingMediaPublicationArgs = z.infer<typeof CommissionListingMediaPublicationArgsSchema>;
+export type CommissionListingMediaPublicationArgs = z.infer<
+  typeof CommissionListingMediaPublicationArgsSchema
+>;
 
 export const CommissionProposalMediaPublicationArgsSchema = z
   .object({
@@ -156,7 +160,9 @@ export const CommissionProposalMediaPublicationArgsSchema = z
     replyFileType: ContentMediaKindSchema,
   })
   .strict();
-export type CommissionProposalMediaPublicationArgs = z.infer<typeof CommissionProposalMediaPublicationArgsSchema>;
+export type CommissionProposalMediaPublicationArgs = z.infer<
+  typeof CommissionProposalMediaPublicationArgsSchema
+>;
 
 // `auditionMode` carries the audition's own `mode`; it is named apart from the branch
 // discriminant `mode` below.
@@ -167,7 +173,7 @@ const auditionPromptModeFields = {
 
 const WorkPromptPublicationArgsSchema = z
   .object({
-    mode: z.literal("workPrompt"),
+    mode: z.literal('workPrompt'),
     userId: userIdSchema,
     auditionId: auditionIdSchema,
     workProjectId: workProjectIdSchema,
@@ -183,10 +189,10 @@ const WorkPromptPublicationArgsSchema = z
 
 const AdminPromptPublicationArgsSchema = z
   .object({
-    mode: z.literal("adminPrompt"),
+    mode: z.literal('adminPrompt'),
     userId: userIdSchema,
     auditionId: auditionIdSchema,
-    auditionType: AuditionTypeSchema.exclude(["workAudition"]),
+    auditionType: AuditionTypeSchema.exclude(['workAudition']),
     title: z.string(),
     description: z.string(),
     entriesCloseAt: z.number(),
@@ -199,7 +205,7 @@ const AdminPromptPublicationArgsSchema = z
 
 const EntryPublicationArgsSchema = z
   .object({
-    mode: z.literal("entry"),
+    mode: z.literal('entry'),
     userId: userIdSchema,
     auditionId: auditionIdSchema,
     auditionEntryId: auditionEntryIdSchema,
@@ -208,14 +214,16 @@ const EntryPublicationArgsSchema = z
   })
   .strict();
 
-export const AuditionMediaPublicationArgsSchema = z.discriminatedUnion("mode", [
+export const AuditionMediaPublicationArgsSchema = z.discriminatedUnion('mode', [
   WorkPromptPublicationArgsSchema,
   AdminPromptPublicationArgsSchema,
   EntryPublicationArgsSchema,
 ]);
 export type AuditionMediaPublicationArgs = z.infer<typeof AuditionMediaPublicationArgsSchema>;
 
-export const SystemVideoSlotPublicationArgsSchema = z.object({ slotId: SystemVideoSlotIdSchema }).strict();
+export const SystemVideoSlotPublicationArgsSchema = z
+  .object({ slotId: SystemVideoSlotIdSchema })
+  .strict();
 export type SystemVideoSlotPublicationArgs = z.infer<typeof SystemVideoSlotPublicationArgsSchema>;
 
 /** Every publication kind's args schema, keyed by kind, so a new kind cannot build without its args. */

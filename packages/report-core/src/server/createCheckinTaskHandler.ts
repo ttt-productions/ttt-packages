@@ -65,7 +65,10 @@ export function createCheckinTaskHandler({
       const checkoutDetails = taskData.checkoutDetails as Record<string, unknown> | null;
 
       if (!checkoutDetails || checkoutDetails.userId !== userId) {
-        throw new ReportCoreTaskError('failed-precondition', 'You do not have this task checked out.');
+        throw new ReportCoreTaskError(
+          'failed-precondition',
+          'You do not have this task checked out.',
+        );
       }
 
       if (resolved && !isResolvedByCheckin(String(taskData.taskType ?? ''))) {

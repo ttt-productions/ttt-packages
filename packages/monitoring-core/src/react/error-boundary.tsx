@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Component, type ErrorInfo, type ReactNode } from "react";
-import { captureException } from "../api.js";
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { captureException } from '../api.js';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;

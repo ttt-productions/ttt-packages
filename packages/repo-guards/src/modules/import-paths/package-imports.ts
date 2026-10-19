@@ -30,26 +30,40 @@ interface PackageModules {
 }
 
 /** Every package in the folder, each with every code file the reader holds under it; none is a finding. */
-function packagesOf(context: GuardContext, packagesFolder: string): { packages: PackageModules[]; missing: Finding[] } {
+function packagesOf(
+  context: GuardContext,
+  packagesFolder: string,
+): { packages: PackageModules[]; missing: Finding[] } {
   const repoRoot = context.reader.layout.repoRoot;
   const folder = join(repoRoot, packagesFolder);
   const dirs = existsSync(folder)
-    ? readdirSync(folder, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(folder, d.name, 'package.json')))
+    ? readdirSync(folder, { withFileTypes: true }).filter(
+        (d) => d.isDirectory() && existsSync(join(folder, d.name, 'package.json')),
+      )
     : [];
-  if (!dirs.length) return { packages: [], missing: [{ file: packagesFolder, detail: 'the folder holds no package' }] };
+  if (!dirs.length)
+    return {
+      packages: [],
+      missing: [{ file: packagesFolder, detail: 'the folder holds no package' }],
+    };
   const files = context.files(SCOPE);
   const packages = dirs.map((dirent) => {
     const root = `${slash(packagesFolder)}/${dirent.name}`;
     const dir = join(folder, dirent.name);
-    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { name: string };
+    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
+      name: string;
+    };
     const own = new Map<string, { text: string; sourceFile: import('typescript').SourceFile }>();
-    for (const file of files) if (file.path.startsWith(`${root}/`)) own.set(file.path, { text: file.text, sourceFile: file.sourceFile });
+    for (const file of files)
+      if (file.path.startsWith(`${root}/`))
+        own.set(file.path, { text: file.text, sourceFile: file.sourceFile });
     return { root, name: manifest.name, dir, files: own };
   });
   return { packages, missing: [] };
 }
 
-const profileOf = (reader: RepoReader) => createImportPathProfile({ isTestFile: (p: string) => isTestPath(reader.layout, p) });
+const profileOf = (reader: RepoReader) =>
+  createImportPathProfile({ isTestFile: (p: string) => isTestPath(reader.layout, p) });
 
 const factProblems = (facts: PackageImportFacts) => {
   const problems: string[] = [];
@@ -64,7 +78,8 @@ export const packageImportsGuard: GenericGuardDefinition<PackageImportFacts> = {
   build(facts) {
     return [
       {
-        title: "inside a package, code imports the file that defines each name by its built extension, and only an entry index re-exports",
+        title:
+          'inside a package, code imports the file that defines each name by its built extension, and only an entry index re-exports',
         description:
           "Inside a package, import the file that defines each name — never a folder index, a nested entry, or the package's own " +
           'name; a test does the same, except an entry-surface test (`<name>.entry.test.ts`), which may import an entry index. ' +
@@ -84,7 +99,9 @@ export const packageImportsGuard: GenericGuardDefinition<PackageImportFacts> = {
               files: pkg.files,
               packageRoot: pkg.root,
               packageName: pkg.name,
-              entryFiles: sourceEntryModules(pkg.dir).map((file) => slash(relative(repoRoot, file))),
+              entryFiles: sourceEntryModules(pkg.dir).map((file) =>
+                slash(relative(repoRoot, file)),
+              ),
               profile,
             });
             for (const v of violations as Array<{ kind: string; file: string; detail: string }>) {
@@ -117,10 +134,19 @@ export const packageImportCyclesGuard: GenericGuardDefinition<PackageImportFacts
           const profile = profileOf(context.reader);
           const findings: Finding[] = [];
           for (const pkg of packages) {
-            const source = new Map([...pkg.files].filter(([path]) => path.startsWith(`${pkg.root}/src/`)));
+            const source = new Map(
+              [...pkg.files].filter(([path]) => path.startsWith(`${pkg.root}/src/`)),
+            );
             if (!source.size) continue;
-            for (const cycle of findImportCycles({ files: source, roots: [pkg.root], profile }) as Array<{ file: string; path: string[] }>) {
-              findings.push({ file: cycle.file, detail: `runtime import cycle: ${cycle.path.join(' → ')}` });
+            for (const cycle of findImportCycles({
+              files: source,
+              roots: [pkg.root],
+              profile,
+            }) as Array<{ file: string; path: string[] }>) {
+              findings.push({
+                file: cycle.file,
+                detail: `runtime import cycle: ${cycle.path.join(' → ')}`,
+              });
             }
           }
           return findings;

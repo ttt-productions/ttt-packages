@@ -22,7 +22,9 @@ const KIT = {
 
 describe('createImportPathProfile', () => {
   it('refuses an exception with no justification', () => {
-    expect(() => createImportPathProfile({ exceptions: [{ file: 'functions/src/index.ts', why: ' ' }] })).toThrow(/carries no why/);
+    expect(() =>
+      createImportPathProfile({ exceptions: [{ file: 'functions/src/index.ts', why: ' ' }] }),
+    ).toThrow(/carries no why/);
   });
 
   it('refuses an exception listed twice', () => {
@@ -63,21 +65,25 @@ describe('a module that is not a folder index never re-exports', () => {
   });
 
   it('does not flag a module exporting its own declarations, or a new binding built from an import', () => {
-    expect(run({
-      'src/lib/owner.ts': `export const a = 1;`,
-      'src/lib/own.ts': `const local = 2;\nexport { local, local as alias };\nexport function f() {}\nexport class C {}`,
-      'src/lib/derived.ts': `import { a } from './owner';\nexport const doubled = a * 2;`,
-    })).toEqual([]);
+    expect(
+      run({
+        'src/lib/owner.ts': `export const a = 1;`,
+        'src/lib/own.ts': `const local = 2;\nexport { local, local as alias };\nexport function f() {}\nexport class C {}`,
+        'src/lib/derived.ts': `import { a } from './owner';\nexport const doubled = a * 2;`,
+      }),
+    ).toEqual([]);
   });
 });
 
 describe('a folder index forwards only modules inside its own subtree', () => {
   it('does not flag forwards from siblings and nested folders', () => {
-    expect(run({
-      ...KIT,
-      'src/kit/nested/deep.ts': `export const deep = 1;`,
-      'src/kit/index.ts': `export { Button } from './button';\nexport { deep } from './nested/deep';`,
-    })).toEqual([]);
+    expect(
+      run({
+        ...KIT,
+        'src/kit/nested/deep.ts': `export const deep = 1;`,
+        'src/kit/index.ts': `export { Button } from './button';\nexport { deep } from './nested/deep';`,
+      }),
+    ).toEqual([]);
   });
 
   it('FLAGS a forward from outside the folder, by relative path or alias, and from a package', () => {
@@ -102,11 +108,13 @@ describe('a folder index forwards only modules inside its own subtree', () => {
 
 describe('outside code imports through a folder index, never past it', () => {
   it('does not flag an import through the index, or a direct import inside the folder', () => {
-    expect(run({
-      ...KIT,
-      'src/app/page.tsx': `import { Button } from '@/kit';\nimport type { ButtonProps } from '../kit/index';`,
-      'src/kit/user.tsx': `import { Button } from './button';`,
-    })).toEqual([]);
+    expect(
+      run({
+        ...KIT,
+        'src/app/page.tsx': `import { Button } from '@/kit';\nimport type { ButtonProps } from '../kit/index';`,
+        'src/kit/user.tsx': `import { Button } from './button';`,
+      }),
+    ).toEqual([]);
   });
 
   it('FLAGS a production import past the index — static, type-only, side-effect, and dynamic', () => {
@@ -157,11 +165,13 @@ describe('outside code imports through a folder index, never past it', () => {
 
   describe('tests', () => {
     it('may import an internal module for names the index does not forward', () => {
-      expect(run({
-        ...KIT,
-        'src/__tests__/button.test.tsx': `import { HELPER } from '@/kit/button';`,
-        'functions/src/other/x.test.ts': `const { HELPER } = await import('../../../src/kit/button');`,
-      })).toEqual([]);
+      expect(
+        run({
+          ...KIT,
+          'src/__tests__/button.test.tsx': `import { HELPER } from '@/kit/button';`,
+          'functions/src/other/x.test.ts': `const { HELPER } = await import('../../../src/kit/button');`,
+        }),
+      ).toEqual([]);
     });
 
     it('FLAGS a test importing past the index a name the index forwards, by value, type, or namespace', () => {
@@ -190,10 +200,12 @@ describe('outside code imports through a folder index, never past it', () => {
     });
 
     it('never holds a module mock to the rule — it names the path the code under test imports', () => {
-      expect(run({
-        ...KIT,
-        'src/__tests__/a.test.tsx': `vi.mock('@/kit/button', () => ({ Button: () => null }));\nvi.importActual('@/kit/button');`,
-      })).toEqual([]);
+      expect(
+        run({
+          ...KIT,
+          'src/__tests__/a.test.tsx': `vi.mock('@/kit/button', () => ({ Button: () => null }));\nvi.importActual('@/kit/button');`,
+        }),
+      ).toEqual([]);
     });
 
     it('still FLAGS a production module that calls vi.mock-shaped code past the index', () => {
@@ -218,31 +230,41 @@ describe('code inside a folder never imports the index of a folder that contains
   });
 
   it('does not flag a module importing a NESTED folder through that nested index', () => {
-    expect(run({
-      'src/kit/index.ts': `export { Inner } from './inner';`,
-      'src/kit/inner/index.ts': `export { Inner } from './inner';`,
-      'src/kit/inner/inner.tsx': `export const Inner = 1;`,
-      'src/kit/user.tsx': `import { Inner } from './inner';`,
-    })).toEqual([]);
+    expect(
+      run({
+        'src/kit/index.ts': `export { Inner } from './inner';`,
+        'src/kit/inner/index.ts': `export { Inner } from './inner';`,
+        'src/kit/inner/inner.tsx': `export const Inner = 1;`,
+        'src/kit/user.tsx': `import { Inner } from './inner';`,
+      }),
+    ).toEqual([]);
   });
 });
 
 describe('exceptions', () => {
-  const MANIFEST = { file: 'functions/src/index.ts', why: 'deploy manifest — the deploy tool reads every exported function from it' };
+  const MANIFEST = {
+    file: 'functions/src/index.ts',
+    why: 'deploy manifest — the deploy tool reads every exported function from it',
+  };
   const profile = createImportPathProfile({ exceptions: [MANIFEST] });
 
   it('lets the excepted module re-export, and does not make it a folder entry point', () => {
-    expect(run({
-      'functions/src/index.ts': `export { fn } from './users/fn.js';\nexport { other } from '@scope/pkg';`,
-      'functions/src/users/fn.ts': `export const fn = 1;`,
-      'src/__tests__/x.test.ts': `import { fn } from '../../functions/src/users/fn';`,
-    }, { profile })).toEqual([]);
+    expect(
+      run(
+        {
+          'functions/src/index.ts': `export { fn } from './users/fn.js';\nexport { other } from '@scope/pkg';`,
+          'functions/src/users/fn.ts': `export const fn = 1;`,
+          'src/__tests__/x.test.ts': `import { fn } from '../../functions/src/users/fn';`,
+        },
+        { profile },
+      ),
+    ).toEqual([]);
   });
 
   it('FLAGS an exception whose module is gone, and one that no longer re-exports', () => {
-    expect(kinds(run({ 'functions/src/users/fn.ts': `export const fn = 1;` }, { profile }))).toEqual([
-      'stale-exception functions/src/index.ts',
-    ]);
+    expect(
+      kinds(run({ 'functions/src/users/fn.ts': `export const fn = 1;` }, { profile })),
+    ).toEqual(['stale-exception functions/src/index.ts']);
     expect(kinds(run({ 'functions/src/index.ts': `export const fn = 1;` }, { profile }))).toEqual([
       'stale-exception functions/src/index.ts',
     ]);
@@ -262,28 +284,36 @@ describe('unresolved imports fail closed', () => {
   });
 
   it('does not judge a package, an asset, or a path outside the analyzed roots', () => {
-    expect(run({
-      'src/app/a.tsx': [
-        `import { z } from 'zod';`,
-        `import './styles.css';`,
-        `import data from './data.json';`,
-        `import { x } from '../../scripts/tool.mjs';`,
-      ].join('\n'),
-    })).toEqual([]);
+    expect(
+      run({
+        'src/app/a.tsx': [
+          `import { z } from 'zod';`,
+          `import './styles.css';`,
+          `import data from './data.json';`,
+          `import { x } from '../../scripts/tool.mjs';`,
+        ].join('\n'),
+      }),
+    ).toEqual([]);
   });
 });
 
 describe('findUnusedIndexMembers (report-only)', () => {
   const unused = (files) =>
-    findUnusedIndexMembers({ files: new Map(Object.entries(files)), roots: ['src'], profile: PROFILE });
+    findUnusedIndexMembers({
+      files: new Map(Object.entries(files)),
+      roots: ['src'],
+      profile: PROFILE,
+    });
 
   it('lists index members nothing outside the folder imports, ignoring inside imports and mocks', () => {
-    expect(unused({
-      ...KIT,
-      'src/app/page.tsx': `import { Button } from '@/kit';`,
-      'src/kit/user.tsx': `import type { ButtonProps } from './button';`,
-      'src/__tests__/a.test.tsx': `vi.mock('@/kit', () => ({}));`,
-    })).toEqual([{ file: 'src/kit/index.ts', unused: ['ButtonProps'] }]);
+    expect(
+      unused({
+        ...KIT,
+        'src/app/page.tsx': `import { Button } from '@/kit';`,
+        'src/kit/user.tsx': `import type { ButtonProps } from './button';`,
+        'src/__tests__/a.test.tsx': `vi.mock('@/kit', () => ({}));`,
+      }),
+    ).toEqual([{ file: 'src/kit/index.ts', unused: ['ButtonProps'] }]);
   });
 
   it('counts a namespace import of the index as using every member', () => {
@@ -301,7 +331,11 @@ describe('formatImportPathReport', () => {
   });
 
   it('lists every violation with its kind, file, and detail', () => {
-    const text = formatImportPathReport({ violations: [{ kind: 'reexport-outside-index', file: 'src/a.ts', detail: 'named re-export of a' }] });
+    const text = formatImportPathReport({
+      violations: [
+        { kind: 'reexport-outside-index', file: 'src/a.ts', detail: 'named re-export of a' },
+      ],
+    });
     expect(text).toContain('1 violation');
     expect(text).toContain('[reexport-outside-index] src/a.ts — named re-export of a');
   });

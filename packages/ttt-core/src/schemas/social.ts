@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  documentIdSegmentSchema,
-  squareStreetzPostIdSchema,
-} from './atoms.js';
+import { documentIdSegmentSchema, squareStreetzPostIdSchema } from './atoms.js';
 import {
   MentionSchema,
   SquareStreetzPostMentionsSchema,
@@ -10,43 +7,58 @@ import {
   refineMentionCorrespondence,
 } from '../media/atoms.js';
 
-export const LikeSquareStreetzPostInputSchema = z.object({
-  postId: squareStreetzPostIdSchema,
-}).strict();
+export const LikeSquareStreetzPostInputSchema = z
+  .object({
+    postId: squareStreetzPostIdSchema,
+  })
+  .strict();
 export type LikeSquareStreetzPostInput = z.infer<typeof LikeSquareStreetzPostInputSchema>;
 
-export const UnlikeSquareStreetzPostInputSchema = z.object({
-  postId: squareStreetzPostIdSchema,
-}).strict();
+export const UnlikeSquareStreetzPostInputSchema = z
+  .object({
+    postId: squareStreetzPostIdSchema,
+  })
+  .strict();
 export type UnlikeSquareStreetzPostInput = z.infer<typeof UnlikeSquareStreetzPostInputSchema>;
 
 /** The entity kinds a user can follow. Subset of MentionType (commissions/auditions are not followable). */
 export const FollowableTargetTypeSchema = z.enum(['user', 'workProject', 'workRealm']);
 export type FollowableTargetType = z.infer<typeof FollowableTargetTypeSchema>;
 
-export const FollowTargetInputSchema = z.object({
-  targetType: FollowableTargetTypeSchema,
-  targetId: documentIdSegmentSchema.max(128),
-}).strict();
+export const FollowTargetInputSchema = z
+  .object({
+    targetType: FollowableTargetTypeSchema,
+    targetId: documentIdSegmentSchema.max(128),
+  })
+  .strict();
 export type FollowTargetInput = z.infer<typeof FollowTargetInputSchema>;
 
-export const UnfollowTargetInputSchema = z.object({
-  targetType: FollowableTargetTypeSchema,
-  targetId: documentIdSegmentSchema.max(128),
-}).strict();
+export const UnfollowTargetInputSchema = z
+  .object({
+    targetType: FollowableTargetTypeSchema,
+    targetId: documentIdSegmentSchema.max(128),
+  })
+  .strict();
 export type UnfollowTargetInput = z.infer<typeof UnfollowTargetInputSchema>;
 
-export const AddToMentionHistoryInputSchema = z.object({
-  mention: MentionSchema,
-}).strict();
+export const AddToMentionHistoryInputSchema = z
+  .object({
+    mention: MentionSchema,
+  })
+  .strict();
 export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSchema>;
 
 // Each listed mention's placeholder appears in the text exactly once.
-export const CreateSquareStreetzTextPostInputSchema = z.object({
-  textContent: SquareStreetzPostTextSchema,
-  mentions: SquareStreetzPostMentionsSchema.optional(),
-}).strict().superRefine((input, ctx) => refineMentionCorrespondence(input.textContent, input.mentions, ctx));
-export type CreateSquareStreetzTextPostInput = z.infer<typeof CreateSquareStreetzTextPostInputSchema>;
+export const CreateSquareStreetzTextPostInputSchema = z
+  .object({
+    textContent: SquareStreetzPostTextSchema,
+    mentions: SquareStreetzPostMentionsSchema.optional(),
+  })
+  .strict()
+  .superRefine((input, ctx) => refineMentionCorrespondence(input.textContent, input.mentions, ctx));
+export type CreateSquareStreetzTextPostInput = z.infer<
+  typeof CreateSquareStreetzTextPostInputSchema
+>;
 
 // --- Authoritative mutation RESULTS -----------------------------------------
 // The no-optimistic-updates client patches these straight into its React Query
@@ -101,6 +113,3 @@ export const UnfollowTargetResultSchema = z.object({
   wasFollowing: z.boolean(),
 });
 export type UnfollowTargetResult = z.infer<typeof UnfollowTargetResultSchema>;
-
-
-

@@ -57,13 +57,34 @@ describe('NotificationType + catalog', () => {
   });
 
   it('maps category + delivery per the design table', () => {
-    expect(NOTIFICATION_TYPE_CATALOG.content_report).toMatchObject({ category: 'admin', delivery: 'realtime' });
-    expect(NOTIFICATION_TYPE_CATALOG.guild_invite).toMatchObject({ category: 'user', delivery: 'queued' });
-    expect(NOTIFICATION_TYPE_CATALOG.admin_dispatch_reply).toMatchObject({ category: 'user', delivery: 'realtime' });
-    expect(NOTIFICATION_TYPE_CATALOG.threshold_library_submission).toMatchObject({ category: 'admin', delivery: 'queued' });
-    expect(NOTIFICATION_TYPE_CATALOG.admin_announcement).toMatchObject({ category: 'user', delivery: 'queued' });
-    expect(NOTIFICATION_TYPE_CATALOG.report_action_taken).toMatchObject({ category: 'user', delivery: 'queued' });
-    expect(NOTIFICATION_TYPE_CATALOG.content_appeal_reviewed).toMatchObject({ category: 'user', delivery: 'queued' });
+    expect(NOTIFICATION_TYPE_CATALOG.content_report).toMatchObject({
+      category: 'admin',
+      delivery: 'realtime',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.guild_invite).toMatchObject({
+      category: 'user',
+      delivery: 'queued',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.admin_dispatch_reply).toMatchObject({
+      category: 'user',
+      delivery: 'realtime',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.threshold_library_submission).toMatchObject({
+      category: 'admin',
+      delivery: 'queued',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.admin_announcement).toMatchObject({
+      category: 'user',
+      delivery: 'queued',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.report_action_taken).toMatchObject({
+      category: 'user',
+      delivery: 'queued',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.content_appeal_reviewed).toMatchObject({
+      category: 'user',
+      delivery: 'queued',
+    });
   });
 
   it('accepts the three channel values', () => {
@@ -76,120 +97,150 @@ describe('NotificationType + catalog', () => {
 
 describe('NotificationMetadataByType', () => {
   it('validates each per-type payload', () => {
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'content_report',
-      // reportedItemType is the canonical ReportableItemType enum, so a non-canonical value fails.
-      reportGroupId: 'rg1',
-      reportedItemType: 'hall-library-item',
-      reportedItemId: 'tale1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'content_report',
+        // reportedItemType is the canonical ReportableItemType enum, so a non-canonical value fails.
+        reportGroupId: 'rg1',
+        reportedItemType: 'hall-library-item',
+        reportedItemId: 'tale1',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'content_report',
-      reportGroupId: 'rg1',
-      reportedItemType: 'tale',
-      reportedItemId: 'tale1',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'content_report',
+        reportGroupId: 'rg1',
+        reportedItemType: 'tale',
+        reportedItemId: 'tale1',
+      }).success,
+    ).toBe(false);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'guild_invite',
-      workProjectId: 'wp1',
-      guildInviteId: 'gi1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'guild_invite',
+        workProjectId: 'wp1',
+        guildInviteId: 'gi1',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'admin_dispatch_reply',
-      adminDispatchId: 'ad1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'admin_dispatch_reply',
+        adminDispatchId: 'ad1',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'threshold_library_submission',
-      thresholdItemId: 'ti1',
-      hallItemId: 'hi1',
-      workProjectId: 'wp1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'threshold_library_submission',
+        thresholdItemId: 'ti1',
+        hallItemId: 'hi1',
+        workProjectId: 'wp1',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'admin_announcement',
-      title: 'Heads up',
-      message: 'Maintenance tonight.',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'admin_announcement',
+        title: 'Heads up',
+        message: 'Maintenance tonight.',
+      }).success,
+    ).toBe(true);
 
     // Appellant feedback — both decisions valid; anything else rejected.
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'content_appeal_reviewed',
-      appealId: 'ap1',
-      decision: 'approved',
-    }).success).toBe(true);
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'content_appeal_reviewed',
-      appealId: 'ap1',
-      decision: 'denied',
-    }).success).toBe(true);
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'content_appeal_reviewed',
-      appealId: 'ap1',
-      decision: 'pending',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'content_appeal_reviewed',
+        appealId: 'ap1',
+        decision: 'approved',
+      }).success,
+    ).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'content_appeal_reviewed',
+        appealId: 'ap1',
+        decision: 'denied',
+      }).success,
+    ).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'content_appeal_reviewed',
+        appealId: 'ap1',
+        decision: 'pending',
+      }).success,
+    ).toBe(false);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'threshold_library_reviewed',
-      thresholdItemId: 'ti1',
-      hallItemId: 'hi1',
-      workProjectId: 'wp1',
-      workProjectType: 'Tunes',
-      itemId: 'song-1',
-      decision: 'needs_revision',
-      adminNotes: 'please fix',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'threshold_library_reviewed',
+        thresholdItemId: 'ti1',
+        hallItemId: 'hi1',
+        workProjectId: 'wp1',
+        workProjectType: 'Tunes',
+        itemId: 'song-1',
+        decision: 'needs_revision',
+        adminNotes: 'please fix',
+      }).success,
+    ).toBe(true);
 
     // adminNotes is nullable — the writer sends null when the reviewer left none.
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'threshold_library_reviewed',
-      thresholdItemId: 'ti1',
-      hallItemId: 'hi1',
-      workProjectId: 'wp1',
-      workProjectType: 'Tales',
-      itemId: 'ch-1',
-      decision: 'needs_revision',
-      adminNotes: null,
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'threshold_library_reviewed',
+        thresholdItemId: 'ti1',
+        hallItemId: 'hi1',
+        workProjectId: 'wp1',
+        workProjectType: 'Tales',
+        itemId: 'ch-1',
+        decision: 'needs_revision',
+        adminNotes: null,
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'hall_content_change_request_resolved',
-      changeRequestId: 'cr1',
-      hallItemId: 'hi1',
-      workProjectId: 'wp1',
-      decision: 'denied',
-      resolutionReason: 'title mismatch',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'hall_content_change_request_resolved',
+        changeRequestId: 'cr1',
+        hallItemId: 'hi1',
+        workProjectId: 'wp1',
+        decision: 'denied',
+        resolutionReason: 'title mismatch',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'hall_content_change_request_resolved',
-      changeRequestId: 'cr1',
-      hallItemId: 'hi1',
-      workProjectId: 'wp1',
-      decision: 'approved',
-      resolutionReason: null,
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'hall_content_change_request_resolved',
+        changeRequestId: 'cr1',
+        hallItemId: 'hi1',
+        workProjectId: 'wp1',
+        decision: 'approved',
+        resolutionReason: null,
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'followed_content_published',
-      workProjectId: 'wp1',
-      workTitle: 'My Work',
-      hallItemId: 'hi1',
-      hallItemTitle: 'My Hall Item',
-      hallSubItemType: 'chapter',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'followed_content_published',
+        workProjectId: 'wp1',
+        workTitle: 'My Work',
+        hallItemId: 'hi1',
+        hallItemTitle: 'My Hall Item',
+        hallSubItemType: 'chapter',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'member_content_published',
-      workProjectId: 'wp1',
-      workTitle: 'My Work',
-      hallItemId: 'hi1',
-      hallItemTitle: 'My Hall Item',
-      hallSubItemType: 'track',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'member_content_published',
+        workProjectId: 'wp1',
+        workTitle: 'My Work',
+        hallItemId: 'hi1',
+        hallItemTitle: 'My Hall Item',
+        hallSubItemType: 'track',
+      }).success,
+    ).toBe(true);
 
     // Hall publication may release the Work's Realm; both publish types carry the released
     // Realm id optionally so the client can refresh the Realm lookup on arrival.
@@ -202,27 +253,37 @@ describe('NotificationMetadataByType', () => {
         hallItemTitle: 'My Hall Item',
         hallSubItemType: 'chapter',
       };
-      expect(NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: 'wr1' }).success).toBe(true);
-      expect(NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: '' }).success).toBe(false);
+      expect(
+        NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: 'wr1' }).success,
+      ).toBe(true);
+      expect(NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: '' }).success).toBe(
+        false,
+      );
     }
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'followed_craft_skill_published',
-      artisanUid: 'u1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'followed_craft_skill_published',
+        artisanUid: 'u1',
+      }).success,
+    ).toBe(true);
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'report_action_taken',
-      reportId: 'r1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'report_action_taken',
+        reportId: 'r1',
+      }).success,
+    ).toBe(true);
 
     // Privacy ceiling: reporter-feedback metadata must never carry fields that
     // identify the reported user/content/remedy.
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'report_action_taken',
-      reportId: 'r1',
-      reportedItemId: 'nope',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'report_action_taken',
+        reportId: 'r1',
+        reportedItemId: 'nope',
+      }).success,
+    ).toBe(false);
   });
 
   it('validates the realm-file promotion payloads', () => {
@@ -234,148 +295,214 @@ describe('NotificationMetadataByType', () => {
       requestId: 'req1',
     };
 
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'realm_file_share_requested',
-      ...requestBase,
-      requestedByUid: 'admin1',
-    }).success).toBe(true);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'realm_file_share_requested',
+        ...requestBase,
+        requestedByUid: 'admin1',
+      }).success,
+    ).toBe(true);
 
     // The recorded requester is required — a resolution addressed by guesswork (e.g. the
     // uploader instead of the promoting file admin) would reach the wrong person.
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'realm_file_share_requested',
-      ...requestBase,
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'realm_file_share_requested',
+        ...requestBase,
+      }).success,
+    ).toBe(false);
 
     for (const resolution of ['approved', 'declined', 'withdrawn']) {
-      expect(NotificationMetadataByTypeSchema.safeParse({
+      expect(
+        NotificationMetadataByTypeSchema.safeParse({
+          type: 'realm_file_share_resolved',
+          ...requestBase,
+          resolution,
+        }).success,
+        resolution,
+      ).toBe(true);
+    }
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
         type: 'realm_file_share_resolved',
         ...requestBase,
-        resolution,
-      }).success, resolution).toBe(true);
-    }
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'realm_file_share_resolved',
-      ...requestBase,
-      resolution: 'pending',
-    }).success).toBe(false);
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'realm_file_share_resolved',
-      ...requestBase,
-    }).success).toBe(false);
+        resolution: 'pending',
+      }).success,
+    ).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'realm_file_share_resolved',
+        ...requestBase,
+      }).success,
+    ).toBe(false);
 
     // The request id is the occurrence identity — without it there is no dedup key.
     const { requestId: _omitted, ...noRequestId } = requestBase;
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'realm_file_share_resolved',
-      ...noRequestId,
-      resolution: 'approved',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'realm_file_share_resolved',
+        ...noRequestId,
+        resolution: 'approved',
+      }).success,
+    ).toBe(false);
 
     // Display-identity snapshots are structurally inexpressible (strict).
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'realm_file_share_requested',
-      ...requestBase,
-      requestedByUid: 'admin1',
-      realmTitle: 'My Realm',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'realm_file_share_requested',
+        ...requestBase,
+        requestedByUid: 'admin1',
+        realmTitle: 'My Realm',
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects a payload whose fields do not match its discriminant', () => {
     // guild_invite fields under content_report → invalid.
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'content_report',
-      workProjectId: 'wp1',
-      guildInviteId: 'gi1',
-      workTitle: 'x',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'content_report',
+        workProjectId: 'wp1',
+        guildInviteId: 'gi1',
+        workTitle: 'x',
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects unknown extra keys (strict)', () => {
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'admin_dispatch_reply',
-      adminDispatchId: 'ad1',
-      extra: 'nope',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'admin_dispatch_reply',
+        adminDispatchId: 'ad1',
+        extra: 'nope',
+      }).success,
+    ).toBe(false);
   });
 });
 
 describe('a guild invite notification carries ids only', () => {
   it('refuses a Work title snapshot — the title resolves from the Work id when the card renders', () => {
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'guild_invite',
-      workProjectId: 'wp1',
-      guildInviteId: 'gi1',
-      workTitle: 'My Work',
-    }).success).toBe(false);
+    expect(
+      NotificationMetadataByTypeSchema.safeParse({
+        type: 'guild_invite',
+        workProjectId: 'wp1',
+        guildInviteId: 'gi1',
+        workTitle: 'My Work',
+      }).success,
+    ).toBe(false);
   });
 });
 
 describe('validateNotificationMetadata', () => {
   it('accepts metadata that matches its type and answers it typed', () => {
-    const parsed = validateNotificationMetadata('guild_invite', { workProjectId: 'wp1', guildInviteId: 'gi1' });
+    const parsed = validateNotificationMetadata('guild_invite', {
+      workProjectId: 'wp1',
+      guildInviteId: 'gi1',
+    });
     expect(parsed).toEqual({ type: 'guild_invite', workProjectId: 'wp1', guildInviteId: 'gi1' });
   });
 
   it('refuses metadata that does not match its type', () => {
     expect(() => validateNotificationMetadata('guild_invite', { workProjectId: 'wp1' })).toThrow();
-    expect(() => validateNotificationMetadata('admin_dispatch_reply', { workProjectId: 'wp1', guildInviteId: 'gi1' })).toThrow();
     expect(() =>
-      validateNotificationMetadata('admin_dispatch_reply', { adminDispatchId: 'ad1', extra: 'nope' }),
+      validateNotificationMetadata('admin_dispatch_reply', {
+        workProjectId: 'wp1',
+        guildInviteId: 'gi1',
+      }),
+    ).toThrow();
+    expect(() =>
+      validateNotificationMetadata('admin_dispatch_reply', {
+        adminDispatchId: 'ad1',
+        extra: 'nope',
+      }),
     ).toThrow();
   });
 
   it('refuses metadata that carries its own type, which would hide the type it is sent as', () => {
     expect(() =>
-      validateNotificationMetadata('admin_dispatch_reply', { type: 'guild_invite', workProjectId: 'wp1', guildInviteId: 'gi1' }),
+      validateNotificationMetadata('admin_dispatch_reply', {
+        type: 'guild_invite',
+        workProjectId: 'wp1',
+        guildInviteId: 'gi1',
+      }),
     ).toThrow();
   });
 });
 
 describe('BroadcastAudienceSelector', () => {
   it('parses every selector variant', () => {
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allActiveUsers' }).success).toBe(true);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: ['u1', 'u2'] }).success).toBe(true);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'workMembers', workProjectId: 'wp1' }).success).toBe(true);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'realmMembers', workRealmId: 'wr1' }).success).toBe(true);
+    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allActiveUsers' }).success).toBe(
+      true,
+    );
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: ['u1', 'u2'] })
+        .success,
+    ).toBe(true);
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({ kind: 'workMembers', workProjectId: 'wp1' })
+        .success,
+    ).toBe(true);
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({ kind: 'realmMembers', workRealmId: 'wr1' })
+        .success,
+    ).toBe(true);
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allArtisans' }).success).toBe(true);
   });
 
   it('rejects an empty explicit uid list and extra fields on allArtisans', () => {
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: [] }).success).toBe(false);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allArtisans', tradeProfession: 'Director' }).success).toBe(false);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'somethingElse' }).success).toBe(false);
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: [] }).success,
+    ).toBe(false);
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({
+        kind: 'allArtisans',
+        tradeProfession: 'Director',
+      }).success,
+    ).toBe(false);
+    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'somethingElse' }).success).toBe(
+      false,
+    );
   });
 
   it('enforces the ≤2000 explicit-uid audience cap', () => {
     const uids = (n: number) => Array.from({ length: n }, (_, i) => `u${i}`);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: uids(2000) }).success).toBe(true);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: uids(2001) }).success).toBe(false);
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: uids(2000) }).success,
+    ).toBe(true);
+    expect(
+      BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: uids(2001) }).success,
+    ).toBe(false);
   });
 });
 
 describe('callable input schemas', () => {
   it('validates createNotificationBroadcast input', () => {
-    expect(CreateNotificationBroadcastInputSchema.safeParse({
-      requestId: 'req-1',
-      selector: { kind: 'allActiveUsers' },
-      title: 'Hi',
-      message: 'Welcome to launch.',
-    }).success).toBe(true);
+    expect(
+      CreateNotificationBroadcastInputSchema.safeParse({
+        requestId: 'req-1',
+        selector: { kind: 'allActiveUsers' },
+        title: 'Hi',
+        message: 'Welcome to launch.',
+      }).success,
+    ).toBe(true);
 
     // Missing the required idempotency key is rejected.
-    expect(CreateNotificationBroadcastInputSchema.safeParse({
-      selector: { kind: 'allActiveUsers' },
-      title: 'Hi',
-      message: 'Welcome to launch.',
-    }).success).toBe(false);
+    expect(
+      CreateNotificationBroadcastInputSchema.safeParse({
+        selector: { kind: 'allActiveUsers' },
+        title: 'Hi',
+        message: 'Welcome to launch.',
+      }).success,
+    ).toBe(false);
 
-    expect(CreateNotificationBroadcastInputSchema.safeParse({
-      requestId: 'req-1',
-      selector: { kind: 'allActiveUsers' },
-      title: '',
-      message: 'x',
-    }).success).toBe(false);
+    expect(
+      CreateNotificationBroadcastInputSchema.safeParse({
+        requestId: 'req-1',
+        selector: { kind: 'allActiveUsers' },
+        title: '',
+        message: 'x',
+      }).success,
+    ).toBe(false);
   });
 
   it('validates markNotificationsSeen input (user only)', () => {
@@ -405,9 +532,7 @@ describe('MarkNotificationsSeenObservedInputSchema', () => {
   it('accepts a valid single-item payload', () => {
     const result = MarkNotificationsSeenObservedInputSchema.safeParse({
       category: 'user',
-      items: [
-        { activeId: 'notif-abc', observedActivityGeneration: 'gen-uuid-1' },
-      ],
+      items: [{ activeId: 'notif-abc', observedActivityGeneration: 'gen-uuid-1' }],
     });
     expect(result.success).toBe(true);
   });
@@ -417,14 +542,18 @@ describe('MarkNotificationsSeenObservedInputSchema', () => {
       activeId: `notif-${i}`,
       observedActivityGeneration: `gen-${i}`,
     }));
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({ category: 'user', items }).success).toBe(true);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({ category: 'user', items }).success,
+    ).toBe(true);
   });
 
   it('rejects an empty items array', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'user',
-      items: [],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'user',
+        items: [],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects when items exceeds the page limit (51 items)', () => {
@@ -432,50 +561,64 @@ describe('MarkNotificationsSeenObservedInputSchema', () => {
       activeId: `notif-${i}`,
       observedActivityGeneration: `gen-${i}`,
     }));
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({ category: 'user', items }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({ category: 'user', items }).success,
+    ).toBe(false);
   });
 
   it('rejects category "admin" — shared admin has no per-admin seen state', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'admin',
-      items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'admin',
+        items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects an item with a missing activeId', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'user',
-      items: [{ observedActivityGeneration: 'g1' }],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'user',
+        items: [{ observedActivityGeneration: 'g1' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects an item with a missing observedActivityGeneration', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'user',
-      items: [{ activeId: 'n1' }],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'user',
+        items: [{ activeId: 'n1' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects an item with an empty activeId string', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'user',
-      items: [{ activeId: '', observedActivityGeneration: 'g1' }],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'user',
+        items: [{ activeId: '', observedActivityGeneration: 'g1' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects unknown extra fields on the top-level object (strict)', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'user',
-      items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
-      extra: 'nope',
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'user',
+        items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
+        extra: 'nope',
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects unknown extra fields inside an item (strict)', () => {
-    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
-      category: 'user',
-      items: [{ activeId: 'n1', observedActivityGeneration: 'g1', extra: 'nope' }],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenObservedInputSchema.safeParse({
+        category: 'user',
+        items: [{ activeId: 'n1', observedActivityGeneration: 'g1', extra: 'nope' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('infers the correct TypeScript type', () => {
@@ -487,54 +630,97 @@ describe('MarkNotificationsSeenObservedInputSchema', () => {
 });
 
 describe('ArchiveNotificationObservedInputSchema', () => {
-  const single = { kind: 'single', notificationId: 'notif-abc', observedActivityGeneration: 'gen-uuid-1' };
+  const single = {
+    kind: 'single',
+    notificationId: 'notif-abc',
+    observedActivityGeneration: 'gen-uuid-1',
+  };
 
   it('accepts a single-scope payload', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', scope: single }).success).toBe(true);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', scope: single }).success,
+    ).toBe(true);
   });
 
   it('accepts an all-scope payload — no observedActivityGeneration at top level', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', scope: { kind: 'all' } }).success).toBe(true);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', scope: { kind: 'all' } })
+        .success,
+    ).toBe(true);
   });
 
   it('names no category: the callable decides whose cards are archived', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', category: 'admin', scope: single }).success).toBe(false);
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', category: 'user', scope: single }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        category: 'admin',
+        scope: single,
+      }).success,
+    ).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        category: 'user',
+        scope: single,
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects a missing or empty requestId', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ scope: { kind: 'all' } }).success).toBe(false);
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: '', scope: { kind: 'all' } }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({ scope: { kind: 'all' } }).success,
+    ).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({ requestId: '', scope: { kind: 'all' } })
+        .success,
+    ).toBe(false);
   });
 
   it('rejects single scope missing notificationId', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({
-      requestId: 'r1',
-      scope: { kind: 'single', observedActivityGeneration: 'g1' },
-    }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        scope: { kind: 'single', observedActivityGeneration: 'g1' },
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects single scope missing observedActivityGeneration', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({
-      requestId: 'r1',
-      scope: { kind: 'single', notificationId: 'n1' },
-    }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        scope: { kind: 'single', notificationId: 'n1' },
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects all scope with an extra observedActivityGeneration field (strict)', () => {
     // archive-all carries no single generation; reject extra fields.
-    expect(ArchiveNotificationObservedInputSchema.safeParse({
-      requestId: 'r1',
-      scope: { kind: 'all', observedActivityGeneration: 'g1' },
-    }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        scope: { kind: 'all', observedActivityGeneration: 'g1' },
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects unknown extra fields on the top-level object (strict)', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', scope: { kind: 'all' }, extra: 'nope' }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        scope: { kind: 'all' },
+        extra: 'nope',
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects an unknown scope kind', () => {
-    expect(ArchiveNotificationObservedInputSchema.safeParse({ requestId: 'r1', scope: { kind: 'category' } }).success).toBe(false);
+    expect(
+      ArchiveNotificationObservedInputSchema.safeParse({
+        requestId: 'r1',
+        scope: { kind: 'category' },
+      }).success,
+    ).toBe(false);
   });
 
   it('infers the correct TypeScript type', () => {
@@ -550,7 +736,9 @@ describe('ArchiveNotificationObservedInputSchema', () => {
 describe('EnqueueArchiveAllInputSchema', () => {
   it('accepts a request id and names no category: the callable decides which tab is cleared', () => {
     expect(EnqueueArchiveAllInputSchema.safeParse({ requestId: 'r1' }).success).toBe(true);
-    expect(EnqueueArchiveAllInputSchema.safeParse({ requestId: 'r1', category: 'admin' }).success).toBe(false);
+    expect(
+      EnqueueArchiveAllInputSchema.safeParse({ requestId: 'r1', category: 'admin' }).success,
+    ).toBe(false);
   });
 });
 
@@ -558,10 +746,12 @@ describe('MarkNotificationsSeenInputSchema (category-wide)', () => {
   it('requires category user and takes no observed items', () => {
     expect(MarkNotificationsSeenInputSchema.safeParse({ category: 'user' }).success).toBe(true);
     expect(MarkNotificationsSeenInputSchema.safeParse({ category: 'admin' }).success).toBe(false);
-    expect(MarkNotificationsSeenInputSchema.safeParse({
-      category: 'user',
-      items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
-    }).success).toBe(false);
+    expect(
+      MarkNotificationsSeenInputSchema.safeParse({
+        category: 'user',
+        items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
+      }).success,
+    ).toBe(false);
   });
 });
 
@@ -577,26 +767,35 @@ describe('fanout dead-letter repair contracts', () => {
 
   it('reads the row the inventory callable returns, with a numeric priority as the job stores it', () => {
     expect(DeadLetteredFanoutJobRowSchema.parse(row)).toEqual(row);
-    expect(DeadLetteredFanoutJobRowSchema.safeParse({ ...row, priority: 'high' }).success).toBe(false);
+    expect(DeadLetteredFanoutJobRowSchema.safeParse({ ...row, priority: 'high' }).success).toBe(
+      false,
+    );
     expect(DeadLetteredFanoutJobRowSchema.safeParse({ ...row, priority: 3 }).success).toBe(false);
   });
 
   it('accepts a job with no recorded park time or error', () => {
     expect(
-      DeadLetteredFanoutJobRowSchema.safeParse({ ...row, deadLetteredAt: null, lastError: null, ageMs: null }).success,
+      DeadLetteredFanoutJobRowSchema.safeParse({
+        ...row,
+        deadLetteredAt: null,
+        lastError: null,
+        ageMs: null,
+      }).success,
     ).toBe(true);
   });
 
   it('wraps the rows in the inventory result', () => {
     expect(ListDeadLetteredFanoutJobsResultSchema.parse({ jobs: [row] }).jobs).toHaveLength(1);
-    expect(ListDeadLetteredFanoutJobsResultSchema.safeParse({ jobs: [{ jobId: 'x' }] }).success).toBe(false);
+    expect(
+      ListDeadLetteredFanoutJobsResultSchema.safeParse({ jobs: [{ jobId: 'x' }] }).success,
+    ).toBe(false);
   });
 
   it('reports a re-arm with a reason only when nothing was resumed', () => {
     expect(ResumeFanoutJobResultSchema.parse({ resumed: true })).toEqual({ resumed: true });
-    expect(ResumeFanoutJobResultSchema.parse({ resumed: false, reason: 'not-dead-lettered' }).reason).toBe(
-      'not-dead-lettered',
-    );
+    expect(
+      ResumeFanoutJobResultSchema.parse({ resumed: false, reason: 'not-dead-lettered' }).reason,
+    ).toBe('not-dead-lettered');
     expect(ResumeFanoutJobResultSchema.safeParse({ reason: 'x' }).success).toBe(false);
   });
 });

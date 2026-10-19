@@ -62,9 +62,9 @@ describe('normalizedTargetKey', () => {
     expect(normalizedTargetKey({ kind: 'hallItem', hallItemId: 'h1' })).toBe(
       `hallItem${SEP}h1${SEP}`,
     );
-    expect(
-      normalizedTargetKey({ kind: 'hallItem', hallItemId: 'h1', subItemId: 's2' }),
-    ).toBe(`hallItem${SEP}h1${SEP}s2`);
+    expect(normalizedTargetKey({ kind: 'hallItem', hallItemId: 'h1', subItemId: 's2' })).toBe(
+      `hallItem${SEP}h1${SEP}s2`,
+    );
   });
 
   it('normalizes the external url so trivially-different spellings collapse', () => {
@@ -82,9 +82,7 @@ describe('normalizedTargetKey', () => {
 
 describe('normalizeExternalUrl', () => {
   it('trims + lowercases scheme/host while preserving the path case', () => {
-    expect(normalizeExternalUrl('  HTTPS://Example.COM/Path  ')).toBe(
-      'https://example.com/Path',
-    );
+    expect(normalizeExternalUrl('  HTTPS://Example.COM/Path  ')).toBe('https://example.com/Path');
   });
 
   it('lowercases + trims a non-parseable string without throwing', () => {
@@ -135,9 +133,7 @@ describe('cumulativeSnapshotHash', () => {
       suppliedFieldCodes: ['contactEmail', 'nonconsentStatement'],
     });
     expect(a).toBe(b);
-    expect(a).toBe(
-      'ee91e6ed98df7ccb65ea1a85aa5cca30f1d5cb42ec08c8dcb7378f4d38651c21',
-    );
+    expect(a).toBe('ee91e6ed98df7ccb65ea1a85aa5cca30f1d5cb42ec08c8dcb7378f4d38651c21');
   });
 
   it('changes when the requester role changes', () => {

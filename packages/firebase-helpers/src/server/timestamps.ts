@@ -1,4 +1,4 @@
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 /** Firestore server timestamp (Admin SDK) */
 export const serverNow = () => FieldValue.serverTimestamp();

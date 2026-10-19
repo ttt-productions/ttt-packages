@@ -1,8 +1,14 @@
-import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from "firebase/app";
-import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence, type Auth } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
-import { getStorage, connectStorageEmulator, type FirebaseStorage } from "firebase/storage";
-import { getFunctions, connectFunctionsEmulator, type Functions } from "firebase/functions";
+import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import {
+  getAuth,
+  connectAuthEmulator,
+  setPersistence,
+  browserLocalPersistence,
+  type Auth,
+} from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator, type FirebaseStorage } from 'firebase/storage';
+import { getFunctions, connectFunctionsEmulator, type Functions } from 'firebase/functions';
 
 export interface EmulatorPorts {
   auth?: number;
@@ -30,7 +36,7 @@ export interface FirebaseClientHandles {
 }
 
 let cached: FirebaseClientHandles | undefined;
-const EMULATOR_FLAG = "__FIREBASE_EMULATORS_CONNECTED__";
+const EMULATOR_FLAG = '__FIREBASE_EMULATORS_CONNECTED__';
 
 /**
  * Idempotent client Firebase initializer.
@@ -50,10 +56,10 @@ export function initFirebaseClient(
   const storage = getStorage(app);
   const functions = getFunctions(app);
 
-  if (options.useEmulators && typeof window !== "undefined") {
+  if (options.useEmulators && typeof window !== 'undefined') {
     const flagged = (globalThis as Record<string, unknown>)[EMULATOR_FLAG];
     if (!flagged) {
-      const host = options.emulatorPorts?.host ?? "localhost";
+      const host = options.emulatorPorts?.host ?? 'localhost';
       const ports = options.emulatorPorts ?? {};
       if (options.useBrowserLocalPersistence) {
         setPersistence(auth, browserLocalPersistence).catch(() => {});

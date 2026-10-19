@@ -44,4 +44,11 @@ export const FIXTURE_MEDIA_PACKAGE = '@fixture/media';
 
 /** The `packageDeclarations` reader the fixtures hand the analyzer. */
 export const fixturePackageDeclarations = (packageName) =>
-  packageName === FIXTURE_MEDIA_PACKAGE ? [{ file: 'node_modules/@fixture/media/dist/pending-media-lifecycle.d.ts', text: MEDIA_DECLARATIONS }] : [];
+  packageName === FIXTURE_MEDIA_PACKAGE
+    ? [
+        {
+          file: 'node_modules/@fixture/media/dist/pending-media-lifecycle.d.ts',
+          text: MEDIA_DECLARATIONS,
+        },
+      ]
+    : [];

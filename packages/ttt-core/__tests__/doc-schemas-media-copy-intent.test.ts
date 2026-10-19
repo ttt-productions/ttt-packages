@@ -59,30 +59,45 @@ describe('MediaCopyIntentSchema', () => {
   });
 
   it('rejects an unclaimed intent carrying a claim time', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapClaimedAt: 1_701_000_000_000 }).success).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, reapClaimedAt: 1_701_000_000_000 }).success,
+    ).toBe(false);
   });
 
   it('takes its owner type from the canonical media-asset owner types', () => {
     for (const ownerType of MediaAssetOwnerTypeSchema.options) {
       expect(MediaCopyIntentSchema.safeParse({ ...copying, ownerType }).success).toBe(true);
     }
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, ownerType: 'hallItems' }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, ownerType: 'hallItems' }).success).toBe(
+      false,
+    );
   });
 
   it('names variants from the canonical variant keys, each at most once, and at least one', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: [...MEDIA_VARIANT_KEYS] }).success).toBe(true);
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['thumbnail'] }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['main', 'main'] }).success).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: [...MEDIA_VARIANT_KEYS] }).success,
+    ).toBe(true);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['thumbnail'] }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['main', 'main'] }).success,
+    ).toBe(false);
     expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: [] }).success).toBe(false);
   });
 
   it("names a video's poster frame, so a copy of a video with a poster can record every object it writes", () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['main', 'poster'] }).success).toBe(true);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['main', 'poster'] }).success,
+    ).toBe(true);
   });
 
   it('never stores an object key in place of a variant name', () => {
     expect(
-      MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['mediaAssets/copy-asset-1/main'] }).success,
+      MediaCopyIntentSchema.safeParse({
+        ...copying,
+        variantKeys: ['mediaAssets/copy-asset-1/main'],
+      }).success,
     ).toBe(false);
   });
 
@@ -93,9 +108,15 @@ describe('MediaCopyIntentSchema', () => {
   });
 
   it('stores its times as epoch milliseconds, never a Firestore Timestamp (ARCH-105)', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, createdAt: ts(1_700_000_000_000) }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...reaping, reapClaimedAt: ts(1_701_000_000_000) }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: ts(copying.reapAfter) }).success).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, createdAt: ts(1_700_000_000_000) }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...reaping, reapClaimedAt: ts(1_701_000_000_000) }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: ts(copying.reapAfter) }).success,
+    ).toBe(false);
   });
 
   it('requires the time the sweep may take it up and its deferral count', () => {
@@ -106,15 +127,27 @@ describe('MediaCopyIntentSchema', () => {
   });
 
   it('parses an intent the sweep deferred, in either state, with its due time pushed out', () => {
-    const deferredClaim = { ...reaping, reapAfter: reaping.reapClaimedAt + DAY_MS, reapAttemptCount: 1 };
+    const deferredClaim = {
+      ...reaping,
+      reapAfter: reaping.reapClaimedAt + DAY_MS,
+      reapAttemptCount: 1,
+    };
     expect(MediaCopyIntentSchema.parse(deferredClaim)).toEqual(deferredClaim);
-    const deferredUnclaimed = { ...copying, reapAfter: copying.reapAfter + 2 * DAY_MS, reapAttemptCount: 2 };
+    const deferredUnclaimed = {
+      ...copying,
+      reapAfter: copying.reapAfter + 2 * DAY_MS,
+      reapAttemptCount: 2,
+    };
     expect(MediaCopyIntentSchema.parse(deferredUnclaimed)).toEqual(deferredUnclaimed);
   });
 
   it('rejects an intent due before the copy last recorded it, and accepts one due at that instant', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: copying.updatedAt - 1 }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: copying.updatedAt }).success).toBe(true);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: copying.updatedAt - 1 }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: copying.updatedAt }).success,
+    ).toBe(true);
   });
 
   it('rejects a re-recorded intent whose due time was left behind at its first recording', () => {
@@ -123,12 +156,19 @@ describe('MediaCopyIntentSchema', () => {
   });
 
   it('counts deferrals as a whole, non-negative number', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAttemptCount: -1 }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAttemptCount: 1.5 }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAttemptCount: -1 }).success).toBe(
+      false,
+    );
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAttemptCount: 1.5 }).success).toBe(
+      false,
+    );
   });
 
   it('stays strict — an undeclared field is rejected, not silently kept', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...copying, toKeys: ['mediaAssets/copy-asset-1/full'] }).success).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...copying, toKeys: ['mediaAssets/copy-asset-1/full'] })
+        .success,
+    ).toBe(false);
   });
 
   it('has exactly the two states', () => {
@@ -172,26 +212,43 @@ describe('MediaCopyIntentSchema — first ingest', () => {
   it('names the upload it ingests', () => {
     const { pendingMediaId: _pendingMediaId, ...noUpload } = ingesting;
     expect(MediaCopyIntentSchema.safeParse(noUpload).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, pendingMediaId: '' }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, pendingMediaId: '' }).success).toBe(
+      false,
+    );
   });
 
   it('carries no copy source, owner, or variant list — its objects are every canonical variant under the asset', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, sourceAssetId: 'source-asset-1' }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, ownerType: 'userProfile', ownerId: 'u1' }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, variantKeys: ['main'] }).success).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...ingesting, sourceAssetId: 'source-asset-1' }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...ingesting, ownerType: 'userProfile', ownerId: 'u1' })
+        .success,
+    ).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, variantKeys: ['main'] }).success).toBe(
+      false,
+    );
   });
 
   it('keeps the lifecycle rules of a copy intent', () => {
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, reapAfter: ingesting.updatedAt - 1 }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, reapClaimedAt: 1_701_000_000_000 }).success).toBe(false);
-    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, createdAt: ts(1_700_000_000_000) }).success).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...ingesting, reapAfter: ingesting.updatedAt - 1 }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...ingesting, reapClaimedAt: 1_701_000_000_000 }).success,
+    ).toBe(false);
+    expect(
+      MediaCopyIntentSchema.safeParse({ ...ingesting, createdAt: ts(1_700_000_000_000) }).success,
+    ).toBe(false);
   });
 });
 
 describe('mediaCopyIntents collection', () => {
   it('is registered under its path template, keyed by the new asset id', () => {
     expect(COLLECTION_SCHEMAS['mediaCopyIntents/{newAssetId}']).toBe(MediaCopyIntentSchema);
-    expect(toPath(PATH_BUILDERS.mediaCopyIntent('copy-asset-1'))).toBe('mediaCopyIntents/copy-asset-1');
+    expect(toPath(PATH_BUILDERS.mediaCopyIntent('copy-asset-1'))).toBe(
+      'mediaCopyIntents/copy-asset-1',
+    );
   });
 
   it('the collection ref is the parent of the per-document builder', () => {

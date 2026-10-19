@@ -18,7 +18,19 @@ describe('the mention placeholder grammar', () => {
     for (const ok of ['@m1', '@m2', '@m10', '@m999']) {
       expect(MentionPlaceholderSchema.safeParse(ok).success, ok).toBe(true);
     }
-    for (const bad of ['@m0', '@m01', '@m', '@mx', 'm1', '@M1', '@m1 ', ' @m1', '@m-1', '@m1.5', '@uid123']) {
+    for (const bad of [
+      '@m0',
+      '@m01',
+      '@m',
+      '@mx',
+      'm1',
+      '@M1',
+      '@m1 ',
+      ' @m1',
+      '@m-1',
+      '@m1.5',
+      '@uid123',
+    ]) {
       expect(MentionPlaceholderSchema.safeParse(bad).success, bad).toBe(false);
     }
   });
@@ -42,7 +54,9 @@ describe('the mention placeholder grammar', () => {
 
 describe('tokenizing post text', () => {
   it('splits text and listed placeholders in order', () => {
-    expect(tokenizeMentionContent('Hi @m1 and @m2!', [mention('@m1'), mention('@m2', 'u2')])).toEqual([
+    expect(
+      tokenizeMentionContent('Hi @m1 and @m2!', [mention('@m1'), mention('@m2', 'u2')]),
+    ).toEqual([
       { kind: 'text', text: 'Hi ' },
       { kind: 'mention', placeholder: '@m1' },
       { kind: 'text', text: ' and ' },
@@ -52,8 +66,12 @@ describe('tokenizing post text', () => {
   });
 
   it('@m1 never matches inside @m10', () => {
-    expect(tokenizeMentionContent('see @m10', [mention('@m1')])).toEqual([{ kind: 'text', text: 'see @m10' }]);
-    expect(tokenizeMentionContent('@m10 then @m1', [mention('@m1'), mention('@m10', 'u2')])).toEqual([
+    expect(tokenizeMentionContent('see @m10', [mention('@m1')])).toEqual([
+      { kind: 'text', text: 'see @m10' },
+    ]);
+    expect(
+      tokenizeMentionContent('@m10 then @m1', [mention('@m1'), mention('@m10', 'u2')]),
+    ).toEqual([
       { kind: 'mention', placeholder: '@m10' },
       { kind: 'text', text: ' then ' },
       { kind: 'mention', placeholder: '@m1' },
@@ -82,7 +100,9 @@ describe('tokenizing post text', () => {
 
 describe('placeholder and text correspondence', () => {
   it('each listed placeholder appearing exactly once is correspondent', () => {
-    expect(validateMentionCorrespondence('Hi @m1 and @m2', [mention('@m1'), mention('@m2', 'u2')])).toEqual([]);
+    expect(
+      validateMentionCorrespondence('Hi @m1 and @m2', [mention('@m1'), mention('@m2', 'u2')]),
+    ).toEqual([]);
   });
 
   it('a listed placeholder missing from the text is an issue', () => {
@@ -113,44 +133,71 @@ describe('the post mention list', () => {
   it('holds at most MAX_MENTIONS mentions with distinct placeholders', () => {
     const full = Array.from({ length: MAX_MENTIONS }, (_v, i) => mention(`@m${i + 1}`, `u${i}`));
     expect(SquareStreetzPostMentionsSchema.safeParse(full).success).toBe(true);
-    expect(SquareStreetzPostMentionsSchema.safeParse([...full, mention(`@m${MAX_MENTIONS + 1}`)]).success).toBe(false);
-    expect(SquareStreetzPostMentionsSchema.safeParse([mention('@m1'), mention('@m1', 'u2')]).success).toBe(false);
+    expect(
+      SquareStreetzPostMentionsSchema.safeParse([...full, mention(`@m${MAX_MENTIONS + 1}`)])
+        .success,
+    ).toBe(false);
+    expect(
+      SquareStreetzPostMentionsSchema.safeParse([mention('@m1'), mention('@m1', 'u2')]).success,
+    ).toBe(false);
   });
 });
 
 describe('the text post and post variables refuse text that does not match its mentions', () => {
   it('a text post whose mentions each appear once is accepted', () => {
     expect(
-      CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: 'Hello @m1', mentions: [mention('@m1')] }).success,
+      CreateSquareStreetzTextPostInputSchema.safeParse({
+        textContent: 'Hello @m1',
+        mentions: [mention('@m1')],
+      }).success,
     ).toBe(true);
-    expect(CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: 'Hello' }).success).toBe(true);
+    expect(CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: 'Hello' }).success).toBe(
+      true,
+    );
   });
 
   it('a text post naming a mention its text does not carry is refused at that mention', () => {
-    const parsed = CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: 'Hello', mentions: [mention('@m1')] });
+    const parsed = CreateSquareStreetzTextPostInputSchema.safeParse({
+      textContent: 'Hello',
+      mentions: [mention('@m1')],
+    });
     expect(parsed.success).toBe(false);
     expect(parsed.error?.issues[0].path).toEqual(['mentions', 0, 'placeholder']);
   });
 
   it('a text post carrying one placeholder twice is refused', () => {
     expect(
-      CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: '@m1 @m1', mentions: [mention('@m1')] }).success,
+      CreateSquareStreetzTextPostInputSchema.safeParse({
+        textContent: '@m1 @m1',
+        mentions: [mention('@m1')],
+      }).success,
     ).toBe(false);
   });
 
   it('a text post placeholder outside the grammar is refused', () => {
     expect(
-      CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: 'Hi @x', mentions: [mention('@x')] }).success,
+      CreateSquareStreetzTextPostInputSchema.safeParse({
+        textContent: 'Hi @x',
+        mentions: [mention('@x')],
+      }).success,
     ).toBe(false);
   });
 
   it('post variables apply the same rule', () => {
     const base = { userId: 'u1' };
     expect(
-      SquareStreetzPostVariablesSchema.safeParse({ ...base, content: 'Hey @m1', mentions: [mention('@m1')] }).success,
+      SquareStreetzPostVariablesSchema.safeParse({
+        ...base,
+        content: 'Hey @m1',
+        mentions: [mention('@m1')],
+      }).success,
     ).toBe(true);
     expect(
-      SquareStreetzPostVariablesSchema.safeParse({ ...base, content: 'Hey', mentions: [mention('@m1')] }).success,
+      SquareStreetzPostVariablesSchema.safeParse({
+        ...base,
+        content: 'Hey',
+        mentions: [mention('@m1')],
+      }).success,
     ).toBe(false);
   });
 });

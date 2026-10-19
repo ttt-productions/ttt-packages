@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { checkInputFormat, defineInputFormat, type InputFormatSpec } from '@ttt-productions/input-format-core';
+import {
+  checkInputFormat,
+  defineInputFormat,
+  type InputFormatSpec,
+} from '@ttt-productions/input-format-core';
 import {
   CheckoutTaskRequestSchema,
   createCheckinTaskRequestSchema,
@@ -36,9 +40,7 @@ describe('CheckoutTaskRequestSchema', () => {
     expect(() => CheckoutTaskRequestSchema.parse({ taskType: '' })).toThrow();
   });
   it('rejects unknown keys', () => {
-    expect(() =>
-      CheckoutTaskRequestSchema.parse({ taskType: 'x', extraField: true }),
-    ).toThrow();
+    expect(() => CheckoutTaskRequestSchema.parse({ taskType: 'x', extraField: true })).toThrow();
   });
 });
 
@@ -46,7 +48,9 @@ describe('createCheckinTaskRequestSchema', () => {
   const schema = createCheckinTaskRequestSchema({ resolution: textField(RESOLUTION).optional() });
 
   it('accepts a resolved checkin and keeps the resolution trimmed', () => {
-    expect(schema.parse({ taskId: 'task-1', resolved: true, resolution: '  Cleared profanity  ' })).toEqual({
+    expect(
+      schema.parse({ taskId: 'task-1', resolved: true, resolution: '  Cleared profanity  ' }),
+    ).toEqual({
       taskId: 'task-1',
       resolved: true,
       resolution: 'Cleared profanity',
@@ -60,11 +64,15 @@ describe('createCheckinTaskRequestSchema', () => {
     expect(() => schema.parse({ taskId: 'task-1' })).toThrow();
   });
   it("takes the resolution's bound from the consumer's field schema, not from the package", () => {
-    expect(() => schema.parse({ taskId: 'task-1', resolved: true, resolution: 'a'.repeat(2001) })).toThrow();
+    expect(() =>
+      schema.parse({ taskId: 'task-1', resolved: true, resolution: 'a'.repeat(2001) }),
+    ).toThrow();
     const wider = createCheckinTaskRequestSchema({
       resolution: textField(defineInputFormat({ format: 'none', min: 0, max: 5000 })).optional(),
     });
-    expect(wider.parse({ taskId: 'task-1', resolved: true, resolution: 'a'.repeat(4500) }).resolution).toHaveLength(4500);
+    expect(
+      wider.parse({ taskId: 'task-1', resolved: true, resolution: 'a'.repeat(4500) }).resolution,
+    ).toHaveLength(4500);
   });
   it('rejects unknown keys', () => {
     expect(() => schema.parse({ taskId: 'task-1', resolved: true, extra: 1 })).toThrow();
@@ -80,9 +88,7 @@ describe('ReleaseTaskRequestSchema', () => {
     expect(() => ReleaseTaskRequestSchema.parse({ taskId: '' })).toThrow();
   });
   it('rejects unknown keys', () => {
-    expect(() =>
-      ReleaseTaskRequestSchema.parse({ taskId: 't-1', force: true }),
-    ).toThrow();
+    expect(() => ReleaseTaskRequestSchema.parse({ taskId: 't-1', force: true })).toThrow();
   });
 });
 
@@ -96,7 +102,12 @@ describe('createSubmitReportRequestSchema', () => {
   };
 
   it('accepts a request with all optional fields populated', () => {
-    const full = { ...minimal, parentItemId: 'parent-1', reportedUserId: 'user-2', confirmUpgrade: true };
+    const full = {
+      ...minimal,
+      parentItemId: 'parent-1',
+      reportedUserId: 'user-2',
+      confirmUpgrade: true,
+    };
     expect(schema.parse(full)).toEqual(full);
   });
 

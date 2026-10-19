@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type { ReloadRecoveryWatch } from "../../browser/reload-recovery-watch.js";
-import type { ReloadRecoveryKind } from "../../lib/reload-recovery.js";
-import { cn } from "../../lib/utils.js";
-import { useAsyncAction } from "../hooks/use-async-action.js";
-import { Alert, AlertDescription } from "./alert.js";
-import { Button } from "./button.js";
+import * as React from 'react';
+import type { ReloadRecoveryWatch } from '../../browser/reload-recovery-watch.js';
+import type { ReloadRecoveryKind } from '../../lib/reload-recovery.js';
+import { cn } from '../../lib/utils.js';
+import { useAsyncAction } from '../hooks/use-async-action.js';
+import { Alert, AlertDescription } from './alert.js';
+import { Button } from './button.js';
 
 export interface ReloadRecoveryNoticeProps {
   /** The watch the app's client entry started. */
@@ -47,7 +47,7 @@ export function ReloadRecoveryNotice({
   return (
     <Alert
       className={cn(
-        "ui-reload-recovery-notice fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-4 rounded-none border-x-0 border-t-0",
+        'ui-reload-recovery-notice fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-4 rounded-none border-x-0 border-t-0',
         className,
       )}
     >

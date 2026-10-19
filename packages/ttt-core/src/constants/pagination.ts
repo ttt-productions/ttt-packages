@@ -73,7 +73,6 @@ export const HALL_LIBRARY_PAGE_CONSTANTS = {
   SEARCH_DEBOUNCE_MS: 300,
 } as const;
 
-
 /**
  * The notification tray's Safety Cases view shows how many safety cases are open, up to this
  * many; above it the view says `${SAFETY_CASE_TRAY_COUNT_CAP}+`. The view only signals that there
@@ -86,5 +85,7 @@ export const SAFETY_CASE_TRAY_READ_LIMIT = SAFETY_CASE_TRAY_COUNT_CAP + 1;
 
 /** The tray's open safety-case count as shown: exact up to the cap, `"100+"` above it. */
 export function formatSafetyCaseTrayCount(loadedRows: number): string {
-  return loadedRows > SAFETY_CASE_TRAY_COUNT_CAP ? `${SAFETY_CASE_TRAY_COUNT_CAP}+` : String(loadedRows);
+  return loadedRows > SAFETY_CASE_TRAY_COUNT_CAP
+    ? `${SAFETY_CASE_TRAY_COUNT_CAP}+`
+    : String(loadedRows);
 }

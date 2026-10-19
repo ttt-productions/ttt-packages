@@ -8,7 +8,9 @@ import {
 
 describe('isEmailVerificationRequiredDetails', () => {
   it('recognizes the refusal details', () => {
-    expect(isEmailVerificationRequiredDetails({ reason: EMAIL_VERIFICATION_REQUIRED_REASON })).toBe(true);
+    expect(isEmailVerificationRequiredDetails({ reason: EMAIL_VERIFICATION_REQUIRED_REASON })).toBe(
+      true,
+    );
   });
 
   it.each([
@@ -31,12 +33,16 @@ describe('isEmailVerificationRequiredError', () => {
   });
 
   it('recognizes the Firebase client callable error code', () => {
-    expect(isEmailVerificationRequiredError({ code: 'functions/failed-precondition', details })).toBe(true);
+    expect(
+      isEmailVerificationRequiredError({ code: 'functions/failed-precondition', details }),
+    ).toBe(true);
   });
 
   it('rejects a different code carrying the same details', () => {
     expect(isEmailVerificationRequiredError({ code: 'permission-denied', details })).toBe(false);
-    expect(isEmailVerificationRequiredError({ code: 'functions/unauthenticated', details })).toBe(false);
+    expect(isEmailVerificationRequiredError({ code: 'functions/unauthenticated', details })).toBe(
+      false,
+    );
   });
 
   it('rejects a failed-precondition with no details', () => {
@@ -45,7 +51,10 @@ describe('isEmailVerificationRequiredError', () => {
 
   it('never recognizes by message text', () => {
     expect(
-      isEmailVerificationRequiredError({ code: 'functions/failed-precondition', message: 'Email must be verified' }),
+      isEmailVerificationRequiredError({
+        code: 'functions/failed-precondition',
+        message: 'Email must be verified',
+      }),
     ).toBe(false);
     expect(isEmailVerificationRequiredError(new Error('Email must be verified'))).toBe(false);
   });

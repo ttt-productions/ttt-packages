@@ -1,7 +1,9 @@
 // The id of one published version of a waiver template: `v{version}`, version counting from 1.
 
 const WAIVER_TEMPLATE_VERSION_ID_PREFIX = 'v';
-const WAIVER_TEMPLATE_VERSION_ID_PATTERN = new RegExp(`^${WAIVER_TEMPLATE_VERSION_ID_PREFIX}([1-9]\\d*)$`);
+const WAIVER_TEMPLATE_VERSION_ID_PATTERN = new RegExp(
+  `^${WAIVER_TEMPLATE_VERSION_ID_PREFIX}([1-9]\\d*)$`,
+);
 
 export function buildWaiverTemplateVersionId(version: number): string {
   if (!Number.isInteger(version) || version < 1) {

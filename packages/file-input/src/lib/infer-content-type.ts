@@ -17,34 +17,34 @@
 // fact the whole pipeline then trusted. upload-core accepts the neutral type
 // only via its explicit opt-in (`allowNeutralContentType`).
 
-import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
+import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
 
-export type InferKind = "image" | "video" | "audio";
+export type InferKind = 'image' | 'video' | 'audio';
 
 const EXT_TO_MIME: Record<string, string> = {
   // image
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  gif: "image/gif",
-  webp: "image/webp",
-  avif: "image/avif",
-  heic: "image/heic",
-  heif: "image/heif",
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  heic: 'image/heic',
+  heif: 'image/heif',
   // video
-  mp4: "video/mp4",
-  m4v: "video/mp4",
-  mov: "video/quicktime",
-  webm: "video/webm",
-  mkv: "video/x-matroska",
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  mov: 'video/quicktime',
+  webm: 'video/webm',
+  mkv: 'video/x-matroska',
   // audio
-  mp3: "audio/mpeg",
-  m4a: "audio/mp4",
-  aac: "audio/aac",
-  wav: "audio/wav",
-  ogg: "audio/ogg",
-  oga: "audio/ogg",
-  flac: "audio/flac",
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
+  oga: 'audio/ogg',
+  flac: 'audio/flac',
 };
 
 // Containers that legitimately hold either audio or video. When the caller
@@ -52,14 +52,14 @@ const EXT_TO_MIME: Record<string, string> = {
 // picks the matching side; without a kind we keep the historical single-kind
 // guess in EXT_TO_MIME (webm → video, ogg → audio).
 const AMBIGUOUS_EXT_TO_MIME: Record<string, Partial<Record<InferKind, string>>> = {
-  webm: { audio: "audio/webm", video: "video/webm" },
-  ogg: { audio: "audio/ogg", video: "video/ogg" },
+  webm: { audio: 'audio/webm', video: 'video/webm' },
+  ogg: { audio: 'audio/ogg', video: 'video/ogg' },
 };
 
 const KIND_DEFAULT: Record<InferKind, string> = {
-  image: "image/jpeg",
-  video: "video/webm",
-  audio: "audio/webm",
+  image: 'image/jpeg',
+  video: 'video/webm',
+  audio: 'audio/webm',
 };
 
 const BASE_MEDIA_MIME_RE = /^(image|video|audio)\/[a-z0-9.+-]+$/;
@@ -72,17 +72,17 @@ const BASE_MEDIA_MIME_RE = /^(image|video|audio)\/[a-z0-9.+-]+$/;
  */
 function parseBaseMime(mime: string | undefined | null): string | null {
   if (!mime) return null;
-  const base = mime.split(";")[0].trim().toLowerCase();
+  const base = mime.split(';')[0].trim().toLowerCase();
   if (base === NEUTRAL_CONTENT_TYPE) return null;
   return BASE_MEDIA_MIME_RE.test(base) ? base : null;
 }
 
 function kindOfMime(base: string): InferKind {
-  return base.slice(0, base.indexOf("/")) as InferKind;
+  return base.slice(0, base.indexOf('/')) as InferKind;
 }
 
 function extOf(name: string): string | null {
-  const dot = name.lastIndexOf(".");
+  const dot = name.lastIndexOf('.');
   if (dot < 0 || dot === name.length - 1) return null;
   return name.slice(dot + 1).toLowerCase();
 }

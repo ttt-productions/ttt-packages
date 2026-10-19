@@ -69,10 +69,18 @@ export function degradedCauseId(kind: 'syncEvent' | 'fanoutJob', ref: string): P
 
 // ── chatSyncEvents eventIds ─────────────────────────────────────────────────
 
-export function channelAuthEventId(channelKeyHash: string, uid: string, channelAuthVersion: number): Promise<string> {
+export function channelAuthEventId(
+  channelKeyHash: string,
+  uid: string,
+  channelAuthVersion: number,
+): Promise<string> {
   return hash('channel-auth', channelKeyHash, uid, channelAuthVersion);
 }
-export function accountAccessEventId(uid: string, accountAccessVersion: number, channelKeyHash: string): Promise<string> {
+export function accountAccessEventId(
+  uid: string,
+  accountAccessVersion: number,
+  channelKeyHash: string,
+): Promise<string> {
   return hash('account-access', uid, accountAccessVersion, channelKeyHash);
 }
 export function configEventId(channelKeyHash: string, configVersion: number): Promise<string> {
@@ -86,7 +94,8 @@ export function serverMessageCommandId(threadRef: string, sourceDocId: string): 
 
 // ── chatSyncFanoutJobs ──────────────────────────────────────────────────────
 
-export type SyncFanoutSelectorKind = 'channelMembers' | 'workChannelsForUser' | 'policyEditAffectedUsers';
+export type SyncFanoutSelectorKind =
+  'channelMembers' | 'workChannelsForUser' | 'policyEditAffectedUsers';
 
 /**
  * `scopeKey` = `channelKey` for channelMembers/policyEditAffectedUsers, or
@@ -140,7 +149,13 @@ export function notificationArchivePayloadHash(
   category: string,
   audienceScope: string,
 ): Promise<string> {
-  return hash('notification-archive-payload', activeId, observedActivityGeneration, category, audienceScope);
+  return hash(
+    'notification-archive-payload',
+    activeId,
+    observedActivityGeneration,
+    category,
+    audienceScope,
+  );
 }
 
 // ── Moderation audit ids (append-only; create-if-absent) ────────────────────
@@ -148,10 +163,16 @@ export function notificationArchivePayloadHash(
 export function moderationRequestedAuditId(requestId: string): Promise<string> {
   return hash('chat-moderation-requested', requestId);
 }
-export function moderationAppliedAuditId(requestId: string, resultingMessageRevision: number): Promise<string> {
+export function moderationAppliedAuditId(
+  requestId: string,
+  resultingMessageRevision: number,
+): Promise<string> {
   return hash('chat-moderation-applied', requestId, resultingMessageRevision);
 }
-export function moderationFailedAuditId(requestId: string, terminalFailureGeneration: number): Promise<string> {
+export function moderationFailedAuditId(
+  requestId: string,
+  terminalFailureGeneration: number,
+): Promise<string> {
   return hash('chat-moderation-failed', requestId, terminalFailureGeneration);
 }
 
@@ -161,12 +182,20 @@ export function moderationFailedAuditId(requestId: string, terminalFailureGenera
  * The `chatParkedDeliveries` row id of one parking of one room outbox row. `parkedAt` is part of
  * the identity: a row the room parks again after a replay is a second occurrence with its own row.
  */
-export function chatParkedDeliveryId(targetDo: string, eventId: string, parkedAt: number): Promise<string> {
+export function chatParkedDeliveryId(
+  targetDo: string,
+  eventId: string,
+  parkedAt: number,
+): Promise<string> {
   return hash('chat-parked-delivery', targetDo, eventId, parkedAt);
 }
 
 // ── History anonymization ───────────────────────────────────────────────────
 
-export function chatAnonymizeJobId(channelDoId: string, epoch: number, anonymizedUid: string): Promise<string> {
+export function chatAnonymizeJobId(
+  channelDoId: string,
+  epoch: number,
+  anonymizedUid: string,
+): Promise<string> {
   return hash('chat-anonymize', channelDoId, epoch, anonymizedUid);
 }

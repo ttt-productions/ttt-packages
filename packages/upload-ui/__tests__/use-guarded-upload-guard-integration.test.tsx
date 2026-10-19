@@ -46,7 +46,10 @@ describe('useGuardedUpload — guard provider integration', () => {
   it('registers the upload before uploadFileResumable runs and unregisters after success', async () => {
     let resolveUpload!: () => void;
     uploadFileResumableMock.mockImplementation(
-      () => new Promise<void>((resolve) => { resolveUpload = resolve; }),
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUpload = resolve;
+        }),
     );
 
     const { result } = renderHook(() => useGuardedUploadAndCount(), { wrapper });
@@ -103,10 +106,16 @@ describe('useGuardedUpload — guard provider integration', () => {
 
     uploadFileResumableMock
       .mockImplementationOnce(
-        () => new Promise<void>((resolve) => { resolveA = resolve; }),
+        () =>
+          new Promise<void>((resolve) => {
+            resolveA = resolve;
+          }),
       )
       .mockImplementationOnce(
-        () => new Promise<void>((resolve) => { resolveB = resolve; }),
+        () =>
+          new Promise<void>((resolve) => {
+            resolveB = resolve;
+          }),
       );
 
     const { result } = renderHook(() => useGuardedUploadAndCount(), { wrapper });

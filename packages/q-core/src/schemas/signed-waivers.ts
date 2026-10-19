@@ -4,12 +4,23 @@
 // the records, never from the payload (MEDIA-002).
 
 import { z } from 'zod';
-import { epochMsSchema, leagueIdSchema, teamIdSchema, userIdSchema, waiverWitnessAuthoritySchema } from '../doc-schemas/atoms.js';
-import { waiverTemplateIdSchema, waiverTemplateVersionNumberSchema } from '../doc-schemas/waiver-template.js';
+import {
+  epochMsSchema,
+  leagueIdSchema,
+  teamIdSchema,
+  userIdSchema,
+  waiverWitnessAuthoritySchema,
+} from '../doc-schemas/atoms.js';
+import {
+  waiverTemplateIdSchema,
+  waiverTemplateVersionNumberSchema,
+} from '../doc-schemas/waiver-template.js';
 import { stagingUploadPathSchema } from './uploads.js';
 
 // Signing for a ghost: the ghost, and the team whose membership makes the signer its witness.
-export const ghostWaiverSubjectSchema = z.object({ ghostUserId: userIdSchema, teamId: teamIdSchema }).strict();
+export const ghostWaiverSubjectSchema = z
+  .object({ ghostUserId: userIdSchema, teamId: teamIdSchema })
+  .strict();
 
 // The wording the signer saw: the template id and version the signing dialog displayed. A signature
 // records exactly that wording, so the core refuses one whose id or version is no longer the league's
@@ -59,7 +70,9 @@ export type CreateSignedWaiverResult = z.infer<typeof CreateSignedWaiverResultSc
 // `getLeagueTeamWaiverStatuses` — a team's captain or co-captain reads whether each member of the
 // team has signed the league's waiver. Admins and referees read the records directly.
 export const GetLeagueTeamWaiverStatusesInputSchema = z.object({ teamId: teamIdSchema }).strict();
-export type GetLeagueTeamWaiverStatusesInput = z.infer<typeof GetLeagueTeamWaiverStatusesInputSchema>;
+export type GetLeagueTeamWaiverStatusesInput = z.infer<
+  typeof GetLeagueTeamWaiverStatusesInputSchema
+>;
 
 export const leagueTeamWaiverStatusSchema = z
   .object({
@@ -81,7 +94,9 @@ export const GetLeagueTeamWaiverStatusesResultSchema = z
     statuses: z.array(leagueTeamWaiverStatusSchema),
   })
   .strict();
-export type GetLeagueTeamWaiverStatusesResult = z.infer<typeof GetLeagueTeamWaiverStatusesResultSchema>;
+export type GetLeagueTeamWaiverStatusesResult = z.infer<
+  typeof GetLeagueTeamWaiverStatusesResultSchema
+>;
 
 // `getSignedWaiverFile` — the kept signature image, for its audience only. A captain or co-captain
 // names `teamId`, the team they manage, because a player may be on two teams in one league; the

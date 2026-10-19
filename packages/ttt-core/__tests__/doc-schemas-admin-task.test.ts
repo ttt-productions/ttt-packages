@@ -73,9 +73,10 @@ describe('AdminTaskDocSchema — userReport lifecycle shapes', () => {
   });
 
   it('a closure entry tolerates a null completedAt (neither survivor recorded the instant)', () => {
-    expect(
-      AdminTaskClosureHistoryEntrySchema.parse({ completedAt: null, reopenedAt: 5 }),
-    ).toEqual({ completedAt: null, reopenedAt: 5 });
+    expect(AdminTaskClosureHistoryEntrySchema.parse({ completedAt: null, reopenedAt: 5 })).toEqual({
+      completedAt: null,
+      reopenedAt: 5,
+    });
   });
 
   it('REJECTS completedAt: null on the task doc — "not completed" has exactly one representation (absent)', () => {

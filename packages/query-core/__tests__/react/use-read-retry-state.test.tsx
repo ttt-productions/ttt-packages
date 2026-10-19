@@ -112,7 +112,9 @@ describe('useReadRetryState', () => {
 
     const second = new Error('retry failed');
     await act(async () => reads.next('a').reject(second));
-    await waitFor(() => expect(result.current.state).toEqual({ error: second, isRetrying: false, isLoading: false }));
+    await waitFor(() =>
+      expect(result.current.state).toEqual({ error: second, isRetrying: false, isLoading: false }),
+    );
   });
 
   it('keeps the failure and the running retry while a retry waits for the network', async () => {
@@ -141,7 +143,9 @@ describe('useReadRetryState', () => {
     await waitFor(() => expect(result.current.state.error).toBe(failure));
 
     act(() => void result.current.query.refetch());
-    await waitFor(() => expect(result.current.state).toEqual({ error: failure, isRetrying: true, isLoading: false }));
+    await waitFor(() =>
+      expect(result.current.state).toEqual({ error: failure, isRetrying: true, isLoading: false }),
+    );
   });
 
   it('never reports a refetch of a read that has not failed as a retry', async () => {
@@ -190,11 +194,17 @@ function renderRebuiltSource(initialProps: RebuiltProps) {
 describe('useReadRetryState with a source that rebuilds its error each render', () => {
   it('shows the failure and keeps it through a retry', () => {
     const { result, rerender } = renderRebuiltSource({ code: 'unavailable', running: false });
-    expect(result.current.error).toMatchObject({ message: 'combined read failed', code: 'unavailable' });
+    expect(result.current.error).toMatchObject({
+      message: 'combined read failed',
+      code: 'unavailable',
+    });
     expect(result.current.isRetrying).toBe(false);
 
     rerender({ code: null, running: true });
-    expect(result.current.error).toMatchObject({ message: 'combined read failed', code: 'unavailable' });
+    expect(result.current.error).toMatchObject({
+      message: 'combined read failed',
+      code: 'unavailable',
+    });
     expect(result.current.isRetrying).toBe(true);
 
     rerender({ code: null, running: false });

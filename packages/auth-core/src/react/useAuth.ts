@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useContext } from "react";
-import { AuthContext } from "./AuthProvider.js";
-import type { AuthContextValue } from "./types.js";
+import { useContext } from 'react';
+import { AuthContext } from './AuthProvider.js';
+import type { AuthContextValue } from './types.js';
 
 /**
  * Access the auth context. Must be used within an AuthProvider.
@@ -11,7 +11,7 @@ import type { AuthContextValue } from "./types.js";
 export function useAuth<TClaims = Record<string, unknown>>(): AuthContextValue<TClaims> {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return ctx as AuthContextValue<TClaims>;
 }

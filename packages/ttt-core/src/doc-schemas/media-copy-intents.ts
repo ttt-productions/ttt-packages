@@ -9,7 +9,11 @@
 // objects are reaped strands those objects.
 
 import { z } from 'zod';
-import { MEDIA_VARIANT_KEYS, MediaAssetOwnerTypeSchema, MediaVariantKeySchema } from './media-assets.js';
+import {
+  MEDIA_VARIANT_KEYS,
+  MediaAssetOwnerTypeSchema,
+  MediaVariantKeySchema,
+} from './media-assets.js';
 
 export const MediaCopyIntentStateSchema = z.enum([
   'copying', // recorded before the first object is written; the write may still complete
@@ -74,13 +78,25 @@ export const MediaCopyIntentSchema = z
   .discriminatedUnion('kind', [MediaAssetCopyIntentSchema, MediaIngestIntentSchema])
   .superRefine((val, ctx) => {
     if (val.kind === 'copy' && new Set(val.variantKeys).size !== val.variantKeys.length) {
-      ctx.addIssue({ code: 'custom', path: ['variantKeys'], message: 'variantKeys names each variant at most once' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['variantKeys'],
+        message: 'variantKeys names each variant at most once',
+      });
     }
     if (val.state === 'reaping' && val.reapClaimedAt === undefined) {
-      ctx.addIssue({ code: 'custom', path: ['reapClaimedAt'], message: 'a reaping intent records when it was claimed' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['reapClaimedAt'],
+        message: 'a reaping intent records when it was claimed',
+      });
     }
     if (val.state === 'copying' && val.reapClaimedAt !== undefined) {
-      ctx.addIssue({ code: 'custom', path: ['reapClaimedAt'], message: 'a copying intent has not been claimed' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['reapClaimedAt'],
+        message: 'a copying intent has not been claimed',
+      });
     }
     if (val.reapAfter < val.updatedAt) {
       ctx.addIssue({

@@ -2,7 +2,10 @@
 // name per key, and a key for the signed-in account's own data carries its uid.
 
 import { describe, expect, it } from 'vitest';
-import { authScopedKeysGuard, queryKeysGuard } from '../../src/modules/frontend-reads/query-keys.js';
+import {
+  authScopedKeysGuard,
+  queryKeysGuard,
+} from '../../src/modules/frontend-reads/query-keys.js';
 import { runOne } from './run.js';
 
 const KEYS = 'src/lib/query-keys.ts';
@@ -51,20 +54,30 @@ describe('every query key is a named builder in the one query-key module', () =>
       { file: 'src/hooks/a.ts', line: 1, detail: 'a hand-typed queryKey array' },
       { file: 'src/hooks/b.ts', line: 1, detail: 'a hand-typed queryKey array' },
       { file: 'src/hooks/c.ts', line: 2, detail: 'a hand-typed queryKey array' },
-      { file: 'src/hooks/d.ts', line: 1, detail: 'a hand-typed key array passed to a cache method' },
+      {
+        file: 'src/hooks/d.ts',
+        line: 1,
+        detail: 'a hand-typed key array passed to a cache method',
+      },
       { file: 'src/hooks/e.ts', line: 1, detail: 'a literal queryKeyPrefix' },
       { file: 'src/hooks/f.ts', line: 1, detail: 'a hand-typed queryKey array' },
       { file: KEYS, line: 11, detail: 'a literal queryKeyPrefix' },
     ]);
   });
 
-  it('flags a second object under a key object\'s name', async () => {
+  it("flags a second object under a key object's name", async () => {
     const findings = await runOne(queryKeysGuard, facts, {
       [KEYS]: CLEAN_KEYS,
       'src/lib/other.ts': "export const thingKeys = { all: ['things'] };",
       'src/hooks/use-things.ts': "import { thingKeys } from '@/lib/query-keys';",
     });
-    expect(findings).toEqual([{ file: 'src/lib/other.ts', line: 1, detail: 'a second thingKeys beside the one in src/lib/query-keys.ts' }]);
+    expect(findings).toEqual([
+      {
+        file: 'src/lib/other.ts',
+        line: 1,
+        detail: 'a second thingKeys beside the one in src/lib/query-keys.ts',
+      },
+    ]);
   });
 
   it('flags a member that delegates to another and two members that build one key, whatever their parameter names', async () => {
@@ -83,17 +96,35 @@ describe('every query key is a named builder in the one query-key module', () =>
       ].join('\n'),
     });
     expect(findings).toEqual([
-      { file: KEYS, line: 4, detail: 'thingKeys.byId builds the same key as thingKeys.detail: keys.things.detail($1)' },
-      { file: KEYS, line: 5, detail: 'thingKeys.person delegates to personKeys.detail(…), a second name for its key' },
-      { file: KEYS, line: 9, detail: "personKeys.ignoring builds the same key as personKeys.detail: ['person', $1]" },
+      {
+        file: KEYS,
+        line: 4,
+        detail: 'thingKeys.byId builds the same key as thingKeys.detail: keys.things.detail($1)',
+      },
+      {
+        file: KEYS,
+        line: 5,
+        detail: 'thingKeys.person delegates to personKeys.detail(…), a second name for its key',
+      },
+      {
+        file: KEYS,
+        line: 9,
+        detail: "personKeys.ignoring builds the same key as personKeys.detail: ['person', $1]",
+      },
     ]);
   });
 
   it('flags a module with no key builder, and a module that is gone', async () => {
     expect(await runOne(queryKeysGuard, facts, { [KEYS]: 'export const SCOPE = 1;' })).toEqual([
-      { file: KEYS, detail: 'no key builder found in the module (an exported object of name: (params) => key members), so the alias check checks nothing' },
+      {
+        file: KEYS,
+        detail:
+          'no key builder found in the module (an exported object of name: (params) => key members), so the alias check checks nothing',
+      },
     ]);
-    expect(await runOne(queryKeysGuard, facts, {})).toEqual([{ file: KEYS, detail: 'the query-key module no longer exists' }]);
+    expect(await runOne(queryKeysGuard, facts, {})).toEqual([
+      { file: KEYS, detail: 'the query-key module no longer exists' },
+    ]);
   });
 
   it('refuses facts with no key module', () => {
@@ -102,7 +133,11 @@ describe('every query key is a named builder in the one query-key module', () =>
 });
 
 describe("a key for the signed-in account's own data takes the uid", () => {
-  const facts = { keyModule: KEYS, authScopedPrefixes: ['my', 'current', 'own'], uidParamNames: ['uid', 'userId'] };
+  const facts = {
+    keyModule: KEYS,
+    authScopedPrefixes: ['my', 'current', 'own'],
+    uidParamNames: ['uid', 'userId'],
+  };
 
   it('passes auth-scoped keys that take the uid first and key on it, and other keys', async () => {
     const findings = await runOne(authScopedKeysGuard, facts, {
@@ -136,9 +171,12 @@ describe("a key for the signed-in account's own data takes the uid", () => {
   });
 
   it('refuses facts with no auth-scoped prefix or uid name', () => {
-    expect(authScopedKeysGuard.factProblems({ keyModule: KEYS, authScopedPrefixes: [], uidParamNames: ['uid', 'uid'] })).toEqual([
-      'authScopedPrefixes is empty',
-      'uidParamNames lists uid twice',
-    ]);
+    expect(
+      authScopedKeysGuard.factProblems({
+        keyModule: KEYS,
+        authScopedPrefixes: [],
+        uidParamNames: ['uid', 'uid'],
+      }),
+    ).toEqual(['authScopedPrefixes is empty', 'uidParamNames lists uid twice']);
   });
 });

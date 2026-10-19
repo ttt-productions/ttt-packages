@@ -18,10 +18,7 @@ export type WorkProjectTypeFilter = WorkProjectType | 'All';
 export const RULE_GROUP_KEYS = ['generic', 'merchandising', 'hallWing', 'workRealm'] as const;
 export type RuleGroup = (typeof RULE_GROUP_KEYS)[number];
 
-export type HallLibrarySortOption =
-  | 'newest'
-  | 'oldest'
-  | 'most_followed';
+export type HallLibrarySortOption = 'newest' | 'oldest' | 'most_followed';
 
 // Hall browse filters on the big categories only (medium coins × wing coins). There is no
 // genre filter: works still tag per-medium genres at creation and display them.
@@ -30,5 +27,3 @@ export type HallLibraryFilters = {
   workProjectType: WorkProjectTypeFilter;
   sortBy: HallLibrarySortOption;
 };
-
-

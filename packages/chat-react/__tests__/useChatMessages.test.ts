@@ -55,7 +55,11 @@ describe('useChatMessages', () => {
   it('maps raw docs to ChatMessageV1 via select', () => {
     renderHook(() => useChatMessages(baseConfig()));
     const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
-      select: (d: Record<string, unknown>) => { messageId: string; threadId: string; createdAt: number };
+      select: (d: Record<string, unknown>) => {
+        messageId: string;
+        threadId: string;
+        createdAt: number;
+      };
     };
     const msg = opts.select({ id: 'm1', createdAt: 123, senderId: 's1', text: 'hi', type: 'text' });
     expect(msg).toMatchObject({
@@ -68,13 +72,22 @@ describe('useChatMessages', () => {
   });
 
   it("merges the app's own facts from the stored doc onto the message meta", () => {
-    const messageMeta = (doc: Record<string, unknown>) => (doc.sentAs === 'admin' ? { official: true } : undefined);
+    const messageMeta = (doc: Record<string, unknown>) =>
+      doc.sentAs === 'admin' ? { official: true } : undefined;
     renderHook(() => useChatMessages(baseConfig({ messageMeta })));
     const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
       select: (d: Record<string, unknown>) => { meta?: Record<string, unknown> };
     };
-    expect(opts.select({ id: 'm1', createdAt: 1, senderId: 's1', text: 'a', sentAs: 'admin', meta: { kept: 1 } }).meta)
-      .toEqual({ kept: 1, official: true });
+    expect(
+      opts.select({
+        id: 'm1',
+        createdAt: 1,
+        senderId: 's1',
+        text: 'a',
+        sentAs: 'admin',
+        meta: { kept: 1 },
+      }).meta,
+    ).toEqual({ kept: 1, official: true });
     expect(opts.select({ id: 'm2', createdAt: 2, senderId: 's1', text: 'b' }).meta).toBeUndefined();
   });
 
@@ -83,7 +96,13 @@ describe('useChatMessages', () => {
     const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
       select: (d: Record<string, unknown>) => Record<string, unknown>;
     };
-    const mapped = opts.select({ id: 'm1', createdAt: 1, senderId: 's1', text: 'a', sentAs: 'admin' });
+    const mapped = opts.select({
+      id: 'm1',
+      createdAt: 1,
+      senderId: 's1',
+      text: 'a',
+      sentAs: 'admin',
+    });
     expect(mapped).not.toHaveProperty('sentAs');
     expect(mapped.meta).toBeUndefined();
   });
@@ -140,9 +159,11 @@ describe('useChatMessages', () => {
 
   it('keys the read to the signed-in user, so another account never reuses this window', () => {
     renderHook(() => useChatMessages(baseConfig({ currentUserId: 'u1' })));
-    const first = (mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as { queryKey: unknown[] }).queryKey;
+    const first = (mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as { queryKey: unknown[] })
+      .queryKey;
     renderHook(() => useChatMessages(baseConfig({ currentUserId: 'u2' })));
-    const second = (mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as { queryKey: unknown[] }).queryKey;
+    const second = (mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as { queryKey: unknown[] })
+      .queryKey;
     expect(first).not.toEqual(second);
   });
 });
@@ -168,10 +189,11 @@ describe('useChatMessages prewarms every account a message names', () => {
     const prewarm = vi.fn();
     renderHook(() => useChatMessages(baseConfig()), {
       wrapper: ({ children }) =>
-        React.createElement(
-          ChatNameResolverProvider,
-          { resolveName: () => ({ status: 'pending' as const }), prewarm, children },
-        ),
+        React.createElement(ChatNameResolverProvider, {
+          resolveName: () => ({ status: 'pending' as const }),
+          prewarm,
+          children,
+        }),
     });
     expect(prewarm).toHaveBeenCalledWith(expect.arrayContaining(['u1', 'u2']));
   });

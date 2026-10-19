@@ -34,7 +34,9 @@ const MAX_CONTENT_TYPE_LENGTH = 127 + 1 + 127;
 describe('MEDIA_AUTHORITY_APPLY_MAX_BODY_BYTES', () => {
   it('fits the largest envelope a legitimate apply can send, with wide headroom', () => {
     const id = 'x'.repeat(MAX_DOC_ID_BYTES);
-    const longestOwnerType = [...MediaAssetOwnerTypeSchema.options].sort((a, b) => b.length - a.length)[0];
+    const longestOwnerType = [...MediaAssetOwnerTypeSchema.options].sort(
+      (a, b) => b.length - a.length,
+    )[0];
     const variant = {
       contentType: 'c'.repeat(MAX_CONTENT_TYPE_LENGTH),
       sizeBytes: Number.MAX_SAFE_INTEGER,
@@ -56,7 +58,10 @@ describe('MEDIA_AUTHORITY_APPLY_MAX_BODY_BYTES', () => {
       variants: Object.fromEntries(MEDIA_VARIANT_KEYS.map((key) => [key, variant])),
       updatedAtMs: Number.MAX_SAFE_INTEGER,
     };
-    const request: MediaAuthorityApplyRequest = { record, requiredVariants: [...MEDIA_VARIANT_KEYS] };
+    const request: MediaAuthorityApplyRequest = {
+      record,
+      requiredVariants: [...MEDIA_VARIANT_KEYS],
+    };
     expect(MediaAuthorityApplyRequestSchema.safeParse(request).success).toBe(true);
     const bytes = new TextEncoder().encode(JSON.stringify(request)).byteLength;
     expect(bytes).toBeLessThan(MEDIA_AUTHORITY_APPLY_MAX_BODY_BYTES / 4);
@@ -104,14 +109,27 @@ describe('MediaGrantScopeSchema — the one grant scope for the signer and the W
   });
 
   it('validates the whole grant payload the signer writes', () => {
-    const payload = { v: 1, typ: 'grant', uid: 'user-1', exp: 1_700_000_900, scope: { rp: 'asset-2' } };
+    const payload = {
+      v: 1,
+      typ: 'grant',
+      uid: 'user-1',
+      exp: 1_700_000_900,
+      scope: { rp: 'asset-2' },
+    };
     expect(MediaGrantTokenPayloadSchema.parse(payload)).toEqual(payload);
-    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, typ: 'session' }).success).toBe(false);
-    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, uid: '' }).success).toBe(false);
-    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, scope: { w: 'a', t: 'hallItem', o: 'b' } }).success).toBe(
+    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, typ: 'session' }).success).toBe(
       false,
     );
-    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, bearer: true }).success).toBe(false);
+    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, uid: '' }).success).toBe(false);
+    expect(
+      MediaGrantTokenPayloadSchema.safeParse({
+        ...payload,
+        scope: { w: 'a', t: 'hallItem', o: 'b' },
+      }).success,
+    ).toBe(false);
+    expect(MediaGrantTokenPayloadSchema.safeParse({ ...payload, bearer: true }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -130,7 +148,9 @@ describe('CreateMediaGrantInputSchema — the Realm-steward preview request', ()
   it('refuses a preview without the request id or with extra keys', () => {
     const { realmFileShareRequestId: _requestId, ...noRequest } = request;
     expect(CreateMediaGrantInputSchema.safeParse(noRequest).success).toBe(false);
-    expect(CreateMediaGrantInputSchema.safeParse({ ...request, workProjectId: 'work-1' }).success).toBe(false);
+    expect(
+      CreateMediaGrantInputSchema.safeParse({ ...request, workProjectId: 'work-1' }).success,
+    ).toBe(false);
   });
 });
 
@@ -155,30 +175,46 @@ describe('the browser-cache policy by access tier', () => {
 
   it('never gives media served under a grant a browser max-age, broad tier included', () => {
     for (const accessTier of MediaAccessTierSchema.options) {
-      expect(mediaBrowserCacheControl({ accessTier, ownerType: 'hallItem', servedUnderGrant: true })).toBe(
-        MEDIA_BROWSER_NO_STORE,
-      );
+      expect(
+        mediaBrowserCacheControl({ accessTier, ownerType: 'hallItem', servedUnderGrant: true }),
+      ).toBe(MEDIA_BROWSER_NO_STORE);
     }
   });
 
   it('never gives safety evidence a browser max-age, whatever its tier', () => {
-    expect(mediaBrowserCacheControl({ accessTier: 'broad', ownerType: 'safetyEvidence', servedUnderGrant: false })).toBe(
-      MEDIA_BROWSER_NO_STORE,
-    );
+    expect(
+      mediaBrowserCacheControl({
+        accessTier: 'broad',
+        ownerType: 'safetyEvidence',
+        servedUnderGrant: false,
+      }),
+    ).toBe(MEDIA_BROWSER_NO_STORE);
   });
 
   it("serves ordinary media with its tier's entry", () => {
-    expect(mediaBrowserCacheControl({ accessTier: 'broad', ownerType: 'hallItem', servedUnderGrant: false })).toBe(
-      'private, max-age=900',
-    );
-    expect(mediaBrowserCacheControl({ accessTier: 'scoped', ownerType: 'workProject', servedUnderGrant: false })).toBe(
-      MEDIA_BROWSER_NO_STORE,
-    );
+    expect(
+      mediaBrowserCacheControl({
+        accessTier: 'broad',
+        ownerType: 'hallItem',
+        servedUnderGrant: false,
+      }),
+    ).toBe('private, max-age=900');
+    expect(
+      mediaBrowserCacheControl({
+        accessTier: 'scoped',
+        ownerType: 'workProject',
+        servedUnderGrant: false,
+      }),
+    ).toBe(MEDIA_BROWSER_NO_STORE);
   });
 
   it('takes the owner type from the canonical owner types, so a misspelled one cannot slip past the evidence rule', () => {
-    // @ts-expect-error 'safetyEvidences' is not a media-asset owner type
-    mediaBrowserCacheControl({ accessTier: 'broad', ownerType: 'safetyEvidences', servedUnderGrant: false });
+    mediaBrowserCacheControl({
+      accessTier: 'broad',
+      // @ts-expect-error 'safetyEvidences' is not a media-asset owner type
+      ownerType: 'safetyEvidences',
+      servedUnderGrant: false,
+    });
     const record: EdgeServingRecord = {
       servingStatus: 'servable',
       accessTier: 'broad',
@@ -222,55 +258,90 @@ describe('MediaAuthorityApplyRequestSchema — the one signed apply body', () =>
   });
 
   it('refuses a servable record whose required list is empty, partial, extra, or repeated', () => {
-    for (const requiredVariants of [[], ['main'], ['main', 'poster', 'full'], ['main', 'main', 'poster']]) {
-      expect(MediaAuthorityApplyRequestSchema.safeParse({ record, requiredVariants }).success, String(requiredVariants)).toBe(
-        false,
-      );
+    for (const requiredVariants of [
+      [],
+      ['main'],
+      ['main', 'poster', 'full'],
+      ['main', 'main', 'poster'],
+    ]) {
+      expect(
+        MediaAuthorityApplyRequestSchema.safeParse({ record, requiredVariants }).success,
+        String(requiredVariants),
+      ).toBe(false);
     }
   });
 
   it('lets a non-servable record require none or some of its own variants', () => {
     const hidden = { ...record, servingStatus: 'hidden' as const };
-    expect(MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: [] }).success).toBe(true);
-    expect(MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: ['main'] }).success).toBe(true);
+    expect(
+      MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: [] }).success,
+    ).toBe(true);
+    expect(
+      MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: ['main'] })
+        .success,
+    ).toBe(true);
   });
 
   it('refuses, on a record of any status, a required variant the record does not have', () => {
     const hidden = { ...record, servingStatus: 'hidden' as const };
-    expect(MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: ['full'] }).success).toBe(false);
+    expect(
+      MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: ['full'] })
+        .success,
+    ).toBe(false);
   });
 
   it('refuses, on a record of any status, a required variant named twice', () => {
     const hidden = { ...record, servingStatus: 'hidden' as const };
-    expect(MediaAuthorityApplyRequestSchema.safeParse({ record: hidden, requiredVariants: ['main', 'main'] }).success).toBe(
-      false,
-    );
+    expect(
+      MediaAuthorityApplyRequestSchema.safeParse({
+        record: hidden,
+        requiredVariants: ['main', 'main'],
+      }).success,
+    ).toBe(false);
   });
 
   it('stays strict on the body and on the record it carries', () => {
-    expect(MediaAuthorityApplyRequestSchema.safeParse({ record, requiredVariants: ['main', 'poster'], extra: 1 }).success).toBe(
-      false,
-    );
     expect(
-      MediaAuthorityApplyRequestSchema.safeParse({ record: { ...record, url: 'x' }, requiredVariants: ['main', 'poster'] })
-        .success,
+      MediaAuthorityApplyRequestSchema.safeParse({
+        record,
+        requiredVariants: ['main', 'poster'],
+        extra: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      MediaAuthorityApplyRequestSchema.safeParse({
+        record: { ...record, url: 'x' },
+        requiredVariants: ['main', 'poster'],
+      }).success,
     ).toBe(false);
   });
 });
 
 describe('MediaSessionTokenPayloadSchema — the one media-session cookie payload', () => {
-  const payload = { v: 1, typ: 'session', uid: 'user-1', art: 1, adm: 0, iat: 1_700_000_000, exp: 1_700_003_600 };
+  const payload = {
+    v: 1,
+    typ: 'session',
+    uid: 'user-1',
+    art: 1,
+    adm: 0,
+    iat: 1_700_000_000,
+    exp: 1_700_003_600,
+  };
 
   it('accepts the payload the media-session route signs', () => {
     expect(MediaSessionTokenPayloadSchema.parse(payload)).toEqual(payload);
   });
 
   it('refuses a grant, a missing uid, a non-bit flag, or an extra claim', () => {
-    expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, typ: 'grant' }).success).toBe(false);
+    expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, typ: 'grant' }).success).toBe(
+      false,
+    );
     expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, uid: '' }).success).toBe(false);
     expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, adm: 2 }).success).toBe(false);
     expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, adm: true }).success).toBe(false);
-    expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, scope: { w: 'work-1' } }).success).toBe(false);
+    expect(
+      MediaSessionTokenPayloadSchema.safeParse({ ...payload, scope: { w: 'work-1' } }).success,
+    ).toBe(false);
   });
 
   it('requires the issue and expiry times', () => {

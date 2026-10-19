@@ -12,12 +12,16 @@ describe('operator step-up code length', () => {
     expect(OperatorStepUpCodeInputSchema.parse({ code: ` ${digits} ` })).toEqual({ code: digits });
     expect(OperatorStepUpCodeInputSchema.safeParse({ code: digits.slice(1) }).success).toBe(false);
     expect(OperatorStepUpCodeInputSchema.safeParse({ code: `${digits}1` }).success).toBe(false);
-    expect(OperatorStepUpCodeInputSchema.safeParse({ code: `${digits.slice(1)}a` }).success).toBe(false);
+    expect(OperatorStepUpCodeInputSchema.safeParse({ code: `${digits.slice(1)}a` }).success).toBe(
+      false,
+    );
   });
 
   it('refuses with a sentence naming the code length', () => {
     const result = OperatorStepUpCodeInputSchema.safeParse({ code: '12' });
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toBe(`Enter the ${OPERATOR_STEP_UP_CODE_LENGTH}-digit code.`);
+    expect(result.error?.issues[0]?.message).toBe(
+      `Enter the ${OPERATOR_STEP_UP_CODE_LENGTH}-digit code.`,
+    );
   });
 });

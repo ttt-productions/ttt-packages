@@ -18,7 +18,8 @@ export interface CiParityFacts {
   /** Commands the local gate mirrors on its own (the audits), as a regular-expression source. */
   selfMirrored: string;
   /** The app's parity map, keyed `<dir> :: <command>`, loaded from where its gate reads it. */
-  parity: () => Readonly<Record<string, ParityEntry>> | Promise<Readonly<Record<string, ParityEntry>>>;
+  parity: () =>
+    Readonly<Record<string, ParityEntry>> | Promise<Readonly<Record<string, ParityEntry>>>;
 }
 
 /** One line per command, so a multi-line `run:` compares as the same string everywhere. */
@@ -31,7 +32,12 @@ const normalizeRun = (run: string) =>
 
 /** Every `run:` step of every verify job, keyed `<dir> :: <command>` (dir `.` is the repository root). */
 export function verifyCommands(workflowText: string, verifyJob: RegExp): string[] {
-  const jobs = ((parseYaml(workflowText) ?? {}) as { jobs?: Record<string, { steps?: Array<Record<string, unknown>> }> }).jobs ?? {};
+  const jobs =
+    (
+      (parseYaml(workflowText) ?? {}) as {
+        jobs?: Record<string, { steps?: Array<Record<string, unknown>> }>;
+      }
+    ).jobs ?? {};
   const out: string[] = [];
   for (const [job, def] of Object.entries(jobs)) {
     if (!verifyJob.test(job)) continue;
@@ -74,19 +80,35 @@ export const ciParityGuard: GenericGuardDefinition<CiParityFacts> = {
           'entry for one CI no longer runs.',
         async run(context) {
           const map = await facts.parity();
-          const commands = verifyCommands(context.file(facts.workflow).text, new RegExp(facts.verifyJobPattern));
+          const commands = verifyCommands(
+            context.file(facts.workflow).text,
+            new RegExp(facts.verifyJobPattern),
+          );
           const self = new RegExp(facts.selfMirrored);
           const findings: Finding[] = [];
-          if (!commands.length) findings.push({ file: facts.workflow, detail: 'no verify job runs a command, so the guard checks nothing' });
+          if (!commands.length)
+            findings.push({
+              file: facts.workflow,
+              detail: 'no verify job runs a command, so the guard checks nothing',
+            });
           const run = new Set(commands);
           for (const key of commands) {
             if (self.test(key.slice(key.indexOf(' :: ') + 4))) continue;
-            if (!Object.hasOwn(map, key)) findings.push({ file: facts.workflow, detail: `unmirrored CI command: ${key}` });
+            if (!Object.hasOwn(map, key))
+              findings.push({ file: facts.workflow, detail: `unmirrored CI command: ${key}` });
           }
           for (const [key, entry] of Object.entries(map)) {
-            if (!run.has(key)) findings.push({ file: '(parity map)', detail: `stale entry: CI no longer runs ${key}` });
+            if (!run.has(key))
+              findings.push({
+                file: '(parity map)',
+                detail: `stale entry: CI no longer runs ${key}`,
+              });
             const reason = 'stage' in entry ? entry.stage : entry.ciOnly;
-            if (typeof reason !== 'string' || !reason.trim()) findings.push({ file: '(parity map)', detail: `${key} names no stage and no CI-only reason` });
+            if (typeof reason !== 'string' || !reason.trim())
+              findings.push({
+                file: '(parity map)',
+                detail: `${key} names no stage and no CI-only reason`,
+              });
           }
           return findings;
         },

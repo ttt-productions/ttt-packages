@@ -1,14 +1,8 @@
-import {
-  isRejectionLikelihood,
-  likelihoodToString,
-} from "../likelihood.js";
-import type {
-  MediaModerationResult,
-  ModerationLogger,
-} from "../types.js";
+import { isRejectionLikelihood, likelihoodToString } from '../likelihood.js';
+import type { MediaModerationResult, ModerationLogger } from '../types.js';
 
 // Type-only imports — the runtime modules are loaded dynamically.
-import type * as vision from "@google-cloud/vision";
+import type * as vision from '@google-cloud/vision';
 
 export interface ImageModerationOptions {
   /** Set of likelihood strings that should cause rejection (e.g. new Set(["LIKELY","VERY_LIKELY"])). */
@@ -22,7 +16,7 @@ export interface ImageModerationOptions {
 let _defaultClient: vision.ImageAnnotatorClient | null = null;
 async function defaultGetVisionClient(): Promise<vision.ImageAnnotatorClient> {
   if (_defaultClient) return _defaultClient;
-  const mod = await import("@google-cloud/vision");
+  const mod = await import('@google-cloud/vision');
   _defaultClient = new mod.ImageAnnotatorClient();
   return _defaultClient;
 }
@@ -47,11 +41,11 @@ export async function moderateImage(
   const safeSearch = result.safeSearchAnnotation;
 
   if (!safeSearch) {
-    logger?.warn?.("[moderation-core] SafeSearch returned no annotation; rejecting as precaution");
+    logger?.warn?.('[moderation-core] SafeSearch returned no annotation; rejecting as precaution');
     return {
       safe: false,
-      reason: "Content moderation check failed",
-      scores: { adult: "UNKNOWN", violence: "UNKNOWN", racy: "UNKNOWN" },
+      reason: 'Content moderation check failed',
+      scores: { adult: 'UNKNOWN', violence: 'UNKNOWN', racy: 'UNKNOWN' },
     };
   }
 
@@ -66,8 +60,8 @@ export async function moderateImage(
 
   const safe = !isAdult && !isViolent;
   let reason: string | undefined;
-  if (isAdult) reason = "Adult or sexually explicit content is not allowed";
-  else if (isViolent) reason = "Violent or graphic content is not allowed";
+  if (isAdult) reason = 'Adult or sexually explicit content is not allowed';
+  else if (isViolent) reason = 'Violent or graphic content is not allowed';
 
   return { safe, reason, scores };
 }

@@ -29,7 +29,8 @@ import type { ReportDialogProps, ReportTargetRef } from '../types-ui-props.js';
 // report reason.
 const ACTION_PREFIX = '__rc_action__:';
 
-type DialogView = { kind: 'form' } | { kind: 'upgrade'; reason: string } | { kind: 'alreadyReported' };
+type DialogView =
+  { kind: 'form' } | { kind: 'upgrade'; reason: string } | { kind: 'alreadyReported' };
 
 /** The dialog's in-progress input, bound to the reporter who typed it (FRONTEND-108). */
 interface DialogDraft {
@@ -67,7 +68,8 @@ export function ReportDialog({
 
   // A draft typed by a different reporter is never shown or sent: it reads as empty.
   const [storedDraft, setStoredDraft] = useState<DialogDraft>(() => emptyDraft(reporterUserId));
-  const draft = storedDraft.reporterUserId === reporterUserId ? storedDraft : emptyDraft(reporterUserId);
+  const draft =
+    storedDraft.reporterUserId === reporterUserId ? storedDraft : emptyDraft(reporterUserId);
   const updateDraft = (patch: Partial<Omit<DialogDraft, 'reporterUserId'>>) =>
     setStoredDraft((prev) => ({
       ...(prev.reporterUserId === reporterUserId ? prev : emptyDraft(reporterUserId)),
@@ -77,7 +79,9 @@ export function ReportDialog({
   const target: ReportTargetRef = { itemType, itemId, parentItemId, reportedUserId };
   const itemTypeLabel = config.reportableItems[itemType]?.displayName ?? itemType;
   const commentInput = config.reportCommentInput;
-  const selectedAction = additionalReportActions.find((a) => `${ACTION_PREFIX}${a.id}` === draft.reason);
+  const selectedAction = additionalReportActions.find(
+    (a) => `${ACTION_PREFIX}${a.id}` === draft.reason,
+  );
   const isHandOff = selectedAction?.kind === 'handOff';
 
   const closeAndReset = () => {
@@ -128,7 +132,11 @@ export function ReportDialog({
         return;
       }
       applyOutcome(
-        await submitMutation.mutateAsync({ ...target, reason: draft.reason, comment: checkedComment.value }),
+        await submitMutation.mutateAsync({
+          ...target,
+          reason: draft.reason,
+          comment: checkedComment.value,
+        }),
       );
     },
     { onError: onSubmitError },
@@ -309,7 +317,12 @@ export function ReportDialog({
               <DialogDescription>{copy.alreadyReportedDescription}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button type="button" variant="default" onClick={closeAndReset} className="touch-target h-11">
+              <Button
+                type="button"
+                variant="default"
+                onClick={closeAndReset}
+                className="touch-target h-11"
+              >
                 {copy.alreadyReportedCloseLabel}
               </Button>
             </DialogFooter>

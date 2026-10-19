@@ -17,7 +17,13 @@ import {
   AWARD_GROUP_REVOKE_SKIP_KEYS,
   AWARD_GROUP_TYPE_KEYS,
 } from '../types/unions.js';
-import { countSchema, documentIdSegmentSchema, epochMsSchema, revisionSchema, userIdSchema } from './atoms.js';
+import {
+  countSchema,
+  documentIdSegmentSchema,
+  epochMsSchema,
+  revisionSchema,
+  userIdSchema,
+} from './atoms.js';
 import { awardIdSchema } from './catalogs.js';
 
 export const awardGroupTypeSchema = z.enum(AWARD_GROUP_TYPE_KEYS);
@@ -51,10 +57,18 @@ export const AwardGroupGrantSchema = z
     // award, group, and number would sit outside that pair's decision sequence.
     const targetKey = buildAwardGroupGrantTargetKey(grant);
     if (grant.targetKey !== targetKey) {
-      ctx.addIssue({ code: 'custom', path: ['targetKey'], message: 'targetKey must be the award and group target key.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['targetKey'],
+        message: 'targetKey must be the award and group target key.',
+      });
     }
     if (grant.grantId !== buildAwardGroupGrantId(targetKey, grant.decision)) {
-      ctx.addIssue({ code: 'custom', path: ['grantId'], message: 'grantId must be the target key and the decision.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['grantId'],
+        message: 'grantId must be the target key and the decision.',
+      });
     }
   });
 export type AwardGroupGrant = z.infer<typeof AwardGroupGrantSchema>;

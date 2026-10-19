@@ -47,12 +47,12 @@ export function NotificationHistoryList({
   // A later page that came back empty keeps its pager so the user can step back; the
   // empty state is the answer for page 1 only.
   const showEmptyState =
-    retryState.error === null && notifications !== undefined && notifications.length === 0 && page === 1;
+    retryState.error === null &&
+    notifications !== undefined &&
+    notifications.length === 0 &&
+    page === 1;
 
-  const getTypeIcon = useCallback(
-    (type: string) => config.types[type]?.icon ?? '🔔',
-    [config],
-  );
+  const getTypeIcon = useCallback((type: string) => config.types[type]?.icon ?? '🔔', [config]);
 
   return (
     <div className="ntf-list ntf-list-history">
@@ -73,10 +73,7 @@ export function NotificationHistoryList({
           <>
             {(notifications ?? []).map((notification: NotificationHistoryItem) => {
               return (
-                <div
-                  key={notification.archiveOccurrenceId}
-                  className="ntf-item ntf-item-archived"
-                >
+                <div key={notification.archiveOccurrenceId} className="ntf-item ntf-item-archived">
                   <div className="ntf-item-icon">{getTypeIcon(notification.type)}</div>
                   <div className="ntf-item-content">
                     <div className="ntf-item-title">{notification.title}</div>
@@ -91,9 +88,7 @@ export function NotificationHistoryList({
                     </div>
                   )}
                   {renderRowAction && (
-                    <div className="ntf-item-row-action">
-                      {renderRowAction(notification, {})}
-                    </div>
+                    <div className="ntf-item-row-action">{renderRowAction(notification, {})}</div>
                   )}
                 </div>
               );

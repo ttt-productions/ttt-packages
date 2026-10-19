@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useSyncExternalStore } from "react";
-import { readStoredValue, writeStoredValue } from "../device-storage.js";
+import { useSyncExternalStore } from 'react';
+import { readStoredValue, writeStoredValue } from '../device-storage.js';
 
 export interface DevicePreferenceStoreConfig<T> {
   /** localStorage key the preference is saved under. */
@@ -60,15 +60,15 @@ export function createDevicePreferenceStore<T>({
 
   function save(stored: string | null): void {
     writeStoredValue(storageKey, stored);
-    if (typeof window !== "undefined") window.dispatchEvent(new Event(changeEvent));
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(changeEvent));
   }
 
   function subscribe(onChange: () => void): () => void {
     window.addEventListener(changeEvent, onChange);
-    window.addEventListener("storage", onChange);
+    window.addEventListener('storage', onChange);
     return () => {
       window.removeEventListener(changeEvent, onChange);
-      window.removeEventListener("storage", onChange);
+      window.removeEventListener('storage', onChange);
     };
   }
 

@@ -17,10 +17,18 @@
  * It imports no SDK and no Node API, so every runtime (browser, Node, edge) can apply it.
  */
 
-import type { ScrubbableEvent } from "./scrubber.js";
+import type { ScrubbableEvent } from './scrubber.js';
 
 /** The contexts the Sentry SDKs generate about the running process. */
-export const DEFAULT_SDK_CONTEXTS = ["trace", "runtime", "os", "app", "device", "culture", "cloud_resource"] as const;
+export const DEFAULT_SDK_CONTEXTS = [
+  'trace',
+  'runtime',
+  'os',
+  'app',
+  'device',
+  'culture',
+  'cloud_resource',
+] as const;
 
 export type TelemetryContentPolicyOptions = {
   /** Keys whose text value is diagnostic, matched exactly. */
@@ -48,25 +56,29 @@ const MAX_DEPTH = 4;
 const MAX_ARRAY_ITEMS = 20;
 
 function escapeRegExp(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 /** A number, flag, or null cannot carry text, so it is kept under any key. */
 function keepScalar(value: unknown): unknown {
-  if (value === null || typeof value === "boolean") return value;
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (value === null || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
   return undefined;
 }
 
-export function createTelemetryContentPolicy(options: TelemetryContentPolicyOptions): TelemetryContentPolicy {
+export function createTelemetryContentPolicy(
+  options: TelemetryContentPolicyOptions,
+): TelemetryContentPolicy {
   const diagnosticKeys = new Set(options.diagnosticKeys);
   const suffixPattern =
     options.diagnosticKeySuffixes.length > 0
-      ? new RegExp(`^[a-z][A-Za-z0-9]*(?:${options.diagnosticKeySuffixes.map(escapeRegExp).join("|")})$`)
+      ? new RegExp(
+          `^[a-z][A-Za-z0-9]*(?:${options.diagnosticKeySuffixes.map(escapeRegExp).join('|')})$`,
+        )
       : null;
   const codeNameContexts = new Set(options.codeNameContexts ?? []);
   const sdkContexts = new Set<string>(options.sdkContexts ?? DEFAULT_SDK_CONTEXTS);
@@ -79,7 +91,7 @@ export function createTelemetryContentPolicy(options: TelemetryContentPolicyOpti
   function keepDiagnosticValue(value: unknown, depth: number): unknown {
     const scalar = keepScalar(value);
     if (scalar !== undefined) return scalar;
-    if (typeof value === "string") return TOKEN_VALUE.test(value) ? value : undefined;
+    if (typeof value === 'string') return TOKEN_VALUE.test(value) ? value : undefined;
     if (depth >= MAX_DEPTH) return undefined;
     if (Array.isArray(value)) {
       const kept = value
@@ -95,13 +107,17 @@ export function createTelemetryContentPolicy(options: TelemetryContentPolicyOpti
     return undefined;
   }
 
-  function keepDiagnosticFields(fields: Record<string, unknown>, depth: number): Record<string, unknown> {
+  function keepDiagnosticFields(
+    fields: Record<string, unknown>,
+    depth: number,
+  ): Record<string, unknown> {
     const kept: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       // A validation issue's `path` is a list of field names; a string `path` is a storage or
       // document path, which can name a member or their file.
-      const isIssuePath = key === "path" && Array.isArray(value);
-      const diagnostic = isIssuePath || isDiagnosticKey(key) ? keepDiagnosticValue(value, depth) : keepScalar(value);
+      const isIssuePath = key === 'path' && Array.isArray(value);
+      const diagnostic =
+        isIssuePath || isDiagnosticKey(key) ? keepDiagnosticValue(value, depth) : keepScalar(value);
       if (diagnostic !== undefined) kept[key] = diagnostic;
     }
     return kept;
@@ -111,7 +127,11 @@ export function createTelemetryContentPolicy(options: TelemetryContentPolicyOpti
     delete event.request;
     delete event.breadcrumbs;
 
-    if (isRecord(event.user) && typeof event.user.id === "string" && TOKEN_VALUE.test(event.user.id)) {
+    if (
+      isRecord(event.user) &&
+      typeof event.user.id === 'string' &&
+      TOKEN_VALUE.test(event.user.id)
+    ) {
       event.user = { id: event.user.id };
     } else {
       delete event.user;
@@ -121,7 +141,10 @@ export function createTelemetryContentPolicy(options: TelemetryContentPolicyOpti
       // A tag holds one scalar: a number or flag under any key, text only under a diagnostic key.
       const tags: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(event.tags)) {
-        const text = typeof value === "string" && isDiagnosticKey(key) && TOKEN_VALUE.test(value) ? value : undefined;
+        const text =
+          typeof value === 'string' && isDiagnosticKey(key) && TOKEN_VALUE.test(value)
+            ? value
+            : undefined;
         const kept = keepScalar(value) ?? text;
         if (kept !== undefined) tags[key] = kept;
       }
@@ -141,7 +164,7 @@ export function createTelemetryContentPolicy(options: TelemetryContentPolicyOpti
           const isCodeName = codeNameContexts.has(name);
           const { name: codeName, ...rest } = context;
           const kept = keepDiagnosticFields(isCodeName ? rest : context, 1);
-          if (isCodeName && typeof codeName === "string" && TOKEN_VALUE.test(codeName)) {
+          if (isCodeName && typeof codeName === 'string' && TOKEN_VALUE.test(codeName)) {
             kept.name = codeName;
           }
           if (Object.keys(kept).length > 0) contexts[name] = kept;

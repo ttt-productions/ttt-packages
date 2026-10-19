@@ -102,44 +102,60 @@ const ChatSyncFanoutJobBaseShape = {
   expireAt: expireAtField,
 };
 
-const channelFanoutSelectorArgs = z.object({
-  workProjectId: z.string().min(1),
-  guildChatChannelId: z.string().min(1),
-  channelKey: z.string().min(1),
-}).strict();
+const channelFanoutSelectorArgs = z
+  .object({
+    workProjectId: z.string().min(1),
+    guildChatChannelId: z.string().min(1),
+    channelKey: z.string().min(1),
+  })
+  .strict();
 
-const inviteParticipantsSelectorArgs = z.object({
-  guildInviteId: z.string().min(1),
-  participantUids: z.array(z.string().min(1)).length(2).refine(
-    (uids) => new Set(uids).size === uids.length,
-    { message: 'Invite participant uids must be distinct.' },
-  ),
-}).strict();
+const inviteParticipantsSelectorArgs = z
+  .object({
+    guildInviteId: z.string().min(1),
+    participantUids: z
+      .array(z.string().min(1))
+      .length(2)
+      .refine((uids) => new Set(uids).size === uids.length, {
+        message: 'Invite participant uids must be distinct.',
+      }),
+  })
+  .strict();
 
 export const ChatSyncFanoutJobSchema = z.discriminatedUnion('selectorKind', [
-  z.object({
-    ...ChatSyncFanoutJobBaseShape,
-    selectorKind: z.literal('channelMembers'),
-    selectorArgs: channelFanoutSelectorArgs,
-  }).strict(),
-  z.object({
-    ...ChatSyncFanoutJobBaseShape,
-    selectorKind: z.literal('policyEditAffectedUsers'),
-    selectorArgs: channelFanoutSelectorArgs,
-  }).strict(),
-  z.object({
-    ...ChatSyncFanoutJobBaseShape,
-    selectorKind: z.literal('workChannelsForUser'),
-    selectorArgs: z.object({
-      uid: z.string().min(1),
-      workProjectId: z.string().min(1),
-    }).strict(),
-  }).strict(),
-  z.object({
-    ...ChatSyncFanoutJobBaseShape,
-    selectorKind: z.literal('inviteParticipants'),
-    selectorArgs: inviteParticipantsSelectorArgs,
-  }).strict(),
+  z
+    .object({
+      ...ChatSyncFanoutJobBaseShape,
+      selectorKind: z.literal('channelMembers'),
+      selectorArgs: channelFanoutSelectorArgs,
+    })
+    .strict(),
+  z
+    .object({
+      ...ChatSyncFanoutJobBaseShape,
+      selectorKind: z.literal('policyEditAffectedUsers'),
+      selectorArgs: channelFanoutSelectorArgs,
+    })
+    .strict(),
+  z
+    .object({
+      ...ChatSyncFanoutJobBaseShape,
+      selectorKind: z.literal('workChannelsForUser'),
+      selectorArgs: z
+        .object({
+          uid: z.string().min(1),
+          workProjectId: z.string().min(1),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...ChatSyncFanoutJobBaseShape,
+      selectorKind: z.literal('inviteParticipants'),
+      selectorArgs: inviteParticipantsSelectorArgs,
+    })
+    .strict(),
 ]);
 export type ChatSyncFanoutJob = z.infer<typeof ChatSyncFanoutJobSchema>;
 
@@ -255,7 +271,9 @@ export const ChatHistoryAnonymizationAffectedChunkSchema = z.object({
   rewriteState: z.enum(['pending', 'done']),
   deleteState: z.enum(['pending', 'done']),
 });
-export type ChatHistoryAnonymizationAffectedChunk = z.infer<typeof ChatHistoryAnonymizationAffectedChunkSchema>;
+export type ChatHistoryAnonymizationAffectedChunk = z.infer<
+  typeof ChatHistoryAnonymizationAffectedChunkSchema
+>;
 
 // ── chatParkedDeliveries/{deliveryId} ───────────────────────────────────────
 // One delivery a chat room parked in its own outbox, as the room reported it through its signed

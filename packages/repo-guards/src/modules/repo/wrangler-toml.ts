@@ -18,7 +18,15 @@ export interface Table {
  */
 function decodeBasicString(body: string): string | null {
   let out = '';
-  const simple: Record<string, string> = { b: '\b', t: '\t', n: '\n', f: '\f', r: '\r', '"': '"', '\\': '\\' };
+  const simple: Record<string, string> = {
+    b: '\b',
+    t: '\t',
+    n: '\n',
+    f: '\f',
+    r: '\r',
+    '"': '"',
+    '\\': '\\',
+  };
   for (let index = 0; index < body.length; index += 1) {
     const char = body[index];
     if (char !== '\\') {
@@ -50,8 +58,10 @@ function decodeBasicString(body: string): string | null {
 function unquoteKey(raw: string): string | null {
   const trimmed = raw.trim();
   if (/^[A-Za-z0-9_-]+$/.test(trimmed)) return trimmed;
-  if (trimmed.length >= 2 && trimmed.startsWith("'") && trimmed.endsWith("'")) return trimmed.slice(1, -1);
-  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) return decodeBasicString(trimmed.slice(1, -1));
+  if (trimmed.length >= 2 && trimmed.startsWith("'") && trimmed.endsWith("'"))
+    return trimmed.slice(1, -1);
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"'))
+    return decodeBasicString(trimmed.slice(1, -1));
   return null;
 }
 
@@ -94,12 +104,14 @@ function headerSegments(raw: string): string[] | null {
   if (quote !== null) return null;
   segments.push(buffer);
   const normalised = segments.map(unquoteKey);
-  if (normalised.some((segment) => segment === null || segment === '' || segment.includes('.'))) return null;
+  if (normalised.some((segment) => segment === null || segment === '' || segment.includes('.')))
+    return null;
   return normalised as string[];
 }
 
 /** True for `[[migrations]]` and `[[env.<name>.migrations]]`. */
-export const isMigrationTable = (header: string) => header === 'migrations' || /^env\.[^.]+\.migrations$/.test(header);
+export const isMigrationTable = (header: string) =>
+  header === 'migrations' || /^env\.[^.]+\.migrations$/.test(header);
 
 /** Every section of a wrangler.toml. Throws, naming the line, on anything it cannot read safely. */
 export function readTables(text: string): Table[] {
@@ -115,7 +127,10 @@ export function readTables(text: string): Table[] {
     const header = /^\s*\[\[?([^[\]]+)\]\]?\s*(?:#.*)?$/.exec(line);
     if (header) {
       const segments = headerSegments(header[1]);
-      if (!segments) throw new Error(`section header ${line.trim()} uses key syntax this reader cannot normalise`);
+      if (!segments)
+        throw new Error(
+          `section header ${line.trim()} uses key syntax this reader cannot normalise`,
+        );
       current = { header: segments.join('.'), values: {}, arrays: {} };
       tables.push(current);
       continue;
@@ -139,10 +154,19 @@ export function readTables(text: string): Table[] {
     }
     const opened = openedPattern.exec(line);
     if (opened && current && isMigrationTable(current.header)) {
-      throw new Error(`migration key '${unquoteKey(opened[1]) ?? opened[1]}' uses a multi-line array, which this reader cannot read; put it on one line`);
+      throw new Error(
+        `migration key '${unquoteKey(opened[1]) ?? opened[1]}' uses a multi-line array, which this reader cannot read; put it on one line`,
+      );
     }
-    if (current && isMigrationTable(current.header) && line.trim() !== '' && !line.trim().startsWith('#')) {
-      throw new Error(`line ${line.trim()} inside [[${current.header}]] is in a form this reader cannot read; write it as a single-line key = value`);
+    if (
+      current &&
+      isMigrationTable(current.header) &&
+      line.trim() !== '' &&
+      !line.trim().startsWith('#')
+    ) {
+      throw new Error(
+        `line ${line.trim()} inside [[${current.header}]] is in a form this reader cannot read; write it as a single-line key = value`,
+      );
     }
   }
   return tables;
@@ -159,7 +183,8 @@ export interface MigrationEntry {
 
 function toMigrationEntry(table: Table): MigrationEntry {
   const destructive: Record<string, string> = {};
-  for (const key of DESTRUCTIVE_MIGRATION_KEYS) if (table.arrays[key] !== undefined) destructive[key] = table.arrays[key];
+  for (const key of DESTRUCTIVE_MIGRATION_KEYS)
+    if (table.arrays[key] !== undefined) destructive[key] = table.arrays[key];
   return { tag: table.values.tag ?? '(untagged)', destructive };
 }
 
@@ -187,7 +212,8 @@ export function migrationLists(tables: readonly Table[]): MigrationLists {
  * The migration list an environment deploys with. Migrations, unlike bindings, are inherited: an
  * environment with no list of its own deploys the top-level one.
  */
-export const effectiveMigrations = (lists: MigrationLists, env: string) => lists.byEnv.get(env) ?? lists.topLevel;
+export const effectiveMigrations = (lists: MigrationLists, env: string) =>
+  lists.byEnv.get(env) ?? lists.topLevel;
 
 /** Storage identifiers (bucket names, namespace ids) each named environment binds. */
 export function environmentResources(tables: readonly Table[]): Map<string, string[]> {

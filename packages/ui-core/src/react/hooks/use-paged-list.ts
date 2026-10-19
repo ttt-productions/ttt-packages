@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from 'react';
 
 /**
  * The control state a paginated list exposes to its paginator UI, rendered by

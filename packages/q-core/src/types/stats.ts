@@ -7,7 +7,10 @@ import { CAPTAIN_TEAM_ROLES, SYSTEM_ROLE_KEYS } from './unions.js';
 // targets; a correction adds a signed value to one correctable field of one line.
 export const STAT_VOID_EVENT_TYPE = 'STAT_VOID';
 export const STAT_CORRECTION_EVENT_TYPE = 'STAT_CORRECTION';
-export const STAT_STORE_EVENT_TYPE_KEYS = [STAT_VOID_EVENT_TYPE, STAT_CORRECTION_EVENT_TYPE] as const;
+export const STAT_STORE_EVENT_TYPE_KEYS = [
+  STAT_VOID_EVENT_TYPE,
+  STAT_CORRECTION_EVENT_TYPE,
+] as const;
 export type StatStoreEventType = (typeof STAT_STORE_EVENT_TYPE_KEYS)[number];
 
 // The fields of a stored stat event the writing core derives — its place in the replay, and who
@@ -22,7 +25,10 @@ export const STAT_EVENT_RECORDER_FIELD_KEYS = [
 export type StatEventRecorderField = (typeof STAT_EVENT_RECORDER_FIELD_KEYS)[number];
 
 // The name snapshots only a copied event carries; nothing writes one on a new event (SPORT-104).
-export const STAT_EVENT_SNAPSHOT_FIELD_KEYS = ['displayNameSnapshot', 'assistedByDisplayNameSnapshot'] as const;
+export const STAT_EVENT_SNAPSHOT_FIELD_KEYS = [
+  'displayNameSnapshot',
+  'assistedByDisplayNameSnapshot',
+] as const;
 export type StatEventSnapshotField = (typeof STAT_EVENT_SNAPSHOT_FIELD_KEYS)[number];
 
 // Who appended a correction: an admin reconciling a game, or the copy that carries a recorded
@@ -37,9 +43,17 @@ export type StatEventAuthority = (typeof STAT_EVENT_AUTHORITY_KEYS)[number];
 
 // Every kind of stat line: the four player kinds, then the two team kinds. A sport's line of each
 // kind is declared once, in `SPORT_LINE_SCHEMAS`; a kind a sport has no line for is `never` there.
-export const PLAYER_STAT_LINE_KIND_KEYS = ['gamePlayer', 'membershipRow', 'lifetime', 'hallOfFame'] as const;
+export const PLAYER_STAT_LINE_KIND_KEYS = [
+  'gamePlayer',
+  'membershipRow',
+  'lifetime',
+  'hallOfFame',
+] as const;
 export const TEAM_STAT_LINE_KIND_KEYS = ['gameTeam', 'teamSeason'] as const;
-export const STAT_LINE_KIND_KEYS = [...PLAYER_STAT_LINE_KIND_KEYS, ...TEAM_STAT_LINE_KIND_KEYS] as const;
+export const STAT_LINE_KIND_KEYS = [
+  ...PLAYER_STAT_LINE_KIND_KEYS,
+  ...TEAM_STAT_LINE_KIND_KEYS,
+] as const;
 export type StatLineKind = (typeof STAT_LINE_KIND_KEYS)[number];
 export type PlayerStatLineKind = (typeof PLAYER_STAT_LINE_KIND_KEYS)[number];
 
@@ -134,13 +148,21 @@ export type GameReopenOutcome = (typeof GAME_REOPEN_OUTCOME_KEYS)[number];
 //   statsOutOfBand      the rollup or score mirror is not the replay of the game's events or record
 //   finalRecordMissing  a completed game has no finalized record
 //   aggregateBelowZero  a stored derived line holds less than the game put into it
-export const STATS_INTEGRITY_REFUSAL_KEYS = ['statsOutOfBand', 'finalRecordMissing', 'aggregateBelowZero'] as const;
+export const STATS_INTEGRITY_REFUSAL_KEYS = [
+  'statsOutOfBand',
+  'finalRecordMissing',
+  'aggregateBelowZero',
+] as const;
 export type StatsIntegrityRefusal = (typeof STATS_INTEGRITY_REFUSAL_KEYS)[number];
 
 // What a game repair in Fix stats did: changed the game (`reconciled`), found nothing to change
 // (`unchanged`), or found its operation already committed and acknowledged the retry
 // (`alreadyApplied`).
-export const GAME_STATS_REPAIR_OUTCOME_KEYS = ['reconciled', 'unchanged', 'alreadyApplied'] as const;
+export const GAME_STATS_REPAIR_OUTCOME_KEYS = [
+  'reconciled',
+  'unchanged',
+  'alreadyApplied',
+] as const;
 export type GameStatsRepairOutcome = (typeof GAME_STATS_REPAIR_OUTCOME_KEYS)[number];
 
 // Why a game repair in Fix stats was refused, in the refusal's details, so the form says what to do:
@@ -172,18 +194,32 @@ export type GameRepairRefusal = (typeof GAME_REPAIR_REFUSAL_KEYS)[number];
 // (`handedOver`); the account had none and the ghost none either, so the closed-league link gave the
 // account one (`created`); both held one and one survives with the higher role (`merged`); or only
 // the account held one, and it stands (`kept`).
-export const GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS = ['handedOver', 'created', 'merged', 'kept'] as const;
+export const GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS = [
+  'handedOver',
+  'created',
+  'merged',
+  'kept',
+] as const;
 export type GhostLinkMembershipOutcome = (typeof GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS)[number];
 
 // What the migration's placement of an unplaceable V1 stat line did: `alreadyResolved` when the game
 // already held the entry it would write — nothing was written.
-export const UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS = ['resolved', 'alreadyResolved'] as const;
-export type UnrosteredStatLineResolutionOutcome = (typeof UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS)[number];
+export const UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS = [
+  'resolved',
+  'alreadyResolved',
+] as const;
+export type UnrosteredStatLineResolutionOutcome =
+  (typeof UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS)[number];
 
 // Why a ghost's removal was refused, in the refusal's details, so the client answers each one: the
 // ghost has played (link it instead) or its removal stopped on finding it had; a game the removal
 // needs is held by another operation (try again shortly); the ghost is being, or was, linked; the
 // ghost is the team's captain (change the captain first).
-export const GHOST_REMOVAL_REFUSAL_KEYS = ['ghostHasPlayed', 'removalStopped', 'gameHeld', 'ghostBeingLinked', 'captainNotRemovable'] as const;
+export const GHOST_REMOVAL_REFUSAL_KEYS = [
+  'ghostHasPlayed',
+  'removalStopped',
+  'gameHeld',
+  'ghostBeingLinked',
+  'captainNotRemovable',
+] as const;
 export type GhostRemovalRefusal = (typeof GHOST_REMOVAL_REFUSAL_KEYS)[number];
-

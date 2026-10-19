@@ -136,7 +136,10 @@ export type ServerFrame =
   // viewers hide/blank/edit/restore the message immediately with no extra fetch.
   // `messageSeq` is the target message id; `kind` is the applied revision kind;
   // `messageRevision` is its per-message revision number (max-revision wins).
-  | { type: 'revision'; payload: { messageSeq: number; kind: RevisionKind; messageRevision: number } };
+  | {
+      type: 'revision';
+      payload: { messageSeq: number; kind: RevisionKind; messageRevision: number };
+    };
 
 /** Build an outbound `{ v, type, payload }` frame (the wire format the DO reads). */
 export function buildFrame(type: string, payload: Record<string, unknown>): string {
@@ -144,7 +147,9 @@ export function buildFrame(type: string, payload: Record<string, unknown>): stri
 }
 
 /** Parse an inbound frame, tolerating malformed JSON. Returns null on garbage. */
-export function parseFrame(raw: string): { v?: number; type?: string; payload?: Record<string, unknown> } | null {
+export function parseFrame(
+  raw: string,
+): { v?: number; type?: string; payload?: Record<string, unknown> } | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== 'object') return null;
@@ -155,6 +160,8 @@ export function parseFrame(raw: string): { v?: number; type?: string; payload?: 
 }
 
 /** A snapshot with `registry` is an inbox snapshot; one with `lastMessageSeq` is a channel snapshot. */
-export function isInboxSnapshot(p: WireChannelSnapshot | WireInboxSnapshot): p is WireInboxSnapshot {
+export function isInboxSnapshot(
+  p: WireChannelSnapshot | WireInboxSnapshot,
+): p is WireInboxSnapshot {
   return Array.isArray((p as WireInboxSnapshot).registry);
 }

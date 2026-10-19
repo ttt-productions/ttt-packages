@@ -1,9 +1,5 @@
 import type { DeclaredInputFormat } from '@ttt-productions/input-format-core';
-import type {
-  ReportableItemConfig,
-  PriorityConfig,
-  TaskQueueConfig,
-} from './types-config.js';
+import type { ReportableItemConfig, PriorityConfig, TaskQueueConfig } from './types-config.js';
 
 export interface ReportCoreCollections {
   reports: string;

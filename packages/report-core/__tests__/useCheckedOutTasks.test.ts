@@ -12,7 +12,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@ttt-productions/query-core/react', async (importOriginal) => ({
   useFirestoreCollection: mocks.useFirestoreCollection,
-  useReadRetryState: (await importOriginal<typeof import('@ttt-productions/query-core/react')>()).useReadRetryState,
+  useReadRetryState: (await importOriginal<typeof import('@ttt-productions/query-core/react')>())
+    .useReadRetryState,
 }));
 vi.mock('firebase/firestore', () => ({
   where: mocks.whereFn,
@@ -42,13 +43,22 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.useFirestoreCollection.mockReturnValue({ data: [], isLoading: false, error: null } as never);
+  mocks.useFirestoreCollection.mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+  } as never);
 });
 
 describe('useCheckedOutTasks — the failure held through its restart', () => {
   it('is loading before the first snapshot', () => {
     // query-core's subscribed result before its first snapshot: loading and fetching, no data.
-    mocks.useFirestoreCollection.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, error: null } as never);
+    mocks.useFirestoreCollection.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      error: null,
+    } as never);
     const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: true });
   });
@@ -56,17 +66,43 @@ describe('useCheckedOutTasks — the failure held through its restart', () => {
   it('keeps a failed listener failed, with its retry pending, while the restart reconnects', () => {
     const failure = new Error('denied');
     const refetch = vi.fn();
-    mocks.useFirestoreCollection.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, error: failure, refetch } as never);
+    mocks.useFirestoreCollection.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      error: failure,
+      refetch,
+    } as never);
     const { result, rerender } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
-    expect(result.current.retryState).toEqual({ error: failure, isRetrying: false, isLoading: false });
+    expect(result.current.retryState).toEqual({
+      error: failure,
+      isRetrying: false,
+      isLoading: false,
+    });
     expect(result.current.refetch).toBe(refetch);
 
     // The restart clears `error` and reports the listener fetching while it reconnects.
-    mocks.useFirestoreCollection.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, error: null, refetch } as never);
+    mocks.useFirestoreCollection.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      error: null,
+      refetch,
+    } as never);
     rerender();
-    expect(result.current.retryState).toEqual({ error: failure, isRetrying: true, isLoading: false });
+    expect(result.current.retryState).toEqual({
+      error: failure,
+      isRetrying: true,
+      isLoading: false,
+    });
 
-    mocks.useFirestoreCollection.mockReturnValue({ data: [], isLoading: false, isFetching: false, error: null, refetch } as never);
+    mocks.useFirestoreCollection.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      error: null,
+      refetch,
+    } as never);
     rerender();
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: false });
   });

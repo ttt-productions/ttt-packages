@@ -59,14 +59,17 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'allWorkProjects/{workProjectId}/guildmateUsers/{uid}': SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}': SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}': SOLO_DRAFT_WORK,
-  'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}': SOLO_DRAFT_WORK,
+  'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}':
+    SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation': SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': SOLO_DRAFT_WORK,
-  'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}': SOLO_DRAFT_WORK,
+  'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}':
+    SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}': SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}': SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': SOLO_DRAFT_WORK,
-  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': SOLO_DRAFT_WORK,
+  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}':
+    SOLO_DRAFT_WORK,
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': SOLO_DRAFT_WORK,
   'publicWorkProjects/{workProjectId}': SOLO_DRAFT_WORK,
   // Deleted with a draft Realm the solo draft founded and no other Work joined.
@@ -78,7 +81,10 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'guildInviteConversations/{guildInviteId}': RETAIN,
   // A file the member uploaded is deleted, its bytes retired first (only its uploader controls it);
   // a file the other party uploaded is theirs and stays.
-  'guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}': ['delete', 'retain'],
+  'guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}': [
+    'delete',
+    'retain',
+  ],
   'thresholdItems/{thresholdItemId}': SOLO_DRAFT_WORK,
   'hallItems/{hallItemId}': NONE,
   'hallItems/{hallItemId}/hallItemTales/{itemId}': NONE,
@@ -142,9 +148,15 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'stakeShareAuditEvents/{eventId}': RETAIN,
   // By `adminDispatchErasureFate`.
   'pendingAdminDispatches/{adminDispatchId}': ['delete', 'anonymize'],
-  'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': ['delete', 'anonymize'],
+  'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': [
+    'delete',
+    'anonymize',
+  ],
   // Deleted with a deleted thread; a kept thread keeps its files.
-  'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}': ['delete', 'retain'],
+  'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}': [
+    'delete',
+    'retain',
+  ],
   // The member's own read position — nobody else reads it, so it goes with them.
   'pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}': DELETE,
   // A link others may already have shared; its creator is an account id only.
@@ -212,9 +224,11 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'childSafetyCases/{caseId}': RETAIN,
   'childSafetyCases/{caseId}/sourceSignals/{signalId}': RETAIN,
   'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}': RETAIN,
-  'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}/childSafetyDecisionViews/{viewId}': RETAIN,
+  'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}/childSafetyDecisionViews/{viewId}':
+    RETAIN,
   'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}': RETAIN,
-  'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}': RETAIN,
+  'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}':
+    RETAIN,
   'childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}': RETAIN,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': RETAIN,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}': RETAIN,
@@ -250,7 +264,8 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'takeItDownRequests/{requestId}/privateDetails/requester': RETAIN,
   'takeItDownRequests/{requestId}/takeItDownSubmissions/{submissionId}': RETAIN,
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': RETAIN,
-  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record': RETAIN,
+  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record':
+    RETAIN,
   'takeItDownRequests/{requestId}/takeItDownActions/{actionId}': RETAIN,
   'takeItDownRequests/{requestId}/takeItDownEvidenceDisposition/{evidenceId}': RETAIN,
   'takeItDownRequests/{requestId}/takeItDownEvidence/{evidenceId}': RETAIN,
@@ -291,8 +306,8 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
 
 /** Every registered path whose declared fates include `fate`. */
 export function collectionPathsWithErasureFate(fate: ErasureFate): RegisteredCollectionPath[] {
-  return (Object.keys(ERASURE_FATES_BY_COLLECTION_PATH) as RegisteredCollectionPath[]).filter((path) =>
-    (ERASURE_FATES_BY_COLLECTION_PATH[path] as ErasureFates).includes(fate),
+  return (Object.keys(ERASURE_FATES_BY_COLLECTION_PATH) as RegisteredCollectionPath[]).filter(
+    (path) => (ERASURE_FATES_BY_COLLECTION_PATH[path] as ErasureFates).includes(fate),
   );
 }
 

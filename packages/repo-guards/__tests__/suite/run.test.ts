@@ -7,12 +7,24 @@ import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 let repo: TempRepo;
 let reader: RepoReader;
 beforeAll(() => {
-  repo = tempRepo({ 'src/index.ts': 'export {};', 'config.json': '{}', 'store.rules': 'service firebase.storage { }' });
-  reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } }, rulesFiles: ['store.rules'] });
+  repo = tempRepo({
+    'src/index.ts': 'export {};',
+    'config.json': '{}',
+    'store.rules': 'service firebase.storage { }',
+  });
+  reader = createRepoReader({
+    repoRoot: repo.root,
+    roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+    rulesFiles: ['store.rules'],
+  });
 });
 afterAll(() => repo.remove());
 
-const guard = (run: Guard['run']): Guard => ({ title: 'a guard', description: 'What it requires.', run });
+const guard = (run: Guard['run']): Guard => ({
+  title: 'a guard',
+  description: 'What it requires.',
+  run,
+});
 
 describe('running one guard', () => {
   it('passes a guard that read files and found nothing', async () => {
@@ -32,7 +44,12 @@ describe('running one guard', () => {
   });
 
   it('MUST FAIL — a guard that read no file checked nothing', async () => {
-    await expect(runGuard(guard(() => []), reader)).rejects.toThrow('a guard: the guard read no file, so it checked nothing');
+    await expect(
+      runGuard(
+        guard(() => []),
+        reader,
+      ),
+    ).rejects.toThrow('a guard: the guard read no file, so it checked nothing');
   });
 
   it('MUST FAIL — a scope that reached no file is vacuous, even beside a named file and a scope that reached one', async () => {
@@ -57,7 +74,9 @@ describe('running one guard', () => {
       c.rulesFiles('firestore');
       return [];
     });
-    await expect(runGuard(firestore, reader)).rejects.toThrow("its scope reached no file, so it checked nothing there: the layout's firestore rules files");
+    await expect(runGuard(firestore, reader)).rejects.toThrow(
+      "its scope reached no file, so it checked nothing there: the layout's firestore rules files",
+    );
   });
 
   it('MUST FAIL — a finding fails the run with the description and every place', async () => {
@@ -65,6 +84,8 @@ describe('running one guard', () => {
       c.file('src/index.ts');
       return [{ file: 'src/index.ts', line: 1, detail: 'the problem' }];
     });
-    await expect(runGuard(failing, reader)).rejects.toThrow('a guard: 1 finding(s)\n\nWhat it requires.\n\n  src/index.ts:1 — the problem');
+    await expect(runGuard(failing, reader)).rejects.toThrow(
+      'a guard: 1 finding(s)\n\nWhat it requires.\n\n  src/index.ts:1 — the problem',
+    );
   });
 });

@@ -48,10 +48,16 @@ export function codeLiterals(file: FileView): CodeLiteral[] {
   const found: CodeLiteral[] = [];
   const declarations = file.kind === 'declarations';
   for (const statement of file.sourceFile.statements) {
-    if (declarations && !ts.isTypeAliasDeclaration(statement) && !ts.isInterfaceDeclaration(statement)) continue;
+    if (
+      declarations &&
+      !ts.isTypeAliasDeclaration(statement) &&
+      !ts.isInterfaceDeclaration(statement)
+    )
+      continue;
     const declaration = declarationNameOf(statement);
     const visit = (node: ts.Node): void => {
-      if (isPlainString(node)) found.push({ value: node.text, declaration, line: lineOfNode(file, node) });
+      if (isPlainString(node))
+        found.push({ value: node.text, declaration, line: lineOfNode(file, node) });
       ts.forEachChild(node, visit);
     };
     visit(statement);
@@ -69,7 +75,9 @@ function guardedMembersRun(facts: DefinitionRedeclarationFacts) {
       for (const hit of codeLiterals(file)) {
         const guarded = wanted.get(hit.value);
         if (!guarded || guarded.owners.includes(module)) continue;
-        const entry = guarded.allowed.find((a) => a.file === module && a.declaration === hit.declaration);
+        const entry = guarded.allowed.find(
+          (a) => a.file === module && a.declaration === hit.declaration,
+        );
         if (entry) matched.add(`${hit.value}\u0000${entry.file}#${entry.declaration}`);
         else {
           findings.push({
@@ -82,16 +90,31 @@ function guardedMembersRun(facts: DefinitionRedeclarationFacts) {
     }
     for (const guarded of facts.guardedLiterals) {
       for (const owner of guarded.owners) {
-        const present = [...new Set([owner, owner.replace(/\.([cm]?)js$/, '.d.$1ts')])].filter((p) => context.reader.exists(p));
+        const present = [...new Set([owner, owner.replace(/\.([cm]?)js$/, '.d.$1ts')])].filter(
+          (p) => context.reader.exists(p),
+        );
         if (!present.length) {
-          findings.push({ file: owner, detail: `stale owner of '${guarded.literal}': the module no longer exists` });
-        } else if (!present.some((p) => codeLiterals(context.file(p)).some((hit) => hit.value === guarded.literal))) {
-          findings.push({ file: owner, detail: `stale owner of '${guarded.literal}': the module no longer declares it` });
+          findings.push({
+            file: owner,
+            detail: `stale owner of '${guarded.literal}': the module no longer exists`,
+          });
+        } else if (
+          !present.some((p) =>
+            codeLiterals(context.file(p)).some((hit) => hit.value === guarded.literal),
+          )
+        ) {
+          findings.push({
+            file: owner,
+            detail: `stale owner of '${guarded.literal}': the module no longer declares it`,
+          });
         }
       }
       for (const entry of guarded.allowed) {
         if (!matched.has(`${guarded.literal}\u0000${entry.file}#${entry.declaration}`)) {
-          findings.push({ file: entry.file, detail: `stale allowance for '${guarded.literal}' in ${entry.declaration}: the use it excuses is gone` });
+          findings.push({
+            file: entry.file,
+            detail: `stale allowance for '${guarded.literal}' in ${entry.declaration}: the use it excuses is gone`,
+          });
         }
       }
     }
@@ -109,16 +132,29 @@ export function coreVocabulary(declarationFiles: readonly FileView[]) {
   const unions: Array<{ name: string; members: ReadonlySet<string> }> = [];
   for (const file of declarationFiles) {
     for (const statement of file.sourceFile.statements) {
-      if (!ts.isVariableStatement(statement) || !hasModifier(statement, ts.SyntaxKind.ExportKeyword)) continue;
+      if (
+        !ts.isVariableStatement(statement) ||
+        !hasModifier(statement, ts.SyntaxKind.ExportKeyword)
+      )
+        continue;
       for (const declaration of statement.declarationList.declarations) {
-        if (!ts.isIdentifier(declaration.name) || !CONSTANT_NAME.test(declaration.name.text)) continue;
+        if (!ts.isIdentifier(declaration.name) || !CONSTANT_NAME.test(declaration.name.text))
+          continue;
         const name = declaration.name.text;
         constants.add(name);
         const type = declaration.type;
         // An `as const` array declares a readonly tuple of its literal members.
-        if (type && ts.isTypeOperatorNode(type) && type.operator === ts.SyntaxKind.ReadonlyKeyword && ts.isTupleTypeNode(type.type)) {
-          const members = type.type.elements.map((e) => (ts.isLiteralTypeNode(e) && ts.isStringLiteral(e.literal) ? e.literal.text : null));
-          if (members.length >= 2 && members.every((m) => m !== null)) unions.push({ name, members: new Set(members as string[]) });
+        if (
+          type &&
+          ts.isTypeOperatorNode(type) &&
+          type.operator === ts.SyntaxKind.ReadonlyKeyword &&
+          ts.isTupleTypeNode(type.type)
+        ) {
+          const members = type.type.elements.map((e) =>
+            ts.isLiteralTypeNode(e) && ts.isStringLiteral(e.literal) ? e.literal.text : null,
+          );
+          if (members.length >= 2 && members.every((m) => m !== null))
+            unions.push({ name, members: new Set(members as string[]) });
         }
       }
     }
@@ -149,11 +185,22 @@ export function redeclaredConstants(file: FileView, constants: ReadonlySet<strin
 }
 
 const stringMembers = (nodes: readonly ts.Node[]) =>
-  nodes.flatMap((n) => (isPlainString(n) ? [n.text] : ts.isLiteralTypeNode(n) && isPlainString(n.literal) ? [n.literal.text] : []));
+  nodes.flatMap((n) =>
+    isPlainString(n)
+      ? [n.text]
+      : ts.isLiteralTypeNode(n) && isPlainString(n.literal)
+        ? [n.literal.text]
+        : [],
+  );
 
 const unwrapValue = (node: ts.Node): ts.Node => {
   let current = node;
-  while (current.parent && (ts.isAsExpression(current.parent) || ts.isSatisfiesExpression(current.parent) || ts.isParenthesizedExpression(current.parent))) {
+  while (
+    current.parent &&
+    (ts.isAsExpression(current.parent) ||
+      ts.isSatisfiesExpression(current.parent) ||
+      ts.isParenthesizedExpression(current.parent))
+  ) {
     current = current.parent;
   }
   return current;
@@ -164,9 +211,13 @@ function isBound(array: ts.ArrayLiteralExpression): boolean {
   const value = unwrapValue(array);
   const parent = value.parent;
   if (!parent) return false;
-  if (ts.isBinaryExpression(parent)) return parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && parent.right === value;
+  if (ts.isBinaryExpression(parent))
+    return parent.operatorToken.kind === ts.SyntaxKind.EqualsToken && parent.right === value;
   return (
-    (ts.isVariableDeclaration(parent) || ts.isParameter(parent) || ts.isPropertyDeclaration(parent) || ts.isBindingElement(parent)) &&
+    (ts.isVariableDeclaration(parent) ||
+      ts.isParameter(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isBindingElement(parent)) &&
     parent.initializer === value
   );
 }
@@ -183,7 +234,10 @@ const isZodEnum = (node: ts.Node): node is ts.CallExpression =>
  * a `z.enum([...])` of quoted members, or an array literal of nothing but quoted members bound with
  * `=`. A place restates a union when it names two or more members and every one belongs to it.
  */
-export function restatedUnions(file: FileView, unions: ReadonlyArray<{ name: string; members: ReadonlySet<string> }>): Finding[] {
+export function restatedUnions(
+  file: FileView,
+  unions: ReadonlyArray<{ name: string; members: ReadonlySet<string> }>,
+): Finding[] {
   const findings: Finding[] = [];
   const report = (node: ts.Node, members: string[]) => {
     if (members.length < 2) return;
@@ -201,7 +255,11 @@ export function restatedUnions(file: FileView, unions: ReadonlyArray<{ name: str
     else if (isZodEnum(node)) {
       const [first] = node.arguments;
       if (first && ts.isArrayLiteralExpression(first)) report(node, stringMembers(first.elements));
-    } else if (ts.isArrayLiteralExpression(node) && node.elements.every(isPlainString) && isBound(node)) {
+    } else if (
+      ts.isArrayLiteralExpression(node) &&
+      node.elements.every(isPlainString) &&
+      isBound(node)
+    ) {
       report(node, stringMembers(node.elements));
     }
     ts.forEachChild(node, visit);
@@ -216,13 +274,20 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
   factProblems(facts) {
     const problems: string[] = [];
     const guarded = facts?.guardedLiterals;
-    namesProblem(Array.isArray(guarded) ? guarded.map((g) => g?.literal) : guarded, 'guardedLiterals', problems);
+    namesProblem(
+      Array.isArray(guarded) ? guarded.map((g) => g?.literal) : guarded,
+      'guardedLiterals',
+      problems,
+    );
     for (const g of Array.isArray(guarded) ? guarded : []) {
       if (!isText(g?.literal)) continue;
       namesProblem(g.owners, `the owners of '${g.literal}'`, problems);
       reviewedProblems(g.allowed, `the allowed uses of '${g.literal}'`, problems, {
         key: 'file',
-        id: (e) => (typeof e.declaration === 'string' && e.declaration.trim() ? `${e.file}#${e.declaration}` : undefined),
+        id: (e) =>
+          typeof e.declaration === 'string' && e.declaration.trim()
+            ? `${e.file}#${e.declaration}`
+            : undefined,
         idNames: 'declaration',
       });
     }
@@ -251,8 +316,15 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
           const { constants } = coreVocabulary(coreDeclarations(context));
           const findings: Finding[] = constants.size
             ? []
-            : [{ file: '(core build)', detail: 'the installed core declares no exported constant, so the check compares nothing' }];
-          for (const file of context.files(APP_SOURCE)) findings.push(...redeclaredConstants(file, constants));
+            : [
+                {
+                  file: '(core build)',
+                  detail:
+                    'the installed core declares no exported constant, so the check compares nothing',
+                },
+              ];
+          for (const file of context.files(APP_SOURCE))
+            findings.push(...redeclaredConstants(file, constants));
           return findings;
         },
       },
@@ -268,8 +340,15 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
           const { unions } = coreVocabulary(coreDeclarations(context));
           const findings: Finding[] = unions.length
             ? []
-            : [{ file: '(core build)', detail: 'the installed core declares no literal union, so the check compares nothing' }];
-          for (const file of context.files(APP_SOURCE)) findings.push(...restatedUnions(file, unions));
+            : [
+                {
+                  file: '(core build)',
+                  detail:
+                    'the installed core declares no literal union, so the check compares nothing',
+                },
+              ];
+          for (const file of context.files(APP_SOURCE))
+            findings.push(...restatedUnions(file, unions));
           return findings;
         },
       },

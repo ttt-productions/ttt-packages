@@ -27,7 +27,9 @@ const CLEAR_KEY = ['upload-activity', 'clear'] as const;
 describe('useClearUploadActivity', () => {
   it('calls clearFn with the pendingMediaId', async () => {
     const clearFn = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useClearUploadActivity({ clearFn }), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useClearUploadActivity({ clearFn }), {
+      wrapper: makeWrapper(),
+    });
     result.current.mutate('doc-1');
     await waitFor(() => expect(clearFn).toHaveBeenCalled());
     expect(clearFn.mock.calls[0][0]).toBe('doc-1');
@@ -36,7 +38,9 @@ describe('useClearUploadActivity', () => {
   it('invokes onError on rejection', async () => {
     const clearFn = vi.fn().mockRejectedValue(new Error('boom'));
     const onError = vi.fn();
-    const { result } = renderHook(() => useClearUploadActivity({ clearFn, onError }), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useClearUploadActivity({ clearFn, onError }), {
+      wrapper: makeWrapper(),
+    });
     result.current.mutate('doc-1');
     await waitFor(() => expect(onError).toHaveBeenCalled());
     expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
@@ -45,7 +49,9 @@ describe('useClearUploadActivity', () => {
 
   it('exposes mutateAsync, resolving when clearFn resolves', async () => {
     const clearFn = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useClearUploadActivity({ clearFn }), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useClearUploadActivity({ clearFn }), {
+      wrapper: makeWrapper(),
+    });
     await act(async () => {
       await expect(result.current.mutateAsync('doc-2')).resolves.toBeUndefined();
     });
@@ -88,7 +94,9 @@ describe('useClearUploadActivity', () => {
     const qc = makeClient();
     const gate = deferredVoid();
     const clearFn = vi.fn(() => gate.promise);
-    const { result } = renderHook(() => useClearUploadActivity({ clearFn }), { wrapper: makeWrapper(qc) });
+    const { result } = renderHook(() => useClearUploadActivity({ clearFn }), {
+      wrapper: makeWrapper(qc),
+    });
 
     act(() => {
       result.current.mutate('doc-4');

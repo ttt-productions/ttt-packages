@@ -64,9 +64,17 @@ export function matchBlocks(code: string): MatchBlock[] {
     const open = index + m[0].length - 1;
     const close = braces.get(open) ?? masked.length;
     let parent: MatchBlock | null = null;
-    for (const b of blocks) if (b.open < index && index < b.close && (!parent || b.open > parent.open)) parent = b;
+    for (const b of blocks)
+      if (b.open < index && index < b.close && (!parent || b.open > parent.open)) parent = b;
     const own = splitPath(m[1]);
-    blocks.push({ path: m[1], segments: [...(parent?.segments ?? []), ...own], parent, index, open, close });
+    blocks.push({
+      path: m[1],
+      segments: [...(parent?.segments ?? []), ...own],
+      parent,
+      index,
+      open,
+      close,
+    });
   }
   return blocks;
 }
@@ -95,7 +103,10 @@ export function rulesFunctions(code: string): Map<string, RulesFunction> {
     const close = braces.get(open) ?? masked.length;
     out.set(m[1], {
       name: m[1],
-      params: m[2].split(',').map((p) => p.trim()).filter(Boolean),
+      params: m[2]
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean),
       index: m.index as number,
       body: code.slice(open + 1, close),
       bodyStart: open + 1,
@@ -106,7 +117,10 @@ export function rulesFunctions(code: string): Map<string, RulesFunction> {
 }
 
 /** The function whose body holds `index`, or null when it sits in no function. */
-export function enclosingFunction(functions: Map<string, RulesFunction>, index: number): RulesFunction | null {
+export function enclosingFunction(
+  functions: Map<string, RulesFunction>,
+  index: number,
+): RulesFunction | null {
   for (const f of functions.values()) if (f.bodyStart <= index && index < f.bodyEnd) return f;
   return null;
 }
@@ -116,7 +130,8 @@ const CALL = /(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g;
 /** The names of the file's own functions a text calls (a `.name(` member call is no such call). */
 export function calledFunctions(text: string, functions: Map<string, RulesFunction>): string[] {
   const names: string[] = [];
-  for (const m of maskStrings(text).matchAll(CALL)) if (functions.has(m[1]) && !names.includes(m[1])) names.push(m[1]);
+  for (const m of maskStrings(text).matchAll(CALL))
+    if (functions.has(m[1]) && !names.includes(m[1])) names.push(m[1]);
   return names;
 }
 
@@ -146,7 +161,8 @@ export interface DocumentPathLiteral {
   readonly text: string;
 }
 
-const DOCUMENT_PATH = /\/databases\/(?:\$\(\s*[\w$]+\s*\)|\(default\))\/documents((?:\/(?:\$\([^()]*\)|[\w-]+))+)/g;
+const DOCUMENT_PATH =
+  /\/databases\/(?:\$\(\s*[\w$]+\s*\)|\(default\))\/documents((?:\/(?:\$\([^()]*\)|[\w-]+))+)/g;
 
 /** Every document path the code spells, in either service's form. */
 export function documentPathLiterals(code: string): DocumentPathLiteral[] {
@@ -163,7 +179,8 @@ export const isVariable = (segment: string) => /^\{[^{}]*\}$/.test(segment);
 export const isRecursive = (segment: string) => /^\{[^{}=]*=\*\*\}$/.test(segment);
 
 /** A path with every variable written as `{}`, so two spellings of one path compare equal. */
-export const wildcardPath = (segments: readonly string[]) => segments.map((s) => (isVariable(s) ? '{}' : s)).join('/');
+export const wildcardPath = (segments: readonly string[]) =>
+  segments.map((s) => (isVariable(s) ? '{}' : s)).join('/');
 
 /** `a/{b}/c` → its segments, normalized; the form every declared path is compared in. */
 export const normalizeDeclared = (path: string) => wildcardPath(splitPath(path));

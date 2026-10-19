@@ -9,12 +9,13 @@ import {
 } from '../src/schemas/work-project-management.js';
 import { displayNameSchema } from '../src/schemas/users.js';
 import { SubmitFeedbackInputSchema } from '../src/schemas/utility.js';
-import { CommissionPostingTargetInfoSchema, CommissionProposalTargetInfoSchema } from '../src/media/target-info.js';
+import {
+  CommissionPostingTargetInfoSchema,
+  CommissionProposalTargetInfoSchema,
+} from '../src/media/target-info.js';
 import { ReopenSafetyCaseInputSchema } from '../src/schemas/admin.js';
 import { SubmitReportInputSchema } from '../src/schemas/safety.js';
-import {
-  MAX_WORK_PROJECT_STAKE_SHARES,
-} from '../src/constants/business-work-project.js';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
 import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_REPORT_COMMENT_LENGTH,
@@ -22,7 +23,11 @@ import {
   MIN_SAFETY_RATIONALE_LENGTH,
 } from '../src/constants/business-admin.js';
 
-const spec = (d: { format: string; min: number; max: number }) => ({ format: d.format, min: d.min, max: d.max });
+const spec = (d: { format: string; min: number; max: number }) => ({
+  format: d.format,
+  min: d.min,
+  max: d.max,
+});
 
 // The approved field table: each field's format, min, and max.
 describe('the field declarations', () => {
@@ -42,16 +47,32 @@ describe('the field declarations', () => {
 
   it('names, subjects, and the broadcast title are single-line', () => {
     expect(spec(F.WORK_FILE_FOLDER_NAME_INPUT)).toEqual({ format: 'singleLine', min: 1, max: 100 });
-    expect(spec(F.REALM_FILE_FOLDER_NAME_INPUT)).toEqual({ format: 'singleLine', min: 1, max: 100 });
-    expect(spec(F.GUILD_CHAT_CHANNEL_NAME_INPUT)).toEqual({ format: 'singleLine', min: 1, max: 50 });
-    expect(spec(F.ADMIN_DISPATCH_SUBJECT_INPUT)).toEqual({ format: 'singleLine', min: 1, max: 100 });
+    expect(spec(F.REALM_FILE_FOLDER_NAME_INPUT)).toEqual({
+      format: 'singleLine',
+      min: 1,
+      max: 100,
+    });
+    expect(spec(F.GUILD_CHAT_CHANNEL_NAME_INPUT)).toEqual({
+      format: 'singleLine',
+      min: 1,
+      max: 50,
+    });
+    expect(spec(F.ADMIN_DISPATCH_SUBJECT_INPUT)).toEqual({
+      format: 'singleLine',
+      min: 1,
+      max: 100,
+    });
     expect(spec(F.BROADCAST_TITLE_INPUT)).toEqual({ format: 'singleLine', min: 1, max: 150 });
     expect(spec(F.THEME_NAME_INPUT)).toEqual({ format: 'singleLine', min: 1, max: 50 });
   });
 
   it('usernames and feedback suggestions keep their character sets', () => {
     expect(spec(F.USERNAME_INPUT)).toEqual({ format: 'englishNormalNoSpaces', min: 3, max: 20 });
-    expect(spec(F.FEEDBACK_SUGGESTION_INPUT)).toEqual({ format: 'englishLettersOnly', min: 1, max: 100 });
+    expect(spec(F.FEEDBACK_SUGGESTION_INPUT)).toEqual({
+      format: 'englishLettersOnly',
+      min: 1,
+      max: 100,
+    });
   });
 
   it('the audition description is optional; the commission description and cover letter are required', () => {
@@ -61,7 +82,11 @@ describe('the field declarations', () => {
   });
 
   it('a report comment is required and capped at the report comment length', () => {
-    expect(spec(F.REPORT_COMMENT_INPUT)).toEqual({ format: 'none', min: 1, max: MAX_REPORT_COMMENT_LENGTH });
+    expect(spec(F.REPORT_COMMENT_INPUT)).toEqual({
+      format: 'none',
+      min: 1,
+      max: MAX_REPORT_COMMENT_LENGTH,
+    });
   });
 
   it('safety internal reasons need the substantive-rationale minimum', () => {
@@ -70,12 +95,24 @@ describe('the field declarations', () => {
   });
 
   it('hide reasons and the refund denial reason gain their caps', () => {
-    expect(spec(F.HIDE_REASON_INPUT)).toEqual({ format: 'none', min: 1, max: MAX_INTERNAL_REASON_LENGTH });
-    expect(spec(F.PLEDGE_REFUND_DENIAL_REASON_INPUT)).toEqual({ format: 'none', min: 1, max: MAX_USER_FACING_REASON_LENGTH });
+    expect(spec(F.HIDE_REASON_INPUT)).toEqual({
+      format: 'none',
+      min: 1,
+      max: MAX_INTERNAL_REASON_LENGTH,
+    });
+    expect(spec(F.PLEDGE_REFUND_DENIAL_REASON_INPUT)).toEqual({
+      format: 'none',
+      min: 1,
+      max: MAX_USER_FACING_REASON_LENGTH,
+    });
   });
 
   it('an admin task check-in resolution is optional, up to the internal reason length', () => {
-    expect(spec(F.ADMIN_TASK_RESOLUTION_INPUT)).toEqual({ format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
+    expect(spec(F.ADMIN_TASK_RESOLUTION_INPUT)).toEqual({
+      format: 'none',
+      min: 0,
+      max: MAX_INTERNAL_REASON_LENGTH,
+    });
   });
 
   it('an admin-support thread message has the live chat message format and bounds', () => {
@@ -85,7 +122,12 @@ describe('the field declarations', () => {
   it('every declaration names the field its refusals speak of', () => {
     for (const [name, value] of Object.entries(F)) {
       if (typeof value !== 'object' || value === null || !('format' in value)) continue;
-      expect({ name, label: typeof (value as { label?: unknown }).label === 'string' && (value as { label: string }).label.length > 0 }).toEqual({ name, label: true });
+      expect({
+        name,
+        label:
+          typeof (value as { label?: unknown }).label === 'string' &&
+          (value as { label: string }).label.length > 0,
+      }).toEqual({ name, label: true });
     }
   });
 
@@ -99,9 +141,13 @@ describe('the field declarations', () => {
 describe('the wire schemas read the declarations', () => {
   it('a chapter title refuses apostrophes and accents, and is stored trimmed', () => {
     const base = { workProjectId: 'w', taleId: 't' };
-    expect(CreateChapterInputSchema.safeParse({ ...base, title: "Dragon's Den" }).success).toBe(false);
+    expect(CreateChapterInputSchema.safeParse({ ...base, title: "Dragon's Den" }).success).toBe(
+      false,
+    );
     expect(CreateChapterInputSchema.safeParse({ ...base, title: 'Café' }).success).toBe(false);
-    expect(CreateChapterInputSchema.parse({ ...base, title: '  Chapter One  ' }).title).toBe('Chapter One');
+    expect(CreateChapterInputSchema.parse({ ...base, title: '  Chapter One  ' }).title).toBe(
+      'Chapter One',
+    );
   });
 
   it('a Work is created and edited with its trimmed, non-blank title and description', () => {
@@ -114,12 +160,21 @@ describe('the wire schemas read the declarations', () => {
     };
     const parsed = CreateWorkProjectInputSchema.parse(create);
     expect([parsed.workingTitle, parsed.workingDescription]).toEqual(['Night', 'A tale.']);
-    expect(CreateWorkProjectInputSchema.safeParse({ ...create, workingDescription: '   ' }).success).toBe(false);
+    expect(
+      CreateWorkProjectInputSchema.safeParse({ ...create, workingDescription: '   ' }).success,
+    ).toBe(false);
   });
 
   it('a Work edit sends only what changed, but never nothing', () => {
-    expect(UpdatePublicWorkProjectDetailsInputSchema.safeParse({ workProjectId: 'w', workingTitle: 'New' }).success).toBe(true);
-    expect(UpdatePublicWorkProjectDetailsInputSchema.safeParse({ workProjectId: 'w' }).success).toBe(false);
+    expect(
+      UpdatePublicWorkProjectDetailsInputSchema.safeParse({
+        workProjectId: 'w',
+        workingTitle: 'New',
+      }).success,
+    ).toBe(true);
+    expect(
+      UpdatePublicWorkProjectDetailsInputSchema.safeParse({ workProjectId: 'w' }).success,
+    ).toBe(false);
   });
 
   it('a username is trimmed and keeps letters and digits only', () => {
@@ -128,32 +183,67 @@ describe('the wire schemas read the declarations', () => {
   });
 
   it('a feedback suggestion is stored lowercase', () => {
-    expect(SubmitFeedbackInputSchema.parse({ feedbackType: 'tradeProfessionSuggestions', suggestion: 'Banjo' }).suggestion).toBe('banjo');
+    expect(
+      SubmitFeedbackInputSchema.parse({
+        feedbackType: 'tradeProfessionSuggestions',
+        suggestion: 'Banjo',
+      }).suggestion,
+    ).toBe('banjo');
   });
 
   it('commission text refuses blanks on the media path', () => {
-    const posting = { title: 'Need a Score', description: '   ', requiredTradeProfessions: [], stakeSharesOffered: 10, workProjectId: 'w' };
+    const posting = {
+      title: 'Need a Score',
+      description: '   ',
+      requiredTradeProfessions: [],
+      stakeSharesOffered: 10,
+      workProjectId: 'w',
+    };
     expect(CommissionPostingTargetInfoSchema.safeParse(posting).success).toBe(false);
-    expect(CommissionProposalTargetInfoSchema.safeParse({ commissionListingId: 'c', replyText: ' ' }).success).toBe(false);
+    expect(
+      CommissionProposalTargetInfoSchema.safeParse({ commissionListingId: 'c', replyText: ' ' })
+        .success,
+    ).toBe(false);
   });
 
   it('a guild invite offers whole shares within the Work total', () => {
-    const invite = { workProjectId: 'w', inviteeUid: 'u', message: 'Join us', source: { type: 'craftSkill', data: { craftSkillId: 'c', craftSkillOwnerUserId: 'u', craftSkillName: 'Score' } } };
-    expect(InviteUserToGuildInputSchema.safeParse({ ...invite, stakeSharesOffered: 0 }).success).toBe(false);
-    expect(InviteUserToGuildInputSchema.safeParse({ ...invite, stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1 }).success).toBe(false);
-    expect(InviteUserToGuildInputSchema.safeParse({ ...invite, stakeSharesOffered: 5 }).success).toBe(true);
+    const invite = {
+      workProjectId: 'w',
+      inviteeUid: 'u',
+      message: 'Join us',
+      source: {
+        type: 'craftSkill',
+        data: { craftSkillId: 'c', craftSkillOwnerUserId: 'u', craftSkillName: 'Score' },
+      },
+    };
+    expect(
+      InviteUserToGuildInputSchema.safeParse({ ...invite, stakeSharesOffered: 0 }).success,
+    ).toBe(false);
+    expect(
+      InviteUserToGuildInputSchema.safeParse({
+        ...invite,
+        stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      InviteUserToGuildInputSchema.safeParse({ ...invite, stakeSharesOffered: 5 }).success,
+    ).toBe(true);
   });
 
   it('a safety reopen reason needs the substantive minimum', () => {
     const reopen = { caseType: 'childSafety', caseId: 'c1', confirmation: 'x' };
     const short = ReopenSafetyCaseInputSchema.safeParse({ ...reopen, reasonInternal: 'too short' });
-    expect(short.success === false && short.error.issues.some((i) => i.path[0] === 'reasonInternal')).toBe(true);
+    expect(
+      short.success === false && short.error.issues.some((i) => i.path[0] === 'reasonInternal'),
+    ).toBe(true);
   });
 
   it('a report requires a comment', () => {
     const report = { itemType: 'square-streetz-post', reportedItemId: 'p1', reason: 'Spam' };
     expect(SubmitReportInputSchema.safeParse(report).success).toBe(false);
     expect(SubmitReportInputSchema.safeParse({ ...report, comment: '   ' }).success).toBe(false);
-    expect(SubmitReportInputSchema.safeParse({ ...report, comment: 'Spam link' }).success).toBe(true);
+    expect(SubmitReportInputSchema.safeParse({ ...report, comment: 'Spam link' }).success).toBe(
+      true,
+    );
   });
 });

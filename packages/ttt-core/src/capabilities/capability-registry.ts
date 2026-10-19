@@ -158,10 +158,7 @@ export interface AgeCapabilityContext {
 }
 
 /** Does this context satisfy a capability's age requirement? */
-export function contextSatisfies(
-  capability: CapabilityId,
-  ctx: AgeCapabilityContext,
-): boolean {
+export function contextSatisfies(capability: CapabilityId, ctx: AgeCapabilityContext): boolean {
   const def = CAPABILITY_REGISTRY[capability];
   if (def.ageRequirement === 'none') return true;
   return ctx.is18Plus === true;

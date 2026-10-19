@@ -5,7 +5,12 @@
 // (so no collection name lives here), the row schema, the claim policy, the extra
 // writes a terminal transition carries, and the clock.
 
-import type { DocumentReference, DocumentSnapshot, Firestore, Transaction } from "firebase-admin/firestore";
+import type {
+  DocumentReference,
+  DocumentSnapshot,
+  Firestore,
+  Transaction,
+} from 'firebase-admin/firestore';
 import {
   buildPendingMediaTerminalFields,
   decidePendingMediaClaim,
@@ -17,7 +22,7 @@ import {
   type PendingMediaClaimPolicy,
   type PendingMediaFinalizeResult,
   type PendingMediaTerminalStatus,
-} from "@ttt-productions/media-schemas";
+} from '@ttt-productions/media-schemas';
 
 // ---------------------------------------------------------------------------
 // Claim
@@ -46,12 +51,16 @@ export async function claimPendingMediaForProcessing<TRow extends ClaimablePendi
   options: ClaimPendingMediaOptions<TRow>,
 ): Promise<PendingMediaClaimOutcome<TRow>> {
   const snap = await transaction.get(pendingMediaRef);
-  if (!snap.exists) return { kind: "missing" };
+  if (!snap.exists) return { kind: 'missing' };
 
   const parsed = options.schema.safeParse(snap.data());
-  if (!parsed.success) return { kind: "missing" };
+  if (!parsed.success) return { kind: 'missing' };
 
-  const { outcome, write } = decidePendingMediaClaim(parsed.data, options.now ?? Date.now(), options.policy);
+  const { outcome, write } = decidePendingMediaClaim(
+    parsed.data,
+    options.now ?? Date.now(),
+    options.policy,
+  );
   // Spread into a literal: the Admin SDK's update() wants an UpdateData-compatible object.
   if (write) transaction.update(pendingMediaRef, { ...write });
   return outcome;
@@ -107,13 +116,23 @@ export async function finalizePendingMediaInTransaction<TExtra = never>(
   options: FinalizePendingMediaOptions<TExtra> = {},
 ): Promise<PendingMediaFinalizeOutcome<TExtra>> {
   const snap = await transaction.get(ref);
-  const result = decidePendingMediaFinalize(snap.exists ? (snap.data() ?? {}) : undefined, targetStatus);
-  if (result.decision !== "applied") return result;
+  const result = decidePendingMediaFinalize(
+    snap.exists ? (snap.data() ?? {}) : undefined,
+    targetStatus,
+  );
+  if (result.decision !== 'applied') return result;
 
-  const applyExtra = await options.extraWrites?.(transaction, snap, { targetStatus, unparsable: false });
+  const applyExtra = await options.extraWrites?.(transaction, snap, {
+    targetStatus,
+    unparsable: false,
+  });
   transaction.update(
     ref,
-    buildPendingMediaTerminalFields(targetStatus, options.extraFields ?? {}, options.now ?? Date.now()),
+    buildPendingMediaTerminalFields(
+      targetStatus,
+      options.extraFields ?? {},
+      options.now ?? Date.now(),
+    ),
   );
   return applyExtra ? { ...result, extra: applyExtra() } : result;
 }
@@ -125,7 +144,9 @@ export function finalizePendingMedia<TExtra = never>(
   targetStatus: PendingMediaTerminalStatus,
   options: FinalizePendingMediaOptions<TExtra> = {},
 ): Promise<PendingMediaFinalizeOutcome<TExtra>> {
-  return db.runTransaction((transaction) => finalizePendingMediaInTransaction(transaction, ref, targetStatus, options));
+  return db.runTransaction((transaction) =>
+    finalizePendingMediaInTransaction(transaction, ref, targetStatus, options),
+  );
 }
 
 /**
@@ -146,8 +167,14 @@ export async function finalizeUnparsablePendingMedia<TExtra = never>(
     if (status !== undefined && !isPendingMediaNonTerminalStatus(status)) return;
 
     const failed = PendingMediaStatusSchema.enum.failed;
-    const applyExtra = await options.extraWrites?.(transaction, snap, { targetStatus: failed, unparsable: true });
-    transaction.update(ref, buildPendingMediaTerminalFields(failed, options.extraFields ?? {}, options.now ?? Date.now()));
+    const applyExtra = await options.extraWrites?.(transaction, snap, {
+      targetStatus: failed,
+      unparsable: true,
+    });
+    transaction.update(
+      ref,
+      buildPendingMediaTerminalFields(failed, options.extraFields ?? {}, options.now ?? Date.now()),
+    );
     applyExtra?.();
   });
 }

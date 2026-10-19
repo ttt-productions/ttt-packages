@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useTheme } from "next-themes";
-import type { ThemeName } from "../themes.js";
-import { useOptionalViewerSettingsSync } from "./viewer-settings-sync.js";
+import * as React from 'react';
+import { useTheme } from 'next-themes';
+import type { ThemeName } from '../themes.js';
+import { useOptionalViewerSettingsSync } from './viewer-settings-sync.js';
 
 export interface ThemeOption {
   /** The theme this option selects. */
@@ -49,7 +49,7 @@ export function ThemeSwitcher({
   renderTrigger,
   renderMenu,
   renderItem,
-  srLabel = "Toggle theme",
+  srLabel = 'Toggle theme',
 }: ThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
   const sync = useOptionalViewerSettingsSync();

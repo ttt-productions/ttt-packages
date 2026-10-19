@@ -4,12 +4,19 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input.js';
 import { getCroppedImg } from '../src/lib/image-utils.js';
 
-vi.mock('@ttt-productions/media-viewer/react', async () =>
-  import('../../media-viewer/src/react/index.js'),
+vi.mock(
+  '@ttt-productions/media-viewer/react',
+  async () => import('../../media-viewer/src/react/index.js'),
 );
 
 vi.mock('../src/lib/read-media-meta.js', () => ({
-  readMediaMeta: async (file: File) => ({ kind: 'image', mime: file.type, sizeBytes: file.size, width: 800, height: 800 }),
+  readMediaMeta: async (file: File) => ({
+    kind: 'image',
+    mime: file.type,
+    sizeBytes: file.size,
+    width: 800,
+    height: 800,
+  }),
 }));
 
 vi.mock('../src/lib/image-utils.js', () => ({ getCroppedImg: vi.fn() }));
@@ -35,7 +42,12 @@ function imageSpec(imageCrop: NonNullable<MediaOriginSpec['imageCrop']>): MediaO
     kind: 'image',
     accept: { kinds: ['image'] },
     imageCrop,
-    client: { allowPick: true, allowCapturePhoto: false, allowRecordVideo: false, allowRecordAudio: false },
+    client: {
+      allowPick: true,
+      allowCapturePhoto: false,
+      allowRecordVideo: false,
+      allowRecordAudio: false,
+    },
   };
 }
 
@@ -86,7 +98,13 @@ async function pickAndConfirmCrop(spec: MediaOriginSpec) {
 describe('MediaInput — crop encoding', () => {
   it('encodes the crop at the format and quality the origin spec declares', async () => {
     await pickAndConfirmCrop(
-      imageSpec({ aspectRatio: 1, outputWidth: 512, outputHeight: 512, format: 'jpeg', quality: 85 }),
+      imageSpec({
+        aspectRatio: 1,
+        outputWidth: 512,
+        outputHeight: 512,
+        format: 'jpeg',
+        quality: 85,
+      }),
     );
     expect(getCroppedImg).toHaveBeenCalledTimes(1);
     const args = vi.mocked(getCroppedImg).mock.calls[0];
@@ -96,7 +114,12 @@ describe('MediaInput — crop encoding', () => {
   });
 
   it('passes a lossless declared format through to the encoder', async () => {
-    await pickAndConfirmCrop(imageSpec({ aspectRatio: 1, outputWidth: 256, outputHeight: 256, format: 'png' }));
-    expect(vi.mocked(getCroppedImg).mock.calls[0][6]).toEqual({ format: 'png', quality: undefined });
+    await pickAndConfirmCrop(
+      imageSpec({ aspectRatio: 1, outputWidth: 256, outputHeight: 256, format: 'png' }),
+    );
+    expect(vi.mocked(getCroppedImg).mock.calls[0][6]).toEqual({
+      format: 'png',
+      quality: undefined,
+    });
   });
 });

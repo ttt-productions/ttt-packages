@@ -25,9 +25,18 @@ import { HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../paths/collections.js';
  * entry, so one kind's shape can never be stored in another kind's subcollection.
  */
 export const PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE = {
-  Tales: { subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, schema: PublishedChapterSchema },
-  Tunes: { subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes, schema: PublishedTuneTrackSchema },
-  Television: { subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television, schema: PublishedTelevisionEpisodeSchema },
+  Tales: {
+    subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales,
+    schema: PublishedChapterSchema,
+  },
+  Tunes: {
+    subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes,
+    schema: PublishedTuneTrackSchema,
+  },
+  Television: {
+    subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television,
+    schema: PublishedTelevisionEpisodeSchema,
+  },
 } as const satisfies Record<WorkProjectType, { subcollection: string; schema: unknown }>;
 
 /** A published hall-content surface whose text a change request or the moderation
@@ -35,8 +44,9 @@ export const PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE = {
 export type HallContentTextFieldSurface = keyof typeof HALL_CONTENT_TEXT_FIELDS;
 
 /** The proposed-text map a given surface accepts: only that surface's own field names. */
-export type HallContentTextFieldsFor<S extends HallContentTextFieldSurface> =
-  Partial<Record<(typeof HALL_CONTENT_TEXT_FIELDS)[S][number], string>>;
+export type HallContentTextFieldsFor<S extends HallContentTextFieldSurface> = Partial<
+  Record<(typeof HALL_CONTENT_TEXT_FIELDS)[S][number], string>
+>;
 
 export type HallContentTextFieldsValidation<S extends HallContentTextFieldSurface> =
   | { readonly ok: true; readonly fields: HallContentTextFieldsFor<S> }
@@ -66,7 +76,9 @@ export function validateHallContentTextFields<S extends HallContentTextFieldSurf
     if (!allowed.includes(field)) {
       return { ok: false, reason: `Field "${field}" is not editable on this item.` };
     }
-    const declaration = (HALL_CONTENT_CHANGE_REQUEST_INPUTS[surface] as Record<string, TextFieldDeclaration>)[field];
+    const declaration = (
+      HALL_CONTENT_CHANGE_REQUEST_INPUTS[surface] as Record<string, TextFieldDeclaration>
+    )[field];
     const result = checkTextField(declaration, typeof rawValue === 'string' ? rawValue : '');
     if (!result.ok) return { ok: false, reason: result.reason };
     normalized[field] = result.value;
@@ -113,7 +125,10 @@ export type HallSubItemStatus = (FullChapter | FullTuneTrack | FullTelevisionEpi
 /** The statuses that lock a sub-item against edits and media attaches: submitted for library
  *  review, or published to the Hall. Text changes to a published item go through a change
  *  request instead. */
-export const HALL_SUB_ITEM_LOCKED_STATUSES = ['pending_approval', 'published'] as const satisfies readonly HallSubItemStatus[];
+export const HALL_SUB_ITEM_LOCKED_STATUSES = [
+  'pending_approval',
+  'published',
+] as const satisfies readonly HallSubItemStatus[];
 
 /** True when a sub-item in this status is locked; any other value, a missing status included, is
  *  not a lock. */
@@ -123,7 +138,10 @@ export function isHallSubItemLocked(status: unknown): boolean {
 
 /** The `targetKey` a Hall-grain change request is stored and queried under: one open request per
  *  Hall item's detail or per sub-item. */
-export function hallContentChangeRequestTargetKey(hallItemId: string, subItemId?: string | null): string {
+export function hallContentChangeRequestTargetKey(
+  hallItemId: string,
+  subItemId?: string | null,
+): string {
   return `${hallItemId}_${subItemId ?? 'detail'}`;
 }
 

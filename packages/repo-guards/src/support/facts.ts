@@ -6,7 +6,8 @@
 export type Loader<T> = () => T | Promise<T>;
 
 /** A string with something in it. */
-export const isText = (value: unknown): value is string => typeof value === 'string' && value.trim() !== '';
+export const isText = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim() !== '';
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
@@ -17,11 +18,16 @@ export function textProblem(value: unknown, what: string, problems: string[]): v
 
 /** A name code declares or reads: an identifier. */
 export function identifierProblem(value: unknown, what: string, problems: string[]): void {
-  if (typeof value !== 'string' || !IDENTIFIER.test(value)) problems.push(`${what} must be an identifier`);
+  if (typeof value !== 'string' || !IDENTIFIER.test(value))
+    problems.push(`${what} must be an identifier`);
 }
 
 /** A required object fact. True when it is one, so its fields can be checked next. */
-export function objectProblem(value: unknown, what: string, problems: string[]): value is Record<string, unknown> {
+export function objectProblem(
+  value: unknown,
+  what: string,
+  problems: string[],
+): value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     problems.push(`${what} is missing`);
     return false;
@@ -38,7 +44,13 @@ export function loaderProblem(value: unknown, what: string, problems: string[]):
  * Entries each named under `key` (none twice) whose `loaders` fields are each a loader: what a rules
  * mirror reads from the core for each name.
  */
-export function loaderListProblem(value: unknown, what: string, key: string, loaders: readonly string[], problems: string[]): void {
+export function loaderListProblem(
+  value: unknown,
+  what: string,
+  key: string,
+  loaders: readonly string[],
+  problems: string[],
+): void {
   if (!Array.isArray(value)) {
     problems.push(missing(what, false));
     return;
@@ -53,32 +65,47 @@ export function loaderListProblem(value: unknown, what: string, key: string, loa
     }
     if (seen.has(name)) problems.push(`${what} lists ${name} twice`);
     seen.add(name);
-    for (const field of loaders) loaderProblem(entry[field], `${what} entry ${name}'s ${field}`, problems);
+    for (const field of loaders)
+      loaderProblem(entry[field], `${what} entry ${name}'s ${field}`, problems);
   }
 }
 
 /** The fact check of a guard that takes no facts: it is declared with `{}`. */
 export const takesNoFacts = (value: unknown): string[] =>
-  value && typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length ? [] : ['this guard takes no facts: declare it with {}'];
+  value && typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length
+    ? []
+    : ['this guard takes no facts: declare it with {}'];
 
 /** A list fact whose entries another check reads: present, and non-empty unless `nonEmpty` is false. */
-export function listProblem(value: unknown, what: string, problems: string[], { nonEmpty = true }: { nonEmpty?: boolean } = {}): void {
+export function listProblem(
+  value: unknown,
+  what: string,
+  problems: string[],
+  { nonEmpty = true }: { nonEmpty?: boolean } = {},
+): void {
   if (!Array.isArray(value)) problems.push(missing(what, nonEmpty));
   else if (nonEmpty && !value.length) problems.push(`${what} is empty`);
 }
 
 /** A missing list: a required one is just missing; one an app may have none of is declared `[]`. */
-const missing = (what: string, nonEmpty: boolean) => `${what} is missing${nonEmpty ? '' : ' (declare [] when there is none)'}`;
+const missing = (what: string, nonEmpty: boolean) =>
+  `${what} is missing${nonEmpty ? '' : ' (declare [] when there is none)'}`;
 
 /** A repo-relative, forward-slashed path with no trailing slash. */
 export function pathProblem(value: unknown, what: string, problems: string[]): void {
   if (!isText(value)) problems.push(`${what} is missing`);
-  else if (value.startsWith('/') || value.includes('\\') || /^[A-Za-z]:/.test(value)) problems.push(`${what} (${value}) must be repo-relative and forward-slashed`);
+  else if (value.startsWith('/') || value.includes('\\') || /^[A-Za-z]:/.test(value))
+    problems.push(`${what} (${value}) must be repo-relative and forward-slashed`);
   else if (value.endsWith('/')) problems.push(`${what} (${value}) must not end with a slash`);
 }
 
 /** A list of names: present, non-empty unless `nonEmpty` is false, every entry text, none twice. */
-export function namesProblem(value: unknown, what: string, problems: string[], { nonEmpty = true }: { nonEmpty?: boolean } = {}): void {
+export function namesProblem(
+  value: unknown,
+  what: string,
+  problems: string[],
+  { nonEmpty = true }: { nonEmpty?: boolean } = {},
+): void {
   if (!Array.isArray(value)) {
     problems.push(missing(what, nonEmpty));
     return;
@@ -109,7 +136,12 @@ export interface ReviewedListOptions {
  * Reviewed entries: each names its subject under `key` and carries a why, and none is listed twice —
  * two entries for one subject would let one of them go stale unseen.
  */
-export function reviewedProblems(value: unknown, what: string, problems: string[], { key = 'path', id, idNames = 'its site', nonEmpty = false, extra }: ReviewedListOptions = {}): void {
+export function reviewedProblems(
+  value: unknown,
+  what: string,
+  problems: string[],
+  { key = 'path', id, idNames = 'its site', nonEmpty = false, extra }: ReviewedListOptions = {},
+): void {
   if (!Array.isArray(value)) {
     problems.push(missing(what, nonEmpty));
     return;
@@ -135,7 +167,12 @@ export function reviewedProblems(value: unknown, what: string, problems: string[
 }
 
 /** Reviewed files a shape's allowlist takes: each with its why and, when given or required, a positive whole count. */
-export function allowlistProblems(value: unknown, what: string, problems: string[], { countRequired = false }: { countRequired?: boolean } = {}): void {
+export function allowlistProblems(
+  value: unknown,
+  what: string,
+  problems: string[],
+  { countRequired = false }: { countRequired?: boolean } = {},
+): void {
   reviewedProblems(value, what, problems, {
     extra(entry, label) {
       if (entry.count === undefined) {

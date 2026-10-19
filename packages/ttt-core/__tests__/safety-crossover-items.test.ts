@@ -40,15 +40,30 @@ describe('ChildSafetyCrossoverItemV1Schema', () => {
   it('carries a completion stamp exactly when the leg is done', () => {
     const done = { ...pendingItem, servingDeny: 'done', servingDeniedAt: 20 } as const;
     expect(ChildSafetyCrossoverItemV1Schema.safeParse(done).success).toBe(true);
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...done, servingDeniedAt: undefined }).success).toBe(false);
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...pendingItem, servingDeniedAt: 20 }).success).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...done, servingDeniedAt: undefined }).success,
+    ).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...pendingItem, servingDeniedAt: 20 }).success,
+    ).toBe(false);
   });
 
   it('carries a failure stamp whenever the leg failed, and an error only beside it', () => {
-    const failed = { ...pendingItem, photoDna: 'failed', photoDnaFailedAt: 20, photoDnaLastError: 'Error' } as const;
+    const failed = {
+      ...pendingItem,
+      photoDna: 'failed',
+      photoDnaFailedAt: 20,
+      photoDnaLastError: 'Error',
+    } as const;
     expect(ChildSafetyCrossoverItemV1Schema.safeParse(failed).success).toBe(true);
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...failed, photoDnaFailedAt: undefined }).success).toBe(false);
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...pendingItem, servingDenyLastError: 'Error' }).success).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...failed, photoDnaFailedAt: undefined })
+        .success,
+    ).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...pendingItem, servingDenyLastError: 'Error' })
+        .success,
+    ).toBe(false);
   });
 
   it('keeps the failure stamp after a later success', () => {
@@ -64,12 +79,18 @@ describe('ChildSafetyCrossoverItemV1Schema', () => {
 
   it('refuses PhotoDNA fields on an item whose PhotoDNA leg never applied', () => {
     const { photoDna: _photoDna, ...noScan } = pendingItem;
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...noScan, photoDnaScannedAt: 20 }).success).toBe(false);
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...noScan, photoDnaFailedAt: 20 }).success).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...noScan, photoDnaScannedAt: 20 }).success,
+    ).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...noScan, photoDnaFailedAt: 20 }).success,
+    ).toBe(false);
   });
 
   it('is strict', () => {
-    expect(ChildSafetyCrossoverItemV1Schema.safeParse({ ...pendingItem, unknownField: 1 }).success).toBe(false);
+    expect(
+      ChildSafetyCrossoverItemV1Schema.safeParse({ ...pendingItem, unknownField: 1 }).success,
+    ).toBe(false);
   });
 });
 
@@ -135,14 +156,26 @@ describe('the case root crossover rollup', () => {
   });
 
   it('leaves per-asset timestamps and errors to the item rows', () => {
-    const withDetail = { ...root, crossoverLegs: { servingDeny: 'done', servingDeniedAt: 20, itemsCursor: registered } };
+    const withDetail = {
+      ...root,
+      crossoverLegs: { servingDeny: 'done', servingDeniedAt: 20, itemsCursor: registered },
+    };
     expect(ChildSafetyCaseV1Schema.safeParse(withDetail).success).toBe(false);
   });
 
   it('refuses a done or absent leg while items are still being registered, so the case stays findable', () => {
-    const doneWhileRegistering = { ...root, crossoverLegs: { servingDeny: 'done', photoDna: 'pending', itemsCursor: registering } };
-    const absentWhileRegistering = { ...root, crossoverLegs: { servingDeny: 'pending', itemsCursor: registering } };
-    const doneBeforeRegistration = { ...root, crossoverLegs: { servingDeny: 'done', photoDna: 'done' } };
+    const doneWhileRegistering = {
+      ...root,
+      crossoverLegs: { servingDeny: 'done', photoDna: 'pending', itemsCursor: registering },
+    };
+    const absentWhileRegistering = {
+      ...root,
+      crossoverLegs: { servingDeny: 'pending', itemsCursor: registering },
+    };
+    const doneBeforeRegistration = {
+      ...root,
+      crossoverLegs: { servingDeny: 'done', photoDna: 'done' },
+    };
     expect(ChildSafetyCaseV1Schema.safeParse(doneWhileRegistering).success).toBe(false);
     expect(ChildSafetyCaseV1Schema.safeParse(absentWhileRegistering).success).toBe(false);
     expect(ChildSafetyCaseV1Schema.safeParse(doneBeforeRegistration).success).toBe(false);
@@ -172,7 +205,9 @@ describe('crossover item wiring', () => {
   });
 
   it('is a registered document, so a stored row is held to its schema', () => {
-    expect(COLLECTION_SCHEMAS[ITEM_PATH as keyof typeof COLLECTION_SCHEMAS]).toBe(ChildSafetyCrossoverItemV1Schema);
+    expect(COLLECTION_SCHEMAS[ITEM_PATH as keyof typeof COLLECTION_SCHEMAS]).toBe(
+      ChildSafetyCrossoverItemV1Schema,
+    );
   });
 
   it('is retained by an erasure like the rest of the case', () => {

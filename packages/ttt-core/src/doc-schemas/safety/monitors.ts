@@ -67,21 +67,23 @@ export type SafetySlaMonitorStatus = z.infer<typeof SafetySlaMonitorStatusSchema
  * `caseId`). ONE schema covers both shapes — `caseId?` and `requestId?` are both
  * optional. The case `nciiCases/{caseId}.nciiRemovalDeadlineAt` is a
  * NON-authoritative projection of the minimum active request monitor. */
-export const SafetySlaMonitorV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  caseId: z.string().min(1).optional(),
-  requestId: z.string().min(1).optional(), // nciiRemovalDeadline rows are request-scoped [H4]
-  monitorKind: SafetySlaMonitorKindSchema,
-  armedAt: z.number(),
-  deadlineAt: z.number(),
-  escalationLevel: z.number(),
-  lastFiredAt: z.number().optional(),
-  monitorStage: SafetySlaMonitorStageSchema.optional(), // [H2] nciiRemovalDeadline only
-  basisSubmissionId: z.string().min(1).optional(), // [H2] the immutable TakeItDownSubmissionV1 whose receivedAt pins this deadline
-  status: SafetySlaMonitorStatusSchema,
-  resolvedAt: z.number().optional(),
-  resolutionBasis: z.string().optional(),
-}).strict();
+export const SafetySlaMonitorV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    caseId: z.string().min(1).optional(),
+    requestId: z.string().min(1).optional(), // nciiRemovalDeadline rows are request-scoped [H4]
+    monitorKind: SafetySlaMonitorKindSchema,
+    armedAt: z.number(),
+    deadlineAt: z.number(),
+    escalationLevel: z.number(),
+    lastFiredAt: z.number().optional(),
+    monitorStage: SafetySlaMonitorStageSchema.optional(), // [H2] nciiRemovalDeadline only
+    basisSubmissionId: z.string().min(1).optional(), // [H2] the immutable TakeItDownSubmissionV1 whose receivedAt pins this deadline
+    status: SafetySlaMonitorStatusSchema,
+    resolvedAt: z.number().optional(),
+    resolutionBasis: z.string().optional(),
+  })
+  .strict();
 export type SafetySlaMonitorV1 = z.infer<typeof SafetySlaMonitorV1Schema>;
 
 // ===========================================================================
@@ -92,9 +94,11 @@ export type SafetySlaMonitorV1 = z.infer<typeof SafetySlaMonitorV1Schema>;
 // fixed singleton literal `global`.
 // ===========================================================================
 
-export const SafetyMonitorHeartbeatV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  lastRunAt: z.number(),
-  expectedIntervalMs: z.number(),
-}).strict();
+export const SafetyMonitorHeartbeatV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    lastRunAt: z.number(),
+    expectedIntervalMs: z.number(),
+  })
+  .strict();
 export type SafetyMonitorHeartbeatV1 = z.infer<typeof SafetyMonitorHeartbeatV1Schema>;

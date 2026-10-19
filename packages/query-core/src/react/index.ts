@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Query Client factory (client-only; requires @tanstack/react-query)
 export { createQueryClient } from './query-client.js';
@@ -31,9 +31,7 @@ export {
 } from './firestore/use-firestore-mutations.js';
 
 // Batch Firestore Docs
-export {
-  useBatchFirestoreDocs,
-} from './firestore/useBatchFirestoreDocs.js';
+export { useBatchFirestoreDocs } from './firestore/useBatchFirestoreDocs.js';
 export type {
   BatchFirestoreDocsOptions,
   BatchFirestoreDocsResult,
@@ -57,23 +55,23 @@ export {
 export type { PagedRows } from './cache-helpers.js';
 
 // Domain-event invalidator (mechanism — consumers register their event registry)
-export { createDomainEventInvalidator } from "./domain-events/create-domain-event-invalidator.js";
+export { createDomainEventInvalidator } from './domain-events/create-domain-event-invalidator.js';
 export {
   exact,
   prefix,
   predicate,
   serializeInvalidation,
   applyInvalidations,
-} from "./domain-events/cache-invalidation.js";
+} from './domain-events/cache-invalidation.js';
 export type {
   DomainEventInvalidator,
   DomainEventInvalidationRegistry,
-} from "./domain-events/create-domain-event-invalidator.js";
+} from './domain-events/create-domain-event-invalidator.js';
 export type {
   CacheAction,
   CacheInvalidation,
   RefetchType,
-} from "./domain-events/cache-invalidation.js";
+} from './domain-events/cache-invalidation.js';
 
 // Firestore hook option and page types, and the snapshot helpers
 export { docWithId } from './firestore/types.js';

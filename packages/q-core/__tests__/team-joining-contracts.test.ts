@@ -74,9 +74,18 @@ describe('the statuses an invitation and a join request move through', () => {
     for (const status of TEAM_INVITATION_STATUS_KEYS) {
       expect(TeamInvitationSchema.safeParse({ ...invitation, status }).success).toBe(true);
     }
-    expect(TeamInvitationSchema.safeParse({ ...invitation, status: 'expired' }).success).toBe(false);
+    expect(TeamInvitationSchema.safeParse({ ...invitation, status: 'expired' }).success).toBe(
+      false,
+    );
 
-    const request = { leagueId: 'L1', teamId: 'T1', userId: 'u1', message: 'x'.repeat(10), status: 'pending', createdAt: NOW };
+    const request = {
+      leagueId: 'L1',
+      teamId: 'T1',
+      userId: 'u1',
+      message: 'x'.repeat(10),
+      status: 'pending',
+      createdAt: NOW,
+    };
     for (const status of TEAM_JOIN_REQUEST_STATUS_KEYS) {
       expect(TeamJoinRequestSchema.safeParse({ ...request, status }).success).toBe(true);
     }
@@ -87,39 +96,60 @@ describe('the invitation wire contracts', () => {
   const valid = { teamId: 'T1', invitedUserId: 'u1', message: 'Come play with us.' };
 
   it('take the team, the invitee, and an optional note bounded by MAX_TEAM_INVITATION_MESSAGE_LENGTH, trimmed', () => {
-    expect(CreateTeamInvitationInputSchema.parse({ ...valid, message: '  hi  ' }).message).toBe('hi');
+    expect(CreateTeamInvitationInputSchema.parse({ ...valid, message: '  hi  ' }).message).toBe(
+      'hi',
+    );
     expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, message: '' }).success).toBe(true);
     expect(
-      CreateTeamInvitationInputSchema.safeParse({ ...valid, message: 'x'.repeat(MAX_TEAM_INVITATION_MESSAGE_LENGTH) }).success,
+      CreateTeamInvitationInputSchema.safeParse({
+        ...valid,
+        message: 'x'.repeat(MAX_TEAM_INVITATION_MESSAGE_LENGTH),
+      }).success,
     ).toBe(true);
     expect(
-      CreateTeamInvitationInputSchema.safeParse({ ...valid, message: 'x'.repeat(MAX_TEAM_INVITATION_MESSAGE_LENGTH + 1) })
-        .success,
+      CreateTeamInvitationInputSchema.safeParse({
+        ...valid,
+        message: 'x'.repeat(MAX_TEAM_INVITATION_MESSAGE_LENGTH + 1),
+      }).success,
     ).toBe(false);
   });
 
   it('never take the inviter or the league from the payload, and never a path segment holding a slash', () => {
-    expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, invitedByUserId: 'someone' }).success).toBe(false);
-    expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, leagueId: 'L9' }).success).toBe(false);
-    expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, teamId: 'T1/evil' }).success).toBe(false);
-    expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'a/b' }).success).toBe(false);
+    expect(
+      CreateTeamInvitationInputSchema.safeParse({ ...valid, invitedByUserId: 'someone' }).success,
+    ).toBe(false);
+    expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, leagueId: 'L9' }).success).toBe(
+      false,
+    );
+    expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, teamId: 'T1/evil' }).success).toBe(
+      false,
+    );
+    expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'a/b' }).success).toBe(
+      false,
+    );
   });
 
   it('name an answer by the callable, never by a payload field — accept and decline are separate entries', () => {
-    expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'inv-1', response: 'approved' }).success).toBe(false);
+    expect(
+      TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'inv-1', response: 'approved' })
+        .success,
+    ).toBe(false);
   });
 
   it('answer with the ids a client names its event by, an acceptance adding where its roster work stands', () => {
     const result = { leagueId: 'L1', teamId: 'T1', teamInvitationId: 'inv-1', invitedUserId: 'u1' };
     expect(TeamInvitationResultSchema.parse(result)).toEqual(result);
-    expect(AcceptTeamInvitationResultSchema.parse({ ...result, rosterSyncStatus: 'pending' })).toMatchObject(result);
+    expect(
+      AcceptTeamInvitationResultSchema.parse({ ...result, rosterSyncStatus: 'pending' }),
+    ).toMatchObject(result);
     expect(AcceptTeamInvitationResultSchema.safeParse(result).success).toBe(false);
   });
 });
 
 describe('the join-request wire contracts', () => {
   it('bound the message by the one declared limit, trimmed, at every length edge', () => {
-    const at = (length: number) => CreateTeamJoinRequestInputSchema.safeParse({ teamId: 'T1', message: 'x'.repeat(length) });
+    const at = (length: number) =>
+      CreateTeamJoinRequestInputSchema.safeParse({ teamId: 'T1', message: 'x'.repeat(length) });
     expect(at(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH).success).toBe(true);
     expect(at(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH).success).toBe(true);
     expect(at(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH - 1).success).toBe(false);
@@ -134,31 +164,52 @@ describe('the join-request wire contracts', () => {
 
   it('never take the requester from the payload', () => {
     expect(
-      CreateTeamJoinRequestInputSchema.safeParse({ teamId: 'T1', message: 'x'.repeat(20), userId: 'someone' }).success,
+      CreateTeamJoinRequestInputSchema.safeParse({
+        teamId: 'T1',
+        message: 'x'.repeat(20),
+        userId: 'someone',
+      }).success,
     ).toBe(false);
-    expect(TeamJoinRequestTargetInputSchema.safeParse({ teamJoinRequestId: 'r1', userId: 'someone' }).success).toBe(false);
+    expect(
+      TeamJoinRequestTargetInputSchema.safeParse({ teamJoinRequestId: 'r1', userId: 'someone' })
+        .success,
+    ).toBe(false);
   });
 
   it('answer with the ids a client names its event by', () => {
     const result = { leagueId: 'L1', teamId: 'T1', teamJoinRequestId: 'r1', userId: 'u1' };
     expect(TeamJoinRequestResultSchema.parse(result)).toEqual(result);
-    expect(AcceptTeamJoinRequestResultSchema.parse({ ...result, rosterSyncStatus: 'reconciled' })).toMatchObject(result);
+    expect(
+      AcceptTeamJoinRequestResultSchema.parse({ ...result, rosterSyncStatus: 'reconciled' }),
+    ).toMatchObject(result);
   });
 });
 
 describe('the free-agent wire contracts', () => {
   it('a signup and a withdrawal name only the league — the player is the caller', () => {
     expect(LeagueFreeAgentInputSchema.parse({ leagueId: 'L1' })).toEqual({ leagueId: 'L1' });
-    expect(LeagueFreeAgentInputSchema.safeParse({ leagueId: 'L1', userId: 'someone' }).success).toBe(false);
-    expect(CreateLeagueFreeAgentResultSchema.parse({ leagueId: 'L1', userId: 'u1', createdAt: NOW }).createdAt).toBe(NOW);
-    expect(DeleteLeagueFreeAgentResultSchema.parse({ leagueId: 'L1', userId: 'u1', deleted: false }).deleted).toBe(false);
+    expect(
+      LeagueFreeAgentInputSchema.safeParse({ leagueId: 'L1', userId: 'someone' }).success,
+    ).toBe(false);
+    expect(
+      CreateLeagueFreeAgentResultSchema.parse({ leagueId: 'L1', userId: 'u1', createdAt: NOW })
+        .createdAt,
+    ).toBe(NOW);
+    expect(
+      DeleteLeagueFreeAgentResultSchema.parse({ leagueId: 'L1', userId: 'u1', deleted: false })
+        .deleted,
+    ).toBe(false);
   });
 
   it("the admin's assignment names the league, the player, and the team, and answers where the roster work stands", () => {
     const input = { leagueId: 'L1', userId: 'u1', teamId: 'T1' };
     expect(AdminAssignLeagueFreeAgentInputSchema.parse(input)).toEqual(input);
-    expect(AdminAssignLeagueFreeAgentInputSchema.safeParse({ ...input, role: 'captain' }).success).toBe(false);
-    expect(AdminAssignLeagueFreeAgentResultSchema.parse({ ...input, rosterSyncStatus: 'pending' })).toMatchObject(input);
+    expect(
+      AdminAssignLeagueFreeAgentInputSchema.safeParse({ ...input, role: 'captain' }).success,
+    ).toBe(false);
+    expect(
+      AdminAssignLeagueFreeAgentResultSchema.parse({ ...input, rosterSyncStatus: 'pending' }),
+    ).toMatchObject(input);
   });
 });
 
@@ -172,11 +223,18 @@ describe('the events a client names after each door', () => {
       'teamJoinRequest.cancelled',
       'teamJoinRequest.answered',
     ]) {
-      expect(DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', teamId: 'T1', userId: 'u1' } }).success).toBe(true);
-      expect(DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', teamId: 'T1' } }).success).toBe(false);
+      expect(
+        DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', teamId: 'T1', userId: 'u1' } })
+          .success,
+      ).toBe(true);
+      expect(
+        DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', teamId: 'T1' } }).success,
+      ).toBe(false);
     }
     for (const type of ['leagueFreeAgent.signedUp', 'leagueFreeAgent.removed']) {
-      expect(DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', userId: 'u1' } }).success).toBe(true);
+      expect(
+        DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', userId: 'u1' } }).success,
+      ).toBe(true);
     }
   });
 });
@@ -203,7 +261,14 @@ describe('the audit types each door records under', () => {
 
 describe("the team's joinRevision", () => {
   it('is an optional count, absent on a team no invitation or request has touched', () => {
-    const team = { name: 'Hoopers', icon: 'Shield', leagueId: 'L1', createdByUserId: 'u1', createdAt: NOW, updatedAt: NOW };
+    const team = {
+      name: 'Hoopers',
+      icon: 'Shield',
+      leagueId: 'L1',
+      createdByUserId: 'u1',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
     expect(LeagueTeamSchema.safeParse(team).success).toBe(true);
     expect(LeagueTeamSchema.safeParse({ ...team, joinRevision: 3 }).success).toBe(true);
     expect(LeagueTeamSchema.safeParse({ ...team, joinRevision: -1 }).success).toBe(false);

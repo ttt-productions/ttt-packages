@@ -131,7 +131,8 @@ describe('createReleaseTaskHandler', () => {
       checkoutDetails: { userId: 'other-admin', checkedOutAt: Date.now() - 1000 },
     });
     const foreign = await createReleaseTaskHandler({ config: TEST_CONFIG, db: foreignDb })(
-      { taskId: 'task1' }, { uid: 'admin1' },
+      { taskId: 'task1' },
+      { uid: 'admin1' },
     ).catch((e) => e);
     expect(foreign).toBeInstanceOf(ReportCoreTaskError);
     expect(foreign.code).toBe('failed-precondition');
@@ -139,7 +140,8 @@ describe('createReleaseTaskHandler', () => {
     // The vanished-task branch answers success instead of the old 'not-found'.
     const { db: emptyDb } = createMockDb(null);
     const gone = await createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
-      { taskId: 'task1' }, { uid: 'admin1' },
+      { taskId: 'task1' },
+      { uid: 'admin1' },
     ).catch((e) => e);
     expect(gone).not.toBeInstanceOf(ReportCoreTaskError);
     expect(gone).toEqual({ success: true, alreadyResolved: true });
@@ -218,5 +220,4 @@ describe('createReleaseTaskHandler', () => {
       transaction,
     );
   });
-
 });

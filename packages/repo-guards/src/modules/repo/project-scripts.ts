@@ -21,7 +21,8 @@ export interface ProjectScriptFacts {
 const PRIVILEGED_CLIENT =
   /from\s+['"]firebase-admin(?:\/[^'"]*)?['"]|import\(\s*['"]firebase-admin(?:\/[^'"]*)?['"]\s*\)|require\(\s*['"]firebase-admin|\binitializeApp\s*\(/;
 const PROJECT_ID_KEY = /\bprojectId\s*:\s*['"`]/g;
-const PATH_LITERAL = /\.\s*(?:collection|collectionGroup|doc)\(\s*(?:'[^'\n]*'|"[^"\n]*"|`[^`$\n]*`)\s*\)/g;
+const PATH_LITERAL =
+  /\.\s*(?:collection|collectionGroup|doc)\(\s*(?:'[^'\n]*'|"[^"\n]*"|`[^`$\n]*`)\s*\)/g;
 
 export const isPrivilegedScript = (file: FileView) => PRIVILEGED_CLIENT.test(file.code);
 
@@ -40,7 +41,11 @@ export function projectScriptFindings(file: FileView, projectIds: readonly strin
     }
   }
   for (const m of file.code.matchAll(PATH_LITERAL)) {
-    findings.push({ file: file.path, line: file.lineOf(m.index), detail: `hardcodes a path: ${m[0].trim()}` });
+    findings.push({
+      file: file.path,
+      line: file.lineOf(m.index),
+      detail: `hardcodes a path: ${m[0].trim()}`,
+    });
   }
   return findings.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
 }
@@ -72,8 +77,17 @@ export const projectScriptGuard: GenericGuardDefinition<ProjectScriptFacts> = {
           const byPath = new Map(files.map((f) => [f.path, f]));
           for (const script of facts.privilegedScripts) {
             const file = byPath.get(script);
-            if (!file) findings.push({ file: script, detail: 'the privileged script is not a scripts source file (gone, moved, or a test)' });
-            else if (!isPrivilegedScript(file)) findings.push({ file: script, detail: 'stale entry: no longer recognised as bringing up the Admin SDK' });
+            if (!file)
+              findings.push({
+                file: script,
+                detail:
+                  'the privileged script is not a scripts source file (gone, moved, or a test)',
+              });
+            else if (!isPrivilegedScript(file))
+              findings.push({
+                file: script,
+                detail: 'stale entry: no longer recognised as bringing up the Admin SDK',
+              });
           }
           return findings;
         },

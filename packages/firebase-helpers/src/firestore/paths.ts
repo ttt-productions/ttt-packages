@@ -4,7 +4,7 @@
  * - Use these as building blocks for app-level constants.
  */
 
-const clean = (s: string) => s.replace(/^\/+|\/+$/g, "").trim();
+const clean = (s: string) => s.replace(/^\/+|\/+$/g, '').trim();
 
 export function joinPath(...parts: Array<string | number | null | undefined>): string {
   const tokens = parts
@@ -13,7 +13,7 @@ export function joinPath(...parts: Array<string | number | null | undefined>): s
     .map(clean)
     .filter(Boolean);
 
-  return tokens.join("/");
+  return tokens.join('/');
 }
 
 /** Build a collection path from segments */

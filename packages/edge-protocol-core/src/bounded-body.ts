@@ -30,8 +30,7 @@ export interface BoundedBodyReadOptions {
  * further work on the request.
  */
 export type BoundedBodyReadResult =
-  | { ok: true; text: string }
-  | { ok: false; reason: 'too-large'; maxBytes: number };
+  { ok: true; text: string } | { ok: false; reason: 'too-large'; maxBytes: number };
 
 const DECLARED_LENGTH = /^\d+$/;
 

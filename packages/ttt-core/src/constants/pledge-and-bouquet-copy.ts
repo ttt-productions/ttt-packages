@@ -18,4 +18,5 @@ export const PLEDGE_BADGE_RECOGNITION_COPY =
  * (BOUQUET_STAGE_1_LIVE) nor payouts (BOUQUET_STAGE_3_LIVE) is live, so flipping either flag
  * means changing this sentence in the same release.
  */
-export const BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY = 'Bouquets and artisan payouts are planned, not built yet.';
+export const BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY =
+  'Bouquets and artisan payouts are planned, not built yet.';

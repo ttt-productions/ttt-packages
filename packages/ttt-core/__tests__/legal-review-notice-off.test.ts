@@ -22,10 +22,9 @@ describe('founder legal-review notice — switched off', () => {
   it('returns no plain text for any placement or variant', () => {
     for (const context of LEGAL_REVIEW_NOTICE_CONTEXTS) {
       for (const variant of LEGAL_REVIEW_NOTICE_PLACEMENTS[context]) {
-        const text = (legalReviewNoticePlainText as (c: LegalReviewNoticeContext, v: string) => string | null)(
-          context,
-          variant,
-        );
+        const text = (
+          legalReviewNoticePlainText as (c: LegalReviewNoticeContext, v: string) => string | null
+        )(context, variant);
         expect(text, `${context}/${variant}`).toBeNull();
       }
     }

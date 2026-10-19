@@ -51,7 +51,10 @@ const TIME_OF_DAY_SHAPE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 /** The instant's wall-clock reading in LEAGUE_TIME_ZONE, written as if that reading were UTC. */
 function leagueWallClockAsUtc(epochMs: number): number {
   const parts = Object.fromEntries(
-    LEAGUE_WALL_CLOCK_FORMAT.formatToParts(new Date(epochMs)).map((part) => [part.type, part.value]),
+    LEAGUE_WALL_CLOCK_FORMAT.formatToParts(new Date(epochMs)).map((part) => [
+      part.type,
+      part.value,
+    ]),
   );
   return Date.UTC(
     Number(parts.year),
@@ -79,8 +82,15 @@ export function toLeagueTimeOfDay(epochMs: number): string {
 export function leagueInstantOf(dayKey: string, timeOfDay: string): number {
   const day = CALENDAR_DAY_SHAPE.exec(dayKey);
   const time = TIME_OF_DAY_SHAPE.exec(timeOfDay);
-  if (!day || !time) throw new RangeError(`Not a calendar day and time of day: '${dayKey}' '${timeOfDay}'.`);
-  const wallClock = Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3]), Number(time[1]), Number(time[2]));
+  if (!day || !time)
+    throw new RangeError(`Not a calendar day and time of day: '${dayKey}' '${timeOfDay}'.`);
+  const wallClock = Date.UTC(
+    Number(day[1]),
+    Number(day[2]) - 1,
+    Number(day[3]),
+    Number(time[1]),
+    Number(time[2]),
+  );
   if (new Date(wallClock).toISOString().slice(0, 10) !== dayKey) {
     throw new RangeError(`Not a calendar day: '${dayKey}'.`);
   }

@@ -8,7 +8,10 @@
 // Same connection lifecycle as the channel client (subprotocol auth, reconnect,
 // 4401 re-grant once, 4403 stop, auth-switch teardown).
 
-import { createReconnectController, type ReconnectController } from '@ttt-productions/realtime-core';
+import {
+  createReconnectController,
+  type ReconnectController,
+} from '@ttt-productions/realtime-core';
 import {
   ChatMarkReadResultPayloadSchema,
   SERVER_KINDS,
@@ -78,8 +81,7 @@ export interface InboxClientState {
  * socket closed before the answer arrived, so the outcome is unknown and the dot stays).
  */
 export type ChatMarkReadOutcome =
-  | { ok: true }
-  | { ok: false; code: ChatMarkReadFailureCode | 'not-sent' | 'connection-lost' };
+  { ok: true } | { ok: false; code: ChatMarkReadFailureCode | 'not-sent' | 'connection-lost' };
 
 export interface InboxClientConfig {
   endpoint: string;
@@ -89,7 +91,12 @@ export interface InboxClientConfig {
   grantProvider: GrantProvider;
   socketFactory: SocketFactory;
   timers?: TransportTimers;
-  reconnect?: { baseDelayMs?: number; maxDelayMs?: number; maxAttempts?: number | null; random?: () => number };
+  reconnect?: {
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+    maxAttempts?: number | null;
+    random?: () => number;
+  };
   /**
    * OPT-IN structured client diagnostics — the SAME option type and emitter the
    * channel client uses (one owner, `./diagnostics.ts`). Default OFF: absent or
@@ -134,7 +141,8 @@ export class InboxClient {
   /** Monotonic socket-open attempt counter (diagnostics correlation only). */
   private connectAttempt = 0;
   /** Why the CURRENT connect attempt is happening (diagnostics only). */
-  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
+  private reconnectCause:
+    'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
   /** The last close code observed, carried into the next attempt's cause line. */
   private lastCloseCode: number | null = null;
 
@@ -287,7 +295,11 @@ export class InboxClient {
     const sent = this.sendFrame(CLIENT_KINDS.RESUME, {});
     // The inbox resume is CURSORLESS by contract (the DO always answers with a full
     // authoritative snapshot) — there is no `afterSeq` half to record here.
-    this.diag?.(DIAG.INBOX_RESUME_REQUEST, { attempt: this.connectAttempt, cursorless: true, sent });
+    this.diag?.(DIAG.INBOX_RESUME_REQUEST, {
+      attempt: this.connectAttempt,
+      cursorless: true,
+      sent,
+    });
   }
 
   private onClose(code: number, _reason: string): void {
@@ -364,18 +376,25 @@ export class InboxClient {
       this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: 'unparseable', reason: 'bad-envelope' });
       return;
     }
-    if (frame.type === SERVER_KINDS.MARK_READ_RESULT) return this.applyMarkReadResult(frame.payload);
+    if (frame.type === SERVER_KINDS.MARK_READ_RESULT)
+      return this.applyMarkReadResult(frame.payload);
     // The inbox DO pushes a full `snapshot`; a future lightweight `unread` push
     // carries either a full snapshot or a `{ hasUnread }` dock-dot patch. Route both
     // instead of silently dropping the `unread` type (C-M2).
     if (frame.type !== 'snapshot' && frame.type !== 'unread') {
-      this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: safeDiagnosticLabel(frame.type), reason: 'unknown-type' });
+      this.diag?.(DIAG.INBOX_FRAME_DROPPED, {
+        kind: safeDiagnosticLabel(frame.type),
+        reason: 'unknown-type',
+      });
       return;
     }
     const payload = frame.payload as unknown as WireInboxSnapshot | { hasUnread: boolean };
     if (isInboxSnapshot(payload as WireInboxSnapshot)) {
       this.applySnapshot(payload as WireInboxSnapshot, frame.type);
-    } else if (frame.type === 'unread' && typeof (payload as { hasUnread?: unknown }).hasUnread === 'boolean') {
+    } else if (
+      frame.type === 'unread' &&
+      typeof (payload as { hasUnread?: unknown }).hasUnread === 'boolean'
+    ) {
       const hasUnread = Boolean((payload as { hasUnread: boolean }).hasUnread);
       const before = this.state.hasUnread;
       this.setState({ hasUnread });
@@ -411,7 +430,13 @@ export class InboxClient {
     const hasUnread = Boolean(snap.hasUnread);
     const before = this.state;
     if (!before.hasLoadedInitialData) this.initialLoad.loaded();
-    this.setState({ registry, hasUnread, unreadChannelRefs, hasLoadedInitialData: true, initialLoadFailed: false });
+    this.setState({
+      registry,
+      hasUnread,
+      unreadChannelRefs,
+      hasLoadedInitialData: true,
+      initialLoadFailed: false,
+    });
     if (!this.diag) return;
     // SIZES ONLY — a channelRef names one specific conversation and never enters a
     // diagnostic line.
@@ -426,7 +451,8 @@ export class InboxClient {
       registryDelta: registry.length - before.registry.length,
     });
     const unreadChanged =
-      before.hasUnread !== hasUnread || before.unreadChannelRefs.length !== unreadChannelRefs.length;
+      before.hasUnread !== hasUnread ||
+      before.unreadChannelRefs.length !== unreadChannelRefs.length;
     if (unreadChanged) {
       this.diag(DIAG.INBOX_UNREAD_UPDATED, {
         source: safeDiagnosticLabel(source),
@@ -473,7 +499,10 @@ export class InboxClient {
   private applyMarkReadResult(payload: Record<string, unknown> | undefined): void {
     const parsed = ChatMarkReadResultPayloadSchema.safeParse(payload);
     if (!parsed.success) {
-      this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: SERVER_KINDS.MARK_READ_RESULT, reason: 'malformed-payload' });
+      this.diag?.(DIAG.INBOX_FRAME_DROPPED, {
+        kind: SERVER_KINDS.MARK_READ_RESULT,
+        reason: 'malformed-payload',
+      });
       return;
     }
     const resolve = this.pendingMarkReads.get(parsed.data.requestId);

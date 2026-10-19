@@ -7,7 +7,11 @@ import {
   HALL_ITEM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
 } from '../src/paths/collections.js';
-import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry.js';
+import {
+  COLLECTION_SCHEMAS,
+  PENDING_COLLECTIONS,
+  COLLECTION_DOC_ID_FIELDS,
+} from '../src/doc-schemas/registry.js';
 import { STATUS_RECONCILE_QUEUE_AUTH_EFFECTS } from '../src/doc-schemas/operational.js';
 
 const allCollectionNames = [
@@ -59,7 +63,9 @@ function boundShapes(schema: ShapedSchema): Record<string, unknown>[] | null {
   if (schema.shape) return [schema.shape];
   if (!schema.options?.length) return null;
   const shapes = schema.options.map((option) => option.shape);
-  return shapes.every((shape) => shape !== undefined) ? (shapes as Record<string, unknown>[]) : null;
+  return shapes.every((shape) => shape !== undefined)
+    ? (shapes as Record<string, unknown>[])
+    : null;
 }
 
 describe('Doc-id field annotations (COLLECTION_DOC_ID_FIELDS)', () => {
@@ -73,9 +79,10 @@ describe('Doc-id field annotations (COLLECTION_DOC_ID_FIELDS)', () => {
       const shapes = boundShapes(schema);
       expect(shapes, `${path} must be a ZodObject or a union of ZodObjects`).not.toBeNull();
       for (const shape of shapes ?? []) {
-        expect(Object.keys(shape), `${path}: doc-id field "${field}" must exist on the bound schema`).toContain(
-          field,
-        );
+        expect(
+          Object.keys(shape),
+          `${path}: doc-id field "${field}" must exist on the bound schema`,
+        ).toContain(field);
       }
     }
   });

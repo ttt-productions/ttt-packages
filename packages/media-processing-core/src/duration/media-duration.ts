@@ -17,8 +17,8 @@
 //      timed packet is NO length. Every caller treats that as unknown and
 //      fails closed.
 
-import type { MediaProcessingError } from "@ttt-productions/media-schemas";
-import { runCmd } from "../video/ffmpeg.js";
+import type { MediaProcessingError } from '@ttt-productions/media-schemas';
+import { runCmd } from '../video/ffmpeg.js';
 
 /** Wall-clock ceiling for the measuring pass; it bounds an adversarial input,
  *  not a real upload (a 920 MB, 30-minute WebM measures in about a second). */
@@ -37,10 +37,10 @@ function seconds(raw: string | undefined): number | undefined {
 }
 
 function fields(line: string): { section: string; values: Map<string, string> } {
-  const [section = "", ...pairs] = line.split("|");
+  const [section = '', ...pairs] = line.split('|');
   const values = new Map<string, string>();
   for (const pair of pairs) {
-    const eq = pair.indexOf("=");
+    const eq = pair.indexOf('=');
     if (eq > 0) values.set(pair.slice(0, eq), pair.slice(eq + 1).trim());
   }
   return { section, values };
@@ -63,13 +63,13 @@ export function createPacketLengthFold(): PacketLengthFold {
   return {
     add(line) {
       const { section, values } = fields(line);
-      if (section === "packet") {
-        const rawIndex = values.get("stream_index");
+      if (section === 'packet') {
+        const rawIndex = values.get('stream_index');
         if (rawIndex === undefined || !STREAM_INDEX.test(rawIndex)) return;
         const index = Number(rawIndex);
-        const start = seconds(values.get("pts_time")) ?? seconds(values.get("dts_time"));
+        const start = seconds(values.get('pts_time')) ?? seconds(values.get('dts_time'));
         if (start === undefined) return;
-        const end = start + Math.max(0, seconds(values.get("duration_time")) ?? 0);
+        const end = start + Math.max(0, seconds(values.get('duration_time')) ?? 0);
         const span = spans.get(index);
         if (span) {
           if (start < span.start) span.start = start;
@@ -79,12 +79,12 @@ export function createPacketLengthFold(): PacketLengthFold {
         } else {
           spans.set(index, { start, end });
         }
-      } else if (section === "stream") {
-        const rawIndex = values.get("index");
+      } else if (section === 'stream') {
+        const rawIndex = values.get('index');
         if (rawIndex === undefined || !STREAM_INDEX.test(rawIndex)) return;
-        const type = values.get("codec_type");
-        const coverArt = values.get("disposition:attached_pic") === "1";
-        if (type === "audio" || (type === "video" && !coverArt)) timed.add(Number(rawIndex));
+        const type = values.get('codec_type');
+        const coverArt = values.get('disposition:attached_pic') === '1';
+        if (type === 'audio' || (type === 'video' && !coverArt)) timed.add(Number(rawIndex));
       }
     },
     lengthSec() {
@@ -111,19 +111,22 @@ export interface MeasureDurationOptions {
 }
 
 /** The file's length in seconds, or `undefined` when it cannot be measured. */
-export async function measureDurationSec(localPath: string, opts?: MeasureDurationOptions): Promise<number | undefined> {
+export async function measureDurationSec(
+  localPath: string,
+  opts?: MeasureDurationOptions,
+): Promise<number | undefined> {
   const fold = createPacketLengthFold();
   let r;
   try {
     r = await runCmd(
-      "ffprobe",
+      'ffprobe',
       [
-        "-v",
-        "error",
-        "-show_entries",
-        "stream=index,codec_type:stream_disposition=attached_pic:packet=stream_index,pts_time,dts_time,duration_time",
-        "-of",
-        "compact",
+        '-v',
+        'error',
+        '-show_entries',
+        'stream=index,codec_type:stream_disposition=attached_pic:packet=stream_index,pts_time,dts_time,duration_time',
+        '-of',
+        'compact',
         localPath,
       ],
       {
@@ -139,16 +142,25 @@ export async function measureDurationSec(localPath: string, opts?: MeasureDurati
   return fold.lengthSec();
 }
 
-export type MeasureDurationFn = (localPath: string, opts?: MeasureDurationOptions) => Promise<number | undefined>;
+export type MeasureDurationFn = (
+  localPath: string,
+  opts?: MeasureDurationOptions,
+) => Promise<number | undefined>;
 
 /** The refusal for a file with no length under a spec that caps length: a
  *  length that cannot be measured cannot be shown to be within the cap. The
  *  code is `unsupported_format`, never `too_long` — the file is not known to
  *  be too long, and its copy must not say so. */
-export function unreadableLengthError(kind: "video" | "audio", maxDurationSec: number): MediaProcessingError {
+export function unreadableLengthError(
+  kind: 'video' | 'audio',
+  maxDurationSec: number,
+): MediaProcessingError {
   return {
-    code: "unsupported_format",
-    message: kind === "video" ? "The video's length could not be read." : "The audio's length could not be read.",
+    code: 'unsupported_format',
+    message:
+      kind === 'video'
+        ? "The video's length could not be read."
+        : "The audio's length could not be read.",
     details: { maxDurationSec },
   };
 }

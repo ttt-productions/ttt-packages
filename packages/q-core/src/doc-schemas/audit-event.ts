@@ -18,17 +18,21 @@ import { epochMsSchema, systemRoleSchema, userIdSchema } from './atoms.js';
 export const auditEventTypeSchema = z.enum(AUDIT_EVENT_TYPE_KEYS);
 
 export const AuditActorSchema = z.discriminatedUnion('actorMode', [
-  z.object({
-    uid: userIdSchema.nullable(),
-    isAdmin: z.boolean(),
-    actorMode: z.enum(AUDIT_NON_ADMIN_ACTOR_MODE_KEYS),
-  }).strict(),
-  z.object({
-    uid: userIdSchema.nullable(),
-    isAdmin: z.boolean(),
-    actorMode: z.enum(AUDIT_ADMIN_ACTOR_MODE_KEYS),
-    systemRole: systemRoleSchema,
-  }).strict(),
+  z
+    .object({
+      uid: userIdSchema.nullable(),
+      isAdmin: z.boolean(),
+      actorMode: z.enum(AUDIT_NON_ADMIN_ACTOR_MODE_KEYS),
+    })
+    .strict(),
+  z
+    .object({
+      uid: userIdSchema.nullable(),
+      isAdmin: z.boolean(),
+      actorMode: z.enum(AUDIT_ADMIN_ACTOR_MODE_KEYS),
+      systemRole: systemRoleSchema,
+    })
+    .strict(),
 ]);
 
 export const AuditTargetSchema = z.object({

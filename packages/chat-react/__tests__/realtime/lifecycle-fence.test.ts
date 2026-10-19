@@ -51,7 +51,7 @@ describe('a grant from a closed lifecycle never opens a socket (channel client)'
     expect(harness.sockets[0].grantToken).toBe('grant-B');
   });
 
-  it('a superseded socket\'s late frames and close never touch the current lifecycle', async () => {
+  it("a superseded socket's late frames and close never touch the current lifecycle", async () => {
     const grants = deferredGrants();
     const { client, harness } = makeChannel(grants);
     void client.connect();
@@ -70,7 +70,14 @@ describe('a grant from a closed lifecycle never opens a socket (channel client)'
     // The old socket speaks after it was replaced: none of it may land.
     socketA.serverFrame('snapshot', { lastMessageSeq: 7, readSeq: 0, resync: false, delta: [] });
     socketA.serverFrame('message', {
-      message: { seq: 5, senderUid: 'x', clientMessageId: 'c', text: 'from A', createdAt: 1, epoch: 1 },
+      message: {
+        seq: 5,
+        senderUid: 'x',
+        clientMessageId: 'c',
+        text: 'from A',
+        createdAt: 1,
+        epoch: 1,
+      },
     });
     socketA.serverClose(1006, 'late');
 
@@ -96,7 +103,7 @@ describe('a grant from a closed lifecycle never opens a socket (inbox client)', 
     return { client, harness };
   }
 
-  it('close → connect with grant A still minting: only B\'s socket and B\'s state', async () => {
+  it("close → connect with grant A still minting: only B's socket and B's state", async () => {
     const grants = deferredGrants();
     const { client, harness } = makeInbox(grants);
     void client.connect();
@@ -118,7 +125,7 @@ describe('a grant from a closed lifecycle never opens a socket (inbox client)', 
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['b']);
   });
 
-  it('a superseded socket\'s late snapshot never replaces the current one', async () => {
+  it("a superseded socket's late snapshot never replaces the current one", async () => {
     const grants = deferredGrants();
     const { client, harness } = makeInbox(grants);
     void client.connect();

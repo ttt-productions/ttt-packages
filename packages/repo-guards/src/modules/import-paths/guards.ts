@@ -4,9 +4,17 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { applicationDataImportsGuard, type ApplicationDataFacts } from './application-data.js';
 import { entryPurityGuard, type EntryPurityFacts } from './entry-purity.js';
 import { importPathGuard, type ImportPathFacts } from './guard.js';
-import { packageEntriesGuard, packageEntryImportsGuard, type PackageEntryFacts, type PackageEntryImportFacts } from './package-entries.js';
-import { packageImportCyclesGuard, packageImportsGuard, type PackageImportFacts } from './package-imports.js';
-
+import {
+  packageEntriesGuard,
+  packageEntryImportsGuard,
+  type PackageEntryFacts,
+  type PackageEntryImportFacts,
+} from './package-entries.js';
+import {
+  packageImportCyclesGuard,
+  packageImportsGuard,
+  type PackageImportFacts,
+} from './package-imports.js';
 
 /** The facts each guard in this area needs, by its id. */
 export interface ImportPathGuardFacts {

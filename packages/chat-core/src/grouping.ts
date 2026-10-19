@@ -1,5 +1,5 @@
-import type { ChatMessageGroupKey, ChatMessageV1 } from "./types.js";
-import { GROUP_GAP_SEC } from "./types.js";
+import type { ChatMessageGroupKey, ChatMessageV1 } from './types.js';
+import { GROUP_GAP_SEC } from './types.js';
 
 /**
  * Determine if `msg` is a "continuation" of `prev` for the purpose of

@@ -41,7 +41,20 @@ describe('TTT_TELEMETRY_CONTENT_POLICY', () => {
 
   it('admits as text a camelCase key naming an identifier, hash, code, or enum value by its suffix', () => {
     expect([...TTT_TELEMETRY_CONTENT_POLICY.diagnosticKeySuffixes].sort()).toEqual(
-      ['Id', 'Ids', 'Uid', 'Uids', 'Hash', 'Type', 'Kind', 'Status', 'Code', 'Outcome', 'Origin', 'Source'].sort(),
+      [
+        'Id',
+        'Ids',
+        'Uid',
+        'Uids',
+        'Hash',
+        'Type',
+        'Kind',
+        'Status',
+        'Code',
+        'Outcome',
+        'Origin',
+        'Source',
+      ].sort(),
     );
   });
 
@@ -50,13 +63,40 @@ describe('TTT_TELEMETRY_CONTENT_POLICY', () => {
   });
 
   it('never admits a key that holds prose, a document, a file name, a path, or contact data', () => {
-    const prose = ['title', 'name', 'description', 'message', 'body', 'text', 'caption', 'note', 'comment', 'narrative'];
-    const located = ['path', 'storagePath', 'docPath', 'url', 'fileName', 'gcsUri', 'email', 'ip', 'afterData', 'data'];
+    const prose = [
+      'title',
+      'name',
+      'description',
+      'message',
+      'body',
+      'text',
+      'caption',
+      'note',
+      'comment',
+      'narrative',
+    ];
+    const located = [
+      'path',
+      'storagePath',
+      'docPath',
+      'url',
+      'fileName',
+      'gcsUri',
+      'email',
+      'ip',
+      'afterData',
+      'data',
+    ];
     for (const key of [...prose, ...located]) {
-      expect(TTT_TELEMETRY_CONTENT_POLICY.diagnosticKeys as readonly string[], key).not.toContain(key);
+      expect(TTT_TELEMETRY_CONTENT_POLICY.diagnosticKeys as readonly string[], key).not.toContain(
+        key,
+      );
     }
     for (const suffix of ['Name', 'Title', 'Path', 'Url', 'Text', 'Message', 'Email', 'Data']) {
-      expect(TTT_TELEMETRY_CONTENT_POLICY.diagnosticKeySuffixes as readonly string[], suffix).not.toContain(suffix);
+      expect(
+        TTT_TELEMETRY_CONTENT_POLICY.diagnosticKeySuffixes as readonly string[],
+        suffix,
+      ).not.toContain(suffix);
     }
   });
 

@@ -1,5 +1,5 @@
-import { getSimplifiedMediaType, NEUTRAL_CONTENT_TYPE } from "./helpers.js";
-import type { MediaOriginSpec } from "./types.js";
+import { getSimplifiedMediaType, NEUTRAL_CONTENT_TYPE } from './helpers.js';
+import type { MediaOriginSpec } from './types.js';
 
 // Verifying a STAGED upload's real storage metadata against its origin spec — PURE.
 //
@@ -20,9 +20,9 @@ export interface VerifyStagedUploadOptions {
 
 export type StagedUploadVerdict =
   | { ok: true; contentType: string; sizeBytes: number }
-  | { ok: false; reason: "unsupported-content-type"; contentType: string }
-  | { ok: false; reason: "unreadable-size"; size: unknown }
-  | { ok: false; reason: "too-large"; sizeBytes: number; maxBytes: number };
+  | { ok: false; reason: 'unsupported-content-type'; contentType: string }
+  | { ok: false; reason: 'unreadable-size'; size: unknown }
+  | { ok: false; reason: 'too-large'; sizeBytes: number; maxBytes: number };
 
 /**
  * A storage object's byte size, as a storage metadata read or a storage event reports it
@@ -38,12 +38,12 @@ export function parseStorageObjectSize(size: unknown): number | undefined {
   return Number.isSafeInteger(bytes) ? bytes : undefined;
 }
 
-function contentTypeAccepted(contentType: string, spec: Pick<MediaOriginSpec, "accept">): boolean {
+function contentTypeAccepted(contentType: string, spec: Pick<MediaOriginSpec, 'accept'>): boolean {
   const kinds: readonly string[] = spec.accept?.kinds ?? [];
   if (kinds.includes(getSimplifiedMediaType(contentType))) return true;
-  if (!kinds.includes("file")) return false;
+  if (!kinds.includes('file')) return false;
   return (spec.accept?.mimes ?? []).some((entry) =>
-    entry.endsWith("/*") ? contentType.startsWith(entry.slice(0, -1)) : contentType === entry,
+    entry.endsWith('/*') ? contentType.startsWith(entry.slice(0, -1)) : contentType === entry,
   );
 }
 
@@ -56,19 +56,19 @@ function contentTypeAccepted(contentType: string, spec: Pick<MediaOriginSpec, "a
  */
 export function verifyStagedUploadMetadata(
   metadata: { contentType?: unknown; size?: unknown },
-  spec: Pick<MediaOriginSpec, "accept" | "maxBytes">,
+  spec: Pick<MediaOriginSpec, 'accept' | 'maxBytes'>,
   options: VerifyStagedUploadOptions,
 ): StagedUploadVerdict {
-  const contentType = typeof metadata.contentType === "string" ? metadata.contentType : "";
+  const contentType = typeof metadata.contentType === 'string' ? metadata.contentType : '';
   const neutral = options.allowNeutralContentType && contentType === NEUTRAL_CONTENT_TYPE;
   if (!neutral && !contentTypeAccepted(contentType, spec)) {
-    return { ok: false, reason: "unsupported-content-type", contentType };
+    return { ok: false, reason: 'unsupported-content-type', contentType };
   }
 
   const sizeBytes = parseStorageObjectSize(metadata.size);
-  if (sizeBytes === undefined) return { ok: false, reason: "unreadable-size", size: metadata.size };
+  if (sizeBytes === undefined) return { ok: false, reason: 'unreadable-size', size: metadata.size };
   if (spec.maxBytes !== undefined && sizeBytes > spec.maxBytes) {
-    return { ok: false, reason: "too-large", sizeBytes, maxBytes: spec.maxBytes };
+    return { ok: false, reason: 'too-large', sizeBytes, maxBytes: spec.maxBytes };
   }
   return { ok: true, contentType, sizeBytes };
 }

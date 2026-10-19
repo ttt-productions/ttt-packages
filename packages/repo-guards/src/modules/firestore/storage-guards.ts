@@ -8,7 +8,14 @@ import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { listProblem, loaderProblem, namesProblem, reviewedProblems, textProblem, type Loader } from '../../support/facts.js';
+import {
+  listProblem,
+  loaderProblem,
+  namesProblem,
+  reviewedProblems,
+  textProblem,
+  type Loader,
+} from '../../support/facts.js';
 
 /** Every Storage rules file the layout lists is read; the facts name no file of their own. */
 export interface StorageUploadOriginFacts {
@@ -28,7 +35,10 @@ export interface StorageUploadOriginFacts {
 function statedCaps(body: string): Record<string, number> {
   const caps: Record<string, number> = {};
   for (const m of body.matchAll(/origin\s*==\s*'([^']+)'\s*\?\s*([\d\s*]+?)\s*(?=:|$)/g)) {
-    caps[m[1]] = m[2].split('*').map((f) => Number(f.trim())).reduce((p, f) => p * f, 1);
+    caps[m[1]] = m[2]
+      .split('*')
+      .map((f) => Number(f.trim()))
+      .reduce((p, f) => p * f, 1);
   }
   return caps;
 }
@@ -39,25 +49,34 @@ const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
  * Every way a Storage rules file drifts from the declared registry, one line each. `rulesCode` is the
  * file's comment-blanked code (the reader's `file.code`).
  */
-export async function uploadOriginProblems(rulesCode: string, facts: StorageUploadOriginFacts): Promise<string[]> {
+export async function uploadOriginProblems(
+  rulesCode: string,
+  facts: StorageUploadOriginFacts,
+): Promise<string[]> {
   const functions = rulesFunctions(rulesCode);
   const bodyOf = (name: string) => functions.get(name)?.body ?? null;
   const problems: string[] = [];
   const declared = await facts.originCaps();
   const origins = Object.keys(declared);
-  if (!origins.length) problems.push('the core declares no upload origin, so the check reads nothing');
+  if (!origins.length)
+    problems.push('the core declares no upload origin, so the check reads nothing');
 
   const capBody = bodyOf(facts.capFunction);
   if (capBody === null) problems.push(`no ${facts.capFunction}(origin) function`);
   else {
     const caps = statedCaps(capBody);
     for (const origin of origins) {
-      if (caps[origin] !== declared[origin]) problems.push(`${facts.capFunction}('${origin}') is ${caps[origin]}, the core declares ${declared[origin]}`);
+      if (caps[origin] !== declared[origin])
+        problems.push(
+          `${facts.capFunction}('${origin}') is ${caps[origin]}, the core declares ${declared[origin]}`,
+        );
     }
     for (const origin of Object.keys(caps)) {
-      if (!(origin in declared)) problems.push(`${facts.capFunction} names an undeclared origin '${origin}'`);
+      if (!(origin in declared))
+        problems.push(`${facts.capFunction} names an undeclared origin '${origin}'`);
     }
-    if (!/:\s*0\s*;?\s*$/.test(capBody.trim())) problems.push(`${facts.capFunction} does not fall back to 0 for an unknown origin`);
+    if (!/:\s*0\s*;?\s*$/.test(capBody.trim()))
+      problems.push(`${facts.capFunction} does not fall back to 0 for an unknown origin`);
   }
 
   for (const list of facts.originLists) {
@@ -66,17 +85,22 @@ export async function uploadOriginProblems(rulesCode: string, facts: StorageUplo
     const expected = [...(await list.origins())].sort();
     if (body === null) problems.push(`no ${list.function}() function`);
     else if (JSON.stringify(listed) !== JSON.stringify(expected)) {
-      problems.push(`${list.function}() lists [${listed.join(', ')}], the core declares [${expected.join(', ')}]`);
+      problems.push(
+        `${list.function}() lists [${listed.join(', ')}], the core declares [${expected.join(', ')}]`,
+      );
     }
   }
 
   for (const lane of facts.contentTypeLanes) {
     const body = bodyOf(lane.function);
     if (body === null) problems.push(`no ${lane.function}() function`);
-    else if (!squash(body).includes(squash(lane.expression))) problems.push(`${lane.function}() does not state ${squash(lane.expression)}`);
+    else if (!squash(body).includes(squash(lane.expression)))
+      problems.push(`${lane.function}() does not state ${squash(lane.expression)}`);
   }
 
-  const stagingBlock = matchBlocks(rulesCode).find((block) => block.path === `/${facts.stagingPath}`);
+  const stagingBlock = matchBlocks(rulesCode).find(
+    (block) => block.path === `/${facts.stagingPath}`,
+  );
   const staging = stagingBlock ? rulesCode.slice(stagingBlock.open + 1, stagingBlock.close) : null;
   if (staging === null) problems.push(`no staging block match /${facts.stagingPath}`);
   else {
@@ -85,11 +109,17 @@ export async function uploadOriginProblems(rulesCode: string, facts: StorageUplo
       condition: m[2].trim(),
     }));
     for (const op of ['update', 'delete']) {
-      if (!grants.some((g) => g.ops.includes(op) && g.condition === 'false')) problems.push(`the staging block does not refuse ${op} (allow ${op}: if false)`);
+      if (!grants.some((g) => g.ops.includes(op) && g.condition === 'false'))
+        problems.push(`the staging block does not refuse ${op} (allow ${op}: if false)`);
     }
     for (const g of grants) {
-      if (g.condition !== 'false' && g.ops.some((op) => ['update', 'delete', 'write'].includes(op))) {
-        problems.push(`the staging block grants ${g.ops.join(', ')}: a staged object is created once and never changed`);
+      if (
+        g.condition !== 'false' &&
+        g.ops.some((op) => ['update', 'delete', 'write'].includes(op))
+      ) {
+        problems.push(
+          `the staging block grants ${g.ops.join(', ')}: a staged object is created once and never changed`,
+        );
       }
     }
   }
@@ -121,7 +151,7 @@ export const storageUploadOriginGuard: GenericGuardDefinition<StorageUploadOrigi
       {
         title: 'the Storage rules restate the upload-origin registry exactly',
         description:
-          "The Storage rules cannot import the core, so in every Storage rules file the layout lists, their copy of the " +
+          'The Storage rules cannot import the core, so in every Storage rules file the layout lists, their copy of the ' +
           'upload-origin registry is pinned to it: the cap ' +
           "function names every declared origin with exactly the core's raw cap, names no other origin, and falls back " +
           'to 0; every origin-list function lists exactly its declared origins; every declared content-type lane is ' +
@@ -130,7 +160,8 @@ export const storageUploadOriginGuard: GenericGuardDefinition<StorageUploadOrigi
         async run(context) {
           const findings: Finding[] = [];
           for (const file of context.rulesFiles('storage')) {
-            for (const detail of await uploadOriginProblems(file.code, facts)) findings.push({ file: file.path, detail });
+            for (const detail of await uploadOriginProblems(file.code, facts))
+              findings.push({ file: file.path, detail });
           }
           return findings;
         },
@@ -159,12 +190,17 @@ const MEMBER_SHAPES: readonly RegExp[] = [
   /[\w$.?]*\.\s*(?:generation|size)\s+as\b/g,
 ];
 const METADATA_MEMBER_READ = /[\w$.?]*\bmeta(?:data)?\s*\??\.\s*(generation|size)\b/g;
-const METADATA_DESTRUCTURE = /\{[^{}]*\b(?:generation|size)\b[^{}]*\}\s*=\s*[\w$.?]*\bmeta(?:data)?\b/g;
+const METADATA_DESTRUCTURE =
+  /\{[^{}]*\b(?:generation|size)\b[^{}]*\}\s*=\s*[\w$.?]*\bmeta(?:data)?\b/g;
 
-const alternationOf = (names: readonly string[]) => names.map((n) => n.replace(/[$]/g, '\\$')).join('|');
+const alternationOf = (names: readonly string[]) =>
+  names.map((n) => n.replace(/[$]/g, '\\$')).join('|');
 
 /** Every hand-rolled generation or size read in one file's comment-stripped code, as `{ index, shape }`. */
-export function inlineMetadataReads(code: string, facts: Pick<StorageObjectMetadataFacts, 'sizeReaders'>): Array<{ index: number; shape: string }> {
+export function inlineMetadataReads(
+  code: string,
+  facts: Pick<StorageObjectMetadataFacts, 'sizeReaders'>,
+): Array<{ index: number; shape: string }> {
   const sizeArgument = new RegExp(`\\b(?:${alternationOf(facts.sizeReaders)})\\s*\\(\\s*$`);
   const hits = new Map<string, number>();
   const add = (m: RegExpMatchArray) => {
@@ -182,14 +218,25 @@ export function inlineMetadataReads(code: string, facts: Pick<StorageObjectMetad
 }
 
 /** Every local declaration of a package-owned contract name in one file's code. */
-export function packageContractCopies(code: string, contracts: readonly string[]): Array<{ index: number; shape: string }> {
+export function packageContractCopies(
+  code: string,
+  contracts: readonly string[],
+): Array<{ index: number; shape: string }> {
   if (!contracts.length) return [];
   const names = alternationOf(contracts);
   const re = new RegExp(`\\b(?:class|function|const|let|var)\\s+(?:${names})\\b`, 'g');
-  return [...code.matchAll(re)].map((m) => ({ index: m.index as number, shape: m[0].replace(/\s+/g, ' ') }));
+  return [...code.matchAll(re)].map((m) => ({
+    index: m.index as number,
+    shape: m[0].replace(/\s+/g, ' '),
+  }));
 }
 
-const METADATA_SCOPE: Scope = { roots: ['functions', 'app'], optionalRoots: ['functions'], kinds: ['code'], tests: false };
+const METADATA_SCOPE: Scope = {
+  roots: ['functions', 'app'],
+  optionalRoots: ['functions'],
+  kinds: ['code'],
+  tests: false,
+};
 
 export const storageObjectMetadataGuard: GenericGuardDefinition<StorageObjectMetadataFacts> = {
   id: 'storageObjectMetadata',
@@ -201,13 +248,16 @@ export const storageObjectMetadataGuard: GenericGuardDefinition<StorageObjectMet
     namesProblem(facts?.packageContracts, 'packageContracts', problems, { nonEmpty: false });
     namesProblem(facts?.readerAnchors, 'readerAnchors', problems);
     reviewedProblems(facts?.exceptions, 'exceptions', problems, {
-      id: (e) => (typeof e.shape === 'string' && e.shape.trim() ? `${e.path} ${e.shape}` : undefined),
+      id: (e) =>
+        typeof e.shape === 'string' && e.shape.trim() ? `${e.path} ${e.shape}` : undefined,
       idNames: 'shape',
     });
     return problems;
   },
   build(facts) {
-    const helperCall = new RegExp(`\\b(?:${alternationOf([...facts.generationReaders, ...facts.sizeReaders])})\\s*\\(`);
+    const helperCall = new RegExp(
+      `\\b(?:${alternationOf([...facts.generationReaders, ...facts.sizeReaders])})\\s*\\(`,
+    );
     return [
       {
         title: "a stored object's generation and size are read only through the package helpers",
@@ -226,22 +276,48 @@ export const storageObjectMetadataGuard: GenericGuardDefinition<StorageObjectMet
           const files = new Map<string, FileView>();
           for (const file of context.files(METADATA_SCOPE)) {
             files.set(file.path, file);
-            for (const { index, shape } of packageContractCopies(file.code, facts.packageContracts)) {
-              findings.push({ file: file.path, line: file.lineOf(index), detail: `a local copy of a package-owned contract: ${shape}` });
+            for (const { index, shape } of packageContractCopies(
+              file.code,
+              facts.packageContracts,
+            )) {
+              findings.push({
+                file: file.path,
+                line: file.lineOf(index),
+                detail: `a local copy of a package-owned contract: ${shape}`,
+              });
             }
             for (const { index, shape } of inlineMetadataReads(file.code, facts)) {
-              const at = facts.exceptions.findIndex((e) => e.path === file.path && e.shape === shape);
+              const at = facts.exceptions.findIndex(
+                (e) => e.path === file.path && e.shape === shape,
+              );
               if (at !== -1) used.add(at);
-              else findings.push({ file: file.path, line: file.lineOf(index), detail: `inline storage metadata read: ${shape}` });
+              else
+                findings.push({
+                  file: file.path,
+                  line: file.lineOf(index),
+                  detail: `inline storage metadata read: ${shape}`,
+                });
             }
           }
           facts.exceptions.forEach((e, i) => {
-            if (!used.has(i)) findings.push({ file: e.path, detail: `stale exception: "${e.shape}" no longer appears` });
+            if (!used.has(i))
+              findings.push({
+                file: e.path,
+                detail: `stale exception: "${e.shape}" no longer appears`,
+              });
           });
           for (const anchor of facts.readerAnchors) {
             const file = files.get(anchor);
-            if (!file) findings.push({ file: anchor, detail: 'reader anchor: the file is gone or outside the scope' });
-            else if (!helperCall.test(file.code)) findings.push({ file: anchor, detail: 'reader anchor: no package helper call left in it' });
+            if (!file)
+              findings.push({
+                file: anchor,
+                detail: 'reader anchor: the file is gone or outside the scope',
+              });
+            else if (!helperCall.test(file.code))
+              findings.push({
+                file: anchor,
+                detail: 'reader anchor: no package helper call left in it',
+              });
           }
           return findings;
         },

@@ -63,7 +63,9 @@ describe('mergeModeration', () => {
       const a = { status: 'flagged' as const, reasons: ['nudity', 'violence'] };
       const b = { status: 'flagged' as const, reasons: ['violence', 'hate_speech'] };
       const result = mergeModeration(a, b);
-      expect(result?.reasons).toEqual(expect.arrayContaining(['nudity', 'violence', 'hate_speech']));
+      expect(result?.reasons).toEqual(
+        expect.arrayContaining(['nudity', 'violence', 'hate_speech']),
+      );
       expect(result?.reasons?.length).toBe(3);
     });
 

@@ -26,7 +26,9 @@ describe('change-request target keys', () => {
   });
 
   it('keeps a detail key and a sub-item key for one Hall item apart', () => {
-    expect(hallContentChangeRequestTargetKey('h')).not.toBe(hallContentChangeRequestTargetKey('h', 's'));
+    expect(hallContentChangeRequestTargetKey('h')).not.toBe(
+      hallContentChangeRequestTargetKey('h', 's'),
+    );
   });
 });
 
@@ -46,10 +48,22 @@ describe('the stored target key bound', () => {
   });
 
   it('refuses a key longer than Firestore indexes exactly, counted in bytes', () => {
-    expect(hallContentChangeRequestTargetKeySchema.safeParse('a'.repeat(FIRESTORE_INDEXED_VALUE_MAX_BYTES)).success).toBe(true);
-    expect(hallContentChangeRequestTargetKeySchema.safeParse('a'.repeat(FIRESTORE_INDEXED_VALUE_MAX_BYTES + 1)).success).toBe(false);
+    expect(
+      hallContentChangeRequestTargetKeySchema.safeParse(
+        'a'.repeat(FIRESTORE_INDEXED_VALUE_MAX_BYTES),
+      ).success,
+    ).toBe(true);
+    expect(
+      hallContentChangeRequestTargetKeySchema.safeParse(
+        'a'.repeat(FIRESTORE_INDEXED_VALUE_MAX_BYTES + 1),
+      ).success,
+    ).toBe(false);
     // 'é' is two UTF-8 bytes.
-    expect(hallContentChangeRequestTargetKeySchema.safeParse('é'.repeat(FIRESTORE_INDEXED_VALUE_MAX_BYTES / 2 + 1)).success).toBe(false);
+    expect(
+      hallContentChangeRequestTargetKeySchema.safeParse(
+        'é'.repeat(FIRESTORE_INDEXED_VALUE_MAX_BYTES / 2 + 1),
+      ).success,
+    ).toBe(false);
   });
 
   it('is the bound the stored request doc declares', () => {
@@ -71,7 +85,10 @@ describe('the stored target key bound', () => {
     };
     expect(HallContentChangeRequestSchema.safeParse(request).success).toBe(false);
     expect(
-      HallContentChangeRequestSchema.safeParse({ ...request, targetKey: hallContentChangeRequestTargetKey('h') }).success,
+      HallContentChangeRequestSchema.safeParse({
+        ...request,
+        targetKey: hallContentChangeRequestTargetKey('h'),
+      }).success,
     ).toBe(true);
   });
 });
@@ -95,7 +112,17 @@ describe('the approved-request event', () => {
 
   it('refuses an empty Hall id and an id it does not declare', () => {
     const base = { type: 'hallContentChangeRequest.approved' as const };
-    expect(HallContentChangeRequestApprovedEventSchema.safeParse({ ...base, ids: { workProjectId: 'w', hallItemId: '' } }).success).toBe(false);
-    expect(HallContentChangeRequestApprovedEventSchema.safeParse({ ...base, ids: { workProjectId: 'w', chapterId: 'c' } }).success).toBe(false);
+    expect(
+      HallContentChangeRequestApprovedEventSchema.safeParse({
+        ...base,
+        ids: { workProjectId: 'w', hallItemId: '' },
+      }).success,
+    ).toBe(false);
+    expect(
+      HallContentChangeRequestApprovedEventSchema.safeParse({
+        ...base,
+        ids: { workProjectId: 'w', chapterId: 'c' },
+      }).success,
+    ).toBe(false);
   });
 });

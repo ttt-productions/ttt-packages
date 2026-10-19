@@ -24,7 +24,10 @@ export async function runDefinition<F>(
 ): Promise<Record<string, string[]>> {
   const repo = tempRepo({ [ANCHOR]: 'export {};', ...files });
   try {
-    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: ANCHOR }, ...roots } });
+    const reader = createRepoReader({
+      repoRoot: repo.root,
+      roots: { app: { path: 'src', anchor: ANCHOR }, ...roots },
+    });
     const context = contextOf(reader);
     const out: Record<string, string[]> = {};
     for (const guard of definition.build(facts)) {
@@ -48,8 +51,14 @@ export async function allFindings<F>(
 }
 
 /** A tiny installed package: its manifest and files under `node_modules/<name>/`. */
-export function installed(name: string, manifest: Record<string, unknown>, files: Record<string, string> = {}): Record<string, string> {
-  const out: Record<string, string> = { [`node_modules/${name}/package.json`]: JSON.stringify({ name, ...manifest }) };
+export function installed(
+  name: string,
+  manifest: Record<string, unknown>,
+  files: Record<string, string> = {},
+): Record<string, string> {
+  const out: Record<string, string> = {
+    [`node_modules/${name}/package.json`]: JSON.stringify({ name, ...manifest }),
+  };
   for (const [rel, text] of Object.entries(files)) out[`node_modules/${name}/${rel}`] = text;
   return out;
 }

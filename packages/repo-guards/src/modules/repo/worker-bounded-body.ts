@@ -23,7 +23,8 @@ export interface WorkerBoundedBodyFacts {
   passThroughStreams: ReadonlyArray<{ file: string; statement: string; why: string }>;
 }
 
-const RAW_REQUEST_BODY_READ = /\b(?:request|req)\s*\.\s*(?:(?:text|json|arrayBuffer|formData|blob)\s*\(|body\b)/;
+const RAW_REQUEST_BODY_READ =
+  /\b(?:request|req)\s*\.\s*(?:(?:text|json|arrayBuffer|formData|blob)\s*\(|body\b)/;
 
 /** Every line of a file's code that reads the request body directly, trimmed, with its line. */
 export function rawRequestBodyReads(file: FileView): Array<{ line: number; statement: string }> {
@@ -43,7 +44,10 @@ export const workerBoundedBodyGuard: GenericGuardDefinition<WorkerBoundedBodyFac
     const problems: string[] = [];
     if (!objectProblem(facts, 'facts', problems)) return problems;
     identifierProblem(facts.boundedReader, 'boundedReader', problems);
-    reviewedProblems(facts.boundedEndpoints, 'boundedEndpoints', problems, { key: 'file', nonEmpty: true });
+    reviewedProblems(facts.boundedEndpoints, 'boundedEndpoints', problems, {
+      key: 'file',
+      nonEmpty: true,
+    });
     reviewedProblems(facts.passThroughStreams, 'passThroughStreams', problems, {
       key: 'file',
       id: (p) => (isText(p.statement) ? `${p.file} ${p.statement}` : undefined),
@@ -52,7 +56,9 @@ export const workerBoundedBodyGuard: GenericGuardDefinition<WorkerBoundedBodyFac
     return problems;
   },
   build(facts) {
-    const boundedCall = new RegExp(`\\b${escapeRegExp(facts.boundedReader)}\\s*\\(\\s*(?:request|req)\\b[^)]*\\bmaxBytes\\b`);
+    const boundedCall = new RegExp(
+      `\\b${escapeRegExp(facts.boundedReader)}\\s*\\(\\s*(?:request|req)\\b[^)]*\\bmaxBytes\\b`,
+    );
     return [
       {
         title: 'Worker request bodies are read only through the bounded reader',
@@ -66,20 +72,38 @@ export const workerBoundedBodyGuard: GenericGuardDefinition<WorkerBoundedBodyFac
           const seen = new Set<number>();
           for (const file of files) {
             for (const { line, statement } of rawRequestBodyReads(file)) {
-              const pass = facts.passThroughStreams.findIndex((p) => p.file === file.path && p.statement.trim() === statement);
-              if (pass === -1) findings.push({ file: file.path, line, detail: `reads the request body directly: ${statement}` });
+              const pass = facts.passThroughStreams.findIndex(
+                (p) => p.file === file.path && p.statement.trim() === statement,
+              );
+              if (pass === -1)
+                findings.push({
+                  file: file.path,
+                  line,
+                  detail: `reads the request body directly: ${statement}`,
+                });
               else seen.add(pass);
             }
           }
           facts.passThroughStreams.forEach((p, index) => {
-            if (!seen.has(index)) findings.push({ file: p.file, detail: `stale pass-through entry: the statement is no longer in the file — ${p.statement}` });
+            if (!seen.has(index))
+              findings.push({
+                file: p.file,
+                detail: `stale pass-through entry: the statement is no longer in the file — ${p.statement}`,
+              });
           });
           const byPath = new Map(files.map((f) => [f.path, f]));
           for (const endpoint of facts.boundedEndpoints) {
             const file = byPath.get(endpoint.file);
-            if (!file) findings.push({ file: endpoint.file, detail: 'the bounded endpoint is not a Worker source file (gone, moved, or a test)' });
+            if (!file)
+              findings.push({
+                file: endpoint.file,
+                detail: 'the bounded endpoint is not a Worker source file (gone, moved, or a test)',
+              });
             else if (!boundedCall.test(file.code)) {
-              findings.push({ file: endpoint.file, detail: `no longer reads its request body through ${facts.boundedReader}(request, { maxBytes })` });
+              findings.push({
+                file: endpoint.file,
+                detail: `no longer reads its request body through ${facts.boundedReader}(request, { maxBytes })`,
+              });
             }
           }
           return findings;

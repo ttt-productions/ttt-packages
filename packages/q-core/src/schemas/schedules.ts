@@ -28,7 +28,10 @@ export const scheduleWeekTitleSchema = textFieldSchema(SCHEDULE_WEEK_TITLE_INPUT
 // or BYE_TEAM_ID; a game has at least one real team, and never one team twice.
 export const scheduleGameTeamsSchema = z
   .tuple([teamIdSchema, teamIdSchema])
-  .refine(([first, second]) => !(isByeTeamId(first) && isByeTeamId(second)), 'A game needs at least one team.')
+  .refine(
+    ([first, second]) => !(isByeTeamId(first) && isByeTeamId(second)),
+    'A game needs at least one team.',
+  )
   .refine(([first, second]) => first !== second, 'A game needs two different teams.');
 export type ScheduleGameTeams = z.infer<typeof scheduleGameTeamsSchema>;
 
@@ -61,7 +64,11 @@ export const AdminCreateScheduleWeekInputSchema = z
   .strict();
 export type AdminCreateScheduleWeekInput = z.infer<typeof AdminCreateScheduleWeekInputSchema>;
 export const AdminCreateScheduleWeekResultSchema = z
-  .object({ leagueId: leagueIdSchema, weekId: scheduleWeekIdSchema, gameIds: z.array(gameIdSchema) })
+  .object({
+    leagueId: leagueIdSchema,
+    weekId: scheduleWeekIdSchema,
+    gameIds: z.array(gameIdSchema),
+  })
   .strict();
 export type AdminCreateScheduleWeekResult = z.infer<typeof AdminCreateScheduleWeekResultSchema>;
 
@@ -78,7 +85,10 @@ export const AdminUpdateScheduleWeekInputSchema = z
   })
   .strict()
   .refine(
-    (input) => input.weekTitle !== undefined || input.weekStartDate !== undefined || input.weekGameLocationId !== undefined,
+    (input) =>
+      input.weekTitle !== undefined ||
+      input.weekStartDate !== undefined ||
+      input.weekGameLocationId !== undefined,
     'Name at least one field to change.',
   );
 export type AdminUpdateScheduleWeekInput = z.infer<typeof AdminUpdateScheduleWeekInputSchema>;

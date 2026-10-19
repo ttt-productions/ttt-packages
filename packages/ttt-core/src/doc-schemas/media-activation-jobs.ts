@@ -15,10 +15,7 @@ import { z } from 'zod';
 import { StructuredErrorSchema } from '@ttt-productions/edge-protocol-core';
 import { FileOriginSchema } from '../media/file-origin.js';
 import { FirestoreTimestampSchema } from './firestore-primitives.js';
-import {
-  MediaPublicationKindSchema,
-  MediaServingAuthorityRecordSchema,
-} from './media-assets.js';
+import { MediaPublicationKindSchema, MediaServingAuthorityRecordSchema } from './media-assets.js';
 
 export const MediaActivationJobStatusSchema = z.enum([
   'pending', // call the signed activation endpoint, verify the ack, CAS → authorityApplied

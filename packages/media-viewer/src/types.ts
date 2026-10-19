@@ -1,5 +1,5 @@
-export type MediaViewerType = "image" | "video" | "audio" | "other";
-export type FallbackMode = "none" | "link";
+export type MediaViewerType = 'image' | 'video' | 'audio' | 'other';
+export type FallbackMode = 'none' | 'link';
 
 /**
  * Imperative playback controls, exposed via the `playbackControlsRef` prop on
@@ -19,4 +19,4 @@ export type MediaPlaybackControls = {
  * three mark an exact moment the user's position changed and should be
  * committed as-is.
  */
-export type MediaProgressSampleReason = "periodic" | "pause" | "seeked" | "ended";
+export type MediaProgressSampleReason = 'periodic' | 'pause' | 'seeked' | 'ended';

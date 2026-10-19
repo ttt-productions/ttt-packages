@@ -50,7 +50,12 @@ export const testSourceRootGuard: GenericGuardDefinition<TestSourceRootFacts> = 
         run(context) {
           const findings: Finding[] = [];
           for (const file of context.files(SCOPE)) {
-            for (const index of cwdCalls(file)) findings.push({ file: file.path, line: file.lineOf(index), detail: 'calls process.cwd()' });
+            for (const index of cwdCalls(file))
+              findings.push({
+                file: file.path,
+                line: file.lineOf(index),
+                detail: 'calls process.cwd()',
+              });
           }
           return findings;
         },

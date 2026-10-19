@@ -326,9 +326,20 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
       if (olderPages) void fetchNextPage();
       else void refetchOlder();
     }
-  }, [listenerFailed, identity, olderError, olderFetching, olderPages, fetchNextPage, refetchOlder]);
+  }, [
+    listenerFailed,
+    identity,
+    olderError,
+    olderFetching,
+    olderPages,
+    fetchNextPage,
+    refetchOlder,
+  ]);
 
-  const olderEntries = React.useMemo(() => (olderPages ?? []).flatMap((p) => p.entries), [olderPages]);
+  const olderEntries = React.useMemo(
+    () => (olderPages ?? []).flatMap((p) => p.entries),
+    [olderPages],
+  );
 
   const items = React.useMemo(() => {
     if (!enabled) return [];

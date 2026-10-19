@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis";
+import { Redis } from '@upstash/redis';
 
 export interface RedisCredentialsProvider {
   /** Lazy URL resolver — invoked only when Redis is first needed. */
@@ -37,14 +37,14 @@ export function createRedisClientFactory(options: RedisClientFactoryOptions): {
     resolved = true;
 
     if (options.disabledWhen?.()) {
-      options.logger?.info?.("[rate-limit-core] Redis disabled by disabledWhen hook.");
+      options.logger?.info?.('[rate-limit-core] Redis disabled by disabledWhen hook.');
       disabled = true;
       return null;
     }
     const url = options.credentials.url();
     const token = options.credentials.token();
     if (!url || !token) {
-      options.logger?.warn?.("[rate-limit-core] Redis credentials not configured.");
+      options.logger?.warn?.('[rate-limit-core] Redis credentials not configured.');
       disabled = true;
       return null;
     }

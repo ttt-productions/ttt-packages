@@ -17,14 +17,20 @@ const resolvedGroup = {
 
 describe('report group — ordinary root close-out marker', () => {
   it('records that the group still owes its report roots their terminal state', () => {
-    expect(ReportGroupV1Schema.safeParse({ ...resolvedGroup, pendingRootTerminalization: true }).success).toBe(true);
-    expect(ReportGroupV1Schema.safeParse({ ...resolvedGroup, pendingRootTerminalization: false }).success).toBe(true);
+    expect(
+      ReportGroupV1Schema.safeParse({ ...resolvedGroup, pendingRootTerminalization: true }).success,
+    ).toBe(true);
+    expect(
+      ReportGroupV1Schema.safeParse({ ...resolvedGroup, pendingRootTerminalization: false })
+        .success,
+    ).toBe(true);
     expect(ReportGroupV1Schema.safeParse(resolvedGroup).success).toBe(true);
   });
 
-  it('holds only a flag — the outcome it applies is the group\'s own resolution outcome', () => {
-    expect(ReportGroupV1Schema.safeParse({ ...resolvedGroup, pendingRootTerminalization: 'founded' }).success).toBe(
-      false,
-    );
+  it("holds only a flag — the outcome it applies is the group's own resolution outcome", () => {
+    expect(
+      ReportGroupV1Schema.safeParse({ ...resolvedGroup, pendingRootTerminalization: 'founded' })
+        .success,
+    ).toBe(false);
   });
 });

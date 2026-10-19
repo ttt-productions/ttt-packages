@@ -53,7 +53,12 @@ export function swallowedDirectoryReads(file: FileView): number[] {
   const sourceFile = file.sourceFile;
   const hits: number[] = [];
   const visit = (node: ts.Node) => {
-    if (ts.isTryStatement(node) && node.catchClause && contains(node.tryBlock, isDirectoryRead) && !rethrows(node.catchClause.block)) {
+    if (
+      ts.isTryStatement(node) &&
+      node.catchClause &&
+      contains(node.tryBlock, isDirectoryRead) &&
+      !rethrows(node.catchClause.block)
+    ) {
       hits.push(node.catchClause.getStart(sourceFile));
     } else if (
       ts.isCallExpression(node) &&
@@ -71,7 +76,12 @@ export function swallowedDirectoryReads(file: FileView): number[] {
   return hits;
 }
 
-const SCOPE: Scope = { roots: ['app', 'functions', 'scripts'], kinds: ['code'], tests: true, optionalRoots: ['functions', 'scripts'] };
+const SCOPE: Scope = {
+  roots: ['app', 'functions', 'scripts'],
+  kinds: ['code'],
+  tests: true,
+  optionalRoots: ['functions', 'scripts'],
+};
 
 /** Takes no facts: it reads the app, Functions and scripts roots the layout declares. */
 export type WalkerReadFailureFacts = Readonly<Record<string, never>>;
@@ -94,7 +104,11 @@ export const walkerReadFailureGuard: GenericGuardDefinition<WalkerReadFailureFac
           const findings: Finding[] = [];
           for (const file of context.files(SCOPE)) {
             for (const index of swallowedDirectoryReads(file)) {
-              findings.push({ file: file.path, line: file.lineOf(index), detail: 'a directory-read failure is swallowed' });
+              findings.push({
+                file: file.path,
+                line: file.lineOf(index),
+                detail: 'a directory-read failure is swallowed',
+              });
             }
           }
           return findings;

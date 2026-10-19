@@ -9,7 +9,7 @@
 
 /** How the analyser data is drawn. `line` = oscilloscope (time domain, the
  *  recording dialog's original visual); `bars` = frequency bars (EQ dance). */
-export type AudioVisualizerMode = "line" | "bars";
+export type AudioVisualizerMode = 'line' | 'bars';
 
 export type StartWaveformLoopOptions = {
   analyser: AnalyserNode;
@@ -28,7 +28,9 @@ export type StartWaveformLoopOptions = {
 export function startWaveformLoop(options: StartWaveformLoopOptions): () => void {
   const { analyser, getCanvas } = options;
   const resolveMode: () => AudioVisualizerMode =
-    typeof options.mode === "function" ? options.mode : () => (options.mode as AudioVisualizerMode) ?? "line";
+    typeof options.mode === 'function'
+      ? options.mode
+      : () => (options.mode as AudioVisualizerMode) ?? 'line';
 
   const timeData = new Uint8Array(analyser.frequencyBinCount);
   const freqData = new Uint8Array(analyser.frequencyBinCount);
@@ -45,7 +47,7 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
       rafId = requestAnimationFrame(draw);
       return;
     }
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) {
       rafId = null;
       return;
@@ -54,7 +56,7 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
-    if (resolveMode() === "bars") {
+    if (resolveMode() === 'bars') {
       analyser.getByteFrequencyData(freqData);
       const binCount = freqData.length;
       // Cap the bar count so narrow canvases stay readable.
@@ -62,7 +64,7 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
       const step = binCount / barCount;
       const gap = 1;
       const barWidth = Math.max(1, width / barCount - gap);
-      ctx.fillStyle = "currentColor";
+      ctx.fillStyle = 'currentColor';
       for (let i = 0; i < barCount; i++) {
         // Sample the bin range for this bar (peak keeps it lively).
         let peak = 0;
@@ -78,7 +80,7 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
     } else {
       analyser.getByteTimeDomainData(timeData);
       ctx.lineWidth = 2;
-      ctx.strokeStyle = "currentColor";
+      ctx.strokeStyle = 'currentColor';
       ctx.beginPath();
       const bufferLength = timeData.length;
       const sliceWidth = width / bufferLength;
@@ -114,13 +116,13 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
  * running analyser.
  */
 export function drawIdleFrame(canvas: HTMLCanvasElement, mode: AudioVisualizerMode): void {
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const { width, height } = canvas;
   ctx.clearRect(0, 0, width, height);
-  if (mode === "line") {
+  if (mode === 'line') {
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "currentColor";
+    ctx.strokeStyle = 'currentColor';
     ctx.beginPath();
     ctx.moveTo(0, height / 2);
     ctx.lineTo(width, height / 2);

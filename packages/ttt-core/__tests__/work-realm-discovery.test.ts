@@ -7,7 +7,11 @@ import {
 import { ITEMS_PER_PAGE_REALM_WORKS } from '../src/constants/pagination.js';
 import { WorkRealmSchema } from '../src/doc-schemas/work-project.js';
 
-const releasedPublic = { realmType: 'public', realmStatus: 'released', realmHidden: false } as const;
+const releasedPublic = {
+  realmType: 'public',
+  realmStatus: 'released',
+  realmHidden: false,
+} as const;
 
 describe('released public Realm eligibility', () => {
   it('a public, released, unhidden Realm is eligible', () => {
@@ -32,7 +36,9 @@ describe('released public Realm eligibility', () => {
       { field: 'realmStatus', value: 'released' },
       { field: 'realmHidden', value: false },
     ]);
-    const fromFilters = Object.fromEntries(RELEASED_PUBLIC_REALM_EQUALITY_FILTERS.map((f) => [f.field, f.value]));
+    const fromFilters = Object.fromEntries(
+      RELEASED_PUBLIC_REALM_EQUALITY_FILTERS.map((f) => [f.field, f.value]),
+    );
     expect(fromFilters).toEqual(RELEASED_PUBLIC_REALM_CRITERIA);
   });
 

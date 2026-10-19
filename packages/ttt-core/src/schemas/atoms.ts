@@ -23,7 +23,9 @@ export const stakeSharesOfferedSchema = z.number().int().min(1).max(MAX_WORK_PRO
 export const unpaddedValueSchema = z
   .string()
   .min(1)
-  .refine((value) => value === value.trim(), { message: 'This value cannot begin or end with whitespace.' });
+  .refine((value) => value === value.trim(), {
+    message: 'This value cannot begin or end with whitespace.',
+  });
 
 // One Firestore document-id segment. A client string that becomes a path segment is validated as ONE
 // segment before any path is built from it: a "/" addresses a different document or a subcollection,
@@ -31,7 +33,9 @@ export const unpaddedValueSchema = z
 // No id the platform mints holds surrounding whitespace, so a padded or space-only id only ever
 // arrives from a caller and names nothing. Every id atom below derives from it.
 export const documentIdSegmentSchema = unpaddedValueSchema
-  .refine((id) => !id.includes('/'), { message: 'An id is one path segment and cannot contain "/".' })
+  .refine((id) => !id.includes('/'), {
+    message: 'An id is one path segment and cannot contain "/".',
+  })
   .refine((id) => id !== '.' && id !== '..', { message: 'An id cannot be "." or "..".' })
   .refine((id) => !/^__.*__$/.test(id), { message: 'An id cannot use the reserved __name__ form.' })
   .refine((id) => new TextEncoder().encode(id).length <= FIRESTORE_DOCUMENT_ID_MAX_BYTES, {
@@ -51,7 +55,9 @@ export const reportTargetParentRefSchema = z
   .refine(
     (ref) => {
       const parts = ref.split('/');
-      return parts.length <= 2 && parts.every((part) => documentIdSegmentSchema.safeParse(part).success);
+      return (
+        parts.length <= 2 && parts.every((part) => documentIdSegmentSchema.safeParse(part).success)
+      );
     },
     { message: 'A parent reference is one id, or two ids joined by "/".' },
   );
@@ -81,7 +87,9 @@ export const realmFileFolderIdSchema = documentIdSegmentSchema;
  *  payload, notification metadata, aggregation key), so an unbounded string is a write
  *  amplification an attacker can send without the UI. Every consumer inherits the cap by
  *  using this atom rather than restating a bound. */
-export const realmFileShareRequestIdSchema = documentIdSegmentSchema.max(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH);
+export const realmFileShareRequestIdSchema = documentIdSegmentSchema.max(
+  MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
+);
 export const notificationFanoutJobIdSchema = documentIdSegmentSchema;
 export const taleIdSchema = documentIdSegmentSchema;
 export const tuneIdSchema = documentIdSegmentSchema;
@@ -159,7 +167,12 @@ export type GuildInviteConversationStatus = z.infer<typeof guildInviteConversati
 // listing, or a whole Hall entry (a book, album, or show; never one chapter, track, or episode, and
 // never a Realm). The create input (schemas/utility.ts) and the stored link (doc-schemas/operational.ts)
 // both derive from it; it lives in this leaf module so the doc schema never imports ./schemas/utility.
-export const ShortLinkTargetTypeSchema = z.enum(['audition', 'audition-entry', 'commission', 'hall-library-item']);
+export const ShortLinkTargetTypeSchema = z.enum([
+  'audition',
+  'audition-entry',
+  'commission',
+  'hall-library-item',
+]);
 export type ShortLinkTargetType = z.infer<typeof ShortLinkTargetTypeSchema>;
 
 /**
@@ -177,8 +190,6 @@ export const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 // the moderation placeholder, so it is bounded by the title length alone.
 export const storedTitleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH);
 
-
-
 /**
  * The founder legal-review notice checkbox on a callable input (pledge checkout, Hall
  * submission). `true` when ticked; omitted — or `null`, which the Firebase callable client
@@ -191,4 +202,7 @@ export const LegalReviewNoticeAcknowledgedInputSchema = z.literal(true).nullish(
 /** One entry of a guild chat channel's requirement: a canonical guild standing (`GUILD_STANDINGS`) or
  *  a canonical trade profession (`TRADE_PROFESSION_OPTIONS`) — `canAccessGuildChatChannel` admits a
  *  member holding either — never a free string. */
-export const guildChatChannelRequirementSchema = z.enum([...GUILD_STANDING_IDS, ...TRADE_PROFESSION_OPTIONS]);
+export const guildChatChannelRequirementSchema = z.enum([
+  ...GUILD_STANDING_IDS,
+  ...TRADE_PROFESSION_OPTIONS,
+]);

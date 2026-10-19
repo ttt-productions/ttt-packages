@@ -58,14 +58,18 @@ export const MembershipRosterSyncSchema = z
   })
   .refine(
     (sync) =>
-      (sync.syncStatus === RECONCILED_ROSTER_SYNC_STATUS) === (sync.reconciledRosterRevision === sync.rosterRevision),
+      (sync.syncStatus === RECONCILED_ROSTER_SYNC_STATUS) ===
+      (sync.reconciledRosterRevision === sync.rosterRevision),
     {
       message: 'An obligation is reconciled exactly when its reconciled revision is its revision.',
       path: ['syncStatus'],
     },
   )
-  .refine((sync) => (sync.syncStatus === FAILED_ROSTER_SYNC_STATUS) === (sync.failedAt !== undefined), {
-    message: 'An obligation carries `failedAt` exactly while it is failed.',
-    path: ['failedAt'],
-  });
+  .refine(
+    (sync) => (sync.syncStatus === FAILED_ROSTER_SYNC_STATUS) === (sync.failedAt !== undefined),
+    {
+      message: 'An obligation carries `failedAt` exactly while it is failed.',
+      path: ['failedAt'],
+    },
+  );
 export type MembershipRosterSync = z.infer<typeof MembershipRosterSyncSchema>;

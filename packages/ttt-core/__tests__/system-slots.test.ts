@@ -16,17 +16,21 @@ import { SystemContentTargetInfoSchema, parseTargetInfo } from '../src/media/tar
 import { FileOriginSchema } from '../src/media/file-origin.js';
 import { fileOriginRowLabel } from '../src/media/upload-tray-display.js';
 import { DomainEventSchema } from '../src/media/domain-events.js';
-import { ClearSystemVideoSlotInputSchema, UpdateSystemUidSlotInputSchema } from '../src/schemas/admin.js';
-import { MAX_SYSTEM_UID_LIST } from '../src/constants/business-admin.js';
 import {
-  UploadSystemContentVariablesSchema,
-} from '../src/upload-variables/upload-system-content-variables.js';
+  ClearSystemVideoSlotInputSchema,
+  UpdateSystemUidSlotInputSchema,
+} from '../src/schemas/admin.js';
+import { MAX_SYSTEM_UID_LIST } from '../src/constants/business-admin.js';
+import { UploadSystemContentVariablesSchema } from '../src/upload-variables/upload-system-content-variables.js';
 import {
   EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT,
   SystemUidSlotsDocumentSchema,
   SystemVideoSlotsDocumentSchema,
 } from '../src/doc-schemas/system-slots.js';
-import { MediaAssetOwnerTypeSchema, MediaPublicationKindSchema } from '../src/doc-schemas/media-assets.js';
+import {
+  MediaAssetOwnerTypeSchema,
+  MediaPublicationKindSchema,
+} from '../src/doc-schemas/media-assets.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { COLLECTIONS } from '../src/paths/collections.js';
@@ -65,12 +69,16 @@ describe('the system-slot registry', () => {
   it('derives one video slot per Guide video, titled with its planned title', () => {
     for (const video of GUIDE_VIDEO_DEFINITIONS) {
       const slot = getSystemSlot(guideVideoSlotId(video.id));
-      expect(slot, video.id).toEqual(expect.objectContaining({ kind: 'video', label: video.plannedTitle }));
+      expect(slot, video.id).toEqual(
+        expect.objectContaining({ kind: 'video', label: video.plannedTitle }),
+      );
     }
   });
 
   it('holds no Guide slot that a Guide video does not declare', () => {
-    const declared = new Set<string>(GUIDE_VIDEO_DEFINITIONS.map((video) => guideVideoSlotId(video.id)));
+    const declared = new Set<string>(
+      GUIDE_VIDEO_DEFINITIONS.map((video) => guideVideoSlotId(video.id)),
+    );
     const guideSlots = SYSTEM_SLOTS.filter((slot) => slot.id.startsWith('guide-'));
     for (const slot of guideSlots) expect(declared.has(slot.id), slot.id).toBe(true);
     expect(guideSlots).toHaveLength(GUIDE_VIDEO_DEFINITIONS.length);
@@ -86,7 +94,8 @@ describe('the system-slot registry', () => {
   });
 
   it('splits the slot ids by kind', () => {
-    const idsOf = (kind: string) => SYSTEM_SLOTS.filter((slot) => slot.kind === kind).map((slot) => slot.id);
+    const idsOf = (kind: string) =>
+      SYSTEM_SLOTS.filter((slot) => slot.kind === kind).map((slot) => slot.id);
     expect([...SystemVideoSlotIdSchema.options]).toEqual(idsOf('video'));
     expect([...SystemUidSlotIdSchema.options]).toEqual(idsOf('uid'));
     expect([...SystemUidListSlotIdSchema.options]).toEqual(idsOf('uidList'));
@@ -104,7 +113,10 @@ describe('the system-slot groups and required videos', () => {
     expect(new Set(groupIds).size).toBe(groupIds.length);
     for (const group of SYSTEM_SLOT_GROUPS) {
       expect(group.label.trim().length, group.id).toBeGreaterThan(0);
-      expect(SYSTEM_SLOTS.some((slot) => slot.group === group.id), group.id).toBe(true);
+      expect(
+        SYSTEM_SLOTS.some((slot) => slot.group === group.id),
+        group.id,
+      ).toBe(true);
     }
   });
 
@@ -117,15 +129,20 @@ describe('the system-slot groups and required videos', () => {
 
   it('requires a video on the landing hero and every Guide video; never on a Help placement', () => {
     expect(isRequiredVideoSlot('landing-hero')).toBe(true);
-    for (const video of GUIDE_VIDEO_DEFINITIONS) expect(isRequiredVideoSlot(guideVideoSlotId(video.id)), video.id).toBe(true);
-    for (const help of HELP_VIDEO_DEFINITIONS) expect(isRequiredVideoSlot(helpVideoSlotId(help.id)), help.id).toBe(false);
+    for (const video of GUIDE_VIDEO_DEFINITIONS)
+      expect(isRequiredVideoSlot(guideVideoSlotId(video.id)), video.id).toBe(true);
+    for (const help of HELP_VIDEO_DEFINITIONS)
+      expect(isRequiredVideoSlot(helpVideoSlotId(help.id)), help.id).toBe(false);
   });
 
-  it('lists the slots under their groups, in the groups\' order, every slot once', () => {
+  it("lists the slots under their groups, in the groups' order, every slot once", () => {
     const grouped = systemSlotsByGroup();
     expect(grouped.map((entry) => entry.group.id)).toEqual(groupIds);
-    expect(grouped.flatMap((entry) => entry.slots.map((slot) => slot.id)).sort()).toEqual(SYSTEM_SLOTS.map((slot) => slot.id).sort());
-    for (const entry of grouped) for (const slot of entry.slots) expect(slot.group).toBe(entry.group.id);
+    expect(grouped.flatMap((entry) => entry.slots.map((slot) => slot.id)).sort()).toEqual(
+      SYSTEM_SLOTS.map((slot) => slot.id).sort(),
+    );
+    for (const entry of grouped)
+      for (const slot of entry.slots) expect(slot.group).toBe(entry.group.id);
   });
 
   it('keeps each grouped slot typed as its registry entry, so its id stays a slot id of its kind', () => {
@@ -139,13 +156,23 @@ describe('the Help component video slots', () => {
   it('derives one optional Help-components video slot per Help placement, titled and located from it', () => {
     for (const help of HELP_VIDEO_DEFINITIONS) {
       const slot = getSystemSlot(helpVideoSlotId(help.id));
-      expect(slot, help.id).toMatchObject({ kind: 'video', label: help.title, description: help.location, group: 'helpComponents', requiredVideo: false });
+      expect(slot, help.id).toMatchObject({
+        kind: 'video',
+        label: help.title,
+        description: help.location,
+        group: 'helpComponents',
+        requiredVideo: false,
+      });
     }
   });
 
   it('holds no Help slot that a Help placement does not declare', () => {
-    const declared = new Set<string>(HELP_VIDEO_DEFINITIONS.map((help) => helpVideoSlotId(help.id)));
-    const helpSlots = SYSTEM_SLOTS.filter((slot) => slot.id.startsWith('help-')).map((slot) => slot.id);
+    const declared = new Set<string>(
+      HELP_VIDEO_DEFINITIONS.map((help) => helpVideoSlotId(help.id)),
+    );
+    const helpSlots = SYSTEM_SLOTS.filter((slot) => slot.id.startsWith('help-')).map(
+      (slot) => slot.id,
+    );
     for (const id of helpSlots) expect(declared, id).toContain(id);
   });
 
@@ -172,7 +199,9 @@ describe('the system-content upload origin', () => {
   });
 
   it('takes a video slot as its target', () => {
-    expect(parseTargetInfo('system-content', { slotId: 'landing-hero' })).toEqual({ slotId: 'landing-hero' });
+    expect(parseTargetInfo('system-content', { slotId: 'landing-hero' })).toEqual({
+      slotId: 'landing-hero',
+    });
   });
 
   it('refuses a slot the registry does not hold', () => {
@@ -199,29 +228,44 @@ describe('UploadSystemContentVariablesSchema', () => {
   const videoFile = new Blob(['x']);
 
   it('accepts a video slot and its file', () => {
-    expect(UploadSystemContentVariablesSchema.safeParse({ slotId: 'landing-hero', videoFile }).success).toBe(true);
+    expect(
+      UploadSystemContentVariablesSchema.safeParse({ slotId: 'landing-hero', videoFile }).success,
+    ).toBe(true);
   });
 
   it('refuses a slot that is not a video slot', () => {
-    expect(UploadSystemContentVariablesSchema.safeParse({ slotId: 'team', videoFile }).success).toBe(false);
+    expect(
+      UploadSystemContentVariablesSchema.safeParse({ slotId: 'team', videoFile }).success,
+    ).toBe(false);
   });
 
   it('refuses a missing file', () => {
-    expect(UploadSystemContentVariablesSchema.safeParse({ slotId: 'landing-hero' }).success).toBe(false);
+    expect(UploadSystemContentVariablesSchema.safeParse({ slotId: 'landing-hero' }).success).toBe(
+      false,
+    );
   });
 });
 
 describe('ClearSystemVideoSlotInputSchema', () => {
   it('takes only a video slot id', () => {
-    expect(ClearSystemVideoSlotInputSchema.parse({ slotId: 'landing-hero' })).toEqual({ slotId: 'landing-hero' });
+    expect(ClearSystemVideoSlotInputSchema.parse({ slotId: 'landing-hero' })).toEqual({
+      slotId: 'landing-hero',
+    });
     expect(ClearSystemVideoSlotInputSchema.safeParse({ slotId: 'founder' }).success).toBe(false);
-    expect(ClearSystemVideoSlotInputSchema.safeParse({ slotId: 'landing-hero', extra: 1 }).success).toBe(false);
+    expect(
+      ClearSystemVideoSlotInputSchema.safeParse({ slotId: 'landing-hero', extra: 1 }).success,
+    ).toBe(false);
   });
 });
 
 describe('the system-slot domain events', () => {
   it('carry no video-slot event: every signed-in tab reads the video slots live', () => {
-    expect(DomainEventSchema.safeParse({ type: 'systemSlot.videoUpdated', ids: { slotId: 'landing-hero' } }).success).toBe(false);
+    expect(
+      DomainEventSchema.safeParse({
+        type: 'systemSlot.videoUpdated',
+        ids: { slotId: 'landing-hero' },
+      }).success,
+    ).toBe(false);
   });
 
   it('carry a uid or uid-list slot on systemSlot.uidUpdated', () => {
@@ -230,7 +274,10 @@ describe('the system-slot domain events', () => {
       expect(DomainEventSchema.parse(event)).toEqual(event);
     }
     expect(
-      DomainEventSchema.safeParse({ type: 'systemSlot.uidUpdated', ids: { slotId: 'landing-hero' } }).success,
+      DomainEventSchema.safeParse({
+        type: 'systemSlot.uidUpdated',
+        ids: { slotId: 'landing-hero' },
+      }).success,
     ).toBe(false);
   });
 });
@@ -248,14 +295,25 @@ describe('the system-slot audit event types', () => {
 
 describe('SystemVideoSlotsDocumentSchema', () => {
   it('accepts the canonical empty doc', () => {
-    expect(SystemVideoSlotsDocumentSchema.parse(EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT)).toEqual({ slots: {}, version: 0 });
+    expect(SystemVideoSlotsDocumentSchema.parse(EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT)).toEqual({
+      slots: {},
+      version: 0,
+    });
   });
 
   it('accepts a full entry, published and mid-upload', () => {
     const doc = {
       slots: {
-        'landing-hero': { assetId: 'asset1', uploadPendingMediaId: null, updatedAt: 1_760_000_000_000 },
-        'guide-what-is-a-work': { assetId: null, uploadPendingMediaId: 'pm1', updatedAt: 1_760_000_000_000 },
+        'landing-hero': {
+          assetId: 'asset1',
+          uploadPendingMediaId: null,
+          updatedAt: 1_760_000_000_000,
+        },
+        'guide-what-is-a-work': {
+          assetId: null,
+          uploadPendingMediaId: 'pm1',
+          updatedAt: 1_760_000_000_000,
+        },
       },
       version: 3,
     };
@@ -288,31 +346,48 @@ describe('SystemUidSlotsDocumentSchema', () => {
   });
 
   it('accepts one account on a uid slot and a list on a uid-list slot', () => {
-    const doc = { slots: { founder: 'u1', team: ['u2', 'u3'] }, version: 2, lastUpdated: 1_760_000_000_000 };
+    const doc = {
+      slots: { founder: 'u1', team: ['u2', 'u3'] },
+      version: 2,
+      lastUpdated: 1_760_000_000_000,
+    };
     expect(SystemUidSlotsDocumentSchema.parse(doc)).toEqual(doc);
   });
 
   it('refuses a list on a uid slot', () => {
     expect(
-      SystemUidSlotsDocumentSchema.safeParse({ slots: { founder: ['u1'] }, version: 1, lastUpdated: 1 }).success,
+      SystemUidSlotsDocumentSchema.safeParse({
+        slots: { founder: ['u1'] },
+        version: 1,
+        lastUpdated: 1,
+      }).success,
     ).toBe(false);
   });
 
   it('refuses a single account on a uid-list slot', () => {
     expect(
-      SystemUidSlotsDocumentSchema.safeParse({ slots: { team: 'u1' }, version: 1, lastUpdated: 1 }).success,
+      SystemUidSlotsDocumentSchema.safeParse({ slots: { team: 'u1' }, version: 1, lastUpdated: 1 })
+        .success,
     ).toBe(false);
   });
 
   it('refuses a key that is not an account slot', () => {
     expect(
-      SystemUidSlotsDocumentSchema.safeParse({ slots: { 'landing-hero': 'u1' }, version: 1, lastUpdated: 1 }).success,
+      SystemUidSlotsDocumentSchema.safeParse({
+        slots: { 'landing-hero': 'u1' },
+        version: 1,
+        lastUpdated: 1,
+      }).success,
     ).toBe(false);
   });
 
   it('refuses an account id that is not one path segment', () => {
     expect(
-      SystemUidSlotsDocumentSchema.safeParse({ slots: { founder: 'a/b' }, version: 1, lastUpdated: 1 }).success,
+      SystemUidSlotsDocumentSchema.safeParse({
+        slots: { founder: 'a/b' },
+        version: 1,
+        lastUpdated: 1,
+      }).success,
     ).toBe(false);
   });
 });
@@ -337,39 +412,73 @@ describe('UpdateSystemUidSlotInputSchema', () => {
   });
 
   it('sets or clears a uid slot with one account id or null', () => {
-    expect(UpdateSystemUidSlotInputSchema.parse({ slotId: 'founder', value: 'u1' })).toEqual({ slotId: 'founder', value: 'u1' });
-    expect(UpdateSystemUidSlotInputSchema.parse({ slotId: 'founder', value: null })).toEqual({ slotId: 'founder', value: null });
+    expect(UpdateSystemUidSlotInputSchema.parse({ slotId: 'founder', value: 'u1' })).toEqual({
+      slotId: 'founder',
+      value: 'u1',
+    });
+    expect(UpdateSystemUidSlotInputSchema.parse({ slotId: 'founder', value: null })).toEqual({
+      slotId: 'founder',
+      value: null,
+    });
   });
 
   it('sets or clears a uid-list slot with a list of up to 25 accounts', () => {
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: uids(25) }).success).toBe(true);
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: [] }).success).toBe(true);
+    expect(
+      UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: uids(25) }).success,
+    ).toBe(true);
+    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: [] }).success).toBe(
+      true,
+    );
   });
 
   it('refuses a 26-account list', () => {
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: uids(26) }).success).toBe(false);
+    expect(
+      UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: uids(26) }).success,
+    ).toBe(false);
   });
 
   it('refuses a value whose shape does not match the slot kind', () => {
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: ['u1'] }).success).toBe(false);
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: 'u1' }).success).toBe(false);
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: null }).success).toBe(false);
+    expect(
+      UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: ['u1'] }).success,
+    ).toBe(false);
+    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: 'u1' }).success).toBe(
+      false,
+    );
+    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'team', value: null }).success).toBe(
+      false,
+    );
   });
 
   it('refuses a video slot, a blank account id, an id with a slash, and extra fields', () => {
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'landing-hero', value: 'u1' }).success).toBe(false);
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: '' }).success).toBe(false);
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: 'a/b' }).success).toBe(false);
-    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: 'u1', extra: 1 }).success).toBe(false);
+    expect(
+      UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'landing-hero', value: 'u1' }).success,
+    ).toBe(false);
+    expect(UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: '' }).success).toBe(
+      false,
+    );
+    expect(
+      UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: 'a/b' }).success,
+    ).toBe(false);
+    expect(
+      UpdateSystemUidSlotInputSchema.safeParse({ slotId: 'founder', value: 'u1', extra: 1 })
+        .success,
+    ).toBe(false);
   });
 });
 
 describe('the stored uid-list cap', () => {
   it('refuses a stored list longer than the update input allows', () => {
     const team = Array.from({ length: MAX_SYSTEM_UID_LIST + 1 }, (_, i) => `u${i}`);
-    expect(SystemUidSlotsDocumentSchema.safeParse({ slots: { team }, version: 1, lastUpdated: 1 }).success).toBe(false);
     expect(
-      SystemUidSlotsDocumentSchema.safeParse({ slots: { team: team.slice(1) }, version: 1, lastUpdated: 1 }).success,
+      SystemUidSlotsDocumentSchema.safeParse({ slots: { team }, version: 1, lastUpdated: 1 })
+        .success,
+    ).toBe(false);
+    expect(
+      SystemUidSlotsDocumentSchema.safeParse({
+        slots: { team: team.slice(1) },
+        version: 1,
+        lastUpdated: 1,
+      }).success,
     ).toBe(true);
   });
 });

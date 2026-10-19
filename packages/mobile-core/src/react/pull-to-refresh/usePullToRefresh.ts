@@ -1,5 +1,12 @@
-import { useCallback, useRef, useState, type CSSProperties, type RefObject, type TouchEventHandler } from "react";
-import { isBrowser } from "../../env.js";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+  type TouchEventHandler,
+} from 'react';
+import { isBrowser } from '../../env.js';
 
 type PullToRefreshOptions = {
   onRefresh: () => Promise<void>;
@@ -34,13 +41,7 @@ type PullToRefreshResult = {
  * Desktop-safe: touch handlers simply never fire on non-touch devices.
  */
 export function usePullToRefresh(opts: PullToRefreshOptions): PullToRefreshResult {
-  const {
-    onRefresh,
-    containerRef,
-    threshold = 80,
-    maxPull = 120,
-    disabled = false,
-  } = opts;
+  const { onRefresh, containerRef, threshold = 80, maxPull = 120, disabled = false } = opts;
 
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -61,7 +62,7 @@ export function usePullToRefresh(opts: PullToRefreshOptions): PullToRefreshResul
       startYRef.current = e.touches[0].clientY;
       pullingRef.current = true;
     },
-    [disabled, isRefreshing, getScrollTop]
+    [disabled, isRefreshing, getScrollTop],
   );
 
   const onTouchMove: TouchEventHandler = useCallback(
@@ -86,13 +87,11 @@ export function usePullToRefresh(opts: PullToRefreshOptions): PullToRefreshResul
 
       // Apply resistance: diminishing returns past threshold
       const clamped = Math.min(delta, maxPull);
-      const resisted = clamped < threshold
-        ? clamped
-        : threshold + (clamped - threshold) * 0.4;
+      const resisted = clamped < threshold ? clamped : threshold + (clamped - threshold) * 0.4;
 
       setPullDistance(resisted);
     },
-    [disabled, isRefreshing, threshold, maxPull, getScrollTop]
+    [disabled, isRefreshing, threshold, maxPull, getScrollTop],
   );
 
   const onTouchEnd: TouchEventHandler = useCallback(async () => {
@@ -117,7 +116,7 @@ export function usePullToRefresh(opts: PullToRefreshOptions): PullToRefreshResul
 
   const style: CSSProperties = {
     transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-    transition: pullingRef.current ? "none" : "transform var(--motion-slow) var(--motion-ease)",
+    transition: pullingRef.current ? 'none' : 'transform var(--motion-slow) var(--motion-ease)',
   };
 
   return {

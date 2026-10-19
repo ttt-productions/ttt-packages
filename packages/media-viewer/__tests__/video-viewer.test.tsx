@@ -91,7 +91,9 @@ describe('VideoViewer', () => {
 
     it('keeps <video> mounted when unloadOnExit=false', () => {
       mockInView = true;
-      const { container, rerender } = render(<VideoViewer url="https://example.com/v.mp4" unloadOnExit={false} />);
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" unloadOnExit={false} />,
+      );
       expect(container.querySelector('video')).not.toBeNull();
       mockInView = false;
       rerender(<VideoViewer url="https://example.com/v.mp4" unloadOnExit={false} />);
@@ -99,7 +101,9 @@ describe('VideoViewer', () => {
     });
 
     it('does not unmount <video> when priority=true (even with unloadOnExit)', () => {
-      const { container, rerender } = render(<VideoViewer url="https://example.com/v.mp4" priority />);
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority />,
+      );
       expect(container.querySelector('video')).not.toBeNull();
       mockInView = false;
       rerender(<VideoViewer url="https://example.com/v.mp4" priority />);
@@ -110,7 +114,9 @@ describe('VideoViewer', () => {
       // mockInView is false by default in beforeEach — simulates the video sitting offscreen.
       // With lazy=false, the unload effect must NOT tear down the video, because the consumer
       // explicitly opted out of viewport-gated load/unload behavior.
-      const { container, rerender } = render(<VideoViewer url="https://example.com/v.mp4" lazy={false} />);
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" lazy={false} />,
+      );
       expect(container.querySelector('video')).not.toBeNull();
       // Force a re-render to give the unload effect a chance to run with inView=false.
       rerender(<VideoViewer url="https://example.com/v.mp4" lazy={false} />);
@@ -121,7 +127,9 @@ describe('VideoViewer', () => {
   describe('load/error callbacks', () => {
     it('calls onLoad when video fires loadeddata', () => {
       const onLoad = vi.fn();
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority onLoad={onLoad} />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority onLoad={onLoad} />,
+      );
       const video = container.querySelector('video')!;
       fireEvent.loadedData(video);
       expect(onLoad).toHaveBeenCalled();
@@ -129,7 +137,9 @@ describe('VideoViewer', () => {
 
     it('calls onError when video fires error', () => {
       const onError = vi.fn();
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority onError={onError} />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority onError={onError} />,
+      );
       const video = container.querySelector('video')!;
       fireEvent.error(video);
       expect(onError).toHaveBeenCalled();
@@ -137,7 +147,7 @@ describe('VideoViewer', () => {
 
     it('renders custom fallback on error', () => {
       const { container, getByText } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority fallback={<div>custom-fb</div>} />
+        <VideoViewer url="https://example.com/v.mp4" priority fallback={<div>custom-fb</div>} />,
       );
       const video = container.querySelector('video')!;
       fireEvent.error(video);
@@ -145,7 +155,9 @@ describe('VideoViewer', () => {
     });
 
     it('renders default error UI when error and no fallback', () => {
-      const { container, getByText } = render(<VideoViewer url="https://example.com/v.mp4" priority />);
+      const { container, getByText } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority />,
+      );
       const video = container.querySelector('video')!;
       fireEvent.error(video);
       expect(getByText('Failed to load video')).toBeInTheDocument();
@@ -162,7 +174,9 @@ describe('VideoViewer', () => {
 
   describe('URL change reset', () => {
     it('resets error state when URL changes', () => {
-      const { container, rerender, queryByText } = render(<VideoViewer url="https://example.com/a.mp4" priority />);
+      const { container, rerender, queryByText } = render(
+        <VideoViewer url="https://example.com/a.mp4" priority />,
+      );
       const video = container.querySelector('video')!;
       fireEvent.error(video);
       expect(queryByText('Failed to load video')).toBeInTheDocument();
@@ -178,22 +192,30 @@ describe('VideoViewer', () => {
     });
 
     it('omits controls when controls=false', () => {
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority controls={false} />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority controls={false} />,
+      );
       expect(container.querySelector('video')?.hasAttribute('controls')).toBe(false);
     });
 
     it('sets autoPlay when autoPlay=true', () => {
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority autoPlay />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
+      );
       expect(container.querySelector('video')?.hasAttribute('autoplay')).toBe(true);
     });
 
     it('sets muted when autoPlay=true (muted defaults to autoPlay)', () => {
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority autoPlay />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
+      );
       expect((container.querySelector('video') as HTMLVideoElement).muted).toBe(true);
     });
 
     it('respects explicit muted=false even when autoPlay=true', () => {
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority autoPlay muted={false} />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay muted={false} />,
+      );
       expect((container.querySelector('video') as HTMLVideoElement).muted).toBe(false);
     });
 
@@ -203,7 +225,9 @@ describe('VideoViewer', () => {
     });
 
     it('passes posterUrl as poster attribute', () => {
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority posterUrl="p.jpg" />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority posterUrl="p.jpg" />,
+      );
       expect(container.querySelector('video')?.getAttribute('poster')).toBe('p.jpg');
     });
 
@@ -221,14 +245,16 @@ describe('VideoViewer', () => {
 
     it('wrapper is not a button when enableFullscreen=false', () => {
       const { container } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority enableFullscreen={false} />
+        <VideoViewer url="https://example.com/v.mp4" priority enableFullscreen={false} />,
       );
       expect(container.querySelector('[role="button"]')).toBeNull();
     });
 
     it('Enter key triggers requestFullscreen when available', () => {
       const fsSpy = vi.fn();
-      vi.spyOn(HTMLElement.prototype, 'requestFullscreen').mockImplementation(function (this: HTMLElement) {
+      vi.spyOn(HTMLElement.prototype, 'requestFullscreen').mockImplementation(function (
+        this: HTMLElement,
+      ) {
         fsSpy();
         return Promise.resolve();
       });
@@ -244,7 +270,9 @@ describe('VideoViewer', () => {
 
     it('non-toggle keys do not trigger fullscreen', () => {
       const fsSpy = vi.fn();
-      vi.spyOn(HTMLElement.prototype, 'requestFullscreen').mockImplementation(function (this: HTMLElement) {
+      vi.spyOn(HTMLElement.prototype, 'requestFullscreen').mockImplementation(function (
+        this: HTMLElement,
+      ) {
         fsSpy();
         return Promise.resolve();
       });
@@ -290,7 +318,9 @@ describe('VideoViewer', () => {
     it('calls pause when ratio drops below 0.5 after being above', async () => {
       mockInView = true;
       mockRatio = 0.8;
-      const { rerender } = render(<VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />);
+      const { rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />,
+      );
       await Promise.resolve();
       // Simulate the video having started playback so pause() will be triggered
       Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
@@ -312,7 +342,9 @@ describe('VideoViewer', () => {
       // Lazy default + not in view + autoPlayOnVisible: even if ratio reports 0.6, no <video> exists yet
       mockInView = false;
       mockRatio = 0.6;
-      const { container } = render(<VideoViewer url="https://example.com/v.mp4" autoPlayOnVisible />);
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" autoPlayOnVisible />,
+      );
       await Promise.resolve();
       expect(container.querySelector('video')).toBeNull();
       expect(playSpy).not.toHaveBeenCalled();
@@ -322,14 +354,14 @@ describe('VideoViewer', () => {
   describe('styling props', () => {
     it('applies className to wrapper', () => {
       const { getByRole } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority className="wrap-x" />
+        <VideoViewer url="https://example.com/v.mp4" priority className="wrap-x" />,
       );
       expect(getByRole('button')).toHaveClass('wrap-x');
     });
 
     it('applies mediaClassName to the video', () => {
       const { container } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority mediaClassName="vid-y" />
+        <VideoViewer url="https://example.com/v.mp4" priority mediaClassName="vid-y" />,
       );
       expect(container.querySelector('video')).toHaveClass('vid-y');
     });

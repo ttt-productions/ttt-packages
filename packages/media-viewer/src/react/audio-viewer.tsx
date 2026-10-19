@@ -1,10 +1,10 @@
-import * as React from "react";
-import { useInView } from "react-intersection-observer";
-import { Skeleton } from "@ttt-productions/ui-core/react";
-import type { AudioViewerProps } from "./types.js";
-import { useMediaPlayback } from "./use-media-playback.js";
-import { AudioPlayerChrome } from "./audio-player-chrome.js";
-import { useLoadWatchdog } from "./use-load-watchdog.js";
+import * as React from 'react';
+import { useInView } from 'react-intersection-observer';
+import { Skeleton } from '@ttt-productions/ui-core/react';
+import type { AudioViewerProps } from './types.js';
+import { useMediaPlayback } from './use-media-playback.js';
+import { AudioPlayerChrome } from './audio-player-chrome.js';
+import { useLoadWatchdog } from './use-load-watchdog.js';
 
 export function AudioViewer(props: AudioViewerProps) {
   const {
@@ -16,7 +16,7 @@ export function AudioViewer(props: AudioViewerProps) {
     lazy = true,
     skeleton: showSkeleton = true,
     priority = false,
-    preload = "metadata",
+    preload = 'metadata',
     onLoad,
     onLoadChange,
     onError,
@@ -40,7 +40,11 @@ export function AudioViewer(props: AudioViewerProps) {
   const loadReportedRef = React.useRef(false);
 
   // Additive playback API — derives from element events (no observer, MEDIA-102).
-  const { hasEnded, handlers: playbackHandlers, attachElement } = useMediaPlayback(
+  const {
+    hasEnded,
+    handlers: playbackHandlers,
+    attachElement,
+  } = useMediaPlayback(
     audioRef,
     { onEnded, onProgressSample, startAtSeconds, endOverlay },
     playbackControlsRef,
@@ -63,7 +67,7 @@ export function AudioViewer(props: AudioViewerProps) {
     triggerOnce: false,
     threshold: 0.01,
     skip: priority || (shouldLoad && !onVisibilityChange),
-    rootMargin: "100px",
+    rootMargin: '100px',
     onChange: (visible) => onVisibilityChange?.(visible),
   });
 
@@ -113,7 +117,7 @@ export function AudioViewer(props: AudioViewerProps) {
       reveal();
       playbackHandlers.onLoadedMetadata(e);
     },
-    [reveal, playbackHandlers]
+    [reveal, playbackHandlers],
   );
 
   useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
@@ -125,7 +129,7 @@ export function AudioViewer(props: AudioViewerProps) {
       <div
         ref={inViewRef}
         className={className}
-        style={fallback ? { position: "relative", width: "100%", height: "100%" } : undefined}
+        style={fallback ? { position: 'relative', width: '100%', height: '100%' } : undefined}
       >
         {fallback ?? (
           <div className="mv-audio-error">
@@ -140,14 +144,16 @@ export function AudioViewer(props: AudioViewerProps) {
     <div
       ref={inViewRef}
       className={className}
-      style={{ position: "relative", width: "100%", outline: "none" }}
+      style={{ position: 'relative', width: '100%', outline: 'none' }}
     >
       {!shouldLoad ? (
-        showSkeleton ? <Skeleton style={{ height: "3.5rem", width: "100%" }} /> : null
+        showSkeleton ? (
+          <Skeleton style={{ height: '3.5rem', width: '100%' }} />
+        ) : null
       ) : (
         <>
           {showSkeleton && !isLoaded && (
-            <Skeleton style={{ position: "absolute", inset: 0, height: "3.5rem", width: "100%" }} />
+            <Skeleton style={{ position: 'absolute', inset: 0, height: '3.5rem', width: '100%' }} />
           )}
           <audio
             ref={setAudioRef}
@@ -167,9 +173,9 @@ export function AudioViewer(props: AudioViewerProps) {
             onSeeked={playbackHandlers.onSeeked}
             onEnded={playbackHandlers.onEnded}
             style={{
-              width: "100%",
+              width: '100%',
               opacity: isLoaded ? 1 : 0,
-              transition: "opacity var(--motion-slow) var(--motion-ease)",
+              transition: 'opacity var(--motion-slow) var(--motion-ease)',
             }}
           />
           <AudioPlayerChrome
@@ -179,10 +185,7 @@ export function AudioViewer(props: AudioViewerProps) {
             extraActions={extraActions}
           />
           {endOverlay != null && hasEnded && (
-            <div
-              className="mv-end-overlay"
-              style={{ position: "absolute", inset: 0, zIndex: 2 }}
-            >
+            <div className="mv-end-overlay" style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
               {endOverlay}
             </div>
           )}

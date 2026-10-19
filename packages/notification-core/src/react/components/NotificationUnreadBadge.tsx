@@ -25,7 +25,5 @@ export function NotificationUnreadBadge({
 
   const displayCount = hasMore ? '99+' : count > 9 ? '9+' : String(count);
 
-  return (
-    <span className="ntf-badge">{displayCount}</span>
-  );
+  return <span className="ntf-badge">{displayCount}</span>;
 }

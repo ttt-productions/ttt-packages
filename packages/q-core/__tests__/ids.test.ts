@@ -35,8 +35,14 @@ describe('compound document ids', () => {
       teamId: TEAM,
       userId: UID,
     });
-    expect(parseLeagueFreeAgentId(buildLeagueFreeAgentId(LEAGUE, UID))).toEqual({ leagueId: LEAGUE, userId: UID });
-    expect(parseSignedWaiverId(buildSignedWaiverId(LEAGUE, UID))).toEqual({ leagueId: LEAGUE, userId: UID });
+    expect(parseLeagueFreeAgentId(buildLeagueFreeAgentId(LEAGUE, UID))).toEqual({
+      leagueId: LEAGUE,
+      userId: UID,
+    });
+    expect(parseSignedWaiverId(buildSignedWaiverId(LEAGUE, UID))).toEqual({
+      leagueId: LEAGUE,
+      userId: UID,
+    });
   });
 
   it('round-trips a ghost user id, whose own underscores stay inside the userId part', () => {

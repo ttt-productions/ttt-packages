@@ -79,7 +79,10 @@ export type ColumnCatalogKey = (typeof COLUMN_CATALOG_KEYS)[number];
 
 // The catalogs whose rows carry games played, so a per-game column can average them. A game's player
 // line counts one game, so `gamePlayer` is not among them.
-export const GAMES_PLAYED_CATALOG_KEYS = ['playerTotals', 'teamSeason'] as const satisfies readonly ColumnCatalogKey[];
+export const GAMES_PLAYED_CATALOG_KEYS = [
+  'playerTotals',
+  'teamSeason',
+] as const satisfies readonly ColumnCatalogKey[];
 export type GamesPlayedCatalogKey = (typeof GAMES_PLAYED_CATALOG_KEYS)[number];
 
 /** The one per-game derivation: every per-game figure the app shows comes from here. */

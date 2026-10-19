@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import type { ModerationHandlers } from "@ttt-productions/chat-core";
-import { Button, useAsyncAction } from "@ttt-productions/ui-core/react";
+import type { ModerationHandlers } from '@ttt-productions/chat-core';
+import { Button, useAsyncAction } from '@ttt-productions/ui-core/react';
 
 // The consumer's handler owns its failure UX. The action only keeps a rejection
 // from vanishing: it re-raises it on the global error channel, where monitoring
@@ -14,9 +14,12 @@ function reraise(error: unknown) {
 
 function ModerationActionButton(props: { label: string; onAction: () => void | Promise<void> }) {
   const { label, onAction } = props;
-  const action = useAsyncAction(async () => {
-    await onAction();
-  }, { onError: reraise });
+  const action = useAsyncAction(
+    async () => {
+      await onAction();
+    },
+    { onError: reraise },
+  );
 
   return (
     <Button
@@ -44,7 +47,9 @@ export function MessageActions(props: {
   return (
     <div className="flex items-center gap-2">
       {onReport && <ModerationActionButton label="Report" onAction={() => onReport(messageId)} />}
-      {isAdmin && onDelete && <ModerationActionButton label="Delete" onAction={() => onDelete(messageId)} />}
+      {isAdmin && onDelete && (
+        <ModerationActionButton label="Delete" onAction={() => onDelete(messageId)} />
+      )}
     </div>
   );
 }
@@ -60,8 +65,12 @@ export function ThreadActions(props: {
 
   return (
     <div className="flex items-center gap-3">
-      {onReport && <ModerationActionButton label="Report thread" onAction={() => onReport(threadId)} />}
-      {isAdmin && onDelete && <ModerationActionButton label="Delete thread" onAction={() => onDelete(threadId)} />}
+      {onReport && (
+        <ModerationActionButton label="Report thread" onAction={() => onReport(threadId)} />
+      )}
+      {isAdmin && onDelete && (
+        <ModerationActionButton label="Delete thread" onAction={() => onDelete(threadId)} />
+      )}
     </div>
   );
 }

@@ -25,16 +25,23 @@ export interface RollupDifference {
 /** Two stored line values alike: a number, or a list of round slots, slot by slot. */
 function sameValue(left: unknown, right: unknown): boolean {
   if (Array.isArray(left) && Array.isArray(right)) {
-    return left.length === right.length && left.every((slot, index) => Object.is(slot, right[index]));
+    return (
+      left.length === right.length && left.every((slot, index) => Object.is(slot, right[index]))
+    );
   }
   return Object.is(left, right);
 }
 
 /** The fields a line is compared on: every field of a team line, the counters of a player line. */
-function compared(line: StatLineValues | undefined, fields: readonly string[] | null): Record<string, unknown> {
+function compared(
+  line: StatLineValues | undefined,
+  fields: readonly string[] | null,
+): Record<string, unknown> {
   if (line === undefined) return {};
   const keys = fields ?? Object.keys(line);
-  return Object.fromEntries(keys.filter((field) => line[field] !== undefined).map((field) => [field, line[field]]));
+  return Object.fromEntries(
+    keys.filter((field) => line[field] !== undefined).map((field) => [field, line[field]]),
+  );
 }
 
 /**
@@ -44,7 +51,11 @@ function compared(line: StatLineValues | undefined, fields: readonly string[] | 
  */
 export function rollupDifferences(
   adapter: AnySportAdapter,
-  game: { readonly teamIds: readonly string[]; readonly stats: GameStats; readonly score: Readonly<Record<string, number>> },
+  game: {
+    readonly teamIds: readonly string[];
+    readonly stats: GameStats;
+    readonly score: Readonly<Record<string, number>>;
+  },
   replayed: GameStats,
 ): RollupDifference[] {
   const differences: RollupDifference[] = [];
@@ -56,7 +67,13 @@ export function rollupDifferences(
     const replay = compared(replayedTeams[teamId], null);
     for (const field of new Set([...Object.keys(stored), ...Object.keys(replay)])) {
       if (!sameValue(stored[field], replay[field])) {
-        differences.push({ kind: 'rollupMismatch', key: teamId, field, stored: stored[field], replayed: replay[field] });
+        differences.push({
+          kind: 'rollupMismatch',
+          key: teamId,
+          field,
+          stored: stored[field],
+          replayed: replay[field],
+        });
       }
     }
   }
@@ -65,13 +82,22 @@ export function rollupDifferences(
   const storedPlayers = game.stats.playerStats as Readonly<Record<string, StatLineValues>>;
   const replayedPlayers = replayed.playerStats as Readonly<Record<string, StatLineValues>>;
   const holding = (lines: Readonly<Record<string, StatLineValues>>) =>
-    Object.keys(lines).filter((entryId) => !isAllZeroLine(lines[entryId] as StatLineValues, counters));
+    Object.keys(lines).filter(
+      (entryId) => !isAllZeroLine(lines[entryId] as StatLineValues, counters),
+    );
   for (const entryId of new Set([...holding(storedPlayers), ...holding(replayedPlayers)])) {
     const stored = compared(storedPlayers[entryId], counters);
     const replay = compared(replayedPlayers[entryId], counters);
     for (const field of counters) {
       const [left, right] = [stored[field] ?? 0, replay[field] ?? 0];
-      if (left !== right) differences.push({ kind: 'rollupMismatch', key: entryId, field, stored: left, replayed: right });
+      if (left !== right)
+        differences.push({
+          kind: 'rollupMismatch',
+          key: entryId,
+          field,
+          stored: left,
+          replayed: right,
+        });
     }
   }
 

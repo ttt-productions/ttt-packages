@@ -31,14 +31,19 @@ describe('TakeItDownIntakeBodySchema — the public no-login intake', () => {
 
   it('carries an external URL only, never a platform-hosted locator', () => {
     expect(
-      TakeItDownIntakeBodySchema.safeParse({ ...body, locator: { kind: 'mediaAsset', mediaAssetId: 'm1' } }).success,
+      TakeItDownIntakeBodySchema.safeParse({
+        ...body,
+        locator: { kind: 'mediaAsset', mediaAssetId: 'm1' },
+      }).success,
     ).toBe(false);
   });
 
   it('requires at least one contact method', () => {
     const { contactEmail: _email, ...noContact } = body;
     expect(TakeItDownIntakeBodySchema.safeParse(noContact).success).toBe(false);
-    expect(TakeItDownIntakeBodySchema.safeParse({ ...noContact, contactPhone: '5551234' }).success).toBe(true);
+    expect(
+      TakeItDownIntakeBodySchema.safeParse({ ...noContact, contactPhone: '5551234' }).success,
+    ).toBe(true);
   });
 
   it('refuses a key the form does not send', () => {
@@ -53,20 +58,31 @@ describe('TakeItDownIntakeBodySchema — the public no-login intake', () => {
 
   it('bounds the locator URL, the idempotency key, the email, and the phone at their declared limits', () => {
     const longUrl = `https://example.com/${'x'.repeat(MAX_NCII_LOCATOR_URL_LENGTH)}`;
-    expect(TakeItDownIntakeBodySchema.safeParse({ ...body, locator: { kind: 'url', url: longUrl } }).success).toBe(false);
     expect(
-      TakeItDownIntakeBodySchema.safeParse({ ...body, idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MIN_LENGTH - 1) })
+      TakeItDownIntakeBodySchema.safeParse({ ...body, locator: { kind: 'url', url: longUrl } })
         .success,
     ).toBe(false);
     expect(
-      TakeItDownIntakeBodySchema.safeParse({ ...body, idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MAX_LENGTH + 1) })
-        .success,
+      TakeItDownIntakeBodySchema.safeParse({
+        ...body,
+        idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MIN_LENGTH - 1),
+      }).success,
+    ).toBe(false);
+    expect(
+      TakeItDownIntakeBodySchema.safeParse({
+        ...body,
+        idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MAX_LENGTH + 1),
+      }).success,
     ).toBe(false);
     const longEmail = `${'a'.repeat(MAX_NCII_CONTACT_EMAIL_LENGTH)}@example.com`;
-    expect(TakeItDownIntakeBodySchema.safeParse({ ...body, contactEmail: longEmail }).success).toBe(false);
+    expect(TakeItDownIntakeBodySchema.safeParse({ ...body, contactEmail: longEmail }).success).toBe(
+      false,
+    );
     expect(
-      TakeItDownIntakeBodySchema.safeParse({ ...body, contactPhone: '1'.repeat(NCII_CONTACT_PHONE_MAX_LENGTH + 1) })
-        .success,
+      TakeItDownIntakeBodySchema.safeParse({
+        ...body,
+        contactPhone: '1'.repeat(NCII_CONTACT_PHONE_MAX_LENGTH + 1),
+      }).success,
     ).toBe(false);
   });
 
@@ -87,7 +103,11 @@ describe('TakeItDownIntakeBodySchema — the public no-login intake', () => {
   });
 
   it('carries the representative block exactly when the requester is an authorized representative', () => {
-    const representative = { ...body, requesterRole: 'authorizedRepresentative', authorityCertification: true };
+    const representative = {
+      ...body,
+      requesterRole: 'authorizedRepresentative',
+      authorityCertification: true,
+    };
     const block = { representedPersonName: 'B Person', authorityBasis: 'Parent' };
     const missing = TakeItDownIntakeBodySchema.safeParse(representative);
     expect(missing.success).toBe(false);
@@ -96,8 +116,13 @@ describe('TakeItDownIntakeBodySchema — the public no-login intake', () => {
         'An authorized representative request requires the authorizedRepresentative block.',
       );
     }
-    expect(TakeItDownIntakeBodySchema.safeParse({ ...representative, authorizedRepresentative: block }).success).toBe(true);
-    expect(TakeItDownIntakeBodySchema.safeParse({ ...body, authorizedRepresentative: block }).success).toBe(false);
+    expect(
+      TakeItDownIntakeBodySchema.safeParse({ ...representative, authorizedRepresentative: block })
+        .success,
+    ).toBe(true);
+    expect(
+      TakeItDownIntakeBodySchema.safeParse({ ...body, authorizedRepresentative: block }).success,
+    ).toBe(false);
   });
 });
 
@@ -118,8 +143,10 @@ describe('the in-app and public statutory intakes share one rule for their commo
 
   it('refuses the same oversize key and email, and a request with no contact method', () => {
     expect(
-      SubmitInAppNciiRequestInputSchema.safeParse({ ...inApp, idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MAX_LENGTH + 1) })
-        .success,
+      SubmitInAppNciiRequestInputSchema.safeParse({
+        ...inApp,
+        idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MAX_LENGTH + 1),
+      }).success,
     ).toBe(false);
     const { contactEmail: _email, ...noContact } = inApp;
     expect(SubmitInAppNciiRequestInputSchema.safeParse(noContact).success).toBe(false);

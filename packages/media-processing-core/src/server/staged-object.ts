@@ -2,8 +2,8 @@
 // processor reads from). The accept-time verdict over the metadata is the pure
 // `verifyStagedUploadMetadata` in `@ttt-productions/media-schemas`.
 
-import { isObjectNotFoundError } from "./gcs-errors.js";
-import type { Bucket } from "./storage-ops.js";
+import { isObjectNotFoundError } from './gcs-errors.js';
+import type { Bucket } from './storage-ops.js';
 
 /** The stored-object metadata fields these reads use (the Admin SDK returns more). */
 export interface StagedObjectMetadata {
@@ -14,15 +14,17 @@ export interface StagedObjectMetadata {
 }
 
 export type StagedUploadMetadataRead =
-  | { found: true; metadata: StagedObjectMetadata }
-  | { found: false };
+  { found: true; metadata: StagedObjectMetadata } | { found: false };
 
 /**
  * Read a staged object's stored metadata (`contentType`, `size`, `generation`, …) for
  * `verifyStagedUploadMetadata`. A missing object is `{ found: false }`; any other read
  * failure throws.
  */
-export async function readStagedUploadMetadata(bucket: Bucket, storagePath: string): Promise<StagedUploadMetadataRead> {
+export async function readStagedUploadMetadata(
+  bucket: Bucket,
+  storagePath: string,
+): Promise<StagedUploadMetadataRead> {
   try {
     const [metadata] = await bucket.file(storagePath).getMetadata();
     return { found: true, metadata };
@@ -45,11 +47,11 @@ export function stagedObjectGenerationFromMetadata(metadata: {
   const { generation } = metadata;
   if (generation === undefined || generation === null) return undefined;
   const value = String(generation);
-  return value === "" ? undefined : value;
+  return value === '' ? undefined : value;
 }
 
 /** The stored-object metadata field an `UnreadableStorageObjectMetadataError` names. */
-export type StorageObjectMetadataField = "generation" | "size" | "etag" | "lastModified";
+export type StorageObjectMetadataField = 'generation' | 'size' | 'etag' | 'lastModified';
 
 /**
  * A storage object whose metadata lacks a field its backend always reports: a Cloud Storage
@@ -65,7 +67,7 @@ export class UnreadableStorageObjectMetadataError extends Error {
     public readonly field: StorageObjectMetadataField,
   ) {
     super(`storage object metadata has no readable ${field}`);
-    this.name = "UnreadableStorageObjectMetadataError";
+    this.name = 'UnreadableStorageObjectMetadataError';
   }
 }
 
@@ -81,7 +83,7 @@ export function requireStorageObjectGeneration(
 ): string {
   const generation = stagedObjectGenerationFromMetadata(metadata);
   if (generation === undefined) {
-    throw new UnreadableStorageObjectMetadataError(object.bucket, object.key, "generation");
+    throw new UnreadableStorageObjectMetadataError(object.bucket, object.key, 'generation');
   }
   return generation;
 }

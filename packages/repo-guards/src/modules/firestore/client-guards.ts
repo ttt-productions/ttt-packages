@@ -30,20 +30,24 @@ export function liveSubscriptionHits(file: FileView): Hit[] {
   for (const site of moduleImports(source, ['import'])) {
     if (!site.topLevel || !FIRESTORE_SDK.test(site.spec)) continue;
     if (site.namespace) namespaces.add(site.namespace);
-    for (const name of site.named) if (name.imported === 'onSnapshot') snapshotNames.add(name.local);
+    for (const name of site.named)
+      if (name.imported === 'onSnapshot') snapshotNames.add(name.local);
   }
   const hits: Hit[] = [];
   const at = (node: ts.Node, detail: string) => hits.push({ index: node.getStart(source), detail });
   forEachNode(source, (node) => {
     if (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.parent)) {
-      const key = ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : null;
-      if (key === 'subscribe' && node.initializer.kind !== ts.SyntaxKind.FalseKeyword) at(node, `subscribe: ${node.initializer.getText(source)}`);
+      const key =
+        ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : null;
+      if (key === 'subscribe' && node.initializer.kind !== ts.SyntaxKind.FalseKeyword)
+        at(node, `subscribe: ${node.initializer.getText(source)}`);
     } else if (ts.isShorthandPropertyAssignment(node) && node.name.text === 'subscribe') {
       at(node, '{ subscribe }');
     } else if (ts.isCallExpression(node)) {
       const callee = node.expression;
       if (ts.isIdentifier(callee) && snapshotNames.has(callee.text)) at(node, `${callee.text}(…)`);
-      else if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'onSnapshot') at(node, `${callee.getText(source)}(…)`);
+      else if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'onSnapshot')
+        at(node, `${callee.getText(source)}(…)`);
     }
   });
   return hits;
@@ -113,7 +117,11 @@ export function firestoreRuntimeImports(file: FileView): Hit[] {
     if (site.kind === 'import') {
       const typeOnly =
         !site.sideEffect &&
-        (site.typeOnly || (!site.defaultName && !site.namespace && site.named.length > 0 && site.named.every((n) => n.typeOnly)));
+        (site.typeOnly ||
+          (!site.defaultName &&
+            !site.namespace &&
+            site.named.length > 0 &&
+            site.named.every((n) => n.typeOnly)));
       if (!typeOnly) hits.push({ index: at, detail: `import from '${site.spec}'` });
     } else if (site.kind === 'export') {
       if (!site.typeOnly) hits.push({ index: at, detail: `re-export from '${site.spec}'` });
@@ -146,12 +154,24 @@ export const firestoreRuntimeInUiGuard: GenericGuardDefinition<FirestoreRuntimeI
         allowlist: facts.sanctioned,
         samples: {
           flags: [
-            { path: `${facts.uiFolders[0]}/probe.tsx`, text: "import { doc, getDoc } from 'firebase/firestore';" },
-            { path: `${facts.uiFolders[0]}/probe.tsx`, text: 'import {\n  updateDoc,\n} from "firebase/firestore";' },
+            {
+              path: `${facts.uiFolders[0]}/probe.tsx`,
+              text: "import { doc, getDoc } from 'firebase/firestore';",
+            },
+            {
+              path: `${facts.uiFolders[0]}/probe.tsx`,
+              text: 'import {\n  updateDoc,\n} from "firebase/firestore";',
+            },
           ],
           passes: [
-            { path: `${facts.uiFolders[0]}/typed.tsx`, text: "import type { Timestamp } from 'firebase/firestore';" },
-            { path: `${facts.uiFolders[0]}/typed.tsx`, text: "import { type Timestamp } from 'firebase/firestore';" },
+            {
+              path: `${facts.uiFolders[0]}/typed.tsx`,
+              text: "import type { Timestamp } from 'firebase/firestore';",
+            },
+            {
+              path: `${facts.uiFolders[0]}/typed.tsx`,
+              text: "import { type Timestamp } from 'firebase/firestore';",
+            },
           ],
         },
       }),

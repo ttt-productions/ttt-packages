@@ -14,7 +14,11 @@ import { Button } from './button.js';
 import { Textarea } from './textarea.js';
 import { Input } from './input.js';
 import { Label } from './label.js';
-import { checkInputFormat, defineInputFormat, type DeclaredInputFormat } from '@ttt-productions/input-format-core';
+import {
+  checkInputFormat,
+  defineInputFormat,
+  type DeclaredInputFormat,
+} from '@ttt-productions/input-format-core';
 import { Zap, Clock, RotateCcw } from 'lucide-react';
 
 /**
@@ -198,7 +202,10 @@ export function ConsequenceDialog({
   // The phrase is one line, and nothing longer than it can ever match it.
   const phrase = typedConfirmation?.phrase ?? '';
   const typedFormat = useMemo(
-    () => (phrase.length > 0 ? defineInputFormat({ format: 'singleLine', min: 1, max: phrase.length }) : null),
+    () =>
+      phrase.length > 0
+        ? defineInputFormat({ format: 'singleLine', min: 1, max: phrase.length })
+        : null,
     [phrase],
   );
 
@@ -276,11 +283,7 @@ export function ConsequenceDialog({
         ) : null}
 
         <AlertDialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={pending}
-          >
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={pending}>
             {cancelLabel}
           </Button>
           <Button

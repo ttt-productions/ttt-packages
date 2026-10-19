@@ -1,19 +1,27 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type { ChatMessageGroupKey, ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
+import * as React from 'react';
 import type {
-  ChatCoreConfig,
-  MessageRendererRegistry,
-} from "../types.js";
-import { Card, CardHeader, CardContent, CardFooter, Skeleton, Spinner } from "@ttt-productions/ui-core/react";
-import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";
-import { useChatMessages } from "../hooks/useChatMessages.js";
-import { useRealtimeChatMessages } from "../realtime/useRealtimeChatMessages.js";
-import type { RealtimeChatClient } from "../realtime/transport.js";
-import { MessageList, type ChatScrollContainerProps } from "./MessageList.js";
-import { Composer } from "./Composer.js";
-import { ThreadActions } from "./menus.js";
+  ChatMessageGroupKey,
+  ChatMessageV1,
+  ModerationHandlers,
+} from '@ttt-productions/chat-core';
+import type { ChatCoreConfig, MessageRendererRegistry } from '../types.js';
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+  Skeleton,
+  Spinner,
+} from '@ttt-productions/ui-core/react';
+import { KeyboardAvoidingView } from '@ttt-productions/mobile-core/react';
+import { useChatMessages } from '../hooks/useChatMessages.js';
+import { useRealtimeChatMessages } from '../realtime/useRealtimeChatMessages.js';
+import type { RealtimeChatClient } from '../realtime/transport.js';
+import { MessageList, type ChatScrollContainerProps } from './MessageList.js';
+import { Composer } from './Composer.js';
+import { ThreadActions } from './menus.js';
 
 /**
  * A read the chat could not complete, handed to the app's `renderLoadError`:
@@ -31,7 +39,7 @@ import { ThreadActions } from "./menus.js";
  * gives way to the opening state instead.
  */
 export type ChatLoadFailure = {
-  scope: "initial" | "live" | "older";
+  scope: 'initial' | 'live' | 'older';
   error: Error | null;
   retry: () => void;
   retrying: boolean;
@@ -135,7 +143,7 @@ type ResolvedChat = {
  * (undefined / 'firestore') transport is byte-for-byte the previous behavior.
  */
 export function ChatShell(props: ChatShellProps) {
-  if (props.config.transport === "realtime") {
+  if (props.config.transport === 'realtime') {
     return <RealtimeChatShell {...props} />;
   }
   return <FirestoreChatShell {...props} />;
@@ -152,11 +160,15 @@ function FirestoreChatShell(props: ChatShellProps) {
   );
   const { error, olderError, retry, messages, isFetchingOlder } = r;
   const loadFailure = React.useMemo<ChatLoadFailure | null>(
-    () => (error ? { scope: messages.length > 0 ? "live" : "initial", error, retry, retrying: false } : null),
+    () =>
+      error
+        ? { scope: messages.length > 0 ? 'live' : 'initial', error, retry, retrying: false }
+        : null,
     [error, messages.length, retry],
   );
   const olderFailure = React.useMemo<ChatLoadFailure | null>(
-    () => (olderError ? { scope: "older", error: olderError, retry, retrying: isFetchingOlder } : null),
+    () =>
+      olderError ? { scope: 'older', error: olderError, retry, retrying: isFetchingOlder } : null,
     [olderError, retry, isFetchingOlder],
   );
   return (
@@ -189,7 +201,7 @@ function RealtimeChatShell(props: ChatShellProps) {
   const r = useRealtimeChatMessages(client);
   const { initialLoadFailed, retry } = r;
   const loadFailure = React.useMemo<ChatLoadFailure | null>(
-    () => (initialLoadFailed ? { scope: "initial", error: null, retry, retrying: false } : null),
+    () => (initialLoadFailed ? { scope: 'initial', error: null, retry, retrying: false } : null),
     [initialLoadFailed, retry],
   );
   const send = React.useCallback(
@@ -197,7 +209,7 @@ function RealtimeChatShell(props: ChatShellProps) {
       const ok = r.send(text);
       // C-B8: surface a closed-socket failure so the Composer keeps the user's text
       // instead of clearing it on a no-op send.
-      if (!ok) throw new Error("chat-send-failed");
+      if (!ok) throw new Error('chat-send-failed');
       if (onSend) await onSend(text); // optional mirror
     },
     [r, onSend],
@@ -251,9 +263,24 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     resolved,
   } = props;
 
-  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, loadFailure, olderFailure, send, retrySend, readAck, status, typing, signalTyping } = resolved;
+  const {
+    allowed,
+    isInitialLoading,
+    messages,
+    fetchOlder,
+    hasOlder,
+    isFetchingOlder,
+    loadFailure,
+    olderFailure,
+    send,
+    retrySend,
+    readAck,
+    status,
+    typing,
+    signalTyping,
+  } = resolved;
   // Nothing loaded and the read failed: the failure takes the list's place.
-  const initialFailure = loadFailure?.scope === "initial" ? loadFailure : null;
+  const initialFailure = loadFailure?.scope === 'initial' ? loadFailure : null;
 
   const ready = allowed && !isInitialLoading && loadFailure === null && resolved.transportCurrent;
   const readinessListener = React.useRef(onReadinessChange);
@@ -275,7 +302,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   const latestSeq = React.useMemo(() => {
     let max = 0;
     for (const m of messages) {
-      const seq = typeof m.meta?.seq === "number" ? (m.meta?.seq as number) : 0;
+      const seq = typeof m.meta?.seq === 'number' ? (m.meta?.seq as number) : 0;
       if (seq > max) max = seq;
     }
     return max;
@@ -284,17 +311,18 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   // Track tab focus/visibility so the read-ack "focused" lease releases on blur/hide.
   React.useEffect(() => {
     const compute = () =>
-      typeof document === "undefined" ||
-      (document.visibilityState !== "hidden" && (typeof document.hasFocus !== "function" || document.hasFocus()));
+      typeof document === 'undefined' ||
+      (document.visibilityState !== 'hidden' &&
+        (typeof document.hasFocus !== 'function' || document.hasFocus()));
     setFocused(compute());
     const onChange = () => setFocused(compute());
-    window.addEventListener("focus", onChange);
-    window.addEventListener("blur", onChange);
-    document.addEventListener("visibilitychange", onChange);
+    window.addEventListener('focus', onChange);
+    window.addEventListener('blur', onChange);
+    document.addEventListener('visibilitychange', onChange);
     return () => {
-      window.removeEventListener("focus", onChange);
-      window.removeEventListener("blur", onChange);
-      document.removeEventListener("visibilitychange", onChange);
+      window.removeEventListener('focus', onChange);
+      window.removeEventListener('blur', onChange);
+      document.removeEventListener('visibilitychange', onChange);
     };
   }, []);
 
@@ -319,8 +347,8 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
 
   // In fill mode the Card flexes to its parent's height and the message list fills the
   // space between header and composer; otherwise it's the default natural-height card.
-  const cardClassName = fillHeight ? "w-full flex flex-col h-full min-h-0" : "w-full";
-  const contentClassName = fillHeight ? "p-0 flex-1 min-h-0 flex flex-col" : "p-0";
+  const cardClassName = fillHeight ? 'w-full flex flex-col h-full min-h-0' : 'w-full';
+  const contentClassName = fillHeight ? 'p-0 flex-1 min-h-0 flex flex-col' : 'p-0';
 
   if (!allowed) {
     return <div className="p-4 text-sm opacity-70">You don&apos;t have access to this thread.</div>;
@@ -340,7 +368,11 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
             <div>{header}</div>
             <div className="flex flex-col items-end gap-2">
-              <ThreadActions threadId={config.threadId} isAdmin={config.isAdmin} handlers={handlers} />
+              <ThreadActions
+                threadId={config.threadId}
+                isAdmin={config.isAdmin}
+                handlers={handlers}
+              />
             </div>
           </CardHeader>
         )}
@@ -367,9 +399,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
             </div>
           )}
         </CardContent>
-        {renderBelowMessages && (
-          <div className="border-t">{renderBelowMessages()}</div>
-        )}
+        {renderBelowMessages && <div className="border-t">{renderBelowMessages()}</div>}
         {renderFooter ? (
           <CardFooter className="border-t">{renderFooter()}</CardFooter>
         ) : (
@@ -387,7 +417,11 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>{header}</div>
           <div className="flex flex-col items-end gap-2">
-            <ThreadActions threadId={config.threadId} isAdmin={config.isAdmin} handlers={handlers} />
+            <ThreadActions
+              threadId={config.threadId}
+              isAdmin={config.isAdmin}
+              handlers={handlers}
+            />
           </div>
         </CardHeader>
       )}
@@ -396,12 +430,12 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           never presents a healthy-looking empty thread. Only the realtime path sets `status`. */}
       <ChatConnectionBanner status={status} />
 
-      {renderAboveMessages && (
-        <div className="border-b">{renderAboveMessages()}</div>
-      )}
+      {renderAboveMessages && <div className="border-b">{renderAboveMessages()}</div>}
 
       {/* The listener failed after messages loaded: they stay, with the failure above them. */}
-      {loadFailure?.scope === "live" && <div className="border-b">{renderLoadError(loadFailure)}</div>}
+      {loadFailure?.scope === 'live' && (
+        <div className="border-b">{renderLoadError(loadFailure)}</div>
+      )}
 
       <CardContent className={contentClassName}>
         <MessageList
@@ -428,14 +462,10 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         />
       </CardContent>
 
-      {renderBelowMessages && (
-        <div className="border-t">{renderBelowMessages()}</div>
-      )}
+      {renderBelowMessages && <div className="border-t">{renderBelowMessages()}</div>}
 
       {renderFooter ? (
-        <CardFooter className="border-t">
-          {renderFooter()}
-        </CardFooter>
+        <CardFooter className="border-t">{renderFooter()}</CardFooter>
       ) : (
         <CardFooter className="border-t flex-col items-stretch gap-1">
           {/* R14: typing dots above the composer (realtime only — `typing` is undefined on firestore). */}
@@ -462,16 +492,16 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
  * firestore path (`status` undefined) or while live (`open`).
  */
 function ChatConnectionBanner({ status }: { status?: string }) {
-  if (status !== "reconnecting" && status !== "closed") return null;
+  if (status !== 'reconnecting' && status !== 'closed') return null;
   return (
     <div
       className="px-3 py-1.5 text-xs text-center bg-muted text-muted-foreground border-b"
       role="status"
       aria-live="polite"
     >
-      {status === "reconnecting"
-        ? "Reconnecting… messages may be delayed."
-        : "Disconnected — messages may be out of date."}
+      {status === 'reconnecting'
+        ? 'Reconnecting… messages may be delayed.'
+        : 'Disconnected — messages may be out of date.'}
     </div>
   );
 }
@@ -482,7 +512,7 @@ function TypingIndicator({ typing }: { typing?: string[] }) {
   if (!typing || typing.length === 0) return null;
   return (
     <div className="text-xs italic text-muted-foreground" aria-live="polite">
-      {typing.length === 1 ? "Someone is typing…" : "Several people are typing…"}
+      {typing.length === 1 ? 'Someone is typing…' : 'Several people are typing…'}
     </div>
   );
 }

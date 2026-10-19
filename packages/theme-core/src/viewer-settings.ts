@@ -1,4 +1,4 @@
-import type { ThemeName } from "./themes.js";
+import type { ThemeName } from './themes.js';
 
 /** The settings a viewer's device saves and, while they are signed in, their account holds. */
 export interface ViewerSettings {

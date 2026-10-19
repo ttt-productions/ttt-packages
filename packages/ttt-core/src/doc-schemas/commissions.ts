@@ -91,7 +91,9 @@ export const CreateCommissionProposalTextResultSchema = z.object({
   /** The proposal doc exactly as committed. */
   proposal: CommissionProposalSchema,
 });
-export type CreateCommissionProposalTextResult = z.infer<typeof CreateCommissionProposalTextResultSchema>;
+export type CreateCommissionProposalTextResult = z.infer<
+  typeof CreateCommissionProposalTextResultSchema
+>;
 
 export const AuditionTypeSchema = z.enum(['platformAudition', 'sponsoredAudition', 'workAudition']);
 export type AuditionType = z.infer<typeof AuditionTypeSchema>;

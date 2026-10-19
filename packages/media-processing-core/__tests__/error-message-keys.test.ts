@@ -39,15 +39,23 @@ function keyedErrorConstructions(source: string): string[] {
 describe('media-processing-core error messages carry no object key', () => {
   it.each([
     ['a plain Error', 'throw new Error(`R2 delete failed for ${key}: ${res.status}`);'],
-    ['an AggregateError message argument', 'throw new AggregateError(\n  [a, b],\n  `Copy to ${toKey}: failed`,\n  { cause: b },\n);'],
-    ['a super() message', 'super(\n  `R2 ${params.operation} failed for ${params.bucket}/${params.key}`.trim(),\n  undefined,\n);'],
+    [
+      'an AggregateError message argument',
+      'throw new AggregateError(\n  [a, b],\n  `Copy to ${toKey}: failed`,\n  { cause: b },\n);',
+    ],
+    [
+      'a super() message',
+      'super(\n  `R2 ${params.operation} failed for ${params.bucket}/${params.key}`.trim(),\n  undefined,\n);',
+    ],
     ['a storage path', 'throw new UploadError(`missing ${storagePath}`);'],
   ])('flags %s', (_label, snippet) => {
     expect(keyedErrorConstructions(snippet)).toHaveLength(1);
   });
 
   it('passes a message built from non-key values', () => {
-    expect(keyedErrorConstructions('super(`source exceeded the ${maxBytes}-byte limit`);')).toEqual([]);
+    expect(keyedErrorConstructions('super(`source exceeded the ${maxBytes}-byte limit`);')).toEqual(
+      [],
+    );
   });
 
   it('finds no such construction in package source', () => {

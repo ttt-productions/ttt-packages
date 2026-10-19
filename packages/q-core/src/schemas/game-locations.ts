@@ -13,9 +13,13 @@ import {
 } from '../input-formats/input-formats.js';
 
 export const gameLocationNameSchema = textFieldSchema(GAME_LOCATION_NAME_INPUT_FORMAT);
-export const gameLocationStreetAddressSchema = textFieldSchema(GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT);
+export const gameLocationStreetAddressSchema = textFieldSchema(
+  GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT,
+);
 // One court, sheet, or room within a venue — as the venue lists it, and as a game names it.
-export const gameLocationSubLocationSchema = textFieldSchema(GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT);
+export const gameLocationSubLocationSchema = textFieldSchema(
+  GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT,
+);
 export const gameLocationSubLocationsSchema = z
   .array(gameLocationSubLocationSchema)
   .max(MAX_GAME_LOCATION_SUB_LOCATIONS)
@@ -51,7 +55,8 @@ export const AdminUpdateGameLocationInputSchema = z
   })
   .strict()
   .refine(
-    ({ gameLocationId: _gameLocationId, ...fields }) => Object.values(fields).some((value) => value !== undefined),
+    ({ gameLocationId: _gameLocationId, ...fields }) =>
+      Object.values(fields).some((value) => value !== undefined),
     { message: 'Change at least one field.' },
   );
 export type AdminUpdateGameLocationInput = z.infer<typeof AdminUpdateGameLocationInputSchema>;

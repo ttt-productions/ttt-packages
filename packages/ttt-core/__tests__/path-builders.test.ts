@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../src/paths/collections.js';
+import {
+  COLLECTIONS,
+  USER_SUBCOLLECTIONS,
+  WORK_PROJECT_SUBCOLLECTIONS,
+  NESTED_SUBCOLLECTIONS,
+  SPECIAL_DOCS,
+  HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
+} from '../src/paths/collections.js';
 
 describe('PATH_BUILDERS', () => {
   // ===== USER PATHS =====
@@ -168,7 +175,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
       expect(result[3]).toBe('chan1');
     });
-
   });
 
   // ===== SQUARE PATHS =====
@@ -207,7 +213,11 @@ describe('PATH_BUILDERS', () => {
     });
 
     it('hallItemType returns 4-segment tuple with the canonical subcollection segment and itemId', () => {
-      const result = PATH_BUILDERS.hallItemType('lib1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, 'item1');
+      const result = PATH_BUILDERS.hallItemType(
+        'lib1',
+        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales,
+        'item1',
+      );
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
       expect(result[1]).toBe('lib1');
@@ -228,13 +238,22 @@ describe('PATH_BUILDERS', () => {
 
     it('hallItemSubItem derives every nested sub-item collection from the canonical work type', () => {
       expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Tales', 'item-1')).toEqual([
-        COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, 'item-1',
+        COLLECTIONS.HALL_ITEMS,
+        'hall-1',
+        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales,
+        'item-1',
       ]);
       expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Tunes', 'item-1')).toEqual([
-        COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes, 'item-1',
+        COLLECTIONS.HALL_ITEMS,
+        'hall-1',
+        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes,
+        'item-1',
       ]);
       expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Television', 'item-1')).toEqual([
-        COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television, 'item-1',
+        COLLECTIONS.HALL_ITEMS,
+        'hall-1',
+        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television,
+        'item-1',
       ]);
     });
 
@@ -340,7 +359,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('invite1');
     });
 
-
     it('contentReport returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.contentReport('rep1');
       expect(result).toHaveLength(2);
@@ -430,9 +448,11 @@ describe('PATH_BUILDERS', () => {
     });
 
     it('mediaCopyIntent returns 2-segment tuple keyed by the new asset id', () => {
-      expect(PATH_BUILDERS.mediaCopyIntent('copy-asset-1')).toEqual([COLLECTIONS.MEDIA_COPY_INTENTS, 'copy-asset-1']);
+      expect(PATH_BUILDERS.mediaCopyIntent('copy-asset-1')).toEqual([
+        COLLECTIONS.MEDIA_COPY_INTENTS,
+        'copy-asset-1',
+      ]);
     });
-
   });
 
   // ===== PAYMENT & PLEDGE PATHS =====
@@ -623,36 +643,68 @@ describe('PATH_BUILDERS', () => {
 
     it('userMentionHistoryEntry returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.userMentionHistoryEntry('uid1', 'entry1');
-      expect(result).toEqual([COLLECTIONS.USER_PROFILES, 'uid1', USER_SUBCOLLECTIONS.MENTION_HISTORY, 'entry1']);
+      expect(result).toEqual([
+        COLLECTIONS.USER_PROFILES,
+        'uid1',
+        USER_SUBCOLLECTIONS.MENTION_HISTORY,
+        'entry1',
+      ]);
     });
 
     it('taleChapters returns 5-segment collection tuple', () => {
       const result = PATH_BUILDERS.taleChapters('wp1', 'tale1');
       expect(result).toEqual([
-        COLLECTIONS.ALL_WORK_PROJECTS, 'wp1', WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, 'tale1', NESTED_SUBCOLLECTIONS.TALE_CHAPTERS,
+        COLLECTIONS.ALL_WORK_PROJECTS,
+        'wp1',
+        WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES,
+        'tale1',
+        NESTED_SUBCOLLECTIONS.TALE_CHAPTERS,
       ]);
     });
 
     it('televisionEpisodes returns 5-segment collection tuple', () => {
       const result = PATH_BUILDERS.televisionEpisodes('wp1', 'tv1');
       expect(result).toEqual([
-        COLLECTIONS.ALL_WORK_PROJECTS, 'wp1', WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, 'tv1', NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES,
+        COLLECTIONS.ALL_WORK_PROJECTS,
+        'wp1',
+        WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION,
+        'tv1',
+        NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES,
       ]);
     });
 
     it('hallItemSubItems returns 3-segment collection tuple with the canonical subcollection segment', () => {
-      const result = PATH_BUILDERS.hallItemSubItems('hall1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes);
+      const result = PATH_BUILDERS.hallItemSubItems(
+        'hall1',
+        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes,
+      );
       expect(result).toEqual([COLLECTIONS.HALL_ITEMS, 'hall1', 'hallItemTunes']);
     });
 
     it('childSafetySourceSignals / childSafetyDecisions / childSafetyCaseAccounts return 3-segment collection tuples', () => {
-      expect(PATH_BUILDERS.childSafetySourceSignals('c1')).toEqual([COLLECTIONS.CHILD_SAFETY_CASES, 'c1', NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS]);
-      expect(PATH_BUILDERS.childSafetyDecisions('c1')).toEqual([COLLECTIONS.CHILD_SAFETY_CASES, 'c1', NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS]);
-      expect(PATH_BUILDERS.childSafetyCaseAccounts('c1')).toEqual([COLLECTIONS.CHILD_SAFETY_CASES, 'c1', NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS]);
+      expect(PATH_BUILDERS.childSafetySourceSignals('c1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS,
+      ]);
+      expect(PATH_BUILDERS.childSafetyDecisions('c1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS,
+      ]);
+      expect(PATH_BUILDERS.childSafetyCaseAccounts('c1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS,
+      ]);
     });
 
     it('takeItDownSubmissions returns 3-segment collection tuple', () => {
-      expect(PATH_BUILDERS.takeItDownSubmissions('req1')).toEqual([COLLECTIONS.TAKE_IT_DOWN_REQUESTS, 'req1', NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS]);
+      expect(PATH_BUILDERS.takeItDownSubmissions('req1')).toEqual([
+        COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+        'req1',
+        NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS,
+      ]);
     });
 
     it('takeItDownValidityDecisions returns the 3-segment parent of takeItDownValidityDecision', () => {
@@ -668,15 +720,27 @@ describe('PATH_BUILDERS', () => {
     });
 
     it('nciiCase collection + closure-event builders', () => {
-      expect(PATH_BUILDERS.nciiCaseAllegationLinks('c1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS]);
-      expect(PATH_BUILDERS.nciiCaseRequestLinks('c1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS]);
-      expect(PATH_BUILDERS.nciiCaseClosureEvents('c1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS]);
-      expect(PATH_BUILDERS.nciiCaseClosureEvent('c1', 'e1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS, 'e1']);
+      expect(PATH_BUILDERS.nciiCaseAllegationLinks('c1')).toEqual([
+        COLLECTIONS.NCII_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS,
+      ]);
+      expect(PATH_BUILDERS.nciiCaseRequestLinks('c1')).toEqual([
+        COLLECTIONS.NCII_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS,
+      ]);
+      expect(PATH_BUILDERS.nciiCaseClosureEvents('c1')).toEqual([
+        COLLECTIONS.NCII_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
+      ]);
+      expect(PATH_BUILDERS.nciiCaseClosureEvent('c1', 'e1')).toEqual([
+        COLLECTIONS.NCII_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
+        'e1',
+      ]);
     });
   });
 });
-
-
-
-
-

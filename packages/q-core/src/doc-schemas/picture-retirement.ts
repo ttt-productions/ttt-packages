@@ -19,7 +19,11 @@ export const PictureRetirementTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('picture'), pictureId: pictureIdSchema }).strict(),
   // A deleted owner's whole gallery: every one of its gallery documents and their sizes.
   z
-    .object({ kind: z.literal('gallery'), ownerKind: galleryOwnerKindSchema, ownerId: z.string().min(1) })
+    .object({
+      kind: z.literal('gallery'),
+      ownerKind: galleryOwnerKindSchema,
+      ownerId: z.string().min(1),
+    })
     .strict(),
 ]);
 export type PictureRetirementTarget = z.infer<typeof PictureRetirementTargetSchema>;

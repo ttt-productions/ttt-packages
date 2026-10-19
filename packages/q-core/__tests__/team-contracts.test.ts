@@ -14,7 +14,11 @@ import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/le
 import { MembershipRosterSyncSchema } from '../src/doc-schemas/membership-roster-sync.js';
 import { SignedWaiverSchema } from '../src/doc-schemas/waivers-and-hardware.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
-import { buildGhostUserId, buildGhostUserIdForRequest, isGhostUserId } from '../src/ids/minted-ids.js';
+import {
+  buildGhostUserId,
+  buildGhostUserIdForRequest,
+  isGhostUserId,
+} from '../src/ids/minted-ids.js';
 import { buildTeamMembershipId, parseTeamMembershipId } from '../src/ids/compound-ids.js';
 import { COLLECTIONS } from '../src/paths/collections.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
@@ -125,10 +129,16 @@ describe('computeLeagueJoinWarning', () => {
       { state: 'onTeam', teamId: 'A' },
     ]);
     expect(
-      computeLeagueJoinWarning({ ...none, pendingJoinRequests: [{ teamJoinRequestId: 'r1', teamId: 'B' }] }, null),
+      computeLeagueJoinWarning(
+        { ...none, pendingJoinRequests: [{ teamJoinRequestId: 'r1', teamId: 'B' }] },
+        null,
+      ),
     ).toEqual([{ state: 'pendingJoinRequest', teamId: 'B' }]);
     expect(
-      computeLeagueJoinWarning({ ...none, pendingInvitations: [{ teamInvitationId: 'i1', teamId: 'C' }] }, null),
+      computeLeagueJoinWarning(
+        { ...none, pendingInvitations: [{ teamInvitationId: 'i1', teamId: 'C' }] },
+        null,
+      ),
     ).toEqual([{ state: 'pendingInvitation', teamId: 'C' }]);
     expect(computeLeagueJoinWarning({ ...none, freeAgentSignup: true }, null)).toEqual([
       { state: 'freeAgentSignup', teamId: null },
@@ -168,13 +178,17 @@ describe('computeLeagueJoinWarning', () => {
       freeAgentSignup: true,
     };
 
-    expect(computeLeagueJoinWarning(facts, { kind: 'teamInvitation', teamInvitationId: 'i1' })).toEqual([
+    expect(
+      computeLeagueJoinWarning(facts, { kind: 'teamInvitation', teamInvitationId: 'i1' }),
+    ).toEqual([
       { state: 'pendingJoinRequest', teamId: 'A' },
       { state: 'pendingJoinRequest', teamId: 'B' },
       { state: 'pendingInvitation', teamId: 'D' },
       { state: 'freeAgentSignup', teamId: null },
     ]);
-    expect(computeLeagueJoinWarning(facts, { kind: 'teamJoinRequest', teamJoinRequestId: 'r2' })).toEqual([
+    expect(
+      computeLeagueJoinWarning(facts, { kind: 'teamJoinRequest', teamJoinRequestId: 'r2' }),
+    ).toEqual([
       { state: 'pendingJoinRequest', teamId: 'A' },
       { state: 'pendingInvitation', teamId: 'C' },
       { state: 'pendingInvitation', teamId: 'D' },
@@ -251,63 +265,118 @@ describe('team creation input', () => {
     expect(CreateLeagueTeamInputSchema.safeParse(valid).success).toBe(true);
     const { contactPhone: _omitted, ...withoutPhone } = valid;
     expect(CreateLeagueTeamInputSchema.safeParse(withoutPhone).success).toBe(false);
-    expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, contactPhone: '   ' }).success).toBe(false);
+    expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, contactPhone: '   ' }).success).toBe(
+      false,
+    );
     expect(
-      CreateLeagueTeamInputSchema.safeParse({ ...valid, contactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1) }).success,
+      CreateLeagueTeamInputSchema.safeParse({
+        ...valid,
+        contactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),
+      }).success,
     ).toBe(false);
   });
 
   it('holds the name to the one length rule, measured after trimming', () => {
-    expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, name: 'a'.repeat(MIN_TEAM_NAME_LENGTH) }).success).toBe(true);
-    expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, name: ` ${'a'.repeat(MIN_TEAM_NAME_LENGTH - 1)} ` }).success).toBe(
-      false,
-    );
-    expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, name: 'a'.repeat(MAX_TEAM_NAME_LENGTH + 1) }).success).toBe(
-      false,
-    );
+    expect(
+      CreateLeagueTeamInputSchema.safeParse({ ...valid, name: 'a'.repeat(MIN_TEAM_NAME_LENGTH) })
+        .success,
+    ).toBe(true);
+    expect(
+      CreateLeagueTeamInputSchema.safeParse({
+        ...valid,
+        name: ` ${'a'.repeat(MIN_TEAM_NAME_LENGTH - 1)} `,
+      }).success,
+    ).toBe(false);
+    expect(
+      CreateLeagueTeamInputSchema.safeParse({
+        ...valid,
+        name: 'a'.repeat(MAX_TEAM_NAME_LENGTH + 1),
+      }).success,
+    ).toBe(false);
   });
 
   it('takes no creator, captain id, or team fields the server owns', () => {
-    for (const smuggled of [{ createdByUserId: 'x' }, { captainUserId: 'x' }, { seasonStats: {} }, { pictures: {} }]) {
+    for (const smuggled of [
+      { createdByUserId: 'x' },
+      { captainUserId: 'x' },
+      { seasonStats: {} },
+      { pictures: {} },
+    ]) {
       expect(CreateLeagueTeamInputSchema.safeParse({ ...valid, ...smuggled }).success).toBe(false);
     }
   });
 
   it("asks the admin door for the ghost captain's name, never an id", () => {
-    expect(AdminCreateLeagueTeamInputSchema.safeParse({ ...valid, captainDisplayName: 'Ghost Captain' }).success).toBe(
-      true,
-    );
+    expect(
+      AdminCreateLeagueTeamInputSchema.safeParse({ ...valid, captainDisplayName: 'Ghost Captain' })
+        .success,
+    ).toBe(true);
     expect(AdminCreateLeagueTeamInputSchema.safeParse(valid).success).toBe(false);
     expect(
-      AdminCreateLeagueTeamInputSchema.safeParse({ ...valid, captainDisplayName: 'Ghost', captainUserId: 'ghost_1_a' })
-        .success,
+      AdminCreateLeagueTeamInputSchema.safeParse({
+        ...valid,
+        captainDisplayName: 'Ghost',
+        captainUserId: 'ghost_1_a',
+      }).success,
     ).toBe(false);
   });
 });
 
 describe('ghost add input', () => {
   it('validates the ghost name on the server and takes no ghost id or creator', () => {
-    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'Red Shirt' }).success).toBe(true);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'a'.repeat(MIN_DISPLAY_NAME_LENGTH - 1) })
-        .success,
+      CreateTeamGhostPlayerInputSchema.safeParse({
+        teamId: 't',
+        requestId: 'r1',
+        displayName: 'Red Shirt',
+      }).success,
+    ).toBe(true);
+    expect(
+      CreateTeamGhostPlayerInputSchema.safeParse({
+        teamId: 't',
+        requestId: 'r1',
+        displayName: 'a'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
+      }).success,
     ).toBe(false);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'a'.repeat(MAX_DISPLAY_NAME_LENGTH + 1) })
-        .success,
+      CreateTeamGhostPlayerInputSchema.safeParse({
+        teamId: 't',
+        requestId: 'r1',
+        displayName: 'a'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
+      }).success,
     ).toBe(false);
-    for (const smuggled of [{ ghostUserId: 'ghost_1_a' }, { createdBy: 'u1' }, { leagueId: 'l1' }]) {
-      expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'Red Shirt', ...smuggled }).success).toBe(
-        false,
-      );
+    for (const smuggled of [
+      { ghostUserId: 'ghost_1_a' },
+      { createdBy: 'u1' },
+      { leagueId: 'l1' },
+    ]) {
+      expect(
+        CreateTeamGhostPlayerInputSchema.safeParse({
+          teamId: 't',
+          requestId: 'r1',
+          displayName: 'Red Shirt',
+          ...smuggled,
+        }).success,
+      ).toBe(false);
     }
   });
 
   it('names the game and one of its teams at the game door', () => {
     expect(
-      CreateGameGhostPlayerInputSchema.safeParse({ gameId: 'g', teamId: 't', displayName: 'Red Shirt', requestId: 'r1' }).success,
+      CreateGameGhostPlayerInputSchema.safeParse({
+        gameId: 'g',
+        teamId: 't',
+        displayName: 'Red Shirt',
+        requestId: 'r1',
+      }).success,
     ).toBe(true);
-    expect(CreateGameGhostPlayerInputSchema.safeParse({ gameId: 'g', displayName: 'Red Shirt', requestId: 'r1' }).success).toBe(false);
+    expect(
+      CreateGameGhostPlayerInputSchema.safeParse({
+        gameId: 'g',
+        displayName: 'Red Shirt',
+        requestId: 'r1',
+      }).success,
+    ).toBe(false);
   });
 
   it('carries the request id the client minted for this add, one document-id segment, at both doors', () => {
@@ -315,12 +384,14 @@ describe('ghost add input', () => {
     expect(CreateTeamGhostPlayerInputSchema.safeParse(add).success).toBe(false);
     for (const requestId of ['', 'a/b', '..', 'x'.repeat(1500)]) {
       expect(CreateTeamGhostPlayerInputSchema.safeParse({ ...add, requestId }).success).toBe(false);
-      expect(CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g', requestId }).success).toBe(false);
+      expect(
+        CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g', requestId }).success,
+      ).toBe(false);
     }
     expect(CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g' }).success).toBe(false);
   });
 
-  it("answers with the ghost and where its roster work stood", () => {
+  it('answers with the ghost and where its roster work stood', () => {
     for (const status of MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS) {
       expect(
         CreateGhostPlayerResultSchema.safeParse({
@@ -356,10 +427,19 @@ describe('ghost identity', () => {
 
 describe('the join warning callables', () => {
   it('take the acted-on item and return the findings in the one shape the warning computes over', () => {
-    expect(GetLeagueJoinWarningInputSchema.shape.actedOn.unwrap()).toBe(leagueJoinWarningActedOnSchema);
-    expect(GetLeagueJoinWarningResultSchema.shape.findings.element).toBe(leagueJoinWarningFindingSchema);
+    expect(GetLeagueJoinWarningInputSchema.shape.actedOn.unwrap()).toBe(
+      leagueJoinWarningActedOnSchema,
+    );
+    expect(GetLeagueJoinWarningResultSchema.shape.findings.element).toBe(
+      leagueJoinWarningFindingSchema,
+    );
     for (const finding of computeLeagueJoinWarning(
-      { memberships: [{ teamId: 'A' }], pendingJoinRequests: [], pendingInvitations: [], freeAgentSignup: true },
+      {
+        memberships: [{ teamId: 'A' }],
+        pendingJoinRequests: [],
+        pendingInvitations: [],
+        freeAgentSignup: true,
+      },
       null,
     )) {
       expect(leagueJoinWarningFindingSchema.safeParse(finding).success).toBe(true);
@@ -367,7 +447,9 @@ describe('the join warning callables', () => {
   });
 
   it('reads about one person in one league, optionally for a target team and an acted-on item', () => {
-    expect(GetLeagueJoinWarningInputSchema.safeParse({ leagueId: 'l', userId: 'u' }).success).toBe(true);
+    expect(GetLeagueJoinWarningInputSchema.safeParse({ leagueId: 'l', userId: 'u' }).success).toBe(
+      true,
+    );
     expect(
       GetLeagueJoinWarningInputSchema.safeParse({
         leagueId: 'l',
@@ -377,8 +459,11 @@ describe('the join warning callables', () => {
       }).success,
     ).toBe(true);
     expect(
-      GetLeagueJoinWarningInputSchema.safeParse({ leagueId: 'l', userId: 'u', actedOn: { kind: 'teamInvitation' } })
-        .success,
+      GetLeagueJoinWarningInputSchema.safeParse({
+        leagueId: 'l',
+        userId: 'u',
+        actedOn: { kind: 'teamInvitation' },
+      }).success,
     ).toBe(false);
   });
 
@@ -421,10 +506,20 @@ describe('leagueTeams and its contact document', () => {
   });
 
   it("holds the team's contact phone on its admin-only document, keyed by the team, naming its league", () => {
-    expect(LeagueTeamContactSchema.safeParse({ leagueId: 'L', contactPhone: '555-0100', updatedAt: NOW }).success).toBe(true);
-    expect(LeagueTeamContactSchema.safeParse({ leagueId: 'L', contactPhone: '', updatedAt: NOW }).success).toBe(false);
-    expect(LeagueTeamContactSchema.safeParse({ contactPhone: '555-0100', updatedAt: NOW }).success).toBe(false);
-    expect(toPath(PATH_BUILDERS.leagueTeamContact('T'))).toBe(toPath([COLLECTIONS.LEAGUE_TEAM_CONTACTS, 'T']));
+    expect(
+      LeagueTeamContactSchema.safeParse({ leagueId: 'L', contactPhone: '555-0100', updatedAt: NOW })
+        .success,
+    ).toBe(true);
+    expect(
+      LeagueTeamContactSchema.safeParse({ leagueId: 'L', contactPhone: '', updatedAt: NOW })
+        .success,
+    ).toBe(false);
+    expect(
+      LeagueTeamContactSchema.safeParse({ contactPhone: '555-0100', updatedAt: NOW }).success,
+    ).toBe(false);
+    expect(toPath(PATH_BUILDERS.leagueTeamContact('T'))).toBe(
+      toPath([COLLECTIONS.LEAGUE_TEAM_CONTACTS, 'T']),
+    );
   });
 });
 
@@ -450,35 +545,58 @@ describe('membershipRosterSyncs', () => {
   it('accepts a pending obligation and a reconciled one', () => {
     expect(MembershipRosterSyncSchema.safeParse(pending).success).toBe(true);
     expect(
-      MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 2, syncStatus: 'reconciled' }).success,
+      MembershipRosterSyncSchema.safeParse({
+        ...pending,
+        reconciledRosterRevision: 2,
+        syncStatus: 'reconciled',
+      }).success,
     ).toBe(true);
   });
 
   it('refuses a reconciled revision past its own revision', () => {
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 3 }).success).toBe(false);
+    expect(
+      MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 3 }).success,
+    ).toBe(false);
   });
 
   it('is reconciled exactly when the reconciled revision reaches the revision', () => {
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'reconciled' }).success).toBe(false);
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 2 }).success).toBe(false);
+    expect(
+      MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'reconciled' }).success,
+    ).toBe(false);
+    expect(
+      MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 2 }).success,
+    ).toBe(false);
   });
 
   it('carries failedAt exactly while failed', () => {
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'failed' }).success).toBe(false);
+    expect(MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'failed' }).success).toBe(
+      false,
+    );
     expect(
-      MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'failed', failedAt: NOW, attemptCount: 5 }).success,
+      MembershipRosterSyncSchema.safeParse({
+        ...pending,
+        syncStatus: 'failed',
+        failedAt: NOW,
+        attemptCount: 5,
+      }).success,
     ).toBe(true);
     expect(MembershipRosterSyncSchema.safeParse({ ...pending, failedAt: NOW }).success).toBe(false);
   });
 
   it('refuses a negative or fractional attempt count', () => {
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, attemptCount: -1 }).success).toBe(false);
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, attemptCount: 1.5 }).success).toBe(false);
+    expect(MembershipRosterSyncSchema.safeParse({ ...pending, attemptCount: -1 }).success).toBe(
+      false,
+    );
+    expect(MembershipRosterSyncSchema.safeParse({ ...pending, attemptCount: 1.5 }).success).toBe(
+      false,
+    );
   });
 
   it('asks the admin retry for a team only', () => {
     expect(AdminRetryLeagueTeamRosterSyncInputSchema.safeParse({ teamId: 'T' }).success).toBe(true);
-    expect(AdminRetryLeagueTeamRosterSyncInputSchema.safeParse({ teamId: 'T', leagueId: 'L' }).success).toBe(false);
+    expect(
+      AdminRetryLeagueTeamRosterSyncInputSchema.safeParse({ teamId: 'T', leagueId: 'L' }).success,
+    ).toBe(false);
   });
 });
 
@@ -486,12 +604,15 @@ describe('open games', () => {
   it('names the open statuses explicitly, and the completed status is not one', () => {
     expect([...OPEN_GAME_STATUS_KEYS]).toEqual(['scheduled', 'inprogress']);
     expect(OPEN_GAME_STATUS_KEYS as readonly string[]).not.toContain(COMPLETED_GAME_STATUS);
-    for (const status of OPEN_GAME_STATUS_KEYS) expect(GAME_STATUS_KEYS as readonly string[]).toContain(status);
+    for (const status of OPEN_GAME_STATUS_KEYS)
+      expect(GAME_STATUS_KEYS as readonly string[]).toContain(status);
   });
 
   it('answers whether a game is open through the one predicate both app roots ask', () => {
     for (const status of GAME_STATUS_KEYS) {
-      expect(isOpenGameStatus(status)).toBe((OPEN_GAME_STATUS_KEYS as readonly string[]).includes(status));
+      expect(isOpenGameStatus(status)).toBe(
+        (OPEN_GAME_STATUS_KEYS as readonly string[]).includes(status),
+      );
     }
     expect(isOpenGameStatus(COMPLETED_GAME_STATUS)).toBe(false);
   });
@@ -499,16 +620,18 @@ describe('open games', () => {
 
 describe('the status members every query and write names', () => {
   it('names each queried or written member of its own union', () => {
-    expect(TEAM_MEMBERSHIP_STATUS_KEYS as readonly string[]).toContain(ACTIVE_TEAM_MEMBERSHIP_STATUS);
+    expect(TEAM_MEMBERSHIP_STATUS_KEYS as readonly string[]).toContain(
+      ACTIVE_TEAM_MEMBERSHIP_STATUS,
+    );
     expect(TEAM_INVITATION_STATUS_KEYS as readonly string[]).toEqual(
       expect.arrayContaining([PENDING_TEAM_INVITATION_STATUS, APPROVED_TEAM_INVITATION_STATUS]),
     );
     expect(TEAM_JOIN_REQUEST_STATUS_KEYS as readonly string[]).toEqual(
       expect.arrayContaining([PENDING_TEAM_JOIN_REQUEST_STATUS, APPROVED_TEAM_JOIN_REQUEST_STATUS]),
     );
-    expect([PENDING_ROSTER_SYNC_STATUS, RECONCILED_ROSTER_SYNC_STATUS, FAILED_ROSTER_SYNC_STATUS].sort()).toEqual(
-      [...MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS].sort(),
-    );
+    expect(
+      [PENDING_ROSTER_SYNC_STATUS, RECONCILED_ROSTER_SYNC_STATUS, FAILED_ROSTER_SYNC_STATUS].sort(),
+    ).toEqual([...MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS].sort());
     expect(CAPTAIN_TEAM_ROLES as readonly string[]).toContain(TEAM_CAPTAIN_ROLE);
   });
 });
@@ -521,7 +644,10 @@ describe('signed waivers', () => {
     waiverTemplateVersion: 3,
     waiverTitleSnapshot: 'Release',
     waiverTextSnapshot: '',
-    signatureFile: { bucket: 'b', path: 'users/u1/waiverSigs/L/2f1c0a3e-8b1d-4c6f-9a2e-5d7b3c1e9f00' },
+    signatureFile: {
+      bucket: 'b',
+      path: 'users/u1/waiverSigs/L/2f1c0a3e-8b1d-4c6f-9a2e-5d7b3c1e9f00',
+    },
     signedAt: NOW,
   };
   const ghostWitness = {
@@ -549,29 +675,65 @@ describe('signed waivers', () => {
   });
 
   it('keeps a V1 witnessed waiver as a legacy witness: team, witness, and the name V1 recorded, nothing guessed', () => {
-    const legacyWitness = { teamId: 'T', witnessUserId: 'captain-1', witnessDisplayNameSnapshot: 'Pat Captain' };
+    const legacyWitness = {
+      teamId: 'T',
+      witnessUserId: 'captain-1',
+      witnessDisplayNameSnapshot: 'Pat Captain',
+    };
     expect(SignedWaiverSchema.safeParse({ ...own, ...legacyWitness }).success).toBe(true);
     const { teamId: _team, ...withoutTeam } = legacyWitness;
     expect(SignedWaiverSchema.safeParse({ ...own, ...withoutTeam }).success).toBe(false);
-    expect(SignedWaiverSchema.safeParse({ ...own, witnessDisplayNameSnapshot: 'Pat Captain' }).success).toBe(false);
+    expect(
+      SignedWaiverSchema.safeParse({ ...own, witnessDisplayNameSnapshot: 'Pat Captain' }).success,
+    ).toBe(false);
   });
 
   it('refuses a witness that mixes the legacy and the full form', () => {
-    expect(SignedWaiverSchema.safeParse({ ...own, ...ghostWitness, witnessDisplayNameSnapshot: 'Pat Captain' }).success).toBe(false);
-    const mixed = { teamId: 'T', witnessUserId: 'captain-1', witnessDisplayNameSnapshot: 'Pat Captain', witnessAuthority: 'captain' };
+    expect(
+      SignedWaiverSchema.safeParse({
+        ...own,
+        ...ghostWitness,
+        witnessDisplayNameSnapshot: 'Pat Captain',
+      }).success,
+    ).toBe(false);
+    const mixed = {
+      teamId: 'T',
+      witnessUserId: 'captain-1',
+      witnessDisplayNameSnapshot: 'Pat Captain',
+      witnessAuthority: 'captain',
+    };
     expect(SignedWaiverSchema.safeParse({ ...own, ...mixed }).success).toBe(false);
     expect(
-      SignedWaiverSchema.safeParse({ ...own, teamId: 'T', witnessUserId: 'captain-1', witnessDisplayNameSnapshot: 'Pat', subjectDisplayNameSnapshot: 'Red Shirt' }).success,
+      SignedWaiverSchema.safeParse({
+        ...own,
+        teamId: 'T',
+        witnessUserId: 'captain-1',
+        witnessDisplayNameSnapshot: 'Pat',
+        subjectDisplayNameSnapshot: 'Red Shirt',
+      }).success,
     ).toBe(false);
   });
 
   it('records the authority a witness signed under from the four declared', () => {
-    expect([...WAIVER_WITNESS_AUTHORITY_KEYS]).toEqual(['captain', 'coCaptain', 'admin', 'referee']);
-    expect(SignedWaiverSchema.safeParse({ ...own, ...ghostWitness, witnessAuthority: 'player' }).success).toBe(false);
+    expect([...WAIVER_WITNESS_AUTHORITY_KEYS]).toEqual([
+      'captain',
+      'coCaptain',
+      'admin',
+      'referee',
+    ]);
+    expect(
+      SignedWaiverSchema.safeParse({ ...own, ...ghostWitness, witnessAuthority: 'player' }).success,
+    ).toBe(false);
   });
 
   it('takes the signature as a staging path, and a ghost only with its team', () => {
-    expect(CreateSignedWaiverInputSchema.safeParse({ leagueId: 'L', ...SHOWN, storagePath: STAGING_PATH }).success).toBe(true);
+    expect(
+      CreateSignedWaiverInputSchema.safeParse({
+        leagueId: 'L',
+        ...SHOWN,
+        storagePath: STAGING_PATH,
+      }).success,
+    ).toBe(true);
     expect(
       CreateSignedWaiverInputSchema.safeParse({
         leagueId: 'L',
@@ -581,12 +743,20 @@ describe('signed waivers', () => {
       }).success,
     ).toBe(true);
     expect(
-      CreateSignedWaiverInputSchema.safeParse({ leagueId: 'L', ...SHOWN, storagePath: STAGING_PATH, ghost: { ghostUserId: 'g' } })
-        .success,
+      CreateSignedWaiverInputSchema.safeParse({
+        leagueId: 'L',
+        ...SHOWN,
+        storagePath: STAGING_PATH,
+        ghost: { ghostUserId: 'g' },
+      }).success,
     ).toBe(false);
     expect(
-      CreateSignedWaiverInputSchema.safeParse({ leagueId: 'L', ...SHOWN, storagePath: STAGING_PATH, signatureUrl: 'https://x' })
-        .success,
+      CreateSignedWaiverInputSchema.safeParse({
+        leagueId: 'L',
+        ...SHOWN,
+        storagePath: STAGING_PATH,
+        signatureUrl: 'https://x',
+      }).success,
     ).toBe(false);
   });
 
@@ -595,41 +765,94 @@ describe('signed waivers', () => {
   it('carries the displayed template id and version on both entries', () => {
     for (const schema of [CreateSignedWaiverInputSchema, AdminCreateSignedWaiverInputSchema]) {
       const ghost = { ghostUserId: 'ghost_1_a', teamId: 'T' };
-      expect(schema.safeParse({ leagueId: 'L', ...SHOWN, storagePath: STAGING_PATH, ghost }).success).toBe(true);
-      expect(schema.safeParse({ leagueId: 'L', storagePath: STAGING_PATH, ghost }).success).toBe(false);
-      expect(schema.safeParse({ leagueId: 'L', ...SHOWN, waiverTemplateVersion: 0, storagePath: STAGING_PATH, ghost }).success).toBe(false);
-      expect(schema.safeParse({ leagueId: 'L', ...SHOWN, waiverTemplateVersion: 1.5, storagePath: STAGING_PATH, ghost }).success).toBe(false);
-      expect(schema.safeParse({ leagueId: 'L', ...SHOWN, waiverTemplateId: 'a/b', storagePath: STAGING_PATH, ghost }).success).toBe(false);
+      expect(
+        schema.safeParse({ leagueId: 'L', ...SHOWN, storagePath: STAGING_PATH, ghost }).success,
+      ).toBe(true);
+      expect(schema.safeParse({ leagueId: 'L', storagePath: STAGING_PATH, ghost }).success).toBe(
+        false,
+      );
+      expect(
+        schema.safeParse({
+          leagueId: 'L',
+          ...SHOWN,
+          waiverTemplateVersion: 0,
+          storagePath: STAGING_PATH,
+          ghost,
+        }).success,
+      ).toBe(false);
+      expect(
+        schema.safeParse({
+          leagueId: 'L',
+          ...SHOWN,
+          waiverTemplateVersion: 1.5,
+          storagePath: STAGING_PATH,
+          ghost,
+        }).success,
+      ).toBe(false);
+      expect(
+        schema.safeParse({
+          leagueId: 'L',
+          ...SHOWN,
+          waiverTemplateId: 'a/b',
+          storagePath: STAGING_PATH,
+          ghost,
+        }).success,
+      ).toBe(false);
     }
   });
 
   it('takes the staging path under the one key every accepting callable shares', () => {
-    expect(CreateSignedWaiverInputSchema.safeParse({ leagueId: 'L', ...SHOWN, stagingPath: STAGING_PATH }).success).toBe(false);
+    expect(
+      CreateSignedWaiverInputSchema.safeParse({
+        leagueId: 'L',
+        ...SHOWN,
+        stagingPath: STAGING_PATH,
+      }).success,
+    ).toBe(false);
     expect(Object.keys(CreateSignedWaiverInputSchema.shape)).toContain('storagePath');
     expect(Object.keys(AdminCreateSignedWaiverInputSchema.shape)).toContain('storagePath');
     expect(Object.keys(AdminStartUploadInputSchema.shape)).toContain('storagePath');
   });
 
   it("requires the ghost at the admin entry, which signs only a ghost's waiver", () => {
-    expect(AdminCreateSignedWaiverInputSchema.safeParse({ leagueId: 'L', ...SHOWN, storagePath: STAGING_PATH }).success).toBe(false);
+    expect(
+      AdminCreateSignedWaiverInputSchema.safeParse({
+        leagueId: 'L',
+        ...SHOWN,
+        storagePath: STAGING_PATH,
+      }).success,
+    ).toBe(false);
   });
 
   it('reads a signature by league and person, a captain naming the team they manage', () => {
-    expect(GetSignedWaiverFileInputSchema.safeParse({ leagueId: 'L', userId: 'u1' }).success).toBe(true);
-    expect(GetSignedWaiverFileInputSchema.safeParse({ leagueId: 'L', userId: 'u1', teamId: 'T' }).success).toBe(true);
+    expect(GetSignedWaiverFileInputSchema.safeParse({ leagueId: 'L', userId: 'u1' }).success).toBe(
+      true,
+    );
+    expect(
+      GetSignedWaiverFileInputSchema.safeParse({ leagueId: 'L', userId: 'u1', teamId: 'T' })
+        .success,
+    ).toBe(true);
   });
 });
 
 describe('the audit and domain vocabulary', () => {
   it('declares the event types the team, ghost, roster, and waiver cores record', () => {
-    for (const type of ['leagueTeam.created', 'ghostPlayer.created', 'teamRoster.syncRetried', 'signedWaiver.created']) {
+    for (const type of [
+      'leagueTeam.created',
+      'ghostPlayer.created',
+      'teamRoster.syncRetried',
+      'signedWaiver.created',
+    ]) {
       expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain(type);
     }
   });
 
   it('declares the domain events a team creation, a ghost add, and a signing name', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'leagueTeam.created', ids: { leagueId: 'L', teamId: 'T' } }).success,
+      DomainEventSchema.safeParse({
+        type: 'leagueTeam.created',
+        ids: { leagueId: 'L', teamId: 'T' },
+      }).success,
     ).toBe(true);
     expect(
       DomainEventSchema.safeParse({
@@ -638,7 +861,10 @@ describe('the audit and domain vocabulary', () => {
       }).success,
     ).toBe(true);
     expect(
-      DomainEventSchema.safeParse({ type: 'signedWaiver.created', ids: { leagueId: 'L', userId: 'u1' } }).success,
+      DomainEventSchema.safeParse({
+        type: 'signedWaiver.created',
+        ids: { leagueId: 'L', userId: 'u1' },
+      }).success,
     ).toBe(true);
   });
 });

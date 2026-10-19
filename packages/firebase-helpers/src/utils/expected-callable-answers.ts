@@ -57,6 +57,8 @@ export function callableRefusalReason<TReason extends string>(
   if (callableRefusalCode(error) !== 'failed-precondition') return null;
   const details = (error as { details?: unknown }).details;
   const reason =
-    details !== null && typeof details === 'object' ? (details as { reason?: unknown }).reason : undefined;
+    details !== null && typeof details === 'object'
+      ? (details as { reason?: unknown }).reason
+      : undefined;
   return (reasons as readonly unknown[]).includes(reason) ? (reason as TReason) : null;
 }

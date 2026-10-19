@@ -9,12 +9,14 @@ export interface DownloadTokenWritable {
 }
 
 /** The custom-metadata key the Firebase Storage client writes on upload. */
-const DOWNLOAD_TOKENS_KEY = "firebaseStorageDownloadTokens";
+const DOWNLOAD_TOKENS_KEY = 'firebaseStorageDownloadTokens';
 
 /** True when the object's stored metadata still carries a download token. */
-export function hasDownloadToken(objectMetadata: Readonly<Record<string, unknown>> | undefined): boolean {
-  const custom = objectMetadata?.["metadata"];
-  return typeof custom === "object" && custom !== null && DOWNLOAD_TOKENS_KEY in custom;
+export function hasDownloadToken(
+  objectMetadata: Readonly<Record<string, unknown>> | undefined,
+): boolean {
+  const custom = objectMetadata?.['metadata'];
+  return typeof custom === 'object' && custom !== null && DOWNLOAD_TOKENS_KEY in custom;
 }
 
 /**

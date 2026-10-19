@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { isBrowser } from "../../env.js";
+import { useEffect } from 'react';
+import { isBrowser } from '../../env.js';
 
 /**
  * Locks body scroll (mobile sheet/modal fix).
@@ -21,10 +21,10 @@ export function useScrollLock(locked: boolean) {
       overflowY: body.style.overflowY,
     };
 
-    body.style.position = "fixed";
+    body.style.position = 'fixed';
     body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
-    body.style.overflowY = "scroll";
+    body.style.width = '100%';
+    body.style.overflowY = 'scroll';
 
     return () => {
       body.style.position = prev.position;

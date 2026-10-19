@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Custom audio player chrome — the one owned control surface used by every
 // AudioViewer. Owns: play/pause, seek, time readout, mute/volume, and
@@ -13,14 +13,23 @@
 // element, so the graph is keyed to the element instance and rebuilt only if
 // the element itself changes.
 
-import * as React from "react";
-import { Pause, Play, Volume2, VolumeX, ChevronDown, ChevronUp, Activity, BarChart3 } from "lucide-react";
-import { Spinner } from "@ttt-productions/ui-core/react";
-import { startWaveformLoop, drawIdleFrame } from "../visualizer.js";
-import type { AudioVisualizerMode } from "../visualizer.js";
-import { resolveInfiniteDuration } from "../media-duration.js";
+import * as React from 'react';
+import {
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+  ChevronDown,
+  ChevronUp,
+  Activity,
+  BarChart3,
+} from 'lucide-react';
+import { Spinner } from '@ttt-productions/ui-core/react';
+import { startWaveformLoop, drawIdleFrame } from '../visualizer.js';
+import type { AudioVisualizerMode } from '../visualizer.js';
+import { resolveInfiniteDuration } from '../media-duration.js';
 
-const DEFAULT_PERSIST_KEY = "mv-audio-player";
+const DEFAULT_PERSIST_KEY = 'mv-audio-player';
 
 function readPref(persistKey: string | null, suffix: string): string | null {
   if (!persistKey) return null;
@@ -41,11 +50,11 @@ function writePref(persistKey: string | null, suffix: string, value: string): vo
 }
 
 function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const whole = Math.floor(seconds);
   const m = Math.floor(whole / 60);
   const s = whole % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export type AudioPlayerChromeProps = {
@@ -60,7 +69,7 @@ export type AudioPlayerChromeProps = {
 
 export function AudioPlayerChrome({
   audioRef,
-  visualizerMode = "bars",
+  visualizerMode = 'bars',
   persistKey = DEFAULT_PERSIST_KEY,
   extraActions,
 }: AudioPlayerChromeProps) {
@@ -71,10 +80,12 @@ export function AudioPlayerChrome({
   const [duration, setDuration] = React.useState(0);
   const [isMuted, setIsMuted] = React.useState(false);
   const [volume, setVolume] = React.useState(1);
-  const [minimized, setMinimized] = React.useState<boolean>(() => readPref(persistKey, "minimized") === "1");
+  const [minimized, setMinimized] = React.useState<boolean>(
+    () => readPref(persistKey, 'minimized') === '1',
+  );
   const [mode, setMode] = React.useState<AudioVisualizerMode>(() => {
-    const stored = readPref(persistKey, "mode");
-    return stored === "line" || stored === "bars" ? stored : visualizerMode;
+    const stored = readPref(persistKey, 'mode');
+    return stored === 'line' || stored === 'bars' ? stored : visualizerMode;
   });
 
   // While the user drags the seek slider, timeupdate must not fight the thumb.
@@ -101,7 +112,7 @@ export function AudioPlayerChrome({
     sourceElRef.current = null;
     const ctx = audioCtxRef.current;
     audioCtxRef.current = null;
-    if (ctx && ctx.state !== "closed") {
+    if (ctx && ctx.state !== 'closed') {
       ctx.close().catch(() => {});
     }
   }, [stopLoop]);
@@ -110,7 +121,7 @@ export function AudioPlayerChrome({
     (el: HTMLAudioElement) => {
       try {
         if (sourceElRef.current === el && audioCtxRef.current) {
-          if (audioCtxRef.current.state === "suspended") {
+          if (audioCtxRef.current.state === 'suspended') {
             audioCtxRef.current.resume().catch(() => {});
           }
           return;
@@ -131,7 +142,7 @@ export function AudioPlayerChrome({
         audioCtxRef.current = ctx;
         sourceElRef.current = el;
         analyserRef.current = analyser;
-        if (ctx.state === "suspended") {
+        if (ctx.state === 'suspended') {
           ctx.resume().catch(() => {});
         }
       } catch {
@@ -209,37 +220,37 @@ export function AudioPlayerChrome({
     const onWaiting = () => setBuffering(true);
     const onReady = () => setBuffering(false);
 
-    el.addEventListener("play", onPlay);
-    el.addEventListener("pause", onPause);
-    el.addEventListener("ended", onEnded);
-    el.addEventListener("timeupdate", onTimeUpdate);
-    el.addEventListener("durationchange", onDurationChange);
-    el.addEventListener("loadedmetadata", onDurationChange);
-    el.addEventListener("volumechange", onVolumeChange);
-    el.addEventListener("waiting", onWaiting);
-    el.addEventListener("seeking", onWaiting);
-    el.addEventListener("playing", onReady);
-    el.addEventListener("seeked", onReady);
-    el.addEventListener("canplay", onReady);
-    el.addEventListener("pause", onReady);
-    el.addEventListener("ended", onReady);
-    el.addEventListener("error", onReady);
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+    el.addEventListener('ended', onEnded);
+    el.addEventListener('timeupdate', onTimeUpdate);
+    el.addEventListener('durationchange', onDurationChange);
+    el.addEventListener('loadedmetadata', onDurationChange);
+    el.addEventListener('volumechange', onVolumeChange);
+    el.addEventListener('waiting', onWaiting);
+    el.addEventListener('seeking', onWaiting);
+    el.addEventListener('playing', onReady);
+    el.addEventListener('seeked', onReady);
+    el.addEventListener('canplay', onReady);
+    el.addEventListener('pause', onReady);
+    el.addEventListener('ended', onReady);
+    el.addEventListener('error', onReady);
     return () => {
-      el.removeEventListener("play", onPlay);
-      el.removeEventListener("pause", onPause);
-      el.removeEventListener("ended", onEnded);
-      el.removeEventListener("timeupdate", onTimeUpdate);
-      el.removeEventListener("durationchange", onDurationChange);
-      el.removeEventListener("loadedmetadata", onDurationChange);
-      el.removeEventListener("volumechange", onVolumeChange);
-      el.removeEventListener("waiting", onWaiting);
-      el.removeEventListener("seeking", onWaiting);
-      el.removeEventListener("playing", onReady);
-      el.removeEventListener("seeked", onReady);
-      el.removeEventListener("canplay", onReady);
-      el.removeEventListener("pause", onReady);
-      el.removeEventListener("ended", onReady);
-      el.removeEventListener("error", onReady);
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('timeupdate', onTimeUpdate);
+      el.removeEventListener('durationchange', onDurationChange);
+      el.removeEventListener('loadedmetadata', onDurationChange);
+      el.removeEventListener('volumechange', onVolumeChange);
+      el.removeEventListener('waiting', onWaiting);
+      el.removeEventListener('seeking', onWaiting);
+      el.removeEventListener('playing', onReady);
+      el.removeEventListener('seeked', onReady);
+      el.removeEventListener('canplay', onReady);
+      el.removeEventListener('pause', onReady);
+      el.removeEventListener('ended', onReady);
+      el.removeEventListener('error', onReady);
     };
   }, [audioRef, ensureGraph, startLoop, stopLoop]);
 
@@ -292,15 +303,15 @@ export function AudioPlayerChrome({
 
   const toggleMinimized = () => {
     setMinimized((m) => {
-      writePref(persistKey, "minimized", m ? "0" : "1");
+      writePref(persistKey, 'minimized', m ? '0' : '1');
       return !m;
     });
   };
 
   const toggleMode = () => {
     setMode((prev) => {
-      const next: AudioVisualizerMode = prev === "line" ? "bars" : "line";
-      writePref(persistKey, "mode", next);
+      const next: AudioVisualizerMode = prev === 'line' ? 'bars' : 'line';
+      writePref(persistKey, 'mode', next);
       return next;
     });
   };
@@ -308,17 +319,30 @@ export function AudioPlayerChrome({
   const shownTime = scrubTime ?? currentTime;
 
   return (
-    <div className="mv-player" data-mv-player data-minimized={minimized ? "true" : "false"} data-mode={mode}>
+    <div
+      className="mv-player"
+      data-mv-player
+      data-minimized={minimized ? 'true' : 'false'}
+      data-mode={mode}
+    >
       {!minimized && (
         <div className="mv-player-viz">
-          <canvas ref={canvasRef} width={600} height={96} className="mv-player-canvas" aria-hidden="true" />
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={96}
+            className="mv-player-canvas"
+            aria-hidden="true"
+          />
           <button
             type="button"
             className="mv-player-btn mv-player-mode-btn"
             onClick={toggleMode}
-            aria-label={mode === "line" ? "Switch visualizer to bars" : "Switch visualizer to waveform line"}
+            aria-label={
+              mode === 'line' ? 'Switch visualizer to bars' : 'Switch visualizer to waveform line'
+            }
           >
-            {mode === "line" ? <BarChart3 aria-hidden="true" /> : <Activity aria-hidden="true" />}
+            {mode === 'line' ? <BarChart3 aria-hidden="true" /> : <Activity aria-hidden="true" />}
           </button>
         </div>
       )}
@@ -327,10 +351,16 @@ export function AudioPlayerChrome({
           type="button"
           className="mv-player-btn mv-player-play-btn"
           onClick={togglePlay}
-          aria-label={isPlaying ? "Pause" : "Play"}
+          aria-label={isPlaying ? 'Pause' : 'Play'}
           aria-busy={isPlaying && buffering ? true : undefined}
         >
-          {isPlaying && buffering ? <Spinner size="xs" /> : isPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+          {isPlaying && buffering ? (
+            <Spinner size="xs" />
+          ) : isPlaying ? (
+            <Pause aria-hidden="true" />
+          ) : (
+            <Play aria-hidden="true" />
+          )}
         </button>
         <span className="mv-player-time" aria-hidden="true">
           {formatTime(shownTime)}
@@ -356,7 +386,7 @@ export function AudioPlayerChrome({
           type="button"
           className="mv-player-btn"
           onClick={toggleMute}
-          aria-label={isMuted ? "Unmute" : "Mute"}
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
         >
           {isMuted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
         </button>
@@ -374,7 +404,7 @@ export function AudioPlayerChrome({
           type="button"
           className="mv-player-btn"
           onClick={toggleMinimized}
-          aria-label={minimized ? "Show visualizer" : "Hide visualizer"}
+          aria-label={minimized ? 'Show visualizer' : 'Hide visualizer'}
         >
           {minimized ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
         </button>

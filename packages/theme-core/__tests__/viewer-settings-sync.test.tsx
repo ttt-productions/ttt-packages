@@ -167,11 +167,13 @@ describe('ViewerSettingsSyncProvider', () => {
       expect(promptText()).toBe('none');
     });
 
-    it('starts a new account clean when the last account\'s save is still in flight', () => {
+    it("starts a new account clean when the last account's save is still in flight", () => {
       seedDevice({ theme: 'light', reducedMotion: false });
       const account = fakeAccount();
       account.holding = true;
-      const { rerender } = render(<Harness account={account} initial={undefined} accountId="viewer-a" />);
+      const { rerender } = render(
+        <Harness account={account} initial={undefined} accountId="viewer-a" />,
+      );
 
       // Signed in, the viewer picks a theme before the account's settings are read, then signs out
       // before the read; a second account signs in and its settings load.
@@ -182,10 +184,12 @@ describe('ViewerSettingsSyncProvider', () => {
       rerender(<Harness account={account} initial={undefined} accountId="viewer-b" />);
       act(() => account.setSettings({ theme: 'light', reducedMotion: false }));
 
-      expect(sync().prompt?.differences).toEqual([{ setting: 'theme', device: 'dark', account: 'light' }]);
+      expect(sync().prompt?.differences).toEqual([
+        { setting: 'theme', device: 'dark', account: 'light' },
+      ]);
     });
 
-    it('does not ask about another tab\'s change when this tab\'s save of a different setting lands first', async () => {
+    it("does not ask about another tab's change when this tab's save of a different setting lands first", async () => {
       seedDevice({ theme: 'light', reducedMotion: false });
       const account = fakeAccount();
       render(<Harness account={account} initial={{ theme: 'light', reducedMotion: false }} />);
@@ -239,7 +243,7 @@ describe('ViewerSettingsSyncProvider', () => {
   });
 
   describe('silent adopt and save', () => {
-    it('gives a device with nothing saved the account\'s values without asking', () => {
+    it("gives a device with nothing saved the account's values without asking", () => {
       const account = fakeAccount();
       render(<Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />);
 
@@ -258,7 +262,7 @@ describe('ViewerSettingsSyncProvider', () => {
       expect(promptText()).toBe('none');
     });
 
-    it('compares nothing until the account\'s values have loaded', () => {
+    it("compares nothing until the account's values have loaded", () => {
       seedDevice({ theme: 'light' });
       const account = fakeAccount();
       render(<Harness account={account} initial={undefined} />);
@@ -266,10 +270,12 @@ describe('ViewerSettingsSyncProvider', () => {
       expect(promptText()).toBe('none');
 
       act(() => account.setSettings({ theme: 'dark', reducedMotion: null }));
-      expect(sync().prompt?.differences).toEqual([{ setting: 'theme', device: 'light', account: 'dark' }]);
+      expect(sync().prompt?.differences).toEqual([
+        { setting: 'theme', device: 'light', account: 'dark' },
+      ]);
     });
 
-    it('saves the device\'s values to an account with nothing saved, without asking', async () => {
+    it("saves the device's values to an account with nothing saved, without asking", async () => {
       seedDevice({ theme: 'dark', reducedMotion: true });
       const account = fakeAccount();
       render(<Harness account={account} initial={NOTHING} />);
@@ -304,7 +310,9 @@ describe('ViewerSettingsSyncProvider', () => {
       seedDevice({ theme: 'dark' });
       const account = fakeAccount();
       account.holding = true;
-      const { rerender } = render(<Harness account={account} initial={NOTHING} accountId="viewer-a" />);
+      const { rerender } = render(
+        <Harness account={account} initial={NOTHING} accountId="viewer-a" />,
+      );
       expect(account.save).toHaveBeenCalledTimes(1);
 
       // The first account signs out with its save still in flight; a second one signs in and its
@@ -357,7 +365,7 @@ describe('ViewerSettingsSyncProvider', () => {
       expect(account.save).not.toHaveBeenCalled();
     });
 
-    it('applies the account\'s values to the device when the viewer chooses them', () => {
+    it("applies the account's values to the device when the viewer chooses them", () => {
       seedDevice({ theme: 'light', reducedMotion: false });
       const account = fakeAccount();
       render(<Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />);
@@ -370,7 +378,7 @@ describe('ViewerSettingsSyncProvider', () => {
       expect(account.save).not.toHaveBeenCalled();
     });
 
-    it('saves the device\'s values to the account when the viewer chooses them, staying until they land', async () => {
+    it("saves the device's values to the account when the viewer chooses them, staying until they land", async () => {
       seedDevice({ theme: 'light', reducedMotion: false });
       const account = fakeAccount();
       render(<Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />);
@@ -392,10 +400,12 @@ describe('ViewerSettingsSyncProvider', () => {
       expect(window.localStorage.getItem(keys.theme)).toBe('light');
     });
 
-    it('keeps the device\'s values on dismiss and does not ask about the same differences again', () => {
+    it("keeps the device's values on dismiss and does not ask about the same differences again", () => {
       seedDevice({ theme: 'light', reducedMotion: false });
       const account = fakeAccount();
-      const { unmount } = render(<Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />);
+      const { unmount } = render(
+        <Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />,
+      );
 
       act(() => sync().prompt!.dismiss());
       expect(promptText()).toBe('none');
@@ -465,7 +475,9 @@ describe('ViewerSettingsSyncProvider', () => {
     it('compares only after hydration, so the device keeps its saved theme and the viewer is asked', async () => {
       seedDevice({ theme: 'light' });
       const account = fakeAccount();
-      const element = <Harness account={account} initial={{ theme: 'dark', reducedMotion: null }} />;
+      const element = (
+        <Harness account={account} initial={{ theme: 'dark', reducedMotion: null }} />
+      );
       const container = document.createElement('div');
       container.innerHTML = renderToString(element);
       document.body.appendChild(container);
@@ -479,7 +491,9 @@ describe('ViewerSettingsSyncProvider', () => {
 
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(window.localStorage.getItem(keys.theme)).toBe('light');
-      expect(sync().prompt?.differences).toEqual([{ setting: 'theme', device: 'light', account: 'dark' }]);
+      expect(sync().prompt?.differences).toEqual([
+        { setting: 'theme', device: 'light', account: 'dark' },
+      ]);
       act(() => root.unmount());
       container.remove();
     });

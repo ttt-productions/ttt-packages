@@ -13,7 +13,10 @@ interface UseCheckoutNextImportantTaskOptions {
 /**
  * Mutation to check out the highest-priority pending task across all queues; the server picks it.
  */
-export function useCheckoutNextImportantTask({ checkoutNextImportantTaskFn, userId }: UseCheckoutNextImportantTaskOptions) {
+export function useCheckoutNextImportantTask({
+  checkoutNextImportantTaskFn,
+  userId,
+}: UseCheckoutNextImportantTaskOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({

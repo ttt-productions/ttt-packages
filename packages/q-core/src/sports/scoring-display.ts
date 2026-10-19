@@ -24,7 +24,10 @@ export interface StatEventLabel {
 }
 
 /** Each field of a team line and of a player line, by label — what a correction row names. */
-export interface StatFieldLabels<TeamField extends StatCounterKey, PlayerField extends StatCounterKey> {
+export interface StatFieldLabels<
+  TeamField extends StatCounterKey,
+  PlayerField extends StatCounterKey,
+> {
   readonly team: Readonly<Record<TeamField, string>>;
   readonly player: Readonly<Record<PlayerField, string>>;
 }
@@ -100,7 +103,10 @@ export const VOID_PLAY_DESCRIPTION = 'Undo of an earlier play';
 export function describeStoreEvent(
   event: GameStatEvent,
   resolve: StatEventNameResolver,
-  fieldLabels: { readonly team: Partial<Record<StatCounterKey, string>>; readonly player: Partial<Record<StatCounterKey, string>> },
+  fieldLabels: {
+    readonly team: Partial<Record<StatCounterKey, string>>;
+    readonly player: Partial<Record<StatCounterKey, string>>;
+  },
 ): string | null {
   if (isStatVoid(event)) return VOID_PLAY_DESCRIPTION;
   if (!isStatCorrection(event)) return null;

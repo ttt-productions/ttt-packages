@@ -64,12 +64,14 @@ describe('isDocumentIdSegment', () => {
     expect(isDocumentIdSegment('a..b')).toBe(true);
   });
 
-  it.each(NOT_ONE_SEGMENT.map((id) => [id.length > 20 ? `${id.slice(0, 8)}… (${id.length} chars)` : JSON.stringify(id), id]))(
-    'refuses %s',
-    (_label, id) => {
-      expect(isDocumentIdSegment(id)).toBe(false);
-    },
-  );
+  it.each(
+    NOT_ONE_SEGMENT.map((id) => [
+      id.length > 20 ? `${id.slice(0, 8)}… (${id.length} chars)` : JSON.stringify(id),
+      id,
+    ]),
+  )('refuses %s', (_label, id) => {
+    expect(isDocumentIdSegment(id)).toBe(false);
+  });
 });
 
 describe('the id atoms a path is built from', () => {
@@ -89,12 +91,18 @@ describe('the id atoms a path is built from', () => {
   });
 
   it('gameRosterPlayerIdSchema refuses a slash even when the parts parse', () => {
-    expect(gameRosterPlayerIdSchema.safeParse(buildGameRosterPlayerId('team1', 'user1')).success).toBe(true);
-    expect(gameRosterPlayerIdSchema.safeParse(buildGameRosterPlayerId('team1', 'users/user1')).success).toBe(false);
+    expect(
+      gameRosterPlayerIdSchema.safeParse(buildGameRosterPlayerId('team1', 'user1')).success,
+    ).toBe(true);
+    expect(
+      gameRosterPlayerIdSchema.safeParse(buildGameRosterPlayerId('team1', 'users/user1')).success,
+    ).toBe(false);
   });
 
   it('a callable input naming a game or a week by a multi-segment id is refused at the wire', () => {
-    expect(AdminDeleteSportGameInputSchema.safeParse({ gameId: 'g1/gameStatEvents/e1' }).success).toBe(false);
+    expect(
+      AdminDeleteSportGameInputSchema.safeParse({ gameId: 'g1/gameStatEvents/e1' }).success,
+    ).toBe(false);
     expect(
       AdminUpdateScheduleWeekInputSchema.safeParse({
         leagueId: 'leagues/l1',

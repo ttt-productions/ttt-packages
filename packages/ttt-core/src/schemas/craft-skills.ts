@@ -2,19 +2,23 @@ import { z } from 'zod';
 import { craftSkillIdSchema, addRemoveActionSchema } from './atoms.js';
 import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 
-export const DeleteCraftSkillInputSchema = z.object({
-  craftSkillId: craftSkillIdSchema,
-}).strict();
+export const DeleteCraftSkillInputSchema = z
+  .object({
+    craftSkillId: craftSkillIdSchema,
+  })
+  .strict();
 export type DeleteCraftSkillInput = z.infer<typeof DeleteCraftSkillInputSchema>;
 
 // `tag` is constrained to the canonical option list — the wire schema is the moderation
 // boundary (BACKEND-106). A free-text tag would put unmoderated public text on the profile
 // badge + pollute the craftSkillsByTag index with junk doc IDs (and could break path builders).
-export const UpdateCraftSkillTagsInputSchema = z.object({
-  craftSkillId: craftSkillIdSchema,
-  tag: z.enum(CRAFT_SKILL_TAG_VALUES),
-  action: addRemoveActionSchema,
-}).strict();
+export const UpdateCraftSkillTagsInputSchema = z
+  .object({
+    craftSkillId: craftSkillIdSchema,
+    tag: z.enum(CRAFT_SKILL_TAG_VALUES),
+    action: addRemoveActionSchema,
+  })
+  .strict();
 export type UpdateCraftSkillTagsInput = z.infer<typeof UpdateCraftSkillTagsInputSchema>;
 
 // --- Authoritative mutation RESULTS (non-strict server → client posture) ---
@@ -52,15 +56,17 @@ export const UpdateCraftSkillTagsResultSchema = z.object({
 });
 export type UpdateCraftSkillTagsResult = z.infer<typeof UpdateCraftSkillTagsResultSchema>;
 
-
-
 // getOwnHiddenCraftSkillCount — how many of the caller's OWN crafts moderation hid. A hidden craft
 // still holds one of the caller's craft slots, but it is unreadable to everyone, its owner
 // included, so the owner's counter learns the number from the server. Only the count is answered.
 export const GetOwnHiddenCraftSkillCountInputSchema = z.object({}).strict();
-export type GetOwnHiddenCraftSkillCountInput = z.infer<typeof GetOwnHiddenCraftSkillCountInputSchema>;
+export type GetOwnHiddenCraftSkillCountInput = z.infer<
+  typeof GetOwnHiddenCraftSkillCountInputSchema
+>;
 
 export const GetOwnHiddenCraftSkillCountResultSchema = z.object({
   hiddenCount: z.number().int().nonnegative(),
 });
-export type GetOwnHiddenCraftSkillCountResult = z.infer<typeof GetOwnHiddenCraftSkillCountResultSchema>;
+export type GetOwnHiddenCraftSkillCountResult = z.infer<
+  typeof GetOwnHiddenCraftSkillCountResultSchema
+>;

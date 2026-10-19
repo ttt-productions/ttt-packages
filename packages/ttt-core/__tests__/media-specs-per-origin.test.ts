@@ -57,6 +57,8 @@ describe('TTT_MEDIA_SPECS per-origin correctness', () => {
 
 describe('the NCII evidence upload cap', () => {
   it('is the NCII policy per-file cap — one owner, never a second number', () => {
-    expect(TTT_MEDIA_SPECS['ncii-evidence'].maxBytes).toBe(DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes);
+    expect(TTT_MEDIA_SPECS['ncii-evidence'].maxBytes).toBe(
+      DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes,
+    );
   });
 });

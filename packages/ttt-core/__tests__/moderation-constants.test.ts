@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  REJECTION_LIKELIHOODS,
-  TEXT_MODERATION_MIN_LENGTH,
-} from '../src/constants/moderation.js';
+import { REJECTION_LIKELIHOODS, TEXT_MODERATION_MIN_LENGTH } from '../src/constants/moderation.js';
 import {
   REJECTED_MEDIA_RETENTION_DAYS,
   PENDING_MEDIA_ARCHIVE_AFTER_DAYS,

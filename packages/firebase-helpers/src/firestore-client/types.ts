@@ -1,5 +1,10 @@
-import type { DocumentData, DocumentSnapshot, QueryDocumentSnapshot, Timestamp } from "firebase/firestore";
-import type { SerializedTimestamp, WithId } from "../firestore/types.js";
+import type {
+  DocumentData,
+  DocumentSnapshot,
+  QueryDocumentSnapshot,
+  Timestamp,
+} from 'firebase/firestore';
+import type { SerializedTimestamp, WithId } from '../firestore/types.js';
 
 export type DocSnap<T> = DocumentSnapshot<T>;
 export type QueryDocSnap<T> = QueryDocumentSnapshot<T>;

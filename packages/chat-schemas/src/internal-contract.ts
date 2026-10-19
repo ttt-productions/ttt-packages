@@ -78,7 +78,9 @@ export const CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH = 64;
  * the conversation reference's own bounds, so every valid conversation's room can be reported.
  */
 export const CHAT_ROOM_TARGET_MAX_LENGTH =
-  CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH + CHAT_CONVERSATION_KIND_MAX_LENGTH + CHAT_CONVERSATION_ID_MAX_LENGTH;
+  CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH +
+  CHAT_CONVERSATION_KIND_MAX_LENGTH +
+  CHAT_CONVERSATION_ID_MAX_LENGTH;
 
 /** The longest parked outbox row id. */
 export const CHAT_OUTBOX_EVENT_ID_MAX_LENGTH = 200;
@@ -115,7 +117,9 @@ export type ChatParkedDeliveryReport = z.infer<typeof ChatParkedDeliveryReportSc
  * The operation id a report's signature binds: its own `eventId`. The receiver refuses a report whose
  * body names another, so a signature covers one parked row.
  */
-export function chatParkedDeliveryReportOperationId(report: Pick<ChatParkedDeliveryReport, 'eventId'>): string {
+export function chatParkedDeliveryReportOperationId(
+  report: Pick<ChatParkedDeliveryReport, 'eventId'>,
+): string {
   return report.eventId;
 }
 

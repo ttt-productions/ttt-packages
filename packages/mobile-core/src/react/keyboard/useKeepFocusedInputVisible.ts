@@ -1,19 +1,21 @@
-import { useEffect } from "react";
-import { isBrowser } from "../../env.js";
-import { useKeyboard } from "./useKeyboard.js";
-import { resolvePrefix, type CssPrefixOptions } from "../css-prefix.js";
+import { useEffect } from 'react';
+import { isBrowser } from '../../env.js';
+import { useKeyboard } from './useKeyboard.js';
+import { resolvePrefix, type CssPrefixOptions } from '../css-prefix.js';
 
 /**
  * When keyboard opens, ensure focused element is visible within visual viewport.
  * - iOS Safari often hides the caret behind the keyboard.
  */
-export function useKeepFocusedInputVisible(opts?: CssPrefixOptions & {
-  extraOffset?: number; // px
-  scrollBehavior?: ScrollBehavior; // "smooth" | "auto"
-}) {
+export function useKeepFocusedInputVisible(
+  opts?: CssPrefixOptions & {
+    extraOffset?: number; // px
+    scrollBehavior?: ScrollBehavior; // "smooth" | "auto"
+  },
+) {
   const { isOpen } = useKeyboard();
   const extraOffset = opts?.extraOffset ?? 12;
-  const behavior = opts?.scrollBehavior ?? "smooth";
+  const behavior = opts?.scrollBehavior ?? 'smooth';
   const prefix = resolvePrefix(opts);
 
   useEffect(() => {
@@ -26,7 +28,11 @@ export function useKeepFocusedInputVisible(opts?: CssPrefixOptions & {
     // only inputs-ish
     const tag = el.tagName.toLowerCase();
     const isInput =
-      tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable || el.hasAttribute(`data-${prefix}-input`);
+      tag === 'input' ||
+      tag === 'textarea' ||
+      tag === 'select' ||
+      el.isContentEditable ||
+      el.hasAttribute(`data-${prefix}-input`);
     if (!isInput) return;
 
     const vv = window.visualViewport;

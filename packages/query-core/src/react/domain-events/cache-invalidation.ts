@@ -1,6 +1,6 @@
-import type { Query, QueryClient, QueryFilters, QueryKey } from "@tanstack/react-query";
+import type { Query, QueryClient, QueryFilters, QueryKey } from '@tanstack/react-query';
 
-export type RefetchType = "active" | "all" | "none";
+export type RefetchType = 'active' | 'all' | 'none';
 
 /**
  * What an entry does to the queries it matches:
@@ -9,13 +9,13 @@ export type RefetchType = "active" | "all" | "none";
  *   held answer that must not be served again;
  * - `"reset"` returns them to their initial state and refetches the active ones from scratch.
  */
-export type CacheAction = "refresh" | "remove" | "reset";
+export type CacheAction = 'refresh' | 'remove' | 'reset';
 
 export type CacheInvalidation =
-  | { kind: "exact"; queryKey: QueryKey; refetchType?: RefetchType; action?: CacheAction }
-  | { kind: "prefix"; queryKey: QueryKey; refetchType?: RefetchType; action?: CacheAction }
+  | { kind: 'exact'; queryKey: QueryKey; refetchType?: RefetchType; action?: CacheAction }
+  | { kind: 'prefix'; queryKey: QueryKey; refetchType?: RefetchType; action?: CacheAction }
   | {
-      kind: "predicate";
+      kind: 'predicate';
       description: string;
       match: (query: Query) => boolean;
       refetchType?: RefetchType;
@@ -23,19 +23,20 @@ export type CacheInvalidation =
     };
 
 /** `refetchType` belongs to a refresh; a remove or reset takes none. */
-type EntryOptions = { refetchType?: RefetchType; action?: "refresh" } | { action: "remove" | "reset" };
+type EntryOptions =
+  { refetchType?: RefetchType; action?: 'refresh' } | { action: 'remove' | 'reset' };
 
 const entryFields = (opts?: EntryOptions) => ({
-  refetchType: opts && "refetchType" in opts ? opts.refetchType : undefined,
+  refetchType: opts && 'refetchType' in opts ? opts.refetchType : undefined,
   action: opts?.action,
 });
 
 export function exact(queryKey: QueryKey, opts?: EntryOptions): CacheInvalidation {
-  return { kind: "exact", queryKey, ...entryFields(opts) };
+  return { kind: 'exact', queryKey, ...entryFields(opts) };
 }
 
 export function prefix(queryKey: QueryKey, opts?: EntryOptions): CacheInvalidation {
-  return { kind: "prefix", queryKey, ...entryFields(opts) };
+  return { kind: 'prefix', queryKey, ...entryFields(opts) };
 }
 
 export function predicate(
@@ -43,19 +44,19 @@ export function predicate(
   match: (query: Query) => boolean,
   opts?: EntryOptions,
 ): CacheInvalidation {
-  return { kind: "predicate", description, match, ...entryFields(opts) };
+  return { kind: 'predicate', description, match, ...entryFields(opts) };
 }
 
 export function serializeInvalidation(inv: CacheInvalidation): string {
-  const action = inv.action && inv.action !== "refresh" ? `${inv.action}:` : "";
-  if (inv.kind === "predicate") return `${action}predicate:${inv.description}`;
+  const action = inv.action && inv.action !== 'refresh' ? `${inv.action}:` : '';
+  if (inv.kind === 'predicate') return `${action}predicate:${inv.description}`;
   return `${action}${inv.kind}:${JSON.stringify(inv.queryKey)}`;
 }
 
 /** The cache filter that selects exactly the queries one invalidation targets. */
 function invalidationFilters(inv: CacheInvalidation): QueryFilters {
-  if (inv.kind === "exact") return { queryKey: inv.queryKey, exact: true };
-  if (inv.kind === "prefix") return { queryKey: inv.queryKey, exact: false };
+  if (inv.kind === 'exact') return { queryKey: inv.queryKey, exact: true };
+  if (inv.kind === 'prefix') return { queryKey: inv.queryKey, exact: false };
   return { predicate: inv.match };
 }
 
@@ -77,7 +78,7 @@ function invalidationFilters(inv: CacheInvalidation): QueryFilters {
  */
 function cancelPendingInitialReads(queryClient: QueryClient, filters: QueryFilters): void {
   for (const query of queryClient.getQueryCache().findAll(filters)) {
-    if (query.state.fetchStatus !== "fetching") continue;
+    if (query.state.fetchStatus !== 'fetching') continue;
     if (query.state.data !== undefined) continue;
     void queryClient.cancelQueries({ queryKey: query.queryKey, exact: true });
   }
@@ -135,9 +136,9 @@ export function applyInvalidations(
     seen.add(sig);
 
     const filters = invalidationFilters(inv);
-    const action: CacheAction = inv.action ?? "refresh";
+    const action: CacheAction = inv.action ?? 'refresh';
 
-    if (action === "remove") {
+    if (action === 'remove') {
       const matched = matchedNow(queryClient, filters);
       // Removing a query abandons its read in flight silently, so that read never puts the dropped
       // answer back, but a screen still watching it would go on showing it as fetching. Cancelled
@@ -146,13 +147,13 @@ export function applyInvalidations(
       queryClient.removeQueries(matched);
       continue;
     }
-    if (action === "reset") {
+    if (action === 'reset') {
       refreshes.push(queryClient.resetQueries(matchedNow(queryClient, filters)));
       continue;
     }
 
-    const refetchType: RefetchType = inv.refetchType ?? "active";
-    if (refetchType !== "none") {
+    const refetchType: RefetchType = inv.refetchType ?? 'active';
+    if (refetchType !== 'none') {
       cancelPendingInitialReads(queryClient, filters);
     }
 

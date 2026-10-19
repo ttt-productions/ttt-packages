@@ -38,8 +38,11 @@ describe('OpsStatus snapshot shape (Mission Control landing)', () => {
       refundRequests: number;
       disputes: number;
     }>();
-    // @ts-expect-error — a snapshot without the change-request lane is not a complete queue count.
-    const withoutChangeRequests: OpsStatus['adminQueue'] = { ...adminQueue, changeRequests: undefined };
+    const withoutChangeRequests: OpsStatus['adminQueue'] = {
+      ...adminQueue,
+      // @ts-expect-error — a snapshot without the change-request lane is not a complete queue count.
+      changeRequests: undefined,
+    };
     void withoutChangeRequests;
   });
 
@@ -58,8 +61,12 @@ describe('OpsStatus snapshot shape (Mission Control landing)', () => {
     };
     expectTypeOf(clocks).toMatchTypeOf<OpsSafetyClocks>();
     expectTypeOf<OpsSafetyClocks>().not.toHaveProperty('earliestReviewDueAt');
-    expectTypeOf<OpsSafetyClocks['earliestPhotoDnaContractAt']>().toEqualTypeOf<number | undefined>();
-    expectTypeOf<OpsSafetyClocks['earliestNciiRemovalDeadlineAt']>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<OpsSafetyClocks['earliestPhotoDnaContractAt']>().toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf<OpsSafetyClocks['earliestNciiRemovalDeadlineAt']>().toEqualTypeOf<
+      number | undefined
+    >();
   });
 
   it('broken-machinery counts are numbers; the heartbeat freshness epoch is an optional number', () => {
@@ -70,8 +77,12 @@ describe('OpsStatus snapshot shape (Mission Control landing)', () => {
       failedMediaCount: 0,
     };
     expectTypeOf(machinery).toMatchTypeOf<OpsBrokenMachinery>();
-    expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatLastRunAt']>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatLastRunAt']>().toEqualTypeOf<
+      number | undefined
+    >();
     // Staleness is SERVER-derived (ARCH-102) — the client must never re-declare the threshold.
-    expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatStale']>().toEqualTypeOf<boolean | undefined>();
+    expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatStale']>().toEqualTypeOf<
+      boolean | undefined
+    >();
   });
 });

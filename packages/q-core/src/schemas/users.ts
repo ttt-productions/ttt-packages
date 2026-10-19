@@ -2,7 +2,12 @@
 
 import { z } from 'zod';
 import { MAX_ADMIN_LIST_CHANGES } from '../constants/business.js';
-import { countSchema, repairReasonSchema, userIdSchema, userStatusSchema } from '../doc-schemas/atoms.js';
+import {
+  countSchema,
+  repairReasonSchema,
+  userIdSchema,
+  userStatusSchema,
+} from '../doc-schemas/atoms.js';
 import { displayNameSchema } from './atoms.js';
 
 // The signed-in caller finishes registration: profile, public identity, and the display-name
@@ -17,7 +22,9 @@ export const RegisterUserInputSchema = z
 export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
 export const RegisterUserResultSchema = z.discriminatedUnion('status', [
   // The account is registered (or already was — an idempotent replay).
-  z.object({ status: z.literal('registered'), userId: userIdSchema, displayName: z.string() }).strict(),
+  z
+    .object({ status: z.literal('registered'), userId: userIdSchema, displayName: z.string() })
+    .strict(),
   // The orphan-registration cleanup claimed this login for deletion, so the registration cannot
   // finish on it; nothing is written and the person signs up again.
   z.object({ status: z.literal('registrationExpired') }).strict(),
@@ -28,7 +35,9 @@ export type RegisterUserResult = z.infer<typeof RegisterUserResultSchema>;
 // account exists, over the same name rule `registerUser` takes, and is a soft answer — the claim
 // itself is `registerUser`'s transaction, which refuses `already-exists` when two registrations
 // pass this check at once.
-export const CheckDisplayNameAvailableInputSchema = z.object({ displayName: displayNameSchema }).strict();
+export const CheckDisplayNameAvailableInputSchema = z
+  .object({ displayName: displayNameSchema })
+  .strict();
 export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvailableInputSchema>;
 // Why a name is not available. Uniqueness is the only rule a Q-Sports name is held to beyond its
 // input format.
@@ -74,7 +83,9 @@ export const LookedUpUserSchema = z
   .strict();
 export type LookedUpUser = z.infer<typeof LookedUpUserSchema>;
 // The one exact match, or `null` when no account with a profile resolves.
-export const LookupUserByEmailOrUidResultSchema = z.object({ user: LookedUpUserSchema.nullable() }).strict();
+export const LookupUserByEmailOrUidResultSchema = z
+  .object({ user: LookedUpUserSchema.nullable() })
+  .strict();
 export type LookupUserByEmailOrUidResult = z.infer<typeof LookupUserByEmailOrUidResultSchema>;
 
 // An admin searches accounts by the start of their name, over public display identity. Ghosts are
@@ -87,7 +98,9 @@ export const PublicUserSearchResultSchema = z
   .object({ uid: userIdSchema, displayName: z.string(), userStatus: userStatusSchema })
   .strict();
 export type PublicUserSearchResult = z.infer<typeof PublicUserSearchResultSchema>;
-export const SearchPublicUsersResultSchema = z.object({ users: z.array(PublicUserSearchResultSchema) }).strict();
+export const SearchPublicUsersResultSchema = z
+  .object({ users: z.array(PublicUserSearchResultSchema) })
+  .strict();
 export type SearchPublicUsersResult = z.infer<typeof SearchPublicUsersResultSchema>;
 
 // An admin renames a user. Self-service rename is not a Q-Sports feature.
@@ -95,7 +108,9 @@ export const UpdateDisplayNameInputSchema = z
   .object({ userId: userIdSchema, newDisplayName: displayNameSchema })
   .strict();
 export type UpdateDisplayNameInput = z.infer<typeof UpdateDisplayNameInputSchema>;
-export const UpdateDisplayNameResultSchema = z.object({ userId: userIdSchema, displayName: z.string() }).strict();
+export const UpdateDisplayNameResultSchema = z
+  .object({ userId: userIdSchema, displayName: z.string() })
+  .strict();
 export type UpdateDisplayNameResult = z.infer<typeof UpdateDisplayNameResultSchema>;
 
 // An admin grants or revokes the two global roles on `_systemData/adminList`. Four named lists —
@@ -151,7 +166,11 @@ export type CreateRegistrationStartInput = z.infer<typeof CreateRegistrationStar
 // `started` wrote both records; `alreadyStarted` found the registration already started and wrote
 // nothing — a retry, or a resume after a later step failed; `registrationExpired` found the login
 // claimed by the orphan-registration cleanup and wrote nothing — the person signs up again.
-export const REGISTRATION_START_OUTCOMES = ['started', 'alreadyStarted', 'registrationExpired'] as const;
+export const REGISTRATION_START_OUTCOMES = [
+  'started',
+  'alreadyStarted',
+  'registrationExpired',
+] as const;
 export type RegistrationStartOutcome = (typeof REGISTRATION_START_OUTCOMES)[number];
 export const CreateRegistrationStartResultSchema = z
   .object({ outcome: z.enum(REGISTRATION_START_OUTCOMES) })

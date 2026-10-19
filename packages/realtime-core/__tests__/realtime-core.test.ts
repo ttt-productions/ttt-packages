@@ -14,10 +14,26 @@ describe('protocol', () => {
 
 describe('envelopes', () => {
   it('parses a wire message envelope', () => {
-    expect(RealtimeMessageEnvelopeSchema.safeParse({ v: 1, kind: 'msg', seq: 5, clientMessageId: 'c1', payload: { t: 'hi' } }).success).toBe(true);
+    expect(
+      RealtimeMessageEnvelopeSchema.safeParse({
+        v: 1,
+        kind: 'msg',
+        seq: 5,
+        clientMessageId: 'c1',
+        payload: { t: 'hi' },
+      }).success,
+    ).toBe(true);
   });
   it('parses a versioned sync item', () => {
-    expect(VersionedSyncItemSchema.safeParse({ eventId: 'e1', version: 2, payloadHash: 'h', payload: {}, tombstone: true }).success).toBe(true);
+    expect(
+      VersionedSyncItemSchema.safeParse({
+        eventId: 'e1',
+        version: 2,
+        payloadHash: 'h',
+        payload: {},
+        tombstone: true,
+      }).success,
+    ).toBe(true);
   });
 });
 
@@ -26,16 +42,24 @@ describe('decideApply (versioned-apply wrapper)', () => {
     expect(decideApply({ version: 1, payloadHash: 'a' }, null)).toBe('apply');
   });
   it('applies a strictly newer version', () => {
-    expect(decideApply({ version: 3, payloadHash: 'b' }, { version: 2, payloadHash: 'a' })).toBe('apply');
+    expect(decideApply({ version: 3, payloadHash: 'b' }, { version: 2, payloadHash: 'a' })).toBe(
+      'apply',
+    );
   });
   it('idempotent on same version + same hash', () => {
-    expect(decideApply({ version: 2, payloadHash: 'a' }, { version: 2, payloadHash: 'a' })).toBe('idempotent');
+    expect(decideApply({ version: 2, payloadHash: 'a' }, { version: 2, payloadHash: 'a' })).toBe(
+      'idempotent',
+    );
   });
   it('conflict on same version + different hash', () => {
-    expect(decideApply({ version: 2, payloadHash: 'b' }, { version: 2, payloadHash: 'a' })).toBe('conflict');
+    expect(decideApply({ version: 2, payloadHash: 'b' }, { version: 2, payloadHash: 'a' })).toBe(
+      'conflict',
+    );
   });
   it('stale on an older version', () => {
-    expect(decideApply({ version: 1, payloadHash: 'a' }, { version: 2, payloadHash: 'b' })).toBe('stale');
+    expect(decideApply({ version: 1, payloadHash: 'a' }, { version: 2, payloadHash: 'b' })).toBe(
+      'stale',
+    );
   });
 });
 
@@ -45,7 +69,10 @@ describe('applyVersioned', () => {
     const written: unknown[] = [];
     const adapter = {
       read: () => stored,
-      write: (item: { version: number; payloadHash: string }) => { stored = item; written.push(item); },
+      write: (item: { version: number; payloadHash: string }) => {
+        stored = item;
+        written.push(item);
+      },
     };
     expect(await applyVersioned({ version: 1, payloadHash: 'a' }, adapter)).toBe('apply');
     expect(await applyVersioned({ version: 1, payloadHash: 'a' }, adapter)).toBe('idempotent');

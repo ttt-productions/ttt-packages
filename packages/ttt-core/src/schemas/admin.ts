@@ -101,10 +101,12 @@ export type CheckoutNextImportantTaskInput = z.infer<typeof CheckoutNextImportan
 
 // No task type: the server derives it from the task doc, since a client-sent one could be forged.
 // Callers pass only the task id + the extension window.
-export const MarkWorkLaterInputSchema = z.object({
-  taskId: taskIdSchema,
-  extendHours: z.union([z.literal(24), z.literal(48)]),
-}).strict();
+export const MarkWorkLaterInputSchema = z
+  .object({
+    taskId: taskIdSchema,
+    extendHours: z.union([z.literal(24), z.literal(48)]),
+  })
+  .strict();
 export type MarkWorkLaterInput = z.infer<typeof MarkWorkLaterInputSchema>;
 
 // `alreadyResolved` answers a task already gone: nothing was written.
@@ -119,12 +121,14 @@ export type MarkWorkLaterResult = z.infer<typeof MarkWorkLaterResultSchema>;
 export const ContentAppealDecisionSchema = z.enum(['approved', 'denied']);
 export type ContentAppealDecision = z.infer<typeof ContentAppealDecisionSchema>;
 
-export const ReviewContentAppealInputSchema = z.object({
-  violationId: violationIdSchema,
-  taskId: taskIdSchema,
-  decision: ContentAppealDecisionSchema,
-  adminNotes: textFieldSchema(APPEAL_REVIEW_NOTES_INPUT),
-}).strict();
+export const ReviewContentAppealInputSchema = z
+  .object({
+    violationId: violationIdSchema,
+    taskId: taskIdSchema,
+    decision: ContentAppealDecisionSchema,
+    adminNotes: textFieldSchema(APPEAL_REVIEW_NOTES_INPUT),
+  })
+  .strict();
 export type ReviewContentAppealInput = z.infer<typeof ReviewContentAppealInputSchema>;
 
 // Authoritative result of reviewContentAppeal.
@@ -158,139 +162,175 @@ const appliesToTypeInputFields = {
   hallWingType: z.enum(HALL_WING_TYPE_KEYS).optional(),
 };
 
-export const FuturePlanGroupInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  name: textFieldSchema(FUTURE_PLAN_GROUP_NAME_INPUT),
-  order: z.number().int().min(0),
-  intention: publicDocumentIntentionSchema,
-}).strict();
+export const FuturePlanGroupInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    name: textFieldSchema(FUTURE_PLAN_GROUP_NAME_INPUT),
+    order: z.number().int().min(0),
+    intention: publicDocumentIntentionSchema,
+  })
+  .strict();
 
-export const FuturePlanItemInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  title: textFieldSchema(FUTURE_PLAN_TITLE_INPUT),
-  description: textFieldSchema(FUTURE_PLAN_DESCRIPTION_INPUT),
-  groupId: publicDocumentItemIdSchema,
-  order: z.number().int().min(0),
-}).strict();
+export const FuturePlanItemInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    title: textFieldSchema(FUTURE_PLAN_TITLE_INPUT),
+    description: textFieldSchema(FUTURE_PLAN_DESCRIPTION_INPUT),
+    groupId: publicDocumentItemIdSchema,
+    order: z.number().int().min(0),
+  })
+  .strict();
 
-export const FuturePlansContentInputSchema = z.object({
-  intro: publicDocumentIntroSchema,
-  groups: z.array(FuturePlanGroupInputSchema).max(MAX_FUTURE_PLAN_GROUPS),
-  plans: z.array(FuturePlanItemInputSchema).max(MAX_FUTURE_PLANS),
-}).strict().superRefine((content, ctx) => {
-  // A plan whose group is missing would never render, so every plan names a group the document holds.
-  const groupIds = new Set(content.groups.map((group) => group.id));
-  if (groupIds.size !== content.groups.length) {
-    ctx.addIssue({ code: 'custom', path: ['groups'], message: 'Each group needs its own id.' });
-  }
-  content.plans.forEach((plan, index) => {
-    if (!groupIds.has(plan.groupId)) {
-      ctx.addIssue({ code: 'custom', path: ['plans', index, 'groupId'], message: 'Every plan belongs to one of the groups.' });
+export const FuturePlansContentInputSchema = z
+  .object({
+    intro: publicDocumentIntroSchema,
+    groups: z.array(FuturePlanGroupInputSchema).max(MAX_FUTURE_PLAN_GROUPS),
+    plans: z.array(FuturePlanItemInputSchema).max(MAX_FUTURE_PLANS),
+  })
+  .strict()
+  .superRefine((content, ctx) => {
+    // A plan whose group is missing would never render, so every plan names a group the document holds.
+    const groupIds = new Set(content.groups.map((group) => group.id));
+    if (groupIds.size !== content.groups.length) {
+      ctx.addIssue({ code: 'custom', path: ['groups'], message: 'Each group needs its own id.' });
     }
+    content.plans.forEach((plan, index) => {
+      if (!groupIds.has(plan.groupId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['plans', index, 'groupId'],
+          message: 'Every plan belongs to one of the groups.',
+        });
+      }
+    });
   });
-});
 export type FuturePlansContentInput = z.infer<typeof FuturePlansContentInputSchema>;
 
-export const PlatformRuleInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  title: textFieldSchema(PLATFORM_RULE_TITLE_INPUT),
-  description: textFieldSchema(PLATFORM_RULE_DESCRIPTION_INPUT),
-  group: RuleGroupSchema,
-  ...appliesToTypeInputFields,
-  order: z.number().int().min(0),
-}).strict();
+export const PlatformRuleInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    title: textFieldSchema(PLATFORM_RULE_TITLE_INPUT),
+    description: textFieldSchema(PLATFORM_RULE_DESCRIPTION_INPUT),
+    group: RuleGroupSchema,
+    ...appliesToTypeInputFields,
+    order: z.number().int().min(0),
+  })
+  .strict();
 
-export const AgreementPointInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  text: textFieldSchema(AGREEMENT_POINT_INPUT),
-  ...appliesToTypeInputFields,
-}).strict();
+export const AgreementPointInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    text: textFieldSchema(AGREEMENT_POINT_INPUT),
+    ...appliesToTypeInputFields,
+  })
+  .strict();
 
-export const ArtisanAgreementsInputSchema = z.object({
-  intention: publicDocumentIntentionSchema,
-  points: z.array(AgreementPointInputSchema).max(MAX_AGREEMENT_POINTS),
-}).strict();
+export const ArtisanAgreementsInputSchema = z
+  .object({
+    intention: publicDocumentIntentionSchema,
+    points: z.array(AgreementPointInputSchema).max(MAX_AGREEMENT_POINTS),
+  })
+  .strict();
 
-export const RulesAndAgreementsContentInputSchema = z.object({
-  intro: publicDocumentIntroSchema,
-  groupIntentions: z.partialRecord(RuleGroupSchema, textFieldSchema(PUBLIC_DOCUMENT_INTENTION_INPUT)).optional(),
-  rules: z.array(PlatformRuleInputSchema).max(MAX_PLATFORM_RULES),
-  agreements: ArtisanAgreementsInputSchema,
-}).strict();
+export const RulesAndAgreementsContentInputSchema = z
+  .object({
+    intro: publicDocumentIntroSchema,
+    groupIntentions: z
+      .partialRecord(RuleGroupSchema, textFieldSchema(PUBLIC_DOCUMENT_INTENTION_INPUT))
+      .optional(),
+    rules: z.array(PlatformRuleInputSchema).max(MAX_PLATFORM_RULES),
+    agreements: ArtisanAgreementsInputSchema,
+  })
+  .strict();
 export type RulesAndAgreementsContentInput = z.infer<typeof RulesAndAgreementsContentInputSchema>;
 
-export const ContentPageSectionInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
-  level: z.union([z.literal(1), z.literal(2)]),
-  // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
-  // Intention") is real content. The input schema must accept everything the
-  // stored ContentPageSectionSchema accepts, or a faithfully-seeded doc becomes
-  // unsaveable in the admin editor.
-  body: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
-  order: z.number().int().min(0),
-}).strict();
+export const ContentPageSectionInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
+    level: z.union([z.literal(1), z.literal(2)]),
+    // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
+    // Intention") is real content. The input schema must accept everything the
+    // stored ContentPageSectionSchema accepts, or a faithfully-seeded doc becomes
+    // unsaveable in the admin editor.
+    body: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
+    order: z.number().int().min(0),
+  })
+  .strict();
 
 /** The Terms of Service and Privacy Policy content (the one long-form legal page shape). */
-export const LegalPageContentInputSchema = z.object({
-  sections: z.array(ContentPageSectionInputSchema).min(1).max(MAX_CONTENT_PAGE_SECTIONS),
-}).strict();
+export const LegalPageContentInputSchema = z
+  .object({
+    sections: z.array(ContentPageSectionInputSchema).min(1).max(MAX_CONTENT_PAGE_SECTIONS),
+  })
+  .strict();
 export type LegalPageContentInput = z.infer<typeof LegalPageContentInputSchema>;
 
-export const TakeItDownPageCopyContentInputSchema = z.object({
-  strings: z.record(z.string().min(1).max(128), textFieldSchema(TAKE_IT_DOWN_COPY_INPUT)),
-}).strict().refine(
-  (data) => {
-    const count = Object.keys(data.strings).length;
-    return count >= 1 && count <= 200;
-  },
-  { message: 'strings must contain between 1 and 200 entries.' },
-);
+export const TakeItDownPageCopyContentInputSchema = z
+  .object({
+    strings: z.record(z.string().min(1).max(128), textFieldSchema(TAKE_IT_DOWN_COPY_INPUT)),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      const count = Object.keys(data.strings).length;
+      return count >= 1 && count <= 200;
+    },
+    { message: 'strings must contain between 1 and 200 entries.' },
+  );
 export type TakeItDownPageCopyContentInput = z.infer<typeof TakeItDownPageCopyContentInputSchema>;
 
-const DmcaContactRowInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  label: textFieldSchema(DMCA_CONTACT_LABEL_INPUT),
-  value: textFieldSchema(DMCA_CONTACT_VALUE_INPUT),
-  order: z.number().int().min(0),
-}).strict();
+const DmcaContactRowInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    label: textFieldSchema(DMCA_CONTACT_LABEL_INPUT),
+    value: textFieldSchema(DMCA_CONTACT_VALUE_INPUT),
+    order: z.number().int().min(0),
+  })
+  .strict();
 
-const DmcaContactBlockInputSchema = z.object({
-  id: publicDocumentItemIdSchema,
-  heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
-  order: z.number().int().min(0),
-  rows: z.array(DmcaContactRowInputSchema).min(1).max(MAX_DMCA_CONTACT_ROWS),
-}).strict();
+const DmcaContactBlockInputSchema = z
+  .object({
+    id: publicDocumentItemIdSchema,
+    heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
+    order: z.number().int().min(0),
+    rows: z.array(DmcaContactRowInputSchema).min(1).max(MAX_DMCA_CONTACT_ROWS),
+  })
+  .strict();
 
 /**
  * The DMCA policy content: the intro line, the labeled contact blocks (at least one — the page
  * exists to name the designated agent), and the long-form process sections.
  */
-export const DmcaPolicyContentInputSchema = z.object({
-  intro: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
-  contactBlocks: z.array(DmcaContactBlockInputSchema).min(1).max(MAX_DMCA_CONTACT_BLOCKS),
-  sections: z.array(ContentPageSectionInputSchema).max(MAX_CONTENT_PAGE_SECTIONS),
-}).strict();
+export const DmcaPolicyContentInputSchema = z
+  .object({
+    intro: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
+    contactBlocks: z.array(DmcaContactBlockInputSchema).min(1).max(MAX_DMCA_CONTACT_BLOCKS),
+    sections: z.array(ContentPageSectionInputSchema).max(MAX_CONTENT_PAGE_SECTIONS),
+  })
+  .strict();
 export type DmcaPolicyContentInput = z.infer<typeof DmcaPolicyContentInputSchema>;
 
 const AppConfigDocIdSchema = z.literal('app');
 
-export const UpdateAppConfigInputSchema = z.object({
-  docId: AppConfigDocIdSchema,
-  data: z.object({
-    appVersion: textFieldSchema(APP_VERSION_INPUT).optional(),
-    maintenanceMode: z.boolean().optional(),
-    maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT).optional(),
-    registrationEnabled: z.boolean().optional(),
-    // Announcement banner copy; '' clears the banner (empty = nothing renders).
-    announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT).optional(),
-    // Runtime abuse throttle: 0 < m <= 1 (tighten-only; 1 = no throttle).
-    rateLimitMultiplier: z.number().gt(0).max(1).optional(),
-  }).strict().refine(
-    (d) => Object.keys(d).length > 0,
-    { message: 'data must have at least one field' },
-  ),
-}).strict();
+export const UpdateAppConfigInputSchema = z
+  .object({
+    docId: AppConfigDocIdSchema,
+    data: z
+      .object({
+        appVersion: textFieldSchema(APP_VERSION_INPUT).optional(),
+        maintenanceMode: z.boolean().optional(),
+        maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT).optional(),
+        registrationEnabled: z.boolean().optional(),
+        // Announcement banner copy; '' clears the banner (empty = nothing renders).
+        announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT).optional(),
+        // Runtime abuse throttle: 0 < m <= 1 (tighten-only; 1 = no throttle).
+        rateLimitMultiplier: z.number().gt(0).max(1).optional(),
+      })
+      .strict()
+      .refine((d) => Object.keys(d).length > 0, { message: 'data must have at least one field' }),
+  })
+  .strict();
 export type UpdateAppConfigInput = z.infer<typeof UpdateAppConfigInputSchema>;
 
 export const UpdateAppConfigResultSchema = z.object({
@@ -301,9 +341,11 @@ export type UpdateAppConfigResult = z.infer<typeof UpdateAppConfigResultSchema>;
 
 // recordAppModeFlip records the deployed app mode; it never sets it, so the only input is the
 // admin's optional milestone evidence.
-export const RecordAppModeFlipInputSchema = z.object({
-  milestoneEvidence: textFieldSchema(APP_MODE_FLIP_EVIDENCE_INPUT).optional(),
-}).strict();
+export const RecordAppModeFlipInputSchema = z
+  .object({
+    milestoneEvidence: textFieldSchema(APP_MODE_FLIP_EVIDENCE_INPUT).optional(),
+  })
+  .strict();
 export type RecordAppModeFlipInput = z.infer<typeof RecordAppModeFlipInputSchema>;
 
 // What recordAppModeFlip answers: whether this call recorded a change (false when the marker
@@ -318,9 +360,11 @@ export type RecordAppModeFlipResult = z.infer<typeof RecordAppModeFlipResultSche
 
 // clearSystemVideoSlot empties one video slot; the server refuses while the slot's upload is still
 // pending or processing.
-export const ClearSystemVideoSlotInputSchema = z.object({
-  slotId: SystemVideoSlotIdSchema,
-}).strict();
+export const ClearSystemVideoSlotInputSchema = z
+  .object({
+    slotId: SystemVideoSlotIdSchema,
+  })
+  .strict();
 export type ClearSystemVideoSlotInput = z.infer<typeof ClearSystemVideoSlotInputSchema>;
 
 export const ClearSystemVideoSlotResultSchema = z.object({
@@ -333,14 +377,18 @@ export type ClearSystemVideoSlotResult = z.infer<typeof ClearSystemVideoSlotResu
 // updateSystemUidSlot sets one account slot: a `uid` slot takes one account id (null clears it), a
 // `uidList` slot an ordered list (empty clears it). The value's shape must match the slot's kind.
 export const UpdateSystemUidSlotInputSchema = z.union([
-  z.object({
-    slotId: SystemUidSlotIdSchema,
-    value: userIdSchema.nullable(),
-  }).strict(),
-  z.object({
-    slotId: SystemUidListSlotIdSchema,
-    value: z.array(userIdSchema).max(MAX_SYSTEM_UID_LIST),
-  }).strict(),
+  z
+    .object({
+      slotId: SystemUidSlotIdSchema,
+      value: userIdSchema.nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      slotId: SystemUidListSlotIdSchema,
+      value: z.array(userIdSchema).max(MAX_SYSTEM_UID_LIST),
+    })
+    .strict(),
 ]);
 export type UpdateSystemUidSlotInput = z.infer<typeof UpdateSystemUidSlotInputSchema>;
 
@@ -359,12 +407,13 @@ export type UpdateSystemUidSlotResult = z.infer<typeof UpdateSystemUidSlotResult
  * The callable's core function rejects conflicting input (e.g. same uid in
  * both addAdminUids and removeAdminUids) with HttpsError invalid-argument.
  */
-export const UpdateAdminListInputSchema = z.object({
-  addAdminUids: z.array(userIdSchema).optional(),
-  removeAdminUids: z.array(userIdSchema).optional(),
-  addJrAdminUids: z.array(userIdSchema).optional(),
-  removeJrAdminUids: z.array(userIdSchema).optional(),
-})
+export const UpdateAdminListInputSchema = z
+  .object({
+    addAdminUids: z.array(userIdSchema).optional(),
+    removeAdminUids: z.array(userIdSchema).optional(),
+    addJrAdminUids: z.array(userIdSchema).optional(),
+    removeJrAdminUids: z.array(userIdSchema).optional(),
+  })
   .strict()
   .refine(
     (data) =>
@@ -373,7 +422,10 @@ export const UpdateAdminListInputSchema = z.object({
         (data.addJrAdminUids?.length ?? 0) +
         (data.removeJrAdminUids?.length ?? 0) >
       0,
-    { message: 'At least one of addAdminUids/removeAdminUids/addJrAdminUids/removeJrAdminUids must be non-empty.' },
+    {
+      message:
+        'At least one of addAdminUids/removeAdminUids/addJrAdminUids/removeJrAdminUids must be non-empty.',
+    },
   );
 export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
 
@@ -392,13 +444,15 @@ export const UpdateAdminListResultSchema = z.object({
 });
 export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 
-export const CheckTrademarkInputSchema = z.object({
-  // Primary: the work project's title (franchise-level check).
-  workTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
-  // Optional: the sub-item title (chapter, track, episode), checked secondarily; absent means there is
-  // none to check.
-  subItemTitle: z.string().max(MAX_WORK_PROJECT_TITLE_LENGTH).optional(),
-}).strict();
+export const CheckTrademarkInputSchema = z
+  .object({
+    // Primary: the work project's title (franchise-level check).
+    workTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
+    // Optional: the sub-item title (chapter, track, episode), checked secondarily; absent means there is
+    // none to check.
+    subItemTitle: z.string().max(MAX_WORK_PROJECT_TITLE_LENGTH).optional(),
+  })
+  .strict();
 export type CheckTrademarkInput = z.infer<typeof CheckTrademarkInputSchema>;
 
 export const CheckTrademarkResultSchema = z.object({
@@ -409,9 +463,11 @@ export const CheckTrademarkResultSchema = z.object({
 });
 export type CheckTrademarkResult = z.infer<typeof CheckTrademarkResultSchema>;
 
-export const GetReportedContentDetailInputSchema = z.object({
-  reportGroupId: reportGroupIdSchema,
-}).strict();
+export const GetReportedContentDetailInputSchema = z
+  .object({
+    reportGroupId: reportGroupIdSchema,
+  })
+  .strict();
 export type GetReportedContentDetailInput = z.infer<typeof GetReportedContentDetailInputSchema>;
 
 // getReportedContentDetail's result: produced by the callable in functions/, consumed by the admin
@@ -481,21 +537,25 @@ export const GetReportedContentDetailResultSchema = z.object({
   clearableSurface: moderationClearableSurfaceSchema.nullish(),
   /** The FROZEN report-time snapshot (captured at intake), so the operator sees what was
    *  reported even if the author edited the live doc to evade. Null when the report holds none. */
-  reportTimeSnapshot: z.object({
-    capturedText: z.string().nullable(),
-    capturedMediaAssetIds: z.array(z.string()),
-    revision: z.number().nullable(),
-    capturedAt: z.number().nullable(),
-  }).nullable(),
+  reportTimeSnapshot: z
+    .object({
+      capturedText: z.string().nullable(),
+      capturedMediaAssetIds: z.array(z.string()),
+      revision: z.number().nullable(),
+      capturedAt: z.number().nullable(),
+    })
+    .nullable(),
 });
 export type GetReportedContentDetailResult = z.infer<typeof GetReportedContentDetailResultSchema>;
 
-export const HideHallSubItemInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  workProjectType: workProjectTypeSchema,
-  subItemId: hallSubItemIdSchema,
-  reason: textFieldSchema(HIDE_REASON_INPUT),
-}).strict();
+export const HideHallSubItemInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    workProjectType: workProjectTypeSchema,
+    subItemId: hallSubItemIdSchema,
+    reason: textFieldSchema(HIDE_REASON_INPUT),
+  })
+  .strict();
 export type HideHallSubItemInput = z.infer<typeof HideHallSubItemInputSchema>;
 
 export const HideHallSubItemResultSchema = z.object({
@@ -503,11 +563,13 @@ export const HideHallSubItemResultSchema = z.object({
 });
 export type HideHallSubItemResult = z.infer<typeof HideHallSubItemResultSchema>;
 
-export const RestoreHallSubItemInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  workProjectType: workProjectTypeSchema,
-  subItemId: hallSubItemIdSchema,
-}).strict();
+export const RestoreHallSubItemInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    workProjectType: workProjectTypeSchema,
+    subItemId: hallSubItemIdSchema,
+  })
+  .strict();
 export type RestoreHallSubItemInput = z.infer<typeof RestoreHallSubItemInputSchema>;
 
 export const RestoreHallSubItemResultSchema = z.object({
@@ -515,10 +577,12 @@ export const RestoreHallSubItemResultSchema = z.object({
 });
 export type RestoreHallSubItemResult = z.infer<typeof RestoreHallSubItemResultSchema>;
 
-export const HideWorkProjectInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  reason: textFieldSchema(HIDE_REASON_INPUT),
-}).strict();
+export const HideWorkProjectInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    reason: textFieldSchema(HIDE_REASON_INPUT),
+  })
+  .strict();
 export type HideWorkProjectInput = z.infer<typeof HideWorkProjectInputSchema>;
 
 export const HideWorkProjectResultSchema = z.object({
@@ -527,10 +591,12 @@ export const HideWorkProjectResultSchema = z.object({
 });
 export type HideWorkProjectResult = z.infer<typeof HideWorkProjectResultSchema>;
 
-export const HideWorkRealmInputSchema = z.object({
-  workRealmId: workRealmIdSchema,
-  reason: textFieldSchema(HIDE_REASON_INPUT),
-}).strict();
+export const HideWorkRealmInputSchema = z
+  .object({
+    workRealmId: workRealmIdSchema,
+    reason: textFieldSchema(HIDE_REASON_INPUT),
+  })
+  .strict();
 export type HideWorkRealmInput = z.infer<typeof HideWorkRealmInputSchema>;
 
 export const HideWorkRealmResultSchema = z.object({
@@ -541,10 +607,12 @@ export type HideWorkRealmResult = z.infer<typeof HideWorkRealmResultSchema>;
 
 // `cascadeId` is OPTIONAL: the app backends derive all active cascades for the target when it is
 // omitted, and restore just that one cascade when it is supplied.
-export const RestoreWorkProjectInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  cascadeId: documentIdSegmentSchema.optional(),
-}).strict();
+export const RestoreWorkProjectInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    cascadeId: documentIdSegmentSchema.optional(),
+  })
+  .strict();
 export type RestoreWorkProjectInput = z.infer<typeof RestoreWorkProjectInputSchema>;
 
 export const RestoreWorkProjectResultSchema = z.object({
@@ -552,10 +620,12 @@ export const RestoreWorkProjectResultSchema = z.object({
 });
 export type RestoreWorkProjectResult = z.infer<typeof RestoreWorkProjectResultSchema>;
 
-export const RestoreWorkRealmInputSchema = z.object({
-  workRealmId: workRealmIdSchema,
-  cascadeId: documentIdSegmentSchema.optional(),
-}).strict();
+export const RestoreWorkRealmInputSchema = z
+  .object({
+    workRealmId: workRealmIdSchema,
+    cascadeId: documentIdSegmentSchema.optional(),
+  })
+  .strict();
 export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
 
 export const RestoreWorkRealmResultSchema = z.object({
@@ -563,16 +633,20 @@ export const RestoreWorkRealmResultSchema = z.object({
 });
 export type RestoreWorkRealmResult = z.infer<typeof RestoreWorkRealmResultSchema>;
 
-export const RequireWorkProjectRetitleInputSchema = z.object({
-  reason: textFieldSchema(RETITLE_REASON_INPUT),
-  workProjectId: workProjectIdSchema,
-}).strict();
+export const RequireWorkProjectRetitleInputSchema = z
+  .object({
+    reason: textFieldSchema(RETITLE_REASON_INPUT),
+    workProjectId: workProjectIdSchema,
+  })
+  .strict();
 export type RequireWorkProjectRetitleInput = z.infer<typeof RequireWorkProjectRetitleInputSchema>;
 
-export const RequireWorkRealmRetitleInputSchema = z.object({
-  reason: textFieldSchema(RETITLE_REASON_INPUT),
-  workRealmId: workRealmIdSchema,
-}).strict();
+export const RequireWorkRealmRetitleInputSchema = z
+  .object({
+    reason: textFieldSchema(RETITLE_REASON_INPUT),
+    workRealmId: workRealmIdSchema,
+  })
+  .strict();
 export type RequireWorkRealmRetitleInput = z.infer<typeof RequireWorkRealmRetitleInputSchema>;
 
 // ONE result for both Work and Realm retitle callables.
@@ -588,18 +662,22 @@ export type RequireRetitleResult = z.infer<typeof RequireRetitleResultSchema>;
 const ModerationShellClearFieldSchema = z.enum(MODERATION_CLEARABLE_TEXT_FIELDS.workProject);
 export type ModerationShellClearField = z.infer<typeof ModerationShellClearFieldSchema>;
 
-export const ClearWorkProjectTextInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  fields: z.array(ModerationShellClearFieldSchema).min(1),
-  reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
-}).strict();
+export const ClearWorkProjectTextInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    fields: z.array(ModerationShellClearFieldSchema).min(1),
+    reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
+  })
+  .strict();
 export type ClearWorkProjectTextInput = z.infer<typeof ClearWorkProjectTextInputSchema>;
 
-export const ClearWorkRealmTextInputSchema = z.object({
-  workRealmId: workRealmIdSchema,
-  fields: z.array(ModerationShellClearFieldSchema).min(1),
-  reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
-}).strict();
+export const ClearWorkRealmTextInputSchema = z
+  .object({
+    workRealmId: workRealmIdSchema,
+    fields: z.array(ModerationShellClearFieldSchema).min(1),
+    reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
+  })
+  .strict();
 export type ClearWorkRealmTextInput = z.infer<typeof ClearWorkRealmTextInputSchema>;
 
 // ONE result for both Work and Realm text-clear callables.
@@ -613,13 +691,15 @@ export type ClearModerationTextResult = z.infer<typeof ClearModerationTextResult
 const HallClearFieldSchema = z.enum(HALL_CLEARABLE_TEXT_FIELD_NAMES);
 export type HallClearField = z.infer<typeof HallClearFieldSchema>;
 
-export const ClearHallContentTextInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  workProjectType: workProjectTypeSchema,
-  subItemId: hallSubItemIdSchema.optional(),
-  fields: z.array(HallClearFieldSchema).min(1),
-  reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
-}).strict();
+export const ClearHallContentTextInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    workProjectType: workProjectTypeSchema,
+    subItemId: hallSubItemIdSchema.optional(),
+    fields: z.array(HallClearFieldSchema).min(1),
+    reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
+  })
+  .strict();
 export type ClearHallContentTextInput = z.infer<typeof ClearHallContentTextInputSchema>;
 
 export const ClearHallContentTextResultSchema = z.object({
@@ -629,10 +709,12 @@ export type ClearHallContentTextResult = z.infer<typeof ClearHallContentTextResu
 
 // getLatestHideCascade resolves the latest hide-cascade id for a Work/Realm.
 
-export const GetLatestHideCascadeInputSchema = z.object({
-  entityId: documentIdSegmentSchema,
-  targetType: z.enum(['work-project', 'work-realm']),
-}).strict();
+export const GetLatestHideCascadeInputSchema = z
+  .object({
+    entityId: documentIdSegmentSchema,
+    targetType: z.enum(['work-project', 'work-realm']),
+  })
+  .strict();
 export type GetLatestHideCascadeInput = z.infer<typeof GetLatestHideCascadeInputSchema>;
 
 export const GetLatestHideCascadeResultSchema = z.object({
@@ -646,7 +728,9 @@ export type GetPendingGuildInviteCountInput = z.infer<typeof GetPendingGuildInvi
 export const GetPendingGuildInviteCountResultSchema = z.object({
   count: z.number().int().nonnegative(),
 });
-export type GetPendingGuildInviteCountResult = z.infer<typeof GetPendingGuildInviteCountResultSchema>;
+export type GetPendingGuildInviteCountResult = z.infer<
+  typeof GetPendingGuildInviteCountResultSchema
+>;
 
 // moderateReportedContent hides, restores, or soft perma-removes an individual reported item.
 
@@ -667,15 +751,16 @@ const MODERATE_REPORTED_CONTENT_TARGET_TYPES = [
   'conversation-file',
 ] as const satisfies readonly ReportableItemType[];
 
-export const ModerateReportedContentInputSchema = z.object({
-  reportGroupId: reportGroupIdSchema,
-  targetType: z.enum(MODERATE_REPORTED_CONTENT_TARGET_TYPES),
-  reportedItemId: reportTargetItemIdSchema,
-  parentItemId: reportTargetParentRefSchema.optional(),
-  action: z.enum(['hide', 'restore', 'remove']),
-  // A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
-  reason: textFieldSchema(MODERATION_ACTION_REASON_INPUT).optional(),
-})
+export const ModerateReportedContentInputSchema = z
+  .object({
+    reportGroupId: reportGroupIdSchema,
+    targetType: z.enum(MODERATE_REPORTED_CONTENT_TARGET_TYPES),
+    reportedItemId: reportTargetItemIdSchema,
+    parentItemId: reportTargetParentRefSchema.optional(),
+    action: z.enum(['hide', 'restore', 'remove']),
+    // A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
+    reason: textFieldSchema(MODERATION_ACTION_REASON_INPUT).optional(),
+  })
   .strict()
   .superRefine((val, ctx) => {
     if ((val.action === 'hide' || val.action === 'remove') && !val.reason) {
@@ -736,11 +821,19 @@ const SuspendOrBanSchema = z
   .strict();
 
 const ReinstateUserSchema = z
-  .object({ button: z.literal('reinstateUser'), userId: userIdSchema, reason: textFieldSchema(ACCOUNT_REINSTATE_REASON_INPUT).optional() })
+  .object({
+    button: z.literal('reinstateUser'),
+    userId: userIdSchema,
+    reason: textFieldSchema(ACCOUNT_REINSTATE_REASON_INPUT).optional(),
+  })
   .strict();
 
 const ForceUsernameResetSchema = z
-  .object({ button: z.literal('forceUsernameReset'), userId: userIdSchema, reason: textFieldSchema(DISPLAY_NAME_RESET_REASON_INPUT).optional() })
+  .object({
+    button: z.literal('forceUsernameReset'),
+    userId: userIdSchema,
+    reason: textFieldSchema(DISPLAY_NAME_RESET_REASON_INPUT).optional(),
+  })
   .strict();
 
 /** Whole-object Work/Realm remedies — `reportedItemId` is the workProjectId / workRealmId. */
@@ -973,7 +1066,9 @@ export const DeadLetterCollectionSchema = z.enum([
 export type DeadLetterCollection = z.infer<typeof DeadLetterCollectionSchema>;
 
 /** Every replay lane whose target is a flat top-level document. */
-export const FlatDeadLetterCollectionSchema = DeadLetterCollectionSchema.exclude(['hallSubItemEdgeSync']);
+export const FlatDeadLetterCollectionSchema = DeadLetterCollectionSchema.exclude([
+  'hallSubItemEdgeSync',
+]);
 export type FlatDeadLetterCollection = z.infer<typeof FlatDeadLetterCollectionSchema>;
 
 /**
@@ -981,28 +1076,33 @@ export type FlatDeadLetterCollection = z.infer<typeof FlatDeadLetterCollectionSc
  * the only valid nested collection through PATH_BUILDERS.hallItemSubItem; callers never submit a
  * Firestore path or collection segment.
  */
-export const HallSubItemEdgeSyncReplayTargetSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  workProjectType: workProjectTypeSchema,
-  subItemId: hallSubItemIdSchema,
-}).strict();
+export const HallSubItemEdgeSyncReplayTargetSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    workProjectType: workProjectTypeSchema,
+    subItemId: hallSubItemIdSchema,
+  })
+  .strict();
 export type HallSubItemEdgeSyncReplayTarget = z.infer<typeof HallSubItemEdgeSyncReplayTargetSchema>;
 
-export const AdminReplayDeadLetterInputSchema = z
-  .discriminatedUnion('collection', [
-    z.object({
+export const AdminReplayDeadLetterInputSchema = z.discriminatedUnion('collection', [
+  z
+    .object({
       collection: FlatDeadLetterCollectionSchema,
       docId: documentIdSegmentSchema.max(200),
       reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
       dryRun: z.boolean().optional(),
-    }).strict(),
-    z.object({
+    })
+    .strict(),
+  z
+    .object({
       collection: z.literal('hallSubItemEdgeSync'),
       ...HallSubItemEdgeSyncReplayTargetSchema.shape,
       reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
       dryRun: z.boolean().optional(),
-    }).strict(),
-  ]);
+    })
+    .strict(),
+]);
 export type AdminReplayDeadLetterInput = z.infer<typeof AdminReplayDeadLetterInputSchema>;
 
 export const GetDeadLettersInputSchema = z
@@ -1019,5 +1119,3 @@ export type GetDeadLettersInput = z.infer<typeof GetDeadLettersInputSchema>;
 /** The `getOpsStatus` input: the snapshot takes no parameters, and anything sent is refused. */
 export const GetOpsStatusInputSchema = z.object({}).strict();
 export type GetOpsStatusInput = z.infer<typeof GetOpsStatusInputSchema>;
-
-

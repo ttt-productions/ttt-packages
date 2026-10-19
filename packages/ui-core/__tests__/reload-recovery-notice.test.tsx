@@ -7,10 +7,16 @@
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createReloadRecoveryWatch, type ReloadRecoveryTarget } from '../src/browser/reload-recovery-watch.js';
+import {
+  createReloadRecoveryWatch,
+  type ReloadRecoveryTarget,
+} from '../src/browser/reload-recovery-watch.js';
 import { ReloadRecoveryNotice } from '../src/react/components/reload-recovery-notice.js';
 
-const DISCONNECT = new DOMException('Connection to Indexed Database server lost. Refresh the page to try again', 'UnknownError');
+const DISCONNECT = new DOMException(
+  'Connection to Indexed Database server lost. Refresh the page to try again',
+  'UnknownError',
+);
 const MESSAGES = {
   storageDisconnect: 'Lost the connection to storage. Refresh to keep going.',
   staleChunk: 'A new version is ready. Refresh to load it.',
@@ -28,7 +34,9 @@ function page() {
 
 function Editor() {
   const [text, setText] = useState('');
-  return <input aria-label="Draft" value={text} onChange={(event) => setText(event.target.value)} />;
+  return (
+    <input aria-label="Draft" value={text} onChange={(event) => setText(event.target.value)} />
+  );
 }
 
 function renderNotice(
@@ -132,7 +140,11 @@ describe('ReloadRecoveryNotice', () => {
     const { watch, fail } = page();
     const failure = new Error('reload refused');
     const onRefreshError = vi.fn();
-    renderNotice(watch, vi.fn(() => Promise.reject(failure)), onRefreshError);
+    renderNotice(
+      watch,
+      vi.fn(() => Promise.reject(failure)),
+      onRefreshError,
+    );
     fail(DISCONNECT);
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     fireEvent.click(refresh);

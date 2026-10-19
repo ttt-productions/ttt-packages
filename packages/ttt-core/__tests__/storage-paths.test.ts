@@ -15,19 +15,19 @@ describe('TEMP_UPLOAD_PREFIX', () => {
 describe('buildTempUploadPath', () => {
   it('builds path for profile-picture', () => {
     expect(buildTempUploadPath('profile-picture', 'user_abc', 'file_1')).toBe(
-      'uploads/profile-picture/user_abc/file_1'
+      'uploads/profile-picture/user_abc/file_1',
     );
   });
 
   it('builds path for squareStreetz', () => {
     expect(buildTempUploadPath('squareStreetz', 'user_xyz', 'file_2')).toBe(
-      'uploads/squareStreetz/user_xyz/file_2'
+      'uploads/squareStreetz/user_xyz/file_2',
     );
   });
 
   it('builds path for conversation-file', () => {
     expect(buildTempUploadPath('conversation-file', 'user_123', 'file_3')).toBe(
-      'uploads/conversation-file/user_123/file_3'
+      'uploads/conversation-file/user_123/file_3',
     );
   });
 });
@@ -92,4 +92,3 @@ describe('extractFileIdFromTempPath', () => {
     expect(extractFileIdFromTempPath('foo/uploads/a/b/c')).toBeNull();
   });
 });
-

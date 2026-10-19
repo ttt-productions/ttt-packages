@@ -1,4 +1,4 @@
-import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "./types.js";
+import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from './types.js';
 
 export interface MonitoringAdapter {
   init(options: MonitoringInitOptions): void | Promise<void>;
@@ -10,19 +10,19 @@ export interface MonitoringAdapter {
    *  message's severity; a `level` inside `context` is applied to the scope. */
   captureMessage(
     message: string,
-    level?: "fatal" | "error" | "warning" | "info" | "debug",
-    context?: Record<string, unknown>
+    level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug',
+    context?: Record<string, unknown>,
   ): void;
 
   setUser(user: MonitoringUser | null): void;
   setTag(key: string, value: string): void;
 
   withScope?<T>(fn: (scope: ScopeLike) => T): T;
-  
+
   addBreadcrumb?(breadcrumb: {
     category?: string;
     message?: string;
-    level?: "fatal" | "error" | "warning" | "info" | "debug";
+    level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
     data?: Record<string, unknown>;
   }): void;
 }

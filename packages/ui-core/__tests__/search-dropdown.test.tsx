@@ -22,7 +22,16 @@ interface HarnessProps {
 
 // A consumer that hands the dropdown a fresh results array on every render, as a query hook's
 // `data ?? []` default does.
-function Harness({ results, isLoading = false, error = null, label, initialValue = '', onSelect, onClear, renderError }: HarnessProps) {
+function Harness({
+  results,
+  isLoading = false,
+  error = null,
+  label,
+  initialValue = '',
+  onSelect,
+  onClear,
+  renderError,
+}: HarnessProps) {
   const [value, setValue] = useState(initialValue);
   return (
     <SearchDropdown<Person>
@@ -78,7 +87,9 @@ describe('SearchDropdown keeps a settled search open', () => {
   it("hands a failed search's raw error to the consumer's renderError", async () => {
     const user = userEvent.setup();
     const failure = new Error('permission-denied');
-    const renderError = vi.fn((error: unknown) => <div>could not search: {(error as Error).message}</div>);
+    const renderError = vi.fn((error: unknown) => (
+      <div>could not search: {(error as Error).message}</div>
+    ));
     render(<Harness error={failure} renderError={renderError} />);
     await user.type(screen.getByRole('combobox'), 'ada');
     expect(screen.getByText('could not search: permission-denied')).toBeInTheDocument();
@@ -166,7 +177,11 @@ describe('SearchDropdown combobox semantics', () => {
     expect(input).toHaveAttribute('aria-expanded', 'true');
     expect(input).toHaveAttribute('aria-controls', listbox.id);
     expect(input).toHaveAttribute('aria-autocomplete', 'list');
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Ada', 'Alan', 'Grace']);
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Ada',
+      'Alan',
+      'Grace',
+    ]);
   });
 
   it('announces the arrow-highlighted option as the active descendant, and Enter selects it', async () => {
@@ -184,7 +199,10 @@ describe('SearchDropdown combobox semantics', () => {
     expect(screen.getByRole('option', { name: 'Ada' })).toHaveAttribute('aria-selected', 'false');
 
     await user.keyboard('{ArrowUp}');
-    expect(input).toHaveAttribute('aria-activedescendant', screen.getByRole('option', { name: 'Ada' }).id);
+    expect(input).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', { name: 'Ada' }).id,
+    );
 
     await user.keyboard('{Enter}');
     expect(onSelect).toHaveBeenCalledWith({ name: 'Ada' });
@@ -212,7 +230,10 @@ describe('SearchDropdown combobox semantics', () => {
     await user.type(input, 'ada');
     await user.keyboard('{ArrowDown}{ArrowDown}');
     rerender(<Harness results={PEOPLE} />);
-    expect(input).toHaveAttribute('aria-activedescendant', screen.getByRole('option', { name: 'Alan' }).id);
+    expect(input).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', { name: 'Alan' }).id,
+    );
     await user.type(input, 'm');
     expect(input).not.toHaveAttribute('aria-activedescendant');
   });

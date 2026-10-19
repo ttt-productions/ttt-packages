@@ -1,14 +1,14 @@
-import type { MonitoringAdapter } from "./adapter.js";
-import type { MonitoringInitOptions } from "./types.js";
-import { NoopAdapter } from "./adapters/noop.js";
-import { SentryAdapter } from "./adapters/sentry.js";
-import { SentryNodeAdapter } from "./adapters/sentry-node.js";
+import type { MonitoringAdapter } from './adapter.js';
+import type { MonitoringInitOptions } from './types.js';
+import { NoopAdapter } from './adapters/noop.js';
+import { SentryAdapter } from './adapters/sentry.js';
+import { SentryNodeAdapter } from './adapters/sentry-node.js';
 
 let adapter: MonitoringAdapter = NoopAdapter;
 let initialized = false;
 let currentOptions: MonitoringInitOptions | null = null;
 
-const isBrowser = typeof window !== "undefined";
+const isBrowser = typeof window !== 'undefined';
 
 export function getMonitoringAdapter(): MonitoringAdapter {
   return adapter;
@@ -21,7 +21,7 @@ export function getMonitoringAdapter(): MonitoringAdapter {
  */
 function sameOptionValue(a: unknown, b: unknown, seen: WeakSet<object>): boolean {
   if (Object.is(a, b)) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
   if (seen.has(a)) return false;
   seen.add(a);
   if (Array.isArray(a) || Array.isArray(b)) {
@@ -32,7 +32,11 @@ function sameOptionValue(a: unknown, b: unknown, seen: WeakSet<object>): boolean
   const bRecord = b as Record<string, unknown>;
   const keys = Object.keys(aRecord);
   if (keys.length !== Object.keys(bRecord).length) return false;
-  return keys.every((key) => Object.prototype.hasOwnProperty.call(bRecord, key) && sameOptionValue(aRecord[key], bRecord[key], seen));
+  return keys.every(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(bRecord, key) &&
+      sameOptionValue(aRecord[key], bRecord[key], seen),
+  );
 }
 
 /** Option pairs no provider can honour. Checked before any provider choice, so an emulator or
@@ -40,15 +44,12 @@ function sameOptionValue(a: unknown, b: unknown, seen: WeakSet<object>): boolean
 function assertCombinableOptions(options: MonitoringInitOptions): void {
   if (options.keepDefaultIntegrations !== undefined && options.defaultIntegrations !== undefined) {
     throw new Error(
-      "[monitoring-core] keepDefaultIntegrations cannot be combined with defaultIntegrations: keepDefaultIntegrations already chooses which defaults run."
+      '[monitoring-core] keepDefaultIntegrations cannot be combined with defaultIntegrations: keepDefaultIntegrations already chooses which defaults run.',
     );
   }
 }
 
-export async function initMonitoring(
-  options: MonitoringInitOptions,
-  force = false
-): Promise<void> {
+export async function initMonitoring(options: MonitoringInitOptions, force = false): Promise<void> {
   assertCombinableOptions(options);
 
   // Prevent unnecessary re-init
@@ -57,7 +58,7 @@ export async function initMonitoring(
   }
 
   if (initialized) {
-    console.warn("[monitoring-core] Re-initializing monitoring with new config");
+    console.warn('[monitoring-core] Re-initializing monitoring with new config');
   }
 
   currentOptions = options;
@@ -68,12 +69,12 @@ export async function initMonitoring(
   // so local dev (emulators) never imports or initializes the SDK. Hosted environments
   // never set these. There is no other off switch: a deployment without a DSN sends nothing.
   const isLocalDev =
-    (typeof process !== "undefined" &&
-      (process.env?.NEXT_PUBLIC_USE_EMULATORS === "true" ||
-        process.env?.FUNCTIONS_EMULATOR === "true" ||
-        !!process.env?.FIREBASE_EMULATOR_HUB));
+    typeof process !== 'undefined' &&
+    (process.env?.NEXT_PUBLIC_USE_EMULATORS === 'true' ||
+      process.env?.FUNCTIONS_EMULATOR === 'true' ||
+      !!process.env?.FIREBASE_EMULATOR_HUB);
 
-  if (!enabled || options.provider === "noop" || isLocalDev) {
+  if (!enabled || options.provider === 'noop' || isLocalDev) {
     adapter = NoopAdapter;
     initialized = true;
     return;
@@ -81,18 +82,16 @@ export async function initMonitoring(
 
   // The provider adapter is installed BEFORE anything is awaited: a capture issued while the
   // SDK loads reaches the real adapter, which holds it until its own init has run.
-  if (options.provider === "sentry") {
+  if (options.provider === 'sentry') {
     adapter = SentryAdapter;
     await SentryAdapter.init(options);
     initialized = true;
     return;
   }
 
-  if (options.provider === "sentry-node") {
+  if (options.provider === 'sentry-node') {
     if (isBrowser) {
-      console.warn(
-        "[monitoring-core] Ignoring sentry-node init in browser environment"
-      );
+      console.warn('[monitoring-core] Ignoring sentry-node init in browser environment');
       adapter = NoopAdapter;
       initialized = true;
       return;

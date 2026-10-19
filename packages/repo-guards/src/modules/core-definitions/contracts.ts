@@ -79,14 +79,21 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
   const findings: Finding[] = [];
   const { namespaces, named } = zodBindings(file.sourceFile);
   const builder = (callee: ts.Expression): string | null => {
-    if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && namespaces.has(callee.expression.text)) {
+    if (
+      ts.isPropertyAccessExpression(callee) &&
+      ts.isIdentifier(callee.expression) &&
+      namespaces.has(callee.expression.text)
+    ) {
       return `${callee.expression.text}.${callee.name.text}`;
     }
     // zod's builder groups: `z.coerce.number()`, `z.iso.date()`, and the same groups imported by name.
     if (ts.isPropertyAccessExpression(callee)) {
       const group = callee.expression;
       const viaNamespace =
-        ts.isPropertyAccessExpression(group) && ts.isIdentifier(group.expression) && namespaces.has(group.expression.text) && BUILDER_GROUPS.has(group.name.text);
+        ts.isPropertyAccessExpression(group) &&
+        ts.isIdentifier(group.expression) &&
+        namespaces.has(group.expression.text) &&
+        BUILDER_GROUPS.has(group.name.text);
       const viaName = ts.isIdentifier(group) && BUILDER_GROUPS.has(named.get(group.text) ?? '');
       if (viaNamespace || viaName) return `${group.getText(file.sourceFile)}.${callee.name.text}`;
     }
@@ -94,17 +101,28 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
     return null;
   };
   const exportedName = (callee: ts.Expression): string =>
-    ts.isPropertyAccessExpression(callee) ? callee.name.text : (named.get((callee as ts.Identifier).text) ?? '');
+    ts.isPropertyAccessExpression(callee)
+      ? callee.name.text
+      : (named.get((callee as ts.Identifier).text) ?? '');
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node)) {
       const name = builder(node.expression);
       const exported = exportedName(node.expression);
       if (name && /^[a-z]/.test(exported) && !BUILDS_NOTHING.has(exported)) {
-        findings.push({ file: file.path, line: lineOfNode(file, node), detail: `builds a zod schema: ${name}(…)` });
+        findings.push({
+          file: file.path,
+          line: lineOfNode(file, node),
+          detail: `builds a zod schema: ${name}(…)`,
+        });
       }
     } else if (ts.isNewExpression(node)) {
       const name = builder(node.expression);
-      if (name && !/Error$/.test(exportedName(node.expression))) findings.push({ file: file.path, line: lineOfNode(file, node), detail: `constructs a zod schema: new ${name}(…)` });
+      if (name && !/Error$/.test(exportedName(node.expression)))
+        findings.push({
+          file: file.path,
+          line: lineOfNode(file, node),
+          detail: `constructs a zod schema: new ${name}(…)`,
+        });
     }
     ts.forEachChild(node, visit);
   };
@@ -118,7 +136,14 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
  * name. Another kind of publish (a media asset's) is no package release and is not matched.
  */
 export function publishAvoidancePattern(corePackage: string): RegExp {
-  const names = [corePackage, corePackage.slice(corePackage.lastIndexOf('/') + 1), 'package', 'core'].map(escapeRegExp).join('|');
+  const names = [
+    corePackage,
+    corePackage.slice(corePackage.lastIndexOf('/') + 1),
+    'package',
+    'core',
+  ]
+    .map(escapeRegExp)
+    .join('|');
   return new RegExp(
     `\\b(?:avoid|avoids|avoiding|skip|skips|skipping|save|saves|saving)\\s+(?:a\\s+|an\\s+|the\\s+)?(?:(?:${names})\\s+)?(?:publish|release)\\b`,
     'gi',
@@ -142,7 +167,8 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
     textProblem(facts?.corePackage, 'corePackage', problems);
     namesProblem(facts?.backendRoots, 'backendRoots', problems);
     for (const role of Array.isArray(facts?.backendRoots) ? facts.backendRoots : []) {
-      if (!ROOT_ROLES.includes(role) || role === 'coreDist') problems.push(`backendRoots names ${String(role)}, which is no source root role`);
+      if (!ROOT_ROLES.includes(role) || role === 'coreDist')
+        problems.push(`backendRoots names ${String(role)}, which is no source root role`);
     }
     return problems;
   },
@@ -158,7 +184,9 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
           'into the core, released first.',
         timeoutMs: 120_000,
         run(context) {
-          return context.files({ roots: facts.backendRoots, kinds: ['code'], tests: false }).flatMap(zodSchemaBuilds);
+          return context
+            .files({ roots: facts.backendRoots, kinds: ['code'], tests: false })
+            .flatMap(zodSchemaBuilds);
         },
       },
       {

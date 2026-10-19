@@ -70,7 +70,9 @@ const DELETION_REQUEST_STATUS_IS_ACTIVE = {
 
 /** The statuses classified ACTIVE above, as a literal union — derived, never restated. */
 export type ActiveDeletionRequestStatus = {
-  [K in AccountDeletionRequestStatus]: (typeof DELETION_REQUEST_STATUS_IS_ACTIVE)[K] extends true ? K : never;
+  [K in AccountDeletionRequestStatus]: (typeof DELETION_REQUEST_STATUS_IS_ACTIVE)[K] extends true
+    ? K
+    : never;
 }[AccountDeletionRequestStatus];
 
 /** The ACTIVE (open, still-cancellable) deletion-request statuses, projected from the
@@ -78,7 +80,9 @@ export type ActiveDeletionRequestStatus = {
  *  `where('status', 'in', ACTIVE_DELETION_REQUEST_STATUSES)` query directly. */
 export const ACTIVE_DELETION_REQUEST_STATUSES: readonly ActiveDeletionRequestStatus[] = (
   Object.keys(DELETION_REQUEST_STATUS_IS_ACTIVE) as AccountDeletionRequestStatus[]
-).filter((status): status is ActiveDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_ACTIVE[status]);
+).filter(
+  (status): status is ActiveDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_ACTIVE[status],
+);
 
 /**
  * MID-SCRUB = the destructive erasure has STARTED and has not finished. These statuses are
@@ -102,7 +106,9 @@ const DELETION_REQUEST_STATUS_IS_MID_SCRUB = {
 
 /** The statuses classified MID-SCRUB above, as a literal union — derived, never restated. */
 export type MidScrubDeletionRequestStatus = {
-  [K in AccountDeletionRequestStatus]: (typeof DELETION_REQUEST_STATUS_IS_MID_SCRUB)[K] extends true ? K : never;
+  [K in AccountDeletionRequestStatus]: (typeof DELETION_REQUEST_STATUS_IS_MID_SCRUB)[K] extends true
+    ? K
+    : never;
 }[AccountDeletionRequestStatus];
 
 /** The MID-SCRUB (erasure started, not finished) deletion-request statuses, projected from the
@@ -110,13 +116,18 @@ export type MidScrubDeletionRequestStatus = {
  *  `where('status', 'in', MID_SCRUB_DELETION_REQUEST_STATUSES)` query directly. */
 export const MID_SCRUB_DELETION_REQUEST_STATUSES: readonly MidScrubDeletionRequestStatus[] = (
   Object.keys(DELETION_REQUEST_STATUS_IS_MID_SCRUB) as AccountDeletionRequestStatus[]
-).filter((status): status is MidScrubDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_MID_SCRUB[status]);
+).filter(
+  (status): status is MidScrubDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_MID_SCRUB[status],
+);
 
 /** True for an ACTIVE (open, still-cancellable) deletion request. Takes `unknown` because every
  *  caller reads the status off an unvalidated Firestore doc: anything outside the canonical active
  *  set — a terminal/mid-scrub status, an unrecognized value, a missing field — is false. */
 export function isActiveDeletionRequest(status: unknown): status is ActiveDeletionRequestStatus {
-  return typeof status === 'string' && (ACTIVE_DELETION_REQUEST_STATUSES as readonly string[]).includes(status);
+  return (
+    typeof status === 'string' &&
+    (ACTIVE_DELETION_REQUEST_STATUSES as readonly string[]).includes(status)
+  );
 }
 
 /**

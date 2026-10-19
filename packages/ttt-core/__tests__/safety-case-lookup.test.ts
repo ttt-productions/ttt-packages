@@ -6,8 +6,14 @@ import {
   isActiveSafetyCaseStatus,
 } from '../src/constants/safety-active-statuses.js';
 import { SafetyCaseByIdResultSchema } from '../src/schemas/safety.js';
-import { ChildSafetyWorkStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case.js';
-import { NciiInternalStatusSchema, TakeItDownPublicStatusSchema } from '../src/doc-schemas/safety/foundation.js';
+import {
+  ChildSafetyWorkStatusSchema,
+  SafetyCaseLaneSchema,
+} from '../src/doc-schemas/safety/case.js';
+import {
+  NciiInternalStatusSchema,
+  TakeItDownPublicStatusSchema,
+} from '../src/doc-schemas/safety/foundation.js';
 
 describe('active safety statuses', () => {
   // A case stays active — on the console and in the Legal-Clocks count — until its worker verifies
@@ -20,11 +26,15 @@ describe('active safety statuses', () => {
   });
 
   it('an NCII case is active until it is removed, rejected, or closed', () => {
-    expect([...NCII_ACTIVE_INTERNAL_STATUSES].sort()).toEqual(['open', 'removalInProgress', 'processing', 'failed'].sort());
+    expect([...NCII_ACTIVE_INTERNAL_STATUSES].sort()).toEqual(
+      ['open', 'removalInProgress', 'processing', 'failed'].sort(),
+    );
   });
 
   it('a take-it-down request is active until it is completed, unable to locate, or found invalid', () => {
-    expect([...TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES].sort()).toEqual(['received', 'needsMoreInfo', 'validInProgress'].sort());
+    expect([...TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES].sort()).toEqual(
+      ['received', 'needsMoreInfo', 'validInProgress'].sort(),
+    );
   });
 
   it('every active status is a member of its own status union, each once', () => {
@@ -41,7 +51,9 @@ describe('active safety statuses', () => {
 
   it('answers whether a case is active by its own lane', () => {
     expect(isActiveSafetyCaseStatus({ caseType: 'csam', status: 'processing' })).toBe(true);
-    expect(isActiveSafetyCaseStatus({ caseType: 'csam', status: 'operationallyResolved' })).toBe(false);
+    expect(isActiveSafetyCaseStatus({ caseType: 'csam', status: 'operationallyResolved' })).toBe(
+      false,
+    );
     expect(isActiveSafetyCaseStatus({ caseType: 'ncii', status: 'removalInProgress' })).toBe(true);
     expect(isActiveSafetyCaseStatus({ caseType: 'ncii', status: 'closed' })).toBe(false);
     // @ts-expect-error a child-safety case never carries an NCII status
@@ -78,7 +90,14 @@ describe('SafetyCaseByIdResultSchema', () => {
     status: 'closed',
     meta: { lane: 'ncii', createdAt: 1_690_000_000_000 },
     closureHistory: [
-      { eventId: 'embedded', closedAt: 1, closedByUid: 'admin-1', outcome: 'unfounded', resolutionSummary: 'Not NCII.', adminNote: 'n' },
+      {
+        eventId: 'embedded',
+        closedAt: 1,
+        closedByUid: 'admin-1',
+        outcome: 'unfounded',
+        resolutionSummary: 'Not NCII.',
+        adminNote: 'n',
+      },
     ],
   } as const;
 
@@ -88,42 +107,72 @@ describe('SafetyCaseByIdResultSchema', () => {
   });
 
   it("refuses a status from the other lane's set", () => {
-    expect(SafetyCaseByIdResultSchema.safeParse({ ...csamCase, status: 'removed' }).success).toBe(false);
-    expect(SafetyCaseByIdResultSchema.safeParse({ ...nciiCase, status: 'triaged' }).success).toBe(false);
+    expect(SafetyCaseByIdResultSchema.safeParse({ ...csamCase, status: 'removed' }).success).toBe(
+      false,
+    );
+    expect(SafetyCaseByIdResultSchema.safeParse({ ...nciiCase, status: 'triaged' }).success).toBe(
+      false,
+    );
   });
 
   it('types the metadata by its canonical unions', () => {
     expect(
-      SafetyCaseByIdResultSchema.safeParse({ ...csamCase, meta: { ...csamCase.meta, incidentClass: 'somethingElse' } })
-        .success,
+      SafetyCaseByIdResultSchema.safeParse({
+        ...csamCase,
+        meta: { ...csamCase.meta, incidentClass: 'somethingElse' },
+      }).success,
     ).toBe(false);
-    expect(SafetyCaseByIdResultSchema.safeParse({ ...nciiCase, meta: { lane: 'other' } }).success).toBe(false);
     expect(
-      SafetyCaseByIdResultSchema.safeParse({ ...csamCase, meta: { ...csamCase.meta, reportDisposition: 'maybe' } })
-        .success,
+      SafetyCaseByIdResultSchema.safeParse({ ...nciiCase, meta: { lane: 'other' } }).success,
+    ).toBe(false);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse({
+        ...csamCase,
+        meta: { ...csamCase.meta, reportDisposition: 'maybe' },
+      }).success,
     ).toBe(false);
   });
 
   it('carries no field beyond the lookup projection — no evidence, no reporter identity', () => {
-    expect(SafetyCaseByIdResultSchema.safeParse({ ...csamCase, reporterUid: 'user-9' }).success).toBe(false);
-    expect(SafetyCaseByIdResultSchema.safeParse({ ...csamCase, meta: { ...csamCase.meta, evidenceUrl: 'x' } }).success).toBe(
-      false,
-    );
     expect(
-      SafetyCaseByIdResultSchema.safeParse({ ...csamCase, closureHistory: [{ ...closure, reporterNote: 'x' }] }).success,
+      SafetyCaseByIdResultSchema.safeParse({ ...csamCase, reporterUid: 'user-9' }).success,
+    ).toBe(false);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse({
+        ...csamCase,
+        meta: { ...csamCase.meta, evidenceUrl: 'x' },
+      }).success,
+    ).toBe(false);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse({
+        ...csamCase,
+        closureHistory: [{ ...closure, reporterNote: 'x' }],
+      }).success,
     ).toBe(false);
   });
 
-  it("carries each close as the closure record it wrote: a closure outcome, a summary, and who closed it", () => {
+  it('carries each close as the closure record it wrote: a closure outcome, a summary, and who closed it', () => {
     const withRow = (row: Record<string, unknown>) => ({ ...csamCase, closureHistory: [row] });
-    expect(SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, outcome: 'unfounded' })).success).toBe(true);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, outcome: 'unfounded' })).success,
+    ).toBe(true);
     // A work or case status is never a closure outcome.
-    expect(SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, outcome: 'operationallyResolved' })).success).toBe(false);
-    expect(SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, outcome: 'removed' })).success).toBe(false);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse(
+        withRow({ ...closure, outcome: 'operationallyResolved' }),
+      ).success,
+    ).toBe(false);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, outcome: 'removed' })).success,
+    ).toBe(false);
     const { resolutionSummary: _summary, ...withoutSummary } = closure;
     expect(SafetyCaseByIdResultSchema.safeParse(withRow(withoutSummary)).success).toBe(false);
-    expect(SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, closedByUid: '' })).success).toBe(false);
-    expect(SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, eventId: '' })).success).toBe(false);
+    expect(
+      SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, closedByUid: '' })).success,
+    ).toBe(false);
+    expect(SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, eventId: '' })).success).toBe(
+      false,
+    );
   });
 
   it('takes its case types from the canonical lane union', () => {

@@ -42,7 +42,10 @@ describe('buildPublicGuildmateUserPayload', () => {
 
   it('returns null for the founding-Work holder — a ledger entry, not a person', () => {
     expect(
-      buildPublicGuildmateUserPayload('wp1', { ...guildmate, holderType: FOUNDING_WORK_HOLDER_TYPE }),
+      buildPublicGuildmateUserPayload('wp1', {
+        ...guildmate,
+        holderType: FOUNDING_WORK_HOLDER_TYPE,
+      }),
     ).toBeNull();
   });
 
@@ -74,14 +77,18 @@ describe('publicGuildmateUserPayloadEqual', () => {
   });
 
   it('is true for an identical re-projection', () => {
-    expect(publicGuildmateUserPayloadEqual(base, buildPublicGuildmateUserPayload('u1', guildmate))).toBe(true);
+    expect(
+      publicGuildmateUserPayloadEqual(base, buildPublicGuildmateUserPayload('u1', guildmate)),
+    ).toBe(true);
   });
 
   it('detects a change in every projected field', () => {
     expect(publicGuildmateUserPayloadEqual(base, { ...base!, uid: 'u2' })).toBe(false);
     expect(publicGuildmateUserPayloadEqual(base, { ...base!, status: 'departed' })).toBe(false);
     expect(publicGuildmateUserPayloadEqual(base, { ...base!, joinedAt: 1 })).toBe(false);
-    expect(publicGuildmateUserPayloadEqual(base, { ...base!, tradeProfessions: ['Director'] })).toBe(false);
+    expect(
+      publicGuildmateUserPayloadEqual(base, { ...base!, tradeProfessions: ['Director'] }),
+    ).toBe(false);
   });
 
   it('is order-sensitive on tradeProfessions', () => {

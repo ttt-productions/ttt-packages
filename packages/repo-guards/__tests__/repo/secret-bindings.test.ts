@@ -2,7 +2,10 @@
 // mutated out, and passes when it holds.
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { secretBindingGuard, type SecretBindingFacts } from '../../src/modules/repo/secret-bindings.js';
+import {
+  secretBindingGuard,
+  type SecretBindingFacts,
+} from '../../src/modules/repo/secret-bindings.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
@@ -10,8 +13,19 @@ import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
 
-const FACTORIES = { onCall: 0, onRequest: 0, onDocumentCreated: 0, onSchedule: 0, beforeUserSignedIn: 0 };
-const FACTS: SecretBindingFacts = { entryFactories: FACTORIES, pinnedBinders: {}, deliberateOverDeclarations: [], indirectConsumers: [] };
+const FACTORIES = {
+  onCall: 0,
+  onRequest: 0,
+  onDocumentCreated: 0,
+  onSchedule: 0,
+  beforeUserSignedIn: 0,
+};
+const FACTS: SecretBindingFacts = {
+  entryFactories: FACTORIES,
+  pinnedBinders: {},
+  deliberateOverDeclarations: [],
+  indirectConsumers: [],
+};
 
 const SECRETS = `
 import { defineSecret } from 'firebase-functions/params';
@@ -24,45 +38,65 @@ async function run(files: Record<string, string>, facts: Partial<SecretBindingFa
   repo = tempRepo({ 'src/index.ts': 'export {};', 'functions/src/secrets.ts': SECRETS, ...files });
   const reader = createRepoReader({
     repoRoot: repo.root,
-    roots: { app: { path: 'src', anchor: 'src/index.ts' }, functions: { path: 'functions/src', anchor: 'functions/src/secrets.ts' } },
+    roots: {
+      app: { path: 'src', anchor: 'src/index.ts' },
+      functions: { path: 'functions/src', anchor: 'functions/src/secrets.ts' },
+    },
   });
   const [guard] = secretBindingGuard.build({ ...FACTS, ...facts });
   return (await guard.run(contextOf(reader))).map((f) => `${f.file} ${f.detail}`);
 }
 
-const pin = (env: string, ...modules: string[]) => ({ [env]: modules.map((module) => ({ module, why: 'reviewed binder' })) });
+const pin = (env: string, ...modules: string[]) => ({
+  [env]: modules.map((module) => ({ module, why: 'reviewed binder' })),
+});
 
 describe('direct binding', () => {
   it('passes a consumed secret bound directly, through a spread group, or through an options const', async () => {
     expect(
       await run(
         {
-          'functions/src/a.ts': "import { onCall } from 'firebase-functions/v2/https';\nimport { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [alpha] }, async () => alpha.value());",
-          'functions/src/b.ts': "import { GROUP, alpha } from './secrets.js';\nexport const b = onCall({ secrets: [...GROUP] }, async () => { alpha.value(); return process.env.BETA; });",
-          'functions/src/c.ts': "import { alpha } from './secrets.js';\nconst OPTS = { secrets: [alpha] };\nexport const c = onRequest(OPTS, async (req, res) => res.send(alpha.value()));",
+          'functions/src/a.ts':
+            "import { onCall } from 'firebase-functions/v2/https';\nimport { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [alpha] }, async () => alpha.value());",
+          'functions/src/b.ts':
+            "import { GROUP, alpha } from './secrets.js';\nexport const b = onCall({ secrets: [...GROUP] }, async () => { alpha.value(); return process.env.BETA; });",
+          'functions/src/c.ts':
+            "import { alpha } from './secrets.js';\nconst OPTS = { secrets: [alpha] };\nexport const c = onRequest(OPTS, async (req, res) => res.send(alpha.value()));",
         },
-        { pinnedBinders: { ...pin('ALPHA', 'functions/src/a.ts', 'functions/src/b.ts', 'functions/src/c.ts'), ...pin('BETA', 'functions/src/b.ts') } },
+        {
+          pinnedBinders: {
+            ...pin('ALPHA', 'functions/src/a.ts', 'functions/src/b.ts', 'functions/src/c.ts'),
+            ...pin('BETA', 'functions/src/b.ts'),
+          },
+        },
       ),
     ).toEqual([]);
   });
 
   it('flags a binding removed from secrets: [], and one imported and used but never listed', async () => {
     expect(
-      await run({
-        'functions/src/a.ts': "import { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [] }, async () => alpha.value());",
-        'functions/src/b.ts': "import { alpha, beta } from './secrets.js';\n// alpha is named in this comment\nexport const b = onCall({ secrets: [beta] }, async () => { beta.value(); return alpha.value(); });",
-      }, { pinnedBinders: pin('BETA', 'functions/src/b.ts') }),
+      await run(
+        {
+          'functions/src/a.ts':
+            "import { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [] }, async () => alpha.value());",
+          'functions/src/b.ts':
+            "import { alpha, beta } from './secrets.js';\n// alpha is named in this comment\nexport const b = onCall({ secrets: [beta] }, async () => { beta.value(); return alpha.value(); });",
+        },
+        { pinnedBinders: pin('BETA', 'functions/src/b.ts') },
+      ),
     ).toEqual([
-      "functions/src/a.ts functions/src/a.ts → a consumes ALPHA but its own secrets: [...] does not bind it",
-      "functions/src/b.ts functions/src/b.ts → b consumes ALPHA but its own secrets: [...] does not bind it",
+      'functions/src/a.ts functions/src/a.ts → a consumes ALPHA but its own secrets: [...] does not bind it',
+      'functions/src/b.ts functions/src/b.ts → b consumes ALPHA but its own secrets: [...] does not bind it',
     ]);
   });
 
   it('flags process.env consumption and an Identity Platform blocking function like any entry', async () => {
     expect(
       await run({
-        'functions/src/a.ts': "export const a = onDocumentCreated({ document: 'x/{id}', secrets: [] }, async () => process.env.BETA);",
-        'functions/src/hook.ts': "import { alpha } from './secrets.js';\nexport const hook = beforeUserSignedIn({ concurrency: 10 }, async () => { alpha.value(); });",
+        'functions/src/a.ts':
+          "export const a = onDocumentCreated({ document: 'x/{id}', secrets: [] }, async () => process.env.BETA);",
+        'functions/src/hook.ts':
+          "import { alpha } from './secrets.js';\nexport const hook = beforeUserSignedIn({ concurrency: 10 }, async () => { alpha.value(); });",
       }),
     ).toEqual([
       'functions/src/a.ts functions/src/a.ts → a consumes BETA but its own secrets: [...] does not bind it',
@@ -77,16 +111,24 @@ describe('direct binding', () => {
           'functions/src/two.ts':
             "import { alpha, beta } from './secrets.js';\nexport const one = onCall({ secrets: [alpha] }, async () => alpha.value());\nexport const two = onCall({ secrets: [beta] }, async () => { beta.value(); return alpha.value(); });",
         },
-        { pinnedBinders: { ...pin('ALPHA', 'functions/src/two.ts'), ...pin('BETA', 'functions/src/two.ts') } },
+        {
+          pinnedBinders: {
+            ...pin('ALPHA', 'functions/src/two.ts'),
+            ...pin('BETA', 'functions/src/two.ts'),
+          },
+        },
       ),
-    ).toEqual(['functions/src/two.ts functions/src/two.ts → two consumes ALPHA but its own secrets: [...] does not bind it']);
+    ).toEqual([
+      'functions/src/two.ts functions/src/two.ts → two consumes ALPHA but its own secrets: [...] does not bind it',
+    ]);
   });
 
   it('holds an entry whose options spread shared options to the module-wide set, not to nothing', async () => {
     expect(
       await run(
         {
-          'functions/src/a.ts': "import { alpha } from './secrets.js';\nconst BASE = { region: 'r', secrets: [alpha] };\nexport const a = onRequest({ ...BASE, cors: true }, async (q, s) => s.send(alpha.value()));",
+          'functions/src/a.ts':
+            "import { alpha } from './secrets.js';\nconst BASE = { region: 'r', secrets: [alpha] };\nexport const a = onRequest({ ...BASE, cors: true }, async (q, s) => s.send(alpha.value()));",
         },
         { pinnedBinders: pin('ALPHA', 'functions/src/a.ts') },
       ),
@@ -94,20 +136,28 @@ describe('direct binding', () => {
   });
 
   it('leaves a non-entry module that consumes a secret to the entries that reach it', async () => {
-    expect(await run({ 'functions/src/helper.ts': "import { alpha } from './secrets.js';\nexport const key = () => alpha.value();" })).toEqual([]);
+    expect(
+      await run({
+        'functions/src/helper.ts':
+          "import { alpha } from './secrets.js';\nexport const key = () => alpha.value();",
+      }),
+    ).toEqual([]);
   });
 });
 
 describe('over-declaration', () => {
-  const CONSUMER = "import { alpha } from './secrets.js';\nexport const read = () => alpha.value();";
+  const CONSUMER =
+    "import { alpha } from './secrets.js';\nexport const read = () => alpha.value();";
 
   it('stays silent when a static or lazy import reaches the consumer', async () => {
     expect(
       await run(
         {
           'functions/src/helper.ts': CONSUMER,
-          'functions/src/a.ts': "import { alpha } from './secrets.js';\nimport { read } from './helper.js';\nexport const a = onCall({ secrets: [alpha] }, async () => read());",
-          'functions/src/b.ts': "import { alpha } from './secrets.js';\nexport const b = onCall({ secrets: [alpha] }, async () => (await import('./helper.js')).read());",
+          'functions/src/a.ts':
+            "import { alpha } from './secrets.js';\nimport { read } from './helper.js';\nexport const a = onCall({ secrets: [alpha] }, async () => read());",
+          'functions/src/b.ts':
+            "import { alpha } from './secrets.js';\nexport const b = onCall({ secrets: [alpha] }, async () => (await import('./helper.js')).read());",
         },
         { pinnedBinders: pin('ALPHA', 'functions/src/a.ts', 'functions/src/b.ts') },
       ),
@@ -115,27 +165,55 @@ describe('over-declaration', () => {
   });
 
   it('flags a declared secret nothing in the closure consumes, unless reviewed — and a stale review', async () => {
-    const files = { 'functions/src/a.ts': "import { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [alpha] }, async () => 1);" };
+    const files = {
+      'functions/src/a.ts':
+        "import { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [alpha] }, async () => 1);",
+    };
     expect(await run(files, { pinnedBinders: pin('ALPHA', 'functions/src/a.ts') })).toEqual([
       'functions/src/a.ts functions/src/a.ts → a declares ALPHA but nothing in its import closure consumes it — drop the binding',
     ]);
-    const reviewed = { module: 'functions/src/a.ts', entry: 'a', secrets: ['ALPHA'], why: 'an installed package reads it' };
-    expect(await run(files, { pinnedBinders: pin('ALPHA', 'functions/src/a.ts'), deliberateOverDeclarations: [reviewed] })).toEqual([]);
+    const reviewed = {
+      module: 'functions/src/a.ts',
+      entry: 'a',
+      secrets: ['ALPHA'],
+      why: 'an installed package reads it',
+    };
     expect(
-      await run({ 'functions/src/a.ts': "import { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [alpha] }, async () => alpha.value());" }, {
+      await run(files, {
         pinnedBinders: pin('ALPHA', 'functions/src/a.ts'),
         deliberateOverDeclarations: [reviewed],
       }),
-    ).toEqual(['functions/src/a.ts stale over-declaration exception: functions/src/a.ts#a ALPHA is consumed or no longer declared']);
+    ).toEqual([]);
+    expect(
+      await run(
+        {
+          'functions/src/a.ts':
+            "import { alpha } from './secrets.js';\nexport const a = onCall({ secrets: [alpha] }, async () => alpha.value());",
+        },
+        {
+          pinnedBinders: pin('ALPHA', 'functions/src/a.ts'),
+          deliberateOverDeclarations: [reviewed],
+        },
+      ),
+    ).toEqual([
+      'functions/src/a.ts stale over-declaration exception: functions/src/a.ts#a ALPHA is consumed or no longer declared',
+    ]);
   });
 });
 
 describe('pinned binders', () => {
-  const BOUND = "import { alpha } from './secrets.js';\nexport const x = onCall({ secrets: [alpha] }, async () => alpha.value());";
+  const BOUND =
+    "import { alpha } from './secrets.js';\nexport const x = onCall({ secrets: [alpha] }, async () => alpha.value());";
 
   it('flags a lost binder and a new binder of a pinned secret', async () => {
     expect(
-      await run({ 'functions/src/new.ts': BOUND, 'functions/src/pinned.ts': 'export const y = onCall({}, async () => 1);' }, { pinnedBinders: pin('ALPHA', 'functions/src/pinned.ts') }),
+      await run(
+        {
+          'functions/src/new.ts': BOUND,
+          'functions/src/pinned.ts': 'export const y = onCall({}, async () => 1);',
+        },
+        { pinnedBinders: pin('ALPHA', 'functions/src/pinned.ts') },
+      ),
     ).toEqual([
       'functions/src/pinned.ts functions/src/pinned.ts no longer binds ALPHA, which the pinned binders name it for',
       'functions/src/new.ts functions/src/new.ts now binds ALPHA, which the pinned binders do not name it for — confirm it needs the secret, then pin it',
@@ -156,21 +234,36 @@ describe('indirect hops', () => {
     reachingExports: [{ name: 'runDelete', why: 'drains the removal after its commit' }],
     why: 'removing bytes needs both store credentials',
   };
-  const DEFINER = "import { alpha, beta } from '../secrets.js';\nexport async function removeBytes(id) { alpha.value(); beta.value(); }\nexport function requestRemoval(id) {}";
-  const HELPER = "import { removeBytes } from '../store/finalize.js';\nexport async function runDelete(id) { await removeBytes(id); }";
-  const BOUND_ENTRY = (body: string) => `import { GROUP } from './secrets.js';\n${body}\nexport const t = onSchedule({ secrets: [...GROUP] }, async () => {});`;
-  const both = { ...pin('ALPHA', 'functions/src/direct.ts', 'functions/src/hop.ts'), ...pin('BETA', 'functions/src/direct.ts', 'functions/src/hop.ts') };
-  const base = { 'functions/src/store/finalize.ts': DEFINER, 'functions/src/files/delete.ts': HELPER };
+  const DEFINER =
+    "import { alpha, beta } from '../secrets.js';\nexport async function removeBytes(id) { alpha.value(); beta.value(); }\nexport function requestRemoval(id) {}";
+  const HELPER =
+    "import { removeBytes } from '../store/finalize.js';\nexport async function runDelete(id) { await removeBytes(id); }";
+  const BOUND_ENTRY = (body: string) =>
+    `import { GROUP } from './secrets.js';\n${body}\nexport const t = onSchedule({ secrets: [...GROUP] }, async () => {});`;
+  const both = {
+    ...pin('ALPHA', 'functions/src/direct.ts', 'functions/src/hop.ts'),
+    ...pin('BETA', 'functions/src/direct.ts', 'functions/src/hop.ts'),
+  };
+  const base = {
+    'functions/src/store/finalize.ts': DEFINER,
+    'functions/src/files/delete.ts': HELPER,
+  };
 
   it('passes entries that bind both secrets, directly or through a registered helper, and a removal request', async () => {
     expect(
       await run(
         {
           ...base,
-          'functions/src/direct.ts': BOUND_ENTRY("import { removeBytes as nuke } from './store/finalize.js';\nawait nuke('a');"),
-          'functions/src/hop.ts': BOUND_ENTRY("import { runDelete as del } from './files/delete.js';\nawait del('a');"),
-          'functions/src/request.ts': "import { requestRemoval } from './store/finalize.js';\nexport const r = onCall({}, async () => requestRemoval('a'));",
-          'functions/src/types.ts': "import type { Thing } from './store/finalize.js';\nexport const t = onCall({}, async () => 1);",
+          'functions/src/direct.ts': BOUND_ENTRY(
+            "import { removeBytes as nuke } from './store/finalize.js';\nawait nuke('a');",
+          ),
+          'functions/src/hop.ts': BOUND_ENTRY(
+            "import { runDelete as del } from './files/delete.js';\nawait del('a');",
+          ),
+          'functions/src/request.ts':
+            "import { requestRemoval } from './store/finalize.js';\nexport const r = onCall({}, async () => requestRemoval('a'));",
+          'functions/src/types.ts':
+            "import type { Thing } from './store/finalize.js';\nexport const t = onCall({}, async () => 1);",
         },
         { pinnedBinders: both, indirectConsumers: [CONSUMER] },
       ),
@@ -182,9 +275,12 @@ describe('indirect hops', () => {
       await run(
         {
           ...base,
-          'functions/src/aliased.ts': "import { alpha } from './secrets.js';\nimport { removeBytes as nuke } from './store/finalize.js';\nexport const t = onSchedule({ secrets: [alpha] }, async () => nuke('a'));",
-          'functions/src/ns.ts': "import * as finalize from './store/finalize.js';\nexport const t = onSchedule({}, async () => finalize.removeBytes ('a'));",
-          'functions/src/hop.ts': "import { runDelete } from './files/delete.js';\nexport const t = onCall({}, async () => runDelete('a'));",
+          'functions/src/aliased.ts':
+            "import { alpha } from './secrets.js';\nimport { removeBytes as nuke } from './store/finalize.js';\nexport const t = onSchedule({ secrets: [alpha] }, async () => nuke('a'));",
+          'functions/src/ns.ts':
+            "import * as finalize from './store/finalize.js';\nexport const t = onSchedule({}, async () => finalize.removeBytes ('a'));",
+          'functions/src/hop.ts':
+            "import { runDelete } from './files/delete.js';\nexport const t = onCall({}, async () => runDelete('a'));",
         },
         { pinnedBinders: pin('ALPHA', 'functions/src/aliased.ts'), indirectConsumers: [CONSUMER] },
       ),
@@ -200,10 +296,19 @@ describe('indirect hops', () => {
       await run(
         {
           ...base,
-          'functions/src/files/sweep.ts': "import { runDelete } from './delete.js';\nexport async function sweep() { await runDelete('a'); }",
-          'functions/src/files/sneaky.ts': "const m = require('../store/finalize.js');\nexport const go = () => removeBytes('a');",
+          'functions/src/files/sweep.ts':
+            "import { runDelete } from './delete.js';\nexport async function sweep() { await runDelete('a'); }",
+          'functions/src/files/sneaky.ts':
+            "const m = require('../store/finalize.js');\nexport const go = () => removeBytes('a');",
         },
-        { indirectConsumers: [{ ...CONSUMER, reachingExports: [...CONSUMER.reachingExports, { name: 'runGone', why: 'moved' }] }] },
+        {
+          indirectConsumers: [
+            {
+              ...CONSUMER,
+              reachingExports: [...CONSUMER.reachingExports, { name: 'runGone', why: 'moved' }],
+            },
+          ],
+        },
       ),
     ).toEqual([
       'functions/src/files/sneaky.ts calls a chokepoint without a static import the check can follow',
@@ -213,7 +318,11 @@ describe('indirect hops', () => {
   });
 
   it('flags a definer that is not a Functions source module', async () => {
-    expect(await run(base, { indirectConsumers: [{ ...CONSUMER, definer: 'functions/src/store/gone.ts' }] })).toEqual([
+    expect(
+      await run(base, {
+        indirectConsumers: [{ ...CONSUMER, definer: 'functions/src/store/gone.ts' }],
+      }),
+    ).toEqual([
       'functions/src/store/gone.ts the indirect consumer definer is not a Functions source module',
     ]);
   });
@@ -223,7 +332,8 @@ describe('one declaration per secret', () => {
   it('flags a secret declared by a second module, a test module included', async () => {
     expect(
       await run({
-        'functions/src/other.ts': "import { defineSecret } from 'firebase-functions/params';\nexport const again = defineSecret('ALPHA');",
+        'functions/src/other.ts':
+          "import { defineSecret } from 'firebase-functions/params';\nexport const again = defineSecret('ALPHA');",
         'functions/src/__tests__/x.test.ts': "const b = defineSecret('BETA');",
       }),
     ).toEqual([
@@ -240,7 +350,9 @@ describe('facts', () => {
         entryFactories: {},
         pinnedBinders: { A: [], B: [{ module: 'x.ts', why: '' }] },
         deliberateOverDeclarations: [{ module: 'x.ts', entry: 'e', secrets: ['A'], why: '' }],
-        indirectConsumers: [{ secrets: [], definer: 'd.ts', chokepoints: ['go now'], reachingExports: [], why: 'w' }],
+        indirectConsumers: [
+          { secrets: [], definer: 'd.ts', chokepoints: ['go now'], reachingExports: [], why: 'w' },
+        ],
       }),
     ).toEqual([
       'entryFactories is empty',

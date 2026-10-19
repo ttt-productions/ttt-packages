@@ -127,11 +127,13 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
   });
 
   it('requires at least one proposed field', () => {
-    expect(SubmitHallContentChangeRequestInputSchema.safeParse({
-      hallItemId: 'hall-1',
-      workProjectType: 'Tales',
-      proposedFields: {},
-    }).success).toBe(false);
+    expect(
+      SubmitHallContentChangeRequestInputSchema.safeParse({
+        hallItemId: 'hall-1',
+        workProjectType: 'Tales',
+        proposedFields: {},
+      }).success,
+    ).toBe(false);
   });
 
   it('carries a FLAT field map — the request surface is the one discriminator', () => {
@@ -158,9 +160,11 @@ describe('validateHallContentTextFields (the per-surface boundary check)', () =>
 
   it('rejects an empty value and an over-cap value', () => {
     expect(validateHallContentTextFields('tale', { title: '   ' }).ok).toBe(false);
-    expect(validateHallContentTextFields('chapter', {
-      title: 'x'.repeat(CHAPTER_TITLE_INPUT.max + 1),
-    }).ok).toBe(false);
+    expect(
+      validateHallContentTextFields('chapter', {
+        title: 'x'.repeat(CHAPTER_TITLE_INPUT.max + 1),
+      }).ok,
+    ).toBe(false);
   });
 
   it('rejects an empty proposal', () => {
@@ -178,8 +182,9 @@ describe('validateHallContentTextFields (the per-surface boundary check)', () =>
   });
 
   it('covers exactly the canonical text surfaces', () => {
-    expect(Object.keys(HALL_CONTENT_TEXT_FIELDS).sort())
-      .toEqual([...HallContentTextSurfaceSchema.options].sort());
+    expect(Object.keys(HALL_CONTENT_TEXT_FIELDS).sort()).toEqual(
+      [...HallContentTextSurfaceSchema.options].sort(),
+    );
   });
 });
 
@@ -194,14 +199,19 @@ describe('realm grain surface + allowlist', () => {
 
   it('realm proposals take the Realm declarations, capped by the realm constants', () => {
     expect(HALL_CONTENT_CHANGE_REQUEST_INPUTS.workRealm.workingTitle).toBe(REALM_NAME_INPUT);
-    expect(HALL_CONTENT_CHANGE_REQUEST_INPUTS.workRealm.workingDescription).toBe(REALM_DESCRIPTION_INPUT);
+    expect(HALL_CONTENT_CHANGE_REQUEST_INPUTS.workRealm.workingDescription).toBe(
+      REALM_DESCRIPTION_INPUT,
+    );
     expect(REALM_NAME_INPUT.max).toBe(MAX_WORK_REALM_TITLE_LENGTH);
     expect(REALM_DESCRIPTION_INPUT.max).toBe(MAX_WORK_REALM_DESCRIPTION_LENGTH);
   });
 
   it('every allowlisted field has a declaration that requires text', () => {
     for (const [surface, fieldNames] of Object.entries(HALL_CONTENT_TEXT_FIELDS)) {
-      const declarations = HALL_CONTENT_CHANGE_REQUEST_INPUTS as Record<string, Record<string, { min: number }>>;
+      const declarations = HALL_CONTENT_CHANGE_REQUEST_INPUTS as Record<
+        string,
+        Record<string, { min: number }>
+      >;
       for (const field of fieldNames) {
         expect(declarations[surface][field].min).toBeGreaterThanOrEqual(1);
       }
@@ -246,7 +256,10 @@ describe('HALL_CONTENT_SURFACES_BY_WORK_TYPE', () => {
     // The failure this guards: the admin picker's old `type === 'Tales' ? chapter : tuneTrack`
     // ternary handed Television the tuneTrack tuple — correct only while the two happen to match.
     expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemFields).toEqual(['title', 'content']);
-    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemFields).toEqual(['title', 'description']);
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemFields).toEqual([
+      'title',
+      'description',
+    ]);
     expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemFields).toEqual([
       'title',
       'description',
@@ -257,7 +270,10 @@ describe('HALL_CONTENT_SURFACES_BY_WORK_TYPE', () => {
   });
 
   it('every routed field has a declaration and a display label', () => {
-    const declarations = HALL_CONTENT_CHANGE_REQUEST_INPUTS as Record<string, Record<string, { max: number }>>;
+    const declarations = HALL_CONTENT_CHANGE_REQUEST_INPUTS as Record<
+      string,
+      Record<string, { max: number }>
+    >;
     for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
       for (const field of routing.detailFields) {
         expect(declarations[routing.detailSurface][field].max).toBeTypeOf('number');
@@ -354,10 +370,12 @@ describe('R3 author attestation + standard disclaimer', () => {
     };
     expect(SubmitForThresholdLibraryReviewInputSchema.safeParse(base).success).toBe(false);
     expect(
-      SubmitForThresholdLibraryReviewInputSchema.safeParse({ ...base, depictsRealPeople: false }).success,
+      SubmitForThresholdLibraryReviewInputSchema.safeParse({ ...base, depictsRealPeople: false })
+        .success,
     ).toBe(true);
     expect(
-      SubmitForThresholdLibraryReviewInputSchema.safeParse({ ...base, depictsRealPeople: true }).success,
+      SubmitForThresholdLibraryReviewInputSchema.safeParse({ ...base, depictsRealPeople: true })
+        .success,
     ).toBe(true);
   });
 
@@ -405,7 +423,17 @@ describe('the change-request wire cap', () => {
   it('judges the trimmed text, as the field declarations do', () => {
     const base = { hallItemId: 'h1', workProjectType: 'Tales' as const, subItemId: 'c1' };
     const atCap = 'a'.repeat(CHAPTER_CONTENT_INPUT.max);
-    expect(SubmitHallContentChangeRequestInputSchema.safeParse({ ...base, proposedFields: { content: atCap + '\n' } }).success).toBe(true);
-    expect(SubmitHallContentChangeRequestInputSchema.safeParse({ ...base, proposedFields: { content: atCap + 'a' } }).success).toBe(false);
+    expect(
+      SubmitHallContentChangeRequestInputSchema.safeParse({
+        ...base,
+        proposedFields: { content: atCap + '\n' },
+      }).success,
+    ).toBe(true);
+    expect(
+      SubmitHallContentChangeRequestInputSchema.safeParse({
+        ...base,
+        proposedFields: { content: atCap + 'a' },
+      }).success,
+    ).toBe(false);
   });
 });

@@ -134,7 +134,11 @@ describe('createFsIO', () => {
 
   describe('input.mime', () => {
     it('is set when inputMime provided', () => {
-      const io = createFsIO({ inputPath: '/tmp/test.jpg', inputMime: 'image/jpeg', outputDir: '/tmp' });
+      const io = createFsIO({
+        inputPath: '/tmp/test.jpg',
+        inputMime: 'image/jpeg',
+        outputDir: '/tmp',
+      });
       expect(io.input.mime).toBe('image/jpeg');
     });
 

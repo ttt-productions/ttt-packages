@@ -3,10 +3,10 @@
 // once it mounts. It only listens: it never calls `preventDefault`, so the app's monitoring still
 // captures every event once, and it never reloads the page.
 
-import { reloadRecoveryKindOf, type ReloadRecoveryKind } from "../lib/reload-recovery.js";
+import { reloadRecoveryKindOf, type ReloadRecoveryKind } from '../lib/reload-recovery.js';
 
 /** What the watch listens on: the page's window. */
-export type ReloadRecoveryTarget = Pick<Window, "addEventListener" | "removeEventListener">;
+export type ReloadRecoveryTarget = Pick<Window, 'addEventListener' | 'removeEventListener'>;
 
 export interface ReloadRecoveryWatch {
   /** The first failure only a reload repairs since the watch started, or `null` while there is none. */
@@ -17,7 +17,9 @@ export interface ReloadRecoveryWatch {
   stop: () => void;
 }
 
-export function createReloadRecoveryWatch(target: ReloadRecoveryTarget = window): ReloadRecoveryWatch {
+export function createReloadRecoveryWatch(
+  target: ReloadRecoveryTarget = window,
+): ReloadRecoveryWatch {
   let recorded: ReloadRecoveryKind | null = null;
   const listeners = new Set<() => void>();
 
@@ -32,8 +34,8 @@ export function createReloadRecoveryWatch(target: ReloadRecoveryTarget = window)
     record(reloadRecoveryKindOf(event.error) ?? reloadRecoveryKindOf({ message: event.message }));
   const onRejection = (event: PromiseRejectionEvent) => record(reloadRecoveryKindOf(event.reason));
 
-  target.addEventListener("error", onError);
-  target.addEventListener("unhandledrejection", onRejection);
+  target.addEventListener('error', onError);
+  target.addEventListener('unhandledrejection', onRejection);
 
   return {
     current: () => recorded,
@@ -42,8 +44,8 @@ export function createReloadRecoveryWatch(target: ReloadRecoveryTarget = window)
       return () => listeners.delete(listener);
     },
     stop: () => {
-      target.removeEventListener("error", onError);
-      target.removeEventListener("unhandledrejection", onRejection);
+      target.removeEventListener('error', onError);
+      target.removeEventListener('unhandledrejection', onRejection);
     },
   };
 }

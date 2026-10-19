@@ -281,11 +281,7 @@ export type AuditEventType =
  * - 'system'        — backend automation: trigger, scheduled job, migration, media pipeline
  */
 export type TTTAuditActorMode =
-  | 'user'
-  | 'guildmateUser'
-  | 'adminReview'
-  | 'adminOverride'
-  | 'system';
+  'user' | 'guildmateUser' | 'adminReview' | 'adminOverride' | 'system';
 
 /** Fields common to every audited actor regardless of mode. `isAdmin` is
  * claim-present metadata only — it records that the caller held an admin
@@ -327,4 +323,3 @@ export type TTTAuditEvent = AuditEvent<
   TTTAuditTarget,
   Record<string, unknown>
 >;
-

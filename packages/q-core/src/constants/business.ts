@@ -88,7 +88,6 @@ export const LEAGUE_TIME_ZONE = 'America/New_York';
 // A scorer's note on one person in a game ("red shirt", "#9").
 export const MAX_GAME_MEMO_LENGTH = 30;
 
-
 // How a refusal at a count cap reads: the thing that is full, its limit, and what it holds.
 export const countCapReachedMessage = (subject: string, limit: number, noun: string): string =>
   `${subject} already has the maximum of ${limit} ${noun}.`;
@@ -100,27 +99,44 @@ export const countCapReachedMessage = (subject: string, limit: number, noun: str
 // A team's size, ghost players included. Every way onto a team is refused at this many active
 // members, so a game's roster can always be seeded and checked in one read.
 export const MAX_ACTIVE_TEAM_MEMBERS = 30;
-export const TEAM_FULL_MESSAGE = countCapReachedMessage('This team', MAX_ACTIVE_TEAM_MEMBERS, 'players');
+export const TEAM_FULL_MESSAGE = countCapReachedMessage(
+  'This team',
+  MAX_ACTIVE_TEAM_MEMBERS,
+  'players',
+);
 // The memberships one game-roster seed reads for a team: every membership is active, so the cap.
 export const MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
 // Departed players a team's side of an open game may keep beside its members: a player who recorded
 // stats in the game keeps their entry after leaving the team.
 export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 10;
 // The entries one team's side of a game may hold, so a reconcile or finalize reads them in one page.
-export const MAX_ROSTER_ENTRIES_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
+export const MAX_ROSTER_ENTRIES_PER_TEAM =
+  MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
 
 // A league's size. Standings, schedules, and rankings need a league's complete set of teams and
 // games, so creation is refused at these caps rather than any read being cut short. A team's games
 // are its league's, so the game cap bounds them too.
 export const MAX_TEAMS_PER_LEAGUE = 40;
 export const MAX_GAMES_PER_LEAGUE = 250;
-export const LEAGUE_TEAMS_FULL_MESSAGE = countCapReachedMessage('This league', MAX_TEAMS_PER_LEAGUE, 'teams');
-export const LEAGUE_GAMES_FULL_MESSAGE = countCapReachedMessage('This league', MAX_GAMES_PER_LEAGUE, 'games');
+export const LEAGUE_TEAMS_FULL_MESSAGE = countCapReachedMessage(
+  'This league',
+  MAX_TEAMS_PER_LEAGUE,
+  'teams',
+);
+export const LEAGUE_GAMES_FULL_MESSAGE = countCapReachedMessage(
+  'This league',
+  MAX_GAMES_PER_LEAGUE,
+  'games',
+);
 
 // The most games one week of the schedule holds, counting the games it already has: creating a week
 // or adding a game to one is refused past it.
 export const MAX_SCHEDULE_WEEK_GAMES = 20;
-export const SCHEDULE_WEEK_FULL_MESSAGE = countCapReachedMessage('This week', MAX_SCHEDULE_WEEK_GAMES, 'games');
+export const SCHEDULE_WEEK_FULL_MESSAGE = countCapReachedMessage(
+  'This week',
+  MAX_SCHEDULE_WEEK_GAMES,
+  'games',
+);
 
 // How many teams in a pool reach the playoffs: at most every team a league can hold. A cutoff above a
 // pool's team count simply admits every team.
@@ -129,13 +145,21 @@ export const MAX_PLAYOFF_CUTOFF = MAX_TEAMS_PER_LEAGUE;
 // A game's stat log. A write that would take a game's `statEventSequence` past it is refused with
 // nothing written, which also bounds the game's live play-by-play.
 export const MAX_STAT_EVENTS_PER_GAME = 1000;
-export const GAME_STAT_LOG_FULL_MESSAGE = countCapReachedMessage('This game', MAX_STAT_EVENTS_PER_GAME, 'recorded stats');
+export const GAME_STAT_LOG_FULL_MESSAGE = countCapReachedMessage(
+  'This game',
+  MAX_STAT_EVENTS_PER_GAME,
+  'recorded stats',
+);
 
 // The venues games are played at. Every venue picker and the public locations page read the whole set,
 // so creating a venue is refused at this many. A venue's courts, sheets, or rooms are part of it and
 // count toward MAX_GAME_LOCATION_SUB_LOCATIONS, never toward this.
 export const MAX_GAME_LOCATIONS = 30;
-export const GAME_LOCATIONS_FULL_MESSAGE = countCapReachedMessage('Q-Sports', MAX_GAME_LOCATIONS, 'locations');
+export const GAME_LOCATIONS_FULL_MESSAGE = countCapReachedMessage(
+  'Q-Sports',
+  MAX_GAME_LOCATIONS,
+  'locations',
+);
 
 // The waiver templates a league can be given: every template not retired. The offered list and the
 // league form's picker read the whole set, so creating a template is refused at this many; retiring one
@@ -150,18 +174,38 @@ export const WAIVER_TEMPLATES_FULL_MESSAGE = countCapReachedMessage(
 // Every capacity limit as an admin reads it, in the order the Limits card lists them. Each value is
 // the constant the server enforces, so the card and every refusal name the same number.
 export const CAPACITY_LIMITS = [
-  { key: 'teamPlayers', label: 'Players on a team, ghost players included', limit: MAX_ACTIVE_TEAM_MEMBERS },
+  {
+    key: 'teamPlayers',
+    label: 'Players on a team, ghost players included',
+    limit: MAX_ACTIVE_TEAM_MEMBERS,
+  },
   {
     key: 'gameSidePeople',
     label: `People on one side of one game: ${MAX_ACTIVE_TEAM_MEMBERS} players plus ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} who left the team after recording stats in it`,
     limit: MAX_ROSTER_ENTRIES_PER_TEAM,
   },
   { key: 'leagueTeams', label: 'Teams in a league', limit: MAX_TEAMS_PER_LEAGUE },
-  { key: 'leagueGames', label: "Games in a league, so also a team's games", limit: MAX_GAMES_PER_LEAGUE },
+  {
+    key: 'leagueGames',
+    label: "Games in a league, so also a team's games",
+    limit: MAX_GAMES_PER_LEAGUE,
+  },
   { key: 'weekGames', label: 'Games in one week of the schedule', limit: MAX_SCHEDULE_WEEK_GAMES },
   { key: 'gameStats', label: 'Stats recorded in one game', limit: MAX_STAT_EVENTS_PER_GAME },
-  { key: 'playoffCutoff', label: "Teams reaching the playoffs, at most the league's team limit", limit: MAX_PLAYOFF_CUTOFF },
-  { key: 'gameLocations', label: "Game locations, each venue's courts or sheets counted as part of it", limit: MAX_GAME_LOCATIONS },
-  { key: 'offeredWaiverTemplates', label: 'Waiver templates offered to leagues, retired ones not counted', limit: MAX_OFFERED_WAIVER_TEMPLATES },
+  {
+    key: 'playoffCutoff',
+    label: "Teams reaching the playoffs, at most the league's team limit",
+    limit: MAX_PLAYOFF_CUTOFF,
+  },
+  {
+    key: 'gameLocations',
+    label: "Game locations, each venue's courts or sheets counted as part of it",
+    limit: MAX_GAME_LOCATIONS,
+  },
+  {
+    key: 'offeredWaiverTemplates',
+    label: 'Waiver templates offered to leagues, retired ones not counted',
+    limit: MAX_OFFERED_WAIVER_TEMPLATES,
+  },
 ] as const satisfies readonly { key: string; label: string; limit: number }[];
 export type CapacityLimitKey = (typeof CAPACITY_LIMITS)[number]['key'];

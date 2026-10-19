@@ -10,7 +10,12 @@ const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const onSnapshotMock = vi.fn(
-    (target: { __kind: 'doc' | 'col' }, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
+    (
+      target: { __kind: 'doc' | 'col' },
+      _options: unknown,
+      next: (s: unknown) => void,
+      error: (e: Error) => void,
+    ) => {
       (target.__kind === 'doc' ? docCaps : colCaps).push({ next, error });
       return vi.fn();
     },
@@ -83,7 +88,14 @@ describe('useFirestoreDoc — bounded resubscribe on permission-denied', () => {
     act(() => vi.advanceTimersByTime(D0));
     expect(onSnapshotMock).toHaveBeenCalledTimes(2);
 
-    act(() => docCaps[docCaps.length - 1].next({ exists: () => true, id: 'u1', data: () => ({ n: 1 }), metadata: { fromCache: false } }));
+    act(() =>
+      docCaps[docCaps.length - 1].next({
+        exists: () => true,
+        id: 'u1',
+        data: () => ({ n: 1 }),
+        metadata: { fromCache: false },
+      }),
+    );
     expect(result.current.isError).toBe(false);
     expect(result.current.sourceState).toBe('live');
   });
@@ -140,7 +152,14 @@ describe('useFirestoreDoc — bounded resubscribe on permission-denied', () => {
     act(() => docCaps[docCaps.length - 1].error(permissionDenied()));
     act(() => vi.advanceTimersByTime(D0));
     expect(onSnapshotMock).toHaveBeenCalledTimes(2);
-    act(() => docCaps[docCaps.length - 1].next({ exists: () => true, id: 'u1', data: () => ({ n: 1 }), metadata: { fromCache: false } }));
+    act(() =>
+      docCaps[docCaps.length - 1].next({
+        exists: () => true,
+        id: 'u1',
+        data: () => ({ n: 1 }),
+        metadata: { fromCache: false },
+      }),
+    );
 
     // A fresh blip resubscribes again after the FIRST delay (ladder was reset).
     act(() => docCaps[docCaps.length - 1].error(permissionDenied()));
@@ -163,12 +182,16 @@ describe('useFirestoreDoc — bounded resubscribe on permission-denied', () => {
 });
 
 describe('useFirestoreCollection — bounded resubscribe on permission-denied', () => {
-  const goodSnap = () => ({ docs: [{ id: 'i1', data: () => ({ name: 'x' }) }], metadata: { fromCache: false } });
+  const goodSnap = () => ({
+    docs: [{ id: 'i1', data: () => ({ name: 'x' }) }],
+    metadata: { fromCache: false },
+  });
 
   it('does not surface the error; resubscribes after the first delay and heals on the next snapshot', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     expect(onSnapshotMock).toHaveBeenCalledTimes(1);
@@ -189,7 +212,8 @@ describe('useFirestoreCollection — bounded resubscribe on permission-denied', 
   it('surfaces the error once the ladder is exhausted (3 retries at 5s/15s/45s)', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
 
@@ -213,7 +237,8 @@ describe('useFirestoreCollection — bounded resubscribe on permission-denied', 
   it('surfaces a non-permission-denied error immediately (no retry)', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
 
@@ -229,7 +254,8 @@ describe('useFirestoreCollection — bounded resubscribe on permission-denied', 
   it('clears a pending retry on unmount (no resubscribe after teardown)', () => {
     const { Wrapper } = makeWrapper();
     const { unmount } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
 

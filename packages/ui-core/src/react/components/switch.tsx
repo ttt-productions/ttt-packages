@@ -1,16 +1,16 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import * as SwitchPrimitives from "@radix-ui/react-switch"
+import * as React from 'react';
+import * as SwitchPrimitives from '@radix-ui/react-switch';
 
-import { cn } from "../../lib/utils.js"
-import { Spinner } from "./spinner.js"
+import { cn } from '../../lib/utils.js';
+import { Spinner } from './spinner.js';
 
 // Stopped in the capture phase so neither the caller's click handler nor the switch's own
 // toggle runs while a change is in flight.
 function blockToggle(event: React.MouseEvent<HTMLButtonElement>) {
-  event.preventDefault()
-  event.stopPropagation()
+  event.preventDefault();
+  event.stopPropagation();
 }
 
 const Switch = React.forwardRef<
@@ -23,30 +23,35 @@ const Switch = React.forwardRef<
      * natively disabled while pending (a `disabled` passed alongside applies once pending
      * ends), so the switch the user just pressed keeps focus (FRONTEND-203).
      */
-    pending?: boolean
+    pending?: boolean;
   }
 >(({ className, pending = false, disabled, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
-      className
+      'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input',
+      className,
     )}
     {...props}
     {...(pending
-      ? { "aria-busy": true, "aria-disabled": true, "data-pending": "", onClickCapture: blockToggle }
+      ? {
+          'aria-busy': true,
+          'aria-disabled': true,
+          'data-pending': '',
+          onClickCapture: blockToggle,
+        }
       : {})}
     disabled={(disabled && !pending) || undefined}
     ref={ref}
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-background elevation-raised transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        'pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-background elevation-raised transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0',
       )}
     >
       {pending ? <Spinner size="xs" /> : null}
     </SwitchPrimitives.Thumb>
   </SwitchPrimitives.Root>
-))
-Switch.displayName = SwitchPrimitives.Root.displayName
+));
+Switch.displayName = SwitchPrimitives.Root.displayName;
 
-export { Switch }
+export { Switch };

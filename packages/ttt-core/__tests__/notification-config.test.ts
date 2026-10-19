@@ -56,7 +56,8 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
   });
 
   it('hall_content_change_request_resolved routes the realm grain to the realm page, hall grains to the Work', () => {
-    const target = TTT_NOTIFICATION_CONFIG.types.hall_content_change_request_resolved.defaultTargetPath;
+    const target =
+      TTT_NOTIFICATION_CONFIG.types.hall_content_change_request_resolved.defaultTargetPath;
     expect(typeof target).toBe('function');
     const fn = target as (meta: Record<string, unknown>) => string;
     expect(fn({ workProjectId: 'wp1', workRealmId: 'realm1' })).toBe('/work-realms/realm1');
@@ -74,16 +75,16 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
     const resolvedTarget = TTT_NOTIFICATION_CONFIG.types.realm_file_share_resolved
       .defaultTargetPath as (meta: Record<string, unknown>) => string;
     // approved/declined reach the REQUESTER → the Work, where the file and its state live.
-    expect(resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'approved' })).toBe(
-      '/work-projects/wp1',
-    );
-    expect(resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'declined' })).toBe(
-      '/work-projects/wp1',
-    );
+    expect(
+      resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'approved' }),
+    ).toBe('/work-projects/wp1');
+    expect(
+      resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'declined' }),
+    ).toBe('/work-projects/wp1');
     // withdrawn reaches the STEWARD → the Realm, where the now-stale queue card was.
-    expect(resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'withdrawn' })).toBe(
-      '/work-realms/realm1',
-    );
+    expect(
+      resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'withdrawn' }),
+    ).toBe('/work-realms/realm1');
   });
 
   it('realm-file share copy carries no name/title snapshot (identities resolve at render)', () => {

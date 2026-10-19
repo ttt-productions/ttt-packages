@@ -17,7 +17,12 @@ export interface ApplicationDataFacts {
 }
 
 const SCOPE: Scope = { roots: ['app'], kinds: ['code'], tests: true };
-const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const;
+const DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+] as const;
 
 export const applicationDataImportsGuard: GenericGuardDefinition<ApplicationDataFacts> = {
   id: 'applicationDataImports',
@@ -27,9 +32,13 @@ export const applicationDataImportsGuard: GenericGuardDefinition<ApplicationData
     textProblem(facts?.packagesFolder, 'packagesFolder', problems);
     if (!Array.isArray(facts?.applicationDataPackages) || !facts.applicationDataPackages.length) {
       problems.push('applicationDataPackages is missing');
-    } else if (facts.applicationDataPackages.some((name) => typeof name !== 'string' || !name.trim())) {
+    } else if (
+      facts.applicationDataPackages.some((name) => typeof name !== 'string' || !name.trim())
+    ) {
       problems.push('an applicationDataPackages entry names no folder');
-    } else if (new Set(facts.applicationDataPackages).size !== facts.applicationDataPackages.length) {
+    } else if (
+      new Set(facts.applicationDataPackages).size !== facts.applicationDataPackages.length
+    ) {
       problems.push('applicationDataPackages lists a folder twice');
     }
     return problems;
@@ -47,25 +56,47 @@ export const applicationDataImportsGuard: GenericGuardDefinition<ApplicationData
           const findings: Finding[] = [];
           const folder = join(context.reader.layout.repoRoot, facts.packagesFolder);
           const dirs = existsSync(folder)
-            ? readdirSync(folder, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(folder, d.name, 'package.json')))
+            ? readdirSync(folder, { withFileTypes: true }).filter(
+                (d) => d.isDirectory() && existsSync(join(folder, d.name, 'package.json')),
+              )
             : [];
-          if (!dirs.length) return [{ file: facts.packagesFolder, detail: 'the folder holds no package' }];
-          const nameOf = (dir: string) => (JSON.parse(readFileSync(join(folder, dir, 'package.json'), 'utf8')) as { name: string }).name;
+          if (!dirs.length)
+            return [{ file: facts.packagesFolder, detail: 'the folder holds no package' }];
+          const nameOf = (dir: string) =>
+            (
+              JSON.parse(readFileSync(join(folder, dir, 'package.json'), 'utf8')) as {
+                name: string;
+              }
+            ).name;
           const known = new Set(dirs.map((d) => d.name));
           const applicationData = new Map<string, string>();
           for (const dir of facts.applicationDataPackages) {
-            if (!known.has(dir)) findings.push({ file: `${facts.packagesFolder}/${dir}`, detail: 'applicationDataPackages names a folder that holds no package' });
+            if (!known.has(dir))
+              findings.push({
+                file: `${facts.packagesFolder}/${dir}`,
+                detail: 'applicationDataPackages names a folder that holds no package',
+              });
             else applicationData.set(nameOf(dir), dir);
           }
           const names = [...applicationData.keys()];
-          const namesOne = (spec: string) => names.find((name) => spec === name || spec.startsWith(`${name}/`));
-          const generic = dirs.filter((d) => !facts.applicationDataPackages.includes(d.name)).map((d) => d.name);
+          const namesOne = (spec: string) =>
+            names.find((name) => spec === name || spec.startsWith(`${name}/`));
+          const generic = dirs
+            .filter((d) => !facts.applicationDataPackages.includes(d.name))
+            .map((d) => d.name);
           for (const dir of generic) {
             const manifestPath = `${facts.packagesFolder}/${dir}/package.json`;
-            const manifest = JSON.parse(context.file(manifestPath).text) as Record<string, Record<string, string> | undefined>;
+            const manifest = JSON.parse(context.file(manifestPath).text) as Record<
+              string,
+              Record<string, string> | undefined
+            >;
             for (const field of DEPENDENCY_FIELDS) {
               for (const dependency of Object.keys(manifest[field] ?? {})) {
-                if (applicationData.has(dependency)) findings.push({ file: manifestPath, detail: `${field} names the application-data package ${dependency}` });
+                if (applicationData.has(dependency))
+                  findings.push({
+                    file: manifestPath,
+                    detail: `${field} names the application-data package ${dependency}`,
+                  });
               }
             }
           }
@@ -77,7 +108,10 @@ export const applicationDataImportsGuard: GenericGuardDefinition<ApplicationData
               if (named) {
                 findings.push({
                   file: file.path,
-                  line: file.sourceFile.getLineAndCharacterOfPosition(site.node.getStart(file.sourceFile)).line + 1,
+                  line:
+                    file.sourceFile.getLineAndCharacterOfPosition(
+                      site.node.getStart(file.sourceFile),
+                    ).line + 1,
                   detail: `imports '${site.spec}' from the application-data package ${named}`,
                 });
               }

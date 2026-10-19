@@ -47,36 +47,38 @@ export type NciiCaseLane = z.infer<typeof NciiCaseLaneSchema>;
  * case-level timestamp could wrongly override a LATER-linked request, so each
  * evidence row owns its own `deleteAfter` and each request owns its own
  * PII/status/token schedule. */
-export const NciiCaseV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  caseId: z.string().min(1),
-  revision: z.number(),
-  lane: NciiCaseLaneSchema,
-  // [H7] internal operational case status
-  internalStatus: NciiInternalStatusSchema,
-  // [H7] child-safety linkage status
-  childSafetyLinkStatus: NciiChildSafetyLinkStatusSchema,
-  // [F4] the possible-minor assessment; childSafetyCaseId lives HERE ([H7], one canonical place)
-  crossover: NciiChildSafetyCrossoverSchema,
-  // OPTIONAL labeled repairable PROJECTION of crossover.childSafetyCaseId — never the source of truth
-  childSafetyCaseId: z.string().min(1).optional(),
-  // NON-AUTHORITATIVE projection of the minimum active request monitor ([H4]); source of truth =
-  // safetySlaMonitors/{requestId}__nciiRemovalDeadline
-  nciiRemovalDeadlineAt: z.number().optional(),
-  // [EUAS-008] the structured operator closure record, set when the case is closed via the guided
-  // resolution flow. The terminal `internalStatus: 'closed'` flip is the lifecycle status; THIS is
-  // who closed it, why, and with what outcome. Absent until closed.
-  closure: SafetyCaseClosureV1Schema.optional(),
-  // [F-014] Protected chat-report context recovery — parity with the child-safety case
-  // (doc-schemas/safety/case.ts). When an NCII case opens from a chat report while the chat Worker is
-  // unavailable, the immutable channel/message locator is preserved here and `contextResolutionPending`
-  // flags that surrounding context still needs an operator re-fetch. Both optional; absent for
-  // non-chat NCII cases.
-  chatMessageLocator: TargetLocatorV1Schema.optional(),
-  contextResolutionPending: z.boolean().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-}).strict();
+export const NciiCaseV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    caseId: z.string().min(1),
+    revision: z.number(),
+    lane: NciiCaseLaneSchema,
+    // [H7] internal operational case status
+    internalStatus: NciiInternalStatusSchema,
+    // [H7] child-safety linkage status
+    childSafetyLinkStatus: NciiChildSafetyLinkStatusSchema,
+    // [F4] the possible-minor assessment; childSafetyCaseId lives HERE ([H7], one canonical place)
+    crossover: NciiChildSafetyCrossoverSchema,
+    // OPTIONAL labeled repairable PROJECTION of crossover.childSafetyCaseId — never the source of truth
+    childSafetyCaseId: z.string().min(1).optional(),
+    // NON-AUTHORITATIVE projection of the minimum active request monitor ([H4]); source of truth =
+    // safetySlaMonitors/{requestId}__nciiRemovalDeadline
+    nciiRemovalDeadlineAt: z.number().optional(),
+    // [EUAS-008] the structured operator closure record, set when the case is closed via the guided
+    // resolution flow. The terminal `internalStatus: 'closed'` flip is the lifecycle status; THIS is
+    // who closed it, why, and with what outcome. Absent until closed.
+    closure: SafetyCaseClosureV1Schema.optional(),
+    // [F-014] Protected chat-report context recovery — parity with the child-safety case
+    // (doc-schemas/safety/case.ts). When an NCII case opens from a chat report while the chat Worker is
+    // unavailable, the immutable channel/message locator is preserved here and `contextResolutionPending`
+    // flags that surrounding context still needs an operator re-fetch. Both optional; absent for
+    // non-chat NCII cases.
+    chatMessageLocator: TargetLocatorV1Schema.optional(),
+    contextResolutionPending: z.boolean().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  })
+  .strict();
 export type NciiCaseV1 = z.infer<typeof NciiCaseV1Schema>;
 
 /**
@@ -85,19 +87,23 @@ export type NciiCaseV1 = z.infer<typeof NciiCaseV1Schema>;
  * revision-bound event, so neither operation can overwrite the other.
  */
 export const NciiCaseClosureEventV1Schema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('caseClosed'),
-    revision: z.number(),
-    closure: SafetyCaseClosureV1Schema,
-    at: z.number(),
-  }).strict(),
-  z.object({
-    kind: z.literal('caseReopened'),
-    revision: z.number(),
-    reasonInternal: z.string().min(1),
-    actorId: z.string().min(1),
-    at: z.number(),
-  }).strict(),
+  z
+    .object({
+      kind: z.literal('caseClosed'),
+      revision: z.number(),
+      closure: SafetyCaseClosureV1Schema,
+      at: z.number(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('caseReopened'),
+      revision: z.number(),
+      reasonInternal: z.string().min(1),
+      actorId: z.string().min(1),
+      at: z.number(),
+    })
+    .strict(),
 ]);
 export type NciiCaseClosureEventV1 = z.infer<typeof NciiCaseClosureEventV1Schema>;
 
@@ -107,41 +113,51 @@ export type NciiCaseClosureEventV1 = z.infer<typeof NciiCaseClosureEventV1Schema
 
 /** `nciiCases/{caseId}/allegationLinks/{allegationId}` — links an allegation to
  * the case. Doc id is the `allegationId`. */
-export const NciiCaseAllegationLinkV1Schema = z.object({
-  allegationId: z.string().min(1),
-  linkedAt: z.number(),
-  linkedByUid: z.string().min(1),
-  // [EUAS-016/R4] The originating in-app report id, so a case close can flip the protected report
-  // root(s) terminal (the child-safety path resolves this via sourceSignals; NCII via this field).
-  // Optional for backward compat — a link written before this field simply yields no flip.
-  reportId: z.string().min(1).optional(),
-}).strict();
+export const NciiCaseAllegationLinkV1Schema = z
+  .object({
+    allegationId: z.string().min(1),
+    linkedAt: z.number(),
+    linkedByUid: z.string().min(1),
+    // [EUAS-016/R4] The originating in-app report id, so a case close can flip the protected report
+    // root(s) terminal (the child-safety path resolves this via sourceSignals; NCII via this field).
+    // Optional for backward compat — a link written before this field simply yields no flip.
+    reportId: z.string().min(1).optional(),
+  })
+  .strict();
 export type NciiCaseAllegationLinkV1 = z.infer<typeof NciiCaseAllegationLinkV1Schema>;
 
 /** `nciiCases/{caseId}/requestLinks/{requestId}` — links a statutory request to
  * the case. Doc id is the `requestId`. */
-export const NciiCaseRequestLinkV1Schema = z.object({
-  requestId: z.string().min(1),
-  linkedAt: z.number(),
-  linkedByUid: z.string().min(1),
-}).strict();
+export const NciiCaseRequestLinkV1Schema = z
+  .object({
+    requestId: z.string().min(1),
+    linkedAt: z.number(),
+    linkedByUid: z.string().min(1),
+  })
+  .strict();
 export type NciiCaseRequestLinkV1 = z.infer<typeof NciiCaseRequestLinkV1Schema>;
 
 /** Removal-action method on a `removalActions` row. */
-export const NciiCaseRemovalActionMethodSchema = z.enum(['tombstone', 'accountAction', 'assetBlock']);
+export const NciiCaseRemovalActionMethodSchema = z.enum([
+  'tombstone',
+  'accountAction',
+  'assetBlock',
+]);
 export type NciiCaseRemovalActionMethod = z.infer<typeof NciiCaseRemovalActionMethodSchema>;
 
 /** `nciiCases/{caseId}/removalActions/{actionId}` — append-only removal-action
  * row. Doc id is the `actionId`. */
-export const NciiCaseRemovalActionV1Schema = z.object({
-  at: z.number(),
-  actorId: z.string().min(1),
-  surface: z.string(),
-  targetItemType: z.string(),
-  targetItemId: z.string().min(1),
-  method: NciiCaseRemovalActionMethodSchema,
-  result: z.string(),
-}).strict();
+export const NciiCaseRemovalActionV1Schema = z
+  .object({
+    at: z.number(),
+    actorId: z.string().min(1),
+    surface: z.string(),
+    targetItemType: z.string(),
+    targetItemId: z.string().min(1),
+    method: NciiCaseRemovalActionMethodSchema,
+    result: z.string(),
+  })
+  .strict();
 export type NciiCaseRemovalActionV1 = z.infer<typeof NciiCaseRemovalActionV1Schema>;
 
 // ===========================================================================
@@ -167,16 +183,18 @@ export type NciiBlockedHashStatus = z.infer<typeof NciiBlockedHashStatusSchema>;
 
 /** `nciiCases/{caseId}/blockedHashes/{hashId}` [F8] — exact-hash block. Doc id is
  * the `hashId`. */
-export const NciiBlockedHashV1Schema = z.object({
-  hashId: z.string().min(1),
-  algorithm: z.literal('sha256'),
-  digest: z.string().min(1),
-  source: NciiBlockedHashSourceSchema,
-  createdAt: z.number(),
-  createdByUid: z.string().min(1),
-  status: NciiBlockedHashStatusSchema,
-  reversedAt: z.number().optional(),
-  reversedByUid: z.string().min(1).optional(),
-  reversalReason: z.string().optional(),
-}).strict();
+export const NciiBlockedHashV1Schema = z
+  .object({
+    hashId: z.string().min(1),
+    algorithm: z.literal('sha256'),
+    digest: z.string().min(1),
+    source: NciiBlockedHashSourceSchema,
+    createdAt: z.number(),
+    createdByUid: z.string().min(1),
+    status: NciiBlockedHashStatusSchema,
+    reversedAt: z.number().optional(),
+    reversedByUid: z.string().min(1).optional(),
+    reversalReason: z.string().optional(),
+  })
+  .strict();
 export type NciiBlockedHashV1 = z.infer<typeof NciiBlockedHashV1Schema>;

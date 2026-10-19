@@ -22,7 +22,7 @@ function ThrowingChild({ shouldThrow }: { shouldThrow: boolean }) {
 beforeEach(() => {
   mockCaptureException.mockClear();
   // Suppress React's error boundary console.error output in tests
-  vi.spyOn(console, 'error').mockImplementation(() => { });
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 describe('ErrorBoundary', () => {

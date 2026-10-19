@@ -21,7 +21,9 @@ describe('ProfilePictureUpdatedEventSchema', () => {
     expect(ProfilePictureUpdatedEventSchema.parse(event).type).toBe('profile.pictureUpdated');
   });
   it('rejects missing userId', () => {
-    expect(() => ProfilePictureUpdatedEventSchema.parse({ type: 'profile.pictureUpdated', ids: {} })).toThrow();
+    expect(() =>
+      ProfilePictureUpdatedEventSchema.parse({ type: 'profile.pictureUpdated', ids: {} }),
+    ).toThrow();
   });
 });
 
@@ -73,7 +75,9 @@ describe('ModerationViolationCreatedEventSchema', () => {
         pendingMediaId: 'pm_1',
       },
     };
-    expect(ModerationViolationCreatedEventSchema.parse(event).ids.fileOrigin).toBe('profile-picture');
+    expect(ModerationViolationCreatedEventSchema.parse(event).ids.fileOrigin).toBe(
+      'profile-picture',
+    );
   });
 
   it('rejects unknown fileOrigin', () => {
@@ -92,12 +96,18 @@ describe('ModerationViolationCreatedEventSchema', () => {
 
 describe('DomainEventSchema discriminated union', () => {
   it('accepts profile.pictureUpdated', () => {
-    const result = DomainEventSchema.parse({ type: 'profile.pictureUpdated', ids: { userId: 'u_1' } });
+    const result = DomainEventSchema.parse({
+      type: 'profile.pictureUpdated',
+      ids: { userId: 'u_1' },
+    });
     expect(result.type).toBe('profile.pictureUpdated');
   });
 
   it('accepts squareStreetz.postCreated', () => {
-    const result = DomainEventSchema.parse({ type: 'squareStreetz.postCreated', ids: { userId: 'u_1', postId: 'p_1' } });
+    const result = DomainEventSchema.parse({
+      type: 'squareStreetz.postCreated',
+      ids: { userId: 'u_1', postId: 'p_1' },
+    });
     expect(result.type).toBe('squareStreetz.postCreated');
   });
 
@@ -106,12 +116,12 @@ describe('DomainEventSchema discriminated union', () => {
   });
 });
 
-
-
-
 describe('workRealm.coverUpdated (realm cover publication)', () => {
   it('accepts a valid event through the union', () => {
-    const result = DomainEventSchema.parse({ type: 'workRealm.coverUpdated', ids: { workRealmId: 'realm_1' } });
+    const result = DomainEventSchema.parse({
+      type: 'workRealm.coverUpdated',
+      ids: { workRealmId: 'realm_1' },
+    });
     expect(result.type).toBe('workRealm.coverUpdated');
   });
 
@@ -121,7 +131,10 @@ describe('workRealm.coverUpdated (realm cover publication)', () => {
 
   it('rejects unknown id fields (strict)', () => {
     expect(() =>
-      DomainEventSchema.parse({ type: 'workRealm.coverUpdated', ids: { workRealmId: 'realm_1', extra: 'x' } }),
+      DomainEventSchema.parse({
+        type: 'workRealm.coverUpdated',
+        ids: { workRealmId: 'realm_1', extra: 'x' },
+      }),
     ).toThrow();
   });
 });
@@ -136,7 +149,9 @@ describe('profile.displayNameChanged (self-service display-name set)', () => {
   });
 
   it('rejects a missing userId', () => {
-    expect(() => DomainEventSchema.parse({ type: 'profile.displayNameChanged', ids: {} })).toThrow();
+    expect(() =>
+      DomainEventSchema.parse({ type: 'profile.displayNameChanged', ids: {} }),
+    ).toThrow();
   });
 
   it('rejects unknown id fields (strict)', () => {
@@ -246,7 +261,6 @@ describe('hallContentChangeRequest.approved (approval only — a denial writes n
   });
 });
 
-
 describe('workProject.published carries the released Realm when publication touched it', () => {
   it('accepts the work grain: workProjectId + userId', () => {
     const result = DomainEventSchema.parse({
@@ -273,7 +287,6 @@ describe('workProject.published carries the released Realm when publication touc
     ).toThrow();
   });
 });
-
 
 // ---------------------------------------------------------------------------
 // ENG-005 / ARCH-102 — the hall-library event surface enums DERIVE from the
@@ -345,13 +358,17 @@ describe('hallLibrary event itemType enums equal the canonical surface projectio
 describe('domain events nothing produces', () => {
   it('rejects adminDispatch.systemMarked — nothing produces it, so nothing may emit it', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'adminDispatch.systemMarked', ids: { userId: 'u_1' } }).success,
+      DomainEventSchema.safeParse({ type: 'adminDispatch.systemMarked', ids: { userId: 'u_1' } })
+        .success,
     ).toBe(false);
   });
 
   it('still accepts the live admin-dispatch event', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'adminDispatch.threadUpdated', ids: { adminDispatchId: 'd_1' } }).success,
+      DomainEventSchema.safeParse({
+        type: 'adminDispatch.threadUpdated',
+        ids: { adminDispatchId: 'd_1' },
+      }).success,
     ).toBe(true);
   });
 });
@@ -363,7 +380,12 @@ describe('workProject.guildmateLeft (a committed departure from a Work)', () => 
   });
 
   it('rejects a missing departing user', () => {
-    expect(DomainEventSchema.safeParse({ type: 'workProject.guildmateLeft', ids: { workProjectId: 'w1' } }).success).toBe(false);
+    expect(
+      DomainEventSchema.safeParse({
+        type: 'workProject.guildmateLeft',
+        ids: { workProjectId: 'w1' },
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects unknown id fields (strict)', () => {
@@ -388,11 +410,20 @@ describe('cache events with no write of their own: registration, a violation dec
   });
 
   it('each refuses a missing id and an unknown id (strict)', () => {
-    expect(DomainEventSchema.safeParse({ type: 'auth.registrationCompleted', ids: {} }).success).toBe(false);
-    expect(DomainEventSchema.safeParse({ type: 'violation.decisionAccepted', ids: { userId: 'u1' } }).success).toBe(false);
-    expect(DomainEventSchema.safeParse({ type: 'publicDocuments.acceptanceLanded', ids: {} }).success).toBe(false);
+    expect(
+      DomainEventSchema.safeParse({ type: 'auth.registrationCompleted', ids: {} }).success,
+    ).toBe(false);
+    expect(
+      DomainEventSchema.safeParse({ type: 'violation.decisionAccepted', ids: { userId: 'u1' } })
+        .success,
+    ).toBe(false);
+    expect(
+      DomainEventSchema.safeParse({ type: 'publicDocuments.acceptanceLanded', ids: {} }).success,
+    ).toBe(false);
     for (const event of events) {
-      expect(DomainEventSchema.safeParse({ ...event, ids: { ...event.ids, extra: 'x' } }).success).toBe(false);
+      expect(
+        DomainEventSchema.safeParse({ ...event, ids: { ...event.ids, extra: 'x' } }).success,
+      ).toBe(false);
     }
   });
 });

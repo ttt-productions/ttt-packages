@@ -30,8 +30,10 @@ function local(year: number, month: number, day: number, hour: number, minute: n
   return new Date(year, month - 1, day, hour, minute).getTime();
 }
 
-const time = (ms: number) => new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-const date = (ms: number) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const time = (ms: number) =>
+  new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const date = (ms: number) =>
+  new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 describe('formatUploadTimestamp', () => {
   const { formatUploadTimestamp } = createUploadDisplayFormatters({
@@ -63,16 +65,26 @@ describe('formatUploadTimestamp', () => {
     expect(time(created)).toBe('8:05 AM');
   });
 
-  it('the cutoff is the app\'s', () => {
-    const tight = createUploadDisplayFormatters({ copy: COPY, relativeTimeCutoffMs: MINUTE, locale: 'en-US' });
+  it("the cutoff is the app's", () => {
+    const tight = createUploadDisplayFormatters({
+      copy: COPY,
+      relativeTimeCutoffMs: MINUTE,
+      locale: 'en-US',
+    });
     const created = now - 30 * MINUTE;
     expect(tight.formatUploadTimestamp(created, now)).toBe(time(created));
   });
 
   it('a minute before midnight, read just after it, is yesterday', () => {
-    const tight = createUploadDisplayFormatters({ copy: COPY, relativeTimeCutoffMs: MINUTE, locale: 'en-US' });
+    const tight = createUploadDisplayFormatters({
+      copy: COPY,
+      relativeTimeCutoffMs: MINUTE,
+      locale: 'en-US',
+    });
     const created = local(2026, 5, 20, 23, 59);
-    expect(tight.formatUploadTimestamp(created, local(2026, 5, 21, 0, 1))).toBe('Yesterday 11:59 PM');
+    expect(tight.formatUploadTimestamp(created, local(2026, 5, 21, 0, 1))).toBe(
+      'Yesterday 11:59 PM',
+    );
   });
 
   it('two calendar days back reads as the date and time', () => {
@@ -98,15 +110,22 @@ describe('formatUploadTimestamp', () => {
     expect(formatUploadTimestamp(earlyOnThe1st, reading)).toBe(`Yesterday ${time(earlyOnThe1st)}`);
   });
 
-  it('the clock time and date follow the app\'s locale', () => {
-    const british = createUploadDisplayFormatters({ copy: COPY, relativeTimeCutoffMs: SIX_HOURS, locale: 'en-GB' });
+  it("the clock time and date follow the app's locale", () => {
+    const british = createUploadDisplayFormatters({
+      copy: COPY,
+      relativeTimeCutoffMs: SIX_HOURS,
+      locale: 'en-GB',
+    });
     const created = local(2026, 5, 19, 22, 10);
     expect(british.formatUploadTimestamp(created, now)).toBe('19 May, 22:10');
   });
 });
 
 describe('getFileTypeLabel', () => {
-  const { getFileTypeLabel } = createUploadDisplayFormatters({ copy: COPY, relativeTimeCutoffMs: SIX_HOURS });
+  const { getFileTypeLabel } = createUploadDisplayFormatters({
+    copy: COPY,
+    relativeTimeCutoffMs: SIX_HOURS,
+  });
 
   it('names images, videos and audio, and anything else as the other kind', () => {
     expect(getFileTypeLabel('image/jpeg')).toBe('Image');
@@ -120,9 +139,12 @@ describe('getFileTypeLabel', () => {
     expect(getFileTypeLabel('')).toBeNull();
   });
 
-  it('the words are the app\'s', () => {
+  it("the words are the app's", () => {
     const french = createUploadDisplayFormatters({
-      copy: { ...COPY, fileType: { image: 'Photo', video: 'Vidéo', audio: 'Son', other: 'Fichier' } },
+      copy: {
+        ...COPY,
+        fileType: { image: 'Photo', video: 'Vidéo', audio: 'Son', other: 'Fichier' },
+      },
       relativeTimeCutoffMs: SIX_HOURS,
     });
     expect(french.getFileTypeLabel('image/png')).toBe('Photo');

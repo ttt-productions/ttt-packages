@@ -47,7 +47,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
   categories: {
     user: {
       activePath: COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,
-      historyPath: (userId?: string) => `${COLLECTIONS.USER_PROFILES}/${userId}/notificationHistory`,
+      historyPath: (userId?: string) =>
+        `${COLLECTIONS.USER_PROFILES}/${userId}/notificationHistory`,
       audienceType: 'personal',
     },
     admin: {
@@ -61,7 +62,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       ...catalogEntry('content_report'),
       dedupKeyPattern: (meta) => `report_${meta.reportedItemId}`,
       titlePattern: (meta) => `Content Report: ${meta.reportedItemType}`,
-      messagePattern: (_meta, count) => `${count} user${count > 1 ? 's' : ''} reported this content`,
+      messagePattern: (_meta, count) =>
+        `${count} user${count > 1 ? 's' : ''} reported this content`,
       defaultTargetPath: '/admin',
       countCap: 5000,
       actorCap: 5,

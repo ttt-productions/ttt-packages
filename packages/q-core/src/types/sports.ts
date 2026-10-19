@@ -37,10 +37,17 @@ export type StatCounterKey = (typeof STAT_COUNTER_KEYS)[number];
 // Basketball — player-scored: a team's score is the sum of its players' points.
 // ---------------------------------------------------------------------------------------------
 
-export const BASKETBALL_TEAM_STAT_KEYS = ['score', 'timeouts'] as const satisfies readonly StatCounterKey[];
+export const BASKETBALL_TEAM_STAT_KEYS = [
+  'score',
+  'timeouts',
+] as const satisfies readonly StatCounterKey[];
 export type BasketballTeamStatKey = (typeof BASKETBALL_TEAM_STAT_KEYS)[number];
 
-export const BASKETBALL_PLAYER_STAT_KEYS = ['points', 'rebounds', 'assists'] as const satisfies readonly StatCounterKey[];
+export const BASKETBALL_PLAYER_STAT_KEYS = [
+  'points',
+  'rebounds',
+  'assists',
+] as const satisfies readonly StatCounterKey[];
 export type BasketballPlayerStatKey = (typeof BASKETBALL_PLAYER_STAT_KEYS)[number];
 
 // A bulk edit names the player counter it moves.

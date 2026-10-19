@@ -60,10 +60,12 @@ export function createGuardProfile({
   removalOnlyTables = [],
   handleModulePrefixes = [],
 }) {
-  if (typeof corePackage !== 'string' || !corePackage) throw new Error('repo-guards: a profile needs its corePackage');
+  if (typeof corePackage !== 'string' || !corePackage)
+    throw new Error('repo-guards: a profile needs its corePackage');
   const typeNames = ['Transaction', 'WriteBatch', 'BulkWriter', ...transactionTypeNames];
   for (const name of typeNames) {
-    if (!/^[A-Za-z_$][\w$]*$/.test(name)) throw new Error(`repo-guards: ${name} is not a type name`);
+    if (!/^[A-Za-z_$][\w$]*$/.test(name))
+      throw new Error(`repo-guards: ${name} is not a type name`);
   }
   return Object.freeze({
     corePackage,
@@ -72,7 +74,11 @@ export function createGuardProfile({
     transactionType: new RegExp(`\\b(${typeNames.join('|')})\\b`),
     removalOnlyTables: Object.freeze(removalOnlyTables.map((table) => Object.freeze({ ...table }))),
     handleModule: new RegExp(
-      ['firebase', 'firestore', ...handleModulePrefixes.map((prefix) => `^${escapeRegExp(prefix)}`)].join('|'),
+      [
+        'firebase',
+        'firestore',
+        ...handleModulePrefixes.map((prefix) => `^${escapeRegExp(prefix)}`),
+      ].join('|'),
       'i',
     ),
   });
@@ -173,8 +179,9 @@ function writeMethodCandidates(node, facts, seen = new Set(), depth = 0) {
       if (!parameter?.type) break;
       // Only a type built out of string literals names a finite set. `string`, `keyof T`
       // and every other widened annotation names an unbounded one.
-      const literals = [...parameter.type.getText(facts.source).matchAll(/['"`]([^'"`]+)['"`]/g)]
-        .map((match) => match[1]);
+      const literals = [
+        ...parameter.type.getText(facts.source).matchAll(/['"`]([^'"`]+)['"`]/g),
+      ].map((match) => match[1]);
       return literals.length ? RESOLVED(literals) : UNRESOLVED;
     }
     return UNRESOLVED;
@@ -197,7 +204,8 @@ function writeMethodCandidates(node, facts, seen = new Set(), depth = 0) {
       return RESOLVED(names);
     };
     if (ts.isObjectLiteralExpression(initializer)) {
-      if (!initializer.properties.every((property) => ts.isPropertyAssignment(property))) return UNRESOLVED;
+      if (!initializer.properties.every((property) => ts.isPropertyAssignment(property)))
+        return UNRESOLVED;
       return readAll(initializer.properties.map((property) => property.initializer));
     }
     if (ts.isArrayLiteralExpression(initializer)) return readAll([...initializer.elements]);
@@ -245,7 +253,16 @@ const QUERY_PASSTHROUGH = new Set([
 ]);
 
 /** Array methods whose callback parameter is one element of the receiver. */
-const ARRAY_ITERATORS = new Set(['map', 'forEach', 'filter', 'flatMap', 'find', 'some', 'every', 'reduce']);
+const ARRAY_ITERATORS = new Set([
+  'map',
+  'forEach',
+  'filter',
+  'flatMap',
+  'find',
+  'some',
+  'every',
+  'reduce',
+]);
 
 /**
  * Promise combinators that pass the resolved value through unchanged. `.catch(() => null)`
@@ -264,19 +281,34 @@ const ARRAY_PASSTHROUGH = new Set(['slice', 'filter', 'sort', 'reverse', 'concat
  * look Firestore-shaped.
  */
 const NOT_FIRESTORE_CONSTRUCTORS = new Set([
-  'Map', 'Set', 'WeakMap', 'WeakSet', 'URLSearchParams', 'Headers', 'FormData', 'URL',
-  'Array', 'AbortController', 'DataTransfer', 'EventTarget',
+  'Map',
+  'Set',
+  'WeakMap',
+  'WeakSet',
+  'URLSearchParams',
+  'Headers',
+  'FormData',
+  'URL',
+  'Array',
+  'AbortController',
+  'DataTransfer',
+  'EventTarget',
 ]);
 
 /** Type annotations that name a non-Firestore container. */
 const NOT_FIRESTORE_TYPE =
   /^(readonly\s+)?(Map|Set|WeakMap|WeakSet|ReadonlyMap|ReadonlySet|URLSearchParams|ReadonlyURLSearchParams|Headers|ReadonlyHeaders|FormData|URL|Storage|DOMTokenList|CookieStore|ResponseCookies|RequestCookies|HTMLElement|HTMLDivElement|Element|Node|Document|EventTarget|Response|Request|NextResponse|NextRequest)\s*(<|\||$)/;
 
-
 /** Factories whose result owns a non-Firestore `.set` (`createDevicePreferenceStore` is theme-core's
  *  browser-storage preference store — its `.set(value)` writes local storage, never Firestore). */
 const NOT_FIRESTORE_FACTORIES = new Set([
-  'cookies', 'headers', 'draftMode', 'createHash', 'createHmac', 'useRef', 'createRef',
+  'cookies',
+  'headers',
+  'draftMode',
+  'createHash',
+  'createHmac',
+  'useRef',
+  'createRef',
   'createDevicePreferenceStore',
 ]);
 
@@ -302,7 +334,11 @@ function distinctReturnShapes(returns) {
  */
 function entriesSource(expr) {
   let node = stripWrappers(expr);
-  if (ts.isArrayLiteralExpression(node) && node.elements.length === 1 && ts.isSpreadElement(node.elements[0])) {
+  if (
+    ts.isArrayLiteralExpression(node) &&
+    node.elements.length === 1 &&
+    ts.isSpreadElement(node.elements[0])
+  ) {
     node = stripWrappers(node.elements[0].expression);
   }
   if (
@@ -345,7 +381,8 @@ function isPlainValue(expr, depth) {
     return true;
   }
   if (ts.isObjectLiteralExpression(value)) return isPlainValueTable(value, depth + 1);
-  if (ts.isArrayLiteralExpression(value)) return value.elements.every((element) => isPlainValue(element, depth + 1));
+  if (ts.isArrayLiteralExpression(value))
+    return value.elements.every((element) => isPlainValue(element, depth + 1));
   return false;
 }
 
@@ -371,7 +408,9 @@ function isRemovalPayload(expr) {
   if (ts.isObjectLiteralExpression(node)) {
     return (
       node.properties.length > 0 &&
-      node.properties.every((property) => ts.isPropertyAssignment(property) && isFieldValueDelete(property.initializer))
+      node.properties.every(
+        (property) => ts.isPropertyAssignment(property) && isFieldValueDelete(property.initializer),
+      )
     );
   }
   if (
@@ -383,17 +422,26 @@ function isRemovalPayload(expr) {
     node.arguments.length === 1
   ) {
     const mapped = stripWrappers(node.arguments[0]);
-    if (!ts.isCallExpression(mapped) || !ts.isPropertyAccessExpression(mapped.expression) || mapped.expression.name.text !== 'map') {
+    if (
+      !ts.isCallExpression(mapped) ||
+      !ts.isPropertyAccessExpression(mapped.expression) ||
+      mapped.expression.name.text !== 'map'
+    ) {
       return false;
     }
     const callback = mapped.arguments[0];
-    if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) return false;
+    if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
+      return false;
     const returns = callbackReturns(callback);
     return (
       returns.length > 0 &&
       returns.every((returned) => {
         const entry = stripWrappers(returned);
-        return ts.isArrayLiteralExpression(entry) && entry.elements.length === 2 && isFieldValueDelete(entry.elements[1]);
+        return (
+          ts.isArrayLiteralExpression(entry) &&
+          entry.elements.length === 2 &&
+          isFieldValueDelete(entry.elements[1])
+        );
       })
     );
   }
@@ -527,7 +575,14 @@ export function closedCanonicalKeys(schema, seen = new Set()) {
   ) {
     return null;
   }
-  if (kind === 'optional' || kind === 'nullable' || kind === 'default' || kind === 'nonoptional' || kind === 'readonly' || kind === 'catch') {
+  if (
+    kind === 'optional' ||
+    kind === 'nullable' ||
+    kind === 'default' ||
+    kind === 'nonoptional' ||
+    kind === 'readonly' ||
+    kind === 'catch'
+  ) {
     return closedCanonicalKeys(schema._def.innerType, branchSeen);
   }
   if (kind === 'object') {
@@ -537,35 +592,61 @@ export function closedCanonicalKeys(schema, seen = new Set()) {
       !shape ||
       schema._def.unknownKeys === 'passthrough' ||
       (catchall && kindOf(catchall) !== 'never')
-    ) return null;
+    )
+      return null;
     const keys = declaredKeys(schema);
     return keys && !keys.open ? keys : null;
   }
   if (kind === 'union' || kind === 'discriminatedunion' || kind === 'discriminated_union') {
-    const options = schema._def.options instanceof Map ? [...schema._def.options.values()] : schema._def.options ?? [];
+    const options =
+      schema._def.options instanceof Map
+        ? [...schema._def.options.values()]
+        : (schema._def.options ?? []);
     if (!options.length) return null;
     for (const option of options) if (!closedCanonicalKeys(option, branchSeen)) return null;
     const keys = declaredKeys(schema);
     return keys && !keys.open ? keys : null;
   }
   if (kind === 'intersection') {
-    if (!closedCanonicalKeys(schema._def.left, branchSeen) || !closedCanonicalKeys(schema._def.right, branchSeen)) return null;
+    if (
+      !closedCanonicalKeys(schema._def.left, branchSeen) ||
+      !closedCanonicalKeys(schema._def.right, branchSeen)
+    )
+      return null;
     const keys = declaredKeys(schema);
     return keys && !keys.open ? keys : null;
   }
   if (kind === 'array') {
-    const element = schema._def.element ?? (typeof schema._def.type === 'object' ? schema._def.type : null);
+    const element =
+      schema._def.element ?? (typeof schema._def.type === 'object' ? schema._def.type : null);
     return closedCanonicalKeys(element, branchSeen) ? { keys: new Set(), open: false } : null;
   }
   if (kind === 'tuple') {
     const items = schema._def.items ?? [];
-    if (!Array.isArray(items) || !items.length || items.some((item) => !closedCanonicalKeys(item, branchSeen))) return null;
+    if (
+      !Array.isArray(items) ||
+      !items.length ||
+      items.some((item) => !closedCanonicalKeys(item, branchSeen))
+    )
+      return null;
     return { keys: new Set(), open: false };
   }
   // Scalars are safe nested members, but only this small explicit set is trusted.
   return new Set([
-    'string', 'number', 'boolean', 'bigint', 'date', 'literal', 'enum', 'nativeenum',
-    'null', 'undefined', 'void', 'never', 'nan', 'symbol',
+    'string',
+    'number',
+    'boolean',
+    'bigint',
+    'date',
+    'literal',
+    'enum',
+    'nativeenum',
+    'null',
+    'undefined',
+    'void',
+    'never',
+    'nan',
+    'symbol',
   ]).has(kind)
     ? { keys: new Set(), open: false }
     : null;
@@ -597,7 +678,8 @@ export function narrowedDeclaredKeys(schema, literals) {
   if (!literals || !literals.size) return null;
   const s = unwrap(schema);
   const kind = kindOf(s);
-  if (kind !== 'union' && kind !== 'discriminatedunion' && kind !== 'discriminated_union') return null;
+  if (kind !== 'union' && kind !== 'discriminatedunion' && kind !== 'discriminated_union')
+    return null;
   const raw = s._def.options ?? [];
   const options = raw instanceof Map ? [...raw.values()] : raw;
   if (options.length < 2) return null;
@@ -651,8 +733,11 @@ export function numericSentinelSegments(fn) {
   try {
     const first = fn(...Array.from({ length: arity }, () => 1));
     const second = fn(...Array.from({ length: arity }, () => 2));
-    if (!Array.isArray(first) || !Array.isArray(second) || first.length !== second.length) return null;
-    return first.map((segment, index) => (String(segment) === String(second[index]) ? segment : 'ID'));
+    if (!Array.isArray(first) || !Array.isArray(second) || first.length !== second.length)
+      return null;
+    return first.map((segment, index) =>
+      String(segment) === String(second[index]) ? segment : 'ID',
+    );
   } catch {
     return null;
   }
@@ -675,9 +760,7 @@ export function buildRegistry({
   coreExports = null,
 }) {
   const templates = Object.keys(COLLECTION_SCHEMAS);
-  const templateSegments = new Map(
-    templates.map((template) => [template, template.split('/')]),
-  );
+  const templateSegments = new Map(templates.map((template) => [template, template.split('/')]));
 
   /**
    * Match built segments to ONE registry template. A template's literal segment must
@@ -752,7 +835,10 @@ export function buildRegistry({
     // collapsing it to ANY creates a false target/payload cross-product. The
     // pattern comes only from the canonical builder, never an app-local path function.
     try {
-      const sentinels = Array.from({ length: Math.max(fn.length, 6) }, (_, index) => `__GUARD_ARG_${index}__`);
+      const sentinels = Array.from(
+        { length: Math.max(fn.length, 6) },
+        (_, index) => `__GUARD_ARG_${index}__`,
+      );
       const patterned = fn(...sentinels);
       if (Array.isArray(patterned)) {
         builderPatterns.set(
@@ -789,7 +875,10 @@ export function buildRegistry({
       continue;
     }
     try {
-      const sentinels = Array.from({ length: Math.max(fn.length, 6) }, (_, index) => `__GUARD_ARG_${index}__`);
+      const sentinels = Array.from(
+        { length: Math.max(fn.length, 6) },
+        (_, index) => `__GUARD_ARG_${index}__`,
+      );
       const patterned = fn(...sentinels);
       if (Array.isArray(patterned)) {
         collectionRefPatterns.set(
@@ -963,7 +1052,10 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
       let found = null;
       const visit = (node) => {
         if (found) return;
-        if ((ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) && node.name?.text === name) {
+        if (
+          (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) &&
+          node.name?.text === name
+        ) {
           found = node;
         }
         ts.forEachChild(node, visit);
@@ -1015,7 +1107,8 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
     }
     const aliasText = found.declaration.type?.getText(found.source) ?? '';
     const infer = /z\.infer<\s*typeof\s+([A-Za-z_$][\w$]*)\s*>/.exec(aliasText);
-    if (infer) return { inferOf: infer[1], via: 'type ' + name + ' = z.infer<typeof ' + infer[1] + '>' };
+    if (infer)
+      return { inferOf: infer[1], via: 'type ' + name + ' = z.infer<typeof ' + infer[1] + '>' };
     return readShape(found.declaration.type, depth + 1);
   };
 
@@ -1034,7 +1127,11 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
       const container = unwrapNullable(target);
       let members = null;
       if (container && ts.isTypeLiteralNode(container)) members = container.members;
-      else if (container && ts.isTypeReferenceNode(container) && ts.isIdentifier(container.typeName)) {
+      else if (
+        container &&
+        ts.isTypeReferenceNode(container) &&
+        ts.isIdentifier(container.typeName)
+      ) {
         const found = findTypeDeclaration(container.typeName.text);
         if (found) {
           members = ts.isInterfaceDeclaration(found.declaration)
@@ -1156,8 +1253,10 @@ function functionName(node) {
   }
   if (ts.isFunctionExpression(node) || ts.isArrowFunction(node)) {
     const parent = node.parent;
-    if (parent && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) return parent.name.text;
-    if (parent && ts.isPropertyAssignment(parent) && ts.isIdentifier(parent.name)) return parent.name.text;
+    if (parent && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name))
+      return parent.name.text;
+    if (parent && ts.isPropertyAssignment(parent) && ts.isIdentifier(parent.name))
+      return parent.name.text;
   }
   return null;
 }
@@ -1176,7 +1275,9 @@ function enclosingWriteFunction(node) {
     if (ts.isMethodDeclaration(current)) {
       const owner = current.parent;
       const ownerName =
-        (ts.isClassDeclaration(owner) || ts.isClassExpression(owner)) && owner.name ? owner.name.text : null;
+        (ts.isClassDeclaration(owner) || ts.isClassExpression(owner)) && owner.name
+          ? owner.name.text
+          : null;
       return ownerName ? `${ownerName}.${name}` : name;
     }
     return name;
@@ -1199,7 +1300,8 @@ function enclosingWriteFunction(node) {
 function declaredOwnerName(fn) {
   for (let current = fn.parent; current; current = current.parent) {
     if (ts.isFunctionLike(current)) return null;
-    if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name)) return current.name.text;
+    if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name))
+      return current.name.text;
     if (ts.isPropertyAssignment(current) && ts.isIdentifier(current.name)) return current.name.text;
   }
   return null;
@@ -1266,16 +1368,21 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
    */
   const indexObjectBinding = (pattern, source, pos, scope) => {
     for (const element of pattern.elements) {
-      if (!ts.isBindingElement(element) || !ts.isIdentifier(element.name) || element.dotDotDotToken) continue;
+      if (!ts.isBindingElement(element) || !ts.isIdentifier(element.name) || element.dotDotDotToken)
+        continue;
       const propertyName = element.propertyName
-        ? (ts.isIdentifier(element.propertyName) || ts.isStringLiteralLike(element.propertyName)
+        ? ts.isIdentifier(element.propertyName) || ts.isStringLiteralLike(element.propertyName)
           ? element.propertyName.text
-          : null)
+          : null
         : element.name.text;
       if (!propertyName) continue;
-      push(facts.varDecls, element.name.text, source.bindingOf
-        ? { pos, bindingOf: source.bindingOf, bindingProperty: propertyName, scope }
-        : { pos, elementOf: source.elementOf, elementProperty: propertyName, scope });
+      push(
+        facts.varDecls,
+        element.name.text,
+        source.bindingOf
+          ? { pos, bindingOf: source.bindingOf, bindingProperty: propertyName, scope }
+          : { pos, elementOf: source.elementOf, elementProperty: propertyName, scope },
+      );
     }
   };
 
@@ -1306,7 +1413,8 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
           scope: scopeOf(node),
         });
         const initializer = stripWrappers(node.initializer);
-        if (ts.isStringLiteralLike(initializer)) facts.stringConsts.set(node.name.text, initializer.text);
+        if (ts.isStringLiteralLike(initializer))
+          facts.stringConsts.set(node.name.text, initializer.text);
         const parentList = node.parent;
         const statement = parentList?.parent;
         if (
@@ -1383,12 +1491,21 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
       ts.isForOfStatement(node.parent.parent)
     ) {
       const loop = node.parent.parent;
-      indexObjectBinding(node.name, { elementOf: loop.expression }, node.pos, scopeOf(loop.statement) ?? scopeOf(loop));
+      indexObjectBinding(
+        node.name,
+        { elementOf: loop.expression },
+        node.pos,
+        scopeOf(loop.statement) ?? scopeOf(loop),
+      );
     }
     // `const { refs } = args` keeps the carrier relationship; index the bound
     // name as a finite property of its initializer instead of treating the
     // destructured variable as a fresh, opaque value.
-    if (ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name) && node.initializer) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isObjectBindingPattern(node.name) &&
+      node.initializer
+    ) {
       indexObjectBinding(node.name, { bindingOf: node.initializer }, node.pos, scopeOf(node));
     }
     // `pending.push({ op, ref, data })` — a generic pending-write sink is built one entry at
@@ -1436,7 +1553,10 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
       node.arguments.length >= 1
     ) {
       const callback = node.arguments[0];
-      if ((ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) && callback.parameters.length) {
+      if (
+        (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) &&
+        callback.parameters.length
+      ) {
         const first = callback.parameters[0];
         if (ts.isIdentifier(first.name)) {
           push(facts.varDecls, first.name.text, {
@@ -1449,19 +1569,35 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
           const collection = entriesSource(node.expression.expression);
           const value = first.name.elements[1];
           if (collection && value && ts.isBindingElement(value) && ts.isIdentifier(value.name)) {
-            push(facts.varDecls, value.name.text, { pos: callback.pos, entryOf: collection, scope: callback });
+            push(facts.varDecls, value.name.text, {
+              pos: callback.pos,
+              entryOf: collection,
+              scope: callback,
+            });
           }
-        } else if (ts.isObjectBindingPattern(first.name) && node.expression.name.text !== 'reduce') {
+        } else if (
+          ts.isObjectBindingPattern(first.name) &&
+          node.expression.name.text !== 'reduce'
+        ) {
           // `games.flatMap(({ id, ref }) => …)` — each bound name is that property of the
           // element. A `reduce` callback's first parameter is its accumulator, not an element.
-          indexObjectBinding(first.name, { elementOf: node.expression.expression }, callback.pos, callback);
+          indexObjectBinding(
+            first.name,
+            { elementOf: node.expression.expression },
+            callback.pos,
+            callback,
+          );
         }
       }
     }
     // `onDocumentCreated({ document: 'pendingMedia/{docId}' }, async (event) => …)`.
     // The event's `.data.ref` is a canonical reference to THAT declared path; record
     // only the concrete Firestore trigger shape, never an arbitrary callback's `.ref`.
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && DOCUMENT_TRIGGER_FACTORIES.has(node.expression.text)) {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      DOCUMENT_TRIGGER_FACTORIES.has(node.expression.text)
+    ) {
       const config = node.arguments[0];
       const callback = node.arguments[1];
       if (
@@ -1479,8 +1615,12 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
               (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
               property.name.text === 'document',
           );
-          if (documentProperty && ts.isPropertyAssignment(documentProperty)) documentExpression = documentProperty.initializer;
-        } else if (ts.isStringLiteralLike(stripWrappers(config)) || ts.isTemplateExpression(stripWrappers(config))) {
+          if (documentProperty && ts.isPropertyAssignment(documentProperty))
+            documentExpression = documentProperty.initializer;
+        } else if (
+          ts.isStringLiteralLike(stripWrappers(config)) ||
+          ts.isTemplateExpression(stripWrappers(config))
+        ) {
           documentExpression = config;
         }
         if (documentExpression) {
@@ -1494,7 +1634,10 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
     }
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
       if (ts.isPropertyAccessExpression(node.left) && ts.isIdentifier(node.left.expression)) {
-        push(facts.propAssigns, node.left.expression.text, { pos: node.pos, key: node.left.name.text });
+        push(facts.propAssigns, node.left.expression.text, {
+          pos: node.pos,
+          key: node.left.name.text,
+        });
       }
       // `let ref; … ref = db.doc(…)` — the assignment IS where the value comes from.
       if (ts.isIdentifier(node.left)) {
@@ -1508,7 +1651,12 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
         });
       }
     }
-    if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node)) {
+    if (
+      ts.isFunctionDeclaration(node) ||
+      ts.isMethodDeclaration(node) ||
+      ts.isFunctionExpression(node) ||
+      ts.isArrowFunction(node)
+    ) {
       indexFunction(node);
     }
     // `interface Args { client: SdkClient }` — a destructured parameter carries its type
@@ -1525,7 +1673,8 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
         for (const member of type.members) {
           // A method SIGNATURE carries the parameter types an object-literal implementation
           // leaves unannotated (`register(id, el: HTMLElement | null)`).
-          if (!ts.isMethodSignature(member) || !member.name || !ts.isIdentifier(member.name)) continue;
+          if (!ts.isMethodSignature(member) || !member.name || !ts.isIdentifier(member.name))
+            continue;
           const byParam = new Map();
           for (const parameter of member.parameters) {
             if (ts.isIdentifier(parameter.name) && parameter.type) {
@@ -1533,7 +1682,8 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
             }
           }
           if (!byParam.size) continue;
-          if (facts.typeMethodParams.has(member.name.text)) facts.ambiguousTypeMethods.add(member.name.text);
+          if (facts.typeMethodParams.has(member.name.text))
+            facts.ambiguousTypeMethods.add(member.name.text);
           else facts.typeMethodParams.set(member.name.text, byParam);
         }
       };
@@ -1553,11 +1703,13 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
   index(source);
   for (const site of moduleImports(source, ['import', 'export'])) {
     if (site.kind === 'import' && !site.sideEffect) {
-      for (const { imported, local } of site.named) facts.imports.set(local, { module: site.spec, imported });
+      for (const { imported, local } of site.named)
+        facts.imports.set(local, { module: site.spec, imported });
       // DEFAULT and NAMESPACE imports are bindings too: without them `import Sdk from 'sdk'`
       // would look like an unknown local name, so nothing it produced could be recognised as
       // coming from another package.
-      if (site.defaultName) facts.imports.set(site.defaultName, { module: site.spec, imported: 'default' });
+      if (site.defaultName)
+        facts.imports.set(site.defaultName, { module: site.spec, imported: 'default' });
       if (site.namespace) facts.imports.set(site.namespace, { module: site.spec, imported: '*' });
     } else if (site.kind === 'export') {
       // `export { x } from '<pkg>'` — a local file that only forwards a package export.
@@ -1607,13 +1759,16 @@ export function analyzeFiles({
   exceptions = [],
   packageDeclarations = null,
 }) {
-  if (!profile?.corePackage) throw new Error('repo-guards: analyzeFiles needs a guard profile (createGuardProfile)');
+  if (!profile?.corePackage)
+    throw new Error('repo-guards: analyzeFiles needs a guard profile (createGuardProfile)');
   const CORE_PACKAGE = profile.corePackage;
   const CORE_LIBRARY_ROOT = profile.coreLibraryRoot;
   // Library files — the core package's code — are read for what they declare and return, so a
   // core helper is as readable as a local one; only the writer files are swept for writes.
   const files = [...writerFiles, ...libraryFiles];
-  const packageBuilderEntries = exceptions.filter((entry) => entry.kind === VIOLATION_KINDS.PACKAGE_BUILDER);
+  const packageBuilderEntries = exceptions.filter(
+    (entry) => entry.kind === VIOLATION_KINDS.PACKAGE_BUILDER,
+  );
   const packageBuilderUses = [];
   const byPath = new Map(files.map((facts) => [facts.relPath, facts]));
 
@@ -1668,12 +1823,17 @@ export function analyzeFiles({
     let base;
     if (specifier.startsWith('.')) {
       base = joinPosix(dirnameOf(fromPath), specifier);
-    } else if (CORE_LIBRARY_ROOT && (specifier === CORE_PACKAGE || specifier.startsWith(`${CORE_PACKAGE}/`))) {
+    } else if (
+      CORE_LIBRARY_ROOT &&
+      (specifier === CORE_PACKAGE || specifier.startsWith(`${CORE_PACKAGE}/`))
+    ) {
       // Each export entry of the core package is a folder (or file) of the same name under its
       // library root, the entry point itself being `index`.
       base = joinPosix(CORE_LIBRARY_ROOT, specifier.slice(CORE_PACKAGE.length + 1) || 'index');
     } else {
-      const alias = Object.keys(profile.importAliases).find((prefix) => specifier.startsWith(prefix));
+      const alias = Object.keys(profile.importAliases).find((prefix) =>
+        specifier.startsWith(prefix),
+      );
       if (!alias) return null;
       base = joinPosix(profile.importAliases[alias], specifier.slice(alias.length));
     }
@@ -1836,7 +1996,8 @@ export function analyzeFiles({
     if (narrowedEntries.has(node)) return [map[narrowedEntries.get(node)]];
     const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
     const selector = index ? computedKeyName(index, facts, source) : null;
-    if (selector !== null && Object.prototype.hasOwnProperty.call(map, selector)) return [map[selector]];
+    if (selector !== null && Object.prototype.hasOwnProperty.call(map, selector))
+      return [map[selector]];
     const values = Object.values(map);
     return values.length && values.length <= MAX_CANDIDATES ? values : null;
   }
@@ -1947,9 +2108,13 @@ export function analyzeFiles({
    */
   function isCoreImport(facts, imported) {
     if (!imported) return false;
-    if (imported.module === CORE_PACKAGE || imported.module.startsWith(`${CORE_PACKAGE}/`)) return true;
+    if (imported.module === CORE_PACKAGE || imported.module.startsWith(`${CORE_PACKAGE}/`))
+      return true;
     if (!facts.library || !imported.module.startsWith('.')) return false;
-    return Boolean(CORE_LIBRARY_ROOT) && joinPosix(dirnameOf(facts.relPath), imported.module).startsWith(`${CORE_LIBRARY_ROOT}/`);
+    return (
+      Boolean(CORE_LIBRARY_ROOT) &&
+      joinPosix(dirnameOf(facts.relPath), imported.module).startsWith(`${CORE_LIBRARY_ROOT}/`)
+    );
   }
 
   /**
@@ -2000,7 +2165,8 @@ export function analyzeFiles({
           ts.isCallExpression(call) &&
           ts.isPropertyAccessExpression(call.expression) &&
           call.expression.name.text === 'runTransaction'
-        ) return true;
+        )
+          return true;
       }
       return false;
     }
@@ -2014,17 +2180,24 @@ export function analyzeFiles({
 
     /** Whether a declaration binds a PROPERTY of another value — a destructured name. */
     const isPropertyBinding = (decl) =>
-      Boolean((decl?.bindingOf && decl.bindingProperty) || (decl?.elementOf && decl.elementProperty) || decl?.entryOf);
+      Boolean(
+        (decl?.bindingOf && decl.bindingProperty) ||
+        (decl?.elementOf && decl.elementProperty) ||
+        decl?.entryOf,
+      );
 
     /**
      * Every value a destructured name can hold: the property of the value it destructures, or
      * of each element of the array a `for…of` pattern walks. Null when not statically readable.
      */
     function boundValues(decl, depth = 0) {
-      if (decl.bindingOf && decl.bindingProperty) return staticPropertyCandidates(decl.bindingOf, decl.bindingProperty, depth);
-      if (decl.elementOf && decl.elementProperty) return propertyValuesFromArray(decl.elementOf, decl.elementProperty, depth);
+      if (decl.bindingOf && decl.bindingProperty)
+        return staticPropertyCandidates(decl.bindingOf, decl.bindingProperty, depth);
+      if (decl.elementOf && decl.elementProperty)
+        return propertyValuesFromArray(decl.elementOf, decl.elementProperty, depth);
       // An entries tuple's value: what a provable Map stored, or an array's elements.
-      if (decl.entryOf) return mapEntryValues(decl.entryOf, depth) ?? arrayEntryExpressions(decl.entryOf, depth);
+      if (decl.entryOf)
+        return mapEntryValues(decl.entryOf, depth) ?? arrayEntryExpressions(decl.entryOf, depth);
       return null;
     }
 
@@ -2080,7 +2253,10 @@ export function analyzeFiles({
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
         const found = new Set();
         for (const candidate of candidates) {
-          const inner = resolverFor(candidate.facts).literalStringCandidates(candidate.node, depth + 1);
+          const inner = resolverFor(candidate.facts).literalStringCandidates(
+            candidate.node,
+            depth + 1,
+          );
           if (!inner) return null;
           for (const value of inner) found.add(value);
         }
@@ -2100,7 +2276,8 @@ export function analyzeFiles({
         if (!properties) return null;
         const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
         const selector = index ? computedKeyName(index, facts, source) : null;
-        const values = selector !== null ? properties.get(selector) ?? null : [...properties.values()].flat();
+        const values =
+          selector !== null ? (properties.get(selector) ?? null) : [...properties.values()].flat();
         if (!values?.length || values.length > MAX_CANDIDATES) return null;
         const found = new Set();
         for (const value of values) {
@@ -2124,8 +2301,14 @@ export function analyzeFiles({
               if (outer?.length) {
                 inner = [];
                 for (const value of outer) {
-                  const nested = resolverFor(value.facts).literalStringCandidates(value.node, depth + 1);
-                  if (!nested) { inner = null; break; }
+                  const nested = resolverFor(value.facts).literalStringCandidates(
+                    value.node,
+                    depth + 1,
+                  );
+                  if (!nested) {
+                    inner = null;
+                    break;
+                  }
                   inner.push(...nested);
                 }
               }
@@ -2136,7 +2319,8 @@ export function analyzeFiles({
           return found.size && found.size <= MAX_CANDIDATES ? [...found] : null;
         }
         const external = importedValue(facts, node.text);
-        if (external) return resolverFor(external.facts).literalStringCandidates(external.node, depth + 1);
+        if (external)
+          return resolverFor(external.facts).literalStringCandidates(external.node, depth + 1);
         const supplied = parameterValues(node);
         if (!supplied) return null;
         const found = new Set();
@@ -2203,7 +2387,8 @@ export function analyzeFiles({
         if (decl?.initializer) return literalStringList(decl.initializer, depth + 1);
         if (decl) return null;
         const external = importedValue(facts, node.text);
-        if (external) return resolverFor(external.facts).literalStringList(external.node, depth + 1);
+        if (external)
+          return resolverFor(external.facts).literalStringList(external.node, depth + 1);
       }
       return null;
     }
@@ -2223,11 +2408,15 @@ export function analyzeFiles({
         if (ts.isElementAccessExpression(base)) {
           const entries = coreMapEntries(base, facts, source);
           const entry = entries?.length === 1 ? entries[0] : null;
-          const segment = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry[node.name.text] : null;
+          const segment =
+            entry && typeof entry === 'object' && !Array.isArray(entry)
+              ? entry[node.name.text]
+              : null;
           if (typeof segment === 'string' && segment) return LIT(segment);
         }
       }
-      if (ts.isIdentifier(node) && facts.stringConsts.has(node.text)) return LIT(facts.stringConsts.get(node.text));
+      if (ts.isIdentifier(node) && facts.stringConsts.has(node.text))
+        return LIT(facts.stringConsts.get(node.text));
       return ANY;
     }
 
@@ -2247,9 +2436,11 @@ export function analyzeFiles({
         }
         const found = [];
         for (const property of node.properties) {
-          if (ts.isPropertyAssignment(property) &&
-              (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
-              property.name.text === propertyName) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
+            property.name.text === propertyName
+          ) {
             found.push({ facts, node: property.initializer });
           }
           if (ts.isShorthandPropertyAssignment(property) && property.name.text === propertyName) {
@@ -2270,7 +2461,11 @@ export function analyzeFiles({
         if (entries) {
           const found = [];
           for (const entry of entries) {
-            const values = resolverFor(entry.facts).staticPropertyCandidates(entry.node, propertyName, depth + 1);
+            const values = resolverFor(entry.facts).staticPropertyCandidates(
+              entry.node,
+              propertyName,
+              depth + 1,
+            );
             if (!values) return null;
             found.push(...values);
           }
@@ -2290,20 +2485,35 @@ export function analyzeFiles({
             (ts.isIdentifier(branch) && branch.text === 'undefined')
           );
         };
-        const left = isNullish(node.whenTrue) ? [] : staticPropertyCandidates(node.whenTrue, propertyName, depth + 1);
-        const right = isNullish(node.whenFalse) ? [] : staticPropertyCandidates(node.whenFalse, propertyName, depth + 1);
-        if (!left || !right || (!left.length && !right.length) || left.length + right.length > MAX_CANDIDATES) return null;
+        const left = isNullish(node.whenTrue)
+          ? []
+          : staticPropertyCandidates(node.whenTrue, propertyName, depth + 1);
+        const right = isNullish(node.whenFalse)
+          ? []
+          : staticPropertyCandidates(node.whenFalse, propertyName, depth + 1);
+        if (
+          !left ||
+          !right ||
+          (!left.length && !right.length) ||
+          left.length + right.length > MAX_CANDIDATES
+        )
+          return null;
         return [...left, ...right];
       }
       if (ts.isIdentifier(node)) {
         const decl = nearestDecl(node.text, node.pos, node);
-        if (decl?.initializer) return staticPropertyCandidates(decl.initializer, propertyName, depth + 1);
+        if (decl?.initializer)
+          return staticPropertyCandidates(decl.initializer, propertyName, depth + 1);
         if (isPropertyBinding(decl)) {
           const outer = boundValues(decl, depth + 1);
           if (!outer) return null;
           const nested = [];
           for (const value of outer) {
-            const values = resolverFor(value.facts).staticPropertyCandidates(value.node, propertyName, depth + 1);
+            const values = resolverFor(value.facts).staticPropertyCandidates(
+              value.node,
+              propertyName,
+              depth + 1,
+            );
             if (!values) return null;
             nested.push(...values);
           }
@@ -2316,19 +2526,33 @@ export function analyzeFiles({
           return entry ? staticPropertyCandidates(entry, propertyName, depth + 1) : null;
         }
         const external = importedValue(facts, node.text);
-        if (external) return resolverFor(external.facts).staticPropertyCandidates(external.node, propertyName, depth + 1);
+        if (external)
+          return resolverFor(external.facts).staticPropertyCandidates(
+            external.node,
+            propertyName,
+            depth + 1,
+          );
         const owner = enclosingFunction(node, node.text);
         if (!owner) return null;
         const params = facts.functions.get(owner.name)?.params ?? [];
         const index = params.findIndex((parameter) => parameter.name === node.text);
-        const values = index < 0 ? null : paramCarrierProperties.get(`${paramKey(facts.relPath, owner.name, index)}.${propertyName}`);
+        const values =
+          index < 0
+            ? null
+            : paramCarrierProperties.get(
+                `${paramKey(facts.relPath, owner.name, index)}.${propertyName}`,
+              );
         if (values?.length && values.length <= MAX_CANDIDATES) return values;
         // Fall back to the whole value every call site passes, then take the property off it.
         const supplied = parameterValues(node);
         if (!supplied) return null;
         const found = [];
         for (const value of supplied) {
-          const inner = resolverFor(value.facts).staticPropertyCandidates(value.node, propertyName, depth + 1);
+          const inner = resolverFor(value.facts).staticPropertyCandidates(
+            value.node,
+            propertyName,
+            depth + 1,
+          );
           if (!inner) return null;
           found.push(...inner);
         }
@@ -2362,7 +2586,7 @@ export function analyzeFiles({
         const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
         const literal = index ? computedKeyName(index, facts, source) : null;
         const entries = literal
-          ? properties.get(literal) ?? null
+          ? (properties.get(literal) ?? null)
           : [...properties.values()].flat();
         if (!entries?.length || entries.length > MAX_CANDIDATES) return null;
         const nested = [];
@@ -2415,7 +2639,11 @@ export function analyzeFiles({
       const functions = [];
       for (const candidate of candidates) {
         const node = stripWrappers(candidate.node);
-        if (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)) {
+        if (
+          ts.isArrowFunction(node) ||
+          ts.isFunctionExpression(node) ||
+          ts.isMethodDeclaration(node)
+        ) {
           functions.push({ facts: candidate.facts, node });
         } else return null;
       }
@@ -2443,7 +2671,8 @@ export function analyzeFiles({
         }
         return values.length <= MAX_QUEUE_ENTRIES ? values : null;
       };
-      if (ts.isPropertyAccessExpression(node)) return merged(staticPropertyCandidates(node.expression, node.name.text, depth + 1));
+      if (ts.isPropertyAccessExpression(node))
+        return merged(staticPropertyCandidates(node.expression, node.name.text, depth + 1));
       if (!ts.isIdentifier(node)) return null;
       const decl = nearestDecl(node.text, node.pos, node);
       if (!decl) return merged(parameterValues(node));
@@ -2459,7 +2688,9 @@ export function analyzeFiles({
         return null;
       }
       return (facts.mapSetCalls.get(node.text) ?? [])
-        .filter((entry) => entry.pos > decl.pos && (!decl.scope || encloses(decl.scope, entry.call)))
+        .filter(
+          (entry) => entry.pos > decl.pos && (!decl.scope || encloses(decl.scope, entry.call)),
+        )
         .map((entry) => ({ facts, node: entry.value }));
     }
 
@@ -2492,7 +2723,11 @@ export function analyzeFiles({
           if (entries) {
             const values = [];
             for (const entry of entries) {
-              const found = resolverFor(entry.facts).staticPropertyCandidates(entry.node, propertyName, depth + 1);
+              const found = resolverFor(entry.facts).staticPropertyCandidates(
+                entry.node,
+                propertyName,
+                depth + 1,
+              );
               if (!found) return null;
               values.push(...found);
             }
@@ -2501,7 +2736,8 @@ export function analyzeFiles({
         }
         if (method === 'map' || method === 'flatMap') {
           const callback = node.arguments[0];
-          if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) return null;
+          if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
+            return null;
           const returns = [];
           if (!ts.isBlock(callback.body)) returns.push(callback.body);
           else {
@@ -2516,15 +2752,17 @@ export function analyzeFiles({
           const values = [];
           for (const returned of returns) {
             // A `flatMap` callback returns an ARRAY of elements; a `map` callback returns one.
-            const found = method === 'flatMap'
-              ? propertyValuesFromArray(returned, propertyName, depth + 1)
-              : staticPropertyCandidates(returned, propertyName, depth + 1);
+            const found =
+              method === 'flatMap'
+                ? propertyValuesFromArray(returned, propertyName, depth + 1)
+                : staticPropertyCandidates(returned, propertyName, depth + 1);
             if (!found) return null;
             values.push(...found);
           }
           return values.length && values.length <= MAX_CANDIDATES ? values : null;
         }
-        if (ARRAY_PASSTHROUGH.has(method)) return propertyValuesFromArray(node.expression.expression, propertyName, depth + 1);
+        if (ARRAY_PASSTHROUGH.has(method))
+          return propertyValuesFromArray(node.expression.expression, propertyName, depth + 1);
       }
       // `cond ? await collectTargets(id) : []` — an empty branch contributes no element.
       if (ts.isConditionalExpression(node)) {
@@ -2532,8 +2770,12 @@ export function analyzeFiles({
           const branch = stripWrappers(value);
           return ts.isArrayLiteralExpression(branch) && branch.elements.length === 0;
         };
-        const left = isEmpty(node.whenTrue) ? [] : propertyValuesFromArray(node.whenTrue, propertyName, depth + 1);
-        const right = isEmpty(node.whenFalse) ? [] : propertyValuesFromArray(node.whenFalse, propertyName, depth + 1);
+        const left = isEmpty(node.whenTrue)
+          ? []
+          : propertyValuesFromArray(node.whenTrue, propertyName, depth + 1);
+        const right = isEmpty(node.whenFalse)
+          ? []
+          : propertyValuesFromArray(node.whenFalse, propertyName, depth + 1);
         if (!left || !right || (!left.length && !right.length)) return null;
         const values = [...left, ...right];
         return values.length <= MAX_CANDIDATES ? values : null;
@@ -2544,7 +2786,11 @@ export function analyzeFiles({
         if (!arrays?.length) return null;
         const values = [];
         for (const array of arrays) {
-          const found = resolverFor(array.facts).propertyValuesFromArray(array.node, propertyName, depth + 1);
+          const found = resolverFor(array.facts).propertyValuesFromArray(
+            array.node,
+            propertyName,
+            depth + 1,
+          );
           if (!found) return null;
           values.push(...found);
         }
@@ -2564,14 +2810,19 @@ export function analyzeFiles({
         if (entries?.length) {
           const values = [];
           for (const entry of entries) {
-            const found = resolverFor(entry.facts).staticPropertyCandidates(entry.node, propertyName, depth + 1);
+            const found = resolverFor(entry.facts).staticPropertyCandidates(
+              entry.node,
+              propertyName,
+              depth + 1,
+            );
             if (!found) return null;
             values.push(...found);
           }
           return values.length && values.length <= MAX_QUEUE_ENTRIES ? values : null;
         }
         const decl = nearestDecl(node.text, node.pos, node);
-        if (decl?.initializer) return propertyValuesFromArray(decl.initializer, propertyName, depth + 1);
+        if (decl?.initializer)
+          return propertyValuesFromArray(decl.initializer, propertyName, depth + 1);
         // `const [items, ids] = await Promise.all([readItems(id), …])` — that index's entry.
         if (decl?.indexOf !== undefined) {
           const entry = tupleEntry(decl.indexOf, decl.bindingIndex);
@@ -2581,7 +2832,11 @@ export function analyzeFiles({
         if (!supplied?.length) return null;
         const values = [];
         for (const value of supplied) {
-          const inner = resolverFor(value.facts).propertyValuesFromArray(value.node, propertyName, depth + 1);
+          const inner = resolverFor(value.facts).propertyValuesFromArray(
+            value.node,
+            propertyName,
+            depth + 1,
+          );
           if (!inner) return null;
           values.push(...inner);
         }
@@ -2602,7 +2857,10 @@ export function analyzeFiles({
         // UNREADABLE spread still poisons the object, which is the case that matters.
         const properties = new Map();
         for (const property of node.properties) {
-          if (ts.isPropertyAssignment(property) && (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name))) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name))
+          ) {
             properties.set(property.name.text, [{ facts, node: property.initializer }]);
           } else if (ts.isShorthandPropertyAssignment(property)) {
             properties.set(property.name.text, [{ facts, node: property.name }]);
@@ -2639,8 +2897,12 @@ export function analyzeFiles({
             (ts.isIdentifier(branch) && branch.text === 'undefined')
           );
         };
-        const left = isNullish(node.whenTrue) ? new Map() : objectProperties(node.whenTrue, depth + 1);
-        const right = isNullish(node.whenFalse) ? new Map() : objectProperties(node.whenFalse, depth + 1);
+        const left = isNullish(node.whenTrue)
+          ? new Map()
+          : objectProperties(node.whenTrue, depth + 1);
+        const right = isNullish(node.whenFalse)
+          ? new Map()
+          : objectProperties(node.whenFalse, depth + 1);
         if (!left || !right || (!left.size && !right.size)) return null;
         const merged = new Map();
         for (const sourceProperties of [left, right]) {
@@ -2696,7 +2958,7 @@ export function analyzeFiles({
       }
       if (ts.isCallExpression(node)) {
         const key = calleeKey(node);
-        return key ? returnCarrierProperties.get(key) ?? null : null;
+        return key ? (returnCarrierProperties.get(key) ?? null) : null;
       }
       return null;
     }
@@ -2720,12 +2982,19 @@ export function analyzeFiles({
       }
       if (ts.isIdentifier(node)) {
         const decl = nearestDecl(node.text, node.pos, node);
-        if (decl?.initializer) return correlatedCarrierPairs(decl.initializer, leftName, rightName, depth + 1);
+        if (decl?.initializer)
+          return correlatedCarrierPairs(decl.initializer, leftName, rightName, depth + 1);
         // `for (const w of writes.slice(i, i + MAX))` — one queued entry.
-        if (decl?.iterOf) return correlatedPairsFromArray(decl.iterOf, leftName, rightName, depth + 1);
+        if (decl?.iterOf)
+          return correlatedPairsFromArray(decl.iterOf, leftName, rightName, depth + 1);
         const external = importedValue(facts, node.text);
         if (external) {
-          return resolverFor(external.facts).correlatedCarrierPairs(external.node, leftName, rightName, depth + 1);
+          return resolverFor(external.facts).correlatedCarrierPairs(
+            external.node,
+            leftName,
+            rightName,
+            depth + 1,
+          );
         }
         // A carrier PARAMETER — one argument object per call site. Each call site supplies both
         // halves at once, so its `ref` and its patch stay the pair that call site wrote; the
@@ -2739,13 +3008,19 @@ export function analyzeFiles({
         if (!supplied?.length || supplied.length > MAX_CANDIDATES) return null;
         const pairs = [];
         for (const value of supplied) {
-          const found = resolverFor(value.facts).correlatedCarrierPairs(value.node, leftName, rightName, depth + 1);
+          const found = resolverFor(value.facts).correlatedCarrierPairs(
+            value.node,
+            leftName,
+            rightName,
+            depth + 1,
+          );
           if (!found) return null;
           pairs.push(...found);
         }
         return pairs.length && pairs.length <= MAX_CANDIDATES ? pairs : null;
       }
-      if (ts.isElementAccessExpression(node)) return correlatedPairsFromArray(node.expression, leftName, rightName, depth + 1);
+      if (ts.isElementAccessExpression(node))
+        return correlatedPairsFromArray(node.expression, leftName, rightName, depth + 1);
       return null;
     }
 
@@ -2774,7 +3049,12 @@ export function analyzeFiles({
       }
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         if (ARRAY_PASSTHROUGH.has(node.expression.name.text)) {
-          return correlatedPairsFromArray(node.expression.expression, leftName, rightName, depth + 1);
+          return correlatedPairsFromArray(
+            node.expression.expression,
+            leftName,
+            rightName,
+            depth + 1,
+          );
         }
         return null;
       }
@@ -2783,7 +3063,12 @@ export function analyzeFiles({
         if (!entries) return null;
         const pairs = [];
         for (const entry of entries) {
-          const found = resolverFor(entry.facts).correlatedCarrierPairs(entry.node, leftName, rightName, depth + 1);
+          const found = resolverFor(entry.facts).correlatedCarrierPairs(
+            entry.node,
+            leftName,
+            rightName,
+            depth + 1,
+          );
           if (!found) return null;
           pairs.push(...found);
         }
@@ -2830,7 +3115,8 @@ export function analyzeFiles({
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const method = node.expression.name.text;
         // `entries.slice(0, n)` — a subset of the same entries.
-        if (ARRAY_PASSTHROUGH.has(method)) return arrayEntryExpressions(node.expression.expression, depth + 1);
+        if (ARRAY_PASSTHROUGH.has(method))
+          return arrayEntryExpressions(node.expression.expression, depth + 1);
         // `created.values()` on a provable Map — the values its `.set` calls stored.
         if (method === 'values' && node.arguments.length === 0) {
           const values = mapEntryValues(node.expression.expression, depth + 1);
@@ -2840,7 +3126,8 @@ export function analyzeFiles({
         // a `flatMap` callback returns an array of them.
         if (method === 'map' || method === 'flatMap') {
           const callback = node.arguments[0];
-          if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) return null;
+          if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
+            return null;
           const returns = callbackReturns(callback);
           if (!returns.length) return null;
           const entries = [];
@@ -2880,7 +3167,10 @@ export function analyzeFiles({
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
         const entries = [];
         for (const candidate of candidates) {
-          const inner = resolverFor(candidate.facts).arrayEntryExpressions(candidate.node, depth + 1);
+          const inner = resolverFor(candidate.facts).arrayEntryExpressions(
+            candidate.node,
+            depth + 1,
+          );
           if (!inner) return null;
           entries.push(...inner);
         }
@@ -2971,10 +3261,15 @@ export function analyzeFiles({
       if (
         !templates.size &&
         segments.length > 1 &&
-        segments.every((candidate) => !registry.matchSegments(candidate).length &&
-          registry.matchSegments([...candidate, ANY]).length)
+        segments.every(
+          (candidate) =>
+            !registry.matchSegments(candidate).length &&
+            registry.matchSegments([...candidate, ANY]).length,
+        )
       ) {
-        return { collections: segments.map((candidate) => ({ segments: candidate, canonical: false })) };
+        return {
+          collections: segments.map((candidate) => ({ segments: candidate, canonical: false })),
+        };
       }
       for (const candidate of segments) {
         const matched = registry.matchSegments(candidate);
@@ -2989,7 +3284,8 @@ export function analyzeFiles({
       if (depth > CARRIER_DEPTH || !expr) return null;
       const node = stripWrappers(expr);
       if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
-        if (isCoreBuilders(facts, node.expression) && builderSegments.has(node.name.text)) return new Set([node.name.text]);
+        if (isCoreBuilders(facts, node.expression) && builderSegments.has(node.name.text))
+          return new Set([node.name.text]);
       }
       if (ts.isPropertyAccessExpression(node)) {
         const candidates = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
@@ -3043,7 +3339,9 @@ export function analyzeFiles({
         if (!properties) return null;
         const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
         const literal = index ? computedKeyName(index, facts, source) : null;
-        const candidates = literal ? properties.get(literal) ?? null : [...properties.values()].flat();
+        const candidates = literal
+          ? (properties.get(literal) ?? null)
+          : [...properties.values()].flat();
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
         const names = new Set();
         for (const candidate of candidates) {
@@ -3074,7 +3372,11 @@ export function analyzeFiles({
       const pattern = registry.builderPatterns.get(name);
       if (!pattern) return builderSegments.get(name) ?? null;
       return pattern.map((segment) =>
-        segment.t === 'arg' ? (args[segment.index] ? segmentOf(args[segment.index]) : ANY) : segment,
+        segment.t === 'arg'
+          ? args[segment.index]
+            ? segmentOf(args[segment.index])
+            : ANY
+          : segment,
       );
     }
 
@@ -3146,9 +3448,7 @@ export function analyzeFiles({
       const node = stripWrappers(expr);
       if (!ts.isIdentifier(node)) return false;
       const imported = facts.imports.get(node.text);
-      return Boolean(
-        imported?.imported === 'COLLECTION_REFS' && isCoreImport(facts, imported),
-      );
+      return Boolean(imported?.imported === 'COLLECTION_REFS' && isCoreImport(facts, imported));
     }
 
     /** Preserve literal call arguments at their slots, exactly as builder calls do. */
@@ -3156,7 +3456,11 @@ export function analyzeFiles({
       const pattern = registry.collectionRefPatterns.get(name);
       if (!pattern) return registry.collectionRefSegments.get(name) ?? null;
       return pattern.map((segment) =>
-        segment.t === 'arg' ? (args[segment.index] ? segmentOf(args[segment.index]) : ANY) : segment,
+        segment.t === 'arg'
+          ? args[segment.index]
+            ? segmentOf(args[segment.index])
+            : ANY
+          : segment,
       );
     }
 
@@ -3167,7 +3471,11 @@ export function analyzeFiles({
      */
     function collectionArgumentSegments(expr, state, depth) {
       const node = stripWrappers(expr);
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'toPath') {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'toPath'
+      ) {
         const inner = node.arguments[0] ? stripWrappers(node.arguments[0]) : null;
         if (!inner) return null;
         const resolved = resolve(inner, state, depth + 1);
@@ -3195,7 +3503,8 @@ export function analyzeFiles({
       if (ts.isArrayLiteralExpression(node)) return segmentsFromArray(node, state, depth + 1);
       if (ts.isIdentifier(node)) {
         const decl = nearestDecl(node.text, node.pos, node);
-        if (decl?.initializer) return collectionArgumentSegments(decl.initializer, state, depth + 1);
+        if (decl?.initializer)
+          return collectionArgumentSegments(decl.initializer, state, depth + 1);
       }
       return null;
     }
@@ -3263,7 +3572,8 @@ export function analyzeFiles({
         !ts.isPropertyAccessExpression(candidate) ||
         candidate.name.text !== 'data' ||
         !ts.isIdentifier(candidate.expression)
-      ) return null;
+      )
+        return null;
       const trigger = facts.triggerEvents.find(
         (entry) => entry.name === candidate.expression.text && encloses(entry.scope, candidate),
       );
@@ -3283,7 +3593,11 @@ export function analyzeFiles({
       const node = stripWrappers(expr);
 
       // toPath([...]) / toPath(PATH_BUILDERS.x(...))
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'toPath') {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'toPath'
+      ) {
         const segments = segmentsFromArray(node.arguments[0], state, depth);
         if (segments) return { segments };
         // `toPath` only joins the segments it is handed, so whatever they resolved to —
@@ -3364,17 +3678,20 @@ export function analyzeFiles({
             // collection a call site can pass; every one of them stays a candidate.
             if (method === 'collection') return null;
             if (node.arguments.length === 0) state.autoId = true;
-            const tail = node.arguments.length === 0 ? ANY : segmentOf(stripWrappers(node.arguments[0]));
+            const tail =
+              node.arguments.length === 0 ? ANY : segmentOf(stripWrappers(node.arguments[0]));
             // A preset id on a CANONICAL collection is a canonical document, not a
             // hand-built path — the builder owns the collection either way.
-            if (resolvedBase.collections.every((candidate) => candidate.canonical)) state.usedBuilder = true;
+            if (resolvedBase.collections.every((candidate) => candidate.canonical))
+              state.usedBuilder = true;
             const templates = new Set();
             for (const collection of resolvedBase.collections) {
-              for (const template of registry.matchSegments([...collection.segments, tail])) templates.add(template);
+              for (const template of registry.matchSegments([...collection.segments, tail]))
+                templates.add(template);
             }
             return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
-          }
-          else if (resolvedBase && resolvedBase.templates) return null; // a doc handle cannot own a subcollection chain we can name
+          } else if (resolvedBase && resolvedBase.templates)
+            return null; // a doc handle cannot own a subcollection chain we can name
           else if (isFirestoreRoot(base)) baseSegments = [];
           if (!baseSegments) return null;
 
@@ -3473,7 +3790,11 @@ export function analyzeFiles({
         return (
           resolveTriggerRef(node.expression) ??
           resolveSnapshot(node.expression, state, depth + 1) ??
-          resolveForeignCandidates(staticPropertyCandidates(node.expression, 'ref'), state, depth + 1) ??
+          resolveForeignCandidates(
+            staticPropertyCandidates(node.expression, 'ref'),
+            state,
+            depth + 1,
+          ) ??
           resolve(node.expression, state, depth + 1)
         );
       }
@@ -3563,7 +3884,10 @@ export function analyzeFiles({
       // `entry.build(id)` — the callee is a path builder held on a lane-registry entry.
       // Each candidate is either a canonical PATH_BUILDERS alias or a small inline builder
       // whose returns are canonical segments; every lane stays a candidate.
-      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(stripWrappers(node.expression))) {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(stripWrappers(node.expression))
+      ) {
         const callee = stripWrappers(node.expression);
         const candidates = staticPropertyCandidates(callee.expression, callee.name.text, depth + 1);
         if (candidates?.length && candidates.length <= MAX_CANDIDATES) {
@@ -3585,7 +3909,11 @@ export function analyzeFiles({
               fn.body.statements.length === 1 &&
               ts.isThrowStatement(fn.body.statements[0]);
             if (alwaysThrows) continue;
-            if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn) || ts.isMethodDeclaration(fn)) {
+            if (
+              ts.isArrowFunction(fn) ||
+              ts.isFunctionExpression(fn) ||
+              ts.isMethodDeclaration(fn)
+            ) {
               const returns = callbackReturns(fn);
               if (!returns.length) {
                 ok = false;
@@ -3636,7 +3964,8 @@ export function analyzeFiles({
         }
         if (target && returnTargets.has(target)) {
           const templates = returnTargets.get(target);
-          if (templates?.size && templates.size <= MAX_CANDIDATES) return { templates: new Set(templates) };
+          if (templates?.size && templates.size <= MAX_CANDIDATES)
+            return { templates: new Set(templates) };
         }
         if (target && returnCollections.has(target)) {
           const collections = [...returnCollections.get(target)].map((value) => JSON.parse(value));
@@ -3705,7 +4034,9 @@ export function analyzeFiles({
             }
             const groups = paramGroups.get(key);
             if (groups && groups.size === 1) return { group: LIT([...groups][0]) };
-            return { reason: `parameter '${node.text}' of ${owner.name}() — no call site resolved it` };
+            return {
+              reason: `parameter '${node.text}' of ${owner.name}() — no call site resolved it`,
+            };
           }
         }
         return null;
@@ -3732,7 +4063,8 @@ export function analyzeFiles({
       }
       if (ts.isIdentifier(node)) {
         const decl = nearestDecl(node.text, node.pos, node);
-        if (decl?.initializer) return resolveIndexedElement(decl.initializer, index, state, depth + 1);
+        if (decl?.initializer)
+          return resolveIndexedElement(decl.initializer, index, state, depth + 1);
       }
       return null;
     }
@@ -3745,12 +4077,14 @@ export function analyzeFiles({
         const method = node.expression.name.text;
         if (method === 'get') {
           // A provable Map's `.get(key)` reads an entry, not a document.
-          if (node.arguments.length === 1 && mapEntryValues(node.expression.expression, depth + 1)) return null;
+          if (node.arguments.length === 1 && mapEntryValues(node.expression.expression, depth + 1))
+            return null;
           // tx.get(ref) / ref.get()
           if (node.arguments.length === 1) return resolve(node.arguments[0], state, depth + 1);
           return resolve(node.expression.expression, state, depth + 1);
         }
-        if (PROMISE_PASSTHROUGH.has(method)) return resolveSnapshot(node.expression.expression, state, depth + 1);
+        if (PROMISE_PASSTHROUGH.has(method))
+          return resolveSnapshot(node.expression.expression, state, depth + 1);
         if (method === 'getAll') return null; // several refs, one call — not one document
       }
       if (ts.isIdentifier(node)) {
@@ -3766,7 +4100,9 @@ export function analyzeFiles({
         if (isPropertyBinding(decl)) {
           const values = boundValues(decl, depth + 1);
           if (!values?.length) return null;
-          return mergeDocCandidates(values, (value) => resolverFor(value.facts).resolveSnapshot(value.node, state, depth + 1));
+          return mergeDocCandidates(values, (value) =>
+            resolverFor(value.facts).resolveSnapshot(value.node, state, depth + 1),
+          );
         }
         if (!decl) {
           // A SNAPSHOT passed into a helper — a transaction's caller reads the document in its
@@ -3790,7 +4126,10 @@ export function analyzeFiles({
         }
       }
       // `change.after` / `change.before` on a Firestore trigger.
-      if (ts.isPropertyAccessExpression(node) && (node.name.text === 'after' || node.name.text === 'before')) {
+      if (
+        ts.isPropertyAccessExpression(node) &&
+        (node.name.text === 'after' || node.name.text === 'before')
+      ) {
         return resolveSnapshot(node.expression, state, depth + 1);
       }
       return null;
@@ -3831,14 +4170,16 @@ export function analyzeFiles({
           }
           return null;
         }
-        if (ARRAY_PASSTHROUGH.has(method)) return resolveArrayElement(node.expression.expression, state, depth + 1);
+        if (ARRAY_PASSTHROUGH.has(method))
+          return resolveArrayElement(node.expression.expression, state, depth + 1);
       }
       if (ts.isPropertyAccessExpression(node) && node.name.text === 'docs') {
         return resolveDocElement(node, state, depth + 1);
       }
       if (ts.isIdentifier(node)) {
         const decl = nearestDecl(node.text, node.pos, node);
-        if (decl && decl.initializer) return resolveArrayElement(decl.initializer, state, depth + 1);
+        if (decl && decl.initializer)
+          return resolveArrayElement(decl.initializer, state, depth + 1);
       }
       // A snapshot ARRAY — `db.getAll(...)`, `snap.docs` — is an array of documents.
       return resolveDocElement(node, state, depth + 1);
@@ -3856,7 +4197,8 @@ export function analyzeFiles({
         const collection = resolve(node.expression, state, depth + 1);
         if (collection && collection.segments) return { segments: [...collection.segments, ANY] };
         if (collection && collection.group) return { group: collection.group, document: true };
-        if (collection && collection.collections) return templatesFromCollections(collection.collections);
+        if (collection && collection.collections)
+          return templatesFromCollections(collection.collections);
         // A snapshot that already resolved to document templates (a collection-GROUP query,
         // or a helper that returned one) IS the set of documents being iterated.
         if (collection && collection.templates) return { templates: collection.templates };
@@ -3881,7 +4223,8 @@ export function analyzeFiles({
             ? resolveArrayElement(argument.expression, state, depth + 1)
             : resolve(argument, state, depth + 1);
           if (!resolved) return null;
-          if (resolved.templates) for (const template of resolved.templates) templates.add(template);
+          if (resolved.templates)
+            for (const template of resolved.templates) templates.add(template);
           else if (resolved.segments) {
             const matched = registry.matchSegments(resolved.segments);
             if (!matched.length) return null;
@@ -3897,7 +4240,11 @@ export function analyzeFiles({
       ) {
         return resolveDocElement(node.expression.expression, state, depth + 1);
       }
-      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ARRAY_PASSTHROUGH.has(node.expression.name.text)) {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ARRAY_PASSTHROUGH.has(node.expression.name.text)
+      ) {
         return resolveDocElement(node.expression.expression, state, depth + 1);
       }
       // `await Promise.all(ids.map((id) => col.doc(id).get()))` — a batch of single-document
@@ -3916,33 +4263,47 @@ export function analyzeFiles({
         (node.expression.name.text === 'map' || node.expression.name.text === 'flatMap')
       ) {
         const callback = node.arguments[0];
-        if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) return null;
+        if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
+          return null;
         const returns = callbackReturns(callback);
         if (returns.length !== 1) return null;
-        return resolveSnapshot(returns[0], state, depth + 1) ?? resolve(returns[0], state, depth + 1);
+        return (
+          resolveSnapshot(returns[0], state, depth + 1) ?? resolve(returns[0], state, depth + 1)
+        );
       }
-      if (ts.isElementAccessExpression(node)) return resolveDocElement(node.expression, state, depth + 1);
+      if (ts.isElementAccessExpression(node))
+        return resolveDocElement(node.expression, state, depth + 1);
       // `[refA, refB]` — each entry is one of the documents; an empty array holds none.
       if (ts.isArrayLiteralExpression(node)) {
         // An entry must be a reference; an object entry is a carrier, which only the carrier
         // path reads — with its spreads, which can replace the ref it seems to hold.
-        if (node.elements.some((element) => ts.isObjectLiteralExpression(stripWrappers(element)))) return null;
-        return mergeDocCandidates(node.elements.map((element) => ({ facts, node: element })), (value) => {
-          // `[...a.docs, ...b.docs]` — a spread adds the documents of a readable array.
-          if (ts.isSpreadElement(value.node)) {
-            return resolverFor(value.facts).resolveDocElement(value.node.expression, state, depth + 1);
-          }
-          // An entry is a reference itself; a COLLECTION reference is not a document.
-          const resolved = resolverFor(value.facts).resolve(value.node, state, depth + 1);
-          return resolved?.collections ? null : resolved;
-        });
+        if (node.elements.some((element) => ts.isObjectLiteralExpression(stripWrappers(element))))
+          return null;
+        return mergeDocCandidates(
+          node.elements.map((element) => ({ facts, node: element })),
+          (value) => {
+            // `[...a.docs, ...b.docs]` — a spread adds the documents of a readable array.
+            if (ts.isSpreadElement(value.node)) {
+              return resolverFor(value.facts).resolveDocElement(
+                value.node.expression,
+                state,
+                depth + 1,
+              );
+            }
+            // An entry is a reference itself; a COLLECTION reference is not a document.
+            const resolved = resolverFor(value.facts).resolve(value.node, state, depth + 1);
+            return resolved?.collections ? null : resolved;
+          },
+        );
       }
       // `read.pendingRefs` — an array a reader handed back on its result: the documents are
       // the elements of every value that property can hold.
       if (ts.isPropertyAccessExpression(node)) {
         const values = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
         if (values?.length) {
-          return mergeDocCandidates(values, (value) => resolverFor(value.facts).resolveDocElement(value.node, state, depth + 1));
+          return mergeDocCandidates(values, (value) =>
+            resolverFor(value.facts).resolveDocElement(value.node, state, depth + 1),
+          );
         }
       }
       if (ts.isIdentifier(node)) {
@@ -3957,7 +4318,11 @@ export function analyzeFiles({
           if (supplied?.length) {
             const templates = new Set();
             for (const value of supplied) {
-              const inner = resolverFor(value.facts).resolveDocElement(value.node, state, depth + 1);
+              const inner = resolverFor(value.facts).resolveDocElement(
+                value.node,
+                state,
+                depth + 1,
+              );
               if (!inner) return null;
               if (inner.templates) for (const template of inner.templates) templates.add(template);
               else if (inner.segments) {
@@ -3965,7 +4330,8 @@ export function analyzeFiles({
                 if (!matched.length) return null;
                 for (const template of matched) templates.add(template);
               } else if (inner.group) {
-                for (const template of registry.templatesForGroup(inner.group)) templates.add(template);
+                for (const template of registry.templatesForGroup(inner.group))
+                  templates.add(template);
               } else return null;
             }
             return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
@@ -4000,7 +4366,8 @@ export function analyzeFiles({
           if (!matched.length) return null;
           for (const template of matched) templates.add(template);
         } else if (resolved.group) {
-          for (const template of registry.templatesForGroup(resolved.group)) templates.add(template);
+          for (const template of registry.templatesForGroup(resolved.group))
+            templates.add(template);
         } else if (resolved.collections) {
           const fromCollections = templatesFromCollections(resolved.collections);
           if (!fromCollections) return null;
@@ -4014,7 +4381,8 @@ export function analyzeFiles({
     function templatesFromCollections(collections) {
       const templates = new Set();
       for (const collection of collections) {
-        for (const template of registry.matchSegments([...collection.segments, ANY])) templates.add(template);
+        for (const template of registry.matchSegments([...collection.segments, ANY]))
+          templates.add(template);
       }
       return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
     }
@@ -4023,7 +4391,8 @@ export function analyzeFiles({
       const node = stripWrappers(expr);
       if (ts.isIdentifier(node)) return ROOT_NAME.test(node.text);
       if (ts.isPropertyAccessExpression(node)) return ROOT_NAME.test(node.name.text);
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) return ROOT_NAME.test(node.expression.text);
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression))
+        return ROOT_NAME.test(node.expression.text);
       return false;
     }
 
@@ -4054,27 +4423,51 @@ export function analyzeFiles({
       }
       const handBuilt = Boolean((state.manualDocId || state.literalPath) && !state.usedBuilder);
       const shown = () => expr.getText(source).replace(/\s+/g, ' ').slice(0, 70);
-      if (!result) return { templates: null, handBuilt, capped, reason: `target '${shown()}' did not resolve${capped ? ' (analysis ceiling reached)' : ''}` };
+      if (!result)
+        return {
+          templates: null,
+          handBuilt,
+          capped,
+          reason: `target '${shown()}' did not resolve${capped ? ' (analysis ceiling reached)' : ''}`,
+        };
       if (result.templates) return { templates: result.templates, handBuilt, capped, reason: null };
       if (result.collections) {
-        return { templates: null, handBuilt, reason: `target '${shown()}' is a COLLECTION reference, not a document` };
+        return {
+          templates: null,
+          handBuilt,
+          reason: `target '${shown()}' is a COLLECTION reference, not a document`,
+        };
       }
       if (result.group) {
         const matched = registry.templatesForGroup(result.group);
         if (!matched.length) {
-          return { templates: null, handBuilt, reason: 'collection group matches no registered template' };
+          return {
+            templates: null,
+            handBuilt,
+            reason: 'collection group matches no registered template',
+          };
         }
         return { templates: new Set(matched), handBuilt, reason: null };
       }
       if (result.segments) {
         const matched = registry.matchSegments(result.segments);
         if (!matched.length) {
-          const shown = result.segments.map((segment) => (segment.t === 'lit' ? segment.v : '*')).join('/');
-          return { templates: null, handBuilt, reason: `path '${shown}' matches no registered template` };
+          const shown = result.segments
+            .map((segment) => (segment.t === 'lit' ? segment.v : '*'))
+            .join('/');
+          return {
+            templates: null,
+            handBuilt,
+            reason: `path '${shown}' matches no registered template`,
+          };
         }
         return { templates: new Set(matched), handBuilt, reason: null };
       }
-      return { templates: null, handBuilt, reason: result.reason ?? 'target expression did not resolve' };
+      return {
+        templates: null,
+        handBuilt,
+        reason: result.reason ?? 'target expression did not resolve',
+      };
     }
 
     /**
@@ -4085,7 +4478,8 @@ export function analyzeFiles({
       if (depth > 8 || !expr) return null;
       const node = stripWrappers(expr);
       if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
-        if (NOT_FIRESTORE_CONSTRUCTORS.has(node.expression.text)) return `new ${node.expression.text}()`;
+        if (NOT_FIRESTORE_CONSTRUCTORS.has(node.expression.text))
+          return `new ${node.expression.text}()`;
         // Nothing in the Firestore SDKs is constructed with `new` in app code: a
         // reference comes from `db`, a builder, or a query. So an instance of a class
         // imported from any OTHER package is positively not a Firestore handle.
@@ -4127,7 +4521,8 @@ export function analyzeFiles({
       if (ts.isArrayLiteralExpression(node)) return 'an array literal';
       // A table of plain values — text, numbers, functions, and nested tables of the same —
       // holds no Firestore handle: a copy table's message functions are never a write.
-      if (ts.isObjectLiteralExpression(node) && isPlainValueTable(node)) return 'a table of plain values';
+      if (ts.isObjectLiteralExpression(node) && isPlainValueTable(node))
+        return 'a table of plain values';
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const method = node.expression.name.text;
         // A `.get()` lookup is evidence only when the CONTAINER resolves to a non-Firestore
@@ -4138,7 +4533,11 @@ export function analyzeFiles({
           if (container) return `a .${method}() lookup on ${container}`;
         }
       }
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && NOT_FIRESTORE_FACTORIES.has(node.expression.text)) {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        NOT_FIRESTORE_FACTORIES.has(node.expression.text)
+      ) {
         return `${node.expression.text}()`;
       }
       // `createHash('sha1').update(a).update(b)` — a Hash's `.update` returns the same Hash.
@@ -4153,7 +4552,8 @@ export function analyzeFiles({
       // `totals.get(id) ?? new Map()` — either side can be the value, so both must be evidence.
       if (
         ts.isBinaryExpression(node) &&
-        (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken || node.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+        (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+          node.operatorToken.kind === ts.SyntaxKind.BarBarToken)
       ) {
         const left = nonFirestoreValue(node.left, depth + 1);
         const right = nonFirestoreValue(node.right, depth + 1);
@@ -4199,14 +4599,16 @@ export function analyzeFiles({
         if (decl) return null;
         // A module constant imported from another swept file is what that file declared it as.
         const external = importedValue(facts, node.text);
-        if (external) return resolverFor(external.facts).nonFirestoreValue(external.node, depth + 1);
+        if (external)
+          return resolverFor(external.facts).nonFirestoreValue(external.node, depth + 1);
         // A DESTRUCTURED parameter has no name of its own, so the named lookup misses it;
         // fall back to the enclosing function and read the binding off its parameter type.
         const owner = enclosingFunction(node, node.text) ?? enclosingFunction(node);
         if (!owner) return null;
         const params = facts.functions.get(owner.name)?.params ?? [];
         const parameter = params.find((candidate) => candidate.name === node.text);
-        if (parameter && NOT_FIRESTORE_TYPE.test(parameter.typeText.trim())) return parameter.typeText.trim();
+        if (parameter && NOT_FIRESTORE_TYPE.test(parameter.typeText.trim()))
+          return parameter.typeText.trim();
         // An object-literal method implementing an interface leaves its parameters
         // unannotated; the interface's METHOD SIGNATURE is where their types are declared.
         if (parameter && !parameter.typeText && !facts.ambiguousTypeMethods.has(owner.name)) {
@@ -4229,7 +4631,9 @@ export function analyzeFiles({
           }
         }
         const index = params.findIndex((candidate) => candidate.name === node.text);
-        return index >= 0 ? paramNotFirestore.get(paramKey(facts.relPath, owner.name, index)) ?? null : null;
+        return index >= 0
+          ? (paramNotFirestore.get(paramKey(facts.relPath, owner.name, index)) ?? null)
+          : null;
       }
       return null;
     }
@@ -4463,7 +4867,8 @@ export function analyzeFiles({
       // entries pushed one at a time, a Map's values: each entry is read as the payload.
       const entries = resolver.arrayEntryExpressions(node);
       if (entries?.length) {
-        for (const entry of entries) readValue(entry.node, depth + 1, entry.facts, resolverFor(entry.facts));
+        for (const entry of entries)
+          readValue(entry.node, depth + 1, entry.facts, resolverFor(entry.facts));
         return;
       }
       opaque ??= 'payload array element is not statically readable';
@@ -4481,9 +4886,11 @@ export function analyzeFiles({
         !ts.isCallExpression(mapped) ||
         !ts.isPropertyAccessExpression(mapped.expression) ||
         mapped.expression.name.text !== 'map'
-      ) return null;
+      )
+        return null;
       const callback = mapped.arguments[0];
-      if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) return null;
+      if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
+        return null;
       const element = callback.parameters[0]?.name;
       if (!element || !ts.isIdentifier(element)) return null;
       const list = mapped.expression.expression;
@@ -4506,7 +4913,12 @@ export function analyzeFiles({
           if (!values?.length) return null;
           found = [];
           for (const value of values) {
-            const inner = computedKeyNames(stripWrappers(value.node), value.facts, value.facts.source, isUpdate);
+            const inner = computedKeyNames(
+              stripWrappers(value.node),
+              value.facts,
+              value.facts.source,
+              isUpdate,
+            );
             if (!inner) return null;
             found.push(...inner);
           }
@@ -4533,7 +4945,10 @@ export function analyzeFiles({
         if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
           const typeText = node.type.getText(source);
           const inner = stripParens(node.expression);
-          if (/Record\s*<\s*string\s*,\s*(unknown|any)\s*>/.test(typeText) || /\bany\b/.test(typeText)) {
+          if (
+            /Record\s*<\s*string\s*,\s*(unknown|any)\s*>/.test(typeText) ||
+            /\bany\b/.test(typeText)
+          ) {
             casts.push(typeText);
           } else if (ts.isAsExpression(inner) || ts.isTypeAssertionExpression(inner)) {
             casts.push(inner.type.getText(source) + ' as ' + typeText);
@@ -4590,9 +5005,10 @@ export function analyzeFiles({
         if (properties) {
           const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
           const selector = index ? computedKeyName(index, facts, source) : null;
-          const entries = selector !== null
-            ? properties.get(selector) ?? null
-            : [...properties.values()].flat();
+          const entries =
+            selector !== null
+              ? (properties.get(selector) ?? null)
+              : [...properties.values()].flat();
           if (!entries?.length || entries.length > MAX_CANDIDATES) {
             opaque ??= 'payload registry lookup is not statically bounded';
             return;
@@ -4622,7 +5038,8 @@ export function analyzeFiles({
           }
           if (!ts.isCallExpression(result) || result.arguments.length !== 1) return null;
           const callee = stripWrappers(result.expression);
-          if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'safeParse') return null;
+          if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'safeParse')
+            return null;
           // `<CanonicalSchema>.pick({ a: true, b: true }).safeParse(x).data` — exactly the
           // picked keys, each of which the canonical schema must itself declare.
           let schema = stripWrappers(callee.expression);
@@ -4641,7 +5058,8 @@ export function analyzeFiles({
                 !ts.isPropertyAssignment(property) ||
                 !(ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) ||
                 property.initializer.kind !== ts.SyntaxKind.TrueKeyword
-              ) return null;
+              )
+                return null;
               picked.push(property.name.text);
             }
             schema = stripWrappers(schema.expression.expression);
@@ -4651,7 +5069,9 @@ export function analyzeFiles({
           // closed canonical schema a core export names, exactly as the `.parse()` reader asks.
           if (picked === null && ts.isPropertyAccessExpression(schema)) {
             const base = constLookup(stripParens(schema.expression), facts);
-            const entries = ts.isElementAccessExpression(base) ? coreMapEntries(base, facts, source) : null;
+            const entries = ts.isElementAccessExpression(base)
+              ? coreMapEntries(base, facts, source)
+              : null;
             const names = entries?.map((entry) =>
               entry && typeof entry === 'object' && !Array.isArray(entry)
                 ? registry.canonicalParseName.get(entry[schema.name.text])
@@ -4659,7 +5079,8 @@ export function analyzeFiles({
             );
             if (!names?.length || !names.every(Boolean)) return null;
             const keys = new Set();
-            for (const name of names) for (const key of registry.canonicalParseKeys.get(name).keys) keys.add(key);
+            for (const name of names)
+              for (const key of registry.canonicalParseKeys.get(name).keys) keys.add(key);
             return { keys };
           }
           if (!ts.isIdentifier(schema)) return null;
@@ -4698,7 +5119,8 @@ export function analyzeFiles({
             !ts.isPropertyAccessExpression(parseCallee) ||
             parseCallee.name.text !== 'parse' ||
             !ts.isIdentifier(stripWrappers(parseCallee.expression))
-          ) return null;
+          )
+            return null;
           const schemaIdentifier = stripWrappers(parseCallee.expression);
           const imported = facts.imports.get(schemaIdentifier.text);
           if (!isCoreImport(facts, imported)) return null;
@@ -4747,7 +5169,8 @@ export function analyzeFiles({
           // Fields attached after the declaration (payload.x = …) are written too.
           const earliest = Math.min(...assignments.map((candidate) => candidate.pos));
           for (const assignment of facts.propAssigns.get(node.text) ?? []) {
-            if (assignment.pos > earliest) keys.add(isUpdate ? assignment.key.split('.')[0] : assignment.key);
+            if (assignment.pos > earliest)
+              keys.add(isUpdate ? assignment.key.split('.')[0] : assignment.key);
           }
           return;
         }
@@ -4759,7 +5182,8 @@ export function analyzeFiles({
             // package-builder assertion, reached through a destructure.
             const assertedFromBinding = packageBuilderKeys(facts, bound, decl.bindingProperty);
             if (assertedFromBinding) {
-              for (const key of assertedFromBinding.keys) keys.add(isUpdate ? key.split('.')[0] : key);
+              for (const key of assertedFromBinding.keys)
+                keys.add(isUpdate ? key.split('.')[0] : key);
               return;
             }
           }
@@ -4792,7 +5216,12 @@ export function analyzeFiles({
               if (known.opaque) opaque ??= "payload parameter '" + node.text + "': " + known.opaque;
               return;
             }
-            opaque ??= "payload parameter '" + node.text + "' of " + owner.name + '() — no call site resolved it';
+            opaque ??=
+              "payload parameter '" +
+              node.text +
+              "' of " +
+              owner.name +
+              '() — no call site resolved it';
             return;
           }
         }
@@ -4817,8 +5246,7 @@ export function analyzeFiles({
           if (ts.isIdentifier(schema)) {
             const imported = facts.imports.get(schema.text);
             const canonical =
-              isCoreImport(facts, imported) &&
-              registry.canonicalParseKeys.get(imported.imported);
+              isCoreImport(facts, imported) && registry.canonicalParseKeys.get(imported.imported);
             if (canonical) {
               for (const key of canonical.keys) keys.add(isUpdate ? key.split('.')[0] : key);
               return;
@@ -4832,7 +5260,9 @@ export function analyzeFiles({
           // time, so each document is diffed against its own entry's schema.
           if (ts.isPropertyAccessExpression(schema)) {
             const base = constLookup(stripParens(schema.expression), facts);
-            const entries = ts.isElementAccessExpression(base) ? coreMapEntries(base, facts, source) : null;
+            const entries = ts.isElementAccessExpression(base)
+              ? coreMapEntries(base, facts, source)
+              : null;
             const names = entries?.map((entry) =>
               entry && typeof entry === 'object' && !Array.isArray(entry)
                 ? registry.canonicalParseName.get(entry[schema.name.text])
@@ -4937,10 +5367,16 @@ export function analyzeFiles({
               const known = paramCallbackPayloads.get(paramKey(facts.relPath, owner.name, index));
               if (known && (known.keys.size || known.opaque)) {
                 for (const found of known.keys) keys.add(isUpdate ? found.split('.')[0] : found);
-                if (known.opaque) opaque ??= "payload callback '" + callee.text + "': " + known.opaque;
+                if (known.opaque)
+                  opaque ??= "payload callback '" + callee.text + "': " + known.opaque;
                 return;
               }
-              opaque ??= "payload callback '" + callee.text + "' of " + owner.name + '() — no call site resolved it';
+              opaque ??=
+                "payload callback '" +
+                callee.text +
+                "' of " +
+                owner.name +
+                '() — no call site resolved it';
               return;
             }
           }
@@ -4987,7 +5423,12 @@ export function analyzeFiles({
    */
   function payloadKeysOfCallback(value, isUpdate) {
     const node = stripWrappers(value.node);
-    if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node) && !ts.isMethodDeclaration(node)) return null;
+    if (
+      !ts.isArrowFunction(node) &&
+      !ts.isFunctionExpression(node) &&
+      !ts.isMethodDeclaration(node)
+    )
+      return null;
     const returns = callbackReturns(node);
     if (!returns.length) return null;
     const resolver = resolverFor(value.facts);
@@ -5056,7 +5497,8 @@ export function analyzeFiles({
               returned.kind === ts.SyntaxKind.NullKeyword ||
               returned.kind === ts.SyntaxKind.UndefinedKeyword ||
               (ts.isIdentifier(returned) && returned.text === 'undefined')
-            ) continue;
+            )
+              continue;
             const resolved = resolver.resolveTarget(returnExpr);
             if (!resolved.templates) {
               ok = false;
@@ -5064,7 +5506,8 @@ export function analyzeFiles({
             }
             for (const template of resolved.templates) found.add(template);
           }
-          if (ok && found.size && found.size <= MAX_CANDIDATES) pendingReturns.set(fnKey(facts.relPath, name), found);
+          if (ok && found.size && found.size <= MAX_CANDIDATES)
+            pendingReturns.set(fnKey(facts.relPath, name), found);
         }
         // (1b) function return COLLECTIONS / GROUPS. A helper that owns one query
         // (`activePostsCollection()`, a `collectionGroup(...)` builder) is the single owner
@@ -5080,7 +5523,8 @@ export function analyzeFiles({
                 current.kind === ts.SyntaxKind.NullKeyword ||
                 current.kind === ts.SyntaxKind.UndefinedKeyword ||
                 (ts.isIdentifier(current) && current.text === 'undefined')
-              ) continue;
+              )
+                continue;
               for (let hop = 0; hop < 8; hop++) {
                 if (
                   ts.isCallExpression(current) &&
@@ -5101,7 +5545,8 @@ export function analyzeFiles({
             }
             return found;
           })();
-          if (passThroughIndex !== null) pendingPassThrough.set(fnKey(facts.relPath, name), passThroughIndex);
+          if (passThroughIndex !== null)
+            pendingPassThrough.set(fnKey(facts.relPath, name), passThroughIndex);
           // A helper whose EVERY return is positively non-Firestore hands back a
           // non-Firestore value, so its callers may be dropped on that evidence.
           {
@@ -5115,7 +5560,8 @@ export function analyzeFiles({
               }
               reason ??= found;
             }
-            if (allNonFirestore && reason) pendingNonFirestoreReturns.set(fnKey(facts.relPath, name), reason);
+            if (allNonFirestore && reason)
+              pendingNonFirestoreReturns.set(fnKey(facts.relPath, name), reason);
           }
           const collections = new Set();
           const groups = new Set();
@@ -5126,7 +5572,8 @@ export function analyzeFiles({
               returned.kind === ts.SyntaxKind.NullKeyword ||
               returned.kind === ts.SyntaxKind.UndefinedKeyword ||
               (ts.isIdentifier(returned) && returned.text === 'undefined')
-            ) continue;
+            )
+              continue;
             const segments = resolver.resolveCollectionSegments(returnExpr);
             if (segments) {
               collections.add(JSON.stringify(segments));
@@ -5153,14 +5600,16 @@ export function analyzeFiles({
             if (snapshot?.templates?.size) {
               const existing = pendingReturns.get(fnKey(facts.relPath, name)) ?? new Set();
               for (const template of snapshot.templates) existing.add(template);
-              if (existing.size <= MAX_CANDIDATES) pendingReturns.set(fnKey(facts.relPath, name), existing);
+              if (existing.size <= MAX_CANDIDATES)
+                pendingReturns.set(fnKey(facts.relPath, name), existing);
               continue;
             }
             ok = false;
             break;
           }
           if (!ok) continue;
-          if (collections.size) pendingReturnCollections.set(fnKey(facts.relPath, name), collections);
+          if (collections.size)
+            pendingReturnCollections.set(fnKey(facts.relPath, name), collections);
           if (groups.size) pendingReturnGroups.set(fnKey(facts.relPath, name), groups);
         }
         // (2) call-site argument targets
@@ -5200,7 +5649,10 @@ export function analyzeFiles({
               // of value, and the propagations below still have to look at it. Recording an
               // empty-and-opaque read here would make every helper's payload unreadable.
               if (read.keys.size || !read.opaque) {
-                const existing = pendingParamPayloads.get(target) ?? { keys: new Set(), opaque: null };
+                const existing = pendingParamPayloads.get(target) ?? {
+                  keys: new Set(),
+                  opaque: null,
+                };
                 for (const key of read.keys) existing.keys.add(key);
                 existing.opaque ??= read.opaque;
                 pendingParamPayloads.set(target, existing);
@@ -5211,7 +5663,8 @@ export function analyzeFiles({
             // generic sweep stays checkable without being rewritten into a specific writer.
             const collection = resolver.resolveCollectionSegments(argument);
             if (collection) {
-              if (!pendingParamCollections.has(target)) pendingParamCollections.set(target, new Set());
+              if (!pendingParamCollections.has(target))
+                pendingParamCollections.set(target, new Set());
               pendingParamCollections.get(target).add(JSON.stringify(collection));
             }
             const group = resolver.resolveCollectionGroup(argument);
@@ -5221,10 +5674,15 @@ export function analyzeFiles({
             }
             // The generic value propagation: what every call site passes, verbatim.
             const suppliedValues = pendingParamValues.get(target) ?? [];
-            if (!suppliedValues.some((candidate) => candidate.facts === facts && candidate.node === argument)) {
+            if (
+              !suppliedValues.some(
+                (candidate) => candidate.facts === facts && candidate.node === argument,
+              )
+            ) {
               suppliedValues.push({ facts, node: argument });
             }
-            if (suppliedValues.length <= MAX_CANDIDATES) pendingParamValues.set(target, suppliedValues);
+            if (suppliedValues.length <= MAX_CANDIDATES)
+              pendingParamValues.set(target, suppliedValues);
             // (2d) a CALLBACK whose result the helper writes — readable only when the
             // callback passed here is a syntactically finite inline function.
             if (ts.isArrowFunction(shape) || ts.isFunctionExpression(shape)) {
@@ -5233,13 +5691,17 @@ export function analyzeFiles({
               else {
                 const collect = (inner) => {
                   if (inner !== shape && ts.isFunctionLike(inner)) return;
-                  if (ts.isReturnStatement(inner) && inner.expression) returns.push(inner.expression);
+                  if (ts.isReturnStatement(inner) && inner.expression)
+                    returns.push(inner.expression);
                   ts.forEachChild(inner, collect);
                 };
                 ts.forEachChild(shape.body, collect);
               }
               if (returns.length && returns.length <= MAX_CALLBACK_RETURNS) {
-                const existing = pendingParamCallbackPayloads.get(target) ?? { keys: new Set(), opaque: null };
+                const existing = pendingParamCallbackPayloads.get(target) ?? {
+                  keys: new Set(),
+                  opaque: null,
+                };
                 for (const returned of returns) {
                   const read = payloadKeys(facts, resolver, returned, false);
                   for (const key of read.keys) existing.keys.add(key);
@@ -5276,7 +5738,8 @@ export function analyzeFiles({
               if (entries?.length && entries.length <= MAX_QUEUE_ENTRIES) {
                 const existing = pendingParamArrayEntries.get(target) ?? [];
                 existing.push(...entries);
-                if (existing.length <= MAX_QUEUE_ENTRIES) pendingParamArrayEntries.set(target, existing);
+                if (existing.length <= MAX_QUEUE_ENTRIES)
+                  pendingParamArrayEntries.set(target, existing);
               }
             }
             // A direct object carrier is statically bounded. Propagate each named property
@@ -5289,7 +5752,8 @@ export function analyzeFiles({
                 const carrierKey = `${target}.${property}`;
                 const existing = pendingParamCarrierProperties.get(carrierKey) ?? [];
                 existing.push(...values);
-                if (existing.length <= MAX_CANDIDATES) pendingParamCarrierProperties.set(carrierKey, existing);
+                if (existing.length <= MAX_CANDIDATES)
+                  pendingParamCarrierProperties.set(carrierKey, existing);
               }
             }
           });
@@ -5300,7 +5764,10 @@ export function analyzeFiles({
         // the write that calls the helper takes the reading its own method needs.
         for (const [name, fn] of facts.functions) {
           if (!fn.returns.length || fn.returns.length > 8) continue;
-          const readings = { set: { keys: new Set(), opaque: null }, update: { keys: new Set(), opaque: null } };
+          const readings = {
+            set: { keys: new Set(), opaque: null },
+            update: { keys: new Set(), opaque: null },
+          };
           let payloadShaped = false;
           for (const returnExpr of fn.returns) {
             const returned = stripWrappers(returnExpr);
@@ -5339,7 +5806,8 @@ export function analyzeFiles({
               returned.kind === ts.SyntaxKind.NullKeyword ||
               returned.kind === ts.SyntaxKind.UndefinedKeyword ||
               (ts.isIdentifier(returned) && returned.text === 'undefined')
-            ) continue;
+            )
+              continue;
             const properties = resolver.objectProperties(returned);
             if (!properties) {
               ok = false;
@@ -5372,12 +5840,17 @@ export function analyzeFiles({
             let ok = true;
             for (const returnExpr of fn.returns) {
               const found = resolver.propertyValuesFromArray(returnExpr, property);
-              if (!found) { ok = false; break; }
+              if (!found) {
+                ok = false;
+                break;
+              }
               values.push(...found);
             }
-            if (ok && values.length && values.length <= MAX_CANDIDATES) collected.set(property, values);
+            if (ok && values.length && values.length <= MAX_CANDIDATES)
+              collected.set(property, values);
           }
-          if (collected.size) pendingReturnArrayProperties.set(fnKey(facts.relPath, name), collected);
+          if (collected.size)
+            pendingReturnArrayProperties.set(fnKey(facts.relPath, name), collected);
         }
         continue;
       }
@@ -5405,7 +5878,13 @@ export function analyzeFiles({
        * here, as its own reported outcome — never as silence.
        */
       const recordUnresolvedSelector = (node, receiver) => {
-        const evidence = notFirestoreEvidence(facts, resolver, stripWrappers(receiver), [], node.arguments);
+        const evidence = notFirestoreEvidence(
+          facts,
+          resolver,
+          stripWrappers(receiver),
+          [],
+          node.arguments,
+        );
         if (evidence) {
           notFirestore.push({
             file: facts.relPath,
@@ -5421,7 +5900,11 @@ export function analyzeFiles({
           pos: node.getStart(source),
           at: `${facts.relPath}:${lineOf(node)}`,
           method: 'computed',
-          snippet: facts.text.slice(node.getStart(source), node.getEnd()).split('\n')[0].trim().slice(0, 120),
+          snippet: facts.text
+            .slice(node.getStart(source), node.getEnd())
+            .split('\n')[0]
+            .trim()
+            .slice(0, 120),
           reason:
             'the invoked method is selected at runtime and does not narrow to a finite set ' +
             'excluding set/update/create/add, and the receiver is not positively non-Firestore',
@@ -5435,7 +5918,11 @@ export function analyzeFiles({
           if (direct && !direct.resolved) {
             recordUnresolvedSelector(node, direct.receiver);
           } else if (direct) {
-            record(node, direct.methods, classifyWrite(facts, resolver, direct.receiver, direct.methods, node));
+            record(
+              node,
+              direct.methods,
+              classifyWrite(facts, resolver, direct.receiver, direct.methods, node),
+            );
           } else {
             // `ref.set.bind(ref)` / `set.call(ref, data)` / `ref.set.apply(ref, [data])`
             // reach disk through the SAME method with no property-access call of their
@@ -5444,7 +5931,13 @@ export function analyzeFiles({
             if (indirect && !indirect.resolved) {
               recordUnresolvedSelector(node, indirect.receiver);
             } else if (indirect) {
-              record(node, indirect.methods, classifyWrite(facts, resolver, indirect.receiver, indirect.methods, node, { indirect: indirect.form }));
+              record(
+                node,
+                indirect.methods,
+                classifyWrite(facts, resolver, indirect.receiver, indirect.methods, node, {
+                  indirect: indirect.form,
+                }),
+              );
             } else if (
               ts.isPropertyAccessExpression(callee) &&
               ts.isIdentifier(callee.expression) &&
@@ -5454,14 +5947,20 @@ export function analyzeFiles({
             ) {
               const reflected = writeMethodAccess(stripWrappers(node.arguments[0]), facts);
               const list = stripWrappers(node.arguments[2]);
-              const dataExpr = ts.isArrayLiteralExpression(list) ? list.elements[0] ?? null : null;
+              const dataExpr = ts.isArrayLiteralExpression(list)
+                ? (list.elements[0] ?? null)
+                : null;
               if (reflected && !reflected.resolved) {
                 recordUnresolvedSelector(node, node.arguments[1] ?? reflected.receiver);
               } else if (reflected) {
                 const receiver = node.arguments[1] ?? reflected.receiver;
-                record(node, reflected.methods, classifyWrite(facts, resolver, receiver, reflected.methods, node, {
-                  indirect: { refExpr: receiver, dataExpr, extraArgs: [] },
-                }));
+                record(
+                  node,
+                  reflected.methods,
+                  classifyWrite(facts, resolver, receiver, reflected.methods, node, {
+                    indirect: { refExpr: receiver, dataExpr, extraArgs: [] },
+                  }),
+                );
               }
             }
           }
@@ -5501,7 +6000,8 @@ export function analyzeFiles({
    * later, unknown call, which is unreadable and therefore a violation.
    */
   function resolveIndirectWrite(facts, resolver, callee, call) {
-    if (!ts.isPropertyAccessExpression(callee) || !INDIRECTION_METHODS.has(callee.name.text)) return null;
+    if (!ts.isPropertyAccessExpression(callee) || !INDIRECTION_METHODS.has(callee.name.text))
+      return null;
     const bound = stripWrappers(callee.expression);
     let access = writeMethodAccess(bound, facts);
     if (!access && ts.isIdentifier(bound)) {
@@ -5517,20 +6017,25 @@ export function analyzeFiles({
     }
     // `Function.prototype.call.call(ref.set, ref, …)` — the bound function is itself an
     // indirection, so the method actually invoked is the FIRST argument.
-    if (!access && ts.isPropertyAccessExpression(bound) && INDIRECTION_METHODS.has(bound.name.text) && call.arguments[0]) {
+    if (
+      !access &&
+      ts.isPropertyAccessExpression(bound) &&
+      INDIRECTION_METHODS.has(bound.name.text) &&
+      call.arguments[0]
+    ) {
       access = writeMethodAccess(stripWrappers(call.arguments[0]), facts);
       if (access) {
         return access.resolved
           ? {
-            methods: access.methods,
-            receiver: call.arguments[1] ?? access.receiver,
-            resolved: true,
-            form: {
-              refExpr: call.arguments[1] ?? access.receiver,
-              dataExpr: call.arguments[2] ?? null,
-              extraArgs: call.arguments.slice(3),
-            },
-          }
+              methods: access.methods,
+              receiver: call.arguments[1] ?? access.receiver,
+              resolved: true,
+              form: {
+                refExpr: call.arguments[1] ?? access.receiver,
+                dataExpr: call.arguments[2] ?? null,
+                extraArgs: call.arguments.slice(3),
+              },
+            }
           : { methods: [], receiver: call.arguments[1] ?? access.receiver, resolved: false };
       }
     }
@@ -5545,15 +6050,33 @@ export function analyzeFiles({
     const receiver = args[0] ?? access.receiver;
     if (!access.resolved) return { methods: [], receiver, resolved: false };
     if (kind === 'call') {
-      return { methods: access.methods, receiver, resolved: true, form: { refExpr: receiver, dataExpr: args[1] ?? null, extraArgs: args.slice(2) } };
+      return {
+        methods: access.methods,
+        receiver,
+        resolved: true,
+        form: { refExpr: receiver, dataExpr: args[1] ?? null, extraArgs: args.slice(2) },
+      };
     }
     if (kind === 'apply') {
       const list = args[1] ? stripWrappers(args[1]) : null;
-      const first = list && ts.isArrayLiteralExpression(list) && !ts.isSpreadElement(list.elements[0] ?? {}) ? list.elements[0] : null;
-      return { methods: access.methods, receiver, resolved: true, form: { refExpr: receiver, dataExpr: first ?? null, extraArgs: [] } };
+      const first =
+        list && ts.isArrayLiteralExpression(list) && !ts.isSpreadElement(list.elements[0] ?? {})
+          ? list.elements[0]
+          : null;
+      return {
+        methods: access.methods,
+        receiver,
+        resolved: true,
+        form: { refExpr: receiver, dataExpr: first ?? null, extraArgs: [] },
+      };
     }
     // bind: the payload is supplied wherever the bound function is finally called.
-    return { methods: access.methods, receiver, resolved: true, form: { refExpr: receiver, dataExpr: null, extraArgs: [] } };
+    return {
+      methods: access.methods,
+      receiver,
+      resolved: true,
+      form: { refExpr: receiver, dataExpr: null, extraArgs: [] },
+    };
   }
 
   /**
@@ -5569,16 +6092,19 @@ export function analyzeFiles({
       const method = current.expression.name.text;
       if (
         ts.isIdentifier(owner) &&
-        ((owner.text === 'Object' && (method === 'getOwnPropertyDescriptor' || method === 'getOwnPropertyDescriptors')) ||
+        ((owner.text === 'Object' &&
+          (method === 'getOwnPropertyDescriptor' || method === 'getOwnPropertyDescriptors')) ||
           (owner.text === 'Reflect' && (method === 'get' || method === 'getOwnPropertyDescriptor')))
-      ) return true;
+      )
+        return true;
     }
     if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
       return reflectiveMethodSource(facts, resolver, current.expression, depth + 1);
     }
     if (ts.isIdentifier(current)) {
       const decl = resolver.nearestDecl(current.text, current.pos, current);
-      if (decl?.initializer) return reflectiveMethodSource(facts, resolver, decl.initializer, depth + 1);
+      if (decl?.initializer)
+        return reflectiveMethodSource(facts, resolver, decl.initializer, depth + 1);
     }
     return false;
   }
@@ -5613,13 +6139,16 @@ export function analyzeFiles({
         return (
           ts.isCallExpression(initializer) &&
           ts.isPropertyAccessExpression(initializer.expression) &&
-          (initializer.expression.name.text === 'batch' || initializer.expression.name.text === 'bulkWriter')
+          (initializer.expression.name.text === 'batch' ||
+            initializer.expression.name.text === 'bulkWriter')
         );
       }
       if (decl) return false;
       const owner = resolver.enclosingFunction(receiverNode, receiverNode.text);
       if (owner) {
-        const parameter = (facts.functions.get(owner.name)?.params ?? []).find((p) => p.name === receiverNode.text);
+        const parameter = (facts.functions.get(owner.name)?.params ?? []).find(
+          (p) => p.name === receiverNode.text,
+        );
         if (parameter && profile.transactionType.test(parameter.typeText)) return true;
       }
       // `db.runTransaction(async (zz) => …)` — the callback's first parameter IS the
@@ -5634,7 +6163,8 @@ export function analyzeFiles({
       if (methods.every((entry) => entry === 'add')) {
         return { notFirestore: 'a resolved Transaction/WriteBatch handle has no add()' };
       }
-      if (args.length >= 2) return { refExpr: args[0], dataExpr: args[1], extraArgs: args.slice(2) };
+      if (args.length >= 2)
+        return { refExpr: args[0], dataExpr: args[1], extraArgs: args.slice(2) };
       // A resolved handle called with one argument is malformed code, not an absent
       // write: record it so it still ends in an outcome.
       return { refExpr: receiver, dataExpr: args[0] ?? null, extraArgs: [] };
@@ -5643,8 +6173,10 @@ export function analyzeFiles({
     // ref.update('a.b', v, …) — the variadic field-path form. Only update() has it, so a
     // selector that could also be a set()/create() is not read this way.
     if (
-      methods.length === 1 && methods[0] === 'update' &&
-      args.length >= 2 && ts.isStringLiteralLike(stripWrappers(args[0]))
+      methods.length === 1 &&
+      methods[0] === 'update' &&
+      args.length >= 2 &&
+      ts.isStringLiteralLike(stripWrappers(args[0]))
     ) {
       return { refExpr: receiver, dataExpr: null, fieldPathArgs: args };
     }
@@ -5703,7 +6235,10 @@ export function analyzeFiles({
     // `x.get(k).add(v)` is a Map/Set lookup — but only when `x` RESOLVES to one. The bare
     // `.get()` SHAPE is not evidence: a helper that hands back a reference can be called
     // anything at all.
-    if (ts.isCallExpression(receiverNode) && ts.isPropertyAccessExpression(receiverNode.expression)) {
+    if (
+      ts.isCallExpression(receiverNode) &&
+      ts.isPropertyAccessExpression(receiverNode.expression)
+    ) {
       const readMethod = receiverNode.expression.name.text;
       if (readMethod === 'get' || readMethod === 'getAll') {
         const container = resolver.nonFirestoreValue(receiverNode.expression.expression);
@@ -5711,8 +6246,20 @@ export function analyzeFiles({
       }
     }
     if (ts.isConditionalExpression(receiverNode)) {
-      const left = notFirestoreEvidence(facts, resolver, stripWrappers(receiverNode.whenTrue), methods, args);
-      const right = notFirestoreEvidence(facts, resolver, stripWrappers(receiverNode.whenFalse), methods, args);
+      const left = notFirestoreEvidence(
+        facts,
+        resolver,
+        stripWrappers(receiverNode.whenTrue),
+        methods,
+        args,
+      );
+      const right = notFirestoreEvidence(
+        facts,
+        resolver,
+        stripWrappers(receiverNode.whenFalse),
+        methods,
+        args,
+      );
       if (left && right) return `both receiver branches are non-Firestore (${left})`;
     }
     if (
@@ -5740,8 +6287,10 @@ export function analyzeFiles({
         // Evidence propagates into a parameter exactly as a target does: when EVERY call
         // site passes a positively non-Firestore container, so is the parameter.
         const index = params.findIndex((candidate) => candidate.name === receiverNode.text);
-        const known = index >= 0 ? paramNotFirestore.get(paramKey(facts.relPath, owner.name, index)) : null;
-        if (known) return `receiver is a parameter every call site fills with a non-Firestore value (${known})`;
+        const known =
+          index >= 0 ? paramNotFirestore.get(paramKey(facts.relPath, owner.name, index)) : null;
+        if (known)
+          return `receiver is a parameter every call site fills with a non-Firestore value (${known})`;
       }
     }
 
@@ -5768,7 +6317,10 @@ export function analyzeFiles({
         if (!ts.isClassDeclaration(parent) && !ts.isClassExpression(parent)) continue;
         const names = new Set();
         for (const member of parent.members) {
-          if (member.name && (ts.isIdentifier(member.name) || ts.isStringLiteralLike(member.name))) {
+          if (
+            member.name &&
+            (ts.isIdentifier(member.name) || ts.isStringLiteralLike(member.name))
+          ) {
             names.add(member.name.text);
           }
         }
@@ -5789,7 +6341,10 @@ export function analyzeFiles({
     if (!ts.isObjectLiteralExpression(literal)) return null;
     const names = new Set();
     for (const property of literal.properties) {
-      if (property.name && (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name))) {
+      if (
+        property.name &&
+        (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name))
+      ) {
         names.add(property.name.text);
       }
     }
@@ -5842,7 +6397,10 @@ export function analyzeFiles({
             return;
           }
           const initializer = stripParens(stripWrappers(declaration.initializer));
-          if (ts.isElementAccessExpression(initializer) && coreMapEntries(initializer, facts, facts.source)) {
+          if (
+            ts.isElementAccessExpression(initializer) &&
+            coreMapEntries(initializer, facts, facts.source)
+          ) {
             found.add(initializer);
             return;
           }
@@ -5880,7 +6438,9 @@ export function analyzeFiles({
       resolver.isFirestoreRoot(refNode.expression.expression)
     ) {
       const path = stripWrappers(refNode.arguments[0]);
-      const paired = ts.isPropertyAccessExpression(path) ? carrierPairing(facts, resolver, path, dataNode) : null;
+      const paired = ts.isPropertyAccessExpression(path)
+        ? carrierPairing(facts, resolver, path, dataNode)
+        : null;
       return paired && !paired.invoke ? { ...paired, refIsPath: true } : null;
     }
     if (!ts.isPropertyAccessExpression(refNode)) return null;
@@ -5903,7 +6463,8 @@ export function analyzeFiles({
     const built = stripWrappers(declarations[0].initializer);
     if (!ts.isCallExpression(built)) return null;
     const callee = stripWrappers(built.expression);
-    if (!ts.isPropertyAccessExpression(callee) || callee.expression.getText(source) !== carrierText) return null;
+    if (!ts.isPropertyAccessExpression(callee) || callee.expression.getText(source) !== carrierText)
+      return null;
     return {
       carrier: refNode.expression,
       refProperty: refNode.name.text,
@@ -5931,7 +6492,9 @@ export function analyzeFiles({
     const table = profile.removalOnlyTables.find((candidate) => candidate.exportName === name);
     if (!table) return null;
     const imported = facts.imports.get(name);
-    const declaredIn = imported ? declaringFile(resolveImport(facts.relPath, imported.module), imported.imported) : facts.relPath;
+    const declaredIn = imported
+      ? declaringFile(resolveImport(facts.relPath, imported.module), imported.imported)
+      : facts.relPath;
     return declaredIn === table.module ? { table, entry: node.name.text } : null;
   }
 
@@ -5957,7 +6520,8 @@ export function analyzeFiles({
       !ts.isPropertyAccessExpression(collection.expression) ||
       collection.expression.name.text !== 'collection' ||
       collection.arguments.length !== 1
-    ) return null;
+    )
+      return null;
     const documentId = stripWrappers(node.arguments[0]);
     const collectionName = stripWrappers(collection.arguments[0]);
     if (
@@ -5965,10 +6529,13 @@ export function analyzeFiles({
       !ts.isPropertyAccessExpression(collectionName) ||
       documentId.name.text !== 'documentId' ||
       collectionName.name.text !== 'collection'
-    ) return null;
+    )
+      return null;
     const entry = v1SourceEntry(facts, resolver, documentId.expression);
     const sibling = v1SourceEntry(facts, resolver, collectionName.expression);
-    return entry && sibling && entry.table === sibling.table && entry.entry === sibling.entry ? entry : null;
+    return entry && sibling && entry.table === sibling.table && entry.entry === sibling.entry
+      ? entry
+      : null;
   }
 
   function buildWrite(facts, resolver, call, methods, classified, line) {
@@ -6012,7 +6579,9 @@ export function analyzeFiles({
       const dataNode = classified.dataExpr ? stripWrappers(classified.dataExpr) : null;
 
       // `const slot = MAP[kind]` read by both the target and the payload: one branch per entry.
-      const entryBinding = classified.fieldPathArgs ? null : sharedMapEntryBinding(facts, resolver, refNode, dataNode);
+      const entryBinding = classified.fieldPathArgs
+        ? null
+        : sharedMapEntryBinding(facts, resolver, refNode, dataNode);
       if (entryBinding) {
         const perEntry = [];
         for (const key of entryBinding.keys) {
@@ -6037,21 +6606,35 @@ export function analyzeFiles({
         return { correlated: perEntry };
       }
 
-      const pairing = classified.fieldPathArgs ? null : carrierPairing(facts, resolver, refNode, dataNode);
+      const pairing = classified.fieldPathArgs
+        ? null
+        : carrierPairing(facts, resolver, refNode, dataNode);
       if (pairing) {
-        const pairs = resolver.correlatedCarrierPairs(pairing.carrier, pairing.refProperty, pairing.dataProperty);
+        const pairs = resolver.correlatedCarrierPairs(
+          pairing.carrier,
+          pairing.refProperty,
+          pairing.dataProperty,
+        );
         const correlated = [];
         let readable = Boolean(pairs?.length) && pairs.length <= MAX_CANDIDATES;
         for (const pair of readable ? pairs : []) {
           // A pair whose payload is the literal `null` stores nothing: a write of `null` throws.
-          if (!pairing.invoke && stripWrappers(pair.right.node).kind === ts.SyntaxKind.NullKeyword) continue;
+          if (!pairing.invoke && stripWrappers(pair.right.node).kind === ts.SyntaxKind.NullKeyword)
+            continue;
           // Each pair is resolved by ITS OWN file's resolver: a queue entry constructed
           // in another module is read there, and a foreign node's text read against this
           // file's source would name whatever happens to sit at that offset.
-          const target = resolverFor(pair.left.facts).resolveTarget(pair.left.node, { collectionAdd });
+          const target = resolverFor(pair.left.facts).resolveTarget(pair.left.node, {
+            collectionAdd,
+          });
           const read = pairing.invoke
             ? payloadKeysOfCallback(pair.right, isUpdate)
-            : payloadKeys(pair.right.facts, resolverFor(pair.right.facts), pair.right.node, isUpdate);
+            : payloadKeys(
+                pair.right.facts,
+                resolverFor(pair.right.facts),
+                pair.right.node,
+                isUpdate,
+              );
           if (!read) {
             readable = false;
             break;
@@ -6186,7 +6769,11 @@ export function analyzeFiles({
     for (const [key, values] of pendingParamValues) {
       const existing = paramValues.get(key) ?? [];
       for (const value of values) {
-        if (!existing.some((candidate) => candidate.facts === value.facts && candidate.node === value.node)) {
+        if (
+          !existing.some(
+            (candidate) => candidate.facts === value.facts && candidate.node === value.node,
+          )
+        ) {
           existing.push(value);
           changed = true;
         }
@@ -6227,7 +6814,11 @@ export function analyzeFiles({
     for (const [key, entries] of pendingParamArrayEntries) {
       const existing = paramArrayEntries.get(key) ?? [];
       for (const entry of entries) {
-        if (!existing.some((candidate) => candidate.facts === entry.facts && candidate.node === entry.node)) {
+        if (
+          !existing.some(
+            (candidate) => candidate.facts === entry.facts && candidate.node === entry.node,
+          )
+        ) {
           existing.push(entry);
           changed = true;
         }
@@ -6285,7 +6876,11 @@ export function analyzeFiles({
       let added = false;
       for (const value of values) {
         // AST identities are stable for this parsed tree; do not inflate candidates each round.
-        if (!existing.some((candidate) => candidate.facts === value.facts && candidate.node === value.node)) {
+        if (
+          !existing.some(
+            (candidate) => candidate.facts === value.facts && candidate.node === value.node,
+          )
+        ) {
           existing.push(value);
           added = true;
         }
@@ -6300,7 +6895,11 @@ export function analyzeFiles({
       for (const [property, values] of properties) {
         const known = existing.get(property) ?? [];
         for (const value of values) {
-          if (!known.some((candidate) => candidate.facts === value.facts && candidate.node === value.node)) {
+          if (
+            !known.some(
+              (candidate) => candidate.facts === value.facts && candidate.node === value.node,
+            )
+          ) {
             known.push(value);
             changed = true;
           }
@@ -6315,7 +6914,11 @@ export function analyzeFiles({
       for (const [property, values] of properties) {
         const known = existing.get(property) ?? [];
         for (const value of values) {
-          if (!known.some((candidate) => candidate.facts === value.facts && candidate.node === value.node)) {
+          if (
+            !known.some(
+              (candidate) => candidate.facts === value.facts && candidate.node === value.node,
+            )
+          ) {
             known.push(value);
             added = true;
           }
@@ -6364,7 +6967,15 @@ export function enumerateWriteCallSites(files) {
   const WRITE_NAMES = ['set', 'update', 'create', 'add'];
   const INDIRECTION_NAMES = ['call', 'apply', 'bind'];
   const PLAIN_CONTAINERS = [
-    'Map', 'Set', 'WeakMap', 'WeakSet', 'URLSearchParams', 'Headers', 'FormData', 'URL', 'Array',
+    'Map',
+    'Set',
+    'WeakMap',
+    'WeakSet',
+    'URLSearchParams',
+    'Headers',
+    'FormData',
+    'URL',
+    'Array',
   ];
   const PLAIN_CONTAINER_TYPE =
     /^(readonly\s+)?(Map|Set|WeakMap|WeakSet|ReadonlyMap|ReadonlySet|URLSearchParams|Headers|FormData|URL|Record|Array|Partial)\s*(<|\[|\||$)/;
@@ -6390,7 +7001,10 @@ export function enumerateWriteCallSites(files) {
       const node = unwrapNode(expr);
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const owner = unwrapNode(node.expression.expression);
-        if (ts.isIdentifier(owner) && (REFLECTIVE[owner.text] ?? []).includes(node.expression.name.text)) {
+        if (
+          ts.isIdentifier(owner) &&
+          (REFLECTIVE[owner.text] ?? []).includes(node.expression.name.text)
+        ) {
           return true;
         }
       }
@@ -6407,7 +7021,11 @@ export function enumerateWriteCallSites(files) {
       const node = unwrapNode(expr);
       if (ts.isObjectLiteralExpression(node)) return 'an object literal';
       if (ts.isArrayLiteralExpression(node)) return 'an array literal';
-      if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && PLAIN_CONTAINERS.includes(node.expression.text)) {
+      if (
+        ts.isNewExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        PLAIN_CONTAINERS.includes(node.expression.text)
+      ) {
         return `new ${node.expression.text}()`;
       }
       if (node.kind === ts.SyntaxKind.ThisKeyword) {
@@ -6428,7 +7046,9 @@ export function enumerateWriteCallSites(files) {
           );
           if (!parameter?.type) break;
           const declared = parameter.type.getText(source).trim();
-          return PLAIN_CONTAINER_TYPE.test(declared) ? `a ${declared.slice(0, 40)} parameter` : null;
+          return PLAIN_CONTAINER_TYPE.test(declared)
+            ? `a ${declared.slice(0, 40)} parameter`
+            : null;
         }
       }
       return null;
@@ -6453,15 +7073,20 @@ export function enumerateWriteCallSites(files) {
           // `Function.prototype.call.call(ref.set, ref, …)` — the bound value is itself an
           // indirection, so the function actually invoked is the first argument.
           const viaArgument = args?.length ? invoked(args[0], args.slice(1), depth + 1) : null;
-          if (viaArgument) return { method: viaArgument.method, receiver: args[1] ?? viaArgument.receiver };
-          return reflective(node.expression, depth + 1) ? { method: null, receiver: args?.[0] ?? null } : null;
+          if (viaArgument)
+            return { method: viaArgument.method, receiver: args[1] ?? viaArgument.receiver };
+          return reflective(node.expression, depth + 1)
+            ? { method: null, receiver: args?.[0] ?? null }
+            : null;
         }
         return reflective(node, depth + 1) ? { method: null, receiver: args?.[0] ?? null } : null;
       }
       if (ts.isElementAccessExpression(node)) {
         const selector = node.argumentExpression ? unwrapNode(node.argumentExpression) : null;
         if (selector && ts.isStringLiteralLike(selector)) {
-          return WRITE_NAMES.includes(selector.text) ? { method: selector.text, receiver: node.expression } : null;
+          return WRITE_NAMES.includes(selector.text)
+            ? { method: selector.text, receiver: node.expression }
+            : null;
         }
         return { method: null, receiver: node.expression };
       }
@@ -6498,7 +7123,11 @@ export function enumerateWriteCallSites(files) {
             pos: node.getStart(source),
             method: found.method ?? 'computed',
             at: `${facts.relPath}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`,
-            snippet: facts.text.slice(node.getStart(source), node.getEnd()).split('\n')[0].trim().slice(0, 120),
+            snippet: facts.text
+              .slice(node.getStart(source), node.getEnd())
+              .split('\n')[0]
+              .trim()
+              .slice(0, 120),
           });
         }
       }
@@ -6567,7 +7196,8 @@ export function evaluate({
     );
     if (entry) {
       entry.used += 1;
-      if (entry.used === 1) applied.push({ kind: entry.kind, at: `${entry.file} ${entry.callee}()`, why: entry.why });
+      if (entry.used === 1)
+        applied.push({ kind: entry.kind, at: `${entry.file} ${entry.callee}()`, why: entry.why });
     }
   }
 
@@ -6616,15 +7246,17 @@ export function evaluate({
     const before = violations.length;
     const appliedBefore = applied.length;
 
-    const branches = write.correlatedBranches ?? [{
-      templates: write.templates,
-      unresolvedReason: write.unresolvedReason,
-      handBuilt: write.handBuilt,
-      keys: write.keys,
-      casts: write.casts,
-      opaque: write.opaque,
-      literals: write.literals,
-    }];
+    const branches = write.correlatedBranches ?? [
+      {
+        templates: write.templates,
+        unresolvedReason: write.unresolvedReason,
+        handBuilt: write.handBuilt,
+        keys: write.keys,
+        casts: write.casts,
+        opaque: write.opaque,
+        literals: write.literals,
+      },
+    ];
     let branchDiffable = true;
 
     for (const branch of branches) {
@@ -6685,7 +7317,10 @@ export function evaluate({
             const undiffableDetail =
               `'${template}' has no readable declared keys (a wrapper/record/open schema), ` +
               'so this payload was diffed against nothing';
-            if (soleCandidate || !excuse(VIOLATION_KINDS.UNDIFFABLE_TEMPLATE, write, undiffableDetail)) {
+            if (
+              soleCandidate ||
+              !excuse(VIOLATION_KINDS.UNDIFFABLE_TEMPLATE, write, undiffableDetail)
+            ) {
               violations.push({
                 kind: VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
                 at: write.at,
@@ -6726,7 +7361,8 @@ export function evaluate({
     // `payloadsParsed` is the honest syntax-level number: the payload was read. It is NOT a
     // coverage claim — only `payloadsRead`, which additionally requires every candidate
     // template to have READABLE declared keys, means the write was actually verified.
-    if (branches.every((branch) => branch.templates && !branch.opaque)) bump(tree, 'payloadsParsed');
+    if (branches.every((branch) => branch.templates && !branch.opaque))
+      bump(tree, 'payloadsParsed');
     if (branchDiffable && branches.every((branch) => branch.templates && !branch.opaque)) {
       bump(tree, 'payloadsRead');
     }
@@ -6801,7 +7437,9 @@ export function runGuardOnSources({
   trees = ['fixture'],
 }) {
   const files = Object.entries(sources).map(([rel, text]) => parseFile(rel, text));
-  const libraryFiles = Object.entries(librarySources).map(([rel, text]) => parseFile(rel, text, { library: true }));
+  const libraryFiles = Object.entries(librarySources).map(([rel, text]) =>
+    parseFile(rel, text, { library: true }),
+  );
   const { writes, notFirestore, unclassified, packageBuilderUses } = analyzeFiles({
     files,
     libraryFiles,
@@ -6835,7 +7473,13 @@ export function runGuardOnSources({
 /**
  * @param {{ coverage: Map<string, any>, violations: any[], applied: any[], staleExceptions: string[], staleExclusions?: string[] }} result
  */
-export function formatReport({ coverage, violations, applied, staleExceptions, staleExclusions = [] }) {
+export function formatReport({
+  coverage,
+  violations,
+  applied,
+  staleExceptions,
+  staleExclusions = [],
+}) {
   const lines = [];
   lines.push('Firestore write guard — coverage');
   lines.push(
@@ -6846,7 +7490,9 @@ export function formatReport({ coverage, violations, applied, staleExceptions, s
       `  ${tree.padEnd(26)} ${String(row.writes).padStart(5)} ${String(row.resolved).padStart(16)} ${String(row.payloadsParsed).padStart(15)} ${String(row.payloadsRead).padStart(17)} ${String(row.exceptions).padStart(11)} ${String(row.violations).padStart(11)}`,
     );
   }
-  lines.push('  (payload VERIFIED = read AND diffed against a readable schema; parsed is syntax only)');
+  lines.push(
+    '  (payload VERIFIED = read AND diffed against a readable schema; parsed is syntax only)',
+  );
   lines.push('');
   const byKind = new Map();
   for (const violation of violations) {
@@ -6891,7 +7537,8 @@ export async function loadRegistry({ sources, constantMapNames }) {
   const core = await sources.core();
   const docSchemas = await sources.docSchemas();
   const { COLLECTION_SCHEMAS } = docSchemas;
-  if (!COLLECTION_SCHEMAS) throw new Error('repo-guards: the core\'s docSchemas entry exports no COLLECTION_SCHEMAS');
+  if (!COLLECTION_SCHEMAS)
+    throw new Error("repo-guards: the core's docSchemas entry exports no COLLECTION_SCHEMAS");
   const subpaths = {};
   for (const [specifier, load] of Object.entries(sources.subpaths ?? {})) {
     try {
@@ -6902,7 +7549,8 @@ export async function loadRegistry({ sources, constantMapNames }) {
   }
   const constantMaps = {};
   for (const name of constantMapNames) {
-    if (!core[name]) throw new Error(`repo-guards: the core no longer exports the constant map ${name}`);
+    if (!core[name])
+      throw new Error(`repo-guards: the core no longer exports the constant map ${name}`);
     constantMaps[name] = core[name];
   }
   // Only actual exports enter this map. Source-local aliases never do.

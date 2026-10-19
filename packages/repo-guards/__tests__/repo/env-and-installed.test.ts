@@ -10,7 +10,10 @@ afterEach(() => repo?.remove());
 
 function readerOver(files: Record<string, string>) {
   repo = tempRepo({ 'src/index.ts': 'export {};', ...files });
-  return createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } } });
+  return createRepoReader({
+    repoRoot: repo.root,
+    roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+  });
 }
 
 describe('the env files a deploy delivers carry public values only', () => {
@@ -23,7 +26,10 @@ describe('the env files a deploy delivers carry public values only', () => {
   });
 
   it('passes the declared public keys, comments, and blank lines', async () => {
-    const reader = readerOver({ 'temp.env.dev': '# Firebase\nNEXT_PUBLIC_FIREBASE_API_KEY=AIzaExample\n\nSENTRY_DSN=https://k@o1.ingest.sentry.io/1\n' });
+    const reader = readerOver({
+      'temp.env.dev':
+        '# Firebase\nNEXT_PUBLIC_FIREBASE_API_KEY=AIzaExample\n\nSENTRY_DSN=https://k@o1.ingest.sentry.io/1\n',
+    });
     const [guard] = envPublicValuesGuard.build(facts());
     expect(await guard.run(contextOf(reader))).toEqual([]);
   });
@@ -41,8 +47,16 @@ describe('the env files a deploy delivers carry public values only', () => {
     const findings = await guard.run(contextOf(reader));
     expect(findings).toEqual([
       { file: 'temp.env.dev', line: 2, detail: 'MAILER_SECRET_KEY is not a declared public key' },
-      { file: 'temp.env.dev', line: 2, detail: 'MAILER_SECRET_KEY holds a value shaped like a credential' },
-      { file: 'temp.env.dev', line: 3, detail: 'SENTRY_DSN holds a value shaped like a credential' },
+      {
+        file: 'temp.env.dev',
+        line: 2,
+        detail: 'MAILER_SECRET_KEY holds a value shaped like a credential',
+      },
+      {
+        file: 'temp.env.dev',
+        line: 3,
+        detail: 'SENTRY_DSN holds a value shaped like a credential',
+      },
       { file: 'temp.env.dev', line: 4, detail: 'not a KEY=value line' },
     ]);
     expect(JSON.stringify(findings)).not.toContain('sk_live_abc123');
@@ -51,16 +65,23 @@ describe('the env files a deploy delivers carry public values only', () => {
   it('FLAGS a declared key no file holds any more, and fails on a named file that is gone', async () => {
     const reader = readerOver({ 'temp.env.dev': 'NEXT_PUBLIC_FIREBASE_API_KEY=AIzaExample\n' });
     const [guard] = envPublicValuesGuard.build(facts());
-    expect(await guard.run(contextOf(reader))).toEqual([{ file: '(publicKeys)', detail: 'stale public key: no env file holds SENTRY_DSN' }]);
+    expect(await guard.run(contextOf(reader))).toEqual([
+      { file: '(publicKeys)', detail: 'stale public key: no env file holds SENTRY_DSN' },
+    ]);
     const [missing] = envPublicValuesGuard.build(facts(['temp.env.prod']));
     expect(() => missing.run(contextOf(reader))).toThrow(/temp.env.prod does not exist/);
   });
 
   it('refuses a public key with no why, and one listed twice', () => {
-    expect(envPublicValuesGuard.factProblems({ files: ['temp.env.dev'], publicKeys: [{ key: 'A', why: '' }, { key: 'A', why: 'x' }] })).toEqual([
-      'publicKeys entry A carries no why',
-      'publicKeys lists A twice',
-    ]);
+    expect(
+      envPublicValuesGuard.factProblems({
+        files: ['temp.env.dev'],
+        publicKeys: [
+          { key: 'A', why: '' },
+          { key: 'A', why: 'x' },
+        ],
+      }),
+    ).toEqual(['publicKeys entry A carries no why', 'publicKeys lists A twice']);
   });
 });
 
@@ -93,23 +114,38 @@ describe('no installed generic package reaches the core package or names the pro
     const reader = readerOver({
       'package.json': manifest({ '@acme/ui-kit': '*', '@acme/gone': '*' }),
       'functions/package.json': manifest({ '@acme/server-kit': '*' }),
-      'node_modules/@acme/ui-kit/package.json': JSON.stringify({ peerDependencies: { '@acme/app-core': '*' } }),
+      'node_modules/@acme/ui-kit/package.json': JSON.stringify({
+        peerDependencies: { '@acme/app-core': '*' },
+      }),
       'node_modules/@acme/ui-kit/dist/index.js': "import { x } from '@acme/app-core';",
       'functions/node_modules/@acme/server-kit/package.json': manifest({}),
-      'functions/node_modules/@acme/server-kit/dist/copy.d.ts': "export declare const title = 'Welcome to WidgetVille';",
+      'functions/node_modules/@acme/server-kit/dist/copy.d.ts':
+        "export declare const title = 'Welcome to WidgetVille';",
     });
     const [guard] = installedPackagesAgnosticGuard.build(facts);
     expect(await guard.run(contextOf(reader))).toEqual([
       { file: '@acme/ui-kit', detail: 'its peerDependencies names @acme/app-core' },
       { file: 'node_modules/@acme/ui-kit/dist/index.js', detail: 'imports @acme/app-core' },
       { file: '@acme/gone', detail: 'declared but not installed, so it cannot be read' },
-      { file: 'functions/node_modules/@acme/server-kit/dist/copy.d.ts', detail: 'names the product' },
+      {
+        file: 'functions/node_modules/@acme/server-kit/dist/copy.d.ts',
+        detail: 'names the product',
+      },
     ]);
   });
 
   it('refuses a scope without its slash, a product name that is no pattern, and a wire token with no why', () => {
     expect(
-      installedPackagesAgnosticGuard.factProblems({ ...facts, packageScope: '@acme', productNames: ['('], wireTokens: [{ token: 't', why: '' }] }),
-    ).toEqual(['packageScope must end in / (`@acme/`)', 'product name ( is not a regular expression', 'wireTokens entry t carries no why']);
+      installedPackagesAgnosticGuard.factProblems({
+        ...facts,
+        packageScope: '@acme',
+        productNames: ['('],
+        wireTokens: [{ token: 't', why: '' }],
+      }),
+    ).toEqual([
+      'packageScope must end in / (`@acme/`)',
+      'product name ( is not a regular expression',
+      'wireTokens entry t carries no why',
+    ]);
   });
 });

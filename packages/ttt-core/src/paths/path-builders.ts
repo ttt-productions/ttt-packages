@@ -28,138 +28,301 @@ export const publicDocumentVersionDocId = (version: number): string => {
 
 export const PATH_BUILDERS = {
   // ===== USER PATHS =====
-  userProfile: (userId: string): [string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId],
+  userProfile: (userId: string): [string, string] => [COLLECTIONS.USER_PROFILES, userId],
 
   // Backend-mirrored public identity projection (publicUsers/{uid}).
-  publicUser: (uid: string): [string, string] =>
-    [COLLECTIONS.PUBLIC_USERS, uid],
+  publicUser: (uid: string): [string, string] => [COLLECTIONS.PUBLIC_USERS, uid],
 
   // Per-user account-deletion / erasure request, keyed by uid.
-  accountDeletionRequest: (uid: string): [string, string] =>
-    [COLLECTIONS.ACCOUNT_DELETION_REQUESTS, uid],
+  accountDeletionRequest: (uid: string): [string, string] => [
+    COLLECTIONS.ACCOUNT_DELETION_REQUESTS,
+    uid,
+  ],
 
-  userMentionHistoryEntry: (userId: string, entryId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.MENTION_HISTORY, entryId],
+  userMentionHistoryEntry: (userId: string, entryId: string): [string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.MENTION_HISTORY,
+    entryId,
+  ],
 
-  userCraftSkill: (userId: string, craftSkillId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS, craftSkillId],
+  userCraftSkill: (userId: string, craftSkillId: string): [string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS,
+    craftSkillId,
+  ],
 
-  userPrivateData: (userId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PRIVATE_DATA, userId],
+  userPrivateData: (userId: string): [string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.PRIVATE_DATA,
+    userId,
+  ],
 
   // Per-user Hall viewing-state doc: userProfiles/{uid}/privateData/hallLibraryPreferences, a
   // fixed-id privateData subdoc.
-  hallLibraryPreferences: (userId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PRIVATE_DATA, SPECIAL_DOCS.HALL_LIBRARY_PREFERENCES],
+  hallLibraryPreferences: (userId: string): [string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.PRIVATE_DATA,
+    SPECIAL_DOCS.HALL_LIBRARY_PREFERENCES,
+  ],
 
   // Generic follow edge: top-level `followEdges/{followerUid__targetType__targetId}`.
   // Deterministic ID = O(1) follow-status check + dedupe; a composite index on
   // (targetType, targetId) makes the same collection the reverse follower index.
-  followEdge: (followerUid: string, targetType: FollowableTargetType, targetId: string): [string, string] =>
-    [COLLECTIONS.FOLLOW_EDGES, `${followerUid}__${targetType}__${targetId}`],
+  followEdge: (
+    followerUid: string,
+    targetType: FollowableTargetType,
+    targetId: string,
+  ): [string, string] => [COLLECTIONS.FOLLOW_EDGES, `${followerUid}__${targetType}__${targetId}`],
 
   // Denormalized follower-count doc for a followable target: `followCounters/{targetType__targetId}`.
   // Backend-maintained (incremented in the follow/unfollow transaction); never written by clients.
-  followCounter: (targetType: FollowableTargetType, targetId: string): [string, string] =>
-    [COLLECTIONS.FOLLOW_COUNTERS, `${targetType}__${targetId}`],
+  followCounter: (targetType: FollowableTargetType, targetId: string): [string, string] => [
+    COLLECTIONS.FOLLOW_COUNTERS,
+    `${targetType}__${targetId}`,
+  ],
 
-  userLike: (userId: string, postId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_LIKES, NESTED_SUBCOLLECTIONS.LIKE_HISTORY, NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES, postId],
+  userLike: (userId: string, postId: string): [string, string, string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.USER_LIKES,
+    NESTED_SUBCOLLECTIONS.LIKE_HISTORY,
+    NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES,
+    postId,
+  ],
 
-  userAuditionVote: (userId: string, auditionId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.AUDITION_VOTES, auditionId],
+  userAuditionVote: (userId: string, auditionId: string): [string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.AUDITION_VOTES,
+    auditionId,
+  ],
 
   // Archived personal notification history (userProfiles/{uid}/notificationHistory/{id}).
-  userNotificationHistoryEntry: (userId: string, notificationId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY, notificationId],
+  userNotificationHistoryEntry: (
+    userId: string,
+    notificationId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY,
+    notificationId,
+  ],
 
   // Collection of archived personal notifications (parent of userNotificationHistoryEntry).
-  userNotificationHistory: (userId: string): [string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY],
+  userNotificationHistory: (userId: string): [string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY,
+  ],
 
   // Active notification cards. Category chooses the lane; these builders keep the
   // category config, direct-card writers, and archive flow on the same collection names.
-  activeUserNotification: (notificationId: string): [string, string] =>
-    [COLLECTIONS.ACTIVE_USER_NOTIFICATIONS, notificationId],
+  activeUserNotification: (notificationId: string): [string, string] => [
+    COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,
+    notificationId,
+  ],
 
-  activeAdminNotification: (notificationId: string): [string, string] =>
-    [COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS, notificationId],
+  activeAdminNotification: (notificationId: string): [string, string] => [
+    COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS,
+    notificationId,
+  ],
 
   // ===== WORK PATHS =====
-  workProject: (workProjectId: string): [string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId],
+  workProject: (workProjectId: string): [string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+  ],
 
-  publicWorkProject: (workProjectId: string): [string, string] =>
-    [COLLECTIONS.PUBLIC_WORK_PROJECTS, workProjectId],
+  publicWorkProject: (workProjectId: string): [string, string] => [
+    COLLECTIONS.PUBLIC_WORK_PROJECTS,
+    workProjectId,
+  ],
 
   // The Work's single hall-entry reservation (fixed doc id — one reservation per Work),
   // claimed create-only inside the first threshold submit's transaction.
-  hallSubmissionReservation: (workProjectId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.HALL_SUBMISSION_RESERVATION, SPECIAL_DOCS.HALL_SUBMISSION_RESERVATION],
+  hallSubmissionReservation: (workProjectId: string): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.HALL_SUBMISSION_RESERVATION,
+    SPECIAL_DOCS.HALL_SUBMISSION_RESERVATION,
+  ],
 
-  workProjectTale: (workProjectId: string, taleId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId],
+  workProjectTale: (workProjectId: string, taleId: string): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES,
+    taleId,
+  ],
 
-  taleChapter: (workProjectId: string, taleId: string, chapterId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId, NESTED_SUBCOLLECTIONS.TALE_CHAPTERS, chapterId],
+  taleChapter: (
+    workProjectId: string,
+    taleId: string,
+    chapterId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES,
+    taleId,
+    NESTED_SUBCOLLECTIONS.TALE_CHAPTERS,
+    chapterId,
+  ],
 
   // Collection of chapters under a tale (parent of taleChapter).
-  taleChapters: (workProjectId: string, taleId: string): [string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId, NESTED_SUBCOLLECTIONS.TALE_CHAPTERS],
+  taleChapters: (
+    workProjectId: string,
+    taleId: string,
+  ): [string, string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES,
+    taleId,
+    NESTED_SUBCOLLECTIONS.TALE_CHAPTERS,
+  ],
 
-  workProjectTune: (workProjectId: string, tuneId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId],
+  workProjectTune: (workProjectId: string, tuneId: string): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES,
+    tuneId,
+  ],
 
-  tuneTrack: (workProjectId: string, tuneId: string, trackId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_TRACKS, trackId],
+  tuneTrack: (
+    workProjectId: string,
+    tuneId: string,
+    trackId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES,
+    tuneId,
+    NESTED_SUBCOLLECTIONS.TUNE_TRACKS,
+    trackId,
+  ],
 
-  workProjectTelevision: (workProjectId: string, televisionId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId],
+  workProjectTelevision: (
+    workProjectId: string,
+    televisionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION,
+    televisionId,
+  ],
 
-  televisionEpisode: (workProjectId: string, televisionId: string, episodeId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES, episodeId],
+  televisionEpisode: (
+    workProjectId: string,
+    televisionId: string,
+    episodeId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION,
+    televisionId,
+    NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES,
+    episodeId,
+  ],
 
   // Collection of episodes under a television item (parent of televisionEpisode).
-  televisionEpisodes: (workProjectId: string, televisionId: string): [string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES],
+  televisionEpisodes: (
+    workProjectId: string,
+    televisionId: string,
+  ): [string, string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION,
+    televisionId,
+    NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES,
+  ],
 
-  workProjectGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILDMATE_USERS, uid],
+  workProjectGuildmateUser: (
+    workProjectId: string,
+    uid: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.GUILDMATE_USERS,
+    uid,
+  ],
 
-  workProjectPublicGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS, uid],
+  workProjectPublicGuildmateUser: (
+    workProjectId: string,
+    uid: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS,
+    uid,
+  ],
 
-  workFileFolder: (workProjectId: string, workFileFolderId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS, workFileFolderId],
+  workFileFolder: (
+    workProjectId: string,
+    workFileFolderId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS,
+    workFileFolderId,
+  ],
 
-  workFile: (workProjectId: string, workFileFolderId: string, workFileId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS, workFileFolderId, NESTED_SUBCOLLECTIONS.WORK_FILES, workFileId],
+  workFile: (
+    workProjectId: string,
+    workFileFolderId: string,
+    workFileId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS,
+    workFileFolderId,
+    NESTED_SUBCOLLECTIONS.WORK_FILES,
+    workFileId,
+  ],
 
-  stakeShareAuditEvent: (eventId: string): [string, string] =>
-    [COLLECTIONS.STAKE_SHARE_AUDIT_EVENTS, eventId],
+  stakeShareAuditEvent: (eventId: string): [string, string] => [
+    COLLECTIONS.STAKE_SHARE_AUDIT_EVENTS,
+    eventId,
+  ],
 
-  guildChatChannel: (workProjectId: string, guildChatChannelId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId],
+  guildChatChannel: (
+    workProjectId: string,
+    guildChatChannelId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS,
+    guildChatChannelId,
+  ],
 
   // ===== SQUARE PATHS =====
-  activePost: (postId: string): [string, string, string, string] =>
-    [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
+  activePost: (postId: string): [string, string, string, string] => [
+    COLLECTIONS.SQUARE_STREETZ_FEED,
+    NESTED_SUBCOLLECTIONS.ACTIVE_POSTS,
+    NESTED_SUBCOLLECTIONS.SOCIAL_POSTS,
+    postId,
+  ],
 
-  trendingPosts: (): [string, string] =>
-    [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
+  trendingPosts: (): [string, string] => [
+    COLLECTIONS.SQUARE_STREETZ_FEED,
+    NESTED_SUBCOLLECTIONS.TRENDING_POSTS,
+  ],
 
   // Server-only durable Square announcement outbox job. jobId is DETERMINISTIC —
   // ALWAYS derive it via buildSquareAnnouncementJobId (doc-schemas/square-announcement-jobs.ts).
-  squareAnnouncementJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.SQUARE_ANNOUNCEMENT_JOBS, jobId],
+  squareAnnouncementJob: (jobId: string): [string, string] => [
+    COLLECTIONS.SQUARE_ANNOUNCEMENT_JOBS,
+    jobId,
+  ],
 
   // ===== HALL PATHS =====
-  thresholdItem: (thresholdItemId: string): [string, string] =>
-    [COLLECTIONS.THRESHOLD_ITEMS, thresholdItemId],
+  thresholdItem: (thresholdItemId: string): [string, string] => [
+    COLLECTIONS.THRESHOLD_ITEMS,
+    thresholdItemId,
+  ],
 
-  hallItem: (hallItemId: string): [string, string] =>
-    [COLLECTIONS.HALL_ITEMS, hallItemId],
+  hallItem: (hallItemId: string): [string, string] => [COLLECTIONS.HALL_ITEMS, hallItemId],
 
   // Published hall sub-item projection (chapter/track/episode). The subcollection segment
   // is constrained to the canonical HALL_ITEM_SUBCOLLECTIONS values (hallItemTales /
@@ -167,560 +330,1004 @@ export const PATH_BUILDERS = {
   // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE. `workProjectType.toLowerCase()` is NOT a valid
   // derivation: it yields a segment that does not exist, silently addressing an empty
   // collection instead of failing.
-  hallItemType: (hallItemId: string, subcollection: HallItemSubcollection, itemId: string): [string, string, string, string] =>
-    [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection, itemId],
+  hallItemType: (
+    hallItemId: string,
+    subcollection: HallItemSubcollection,
+    itemId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.HALL_ITEMS,
+    hallItemId,
+    subcollection,
+    itemId,
+  ],
 
   // A published Hall sub-item's path is determined by its canonical identity, never a
   // caller-provided collection segment. This is the path used by typed administrative replay
   // targets as well as ordinary Hall moderation operations.
-  hallItemSubItem: (hallItemId: string, workProjectType: WorkProjectType, itemId: string): [string, string, string, string] =>
-    [COLLECTIONS.HALL_ITEMS, hallItemId, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[workProjectType], itemId],
+  hallItemSubItem: (
+    hallItemId: string,
+    workProjectType: WorkProjectType,
+    itemId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.HALL_ITEMS,
+    hallItemId,
+    HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[workProjectType],
+    itemId,
+  ],
 
   // Collection of published hall sub-items for one type (parent of hallItemType). The
   // subcollection segment is the canonical HallItemSubcollection — derive it from
   // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE. `workProjectType.toLowerCase()` is NOT a valid
   // derivation: it yields a segment that does not exist, silently addressing an empty
   // collection instead of failing.
-  hallItemSubItems: (hallItemId: string, subcollection: HallItemSubcollection): [string, string, string] =>
-    [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection],
+  hallItemSubItems: (
+    hallItemId: string,
+    subcollection: HallItemSubcollection,
+  ): [string, string, string] => [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection],
 
-  hallContentChangeRequest: (changeRequestId: string): [string, string] =>
-    [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS, changeRequestId],
+  hallContentChangeRequest: (changeRequestId: string): [string, string] => [
+    COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS,
+    changeRequestId,
+  ],
 
   // ===== COMMISSION PATHS =====
-  commissionListing: (commissionListingId: string): [string, string] =>
-    [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId],
+  commissionListing: (commissionListingId: string): [string, string] => [
+    COLLECTIONS.COMMISSION_LISTINGS,
+    commissionListingId,
+  ],
 
-  commissionProposal: (commissionListingId: string, commissionProposalId: string): [string, string, string, string] =>
-    [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId, NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS, commissionProposalId],
+  commissionProposal: (
+    commissionListingId: string,
+    commissionProposalId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.COMMISSION_LISTINGS,
+    commissionListingId,
+    NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS,
+    commissionProposalId,
+  ],
 
   // ===== AUDITION PATHS =====
-  audition: (auditionId: string): [string, string] =>
-    [COLLECTIONS.AUDITION_BOARD, auditionId],
+  audition: (auditionId: string): [string, string] => [COLLECTIONS.AUDITION_BOARD, auditionId],
 
-  auditionEntry: (auditionId: string, auditionEntryId: string): [string, string, string, string] =>
-    [COLLECTIONS.AUDITION_BOARD, auditionId, NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES, auditionEntryId],
+  auditionEntry: (
+    auditionId: string,
+    auditionEntryId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.AUDITION_BOARD,
+    auditionId,
+    NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES,
+    auditionEntryId,
+  ],
 
   // ===== REALM PATHS =====
-  workRealm: (workRealmId: string): [string, string] =>
-    [COLLECTIONS.WORK_REALMS, workRealmId],
+  workRealm: (workRealmId: string): [string, string] => [COLLECTIONS.WORK_REALMS, workRealmId],
 
   // Realm shared-file FOLDER (a container only — shared files stay workFiles under their
   // owning Work and carry `realmFileFolderId` on their mediaAssets doc).
-  realmFileFolder: (workRealmId: string, realmFileFolderId: string): [string, string, string, string] =>
-    [COLLECTIONS.WORK_REALMS, workRealmId, WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS, realmFileFolderId],
+  realmFileFolder: (
+    workRealmId: string,
+    realmFileFolderId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.WORK_REALMS,
+    workRealmId,
+    WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS,
+    realmFileFolderId,
+  ],
 
   // ===== ADMIN & SYSTEM PATHS =====
-  adminDispatch: (adminDispatchId: string): [string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId],
+  adminDispatch: (adminDispatchId: string): [string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+  ],
 
-  adminConversationMessage: (adminDispatchId: string, adminDispatchMessageId: string): [string, string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES, adminDispatchMessageId],
+  adminConversationMessage: (
+    adminDispatchId: string,
+    adminDispatchMessageId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+    NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES,
+    adminDispatchMessageId,
+  ],
 
-  guildInvite: (guildInviteId: string): [string, string] =>
-    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId],
+  guildInvite: (guildInviteId: string): [string, string] => [
+    COLLECTIONS.GUILD_INVITE_CONVERSATIONS,
+    guildInviteId,
+  ],
 
   // ===== CONVERSATION FILES (the two supported ConversationFileRef scopes) =====
   // Application and backend code must NOT assemble these paths independently.
   // `conversationFileId` is deterministic — it IS the pendingMedia id.
-  guildInviteConversationFile: (guildInviteId: string, conversationFileId: string): [string, string, string, string] =>
-    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES, conversationFileId],
+  guildInviteConversationFile: (
+    guildInviteId: string,
+    conversationFileId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.GUILD_INVITE_CONVERSATIONS,
+    guildInviteId,
+    NESTED_SUBCOLLECTIONS.CONVERSATION_FILES,
+    conversationFileId,
+  ],
 
-  adminDispatchConversationFile: (adminDispatchId: string, conversationFileId: string): [string, string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES, conversationFileId],
+  adminDispatchConversationFile: (
+    adminDispatchId: string,
+    conversationFileId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+    NESTED_SUBCOLLECTIONS.CONVERSATION_FILES,
+    conversationFileId,
+  ],
 
-  adminDispatchReadMarker: (adminDispatchId: string, uid: string): [string, string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS, uid],
+  adminDispatchReadMarker: (
+    adminDispatchId: string,
+    uid: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+    NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS,
+    uid,
+  ],
 
-  contentReport: (reportId: string): [string, string] =>
-    [COLLECTIONS.CONTENT_REPORTS, reportId],
+  contentReport: (reportId: string): [string, string] => [COLLECTIONS.CONTENT_REPORTS, reportId],
 
   // The report's public, reporter-identity-free projection. The projection doc id IS the
   // report id (contentReports/{reportId}/publicProjection/{reportId}).
-  reportPublicProjection: (reportId: string): [string, string, string, string] =>
-    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.REPORT_PUBLIC_PROJECTION, reportId],
+  reportPublicProjection: (reportId: string): [string, string, string, string] => [
+    COLLECTIONS.CONTENT_REPORTS,
+    reportId,
+    NESTED_SUBCOLLECTIONS.REPORT_PUBLIC_PROJECTION,
+    reportId,
+  ],
 
   // Fixed-id restricted report-PII subdocs (contentReports/{reportId}/privateDetails/{snapshot,narrative}).
-  reportPrivateSnapshot: (reportId: string): [string, string, string, string] =>
-    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_SNAPSHOT],
+  reportPrivateSnapshot: (reportId: string): [string, string, string, string] => [
+    COLLECTIONS.CONTENT_REPORTS,
+    reportId,
+    NESTED_SUBCOLLECTIONS.PRIVATE,
+    SPECIAL_DOCS.REPORT_SNAPSHOT,
+  ],
 
-  reportPrivateNarrative: (reportId: string): [string, string, string, string] =>
-    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_NARRATIVE],
+  reportPrivateNarrative: (reportId: string): [string, string, string, string] => [
+    COLLECTIONS.CONTENT_REPORTS,
+    reportId,
+    NESTED_SUBCOLLECTIONS.PRIVATE,
+    SPECIAL_DOCS.REPORT_NARRATIVE,
+  ],
 
   // The SECOND narrative doc, typed when an existing ordinary report is escalated into a
   // protected case — a sibling of `privateDetails/narrative` in the same restricted
   // subcollection, so the original narrative is never overwritten and the read gate is identical.
-  reportPrivateEscalationNarrative: (reportId: string): [string, string, string, string] =>
-    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_NARRATIVE_ESCALATION],
+  reportPrivateEscalationNarrative: (reportId: string): [string, string, string, string] => [
+    COLLECTIONS.CONTENT_REPORTS,
+    reportId,
+    NESTED_SUBCOLLECTIONS.PRIVATE,
+    SPECIAL_DOCS.REPORT_NARRATIVE_ESCALATION,
+  ],
 
-  activeReportGroup: (groupKey: string): [string, string] =>
-    [COLLECTIONS.ACTIVE_REPORT_GROUPS, groupKey],
+  activeReportGroup: (groupKey: string): [string, string] => [
+    COLLECTIONS.ACTIVE_REPORT_GROUPS,
+    groupKey,
+  ],
 
   // Per-report idempotency marker under a group (its ABSENCE gates the totalReports increment).
-  reportGroupCountedReport: (groupKey: string, reportId: string): [string, string, string, string] =>
-    [COLLECTIONS.ACTIVE_REPORT_GROUPS, groupKey, NESTED_SUBCOLLECTIONS.REPORT_GROUP_COUNTED_REPORTS, reportId],
+  reportGroupCountedReport: (
+    groupKey: string,
+    reportId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.ACTIVE_REPORT_GROUPS,
+    groupKey,
+    NESTED_SUBCOLLECTIONS.REPORT_GROUP_COUNTED_REPORTS,
+    reportId,
+  ],
 
   // Time-sensitive admin-tray "case needs work" pin (activeSafetyCaseAlerts/{caseId}).
-  safetyCaseAlert: (caseId: string): [string, string] =>
-    [COLLECTIONS.ACTIVE_SAFETY_CASE_ALERTS, caseId],
+  safetyCaseAlert: (caseId: string): [string, string] => [
+    COLLECTIONS.ACTIVE_SAFETY_CASE_ALERTS,
+    caseId,
+  ],
 
-  contentViolation: (violationId: string): [string, string] =>
-    [COLLECTIONS.CONTENT_VIOLATIONS, violationId],
+  contentViolation: (violationId: string): [string, string] => [
+    COLLECTIONS.CONTENT_VIOLATIONS,
+    violationId,
+  ],
 
-  adminTask: (taskId: string): [string, string] =>
-    [COLLECTIONS.ADMIN_TASKS, taskId],
+  adminTask: (taskId: string): [string, string] => [COLLECTIONS.ADMIN_TASKS, taskId],
 
-  adminTaskForItem: (taskType: string, itemId: string): [string, string] =>
-    [COLLECTIONS.ADMIN_TASKS, `${taskType}-${itemId}`],
+  adminTaskForItem: (taskType: string, itemId: string): [string, string] => [
+    COLLECTIONS.ADMIN_TASKS,
+    `${taskType}-${itemId}`,
+  ],
 
-  moderationCascadeManifest: (cascadeId: string): [string, string] =>
-    [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId],
+  moderationCascadeManifest: (cascadeId: string): [string, string] => [
+    COLLECTIONS.MODERATION_CASCADE_MANIFESTS,
+    cascadeId,
+  ],
 
-  moderationCascadeChangedDoc: (cascadeId: string, changedDocId: string): [string, string, string, string] =>
-    [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId, NESTED_SUBCOLLECTIONS.CHANGED_DOCS, changedDocId],
+  moderationCascadeChangedDoc: (
+    cascadeId: string,
+    changedDocId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.MODERATION_CASCADE_MANIFESTS,
+    cascadeId,
+    NESTED_SUBCOLLECTIONS.CHANGED_DOCS,
+    changedDocId,
+  ],
 
   // ===== UTILITY PATHS =====
-  reservedDisplayName: (displayNameUppercase: string): [string, string] =>
-    [COLLECTIONS.RESERVED_DISPLAY_NAMES, displayNameUppercase],
+  reservedDisplayName: (displayNameUppercase: string): [string, string] => [
+    COLLECTIONS.RESERVED_DISPLAY_NAMES,
+    displayNameUppercase,
+  ],
 
-  reservedRealmName: (workingTitleUppercase: string): [string, string] =>
-    [COLLECTIONS.RESERVED_REALM_NAMES, workingTitleUppercase],
+  reservedRealmName: (workingTitleUppercase: string): [string, string] => [
+    COLLECTIONS.RESERVED_REALM_NAMES,
+    workingTitleUppercase,
+  ],
 
-  shortLink: (shortId: string): [string, string] =>
-    [COLLECTIONS.SHORT_LINKS, shortId],
+  shortLink: (shortId: string): [string, string] => [COLLECTIONS.SHORT_LINKS, shortId],
 
-  pendingMedia: (docId: string): [string, string] =>
-    [COLLECTIONS.PENDING_MEDIA, docId],
+  pendingMedia: (docId: string): [string, string] => [COLLECTIONS.PENDING_MEDIA, docId],
 
-  pendingMediaArchive: (docId: string): [string, string] =>
-    [COLLECTIONS.PENDING_MEDIA_ARCHIVE, docId],
+  pendingMediaArchive: (docId: string): [string, string] => [
+    COLLECTIONS.PENDING_MEDIA_ARCHIVE,
+    docId,
+  ],
 
-  mediaAsset: (mediaAssetId: string): [string, string] =>
-    [COLLECTIONS.MEDIA_ASSETS, mediaAssetId],
+  mediaAsset: (mediaAssetId: string): [string, string] => [COLLECTIONS.MEDIA_ASSETS, mediaAssetId],
 
   // Server-only durable activation job (prepare → activate → publish + recovery).
-  mediaActivationJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.MEDIA_ACTIVATION_JOBS, jobId],
+  mediaActivationJob: (jobId: string): [string, string] => [
+    COLLECTIONS.MEDIA_ACTIVATION_JOBS,
+    jobId,
+  ],
 
   // Server-only intent of one cross-owner media copy, keyed by the copy's new asset id.
-  mediaCopyIntent: (newAssetId: string): [string, string] =>
-    [COLLECTIONS.MEDIA_COPY_INTENTS, newAssetId],
+  mediaCopyIntent: (newAssetId: string): [string, string] => [
+    COLLECTIONS.MEDIA_COPY_INTENTS,
+    newAssetId,
+  ],
 
   // ===== NOTIFICATION REDESIGN (ledger + fanout engine) PATHS =====
-  notificationDelivery: (deliveryId: string): [string, string] =>
-    [COLLECTIONS.NOTIFICATION_DELIVERIES, deliveryId],
+  notificationDelivery: (deliveryId: string): [string, string] => [
+    COLLECTIONS.NOTIFICATION_DELIVERIES,
+    deliveryId,
+  ],
 
-  notificationFanoutJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.NOTIFICATION_FANOUT_JOBS, jobId],
+  notificationFanoutJob: (jobId: string): [string, string] => [
+    COLLECTIONS.NOTIFICATION_FANOUT_JOBS,
+    jobId,
+  ],
 
   // ===== CHAT REALTIME SYNC / PROJECTION / COMMAND PATHS =====
-  chatChannelAuthProjection: (authPairKey: string): [string, string] =>
-    [COLLECTIONS.CHAT_CHANNEL_AUTH_PROJECTIONS, authPairKey],
+  chatChannelAuthProjection: (authPairKey: string): [string, string] => [
+    COLLECTIONS.CHAT_CHANNEL_AUTH_PROJECTIONS,
+    authPairKey,
+  ],
 
-  chatScopeDegraded: (scopeKey: string): [string, string] =>
-    [COLLECTIONS.CHAT_SCOPE_DEGRADED, scopeKey],
+  chatScopeDegraded: (scopeKey: string): [string, string] => [
+    COLLECTIONS.CHAT_SCOPE_DEGRADED,
+    scopeKey,
+  ],
 
-  chatScopeDegradedCause: (scopeKey: string, causeId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHAT_SCOPE_DEGRADED, scopeKey, NESTED_SUBCOLLECTIONS.CHAT_SCOPE_DEGRADED_CAUSES, causeId],
+  chatScopeDegradedCause: (scopeKey: string, causeId: string): [string, string, string, string] => [
+    COLLECTIONS.CHAT_SCOPE_DEGRADED,
+    scopeKey,
+    NESTED_SUBCOLLECTIONS.CHAT_SCOPE_DEGRADED_CAUSES,
+    causeId,
+  ],
 
-  chatSyncEvent: (eventId: string): [string, string] =>
-    [COLLECTIONS.CHAT_SYNC_EVENTS, eventId],
+  chatSyncEvent: (eventId: string): [string, string] => [COLLECTIONS.CHAT_SYNC_EVENTS, eventId],
 
-  chatSyncFanoutJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.CHAT_SYNC_FANOUT_JOBS, jobId],
+  chatSyncFanoutJob: (jobId: string): [string, string] => [
+    COLLECTIONS.CHAT_SYNC_FANOUT_JOBS,
+    jobId,
+  ],
 
-  chatMessageOutboxCommand: (commandId: string): [string, string] =>
-    [COLLECTIONS.CHAT_MESSAGE_OUTBOX, commandId],
+  chatMessageOutboxCommand: (commandId: string): [string, string] => [
+    COLLECTIONS.CHAT_MESSAGE_OUTBOX,
+    commandId,
+  ],
 
-  chatAdminActionCommand: (requestId: string): [string, string] =>
-    [COLLECTIONS.CHAT_ADMIN_ACTION_COMMANDS, requestId],
+  chatAdminActionCommand: (requestId: string): [string, string] => [
+    COLLECTIONS.CHAT_ADMIN_ACTION_COMMANDS,
+    requestId,
+  ],
 
-  chatHistoryAnonymizationJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS, jobId],
+  chatHistoryAnonymizationJob: (jobId: string): [string, string] => [
+    COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS,
+    jobId,
+  ],
 
-  chatParkedDelivery: (deliveryId: string): [string, string] =>
-    [COLLECTIONS.CHAT_PARKED_DELIVERIES, deliveryId],
+  chatParkedDelivery: (deliveryId: string): [string, string] => [
+    COLLECTIONS.CHAT_PARKED_DELIVERIES,
+    deliveryId,
+  ],
 
-  chatHistoryAnonymizationAffectedChunk: (jobId: string, chunkOrdinal: string): [string, string, string, string] =>
-    [COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS, jobId, NESTED_SUBCOLLECTIONS.CHAT_ANONYMIZATION_AFFECTED_CHUNKS, chunkOrdinal],
+  chatHistoryAnonymizationAffectedChunk: (
+    jobId: string,
+    chunkOrdinal: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS,
+    jobId,
+    NESTED_SUBCOLLECTIONS.CHAT_ANONYMIZATION_AFFECTED_CHUNKS,
+    chunkOrdinal,
+  ],
 
   // ===== PAYMENT & PLEDGE PATHS =====
   // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).
-  pledgePayment: (pledgePaymentId: string): [string, string] =>
-    [COLLECTIONS.PLEDGE_PAYMENTS, pledgePaymentId],
+  pledgePayment: (pledgePaymentId: string): [string, string] => [
+    COLLECTIONS.PLEDGE_PAYMENTS,
+    pledgePaymentId,
+  ],
 
   // Server-only Stripe references (session/PI/charge/dispute IDs). One doc per pledge — singular.
-  pledgePaymentProviderRef: (pledgePaymentId: string): [string, string] =>
-    [COLLECTIONS.PLEDGE_PAYMENT_PROVIDER_REFS, pledgePaymentId],
+  pledgePaymentProviderRef: (pledgePaymentId: string): [string, string] => [
+    COLLECTIONS.PLEDGE_PAYMENT_PROVIDER_REFS,
+    pledgePaymentId,
+  ],
 
   // Running-totals singleton — incremented in the Stripe webhook's pledge-record transaction;
   // read (ONE doc) by the public raised-total surfaces instead of a collection-wide aggregation.
-  pledgePaymentTotals: (): [string, string] =>
-    [COLLECTIONS.PLEDGE_PAYMENT_TOTALS, SPECIAL_DOCS.SUMMARY],
+  pledgePaymentTotals: (): [string, string] => [
+    COLLECTIONS.PLEDGE_PAYMENT_TOTALS,
+    SPECIAL_DOCS.SUMMARY,
+  ],
 
   // Idempotency sentinel, keyed by the Stripe event.id.
-  processedStripeEvent: (stripeEventId: string): [string, string] =>
-    [COLLECTIONS.PROCESSED_STRIPE_EVENTS, stripeEventId],
+  processedStripeEvent: (stripeEventId: string): [string, string] => [
+    COLLECTIONS.PROCESSED_STRIPE_EVENTS,
+    stripeEventId,
+  ],
 
   // Independent integrity record from the ledger verification trigger.
-  pledgePaymentLedgerEvent: (ledgerId: string): [string, string] =>
-    [COLLECTIONS.PLEDGE_PAYMENT_LEDGER_EVENTS, ledgerId],
+  pledgePaymentLedgerEvent: (ledgerId: string): [string, string] => [
+    COLLECTIONS.PLEDGE_PAYMENT_LEDGER_EVENTS,
+    ledgerId,
+  ],
 
   // Unrecoverable paid-event repair queue, keyed by the Stripe event.id.
-  paymentWebhookQuarantine: (stripeEventId: string): [string, string] =>
-    [COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE, stripeEventId],
+  paymentWebhookQuarantine: (stripeEventId: string): [string, string] => [
+    COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE,
+    stripeEventId,
+  ],
 
   // User-initiated pledge refund request (post-launch), keyed by requestId. No Stripe ids on this
   // doc — those live on pledgePaymentProviderRefs.
-  pledgeRefundRequest: (requestId: string): [string, string] =>
-    [COLLECTIONS.PLEDGE_REFUND_REQUESTS, requestId],
+  pledgeRefundRequest: (requestId: string): [string, string] => [
+    COLLECTIONS.PLEDGE_REFUND_REQUESTS,
+    requestId,
+  ],
 
   // ===== FEEDBACK & CRAFT PATHS =====
-  feedbackSubmission: (feedbackType: string): [string, string] =>
-    [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType],
+  feedbackSubmission: (feedbackType: string): [string, string] => [
+    COLLECTIONS.FEEDBACK_SUBMISSIONS,
+    feedbackType,
+  ],
 
-  userSuggestion: (feedbackType: string, suggestionId: string): [string, string, string, string] =>
-    [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType, NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS, suggestionId],
+  userSuggestion: (
+    feedbackType: string,
+    suggestionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.FEEDBACK_SUBMISSIONS,
+    feedbackType,
+    NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS,
+    suggestionId,
+  ],
 
   // The two submitFeedback lists live under the server-only `_serverData/feedbackLists`
   // container doc (BACKEND-108) — Cloud Functions read them via the Admin SDK and no
   // client reads either one. Doc ids are the normalized suggestion text.
-  feedbackAlias: (aliasId: string): [string, string, string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.FEEDBACK_LISTS, NESTED_SUBCOLLECTIONS.FEEDBACK_ALIASES, aliasId],
+  feedbackAlias: (aliasId: string): [string, string, string, string] => [
+    COLLECTIONS.SERVER_DATA,
+    SPECIAL_DOCS.FEEDBACK_LISTS,
+    NESTED_SUBCOLLECTIONS.FEEDBACK_ALIASES,
+    aliasId,
+  ],
 
-  feedbackDenylist: (deniedWord: string): [string, string, string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.FEEDBACK_LISTS, NESTED_SUBCOLLECTIONS.FEEDBACK_DENYLIST, deniedWord],
+  feedbackDenylist: (deniedWord: string): [string, string, string, string] => [
+    COLLECTIONS.SERVER_DATA,
+    SPECIAL_DOCS.FEEDBACK_LISTS,
+    NESTED_SUBCOLLECTIONS.FEEDBACK_DENYLIST,
+    deniedWord,
+  ],
 
-  taggedCraftSkill: (tag: string, compositeId: string): [string, string, string, string] =>
-    [COLLECTIONS.CRAFT_SKILLS_BY_TAG, tag, NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS, compositeId],
+  taggedCraftSkill: (tag: string, compositeId: string): [string, string, string, string] => [
+    COLLECTIONS.CRAFT_SKILLS_BY_TAG,
+    tag,
+    NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS,
+    compositeId,
+  ],
 
   // ===== SYSTEM DATA PATHS =====
-  adminList: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.ADMIN_LIST],
+  adminList: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.ADMIN_LIST],
 
-  futurePlans: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.FUTURE_PLANS],
+  futurePlans: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.FUTURE_PLANS],
 
-  profanityList: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.PROFANITY_LIST],
+  profanityList: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.PROFANITY_LIST],
 
-  reservedUsernames: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.RESERVED_USERNAMES],
+  reservedUsernames: (): [string, string] => [
+    COLLECTIONS.SYSTEM_DATA,
+    SPECIAL_DOCS.RESERVED_USERNAMES,
+  ],
 
-  blockedFranchiseNames: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.BLOCKED_FRANCHISE_NAMES],
+  blockedFranchiseNames: (): [string, string] => [
+    COLLECTIONS.SYSTEM_DATA,
+    SPECIAL_DOCS.BLOCKED_FRANCHISE_NAMES,
+  ],
 
-  rulesAndAgreements: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.RULES_AND_AGREEMENTS],
+  rulesAndAgreements: (): [string, string] => [
+    COLLECTIONS.APP_CONFIG,
+    SPECIAL_DOCS.RULES_AND_AGREEMENTS,
+  ],
 
-  termsPage: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TERMS_PAGE],
+  termsPage: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TERMS_PAGE],
 
-  privacyPage: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVACY_PAGE],
+  privacyPage: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVACY_PAGE],
 
-  takeItDownPageCopy: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY],
+  takeItDownPageCopy: (): [string, string] => [
+    COLLECTIONS.APP_CONFIG,
+    SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY,
+  ],
 
-  dmcaPolicy: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.DMCA_POLICY],
+  dmcaPolicy: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.DMCA_POLICY],
 
   // ===== PUBLIC DOCUMENTS (versioned releases) =====
   // The public current projection of any public document. The id IS the `_appConfig` doc id,
   // so this and the per-page builders above (termsPage(), dmcaPolicy(), …) name the same docs.
-  publicDocumentProjection: (documentId: PublicDocumentId): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, documentId],
+  publicDocumentProjection: (documentId: PublicDocumentId): [string, string] => [
+    COLLECTIONS.APP_CONFIG,
+    documentId,
+  ],
 
   // One immutable published version (doc id `v{version}`).
-  publicDocumentVersion: (documentId: PublicDocumentId, version: number): [string, string, string, string] =>
-    [COLLECTIONS.PUBLIC_DOCUMENTS, documentId, NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS, publicDocumentVersionDocId(version)],
+  publicDocumentVersion: (
+    documentId: PublicDocumentId,
+    version: number,
+  ): [string, string, string, string] => [
+    COLLECTIONS.PUBLIC_DOCUMENTS,
+    documentId,
+    NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS,
+    publicDocumentVersionDocId(version),
+  ],
 
   // The one private working copy of a document.
-  publicDocumentDraft: (documentId: PublicDocumentId): [string, string] =>
-    [COLLECTIONS.PUBLIC_DOCUMENT_DRAFTS, documentId],
+  publicDocumentDraft: (documentId: PublicDocumentId): [string, string] => [
+    COLLECTIONS.PUBLIC_DOCUMENT_DRAFTS,
+    documentId,
+  ],
 
-  publicDocumentRelease: (releaseId: string): [string, string] =>
-    [COLLECTIONS.PUBLIC_DOCUMENT_RELEASES, releaseId],
+  publicDocumentRelease: (releaseId: string): [string, string] => [
+    COLLECTIONS.PUBLIC_DOCUMENT_RELEASES,
+    releaseId,
+  ],
 
-  appConfig: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
+  appConfig: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
 
-  appModeMarker: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
+  appModeMarker: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
 
-  systemVideoSlots: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.SYSTEM_VIDEO_SLOTS],
+  systemVideoSlots: (): [string, string] => [
+    COLLECTIONS.SYSTEM_DATA,
+    SPECIAL_DOCS.SYSTEM_VIDEO_SLOTS,
+  ],
 
-  systemUidSlots: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.SYSTEM_UID_SLOTS],
+  systemUidSlots: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.SYSTEM_UID_SLOTS],
 
   // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
-  statusReconcileQueueEntry: (uid: string): [string, string] =>
-    [COLLECTIONS.STATUS_RECONCILE_QUEUE, uid],
+  statusReconcileQueueEntry: (uid: string): [string, string] => [
+    COLLECTIONS.STATUS_RECONCILE_QUEUE,
+    uid,
+  ],
 
   // ===== TRUST & SAFETY — child-safety case spine (§A1b, §A2) =====
-  childSafetyCaseListEntry: (caseId: string): [string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASE_LIST, caseId],
+  childSafetyCaseListEntry: (caseId: string): [string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASE_LIST,
+    caseId,
+  ],
 
-  childSafetyCase: (caseId: string): [string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId],
+  childSafetyCase: (caseId: string): [string, string] => [COLLECTIONS.CHILD_SAFETY_CASES, caseId],
 
-  childSafetySourceSignal: (caseId: string, signalId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS, signalId],
+  childSafetySourceSignal: (caseId: string, signalId: string): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS,
+    signalId,
+  ],
 
   // Collection of source-signal rows for a case (parent of childSafetySourceSignal).
-  childSafetySourceSignals: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS],
+  childSafetySourceSignals: (caseId: string): [string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS,
+  ],
 
-  childSafetyDecision: (caseId: string, decisionId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId],
+  childSafetyDecision: (caseId: string, decisionId: string): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS,
+    decisionId,
+  ],
 
   // Collection of decision rows for a case (parent of childSafetyDecision).
-  childSafetyDecisions: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS],
+  childSafetyDecisions: (caseId: string): [string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS,
+  ],
 
-  childSafetyDecisionView: (caseId: string, decisionId: string, viewId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISION_VIEWS, viewId],
+  childSafetyDecisionView: (
+    caseId: string,
+    decisionId: string,
+    viewId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS,
+    decisionId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISION_VIEWS,
+    viewId,
+  ],
 
-  childSafetyCaseAccount: (caseId: string, uid: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid],
+  childSafetyCaseAccount: (caseId: string, uid: string): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS,
+    uid,
+  ],
 
   // Collection of per-account rows for a case (parent of childSafetyCaseAccount).
-  childSafetyCaseAccounts: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS],
+  childSafetyCaseAccounts: (caseId: string): [string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS,
+  ],
 
   // One asset's crossover leg row, and the collection of a case's rows (its parent).
-  childSafetyCaseCrossoverItem: (caseId: string, mediaAssetId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_CROSSOVER_ITEMS, mediaAssetId],
+  childSafetyCaseCrossoverItem: (
+    caseId: string,
+    mediaAssetId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_CROSSOVER_ITEMS,
+    mediaAssetId,
+  ],
 
-  childSafetyCaseCrossoverItems: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_CROSSOVER_ITEMS],
+  childSafetyCaseCrossoverItems: (caseId: string): [string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_CROSSOVER_ITEMS,
+  ],
 
-  childSafetyCaseAccountHistory: (caseId: string, uid: string, historyId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNT_HISTORY, historyId],
+  childSafetyCaseAccountHistory: (
+    caseId: string,
+    uid: string,
+    historyId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS,
+    uid,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNT_HISTORY,
+    historyId,
+  ],
 
-  childSafetyNcmecSubmission: (caseId: string, submissionId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId],
+  childSafetyNcmecSubmission: (
+    caseId: string,
+    submissionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS,
+    submissionId,
+  ],
 
-  childSafetyNcmecSubmissionFile: (caseId: string, submissionId: string, fileId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSION_FILES, fileId],
+  childSafetyNcmecSubmissionFile: (
+    caseId: string,
+    submissionId: string,
+    fileId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS,
+    submissionId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSION_FILES,
+    fileId,
+  ],
 
   // The submission's single immutable completion-proof record. Fixed doc id — one proof per
   // submission, written create-if-absent in the same transaction that marks the submission
   // `completed`, so `completed` and its bound proof can never diverge.
-  childSafetyNcmecCompletionProof: (caseId: string, submissionId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF, SPECIAL_DOCS.RECORD],
+  childSafetyNcmecCompletionProof: (
+    caseId: string,
+    submissionId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS,
+    submissionId,
+    NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF,
+    SPECIAL_DOCS.RECORD,
+  ],
 
-  childSafetyLegalProcessEvent: (caseId: string, eventId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_LEGAL_PROCESS, eventId],
+  childSafetyLegalProcessEvent: (
+    caseId: string,
+    eventId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.CHILD_SAFETY_LEGAL_PROCESS,
+    eventId,
+  ],
 
   // Immutable portal-receipt artifact record bound to a case + NCMEC submission — the proof
   // `markNcmecPortalComplete` requires. Written create-only by recordNcmecPortalReceiptArtifact.
-  childSafetyPortalReceiptArtifact: (caseId: string, artifactId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS, artifactId],
+  childSafetyPortalReceiptArtifact: (
+    caseId: string,
+    artifactId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS,
+    artifactId,
+  ],
 
   // Collection of portal-receipt artifact rows for a case (parent of the builder above) — the
   // auto-id mint site.
-  childSafetyPortalReceiptArtifacts: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS],
+  childSafetyPortalReceiptArtifacts: (caseId: string): [string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS,
+  ],
 
   // Immutable record that the operator filed a CORRECTION on the NCMEC manual portal. Its
   // existence is what unlocks the corrected-no-apparent-violation disposition.
-  childSafetyNcmecPortalCorrection: (caseId: string, correctionId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS, correctionId],
+  childSafetyNcmecPortalCorrection: (
+    caseId: string,
+    correctionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS,
+    correctionId,
+  ],
 
   // Collection of portal-correction rows for a case (parent of the builder above) — the auto-id
   // mint site and the existence query behind the disposition gate.
-  childSafetyNcmecPortalCorrections: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS],
+  childSafetyNcmecPortalCorrections: (caseId: string): [string, string, string] => [
+    COLLECTIONS.CHILD_SAFETY_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS,
+  ],
 
-  childSafetyOwningAlias: (aliasId: string): [string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_OWNING_ALIASES, aliasId],
+  childSafetyOwningAlias: (aliasId: string): [string, string] => [
+    COLLECTIONS.CHILD_SAFETY_OWNING_ALIASES,
+    aliasId,
+  ],
 
   // ===== TRUST & SAFETY — holds + resource commands (§A3) =====
   // Composite doc id caseId__resourceKeyHash — a single {holdRefId} segment.
-  safetyHoldRef: (holdRefId: string): [string, string] =>
-    [COLLECTIONS.SAFETY_HOLD_REFS, holdRefId],
+  safetyHoldRef: (holdRefId: string): [string, string] => [COLLECTIONS.SAFETY_HOLD_REFS, holdRefId],
 
-  safetyHoldResource: (resourceKeyHash: string): [string, string] =>
-    [COLLECTIONS.SAFETY_HOLD_RESOURCES, resourceKeyHash],
+  safetyHoldResource: (resourceKeyHash: string): [string, string] => [
+    COLLECTIONS.SAFETY_HOLD_RESOURCES,
+    resourceKeyHash,
+  ],
 
   // Composite doc id resourceKeyHash__commandId — a single {commandDocId} segment.
-  safetyResourceCommand: (commandDocId: string): [string, string] =>
-    [COLLECTIONS.SAFETY_RESOURCE_COMMANDS, commandDocId],
+  safetyResourceCommand: (commandDocId: string): [string, string] => [
+    COLLECTIONS.SAFETY_RESOURCE_COMMANDS,
+    commandDocId,
+  ],
 
-  safetyResourceCommandAuthorizedRequest: (commandDocId: string, requestId: string): [string, string, string, string] =>
-    [COLLECTIONS.SAFETY_RESOURCE_COMMANDS, commandDocId, NESTED_SUBCOLLECTIONS.SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS, requestId],
+  safetyResourceCommandAuthorizedRequest: (
+    commandDocId: string,
+    requestId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.SAFETY_RESOURCE_COMMANDS,
+    commandDocId,
+    NESTED_SUBCOLLECTIONS.SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS,
+    requestId,
+  ],
 
-  safetyResourceCommandBypassRef: (commandDocId: string, refId: string): [string, string, string, string] =>
-    [COLLECTIONS.SAFETY_RESOURCE_COMMANDS, commandDocId, NESTED_SUBCOLLECTIONS.SAFETY_RESOURCE_COMMAND_BYPASS_REFS, refId],
+  safetyResourceCommandBypassRef: (
+    commandDocId: string,
+    refId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.SAFETY_RESOURCE_COMMANDS,
+    commandDocId,
+    NESTED_SUBCOLLECTIONS.SAFETY_RESOURCE_COMMAND_BYPASS_REFS,
+    refId,
+  ],
 
   // ===== TRUST & SAFETY — evidence + provenance (§A4, §A6) =====
-  safetyEvidenceManifest: (manifestId: string): [string, string] =>
-    [COLLECTIONS.SAFETY_EVIDENCE_MANIFESTS, manifestId],
+  safetyEvidenceManifest: (manifestId: string): [string, string] => [
+    COLLECTIONS.SAFETY_EVIDENCE_MANIFESTS,
+    manifestId,
+  ],
 
-  safetyEvidenceJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId],
+  safetyEvidenceJob: (jobId: string): [string, string] => [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId],
 
-  safetyEvidenceJobItem: (jobId: string, itemId: string): [string, string, string, string] =>
-    [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId, NESTED_SUBCOLLECTIONS.SAFETY_EVIDENCE_JOB_ITEMS, itemId],
+  safetyEvidenceJobItem: (jobId: string, itemId: string): [string, string, string, string] => [
+    COLLECTIONS.SAFETY_EVIDENCE_JOBS,
+    jobId,
+    NESTED_SUBCOLLECTIONS.SAFETY_EVIDENCE_JOB_ITEMS,
+    itemId,
+  ],
 
-  safetyEvidenceJobDisposition: (jobId: string, locationId: string): [string, string, string, string] =>
-    [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId, NESTED_SUBCOLLECTIONS.SAFETY_EVIDENCE_JOB_DISPOSITION, locationId],
+  safetyEvidenceJobDisposition: (
+    jobId: string,
+    locationId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.SAFETY_EVIDENCE_JOBS,
+    jobId,
+    NESTED_SUBCOLLECTIONS.SAFETY_EVIDENCE_JOB_DISPOSITION,
+    locationId,
+  ],
 
-  eventProvenance: (eventId: string): [string, string] =>
-    [COLLECTIONS.EVENT_PROVENANCE, eventId],
+  eventProvenance: (eventId: string): [string, string] => [COLLECTIONS.EVENT_PROVENANCE, eventId],
 
   // ===== TRUST & SAFETY — sagas + closure (§A5) =====
-  quarantineSagaJob: (caseId: string): [string, string] =>
-    [COLLECTIONS.QUARANTINE_SAGA_JOBS, caseId],
+  quarantineSagaJob: (caseId: string): [string, string] => [
+    COLLECTIONS.QUARANTINE_SAGA_JOBS,
+    caseId,
+  ],
 
-  quarantineSagaRelatedAsset: (caseId: string, assetId: string): [string, string, string, string] =>
-    [COLLECTIONS.QUARANTINE_SAGA_JOBS, caseId, NESTED_SUBCOLLECTIONS.QUARANTINE_SAGA_RELATED_ASSETS, assetId],
+  quarantineSagaRelatedAsset: (
+    caseId: string,
+    assetId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.QUARANTINE_SAGA_JOBS,
+    caseId,
+    NESTED_SUBCOLLECTIONS.QUARANTINE_SAGA_RELATED_ASSETS,
+    assetId,
+  ],
 
   // Composite doc id caseId__submissionId — a single {ncmecJobId} segment.
-  ncmecSubmissionJob: (ncmecJobId: string): [string, string] =>
-    [COLLECTIONS.NCMEC_SUBMISSION_JOBS, ncmecJobId],
+  ncmecSubmissionJob: (ncmecJobId: string): [string, string] => [
+    COLLECTIONS.NCMEC_SUBMISSION_JOBS,
+    ncmecJobId,
+  ],
 
   // Composite doc id caseId__uid — a single {accountActionCommandId} segment.
-  accountActionCommand: (accountActionCommandId: string): [string, string] =>
-    [COLLECTIONS.ACCOUNT_ACTION_COMMANDS, accountActionCommandId],
+  accountActionCommand: (accountActionCommandId: string): [string, string] => [
+    COLLECTIONS.ACCOUNT_ACTION_COMMANDS,
+    accountActionCommandId,
+  ],
 
   // ===== TRUST & SAFETY — SLA monitors + heartbeat (§A8) =====
   // Composite doc id {caseId|requestId}__{monitorKind} — a single {monitorId} segment.
-  safetySlaMonitor: (monitorId: string): [string, string] =>
-    [COLLECTIONS.SAFETY_SLA_MONITORS, monitorId],
+  safetySlaMonitor: (monitorId: string): [string, string] => [
+    COLLECTIONS.SAFETY_SLA_MONITORS,
+    monitorId,
+  ],
 
   // Singleton: safetyMonitorHeartbeat/global.
-  safetyMonitorHeartbeat: (): [string, string] =>
-    [COLLECTIONS.SAFETY_MONITOR_HEARTBEAT, SPECIAL_DOCS.SAFETY_MONITOR_HEARTBEAT_GLOBAL],
+  safetyMonitorHeartbeat: (): [string, string] => [
+    COLLECTIONS.SAFETY_MONITOR_HEARTBEAT,
+    SPECIAL_DOCS.SAFETY_MONITOR_HEARTBEAT_GLOBAL,
+  ],
 
   // ===== TRUST & SAFETY — age attestation nonces (§A7) =====
-  ageAttestationNonce: (nonceHash: string): [string, string] =>
-    [COLLECTIONS.AGE_ATTESTATION_NONCES, nonceHash],
+  ageAttestationNonce: (nonceHash: string): [string, string] => [
+    COLLECTIONS.AGE_ATTESTATION_NONCES,
+    nonceHash,
+  ],
 
   // ===== TRUST & SAFETY — operator step-up (backend-only) =====
   // [H-08] per-operator TOTP step-up state, keyed by uid. Cloud-Functions-only.
-  operatorStepUp: (uid: string): [string, string] =>
-    [COLLECTIONS.OPERATOR_STEP_UP, uid],
+  operatorStepUp: (uid: string): [string, string] => [COLLECTIONS.OPERATOR_STEP_UP, uid],
 
   // Durable cadence/cursor state for one scheduled pass, keyed by its SWEEP_STATE_NAMES name.
   // Backend-only.
-  sweepState: (sweepName: SweepStateName): [string, string] =>
-    [COLLECTIONS.SWEEP_STATE, sweepName],
+  sweepState: (sweepName: SweepStateName): [string, string] => [COLLECTIONS.SWEEP_STATE, sweepName],
 
   // ===== TRUST & SAFETY — NCII / TAKE IT DOWN (§A11) =====
-  nciiAllegation: (allegationId: string): [string, string] =>
-    [COLLECTIONS.NCII_ALLEGATIONS, allegationId],
+  nciiAllegation: (allegationId: string): [string, string] => [
+    COLLECTIONS.NCII_ALLEGATIONS,
+    allegationId,
+  ],
 
-  takeItDownRequest: (requestId: string): [string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId],
+  takeItDownRequest: (requestId: string): [string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+  ],
 
   // Fixed-id requester PII subdoc (takeItDownRequests/{requestId}/privateDetails/requester).
-  takeItDownRequesterPrivate: (requestId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.TAKE_IT_DOWN_REQUESTER],
+  takeItDownRequesterPrivate: (requestId: string): [string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.PRIVATE,
+    SPECIAL_DOCS.TAKE_IT_DOWN_REQUESTER,
+  ],
 
-  takeItDownSubmission: (requestId: string, submissionId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS, submissionId],
+  takeItDownSubmission: (
+    requestId: string,
+    submissionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS,
+    submissionId,
+  ],
 
   // Collection of submissions under a request (parent of takeItDownSubmission).
-  takeItDownSubmissions: (requestId: string): [string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS],
+  takeItDownSubmissions: (requestId: string): [string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS,
+  ],
 
   // Collection of validity decisions under a request (parent of takeItDownValidityDecision).
-  takeItDownValidityDecisions: (requestId: string): [string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS],
+  takeItDownValidityDecisions: (requestId: string): [string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS,
+  ],
 
-  takeItDownValidityDecision: (requestId: string, decisionId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId],
+  takeItDownValidityDecision: (
+    requestId: string,
+    decisionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS,
+    decisionId,
+  ],
 
   // The decision's RESTRICTED rationale row (fixed doc id — one rationale per decision), written
   // create-only in the same transaction as the decision; rationaleRef / detailRef point here.
-  takeItDownValidityRationale: (requestId: string, decisionId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_RATIONALE, SPECIAL_DOCS.RECORD],
+  takeItDownValidityRationale: (
+    requestId: string,
+    decisionId: string,
+  ): [string, string, string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS,
+    decisionId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_RATIONALE,
+    SPECIAL_DOCS.RECORD,
+  ],
 
-  takeItDownRequestAction: (requestId: string, actionId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_ACTIONS, actionId],
+  takeItDownRequestAction: (
+    requestId: string,
+    actionId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_ACTIONS,
+    actionId,
+  ],
 
-  takeItDownEvidence: (requestId: string, evidenceId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE, evidenceId],
+  takeItDownEvidence: (requestId: string, evidenceId: string): [string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE,
+    evidenceId,
+  ],
 
   // ONE deletion-verification record per evidence object, keyed by the evidence id so a retried or
   // redelivered sweep overwrites it: the record is the CURRENT deletion status, not an attempt log.
-  takeItDownEvidenceDisposition: (requestId: string, evidenceId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE_DISPOSITION, evidenceId],
+  takeItDownEvidenceDisposition: (
+    requestId: string,
+    evidenceId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+    requestId,
+    NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE_DISPOSITION,
+    evidenceId,
+  ],
 
   // [H-01] a retained-but-unrecorded NCII-evidence inventory row (top-level; id is deterministic on
   // bucket+key+generation so a re-fire is idempotent).
-  nciiRetainedEvidenceInventory: (inventoryId: string): [string, string] =>
-    [COLLECTIONS.NCII_RETAINED_EVIDENCE_INVENTORY, inventoryId],
+  nciiRetainedEvidenceInventory: (inventoryId: string): [string, string] => [
+    COLLECTIONS.NCII_RETAINED_EVIDENCE_INVENTORY,
+    inventoryId,
+  ],
 
   // [H-01] dead-letter entry for an inventory row that could not be written to the primary
   // nciiRetainedEvidenceInventory collection (id mirrors the primary row id for traceability).
-  nciiInventoryDeadLetter: (inventoryId: string): [string, string] =>
-    [COLLECTIONS.NCII_INVENTORY_DEAD_LETTER, inventoryId],
+  nciiInventoryDeadLetter: (inventoryId: string): [string, string] => [
+    COLLECTIONS.NCII_INVENTORY_DEAD_LETTER,
+    inventoryId,
+  ],
 
-  nciiCase: (caseId: string): [string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId],
+  nciiCase: (caseId: string): [string, string] => [COLLECTIONS.NCII_CASES, caseId],
 
-  nciiCaseAllegationLink: (caseId: string, allegationId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS, allegationId],
+  nciiCaseAllegationLink: (
+    caseId: string,
+    allegationId: string,
+  ): [string, string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS,
+    allegationId,
+  ],
 
   // Collection of allegation links for a case (parent of nciiCaseAllegationLink).
-  nciiCaseAllegationLinks: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS],
+  nciiCaseAllegationLinks: (caseId: string): [string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS,
+  ],
 
-  nciiCaseRequestLink: (caseId: string, requestId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS, requestId],
+  nciiCaseRequestLink: (caseId: string, requestId: string): [string, string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS,
+    requestId,
+  ],
 
   // Collection of request links for a case (parent of nciiCaseRequestLink).
-  nciiCaseRequestLinks: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS],
+  nciiCaseRequestLinks: (caseId: string): [string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS,
+  ],
 
   // Append-only NCII case closure/reopen events.
-  nciiCaseClosureEvent: (caseId: string, eventId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS, eventId],
+  nciiCaseClosureEvent: (caseId: string, eventId: string): [string, string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
+    eventId,
+  ],
 
   // Collection of closure/reopen events for a case (parent of nciiCaseClosureEvent).
-  nciiCaseClosureEvents: (caseId: string): [string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS],
+  nciiCaseClosureEvents: (caseId: string): [string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
+  ],
 
-  nciiCaseRemovalAction: (caseId: string, actionId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REMOVAL_ACTIONS, actionId],
+  nciiCaseRemovalAction: (caseId: string, actionId: string): [string, string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_REMOVAL_ACTIONS,
+    actionId,
+  ],
 
-  nciiBlockedHash: (caseId: string, hashId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_BLOCKED_HASHES, hashId],
+  nciiBlockedHash: (caseId: string, hashId: string): [string, string, string, string] => [
+    COLLECTIONS.NCII_CASES,
+    caseId,
+    NESTED_SUBCOLLECTIONS.NCII_CASE_BLOCKED_HASHES,
+    hashId,
+  ],
 
-  nciiTemporaryHold: (holdId: string): [string, string] =>
-    [COLLECTIONS.NCII_TEMPORARY_HOLDS, holdId],
+  nciiTemporaryHold: (holdId: string): [string, string] => [
+    COLLECTIONS.NCII_TEMPORARY_HOLDS,
+    holdId,
+  ],
 
-  nciiRemovalJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.NCII_REMOVAL_JOBS, jobId],
+  nciiRemovalJob: (jobId: string): [string, string] => [COLLECTIONS.NCII_REMOVAL_JOBS, jobId],
 
-  nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
+  nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] => [
+    COLLECTIONS.NCII_REMOVAL_JOBS,
+    jobId,
+    NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS,
+    targetKeyHash,
+  ],
 
   // ===== BACKEND-ONLY LEDGERS =====
   // Append-only audit ledger row (auditEvents/{eventId}).
-  auditEvent: (eventId: string): [string, string] =>
-    [COLLECTIONS.AUDIT_EVENTS, eventId],
+  auditEvent: (eventId: string): [string, string] => [COLLECTIONS.AUDIT_EVENTS, eventId],
 
   // The audit ledger collection (parent of auditEvent — the writer mints ids against it).
-  auditEvents: (): [string] =>
-    [COLLECTIONS.AUDIT_EVENTS],
+  auditEvents: (): [string] => [COLLECTIONS.AUDIT_EVENTS],
 
   // Server-owned "archive all" job (notificationArchiveAllJobs/{jobId}; CF-only).
-  notificationArchiveAllJob: (jobId: string): [string, string] =>
-    [COLLECTIONS.NOTIFICATION_ARCHIVE_ALL_JOBS, jobId],
+  notificationArchiveAllJob: (jobId: string): [string, string] => [
+    COLLECTIONS.NOTIFICATION_ARCHIVE_ALL_JOBS,
+    jobId,
+  ],
 
   // ===== TRUST & SAFETY — _serverData (server-only) singletons (§A7, §A11) =====
   // Moved from _appConfig (public) to _serverData (BACKEND-108 — Cloud-Functions-only readers).
-  agePolicyConfig: (): [string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
+  agePolicyConfig: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
 
-  nciiPolicyConfig: (): [string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.NCII_POLICY],
+  nciiPolicyConfig: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.NCII_POLICY],
 
-  privilegedReviewerSecurityConfig: (): [string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY],
+  privilegedReviewerSecurityConfig: (): [string, string] => [
+    COLLECTIONS.SERVER_DATA,
+    SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY,
+  ],
 } as const;

@@ -29,43 +29,45 @@ export const NciiBlockedHashRetentionPolicySchema = z.literal('indefiniteUntilRe
 export type NciiBlockedHashRetentionPolicy = z.infer<typeof NciiBlockedHashRetentionPolicySchema>;
 
 /** `_serverData/nciiPolicy` = `NciiPolicyConfigV1` — the operator launch defaults. */
-export const NciiPolicyConfigV1Schema = z.object({
-  policyVersion: z.literal('ncii.2026-06-23.v1'),
-  requesterPiiRetentionDays: z.number(),
-  evidenceRetentionDays: z.number(),
-  blockedHashRetentionPolicy: NciiBlockedHashRetentionPolicySchema,
-  allowedEvidenceMimeTypes: z.array(z.string().min(1)),
-  maxEvidenceFileBytes: z.number(),
-  maxEvidenceFilesPerRequest: z.number(),
-  maxEvidenceTotalBytesPerRequest: z.number(),
-  uploadReservationMinutes: z.number(),
-  abandonedUploadCleanupHours: z.number(),
-  // [H1/M3] temp-hold values:
-  tempHoldInitialHours: z.number(),
-  tempHoldPendingValidityExtensionHours: z.number(),
-  tempHoldMaxTotalHours: z.number(),
-  incompleteInvalidReleaseDelayHours: z.number(),
-  // [NCII route rate-limit hardening — 2026-07-01, OPERATIONAL operator defaults, not legal-retention
-  // values; counsel may tune]. The public intake route returns 429 + Retry-After and NEVER discards a
-  // submission. App-Check is the PRIMARY defense with only a GENEROUS per-IP burst backstop (generous
-  // enough not to throttle a real VPN/shared-IP victim — per-IP was rejected for the evidence BYTES
-  // path; this is the HTTP route only). (The supplement route + status token were removed with the
-  // public post-submission tracking tail — the public flow is submit-only.)
-  intakeRateLimitWindowSeconds: z.number(),
-  intakeRateLimitMaxPerIp: z.number(),
-  // [H-07] dedup window for the deterministic initial-intake idempotency key
-  idempotencyWindowHours: z.number(),
-  // [M-10] evidence parser-hardening budgets (attacker-controlled bytes):
-  maxEvidenceDecodePixels: z.number(),
-  maxEvidenceImageDimension: z.number(),
-  maxEvidenceVideoFrames: z.number(),
-  maxEvidenceVideoDurationSec: z.number(),
-  evidenceParserTimeoutSec: z.number(),
-  evidenceScanCpuBudgetMs: z.number(),
-  evidenceScanMemoryBudgetMb: z.number(),
-  rejectArchiveAndPolyglotPayloads: z.boolean(),
-  approvedBy: z.literal('operatorLaunchDefault'),
-}).strict();
+export const NciiPolicyConfigV1Schema = z
+  .object({
+    policyVersion: z.literal('ncii.2026-06-23.v1'),
+    requesterPiiRetentionDays: z.number(),
+    evidenceRetentionDays: z.number(),
+    blockedHashRetentionPolicy: NciiBlockedHashRetentionPolicySchema,
+    allowedEvidenceMimeTypes: z.array(z.string().min(1)),
+    maxEvidenceFileBytes: z.number(),
+    maxEvidenceFilesPerRequest: z.number(),
+    maxEvidenceTotalBytesPerRequest: z.number(),
+    uploadReservationMinutes: z.number(),
+    abandonedUploadCleanupHours: z.number(),
+    // [H1/M3] temp-hold values:
+    tempHoldInitialHours: z.number(),
+    tempHoldPendingValidityExtensionHours: z.number(),
+    tempHoldMaxTotalHours: z.number(),
+    incompleteInvalidReleaseDelayHours: z.number(),
+    // [NCII route rate-limit hardening — 2026-07-01, OPERATIONAL operator defaults, not legal-retention
+    // values; counsel may tune]. The public intake route returns 429 + Retry-After and NEVER discards a
+    // submission. App-Check is the PRIMARY defense with only a GENEROUS per-IP burst backstop (generous
+    // enough not to throttle a real VPN/shared-IP victim — per-IP was rejected for the evidence BYTES
+    // path; this is the HTTP route only). (The supplement route + status token were removed with the
+    // public post-submission tracking tail — the public flow is submit-only.)
+    intakeRateLimitWindowSeconds: z.number(),
+    intakeRateLimitMaxPerIp: z.number(),
+    // [H-07] dedup window for the deterministic initial-intake idempotency key
+    idempotencyWindowHours: z.number(),
+    // [M-10] evidence parser-hardening budgets (attacker-controlled bytes):
+    maxEvidenceDecodePixels: z.number(),
+    maxEvidenceImageDimension: z.number(),
+    maxEvidenceVideoFrames: z.number(),
+    maxEvidenceVideoDurationSec: z.number(),
+    evidenceParserTimeoutSec: z.number(),
+    evidenceScanCpuBudgetMs: z.number(),
+    evidenceScanMemoryBudgetMb: z.number(),
+    rejectArchiveAndPolyglotPayloads: z.boolean(),
+    approvedBy: z.literal('operatorLaunchDefault'),
+  })
+  .strict();
 export type NciiPolicyConfigV1 = z.infer<typeof NciiPolicyConfigV1Schema>;
 
 /**
@@ -85,10 +87,18 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   requesterPiiRetentionDays: 90,
   evidenceRetentionDays: 60,
   blockedHashRetentionPolicy: 'indefiniteUntilReversed',
-  allowedEvidenceMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'],
+  allowedEvidenceMimeTypes: [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'video/mp4',
+    'video/webm',
+  ],
   maxEvidenceFileBytes: NCII_EVIDENCE_MAX_FILE_BYTES,
   maxEvidenceFilesPerRequest: NCII_EVIDENCE_MAX_FILES_PER_REQUEST,
-  maxEvidenceTotalBytesPerRequest: NCII_EVIDENCE_MAX_FILES_PER_REQUEST * NCII_EVIDENCE_MAX_FILE_BYTES,
+  maxEvidenceTotalBytesPerRequest:
+    NCII_EVIDENCE_MAX_FILES_PER_REQUEST * NCII_EVIDENCE_MAX_FILE_BYTES,
   uploadReservationMinutes: 30,
   abandonedUploadCleanupHours: 24,
   tempHoldInitialHours: 72,
@@ -135,45 +145,52 @@ export const PrivilegedTwoStepReauthCapabilitySchema = z.enum([
   'falsePositiveCorrection',
   'ncmecManualFallback',
 ]);
-export type PrivilegedTwoStepReauthCapability = z.infer<typeof PrivilegedTwoStepReauthCapabilitySchema>;
+export type PrivilegedTwoStepReauthCapability = z.infer<
+  typeof PrivilegedTwoStepReauthCapabilitySchema
+>;
 
 /** `_serverData/privilegedReviewerSecurity` = `PrivilegedReviewerSecurityProfileV1` —
  * what "fresh reauth" actually means for any privileged-reviewer capability. */
-export const PrivilegedReviewerSecurityProfileV1Schema = z.object({
-  // phishing-resistant; password-only, SMS, and TOTP are NEVER sufficient for a privileged capability
-  requiredSecondFactor: PrivilegedReviewerSecondFactorSchema,
-  // a capability invocation needs a WebAuthn assertion at least this fresh; older → re-prompt
-  privilegedReauthTtlSeconds: z.number(),
-  // the privileged session is bound to the enrolled authenticator/device; separate from the ordinary app session
-  privilegedSessionDeviceBound: z.boolean(),
-  // these require the passkey assertion + an explicit typed confirmation
-  twoStepReauthCapabilities: z.array(PrivilegedTwoStepReauthCapabilitySchema),
-  // offline one-time break-glass codes, generated at enrollment, stored physically offline
-  recoveryCodeCount: z.number(),
-  // using one is logged, fires the external critical alarm, and forces enrolling a fresh passkey
-  recoveryCodeUse: z.literal('auditedHighSeverity+forcesReenroll+criticalAlarm'),
-  // lost-device: revoke ALL privileged sessions → forces re-enrollment before any capability works again
-  allowPrivilegedSessionRevocation: z.boolean(),
-  // each privileged-capability use writes an audit event (actor, capability, caseId, reauth method, before/after for evidence reads)
-  everyInvocationAudited: z.boolean(),
-}).strict();
-export type PrivilegedReviewerSecurityProfileV1 = z.infer<typeof PrivilegedReviewerSecurityProfileV1Schema>;
+export const PrivilegedReviewerSecurityProfileV1Schema = z
+  .object({
+    // phishing-resistant; password-only, SMS, and TOTP are NEVER sufficient for a privileged capability
+    requiredSecondFactor: PrivilegedReviewerSecondFactorSchema,
+    // a capability invocation needs a WebAuthn assertion at least this fresh; older → re-prompt
+    privilegedReauthTtlSeconds: z.number(),
+    // the privileged session is bound to the enrolled authenticator/device; separate from the ordinary app session
+    privilegedSessionDeviceBound: z.boolean(),
+    // these require the passkey assertion + an explicit typed confirmation
+    twoStepReauthCapabilities: z.array(PrivilegedTwoStepReauthCapabilitySchema),
+    // offline one-time break-glass codes, generated at enrollment, stored physically offline
+    recoveryCodeCount: z.number(),
+    // using one is logged, fires the external critical alarm, and forces enrolling a fresh passkey
+    recoveryCodeUse: z.literal('auditedHighSeverity+forcesReenroll+criticalAlarm'),
+    // lost-device: revoke ALL privileged sessions → forces re-enrollment before any capability works again
+    allowPrivilegedSessionRevocation: z.boolean(),
+    // each privileged-capability use writes an audit event (actor, capability, caseId, reauth method, before/after for evidence reads)
+    everyInvocationAudited: z.boolean(),
+  })
+  .strict();
+export type PrivilegedReviewerSecurityProfileV1 = z.infer<
+  typeof PrivilegedReviewerSecurityProfileV1Schema
+>;
 
 /** The frozen launch default for `_serverData/privilegedReviewerSecurity`. */
-export const DEFAULT_PRIVILEGED_REVIEWER_SECURITY_PROFILE_V1: PrivilegedReviewerSecurityProfileV1 = {
-  requiredSecondFactor: 'passkeyWebAuthn',
-  privilegedReauthTtlSeconds: 300,
-  privilegedSessionDeviceBound: true,
-  twoStepReauthCapabilities: [
-    'evidenceReveal',
-    'ncmecCredentialUse',
-    'reverseHashBlock',
-    'legalDisposition',
-    'falsePositiveCorrection',
-    'ncmecManualFallback',
-  ],
-  recoveryCodeCount: 10,
-  recoveryCodeUse: 'auditedHighSeverity+forcesReenroll+criticalAlarm',
-  allowPrivilegedSessionRevocation: true,
-  everyInvocationAudited: true,
-};
+export const DEFAULT_PRIVILEGED_REVIEWER_SECURITY_PROFILE_V1: PrivilegedReviewerSecurityProfileV1 =
+  {
+    requiredSecondFactor: 'passkeyWebAuthn',
+    privilegedReauthTtlSeconds: 300,
+    privilegedSessionDeviceBound: true,
+    twoStepReauthCapabilities: [
+      'evidenceReveal',
+      'ncmecCredentialUse',
+      'reverseHashBlock',
+      'legalDisposition',
+      'falsePositiveCorrection',
+      'ncmecManualFallback',
+    ],
+    recoveryCodeCount: 10,
+    recoveryCodeUse: 'auditedHighSeverity+forcesReenroll+criticalAlarm',
+    allowPrivilegedSessionRevocation: true,
+    everyInvocationAudited: true,
+  };

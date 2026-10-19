@@ -67,7 +67,9 @@ describe('RelativeTime', () => {
     });
 
     expect(mockFn).toHaveBeenCalledTimes(1);
-    await act(async () => { vi.advanceTimersByTime(1000); });
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
     expect(mockFn.mock.calls.length).toBeGreaterThan(1);
   });
 });

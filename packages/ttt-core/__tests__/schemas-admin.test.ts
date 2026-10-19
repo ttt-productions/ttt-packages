@@ -35,11 +35,13 @@ describe('AdminReplayDeadLetterInputSchema', () => {
   const common = { reason: 'The upstream edge service recovered.' };
 
   it('keeps ordinary dead-letter targets as a flat collection/doc id pair', () => {
-    expect(AdminReplayDeadLetterInputSchema.safeParse({
-      ...common,
-      collection: 'chatSyncEvents',
-      docId: 'event-1',
-    }).success).toBe(true);
+    expect(
+      AdminReplayDeadLetterInputSchema.safeParse({
+        ...common,
+        collection: 'chatSyncEvents',
+        docId: 'event-1',
+      }).success,
+    ).toBe(true);
   });
 
   it('requires canonical Hall identity fields instead of accepting a free-form nested path', () => {
@@ -56,18 +58,24 @@ describe('AdminReplayDeadLetterInputSchema', () => {
       workProjectType: 'Tunes',
       subItemId: 'track-1',
     });
-    expect(AdminReplayDeadLetterInputSchema.safeParse({
-      ...common,
-      collection: 'hallSubItemEdgeSync',
-      docId: 'hallItems/hall-1/hallItemTunes/track-1',
-    }).success).toBe(false);
+    expect(
+      AdminReplayDeadLetterInputSchema.safeParse({
+        ...common,
+        collection: 'hallSubItemEdgeSync',
+        docId: 'hallItems/hall-1/hallItemTunes/track-1',
+      }).success,
+    ).toBe(false);
   });
 });
 
 describe('GetDeadLettersInputSchema', () => {
   it('lists only flat dead-letter lanes; Hall edge-sync remains replay-only with a structured target', () => {
-    expect(GetDeadLettersInputSchema.safeParse({ collection: 'chatSyncFanoutJobs' }).success).toBe(true);
-    expect(GetDeadLettersInputSchema.safeParse({ collection: 'hallSubItemEdgeSync' }).success).toBe(false);
+    expect(GetDeadLettersInputSchema.safeParse({ collection: 'chatSyncFanoutJobs' }).success).toBe(
+      true,
+    );
+    expect(GetDeadLettersInputSchema.safeParse({ collection: 'hallSubItemEdgeSync' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -81,7 +89,9 @@ describe('OperatorStepUpSchema', () => {
 
   it('accepts durable brute-force lockout fields while preserving rows written before them', () => {
     expect(OperatorStepUpSchema.safeParse(base).success).toBe(true);
-    expect(OperatorStepUpSchema.safeParse({ ...base, failedAttempts: 2, lockedUntil: 10 }).success).toBe(true);
+    expect(
+      OperatorStepUpSchema.safeParse({ ...base, failedAttempts: 2, lockedUntil: 10 }).success,
+    ).toBe(true);
     expect(OperatorStepUpSchema.safeParse({ ...base, failedAttempts: -1 }).success).toBe(false);
     expect(OperatorStepUpSchema.safeParse({ ...base, lockedUntil: -1 }).success).toBe(false);
   });
@@ -99,26 +109,39 @@ describe('announcementMessage — the third operational lever on _config/app', (
   });
 
   it('accepts announcement copy, and EMPTY (no banner) is a valid stored value', () => {
-    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: 'Back at 9pm ET.' }).success).toBe(true);
+    expect(
+      AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: 'Back at 9pm ET.' }).success,
+    ).toBe(true);
     // Empty = no banner. There is no separate on/off boolean, so clearing the text IS the off state.
-    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: '' }).success).toBe(true);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: '' }).success).toBe(
+      true,
+    );
   });
 
   it('caps the banner copy at the canonical length on BOTH the doc and the callable input', () => {
     const tooLong = 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH + 1);
     const atCap = 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH);
-    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: atCap }).success).toBe(true);
-    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: tooLong }).success).toBe(false);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: atCap }).success).toBe(
+      true,
+    );
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: tooLong }).success).toBe(
+      false,
+    );
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: atCap } }).success,
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: atCap } })
+        .success,
     ).toBe(true);
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: tooLong } }).success,
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: tooLong } })
+        .success,
     ).toBe(false);
   });
 
   it('is writable on its own through updateAppConfig — the lever is independent of the others', () => {
-    const parsed = UpdateAppConfigInputSchema.parse({ docId: 'app', data: { announcementMessage: '' } });
+    const parsed = UpdateAppConfigInputSchema.parse({
+      docId: 'app',
+      data: { announcementMessage: '' },
+    });
     expect(parsed.data.announcementMessage).toBe('');
     expect(parsed.data.maintenanceMode).toBeUndefined();
     expect(parsed.data.registrationEnabled).toBeUndefined();
@@ -126,10 +149,12 @@ describe('announcementMessage — the third operational lever on _config/app', (
 
   it('rejects a non-string announcement (the input stays .strict())', () => {
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: true } }).success,
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: true } })
+        .success,
     ).toBe(false);
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementBanner: 'x' } }).success,
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementBanner: 'x' } })
+        .success,
     ).toBe(false);
   });
 });
@@ -144,24 +169,34 @@ describe('_appConfig/app text levers — one cap for the doc and its update inpu
   it('caps the maintenance copy at the canonical length on BOTH the doc and the callable input', () => {
     const atCap = 'a'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH);
     const tooLong = 'a'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1);
-    expect(AppConfigSchema.safeParse({ ...baseConfig, maintenanceMessage: atCap }).success).toBe(true);
-    expect(AppConfigSchema.safeParse({ ...baseConfig, maintenanceMessage: tooLong }).success).toBe(false);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, maintenanceMessage: atCap }).success).toBe(
+      true,
+    );
+    expect(AppConfigSchema.safeParse({ ...baseConfig, maintenanceMessage: tooLong }).success).toBe(
+      false,
+    );
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { maintenanceMessage: atCap } }).success,
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { maintenanceMessage: atCap } })
+        .success,
     ).toBe(true);
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { maintenanceMessage: tooLong } }).success,
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { maintenanceMessage: tooLong } })
+        .success,
     ).toBe(false);
   });
 
-  it('caps the app version at the canonical length on BOTH, and the doc still holds the unpublished \'\'', () => {
+  it("caps the app version at the canonical length on BOTH, and the doc still holds the unpublished ''", () => {
     const atCap = '1'.repeat(MAX_APP_VERSION_LENGTH);
     const tooLong = '1'.repeat(MAX_APP_VERSION_LENGTH + 1);
     expect(AppConfigSchema.safeParse({ ...baseConfig, appVersion: atCap }).success).toBe(true);
     expect(AppConfigSchema.safeParse({ ...baseConfig, appVersion: tooLong }).success).toBe(false);
     expect(AppConfigSchema.safeParse({ ...baseConfig, appVersion: '' }).success).toBe(true);
-    expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: atCap } }).success).toBe(true);
-    expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: tooLong } }).success).toBe(false);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: atCap } }).success,
+    ).toBe(true);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: tooLong } }).success,
+    ).toBe(false);
   });
 
   it('every text lever the update input declares carries the same cap on the doc', () => {
@@ -177,7 +212,9 @@ describe('_appConfig/app text levers — one cap for the doc and its update inpu
     };
     const drift = Object.entries(declared).flatMap(([field, declaration]) => {
       const cap = field in docFields ? docCap(docFields[field]) : 'absent from the doc';
-      return cap === declaration.max ? [] : [`${field}: input caps at ${declaration.max}, doc at ${cap}`];
+      return cap === declaration.max
+        ? []
+        : [`${field}: input caps at ${declaration.max}, doc at ${cap}`];
     });
     expect(drift).toEqual([]);
   });
@@ -223,7 +260,12 @@ describe('UpdateAdminListInputSchema', () => {
   });
 
   it('takes only a real account uid in every list: never blank, a non-segment, or padded', () => {
-    for (const field of ['addAdminUids', 'removeAdminUids', 'addJrAdminUids', 'removeJrAdminUids']) {
+    for (const field of [
+      'addAdminUids',
+      'removeAdminUids',
+      'addJrAdminUids',
+      'removeJrAdminUids',
+    ]) {
       for (const uid of ['', 'a/b', '.', '..', ' ', ' uid-1', 'uid-1 ']) {
         expect(UpdateAdminListInputSchema.safeParse({ [field]: [uid] }).success).toBe(false);
       }
@@ -254,11 +296,15 @@ describe('Restore*InputSchema — optional cascadeId', () => {
       workRealmId: 'wr-1',
       cascadeId: 'c-1',
     });
-    expect(RestoreWorkRealmInputSchema.parse({ workRealmId: 'wr-1' })).toEqual({ workRealmId: 'wr-1' });
+    expect(RestoreWorkRealmInputSchema.parse({ workRealmId: 'wr-1' })).toEqual({
+      workRealmId: 'wr-1',
+    });
   });
 
   it('RestoreWorkRealmInputSchema still rejects an empty-string cascadeId when supplied', () => {
-    expect(() => RestoreWorkRealmInputSchema.parse({ workRealmId: 'wr-1', cascadeId: '' })).toThrow();
+    expect(() =>
+      RestoreWorkRealmInputSchema.parse({ workRealmId: 'wr-1', cascadeId: '' }),
+    ).toThrow();
   });
 
   it('both reject unknown fields (strict)', () => {
@@ -431,7 +477,12 @@ describe('StagedActionSchema — clearContentText arm (in-flow clear-content dis
 
 describe('sensitive-action result receipts carry an optional auditEventId', () => {
   it('ReviewContentAppealResultSchema parses WITH and WITHOUT auditEventId', () => {
-    const base = { success: true as const, violationId: 'v-1', decision: 'approved' as const, userId: 'u-1' };
+    const base = {
+      success: true as const,
+      violationId: 'v-1',
+      decision: 'approved' as const,
+      userId: 'u-1',
+    };
     expect(ReviewContentAppealResultSchema.parse(base).auditEventId).toBeUndefined();
     const withId = ReviewContentAppealResultSchema.parse({ ...base, auditEventId: 'evt-9' });
     expect(withId.auditEventId).toBe('evt-9');
@@ -446,7 +497,9 @@ describe('sensitive-action result receipts carry an optional auditEventId', () =
       jrAdminsRevoked: 0,
     };
     expect(UpdateAdminListResultSchema.parse(base).auditEventId).toBeUndefined();
-    expect(UpdateAdminListResultSchema.parse({ ...base, auditEventId: 'evt-7' }).auditEventId).toBe('evt-7');
+    expect(UpdateAdminListResultSchema.parse({ ...base, auditEventId: 'evt-7' }).auditEventId).toBe(
+      'evt-7',
+    );
   });
 
   it('rejects an empty-string auditEventId when supplied', () => {
@@ -497,7 +550,9 @@ describe('GetReportedContentDetailResultSchema — resolved clearableSurface', (
 
   it('rejects a value that is not a canonical clearable surface', () => {
     for (const bad of ['Tales', 'hall-library-sub-item', 'title', 'squarePost', '']) {
-      expect(GetReportedContentDetailResultSchema.safeParse({ ...base, clearableSurface: bad }).success).toBe(false);
+      expect(
+        GetReportedContentDetailResultSchema.safeParse({ ...base, clearableSurface: bad }).success,
+      ).toBe(false);
     }
   });
 
@@ -515,22 +570,24 @@ describe('GetReportedContentDetailResultSchema — resolved clearableSurface', (
       // At least one union member is NOT valid for this surface — i.e. the union genuinely
       // over-offers and resolving the surface is what narrows it.
       expect(
-        HALL_CLEARABLE_TEXT_FIELD_NAMES.some((field) => !(surfaceFields as readonly string[]).includes(field)),
+        HALL_CLEARABLE_TEXT_FIELD_NAMES.some(
+          (field) => !(surfaceFields as readonly string[]).includes(field),
+        ),
       ).toBe(true);
     }
   });
 
   it('a resolved surface indexes the exact field set the picker must offer', () => {
-    expect(MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemSurface]).toEqual([
-      'title',
-      'content',
-    ]);
-    expect(MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemSurface]).toEqual([
-      'title',
-      'description',
-    ]);
     expect(
-      MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemSurface],
+      MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemSurface],
+    ).toEqual(['title', 'content']);
+    expect(
+      MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemSurface],
+    ).toEqual(['title', 'description']);
+    expect(
+      MODERATION_CLEARABLE_TEXT_FIELDS[
+        HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemSurface
+      ],
     ).toEqual(['title', 'description']);
   });
 });
@@ -538,10 +595,18 @@ describe('GetReportedContentDetailResultSchema — resolved clearableSurface', (
 describe('CheckTrademarkInputSchema — the sub-item title is a title or absent', () => {
   it('accepts a work title alone, and with a sub-item title', () => {
     expect(CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road' }).success).toBe(true);
-    expect(CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road', subItemTitle: 'Chapter One' }).success).toBe(true);
+    expect(
+      CheckTrademarkInputSchema.safeParse({
+        workTitle: 'The Long Road',
+        subItemTitle: 'Chapter One',
+      }).success,
+    ).toBe(true);
   });
 
   it('refuses a null sub-item title — the client sends a title or leaves the field out', () => {
-    expect(CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road', subItemTitle: null }).success).toBe(false);
+    expect(
+      CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road', subItemTitle: null })
+        .success,
+    ).toBe(false);
   });
 });

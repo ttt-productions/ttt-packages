@@ -5,7 +5,8 @@
 export const SCHEDULE_CONFLICT_KIND_KEYS = ['sharedLocation', 'teamDoubleBooked'] as const;
 export type ScheduleConflictKind = (typeof SCHEDULE_CONFLICT_KIND_KEYS)[number];
 export const SHARED_LOCATION_CONFLICT = 'sharedLocation' as const satisfies ScheduleConflictKind;
-export const TEAM_DOUBLE_BOOKED_CONFLICT = 'teamDoubleBooked' as const satisfies ScheduleConflictKind;
+export const TEAM_DOUBLE_BOOKED_CONFLICT =
+  'teamDoubleBooked' as const satisfies ScheduleConflictKind;
 
 // What a game's deletion was part of: the game alone, its whole week, or its team's deletion. The
 // deletion's audit event records it.

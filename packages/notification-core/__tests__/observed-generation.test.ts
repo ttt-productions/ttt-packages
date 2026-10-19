@@ -3,7 +3,12 @@ import {
   markNotificationSeenWithGeneration,
   archiveNotificationWithGeneration,
 } from '../src/server/observed-generation.js';
-import type { ServerFirestore, ServerDocRef, ServerDocSnapshot, ServerTransaction } from '../src/server/types.js';
+import type {
+  ServerFirestore,
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerTransaction,
+} from '../src/server/types.js';
 
 function createMockFirestore() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -13,25 +18,54 @@ function createMockFirestore() {
   };
   const makeDocRef = (colPath: string, id: string): ServerDocRef => ({
     id,
-    set: async (data) => { getCol(colPath).set(id, { ...data }); },
-    update: async (data) => { getCol(colPath).set(id, { ...(getCol(colPath).get(id) ?? {}), ...data }); },
-    create: async (data) => { if (getCol(colPath).has(id)) throw Object.assign(new Error('already-exists'), { code: 6 }); getCol(colPath).set(id, { ...data }); },
-    delete: async () => { getCol(colPath).delete(id); },
+    set: async (data) => {
+      getCol(colPath).set(id, { ...data });
+    },
+    update: async (data) => {
+      getCol(colPath).set(id, { ...(getCol(colPath).get(id) ?? {}), ...data });
+    },
+    create: async (data) => {
+      if (getCol(colPath).has(id)) throw Object.assign(new Error('already-exists'), { code: 6 });
+      getCol(colPath).set(id, { ...data });
+    },
+    delete: async () => {
+      getCol(colPath).delete(id);
+    },
     get: async (): Promise<ServerDocSnapshot> => {
       const data = getCol(colPath).get(id);
-      return { id, exists: !!data, data: () => (data ? { ...data } : undefined), ref: makeDocRef(colPath, id) };
+      return {
+        id,
+        exists: !!data,
+        data: () => (data ? { ...data } : undefined),
+        ref: makeDocRef(colPath, id),
+      };
     },
   });
   const db: ServerFirestore = {
-    collection: () => { throw new Error('not used'); },
-    doc: () => { throw new Error('not used'); },
-    batch: () => { throw new Error('not used'); },
+    collection: () => {
+      throw new Error('not used');
+    },
+    doc: () => {
+      throw new Error('not used');
+    },
+    batch: () => {
+      throw new Error('not used');
+    },
     runTransaction: async (fn) => {
       const tx = {
         get: (ref: ServerDocRef) => ref.get(),
-        set: (ref: ServerDocRef, data: Record<string, unknown>) => { void ref.set(data); return tx; },
-        update: (ref: ServerDocRef, data: Record<string, unknown>) => { void ref.update(data); return tx; },
-        delete: (ref: ServerDocRef) => { void ref.delete(); return tx; },
+        set: (ref: ServerDocRef, data: Record<string, unknown>) => {
+          void ref.set(data);
+          return tx;
+        },
+        update: (ref: ServerDocRef, data: Record<string, unknown>) => {
+          void ref.update(data);
+          return tx;
+        },
+        delete: (ref: ServerDocRef) => {
+          void ref.delete();
+          return tx;
+        },
       };
       return fn(tx);
     },
@@ -45,7 +79,10 @@ describe('markNotificationSeenWithGeneration', () => {
   it('stamps seenAt when the observed generation matches', async () => {
     const { db, getCol, makeDocRef } = createMockFirestore();
     getCol('active').set('c1', { activityGeneration: 'gen1', seenAt: 0 });
-    const outcome = await markNotificationSeenWithGeneration(db, makeDocRef('active', 'c1'), { observedActivityGeneration: 'gen1', now: 50 });
+    const outcome = await markNotificationSeenWithGeneration(db, makeDocRef('active', 'c1'), {
+      observedActivityGeneration: 'gen1',
+      now: 50,
+    });
     expect(outcome).toBe('seen');
     expect(getCol('active').get('c1')).toMatchObject({ seenAt: 50, seenAtGeneration: 'gen1' });
   });
@@ -53,14 +90,21 @@ describe('markNotificationSeenWithGeneration', () => {
   it('no-ops when the generation has rotated (newer activity not swallowed)', async () => {
     const { db, getCol, makeDocRef } = createMockFirestore();
     getCol('active').set('c1', { activityGeneration: 'gen2', seenAt: 0 });
-    const outcome = await markNotificationSeenWithGeneration(db, makeDocRef('active', 'c1'), { observedActivityGeneration: 'gen1', now: 50 });
+    const outcome = await markNotificationSeenWithGeneration(db, makeDocRef('active', 'c1'), {
+      observedActivityGeneration: 'gen1',
+      now: 50,
+    });
     expect(outcome).toBe('generation-mismatch');
     expect(getCol('active').get('c1')!.seenAt).toBe(0);
   });
 
   it('returns missing for an absent card', async () => {
     const { db, makeDocRef } = createMockFirestore();
-    expect(await markNotificationSeenWithGeneration(db, makeDocRef('active', 'gone'), { observedActivityGeneration: 'g' })).toBe('missing');
+    expect(
+      await markNotificationSeenWithGeneration(db, makeDocRef('active', 'gone'), {
+        observedActivityGeneration: 'g',
+      }),
+    ).toBe('missing');
   });
 });
 
@@ -84,7 +128,13 @@ describe('archiveNotificationWithGeneration', () => {
     expect(outcome).toBe('archived');
     expect(getCol('active').has('c1')).toBe(false);
     const h = getCol('history').get('h1')!;
-    expect(h).toMatchObject({ archiveOccurrenceId: 'h1', requestId: 'req1', payloadHash: 'hashA', activeId: 'c1', observedActivityGeneration: 'gen1' });
+    expect(h).toMatchObject({
+      archiveOccurrenceId: 'h1',
+      requestId: 'req1',
+      payloadHash: 'hashA',
+      activeId: 'c1',
+      observedActivityGeneration: 'gen1',
+    });
     expect(h.expireAt).toEqual({ __ts: 9000 });
     expect((h.archivedSnapshot as Record<string, unknown>).count).toBe(3);
   });
@@ -127,10 +177,16 @@ describe('archiveNotificationWithGeneration', () => {
     const auditWrite = vi.fn((txn: ServerTransaction) => {
       txSeenByHook = txn;
       // The hook composes its own write into the SAME transaction.
-      txn.set(makeDocRef('audit', 'a1'), { type: 'notification.adminArchived', handledBy: 'admin1' });
+      txn.set(makeDocRef('audit', 'a1'), {
+        type: 'notification.adminArchived',
+        handledBy: 'admin1',
+      });
     });
 
-    const outcome = await archiveNotificationWithGeneration(db, { ...baseParams(makeDocRef), auditWrite });
+    const outcome = await archiveNotificationWithGeneration(db, {
+      ...baseParams(makeDocRef),
+      auditWrite,
+    });
 
     expect(outcome).toBe('archived');
     expect(auditWrite).toHaveBeenCalledTimes(1);
@@ -140,7 +196,10 @@ describe('archiveNotificationWithGeneration', () => {
     expect(typeof txSeenByHook!.set).toBe('function');
     expect(getCol('active').has('c1')).toBe(false);
     expect(getCol('history').has('h1')).toBe(true);
-    expect(getCol('audit').get('a1')).toMatchObject({ type: 'notification.adminArchived', handledBy: 'admin1' });
+    expect(getCol('audit').get('a1')).toMatchObject({
+      type: 'notification.adminArchived',
+      handledBy: 'admin1',
+    });
   });
 
   it('awaits an async auditWrite hook before the archive resolves', async () => {
@@ -152,7 +211,10 @@ describe('archiveNotificationWithGeneration', () => {
       txn.set(makeDocRef('audit', 'a1'), { type: 'notification.adminArchived' });
     };
 
-    const outcome = await archiveNotificationWithGeneration(db, { ...baseParams(makeDocRef), auditWrite });
+    const outcome = await archiveNotificationWithGeneration(db, {
+      ...baseParams(makeDocRef),
+      auditWrite,
+    });
 
     expect(outcome).toBe('archived');
     expect(getCol('audit').has('a1')).toBe(true);
@@ -194,7 +256,10 @@ describe('archiveNotificationWithGeneration', () => {
     getCol('active').set('c1', { activityGeneration: 'gen1' });
 
     const auditWrite = vi.fn();
-    const outcome = await archiveNotificationWithGeneration(db, { ...baseParams(makeDocRef), auditWrite });
+    const outcome = await archiveNotificationWithGeneration(db, {
+      ...baseParams(makeDocRef),
+      auditWrite,
+    });
 
     expect(outcome).toBe('conflict');
     expect(auditWrite).not.toHaveBeenCalled();

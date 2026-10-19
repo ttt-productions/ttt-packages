@@ -1,17 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { MediaProcessingResult, MediaProcessingSpec } from '@ttt-productions/media-schemas';
-import {
-  processMedia,
-  defaultMediaProcessors,
-} from '../src/process-media.js';
+import { processMedia, defaultMediaProcessors } from '../src/process-media.js';
 import { processImage } from '../src/image/image-processor.js';
 import { processVideo } from '../src/video/video-processor.js';
 import { processAudio } from '../src/audio/audio-processor.js';
-import type {
-  MediaProcessors,
-  ProcessMediaContext,
-  ProcessMediaOptions,
-} from '../src/types.js';
+import type { MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from '../src/types.js';
 
 const ctx: ProcessMediaContext = {
   inputPath: '/tmp/in',
@@ -44,7 +37,11 @@ function makeFakeProcessors(): {
   processors: MediaProcessors;
   calls: { image: RecordedCall[]; video: RecordedCall[]; audio: RecordedCall[] };
 } {
-  const calls = { image: [] as RecordedCall[], video: [] as RecordedCall[], audio: [] as RecordedCall[] };
+  const calls = {
+    image: [] as RecordedCall[],
+    video: [] as RecordedCall[],
+    audio: [] as RecordedCall[],
+  };
   const processors: MediaProcessors = {
     image: async (spec, c, opts) => {
       calls.image.push({ spec, ctx: c, opts });
@@ -107,13 +104,17 @@ describe('processMedia — routing with injected processors', () => {
 
   it('forwards ctx to the chosen processor unchanged', async () => {
     const { processors, calls } = makeFakeProcessors();
-    const localCtx: ProcessMediaContext = { inputPath: '/x', outputBasePath: '/y', inputMime: 'image/png' };
+    const localCtx: ProcessMediaContext = {
+      inputPath: '/x',
+      outputBasePath: '/y',
+      inputMime: 'image/png',
+    };
     const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
     await processMedia(spec, localCtx, undefined, processors);
     expect(calls.image[0].ctx).toBe(localCtx);
   });
 
-  it('propagates the processor\'s rejection when the processor throws', async () => {
+  it("propagates the processor's rejection when the processor throws", async () => {
     const boom = new Error('boom');
     const processors: MediaProcessors = {
       image: async () => {

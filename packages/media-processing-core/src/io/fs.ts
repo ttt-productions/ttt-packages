@@ -1,7 +1,7 @@
-import type { MediaIO } from "./types.js";
-import { copyFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-import { sanitizeKey } from "../utils/safe-path.js";
+import type { MediaIO } from './types.js';
+import { copyFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import { sanitizeKey } from '../utils/safe-path.js';
 
 export function createFsIO(args: {
   inputPath: string;
@@ -26,7 +26,7 @@ export function createFsIO(args: {
         const resolvedDir = path.resolve(args.outputDir);
         const resolvedOut = path.resolve(out);
         if (!resolvedOut.startsWith(resolvedDir + path.sep) && resolvedOut !== resolvedDir) {
-          throw new Error("Unsafe output path");
+          throw new Error('Unsafe output path');
         }
         await copyFile(localPath, out);
         return { path: out, url: `file://${out}` };

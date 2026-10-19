@@ -9,16 +9,21 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { lineOfNode } from '../../support/ast.js';
-import { namesProblem, reviewedProblems, loaderProblem, type Loader, textProblem } from '../../support/facts.js';
 import {
-  CORE_CODE,
-  coreBuild,
-  filesIn,
-  isCount,
-  topLevelDeclaration,
-} from './shared.js';
+  namesProblem,
+  reviewedProblems,
+  loaderProblem,
+  type Loader,
+  textProblem,
+} from '../../support/facts.js';
+import { CORE_CODE, coreBuild, filesIn, isCount, topLevelDeclaration } from './shared.js';
 
-type ReviewedCounts = ReadonlyArray<{ file: string; declaration: string; count: number; why: string }>;
+type ReviewedCounts = ReadonlyArray<{
+  file: string;
+  declaration: string;
+  count: number;
+  why: string;
+}>;
 type FieldSchema = { safeParse: (value: unknown) => { success: boolean; data?: unknown } };
 
 export interface TextFieldDeclarationFacts {
@@ -57,14 +62,19 @@ const BUILT_IN_FORMAT_METHODS = new Set(['regex', 'url', 'email', 'uuid']);
 function chainedCalls(root: ts.CallExpression): ts.CallExpression[] {
   const calls: ts.CallExpression[] = [];
   let node: ts.Node = root;
-  while (ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node && ts.isCallExpression(node.parent.parent)) {
+  while (
+    ts.isPropertyAccessExpression(node.parent) &&
+    node.parent.expression === node &&
+    ts.isCallExpression(node.parent.parent)
+  ) {
     calls.push(node.parent.parent);
     node = node.parent.parent;
   }
   return calls;
 }
 
-const methodOf = (call: ts.CallExpression) => (call.expression as ts.PropertyAccessExpression).name.text;
+const methodOf = (call: ts.CallExpression) =>
+  (call.expression as ts.PropertyAccessExpression).name.text;
 
 interface Site {
   key: string;
@@ -81,9 +91,17 @@ export function selfBoundedChains(file: FileView): Site[] {
         if (method === 'trim') return true;
         if (method !== 'min' && method !== 'max') return false;
         const [argument] = call.arguments;
-        return argument !== undefined && ts.isIdentifier(argument) && TEXT_LENGTH_CONSTANT.test(argument.text);
+        return (
+          argument !== undefined &&
+          ts.isIdentifier(argument) &&
+          TEXT_LENGTH_CONSTANT.test(argument.text)
+        );
       });
-      if (bounded) sites.push({ key: `${file.path}#${topLevelDeclaration(node)}`, line: lineOfNode(file, node) });
+      if (bounded)
+        sites.push({
+          key: `${file.path}#${topLevelDeclaration(node)}`,
+          line: lineOfNode(file, node),
+        });
     }
     ts.forEachChild(node, visit);
   };
@@ -92,7 +110,10 @@ export function selfBoundedChains(file: FileView): Site[] {
 }
 
 /** Every free-text-named `z.string()` property of a wire input declaration that carries no built-in format. */
-export function undeclaredFreeText(file: FileView, isWireInput: (declaration: string) => boolean): Site[] {
+export function undeclaredFreeText(
+  file: FileView,
+  isWireInput: (declaration: string) => boolean,
+): Site[] {
   const sites: Site[] = [];
   const visit = (node: ts.Node): void => {
     if (isZString(node)) {
@@ -101,12 +122,23 @@ export function undeclaredFreeText(file: FileView, isWireInput: (declaration: st
       const outer: ts.Node = calls.length ? calls[calls.length - 1] : node;
       const parent = outer.parent;
       let property: string | null = null;
-      if (parent && ts.isPropertyAssignment(parent)) property = parent.name.getText(file.sourceFile);
-      else if (parent && ts.isCallExpression(parent) && parent.parent && ts.isPropertyAssignment(parent.parent)) {
+      if (parent && ts.isPropertyAssignment(parent))
+        property = parent.name.getText(file.sourceFile);
+      else if (
+        parent &&
+        ts.isCallExpression(parent) &&
+        parent.parent &&
+        ts.isPropertyAssignment(parent.parent)
+      ) {
         property = parent.parent.name.getText(file.sourceFile);
       }
       const builtIn = calls.some((call) => BUILT_IN_FORMAT_METHODS.has(methodOf(call)));
-      if (property !== null && isWireInput(declaration) && FREE_TEXT_PROPERTY.test(property) && !builtIn) {
+      if (
+        property !== null &&
+        isWireInput(declaration) &&
+        FREE_TEXT_PROPERTY.test(property) &&
+        !builtIn
+      ) {
         sites.push({ key: `${file.path}#${declaration}`, line: lineOfNode(file, node) });
       }
     }
@@ -117,7 +149,11 @@ export function undeclaredFreeText(file: FileView, isWireInput: (declaration: st
 }
 
 /** Sites against reviewed `module#declaration` counts: an excess site fails, a short count is stale. */
-function compareReviewed(sites: readonly Site[], reviewed: ReviewedCounts, what: string): Finding[] {
+function compareReviewed(
+  sites: readonly Site[],
+  reviewed: ReviewedCounts,
+  what: string,
+): Finding[] {
   const findings: Finding[] = [];
   const byKey = new Map<string, Site[]>();
   for (const site of sites) byKey.set(site.key, [...(byKey.get(site.key) ?? []), site]);
@@ -125,23 +161,38 @@ function compareReviewed(sites: readonly Site[], reviewed: ReviewedCounts, what:
   for (const [key, found] of byKey) {
     const count = allowed.get(key) ?? 0;
     const file = key.slice(0, key.indexOf('#'));
-    for (const site of found.slice(count)) findings.push({ file, line: site.line, detail: `${what} in ${key.slice(key.indexOf('#') + 1)}${count ? ` beyond the ${count} reviewed` : ''}` });
+    for (const site of found.slice(count))
+      findings.push({
+        file,
+        line: site.line,
+        detail: `${what} in ${key.slice(key.indexOf('#') + 1)}${count ? ` beyond the ${count} reviewed` : ''}`,
+      });
   }
   for (const [key, count] of allowed) {
     const found = byKey.get(key)?.length ?? 0;
-    if (found < count) findings.push({ file: key.slice(0, key.indexOf('#')), detail: `stale reviewed count for ${key}: reviewed ${count}, found ${found}` });
+    if (found < count)
+      findings.push({
+        file: key.slice(0, key.indexOf('#')),
+        detail: `stale reviewed count for ${key}: reviewed ${count}, found ${found}`,
+      });
   }
   return findings;
 }
 
 type Declaration = { format?: unknown; min?: number; keepAsTyped?: unknown };
 const textDeclarations = (exports: Readonly<Record<string, unknown>>) =>
-  Object.entries(exports).filter((e): e is [string, Declaration] => typeof e[1] === 'object' && e[1] !== null && 'format' in e[1]);
+  Object.entries(exports).filter(
+    (e): e is [string, Declaration] =>
+      typeof e[1] === 'object' && e[1] !== null && 'format' in e[1],
+  );
 
 const reviewedCountProblems = (value: unknown, what: string, problems: string[]) =>
   reviewedProblems(value, what, problems, {
     key: 'file',
-    id: (e) => (typeof e.declaration === 'string' && e.declaration.trim() ? `${e.file}#${e.declaration}` : undefined),
+    id: (e) =>
+      typeof e.declaration === 'string' && e.declaration.trim()
+        ? `${e.file}#${e.declaration}`
+        : undefined,
     idNames: 'declaration',
     extra(entry, label) {
       if (!isCount(entry.count)) problems.push(`${label}'s count must be a positive whole number`);
@@ -177,8 +228,17 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
         timeoutMs: 120_000,
         run(context) {
           const findings: Finding[] = [];
-          const sites = wireFiles(context, findings).flatMap((f) => undeclaredFreeText(f, isWireInput));
-          return [...findings, ...compareReviewed(sites, facts.undeclaredFreeText, 'an undeclared free-text z.string() property')];
+          const sites = wireFiles(context, findings).flatMap((f) =>
+            undeclaredFreeText(f, isWireInput),
+          );
+          return [
+            ...findings,
+            ...compareReviewed(
+              sites,
+              facts.undeclaredFreeText,
+              'an undeclared free-text z.string() property',
+            ),
+          ];
         },
       },
       {
@@ -191,7 +251,10 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
         run(context) {
           const findings: Finding[] = [];
           const sites = wireFiles(context, findings).flatMap(selfBoundedChains);
-          return [...findings, ...compareReviewed(sites, facts.selfBounded, 'a self-bounded z.string() chain')];
+          return [
+            ...findings,
+            ...compareReviewed(sites, facts.selfBounded, 'a self-bounded z.string() chain'),
+          ];
         },
       },
       {
@@ -204,12 +267,19 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
           const findings: Finding[] = [];
           const files = context.files(CORE_CODE);
           if (!files.some((f) => f.path === facts.declarationsFile)) {
-            findings.push({ file: facts.declarationsFile, detail: 'the declarations module is not in the core build' });
+            findings.push({
+              file: facts.declarationsFile,
+              detail: 'the declarations module is not in the core build',
+            });
           }
           for (const file of files) {
             if (file.path === facts.declarationsFile) continue;
             for (const m of file.code.matchAll(/\bdefineInputFormat\s*\(|\bkeepAsTyped\b/g)) {
-              findings.push({ file: file.path, line: file.lineOf(m.index ?? 0), detail: `${m[0].replace(/\s*\($/, '')} outside the declarations module` });
+              findings.push({
+                file: file.path,
+                line: file.lineOf(m.index ?? 0),
+                detail: `${m[0].replace(/\s*\($/, '')} outside the declarations module`,
+              });
             }
           }
           return findings;
@@ -224,15 +294,31 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
         async run(context) {
           const findings: Finding[] = [];
           coreBuild(context, findings);
-          const kept = new Set(textDeclarations(await facts.declarations()).filter(([, d]) => 'keepAsTyped' in d).map(([n]) => n));
+          const kept = new Set(
+            textDeclarations(await facts.declarations())
+              .filter(([, d]) => 'keepAsTyped' in d)
+              .map(([n]) => n),
+          );
           const reviewed = new Set(facts.keepAsTyped.map((e) => e.declaration));
-          for (const name of [...kept].sort()) if (!reviewed.has(name)) findings.push({ file: `(core) ${name}`, detail: 'keeps its text as typed without review' });
-          for (const name of reviewed) if (!kept.has(name)) findings.push({ file: `(core) ${name}`, detail: 'stale keep-as-typed entry: the declaration no longer keeps its text, or is gone' });
+          for (const name of [...kept].sort())
+            if (!reviewed.has(name))
+              findings.push({
+                file: `(core) ${name}`,
+                detail: 'keeps its text as typed without review',
+              });
+          for (const name of reviewed)
+            if (!kept.has(name))
+              findings.push({
+                file: `(core) ${name}`,
+                detail:
+                  'stale keep-as-typed entry: the declaration no longer keeps its text, or is gone',
+              });
           return findings;
         },
       },
       {
-        title: 'every declared text field trims, keeps one space for each run of spaces, and a required one refuses blank text',
+        title:
+          'every declared text field trims, keeps one space for each run of spaces, and a required one refuses blank text',
         description:
           "Each text field's wire schema, built from its declaration, refuses whitespace-only text when the field requires " +
           'text (min of 1 or more), and trims the text of every field that does not keep it as typed; a field that accepts ' +
@@ -243,19 +329,32 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
           coreBuild(context, findings);
           const declarations = textDeclarations(await facts.declarations());
           const schemaOf = await facts.fieldSchema();
-          if (!declarations.length) findings.push({ file: facts.declarationsFile, detail: 'no text-field declaration was loaded' });
+          if (!declarations.length)
+            findings.push({
+              file: facts.declarationsFile,
+              detail: 'no text-field declaration was loaded',
+            });
           for (const [name, declaration] of declarations) {
             const schema = schemaOf(declaration as never);
             const min = typeof declaration.min === 'number' ? declaration.min : 0;
-            if (min >= 1 && schema.safeParse(' \n\t ').success) findings.push({ file: `(core) ${name}`, detail: 'accepts whitespace-only text although the field requires text' });
+            if (min >= 1 && schema.safeParse(' \n\t ').success)
+              findings.push({
+                file: `(core) ${name}`,
+                detail: 'accepts whitespace-only text although the field requires text',
+              });
             if ('keepAsTyped' in declaration) continue;
             const sample = 'a'.repeat(Math.max(min, 1));
             const parsed = schema.safeParse(`  ${sample}  `);
-            if (!parsed.success || parsed.data !== sample) findings.push({ file: `(core) ${name}`, detail: 'does not trim its text' });
+            if (!parsed.success || parsed.data !== sample)
+              findings.push({ file: `(core) ${name}`, detail: 'does not trim its text' });
             const word = 'a'.repeat(Math.max(min - 2, 1));
             if (!schema.safeParse(`${word} a`).success) continue;
             const run = schema.safeParse(`${word}  a`);
-            if (!run.success || run.data !== `${word} a`) findings.push({ file: `(core) ${name}`, detail: 'keeps a run of spaces instead of one space' });
+            if (!run.success || run.data !== `${word} a`)
+              findings.push({
+                file: `(core) ${name}`,
+                detail: 'keeps a run of spaces instead of one space',
+              });
           }
           return findings;
         },

@@ -16,13 +16,21 @@ describe('ViewportHeightSetter', () => {
   });
 
   it('sets --app-vh CSS variable by default', () => {
-    Object.defineProperty(window, 'innerHeight', { value: 900, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 900,
+      writable: true,
+      configurable: true,
+    });
     render(<ViewportHeightSetter />);
     expect(document.documentElement.style.getPropertyValue('--app-vh')).toBeTruthy();
   });
 
   it('sets --x-vh when cssPrefix is "x"', () => {
-    Object.defineProperty(window, 'innerHeight', { value: 900, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 900,
+      writable: true,
+      configurable: true,
+    });
     render(<ViewportHeightSetter cssPrefix="x" />);
     expect(document.documentElement.style.getPropertyValue('--x-vh')).toBeTruthy();
     expect(document.documentElement.style.getPropertyValue('--app-vh')).toBe('');

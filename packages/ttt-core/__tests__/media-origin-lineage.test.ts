@@ -58,7 +58,10 @@ describe('TTT_MEDIA_SPECS variant keys derive from the ONE MEDIA_VARIANT_KEYS de
     for (const [origin, spec] of Object.entries(TTT_MEDIA_SPECS)) {
       const image = spec.processing?.image;
       if (!image) continue;
-      expect(image.image?.variants?.length ?? 0, `${origin} image spec declares no variants`).toBeGreaterThan(0);
+      expect(
+        image.image?.variants?.length ?? 0,
+        `${origin} image spec declares no variants`,
+      ).toBeGreaterThan(0);
     }
   });
 });

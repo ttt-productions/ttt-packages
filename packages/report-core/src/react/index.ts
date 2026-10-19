@@ -1,9 +1,6 @@
-"use client";
+'use client';
 
-export {
-  ReportCoreProvider,
-  useReportCoreContext,
-} from './context/ReportCoreProvider.js';
+export { ReportCoreProvider, useReportCoreContext } from './context/ReportCoreProvider.js';
 
 export type {
   ReportCoreProviderProps,

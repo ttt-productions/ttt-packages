@@ -14,7 +14,8 @@ export function forEachNode(root: ts.Node, visit: (node: ts.Node) => void): void
 }
 
 /** The 1-based line a node starts on. */
-export const lineOfNode = (file: FileView, node: ts.Node): number => file.lineOf(node.getStart(file.sourceFile));
+export const lineOfNode = (file: FileView, node: ts.Node): number =>
+  file.lineOf(node.getStart(file.sourceFile));
 
 /** An expression with its parentheses, casts (`as`, `satisfies`, `<T>`), and non-null `!` taken off. */
 export function unwrap(expression: ts.Expression): ts.Expression {
@@ -32,7 +33,9 @@ export function unwrap(expression: ts.Expression): ts.Expression {
 }
 
 /** A string written whole: a quoted literal, or a backtick with no `${` hole. */
-export const isPlainString = (node: ts.Node | undefined): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+export const isPlainString = (
+  node: ts.Node | undefined,
+): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
   !!node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node));
 
 /** The called function's own name: `f(…)` → `f`, `a.b.f(…)` → `f`; anything else → undefined. */

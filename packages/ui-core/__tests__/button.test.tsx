@@ -16,107 +16,136 @@ import { Tabs, TabsList, TabsTrigger } from '../src/react/components/tabs.js';
 // ---------------------------------------------------------------------------
 
 describe('buttonVariants — variant class contract', () => {
-    const cases: Array<{
-        variant: NonNullable<Parameters<typeof buttonVariants>[0]>['variant'];
-        signatureClasses: string[];
-    }> = [
-        { variant: 'default', signatureClasses: ['bg-primary', 'text-primary-foreground', 'border-[hsl(var(--brand-primary-deep))]'] },
-        // The destructive edge follows the destructive family, never the brand.
-        { variant: 'destructive', signatureClasses: ['bg-destructive', 'text-destructive-foreground', 'border-[hsl(var(--destructive-border))]'] },
-        { variant: 'success', signatureClasses: ['bg-[color:var(--button-success)]', 'text-[hsl(var(--success-foreground))]', 'border-[hsl(var(--status-success-border))]'] },
-        { variant: 'outline', signatureClasses: ['border-2', 'border-border', 'bg-background'] },
-        { variant: 'secondary', signatureClasses: ['bg-secondary', 'text-secondary-foreground'] },
-        { variant: 'ghost', signatureClasses: ['hover:bg-accent', 'hover:text-accent-foreground'] },
-        { variant: 'link', signatureClasses: ['text-primary', 'underline-offset-4'] },
-        { variant: 'inverted', signatureClasses: ['bg-[hsl(var(--inverted-background))]'] },
-    ];
+  const cases: Array<{
+    variant: NonNullable<Parameters<typeof buttonVariants>[0]>['variant'];
+    signatureClasses: string[];
+  }> = [
+    {
+      variant: 'default',
+      signatureClasses: [
+        'bg-primary',
+        'text-primary-foreground',
+        'border-[hsl(var(--brand-primary-deep))]',
+      ],
+    },
+    // The destructive edge follows the destructive family, never the brand.
+    {
+      variant: 'destructive',
+      signatureClasses: [
+        'bg-destructive',
+        'text-destructive-foreground',
+        'border-[hsl(var(--destructive-border))]',
+      ],
+    },
+    {
+      variant: 'success',
+      signatureClasses: [
+        'bg-[color:var(--button-success)]',
+        'text-[hsl(var(--success-foreground))]',
+        'border-[hsl(var(--status-success-border))]',
+      ],
+    },
+    { variant: 'outline', signatureClasses: ['border-2', 'border-border', 'bg-background'] },
+    { variant: 'secondary', signatureClasses: ['bg-secondary', 'text-secondary-foreground'] },
+    { variant: 'ghost', signatureClasses: ['hover:bg-accent', 'hover:text-accent-foreground'] },
+    { variant: 'link', signatureClasses: ['text-primary', 'underline-offset-4'] },
+    { variant: 'inverted', signatureClasses: ['bg-[hsl(var(--inverted-background))]'] },
+  ];
 
-    for (const { variant, signatureClasses } of cases) {
-        it(`variant="${variant}" includes its signature classes`, () => {
-            const classes = buttonVariants({ variant });
-            for (const c of signatureClasses) {
-                expect(classes).toContain(c);
-            }
-        });
-    }
+  for (const { variant, signatureClasses } of cases) {
+    it(`variant="${variant}" includes its signature classes`, () => {
+      const classes = buttonVariants({ variant });
+      for (const c of signatureClasses) {
+        expect(classes).toContain(c);
+      }
+    });
+  }
 });
 
 // A solid status fill carries ITS OWN status foreground, and no other text colour at
 // rest. The success variant once rendered the default button's text on the green fill
 // (text-primary-foreground), which measured 2.09:1 in a dark theme.
-const TEXT_NOT_A_COLOUR = /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
+const TEXT_NOT_A_COLOUR =
+  /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
 const restingTextColours = (classes: string) =>
-    classes.split(/\s+/).filter((c) => c.startsWith('text-') && !TEXT_NOT_A_COLOUR.test(c));
+  classes.split(/\s+/).filter((c) => c.startsWith('text-') && !TEXT_NOT_A_COLOUR.test(c));
 
 describe('buttonVariants — a status fill carries its own status foreground', () => {
-    const cases = [
-        { variant: 'destructive', fill: 'bg-destructive', text: 'text-destructive-foreground' },
-        { variant: 'success', fill: 'bg-[color:var(--button-success)]', text: 'text-[hsl(var(--success-foreground))]' },
-    ] as const;
+  const cases = [
+    { variant: 'destructive', fill: 'bg-destructive', text: 'text-destructive-foreground' },
+    {
+      variant: 'success',
+      fill: 'bg-[color:var(--button-success)]',
+      text: 'text-[hsl(var(--success-foreground))]',
+    },
+  ] as const;
 
-    for (const { variant, fill, text } of cases) {
-        it(`variant="${variant}" pairs ${fill} with ${text} and no other text colour`, () => {
-            const classes = buttonVariants({ variant });
-            expect(classes.split(/\s+/)).toContain(fill);
-            expect(restingTextColours(classes)).toEqual([text]);
-        });
-    }
-
-    it('the success variant no longer borrows the default button text colour', () => {
-        expect(buttonVariants({ variant: 'success' })).not.toContain('text-primary-foreground');
+  for (const { variant, fill, text } of cases) {
+    it(`variant="${variant}" pairs ${fill} with ${text} and no other text colour`, () => {
+      const classes = buttonVariants({ variant });
+      expect(classes.split(/\s+/)).toContain(fill);
+      expect(restingTextColours(classes)).toEqual([text]);
     });
+  }
 
-    it('the rendered success button carries the success foreground', () => {
-        render(<Button variant="success">Agree to Terms</Button>);
-        const btn = screen.getByRole('button', { name: 'Agree to Terms' });
-        expect(btn).toHaveClass('bg-[color:var(--button-success)]', 'text-[hsl(var(--success-foreground))]');
-        expect(btn).not.toHaveClass('text-primary-foreground');
-    });
+  it('the success variant no longer borrows the default button text colour', () => {
+    expect(buttonVariants({ variant: 'success' })).not.toContain('text-primary-foreground');
+  });
+
+  it('the rendered success button carries the success foreground', () => {
+    render(<Button variant="success">Agree to Terms</Button>);
+    const btn = screen.getByRole('button', { name: 'Agree to Terms' });
+    expect(btn).toHaveClass(
+      'bg-[color:var(--button-success)]',
+      'text-[hsl(var(--success-foreground))]',
+    );
+    expect(btn).not.toHaveClass('text-primary-foreground');
+  });
 });
 
 describe('buttonVariants — size class contract', () => {
-    const cases: Array<{
-        size: NonNullable<Parameters<typeof buttonVariants>[0]>['size'];
-        signatureClasses: string[];
-    }> = [
-        { size: 'default', signatureClasses: ['h-10', 'px-4'] },
-        { size: 'sm', signatureClasses: ['h-9', 'px-3'] },
-        { size: 'lg', signatureClasses: ['h-11', 'px-8'] },
-        { size: 'icon', signatureClasses: ['h-9', 'w-9'] },
-    ];
+  const cases: Array<{
+    size: NonNullable<Parameters<typeof buttonVariants>[0]>['size'];
+    signatureClasses: string[];
+  }> = [
+    { size: 'default', signatureClasses: ['h-10', 'px-4'] },
+    { size: 'sm', signatureClasses: ['h-9', 'px-3'] },
+    { size: 'lg', signatureClasses: ['h-11', 'px-8'] },
+    { size: 'icon', signatureClasses: ['h-9', 'w-9'] },
+  ];
 
-    for (const { size, signatureClasses } of cases) {
-        it(`size="${size}" includes its signature classes`, () => {
-            const classes = buttonVariants({ size });
-            for (const c of signatureClasses) {
-                expect(classes).toContain(c);
-            }
-        });
-    }
+  for (const { size, signatureClasses } of cases) {
+    it(`size="${size}" includes its signature classes`, () => {
+      const classes = buttonVariants({ size });
+      for (const c of signatureClasses) {
+        expect(classes).toContain(c);
+      }
+    });
+  }
 });
 
 describe('buttonVariants — base styling applies regardless of variant/size', () => {
-    it('always includes the base flex + focus-visible ring classes', () => {
-        const classes = buttonVariants({});
-        // These are part of the always-on base string in the cva call.
-        expect(classes).toContain('inline-flex');
-        expect(classes).toContain('focus-visible:ring-2');
-        expect(classes).toContain('disabled:pointer-events-none');
-        expect(classes).toContain('disabled:opacity-50');
-    });
+  it('always includes the base flex + focus-visible ring classes', () => {
+    const classes = buttonVariants({});
+    // These are part of the always-on base string in the cva call.
+    expect(classes).toContain('inline-flex');
+    expect(classes).toContain('focus-visible:ring-2');
+    expect(classes).toContain('disabled:pointer-events-none');
+    expect(classes).toContain('disabled:opacity-50');
+  });
 
-    it('default variant + default size are applied when no args given', () => {
-        const classes = buttonVariants({});
-        // default variant signature
-        expect(classes).toContain('bg-primary');
-        // default size signature
-        expect(classes).toContain('h-10');
-    });
+  it('default variant + default size are applied when no args given', () => {
+    const classes = buttonVariants({});
+    // default variant signature
+    expect(classes).toContain('bg-primary');
+    // default size signature
+    expect(classes).toContain('h-10');
+  });
 
-    it('caller-provided className passes through', () => {
-        const classes = buttonVariants({ className: 'my-extra-class' });
-        expect(classes).toContain('my-extra-class');
-    });
+  it('caller-provided className passes through', () => {
+    const classes = buttonVariants({ className: 'my-extra-class' });
+    expect(classes).toContain('my-extra-class');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -124,275 +153,315 @@ describe('buttonVariants — base styling applies regardless of variant/size', (
 // ---------------------------------------------------------------------------
 
 describe('<Button> — render contract', () => {
-    it('renders the children passed in', () => {
-        render(<Button>Click me</Button>);
-        expect(screen.getByText('Click me')).toBeInTheDocument();
-    });
+  it('renders the children passed in', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByText('Click me')).toBeInTheDocument();
+  });
 
-    it('renders a real <button> element by default (not a Slot wrapper)', () => {
-        const { container } = render(<Button>Save</Button>);
-        const node = container.firstChild as HTMLElement;
-        expect(node.tagName).toBe('BUTTON');
-    });
+  it('renders a real <button> element by default (not a Slot wrapper)', () => {
+    const { container } = render(<Button>Save</Button>);
+    const node = container.firstChild as HTMLElement;
+    expect(node.tagName).toBe('BUTTON');
+  });
 
-    it('applies the resolved buttonVariants class string to the rendered element', () => {
-        const { container } = render(<Button variant="outline" size="lg">X</Button>);
-        const node = container.firstChild as HTMLElement;
-        const expected = buttonVariants({ variant: 'outline', size: 'lg' });
-        // Every signature token in the expected string should appear on the element.
-        for (const cls of ['border-2', 'border-border', 'h-11', 'px-8']) {
-            expect(node).toHaveClass(cls);
-            expect(expected).toContain(cls);
-        }
-    });
+  it('applies the resolved buttonVariants class string to the rendered element', () => {
+    const { container } = render(
+      <Button variant="outline" size="lg">
+        X
+      </Button>,
+    );
+    const node = container.firstChild as HTMLElement;
+    const expected = buttonVariants({ variant: 'outline', size: 'lg' });
+    // Every signature token in the expected string should appear on the element.
+    for (const cls of ['border-2', 'border-border', 'h-11', 'px-8']) {
+      expect(node).toHaveClass(cls);
+      expect(expected).toContain(cls);
+    }
+  });
 
-    it('caller className merges with variant classes on the rendered element', () => {
-        render(<Button className="my-btn">Test</Button>);
-        const btn = screen.getByRole('button');
-        expect(btn).toHaveClass('my-btn');
-        // And the variant class is still there.
-        expect(btn).toHaveClass('bg-primary');
-    });
+  it('caller className merges with variant classes on the rendered element', () => {
+    render(<Button className="my-btn">Test</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn).toHaveClass('my-btn');
+    // And the variant class is still there.
+    expect(btn).toHaveClass('bg-primary');
+  });
 });
 
 describe('<Button> — disabled behavior', () => {
-    it('forwards `disabled` to the DOM button', () => {
-        render(<Button disabled>Disabled</Button>);
-        expect(screen.getByRole('button')).toBeDisabled();
-    });
+  it('forwards `disabled` to the DOM button', () => {
+    render(<Button disabled>Disabled</Button>);
+    expect(screen.getByRole('button')).toBeDisabled();
+  });
 
-    it('does not invoke onClick when disabled', () => {
-        const onClick = vi.fn();
-        render(
-            <Button disabled onClick={onClick}>
-                Disabled
-            </Button>
-        );
-        fireEvent.click(screen.getByRole('button'));
-        expect(onClick).not.toHaveBeenCalled();
-    });
+  it('does not invoke onClick when disabled', () => {
+    const onClick = vi.fn();
+    render(
+      <Button disabled onClick={onClick}>
+        Disabled
+      </Button>,
+    );
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).not.toHaveBeenCalled();
+  });
 
-    it('invokes onClick when enabled', () => {
-        const onClick = vi.fn();
-        render(<Button onClick={onClick}>Enabled</Button>);
-        fireEvent.click(screen.getByRole('button'));
-        expect(onClick).toHaveBeenCalledTimes(1);
-    });
+  it('invokes onClick when enabled', () => {
+    const onClick = vi.fn();
+    render(<Button onClick={onClick}>Enabled</Button>);
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('<Button pending> — the in-progress contract', () => {
-    it('marks the button unavailable and busy, and shows the canonical spinner', () => {
-        const { container } = render(<Button pending>Save</Button>);
-        const btn = screen.getByRole('button', { name: 'Save' });
-        expect(btn).toHaveAttribute('aria-disabled', 'true');
-        expect(btn).toHaveAttribute('aria-busy', 'true');
-        expect(btn).toHaveAttribute('data-pending');
-        expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
-    });
+  it('marks the button unavailable and busy, and shows the canonical spinner', () => {
+    const { container } = render(<Button pending>Save</Button>);
+    const btn = screen.getByRole('button', { name: 'Save' });
+    expect(btn).toHaveAttribute('aria-disabled', 'true');
+    expect(btn).toHaveAttribute('aria-busy', 'true');
+    expect(btn).toHaveAttribute('data-pending');
+    expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
+  });
 
-    it('ignores clicks while pending', () => {
-        const onClick = vi.fn();
-        render(<Button pending onClick={onClick}>Save</Button>);
-        fireEvent.click(screen.getByRole('button'));
-        expect(onClick).not.toHaveBeenCalled();
-    });
+  it('ignores clicks while pending', () => {
+    const onClick = vi.fn();
+    render(
+      <Button pending onClick={onClick}>
+        Save
+      </Button>,
+    );
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).not.toHaveBeenCalled();
+  });
 
-    it('keeps focus on the pressed button when it turns pending', () => {
-        const { rerender } = render(<Button>Save</Button>);
-        const btn = screen.getByRole('button', { name: 'Save' });
-        btn.focus();
-        rerender(<Button pending>Save</Button>);
-        expect(btn).not.toBeDisabled();
-        expect(btn).toHaveFocus();
-    });
+  it('keeps focus on the pressed button when it turns pending', () => {
+    const { rerender } = render(<Button>Save</Button>);
+    const btn = screen.getByRole('button', { name: 'Save' });
+    btn.focus();
+    rerender(<Button pending>Save</Button>);
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveFocus();
+  });
 
-    it('a pending asChild link runs neither its own click handler nor its navigation', () => {
-        const onClick = vi.fn();
-        render(
-            <Button asChild pending>
-                <a href="/next" onClick={onClick}>Next</a>
-            </Button>
-        );
-        const link = screen.getByRole('link', { name: 'Next' });
-        const notCancelled = fireEvent.click(link);
-        expect(onClick).not.toHaveBeenCalled();
-        expect(notCancelled).toBe(false);
-        expect(link).toHaveAttribute('aria-disabled', 'true');
-    });
+  it('a pending asChild link runs neither its own click handler nor its navigation', () => {
+    const onClick = vi.fn();
+    render(
+      <Button asChild pending>
+        <a href="/next" onClick={onClick}>
+          Next
+        </a>
+      </Button>,
+    );
+    const link = screen.getByRole('link', { name: 'Next' });
+    const notCancelled = fireEvent.click(link);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(notCancelled).toBe(false);
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+  });
 
-    it('keeps focus while pending even when the caller also disables it, and disables once pending ends', () => {
-        const onClick = vi.fn();
-        const { rerender } = render(<Button onClick={onClick}>Save</Button>);
-        const btn = screen.getByRole('button', { name: 'Save' });
-        btn.focus();
-        rerender(<Button pending disabled onClick={onClick}>Save</Button>);
-        expect(btn).not.toBeDisabled();
-        expect(btn).toHaveFocus();
-        expect(btn).toHaveAttribute('aria-disabled', 'true');
-        fireEvent.click(btn);
-        expect(onClick).not.toHaveBeenCalled();
-        rerender(<Button disabled onClick={onClick}>Save</Button>);
-        expect(btn).toBeDisabled();
-    });
+  it('keeps focus while pending even when the caller also disables it, and disables once pending ends', () => {
+    const onClick = vi.fn();
+    const { rerender } = render(<Button onClick={onClick}>Save</Button>);
+    const btn = screen.getByRole('button', { name: 'Save' });
+    btn.focus();
+    rerender(
+      <Button pending disabled onClick={onClick}>
+        Save
+      </Button>,
+    );
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveFocus();
+    expect(btn).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(btn);
+    expect(onClick).not.toHaveBeenCalled();
+    rerender(
+      <Button disabled onClick={onClick}>
+        Save
+      </Button>,
+    );
+    expect(btn).toBeDisabled();
+  });
 
-    it('cannot resubmit its form while pending (the activation is cancelled)', () => {
-        const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
-        render(
-            <form onSubmit={onSubmit}>
-                <Button type="submit" pending>Send</Button>
-            </form>
-        );
-        fireEvent.click(screen.getByRole('button'));
-        expect(onSubmit).not.toHaveBeenCalled();
-    });
+  it('cannot resubmit its form while pending (the activation is cancelled)', () => {
+    const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Button type="submit" pending>
+          Send
+        </Button>
+      </form>,
+    );
+    fireEvent.click(screen.getByRole('button'));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 
-    it('swaps a leading icon for the spinner, and restores it when pending ends', () => {
-        const { container, rerender } = render(
-            <Button icon={<svg data-testid="lead-icon" />}>Delete</Button>
-        );
-        expect(screen.getByTestId('lead-icon')).toBeInTheDocument();
-        expect(container.querySelector('.spinner-xs')).toBeNull();
+  it('swaps a leading icon for the spinner, and restores it when pending ends', () => {
+    const { container, rerender } = render(
+      <Button icon={<svg data-testid="lead-icon" />}>Delete</Button>,
+    );
+    expect(screen.getByTestId('lead-icon')).toBeInTheDocument();
+    expect(container.querySelector('.spinner-xs')).toBeNull();
 
-        rerender(<Button pending icon={<svg data-testid="lead-icon" />}>Delete</Button>);
-        expect(screen.queryByTestId('lead-icon')).toBeNull();
-        expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
-    });
+    rerender(
+      <Button pending icon={<svg data-testid="lead-icon" />}>
+        Delete
+      </Button>,
+    );
+    expect(screen.queryByTestId('lead-icon')).toBeNull();
+    expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+  });
 
-    it('an icon button swaps its icon for the spinner and keeps its accessible name', () => {
-        const { container } = render(
-            <Button size="icon" pending aria-label="Clear notification">
-                <svg data-testid="x-icon" />
-            </Button>
-        );
-        expect(screen.queryByTestId('x-icon')).toBeNull();
-        expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Clear notification' })).toHaveAttribute('aria-disabled', 'true');
-    });
+  it('an icon button swaps its icon for the spinner and keeps its accessible name', () => {
+    const { container } = render(
+      <Button size="icon" pending aria-label="Clear notification">
+        <svg data-testid="x-icon" />
+      </Button>,
+    );
+    expect(screen.queryByTestId('x-icon')).toBeNull();
+    expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear notification' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
 
-    it('uses the next spinner size up on a large button', () => {
-        const { container } = render(<Button size="lg" pending>Go</Button>);
-        expect(container.querySelector('.spinner-sm')).toBeInTheDocument();
-    });
+  it('uses the next spinner size up on a large button', () => {
+    const { container } = render(
+      <Button size="lg" pending>
+        Go
+      </Button>,
+    );
+    expect(container.querySelector('.spinner-sm')).toBeInTheDocument();
+  });
 
-    it('leaves a caller aria-busy alone when not pending', () => {
-        render(<Button aria-busy="true">Busy elsewhere</Button>);
-        expect(screen.getByRole('button')).toHaveAttribute('aria-busy', 'true');
-    });
+  it('leaves a caller aria-busy alone when not pending', () => {
+    render(<Button aria-busy="true">Busy elsewhere</Button>);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-busy', 'true');
+  });
 
-    it('renders no busy attributes when not pending', () => {
-        render(<Button>Idle</Button>);
-        const btn = screen.getByRole('button');
-        expect(btn).not.toHaveAttribute('aria-busy');
-        expect(btn).not.toHaveAttribute('data-pending');
-        expect(btn).toBeEnabled();
-    });
+  it('renders no busy attributes when not pending', () => {
+    render(<Button>Idle</Button>);
+    const btn = screen.getByRole('button');
+    expect(btn).not.toHaveAttribute('aria-busy');
+    expect(btn).not.toHaveAttribute('data-pending');
+    expect(btn).toBeEnabled();
+  });
 
-    it('asChild renders the leading icon INSIDE the child element', () => {
-        render(
-            <Button asChild icon={<svg data-testid="lead-icon" />}>
-                <a href="/p">Open</a>
-            </Button>
-        );
-        const link = screen.getByRole('link', { name: 'Open' });
-        expect(link).toContainElement(screen.getByTestId('lead-icon'));
-        expect(screen.queryByRole('button')).toBeNull();
-    });
+  it('asChild renders the leading icon INSIDE the child element', () => {
+    render(
+      <Button asChild icon={<svg data-testid="lead-icon" />}>
+        <a href="/p">Open</a>
+      </Button>,
+    );
+    const link = screen.getByRole('link', { name: 'Open' });
+    expect(link).toContainElement(screen.getByTestId('lead-icon'));
+    expect(screen.queryByRole('button')).toBeNull();
+  });
 });
 
 describe('<Button asChild> — Slot delegation', () => {
-    it('renders the child element (not a wrapping button) when asChild is true', () => {
-        render(
-            <Button asChild>
-                <a href="/path">Link Button</a>
-            </Button>
-        );
-        // The rendered element is an <a>, not a <button>.
-        expect(screen.getByRole('link')).toBeInTheDocument();
-        expect(screen.queryByRole('button')).toBeNull();
-    });
+  it('renders the child element (not a wrapping button) when asChild is true', () => {
+    render(
+      <Button asChild>
+        <a href="/path">Link Button</a>
+      </Button>,
+    );
+    // The rendered element is an <a>, not a <button>.
+    expect(screen.getByRole('link')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).toBeNull();
+  });
 
-    it('applies variant classes to the asChild child element', () => {
-        render(
-            <Button asChild variant="outline" size="sm">
-                <a href="/p">Link</a>
-            </Button>
-        );
-        const link = screen.getByRole('link');
-        expect(link).toHaveClass('border-2');
-        expect(link).toHaveClass('h-9');
-    });
+  it('applies variant classes to the asChild child element', () => {
+    render(
+      <Button asChild variant="outline" size="sm">
+        <a href="/p">Link</a>
+      </Button>,
+    );
+    const link = screen.getByRole('link');
+    expect(link).toHaveClass('border-2');
+    expect(link).toHaveClass('h-9');
+  });
 });
 
 describe('<Button> — ref forwarding', () => {
-    it('attaches forwarded ref to the rendered <button> element', () => {
-        const ref = React.createRef<HTMLButtonElement>();
-        render(<Button ref={ref}>With ref</Button>);
-        expect(ref.current).not.toBeNull();
-        expect(ref.current?.tagName).toBe('BUTTON');
-    });
+  it('attaches forwarded ref to the rendered <button> element', () => {
+    const ref = React.createRef<HTMLButtonElement>();
+    render(<Button ref={ref}>With ref</Button>);
+    expect(ref.current).not.toBeNull();
+    expect(ref.current?.tagName).toBe('BUTTON');
+  });
 });
 
 describe('<Button> — HTML attribute passthrough', () => {
-    it('passes through `type`', () => {
-        render(<Button type="submit">Submit</Button>);
-        expect(screen.getByRole('button')).toHaveAttribute('type', 'submit');
-    });
+  it('passes through `type`', () => {
+    render(<Button type="submit">Submit</Button>);
+    expect(screen.getByRole('button')).toHaveAttribute('type', 'submit');
+  });
 
-    it('passes through `aria-label`', () => {
-        render(<Button aria-label="Close dialog">X</Button>);
-        // Querying by accessible name proves the attribute is wired correctly.
-        expect(screen.getByRole('button', { name: 'Close dialog' })).toBeInTheDocument();
-    });
+  it('passes through `aria-label`', () => {
+    render(<Button aria-label="Close dialog">X</Button>);
+    // Querying by accessible name proves the attribute is wired correctly.
+    expect(screen.getByRole('button', { name: 'Close dialog' })).toBeInTheDocument();
+  });
 
-    it('passes through `data-*` attributes', () => {
-        render(<Button data-testid="custom-button">Tagged</Button>);
-        expect(screen.getByTestId('custom-button')).toBeInTheDocument();
-    });
+  it('passes through `data-*` attributes', () => {
+    render(<Button data-testid="custom-button">Tagged</Button>);
+    expect(screen.getByTestId('custom-button')).toBeInTheDocument();
+  });
 });
 
 // An app styles every button's press from its own stylesheet through one stable class, so the
 // hook must reach every rendered shape of Button and nothing that merely looks like one.
 describe('<Button> — the ui-button hook class', () => {
-    const variants = ['default', 'destructive', 'success', 'outline', 'secondary', 'ghost', 'link', 'inverted'] as const;
-    const sizes = ['default', 'sm', 'lg', 'icon'] as const;
+  const variants = [
+    'default',
+    'destructive',
+    'success',
+    'outline',
+    'secondary',
+    'ghost',
+    'link',
+    'inverted',
+  ] as const;
+  const sizes = ['default', 'sm', 'lg', 'icon'] as const;
 
-    it('is on every variant and size', () => {
-        for (const variant of variants) {
-            for (const size of sizes) {
-                expect(buttonVariants({ variant, size }).split(/\s+/)).toContain('ui-button');
-            }
-        }
-    });
+  it('is on every variant and size', () => {
+    for (const variant of variants) {
+      for (const size of sizes) {
+        expect(buttonVariants({ variant, size }).split(/\s+/)).toContain('ui-button');
+      }
+    }
+  });
 
-    it('is on a rendered button, a pending button, and an asChild link', () => {
-        render(
-            <>
-                <Button>Plain</Button>
-                <Button pending>Saving</Button>
-                <Button asChild>
-                    <a href="/next">Next</a>
-                </Button>
-            </>,
-        );
-        expect(screen.getByRole('button', { name: 'Plain' })).toHaveClass('ui-button');
-        expect(screen.getByRole('button', { name: 'Saving' })).toHaveClass('ui-button');
-        expect(screen.getByRole('link', { name: 'Next' })).toHaveClass('ui-button');
-    });
+  it('is on a rendered button, a pending button, and an asChild link', () => {
+    render(
+      <>
+        <Button>Plain</Button>
+        <Button pending>Saving</Button>
+        <Button asChild>
+          <a href="/next">Next</a>
+        </Button>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Plain' })).toHaveClass('ui-button');
+    expect(screen.getByRole('button', { name: 'Saving' })).toHaveClass('ui-button');
+    expect(screen.getByRole('link', { name: 'Next' })).toHaveClass('ui-button');
+  });
 
-    it('survives a caller className', () => {
-        render(<Button className="w-full">Wide</Button>);
-        expect(screen.getByRole('button', { name: 'Wide' })).toHaveClass('ui-button', 'w-full');
-    });
+  it('survives a caller className', () => {
+    render(<Button className="w-full">Wide</Button>);
+    expect(screen.getByRole('button', { name: 'Wide' })).toHaveClass('ui-button', 'w-full');
+  });
 
-    it('is not on TabsTrigger, which shares the button utility string', () => {
-        render(
-            <Tabs defaultValue="one">
-                <TabsList>
-                    <TabsTrigger value="one">One</TabsTrigger>
-                </TabsList>
-            </Tabs>,
-        );
-        expect(screen.getByRole('tab', { name: 'One' })).not.toHaveClass('ui-button');
-    });
+  it('is not on TabsTrigger, which shares the button utility string', () => {
+    render(
+      <Tabs defaultValue="one">
+        <TabsList>
+          <TabsTrigger value="one">One</TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    );
+    expect(screen.getByRole('tab', { name: 'One' })).not.toHaveClass('ui-button');
+  });
 });

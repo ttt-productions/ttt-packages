@@ -84,7 +84,9 @@ describe('a week of the schedule holds at most 20 games', () => {
 describe('a game holds at most 1,000 stat events', () => {
   it('declares the cap and says the stat log is full', () => {
     expect(MAX_STAT_EVENTS_PER_GAME).toBe(1000);
-    expect(GAME_STAT_LOG_FULL_MESSAGE).toBe('This game already has the maximum of 1000 recorded stats.');
+    expect(GAME_STAT_LOG_FULL_MESSAGE).toBe(
+      'This game already has the maximum of 1000 recorded stats.',
+    );
   });
 });
 
@@ -97,8 +99,12 @@ describe('Q-Sports holds at most 30 game locations', () => {
 
   it('fences venue creation on one server-only document holding only its revision', () => {
     expect(PATH_BUILDERS.gameLocationRegistry()).toEqual(['_serverData', 'gameLocationRegistry']);
-    expect(GameLocationRegistrySchema.parse({ locationRevision: 3 })).toEqual({ locationRevision: 3 });
-    expect(GameLocationRegistrySchema.safeParse({ locationRevision: 3, count: 3 }).success).toBe(false);
+    expect(GameLocationRegistrySchema.parse({ locationRevision: 3 })).toEqual({
+      locationRevision: 3,
+    });
+    expect(GameLocationRegistrySchema.safeParse({ locationRevision: 3, count: 3 }).success).toBe(
+      false,
+    );
     expect(GameLocationRegistrySchema.safeParse({ locationRevision: -1 }).success).toBe(false);
   });
 });
@@ -112,9 +118,16 @@ describe('Q-Sports offers leagues at most 30 waiver templates', () => {
   });
 
   it('fences template creation on one server-only document holding only its revision', () => {
-    expect(PATH_BUILDERS.waiverTemplateRegistry()).toEqual(['_serverData', 'waiverTemplateRegistry']);
-    expect(WaiverTemplateRegistrySchema.parse({ templateRevision: 2 })).toEqual({ templateRevision: 2 });
-    expect(WaiverTemplateRegistrySchema.safeParse({ templateRevision: 2, count: 2 }).success).toBe(false);
+    expect(PATH_BUILDERS.waiverTemplateRegistry()).toEqual([
+      '_serverData',
+      'waiverTemplateRegistry',
+    ]);
+    expect(WaiverTemplateRegistrySchema.parse({ templateRevision: 2 })).toEqual({
+      templateRevision: 2,
+    });
+    expect(WaiverTemplateRegistrySchema.safeParse({ templateRevision: 2, count: 2 }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -153,6 +166,8 @@ describe('the capacity limits an admin reads', () => {
 
 describe('countCapReachedMessage', () => {
   it('names what is full, its limit, and what it holds', () => {
-    expect(countCapReachedMessage('This list', 3, 'items')).toBe('This list already has the maximum of 3 items.');
+    expect(countCapReachedMessage('This list', 3, 'items')).toBe(
+      'This list already has the maximum of 3 items.',
+    );
   });
 });

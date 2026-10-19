@@ -23,7 +23,12 @@ import { FirestoreTimestampSchema } from './firestore-primitives.js';
  * (attempt budget exhausted with cards still active — retry/dead-letter), and `failed`
  * (unexpected fault).
  */
-export const NotificationArchiveAllJobStateSchema = z.enum(['in-progress', 'complete', 'incomplete', 'failed']);
+export const NotificationArchiveAllJobStateSchema = z.enum([
+  'in-progress',
+  'complete',
+  'incomplete',
+  'failed',
+]);
 export type NotificationArchiveAllJobState = z.infer<typeof NotificationArchiveAllJobStateSchema>;
 
 /**

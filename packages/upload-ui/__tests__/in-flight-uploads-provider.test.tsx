@@ -30,7 +30,12 @@ function makeAdapter(overrides: Partial<InFlightUploadsAdapter> = {}): InFlightU
 }
 
 type DriverSnapshot = (snapshot: FirestoreLikeSnapshot) => void;
-function makeDriver(): { subscribe: FirestoreSubscribeFn; drive: DriverSnapshot; driveError: (e: unknown) => void; unsubCalls: { count: number } } {
+function makeDriver(): {
+  subscribe: FirestoreSubscribeFn;
+  drive: DriverSnapshot;
+  driveError: (e: unknown) => void;
+  unsubCalls: { count: number };
+} {
   let driver: DriverSnapshot | null = null;
   let errorDriver: ((e: unknown) => void) | null = null;
   const unsubCalls = { count: 0 };
@@ -57,7 +62,9 @@ function metaSnapshot(fromCache: boolean): FirestoreLikeSnapshot {
   return { docChanges: () => [], metadata: { fromCache } };
 }
 
-function makeSnapshot(changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>): FirestoreLikeSnapshot {
+function makeSnapshot(
+  changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>,
+): FirestoreLikeSnapshot {
   return {
     docChanges: () =>
       changes.map((c) => ({
@@ -111,12 +118,26 @@ describe('InFlightUploadsProvider', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
+    const base = {
+      id: 'd1',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/uploads-demo',
+    };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
     act(() => {
-      drive(makeSnapshot([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now() } }]));
+      drive(
+        makeSnapshot([
+          {
+            type: 'modified',
+            id: 'd1',
+            data: { ...base, status: 'completed', completedAt: Date.now() },
+          },
+        ]),
+      );
     });
 
     expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
@@ -127,28 +148,60 @@ describe('InFlightUploadsProvider', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
+    const base = {
+      id: 'd1',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/uploads-demo',
+    };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
     act(() => {
       drive(
         makeSnapshot([
-          { type: 'modified', id: 'd1', data: { ...base, status: 'failed', failedAt: Date.now(), errorCategory: 'storage', errorMessage: 'boom' } },
+          {
+            type: 'modified',
+            id: 'd1',
+            data: {
+              ...base,
+              status: 'failed',
+              failedAt: Date.now(),
+              errorCategory: 'storage',
+              errorMessage: 'boom',
+            },
+          },
         ]),
       );
     });
     expect(adapter.onUploadFailed).toHaveBeenCalledTimes(1);
     expect(adapter.onUploadRejected).not.toHaveBeenCalled();
 
-    const base2 = { id: 'd2', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
+    const base2 = {
+      id: 'd2',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/uploads-demo',
+    };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd2', data: { ...base2, status: 'pending' } }]));
     });
     act(() => {
       drive(
         makeSnapshot([
-          { type: 'modified', id: 'd2', data: { ...base2, status: 'rejected', rejectedAt: Date.now(), rejectionType: 'media', errorMessage: 'nope' } },
+          {
+            type: 'modified',
+            id: 'd2',
+            data: {
+              ...base2,
+              status: 'rejected',
+              rejectedAt: Date.now(),
+              rejectionType: 'media',
+              errorMessage: 'nope',
+            },
+          },
         ]),
       );
     });
@@ -178,12 +231,26 @@ describe('InFlightUploadsProvider', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
+    const base = {
+      id: 'd1',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/uploads-demo',
+    };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
     act(() => {
-      drive(makeSnapshot([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now() } }]));
+      drive(
+        makeSnapshot([
+          {
+            type: 'modified',
+            id: 'd1',
+            data: { ...base, status: 'completed', completedAt: Date.now() },
+          },
+        ]),
+      );
     });
 
     const breadcrumbs = (adapter.onMonitoringEvent as ReturnType<typeof vi.fn>).mock.calls
@@ -195,9 +262,17 @@ describe('InFlightUploadsProvider', () => {
   it('removes uploads from state when doc type is "removed"', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useInFlightUploadsState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
+    const base = {
+      id: 'd1',
+      userId: 'user1',
+      fileOrigin: 'sample-origin',
+      createdAt: Date.now(),
+      surface: '/uploads-demo',
+    };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
@@ -214,7 +289,9 @@ describe('InFlightUploadsProvider', () => {
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive: _drive, unsubCalls } = makeDriver();
     void _drive;
-    const { rerender } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+    const { rerender } = renderHook(() => useInFlightUploadsState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     expect(unsubCalls.count).toBe(0);
     currentUserId = null;
@@ -287,14 +364,51 @@ describe('InFlightUploadsProvider', () => {
   it('useUploadActivityState filters cleared terminal items and sorts newest first', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useUploadActivityState(), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useUploadActivityState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => {
       drive(
         makeSnapshot([
-          { type: 'added', id: 'a', data: { id: 'a', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: 100, surface: '/x' } },
-          { type: 'added', id: 'b', data: { id: 'b', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: 300, surface: '/x' } },
-          { type: 'added', id: 'c', data: { id: 'c', userId: 'user1', fileOrigin: 'sample-origin', status: 'completed', createdAt: 200, surface: '/x', completedAt: 250, uploadTrayClearedAt: 260 } },
+          {
+            type: 'added',
+            id: 'a',
+            data: {
+              id: 'a',
+              userId: 'user1',
+              fileOrigin: 'sample-origin',
+              status: 'pending',
+              createdAt: 100,
+              surface: '/x',
+            },
+          },
+          {
+            type: 'added',
+            id: 'b',
+            data: {
+              id: 'b',
+              userId: 'user1',
+              fileOrigin: 'sample-origin',
+              status: 'pending',
+              createdAt: 300,
+              surface: '/x',
+            },
+          },
+          {
+            type: 'added',
+            id: 'c',
+            data: {
+              id: 'c',
+              userId: 'user1',
+              fileOrigin: 'sample-origin',
+              status: 'completed',
+              createdAt: 200,
+              surface: '/x',
+              completedAt: 250,
+              uploadTrayClearedAt: 260,
+            },
+          },
         ]),
       );
     });
@@ -307,7 +421,9 @@ describe('InFlightUploadsProvider — rejected seen fields (round-9 finding 9)',
   it('carries uploadTraySeenAt/By through fromParsed on the rejected branch', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useInFlightUpload('r1'), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useInFlightUpload('r1'), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => {
       drive(
@@ -344,7 +460,9 @@ describe('InFlightUploadsProvider — source state', () => {
   it('starts connecting and goes live on a server-confirmed snapshot', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useUploadsSourceState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     expect(result.current).toBe('connecting');
     act(() => drive(metaSnapshot(false)));
@@ -354,7 +472,9 @@ describe('InFlightUploadsProvider — source state', () => {
   it('stays connecting on a cache-first snapshot until the server confirms', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useUploadsSourceState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => drive(metaSnapshot(true)));
     expect(result.current).toBe('connecting');
@@ -365,7 +485,9 @@ describe('InFlightUploadsProvider — source state', () => {
   it('goes offline after live when only cached data arrives, then back to live', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
-    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+    const { result } = renderHook(() => useUploadsSourceState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => drive(metaSnapshot(false)));
     expect(result.current).toBe('live');
@@ -380,7 +502,9 @@ describe('InFlightUploadsProvider — source state', () => {
     try {
       const adapter = makeAdapter();
       const { subscribe, drive, driveError } = makeDriver();
-      const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+      const { result } = renderHook(() => useUploadsSourceState(), {
+        wrapper: wrap(adapter, subscribe),
+      });
 
       act(() => drive(metaSnapshot(false)));
       act(() => driveError(new Error('permission-denied')));
@@ -394,7 +518,9 @@ describe('InFlightUploadsProvider — source state', () => {
     let currentUserId: string | null = 'userA';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive } = makeDriver();
-    const { result, rerender } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+    const { result, rerender } = renderHook(() => useUploadsSourceState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => drive(metaSnapshot(false)));
     expect(result.current).toBe('live');
@@ -472,9 +598,12 @@ describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
       subscribeCount += 1;
       return d.subscribe(args);
     };
-    const hook = renderHook(() => ({ state: useUploadsSourceState(), restart: useUploadsSourceRetry() }), {
-      wrapper: wrap(adapter, countingSubscribe),
-    });
+    const hook = renderHook(
+      () => ({ state: useUploadsSourceState(), restart: useUploadsSourceRetry() }),
+      {
+        wrapper: wrap(adapter, countingSubscribe),
+      },
+    );
     const exhaustLadder = () => {
       for (const ms of LADDER_MS) {
         act(() => d.driveError(new Error('denied')));
@@ -604,7 +733,9 @@ describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
     const d = makeDriver();
     vi.useFakeTimers();
     try {
-      const { result, rerender } = renderHook(() => useUploadsSourceRetry(), { wrapper: wrap(adapter, d.subscribe) });
+      const { result, rerender } = renderHook(() => useUploadsSourceRetry(), {
+        wrapper: wrap(adapter, d.subscribe),
+      });
       for (const ms of LADDER_MS) {
         act(() => d.driveError(new Error('denied')));
         act(() => {
@@ -646,11 +777,39 @@ describe('terminal events without an observed non-terminal predecessor', () => {
 
     act(() => drive(makeSnapshot([]))); // initial: empty
     // Fast backend outcome coalesced into one delivery: first sight is terminal.
-    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 200, rejectionType: 'media', errorMessage: 'no' }) }])));
+    act(() =>
+      drive(
+        makeSnapshot([
+          {
+            type: 'added',
+            id: 'd1',
+            data: doc('d1', 'rejected', {
+              rejectedAt: 200,
+              rejectionType: 'media',
+              errorMessage: 'no',
+            }),
+          },
+        ]),
+      ),
+    );
     expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
 
     // A re-delivery of the same terminal doc never double-fires.
-    act(() => drive(makeSnapshot([{ type: 'modified', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 200, rejectionType: 'media', errorMessage: 'no' }) }])));
+    act(() =>
+      drive(
+        makeSnapshot([
+          {
+            type: 'modified',
+            id: 'd1',
+            data: doc('d1', 'rejected', {
+              rejectedAt: 200,
+              rejectionType: 'media',
+              errorMessage: 'no',
+            }),
+          },
+        ]),
+      ),
+    );
     expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
   });
 
@@ -658,7 +817,9 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     let currentUserId: string | null = 'user1';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive } = makeDriver();
-    const { rerender } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+    const { rerender } = renderHook(() => useInFlightUploadsState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => drive(makeSnapshot([]))); // initial: empty
     act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }]))); // tracked non-terminal
@@ -671,7 +832,21 @@ describe('terminal events without an observed non-terminal predecessor', () => {
 
     // The new subscription's INITIAL listing already shows the doc terminal — the
     // transition happened in the gap and must still fire exactly once.
-    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 300, rejectionType: 'media', errorMessage: 'no' }) }])));
+    act(() =>
+      drive(
+        makeSnapshot([
+          {
+            type: 'added',
+            id: 'd1',
+            data: doc('d1', 'rejected', {
+              rejectedAt: 300,
+              rejectionType: 'media',
+              errorMessage: 'no',
+            }),
+          },
+        ]),
+      ),
+    );
     expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
   });
 
@@ -679,11 +854,19 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     let currentUserId: string | null = 'user1';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive } = makeDriver();
-    const { rerender } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+    const { rerender } = renderHook(() => useInFlightUploadsState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
 
     act(() => drive(makeSnapshot([]))); // initial: empty
     act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }])));
-    act(() => drive(makeSnapshot([{ type: 'modified', id: 'd1', data: doc('d1', 'completed', { completedAt: 200 }) }])));
+    act(() =>
+      drive(
+        makeSnapshot([
+          { type: 'modified', id: 'd1', data: doc('d1', 'completed', { completedAt: 200 }) },
+        ]),
+      ),
+    );
     expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
 
     currentUserId = null;
@@ -692,7 +875,13 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     rerender();
 
     // Re-listed in the new subscription's initial snapshot: already fired, stays fired-once.
-    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'completed', { completedAt: 200 }) }])));
+    act(() =>
+      drive(
+        makeSnapshot([
+          { type: 'added', id: 'd1', data: doc('d1', 'completed', { completedAt: 200 }) },
+        ]),
+      ),
+    );
     expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
   });
 
@@ -702,7 +891,21 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
     // Refresh dedup unchanged: no tracking history, initial listing, no fire.
-    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 200, rejectionType: 'media', errorMessage: 'no' }) }])));
+    act(() =>
+      drive(
+        makeSnapshot([
+          {
+            type: 'added',
+            id: 'd1',
+            data: doc('d1', 'rejected', {
+              rejectedAt: 200,
+              rejectionType: 'media',
+              errorMessage: 'no',
+            }),
+          },
+        ]),
+      ),
+    );
     expect(adapter.onUploadRejected).not.toHaveBeenCalled();
   });
 });

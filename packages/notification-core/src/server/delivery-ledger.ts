@@ -63,11 +63,7 @@ export interface DeliveryLedgerOptions {
   isRecipientEligible: (recipientUid: string, tx: ServerTransaction) => Promise<boolean>;
 }
 export type AggregationStrategy = 'increment' | 'staticRelight';
-export type MaterializationClass =
-  | 'directQueued'
-  | 'realtimeFallback'
-  | 'fanoutOrphan'
-  | 'retry';
+export type MaterializationClass = 'directQueued' | 'realtimeFallback' | 'fanoutOrphan' | 'retry';
 
 /** The materialization payload carried on every delivery row. */
 export interface DeliveryPayload {
@@ -142,7 +138,10 @@ export interface DeliveryLedger {
    * recorded (a retry or a dead letter); each row is isolated, so one row's failure — even one
    * whose recording also fails — never fails the batch or stops the rows behind it.
    */
-  materializeMany(deliveryIds: string[], options?: MaterializeManyOptions): Promise<Record<MaterializeOutcome, number>>;
+  materializeMany(
+    deliveryIds: string[],
+    options?: MaterializeManyOptions,
+  ): Promise<Record<MaterializeOutcome, number>>;
   recordTransientFailure(deliveryId: string, error: unknown): Promise<void>;
   deadLetter(deliveryId: string, error: unknown): Promise<void>;
   /** Re-queue a dead-lettered row. A missing or non-dead-lettered row is answered, never written. */
@@ -175,7 +174,14 @@ export function applyAggregation(params: {
   buildMessage: (count: number) => string;
   now: number;
   generation: string;
-}): { count: number; latestActorIds: string[]; message: string; activityGeneration: string; seenAt: number; updatedAt: number } {
+}): {
+  count: number;
+  latestActorIds: string[];
+  message: string;
+  activityGeneration: string;
+  seenAt: number;
+  updatedAt: number;
+} {
   const { strategy, existing, actorId, countCap, actorCap, buildMessage, now, generation } = params;
   const prevActors = existing?.latestActorIds ?? [];
   // N-M2: a system / no-actor occurrence (null or '') is never injected into the actor
@@ -184,10 +190,7 @@ export function applyAggregation(params: {
     ? [actorId, ...prevActors.filter((id) => id !== actorId)].slice(0, actorCap)
     : prevActors.slice(0, actorCap);
   // staticRelight never shows a count (stays 1); increment counts up to the cap.
-  const count =
-    strategy === 'staticRelight'
-      ? 1
-      : Math.min((existing?.count ?? 0) + 1, countCap);
+  const count = strategy === 'staticRelight' ? 1 : Math.min((existing?.count ?? 0) + 1, countCap);
   return {
     count,
     latestActorIds,
@@ -249,7 +252,8 @@ export function createDeliveryLedger(
     const typeConfig = config.types[type];
     if (!typeConfig) throw new Error(`[notification-core] Unknown notification type: ${type}`);
     const categoryConfig = config.categories[typeConfig.category];
-    if (!categoryConfig) throw new Error(`[notification-core] Unknown category: ${typeConfig.category}`);
+    if (!categoryConfig)
+      throw new Error(`[notification-core] Unknown category: ${typeConfig.category}`);
     return { typeConfig, categoryConfig };
   }
 
@@ -300,7 +304,11 @@ export function createDeliveryLedger(
         return 'skipped-ineligible-recipient';
       }
       const strategy = (d.strategy as AggregationStrategy) ?? 'increment';
-      const payload = (d.payload as DeliveryPayload) ?? { actorId: '', metadata: {}, occurrenceAt: Date.now() };
+      const payload = (d.payload as DeliveryPayload) ?? {
+        actorId: '',
+        metadata: {},
+        occurrenceAt: Date.now(),
+      };
       const { typeConfig, categoryConfig } = getTypeConfig(notificationType);
 
       const activeRef = db.collection(categoryConfig.activePath).doc(
@@ -335,7 +343,10 @@ export function createDeliveryLedger(
       const targetPathField = targetPath === undefined ? {} : { targetPath };
 
       if (activeSnap.exists) {
-        const existing = (activeSnap.data() ?? {}) as Pick<NotificationDoc, 'count' | 'latestActorIds'>;
+        const existing = (activeSnap.data() ?? {}) as Pick<
+          NotificationDoc,
+          'count' | 'latestActorIds'
+        >;
         const delta = applyAggregation({
           strategy,
           existing,
@@ -467,9 +478,18 @@ export function createDeliveryLedger(
         return;
       }
     } catch (handlerError) {
-      console.error('[notification-core] onUnrecordedFailure threw for delivery', deliveryId, handlerError);
+      console.error(
+        '[notification-core] onUnrecordedFailure threw for delivery',
+        deliveryId,
+        handlerError,
+      );
     }
-    console.error('[notification-core] A delivery failure could not be recorded', deliveryId, error, { cause });
+    console.error(
+      '[notification-core] A delivery failure could not be recorded',
+      deliveryId,
+      error,
+      { cause },
+    );
   }
 
   async function materializeMany(

@@ -1,32 +1,37 @@
-import type { MediaOutput, MediaProcessingError, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
-import sharp from "sharp";
-import type { Sharp, Metadata } from "sharp";
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
-import { safeOutputPathFor } from "../utils/safe-path.js";
-import type { ProcessMediaOptions } from "../types.js";
-import { applyImageFormat, mimeForImageFormat, pickFormat } from "./formats.js";
+import type {
+  MediaOutput,
+  MediaProcessingError,
+  MediaProcessingResult,
+  MediaProcessingSpec,
+} from '@ttt-productions/media-schemas';
+import sharp from 'sharp';
+import type { Sharp, Metadata } from 'sharp';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import { safeOutputPathFor } from '../utils/safe-path.js';
+import type { ProcessMediaOptions } from '../types.js';
+import { applyImageFormat, mimeForImageFormat, pickFormat } from './formats.js';
 import {
   computeAspectCropBox,
   resizeCover,
   resizeInside,
   toSharpPosition,
   type Gravity,
-} from "./resize.js";
-import { IMAGE_DEFAULT_OUTPUT_KEY } from "@ttt-productions/media-schemas";
+} from './resize.js';
+import { IMAGE_DEFAULT_OUTPUT_KEY } from '@ttt-productions/media-schemas';
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
   const m = actual.trim().toLowerCase();
   if (!a) return true;
-  if (a === "*/*") return true;
-  if (a.endsWith("/*")) return m.startsWith(a.slice(0, -1));
+  if (a === '*/*') return true;
+  if (a.endsWith('/*')) return m.startsWith(a.slice(0, -1));
   return a === m;
 }
 
 function acceptAllowsImage(spec: MediaProcessingSpec): boolean {
   const kinds = spec.accept?.kinds?.filter(Boolean) ?? [];
-  return kinds.length === 0 ? true : kinds.includes("image");
+  return kinds.length === 0 ? true : kinds.includes('image');
 }
 
 function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boolean {
@@ -59,31 +64,30 @@ function aspectClose(a: number, b: number, tolerance: number): boolean {
  */
 async function buildBase(
   spec: MediaProcessingSpec,
-  inputPath: string
+  inputPath: string,
 ): Promise<
-  | { ok: true; base: Sharp; inputMeta: Metadata }
-  | { ok: false; error: MediaProcessingError }
+  { ok: true; base: Sharp; inputMeta: Metadata } | { ok: false; error: MediaProcessingError }
 > {
-  const input = sharp(inputPath, { failOn: "none" });
+  const input = sharp(inputPath, { failOn: 'none' });
   const meta = await input.metadata();
 
   if (!meta.width || !meta.height || meta.width <= 0 || meta.height <= 0) {
     return {
       ok: false,
       error: {
-        code: "processing_failed",
-        message: "Unable to read valid image dimensions. File may be corrupt.",
+        code: 'processing_failed',
+        message: 'Unable to read valid image dimensions. File may be corrupt.',
         details: { width: meta.width, height: meta.height, format: meta.format, path: inputPath },
       },
     };
   }
-  
+
   if (!meta.format) {
     return {
       ok: false,
       error: {
-        code: "unsupported_format",
-        message: "Unable to determine image format. File may be corrupt.",
+        code: 'unsupported_format',
+        message: 'Unable to determine image format. File may be corrupt.',
         details: { path: inputPath },
       },
     };
@@ -93,20 +97,20 @@ async function buildBase(
     return {
       ok: false,
       error: {
-        code: "invalid_mime",
-        message: "Spec does not allow image uploads.",
+        code: 'invalid_mime',
+        message: 'Spec does not allow image uploads.',
         details: { accept: spec.accept },
       },
     };
   }
-  
+
   const detectedMime = mimeForImageFormat(meta.format);
   if (!acceptAllowsMime(spec, detectedMime)) {
     return {
       ok: false,
       error: {
-        code: "invalid_mime",
-        message: "Image mime type is not allowed.",
+        code: 'invalid_mime',
+        message: 'Image mime type is not allowed.',
         details: { detectedMime, accept: spec.accept },
       },
     };
@@ -123,8 +127,8 @@ async function buildBase(
         return {
           ok: false,
           error: {
-            code: "dimensions_mismatch",
-            message: "Unable to read image dimensions for validation.",
+            code: 'dimensions_mismatch',
+            message: 'Unable to read image dimensions for validation.',
             details: { width: w, height: h },
           },
         };
@@ -157,8 +161,8 @@ async function buildBase(
       return {
         ok: false,
         error: {
-          code: "dimensions_mismatch",
-          message: "Image dimensions do not match the required format.",
+          code: 'dimensions_mismatch',
+          message: 'Image dimensions do not match the required format.',
           details: { requiredWidth: reqW, requiredHeight: reqH, width: w, height: h },
         },
       };
@@ -180,8 +184,8 @@ async function buildBase(
         return {
           ok: false,
           error: {
-            code: "aspect_ratio_mismatch",
-            message: "Image aspect ratio does not match the required format.",
+            code: 'aspect_ratio_mismatch',
+            message: 'Image aspect ratio does not match the required format.',
             details: { requiredAspectRatio: reqAspect, aspectRatio: a, width: w, height: h },
           },
         };
@@ -201,23 +205,29 @@ export async function processImage(
     inputPath: string;
     outputBasePath: string;
   },
-  opts?: ProcessMediaOptions
+  opts?: ProcessMediaOptions,
 ): Promise<MediaProcessingResult> {
   const tempFiles: string[] = [];
 
   try {
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'image',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
 
-    const variants = spec.image?.variants?.length ? spec.image.variants : [{ key: IMAGE_DEFAULT_OUTPUT_KEY }];
+    const variants = spec.image?.variants?.length
+      ? spec.image.variants
+      : [{ key: IMAGE_DEFAULT_OUTPUT_KEY }];
 
     const outDir = path.dirname(ctx.outputBasePath);
     await mkdir(outDir, { recursive: true });
 
     const baseRes = await buildBase(spec, ctx.inputPath);
     if (!baseRes.ok) {
-      return { ok: false, mediaType: "image", error: baseRes.error };
+      return { ok: false, mediaType: 'image', error: baseRes.error };
     }
 
     const { base, inputMeta } = baseRes;
@@ -230,13 +240,17 @@ export async function processImage(
       idx += 1;
 
       if (opts?.signal?.aborted) {
-        return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
+        return {
+          ok: false,
+          mediaType: 'image',
+          error: { code: 'processing_canceled', message: 'Processing canceled.' },
+        };
       }
 
       opts?.onProgress?.({
-        phase: "process",
+        phase: 'process',
         percent: (idx - 1) / totalVariants,
-        detail: { step: "image_variant", key: v.key },
+        detail: { step: 'image_variant', key: v.key },
       });
 
       const { ext, format } = pickFormat(v.format);
@@ -246,7 +260,12 @@ export async function processImage(
       let p = base.clone();
 
       if (v.crop) {
-        p = resizeCover(p, v.crop.width, v.crop.height, toSharpPosition((v.crop.gravity as Gravity) ?? "center"));
+        p = resizeCover(
+          p,
+          v.crop.width,
+          v.crop.height,
+          toSharpPosition((v.crop.gravity as Gravity) ?? 'center'),
+        );
       } else if (v.maxWidth || v.maxHeight) {
         p = resizeInside(p, v.maxWidth, v.maxHeight);
       }
@@ -271,7 +290,7 @@ export async function processImage(
 
     return {
       ok: true,
-      mediaType: "image",
+      mediaType: 'image',
       outputs,
       meta: {
         mime: mimeForImageFormat(inputMeta.format),
@@ -282,16 +301,16 @@ export async function processImage(
   } catch (e: any) {
     return {
       ok: false,
-      mediaType: "image",
+      mediaType: 'image',
       error: {
-        code: "processing_failed",
-        message: e?.message ? String(e.message) : "Image processing failed",
+        code: 'processing_failed',
+        message: e?.message ? String(e.message) : 'Image processing failed',
         details: { name: e?.name },
       },
     };
   } finally {
     if (tempFiles.length) {
-      const { rm } = await import("node:fs/promises");
+      const { rm } = await import('node:fs/promises');
       await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
     }
   }

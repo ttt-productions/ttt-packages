@@ -13,7 +13,12 @@ const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const onSnapshotMock = vi.fn(
-    (target: { __kind: 'doc' | 'col' }, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
+    (
+      target: { __kind: 'doc' | 'col' },
+      _options: unknown,
+      next: (s: unknown) => void,
+      error: (e: Error) => void,
+    ) => {
       (target.__kind === 'doc' ? docCaps : colCaps).push({ next, error });
       return vi.fn();
     },
@@ -55,16 +60,32 @@ function makeWrapper() {
   return { queryClient, Wrapper };
 }
 
-const colSnap = { docs: [{ id: 'i1', data: () => ({ name: 'x' }) }], metadata: { fromCache: false } };
-const missingDoc = { exists: () => false, id: 'u1', data: () => undefined, metadata: { fromCache: false } };
+const colSnap = {
+  docs: [{ id: 'i1', data: () => ({ name: 'x' }) }],
+  metadata: { fromCache: false },
+};
+const missingDoc = {
+  exists: () => false,
+  id: 'u1',
+  data: () => undefined,
+  metadata: { fromCache: false },
+};
 
 describe('a subscribed read before its first snapshot', () => {
   it('useFirestoreDoc is loading and fetching, with no data, until the snapshot answers', () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['u1'], subscribe: true }), {
-      wrapper: Wrapper,
+    const { result } = renderHook(
+      () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['u1'], subscribe: true }),
+      {
+        wrapper: Wrapper,
+      },
+    );
+    expect(result.current).toMatchObject({
+      isLoading: true,
+      isFetching: true,
+      isPending: true,
+      data: undefined,
     });
-    expect(result.current).toMatchObject({ isLoading: true, isFetching: true, isPending: true, data: undefined });
 
     // An answered absence is an answer: the read stops loading and holds `null`.
     act(() => docCaps[0].next(missingDoc));
@@ -74,7 +95,8 @@ describe('a subscribed read before its first snapshot', () => {
   it('useFirestoreCollection is loading until its first snapshot', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     expect(result.current).toMatchObject({ isLoading: true, isFetching: true, data: undefined });
@@ -85,9 +107,12 @@ describe('a subscribed read before its first snapshot', () => {
 
   it('a listener that fails before answering is a failure, not loading', () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['u1'], subscribe: true }), {
-      wrapper: Wrapper,
-    });
+    const { result } = renderHook(
+      () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['u1'], subscribe: true }),
+      {
+        wrapper: Wrapper,
+      },
+    );
     act(() => docCaps[0].error(Object.assign(new Error('internal'), { code: 'internal' })));
     expect(result.current).toMatchObject({ isLoading: false, isError: true });
   });
@@ -95,7 +120,8 @@ describe('a subscribed read before its first snapshot', () => {
   it('a disabled subscribed read is idle, not loading', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['u1'], subscribe: true, enabled: false }),
+      () =>
+        useFirestoreDoc({ docPath: 'users/u1', queryKey: ['u1'], subscribe: true, enabled: false }),
       { wrapper: Wrapper },
     );
     expect(result.current.isLoading).toBe(false);

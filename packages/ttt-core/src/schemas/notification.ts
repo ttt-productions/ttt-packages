@@ -162,13 +162,25 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   guild_invite: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_dispatch_reply: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
   admin_dispatch_created: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
-  threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
+  threshold_library_submission: {
+    category: 'admin',
+    delivery: 'queued',
+    defaultChannels: ['inApp'],
+  },
   threshold_library_reviewed: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
-  hall_content_change_request_resolved: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  hall_content_change_request_resolved: {
+    category: 'user',
+    delivery: 'queued',
+    defaultChannels: ['inApp'],
+  },
   admin_announcement: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   followed_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   member_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
-  followed_craft_skill_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  followed_craft_skill_published: {
+    category: 'user',
+    delivery: 'queued',
+    defaultChannels: ['inApp'],
+  },
   report_action_taken: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   content_appeal_reviewed: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   realm_file_share_requested: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
@@ -182,141 +194,171 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
  * schema.
  */
 export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('content_report'),
-    reportGroupId: reportGroupIdSchema,
-    reportedItemType: reportedItemTypeSchema,
-    reportedItemId: reportedItemIdSchema,
-  }).strict(),
-  z.object({
-    type: z.literal('guild_invite'),
-    workProjectId: workProjectIdSchema,
-    guildInviteId: guildInviteIdSchema,
-  }).strict(),
-  z.object({
-    type: z.literal('admin_dispatch_reply'),
-    adminDispatchId: adminDispatchIdSchema,
-    // Party-generic dispatch: present on workProject-party threads so the card routes
-    // to the Work's correspondence surface. Absent on user-party threads.
-    partyKind: z.enum(['user', 'workProject']).optional(),
-    workProjectId: workProjectIdSchema.optional(),
-  }).strict(),
-  z.object({
-    type: z.literal('admin_dispatch_created'),
-    adminDispatchId: adminDispatchIdSchema,
-    partyKind: z.enum(['user', 'workProject']),
-    // Set on workProject-party threads, so the card routes to the Work.
-    workProjectId: workProjectIdSchema.optional(),
-  }).strict(),
-  z.object({
-    type: z.literal('threshold_library_submission'),
-    thresholdItemId: thresholdItemIdSchema,
-    hallItemId: hallItemIdSchema,
-    workProjectId: workProjectIdSchema,
-  }).strict(),
+  z
+    .object({
+      type: z.literal('content_report'),
+      reportGroupId: reportGroupIdSchema,
+      reportedItemType: reportedItemTypeSchema,
+      reportedItemId: reportedItemIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('guild_invite'),
+      workProjectId: workProjectIdSchema,
+      guildInviteId: guildInviteIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('admin_dispatch_reply'),
+      adminDispatchId: adminDispatchIdSchema,
+      // Party-generic dispatch: present on workProject-party threads so the card routes
+      // to the Work's correspondence surface. Absent on user-party threads.
+      partyKind: z.enum(['user', 'workProject']).optional(),
+      workProjectId: workProjectIdSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('admin_dispatch_created'),
+      adminDispatchId: adminDispatchIdSchema,
+      partyKind: z.enum(['user', 'workProject']),
+      // Set on workProject-party threads, so the card routes to the Work.
+      workProjectId: workProjectIdSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('threshold_library_submission'),
+      thresholdItemId: thresholdItemIdSchema,
+      hallItemId: hallItemIdSchema,
+      workProjectId: workProjectIdSchema,
+    })
+    .strict(),
   // Author feedback for a review decision. Mirrors what runReviewThresholdItem
   // (ttt-prod) sends: only `needs_revision` is delivered; `adminNotes` is
   // the reviewer's note, sent as null when the reviewer left none.
-  z.object({
-    type: z.literal('threshold_library_reviewed'),
-    thresholdItemId: thresholdItemIdSchema,
-    hallItemId: hallItemIdSchema,
-    workProjectId: workProjectIdSchema,
-    workProjectType: workProjectTypeSchema,
-    itemId: z.string().min(1),
-    decision: z.literal('needs_revision'),
-    adminNotes: z.string().max(MAX_THRESHOLD_REVIEW_NOTES_LENGTH).nullable(),
-  }).strict(),
+  z
+    .object({
+      type: z.literal('threshold_library_reviewed'),
+      thresholdItemId: thresholdItemIdSchema,
+      hallItemId: hallItemIdSchema,
+      workProjectId: workProjectIdSchema,
+      workProjectType: workProjectTypeSchema,
+      itemId: z.string().min(1),
+      decision: z.literal('needs_revision'),
+      adminNotes: z.string().max(MAX_THRESHOLD_REVIEW_NOTES_LENGTH).nullable(),
+    })
+    .strict(),
   // Proposer feedback for a published change-request decision. Mirrors what
   // runReviewHallContentChangeRequest (ttt-prod) sends: `resolutionReason` is
   // required on a deny, optional on an approve — null when absent. The realm
   // grain sends `workRealmId` with `hallItemId` null; hall grains the
   // reverse.
-  z.object({
-    type: z.literal('hall_content_change_request_resolved'),
-    changeRequestId: changeRequestIdSchema,
-    hallItemId: hallItemIdSchema.nullable(),
-    workRealmId: z.string().min(1).nullish(),
-    workProjectId: workProjectIdSchema,
-    decision: z.enum(['approved', 'denied']),
-    resolutionReason: z.string().max(MAX_HALL_CHANGE_REQUEST_REASON_LENGTH).nullable(),
-  }).strict(),
-  z.object({
-    type: z.literal('admin_announcement'),
-    title: storedTitleSchema,
-    message: storedNotificationMessageSchema,
-  }).strict(),
-  z.object({
-    type: z.literal('followed_content_published'),
-    workProjectId: workProjectIdSchema,
-    workRealmId: workRealmIdSchema.optional(),
-    workTitle: storedTitleSchema,
-    hallItemId: hallItemIdSchema,
-    hallItemTitle: storedTitleSchema,
-    hallSubItemType: HallSubItemTypeSchema,
-  }).strict(),
+  z
+    .object({
+      type: z.literal('hall_content_change_request_resolved'),
+      changeRequestId: changeRequestIdSchema,
+      hallItemId: hallItemIdSchema.nullable(),
+      workRealmId: z.string().min(1).nullish(),
+      workProjectId: workProjectIdSchema,
+      decision: z.enum(['approved', 'denied']),
+      resolutionReason: z.string().max(MAX_HALL_CHANGE_REQUEST_REASON_LENGTH).nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('admin_announcement'),
+      title: storedTitleSchema,
+      message: storedNotificationMessageSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('followed_content_published'),
+      workProjectId: workProjectIdSchema,
+      workRealmId: workRealmIdSchema.optional(),
+      workTitle: storedTitleSchema,
+      hallItemId: hallItemIdSchema,
+      hallItemTitle: storedTitleSchema,
+      hallSubItemType: HallSubItemTypeSchema,
+    })
+    .strict(),
   // Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
   // the SAME publication to the work's members; the work route + "your work was published!" copy
   // are set by the emitter via targetPath/title, not metadata).
-  z.object({
-    type: z.literal('member_content_published'),
-    workProjectId: workProjectIdSchema,
-    workRealmId: workRealmIdSchema.optional(),
-    workTitle: storedTitleSchema,
-    hallItemId: hallItemIdSchema,
-    hallItemTitle: storedTitleSchema,
-    hallSubItemType: HallSubItemTypeSchema,
-  }).strict(),
+  z
+    .object({
+      type: z.literal('member_content_published'),
+      workProjectId: workProjectIdSchema,
+      workRealmId: workRealmIdSchema.optional(),
+      workTitle: storedTitleSchema,
+      hallItemId: hallItemIdSchema,
+      hallItemTitle: storedTitleSchema,
+      hallSubItemType: HallSubItemTypeSchema,
+    })
+    .strict(),
   // Craft-skill publish — points at the artisan whose skills updated. The actor name
   // ("X uploaded new craft skills") + the profile/skills route resolve from `artisanUid` at
   // render time (Display Identity Invariant); `staticRelight` shows no count.
-  z.object({
-    type: z.literal('followed_craft_skill_published'),
-    artisanUid: userIdSchema,
-  }).strict(),
+  z
+    .object({
+      type: z.literal('followed_craft_skill_published'),
+      artisanUid: userIdSchema,
+    })
+    .strict(),
   // Reporter feedback — metadata is deliberately minimal: `reportId` is the
   // reporter's OWN report-root doc id (deterministic per reporterUid + target,
   // see writeOrdinaryReport), used only as the dedup/aggregation key so a
   // reporter gets at most one card per report they filed. NO fields that
   // identify the reported user/content/remedy may ever be added here.
-  z.object({
-    type: z.literal('report_action_taken'),
-    reportId: reportIdSchema,
-  }).strict(),
+  z
+    .object({
+      type: z.literal('report_action_taken'),
+      reportId: reportIdSchema,
+    })
+    .strict(),
   // Appellant feedback for a content-appeal decision. `appealId` is the
   // appellant's OWN appeal doc id (the dedup/aggregation key — one card per
   // appeal, a re-decision coalesces); `decision` drives the card copy.
-  z.object({
-    type: z.literal('content_appeal_reviewed'),
-    appealId: appealIdSchema,
-    decision: z.enum(['approved', 'denied']),
-  }).strict(),
+  z
+    .object({
+      type: z.literal('content_appeal_reviewed'),
+      appealId: appealIdSchema,
+      decision: z.enum(['approved', 'denied']),
+    })
+    .strict(),
   // Realm shared-file promotion REQUEST → the Realm steward. Ids only: the Realm name, the
   // Work name, the file name, and the requester's display name all resolve at render from
   // these ids (Display Identity Invariant) — a snapshot here would go stale the moment any
   // of them is renamed or moderated.
-  z.object({
-    type: z.literal('realm_file_share_requested'),
-    workRealmId: workRealmIdSchema,
-    workProjectId: workProjectIdSchema,
-    mediaAssetId: mediaAssetIdSchema,
-    workFileId: z.string().min(1),
-    // The occurrence/dedup identity — one card per request, forever.
-    requestId: realmFileShareRequestIdSchema,
-    requestedByUid: userIdSchema,
-  }).strict(),
+  z
+    .object({
+      type: z.literal('realm_file_share_requested'),
+      workRealmId: workRealmIdSchema,
+      workProjectId: workProjectIdSchema,
+      mediaAssetId: mediaAssetIdSchema,
+      workFileId: z.string().min(1),
+      // The occurrence/dedup identity — one card per request, forever.
+      requestId: realmFileShareRequestIdSchema,
+      requestedByUid: userIdSchema,
+    })
+    .strict(),
   // Realm shared-file promotion RESOLUTION. `resolution` both drives the card copy AND
   // identifies the audience: `approved`/`declined` go to the recorded requester,
   // `withdrawn` goes to the steward whose pending card is now stale.
-  z.object({
-    type: z.literal('realm_file_share_resolved'),
-    workRealmId: workRealmIdSchema,
-    workProjectId: workProjectIdSchema,
-    mediaAssetId: mediaAssetIdSchema,
-    workFileId: z.string().min(1),
-    requestId: realmFileShareRequestIdSchema,
-    resolution: z.enum(['approved', 'declined', 'withdrawn']),
-  }).strict(),
+  z
+    .object({
+      type: z.literal('realm_file_share_resolved'),
+      workRealmId: workRealmIdSchema,
+      workProjectId: workProjectIdSchema,
+      mediaAssetId: mediaAssetIdSchema,
+      workFileId: z.string().min(1),
+      requestId: realmFileShareRequestIdSchema,
+      resolution: z.enum(['approved', 'declined', 'withdrawn']),
+    })
+    .strict(),
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;
 
@@ -342,20 +384,26 @@ export function validateNotificationMetadata(
  */
 export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('allActiveUsers') }).strict(),
-  z.object({
-    kind: z.literal('explicitUids'),
-    // The selector's documented audience cap (dedup + serialized-byte enforcement
-    // for work/realm snapshots is app-side). Derives from the ONE named constant.
-    uids: z.array(userIdSchema).min(1).max(MAX_BROADCAST_EXPLICIT_UIDS),
-  }).strict(),
-  z.object({
-    kind: z.literal('workMembers'),
-    workProjectId: workProjectIdSchema,
-  }).strict(),
-  z.object({
-    kind: z.literal('realmMembers'),
-    workRealmId: workRealmIdSchema,
-  }).strict(),
+  z
+    .object({
+      kind: z.literal('explicitUids'),
+      // The selector's documented audience cap (dedup + serialized-byte enforcement
+      // for work/realm snapshots is app-side). Derives from the ONE named constant.
+      uids: z.array(userIdSchema).min(1).max(MAX_BROADCAST_EXPLICIT_UIDS),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('workMembers'),
+      workProjectId: workProjectIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('realmMembers'),
+      workRealmId: workRealmIdSchema,
+    })
+    .strict(),
   z.object({ kind: z.literal('allArtisans') }).strict(),
 ]);
 export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelectorSchema>;
@@ -364,27 +412,35 @@ export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelector
 // but never padding either.
 const clientRequestIdSchema = unpaddedValueSchema;
 
-export const CreateNotificationBroadcastInputSchema = z.object({
-  // Client-generated idempotency key — the app derives the broadcast eventId
-  // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
-  requestId: clientRequestIdSchema,
-  selector: BroadcastAudienceSelectorSchema,
-  title: textFieldSchema(BROADCAST_TITLE_INPUT),
-  message: textFieldSchema(BROADCAST_MESSAGE_INPUT),
-}).strict();
-export type CreateNotificationBroadcastInput = z.infer<typeof CreateNotificationBroadcastInputSchema>;
+export const CreateNotificationBroadcastInputSchema = z
+  .object({
+    // Client-generated idempotency key — the app derives the broadcast eventId
+    // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
+    requestId: clientRequestIdSchema,
+    selector: BroadcastAudienceSelectorSchema,
+    title: textFieldSchema(BROADCAST_TITLE_INPUT),
+    message: textFieldSchema(BROADCAST_MESSAGE_INPUT),
+  })
+  .strict();
+export type CreateNotificationBroadcastInput = z.infer<
+  typeof CreateNotificationBroadcastInputSchema
+>;
 
 export const CreateNotificationBroadcastResultSchema = z.object({
   success: z.literal(true),
   jobId: z.string().min(1),
 });
-export type CreateNotificationBroadcastResult = z.infer<typeof CreateNotificationBroadcastResultSchema>;
+export type CreateNotificationBroadcastResult = z.infer<
+  typeof CreateNotificationBroadcastResultSchema
+>;
 
 // Shared admin notifications have no per-admin seen state, so only the personal
 // `user` category can be marked seen.
-export const MarkNotificationsSeenInputSchema = z.object({
-  category: z.literal('user'),
-}).strict();
+export const MarkNotificationsSeenInputSchema = z
+  .object({
+    category: z.literal('user'),
+  })
+  .strict();
 export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInputSchema>;
 
 // The inputs of the observed-generation callables the notification tray invokes. The
@@ -398,10 +454,12 @@ const MARK_SEEN_MAX_ITEMS = 50;
  * `activeId` is the Firestore active-notification document id;
  * `observedActivityGeneration` is the opaque token from that document.
  */
-const SeenItemSchema = z.object({
-  activeId: activeNotificationIdSchema,
-  observedActivityGeneration: z.string().min(1),
-}).strict();
+const SeenItemSchema = z
+  .object({
+    activeId: activeNotificationIdSchema,
+    observedActivityGeneration: z.string().min(1),
+  })
+  .strict();
 
 /**
  * Input for the observed-generation mark-seen callable.
@@ -415,11 +473,15 @@ const SeenItemSchema = z.object({
  * category is always `'user'` — shared admin notifications have no per-admin
  * seen state.
  */
-export const MarkNotificationsSeenObservedInputSchema = z.object({
-  category: z.literal('user'),
-  items: z.array(SeenItemSchema).min(1).max(MARK_SEEN_MAX_ITEMS),
-}).strict();
-export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotificationsSeenObservedInputSchema>;
+export const MarkNotificationsSeenObservedInputSchema = z
+  .object({
+    category: z.literal('user'),
+    items: z.array(SeenItemSchema).min(1).max(MARK_SEEN_MAX_ITEMS),
+  })
+  .strict();
+export type MarkNotificationsSeenObservedInput = z.infer<
+  typeof MarkNotificationsSeenObservedInputSchema
+>;
 
 export const MarkNotificationsSeenResultSchema = z.object({
   success: z.literal(true),
@@ -441,16 +503,22 @@ export type MarkNotificationsSeenResult = z.infer<typeof MarkNotificationsSeenRe
  *   current generation as its own precondition.
  */
 export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('single'),
-    notificationId: activeNotificationIdSchema,
-    observedActivityGeneration: z.string().min(1),
-  }).strict(),
-  z.object({
-    kind: z.literal('all'),
-  }).strict(),
+  z
+    .object({
+      kind: z.literal('single'),
+      notificationId: activeNotificationIdSchema,
+      observedActivityGeneration: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('all'),
+    })
+    .strict(),
 ]);
-export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificationObservedScopeSchema>;
+export type ArchiveNotificationObservedScope = z.infer<
+  typeof ArchiveNotificationObservedScopeSchema
+>;
 
 /**
  * Input for the observed-generation archive callable.
@@ -468,11 +536,15 @@ export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificatio
  * sets — decides which active-notification collection is archived and which history path it
  * forms part of.
  */
-export const ArchiveNotificationObservedInputSchema = z.object({
-  requestId: clientRequestIdSchema,
-  scope: ArchiveNotificationObservedScopeSchema,
-}).strict();
-export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificationObservedInputSchema>;
+export const ArchiveNotificationObservedInputSchema = z
+  .object({
+    requestId: clientRequestIdSchema,
+    scope: ArchiveNotificationObservedScopeSchema,
+  })
+  .strict();
+export type ArchiveNotificationObservedInput = z.infer<
+  typeof ArchiveNotificationObservedInputSchema
+>;
 
 /**
  * The `archiveNotification` answer: how many cards this call archived (0 when a single card was
@@ -495,21 +567,27 @@ export type ArchiveNotificationResult = z.infer<typeof ArchiveNotificationResult
 
 // No category, for the reason ArchiveNotificationObservedInputSchema gives: `enqueueArchiveAll`
 // clears the caller's `user` tab and `adminEnqueueArchiveAll` the shared `admin` tab.
-export const EnqueueArchiveAllInputSchema = z.object({
-  requestId: clientRequestIdSchema,
-}).strict();
+export const EnqueueArchiveAllInputSchema = z
+  .object({
+    requestId: clientRequestIdSchema,
+  })
+  .strict();
 export type EnqueueArchiveAllInput = z.infer<typeof EnqueueArchiveAllInputSchema>;
 
-export const GetArchiveAllStatusInputSchema = z.object({
-  jobId: documentIdSegmentSchema,
-}).strict();
+export const GetArchiveAllStatusInputSchema = z
+  .object({
+    jobId: documentIdSegmentSchema,
+  })
+  .strict();
 export type GetArchiveAllStatusInput = z.infer<typeof GetArchiveAllStatusInputSchema>;
 
 // Wire contract for the `resumeFanoutJob` callable — the admin console re-arms a
 // dead-lettered notification fanout job by id.
-export const ResumeFanoutJobInputSchema = z.object({
-  jobId: notificationFanoutJobIdSchema,
-}).strict();
+export const ResumeFanoutJobInputSchema = z
+  .object({
+    jobId: notificationFanoutJobIdSchema,
+  })
+  .strict();
 export type ResumeFanoutJobInput = z.infer<typeof ResumeFanoutJobInputSchema>;
 
 // One dead-lettered fanout job in the Ops Repairs inventory (`listDeadLetteredFanoutJobs`, oldest
@@ -532,7 +610,9 @@ export type ListDeadLetteredFanoutJobsInput = z.infer<typeof ListDeadLetteredFan
 export const ListDeadLetteredFanoutJobsResultSchema = z.object({
   jobs: z.array(DeadLetteredFanoutJobRowSchema),
 });
-export type ListDeadLetteredFanoutJobsResult = z.infer<typeof ListDeadLetteredFanoutJobsResultSchema>;
+export type ListDeadLetteredFanoutJobsResult = z.infer<
+  typeof ListDeadLetteredFanoutJobsResultSchema
+>;
 
 // The `resumeFanoutJob` re-arm: `resumed: false` with a `reason` when the job was no longer
 // dead-lettered (an idempotent no-op).

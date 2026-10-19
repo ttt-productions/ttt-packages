@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -8,11 +8,11 @@ import {
   useCallback,
   useMemo,
   type ReactNode,
-} from "react";
-import type { User } from "firebase/auth";
-import { useAuthState } from "./useAuthState.js";
-import { getIdTokenClaims } from "../client/claims.js";
-import type { AuthProviderConfig, AuthContextValue } from "./types.js";
+} from 'react';
+import type { User } from 'firebase/auth';
+import { useAuthState } from './useAuthState.js';
+import { getIdTokenClaims } from '../client/claims.js';
+import type { AuthProviderConfig, AuthContextValue } from './types.js';
 
 /**
  * Claims resolved for one signed-in session. `user` is the Firebase `User` instance (it carries
@@ -24,7 +24,6 @@ interface ResolvedClaims<TClaims> {
   claims: TClaims;
 }
 
- 
 export const AuthContext = createContext<AuthContextValue<any> | null>(null);
 
 interface AuthProviderProps<TClaims> {
@@ -32,9 +31,10 @@ interface AuthProviderProps<TClaims> {
   children: ReactNode;
 }
 
-export function AuthProvider<TClaims = Record<string, unknown>>(
-  { config, children }: AuthProviderProps<TClaims>,
-) {
+export function AuthProvider<TClaims = Record<string, unknown>>({
+  config,
+  children,
+}: AuthProviderProps<TClaims>) {
   const { user, loading: authLoading } = useAuthState(config.auth);
 
   // Claims are held with the session they were read for and derived at render (below), so a
@@ -60,9 +60,14 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
       const generation = ++generationRef.current;
       try {
         const raw = await read();
-        if (currentUserRef.current !== forUser || generation <= appliedGenerationRef.current) return;
+        if (currentUserRef.current !== forUser || generation <= appliedGenerationRef.current)
+          return;
         appliedGenerationRef.current = generation;
-        setResolved({ user: forUser, generation, claims: configRef.current.parseClaims(raw ?? {}) });
+        setResolved({
+          user: forUser,
+          generation,
+          claims: configRef.current.parseClaims(raw ?? {}),
+        });
       } catch (err) {
         if (currentUserRef.current !== forUser) return;
         configRef.current.onError?.(err, context);
@@ -86,11 +91,13 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
     let cancelled = false;
     Promise.resolve()
       .then(() => gate())
-      .catch((err) => configRef.current.onError?.(err, "readyGate"))
+      .catch((err) => configRef.current.onError?.(err, 'readyGate'))
       .finally(() => {
         if (!cancelled) setGateOpen(true);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // Mount-only by design (reads only the stable configRef): the gate is a
     // one-time client readiness signal.
   }, []);
@@ -109,7 +116,7 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
     void readClaims(
       user,
       async () => ((await getIdTokenClaims(user)) ?? {}) as Record<string, unknown>,
-      "getIdTokenClaims",
+      'getIdTokenClaims',
     );
   }, [user, authLoading, readClaims]);
 
@@ -124,7 +131,7 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
     await readClaims(
       liveUser,
       async () => ((await liveUser.getIdTokenResult(true)).claims ?? {}) as Record<string, unknown>,
-      "refreshClaims",
+      'refreshClaims',
     );
   }, [readClaims]);
 
@@ -154,9 +161,5 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
     [exposedUser, claims, loading, authLoading, claimsLoading, refreshClaims],
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

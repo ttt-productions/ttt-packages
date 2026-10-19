@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { arrayElement, compositeMembers, kindOf, knownKeys, objectShape, unwrap } from '../../src/zod-shape/zod-shape.js';
+import {
+  arrayElement,
+  compositeMembers,
+  kindOf,
+  knownKeys,
+  objectShape,
+  unwrap,
+} from '../../src/zod-shape/zod-shape.js';
 
 describe('zod-shape', () => {
   const Inner = z.object({ a: z.string(), b: z.number().optional() });
@@ -12,7 +19,11 @@ describe('zod-shape', () => {
   });
 
   it('sees through optional, nullable, default, readonly, and transform wrappers', () => {
-    const wrapped = Inner.nullable().optional().default({ a: 'x' }).readonly().transform((value) => value);
+    const wrapped = Inner.nullable()
+      .optional()
+      .default({ a: 'x' })
+      .readonly()
+      .transform((value) => value);
     expect(kindOf(unwrap(wrapped))).toBe('object');
     expect(knownKeys(wrapped)).toEqual(new Set(['a', 'b']));
   });

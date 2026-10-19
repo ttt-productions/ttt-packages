@@ -144,7 +144,11 @@ function ownDeclarations(code: string, from: number, to: number): CssDeclaration
     if (colon > 0) {
       const property = raw.slice(0, colon).trim();
       if (/^-{0,2}[a-zA-Z][\w-]*$/.test(property)) {
-        out.push({ property: property.startsWith('--') ? property : property.toLowerCase(), value: flat(raw.slice(colon + 1)), index: segmentStart + raw.indexOf(property) });
+        out.push({
+          property: property.startsWith('--') ? property : property.toLowerCase(),
+          value: flat(raw.slice(colon + 1)),
+          index: segmentStart + raw.indexOf(property),
+        });
       }
     }
   };
@@ -179,7 +183,8 @@ export function topLevelStatements(code: string): CssStatement[] {
   const push = (end: number, bodyIndex?: number) => {
     const raw = code.slice(segmentStart, end);
     const text = flat(raw);
-    if (text) out.push({ text, index: segmentStart + (raw.length - raw.trimStart().length), bodyIndex });
+    if (text)
+      out.push({ text, index: segmentStart + (raw.length - raw.trimStart().length), bodyIndex });
   };
   for (let i = 0; i < code.length; i += 1) {
     const c = code[i];
@@ -206,7 +211,10 @@ export function topLevelStatements(code: string): CssStatement[] {
 
 /** An `@import` statement read: what it names, and the layer it joins (`''` for an anonymous one). */
 export function parseImport(statement: string): { spec: string; layer: string | null } | null {
-  const m = /^@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?\s*(?:layer\(\s*([^)]*?)\s*\)|(layer)\b)?/.exec(statement);
+  const m =
+    /^@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?\s*(?:layer\(\s*([^)]*?)\s*\)|(layer)\b)?/.exec(
+      statement,
+    );
   if (!m) return null;
   return { spec: m[1], layer: m[2] !== undefined ? m[2] : m[3] ? '' : null };
 }
@@ -240,4 +248,5 @@ export function resolveToken(map: ReadonlyMap<string, string>, token: string): s
 export const HSL_TRIPLE = /^(-?[\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/;
 
 /** A selector list's members, for a style rule. */
-export const selectorsOf = (block: CssBlock): string[] => (block.atRule ? [] : splitTopLevel(block.prelude, ','));
+export const selectorsOf = (block: CssBlock): string[] =>
+  block.atRule ? [] : splitTopLevel(block.prelude, ',');

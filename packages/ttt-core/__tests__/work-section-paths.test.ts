@@ -6,7 +6,9 @@ import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 
 describe('WORK_SECTION_PATHS_BY_TYPE', () => {
   it('covers every WorkProjectType — a dispatch with a hole would silently write nowhere', () => {
-    expect(Object.keys(WORK_SECTION_PATHS_BY_TYPE).sort()).toEqual([...WORK_PROJECT_TYPE_KEYS].sort());
+    expect(Object.keys(WORK_SECTION_PATHS_BY_TYPE).sort()).toEqual(
+      [...WORK_PROJECT_TYPE_KEYS].sort(),
+    );
   });
 
   describe('Tales', () => {
@@ -16,7 +18,9 @@ describe('WORK_SECTION_PATHS_BY_TYPE', () => {
       expect(paths.section('wp1')).toEqual(COLLECTION_REFS.workProjectTales('wp1'));
       expect(paths.sectionDoc('wp1', 't1')).toEqual(PATH_BUILDERS.workProjectTale('wp1', 't1'));
       expect(paths.subItems('wp1', 't1')).toEqual(PATH_BUILDERS.taleChapters('wp1', 't1'));
-      expect(paths.subItem('wp1', 't1', 'c1')).toEqual(PATH_BUILDERS.taleChapter('wp1', 't1', 'c1'));
+      expect(paths.subItem('wp1', 't1', 'c1')).toEqual(
+        PATH_BUILDERS.taleChapter('wp1', 't1', 'c1'),
+      );
     });
   });
 
@@ -36,7 +40,9 @@ describe('WORK_SECTION_PATHS_BY_TYPE', () => {
 
     it('dispatches to the canonical Television builders', () => {
       expect(paths.section('wp1')).toEqual(COLLECTION_REFS.workProjectTelevision('wp1'));
-      expect(paths.sectionDoc('wp1', 'tv1')).toEqual(PATH_BUILDERS.workProjectTelevision('wp1', 'tv1'));
+      expect(paths.sectionDoc('wp1', 'tv1')).toEqual(
+        PATH_BUILDERS.workProjectTelevision('wp1', 'tv1'),
+      );
       expect(paths.subItems('wp1', 'tv1')).toEqual(PATH_BUILDERS.televisionEpisodes('wp1', 'tv1'));
       expect(paths.subItem('wp1', 'tv1', 'e1')).toEqual(
         PATH_BUILDERS.televisionEpisode('wp1', 'tv1', 'e1'),

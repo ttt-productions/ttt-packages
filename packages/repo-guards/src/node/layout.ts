@@ -2,7 +2,8 @@
 // what is never read. The reader's scope policy is fixed here; an app supplies only facts.
 
 /** Every kind of file a guard can ask for. */
-export type FileKind = 'code' | 'declarations' | 'stylesheet' | 'rules' | 'config' | 'markdown' | 'shell';
+export type FileKind =
+  'code' | 'declarations' | 'stylesheet' | 'rules' | 'config' | 'markdown' | 'shell';
 
 export const FILE_KINDS: readonly FileKind[] = Object.freeze([
   'code',
@@ -15,7 +16,8 @@ export const FILE_KINDS: readonly FileKind[] = Object.freeze([
 ]);
 
 /** The roles a root can play. `workers` is a family: an app declares each Worker tree by name. */
-export type RootRole = 'app' | 'functions' | 'e2e' | 'hostedE2e' | 'scripts' | 'coreDist' | 'workers';
+export type RootRole =
+  'app' | 'functions' | 'e2e' | 'hostedE2e' | 'scripts' | 'coreDist' | 'workers';
 
 export const ROOT_ROLES: readonly RootRole[] = Object.freeze([
   'app',
@@ -144,11 +146,14 @@ export function isTestPath(layout: RepoLayout, path: string): boolean {
 }
 
 /** Every root the layout declares, flattened: a Worker root carries its name. */
-export function declaredRoots(layout: RepoLayout): Array<{ role: RootRole; name: string; root: RootDeclaration }> {
+export function declaredRoots(
+  layout: RepoLayout,
+): Array<{ role: RootRole; name: string; root: RootDeclaration }> {
   const out: Array<{ role: RootRole; name: string; root: RootDeclaration }> = [];
   for (const role of ROOT_ROLES) {
     if (role === 'workers') {
-      for (const [name, root] of Object.entries(layout.roots.workers ?? {})) out.push({ role, name, root });
+      for (const [name, root] of Object.entries(layout.roots.workers ?? {}))
+        out.push({ role, name, root });
     } else {
       const root = layout.roots[role];
       if (root) out.push({ role, name: role, root });

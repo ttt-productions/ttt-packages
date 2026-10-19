@@ -47,7 +47,7 @@ describe('createReducedMotionStore', () => {
     expect(store.prefersReducedMotion()).toBe(false);
   });
 
-  it('saves under the app\'s key and stamps the <html> attribute at once', () => {
+  it("saves under the app's key and stamps the <html> attribute at once", () => {
     store.setSavedReducedMotion(true);
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('true');
     expect(store.savedReducedMotion()).toBe(true);
@@ -70,7 +70,7 @@ describe('createReducedMotionStore', () => {
     expect(attribute()).toBe('true');
   });
 
-  it('dispatches the app\'s change event on every save', () => {
+  it("dispatches the app's change event on every save", () => {
     let fired = 0;
     const onChange = () => {
       fired += 1;
@@ -120,7 +120,10 @@ describe('createReducedMotionStore', () => {
   });
 
   it('keeps stores with different keys independent', () => {
-    const other = createReducedMotionStore({ storageKey: 'other-motion', changeEvent: 'other-motion-change' });
+    const other = createReducedMotionStore({
+      storageKey: 'other-motion',
+      changeEvent: 'other-motion-change',
+    });
     store.setSavedReducedMotion(true);
     expect(other.savedReducedMotion()).toBeNull();
     expect(other.prefersReducedMotion()).toBe(false);

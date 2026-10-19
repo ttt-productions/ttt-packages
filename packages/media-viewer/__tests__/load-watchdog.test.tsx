@@ -43,7 +43,7 @@ describe('ImageViewer load watchdog', () => {
   it('does not fire after a successful load', () => {
     const onError = vi.fn();
     const { container } = render(
-      <ImageViewer url="https://example.com/a.jpg" priority onError={onError} />
+      <ImageViewer url="https://example.com/a.jpg" priority onError={onError} />,
     );
 
     fireEvent.load(container.querySelector('img')!);
@@ -56,7 +56,12 @@ describe('ImageViewer load watchdog', () => {
   it('respects a custom loadTimeoutMs', () => {
     const onError = vi.fn();
     render(
-      <ImageViewer url="https://example.com/a.jpg" priority onError={onError} loadTimeoutMs={5000} />
+      <ImageViewer
+        url="https://example.com/a.jpg"
+        priority
+        onError={onError}
+        loadTimeoutMs={5000}
+      />,
     );
 
     act(() => {
@@ -72,7 +77,7 @@ describe('ImageViewer load watchdog', () => {
   it('loadTimeoutMs=0 disables the watchdog', () => {
     const onError = vi.fn();
     render(
-      <ImageViewer url="https://example.com/a.jpg" priority onError={onError} loadTimeoutMs={0} />
+      <ImageViewer url="https://example.com/a.jpg" priority onError={onError} loadTimeoutMs={0} />,
     );
 
     act(() => {
@@ -83,9 +88,7 @@ describe('ImageViewer load watchdog', () => {
 
   it('re-arms instead of failing while the document is hidden', () => {
     const onError = vi.fn();
-    const visibilitySpy = vi
-      .spyOn(document, 'visibilityState', 'get')
-      .mockReturnValue('hidden');
+    const visibilitySpy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     render(<ImageViewer url="https://example.com/a.jpg" priority onError={onError} />);
 
     act(() => {
@@ -116,7 +119,7 @@ describe('VideoViewer load watchdog', () => {
   it('is settled by loadedmetadata alone (preload="metadata" list videos)', () => {
     const onError = vi.fn();
     const { container } = render(
-      <VideoViewer url="https://example.com/v.mp4" priority onError={onError} />
+      <VideoViewer url="https://example.com/v.mp4" priority onError={onError} />,
     );
 
     fireEvent.loadedMetadata(container.querySelector('video')!);
@@ -141,7 +144,7 @@ describe('AudioViewer load watchdog', () => {
   it('is settled by loadedmetadata alone', () => {
     const onError = vi.fn();
     const { container } = render(
-      <AudioViewer url="https://example.com/a.mp3" priority onError={onError} />
+      <AudioViewer url="https://example.com/a.mp3" priority onError={onError} />,
     );
 
     fireEvent.loadedMetadata(container.querySelector('audio')!);
@@ -190,6 +193,6 @@ describe('bounded processing/finalizing phases', () => {
         vi.advanceTimersByTime(2);
       });
       expect(screen.getByTestId('phase').textContent).toBe('max-wait-fallback');
-    }
+    },
   );
 });

@@ -6,7 +6,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 import { createRegistrySeedWriter, registeredSchemaForPath } from '../../src/seed/seed-writer.js';
 
-const ProfileSchema = z.object({ uid: z.string(), displayName: z.string(), bio: z.string().optional() });
+const ProfileSchema = z.object({
+  uid: z.string(),
+  displayName: z.string(),
+  bio: z.string().optional(),
+});
 const PreferencesSchema = z.object({ theme: z.enum(['light', 'dark']) });
 const PrivateDataSchema = z.object({ email: z.string() });
 const EventSchema = z.discriminatedUnion('type', [
@@ -23,7 +27,10 @@ const SCHEMAS = Object.freeze({
 
 function makeWriter() {
   const write = vi.fn(async () => undefined);
-  return { write, ...createRegistrySeedWriter({ schemas: SCHEMAS, write, registryName: 'app-core' }) };
+  return {
+    write,
+    ...createRegistrySeedWriter({ schemas: SCHEMAS, write, registryName: 'app-core' }),
+  };
 }
 
 describe('registeredSchemaForPath', () => {
@@ -32,8 +39,12 @@ describe('registeredSchemaForPath', () => {
   });
 
   it('prefers the template with more literal segments, so a fixed-id document takes its own schema', () => {
-    expect(registeredSchemaForPath(SCHEMAS, 'profiles/u1/privateData/preferences')?.schema).toBe(PreferencesSchema);
-    expect(registeredSchemaForPath(SCHEMAS, 'profiles/u1/privateData/contact')?.schema).toBe(PrivateDataSchema);
+    expect(registeredSchemaForPath(SCHEMAS, 'profiles/u1/privateData/preferences')?.schema).toBe(
+      PreferencesSchema,
+    );
+    expect(registeredSchemaForPath(SCHEMAS, 'profiles/u1/privateData/contact')?.schema).toBe(
+      PrivateDataSchema,
+    );
   });
 
   it('finds nothing for a path of another depth or an unregistered collection', () => {

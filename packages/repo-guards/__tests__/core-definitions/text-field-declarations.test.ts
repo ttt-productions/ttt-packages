@@ -23,7 +23,8 @@ const CLEAN: Record<string, string> = {
     "export const TITLE_INPUT = defineInputFormat({ format: 'plain', min: 1, max: 10 });",
     "export const LEGAL_INPUT = defineInputFormat({ format: 'plain', min: 1, max: 10, keepAsTyped: true });",
   ].join('\n'),
-  [`${CORE}/constants/other.js`]: '// keepAsTyped is set only beside the declarations\nexport const OTHER = 1;',
+  [`${CORE}/constants/other.js`]:
+    '// keepAsTyped is set only beside the declarations\nexport const OTHER = 1;',
 };
 
 type Decl = { format: string; min: number; max: number; keepAsTyped?: true };
@@ -34,9 +35,19 @@ const DECLARATIONS: Record<string, unknown> = {
   LEGAL_INPUT: { format: 'plain', min: 1, max: 10, keepAsTyped: true },
   MAX_TITLE: 10,
 };
-const collapsed = (d: Decl) => z.string().trim().min(d.min).max(d.max).transform((s) => s.replace(/\s+/g, ' '));
+const collapsed = (d: Decl) =>
+  z
+    .string()
+    .trim()
+    .min(d.min)
+    .max(d.max)
+    .transform((s) => s.replace(/\s+/g, ' '));
 const fieldSchema = (d: Decl) => {
-  if (d.keepAsTyped) return z.string().refine((s) => s.trim().length >= d.min).pipe(z.string().max(d.max));
+  if (d.keepAsTyped)
+    return z
+      .string()
+      .refine((s) => s.trim().length >= d.min)
+      .pipe(z.string().max(d.max));
   if (d.format === 'noSpaces') return z.string().trim().min(d.min).max(d.max).regex(/^\S*$/);
   return collapsed(d);
 };
@@ -45,8 +56,22 @@ const facts = (overrides: Partial<TextFieldDeclarationFacts> = {}): TextFieldDec
   wireFolders: [`${CORE}/schemas`],
   declarationsFile: `${CORE}/constants/text-fields.js`,
   wireInputNameSuffixes: ['InputSchema'],
-  selfBounded: [{ file: `${CORE}/schemas/admin.js`, declaration: 'SearchInputSchema', count: 1, why: 'a search box, not a declared field' }],
-  undeclaredFreeText: [{ file: `${CORE}/schemas/admin.js`, declaration: 'SearchInputSchema', count: 1, why: 'a search box, not a declared field' }],
+  selfBounded: [
+    {
+      file: `${CORE}/schemas/admin.js`,
+      declaration: 'SearchInputSchema',
+      count: 1,
+      why: 'a search box, not a declared field',
+    },
+  ],
+  undeclaredFreeText: [
+    {
+      file: `${CORE}/schemas/admin.js`,
+      declaration: 'SearchInputSchema',
+      count: 1,
+      why: 'a search box, not a declared field',
+    },
+  ],
   keepAsTyped: [{ declaration: 'LEGAL_INPUT', why: 'a legal text whose exact characters matter' }],
   declarations: () => DECLARATIONS,
   fieldSchema: () => fieldSchema as never,
@@ -61,7 +86,8 @@ const open = (files: Record<string, string>) => {
 };
 afterAll(() => opened.forEach((f) => f.repo.remove()));
 
-const guards = (overrides?: Partial<TextFieldDeclarationFacts>) => textFieldDeclarationsGuard.build(facts(overrides));
+const guards = (overrides?: Partial<TextFieldDeclarationFacts>) =>
+  textFieldDeclarationsGuard.build(facts(overrides));
 
 describe('wire schemas', () => {
   it('passes declared fields, built-in formats, an id-length bound, a reviewed search box, and shapes no client sends', async () => {
@@ -115,7 +141,10 @@ describe('wire schemas', () => {
 describe('the declarations module', () => {
   it('FLAGS defineInputFormat called and keepAsTyped set outside it, and a declarations module missing from the build', async () => {
     const [, , declaredOnce] = guards({ declarationsFile: `${CORE}/constants/fields.js` });
-    const f = open({ [`${CORE}/schemas/extra.js`]: "export const X_INPUT = defineInputFormat({ format: 'plain', keepAsTyped: true });" });
+    const f = open({
+      [`${CORE}/schemas/extra.js`]:
+        "export const X_INPUT = defineInputFormat({ format: 'plain', keepAsTyped: true });",
+    });
     expect(lines(await f.run(declaredOnce))).toEqual([
       `${CORE}/constants/fields.js — the declarations module is not in the core build`,
       `${CORE}/constants/text-fields.js:1 — defineInputFormat outside the declarations module`,
@@ -136,7 +165,9 @@ describe('declared fields at run time', () => {
   });
 
   it('FLAGS a field that newly keeps its text as typed, and a reviewed one that no longer does', async () => {
-    const [, , , keep] = guards({ keepAsTyped: [{ declaration: 'TITLE_INPUT', why: 'reviewed once' }] });
+    const [, , , keep] = guards({
+      keepAsTyped: [{ declaration: 'TITLE_INPUT', why: 'reviewed once' }],
+    });
     expect(lines(await open({}).run(keep))).toEqual([
       '(core) LEGAL_INPUT — keeps its text as typed without review',
       '(core) TITLE_INPUT — stale keep-as-typed entry: the declaration no longer keeps its text, or is gone',
@@ -144,7 +175,10 @@ describe('declared fields at run time', () => {
   });
 
   it('FLAGS a field that keeps a run of spaces it accepts', async () => {
-    const keepsRuns = (d: Decl) => (d.keepAsTyped || d.format === 'noSpaces' ? fieldSchema(d) : z.string().trim().min(d.min).max(d.max));
+    const keepsRuns = (d: Decl) =>
+      d.keepAsTyped || d.format === 'noSpaces'
+        ? fieldSchema(d)
+        : z.string().trim().min(d.min).max(d.max);
     const [, , , , behave] = guards({ fieldSchema: () => keepsRuns as never });
     expect(lines(await open({}).run(behave))).toEqual([
       '(core) TITLE_INPUT — keeps a run of spaces instead of one space',
@@ -154,7 +188,12 @@ describe('declared fields at run time', () => {
 
   it('FLAGS a required field that accepts whitespace-only text and a field that does not trim', async () => {
     const untrimmed = (d: Decl) =>
-      d.keepAsTyped || d.format === 'noSpaces' ? fieldSchema(d) : z.string().max(d.max).transform((s) => s.replace(/ {2,}/g, ' '));
+      d.keepAsTyped || d.format === 'noSpaces'
+        ? fieldSchema(d)
+        : z
+            .string()
+            .max(d.max)
+            .transform((s) => s.replace(/ {2,}/g, ' '));
     const [, , , , behave] = guards({ fieldSchema: () => untrimmed as never });
     expect(lines(await open({}).run(behave))).toEqual([
       '(core) TITLE_INPUT — accepts whitespace-only text although the field requires text',
@@ -183,9 +222,12 @@ describe('the facts', () => {
   });
 
   it('refuses a folder or suffix listed twice', () => {
-    expect(textFieldDeclarationsGuard.factProblems({ ...facts(), wireFolders: ['w', 'w'], wireInputNameSuffixes: ['Input', 'Input'] })).toEqual([
-      'wireFolders lists w twice',
-      'wireInputNameSuffixes lists Input twice',
-    ]);
+    expect(
+      textFieldDeclarationsGuard.factProblems({
+        ...facts(),
+        wireFolders: ['w', 'w'],
+        wireInputNameSuffixes: ['Input', 'Input'],
+      }),
+    ).toEqual(['wireFolders lists w twice', 'wireInputNameSuffixes lists Input twice']);
   });
 });

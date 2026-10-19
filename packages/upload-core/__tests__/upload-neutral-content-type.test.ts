@@ -19,7 +19,11 @@ const base = {
 
 async function outcome(metadata: { contentType: string }, allowNeutralContentType?: boolean) {
   try {
-    await uploadFileResumable({ ...base, metadata, ...(allowNeutralContentType ? { allowNeutralContentType } : {}) } as any);
+    await uploadFileResumable({
+      ...base,
+      metadata,
+      ...(allowNeutralContentType ? { allowNeutralContentType } : {}),
+    } as any);
     return 'resolved';
   } catch (e) {
     if (e instanceof UploadError) return `upload-error:${e.code}`;
@@ -29,7 +33,9 @@ async function outcome(metadata: { contentType: string }, allowNeutralContentTyp
 
 describe('uploadFileResumable neutral content-type opt-in (canonical-upload-content-classification)', () => {
   it('DEFAULT is unchanged: octet-stream rejects without the opt-in', async () => {
-    expect(await outcome({ contentType: 'application/octet-stream' })).toBe('upload-error:invalid_content_type');
+    expect(await outcome({ contentType: 'application/octet-stream' })).toBe(
+      'upload-error:invalid_content_type',
+    );
   });
 
   it('octet-stream passes the gate ONLY with the explicit opt-in', async () => {
@@ -37,8 +43,12 @@ describe('uploadFileResumable neutral content-type opt-in (canonical-upload-cont
   });
 
   it('the opt-in permits ONLY the one neutral value — arbitrary types still reject', async () => {
-    expect(await outcome({ contentType: 'application/pdf' }, true)).toBe('upload-error:invalid_content_type');
-    expect(await outcome({ contentType: 'text/html' }, true)).toBe('upload-error:invalid_content_type');
+    expect(await outcome({ contentType: 'application/pdf' }, true)).toBe(
+      'upload-error:invalid_content_type',
+    );
+    expect(await outcome({ contentType: 'text/html' }, true)).toBe(
+      'upload-error:invalid_content_type',
+    );
   });
 
   it('a concrete media MIME still passes with or without the opt-in', async () => {

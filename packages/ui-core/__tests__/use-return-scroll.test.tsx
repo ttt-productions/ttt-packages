@@ -32,7 +32,11 @@ beforeEach(() => {
   vi.stubGlobal('cancelAnimationFrame', (id: number) => {
     frames.delete(id);
   });
-  Object.defineProperty(window, 'scrollTo', { value: scrollTo, writable: true, configurable: true });
+  Object.defineProperty(window, 'scrollTo', {
+    value: scrollTo,
+    writable: true,
+    configurable: true,
+  });
   Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
   window.sessionStorage.clear();
   scrollTo.mockClear();
@@ -124,7 +128,9 @@ describe('useReturnScroll — the restore contract', () => {
 
   it('unmounting before the frame runs cancels the restore and leaves nothing scheduled', () => {
     saveReturnScroll(KEY, 900);
-    const { unmount } = renderHook(() => useReturnScroll({ key: KEY, eligible: true, ready: true }));
+    const { unmount } = renderHook(() =>
+      useReturnScroll({ key: KEY, eligible: true, ready: true }),
+    );
     expect(frames.size).toBe(1);
     unmount();
     expect(frames.size).toBe(0);
@@ -145,7 +151,7 @@ describe('useReturnScroll — the restore contract', () => {
     expect(readReturnScroll(KEY)).toBeNull();
   });
 
-  it('a key change re-decides for the new key and never applies the old key\'s offset', () => {
+  it("a key change re-decides for the new key and never applies the old key's offset", () => {
     const OTHER = '/hall-library?workProjectType=Tunes';
     saveReturnScroll(KEY, 900);
     const { rerender } = renderHook(
@@ -160,8 +166,10 @@ describe('useReturnScroll — the restore contract', () => {
     expect(scrollTo).toHaveBeenCalledWith({ top: 900, left: 0, behavior: 'instant' });
   });
 
-  it('save() from the hook records the current offset under the hook\'s key', () => {
-    const { result } = renderHook(() => useReturnScroll({ key: KEY, eligible: false, ready: false }));
+  it("save() from the hook records the current offset under the hook's key", () => {
+    const { result } = renderHook(() =>
+      useReturnScroll({ key: KEY, eligible: false, ready: false }),
+    );
     setScrollY(2048);
     result.current.save();
     expect(readReturnScroll(KEY)?.y).toBe(2048);

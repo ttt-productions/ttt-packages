@@ -46,9 +46,7 @@ export function useUnreadCount({
   const isPersonal = categoryConfig.audienceType === 'personal';
 
   const constraints: QueryConstraint[] =
-    isPersonal && userId
-      ? [where('targetUserId', '==', userId), where('seenAt', '==', 0)]
-      : [];
+    isPersonal && userId ? [where('targetUserId', '==', userId), where('seenAt', '==', 0)] : [];
 
   const { data, ...rest } = useFirestoreCount({
     collectionPath,

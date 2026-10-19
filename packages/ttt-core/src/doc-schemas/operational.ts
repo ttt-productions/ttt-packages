@@ -111,7 +111,9 @@ export const StatusReconcileQueueAccountStatusEntrySchema = z.object({
   targetStatus: UserAccountStatusSchema,
   writeId: z.string(),
 });
-export type StatusReconcileQueueAccountStatusEntry = z.infer<typeof StatusReconcileQueueAccountStatusEntrySchema>;
+export type StatusReconcileQueueAccountStatusEntry = z.infer<
+  typeof StatusReconcileQueueAccountStatusEntrySchema
+>;
 
 /** A failed `docsAccepted` claim write. Strict: it carries no status, so no `targetStatus`. */
 export const StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema = z
@@ -131,7 +133,9 @@ export const StatusReconcileQueueAdminClaimsEntrySchema = z
     authEffect: z.literal('adminClaims' satisfies StatusReconcileQueueAuthEffect),
   })
   .strict();
-export type StatusReconcileQueueAdminClaimsEntry = z.infer<typeof StatusReconcileQueueAdminClaimsEntrySchema>;
+export type StatusReconcileQueueAdminClaimsEntry = z.infer<
+  typeof StatusReconcileQueueAdminClaimsEntrySchema
+>;
 
 /** A failed registered-member claim write. Strict: it carries no status. */
 export const StatusReconcileQueueRegisteredMemberClaimEntrySchema = z

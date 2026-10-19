@@ -220,7 +220,9 @@ export function normalizeDownloadFilename(
     DOWNLOAD_FILENAME_FALLBACK_STEM;
 
   const source = typeof rawName === 'string' ? rawName : '';
-  const sanitized = trimTrailingDotsAndSpaces(sanitizeSegment(takeBasename(source.normalize('NFC'))));
+  const sanitized = trimTrailingDotsAndSpaces(
+    sanitizeSegment(takeBasename(source.normalize('NFC'))),
+  );
   const split = splitExtension(sanitized);
 
   // --- extension: the served contentType is authoritative ---
@@ -252,7 +254,8 @@ export function normalizeDownloadFilename(
 
   if (RESERVED_DEVICE_NAME.test(stem)) stem = `_${stem}`;
   stem = trimTrailingDotsAndSpaces(truncateToUtf8Bytes(stem, budget));
-  if (stem.length === 0) stem = trimTrailingDotsAndSpaces(truncateToUtf8Bytes(fallbackStem, budget));
+  if (stem.length === 0)
+    stem = trimTrailingDotsAndSpaces(truncateToUtf8Bytes(fallbackStem, budget));
   if (stem.length === 0) return truncateToUtf8Bytes(fallbackStem, maxBytes) || fallbackStem;
 
   return `${stem}${suffix}`;
@@ -278,9 +281,7 @@ function toAsciiComponent(value: string): string {
   for (const ch of stripped) {
     out += ch.length === 1 && SAFE_ASCII.test(ch) && !ASCII_HEADER_HOSTILE.has(ch) ? ch : '_';
   }
-  return out
-    .replace(/_+/g, '_')
-    .replace(/^[_\s]+|[_\s.]+$/g, '');
+  return out.replace(/_+/g, '_').replace(/^[_\s]+|[_\s.]+$/g, '');
 }
 
 /** Percent-encode every non-`attr-char` byte of the UTF-8 encoding (RFC 8187 §3.2). */
@@ -288,7 +289,10 @@ function encodeExtValue(value: string): string {
   let out = '';
   for (const byte of utf8.encode(value)) {
     const ch = String.fromCharCode(byte);
-    out += byte < 0x80 && ATTR_CHAR.test(ch) ? ch : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+    out +=
+      byte < 0x80 && ATTR_CHAR.test(ch)
+        ? ch
+        : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
   }
   return out;
 }

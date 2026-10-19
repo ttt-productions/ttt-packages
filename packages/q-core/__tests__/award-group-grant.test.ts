@@ -2,7 +2,10 @@
 // out a page of people at a time, with every person recorded before their profile changes.
 
 import { describe, it, expect } from 'vitest';
-import { buildAwardGroupGrantId, buildAwardGroupGrantTargetKey } from '../src/ids/award-grant-ids.js';
+import {
+  buildAwardGroupGrantId,
+  buildAwardGroupGrantTargetKey,
+} from '../src/ids/award-grant-ids.js';
 import {
   AwardGroupGrantPersonSchema,
   AwardGroupGrantSchema,
@@ -38,8 +41,16 @@ describe('a group grant decision', () => {
     for (const action of ['grant', 'revoke']) {
       for (const groupType of ['team', 'league'] as const) {
         const key = buildAwardGroupGrantTargetKey({ ...target, groupType });
-        const decision = { ...grant, action, groupType, targetKey: key, grantId: buildAwardGroupGrantId(key, 1) };
-        expect(AwardGroupGrantSchema.safeParse(decision).success, `${action} ${groupType}`).toBe(true);
+        const decision = {
+          ...grant,
+          action,
+          groupType,
+          targetKey: key,
+          grantId: buildAwardGroupGrantId(key, 1),
+        };
+        expect(AwardGroupGrantSchema.safeParse(decision).success, `${action} ${groupType}`).toBe(
+          true,
+        );
       }
     }
     expect(AwardGroupGrantSchema.safeParse({ ...grant, action: 'hide' }).success).toBe(false);
@@ -52,9 +63,9 @@ describe('a group grant decision', () => {
     // The same ids read as a team and as a league are two groups, never one.
     expect(buildAwardGroupGrantTargetKey({ ...target, groupType: 'team' })).not.toBe(targetKey);
     // Parts are length-prefixed, so ids that run into each other never share a key.
-    expect(buildAwardGroupGrantTargetKey({ awardId: 'a1', groupType: 'team', groupId: '2' })).not.toBe(
-      buildAwardGroupGrantTargetKey({ awardId: 'a', groupType: 'team', groupId: '12' }),
-    );
+    expect(
+      buildAwardGroupGrantTargetKey({ awardId: 'a1', groupType: 'team', groupId: '2' }),
+    ).not.toBe(buildAwardGroupGrantTargetKey({ awardId: 'a', groupType: 'team', groupId: '12' }));
   });
 
   it('refuses a decision whose key or id is not derived from its award, group, and number', () => {
@@ -67,28 +78,41 @@ describe('a group grant decision', () => {
   it('numbers decisions from 1 in whole steps', () => {
     for (const decision of [0, 1.5, -1]) {
       const id = buildAwardGroupGrantId(targetKey, decision);
-      expect(AwardGroupGrantSchema.safeParse({ ...grant, decision, grantId: id }).success, String(decision)).toBe(false);
+      expect(
+        AwardGroupGrantSchema.safeParse({ ...grant, decision, grantId: id }).success,
+        String(decision),
+      ).toBe(false);
     }
   });
 
   it('stays pending with a retry ledger until it is complete', () => {
     expect(
-      AwardGroupGrantSchema.safeParse({ ...grant, attemptCount: 3, nextAttemptAt: 10, lastError: 'profile write failed' })
-        .success,
+      AwardGroupGrantSchema.safeParse({
+        ...grant,
+        attemptCount: 3,
+        nextAttemptAt: 10,
+        lastError: 'profile write failed',
+      }).success,
     ).toBe(true);
-    expect(AwardGroupGrantSchema.safeParse({ ...grant, status: 'complete', completedAt: 5 }).success).toBe(true);
+    expect(
+      AwardGroupGrantSchema.safeParse({ ...grant, status: 'complete', completedAt: 5 }).success,
+    ).toBe(true);
     expect(AwardGroupGrantSchema.safeParse({ ...grant, status: 'failed' }).success).toBe(false);
     const { attemptCount: _attempts, ...withoutLedger } = grant;
     expect(AwardGroupGrantSchema.safeParse(withoutLedger).success).toBe(false);
   });
 
   it('is bound in the collection registry at its path builder', () => {
-    expect(toPath(PATH_BUILDERS.awardGroupGrant(grant.grantId))).toBe(`awardGroupGrants/${grant.grantId}`);
+    expect(toPath(PATH_BUILDERS.awardGroupGrant(grant.grantId))).toBe(
+      `awardGroupGrants/${grant.grantId}`,
+    );
     expect(COLLECTION_SCHEMAS['awardGroupGrants/{grantId}']).toBe(AwardGroupGrantSchema);
     expect(toPath(PATH_BUILDERS.awardGroupGrantPerson(grant.grantId, 'u1'))).toBe(
       `awardGroupGrants/${grant.grantId}/awardGroupGrantPeople/u1`,
     );
-    expect(COLLECTION_SCHEMAS['awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}']).toBe(AwardGroupGrantPersonSchema);
+    expect(COLLECTION_SCHEMAS['awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}']).toBe(
+      AwardGroupGrantPersonSchema,
+    );
   });
 });
 
@@ -114,23 +138,36 @@ describe('the record a group grant keeps of one person', () => {
 
   it('says whether the person held the award before the grant reached them', () => {
     expect(AwardGroupGrantPersonSchema.safeParse(person).success).toBe(true);
-    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, heldBefore: true }).success).toBe(true);
+    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, heldBefore: true }).success).toBe(
+      true,
+    );
     const { heldBefore: _held, ...withoutHeld } = person;
     expect(AwardGroupGrantPersonSchema.safeParse(withoutHeld).success).toBe(false);
   });
 
   it('records a revoke, and why a revoke left the person holding the award', () => {
-    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, revoked: true, revokedAt: 2 }).success).toBe(true);
+    expect(
+      AwardGroupGrantPersonSchema.safeParse({ ...person, revoked: true, revokedAt: 2 }).success,
+    ).toBe(true);
     for (const revokeSkipped of ['heldBefore', 'heldByAnotherGrant']) {
       expect(
-        AwardGroupGrantPersonSchema.safeParse({ ...person, revoked: true, revokedAt: 2, revokeSkipped }).success,
+        AwardGroupGrantPersonSchema.safeParse({
+          ...person,
+          revoked: true,
+          revokedAt: 2,
+          revokeSkipped,
+        }).success,
       ).toBe(true);
     }
-    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, revokeSkipped: 'other' }).success).toBe(false);
+    expect(
+      AwardGroupGrantPersonSchema.safeParse({ ...person, revokeSkipped: 'other' }).success,
+    ).toBe(false);
   });
 
   it('holds an id reference and no name (ARCH-103)', () => {
-    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, displayName: 'Pat' }).success).toBe(false);
+    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, displayName: 'Pat' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -138,16 +175,41 @@ describe('the group grant callables', () => {
   const group = { groupType: 'team', groupId: 't1' };
 
   it('take one award, grant or revoke, and one team or league', () => {
-    expect(AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant', group }).success).toBe(true);
-    expect(AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'revoke', group }).success).toBe(true);
-    expect(AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant' }).success).toBe(false);
+    expect(
+      AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant', group })
+        .success,
+    ).toBe(true);
+    expect(
+      AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'revoke', group })
+        .success,
+    ).toBe(true);
+    expect(
+      AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant' }).success,
+    ).toBe(false);
     const asUser = { groupType: 'user', groupId: 'u1' };
-    expect(AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant', group: asUser }).success).toBe(false);
+    expect(
+      AdminUpdateAwardGroupGrantInputSchema.safeParse({
+        awardId: 'a1',
+        action: 'grant',
+        group: asUser,
+      }).success,
+    ).toBe(false);
     // A group id is one document-id segment, so it never addresses another document.
     const asPath = { groupType: 'team', groupId: 't/1' };
-    expect(AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant', group: asPath }).success).toBe(false);
     expect(
-      AdminUpdateAwardGroupGrantInputSchema.safeParse({ awardId: 'a1', action: 'grant', group, reason: 'x' }).success,
+      AdminUpdateAwardGroupGrantInputSchema.safeParse({
+        awardId: 'a1',
+        action: 'grant',
+        group: asPath,
+      }).success,
+    ).toBe(false);
+    expect(
+      AdminUpdateAwardGroupGrantInputSchema.safeParse({
+        awardId: 'a1',
+        action: 'grant',
+        group,
+        reason: 'x',
+      }).success,
     ).toBe(false);
   });
 
@@ -163,12 +225,28 @@ describe('the group grant callables', () => {
       createdAt: 1,
       completedAt: null,
     };
-    expect(AdminUpdateAwardGroupGrantResultSchema.safeParse({ awardId: 'a1', opened: true, grant: progress }).success).toBe(true);
-    expect(AdminUpdateAwardGroupGrantResultSchema.safeParse({ awardId: 'a1', opened: false, grant: null }).success).toBe(true);
+    expect(
+      AdminUpdateAwardGroupGrantResultSchema.safeParse({
+        awardId: 'a1',
+        opened: true,
+        grant: progress,
+      }).success,
+    ).toBe(true);
+    expect(
+      AdminUpdateAwardGroupGrantResultSchema.safeParse({
+        awardId: 'a1',
+        opened: false,
+        grant: null,
+      }).success,
+    ).toBe(true);
     const complete = { ...progress, status: 'complete', completedAt: 9, lastError: null };
-    expect(AdminGetAwardGroupGrantStatusResultSchema.safeParse({ grant: complete }).success).toBe(true);
+    expect(AdminGetAwardGroupGrantStatusResultSchema.safeParse({ grant: complete }).success).toBe(
+      true,
+    );
     expect(AdminGetAwardGroupGrantStatusResultSchema.safeParse({ grant: null }).success).toBe(true);
     const league = { groupType: 'league', groupId: 'l1' };
-    expect(AdminGetAwardGroupGrantStatusInputSchema.safeParse({ awardId: 'a1', group: league }).success).toBe(true);
+    expect(
+      AdminGetAwardGroupGrantStatusInputSchema.safeParse({ awardId: 'a1', group: league }).success,
+    ).toBe(true);
   });
 });

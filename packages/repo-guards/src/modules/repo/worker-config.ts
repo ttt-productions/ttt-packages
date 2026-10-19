@@ -8,8 +8,21 @@
 
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
-import { effectiveMigrations, environmentResources, migrationLists, readTables, topLevelResources, type Table } from './wrangler-toml.js';
-import { isText, namesProblem, objectProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import {
+  effectiveMigrations,
+  environmentResources,
+  migrationLists,
+  readTables,
+  topLevelResources,
+  type Table,
+} from './wrangler-toml.js';
+import {
+  isText,
+  namesProblem,
+  objectProblem,
+  reviewedProblems,
+  textProblem,
+} from '../../support/facts.js';
 
 export interface WorkerConfigFacts {
   /** Every Worker's wrangler.toml, repo-relative. */
@@ -20,7 +33,13 @@ export interface WorkerConfigFacts {
    * Destructive migrations allowed in the production list, keyed to the exact contents so editing
    * the tag's class list voids the approval. Each carries its why; an entry nothing matches is stale.
    */
-  productionDestructiveMigrations: ReadonlyArray<{ configFile: string; tag: string; key: string; contents: string; why: string }>;
+  productionDestructiveMigrations: ReadonlyArray<{
+    configFile: string;
+    tag: string;
+    key: string;
+    contents: string;
+    why: string;
+  }>;
 }
 
 /** Every finding the checks make over one parsed config. */
@@ -43,7 +62,9 @@ export function workerConfigFindings(
     for (const id of ids) {
       const previous = owner.get(id);
       if (previous !== undefined) {
-        at(`binds '${id}' in both [env.${previous}] and [env.${env}]: one environment would read and write the other's storage`);
+        at(
+          `binds '${id}' in both [env.${previous}] and [env.${env}]: one environment would read and write the other's storage`,
+        );
       }
       owner.set(id, env);
     }
@@ -51,7 +72,9 @@ export function workerConfigFindings(
   const deployed = new Set([...byEnv.values()].flat());
   for (const id of topLevelResources(tables)) {
     if (deployed.has(id)) {
-      at(`binds '${id}' at the top level, where only the local runtime reads it, while a named environment binds the same storage: a deploy with no --env would publish a Worker wired to it`);
+      at(
+        `binds '${id}' at the top level, where only the local runtime reads it, while a named environment binds the same storage: a deploy with no --env would publish a Worker wired to it`,
+      );
     }
   }
 
@@ -63,13 +86,20 @@ export function workerConfigFindings(
   for (const [env, entries] of lists.byEnv) {
     const envTags = new Set(entries.map((entry) => entry.tag));
     for (const tag of topLevelTags) {
-      if (!envTags.has(tag)) at(`[env.${env}] declares its own migrations but not top-level tag '${tag}': that migration never reaches it`);
+      if (!envTags.has(tag))
+        at(
+          `[env.${env}] declares its own migrations but not top-level tag '${tag}': that migration never reaches it`,
+        );
     }
   }
   for (const entry of effectiveMigrations(lists, productionEnvironment)) {
     for (const [key, contents] of Object.entries(entry.destructive)) {
       const match = approved.findIndex(
-        (a) => a.configFile === configFile && a.tag === entry.tag && a.key === key && a.contents === contents,
+        (a) =>
+          a.configFile === configFile &&
+          a.tag === entry.tag &&
+          a.key === key &&
+          a.contents === contents,
       );
       if (match === -1) {
         at(
@@ -91,14 +121,26 @@ export const workerConfigGuard: GenericGuardDefinition<WorkerConfigFacts> = {
     if (!objectProblem(facts, 'facts', problems)) return problems;
     namesProblem(facts.configFiles, 'configFiles', problems);
     textProblem(facts.productionEnvironment, 'productionEnvironment', problems);
-    reviewedProblems(facts.productionDestructiveMigrations, 'productionDestructiveMigrations', problems, {
-      key: 'configFile',
-      id: (e) => (isText(e.tag) && isText(e.key) && isText(e.contents) ? `${e.configFile} ${e.tag}` : undefined),
-      idNames: 'tag, key, and contents',
-      extra(entry, label) {
-        if (Array.isArray(facts.configFiles) && !facts.configFiles.includes(entry.configFile as string)) problems.push(`${label} names a file that is not a config file`);
+    reviewedProblems(
+      facts.productionDestructiveMigrations,
+      'productionDestructiveMigrations',
+      problems,
+      {
+        key: 'configFile',
+        id: (e) =>
+          isText(e.tag) && isText(e.key) && isText(e.contents)
+            ? `${e.configFile} ${e.tag}`
+            : undefined,
+        idNames: 'tag, key, and contents',
+        extra(entry, label) {
+          if (
+            Array.isArray(facts.configFiles) &&
+            !facts.configFiles.includes(entry.configFile as string)
+          )
+            problems.push(`${label} names a file that is not a config file`);
+        },
       },
-    });
+    );
     return problems;
   },
   build(facts) {
@@ -123,16 +165,27 @@ export const workerConfigGuard: GenericGuardDefinition<WorkerConfigFacts> = {
             try {
               tables = readTables(context.file(configFile).text);
             } catch (err) {
-              findings.push({ file: configFile, detail: `cannot be read safely: ${(err as Error).message}` });
+              findings.push({
+                file: configFile,
+                detail: `cannot be read safely: ${(err as Error).message}`,
+              });
               continue;
             }
-            const result = workerConfigFindings(configFile, tables, facts.productionEnvironment, facts.productionDestructiveMigrations);
+            const result = workerConfigFindings(
+              configFile,
+              tables,
+              facts.productionEnvironment,
+              facts.productionDestructiveMigrations,
+            );
             findings.push(...result.findings);
             for (const index of result.approvedUsed) used.add(index);
           }
           facts.productionDestructiveMigrations.forEach((entry, index) => {
             if (!used.has(index)) {
-              findings.push({ file: entry.configFile, detail: `stale reviewed migration: tag '${entry.tag}' ${entry.key} = ${entry.contents} is no longer in the production list` });
+              findings.push({
+                file: entry.configFile,
+                detail: `stale reviewed migration: tag '${entry.tag}' ${entry.key} = ${entry.contents} is no longer in the production list`,
+              });
             }
           });
           return findings;

@@ -168,7 +168,9 @@ describe('SafetyStagedActionSchema derives the same pairing (setReportDispositio
   });
 
   it('leaves non-disposition arms unaffected by the refinement', () => {
-    expect(SafetyStagedActionSchema.safeParse({ button: 'quarantinePreserveFile' }).success).toBe(true);
+    expect(SafetyStagedActionSchema.safeParse({ button: 'quarantinePreserveFile' }).success).toBe(
+      true,
+    );
     expect(SafetyStagedActionSchema.safeParse({ button: 'hashRemoveFile' }).success).toBe(true);
   });
 });

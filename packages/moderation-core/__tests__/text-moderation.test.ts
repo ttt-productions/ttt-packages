@@ -26,7 +26,7 @@ describe('createWordListCache', () => {
     const loader = vi.fn().mockResolvedValue(['badword']);
     const cache = createWordListCache({ loader, ttlMs: 0 });
     await cache.getWords();
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     await cache.getWords();
     expect(loader).toHaveBeenCalledTimes(2);
   });

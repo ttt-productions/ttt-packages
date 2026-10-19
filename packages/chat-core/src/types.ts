@@ -14,19 +14,19 @@ export type ChatId = string;
 
 export type ChatThreadV1 = {
   participantUserIds?: string[];
-  createdAt: number;       // millis
-  lastMessageAt: number;   // millis
-  status?: string;         // opaque to chat-core
+  createdAt: number; // millis
+  lastMessageAt: number; // millis
+  status?: string; // opaque to chat-core
   meta?: Record<string, unknown>; // opaque
 };
 
 export type ChatMessageV1 = {
   messageId: string;
   threadId: string;
-  createdAt: number;           // millis
+  createdAt: number; // millis
   senderId: string;
   text?: string;
-  type?: string;               // optional for renderer registry
+  type?: string; // optional for renderer registry
   isSystemMessage?: boolean;
   /**
    * Account ids a server-written message's text refers to, stored beside the text (never inside
@@ -47,7 +47,7 @@ export type ModerationHandlers = {
   onReportMessage?: (messageId: string, reason?: string) => void | Promise<void>;
   onReportThread?: (threadId: string, reason?: string) => void | Promise<void>;
   onDeleteMessage?: (messageId: string) => void | Promise<void>; // admin only (gated)
-  onDeleteThread?: (threadId: string) => void | Promise<void>;   // admin only (gated)
+  onDeleteThread?: (threadId: string) => void | Promise<void>; // admin only (gated)
 };
 
 // ============================================

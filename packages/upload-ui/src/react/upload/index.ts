@@ -1,7 +1,4 @@
-export {
-  useGuardedUpload,
-  type GuardedUploadArgs,
-} from './use-guarded-upload.js';
+export { useGuardedUpload, type GuardedUploadArgs } from './use-guarded-upload.js';
 export {
   DeferredUploadFormShell,
   type DeferredUploadFormShellHandle,

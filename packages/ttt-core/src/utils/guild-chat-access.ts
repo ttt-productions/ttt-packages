@@ -8,16 +8,21 @@ import type { GuildmateUser } from '../doc-schemas/work-project.js';
 import type { GuildChatChannel } from '../doc-schemas/messaging.js';
 import { FOUNDING_WORK_HOLDER_TYPE } from '../doc-schemas/work-project.js';
 import type { GuildInviteConversationStatus } from '../schemas/atoms.js';
-import {
-  GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
-} from '../permissions/work-project-permissions-data.js';
+import { GUILD_INVITE_HANDLER_GUILD_STANDING_IDS } from '../permissions/work-project-permissions-data.js';
 import { guildStandingsGrantAction } from '../permissions/work-project-permissions.js';
 
 /** The Guildmate facts a conversation rule reads. */
-export type GuildChatAccessMember = Pick<GuildmateUser, 'status' | 'holderType' | 'guildStandings' | 'tradeProfessions'>;
+export type GuildChatAccessMember = Pick<
+  GuildmateUser,
+  'status' | 'holderType' | 'guildStandings' | 'tradeProfessions'
+>;
 
-function isActivePersonGuildmate(member: GuildChatAccessMember | null): member is GuildChatAccessMember {
-  return member !== null && member.status === 'active' && member.holderType !== FOUNDING_WORK_HOLDER_TYPE;
+function isActivePersonGuildmate(
+  member: GuildChatAccessMember | null,
+): member is GuildChatAccessMember {
+  return (
+    member !== null && member.status === 'active' && member.holderType !== FOUNDING_WORK_HOLDER_TYPE
+  );
 }
 
 /**
@@ -91,5 +96,8 @@ export function canAccessGuildInviteConversation(args: {
  * only while holding one of those standings.
  */
 export function canCancelGuildInvite(member: GuildChatAccessMember | null): boolean {
-  return isActivePersonGuildmate(member) && guildStandingsGrantAction(member.guildStandings, 'guildInvite.revokeAny');
+  return (
+    isActivePersonGuildmate(member) &&
+    guildStandingsGrantAction(member.guildStandings, 'guildInvite.revokeAny')
+  );
 }

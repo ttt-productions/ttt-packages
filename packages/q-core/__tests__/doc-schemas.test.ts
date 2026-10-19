@@ -49,7 +49,9 @@ describe('sport discriminator', () => {
   });
 
   it('gives every basketball event type a point value', () => {
-    expect(Object.keys(BASKETBALL_POINTS_BY_EVENT_TYPE).sort()).toEqual([...BASKETBALL_STAT_EVENT_TYPE_KEYS].sort());
+    expect(Object.keys(BASKETBALL_POINTS_BY_EVENT_TYPE).sort()).toEqual(
+      [...BASKETBALL_STAT_EVENT_TYPE_KEYS].sort(),
+    );
   });
 });
 
@@ -77,10 +79,14 @@ describe('timestamps are epoch-millisecond numbers', () => {
   it('rejects an ISO string and a Timestamp-shaped object', () => {
     const basketballGame = { ...game, leagueType: 'Basketball', stats: basketballStats };
     expect(SportGameSchema.safeParse(basketballGame).success).toBe(true);
-    expect(SportGameSchema.safeParse({ ...basketballGame, startTime: '2024-04-05T19:30:00.000Z' }).success).toBe(false);
-    expect(SportGameSchema.safeParse({ ...basketballGame, startTime: { seconds: 1, nanoseconds: 0 } }).success).toBe(
-      false,
-    );
+    expect(
+      SportGameSchema.safeParse({ ...basketballGame, startTime: '2024-04-05T19:30:00.000Z' })
+        .success,
+    ).toBe(false);
+    expect(
+      SportGameSchema.safeParse({ ...basketballGame, startTime: { seconds: 1, nanoseconds: 0 } })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -88,12 +94,21 @@ describe('league game', () => {
   it('selects the stats shape from leagueType', () => {
     const unplayedEnds = Array(CURLING_ROUND_COUNT).fill(null);
     const curlingStats = {
-      teamStats: { T1: { score: 0, roundScores: unplayedEnds }, T2: { score: 0, roundScores: unplayedEnds } },
+      teamStats: {
+        T1: { score: 0, roundScores: unplayedEnds },
+        T2: { score: 0, roundScores: unplayedEnds },
+      },
       playerStats: {},
     };
-    expect(SportGameSchema.safeParse({ ...game, leagueType: 'Curling', stats: curlingStats }).success).toBe(true);
-    expect(SportGameSchema.safeParse({ ...game, leagueType: 'Basketball', stats: curlingStats }).success).toBe(false);
-    expect(SportGameSchema.safeParse({ ...game, leagueType: 'Hockey', stats: basketballStats }).success).toBe(false);
+    expect(
+      SportGameSchema.safeParse({ ...game, leagueType: 'Curling', stats: curlingStats }).success,
+    ).toBe(true);
+    expect(
+      SportGameSchema.safeParse({ ...game, leagueType: 'Basketball', stats: curlingStats }).success,
+    ).toBe(false);
+    expect(
+      SportGameSchema.safeParse({ ...game, leagueType: 'Hockey', stats: basketballStats }).success,
+    ).toBe(false);
   });
 });
 
@@ -107,9 +122,14 @@ describe('stat events', () => {
   };
 
   it('accepts each declared shape', () => {
-    expect(GameStatEventSchema.safeParse({ ...shot, type: '3PT', assistedByUserId: 'u2' }).success).toBe(true);
+    expect(
+      GameStatEventSchema.safeParse({ ...shot, type: '3PT', assistedByUserId: 'u2' }).success,
+    ).toBe(true);
     expect(GameStatEventSchema.safeParse({ ...shot, type: 'REBOUND' }).success).toBe(true);
-    expect(GameStatEventSchema.safeParse({ ...shot, type: 'BULK_EDIT', stat: 'points', value: -2 }).success).toBe(true);
+    expect(
+      GameStatEventSchema.safeParse({ ...shot, type: 'BULK_EDIT', stat: 'points', value: -2 })
+        .success,
+    ).toBe(true);
     expect(
       GameStatEventSchema.safeParse({
         eventId: 'e2',
@@ -159,19 +179,29 @@ describe('waiver signature', () => {
       signedAt: NOW,
     };
     expect(SignedWaiverSchema.safeParse(signature).success).toBe(false);
-    expect(SignedWaiverSchema.safeParse({ ...signature, waiverTextSnapshot: 'I agree.' }).success).toBe(true);
+    expect(
+      SignedWaiverSchema.safeParse({ ...signature, waiverTextSnapshot: 'I agree.' }).success,
+    ).toBe(true);
   });
 });
 
 describe('domain events', () => {
   it('parses a declared event and rejects an unknown type or a stray id', () => {
-    expect(DomainEventSchema.safeParse({ type: 'sportGame.finalized', ids: { leagueId: 'L', gameId: 'g1' } }).success).toBe(
-      true,
-    );
-    expect(DomainEventSchema.safeParse({ type: 'stats.recalculated', ids: {} }).success).toBe(true);
-    expect(DomainEventSchema.safeParse({ type: 'sportGame.exploded', ids: {} }).success).toBe(false);
     expect(
-      DomainEventSchema.safeParse({ type: 'league.created', ids: { leagueId: 'L', queryKey: 'leagues' } }).success,
+      DomainEventSchema.safeParse({
+        type: 'sportGame.finalized',
+        ids: { leagueId: 'L', gameId: 'g1' },
+      }).success,
+    ).toBe(true);
+    expect(DomainEventSchema.safeParse({ type: 'stats.recalculated', ids: {} }).success).toBe(true);
+    expect(DomainEventSchema.safeParse({ type: 'sportGame.exploded', ids: {} }).success).toBe(
+      false,
+    );
+    expect(
+      DomainEventSchema.safeParse({
+        type: 'league.created',
+        ids: { leagueId: 'L', queryKey: 'leagues' },
+      }).success,
     ).toBe(false);
   });
 });

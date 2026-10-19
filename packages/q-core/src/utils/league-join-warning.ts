@@ -24,7 +24,11 @@ export type LeagueJoinWarningState = (typeof LEAGUE_JOIN_WARNING_STATE_KEYS)[num
 
 // The item a door acts on, which the warning never names: accepting a team's invitation does not
 // warn about that invitation.
-export const LEAGUE_JOIN_WARNING_ACTED_ON_KEYS = ['teamInvitation', 'teamJoinRequest', 'leagueFreeAgent'] as const;
+export const LEAGUE_JOIN_WARNING_ACTED_ON_KEYS = [
+  'teamInvitation',
+  'teamJoinRequest',
+  'leagueFreeAgent',
+] as const;
 export type LeagueJoinWarningActedOnKind = (typeof LEAGUE_JOIN_WARNING_ACTED_ON_KEYS)[number];
 
 export const leagueJoinWarningActedOnSchema = z.discriminatedUnion('kind', [
@@ -99,16 +103,26 @@ export function computeLeagueJoinWarning(
   const byTeam = (left: LeagueJoinWarningFinding, right: LeagueJoinWarningFinding) =>
     (left.teamId ?? '').localeCompare(right.teamId ?? '');
 
-  const onTeam = facts.memberships.map((membership) => ({ state: 'onTeam' as const, teamId: membership.teamId }));
+  const onTeam = facts.memberships.map((membership) => ({
+    state: 'onTeam' as const,
+    teamId: membership.teamId,
+  }));
   const pendingJoinRequest = facts.pendingJoinRequests
     .filter(
-      (request) => !(actedOn?.kind === 'teamJoinRequest' && actedOn.teamJoinRequestId === request.teamJoinRequestId),
+      (request) =>
+        !(
+          actedOn?.kind === 'teamJoinRequest' &&
+          actedOn.teamJoinRequestId === request.teamJoinRequestId
+        ),
     )
     .map((request) => ({ state: 'pendingJoinRequest' as const, teamId: request.teamId }));
   const pendingInvitation = facts.pendingInvitations
     .filter(
       (invitation) =>
-        !(actedOn?.kind === 'teamInvitation' && actedOn.teamInvitationId === invitation.teamInvitationId),
+        !(
+          actedOn?.kind === 'teamInvitation' &&
+          actedOn.teamInvitationId === invitation.teamInvitationId
+        ),
     )
     .map((invitation) => ({ state: 'pendingInvitation' as const, teamId: invitation.teamId }));
   const freeAgentSignup: LeagueJoinWarningFinding[] =
@@ -138,16 +152,19 @@ export const LEAGUE_JOIN_WARNING_COPY = {
   // What someone acting on the person is told, per state found.
   other: {
     onTeam: (personName: string, teamName: string) => `${personName} is already on ${teamName}.`,
-    pendingJoinRequest: (personName: string, teamName: string) => `${personName} has asked to join ${teamName}.`,
+    pendingJoinRequest: (personName: string, teamName: string) =>
+      `${personName} has asked to join ${teamName}.`,
     pendingInvitation: (personName: string, teamName: string) =>
       `${personName} has an invitation waiting from ${teamName}.`,
-    freeAgentSignup: (personName: string) => `${personName} is signed up as a free agent in this league.`,
+    freeAgentSignup: (personName: string) =>
+      `${personName} is signed up as a free agent in this league.`,
   },
   // The closing question, per door. `targetTeamName` is ignored by the doors that have no team.
   question: {
     createTeam: () => 'Do you still want to create a new team?',
     acceptInvitation: (targetTeamName: string) => `Do you still want to join ${targetTeamName}?`,
-    sendJoinRequest: (targetTeamName: string) => `Do you still want to ask to join ${targetTeamName}?`,
+    sendJoinRequest: (targetTeamName: string) =>
+      `Do you still want to ask to join ${targetTeamName}?`,
     signUpAsFreeAgent: () => 'Do you still want to sign up as a free agent?',
     sendInvitation: (targetTeamName: string) => `Invite them to ${targetTeamName} anyway?`,
     acceptJoinRequest: (targetTeamName: string) => `Accept them onto ${targetTeamName} anyway?`,

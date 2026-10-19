@@ -20,7 +20,9 @@ const NO_PENDING: PendingArchives = new Map();
  * generation, which the archive never covered, so it is not pending for that card.
  */
 function isPendingFor(pending: PendingArchives, notification: NotificationDoc): boolean {
-  return pending.has(notification.id) && pending.get(notification.id) === notification.activityGeneration;
+  return (
+    pending.has(notification.id) && pending.get(notification.id) === notification.activityGeneration
+  );
 }
 
 const FOCUSABLE =
@@ -103,7 +105,8 @@ export function NotificationList({
     const keepActive = (current: PendingArchives): PendingArchives => {
       const next = new Map(
         [...current].filter(
-          ([id, generation]) => activeGenerations.has(id) && activeGenerations.get(id) === generation,
+          ([id, generation]) =>
+            activeGenerations.has(id) && activeGenerations.get(id) === generation,
         ),
       );
       return next.size === current.size ? current : next;
@@ -121,7 +124,9 @@ export function NotificationList({
   const focusedRowId = useRef<string | null>(null);
   const renderedIds = useRef<readonly string[]>([]);
   useLayoutEffect(() => {
-    const ids = retryState.isLoading ? [] : (notifications ?? []).map((notification) => notification.id);
+    const ids = retryState.isLoading
+      ? []
+      : (notifications ?? []).map((notification) => notification.id);
     const previousIds = renderedIds.current;
     renderedIds.current = ids;
     const leftId = focusedRowId.current;
@@ -131,33 +136,44 @@ export function NotificationList({
     if (active !== null && active !== document.body && active.isConnected) return;
 
     const remaining = new Set(ids);
-    const followers = previousIds.slice(previousIds.indexOf(leftId) + 1).filter((id) => remaining.has(id));
+    const followers = previousIds
+      .slice(previousIds.indexOf(leftId) + 1)
+      .filter((id) => remaining.has(id));
     const nextControl = followers
-      .map((id) => rowRefs.current.get(id)?.querySelector('.ntf-item-row-action')?.querySelector<HTMLElement>(FOCUSABLE))
+      .map((id) =>
+        rowRefs.current
+          .get(id)
+          ?.querySelector('.ntf-item-row-action')
+          ?.querySelector<HTMLElement>(FOCUSABLE),
+      )
       .find((control) => control != null);
     (nextControl ?? listRef.current)?.focus();
   }, [notifications, retryState.isLoading]);
 
-  const archiveOne = useCallback(async (notification: NotificationDoc) => {
-    const generation = notification.activityGeneration;
-    const clearPending = () =>
-      setPendingArchives((current) => {
-        if (!current.has(notification.id) || current.get(notification.id) !== generation) return current;
-        const next = new Map(current);
-        next.delete(notification.id);
-        return next;
-      });
-    setPendingArchives((current) => new Map(current).set(notification.id, generation));
-    try {
-      const result = await archiveMutation.mutateAsync(notification);
-      // Nothing was archived (the card changed after it was rendered): the row stays
-      // active, so it is not left looking like it is clearing.
-      if (!result.archived) clearPending();
-    } catch (archiveError) {
-      clearPending();
-      throw archiveError;
-    }
-  }, [archiveMutation]);
+  const archiveOne = useCallback(
+    async (notification: NotificationDoc) => {
+      const generation = notification.activityGeneration;
+      const clearPending = () =>
+        setPendingArchives((current) => {
+          if (!current.has(notification.id) || current.get(notification.id) !== generation)
+            return current;
+          const next = new Map(current);
+          next.delete(notification.id);
+          return next;
+        });
+      setPendingArchives((current) => new Map(current).set(notification.id, generation));
+      try {
+        const result = await archiveMutation.mutateAsync(notification);
+        // Nothing was archived (the card changed after it was rendered): the row stays
+        // active, so it is not left looking like it is clearing.
+        if (!result.archived) clearPending();
+      } catch (archiveError) {
+        clearPending();
+        throw archiveError;
+      }
+    },
+    [archiveMutation],
+  );
 
   const hasNotifications = !!notifications && notifications.length > 0;
 
@@ -165,7 +181,12 @@ export function NotificationList({
     if (!hasNotifications) return;
     setClearIncomplete(false);
     setPendingClearAll(
-      new Map((notifications ?? []).map((notification) => [notification.id, notification.activityGeneration])),
+      new Map(
+        (notifications ?? []).map((notification) => [
+          notification.id,
+          notification.activityGeneration,
+        ]),
+      ),
     );
     let result;
     try {
@@ -200,9 +221,13 @@ export function NotificationList({
   // A later page that came back empty keeps its pager so the user can step back; the
   // empty state is the answer for page 1 only.
   const showEmptyState =
-    retryState.error === null && notifications !== undefined && notifications.length === 0 && page === 1;
+    retryState.error === null &&
+    notifications !== undefined &&
+    notifications.length === 0 &&
+    page === 1;
   const isClearAllPending =
-    archiveAllMutation.isPending || (notifications ?? []).some((notification) => isPendingFor(pendingClearAll, notification));
+    archiveAllMutation.isPending ||
+    (notifications ?? []).some((notification) => isPendingFor(pendingClearAll, notification));
   const titleId = useId();
 
   return (
@@ -214,7 +239,11 @@ export function NotificationList({
       tabIndex={-1}
     >
       <div className="ntf-list-header">
-        {title != null && <div id={titleId} className="ntf-list-title">{title}</div>}
+        {title != null && (
+          <div id={titleId} className="ntf-list-title">
+            {title}
+          </div>
+        )}
         {/* Unavailable with nothing to clear, but never natively disabled: the list empties under
             a Clear All that still holds focus, and focus must keep a destination (FRONTEND-203). */}
         <Button
@@ -237,79 +266,78 @@ export function NotificationList({
       <Separator />
 
       <div className="ntf-list-body">
-      {retryState.isLoading ? (
-        <div className="ntf-loading">
-          <Spinner size="md" label="Loading notifications" />
-        </div>
-      ) : (
-        <>
-          {(notifications ?? []).map((notification: NotificationDoc) => (
-            <div
-              key={notification.id}
-              ref={(row) => {
-                if (row) rowRefs.current.set(notification.id, row);
-                else rowRefs.current.delete(notification.id);
-              }}
-              className="ntf-item"
-              onFocus={() => {
-                focusedRowId.current = notification.id;
-              }}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                  focusedRowId.current = null;
-                }
-              }}
-            >
-              <div className="ntf-item-icon">
-                {getTypeIcon(notification.type)}
+        {retryState.isLoading ? (
+          <div className="ntf-loading">
+            <Spinner size="md" label="Loading notifications" />
+          </div>
+        ) : (
+          <>
+            {(notifications ?? []).map((notification: NotificationDoc) => (
+              <div
+                key={notification.id}
+                ref={(row) => {
+                  if (row) rowRefs.current.set(notification.id, row);
+                  else rowRefs.current.delete(notification.id);
+                }}
+                className="ntf-item"
+                onFocus={() => {
+                  focusedRowId.current = notification.id;
+                }}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    focusedRowId.current = null;
+                  }
+                }}
+              >
+                <div className="ntf-item-icon">{getTypeIcon(notification.type)}</div>
+                <div className="ntf-item-content">
+                  <div className="ntf-item-title">{notification.title}</div>
+                  <div className="ntf-item-message">{notification.message}</div>
+                  <div className="ntf-item-timestamp">
+                    {formatRelativeTime(notification.updatedAt)}
+                  </div>
+                </div>
+                {notification.count > 1 && (
+                  <div className="ntf-item-count">
+                    <Badge variant="secondary">×{notification.count}</Badge>
+                  </div>
+                )}
+                {renderRowAction && (
+                  <div className="ntf-item-row-action">
+                    {renderRowAction(notification, {
+                      archive: () => archiveOne(notification),
+                      isArchivePending:
+                        isPendingFor(pendingClearAll, notification) ||
+                        isPendingFor(pendingArchives, notification),
+                    })}
+                  </div>
+                )}
               </div>
-              <div className="ntf-item-content">
-                <div className="ntf-item-title">{notification.title}</div>
-                <div className="ntf-item-message">{notification.message}</div>
-                <div className="ntf-item-timestamp">
-                  {formatRelativeTime(notification.updatedAt)}
-                </div>
-              </div>
-              {notification.count > 1 && (
-                <div className="ntf-item-count">
-                  <Badge variant="secondary">×{notification.count}</Badge>
-                </div>
-              )}
-              {renderRowAction && (
-                <div className="ntf-item-row-action">
-                  {renderRowAction(notification, {
-                    archive: () => archiveOne(notification),
-                    isArchivePending:
-                      isPendingFor(pendingClearAll, notification) || isPendingFor(pendingArchives, notification),
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
-          {retryState.error !== null
-            ? renderError({
-                error: retryState.error,
-                retry: () => {
-                  void refetch();
-                },
-                retrying: retryState.isRetrying,
-                hasRows: hasNotifications,
-              })
-            : null}
-          {showEmptyState && <NotificationEmptyState text={emptyText} />}
-          <ListPagination
-            pagination={{
-              currentPage: page,
-              canPreviousPage: hasPrevPage,
-              canNextPage: hasNextPage,
-              goToPreviousPage: prevPage,
-              goToNextPage: nextPage,
-            }}
-            busy={isFetching}
-            className="ntf-list-footer mt-0"
-          />
-        </>
-      )}
+            ))}
+            {retryState.error !== null
+              ? renderError({
+                  error: retryState.error,
+                  retry: () => {
+                    void refetch();
+                  },
+                  retrying: retryState.isRetrying,
+                  hasRows: hasNotifications,
+                })
+              : null}
+            {showEmptyState && <NotificationEmptyState text={emptyText} />}
+            <ListPagination
+              pagination={{
+                currentPage: page,
+                canPreviousPage: hasPrevPage,
+                canNextPage: hasNextPage,
+                goToPreviousPage: prevPage,
+                goToNextPage: nextPage,
+              }}
+              busy={isFetching}
+              className="ntf-list-footer mt-0"
+            />
+          </>
+        )}
       </div>
     </div>
   );

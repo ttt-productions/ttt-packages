@@ -69,6 +69,9 @@ export function writeActiveSafetyCaseAlert(
  * Remove the pin when a case closes. Idempotent — a delete of an absent doc is a no-op,
  * so a trigger redelivery (or a case that never armed a pin) is harmless.
  */
-export async function deleteActiveSafetyCaseAlert(db: SafetyAlertDbLike, caseId: string): Promise<void> {
+export async function deleteActiveSafetyCaseAlert(
+  db: SafetyAlertDbLike,
+  caseId: string,
+): Promise<void> {
   await db.doc(toPath(PATH_BUILDERS.safetyCaseAlert(caseId))).delete();
 }

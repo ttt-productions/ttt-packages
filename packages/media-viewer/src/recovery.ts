@@ -16,10 +16,7 @@
  * domain-specific interpretation (a product-specific deny header, HTTP status
  * codes, etc.) lives in the app adapter.
  */
-export type DiagnosisResult =
-  | { kind: "transient" }
-  | { kind: "auth" }
-  | { kind: "hard" };
+export type DiagnosisResult = { kind: 'transient' } | { kind: 'auth' } | { kind: 'hard' };
 
 /**
  * Optional hint from the app about the asset's known server-side lifecycle
@@ -28,11 +25,11 @@ export type DiagnosisResult =
  * pendingMedia.publicationState fields directly.
  */
 export type AssetStatusHint =
-  | "processing"   // app knows asset is still being processed — show skeleton
-  | "finalizing"   // app knows asset is activating/publishing — show spinner
-  | "live"         // app believes asset is live — recovery is appropriate
-  | "failed"       // terminal processing failure — no recovery
-  | "rejected";    // terminal rejection — no recovery
+  | 'processing' // app knows asset is still being processed — show skeleton
+  | 'finalizing' // app knows asset is activating/publishing — show spinner
+  | 'live' // app believes asset is live — recovery is appropriate
+  | 'failed' // terminal processing failure — no recovery
+  | 'rejected'; // terminal rejection — no recovery
 
 /**
  * Injected adapter interface. The consuming app implements this; generic consumers
@@ -66,16 +63,16 @@ export interface MediaDiagnosticAdapter {
 // ---------------------------------------------------------------------------
 
 export type RecoveryState =
-  | { phase: "idle" }
-  | { phase: "loading" }
-  | { phase: "processing" }      // app hint says processing — no error, show skeleton
-  | { phase: "finalizing" }      // app hint says finalizing — no error, show spinner
-  | { phase: "loaded" }          // element load/decode succeeded
-  | { phase: "transient-retry"; attempt: number; nextRetryMs: number }
-  | { phase: "propagating" }     // alias label for first transient states (visible in UI)
-  | { phase: "auth-retry" }      // refreshing session/grant
-  | { phase: "hard-unavailable"; reason?: string }
-  | { phase: "max-wait-fallback" }; // bounded retry exhausted — show manual retry
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'processing' } // app hint says processing — no error, show skeleton
+  | { phase: 'finalizing' } // app hint says finalizing — no error, show spinner
+  | { phase: 'loaded' } // element load/decode succeeded
+  | { phase: 'transient-retry'; attempt: number; nextRetryMs: number }
+  | { phase: 'propagating' } // alias label for first transient states (visible in UI)
+  | { phase: 'auth-retry' } // refreshing session/grant
+  | { phase: 'hard-unavailable'; reason?: string }
+  | { phase: 'max-wait-fallback' }; // bounded retry exhausted — show manual retry
 
 // Backoff schedule in ms: 2s → 5s → 10s → 20s → 30s → 30s (then cap at 30s)
 export const BACKOFF_SCHEDULE_MS = [2000, 5000, 10000, 20000, 30000, 30000] as const;

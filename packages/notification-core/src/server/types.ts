@@ -16,7 +16,11 @@ export interface ServerFirestore {
 
 export interface ServerTransaction {
   get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
-  set(ref: ServerDocRef, data: Record<string, unknown>, options?: { merge?: boolean }): ServerTransaction;
+  set(
+    ref: ServerDocRef,
+    data: Record<string, unknown>,
+    options?: { merge?: boolean },
+  ): ServerTransaction;
   update(ref: ServerDocRef, data: Record<string, unknown>): ServerTransaction;
   delete(ref: ServerDocRef): ServerTransaction;
 }
@@ -60,7 +64,11 @@ export interface ServerDocRef {
 }
 
 export interface ServerWriteBatch {
-  set(ref: ServerDocRef, data: Record<string, unknown>, options?: { merge?: boolean }): ServerWriteBatch;
+  set(
+    ref: ServerDocRef,
+    data: Record<string, unknown>,
+    options?: { merge?: boolean },
+  ): ServerWriteBatch;
   update(ref: ServerDocRef, data: Record<string, unknown>): ServerWriteBatch;
   delete(ref: ServerDocRef): ServerWriteBatch;
   commit(): Promise<unknown>;

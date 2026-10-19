@@ -57,12 +57,16 @@ describe('useNotificationHistory', () => {
 
   it('throws for an unknown category', () => {
     expect(() =>
-      renderHook(() => useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'nope' })),
+      renderHook(() =>
+        useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'nope' }),
+      ),
     ).toThrow('Unknown category: nope');
   });
 
   it('reads the per-user history path for a personal category, ordered by archivedAt desc', () => {
-    renderHook(() => useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }));
+    renderHook(() =>
+      useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }),
+    );
     const opts = lastOpts();
     expect(opts.collectionPath).toBe('userProfiles/u1/notificationHistory');
     expect(mocks.orderByFn).toHaveBeenCalledWith('archivedAt', 'desc');
@@ -71,22 +75,35 @@ describe('useNotificationHistory', () => {
   });
 
   it('reads the top-level history path for a shared category', () => {
-    renderHook(() => useNotificationHistory({ config: makeConfig(), userId: 'admin1', category: 'admin' }));
+    renderHook(() =>
+      useNotificationHistory({ config: makeConfig(), userId: 'admin1', category: 'admin' }),
+    );
     expect(lastOpts().collectionPath).toBe('adminNotificationHistory');
   });
 
   it('disables the query when userId is empty', () => {
-    renderHook(() => useNotificationHistory({ config: makeConfig(), userId: '', category: 'user' }));
+    renderHook(() =>
+      useNotificationHistory({ config: makeConfig(), userId: '', category: 'user' }),
+    );
     expect(lastOpts().enabled).toBe(false);
   });
 
   it('flattens the archivedSnapshot wrapper into a history item via select', () => {
-    renderHook(() => useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }));
+    renderHook(() =>
+      useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }),
+    );
     const select = lastOpts().select as (d: Record<string, unknown>) => Record<string, unknown>;
     const mapped = select({
       id: 'occ-1',
       archivedAt: 111,
-      archivedSnapshot: { id: 'active-1', title: 'Hi', message: 'body', type: 't', count: 2, updatedAt: 99 },
+      archivedSnapshot: {
+        id: 'active-1',
+        title: 'Hi',
+        message: 'body',
+        type: 't',
+        count: 2,
+        updatedAt: 99,
+      },
     });
     expect(mapped).toMatchObject({
       title: 'Hi',
@@ -98,7 +115,9 @@ describe('useNotificationHistory', () => {
   });
 
   it('falls back to snapshot.updatedAt when archivedAt is absent', () => {
-    renderHook(() => useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }));
+    renderHook(() =>
+      useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }),
+    );
     const select = lastOpts().select as (d: Record<string, unknown>) => Record<string, unknown>;
     const mapped = select({ id: 'occ-2', archivedSnapshot: { updatedAt: 77 } });
     expect(mapped.archivedAt).toBe(77);

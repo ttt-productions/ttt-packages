@@ -34,7 +34,9 @@ export const adminNotificationTypeSchema = z.enum(ADMIN_NOTIFICATION_TYPE_KEYS);
 export const LeagueTeamCreatedNotificationMetadataSchema = z
   .object({ leagueId: leagueIdSchema, teamId: teamIdSchema })
   .strict();
-export type LeagueTeamCreatedNotificationMetadata = z.infer<typeof LeagueTeamCreatedNotificationMetadataSchema>;
+export type LeagueTeamCreatedNotificationMetadata = z.infer<
+  typeof LeagueTeamCreatedNotificationMetadataSchema
+>;
 
 export const LeagueFreeAgentSignedUpNotificationMetadataSchema = z
   .object({ leagueId: leagueIdSchema, userId: userIdSchema })
@@ -53,11 +55,17 @@ export type AdminNotificationMetadataByType = {
 };
 
 /** Whether `metadata` is the metadata `type` declares. */
-export function isAdminNotificationMetadata(type: AdminNotificationType, metadata: unknown): boolean {
+export function isAdminNotificationMetadata(
+  type: AdminNotificationType,
+  metadata: unknown,
+): boolean {
   return ADMIN_NOTIFICATION_METADATA_SCHEMAS[type].safeParse(metadata).success;
 }
 
-const METADATA_MISMATCH = { message: "The metadata is not the notification type's.", path: ['metadata'] };
+const METADATA_MISMATCH = {
+  message: "The metadata is not the notification type's.",
+  path: ['metadata'],
+};
 
 // activeAdminNotifications/{notificationId} — one shared card, as notification-core stores it. The id
 // is notification-core's, hashed from the type and the aggregation key, and is not a field: a reader

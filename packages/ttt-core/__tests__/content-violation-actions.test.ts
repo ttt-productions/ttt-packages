@@ -13,7 +13,9 @@ const afterWindow = rejectedAt + REJECTED_MEDIA_RETENTION_DAYS * DAY_MS;
 
 describe('the appeal window', () => {
   it('is the rejected-media retention window, measured from the rejection', () => {
-    expect(rejectedMediaAppealDeadline(rejectedAt)).toBe(rejectedAt + REJECTED_MEDIA_RETENTION_DAYS * DAY_MS);
+    expect(rejectedMediaAppealDeadline(rejectedAt)).toBe(
+      rejectedAt + REJECTED_MEDIA_RETENTION_DAYS * DAY_MS,
+    );
   });
 
   it('is open until the moment the retained file becomes deletable, and closed from then on', () => {
@@ -27,18 +29,29 @@ describe('the actions a violation offers', () => {
   const media = { violationType: 'media' as const, timestamp: rejectedAt };
 
   it('offers Appeal and Accept on an unappealed media rejection inside the window', () => {
-    expect(contentViolationActions({ ...media, appealStatus: 'none' }, insideWindow)).toEqual({ appeal: true, accept: true });
+    expect(contentViolationActions({ ...media, appealStatus: 'none' }, insideWindow)).toEqual({
+      appeal: true,
+      accept: true,
+    });
   });
 
   it('offers only Accept once the appeal window has closed', () => {
-    expect(contentViolationActions({ ...media, appealStatus: 'none' }, afterWindow)).toEqual({ appeal: false, accept: true });
+    expect(contentViolationActions({ ...media, appealStatus: 'none' }, afterWindow)).toEqual({
+      appeal: false,
+      accept: true,
+    });
   });
 
   it('never offers Appeal on a text rejection', () => {
     expect(
-      contentViolationActions({ violationType: 'text', timestamp: rejectedAt, appealStatus: 'none' }, insideWindow),
+      contentViolationActions(
+        { violationType: 'text', timestamp: rejectedAt, appealStatus: 'none' },
+        insideWindow,
+      ),
     ).toEqual({ appeal: false, accept: true });
-    expect(contentViolationActions({ timestamp: rejectedAt, appealStatus: 'none' }, insideWindow).appeal).toBe(false);
+    expect(
+      contentViolationActions({ timestamp: rejectedAt, appealStatus: 'none' }, insideWindow).appeal,
+    ).toBe(false);
   });
 
   it('locks a pending appeal — no Accept, no withdrawal', () => {

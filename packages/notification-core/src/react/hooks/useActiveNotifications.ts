@@ -1,6 +1,10 @@
 'use client';
 
-import { paginatedPageKey, useFirestorePaginated, useReadRetryState } from '@ttt-productions/query-core/react';
+import {
+  paginatedPageKey,
+  useFirestorePaginated,
+  useReadRetryState,
+} from '@ttt-productions/query-core/react';
 import { orderBy, where, type QueryConstraint } from 'firebase/firestore';
 import type { NotificationDoc, UseActiveNotificationsOptions } from '../../types.js';
 

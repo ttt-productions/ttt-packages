@@ -7,7 +7,13 @@ import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
-import { identifierProblem, loaderProblem, pathProblem, reviewedProblems, type Loader } from '../../support/facts.js';
+import {
+  identifierProblem,
+  loaderProblem,
+  pathProblem,
+  reviewedProblems,
+  type Loader,
+} from '../../support/facts.js';
 import { escapeRegExp } from '../../support/text.js';
 import {
   APP_CODE,
@@ -45,7 +51,14 @@ export function registryObjectCode(file: FileView): { name: string; code: string
   const sf = file.sourceFile;
   let name: string | null = null;
   const find = (node: ts.Node) => {
-    if (!name && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === REGISTRY_FACTORY && node.arguments[0] && ts.isIdentifier(node.arguments[0])) {
+    if (
+      !name &&
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === REGISTRY_FACTORY &&
+      node.arguments[0] &&
+      ts.isIdentifier(node.arguments[0])
+    ) {
       name = node.arguments[0].text;
     }
     ts.forEachChild(node, find);
@@ -54,8 +67,17 @@ export function registryObjectCode(file: FileView): { name: string; code: string
   if (!name) return null;
   let found: { name: string; code: string } | null = null;
   const visit = (node: ts.Node) => {
-    if (!found && ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name && node.initializer) {
-      found = { name: name!, code: file.code.slice(node.initializer.getStart(sf), node.initializer.getEnd()) };
+    if (
+      !found &&
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer
+    ) {
+      found = {
+        name: name!,
+        code: file.code.slice(node.initializer.getStart(sf), node.initializer.getEnd()),
+      };
     }
     ts.forEachChild(node, visit);
   };
@@ -63,7 +85,8 @@ export function registryObjectCode(file: FileView): { name: string; code: string
   return found;
 }
 
-const keyRefPattern = (objects: readonly string[]) => new RegExp(`\\b(${alternation(objects)})\\.(\\w+)`, 'g');
+const keyRefPattern = (objects: readonly string[]) =>
+  new RegExp(`\\b(${alternation(objects)})\\.(\\w+)`, 'g');
 
 // =============================================================================================
 // Cache invalidation only through the registry; the registry's targets are read, and never an infinite list.
@@ -98,14 +121,22 @@ export function clearCalls(file: FileView): Array<{ index: number; call: string 
 }
 
 /** Key families some live query reads: a `queryKey` built from a key method outside a cache call, or a key object handed whole. */
-export function readKeyFamilies(files: ReadonlyArray<{ code: string }>, objects: readonly string[], familySuffix: string): Set<string> {
+export function readKeyFamilies(
+  files: ReadonlyArray<{ code: string }>,
+  objects: readonly string[],
+  familySuffix: string,
+): Set<string> {
   const read = new Set<string>();
   const names = alternation(objects);
   for (const { code } of files) {
     for (const line of code.split('\n')) {
       if (CACHE_WRITE_CALL.test(line)) continue;
-      for (const m of line.matchAll(new RegExp(`\\bqueryKey\\s*[:=]\\s*(${names})\\.(\\w+)`, 'g'))) read.add(familyOf(`${m[1]}.${m[2]}`, familySuffix));
-      for (const m of line.matchAll(new RegExp(`[\\w$]+\\s*:\\s*(${names})\\b(?![\\w$]|\\s*\\.)`, 'g'))) read.add(`${m[1]}.*`);
+      for (const m of line.matchAll(new RegExp(`\\bqueryKey\\s*[:=]\\s*(${names})\\.(\\w+)`, 'g')))
+        read.add(familyOf(`${m[1]}.${m[2]}`, familySuffix));
+      for (const m of line.matchAll(
+        new RegExp(`[\\w$]+\\s*:\\s*(${names})\\b(?![\\w$]|\\s*\\.)`, 'g'),
+      ))
+        read.add(`${m[1]}.*`);
     }
   }
   return read;
@@ -132,7 +163,10 @@ function argCountAt(code: string, open: number): number | null {
 }
 
 /** Each key method → the argument counts the app's live reads build it with. */
-export function readArgCounts(files: ReadonlyArray<{ code: string }>, objects: readonly string[]): Map<string, Set<number>> {
+export function readArgCounts(
+  files: ReadonlyArray<{ code: string }>,
+  objects: readonly string[],
+): Map<string, Set<number>> {
   const counts = new Map<string, Set<number>>();
   const re = new RegExp(`\\bqueryKey\\s*[:=]\\s*(${alternation(objects)})\\.(\\w+)\\(`, 'g');
   for (const { code } of files) {
@@ -158,14 +192,19 @@ export function registryTargetProblems(input: {
 }): string[] {
   const { registryCode, reads, builders, familySuffix } = input;
   const objects = Object.keys(builders);
-  const refs = [...new Set([...registryCode.matchAll(keyRefPattern(objects))].map((m) => `${m[1]}.${m[2]}`))];
+  const refs = [
+    ...new Set([...registryCode.matchAll(keyRefPattern(objects))].map((m) => `${m[1]}.${m[2]}`)),
+  ];
   const read = readKeyFamilies(reads, objects, familySuffix);
-  const readKeys = [...read].map((f) => sampleKey(f, builders)).filter((k): k is unknown[] => k !== null);
+  const readKeys = [...read]
+    .map((f) => sampleKey(f, builders))
+    .filter((k): k is unknown[] => k !== null);
   const problems: string[] = [];
   for (const ref of refs) {
     if (read.has(familyOf(ref, familySuffix)) || read.has(`${ref.split('.')[0]}.*`)) continue;
     const key = sampleKey(ref, builders);
-    if (key === null || !readKeys.some((readKey) => isPrefix(key, readKey))) problems.push(`${ref}: no live query reads this key`);
+    if (key === null || !readKeys.some((readKey) => isPrefix(key, readKey)))
+      problems.push(`${ref}: no live query reads this key`);
   }
   const counts = readArgCounts(reads, objects);
   const exactRe = new RegExp(`\\b${EXACT}\\(\\s*(${alternation(objects)})\\.(\\w+)`, 'g');
@@ -175,18 +214,24 @@ export function registryTargetProblems(input: {
     if (shaped.has(ref)) continue;
     if (m[2] === 'all' || (m[2].endsWith(familySuffix) && m[2] !== familySuffix)) {
       shaped.add(ref);
-      problems.push(`${ref}: an exact target on a key family (only a prefix target reaches a family)`);
+      problems.push(
+        `${ref}: an exact target on a key family (only a prefix target reaches a family)`,
+      );
       continue;
     }
     const n = argCountAt(registryCode, (m.index ?? 0) + m[0].length);
     const readCounts = counts.get(ref);
     if (n !== null && readCounts && !readCounts.has(n)) {
       shaped.add(ref);
-      problems.push(`${ref}: an exact target built with ${n} argument(s), which no live read builds`);
+      problems.push(
+        `${ref}: an exact target built with ${n} argument(s), which no live read builds`,
+      );
     }
   }
   const infinite = infiniteKeyFamilies(reads, objects, familySuffix);
-  for (const ref of refs) if (reachesInfinite(ref, infinite, builders, familySuffix)) problems.push(`${ref}: reaches an infinite list`);
+  for (const ref of refs)
+    if (reachesInfinite(ref, infinite, builders, familySuffix))
+      problems.push(`${ref}: reaches an infinite list`);
   return problems;
 }
 
@@ -206,50 +251,74 @@ const cacheInvalidationProblems = (facts: CacheInvalidationFacts) => {
 };
 
 const cacheInvalidationGuards = (facts: CacheInvalidationFacts, owned: OwnedElsewhere): Guard[] => [
-    {
-      title: 'saved reads are refreshed, removed, or reset only through the domain-event registry',
-      description:
-        `${facts.registry.path} — the object it hands to query-core's ${REGISTRY_FACTORY} — is the one place that turns something that ` +
-        'happened into what the cache does: refresh, remove, or reset. No other file calls invalidateQueries, removeQueries, or ' +
-        'resetQueries: emit the domain event instead, and patch an infinite list in place. The only other owners are the session-' +
-        `retirement owner (${owned.sessionOwner}) and a person's own refresh, declared once beside the list-reload rule.`,
-      run(context) {
-        const { file: registry, findings } = requiredFile(context, facts.registry.path, 'the domain-event registry');
-        if (registry && !registryObjectCode(registry)) findings.push({ file: registry.path, detail: `no registry object handed to ${REGISTRY_FACTORY}` });
-        const refreshes = new Set(owned.memberRefreshes.map((r) => `${r.path} ${r.call}`));
-        for (const file of context.files(APP_CODE)) {
-          if (file.path === facts.registry.path || file.path === owned.sessionOwner) continue;
-          for (const { index, call } of clearCalls(file)) {
-            if (refreshes.has(`${file.path} ${call}`)) continue;
-            findings.push({ file: file.path, line: file.lineOf(index), detail: `outside the registry: ${call.slice(0, 120)}` });
-          }
+  {
+    title: 'saved reads are refreshed, removed, or reset only through the domain-event registry',
+    description:
+      `${facts.registry.path} — the object it hands to query-core's ${REGISTRY_FACTORY} — is the one place that turns something that ` +
+      'happened into what the cache does: refresh, remove, or reset. No other file calls invalidateQueries, removeQueries, or ' +
+      'resetQueries: emit the domain event instead, and patch an infinite list in place. The only other owners are the session-' +
+      `retirement owner (${owned.sessionOwner}) and a person's own refresh, declared once beside the list-reload rule.`,
+    run(context) {
+      const { file: registry, findings } = requiredFile(
+        context,
+        facts.registry.path,
+        'the domain-event registry',
+      );
+      if (registry && !registryObjectCode(registry))
+        findings.push({
+          file: registry.path,
+          detail: `no registry object handed to ${REGISTRY_FACTORY}`,
+        });
+      const refreshes = new Set(owned.memberRefreshes.map((r) => `${r.path} ${r.call}`));
+      for (const file of context.files(APP_CODE)) {
+        if (file.path === facts.registry.path || file.path === owned.sessionOwner) continue;
+        for (const { index, call } of clearCalls(file)) {
+          if (refreshes.has(`${file.path} ${call}`)) continue;
+          findings.push({
+            file: file.path,
+            line: file.lineOf(index),
+            detail: `outside the registry: ${call.slice(0, 120)}`,
+          });
         }
-        return findings;
-      },
+      }
+      return findings;
     },
-    {
-      title: 'every registry cache target is a key a live query reads, and never an infinite list',
-      description:
-        `Every key the registry in ${facts.registry.path} writes is reached by a live query's key (a queryKey built from the same key ` +
-        `method in ${facts.readTrees.join(', ')}, or a key object handed whole to a reader); an exact target names a leaf the reads build ` +
-        `with the same arguments, never a family (all, or a …${facts.familySuffix} helper); and no target reaches an infinite list — named, ` +
-        "through its family helper, or through its scope. A write aimed at a key nothing reads is a silent no-op, and invalidating an " +
-        'infinite list re-runs every loaded page.',
-      timeoutMs: 120_000,
-      async run(context: GuardContext): Promise<Finding[]> {
-        const { file: registry, findings } = requiredFile(context, facts.registry.path, 'the domain-event registry');
-        if (!registry) return findings;
-        const object = registryObjectCode(registry);
-        if (!object) return [{ file: registry.path, detail: `no registry object handed to ${REGISTRY_FACTORY}` }];
-        const builders = await loadKeyObjects(facts.keyModule);
-        const { files, findings: missing } = filesUnder(context, facts.readTrees);
-        findings.push(...missing);
-        for (const detail of registryTargetProblems({ registryCode: object.code, reads: files, builders, familySuffix: facts.familySuffix })) {
-          findings.push({ file: registry.path, detail });
-        }
-        return findings;
-      },
+  },
+  {
+    title: 'every registry cache target is a key a live query reads, and never an infinite list',
+    description:
+      `Every key the registry in ${facts.registry.path} writes is reached by a live query's key (a queryKey built from the same key ` +
+      `method in ${facts.readTrees.join(', ')}, or a key object handed whole to a reader); an exact target names a leaf the reads build ` +
+      `with the same arguments, never a family (all, or a …${facts.familySuffix} helper); and no target reaches an infinite list — named, ` +
+      'through its family helper, or through its scope. A write aimed at a key nothing reads is a silent no-op, and invalidating an ' +
+      'infinite list re-runs every loaded page.',
+    timeoutMs: 120_000,
+    async run(context: GuardContext): Promise<Finding[]> {
+      const { file: registry, findings } = requiredFile(
+        context,
+        facts.registry.path,
+        'the domain-event registry',
+      );
+      if (!registry) return findings;
+      const object = registryObjectCode(registry);
+      if (!object)
+        return [
+          { file: registry.path, detail: `no registry object handed to ${REGISTRY_FACTORY}` },
+        ];
+      const builders = await loadKeyObjects(facts.keyModule);
+      const { files, findings: missing } = filesUnder(context, facts.readTrees);
+      findings.push(...missing);
+      for (const detail of registryTargetProblems({
+        registryCode: object.code,
+        reads: files,
+        builders,
+        familySuffix: facts.familySuffix,
+      })) {
+        findings.push({ file: registry.path, detail });
+      }
+      return findings;
     },
+  },
 ];
 
 // =============================================================================================
@@ -269,7 +338,8 @@ export interface ListResetFacts {
 
 const RELOAD_CALL = /\b(resetQueries|refetchQueries|removeQueries)\s*\(/g;
 const PATCH_CALL = /\b(setQueryData|setQueriesData)\s*(?:<[^>]*>)?\s*\(/g;
-const FIRST_PAGE_TRIM = /\bpages\.slice\(\s*0\s*,\s*1\s*\)|\bpageParams\.slice\(\s*0\s*,\s*1\s*\)|\bpages\s*:\s*\[\s*[\w.?]+\.pages\[0\]\s*\]/;
+const FIRST_PAGE_TRIM =
+  /\bpages\.slice\(\s*0\s*,\s*1\s*\)|\bpageParams\.slice\(\s*0\s*,\s*1\s*\)|\bpages\s*:\s*\[\s*[\w.?]+\.pages\[0\]\s*\]/;
 
 /** The key refs a call targets: its key method, or every one a constant map it indexes holds; null when unresolved. */
 function targetRefs(call: string, code: string, objects: readonly string[]): string[] | null {
@@ -281,7 +351,9 @@ function targetRefs(call: string, code: string, objects: readonly string[]): str
   const decl = code.match(new RegExp(`\\bconst \\s*${escapeRegExp(indexed[1])}\\b[^=]*=\\s*\\{`));
   if (!decl) return null;
   const open = (decl.index ?? 0) + decl[0].length - 1;
-  const refs = [...callSpan(code, open, open).matchAll(keyRefPattern(objects))].map((m) => `${m[1]}.${m[2]}`);
+  const refs = [...callSpan(code, open, open).matchAll(keyRefPattern(objects))].map(
+    (m) => `${m[1]}.${m[2]}`,
+  );
   return refs.length ? refs : null;
 }
 
@@ -306,33 +378,62 @@ export function listReloads(
       present.add(`${file.path} ${call}`);
       if (pinned.has(`${file.path} ${call}`)) continue;
       const refs = targetRefs(call, code, objects);
-      const reloads = refs ? refs.some((ref) => reachesInfinite(ref, infinite, builders, facts.familySuffix)) : !excluded.test(call);
-      if (reloads) found.push({ file: file.path, line: file.lineOf(m.index ?? 0), detail: `${refs ? 'reloads an infinite list' : 'reloads queries its key does not name'}: ${call.slice(0, 120)}` });
+      const reloads = refs
+        ? refs.some((ref) => reachesInfinite(ref, infinite, builders, facts.familySuffix))
+        : !excluded.test(call);
+      if (reloads)
+        found.push({
+          file: file.path,
+          line: file.lineOf(m.index ?? 0),
+          detail: `${refs ? 'reloads an infinite list' : 'reloads queries its key does not name'}: ${call.slice(0, 120)}`,
+        });
     }
     for (const m of code.matchAll(PATCH_CALL)) {
       const call = callSpan(code, m.index ?? 0, (m.index ?? 0) + m[0].length - 1);
-      if (FIRST_PAGE_TRIM.test(call)) found.push({ file: file.path, line: file.lineOf(m.index ?? 0), detail: `trims a list to its first page: ${collapse(call).slice(0, 120)}` });
+      if (FIRST_PAGE_TRIM.test(call))
+        found.push({
+          file: file.path,
+          line: file.lineOf(m.index ?? 0),
+          detail: `trims a list to its first page: ${collapse(call).slice(0, 120)}`,
+        });
     }
   }
-  for (const r of facts.memberRefreshes) if (!present.has(`${r.path} ${r.call}`)) found.push({ file: r.path, detail: `stale member refresh: ${r.call} is no longer there` });
+  for (const r of facts.memberRefreshes)
+    if (!present.has(`${r.path} ${r.call}`))
+      found.push({ file: r.path, detail: `stale member refresh: ${r.call} is no longer there` });
   return { infinite, findings: found };
 }
 
 /** Each refresh hook's result used anywhere but on its refresh control's prop, and each hook no file calls. */
-export function refreshHandoffMisuses(files: readonly FileView[], handoffs: ListResetFacts['refreshHandoffs']): Finding[] {
+export function refreshHandoffMisuses(
+  files: readonly FileView[],
+  handoffs: ListResetFacts['refreshHandoffs'],
+): Finding[] {
   const findings: Finding[] = [];
   for (const { hook, control, prop } of handoffs) {
     let callers = 0;
     for (const file of files) {
-      for (const m of file.code.matchAll(new RegExp(`const\\s+(\\w+)\\s*=\\s*${escapeRegExp(hook)}\\(`, 'g'))) {
+      for (const m of file.code.matchAll(
+        new RegExp(`const\\s+(\\w+)\\s*=\\s*${escapeRegExp(hook)}\\(`, 'g'),
+      )) {
         callers += 1;
         const name = m[1];
         const uses = [...file.code.matchAll(new RegExp(`\\b${name}\\b`, 'g'))].length - 1;
-        const handed = [...file.code.matchAll(new RegExp(`<${escapeRegExp(control)}[^>]*${escapeRegExp(prop)}=\\{${name}\\}`, 'g'))].length;
-        if (uses !== handed) findings.push({ file: file.path, line: file.lineOf(m.index ?? 0), detail: `${hook}()'s refresh is used other than as <${control} ${prop}>` });
+        const handed = [
+          ...file.code.matchAll(
+            new RegExp(`<${escapeRegExp(control)}[^>]*${escapeRegExp(prop)}=\\{${name}\\}`, 'g'),
+          ),
+        ].length;
+        if (uses !== handed)
+          findings.push({
+            file: file.path,
+            line: file.lineOf(m.index ?? 0),
+            detail: `${hook}()'s refresh is used other than as <${control} ${prop}>`,
+          });
       }
     }
-    if (!callers) findings.push({ file: '(refreshHandoffs)', detail: `stale entry: nothing calls ${hook}` });
+    if (!callers)
+      findings.push({ file: '(refreshHandoffs)', detail: `stale entry: nothing calls ${hook}` });
   }
   return findings;
 }
@@ -343,7 +444,8 @@ const listResetProblems = (facts: ListResetFacts) => {
   identifierProblem(facts?.familySuffix, 'familySuffix', problems);
   identifierProblem(facts?.loadedPagesPredicate, 'loadedPagesPredicate', problems);
   reviewedCallProblem(facts?.memberRefreshes, 'memberRefreshes', problems);
-  if (!Array.isArray(facts?.refreshHandoffs)) problems.push('refreshHandoffs is missing (declare [] when there is none)');
+  if (!Array.isArray(facts?.refreshHandoffs))
+    problems.push('refreshHandoffs is missing (declare [] when there is none)');
   else
     facts.refreshHandoffs.forEach((h, i) => {
       identifierProblem(h?.hook, `refreshHandoffs[${i}].hook`, problems);
@@ -367,7 +469,11 @@ const listResetGuards = (facts: ListResetFacts, sessionOwner: string): Guard[] =
       const builders = await loadKeyObjects(facts.keyModule);
       const files = context.files(APP_CODE);
       const { infinite, findings } = listReloads(files, builders, facts, sessionOwner);
-      if (!infinite.size) findings.push({ file: facts.keyModule.path, detail: 'no infinite list found in the app, so the guard checks nothing' });
+      if (!infinite.size)
+        findings.push({
+          file: facts.keyModule.path,
+          detail: 'no infinite list found in the app, so the guard checks nothing',
+        });
       findings.push(...refreshHandoffMisuses(files, facts.refreshHandoffs));
       return findings;
     },
@@ -394,14 +500,18 @@ const WHOLE_CACHE_DROP = [
 ];
 
 export function wholeCacheDrops(file: FileView): Array<{ index: number; text: string }> {
-  return WHOLE_CACHE_DROP.flatMap((re) => [...file.code.matchAll(re)].map((m) => ({ index: m.index ?? 0, text: m[0] }))).sort((a, b) => a.index - b.index);
+  return WHOLE_CACHE_DROP.flatMap((re) =>
+    [...file.code.matchAll(re)].map((m) => ({ index: m.index ?? 0, text: m[0] })),
+  ).sort((a, b) => a.index - b.index);
 }
 
 const sessionRetirementPart = {
   factProblems(facts: SessionRetirementFacts) {
     const problems: string[] = [];
     pathProblem(facts?.owner, 'owner', problems);
-    reviewedProblems(facts?.predicateRetirements, 'predicateRetirements', problems, { key: 'trigger' });
+    reviewedProblems(facts?.predicateRetirements, 'predicateRetirements', problems, {
+      key: 'trigger',
+    });
     return problems;
   },
   build: (facts: SessionRetirementFacts): Guard[] => [
@@ -410,20 +520,43 @@ const sessionRetirementPart = {
       description:
         `A cancelQueries with no key (bare, or selected by a predicate) and a query or mutation cache clear drop reads the call site ` +
         `cannot name, so only ${facts.owner} runs them: when a session ends it cancels every query and clears the query cache` +
-        (facts.predicateRetirements.length ? `, and it cancels by predicate for ${facts.predicateRetirements.map((r) => r.trigger).join('; ')}` : '') +
+        (facts.predicateRetirements.length
+          ? `, and it cancels by predicate for ${facts.predicateRetirements.map((r) => r.trigger).join('; ')}`
+          : '') +
         '. Everywhere else a cancel names its key, and nothing clears a cache.',
       run(context) {
-        const { file: owner, findings } = requiredFile(context, facts.owner, 'the session-retirement owner');
+        const { file: owner, findings } = requiredFile(
+          context,
+          facts.owner,
+          'the session-retirement owner',
+        );
         for (const file of context.files(APP_CODE)) {
           if (file.path === facts.owner) continue;
-          for (const drop of wholeCacheDrops(file)) findings.push({ file: file.path, line: file.lineOf(drop.index), detail: `outside the session-retirement owner: ${drop.text}` });
+          for (const drop of wholeCacheDrops(file))
+            findings.push({
+              file: file.path,
+              line: file.lineOf(drop.index),
+              detail: `outside the session-retirement owner: ${drop.text}`,
+            });
         }
         if (owner) {
-          if (!/\bcancelQueries\(\s*\)/.test(owner.code)) findings.push({ file: owner.path, detail: 'the owner no longer cancels every query when a session ends' });
-          if (!/getQueryCache\(\)\s*\.clear\(/.test(owner.code)) findings.push({ file: owner.path, detail: 'the owner no longer clears the query cache when a session ends' });
-          const byPredicate = [...owner.code.matchAll(/\bcancelQueries\(\s*\{\s*predicate\s*:/g)].length;
+          if (!/\bcancelQueries\(\s*\)/.test(owner.code))
+            findings.push({
+              file: owner.path,
+              detail: 'the owner no longer cancels every query when a session ends',
+            });
+          if (!/getQueryCache\(\)\s*\.clear\(/.test(owner.code))
+            findings.push({
+              file: owner.path,
+              detail: 'the owner no longer clears the query cache when a session ends',
+            });
+          const byPredicate = [...owner.code.matchAll(/\bcancelQueries\(\s*\{\s*predicate\s*:/g)]
+            .length;
           if (byPredicate !== facts.predicateRetirements.length) {
-            findings.push({ file: owner.path, detail: `the owner cancels by predicate ${byPredicate} time(s); ${facts.predicateRetirements.length} predicate retirement(s) are reviewed` });
+            findings.push({
+              file: owner.path,
+              detail: `the owner cancels by predicate ${byPredicate} time(s); ${facts.predicateRetirements.length} predicate retirement(s) are reviewed`,
+            });
           }
         }
         return findings;
@@ -448,7 +581,13 @@ export interface DomainEventRegistryFacts {
   notifiers: readonly string[];
 }
 
-type ZodLike = { def?: any; _def?: any; shape?: Record<string, ZodLike>; options?: unknown[]; value?: unknown };
+type ZodLike = {
+  def?: any;
+  _def?: any;
+  shape?: Record<string, ZodLike>;
+  options?: unknown[];
+  value?: unknown;
+};
 const defOf = (field: ZodLike) => field?.def ?? field?._def ?? {};
 const kindOf = (field: ZodLike): 'optional' | 'nullable' | 'enum' | 'required' => {
   const type = defOf(field).type;
@@ -468,7 +607,12 @@ export function syntheticIds(idsSchema: ZodLike): Array<Record<string, unknown>>
       baseline[key] = kindOf(inner) === 'enum' ? (inner.options as unknown[])[0] : `test-${key}`;
     } else baseline[key] = `test-${key}`;
   }
-  return [{ ...baseline }, ...optional.map((key) => Object.fromEntries(Object.entries(baseline).filter(([k]) => k !== key)))];
+  return [
+    { ...baseline },
+    ...optional.map((key) =>
+      Object.fromEntries(Object.entries(baseline).filter(([k]) => k !== key)),
+    ),
+  ];
 }
 
 /** What a query-core registry entry may do to the reads it matches, and how a refresh refetches. */
@@ -480,12 +624,20 @@ export function malformedInvalidations(answer: unknown): string | null {
   if (!Array.isArray(answer)) return 'does not answer a list of invalidations';
   for (const inv of answer as Array<Record<string, unknown>>) {
     if (inv?.kind === 'exact' || inv?.kind === 'prefix') {
-      if (!Array.isArray(inv.queryKey) || !inv.queryKey.length) return `a ${inv.kind} invalidation with no key`;
+      if (!Array.isArray(inv.queryKey) || !inv.queryKey.length)
+        return `a ${inv.kind} invalidation with no key`;
     } else if (inv?.kind === 'predicate') {
-      if (typeof inv.description !== 'string' || !inv.description || typeof inv.match !== 'function') return 'a predicate invalidation with no description or matcher';
+      if (
+        typeof inv.description !== 'string' ||
+        !inv.description ||
+        typeof inv.match !== 'function'
+      )
+        return 'a predicate invalidation with no description or matcher';
     } else return `an invalidation of unknown kind ${String(inv?.kind)}`;
-    if (!CACHE_ACTIONS.has(inv.action)) return `a ${inv.kind} invalidation with unknown action ${String(inv.action)}`;
-    if (!REFETCH_TYPES.has(inv.refetchType)) return `a ${inv.kind} invalidation with unknown refetchType ${String(inv.refetchType)}`;
+    if (!CACHE_ACTIONS.has(inv.action))
+      return `a ${inv.kind} invalidation with unknown action ${String(inv.action)}`;
+    if (!REFETCH_TYPES.has(inv.refetchType))
+      return `a ${inv.kind} invalidation with unknown refetchType ${String(inv.refetchType)}`;
     if ((inv.action === 'remove' || inv.action === 'reset') && inv.refetchType !== undefined) {
       return `a ${inv.action} invalidation with a refetchType, which only a refresh takes`;
     }
@@ -499,7 +651,10 @@ function startsStatement(code: string, index: number): boolean {
   return before.length === 0 || ';{})'.includes(before.charAt(before.length - 1));
 }
 
-export function droppedNotifications(file: FileView, notifiers: readonly string[]): Array<{ index: number; name: string }> {
+export function droppedNotifications(
+  file: FileView,
+  notifiers: readonly string[],
+): Array<{ index: number; name: string }> {
   const hits: Array<{ index: number; name: string }> = [];
   for (const m of file.code.matchAll(new RegExp(`\\b(${alternation(notifiers)})\\(`, 'g'))) {
     const index = m.index ?? 0;
@@ -531,29 +686,44 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
         const registry = (await facts.registry.load()) ?? {};
         const findings: Finding[] = [];
         const haystack = context
-          .files({ roots: ['app', 'functions'], optionalRoots: ['functions'], kinds: ['code'], tests: false })
+          .files({
+            roots: ['app', 'functions'],
+            optionalRoots: ['functions'],
+            kinds: ['code'],
+            tests: false,
+          })
           .filter((f) => f.path !== facts.registry.path)
           .map((f) => f.code)
           .join('\n');
-        const produced = (type: string) => haystack.includes(`'${type}'`) || haystack.includes(`"${type}"`);
-        for (const type of Object.keys(registry)) if (!produced(type)) findings.push({ file: facts.registry.path, detail: `${type}: no producer in the app` });
+        const produced = (type: string) =>
+          haystack.includes(`'${type}'`) || haystack.includes(`"${type}"`);
+        for (const type of Object.keys(registry))
+          if (!produced(type))
+            findings.push({ file: facts.registry.path, detail: `${type}: no producer in the app` });
         return findings;
       },
     },
     {
-      title: "every core domain-event variant has a registry entry with well-formed invalidations",
+      title: 'every core domain-event variant has a registry entry with well-formed invalidations',
       description:
         `Every variant of the core's domain-event schema has an entry in the registry in ${facts.registry.path}, and the entry answers, ` +
         'for every shape of its ids (each optional id present and absent), a list of invalidations that are each an exact or prefix ' +
         'target with a non-empty key, or a predicate with a description and a matcher.',
       async run(context) {
         // The loaded registry is judged, but the file the facts name must be the one it comes from.
-        if (!context.reader.exists(facts.registry.path)) return [{ file: facts.registry.path, detail: 'the registry file does not exist' }];
+        if (!context.reader.exists(facts.registry.path))
+          return [{ file: facts.registry.path, detail: 'the registry file does not exist' }];
         context.file(facts.registry.path);
         const registry = (await facts.registry.load()) ?? {};
         const schema = (await facts.eventSchema()) as ZodLike;
         const variants = (schema?.options ?? []) as ZodLike[];
-        if (!variants.length) return [{ file: '(eventSchema)', detail: 'the loader did not answer a discriminated union of variants' }];
+        if (!variants.length)
+          return [
+            {
+              file: '(eventSchema)',
+              detail: 'the loader did not answer a discriminated union of variants',
+            },
+          ];
         const findings: Finding[] = [];
         for (const variant of variants) {
           const type = String(variant.shape?.type?.value ?? '');
@@ -573,7 +743,8 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
             } catch (err) {
               problem = `throws for ids ${JSON.stringify(ids)}: ${(err as Error)?.message ?? err}`;
             }
-            if (problem) findings.push({ file: facts.registry.path, detail: `${type}: ${problem}` });
+            if (problem)
+              findings.push({ file: facts.registry.path, detail: `${type}: ${problem}` });
           }
         }
         return findings;
@@ -592,10 +763,18 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
         for (const file of context.files(APP_CODE)) {
           calls += [...file.code.matchAll(callRe)].length;
           for (const hit of droppedNotifications(file, facts.notifiers)) {
-            findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `${hit.name}(…) in statement position drops its refresh` });
+            findings.push({
+              file: file.path,
+              line: file.lineOf(hit.index),
+              detail: `${hit.name}(…) in statement position drops its refresh`,
+            });
           }
         }
-        if (!calls) findings.push({ file: '(notifiers)', detail: `nothing in the app calls ${facts.notifiers.join(' / ')}, so the guard checks nothing` });
+        if (!calls)
+          findings.push({
+            file: '(notifiers)',
+            detail: `nothing in the app calls ${facts.notifiers.join(' / ')}, so the guard checks nothing`,
+          });
         return findings;
       },
     },
@@ -629,15 +808,21 @@ export const queryCacheGuard: GenericGuardDefinition<QueryCacheFacts> = {
     ...new Set([
       ...cacheInvalidationProblems(f),
       ...listResetProblems(listFacts(f)),
-      ...sessionRetirementPart.factProblems({ owner: f?.sessionOwner, predicateRetirements: f?.predicateRetirements }).map((p) =>
-        p.startsWith('owner') ? `session${p[0].toUpperCase()}${p.slice(1)}` : p,
-      ),
+      ...sessionRetirementPart
+        .factProblems({ owner: f?.sessionOwner, predicateRetirements: f?.predicateRetirements })
+        .map((p) => (p.startsWith('owner') ? `session${p[0].toUpperCase()}${p.slice(1)}` : p)),
     ]),
   ],
   build: (f) => [
-    ...cacheInvalidationGuards(f, { sessionOwner: f.sessionOwner, memberRefreshes: f.memberRefreshes }),
+    ...cacheInvalidationGuards(f, {
+      sessionOwner: f.sessionOwner,
+      memberRefreshes: f.memberRefreshes,
+    }),
     ...listResetGuards(listFacts(f), f.sessionOwner),
-    ...sessionRetirementPart.build({ owner: f.sessionOwner, predicateRetirements: f.predicateRetirements }),
+    ...sessionRetirementPart.build({
+      owner: f.sessionOwner,
+      predicateRetirements: f.predicateRetirements,
+    }),
   ],
 };
 

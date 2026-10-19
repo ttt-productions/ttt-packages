@@ -33,54 +33,67 @@ export type ModerationEdgeSyncOp = z.infer<typeof ModerationEdgeSyncOpSchema>;
 export const ModerationEdgeSyncStateSchema = z.enum(['processing', 'failed']);
 export type ModerationEdgeSyncState = z.infer<typeof ModerationEdgeSyncStateSchema>;
 
-export const ContentViolationSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  fileType: z.string(),
-  violationType: z.enum(['text', 'media']).optional(),
-  reason: z.string(),
-  timestamp: z.number(),
-  appealStatus: z.enum(['none', 'pending', 'approved', 'denied']),
-  // Text violations (moderateTextOrThrow / media-result-handler 'text_rejected') write these and
-  // omit the media-only fields below; media violations (logContentViolation) do the reverse.
-  flaggedWords: z.array(z.string()).optional(),
-  originalText: z.string().optional(),
-  // Media-only fields. Optional because text violations omit them, and `scores` is nullable
-  // because moderateTextOrThrow writes `scores: result.scores ?? null`.
-  originalFileName: z.string().optional(),
-  // The kind the server inspected from the rejected bytes — what a preview renders by. The
-  // pending row's `originalContentType` is the client-declared MIME, which may be the neutral
-  // type, so it never decides how a rejected upload renders. Present exactly on a media violation.
-  mediaKind: ContentMediaKindSchema.optional(),
-  scores: z.object({
-    adult: z.string(),
-    violence: z.string(),
-    racy: z.string(),
-  }).nullable().optional(),
-  // Internal GCS path of the preserved rejected file — never a serving contract.
-  // Appeal viewing is owner/admin-gated (rules-gated SDK read or signed URL).
-  rejectedFilePath: z.string().optional(),
-  // The pendingMedia row AS CLAIMED by the processor: logContentViolation snapshots the in-memory
-  // claimed row before the row is finalized `rejected`, so the stored status is `processing` —
-  // never `pending` and never `rejected`. An approved appeal re-queues a FRESH `pending` row built
-  // from these fields; it does not reuse this snapshot as a document.
-  pendingFile: PendingMediaProcessingSchema.partial().optional(),
-  // Appeal lifecycle (submitContentAppeal / reviewContentAppeal).
-  appealMessage: z.string().optional(),
-  appealedAt: z.number().optional(),
-  reviewedBy: z.string().optional(),
-  reviewedAt: z.number().optional(),
-  reviewDecision: z.enum(['approved', 'denied']).optional(),
-  reviewNotes: z.string().optional(),
-}).superRefine((violation, ctx) => {
-  const isMedia = violation.violationType === 'media';
-  if (isMedia && violation.mediaKind === undefined) {
-    ctx.addIssue({ code: 'custom', path: ['mediaKind'], message: 'mediaKind is required on a media violation' });
-  }
-  if (!isMedia && violation.mediaKind !== undefined) {
-    ctx.addIssue({ code: 'custom', path: ['mediaKind'], message: 'mediaKind is only allowed on a media violation' });
-  }
-});
+export const ContentViolationSchema = z
+  .object({
+    id: z.string(),
+    userId: z.string(),
+    fileType: z.string(),
+    violationType: z.enum(['text', 'media']).optional(),
+    reason: z.string(),
+    timestamp: z.number(),
+    appealStatus: z.enum(['none', 'pending', 'approved', 'denied']),
+    // Text violations (moderateTextOrThrow / media-result-handler 'text_rejected') write these and
+    // omit the media-only fields below; media violations (logContentViolation) do the reverse.
+    flaggedWords: z.array(z.string()).optional(),
+    originalText: z.string().optional(),
+    // Media-only fields. Optional because text violations omit them, and `scores` is nullable
+    // because moderateTextOrThrow writes `scores: result.scores ?? null`.
+    originalFileName: z.string().optional(),
+    // The kind the server inspected from the rejected bytes — what a preview renders by. The
+    // pending row's `originalContentType` is the client-declared MIME, which may be the neutral
+    // type, so it never decides how a rejected upload renders. Present exactly on a media violation.
+    mediaKind: ContentMediaKindSchema.optional(),
+    scores: z
+      .object({
+        adult: z.string(),
+        violence: z.string(),
+        racy: z.string(),
+      })
+      .nullable()
+      .optional(),
+    // Internal GCS path of the preserved rejected file — never a serving contract.
+    // Appeal viewing is owner/admin-gated (rules-gated SDK read or signed URL).
+    rejectedFilePath: z.string().optional(),
+    // The pendingMedia row AS CLAIMED by the processor: logContentViolation snapshots the in-memory
+    // claimed row before the row is finalized `rejected`, so the stored status is `processing` —
+    // never `pending` and never `rejected`. An approved appeal re-queues a FRESH `pending` row built
+    // from these fields; it does not reuse this snapshot as a document.
+    pendingFile: PendingMediaProcessingSchema.partial().optional(),
+    // Appeal lifecycle (submitContentAppeal / reviewContentAppeal).
+    appealMessage: z.string().optional(),
+    appealedAt: z.number().optional(),
+    reviewedBy: z.string().optional(),
+    reviewedAt: z.number().optional(),
+    reviewDecision: z.enum(['approved', 'denied']).optional(),
+    reviewNotes: z.string().optional(),
+  })
+  .superRefine((violation, ctx) => {
+    const isMedia = violation.violationType === 'media';
+    if (isMedia && violation.mediaKind === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['mediaKind'],
+        message: 'mediaKind is required on a media violation',
+      });
+    }
+    if (!isMedia && violation.mediaKind !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['mediaKind'],
+        message: 'mediaKind is only allowed on a media violation',
+      });
+    }
+  });
 export type ContentViolation = z.infer<typeof ContentViolationSchema>;
 
 /** What the member may do with a violation: appeal it, and accept the decision. */
@@ -103,7 +116,9 @@ export function contentViolationActions(
   switch (violation.appealStatus) {
     case 'none':
       return {
-        appeal: violation.violationType === 'media' && isRejectedMediaAppealOpen(violation.timestamp, now),
+        appeal:
+          violation.violationType === 'media' &&
+          isRejectedMediaAppealOpen(violation.timestamp, now),
         accept: true,
       };
     case 'denied':
@@ -153,7 +168,9 @@ export const ModerationCascadeChangedEntityTypeSchema = z.enum([
   'craftSkill',
   'craftSkillReference',
 ]);
-export type ModerationCascadeChangedEntityType = z.infer<typeof ModerationCascadeChangedEntityTypeSchema>;
+export type ModerationCascadeChangedEntityType = z.infer<
+  typeof ModerationCascadeChangedEntityTypeSchema
+>;
 
 /**
  * Every report and Admin Tool hide target, in the report vocabulary. A `username` report is
@@ -175,7 +192,9 @@ export const ModerationCascadeManifestEntityTypeSchema = ReportableItemTypeSchem
   'work-project',
   'work-realm',
 ]);
-export type ModerationCascadeManifestEntityType = z.infer<typeof ModerationCascadeManifestEntityTypeSchema>;
+export type ModerationCascadeManifestEntityType = z.infer<
+  typeof ModerationCascadeManifestEntityTypeSchema
+>;
 export const MODERATION_HIDE_TARGET_TYPES = ModerationCascadeManifestEntityTypeSchema.options;
 
 /**
@@ -191,7 +210,9 @@ export const MODERATION_PARENT_KEYED_TARGET_TYPES = [
 ] as const satisfies readonly ModerationCascadeManifestEntityType[];
 
 /** Whether a hide target's id is unique only under its parent. */
-export function isModerationParentKeyedTargetType(entityType: ModerationCascadeManifestEntityType): boolean {
+export function isModerationParentKeyedTargetType(
+  entityType: ModerationCascadeManifestEntityType,
+): boolean {
   return (MODERATION_PARENT_KEYED_TARGET_TYPES as readonly string[]).includes(entityType);
 }
 
@@ -213,12 +234,18 @@ const lengthPrefixed = (part: string): string => `${part.length}:${part}`;
 export function moderationTargetKey(target: ModerationTarget): string {
   const parentKeyed = isModerationParentKeyedTargetType(target.entityType);
   if (parentKeyed && !target.parentEntityId) {
-    throw new Error(`A ${target.entityType} target is keyed under its parent; parentEntityId is required.`);
+    throw new Error(
+      `A ${target.entityType} target is keyed under its parent; parentEntityId is required.`,
+    );
   }
   if (!parentKeyed && target.parentEntityId !== undefined) {
-    throw new Error(`A ${target.entityType} target is keyed by its id alone; it carries no parentEntityId.`);
+    throw new Error(
+      `A ${target.entityType} target is keyed by its id alone; it carries no parentEntityId.`,
+    );
   }
-  return [target.entityType, target.parentEntityId ?? '', target.entityId].map(lengthPrefixed).join('');
+  return [target.entityType, target.parentEntityId ?? '', target.entityId]
+    .map(lengthPrefixed)
+    .join('');
 }
 
 /**
@@ -226,7 +253,10 @@ export function moderationTargetKey(target: ModerationTarget): string {
  * the same number write the same doc and conflict instead of both committing. The target key is
  * length-prefixed throughout, so the decision after the last `~` decodes one way.
  */
-export function moderationCascadeManifestId(targetKey: string, decision: ModerationDecisionNumber): string {
+export function moderationCascadeManifestId(
+  targetKey: string,
+  decision: ModerationDecisionNumber,
+): string {
   return `${targetKey}~${decision}`;
 }
 
@@ -237,43 +267,49 @@ export function moderationCascadeManifestId(targetKey: string, decision: Moderat
  * decision number. `status` stays `pending` until every page and edge step is done; the retry
  * ledger lets a manifest that keeps failing back off instead of holding the resume's window.
  */
-export const ModerationCascadeManifestSchema = z.object({
-  cascadeId: z.string(),
-  action: ModerationCascadeActionSchema,
-  entityType: ModerationCascadeManifestEntityTypeSchema,
-  entityId: z.string(),
-  parentEntityId: z.string().min(1).optional(),
-  targetKey: z.string().min(1),
-  decision: ModerationDecisionNumberSchema,
-  actorUid: z.string(),
-  reason: z.string(),
-  createdAt: z.number(),
-  completedAt: z.number().optional(),
-  status: ModerationCascadeStatusSchema,
-  attemptCount: z.number().int().nonnegative().optional(),
-  nextAttemptAt: z.number().optional(),
-  lastError: z.string().optional(),
-}).superRefine((manifest, ctx) => {
-  // The key and the id are derived fields: a manifest whose stored key or id disagrees with its
-  // target and decision would sit outside the target's decision sequence.
-  let targetKey: string;
-  try {
-    targetKey = moderationTargetKey(manifest);
-  } catch (error) {
-    ctx.addIssue({ code: 'custom', path: ['parentEntityId'], message: (error as Error).message });
-    return;
-  }
-  if (manifest.targetKey !== targetKey) {
-    ctx.addIssue({ code: 'custom', path: ['targetKey'], message: 'targetKey must be moderationTargetKey of the target.' });
-  }
-  if (manifest.cascadeId !== moderationCascadeManifestId(targetKey, manifest.decision)) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['cascadeId'],
-      message: 'cascadeId must be moderationCascadeManifestId of the target key and decision.',
-    });
-  }
-});
+export const ModerationCascadeManifestSchema = z
+  .object({
+    cascadeId: z.string(),
+    action: ModerationCascadeActionSchema,
+    entityType: ModerationCascadeManifestEntityTypeSchema,
+    entityId: z.string(),
+    parentEntityId: z.string().min(1).optional(),
+    targetKey: z.string().min(1),
+    decision: ModerationDecisionNumberSchema,
+    actorUid: z.string(),
+    reason: z.string(),
+    createdAt: z.number(),
+    completedAt: z.number().optional(),
+    status: ModerationCascadeStatusSchema,
+    attemptCount: z.number().int().nonnegative().optional(),
+    nextAttemptAt: z.number().optional(),
+    lastError: z.string().optional(),
+  })
+  .superRefine((manifest, ctx) => {
+    // The key and the id are derived fields: a manifest whose stored key or id disagrees with its
+    // target and decision would sit outside the target's decision sequence.
+    let targetKey: string;
+    try {
+      targetKey = moderationTargetKey(manifest);
+    } catch (error) {
+      ctx.addIssue({ code: 'custom', path: ['parentEntityId'], message: (error as Error).message });
+      return;
+    }
+    if (manifest.targetKey !== targetKey) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['targetKey'],
+        message: 'targetKey must be moderationTargetKey of the target.',
+      });
+    }
+    if (manifest.cascadeId !== moderationCascadeManifestId(targetKey, manifest.decision)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['cascadeId'],
+        message: 'cascadeId must be moderationCascadeManifestId of the target key and decision.',
+      });
+    }
+  });
 export type ModerationCascadeManifest = z.infer<typeof ModerationCascadeManifestSchema>;
 
 export const ModerationCascadeChangedDocSchema = z.object({

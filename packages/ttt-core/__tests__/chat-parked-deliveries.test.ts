@@ -1,11 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { ChatParkedDeliveryReportSchema, type ChatParkedDeliveryReport } from '@ttt-productions/chat-schemas';
+import {
+  ChatParkedDeliveryReportSchema,
+  type ChatParkedDeliveryReport,
+} from '@ttt-productions/chat-schemas';
 import { ChatParkedDeliverySchema } from '../src/doc-schemas/chat-sync.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import { ERASURE_FATES_BY_COLLECTION_PATH } from '../src/doc-schemas/erasure-fates.js';
 import { COLLECTIONS } from '../src/paths/collections.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
-import { AdminReplayDeadLetterInputSchema, DeadLetterCollectionSchema, FlatDeadLetterCollectionSchema } from '../src/schemas/admin.js';
+import {
+  AdminReplayDeadLetterInputSchema,
+  DeadLetterCollectionSchema,
+  FlatDeadLetterCollectionSchema,
+} from '../src/schemas/admin.js';
 import { DEAD_LETTER_COLLECTION_LABELS } from '../src/constants/admin-labels.js';
 
 const report: ChatParkedDeliveryReport = {
@@ -39,7 +46,9 @@ describe('a room parked delivery is recorded where Ops Repairs looks', () => {
   });
 
   it('a report the chat contract refuses cannot be stored either', () => {
-    expect(ChatParkedDeliverySchema.safeParse({ ...reported, roomKind: 'worker' }).success).toBe(false);
+    expect(ChatParkedDeliverySchema.safeParse({ ...reported, roomKind: 'worker' }).success).toBe(
+      false,
+    );
     expect(ChatParkedDeliverySchema.safeParse({ ...reported, eventId: '' }).success).toBe(false);
   });
 
@@ -60,12 +69,19 @@ describe('a room parked delivery is recorded where Ops Repairs looks', () => {
     expect(FlatDeadLetterCollectionSchema.options).toContain('chatParkedDeliveries');
     expect(DEAD_LETTER_COLLECTION_LABELS.chatParkedDeliveries.length).toBeGreaterThan(0);
     expect(
-      AdminReplayDeadLetterInputSchema.safeParse({ collection: 'chatParkedDeliveries', docId: 'abc', reason: 'room fixed' }).success,
+      AdminReplayDeadLetterInputSchema.safeParse({
+        collection: 'chatParkedDeliveries',
+        docId: 'abc',
+        reason: 'room fixed',
+      }).success,
     ).toBe(true);
   });
 
   it('lives in its own registered collection with a declared erasure fate', () => {
-    expect(PATH_BUILDERS.chatParkedDelivery('d1')).toEqual([COLLECTIONS.CHAT_PARKED_DELIVERIES, 'd1']);
+    expect(PATH_BUILDERS.chatParkedDelivery('d1')).toEqual([
+      COLLECTIONS.CHAT_PARKED_DELIVERIES,
+      'd1',
+    ]);
     expect(COLLECTION_SCHEMAS['chatParkedDeliveries/{deliveryId}']).toBe(ChatParkedDeliverySchema);
     expect(ERASURE_FATES_BY_COLLECTION_PATH['chatParkedDeliveries/{deliveryId}']).toBeDefined();
   });

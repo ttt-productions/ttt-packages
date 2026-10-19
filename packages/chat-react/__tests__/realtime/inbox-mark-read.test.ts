@@ -24,7 +24,8 @@ async function openInbox() {
     hasUnread: true,
   });
   const requestIdOf = (channelRef: string) =>
-    sock.sent.find((f) => f.type === 'mark-read' && f.payload.channelRef === channelRef)?.payload.requestId as string;
+    sock.sent.find((f) => f.type === 'mark-read' && f.payload.channelRef === channelRef)?.payload
+      .requestId as string;
   return { client, sock, requestIdOf };
 }
 
@@ -54,7 +55,11 @@ describe('a mark-read settles on its own correlated result', () => {
   it('reports the runtime refusal as a failure with its reason', async () => {
     const { client, sock, requestIdOf } = await openInbox();
     const pending = client.markRead('c1');
-    sock.serverFrame('mark-read-result', { requestId: requestIdOf('c1'), ok: false, code: 'mark-read-failed' });
+    sock.serverFrame('mark-read-result', {
+      requestId: requestIdOf('c1'),
+      ok: false,
+      code: 'mark-read-failed',
+    });
     await expect(pending).resolves.toEqual({ ok: false, code: 'mark-read-failed' });
   });
 
@@ -63,7 +68,11 @@ describe('a mark-read settles on its own correlated result', () => {
     const first = client.markRead('c1');
     const second = client.markRead('c2');
     expect(requestIdOf('c1')).not.toBe(requestIdOf('c2'));
-    sock.serverFrame('mark-read-result', { requestId: requestIdOf('c2'), ok: false, code: 'bad-mark-read' });
+    sock.serverFrame('mark-read-result', {
+      requestId: requestIdOf('c2'),
+      ok: false,
+      code: 'bad-mark-read',
+    });
     sock.serverFrame('mark-read-result', { requestId: requestIdOf('c1'), ok: true });
     await expect(first).resolves.toEqual({ ok: true });
     await expect(second).resolves.toEqual({ ok: false, code: 'bad-mark-read' });

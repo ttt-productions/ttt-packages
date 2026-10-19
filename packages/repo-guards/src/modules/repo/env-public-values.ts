@@ -30,7 +30,12 @@ export const CREDENTIAL_SHAPES: readonly RegExp[] = Object.freeze([
 const ASSIGNMENT = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/;
 
 /** Each offending line of one env file, named by file, line, and key — never by its value. */
-export function envOffenders(file: string, text: string, publicKeys: ReadonlySet<string>, seen?: Set<string>): Finding[] {
+export function envOffenders(
+  file: string,
+  text: string,
+  publicKeys: ReadonlySet<string>,
+  seen?: Set<string>,
+): Finding[] {
   const findings: Finding[] = [];
   text.split(/\r?\n/).forEach((raw, index) => {
     const line = raw.trim();
@@ -42,8 +47,14 @@ export function envOffenders(file: string, text: string, publicKeys: ReadonlySet
     }
     const [, key, value] = assignment;
     seen?.add(key);
-    if (!publicKeys.has(key)) findings.push({ file, line: index + 1, detail: `${key} is not a declared public key` });
-    if (CREDENTIAL_SHAPES.some((shape) => shape.test(value))) findings.push({ file, line: index + 1, detail: `${key} holds a value shaped like a credential` });
+    if (!publicKeys.has(key))
+      findings.push({ file, line: index + 1, detail: `${key} is not a declared public key` });
+    if (CREDENTIAL_SHAPES.some((shape) => shape.test(value)))
+      findings.push({
+        file,
+        line: index + 1,
+        detail: `${key} holds a value shaped like a credential`,
+      });
   });
   return findings;
 }
@@ -69,9 +80,14 @@ export const envPublicValuesGuard: GenericGuardDefinition<EnvPublicValuesFacts> 
           const publicKeys = new Set(facts.publicKeys.map((p) => p.key));
           const seen = new Set<string>();
           const findings: Finding[] = [];
-          for (const file of facts.files) findings.push(...envOffenders(file, context.file(file).text, publicKeys, seen));
+          for (const file of facts.files)
+            findings.push(...envOffenders(file, context.file(file).text, publicKeys, seen));
           for (const { key } of facts.publicKeys) {
-            if (!seen.has(key)) findings.push({ file: '(publicKeys)', detail: `stale public key: no env file holds ${key}` });
+            if (!seen.has(key))
+              findings.push({
+                file: '(publicKeys)',
+                detail: `stale public key: no env file holds ${key}`,
+              });
           }
           return findings;
         },

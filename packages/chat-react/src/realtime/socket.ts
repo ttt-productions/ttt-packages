@@ -10,7 +10,6 @@ import { CHAT_SUBPROTOCOL } from '@ttt-productions/chat-schemas';
 // worker validates cookie + grant + Origin BEFORE accept and echoes back only
 // CHAT_SUBPROTOCOL.
 
-
 /** Lifecycle events a socket surfaces to its owning client. */
 export interface SocketHandlers {
   onOpen: () => void;
@@ -62,10 +61,12 @@ const WS_OPEN = 1;
  */
 export const browserSocketFactory: SocketFactory = ({ url, grantToken, handlers }) => {
   const Ctor = (globalThis as { WebSocket?: WebSocketCtor }).WebSocket;
-  if (!Ctor) throw new Error('[chat-realtime] no global WebSocket available; inject a SocketFactory');
+  if (!Ctor)
+    throw new Error('[chat-realtime] no global WebSocket available; inject a SocketFactory');
   const ws = new Ctor(url, [CHAT_SUBPROTOCOL, grantToken]);
   ws.onopen = () => handlers.onOpen();
-  ws.onmessage = (ev) => handlers.onMessage(typeof ev.data === 'string' ? ev.data : String(ev.data));
+  ws.onmessage = (ev) =>
+    handlers.onMessage(typeof ev.data === 'string' ? ev.data : String(ev.data));
   ws.onclose = (ev) => handlers.onClose(ev.code, ev.reason);
   ws.onerror = () => handlers.onError();
   return {

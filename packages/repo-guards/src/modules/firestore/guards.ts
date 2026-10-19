@@ -2,7 +2,12 @@
 // app supplies each one's facts under its id.
 
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
-import { firestoreRuntimeInUiGuard, liveSubscriptionGuard, type FirestoreRuntimeInUiFacts, type LiveSubscriptionFacts } from './client-guards.js';
+import {
+  firestoreRuntimeInUiGuard,
+  liveSubscriptionGuard,
+  type FirestoreRuntimeInUiFacts,
+  type LiveSubscriptionFacts,
+} from './client-guards.js';
 import { testPathGuard, writeGuard, type TestPathFacts, type WriteGuardFacts } from './guard.js';
 import { collectionGroupIndexGuard, type CollectionGroupIndexFacts } from './index-guard.js';
 import {
@@ -14,7 +19,13 @@ import {
 } from './path-guards.js';
 import { rulesClaimGuard, type RulesClaimFacts } from './rules-claim-guard.js';
 import { rulesMirrorGuard, type RulesMirrorFacts } from './rules-mirror-guard.js';
-import { counterDecrementGuard, randomUuidGuard, timestampNowGuard, transactionReadGuard, type RandomUuidFacts } from './server-guards.js';
+import {
+  counterDecrementGuard,
+  randomUuidGuard,
+  timestampNowGuard,
+  transactionReadGuard,
+  type RandomUuidFacts,
+} from './server-guards.js';
 import {
   storageObjectMetadataGuard,
   storageUploadOriginGuard,
@@ -22,7 +33,6 @@ import {
   type StorageUploadOriginFacts,
 } from './storage-guards.js';
 import type { NoFacts } from './support.js';
-
 
 /** The facts each guard in this area needs, by its id. */
 export interface FirestoreGuardFacts {

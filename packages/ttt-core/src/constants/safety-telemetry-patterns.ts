@@ -35,11 +35,7 @@ export const TTT_FORBIDDEN_TELEMETRY_PATTERNS: (RegExp | string)[] = [
   // --- Evidence-bucket URL prefixes (dev + prod), any evidence/authority-proof key. ---
   // A fully-qualified evidence object URL: <host>/<...>/nciiEvidence/... etc.
   ...EVIDENCE_BUCKET_HOSTS.map(
-    (host) =>
-      new RegExp(
-        `https?://[^\\s"']*${host.replace(/\./g, '\\.')}[^\\s"']*`,
-        'gi',
-      ),
+    (host) => new RegExp(`https?://[^\\s"']*${host.replace(/\./g, '\\.')}[^\\s"']*`, 'gi'),
   ),
   // The raw GCS object host, regardless of bucket (catches storage.googleapis.com URLs).
   /https?:\/\/(?:storage\.googleapis\.com|firebasestorage\.googleapis\.com)\/[^\s"']*/gi,

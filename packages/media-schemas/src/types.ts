@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { z } from 'zod';
 import {
   FileCategorySchema,
   MediaAcceptSchema,
@@ -26,7 +26,7 @@ import {
   ImageVariantSpecSchema,
   MediaThreadRefSchema,
   ClientContextSchema,
-} from "./schemas.js";
+} from './schemas.js';
 
 // ---- basic enums / scalars ----
 

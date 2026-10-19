@@ -3,7 +3,10 @@
 // ./basketball-scoring.ts.
 
 import { SPORT_LINE_SCHEMAS } from '../doc-schemas/aggregate-stats.js';
-import type { BasketballPlayerTotals, BasketballTeamSeasonStats } from '../doc-schemas/aggregate-stats.js';
+import type {
+  BasketballPlayerTotals,
+  BasketballTeamSeasonStats,
+} from '../doc-schemas/aggregate-stats.js';
 import type { BasketballPlayerStats } from '../doc-schemas/game-stats.js';
 import {
   BASKETBALL_PLAYER_STAT_KEYS,
@@ -23,19 +26,39 @@ import {
 } from './basketball-scoring.js';
 import type { ColumnSort, StatColumn } from './column-catalog.js';
 import { lifetimeSummaryFromColumns } from './lifetime-summary.js';
-import { GAMES_PLAYED_COLUMN, TEAM_SEASON_BASE_COLUMN, TEAM_SEASON_BASE_COLUMNS } from './shared-columns.js';
+import {
+  GAMES_PLAYED_COLUMN,
+  TEAM_SEASON_BASE_COLUMN,
+  TEAM_SEASON_BASE_COLUMNS,
+} from './shared-columns.js';
 import type { SportAdapter } from './sport-adapter.js';
 
 // Each figure's copy, declared once and shared by the player and team columns that show it.
 const POINTS = { id: 'points', label: 'Points', shortLabel: 'PTS' } as const;
-const POINTS_PER_GAME = { id: 'pointsPerGame', label: 'Points per game', shortLabel: 'PPG' } as const;
+const POINTS_PER_GAME = {
+  id: 'pointsPerGame',
+  label: 'Points per game',
+  shortLabel: 'PPG',
+} as const;
 const REBOUNDS = { id: 'rebounds', label: 'Rebounds', shortLabel: 'REB' } as const;
-const REBOUNDS_PER_GAME = { id: 'reboundsPerGame', label: 'Rebounds per game', shortLabel: 'RPG' } as const;
+const REBOUNDS_PER_GAME = {
+  id: 'reboundsPerGame',
+  label: 'Rebounds per game',
+  shortLabel: 'RPG',
+} as const;
 const ASSISTS = { id: 'assists', label: 'Assists', shortLabel: 'AST' } as const;
-const ASSISTS_PER_GAME = { id: 'assistsPerGame', label: 'Assists per game', shortLabel: 'APG' } as const;
+const ASSISTS_PER_GAME = {
+  id: 'assistsPerGame',
+  label: 'Assists per game',
+  shortLabel: 'APG',
+} as const;
 // FP is stored on every player line, never computed for display (`deriveLine` writes it).
 const FANTASY_POINTS = { id: 'fantasyPoints', label: 'Fantasy points', shortLabel: 'FP' } as const;
-const FANTASY_POINTS_PER_GAME = { id: 'fantasyPointsPerGame', label: 'Fantasy points per game', shortLabel: 'FP/G' } as const;
+const FANTASY_POINTS_PER_GAME = {
+  id: 'fantasyPointsPerGame',
+  label: 'Fantasy points per game',
+  shortLabel: 'FP/G',
+} as const;
 
 const BY_POINTS: readonly ColumnSort[] = [{ columnId: POINTS.id, direction: 'desc' }];
 
@@ -44,7 +67,12 @@ const playerTotalsColumns: readonly StatColumn<BasketballPlayerTotals>[] = [
   { ...POINTS, value: (line) => line.points, perGame: POINTS_PER_GAME, sort: 'desc' },
   { ...REBOUNDS, value: (line) => line.rebounds, perGame: REBOUNDS_PER_GAME, sort: 'desc' },
   { ...ASSISTS, value: (line) => line.assists, perGame: ASSISTS_PER_GAME, sort: 'desc' },
-  { ...FANTASY_POINTS, value: (line) => line.fantasyPoints, perGame: FANTASY_POINTS_PER_GAME, sort: 'desc' },
+  {
+    ...FANTASY_POINTS,
+    value: (line) => line.fantasyPoints,
+    perGame: FANTASY_POINTS_PER_GAME,
+    sort: 'desc',
+  },
 ];
 
 const gamePlayerColumns: readonly StatColumn<BasketballPlayerStats>[] = [
@@ -88,7 +116,13 @@ export const BASKETBALL_ADAPTER: SportAdapter<'Basketball'> = {
         {
           id: 'totals',
           label: 'Totals',
-          columnIds: [GAMES_PLAYED_COLUMN.id, POINTS.id, REBOUNDS.id, ASSISTS.id, FANTASY_POINTS.id],
+          columnIds: [
+            GAMES_PLAYED_COLUMN.id,
+            POINTS.id,
+            REBOUNDS.id,
+            ASSISTS.id,
+            FANTASY_POINTS.id,
+          ],
         },
         {
           id: 'perGame',
@@ -127,7 +161,9 @@ export const BASKETBALL_ADAPTER: SportAdapter<'Basketball'> = {
     },
   },
   emptyStats: (game) => ({
-    teamStats: Object.fromEntries(game.teamIds.map((teamId) => [teamId, emptyBasketballTeamLine()])),
+    teamStats: Object.fromEntries(
+      game.teamIds.map((teamId) => [teamId, emptyBasketballTeamLine()]),
+    ),
     playerStats: {},
   }),
   bulkEntry: BASKETBALL_BULK_ENTRY,

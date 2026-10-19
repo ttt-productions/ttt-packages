@@ -1,10 +1,14 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo, useRef } from "react";
-import { useMutation, type UseMutationOptions, type UseMutationResult } from "@tanstack/react-query";
-import { callCallable, type FunctionsProvider } from "../client/call-callable.js";
-import { isRecoveredFallbackReport } from "../client/recovered-fallback.js";
-import type { ExpectedCallableAnswerCode } from "../utils/expected-callable-answers.js";
+import { useCallback, useMemo, useRef } from 'react';
+import {
+  useMutation,
+  type UseMutationOptions,
+  type UseMutationResult,
+} from '@tanstack/react-query';
+import { callCallable, type FunctionsProvider } from '../client/call-callable.js';
+import { isRecoveredFallbackReport } from '../client/recovered-fallback.js';
+import type { ExpectedCallableAnswerCode } from '../utils/expected-callable-answers.js';
 
 /**
  * What a call site says about how its failure surfaces. The policy's `onActionError` receives it,
@@ -87,9 +91,12 @@ interface CallableTransportOptions extends Partial<CallableErrorRouting> {
  */
 export type CallableMutationOptions<TInput, TResult, TOnMutateResult = unknown> = Omit<
   UseMutationOptions<TResult, Error, TInput, TOnMutateResult>,
-  "mutationFn" | "retry"
+  'mutationFn' | 'retry'
 > &
-  Pick<CallableTransportOptions, "showErrorToast" | "answeredRefusals" | "isAnswerSurfacedByCaller" | "captureFaults">;
+  Pick<
+    CallableTransportOptions,
+    'showErrorToast' | 'answeredRefusals' | 'isAnswerSurfacedByCaller' | 'captureFaults'
+  >;
 
 /**
  * The most calls a resumable callable makes for one request. A request this long has been
@@ -160,7 +167,9 @@ export function createCallables(policy: CallablePolicy): Callables {
     // stable across renders.
     const optionsRef = useRef(options);
     optionsRef.current = options;
-    const limitedUseAppCheck = policy.resolveLimitedUseAppCheck(declaration.limitedUseAppCheck === true);
+    const limitedUseAppCheck = policy.resolveLimitedUseAppCheck(
+      declaration.limitedUseAppCheck === true,
+    );
 
     return useCallback(
       <TInput, TResult>(input: TInput) =>
@@ -171,11 +180,20 @@ export function createCallables(policy: CallablePolicy): Callables {
           {
             captureException: (error, context) => {
               if (optionsRef.current.captureFaults !== false) policy.captureFault(error, context);
-              else if (isRecoveredFallbackReport(context)) policy.captureRecoveredFallback(error, context);
+              else if (isRecoveredFallbackReport(context))
+                policy.captureRecoveredFallback(error, context);
             },
             onError: (error) => {
-              const { showErrorToast = true, answeredRefusals = [], isAnswerSurfacedByCaller } = optionsRef.current;
-              policy.onActionError(error, { showErrorToast, answeredRefusals, isAnswerSurfacedByCaller });
+              const {
+                showErrorToast = true,
+                answeredRefusals = [],
+                isAnswerSurfacedByCaller,
+              } = optionsRef.current;
+              policy.onActionError(error, {
+                showErrorToast,
+                answeredRefusals,
+                isAnswerSurfacedByCaller,
+              });
             },
           },
           { timeoutMs: policy.timeoutMs, limitedUseAppCheck },
@@ -185,12 +203,20 @@ export function createCallables(policy: CallablePolicy): Callables {
   }
 
   return {
-    createCallableHook<TInput, TResult>(functionName: string, declaration: CallableDeclaration = {}) {
+    createCallableHook<TInput, TResult>(
+      functionName: string,
+      declaration: CallableDeclaration = {},
+    ) {
       return function useNamedCallable<TOnMutateResult = unknown>(
         options: CallableMutationOptions<TInput, TResult, TOnMutateResult> = {},
       ): UseMutationResult<TResult, Error, TInput, TOnMutateResult> {
-        const { showErrorToast, answeredRefusals, isAnswerSurfacedByCaller, captureFaults, ...mutationOptions } =
-          options;
+        const {
+          showErrorToast,
+          answeredRefusals,
+          isAnswerSurfacedByCaller,
+          captureFaults,
+          ...mutationOptions
+        } = options;
         const call = useCallableTransport(functionName, declaration, {
           showErrorToast,
           answeredRefusals,
@@ -217,8 +243,13 @@ export function createCallables(policy: CallablePolicy): Callables {
       return function useNamedResumableCallable<TOnMutateResult = unknown>(
         options: CallableMutationOptions<TInput, ResumableOutcome<TResult>, TOnMutateResult> = {},
       ): UseMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult> {
-        const { showErrorToast, answeredRefusals, isAnswerSurfacedByCaller, captureFaults, ...mutationOptions } =
-          options;
+        const {
+          showErrorToast,
+          answeredRefusals,
+          isAnswerSurfacedByCaller,
+          captureFaults,
+          ...mutationOptions
+        } = options;
         const call = useCallableTransport(functionName, declaration, {
           showErrorToast,
           answeredRefusals,
@@ -254,14 +285,23 @@ export function createCallables(policy: CallablePolicy): Callables {
       };
     },
 
-    createCallableReader<TInput, TResult>(functionName: string, declaration: CallableDeclaration = {}) {
+    createCallableReader<TInput, TResult>(
+      functionName: string,
+      declaration: CallableDeclaration = {},
+    ) {
       return function useNamedCallableReader(): (input: TInput) => Promise<TResult> {
-        const call = useCallableTransport(functionName, declaration, { showErrorToast: false, captureFaults: false });
+        const call = useCallableTransport(functionName, declaration, {
+          showErrorToast: false,
+          captureFaults: false,
+        });
         return useMemo(() => (input: TInput) => call<TInput, TResult>(input), [call]);
       };
     },
 
-    createCallableInvoker<TInput, TResult>(functionName: string, declaration: CallableDeclaration = {}) {
+    createCallableInvoker<TInput, TResult>(
+      functionName: string,
+      declaration: CallableDeclaration = {},
+    ) {
       return function useNamedCallableInvoker(): (input: TInput) => Promise<TResult> {
         const call = useCallableTransport(functionName, declaration, {});
         return useMemo(() => (input: TInput) => call<TInput, TResult>(input), [call]);

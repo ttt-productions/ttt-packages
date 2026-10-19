@@ -15,7 +15,10 @@
 //
 // Timers are injected (setTimeout/clearTimeout/now) so tests run deterministically.
 
-import { createReconnectController, type ReconnectController } from '@ttt-productions/realtime-core';
+import {
+  createReconnectController,
+  type ReconnectController,
+} from '@ttt-productions/realtime-core';
 import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import {
   CLIENT_KINDS,
@@ -173,7 +176,12 @@ export interface ChannelClientConfig {
   socketFactory: SocketFactory;
   timers?: TransportTimers;
   /** Reconnect backoff tuning (forwarded to realtime-core). */
-  reconnect?: { baseDelayMs?: number; maxDelayMs?: number; maxAttempts?: number | null; random?: () => number };
+  reconnect?: {
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+    maxAttempts?: number | null;
+    random?: () => number;
+  };
   /**
    * OPT-IN structured client diagnostics (default OFF — absent/`false` changes
    * nothing and costs one nullish check per decision point). `true` emits one
@@ -317,7 +325,8 @@ export class ChannelClient {
   /** Monotonic socket-open attempt counter (diagnostics correlation only). */
   private connectAttempt = 0;
   /** Why the CURRENT connect attempt is happening (diagnostics only). */
-  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
+  private reconnectCause:
+    'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
   /** The last close code observed, carried into the next attempt's cause line. */
   private lastCloseCode: number | null = null;
 
@@ -671,7 +680,10 @@ export class ChannelClient {
       if (typeof rawId === 'string' && rawId.length > 0 && rawId.length <= 200) {
         const orphaned = this.pendingSends.get(rawId);
         if (orphaned && !orphaned.failed) {
-          this.diag?.(DIAG.SEND_REJECTED, { clientMessageId: rawId, outcome: 'unparseable-fail-closed' });
+          this.diag?.(DIAG.SEND_REJECTED, {
+            clientMessageId: rawId,
+            outcome: 'unparseable-fail-closed',
+          });
           this.failPendingSend(rawId);
           return;
         }
@@ -684,14 +696,24 @@ export class ChannelClient {
     // No matching pending send — already acked/reconciled, or never ours. A late
     // ack/echo (which may have already landed) always wins; nothing to correlate.
     if (!pending || pending.failed) {
-      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable, outcome: 'no-pending-send' });
+      this.diag?.(DIAG.SEND_REJECTED, {
+        clientMessageId,
+        code,
+        retryable,
+        outcome: 'no-pending-send',
+      });
       return;
     }
 
     if (!retryable) {
       // Terminal: an unchanged resend cannot succeed (blocked-word / archived /
       // deleted). Fail ONLY this bubble, recording the reason + terminal class.
-      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable: false, outcome: 'terminal' });
+      this.diag?.(DIAG.SEND_REJECTED, {
+        clientMessageId,
+        code,
+        retryable: false,
+        outcome: 'terminal',
+      });
       this.failPendingSend(clientMessageId, code, false);
       return;
     }
@@ -704,12 +726,23 @@ export class ChannelClient {
     // If the budget already elapsed (a long stream of retryable rejections), fail
     // now rather than scheduling yet another doomed resend.
     if (this.timers.now() - pending.sentAt >= SERVER_RETRYABLE_MAX_AGE_MS) {
-      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable: true, outcome: 'budget-exhausted' });
+      this.diag?.(DIAG.SEND_REJECTED, {
+        clientMessageId,
+        code,
+        retryable: true,
+        outcome: 'budget-exhausted',
+      });
       this.failPendingSend(clientMessageId, code, true);
       return;
     }
     const delayMs = this.clampRetryDelay(retryAfterMs);
-    this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable: true, outcome: 'retry-scheduled', delayMs });
+    this.diag?.(DIAG.SEND_REJECTED, {
+      clientMessageId,
+      code,
+      retryable: true,
+      outcome: 'retry-scheduled',
+      delayMs,
+    });
     this.scheduleSendRetry(clientMessageId, delayMs);
   }
 
@@ -752,7 +785,9 @@ export class ChannelClient {
       // stable socket — so arm a deadline check that fails the send at budget end.
       // This makes SERVER_RETRYABLE_MAX_AGE_MS a hard ceiling, not a best effort.
       const remainingMs =
-        SERVER_RETRYABLE_MAX_AGE_MS - (this.timers.now() - current.sentAt) + SEND_RETRY_MIN_DELAY_MS;
+        SERVER_RETRYABLE_MAX_AGE_MS -
+        (this.timers.now() - current.sentAt) +
+        SEND_RETRY_MIN_DELAY_MS;
       current.retryTimer = this.timers.setTimeout(() => {
         current.retryTimer = null;
         if (this.closedByUs) return;
@@ -818,7 +853,11 @@ export class ChannelClient {
       sent,
     });
     const next = this.state.messages.map((m) => {
-      if (!(m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId && m.meta?.sendFailed)) {
+      if (!(
+        m.meta?.optimistic &&
+        m.meta?.clientMessageId === clientMessageId &&
+        m.meta?.sendFailed
+      )) {
         return m;
       }
       // Back to the normal pending look — drop every failure marker.
@@ -846,7 +885,12 @@ export class ChannelClient {
     // An older-history request in flight died with the socket; nothing will answer it.
     if (this.state.isFetchingOlder) this.setState({ isFetchingOlder: false });
     if (this.closedByUs) {
-      this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed', resumeSeq: this.resumeSeq });
+      this.diag?.(DIAG.SOCKET_CLOSE, {
+        code,
+        closedByUs: true,
+        outcome: 'closed',
+        resumeSeq: this.resumeSeq,
+      });
       this.setState({ status: 'closed' });
       return;
     }
@@ -854,7 +898,12 @@ export class ChannelClient {
     if (code === CHAT_CLOSE_CODES.AUTH_EXPIRED && !this.reauthAttempted) {
       this.reauthAttempted = true;
       this.reconnectCause = 'auth-expired';
-      this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 're-grant', resumeSeq: this.resumeSeq });
+      this.diag?.(DIAG.SOCKET_CLOSE, {
+        code,
+        closedByUs: false,
+        outcome: 're-grant',
+        resumeSeq: this.resumeSeq,
+      });
       this.setState({ status: 'reconnecting' });
       void this.openSocket();
       return;
@@ -866,7 +915,12 @@ export class ChannelClient {
     if (code === CHAT_CLOSE_CODES.REVOKED) {
       this.closedByUs = true;
       this.controller.close();
-      this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked', resumeSeq: this.resumeSeq });
+      this.diag?.(DIAG.SOCKET_CLOSE, {
+        code,
+        closedByUs: false,
+        outcome: 'revoked',
+        resumeSeq: this.resumeSeq,
+      });
       this.failAllPendingSends();
       this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.REVOKED });
       // Revoked before anything loaded: the first open has failed, and nothing retries it.
@@ -875,7 +929,12 @@ export class ChannelClient {
     }
     this.reconnectCause = 'transient-close';
     if (!this.state.hasLoadedInitialData) this.initialLoad.noteFailedAttempt();
-    this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'reconnect', resumeSeq: this.resumeSeq });
+    this.diag?.(DIAG.SOCKET_CLOSE, {
+      code,
+      closedByUs: false,
+      outcome: 'reconnect',
+      resumeSeq: this.resumeSeq,
+    });
     this.scheduleReconnect();
   }
 
@@ -941,7 +1000,9 @@ export class ChannelClient {
       case 'message':
         return this.applyMessage((payload as { message: WireMessageRow }).message, 'live');
       case 'ack':
-        return this.applyAck(payload as { clientMessageId?: string; seq?: number; readSeq?: number });
+        return this.applyAck(
+          payload as { clientMessageId?: string; seq?: number; readSeq?: number },
+        );
       case 'history-page':
         return this.applyHistoryPage((payload as { messages: WireMessageRow[] }).messages ?? []);
       case 'presence':
@@ -982,7 +1043,9 @@ export class ChannelClient {
         return this.setState({ lastErrorCode: code });
       }
       case 'revision':
-        return this.applyRevisionFrame(payload as { messageSeq?: number; kind?: RevisionKind; messageRevision?: number });
+        return this.applyRevisionFrame(
+          payload as { messageSeq?: number; kind?: RevisionKind; messageRevision?: number },
+        );
       case 'heartbeat-ack':
         // The DO runtime's hibernation AUTO-RESPONSE to our 20s `heartbeat`. Per
         // Contract C liveness is tracked SERVER-side (the auto-response timestamp
@@ -995,7 +1058,10 @@ export class ChannelClient {
         return;
       default:
         // unknown/optional types tolerated (forward compat)
-        this.diag?.(DIAG.FRAME_DROPPED, { kind: safeDiagnosticLabel(frame.type), reason: 'unknown-type' });
+        this.diag?.(DIAG.FRAME_DROPPED, {
+          kind: safeDiagnosticLabel(frame.type),
+          reason: 'unknown-type',
+        });
         return;
     }
   }
@@ -1007,7 +1073,11 @@ export class ChannelClient {
    * arrived yet the overlay is retained and re-applied when the row renders, so a
    * frame that races ahead of its message never lets the original content show.
    */
-  private applyRevisionFrame(payload: { messageSeq?: number; kind?: RevisionKind; messageRevision?: number }): void {
+  private applyRevisionFrame(payload: {
+    messageSeq?: number;
+    kind?: RevisionKind;
+    messageRevision?: number;
+  }): void {
     const seq = payload.messageSeq;
     const kind = payload.kind;
     const messageRevision = payload.messageRevision;
@@ -1032,7 +1102,8 @@ export class ChannelClient {
     // from the ORIGINAL row so a `restore` reverts a previously-blanked text.
     const messageId = seqToMessageId(seq);
     const original = this.originalRows.get(seq);
-    const rendered = Boolean(original) && this.state.messages.some((m) => m.messageId === messageId);
+    const rendered =
+      Boolean(original) && this.state.messages.some((m) => m.messageId === messageId);
     this.diag?.(DIAG.REVISION_APPLIED, {
       seq,
       kind,
@@ -1052,7 +1123,10 @@ export class ChannelClient {
    * own inline overlay (from the DO history/delta merge) and any received `revision`
    * frame stored in `this.overlays`. Either source may be ahead of the other.
    */
-  private effectiveOverlay(seq: number, rowOverlay: ModerationOverlay | null): ModerationOverlay | null {
+  private effectiveOverlay(
+    seq: number,
+    rowOverlay: ModerationOverlay | null,
+  ): ModerationOverlay | null {
     const fromFrame = this.overlays.get(seq) ?? null;
     if (!rowOverlay) return fromFrame;
     if (!fromFrame) return rowOverlay;
@@ -1119,7 +1193,10 @@ export class ChannelClient {
       // A non-resync snapshot IS the first authoritative data (even an empty delta =
       // caught up) — end initial loading. A resync snapshot instead defers to the
       // re-paged first history page below, so it must NOT end it here.
-      this.setState({ ...(this.state.hasLoadedInitialData ? {} : this.initialDataLoaded()), isSynced: true });
+      this.setState({
+        ...(this.state.hasLoadedInitialData ? {} : this.initialDataLoaded()),
+        isSynced: true,
+      });
       return;
     }
 
@@ -1181,7 +1258,11 @@ export class ChannelClient {
       seq: row.seq,
       hasClientMessageId: Boolean(row.clientMessageId),
       moderationKind: row.moderationKind ?? null,
-      op: prior.reconciledOptimistic ? 'optimistic-reconcile' : prior.hadRow ? 'replace-by-seq' : 'insert',
+      op: prior.reconciledOptimistic
+        ? 'optimistic-reconcile'
+        : prior.hadRow
+          ? 'replace-by-seq'
+          : 'insert',
       cursorBefore,
       cursorAfter: this.resumeSeq,
     });
@@ -1202,7 +1283,9 @@ export class ChannelClient {
       hadRow: existing != null,
       reconciledOptimistic: Boolean(
         row.clientMessageId &&
-          this.state.messages.some((m) => m.meta?.optimistic && m.meta?.clientMessageId === row.clientMessageId),
+        this.state.messages.some(
+          (m) => m.meta?.optimistic && m.meta?.clientMessageId === row.clientMessageId,
+        ),
       ),
     };
   }
@@ -1257,7 +1340,11 @@ export class ChannelClient {
         sendRetryable: _sendRetryable,
         ...restMeta
       } = m.meta;
-      return { ...m, messageId: seqToMessageId(seq), meta: { ...restMeta, optimistic: false, seq } };
+      return {
+        ...m,
+        messageId: seqToMessageId(seq),
+        meta: { ...restMeta, optimistic: false, seq },
+      };
     });
     next.sort(sortBySeq);
     if (seq > this.resumeSeq) this.resumeSeq = seq;
@@ -1284,7 +1371,11 @@ export class ChannelClient {
     }
     const bySeq = new Map<string, ChatMessageV1>();
     for (const m of this.state.messages) {
-      if (m.meta?.optimistic && typeof m.meta?.clientMessageId === 'string' && incomingCmids.has(m.meta.clientMessageId)) {
+      if (
+        m.meta?.optimistic &&
+        typeof m.meta?.clientMessageId === 'string' &&
+        incomingCmids.has(m.meta.clientMessageId)
+      ) {
         continue; // reconciled by the incoming server row
       }
       bySeq.set(m.messageId, m);
@@ -1424,7 +1515,8 @@ export class ChannelClient {
   fetchOlder(): void {
     if (this.state.isFetchingOlder || !this.state.hasOlder) return;
     const oldest = this.state.messages.find((m) => typeof m.meta?.seq === 'number');
-    const beforeSeq = oldest && typeof oldest.meta?.seq === 'number' ? (oldest.meta.seq as number) : null;
+    const beforeSeq =
+      oldest && typeof oldest.meta?.seq === 'number' ? (oldest.meta.seq as number) : null;
     this.setState({ isFetchingOlder: true });
     // Unsent (the socket is down): nothing will answer, so it is not in flight.
     if (!this.requestHistory(beforeSeq, 'older')) this.setState({ isFetchingOlder: false });

@@ -13,11 +13,17 @@ import {
   awardGroupGrantStatusSchema,
   awardGroupTypeSchema,
 } from '../doc-schemas/award-group-grant.js';
-import { countSchema, documentIdSegmentSchema, epochMsSchema, userIdSchema } from '../doc-schemas/atoms.js';
+import {
+  countSchema,
+  documentIdSegmentSchema,
+  epochMsSchema,
+  userIdSchema,
+} from '../doc-schemas/atoms.js';
 import { awardIdSchema } from '../doc-schemas/catalogs.js';
 import { AWARD_GRANT_SKIP_REASON_KEYS, FEATURED_AWARD_SLOT_KEYS } from '../types/unions.js';
 
-const targetList = <T extends z.ZodTypeAny>(atom: T) => z.array(atom).max(MAX_AWARD_GRANT_TARGETS).optional();
+const targetList = <T extends z.ZodTypeAny>(atom: T) =>
+  z.array(atom).max(MAX_AWARD_GRANT_TARGETS).optional();
 
 // An admin grants an award to named accounts and revokes it from named accounts, in one commit.
 // Recipients are deduplicated on the server; a ghost holds no account and is skipped.
@@ -29,12 +35,19 @@ export const AdminUpdateAwardGrantsInputSchema = z
   })
   .strict()
   .refine(
-    (input) => [input.grantUserIds, input.revokeUserIds].some((list) => list !== undefined && list.length > 0),
+    (input) =>
+      [input.grantUserIds, input.revokeUserIds].some(
+        (list) => list !== undefined && list.length > 0,
+      ),
     { message: 'Name someone to grant the award to or revoke it from.' },
   )
   .refine(
-    (input) => !(input.grantUserIds ?? []).some((userId) => (input.revokeUserIds ?? []).includes(userId)),
-    { message: 'An account cannot be granted and revoked the award in one change.', path: ['revokeUserIds'] },
+    (input) =>
+      !(input.grantUserIds ?? []).some((userId) => (input.revokeUserIds ?? []).includes(userId)),
+    {
+      message: 'An account cannot be granted and revoked the award in one change.',
+      path: ['revokeUserIds'],
+    },
   );
 export type AdminUpdateAwardGrantsInput = z.infer<typeof AdminUpdateAwardGrantsInputSchema>;
 
@@ -95,19 +108,29 @@ export type AwardGroupGrantProgress = z.infer<typeof AwardGroupGrantProgressSche
 // `opened` is false when the group's latest decision already settled the request; `grant` is then that
 // decision, or null when the group has none.
 export const AdminUpdateAwardGroupGrantResultSchema = z
-  .object({ awardId: awardIdSchema, opened: z.boolean(), grant: AwardGroupGrantProgressSchema.nullable() })
+  .object({
+    awardId: awardIdSchema,
+    opened: z.boolean(),
+    grant: AwardGroupGrantProgressSchema.nullable(),
+  })
   .strict();
-export type AdminUpdateAwardGroupGrantResult = z.infer<typeof AdminUpdateAwardGroupGrantResultSchema>;
+export type AdminUpdateAwardGroupGrantResult = z.infer<
+  typeof AdminUpdateAwardGroupGrantResultSchema
+>;
 
 // An admin reads the latest decision on an award for a group, so the progress survives a closed page.
 export const AdminGetAwardGroupGrantStatusInputSchema = z
   .object({ awardId: awardIdSchema, group: AwardGroupSchema })
   .strict();
-export type AdminGetAwardGroupGrantStatusInput = z.infer<typeof AdminGetAwardGroupGrantStatusInputSchema>;
+export type AdminGetAwardGroupGrantStatusInput = z.infer<
+  typeof AdminGetAwardGroupGrantStatusInputSchema
+>;
 export const AdminGetAwardGroupGrantStatusResultSchema = z
   .object({ grant: AwardGroupGrantProgressSchema.nullable() })
   .strict();
-export type AdminGetAwardGroupGrantStatusResult = z.infer<typeof AdminGetAwardGroupGrantStatusResultSchema>;
+export type AdminGetAwardGroupGrantStatusResult = z.infer<
+  typeof AdminGetAwardGroupGrantStatusResultSchema
+>;
 
 // An admin deletes an award nobody holds. Its badge's files are retired with it.
 export const AdminDeleteAwardDefinitionInputSchema = z.object({ awardId: awardIdSchema }).strict();
@@ -117,7 +140,9 @@ export type AdminDeleteAwardDefinitionInput = z.infer<typeof AdminDeleteAwardDef
 export const AdminDeleteAwardDefinitionResultSchema = z
   .object({ awardId: awardIdSchema, deleted: z.boolean() })
   .strict();
-export type AdminDeleteAwardDefinitionResult = z.infer<typeof AdminDeleteAwardDefinitionResultSchema>;
+export type AdminDeleteAwardDefinitionResult = z.infer<
+  typeof AdminDeleteAwardDefinitionResultSchema
+>;
 
 // The signed-in account chooses which of its own awards to show beside its name: a primary and a
 // secondary badge, each an award it holds, or none. The input is the one change the person made —
@@ -125,7 +150,9 @@ export type AdminDeleteAwardDefinitionResult = z.infer<typeof AdminDeleteAwardDe
 // change to one slot never writes back a stale value of the other. No user id is ever sent.
 const featuredAwardSlotSchema = z.enum(FEATURED_AWARD_SLOT_KEYS);
 export const UpdateFeaturedAwardsInputSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('set'), slot: featuredAwardSlotSchema, awardId: awardIdSchema }).strict(),
+  z
+    .object({ action: z.literal('set'), slot: featuredAwardSlotSchema, awardId: awardIdSchema })
+    .strict(),
   z.object({ action: z.literal('clear'), slot: featuredAwardSlotSchema }).strict(),
   z.object({ action: z.literal('swap') }).strict(),
 ]);

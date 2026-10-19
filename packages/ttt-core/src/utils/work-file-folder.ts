@@ -11,7 +11,11 @@ export const DEFAULT_WORK_FILE_FOLDER_NAME = 'All Guildmates';
  * guildmate (no trade-profession gating), delete and manage left to the file admins. The Work's
  * creator and the e2e seed both build it here, so a seeded Work holds the same folder a real one does.
  */
-export function buildDefaultWorkFileFolder(workProjectId: string, createdByUid: string, now: number): WorkFileFolder {
+export function buildDefaultWorkFileFolder(
+  workProjectId: string,
+  createdByUid: string,
+  now: number,
+): WorkFileFolder {
   return {
     workFileFolderId: DEFAULT_WORK_FILE_FOLDER_ID,
     workProjectId,

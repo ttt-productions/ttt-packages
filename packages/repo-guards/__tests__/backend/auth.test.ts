@@ -18,12 +18,19 @@ afterEach(() => repo?.remove());
 describe('the admin claim is read only by its resolver', () => {
   const facts: AdminClaimFacts = {
     claimKeys: ['isAdmin', 'isJrAdmin'],
-    readers: [{ path: 'functions/src/shared/admin-auth.ts', why: 'the resolver: its fast path reads the claim beside the roster read' }],
+    readers: [
+      {
+        path: 'functions/src/shared/admin-auth.ts',
+        why: 'the resolver: its fast path reads the claim beside the roster read',
+      },
+    ],
     appServerZone: { folders: ['src/app/api'], serverModules: ['firebase-admin'] },
   };
   const clean = {
-    'functions/src/shared/admin-auth.ts': 'export const fast = (ctx) => ctx.token.isAdmin === true;',
-    'functions/src/claims.ts': 'await auth.setCustomUserClaims(uid, { isAdmin: true });\nif (args.isAdmin) run();',
+    'functions/src/shared/admin-auth.ts':
+      'export const fast = (ctx) => ctx.token.isAdmin === true;',
+    'functions/src/claims.ts':
+      'await auth.setCustomUserClaims(uid, { isAdmin: true });\nif (args.isAdmin) run();',
     'functions/src/claims.test.ts': 'const a = request.auth.token.isAdmin;',
     'src/components/nav.tsx': 'if (claims?.isAdmin) show();',
     'src/app/api/ok/route.ts': 'export const ok = 1;',
@@ -49,18 +56,43 @@ describe('the admin claim is read only by its resolver', () => {
         '// request.auth.token.isAdmin in prose',
       ].join('\n'),
       'src/app/api/media/route.ts': 'const isAdmin = decoded.isAdmin === true;',
-      'src/lib/priv.ts': "import { getAuth } from 'firebase-admin/auth';\nreturn customClaims.isAdmin ? a : b;",
+      'src/lib/priv.ts':
+        "import { getAuth } from 'firebase-admin/auth';\nreturn customClaims.isAdmin ? a : b;",
     });
     const [guard] = adminClaimGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
       { file: 'functions/src/a.ts', line: 1, detail: 'not on the reviewed list: token.isAdmin' },
       { file: 'functions/src/a.ts', line: 2, detail: 'not on the reviewed list: claims?.isAdmin' },
-      { file: 'functions/src/a.ts', line: 3, detail: "not on the reviewed list: authToken?.['isAdmin']" },
-      { file: 'functions/src/a.ts', line: 4, detail: 'not on the reviewed list: { uid, isAdmin = false } = ctx.token' },
-      { file: 'functions/src/a.ts', line: 5, detail: 'not on the reviewed list: decodedToken.isJrAdmin' },
-      { file: 'src/app/api/media/route.ts', line: 1, detail: 'not on the reviewed list: decoded.isAdmin' },
-      { file: 'src/lib/priv.ts', line: 2, detail: 'not on the reviewed list: customClaims.isAdmin' },
-      { file: 'functions/src/shared/admin-auth.ts', detail: 'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)' },
+      {
+        file: 'functions/src/a.ts',
+        line: 3,
+        detail: "not on the reviewed list: authToken?.['isAdmin']",
+      },
+      {
+        file: 'functions/src/a.ts',
+        line: 4,
+        detail: 'not on the reviewed list: { uid, isAdmin = false } = ctx.token',
+      },
+      {
+        file: 'functions/src/a.ts',
+        line: 5,
+        detail: 'not on the reviewed list: decodedToken.isJrAdmin',
+      },
+      {
+        file: 'src/app/api/media/route.ts',
+        line: 1,
+        detail: 'not on the reviewed list: decoded.isAdmin',
+      },
+      {
+        file: 'src/lib/priv.ts',
+        line: 2,
+        detail: 'not on the reviewed list: customClaims.isAdmin',
+      },
+      {
+        file: 'functions/src/shared/admin-auth.ts',
+        detail:
+          'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)',
+      },
     ]);
   });
 
@@ -97,7 +129,10 @@ describe("a request's origin is read in one place", () => {
     repo = backendRepo({ 'functions/src/shared/request-origin.ts': 'export const none = 1;' });
     const [guard] = requestOriginGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/shared/request-origin.ts', detail: 'stale owner: the pattern no longer appears in it (or it is outside the scope)' },
+      {
+        file: 'functions/src/shared/request-origin.ts',
+        detail: 'stale owner: the pattern no longer appears in it (or it is outside the scope)',
+      },
     ]);
   });
 
@@ -114,7 +149,8 @@ describe('no sign-in waits on a blocking function', () => {
         'export const b = functions.auth.user().beforeSignIn((u) => u);',
         "const m = require('firebase-functions/identity');",
       ].join('\n'),
-      'functions/src/ok.ts': "import { onCall } from 'firebase-functions/v2/https';\n// beforeSignIn( is never registered",
+      'functions/src/ok.ts':
+        "import { onCall } from 'firebase-functions/v2/https';\n// beforeSignIn( is never registered",
     });
     const [guard] = noBlockingFunctionGuard.build({});
     expect(await repo.run(guard!)).toEqual([
@@ -125,14 +161,20 @@ describe('no sign-in waits on a blocking function', () => {
   });
 
   it('FLAGS the identity module loaded through import-equals', async () => {
-    repo = backendRepo({ 'functions/src/auth.ts': "import identity = require('firebase-functions/v2/identity');" });
+    repo = backendRepo({
+      'functions/src/auth.ts': "import identity = require('firebase-functions/v2/identity');",
+    });
     const [guard] = noBlockingFunctionGuard.build({});
-    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/auth.ts', line: 1, detail: 'imports firebase-functions/v2/identity' }]);
+    expect(await repo.run(guard!)).toEqual([
+      { file: 'functions/src/auth.ts', line: 1, detail: 'imports firebase-functions/v2/identity' },
+    ]);
   });
 
   it('takes no facts', () => {
     expect(noBlockingFunctionGuard.factProblems({})).toEqual([]);
-    expect(noBlockingFunctionGuard.factProblems({ extra: 1 } as never)).toEqual(['this guard takes no facts: declare it with {}']);
+    expect(noBlockingFunctionGuard.factProblems({ extra: 1 } as never)).toEqual([
+      'this guard takes no facts: declare it with {}',
+    ]);
   });
 });
 
@@ -140,15 +182,25 @@ describe('every callable declares its App Check posture', () => {
   const facts: AppCheckFacts = {
     consumingFolders: ['functions/src/payments'],
     adminAuth: { call: 'assertAuth', option: 'admin' },
-    consumptionExempt: [{ callable: 'adminLiveScore', why: 'live scoring is latency-sensitive and high-volume' }],
+    consumptionExempt: [
+      { callable: 'adminLiveScore', why: 'live scoring is latency-sensitive and high-volume' },
+    ],
     clientDeclarations: {
       modules: ['src/lib/remote.ts'],
-      factories: { action: 'defineAction', reader: 'defineReader', invoker: 'defineInvoker', resumable: 'defineResumable' },
+      factories: {
+        action: 'defineAction',
+        reader: 'defineReader',
+        invoker: 'defineInvoker',
+        resumable: 'defineResumable',
+      },
     },
-    noClientDeclaration: [{ callable: 'adminRetrySync', why: 'no screen calls the retry; an operator runs it by hand' }],
+    noClientDeclaration: [
+      { callable: 'adminRetrySync', why: 'no screen calls the retry; an operator runs it by hand' },
+    ],
   };
   const clean = {
-    'functions/src/payments/pay.ts': 'export const pay = onCall({ region: R, enforceAppCheck: true, consumeAppCheckToken: true }, handler);',
+    'functions/src/payments/pay.ts':
+      'export const pay = onCall({ region: R, enforceAppCheck: true, consumeAppCheckToken: true }, handler);',
     'functions/src/admin/tool.ts': [
       'export const adminTool = onCall<In, Out>({',
       '  enforceAppCheck: true,',
@@ -156,7 +208,8 @@ describe('every callable declares its App Check posture', () => {
       '}, async (request) => { await assertAuth(request, { admin: {} }); });',
       'export const adminLiveScore = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
     ].join('\n'),
-    'functions/src/member.ts': 'export const member = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request); });',
+    'functions/src/member.ts':
+      'export const member = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request); });',
     'functions/src/factory.ts': [
       'function make(id: string) {',
       '  return onCall({ enforceAppCheck: true, consumeAppCheckToken: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
@@ -173,7 +226,8 @@ describe('every callable declares its App Check posture', () => {
 
   it('FLAGS a missing, false, or variable enforceAppCheck, unreadable options, and a consuming-folder, admin, or factory-made callable that does not consume', async () => {
     repo = backendRepo({
-      'functions/src/payments/pay.ts': 'export const pay = onCall({ region: R, enforceAppCheck: true }, handler);',
+      'functions/src/payments/pay.ts':
+        'export const pay = onCall({ region: R, enforceAppCheck: true }, handler);',
       'functions/src/member.ts': [
         "export const a = onCall({ region: R, invoker: 'public' }, handler);",
         'export const b = onCall({ enforceAppCheck: false }, handler);',
@@ -198,15 +252,34 @@ describe('every callable declares its App Check posture', () => {
     });
     const [guard] = appCheckGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/admin/tool.ts', line: 1, detail: 'adminFoo: no consumeAppCheckToken: true' },
-      { file: 'functions/src/factory.ts', line: 4, detail: 'adminCopyA: no consumeAppCheckToken: true' },
+      {
+        file: 'functions/src/admin/tool.ts',
+        line: 1,
+        detail: 'adminFoo: no consumeAppCheckToken: true',
+      },
+      {
+        file: 'functions/src/factory.ts',
+        line: 4,
+        detail: 'adminCopyA: no consumeAppCheckToken: true',
+      },
       { file: 'functions/src/member.ts', line: 1, detail: 'a: no enforceAppCheck: true' },
       { file: 'functions/src/member.ts', line: 2, detail: 'b: no enforceAppCheck: true' },
       { file: 'functions/src/member.ts', line: 3, detail: 'c: no enforceAppCheck: true' },
-      { file: 'functions/src/member.ts', line: 4, detail: 'd: the onCall options are not an object literal, so the posture cannot be read' },
+      {
+        file: 'functions/src/member.ts',
+        line: 4,
+        detail: 'd: the onCall options are not an object literal, so the posture cannot be read',
+      },
       { file: 'functions/src/member.ts', line: 5, detail: 'e: no enforceAppCheck: true' },
-      { file: 'functions/src/payments/pay.ts', line: 1, detail: 'pay: no consumeAppCheckToken: true' },
-      { file: '(consumptionExempt)', detail: 'stale exemption: no callable is named adminLiveScore' },
+      {
+        file: 'functions/src/payments/pay.ts',
+        line: 1,
+        detail: 'pay: no consumeAppCheckToken: true',
+      },
+      {
+        file: '(consumptionExempt)',
+        detail: 'stale exemption: no callable is named adminLiveScore',
+      },
     ]);
   });
 
@@ -214,21 +287,32 @@ describe('every callable declares its App Check posture', () => {
     repo = backendRepo({
       'functions/src/admin/tool.ts':
         'export const adminLiveScore = onCall({ enforceAppCheck: true, consumeAppCheckToken: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
-      'functions/src/member.ts': 'export const member = onCall({ enforceAppCheck: true }, handler);',
+      'functions/src/member.ts':
+        'export const member = onCall({ enforceAppCheck: true }, handler);',
     });
     const [guard] = appCheckGuard.build({
       ...facts,
       consumptionExempt: [...facts.consumptionExempt, { callable: 'member', why: 'x' }],
     });
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/admin/tool.ts', line: 1, detail: 'stale exemption: adminLiveScore now consumes its token' },
-      { file: 'functions/src/member.ts', line: 1, detail: 'stale exemption: member is not a consuming callable' },
+      {
+        file: 'functions/src/admin/tool.ts',
+        line: 1,
+        detail: 'stale exemption: adminLiveScore now consumes its token',
+      },
+      {
+        file: 'functions/src/member.ts',
+        line: 1,
+        detail: 'stale exemption: member is not a consuming callable',
+      },
       { file: 'functions/src/payments', detail: 'stale consuming folder: it holds no callable' },
     ]);
   });
 
   it('refuses facts without the admin auth call', () => {
-    expect(appCheckGuard.factProblems({ ...facts, adminAuth: { call: '', option: 'admin' } })).toEqual(['adminAuth.call is missing']);
+    expect(
+      appCheckGuard.factProblems({ ...facts, adminAuth: { call: '', option: 'admin' } }),
+    ).toEqual(['adminAuth.call is missing']);
   });
 
   describe("the client half: a consuming callable's declaration presents a limited-use token", () => {
@@ -237,7 +321,10 @@ describe('every callable declares its App Check posture', () => {
       'functions/src/admin/retry.ts':
         'export const adminRetrySync = onCall({ enforceAppCheck: true, consumeAppCheckToken: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
     };
-    const client = (...declarations: string[]) => ({ ...server, 'src/lib/remote.ts': declarations.join('\n') });
+    const client = (...declarations: string[]) => ({
+      ...server,
+      'src/lib/remote.ts': declarations.join('\n'),
+    });
     const runClient = async (files: Record<string, string>, f: AppCheckFacts = facts) => {
       repo = backendRepo(files);
       const [, guard] = appCheckGuard.build(f);
@@ -270,11 +357,32 @@ describe('every callable declares its App Check posture', () => {
           ),
         ),
       ).toEqual([
-        { file: 'functions/src/factory.ts', line: 4, detail: 'adminCopyA consumes its token, but no client declaration names it' },
-        { file: 'src/lib/remote.ts', line: 1, detail: 'usePay declares pay, which consumes its token, without limitedUseAppCheck: true' },
-        { file: 'src/lib/remote.ts', line: 2, detail: 'useAdminLiveScore declares adminLiveScore limited-use, but it is exempt from consumption' },
-        { file: 'src/lib/remote.ts', line: 3, detail: 'useMember declares member limited-use, but it does not consume its token' },
-        { file: 'src/lib/remote.ts', line: 4, detail: 'useGone declares goneThing limited-use, but no callable of that name exists' },
+        {
+          file: 'functions/src/factory.ts',
+          line: 4,
+          detail: 'adminCopyA consumes its token, but no client declaration names it',
+        },
+        {
+          file: 'src/lib/remote.ts',
+          line: 1,
+          detail: 'usePay declares pay, which consumes its token, without limitedUseAppCheck: true',
+        },
+        {
+          file: 'src/lib/remote.ts',
+          line: 2,
+          detail:
+            'useAdminLiveScore declares adminLiveScore limited-use, but it is exempt from consumption',
+        },
+        {
+          file: 'src/lib/remote.ts',
+          line: 3,
+          detail: 'useMember declares member limited-use, but it does not consume its token',
+        },
+        {
+          file: 'src/lib/remote.ts',
+          line: 4,
+          detail: 'useGone declares goneThing limited-use, but no callable of that name exists',
+        },
       ]);
     });
 
@@ -286,25 +394,50 @@ describe('every callable declares its App Check posture', () => {
         'export const useAdminRetrySync = defineAction("adminRetrySync", { limitedUseAppCheck: true });',
       );
       expect(
-        await runClient(files, { ...facts, noClientDeclaration: [...facts.noClientDeclaration, { callable: 'member', why: 'x' }] }),
+        await runClient(files, {
+          ...facts,
+          noClientDeclaration: [...facts.noClientDeclaration, { callable: 'member', why: 'x' }],
+        }),
       ).toEqual([
-        { file: '(noClientDeclaration)', detail: 'stale entry: a client declaration names adminRetrySync now' },
-        { file: '(noClientDeclaration)', detail: 'stale entry: member is not a consuming callable' },
+        {
+          file: '(noClientDeclaration)',
+          detail: 'stale entry: a client declaration names adminRetrySync now',
+        },
+        {
+          file: '(noClientDeclaration)',
+          detail: 'stale entry: member is not a consuming callable',
+        },
       ]);
     });
 
     it('flags a declarations module it cannot read', async () => {
       expect(await runClient(server)).toEqual([
         { file: 'src/lib/remote.ts', detail: 'the callable declarations module no longer exists' },
-        { file: 'functions/src/admin/tool.ts', line: 1, detail: 'adminTool consumes its token, but no client declaration names it' },
-        { file: 'functions/src/factory.ts', line: 4, detail: 'adminCopyA consumes its token, but no client declaration names it' },
-        { file: 'functions/src/payments/pay.ts', line: 1, detail: 'pay consumes its token, but no client declaration names it' },
+        {
+          file: 'functions/src/admin/tool.ts',
+          line: 1,
+          detail: 'adminTool consumes its token, but no client declaration names it',
+        },
+        {
+          file: 'functions/src/factory.ts',
+          line: 4,
+          detail: 'adminCopyA consumes its token, but no client declaration names it',
+        },
+        {
+          file: 'functions/src/payments/pay.ts',
+          line: 1,
+          detail: 'pay consumes its token, but no client declaration names it',
+        },
       ]);
     });
 
     it('refuses missing declarations and an undeclared entry with no why', () => {
       expect(
-        appCheckGuard.factProblems({ ...facts, clientDeclarations: undefined as never, noClientDeclaration: [{ callable: 'a', why: '' }] }),
+        appCheckGuard.factProblems({
+          ...facts,
+          clientDeclarations: undefined as never,
+          noClientDeclaration: [{ callable: 'a', why: '' }],
+        }),
       ).toEqual(['clientDeclarations is missing', 'noClientDeclaration entry a carries no why']);
     });
   });

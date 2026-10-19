@@ -37,7 +37,12 @@ function makeConfig(): NotificationSystemConfig {
 }
 
 function setCount(n: number) {
-  mocks.useFirestoreCount.mockReturnValue({ data: n, isLoading: false, isError: false, error: null } as never);
+  mocks.useFirestoreCount.mockReturnValue({
+    data: n,
+    isLoading: false,
+    isError: false,
+    error: null,
+  } as never);
 }
 
 describe('useUnreadCount', () => {

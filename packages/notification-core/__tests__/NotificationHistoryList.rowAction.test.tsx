@@ -7,11 +7,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/react/hooks/useNotificationHistory.js', () => ({
-  useNotificationHistory: (...args: unknown[]) => withRetryState(mocks.useNotificationHistory(...args)),
+  useNotificationHistory: (...args: unknown[]) =>
+    withRetryState(mocks.useNotificationHistory(...args)),
 }));
 
 import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList.js';
-import type { NotificationHistoryItem, NotificationRowActions, NotificationSystemConfig } from '../src/types.js';
+import type {
+  NotificationHistoryItem,
+  NotificationRowActions,
+  NotificationSystemConfig,
+} from '../src/types.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -26,7 +31,9 @@ function makeConfig(): NotificationSystemConfig {
   };
 }
 
-function makeHistoryItem(overrides: Partial<NotificationHistoryItem> = {}): NotificationHistoryItem {
+function makeHistoryItem(
+  overrides: Partial<NotificationHistoryItem> = {},
+): NotificationHistoryItem {
   return {
     id: 'n1',
     type: 'content_report',
@@ -76,19 +83,19 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
   });
 
   it('renders a read-only title header with no Clear All control', () => {
-    const { container } = render(
-      <NotificationHistoryList {...baseProps} title="Notifications" />,
-    );
+    const { container } = render(<NotificationHistoryList {...baseProps} title="Notifications" />);
     expect(container.querySelector('.ntf-list-title')).toHaveTextContent('Notifications');
     expect(screen.queryByText('Clear All')).toBeNull();
   });
 
   it('renders the row action per row, receiving the item and NO archive action (read-only)', () => {
     const seen: NotificationRowActions[] = [];
-    const renderRowAction = vi.fn((notification: NotificationHistoryItem, actions: NotificationRowActions) => {
-      seen.push(actions);
-      return <button aria-label={`go-to-${notification.id}`}>Go</button>;
-    });
+    const renderRowAction = vi.fn(
+      (notification: NotificationHistoryItem, actions: NotificationRowActions) => {
+        seen.push(actions);
+        return <button aria-label={`go-to-${notification.id}`}>Go</button>;
+      },
+    );
     render(<NotificationHistoryList {...baseProps} renderRowAction={renderRowAction} />);
 
     expect(screen.getByLabelText('go-to-n1')).toBeInTheDocument();
@@ -98,14 +105,18 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
       expect.anything(),
     );
     // Archived rows cannot be re-archived — no archive action is exposed.
-    expect(seen.every((a) => a.archive === undefined && a.isArchivePending === undefined)).toBe(true);
+    expect(seen.every((a) => a.archive === undefined && a.isArchivePending === undefined)).toBe(
+      true,
+    );
   });
 
   it('makes the archived row inert — no role=button', () => {
     const renderRowAction = (notification: NotificationHistoryItem) => (
       <button aria-label={`go-to-${notification.id}`}>Go</button>
     );
-    const { container } = render(<NotificationHistoryList {...baseProps} renderRowAction={renderRowAction} />);
+    const { container } = render(
+      <NotificationHistoryList {...baseProps} renderRowAction={renderRowAction} />,
+    );
 
     const row = container.querySelectorAll('.ntf-item')[0] as HTMLElement;
     expect(row).not.toHaveAttribute('role', 'button');
@@ -125,8 +136,15 @@ describe('NotificationHistoryList — failed and empty pages', () => {
 
   it('renders the error slot, never the empty state, when the first read fails', () => {
     mocks.useNotificationHistory.mockReturnValue({
-      data: undefined, isLoading: false, isError: true, error: new Error('denied'),
-      page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(),
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('denied'),
+      page: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+      nextPage: vi.fn(),
+      prevPage: vi.fn(),
     });
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByRole('alert')).toHaveTextContent('read failed');
@@ -136,20 +154,37 @@ describe('NotificationHistoryList — failed and empty pages', () => {
   it('keeps the error slot, retrying, while a failed first page retries — never the spinner', () => {
     const renderError = vi.fn(() => <div role="alert">read failed</div>);
     mocks.useNotificationHistory.mockReturnValue({
-      data: undefined, isLoading: true, isFetching: true, isError: false, error: null,
-      page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(), refetch: vi.fn(),
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      isError: false,
+      error: null,
+      page: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+      nextPage: vi.fn(),
+      prevPage: vi.fn(),
+      refetch: vi.fn(),
       retryState: { error: new Error('denied'), isRetrying: true, isLoading: false },
     });
     render(<NotificationHistoryList {...props} renderError={renderError} />);
     expect(screen.getByRole('alert')).toHaveTextContent('read failed');
     expect(screen.queryByRole('status')).toBeNull();
-    expect(renderError).toHaveBeenLastCalledWith(expect.objectContaining({ retrying: true, hasRows: false }));
+    expect(renderError).toHaveBeenLastCalledWith(
+      expect.objectContaining({ retrying: true, hasRows: false }),
+    );
   });
 
   it('keeps Previous on an empty later page and shows no empty state there', () => {
     mocks.useNotificationHistory.mockReturnValue({
-      data: [], isLoading: false, isError: false, page: 2,
-      hasNextPage: false, hasPrevPage: true, nextPage: vi.fn(), prevPage: vi.fn(),
+      data: [],
+      isLoading: false,
+      isError: false,
+      page: 2,
+      hasNextPage: false,
+      hasPrevPage: true,
+      nextPage: vi.fn(),
+      prevPage: vi.fn(),
     });
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
@@ -158,8 +193,14 @@ describe('NotificationHistoryList — failed and empty pages', () => {
 
   it('shows the empty state for an answered, empty first page', () => {
     mocks.useNotificationHistory.mockReturnValue({
-      data: [], isLoading: false, isError: false, page: 1,
-      hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(),
+      data: [],
+      isLoading: false,
+      isError: false,
+      page: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+      nextPage: vi.fn(),
+      prevPage: vi.fn(),
     });
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByText('No archived notifications')).toBeInTheDocument();

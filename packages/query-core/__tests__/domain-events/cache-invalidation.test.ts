@@ -105,9 +105,7 @@ describe('applyInvalidations', () => {
     const client = makeClient();
     const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
     applyInvalidations(client, [exact(['users'])]);
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({ refetchType: 'active' }),
-    );
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ refetchType: 'active' }));
   });
 });
 
@@ -550,9 +548,16 @@ describe('applyInvalidations — remove and reset entries', () => {
     const client = makeClient();
     const key = ['violation', 'v1'];
     const read = deferred<string>();
-    const observer = new QueryObserver(client, { queryKey: key, queryFn: sequencedQueryFn([read]), retry: false, gcTime: Infinity });
+    const observer = new QueryObserver(client, {
+      queryKey: key,
+      queryFn: sequencedQueryFn([read]),
+      retry: false,
+      gcTime: Infinity,
+    });
     const shown: Array<{ data: string | undefined; fetchStatus: string }> = [];
-    const unsubscribe = observer.subscribe((result) => shown.push({ data: result.data, fetchStatus: result.fetchStatus }));
+    const unsubscribe = observer.subscribe((result) =>
+      shown.push({ data: result.data, fetchStatus: result.fetchStatus }),
+    );
     await flush();
     expect(observer.getCurrentResult().fetchStatus).toBe('fetching');
 
@@ -610,7 +615,10 @@ describe('applyInvalidations — remove and reset entries', () => {
     const client = makeClient();
     const failedKey = ['refused', 'a'];
     const healthyKey = ['healthy', 'b'];
-    const failedRead = vi.fn<() => Promise<string>>().mockRejectedValueOnce(new Error('refused')).mockResolvedValueOnce('answered');
+    const failedRead = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new Error('refused'))
+      .mockResolvedValueOnce('answered');
     const healthyRead = vi.fn(async () => 'fine');
     const offFailed = observe(client, failedKey, failedRead);
     const offHealthy = observe(client, healthyKey, healthyRead);
@@ -619,7 +627,9 @@ describe('applyInvalidations — remove and reset entries', () => {
 
     // The reset clears each matched query's failure, so a predicate over it matches nothing once
     // the reset has run: the reset acts on the queries it matched when it was applied.
-    await applyInvalidations(client, [predicate('refused', (query) => query.state.error !== null, { action: 'reset' })]);
+    await applyInvalidations(client, [
+      predicate('refused', (query) => query.state.error !== null, { action: 'reset' }),
+    ]);
     expect(failedRead).toHaveBeenCalledTimes(2);
     expect(client.getQueryData(failedKey)).toBe('answered');
     expect(healthyRead).toHaveBeenCalledTimes(1);
@@ -636,19 +646,32 @@ describe('applyInvalidations — remove and reset entries', () => {
 
     // Cancelling the matched read idles it, so a predicate over fetchStatus would no longer match
     // it by the time it is removed.
-    await applyInvalidations(client, [predicate('in flight', (query) => query.state.fetchStatus === 'fetching', { action: 'remove' })]);
+    await applyInvalidations(client, [
+      predicate('in flight', (query) => query.state.fetchStatus === 'fetching', {
+        action: 'remove',
+      }),
+    ]);
     expect(client.getQueryCache().find({ queryKey: key, exact: true })).toBeUndefined();
     unsubscribe();
   });
 
   it('a remove and a refresh of the same key are two entries, never merged as duplicates', () => {
-    expect(serializeInvalidation(exact(['users', '1'], { action: 'remove' }))).toBe('remove:exact:["users","1"]');
-    expect(serializeInvalidation(predicate('refused', () => true, { action: 'reset' }))).toBe('reset:predicate:refused');
-    expect(serializeInvalidation(exact(['users', '1'], { action: 'refresh' }))).toBe('exact:["users","1"]');
+    expect(serializeInvalidation(exact(['users', '1'], { action: 'remove' }))).toBe(
+      'remove:exact:["users","1"]',
+    );
+    expect(serializeInvalidation(predicate('refused', () => true, { action: 'reset' }))).toBe(
+      'reset:predicate:refused',
+    );
+    expect(serializeInvalidation(exact(['users', '1'], { action: 'refresh' }))).toBe(
+      'exact:["users","1"]',
+    );
     const client = makeClient();
     const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
     const remove = vi.spyOn(client, 'removeQueries');
-    applyInvalidations(client, [exact(['users', '1']), exact(['users', '1'], { action: 'remove' })]);
+    applyInvalidations(client, [
+      exact(['users', '1']),
+      exact(['users', '1'], { action: 'remove' }),
+    ]);
     expect(invalidate).toHaveBeenCalledTimes(1);
     expect(remove).toHaveBeenCalledTimes(1);
   });

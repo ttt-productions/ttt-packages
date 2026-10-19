@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { AgePolicyConfigV1Schema, DEFAULT_AGE_POLICY_CONFIG_V1 } from '../src/doc-schemas/safety/age.js';
+import {
+  AgePolicyConfigV1Schema,
+  DEFAULT_AGE_POLICY_CONFIG_V1,
+} from '../src/doc-schemas/safety/age.js';
 
 describe('the age policy config', () => {
   it('parses its own pinned default', () => {
@@ -10,8 +13,10 @@ describe('the age policy config', () => {
     expect(Object.keys(AgePolicyConfigV1Schema.shape)).not.toContain('terminalDeletableOutcomes');
     expect(Object.keys(AgePolicyConfigV1Schema.shape)).not.toContain('noDeleteOutcomes');
     expect(
-      AgePolicyConfigV1Schema.safeParse({ ...DEFAULT_AGE_POLICY_CONFIG_V1, terminalDeletableOutcomes: ['nonceExpired'] })
-        .success,
+      AgePolicyConfigV1Schema.safeParse({
+        ...DEFAULT_AGE_POLICY_CONFIG_V1,
+        terminalDeletableOutcomes: ['nonceExpired'],
+      }).success,
     ).toBe(false);
   });
 });

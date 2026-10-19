@@ -18,7 +18,11 @@ describe('site tour copy', () => {
   });
 
   it('every line and step is spoken by a Company mascot', () => {
-    const speakers = [...SITE_TOUR_INVITATION_LINES, ...SITE_TOUR_STEPS, ...SITE_TOUR_CURTAIN_CALL_LINES].map((l) => l.speaker);
+    const speakers = [
+      ...SITE_TOUR_INVITATION_LINES,
+      ...SITE_TOUR_STEPS,
+      ...SITE_TOUR_CURTAIN_CALL_LINES,
+    ].map((l) => l.speaker);
     for (const speaker of speakers) expect(COMPANY_MASCOT_ORDER).toContain(speaker);
   });
 });

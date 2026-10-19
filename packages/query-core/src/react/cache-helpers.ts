@@ -18,7 +18,7 @@ export function removeByPrefix(client: QueryClient, prefix: QueryKey) {
 export function updateQueryData<T>(
   client: QueryClient,
   key: QueryKey,
-  updater: (prev: T | undefined) => T
+  updater: (prev: T | undefined) => T,
 ) {
   client.setQueryData<T>(key, (prev) => updater(prev));
 }

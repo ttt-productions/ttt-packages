@@ -16,7 +16,10 @@ import {
   migrationEvidenceSchema,
   migrationOperationIdSchema,
 } from '../doc-schemas/migration-console.js';
-import { MAX_MIGRATION_PAGE_SIZE, MIGRATION_RECORD_OUTCOME_KEYS } from '../migration-console/run-state.js';
+import {
+  MAX_MIGRATION_PAGE_SIZE,
+  MIGRATION_RECORD_OUTCOME_KEYS,
+} from '../migration-console/run-state.js';
 import {
   countSchema,
   epochMsSchema,
@@ -125,9 +128,7 @@ export const RecordMigrationCheckpointInputSchema = z
 export type RecordMigrationCheckpointInput = z.infer<typeof RecordMigrationCheckpointInputSchema>;
 
 /** The cutover: from here on the product owns every destination. */
-export const RecordMigrationCutoverInputSchema = z
-  .object({ reason: repairReasonSchema })
-  .strict();
+export const RecordMigrationCutoverInputSchema = z.object({ reason: repairReasonSchema }).strict();
 export type RecordMigrationCutoverInput = z.infer<typeof RecordMigrationCutoverInputSchema>;
 
 /** What a record call answers: the step as now recorded. A second identical record changes nothing. */

@@ -26,13 +26,13 @@ describe('validateTttPassword — length boundaries', () => {
 
   it('rejects one unit below the minimum with the exact copy', () => {
     expect(validateTttPassword('a'.repeat(PASSWORD_MIN_LENGTH - 1))).toBe(
-      'Password must be at least 7 characters.'
+      'Password must be at least 7 characters.',
     );
   });
 
   it('rejects one unit above the maximum with the exact copy', () => {
     expect(validateTttPassword('a'.repeat(PASSWORD_MAX_LENGTH + 1))).toBe(
-      'Password must be no more than 64 characters.'
+      'Password must be no more than 64 characters.',
     );
   });
 

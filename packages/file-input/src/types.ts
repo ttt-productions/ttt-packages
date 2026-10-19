@@ -8,30 +8,29 @@ import type {
   VideoOrientation,
   MediaCropSpec,
   UploadState,
-} from "@ttt-productions/media-schemas";
+} from '@ttt-productions/media-schemas';
 
 /** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
 
-
 export interface CropConfig {
   aspectRatio: number;
   aspectRatioDisplay?: string;
-  shape: "rect" | "round";
+  shape: 'rect' | 'round';
   outputWidth: number;
   outputHeight: number;
 }
 
 export type FileInputErrorCode =
-  | "invalid_type"
-  | "too_large"
-  | "too_long"
-  | "orientation_mismatch"
-  | "aspect_ratio_mismatch"
-  | "dimensions_mismatch"
-  | "read_failed"
-  | "crop_failed"
-  | "unknown";
+  | 'invalid_type'
+  | 'too_large'
+  | 'too_long'
+  | 'orientation_mismatch'
+  | 'aspect_ratio_mismatch'
+  | 'dimensions_mismatch'
+  | 'read_failed'
+  | 'crop_failed'
+  | 'unknown';
 
 export interface FileInputError {
   code: FileInputErrorCode;

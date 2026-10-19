@@ -21,10 +21,20 @@ const layoutOf = (root: string) => ({
   },
 });
 
-async function findingsOf(definition: { build(facts: never): Array<{ run: (c: never) => unknown }> }, files: Record<string, string>) {
-  repo = tempRepo({ 'src/index.ts': 'export {};', 'functions/src/index.ts': 'export {};', 'scripts/run.mjs': 'export {};', ...files });
+async function findingsOf(
+  definition: { build(facts: never): Array<{ run: (c: never) => unknown }> },
+  files: Record<string, string>,
+) {
+  repo = tempRepo({
+    'src/index.ts': 'export {};',
+    'functions/src/index.ts': 'export {};',
+    'scripts/run.mjs': 'export {};',
+    ...files,
+  });
   const [guard] = definition.build({} as never);
-  const findings = (await guard.run(contextOf(createRepoReader(layoutOf(repo.root))) as never)) as Array<{ file: string; line?: number; detail: string }>;
+  const findings = (await guard.run(
+    contextOf(createRepoReader(layoutOf(repo.root))) as never,
+  )) as Array<{ file: string; line?: number; detail: string }>;
   return findings.map((f) => `${f.file}:${f.line} ${f.detail}`);
 }
 
@@ -33,23 +43,41 @@ const call = (callee: string, args: string) => `${callee}(${args});`;
 describe('no child process gets an args array together with a shell', () => {
   it('flags every inline options form that turns a shell on', () => {
     expect(shellWithArgsArray(call('spawn', 'cmd, args, { shell: true }'))).toHaveLength(1);
-    expect(shellWithArgsArray(call('execFileSync', "cmd, ['-v'], { shell: isWindows, stdio: 'pipe' }"))).toHaveLength(1);
+    expect(
+      shellWithArgsArray(call('execFileSync', "cmd, ['-v'], { shell: isWindows, stdio: 'pipe' }")),
+    ).toHaveLength(1);
     expect(shellWithArgsArray(call('spawnSync', 'cmd, args, { shell }'))).toHaveLength(1);
     expect(shellWithArgsArray(call('spawn', "cmd, args, { 'shell': '/bin/sh' }"))).toHaveLength(1);
   });
 
   it('passes one command string, and an args array whose options leave the shell off', () => {
-    expect(shellWithArgsArray(call('spawn', "[cmd, ...args].join(' '), { shell: true, ...opts }"))).toEqual([]);
-    expect(shellWithArgsArray(call('spawn', "'ffmpeg', ['-i', `${dir}/in`], { stdio: 'pipe' }"))).toEqual([]);
-    expect(shellWithArgsArray(call('execFile', 'file, { shell: true }, (err) => onExit(err)'))).toEqual([]);
-    expect(shellWithArgsArray(call('spawn', "cmd, args, { stdio: 'pipe', shell: false }"))).toEqual([]);
+    expect(
+      shellWithArgsArray(call('spawn', "[cmd, ...args].join(' '), { shell: true, ...opts }")),
+    ).toEqual([]);
+    expect(
+      shellWithArgsArray(call('spawn', "'ffmpeg', ['-i', `${dir}/in`], { stdio: 'pipe' }")),
+    ).toEqual([]);
+    expect(
+      shellWithArgsArray(call('execFile', 'file, { shell: true }, (err) => onExit(err)')),
+    ).toEqual([]);
+    expect(shellWithArgsArray(call('spawn', "cmd, args, { stdio: 'pipe', shell: false }"))).toEqual(
+      [],
+    );
     expect(shellWithArgsArray(call('spawn', "cmd, args, { env: { shell: 'x' } }"))).toEqual([]);
-    expect(shellWithArgsArray(call('spawn', "cmd, args, { stdio: 'pipe' /* shell: true */ }"))).toEqual([]);
-    expect(shellWithArgsArray(call('spawn', "cmd, args, { stdio: 'pipe', // no shell:\n }"))).toEqual([]);
+    expect(
+      shellWithArgsArray(call('spawn', "cmd, args, { stdio: 'pipe' /* shell: true */ }")),
+    ).toEqual([]);
+    expect(
+      shellWithArgsArray(call('spawn', "cmd, args, { stdio: 'pipe', // no shell:\n }")),
+    ).toEqual([]);
   });
 
   it('passes a clean repository', async () => {
-    expect(await findingsOf(shellSafeGuard, { 'scripts/ok.mjs': "spawn('npm', ['test'], { stdio: 'inherit' });" })).toEqual([]);
+    expect(
+      await findingsOf(shellSafeGuard, {
+        'scripts/ok.mjs': "spawn('npm', ['test'], { stdio: 'inherit' });",
+      }),
+    ).toEqual([]);
   });
 
   it('flags the call in any declared code root, tests included, and ignores a commented one', async () => {
@@ -65,7 +93,9 @@ describe('no child process gets an args array together with a shell', () => {
   });
 
   it('takes no facts', () => {
-    expect(shellSafeGuard.factProblems({ roots: [] } as never)).toEqual(['this guard takes no facts: declare it with {}']);
+    expect(shellSafeGuard.factProblems({ roots: [] } as never)).toEqual([
+      'this guard takes no facts: declare it with {}',
+    ]);
   });
 });
 
@@ -88,7 +118,8 @@ describe('no directory walker turns an unreadable folder into an empty answer', 
     expect(
       await findingsOf(walkerReadFailureGuard, {
         'src/a.ts': 'try {\n  entries = readdirSync(dir);\n} catch {\n  return results;\n}',
-        'functions/src/b.ts': 'for (const r of roots) {\n  try { e = readdirSync(r, { recursive: true }); } catch { continue; }\n}',
+        'functions/src/b.ts':
+          'for (const r of roots) {\n  try { e = readdirSync(r, { recursive: true }); } catch { continue; }\n}',
         'scripts/c.mjs': 'try { e = fs.readdirSync(d); } catch (err) { return false; }',
         'scripts/d.mjs': 'try { e = readdirSync(d); } catch { console.warn("skip"); }',
         'scripts/e.mjs': 'const entries = await readdir(d).catch(() => []);',
@@ -125,7 +156,10 @@ describe('Functions tests resolve source from their own location', () => {
         'functions/src/__tests__/helper.ts': 'export const root = () => process.cwd();',
         'functions/src/server.ts': 'export const here = process.cwd();',
       }),
-    ).toEqual(['functions/src/__tests__/helper.ts:1 calls process.cwd()', 'functions/src/x.test.ts:2 calls process.cwd()']);
+    ).toEqual([
+      'functions/src/__tests__/helper.ts:1 calls process.cwd()',
+      'functions/src/x.test.ts:2 calls process.cwd()',
+    ]);
   });
 
   it('may be declared absent only for an app with no Functions tree', () => {

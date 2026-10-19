@@ -64,7 +64,8 @@ export async function hashPayload(payload: unknown): Promise<string> {
  */
 export async function hashStringSet(values: readonly string[]): Promise<string> {
   for (const value of values) {
-    if (value.includes('\n')) throw new RangeError('hashStringSet: a value must not contain a newline');
+    if (value.includes('\n'))
+      throw new RangeError('hashStringSet: a value must not contain a newline');
   }
   return sha256Hex([...values].sort().join('\n'));
 }

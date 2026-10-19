@@ -1,5 +1,2 @@
-export { createAuditWriter } from "./write-audit-event.js";
-export type {
-  AuditWriterConfig,
-  WriteAuditEventArgs,
-} from "./write-audit-event.js";
+export { createAuditWriter } from './write-audit-event.js';
+export type { AuditWriterConfig, WriteAuditEventArgs } from './write-audit-event.js';

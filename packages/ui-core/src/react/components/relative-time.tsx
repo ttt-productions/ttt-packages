@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { formatDistanceToNowStrict } from "date-fns";
-import { toDate } from "@ttt-productions/firebase-helpers";
+import * as React from 'react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { toDate } from '@ttt-productions/firebase-helpers';
 
 export interface RelativeTimeProps {
   /** Number (ms or seconds), ISO string, Firestore Timestamp, or Date. */
@@ -21,8 +21,8 @@ export interface RelativeTimeProps {
  */
 export function RelativeTime({
   timestamp,
-  placeholder = "...",
-  fallback = "a while ago",
+  placeholder = '...',
+  fallback = 'a while ago',
   refreshIntervalMs = 60_000,
 }: RelativeTimeProps) {
   const [value, setValue] = React.useState<string>(placeholder);
@@ -31,11 +31,11 @@ export function RelativeTime({
     let date: Date | null = null;
     if (timestamp instanceof Date) {
       date = timestamp;
-    } else if (typeof timestamp === "number") {
+    } else if (typeof timestamp === 'number') {
       date = toDate(timestamp);
-    } else if (typeof timestamp === "string") {
+    } else if (typeof timestamp === 'string') {
       date = new Date(timestamp);
-    } else if (timestamp && typeof timestamp === "object" && "toDate" in timestamp) {
+    } else if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
       date = toDate(timestamp);
     }
 

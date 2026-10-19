@@ -3,7 +3,7 @@ export type {
   FallbackMode,
   MediaPlaybackControls,
   MediaProgressSampleReason,
-} from "./types.js";
+} from './types.js';
 
 export {
   BACKOFF_SCHEDULE_MS,
@@ -13,15 +13,15 @@ export {
   applyJitter,
   backoffForAttempt,
   withinBudget,
-} from "./recovery.js";
+} from './recovery.js';
 export type {
   MediaDiagnosticAdapter,
   AssetStatusHint,
   DiagnosisResult,
   RecoveryState,
-} from "./recovery.js";
+} from './recovery.js';
 
-export { startWaveformLoop, drawIdleFrame } from "./visualizer.js";
-export type { StartWaveformLoopOptions, AudioVisualizerMode } from "./visualizer.js";
+export { startWaveformLoop, drawIdleFrame } from './visualizer.js';
+export type { StartWaveformLoopOptions, AudioVisualizerMode } from './visualizer.js';
 
-export { resolveInfiniteDuration } from "./media-duration.js";
+export { resolveInfiniteDuration } from './media-duration.js';

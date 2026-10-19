@@ -18,7 +18,10 @@ import {
   teamIdSchema,
   userIdSchema,
 } from '../doc-schemas/atoms.js';
-import { StatsDestinationChangeSchema, StatsOperationCountsSchema } from '../doc-schemas/stats-operation.js';
+import {
+  StatsDestinationChangeSchema,
+  StatsOperationCountsSchema,
+} from '../doc-schemas/stats-operation.js';
 import {
   StatsValidationReportSchema,
   StatsValidationScopeSchema,
@@ -51,12 +54,18 @@ export type FinalizeGameResult = z.infer<typeof FinalizeGameResultSchema>;
 
 // `reopenGame` (an admin): take a finalized game's numbers back out so it can be scored again. It
 // changes a completed record, so the admin says why (SPORT-206, BACKEND-212).
-export const ReopenGameInputSchema = z.object({ gameId: gameIdSchema, reason: repairReasonSchema }).strict();
+export const ReopenGameInputSchema = z
+  .object({ gameId: gameIdSchema, reason: repairReasonSchema })
+  .strict();
 export type ReopenGameInput = z.infer<typeof ReopenGameInputSchema>;
 
 // `alreadyOpen` when the game was not completed: nothing was written.
 export const ReopenGameResultSchema = z
-  .object({ gameId: gameIdSchema, leagueId: leagueIdSchema, outcome: z.enum(GAME_REOPEN_OUTCOME_KEYS) })
+  .object({
+    gameId: gameIdSchema,
+    leagueId: leagueIdSchema,
+    outcome: z.enum(GAME_REOPEN_OUTCOME_KEYS),
+  })
   .strict();
 export type ReopenGameResult = z.infer<typeof ReopenGameResultSchema>;
 
@@ -73,7 +82,9 @@ export const AdminResolveUnrosteredStatLineInputSchema = z
     dryRun: z.boolean().optional(),
   })
   .strict();
-export type AdminResolveUnrosteredStatLineInput = z.infer<typeof AdminResolveUnrosteredStatLineInputSchema>;
+export type AdminResolveUnrosteredStatLineInput = z.infer<
+  typeof AdminResolveUnrosteredStatLineInputSchema
+>;
 
 // `gameConverts` says whether the game's stats now convert, so the operator knows the copy can run.
 export const AdminResolveUnrosteredStatLineResultSchema = z
@@ -85,7 +96,9 @@ export const AdminResolveUnrosteredStatLineResultSchema = z
     gameConverts: z.boolean(),
   })
   .strict();
-export type AdminResolveUnrosteredStatLineResult = z.infer<typeof AdminResolveUnrosteredStatLineResultSchema>;
+export type AdminResolveUnrosteredStatLineResult = z.infer<
+  typeof AdminResolveUnrosteredStatLineResultSchema
+>;
 
 // Every rebuild and every game repair is a repair of a completed record: it takes a reason, runs
 // under an operation id the admin's browser mints when the admin starts it, and offers a dry run that
@@ -183,7 +196,11 @@ export type GameStatsCorrectionTarget = z.infer<typeof GameStatsCorrectionTarget
 export const AdminCorrectGameStatsInputSchema = z
   .object({
     gameId: gameIdSchema,
-    targets: z.array(GameStatsCorrectionTargetSchema).min(1).max(MAX_GAME_STATS_CORRECTION_TARGETS).optional(),
+    targets: z
+      .array(GameStatsCorrectionTargetSchema)
+      .min(1)
+      .max(MAX_GAME_STATS_CORRECTION_TARGETS)
+      .optional(),
     keepStored: z.literal(true).optional(),
     reason: repairReasonSchema,
     operationId: statsOperationIdSchema,
@@ -227,13 +244,25 @@ const replacedEntryListSchema = z
 export const GameRepairChangesSchema = z
   .object({
     lines: z.array(
-      z.object({ lineKey: z.string().min(1), field: z.string().min(1), stored: z.number(), rebuilt: z.number() }).strict(),
+      z
+        .object({
+          lineKey: z.string().min(1),
+          field: z.string().min(1),
+          stored: z.number(),
+          rebuilt: z.number(),
+        })
+        .strict(),
     ),
-    scores: z.array(z.object({ teamId: teamIdSchema, stored: z.number(), rebuilt: z.number() }).strict()),
+    scores: z.array(
+      z.object({ teamId: teamIdSchema, stored: z.number(), rebuilt: z.number() }).strict(),
+    ),
     absentRosterPlayerIds: replacedEntryListSchema.optional(),
     nonScoringRosterPlayerIds: replacedEntryListSchema.optional(),
     statEventSequence: z.object({ stored: countSchema, rebuilt: countSchema }).strict().optional(),
-    recordRewritten: z.object({ pagesBefore: countSchema, pagesAfter: countSchema }).strict().optional(),
+    recordRewritten: z
+      .object({ pagesBefore: countSchema, pagesAfter: countSchema })
+      .strict()
+      .optional(),
   })
   .strict();
 export type GameRepairChanges = z.infer<typeof GameRepairChangesSchema>;
@@ -283,7 +312,9 @@ export const AdminUpdateHistoricalStatsResultSchema = z
     changes: z.array(StatsDestinationChangeSchema),
   })
   .strict();
-export type AdminUpdateHistoricalStatsResult = z.infer<typeof AdminUpdateHistoricalStatsResultSchema>;
+export type AdminUpdateHistoricalStatsResult = z.infer<
+  typeof AdminUpdateHistoricalStatsResultSchema
+>;
 
 // `runStatsValidation`: check one game, one league, or — with neither — everything. A check that
 // reaches its time budget saves its place on its operation and answers `complete: false`; calling
@@ -308,9 +339,13 @@ export type RunStatsValidationResult = z.infer<typeof RunStatsValidationResultSc
 export const AdminDeleteStatsValidationReportInputSchema = z
   .object({ reportId: statsValidationReportIdSchema })
   .strict();
-export type AdminDeleteStatsValidationReportInput = z.infer<typeof AdminDeleteStatsValidationReportInputSchema>;
+export type AdminDeleteStatsValidationReportInput = z.infer<
+  typeof AdminDeleteStatsValidationReportInputSchema
+>;
 
 export const AdminDeleteStatsValidationReportResultSchema = z
   .object({ reportId: statsValidationReportIdSchema })
   .strict();
-export type AdminDeleteStatsValidationReportResult = z.infer<typeof AdminDeleteStatsValidationReportResultSchema>;
+export type AdminDeleteStatsValidationReportResult = z.infer<
+  typeof AdminDeleteStatsValidationReportResultSchema
+>;

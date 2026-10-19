@@ -21,16 +21,25 @@ import { galleryOwnerKindSchema, pictureIdSchema } from '../doc-schemas/gallery.
 import { waiverTemplateIdSchema } from '../doc-schemas/waiver-template.js';
 
 export const LeagueCreatedEventSchema = z
-  .object({ type: z.literal('league.created'), ids: z.object({ leagueId: leagueIdSchema }).strict() })
+  .object({
+    type: z.literal('league.created'),
+    ids: z.object({ leagueId: leagueIdSchema }).strict(),
+  })
   .strict();
 
 export const LeagueUpdatedEventSchema = z
-  .object({ type: z.literal('league.updated'), ids: z.object({ leagueId: leagueIdSchema }).strict() })
+  .object({
+    type: z.literal('league.updated'),
+    ids: z.object({ leagueId: leagueIdSchema }).strict(),
+  })
   .strict();
 
 // The league changed mode, and with it the `teamType` of every one of its teams.
 export const LeagueModeSwitchedEventSchema = z
-  .object({ type: z.literal('league.modeSwitched'), ids: z.object({ leagueId: leagueIdSchema }).strict() })
+  .object({
+    type: z.literal('league.modeSwitched'),
+    ids: z.object({ leagueId: leagueIdSchema }).strict(),
+  })
   .strict();
 
 export const LeagueTeamCreatedEventSchema = z
@@ -44,7 +53,9 @@ export const LeagueTeamCreatedEventSchema = z
 export const TeamRosterChangedEventSchema = z
   .object({
     type: z.literal('teamRoster.changed'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -73,7 +84,9 @@ export const GhostPlayerLinkedEventSchema = z
 export const TeamJoinRequestSubmittedEventSchema = z
   .object({
     type: z.literal('teamJoinRequest.submitted'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -81,7 +94,9 @@ export const TeamJoinRequestSubmittedEventSchema = z
 export const TeamJoinRequestCancelledEventSchema = z
   .object({
     type: z.literal('teamJoinRequest.cancelled'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -89,7 +104,9 @@ export const TeamJoinRequestCancelledEventSchema = z
 export const TeamJoinRequestAnsweredEventSchema = z
   .object({
     type: z.literal('teamJoinRequest.answered'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -97,7 +114,9 @@ export const TeamJoinRequestAnsweredEventSchema = z
 export const TeamInvitationSentEventSchema = z
   .object({
     type: z.literal('teamInvitation.sent'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -105,7 +124,9 @@ export const TeamInvitationSentEventSchema = z
 export const TeamInvitationCancelledEventSchema = z
   .object({
     type: z.literal('teamInvitation.cancelled'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -113,7 +134,9 @@ export const TeamInvitationCancelledEventSchema = z
 export const TeamInvitationAnsweredEventSchema = z
   .object({
     type: z.literal('teamInvitation.answered'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, userId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -183,7 +206,10 @@ export const SportGameJumpBallChangedEventSchema = z
 // deleted, or a game was added to a week. Any of the league's games may have been added, changed, or
 // removed.
 export const LeagueScheduleChangedEventSchema = z
-  .object({ type: z.literal('leagueSchedule.changed'), ids: z.object({ leagueId: leagueIdSchema }).strict() })
+  .object({
+    type: z.literal('leagueSchedule.changed'),
+    ids: z.object({ leagueId: leagueIdSchema }).strict(),
+  })
   .strict();
 
 // One game's schedule changed — its week, start time, or venue — or its teams were replaced, which
@@ -229,7 +255,10 @@ export const SportGameStatsCorrectedEventSchema = z
 
 // A stats check wrote or advanced its report.
 export const StatsValidationReportedEventSchema = z
-  .object({ type: z.literal('statsValidation.reported'), ids: z.object({ reportId: z.string().min(1) }).strict() })
+  .object({
+    type: z.literal('statsValidation.reported'),
+    ids: z.object({ reportId: z.string().min(1) }).strict(),
+  })
   .strict();
 
 // An admin deleted a stats check's report.
@@ -242,50 +271,76 @@ export const StatsValidationReportDeletedEventSchema = z
 
 // A person's pre-Q-Sports baseline was written, and their career line and hall-of-fame entry rebuilt.
 export const HistoricalStatsUpdatedEventSchema = z
-  .object({ type: z.literal('historicalStats.updated'), ids: z.object({ userId: userIdSchema }).strict() })
+  .object({
+    type: z.literal('historicalStats.updated'),
+    ids: z.object({ userId: userIdSchema }).strict(),
+  })
   .strict();
 
 // An admin banned an account or lifted its ban.
 export const UserStatusChangedEventSchema = z
-  .object({ type: z.literal('user.statusChanged'), ids: z.object({ userId: userIdSchema }).strict() })
+  .object({
+    type: z.literal('user.statusChanged'),
+    ids: z.object({ userId: userIdSchema }).strict(),
+  })
   .strict();
 
 // An award joined the catalog — its first badge was published.
 export const AwardDefinitionCreatedEventSchema = z
-  .object({ type: z.literal('awardDefinition.created'), ids: z.object({ awardId: awardIdSchema }).strict() })
+  .object({
+    type: z.literal('awardDefinition.created'),
+    ids: z.object({ awardId: awardIdSchema }).strict(),
+  })
   .strict();
 
 // An award's document changed: its badge was replaced, or its holder count moved.
 export const AwardDefinitionUpdatedEventSchema = z
-  .object({ type: z.literal('awardDefinition.updated'), ids: z.object({ awardId: awardIdSchema }).strict() })
+  .object({
+    type: z.literal('awardDefinition.updated'),
+    ids: z.object({ awardId: awardIdSchema }).strict(),
+  })
   .strict();
 
 export const AwardDefinitionDeletedEventSchema = z
-  .object({ type: z.literal('awardDefinition.deleted'), ids: z.object({ awardId: awardIdSchema }).strict() })
+  .object({
+    type: z.literal('awardDefinition.deleted'),
+    ids: z.object({ awardId: awardIdSchema }).strict(),
+  })
   .strict();
 
 // An award was granted to or revoked from some accounts, which may have cleared a featured badge.
 // The accounts are many, so the event names the award; a client holding any profile's awards
 // refreshes them.
 export const AwardGrantsChangedEventSchema = z
-  .object({ type: z.literal('awardGrants.changed'), ids: z.object({ awardId: awardIdSchema }).strict() })
+  .object({
+    type: z.literal('awardGrants.changed'),
+    ids: z.object({ awardId: awardIdSchema }).strict(),
+  })
   .strict();
 
 // An account chose which of its awards to feature beside its name.
 export const FeaturedAwardsChangedEventSchema = z
-  .object({ type: z.literal('featuredAwards.changed'), ids: z.object({ userId: userIdSchema }).strict() })
+  .object({
+    type: z.literal('featuredAwards.changed'),
+    ids: z.object({ userId: userIdSchema }).strict(),
+  })
   .strict();
 
 // A hardware loan contract was created, signed, returned, or deleted.
 export const HardwareLoanContractChangedEventSchema = z
   .object({
     type: z.literal('hardwareLoanContract.changed'),
-    ids: z.object({ contractId: hardwareLoanContractIdSchema, refereeUserId: userIdSchema }).strict(),
+    ids: z
+      .object({ contractId: hardwareLoanContractIdSchema, refereeUserId: userIdSchema })
+      .strict(),
   })
   .strict();
 
 export const AdminListChangedEventSchema = z
-  .object({ type: z.literal('adminList.changed'), ids: z.object({ userId: userIdSchema }).strict() })
+  .object({
+    type: z.literal('adminList.changed'),
+    ids: z.object({ userId: userIdSchema }).strict(),
+  })
   .strict();
 
 // A new account finished registration: its profile and public identity now exist.
@@ -294,7 +349,10 @@ export const UserRegisteredEventSchema = z
   .strict();
 
 export const DisplayNameChangedEventSchema = z
-  .object({ type: z.literal('displayName.changed'), ids: z.object({ userId: userIdSchema }).strict() })
+  .object({
+    type: z.literal('displayName.changed'),
+    ids: z.object({ userId: userIdSchema }).strict(),
+  })
   .strict();
 
 // The shared stats beacon moved: stats changed somewhere. The beacon holds only its latest change,
@@ -383,7 +441,9 @@ export const LeagueTeamDeletionAdvancedEventSchema = z
 export const GhostPlayerFinishedEntriesRemovedEventSchema = z
   .object({
     type: z.literal('ghostPlayer.finishedEntriesRemoved'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema, ghostUserId: userIdSchema }).strict(),
+    ids: z
+      .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, ghostUserId: userIdSchema })
+      .strict(),
   })
   .strict();
 
@@ -408,7 +468,11 @@ export const GalleryPictureAddedEventSchema = z
   .object({
     type: z.literal('galleryPicture.added'),
     ids: z
-      .object({ ownerKind: galleryOwnerKindSchema, ownerId: z.string().min(1), pictureId: pictureIdSchema })
+      .object({
+        ownerKind: galleryOwnerKindSchema,
+        ownerId: z.string().min(1),
+        pictureId: pictureIdSchema,
+      })
       .strict(),
     position: z.string().min(1),
     createdAt: epochMsSchema,

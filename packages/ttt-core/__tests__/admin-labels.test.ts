@@ -32,7 +32,11 @@ import { AdminDispatchSchema } from '../src/doc-schemas/messaging.js';
 import { guildInviteConversationStatusSchema } from '../src/schemas/atoms.js';
 import { CommissionProposalStatusSchema } from '../src/schemas/commissions.js';
 import { InviteSourceSchema } from '../src/schemas/work-project-management.js';
-import { FullChapterSchema, FullTuneTrackSchema, FullTelevisionEpisodeSchema } from '../src/doc-schemas/content.js';
+import {
+  FullChapterSchema,
+  FullTuneTrackSchema,
+  FullTelevisionEpisodeSchema,
+} from '../src/doc-schemas/content.js';
 import { AuditionSchema } from '../src/doc-schemas/commissions.js';
 import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 import { FEEDBACK_TYPES } from '../src/constants/business-admin.js';
@@ -205,7 +209,9 @@ describe('clearableTextFieldLabel', () => {
     // `workProject` is a MODERATION_CLEARABLE_TEXT_FIELDS surface but not a
     // HallContentTextSurface, so it has no overrides — a Work's workingTitle is still a Title.
     for (const field of MODERATION_CLEARABLE_TEXT_FIELDS.workProject) {
-      expect(clearableTextFieldLabel(field, 'workProject')).toBe(CLEARABLE_TEXT_FIELD_LABELS[field]);
+      expect(clearableTextFieldLabel(field, 'workProject')).toBe(
+        CLEARABLE_TEXT_FIELD_LABELS[field],
+      );
     }
     expect(clearableTextFieldLabel('workingTitle', 'workProject')).toBe('Title');
   });
@@ -248,7 +254,9 @@ describe('appliesToTypeLabel', () => {
   });
 
   it('names both when a rule is narrowed to a Work type and a wing', () => {
-    expect(appliesToTypeLabel({ workProjectType: 'Television', hallWingType: 'newsPolitical' })).toBe('Television, News/Political wing only');
+    expect(
+      appliesToTypeLabel({ workProjectType: 'Television', hallWingType: 'newsPolitical' }),
+    ).toBe('Television, News/Political wing only');
   });
 });
 
@@ -264,7 +272,9 @@ describe('stored-enum display labels', () => {
       cancelled: 'Cancelled',
       finalized: 'Finalized',
     });
-    expect(Object.keys(GUILD_INVITE_STATUS_LABELS).sort()).toEqual([...guildInviteConversationStatusSchema.options].sort());
+    expect(Object.keys(GUILD_INVITE_STATUS_LABELS).sort()).toEqual(
+      [...guildInviteConversationStatusSchema.options].sort(),
+    );
   });
 
   it('commission proposal statuses read as the proposals table shows them', () => {
@@ -274,7 +284,9 @@ describe('stored-enum display labels', () => {
       accepted: 'Accepted',
       rejected: 'Rejected',
     });
-    expect(Object.keys(COMMISSION_PROPOSAL_STATUS_LABELS).sort()).toEqual([...CommissionProposalStatusSchema.options].sort());
+    expect(Object.keys(COMMISSION_PROPOSAL_STATUS_LABELS).sort()).toEqual(
+      [...CommissionProposalStatusSchema.options].sort(),
+    );
   });
 
   it('chapter, track, and episode statuses read as the section tables show them, pending approval as "Pending approval"', () => {
@@ -284,7 +296,9 @@ describe('stored-enum display labels', () => {
       published: 'published',
     });
     for (const schema of [FullChapterSchema, FullTuneTrackSchema, FullTelevisionEpisodeSchema]) {
-      expect(Object.keys(HALL_SUB_ITEM_STATUS_LABELS).sort()).toEqual([...schema.shape.status.options].sort());
+      expect(Object.keys(HALL_SUB_ITEM_STATUS_LABELS).sort()).toEqual(
+        [...schema.shape.status.options].sort(),
+      );
     }
   });
 
@@ -294,12 +308,20 @@ describe('stored-enum display labels', () => {
       closed: 'Closed',
       pendingReview: 'PendingReview',
     });
-    expect(Object.keys(AUDITION_STATUS_LABELS).sort()).toEqual([...AuditionSchema.shape.status.options].sort());
+    expect(Object.keys(AUDITION_STATUS_LABELS).sort()).toEqual(
+      [...AuditionSchema.shape.status.options].sort(),
+    );
   });
 
   it('Work types read as the Work lists show them', () => {
-    expect(WORK_PROJECT_TYPE_LABELS).toEqual({ Tales: 'Tales', Tunes: 'Tunes', Television: 'Television' });
-    expect(Object.keys(WORK_PROJECT_TYPE_LABELS).sort()).toEqual([...WORK_PROJECT_TYPE_KEYS].sort());
+    expect(WORK_PROJECT_TYPE_LABELS).toEqual({
+      Tales: 'Tales',
+      Tunes: 'Tunes',
+      Television: 'Television',
+    });
+    expect(Object.keys(WORK_PROJECT_TYPE_LABELS).sort()).toEqual(
+      [...WORK_PROJECT_TYPE_KEYS].sort(),
+    );
   });
 
   it('invite source types read as the invite dialog states them', () => {
@@ -322,10 +344,12 @@ describe('short-link and support-thread labels', () => {
       commission: 'Commission',
       'hall-library-item': 'Hall entry',
     });
-    expect(Object.keys(SHORT_LINK_TARGET_TYPE_LABELS)).toEqual([...ShortLinkTargetTypeSchema.options]);
+    expect(Object.keys(SHORT_LINK_TARGET_TYPE_LABELS)).toEqual([
+      ...ShortLinkTargetTypeSchema.options,
+    ]);
   });
 
-  it('support-thread statuses read with the admin browse list\'s words on every screen', () => {
+  it("support-thread statuses read with the admin browse list's words on every screen", () => {
     expect(ADMIN_DISPATCH_STATUS_LABELS).toEqual({
       open: 'Open',
       user_reply: 'User replied',
@@ -333,7 +357,9 @@ describe('short-link and support-thread labels', () => {
       closed_resolved: 'Resolved',
       closed_unresolved: 'Closed',
     });
-    expect(Object.keys(ADMIN_DISPATCH_STATUS_LABELS).sort()).toEqual([...AdminDispatchSchema.shape.status.options].sort());
+    expect(Object.keys(ADMIN_DISPATCH_STATUS_LABELS).sort()).toEqual(
+      [...AdminDispatchSchema.shape.status.options].sort(),
+    );
   });
 });
 

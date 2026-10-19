@@ -75,7 +75,13 @@ describe('internal-auth', () => {
     const sig = await signInternalRequest(fields, secret);
     expect(sig.version).toBe('v1');
     const res = await verifyInternalRequest(
-      { ...fields, version: sig.version, signature: sig.signature, nowSec: 1_000_100, replayWindowSec: 300 },
+      {
+        ...fields,
+        version: sig.version,
+        signature: sig.signature,
+        nowSec: 1_000_100,
+        replayWindowSec: 300,
+      },
       secret,
     );
     expect(res).toEqual({ ok: true });
@@ -84,7 +90,14 @@ describe('internal-auth', () => {
   it('rejects a tampered body hash', async () => {
     const sig = await signInternalRequest(fields, secret);
     const res = await verifyInternalRequest(
-      { ...fields, bodyHash: 'b'.repeat(64), version: sig.version, signature: sig.signature, nowSec: 1_000_010, replayWindowSec: 300 },
+      {
+        ...fields,
+        bodyHash: 'b'.repeat(64),
+        version: sig.version,
+        signature: sig.signature,
+        nowSec: 1_000_010,
+        replayWindowSec: 300,
+      },
       secret,
     );
     expect(res).toEqual({ ok: false, reason: 'bad-signature' });
@@ -92,9 +105,20 @@ describe('internal-auth', () => {
 
   it('rejects a tampered path / method / operationId', async () => {
     const sig = await signInternalRequest(fields, secret);
-    for (const override of [{ path: '/internal/other' }, { method: 'GET' }, { operationId: 'op-999' }]) {
+    for (const override of [
+      { path: '/internal/other' },
+      { method: 'GET' },
+      { operationId: 'op-999' },
+    ]) {
       const res = await verifyInternalRequest(
-        { ...fields, ...override, version: sig.version, signature: sig.signature, nowSec: 1_000_010, replayWindowSec: 300 },
+        {
+          ...fields,
+          ...override,
+          version: sig.version,
+          signature: sig.signature,
+          nowSec: 1_000_010,
+          replayWindowSec: 300,
+        },
         secret,
       );
       expect(res).toEqual({ ok: false, reason: 'bad-signature' });
@@ -104,7 +128,13 @@ describe('internal-auth', () => {
   it('rejects the wrong secret', async () => {
     const sig = await signInternalRequest(fields, secret);
     const res = await verifyInternalRequest(
-      { ...fields, version: sig.version, signature: sig.signature, nowSec: 1_000_010, replayWindowSec: 300 },
+      {
+        ...fields,
+        version: sig.version,
+        signature: sig.signature,
+        nowSec: 1_000_010,
+        replayWindowSec: 300,
+      },
       'other-secret',
     );
     expect(res).toEqual({ ok: false, reason: 'bad-signature' });
@@ -113,12 +143,24 @@ describe('internal-auth', () => {
   it('enforces the replay window (expired past / future)', async () => {
     const sig = await signInternalRequest(fields, secret);
     const expired = await verifyInternalRequest(
-      { ...fields, version: sig.version, signature: sig.signature, nowSec: 1_000_000 + 301, replayWindowSec: 300 },
+      {
+        ...fields,
+        version: sig.version,
+        signature: sig.signature,
+        nowSec: 1_000_000 + 301,
+        replayWindowSec: 300,
+      },
       secret,
     );
     expect(expired).toEqual({ ok: false, reason: 'expired' });
     const future = await verifyInternalRequest(
-      { ...fields, version: sig.version, signature: sig.signature, nowSec: 1_000_000 - 301, replayWindowSec: 300 },
+      {
+        ...fields,
+        version: sig.version,
+        signature: sig.signature,
+        nowSec: 1_000_000 - 301,
+        replayWindowSec: 300,
+      },
       secret,
     );
     expect(future).toEqual({ ok: false, reason: 'future' });
@@ -127,12 +169,24 @@ describe('internal-auth', () => {
   it('rejects a bad protocol version and a malformed signature', async () => {
     const sig = await signInternalRequest(fields, secret);
     const badVer = await verifyInternalRequest(
-      { ...fields, version: 'v2', signature: sig.signature, nowSec: 1_000_010, replayWindowSec: 300 },
+      {
+        ...fields,
+        version: 'v2',
+        signature: sig.signature,
+        nowSec: 1_000_010,
+        replayWindowSec: 300,
+      },
       secret,
     );
     expect(badVer).toEqual({ ok: false, reason: 'bad-version' });
     const badSig = await verifyInternalRequest(
-      { ...fields, version: sig.version, signature: '!!!not-base64url!!!', nowSec: 1_000_010, replayWindowSec: 300 },
+      {
+        ...fields,
+        version: sig.version,
+        signature: '!!!not-base64url!!!',
+        nowSec: 1_000_010,
+        replayWindowSec: 300,
+      },
       secret,
     );
     expect(badSig.ok).toBe(false);
@@ -174,19 +228,54 @@ describe('signed-token', () => {
 
 describe('versioned-apply', () => {
   it('applies when there is no stored record', () => {
-    expect(decideVersionedApply({ incomingVersion: 1, incomingHash: 'h', storedVersion: null, storedHash: null })).toBe('apply');
+    expect(
+      decideVersionedApply({
+        incomingVersion: 1,
+        incomingHash: 'h',
+        storedVersion: null,
+        storedHash: null,
+      }),
+    ).toBe('apply');
   });
   it('applies a newer version', () => {
-    expect(decideVersionedApply({ incomingVersion: 3, incomingHash: 'h', storedVersion: 2, storedHash: 'g' })).toBe('apply');
+    expect(
+      decideVersionedApply({
+        incomingVersion: 3,
+        incomingHash: 'h',
+        storedVersion: 2,
+        storedHash: 'g',
+      }),
+    ).toBe('apply');
   });
   it('is idempotent at equal version + same hash', () => {
-    expect(decideVersionedApply({ incomingVersion: 2, incomingHash: 'h', storedVersion: 2, storedHash: 'h' })).toBe('idempotent');
+    expect(
+      decideVersionedApply({
+        incomingVersion: 2,
+        incomingHash: 'h',
+        storedVersion: 2,
+        storedHash: 'h',
+      }),
+    ).toBe('idempotent');
   });
   it('conflicts at equal version + different hash', () => {
-    expect(decideVersionedApply({ incomingVersion: 2, incomingHash: 'h', storedVersion: 2, storedHash: 'g' })).toBe('conflict');
+    expect(
+      decideVersionedApply({
+        incomingVersion: 2,
+        incomingHash: 'h',
+        storedVersion: 2,
+        storedHash: 'g',
+      }),
+    ).toBe('conflict');
   });
   it('is a stale no-op for an older version', () => {
-    expect(decideVersionedApply({ incomingVersion: 1, incomingHash: 'h', storedVersion: 2, storedHash: 'g' })).toBe('stale');
+    expect(
+      decideVersionedApply({
+        incomingVersion: 1,
+        incomingHash: 'h',
+        storedVersion: 2,
+        storedHash: 'g',
+      }),
+    ).toBe('stale');
   });
 });
 
@@ -194,9 +283,17 @@ describe('envelopes', () => {
   it('StructuredError parses a minimal + full shape and rejects extras', () => {
     expect(StructuredErrorSchema.parse({ code: 'x', message: 'm' }).code).toBe('x');
     expect(
-      StructuredErrorSchema.parse({ code: 'x', message: 'm', retryable: true, details: { a: 1 }, at: 5 }).retryable,
+      StructuredErrorSchema.parse({
+        code: 'x',
+        message: 'm',
+        retryable: true,
+        details: { a: 1 },
+        at: 5,
+      }).retryable,
     ).toBe(true);
-    expect(StructuredErrorSchema.safeParse({ code: 'x', message: 'm', bogus: 1 }).success).toBe(false);
+    expect(StructuredErrorSchema.safeParse({ code: 'x', message: 'm', bogus: 1 }).success).toBe(
+      false,
+    );
   });
 
   it('isProtocolSupported allows one rolling version of skew', () => {

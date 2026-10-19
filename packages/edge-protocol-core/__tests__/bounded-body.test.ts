@@ -8,7 +8,9 @@ const encoder = new TextEncoder();
 function streamedRequest(chunks: Uint8Array[], contentLength?: string) {
   let pulled = 0;
   const cancel = vi.fn(async () => {});
-  const headers = new Headers(contentLength === undefined ? {} : { 'content-length': contentLength });
+  const headers = new Headers(
+    contentLength === undefined ? {} : { 'content-length': contentLength },
+  );
   const source: BoundedBodySource = {
     headers,
     body: {
@@ -30,15 +32,21 @@ function streamedRequest(chunks: Uint8Array[], contentLength?: string) {
 describe('readBoundedBody', () => {
   it('returns the body text when it fits the budget', async () => {
     const body = JSON.stringify({ record: { assetId: 'a1' } });
-    const result = await readBoundedBody(new Request('https://x.test/p', { method: 'POST', body }), {
-      maxBytes: 1024,
-    });
+    const result = await readBoundedBody(
+      new Request('https://x.test/p', { method: 'POST', body }),
+      {
+        maxBytes: 1024,
+      },
+    );
     expect(result).toEqual({ ok: true, text: body });
   });
 
   it('accepts a body of exactly the budget', async () => {
     const { source } = streamedRequest([encoder.encode('abcd'), encoder.encode('efgh')], '8');
-    await expect(readBoundedBody(source, { maxBytes: 8 })).resolves.toEqual({ ok: true, text: 'abcdefgh' });
+    await expect(readBoundedBody(source, { maxBytes: 8 })).resolves.toEqual({
+      ok: true,
+      text: 'abcdefgh',
+    });
   });
 
   it('refuses a declared Content-Length over the budget without reading the body', async () => {
@@ -66,7 +74,10 @@ describe('readBoundedBody', () => {
   });
 
   it('enforces the budget on the bytes sent when the Content-Length understates them', async () => {
-    const { source, pulled } = streamedRequest([encoder.encode('12345'), encoder.encode('67890')], '4');
+    const { source, pulled } = streamedRequest(
+      [encoder.encode('12345'), encoder.encode('67890')],
+      '4',
+    );
 
     const result = await readBoundedBody(source, { maxBytes: 8 });
 
@@ -76,7 +87,10 @@ describe('readBoundedBody', () => {
 
   it('ignores an unparseable Content-Length and still counts the bytes', async () => {
     const { source } = streamedRequest([encoder.encode('ok')], 'lots');
-    await expect(readBoundedBody(source, { maxBytes: 8 })).resolves.toEqual({ ok: true, text: 'ok' });
+    await expect(readBoundedBody(source, { maxBytes: 8 })).resolves.toEqual({
+      ok: true,
+      text: 'ok',
+    });
   });
 
   it('decodes multi-byte characters split across chunks exactly as request.text() does', async () => {

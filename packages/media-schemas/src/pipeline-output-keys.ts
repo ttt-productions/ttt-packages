@@ -4,16 +4,16 @@
 // a variant name — derives that set from these declarations rather than restating the names.
 
 /** The one transcoded output of a video or an audio file. */
-export const TIMED_MEDIA_MAIN_OUTPUT_KEY = "main" as const;
+export const TIMED_MEDIA_MAIN_OUTPUT_KEY = 'main' as const;
 
 /** A video's poster frame, written whenever the transcode produces one. */
-export const VIDEO_POSTER_OUTPUT_KEY = "poster" as const;
+export const VIDEO_POSTER_OUTPUT_KEY = 'poster' as const;
 
 /**
  * An image's single output when its processing spec declares no variants. An image spec that
  * declares variants is written under each variant's own `key` instead.
  */
-export const IMAGE_DEFAULT_OUTPUT_KEY = "original" as const;
+export const IMAGE_DEFAULT_OUTPUT_KEY = 'original' as const;
 
 /**
  * Every output key the pipeline writes for timed media, by kind. Images are written under the

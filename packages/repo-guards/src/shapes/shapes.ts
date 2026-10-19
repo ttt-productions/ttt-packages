@@ -32,7 +32,10 @@ interface ShapeBase {
 }
 
 /** Every match of a regular expression in a file's comment-stripped code. */
-export function matchPattern(pattern: RegExp, detail?: (match: RegExpExecArray) => string): Matcher {
+export function matchPattern(
+  pattern: RegExp,
+  detail?: (match: RegExpExecArray) => string,
+): Matcher {
   const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
   return (file) => {
     const re = new RegExp(pattern.source, flags);
@@ -48,17 +51,25 @@ export function matchPattern(pattern: RegExp, detail?: (match: RegExpExecArray) 
 function baseProblems(shape: ShapeBase, problems: string[]) {
   textProblem(shape.title, 'the title', problems);
   textProblem(shape.description, `${shape.title}: the description`, problems);
-  if (!shape.scope?.roots?.length || !shape.scope?.kinds?.length) problems.push(`${shape.title}: the scope names no root or kind`);
-  if (!shape.samples?.flags?.length) problems.push(`${shape.title}: no must-fail sample — a matcher that catches nothing passes everything`);
+  if (!shape.scope?.roots?.length || !shape.scope?.kinds?.length)
+    problems.push(`${shape.title}: the scope names no root or kind`);
+  if (!shape.samples?.flags?.length)
+    problems.push(
+      `${shape.title}: no must-fail sample — a matcher that catches nothing passes everything`,
+    );
   if (!shape.samples?.passes?.length) problems.push(`${shape.title}: no must-pass sample`);
 }
 
 function fail(title: string, problems: string[]): never {
-  throw new Error(`repo-guards: the business guard "${title}" is malformed:\n  - ${problems.join('\n  - ')}`);
+  throw new Error(
+    `repo-guards: the business guard "${title}" is malformed:\n  - ${problems.join('\n  - ')}`,
+  );
 }
 
 const toView = (sample: Sample) =>
-  typeof sample === 'string' ? viewOfText('sample.ts', sample) : viewOfText(sample.path, sample.text);
+  typeof sample === 'string'
+    ? viewOfText('sample.ts', sample)
+    : viewOfText(sample.path, sample.text);
 
 function withSamples(shape: ShapeBase, matcher: Matcher, run: Guard['run']): Guard {
   return {
@@ -75,7 +86,11 @@ function withSamples(shape: ShapeBase, matcher: Matcher, run: Guard['run']): Gua
 }
 
 const findingsAt = (file: FileView, hits: readonly Hit[], prefix: string): Finding[] =>
-  hits.map((hit) => ({ file: file.path, line: file.lineOf(hit.index), detail: `${prefix}${hit.detail ?? ''}`.trim() }));
+  hits.map((hit) => ({
+    file: file.path,
+    line: file.lineOf(hit.index),
+    detail: `${prefix}${hit.detail ?? ''}`.trim(),
+  }));
 
 /**
  * Owner-only: the pattern may appear only in the owner files. An owner the pattern no longer
@@ -86,7 +101,8 @@ export function ownerOnly(shape: ShapeBase & { match: Matcher; owners: readonly 
   baseProblems(shape, problems);
   if (typeof shape.match !== 'function') problems.push(`${shape.title}: no matcher`);
   if (!shape.owners?.length) problems.push(`${shape.title}: names no owner file`);
-  if (new Set(shape.owners).size !== shape.owners?.length) problems.push(`${shape.title}: an owner is listed twice`);
+  if (new Set(shape.owners).size !== shape.owners?.length)
+    problems.push(`${shape.title}: an owner is listed twice`);
   if (problems.length) fail(shape.title, problems);
   const owners = new Set(shape.owners);
   return withSamples(shape, shape.match, (context: GuardContext) => {
@@ -99,8 +115,13 @@ export function ownerOnly(shape: ShapeBase & { match: Matcher; owners: readonly 
       else findings.push(...findingsAt(file, hits, 'outside its owner: '));
     }
     for (const owner of owners) {
-      if (!context.reader.exists(owner)) findings.push({ file: owner, detail: 'the owner file no longer exists' });
-      else if (!held.has(owner)) findings.push({ file: owner, detail: 'stale owner: the pattern no longer appears in it (or it is outside the scope)' });
+      if (!context.reader.exists(owner))
+        findings.push({ file: owner, detail: 'the owner file no longer exists' });
+      else if (!held.has(owner))
+        findings.push({
+          file: owner,
+          detail: 'stale owner: the pattern no longer appears in it (or it is outside the scope)',
+        });
     }
     return findings;
   });
@@ -115,7 +136,9 @@ export interface AllowlistEntry extends Reviewed {
  * Reviewed allowlist: the pattern may appear only in reviewed files. An entry whose file no longer
  * holds the pattern (or holds it a different number of times than reviewed) is stale.
  */
-export function reviewedAllowlist(shape: ShapeBase & { match: Matcher; allowlist: readonly AllowlistEntry[] }): Guard {
+export function reviewedAllowlist(
+  shape: ShapeBase & { match: Matcher; allowlist: readonly AllowlistEntry[] },
+): Guard {
   const problems: string[] = [];
   baseProblems(shape, problems);
   if (typeof shape.match !== 'function') problems.push(`${shape.title}: no matcher`);
@@ -133,15 +156,25 @@ export function reviewedAllowlist(shape: ShapeBase & { match: Matcher; allowlist
       else {
         counts.set(file.path, hits.length);
         if (entry.count !== undefined && hits.length > entry.count) {
-          findings.push(...findingsAt(file, hits.slice(entry.count), `more than the ${entry.count} reviewed: `));
+          findings.push(
+            ...findingsAt(file, hits.slice(entry.count), `more than the ${entry.count} reviewed: `),
+          );
         }
       }
     }
     for (const entry of shape.allowlist) {
       const found = counts.get(entry.path) ?? 0;
-      if (!found) findings.push({ file: entry.path, detail: 'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)' });
+      if (!found)
+        findings.push({
+          file: entry.path,
+          detail:
+            'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)',
+        });
       else if (entry.count !== undefined && found < entry.count) {
-        findings.push({ file: entry.path, detail: `stale count: reviewed ${entry.count}, found ${found}` });
+        findings.push({
+          file: entry.path,
+          detail: `stale count: reviewed ${entry.count}, found ${found}`,
+        });
       }
     }
     return findings;
@@ -167,27 +200,42 @@ export function declaredLiteral(
 ): Guard {
   const problems: string[] = [];
   baseProblems(shape, problems);
-  if (!['banned', 'owned', 'covered'].includes(shape.mode)) problems.push(`${shape.title}: unknown mode ${String(shape.mode)}`);
-  if (shape.mode === 'owned' && !shape.owners?.length) problems.push(`${shape.title}: an owned literal names no owner file`);
-  if (shape.mode !== 'owned' && shape.owners?.length) problems.push(`${shape.title}: owners apply only to the owned mode`);
-  if (!Array.isArray(shape.literals) && typeof shape.literals !== 'function') problems.push(`${shape.title}: no declared values`);
+  if (!['banned', 'owned', 'covered'].includes(shape.mode))
+    problems.push(`${shape.title}: unknown mode ${String(shape.mode)}`);
+  if (shape.mode === 'owned' && !shape.owners?.length)
+    problems.push(`${shape.title}: an owned literal names no owner file`);
+  if (shape.mode !== 'owned' && shape.owners?.length)
+    problems.push(`${shape.title}: owners apply only to the owned mode`);
+  if (!Array.isArray(shape.literals) && typeof shape.literals !== 'function')
+    problems.push(`${shape.title}: no declared values`);
   if (problems.length) fail(shape.title, problems);
 
-  const matcherFor = (literals: readonly Literal[]): Matcher => (file) => {
-    const hits: Hit[] = [];
-    for (const literal of literals) {
-      if (typeof literal === 'string') {
-        for (let i = file.code.indexOf(literal); i !== -1; i = file.code.indexOf(literal, i + literal.length)) {
-          hits.push({ index: i, detail: literal });
-        }
-      } else hits.push(...matchPattern(literal)(file));
-    }
-    return hits.sort((a, b) => a.index - b.index);
-  };
+  const matcherFor =
+    (literals: readonly Literal[]): Matcher =>
+    (file) => {
+      const hits: Hit[] = [];
+      for (const literal of literals) {
+        if (typeof literal === 'string') {
+          for (
+            let i = file.code.indexOf(literal);
+            i !== -1;
+            i = file.code.indexOf(literal, i + literal.length)
+          ) {
+            hits.push({ index: i, detail: literal });
+          }
+        } else hits.push(...matchPattern(literal)(file));
+      }
+      return hits.sort((a, b) => a.index - b.index);
+    };
   const load = async () => {
     const literals = typeof shape.literals === 'function' ? await shape.literals() : shape.literals;
-    if (!literals.length) throw new Error(`${shape.title}: the declared value list is empty, so the guard checks nothing`);
-    for (const l of literals) if (l === '' || (typeof l !== 'string' && !(l instanceof RegExp))) throw new Error(`${shape.title}: a declared value is empty or not a string or pattern`);
+    if (!literals.length)
+      throw new Error(
+        `${shape.title}: the declared value list is empty, so the guard checks nothing`,
+      );
+    for (const l of literals)
+      if (l === '' || (typeof l !== 'string' && !(l instanceof RegExp)))
+        throw new Error(`${shape.title}: a declared value is empty or not a string or pattern`);
     return literals;
   };
 
@@ -196,29 +244,50 @@ export function declaredLiteral(
     if (!loaded) throw new Error(`${shape.title}: the declared values were never loaded`);
     return loaded;
   };
-  const guard = withSamples(shape, (file) => matcherFor(literalsOrThrow())(file), (context) => {
-    const literals = literalsOrThrow();
-    const match = matcherFor(literals);
-    const findings: Finding[] = [];
-    const owners = new Set(shape.owners ?? []);
-    const held = new Set<string>();
-    const covered = new Set<Literal>();
-    for (const file of context.files(shape.scope)) {
-      const hits = match(file);
-      if (!hits.length) continue;
+  const guard = withSamples(
+    shape,
+    (file) => matcherFor(literalsOrThrow())(file),
+    (context) => {
+      const literals = literalsOrThrow();
+      const match = matcherFor(literals);
+      const findings: Finding[] = [];
+      const owners = new Set(shape.owners ?? []);
+      const held = new Set<string>();
+      const covered = new Set<Literal>();
+      for (const file of context.files(shape.scope)) {
+        const hits = match(file);
+        if (!hits.length) continue;
+        if (shape.mode === 'covered') {
+          for (const literal of literals)
+            if (matcherFor([literal])(file).length) covered.add(literal);
+        } else if (shape.mode === 'owned' && owners.has(file.path)) held.add(file.path);
+        else
+          findings.push(
+            ...findingsAt(
+              file,
+              hits,
+              shape.mode === 'banned' ? 'banned: ' : 'restated outside its owner: ',
+            ),
+          );
+      }
       if (shape.mode === 'covered') {
-        for (const literal of literals) if (matcherFor([literal])(file).length) covered.add(literal);
-      } else if (shape.mode === 'owned' && owners.has(file.path)) held.add(file.path);
-      else findings.push(...findingsAt(file, hits, shape.mode === 'banned' ? 'banned: ' : 'restated outside its owner: '));
-    }
-    if (shape.mode === 'covered') {
-      for (const literal of literals) if (!covered.has(literal)) findings.push({ file: '(declared values)', detail: `nothing in the scope covers ${String(literal)}` });
-    }
-    for (const owner of owners) {
-      if (!held.has(owner)) findings.push({ file: owner, detail: 'stale owner: no declared value appears in it (or it is outside the scope)' });
-    }
-    return findings;
-  });
+        for (const literal of literals)
+          if (!covered.has(literal))
+            findings.push({
+              file: '(declared values)',
+              detail: `nothing in the scope covers ${String(literal)}`,
+            });
+      }
+      for (const owner of owners) {
+        if (!held.has(owner))
+          findings.push({
+            file: owner,
+            detail: 'stale owner: no declared value appears in it (or it is outside the scope)',
+          });
+      }
+      return findings;
+    },
+  );
   return {
     ...guard,
     async prepare() {

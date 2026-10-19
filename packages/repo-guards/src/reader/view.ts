@@ -4,7 +4,11 @@
 import ts from 'typescript';
 import { kindOfFile, type FileKind, type RootRole } from '../node/layout.js';
 import { moduleImports, type ModuleImport } from '../support/imports.js';
-import { stripCodeComments, stripRulesComments, stripStylesheetComments } from './strip-comments.js';
+import {
+  stripCodeComments,
+  stripRulesComments,
+  stripStylesheetComments,
+} from './strip-comments.js';
 
 /**
  * What a file is to the reader: a declared root's role, a file an installed package ships, or a
@@ -67,8 +71,15 @@ export function buildView(input: {
   const readText = () => (text ??= load());
   const parse = () => {
     if (!sourceFile) {
-      if (kind !== 'code' && kind !== 'declarations') throw new Error(`repo-guards: ${rel} is ${kind}, not code`);
-      sourceFile = ts.createSourceFile(rel, readText(), ts.ScriptTarget.Latest, true, scriptKindOf(rel));
+      if (kind !== 'code' && kind !== 'declarations')
+        throw new Error(`repo-guards: ${rel} is ${kind}, not code`);
+      sourceFile = ts.createSourceFile(
+        rel,
+        readText(),
+        ts.ScriptTarget.Latest,
+        true,
+        scriptKindOf(rel),
+      );
     }
     return sourceFile;
   };
@@ -114,7 +125,11 @@ export function buildView(input: {
  * A view of text that is not on disk — a guard's sample, or a package self-test's input — built
  * exactly as the reader builds a file's view. Its kind comes from the path's name.
  */
-export function viewOfText(relPath: string, text: string, { isTest }: { isTest?: boolean } = {}): FileView {
+export function viewOfText(
+  relPath: string,
+  text: string,
+  { isTest }: { isTest?: boolean } = {},
+): FileView {
   const kind = kindOfFile(relPath.slice(relPath.lastIndexOf('/') + 1));
   if (!kind) throw new Error(`repo-guards: ${relPath} is no kind of file a guard reads`);
   return buildView({
@@ -126,4 +141,3 @@ export function viewOfText(relPath: string, text: string, { isTest }: { isTest?:
     load: () => text,
   });
 }
-

@@ -6,8 +6,8 @@
 // The HttpsError code, as the server (`failed-precondition`) and the Firebase client SDK
 // (`functions/failed-precondition`) spell it.
 const FAILED_PRECONDITION_CODES: ReadonlySet<string> = new Set([
-  "failed-precondition",
-  "functions/failed-precondition",
+  'failed-precondition',
+  'functions/failed-precondition',
 ]);
 
 /**
@@ -17,7 +17,9 @@ const FAILED_PRECONDITION_CODES: ReadonlySet<string> = new Set([
  * `details.reason`, never by message text.
  */
 export function failedPreconditionDetails(err: unknown): unknown {
-  if (!err || typeof err !== "object") return undefined;
+  if (!err || typeof err !== 'object') return undefined;
   const e = err as { code?: unknown; details?: unknown };
-  return typeof e.code === "string" && FAILED_PRECONDITION_CODES.has(e.code) ? e.details : undefined;
+  return typeof e.code === 'string' && FAILED_PRECONDITION_CODES.has(e.code)
+    ? e.details
+    : undefined;
 }

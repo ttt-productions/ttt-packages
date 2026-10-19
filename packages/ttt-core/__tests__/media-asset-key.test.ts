@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildMediaAssetKey,
-  buildMediaAssetKeyPrefix,
-} from '../src/media/media-asset-url.js';
+import { buildMediaAssetKey, buildMediaAssetKeyPrefix } from '../src/media/media-asset-url.js';
 
 describe('buildMediaAssetKeyPrefix', () => {
   it('builds the prefix owning every variant of one asset', () => {
@@ -22,7 +19,7 @@ describe('buildMediaAssetKey', () => {
 
   it('derives from the prefix so the mediaAssets/ literal has one owner', () => {
     expect(buildMediaAssetKey('asset_abc', 'main')).toBe(
-      `${buildMediaAssetKeyPrefix('asset_abc')}/main`
+      `${buildMediaAssetKeyPrefix('asset_abc')}/main`,
     );
   });
 });

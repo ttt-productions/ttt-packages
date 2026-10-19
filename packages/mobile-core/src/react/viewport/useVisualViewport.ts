@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { hasVisualViewport, isBrowser } from "../../env.js";
+import { useEffect, useState } from 'react';
+import { hasVisualViewport, isBrowser } from '../../env.js';
 
 export function useVisualViewport() {
   const vv = isBrowser && hasVisualViewport ? window.visualViewport! : null;
@@ -29,12 +29,12 @@ export function useVisualViewport() {
       });
 
     onChange();
-    vv.addEventListener("resize", onChange, { passive: true });
-    vv.addEventListener("scroll", onChange, { passive: true });
+    vv.addEventListener('resize', onChange, { passive: true });
+    vv.addEventListener('scroll', onChange, { passive: true });
 
     return () => {
-      vv.removeEventListener("resize", onChange);
-      vv.removeEventListener("scroll", onChange);
+      vv.removeEventListener('resize', onChange);
+      vv.removeEventListener('scroll', onChange);
     };
   }, [vv]);
 

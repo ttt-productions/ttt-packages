@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // React hook for the REALTIME transport, returning the SAME shape as
 // `useChatMessages` (the firestore path) so `ChatShell` is transport-agnostic.
@@ -10,12 +10,12 @@
 // new uid replaces the old one (Contract A auth-user-switch teardown happens in the
 // owning hook).
 
-import * as React from "react";
-import type { ChatMessageV1 } from "@ttt-productions/chat-core";
-import type { RealtimeChatClient } from "./transport.js";
-import type { ChannelClientState } from "./channel-client.js";
-import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";
-import { newCorrelationId } from "./shared.js";
+import * as React from 'react';
+import type { ChatMessageV1 } from '@ttt-productions/chat-core';
+import type { RealtimeChatClient } from './transport.js';
+import type { ChannelClientState } from './channel-client.js';
+import { useOptionalChatNameResolver } from '../context/ChatNameResolverContext.js';
+import { newCorrelationId } from './shared.js';
 
 export type UseRealtimeChatMessagesResult = {
   allowed: boolean;
@@ -31,7 +31,7 @@ export type UseRealtimeChatMessagesResult = {
   /** Retry the connection now — the first-open failure's Retry. */
   retry: () => void;
   /** Realtime extras (not present on the firestore result) — optional for the UI. */
-  status: ChannelClientState["status"];
+  status: ChannelClientState['status'];
   /** The last structured error code the DO sent (e.g. a close reason). Drives the
    *  disconnected-banner detail (R13). */
   lastErrorCode: string | null;
@@ -87,8 +87,7 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   }, [client]);
 
   const send = React.useCallback(
-    (text: string): boolean =>
-      client.channel.send({ clientMessageId: newCorrelationId(), text }),
+    (text: string): boolean => client.channel.send({ clientMessageId: newCorrelationId(), text }),
     [client],
   );
 
@@ -105,7 +104,10 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   const signalTyping = React.useCallback(() => client.channel.typing(), [client]);
   const retry = React.useCallback(() => client.retry(), [client]);
   const presenceSubscribe = React.useCallback(() => client.channel.presenceSubscribe(), [client]);
-  const presenceUnsubscribe = React.useCallback(() => client.channel.presenceUnsubscribe(), [client]);
+  const presenceUnsubscribe = React.useCallback(
+    () => client.channel.presenceUnsubscribe(),
+    [client],
+  );
 
   return {
     // On the realtime transport DATA ACCESS is enforced by the DO grant, so the hook
@@ -114,7 +116,7 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     // maps to allowed:false so ChatShell renders its no-access surface instead of an
     // eternal loader; a transient close / 4403-revoke keeps allowed:true and rides the
     // reconnect/disconnected banner. Otherwise accessMode is presentation-only here.
-    allowed: state.lastErrorCode !== "access-denied",
+    allowed: state.lastErrorCode !== 'access-denied',
     // Derive initial loading from authoritative-data completion, NOT connection status:
     // a socket can be 'open' with no snapshot yet, and a post-load reconnect must not
     // fall back into the opening state. `hasLoadedInitialData` encodes the full table.
@@ -139,4 +141,3 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     presenceUnsubscribe,
   };
 }
-

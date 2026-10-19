@@ -17,7 +17,10 @@ import type {
 // here instead of failing a row's parse in production.
 function everyMember<Union extends string>() {
   return <const Keys extends readonly Union[]>(
-    keys: Keys & ([Exclude<Union, Keys[number]>] extends [never] ? unknown : { missing: Exclude<Union, Keys[number]> }),
+    keys: Keys &
+      ([Exclude<Union, Keys[number]>] extends [never]
+        ? unknown
+        : { missing: Exclude<Union, Keys[number]> }),
   ): Keys => keys;
 }
 
@@ -31,7 +34,10 @@ export const ADMIN_NOTIFICATION_CATEGORY = 'admin' as const satisfies Notificati
 export const SHARED_NOTIFICATION_AUDIENCE_SCOPE = 'shared';
 
 // What an admin is notified of: a team joining a league, and a player signing up as a free agent.
-export const ADMIN_NOTIFICATION_TYPE_KEYS = ['leagueTeamCreated', 'leagueFreeAgentSignedUp'] as const;
+export const ADMIN_NOTIFICATION_TYPE_KEYS = [
+  'leagueTeamCreated',
+  'leagueFreeAgentSignedUp',
+] as const;
 export type AdminNotificationType = (typeof ADMIN_NOTIFICATION_TYPE_KEYS)[number];
 
 // A delivery row's life on the ledger, as notification-core writes it. `skipped` is the terminal state
@@ -46,29 +52,28 @@ export const NOTIFICATION_DELIVERY_STATE_KEYS = everyMember<DeliveryState>()([
 export type NotificationDeliveryState = (typeof NOTIFICATION_DELIVERY_STATE_KEYS)[number];
 
 // Why notification-core turned a row `skipped`.
-export const NOTIFICATION_DELIVERY_SKIP_REASON_KEYS = everyMember<DeliverySkipReason>()(['recipientIneligible']);
+export const NOTIFICATION_DELIVERY_SKIP_REASON_KEYS = everyMember<DeliverySkipReason>()([
+  'recipientIneligible',
+]);
 
 // The worker lane a delivery row waits in: `directQueued` for a type only the worker materializes,
 // `realtimeFallback` for a type its owning callable also materializes right after its commit, and
 // `retry`, which notification-core moves a row into after a failed attempt. notification-core's
 // fourth lane, `fanoutOrphan`, holds rows of an audience fanout, which Q-Sports does not run, so it is
 // the one lane left out.
-export const NOTIFICATION_MATERIALIZATION_CLASS_KEYS = everyMember<Exclude<MaterializationClass, 'fanoutOrphan'>>()([
-  'directQueued',
-  'realtimeFallback',
-  'retry',
-]);
-export type NotificationMaterializationClass = (typeof NOTIFICATION_MATERIALIZATION_CLASS_KEYS)[number];
+export const NOTIFICATION_MATERIALIZATION_CLASS_KEYS = everyMember<
+  Exclude<MaterializationClass, 'fanoutOrphan'>
+>()(['directQueued', 'realtimeFallback', 'retry']);
+export type NotificationMaterializationClass =
+  (typeof NOTIFICATION_MATERIALIZATION_CLASS_KEYS)[number];
 
 // The shape of the occurrence payload every delivery row carries. A change to it is a new version,
 // so a row written under the old one is still read as what it is.
 export const NOTIFICATION_DELIVERY_PAYLOAD_VERSION = 1;
 
 // An archive-all job's state, which the status read hands the client's poller unchanged.
-export const NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS = everyMember<ArchiveAllJobSnapshot['state']>()([
-  'in-progress',
-  'complete',
-  'incomplete',
-  'failed',
-]);
-export type NotificationArchiveAllJobState = (typeof NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS)[number];
+export const NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS = everyMember<
+  ArchiveAllJobSnapshot['state']
+>()(['in-progress', 'complete', 'incomplete', 'failed']);
+export type NotificationArchiveAllJobState =
+  (typeof NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS)[number];

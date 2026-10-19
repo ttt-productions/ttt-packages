@@ -23,7 +23,10 @@ describe('PullToRefreshContainer', () => {
   it('shows the consumer refreshing indicator in place of the ring while refreshing', () => {
     pull.state = { isRefreshing: true, pullProgress: 1, pullDistance: 0 };
     const { container } = render(
-      <PullToRefreshContainer onRefresh={async () => {}} refreshingIndicator={<span data-testid="app-spinner" />}>
+      <PullToRefreshContainer
+        onRefresh={async () => {}}
+        refreshingIndicator={<span data-testid="app-spinner" />}
+      >
         <p>content</p>
       </PullToRefreshContainer>,
     );
@@ -34,7 +37,10 @@ describe('PullToRefreshContainer', () => {
   it('keeps the progress ring during the pull, even with a refreshing indicator supplied', () => {
     pull.state = { isRefreshing: false, pullProgress: 0.5, pullDistance: 40 };
     const { container } = render(
-      <PullToRefreshContainer onRefresh={async () => {}} refreshingIndicator={<span data-testid="app-spinner" />}>
+      <PullToRefreshContainer
+        onRefresh={async () => {}}
+        refreshingIndicator={<span data-testid="app-spinner" />}
+      >
         <p>content</p>
       </PullToRefreshContainer>,
     );

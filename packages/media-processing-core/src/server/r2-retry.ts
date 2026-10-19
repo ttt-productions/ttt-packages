@@ -27,10 +27,10 @@ export const R2_RETRY_AFTER_CAP_MS = 30_000;
 /** HTTP statuses treated as transient and safe to retry. */
 export const R2_RETRYABLE_STATUSES: ReadonlySet<number> = new Set([408, 429, 500, 502, 503, 504]);
 
-export type R2RetryableOperation = "putFile" | "copy" | "readToFile" | "deleteCopy";
+export type R2RetryableOperation = 'putFile' | 'copy' | 'readToFile' | 'deleteCopy';
 
 /** Every R2 store operation an `R2StorageError` can name; `delete` never retries. */
-export type R2Operation = R2RetryableOperation | "delete";
+export type R2Operation = R2RetryableOperation | 'delete';
 
 /** Deterministic seams for tests; production defaults are internal (see below). */
 export interface R2RetrySeams {
@@ -58,47 +58,47 @@ export function defaultR2RetrySeams(): R2RetrySeams {
 // Recognized transient transport failure codes (undici/fetch surface these on
 // the error or its `.cause`). A broken connection to R2 lands here.
 const RETRYABLE_NETWORK_ERROR_CODES: ReadonlySet<string> = new Set([
-  "ECONNRESET",
-  "ECONNREFUSED",
-  "ECONNABORTED",
-  "ETIMEDOUT",
-  "EPIPE",
-  "ENOTFOUND",
-  "EAI_AGAIN",
-  "ENETUNREACH",
-  "ENETDOWN",
-  "EHOSTUNREACH",
-  "EHOSTDOWN",
-  "UND_ERR_CONNECT_TIMEOUT",
-  "UND_ERR_HEADERS_TIMEOUT",
-  "UND_ERR_BODY_TIMEOUT",
-  "UND_ERR_SOCKET",
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ECONNABORTED',
+  'ETIMEDOUT',
+  'EPIPE',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ENETUNREACH',
+  'ENETDOWN',
+  'EHOSTUNREACH',
+  'EHOSTDOWN',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_SOCKET',
 ]);
 
 // Deterministic local filesystem errors are NEVER retried (disk full, perms,
 // missing dir, etc.). This guard wins over any transport classification so a
 // local write failure during readToFile piping can't be mistaken for transient.
 const LOCAL_FS_ERROR_CODES: ReadonlySet<string> = new Set([
-  "ENOSPC",
-  "EACCES",
-  "EISDIR",
-  "ENOENT",
-  "EROFS",
-  "EMFILE",
-  "ENFILE",
-  "EBADF",
-  "EEXIST",
-  "EPERM",
-  "ENAMETOOLONG",
-  "ELOOP",
-  "ENOTDIR",
-  "EDQUOT",
+  'ENOSPC',
+  'EACCES',
+  'EISDIR',
+  'ENOENT',
+  'EROFS',
+  'EMFILE',
+  'ENFILE',
+  'EBADF',
+  'EEXIST',
+  'EPERM',
+  'ENAMETOOLONG',
+  'ELOOP',
+  'ENOTDIR',
+  'EDQUOT',
 ]);
 
 function codeOf(err: unknown): string | undefined {
-  if (err && typeof err === "object") {
+  if (err && typeof err === 'object') {
     const c = (err as { code?: unknown }).code;
-    if (typeof c === "string") return c;
+    if (typeof c === 'string') return c;
   }
   return undefined;
 }
@@ -109,11 +109,11 @@ function codeOf(err: unknown): string | undefined {
  * an abort must never become another attempt.
  */
 export function isRetryableTransportError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
+  if (!err || typeof err !== 'object') return false;
   const e = err as { name?: unknown; cause?: unknown };
 
   // NEVER convert an explicit abort into another attempt.
-  if (e.name === "AbortError") return false;
+  if (e.name === 'AbortError') return false;
 
   const selfCode = codeOf(err);
   const causeCode = codeOf(e.cause);
@@ -129,7 +129,7 @@ export function isRetryableTransportError(err: unknown): boolean {
 
   // fetch()/undici surface transport failures as `TypeError: fetch failed`
   // (often with an unrecognized or absent cause) — treat those as transient.
-  if (err instanceof TypeError || e.name === "TypeError") return true;
+  if (err instanceof TypeError || e.name === 'TypeError') return true;
 
   return false;
 }
@@ -144,10 +144,13 @@ export function isRetryableTransportError(err: unknown): boolean {
  * (`"Wed, 21 Oct 2015 07:28:00 GMT"`). Returns null when absent/unparseable.
  * An HTTP-date in the past clamps to 0.
  */
-export function parseRetryAfterMs(headerValue: string | null | undefined, nowMs: number): number | null {
+export function parseRetryAfterMs(
+  headerValue: string | null | undefined,
+  nowMs: number,
+): number | null {
   if (headerValue == null) return null;
   const trimmed = headerValue.trim();
-  if (trimmed === "") return null;
+  if (trimmed === '') return null;
 
   // delta-seconds form
   if (/^\d+$/.test(trimmed)) {
@@ -177,7 +180,7 @@ export function computeR2DelayMs(params: {
   const { response, retryIndex, seams } = params;
 
   if (response) {
-    const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), seams.now());
+    const retryAfterMs = parseRetryAfterMs(response.headers.get('retry-after'), seams.now());
     if (retryAfterMs !== null) {
       return Math.min(retryAfterMs, R2_RETRY_AFTER_CAP_MS);
     }
@@ -223,12 +226,14 @@ export class R2StorageError extends Error {
     cause?: unknown;
   }) {
     const code = parseS3ErrorCode(params.responseText);
-    const detail = [params.status !== undefined ? `status ${params.status}` : undefined, code].filter(Boolean).join(" ");
+    const detail = [params.status !== undefined ? `status ${params.status}` : undefined, code]
+      .filter(Boolean)
+      .join(' ');
     super(
-      `R2 ${params.operation} failed after ${params.attempts} attempt(s)${detail ? `: ${detail}` : ""}`,
+      `R2 ${params.operation} failed after ${params.attempts} attempt(s)${detail ? `: ${detail}` : ''}`,
       params.cause !== undefined ? { cause: params.cause } : undefined,
     );
-    this.name = "R2StorageError";
+    this.name = 'R2StorageError';
     this.operation = params.operation;
     this.bucket = params.bucket;
     this.key = params.key;
@@ -249,17 +254,16 @@ function parseS3ErrorCode(responseText: string | undefined): string | undefined 
 // ---------------------------------------------------------------------------
 
 export type R2AttemptResult<T> =
-  | { kind: "success"; value: T }
-  | { kind: "response"; response: Response };
+  { kind: 'success'; value: T } | { kind: 'response'; response: Response };
 
 // Strip ASCII control characters (0x00-0x1F, 0x7F) and bound length. Done with a
 // code-point filter rather than a control-character regex (which `no-control-regex`
 // forbids and which would embed literal control bytes in source).
 function sanitizeBodyText(text: string): string {
-  let out = "";
+  let out = '';
   for (const ch of text.slice(0, 1000)) {
     const code = ch.codePointAt(0) ?? 0;
-    out += code < 0x20 || code === 0x7f ? " " : ch;
+    out += code < 0x20 || code === 0x7f ? ' ' : ch;
   }
   return out.trim().slice(0, 500);
 }
@@ -271,7 +275,7 @@ async function safeReadBoundedBody(res: Response): Promise<string> {
   try {
     return sanitizeBodyText(await res.text());
   } catch {
-    return "<no body>";
+    return '<no body>';
   }
 }
 
@@ -305,7 +309,7 @@ export async function fetchWithR2Retry<T>(params: {
       continue;
     }
 
-    if (result.kind === "success") return result.value;
+    if (result.kind === 'success') return result.value;
 
     const response = result.response;
     const status = response.status;

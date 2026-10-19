@@ -19,13 +19,18 @@ describe('displayNameReservationKey', () => {
   it('gives every display name the declaration accepts a key that is one document-id segment', () => {
     for (const name of ['Ada', 'abc', 'User123', 'Z'.repeat(20)]) {
       const parsed = displayNameSchema.parse(name);
-      expect(documentIdSegmentSchema.safeParse(displayNameReservationKey(parsed)).success, name).toBe(true);
+      expect(
+        documentIdSegmentSchema.safeParse(displayNameReservationKey(parsed)).success,
+        name,
+      ).toBe(true);
     }
   });
 
   it('never accepts a display name whose key would not be one document-id segment', () => {
     for (const name of ['ab/cd', '..', '__abc__']) {
-      expect(documentIdSegmentSchema.safeParse(displayNameReservationKey(name)).success, name).toBe(false);
+      expect(documentIdSegmentSchema.safeParse(displayNameReservationKey(name)).success, name).toBe(
+        false,
+      );
       expect(displayNameSchema.safeParse(name).success, name).toBe(false);
     }
   });

@@ -50,21 +50,31 @@ describe('hash (canonical, frozen)', () => {
 });
 
 describe('conversation identity', () => {
-  const guild = toChatConversationRef({ kind: 'channel', workProjectId: 'wp1', guildChatChannelId: 'ch1' });
+  const guild = toChatConversationRef({
+    kind: 'channel',
+    workProjectId: 'wp1',
+    guildChatChannelId: 'ch1',
+  });
   const invite = toChatConversationRef({ kind: 'invite', guildInviteId: 'gi1' });
 
   it('channelKey hashes the neutral reference — its kind and its id as separate parts', async () => {
     expect(await channelKey(guild)).toBe(await hash('chat-conversation', guild.kind, guild.id));
-    expect(await channelKey({ kind: 'room', id: 'r1' })).toBe(await hash('chat-conversation', 'room', 'r1'));
+    expect(await channelKey({ kind: 'room', id: 'r1' })).toBe(
+      await hash('chat-conversation', 'room', 'r1'),
+    );
   });
 
   it('two kinds never share a key, even with the same id', async () => {
-    expect(await channelKey({ kind: 'a', id: 'x' })).not.toBe(await channelKey({ kind: 'b', id: 'x' }));
+    expect(await channelKey({ kind: 'a', id: 'x' })).not.toBe(
+      await channelKey({ kind: 'b', id: 'x' }),
+    );
     expect(await channelKey(guild)).not.toBe(await channelKey(invite));
   });
 
   it('authPairKey = hash(chat-channel-auth, channelKey, uid)', async () => {
-    expect(await authPairKey(guild, 'u1')).toBe(await hash('chat-channel-auth', await channelKey(guild), 'u1'));
+    expect(await authPairKey(guild, 'u1')).toBe(
+      await hash('chat-channel-auth', await channelKey(guild), 'u1'),
+    );
   });
 });
 
@@ -81,16 +91,22 @@ describe('chatParkedDeliveryId', () => {
 describe('sync event + job ids match the frozen formulas', () => {
   it('chatSyncEvents eventIds', async () => {
     expect(await channelAuthEventId('ck', 'u1', 3)).toBe(await hash('channel-auth', 'ck', 'u1', 3));
-    expect(await accountAccessEventId('u1', 2, 'ck')).toBe(await hash('account-access', 'u1', 2, 'ck'));
+    expect(await accountAccessEventId('u1', 2, 'ck')).toBe(
+      await hash('account-access', 'u1', 2, 'ck'),
+    );
     expect(await configEventId('ck', 7)).toBe(await hash('config', 'ck', 7));
     expect(await serverMessageCommandId('tr', 'src')).toBe(await hash('server-msg', 'tr', 'src'));
   });
 
   it('fanout job + degraded ids', async () => {
-    expect(await chatSyncFanoutJobId('workChannelsForUser', await userWorkScopeKey('u1', 'wp1'), 4)).toBe(
+    expect(
+      await chatSyncFanoutJobId('workChannelsForUser', await userWorkScopeKey('u1', 'wp1'), 4),
+    ).toBe(
       await hash('chat-sync-fanout', 'workChannelsForUser', await userWorkScopeKey('u1', 'wp1'), 4),
     );
-    expect(await degradedCauseId('syncEvent', 'e1')).not.toBe(await degradedCauseId('fanoutJob', 'e1'));
+    expect(await degradedCauseId('syncEvent', 'e1')).not.toBe(
+      await degradedCauseId('fanoutJob', 'e1'),
+    );
   });
 
   it('inbox projection eventId', async () => {
@@ -122,12 +138,18 @@ describe('notification ids', () => {
 
 describe('moderation audit + anonymize ids', () => {
   it('moderation ids carry their distinguishing version part', async () => {
-    expect(await moderationRequestedAuditId('r1')).toBe(await hash('chat-moderation-requested', 'r1'));
-    expect(await moderationAppliedAuditId('r1', 2)).toBe(await hash('chat-moderation-applied', 'r1', 2));
+    expect(await moderationRequestedAuditId('r1')).toBe(
+      await hash('chat-moderation-requested', 'r1'),
+    );
+    expect(await moderationAppliedAuditId('r1', 2)).toBe(
+      await hash('chat-moderation-applied', 'r1', 2),
+    );
     expect(await moderationFailedAuditId('r1', 1)).not.toBe(await moderationFailedAuditId('r1', 2));
   });
 
   it('anonymize jobId', async () => {
-    expect(await chatAnonymizeJobId('do1', 5, 'u1')).toBe(await hash('chat-anonymize', 'do1', 5, 'u1'));
+    expect(await chatAnonymizeJobId('do1', 5, 'u1')).toBe(
+      await hash('chat-anonymize', 'do1', 5, 'u1'),
+    );
   });
 });

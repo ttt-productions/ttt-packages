@@ -5,7 +5,12 @@
 // per kind. Every snippet writes against that structure.
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createGuardProfile, loadRegistry, runGuardOnSources, VIOLATION_KINDS } from '../../src/modules/firestore/analyzer.js';
+import {
+  createGuardProfile,
+  loadRegistry,
+  runGuardOnSources,
+  VIOLATION_KINDS,
+} from '../../src/modules/firestore/analyzer.js';
 
 const FIXTURE_SOURCES = Object.freeze({
   core: () => import('./fixture-core-b/index.js'),
@@ -24,16 +29,27 @@ const FIXTURE_CONSTANT_MAPS = Object.freeze([
   'SPECIAL_DOCS',
 ]);
 
-const PROFILE = createGuardProfile({ corePackage: '@fixture/core-b', importAliases: { '@/': 'src/' } });
+const PROFILE = createGuardProfile({
+  corePackage: '@fixture/core-b',
+  importAliases: { '@/': 'src/' },
+});
 
 let registry;
 beforeAll(async () => {
-  registry = await loadRegistry({ sources: FIXTURE_SOURCES, constantMapNames: FIXTURE_CONSTANT_MAPS });
+  registry = await loadRegistry({
+    sources: FIXTURE_SOURCES,
+    constantMapNames: FIXTURE_CONSTANT_MAPS,
+  });
 });
 
 /** Analyze one fixture file and return its violations. */
 function analyze(source, { exceptions = [] } = {}) {
-  return runGuardOnSources({ sources: { 'fixture/writer.ts': source }, registry, profile: PROFILE, exceptions });
+  return runGuardOnSources({
+    sources: { 'fixture/writer.ts': source },
+    registry,
+    profile: PROFILE,
+    exceptions,
+  });
 }
 
 const kindsOf = (result) => result.violations.map((violation) => violation.kind);
@@ -140,16 +156,20 @@ describe('a discriminated path written with a discriminated payload', () => {
   });
 
   it("pairs a safeParse result's data the same way", () => {
-    const result = analyze(throughOneEntry(`
+    const result = analyze(
+      throughOneEntry(`
       const parsed = published.schema.safeParse(carried);
       if (!parsed.success) throw new Error('unpublishable');
       tx.set(ref, parsed.data);
-    `));
+    `),
+    );
     expect(result.violations).toEqual([]);
   });
 
   it('MUST FAIL — still fires when the payload is NOT purely the entry schema output', () => {
-    const result = analyze(throughOneEntry('tx.set(ref, { ...published.schema.parse(carried), pairingUndeclared: 1 });'));
+    const result = analyze(
+      throughOneEntry('tx.set(ref, { ...published.schema.parse(carried), pairingUndeclared: 1 });'),
+    );
     expect(detailsOf(result)).toContain('pairingUndeclared');
   });
 
@@ -161,7 +181,9 @@ describe('a discriminated path written with a discriminated payload', () => {
         tx.set(db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, published.subcollection, itemId))), PublishedTuneTrackSchema.parse(carried));
       }
     `);
-    expect(detailsOf(result)).toContain("'audioAssetId' is not declared by hallItems/{hallItemId}/hallItemTales/{itemId}");
+    expect(detailsOf(result)).toContain(
+      "'audioAssetId' is not declared by hallItems/{hallItemId}/hallItemTales/{itemId}",
+    );
   });
 
   // The same choice made twice — a subcollection map on one side, a switch over the same kind on
@@ -193,27 +215,31 @@ describe('a discriminated path written with a discriminated payload', () => {
   `;
 
   it('MUST FAIL — the same selector read in two places is not a proven pairing', () => {
-    const result = analyze(twoPlaces(`
+    const result = analyze(
+      twoPlaces(`
       case 'Tales':
         return { data: PublishedChapterSchema.parse(carried) };
       case 'Tunes':
         return { data: PublishedTuneTrackSchema.parse(carried) };
       default:
         return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
-    `));
+    `),
+    );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
     expect(detailsOf(result)).toContain("'content' is not declared by");
   });
 
-  it('MUST FAIL — crossed branches, each kind handed another kind\'s schema', () => {
-    const result = analyze(twoPlaces(`
+  it("MUST FAIL — crossed branches, each kind handed another kind's schema", () => {
+    const result = analyze(
+      twoPlaces(`
       case 'Tales':
         return { data: PublishedTuneTrackSchema.parse(carried) };
       case 'Tunes':
         return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
       default:
         return { data: PublishedChapterSchema.parse(carried) };
-    `));
+    `),
+    );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
   });
 

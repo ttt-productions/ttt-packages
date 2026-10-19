@@ -40,37 +40,39 @@ export type NotificationDeliverySkipReason = z.infer<typeof NotificationDelivery
 // ── notificationDeliveries/{deliveryId} ─────────────────────────────────────
 // BOTH the recipient ledger AND the occurrence ledger. Shared-admin rows set
 // recipientUid=null (the deliveryId hash uses the literal 'shared').
-export const NotificationDeliverySchema = z.object({
-  deliveryId: z.string(),
-  state: NotificationDeliveryStateSchema,
-  notificationType: z.string(),
-  eventId: z.string(),
-  recipientUid: z.string().nullable(),
-  aggregationKey: z.string(),
-  strategy: z.enum(['increment', 'staticRelight']),
-  payload: NotificationDeliveryPayloadSchema,
-  payloadVersion: z.number(),
-  materializationClass: z.enum(['directQueued', 'realtimeFallback', 'fanoutOrphan', 'retry']),
-  createdAt: z.number(),
-  attemptCount: z.number(),
-  nextAttemptAt: z.number(),
-  lastError: z.string().nullable(),
-  materializedAt: z.number().nullable(),
-  deadLetteredAt: z.number().nullable(),
-  // Present exactly on a `skipped` row.
-  skipReason: NotificationDeliverySkipReasonSchema.optional(),
-  skippedAt: z.number().optional(),
-  expireAt: expireAtField,
-}).superRefine((row, ctx) => {
-  const skipped = row.state === 'skipped';
-  if (skipped !== (row.skipReason !== undefined) || skipped !== (row.skippedAt !== undefined)) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['state'],
-      message: 'skipReason and skippedAt are present exactly on a skipped delivery row.',
-    });
-  }
-});
+export const NotificationDeliverySchema = z
+  .object({
+    deliveryId: z.string(),
+    state: NotificationDeliveryStateSchema,
+    notificationType: z.string(),
+    eventId: z.string(),
+    recipientUid: z.string().nullable(),
+    aggregationKey: z.string(),
+    strategy: z.enum(['increment', 'staticRelight']),
+    payload: NotificationDeliveryPayloadSchema,
+    payloadVersion: z.number(),
+    materializationClass: z.enum(['directQueued', 'realtimeFallback', 'fanoutOrphan', 'retry']),
+    createdAt: z.number(),
+    attemptCount: z.number(),
+    nextAttemptAt: z.number(),
+    lastError: z.string().nullable(),
+    materializedAt: z.number().nullable(),
+    deadLetteredAt: z.number().nullable(),
+    // Present exactly on a `skipped` row.
+    skipReason: NotificationDeliverySkipReasonSchema.optional(),
+    skippedAt: z.number().optional(),
+    expireAt: expireAtField,
+  })
+  .superRefine((row, ctx) => {
+    const skipped = row.state === 'skipped';
+    if (skipped !== (row.skipReason !== undefined) || skipped !== (row.skippedAt !== undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['state'],
+        message: 'skipReason and skippedAt are present exactly on a skipped delivery row.',
+      });
+    }
+  });
 export type NotificationDelivery = z.infer<typeof NotificationDeliverySchema>;
 
 // ── notificationFanoutJobs/{jobId} ──────────────────────────────────────────
@@ -136,34 +138,40 @@ const NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND = {
   allActiveUsers: docIdCursorSchema,
   workMembers: offsetCursorSchema,
   explicitUids: offsetCursorSchema,
-  userFollowersMany: z.null().or(z.object({
-    memberGroupIndex: z.number().int().min(0),
-    lastEdgeDocId: z.string().nullable(),
-  })),
-  realmMembers: z.null().or(z.object({
-    workId: z.string().nullable(),
-    workCursor: z.string().nullable(),
-    memberCursor: z.string().nullable(),
-  })),
+  userFollowersMany: z.null().or(
+    z.object({
+      memberGroupIndex: z.number().int().min(0),
+      lastEdgeDocId: z.string().nullable(),
+    }),
+  ),
+  realmMembers: z.null().or(
+    z.object({
+      workId: z.string().nullable(),
+      workCursor: z.string().nullable(),
+      memberCursor: z.string().nullable(),
+    }),
+  ),
   allArtisans: allArtisansCursorSchema,
 } as const satisfies Record<NotificationFanoutPhaseSelectorKind, z.ZodType>;
 
 /** One phase: its selector, the durable cursor in that selector's shape, and whether it is done. */
-export const NotificationFanoutPhaseSchema = z.object({
-  selector: NotificationFanoutPhaseSelectorSchema,
-  cursor: z.unknown().nullable(),
-  done: z.boolean(),
-}).superRefine((phase, ctx) => {
-  const cursorSchema: z.ZodType = NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND[phase.selector.kind];
-  const result = cursorSchema.safeParse(phase.cursor);
-  if (!result.success) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['cursor'],
-      message: `cursor shape invalid for selector kind '${phase.selector.kind}': ${result.error.issues[0]?.message ?? 'wrong type'}`,
-    });
-  }
-});
+export const NotificationFanoutPhaseSchema = z
+  .object({
+    selector: NotificationFanoutPhaseSelectorSchema,
+    cursor: z.unknown().nullable(),
+    done: z.boolean(),
+  })
+  .superRefine((phase, ctx) => {
+    const cursorSchema: z.ZodType = NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND[phase.selector.kind];
+    const result = cursorSchema.safeParse(phase.cursor);
+    if (!result.success) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['cursor'],
+        message: `cursor shape invalid for selector kind '${phase.selector.kind}': ${result.error.issues[0]?.message ?? 'wrong type'}`,
+      });
+    }
+  });
 export type NotificationFanoutPhase = z.infer<typeof NotificationFanoutPhaseSchema>;
 
 /** A fanout job's priority tier, one of `NOTIFICATION_FANOUT_PRIORITIES`. */
@@ -200,26 +208,29 @@ const NotificationFanoutJobBaseSchema = z.object({
  * admin-broadcast replay fields form one provenance unit: a job has all of them, or
  * none, since a partial set could not distinguish a safe retry from request-id reuse.
  */
-export const NotificationFanoutJobSchema = NotificationFanoutJobBaseSchema.superRefine((job, ctx) => {
-  if (job.phaseIndex >= job.phases.length) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['phaseIndex'],
-      message: `phaseIndex ${job.phaseIndex} out of range (phases.length=${job.phases.length})`,
-    });
-  }
-  const fields = ['requestId', 'actorUid', 'payloadHash'] as const;
-  const present = fields.filter((field) => job[field] !== undefined);
-  if (present.length !== 0 && present.length !== fields.length) {
-    for (const field of fields) {
-      if (job[field] === undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          path: [field],
-          message: 'Admin-broadcast replay provenance requires requestId, actorUid, and payloadHash together.',
-        });
+export const NotificationFanoutJobSchema = NotificationFanoutJobBaseSchema.superRefine(
+  (job, ctx) => {
+    if (job.phaseIndex >= job.phases.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['phaseIndex'],
+        message: `phaseIndex ${job.phaseIndex} out of range (phases.length=${job.phases.length})`,
+      });
+    }
+    const fields = ['requestId', 'actorUid', 'payloadHash'] as const;
+    const present = fields.filter((field) => job[field] !== undefined);
+    if (present.length !== 0 && present.length !== fields.length) {
+      for (const field of fields) {
+        if (job[field] === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [field],
+            message:
+              'Admin-broadcast replay provenance requires requestId, actorUid, and payloadHash together.',
+          });
+        }
       }
     }
-  }
-});
+  },
+);
 export type NotificationFanoutJob = z.infer<typeof NotificationFanoutJobSchema>;

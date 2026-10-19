@@ -6,11 +6,7 @@
 
 export type TaskPriority = 'critical' | 'high' | 'normal' | 'low';
 
-export type AdminTaskStatus =
-  | 'pending'
-  | 'checkedOut'
-  | 'workLater'
-  | 'completed';
+export type AdminTaskStatus = 'pending' | 'checkedOut' | 'workLater' | 'completed';
 
 export type ActivityAction =
   | 'checkout'

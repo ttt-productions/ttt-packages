@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { isBrowser, isIOS, isSafari } from "../../env.js";
-import { resolvePrefix, type CssPrefixOptions } from "../css-prefix.js";
+import { useEffect } from 'react';
+import { isBrowser, isIOS, isSafari } from '../../env.js';
+import { resolvePrefix, type CssPrefixOptions } from '../css-prefix.js';
 
 /**
  * Small, safe iOS Safari fixes:

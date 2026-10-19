@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import * as wpm from '../src/schemas/work-project-management.js';
-import { REALM_FILE_NON_CANON_STATUS, REALM_FILE_PENDING_APPROVAL_STATUS } from '../src/doc-schemas/media-assets.js';
+import {
+  REALM_FILE_NON_CANON_STATUS,
+  REALM_FILE_PENDING_APPROVAL_STATUS,
+} from '../src/doc-schemas/media-assets.js';
 
 // The Realm gallery and the steward's queue are endless lists an action must patch in place,
 // never reload (FRONTEND-103). Their rows are server projections the client cannot read, so a
@@ -54,7 +57,11 @@ describe('a Realm-file action answers with the file in each list after it', () =
         ...ids,
         sharedFile: null,
         promotionRequest: queueRow,
-        shareState: { workFileId: 'file1', realmFileCanonStatus: REALM_FILE_PENDING_APPROVAL_STATUS, realmFileShareRequestId: 'req1' },
+        shareState: {
+          workFileId: 'file1',
+          realmFileCanonStatus: REALM_FILE_PENDING_APPROVAL_STATUS,
+          realmFileShareRequestId: 'req1',
+        },
         folders: [],
       },
     });
@@ -62,15 +69,30 @@ describe('a Realm-file action answers with the file in each list after it', () =
   });
 
   it('every list is answered, even when the file is absent from it', () => {
-    const { shareState: _omitted, ...withoutShareState } = { ...ids, sharedFile: null, promotionRequest: null, shareState: null, folders: [] };
+    const { shareState: _omitted, ...withoutShareState } = {
+      ...ids,
+      sharedFile: null,
+      promotionRequest: null,
+      shareState: null,
+      folders: [],
+    };
     expect(wpm.RealmFileListsChangeSchema.safeParse(withoutShareState).success).toBe(false);
   });
 
   it('a gallery slot never holds a pending file, and the queue never an approved one', () => {
     const change = { ...ids, promotionRequest: null, shareState: null, folders: [] };
-    expect(wpm.RealmFileListsChangeSchema.safeParse({ ...change, sharedFile: { ...galleryRow, realmFileCanonStatus: REALM_FILE_PENDING_APPROVAL_STATUS } }).success).toBe(false);
     expect(
-      wpm.RealmFileListsChangeSchema.safeParse({ ...change, sharedFile: null, promotionRequest: { ...queueRow, realmFileCanonStatus: REALM_FILE_NON_CANON_STATUS } }).success,
+      wpm.RealmFileListsChangeSchema.safeParse({
+        ...change,
+        sharedFile: { ...galleryRow, realmFileCanonStatus: REALM_FILE_PENDING_APPROVAL_STATUS },
+      }).success,
+    ).toBe(false);
+    expect(
+      wpm.RealmFileListsChangeSchema.safeParse({
+        ...change,
+        sharedFile: null,
+        promotionRequest: { ...queueRow, realmFileCanonStatus: REALM_FILE_NON_CANON_STATUS },
+      }).success,
     ).toBe(false);
   });
 });
@@ -82,7 +104,10 @@ describe('a Realm folder action answers with the folder', () => {
   });
 
   it('delete answers the id of the folder it removed', () => {
-    expect(wpm.DeleteRealmFileFolderResultSchema.parse({ success: true, realmFileFolderId: 'folder1' }).realmFileFolderId).toBe('folder1');
+    expect(
+      wpm.DeleteRealmFileFolderResultSchema.parse({ success: true, realmFileFolderId: 'folder1' })
+        .realmFileFolderId,
+    ).toBe('folder1');
     expect(wpm.DeleteRealmFileFolderResultSchema.safeParse({ success: true }).success).toBe(false);
   });
 });
@@ -105,12 +130,19 @@ describe('a committed Realm action never fails on its post-commit read', () => {
 
   it('a transition always answers the change its transaction built', () => {
     expect(wpm.RealmFileTransitionResultSchema.safeParse({ success: true }).success).toBe(false);
-    expect(wpm.RealmFileTransitionResultSchema.safeParse({ success: true, change: { ...ids } }).success).toBe(false);
+    expect(
+      wpm.RealmFileTransitionResultSchema.safeParse({ success: true, change: { ...ids } }).success,
+    ).toBe(false);
     expect(wpm.RealmFileTransitionResultSchema.safeParse({}).success).toBe(false);
   });
 
   it('a folder create or rename answers success without the folder when the read failed', () => {
     expect(wpm.RealmFileFolderResultSchema.safeParse({ success: true }).success).toBe(true);
-    expect(wpm.RealmFileFolderResultSchema.safeParse({ success: true, folder: { realmFileFolderId: 'f' } }).success).toBe(false);
+    expect(
+      wpm.RealmFileFolderResultSchema.safeParse({
+        success: true,
+        folder: { realmFileFolderId: 'f' },
+      }).success,
+    ).toBe(false);
   });
 });

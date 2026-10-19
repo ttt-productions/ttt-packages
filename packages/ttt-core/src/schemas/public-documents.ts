@@ -67,42 +67,54 @@ export const PublicDocumentsRefreshRequiredResultSchema = z.object({
  * `documentId`, so each document's content is validated by its own schema.
  */
 export const SavePublicDocumentDraftInputSchema = z.discriminatedUnion('documentId', [
-  z.object({
-    documentId: z.literal(SPECIAL_DOCS.TERMS_PAGE),
-    baseVersion: baseVersionSchema,
-    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
-    content: LegalPageContentInputSchema,
-  }).strict(),
-  z.object({
-    documentId: z.literal(SPECIAL_DOCS.PRIVACY_PAGE),
-    baseVersion: baseVersionSchema,
-    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
-    content: LegalPageContentInputSchema,
-  }).strict(),
-  z.object({
-    documentId: z.literal(SPECIAL_DOCS.RULES_AND_AGREEMENTS),
-    baseVersion: baseVersionSchema,
-    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
-    content: RulesAndAgreementsContentInputSchema,
-  }).strict(),
-  z.object({
-    documentId: z.literal(SPECIAL_DOCS.FUTURE_PLANS),
-    baseVersion: baseVersionSchema,
-    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
-    content: FuturePlansContentInputSchema,
-  }).strict(),
-  z.object({
-    documentId: z.literal(SPECIAL_DOCS.DMCA_POLICY),
-    baseVersion: baseVersionSchema,
-    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
-    content: DmcaPolicyContentInputSchema,
-  }).strict(),
-  z.object({
-    documentId: z.literal(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY),
-    baseVersion: baseVersionSchema,
-    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
-    content: TakeItDownPageCopyContentInputSchema,
-  }).strict(),
+  z
+    .object({
+      documentId: z.literal(SPECIAL_DOCS.TERMS_PAGE),
+      baseVersion: baseVersionSchema,
+      expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
+      content: LegalPageContentInputSchema,
+    })
+    .strict(),
+  z
+    .object({
+      documentId: z.literal(SPECIAL_DOCS.PRIVACY_PAGE),
+      baseVersion: baseVersionSchema,
+      expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
+      content: LegalPageContentInputSchema,
+    })
+    .strict(),
+  z
+    .object({
+      documentId: z.literal(SPECIAL_DOCS.RULES_AND_AGREEMENTS),
+      baseVersion: baseVersionSchema,
+      expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
+      content: RulesAndAgreementsContentInputSchema,
+    })
+    .strict(),
+  z
+    .object({
+      documentId: z.literal(SPECIAL_DOCS.FUTURE_PLANS),
+      baseVersion: baseVersionSchema,
+      expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
+      content: FuturePlansContentInputSchema,
+    })
+    .strict(),
+  z
+    .object({
+      documentId: z.literal(SPECIAL_DOCS.DMCA_POLICY),
+      baseVersion: baseVersionSchema,
+      expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
+      content: DmcaPolicyContentInputSchema,
+    })
+    .strict(),
+  z
+    .object({
+      documentId: z.literal(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY),
+      baseVersion: baseVersionSchema,
+      expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
+      content: TakeItDownPageCopyContentInputSchema,
+    })
+    .strict(),
 ]);
 export type SavePublicDocumentDraftInput = z.infer<typeof SavePublicDocumentDraftInputSchema>;
 
@@ -134,18 +146,22 @@ export type PublicDocumentDraftRevisionRef = z.infer<typeof PublicDocumentDraftR
  * Every listed document must have a saved working copy at the revision the publisher reviewed,
  * whose base is still current and whose content differs from the current version.
  */
-export const PublishPublicDocumentReleaseInputSchema = z.object({
-  releaseId: z.string().uuid(),
-  drafts: z
-    .array(PublicDocumentDraftRevisionRefSchema)
-    .min(1)
-    .max(PUBLIC_DOCUMENT_IDS.length)
-    .refine((drafts) => new Set(drafts.map((draft) => draft.documentId)).size === drafts.length, {
-      message: 'List each document once.',
-    }),
-  requireAcceptance: z.boolean(),
-}).strict();
-export type PublishPublicDocumentReleaseInput = z.infer<typeof PublishPublicDocumentReleaseInputSchema>;
+export const PublishPublicDocumentReleaseInputSchema = z
+  .object({
+    releaseId: z.string().uuid(),
+    drafts: z
+      .array(PublicDocumentDraftRevisionRefSchema)
+      .min(1)
+      .max(PUBLIC_DOCUMENT_IDS.length)
+      .refine((drafts) => new Set(drafts.map((draft) => draft.documentId)).size === drafts.length, {
+        message: 'List each document once.',
+      }),
+    requireAcceptance: z.boolean(),
+  })
+  .strict();
+export type PublishPublicDocumentReleaseInput = z.infer<
+  typeof PublishPublicDocumentReleaseInputSchema
+>;
 
 export const PublishPublicDocumentReleaseResultSchema = z.object({
   releaseId: z.string().min(1),
@@ -153,7 +169,9 @@ export const PublishPublicDocumentReleaseResultSchema = z.object({
   requireAcceptance: z.boolean(),
   requiredAcceptanceLevel: PublicDocumentAcceptanceLevelSchema,
 });
-export type PublishPublicDocumentReleaseResult = z.infer<typeof PublishPublicDocumentReleaseResultSchema>;
+export type PublishPublicDocumentReleaseResult = z.infer<
+  typeof PublishPublicDocumentReleaseResultSchema
+>;
 
 // ── Accept ───────────────────────────────────────────────────────────────────
 
@@ -163,9 +181,11 @@ export type PublishPublicDocumentReleaseResult = z.infer<typeof PublishPublicDoc
  * accepts only when that equals what is current now; otherwise it answers `refreshRequired` and
  * the prompt asks again. Idempotent.
  */
-export const AcceptPublicDocumentsInputSchema = z.object({
-  documents: ShownPublicDocumentVersionsSchema,
-}).strict();
+export const AcceptPublicDocumentsInputSchema = z
+  .object({
+    documents: ShownPublicDocumentVersionsSchema,
+  })
+  .strict();
 export type AcceptPublicDocumentsInput = z.infer<typeof AcceptPublicDocumentsInputSchema>;
 
 export const AcceptPublicDocumentsResultSchema = z.discriminatedUnion('status', [
@@ -185,10 +205,12 @@ export type AcceptPublicDocumentsResult = z.infer<typeof AcceptPublicDocumentsRe
  * of PUBLIC_DOCUMENT_HISTORY_PAGE_LIMIT at a time. `beforeVersion` continues from the previous
  * page's `nextBeforeVersion`.
  */
-export const ReadPublicDocumentHistoryInputSchema = z.object({
-  documentId: PublicDocumentIdSchema,
-  beforeVersion: PublicDocumentVersionNumberSchema.nullish(),
-}).strict();
+export const ReadPublicDocumentHistoryInputSchema = z
+  .object({
+    documentId: PublicDocumentIdSchema,
+    beforeVersion: PublicDocumentVersionNumberSchema.nullish(),
+  })
+  .strict();
 export type ReadPublicDocumentHistoryInput = z.infer<typeof ReadPublicDocumentHistoryInputSchema>;
 
 export const ReadPublicDocumentHistoryResultSchema = z.object({
@@ -204,24 +226,32 @@ export type ReadPublicDocumentHistoryResult = z.infer<typeof ReadPublicDocumentH
 // event envelope; these carry what the release or acceptance was.
 
 /** `publicDocuments.released` — written in the publish transaction (adminReview actor). */
-export const PublicDocumentsReleasedAuditPayloadSchema = z.object({
-  releaseId: z.string().min(1),
-  documents: z.array(PublicDocumentVersionRefSchema).min(1),
-  requireAcceptance: z.boolean(),
-  requiredAcceptanceLevel: PublicDocumentAcceptanceLevelSchema,
-}).strict();
-export type PublicDocumentsReleasedAuditPayload = z.infer<typeof PublicDocumentsReleasedAuditPayloadSchema>;
+export const PublicDocumentsReleasedAuditPayloadSchema = z
+  .object({
+    releaseId: z.string().min(1),
+    documents: z.array(PublicDocumentVersionRefSchema).min(1),
+    requireAcceptance: z.boolean(),
+    requiredAcceptanceLevel: PublicDocumentAcceptanceLevelSchema,
+  })
+  .strict();
+export type PublicDocumentsReleasedAuditPayload = z.infer<
+  typeof PublicDocumentsReleasedAuditPayloadSchema
+>;
 
 /**
  * `publicDocuments.accepted` — written in the same commit as the private summary, by the
  * acceptance callable (the pairs the prompt showed) and by registration (every current document).
  * `legalReviewNoticeRevision` is null when the notice was off. `acceptedAt` is server time.
  */
-export const PublicDocumentsAcceptedAuditPayloadSchema = z.object({
-  acceptedVia: z.enum(PUBLIC_DOCUMENT_ACCEPTANCE_SOURCES),
-  documents: z.array(PublicDocumentVersionRefSchema),
-  acceptedLevel: PublicDocumentAcceptanceLevelSchema,
-  legalReviewNoticeRevision: LegalReviewNoticeRevisionSchema.nullable(),
-  acceptedAt: z.number(),
-}).strict();
-export type PublicDocumentsAcceptedAuditPayload = z.infer<typeof PublicDocumentsAcceptedAuditPayloadSchema>;
+export const PublicDocumentsAcceptedAuditPayloadSchema = z
+  .object({
+    acceptedVia: z.enum(PUBLIC_DOCUMENT_ACCEPTANCE_SOURCES),
+    documents: z.array(PublicDocumentVersionRefSchema),
+    acceptedLevel: PublicDocumentAcceptanceLevelSchema,
+    legalReviewNoticeRevision: LegalReviewNoticeRevisionSchema.nullable(),
+    acceptedAt: z.number(),
+  })
+  .strict();
+export type PublicDocumentsAcceptedAuditPayload = z.infer<
+  typeof PublicDocumentsAcceptedAuditPayloadSchema
+>;

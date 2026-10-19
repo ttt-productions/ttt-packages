@@ -72,7 +72,13 @@ describe('a free-text Input takes its bounds from its declaration', () => {
   });
 
   it('marks a value longer than the max as invalid', () => {
-    render(<Input inputFormat={defineInputFormat({ format: 'none', min: 0, max: 3 })} value="abcd" onChange={() => {}} />);
+    render(
+      <Input
+        inputFormat={defineInputFormat({ format: 'none', min: 0, max: 3 })}
+        value="abcd"
+        onChange={() => {}}
+      />,
+    );
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
   });
 
@@ -80,7 +86,11 @@ describe('a free-text Input takes its bounds from its declaration', () => {
     const { rerender } = render(<Input inputFormat={TITLE} value="" onChange={() => {}} />);
     expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-invalid');
     rerender(
-      <Input inputFormat={defineInputFormat({ format: 'englishNormalNoSpaces', min: 3, max: 20 })} value="ab" onChange={() => {}} />,
+      <Input
+        inputFormat={defineInputFormat({ format: 'englishNormalNoSpaces', min: 3, max: 20 })}
+        value="ab"
+        onChange={() => {}}
+      />,
     );
     expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-invalid');
   });
@@ -91,7 +101,9 @@ describe('a free-text Input takes its bounds from its declaration', () => {
   });
 
   it("keeps the caller's own invalid state, as a form field passes it", () => {
-    render(<Input inputFormat={TITLE} value="Dragon's Lair" onChange={() => {}} aria-invalid={false} />);
+    render(
+      <Input inputFormat={TITLE} value="Dragon's Lair" onChange={() => {}} aria-invalid={false} />,
+    );
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'false');
   });
 
@@ -127,7 +139,15 @@ describe('a free-text Input takes its bounds from its declaration', () => {
 
 describe('a text box that is not free text takes no input format', () => {
   it('keeps its own native bounds and input mode, and derives nothing', () => {
-    render(<Input textEntry="numeric" inputMode="numeric" pattern="[0-9]*" maxLength={4} aria-label="Year" />);
+    render(
+      <Input
+        textEntry="numeric"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={4}
+        aria-label="Year"
+      />,
+    );
     const input = screen.getByRole('textbox', { name: 'Year' });
     expect(input).toHaveAttribute('maxLength', '4');
     expect(input).toHaveAttribute('pattern', '[0-9]*');
@@ -138,7 +158,15 @@ describe('a text box that is not free text takes no input format', () => {
   });
 
   it('serves an identifier box with no format', () => {
-    render(<Input type="text" textEntry="identifier" aria-label="Case id" value="case/1" onChange={() => {}} />);
+    render(
+      <Input
+        type="text"
+        textEntry="identifier"
+        aria-label="Case id"
+        value="case/1"
+        onChange={() => {}}
+      />,
+    );
     expect(screen.getByRole('textbox', { name: 'Case id' })).not.toHaveAttribute('aria-invalid');
   });
 
@@ -159,11 +187,25 @@ describe('a text box that is not free text takes no input format', () => {
 });
 
 describe('a free-text Input tidies its text when focus leaves it', () => {
-  function Controlled({ initial, onBlur, readOnly }: { initial: string; onBlur?: () => void; readOnly?: boolean }) {
+  function Controlled({
+    initial,
+    onBlur,
+    readOnly,
+  }: {
+    initial: string;
+    onBlur?: () => void;
+    readOnly?: boolean;
+  }) {
     const [value, setValue] = React.useState(initial);
     return (
       <>
-        <Input inputFormat={TITLE} value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur} readOnly={readOnly} />
+        <Input
+          inputFormat={TITLE}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={onBlur}
+          readOnly={readOnly}
+        />
         <output data-testid="parent-value">{value}</output>
       </>
     );

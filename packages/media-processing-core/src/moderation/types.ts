@@ -1,15 +1,15 @@
-import type { MediaModerationResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
+import type { MediaModerationResult, MediaProcessingSpec } from '@ttt-productions/media-schemas';
 
 export interface ModerationInput {
   spec: MediaProcessingSpec;
-  kind: "image" | "video" | "audio" | "generic";
+  kind: 'image' | 'video' | 'audio' | 'generic';
   localPath: string;
   mime?: string;
 }
 
 export interface ModerationOutput {
   spec: MediaProcessingSpec;
-  kind: "image" | "video" | "audio" | "generic";
+  kind: 'image' | 'video' | 'audio' | 'generic';
   outputs: Array<{
     key: string;
     localPath: string;

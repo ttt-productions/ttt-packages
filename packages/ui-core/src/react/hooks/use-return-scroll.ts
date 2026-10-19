@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Return-scroll: bring a list back to where the user left it after a REAL route change.
 //
@@ -21,9 +21,9 @@
 //     scroll happens and the entry is consumed exactly once.
 //   - Blocked, unavailable, or malformed storage is a silent no-op.
 
-import * as React from "react";
+import * as React from 'react';
 
-const STORAGE_PREFIX = "return-scroll:";
+const STORAGE_PREFIX = 'return-scroll:';
 
 export interface ReturnScrollEntry {
   /** The saved `window.scrollY`. */
@@ -52,7 +52,7 @@ function storageKey(key: string): string {
 
 function sessionStorageOrNull(): Storage | null {
   try {
-    if (typeof window === "undefined") return null;
+    if (typeof window === 'undefined') return null;
     return window.sessionStorage ?? null;
   } catch {
     return null;
@@ -67,10 +67,10 @@ export function readReturnScroll(key: string): ReturnScrollEntry | null {
     const raw = storage.getItem(storageKey(key));
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return null;
+    if (typeof parsed !== 'object' || parsed === null) return null;
     const { y, savedAt } = parsed as { y?: unknown; savedAt?: unknown };
-    if (typeof y !== "number" || !Number.isFinite(y) || y < 0) return null;
-    return { y, savedAt: typeof savedAt === "number" ? savedAt : 0 };
+    if (typeof y !== 'number' || !Number.isFinite(y) || y < 0) return null;
+    return { y, savedAt: typeof savedAt === 'number' ? savedAt : 0 };
   } catch {
     return null;
   }
@@ -81,7 +81,7 @@ export function saveReturnScroll(key: string, y?: number): void {
   const storage = sessionStorageOrNull();
   if (!storage) return;
   try {
-    const offset = typeof y === "number" ? y : window.scrollY;
+    const offset = typeof y === 'number' ? y : window.scrollY;
     const entry: ReturnScrollEntry = { y: offset, savedAt: Date.now() };
     storage.setItem(storageKey(key), JSON.stringify(entry));
   } catch {
@@ -107,7 +107,11 @@ interface Decision {
   done: boolean;
 }
 
-export function useReturnScroll({ key, eligible, ready }: UseReturnScrollOptions): UseReturnScrollResult {
+export function useReturnScroll({
+  key,
+  eligible,
+  ready,
+}: UseReturnScrollOptions): UseReturnScrollResult {
   const decisionRef = React.useRef<Decision | null>(null);
 
   // Decide ONCE per key, the first time the hook sees it. Effects may read and write refs;
@@ -133,10 +137,10 @@ export function useReturnScroll({ key, eligible, ready }: UseReturnScrollOptions
   React.useEffect(() => {
     const decision = decisionRef.current;
     if (!decision || decision.key !== key || decision.y === null || decision.done || !ready) return;
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     const y = decision.y;
     const frame = window.requestAnimationFrame(() => {
-      window.scrollTo({ top: y, left: 0, behavior: "instant" as ScrollBehavior });
+      window.scrollTo({ top: y, left: 0, behavior: 'instant' as ScrollBehavior });
       clearReturnScroll(key);
       decision.done = true;
     });

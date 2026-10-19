@@ -8,7 +8,15 @@ import type { Finding } from '../../guard.js';
 import type { RepoReader } from '../../node/reader.js';
 import type { RootRole } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
-import { listProblem, loaderProblem, namesProblem, objectProblem, reviewedProblems, textProblem, type Loader } from '../../support/facts.js';
+import {
+  listProblem,
+  loaderProblem,
+  namesProblem,
+  objectProblem,
+  reviewedProblems,
+  textProblem,
+  type Loader,
+} from '../../support/facts.js';
 import {
   analyzeFiles,
   createGuardProfile,
@@ -30,7 +38,11 @@ export interface WriteGuardFacts {
   handleModulePrefixes: readonly string[];
   removalOnlyTables: ReadonlyArray<{ exportName: string; module: string; label: string }>;
   /** The core's entry points, as loaders the app writes with literal specifiers. */
-  registrySources: { core: Loader<Record<string, unknown>>; docSchemas: Loader<Record<string, unknown>>; subpaths?: Readonly<Record<string, Loader<Record<string, unknown>>>> };
+  registrySources: {
+    core: Loader<Record<string, unknown>>;
+    docSchemas: Loader<Record<string, unknown>>;
+    subpaths?: Readonly<Record<string, Loader<Record<string, unknown>>>>;
+  };
   /** The core's path-constant maps the guard resolves names through. */
   constantMapNames: readonly string[];
   /** The roots that can write a document. */
@@ -47,9 +59,16 @@ export interface TestPathFacts {
 }
 
 /** Runs the write guard over the app's writer roots. Also the hand-run coverage report's engine. */
-export async function runWriteGuard(reader: RepoReader, facts: WriteGuardFacts, read = reader.files.bind(reader)) {
+export async function runWriteGuard(
+  reader: RepoReader,
+  facts: WriteGuardFacts,
+  read = reader.files.bind(reader),
+) {
   const coreDist = reader.layout.roots.coreDist;
-  if (!coreDist) throw new Error('repo-guards: the write guard reads the core package build, and the layout declares no coreDist root');
+  if (!coreDist)
+    throw new Error(
+      'repo-guards: the write guard reads the core package build, and the layout declares no coreDist root',
+    );
   const profile = createGuardProfile({
     corePackage: facts.corePackage,
     coreLibraryRoot: coreDist.path,
@@ -58,7 +77,10 @@ export async function runWriteGuard(reader: RepoReader, facts: WriteGuardFacts, 
     handleModulePrefixes: [...facts.handleModulePrefixes],
     removalOnlyTables: facts.removalOnlyTables.map((t) => ({ ...t })),
   });
-  const registry = await loadRegistry({ sources: facts.registrySources, constantMapNames: [...facts.constantMapNames] });
+  const registry = await loadRegistry({
+    sources: facts.registrySources,
+    constantMapNames: [...facts.constantMapNames],
+  });
   const files = read({ roots: facts.writerRoots, kinds: ['code'], tests: false }).map((f) =>
     parseFile(f.path, f.text, { sourceFile: f.sourceFile }),
   );
@@ -67,9 +89,11 @@ export async function runWriteGuard(reader: RepoReader, facts: WriteGuardFacts, 
   );
   const exceptions = facts.exceptions.map((e) => ({ ...e }));
   const packageDeclarations = (name: string) =>
-    reader
-      .installedFiles(name, { kinds: ['declarations'] })
-      .map((v) => ({ file: path.join(reader.layout.repoRoot, v.path), text: v.text, sourceFile: v.sourceFile }));
+    reader.installedFiles(name, { kinds: ['declarations'] }).map((v) => ({
+      file: path.join(reader.layout.repoRoot, v.path),
+      text: v.text,
+      sourceFile: v.sourceFile,
+    }));
   const { writes, notFirestore, unclassified, packageBuilderUses } = analyzeFiles({
     files,
     libraryFiles,
@@ -89,11 +113,19 @@ export async function runWriteGuard(reader: RepoReader, facts: WriteGuardFacts, 
     packageBuilderUses,
     callSites: enumerateWriteCallSites(files),
   });
-  return { ...evaluated, writes, notFirestore, unclassified, staleExclusions: [] as string[], fileCount: files.length };
+  return {
+    ...evaluated,
+    writes,
+    notFirestore,
+    unclassified,
+    staleExclusions: [] as string[],
+    fileCount: files.length,
+  };
 }
 
 function rootPaths(reader: RepoReader, role: RootRole): string[] {
-  if (role === 'workers') return Object.values(reader.layout.roots.workers ?? {}).map((r) => r.path);
+  if (role === 'workers')
+    return Object.values(reader.layout.roots.workers ?? {}).map((r) => r.path);
   const root = reader.layout.roots[role];
   return root ? [root.path] : [];
 }
@@ -105,15 +137,20 @@ export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
     const problems: string[] = [];
     textProblem(facts?.corePackage, 'corePackage', problems);
     objectProblem(facts?.importAliases, 'importAliases', problems);
-    namesProblem(facts?.transactionTypeNames, 'transactionTypeNames', problems, { nonEmpty: false });
-    namesProblem(facts?.handleModulePrefixes, 'handleModulePrefixes', problems, { nonEmpty: false });
+    namesProblem(facts?.transactionTypeNames, 'transactionTypeNames', problems, {
+      nonEmpty: false,
+    });
+    namesProblem(facts?.handleModulePrefixes, 'handleModulePrefixes', problems, {
+      nonEmpty: false,
+    });
     listProblem(facts?.removalOnlyTables, 'removalOnlyTables', problems, { nonEmpty: false });
     namesProblem(facts?.constantMapNames, 'constantMapNames', problems);
     namesProblem(facts?.writerRoots, 'writerRoots', problems);
     namesProblem(facts?.writerAnchors, 'writerAnchors', problems);
     reviewedProblems(facts?.exceptions, 'exceptions', problems, {
       key: 'file',
-      id: (e) => `${e.file} ${JSON.stringify(Object.entries(e).filter(([k]) => k !== 'file' && k !== 'why'))}`,
+      id: (e) =>
+        `${e.file} ${JSON.stringify(Object.entries(e).filter(([k]) => k !== 'file' && k !== 'why'))}`,
     });
     if (objectProblem(facts?.registrySources, 'registrySources', problems)) {
       loaderProblem(facts.registrySources.core, 'registrySources.core', problems);
@@ -139,14 +176,18 @@ export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
 ${formatReport(r)}
 
 `);
-          const findings: Finding[] = r.violations.map((v: { kind: string; at: string; detail: string }) => ({
-            file: v.at,
-            detail: `${v.kind.replace(/-/g, ' ')}: ${v.detail}`,
-          }));
-          for (const stale of r.staleExceptions) findings.push({ file: '(exceptions)', detail: `stale exception: ${stale}` });
+          const findings: Finding[] = r.violations.map(
+            (v: { kind: string; at: string; detail: string }) => ({
+              file: v.at,
+              detail: `${v.kind.replace(/-/g, ' ')}: ${v.detail}`,
+            }),
+          );
+          for (const stale of r.staleExceptions)
+            findings.push({ file: '(exceptions)', detail: `stale exception: ${stale}` });
           const seen = new Set(r.writes.map((w: { file: string }) => w.file));
           for (const anchor of facts.writerAnchors) {
-            if (!seen.has(anchor)) findings.push({ file: anchor, detail: 'writer anchor: no write seen in it' });
+            if (!seen.has(anchor))
+              findings.push({ file: anchor, detail: 'writer anchor: no write seen in it' });
           }
           return findings;
         },
@@ -159,14 +200,16 @@ export const testPathGuard: GenericGuardDefinition<TestPathFacts> = {
   id: 'firestoreTestPaths',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
-    return typeof facts?.collectionNames === 'function' ? [] : ['collectionNames needs a loader of the core collection names'];
+    return typeof facts?.collectionNames === 'function'
+      ? []
+      : ['collectionNames needs a loader of the core collection names'];
   },
   build(facts) {
     return [
       {
         title: 'test code never hand-types a Firestore path',
         description:
-          "Test code builds a Firestore path through the core package: its path builders for a document, its collection " +
+          'Test code builds a Firestore path through the core package: its path builders for a document, its collection ' +
           'constants for a collection. No literal begins with a declared collection name and a slash, and no declared ' +
           'collection name is passed to doc / collection / collectionGroup.',
         timeoutMs: 120_000,
@@ -180,10 +223,16 @@ export const testPathGuard: GenericGuardDefinition<TestPathFacts> = {
               tests: 'only',
             })
             .map((f) => ({ path: f.path, content: f.text, sourceFile: f.sourceFile }));
-          return findHandTypedFirestorePaths(files, { collectionNames: [...names] }).map((at: string) => {
-            const i = at.lastIndexOf(':');
-            return { file: at.slice(0, i), line: Number(at.slice(i + 1)), detail: 'hand-typed Firestore path' };
-          });
+          return findHandTypedFirestorePaths(files, { collectionNames: [...names] }).map(
+            (at: string) => {
+              const i = at.lastIndexOf(':');
+              return {
+                file: at.slice(0, i),
+                line: Number(at.slice(i + 1)),
+                detail: 'hand-typed Firestore path',
+              };
+            },
+          );
         },
       },
     ];

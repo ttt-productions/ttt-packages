@@ -11,7 +11,12 @@ const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   // 4-arg form: onSnapshot(ref, options, onNext, onError) — the hooks pass
   // { includeMetadataChanges: true } as the 2nd argument.
   const onSnapshotMock = vi.fn(
-    (target: { __kind: 'doc' | 'col' }, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
+    (
+      target: { __kind: 'doc' | 'col' },
+      _options: unknown,
+      next: (s: unknown) => void,
+      error: (e: Error) => void,
+    ) => {
       (target.__kind === 'doc' ? docCaps : colCaps).push({ next, error });
       return vi.fn();
     },
@@ -116,7 +121,9 @@ describe('useFirestoreDoc — subscribe:true listener errors', () => {
       () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['user', 'u1'], subscribe: true }),
       { wrapper: Wrapper },
     );
-    act(() => docCaps[0].next({ exists: () => true, id: 'u1', data: () => ({ displayName: 'Alice' }) }));
+    act(() =>
+      docCaps[0].next({ exists: () => true, id: 'u1', data: () => ({ displayName: 'Alice' }) }),
+    );
     act(() => docCaps[0].error(unavailable()));
 
     expect(result.current.isRefetchError).toBe(true);
@@ -130,7 +137,9 @@ describe('useFirestoreDoc — subscribe:true listener errors', () => {
       () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['user', 'u1'], subscribe: true }),
       { wrapper: Wrapper },
     );
-    act(() => docCaps[0].next({ exists: () => true, id: 'u1', data: () => ({ displayName: 'Alice' }) }));
+    act(() =>
+      docCaps[0].next({ exists: () => true, id: 'u1', data: () => ({ displayName: 'Alice' }) }),
+    );
     const denial = denyUntilSurfaced(docCaps);
 
     expect(result.current.error).toBe(denial);
@@ -185,9 +194,7 @@ describe('useFirestoreCollection — subscribe:true listener errors', () => {
     act(() => colCaps[0].error(new Error('transient')));
     expect(result.current.isError).toBe(true);
 
-    act(() =>
-      colCaps[0].next({ docs: [{ id: 'i1', data: () => ({ name: 'thing' }) }] }),
-    );
+    act(() => colCaps[0].next({ docs: [{ id: 'i1', data: () => ({ name: 'thing' }) }] }));
 
     expect(result.current.isError).toBe(false);
     expect(result.current.error).toBeNull();

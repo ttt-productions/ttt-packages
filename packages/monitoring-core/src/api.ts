@@ -1,5 +1,5 @@
-import type { MonitoringUser } from "./types.js";
-import { getMonitoringAdapter } from "./init.js";
+import type { MonitoringUser } from './types.js';
+import { getMonitoringAdapter } from './init.js';
 
 export function captureException(error: unknown, context?: Record<string, unknown>) {
   return getMonitoringAdapter().captureException(error, context);
@@ -7,8 +7,8 @@ export function captureException(error: unknown, context?: Record<string, unknow
 
 export function captureMessage(
   message: string,
-  level?: "fatal" | "error" | "warning" | "info" | "debug",
-  context?: Record<string, unknown>
+  level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug',
+  context?: Record<string, unknown>,
 ) {
   return getMonitoringAdapter().captureMessage(message, level, context);
 }
@@ -23,18 +23,20 @@ export function setTag(key: string, value: string) {
 
 export function withScope(fn: (scope: any) => any) {
   const a = getMonitoringAdapter();
-  return a.withScope ? a.withScope(fn as any) : fn({
-    setTag: () => {},
-    setUser: () => {},
-    setExtra: () => {},
-    setContext: () => {},
-  });
+  return a.withScope
+    ? a.withScope(fn as any)
+    : fn({
+        setTag: () => {},
+        setUser: () => {},
+        setExtra: () => {},
+        setContext: () => {},
+      });
 }
 
 export function addBreadcrumb(breadcrumb: {
   category?: string;
   message?: string;
-  level?: "fatal" | "error" | "warning" | "info" | "debug";
+  level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
   data?: Record<string, unknown>;
 }) {
   const a = getMonitoringAdapter();

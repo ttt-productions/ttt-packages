@@ -1,44 +1,52 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { DatePicker } from "./date-picker.js"
-import { cn } from "../../lib/utils.js"
+import * as React from 'react';
+import { DatePicker } from './date-picker.js';
+import { cn } from '../../lib/utils.js';
 
 export interface DateTimePickerTime {
   /** 0–23 */
-  hours: number
+  hours: number;
   /** 0–59 */
-  minutes: number
+  minutes: number;
 }
 
 export interface DateTimePickerProps {
   /** The chosen instant (local time). */
-  value?: Date
+  value?: Date;
   /** Called with the new instant — always inside `min`/`max`, seconds and milliseconds zero. */
-  onChange?: (value: Date) => void
+  onChange?: (value: Date) => void;
   /** The earliest selectable instant. Earlier days and times are unavailable. */
-  min?: Date
+  min?: Date;
   /** The latest selectable instant. Later days and times are unavailable. */
-  max?: Date
+  max?: Date;
   /** Minutes offered are multiples of this (default 1). */
-  minuteStep?: number
+  minuteStep?: number;
   /** Time of day a picked day takes when there is no `value` yet (default 23:59 — end of day). */
-  defaultTime?: DateTimePickerTime
-  className?: string
+  defaultTime?: DateTimePickerTime;
+  className?: string;
 }
 
-const MINUTES_PER_DAY = 24 * 60
-const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-const PERIODS = ["AM", "PM"] as const
-type Period = (typeof PERIODS)[number]
+const MINUTES_PER_DAY = 24 * 60;
+const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const PERIODS = ['AM', 'PM'] as const;
+type Period = (typeof PERIODS)[number];
 
-const pad2 = (n: number) => String(n).padStart(2, "0")
+const pad2 = (n: number) => String(n).padStart(2, '0');
 const at = (day: Date, minuteOfDay: number) =>
-  new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0)
-const minuteOfDayOf = (date: Date) => date.getHours() * 60 + date.getMinutes()
-const to24 = (hour12: number, period: Period) => (hour12 % 12) + (period === "PM" ? 12 : 0)
-const periodOf = (hours: number): Period => (hours >= 12 ? "PM" : "AM")
-const hour12Of = (hours: number) => (hours % 12 === 0 ? 12 : hours % 12)
+  new Date(
+    day.getFullYear(),
+    day.getMonth(),
+    day.getDate(),
+    Math.floor(minuteOfDay / 60),
+    minuteOfDay % 60,
+    0,
+    0,
+  );
+const minuteOfDayOf = (date: Date) => date.getHours() * 60 + date.getMinutes();
+const to24 = (hour12: number, period: Period) => (hour12 % 12) + (period === 'PM' ? 12 : 0);
+const periodOf = (hours: number): Period => (hours >= 12 ? 'PM' : 'AM');
+const hour12Of = (hours: number) => (hours % 12 === 0 ? 12 : hours % 12);
 
 /**
  * Generic date-and-time picker: `DatePicker` for the day, then hour / minute / AM-PM
@@ -64,109 +72,111 @@ function DateTimePicker({
   defaultTime = { hours: 23, minutes: 59 },
   className,
 }: DateTimePickerProps) {
-  const step = Math.max(1, Math.min(60, Math.floor(minuteStep)))
+  const step = Math.max(1, Math.min(60, Math.floor(minuteStep)));
   const minuteOptions = React.useMemo(
     () => Array.from({ length: Math.ceil(60 / step) }, (_, i) => i * step).filter((m) => m < 60),
     [step],
-  )
+  );
 
   const isAllowed = React.useCallback(
     (instant: Date) => (!min || instant >= min) && (!max || instant <= max),
     [min, max],
-  )
-  const offeredMinutes = React.useMemo(() => new Set(minuteOptions), [minuteOptions])
+  );
+  const offeredMinutes = React.useMemo(() => new Set(minuteOptions), [minuteOptions]);
   const isOffered = React.useCallback(
     (minuteOfDay: number) => offeredMinutes.has(minuteOfDay % 60),
     [offeredMinutes],
-  )
+  );
 
   /** Allowed minutes-of-day on `day`, ascending. */
   const allowedMinutesOn = React.useCallback(
     (day: Date) => {
-      const out: number[] = []
+      const out: number[] = [];
       for (let m = 0; m < MINUTES_PER_DAY; m++) {
-        if (isOffered(m) && isAllowed(at(day, m))) out.push(m)
+        if (isOffered(m) && isAllowed(at(day, m))) out.push(m);
       }
-      return out
+      return out;
     },
     [isAllowed, isOffered],
-  )
+  );
 
   const nearestAllowed = (day: Date, wanted: number): number | null => {
-    const allowed = allowedMinutesOn(day)
-    if (allowed.length === 0) return null
-    let best = allowed[0]
-    for (const m of allowed) if (Math.abs(m - wanted) < Math.abs(best - wanted)) best = m
-    return best
-  }
+    const allowed = allowedMinutesOn(day);
+    if (allowed.length === 0) return null;
+    let best = allowed[0];
+    for (const m of allowed) if (Math.abs(m - wanted) < Math.abs(best - wanted)) best = m;
+    return best;
+  };
 
   const commit = (day: Date, wanted: number) => {
-    const m = nearestAllowed(day, wanted)
-    if (m === null) return
-    onChange?.(at(day, m))
-  }
+    const m = nearestAllowed(day, wanted);
+    if (m === null) return;
+    onChange?.(at(day, m));
+  };
 
   // A day strictly between the bounds' own days is decided by its first and last offered
   // minute; only the bounds' days need the minute-by-minute check.
-  const firstOfferedMinute = minuteOptions[0]
-  const lastOfferedMinute = 23 * 60 + minuteOptions[minuteOptions.length - 1]
+  const firstOfferedMinute = minuteOptions[0];
+  const lastOfferedMinute = 23 * 60 + minuteOptions[minuteOptions.length - 1];
   const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
   const isDayDisabled = (day: Date) => {
     if ((min && isSameDay(day, min)) || (max && isSameDay(day, max))) {
-      return allowedMinutesOn(day).length === 0
+      return allowedMinutesOn(day).length === 0;
     }
-    if (min && at(day, lastOfferedMinute) < min) return true
-    if (max && at(day, firstOfferedMinute) > max) return true
-    return false
-  }
+    if (min && at(day, lastOfferedMinute) < min) return true;
+    if (max && at(day, firstOfferedMinute) > max) return true;
+    return false;
+  };
 
   const handleDayPick = (day: Date | undefined) => {
-    if (!day) return
-    const wanted = value ? minuteOfDayOf(value) : defaultTime.hours * 60 + defaultTime.minutes
-    commit(day, wanted)
-  }
+    if (!day) return;
+    const wanted = value ? minuteOfDayOf(value) : defaultTime.hours * 60 + defaultTime.minutes;
+    commit(day, wanted);
+  };
 
-  const current = value ? minuteOfDayOf(value) : null
-  const currentHours = current === null ? null : Math.floor(current / 60)
-  const currentMinutes = current === null ? null : current % 60
-  const currentPeriod = currentHours === null ? null : periodOf(currentHours)
+  const current = value ? minuteOfDayOf(value) : null;
+  const currentHours = current === null ? null : Math.floor(current / 60);
+  const currentMinutes = current === null ? null : current % 60;
+  const currentPeriod = currentHours === null ? null : periodOf(currentHours);
 
   const allowedSet = React.useMemo(
     () => new Set(value ? allowedMinutesOn(value) : []),
     [value, allowedMinutesOn],
-  )
-  const hourEnabled = (hours: number) => minuteOptions.some((m) => allowedSet.has(hours * 60 + m))
+  );
+  const hourEnabled = (hours: number) => minuteOptions.some((m) => allowedSet.has(hours * 60 + m));
   const minuteEnabled = (minutes: number) =>
-    currentHours !== null && allowedSet.has(currentHours * 60 + minutes)
+    currentHours !== null && allowedSet.has(currentHours * 60 + minutes);
   const periodEnabled = (period: Period) => {
-    const base = period === "PM" ? 12 : 0
-    for (let h = base; h < base + 12; h++) if (hourEnabled(h)) return true
-    return false
-  }
+    const base = period === 'PM' ? 12 : 0;
+    for (let h = base; h < base + 12; h++) if (hourEnabled(h)) return true;
+    return false;
+  };
 
   const pickHour = (hour12: number) => {
-    if (!value || currentPeriod === null || currentMinutes === null) return
-    const hours = to24(hour12, currentPeriod)
-    const firstInHour = minuteOptions.find((m) => allowedSet.has(hours * 60 + m))
-    if (firstInHour === undefined) return
-    const minutes = allowedSet.has(hours * 60 + currentMinutes) ? currentMinutes : firstInHour
-    commit(value, hours * 60 + minutes)
-  }
+    if (!value || currentPeriod === null || currentMinutes === null) return;
+    const hours = to24(hour12, currentPeriod);
+    const firstInHour = minuteOptions.find((m) => allowedSet.has(hours * 60 + m));
+    if (firstInHour === undefined) return;
+    const minutes = allowedSet.has(hours * 60 + currentMinutes) ? currentMinutes : firstInHour;
+    commit(value, hours * 60 + minutes);
+  };
   const pickMinute = (minutes: number) => {
-    if (!value || currentHours === null) return
-    commit(value, currentHours * 60 + minutes)
-  }
+    if (!value || currentHours === null) return;
+    commit(value, currentHours * 60 + minutes);
+  };
   const pickPeriod = (period: Period) => {
-    if (!value || currentHours === null || currentMinutes === null) return
-    const hours = to24(hour12Of(currentHours), period)
-    commit(value, hours * 60 + currentMinutes)
-  }
+    if (!value || currentHours === null || currentMinutes === null) return;
+    const hours = to24(hour12Of(currentHours), period);
+    commit(value, hours * 60 + currentMinutes);
+  };
 
-  const timeDisabled = !value
+  const timeDisabled = !value;
 
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-start", className)}>
+    <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-start', className)}>
       <DatePicker selected={value} onSelect={handleDayPick} disabled={isDayDisabled} />
       <div
         className="flex gap-2 p-4 bg-card rounded-lg"
@@ -181,7 +191,8 @@ function DateTimePicker({
             text: String(h),
             ariaLabel: `${h} o'clock`,
             selected: currentHours !== null && hour12Of(currentHours) === h,
-            disabled: timeDisabled || currentPeriod === null || !hourEnabled(to24(h, currentPeriod)),
+            disabled:
+              timeDisabled || currentPeriod === null || !hourEnabled(to24(h, currentPeriod)),
             onPick: () => pickHour(h),
           }))}
         />
@@ -209,57 +220,57 @@ function DateTimePicker({
         />
       </div>
     </div>
-  )
+  );
 }
 
-DateTimePicker.displayName = "DateTimePicker"
+DateTimePicker.displayName = 'DateTimePicker';
 
 interface TimeOption {
-  key: string | number
-  text: string
-  ariaLabel: string
-  selected: boolean
-  disabled: boolean
-  onPick: () => void
+  key: string | number;
+  text: string;
+  ariaLabel: string;
+  selected: boolean;
+  disabled: boolean;
+  onPick: () => void;
 }
 
 function TimeColumn({ label, options }: { label: string; options: TimeOption[] }) {
-  const listRef = React.useRef<HTMLDivElement | null>(null)
-  const selectedIndex = options.findIndex((o) => o.selected && !o.disabled)
-  const firstEnabled = options.findIndex((o) => !o.disabled)
-  const [focusIndex, setFocusIndex] = React.useState<number | null>(null)
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const selectedIndex = options.findIndex((o) => o.selected && !o.disabled);
+  const firstEnabled = options.findIndex((o) => !o.disabled);
+  const [focusIndex, setFocusIndex] = React.useState<number | null>(null);
   const rovingIndex =
     focusIndex !== null && options[focusIndex] && !options[focusIndex].disabled
       ? focusIndex
       : selectedIndex >= 0
         ? selectedIndex
-        : firstEnabled
+        : firstEnabled;
 
   // Keep the chosen option in view inside the fixed-height column.
   React.useLayoutEffect(() => {
-    if (selectedIndex < 0) return
-    const el = listRef.current?.querySelector<HTMLButtonElement>(`[data-index="${selectedIndex}"]`)
-    el?.scrollIntoView?.({ block: "nearest" })
-  }, [selectedIndex])
+    if (selectedIndex < 0) return;
+    const el = listRef.current?.querySelector<HTMLButtonElement>(`[data-index="${selectedIndex}"]`);
+    el?.scrollIntoView?.({ block: 'nearest' });
+  }, [selectedIndex]);
 
   const focusAt = (index: number) => {
-    setFocusIndex(index)
-    listRef.current?.querySelector<HTMLButtonElement>(`[data-index="${index}"]`)?.focus()
-  }
+    setFocusIndex(index);
+    listRef.current?.querySelector<HTMLButtonElement>(`[data-index="${index}"]`)?.focus();
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0)
-    if (enabled.length === 0 || rovingIndex < 0) return
-    const pos = enabled.indexOf(rovingIndex)
-    let next: number | undefined
-    if (e.key === "ArrowDown") next = enabled[Math.min(enabled.length - 1, pos + 1)]
-    else if (e.key === "ArrowUp") next = enabled[Math.max(0, pos - 1)]
-    else if (e.key === "Home") next = enabled[0]
-    else if (e.key === "End") next = enabled[enabled.length - 1]
-    if (next === undefined) return
-    e.preventDefault()
-    focusAt(next)
-  }
+    const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
+    if (enabled.length === 0 || rovingIndex < 0) return;
+    const pos = enabled.indexOf(rovingIndex);
+    let next: number | undefined;
+    if (e.key === 'ArrowDown') next = enabled[Math.min(enabled.length - 1, pos + 1)];
+    else if (e.key === 'ArrowUp') next = enabled[Math.max(0, pos - 1)];
+    else if (e.key === 'Home') next = enabled[0];
+    else if (e.key === 'End') next = enabled[enabled.length - 1];
+    if (next === undefined) return;
+    e.preventDefault();
+    focusAt(next);
+  };
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -283,15 +294,15 @@ function TimeColumn({ label, options }: { label: string; options: TimeOption[] }
             aria-pressed={o.selected}
             aria-label={o.ariaLabel}
             onClick={() => {
-              setFocusIndex(i)
-              o.onPick()
+              setFocusIndex(i);
+              o.onPick();
             }}
             className={cn(
-              "h-9 shrink-0 rounded-lg text-sm font-semibold flex items-center justify-center",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              !o.disabled && !o.selected && "text-foreground hover:bg-primary/10",
-              o.selected && "bg-primary text-primary-foreground font-bold",
-              o.disabled && "opacity-30 cursor-not-allowed",
+              'h-9 shrink-0 rounded-lg text-sm font-semibold flex items-center justify-center',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              !o.disabled && !o.selected && 'text-foreground hover:bg-primary/10',
+              o.selected && 'bg-primary text-primary-foreground font-bold',
+              o.disabled && 'opacity-30 cursor-not-allowed',
             )}
           >
             {o.text}
@@ -299,7 +310,7 @@ function TimeColumn({ label, options }: { label: string; options: TimeOption[] }
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-export { DateTimePicker }
+export { DateTimePicker };

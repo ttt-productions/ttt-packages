@@ -8,7 +8,8 @@ describe('initFirebaseClient', () => {
   });
 
   it('returns handles with app, db, auth, storage, functions', async () => {
-    const { initFirebaseClient, __resetFirebaseClientCache } = await import('../src/client/firebase-init.js');
+    const { initFirebaseClient, __resetFirebaseClientCache } =
+      await import('../src/client/firebase-init.js');
     __resetFirebaseClientCache();
     const result = initFirebaseClient({ apiKey: 'test', projectId: 'test-project' });
     expect(result).toHaveProperty('app');
@@ -19,7 +20,8 @@ describe('initFirebaseClient', () => {
   });
 
   it('is idempotent — returns the same cached handles on second call', async () => {
-    const { initFirebaseClient, __resetFirebaseClientCache } = await import('../src/client/firebase-init.js');
+    const { initFirebaseClient, __resetFirebaseClientCache } =
+      await import('../src/client/firebase-init.js');
     __resetFirebaseClientCache();
     const first = initFirebaseClient({ apiKey: 'a', projectId: 'p' });
     const second = initFirebaseClient({ apiKey: 'b', projectId: 'q' });
@@ -27,7 +29,8 @@ describe('initFirebaseClient', () => {
   });
 
   it('__resetFirebaseClientCache clears the cache', async () => {
-    const { initFirebaseClient, __resetFirebaseClientCache } = await import('../src/client/firebase-init.js');
+    const { initFirebaseClient, __resetFirebaseClientCache } =
+      await import('../src/client/firebase-init.js');
     __resetFirebaseClientCache();
     const first = initFirebaseClient({ apiKey: 'a' });
     __resetFirebaseClientCache();
@@ -37,7 +40,8 @@ describe('initFirebaseClient', () => {
   });
 
   it('does not connect emulators when useEmulators is false', async () => {
-    const { initFirebaseClient, __resetFirebaseClientCache } = await import('../src/client/firebase-init.js');
+    const { initFirebaseClient, __resetFirebaseClientCache } =
+      await import('../src/client/firebase-init.js');
     __resetFirebaseClientCache();
     const { connectAuthEmulator } = await import('firebase/auth');
     initFirebaseClient({ apiKey: 'test' }, { useEmulators: false });
@@ -45,7 +49,8 @@ describe('initFirebaseClient', () => {
   });
 
   it('does not connect emulators when window is undefined (SSR)', async () => {
-    const { initFirebaseClient, __resetFirebaseClientCache } = await import('../src/client/firebase-init.js');
+    const { initFirebaseClient, __resetFirebaseClientCache } =
+      await import('../src/client/firebase-init.js');
     __resetFirebaseClientCache();
     const originalWindow = (globalThis as Record<string, unknown>).window;
     (globalThis as Record<string, unknown>).window = undefined;

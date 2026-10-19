@@ -23,23 +23,23 @@ const validSkillSource = {
 } as const;
 
 const validCommissionSource = {
-    type: 'commission',
-    data: {
-      commissionListingId: 'commission-1',
-      commissionProposalId: 'proposal-1',
-      proposalArtisanUserId: 'user-2',
-      postingStakeSharesOffered: 10,
-    },
+  type: 'commission',
+  data: {
+    commissionListingId: 'commission-1',
+    commissionProposalId: 'proposal-1',
+    proposalArtisanUserId: 'user-2',
+    postingStakeSharesOffered: 10,
+  },
 } as const;
 
 const validAuditionSource = {
-    type: 'audition',
-    data: {
-      auditionId: 'opp-1',
-      auditionEntryId: 'reply-2',
-      respondentUserId: 'user-3',
-      postingStakeSharesOffered: 5,
-    },
+  type: 'audition',
+  data: {
+    auditionId: 'opp-1',
+    auditionEntryId: 'reply-2',
+    respondentUserId: 'user-3',
+    postingStakeSharesOffered: 5,
+  },
 } as const;
 
 describe('InviteSourceSchema', () => {
@@ -48,9 +48,7 @@ describe('InviteSourceSchema', () => {
   });
 
   it('rejects standalone with a data field', () => {
-    expect(() =>
-      InviteSourceSchema.parse({ type: 'standalone', data: {} }),
-    ).toThrow();
+    expect(() => InviteSourceSchema.parse({ type: 'standalone', data: {} })).toThrow();
   });
 
   it('accepts a valid craftSkill source', () => {
@@ -66,9 +64,7 @@ describe('InviteSourceSchema', () => {
   });
 
   it('rejects unknown type value', () => {
-    expect(() =>
-      InviteSourceSchema.parse({ type: 'referral' }),
-    ).toThrow();
+    expect(() => InviteSourceSchema.parse({ type: 'referral' })).toThrow();
   });
 
   it('rejects nested unknown keys inside commission data (.strict)', () => {
@@ -161,9 +157,7 @@ describe('InviteUserToGuildInputSchema', () => {
   });
 
   it('rejects missing source', () => {
-    expect(() =>
-      InviteUserToGuildInputSchema.parse(baseInput),
-    ).toThrow();
+    expect(() => InviteUserToGuildInputSchema.parse(baseInput)).toThrow();
   });
 
   it('rejects stakeSharesOffered: 0', () => {
@@ -219,7 +213,8 @@ describe('ListGuildInvitesInputSchema', () => {
   it('accepts the full terminal + in-flight set', () => {
     const statuses = ['pending', 'accepted', 'declined', 'cancelled', 'finalized'] as const;
     expect(
-      ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: [...statuses] }).statuses,
+      ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: [...statuses] })
+        .statuses,
     ).toEqual([...statuses]);
   });
 
@@ -236,7 +231,6 @@ describe('ListGuildInvitesInputSchema', () => {
   });
 });
 
-
 describe('ListGuildInvitesInputSchema paging', () => {
   it('takes the opaque cursor the previous page answered', () => {
     const parsed = ListGuildInvitesInputSchema.parse({
@@ -248,19 +242,30 @@ describe('ListGuildInvitesInputSchema paging', () => {
   });
 
   it('reads the first page when no cursor is sent', () => {
-    const parsed = ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: ['pending'] });
+    const parsed = ListGuildInvitesInputSchema.parse({
+      workProjectId: 'workProject-1',
+      statuses: ['pending'],
+    });
     expect(parsed.cursor).toBeUndefined();
   });
 
   it('refuses an empty cursor', () => {
     expect(
-      ListGuildInvitesInputSchema.safeParse({ workProjectId: 'workProject-1', statuses: ['pending'], cursor: '' }).success,
+      ListGuildInvitesInputSchema.safeParse({
+        workProjectId: 'workProject-1',
+        statuses: ['pending'],
+        cursor: '',
+      }).success,
     ).toBe(false);
   });
 
   it('refuses a client page size — the server owns it', () => {
     expect(
-      ListGuildInvitesInputSchema.safeParse({ workProjectId: 'workProject-1', statuses: ['pending'], limit: 500 }).success,
+      ListGuildInvitesInputSchema.safeParse({
+        workProjectId: 'workProject-1',
+        statuses: ['pending'],
+        limit: 500,
+      }).success,
     ).toBe(false);
   });
 });
@@ -291,7 +296,9 @@ describe('ListGuildInvitesResultSchema', () => {
   });
 
   it('marks the last page with a null cursor', () => {
-    expect(ListGuildInvitesResultSchema.parse({ invites: [], nextCursor: null }).nextCursor).toBeNull();
+    expect(
+      ListGuildInvitesResultSchema.parse({ invites: [], nextCursor: null }).nextCursor,
+    ).toBeNull();
   });
 
   it('always answers whether another page exists', () => {
@@ -300,7 +307,10 @@ describe('ListGuildInvitesResultSchema', () => {
 
   it('carries each invite in its stored document shape', () => {
     const { status: _status, ...withoutStatus } = invite;
-    expect(ListGuildInvitesResultSchema.safeParse({ invites: [withoutStatus], nextCursor: null }).success).toBe(false);
+    expect(
+      ListGuildInvitesResultSchema.safeParse({ invites: [withoutStatus], nextCursor: null })
+        .success,
+    ).toBe(false);
   });
 });
 describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
@@ -328,9 +338,12 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
       realmWorkingDescription: 'realm desc',
     };
     // A valid realm title parses on both surfaces.
-    expect(CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'Good Realm' }).workingTitle).toBe('Good Realm');
     expect(
-      CreateWorkProjectInputSchema.parse({ ...validCreateBase, realmWorkingTitle: 'Good Realm' }).realmCreationMode,
+      CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'Good Realm' }).workingTitle,
+    ).toBe('Good Realm');
+    expect(
+      CreateWorkProjectInputSchema.parse({ ...validCreateBase, realmWorkingTitle: 'Good Realm' })
+        .realmCreationMode,
     ).toBe('newPublicRealm');
     // The slash-bearing title is rejected on both (only the realm title is invalid here).
     expect(() => CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'A/B' })).toThrow();
@@ -339,9 +352,6 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
     ).toThrow();
   });
 });
-
-
-
 
 describe('CreateWorkProjectResultSchema', () => {
   const createdWork = {
@@ -364,23 +374,32 @@ describe('CreateWorkProjectResultSchema', () => {
 
   it('is the answer of a create that succeeded — never a failure shape', () => {
     expect(
-      CreateWorkProjectResultSchema.safeParse({ success: false, workProjectId: 'work-1', workProjectData: createdWork })
-        .success,
+      CreateWorkProjectResultSchema.safeParse({
+        success: false,
+        workProjectId: 'work-1',
+        workProjectData: createdWork,
+      }).success,
     ).toBe(false);
   });
 
   it('carries the stored Work document whole, so a document its schema refuses is refused here too', () => {
     const { workRealmId: _omitted, ...withoutRealm } = createdWork;
     expect(
-      CreateWorkProjectResultSchema.safeParse({ success: true, workProjectId: 'work-1', workProjectData: withoutRealm })
-        .success,
+      CreateWorkProjectResultSchema.safeParse({
+        success: true,
+        workProjectId: 'work-1',
+        workProjectData: withoutRealm,
+      }).success,
     ).toBe(false);
   });
 
   it("names the document it returns: the answered id is that Work's own id", () => {
     expect(
-      CreateWorkProjectResultSchema.safeParse({ success: true, workProjectId: 'work-2', workProjectData: createdWork })
-        .success,
+      CreateWorkProjectResultSchema.safeParse({
+        success: true,
+        workProjectId: 'work-2',
+        workProjectData: createdWork,
+      }).success,
     ).toBe(false);
   });
 

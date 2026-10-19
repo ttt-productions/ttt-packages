@@ -1,12 +1,16 @@
 import { z } from 'zod';
 import { auditionIdSchema, auditionEntryIdSchema } from './atoms.js';
 
-export const VoteForAuditionEntryInputSchema = z.object({
-  auditionId: auditionIdSchema,
-  newVote: z.object({
-    auditionEntryId: auditionEntryIdSchema,
-  }).strict(),
-}).strict();
+export const VoteForAuditionEntryInputSchema = z
+  .object({
+    auditionId: auditionIdSchema,
+    newVote: z
+      .object({
+        auditionEntryId: auditionEntryIdSchema,
+      })
+      .strict(),
+  })
+  .strict();
 export type VoteForAuditionEntryInput = z.infer<typeof VoteForAuditionEntryInputSchema>;
 
 /**
@@ -49,5 +53,3 @@ export const VoteForAuditionEntryResultSchema = z.object({
   previousVoteCount: z.number().int().nonnegative().optional(),
 });
 export type VoteForAuditionEntryResult = z.infer<typeof VoteForAuditionEntryResultSchema>;
-
-

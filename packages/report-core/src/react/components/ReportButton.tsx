@@ -17,7 +17,10 @@ import type {
  * signed-in reporter reads it closed (FRONTEND-108); with no reporter, `openReport` calls
  * `onSignInRequired` and opens nothing.
  */
-export function useReportButton({ reporterUserId, onSignInRequired }: UseReportButtonOptions): UseReportButtonResult {
+export function useReportButton({
+  reporterUserId,
+  onSignInRequired,
+}: UseReportButtonOptions): UseReportButtonResult {
   const [state, setState] = useState<{
     reporterUserId: string | undefined;
     open: boolean;
@@ -40,7 +43,10 @@ export function useReportButton({ reporterUserId, onSignInRequired }: UseReportB
 
   const onOpenChange = useCallback(
     (open: boolean) => {
-      setState((prev) => ({ ...prev, open: open && !!reporterUserId && prev.reporterUserId === reporterUserId }));
+      setState((prev) => ({
+        ...prev,
+        open: open && !!reporterUserId && prev.reporterUserId === reporterUserId,
+      }));
     },
     [reporterUserId],
   );

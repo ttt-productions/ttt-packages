@@ -23,7 +23,10 @@ export type ReleasedPublicRealmEqualityFilter = {
 /** The criteria as Firestore equality filters, in the criteria's field order. */
 export const RELEASED_PUBLIC_REALM_EQUALITY_FILTERS: ReleasedPublicRealmEqualityFilter[] = (
   Object.keys(RELEASED_PUBLIC_REALM_CRITERIA) as (keyof ReleasedPublicRealmCriteria)[]
-).map((field) => ({ field, value: RELEASED_PUBLIC_REALM_CRITERIA[field] }) as ReleasedPublicRealmEqualityFilter);
+).map(
+  (field) =>
+    ({ field, value: RELEASED_PUBLIC_REALM_CRITERIA[field] }) as ReleasedPublicRealmEqualityFilter,
+);
 
 /** True when the Realm meets every released-public condition. */
 export function isReleasedPublicRealm(realm: ReleasedPublicRealmFields): boolean {

@@ -30,7 +30,11 @@ import {
   PublishedTuneTrackSchema,
 } from '../src/doc-schemas/content.js';
 
-const entryTarget = { entityType: 'audition-entry', entityId: 'entry-1', parentEntityId: 'audition-1' } as const;
+const entryTarget = {
+  entityType: 'audition-entry',
+  entityId: 'entry-1',
+  parentEntityId: 'audition-1',
+} as const;
 const manifest = {
   cascadeId: moderationCascadeManifestId(moderationTargetKey(entryTarget), 1),
   action: 'hide',
@@ -50,14 +54,24 @@ const manifestFor = (entityType: (typeof MODERATION_HIDE_TARGET_TYPES)[number], 
     ? { entityType, entityId: 'id-1', parentEntityId: 'parent-1' }
     : { entityType, entityId: 'id-1' };
   const targetKey = moderationTargetKey(target);
-  return { ...manifest, ...target, parentEntityId: target.parentEntityId, action, targetKey, cascadeId: moderationCascadeManifestId(targetKey, 1) };
+  return {
+    ...manifest,
+    ...target,
+    parentEntityId: target.parentEntityId,
+    action,
+    targetKey,
+    cascadeId: moderationCascadeManifestId(targetKey, 1),
+  };
 };
 
 describe('the one hide mechanism — manifest', () => {
   it('records a hide or a restore of any report or Admin Tool hide target', () => {
     for (const entityType of MODERATION_HIDE_TARGET_TYPES) {
       for (const action of ModerationCascadeActionSchema.options) {
-        expect(ModerationCascadeManifestSchema.safeParse(manifestFor(entityType, action)).success, entityType).toBe(true);
+        expect(
+          ModerationCascadeManifestSchema.safeParse(manifestFor(entityType, action)).success,
+          entityType,
+        ).toBe(true);
       }
     }
   });
@@ -66,7 +80,9 @@ describe('the one hide mechanism — manifest', () => {
     const { parentEntityId: _parent, ...withoutParent } = manifest;
     expect(ModerationCascadeManifestSchema.safeParse(withoutParent).success).toBe(false);
     const asset = manifestFor('work-asset', 'hide');
-    expect(ModerationCascadeManifestSchema.safeParse({ ...asset, parentEntityId: 'work-1' }).success).toBe(false);
+    expect(
+      ModerationCascadeManifestSchema.safeParse({ ...asset, parentEntityId: 'work-1' }).success,
+    ).toBe(false);
     expect(MODERATION_PARENT_KEYED_TARGET_TYPES).toEqual([
       'audition-entry',
       'commission-proposal',
@@ -76,9 +92,15 @@ describe('the one hide mechanism — manifest', () => {
   });
 
   it('refuses a manifest whose target key or id is not derived from its target and decision', () => {
-    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, targetKey: 'other' }).success).toBe(false);
-    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, cascadeId: 'random-id' }).success).toBe(false);
-    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, decision: 2 }).success).toBe(false);
+    expect(
+      ModerationCascadeManifestSchema.safeParse({ ...manifest, targetKey: 'other' }).success,
+    ).toBe(false);
+    expect(
+      ModerationCascadeManifestSchema.safeParse({ ...manifest, cascadeId: 'random-id' }).success,
+    ).toBe(false);
+    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, decision: 2 }).success).toBe(
+      false,
+    );
   });
 
   it('draws its targets from the report vocabulary, leaving out what is never hidden', () => {
@@ -86,10 +108,18 @@ describe('the one hide mechanism — manifest', () => {
       expect(ReportableItemTypeSchema.options).toContain(entityType);
     }
     for (const notHidden of ['username', 'guild-invite-message', 'guild-chat-message']) {
-      expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, entityType: notHidden }).success).toBe(false);
+      expect(
+        ModerationCascadeManifestSchema.safeParse({ ...manifest, entityType: notHidden }).success,
+      ).toBe(false);
     }
     expect(MODERATION_HIDE_TARGET_TYPES).toEqual(
-      expect.arrayContaining(['audition', 'audition-entry', 'craft-skill', 'hall-library-item', 'hall-library-sub-item']),
+      expect.arrayContaining([
+        'audition',
+        'audition-entry',
+        'craft-skill',
+        'hall-library-item',
+        'hall-library-sub-item',
+      ]),
     );
   });
 
@@ -98,13 +128,19 @@ describe('the one hide mechanism — manifest', () => {
     expect(ModerationCascadeManifestSchema.safeParse(withoutDecision).success).toBe(false);
     const { targetKey: _targetKey, ...withoutKey } = manifest;
     expect(ModerationCascadeManifestSchema.safeParse(withoutKey).success).toBe(false);
-    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, decision: 0 }).success).toBe(false);
-    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, decision: 1.5 }).success).toBe(false);
+    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, decision: 0 }).success).toBe(
+      false,
+    );
+    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, decision: 1.5 }).success).toBe(
+      false,
+    );
   });
 
   it('accepts only hide and restore as a manifest action', () => {
     for (const action of ['hideRealm', 'restoreRealm', 'hideWork', 'restoreWork']) {
-      expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, action }).success).toBe(false);
+      expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, action }).success).toBe(
+        false,
+      );
     }
   });
 
@@ -118,7 +154,9 @@ describe('the one hide mechanism — manifest', () => {
         lastError: 'edge write failed',
       }).success,
     ).toBe(true);
-    expect(ModerationCascadeManifestSchema.safeParse({ ...manifest, attemptCount: -1 }).success).toBe(false);
+    expect(
+      ModerationCascadeManifestSchema.safeParse({ ...manifest, attemptCount: -1 }).success,
+    ).toBe(false);
   });
 });
 
@@ -132,17 +170,29 @@ describe('the one hide mechanism — target key and manifest id', () => {
   });
 
   it('never gives two targets one key, whatever their ids contain', () => {
-    expect(moderationTargetKey({ entityType: 'audition-entry', parentEntityId: 'a~b', entityId: 'c' })).not.toBe(
+    expect(
+      moderationTargetKey({ entityType: 'audition-entry', parentEntityId: 'a~b', entityId: 'c' }),
+    ).not.toBe(
       moderationTargetKey({ entityType: 'audition-entry', parentEntityId: 'a', entityId: 'b~c' }),
     );
-    expect(moderationTargetKey({ entityType: 'audition-entry', parentEntityId: 'a:1', entityId: 'b' })).not.toBe(
+    expect(
+      moderationTargetKey({ entityType: 'audition-entry', parentEntityId: 'a:1', entityId: 'b' }),
+    ).not.toBe(
       moderationTargetKey({ entityType: 'audition-entry', parentEntityId: 'a', entityId: '1:b' }),
     );
   });
 
   it('throws for a parent-keyed target without its parent, and for a parent on any other target', () => {
-    expect(() => moderationTargetKey({ entityType: 'hall-library-sub-item', entityId: 's1' })).toThrow();
-    expect(() => moderationTargetKey({ entityType: 'conversation-file', entityId: 'm1', parentEntityId: 'f1' })).toThrow();
+    expect(() =>
+      moderationTargetKey({ entityType: 'hall-library-sub-item', entityId: 's1' }),
+    ).toThrow();
+    expect(() =>
+      moderationTargetKey({
+        entityType: 'conversation-file',
+        entityId: 'm1',
+        parentEntityId: 'f1',
+      }),
+    ).toThrow();
   });
 
   it('gives each decision on one target one deterministic manifest id', () => {
@@ -176,7 +226,9 @@ describe('the one hide mechanism — changed docs', () => {
       'subItemProjection',
       'mediaAsset',
     ]) {
-      expect(ModerationCascadeChangedDocSchema.safeParse({ ...changed, entityType }).success).toBe(true);
+      expect(ModerationCascadeChangedDocSchema.safeParse({ ...changed, entityType }).success).toBe(
+        true,
+      );
     }
   });
 
@@ -189,9 +241,10 @@ describe('the one hide mechanism — changed docs', () => {
         edgeSyncAssetIds: ['video-1'],
       }).success,
     ).toBe(true);
-    expect(ModerationCascadeChangedDocSchema.safeParse({ ...changed, edgeSyncOwnerType: 'notAnOwner' }).success).toBe(
-      false,
-    );
+    expect(
+      ModerationCascadeChangedDocSchema.safeParse({ ...changed, edgeSyncOwnerType: 'notAnOwner' })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -199,28 +252,42 @@ describe('hide provenance stamps', () => {
   const stamped: Array<[string, z.ZodType]> = [
     ['Audition', (AuditionSchema.shape as Record<string, z.ZodType>).hiddenBy],
     ['AuditionEntry', (AuditionEntrySchema.shape as Record<string, z.ZodType>).hiddenBy],
-    ['CommissionListing', (FullCommissionListingSchema.shape as Record<string, z.ZodType>).hiddenBy],
+    [
+      'CommissionListing',
+      (FullCommissionListingSchema.shape as Record<string, z.ZodType>).hiddenBy,
+    ],
     ['CommissionProposal', (CommissionProposalSchema.shape as Record<string, z.ZodType>).hiddenBy],
     ['SquareStreetzPost', (SquareStreetzPostSchema.shape as Record<string, z.ZodType>).hiddenBy],
-    ['CraftSkillReference', (CraftSkillReferenceSchema.shape as Record<string, z.ZodType>).hiddenBy],
-    ['PublicWorkProject', (PublicWorkProjectSchema.shape as Record<string, z.ZodType>).publicWorkHiddenBy],
+    [
+      'CraftSkillReference',
+      (CraftSkillReferenceSchema.shape as Record<string, z.ZodType>).hiddenBy,
+    ],
+    [
+      'PublicWorkProject',
+      (PublicWorkProjectSchema.shape as Record<string, z.ZodType>).publicWorkHiddenBy,
+    ],
     ['WorkRealm', (WorkRealmSchema.shape as Record<string, z.ZodType>).realmHiddenBy],
     ['PublishedHallItem', (PublishedHallItemSchema.shape as Record<string, z.ZodType>).hiddenBy],
     ['PublishedChapter', (PublishedChapterSchema.shape as Record<string, z.ZodType>).hiddenBy],
     ['PublishedTuneTrack', (PublishedTuneTrackSchema.shape as Record<string, z.ZodType>).hiddenBy],
-    ['PublishedTelevisionEpisode', (PublishedTelevisionEpisodeSchema.shape as Record<string, z.ZodType>).hiddenBy],
+    [
+      'PublishedTelevisionEpisode',
+      (PublishedTelevisionEpisodeSchema.shape as Record<string, z.ZodType>).hiddenBy,
+    ],
     ...CraftSkillSchema.options.map(
-      (option) => [`CraftSkill ${option.shape.kind.value}`, (option.shape as Record<string, z.ZodType>).hiddenBy] as [
-        string,
-        z.ZodType,
-      ],
+      (option) =>
+        [
+          `CraftSkill ${option.shape.kind.value}`,
+          (option.shape as Record<string, z.ZodType>).hiddenBy,
+        ] as [string, z.ZodType],
     ),
   ];
 
   it('stamps every hideable document with the one direct-or-cascade provenance, absent when not hidden', () => {
     for (const [name, field] of stamped) {
       expect(field, name).toBeDefined();
-      for (const value of ModerationHiddenBySchema.options) expect(field.safeParse(value).success, name).toBe(true);
+      for (const value of ModerationHiddenBySchema.options)
+        expect(field.safeParse(value).success, name).toBe(true);
       expect(field.safeParse(undefined).success, name).toBe(true);
       expect(field.safeParse('parent').success, name).toBe(false);
     }
@@ -230,8 +297,14 @@ describe('hide provenance stamps', () => {
 describe('decision number on the per-document edge obligations', () => {
   const fields: Array<[string, z.ZodType]> = [
     ['ReportGroupV1', ReportGroupV1Schema.shape.edgeSyncDecision],
-    ['PublishedChapter', (PublishedChapterSchema.shape as Record<string, z.ZodType>).edgeSyncDecision],
-    ['PublishedTuneTrack', (PublishedTuneTrackSchema.shape as Record<string, z.ZodType>).edgeSyncDecision],
+    [
+      'PublishedChapter',
+      (PublishedChapterSchema.shape as Record<string, z.ZodType>).edgeSyncDecision,
+    ],
+    [
+      'PublishedTuneTrack',
+      (PublishedTuneTrackSchema.shape as Record<string, z.ZodType>).edgeSyncDecision,
+    ],
     [
       'PublishedTelevisionEpisode',
       (PublishedTelevisionEpisodeSchema.shape as Record<string, z.ZodType>).edgeSyncDecision,

@@ -11,7 +11,12 @@ const h = vi.hoisted(() => ({
 vi.mock('firebase/firestore', () => ({
   collection: () => ({}),
   query: (ref: unknown) => ref,
-  onSnapshot: (_target: unknown, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
+  onSnapshot: (
+    _target: unknown,
+    _options: unknown,
+    next: (s: unknown) => void,
+    error: (e: Error) => void,
+  ) => {
     h.listeners.push({ next, error });
     return vi.fn();
   },
@@ -37,14 +42,21 @@ function makeWrapper() {
 }
 
 const unavailable = () => Object.assign(new Error('unavailable'), { code: 'unavailable' });
-const snapshot = () => ({ docs: [{ id: 'g1', data: () => ({ score: 1 }) }], metadata: { fromCache: false } });
+const snapshot = () => ({
+  docs: [{ id: 'g1', data: () => ({ score: 1 }) }],
+  metadata: { fromCache: false },
+});
 const last = () => h.listeners[h.listeners.length - 1];
 
 function renderSubscribed() {
   return renderHook(
     () => {
       const queryKey = ['games', 'l1'];
-      const query = useFirestoreCollection({ collectionPath: 'leagues/l1/games', queryKey, subscribe: true });
+      const query = useFirestoreCollection({
+        collectionPath: 'leagues/l1/games',
+        queryKey,
+        subscribe: true,
+      });
       return { query, state: useReadRetryState(query, queryKey) };
     },
     { wrapper: makeWrapper() },

@@ -1,13 +1,13 @@
-import type { Likelihood } from "./types.js";
+import type { Likelihood } from './types.js';
 
 /** Numeric enum value → string form, matching the Google APIs convention. */
 export const LIKELIHOOD_MAP: Record<string | number, Likelihood> = {
-  0: "UNKNOWN",
-  1: "VERY_UNLIKELY",
-  2: "UNLIKELY",
-  3: "POSSIBLE",
-  4: "LIKELY",
-  5: "VERY_LIKELY",
+  0: 'UNKNOWN',
+  1: 'VERY_UNLIKELY',
+  2: 'UNLIKELY',
+  3: 'POSSIBLE',
+  4: 'LIKELY',
+  5: 'VERY_LIKELY',
 };
 
 /** Comparison order for likelihoods (higher = more severe). */
@@ -21,11 +21,12 @@ export const LIKELIHOOD_ORDER: Record<Likelihood, number> = {
 };
 
 export function likelihoodToString(value: string | number | null | undefined): Likelihood {
-  if (value === null || value === undefined) return "UNKNOWN";
-  if (typeof value === "string") {
-    return (LIKELIHOOD_MAP[value as keyof typeof LIKELIHOOD_MAP] ?? (value as Likelihood)) as Likelihood;
+  if (value === null || value === undefined) return 'UNKNOWN';
+  if (typeof value === 'string') {
+    return (LIKELIHOOD_MAP[value as keyof typeof LIKELIHOOD_MAP] ??
+      (value as Likelihood)) as Likelihood;
   }
-  return LIKELIHOOD_MAP[value] ?? "UNKNOWN";
+  return LIKELIHOOD_MAP[value] ?? 'UNKNOWN';
 }
 
 /**

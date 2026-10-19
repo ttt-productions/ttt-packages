@@ -14,7 +14,9 @@ const PUBLIC = COLLECTIONS.PUBLIC_USERS;
 
 describe('findHandTypedFirestorePaths', () => {
   it('needs the core collection names', () => {
-    expect(() => findHandTypedFirestorePaths([], { collectionNames: [] })).toThrow(/collection names/);
+    expect(() => findHandTypedFirestorePaths([], { collectionNames: [] })).toThrow(
+      /collection names/,
+    );
   });
 
   it('FLAGS a path beginning with a collection name in every quote style, with or without a hole', () => {
@@ -99,7 +101,10 @@ describe('findHandTypedFirestorePaths', () => {
   it('FLAGS a path opening a JSX attribute string, and reads JavaScript test files', () => {
     expect(
       offenders([
-        { path: 'src/__tests__/components/probe.test.tsx', content: `const view = <Row path="${PROFILES}/u1" />;` },
+        {
+          path: 'src/__tests__/components/probe.test.tsx',
+          content: `const view = <Row path="${PROFILES}/u1" />;`,
+        },
         { path: 'scripts/__tests__/probe.test.mjs', content: `writer.set('${PUBLIC}/u2', {});` },
       ]),
     ).toEqual(['src/__tests__/components/probe.test.tsx:1', 'scripts/__tests__/probe.test.mjs:1']);

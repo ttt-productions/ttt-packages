@@ -11,7 +11,11 @@ import React, {
 } from 'react';
 import { MediaInput } from '@ttt-productions/file-input/react';
 import type { MediaInputChangePayload } from '@ttt-productions/file-input';
-import type { ClientMediaClaim, MediaOriginSpec, UploadState } from '@ttt-productions/media-schemas';
+import type {
+  ClientMediaClaim,
+  MediaOriginSpec,
+  UploadState,
+} from '@ttt-productions/media-schemas';
 
 export interface DeferredUploadFormShellHandle {
   submit: () => void;
@@ -86,12 +90,15 @@ function DeferredUploadFormShellInner<
   const fileAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleMediaChange = useCallback((payload: MediaInputChangePayload) => {
-    const next = payload.error ? null : (payload.file ?? null);
-    setSelectedFile(next);
-    setSelectedClaim(next ? payload.claim : undefined);
-    onFileChange?.(next);
-  }, [onFileChange]);
+  const handleMediaChange = useCallback(
+    (payload: MediaInputChangePayload) => {
+      const next = payload.error ? null : (payload.file ?? null);
+      setSelectedFile(next);
+      setSelectedClaim(next ? payload.claim : undefined);
+      onFileChange?.(next);
+    },
+    [onFileChange],
+  );
 
   const handleClear = useCallback(() => {
     setSelectedFile(null);
@@ -134,18 +141,21 @@ function DeferredUploadFormShellInner<
     }
   }, [mutation, selectedFile, selectedClaim, buildVariables, onSuccess, onError, onFileChange]);
 
-  useImperativeHandle(ref, () => ({ submit: () => { void handleSubmit(); } }), [handleSubmit]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      submit: () => {
+        void handleSubmit();
+      },
+    }),
+    [handleSubmit],
+  );
 
   return (
     <>
       {children}
 
-      <div
-        ref={fileAreaRef}
-        tabIndex={-1}
-        aria-live="polite"
-        className="outline-none"
-      >
+      <div ref={fileAreaRef} tabIndex={-1} aria-live="polite" className="outline-none">
         <MediaInput
           spec={spec}
           selectedFile={selectedFile}
@@ -169,5 +179,7 @@ export const DeferredUploadFormShell = forwardRef(DeferredUploadFormShellInner) 
   },
   TResult = unknown,
 >(
-  props: DeferredUploadFormShellProps<TVariables, TResult> & { ref?: Ref<DeferredUploadFormShellHandle> },
+  props: DeferredUploadFormShellProps<TVariables, TResult> & {
+    ref?: Ref<DeferredUploadFormShellHandle>;
+  },
 ) => React.ReactElement;

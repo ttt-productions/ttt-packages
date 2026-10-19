@@ -1,4 +1,4 @@
-import type { ModerationLogger, TextModerationResult } from "../types.js";
+import type { ModerationLogger, TextModerationResult } from '../types.js';
 
 export interface WordListProvider {
   /** Returns the active profanity word list. May read from cache, Firestore, etc. */
@@ -35,8 +35,17 @@ export function createWordListCache(args: {
 }
 
 const LEET_SPEAK_MAP: Record<string, string> = {
-  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
-  "7": "t", "8": "b", "@": "a", "$": "s", "!": "i", "+": "t",
+  '0': 'o',
+  '1': 'i',
+  '3': 'e',
+  '4': 'a',
+  '5': 's',
+  '7': 't',
+  '8': 'b',
+  '@': 'a',
+  $: 's',
+  '!': 'i',
+  '+': 't',
 };
 
 function normalizeText(text: string): string {
@@ -45,7 +54,7 @@ function normalizeText(text: string): string {
     normalized = normalized.split(leet).join(letter);
   }
   // Collapse 3+ repeated chars to 2 (e.g. "fuuuck" → "fuuck")
-  normalized = normalized.replace(/(.)\1{2,}/g, "$1$1");
+  normalized = normalized.replace(/(.)\1{2,}/g, '$1$1');
   return normalized;
 }
 
@@ -60,7 +69,7 @@ export async function quickWordFilter(
   const tokens = normalized.split(/[\s.,!?;:'"()[\]{}<>/\\|`~@#$%^&*+=_-]+/);
   const flagged: string[] = [];
   for (const token of tokens) {
-    const clean = token.replace(/[^a-z0-9]/gi, "");
+    const clean = token.replace(/[^a-z0-9]/gi, '');
     if (clean.length > 1 && words.has(clean)) flagged.push(clean);
   }
   return { pass: flagged.length === 0, flaggedWords: flagged };
@@ -91,9 +100,9 @@ export async function moderateText(
   if (!wordCheck.pass) {
     return {
       safe: false,
-      reason: "Content contains prohibited language",
+      reason: 'Content contains prohibited language',
       flaggedWords: wordCheck.flaggedWords,
-      layer: "word_filter",
+      layer: 'word_filter',
     };
   }
 

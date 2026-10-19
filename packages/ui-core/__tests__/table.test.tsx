@@ -127,7 +127,13 @@ function renderSortable(props: Partial<SortableTableHeadProps> = {}) {
     <Table>
       <TableHeader>
         <TableRow>
-          <SortableTableHead label="Goals" shortLabel="G" direction={null} onSort={onSort} {...props} />
+          <SortableTableHead
+            label="Goals"
+            shortLabel="G"
+            direction={null}
+            onSort={onSort}
+            {...props}
+          />
         </TableRow>
       </TableHeader>
     </Table>,

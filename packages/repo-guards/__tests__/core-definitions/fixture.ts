@@ -39,4 +39,5 @@ export function fixture(files: Record<string, string>): Fixture {
 }
 
 /** Findings as `file:line — detail` lines, so a test states every expected finding exactly. */
-export const lines = (findings: readonly Finding[]) => findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ''} — ${f.detail}`);
+export const lines = (findings: readonly Finding[]) =>
+  findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ''} — ${f.detail}`);

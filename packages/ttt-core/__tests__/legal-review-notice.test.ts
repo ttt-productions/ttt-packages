@@ -86,7 +86,10 @@ describe('founder legal-review notice — the settled copy, verbatim', () => {
     const segments = registrationTermsAgreementSegments();
     expect(legalReviewNoticeSegmentsText(segments)).toBe(REGISTRATION_TERMS);
     const links = segments.filter((segment) => segment.kind === 'link');
-    expect(links.map((link) => link.target)).toEqual([SPECIAL_DOCS.TERMS_PAGE, SPECIAL_DOCS.PRIVACY_PAGE]);
+    expect(links.map((link) => link.target)).toEqual([
+      SPECIAL_DOCS.TERMS_PAGE,
+      SPECIAL_DOCS.PRIVACY_PAGE,
+    ]);
   });
 });
 
@@ -176,13 +179,16 @@ describe('legalReviewNoticePlainText (backend-owned copy)', () => {
     expect(legalReviewNoticePlainText('pledge', 'checkbox')).toBe(CHECKBOX);
   });
 
-  it('defaults to the placement\'s first variant', () => {
+  it("defaults to the placement's first variant", () => {
     expect(legalReviewNoticePlainText('pledge')).toBe(SHORT_LINE);
     expect(legalReviewNoticePlainText('charterExplainer')).toBe(SHORT_LINE);
   });
 
   it('refuses a variant the placement does not render (an untyped caller)', () => {
-    const untyped = legalReviewNoticePlainText as (context: string, variant?: string) => string | null;
+    const untyped = legalReviewNoticePlainText as (
+      context: string,
+      variant?: string,
+    ) => string | null;
     expect(() => untyped('publish', 'card')).toThrow(/does not render/);
   });
 });
@@ -194,14 +200,23 @@ describe('what gets recorded', () => {
 
   it('builds a receipt of the active revision and the server time, in the persisted shape', () => {
     const receipt = buildLegalReviewNoticeReceipt(1_760_000_000_000);
-    expect(receipt).toEqual({ revision: LEGAL_REVIEW_NOTICE_REVISION, acknowledgedAt: 1_760_000_000_000 });
+    expect(receipt).toEqual({
+      revision: LEGAL_REVIEW_NOTICE_REVISION,
+      acknowledgedAt: 1_760_000_000_000,
+    });
     expect(LegalReviewNoticeReceiptSchema.safeParse(receipt).success).toBe(true);
   });
 
   it('the receipt shape is strict — a client-style extra field is rejected', () => {
     expect(
-      LegalReviewNoticeReceiptSchema.safeParse({ revision: 'founder-note-v1', acknowledgedAt: 1, ip: 'x' }).success,
+      LegalReviewNoticeReceiptSchema.safeParse({
+        revision: 'founder-note-v1',
+        acknowledgedAt: 1,
+        ip: 'x',
+      }).success,
     ).toBe(false);
-    expect(LegalReviewNoticeReceiptSchema.safeParse({ revision: '', acknowledgedAt: 1 }).success).toBe(false);
+    expect(
+      LegalReviewNoticeReceiptSchema.safeParse({ revision: '', acknowledgedAt: 1 }).success,
+    ).toBe(false);
   });
 });

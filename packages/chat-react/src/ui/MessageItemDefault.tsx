@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
-import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
-import { MessageText } from "./MessageText.js";
-import { cn } from "@ttt-productions/ui-core";
-import { Button, Spinner } from "@ttt-productions/ui-core/react";
-import { AlertTriangle } from "lucide-react";
-import { MessageActions } from "./menus.js";
-import { SenderName } from "./SenderName.js";
-import { useSenderNameResolution } from "../context/ChatNameResolverContext.js";
+import type { ReactNode } from 'react';
+import type { ChatMessageV1, ModerationHandlers } from '@ttt-productions/chat-core';
+import { MessageText } from './MessageText.js';
+import { cn } from '@ttt-productions/ui-core';
+import { Button, Spinner } from '@ttt-productions/ui-core/react';
+import { AlertTriangle } from 'lucide-react';
+import { MessageActions } from './menus.js';
+import { SenderName } from './SenderName.js';
+import { useSenderNameResolution } from '../context/ChatNameResolverContext.js';
 
 // A chat message renders TEXT (plus its send-state rows). Files live in the
 // conversation's Conversation Files surface, never in the timeline — there is no
@@ -24,13 +24,13 @@ import { useSenderNameResolution } from "../context/ChatNameResolverContext.js";
 // by the realtime channel client). A failed send with no code (a transport/exhausted
 // reconnect failure) falls back to the neutral "Couldn't send".
 const SEND_FAILURE_COPY: Record<string, string> = {
-  "blocked-word": "Message contains blocked language",
-  "archived": "This channel is read-only",
-  "deleted": "This channel is read-only",
-  "membership-pending": "Chat is still preparing",
-  "wordlist-unavailable": "Chat safety check is temporarily unavailable",
-  "flood": "Please wait before sending again",
-  "slow-mode": "Please wait before sending again",
+  'blocked-word': 'Message contains blocked language',
+  archived: 'This channel is read-only',
+  deleted: 'This channel is read-only',
+  'membership-pending': 'Chat is still preparing',
+  'wordlist-unavailable': 'Chat safety check is temporarily unavailable',
+  flood: 'Please wait before sending again',
+  'slow-mode': 'Please wait before sending again',
 };
 
 function sendFailureCopy(code: string | null): string {
@@ -59,7 +59,7 @@ function SystemMessage({ m }: { m: ChatMessageV1 }) {
     <div className="chat-system-message">
       {m.text && <span>{m.text}</span>}
       <span className="chat-system-message-time">
-        {new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+        {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
       </span>
     </div>
   );
@@ -90,10 +90,19 @@ export type MessageItemDefaultProps = {
 };
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
-  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick: senderClick, senderAdornment, onRetrySend } = props;
+  const {
+    m,
+    currentUserId,
+    isAdmin,
+    handlers,
+    isContinuation,
+    onSenderClick: senderClick,
+    senderAdornment,
+    onRetrySend,
+  } = props;
   // Only a resolved name is a click target: the app's unresolved state (a Retry included) is never
   // nested inside a button.
-  const nameResolved = useSenderNameResolution(m.senderId).status === "resolved";
+  const nameResolved = useSenderNameResolution(m.senderId).status === 'resolved';
   const onSenderClick = nameResolved ? senderClick : undefined;
 
   // System messages render differently
@@ -110,45 +119,51 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
   const sendFailed = m.meta?.sendFailed === true;
   const sendPending = m.meta?.optimistic === true && !sendFailed;
   const clientMessageId =
-    typeof m.meta?.clientMessageId === "string" ? m.meta.clientMessageId : null;
+    typeof m.meta?.clientMessageId === 'string' ? m.meta.clientMessageId : null;
   // Correlated rejection reason (from the `send-rejected` frame), if any — drives
   // both the failure copy and whether a Retry affordance is offered.
   const sendFailureCode =
-    typeof m.meta?.sendFailureCode === "string" ? m.meta.sendFailureCode : null;
+    typeof m.meta?.sendFailureCode === 'string' ? m.meta.sendFailureCode : null;
   const showRetry = sendFailed && isRetryableFailure(m.meta);
 
   return (
     <div
       className={cn(
-        "flex flex-col w-fit max-w-[85%]",
-        mine ? "ml-auto items-end" : "mr-auto items-start",
-        isContinuation ? "chat-continuation-gap" : "chat-group-gap"
+        'flex flex-col w-fit max-w-[85%]',
+        mine ? 'ml-auto items-end' : 'mr-auto items-start',
+        isContinuation ? 'chat-continuation-gap' : 'chat-group-gap',
       )}
     >
       <div
         className={cn(
-          "chat-bubble",
-          mine ? "chat-bubble--mine" : "chat-bubble--theirs",
-          sendPending && "chat-bubble--pending",
-          sendFailed && "chat-bubble--failed"
+          'chat-bubble',
+          mine ? 'chat-bubble--mine' : 'chat-bubble--theirs',
+          sendPending && 'chat-bubble--pending',
+          sendFailed && 'chat-bubble--failed',
         )}
       >
         {!isContinuation && (
           <div className="flex items-center gap-2 text-xs opacity-80 mb-1">
             <span
-              className={cn("font-medium", onSenderClick && "cursor-pointer hover:underline")}
+              className={cn('font-medium', onSenderClick && 'cursor-pointer hover:underline')}
               onClick={onSenderClick ? () => onSenderClick(m.senderId) : undefined}
-              role={onSenderClick ? "button" : undefined}
+              role={onSenderClick ? 'button' : undefined}
               tabIndex={onSenderClick ? 0 : undefined}
-              onKeyDown={onSenderClick ? (e) => {
-                if (e.key === "Enter" || e.key === " ") onSenderClick(m.senderId);
-              } : undefined}
+              onKeyDown={
+                onSenderClick
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') onSenderClick(m.senderId);
+                    }
+                  : undefined
+              }
             >
               <SenderName senderId={m.senderId} />
             </span>
             {senderAdornment}
             <span>·</span>
-            <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+            <span>
+              {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
           </div>
         )}
 

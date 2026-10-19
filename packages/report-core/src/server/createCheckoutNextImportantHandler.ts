@@ -54,8 +54,7 @@ export function createCheckoutNextImportantHandler({
       try {
         await auth.requireAdmin(uid, authToken);
         return;
-      } catch {
-      }
+      } catch {}
     }
     if (auth.adminUserIds?.includes(uid)) return;
     throw new ReportCoreTaskError('permission-denied', 'Administrator access required');
@@ -104,7 +103,7 @@ export function createCheckoutNextImportantHandler({
           const verdict = await assertTaskClaimable({
             taskDocId: taskDoc.id,
             taskData,
-            originalData: originalDoc.exists ? originalDoc.data() ?? null : null,
+            originalData: originalDoc.exists ? (originalDoc.data() ?? null) : null,
             transaction,
           });
           if (!verdict.claimable) return { kind: 'refused' };
@@ -162,6 +161,9 @@ export function createCheckoutNextImportantHandler({
       else contendedRounds++;
     }
 
-    throw new ReportCoreTaskError('aborted', 'The task queue is busy right now — please try again.');
+    throw new ReportCoreTaskError(
+      'aborted',
+      'The task queue is busy right now — please try again.',
+    );
   };
 }

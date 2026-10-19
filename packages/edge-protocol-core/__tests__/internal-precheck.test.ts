@@ -47,14 +47,19 @@ describe('precheckInternalHeaders', () => {
     ).toEqual({ ok: false, reason: 'bad-version' });
   });
 
-  it.each([['missing', null], ['empty', ''], ['fractional', '1700000000.5'], ['exponent', '1.7e9'], ['negative', '-5'], ['words', 'now'], ['hex', '0x1F']])(
-    'refuses a %s timestamp as bad-timestamp',
-    (_label, value) => {
-      const entries: Record<string, string> = { [INTERNAL_AUTH_OPERATION_VERSION_HEADER]: 'v1' };
-      if (value !== null) entries[INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER] = value;
-      expect(precheck(entries)).toEqual({ ok: false, reason: 'bad-timestamp' });
-    },
-  );
+  it.each([
+    ['missing', null],
+    ['empty', ''],
+    ['fractional', '1700000000.5'],
+    ['exponent', '1.7e9'],
+    ['negative', '-5'],
+    ['words', 'now'],
+    ['hex', '0x1F'],
+  ])('refuses a %s timestamp as bad-timestamp', (_label, value) => {
+    const entries: Record<string, string> = { [INTERNAL_AUTH_OPERATION_VERSION_HEADER]: 'v1' };
+    if (value !== null) entries[INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER] = value;
+    expect(precheck(entries)).toEqual({ ok: false, reason: 'bad-timestamp' });
+  });
 
   it('refuses a timestamp older than the replay window as expired and one ahead of it as future', () => {
     const at = (timestampSec: number) =>
@@ -70,17 +75,24 @@ describe('precheckInternalHeaders', () => {
 
   it('reads the operation-id profile headers, not the compact profile ones', () => {
     expect(
-      precheck({ [INTERNAL_AUTH_VERSION_HEADER]: 'v1', [INTERNAL_AUTH_TIMESTAMP_HEADER]: String(NOW) }),
+      precheck({
+        [INTERNAL_AUTH_VERSION_HEADER]: 'v1',
+        [INTERNAL_AUTH_TIMESTAMP_HEADER]: String(NOW),
+      }),
     ).toEqual({ ok: false, reason: 'bad-version' });
   });
 
   it('takes any structural header source, not only a Headers instance', () => {
     const plain = {
       get: (name: string) =>
-        ({ [INTERNAL_AUTH_OPERATION_VERSION_HEADER]: 'v1', [INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER]: String(NOW) })[name] ??
-        null,
+        ({
+          [INTERNAL_AUTH_OPERATION_VERSION_HEADER]: 'v1',
+          [INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER]: String(NOW),
+        })[name] ?? null,
     };
-    expect(precheckInternalHeaders(plain, { nowSec: NOW, replayWindowSec: WINDOW })).toMatchObject({ ok: true });
+    expect(precheckInternalHeaders(plain, { nowSec: NOW, replayWindowSec: WINDOW })).toMatchObject({
+      ok: true,
+    });
   });
 
   it('applies the same rule as the full verify: same answer for every signed timestamp and clock', async () => {
@@ -102,13 +114,26 @@ describe('precheckInternalHeaders', () => {
         { nowSec, replayWindowSec: WINDOW },
       );
       const full = await verifyInternalRequest(
-        { ...fields, version: sig.version, signature: sig.signature, nowSec, replayWindowSec: WINDOW },
+        {
+          ...fields,
+          version: sig.version,
+          signature: sig.signature,
+          nowSec,
+          replayWindowSec: WINDOW,
+        },
         SECRET,
       );
       if (pre.ok) {
         expect(full).toEqual({ ok: true });
         const fromPrecheck = await verifyInternalRequest(
-          { ...fields, version: pre.version, timestampSec: pre.timestampSec, signature: sig.signature, nowSec, replayWindowSec: WINDOW },
+          {
+            ...fields,
+            version: pre.version,
+            timestampSec: pre.timestampSec,
+            signature: sig.signature,
+            nowSec,
+            replayWindowSec: WINDOW,
+          },
           SECRET,
         );
         expect(fromPrecheck).toEqual({ ok: true });

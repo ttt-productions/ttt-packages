@@ -30,7 +30,13 @@ import type { Finding } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, unwrap } from '../../support/ast.js';
-import { identifierProblem, isText, namesProblem, objectProblem, reviewedProblems } from '../../support/facts.js';
+import {
+  identifierProblem,
+  isText,
+  namesProblem,
+  objectProblem,
+  reviewedProblems,
+} from '../../support/facts.js';
 import { moduleImports } from '../../support/imports.js';
 import { resolveRelative } from '../../support/paths.js';
 
@@ -44,7 +50,12 @@ export interface SecretBindingFacts {
    */
   pinnedBinders: Readonly<Record<string, ReadonlyArray<{ module: string; why: string }>>>;
   /** An entry declaring a secret its closure never consumes, for a reviewed reason. */
-  deliberateOverDeclarations: ReadonlyArray<{ module: string; entry: string; secrets: readonly string[]; why: string }>;
+  deliberateOverDeclarations: ReadonlyArray<{
+    module: string;
+    entry: string;
+    secrets: readonly string[];
+    why: string;
+  }>;
   /** Secrets consumed behind helper exports, and the registry of exports that reach them. */
   indirectConsumers: ReadonlyArray<{
     secrets: readonly string[];
@@ -74,10 +85,12 @@ function asArrayLiteral(node: ts.Node | undefined): ts.ArrayLiteralExpression | 
   return n && ts.isArrayLiteralExpression(n) ? n : null;
 }
 
-const nameText = (name: ts.PropertyName) => (ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null);
+const nameText = (name: ts.PropertyName) =>
+  ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : null;
 
 function propertyOf(obj: ts.ObjectLiteralExpression, name: string): ts.PropertyAssignment | null {
-  for (const p of obj.properties) if (ts.isPropertyAssignment(p) && nameText(p.name) === name) return p;
+  for (const p of obj.properties)
+    if (ts.isPropertyAssignment(p) && nameText(p.name) === name) return p;
   return null;
 }
 
@@ -94,7 +107,10 @@ function hasUnseenSecrets(obj: ts.ObjectLiteralExpression): boolean {
 /** The analysis over a set of non-test Functions modules. */
 export function analyzeSecretBindings(
   files: readonly FileView[],
-  facts: Pick<SecretBindingFacts, 'entryFactories' | 'pinnedBinders' | 'deliberateOverDeclarations'>,
+  facts: Pick<
+    SecretBindingFacts,
+    'entryFactories' | 'pinnedBinders' | 'deliberateOverDeclarations'
+  >,
 ) {
   const asts = new Map(files.map((f) => [f.path, f.sourceFile] as const));
 
@@ -188,7 +204,14 @@ export function analyzeSecretBindings(
   const resolveImport = (fromPath: string, spec: string): string | null => {
     const base = moduleBase(fromPath, spec);
     if (base === null) return null;
-    for (const candidate of [`${base}.ts`, `${base}.mts`, `${base}/index.ts`, `${base}.js`, `${base}.mjs`, `${base}/index.js`]) {
+    for (const candidate of [
+      `${base}.ts`,
+      `${base}.mts`,
+      `${base}/index.ts`,
+      `${base}.js`,
+      `${base}.mjs`,
+      `${base}/index.js`,
+    ]) {
       if (asts.has(candidate)) return candidate;
     }
     return null;
@@ -224,7 +247,8 @@ export function analyzeSecretBindings(
   };
 
   const exemptions = new Map<string, Set<string>>();
-  for (const e of facts.deliberateOverDeclarations) exemptions.set(`${e.module}#${e.entry}`, new Set(e.secrets));
+  for (const e of facts.deliberateOverDeclarations)
+    exemptions.set(`${e.module}#${e.entry}`, new Set(e.secrets));
   const exemptionsUsed = new Set<string>();
 
   const violations: SecretViolation[] = [];
@@ -250,7 +274,11 @@ export function analyzeSecretBindings(
     });
     fileBinds.set(path, binds);
 
-    const entries: Array<{ name: string | null; binds: Set<string> | null; consumes: Set<string> }> = [];
+    const entries: Array<{
+      name: string | null;
+      binds: Set<string> | null;
+      consumes: Set<string>;
+    }> = [];
     forEachNode(sf, (node) => {
       const factory = entryFactoryOf(node);
       if (factory === null) return;
@@ -287,9 +315,13 @@ export function analyzeSecretBindings(
 
     for (const e of entries) {
       const effective = e.binds ?? binds;
-      for (const env of e.consumes) if (!effective.has(env)) violations.push({ kind: 'unbound-direct', entry: path, entryName: e.name, env });
+      for (const env of e.consumes)
+        if (!effective.has(env))
+          violations.push({ kind: 'unbound-direct', entry: path, entryName: e.name, env });
     }
-    for (const env of moduleConsumes) if (!binds.has(env)) violations.push({ kind: 'unbound-direct', entry: path, entryName: null, env });
+    for (const env of moduleConsumes)
+      if (!binds.has(env))
+        violations.push({ kind: 'unbound-direct', entry: path, entryName: null, env });
 
     const reachable = closureConsumes(path);
     for (const e of entries) {
@@ -314,13 +346,18 @@ export function analyzeSecretBindings(
   for (const env of Object.keys(facts.pinnedBinders)) {
     const expected = facts.pinnedBinders[env].map((b) => b.module);
     const actual = binderSets.get(env) ?? new Set<string>();
-    for (const module of expected) if (!actual.has(module)) violations.push({ kind: 'lost-pinned-binder', entry: module, env });
-    for (const module of actual) if (!expected.includes(module)) violations.push({ kind: 'new-pinned-binder', entry: module, env });
+    for (const module of expected)
+      if (!actual.has(module)) violations.push({ kind: 'lost-pinned-binder', entry: module, env });
+    for (const module of actual)
+      if (!expected.includes(module))
+        violations.push({ kind: 'new-pinned-binder', entry: module, env });
   }
 
   const staleExemptions: string[] = [];
   for (const e of facts.deliberateOverDeclarations) {
-    for (const env of e.secrets) if (!exemptionsUsed.has(`${e.module}#${e.entry}:${env}`)) staleExemptions.push(`${e.module}#${e.entry} ${env}`);
+    for (const env of e.secrets)
+      if (!exemptionsUsed.has(`${e.module}#${e.entry}:${env}`))
+        staleExemptions.push(`${e.module}#${e.entry} ${env}`);
   }
 
   return { violations, entryPoints, fileBinds, staleExemptions, envNames };
@@ -336,7 +373,8 @@ export function formatViolation(v: SecretViolation): string {
     const where = v.entryName ? `${v.entry} → ${v.entryName}` : v.entry;
     return `${where} declares ${v.env} but nothing in its import closure consumes it — drop the binding`;
   }
-  if (v.kind === 'lost-pinned-binder') return `${v.entry} no longer binds ${v.env}, which the pinned binders name it for`;
+  if (v.kind === 'lost-pinned-binder')
+    return `${v.entry} no longer binds ${v.env}, which the pinned binders name it for`;
   return `${v.entry} now binds ${v.env}, which the pinned binders do not name it for — confirm it needs the secret, then pin it`;
 }
 
@@ -345,24 +383,43 @@ export function formatViolation(v: SecretViolation): string {
 // ---------------------------------------------------------------------------------------------
 
 /** Every runtime (not type-only) import or export-from a module makes, with the names it takes. */
-export function runtimeImports(file: FileView): Array<{ source: string; named: string[]; namespace: boolean }> {
+export function runtimeImports(
+  file: FileView,
+): Array<{ source: string; named: string[]; namespace: boolean }> {
   return moduleImports(file.sourceFile, ['import', 'export'])
     .filter((site) => site.topLevel && !site.sideEffect && !site.typeOnly)
-    .map((site) => ({ source: site.spec, named: site.named.filter((n) => !n.typeOnly).map((n) => n.imported), namespace: site.star }));
+    .map((site) => ({
+      source: site.spec,
+      named: site.named.filter((n) => !n.typeOnly).map((n) => n.imported),
+      namespace: site.star,
+    }));
 }
 
 const hasExportModifier = (node: ts.Node) =>
-  ts.canHaveModifiers(node) && !!ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  ts.canHaveModifiers(node) &&
+  !!ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
 /** Every value name a module exports by declaration or export list. */
 export function exportedValueNames(file: FileView): Set<string> {
   const out = new Set<string>();
   for (const stmt of file.sourceFile.statements) {
     if (ts.isVariableStatement(stmt) && hasExportModifier(stmt)) {
-      for (const d of stmt.declarationList.declarations) if (ts.isIdentifier(d.name)) out.add(d.name.text);
-    } else if ((ts.isFunctionDeclaration(stmt) || ts.isClassDeclaration(stmt) || ts.isEnumDeclaration(stmt)) && hasExportModifier(stmt) && stmt.name) {
+      for (const d of stmt.declarationList.declarations)
+        if (ts.isIdentifier(d.name)) out.add(d.name.text);
+    } else if (
+      (ts.isFunctionDeclaration(stmt) ||
+        ts.isClassDeclaration(stmt) ||
+        ts.isEnumDeclaration(stmt)) &&
+      hasExportModifier(stmt) &&
+      stmt.name
+    ) {
       out.add(stmt.name.text);
-    } else if (ts.isExportDeclaration(stmt) && !stmt.isTypeOnly && stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
+    } else if (
+      ts.isExportDeclaration(stmt) &&
+      !stmt.isTypeOnly &&
+      stmt.exportClause &&
+      ts.isNamedExports(stmt.exportClause)
+    ) {
       for (const el of stmt.exportClause.elements) if (!el.isTypeOnly) out.add(el.name.text);
     }
   }
@@ -383,9 +440,14 @@ export function indirectHopFindings(
 ): Finding[] {
   const findings: Finding[] = [];
   const chokepoints = new Set(consumer.chokepoints);
-  const registered = new Set([...consumer.chokepoints, ...consumer.reachingExports.map((e) => e.name)]);
+  const registered = new Set([
+    ...consumer.chokepoints,
+    ...consumer.reachingExports.map((e) => e.name),
+  ]);
   const definerBase = withoutExtension(consumer.definer);
-  const callPattern = new RegExp(`\\b(?:${consumer.chokepoints.map((n) => n.replace(/[$]/g, '\\$')).join('|')})\\s*\\(`);
+  const callPattern = new RegExp(
+    `\\b(?:${consumer.chokepoints.map((n) => n.replace(/[$]/g, '\\$')).join('|')})\\s*\\(`,
+  );
   const owners = new Map<string, string[]>();
 
   for (const file of files) {
@@ -394,36 +456,53 @@ export function indirectHopFindings(
     let viaHelper = false;
     for (const imp of imports) {
       const target = moduleBase(file.path, imp.source);
-      if (imp.namespace && (target === definerBase || target === `${definerBase}/index`)) direct = true;
+      if (imp.namespace && (target === definerBase || target === `${definerBase}/index`))
+        direct = true;
       for (const name of imp.named) {
         if (chokepoints.has(name)) direct = true;
         else if (registered.has(name)) viaHelper = true;
       }
     }
     const exports = exportedValueNames(file);
-    for (const name of exports) if (registered.has(name)) owners.set(name, [...(owners.get(name) ?? []), file.path]);
+    for (const name of exports)
+      if (registered.has(name)) owners.set(name, [...(owners.get(name) ?? []), file.path]);
 
     if (direct || viaHelper) {
       if (entryModules.has(file.path)) {
         const binds = fileBinds.get(file.path) ?? new Set<string>();
         const missing = consumer.secrets.filter((s) => !binds.has(s));
         if (missing.length) {
-          findings.push({ file: file.path, detail: `imports a registered export reaching ${consumer.definer} but its secrets: [...] does not bind ${missing.join(', ')}` });
+          findings.push({
+            file: file.path,
+            detail: `imports a registered export reaching ${consumer.definer} but its secrets: [...] does not bind ${missing.join(', ')}`,
+          });
         }
       } else if (![...exports].some((name) => registered.has(name))) {
-        findings.push({ file: file.path, detail: `reaches a chokepoint for ${consumer.secrets.join(', ')} but registers none of its exports — an entry importing it would dodge the binding check` });
+        findings.push({
+          file: file.path,
+          detail: `reaches a chokepoint for ${consumer.secrets.join(', ')} but registers none of its exports — an entry importing it would dodge the binding check`,
+        });
       }
     } else if (file.path !== consumer.definer && callPattern.test(file.code)) {
-      findings.push({ file: file.path, detail: 'calls a chokepoint without a static import the check can follow' });
+      findings.push({
+        file: file.path,
+        detail: 'calls a chokepoint without a static import the check can follow',
+      });
     }
   }
 
   for (const name of registered) {
     const found = owners.get(name) ?? [];
     if (found.length !== 1) {
-      findings.push({ file: consumer.definer, detail: `registered export ${name} is exported by ${found.length} modules (${found.join(', ') || 'none'}), not exactly one — stale or ambiguous registry entry` });
+      findings.push({
+        file: consumer.definer,
+        detail: `registered export ${name} is exported by ${found.length} modules (${found.join(', ') || 'none'}), not exactly one — stale or ambiguous registry entry`,
+      });
     } else if (chokepoints.has(name) && found[0] !== consumer.definer) {
-      findings.push({ file: found[0], detail: `chokepoint ${name} is exported here, not by its definer ${consumer.definer}` });
+      findings.push({
+        file: found[0],
+        detail: `chokepoint ${name} is exported here, not by its definer ${consumer.definer}`,
+      });
     }
   }
   return findings;
@@ -465,12 +544,16 @@ export const secretBindingGuard: GenericGuardDefinition<SecretBindingFacts> = {
       if (!factories.length) problems.push('entryFactories is empty');
       for (const [name, index] of factories) {
         identifierProblem(name, `entry factory ${name}`, problems);
-        if (!Number.isInteger(index) || index < 0) problems.push(`entry factory ${name}'s options index must be a whole number`);
+        if (!Number.isInteger(index) || index < 0)
+          problems.push(`entry factory ${name}'s options index must be a whole number`);
       }
     }
     if (objectProblem(facts.pinnedBinders, 'pinnedBinders', problems)) {
       for (const [env, binders] of Object.entries(facts.pinnedBinders)) {
-        reviewedProblems(binders, `pinnedBinders.${env}`, problems, { key: 'module', nonEmpty: true });
+        reviewedProblems(binders, `pinnedBinders.${env}`, problems, {
+          key: 'module',
+          nonEmpty: true,
+        });
       }
     }
     reviewedProblems(facts.deliberateOverDeclarations, 'deliberateOverDeclarations', problems, {
@@ -486,12 +569,15 @@ export const secretBindingGuard: GenericGuardDefinition<SecretBindingFacts> = {
       extra(entry, label) {
         namesProblem(entry.secrets, `${label}'s secrets`, problems);
         namesProblem(entry.chokepoints, `${label}'s chokepoints`, problems);
-        for (const name of Array.isArray(entry.chokepoints) ? (entry.chokepoints as unknown[]) : []) {
+        for (const name of Array.isArray(entry.chokepoints)
+          ? (entry.chokepoints as unknown[])
+          : []) {
           if (isText(name)) identifierProblem(name, `${label}'s chokepoint ${name}`, problems);
         }
         reviewedProblems(entry.reachingExports, `${label}'s reachingExports`, problems, {
           key: 'name',
-          extra: (reaching, reachingLabel) => identifierProblem(reaching.name, reachingLabel, problems),
+          extra: (reaching, reachingLabel) =>
+            identifierProblem(reaching.name, reachingLabel, problems),
         });
       },
     });
@@ -511,20 +597,32 @@ export const secretBindingGuard: GenericGuardDefinition<SecretBindingFacts> = {
         run(context) {
           const files = context.files(SOURCE_SCOPE);
           const result = analyzeSecretBindings(files, facts);
-          const findings: Finding[] = result.violations.map((v) => ({ file: v.entry, detail: formatViolation(v) }));
+          const findings: Finding[] = result.violations.map((v) => ({
+            file: v.entry,
+            detail: formatViolation(v),
+          }));
           for (const stale of result.staleExemptions) {
-            findings.push({ file: stale.split('#')[0], detail: `stale over-declaration exception: ${stale} is consumed or no longer declared` });
+            findings.push({
+              file: stale.split('#')[0],
+              detail: `stale over-declaration exception: ${stale} is consumed or no longer declared`,
+            });
           }
           const entryModules = new Set(result.entryPoints.map((e) => e.entry));
           for (const consumer of facts.indirectConsumers) {
             if (!files.some((f) => f.path === consumer.definer)) {
-              findings.push({ file: consumer.definer, detail: 'the indirect consumer definer is not a Functions source module' });
+              findings.push({
+                file: consumer.definer,
+                detail: 'the indirect consumer definer is not a Functions source module',
+              });
               continue;
             }
             findings.push(...indirectHopFindings(files, entryModules, result.fileBinds, consumer));
           }
           for (const [env, paths] of duplicateDeclarations(context.files(ALL_SCOPE))) {
-            findings.push({ file: paths[0], detail: `${env} is declared by ${paths.length} modules (${paths.join(', ')}); declare it once and import it` });
+            findings.push({
+              file: paths[0],
+              detail: `${env} is declared by ${paths.length} modules (${paths.join(', ')}); declare it once and import it`,
+            });
           }
           return findings;
         },

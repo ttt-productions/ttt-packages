@@ -23,7 +23,10 @@
  */
 
 import { useCallback } from 'react';
-import { useLocalUploadGuard, type ConfirmNavigationOptions } from './local-upload-guard-provider.js';
+import {
+  useLocalUploadGuard,
+  type ConfirmNavigationOptions,
+} from './local-upload-guard-provider.js';
 
 /**
  * Returns a callable that wraps a navigation action. Calling the returned

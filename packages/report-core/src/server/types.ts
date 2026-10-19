@@ -172,11 +172,14 @@ export interface ServerReportCoreConfig {
     reportGroups: string;
     adminTasks: string;
   };
-  taskQueues: Record<string, {
-    defaultCheckoutMinutes: number;
-    workLaterMinutes: number;
-    maxWorkLaterMinutes: number;
-  }>;
+  taskQueues: Record<
+    string,
+    {
+      defaultCheckoutMinutes: number;
+      workLaterMinutes: number;
+      maxWorkLaterMinutes: number;
+    }
+  >;
   priorityConfig: {
     reasonScores: Record<string, number>;
     itemTypeMultipliers: Record<string, number>;

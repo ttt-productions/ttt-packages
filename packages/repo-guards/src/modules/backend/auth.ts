@@ -13,8 +13,17 @@ import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import { namesProblem, reviewedProblems, takesNoFacts, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
-import { declarationFactProblems, readDeclarations, type CallableDeclarationFacts } from '../frontend-actions/declarations.js';
-import { serverZoneContext, serverZoneProblems, staleServerFolders, type ServerZone } from './shared.js';
+import {
+  declarationFactProblems,
+  readDeclarations,
+  type CallableDeclarationFacts,
+} from '../frontend-actions/declarations.js';
+import {
+  serverZoneContext,
+  serverZoneProblems,
+  staleServerFolders,
+  type ServerZone,
+} from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
@@ -39,13 +48,17 @@ export function adminClaimMatcher(claimKeys: readonly string[]): Matcher {
   const patterns = [
     new RegExp(String.raw`\b${CLAIM_RECEIVER}\s*(?:\?\.|\.)\s*(?:${keys})\b`, 'g'),
     new RegExp(String.raw`\b${CLAIM_RECEIVER}\s*(?:\?\.)?\s*\[\s*(['"\`])(?:${keys})\1\s*\]`, 'g'),
-    new RegExp(String.raw`\{[^{}\n]*\b(?:${keys})\b[^{}\n]*\}\s*=\s*[^;\n]*${CLAIM_RECEIVER}\b`, 'g'),
+    new RegExp(
+      String.raw`\{[^{}\n]*\b(?:${keys})\b[^{}\n]*\}\s*=\s*[^;\n]*${CLAIM_RECEIVER}\b`,
+      'g',
+    ),
   ];
   return (file) => {
     const hits: Hit[] = [];
     for (const re of patterns) {
       const g = new RegExp(re.source, re.flags);
-      for (let m = g.exec(file.code); m; m = g.exec(file.code)) hits.push({ index: m.index, detail: m[0].trim().slice(0, 80) });
+      for (let m = g.exec(file.code); m; m = g.exec(file.code))
+        hits.push({ index: m.index, detail: m[0].trim().slice(0, 80) });
     }
     return hits.sort((a, b) => a.index - b.index);
   };
@@ -70,7 +83,12 @@ export const adminClaimGuard: GenericGuardDefinition<AdminClaimFacts> = {
         'for up to an hour after a demotion, and anything signed from it outlives the revocation by its own lifetime. ' +
         "Resolve admin standing through the resolver's authoritative read, failing closed on a read failure. Writing the " +
         'claim is not a read. A reviewed reader that no longer reads the claim is stale.',
-      scope: { roots: ['functions', 'app'], optionalRoots: ['functions'], kinds: ['code'], tests: false },
+      scope: {
+        roots: ['functions', 'app'],
+        optionalRoots: ['functions'],
+        kinds: ['code'],
+        tests: false,
+      },
       match: adminClaimMatcher(facts.claimKeys),
       allowlist: facts.readers,
       samples: {
@@ -79,14 +97,19 @@ export const adminClaimGuard: GenericGuardDefinition<AdminClaimFacts> = {
           `const a = decoded?.['${facts.claimKeys[0]}'];`,
           `const { uid, ${facts.claimKeys[0]} = false } = ctx.token;`,
         ],
-        passes: [`await auth.setCustomUserClaims(uid, { ${facts.claimKeys[0]}: true });\nif (args.${facts.claimKeys[0]}) run();`],
+        passes: [
+          `await auth.setCustomUserClaims(uid, { ${facts.claimKeys[0]}: true });\nif (args.${facts.claimKeys[0]}) run();`,
+        ],
       },
     });
     return [
       {
         ...guard,
         async run(context: GuardContext) {
-          return [...staleServerFolders(context, facts.appServerZone), ...(await guard.run(serverZoneContext(context, facts.appServerZone)))];
+          return [
+            ...staleServerFolders(context, facts.appServerZone),
+            ...(await guard.run(serverZoneContext(context, facts.appServerZone))),
+          ];
         },
       },
     ];
@@ -118,19 +141,25 @@ export const requestOriginGuard: GenericGuardDefinition<RequestOriginFacts> = {
         title: "a request's origin is read in one place",
         description:
           `Where a request came from is read only in ${facts.reader}: nothing else in the Functions tree reads the raw ` +
-          'request, its X-Forwarded-For header, or the framework\'s own `req.ip`. The one reader takes the last forwarded ' +
+          "request, its X-Forwarded-For header, or the framework's own `req.ip`. The one reader takes the last forwarded " +
           'entry, never a caller-set one; everything else takes the origin the auth step derived. The reader must still ' +
           'hold the read.',
         scope: FUNCTIONS_CODE,
         match: (file) => {
           const re = new RegExp(ORIGIN_READ.source, ORIGIN_READ.flags);
           const hits: Hit[] = [];
-          for (let m = re.exec(file.code); m; m = re.exec(file.code)) hits.push({ index: m.index, detail: m[0] });
+          for (let m = re.exec(file.code); m; m = re.exec(file.code))
+            hits.push({ index: m.index, detail: m[0] });
           return hits;
         },
         owners: [facts.reader],
         samples: {
-          flags: ['const ip = request.rawRequest?.ip ?? null;', "const hops = headers['x-forwarded-for'];", 'const caller = req.ip;', 'const { rawRequest } = request;'],
+          flags: [
+            'const ip = request.rawRequest?.ip ?? null;',
+            "const hops = headers['x-forwarded-for'];",
+            'const caller = req.ip;',
+            'const { rawRequest } = request;',
+          ],
           passes: ['const facts = { ip: context.ip };\n// rawRequest is read only by the reader'],
         },
       }),
@@ -149,9 +178,14 @@ const BLOCKING_BUILDERS = new Set(['beforeCreate', 'beforeSignIn', 'beforeEmail'
 /** Every registration of a sign-up, sign-in, email, or SMS blocking function. */
 export function blockingFunctionSites(file: FileView): Array<{ node: ts.Node; detail: string }> {
   const out: Array<{ node: ts.Node; detail: string }> = [];
-  for (const { spec, node } of moduleImports(file.sourceFile, MODULE_LOADS)) if (BLOCKING_MODULE.test(spec)) out.push({ node, detail: `imports ${spec}` });
+  for (const { spec, node } of moduleImports(file.sourceFile, MODULE_LOADS))
+    if (BLOCKING_MODULE.test(spec)) out.push({ node, detail: `imports ${spec}` });
   forEachNode(file.sourceFile, (node) => {
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && BLOCKING_BUILDERS.has(node.expression.name.text)) {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      BLOCKING_BUILDERS.has(node.expression.name.text)
+    ) {
       out.push({ node, detail: `registers ${node.expression.name.text}` });
     }
   });
@@ -173,7 +207,11 @@ export const noBlockingFunctionGuard: GenericGuardDefinition<NoBlockingFunctionF
           'that to start, so a blocking function refuses members at random. Do the work after the fact instead.',
         run(context) {
           return context.files(FUNCTIONS_CODE).flatMap((file) =>
-            blockingFunctionSites(file).map(({ node, detail }) => ({ file: file.path, line: lineOfNode(file, node), detail })),
+            blockingFunctionSites(file).map(({ node, detail }) => ({
+              file: file.path,
+              line: lineOfNode(file, node),
+              detail,
+            })),
           );
         },
       },
@@ -203,30 +241,44 @@ interface Callable {
   options: ts.ObjectLiteralExpression | null;
 }
 
-const isOnCall = (node: ts.Node): node is ts.CallExpression => ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'onCall';
+const isOnCall = (node: ts.Node): node is ts.CallExpression =>
+  ts.isCallExpression(node) &&
+  ts.isIdentifier(node.expression) &&
+  node.expression.text === 'onCall';
 
 /** A literal options object's boolean property, or false when it is absent or not literally `true`. */
 const declaresTrue = (options: ts.ObjectLiteralExpression | null, key: string) =>
   !!options?.properties.some(
-    (p) => ts.isPropertyAssignment(p) && p.name.getText().replace(/^['"]|['"]$/g, '') === key && p.initializer.kind === ts.SyntaxKind.TrueKeyword,
+    (p) =>
+      ts.isPropertyAssignment(p) &&
+      p.name.getText().replace(/^['"]|['"]$/g, '') === key &&
+      p.initializer.kind === ts.SyntaxKind.TrueKeyword,
   );
 
 /** Every callable a file defines: exported directly, or made by a module function that returns an `onCall`. */
 export function callablesOf(file: FileView): Callable[] {
   const sf = file.sourceFile;
-  const optionsOf = (call: ts.CallExpression) => (call.arguments[0] && ts.isObjectLiteralExpression(call.arguments[0]) ? call.arguments[0] : null);
+  const optionsOf = (call: ts.CallExpression) =>
+    call.arguments[0] && ts.isObjectLiteralExpression(call.arguments[0]) ? call.arguments[0] : null;
   const factories = new Map<string, ts.CallExpression>();
   const named = new Set<ts.CallExpression>();
   const out: Callable[] = [];
   forEachNode(sf, (node) => {
     if (ts.isFunctionDeclaration(node) && node.name && node.body) {
       forEachNode(node.body, (n) => {
-        if (ts.isReturnStatement(n) && n.expression && isOnCall(n.expression)) factories.set(node.name!.text, n.expression);
+        if (ts.isReturnStatement(n) && n.expression && isOnCall(n.expression))
+          factories.set(node.name!.text, n.expression);
       });
     }
   });
   forEachNode(sf, (node) => {
-    if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || !node.initializer || !ts.isCallExpression(node.initializer)) return;
+    if (
+      !ts.isVariableDeclaration(node) ||
+      !ts.isIdentifier(node.name) ||
+      !node.initializer ||
+      !ts.isCallExpression(node.initializer)
+    )
+      return;
     const init: ts.CallExpression = node.initializer;
     if (isOnCall(init as ts.Node)) {
       named.add(init);
@@ -238,7 +290,12 @@ export function callablesOf(file: FileView): Callable[] {
     }
   });
   forEachNode(sf, (node) => {
-    if (isOnCall(node) && !named.has(node)) out.push({ name: `(onCall at line ${lineOfNode(file, node)})`, node, options: optionsOf(node) });
+    if (isOnCall(node) && !named.has(node))
+      out.push({
+        name: `(onCall at line ${lineOfNode(file, node)})`,
+        node,
+        options: optionsOf(node),
+      });
   });
   return out;
 }
@@ -249,7 +306,11 @@ export function asksForAdmin(file: FileView, adminAuth: AppCheckFacts['adminAuth
   forEachNode(file.sourceFile, (node) => {
     if (found || !ts.isCallExpression(node) || calleeName(node) !== adminAuth.call) return;
     found = node.arguments.some(
-      (arg) => ts.isObjectLiteralExpression(arg) && arg.properties.some((p) => p.name?.getText().replace(/^['"]|['"]$/g, '') === adminAuth.option),
+      (arg) =>
+        ts.isObjectLiteralExpression(arg) &&
+        arg.properties.some(
+          (p) => p.name?.getText().replace(/^['"]|['"]$/g, '') === adminAuth.option,
+        ),
     );
   });
   return found;
@@ -265,7 +326,9 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
     textProblem(facts?.adminAuth?.option, 'adminAuth.option', problems);
     reviewedProblems(facts?.consumptionExempt, 'consumptionExempt', problems, { key: 'callable' });
     declarationFactProblems(facts?.clientDeclarations, 'clientDeclarations', problems);
-    reviewedProblems(facts?.noClientDeclaration, 'noClientDeclaration', problems, { key: 'callable' });
+    reviewedProblems(facts?.noClientDeclaration, 'noClientDeclaration', problems, {
+      key: 'callable',
+    });
     return problems;
   },
   build(facts) {
@@ -294,23 +357,57 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
           for (const callable of list) {
             const line = lineOfNode(file, callable.node);
             if (!callable.options) {
-              findings.push({ file: file.path, line, detail: `${callable.name}: the onCall options are not an object literal, so the posture cannot be read` });
+              findings.push({
+                file: file.path,
+                line,
+                detail: `${callable.name}: the onCall options are not an object literal, so the posture cannot be read`,
+              });
               continue;
             }
-            if (!declaresTrue(callable.options, 'enforceAppCheck')) findings.push({ file: file.path, line, detail: `${callable.name}: no enforceAppCheck: true` });
+            if (!declaresTrue(callable.options, 'enforceAppCheck'))
+              findings.push({
+                file: file.path,
+                line,
+                detail: `${callable.name}: no enforceAppCheck: true`,
+              });
             const consumes = declaresTrue(callable.options, 'consumeAppCheckToken');
             if (exempt.has(callable.name)) {
               exemptSeen.add(callable.name);
-              if (consumes) findings.push({ file: file.path, line, detail: `stale exemption: ${callable.name} now consumes its token` });
-              else if (!mustConsume) findings.push({ file: file.path, line, detail: `stale exemption: ${callable.name} is not a consuming callable` });
+              if (consumes)
+                findings.push({
+                  file: file.path,
+                  line,
+                  detail: `stale exemption: ${callable.name} now consumes its token`,
+                });
+              else if (!mustConsume)
+                findings.push({
+                  file: file.path,
+                  line,
+                  detail: `stale exemption: ${callable.name} is not a consuming callable`,
+                });
             } else if (mustConsume && !consumes) {
-              findings.push({ file: file.path, line, detail: `${callable.name}: no consumeAppCheckToken: true` });
+              findings.push({
+                file: file.path,
+                line,
+                detail: `${callable.name}: no consumeAppCheckToken: true`,
+              });
             }
           }
         }
-        if (!callables) findings.push({ file: '(functions)', detail: 'no onCall found, so the guard checks nothing' });
-        for (const folder of facts.consumingFolders) if (!foldersWithCallables.has(folder)) findings.push({ file: folder, detail: 'stale consuming folder: it holds no callable' });
-        for (const name of exempt.keys()) if (!exemptSeen.has(name)) findings.push({ file: '(consumptionExempt)', detail: `stale exemption: no callable is named ${name}` });
+        if (!callables)
+          findings.push({
+            file: '(functions)',
+            detail: 'no onCall found, so the guard checks nothing',
+          });
+        for (const folder of facts.consumingFolders)
+          if (!foldersWithCallables.has(folder))
+            findings.push({ file: folder, detail: 'stale consuming folder: it holds no callable' });
+        for (const name of exempt.keys())
+          if (!exemptSeen.has(name))
+            findings.push({
+              file: '(consumptionExempt)',
+              detail: `stale exemption: no callable is named ${name}`,
+            });
         return findings;
       },
     };
@@ -328,33 +425,72 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
         const servers = new Map<string, { consumes: boolean; file: string; line: number }>();
         for (const file of context.files(FUNCTIONS_CODE)) {
           for (const callable of callablesOf(file)) {
-            servers.set(callable.name, { consumes: declaresTrue(callable.options, 'consumeAppCheckToken'), file: file.path, line: lineOfNode(file, callable.node) });
+            servers.set(callable.name, {
+              consumes: declaresTrue(callable.options, 'consumeAppCheckToken'),
+              file: file.path,
+              line: lineOfNode(file, callable.node),
+            });
           }
         }
-        if (!servers.size) findings.push({ file: '(functions)', detail: 'no onCall found, so the guard checks nothing' });
-        const byName = new Map(declared.filter((d) => d.callable !== null).map((d) => [d.callable!, d]));
+        if (!servers.size)
+          findings.push({
+            file: '(functions)',
+            detail: 'no onCall found, so the guard checks nothing',
+          });
+        const byName = new Map(
+          declared.filter((d) => d.callable !== null).map((d) => [d.callable!, d]),
+        );
         const exempt = new Set(facts.consumptionExempt.map((e) => e.callable));
         const undeclared = new Set(facts.noClientDeclaration.map((e) => e.callable));
         for (const [name, server] of servers) {
           if (!server.consumes) continue;
           const declaration = byName.get(name);
           if (!declaration) {
-            if (!undeclared.has(name)) findings.push({ file: server.file, line: server.line, detail: `${name} consumes its token, but no client declaration names it` });
+            if (!undeclared.has(name))
+              findings.push({
+                file: server.file,
+                line: server.line,
+                detail: `${name} consumes its token, but no client declaration names it`,
+              });
           } else if (!declaration.limitedUse) {
-            findings.push({ file: declaration.file, line: declaration.line, detail: `${declaration.hook} declares ${name}, which consumes its token, without limitedUseAppCheck: true` });
+            findings.push({
+              file: declaration.file,
+              line: declaration.line,
+              detail: `${declaration.hook} declares ${name}, which consumes its token, without limitedUseAppCheck: true`,
+            });
           }
         }
         for (const declaration of declared) {
           if (!declaration.limitedUse || declaration.callable === null) continue;
           const server = servers.get(declaration.callable);
           const where = { file: declaration.file, line: declaration.line };
-          if (!server) findings.push({ ...where, detail: `${declaration.hook} declares ${declaration.callable} limited-use, but no callable of that name exists` });
-          else if (exempt.has(declaration.callable)) findings.push({ ...where, detail: `${declaration.hook} declares ${declaration.callable} limited-use, but it is exempt from consumption` });
-          else if (!server.consumes) findings.push({ ...where, detail: `${declaration.hook} declares ${declaration.callable} limited-use, but it does not consume its token` });
+          if (!server)
+            findings.push({
+              ...where,
+              detail: `${declaration.hook} declares ${declaration.callable} limited-use, but no callable of that name exists`,
+            });
+          else if (exempt.has(declaration.callable))
+            findings.push({
+              ...where,
+              detail: `${declaration.hook} declares ${declaration.callable} limited-use, but it is exempt from consumption`,
+            });
+          else if (!server.consumes)
+            findings.push({
+              ...where,
+              detail: `${declaration.hook} declares ${declaration.callable} limited-use, but it does not consume its token`,
+            });
         }
         for (const name of undeclared) {
-          if (byName.has(name)) findings.push({ file: '(noClientDeclaration)', detail: `stale entry: a client declaration names ${name} now` });
-          else if (!servers.get(name)?.consumes) findings.push({ file: '(noClientDeclaration)', detail: `stale entry: ${name} is not a consuming callable` });
+          if (byName.has(name))
+            findings.push({
+              file: '(noClientDeclaration)',
+              detail: `stale entry: a client declaration names ${name} now`,
+            });
+          else if (!servers.get(name)?.consumes)
+            findings.push({
+              file: '(noClientDeclaration)',
+              detail: `stale entry: ${name} is not a consuming callable`,
+            });
         }
         return findings;
       },

@@ -32,7 +32,9 @@ describe('PendingMediaPendingSchema', () => {
   });
 
   it('rejects invalid fileOrigin', () => {
-    expect(() => PendingMediaPendingSchema.parse({ ...base, status: 'pending', fileOrigin: 'unknown-origin' })).toThrow();
+    expect(() =>
+      PendingMediaPendingSchema.parse({ ...base, status: 'pending', fileOrigin: 'unknown-origin' }),
+    ).toThrow();
   });
 });
 
@@ -44,9 +46,7 @@ describe('PendingMediaCompletedSchema', () => {
       completedAt: 1_700_000_002_000,
       terminalAt: 1_700_000_002_000,
       result: {
-        events: [
-          { type: 'profile.pictureUpdated', ids: { userId: 'u_1' } },
-        ],
+        events: [{ type: 'profile.pictureUpdated', ids: { userId: 'u_1' } }],
       },
     };
     const result = PendingMediaCompletedSchema.parse(doc);
@@ -200,9 +200,7 @@ describe('crash-recovery attempt/lease fields on the composed strict schema', ()
   });
 
   it('still rejects unrelated unknown fields (strict branches preserved)', () => {
-    expect(() =>
-      PendingMediaSchema.parse({ ...base, status: 'pending', bogusField: 1 }),
-    ).toThrow();
+    expect(() => PendingMediaSchema.parse({ ...base, status: 'pending', bogusField: 1 })).toThrow();
   });
 
   it('rejects a negative attempt count', () => {
@@ -242,8 +240,11 @@ describe('ArchivedPendingMediaQuarantinedSchema / ArchivedPendingMediaDocSchema'
 
   it('DocSchema rejects a raw unparseable doc not wrapped in the quarantine shape', () => {
     expect(() =>
-      ArchivedPendingMediaDocSchema.parse({ ...base, fileOrigin: 'guild-chat-message-attachment', status: 'completed' }),
+      ArchivedPendingMediaDocSchema.parse({
+        ...base,
+        fileOrigin: 'guild-chat-message-attachment',
+        status: 'completed',
+      }),
     ).toThrow();
   });
 });
-

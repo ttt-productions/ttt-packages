@@ -1,5 +1,5 @@
-import type { AcceptanceRequiredDetails } from "../acceptance.js";
-import type { EmailVerificationRequiredDetails } from "../email-verification.js";
+import type { AcceptanceRequiredDetails } from '../acceptance.js';
+import type { EmailVerificationRequiredDetails } from '../email-verification.js';
 
 /**
  * Typed failure channel for `createAssertAuth`.
@@ -38,10 +38,7 @@ import type { EmailVerificationRequiredDetails } from "../email-verification.js"
  * mirrors `report-core`'s `ReportCoreTaskError`, which already works this way.
  */
 export type AuthAssertionErrorCode =
-  | "unauthenticated"
-  | "failed-precondition"
-  | "not-found"
-  | "permission-denied";
+  'unauthenticated' | 'failed-precondition' | 'not-found' | 'permission-denied';
 
 /**
  * Structured details an `AuthAssertionError` may carry — one per refusal the client answers
@@ -55,7 +52,8 @@ export type AuthAssertionErrorCode =
  *
  * Every other rejection leaves `details` undefined.
  */
-export type AuthAssertionErrorDetails = AcceptanceRequiredDetails | EmailVerificationRequiredDetails;
+export type AuthAssertionErrorDetails =
+  AcceptanceRequiredDetails | EmailVerificationRequiredDetails;
 
 export class AuthAssertionError extends Error {
   readonly code: AuthAssertionErrorCode;
@@ -63,7 +61,7 @@ export class AuthAssertionError extends Error {
 
   constructor(code: AuthAssertionErrorCode, message: string, details?: AuthAssertionErrorDetails) {
     super(message);
-    this.name = "AuthAssertionError";
+    this.name = 'AuthAssertionError';
     this.code = code;
     if (details !== undefined) this.details = details;
   }

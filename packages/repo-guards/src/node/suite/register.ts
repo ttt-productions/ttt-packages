@@ -21,34 +21,53 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 /** Registers the whole guard suite for one app. Call it once, at the top level of one test file. */
 export function registerGuardSuite(config: GuardSuiteConfig): void {
   registerSuiteOf(
-    { layout: config.layout, generic: config.generic as unknown as Readonly<Record<string, unknown>>, business: config.business },
+    {
+      layout: config.layout,
+      generic: config.generic as unknown as Readonly<Record<string, unknown>>,
+      business: config.business,
+    },
     GENERIC_GUARDS,
   );
 }
 
 /** The suite over a given set of generic guard definitions — the package's own, or a test's. */
 export function registerSuiteOf(
-  config: { layout: RepoLayout; generic: Readonly<Record<string, unknown>>; business: readonly Guard[] },
+  config: {
+    layout: RepoLayout;
+    generic: Readonly<Record<string, unknown>>;
+    business: readonly Guard[];
+  },
   definitions: ReadonlyArray<GenericGuardDefinition<never>>,
 ): void {
   const { generic } = config;
   const problems = configProblems(config, definitions);
-  if (problems.length) throw new Error(`repo-guards: the guard config cannot run:\n  - ${problems.join('\n  - ')}`);
+  if (problems.length)
+    throw new Error(`repo-guards: the guard config cannot run:\n  - ${problems.join('\n  - ')}`);
   const reader = createRepoReader(config.layout);
   const guards = [...buildGenericGuards(generic, definitions), ...config.business];
 
   describe('repository guards', () => {
     it('the reader reaches every declared root', () => {
       const unreached = reader.unreachedAnchors();
-      if (unreached.length) throw new Error(`the walk never reached these root anchors, so their trees go unchecked:\n  ${unreached.join('\n  ')}`);
+      if (unreached.length)
+        throw new Error(
+          `the walk never reached these root anchors, so their trees go unchecked:\n  ${unreached.join('\n  ')}`,
+        );
     });
     for (const guard of guards) {
       describe(guard.title, () => {
         if (guard.prepare) beforeAll(() => guard.prepare!(), guard.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-        if (guard.samples) it('flags every must-fail sample and passes every must-pass sample', () => checkSamples(guard));
+        if (guard.samples)
+          it('flags every must-fail sample and passes every must-pass sample', () =>
+            checkSamples(guard));
         const skipped = guard.skipReason?.(reader) ?? null;
         if (skipped) it.skip(`holds across the repository — SKIPPED: ${skipped}`, () => {});
-        else it('holds across the repository', () => runGuard(guard, reader), guard.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        else
+          it(
+            'holds across the repository',
+            () => runGuard(guard, reader),
+            guard.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          );
       });
     }
   });

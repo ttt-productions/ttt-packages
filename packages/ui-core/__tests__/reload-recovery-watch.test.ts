@@ -3,9 +3,15 @@
 // prevented, so monitoring still captures each one. Any other failure records nothing.
 
 import { describe, it, expect, vi } from 'vitest';
-import { createReloadRecoveryWatch, type ReloadRecoveryTarget } from '../src/browser/reload-recovery-watch.js';
+import {
+  createReloadRecoveryWatch,
+  type ReloadRecoveryTarget,
+} from '../src/browser/reload-recovery-watch.js';
 
-const DISCONNECT = new DOMException('Connection to Indexed Database server lost. Refresh the page to try again', 'UnknownError');
+const DISCONNECT = new DOMException(
+  'Connection to Indexed Database server lost. Refresh the page to try again',
+  'UnknownError',
+);
 
 function page() {
   const target = new EventTarget();
@@ -33,7 +39,10 @@ describe('createReloadRecoveryWatch', () => {
   it('records a stale chunk from an error event, by its error or by its message alone', () => {
     const first = page();
     const byError = createReloadRecoveryWatch(first.watchTarget);
-    const event = errorEvent({ error: new Error('Failed to load chunk 3'), message: 'Uncaught Error' });
+    const event = errorEvent({
+      error: new Error('Failed to load chunk 3'),
+      message: 'Uncaught Error',
+    });
     first.target.dispatchEvent(event);
     expect(byError.current()).toBe('staleChunk');
     expect(event.defaultPrevented).toBe(false);

@@ -32,15 +32,22 @@ const rejectionLikelihoods = new Set(['LIKELY', 'VERY_LIKELY']);
 describe('moderateVideo', () => {
   it('returns safe=false when a frame has pornographyLikelihood=5 (VERY_LIKELY)', async () => {
     const mockClient = {
-      annotateVideo: vi.fn().mockResolvedValue([{
-        promise: () => Promise.resolve([{
-          annotationResults: [{
-            explicitAnnotation: {
-              frames: [{ pornographyLikelihood: 5 }],
-            },
-          }],
-        }]),
-      }]),
+      annotateVideo: vi.fn().mockResolvedValue([
+        {
+          promise: () =>
+            Promise.resolve([
+              {
+                annotationResults: [
+                  {
+                    explicitAnnotation: {
+                      frames: [{ pornographyLikelihood: 5 }],
+                    },
+                  },
+                ],
+              },
+            ]),
+        },
+      ]),
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
@@ -53,13 +60,20 @@ describe('moderateVideo', () => {
 
   it('returns safe=true when frames array is empty', async () => {
     const mockClient = {
-      annotateVideo: vi.fn().mockResolvedValue([{
-        promise: () => Promise.resolve([{
-          annotationResults: [{
-            explicitAnnotation: { frames: [] },
-          }],
-        }]),
-      }]),
+      annotateVideo: vi.fn().mockResolvedValue([
+        {
+          promise: () =>
+            Promise.resolve([
+              {
+                annotationResults: [
+                  {
+                    explicitAnnotation: { frames: [] },
+                  },
+                ],
+              },
+            ]),
+        },
+      ]),
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
@@ -70,11 +84,16 @@ describe('moderateVideo', () => {
 
   it('returns safe=true when no explicit annotation is present', async () => {
     const mockClient = {
-      annotateVideo: vi.fn().mockResolvedValue([{
-        promise: () => Promise.resolve([{
-          annotationResults: [{ explicitAnnotation: null }],
-        }]),
-      }]),
+      annotateVideo: vi.fn().mockResolvedValue([
+        {
+          promise: () =>
+            Promise.resolve([
+              {
+                annotationResults: [{ explicitAnnotation: null }],
+              },
+            ]),
+        },
+      ]),
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
@@ -85,11 +104,16 @@ describe('moderateVideo', () => {
 
   it('passes the default longrunning poll backoff to annotateVideo', async () => {
     const mockClient = {
-      annotateVideo: vi.fn().mockResolvedValue([{
-        promise: () => Promise.resolve([{
-          annotationResults: [{ explicitAnnotation: { frames: [] } }],
-        }]),
-      }]),
+      annotateVideo: vi.fn().mockResolvedValue([
+        {
+          promise: () =>
+            Promise.resolve([
+              {
+                annotationResults: [{ explicitAnnotation: { frames: [] } }],
+              },
+            ]),
+        },
+      ]),
     };
     await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
@@ -109,26 +133,28 @@ describe('moderateVideo', () => {
 
   it('honors a pollBackoff override', async () => {
     const mockClient = {
-      annotateVideo: vi.fn().mockResolvedValue([{
-        promise: () => Promise.resolve([{
-          annotationResults: [{ explicitAnnotation: { frames: [] } }],
-        }]),
-      }]),
+      annotateVideo: vi.fn().mockResolvedValue([
+        {
+          promise: () =>
+            Promise.resolve([
+              {
+                annotationResults: [{ explicitAnnotation: { frames: [] } }],
+              },
+            ]),
+        },
+      ]),
     };
     await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
       pollBackoff: { initialDelayMillis: 5000, delayMultiplier: 2, maxDelayMillis: 30000 },
     });
-    expect(mockClient.annotateVideo).toHaveBeenCalledWith(
-      expect.anything(),
-      {
-        longrunning: {
-          initialRetryDelayMillis: 5000,
-          retryDelayMultiplier: 2,
-          maxRetryDelayMillis: 30000,
-        },
+    expect(mockClient.annotateVideo).toHaveBeenCalledWith(expect.anything(), {
+      longrunning: {
+        initialRetryDelayMillis: 5000,
+        retryDelayMultiplier: 2,
+        maxRetryDelayMillis: 30000,
       },
-    );
+    });
   });
 });

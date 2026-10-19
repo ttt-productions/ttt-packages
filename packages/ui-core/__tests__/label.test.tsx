@@ -28,7 +28,7 @@ describe('Label', () => {
       <div>
         <Label htmlFor="test-input">Name</Label>
         <input id="test-input" />
-      </div>
+      </div>,
     );
     const label = screen.getByText('Name');
     expect(label).toHaveAttribute('for', 'test-input');

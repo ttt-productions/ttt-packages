@@ -40,12 +40,24 @@ function refusesBlankAndPadding(name: string, schema: z.ZodType, plain: string) 
 
 describe('the NCMEC report number is one declared rule, used by both wire contracts', () => {
   refusesBlankAndPadding('the report-number rule', ncmecReportNumberSchema, '183746592');
-  refusesBlankAndPadding('the completion report id', MarkNcmecPortalCompleteInputSchema.shape.ncmecReportId, '183746592');
-  refusesBlankAndPadding('the correction report id', RecordNcmecPortalCorrectionInputSchema.shape.ncmecReportId, '183746592');
+  refusesBlankAndPadding(
+    'the completion report id',
+    MarkNcmecPortalCompleteInputSchema.shape.ncmecReportId,
+    '183746592',
+  );
+  refusesBlankAndPadding(
+    'the correction report id',
+    RecordNcmecPortalCorrectionInputSchema.shape.ncmecReportId,
+    '183746592',
+  );
 
   it('is bounded by its declared length', () => {
-    expect(ncmecReportNumberSchema.safeParse('1'.repeat(MAX_NCMEC_REPORT_NUMBER_LENGTH)).success).toBe(true);
-    expect(ncmecReportNumberSchema.safeParse('1'.repeat(MAX_NCMEC_REPORT_NUMBER_LENGTH + 1)).success).toBe(false);
+    expect(
+      ncmecReportNumberSchema.safeParse('1'.repeat(MAX_NCMEC_REPORT_NUMBER_LENGTH)).success,
+    ).toBe(true);
+    expect(
+      ncmecReportNumberSchema.safeParse('1'.repeat(MAX_NCMEC_REPORT_NUMBER_LENGTH + 1)).success,
+    ).toBe(false);
   });
 });
 
@@ -59,26 +71,46 @@ describe('the evidence vault key is one declared rule', () => {
 
   it('admits a storage path with "/" and is bounded by its declared length', () => {
     expect(evidenceVaultKeySchema.safeParse('a/b/c').success).toBe(true);
-    expect(evidenceVaultKeySchema.safeParse('k'.repeat(MAX_EVIDENCE_VAULT_KEY_LENGTH + 1)).success).toBe(false);
+    expect(
+      evidenceVaultKeySchema.safeParse('k'.repeat(MAX_EVIDENCE_VAULT_KEY_LENGTH + 1)).success,
+    ).toBe(false);
   });
 });
 
 describe('the TAKE IT DOWN link is one URL rule', () => {
   refusesBlankAndPadding('the locator URL rule', nciiLocatorUrlSchema, 'https://example.com/a');
-  refusesBlankAndPadding('the public locator url', PublicTakeItDownLocatorSchema.shape.url, 'https://example.com/a');
+  refusesBlankAndPadding(
+    'the public locator url',
+    PublicTakeItDownLocatorSchema.shape.url,
+    'https://example.com/a',
+  );
 
   it('accepts an http or https address only', () => {
     expect(nciiLocatorUrlSchema.safeParse('http://example.com/a').success).toBe(true);
     expect(nciiLocatorUrlSchema.safeParse('https://example.com/a?b=c').success).toBe(true);
-    for (const value of ['example.com/a', 'ftp://example.com/a', 'javascript:alert(1)', 'data:text/html,x', 'not a url']) {
+    for (const value of [
+      'example.com/a',
+      'ftp://example.com/a',
+      'javascript:alert(1)',
+      'data:text/html,x',
+      'not a url',
+    ]) {
       expect(nciiLocatorUrlSchema.safeParse(value).success).toBe(false);
     }
   });
 
   it('is bounded by MAX_NCII_LOCATOR_URL_LENGTH', () => {
     const prefix = 'https://example.com/';
-    expect(nciiLocatorUrlSchema.safeParse(prefix + 'a'.repeat(MAX_NCII_LOCATOR_URL_LENGTH - prefix.length)).success).toBe(true);
-    expect(nciiLocatorUrlSchema.safeParse(prefix + 'a'.repeat(MAX_NCII_LOCATOR_URL_LENGTH - prefix.length + 1)).success).toBe(false);
+    expect(
+      nciiLocatorUrlSchema.safeParse(
+        prefix + 'a'.repeat(MAX_NCII_LOCATOR_URL_LENGTH - prefix.length),
+      ).success,
+    ).toBe(true);
+    expect(
+      nciiLocatorUrlSchema.safeParse(
+        prefix + 'a'.repeat(MAX_NCII_LOCATOR_URL_LENGTH - prefix.length + 1),
+      ).success,
+    ).toBe(false);
   });
 });
 
@@ -99,11 +131,27 @@ describe('every public-document item key refuses padding', () => {
 
 describe('every client request id refuses padding', () => {
   const uuid = '2f1c8e8a-5b8e-4a55-9a3e-6a1f0c3d9b21';
-  refusesBlankAndPadding('the broadcast request id', CreateNotificationBroadcastInputSchema.shape.requestId, uuid);
-  refusesBlankAndPadding('the archive-all request id', EnqueueArchiveAllInputSchema.shape.requestId, uuid);
-  refusesBlankAndPadding('the archive request id', ArchiveNotificationObservedInputSchema.shape.requestId, uuid);
+  refusesBlankAndPadding(
+    'the broadcast request id',
+    CreateNotificationBroadcastInputSchema.shape.requestId,
+    uuid,
+  );
+  refusesBlankAndPadding(
+    'the archive-all request id',
+    EnqueueArchiveAllInputSchema.shape.requestId,
+    uuid,
+  );
+  refusesBlankAndPadding(
+    'the archive request id',
+    ArchiveNotificationObservedInputSchema.shape.requestId,
+    uuid,
+  );
 });
 
 describe('the Stripe Checkout session id refuses padding', () => {
-  refusesBlankAndPadding('the session id', GetMyPledgeByCheckoutSessionInputSchema.shape.sessionId, 'cs_test_a1B2c3');
+  refusesBlankAndPadding(
+    'the session id',
+    GetMyPledgeByCheckoutSessionInputSchema.shape.sessionId,
+    'cs_test_a1B2c3',
+  );
 });

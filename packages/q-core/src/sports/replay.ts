@@ -14,7 +14,10 @@ export class StatReplayError extends Error {
   readonly eventId: string;
 
   constructor(eventId: string, cause: unknown) {
-    super(`Stat event ${eventId} cannot be replayed: ${cause instanceof Error ? cause.message : String(cause)}`, { cause });
+    super(
+      `Stat event ${eventId} cannot be replayed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    );
     this.name = 'StatReplayError';
     this.eventId = eventId;
   }
@@ -24,10 +27,17 @@ export class StatReplayError extends Error {
  * `state` with a team line for each of the game's teams, the missing ones from the sport's empty
  * stats — so a team's first stat is never refused as a team not in the game. No other line is touched.
  */
-export function withGameTeamLines(adapter: AnySportAdapter, state: GameStats, game: GameTeamIds): GameStats {
+export function withGameTeamLines(
+  adapter: AnySportAdapter,
+  state: GameStats,
+  game: GameTeamIds,
+): GameStats {
   if (game.teamIds.every((teamId) => state.teamStats[teamId] !== undefined)) return state;
   const empty = adapter.emptyStats(game);
-  return { teamStats: { ...empty.teamStats, ...state.teamStats }, playerStats: state.playerStats } as GameStats;
+  return {
+    teamStats: { ...empty.teamStats, ...state.teamStats },
+    playerStats: state.playerStats,
+  } as GameStats;
 }
 
 /**
@@ -44,7 +54,9 @@ export function foldStatEvent(
   if (isStatVoid(event)) {
     const target = targetOf(event.targetEventId);
     if (!isSportStatEventIn(adapter.eventTypes, target)) {
-      throw new Error(`the void's target ${event.targetEventId} is not a ${adapter.leagueType} event folded before it`);
+      throw new Error(
+        `the void's target ${event.targetEventId} is not a ${adapter.leagueType} event folded before it`,
+      );
     }
     return adapter.undo(state, target);
   }
@@ -52,7 +64,11 @@ export function foldStatEvent(
 }
 
 /** The rollup a game's events replay to: every line, derived fields included, and each team's score. */
-export function replayGameStats(adapter: AnySportAdapter, game: GameTeamIds, events: readonly GameStatEvent[]): GameStats {
+export function replayGameStats(
+  adapter: AnySportAdapter,
+  game: GameTeamIds,
+  events: readonly GameStatEvent[],
+): GameStats {
   const folded = new Map<string, GameStatEvent>();
   let state: GameStats = adapter.emptyStats(game);
   for (const event of [...events].sort((left, right) => left.sequence - right.sequence)) {

@@ -16,7 +16,8 @@ beforeAll(() => {
     'src/kit/index.ts': "export { Button } from './button';",
     'src/kit/button.tsx': 'export const Button = 1;\nexport const Spare = 2;',
     'src/app/page.tsx': "import { Button } from '@/kit/button';",
-    'src/__tests__/page.test.tsx': "import { Spare } from '@/kit/button';\nvi.mock('@/kit/button');",
+    'src/__tests__/page.test.tsx':
+      "import { Spare } from '@/kit/button';\nvi.mock('@/kit/button');",
     'src/generated/out.ts': "export * from '../kit';",
     'functions/src/index.ts': "export { run } from './run';",
     'functions/src/run.ts': 'export const run = 1;',
@@ -39,7 +40,9 @@ describe('the import-path guard over the reader', () => {
   it('FLAGS an import past an index, and lets a test import a name the index does not forward', async () => {
     const [guard] = importPathGuard.build(facts);
     const findings = await guard.run(context());
-    expect(findings.map((f) => `${f.file} ${f.detail.split(':')[0]}`)).toEqual(['src/app/page.tsx import past index']);
+    expect(findings.map((f) => `${f.file} ${f.detail.split(':')[0]}`)).toEqual([
+      'src/app/page.tsx import past index',
+    ]);
   });
 
   it('reads index members nothing outside the folder imports', () => {
@@ -50,8 +53,11 @@ describe('the import-path guard over the reader', () => {
   });
 
   it('refuses facts with an exception that carries no why', () => {
-    expect(importPathGuard.factProblems({ importAliases: {}, exceptions: [{ file: 'functions/src/index.ts', why: '' }] })).toEqual([
-      'exceptions entry functions/src/index.ts carries no why',
-    ]);
+    expect(
+      importPathGuard.factProblems({
+        importAliases: {},
+        exceptions: [{ file: 'functions/src/index.ts', why: '' }],
+      }),
+    ).toEqual(['exceptions entry functions/src/index.ts carries no why']);
   });
 });

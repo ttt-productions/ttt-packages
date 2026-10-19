@@ -1,16 +1,16 @@
-export type AppEnvironment = "development" | "production";
+export type AppEnvironment = 'development' | 'production';
 
 export function getAppEnvironment(): AppEnvironment {
-  if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_ENV === "production") {
-    return "production";
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_ENV === 'production') {
+    return 'production';
   }
-  return "development";
+  return 'development';
 }
 
 export function isDevelopment(): boolean {
-  return getAppEnvironment() === "development";
+  return getAppEnvironment() === 'development';
 }
 
 export function isProduction(): boolean {
-  return getAppEnvironment() === "production";
+  return getAppEnvironment() === 'production';
 }

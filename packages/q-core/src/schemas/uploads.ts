@@ -6,8 +6,16 @@
 
 import { z } from 'zod';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
-import { MAX_STAGING_UPLOAD_PATH_LENGTH, MAX_UPLOADS_MARKED_SEEN_PER_CALL } from '../constants/media.js';
-import { countSchema, leagueIdSchema, stagingIdSchema, teamIdSchema } from '../doc-schemas/atoms.js';
+import {
+  MAX_STAGING_UPLOAD_PATH_LENGTH,
+  MAX_UPLOADS_MARKED_SEEN_PER_CALL,
+} from '../constants/media.js';
+import {
+  countSchema,
+  leagueIdSchema,
+  stagingIdSchema,
+  teamIdSchema,
+} from '../doc-schemas/atoms.js';
 import { awardIdSchema, awardNameSchema } from '../doc-schemas/catalogs.js';
 import { gameLocationIdSchema } from '../doc-schemas/game-location.js';
 import { pictureOriginSchema } from '../doc-schemas/pending-media.js';
@@ -24,12 +32,17 @@ export const LeaguePictureTargetInfoSchema = z.object({ leagueId: leagueIdSchema
 export const TeamPictureTargetInfoSchema = z.object({ teamId: teamIdSchema }).strict();
 // There is one landing page, so its target names nothing.
 export const LandingPictureTargetInfoSchema = z.object({}).strict();
-export const LocationPictureTargetInfoSchema = z.object({ gameLocationId: gameLocationIdSchema }).strict();
+export const LocationPictureTargetInfoSchema = z
+  .object({ gameLocationId: gameLocationIdSchema })
+  .strict();
 // A badge either replaces an existing award's (`awardId`) or creates the award it is the first badge
 // of (`newAwardName`), whose id is the upload's staging id.
 export const ExistingAwardBadgeTargetInfoSchema = z.object({ awardId: awardIdSchema }).strict();
 export const NewAwardBadgeTargetInfoSchema = z.object({ newAwardName: awardNameSchema }).strict();
-export const AwardBadgeTargetInfoSchema = z.union([ExistingAwardBadgeTargetInfoSchema, NewAwardBadgeTargetInfoSchema]);
+export const AwardBadgeTargetInfoSchema = z.union([
+  ExistingAwardBadgeTargetInfoSchema,
+  NewAwardBadgeTargetInfoSchema,
+]);
 
 interface PictureTarget<TSchema extends z.ZodTypeAny> {
   readonly schema: TSchema;
@@ -48,19 +61,36 @@ function pictureTarget<TSchema extends z.ZodTypeAny>(
 }
 
 export const PICTURE_TARGETS = {
-  'league-picture': pictureTarget(LeaguePictureTargetInfoSchema, 'sportLeague', (target) => target.leagueId),
-  'team-picture': pictureTarget(TeamPictureTargetInfoSchema, 'leagueTeam', (target) => target.teamId),
-  'landing-picture': pictureTarget(LandingPictureTargetInfoSchema, 'landingPage', () => SPECIAL_DOCS.LANDING_PAGE),
+  'league-picture': pictureTarget(
+    LeaguePictureTargetInfoSchema,
+    'sportLeague',
+    (target) => target.leagueId,
+  ),
+  'team-picture': pictureTarget(
+    TeamPictureTargetInfoSchema,
+    'leagueTeam',
+    (target) => target.teamId,
+  ),
+  'landing-picture': pictureTarget(
+    LandingPictureTargetInfoSchema,
+    'landingPage',
+    () => SPECIAL_DOCS.LANDING_PAGE,
+  ),
   'location-picture': pictureTarget(
     LocationPictureTargetInfoSchema,
     'gameLocation',
     (target) => target.gameLocationId,
   ),
-  'award-badge': pictureTarget(AwardBadgeTargetInfoSchema, AWARD_DEFINITION_OWNER_KIND, (target, stagingId) => {
-    if ('awardId' in target) return target.awardId;
-    if (stagingId === undefined) throw new Error("A new award's id is its badge upload's staging id, which was not given.");
-    return stagingId;
-  }),
+  'award-badge': pictureTarget(
+    AwardBadgeTargetInfoSchema,
+    AWARD_DEFINITION_OWNER_KIND,
+    (target, stagingId) => {
+      if ('awardId' in target) return target.awardId;
+      if (stagingId === undefined)
+        throw new Error("A new award's id is its badge upload's staging id, which was not given.");
+      return stagingId;
+    },
+  ),
 } as const satisfies Record<PictureOrigin, PictureTarget<z.ZodTypeAny>>;
 
 export type PictureTargetInfo = {
@@ -72,7 +102,11 @@ export type PictureTargetInfo = {
  * picture belongs to — the form an upload row stores. A badge creating its award names the award by
  * the upload's `stagingId`. Throws the schema's error on a target that does not fit the origin.
  */
-export function parseTargetInfo(fileOrigin: PictureOrigin, targetInfo: unknown, stagingId?: string): PictureOwnerRef {
+export function parseTargetInfo(
+  fileOrigin: PictureOrigin,
+  targetInfo: unknown,
+  stagingId?: string,
+): PictureOwnerRef {
   const target = PICTURE_TARGETS[fileOrigin] as PictureTarget<z.ZodTypeAny>;
   return { kind: target.ownerKind, id: target.ownerId(target.schema.parse(targetInfo), stagingId) };
 }
@@ -137,7 +171,9 @@ export const AdminMarkUploadsSeenResultSchema = z.object({ marked: countSchema }
 export type AdminMarkUploadsSeenResult = z.infer<typeof AdminMarkUploadsSeenResultSchema>;
 
 // Clears one of the caller's finished uploads from the tray.
-export const AdminClearUploadActivityInputSchema = z.object({ pendingMediaId: stagingIdSchema }).strict();
+export const AdminClearUploadActivityInputSchema = z
+  .object({ pendingMediaId: stagingIdSchema })
+  .strict();
 export type AdminClearUploadActivityInput = z.infer<typeof AdminClearUploadActivityInputSchema>;
 export const AdminClearUploadActivityResultSchema = z.object({ cleared: z.literal(true) }).strict();
 export type AdminClearUploadActivityResult = z.infer<typeof AdminClearUploadActivityResultSchema>;

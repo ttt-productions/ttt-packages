@@ -17,7 +17,8 @@ const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
 /** The keywords that declare a name a module can export: a function, a binding, or a class. */
 const DECLARATION_KEYWORDS = '(?:function|const|let|class)';
-const declares = (code: string, name: string) => new RegExp(`\\b${DECLARATION_KEYWORDS}\\s+${escapeRegExp(name)}\\b`).test(code);
+const declares = (code: string, name: string) =>
+  new RegExp(`\\b${DECLARATION_KEYWORDS}\\s+${escapeRegExp(name)}\\b`).test(code);
 
 // ---------------------------------------------------------------------------------------------
 // Client auth boundary: one derivation of identity and claims, and one auth context and accessor.
@@ -42,27 +43,36 @@ export interface ClientAuthBoundaryFacts {
  * matched bare or as a member (`auth.onAuthStateChanged(cb)`, `getAuth().onIdTokenChanged(cb)`),
  * since the SDK hands out the same derivations as instance methods.
  */
-export function boundaryDerivations(file: FileView, facts: Pick<ClientAuthBoundaryFacts, 'derivationSymbols' | 'authSourceModules'>): Array<{ index: number; detail: string }> {
+export function boundaryDerivations(
+  file: FileView,
+  facts: Pick<ClientAuthBoundaryFacts, 'derivationSymbols' | 'authSourceModules'>,
+): Array<{ index: number; detail: string }> {
   const { code, sourceFile } = file;
   const out: Array<{ index: number; detail: string }> = [];
   for (const site of moduleImports(sourceFile, ['import'])) {
     if (site.typeOnly) continue;
     for (const { imported, typeOnly } of site.named) {
-      if (!typeOnly && facts.derivationSymbols.includes(imported)) out.push({ index: site.node.getStart(sourceFile), detail: `imports ${imported}` });
+      if (!typeOnly && facts.derivationSymbols.includes(imported))
+        out.push({ index: site.node.getStart(sourceFile), detail: `imports ${imported}` });
     }
   }
   const namespaces: string[] = [];
   for (const site of fromStatements(sourceFile)) {
-    if (site.namespace && facts.authSourceModules.some((m) => namesModule(site.spec, m))) namespaces.push(site.namespace);
+    if (site.namespace && facts.authSourceModules.some((m) => namesModule(site.spec, m)))
+      namespaces.push(site.namespace);
   }
   for (const namespace of namespaces) {
     for (const symbol of facts.derivationSymbols) {
-      const m = new RegExp(`\\b${escapeRegExp(namespace)}\\s*\\.\\s*${escapeRegExp(symbol)}\\b`).exec(code);
+      const m = new RegExp(
+        `\\b${escapeRegExp(namespace)}\\s*\\.\\s*${escapeRegExp(symbol)}\\b`,
+      ).exec(code);
       if (m) out.push({ index: m.index, detail: `reaches ${namespace}.${symbol}` });
     }
   }
   for (const symbol of facts.derivationSymbols) {
-    const call = memberOrBareCalls(code, symbol).find((index) => !throughNamespace(code, index, namespaces));
+    const call = memberOrBareCalls(code, symbol).find(
+      (index) => !throughNamespace(code, index, namespaces),
+    );
     if (call !== undefined) out.push({ index: call, detail: `calls ${symbol}(` });
   }
   return out;
@@ -82,10 +92,13 @@ export function secondAuthAccessors(
       new RegExp(`\\bexport\\s+function\\s+${name}\\s*[(<]`).exec(code) ??
       new RegExp(`\\bexport\\s+(?:const|let|var)\\s+${name}\\b`).exec(code) ??
       new RegExp(`\\bexport\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).exec(code);
-    if (exported) out.push({ index: exported.index, detail: `a second export of ${facts.accessor.name}` });
+    if (exported)
+      out.push({ index: exported.index, detail: `a second export of ${facts.accessor.name}` });
   }
   if (!facts.boundaryModules.some((m) => m.path === path)) {
-    const vocabulary = new RegExp(`\\b(?:${facts.authContextVocabulary.map(escapeRegExp).join('|')})\\b`);
+    const vocabulary = new RegExp(
+      `\\b(?:${facts.authContextVocabulary.map(escapeRegExp).join('|')})\\b`,
+    );
     for (const call of contextCreations(sourceFile)) {
       if (contextShapeTexts(call, sourceFile, code).some((text) => vocabulary.test(text))) {
         out.push({ index: call.getStart(sourceFile), detail: 'a second auth context' });
@@ -109,13 +122,27 @@ function contextCreations(sourceFile: ts.SourceFile): ts.CallExpression[] {
  * alias that argument names, its default value, and the same-file constant that value names. Only
  * these say whether the context carries auth state; the rest of the file does not.
  */
-function contextShapeTexts(call: ts.CallExpression, sourceFile: ts.SourceFile, code: string): string[] {
+function contextShapeTexts(
+  call: ts.CallExpression,
+  sourceFile: ts.SourceFile,
+  code: string,
+): string[] {
   const textOf = (node: ts.Node) => code.slice(node.getStart(sourceFile), node.getEnd());
   const declared = (name: string): ts.Node[] => {
     const found: ts.Node[] = [];
     forEachNode(sourceFile, (node) => {
-      if ((ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) && node.name.text === name) found.push(node);
-      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name && node.initializer) found.push(node.initializer);
+      if (
+        (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) &&
+        node.name.text === name
+      )
+        found.push(node);
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === name &&
+        node.initializer
+      )
+        found.push(node.initializer);
     });
     return found;
   };
@@ -123,7 +150,8 @@ function contextShapeTexts(call: ts.CallExpression, sourceFile: ts.SourceFile, c
   for (const typeArg of call.typeArguments ?? []) {
     texts.push(textOf(typeArg));
     forEachNode(typeArg, (node) => {
-      if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) texts.push(...declared(node.typeName.text).map(textOf));
+      if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName))
+        texts.push(...declared(node.typeName.text).map(textOf));
     });
   }
   const initial = call.arguments[0];
@@ -143,7 +171,10 @@ export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryF
     if (objectProblem(facts?.accessor, 'accessor', problems)) {
       textProblem(facts.accessor.file, 'accessor.file', problems);
       textProblem(facts.accessor.name, 'accessor.name', problems);
-      if (Array.isArray(facts.boundaryModules) && !facts.boundaryModules.some((m) => m?.path === facts.accessor.file)) {
+      if (
+        Array.isArray(facts.boundaryModules) &&
+        !facts.boundaryModules.some((m) => m?.path === facts.accessor.file)
+      ) {
         problems.push(`the accessor ${facts.accessor.file} is not one of the boundaryModules`);
       }
     }
@@ -169,15 +200,27 @@ export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryF
               ...(inBoundary ? [] : boundaryDerivations(file, facts)),
               ...secondAuthAccessors(file.path, file.code, file.sourceFile, facts),
             ];
-            for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
+            for (const hit of hits)
+              findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
           }
           for (const module of facts.boundaryModules) {
-            if (!context.reader.exists(module.path)) findings.push({ file: module.path, detail: 'stale boundary module: it no longer exists' });
+            if (!context.reader.exists(module.path))
+              findings.push({
+                file: module.path,
+                detail: 'stale boundary module: it no longer exists',
+              });
           }
           if (context.reader.exists(facts.accessor.file)) {
             const code = context.file(facts.accessor.file).code;
-            if (!new RegExp(`\\bexport\\s+(?:function|const)\\s+${escapeRegExp(facts.accessor.name)}\\b`).test(code)) {
-              findings.push({ file: facts.accessor.file, detail: `the accessor no longer exports ${facts.accessor.name}` });
+            if (
+              !new RegExp(
+                `\\bexport\\s+(?:function|const)\\s+${escapeRegExp(facts.accessor.name)}\\b`,
+              ).test(code)
+            ) {
+              findings.push({
+                file: facts.accessor.file,
+                detail: `the accessor no longer exports ${facts.accessor.name}`,
+              });
             }
           }
           return findings;
@@ -205,13 +248,19 @@ export const bannedAuthCallGuard: GenericGuardDefinition<BannedAuthCallFacts> = 
   factProblems(facts) {
     const problems: string[] = [];
     namesProblem(facts?.surfaces, 'surfaces', problems);
-    if (!Array.isArray(facts?.banned) || !facts.banned.length) problems.push('banned is missing or empty');
-    else for (const b of facts.banned) {
-      textProblem(b?.name, 'a banned call', problems);
-      textProblem(b?.why, `banned call ${String(b?.name)}'s why`, problems);
-    }
+    if (!Array.isArray(facts?.banned) || !facts.banned.length)
+      problems.push('banned is missing or empty');
+    else
+      for (const b of facts.banned) {
+        textProblem(b?.name, 'a banned call', problems);
+        textProblem(b?.why, `banned call ${String(b?.name)}'s why`, problems);
+      }
     textProblem(facts?.anchor, 'anchor', problems);
-    if (typeof facts?.anchor === 'string' && Array.isArray(facts?.surfaces) && !facts.surfaces.some((s) => isUnder(facts.anchor, s))) {
+    if (
+      typeof facts?.anchor === 'string' &&
+      Array.isArray(facts?.surfaces) &&
+      !facts.surfaces.some((s) => isUnder(facts.anchor, s))
+    ) {
       problems.push(`the anchor ${facts.anchor} is not inside any surface`);
     }
     return problems;
@@ -226,13 +275,23 @@ export const bannedAuthCallGuard: GenericGuardDefinition<BannedAuthCallFacts> = 
           '. The symbol must not be reachable from these modules at all.',
         run(context) {
           const findings: Finding[] = [];
-          const files = context.files(APP_CODE).filter((f) => facts.surfaces.some((s) => isUnder(f.path, s)));
-          if (!files.some((f) => f.path === facts.anchor)) findings.push({ file: facts.anchor, detail: 'the anchor surface was not reached (gone, or outside the surfaces)' });
+          const files = context
+            .files(APP_CODE)
+            .filter((f) => facts.surfaces.some((s) => isUnder(f.path, s)));
+          if (!files.some((f) => f.path === facts.anchor))
+            findings.push({
+              file: facts.anchor,
+              detail: 'the anchor surface was not reached (gone, or outside the surfaces)',
+            });
           for (const file of files) {
             for (const { name, why } of facts.banned) {
               const re = new RegExp(`\\b${escapeRegExp(name)}\\b`, 'g');
               for (let m = re.exec(file.code); m; m = re.exec(file.code)) {
-                findings.push({ file: file.path, line: file.lineOf(m.index), detail: `names ${name}: ${why}` });
+                findings.push({
+                  file: file.path,
+                  line: file.lineOf(m.index),
+                  detail: `names ${name}: ${why}`,
+                });
               }
             }
           }
@@ -262,7 +321,8 @@ export function failingAuthImports(file: FileView): string[] {
   const names: string[] = [];
   for (const site of moduleImports(file.sourceFile, ['import'])) {
     if (site.typeOnly || site.spec !== 'firebase/auth') continue;
-    for (const { imported, typeOnly } of site.named) if (!typeOnly && FAILING_AUTH_OPERATION.test(imported)) names.push(imported);
+    for (const { imported, typeOnly } of site.named)
+      if (!typeOnly && FAILING_AUTH_OPERATION.test(imported)) names.push(imported);
   }
   return names;
 }
@@ -276,7 +336,9 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
     reviewedProblems(facts?.reportedElsewhere, 'reportedElsewhere', problems);
     for (const e of Array.isArray(facts?.reportedElsewhere) ? facts.reportedElsewhere : []) {
       if (e && (typeof e.reportedBy !== 'string' || !e.reportedBy.trim())) {
-        problems.push(`reportedElsewhere entry ${e.path} names no reportedBy file (the file that reports its failures)`);
+        problems.push(
+          `reportedElsewhere entry ${e.path} names no reportedBy file (the file that reports its failures)`,
+        );
       }
     }
     return problems;
@@ -293,18 +355,46 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
           'a failing operation, now reports itself, or whose reporter no longer reports is stale.',
         run(context) {
           const findings: Finding[] = [];
-          const callers = context.files(APP_CODE).map((f) => ({ file: f, ops: failingAuthImports(f) })).filter((c) => c.ops.length);
-          if (!callers.length) findings.push({ file: '(app)', detail: 'no source imports a failing Firebase Auth operation — the scan found no auth surface' });
+          const callers = context
+            .files(APP_CODE)
+            .map((f) => ({ file: f, ops: failingAuthImports(f) }))
+            .filter((c) => c.ops.length);
+          if (!callers.length)
+            findings.push({
+              file: '(app)',
+              detail:
+                'no source imports a failing Firebase Auth operation — the scan found no auth surface',
+            });
           const reviewed = new Map(facts.reportedElsewhere.map((e) => [e.path, e]));
           for (const { file, ops } of callers) {
-            if (!reports.test(file.code) && !reviewed.has(file.path)) findings.push({ file: file.path, detail: `calls ${ops.join(', ')} and never reports a failure` });
+            if (!reports.test(file.code) && !reviewed.has(file.path))
+              findings.push({
+                file: file.path,
+                detail: `calls ${ops.join(', ')} and never reports a failure`,
+              });
           }
           for (const entry of facts.reportedElsewhere) {
             const caller = callers.find((c) => c.file.path === entry.path);
-            if (!caller) findings.push({ file: entry.path, detail: 'stale entry: it no longer calls a failing auth operation' });
-            else if (reports.test(caller.file.code)) findings.push({ file: entry.path, detail: 'stale entry: it reports its own failures now' });
-            if (!context.reader.exists(entry.reportedBy)) findings.push({ file: entry.reportedBy, detail: `the reporter named for ${entry.path} no longer exists` });
-            else if (!reports.test(context.file(entry.reportedBy).code)) findings.push({ file: entry.reportedBy, detail: `the reporter named for ${entry.path} no longer reports` });
+            if (!caller)
+              findings.push({
+                file: entry.path,
+                detail: 'stale entry: it no longer calls a failing auth operation',
+              });
+            else if (reports.test(caller.file.code))
+              findings.push({
+                file: entry.path,
+                detail: 'stale entry: it reports its own failures now',
+              });
+            if (!context.reader.exists(entry.reportedBy))
+              findings.push({
+                file: entry.reportedBy,
+                detail: `the reporter named for ${entry.path} no longer exists`,
+              });
+            else if (!reports.test(context.file(entry.reportedBy).code))
+              findings.push({
+                file: entry.reportedBy,
+                detail: `the reporter named for ${entry.path} no longer reports`,
+              });
           }
           return findings;
         },
@@ -336,8 +426,14 @@ export const signOutLivenessGuard: GenericGuardDefinition<SignOutLivenessFacts> 
     return problems;
   },
   build(facts) {
-    const redeclared = new RegExp(`\\b${DECLARATION_KEYWORDS}\\s+(?:${facts.ownerExports.map(escapeRegExp).join('|')})\\b`, 'g');
-    const negatedSkip = new RegExp(`!\\s*${escapeRegExp(facts.authAccessor)}\\(\\)\\s*\\??\\.\\s*currentUser`, 'g');
+    const redeclared = new RegExp(
+      `\\b${DECLARATION_KEYWORDS}\\s+(?:${facts.ownerExports.map(escapeRegExp).join('|')})\\b`,
+      'g',
+    );
+    const negatedSkip = new RegExp(
+      `!\\s*${escapeRegExp(facts.authAccessor)}\\(\\)\\s*\\??\\.\\s*currentUser`,
+      'g',
+    );
     return [
       {
         title: 'the signed-in check before an awaited call has one owner',
@@ -352,14 +448,27 @@ export const signOutLivenessGuard: GenericGuardDefinition<SignOutLivenessFacts> 
             for (const re of [redeclared, negatedSkip]) {
               re.lastIndex = 0;
               for (let m = re.exec(file.code); m; m = re.exec(file.code)) {
-                findings.push({ file: file.path, line: file.lineOf(m.index), detail: re === redeclared ? `re-declares ${m[0].split(/\s+/).pop()}` : 'hand-rolls a negated currentUser skip guard' });
+                findings.push({
+                  file: file.path,
+                  line: file.lineOf(m.index),
+                  detail:
+                    re === redeclared
+                      ? `re-declares ${m[0].split(/\s+/).pop()}`
+                      : 'hand-rolls a negated currentUser skip guard',
+                });
               }
             }
           }
-          if (!context.reader.exists(facts.owner)) findings.push({ file: facts.owner, detail: 'the owner no longer exists' });
+          if (!context.reader.exists(facts.owner))
+            findings.push({ file: facts.owner, detail: 'the owner no longer exists' });
           else {
             const code = context.file(facts.owner).code;
-            for (const name of facts.ownerExports) if (!declares(code, name)) findings.push({ file: facts.owner, detail: `the owner no longer declares ${name}` });
+            for (const name of facts.ownerExports)
+              if (!declares(code, name))
+                findings.push({
+                  file: facts.owner,
+                  detail: `the owner no longer declares ${name}`,
+                });
           }
           return findings;
         },
@@ -383,13 +492,21 @@ export interface EditorPermissionGateFacts {
 }
 
 /** Each editor element with an ancestor `{<permission read> && …}`. */
-export function permissionGatedEditors(sf: ts.SourceFile, facts: Omit<EditorPermissionGateFacts, 'editorMarker'>): ts.Node[] {
+export function permissionGatedEditors(
+  sf: ts.SourceFile,
+  facts: Omit<EditorPermissionGateFacts, 'editorMarker'>,
+): ts.Node[] {
   const prefix = new RegExp(`^${escapeRegExp(facts.permissionNamePrefix)}[A-Z]`);
   const readsPermission = (expr: ts.Expression) => {
     let found = false;
     const visit = (node: ts.Node) => {
       if (ts.isIdentifier(node) && prefix.test(node.text)) found = true;
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && facts.permissionCalls.includes(node.expression.text)) found = true;
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        facts.permissionCalls.includes(node.expression.text)
+      )
+        found = true;
       ts.forEachChild(node, visit);
     };
     visit(expr);
@@ -397,7 +514,10 @@ export function permissionGatedEditors(sf: ts.SourceFile, facts: Omit<EditorPerm
   };
   const out: ts.Node[] = [];
   const visit = (node: ts.Node) => {
-    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(sf) === facts.editorElement) {
+    if (
+      (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+      node.tagName.getText(sf) === facts.editorElement
+    ) {
       for (let p: ts.Node | undefined = node.parent; p; p = p.parent) {
         if (
           ts.isJsxExpression(p) &&
@@ -441,10 +561,18 @@ export const editorPermissionGateGuard: GenericGuardDefinition<EditorPermissionG
           const findings: Finding[] = [];
           const marker = new RegExp(`\\b${escapeRegExp(facts.editorMarker)}\\s*\\(`);
           const editors = context.files(APP_CODE).filter((f) => marker.test(f.code));
-          if (!editors.length) findings.push({ file: '(app)', detail: `no component calls ${facts.editorMarker} — the scan found no editor to check` });
+          if (!editors.length)
+            findings.push({
+              file: '(app)',
+              detail: `no component calls ${facts.editorMarker} — the scan found no editor to check`,
+            });
           for (const file of editors) {
             for (const node of permissionGatedEditors(file.sourceFile, facts)) {
-              findings.push({ file: file.path, line: file.lineOf(node.getStart(file.sourceFile)), detail: `<${facts.editorElement}> mounted under a permission gate` });
+              findings.push({
+                file: file.path,
+                line: file.lineOf(node.getStart(file.sourceFile)),
+                detail: `<${facts.editorElement}> mounted under a permission gate`,
+              });
             }
           }
           return findings;

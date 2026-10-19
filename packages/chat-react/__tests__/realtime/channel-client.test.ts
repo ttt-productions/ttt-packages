@@ -39,7 +39,12 @@ function tickAlive(clock: FakeClock, sock: MockSocket, ms: number): void {
   }
 }
 
-function wireRow(seq: number, senderUid: string, text: string, clientMessageId = `srv-${seq}`): WireMessageRow {
+function wireRow(
+  seq: number,
+  senderUid: string,
+  text: string,
+  clientMessageId = `srv-${seq}`,
+): WireMessageRow {
   return {
     seq,
     senderUid,
@@ -74,7 +79,12 @@ function makeClient(overrides?: {
     socketFactory: harness.factory,
     timers: clock,
     // Deterministic backoff: zero jitter, small base.
-    reconnect: { baseDelayMs: 100, maxDelayMs: 1000, random: () => 0, ...(overrides?.reconnect ?? {}) },
+    reconnect: {
+      baseDelayMs: 100,
+      maxDelayMs: 1000,
+      random: () => 0,
+      ...(overrides?.reconnect ?? {}),
+    },
     ...(overrides?.diagnostics === undefined ? {} : { diagnostics: overrides.diagnostics }),
   });
   return { client, harness, clock, grantCalls };
@@ -116,7 +126,10 @@ describe('ChannelClient — optimistic send + seq reconcile', () => {
     expect(msgs[0].messageId).toBe('optimistic:c-1');
     expect(msgs[0].meta?.optimistic).toBe(true);
     // The send frame went out with the clientMessageId.
-    expect(sock.sent.find((f) => f.type === 'send')?.payload).toMatchObject({ clientMessageId: 'c-1', text: 'hello' });
+    expect(sock.sent.find((f) => f.type === 'send')?.payload).toMatchObject({
+      clientMessageId: 'c-1',
+      text: 'hello',
+    });
 
     // Server acks the seq for that clientMessageId → reconcile in place (no duplicate).
     sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 42 });
@@ -161,7 +174,10 @@ describe('ChannelClient — read ack (delivery != read)', () => {
     const sock = harness.last();
     sock.serverOpen();
     expect(client.readAck(17, true)).toBe(true);
-    expect(sock.sent.find((f) => f.type === 'read-ack')?.payload).toEqual({ readSeq: 17, focused: true });
+    expect(sock.sent.find((f) => f.type === 'read-ack')?.payload).toEqual({
+      readSeq: 17,
+      focused: true,
+    });
   });
 
   it('returns false when the socket is closed and re-sends the cursor on reconnect (M2)', async () => {
@@ -180,7 +196,10 @@ describe('ChannelClient — read ack (delivery != read)', () => {
     const s2 = harness.sockets[1];
     expect(s2).toBeTruthy();
     s2.serverOpen();
-    expect(s2.sent.find((f) => f.type === 'read-ack')?.payload).toEqual({ readSeq: 9, focused: true });
+    expect(s2.sent.find((f) => f.type === 'read-ack')?.payload).toEqual({
+      readSeq: 9,
+      focused: true,
+    });
   });
 });
 
@@ -238,7 +257,9 @@ describe('ChannelClient — history pagination', () => {
     expect(client.getState().isFetchingOlder).toBe(true);
 
     // A short page (< 50) means we've reached the head.
-    sock.serverFrame('history-page', { messages: [wireRow(8, 'u-a', 'eight'), wireRow(9, 'u-b', 'nine')] });
+    sock.serverFrame('history-page', {
+      messages: [wireRow(8, 'u-a', 'eight'), wireRow(9, 'u-b', 'nine')],
+    });
     const st = client.getState();
     expect(st.isFetchingOlder).toBe(false);
     expect(st.hasOlder).toBe(false);
@@ -307,8 +328,17 @@ describe('ChannelClient — reconnect + resume (Contract C snapshot: delta / res
     const s1 = harness.last();
     s1.serverOpen();
     // A delta row that arrives already-moderated (the DO overlay merge).
-    const moderated: WireMessageRow = { ...wireRow(4, 'u-x', 'secret'), moderationKind: 'moderate', messageRevision: 2 };
-    s1.serverFrame('snapshot', { lastMessageSeq: 4, readSeq: 0, resync: false, delta: [moderated] });
+    const moderated: WireMessageRow = {
+      ...wireRow(4, 'u-x', 'secret'),
+      moderationKind: 'moderate',
+      messageRevision: 2,
+    };
+    s1.serverFrame('snapshot', {
+      lastMessageSeq: 4,
+      readSeq: 0,
+      resync: false,
+      delta: [moderated],
+    });
     const msg = client.getState().messages.find((m) => m.messageId === '4');
     expect(msg?.text).not.toBe('secret');
     expect(msg?.meta?.moderated).toBe(true);
@@ -328,7 +358,10 @@ describe('ChannelClient — reconnect + resume (Contract C snapshot: delta / res
     expect(client.getState().messages).toHaveLength(0);
     expect((client as unknown as { resumeSeq: number }).resumeSeq).toBe(0);
     // A cursorless history request went out (re-page from the top).
-    expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({ beforeSeq: null, limit: 50 });
+    expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({
+      beforeSeq: null,
+      limit: 50,
+    });
   });
 
   it('treats a legacy snapshot (no resync/delta) as a resync re-page', async () => {
@@ -340,7 +373,9 @@ describe('ChannelClient — reconnect + resume (Contract C snapshot: delta / res
     // Pre-contract DO: bare { lastMessageSeq, readSeq }.
     s1.serverFrame('snapshot', { lastMessageSeq: 5, readSeq: 2 });
     expect(client.getState().messages).toHaveLength(0);
-    expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({ beforeSeq: null });
+    expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({
+      beforeSeq: null,
+    });
   });
 
   it('keeps un-acked optimistic rows through a resync', async () => {
@@ -379,7 +414,11 @@ describe('ChannelClient — un-acked send retry on reconnect (clientMessageId id
     const resent = s2.sent.find((f) => f.type === 'send');
     expect(resent?.payload).toMatchObject({ clientMessageId: 'c-1', text: 'hello?' });
     // The optimistic bubble is still present (not a ghost yet — it's being retried).
-    expect(client.getState().messages.some((m) => m.meta?.clientMessageId === 'c-1' && m.meta?.optimistic)).toBe(true);
+    expect(
+      client
+        .getState()
+        .messages.some((m) => m.meta?.clientMessageId === 'c-1' && m.meta?.optimistic),
+    ).toBe(true);
   });
 
   it('stops resending once the send is acked', async () => {
@@ -538,7 +577,9 @@ describe('ChannelClient — retrySend (explicit retry, same clientMessageId)', (
     const s2 = harness.last();
     s2.serverOpen();
     // The reconnect's automatic resend picks the retried entry back up.
-    expect(s2.sent.find((f) => f.type === 'send')?.payload).toMatchObject({ clientMessageId: 'c-1' });
+    expect(s2.sent.find((f) => f.type === 'send')?.payload).toMatchObject({
+      clientMessageId: 'c-1',
+    });
   });
 
   it('returns false for an unknown/already-acked clientMessageId', async () => {
@@ -715,7 +756,9 @@ describe('ChannelClient — membership-pending retry (send vs. membership-sync r
     const stillPending = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(stillPending?.meta?.sendFailed).toBeFalsy();
     // > 5 resends went out — proof the attempt cap did not govern this path.
-    expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(MAX_PENDING_SEND_ATTEMPTS);
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(
+      MAX_PENDING_SEND_ATTEMPTS,
+    );
 
     // Cross the 90s wall-clock budget → the next membership-pending resend fails it.
     tickAlive(clock, sock, SERVER_RETRYABLE_MAX_AGE_MS);
@@ -749,7 +792,11 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     client.send({ clientMessageId: 'c-1', text: 'first' });
     client.send({ clientMessageId: 'c-2', text: 'second' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: false,
+    });
 
     const r1 = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     const r2 = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-2');
@@ -769,7 +816,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     client.send({ clientMessageId: 'c-1', text: 'first' });
     client.send({ clientMessageId: 'c-2', text: 'second' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 2000,
+    });
     clock.tick(2000);
 
     // Exactly ONE resend went out and it was c-1 — c-2 was never touched.
@@ -785,7 +837,11 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'blocked' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'archived', retryable: false });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'archived',
+      retryable: false,
+    });
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(row?.meta?.sendFailed).toBe(true);
     expect(row?.meta?.sendFailureCode).toBe('archived');
@@ -806,7 +862,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     client.send({ clientMessageId: 'c-1', text: 'fast first message' });
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1);
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 2000,
+    });
     // Not surfaced as an error — the bubble stays a normal pending "Sending…".
     expect(client.getState().lastErrorCode).toBeNull();
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
@@ -834,16 +895,28 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
 
     // Feed retryable rejections far past the 5-attempt cap; each fires a resend.
     for (let i = 0; i < MAX_PENDING_SEND_ATTEMPTS + 4; i++) {
-      sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 1000 });
+      sock.serverFrame('send-rejected', {
+        clientMessageId: 'c-1',
+        code: 'membership-pending',
+        retryable: true,
+        retryAfterMs: 1000,
+      });
       clock.tick(1000);
     }
     const stillPending = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(stillPending?.meta?.sendFailed).toBeFalsy();
-    expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(MAX_PENDING_SEND_ATTEMPTS);
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(
+      MAX_PENDING_SEND_ATTEMPTS,
+    );
 
     // Once the 90s wall-clock budget elapses, the next rejection fails it (retryable class).
     tickAlive(clock, sock, SERVER_RETRYABLE_MAX_AGE_MS);
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 1000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 1000,
+    });
     const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(failed?.meta?.sendFailed).toBe(true);
     expect(failed?.meta?.sendRetryable).toBe(true);
@@ -857,7 +930,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hello' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
     sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 9 });
     const acked = client.getState().messages.find((m) => m.messageId === '9');
     expect(acked?.meta?.optimistic).toBe(false);
@@ -876,8 +954,14 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'mine' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
-    expect(client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1')?.meta?.sendFailed).toBe(true);
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: false,
+    });
+    expect(
+      client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1')?.meta?.sendFailed,
+    ).toBe(true);
 
     // The canonical echo carrying the same clientMessageId reconciles the failed row.
     sock.serverFrame('message', { message: wireRow(7, 'u-me', 'mine', 'c-1') });
@@ -899,7 +983,11 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'brand-new-future-code', retryable: true });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'brand-new-future-code',
+      retryable: true,
+    });
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(row?.meta?.sendFailed).toBe(true);
     expect(row?.meta?.sendFailureCode).toBeUndefined(); // neutral — we can't trust the unknown code
@@ -916,7 +1004,11 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
 
     // blocked-word declared retryable contradicts the canonical table → unparseable
     // → the id-correlated send fails closed rather than stranding.
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: true });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: true,
+    });
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(row?.meta?.sendFailed).toBe(true);
     expect(row?.meta?.sendFailureCode).toBeUndefined();
@@ -931,7 +1023,11 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
 
     // No id at all / an id that is not ours — forward-compat noise, no state change.
     sock.serverFrame('send-rejected', { code: 'not-a-real-code', retryable: true });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-other', code: 'not-a-real-code', retryable: true });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-other',
+      code: 'not-a-real-code',
+      retryable: true,
+    });
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(row?.meta?.sendFailed).toBeUndefined();
     expect(row?.meta?.optimistic).toBe(true);
@@ -950,7 +1046,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     client.send({ clientMessageId: 'c-1', text: 'hi' });
 
     // 600s hint (the schema's own max) must clamp to SEND_RETRY_MAX_DELAY_MS (30s).
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'flood', retryable: true, retryAfterMs: 600_000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'flood',
+      retryable: true,
+      retryAfterMs: 600_000,
+    });
     clock.tick(SEND_RETRY_MAX_DELAY_MS);
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // 1 original + 1 clamped resend
   });
@@ -962,8 +1063,17 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: false,
+    });
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(row?.meta?.sendFailed).toBe(true);
     expect(row?.meta?.sendFailureCode).toBe('blocked-word');
@@ -978,7 +1088,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     const s1 = harness.last();
     s1.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
-    s1.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    s1.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
 
     // Socket drops before the 5s timer fires; the reconnect resume resends.
     s1.serverClose(1006, 'abnormal');
@@ -999,7 +1114,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     const sock = harness.last();
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
 
     client.retrySend('c-1');
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // original + manual retry
@@ -1014,7 +1134,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 2000,
+    });
     clock.tick(2000); // the scheduled resend fires…
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2);
     // …and the server (contract violation) never answers the SEND again — while the
@@ -1037,8 +1162,16 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 3 });
 
     // No pending send left for c-1, and c-unknown was never ours — neither surfaces anything.
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-unknown', code: 'archived', retryable: false });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: false,
+    });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-unknown',
+      code: 'archived',
+      retryable: false,
+    });
     const acked = client.getState().messages.find((m) => m.messageId === '3');
     expect(acked?.meta?.sendFailed).toBeUndefined();
     expect(client.getState().status).toBe('open');
@@ -1051,8 +1184,18 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
     clock.tick(5000);
     // Exactly ONE resend — the second rejection cleared the first timer, not stacked it.
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // 1 original + 1 resend
@@ -1064,7 +1207,12 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     const sock = harness.last();
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'hi' });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'membership-pending',
+      retryable: true,
+      retryAfterMs: 5000,
+    });
 
     client.close();
     const before = sock.sent.filter((f) => f.type === 'send').length;
@@ -1139,7 +1287,10 @@ describe('ChannelClient — teardown', () => {
 
 describe('ChannelClient — grant mint failure', () => {
   it('backs off and retries when the grant provider rejects', async () => {
-    const grant = vi.fn().mockRejectedValueOnce(new Error('mint failed')).mockResolvedValue('grant-ok');
+    const grant = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('mint failed'))
+      .mockResolvedValue('grant-ok');
     const { client, harness, clock } = makeClient({ grantProvider: grant });
     await client.connect();
     // No socket was created (mint rejected before openSocket built one).
@@ -1269,7 +1420,12 @@ describe('ChannelClient — connect() revives a closed lifecycle', () => {
     await client.connect();
     const s1 = harness.last();
     s1.serverOpen();
-    s1.serverFrame('snapshot', { lastMessageSeq: 3, readSeq: 0, resync: false, delta: [wireRow(3, 'u-a', 'three')] });
+    s1.serverFrame('snapshot', {
+      lastMessageSeq: 3,
+      readSeq: 0,
+      resync: false,
+      delta: [wireRow(3, 'u-a', 'three')],
+    });
     expect(client.getState().messages.map((m) => m.messageId)).toEqual(['3']);
 
     client.close();
@@ -1387,7 +1543,9 @@ describe('ChannelClient — dead-socket watchdog', () => {
 
   it('teardown clears the watchdog: no close, no diagnostic, no reconnect afterwards', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness, clock } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness, clock } = makeClient({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
@@ -1404,7 +1562,9 @@ describe('ChannelClient — dead-socket watchdog', () => {
 
   it('emits exactly ONE bounded liveness diagnostic per detection (content-free)', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness, clock } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness, clock } = makeClient({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
@@ -1412,7 +1572,12 @@ describe('ChannelClient — dead-socket watchdog', () => {
     clock.tick(60_000);
     const liveness = entries.filter((e) => e.event === DIAG.SOCKET_LIVENESS_TIMEOUT);
     expect(liveness).toHaveLength(1);
-    expect(liveness[0].data).toMatchObject({ thresholdMs: 50_000, attempt: 1, resumeSeq: 0, pendingSends: 0 });
+    expect(liveness[0].data).toMatchObject({
+      thresholdMs: 50_000,
+      attempt: 1,
+      resumeSeq: 0,
+      pendingSends: 0,
+    });
     expect(liveness[0].data.silentMs).toBeGreaterThanOrEqual(50_000);
     // It is followed by the ordinary transient close/reconnect lines — the watchdog
     // owns detection only, never reconnect policy.
@@ -1442,7 +1607,10 @@ describe('ChannelClient — hasLoadedInitialData (authoritative initial-load tra
   });
 
   it('remains false after a failed first grant + reconnect (still initial loading)', async () => {
-    const grant = vi.fn().mockRejectedValueOnce(new Error('transient')).mockResolvedValue('grant-ok');
+    const grant = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValue('grant-ok');
     const { client, clock } = makeClient({ grantProvider: grant });
     await client.connect();
     expect(client.getState().hasLoadedInitialData).toBe(false);
@@ -1543,7 +1711,10 @@ describe('ChannelClient — terminal access denial (ChatAccessDeniedError)', () 
   it('fails pending optimistic sends when a re-grant is terminally denied', async () => {
     // First grant succeeds (socket opens, a send goes pending); the reconnect re-mint is
     // terminally denied → the pending send flips to the visible failed state.
-    const grant = vi.fn().mockResolvedValueOnce('grant-1').mockRejectedValue(new ChatAccessDeniedError());
+    const grant = vi
+      .fn()
+      .mockResolvedValueOnce('grant-1')
+      .mockRejectedValue(new ChatAccessDeniedError());
     const { client, harness, clock } = makeClient({ grantProvider: grant });
     await client.connect();
     const s1 = harness.last();
@@ -1572,7 +1743,10 @@ describe('ChannelClient — terminal access denial (ChatAccessDeniedError)', () 
   });
 
   it('a transient grant error still reconnects (not terminal)', async () => {
-    const grant = vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue('grant-ok');
+    const grant = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValue('grant-ok');
     const { client, clock } = makeClient({ grantProvider: grant });
     await client.connect();
     expect(client.getState().status).toBe('reconnecting');
@@ -1631,7 +1805,9 @@ async function runScenario(diagnostics?: ChatClientDiagnosticsOption) {
   sock = harness.last();
   sock.serverOpen();
   sock.serverFrame('snapshot', { lastMessageSeq: 4, readSeq: 3, resync: true, delta: [] });
-  sock.serverFrame('history-page', { messages: [wireRow(1, 'u-a', 'one'), reBroadcastRow(4, true)] });
+  sock.serverFrame('history-page', {
+    messages: [wireRow(1, 'u-a', 'one'), reBroadcastRow(4, true)],
+  });
   return ctx;
 }
 
@@ -1711,7 +1887,13 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
       cursorAfter: 2,
     });
     // The reconnect's resync answer: the cursor is reset and the tail dropped.
-    expect(results[1]).toMatchObject({ lastMessageSeq: 4, resync: true, deltaCount: 0, cursorBefore: 4, cursorAfter: 0 });
+    expect(results[1]).toMatchObject({
+      lastMessageSeq: 4,
+      resync: true,
+      deltaCount: 0,
+      cursorBefore: 4,
+      cursorAfter: 0,
+    });
     expect(of(DIAG.RESYNC_DROPPED_TAIL)[0]).toMatchObject({ removedCount: 4, keptOptimistic: 0 });
   });
 
@@ -1720,8 +1902,18 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     const applied = of(DIAG.FRAME_APPLIED);
     const four = applied.filter((d) => d.seq === 4);
     expect(four).toHaveLength(2);
-    expect(four[0]).toMatchObject({ kind: 'message', source: 'live', op: 'insert', moderationKind: null });
-    expect(four[1]).toMatchObject({ kind: 'message', source: 'live', op: 'replace-by-seq', moderationKind: 'moderate' });
+    expect(four[0]).toMatchObject({
+      kind: 'message',
+      source: 'live',
+      op: 'insert',
+      moderationKind: null,
+    });
+    expect(four[1]).toMatchObject({
+      kind: 'message',
+      source: 'live',
+      op: 'replace-by-seq',
+      moderationKind: 'moderate',
+    });
     // Bounded: an uninteresting delta backlog row is summarized by resume_result,
     // never one applied-line per row.
     expect(applied.some((d) => d.source === 'delta')).toBe(false);
@@ -1735,15 +1927,34 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
 
   it('records the history page size, seq range, and cursor advance', async () => {
     const { of } = await runCaptured();
-    expect(of(DIAG.HISTORY_REQUEST).at(-1)).toMatchObject({ beforeSeq: null, limit: 50, sent: true });
-    expect(of(DIAG.HISTORY_PAGE)[0]).toMatchObject({ count: 2, minSeq: 1, maxSeq: 4, cursorBefore: 0, cursorAfter: 4 });
+    expect(of(DIAG.HISTORY_REQUEST).at(-1)).toMatchObject({
+      beforeSeq: null,
+      limit: 50,
+      sent: true,
+    });
+    expect(of(DIAG.HISTORY_PAGE)[0]).toMatchObject({
+      count: 2,
+      minSeq: 1,
+      maxSeq: 4,
+      cursorBefore: 0,
+      cursorAfter: 4,
+    });
   });
 
   it('records the send lifecycle (optimistic → ack) and the moderation revision', async () => {
     const { of } = await runCaptured();
     expect(of(DIAG.SEND_OPTIMISTIC)[0]).toMatchObject({ clientMessageId: 'c-1' });
-    expect(of(DIAG.SEND_ACK)[0]).toMatchObject({ clientMessageId: 'c-1', seq: 3, wasPending: true });
-    expect(of(DIAG.REVISION_APPLIED)[0]).toMatchObject({ seq: 1, kind: 'moderate', messageRevision: 2, rendered: true });
+    expect(of(DIAG.SEND_ACK)[0]).toMatchObject({
+      clientMessageId: 'c-1',
+      seq: 3,
+      wasPending: true,
+    });
+    expect(of(DIAG.REVISION_APPLIED)[0]).toMatchObject({
+      seq: 1,
+      kind: 'moderate',
+      messageRevision: 2,
+      rendered: true,
+    });
   });
 
   it('records the socket lifecycle with the reconnect cause and attempt number', async () => {
@@ -1753,7 +1964,11 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
       [2, 'transient-close'],
     ]);
     expect(of(DIAG.SOCKET_OPEN).map((d) => d.attempt)).toEqual([1, 2]);
-    expect(of(DIAG.SOCKET_CLOSE)[0]).toMatchObject({ code: 1006, closedByUs: false, outcome: 'reconnect' });
+    expect(of(DIAG.SOCKET_CLOSE)[0]).toMatchObject({
+      code: 1006,
+      closedByUs: false,
+      outcome: 'reconnect',
+    });
     // A scheduled reconnect carries the backoff delay (null would mean give-up).
     const scheduled = of(DIAG.RECONNECT_SCHEDULED)[0];
     expect(scheduled).toMatchObject({ cause: 'transient-close' });
@@ -1762,12 +1977,18 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
 
   it('records a send-rejected decision and the resulting failure', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness } = makeClient({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: SECRET_TEXT });
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: false,
+    });
     expect(entries.filter((e) => e.event === DIAG.SEND_REJECTED).map((e) => e.data)).toEqual([
       { clientMessageId: 'c-1', code: 'blocked-word', retryable: false, outcome: 'terminal' },
     ]);
@@ -1780,7 +2001,9 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
 
   it('records a DROPPED frame with its reason (never silently ignored)', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness } = makeClient({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
@@ -1794,20 +2017,26 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
 
   it('emits NOTHING for heartbeats or repeated renders (bounded phase logging)', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness, clock } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness, clock } = makeClient({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     harness.last().serverOpen();
     const afterOpen = entries.length;
     // Six heartbeat windows with the DO auto-responding, exactly as it does live:
     // neither the heartbeats nor their acks may produce a single diagnostic line.
     tickAlive(clock, harness.last(), 120_000);
-    expect(harness.last().sent.filter((f) => f.type === 'heartbeat').length).toBeGreaterThanOrEqual(6);
+    expect(harness.last().sent.filter((f) => f.type === 'heartbeat').length).toBeGreaterThanOrEqual(
+      6,
+    );
     expect(entries).toHaveLength(afterOpen);
   });
 
   it('a `heartbeat-ack` is an explicit no-op: no diagnostic line, no state change', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness } = makeClient({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
@@ -1864,7 +2093,11 @@ describe('ChannelClient — an over-bound text is rejected by name, terminally',
     client.send({ clientMessageId: 'c-long', text: 'x' });
     client.send({ clientMessageId: 'c-ok', text: 'fine' });
 
-    sock.serverFrame('send-rejected', { clientMessageId: 'c-long', code: 'too-long', retryable: false });
+    sock.serverFrame('send-rejected', {
+      clientMessageId: 'c-long',
+      code: 'too-long',
+      retryable: false,
+    });
 
     const long = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-long');
     const ok = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-ok');

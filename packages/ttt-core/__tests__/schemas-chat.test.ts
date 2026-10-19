@@ -30,27 +30,40 @@ describe('UnarchiveGuildChatChannelInputSchema', () => {
   });
 
   it('requires both ids and rejects empty ones', () => {
-    expect(UnarchiveGuildChatChannelInputSchema.safeParse({ workProjectId: 'wp-1' }).success).toBe(false);
-    expect(UnarchiveGuildChatChannelInputSchema.safeParse({ guildChatChannelId: 'chan-1' }).success).toBe(false);
+    expect(UnarchiveGuildChatChannelInputSchema.safeParse({ workProjectId: 'wp-1' }).success).toBe(
+      false,
+    );
+    expect(
+      UnarchiveGuildChatChannelInputSchema.safeParse({ guildChatChannelId: 'chan-1' }).success,
+    ).toBe(false);
     expect(
       UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, workProjectId: '' }).success,
     ).toBe(false);
     expect(
-      UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, guildChatChannelId: '' }).success,
+      UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, guildChatChannelId: '' })
+        .success,
     ).toBe(false);
   });
 
   it('is strict — an unknown key is rejected, never silently dropped', () => {
-    const result = UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, isArchived: false });
+    const result = UnarchiveGuildChatChannelInputSchema.safeParse({
+      ...validInput,
+      isArchived: false,
+    });
     expect(result.success).toBe(false);
     // A caller must not be able to smuggle the state it is asking the server to derive.
-    expect(UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, force: true }).success).toBe(false);
+    expect(
+      UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, force: true }).success,
+    ).toBe(false);
   });
 
   it('rejects non-string ids', () => {
-    expect(UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, workProjectId: 1 }).success).toBe(false);
     expect(
-      UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, guildChatChannelId: null }).success,
+      UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, workProjectId: 1 }).success,
+    ).toBe(false);
+    expect(
+      UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, guildChatChannelId: null })
+        .success,
     ).toBe(false);
   });
 });
@@ -76,16 +89,28 @@ describe('the three channel-lifecycle inputs are separate declarations of one sh
 });
 
 describe('a guild chat channel stores and accepts no member list', () => {
-  const create = { workProjectId: 'wp-1', channelName: 'General', requiredGuildStandings: ['HallLibraryEditor'] };
+  const create = {
+    workProjectId: 'wp-1',
+    channelName: 'General',
+    requiredGuildStandings: ['HallLibraryEditor'],
+  };
 
   it('create and update take the access requirement alone', () => {
     expect(CreateGuildChatChannelInputSchema.safeParse(create).success).toBe(true);
-    expect(UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, requiredGuildStandings: [] }).success).toBe(true);
+    expect(
+      UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, requiredGuildStandings: [] })
+        .success,
+    ).toBe(true);
   });
 
   it('a client-sent allowedUserIds list is refused, never stored', () => {
-    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, allowedUserIds: ['u1'] }).success).toBe(false);
-    expect(UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, allowedUserIds: ['u1'] }).success).toBe(false);
+    expect(
+      CreateGuildChatChannelInputSchema.safeParse({ ...create, allowedUserIds: ['u1'] }).success,
+    ).toBe(false);
+    expect(
+      UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, allowedUserIds: ['u1'] })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -93,20 +118,57 @@ describe("a channel's requirement holds canonical standings and trade profession
   const create = { workProjectId: 'wp-1', channelName: 'General' };
 
   it('accepts every canonical standing and every canonical trade profession', () => {
-    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: [...GUILD_STANDING_IDS] }).success).toBe(true);
-    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: TRADE_PROFESSION_OPTIONS.slice(0, MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS) }).success).toBe(true);
+    expect(
+      CreateGuildChatChannelInputSchema.safeParse({
+        ...create,
+        requiredGuildStandings: [...GUILD_STANDING_IDS],
+      }).success,
+    ).toBe(true);
+    expect(
+      CreateGuildChatChannelInputSchema.safeParse({
+        ...create,
+        requiredGuildStandings: TRADE_PROFESSION_OPTIONS.slice(
+          0,
+          MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS,
+        ),
+      }).success,
+    ).toBe(true);
   });
 
   it('refuses an unknown, re-cased, or padded entry on create and update', () => {
-    for (const standing of ['Wizard', 'actor', ' Actor', 'hallLibraryEditor', ' HallLibraryEditor', 'HallLibraryEditor ', '']) {
-      expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: [standing] }).success).toBe(false);
-      expect(UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, requiredGuildStandings: [standing] }).success).toBe(false);
+    for (const standing of [
+      'Wizard',
+      'actor',
+      ' Actor',
+      'hallLibraryEditor',
+      ' HallLibraryEditor',
+      'HallLibraryEditor ',
+      '',
+    ]) {
+      expect(
+        CreateGuildChatChannelInputSchema.safeParse({
+          ...create,
+          requiredGuildStandings: [standing],
+        }).success,
+      ).toBe(false);
+      expect(
+        UpdateGuildChatChannelInputSchema.safeParse({
+          ...validInput,
+          requiredGuildStandings: [standing],
+        }).success,
+      ).toBe(false);
     }
   });
 
   it('holds the list to its declared maximum', () => {
-    const tooMany = Array.from({ length: MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS + 1 }, () => 'HallLibraryEditor');
-    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: tooMany }).success).toBe(false);
+    const tooMany = Array.from(
+      { length: MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS + 1 },
+      () => 'HallLibraryEditor',
+    );
+    expect(
+      CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: tooMany })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -115,16 +177,27 @@ describe('a channel lifecycle answer says whether the chat service already enfor
     expect([...GUILD_CHAT_CHANNEL_ENFORCEMENT_STATES]).toEqual(['applied', 'pending']);
     for (const enforcement of GUILD_CHAT_CHANNEL_ENFORCEMENT_STATES) {
       expect(
-        GuildChatChannelLifecycleResultSchema.safeParse({ success: true, guildChatChannelId: 'c1', enforcement }).success,
+        GuildChatChannelLifecycleResultSchema.safeParse({
+          success: true,
+          guildChatChannelId: 'c1',
+          enforcement,
+        }).success,
       ).toBe(true);
     }
     expect(
-      GuildChatChannelLifecycleResultSchema.safeParse({ success: true, guildChatChannelId: 'c1', enforcement: 'failed' }).success,
+      GuildChatChannelLifecycleResultSchema.safeParse({
+        success: true,
+        guildChatChannelId: 'c1',
+        enforcement: 'failed',
+      }).success,
     ).toBe(false);
   });
 
   it('an answer that does not say is not a valid answer', () => {
-    expect(GuildChatChannelLifecycleResultSchema.safeParse({ success: true, guildChatChannelId: 'c1' }).success).toBe(false);
+    expect(
+      GuildChatChannelLifecycleResultSchema.safeParse({ success: true, guildChatChannelId: 'c1' })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -143,20 +216,37 @@ describe('one conversation shape for every input that names a chat conversation'
     };
     for (const conversation of [channel, invite]) {
       expect(GuildChatConversationSchema.safeParse(conversation).success).toBe(true);
-      expect(AdminModerateChatMessageInputSchema.safeParse({ ...moderate, channel: conversation }).success).toBe(true);
       expect(
-        StagedActionSchema.safeParse({ button: 'tombstoneChat', channel: conversation, messageSeq: 1, expectedMessageRevision: 0 }).success,
+        AdminModerateChatMessageInputSchema.safeParse({ ...moderate, channel: conversation })
+          .success,
+      ).toBe(true);
+      expect(
+        StagedActionSchema.safeParse({
+          button: 'tombstoneChat',
+          channel: conversation,
+          messageSeq: 1,
+          expectedMessageRevision: 0,
+        }).success,
       ).toBe(true);
     }
     const bad = { kind: 'channel', workProjectId: 'wp-1' };
-    expect(AdminModerateChatMessageInputSchema.safeParse({ ...moderate, channel: bad }).success).toBe(false);
     expect(
-      StagedActionSchema.safeParse({ button: 'tombstoneChat', channel: bad, messageSeq: 1, expectedMessageRevision: 0 }).success,
+      AdminModerateChatMessageInputSchema.safeParse({ ...moderate, channel: bad }).success,
+    ).toBe(false);
+    expect(
+      StagedActionSchema.safeParse({
+        button: 'tombstoneChat',
+        channel: bad,
+        messageSeq: 1,
+        expectedMessageRevision: 0,
+      }).success,
     ).toBe(false);
   });
 
   it('a conversation id must be one document id', () => {
-    expect(GuildChatConversationSchema.safeParse({ kind: 'invite', guildInviteId: 'a/b' }).success).toBe(false);
+    expect(
+      GuildChatConversationSchema.safeParse({ kind: 'invite', guildInviteId: 'a/b' }).success,
+    ).toBe(false);
   });
 });
 
@@ -164,11 +254,23 @@ describe('the admin-support send uses the one chat text bound', () => {
   const send = { threadKind: 'adminSupport', adminDispatchId: 'd1' };
 
   it('accepts text at the bound and refuses one character over', () => {
-    expect(SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH) }).success).toBe(true);
-    expect(SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1) }).success).toBe(false);
+    expect(
+      SendGuildChatMessageInputSchema.safeParse({
+        ...send,
+        text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH),
+      }).success,
+    ).toBe(true);
+    expect(
+      SendGuildChatMessageInputSchema.safeParse({
+        ...send,
+        text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1),
+      }).success,
+    ).toBe(false);
   });
 
   it('carries no side-of-the-thread flag: the callable says who is speaking', () => {
-    expect(SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'hi', isUserReply: true }).success).toBe(false);
+    expect(
+      SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'hi', isUserReply: true }).success,
+    ).toBe(false);
   });
 });

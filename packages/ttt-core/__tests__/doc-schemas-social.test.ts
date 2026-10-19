@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { SquareStreetzPostSchema, SquareStreetzPostPayloadSchema, MediaTypeSchema } from '../src/doc-schemas/social.js';
+import {
+  SquareStreetzPostSchema,
+  SquareStreetzPostPayloadSchema,
+  MediaTypeSchema,
+} from '../src/doc-schemas/social.js';
 import { MAX_MENTIONS } from '../src/constants/business-content.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
@@ -101,7 +105,10 @@ describe('a stored Square post holds its mentions to the post mention grammar', 
   });
 
   it('refuses a mention its text does not carry, at that mention', () => {
-    const result = SquareStreetzPostSchema.safeParse({ ...mentionPost, content: '@m1 has joined the company!' });
+    const result = SquareStreetzPostSchema.safeParse({
+      ...mentionPost,
+      content: '@m1 has joined the company!',
+    });
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((i) => i.path.join('.'))).toContain('mentions.1.placeholder');
   });
@@ -113,17 +120,23 @@ describe('a stored Square post holds its mentions to the post mention grammar', 
       id: `u${i}`,
     }));
     const content = mentions.map((m) => m.placeholder).join(' ');
-    expect(SquareStreetzPostSchema.safeParse({ ...textOnlyPost, content, mentions }).success).toBe(false);
+    expect(SquareStreetzPostSchema.safeParse({ ...textOnlyPost, content, mentions }).success).toBe(
+      false,
+    );
   });
 
   it('the announcement transport takes post mentions only', () => {
     expect(
-      SquareStreetzPostPayloadSchema.safeParse({ userId: 'u1', mentions: [{ placeholder: '@m1', type: 'user', id: 'u1' }] })
-        .success,
+      SquareStreetzPostPayloadSchema.safeParse({
+        userId: 'u1',
+        mentions: [{ placeholder: '@m1', type: 'user', id: 'u1' }],
+      }).success,
     ).toBe(true);
     expect(
-      SquareStreetzPostPayloadSchema.safeParse({ userId: 'u1', mentions: [{ placeholder: '@u1', type: 'user', id: 'u1' }] })
-        .success,
+      SquareStreetzPostPayloadSchema.safeParse({
+        userId: 'u1',
+        mentions: [{ placeholder: '@u1', type: 'user', id: 'u1' }],
+      }).success,
     ).toBe(false);
   });
 });

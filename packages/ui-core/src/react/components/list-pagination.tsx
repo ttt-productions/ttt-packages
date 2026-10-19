@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "./button.js";
-import { cn } from "../../lib/utils.js";
-import type { ListPaginationState } from "../hooks/use-paged-list.js";
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from './button.js';
+import { cn } from '../../lib/utils.js';
+import type { ListPaginationState } from '../hooks/use-paged-list.js';
 
 export interface ListPaginationProps {
   /**
@@ -48,14 +48,14 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
 
   // The control that started the in-flight page shows the spinner. Cleared when `busy`
   // ends — a render-phase adjustment, so there is no effect and no stale frame.
-  const [clicked, setClicked] = useState<"previous" | "next" | null>(null);
+  const [clicked, setClicked] = useState<'previous' | 'next' | null>(null);
   const [wasBusy, setWasBusy] = useState(busy);
   if (busy !== wasBusy) {
     setWasBusy(busy);
     if (!busy) setClicked(null);
   }
-  const previousPending = busy && clicked === "previous";
-  const nextPending = busy && clicked === "next";
+  const previousPending = busy && clicked === 'previous';
+  const nextPending = busy && clicked === 'next';
   const previousUnavailable = busy || !canPreviousPage;
   const nextUnavailable = busy || !canNextPage;
 
@@ -68,14 +68,14 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
   if (!canPreviousPage && !canNextPage) return null;
 
   return (
-    <div className={cn("flex w-full items-center justify-between gap-4 mt-4", className)}>
+    <div className={cn('flex w-full items-center justify-between gap-4 mt-4', className)}>
       <Button
         type="button"
         variant="outline"
         size="sm"
         onClick={() => {
           if (previousUnavailable) return;
-          setClicked("previous");
+          setClicked('previous');
           goToPreviousPage();
         }}
         aria-disabled={previousUnavailable || undefined}
@@ -94,7 +94,7 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
         size="sm"
         onClick={() => {
           if (nextUnavailable) return;
-          setClicked("next");
+          setClicked('next');
           goToNextPage();
         }}
         aria-disabled={nextUnavailable || undefined}

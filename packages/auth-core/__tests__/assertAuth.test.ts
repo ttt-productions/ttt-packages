@@ -1,26 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // There is deliberately NO `vi.mock("firebase-functions/v2/https")` here: assertAuth
 // throws AuthAssertionError, never HttpsError, and the consuming app maps it (authError.ts
 // says why). Its only firebase-functions reference is a TYPE import, erased at runtime.
-import { createAssertAuth } from "../src/server/assertAuth.js";
-import { AuthAssertionError } from "../src/server/authError.js";
-import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from "../src/acceptance.js";
+import { createAssertAuth } from '../src/server/assertAuth.js';
+import { AuthAssertionError } from '../src/server/authError.js';
+import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from '../src/acceptance.js';
 import {
   EMAIL_VERIFICATION_REQUIRED_REASON,
   isEmailVerificationRequiredError,
-} from "../src/email-verification.js";
-import type { AssertAuthConfig, UserStatus } from "../src/server/types.js";
+} from '../src/email-verification.js';
+import type { AssertAuthConfig, UserStatus } from '../src/server/types.js';
 
 type TestUser = {
   uid: string;
   displayName?: string;
-  status?: "active" | "suspended" | "banned";
+  status?: 'active' | 'suspended' | 'banned';
 };
 
-
 function makeRequest(opts?: { uid?: string; emailVerified?: boolean }): any {
-  const uid = opts?.uid ?? "uid-123";
+  const uid = opts?.uid ?? 'uid-123';
   return {
     data: {},
     rawRequest: {},
@@ -36,9 +35,9 @@ function makeUnauthRequest(): any {
 }
 
 const activeUserDoc: TestUser = {
-  uid: "uid-123",
-  displayName: "Test User",
-  status: "active",
+  uid: 'uid-123',
+  displayName: 'Test User',
+  status: 'active',
 };
 
 // Minimal Firestore stub returning the active user doc, for tests that build
@@ -71,9 +70,9 @@ beforeEach(() => {
     firestore: () => fakeDb,
     userProfilePath: (uid) => `userProfiles/${uid}`,
     getUserStatus: (user): UserStatus => {
-      if (user.status === "banned") return "banned";
-      if (user.status === "suspended") return "suspended";
-      return "active";
+      if (user.status === 'banned') return 'banned';
+      if (user.status === 'suspended') return 'suspended';
+      return 'active';
     },
     requireAdmin: mockRequireAdmin as any,
   };
@@ -90,17 +89,17 @@ beforeEach(() => {
 // correct 400 into a 500 INTERNAL. Since assertAuth is the first line of every callable,
 // that silently broke EVERY auth rejection in deployed environments. If someone
 // reintroduces `new HttpsError(...)` here, these assertions fail.
-describe("throws a framework-free typed error (never a package-built HttpsError)", () => {
-  it("rejects with an AuthAssertionError instance carrying the HttpsError code string", async () => {
+describe('throws a framework-free typed error (never a package-built HttpsError)', () => {
+  it('rejects with an AuthAssertionError instance carrying the HttpsError code string', async () => {
     const err = await assertAuth(makeUnauthRequest()).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AuthAssertionError);
-    expect((err as AuthAssertionError).name).toBe("AuthAssertionError");
-    expect((err as AuthAssertionError).code).toBe("unauthenticated");
+    expect((err as AuthAssertionError).name).toBe('AuthAssertionError');
+    expect((err as AuthAssertionError).code).toBe('unauthenticated');
   });
 
   it("does not decorate the error with HttpsError's own shape", async () => {
     const err = (await assertAuth(makeUnauthRequest()).catch(
-      (e: unknown) => e
+      (e: unknown) => e,
     )) as AuthAssertionError & { httpErrorCode?: unknown; toJSON?: unknown };
     // `httpErrorCode`/`toJSON` are HttpsError internals — their absence proves the
     // package is not constructing one, which is the whole point of the fix.
@@ -108,195 +107,192 @@ describe("throws a framework-free typed error (never a package-built HttpsError)
     expect(err.toJSON).toBeUndefined();
   });
 
-  it("uses AuthAssertionError for the email-verification rejection too", async () => {
+  it('uses AuthAssertionError for the email-verification rejection too', async () => {
     const err = await assertAuth(makeRequest({ emailVerified: false }), {
       emailVerified: true,
       allowAnyStatus: true,
     }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AuthAssertionError);
-    expect((err as AuthAssertionError).code).toBe("failed-precondition");
+    expect((err as AuthAssertionError).code).toBe('failed-precondition');
   });
 });
 
-describe("Authentication", () => {
-  it("throws unauthenticated when request.auth is absent", async () => {
+describe('Authentication', () => {
+  it('throws unauthenticated when request.auth is absent', async () => {
     await expect(assertAuth(makeUnauthRequest())).rejects.toMatchObject({
-      code: "unauthenticated",
+      code: 'unauthenticated',
     });
   });
 
-  it("succeeds with no Firestore reads when only allowAnyStatus is set", async () => {
+  it('succeeds with no Firestore reads when only allowAnyStatus is set', async () => {
     const ctx = await assertAuth(makeRequest(), { allowAnyStatus: true });
-    expect(ctx.uid).toBe("uid-123");
+    expect(ctx.uid).toBe('uid-123');
     expect(ctx.userDoc).toBeUndefined();
     expect(mockDbDoc).not.toHaveBeenCalled();
   });
 });
 
-describe("Email verification", () => {
-  it("throws failed-precondition when emailVerified required and token email_verified is false", async () => {
+describe('Email verification', () => {
+  it('throws failed-precondition when emailVerified required and token email_verified is false', async () => {
     await expect(
       assertAuth(makeRequest({ emailVerified: false }), {
         emailVerified: true,
         allowAnyStatus: true,
-      })
-    ).rejects.toMatchObject({ code: "failed-precondition" });
+      }),
+    ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
 
-  it("carries the email-verification reason in details, with the message unchanged", async () => {
+  it('carries the email-verification reason in details, with the message unchanged', async () => {
     const err = await assertAuth(makeRequest({ emailVerified: false }), {
       emailVerified: true,
       allowAnyStatus: true,
     }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AuthAssertionError);
     expect(err).toMatchObject({
-      code: "failed-precondition",
-      message: "Email must be verified",
+      code: 'failed-precondition',
+      message: 'Email must be verified',
       details: { reason: EMAIL_VERIFICATION_REQUIRED_REASON },
     });
     expect(isEmailVerificationRequiredError(err)).toBe(true);
     expect(isAcceptanceRequiredError(err)).toBe(false);
   });
 
-  it("succeeds when emailVerified required and token email_verified is true", async () => {
+  it('succeeds when emailVerified required and token email_verified is true', async () => {
     await expect(
       assertAuth(makeRequest({ emailVerified: true }), {
         emailVerified: true,
         allowAnyStatus: true,
-      })
-    ).resolves.toMatchObject({ uid: "uid-123" });
+      }),
+    ).resolves.toMatchObject({ uid: 'uid-123' });
   });
 
-  it("succeeds when allowUnverified is true even if email_verified is false", async () => {
+  it('succeeds when allowUnverified is true even if email_verified is false', async () => {
     await expect(
       assertAuth(makeRequest({ emailVerified: false }), {
         emailVerified: true,
         allowUnverified: true,
         allowAnyStatus: true,
-      })
-    ).resolves.toMatchObject({ uid: "uid-123" });
+      }),
+    ).resolves.toMatchObject({ uid: 'uid-123' });
   });
 });
 
-describe("Not-banned check (default behavior)", () => {
-  it("throws permission-denied when user status is banned", async () => {
+describe('Not-banned check (default behavior)', () => {
+  it('throws permission-denied when user status is banned', async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
-      data: () => ({ ...activeUserDoc, status: "banned" }),
+      data: () => ({ ...activeUserDoc, status: 'banned' }),
     });
     await expect(assertAuth(makeRequest())).rejects.toMatchObject({
-      code: "permission-denied",
+      code: 'permission-denied',
     });
   });
 
-  it("throws permission-denied when user status is suspended", async () => {
+  it('throws permission-denied when user status is suspended', async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
-      data: () => ({ ...activeUserDoc, status: "suspended" }),
+      data: () => ({ ...activeUserDoc, status: 'suspended' }),
     });
     await expect(assertAuth(makeRequest())).rejects.toMatchObject({
-      code: "permission-denied",
+      code: 'permission-denied',
     });
   });
 
-  it("throws not-found when user doc does not exist", async () => {
+  it('throws not-found when user doc does not exist', async () => {
     mockUserGet.mockResolvedValue({ exists: false, data: () => null });
     await expect(assertAuth(makeRequest())).rejects.toMatchObject({
-      code: "not-found",
+      code: 'not-found',
     });
   });
 
-  it("succeeds when user doc has no status field", async () => {
+  it('succeeds when user doc has no status field', async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
-      data: () => ({ uid: "uid-123", displayName: "Test" }),
+      data: () => ({ uid: 'uid-123', displayName: 'Test' }),
     });
     const ctx = await assertAuth(makeRequest());
-    expect(ctx.uid).toBe("uid-123");
+    expect(ctx.uid).toBe('uid-123');
     expect(ctx.userDoc).toBeDefined();
   });
 
-  it("succeeds when user status is active", async () => {
+  it('succeeds when user status is active', async () => {
     const ctx = await assertAuth(makeRequest());
-    expect(ctx.uid).toBe("uid-123");
-    expect(ctx.userDoc).toMatchObject({ status: "active" });
+    expect(ctx.uid).toBe('uid-123');
+    expect(ctx.userDoc).toMatchObject({ status: 'active' });
   });
 
-  it("skips user doc read entirely when allowAnyStatus is true", async () => {
+  it('skips user doc read entirely when allowAnyStatus is true', async () => {
     await assertAuth(makeRequest(), { allowAnyStatus: true });
     expect(mockUserGet).not.toHaveBeenCalled();
   });
 });
 
-describe("allowSuspended opt-in", () => {
-  it("allows a suspended user when allowSuspended is true", async () => {
+describe('allowSuspended opt-in', () => {
+  it('allows a suspended user when allowSuspended is true', async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
-      data: () => ({ ...activeUserDoc, status: "suspended" }),
+      data: () => ({ ...activeUserDoc, status: 'suspended' }),
     });
     const ctx = await assertAuth(makeRequest(), { allowSuspended: true });
-    expect(ctx.uid).toBe("uid-123");
-    expect(ctx.userDoc).toMatchObject({ status: "suspended" });
+    expect(ctx.uid).toBe('uid-123');
+    expect(ctx.userDoc).toMatchObject({ status: 'suspended' });
   });
 
-  it("still blocks a banned user even when allowSuspended is true", async () => {
+  it('still blocks a banned user even when allowSuspended is true', async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
-      data: () => ({ ...activeUserDoc, status: "banned" }),
+      data: () => ({ ...activeUserDoc, status: 'banned' }),
     });
-    await expect(
-      assertAuth(makeRequest(), { allowSuspended: true })
-    ).rejects.toMatchObject({ code: "permission-denied" });
+    await expect(assertAuth(makeRequest(), { allowSuspended: true })).rejects.toMatchObject({
+      code: 'permission-denied',
+    });
   });
 
-  it("still requires the user doc to exist when allowSuspended is true", async () => {
+  it('still requires the user doc to exist when allowSuspended is true', async () => {
     mockUserGet.mockResolvedValue({ exists: false, data: () => null });
-    await expect(
-      assertAuth(makeRequest(), { allowSuspended: true })
-    ).rejects.toMatchObject({ code: "not-found" });
+    await expect(assertAuth(makeRequest(), { allowSuspended: true })).rejects.toMatchObject({
+      code: 'not-found',
+    });
   });
 });
 
-
-describe("Admin check", () => {
-  it("propagates the error when requireAdmin throws", async () => {
+describe('Admin check', () => {
+  it('propagates the error when requireAdmin throws', async () => {
     mockRequireAdmin.mockRejectedValue(
-      Object.assign(new Error("Administrator access required"), {
-        code: "permission-denied",
-      })
+      Object.assign(new Error('Administrator access required'), {
+        code: 'permission-denied',
+      }),
     );
     await expect(
       assertAuth(makeRequest(), {
         admin: { allowJrAdmin: false },
         allowAnyStatus: true,
-      })
-    ).rejects.toMatchObject({ code: "permission-denied" });
+      }),
+    ).rejects.toMatchObject({ code: 'permission-denied' });
   });
 
-  it("succeeds and returns ctx when requireAdmin resolves", async () => {
+  it('succeeds and returns ctx when requireAdmin resolves', async () => {
     mockRequireAdmin.mockResolvedValue(undefined);
     const ctx = await assertAuth(makeRequest(), {
       admin: { allowJrAdmin: true },
       allowAnyStatus: true,
     });
-    expect(ctx.uid).toBe("uid-123");
-    expect(mockRequireAdmin).toHaveBeenCalledWith(
-      "uid-123",
-      expect.any(Object),
-      { allowJrAdmin: true }
-    );
+    expect(ctx.uid).toBe('uid-123');
+    expect(mockRequireAdmin).toHaveBeenCalledWith('uid-123', expect.any(Object), {
+      allowJrAdmin: true,
+    });
   });
 
-  it("populates ctx.admin with the requireAdmin result when an admin check runs", async () => {
+  it('populates ctx.admin with the requireAdmin result when an admin check runs', async () => {
     type AdminResult = { role: string };
-    const adminMock = vi.fn().mockResolvedValue({ role: "superadmin" });
+    const adminMock = vi.fn().mockResolvedValue({ role: 'superadmin' });
     const config: AssertAuthConfig<TestUser, AdminResult> = {
       firestore: () => fakeDbWithUser(),
       userProfilePath: (uid) => `userProfiles/${uid}`,
       getUserStatus: (user): UserStatus => {
-        if (user.status === "banned") return "banned";
-        if (user.status === "suspended") return "suspended";
-        return "active";
+        if (user.status === 'banned') return 'banned';
+        if (user.status === 'suspended') return 'suspended';
+        return 'active';
       },
       requireAdmin: adminMock as any,
     };
@@ -306,18 +302,18 @@ describe("Admin check", () => {
       admin: { allowJrAdmin: true },
     });
 
-    expect(ctx.admin).toEqual({ role: "superadmin" });
+    expect(ctx.admin).toEqual({ role: 'superadmin' });
   });
 
-  it("leaves ctx.admin undefined when no admin requirement is set", async () => {
+  it('leaves ctx.admin undefined when no admin requirement is set', async () => {
     const ctx = await assertAuth(makeRequest());
     expect(ctx.admin).toBeUndefined();
     expect(mockRequireAdmin).not.toHaveBeenCalled();
   });
 });
 
-describe("Combined checks", () => {
-  it("returns fully populated ctx when all checks pass", async () => {
+describe('Combined checks', () => {
+  it('returns fully populated ctx when all checks pass', async () => {
     mockUserGet.mockResolvedValue({ exists: true, data: () => activeUserDoc });
     mockRequireAdmin.mockResolvedValue(undefined);
 
@@ -326,23 +322,23 @@ describe("Combined checks", () => {
       admin: { allowJrAdmin: true },
     });
 
-    expect(ctx.uid).toBe("uid-123");
-    expect(ctx.userDoc).toMatchObject({ status: "active" });
+    expect(ctx.uid).toBe('uid-123');
+    expect(ctx.userDoc).toMatchObject({ status: 'active' });
     expect(mockRequireAdmin).toHaveBeenCalled();
   });
 });
 
 // Acceptance-level gate (optional `acceptance` config). Every case below that expects a
 // refusal passes on the pre-gate factory only if the gate is ignored — i.e. it fails there.
-describe("Acceptance-level gate", () => {
-  const CLAIM = "acceptedLevelClaim";
+describe('Acceptance-level gate', () => {
+  const CLAIM = 'acceptedLevelClaim';
 
   function gatedAssertAuth(requiredLevel: () => number | Promise<number>) {
-    const requireAdmin = vi.fn().mockResolvedValue("admin");
+    const requireAdmin = vi.fn().mockResolvedValue('admin');
     const config: AssertAuthConfig<TestUser, string> = {
       firestore: () => fakeDbWithUser(),
       userProfilePath: (uid) => `userProfiles/${uid}`,
-      getUserStatus: (user): UserStatus => (user.status === "banned" ? "banned" : "active"),
+      getUserStatus: (user): UserStatus => (user.status === 'banned' ? 'banned' : 'active'),
       requireAdmin: requireAdmin as any,
       acceptance: { claimKey: CLAIM, requiredLevel },
     };
@@ -355,112 +351,126 @@ describe("Acceptance-level gate", () => {
     return req;
   }
 
-  it("refuses a caller below the required level with a structured failed-precondition", async () => {
+  it('refuses a caller below the required level with a structured failed-precondition', async () => {
     const { assert } = gatedAssertAuth(() => 3);
     const err = await assert(requestWithClaim(2)).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AuthAssertionError);
     expect(err).toMatchObject({
-      code: "failed-precondition",
+      code: 'failed-precondition',
       details: { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel: 3, acceptedLevel: 2 },
     });
     expect(isAcceptanceRequiredError(err)).toBe(true);
     expect(isEmailVerificationRequiredError(err)).toBe(false);
   });
 
-  it("treats a missing claim as accepted level 0", async () => {
+  it('treats a missing claim as accepted level 0', async () => {
     const { assert } = gatedAssertAuth(() => 1);
     await expect(assert(requestWithClaim(undefined))).rejects.toMatchObject({
       details: { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel: 1, acceptedLevel: 0 },
     });
   });
 
-  it.each([["a string", "5"], ["NaN", Number.NaN], ["a negative", -4], ["null", null]])(
-    "treats %s claim as accepted level 0 (fails closed)",
-    async (_label, claim) => {
-      const { assert } = gatedAssertAuth(() => 1);
-      await expect(assert(requestWithClaim(claim))).rejects.toMatchObject({
-        details: { acceptedLevel: 0 },
-      });
-    }
-  );
+  it.each([
+    ['a string', '5'],
+    ['NaN', Number.NaN],
+    ['a negative', -4],
+    ['null', null],
+  ])('treats %s claim as accepted level 0 (fails closed)', async (_label, claim) => {
+    const { assert } = gatedAssertAuth(() => 1);
+    await expect(assert(requestWithClaim(claim))).rejects.toMatchObject({
+      details: { acceptedLevel: 0 },
+    });
+  });
 
-  it("passes a caller at or above the required level", async () => {
+  it('passes a caller at or above the required level', async () => {
     const { assert } = gatedAssertAuth(() => 3);
-    await expect(assert(requestWithClaim(3))).resolves.toMatchObject({ uid: "uid-123" });
-    await expect(assert(requestWithClaim(7))).resolves.toMatchObject({ uid: "uid-123" });
+    await expect(assert(requestWithClaim(3))).resolves.toMatchObject({ uid: 'uid-123' });
+    await expect(assert(requestWithClaim(7))).resolves.toMatchObject({ uid: 'uid-123' });
   });
 
-  it("awaits an async required-level reader", async () => {
+  it('awaits an async required-level reader', async () => {
     const { assert } = gatedAssertAuth(async () => 2);
-    await expect(assert(requestWithClaim(1))).rejects.toMatchObject({ code: "failed-precondition" });
+    await expect(assert(requestWithClaim(1))).rejects.toMatchObject({
+      code: 'failed-precondition',
+    });
   });
 
-  it.each([["zero", 0], ["NaN", Number.NaN], ["a negative", -1]])(
-    "requires nothing when the required level is %s",
-    async (_label, level) => {
-      const { assert } = gatedAssertAuth(() => level);
-      await expect(assert(requestWithClaim(undefined))).resolves.toMatchObject({ uid: "uid-123" });
-    }
-  );
+  it.each([
+    ['zero', 0],
+    ['NaN', Number.NaN],
+    ['a negative', -1],
+  ])('requires nothing when the required level is %s', async (_label, level) => {
+    const { assert } = gatedAssertAuth(() => level);
+    await expect(assert(requestWithClaim(undefined))).resolves.toMatchObject({ uid: 'uid-123' });
+  });
 
-  it("lets an allowUnaccepted callable through without reading the required level", async () => {
+  it('lets an allowUnaccepted callable through without reading the required level', async () => {
     const requiredLevel = vi.fn(() => 9);
     const { assert } = gatedAssertAuth(requiredLevel);
-    await expect(assert(requestWithClaim(undefined), { allowUnaccepted: true })).resolves.toMatchObject({
-      uid: "uid-123",
+    await expect(
+      assert(requestWithClaim(undefined), { allowUnaccepted: true }),
+    ).resolves.toMatchObject({
+      uid: 'uid-123',
     });
     expect(requiredLevel).not.toHaveBeenCalled();
   });
 
-  it("propagates a throwing required-level reader", async () => {
-    const failure = new Error("config unavailable");
+  it('propagates a throwing required-level reader', async () => {
+    const failure = new Error('config unavailable');
     const { assert } = gatedAssertAuth(() => {
       throw failure;
     });
     await expect(assert(requestWithClaim(5))).rejects.toBe(failure);
   });
 
-  it("refuses before the admin check runs", async () => {
+  it('refuses before the admin check runs', async () => {
     const { assert, requireAdmin } = gatedAssertAuth(() => 2);
     await expect(
-      assert(requestWithClaim(1), { admin: { allowJrAdmin: true }, allowAnyStatus: true })
-    ).rejects.toMatchObject({ code: "failed-precondition" });
+      assert(requestWithClaim(1), { admin: { allowJrAdmin: true }, allowAnyStatus: true }),
+    ).rejects.toMatchObject({ code: 'failed-precondition' });
     expect(requireAdmin).not.toHaveBeenCalled();
   });
 
-  it("still gates a callable that skips the status check (allowAnyStatus)", async () => {
+  it('still gates a callable that skips the status check (allowAnyStatus)', async () => {
     const { assert } = gatedAssertAuth(() => 1);
     await expect(assert(requestWithClaim(0), { allowAnyStatus: true })).rejects.toMatchObject({
-      code: "failed-precondition",
+      code: 'failed-precondition',
     });
   });
 
-  it("keeps authentication first — an unauthenticated caller never reaches the gate", async () => {
+  it('keeps authentication first — an unauthenticated caller never reaches the gate', async () => {
     const requiredLevel = vi.fn(() => 1);
     const { assert } = gatedAssertAuth(requiredLevel);
-    await expect(assert(makeUnauthRequest())).rejects.toMatchObject({ code: "unauthenticated" });
+    await expect(assert(makeUnauthRequest())).rejects.toMatchObject({ code: 'unauthenticated' });
     expect(requiredLevel).not.toHaveBeenCalled();
   });
 
-  it("is absent without config: an app that never sets `acceptance` behaves exactly as before", async () => {
+  it('is absent without config: an app that never sets `acceptance` behaves exactly as before', async () => {
     // The shared harness config has no `acceptance`; a token with no level claim still passes.
     await expect(assertAuth(makeRequest(), { allowUnaccepted: false })).resolves.toMatchObject({
-      uid: "uid-123",
+      uid: 'uid-123',
     });
   });
 
-  it("leaves `details` undefined on every other rejection", async () => {
-    const unauthenticated = (await assertAuth(makeUnauthRequest()).catch((e: unknown) => e)) as AuthAssertionError;
+  it('leaves `details` undefined on every other rejection', async () => {
+    const unauthenticated = (await assertAuth(makeUnauthRequest()).catch(
+      (e: unknown) => e,
+    )) as AuthAssertionError;
     expect(unauthenticated.details).toBeUndefined();
 
     mockUserGet.mockResolvedValue({ exists: false, data: () => null });
-    const missingProfile = (await assertAuth(makeRequest()).catch((e: unknown) => e)) as AuthAssertionError;
-    expect(missingProfile.code).toBe("not-found");
+    const missingProfile = (await assertAuth(makeRequest()).catch(
+      (e: unknown) => e,
+    )) as AuthAssertionError;
+    expect(missingProfile.code).toBe('not-found');
     expect(missingProfile.details).toBeUndefined();
 
-    mockUserGet.mockResolvedValue({ exists: true, data: () => ({ ...activeUserDoc, status: "banned" }) });
+    mockUserGet.mockResolvedValue({
+      exists: true,
+      data: () => ({ ...activeUserDoc, status: 'banned' }),
+    });
     const banned = (await assertAuth(makeRequest()).catch((e: unknown) => e)) as AuthAssertionError;
-    expect(banned.code).toBe("permission-denied");
+    expect(banned.code).toBe('permission-denied');
     expect(banned.details).toBeUndefined();
   });
 });

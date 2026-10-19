@@ -5,7 +5,7 @@ import { Input } from './input.js';
 import { Label } from './label.js';
 import { X, Search } from 'lucide-react';
 import { Spinner } from './spinner.js';
-import { cn } from "../../lib/utils.js";
+import { cn } from '../../lib/utils.js';
 
 function defaultResultsAnnouncement(count: number): string {
   return count === 1 ? '1 result' : `${count} results`;
@@ -125,7 +125,9 @@ export function SearchDropdown<T>({
   const failed = error !== null && error !== undefined;
   const showOptions = isOpen && !failed && !isLoading && results.length > 0;
   const activeIndex =
-    showOptions && highlight && highlight.value === value && highlight.index < results.length ? highlight.index : -1;
+    showOptions && highlight && highlight.value === value && highlight.index < results.length
+      ? highlight.index
+      : -1;
   const showHint = value.length > 0 && !searchable;
   const announcement =
     !isOpen || failed
@@ -162,7 +164,10 @@ export function SearchDropdown<T>({
           return;
         }
         if (!showOptions) return;
-        setHighlight({ value, index: activeIndex < results.length - 1 ? activeIndex + 1 : activeIndex });
+        setHighlight({
+          value,
+          index: activeIndex < results.length - 1 ? activeIndex + 1 : activeIndex,
+        });
         break;
       case 'ArrowUp':
         if (!showOptions) return;
@@ -200,7 +205,10 @@ export function SearchDropdown<T>({
       )}
 
       <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true">
+        <div
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        >
           {icon}
         </div>
 
@@ -243,7 +251,10 @@ export function SearchDropdown<T>({
       </div>
 
       {isOpen && (
-        <div id={panelId} className="absolute z-50 w-full mt-1 bg-popover border rounded-md elevation-raised max-h-60 overflow-auto">
+        <div
+          id={panelId}
+          className="absolute z-50 w-full mt-1 bg-popover border rounded-md elevation-raised max-h-60 overflow-auto"
+        >
           {failed ? (
             renderError(error)
           ) : isLoading ? (
@@ -252,9 +263,7 @@ export function SearchDropdown<T>({
               Searching...
             </div>
           ) : results.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
-              {emptyMessage}
-            </div>
+            <div className="px-3 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
           ) : (
             <div
               role="listbox"
@@ -274,7 +283,7 @@ export function SearchDropdown<T>({
                   onMouseEnter={() => setHighlight({ value, index })}
                   className={cn(
                     'w-full text-left transition-colors cursor-pointer hover:bg-accent',
-                    index === activeIndex && 'bg-accent'
+                    index === activeIndex && 'bg-accent',
                   )}
                 >
                   {renderResult(result, index)}

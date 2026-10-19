@@ -1,23 +1,23 @@
 // sharp resize helpers extracted from the image-processor
-import type { Sharp, Gravity as SharpGravity } from "sharp";
+import type { Sharp, Gravity as SharpGravity } from 'sharp';
 
 /** Logical crop/resize gravity, mapped to sharp positions by toSharpPosition. */
-export type Gravity = "center" | "top" | "bottom" | "left" | "right";
+export type Gravity = 'center' | 'top' | 'bottom' | 'left' | 'right';
 
 /** Map a logical gravity to a sharp position string. Defaults to centre. */
 export function toSharpPosition(g?: Gravity): SharpGravity {
   switch (g) {
-    case "top":
-      return "north";
-    case "bottom":
-      return "south";
-    case "left":
-      return "west";
-    case "right":
-      return "east";
-    case "center":
+    case 'top':
+      return 'north';
+    case 'bottom':
+      return 'south';
+    case 'left':
+      return 'west';
+    case 'right':
+      return 'east';
+    case 'center':
     default:
-      return "centre";
+      return 'centre';
   }
 }
 
@@ -29,10 +29,10 @@ export function resizeCover(
   pipeline: Sharp,
   width: number,
   height: number,
-  position: SharpGravity = "centre"
+  position: SharpGravity = 'centre',
 ): Sharp {
   return pipeline.resize(width, height, {
-    fit: "cover",
+    fit: 'cover',
     position,
     withoutEnlargement: true,
   });
@@ -42,13 +42,9 @@ export function resizeCover(
  * Fit-inside resize bounded by maxWidth/maxHeight (preserves aspect ratio),
  * never enlarging beyond the source. Either bound may be omitted.
  */
-export function resizeInside(
-  pipeline: Sharp,
-  maxWidth?: number,
-  maxHeight?: number
-): Sharp {
+export function resizeInside(pipeline: Sharp, maxWidth?: number, maxHeight?: number): Sharp {
   return pipeline.resize(maxWidth ?? null, maxHeight ?? null, {
-    fit: "inside",
+    fit: 'inside',
     withoutEnlargement: true,
   });
 }
@@ -60,7 +56,7 @@ export function resizeInside(
 export function computeAspectCropBox(
   width: number,
   height: number,
-  targetAspect: number
+  targetAspect: number,
 ): { left: number; top: number; width: number; height: number } {
   const a = width / height;
   let cropW = width;

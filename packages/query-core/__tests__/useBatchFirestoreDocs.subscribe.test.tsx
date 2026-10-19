@@ -119,7 +119,9 @@ const baseOpts = {
 describe('useBatchFirestoreDocs — subscribe mode', () => {
   it('starts loading, then populates data from a snapshot', () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toEqual({});
@@ -132,7 +134,9 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
   it('caches a missing doc as resolved (negative caching) and excludes it from data', () => {
     const { Wrapper, queryClient } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'] }), { wrapper: Wrapper });
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'] }), {
+      wrapper: Wrapper,
+    });
 
     emit('ghost', null);
 
@@ -144,7 +148,9 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
   it('pushes live updates when the doc changes', () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
 
     emit('u1', { displayName: 'Alice' });
     expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' });
@@ -155,8 +161,12 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
   it('shares ONE listener per id across hook instances (reference-counted)', () => {
     const { Wrapper, queryClient } = makeWrapper();
-    const a = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
-    const b = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
+    const a = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
+    const b = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
 
     // Two consumers of the same id → exactly one underlying Firestore listener.
     expect(__activeListenerCount(queryClient)).toBe(1);
@@ -179,13 +189,17 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
   it('does not open listeners in the default (one-shot) mode', () => {
     const { Wrapper } = makeWrapper();
-    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: false, ids: ['u1'] }), { wrapper: Wrapper });
+    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: false, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
     expect(onSnapshotMock).not.toHaveBeenCalled();
   });
 
   it('a listener error resolves the id with its error, never forever-loading', () => {
     const { Wrapper, queryClient } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden'] }), { wrapper: Wrapper });
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden'] }), {
+      wrapper: Wrapper,
+    });
 
     expect(result.current.isLoading).toBe(true);
 
@@ -202,7 +216,10 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
   it('an errored id resolves while other ids in the batch still load and land', () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden', 'u1'] }), { wrapper: Wrapper });
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden', 'u1'] }),
+      { wrapper: Wrapper },
+    );
 
     emitError('hidden', new Error('permission-denied'));
     // u1 has no snapshot yet — the batch is still loading on its account.
@@ -216,7 +233,9 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
   it('a later snapshot replaces the error negative-cache (e.g. doc un-hidden)', () => {
     const { Wrapper, queryClient } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
 
     emitError('u1', new Error('permission-denied'));
     expect(queryClient.getQueryData(['publicUser', 'u1'])).toBeNull();
@@ -339,10 +358,9 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     );
     await waitFor(() => expect(batchCalls).toHaveLength(1));
 
-    const subscribed = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }),
-      { wrapper: Wrapper },
-    );
+    const subscribed = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
     emit('u1', { displayName: 'FromListener' });
 
     oneShotDocs.set('u1', { displayName: 'FromRead' });

@@ -1,9 +1,9 @@
-import { resolveInfiniteDuration } from "@ttt-productions/media-viewer";
+import { resolveInfiniteDuration } from '@ttt-productions/media-viewer';
 
 export async function validateMediaDuration(file: File, maxDurationSec: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const el = document.createElement(file.type.startsWith("video/") ? "video" : "audio");
-    el.preload = "metadata";
+    const el = document.createElement(file.type.startsWith('video/') ? 'video' : 'audio');
+    el.preload = 'metadata';
 
     let settled = false;
     const finish = (ok: boolean) => {

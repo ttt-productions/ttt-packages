@@ -17,7 +17,8 @@ export function stripCodeComments(sourceFile: ts.SourceFile): string {
   // Every comment sits in the leading trivia of the token after it (the end-of-file token holds the
   // last ones). JSX text is not trivia, so a `//` inside it is text, never a comment.
   const visit = (node: ts.Node) => {
-    if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode) return;
+    if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode)
+      return;
     const children = node.getChildren(sourceFile);
     if (children.length) {
       for (const child of children) visit(child);
@@ -28,7 +29,10 @@ export function stripCodeComments(sourceFile: ts.SourceFile): string {
     if (node.getFullStart() === start) return;
     // A comment on the previous token's line is a trailing range; the rest are leading ranges.
     const pos = node.getFullStart();
-    for (const range of [...(ts.getTrailingCommentRanges(text, pos) ?? []), ...(ts.getLeadingCommentRanges(text, pos) ?? [])]) {
+    for (const range of [
+      ...(ts.getTrailingCommentRanges(text, pos) ?? []),
+      ...(ts.getLeadingCommentRanges(text, pos) ?? []),
+    ]) {
       if (range.end <= start) blank(chars, range.pos, range.end);
     }
   };

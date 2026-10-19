@@ -20,7 +20,14 @@ describe('isExpectedCallableAnswerCode', () => {
   });
 
   it('rejects genuine fault codes and non-strings', () => {
-    for (const code of ['internal', 'unavailable', 'data-loss', 'unknown', 'deadline-exceeded', 'cancelled']) {
+    for (const code of [
+      'internal',
+      'unavailable',
+      'data-loss',
+      'unknown',
+      'deadline-exceeded',
+      'cancelled',
+    ]) {
       expect(isExpectedCallableAnswerCode(code)).toBe(false);
       expect(isExpectedCallableAnswerCode(`functions/${code}`)).toBe(false);
     }
@@ -59,12 +66,25 @@ describe('callableRefusalReason', () => {
 
   it('answers null for a reason outside the set, another refusal code, or no details', () => {
     expect(
-      callableRefusalReason({ code: 'functions/failed-precondition', details: { reason: 'other' } }, REASONS),
+      callableRefusalReason(
+        { code: 'functions/failed-precondition', details: { reason: 'other' } },
+        REASONS,
+      ),
     ).toBeNull();
     expect(
-      callableRefusalReason({ code: 'functions/permission-denied', details: { reason: 'team-full' } }, REASONS),
+      callableRefusalReason(
+        { code: 'functions/permission-denied', details: { reason: 'team-full' } },
+        REASONS,
+      ),
     ).toBeNull();
-    expect(callableRefusalReason({ code: 'functions/failed-precondition', details: null }, REASONS)).toBeNull();
-    expect(callableRefusalReason({ code: 'functions/internal', details: { reason: 'team-full' } }, REASONS)).toBeNull();
+    expect(
+      callableRefusalReason({ code: 'functions/failed-precondition', details: null }, REASONS),
+    ).toBeNull();
+    expect(
+      callableRefusalReason(
+        { code: 'functions/internal', details: { reason: 'team-full' } },
+        REASONS,
+      ),
+    ).toBeNull();
   });
 });

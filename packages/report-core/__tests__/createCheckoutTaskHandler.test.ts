@@ -27,9 +27,7 @@ type DocData = Record<string, unknown>;
 type Store = Map<string, DocData>;
 
 function getByPath(data: DocData, dotted: string): unknown {
-  return dotted
-    .split('.')
-    .reduce<unknown>((acc, k) => (acc as DocData | undefined)?.[k], data);
+  return dotted.split('.').reduce<unknown>((acc, k) => (acc as DocData | undefined)?.[k], data);
 }
 
 interface MockDbOptions {
@@ -69,7 +67,13 @@ function createMockDb(opts: MockDbOptions = {}) {
     dir: 'asc' | 'desc';
   }
 
-  const makeQuery = (colPath: string, clauses: Clause[], orders: Order[], lim?: number, afterPath?: string) => {
+  const makeQuery = (
+    colPath: string,
+    clauses: Clause[],
+    orders: Order[],
+    lim?: number,
+    afterPath?: string,
+  ) => {
     const query = {
       _isQuery: true,
       where: (field: string, op: string, value: unknown) =>
@@ -169,7 +173,15 @@ function createMockDb(opts: MockDbOptions = {}) {
     }),
   } as any;
 
-  return { db, transaction, store, sets, updates, queryCount: () => queryCount, docsRead: () => docsRead };
+  return {
+    db,
+    transaction,
+    store,
+    sets,
+    updates,
+    queryCount: () => queryCount,
+    docsRead: () => docsRead,
+  };
 }
 
 const baseTask = {
@@ -200,7 +212,9 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
 
     expect(result.success).toBe(true);
     expect(result.task.status).toBe('checkedOut');
-    expect(updates.some((u) => u.path === 'adminTasks/task1' && u.data.status === 'checkedOut')).toBe(true);
+    expect(
+      updates.some((u) => u.path === 'adminTasks/task1' && u.data.status === 'checkedOut'),
+    ).toBe(true);
   });
 
   it("answers with the task's own createdAt and lastUpdatedAt, so the claim is a full checked-out task", async () => {
@@ -212,7 +226,10 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
 
-    const result = await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
+    const result = await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'admin1', token: {} },
+    );
 
     expect(result.task.createdAt).toBe(111);
     expect(result.task.lastUpdatedAt).toBe(222);
@@ -269,7 +286,9 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
       { uid: 'admin1', token: {} },
     )) as { success: boolean };
     expect(result.success).toBe(true);
-    expect(updates.some((u) => u.path === 'adminTasks/task1' && u.data.status === 'checkedOut')).toBe(true);
+    expect(
+      updates.some((u) => u.path === 'adminTasks/task1' && u.data.status === 'checkedOut'),
+    ).toBe(true);
   });
 
   it('emits an auto_released audit event when stealing an expired checkout', async () => {
@@ -284,12 +303,24 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
         'activeReportGroups/group1': GROUP_DOC,
       },
     });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      onAuditEvent,
+    });
 
-    await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
+    await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'admin1', token: {} },
+    );
 
     expect(onAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'auto_released', adminUserId: 'admin1', priorAdminUserId: 'other' }),
+      expect.objectContaining({
+        action: 'auto_released',
+        adminUserId: 'admin1',
+        priorAdminUserId: 'other',
+      }),
       expect.anything(),
     );
     expect(onAuditEvent).toHaveBeenCalledWith(
@@ -310,25 +341,45 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
         'activeReportGroups/group1': GROUP_DOC,
       },
     });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      onAuditEvent,
+    });
 
-    await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
+    await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'admin1', token: {} },
+    );
 
-    const release = onAuditEvent.mock.calls.map(([event]) => event).find((e) => e.action === 'auto_released');
+    const release = onAuditEvent.mock.calls
+      .map(([event]) => event)
+      .find((e) => e.action === 'auto_released');
     expect(release.adminUserId).toBe('admin1');
     expect(release.priorAdminUserId).toBe('other');
   });
 
   it('answers a re-checkout of the caller own active lock with the task as held and writes nothing', async () => {
     const onAuditEvent = vi.fn();
-    const heldCheckout = { userId: 'admin1', checkedOutAt: 1_000, expiresAt: Date.now() + 60_000, workLaterUntil: null };
+    const heldCheckout = {
+      userId: 'admin1',
+      checkedOutAt: 1_000,
+      expiresAt: Date.now() + 60_000,
+      workLaterUntil: null,
+    };
     const { db, updates, sets } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'checkedOut', checkoutDetails: heldCheckout },
         'activeReportGroups/group1': GROUP_DOC,
       },
     });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      onAuditEvent,
+    });
 
     const result = await handler(
       { taskType: 'userReport', specificTaskId: 'task1' },
@@ -398,10 +449,10 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
 
-    const result = (await handler(
-      { taskType: 'userReport' },
-      { uid: 'admin1', token: {} },
-    )) as { success: boolean; task: { id: string } };
+    const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
+      success: boolean;
+      task: { id: string };
+    };
 
     expect(result.success).toBe(true);
     expect(result.task.id).toBe('high');
@@ -421,17 +472,27 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
         'activeReportGroups/group1': GROUP_DOC,
       },
     });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      onAuditEvent,
+    });
 
-    const result = (await handler(
-      { taskType: 'userReport' },
-      { uid: 'admin1', token: {} },
-    )) as { success: boolean };
+    const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
+      success: boolean;
+    };
 
     expect(result.success).toBe(true);
-    expect(updates.some((u) => u.path === 'adminTasks/expired' && u.data.status === 'checkedOut')).toBe(true);
+    expect(
+      updates.some((u) => u.path === 'adminTasks/expired' && u.data.status === 'checkedOut'),
+    ).toBe(true);
     expect(onAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'auto_released', adminUserId: 'admin1', priorAdminUserId: 'other' }),
+      expect.objectContaining({
+        action: 'auto_released',
+        adminUserId: 'admin1',
+        priorAdminUserId: 'other',
+      }),
       expect.anything(),
     );
   });
@@ -464,10 +525,9 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
 
     // The mock throws on a transactional range read, so success here proves the claim
     // transaction touched only specific docs.
-    const result = (await handler(
-      { taskType: 'userReport' },
-      { uid: 'admin1', token: {} },
-    )) as { success: boolean };
+    const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
+      success: boolean;
+    };
     expect(result.success).toBe(true);
     for (const call of transaction.get.mock.calls) {
       expect((call[0] as any)._isQuery).toBeUndefined();
@@ -496,10 +556,10 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
 
-    const result = (await handler(
-      { taskType: 'userReport' },
-      { uid: 'admin1', token: {} },
-    )) as { success: boolean; task: { id: string } };
+    const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
+      success: boolean;
+      task: { id: string };
+    };
 
     expect(result.success).toBe(true);
     expect(result.task.id).toBe('second');
@@ -541,7 +601,9 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
 describe('createCheckoutTaskHandler — the app claim guard', () => {
   const IN_FLIGHT = 'This report is being processed.';
   const refuseInFlight: TaskClaimGuard = async ({ originalData }) =>
-    originalData?.status === 'processing' ? { claimable: false, message: IN_FLIGHT } : { claimable: true };
+    originalData?.status === 'processing'
+      ? { claimable: false, message: IN_FLIGHT }
+      : { claimable: true };
 
   it('refuses a specific task the guard refuses, with the app message and no write or audit', async () => {
     const onAuditEvent = vi.fn();
@@ -559,9 +621,10 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       assertTaskClaimable: refuseInFlight,
     });
 
-    const error = await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} }).catch(
-      (e) => e,
-    );
+    const error = await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'admin1', token: {} },
+    ).catch((e) => e);
 
     expect(error).toBeInstanceOf(ReportCoreTaskError);
     expect(error.code).toBe('failed-precondition');
@@ -611,7 +674,12 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       const lock = await args.transaction.get(db.doc('caseLocks/group1'));
       return lock.data()?.open ? { claimable: false, message: 'locked' } : { claimable: true };
     });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: guard });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: guard,
+    });
 
     const result = (await handler(
       { taskType: 'userReport', specificTaskId: 'task1' },
@@ -631,11 +699,21 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
   });
 
   it('hands the guard a null item when the task original document is gone', async () => {
-    const { db } = createMockDb({ docs: { 'adminTasks/task1': { ...baseTask, status: 'pending' } } });
+    const { db } = createMockDb({
+      docs: { 'adminTasks/task1': { ...baseTask, status: 'pending' } },
+    });
     const guard = vi.fn<TaskClaimGuard>(async () => ({ claimable: true }));
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: guard });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: guard,
+    });
 
-    await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
+    await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'admin1', token: {} },
+    );
 
     expect(guard.mock.calls[0][0].originalData).toBeNull();
   });
@@ -652,7 +730,12 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       },
     });
     const guard = vi.fn(refuseInFlight);
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: guard });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: guard,
+    });
 
     const result = (await handler(
       { taskType: 'userReport', specificTaskId: 'task1' },
@@ -680,20 +763,39 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       },
     });
 
-    await expect(handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })).rejects.toBe(readFailure);
+    await expect(handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })).rejects.toBe(
+      readFailure,
+    );
     expect(updates).toHaveLength(0);
   });
 
   it('skips a refused queue candidate and claims the next one', async () => {
     const { db, updates } = createMockDb({
       docs: {
-        'adminTasks/busy': { ...baseTask, taskId: 'groupBusy', originalPath: 'activeReportGroups/groupBusy', priority: 9, status: 'pending' },
-        'adminTasks/free': { ...baseTask, taskId: 'groupFree', originalPath: 'activeReportGroups/groupFree', priority: 1, status: 'pending' },
+        'adminTasks/busy': {
+          ...baseTask,
+          taskId: 'groupBusy',
+          originalPath: 'activeReportGroups/groupBusy',
+          priority: 9,
+          status: 'pending',
+        },
+        'adminTasks/free': {
+          ...baseTask,
+          taskId: 'groupFree',
+          originalPath: 'activeReportGroups/groupFree',
+          priority: 1,
+          status: 'pending',
+        },
         'activeReportGroups/groupBusy': { status: 'processing' },
         'activeReportGroups/groupFree': { status: 'pending' },
       },
     });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: refuseInFlight });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: refuseInFlight,
+    });
 
     const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
       task: { id: string };
@@ -706,7 +808,13 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
 
   it('skips more refused candidates than the contention round budget', async () => {
     const docs: Record<string, DocData> = {
-      'adminTasks/free': { ...baseTask, taskId: 'groupFree', originalPath: 'activeReportGroups/groupFree', priority: 1, status: 'pending' },
+      'adminTasks/free': {
+        ...baseTask,
+        taskId: 'groupFree',
+        originalPath: 'activeReportGroups/groupFree',
+        priority: 1,
+        status: 'pending',
+      },
       'activeReportGroups/groupFree': { status: 'pending' },
     };
     for (let i = 0; i < 7; i++) {
@@ -720,7 +828,12 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       docs[`activeReportGroups/groupBusy${i}`] = { status: 'processing' };
     }
     const { db } = createMockDb({ docs });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: refuseInFlight });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: refuseInFlight,
+    });
 
     const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
       task: { id: string };
@@ -731,7 +844,13 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
 
   it('reads past refused candidates one document per refusal, never re-reading the queue head', async () => {
     const docs: Record<string, DocData> = {
-      'adminTasks/free': { ...baseTask, taskId: 'groupFree', originalPath: 'activeReportGroups/groupFree', priority: 1, status: 'pending' },
+      'adminTasks/free': {
+        ...baseTask,
+        taskId: 'groupFree',
+        originalPath: 'activeReportGroups/groupFree',
+        priority: 1,
+        status: 'pending',
+      },
       'activeReportGroups/groupFree': { status: 'pending' },
     };
     for (let i = 0; i < 7; i++) {
@@ -745,7 +864,12 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       docs[`activeReportGroups/groupBusy${i}`] = { status: 'processing' };
     }
     const { db, docsRead, queryCount } = createMockDb({ docs });
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: refuseInFlight });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: refuseInFlight,
+    });
 
     await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} });
 
@@ -767,9 +891,16 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       },
     });
     const guard = vi.fn(refuseInFlight);
-    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, assertTaskClaimable: guard });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: AUTH,
+      assertTaskClaimable: guard,
+    });
 
-    const error = await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} }).catch((e) => e);
+    const error = await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} }).catch(
+      (e) => e,
+    );
 
     expect(error).toBeInstanceOf(ReportCoreTaskError);
     expect(error.code).toBe('not-found');

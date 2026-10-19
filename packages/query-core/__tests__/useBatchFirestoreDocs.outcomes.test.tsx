@@ -5,63 +5,72 @@ import React from 'react';
 
 type DocData = Record<string, unknown>;
 
-const { docs, denials, batchFailure, pendingGets, setAutoResolve, caps, getDocsMock, getDocMock, onSnapshotMock } =
-  vi.hoisted(() => {
-    const docs = new Map<string, DocData>();
-    const denials = new Map<string, Error>();
-    const batchFailure: { error: Error | null } = { error: null };
-    const pendingGets: Array<() => void> = [];
-    let autoResolve = true;
-    const caps = new Map<string, { next: (snap: unknown) => void; error: (e: Error) => void }>();
+const {
+  docs,
+  denials,
+  batchFailure,
+  pendingGets,
+  setAutoResolve,
+  caps,
+  getDocsMock,
+  getDocMock,
+  onSnapshotMock,
+} = vi.hoisted(() => {
+  const docs = new Map<string, DocData>();
+  const denials = new Map<string, Error>();
+  const batchFailure: { error: Error | null } = { error: null };
+  const pendingGets: Array<() => void> = [];
+  let autoResolve = true;
+  const caps = new Map<string, { next: (snap: unknown) => void; error: (e: Error) => void }>();
 
-    const getDocsMock = vi.fn((q: { __ids: string[] }) => {
-      if (batchFailure.error) return Promise.reject(batchFailure.error);
-      return Promise.resolve({
-        forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
-          for (const id of q.__ids) {
-            const data = docs.get(id);
-            if (data !== undefined) cb({ id, data: () => data });
-          }
-        },
-      });
-    });
-
-    const getDocMock = vi.fn((ref: { __id: string }) => {
-      const answer = () => {
-        const denial = denials.get(ref.__id);
-        if (denial) return Promise.reject(denial);
-        const data = docs.get(ref.__id);
-        return Promise.resolve({ exists: () => data !== undefined, id: ref.__id, data: () => data });
-      };
-      if (autoResolve) return answer();
-      return new Promise((resolve, reject) => {
-        pendingGets.push(() => {
-          answer().then(resolve, reject);
-        });
-      });
-    });
-
-    const onSnapshotMock = vi.fn(
-      (ref: { __id: string }, next: (s: unknown) => void, error: (e: Error) => void) => {
-        caps.set(ref.__id, { next, error });
-        return vi.fn();
+  const getDocsMock = vi.fn((q: { __ids: string[] }) => {
+    if (batchFailure.error) return Promise.reject(batchFailure.error);
+    return Promise.resolve({
+      forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
+        for (const id of q.__ids) {
+          const data = docs.get(id);
+          if (data !== undefined) cb({ id, data: () => data });
+        }
       },
-    );
-
-    return {
-      docs,
-      denials,
-      batchFailure,
-      pendingGets,
-      setAutoResolve: (value: boolean) => {
-        autoResolve = value;
-      },
-      caps,
-      getDocsMock,
-      getDocMock,
-      onSnapshotMock,
-    };
+    });
   });
+
+  const getDocMock = vi.fn((ref: { __id: string }) => {
+    const answer = () => {
+      const denial = denials.get(ref.__id);
+      if (denial) return Promise.reject(denial);
+      const data = docs.get(ref.__id);
+      return Promise.resolve({ exists: () => data !== undefined, id: ref.__id, data: () => data });
+    };
+    if (autoResolve) return answer();
+    return new Promise((resolve, reject) => {
+      pendingGets.push(() => {
+        answer().then(resolve, reject);
+      });
+    });
+  });
+
+  const onSnapshotMock = vi.fn(
+    (ref: { __id: string }, next: (s: unknown) => void, error: (e: Error) => void) => {
+      caps.set(ref.__id, { next, error });
+      return vi.fn();
+    },
+  );
+
+  return {
+    docs,
+    denials,
+    batchFailure,
+    pendingGets,
+    setAutoResolve: (value: boolean) => {
+      autoResolve = value;
+    },
+    caps,
+    getDocsMock,
+    getDocMock,
+    onSnapshotMock,
+  };
+});
 
 vi.mock('firebase/firestore', () => ({
   collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
@@ -132,7 +141,12 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1', 'ghost', 'hiddenA', 'hiddenB'] }),
+      () =>
+        useBatchFirestoreDocs({
+          ...baseOpts,
+          transport: 'get',
+          ids: ['w1', 'ghost', 'hiddenA', 'hiddenB'],
+        }),
       { wrapper: Wrapper },
     );
 
@@ -143,7 +157,11 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
       hiddenA: { status: 'failed', error: deniedA, retrying: false },
       hiddenB: { status: 'failed', error: deniedB, retrying: false },
     });
-    expect(result.current.outcomes.hiddenB).toEqual({ status: 'failed', error: deniedB, retrying: false });
+    expect(result.current.outcomes.hiddenB).toEqual({
+      status: 'failed',
+      error: deniedB,
+      retrying: false,
+    });
     expect((result.current.outcomes.hiddenB as { error: Error }).error).toBe(deniedB);
     expect(result.current.data).toEqual({ w1: { id: 'w1', title: 'One' } });
     expect(result.current.isError).toBe(true);
@@ -160,7 +178,10 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
     );
 
     await waitFor(() => expect(pendingGets).toHaveLength(2));
-    expect(result.current.outcomes).toEqual({ w1: { status: 'loading' }, ghost: { status: 'loading' } });
+    expect(result.current.outcomes).toEqual({
+      w1: { status: 'loading' },
+      ghost: { status: 'loading' },
+    });
 
     act(() => pendingGets[0]());
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
@@ -182,7 +203,13 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
       await result.current.refetch();
     });
 
-    await waitFor(() => expect(result.current.outcomes.w1).toEqual({ status: 'failed', error: denied, retrying: false }));
+    await waitFor(() =>
+      expect(result.current.outcomes.w1).toEqual({
+        status: 'failed',
+        error: denied,
+        retrying: false,
+      }),
+    );
     expect(result.current.data).toEqual({});
   });
 
@@ -204,9 +231,12 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   it('has one entry per requested id, empty ids and duplicates dropped', async () => {
     docs.set('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1', 'w1', ''] }), {
-      wrapper: Wrapper,
-    });
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1', 'w1', ''] }),
+      {
+        wrapper: Wrapper,
+      },
+    );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(Object.keys(result.current.outcomes)).toEqual(['w1']);
@@ -276,24 +306,37 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     const denied = new Error('permission-denied');
     emitError('hidden', denied);
 
-    const late = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['hidden'] }), {
-      wrapper: Wrapper,
-    });
+    const late = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['hidden'] }),
+      {
+        wrapper: Wrapper,
+      },
+    );
 
-    expect(late.result.current.outcomes.hidden).toEqual({ status: 'failed', error: denied, retrying: false });
+    expect(late.result.current.outcomes.hidden).toEqual({
+      status: 'failed',
+      error: denied,
+      retrying: false,
+    });
     expect(late.result.current.isError).toBe(true);
   });
 
   it("clears an id's failure when a later snapshot lands", () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
-      wrapper: Wrapper,
-    });
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
+      {
+        wrapper: Wrapper,
+      },
+    );
 
     emitError('w1', new Error('permission-denied'));
     emit('w1', { title: 'One' });
 
-    expect(result.current.outcomes.w1).toEqual({ status: 'present', data: { id: 'w1', title: 'One' } });
+    expect(result.current.outcomes.w1).toEqual({
+      status: 'present',
+      data: { id: 'w1', title: 'One' },
+    });
     expect(result.current.isError).toBe(false);
   });
 });
@@ -301,46 +344,72 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
 describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed listener', () => {
   it('reads failed, not absent, for a key whose shared listener has errored', () => {
     const { Wrapper } = makeWrapper();
-    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), { wrapper: Wrapper });
+    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
+      wrapper: Wrapper,
+    });
     const denied = new Error('permission-denied');
     emitError('w1', denied);
 
-    const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), { wrapper: Wrapper });
+    const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), {
+      wrapper: Wrapper,
+    });
 
-    expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'failed', error: denied, retrying: false });
+    expect(oneShot.result.current.outcomes.w1).toEqual({
+      status: 'failed',
+      error: denied,
+      retrying: false,
+    });
     expect(oneShot.result.current.isError).toBe(true);
   });
 
   it('answers a refetch with the listener error, never with its null placeholder', async () => {
     docs.set('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
-    const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), { wrapper: Wrapper });
+    const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), {
+      wrapper: Wrapper,
+    });
     await waitFor(() => expect(oneShot.result.current.outcomes.w1.status).toBe('present'));
 
-    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), { wrapper: Wrapper });
+    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
+      wrapper: Wrapper,
+    });
     const denied = new Error('permission-denied');
     emitError('w1', denied);
     await act(async () => {
       await oneShot.result.current.refetch();
     });
 
-    await waitFor(() => expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'failed', error: denied, retrying: false }));
+    await waitFor(() =>
+      expect(oneShot.result.current.outcomes.w1).toEqual({
+        status: 'failed',
+        error: denied,
+        retrying: false,
+      }),
+    );
   });
 
   it('reads the document for itself once the failed listener has no subscriber left', async () => {
     docs.set('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
-    const live = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
+    const live = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
+      {
+        wrapper: Wrapper,
+      },
+    );
+    emitError('w1', new Error('permission-denied'));
+    const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), {
       wrapper: Wrapper,
     });
-    emitError('w1', new Error('permission-denied'));
-    const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), { wrapper: Wrapper });
     expect(oneShot.result.current.outcomes.w1.status).toBe('failed');
 
     live.unmount();
 
     await waitFor(() =>
-      expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'present', data: { id: 'w1', title: 'One' } }),
+      expect(oneShot.result.current.outcomes.w1).toEqual({
+        status: 'present',
+        data: { id: 'w1', title: 'One' },
+      }),
     );
   });
 });

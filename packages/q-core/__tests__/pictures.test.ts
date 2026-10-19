@@ -70,7 +70,8 @@ describe('picture URL builder', () => {
   });
 
   it('carries no download token, so no URL grants anything the rules do not', () => {
-    for (const key of PICTURE_VARIANT_KEYS) expect(buildPictureUrl(PICTURE_ID, key)).not.toMatch(/token=/);
+    for (const key of PICTURE_VARIANT_KEYS)
+      expect(buildPictureUrl(PICTURE_ID, key)).not.toMatch(/token=/);
   });
 
   it('builds a distinct URL for each size', () => {
@@ -79,7 +80,10 @@ describe('picture URL builder', () => {
   });
 
   it('serves from whatever origin it is given, with or without a trailing slash', () => {
-    const emulator = createPictureUrlBuilder({ storageOrigin: 'http://localhost:9199/', bucket: BUCKET });
+    const emulator = createPictureUrlBuilder({
+      storageOrigin: 'http://localhost:9199/',
+      bucket: BUCKET,
+    });
     expect(emulator(PICTURE_ID, 'sm')).toBe(
       `http://localhost:9199/v0/b/${BUCKET}/o/pictures%2F${PICTURE_ID}%2Fsm?alt=media`,
     );
@@ -87,6 +91,11 @@ describe('picture URL builder', () => {
 
   it('refuses to build without an origin or a bucket', () => {
     expect(() => createPictureUrlBuilder({ storageOrigin: '', bucket: BUCKET })).toThrow();
-    expect(() => createPictureUrlBuilder({ storageOrigin: 'https://firebasestorage.googleapis.com', bucket: '' })).toThrow();
+    expect(() =>
+      createPictureUrlBuilder({
+        storageOrigin: 'https://firebasestorage.googleapis.com',
+        bucket: '',
+      }),
+    ).toThrow();
   });
 });

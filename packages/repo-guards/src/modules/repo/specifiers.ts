@@ -11,7 +11,14 @@ export interface ModuleSpecifier {
   typeOnly: boolean;
 }
 
-const NAMED_MODULES: readonly ImportKind[] = ['import', 'export', 'importEquals', 'dynamic', 'require', 'importType'];
+const NAMED_MODULES: readonly ImportKind[] = [
+  'import',
+  'export',
+  'importEquals',
+  'dynamic',
+  'require',
+  'importType',
+];
 
 /** Every module specifier a code file names, in source order. */
 export function moduleSpecifiers(file: FileView): ModuleSpecifier[] {

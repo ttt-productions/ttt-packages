@@ -11,7 +11,9 @@ import { buildLeagueFreeAgentSignedUpEventId } from '../ids/notification-ids.js'
 import type { AdminNotificationType } from '../types/notifications.js';
 import { ADMIN_NOTIFICATION_DEFINITIONS } from './admin-notification-config.js';
 
-export interface AdminNotificationOccurrence<T extends AdminNotificationType = AdminNotificationType> {
+export interface AdminNotificationOccurrence<
+  T extends AdminNotificationType = AdminNotificationType,
+> {
   type: T;
   eventId: string;
   aggregationKey: string;

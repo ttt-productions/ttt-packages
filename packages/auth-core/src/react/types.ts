@@ -1,4 +1,4 @@
-import type { Auth, User } from "firebase/auth";
+import type { Auth, User } from 'firebase/auth';
 
 export interface AuthProviderConfig<TClaims = Record<string, unknown>> {
   auth: Auth;

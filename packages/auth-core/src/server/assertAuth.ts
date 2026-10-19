@@ -10,27 +10,22 @@
 //   5. Acceptance-level gate (only when config.acceptance is set)
 //   6. Admin check (delegated to config.requireAdmin)
 
-import type { CallableRequest } from "firebase-functions/v2/https";
-import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from "../acceptance.js";
-import { EMAIL_VERIFICATION_REQUIRED_REASON } from "../email-verification.js";
-import { AuthAssertionError } from "./authError.js";
-import type {
-  AssertAuthConfig,
-  AssertAuthFn,
-  AuthContext,
-  AuthRequirements,
-} from "./types.js";
+import type { CallableRequest } from 'firebase-functions/v2/https';
+import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from '../acceptance.js';
+import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../email-verification.js';
+import { AuthAssertionError } from './authError.js';
+import type { AssertAuthConfig, AssertAuthFn, AuthContext, AuthRequirements } from './types.js';
 
 export function createAssertAuth<TUser, TAdmin = void>(
-  config: AssertAuthConfig<TUser, TAdmin>
+  config: AssertAuthConfig<TUser, TAdmin>,
 ): AssertAuthFn<TUser, TAdmin> {
   return async function assertAuth(
     request: CallableRequest,
-    requirements: AuthRequirements = {}
+    requirements: AuthRequirements = {},
   ): Promise<AuthContext<TUser, TAdmin>> {
     // 1. Authentication check (always first)
     if (!request.auth) {
-      throw new AuthAssertionError("unauthenticated", "You must be authenticated");
+      throw new AuthAssertionError('unauthenticated', 'You must be authenticated');
     }
 
     const uid = request.auth.uid;
@@ -38,12 +33,9 @@ export function createAssertAuth<TUser, TAdmin = void>(
 
     // 2. Email verification check. The refusal carries its reason in `details`, so the client
     // recognizes it structurally (`isEmailVerificationRequiredError`), never by the message.
-    if (
-      requirements.emailVerified === true &&
-      requirements.allowUnverified !== true
-    ) {
+    if (requirements.emailVerified === true && requirements.allowUnverified !== true) {
       if (token.email_verified !== true) {
-        throw new AuthAssertionError("failed-precondition", "Email must be verified", {
+        throw new AuthAssertionError('failed-precondition', 'Email must be verified', {
           reason: EMAIL_VERIFICATION_REQUIRED_REASON,
         });
       }
@@ -52,30 +44,22 @@ export function createAssertAuth<TUser, TAdmin = void>(
     // 3. User doc Firestore read (skipped when allowAnyStatus is set)
     const db = config.firestore();
     const userSnap =
-      requirements.allowAnyStatus !== true
-        ? await db.doc(config.userProfilePath(uid)).get()
-        : null;
+      requirements.allowAnyStatus !== true ? await db.doc(config.userProfilePath(uid)).get() : null;
 
     let userDoc: TUser | undefined;
 
     // 4. Status check (default: block suspended + banned; skipped if allowAnyStatus)
     if (requirements.allowAnyStatus !== true) {
       if (!userSnap || !userSnap.exists) {
-        throw new AuthAssertionError("not-found", "User profile not found");
+        throw new AuthAssertionError('not-found', 'User profile not found');
       }
       const userData = userSnap.data() as TUser;
       const status = config.getUserStatus(userData);
-      if (status === "banned") {
-        throw new AuthAssertionError(
-          "permission-denied",
-          "Account is not in good standing"
-        );
+      if (status === 'banned') {
+        throw new AuthAssertionError('permission-denied', 'Account is not in good standing');
       }
-      if (status === "suspended" && requirements.allowSuspended !== true) {
-        throw new AuthAssertionError(
-          "permission-denied",
-          "Account is not in good standing"
-        );
+      if (status === 'suspended' && requirements.allowSuspended !== true) {
+        throw new AuthAssertionError('permission-denied', 'Account is not in good standing');
       }
       userDoc = userData;
     }
@@ -88,13 +72,13 @@ export function createAssertAuth<TUser, TAdmin = void>(
       const requiredLevel = normalizeAcceptanceLevel(await config.acceptance.requiredLevel());
       if (requiredLevel > 0) {
         const acceptedLevel = normalizeAcceptanceLevel(
-          (token as Record<string, unknown>)[config.acceptance.claimKey]
+          (token as Record<string, unknown>)[config.acceptance.claimKey],
         );
         if (acceptedLevel < requiredLevel) {
           throw new AuthAssertionError(
-            "failed-precondition",
-            "The current documents must be accepted before continuing",
-            { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel, acceptedLevel }
+            'failed-precondition',
+            'The current documents must be accepted before continuing',
+            { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel, acceptedLevel },
           );
         }
       }

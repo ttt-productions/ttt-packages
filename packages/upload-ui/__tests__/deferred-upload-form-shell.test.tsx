@@ -54,10 +54,7 @@ import { DeferredUploadFormShell } from '../src/react/upload/deferred-upload-for
 
 // --- helpers ---
 
-function makeMutation(opts?: {
-  mutateAsync?: (vars: any) => Promise<any>;
-  isPending?: boolean;
-}) {
+function makeMutation(opts?: { mutateAsync?: (vars: any) => Promise<any>; isPending?: boolean }) {
   return {
     mutateAsync: opts?.mutateAsync ?? vi.fn().mockResolvedValue({ ok: true }),
     isPending: opts?.isPending ?? false,
@@ -66,7 +63,8 @@ function makeMutation(opts?: {
 
 function renderShellWithRef(props?: Partial<React.ComponentProps<typeof DeferredUploadFormShell>>) {
   const mutation = props?.mutation ?? makeMutation();
-  const buildVariables = props?.buildVariables ?? vi.fn((file, onProgress, signal) => ({ file, onProgress, signal }));
+  const buildVariables =
+    props?.buildVariables ?? vi.fn((file, onProgress, signal) => ({ file, onProgress, signal }));
   const ref = createRef<DeferredUploadFormShellHandle>();
   const result = render(
     <DeferredUploadFormShell
@@ -101,7 +99,12 @@ describe('DeferredUploadFormShell', () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
     const mutation = makeMutation({ mutateAsync });
-    const buildVariables = vi.fn((file, onProgress, signal) => ({ kind: 'file', file, onProgress, signal }));
+    const buildVariables = vi.fn((file, onProgress, signal) => ({
+      kind: 'file',
+      file,
+      onProgress,
+      signal,
+    }));
     const { ref } = renderShellWithRef({ mutation, buildVariables });
 
     await user.click(screen.getByTestId('select-file-btn'));
@@ -119,7 +122,12 @@ describe('DeferredUploadFormShell', () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
     const mutation = makeMutation({ mutateAsync });
-    const buildVariables = vi.fn((file, onProgress, signal, claim) => ({ file, onProgress, signal, claim }));
+    const buildVariables = vi.fn((file, onProgress, signal, claim) => ({
+      file,
+      onProgress,
+      signal,
+      claim,
+    }));
     const { ref } = renderShellWithRef({ mutation, buildVariables });
 
     await user.click(screen.getByTestId('select-file-btn'));
@@ -139,7 +147,12 @@ describe('DeferredUploadFormShell', () => {
   it('imperative submit with no file selected still calls mutateAsync', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
     const mutation = makeMutation({ mutateAsync });
-    const buildVariables = vi.fn((file, onProgress, signal) => ({ kind: 'no-file', file, onProgress, signal }));
+    const buildVariables = vi.fn((file, onProgress, signal) => ({
+      kind: 'no-file',
+      file,
+      onProgress,
+      signal,
+    }));
     const { ref } = renderShellWithRef({ mutation, buildVariables });
 
     ref.current?.submit();
@@ -154,7 +167,10 @@ describe('DeferredUploadFormShell', () => {
     const user = userEvent.setup();
     let resolveMutation!: () => void;
     const mutateAsync = vi.fn(
-      () => new Promise<{ ok: true }>((res) => { resolveMutation = () => res({ ok: true }); }),
+      () =>
+        new Promise<{ ok: true }>((res) => {
+          resolveMutation = () => res({ ok: true });
+        }),
     );
     const { container, ref } = renderShellWithRef({ mutation: makeMutation({ mutateAsync }) });
 

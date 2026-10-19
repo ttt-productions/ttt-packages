@@ -1,11 +1,13 @@
 export const GUILD_STANDINGS = {
   StewardOwner: {
     label: 'Steward',
-    description: 'Work steward. Holds all workProject actions implicitly. Assigned automatically at workProject creation and non-assignable via guild standing management UIs.',
+    description:
+      'Work steward. Holds all workProject actions implicitly. Assigned automatically at workProject creation and non-assignable via guild standing management UIs.',
   },
   WorkProjectManager: {
     label: 'WorkProject Manager',
-    description: 'Can perform every workProject action except granting Steward, WorkProjectManager, GuildStandingManager, or StakeShareManager.',
+    description:
+      'Can perform every workProject action except granting Steward, WorkProjectManager, GuildStandingManager, or StakeShareManager.',
   },
   PublicWorkProjectEditor: {
     label: 'Public WorkProject Editor',
@@ -13,7 +15,8 @@ export const GUILD_STANDINGS = {
   },
   GuildStandingManager: {
     label: 'Guild Standing Manager',
-    description: 'Can assign and remove ordinary workProject guild standings without escalating manager, stake-share, or trade-profession authority (tradeProfessions are folder/chat access keys, editable only by file-admin standings).',
+    description:
+      'Can assign and remove ordinary workProject guild standings without escalating manager, stake-share, or trade-profession authority (tradeProfessions are folder/chat access keys, editable only by file-admin standings).',
   },
   StakeShareManager: {
     label: 'Stake Share Manager',
@@ -21,15 +24,18 @@ export const GUILD_STANDINGS = {
   },
   InviteManager: {
     label: 'Invite Manager',
-    description: 'Can send workProject invites, view invite state, and cancel or revoke pending invites.',
+    description:
+      'Can send workProject invites, view invite state, and cancel or revoke pending invites.',
   },
   WorkAssetAdmin: {
     label: 'Work Asset Admin',
-    description: 'Delegated file-system administration: create/rename file folders, assign folder trade-profession access, view every folder and file, and delete any file. Assignable only by the Steward.',
+    description:
+      'Delegated file-system administration: create/rename file folders, assign folder trade-profession access, view every folder and file, and delete any file. Assignable only by the Steward.',
   },
   CommissionManager: {
     label: 'Commission Manager',
-    description: 'Can open and close workProject commissions and manage proposals without starting invite conversations.',
+    description:
+      'Can open and close workProject commissions and manage proposals without starting invite conversations.',
   },
   AuditionManager: {
     label: 'Audition Manager',
@@ -74,7 +80,9 @@ export const GUILD_STANDING_VALUE_BY_ID = {
   GuildChatChannelManager: 'GuildChatChannelManager',
 } as const satisfies Record<GuildStandingId, string>;
 export type GuildStandingValue = (typeof GUILD_STANDING_VALUE_BY_ID)[GuildStandingId];
-export const GUILD_STANDING_VALUES = Object.values(GUILD_STANDING_VALUE_BY_ID) as GuildStandingValue[];
+export const GUILD_STANDING_VALUES = Object.values(
+  GUILD_STANDING_VALUE_BY_ID,
+) as GuildStandingValue[];
 
 /**
  * The standings that administer a Work's file system: create and manage folders, see every folder
@@ -170,12 +178,14 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'fileFolder.viewAll': {
     label: 'View all file folders',
-    description: 'View every folder and file regardless of folder trade-profession access (admin override).',
+    description:
+      'View every folder and file regardless of folder trade-profession access (admin override).',
     grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'workFile.uploadAny': {
     label: 'Upload to any folder',
-    description: 'Upload files to any folder regardless of folder trade-profession access (admin override).',
+    description:
+      'Upload files to any folder regardless of folder trade-profession access (admin override).',
     grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'workFile.deleteAny': {
@@ -185,7 +195,8 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'workFile.promoteToRealm': {
     label: 'Request file sharing to realm',
-    description: 'Submit a request to share a work file into its realm shared-file pool. ' +
+    description:
+      'Submit a request to share a work file into its realm shared-file pool. ' +
       'The realm steward approves the request and chooses the folder, or declines it; ' +
       'nothing is shared to the realm until then. Canon promotion is a separate ' +
       'realm-steward power, evaluated at the realm level, not here.',
@@ -273,12 +284,14 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'hallLibrary.review.submit': {
     label: 'Submit hall review',
-    description: 'Submit workProject content for admin hall review. Also gates withdrawing a still-pending submission.',
+    description:
+      'Submit workProject content for admin hall review. Also gates withdrawing a still-pending submission.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibrarySubmitter'],
   },
   'hallLibrary.changeRequest.submit': {
     label: 'Request published changes',
-    description: 'Propose text changes to a PUBLISHED hall item (reviewed by admins before anything changes).',
+    description:
+      'Propose text changes to a PUBLISHED hall item (reviewed by admins before anything changes).',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibrarySubmitter'],
   },
   'guildChatChannel.create': {
@@ -313,14 +326,14 @@ export const WORK_PROJECT_ACTIONS = {
       'Replying in an open workProject thread is any active Guildmate (not gated here).',
     grantedTo: ['StewardOwner', 'WorkProjectManager'],
   },
-} as const satisfies Record<string, {
-  label: string;
-  description: string;
-  grantedTo: readonly GuildStandingId[];
-}>;
+} as const satisfies Record<
+  string,
+  {
+    label: string;
+    description: string;
+    grantedTo: readonly GuildStandingId[];
+  }
+>;
 
 export type WorkProjectActionId = keyof typeof WORK_PROJECT_ACTIONS;
 export const WORK_PROJECT_ACTION_IDS = Object.keys(WORK_PROJECT_ACTIONS) as WorkProjectActionId[];
-
-
-

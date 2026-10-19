@@ -20,7 +20,11 @@ const writerFacts = (overrides: Partial<AuditWriterFacts> = {}): AuditWriterFact
   collectionHandles: ['COLLECTIONS.AUDIT_EVENTS', 'PATH_BUILDERS.auditEvent'],
   writerPackages: ['@pkg/audit-core'],
   readers: [{ path: 'functions/src/admin/ops.ts', why: 'counts events; writes nothing' }],
-  personActor: { constructors: 'functions/src/shared/actor.ts', modeField: 'mode', modes: ['user', 'adminReview'] },
+  personActor: {
+    constructors: 'functions/src/shared/actor.ts',
+    modeField: 'mode',
+    modes: ['user', 'adminReview'],
+  },
   appServerZone: { folders: ['src/server'], serverModules: ['firebase-admin'] },
   ...overrides,
 });
@@ -28,10 +32,13 @@ const writerFacts = (overrides: Partial<AuditWriterFacts> = {}): AuditWriterFact
 const cleanWriterFiles = {
   'functions/src/audit/write.ts':
     "import { createAuditWriter } from '@pkg/audit-core/server';\nexport const w = () => db.collection(COLLECTIONS.AUDIT_EVENTS);",
-  'functions/src/admin/ops.ts': "export const q = db.collection(COLLECTIONS.AUDIT_EVENTS).where('t', '==', 1);",
-  'functions/src/shared/actor.ts': "export const userActor = (uid: string) => ({ mode: 'user', uid });",
+  'functions/src/admin/ops.ts':
+    "export const q = db.collection(COLLECTIONS.AUDIT_EVENTS).where('t', '==', 1);",
+  'functions/src/shared/actor.ts':
+    "export const userActor = (uid: string) => ({ mode: 'user', uid });",
   'functions/src/audit/write.test.ts': "db.collection('auditEvents').add({ mode: 'user' });",
-  'src/components/browse.tsx': "startSearch({ mode: 'user', user });\nconst rows = db.collection(COLLECTIONS.AUDIT_EVENTS);",
+  'src/components/browse.tsx':
+    "startSearch({ mode: 'user', user });\nconst rows = db.collection(COLLECTIONS.AUDIT_EVENTS);",
   'src/server/health.ts': 'export const ok = true;',
 };
 
@@ -56,34 +63,72 @@ describe('one audit writer', () => {
       ].join('\n'),
       'scripts/backfill.mjs': "import { createAuditWriter } from '@pkg/audit-core/server';",
       'src/server/route.ts': 'db.collection(COLLECTIONS.AUDIT_EVENTS).add(e);',
-      'src/lib/admin.ts': "import { getFirestore } from 'firebase-admin/firestore';\nconst a = { mode: 'user', uid };",
+      'src/lib/admin.ts':
+        "import { getFirestore } from 'firebase-admin/firestore';\nconst a = { mode: 'user', uid };",
     });
     const [collection, actors] = auditWriterGuard.build(writerFacts());
     expect(await repo.run(collection!)).toEqual([
-      { file: 'functions/src/x/second.ts', line: 1, detail: "not on the reviewed list: 'auditEvents'" },
-      { file: 'functions/src/x/second.ts', line: 2, detail: 'not on the reviewed list: auditEvents template path' },
-      { file: 'functions/src/x/second.ts', line: 3, detail: 'not on the reviewed list: PATH_BUILDERS.auditEvent' },
-      { file: 'scripts/backfill.mjs', line: 1, detail: 'not on the reviewed list: imports @pkg/audit-core/server' },
-      { file: 'src/server/route.ts', line: 1, detail: 'not on the reviewed list: COLLECTIONS.AUDIT_EVENTS' },
-      { file: 'functions/src/admin/ops.ts', detail: 'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)' },
+      {
+        file: 'functions/src/x/second.ts',
+        line: 1,
+        detail: "not on the reviewed list: 'auditEvents'",
+      },
+      {
+        file: 'functions/src/x/second.ts',
+        line: 2,
+        detail: 'not on the reviewed list: auditEvents template path',
+      },
+      {
+        file: 'functions/src/x/second.ts',
+        line: 3,
+        detail: 'not on the reviewed list: PATH_BUILDERS.auditEvent',
+      },
+      {
+        file: 'scripts/backfill.mjs',
+        line: 1,
+        detail: 'not on the reviewed list: imports @pkg/audit-core/server',
+      },
+      {
+        file: 'src/server/route.ts',
+        line: 1,
+        detail: 'not on the reviewed list: COLLECTIONS.AUDIT_EVENTS',
+      },
+      {
+        file: 'functions/src/admin/ops.ts',
+        detail:
+          'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)',
+      },
     ]);
     expect(await repo.run(actors!)).toEqual([
-      { file: 'functions/src/x/second.ts', line: 4, detail: "outside its owner: mode: 'adminReview'" },
+      {
+        file: 'functions/src/x/second.ts',
+        line: 4,
+        detail: "outside its owner: mode: 'adminReview'",
+      },
       { file: 'src/lib/admin.ts', line: 2, detail: "outside its owner: mode: 'user'" },
     ]);
   });
 
   it('FLAGS actor constructors that no longer build a person-actor, and a server folder that is gone', async () => {
-    repo = backendRepo({ ...cleanWriterFiles, 'functions/src/shared/actor.ts': 'export const none = 1;' });
-    const [, actors] = auditWriterGuard.build(writerFacts({ appServerZone: { folders: ['src/gone'], serverModules: [] } }));
+    repo = backendRepo({
+      ...cleanWriterFiles,
+      'functions/src/shared/actor.ts': 'export const none = 1;',
+    });
+    const [, actors] = auditWriterGuard.build(
+      writerFacts({ appServerZone: { folders: ['src/gone'], serverModules: [] } }),
+    );
     expect(await repo.run(actors!)).toEqual([
       { file: 'src/gone', detail: 'stale server folder: it no longer exists' },
-      { file: 'functions/src/shared/actor.ts', detail: 'stale owner: the pattern no longer appears in it (or it is outside the scope)' },
+      {
+        file: 'functions/src/shared/actor.ts',
+        detail: 'stale owner: the pattern no longer appears in it (or it is outside the scope)',
+      },
     ]);
   });
 
   it('carries samples its matchers prove', () => {
-    for (const guard of auditWriterGuard.build(writerFacts())) expect(samplesHold(guard)).toBe(true);
+    for (const guard of auditWriterGuard.build(writerFacts()))
+      expect(samplesHold(guard)).toBe(true);
   });
 
   it('refuses facts with a reader without a why, the writer as a reader, an unreadable handle, no modes, or no server zone', () => {
@@ -108,7 +153,12 @@ describe('no member-written text in an audit payload', () => {
     entryPoints: ['writeAuditEventAs', 'writeFailureAuditEventAs'],
     payloadKey: 'payload',
     forwardedPayloadKeys: ['auditPayload'],
-    operatorCopy: [{ site: 'functions/src/admin/broadcast.ts#title', why: 'an operator writes the broadcast title' }],
+    operatorCopy: [
+      {
+        site: 'functions/src/admin/broadcast.ts#title',
+        why: 'an operator writes the broadcast title',
+      },
+    ],
   };
 
   it('FLAGS member text at any depth, in each entry point and a forwarded payload; PASSES field names, lengths, other payloads, prose, and operator copy', async () => {
@@ -132,22 +182,32 @@ describe('no member-written text in an audit payload', () => {
   });
 
   it('FLAGS an operator-copy entry whose key no longer occurs', async () => {
-    repo = backendRepo({ 'functions/src/admin/broadcast.ts': 'writeAuditEventAs(actor, { payload: { broadcastId } });' });
+    repo = backendRepo({
+      'functions/src/admin/broadcast.ts': 'writeAuditEventAs(actor, { payload: { broadcastId } });',
+    });
     const [guard] = auditPayloadGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/admin/broadcast.ts#title', detail: 'stale operator-copy entry: the key no longer occurs' },
+      {
+        file: 'functions/src/admin/broadcast.ts#title',
+        detail: 'stale operator-copy entry: the key no longer occurs',
+      },
     ]);
   });
 
   it('refuses an operator-copy site that is not file#key', () => {
-    expect(auditPayloadGuard.factProblems({ ...facts, operatorCopy: [{ site: 'functions/src/a.ts', why: 'x' }] })).toEqual([
-      'operatorCopy site functions/src/a.ts is not file#key',
-    ]);
+    expect(
+      auditPayloadGuard.factProblems({
+        ...facts,
+        operatorCopy: [{ site: 'functions/src/a.ts', why: 'x' }],
+      }),
+    ).toEqual(['operatorCopy site functions/src/a.ts is not file#key']);
   });
 });
 
 describe('no handler chained onto a failure-audit entry point', () => {
-  const facts = { failureEntryPoints: ['writeFailureAuditEventAs', 'writeRequestFailureAuditEvent'] };
+  const facts = {
+    failureEntryPoints: ['writeFailureAuditEventAs', 'writeRequestFailureAuditEvent'],
+  };
 
   it('FLAGS a chained .catch, .then, and .finally, and an aliased import', async () => {
     repo = backendRepo({
@@ -165,10 +225,26 @@ describe('no handler chained onto a failure-audit entry point', () => {
     });
     const [guard] = failureAuditGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/probe.ts', line: 1, detail: 'imports writeFailureAuditEventAs under another name' },
-      { file: 'functions/src/probe.ts', line: 3, detail: 'chains .catch onto writeFailureAuditEventAs' },
-      { file: 'functions/src/probe.ts', line: 4, detail: 'chains .then onto writeRequestFailureAuditEvent' },
-      { file: 'functions/src/probe.ts', line: 8, detail: 'chains .finally onto writeRequestFailureAuditEvent' },
+      {
+        file: 'functions/src/probe.ts',
+        line: 1,
+        detail: 'imports writeFailureAuditEventAs under another name',
+      },
+      {
+        file: 'functions/src/probe.ts',
+        line: 3,
+        detail: 'chains .catch onto writeFailureAuditEventAs',
+      },
+      {
+        file: 'functions/src/probe.ts',
+        line: 4,
+        detail: 'chains .then onto writeRequestFailureAuditEvent',
+      },
+      {
+        file: 'functions/src/probe.ts',
+        line: 8,
+        detail: 'chains .finally onto writeRequestFailureAuditEvent',
+      },
     ]);
   });
 
@@ -194,20 +270,34 @@ describe('no handler chained onto a failure-audit entry point', () => {
   });
 
   it('FLAGS a declared entry point that is called nowhere', async () => {
-    repo = backendRepo({ 'functions/src/probe.ts': 'await writeFailureAuditEventAs(a);\nawait writeRequestFailureAuditEvent(r, e);' });
-    const [guard] = failureAuditGuard.build({ failureEntryPoints: [...facts.failureEntryPoints, 'writeGoneAudit'] });
-    expect(await repo.run(guard!)).toEqual([{ file: '(failureEntryPoints)', detail: 'writeGoneAudit is called nowhere' }]);
+    repo = backendRepo({
+      'functions/src/probe.ts':
+        'await writeFailureAuditEventAs(a);\nawait writeRequestFailureAuditEvent(r, e);',
+    });
+    const [guard] = failureAuditGuard.build({
+      failureEntryPoints: [...facts.failureEntryPoints, 'writeGoneAudit'],
+    });
+    expect(await repo.run(guard!)).toEqual([
+      { file: '(failureEntryPoints)', detail: 'writeGoneAudit is called nowhere' },
+    ]);
   });
 
   it('refuses an empty entry-point list', () => {
-    expect(failureAuditGuard.factProblems({ failureEntryPoints: [] })).toEqual(['failureEntryPoints is empty']);
+    expect(failureAuditGuard.factProblems({ failureEntryPoints: [] })).toEqual([
+      'failureEntryPoints is empty',
+    ]);
   });
 });
 
 describe('no fire-and-forget work and no swallowed audit write', () => {
   const facts = {
     auditWrites: ['writeAuditEventAs', 'writeAuditEvent'],
-    voidSites: [{ path: 'functions/src/child.ts', why: 'a child process entry point that awaits all of its work' }],
+    voidSites: [
+      {
+        path: 'functions/src/child.ts',
+        why: 'a child process entry point that awaits all of its work',
+      },
+    ],
   };
 
   it('FLAGS every void-ed call and every .catch on an audit write; PASSES awaited writes, a void of a value, a reviewed file, and tests', async () => {
@@ -226,25 +316,54 @@ describe('no fire-and-forget work and no swallowed audit write', () => {
     });
     const [guard] = fireAndForgetGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/work.ts', line: 1, detail: 'fire-and-forget: void ref.create(record)' },
-      { file: 'functions/src/work.ts', line: 2, detail: 'fire-and-forget: void runSync(input).then(done)' },
-      { file: 'functions/src/work.ts', line: 5, detail: "fire-and-forget: void writeAuditEventAs(actor, { type: 'x', transaction: txn })" },
-      { file: 'functions/src/work.ts', line: 3, detail: 'writeAuditEvent(…).catch(…) swallows an audit write' },
-      { file: 'functions/src/work.ts', line: 4, detail: 'writeAuditEventAs(…).catch(…) swallows an audit write' },
+      {
+        file: 'functions/src/work.ts',
+        line: 1,
+        detail: 'fire-and-forget: void ref.create(record)',
+      },
+      {
+        file: 'functions/src/work.ts',
+        line: 2,
+        detail: 'fire-and-forget: void runSync(input).then(done)',
+      },
+      {
+        file: 'functions/src/work.ts',
+        line: 5,
+        detail: "fire-and-forget: void writeAuditEventAs(actor, { type: 'x', transaction: txn })",
+      },
+      {
+        file: 'functions/src/work.ts',
+        line: 3,
+        detail: 'writeAuditEvent(…).catch(…) swallows an audit write',
+      },
+      {
+        file: 'functions/src/work.ts',
+        line: 4,
+        detail: 'writeAuditEventAs(…).catch(…) swallows an audit write',
+      },
     ]);
   });
 
   it('FLAGS a void-ed call behind a non-null assertion', async () => {
     repo = backendRepo({
       'functions/src/child.ts': 'void main();',
-      'functions/src/work.ts': ['void queue.flush()!;', 'await writeAuditEventAs(a, d);', 'await writeAuditEvent(d);'].join('\n'),
+      'functions/src/work.ts': [
+        'void queue.flush()!;',
+        'await writeAuditEventAs(a, d);',
+        'await writeAuditEvent(d);',
+      ].join('\n'),
     });
     const [guard] = fireAndForgetGuard.build(facts);
-    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/work.ts', line: 1, detail: 'fire-and-forget: void queue.flush()!' }]);
+    expect(await repo.run(guard!)).toEqual([
+      { file: 'functions/src/work.ts', line: 1, detail: 'fire-and-forget: void queue.flush()!' },
+    ]);
   });
 
   it('FLAGS a reviewed void site with no void-ed call left, and an audit write called nowhere', async () => {
-    repo = backendRepo({ 'functions/src/child.ts': 'await main();', 'functions/src/work.ts': 'await writeAuditEventAs(a, d);' });
+    repo = backendRepo({
+      'functions/src/child.ts': 'await main();',
+      'functions/src/work.ts': 'await writeAuditEventAs(a, d);',
+    });
     const [guard] = fireAndForgetGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
       { file: 'functions/src/child.ts', detail: 'stale void site: the file has no void-ed call' },
@@ -253,9 +372,12 @@ describe('no fire-and-forget work and no swallowed audit write', () => {
   });
 
   it('refuses a void site without a why', () => {
-    expect(fireAndForgetGuard.factProblems({ auditWrites: [], voidSites: [{ path: 'functions/src/child.ts', why: '' }] })).toEqual([
-      'voidSites entry functions/src/child.ts carries no why',
-    ]);
+    expect(
+      fireAndForgetGuard.factProblems({
+        auditWrites: [],
+        voidSites: [{ path: 'functions/src/child.ts', why: '' }],
+      }),
+    ).toEqual(['voidSites entry functions/src/child.ts carries no why']);
   });
 
   it('refuses a void site whose path is not repo-relative or ends in a slash', () => {

@@ -64,7 +64,11 @@ describe('a Textarea takes its bounds from its declaration', () => {
 
   it('marks a line break in a single-line field as invalid, and accepts one where line breaks are allowed', () => {
     const { rerender } = render(
-      <Textarea inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })} value={'two\nlines'} onChange={() => {}} />,
+      <Textarea
+        inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })}
+        value={'two\nlines'}
+        onChange={() => {}}
+      />,
     );
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
     rerender(<Textarea inputFormat={DESCRIPTION} value={'two\nlines'} onChange={() => {}} />);
@@ -73,7 +77,11 @@ describe('a Textarea takes its bounds from its declaration', () => {
 
   it('does not judge a read-only box: a stored value it shows is neither required nor invalid', () => {
     render(
-      <Textarea inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })} value={'two\nlines'} readOnly />,
+      <Textarea
+        inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })}
+        value={'two\nlines'}
+        readOnly
+      />,
     );
     const box = screen.getByRole('textbox');
     expect(box).not.toHaveAttribute('aria-required');
@@ -118,7 +126,9 @@ describe('a multi-line box that is not free text takes no input format', () => {
 
   it('a list box has no format of its own: no cap and no whole-box judgment', () => {
     const longList = Array.from({ length: 40 }, (_, i) => `term${i}`).join('\n');
-    render(<Textarea textEntry="list" aria-label="Add words" value={longList} onChange={() => {}} />);
+    render(
+      <Textarea textEntry="list" aria-label="Add words" value={longList} onChange={() => {}} />,
+    );
     const box = screen.getByRole('textbox', { name: 'Add words' });
     expect(box).toHaveValue(longList);
     expect(box).not.toHaveAttribute('maxLength');
@@ -141,11 +151,25 @@ describe('a multi-line box that is not free text takes no input format', () => {
 });
 
 describe('a free-text Textarea tidies its text when focus leaves it', () => {
-  function Controlled({ initial, onBlur, readOnly }: { initial: string; onBlur?: () => void; readOnly?: boolean }) {
+  function Controlled({
+    initial,
+    onBlur,
+    readOnly,
+  }: {
+    initial: string;
+    onBlur?: () => void;
+    readOnly?: boolean;
+  }) {
     const [value, setValue] = React.useState(initial);
     return (
       <>
-        <Textarea inputFormat={DESCRIPTION} value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur} readOnly={readOnly} />
+        <Textarea
+          inputFormat={DESCRIPTION}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={onBlur}
+          readOnly={readOnly}
+        />
         <output data-testid="parent-value">{value}</output>
       </>
     );

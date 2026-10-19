@@ -20,7 +20,11 @@ import {
   emptyFootballTeamLine,
 } from './football-scoring.js';
 import { lifetimeSummaryFromColumns } from './lifetime-summary.js';
-import { GAMES_PLAYED_COLUMN, TEAM_SEASON_BASE_COLUMN, TEAM_SEASON_BASE_COLUMNS } from './shared-columns.js';
+import {
+  GAMES_PLAYED_COLUMN,
+  TEAM_SEASON_BASE_COLUMN,
+  TEAM_SEASON_BASE_COLUMNS,
+} from './shared-columns.js';
 import type { SportAdapter } from './sport-adapter.js';
 
 const playerTotalsColumns = [GAMES_PLAYED_COLUMN];

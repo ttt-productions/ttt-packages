@@ -35,11 +35,15 @@ export function declarationsOf(text: string): string {
 }
 
 /** Each place a declared config names one of the variables, by line. */
-export function deployedMentions(text: string, names: readonly string[]): Array<{ name: string; line: number }> {
+export function deployedMentions(
+  text: string,
+  names: readonly string[],
+): Array<{ name: string; line: number }> {
   const lines = declarationsOf(text).split('\n');
   const out: Array<{ name: string; line: number }> = [];
   lines.forEach((line, index) => {
-    for (const name of names) if (new RegExp(`\\b${escapeRegExp(name)}\\b`).test(line)) out.push({ name, line: index + 1 });
+    for (const name of names)
+      if (new RegExp(`\\b${escapeRegExp(name)}\\b`).test(line)) out.push({ name, line: index + 1 });
   });
   return out;
 }
@@ -53,7 +57,8 @@ function readerGuard(entry: LocalOnlyVariablesFacts['readers'][number]): Guard {
       `${entry.names.join(', ')} ${entry.names.length === 1 ? 'is' : 'are'} read in the app's source only by ${entry.owner} ` +
       `(${entry.why}). A second reader is a second gate on a local-only variable. Derive from the owner's export instead.`,
     scope: { roots: ['app'], kinds: ['code'], tests: false },
-    match: (file) => [...file.code.matchAll(pattern)].map((m) => ({ index: m.index, detail: m[0] })),
+    match: (file) =>
+      [...file.code.matchAll(pattern)].map((m) => ({ index: m.index, detail: m[0] })),
     owners: [entry.owner],
     samples: {
       flags: [`const value = process.env.${first};`, `const value = process.env['${first}'];`],
@@ -73,7 +78,8 @@ export const localOnlyVariablesGuard: GenericGuardDefinition<LocalOnlyVariablesF
       key: 'name',
       nonEmpty: true,
       extra(entry, label) {
-        if (!VARIABLE_NAME.test(String(entry.name))) problems.push(`${label} is not a variable name`);
+        if (!VARIABLE_NAME.test(String(entry.name)))
+          problems.push(`${label} is not a variable name`);
       },
     });
     const owned = new Set<string>();
@@ -83,7 +89,8 @@ export const localOnlyVariablesGuard: GenericGuardDefinition<LocalOnlyVariablesF
         namesProblem(entry.names, `${label}'s names`, problems);
         for (const name of Array.isArray(entry.names) ? (entry.names as unknown[]) : []) {
           if (typeof name !== 'string') continue;
-          if (!VARIABLE_NAME.test(name)) problems.push(`${label} names ${name}, which is not a variable name`);
+          if (!VARIABLE_NAME.test(name))
+            problems.push(`${label} names ${name}, which is not a variable name`);
           if (owned.has(name)) problems.push(`${name} is given two owners`);
           owned.add(name);
         }

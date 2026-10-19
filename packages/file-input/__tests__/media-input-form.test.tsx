@@ -112,13 +112,26 @@ describe('the clear button', () => {
   });
 
   it('takes the consumer label when one is supplied', () => {
-    render(<MediaInput spec={spec} onChange={vi.fn()} selectedFile={file()} onClear={vi.fn()} clearLabel="Remove photo" />);
+    render(
+      <MediaInput
+        spec={spec}
+        onChange={vi.fn()}
+        selectedFile={file()}
+        onClear={vi.fn()}
+        clearLabel="Remove photo"
+      />,
+    );
     expect(screen.getByRole('button', { name: 'Remove photo' })).toBeInTheDocument();
   });
 
   it('is named in the legacy FileInput too', () => {
     render(
-      <FileInput acceptTypes={['image']} maxSizeMB={{ image: 10 }} selectedFile={file()} onChange={vi.fn()} />,
+      <FileInput
+        acceptTypes={['image']}
+        maxSizeMB={{ image: 10 }}
+        selectedFile={file()}
+        onChange={vi.fn()}
+      />,
     );
     expect(screen.getByRole('button', { name: 'Clear selected file' })).toBeInTheDocument();
   });

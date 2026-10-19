@@ -18,15 +18,29 @@ export interface BackendRepo {
  * A repository holding `files`. `src/anchor.ts` and `functions/src/anchor.ts` are always written so
  * both roots exist; a `scripts/` file makes the scripts root.
  */
-export function backendRepo(files: Record<string, string>, layout: Partial<RepoLayout> = {}): BackendRepo {
-  const repo = tempRepo({ 'src/anchor.ts': 'export {};', 'functions/src/anchor.ts': 'export {};', ...files });
+export function backendRepo(
+  files: Record<string, string>,
+  layout: Partial<RepoLayout> = {},
+): BackendRepo {
+  const repo = tempRepo({
+    'src/anchor.ts': 'export {};',
+    'functions/src/anchor.ts': 'export {};',
+    ...files,
+  });
   const hasScripts = Object.keys(files).some((p) => p.startsWith('scripts/'));
   const reader = createRepoReader({
     repoRoot: repo.root,
     roots: {
       app: { path: 'src', anchor: 'src/anchor.ts' },
       functions: { path: 'functions/src', anchor: 'functions/src/anchor.ts' },
-      ...(hasScripts ? { scripts: { path: 'scripts', anchor: Object.keys(files).find((p) => p.startsWith('scripts/'))! } } : {}),
+      ...(hasScripts
+        ? {
+            scripts: {
+              path: 'scripts',
+              anchor: Object.keys(files).find((p) => p.startsWith('scripts/'))!,
+            },
+          }
+        : {}),
     },
     ...layout,
   });
@@ -40,5 +54,8 @@ export function backendRepo(files: Record<string, string>, layout: Partial<RepoL
 /** Every must-fail sample a guard carries hits, and every must-pass sample does not. */
 export function samplesHold(guard: Guard): boolean {
   if (!guard.samples) return true;
-  return guard.samples.flags.every((s) => sampleHits(guard, s) > 0) && guard.samples.passes.every((s) => sampleHits(guard, s) === 0);
+  return (
+    guard.samples.flags.every((s) => sampleHits(guard, s) > 0) &&
+    guard.samples.passes.every((s) => sampleHits(guard, s) === 0)
+  );
 }

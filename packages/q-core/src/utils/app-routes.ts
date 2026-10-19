@@ -22,7 +22,12 @@ export const ADMIN_LEAGUES_HREF = '/admin?view=leagues';
 
 // The sections a league's admin workspace is addressed by. The workspace declares which of them it
 // has built as tabs; a link may name any of them.
-export const ADMIN_LEAGUE_WORKSPACE_SECTION_KEYS = ['settings', 'schedule', 'teams', 'free-agents'] as const;
+export const ADMIN_LEAGUE_WORKSPACE_SECTION_KEYS = [
+  'settings',
+  'schedule',
+  'teams',
+  'free-agents',
+] as const;
 export type AdminLeagueWorkspaceSection = (typeof ADMIN_LEAGUE_WORKSPACE_SECTION_KEYS)[number];
 
 /** The league workspace's section holding the league's weeks and games. */

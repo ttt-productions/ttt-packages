@@ -69,13 +69,13 @@ const catalogsOf = (adapter: AnySportAdapter) =>
   COLUMN_CATALOG_KEYS.map((key) => [key, adapter.columns[key] as ColumnCatalog<never>] as const);
 
 describe('every sport declares its three catalogs', () => {
-  it('keys each adapter\'s catalogs by exactly the catalog keys', () => {
+  it("keys each adapter's catalogs by exactly the catalog keys", () => {
     for (const adapter of SPORT_ADAPTER_LIST) {
       expect(Object.keys(adapter.columns).sort()).toEqual([...COLUMN_CATALOG_KEYS].sort());
     }
   });
 
-  it('reads each catalog\'s rows from a line kind', () => {
+  it("reads each catalog's rows from a line kind", () => {
     expect(COLUMN_CATALOG_LINE_KINDS).toEqual({
       playerTotals: 'membershipRow',
       gamePlayer: 'gamePlayer',
@@ -99,7 +99,7 @@ describe.each([...LEAGUE_TYPE_KEYS])('the %s catalogs', (leagueType) => {
     expect(gamePlayer.columns.every((column) => perGameOf(column) === undefined)).toBe(true);
   });
 
-  it('read every figure from a row that parses under the sport\'s line schema', () => {
+  it("read every figure from a row that parses under the sport's line schema", () => {
     for (const [key, catalog] of catalogsOf(adapter)) {
       const kind = COLUMN_CATALOG_LINE_KINDS[key];
       const row = fixtureLine(leagueType, kind);
@@ -125,7 +125,9 @@ describe.each([...LEAGUE_TYPE_KEYS])('the %s catalogs', (leagueType) => {
   it('lay out by default, and in every preset, only their own columns', () => {
     for (const [, catalog] of catalogsOf(adapter)) {
       const ids = new Set(layoutIds(catalog));
-      const layouts = catalog.presets ? catalog.presets.map((preset) => preset.columnIds) : [catalog.defaultLayout];
+      const layouts = catalog.presets
+        ? catalog.presets.map((preset) => preset.columnIds)
+        : [catalog.defaultLayout];
       for (const layout of layouts) {
         for (const id of layout) expect(ids.has(id), id).toBe(true);
         expect(new Set(layout).size).toBe(layout.length);
@@ -150,7 +152,9 @@ describe.each([...LEAGUE_TYPE_KEYS])('the %s catalogs', (leagueType) => {
 
   it('build standings on the shared base, in its order', () => {
     const teamSeason = adapter.columns.teamSeason as ColumnCatalog<never>;
-    expect(teamSeason.columns.slice(0, TEAM_SEASON_BASE_COLUMNS.length)).toEqual(TEAM_SEASON_BASE_COLUMNS);
+    expect(teamSeason.columns.slice(0, TEAM_SEASON_BASE_COLUMNS.length)).toEqual(
+      TEAM_SEASON_BASE_COLUMNS,
+    );
   });
 
   it('show a lifetime summary whose figures read a stored lifetime line', () => {
@@ -168,7 +172,9 @@ describe.each([...LEAGUE_TYPE_KEYS])('the %s catalogs', (leagueType) => {
       );
       expect(column, average.id).toBeDefined();
       const total = totals.find((candidate) => candidate.id === column?.id);
-      expect(average.value(line)).toBe(perGameAverage(total?.value(line) ?? Number.NaN, line.gamesPlayed));
+      expect(average.value(line)).toBe(
+        perGameAverage(total?.value(line) ?? Number.NaN, line.gamesPlayed),
+      );
       expect(average.value({ ...line, gamesPlayed: 0 })).toBeNull();
     }
   });
@@ -178,16 +184,33 @@ describe('basketball columns', () => {
   const { playerTotals, gamePlayer, teamSeason } = SPORT_ADAPTERS[BASKETBALL].columns;
 
   it('offers the Totals preset, the default, then the Per game preset', () => {
-    expect(playerTotals.presets?.map((preset) => [preset.id, preset.label, preset.columnIds])).toEqual([
+    expect(
+      playerTotals.presets?.map((preset) => [preset.id, preset.label, preset.columnIds]),
+    ).toEqual([
       ['totals', 'Totals', ['gamesPlayed', 'points', 'rebounds', 'assists', 'fantasyPoints']],
-      ['perGame', 'Per game', ['gamesPlayed', 'pointsPerGame', 'reboundsPerGame', 'assistsPerGame', 'fantasyPointsPerGame']],
+      [
+        'perGame',
+        'Per game',
+        [
+          'gamesPlayed',
+          'pointsPerGame',
+          'reboundsPerGame',
+          'assistsPerGame',
+          'fantasyPointsPerGame',
+        ],
+      ],
     ]);
     expect(playerTotals.defaultLayout).toBeUndefined();
     expect(playerTotals.defaultSort).toEqual([{ columnId: 'points', direction: 'desc' }]);
   });
 
   it('labels each player figure the way the tables show it', () => {
-    expect(playerTotals.columns.map((column) => [column.shortLabel, perGameOf(column)?.shortLabel ?? null])).toEqual([
+    expect(
+      playerTotals.columns.map((column) => [
+        column.shortLabel,
+        perGameOf(column)?.shortLabel ?? null,
+      ]),
+    ).toEqual([
       ['GP', null],
       ['PTS', 'PPG'],
       ['REB', 'RPG'],
@@ -222,10 +245,9 @@ describe('basketball columns', () => {
       { columnId: 'losses', direction: 'asc' },
       { columnId: 'pointDifferential', direction: 'desc' },
     ]);
-    expect(teamSeason.columns.slice(TEAM_SEASON_BASE_COLUMNS.length).map((column) => column.id)).toEqual([
-      'rebounds',
-      'assists',
-    ]);
+    expect(
+      teamSeason.columns.slice(TEAM_SEASON_BASE_COLUMNS.length).map((column) => column.id),
+    ).toEqual(['rebounds', 'assists']);
   });
 
   it('summarizes a lifetime as GP, PTS, REB, AST, FP over PPG, RPG, APG, FP/G', () => {
@@ -285,10 +307,9 @@ describe('the standings base', () => {
   });
 
   it('offers per-game variants of points for and against only', () => {
-    expect(TEAM_SEASON_BASE_COLUMNS.filter((column) => perGameOf(column)).map((column) => column.id)).toEqual([
-      'pointsFor',
-      'pointsAgainst',
-    ]);
+    expect(
+      TEAM_SEASON_BASE_COLUMNS.filter((column) => perGameOf(column)).map((column) => column.id),
+    ).toEqual(['pointsFor', 'pointsAgainst']);
   });
 
   it('derives the differential from points for and against, storing nothing', () => {
@@ -305,7 +326,7 @@ describe('basketball fantasy points', () => {
     expect(basketballFantasyPoints({ points: 0, rebounds: 0, assists: 0 })).toBe(0);
   });
 
-  it('sums across games exactly: FP of summed counters equals the sum of each game\'s FP', () => {
+  it("sums across games exactly: FP of summed counters equals the sum of each game's FP", () => {
     const games = [
       { points: 13, rebounds: 5, assists: 1 },
       { points: 8, rebounds: 3, assists: 6 },

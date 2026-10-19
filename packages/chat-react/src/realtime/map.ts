@@ -26,7 +26,10 @@ export interface ModerationOverlay {
  *   so only the marker is stamped.
  * - `restore` → original content (the DO row is the original); no redaction.
  */
-export function applyModerationOverlay(message: ChatMessageV1, overlay: ModerationOverlay | null): ChatMessageV1 {
+export function applyModerationOverlay(
+  message: ChatMessageV1,
+  overlay: ModerationOverlay | null,
+): ChatMessageV1 {
   if (!overlay) return message;
   const redacted = overlay.kind === 'delete' || overlay.kind === 'moderate';
   return {
@@ -73,7 +76,9 @@ export function wireRowToMessage(row: WireMessageRow, threadId: string): ChatMes
     senderId: row.senderUid,
     text: row.text,
     isSystemMessage: row.senderUid === CHAT_SYSTEM_SENDER_ID || undefined,
-    ...(row.referencedUids && row.referencedUids.length > 0 ? { referencedUids: [...row.referencedUids] } : {}),
+    ...(row.referencedUids && row.referencedUids.length > 0
+      ? { referencedUids: [...row.referencedUids] }
+      : {}),
     meta: {
       seq: row.seq,
       epoch: row.epoch,

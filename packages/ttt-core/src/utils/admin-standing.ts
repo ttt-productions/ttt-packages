@@ -9,7 +9,9 @@ import { systemRoleSchema, type SystemRole } from '../schemas/atoms.js';
 export type AdminStanding = SystemRole | 'none';
 
 function uidsOf(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
 }
 
 /**

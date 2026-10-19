@@ -171,10 +171,9 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     existingDocs.set('u2', { displayName: 'Bob' });
 
     const { Wrapper, queryClient } = makeWrapper();
-    const { result } = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }),
-      { wrapper: Wrapper },
-    );
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
+      wrapper: Wrapper,
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(getDocsMock).toHaveBeenCalledTimes(1);
@@ -240,12 +239,8 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
       queryClient.setQueryData(['publicUser', 'u1'], { id: 'u1', displayName: 'Renamed' });
     });
 
-    await waitFor(() =>
-      expect(a.result.current.data.u1).toMatchObject({ displayName: 'Renamed' }),
-    );
-    await waitFor(() =>
-      expect(b.result.current.data.u1).toMatchObject({ displayName: 'Renamed' }),
-    );
+    await waitFor(() => expect(a.result.current.data.u1).toMatchObject({ displayName: 'Renamed' }));
+    await waitFor(() => expect(b.result.current.data.u1).toMatchObject({ displayName: 'Renamed' }));
   });
 
   it('refetch() re-reads every id on an all-cache-hit mount', async () => {
@@ -253,17 +248,15 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     existingDocs.set('u2', { displayName: 'Bob' });
 
     const { Wrapper } = makeWrapper();
-    const first = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }),
-      { wrapper: Wrapper },
-    );
+    const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
+      wrapper: Wrapper,
+    });
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
     first.unmount();
 
-    const second = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }),
-      { wrapper: Wrapper },
-    );
+    const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
+      wrapper: Wrapper,
+    });
     await waitFor(() => expect(Object.keys(second.result.current.data)).toHaveLength(2));
     expect(getDocsMock).toHaveBeenCalledTimes(1);
 
@@ -281,7 +274,7 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     expect(second.result.current.data.u2).toMatchObject({ displayName: 'Bobby' });
   });
 
-  it("is covered by an active-type refetchQueries", async () => {
+  it('is covered by an active-type refetchQueries', async () => {
     existingDocs.set('u1', { displayName: 'Alice' });
 
     const { Wrapper, queryClient } = makeWrapper();

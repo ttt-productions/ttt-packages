@@ -20,16 +20,21 @@ const pictureUploadTargetOptions = PICTURE_ORIGIN_KEYS.map((origin) =>
 // pairing through the map, so the union is typed by `PictureUploadTarget`, which states it.
 export const PictureUploadTargetSchema = z.discriminatedUnion(
   'origin',
-  pictureUploadTargetOptions as [(typeof pictureUploadTargetOptions)[number], ...(typeof pictureUploadTargetOptions)[number][]],
+  pictureUploadTargetOptions as [
+    (typeof pictureUploadTargetOptions)[number],
+    ...(typeof pictureUploadTargetOptions)[number][],
+  ],
 ) as unknown as z.ZodType<PictureUploadTarget>;
 
-export const PictureUploadVariablesSchema = z.object({
-  target: PictureUploadTargetSchema,
-  file: z.instanceof(File),
-  // Untrusted client claim of what the user's action implies (advisory; the
-  // server byte inspection is the only classification authority).
-  claim: ClientMediaClaimSchema.optional(),
-  onProgress: onProgressSchema,
-  signal: z.instanceof(AbortSignal).optional(),
-}).strict();
+export const PictureUploadVariablesSchema = z
+  .object({
+    target: PictureUploadTargetSchema,
+    file: z.instanceof(File),
+    // Untrusted client claim of what the user's action implies (advisory; the
+    // server byte inspection is the only classification authority).
+    claim: ClientMediaClaimSchema.optional(),
+    onProgress: onProgressSchema,
+    signal: z.instanceof(AbortSignal).optional(),
+  })
+  .strict();
 export type PictureUploadVariables = z.infer<typeof PictureUploadVariablesSchema>;

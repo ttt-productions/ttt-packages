@@ -11,6 +11,8 @@ describe('readPublicDocumentVersionBlock — the one reader of the release-owned
 
 describe('requiredPublicDocumentAcceptanceLevelOfReading — the level each reading states', () => {
   it('is exported from the utils entry', () => {
-    expect(utils.requiredPublicDocumentAcceptanceLevelOfReading).toBe(requiredPublicDocumentAcceptanceLevelOfReading);
+    expect(utils.requiredPublicDocumentAcceptanceLevelOfReading).toBe(
+      requiredPublicDocumentAcceptanceLevelOfReading,
+    );
   });
 });

@@ -6,7 +6,14 @@ import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { identifierProblem, loaderProblem, namesProblem, pathProblem, reviewedProblems, type Loader } from '../../support/facts.js';
+import {
+  identifierProblem,
+  loaderProblem,
+  namesProblem,
+  pathProblem,
+  reviewedProblems,
+  type Loader,
+} from '../../support/facts.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 
 /** The app's production code: every guard in this area reads the client tree, tests left out. */
@@ -30,15 +37,27 @@ export interface ReviewedCall {
 // ---------------------------------------------------------------------------------------------
 
 /** A list of identifiers: a list of names whose every entry is an identifier. */
-export function identifierListProblem(value: unknown, what: string, problems: string[], { nonEmpty }: { nonEmpty: boolean }): void {
+export function identifierListProblem(
+  value: unknown,
+  what: string,
+  problems: string[],
+  { nonEmpty }: { nonEmpty: boolean },
+): void {
   namesProblem(value, what, problems, { nonEmpty });
-  if (Array.isArray(value)) value.forEach((v, i) => typeof v === 'string' && v.trim() && identifierProblem(v, `${what}[${i}]`, problems));
+  if (Array.isArray(value))
+    value.forEach(
+      (v, i) =>
+        typeof v === 'string' && v.trim() && identifierProblem(v, `${what}[${i}]`, problems),
+    );
 }
 
 /** A required list of repo-relative paths. */
 export function pathListProblem(value: unknown, what: string, problems: string[]): void {
   namesProblem(value, what, problems);
-  if (Array.isArray(value)) value.forEach((v, i) => typeof v === 'string' && v.trim() && pathProblem(v, `${what}[${i}]`, problems));
+  if (Array.isArray(value))
+    value.forEach(
+      (v, i) => typeof v === 'string' && v.trim() && pathProblem(v, `${what}[${i}]`, problems),
+    );
 }
 
 export function keyModuleProblem(value: unknown, problems: string[], what = 'keyModule'): void {
@@ -58,7 +77,8 @@ export function reviewedCallProblem(value: unknown, what: string, problems: stri
     idNames: 'call',
     extra(entry, label) {
       const call = entry.call;
-      if (typeof call === 'string' && call.trim() && collapse(call) !== call) problems.push(`${label}: write the call whitespace-collapsed (${collapse(call)})`);
+      if (typeof call === 'string' && call.trim() && collapse(call) !== call)
+        problems.push(`${label}: write the call whitespace-collapsed (${collapse(call)})`);
     },
   });
 }
@@ -68,18 +88,31 @@ export function reviewedCallProblem(value: unknown, what: string, problems: stri
 // ---------------------------------------------------------------------------------------------
 
 /** The app's production files under one of the trees, and a finding for each tree that holds none. */
-export function filesUnder(context: GuardContext, trees: readonly string[]): { files: FileView[]; findings: Finding[] } {
+export function filesUnder(
+  context: GuardContext,
+  trees: readonly string[],
+): { files: FileView[]; findings: Finding[] } {
   const all = context.files(APP_CODE);
   const findings: Finding[] = [];
   for (const tree of trees) {
-    if (!all.some((f) => isUnder(f.path, tree))) findings.push({ file: tree, detail: 'the tree holds no production code the guard can read (moved, or not under the app root)' });
+    if (!all.some((f) => isUnder(f.path, tree)))
+      findings.push({
+        file: tree,
+        detail:
+          'the tree holds no production code the guard can read (moved, or not under the app root)',
+      });
   }
   return { files: all.filter((f) => trees.some((tree) => isUnder(f.path, tree))), findings };
 }
 
 /** One named file, or a finding saying it is gone. */
-export function requiredFile(context: GuardContext, path: string, role: string): { file: FileView | null; findings: Finding[] } {
-  if (!context.reader.exists(path)) return { file: null, findings: [{ file: path, detail: `${role} no longer exists` }] };
+export function requiredFile(
+  context: GuardContext,
+  path: string,
+  role: string,
+): { file: FileView | null; findings: Finding[] } {
+  if (!context.reader.exists(path))
+    return { file: null, findings: [{ file: path, detail: `${role} no longer exists` }] };
   return { file: context.file(path), findings: [] };
 }
 
@@ -98,11 +131,15 @@ export function callSpan(code: string, start: number, open: number): string {
 
 /** A call's text with its whitespace and trailing commas collapsed — the form a reviewed call is written in. */
 export const collapse = (text: string) =>
-  text.replace(/\s+/g, ' ').replace(/,(\s*[)\]}])/g, '$1').replace(/\(\s/g, '(').replace(/\s\)/g, ')');
-
+  text
+    .replace(/\s+/g, ' ')
+    .replace(/,(\s*[)\]}])/g, '$1')
+    .replace(/\(\s/g, '(')
+    .replace(/\s\)/g, ')');
 
 /** An alternation of names for a regular expression, or a pattern that matches nothing. */
-export const alternation = (names: readonly string[]) => (names.length ? names.map(escapeRegExp).join('|') : '(?!)');
+export const alternation = (names: readonly string[]) =>
+  names.length ? names.map(escapeRegExp).join('|') : '(?!)';
 
 // ---------------------------------------------------------------------------------------------
 // The query-key module.
@@ -125,7 +162,9 @@ export function keyObjectsOf(exports: Record<string, unknown>): KeyBuilders {
       if (Array.isArray(member)) return true;
       if (typeof member !== 'function') return false;
       try {
-        return Array.isArray((member as (...a: string[]) => unknown)(...placeholders(member.length)));
+        return Array.isArray(
+          (member as (...a: string[]) => unknown)(...placeholders(member.length)),
+        );
       } catch {
         return false;
       }
@@ -139,7 +178,8 @@ export function keyObjectsOf(exports: Record<string, unknown>): KeyBuilders {
 export async function loadKeyObjects(facts: KeyModuleFacts): Promise<KeyBuilders> {
   const exports = await facts.load();
   const objects = keyObjectsOf(exports ?? {});
-  if (!Object.keys(objects).length) throw new Error(`repo-guards: the key module loader for ${facts.path} returned no key object`);
+  if (!Object.keys(objects).length)
+    throw new Error(`repo-guards: the key module loader for ${facts.path} returned no key object`);
   return objects;
 }
 
@@ -153,7 +193,9 @@ export function sampleKey(ref: string, builders: KeyBuilders): unknown[] | null 
   if (Array.isArray(value)) return value;
   if (typeof value !== 'function') return null;
   try {
-    const key = (value as (...args: string[]) => unknown)(...Array.from({ length: value.length }, () => 'p'));
+    const key = (value as (...args: string[]) => unknown)(
+      ...Array.from({ length: value.length }, () => 'p'),
+    );
     return Array.isArray(key) ? key : null;
   } catch {
     return null;
@@ -161,18 +203,27 @@ export function sampleKey(ref: string, builders: KeyBuilders): unknown[] | null 
 }
 
 export function isPrefix(prefixKey: readonly unknown[], key: readonly unknown[]): boolean {
-  return prefixKey.length <= key.length && prefixKey.every((part, i) => JSON.stringify(part) === JSON.stringify(key[i]));
+  return (
+    prefixKey.length <= key.length &&
+    prefixKey.every((part, i) => JSON.stringify(part) === JSON.stringify(key[i]))
+  );
 }
 
 /** A family helper (named with the app's family suffix) addresses the family of the method it names. */
 export const familyOf = (ref: string, familySuffix: string) =>
-  ref.endsWith(familySuffix) && ref.length > familySuffix.length ? ref.slice(0, -familySuffix.length) : ref;
+  ref.endsWith(familySuffix) && ref.length > familySuffix.length
+    ? ref.slice(0, -familySuffix.length)
+    : ref;
 
 /** The TanStack Query and query-core hooks that read an infinite list. */
 const INFINITE_READ = /\buse(?:InfiniteQuery|FirestoreInfinite|FirestoreLiveInfinite)\s*(?:<|\()/;
 
 /** The key families read by an infinite query, as `object.method` refs. */
-export function infiniteKeyFamilies(files: ReadonlyArray<{ code: string }>, keyObjects: readonly string[], familySuffix: string): Set<string> {
+export function infiniteKeyFamilies(
+  files: ReadonlyArray<{ code: string }>,
+  keyObjects: readonly string[],
+  familySuffix: string,
+): Set<string> {
   const infinite = new Set<string>();
   const names = alternation(keyObjects);
   for (const { code } of files) {
@@ -198,23 +249,40 @@ export function infiniteKeyFamilies(files: ReadonlyArray<{ code: string }>, keyO
 }
 
 /** Whether a key ref reaches an infinite list: named, through its family helper, or through a scope. */
-export function reachesInfinite(ref: string, infinite: ReadonlySet<string>, builders: KeyBuilders, familySuffix: string): boolean {
+export function reachesInfinite(
+  ref: string,
+  infinite: ReadonlySet<string>,
+  builders: KeyBuilders,
+  familySuffix: string,
+): boolean {
   if (infinite.has(familyOf(ref, familySuffix))) return true;
   const key = sampleKey(ref, builders);
   if (key === null) return false;
-  return [...infinite].map((f) => sampleKey(f, builders)).some((infiniteKey) => infiniteKey !== null && isPrefix(key, infiniteKey));
+  return [...infinite]
+    .map((f) => sampleKey(f, builders))
+    .some((infiniteKey) => infiniteKey !== null && isPrefix(key, infiniteKey));
 }
 
 /** Every exported object literal in a module, as the key objects its source declares. */
-export function declaredObjects(sf: ts.SourceFile): Array<{ name: string; object: ts.ObjectLiteralExpression }> {
+export function declaredObjects(
+  sf: ts.SourceFile,
+): Array<{ name: string; object: ts.ObjectLiteralExpression }> {
   const out: Array<{ name: string; object: ts.ObjectLiteralExpression }> = [];
   for (const statement of sf.statements) {
     if (!ts.isVariableStatement(statement)) continue;
-    if (!(ts.getModifiers(statement) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) continue;
+    if (!(ts.getModifiers(statement) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword))
+      continue;
     for (const decl of statement.declarationList.declarations) {
       let init = decl.initializer;
-      while (init && (ts.isAsExpression(init) || ts.isSatisfiesExpression(init) || ts.isParenthesizedExpression(init))) init = init.expression;
-      if (init && ts.isObjectLiteralExpression(init) && ts.isIdentifier(decl.name)) out.push({ name: decl.name.text, object: init });
+      while (
+        init &&
+        (ts.isAsExpression(init) ||
+          ts.isSatisfiesExpression(init) ||
+          ts.isParenthesizedExpression(init))
+      )
+        init = init.expression;
+      if (init && ts.isObjectLiteralExpression(init) && ts.isIdentifier(decl.name))
+        out.push({ name: decl.name.text, object: init });
     }
   }
   return out;

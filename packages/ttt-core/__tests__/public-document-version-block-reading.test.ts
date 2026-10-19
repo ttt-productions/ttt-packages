@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { AppConfigSchema } from '../src/doc-schemas/system.js';
-import { readPublicDocumentVersionBlock, type PublicDocumentVersionBlockReading } from '../src/utils/app-config.js';
+import {
+  readPublicDocumentVersionBlock,
+  type PublicDocumentVersionBlockReading,
+} from '../src/utils/app-config.js';
 import {
   planPublicDocumentRelease,
   requiredPublicDocumentAcceptanceLevel,
@@ -34,17 +37,35 @@ const REFUSED_BLOCKS: ReadonlyArray<readonly [string, unknown]> = [
   ['documents as an array', { documents: [], requiredAcceptanceLevel: 0 }],
   [
     'an unknown document id',
-    { documents: { notADocument: { currentVersion: 1, requiredVersion: 0 } }, requiredAcceptanceLevel: 0 },
+    {
+      documents: { notADocument: { currentVersion: 1, requiredVersion: 0 } },
+      requiredAcceptanceLevel: 0,
+    },
   ],
-  ['a document at version 0', { documents: { [TERMS]: { currentVersion: 0, requiredVersion: 0 } }, requiredAcceptanceLevel: 0 }],
+  [
+    'a document at version 0',
+    {
+      documents: { [TERMS]: { currentVersion: 0, requiredVersion: 0 } },
+      requiredAcceptanceLevel: 0,
+    },
+  ],
   [
     'a required version above the current one',
-    { documents: { [TERMS]: { currentVersion: 1, requiredVersion: 2 } }, requiredAcceptanceLevel: 1 },
+    {
+      documents: { [TERMS]: { currentVersion: 1, requiredVersion: 2 } },
+      requiredAcceptanceLevel: 1,
+    },
   ],
-  ['a document entry missing its required version', { documents: { [TERMS]: { currentVersion: 1 } }, requiredAcceptanceLevel: 0 }],
+  [
+    'a document entry missing its required version',
+    { documents: { [TERMS]: { currentVersion: 1 } }, requiredAcceptanceLevel: 0 },
+  ],
   [
     'a document entry with an unknown field',
-    { documents: { [TERMS]: { currentVersion: 1, requiredVersion: 0, note: 'x' } }, requiredAcceptanceLevel: 0 },
+    {
+      documents: { [TERMS]: { currentVersion: 1, requiredVersion: 0, note: 'x' } },
+      requiredAcceptanceLevel: 0,
+    },
   ],
   ['a document entry that is null', { documents: { [TERMS]: null }, requiredAcceptanceLevel: 0 }],
 ];
@@ -57,20 +78,32 @@ describe('readPublicDocumentVersionBlock — the one reader of the release-owned
     ['a doc holding only levers', { maintenanceMode: true, appVersion: '2.1.0' }],
     ['a doc whose block field is undefined', { publicDocumentVersions: undefined }],
   ])('reads %s as absent — nothing released', (_label, snapshot) => {
-    expect(readPublicDocumentVersionBlock(snapshot)).toEqual({ status: 'absent', block: undefined });
+    expect(readPublicDocumentVersionBlock(snapshot)).toEqual({
+      status: 'absent',
+      block: undefined,
+    });
   });
 
   it('reads a stored block as valid, parsed', () => {
-    expect(readPublicDocumentVersionBlock({ publicDocumentVersions: block })).toEqual({ status: 'valid', block });
+    expect(readPublicDocumentVersionBlock({ publicDocumentVersions: block })).toEqual({
+      status: 'valid',
+      block,
+    });
   });
 
   it('reads the empty block a fresh release system could hold as valid, not absent', () => {
     const empty = { documents: {}, requiredAcceptanceLevel: 0 };
-    expect(readPublicDocumentVersionBlock({ publicDocumentVersions: empty })).toEqual({ status: 'valid', block: empty });
+    expect(readPublicDocumentVersionBlock({ publicDocumentVersions: empty })).toEqual({
+      status: 'valid',
+      block: empty,
+    });
   });
 
   it('judges the block alone — a refused lever beside it does not touch it', () => {
-    const reading = readPublicDocumentVersionBlock({ maintenanceMode: 'yes', publicDocumentVersions: block });
+    const reading = readPublicDocumentVersionBlock({
+      maintenanceMode: 'yes',
+      publicDocumentVersions: block,
+    });
     expect(reading.status).toBe('valid');
   });
 
@@ -83,7 +116,10 @@ describe('readPublicDocumentVersionBlock — the one reader of the release-owned
 
   it('names the nested field it refused', () => {
     const reading = readPublicDocumentVersionBlock({
-      publicDocumentVersions: { documents: { [TERMS]: { currentVersion: 1, requiredVersion: -1 } }, requiredAcceptanceLevel: 0 },
+      publicDocumentVersions: {
+        documents: { [TERMS]: { currentVersion: 1, requiredVersion: -1 } },
+        requiredAcceptanceLevel: 0,
+      },
     });
     expect(reading.status === 'invalid' && reading.issue).toMatch(
       new RegExp(`^publicDocumentVersions\\.documents\\.${TERMS}\\.requiredVersion: `),
@@ -106,16 +142,22 @@ describe('readPublicDocumentVersionBlock — the one reader of the release-owned
     ['an array', [block]],
     ['a function', () => ({ publicDocumentVersions: block })],
     ['an object with no prototype', Object.create(null)],
-    ['a block whose documents refer to themselves', (() => {
-      const documents: Record<string, unknown> = {};
-      documents[TERMS] = documents;
-      return { publicDocumentVersions: { documents, requiredAcceptanceLevel: 0 } };
-    })()],
-    ['a block that refers to itself', (() => {
-      const self: Record<string, unknown> = { requiredAcceptanceLevel: 0 };
-      self.documents = self;
-      return { publicDocumentVersions: self };
-    })()],
+    [
+      'a block whose documents refer to themselves',
+      (() => {
+        const documents: Record<string, unknown> = {};
+        documents[TERMS] = documents;
+        return { publicDocumentVersions: { documents, requiredAcceptanceLevel: 0 } };
+      })(),
+    ],
+    [
+      'a block that refers to itself',
+      (() => {
+        const self: Record<string, unknown> = { requiredAcceptanceLevel: 0 };
+        self.documents = self;
+        return { publicDocumentVersions: self };
+      })(),
+    ],
   ])('never throws on %s', (_label, junk) => {
     expect(() => readPublicDocumentVersionBlock(junk as Record<string, unknown>)).not.toThrow();
   });
@@ -134,12 +176,16 @@ describe('requiredPublicDocumentAcceptanceLevelOfReading — the level each read
 
   it('is 0 for an absent block — nothing released requires nothing', () => {
     expect(requiredPublicDocumentAcceptanceLevelOfReading(read(undefined))).toBe(0);
-    expect(requiredPublicDocumentAcceptanceLevelOfReading(readPublicDocumentVersionBlock(null))).toBe(0);
+    expect(
+      requiredPublicDocumentAcceptanceLevelOfReading(readPublicDocumentVersionBlock(null)),
+    ).toBe(0);
   });
 
   it("is a valid block's level — the same value requiredPublicDocumentAcceptanceLevel derives", () => {
     expect(requiredPublicDocumentAcceptanceLevelOfReading(read(block))).toBe(2);
-    expect(requiredPublicDocumentAcceptanceLevelOfReading(read(block))).toBe(requiredPublicDocumentAcceptanceLevel(block));
+    expect(requiredPublicDocumentAcceptanceLevelOfReading(read(block))).toBe(
+      requiredPublicDocumentAcceptanceLevel(block),
+    );
   });
 
   it('is 0 for a valid block whose releases never required acceptance', () => {
@@ -152,6 +198,8 @@ describe('requiredPublicDocumentAcceptanceLevelOfReading — the level each read
   });
 
   it('is null even when the invalid block carries a readable level', () => {
-    expect(requiredPublicDocumentAcceptanceLevelOfReading(read({ ...block, strayField: true }))).toBeNull();
+    expect(
+      requiredPublicDocumentAcceptanceLevelOfReading(read({ ...block, strayField: true })),
+    ).toBeNull();
   });
 });

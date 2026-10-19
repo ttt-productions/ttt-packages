@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Button, Textarea } from "@ttt-productions/ui-core/react";
-import { cn } from "@ttt-productions/ui-core";
-import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
+import * as React from 'react';
+import { Button, Textarea } from '@ttt-productions/ui-core/react';
+import { cn } from '@ttt-productions/ui-core';
+import { useOptionalLocalUploadGuard } from '@ttt-productions/upload-ui/react/guard';
 import {
   CHAT_MESSAGE_TEXT_INPUT,
   CHAT_MESSAGE_TEXT_MAX_LENGTH,
   judgeChatMessageText,
-} from "@ttt-productions/chat-schemas";
+} from '@ttt-productions/chat-schemas';
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -43,10 +43,10 @@ export function Composer(props: ComposerProps) {
     onTyping,
     disabled,
     autoFocus = false,
-    placeholder = "Type a message...",
+    placeholder = 'Type a message...',
   } = props;
 
-  const [text, setText] = React.useState("");
+  const [text, setText] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
   const [sendError, setSendError] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
@@ -78,13 +78,13 @@ export function Composer(props: ComposerProps) {
 
     try {
       await onSend(judged.text);
-      setText("");
+      setText('');
     } catch (err) {
       // C-B8: a failed send (e.g. the realtime socket was closed) must NOT clear the
       // user's text — `setText("")` only runs on the success path above — and must NOT
       // re-throw into the click handler (an unhandled rejection). Surface it so the
       // user can retry with their text intact.
-      console.error("[Composer] Send failed:", err);
+      console.error('[Composer] Send failed:', err);
       setSendError("Couldn't send. Check your connection and try again.");
     } finally {
       navigationGuard?.unregisterUpload(sendGuardId);
@@ -117,9 +117,9 @@ export function Composer(props: ComposerProps) {
           placeholder={placeholder}
           disabled={isDisabled}
           rows={1}
-          className={cn("min-h-[40px] resize-none")}
+          className={cn('min-h-[40px] resize-none')}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               send();
             }

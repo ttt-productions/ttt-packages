@@ -1,9 +1,23 @@
-"use client";
+'use client';
 
-import React, { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
-import type { MediaCropSpec, MediaProcessingSpec, MediaOriginSpec, VideoOrientation } from "@ttt-productions/media-schemas";
-import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
-import { Info, Camera, Mic, Video, Upload, X, Plus } from "lucide-react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type {
+  MediaCropSpec,
+  MediaProcessingSpec,
+  MediaOriginSpec,
+  VideoOrientation,
+} from '@ttt-productions/media-schemas';
+import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
+import { Info, Camera, Mic, Video, Upload, X, Plus } from 'lucide-react';
 
 import {
   Alert,
@@ -17,28 +31,37 @@ import {
   Input,
   Progress,
   Spinner,
-} from "@ttt-productions/ui-core/react";
-import { cn } from "@ttt-productions/ui-core";
-import { MediaPreview } from "@ttt-productions/media-viewer/react";
+} from '@ttt-productions/ui-core/react';
+import { cn } from '@ttt-productions/ui-core';
+import { MediaPreview } from '@ttt-productions/media-viewer/react';
 
-import type { FileInputError, MediaInputHandle, MediaInputProps, SelectedMediaMeta } from "../../types.js";
-import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../progress-bar.js";
-import { RecordDialog } from "./record-dialog.js";
-import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
-import { NEUTRAL_CONTENT_TYPE, projectAcceptTokens } from "@ttt-productions/media-schemas";
-import type { ClientMediaClaim } from "@ttt-productions/media-schemas";
-import { ImageCropperModal } from "./image-cropper-modal.js";
-import { MediaConstraintsHint } from "./media-constraints-hint.js";
-import { PhotoCaptureModal } from "./photo-capture-modal.js";
-import { readMediaMeta } from "../../lib/read-media-meta.js";
-import { validateMediaDuration } from "../../lib/validate-media-duration.js";
+import type {
+  FileInputError,
+  MediaInputHandle,
+  MediaInputProps,
+  SelectedMediaMeta,
+} from '../../types.js';
+import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from '../../progress-bar.js';
+import { RecordDialog } from './record-dialog.js';
+import { ensureFileWithContentType } from '../../lib/infer-content-type.js';
+import { NEUTRAL_CONTENT_TYPE, projectAcceptTokens } from '@ttt-productions/media-schemas';
+import type { ClientMediaClaim } from '@ttt-productions/media-schemas';
+import { ImageCropperModal } from './image-cropper-modal.js';
+import { MediaConstraintsHint } from './media-constraints-hint.js';
+import { PhotoCaptureModal } from './photo-capture-modal.js';
+import { readMediaMeta } from '../../lib/read-media-meta.js';
+import { validateMediaDuration } from '../../lib/validate-media-duration.js';
 
 /** Built-in advisory shown on EVERY MediaInput's Info affordance (overridable via `helpNotes`,
  *  which appends). Generic + app-agnostic: uploaded files are not a backup/storage service. */
 const DEFAULT_BACKUP_NOTE =
   "Keep your own copy of files you upload — this isn't a backup or storage service.";
 
-function err(code: FileInputError["code"], message: string, details?: Record<string, unknown>): FileInputError {
+function err(
+  code: FileInputError['code'],
+  message: string,
+  details?: Record<string, unknown>,
+): FileInputError {
   return { code, message, details };
 }
 
@@ -54,13 +77,13 @@ function hasConstraints(spec: MediaOriginSpec): boolean {
     spec.maxDurationSec ||
     procVid?.video?.maxDurationSec ||
     procAud?.audio?.maxDurationSec ||
-    (spec.videoOrientation && spec.videoOrientation !== "any") ||
+    (spec.videoOrientation && spec.videoOrientation !== 'any') ||
     spec.requiredAspectRatio ||
     (procVid?.requiredWidth && procVid?.requiredHeight) ||
     (procImg?.requiredWidth && procImg?.requiredHeight) ||
     spec.imageCrop ||
     procVid?.allowAutoFormat ||
-    procImg?.allowAutoFormat
+    procImg?.allowAutoFormat,
   );
 }
 
@@ -68,8 +91,8 @@ function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
   const m = actual.trim().toLowerCase();
   if (!a) return true;
-  if (a === "*/*") return true;
-  if (a.endsWith("/*")) return m.startsWith(a.slice(0, -1));
+  if (a === '*/*') return true;
+  if (a.endsWith('/*')) return m.startsWith(a.slice(0, -1));
   return a === m;
 }
 
@@ -88,8 +111,10 @@ function accepts(spec: MediaOriginSpec, file: File): boolean {
   const mimes = accept.mimes?.filter(Boolean) ?? [];
 
   const simplified = getSimplifiedMediaType(file);
-  const kind: "image" | "video" | "audio" | "file" =
-    simplified === "image" || simplified === "video" || simplified === "audio" ? simplified : "file";
+  const kind: 'image' | 'video' | 'audio' | 'file' =
+    simplified === 'image' || simplified === 'video' || simplified === 'audio'
+      ? simplified
+      : 'file';
 
   const kindOk = kinds.length === 0 ? true : kinds.includes(kind);
   if (!kindOk) return false;
@@ -105,9 +130,12 @@ function computeAspect(width?: number, height?: number): number | undefined {
   return width / height;
 }
 
-function orientationOk(required: VideoOrientation | undefined, actual: VideoOrientation | undefined): boolean {
-  if (!required || required === "any") return true;
-  if (!actual || actual === "any") return true; // treat square/unknown as ok
+function orientationOk(
+  required: VideoOrientation | undefined,
+  actual: VideoOrientation | undefined,
+): boolean {
+  if (!required || required === 'any') return true;
+  if (!actual || actual === 'any') return true; // treat square/unknown as ok
   return required === actual;
 }
 
@@ -128,667 +156,720 @@ function countActions(spec: MediaOriginSpec): number {
   return n;
 }
 
-function resolveActiveSpec(entry: MediaOriginSpec, kind: "image" | "video" | "audio"): MediaProcessingSpec {
+function resolveActiveSpec(
+  entry: MediaOriginSpec,
+  kind: 'image' | 'video' | 'audio',
+): MediaProcessingSpec {
   const inner = entry.processing?.[kind];
   if (inner) return inner;
   const { processing: _p, ...rest } = entry;
   return rest as MediaProcessingSpec;
 }
 
-type ActionKind = "pick" | "photo" | "recordVideo" | "recordAudio";
+type ActionKind = 'pick' | 'photo' | 'recordVideo' | 'recordAudio';
 
-export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function MediaInput(props, ref) {
-  const {
-    spec,
-    cropOverride,
-    disabled = false,
-    isLoading = false,
-    className,
-    buttonLabel = "Add media",
-    clearLabel = "Clear selected file",
-    uploadState,
-    progressBarMinBytes,
-    selectedFile,
-    onClear,
-    onCancel,
-    onBeforeSelect,
-    onChange,
-    helpNotes,
-  } = props;
+export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(
+  function MediaInput(props, ref) {
+    const {
+      spec,
+      cropOverride,
+      disabled = false,
+      isLoading = false,
+      className,
+      buttonLabel = 'Add media',
+      clearLabel = 'Clear selected file',
+      uploadState,
+      progressBarMinBytes,
+      selectedFile,
+      onClear,
+      onCancel,
+      onBeforeSelect,
+      onChange,
+      helpNotes,
+    } = props;
 
-  const id = useId();
-  const pickerRef = useRef<HTMLInputElement>(null);
+    const id = useId();
+    const pickerRef = useRef<HTMLInputElement>(null);
 
-  const cropSpec: MediaCropSpec | undefined = cropOverride ?? spec.imageCrop;
+    const cropSpec: MediaCropSpec | undefined = cropOverride ?? spec.imageCrop;
 
-  const [localError, setLocalError] = useState<FileInputError | null>(null);
+    const [localError, setLocalError] = useState<FileInputError | null>(null);
 
-  const [showInfo, setShowInfo] = useState(false);
-  // Every MediaInput carries the default backup advisory + any surface-specific notes, so the Info
-  // affordance always renders (constraints, if any, are shown under the notes).
-  const infoNotes = useMemo(() => [DEFAULT_BACKUP_NOTE, ...(helpNotes ?? [])], [helpNotes]);
-  const specHasConstraints = hasConstraints(spec);
-  const showInfoToggle = specHasConstraints || infoNotes.length > 0;
+    const [showInfo, setShowInfo] = useState(false);
+    // Every MediaInput carries the default backup advisory + any surface-specific notes, so the Info
+    // affordance always renders (constraints, if any, are shown under the notes).
+    const infoNotes = useMemo(() => [DEFAULT_BACKUP_NOTE, ...(helpNotes ?? [])], [helpNotes]);
+    const specHasConstraints = hasConstraints(spec);
+    const showInfoToggle = specHasConstraints || infoNotes.length > 0;
 
-  const [cropOpen, setCropOpen] = useState(false);
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
-  // The claim captured when the crop flow started — cropping/normalization
-  // preserves the ORIGINAL action claim (a captured photo stays camera-capture).
-  const [pendingCropClaim, setPendingCropClaim] = useState<ClientMediaClaim | null>(null);
+    const [cropOpen, setCropOpen] = useState(false);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
+    const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
+    // The claim captured when the crop flow started — cropping/normalization
+    // preserves the ORIGINAL action claim (a captured photo stays camera-capture).
+    const [pendingCropClaim, setPendingCropClaim] = useState<ClientMediaClaim | null>(null);
 
-  const [photoOpen, setPhotoOpen] = useState(false);
+    const [photoOpen, setPhotoOpen] = useState(false);
 
-  const [recordOpen, setRecordOpen] = useState(false);
-  const [recordKind, setRecordKind] = useState<"audio" | "video">("video");
+    const [recordOpen, setRecordOpen] = useState(false);
+    const [recordKind, setRecordKind] = useState<'audio' | 'video'>('video');
 
-  // Controlled state for the multi-action choice dropdown. Human clicks toggle it
-  // via the trigger button; the imperative `openSelection()` handle opens it when
-  // more than one action is enabled.
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [emittedSize, setEmittedSize] = useState<number | null>(null);
+    // Controlled state for the multi-action choice dropdown. Human clicks toggle it
+    // via the trigger button; the imperative `openSelection()` handle opens it when
+    // more than one action is enabled.
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [validating, setValidating] = useState(false);
+    const [emittedSize, setEmittedSize] = useState<number | null>(null);
 
-  // Prevent memory leaks from object URLs
-  const lastObjectUrlRef = useRef<string | null>(null);
+    // Prevent memory leaks from object URLs
+    const lastObjectUrlRef = useRef<string | null>(null);
 
-  const revokeLastObjectUrl = useCallback(() => {
-    if (!lastObjectUrlRef.current) return;
-    try {
-      URL.revokeObjectURL(lastObjectUrlRef.current);
-    } catch { }
-    lastObjectUrlRef.current = null;
-  }, []);
+    const revokeLastObjectUrl = useCallback(() => {
+      if (!lastObjectUrlRef.current) return;
+      try {
+        URL.revokeObjectURL(lastObjectUrlRef.current);
+      } catch {}
+      lastObjectUrlRef.current = null;
+    }, []);
 
-  const makeObjectUrl = useCallback(
-    (blob: Blob) => {
-      revokeLastObjectUrl();
-      const url = URL.createObjectURL(blob);
-      lastObjectUrlRef.current = url;
-      return url;
-    },
-    [revokeLastObjectUrl]
-  );
+    const makeObjectUrl = useCallback(
+      (blob: Blob) => {
+        revokeLastObjectUrl();
+        const url = URL.createObjectURL(blob);
+        lastObjectUrlRef.current = url;
+        return url;
+      },
+      [revokeLastObjectUrl],
+    );
 
-  useEffect(() => {
-    return () => {
-      revokeLastObjectUrl();
-    };
-  }, [revokeLastObjectUrl]);
+    useEffect(() => {
+      return () => {
+        revokeLastObjectUrl();
+      };
+    }, [revokeLastObjectUrl]);
 
-  const acceptAttr = useMemo(() => {
-    // Explicit enabled-format registry projection FIRST (canonical-upload-
-    // content-classification): when the origin selects formats, the picker
-    // advertises exactly those (MIME aliases + extensions, kind-narrowed for
-    // shared A/V containers) instead of wildcards. Discoverability only — the
-    // server inspector remains the authority.
-    const formats = spec.accept?.formats?.filter(Boolean) ?? [];
-    if (formats.length) {
-      const tokens = projectAcceptTokens(formats, spec.accept?.kinds ?? undefined);
-      if (tokens.length) return tokens.join(", ");
-    }
-    const m = spec.accept?.mimes?.filter(Boolean) ?? [];
-    const k = spec.accept?.kinds?.filter(Boolean) ?? [];
-    if (m.length) return m.join(", ");
-    if (k.includes("image") && k.length === 1) return "image/*";
-    if (k.includes("video") && k.length === 1) return "video/*";
-    if (k.includes("audio") && k.length === 1) return "audio/*";
-    return undefined; // accept anything
-  }, [spec]);
-
-  // Simplified kind of the currently-selected file, used to size and type the
-  // inline preview. Null when nothing is selected.
-  const previewKind = useMemo(
-    () => (selectedFile ? getSimplifiedMediaType(selectedFile) : null),
-    [selectedFile]
-  );
-  const selectedFileLabel =
-    previewKind === "image"
-      ? "Image selected"
-      : previewKind === "video"
-        ? "Video selected"
-        : previewKind === "audio"
-          ? "Audio selected"
-          : "File selected";
-
-  const emit = useCallback(
-    (payload: {
-      file?: File;
-      previewUrl?: string;
-      meta?: SelectedMediaMeta;
-      claim?: ClientMediaClaim;
-      autoFormat?: boolean;
-      croppedBlob?: Blob;
-      error?: FileInputError;
-    }) => {
-      // fallback resolution; pre-validation error path when kind is unknown or "file"
-      const rawKind = payload.meta?.kind;
-      const mediaKind: "image" | "video" | "audio" =
-        rawKind === "image" || rawKind === "video" || rawKind === "audio" ? rawKind : "image";
-      const resolvedSpec = resolveActiveSpec(spec, mediaKind);
-      if (payload.file) setEmittedSize(payload.file.size);
-      onChange({ spec: resolvedSpec, ...payload });
-    },
-    [onChange, spec]
-  );
-
-  const fail = useCallback(
-    (e: FileInputError) => {
-      setLocalError(e);
-      emit({ error: e });
-    },
-    [emit]
-  );
-
-  const validateAndEmit = useCallback(
-    async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
-      setLocalError(null);
-
-      // Defense-in-depth: normalize the content type before any downstream
-      // handling. Recorder/capture files carry their declared kind; a picker
-      // file with unknown metadata passes through NEUTRALLY (never fabricated —
-      // the server inspector owns classification).
-      const declaredKind =
-        action?.source === "media-recorder" || action?.source === "camera-capture"
-          ? action.kind === "image" || action.kind === "video" || action.kind === "audio"
-            ? action.kind
-            : undefined
-          : undefined;
-      const safeFile = ensureFileWithContentType(file, declaredKind);
-
-      if (!accepts(spec, safeFile)) {
-        fail(err("invalid_type", "Invalid file type for this upload."));
-        return;
+    const acceptAttr = useMemo(() => {
+      // Explicit enabled-format registry projection FIRST (canonical-upload-
+      // content-classification): when the origin selects formats, the picker
+      // advertises exactly those (MIME aliases + extensions, kind-narrowed for
+      // shared A/V containers) instead of wildcards. Discoverability only — the
+      // server inspector remains the authority.
+      const formats = spec.accept?.formats?.filter(Boolean) ?? [];
+      if (formats.length) {
+        const tokens = projectAcceptTokens(formats, spec.accept?.kinds ?? undefined);
+        if (tokens.length) return tokens.join(', ');
       }
+      const m = spec.accept?.mimes?.filter(Boolean) ?? [];
+      const k = spec.accept?.kinds?.filter(Boolean) ?? [];
+      if (m.length) return m.join(', ');
+      if (k.includes('image') && k.length === 1) return 'image/*';
+      if (k.includes('video') && k.length === 1) return 'video/*';
+      if (k.includes('audio') && k.length === 1) return 'audio/*';
+      return undefined; // accept anything
+    }, [spec]);
 
-      const meta = await readMediaMeta(safeFile);
+    // Simplified kind of the currently-selected file, used to size and type the
+    // inline preview. Null when nothing is selected.
+    const previewKind = useMemo(
+      () => (selectedFile ? getSimplifiedMediaType(selectedFile) : null),
+      [selectedFile],
+    );
+    const selectedFileLabel =
+      previewKind === 'image'
+        ? 'Image selected'
+        : previewKind === 'video'
+          ? 'Video selected'
+          : previewKind === 'audio'
+            ? 'Audio selected'
+            : 'File selected';
 
-      // The CLIENT CLAIM: what the user actually did. Recorder/capture claims
-      // are strong (the app requested that capture kind); a picker claim is an
-      // advisory browser-metadata inference — `file` when nothing narrower is
-      // known. Never derived from the (already-normalized) MIME for strong
-      // sources; for the picker the meta kind IS the inference.
-      const claim: ClientMediaClaim =
-        action ?? {
-          source: "file-picker",
-          kind: meta.kind === "image" || meta.kind === "video" || meta.kind === "audio" ? meta.kind : "file",
-        };
+    const emit = useCallback(
+      (payload: {
+        file?: File;
+        previewUrl?: string;
+        meta?: SelectedMediaMeta;
+        claim?: ClientMediaClaim;
+        autoFormat?: boolean;
+        croppedBlob?: Blob;
+        error?: FileInputError;
+      }) => {
+        // fallback resolution; pre-validation error path when kind is unknown or "file"
+        const rawKind = payload.meta?.kind;
+        const mediaKind: 'image' | 'video' | 'audio' =
+          rawKind === 'image' || rawKind === 'video' || rawKind === 'audio' ? rawKind : 'image';
+        const resolvedSpec = resolveActiveSpec(spec, mediaKind);
+        if (payload.file) setEmittedSize(payload.file.size);
+        onChange({ spec: resolvedSpec, ...payload });
+      },
+      [onChange, spec],
+    );
 
-      // bytes
-      if (spec.maxBytes && safeFile.size > spec.maxBytes) {
-        fail(
-          err("too_large", `File too large. Max ${Math.round(spec.maxBytes / 1024 / 1024)}MB.`, {
-            size: safeFile.size,
-            maxBytes: spec.maxBytes,
-          })
-        );
-        return;
-      }
+    const fail = useCallback(
+      (e: FileInputError) => {
+        setLocalError(e);
+        emit({ error: e });
+      },
+      [emit],
+    );
 
-      // duration
-      const maxDur =
-        spec.maxDurationSec ??
-        spec.processing?.video?.video?.maxDurationSec ??
-        spec.processing?.audio?.audio?.maxDurationSec;
-      if ((meta.kind === "video" || meta.kind === "audio") && maxDur) {
-        const ok = await validateMediaDuration(safeFile, maxDur);
-        if (!ok) {
-          fail(err("too_long", `Media too long. Max ${maxDur} seconds.`));
+    const validateAndEmit = useCallback(
+      async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
+        setLocalError(null);
+
+        // Defense-in-depth: normalize the content type before any downstream
+        // handling. Recorder/capture files carry their declared kind; a picker
+        // file with unknown metadata passes through NEUTRALLY (never fabricated —
+        // the server inspector owns classification).
+        const declaredKind =
+          action?.source === 'media-recorder' || action?.source === 'camera-capture'
+            ? action.kind === 'image' || action.kind === 'video' || action.kind === 'audio'
+              ? action.kind
+              : undefined
+            : undefined;
+        const safeFile = ensureFileWithContentType(file, declaredKind);
+
+        if (!accepts(spec, safeFile)) {
+          fail(err('invalid_type', 'Invalid file type for this upload.'));
           return;
         }
-      }
 
-      // image crop enforcement
-      if (meta.kind === "image" && cropSpec) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setPendingCropFile(safeFile);
-          setPendingCropClaim(claim);
-          setCropSrc(reader.result as string);
-          setCropOpen(true);
+        const meta = await readMediaMeta(safeFile);
+
+        // The CLIENT CLAIM: what the user actually did. Recorder/capture claims
+        // are strong (the app requested that capture kind); a picker claim is an
+        // advisory browser-metadata inference — `file` when nothing narrower is
+        // known. Never derived from the (already-normalized) MIME for strong
+        // sources; for the picker the meta kind IS the inference.
+        const claim: ClientMediaClaim = action ?? {
+          source: 'file-picker',
+          kind:
+            meta.kind === 'image' || meta.kind === 'video' || meta.kind === 'audio'
+              ? meta.kind
+              : 'file',
         };
-        reader.onerror = () => fail(err("read_failed", "Failed to read image for cropping."));
-        reader.readAsDataURL(safeFile);
-        return;
-      }
 
-      // video uniform enforcement (orientation/aspect/dimensions)
-      if (meta.kind === "video") {
-        const procVid = spec.processing?.video;
-        const requiredOri = spec.videoOrientation;
-        const requiredAspect = spec.requiredAspectRatio;
-        const requiredW = procVid?.requiredWidth;
-        const requiredH = procVid?.requiredHeight;
-        const allowAutoFormat = procVid?.allowAutoFormat;
+        // bytes
+        if (spec.maxBytes && safeFile.size > spec.maxBytes) {
+          fail(
+            err('too_large', `File too large. Max ${Math.round(spec.maxBytes / 1024 / 1024)}MB.`, {
+              size: safeFile.size,
+              maxBytes: spec.maxBytes,
+            }),
+          );
+          return;
+        }
 
-        const actualOri = meta.orientation;
-        const actualAspect = computeAspect(meta.width, meta.height);
-
-        const okOri = orientationOk(requiredOri, actualOri);
-        const okAspect = aspectOk(requiredAspect, actualAspect);
-        const okDims = !requiredW || !requiredH ? true : meta.width === requiredW && meta.height === requiredH;
-
-        if (!okOri || !okAspect || !okDims) {
-          if (allowAutoFormat) {
-            // Auto-format is always silent — no confirmation prompt. The file is
-            // emitted with autoFormat:true and reformatted after upload.
-            emit({ file: safeFile, previewUrl, meta, claim, autoFormat: true });
-            return;
-          }
-
-          if (!okOri) {
-            fail(
-              err("orientation_mismatch", "Video orientation does not match the required format.", {
-                requiredOri,
-                actualOri,
-              })
-            );
-            return;
-          }
-          if (!okAspect) {
-            fail(
-              err("aspect_ratio_mismatch", "Video aspect ratio does not match the required format.", {
-                requiredAspect,
-                actualAspect,
-              })
-            );
-            return;
-          }
-          if (!okDims) {
-            fail(
-              err("dimensions_mismatch", "Video dimensions do not match the required format.", {
-                requiredW,
-                requiredH,
-                width: meta.width,
-                height: meta.height,
-              })
-            );
+        // duration
+        const maxDur =
+          spec.maxDurationSec ??
+          spec.processing?.video?.video?.maxDurationSec ??
+          spec.processing?.audio?.audio?.maxDurationSec;
+        if ((meta.kind === 'video' || meta.kind === 'audio') && maxDur) {
+          const ok = await validateMediaDuration(safeFile, maxDur);
+          if (!ok) {
+            fail(err('too_long', `Media too long. Max ${maxDur} seconds.`));
             return;
           }
         }
-      }
 
-      emit({ file: safeFile, previewUrl, meta, claim });
-    },
-    [spec, cropSpec, emit, fail]
-  );
+        // image crop enforcement
+        if (meta.kind === 'image' && cropSpec) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setPendingCropFile(safeFile);
+            setPendingCropClaim(claim);
+            setCropSrc(reader.result as string);
+            setCropOpen(true);
+          };
+          reader.onerror = () => fail(err('read_failed', 'Failed to read image for cropping.'));
+          reader.readAsDataURL(safeFile);
+          return;
+        }
 
-  // A picked, captured, or recorded file is validated (type, meta, duration,
-  // dimensions, crop) before it is emitted. The trigger shows pending for that
-  // whole window, so a second pick cannot race the first.
-  const handleSelected = useCallback(
-    async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
-      setValidating(true);
-      try {
-        await validateAndEmit(file, previewUrl, action);
-      } finally {
-        setValidating(false);
-      }
-    },
-    [validateAndEmit]
-  );
+        // video uniform enforcement (orientation/aspect/dimensions)
+        if (meta.kind === 'video') {
+          const procVid = spec.processing?.video;
+          const requiredOri = spec.videoOrientation;
+          const requiredAspect = spec.requiredAspectRatio;
+          const requiredW = procVid?.requiredWidth;
+          const requiredH = procVid?.requiredHeight;
+          const allowAutoFormat = procVid?.allowAutoFormat;
 
-  const onPick = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = "";
-      if (!file) return;
+          const actualOri = meta.orientation;
+          const actualAspect = computeAspect(meta.width, meta.height);
 
-      const url = makeObjectUrl(file);
+          const okOri = orientationOk(requiredOri, actualOri);
+          const okAspect = aspectOk(requiredAspect, actualAspect);
+          const okDims =
+            !requiredW || !requiredH ? true : meta.width === requiredW && meta.height === requiredH;
 
-      await handleSelected(file, url);
-    },
-    [handleSelected, makeObjectUrl]
-  );
+          if (!okOri || !okAspect || !okDims) {
+            if (allowAutoFormat) {
+              // Auto-format is always silent — no confirmation prompt. The file is
+              // emitted with autoFormat:true and reformatted after upload.
+              emit({ file: safeFile, previewUrl, meta, claim, autoFormat: true });
+              return;
+            }
 
-  const onCropComplete = useCallback(
-    (blob: Blob | null) => {
-      setCropOpen(false);
+            if (!okOri) {
+              fail(
+                err(
+                  'orientation_mismatch',
+                  'Video orientation does not match the required format.',
+                  {
+                    requiredOri,
+                    actualOri,
+                  },
+                ),
+              );
+              return;
+            }
+            if (!okAspect) {
+              fail(
+                err(
+                  'aspect_ratio_mismatch',
+                  'Video aspect ratio does not match the required format.',
+                  {
+                    requiredAspect,
+                    actualAspect,
+                  },
+                ),
+              );
+              return;
+            }
+            if (!okDims) {
+              fail(
+                err('dimensions_mismatch', 'Video dimensions do not match the required format.', {
+                  requiredW,
+                  requiredH,
+                  width: meta.width,
+                  height: meta.height,
+                }),
+              );
+              return;
+            }
+          }
+        }
 
-      const original = pendingCropFile;
-      const preservedClaim = pendingCropClaim;
-      setPendingCropFile(null);
-      setPendingCropClaim(null);
+        emit({ file: safeFile, previewUrl, meta, claim });
+      },
+      [spec, cropSpec, emit, fail],
+    );
 
-      if (!blob || !original) {
-        fail(err("crop_failed", "Cropping failed."));
+    // A picked, captured, or recorded file is validated (type, meta, duration,
+    // dimensions, crop) before it is emitted. The trigger shows pending for that
+    // whole window, so a second pick cannot race the first.
+    const handleSelected = useCallback(
+      async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
+        setValidating(true);
+        try {
+          await validateAndEmit(file, previewUrl, action);
+        } finally {
+          setValidating(false);
+        }
+      },
+      [validateAndEmit],
+    );
+
+    const onPick = useCallback(
+      async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+
+        const url = makeObjectUrl(file);
+
+        await handleSelected(file, url);
+      },
+      [handleSelected, makeObjectUrl],
+    );
+
+    const onCropComplete = useCallback(
+      (blob: Blob | null) => {
+        setCropOpen(false);
+
+        const original = pendingCropFile;
+        const preservedClaim = pendingCropClaim;
+        setPendingCropFile(null);
+        setPendingCropClaim(null);
+
+        if (!blob || !original) {
+          fail(err('crop_failed', 'Cropping failed.'));
+          setCropSrc(null);
+          return;
+        }
+
+        const type = blob.type || 'image/jpeg';
+        const name = original.name?.replace(/\.[^/.]+$/, '') || 'image';
+        const ext = type.includes('png')
+          ? 'png'
+          : type.includes('webp')
+            ? 'webp'
+            : type.includes('avif')
+              ? 'avif'
+              : 'jpg';
+
+        const croppedFile = new File([blob], `${name}.cropped.${ext}`, { type });
+
+        const url = makeObjectUrl(croppedFile);
+
+        readMediaMeta(croppedFile).then((meta) =>
+          emit({
+            file: croppedFile,
+            previewUrl: url,
+            meta,
+            claim: preservedClaim ?? undefined,
+            croppedBlob: blob,
+          }),
+        );
+
         setCropSrc(null);
-        return;
+      },
+      [emit, fail, pendingCropFile, pendingCropClaim, makeObjectUrl],
+    );
+
+    const onPhotoCapture = useCallback(
+      async (file: File) => {
+        setPhotoOpen(false);
+        const url = makeObjectUrl(file);
+        await handleSelected(file, url, { kind: 'image', source: 'camera-capture' });
+      },
+      [handleSelected, makeObjectUrl],
+    );
+
+    const phase = uploadState?.phase ?? null;
+    const percent = uploadState?.percent ?? null;
+    const isUploading = phase === 'uploading' && isLoading;
+    const isPreparing = phase === 'preparing' && isLoading;
+    const isFinalizing = phase === 'finalizing' && isLoading;
+
+    const sizeThreshold = progressBarMinBytes ?? DEFAULT_PROGRESS_BAR_MIN_BYTES;
+    // Consumers usually pass selectedFile={null} once the file is handed off, so
+    // the bar judges the size of the file this input emitted.
+    const trackedSize = selectedFile?.size ?? emittedSize;
+    const showRealBar =
+      isUploading &&
+      typeof percent === 'number' &&
+      trackedSize !== null &&
+      trackedSize >= sizeThreshold;
+
+    const canPick = spec.client?.allowPick ?? true;
+    const canPhoto = spec.client?.allowCapturePhoto ?? true;
+    const canRecVideo = spec.client?.allowRecordVideo ?? true;
+    const canRecAudio = spec.client?.allowRecordAudio ?? true;
+
+    const actionCount = countActions(spec);
+
+    // Warn in dev if no actions are enabled
+    useEffect(() => {
+      if (actionCount === 0) {
+        console.warn(
+          '[MediaInput] No input methods enabled in spec.client. ' +
+            'At least one of allowPick, allowCapturePhoto, allowRecordVideo, or allowRecordAudio must be true.',
+        );
       }
+    }, [actionCount]);
 
-      const type = blob.type || "image/jpeg";
-      const name = original.name?.replace(/\.[^/.]+$/, "") || "image";
-      const ext = type.includes("png")
-        ? "png"
-        : type.includes("webp")
-          ? "webp"
-          : type.includes("avif")
-            ? "avif"
-            : "jpg";
-
-      const croppedFile = new File([blob], `${name}.cropped.${ext}`, { type });
-
-      const url = makeObjectUrl(croppedFile);
-
-      readMediaMeta(croppedFile).then((meta) =>
-        emit({ file: croppedFile, previewUrl: url, meta, claim: preservedClaim ?? undefined, croppedBlob: blob }),
-      );
-
-      setCropSrc(null);
-    },
-    [emit, fail, pendingCropFile, pendingCropClaim, makeObjectUrl]
-  );
-
-  const onPhotoCapture = useCallback(
-    async (file: File) => {
-      setPhotoOpen(false);
-      const url = makeObjectUrl(file);
-      await handleSelected(file, url, { kind: "image", source: "camera-capture" });
-    },
-    [handleSelected, makeObjectUrl]
-  );
-
-  const phase = uploadState?.phase ?? null;
-  const percent = uploadState?.percent ?? null;
-  const isUploading = phase === 'uploading' && isLoading;
-  const isPreparing = phase === 'preparing' && isLoading;
-  const isFinalizing = phase === 'finalizing' && isLoading;
-
-  const sizeThreshold = progressBarMinBytes ?? DEFAULT_PROGRESS_BAR_MIN_BYTES;
-  // Consumers usually pass selectedFile={null} once the file is handed off, so
-  // the bar judges the size of the file this input emitted.
-  const trackedSize = selectedFile?.size ?? emittedSize;
-  const showRealBar =
-    isUploading &&
-    typeof percent === 'number' &&
-    trackedSize !== null &&
-    trackedSize >= sizeThreshold;
-
-  const canPick = spec.client?.allowPick ?? true;
-  const canPhoto = spec.client?.allowCapturePhoto ?? true;
-  const canRecVideo = spec.client?.allowRecordVideo ?? true;
-  const canRecAudio = spec.client?.allowRecordAudio ?? true;
-
-  const actionCount = countActions(spec);
-
-  // Warn in dev if no actions are enabled
-  useEffect(() => {
-    if (actionCount === 0) {
-      console.warn(
-        "[MediaInput] No input methods enabled in spec.client. " +
-        "At least one of allowPick, allowCapturePhoto, allowRecordVideo, or allowRecordAudio must be true."
-      );
-    }
-  }, [actionCount]);
-
-  /** Execute an action directly (used for single-action shortcut). */
-  const executeAction = useCallback(
-    (action: ActionKind) => {
+    /** Execute an action directly (used for single-action shortcut). */
+    const executeAction = useCallback((action: ActionKind) => {
       switch (action) {
-        case "pick":
+        case 'pick':
           pickerRef.current?.click();
           break;
-        case "photo":
+        case 'photo':
           setPhotoOpen(true);
           break;
-        case "recordVideo":
-          setRecordKind("video");
+        case 'recordVideo':
+          setRecordKind('video');
           setRecordOpen(true);
           break;
-        case "recordAudio":
-          setRecordKind("audio");
+        case 'recordAudio':
+          setRecordKind('audio');
           setRecordOpen(true);
           break;
       }
-    },
-    []
-  );
+    }, []);
 
-  /**
-   * Run the optional pre-select guard, then execute the action. When the guard
-   * resolves false, the picker/capture never opens. This is the single choke
-   * point for all four actions, so the gate fires on the click for every entry
-   * point (single-action button and dropdown items alike).
-   */
-  const runAction = useCallback(
-    async (action: ActionKind) => {
-      if (onBeforeSelect) {
-        const ok = await onBeforeSelect();
-        if (!ok) return;
+    /**
+     * Run the optional pre-select guard, then execute the action. When the guard
+     * resolves false, the picker/capture never opens. This is the single choke
+     * point for all four actions, so the gate fires on the click for every entry
+     * point (single-action button and dropdown items alike).
+     */
+    const runAction = useCallback(
+      async (action: ActionKind) => {
+        if (onBeforeSelect) {
+          const ok = await onBeforeSelect();
+          if (!ok) return;
+        }
+        executeAction(action);
+      },
+      [onBeforeSelect, executeAction],
+    );
+
+    /** Build the list of enabled actions. */
+    const actions = useMemo(() => {
+      const list: Array<{ kind: ActionKind; label: string; icon: React.ReactNode }> = [];
+      if (canPick)
+        list.push({ kind: 'pick', label: 'Choose file', icon: <Upload className="icon-xs" /> });
+      if (canPhoto)
+        list.push({ kind: 'photo', label: 'Take photo', icon: <Camera className="icon-xs" /> });
+      if (canRecVideo)
+        list.push({
+          kind: 'recordVideo',
+          label: 'Record video',
+          icon: <Video className="icon-xs" />,
+        });
+      if (canRecAudio)
+        list.push({
+          kind: 'recordAudio',
+          label: 'Record audio',
+          icon: <Mic className="icon-xs" />,
+        });
+      return list;
+    }, [canPick, canPhoto, canRecVideo, canRecAudio]);
+
+    /** Label & icon for the single trigger button. */
+    const triggerIcon = useMemo(() => {
+      if (actions.length === 1) return actions[0].icon;
+      if (buttonLabel !== 'Add media') return <Upload className="icon-xs" />;
+      return <Plus className="icon-xs" />;
+    }, [actions, buttonLabel]);
+
+    const triggerLabel = useMemo(() => {
+      // If the consumer explicitly set a custom buttonLabel, always respect it.
+      // Only use the action's built-in label for single-action when using the default.
+      if (buttonLabel !== 'Add media') return buttonLabel;
+      if (actions.length === 1) return actions[0].label;
+      return buttonLabel;
+    }, [actions, buttonLabel]);
+
+    /** When there's exactly 1 action, click goes straight to it. Otherwise open menu. */
+    const handleTriggerClick = useCallback(() => {
+      if (actions.length === 1) {
+        void runAction(actions[0].kind);
       }
-      executeAction(action);
-    },
-    [onBeforeSelect, executeAction]
-  );
+      // If > 1 action, the DropdownMenuTrigger handles opening the menu.
+    }, [actions, runAction]);
 
-  /** Build the list of enabled actions. */
-  const actions = useMemo(() => {
-    const list: Array<{ kind: ActionKind; label: string; icon: React.ReactNode }> = [];
-    if (canPick) list.push({ kind: "pick", label: "Choose file", icon: <Upload className="icon-xs" /> });
-    if (canPhoto) list.push({ kind: "photo", label: "Take photo", icon: <Camera className="icon-xs" /> });
-    if (canRecVideo) list.push({ kind: "recordVideo", label: "Record video", icon: <Video className="icon-xs" /> });
-    if (canRecAudio) list.push({ kind: "recordAudio", label: "Record audio", icon: <Mic className="icon-xs" /> });
-    return list;
-  }, [canPick, canPhoto, canRecVideo, canRecAudio]);
+    /**
+     * Imperative entry point: activates the SAME trigger semantics as a human click
+     * (single action → run it through `runAction`, honoring `onBeforeSelect`/validation/
+     * crop; multiple actions → open the choice dropdown). Guards on disabled/loading and
+     * no-enabled-actions exactly as the rendered trigger's `disabled` attribute would.
+     * Never touches the hidden input directly, so none of the gates are bypassed.
+     */
+    const openSelection = useCallback(() => {
+      if (disabled || isLoading || validating || actions.length === 0) return;
+      if (actions.length === 1) {
+        void runAction(actions[0].kind);
+        return;
+      }
+      setMenuOpen(true);
+    }, [disabled, isLoading, validating, actions, runAction]);
 
-  /** Label & icon for the single trigger button. */
-  const triggerIcon = useMemo(() => {
-    if (actions.length === 1) return actions[0].icon;
-    if (buttonLabel !== "Add media") return <Upload className="icon-xs" />;
-    return <Plus className="icon-xs" />;
-  }, [actions, buttonLabel]);
+    useImperativeHandle(ref, () => ({ openSelection }), [openSelection]);
 
-  const triggerLabel = useMemo(() => {
-    // If the consumer explicitly set a custom buttonLabel, always respect it.
-    // Only use the action's built-in label for single-action when using the default.
-    if (buttonLabel !== "Add media") return buttonLabel;
-    if (actions.length === 1) return actions[0].label;
-    return buttonLabel;
-  }, [actions, buttonLabel]);
+    return (
+      <Card className={cn('p-3', className)}>
+        {/* Hidden file picker input */}
+        <Input
+          id={`media-pick-${id}`}
+          ref={pickerRef}
+          type="file"
+          accept={acceptAttr}
+          className="hidden"
+          onChange={onPick}
+          disabled={disabled || isLoading || validating}
+        />
 
-  /** When there's exactly 1 action, click goes straight to it. Otherwise open menu. */
-  const handleTriggerClick = useCallback(() => {
-    if (actions.length === 1) {
-      void runAction(actions[0].kind);
-    }
-    // If > 1 action, the DropdownMenuTrigger handles opening the menu.
-  }, [actions, runAction]);
-
-  /**
-   * Imperative entry point: activates the SAME trigger semantics as a human click
-   * (single action → run it through `runAction`, honoring `onBeforeSelect`/validation/
-   * crop; multiple actions → open the choice dropdown). Guards on disabled/loading and
-   * no-enabled-actions exactly as the rendered trigger's `disabled` attribute would.
-   * Never touches the hidden input directly, so none of the gates are bypassed.
-   */
-  const openSelection = useCallback(() => {
-    if (disabled || isLoading || validating || actions.length === 0) return;
-    if (actions.length === 1) {
-      void runAction(actions[0].kind);
-      return;
-    }
-    setMenuOpen(true);
-  }, [disabled, isLoading, validating, actions, runAction]);
-
-  useImperativeHandle(ref, () => ({ openSelection }), [openSelection]);
-
-  return (
-    <Card className={cn("p-3", className)}>
-      {/* Hidden file picker input */}
-      <Input
-        id={`media-pick-${id}`}
-        ref={pickerRef}
-        type="file"
-        accept={acceptAttr}
-        className="hidden"
-        onChange={onPick}
-        disabled={disabled || isLoading || validating}
-      />
-
-      {/* Selected file preview + semantic status (original names stay metadata-only). */}
-      {selectedFile && !isLoading ? (
-        <div className="mb-2 space-y-2">
-          {previewKind === "image" || previewKind === "video" || previewKind === "audio" ? (
-            <div
-              className={cn(
-                "relative w-full rounded-md bg-muted",
-                previewKind === "audio" ? "p-2" : "h-48 overflow-hidden"
+        {/* Selected file preview + semantic status (original names stay metadata-only). */}
+        {selectedFile && !isLoading ? (
+          <div className="mb-2 space-y-2">
+            {previewKind === 'image' || previewKind === 'video' || previewKind === 'audio' ? (
+              <div
+                className={cn(
+                  'relative w-full rounded-md bg-muted',
+                  previewKind === 'audio' ? 'p-2' : 'h-48 overflow-hidden',
+                )}
+              >
+                <MediaPreview
+                  url={selectedFile}
+                  type={previewKind}
+                  mime={selectedFile.type}
+                  controls
+                  className={previewKind === 'audio' ? 'w-full' : 'h-full w-full'}
+                />
+              </div>
+            ) : null}
+            <div className="flex items-center gap-2">
+              <span className="text-sm truncate flex-1">{selectedFileLabel}</span>
+              {onClear && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="icon-sm shrink-0"
+                  onClick={onClear}
+                  aria-label={clearLabel}
+                >
+                  <X className="icon-xs" />
+                </Button>
               )}
-            >
-              <MediaPreview
-                url={selectedFile}
-                type={previewKind}
-                mime={selectedFile.type}
-                controls
-                className={previewKind === "audio" ? "w-full" : "h-full w-full"}
-              />
             </div>
-          ) : null}
-          <div className="flex items-center gap-2">
-            <span className="text-sm truncate flex-1">{selectedFileLabel}</span>
-            {onClear && (
-              <Button type="button" variant="ghost" size="icon" className="icon-sm shrink-0" onClick={onClear} aria-label={clearLabel}>
+          </div>
+        ) : null}
+
+        {/* Upload / finalizing status */}
+        {isLoading ? (
+          <div className="flex items-center gap-2 mb-2">
+            <Spinner size="xs" />
+            <span className="text-sm text-muted-foreground">
+              {isPreparing
+                ? 'Preparing...'
+                : isUploading && showRealBar
+                  ? `Uploading ${Math.round(percent ?? 0)}%...`
+                  : isUploading
+                    ? 'Uploading...'
+                    : isFinalizing
+                      ? 'Finalizing...'
+                      : 'Finalizing...'}
+            </span>
+            {(isPreparing || isUploading) && onCancel ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="icon-sm shrink-0 ml-auto"
+                onClick={onCancel}
+                aria-label="Cancel upload"
+              >
                 <X className="icon-xs" />
               </Button>
-            )}
+            ) : null}
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Upload / finalizing status */}
-      {isLoading ? (
-        <div className="flex items-center gap-2 mb-2">
-          <Spinner size="xs" />
-          <span className="text-sm text-muted-foreground">
-            {isPreparing
-              ? "Preparing..."
-              : isUploading && showRealBar
-              ? `Uploading ${Math.round(percent ?? 0)}%...`
-              : isUploading
-              ? "Uploading..."
-              : isFinalizing
-              ? "Finalizing..."
-              : "Finalizing..."}
-          </span>
-          {(isPreparing || isUploading) && onCancel ? (
+        {/* Progress bar — only shown for uploads above the size threshold */}
+        {showRealBar ? <Progress value={percent ?? 0} className="mb-2 h-1.5" /> : null}
+
+        {/* Action button area */}
+        <div className="flex flex-wrap gap-2">
+          {actions.length <= 1 ? (
+            /* Single action (or none): plain button, no dropdown */
             <Button
               type="button"
-              variant="ghost"
-              size="icon"
-              className="icon-sm shrink-0 ml-auto"
-              onClick={onCancel}
-              aria-label="Cancel upload"
+              variant="default"
+              onClick={handleTriggerClick}
+              disabled={disabled || isLoading || actions.length === 0}
+              pending={validating}
+              icon={triggerIcon}
             >
-              <X className="icon-xs" />
+              {triggerLabel}
+            </Button>
+          ) : (
+            /* Multiple actions: dropdown menu */
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="default"
+                  disabled={disabled || isLoading}
+                  pending={validating}
+                  icon={triggerIcon}
+                >
+                  {triggerLabel}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {actions.map((a) => (
+                  <DropdownMenuItem
+                    key={a.kind}
+                    onClick={() => void runAction(a.kind)}
+                    icon={a.icon}
+                  >
+                    {a.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {showInfoToggle ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowInfo((v) => !v)}
+              disabled={disabled || isLoading}
+            >
+              <Info className="mr-2 icon-xs" />
+              {showInfo ? 'Hide info' : 'Info'}
             </Button>
           ) : null}
         </div>
-      ) : null}
 
-      {/* Progress bar — only shown for uploads above the size threshold */}
-      {showRealBar ? <Progress value={percent ?? 0} className="mb-2 h-1.5" /> : null}
+        {showInfo && showInfoToggle ? (
+          <div className="mt-3 space-y-2">
+            {infoNotes.length > 0 ? (
+              <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
+                {infoNotes.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            ) : null}
+            {specHasConstraints ? <MediaConstraintsHint spec={spec} /> : null}
+          </div>
+        ) : null}
 
-      {/* Action button area */}
-      <div className="flex flex-wrap gap-2">
-        {actions.length <= 1 ? (
-          /* Single action (or none): plain button, no dropdown */
-          <Button
-            type="button"
-            variant="default"
-            onClick={handleTriggerClick}
-            disabled={disabled || isLoading || actions.length === 0}
-            pending={validating}
-            icon={triggerIcon}
-          >
-            {triggerLabel}
-          </Button>
-        ) : (
-          /* Multiple actions: dropdown menu */
-          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="default" disabled={disabled || isLoading} pending={validating} icon={triggerIcon}>
-                {triggerLabel}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {actions.map((a) => (
-                <DropdownMenuItem key={a.kind} onClick={() => void runAction(a.kind)} icon={a.icon}>
-                  {a.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        {localError && (
+          <Alert variant="destructive" className="mt-3">
+            <AlertDescription>{localError.message}</AlertDescription>
+          </Alert>
         )}
 
-        {showInfoToggle ? (
-          <Button type="button" variant="outline" onClick={() => setShowInfo((v) => !v)} disabled={disabled || isLoading}>
-            <Info className="mr-2 icon-xs" />
-            {showInfo ? "Hide info" : "Info"}
-          </Button>
-        ) : null}
-      </div>
+        {cropSpec && (
+          <ImageCropperModal
+            isOpen={cropOpen}
+            onClose={() => {
+              setCropOpen(false);
+              setCropSrc(null);
+            }}
+            imageSrc={cropSrc}
+            aspectRatio={cropSpec.aspectRatio}
+            shape={cropSpec.shape ?? 'rect'}
+            outputWidth={cropSpec.outputWidth}
+            outputHeight={cropSpec.outputHeight}
+            encoding={{ format: cropSpec.format, quality: cropSpec.quality }}
+            onCropComplete={onCropComplete}
+          />
+        )}
 
-      {showInfo && showInfoToggle ? (
-        <div className="mt-3 space-y-2">
-          {infoNotes.length > 0 ? (
-            <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
-              {infoNotes.map((n, i) => (
-                <li key={i}>{n}</li>
-              ))}
-            </ul>
-          ) : null}
-          {specHasConstraints ? <MediaConstraintsHint spec={spec} /> : null}
-        </div>
-      ) : null}
-
-      {localError && (
-        <Alert variant="destructive" className="mt-3">
-          <AlertDescription>{localError.message}</AlertDescription>
-        </Alert>
-      )}
-
-      {cropSpec && (
-        <ImageCropperModal
-          isOpen={cropOpen}
-          onClose={() => {
-            setCropOpen(false);
-            setCropSrc(null);
-          }}
-          imageSrc={cropSrc}
-          aspectRatio={cropSpec.aspectRatio}
-          shape={cropSpec.shape ?? "rect"}
-          outputWidth={cropSpec.outputWidth}
-          outputHeight={cropSpec.outputHeight}
-          encoding={{ format: cropSpec.format, quality: cropSpec.quality }}
-          onCropComplete={onCropComplete}
+        {/* Photo capture modal (getUserMedia-based, works on desktop + mobile) */}
+        <PhotoCaptureModal
+          open={photoOpen}
+          facingMode={spec.client?.cameraFacingMode ?? 'user'}
+          onCapture={onPhotoCapture}
+          onClose={() => setPhotoOpen(false)}
         />
-      )}
 
-      {/* Photo capture modal (getUserMedia-based, works on desktop + mobile) */}
-      <PhotoCaptureModal
-        open={photoOpen}
-        facingMode={spec.client?.cameraFacingMode ?? "user"}
-        onCapture={onPhotoCapture}
-        onClose={() => setPhotoOpen(false)}
-      />
-
-      <RecordDialog
-        open={recordOpen}
-        onOpenChange={setRecordOpen}
-        initialKind={recordKind}
-        canPhoto={canPhoto}
-        canRecVideo={canRecVideo}
-        canRecAudio={canRecAudio}
-        cameraFacingMode={spec.client?.cameraFacingMode}
-        maxRecordDurationSec={spec.client?.maxRecordDurationSec}
-        disabled={disabled}
-        isLoading={isLoading}
-        onRecorded={async (file, url, recordedKind) => {
-          await handleSelected(file, url, { kind: recordedKind, source: "media-recorder" });
-        }}
-        onRequestPhoto={() => setPhotoOpen(true)}
-      />
-    </Card>
-  );
-});
-MediaInput.displayName = "MediaInput";
+        <RecordDialog
+          open={recordOpen}
+          onOpenChange={setRecordOpen}
+          initialKind={recordKind}
+          canPhoto={canPhoto}
+          canRecVideo={canRecVideo}
+          canRecAudio={canRecAudio}
+          cameraFacingMode={spec.client?.cameraFacingMode}
+          maxRecordDurationSec={spec.client?.maxRecordDurationSec}
+          disabled={disabled}
+          isLoading={isLoading}
+          onRecorded={async (file, url, recordedKind) => {
+            await handleSelected(file, url, { kind: recordedKind, source: 'media-recorder' });
+          }}
+          onRequestPhoto={() => setPhotoOpen(true)}
+        />
+      </Card>
+    );
+  },
+);
+MediaInput.displayName = 'MediaInput';

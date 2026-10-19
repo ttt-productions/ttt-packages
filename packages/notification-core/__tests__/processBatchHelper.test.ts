@@ -82,7 +82,9 @@ function createMockDb({
       dedupKey: seed.dedupKey,
     });
     // Tests assume a single active collection per category config.
-    getCol(seed.category === 'user' ? 'userNotifications' : 'adminNotifications').set(id, { ...seed.data });
+    getCol(seed.category === 'user' ? 'userNotifications' : 'adminNotifications').set(id, {
+      ...seed.data,
+    });
   }
 
   const pendingSnapDocs = pendingDocs.map((pd) => ({
@@ -105,7 +107,9 @@ function createMockDb({
       updatedDocs.push({ id, data });
       col.set(id, { ...(col.get(id) ?? {}), ...data });
     }),
-    delete: vi.fn(async () => { getCol(colPath).delete(id); }),
+    delete: vi.fn(async () => {
+      getCol(colPath).delete(id);
+    }),
     get: vi.fn(async () => {
       const data = getCol(colPath).get(id);
       return { id, exists: !!data, data: () => data ?? undefined, ref: makeDocRef(colPath, id) };
@@ -152,12 +156,21 @@ function createMockDb({
       return batch as any;
     }),
     doc: vi.fn(),
-    runTransaction: async <T,>(fn: (tx: ServerTransaction) => Promise<T>): Promise<T> => {
+    runTransaction: async <T>(fn: (tx: ServerTransaction) => Promise<T>): Promise<T> => {
       const tx: ServerTransaction = {
         get: async (ref) => ref.get(),
-        set: (ref, data, options) => { void ref.set(data, options); return tx; },
-        update: (ref, data) => { void ref.update(data); return tx; },
-        delete: (ref) => { void ref.delete(); return tx; },
+        set: (ref, data, options) => {
+          void ref.set(data, options);
+          return tx;
+        },
+        update: (ref, data) => {
+          void ref.update(data);
+          return tx;
+        },
+        delete: (ref) => {
+          void ref.delete();
+          return tx;
+        },
       };
       return fn(tx);
     },
@@ -170,7 +183,13 @@ function createMockDb({
 
 // ---- Helpers ----
 
-function makePendingDoc(overrides: Partial<PendingNotification> & { type: string; actorId: string; metadata: Record<string, unknown> }): BobDoc {
+function makePendingDoc(
+  overrides: Partial<PendingNotification> & {
+    type: string;
+    actorId: string;
+    metadata: Record<string, unknown>;
+  },
+): BobDoc {
   const id = `pending_${Math.random().toString(36).slice(2)}`;
   return {
     id,
@@ -264,18 +283,20 @@ describe('processBatchHelper', () => {
     });
     const { db, updatedDocs } = createMockDb({
       pendingDocs: [pending],
-      seedActiveDocs: [{
-        category: 'admin',
-        audienceType: 'shared',
-        targetUserId: null,
-        dedupKey: 'report_item1',
-        data: {
-          dedupKey: 'report_item1',
+      seedActiveDocs: [
+        {
           category: 'admin',
-          count: 3,
-          latestActorIds: ['user1'],
+          audienceType: 'shared',
+          targetUserId: null,
+          dedupKey: 'report_item1',
+          data: {
+            dedupKey: 'report_item1',
+            category: 'admin',
+            count: 3,
+            latestActorIds: ['user1'],
+          },
         },
-      }],
+      ],
     });
 
     const result = await processBatchHelper(db, makeConfig());
@@ -296,18 +317,20 @@ describe('processBatchHelper', () => {
     });
     const { db, updatedDocs } = createMockDb({
       pendingDocs: [pending],
-      seedActiveDocs: [{
-        category: 'admin',
-        audienceType: 'shared',
-        targetUserId: null,
-        dedupKey: 'report_item1',
-        data: {
-          dedupKey: 'report_item1',
+      seedActiveDocs: [
+        {
           category: 'admin',
-          count: 1,
-          latestActorIds: ['user1'],
+          audienceType: 'shared',
+          targetUserId: null,
+          dedupKey: 'report_item1',
+          data: {
+            dedupKey: 'report_item1',
+            category: 'admin',
+            count: 1,
+            latestActorIds: ['user1'],
+          },
         },
-      }],
+      ],
     });
 
     await processBatchHelper(db, makeConfig());
@@ -325,18 +348,20 @@ describe('processBatchHelper', () => {
     });
     const { db, updatedDocs } = createMockDb({
       pendingDocs: [pending],
-      seedActiveDocs: [{
-        category: 'admin',
-        audienceType: 'shared',
-        targetUserId: null,
-        dedupKey: 'report_item1',
-        data: {
-          dedupKey: 'report_item1',
+      seedActiveDocs: [
+        {
           category: 'admin',
-          count: 1,
-          latestActorIds: ['user1'],
+          audienceType: 'shared',
+          targetUserId: null,
+          dedupKey: 'report_item1',
+          data: {
+            dedupKey: 'report_item1',
+            category: 'admin',
+            count: 1,
+            latestActorIds: ['user1'],
+          },
         },
-      }],
+      ],
     });
 
     await processBatchHelper(db, makeConfig());
@@ -365,18 +390,20 @@ describe('processBatchHelper', () => {
 
     const { db, updatedDocs } = createMockDb({
       pendingDocs: [pending],
-      seedActiveDocs: [{
-        category: 'admin',
-        audienceType: 'shared',
-        targetUserId: null,
-        dedupKey: 'report_item1',
-        data: {
-          dedupKey: 'report_item1',
+      seedActiveDocs: [
+        {
           category: 'admin',
-          count: 4999,
-          latestActorIds: ['user1'],
+          audienceType: 'shared',
+          targetUserId: null,
+          dedupKey: 'report_item1',
+          data: {
+            dedupKey: 'report_item1',
+            category: 'admin',
+            count: 4999,
+            latestActorIds: ['user1'],
+          },
         },
-      }],
+      ],
     });
 
     await processBatchHelper(db, config);
@@ -460,11 +487,12 @@ describe('processBatchHelper', () => {
     // Two separate runs over equivalent pending docs (e.g. overlapping batch
     // runs reading the queue before deletion) must converge on one active doc
     // via the deterministic ID instead of creating duplicates.
-    const mkPending = () => makePendingDoc({
-      type: 'content_report',
-      actorId: 'user1',
-      metadata: { itemId: 'item1' },
-    });
+    const mkPending = () =>
+      makePendingDoc({
+        type: 'content_report',
+        actorId: 'user1',
+        metadata: { itemId: 'item1' },
+      });
 
     const first = createMockDb({ pendingDocs: [mkPending()] });
     await processBatchHelper(first.db, makeConfig());
@@ -473,13 +501,15 @@ describe('processBatchHelper', () => {
     // Second run with the surviving active doc seeded — same dedup scope.
     const second = createMockDb({
       pendingDocs: [mkPending()],
-      seedActiveDocs: [{
-        category: 'admin',
-        audienceType: 'shared',
-        targetUserId: null,
-        dedupKey: 'report_item1',
-        data: first.activeDocs('adminNotifications')[0],
-      }],
+      seedActiveDocs: [
+        {
+          category: 'admin',
+          audienceType: 'shared',
+          targetUserId: null,
+          dedupKey: 'report_item1',
+          data: first.activeDocs('adminNotifications')[0],
+        },
+      ],
     });
     const result = await processBatchHelper(second.db, makeConfig());
 
@@ -565,7 +595,7 @@ describe('processBatchHelper — personal recipient scoping', () => {
     expect(targets).toEqual(['userA', 'userB']);
   });
 
-  it('does not increment another recipient\'s active doc on a dedupKey match', async () => {
+  it("does not increment another recipient's active doc on a dedupKey match", async () => {
     const pendingForB = makePersonalPendingDoc({
       type: 'admin_announcement',
       actorId: 'admin',
@@ -574,19 +604,21 @@ describe('processBatchHelper — personal recipient scoping', () => {
     });
     const { db, activeDocs, updatedDocs } = createMockDb({
       pendingDocs: [pendingForB],
-      seedActiveDocs: [{
-        category: 'user',
-        audienceType: 'personal',
-        targetUserId: 'userA',
-        dedupKey: 'announcement_Launch',
-        data: {
-          dedupKey: 'announcement_Launch',
+      seedActiveDocs: [
+        {
           category: 'user',
+          audienceType: 'personal',
           targetUserId: 'userA',
-          count: 1,
-          latestActorIds: ['admin'],
+          dedupKey: 'announcement_Launch',
+          data: {
+            dedupKey: 'announcement_Launch',
+            category: 'user',
+            targetUserId: 'userA',
+            count: 1,
+            latestActorIds: ['admin'],
+          },
         },
-      }],
+      ],
     });
 
     const result = await processBatchHelper(db, makePersonalConfig());
@@ -610,19 +642,21 @@ describe('processBatchHelper — personal recipient scoping', () => {
     });
     const { db, activeDocs, updatedDocs } = createMockDb({
       pendingDocs: [pendingForA],
-      seedActiveDocs: [{
-        category: 'user',
-        audienceType: 'personal',
-        targetUserId: 'userA',
-        dedupKey: 'announcement_Launch',
-        data: {
-          dedupKey: 'announcement_Launch',
+      seedActiveDocs: [
+        {
           category: 'user',
+          audienceType: 'personal',
           targetUserId: 'userA',
-          count: 1,
-          latestActorIds: ['admin'],
+          dedupKey: 'announcement_Launch',
+          data: {
+            dedupKey: 'announcement_Launch',
+            category: 'user',
+            targetUserId: 'userA',
+            count: 1,
+            latestActorIds: ['admin'],
+          },
         },
-      }],
+      ],
     });
 
     const result = await processBatchHelper(db, makePersonalConfig());

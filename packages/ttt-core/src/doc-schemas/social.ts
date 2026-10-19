@@ -2,7 +2,11 @@
 // follow edges. Types inferred via z.infer.
 
 import { z } from 'zod';
-import { MentionSchema, SquareStreetzPostMentionsSchema, refineMentionCorrespondence } from '../media/atoms.js';
+import {
+  MentionSchema,
+  SquareStreetzPostMentionsSchema,
+  refineMentionCorrespondence,
+} from '../media/atoms.js';
 import { FollowableTargetTypeSchema } from '../schemas/social.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
@@ -55,51 +59,57 @@ export type SquareStreetzPostType = z.infer<typeof SquareStreetzPostTypeSchema>;
  * `commissionAttachment.mediaAssetId`), so the kind always comes from that source —
  * it is never invented or defaulted at the post write.
  */
-export const SquareStreetzPostSchema = z.object({
-  postId: z.string(),
-  createdBy: z.object({ uid: z.string() }),
-  authorId: z.string(),
-  content: z.string(),
-  // The post mention list; each placeholder appears in `content` exactly once (refined below).
-  mentions: SquareStreetzPostMentionsSchema.optional(),
-  relatedIds: z.array(z.string()),
-  /** Paired with `mediaType` — see the media-pair invariant above. */
-  mediaAssetId: z.string().optional(),
-  /** Paired with `mediaAssetId` — see the media-pair invariant above. */
-  mediaType: mediaTypeSchema.optional(),
-  createdAt: z.number(),
-  likes: z.number(),
-  postType: SquareStreetzPostTypeSchema.optional(),
-  relatedAssetId: z.string().optional(),
-  // Admin moderation hide (reversible). When true the post is suppressed from all
-  // feeds/lists; restored by clearing it. `hidden` is the ONLY moderation flag on a post:
-  // posts are created only after their media finalizes, so no upload-gating flag exists.
-  hidden: z.boolean(),
-  hiddenBy: ModerationHiddenBySchema.optional(),
-}).superRefine((val, ctx) => {
-  refineMentionCorrespondence(val.content, val.mentions, ctx);
-  if (val.mediaAssetId !== undefined && val.mediaType === undefined) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['mediaType'],
-      message: 'mediaType is required whenever a post carries mediaAssetId (MEDIA-101: an extensionless gateway URL with no kind renders a Download link instead of the media)',
-    });
-  }
-  if (val.mediaType !== undefined && val.mediaAssetId === undefined) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['mediaAssetId'],
-      message: 'mediaType is only allowed on a post that carries mediaAssetId — an orphan kind describes media the post does not have',
-    });
-  }
-});
+export const SquareStreetzPostSchema = z
+  .object({
+    postId: z.string(),
+    createdBy: z.object({ uid: z.string() }),
+    authorId: z.string(),
+    content: z.string(),
+    // The post mention list; each placeholder appears in `content` exactly once (refined below).
+    mentions: SquareStreetzPostMentionsSchema.optional(),
+    relatedIds: z.array(z.string()),
+    /** Paired with `mediaType` — see the media-pair invariant above. */
+    mediaAssetId: z.string().optional(),
+    /** Paired with `mediaAssetId` — see the media-pair invariant above. */
+    mediaType: mediaTypeSchema.optional(),
+    createdAt: z.number(),
+    likes: z.number(),
+    postType: SquareStreetzPostTypeSchema.optional(),
+    relatedAssetId: z.string().optional(),
+    // Admin moderation hide (reversible). When true the post is suppressed from all
+    // feeds/lists; restored by clearing it. `hidden` is the ONLY moderation flag on a post:
+    // posts are created only after their media finalizes, so no upload-gating flag exists.
+    hidden: z.boolean(),
+    hiddenBy: ModerationHiddenBySchema.optional(),
+  })
+  .superRefine((val, ctx) => {
+    refineMentionCorrespondence(val.content, val.mentions, ctx);
+    if (val.mediaAssetId !== undefined && val.mediaType === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['mediaType'],
+        message:
+          'mediaType is required whenever a post carries mediaAssetId (MEDIA-101: an extensionless gateway URL with no kind renders a Download link instead of the media)',
+      });
+    }
+    if (val.mediaType !== undefined && val.mediaAssetId === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['mediaAssetId'],
+        message:
+          'mediaType is only allowed on a post that carries mediaAssetId — an orphan kind describes media the post does not have',
+      });
+    }
+  });
 export type SquareStreetzPost = z.infer<typeof SquareStreetzPostSchema>;
 
 // The created post, homed beside its doc schema (see AddToMentionHistoryResultSchema for why).
 export const CreateSquareStreetzTextPostResultSchema = z.object({
   post: SquareStreetzPostSchema,
 });
-export type CreateSquareStreetzTextPostResult = z.infer<typeof CreateSquareStreetzTextPostResultSchema>;
+export type CreateSquareStreetzTextPostResult = z.infer<
+  typeof CreateSquareStreetzTextPostResultSchema
+>;
 
 /**
  * The create/announcement transport payload for a SquareStreetz post — the exact input

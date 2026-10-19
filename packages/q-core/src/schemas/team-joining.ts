@@ -27,12 +27,18 @@ import {
 // ---------------------------------------------------------------------------------------------
 
 export const CreateTeamInvitationInputSchema = z
-  .object({ teamId: teamIdSchema, invitedUserId: userIdSchema, message: teamInvitationMessageSchema })
+  .object({
+    teamId: teamIdSchema,
+    invitedUserId: userIdSchema,
+    message: teamInvitationMessageSchema,
+  })
   .strict();
 export type CreateTeamInvitationInput = z.infer<typeof CreateTeamInvitationInputSchema>;
 
 // Names the invitation a cancel, an acceptance, or a decline acts on.
-export const TeamInvitationTargetInputSchema = z.object({ teamInvitationId: teamInvitationIdSchema }).strict();
+export const TeamInvitationTargetInputSchema = z
+  .object({ teamInvitationId: teamInvitationIdSchema })
+  .strict();
 export type TeamInvitationTargetInput = z.infer<typeof TeamInvitationTargetInputSchema>;
 
 // What sending, cancelling, and declining answer with: the invitation and the ids a client names in
@@ -67,7 +73,9 @@ export const CreateTeamJoinRequestInputSchema = z
 export type CreateTeamJoinRequestInput = z.infer<typeof CreateTeamJoinRequestInputSchema>;
 
 // Names the join request a cancel, an acceptance, or a rejection acts on.
-export const TeamJoinRequestTargetInputSchema = z.object({ teamJoinRequestId: teamJoinRequestIdSchema }).strict();
+export const TeamJoinRequestTargetInputSchema = z
+  .object({ teamJoinRequestId: teamJoinRequestIdSchema })
+  .strict();
 export type TeamJoinRequestTargetInput = z.infer<typeof TeamJoinRequestTargetInputSchema>;
 
 export const TeamJoinRequestResultSchema = z
@@ -120,4 +128,6 @@ export const AdminAssignLeagueFreeAgentResultSchema = z
     rosterSyncStatus: membershipRosterSyncStatusSchema,
   })
   .strict();
-export type AdminAssignLeagueFreeAgentResult = z.infer<typeof AdminAssignLeagueFreeAgentResultSchema>;
+export type AdminAssignLeagueFreeAgentResult = z.infer<
+  typeof AdminAssignLeagueFreeAgentResultSchema
+>;

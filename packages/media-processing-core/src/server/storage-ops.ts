@@ -18,21 +18,24 @@
 // Writes return `{ key }` — never URLs. Display URLs are built at render time
 // from asset refs (see the consuming app's media-asset-url helper).
 
-import { createReadStream, createWriteStream } from "node:fs";
-import { stat } from "node:fs/promises";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
-import { AwsClient } from "aws4fetch";
-import type { getStorage } from "firebase-admin/storage";
-import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
-import { isObjectNotFoundError } from "./gcs-errors.js";
+import { createReadStream, createWriteStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { AwsClient } from 'aws4fetch';
+import type { getStorage } from 'firebase-admin/storage';
+import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
+import { isObjectNotFoundError } from './gcs-errors.js';
 import {
   defaultR2RetrySeams,
   fetchWithR2Retry,
   R2StorageError,
   type R2RetrySeams,
-} from "./r2-retry.js";
-import { requireStorageObjectGeneration, UnreadableStorageObjectMetadataError } from "./staged-object.js";
+} from './r2-retry.js';
+import {
+  requireStorageObjectGeneration,
+  UnreadableStorageObjectMetadataError,
+} from './staged-object.js';
 
 /**
  * A copy found an object at its destination key that is not this copy's result, and
@@ -41,13 +44,13 @@ import { requireStorageObjectGeneration, UnreadableStorageObjectMetadataError } 
  */
 export class ObjectAlreadyExistsError extends Error {
   constructor(public readonly key: string) {
-    super("copy destination already holds another object");
-    this.name = "ObjectAlreadyExistsError";
+    super('copy destination already holds another object');
+    this.name = 'ObjectAlreadyExistsError';
   }
 }
 
 /** Firebase Admin Storage Bucket — inferred to avoid @google-cloud/storage dep. */
-export type Bucket = ReturnType<ReturnType<typeof getStorage>["bucket"]>;
+export type Bucket = ReturnType<ReturnType<typeof getStorage>['bucket']>;
 
 export interface ObjectWriteResult {
   key: string;
@@ -75,16 +78,19 @@ export interface ObjectCopyResult {
  * `absent` — no object; `notThisCopy` — an object this package did not copy from that
  * source, left untouched.
  */
-export type DeleteCopyResult = "deleted" | "absent" | "notThisCopy";
+export type DeleteCopyResult = 'deleted' | 'absent' | 'notThisCopy';
 
 // Every copy records on its destination which source version it holds. A copy whose
 // destination already exists compares this record with its own, so it recognizes its
 // own earlier result and never mistakes another writer's object for it. The values are
 // URI-encoded because R2 carries custom metadata in HTTP headers, which must be ASCII.
-const COPY_SOURCE_METADATA_KEY = "copy-source";
-const COPY_SOURCE_VERSION_METADATA_KEY = "copy-source-version";
+const COPY_SOURCE_METADATA_KEY = 'copy-source';
+const COPY_SOURCE_VERSION_METADATA_KEY = 'copy-source-version';
 
-type CopyProvenance = Record<typeof COPY_SOURCE_METADATA_KEY | typeof COPY_SOURCE_VERSION_METADATA_KEY, string>;
+type CopyProvenance = Record<
+  typeof COPY_SOURCE_METADATA_KEY | typeof COPY_SOURCE_VERSION_METADATA_KEY,
+  string
+>;
 
 function copyProvenance(fromKey: string, sourceVersion: string): CopyProvenance {
   return {
@@ -94,7 +100,10 @@ function copyProvenance(fromKey: string, sourceVersion: string): CopyProvenance 
 }
 
 /** Whether an object's custom metadata, read through `readMetadata`, names exactly this provenance. */
-function holdsProvenance(readMetadata: (name: string) => unknown, provenance: CopyProvenance): boolean {
+function holdsProvenance(
+  readMetadata: (name: string) => unknown,
+  provenance: CopyProvenance,
+): boolean {
   return Object.entries(provenance).every(([name, value]) => readMetadata(name) === value);
 }
 
@@ -107,17 +116,17 @@ function recordsCopyOf(readMetadata: (name: string) => unknown, fromKey: string)
   const version = readMetadata(COPY_SOURCE_VERSION_METADATA_KEY);
   return (
     readMetadata(COPY_SOURCE_METADATA_KEY) === encodeURIComponent(fromKey) &&
-    typeof version === "string" &&
-    version !== ""
+    typeof version === 'string' &&
+    version !== ''
   );
 }
 
 /** The content headers a copy carries from its source: HTTP header name → Cloud Storage field. */
 const CARRIED_CONTENT_HEADERS = {
-  "content-type": "contentType",
-  "cache-control": "cacheControl",
-  "content-disposition": "contentDisposition",
-  "content-encoding": "contentEncoding",
+  'content-type': 'contentType',
+  'cache-control': 'cacheControl',
+  'content-disposition': 'contentDisposition',
+  'content-encoding': 'contentEncoding',
 } as const;
 
 type CarriedContentField = (typeof CARRIED_CONTENT_HEADERS)[keyof typeof CARRIED_CONTENT_HEADERS];
@@ -129,7 +138,11 @@ export interface MediaObjectStore {
    * written under a NEW key and the app repoints its reference to it. Overwriting
    * an existing key would keep serving the old bytes from caches for up to a year.
    */
-  putFile(args: { localPath: string; key: string; contentType?: string }): Promise<ObjectWriteResult>;
+  putFile(args: {
+    localPath: string;
+    key: string;
+    contentType?: string;
+  }): Promise<ObjectWriteResult>;
   /**
    * Server-side copy within the store. It never overwrites and is idempotent: it commits
    * only when `toKey` holds no object, in one call that writes the destination fully
@@ -167,7 +180,7 @@ export interface MediaObjectStore {
   deleteCopy(args: { fromKey: string; toKey: string }): Promise<DeleteCopyResult>;
 }
 
-const DEFAULT_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const DEFAULT_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 // ---------------------------------------------------------------------------
 // R2 (S3-compatible) store — deployed environments
@@ -191,12 +204,15 @@ export interface CreateR2ObjectStoreArgs {
 }
 
 export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectStore {
-  const endpoint = (args.endpoint ?? `https://${args.accountId}.r2.cloudflarestorage.com`).replace(/\/$/, "");
+  const endpoint = (args.endpoint ?? `https://${args.accountId}.r2.cloudflarestorage.com`).replace(
+    /\/$/,
+    '',
+  );
   const client = new AwsClient({
     accessKeyId: args.accessKeyId,
     secretAccessKey: args.secretAccessKey,
-    service: "s3",
-    region: "auto",
+    service: 's3',
+    region: 'auto',
   });
   const doFetch = args.fetchImpl ?? fetch;
 
@@ -211,26 +227,32 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
   };
 
   const objectUrl = (key: string) =>
-    `${endpoint}/${args.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
+    `${endpoint}/${args.bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
 
-  async function signedFetch(url: string, init: RequestInit & { headers?: Record<string, string> }) {
+  async function signedFetch(
+    url: string,
+    init: RequestInit & { headers?: Record<string, string> },
+  ) {
     const signed = await client.sign(url, { ...init, aws: { allHeaders: true } } as any);
-    return doFetch(signed, { ...(init.body ? { duplex: "half" } : {}) } as any);
+    return doFetch(signed, { ...(init.body ? { duplex: 'half' } : {}) } as any);
   }
 
   // A GET whose body is discarded unread, not a HEAD: a HEAD's error response carries no
   // body, so the S3 error code that tells a missing key from a missing bucket would be lost.
-  async function readObjectHeaders(key: string, operation: "copy" | "deleteCopy"): Promise<Headers> {
+  async function readObjectHeaders(
+    key: string,
+    operation: 'copy' | 'deleteCopy',
+  ): Promise<Headers> {
     return fetchWithR2Retry({
       operation,
       bucket: args.bucket,
       key,
       seams,
       runAttempt: async () => {
-        const res = await signedFetch(objectUrl(key), { method: "GET" });
-        if (!res.ok) return { kind: "response" as const, response: res };
+        const res = await signedFetch(objectUrl(key), { method: 'GET' });
+        if (!res.ok) return { kind: 'response' as const, response: res };
         await res.body?.cancel();
-        return { kind: "success" as const, value: res.headers };
+        return { kind: 'success' as const, value: res.headers };
       },
     });
   }
@@ -240,12 +262,13 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
   // content has the same MD5-derived ETag and lands within the same second. A multipart
   // upload's ETag is not the content's MD5, but it is the same kind of version token.
   function readSourceVersion(headers: Headers, key: string): { etag: string; version: string } {
-    const etag = headers.get("etag");
-    if (!etag) throw new UnreadableStorageObjectMetadataError(args.bucket, key, "etag");
-    const lastModified = headers.get("last-modified");
-    if (!lastModified) throw new UnreadableStorageObjectMetadataError(args.bucket, key, "lastModified");
-    const size = headers.get("content-length");
-    if (!size) throw new UnreadableStorageObjectMetadataError(args.bucket, key, "size");
+    const etag = headers.get('etag');
+    if (!etag) throw new UnreadableStorageObjectMetadataError(args.bucket, key, 'etag');
+    const lastModified = headers.get('last-modified');
+    if (!lastModified)
+      throw new UnreadableStorageObjectMetadataError(args.bucket, key, 'lastModified');
+    const size = headers.get('content-length');
+    if (!size) throw new UnreadableStorageObjectMetadataError(args.bucket, key, 'size');
     return { etag, version: `${etag} ${lastModified} ${size}` };
   }
 
@@ -256,7 +279,7 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
       const { size } = await stat(localPath);
       const ct = contentType ?? getMimeFromExt(extractExt(localPath));
       return fetchWithR2Retry({
-        operation: "putFile",
+        operation: 'putFile',
         bucket: args.bucket,
         key,
         seams,
@@ -264,36 +287,36 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
         // consumed stream is never reused.
         runAttempt: async () => {
           const res = await signedFetch(objectUrl(key), {
-            method: "PUT",
+            method: 'PUT',
             headers: {
-              "content-type": ct,
-              "content-length": String(size),
-              "cache-control": DEFAULT_CACHE_CONTROL,
+              'content-type': ct,
+              'content-length': String(size),
+              'cache-control': DEFAULT_CACHE_CONTROL,
             },
             body: createReadStream(localPath) as unknown as BodyInit,
           });
           if (res.ok) {
-            return { kind: "success" as const, value: { key, sizeBytes: size, contentType: ct } };
+            return { kind: 'success' as const, value: { key, sizeBytes: size, contentType: ct } };
           }
-          return { kind: "response" as const, response: res };
+          return { kind: 'response' as const, response: res };
         },
       });
     },
 
     async copy({ fromKey, toKey }) {
-      const source = await readObjectHeaders(fromKey, "copy");
+      const source = await readObjectHeaders(fromKey, 'copy');
       const { etag, version } = readSourceVersion(source, fromKey);
       const provenance = copyProvenance(fromKey, version);
       const headers: Record<string, string> = {
-        "x-amz-copy-source": `/${args.bucket}/${fromKey.split("/").map(encodeURIComponent).join("/")}`,
+        'x-amz-copy-source': `/${args.bucket}/${fromKey.split('/').map(encodeURIComponent).join('/')}`,
         // Pins the copy to the source version the provenance names.
-        "x-amz-copy-source-if-match": etag,
+        'x-amz-copy-source-if-match': etag,
         // R2's destination-conditional CopyObject extension, checked when the copy commits;
         // S3's x-amz-copy-source-if-* headers condition only the source.
-        "cf-copy-destination-if-none-match": "*",
+        'cf-copy-destination-if-none-match': '*',
         // The destination takes exactly the headers below rather than the source's, so it
         // commits fully formed in this one call.
-        "x-amz-metadata-directive": "REPLACE",
+        'x-amz-metadata-directive': 'REPLACE',
       };
       for (const name of Object.keys(CARRIED_CONTENT_HEADERS)) {
         const value = source.get(name);
@@ -303,14 +326,14 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
 
       try {
         await fetchWithR2Retry({
-          operation: "copy",
+          operation: 'copy',
           bucket: args.bucket,
           key: toKey,
           seams,
           runAttempt: async () => {
-            const res = await signedFetch(objectUrl(toKey), { method: "PUT", headers });
-            if (res.ok) return { kind: "success" as const, value: undefined };
-            return { kind: "response" as const, response: res };
+            const res = await signedFetch(objectUrl(toKey), { method: 'PUT', headers });
+            if (res.ok) return { kind: 'success' as const, value: undefined };
+            return { kind: 'response' as const, response: res };
           },
         });
         return { key: toKey, alreadyPresent: false };
@@ -320,7 +343,7 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
         // after it was read; only an existing destination can be this copy's result.
         let destination: Headers;
         try {
-          destination = await readObjectHeaders(toKey, "copy");
+          destination = await readObjectHeaders(toKey, 'copy');
         } catch (readError) {
           if (isObjectNotFoundError(readError)) throw e;
           throw readError;
@@ -334,16 +357,16 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
 
     async readToFile({ key, localPath }) {
       return fetchWithR2Retry({
-        operation: "readToFile",
+        operation: 'readToFile',
         bucket: args.bucket,
         key,
         seams,
         runAttempt: async () => {
-          const res = await signedFetch(objectUrl(key), { method: "GET" });
+          const res = await signedFetch(objectUrl(key), { method: 'GET' });
           if (!res.ok || !res.body) {
-            return { kind: "response" as const, response: res };
+            return { kind: 'response' as const, response: res };
           }
-          const contentType = res.headers.get("content-type") ?? NEUTRAL_CONTENT_TYPE;
+          const contentType = res.headers.get('content-type') ?? NEUTRAL_CONTENT_TYPE;
           // Pipe ONLY after a successful response, and open the destination in
           // truncating mode ('w') on every attempt so a partial download from a
           // prior attempt can never prefix/corrupt this one. res.body is a web
@@ -352,21 +375,21 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
           // retried by the helper; a deterministic local fs error is not.
           await pipeline(
             Readable.fromWeb(res.body as Parameters<typeof Readable.fromWeb>[0]),
-            createWriteStream(localPath, { flags: "w" }),
+            createWriteStream(localPath, { flags: 'w' }),
           );
           const { size } = await stat(localPath);
-          return { kind: "success" as const, value: { sizeBytes: size, contentType } };
+          return { kind: 'success' as const, value: { sizeBytes: size, contentType } };
         },
       });
     },
 
     async delete(key) {
       // Intentionally one-shot: delete is never retried (see r2-retry.ts header).
-      const res = await signedFetch(objectUrl(key), { method: "DELETE" });
+      const res = await signedFetch(objectUrl(key), { method: 'DELETE' });
       // S3 DELETE returns 204 even for missing keys; anything else non-ok is real.
       if (!res.ok && res.status !== 404) {
         throw new R2StorageError({
-          operation: "delete",
+          operation: 'delete',
           bucket: args.bucket,
           key,
           attempts: 1,
@@ -379,26 +402,27 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
     async deleteCopy({ fromKey, toKey }) {
       let destination: Headers;
       try {
-        destination = await readObjectHeaders(toKey, "deleteCopy");
+        destination = await readObjectHeaders(toKey, 'deleteCopy');
       } catch (e) {
-        if (isObjectNotFoundError(e)) return "absent";
+        if (isObjectNotFoundError(e)) return 'absent';
         throw e;
       }
-      if (!recordsCopyOf((name) => destination.get(`x-amz-meta-${name}`), fromKey)) return "notThisCopy";
+      if (!recordsCopyOf((name) => destination.get(`x-amz-meta-${name}`), fromKey))
+        return 'notThisCopy';
       // Unconditioned: R2's DeleteObject honors no precondition header, so none is sent — one
       // it silently ignored would only look like protection. `MediaObjectStore.deleteCopy`
       // states why the gap after the check is harmless. One-shot, like `delete`.
-      const res = await signedFetch(objectUrl(toKey), { method: "DELETE" });
-      if (res.ok) return "deleted";
+      const res = await signedFetch(objectUrl(toKey), { method: 'DELETE' });
+      if (res.ok) return 'deleted';
       const error = new R2StorageError({
-        operation: "deleteCopy",
+        operation: 'deleteCopy',
         bucket: args.bucket,
         key: toKey,
         attempts: 1,
         status: res.status,
         responseText: await safeText(res),
       });
-      if (isObjectNotFoundError(error)) return "absent";
+      if (isObjectNotFoundError(error)) return 'absent';
       throw error;
     },
   };
@@ -408,7 +432,7 @@ async function safeText(res: Response): Promise<string> {
   try {
     return (await res.text()).slice(0, 500);
   } catch {
-    return "<no body>";
+    return '<no body>';
   }
 }
 
@@ -417,7 +441,7 @@ async function safeText(res: Response): Promise<string> {
 // ---------------------------------------------------------------------------
 
 /** Custom-metadata key Firebase Storage reads download tokens from. */
-const DOWNLOAD_TOKENS_METADATA_KEY = "firebaseStorageDownloadTokens";
+const DOWNLOAD_TOKENS_METADATA_KEY = 'firebaseStorageDownloadTokens';
 
 /**
  * How many times `deleteCopy` checks a Firebase Storage destination before giving up. Keys
@@ -431,7 +455,9 @@ export interface CreateFirebaseStorageObjectStoreArgs {
 }
 
 /** Firebase Storage store for deployed environments. Token-free (see header). */
-export function createFirebaseStorageObjectStore(args: CreateFirebaseStorageObjectStoreArgs): MediaObjectStore {
+export function createFirebaseStorageObjectStore(
+  args: CreateFirebaseStorageObjectStoreArgs,
+): MediaObjectStore {
   return createFirebaseStore(args.bucket, null);
 }
 
@@ -442,7 +468,9 @@ export interface CreateEmulatorObjectStoreArgs extends CreateFirebaseStorageObje
 }
 
 /** Local dev / tests only: the Firebase Storage store plus a fixed download token. */
-export function createFirebaseEmulatorObjectStore(args: CreateEmulatorObjectStoreArgs): MediaObjectStore {
+export function createFirebaseEmulatorObjectStore(
+  args: CreateEmulatorObjectStoreArgs,
+): MediaObjectStore {
   return createFirebaseStore(args.bucket, args.downloadToken);
 }
 
@@ -468,7 +496,9 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
         metadata: {
           contentType: ct,
           cacheControl: DEFAULT_CACHE_CONTROL,
-          ...(downloadToken === null ? {} : { metadata: { [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken } }),
+          ...(downloadToken === null
+            ? {}
+            : { metadata: { [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken } }),
         },
       });
       return { key, sizeBytes: size, contentType: ct };
@@ -476,12 +506,15 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
 
     async copy({ fromKey, toKey }) {
       const [source] = await bucket.file(fromKey).getMetadata();
-      const generation = requireStorageObjectGeneration(source, { bucket: bucket.name, key: fromKey });
+      const generation = requireStorageObjectGeneration(source, {
+        bucket: bucket.name,
+        key: fromKey,
+      });
       const provenance = copyProvenance(fromKey, generation);
       const contentHeaders: Partial<Record<CarriedContentField, string>> = {};
       for (const field of Object.values(CARRIED_CONTENT_HEADERS)) {
         const value = source[field];
-        if (typeof value === "string" && value !== "") contentHeaders[field] = value;
+        if (typeof value === 'string' && value !== '') contentHeaders[field] = value;
       }
       try {
         // A rewrite's resource REPLACES the destination's metadata rather than merging with
@@ -491,7 +524,10 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
         // 412 can only mean the destination exists; a replaced source fails as not-found.
         await bucket.file(fromKey, { generation }).copy(bucket.file(toKey), {
           ...contentHeaders,
-          metadata: downloadToken === null ? provenance : { ...provenance, [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken },
+          metadata:
+            downloadToken === null
+              ? provenance
+              : { ...provenance, [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken },
           preconditionOpts: { ifGenerationMatch: 0 },
         });
         return { key: toKey, alreadyPresent: false };
@@ -533,17 +569,20 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
           custom = destination.metadata ?? undefined;
           generation = destination.generation;
         } catch (e) {
-          if (isObjectNotFoundError(e)) return "absent";
+          if (isObjectNotFoundError(e)) return 'absent';
           throw e;
         }
-        if (!recordsCopyOf((name) => custom?.[name], fromKey)) return "notThisCopy";
+        if (!recordsCopyOf((name) => custom?.[name], fromKey)) return 'notThisCopy';
         // The delete names the generation just checked, so it can only remove that object.
-        const checked = requireStorageObjectGeneration({ generation }, { bucket: bucket.name, key: toKey });
+        const checked = requireStorageObjectGeneration(
+          { generation },
+          { bucket: bucket.name, key: toKey },
+        );
         try {
           await file.delete({ ifGenerationMatch: checked });
-          return "deleted";
+          return 'deleted';
         } catch (e) {
-          if (isObjectNotFoundError(e)) return "absent";
+          if (isObjectNotFoundError(e)) return 'absent';
           // A 412 means the object changed after it was checked: check what is there now.
           if (!isPreconditionFailedError(e) || read >= DELETE_COPY_MAX_READS) throw e;
         }
@@ -560,28 +599,28 @@ function isPreconditionFailedError(e: unknown): boolean {
 // ---------------------------------------------------------------------------
 
 function extractExt(localPath: string): string {
-  return localPath.split(".").pop() || "";
+  return localPath.split('.').pop() || '';
 }
 
 export function getMimeFromExt(ext: string): string {
   switch (ext.toLowerCase()) {
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "png":
-      return "image/png";
-    case "webp":
-      return "image/webp";
-    case "mp4":
-      return "video/mp4";
-    case "webm":
-      return "video/webm";
-    case "m4a":
-      return "audio/mp4";
-    case "aac":
-      return "audio/aac";
-    case "mp3":
-      return "audio/mpeg";
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'mp4':
+      return 'video/mp4';
+    case 'webm':
+      return 'video/webm';
+    case 'm4a':
+      return 'audio/mp4';
+    case 'aac':
+      return 'audio/aac';
+    case 'mp3':
+      return 'audio/mpeg';
     default:
       return NEUTRAL_CONTENT_TYPE;
   }

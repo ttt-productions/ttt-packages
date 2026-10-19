@@ -27,7 +27,9 @@ describe('Hall-media orphan reaper policy constants', () => {
   it('backs a deferral off from the daily cadence to a 14-day cap', () => {
     expect(HALL_MEDIA_REAPER_BACKOFF_BASE_MS).toBe(DAY_MS);
     expect(HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBe(14 * DAY_MS);
-    expect(HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBeGreaterThanOrEqual(HALL_MEDIA_REAPER_BACKOFF_BASE_MS);
+    expect(HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBeGreaterThanOrEqual(
+      HALL_MEDIA_REAPER_BACKOFF_BASE_MS,
+    );
   });
 
   it('keeps retrying a full deferred set cheaper than one page of its own', () => {
@@ -41,7 +43,9 @@ describe('Hall-media orphan reaper policy constants', () => {
   });
 
   it('holds a claim at least ten times the reaper function timeout, so a live pass never loses it', () => {
-    expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(10 * REAPER_FUNCTION_TIMEOUT_MS);
+    expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(
+      10 * REAPER_FUNCTION_TIMEOUT_MS,
+    );
   });
 
   it('expires a claim inside the day-long retry budget of the publish trigger', () => {

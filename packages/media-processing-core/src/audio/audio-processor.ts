@@ -1,25 +1,29 @@
-import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
-import { mkdir, stat } from "node:fs/promises";
-import path from "node:path";
-import { safeOutputPathFor } from "../utils/safe-path.js";
-import { ensureFfmpegAvailable, runFfmpeg } from "../video/ffmpeg.js";
-import { probeAudio } from "./probe.js";
-import { unreadableLengthError } from "../duration/media-duration.js";
-import type { ProcessMediaOptions } from "../types.js";
-import { TIMED_MEDIA_MAIN_OUTPUT_KEY } from "@ttt-productions/media-schemas";
+import type {
+  MediaOutput,
+  MediaProcessingResult,
+  MediaProcessingSpec,
+} from '@ttt-productions/media-schemas';
+import { mkdir, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { safeOutputPathFor } from '../utils/safe-path.js';
+import { ensureFfmpegAvailable, runFfmpeg } from '../video/ffmpeg.js';
+import { probeAudio } from './probe.js';
+import { unreadableLengthError } from '../duration/media-duration.js';
+import type { ProcessMediaOptions } from '../types.js';
+import { TIMED_MEDIA_MAIN_OUTPUT_KEY } from '@ttt-productions/media-schemas';
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
   const m = actual.trim().toLowerCase();
   if (!a) return true;
-  if (a === "*/*") return true;
-  if (a.endsWith("/*")) return m.startsWith(a.slice(0, -1));
+  if (a === '*/*') return true;
+  if (a.endsWith('/*')) return m.startsWith(a.slice(0, -1));
   return a === m;
 }
 
 function acceptAllowsAudio(spec: MediaProcessingSpec): boolean {
   const kinds = spec.accept?.kinds?.filter(Boolean) ?? [];
-  return kinds.length === 0 ? true : kinds.includes("audio");
+  return kinds.length === 0 ? true : kinds.includes('audio');
 }
 
 function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boolean {
@@ -40,39 +44,51 @@ export async function processAudio(
     outputBasePath: string;
     inputMime?: string;
   },
-  opts?: ProcessMediaOptions
+  opts?: ProcessMediaOptions,
 ): Promise<MediaProcessingResult> {
   const tempFiles: string[] = [];
 
   try {
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'audio',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
     const ff = await ensureFfmpegAvailable();
     if (!ff.ok) {
       return {
         ok: false,
-        mediaType: "audio",
+        mediaType: 'audio',
         error: {
-          code: "processing_failed",
-          message: "ffmpeg is not available.",
-          details: { error: String((ff as any).error ?? "unknown") },
+          code: 'processing_failed',
+          message: 'ffmpeg is not available.',
+          details: { error: String((ff as any).error ?? 'unknown') },
         },
       };
     }
     if (!acceptAllowsAudio(spec)) {
       return {
         ok: false,
-        mediaType: "audio",
-        error: { code: "invalid_mime", message: "Spec does not allow audio uploads.", details: { accept: spec.accept } },
+        mediaType: 'audio',
+        error: {
+          code: 'invalid_mime',
+          message: 'Spec does not allow audio uploads.',
+          details: { accept: spec.accept },
+        },
       };
     }
 
     if (!acceptAllowsMime(spec, ctx.inputMime)) {
       return {
         ok: false,
-        mediaType: "audio",
-        error: { code: "invalid_mime", message: "Audio mime type is not allowed.", details: { inputMime: ctx.inputMime, accept: spec.accept } },
+        mediaType: 'audio',
+        error: {
+          code: 'invalid_mime',
+          message: 'Audio mime type is not allowed.',
+          details: { inputMime: ctx.inputMime, accept: spec.accept },
+        },
       };
     }
 
@@ -82,57 +98,55 @@ export async function processAudio(
     const probe = await probeAudio(ctx.inputPath, { signal: opts?.signal });
 
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'audio',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
 
     const maxDur = spec.maxDurationSec ?? spec.audio?.maxDurationSec;
     if (maxDur && probe.durationSec === undefined) {
-      return { ok: false, mediaType: "audio", error: unreadableLengthError("audio", maxDur) };
+      return { ok: false, mediaType: 'audio', error: unreadableLengthError('audio', maxDur) };
     }
     if (maxDur && probe.durationSec !== undefined && probe.durationSec > maxDur) {
       return {
         ok: false,
-        mediaType: "audio",
+        mediaType: 'audio',
         error: {
-          code: "too_long",
-          message: "Audio is too long.",
+          code: 'too_long',
+          message: 'Audio is too long.',
           details: { durationSec: probe.durationSec, maxDurationSec: maxDur },
         },
       };
     }
 
     // Normalize to AAC in m4a (small + widely supported)
-    const outPath = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, "m4a");
+    const outPath = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, 'm4a');
 
     tempFiles.push(outPath);
 
-    const args = [
-      "-y",
-      "-i",
-      ctx.inputPath,
-      "-vn",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "128k",
-      outPath,
-    ];
+    const args = ['-y', '-i', ctx.inputPath, '-vn', '-c:a', 'aac', '-b:a', '128k', outPath];
 
     const r = await runFfmpeg(args, {
       signal: opts?.signal,
       durationMs: probe.durationSec ? probe.durationSec * 1000 : undefined,
       onProgress: (p) => {
-        opts?.onProgress?.({ phase: "process", percent: p.percent, detail: { step: "audio_transcode", outTimeMs: p.outTimeMs } });
+        opts?.onProgress?.({
+          phase: 'process',
+          percent: p.percent,
+          detail: { step: 'audio_transcode', outTimeMs: p.outTimeMs },
+        });
       },
-      phase: "transcode",
+      phase: 'transcode',
     });
     if (r.code !== 0) {
       return {
         ok: false,
-        mediaType: "audio",
+        mediaType: 'audio',
         error: {
-          code: "processing_failed",
-          message: "ffmpeg audio transcode failed.",
+          code: 'processing_failed',
+          message: 'ffmpeg audio transcode failed.',
           details: { stderr: r.stderr, stdout: r.stdout },
         },
       };
@@ -145,7 +159,7 @@ export async function processAudio(
         key: TIMED_MEDIA_MAIN_OUTPUT_KEY,
         url: `file://${outPath}`,
         path: outPath,
-        mime: "audio/mp4",
+        mime: 'audio/mp4',
         sizeBytes: s.size,
         durationSec: probe.durationSec,
       },
@@ -155,7 +169,7 @@ export async function processAudio(
 
     return {
       ok: true,
-      mediaType: "audio",
+      mediaType: 'audio',
       outputs,
       meta: {
         mime: ctx.inputMime,
@@ -164,20 +178,24 @@ export async function processAudio(
     };
   } catch (e: any) {
     if (opts?.signal?.aborted) {
-      return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
+      return {
+        ok: false,
+        mediaType: 'audio',
+        error: { code: 'processing_canceled', message: 'Processing canceled.' },
+      };
     }
     return {
       ok: false,
-      mediaType: "audio",
+      mediaType: 'audio',
       error: {
-        code: "processing_failed",
-        message: e?.message ? String(e.message) : "Audio processing failed",
+        code: 'processing_failed',
+        message: e?.message ? String(e.message) : 'Audio processing failed',
         details: { name: e?.name },
       },
     };
   } finally {
     if (tempFiles.length) {
-      const { rm } = await import("node:fs/promises");
+      const { rm } = await import('node:fs/promises');
       await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
     }
   }

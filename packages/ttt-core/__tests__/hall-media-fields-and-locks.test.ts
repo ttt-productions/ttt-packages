@@ -19,26 +19,33 @@ import {
 
 describe('Hall media asset-reference fields', () => {
   it('lists every cover field the cover map writes, once each', () => {
-    expect(new Set(HALL_LIBRARY_COVER_ASSET_FIELDS)).toEqual(new Set(Object.values(HALL_LIBRARY_COVER_TARGET_FIELDS)));
-    expect(new Set(HALL_LIBRARY_COVER_ASSET_FIELDS).size).toBe(HALL_LIBRARY_COVER_ASSET_FIELDS.length);
+    expect(new Set(HALL_LIBRARY_COVER_ASSET_FIELDS)).toEqual(
+      new Set(Object.values(HALL_LIBRARY_COVER_TARGET_FIELDS)),
+    );
+    expect(new Set(HALL_LIBRARY_COVER_ASSET_FIELDS).size).toBe(
+      HALL_LIBRARY_COVER_ASSET_FIELDS.length,
+    );
   });
 
   it('lists every sub-item field the sub-item map writes, once each', () => {
     expect(new Set(HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS)).toEqual(
       new Set(Object.values(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS)),
     );
-    expect(new Set(HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS).size).toBe(HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS.length);
+    expect(new Set(HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS).size).toBe(
+      HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS.length,
+    );
   });
 
   it('together cover every field any Hall upload origin writes', () => {
-    expect(new Set([...HALL_LIBRARY_COVER_ASSET_FIELDS, ...HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS])).toEqual(
-      new Set(Object.values(HALL_LIBRARY_TARGET_FIELDS)),
-    );
+    expect(
+      new Set([...HALL_LIBRARY_COVER_ASSET_FIELDS, ...HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS]),
+    ).toEqual(new Set(Object.values(HALL_LIBRARY_TARGET_FIELDS)));
   });
 
   it('names only fields the published Hall item declares', () => {
     const declared = PublishedHallItemSchema.shape as Record<string, unknown>;
-    for (const field of HALL_LIBRARY_COVER_ASSET_FIELDS) expect(declared[field], field).toBeDefined();
+    for (const field of HALL_LIBRARY_COVER_ASSET_FIELDS)
+      expect(declared[field], field).toBeDefined();
   });
 });
 

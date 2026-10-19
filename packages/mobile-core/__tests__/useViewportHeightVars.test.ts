@@ -11,7 +11,11 @@ afterEach(() => {
 
 describe('useViewportHeightVars', () => {
   it('sets --app-vh and --app-dvh by default', () => {
-    Object.defineProperty(window, 'innerHeight', { value: 800, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 800,
+      writable: true,
+      configurable: true,
+    });
     renderHook(() => useViewportHeightVars());
     const vh = document.documentElement.style.getPropertyValue('--app-vh');
     expect(vh).toBeTruthy();
@@ -19,7 +23,11 @@ describe('useViewportHeightVars', () => {
   });
 
   it('sets --x-vh and --x-dvh when prefix is "x"', () => {
-    Object.defineProperty(window, 'innerHeight', { value: 800, writable: true, configurable: true });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 800,
+      writable: true,
+      configurable: true,
+    });
     renderHook(() => useViewportHeightVars({ cssPrefix: 'x' }));
     const xvh = document.documentElement.style.getPropertyValue('--x-vh');
     expect(xvh).toBeTruthy();

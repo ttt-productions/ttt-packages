@@ -1,5 +1,5 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import type { Redis } from "@upstash/redis";
+import { Ratelimit } from '@upstash/ratelimit';
+import type { Redis } from '@upstash/redis';
 
 export interface RateLimitConfig {
   /** Unique prefix for this limiter (e.g. "ratelimit:upload"). */
@@ -71,17 +71,28 @@ export function createRateLimiterFactory(options: RateLimiterFactoryOptions) {
     if (!redis) return null;
 
     const existing = limiters.get(config.prefix);
-    if (existing && existing.maxRequests === config.maxRequests && existing.window === config.window) {
+    if (
+      existing &&
+      existing.maxRequests === config.maxRequests &&
+      existing.window === config.window
+    ) {
       return existing.limiter;
     }
 
     const limiter = new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(config.maxRequests, config.window as Parameters<typeof Ratelimit.slidingWindow>[1]),
+      limiter: Ratelimit.slidingWindow(
+        config.maxRequests,
+        config.window as Parameters<typeof Ratelimit.slidingWindow>[1],
+      ),
       analytics,
       prefix: config.prefix,
     });
-    limiters.set(config.prefix, { maxRequests: config.maxRequests, window: config.window, limiter });
+    limiters.set(config.prefix, {
+      maxRequests: config.maxRequests,
+      window: config.window,
+      limiter,
+    });
     return limiter;
   }
 

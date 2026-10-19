@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type { DocumentData } from "firebase/firestore";
-import { toMillis } from "@ttt-productions/firebase-helpers";
-import { useFirestoreLiveInfinite } from "@ttt-productions/query-core/react";
-import type { FirestoreSourceState } from "@ttt-productions/query-core/types";
-import type { ChatMessageV1 } from "@ttt-productions/chat-core";
-import type { ChatCoreConfig } from "../types.js";
-import { messagesColPath } from "../firestore/queries.js";
-import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";
+import * as React from 'react';
+import type { DocumentData } from 'firebase/firestore';
+import { toMillis } from '@ttt-productions/firebase-helpers';
+import { useFirestoreLiveInfinite } from '@ttt-productions/query-core/react';
+import type { FirestoreSourceState } from '@ttt-productions/query-core/types';
+import type { ChatMessageV1 } from '@ttt-productions/chat-core';
+import type { ChatCoreConfig } from '../types.js';
+import { messagesColPath } from '../firestore/queries.js';
+import { useOptionalChatNameResolver } from '../context/ChatNameResolverContext.js';
 
 // Safety limit to prevent memory exhaustion
 const MAX_PAGE_SIZE = 100;
@@ -33,7 +33,7 @@ export type UseChatMessagesResult = {
 function mapMsg(
   data: DocumentData & { id: string },
   threadId: string,
-  messageMeta: ChatCoreConfig["messageMeta"],
+  messageMeta: ChatCoreConfig['messageMeta'],
 ): ChatMessageV1 {
   const d = data as any;
 
@@ -52,7 +52,7 @@ function mapMsg(
     threadId,
     createdAt: createdAt || 0,
     senderId: d.senderId,
-    text: d.text ?? "",
+    text: d.text ?? '',
     type: d.type,
     isSystemMessage: d.isSystemMessage ?? undefined,
     referencedUids: Array.isArray(d.referencedUids) ? d.referencedUids : undefined,
@@ -66,12 +66,12 @@ function mapMsg(
 export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
   const {
     chatCollectionPath,
-    messagesSubcollection = "messages",
+    messagesSubcollection = 'messages',
     threadId,
     pageSize: requestedPageSize = 20,
     currentUserId,
     allowed,
-    createdAtField = "createdAt",
+    createdAtField = 'createdAt',
     messageMeta,
   } = config;
 
@@ -79,35 +79,50 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
 
   if (requestedPageSize > MAX_PAGE_SIZE) {
     console.warn(
-      `[useChatMessages] Requested pageSize ${requestedPageSize} exceeds maximum ${MAX_PAGE_SIZE}. Using ${MAX_PAGE_SIZE}.`
+      `[useChatMessages] Requested pageSize ${requestedPageSize} exceeds maximum ${MAX_PAGE_SIZE}. Using ${MAX_PAGE_SIZE}.`,
     );
   }
 
   // Stable key segment for the message collection path (string | string[]).
   const pathKey = React.useMemo(
     () =>
-      JSON.stringify(
-        Array.isArray(chatCollectionPath) ? chatCollectionPath : [chatCollectionPath]
-      ),
-    [chatCollectionPath]
+      JSON.stringify(Array.isArray(chatCollectionPath) ? chatCollectionPath : [chatCollectionPath]),
+    [chatCollectionPath],
   );
 
   // Slash-joined collection path for the generic hook (handles nested paths).
   const collectionPath = React.useMemo(
-    () => messagesColPath(chatCollectionPath, threadId, messagesSubcollection).join("/"),
-    [chatCollectionPath, threadId, messagesSubcollection]
+    () => messagesColPath(chatCollectionPath, threadId, messagesSubcollection).join('/'),
+    [chatCollectionPath, threadId, messagesSubcollection],
   );
 
-  const { items, isInitialLoading, fetchOlder, hasOlder, isFetchingOlder, sourceState, error, olderError, retry } =
-    useFirestoreLiveInfinite<ChatMessageV1>({
-      collectionPath,
-      queryKey: ["chat-core", "messages", pathKey, threadId, messagesSubcollection, pageSize, currentUserId],
-      orderByField: createdAtField,
+  const {
+    items,
+    isInitialLoading,
+    fetchOlder,
+    hasOlder,
+    isFetchingOlder,
+    sourceState,
+    error,
+    olderError,
+    retry,
+  } = useFirestoreLiveInfinite<ChatMessageV1>({
+    collectionPath,
+    queryKey: [
+      'chat-core',
+      'messages',
+      pathKey,
+      threadId,
+      messagesSubcollection,
       pageSize,
-      enabled: allowed,
-      sort: "asc",
-      select: (data) => mapMsg(data, threadId, messageMeta),
-    });
+      currentUserId,
+    ],
+    orderByField: createdAtField,
+    pageSize,
+    enabled: allowed,
+    sort: 'asc',
+    select: (data) => mapMsg(data, threadId, messageMeta),
+  });
 
   const messages = React.useMemo(() => (allowed ? items : []), [allowed, items]);
 

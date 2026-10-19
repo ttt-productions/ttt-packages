@@ -69,7 +69,9 @@ const MAINTENANCE_REFUSAL_CODES: ReadonlySet<string> = new Set([
 ]);
 
 /** True when `details` is the maintenance refusal's structured details. */
-export function isMaintenanceRefusalDetails(details: unknown): details is MaintenanceRefusalDetails {
+export function isMaintenanceRefusalDetails(
+  details: unknown,
+): details is MaintenanceRefusalDetails {
   if (!details || typeof details !== 'object') return false;
   return (details as Record<string, unknown>).reason === MAINTENANCE_REFUSAL_REASON;
 }
@@ -126,11 +128,16 @@ export function mergeAppConfigUpdate(
   const stored = definedFields(existing ?? {});
   const repairs: AppConfigLeverRepair[] = [];
   for (const lever of APP_CONFIG_LEVER_KEYS) {
-    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success) continue;
+    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success)
+      continue;
     repairs.push({ lever, storedValue: stored[lever] });
     delete stored[lever];
   }
-  const parsed = AppConfigSchema.safeParse({ ...DEFAULT_APP_CONFIG, ...stored, ...definedFields(update) });
+  const parsed = AppConfigSchema.safeParse({
+    ...DEFAULT_APP_CONFIG,
+    ...stored,
+    ...definedFields(update),
+  });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const field = issue?.path.join('.') || 'document';

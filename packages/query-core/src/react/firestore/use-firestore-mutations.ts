@@ -1,6 +1,11 @@
 'use client';
 
-import { useMutation, useQueryClient, type QueryKey, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import {
   doc,
   setDoc,
@@ -65,13 +70,7 @@ export function useFirestoreUpdate<T extends DocumentData>({
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      docPath,
-      data,
-    }: {
-      docPath: string;
-      data: Partial<T>;
-    }) => {
+    mutationFn: async ({ docPath, data }: { docPath: string; data: Partial<T> }) => {
       const docRef = doc(db, docPath);
       await updateDoc(docRef, data as DocumentData);
       return data;
@@ -83,7 +82,7 @@ export function useFirestoreUpdate<T extends DocumentData>({
       const previousData = queryClient.getQueryData<T>(optimistic.queryKey);
 
       queryClient.setQueryData<T>(optimistic.queryKey, (old) =>
-        optimistic.updater(old, data as Partial<T>)
+        optimistic.updater(old, data as Partial<T>),
       );
 
       return { previousData };
@@ -134,9 +133,7 @@ export function useFirestoreDelete<T = unknown>({
       await queryClient.cancelQueries({ queryKey: optimistic.queryKey });
       const previousData = queryClient.getQueryData<T>(optimistic.queryKey);
 
-      queryClient.setQueryData<T>(optimistic.queryKey, (old) =>
-        optimistic.updater(old, docPath)
-      );
+      queryClient.setQueryData<T>(optimistic.queryKey, (old) => optimistic.updater(old, docPath));
 
       return { previousData };
     },
@@ -173,11 +170,7 @@ export function useFirestoreBatch({
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      operations,
-    }: {
-      operations: MutationOperation[];
-    }) => {
+    mutationFn: async ({ operations }: { operations: MutationOperation[] }) => {
       const chunks: MutationOperation[][] = [];
       for (let i = 0; i < operations.length; i += batchSize) {
         chunks.push(operations.slice(i, i + batchSize));

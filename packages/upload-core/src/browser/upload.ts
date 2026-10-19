@@ -1,9 +1,9 @@
-import type { UploadFileResumableResult } from "../types.js";
-import type { UploadFileResumableArgs, UploadController } from "./types.js";
-import { getFileSize } from "../utils/file-size.js";
-import { upsertUploadSession } from "../utils/upload-store.js";
-import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
-import { UploadError, isValidMediaContentType } from "../storage/upload-error.js";
+import type { UploadFileResumableResult } from '../types.js';
+import type { UploadFileResumableArgs, UploadController } from './types.js';
+import { getFileSize } from '../utils/file-size.js';
+import { upsertUploadSession } from '../utils/upload-store.js';
+import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
+import { UploadError, isValidMediaContentType } from '../storage/upload-error.js';
 
 import {
   ref,
@@ -11,14 +11,16 @@ import {
   type FirebaseStorage,
   type UploadMetadata,
   type UploadTaskSnapshot,
-} from "firebase/storage";
+} from 'firebase/storage';
 
 function isAbortError(e: unknown) {
-  return e instanceof DOMException && e.name === "AbortError";
+  return e instanceof DOMException && e.name === 'AbortError';
 }
 
 function isStorageCanceledError(e: unknown) {
-  return typeof e === "object" && e !== null && (e as { code?: unknown }).code === "storage/canceled";
+  return (
+    typeof e === 'object' && e !== null && (e as { code?: unknown }).code === 'storage/canceled'
+  );
 }
 
 export function startResumableUpload(args: {
@@ -27,7 +29,7 @@ export function startResumableUpload(args: {
   path: string;
   file: Blob;
   metadata?: UploadMetadata;
-  onProgress?: UploadFileResumableArgs["onProgress"];
+  onProgress?: UploadFileResumableArgs['onProgress'];
   signal?: AbortSignal;
 }): UploadController {
   const { id, storage, path, file, metadata, onProgress, signal } = args;
@@ -39,7 +41,7 @@ export function startResumableUpload(args: {
 
   upsertUploadSession({
     id,
-    status: "uploading",
+    status: 'uploading',
     path,
     transferred: 0,
     total: getFileSize(file),
@@ -78,11 +80,11 @@ export function startResumableUpload(args: {
 
   if (signal) {
     if (signal.aborted) onAbort();
-    signal.addEventListener("abort", onAbort, { once: true });
+    signal.addEventListener('abort', onAbort, { once: true });
   }
 
   unsub = task.on(
-    "state_changed",
+    'state_changed',
     (snap: UploadTaskSnapshot) => {
       const transferred = snap.bytesTransferred ?? 0;
       const total = snap.totalBytes ?? getFileSize(file);
@@ -91,11 +93,7 @@ export function startResumableUpload(args: {
       upsertUploadSession({
         id,
         status:
-          snap.state === "paused"
-            ? "paused"
-            : snap.state === "running"
-            ? "uploading"
-            : "uploading",
+          snap.state === 'paused' ? 'paused' : snap.state === 'running' ? 'uploading' : 'uploading',
         path,
         transferred,
         total,
@@ -106,18 +104,18 @@ export function startResumableUpload(args: {
       onProgress?.({ transferred, total, percent, snapshot: snap });
     },
     async (err) => {
-      if (signal) signal.removeEventListener("abort", onAbort);
+      if (signal) signal.removeEventListener('abort', onAbort);
       if (unsub) unsub();
 
       const cancelError = isAbortError(err)
         ? err
         : canceledLocally && isStorageCanceledError(err)
-        ? new DOMException("Aborted", "AbortError")
-        : null;
+          ? new DOMException('Aborted', 'AbortError')
+          : null;
       if (cancelError) {
         upsertUploadSession({
           id,
-          status: "canceled",
+          status: 'canceled',
           path,
           updatedAt: Date.now(),
           error: cancelError,
@@ -127,7 +125,7 @@ export function startResumableUpload(args: {
 
       upsertUploadSession({
         id,
-        status: "error",
+        status: 'error',
         path,
         updatedAt: Date.now(),
         error: err,
@@ -148,7 +146,7 @@ export function startResumableUpload(args: {
 
         upsertUploadSession({
           id,
-          status: "success",
+          status: 'success',
           path,
           transferred: size,
           total: size,
@@ -161,17 +159,17 @@ export function startResumableUpload(args: {
       } catch (e) {
         upsertUploadSession({
           id,
-          status: "error",
+          status: 'error',
           path,
           updatedAt: Date.now(),
           error: e,
         });
         rejectDone(e);
       } finally {
-        if (signal) signal.removeEventListener("abort", onAbort);
+        if (signal) signal.removeEventListener('abort', onAbort);
         if (unsub) unsub();
       }
-    }
+    },
   );
 
   return {
@@ -197,7 +195,7 @@ export function startResumableUpload(args: {
 }
 
 export async function uploadFileResumable(
-  args: Omit<Parameters<typeof startResumableUpload>[0], "id"> & {
+  args: Omit<Parameters<typeof startResumableUpload>[0], 'id'> & {
     id?: string;
     /**
      * EXPLICIT opt-in for the NEUTRAL content type: a picker file with unknown
@@ -209,7 +207,7 @@ export async function uploadFileResumable(
      * neutral value.
      */
     allowNeutralContentType?: boolean;
-  }
+  },
 ): Promise<UploadFileResumableResult> {
   // Defense-in-depth: reject missing or invalid contentType before any bytes are sent.
   // file-input should already guarantee a valid or explicitly-neutral MIME, but this
@@ -218,7 +216,7 @@ export async function uploadFileResumable(
   if (!ct) {
     throw new UploadError(
       'missing_content_type',
-      'Upload rejected: contentType metadata is required. Ensure file.type is set before uploading.'
+      'Upload rejected: contentType metadata is required. Ensure file.type is set before uploading.',
     );
   }
   const neutralAllowed =
@@ -226,7 +224,7 @@ export async function uploadFileResumable(
   if (!neutralAllowed && !isValidMediaContentType(ct)) {
     throw new UploadError(
       'invalid_content_type',
-      `Upload rejected: contentType "${ct}" is not a supported media MIME (expected image/*, video/*, or audio/*).`
+      `Upload rejected: contentType "${ct}" is not a supported media MIME (expected image/*, video/*, or audio/*).`,
     );
   }
 

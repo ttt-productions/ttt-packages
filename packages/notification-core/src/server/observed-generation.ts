@@ -42,7 +42,8 @@ export async function markNotificationSeenWithGeneration(
   });
 }
 
-export type ArchiveOutcome = 'archived' | 'replayed' | 'conflict' | 'generation-mismatch' | 'missing';
+export type ArchiveOutcome =
+  'archived' | 'replayed' | 'conflict' | 'generation-mismatch' | 'missing';
 
 /**
  * Archive one active card into history, idempotently and replay-safely.

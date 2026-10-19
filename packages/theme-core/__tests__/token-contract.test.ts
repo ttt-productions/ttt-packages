@@ -25,7 +25,10 @@ const DARK_CANVAS_BLOCKS = ['.dark', '.high-contrast'] as const;
 // Variables set at runtime on individual elements by a library. theme-core cannot
 // (and must not) declare them. Each entry states who sets it.
 const RUNTIME_VARIABLES: ReadonlyArray<{ pattern: RegExp; setBy: string }> = [
-  { pattern: /^--radix-/, setBy: 'Radix primitives, on their own elements (trigger size, swipe offset)' },
+  {
+    pattern: /^--radix-/,
+    setBy: 'Radix primitives, on their own elements (trigger size, swipe offset)',
+  },
 ];
 
 // --- reading every package through the repo-guards reader ----------------------------
@@ -35,7 +38,9 @@ const reader = createRepoReader({
   roots: { app: { path: 'packages', anchor: 'packages/theme-core/src/styles/tokens.css' } },
 });
 const PACKAGE_SOURCE = /^packages\/[^/]+\/src\//;
-const packageFiles = reader.files({ roots: ['app'], kinds: ['code', 'stylesheet'], tests: false }).filter((file) => PACKAGE_SOURCE.test(file.path));
+const packageFiles = reader
+  .files({ roots: ['app'], kinds: ['code', 'stylesheet'], tests: false })
+  .filter((file) => PACKAGE_SOURCE.test(file.path));
 
 /** A file's path under `packages/`. */
 const where = (file: FileView): string => file.path.slice('packages/'.length);
@@ -63,12 +68,16 @@ function cssRules(file: FileView): CssRule[] {
 }
 
 const isStylesheet = (file: FileView) => file.kind === 'stylesheet';
-const themeStylesheets = packageFiles.filter((file) => isStylesheet(file) && file.path.startsWith('packages/theme-core/'));
+const themeStylesheets = packageFiles.filter(
+  (file) => isStylesheet(file) && file.path.startsWith('packages/theme-core/'),
+);
 const themeRules = themeStylesheets.flatMap(cssRules);
 
 // Every OTHER package's shipped stylesheet (report-core, media-viewer, chat-react, …): they
 // read theme-core tokens too, never an app-defined variable or a raw colour.
-const packageStylesheets = packageFiles.filter((file) => isStylesheet(file) && !file.path.startsWith('packages/theme-core/'));
+const packageStylesheets = packageFiles.filter(
+  (file) => isStylesheet(file) && !file.path.startsWith('packages/theme-core/'),
+);
 const packageStyleRules = packageStylesheets.flatMap(cssRules);
 
 function blockDeclarations(selector: string): Map<string, string> {
@@ -77,7 +86,9 @@ function blockDeclarations(selector: string): Map<string, string> {
 
 // A token declared in :root resolves in every theme: .dark / .high-contrast match
 // the same root element and either redeclare it or leave the :root value in force.
-const rootTokens = new Set([...blockDeclarations(':root').keys()].filter((p) => p.startsWith('--')));
+const rootTokens = new Set(
+  [...blockDeclarations(':root').keys()].filter((p) => p.startsWith('--')),
+);
 
 // Class names theme-core defines. ui-core also renders these, and some share a
 // Tailwind prefix (`text-caption`), so they are recipes, not colour utilities.
@@ -104,7 +115,8 @@ const SOURCE_COLOUR_LITERAL =
   /(?<=^|[\s"'`(:[,])#[0-9a-fA-F]{3,8}(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]/g;
 // A raw colour in a stylesheet value: hex, a colour function with a numeric argument, or
 // a black/white keyword.
-const STYLESHEET_COLOUR_LITERAL = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]|\b(white|black)\b/i;
+const STYLESHEET_COLOUR_LITERAL =
+  /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]|\b(white|black)\b/i;
 // A bare HSL triplet ("0 84% 60%"): only a colour inside hsl(), so it hides in a fallback.
 const HSL_TRIPLET = /^-?\d*\.?\d+(?:deg|turn|rad|grad)?[\s,]+\d*\.?\d+%[\s,]+\d*\.?\d+%/;
 
@@ -121,9 +133,10 @@ function varFallbacks(value: string): string[] {
     return value.slice(start, i - 1).trim();
   });
 }
-const isRawColour = (fallback: string) => HSL_TRIPLET.test(fallback) || STYLESHEET_COLOUR_LITERAL.test(fallback);
+const isRawColour = (fallback: string) =>
+  HSL_TRIPLET.test(fallback) || STYLESHEET_COLOUR_LITERAL.test(fallback);
 
-const SHADOW_UTILITY =/(?<=^|[\s"'`:!])((?:inset-|drop-)?shadow(?:-[^\s"'`]*)?)(?=$|[\s"'`])/g;
+const SHADOW_UTILITY = /(?<=^|[\s"'`:!])((?:inset-|drop-)?shadow(?:-[^\s"'`]*)?)(?=$|[\s"'`])/g;
 const ELEVATION_HOOK = /(?<=^|[\s"'`])(elevation-[a-z-]+|card-border|tabs-trigger)(?=$|[\s"'`])/g;
 // theme-core's scale families. Tailwind defines none of these names, so a member theme-core
 // does not declare matches no rule at all: the element silently loses its spacing or size.
@@ -138,7 +151,12 @@ const CLASS_NAME = /(?:^|[a-z])(?:Class|ClassName|Classes)$|^[A-Z_]*CLASS(?:ES)?
 
 /** Every string literal and template chunk under `node`, appended to `out`. */
 function collectStrings(node: ts.Node, out: string[]): void {
-  if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+  if (
+    ts.isStringLiteralLike(node) ||
+    ts.isTemplateHead(node) ||
+    ts.isTemplateMiddle(node) ||
+    ts.isTemplateTail(node)
+  ) {
     out.push(node.text);
   }
   ts.forEachChild(node, (child) => collectStrings(child, out));
@@ -150,17 +168,31 @@ function collectStrings(node: ts.Node, out: string[]): void {
  * (`triggerClass`, `SIZE_CLASS`).
  */
 function classListValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] | undefined {
-  if (ts.isJsxAttribute(node)) return node.initializer && CLASS_NAME.test(node.name.getText(sf)) ? [node.initializer] : undefined;
-  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && CLASS_HELPERS.has(node.expression.text)) return node.arguments;
-  if ((ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) && node.initializer && CLASS_NAME.test(node.name.getText(sf))) {
+  if (ts.isJsxAttribute(node))
+    return node.initializer && CLASS_NAME.test(node.name.getText(sf))
+      ? [node.initializer]
+      : undefined;
+  if (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    CLASS_HELPERS.has(node.expression.text)
+  )
+    return node.arguments;
+  if (
+    (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) &&
+    node.initializer &&
+    CLASS_NAME.test(node.name.getText(sf))
+  ) {
     return [node.initializer];
   }
   return undefined;
 }
 
-const isStyleType = (type: ts.TypeNode | undefined, sf: ts.SourceFile) => !!type && /(?:^|\.)CSSProperties$/.test(type.getText(sf));
+const isStyleType = (type: ts.TypeNode | undefined, sf: ts.SourceFile) =>
+  !!type && /(?:^|\.)CSSProperties$/.test(type.getText(sf));
 /** `el.style`: the DOM inline-style object. */
-const isDomStyle = (expression: ts.Expression) => ts.isPropertyAccessExpression(expression) && expression.name.text === 'style';
+const isDomStyle = (expression: ts.Expression) =>
+  ts.isPropertyAccessExpression(expression) && expression.name.text === 'style';
 
 /**
  * The values `node` applies as an INLINE STYLE outside a JSX attribute: an object typed
@@ -168,8 +200,10 @@ const isDomStyle = (expression: ts.Expression) => ts.isPropertyAccessExpression(
  * `style` property, or a `style.setProperty(…)` call.
  */
 function inlineStyleValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] | undefined {
-  if (ts.isVariableDeclaration(node) && node.initializer && isStyleType(node.type, sf)) return [node.initializer];
-  if ((ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) && isStyleType(node.type, sf)) return [node.expression];
+  if (ts.isVariableDeclaration(node) && node.initializer && isStyleType(node.type, sf))
+    return [node.initializer];
+  if ((ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) && isStyleType(node.type, sf))
+    return [node.expression];
   if (
     ts.isBinaryExpression(node) &&
     node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
@@ -190,7 +224,10 @@ function inlineStyleValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[]
 }
 
 /** The strings under every node `select` picks out of a code file, read from its one parse. */
-function stringsAt(file: FileView, select: (node: ts.Node, sf: ts.SourceFile) => readonly ts.Node[] | undefined): string[] {
+function stringsAt(
+  file: FileView,
+  select: (node: ts.Node, sf: ts.SourceFile) => readonly ts.Node[] | undefined,
+): string[] {
   if (file.kind !== 'code') return [];
   const sf = file.sourceFile;
   const out: string[] = [];
@@ -213,11 +250,16 @@ const classStrings = (file: FileView): string[] => stringsAt(file, classListValu
  */
 const renderedStrings = (file: FileView): string[] =>
   stringsAt(file, (node, sf) =>
-    ts.isJsxAttribute(node) ? (node.initializer ? [node.initializer] : []) : (classListValues(node, sf) ?? inlineStyleValues(node, sf)),
+    ts.isJsxAttribute(node)
+      ? node.initializer
+        ? [node.initializer]
+        : []
+      : (classListValues(node, sf) ?? inlineStyleValues(node, sf)),
   );
 
 /** What a file renders, as text: a stylesheet's comment-free code, or a code file's rendered strings. */
-const renderedTexts = (file: FileView): string[] => (isStylesheet(file) ? [file.code] : renderedStrings(file));
+const renderedTexts = (file: FileView): string[] =>
+  isStylesheet(file) ? [file.code] : renderedStrings(file);
 
 /**
  * The raw colours hidden in var() fallbacks inside source strings. A Tailwind arbitrary value
@@ -245,7 +287,9 @@ function unresolvedVariables(file: FileView): string[] {
     .flatMap((text) => [...text.matchAll(/var\(\s*(--[\w-]+)\s*([,)])/g)])
     .filter(([, , next]) => next === ')')
     .map(([, name]) => name)
-    .filter((name) => !rootTokens.has(name) && !RUNTIME_VARIABLES.some((v) => v.pattern.test(name)));
+    .filter(
+      (name) => !rootTokens.has(name) && !RUNTIME_VARIABLES.some((v) => v.pattern.test(name)),
+    );
 }
 
 /** Every raw colour a code file renders: a palette utility in a class list, a colour literal, or a colour in a var() fallback. */
@@ -254,10 +298,14 @@ function rawColours(file: FileView): string[] {
     .filter(({ name }) => PALETTE.test(name))
     .map(({ utility }) => utility);
   const rendered = renderedStrings(file);
-  const literals = rendered.flatMap((text) => [...text.matchAll(SOURCE_COLOUR_LITERAL)].map((m) => m[0]));
+  const literals = rendered.flatMap((text) =>
+    [...text.matchAll(SOURCE_COLOUR_LITERAL)].map((m) => m[0]),
+  );
   // A var() fallback is a second, hidden value, and a bare HSL triplet in one slips past
   // SOURCE_COLOUR_LITERAL (it is only a colour inside hsl()).
-  const fallbacks = rendered.flatMap((text) => sourceFallbackColours(text).map((colour) => `raw colour "${colour}" in a var() fallback`));
+  const fallbacks = rendered.flatMap((text) =>
+    sourceFallbackColours(text).map((colour) => `raw colour "${colour}" in a var() fallback`),
+  );
   return [...palette, ...literals, ...fallbacks];
 }
 
@@ -283,8 +331,10 @@ function statusFamily(token: string): string | undefined {
   return word === 'error' ? 'destructive' : word;
 }
 /** A token that paints a status family's fill (not its text, edge, or deep shade). */
-const isStatusFill = (token: string) => statusFamily(token) !== undefined && !/-(foreground|border)$/.test(token);
-const isForegroundOf = (token: string, family: string) => token.endsWith('-foreground') && statusFamily(token) === family;
+const isStatusFill = (token: string) =>
+  statusFamily(token) !== undefined && !/-(foreground|border)$/.test(token);
+const isForegroundOf = (token: string, family: string) =>
+  token.endsWith('-foreground') && statusFamily(token) === family;
 
 /** The first variable a colour value reads, or the named token of a semantic utility. */
 const firstVar = (value: string) => /var\(\s*--([\w-]+)/.exec(value)?.[1];
@@ -308,7 +358,8 @@ function classListPairingViolations(list: string): string[] {
     .filter((token): token is string => token !== undefined && rootTokens.has(`--${token}`));
   return fills.flatMap((fill) => {
     const family = statusFamily(fill)!;
-    if (texts.length === 0) return [`--${fill} fill sets no text colour (needs a ${family} foreground)`];
+    if (texts.length === 0)
+      return [`--${fill} fill sets no text colour (needs a ${family} foreground)`];
     return texts
       .filter((text) => !isForegroundOf(text, family))
       .map((text) => `--${fill} fill carries --${text} text (needs a ${family} foreground)`);
@@ -319,14 +370,18 @@ function classListPairingViolations(list: string): string[] {
 function cssRulePairingViolations(rule: CssRule): string[] {
   const decls = new Map(rule.declarations);
   const background = decls.get('background-color') ?? decls.get('background');
-  const solid = background && /^(?:hsl\(\s*var\(\s*--([\w-]+)\s*\)\s*\)|var\(\s*--([\w-]+)\s*\))$/.exec(background);
+  const solid =
+    background &&
+    /^(?:hsl\(\s*var\(\s*--([\w-]+)\s*\)\s*\)|var\(\s*--([\w-]+)\s*\))$/.exec(background);
   const fill = solid ? (solid[1] ?? solid[2]) : undefined;
   if (!fill || !isStatusFill(fill)) return [];
   const family = statusFamily(fill)!;
   const color = decls.get('color');
   const text = color ? firstVar(color) : undefined;
   if (!text) return [`--${fill} fill sets no text colour (needs a ${family} foreground)`];
-  return isForegroundOf(text, family) ? [] : [`--${fill} fill carries --${text} text (needs a ${family} foreground)`];
+  return isForegroundOf(text, family)
+    ? []
+    : [`--${fill} fill carries --${text} text (needs a ${family} foreground)`];
 }
 
 // Solid status fills that render NO text, so they pair with no foreground. Each entry
@@ -340,25 +395,40 @@ const TEXTLESS_STATUS_FILLS: ReadonlyArray<{ file: string; selector: string; why
 describe('theme-core token contract', () => {
   it('reads every package through the one reader walk', () => {
     expect(packageSources.length).toBeGreaterThan(100);
-    expect(themeStylesheets.map((file) => file.path)).toContain('packages/theme-core/src/styles/tokens.css');
+    expect(themeStylesheets.map((file) => file.path)).toContain(
+      'packages/theme-core/src/styles/tokens.css',
+    );
   });
 
   it('judges what a file renders — class lists, JSX attribute values, inline styles, stylesheet rules — and never a string it only names', () => {
-    const rendered = (file: string, text: string) => renderedTexts(viewOfText(file, text)).join(' | ');
+    const rendered = (file: string, text: string) =>
+      renderedTexts(viewOfText(file, text)).join(' | ');
     expect(rendered('a.tsx', 'export const a = <i className="bg-white" />;')).toBe('bg-white');
-    expect(rendered('b.tsx', "export const b = <i className={cn('shadow-md', busy && 'ring-1')} />;")).toBe('shadow-md | ring-1');
+    expect(
+      rendered('b.tsx', "export const b = <i className={cn('shadow-md', busy && 'ring-1')} />;"),
+    ).toBe('shadow-md | ring-1');
     expect(rendered('c.ts', "export const triggerClass = 'text-black';")).toBe('text-black');
     expect(rendered('d.tsx', 'export const d = <svg><path fill="#fff" /></svg>;')).toBe('#fff');
-    expect(rendered('e.tsx', "export const e = <i style={{ color: 'var(--e)' }} />;")).toBe('var(--e)');
-    expect(rendered('f.ts', "const style: CSSProperties = { transition: 'opacity var(--f)' };")).toBe('opacity var(--f)');
-    expect(rendered('g.ts', "const g = { color: 'var(--g)' } as React.CSSProperties;")).toBe('var(--g)');
+    expect(rendered('e.tsx', "export const e = <i style={{ color: 'var(--e)' }} />;")).toBe(
+      'var(--e)',
+    );
+    expect(
+      rendered('f.ts', "const style: CSSProperties = { transition: 'opacity var(--f)' };"),
+    ).toBe('opacity var(--f)');
+    expect(rendered('g.ts', "const g = { color: 'var(--g)' } as React.CSSProperties;")).toBe(
+      'var(--g)',
+    );
     expect(rendered('h.ts', "el.style.color = 'rgb(0 0 0)';")).toBe('rgb(0 0 0)');
     expect(rendered('i.ts', "el.style.setProperty('--i', 'var(--j)');")).toBe('--i | var(--j)');
-    expect(rendered('j.css', '/* var(--prose) */ .j { color: hsl(var(--j)); }')).toContain('.j { color: hsl(var(--j)); }');
-    expect(rendered('j.css', '/* var(--prose) */ .j { color: hsl(var(--j)); }')).not.toContain('--prose');
+    expect(rendered('j.css', '/* var(--prose) */ .j { color: hsl(var(--j)); }')).toContain(
+      '.j { color: hsl(var(--j)); }',
+    );
+    expect(rendered('j.css', '/* var(--prose) */ .j { color: hsl(var(--j)); }')).not.toContain(
+      '--prose',
+    );
 
     const named = [
-      "const flags = [tsx('<p className=\"bg-white shadow-md\" style={{ color: \"#fff\" }} />')];",
+      'const flags = [tsx(\'<p className="bg-white shadow-md" style={{ color: "#fff" }} />\')];',
       'const pattern = /bg-white|var\\(--x\\)/;',
       '// className="text-black" in prose',
       "const sample = css('.a { color: var(--token); box-shadow: 0 0 4px red; }');",
@@ -368,14 +438,29 @@ describe('theme-core token contract', () => {
   });
 
   it('every variable read without a fallback, in any package source or stylesheet, resolves in every theme', () => {
-    const unresolved = packageFiles.flatMap((file) => unresolvedVariables(file).map((name) => `${where(file)}: ${name}`));
+    const unresolved = packageFiles.flatMap((file) =>
+      unresolvedVariables(file).map((name) => `${where(file)}: ${name}`),
+    );
     expect(unresolved).toEqual([]);
   });
 
   it('flags a rendered variable no theme declares, and passes a declared, fallback-carrying, or runtime-set one', () => {
-    expect(unresolvedVariables(viewOfText('a.tsx', "export const a = <i style={{ color: 'hsl(var(--nope))' }} />;"))).toEqual(['--nope']);
-    expect(unresolvedVariables(viewOfText('b.css', '.b { color: var(--nope); }'))).toEqual(['--nope']);
-    expect(unresolvedVariables(viewOfText('c.tsx', "export const c = <i className=\"text-[hsl(var(--foreground))]\" style={{ width: 'var(--radix-x)', top: 'var(--nope, 0)' }} />;"))).toEqual([]);
+    expect(
+      unresolvedVariables(
+        viewOfText('a.tsx', "export const a = <i style={{ color: 'hsl(var(--nope))' }} />;"),
+      ),
+    ).toEqual(['--nope']);
+    expect(unresolvedVariables(viewOfText('b.css', '.b { color: var(--nope); }'))).toEqual([
+      '--nope',
+    ]);
+    expect(
+      unresolvedVariables(
+        viewOfText(
+          'c.tsx',
+          "export const c = <i className=\"text-[hsl(var(--foreground))]\" style={{ width: 'var(--radix-x)', top: 'var(--nope, 0)' }} />;",
+        ),
+      ),
+    ).toEqual([]);
   });
 
   // Semantic colour tokens are HSL TRIPLETS ("240 5% 88%"): only hsl(var(--x)) makes a
@@ -413,7 +498,11 @@ describe('theme-core token contract', () => {
     };
     /** `--x: var(--triplet)` — one token derived from another, not a colour read. */
     const isTokenDerivation = (text: string, index: number): boolean => {
-      const lineStart = Math.max(text.lastIndexOf(';', index), text.lastIndexOf('{', index), text.lastIndexOf('\n', index));
+      const lineStart = Math.max(
+        text.lastIndexOf(';', index),
+        text.lastIndexOf('{', index),
+        text.lastIndexOf('\n', index),
+      );
       return /^\s*--[\w-]+\s*:\s*$/.test(text.slice(lineStart + 1, index));
     };
 
@@ -423,7 +512,9 @@ describe('theme-core token contract', () => {
           .filter((m) => triplets.has(m[1]))
           .filter((m) => {
             const fn = enclosingColourFunction(text, m.index!);
-            return fn === undefined ? !isTokenDerivation(text, m.index!) : fn !== 'hsl' && fn !== 'hsla';
+            return fn === undefined
+              ? !isTokenDerivation(text, m.index!)
+              : fn !== 'hsl' && fn !== 'hsla';
           })
           .map((m) => `${where(file)}: ${m[1]} read outside hsl()`),
       ),
@@ -442,7 +533,9 @@ describe('theme-core token contract', () => {
   });
 
   it('no package renders a raw colour: no palette/black/white utility and no colour literal', () => {
-    const raw = packageSources.flatMap((file) => rawColours(file).map((colour) => `${where(file)}: ${colour}`));
+    const raw = packageSources.flatMap((file) =>
+      rawColours(file).map((colour) => `${where(file)}: ${colour}`),
+    );
     expect(raw).toEqual([]);
   });
 
@@ -451,25 +544,45 @@ describe('theme-core token contract', () => {
       viewOfText('a.tsx', 'export const a = <p className="text-gray-500" />;'),
       viewOfText('b.tsx', "export const b = <p className={cn('bg-white')} />;"),
       viewOfText('c.tsx', 'export const c = <svg><path fill="#fff" /></svg>;'),
-      viewOfText('d.tsx', "export const d = <p style={{ boxShadow: '0 0 4px rgba(0, 0, 0, 0.2)' }} />;"),
+      viewOfText(
+        'd.tsx',
+        "export const d = <p style={{ boxShadow: '0 0 4px rgba(0, 0, 0, 0.2)' }} />;",
+      ),
       viewOfText('e.ts', "export const e: CSSProperties = { color: 'hsl(210 40% 98%)' };"),
-      viewOfText('f.tsx', 'export const f = <p className="bg-[hsl(var(--muted,_220_14%_96%))]" />;'),
+      viewOfText(
+        'f.tsx',
+        'export const f = <p className="bg-[hsl(var(--muted,_220_14%_96%))]" />;',
+      ),
       viewOfText('g.ts', "el.style.background = '#000';"),
     ];
     for (const file of flagged) expect(rawColours(file), file.path).toHaveLength(1);
 
     const passed = [
-      viewOfText('h.ts', "export const samples = { flags: [tsx('<p className=\"text-gray-500 bg-white\" style={{ color: \"#fff\" }} />')] };"),
-      viewOfText('i.ts', 'export const COLOR = /#(?:[0-9a-fA-F]{3})\\b|\\b(?:hsla?|rgba?)\\(\\s*\\d/;'),
-      viewOfText('j.tsx', '// <p className="text-black" style={{ color: "#fff" }} />\nexport const j = <p className="bg-background text-foreground" />;'),
-      viewOfText('k.tsx', 'export const k = <a href="/" className="text-[hsl(var(--primary))]" />;'),
+      viewOfText(
+        'h.ts',
+        'export const samples = { flags: [tsx(\'<p className="text-gray-500 bg-white" style={{ color: "#fff" }} />\')] };',
+      ),
+      viewOfText(
+        'i.ts',
+        'export const COLOR = /#(?:[0-9a-fA-F]{3})\\b|\\b(?:hsla?|rgba?)\\(\\s*\\d/;',
+      ),
+      viewOfText(
+        'j.tsx',
+        '// <p className="text-black" style={{ color: "#fff" }} />\nexport const j = <p className="bg-background text-foreground" />;',
+      ),
+      viewOfText(
+        'k.tsx',
+        'export const k = <a href="/" className="text-[hsl(var(--primary))]" />;',
+      ),
     ];
     for (const file of passed) expect(rawColours(file), file.path).toEqual([]);
   });
 
   it('the source fallback check decodes Tailwind arbitrary values and catches every raw-colour form', () => {
     expect(sourceFallbackColours('bg-[hsl(var(--x,_0_84%_60%))]')).toEqual(['0 84% 60%']);
-    expect(sourceFallbackColours('text-[hsl(var(--a,_var(--b,_220_14%_96%)))]')).toEqual(['220 14% 96%']);
+    expect(sourceFallbackColours('text-[hsl(var(--a,_var(--b,_220_14%_96%)))]')).toEqual([
+      '220 14% 96%',
+    ]);
     expect(sourceFallbackColours('border-[color:var(--x,_white)]')).toEqual(['white']);
     expect(sourceFallbackColours('hsl(var(--muted, 220 14% 96%))')).toEqual(['220 14% 96%']);
     expect(sourceFallbackColours('bg-[hsl(var(--probe-bg,_var(--muted)))]')).toEqual([]);
@@ -478,21 +591,48 @@ describe('theme-core token contract', () => {
   });
 
   it('no package carries a Tailwind shadow utility, and every elevation hook rendered is a theme-core recipe', () => {
-    const offRecipe = packageSources.flatMap((file) => shadowClasses(file).map((name) => `${where(file)}: ${name}`));
+    const offRecipe = packageSources.flatMap((file) =>
+      shadowClasses(file).map((name) => `${where(file)}: ${name}`),
+    );
     expect(offRecipe).toEqual([]);
   });
 
   it('flags a shadow utility or undeclared elevation hook in a class list, and passes a declared hook or a named one', () => {
-    expect(shadowClasses(viewOfText('a.tsx', 'export const a = <div className="rounded shadow-md" />;'))).toEqual(['shadow-md']);
-    expect(shadowClasses(viewOfText('b.tsx', "export const b = <div className={cn('hover:drop-shadow-sm')} />;"))).toEqual(['drop-shadow-sm']);
-    expect(shadowClasses(viewOfText('c.tsx', 'export const c = <div className="elevation-floating" />;'))).toEqual(['.elevation-floating']);
-    expect(shadowClasses(viewOfText('d.tsx', 'export const d = <div className="elevation-raised card-border" />;'))).toEqual([]);
-    expect(shadowClasses(viewOfText('e.ts', "export const samples = [tsx('<div className=\"shadow-md\" />'), css('.a { box-shadow: none; }')];"))).toEqual([]);
+    expect(
+      shadowClasses(viewOfText('a.tsx', 'export const a = <div className="rounded shadow-md" />;')),
+    ).toEqual(['shadow-md']);
+    expect(
+      shadowClasses(
+        viewOfText('b.tsx', "export const b = <div className={cn('hover:drop-shadow-sm')} />;"),
+      ),
+    ).toEqual(['drop-shadow-sm']);
+    expect(
+      shadowClasses(
+        viewOfText('c.tsx', 'export const c = <div className="elevation-floating" />;'),
+      ),
+    ).toEqual(['.elevation-floating']);
+    expect(
+      shadowClasses(
+        viewOfText('d.tsx', 'export const d = <div className="elevation-raised card-border" />;'),
+      ),
+    ).toEqual([]);
+    expect(
+      shadowClasses(
+        viewOfText(
+          'e.ts',
+          "export const samples = [tsx('<div className=\"shadow-md\" />'), css('.a { box-shadow: none; }')];",
+        ),
+      ),
+    ).toEqual([]);
   });
 
   it('every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is declared by theme-core', () => {
     const scaleClasses = (list: string) => [...list.matchAll(SCALE_CLASS)].map((m) => m[1]);
-    expect(scaleClasses('flex stack-3 sm:stack-4 icon-xs text-left')).toEqual(['stack-3', 'stack-4', 'icon-xs']);
+    expect(scaleClasses('flex stack-3 sm:stack-4 icon-xs text-left')).toEqual([
+      'stack-3',
+      'stack-4',
+      'icon-xs',
+    ]);
 
     const undeclared = packageSources.flatMap((file) =>
       classStrings(file)
@@ -520,12 +660,16 @@ describe('theme-core token contract', () => {
     const shadowed = themeRules.filter((rule) =>
       rule.declarations.some(([property, value]) => property === 'box-shadow' && value !== 'none'),
     );
-    expect(shadowed.map((r) => r.selector)).toEqual(expect.arrayContaining(['.elevation-raised', '.tabs-trigger[data-state="active"]']));
+    expect(shadowed.map((r) => r.selector)).toEqual(
+      expect.arrayContaining(['.elevation-raised', '.tabs-trigger[data-state="active"]']),
+    );
     const uncomposed = shadowed.flatMap((rule) => {
       const decls = new Map(rule.declarations);
       return decls.get('--tw-shadow') === decls.get('box-shadow')
         ? []
-        : [`${rule.file} ${rule.selector}: box-shadow ${decls.get('box-shadow')} / --tw-shadow ${decls.get('--tw-shadow') ?? '(unset)'}`];
+        : [
+            `${rule.file} ${rule.selector}: box-shadow ${decls.get('box-shadow')} / --tw-shadow ${decls.get('--tw-shadow') ?? '(unset)'}`,
+          ];
     });
     expect(uncomposed).toEqual([]);
   });
@@ -538,13 +682,19 @@ describe('theme-core token contract', () => {
   it('no raw colour literal survives in a theme-core or package stylesheet outside a token declaration, nor in any var() fallback', () => {
     const literals = [...themeRules, ...packageStyleRules].flatMap((rule) =>
       rule.declarations
-        .filter(([property, value]) => !property.startsWith('--') && STYLESHEET_COLOUR_LITERAL.test(value))
+        .filter(
+          ([property, value]) =>
+            !property.startsWith('--') && STYLESHEET_COLOUR_LITERAL.test(value),
+        )
         .map(([property, value]) => `${rule.file} ${rule.selector} { ${property}: ${value} }`),
     );
     const fallbacks = [...themeRules, ...packageStyleRules].flatMap((rule) =>
       rule.declarations
         .filter(([, value]) => varFallbacks(value).some(isRawColour))
-        .map(([property, value]) => `${rule.file} ${rule.selector} { ${property}: ${value} } (raw colour in a var() fallback)`),
+        .map(
+          ([property, value]) =>
+            `${rule.file} ${rule.selector} { ${property}: ${value} } (raw colour in a var() fallback)`,
+        ),
     );
     expect([...literals, ...fallbacks]).toEqual([]);
   });
@@ -575,7 +725,9 @@ describe('theme-core token contract', () => {
       const decls = blockDeclarations(block);
       return blackShadows
         .filter((name) => !decls.has(name) || BLACK.test(decls.get(name)!))
-        .map((name) => `${block} ${name}: ${decls.get(name) ?? '(inherits the black :root default)'}`);
+        .map(
+          (name) => `${block} ${name}: ${decls.get(name) ?? '(inherits the black :root default)'}`,
+        );
     });
     expect(unreadable).toEqual([]);
   });
@@ -586,37 +738,58 @@ describe('theme-core token contract', () => {
 // ui-core success Button once rendered the default button's text-primary-foreground on the
 // green fill (2.09:1 on a dark canvas). Every package's class lists and stylesheets.
 describe('status fills carry their own status foreground', () => {
-  it('flags a status fill under another family\'s text, and passes the same fill under its own', () => {
-    expect(classListPairingViolations('bg-[color:var(--button-success)] text-primary-foreground border-2')).toEqual([
+  it("flags a status fill under another family's text, and passes the same fill under its own", () => {
+    expect(
+      classListPairingViolations(
+        'bg-[color:var(--button-success)] text-primary-foreground border-2',
+      ),
+    ).toEqual([
       '--button-success fill carries --primary-foreground text (needs a success foreground)',
     ]);
-    expect(classListPairingViolations('bg-[color:var(--button-success)] text-[hsl(var(--success-foreground))]')).toEqual([]);
+    expect(
+      classListPairingViolations(
+        'bg-[color:var(--button-success)] text-[hsl(var(--success-foreground))]',
+      ),
+    ).toEqual([]);
     expect(classListPairingViolations('bg-destructive text-warning-foreground')).toHaveLength(1);
     expect(classListPairingViolations('bg-destructive')).toHaveLength(1);
     // Not a solid resting fill: a tint, or a hover-only fill.
     expect(classListPairingViolations('bg-destructive/10 text-foreground')).toEqual([]);
-    expect(classListPairingViolations('hover:bg-destructive/90 text-primary-foreground')).toEqual([]);
+    expect(classListPairingViolations('hover:bg-destructive/90 text-primary-foreground')).toEqual(
+      [],
+    );
   });
 
   it('every solid status fill in a package class list carries its own status foreground', () => {
     const violations = packageSources.flatMap((file) =>
-      classStrings(file).flatMap((list) => classListPairingViolations(list).map((v) => `${where(file)}: ${v}`)),
+      classStrings(file).flatMap((list) =>
+        classListPairingViolations(list).map((v) => `${where(file)}: ${v}`),
+      ),
     );
     expect(violations).toEqual([]);
   });
 
   it('every solid status fill in a theme-core or package stylesheet carries its own status foreground', () => {
-    const exempt = (rule: CssRule) => TEXTLESS_STATUS_FILLS.some((e) => e.file === rule.file && e.selector === rule.selector);
+    const exempt = (rule: CssRule) =>
+      TEXTLESS_STATUS_FILLS.some((e) => e.file === rule.file && e.selector === rule.selector);
     const violations = [...themeRules, ...packageStyleRules]
       .filter((rule) => !exempt(rule))
-      .flatMap((rule) => cssRulePairingViolations(rule).map((v) => `${rule.file} ${rule.selector}: ${v}`));
+      .flatMap((rule) =>
+        cssRulePairingViolations(rule).map((v) => `${rule.file} ${rule.selector}: ${v}`),
+      );
     expect(violations).toEqual([]);
   });
 
   it('every text-less exemption is still a solid status fill that sets no text colour', () => {
     const stale = TEXTLESS_STATUS_FILLS.filter(({ file, selector }) => {
-      const rule = [...themeRules, ...packageStyleRules].find((r) => r.file === file && r.selector === selector);
-      return !rule || cssRulePairingViolations(rule).length !== 1 || new Map(rule.declarations).has('color');
+      const rule = [...themeRules, ...packageStyleRules].find(
+        (r) => r.file === file && r.selector === selector,
+      );
+      return (
+        !rule ||
+        cssRulePairingViolations(rule).length !== 1 ||
+        new Map(rule.declarations).has('color')
+      );
     });
     expect(stale).toEqual([]);
   });

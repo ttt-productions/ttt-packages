@@ -5,7 +5,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { coreContractsGuard } from '../../src/modules/core-definitions/contracts.js';
 import { fixture, lines } from './fixture.js';
 
-const [zodBuilds, publishReasons] = coreContractsGuard.build({ corePackage: '@fx/core', backendRoots: ['functions'] });
+const [zodBuilds, publishReasons] = coreContractsGuard.build({
+  corePackage: '@fx/core',
+  backendRoots: ['functions'],
+});
 
 const f = fixture({
   'functions/src/callables/build.ts': [
@@ -44,9 +47,12 @@ const f = fixture({
     'const Flag = coerce.boolean();',
   ].join('\n'),
   'functions/src/callables/build.test.ts': 'const Fixture = z.object({});',
-  'src/forms/local.ts': "const FormSchema = z.object({ draft: z.string() });\n// Declared here to avoid a core publish.",
-  'src/lib/limits.ts': 'const LIMIT = 5; // avoids the publish\n/* Kept local, saving a package release. */\nconst B = 1; // skip a @fx/core release',
-  'src/lib/media.ts': '// The fixture skips the asset publish step.\nconst note = "The release pipeline publishes after verification.";',
+  'src/forms/local.ts':
+    'const FormSchema = z.object({ draft: z.string() });\n// Declared here to avoid a core publish.',
+  'src/lib/limits.ts':
+    'const LIMIT = 5; // avoids the publish\n/* Kept local, saving a package release. */\nconst B = 1; // skip a @fx/core release',
+  'src/lib/media.ts':
+    '// The fixture skips the asset publish step.\nconst note = "The release pipeline publishes after verification.";',
 });
 afterAll(() => f.repo.remove());
 
@@ -85,7 +91,12 @@ describe('the facts', () => {
       'corePackage is missing',
       'backendRoots is empty',
     ]);
-    expect(coreContractsGuard.factProblems({ corePackage: '@fx/core', backendRoots: ['coreDist', 'server' as never] })).toEqual([
+    expect(
+      coreContractsGuard.factProblems({
+        corePackage: '@fx/core',
+        backendRoots: ['coreDist', 'server' as never],
+      }),
+    ).toEqual([
       'backendRoots names coreDist, which is no source root role',
       'backendRoots names server, which is no source root role',
     ]);

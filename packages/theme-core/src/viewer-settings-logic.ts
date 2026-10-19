@@ -6,7 +6,7 @@ import type {
   ViewerSettingDifference,
   ViewerSettingName,
   ViewerSettings,
-} from "./viewer-settings.js";
+} from './viewer-settings.js';
 
 // A record, so adding a setting to ViewerSettings fails to compile until it is listed here; its key
 // order is the order every per-setting walk takes.
@@ -43,7 +43,9 @@ export function changedAccountSettings(
   baseline: Baseline | null,
   account: SavedViewerSettings,
 ): ViewerSettingName[] {
-  return SETTING_NAMES.filter((setting) => baseline === null || baseline.account[setting] !== account[setting]);
+  return SETTING_NAMES.filter(
+    (setting) => baseline === null || baseline.account[setting] !== account[setting],
+  );
 }
 
 /**
@@ -79,7 +81,11 @@ export interface SaveTrack {
 
 export type SaveTracks = Partial<Record<ViewerSettingName, SaveTrack>>;
 
-export function beginSave(tracks: SaveTracks, values: Partial<ViewerSettings>, id: number): SaveTracks {
+export function beginSave(
+  tracks: SaveTracks,
+  values: Partial<ViewerSettings>,
+  id: number,
+): SaveTracks {
   const next = { ...tracks };
   for (const setting of SETTING_NAMES) {
     const value = values[setting];
@@ -107,7 +113,10 @@ export function settleSave(
 }
 
 /** Drops the landed saves of the given settings: their account value has since changed. */
-export function releaseLandedSaves(tracks: SaveTracks, settings: readonly ViewerSettingName[]): SaveTracks {
+export function releaseLandedSaves(
+  tracks: SaveTracks,
+  settings: readonly ViewerSettingName[],
+): SaveTracks {
   let next = tracks;
   for (const setting of settings) {
     if (!tracks[setting]?.landed) continue;
@@ -118,7 +127,10 @@ export function releaseLandedSaves(tracks: SaveTracks, settings: readonly Viewer
 }
 
 /** The settings a save from this tab still answers for: pending, or landed but not yet in the account. */
-export function savingSettings(tracks: SaveTracks, account: SavedViewerSettings): Set<ViewerSettingName> {
+export function savingSettings(
+  tracks: SaveTracks,
+  account: SavedViewerSettings,
+): Set<ViewerSettingName> {
   return new Set(
     SETTING_NAMES.filter((setting) => {
       const track = tracks[setting];
@@ -168,7 +180,11 @@ export function compareViewerSettings({
     } else if (onAccount === null) {
       assign(saveToAccount, setting, onDevice);
     } else if (onDevice !== onAccount) {
-      differences.push({ setting, device: onDevice, account: onAccount } as ViewerSettingDifference);
+      differences.push({
+        setting,
+        device: onDevice,
+        account: onAccount,
+      } as ViewerSettingDifference);
     }
   }
 
@@ -178,7 +194,7 @@ export function compareViewerSettings({
 /** One side's values for the given differences. */
 export function viewerSettingsFromDifferences(
   differences: readonly ViewerSettingDifference[],
-  side: "device" | "account",
+  side: 'device' | 'account',
 ): Partial<ViewerSettings> {
   const values: Partial<ViewerSettings> = {};
   for (const difference of differences) assign(values, difference.setting, difference[side]);
@@ -187,7 +203,11 @@ export function viewerSettingsFromDifferences(
 
 // Dismissals: each dismissed difference is remembered on its own, as [setting, device, account].
 
-export type Dismissal = readonly [setting: ViewerSettingName, device: SettingValue, account: SettingValue];
+export type Dismissal = readonly [
+  setting: ViewerSettingName,
+  device: SettingValue,
+  account: SettingValue,
+];
 
 function isDismissal(value: unknown): value is Dismissal {
   return (
@@ -217,10 +237,15 @@ export function dismissalOf(difference: ViewerSettingDifference): Dismissal {
   return [difference.setting, difference.device, difference.account];
 }
 
-export function isDismissed(difference: ViewerSettingDifference, dismissals: readonly Dismissal[]): boolean {
+export function isDismissed(
+  difference: ViewerSettingDifference,
+  dismissals: readonly Dismissal[],
+): boolean {
   return dismissals.some(
     ([setting, device, account]) =>
-      setting === difference.setting && device === difference.device && account === difference.account,
+      setting === difference.setting &&
+      device === difference.device &&
+      account === difference.account,
   );
 }
 
@@ -231,6 +256,7 @@ export function holdingDismissals(
   account: SavedViewerSettings,
 ): Dismissal[] {
   return dismissals.filter(
-    ([setting, onDevice, onAccount]) => device[setting] === onDevice && account[setting] === onAccount,
+    ([setting, onDevice, onAccount]) =>
+      device[setting] === onDevice && account[setting] === onAccount,
   );
 }

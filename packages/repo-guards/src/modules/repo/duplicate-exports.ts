@@ -16,11 +16,16 @@ export interface DuplicateExportFacts {
    */
   knownLegit: Readonly<Record<string, { files: readonly string[]; why: string }>>;
   /** Exports a framework requires of every module under a path (route handlers, page config). */
-  frameworkReservedExports: ReadonlyArray<{ pathPrefix: string; names: readonly string[]; why: string }>;
+  frameworkReservedExports: ReadonlyArray<{
+    pathPrefix: string;
+    names: readonly string[];
+    why: string;
+  }>;
 }
 
 const hasExport = (node: ts.Node) =>
-  ts.canHaveModifiers(node) && !!ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  ts.canHaveModifiers(node) &&
+  !!ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
 /** The value and type names a module defines and exports — re-exports excluded. */
 export function definedExports(file: FileView): { values: Set<string>; types: Set<string> } {
@@ -41,9 +46,17 @@ export function definedExports(file: FileView): { values: Set<string>; types: Se
   for (const stmt of sf.statements) {
     if (ts.isVariableStatement(stmt) && hasExport(stmt)) {
       for (const d of stmt.declarationList.declarations) addBinding(d.name, values);
-    } else if ((ts.isFunctionDeclaration(stmt) || ts.isClassDeclaration(stmt) || ts.isEnumDeclaration(stmt)) && hasExport(stmt)) {
+    } else if (
+      (ts.isFunctionDeclaration(stmt) ||
+        ts.isClassDeclaration(stmt) ||
+        ts.isEnumDeclaration(stmt)) &&
+      hasExport(stmt)
+    ) {
       values.add(stmt.name ? stmt.name.text : 'default');
-    } else if ((ts.isTypeAliasDeclaration(stmt) || ts.isInterfaceDeclaration(stmt)) && hasExport(stmt)) {
+    } else if (
+      (ts.isTypeAliasDeclaration(stmt) || ts.isInterfaceDeclaration(stmt)) &&
+      hasExport(stmt)
+    ) {
       types.add(stmt.name.text);
     } else if (ts.isExportDeclaration(stmt)) {
       const from = !!stmt.moduleSpecifier;
@@ -84,18 +97,27 @@ export interface DuplicateExportResult {
 }
 
 /** The analysis over a set of modules, split into the app tree and the Functions tree by role. */
-export function analyzeDuplicateExports(files: readonly FileView[], facts: DuplicateExportFacts): DuplicateExportResult {
+export function analyzeDuplicateExports(
+  files: readonly FileView[],
+  facts: DuplicateExportFacts,
+): DuplicateExportResult {
   const trees = {
     app: { values: new Map<string, string[]>(), types: new Map<string, string[]>() },
     functions: { values: new Map<string, string[]>(), types: new Map<string, string[]>() },
   };
-  const add = (map: Map<string, string[]>, name: string, path: string) => map.set(name, [...(map.get(name) ?? []), path]);
+  const add = (map: Map<string, string[]>, name: string, path: string) =>
+    map.set(name, [...(map.get(name) ?? []), path]);
   for (const file of files) {
     const tree = file.role === 'functions' ? trees.functions : trees.app;
     const { values, types } = definedExports(file);
     for (const name of values) {
       if (name === 'default') continue;
-      if (facts.frameworkReservedExports.some((r) => file.path.startsWith(r.pathPrefix) && r.names.includes(name))) continue;
+      if (
+        facts.frameworkReservedExports.some(
+          (r) => file.path.startsWith(r.pathPrefix) && r.names.includes(name),
+        )
+      )
+        continue;
       add(tree.values, name, file.path);
     }
     for (const name of types) add(tree.types, name, file.path);
@@ -129,8 +151,13 @@ export function analyzeDuplicateExports(files: readonly FileView[], facts: Dupli
     suppressed: 0,
     modules: files.length,
   };
-  for (const name of [...trees.app.values.keys()].filter((n) => trees.functions.values.has(n)).sort()) {
-    const group = classify(name, [...trees.app.values.get(name)!, ...trees.functions.values.get(name)!]);
+  for (const name of [...trees.app.values.keys()]
+    .filter((n) => trees.functions.values.has(n))
+    .sort()) {
+    const group = classify(name, [
+      ...trees.app.values.get(name)!,
+      ...trees.functions.values.get(name)!,
+    ]);
     if (group) result.crossTree.push(group);
   }
   result.suppressed = suppressed;
@@ -144,7 +171,8 @@ export function formatDuplicateExports(result: DuplicateExportResult): string {
     lines.push('', `== ${label}: ${groups.length} to review ==`);
     for (const { name, files, unexpected, why } of groups) {
       lines.push(`  ${name}${why ? '  [REVIEWED ENTRY CHANGED — a new copy appeared]' : ''}`);
-      for (const f of files) lines.push(`    - ${f}${unexpected.includes(f) ? '   <-- not in the reviewed set' : ''}`);
+      for (const f of files)
+        lines.push(`    - ${f}${unexpected.includes(f) ? '   <-- not in the reviewed set' : ''}`);
       if (why) lines.push(`    reviewed why: ${why}`);
     }
   };
@@ -154,7 +182,11 @@ export function formatDuplicateExports(result: DuplicateExportResult): string {
   section('Functions root duplicate type exports', result.functionsTypes);
   section('value exports defined on both sides of the app / Functions boundary', result.crossTree);
   const total =
-    result.appValues.length + result.functionsValues.length + result.appTypes.length + result.functionsTypes.length + result.crossTree.length;
+    result.appValues.length +
+    result.functionsValues.length +
+    result.appTypes.length +
+    result.functionsTypes.length +
+    result.crossTree.length;
   lines.push(
     '',
     total === 0
@@ -165,10 +197,18 @@ export function formatDuplicateExports(result: DuplicateExportResult): string {
   return lines.join('\n').trimStart();
 }
 
-const SCOPE: Scope = { roots: ['app', 'functions'], kinds: ['code'], tests: false, optionalRoots: ['functions'] };
+const SCOPE: Scope = {
+  roots: ['app', 'functions'],
+  kinds: ['code'],
+  tests: false,
+  optionalRoots: ['functions'],
+};
 
 /** Runs the report over the app and Functions roots the reader's layout declares. */
-export function duplicateExportsReport(reader: RepoReader, facts: DuplicateExportFacts): { text: string; result: DuplicateExportResult } {
+export function duplicateExportsReport(
+  reader: RepoReader,
+  facts: DuplicateExportFacts,
+): { text: string; result: DuplicateExportResult } {
   const result = analyzeDuplicateExports(reader.files(SCOPE), facts);
   return { text: formatDuplicateExports(result), result };
 }

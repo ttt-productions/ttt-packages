@@ -156,7 +156,9 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     sock.serverOpen();
 
     // Row arrives already deleted at rev 1 from the DO merge.
-    sock.serverFrame('message', { message: wireRow(13, 'orig', { moderationKind: 'delete', messageRevision: 1 }) });
+    sock.serverFrame('message', {
+      message: wireRow(13, 'orig', { moderationKind: 'delete', messageRevision: 1 }),
+    });
     expect(byId(client, '13')?.text).toBe(MODERATION_REDACTED_TEXT);
 
     // A later restore (rev 2) frame supersedes the inline rev-1 delete.

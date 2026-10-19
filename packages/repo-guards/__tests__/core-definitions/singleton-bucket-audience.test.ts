@@ -8,7 +8,9 @@ import {
 } from '../../src/modules/core-definitions/singleton-bucket-audience.js';
 import { CORE, fixture, lines } from './fixture.js';
 
-const facts = (overrides: Partial<SingletonBucketAudienceFacts> = {}): SingletonBucketAudienceFacts => ({
+const facts = (
+  overrides: Partial<SingletonBucketAudienceFacts> = {},
+): SingletonBucketAudienceFacts => ({
   clientReadableBuckets: async () => ['_open', '_signed'],
   registeredDocumentPaths: () => ['_open/app', 'users/{uid}', '_server/jobs', '_signed/list'],
   pathBuilders: () => ({
@@ -53,8 +55,12 @@ describe('singleton bucket audience', () => {
   });
 
   it('FLAGS a run that loads no client-readable collection', async () => {
-    const [guard] = singletonBucketAudienceGuard.build(facts({ clientReadableBuckets: () => [], reviewed: [] }));
-    expect(lines(await f.run(guard))).toEqual(['(core) clientReadableBuckets — no client-readable collection was loaded']);
+    const [guard] = singletonBucketAudienceGuard.build(
+      facts({ clientReadableBuckets: () => [], reviewed: [] }),
+    );
+    expect(lines(await f.run(guard))).toEqual([
+      '(core) clientReadableBuckets — no client-readable collection was loaded',
+    ]);
   });
 
   it('refuses missing loaders and a reviewed entry with no why', () => {

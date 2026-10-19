@@ -80,14 +80,25 @@ describe('SiteTourPendingPreferenceSchema — valid entries', () => {
       action: 'completeTour',
       tourVersion: SITE_TOUR_CURRENT_VERSION,
     });
-    expect(parsed).toMatchObject({ action: 'completeTour', tourVersion: SITE_TOUR_CURRENT_VERSION });
+    expect(parsed).toMatchObject({
+      action: 'completeTour',
+      tourVersion: SITE_TOUR_CURRENT_VERSION,
+    });
   });
 
   it('surfaces the compare-and-remove id and the owner uid on every variant', () => {
     const entries: SiteTourPendingPreference[] = [
-      SiteTourPendingPreferenceSchema.parse({ ...envelope, action: 'deferToday', date: '2026-08-02' }),
+      SiteTourPendingPreferenceSchema.parse({
+        ...envelope,
+        action: 'deferToday',
+        date: '2026-08-02',
+      }),
       SiteTourPendingPreferenceSchema.parse({ ...envelope, action: 'dismissAutomaticInvites' }),
-      SiteTourPendingPreferenceSchema.parse({ ...envelope, action: 'completeTour', tourVersion: 1 }),
+      SiteTourPendingPreferenceSchema.parse({
+        ...envelope,
+        action: 'completeTour',
+        tourVersion: 1,
+      }),
     ];
     for (const entry of entries) {
       expect(entry.id).toBe('pending-1');
@@ -191,8 +202,11 @@ describe('SiteTourPendingPreferenceSchema — rejected entries fall back to the 
     ).toBe(false);
     for (const tourVersion of [0, -1, 1.5, '1']) {
       expect(
-        SiteTourPendingPreferenceSchema.safeParse({ ...envelope, action: 'completeTour', tourVersion })
-          .success,
+        SiteTourPendingPreferenceSchema.safeParse({
+          ...envelope,
+          action: 'completeTour',
+          tourVersion,
+        }).success,
       ).toBe(false);
     }
   });
@@ -249,12 +263,12 @@ describe('the pending entry is a replay guard, never server authority', () => {
   it('accepts exactly the three actions the server writer accepts — no fourth local-only action', () => {
     const actions = ['deferToday', 'dismissAutomaticInvites', 'completeTour'] as const;
     for (const action of actions) {
-      expect(UpdateSiteTourPreferenceInputSchema.options.some((o) => o.shape.action.value === action)).toBe(
-        true,
-      );
-      expect(SiteTourPendingPreferenceSchema.options.some((o) => o.shape.action.value === action)).toBe(
-        true,
-      );
+      expect(
+        UpdateSiteTourPreferenceInputSchema.options.some((o) => o.shape.action.value === action),
+      ).toBe(true);
+      expect(
+        SiteTourPendingPreferenceSchema.options.some((o) => o.shape.action.value === action),
+      ).toBe(true);
     }
     expect(SiteTourPendingPreferenceSchema.options).toHaveLength(actions.length);
   });

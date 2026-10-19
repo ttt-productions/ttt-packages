@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { hashKey, type QueryKey } from '@tanstack/react-query';
@@ -51,12 +51,16 @@ function nextHeldFailure<TError>(
   source: ReadRetrySource<TError>,
 ): HeldFailure<TError> | undefined {
   const live = source.error ?? null;
-  if (live !== null) return held !== undefined && sameFailure(held.error, live) ? held : { error: live };
+  if (live !== null)
+    return held !== undefined && sameFailure(held.error, live) ? held : { error: live };
   const running = source.isFetching || source.isPaused === true;
   return running ? held : undefined;
 }
 
-function toRetryState<TError>(source: ReadRetrySource<TError>, held: HeldFailure<TError> | undefined): ReadRetryState<TError> {
+function toRetryState<TError>(
+  source: ReadRetrySource<TError>,
+  held: HeldFailure<TError> | undefined,
+): ReadRetryState<TError> {
   const error = source.error ?? held?.error ?? null;
   return {
     error,

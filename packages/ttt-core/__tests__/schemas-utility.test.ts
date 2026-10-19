@@ -122,13 +122,16 @@ describe('moderation result receipts carry an optional auditEventId', () => {
       appealedAt: 1_700_000_000_000,
     };
     expect(SubmitContentAppealResultSchema.parse(base).auditEventId).toBeUndefined();
-    expect(SubmitContentAppealResultSchema.parse({ ...base, auditEventId: 'evt-1' }).auditEventId).toBe('evt-1');
+    expect(
+      SubmitContentAppealResultSchema.parse({ ...base, auditEventId: 'evt-1' }).auditEventId,
+    ).toBe('evt-1');
   });
 
   it('AcceptViolationDecisionResultSchema parses WITH and WITHOUT auditEventId', () => {
     const base = { success: true as const, violationId: 'v-1', alreadyRemoved: false };
     expect(AcceptViolationDecisionResultSchema.parse(base).auditEventId).toBeUndefined();
-    expect(AcceptViolationDecisionResultSchema.parse({ ...base, auditEventId: 'evt-2' }).auditEventId).toBe('evt-2');
+    expect(
+      AcceptViolationDecisionResultSchema.parse({ ...base, auditEventId: 'evt-2' }).auditEventId,
+    ).toBe('evt-2');
   });
 });
-

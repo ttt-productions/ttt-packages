@@ -27,10 +27,12 @@ export function normalizePath(path: string): NormalizedPath {
 }
 
 /** The folder a repo-relative path sits in; `''` for the repository root. */
-export const dirnameOf = (path: string): string => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '');
+export const dirnameOf = (path: string): string =>
+  path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
 
 /** The path a relative specifier names from the file `fromPath`, or null for a package specifier. */
 export function resolveRelative(fromPath: string, spec: string): NormalizedPath | null {
-  if (!spec.startsWith('./') && !spec.startsWith('../') && spec !== '.' && spec !== '..') return null;
+  if (!spec.startsWith('./') && !spec.startsWith('../') && spec !== '.' && spec !== '..')
+    return null;
   return normalizePath(`${dirnameOf(fromPath)}/${spec}`);
 }

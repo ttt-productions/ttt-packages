@@ -1,8 +1,6 @@
-import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
+import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
 
-export type UploadErrorCode =
-  | 'missing_content_type'
-  | 'invalid_content_type';
+export type UploadErrorCode = 'missing_content_type' | 'invalid_content_type';
 
 /**
  * Typed error thrown by upload-core when a client-side guard rejects an upload

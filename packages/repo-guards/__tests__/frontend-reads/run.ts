@@ -11,19 +11,31 @@ const ANCHOR = 'src/anchor.ts';
 const FUNCTIONS_ANCHOR = 'functions/src/anchor.ts';
 
 /** The findings of each guard the definition builds from `facts`, in build order. */
-export async function runDefinition<F>(definition: GenericGuardDefinition<F>, facts: F, files: Record<string, string>): Promise<Finding[][]> {
+export async function runDefinition<F>(
+  definition: GenericGuardDefinition<F>,
+  facts: F,
+  files: Record<string, string>,
+): Promise<Finding[][]> {
   const problems = definition.factProblems(facts);
   if (problems.length) throw new Error(`facts refused: ${problems.join('; ')}`);
   const withFunctions = Object.keys(files).some((p) => p.startsWith('functions/src/'));
-  const repo = tempRepo({ [ANCHOR]: 'export {};', ...(withFunctions ? { [FUNCTIONS_ANCHOR]: 'export {};' } : {}), ...files });
+  const repo = tempRepo({
+    [ANCHOR]: 'export {};',
+    ...(withFunctions ? { [FUNCTIONS_ANCHOR]: 'export {};' } : {}),
+    ...files,
+  });
   try {
     const reader = createRepoReader({
       repoRoot: repo.root,
       roots: {
         app: { path: 'src', anchor: ANCHOR },
-        ...(withFunctions ? { functions: { path: 'functions/src', anchor: FUNCTIONS_ANCHOR } } : {}),
+        ...(withFunctions
+          ? { functions: { path: 'functions/src', anchor: FUNCTIONS_ANCHOR } }
+          : {}),
       },
-      ...(files['src/test/setup.ts'] !== undefined ? { testCodePaths: [{ path: 'src/test', why: 'test setup' }] } : {}),
+      ...(files['src/test/setup.ts'] !== undefined
+        ? { testCodePaths: [{ path: 'src/test', why: 'test setup' }] }
+        : {}),
     });
     const out: Finding[][] = [];
     for (const guard of definition.build(facts)) {
@@ -37,7 +49,11 @@ export async function runDefinition<F>(definition: GenericGuardDefinition<F>, fa
 }
 
 /** The findings of a definition that builds one guard. */
-export async function runOne<F>(definition: GenericGuardDefinition<F>, facts: F, files: Record<string, string>): Promise<Finding[]> {
+export async function runOne<F>(
+  definition: GenericGuardDefinition<F>,
+  facts: F,
+  files: Record<string, string>,
+): Promise<Finding[]> {
   const [findings] = await runDefinition(definition, facts, files);
   return findings;
 }

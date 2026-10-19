@@ -18,22 +18,14 @@ type DocGetCall = {
   release: () => void;
 };
 
-const {
-  docs,
-  denied,
-  batchCalls,
-  getCalls,
-  docGetCalls,
-  getDocsMock,
-  getDocMock,
-  setAutoResolve,
-} = vi.hoisted(() => {
-  const docs = new Map<string, DocData>();
-  const denied = new Set<string>();
-  const batchCalls: BatchCall[] = [];
-  const getCalls: string[] = [];
-  const docGetCalls: DocGetCall[] = [];
-  let autoResolve = true;
+const { docs, denied, batchCalls, getCalls, docGetCalls, getDocsMock, getDocMock, setAutoResolve } =
+  vi.hoisted(() => {
+    const docs = new Map<string, DocData>();
+    const denied = new Set<string>();
+    const batchCalls: BatchCall[] = [];
+    const getCalls: string[] = [];
+    const docGetCalls: DocGetCall[] = [];
+    let autoResolve = true;
 
     const snapshotFor = (ids: string[]) => ({
       forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
@@ -81,17 +73,17 @@ const {
       autoResolve = value;
     };
 
-  return {
-    docs,
-    denied,
-    batchCalls,
-    getCalls,
-    docGetCalls,
-    getDocsMock,
-    getDocMock,
-    setAutoResolve,
-  };
-});
+    return {
+      docs,
+      denied,
+      batchCalls,
+      getCalls,
+      docGetCalls,
+      getDocsMock,
+      getDocMock,
+      setAutoResolve,
+    };
+  });
 
 vi.mock('firebase/firestore', () => ({
   collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
@@ -165,10 +157,9 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     const ids30 = Array.from({ length: 30 }, (_, i) => `a${i}`);
     for (const id of ids30) docs.set(id, { v: id });
 
-    const first = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ids30 }),
-      { wrapper: makeWrapper().Wrapper },
-    );
+    const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ids30 }), {
+      wrapper: makeWrapper().Wrapper,
+    });
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
     expect(batchCalls).toHaveLength(1);
     expect(batchCalls[0].ids).toHaveLength(30);
@@ -177,10 +168,9 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     const ids31 = Array.from({ length: 31 }, (_, i) => `b${i}`);
     for (const id of ids31) docs.set(id, { v: id });
 
-    const second = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ids31 }),
-      { wrapper: makeWrapper().Wrapper },
-    );
+    const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ids31 }), {
+      wrapper: makeWrapper().Wrapper,
+    });
     await waitFor(() => expect(second.result.current.isLoading).toBe(false));
     expect(batchCalls).toHaveLength(2);
     expect(batchCalls.map((c) => c.ids.length).sort((a, b) => a - b)).toEqual([1, 30]);
@@ -244,10 +234,9 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     docs.set('u2', { v: 2 });
 
     const { Wrapper, queryClient } = makeWrapper();
-    const { result } = renderHook(
-      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }),
-      { wrapper: Wrapper },
-    );
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
+      wrapper: Wrapper,
+    });
 
     await waitFor(() => expect(batchCalls).toHaveLength(1));
 

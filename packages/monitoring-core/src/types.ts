@@ -1,6 +1,6 @@
-import type { BeforeSendHook } from "./scrubber.js";
+import type { BeforeSendHook } from './scrubber.js';
 
-export type MonitoringProvider = "sentry" | "sentry-node" | "noop";
+export type MonitoringProvider = 'sentry' | 'sentry-node' | 'noop';
 
 export type MonitoringInitOptions = {
   provider: MonitoringProvider;
@@ -39,7 +39,7 @@ export type MonitoringUser = {
 };
 
 /** The severity names every provider in this package understands. */
-export type MonitoringLevel = "fatal" | "error" | "warning" | "info" | "debug";
+export type MonitoringLevel = 'fatal' | 'error' | 'warning' | 'info' | 'debug';
 
 export type ScopeLike = {
   setTag: (key: string, value: string) => void;

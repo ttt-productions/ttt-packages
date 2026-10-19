@@ -19,7 +19,11 @@ const TOKEN_VERSION = 'v1';
 export async function signToken(payload: object, secret: string): Promise<string> {
   const payloadB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
   const key = await hmacKey(secret, 'sign');
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${TOKEN_VERSION}.${payloadB64}`));
+  const sig = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(`${TOKEN_VERSION}.${payloadB64}`),
+  );
   return `${TOKEN_VERSION}.${payloadB64}.${bytesToB64url(new Uint8Array(sig))}`;
 }
 

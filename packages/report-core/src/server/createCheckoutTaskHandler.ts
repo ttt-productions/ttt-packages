@@ -9,7 +9,11 @@ import type {
 import { ReportCoreTaskError } from './taskError.js';
 import { createCandidateCursor } from './claimCandidates.js';
 import type { CheckoutTaskRequest } from '../schemas/requests.js';
-import type { AdminTaskStatus, CheckoutDetails, CheckoutTaskResult } from '../contracts/types-admin-task.js';
+import type {
+  AdminTaskStatus,
+  CheckoutDetails,
+  CheckoutTaskResult,
+} from '../contracts/types-admin-task.js';
 import { toClaimedTask } from './claimedTask.js';
 
 export interface CheckoutTaskHandlerConfig {
@@ -23,9 +27,7 @@ export interface CheckoutTaskHandlerConfig {
 }
 
 type ClaimOutcome =
-  | { kind: 'claimed'; result: CheckoutTaskResult }
-  | { kind: 'contended' }
-  | { kind: 'refused' };
+  { kind: 'claimed'; result: CheckoutTaskResult } | { kind: 'contended' } | { kind: 'refused' };
 
 /**
  * Query→claim rounds attempted before reporting contention. Candidate discovery runs
@@ -56,8 +58,7 @@ export function createCheckoutTaskHandler({
       try {
         await auth.requireAdmin(uid, authToken);
         return;
-      } catch {
-      }
+      } catch {}
     }
 
     if (auth.adminUserIds?.includes(uid)) return;
@@ -107,17 +108,16 @@ export function createCheckoutTaskHandler({
         // preview lets an admin re-check-out and re-work an already-resolved task
         // (re-applying its actions on the underlying group / racing another admin's close).
         const status = taskData.status;
-        const lockExpiresAt = (taskData.checkoutDetails as Record<string, unknown> | undefined)?.expiresAt as
-          | number
-          | undefined;
+        const lockExpiresAt = (taskData.checkoutDetails as Record<string, unknown> | undefined)
+          ?.expiresAt as number | undefined;
         const lockActive =
           (status === 'checkedOut' || status === 'workLater') &&
           typeof lockExpiresAt === 'number' &&
           lockExpiresAt > now;
-        const stealableExpired =
-          (status === 'checkedOut' || status === 'workLater') && !lockActive;
+        const stealableExpired = (status === 'checkedOut' || status === 'workLater') && !lockActive;
 
-        const checkoutHolder = (taskData.checkoutDetails as Record<string, unknown> | undefined)?.userId;
+        const checkoutHolder = (taskData.checkoutDetails as Record<string, unknown> | undefined)
+          ?.userId;
         if (lockActive && checkoutHolder === userId && opts.onConflict === 'throw') {
           // The caller already holds this task under a live lock: answer that truthfully with
           // the task as held, and change nothing — no lock extension, no audit event.
@@ -143,10 +143,16 @@ export function createCheckoutTaskHandler({
         if (status !== 'pending' && !stealableExpired) {
           if (opts.onConflict === 'skip') return { kind: 'contended' };
           if (lockActive) {
-            throw new ReportCoreTaskError('failed-precondition', 'This task is already checked out by another admin.');
+            throw new ReportCoreTaskError(
+              'failed-precondition',
+              'This task is already checked out by another admin.',
+            );
           }
           // completed / resolved / unknown terminal — nothing to check out.
-          throw new ReportCoreTaskError('failed-precondition', 'This task has already been resolved.');
+          throw new ReportCoreTaskError(
+            'failed-precondition',
+            'This task has already been resolved.',
+          );
         }
         if (opts.onConflict === 'skip' && lockActive) {
           // Queue candidate stolen between the query and this transaction.
@@ -162,7 +168,7 @@ export function createCheckoutTaskHandler({
           const verdict = await assertTaskClaimable({
             taskDocId: taskDoc.id,
             taskData,
-            originalData: originalDoc.exists ? originalDoc.data() ?? null : null,
+            originalData: originalDoc.exists ? (originalDoc.data() ?? null) : null,
             transaction,
           });
           if (!verdict.claimable) {
@@ -277,6 +283,9 @@ export function createCheckoutTaskHandler({
       else contendedRounds++;
     }
 
-    throw new ReportCoreTaskError('aborted', 'The task queue is busy right now — please try again.');
+    throw new ReportCoreTaskError(
+      'aborted',
+      'The task queue is busy right now — please try again.',
+    );
   };
 }

@@ -18,12 +18,18 @@ describe('findLedgerContinuityBreak', () => {
   });
 
   it('names the first missing sequence of a gap', () => {
-    expect(findLedgerContinuityBreak(ledger(1, 2, 100))).toEqual({ kind: 'gap', missingSequence: 3 });
+    expect(findLedgerContinuityBreak(ledger(1, 2, 100))).toEqual({
+      kind: 'gap',
+      missingSequence: 3,
+    });
     expect(findLedgerContinuityBreak(ledger(2, 3))).toEqual({ kind: 'gap', missingSequence: 1 });
   });
 
   it('names a sequence two events hold', () => {
-    expect(findLedgerContinuityBreak(ledger(1, 2, 2, 3))).toEqual({ kind: 'duplicate', sequence: 2 });
+    expect(findLedgerContinuityBreak(ledger(1, 2, 2, 3))).toEqual({
+      kind: 'duplicate',
+      sequence: 2,
+    });
     expect(findLedgerContinuityBreak(ledger(1, 1))).toEqual({ kind: 'duplicate', sequence: 1 });
   });
 

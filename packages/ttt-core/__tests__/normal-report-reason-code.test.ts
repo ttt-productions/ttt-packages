@@ -9,13 +9,23 @@ describe("a report close-out's user-facing reason code is a canonical code only"
 
   it('accepts every code the picklist owns', () => {
     for (const { code } of USER_FACING_REASON_OPTIONS) {
-      expect(NormalReportInputSchema.safeParse({ ...close, userFacingReasonCode: code }).success).toBe(true);
+      expect(
+        NormalReportInputSchema.safeParse({ ...close, userFacingReasonCode: code }).success,
+      ).toBe(true);
     }
   });
 
   it('refuses an unknown, re-cased, or padded code', () => {
-    for (const code of ['made-up', 'Harassment', ' harassment', 'harassment ', 'Harassment or bullying']) {
-      expect(NormalReportInputSchema.safeParse({ ...close, userFacingReasonCode: code }).success).toBe(false);
+    for (const code of [
+      'made-up',
+      'Harassment',
+      ' harassment',
+      'harassment ',
+      'Harassment or bullying',
+    ]) {
+      expect(
+        NormalReportInputSchema.safeParse({ ...close, userFacingReasonCode: code }).success,
+      ).toBe(false);
     }
   });
 

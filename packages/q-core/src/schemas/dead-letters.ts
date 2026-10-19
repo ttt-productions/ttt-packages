@@ -50,7 +50,11 @@ export type DeadLetterRow = z.infer<typeof DeadLetterRowSchema>;
 
 // `truncated` is true when any lane hit the row cap: more parked rows exist than shown.
 export const GetDeadLettersResultSchema = z
-  .object({ generatedAt: epochMsSchema, rows: z.array(DeadLetterRowSchema), truncated: z.boolean() })
+  .object({
+    generatedAt: epochMsSchema,
+    rows: z.array(DeadLetterRowSchema),
+    truncated: z.boolean(),
+  })
   .strict();
 export type GetDeadLettersResult = z.infer<typeof GetDeadLettersResultSchema>;
 

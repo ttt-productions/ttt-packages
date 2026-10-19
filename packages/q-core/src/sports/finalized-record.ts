@@ -6,7 +6,10 @@
 
 import { STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
-import type { GameStatHistoryFirstPage, GameStatHistoryPage } from '../doc-schemas/game-stat-history.js';
+import type {
+  GameStatHistoryFirstPage,
+  GameStatHistoryPage,
+} from '../doc-schemas/game-stat-history.js';
 import { buildStatHistoryPageId } from '../ids/stat-event-ids.js';
 import type { FinalizedGame } from './contribution.js';
 import { replayGameStats } from './replay.js';
@@ -29,14 +32,21 @@ export function buildFinalizedRecordPages(
   events: readonly GameStatEvent[],
   snapshot: Pick<
     FinalizedGame,
-    'leagueType' | 'teamIds' | 'rosterPlayerIds' | 'absentRosterPlayerIds' | 'nonScoringRosterPlayerIds'
+    | 'leagueType'
+    | 'teamIds'
+    | 'rosterPlayerIds'
+    | 'absentRosterPlayerIds'
+    | 'nonScoringRosterPlayerIds'
   >,
 ): FinalizedRecordPage[] {
   const ordered = [...events].sort((left, right) => left.sequence - right.sequence);
   const pageCount = Math.max(1, Math.ceil(ordered.length / STAT_HISTORY_PAGE_SIZE));
   const pages: FinalizedRecordPage[] = [];
   for (let index = 0; index < pageCount; index += 1) {
-    const slice = ordered.slice(index * STAT_HISTORY_PAGE_SIZE, (index + 1) * STAT_HISTORY_PAGE_SIZE);
+    const slice = ordered.slice(
+      index * STAT_HISTORY_PAGE_SIZE,
+      (index + 1) * STAT_HISTORY_PAGE_SIZE,
+    );
     const page: GameStatHistoryPage =
       index === 0
         ? {
@@ -69,7 +79,8 @@ export function readFinalizedRecord(pages: readonly GameStatHistoryPage[]): {
   readonly events: GameStatEvent[];
 } {
   const [first, ...rest] = pages;
-  if (first === undefined || !isFirstRecordPage(first)) throw new Error('A finalized record starts with its first page.');
+  if (first === undefined || !isFirstRecordPage(first))
+    throw new Error('A finalized record starts with its first page.');
   if (first.pageCount !== pages.length) {
     throw new Error(`A finalized record of ${first.pageCount} pages was read as ${pages.length}.`);
   }
@@ -94,7 +105,10 @@ export function readFinalizedRecord(pages: readonly GameStatHistoryPage[]): {
  * snapshot finalize stored. Every path after finalize derives a game's contribution from this, never
  * from the game document.
  */
-export function finalizedGameFromRecord(adapter: AnySportAdapter, pages: readonly GameStatHistoryPage[]): FinalizedGame {
+export function finalizedGameFromRecord(
+  adapter: AnySportAdapter,
+  pages: readonly GameStatHistoryPage[],
+): FinalizedGame {
   const { snapshot, events } = readFinalizedRecord(pages);
   return {
     leagueType: snapshot.leagueType,

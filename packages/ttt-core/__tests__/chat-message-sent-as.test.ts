@@ -9,7 +9,10 @@ const ordinary = { senderId: 'u_1', text: 'hello', createdAt: 1 };
 
 describe('ChatMessageV1Schema — sending capacity', () => {
   it('stores an admin-authority message with sentAs admin', () => {
-    expect(ChatMessageV1Schema.parse({ ...ordinary, sentAs: 'admin' })).toEqual({ ...ordinary, sentAs: 'admin' });
+    expect(ChatMessageV1Schema.parse({ ...ordinary, sentAs: 'admin' })).toEqual({
+      ...ordinary,
+      sentAs: 'admin',
+    });
   });
 
   it('stores an ordinary message with no sending capacity at all', () => {

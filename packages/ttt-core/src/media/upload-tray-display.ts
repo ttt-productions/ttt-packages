@@ -10,7 +10,7 @@ import type { FileOrigin } from './file-origin.js';
 export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'profile-picture': 'Profile picture',
   'craft-skill-media': 'Craft',
-  'squareStreetz': 'Square post',
+  squareStreetz: 'Square post',
   'commission-posting': 'Commission posting',
   'commission-proposal': 'Commission proposal',
   'audition-prompt': 'Audition',

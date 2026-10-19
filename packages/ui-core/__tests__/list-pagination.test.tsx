@@ -509,9 +509,7 @@ describe('ListPagination — shared control surface', () => {
   };
 
   it('merges a consumer className rather than replacing the component classes', () => {
-    const { container } = render(
-      <ListPagination pagination={state} className="border-t pt-4" />,
-    );
+    const { container } = render(<ListPagination pagination={state} className="border-t pt-4" />);
     const row = container.firstElementChild;
     expect(row).toHaveClass('border-t');
     expect(row).toHaveClass('pt-4');
@@ -525,9 +523,7 @@ describe('ListPagination — shared control surface', () => {
     expect(previous().className).toContain('border-border');
 
     rerender(
-      <ListPagination
-        pagination={{ ...state, totalPages: undefined, canNextPage: true }}
-      />,
+      <ListPagination pagination={{ ...state, totalPages: undefined, canNextPage: true }} />,
     );
     expect(next().className).toContain('border-border');
   });
@@ -577,7 +573,11 @@ describe('ListPagination — the clicked control spins while its page loads', ()
     await user.click(next());
     expect(goToNextPage).toHaveBeenCalledTimes(1);
 
-    rerender(<ListPagination pagination={{ ...state, currentPage: 5, canNextPage: false, goToNextPage }} />);
+    rerender(
+      <ListPagination
+        pagination={{ ...state, currentPage: 5, canNextPage: false, goToNextPage }}
+      />,
+    );
     expect(next()).toHaveAttribute('aria-disabled', 'true');
     expect(next()).toHaveFocus();
     await user.click(next());

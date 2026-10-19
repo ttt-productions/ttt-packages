@@ -27,7 +27,20 @@ const RAW_QUERY_KEY_PREFIX = /queryKeyPrefix\s*:\s*['"`]/g;
 const POSITIONAL_KEY_CALL =
   /\.\s*(?:setQueryData|getQueryData|getQueryState|removeQueries|invalidateQueries|refetchQueries|cancelQueries|resetQueries|prefetchQuery|fetchQuery|ensureQueryData)\(\s*\[/g;
 
-const TYPE_KEYWORDS = new Set(['string', 'number', 'boolean', 'bigint', 'symbol', 'object', 'unknown', 'any', 'never', 'null', 'undefined', 'void']);
+const TYPE_KEYWORDS = new Set([
+  'string',
+  'number',
+  'boolean',
+  'bigint',
+  'symbol',
+  'object',
+  'unknown',
+  'any',
+  'never',
+  'null',
+  'undefined',
+  'void',
+]);
 
 function closingBracket(text: string, open: number): number {
   let depth = 0;
@@ -40,18 +53,33 @@ function closingBracket(text: string, open: number): number {
 
 /** A `queryKey: [ … ]` whose contents are a tuple TYPE (`[string, string]`) declares a key's shape and spells no key. */
 function isTupleType(inner: string): boolean {
-  const elements = inner.split(',').map((e) => e.trim()).filter(Boolean);
+  const elements = inner
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean);
   if (!elements.length) return false;
   return elements.every((element) =>
     element
       .replace(/^\.\.\./, '')
       .split(/[|&]/)
-      .every((part) => TYPE_KEYWORDS.has(part.trim().replace(/^readonly\s+/, '').replace(/(?:\s*\[\s*\])+$/, '').replace(/\?$/, '').trim())),
+      .every((part) =>
+        TYPE_KEYWORDS.has(
+          part
+            .trim()
+            .replace(/^readonly\s+/, '')
+            .replace(/(?:\s*\[\s*\])+$/, '')
+            .replace(/\?$/, '')
+            .trim(),
+        ),
+      ),
   );
 }
 
 /** Every key spelled at a call site in one file: a key array, a positional key array, a literal key prefix. */
-export function handTypedKeys(file: FileView, isKeyModule: boolean): Array<{ index: number; detail: string }> {
+export function handTypedKeys(
+  file: FileView,
+  isKeyModule: boolean,
+): Array<{ index: number; detail: string }> {
   const code = file.code;
   const hits: Array<{ index: number; detail: string }> = [];
   if (!isKeyModule) {
@@ -61,9 +89,11 @@ export function handTypedKeys(file: FileView, isKeyModule: boolean): Array<{ ind
       if (close !== -1 && isTupleType(code.slice(open + 1, close))) continue;
       hits.push({ index: m.index ?? 0, detail: 'a hand-typed queryKey array' });
     }
-    for (const m of code.matchAll(POSITIONAL_KEY_CALL)) hits.push({ index: m.index ?? 0, detail: 'a hand-typed key array passed to a cache method' });
+    for (const m of code.matchAll(POSITIONAL_KEY_CALL))
+      hits.push({ index: m.index ?? 0, detail: 'a hand-typed key array passed to a cache method' });
   }
-  for (const m of code.matchAll(RAW_QUERY_KEY_PREFIX)) hits.push({ index: m.index ?? 0, detail: 'a literal queryKeyPrefix' });
+  for (const m of code.matchAll(RAW_QUERY_KEY_PREFIX))
+    hits.push({ index: m.index ?? 0, detail: 'a literal queryKeyPrefix' });
   return hits.sort((a, b) => a.index - b.index);
 }
 
@@ -84,13 +114,25 @@ export function keyBuilders(file: FileView): KeyBuilder[] {
   const out: KeyBuilder[] = [];
   for (const { name: object, object: literal } of objects) {
     for (const prop of literal.properties) {
-      if (!ts.isPropertyAssignment(prop) || !(ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name))) continue;
+      if (
+        !ts.isPropertyAssignment(prop) ||
+        !(ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name))
+      )
+        continue;
       const fn = prop.initializer;
       if (!ts.isArrowFunction(fn) && !ts.isFunctionExpression(fn)) continue;
       let body: ts.Node = fn.body;
-      while (ts.isAsExpression(body as ts.Expression) || ts.isParenthesizedExpression(body as ts.Expression)) body = (body as ts.AsExpression).expression;
+      while (
+        ts.isAsExpression(body as ts.Expression) ||
+        ts.isParenthesizedExpression(body as ts.Expression)
+      )
+        body = (body as ts.AsExpression).expression;
       let delegatesTo: string | null = null;
-      if (ts.isCallExpression(body) && ts.isPropertyAccessExpression(body.expression) && ts.isIdentifier(body.expression.expression)) {
+      if (
+        ts.isCallExpression(body) &&
+        ts.isPropertyAccessExpression(body.expression) &&
+        ts.isIdentifier(body.expression.expression)
+      ) {
         const target = body.expression.expression.text;
         if (names.has(target)) delegatesTo = `${target}.${body.expression.name.text}`;
       }
@@ -110,18 +152,26 @@ export function keyBuilders(file: FileView): KeyBuilder[] {
 const normalizedBody = ({ body, params }: KeyBuilder) => {
   let out = body;
   params.forEach((param, i) => {
-    out = out.replace(new RegExp(`(?<![\\w$])${escapeRegExp(param)}(?![\\w$])`, 'g'), () => `$${i + 1}`);
+    out = out.replace(
+      new RegExp(`(?<![\\w$])${escapeRegExp(param)}(?![\\w$])`, 'g'),
+      () => `$${i + 1}`,
+    );
   });
   return out.replace(/\s+/g, ' ').trim();
 };
 
 /** Builders that are a second name for a key: one that delegates to another, or two whose bodies build one key. */
-export function aliasBuilders(builders: readonly KeyBuilder[]): Array<{ line: number; detail: string }> {
+export function aliasBuilders(
+  builders: readonly KeyBuilder[],
+): Array<{ line: number; detail: string }> {
   const hits: Array<{ line: number; detail: string }> = [];
   const byBody = new Map<string, KeyBuilder[]>();
   for (const builder of builders) {
     if (builder.delegatesTo) {
-      hits.push({ line: builder.line, detail: `${builder.object}.${builder.name} delegates to ${builder.delegatesTo}(…), a second name for its key` });
+      hits.push({
+        line: builder.line,
+        detail: `${builder.object}.${builder.name} delegates to ${builder.delegatesTo}(…), a second name for its key`,
+      });
       continue;
     }
     const key = normalizedBody(builder);
@@ -130,7 +180,10 @@ export function aliasBuilders(builders: readonly KeyBuilder[]): Array<{ line: nu
   for (const [body, group] of byBody) {
     if (group.length < 2) continue;
     for (const builder of group.slice(1)) {
-      hits.push({ line: builder.line, detail: `${builder.object}.${builder.name} builds the same key as ${group[0].object}.${group[0].name}: ${body.slice(0, 100)}` });
+      hits.push({
+        line: builder.line,
+        detail: `${builder.object}.${builder.name} builds the same key as ${group[0].object}.${group[0].name}: ${body.slice(0, 100)}`,
+      });
     }
   }
   return hits.sort((a, b) => a.line - b.line);
@@ -154,19 +207,38 @@ export const queryKeysGuard: GenericGuardDefinition<QueryKeyFacts> = {
         'and no two members build the same key: an invalidation written against one name never reaches a query keyed by the other. Add or ' +
         'reuse one named member and point every call site at it.',
       run(context) {
-        const { file: module, findings } = requiredFile(context, facts.keyModule, 'the query-key module');
+        const { file: module, findings } = requiredFile(
+          context,
+          facts.keyModule,
+          'the query-key module',
+        );
         if (!module) return findings;
         const builders = keyBuilders(module);
         const objectNames = [...new Set(declaredObjects(module.sourceFile).map((o) => o.name))];
-        if (!builders.length) findings.push({ file: facts.keyModule, detail: 'no key builder found in the module (an exported object of name: (params) => key members), so the alias check checks nothing' });
+        if (!builders.length)
+          findings.push({
+            file: facts.keyModule,
+            detail:
+              'no key builder found in the module (an exported object of name: (params) => key members), so the alias check checks nothing',
+          });
         for (const hit of aliasBuilders(builders)) findings.push({ file: facts.keyModule, ...hit });
-        const secondObject = objectNames.length ? new RegExp(`\\b(?:const|let|var)\\s+(${objectNames.map(escapeRegExp).join('|')})\\s*=`, 'g') : null;
+        const secondObject = objectNames.length
+          ? new RegExp(
+              `\\b(?:const|let|var)\\s+(${objectNames.map(escapeRegExp).join('|')})\\s*=`,
+              'g',
+            )
+          : null;
         for (const file of context.files(APP_CODE)) {
           const isKeyModule = file.path === facts.keyModule;
-          for (const hit of handTypedKeys(file, isKeyModule)) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
+          for (const hit of handTypedKeys(file, isKeyModule))
+            findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
           if (secondObject && !isKeyModule) {
             for (const m of file.code.matchAll(secondObject)) {
-              findings.push({ file: file.path, line: file.lineOf(m.index ?? 0), detail: `a second ${m[1]} beside the one in ${facts.keyModule}` });
+              findings.push({
+                file: file.path,
+                line: file.lineOf(m.index ?? 0),
+                detail: `a second ${m[1]} beside the one in ${facts.keyModule}`,
+              });
             }
           }
         }
@@ -189,7 +261,10 @@ export interface AuthScopedKeyFacts {
 }
 
 /** Every auth-scoped key method whose first parameter is not the uid, or that leaves the uid out of the key. */
-export function keyMethodsWithoutUid(file: FileView, facts: AuthScopedKeyFacts): Array<{ line: number; detail: string }> {
+export function keyMethodsWithoutUid(
+  file: FileView,
+  facts: AuthScopedKeyFacts,
+): Array<{ line: number; detail: string }> {
   const sf = file.sourceFile;
   const scoped = new RegExp(`^(?:${facts.authScopedPrefixes.map(escapeRegExp).join('|')})[A-Z]`);
   const uidNames = new Set(facts.uidParamNames);
@@ -203,12 +278,20 @@ export function keyMethodsWithoutUid(file: FileView, facts: AuthScopedKeyFacts):
       (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
     ) {
       const first = node.initializer.parameters[0];
-      const uid = first && ts.isIdentifier(first.name) && uidNames.has(first.name.text) ? first.name.text : null;
+      const uid =
+        first && ts.isIdentifier(first.name) && uidNames.has(first.name.text)
+          ? first.name.text
+          : null;
       let used = false;
-      if (uid) forEachNode(node.initializer.body, (n) => {
-        if (ts.isIdentifier(n) && n.text === uid) used = true;
-      });
-      if (!uid || !used) hits.push({ line: lineOfNode(file, node), detail: `${owner}.${node.name.text} ${uid ? 'leaves the uid out of the key' : 'does not take the uid first'}` });
+      if (uid)
+        forEachNode(node.initializer.body, (n) => {
+          if (ts.isIdentifier(n) && n.text === uid) used = true;
+        });
+      if (!uid || !used)
+        hits.push({
+          line: lineOfNode(file, node),
+          detail: `${owner}.${node.name.text} ${uid ? 'leaves the uid out of the key' : 'does not take the uid first'}`,
+        });
     }
     ts.forEachChild(node, (child) => visit(child, owner));
   };
@@ -222,7 +305,9 @@ export const authScopedKeysGuard: GenericGuardDefinition<AuthScopedKeyFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     pathProblem(facts?.keyModule, 'keyModule', problems);
-    identifierListProblem(facts?.authScopedPrefixes, 'authScopedPrefixes', problems, { nonEmpty: true });
+    identifierListProblem(facts?.authScopedPrefixes, 'authScopedPrefixes', problems, {
+      nonEmpty: true,
+    });
     identifierListProblem(facts?.uidParamNames, 'uidParamNames', problems, { nonEmpty: true });
     return problems;
   },
@@ -234,9 +319,16 @@ export const authScopedKeysGuard: GenericGuardDefinition<AuthScopedKeyFacts> = {
         `takes the uid (${facts.uidParamNames.join(' / ')}) as its first parameter and puts it in the key, so a direct switch from one ` +
         "account to another never serves the first account's cached rows to the second.",
       run(context) {
-        const { file, findings }: { file: FileView | null; findings: Finding[] } = requiredFile(context, facts.keyModule, 'the query-key module');
+        const { file, findings }: { file: FileView | null; findings: Finding[] } = requiredFile(
+          context,
+          facts.keyModule,
+          'the query-key module',
+        );
         if (!file) return findings;
-        return [...findings, ...keyMethodsWithoutUid(file, facts).map((hit) => ({ file: file.path, ...hit }))];
+        return [
+          ...findings,
+          ...keyMethodsWithoutUid(file, facts).map((hit) => ({ file: file.path, ...hit })),
+        ];
       },
     },
   ],

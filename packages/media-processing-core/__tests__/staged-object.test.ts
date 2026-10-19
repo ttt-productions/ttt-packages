@@ -21,7 +21,10 @@ describe('readStagedUploadMetadata', () => {
   it('returns the stored metadata of an existing object', async () => {
     const metadata = { contentType: 'image/jpeg', size: '1024', generation: '17' };
     const { bucket, file } = bucketWith(async () => [metadata]);
-    expect(await readStagedUploadMetadata(bucket, 'uploads/a/u/1')).toEqual({ found: true, metadata });
+    expect(await readStagedUploadMetadata(bucket, 'uploads/a/u/1')).toEqual({
+      found: true,
+      metadata,
+    });
     expect(file).toHaveBeenCalledWith('uploads/a/u/1');
   });
 
@@ -84,7 +87,9 @@ describe('readStagedObjectGeneration', () => {
 
 describe('stagedObjectGenerationFromMetadata', () => {
   it('keeps a string generation as-is (generations exceed 2^53)', () => {
-    expect(stagedObjectGenerationFromMetadata({ generation: '1712345678901234567' })).toBe('1712345678901234567');
+    expect(stagedObjectGenerationFromMetadata({ generation: '1712345678901234567' })).toBe(
+      '1712345678901234567',
+    );
   });
 
   it('stringifies a numeric generation', () => {
@@ -112,7 +117,12 @@ describe('stagedObjectGenerationFromMetadata', () => {
   });
 
   it('takes the Admin SDK metadata a processor already holds, unchanged', () => {
-    const metadata: AdminFileMetadata = { name: 'uploads/a/u/1', contentType: 'video/mp4', size: '9', generation: '17' };
+    const metadata: AdminFileMetadata = {
+      name: 'uploads/a/u/1',
+      contentType: 'video/mp4',
+      size: '9',
+      generation: '17',
+    };
     expect(stagedObjectGenerationFromMetadata(metadata)).toBe('17');
   });
 
@@ -120,7 +130,9 @@ describe('stagedObjectGenerationFromMetadata', () => {
     'is the normalization readStagedObjectGeneration applies (generation %s)',
     async (generation) => {
       const { bucket } = bucketWith(async () => [{ generation }]);
-      expect(await readStagedObjectGeneration(bucket, 'p')).toBe(stagedObjectGenerationFromMetadata({ generation }));
+      expect(await readStagedObjectGeneration(bucket, 'p')).toBe(
+        stagedObjectGenerationFromMetadata({ generation }),
+      );
     },
   );
 });

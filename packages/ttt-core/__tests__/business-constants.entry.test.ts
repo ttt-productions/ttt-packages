@@ -7,7 +7,9 @@ import * as constants from '../src/constants/index.js';
 
 describe('admin Dispatches browse page size', () => {
   it('is importable from the server-safe constants entry, where the browse list reads it', () => {
-    expect(constants.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE);
+    expect(constants.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(
+      ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE,
+    );
   });
 });
 

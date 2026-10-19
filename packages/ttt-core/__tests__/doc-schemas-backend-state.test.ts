@@ -31,8 +31,10 @@ describe('NcmecPortalReceiptArtifactV1Schema', () => {
   it('accepts the record the operator callable writes, with and without the optional description', () => {
     expect(NcmecPortalReceiptArtifactV1Schema.safeParse(artifact).success).toBe(true);
     expect(
-      NcmecPortalReceiptArtifactV1Schema.safeParse({ ...artifact, description: 'Portal receipt PDF' })
-        .success,
+      NcmecPortalReceiptArtifactV1Schema.safeParse({
+        ...artifact,
+        description: 'Portal receipt PDF',
+      }).success,
     ).toBe(true);
   });
 
@@ -44,9 +46,9 @@ describe('NcmecPortalReceiptArtifactV1Schema', () => {
   });
 
   it('pins schemaVersion to 1 rather than accepting any number', () => {
-    expect(NcmecPortalReceiptArtifactV1Schema.safeParse({ ...artifact, schemaVersion: 2 }).success).toBe(
-      false,
-    );
+    expect(
+      NcmecPortalReceiptArtifactV1Schema.safeParse({ ...artifact, schemaVersion: 2 }).success,
+    ).toBe(false);
   });
 });
 
@@ -81,12 +83,12 @@ describe('NcmecPortalCorrectionRecordV1Schema', () => {
 
 describe('Portal-artifact registry + path bindings', () => {
   it('binds both portal-artifact paths in COLLECTION_SCHEMAS', () => {
-    expect(COLLECTION_SCHEMAS['childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}']).toBe(
-      NcmecPortalReceiptArtifactV1Schema,
-    );
-    expect(COLLECTION_SCHEMAS['childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}']).toBe(
-      NcmecPortalCorrectionRecordV1Schema,
-    );
+    expect(
+      COLLECTION_SCHEMAS['childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}'],
+    ).toBe(NcmecPortalReceiptArtifactV1Schema);
+    expect(
+      COLLECTION_SCHEMAS['childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}'],
+    ).toBe(NcmecPortalCorrectionRecordV1Schema);
   });
 
   it('the path builders address exactly the registered paths', () => {
@@ -115,8 +117,10 @@ describe('NcmecCompletionProofRecordV1Schema', () => {
   it('accepts the record the completion transaction writes, with and without the optional note', () => {
     expect(NcmecCompletionProofRecordV1Schema.safeParse(proof).success).toBe(true);
     expect(
-      NcmecCompletionProofRecordV1Schema.safeParse({ ...proof, proofText: 'Confirmed on the portal.' })
-        .success,
+      NcmecCompletionProofRecordV1Schema.safeParse({
+        ...proof,
+        proofText: 'Confirmed on the portal.',
+      }).success,
     ).toBe(true);
   });
 
@@ -131,11 +135,12 @@ describe('NcmecCompletionProofRecordV1Schema', () => {
   });
 
   it('constrains channel and proofType to the canonical submission unions', () => {
-    expect(NcmecCompletionProofRecordV1Schema.safeParse({ ...proof, channel: 'ispwsApi' }).success).toBe(
-      false,
-    );
     expect(
-      NcmecCompletionProofRecordV1Schema.safeParse({ ...proof, proofType: 'reportDoneResponse' }).success,
+      NcmecCompletionProofRecordV1Schema.safeParse({ ...proof, channel: 'ispwsApi' }).success,
+    ).toBe(false);
+    expect(
+      NcmecCompletionProofRecordV1Schema.safeParse({ ...proof, proofType: 'reportDoneResponse' })
+        .success,
     ).toBe(false);
   });
 
@@ -185,14 +190,20 @@ describe('SweepStateSchema', () => {
 
   it('accepts the reconcile sweep state, which carries only the full-scan stamp', () => {
     expect(
-      SweepStateSchema.safeParse({ fullScanLastRunAt: 1_700_000_000_000, updatedAt: 1_700_000_000_000 })
-        .success,
+      SweepStateSchema.safeParse({
+        fullScanLastRunAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
+      }).success,
     ).toBe(true);
   });
 
   it("keeps a full scan's place partway through a lap beside the reaper's rolling cursor", () => {
     const state = {
-      rollingCursor: { state: 'done' as const, lapStartedAt: 1_700_000_000_000, lapCompletedAt: 1_700_000_100_000 },
+      rollingCursor: {
+        state: 'done' as const,
+        lapStartedAt: 1_700_000_000_000,
+        lapCompletedAt: 1_700_000_100_000,
+      },
       fullScanLap: { pageToken: 'opaque-auth-page-token', lapStartedAt: 1_700_000_200_000 },
       fullScanLastRunAt: 1_699_000_000_000,
       updatedAt: 1_700_000_300_000,
@@ -201,7 +212,8 @@ describe('SweepStateSchema', () => {
   });
 
   it('refuses a full-scan place with no page token, no lap start, or a field it does not declare', () => {
-    const at = (fullScanLap: unknown) => SweepStateSchema.safeParse({ fullScanLap, updatedAt: 1 }).success;
+    const at = (fullScanLap: unknown) =>
+      SweepStateSchema.safeParse({ fullScanLap, updatedAt: 1 }).success;
     expect(at({ pageToken: '', lapStartedAt: 1 })).toBe(false);
     expect(at({ pageToken: 't' })).toBe(false);
     expect(at({ pageToken: 't', lapStartedAt: -1 })).toBe(false);
@@ -217,17 +229,33 @@ describe('SweepStateSchema', () => {
   });
 
   it('keeps the cadence stamps numeric epoch ms', () => {
-    expect(SweepStateSchema.safeParse({ updatedAt: 1, fullScanLastRunAt: '1' }).success).toBe(false);
+    expect(SweepStateSchema.safeParse({ updatedAt: 1, fullScanLastRunAt: '1' }).success).toBe(
+      false,
+    );
   });
 
   it('holds the rows a pass deferred, each once, at most SWEEP_STATE_MAX_DEFERRED of them', () => {
-    const row = (n: number) => ({ key: `asset-${n}`, value: 1_700_000_000_000 - n, nextAttemptAt: 1, attemptCount: 1 });
+    const row = (n: number) => ({
+      key: `asset-${n}`,
+      value: 1_700_000_000_000 - n,
+      nextAttemptAt: 1,
+      attemptCount: 1,
+    });
     const full = Array.from({ length: SWEEP_STATE_MAX_DEFERRED }, (_, i) => row(i + 1));
     expect(SweepStateSchema.safeParse({ deferred: full, updatedAt: 1 }).success).toBe(true);
-    expect(SweepStateSchema.safeParse({ deferred: [...full, row(0)], updatedAt: 1 }).success).toBe(false);
-    expect(SweepStateSchema.safeParse({ deferred: [row(1), row(1)], updatedAt: 1 }).success).toBe(false);
-    expect(SweepStateSchema.safeParse({ deferred: [{ ...row(1), attemptCount: 0 }], updatedAt: 1 }).success).toBe(false);
-    expect(SweepStateSchema.safeParse({ deferred: [{ ...row(1), key: '' }], updatedAt: 1 }).success).toBe(false);
+    expect(SweepStateSchema.safeParse({ deferred: [...full, row(0)], updatedAt: 1 }).success).toBe(
+      false,
+    );
+    expect(SweepStateSchema.safeParse({ deferred: [row(1), row(1)], updatedAt: 1 }).success).toBe(
+      false,
+    );
+    expect(
+      SweepStateSchema.safeParse({ deferred: [{ ...row(1), attemptCount: 0 }], updatedAt: 1 })
+        .success,
+    ).toBe(false);
+    expect(
+      SweepStateSchema.safeParse({ deferred: [{ ...row(1), key: '' }], updatedAt: 1 }).success,
+    ).toBe(false);
   });
 
   it('names every pass that keeps a persisted position, the safety backstops and reconcilers included', () => {
@@ -294,36 +322,59 @@ describe('SweepRollingCursorSchema', () => {
   });
 
   it("keeps a Firestore query lap resuming after the last row's ordered value and document id", () => {
-    const cursor = { state: 'inLap' as const, afterKey: 'asset-201', afterValue: 1_699_000_000_000, lapStartedAt };
+    const cursor = {
+      state: 'inLap' as const,
+      afterKey: 'asset-201',
+      afterValue: 1_699_000_000_000,
+      lapStartedAt,
+    };
     expect(SweepRollingCursorSchema.parse(cursor)).toEqual(cursor);
   });
 
   it('never stores an ordered value without the key that breaks ties on it', () => {
     expect(
-      SweepRollingCursorSchema.safeParse({ state: 'inLap', afterValue: 1_699_000_000_000, lapStartedAt }).success,
+      SweepRollingCursorSchema.safeParse({
+        state: 'inLap',
+        afterValue: 1_699_000_000_000,
+        lapStartedAt,
+      }).success,
     ).toBe(false);
   });
 
   it('keeps an exhausted source as done, so the pass that exhausted it does not start page one again', () => {
     const done = { state: 'done' as const, lapStartedAt, lapCompletedAt: lapStartedAt + 60_000 };
     expect(SweepRollingCursorSchema.parse(done)).toEqual(done);
-    expect(SweepRollingCursorSchema.safeParse({ ...done, afterKey: 'rejected/u1/pm-9' }).success).toBe(false);
+    expect(
+      SweepRollingCursorSchema.safeParse({ ...done, afterKey: 'rejected/u1/pm-9' }).success,
+    ).toBe(false);
   });
 
   it('rejects a lap that completed before it started', () => {
     expect(
-      SweepRollingCursorSchema.safeParse({ state: 'done', lapStartedAt, lapCompletedAt: lapStartedAt - 1 }).success,
+      SweepRollingCursorSchema.safeParse({
+        state: 'done',
+        lapStartedAt,
+        lapCompletedAt: lapStartedAt - 1,
+      }).success,
     ).toBe(false);
   });
 
   it('never stores an in-lap cursor without the key it resumes after', () => {
-    expect(SweepRollingCursorSchema.safeParse({ state: 'inLap', lapStartedAt }).success).toBe(false);
-    expect(SweepRollingCursorSchema.safeParse({ state: 'inLap', afterKey: '', lapStartedAt }).success).toBe(false);
+    expect(SweepRollingCursorSchema.safeParse({ state: 'inLap', lapStartedAt }).success).toBe(
+      false,
+    );
+    expect(
+      SweepRollingCursorSchema.safeParse({ state: 'inLap', afterKey: '', lapStartedAt }).success,
+    ).toBe(false);
   });
 
   it('stores its times as epoch milliseconds', () => {
     expect(
-      SweepRollingCursorSchema.safeParse({ state: 'inLap', afterKey: 'k', lapStartedAt: '1700000000000' }).success,
+      SweepRollingCursorSchema.safeParse({
+        state: 'inLap',
+        afterKey: 'k',
+        lapStartedAt: '1700000000000',
+      }).success,
     ).toBe(false);
   });
 

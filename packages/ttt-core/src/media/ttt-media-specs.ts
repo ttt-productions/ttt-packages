@@ -1,7 +1,7 @@
-import type { FileOrigin } from "./file-origin.js";
-import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
-import { byMode } from "../constants/app-mode.js";
-import { DEFAULT_NCII_POLICY_CONFIG_V1 } from "../doc-schemas/ncii/config.js";
+import type { FileOrigin } from './file-origin.js';
+import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
+import { byMode } from '../constants/app-mode.js';
+import { DEFAULT_NCII_POLICY_CONFIG_V1 } from '../doc-schemas/ncii/config.js';
 
 // Mode-aware media-origin registry. Two distinct caps per origin (see
 // ttt-prod docs/design/charter-season-and-app-mode.md):
@@ -89,7 +89,6 @@ const ACCEPT_IMAGE_VIDEO = {
 // MediaVariantKeySchema, and every schema member must be produced by some origin (a spec's image
 // variants, or the video/audio outputs).
 export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
-
   'profile-picture': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
@@ -114,9 +113,24 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 200, height: 200, gravity: 'center' }, format: 'jpeg', quality: 85 },
-            { key: 'medium', crop: { width: 48, height: 48, gravity: 'center' }, format: 'jpeg', quality: 85 },
-            { key: 'small', crop: { width: 32, height: 32, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 200, height: 200, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
+            {
+              key: 'medium',
+              crop: { width: 48, height: 48, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
+            {
+              key: 'small',
+              crop: { width: 32, height: 32, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -148,7 +162,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'main', crop: { width: 800, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'main',
+              crop: { width: 800, height: 600, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -192,7 +211,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 600, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 600, height: 600, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -224,7 +248,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 600, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 600, height: 600, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -254,7 +283,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 400, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 400, height: 600, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -284,14 +318,19 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 1280, height: 720, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 1280, height: 720, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
     },
   },
 
-  'squareStreetz': {
+  squareStreetz: {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: VIDEO_RAW_BYTES,
@@ -315,9 +354,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       image: {
         kind: 'image',
         image: {
-          variants: [
-            { key: 'main', maxWidth: 1280, maxHeight: 720, format: 'jpeg', quality: 85 },
-          ],
+          variants: [{ key: 'main', maxWidth: 1280, maxHeight: 720, format: 'jpeg', quality: 85 }],
         },
       },
       video: {
@@ -444,7 +481,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'main', crop: { width: 800, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'main',
+              crop: { width: 800, height: 600, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -490,7 +532,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'main', crop: { width: 800, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'main',
+              crop: { width: 800, height: 600, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -534,7 +581,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 400, height: 400, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 400, height: 400, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -564,7 +616,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 400, height: 400, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 400, height: 400, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -594,7 +651,12 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         kind: 'image',
         image: {
           variants: [
-            { key: 'full', crop: { width: 400, height: 400, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            {
+              key: 'full',
+              crop: { width: 400, height: 400, gravity: 'center' },
+              format: 'jpeg',
+              quality: 85,
+            },
           ],
         },
       },
@@ -667,9 +729,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       image: {
         kind: 'image',
         image: {
-          variants: [
-            { key: 'main', maxWidth: 800, maxHeight: 800, format: 'jpeg', quality: 85 },
-          ],
+          variants: [{ key: 'main', maxWidth: 800, maxHeight: 800, format: 'jpeg', quality: 85 }],
         },
       },
       video: {
@@ -705,9 +765,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       image: {
         kind: 'image',
         image: {
-          variants: [
-            { key: 'main', maxWidth: 1280, maxHeight: 1280, format: 'jpeg', quality: 85 },
-          ],
+          variants: [{ key: 'main', maxWidth: 1280, maxHeight: 1280, format: 'jpeg', quality: 85 }],
         },
       },
       video: {
@@ -775,5 +833,4 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowRecordAudio: false,
     },
   },
-
 };

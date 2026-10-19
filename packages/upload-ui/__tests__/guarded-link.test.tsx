@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { render, fireEvent, act, renderHook } from '@testing-library/react';
 import React from 'react';
-import { LocalUploadGuardProvider, useLocalUploadGuard } from '../src/react/guard/local-upload-guard-provider.js';
+import {
+  LocalUploadGuardProvider,
+  useLocalUploadGuard,
+} from '../src/react/guard/local-upload-guard-provider.js';
 import { GuardedLink } from '../src/react/guard/guarded-link.js';
 import { useGuardedNavigation } from '../src/react/guard/use-guarded-navigation.js';
 
@@ -129,9 +132,12 @@ describe('useGuardedNavigation — full-page navigation', () => {
   });
 
   function renderWithActiveUpload() {
-    const hook = renderHook(() => ({ guard: useLocalUploadGuard(), guardedNav: useGuardedNavigation() }), {
-      wrapper: Wrapper,
-    });
+    const hook = renderHook(
+      () => ({ guard: useLocalUploadGuard(), guardedNav: useGuardedNavigation() }),
+      {
+        wrapper: Wrapper,
+      },
+    );
     act(() => hook.result.current.guard.registerUpload('u1'));
     return hook;
   }

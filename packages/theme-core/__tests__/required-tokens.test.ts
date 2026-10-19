@@ -6,15 +6,15 @@ import { REQUIRED_TOKENS } from '../src/required-tokens.js';
 // their global stylesheet, or `ThemeProvider`'s dev-mode warner fires.
 // Renaming or removing any of them is a breaking change.
 describe('REQUIRED_TOKENS brand contract', () => {
-    it('includes --brand-primary', () => {
-        expect(REQUIRED_TOKENS).toContain('--brand-primary');
-    });
+  it('includes --brand-primary', () => {
+    expect(REQUIRED_TOKENS).toContain('--brand-primary');
+  });
 
-    it('includes --brand-secondary', () => {
-        expect(REQUIRED_TOKENS).toContain('--brand-secondary');
-    });
+  it('includes --brand-secondary', () => {
+    expect(REQUIRED_TOKENS).toContain('--brand-secondary');
+  });
 
-    it('includes --brand-accent', () => {
-        expect(REQUIRED_TOKENS).toContain('--brand-accent');
-    });
+  it('includes --brand-accent', () => {
+    expect(REQUIRED_TOKENS).toContain('--brand-accent');
+  });
 });

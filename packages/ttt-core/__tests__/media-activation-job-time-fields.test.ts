@@ -61,7 +61,13 @@ describe('mediaActivationJobs time fields obey ARCH-105', () => {
   it('keeps the required/optional split intact', () => {
     expect(shape.nextAttemptAt.safeParse(undefined).success).toBe(false);
     expect(shape.createdAt.safeParse(undefined).success).toBe(false);
-    for (const field of ['authorityAppliedAt', 'completedAt', 'deadLetteredAt', 'parentWaitStartedAt', 'expireAt'] as const) {
+    for (const field of [
+      'authorityAppliedAt',
+      'completedAt',
+      'deadLetteredAt',
+      'parentWaitStartedAt',
+      'expireAt',
+    ] as const) {
       expect(shape[field].safeParse(undefined).success).toBe(true);
     }
   });

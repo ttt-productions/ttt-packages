@@ -30,11 +30,7 @@ export interface FirestoreProviderProps {
  * ```
  */
 export function FirestoreProvider({ db, children }: FirestoreProviderProps) {
-  return (
-    <FirestoreContext.Provider value={{ db }}>
-      {children}
-    </FirestoreContext.Provider>
-  );
+  return <FirestoreContext.Provider value={{ db }}>{children}</FirestoreContext.Provider>;
 }
 
 /**
@@ -46,7 +42,7 @@ export function useFirestoreDb(): Firestore {
   if (!context) {
     throw new Error(
       'useFirestoreDb must be used within a FirestoreProvider. ' +
-      'Wrap your app with <FirestoreProvider db={db}>.'
+        'Wrap your app with <FirestoreProvider db={db}>.',
     );
   }
   return context.db;

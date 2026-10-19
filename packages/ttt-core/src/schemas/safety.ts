@@ -111,7 +111,6 @@ export type SafetyCaseConsoleCursor = z.infer<typeof SafetyCaseConsoleCursorSche
 
 const SAFETY_CONSOLE_MAX_PAGE_SIZE = 200;
 
-
 /** The console's three paged sources — the keys of its per-source pagination. */
 export const SafetyCaseConsoleSourceSchema = z.enum(['childSafety', 'ncii', 'takeItDown']);
 export type SafetyCaseConsoleSource = z.infer<typeof SafetyCaseConsoleSourceSchema>;
@@ -130,7 +129,9 @@ export const GetSafetyCaseConsoleInputSchema = z
     exhaustedSources: z
       .array(SafetyCaseConsoleSourceSchema)
       .max(SafetyCaseConsoleSourceSchema.options.length)
-      .refine((sources) => new Set(sources).size === sources.length, { message: 'List each source once.' })
+      .refine((sources) => new Set(sources).size === sources.length, {
+        message: 'List each source once.',
+      })
       .optional(),
   })
   .strict()
@@ -250,9 +251,27 @@ export type GetSafetyCaseConsoleResult = z.infer<typeof GetSafetyCaseConsoleResu
  * loaded or not active before is placed in its source's order.
  */
 export const SafetyCaseConsoleRowChangeSchema = z.discriminatedUnion('source', [
-  z.object({ source: z.literal('childSafety'), caseId: safetyCaseIdSchema, row: ChildSafetyCaseConsoleRowSchema.nullable() }).strict(),
-  z.object({ source: z.literal('ncii'), caseId: safetyCaseIdSchema, row: NciiCaseConsoleRowSchema.nullable() }).strict(),
-  z.object({ source: z.literal('takeItDown'), requestId: takeItDownRequestIdSchema, row: TakeItDownRequestConsoleRowSchema.nullable() }).strict(),
+  z
+    .object({
+      source: z.literal('childSafety'),
+      caseId: safetyCaseIdSchema,
+      row: ChildSafetyCaseConsoleRowSchema.nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      source: z.literal('ncii'),
+      caseId: safetyCaseIdSchema,
+      row: NciiCaseConsoleRowSchema.nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      source: z.literal('takeItDown'),
+      requestId: takeItDownRequestIdSchema,
+      row: TakeItDownRequestConsoleRowSchema.nullable(),
+    })
+    .strict(),
 ]);
 export type SafetyCaseConsoleRowChange = z.infer<typeof SafetyCaseConsoleRowChangeSchema>;
 
@@ -315,7 +334,9 @@ export const RefetchProtectedCaseContextResultSchema = z.object({
   reason: z.string().min(1).optional(),
   console: SafetyCaseConsolePatchSchema.optional(),
 });
-export type RefetchProtectedCaseContextResult = z.infer<typeof RefetchProtectedCaseContextResultSchema>;
+export type RefetchProtectedCaseContextResult = z.infer<
+  typeof RefetchProtectedCaseContextResultSchema
+>;
 
 /** `markNcmecPortalComplete`. */
 export const MarkNcmecPortalCompleteResultSchema = z.object({
@@ -355,8 +376,16 @@ const replayOutcomeShape = {
  */
 export const AdminReplayDeadLetterResultSchema = z
   .discriminatedUnion('collection', [
-    z.object({ collection: FlatDeadLetterCollectionSchema, docId: z.string().min(1), ...replayOutcomeShape }),
-    z.object({ collection: z.literal('hallSubItemEdgeSync'), ...HallSubItemEdgeSyncReplayTargetSchema.shape, ...replayOutcomeShape }),
+    z.object({
+      collection: FlatDeadLetterCollectionSchema,
+      docId: z.string().min(1),
+      ...replayOutcomeShape,
+    }),
+    z.object({
+      collection: z.literal('hallSubItemEdgeSync'),
+      ...HallSubItemEdgeSyncReplayTargetSchema.shape,
+      ...replayOutcomeShape,
+    }),
   ])
   .superRefine((answer, ctx) => {
     const safetyLane = (SAFETY_CASE_REPLAY_LANES as readonly string[]).includes(answer.collection);
@@ -394,16 +423,26 @@ const SafetyCaseByIdFields = {
     })
     .strict(),
   /** Each close, as the closure record it wrote, keyed by the event that recorded it. */
-  closureHistory: z.array(SafetyCaseClosureV1Schema.extend({ eventId: z.string().min(1) }).strict()),
+  closureHistory: z.array(
+    SafetyCaseClosureV1Schema.extend({ eventId: z.string().min(1) }).strict(),
+  ),
 };
 
 /** The `getSafetyCaseById` answer: a child-safety case with its work status, an NCII case with its internal status. */
 export const SafetyCaseByIdResultSchema = z.discriminatedUnion('caseType', [
   z
-    .object({ ...SafetyCaseByIdFields, caseType: z.literal(SafetyCaseLaneSchema.enum.csam), status: ChildSafetyWorkStatusSchema })
+    .object({
+      ...SafetyCaseByIdFields,
+      caseType: z.literal(SafetyCaseLaneSchema.enum.csam),
+      status: ChildSafetyWorkStatusSchema,
+    })
     .strict(),
   z
-    .object({ ...SafetyCaseByIdFields, caseType: z.literal(SafetyCaseLaneSchema.enum.ncii), status: NciiInternalStatusSchema })
+    .object({
+      ...SafetyCaseByIdFields,
+      caseType: z.literal(SafetyCaseLaneSchema.enum.ncii),
+      status: NciiInternalStatusSchema,
+    })
     .strict(),
 ]);
 export type SafetyCaseByIdResult = z.infer<typeof SafetyCaseByIdResultSchema>;
@@ -418,7 +457,12 @@ export const GetSafetyCasePartiesInputSchema = z
   .strict();
 export type GetSafetyCasePartiesInput = z.infer<typeof GetSafetyCasePartiesInputSchema>;
 
-export const SafetyPartyRoleSchema = z.enum(['uploader', 'requester', 'distributor', 'questionable']);
+export const SafetyPartyRoleSchema = z.enum([
+  'uploader',
+  'requester',
+  'distributor',
+  'questionable',
+]);
 export type SafetyPartyRole = z.infer<typeof SafetyPartyRoleSchema>;
 
 export const SafetyCasePartySchema = z.object({
@@ -463,12 +507,15 @@ export const GetTakeItDownRequestDetailResultSchema = z.object({
   hasAuthorityEvidence: z.boolean().optional(),
   authorityProofScanStatus: AuthorityProofScanStatusSchema.optional(),
 });
-export type GetTakeItDownRequestDetailResult = z.infer<typeof GetTakeItDownRequestDetailResultSchema>;
+export type GetTakeItDownRequestDetailResult = z.infer<
+  typeof GetTakeItDownRequestDetailResultSchema
+>;
 
 // listRetainedEvidenceInventory — paginated retained-evidence inventory read.
 
 /** A retention list's cursor — the last row's `(createdAt, docId)`, newest first. */
-const createdAtCursorSchema = () => z.object({ createdAt: z.number(), id: documentIdSegmentSchema }).strict();
+const createdAtCursorSchema = () =>
+  z.object({ createdAt: z.number(), id: documentIdSegmentSchema }).strict();
 
 /** The largest page either retention list serves. */
 const RETENTION_LIST_MAX_PAGE_SIZE = 200;
@@ -486,7 +533,9 @@ export const ListRetainedEvidenceInventoryInputSchema = z
   })
   .strict()
   .nullish();
-export type ListRetainedEvidenceInventoryInput = z.infer<typeof ListRetainedEvidenceInventoryInputSchema>;
+export type ListRetainedEvidenceInventoryInput = z.infer<
+  typeof ListRetainedEvidenceInventoryInputSchema
+>;
 
 export const ListRetainedEvidenceInventoryResultSchema = z
   .object({
@@ -497,7 +546,9 @@ export const ListRetainedEvidenceInventoryResultSchema = z
     total: z.number().int().nonnegative(),
   })
   .strict();
-export type ListRetainedEvidenceInventoryResult = z.infer<typeof ListRetainedEvidenceInventoryResultSchema>;
+export type ListRetainedEvidenceInventoryResult = z.infer<
+  typeof ListRetainedEvidenceInventoryResultSchema
+>;
 
 // listRetainedChildSafetyCases — the Retention tab's paged list of closed child-safety cases whose
 // evidence is still preserved.
@@ -507,9 +558,8 @@ export type ListRetainedEvidenceInventoryResult = z.infer<typeof ListRetainedEvi
  * `destroyed`. The list reads cases whose `workStatus` is `operationallyResolved` (the one closed
  * work status) and whose `preservationStatus` is one of these, newest `createdAt` first.
  */
-export const CHILD_SAFETY_RETAINED_PRESERVATION_STATUSES = ChildSafetyPreservationStatusSchema.exclude([
-  'destroyed',
-]).options;
+export const CHILD_SAFETY_RETAINED_PRESERVATION_STATUSES =
+  ChildSafetyPreservationStatusSchema.exclude(['destroyed']).options;
 
 /** Cursor for the retained child-safety case list — the last row's `(createdAt, docId)`. */
 export const RetainedChildSafetyCaseCursorSchema = createdAtCursorSchema();
@@ -524,7 +574,9 @@ export const ListRetainedChildSafetyCasesInputSchema = z
   })
   .strict()
   .nullish();
-export type ListRetainedChildSafetyCasesInput = z.infer<typeof ListRetainedChildSafetyCasesInputSchema>;
+export type ListRetainedChildSafetyCasesInput = z.infer<
+  typeof ListRetainedChildSafetyCasesInputSchema
+>;
 
 /** One retained case: its list projection and its own evidence jobs (read by case, never a global window). */
 export const RetainedChildSafetyCaseRowSchema = z
@@ -544,7 +596,9 @@ export const ListRetainedChildSafetyCasesResultSchema = z
     total: z.number().int().nonnegative(),
   })
   .strict();
-export type ListRetainedChildSafetyCasesResult = z.infer<typeof ListRetainedChildSafetyCasesResultSchema>;
+export type ListRetainedChildSafetyCasesResult = z.infer<
+  typeof ListRetainedChildSafetyCasesResultSchema
+>;
 
 // ncmecOperatorCommands — NCMEC manual-portal completion path.
 
@@ -577,7 +631,9 @@ export const RecordNcmecPortalReceiptArtifactResultSchema = z.object({
   objectGeneration: z.string().min(1),
   sha256: z.string().min(1),
 });
-export type RecordNcmecPortalReceiptArtifactResult = z.infer<typeof RecordNcmecPortalReceiptArtifactResultSchema>;
+export type RecordNcmecPortalReceiptArtifactResult = z.infer<
+  typeof RecordNcmecPortalReceiptArtifactResultSchema
+>;
 
 export const MarkNcmecPortalCompleteInputSchema = z
   .object({
@@ -588,7 +644,9 @@ export const MarkNcmecPortalCompleteInputSchema = z
     /** The object generation recorded on the artifact at registration time (immutable-object peg). */
     artifactObjectGeneration: z.string().min(1, 'The artifact object generation is required.'),
     /** The sha256 hex digest recorded on the artifact at registration time (content-integrity check). */
-    artifactSha256: z.string().regex(/^[0-9a-f]{64}$/, 'artifactSha256 must be a 64-character hex string.'),
+    artifactSha256: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/, 'artifactSha256 must be a 64-character hex string.'),
     /** Optional operator free-text note describing the portal confirmation. */
     proofText: textFieldSchema(NCMEC_PORTAL_PROOF_TEXT_INPUT).optional(),
     /** The NCMEC-assigned report id — REQUIRED (it IS the proof; no "filed, number pending" grace). */
@@ -656,7 +714,9 @@ export const RevealedEvidenceMetadataSchema = z.object({
   original: z
     .object({ contentType: z.string(), sizeBytes: z.number(), sha256: z.string(), md5: z.string() })
     .optional(),
-  variants: z.array(z.object({ variantKey: z.string(), sha256: z.string(), sizeBytes: z.number() })).optional(),
+  variants: z
+    .array(z.object({ variantKey: z.string(), sha256: z.string(), sizeBytes: z.number() }))
+    .optional(),
   detectorSource: z.string().optional(),
 });
 export type RevealedEvidenceMetadata = z.infer<typeof RevealedEvidenceMetadataSchema>;
@@ -680,7 +740,9 @@ export const RefetchProtectedCaseContextInputSchema = z
     lane: SafetyCaseLaneSchema,
   })
   .strict();
-export type RefetchProtectedCaseContextInput = z.infer<typeof RefetchProtectedCaseContextInputSchema>;
+export type RefetchProtectedCaseContextInput = z.infer<
+  typeof RefetchProtectedCaseContextInputSchema
+>;
 
 // recordNcmecPortalCorrection — record an operator's NCMEC manual-portal correction filing.
 
@@ -693,14 +755,18 @@ export const RecordNcmecPortalCorrectionInputSchema = z
     confirmation: z.literal(NCMEC_PORTAL_CORRECTION_CONFIRMATION),
   })
   .strict();
-export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalCorrectionInputSchema>;
+export type RecordNcmecPortalCorrectionInput = z.infer<
+  typeof RecordNcmecPortalCorrectionInputSchema
+>;
 
 export const RecordNcmecPortalCorrectionResultSchema = z.object({
   success: z.literal(true),
   caseId: z.string().min(1),
   correctionId: z.string().min(1),
 });
-export type RecordNcmecPortalCorrectionResult = z.infer<typeof RecordNcmecPortalCorrectionResultSchema>;
+export type RecordNcmecPortalCorrectionResult = z.infer<
+  typeof RecordNcmecPortalCorrectionResultSchema
+>;
 
 // submitReport — the one report-intake callable. The target ids are HINTS the server re-derives
 // (never owner or target authority): each is bounded and shaped as the path it could become, and

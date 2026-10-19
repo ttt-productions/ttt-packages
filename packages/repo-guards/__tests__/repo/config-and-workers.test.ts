@@ -2,8 +2,14 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Guard } from '../../src/guard.js';
-import { localOnlyVariablesGuard, type LocalOnlyVariablesFacts } from '../../src/modules/repo/local-only-variables.js';
-import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from '../../src/modules/repo/worker-bounded-body.js';
+import {
+  localOnlyVariablesGuard,
+  type LocalOnlyVariablesFacts,
+} from '../../src/modules/repo/local-only-variables.js';
+import {
+  workerBoundedBodyGuard,
+  type WorkerBoundedBodyFacts,
+} from '../../src/modules/repo/worker-bounded-body.js';
 import { workerConfigGuard, type WorkerConfigFacts } from '../../src/modules/repo/worker-config.js';
 import { readTables } from '../../src/modules/repo/wrangler-toml.js';
 import { createRepoReader } from '../../src/node/reader.js';
@@ -24,7 +30,10 @@ function readerOf(files: Record<string, string>) {
   repo = tempRepo({ ...BASE, ...files });
   return createRepoReader({
     repoRoot: repo.root,
-    roots: { app: { path: 'src', anchor: 'src/index.ts' }, workers: { edge: { path: 'edge/src', anchor: 'edge/src/index.ts' } } },
+    roots: {
+      app: { path: 'src', anchor: 'src/index.ts' },
+      workers: { edge: { path: 'edge/src', anchor: 'edge/src/index.ts' } },
+    },
   });
 }
 
@@ -43,15 +52,26 @@ const LOCAL: LocalOnlyVariablesFacts = {
     { name: 'PUBLIC_DEBUG_TOKEN', why: 'an attestation bypass' },
   ],
   readers: [
-    { owner: 'src/runtime.ts', names: ['SERVER_USE_EMULATORS', 'FUNCTIONS_EMULATOR'], why: 'the one local predicate' },
-    { owner: 'src/client.ts', names: ['PUBLIC_DEBUG_TOKEN'], why: 'the client module gates it on the emulators' },
+    {
+      owner: 'src/runtime.ts',
+      names: ['SERVER_USE_EMULATORS', 'FUNCTIONS_EMULATOR'],
+      why: 'the one local predicate',
+    },
+    {
+      owner: 'src/client.ts',
+      names: ['PUBLIC_DEBUG_TOKEN'],
+      why: 'the client module gates it on the emulators',
+    },
   ],
 };
 const CLEAN_LOCAL = {
-  'deploy.yaml': 'env:\n  # SERVER_USE_EMULATORS is set by the local scripts only, never here.\n  - variable: SITE_KEY\n    value: real\n',
+  'deploy.yaml':
+    'env:\n  # SERVER_USE_EMULATORS is set by the local scripts only, never here.\n  - variable: SITE_KEY\n    value: real\n',
   'deploy.production.yaml': 'env:\n  - variable: SITE_KEY\n    value: real\n',
-  'src/runtime.ts': "export const local = () => process.env.FUNCTIONS_EMULATOR === 'true' || process.env.SERVER_USE_EMULATORS === 'true';",
-  'src/client.ts': 'export const token = usingEmulators ? process.env.PUBLIC_DEBUG_TOKEN : undefined;',
+  'src/runtime.ts':
+    "export const local = () => process.env.FUNCTIONS_EMULATOR === 'true' || process.env.SERVER_USE_EMULATORS === 'true';",
+  'src/client.ts':
+    'export const token = usingEmulators ? process.env.PUBLIC_DEBUG_TOKEN : undefined;',
   'src/__tests__/runtime.test.ts': "vi.stubEnv('SERVER_USE_EMULATORS', 'true');",
 };
 
@@ -86,7 +106,9 @@ describe('local-only variables', () => {
 
   it('flags a deployed config that is gone', async () => {
     const { 'deploy.yaml': _gone, ...rest } = CLEAN_LOCAL;
-    expect(await run(configGuard, rest)).toEqual(['deploy.yaml the deployed config file does not exist']);
+    expect(await run(configGuard, rest)).toEqual([
+      'deploy.yaml the deployed config file does not exist',
+    ]);
   });
 
   it('flags a second reader in the app source, and a stale owner', async () => {
@@ -96,7 +118,10 @@ describe('local-only variables', () => {
         'src/runtime.ts': 'export const local = () => false;',
         'src/lib/admin.ts': "const local = process.env['SERVER_USE_EMULATORS'] === 'true';",
       }),
-    ).toEqual(['src/lib/admin.ts:1 outside its owner: SERVER_USE_EMULATORS', 'src/runtime.ts stale owner: the pattern no longer appears in it (or it is outside the scope)']);
+    ).toEqual([
+      'src/lib/admin.ts:1 outside its owner: SERVER_USE_EMULATORS',
+      'src/runtime.ts stale owner: the pattern no longer appears in it (or it is outside the scope)',
+    ]);
   });
 
   it("proves each reader's matcher on its samples", () => {
@@ -114,13 +139,22 @@ describe('local-only variables', () => {
           { owner: 'b.ts', names: ['X'], why: '' },
         ],
       }),
-    ).toEqual(['deployedConfigs is empty', 'neverDeployed entry X carries no why', 'readers entry b.ts carries no why', 'X is given two owners']);
+    ).toEqual([
+      'deployedConfigs is empty',
+      'neverDeployed entry X carries no why',
+      'readers entry b.ts carries no why',
+      'X is given two owners',
+    ]);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 
-const WORKER: WorkerConfigFacts = { configFiles: ['edge/wrangler.toml'], productionEnvironment: 'prod', productionDestructiveMigrations: [] };
+const WORKER: WorkerConfigFacts = {
+  configFiles: ['edge/wrangler.toml'],
+  productionEnvironment: 'prod',
+  productionDestructiveMigrations: [],
+};
 const [workerGuard] = workerConfigGuard.build(WORKER);
 const toml = (...lines: string[]) => ({ 'edge/wrangler.toml': lines.join('\n') });
 const CLEAN_TOML = [
@@ -163,7 +197,16 @@ describe("each Worker's environments keep their bindings and migrations apart", 
     expect(
       await run(
         workerGuard,
-        toml('[[r2_buckets]]', 'bucket_name = "prod-bucket"', '[[env."dev".r2_buckets]]', 'bucket_name = "shared"', '[[env.prod.r2_buckets]]', 'bucket_name = "shared"', '[[env.prod.kv_namespaces]]', 'id = "prod-bucket"'),
+        toml(
+          '[[r2_buckets]]',
+          'bucket_name = "prod-bucket"',
+          '[[env."dev".r2_buckets]]',
+          'bucket_name = "shared"',
+          '[[env.prod.r2_buckets]]',
+          'bucket_name = "shared"',
+          '[[env.prod.kv_namespaces]]',
+          'id = "prod-bucket"',
+        ),
       ),
     ).toEqual([
       "edge/wrangler.toml binds 'shared' in both [env.dev] and [env.prod]: one environment would read and write the other's storage",
@@ -176,21 +219,47 @@ describe("each Worker's environments keep their bindings and migrations apart", 
       ['bare', 'deleted_classes = ["A"]'],
       ['quoted', '"deleted_classes" = ["A"]'],
       ['escaped', '"\\u0064eleted_classes" = ["A"]'],
-      ['literal', "'deleted_classes' = [\"A\"]"],
+      ['literal', '\'deleted_classes\' = ["A"]'],
     ]) {
-      expect(await run(workerGuard, toml('[env.prod]', 'name = "w"', '', '[[migrations]]  # a note', 'tag = "v2"', key)), label).toEqual([
+      expect(
+        await run(
+          workerGuard,
+          toml('[env.prod]', 'name = "w"', '', '[[migrations]]  # a note', 'tag = "v2"', key),
+        ),
+        label,
+      ).toEqual([
         'edge/wrangler.toml migration tag \'v2\' carries deleted_classes = ["A"] in the list [env.prod] deploys with: that destroys or rewrites production Durable Object storage',
       ]);
     }
   });
 
   it('flags renamed_classes, and a destructive tag under a quoted or escaped production segment', async () => {
-    expect(await run(workerGuard, toml('[[migrations]]', 'tag = "v2"', 'renamed_classes = [{from = "A", to = "B"}]', '[env.prod]', 'name = "w"'))).toEqual([
+    expect(
+      await run(
+        workerGuard,
+        toml(
+          '[[migrations]]',
+          'tag = "v2"',
+          'renamed_classes = [{from = "A", to = "B"}]',
+          '[env.prod]',
+          'name = "w"',
+        ),
+      ),
+    ).toEqual([
       'edge/wrangler.toml migration tag \'v2\' carries renamed_classes = [{from = "A", to = "B"}] in the list [env.prod] deploys with: that destroys or rewrites production Durable Object storage',
     ]);
     for (const segment of ['"prod"', '"\\u0070rod"']) {
       expect(
-        await run(workerGuard, toml('[env.prod]', 'name = "w"', `[[env.${segment}.migrations]]`, 'tag = "v2"', 'deleted_classes = ["A"]')),
+        await run(
+          workerGuard,
+          toml(
+            '[env.prod]',
+            'name = "w"',
+            `[[env.${segment}.migrations]]`,
+            'tag = "v2"',
+            'deleted_classes = ["A"]',
+          ),
+        ),
         segment,
       ).toHaveLength(1);
     }
@@ -200,7 +269,18 @@ describe("each Worker's environments keep their bindings and migrations apart", 
     expect(
       await run(
         workerGuard,
-        toml('[[migrations]]', 'tag = "v1"', '[[migrations]]', 'tag = "v2"', '[[migrations]]', 'new_classes = ["C"]', '[env.dev]', 'name = "d"', '[[env.dev.migrations]]', 'tag = "v1"'),
+        toml(
+          '[[migrations]]',
+          'tag = "v1"',
+          '[[migrations]]',
+          'tag = "v2"',
+          '[[migrations]]',
+          'new_classes = ["C"]',
+          '[env.dev]',
+          'name = "d"',
+          '[[env.dev.migrations]]',
+          'tag = "v1"',
+        ),
       ),
     ).toEqual([
       'edge/wrangler.toml declares a migration with no tag',
@@ -211,25 +291,51 @@ describe("each Worker's environments keep their bindings and migrations apart", 
 
   it('flags a config it cannot read safely, and one with no environment', async () => {
     for (const [label, body, message] of [
-      ['multi-line migration array', ['[[migrations]]', 'tag = "v2"', 'deleted_classes = [', '  "A",', ']'], /multi-line array/],
-      ['unclassifiable migration line', ['[[migrations]]', 'tag = "v2"', 'deleted_classes = { a = 1 }'], /cannot read/],
-      ['undefined escape', ['[[migrations]]', 'tag = "v2"', '"deleted\\qclasses" = ["A"]'], /cannot read/],
+      [
+        'multi-line migration array',
+        ['[[migrations]]', 'tag = "v2"', 'deleted_classes = [', '  "A",', ']'],
+        /multi-line array/,
+      ],
+      [
+        'unclassifiable migration line',
+        ['[[migrations]]', 'tag = "v2"', 'deleted_classes = { a = 1 }'],
+        /cannot read/,
+      ],
+      [
+        'undefined escape',
+        ['[[migrations]]', 'tag = "v2"', '"deleted\\qclasses" = ["A"]'],
+        /cannot read/,
+      ],
       ['short unicode escape', ['[[env."\\u007".migrations]]', 'tag = "v1"'], /cannot normalise/],
       ['dotted quoted segment', ['[[env."a.b".migrations]]', 'tag = "v1"'], /cannot normalise/],
       ['escaped dot', ['[[env."a\\u002Eb".migrations]]', 'tag = "v1"'], /cannot normalise/],
-      ['broken header', ['[env.dev]', 'name = "w"', '[not a header'], /unrecognised section header/],
+      [
+        'broken header',
+        ['[env.dev]', 'name = "w"', '[not a header'],
+        /unrecognised section header/,
+      ],
     ] as const) {
       const findings = await run(workerGuard, toml(...body));
       expect(findings, label).toHaveLength(1);
       expect(findings[0], label).toMatch(message);
     }
-    expect(await run(workerGuard, toml('[[r2_buckets]]', 'bucket_name = "b"'))).toEqual(['edge/wrangler.toml declares no [env.*] section']);
+    expect(await run(workerGuard, toml('[[r2_buckets]]', 'bucket_name = "b"'))).toEqual([
+      'edge/wrangler.toml declares no [env.*] section',
+    ]);
   });
 
   it('allows a reviewed production destructive migration keyed to its contents, and flags it once stale', async () => {
     const [allowed] = workerConfigGuard.build({
       ...WORKER,
-      productionDestructiveMigrations: [{ configFile: 'edge/wrangler.toml', tag: 'v2', key: 'deleted_classes', contents: '["A"]', why: 'a reviewed removal' }],
+      productionDestructiveMigrations: [
+        {
+          configFile: 'edge/wrangler.toml',
+          tag: 'v2',
+          key: 'deleted_classes',
+          contents: '["A"]',
+          why: 'a reviewed removal',
+        },
+      ],
     });
     const body = ['[env.prod]', 'name = "w"', '[[migrations]]', 'tag = "v2"'];
     expect(await run(allowed, toml(...body, 'deleted_classes = ["A"]'))).toEqual([]);
@@ -240,7 +346,9 @@ describe("each Worker's environments keep their bindings and migrations apart", 
   });
 
   it('reads a multi-line array outside a migration table without complaint', () => {
-    expect(() => readTables(['[env.dev]', 'routes = [', '  { pattern = "x" },', ']'].join('\n'))).not.toThrow();
+    expect(() =>
+      readTables(['[env.dev]', 'routes = [', '  { pattern = "x" },', ']'].join('\n')),
+    ).not.toThrow();
   });
 
   it('refuses facts with no config, no production environment, or an unexplained allowance', () => {
@@ -248,7 +356,9 @@ describe("each Worker's environments keep their bindings and migrations apart", 
       workerConfigGuard.factProblems({
         configFiles: [],
         productionEnvironment: '',
-        productionDestructiveMigrations: [{ configFile: 'x.toml', tag: 'v1', key: 'deleted_classes', contents: '[]', why: '' }],
+        productionDestructiveMigrations: [
+          { configFile: 'x.toml', tag: 'v1', key: 'deleted_classes', contents: '[]', why: '' },
+        ],
       }),
     ).toEqual([
       'configFiles is empty',
@@ -265,13 +375,19 @@ const BODY: WorkerBoundedBodyFacts = {
   boundedReader: 'readBoundedBody',
   boundedEndpoints: [{ file: 'edge/src/apply.ts', why: 'the signed apply endpoint' }],
   passThroughStreams: [
-    { file: 'edge/src/proxy.ts', statement: "const body = request.method === 'GET' ? undefined : request.body;", why: 'handed unread to the upstream fetch' },
+    {
+      file: 'edge/src/proxy.ts',
+      statement: "const body = request.method === 'GET' ? undefined : request.body;",
+      why: 'handed unread to the upstream fetch',
+    },
   ],
 };
 const CLEAN_BODY = {
   'edge/src/apply.ts': 'const raw = await readBoundedBody(request, { maxBytes: MAX_APPLY_BYTES });',
-  'edge/src/proxy.ts': "const body = request.method === 'GET' ? undefined : request.body;\nreturn fetch(upstream, { body });",
-  'edge/src/store.ts': 'const text = await obj.text();\nconst parsed = await res.json();\n// request.text() in a comment is not code',
+  'edge/src/proxy.ts':
+    "const body = request.method === 'GET' ? undefined : request.body;\nreturn fetch(upstream, { body });",
+  'edge/src/store.ts':
+    'const text = await obj.text();\nconst parsed = await res.json();\n// request.text() in a comment is not code',
   'edge/src/__tests__/apply.test.ts': 'const body = await request.json();',
 };
 const [bodyGuard] = workerBoundedBodyGuard.build(BODY);
@@ -320,7 +436,15 @@ describe('Worker request bodies are read only through the bounded reader', () =>
 
   it('refuses facts with no bounded endpoint or an unexplained pass-through', () => {
     expect(
-      workerBoundedBodyGuard.factProblems({ boundedReader: 'read body', boundedEndpoints: [], passThroughStreams: [{ file: 'a.ts', statement: 'x', why: '' }] }),
-    ).toEqual(['boundedReader must be an identifier', 'boundedEndpoints is empty', 'passThroughStreams entry a.ts x carries no why']);
+      workerBoundedBodyGuard.factProblems({
+        boundedReader: 'read body',
+        boundedEndpoints: [],
+        passThroughStreams: [{ file: 'a.ts', statement: 'x', why: '' }],
+      }),
+    ).toEqual([
+      'boundedReader must be an identifier',
+      'boundedEndpoints is empty',
+      'passThroughStreams entry a.ts x carries no why',
+    ]);
   });
 });

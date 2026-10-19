@@ -112,7 +112,9 @@ describe('unsaved work registered with the leave guard', () => {
       uploadAndUnsavedWorkConfirmMessage: 'app both message',
     };
     const { result } = renderHook(() => useLocalUploadGuard(), {
-      wrapper: ({ children }) => <LocalUploadGuardProvider {...props}>{children}</LocalUploadGuardProvider>,
+      wrapper: ({ children }) => (
+        <LocalUploadGuardProvider {...props}>{children}</LocalUploadGuardProvider>
+      ),
     });
     act(() => result.current.registerUnsavedWork('draft'));
     result.current.confirmNavigation();

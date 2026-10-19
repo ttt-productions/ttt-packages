@@ -24,7 +24,10 @@ import { getSportAdapter } from '../src/sports/registry.js';
 import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings.js';
 import { rollupDifferences } from '../src/sports/rollup-check.js';
 import { type StatEventBody } from '../src/sports/scoring.js';
-import { CURLING_ROUND_SCORE_EVENT_TYPE, FOOTBALL_SCORE_EVENT_TYPE_KEYS } from '../src/types/sports.js';
+import {
+  CURLING_ROUND_SCORE_EVENT_TYPE,
+  FOOTBALL_SCORE_EVENT_TYPE_KEYS,
+} from '../src/types/sports.js';
 import { higherTeamRole } from '../src/types/unions.js';
 
 const A = 'team-a';
@@ -49,7 +52,14 @@ const basketballStats = {
     [entry(B, 'both')]: { points: 0, rebounds: 0, assists: 2, fantasyPoints: 4 },
   },
 } as unknown as GameStats;
-const basketballRoster = [entry(A, 'both'), entry(A, 'p1'), entry(A, 'p2'), entry(A, 'p3'), entry(B, 'both'), entry(B, GHOST)].sort();
+const basketballRoster = [
+  entry(A, 'both'),
+  entry(A, 'p1'),
+  entry(A, 'p2'),
+  entry(A, 'p3'),
+  entry(B, 'both'),
+  entry(B, GHOST),
+].sort();
 const basketballAbsent = [entry(A, 'p3')];
 
 function basketballGame(): FinalizedGame {
@@ -59,7 +69,11 @@ function basketballGame(): FinalizedGame {
     stats: basketballStats,
     rosterPlayerIds: basketballRoster,
     absentRosterPlayerIds: basketballAbsent,
-    nonScoringRosterPlayerIds: basketball.participation(basketballStats, basketballRoster, basketballAbsent),
+    nonScoringRosterPlayerIds: basketball.participation(
+      basketballStats,
+      basketballRoster,
+      basketballAbsent,
+    ),
   };
 }
 
@@ -77,10 +91,15 @@ describe('participation — the games-played decision finalize stores', () => {
   it.each([
     ['Curling', curling],
     ['Football', football],
-  ] as const)('in %s, never calls a present entry non-scoring, whatever its team scored', (_label, adapter) => {
-    const stats = adapter.emptyStats({ teamIds: [A, B] });
-    expect(adapter.participation(stats, [entry(A, 'x'), entry(A, 'y')], [entry(A, 'y')])).toEqual([]);
-  });
+  ] as const)(
+    'in %s, never calls a present entry non-scoring, whatever its team scored',
+    (_label, adapter) => {
+      const stats = adapter.emptyStats({ teamIds: [A, B] });
+      expect(adapter.participation(stats, [entry(A, 'x'), entry(A, 'y')], [entry(A, 'y')])).toEqual(
+        [],
+      );
+    },
+  );
 });
 
 describe('contribution — basketball', () => {
@@ -113,7 +132,13 @@ describe('contribution — basketball', () => {
     expect(contribution.membershipRows).toEqual({
       [entry(A, 'p1')]: { gamesPlayed: 1, points: 6, rebounds: 2, assists: 1, fantasyPoints: 11 },
       [entry(A, 'p3')]: { gamesPlayed: 0, points: 4, rebounds: 0, assists: 0, fantasyPoints: 4 },
-      [entry(A, 'both')]: { gamesPlayed: 1, points: 0, rebounds: 1, assists: 0, fantasyPoints: 1.5 },
+      [entry(A, 'both')]: {
+        gamesPlayed: 1,
+        points: 0,
+        rebounds: 1,
+        assists: 0,
+        fantasyPoints: 1.5,
+      },
       [entry(B, 'both')]: { gamesPlayed: 1, points: 0, rebounds: 0, assists: 2, fantasyPoints: 4 },
       [entry(B, GHOST)]: { gamesPlayed: 1, points: 8, rebounds: 0, assists: 0, fantasyPoints: 8 },
     });
@@ -124,42 +149,85 @@ describe('contribution — basketball', () => {
   });
 
   it("sums a person's two sides into one career line, two games played, and keeps the ghost out (SPORT-208)", () => {
-    expect(contribution.personLines.both).toEqual({ gamesPlayed: 2, points: 0, rebounds: 1, assists: 2, fantasyPoints: 5.5 });
-    expect(contribution.personLines.p1).toEqual({ gamesPlayed: 1, points: 6, rebounds: 2, assists: 1, fantasyPoints: 11 });
+    expect(contribution.personLines.both).toEqual({
+      gamesPlayed: 2,
+      points: 0,
+      rebounds: 1,
+      assists: 2,
+      fantasyPoints: 5.5,
+    });
+    expect(contribution.personLines.p1).toEqual({
+      gamesPlayed: 1,
+      points: 6,
+      rebounds: 2,
+      assists: 1,
+      fantasyPoints: 11,
+    });
     expect(contribution.personLines[GHOST]).toBeUndefined();
   });
 
   it("makes a person's rows for the league add up, every stat, to what the league adds to their career", () => {
-    const rows = [contribution.membershipRows[entry(A, 'both')], contribution.membershipRows[entry(B, 'both')]];
+    const rows = [
+      contribution.membershipRows[entry(A, 'both')],
+      contribution.membershipRows[entry(B, 'both')],
+    ];
     const summed = sumGameContributions(basketball.deriveLine, [
-      { contribution: { teamLines: {}, membershipRows: { x: rows[0]!, y: rows[1]! }, personLines: {} }, sign: 1 },
+      {
+        contribution: {
+          teamLines: {},
+          membershipRows: { x: rows[0]!, y: rows[1]! },
+          personLines: {},
+        },
+        sign: 1,
+      },
     ]);
-    const total = Object.values(summed.membershipRows).reduce<Record<string, number>>((sum, row) => {
-      for (const [field, value] of Object.entries(row)) sum[field] = (sum[field] ?? 0) + (value as number);
-      return sum;
-    }, {});
+    const total = Object.values(summed.membershipRows).reduce<Record<string, number>>(
+      (sum, row) => {
+        for (const [field, value] of Object.entries(row))
+          sum[field] = (sum[field] ?? 0) + (value as number);
+        return sum;
+      },
+      {},
+    );
     expect(total).toEqual(contribution.personLines.both);
   });
 });
 
 describe('contribution — curling and football', () => {
   it.each([
-    ['Curling', curling, { [A]: { score: 3, roundScores: [] }, [B]: { score: 3, roundScores: [] } }],
+    [
+      'Curling',
+      curling,
+      { [A]: { score: 3, roundScores: [] }, [B]: { score: 3, roundScores: [] } },
+    ],
     ['Football', football, { [A]: { score: 3 }, [B]: { score: 3 } }],
-  ] as const)('in %s, a tie for both teams and a game played for every present entry, none for an absent one', (leagueType, adapter, teamStats) => {
-    const game: FinalizedGame = {
-      leagueType,
-      teamIds: [A, B],
-      stats: { teamStats, playerStats: {} } as unknown as GameStats,
-      rosterPlayerIds: [entry(A, 'x'), entry(A, 'y'), entry(B, 'z')],
-      absentRosterPlayerIds: [entry(A, 'y')],
-      nonScoringRosterPlayerIds: [],
-    };
-    const contribution = adapter.contribution(game);
-    expect(contribution.teamLines[A]).toEqual({ gamesPlayed: 1, wins: 0, losses: 0, ties: 1, pointsFor: 3, pointsAgainst: 3 });
-    expect(contribution.membershipRows).toEqual({ [entry(A, 'x')]: { gamesPlayed: 1 }, [entry(B, 'z')]: { gamesPlayed: 1 } });
-    expect(contribution.personLines).toEqual({ x: { gamesPlayed: 1 }, z: { gamesPlayed: 1 } });
-  });
+  ] as const)(
+    'in %s, a tie for both teams and a game played for every present entry, none for an absent one',
+    (leagueType, adapter, teamStats) => {
+      const game: FinalizedGame = {
+        leagueType,
+        teamIds: [A, B],
+        stats: { teamStats, playerStats: {} } as unknown as GameStats,
+        rosterPlayerIds: [entry(A, 'x'), entry(A, 'y'), entry(B, 'z')],
+        absentRosterPlayerIds: [entry(A, 'y')],
+        nonScoringRosterPlayerIds: [],
+      };
+      const contribution = adapter.contribution(game);
+      expect(contribution.teamLines[A]).toEqual({
+        gamesPlayed: 1,
+        wins: 0,
+        losses: 0,
+        ties: 1,
+        pointsFor: 3,
+        pointsAgainst: 3,
+      });
+      expect(contribution.membershipRows).toEqual({
+        [entry(A, 'x')]: { gamesPlayed: 1 },
+        [entry(B, 'z')]: { gamesPlayed: 1 },
+      });
+      expect(contribution.personLines).toEqual({ x: { gamesPlayed: 1 }, z: { gamesPlayed: 1 } });
+    },
+  );
 
   it('credits curling players even though curling records no player line', () => {
     const game: FinalizedGame = {
@@ -182,7 +250,11 @@ describe('contribution — curling and football', () => {
       absentRosterPlayerIds: [],
       nonScoringRosterPlayerIds: [],
     };
-    expect(football.contribution(game)).toEqual({ teamLines: {}, membershipRows: {}, personLines: {} });
+    expect(football.contribution(game)).toEqual({
+      teamLines: {},
+      membershipRows: {},
+      personLines: {},
+    });
   });
 });
 
@@ -192,7 +264,13 @@ describe('applying a contribution to a stored line', () => {
   it('adds a game to no line, then takes it back to no line at all', () => {
     const added = applyStatLineDelta(basketball.deriveLine, 'membershipRow', undefined, row, 1);
     expect(added).toEqual({ ok: true, after: row });
-    const removed = applyStatLineDelta(basketball.deriveLine, 'membershipRow', added.ok ? (added.after ?? undefined) : undefined, row, -1);
+    const removed = applyStatLineDelta(
+      basketball.deriveLine,
+      'membershipRow',
+      added.ok ? (added.after ?? undefined) : undefined,
+      row,
+      -1,
+    );
     expect(removed).toEqual({ ok: true, after: null });
   });
 
@@ -208,7 +286,10 @@ describe('applying a contribution to a stored line', () => {
 
   it('refuses, naming the field, a line that would go below zero', () => {
     const before = { gamesPlayed: 0, points: 6, rebounds: 2, assists: 1, fantasyPoints: 11 };
-    expect(applyStatLineDelta(basketball.deriveLine, 'membershipRow', before, row, -1)).toEqual({ ok: false, field: 'gamesPlayed' });
+    expect(applyStatLineDelta(basketball.deriveLine, 'membershipRow', before, row, -1)).toEqual({
+      ok: false,
+      field: 'gamesPlayed',
+    });
   });
 });
 
@@ -232,7 +313,11 @@ describe('the finalized record', () => {
     const pages = buildFinalizedRecordPages(events, snapshot);
     expect(pages.map((page) => page.pageId)).toEqual(['page_0000', 'page_0001', 'page_0002']);
     expect(pages[0]?.page).toMatchObject({ pageCount: 3, ...snapshot });
-    expect(pages.map((page) => page.page.events.length)).toEqual([STAT_HISTORY_PAGE_SIZE, STAT_HISTORY_PAGE_SIZE, 1]);
+    expect(pages.map((page) => page.page.events.length)).toEqual([
+      STAT_HISTORY_PAGE_SIZE,
+      STAT_HISTORY_PAGE_SIZE,
+      1,
+    ]);
   });
 
   it('reads back every event in order with its snapshot, and replays it to the game it describes', () => {
@@ -258,13 +343,25 @@ describe('a stored rollup against its replay', () => {
   const score = { [A]: 10, [B]: 8 };
 
   it('finds no difference when the game stores exactly its replay', () => {
-    expect(rollupDifferences(basketball, { teamIds: [A, B], stats: basketballStats, score }, basketballStats)).toEqual([]);
+    expect(
+      rollupDifferences(
+        basketball,
+        { teamIds: [A, B], stats: basketballStats, score },
+        basketballStats,
+      ),
+    ).toEqual([]);
   });
 
   it('finds a hand-edited player counter and a hand-edited score mirror', () => {
-    const edited = structuredClone(basketballStats) as unknown as { playerStats: Record<string, { points: number }> };
+    const edited = structuredClone(basketballStats) as unknown as {
+      playerStats: Record<string, { points: number }>;
+    };
     edited.playerStats[entry(A, 'p1')]!.points = 9;
-    const differences = rollupDifferences(basketball, { teamIds: [A, B], stats: edited as unknown as GameStats, score: { ...score, [B]: 7 } }, basketballStats);
+    const differences = rollupDifferences(
+      basketball,
+      { teamIds: [A, B], stats: edited as unknown as GameStats, score: { ...score, [B]: 7 } },
+      basketballStats,
+    );
     expect(differences).toEqual([
       { kind: 'rollupMismatch', key: entry(A, 'p1'), field: 'points', stored: 9, replayed: 6 },
       { kind: 'scoreMirrorMismatch', key: B, field: 'score', stored: 7, replayed: 8 },
@@ -272,9 +369,17 @@ describe('a stored rollup against its replay', () => {
   });
 
   it('does not count a stale stored FP as a difference — FP is derived, not recorded', () => {
-    const stale = structuredClone(basketballStats) as unknown as { playerStats: Record<string, { fantasyPoints: number }> };
+    const stale = structuredClone(basketballStats) as unknown as {
+      playerStats: Record<string, { fantasyPoints: number }>;
+    };
     stale.playerStats[entry(A, 'p1')]!.fantasyPoints = 1;
-    expect(rollupDifferences(basketball, { teamIds: [A, B], stats: stale as unknown as GameStats, score }, basketballStats)).toEqual([]);
+    expect(
+      rollupDifferences(
+        basketball,
+        { teamIds: [A, B], stats: stale as unknown as GameStats, score },
+        basketballStats,
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -291,19 +396,38 @@ describe('the league rankings', () => {
   });
 
   it('offers only the weeks holding a completed game, in the order they start', () => {
-    const game = (weekId: string, weekStartDate: number, status: 'completed' | 'scheduled') => ({ weekId, weekTitle: weekId, weekStartDate, status });
-    expect(playedWeeks([game('w2', 20, 'completed'), game('w3', 30, 'scheduled'), game('w1', 10, 'completed')]).map((week) => week.weekId)).toEqual([
-      'w1',
-      'w2',
-    ]);
+    const game = (weekId: string, weekStartDate: number, status: 'completed' | 'scheduled') => ({
+      weekId,
+      weekTitle: weekId,
+      weekStartDate,
+      status,
+    });
+    expect(
+      playedWeeks([
+        game('w2', 20, 'completed'),
+        game('w3', 30, 'scheduled'),
+        game('w1', 10, 'completed'),
+      ]).map((week) => week.weekId),
+    ).toEqual(['w1', 'w2']);
   });
 
   it("sums a week's completed games into rows, one per team a player played for", () => {
     const first = basketballGame();
     const week = weekRankingRows(basketball, [first, first]);
     const p1 = week.find((row) => row.teamId === A && row.userId === 'p1');
-    expect(p1?.line).toEqual({ gamesPlayed: 2, points: 12, rebounds: 4, assists: 2, fantasyPoints: 22 });
-    expect(week.filter((row) => row.userId === 'both').map((row) => row.teamId).sort()).toEqual([A, B]);
+    expect(p1?.line).toEqual({
+      gamesPlayed: 2,
+      points: 12,
+      rebounds: 4,
+      assists: 2,
+      fantasyPoints: 22,
+    });
+    expect(
+      week
+        .filter((row) => row.userId === 'both')
+        .map((row) => row.teamId)
+        .sort(),
+    ).toEqual([A, B]);
   });
 
   it("gives rows that, over every week, add up to the season's stored rows", () => {
@@ -322,7 +446,11 @@ describe('the league rankings', () => {
         ...basketballGame(),
         stats: secondStats,
         absentRosterPlayerIds: secondAbsent,
-        nonScoringRosterPlayerIds: basketball.participation(secondStats, basketballRoster, secondAbsent),
+        nonScoringRosterPlayerIds: basketball.participation(
+          secondStats,
+          basketballRoster,
+          secondAbsent,
+        ),
       },
     ];
 
@@ -330,23 +458,42 @@ describe('the league rankings', () => {
     const stored: Record<string, Record<string, Record<string, number>>> = { [A]: {}, [B]: {} };
     for (const game of [...weekOne, ...weekTwo]) {
       for (const [entryId, row] of Object.entries(basketball.contribution(game).membershipRows)) {
-        const { teamId, userId } = parseGameRosterPlayerId(entryId) as { teamId: string; userId: string };
-        const moved = applyStatLineDelta(basketball.deriveLine, 'membershipRow', stored[teamId]?.[userId], row, 1);
+        const { teamId, userId } = parseGameRosterPlayerId(entryId) as {
+          teamId: string;
+          userId: string;
+        };
+        const moved = applyStatLineDelta(
+          basketball.deriveLine,
+          'membershipRow',
+          stored[teamId]?.[userId],
+          row,
+          1,
+        );
         if (!moved.ok) throw new Error(`below zero at ${moved.field}`);
         if (moved.after === null) delete stored[teamId]?.[userId];
-        else (stored[teamId] as Record<string, Record<string, number>>)[userId] = moved.after as Record<string, number>;
+        else
+          (stored[teamId] as Record<string, Record<string, number>>)[userId] =
+            moved.after as Record<string, number>;
       }
     }
-    const season = seasonRankingRows(Object.entries(stored).map(([teamId, playerSeasonStats]) => ({ teamId, playerSeasonStats })));
+    const season = seasonRankingRows(
+      Object.entries(stored).map(([teamId, playerSeasonStats]) => ({ teamId, playerSeasonStats })),
+    );
 
     const added = new Map<string, Record<string, number>>();
-    for (const row of [...weekRankingRows(basketball, weekOne), ...weekRankingRows(basketball, weekTwo)]) {
+    for (const row of [
+      ...weekRankingRows(basketball, weekOne),
+      ...weekRankingRows(basketball, weekTwo),
+    ]) {
       const key = `${row.teamId}/${row.userId}`;
       const sum = added.get(key) ?? {};
-      for (const [field, value] of Object.entries(row.line)) sum[field] = (sum[field] ?? 0) + (value as number);
+      for (const [field, value] of Object.entries(row.line))
+        sum[field] = (sum[field] ?? 0) + (value as number);
       added.set(key, sum);
     }
-    expect(Object.fromEntries(added)).toEqual(Object.fromEntries(season.map((row) => [`${row.teamId}/${row.userId}`, row.line])));
+    expect(Object.fromEntries(added)).toEqual(
+      Object.fromEntries(season.map((row) => [`${row.teamId}/${row.userId}`, row.line])),
+    );
     // p1 played week 1 only; p2 has a game played only from week 2.
     expect(added.get(`${A}/p1`)).toMatchObject({ gamesPlayed: 1, points: 6 });
     expect(added.get(`${A}/p2`)).toMatchObject({ gamesPlayed: 1, points: 2 });
@@ -370,30 +517,49 @@ describe('contribution — a scoreless team in the team-scored sports', () => {
     roundNumber: 1,
     points: MAX_CURLING_ROUND_POINTS,
   } as unknown as StatEventBody);
-  const footballShutout = football.apply(football.emptyStats({ teamIds: [A, B] }), { type: TOUCHDOWN, teamId: A } as unknown as StatEventBody);
+  const footballShutout = football.apply(football.emptyStats({ teamIds: [A, B] }), {
+    type: TOUCHDOWN,
+    teamId: A,
+  } as unknown as StatEventBody);
 
   it.each([
     ['Curling', curling, curlingShutout],
     ['Football', football, footballShutout],
-  ] as const)('in %s, credits the present player of a team that scored nothing a game played, and the absent one none', (leagueType, adapter, stats) => {
-    // On B, `present` played and `away` was marked absent; neither holds a player line.
-    const roster = [entry(A, 'x'), entry(B, 'away'), entry(B, 'present')];
-    const absent = [entry(B, 'away')];
-    const game: FinalizedGame = {
-      leagueType,
-      teamIds: [A, B],
-      stats,
-      rosterPlayerIds: roster,
-      absentRosterPlayerIds: absent,
-      nonScoringRosterPlayerIds: adapter.participation(stats, roster, absent),
-    };
-    const contribution = adapter.contribution(game);
+  ] as const)(
+    'in %s, credits the present player of a team that scored nothing a game played, and the absent one none',
+    (leagueType, adapter, stats) => {
+      // On B, `present` played and `away` was marked absent; neither holds a player line.
+      const roster = [entry(A, 'x'), entry(B, 'away'), entry(B, 'present')];
+      const absent = [entry(B, 'away')];
+      const game: FinalizedGame = {
+        leagueType,
+        teamIds: [A, B],
+        stats,
+        rosterPlayerIds: roster,
+        absentRosterPlayerIds: absent,
+        nonScoringRosterPlayerIds: adapter.participation(stats, roster, absent),
+      };
+      const contribution = adapter.contribution(game);
 
-    expect(gameScoreMirror(stats)[A]).toBeGreaterThan(0);
-    expect(stats.playerStats).toEqual({});
-    expect(game.nonScoringRosterPlayerIds).toEqual([]);
-    expect(contribution.teamLines[B]).toEqual({ gamesPlayed: 1, wins: 0, losses: 1, ties: 0, pointsFor: 0, pointsAgainst: gameScoreMirror(stats)[A] });
-    expect(contribution.membershipRows).toEqual({ [entry(A, 'x')]: { gamesPlayed: 1 }, [entry(B, 'present')]: { gamesPlayed: 1 } });
-    expect(contribution.personLines).toEqual({ x: { gamesPlayed: 1 }, present: { gamesPlayed: 1 } });
-  });
+      expect(gameScoreMirror(stats)[A]).toBeGreaterThan(0);
+      expect(stats.playerStats).toEqual({});
+      expect(game.nonScoringRosterPlayerIds).toEqual([]);
+      expect(contribution.teamLines[B]).toEqual({
+        gamesPlayed: 1,
+        wins: 0,
+        losses: 1,
+        ties: 0,
+        pointsFor: 0,
+        pointsAgainst: gameScoreMirror(stats)[A],
+      });
+      expect(contribution.membershipRows).toEqual({
+        [entry(A, 'x')]: { gamesPlayed: 1 },
+        [entry(B, 'present')]: { gamesPlayed: 1 },
+      });
+      expect(contribution.personLines).toEqual({
+        x: { gamesPlayed: 1 },
+        present: { gamesPlayed: 1 },
+      });
+    },
+  );
 });

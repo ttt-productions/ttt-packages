@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildSafeEvent,
-  DEFAULT_SAFE_EVENT_KEYS,
-} from '../src/safe-event.js';
+import { buildSafeEvent, DEFAULT_SAFE_EVENT_KEYS } from '../src/safe-event.js';
 
 describe('buildSafeEvent — allowlist', () => {
   it('keeps only the default allowlisted keys and drops everything else', () => {
@@ -57,7 +54,7 @@ describe('buildSafeEvent — allowlist', () => {
   it('supports a custom allowlist', () => {
     const out = buildSafeEvent(
       { caseId: 'c1', region: 'us-central1', secret: 'nope' },
-      { allowedKeys: [...DEFAULT_SAFE_EVENT_KEYS, 'region'] }
+      { allowedKeys: [...DEFAULT_SAFE_EVENT_KEYS, 'region'] },
     );
     expect(out).toEqual({ caseId: 'c1', region: 'us-central1' });
     expect('secret' in out).toBe(false);

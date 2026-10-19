@@ -3,7 +3,9 @@ import { hasDownloadToken, removeDownloadToken } from '../src/server/download-to
 
 describe('hasDownloadToken', () => {
   it('is true while the object metadata carries a Firebase download token', () => {
-    expect(hasDownloadToken({ metadata: { firebaseStorageDownloadTokens: 'abc', owner: 'u1' } })).toBe(true);
+    expect(
+      hasDownloadToken({ metadata: { firebaseStorageDownloadTokens: 'abc', owner: 'u1' } }),
+    ).toBe(true);
   });
 
   it('is false once the token is gone, with other custom metadata kept', () => {
@@ -31,6 +33,8 @@ describe('removeDownloadToken', () => {
 
   it('surfaces a failed write to its caller', async () => {
     const refused = new Error('storage refused');
-    await expect(removeDownloadToken({ setMetadata: vi.fn().mockRejectedValue(refused) })).rejects.toBe(refused);
+    await expect(
+      removeDownloadToken({ setMetadata: vi.fn().mockRejectedValue(refused) }),
+    ).rejects.toBe(refused);
   });
 });

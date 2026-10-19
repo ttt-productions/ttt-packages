@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { auditionIdSchema, auditionEntryIdSchema, workProjectIdSchema } from './atoms.js';
 
-export const CloseAuditionInputSchema = z.object({
-  auditionId: auditionIdSchema,
-}).strict();
+export const CloseAuditionInputSchema = z
+  .object({
+    auditionId: auditionIdSchema,
+  })
+  .strict();
 export type CloseAuditionInput = z.infer<typeof CloseAuditionInputSchema>;
 
 export const CloseAuditionResultSchema = z.object({
@@ -24,16 +26,19 @@ export const CreateAuditionEntryAcceptedResultSchema = z.object({
   /** The eventual entry doc id — the caller's uid. */
   auditionEntryId: auditionEntryIdSchema,
 });
-export type CreateAuditionEntryAcceptedResult = z.infer<typeof CreateAuditionEntryAcceptedResultSchema>;
-
+export type CreateAuditionEntryAcceptedResult = z.infer<
+  typeof CreateAuditionEntryAcceptedResultSchema
+>;
 
 // getOwnAuditionEntryStatus — the caller's OWN entry on one audition, answered server-side because
 // an entry moderation hid is unreadable to everyone, its owner included. The answer says only
 // whether the caller has an entry and whether it is under moderation review — never the entry,
 // its content, or why it was hidden.
-export const GetOwnAuditionEntryStatusInputSchema = z.object({
-  auditionId: auditionIdSchema,
-}).strict();
+export const GetOwnAuditionEntryStatusInputSchema = z
+  .object({
+    auditionId: auditionIdSchema,
+  })
+  .strict();
 export type GetOwnAuditionEntryStatusInput = z.infer<typeof GetOwnAuditionEntryStatusInputSchema>;
 
 /** `none` — no entry; `visible` — an entry the caller can read; `underReview` — an entry moderation hid. */

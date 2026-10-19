@@ -7,7 +7,13 @@
 
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
-import { namesProblem, reviewedProblems, loaderProblem, type Loader, textProblem } from '../../support/facts.js';
+import {
+  namesProblem,
+  reviewedProblems,
+  loaderProblem,
+  type Loader,
+  textProblem,
+} from '../../support/facts.js';
 import { coreBuild } from './shared.js';
 
 type SchemaModules = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -30,17 +36,44 @@ export interface DocumentIdSegmentFacts {
   multiSegmentReferences: ReadonlyArray<{ schema: string; why: string }>;
 }
 
-export const NOT_ONE_SEGMENT: readonly string[] = Object.freeze(['', 'a/b', '/a', 'a/', '.', '..', '__reserved__']);
-export const PADDED: readonly string[] = Object.freeze([' ', '  ', ' a', 'a ', '\ta', 'a\t', '\na', 'a\n']);
+export const NOT_ONE_SEGMENT: readonly string[] = Object.freeze([
+  '',
+  'a/b',
+  '/a',
+  'a/',
+  '.',
+  '..',
+  '__reserved__',
+]);
+export const PADDED: readonly string[] = Object.freeze([
+  ' ',
+  '  ',
+  ' a',
+  'a ',
+  '\ta',
+  'a\t',
+  '\na',
+  'a\n',
+]);
 const PLAIN_ID = 'abc123XYZ';
 const ID_FIELD_NAME = /^(id|uid|ids|uids)$|(Id|Ids|Uid|Uids)$/;
-const WRAPPERS = new Set(['optional', 'nullable', 'default', 'prefault', 'readonly', 'catch', 'nonoptional']);
+const WRAPPERS = new Set([
+  'optional',
+  'nullable',
+  'default',
+  'prefault',
+  'readonly',
+  'catch',
+  'nonoptional',
+]);
 
 type Def = { type: string } & Record<string, unknown>;
 type Parseable = { safeParse: (value: unknown) => { success: boolean } };
 
-const defOf = (schema: unknown): Def | undefined => (schema as { _zod?: { def?: Def } } | undefined)?._zod?.def;
-const isParseable = (value: unknown): value is Parseable => typeof (value as Parseable | undefined)?.safeParse === 'function';
+const defOf = (schema: unknown): Def | undefined =>
+  (schema as { _zod?: { def?: Def } } | undefined)?._zod?.def;
+const isParseable = (value: unknown): value is Parseable =>
+  typeof (value as Parseable | undefined)?.safeParse === 'function';
 
 /** The schema a field's value is checked by: wrappers and arrays unwrapped to the element. */
 function leafOf(schema: unknown): unknown {
@@ -103,7 +136,11 @@ export function nonSegmentIdFields(
 }
 
 /** Every id-named field under `root` that admits a space-only or space-padded value. */
-export function paddedIdFields(root: unknown, rootName: string, exportedNames: ReadonlyMap<unknown, string>): string[] {
+export function paddedIdFields(
+  root: unknown,
+  rootName: string,
+  exportedNames: ReadonlyMap<unknown, string>,
+): string[] {
   return idFieldsAdmitting(root, rootName, exportedNames, PADDED, new Set());
 }
 
@@ -135,7 +172,9 @@ export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFac
     namesProblem(facts?.requiredIdAtoms, 'requiredIdAtoms', problems);
     reviewedProblems(facts?.notClientSent, 'notClientSent', problems, { key: 'schema' });
     reviewedProblems(facts?.notAPathSegment, 'notAPathSegment', problems, { key: 'field' });
-    reviewedProblems(facts?.multiSegmentReferences, 'multiSegmentReferences', problems, { key: 'schema' });
+    reviewedProblems(facts?.multiSegmentReferences, 'multiSegmentReferences', problems, {
+      key: 'schema',
+    });
     return problems;
   },
   build(facts) {
@@ -151,15 +190,28 @@ export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFac
           const findings: Finding[] = [];
           coreBuild(context, findings);
           const { exported } = await exportsOf(facts);
-          const atoms = [...exported].filter(([name, value]) => name.endsWith(facts.idAtomNameSuffix) && isParseable(value));
+          const atoms = [...exported].filter(
+            ([name, value]) => name.endsWith(facts.idAtomNameSuffix) && isParseable(value),
+          );
           for (const name of facts.requiredIdAtoms) {
-            if (!atoms.some(([n]) => n === name)) findings.push({ file: entry(name), detail: 'a required id atom was not found among the wire modules' });
+            if (!atoms.some(([n]) => n === name))
+              findings.push({
+                file: entry(name),
+                detail: 'a required id atom was not found among the wire modules',
+              });
           }
           for (const [name, atom] of atoms as Array<[string, Parseable]>) {
             const admitted = NOT_ONE_SEGMENT.filter((value) => atom.safeParse(value).success);
-            if (admitted.length) findings.push({ file: entry(name), detail: `admits ${admitted.map((v) => JSON.stringify(v)).join(', ')}` });
+            if (admitted.length)
+              findings.push({
+                file: entry(name),
+                detail: `admits ${admitted.map((v) => JSON.stringify(v)).join(', ')}`,
+              });
             if (defOf(atom)?.type !== 'enum' && !atom.safeParse(PLAIN_ID).success) {
-              findings.push({ file: entry(name), detail: `refuses the plain id ${JSON.stringify(PLAIN_ID)}` });
+              findings.push({
+                file: entry(name),
+                detail: `refuses the plain id ${JSON.stringify(PLAIN_ID)}`,
+              });
             }
           }
           return findings;
@@ -179,28 +231,49 @@ export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFac
           const multiSegment = new Set<unknown>();
           for (const { schema } of facts.multiSegmentReferences) {
             const value = exported.get(schema);
-            if (value === undefined) findings.push({ file: entry(schema), detail: 'stale multi-segment reference: the core exports no such schema' });
+            if (value === undefined)
+              findings.push({
+                file: entry(schema),
+                detail: 'stale multi-segment reference: the core exports no such schema',
+              });
             else multiSegment.add(value);
           }
           const excluded = new Set(facts.notClientSent.map((e) => e.schema));
           const wireInputs = [...exported].filter(([name]) => isWireInput(name));
           for (const schema of excluded) {
-            if (!wireInputs.some(([name]) => name === schema)) findings.push({ file: entry(schema), detail: 'stale not-client-sent entry: no such wire contract' });
+            if (!wireInputs.some(([name]) => name === schema))
+              findings.push({
+                file: entry(schema),
+                detail: 'stale not-client-sent entry: no such wire contract',
+              });
           }
           for (const name of facts.requiredWireInputs) {
-            if (!wireInputs.some(([n]) => n === name)) findings.push({ file: entry(name), detail: 'a required wire contract was not found among the wire modules' });
+            if (!wireInputs.some(([n]) => n === name))
+              findings.push({
+                file: entry(name),
+                detail: 'a required wire contract was not found among the wire modules',
+              });
           }
           const offenders = new Set<string>();
           for (const [name, schema] of wireInputs) {
             if (excluded.has(name)) continue;
-            for (const field of nonSegmentIdFields(schema, name, names, multiSegment)) offenders.add(field);
+            for (const field of nonSegmentIdFields(schema, name, names, multiSegment))
+              offenders.add(field);
           }
           const reviewed = new Set(facts.notAPathSegment.map((e) => e.field));
           for (const field of [...offenders].sort()) {
-            if (!reviewed.has(field)) findings.push({ file: entry(field), detail: 'admits a value that is not one document-id segment' });
+            if (!reviewed.has(field))
+              findings.push({
+                file: entry(field),
+                detail: 'admits a value that is not one document-id segment',
+              });
           }
           for (const field of reviewed) {
-            if (!offenders.has(field)) findings.push({ file: entry(field), detail: 'stale reviewed entry: the field is gone or now one segment' });
+            if (!offenders.has(field))
+              findings.push({
+                file: entry(field),
+                detail: 'stale reviewed entry: the field is gone or now one segment',
+              });
           }
           return findings;
         },
@@ -222,7 +295,11 @@ export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFac
             if (!isWireInput(name) || excluded.has(name)) continue;
             for (const field of paddedIdFields(schema, name, names)) offenders.add(field);
           }
-          for (const field of [...offenders].sort()) findings.push({ file: entry(field), detail: 'admits a space-only or space-padded value' });
+          for (const field of [...offenders].sort())
+            findings.push({
+              file: entry(field),
+              detail: 'admits a space-only or space-padded value',
+            });
           return findings;
         },
       },

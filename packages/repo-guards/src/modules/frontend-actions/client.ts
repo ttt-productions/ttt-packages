@@ -8,8 +8,19 @@ import type { Finding, Guard } from '../../guard.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { matchPattern, ownerOnly, reviewedAllowlist, type AllowlistEntry, type Hit } from '../../shapes/shapes.js';
-import { allowlistProblems, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import {
+  matchPattern,
+  ownerOnly,
+  reviewedAllowlist,
+  type AllowlistEntry,
+  type Hit,
+} from '../../shapes/shapes.js';
+import {
+  allowlistProblems,
+  namesProblem,
+  reviewedProblems,
+  textProblem,
+} from '../../support/facts.js';
 import { fromStatements, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 import { isPlainString } from '../../support/ast.js';
@@ -17,7 +28,11 @@ import { isPlainString } from '../../support/ast.js';
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
 /** A dotted code spelling (`A.b`) as a pattern that allows whitespace around each dot. */
-const dottedPattern = (spelling: string) => spelling.split('.').map((part) => escapeRegExp(part.trim())).join('\\s*\\.\\s*');
+const dottedPattern = (spelling: string) =>
+  spelling
+    .split('.')
+    .map((part) => escapeRegExp(part.trim()))
+    .join('\\s*\\.\\s*');
 
 /** A name in any quote: `'x'`, `"x"`, or a backtick literal. */
 const quotedPattern = (name: string) => `(['"\`])${escapeRegExp(name)}\\1`;
@@ -49,7 +64,10 @@ export const appConfigReaderGuard: GenericGuardDefinition<AppConfigReaderFacts> 
   },
   build(facts) {
     const pattern = new RegExp(
-      [...facts.docSpellings.map((s) => `\\b${dottedPattern(s)}\\b`), quotedPattern(facts.collectionName)].join('|'),
+      [
+        ...facts.docSpellings.map((s) => `\\b${dottedPattern(s)}\\b`),
+        quotedPattern(facts.collectionName),
+      ].join('|'),
       'g',
     );
     const names = matchPattern(pattern);
@@ -61,14 +79,18 @@ export const appConfigReaderGuard: GenericGuardDefinition<AppConfigReaderFacts> 
         "value and bypass the provider's status. Read it through the provider's accessor; server code under the declared " +
         'server paths reads it as the backend.',
       scope: APP_CODE,
-      match: (file) => (facts.serverPaths.some((p) => isUnder(file.path, p.path)) ? [] : names(file)),
+      match: (file) =>
+        facts.serverPaths.some((p) => isUnder(file.path, p.path)) ? [] : names(file),
       owners: [facts.provider],
       samples: {
         flags: [
           `const ref = doc(db, ${facts.docSpellings[0]}());`,
           `doc(db, '${facts.collectionName}', 'app')`,
         ],
-        passes: [`// reads ${facts.docSpellings[0]}() live`, `const hint = 'the field on ${facts.collectionName}/app is invalid';`],
+        passes: [
+          `// reads ${facts.docSpellings[0]}() live`,
+          `const hint = 'the field on ${facts.collectionName}/app is invalid';`,
+        ],
       },
     });
     return [
@@ -76,7 +98,9 @@ export const appConfigReaderGuard: GenericGuardDefinition<AppConfigReaderFacts> 
         ...guard,
         async run(context) {
           const findings = await guard.run(context);
-          for (const p of facts.serverPaths) if (!context.reader.exists(p.path)) findings.push({ file: p.path, detail: 'stale server path: it no longer exists' });
+          for (const p of facts.serverPaths)
+            if (!context.reader.exists(p.path))
+              findings.push({ file: p.path, detail: 'stale server path: it no longer exists' });
           return findings;
         },
       },
@@ -113,8 +137,16 @@ export const browserStorageGuard: GenericGuardDefinition<BrowserStorageFacts> = 
         match: matchPattern(/\b(?:localStorage|sessionStorage)\s*(?:\.|\[)/),
         allowlist: facts.allowlist,
         samples: {
-          flags: ['window.localStorage.getItem(KEY)', "sessionStorage.removeItem('k')", 'localStorage[KEY] = v'],
-          passes: ["readStoredValue(KEY, 'session')", '`stored in localStorage: ${v}`', '// localStorage.getItem(KEY)'],
+          flags: [
+            'window.localStorage.getItem(KEY)',
+            "sessionStorage.removeItem('k')",
+            'localStorage[KEY] = v',
+          ],
+          passes: [
+            "readStoredValue(KEY, 'session')",
+            '`stored in localStorage: ${v}`',
+            '// localStorage.getItem(KEY)',
+          ],
         },
       }),
     ];
@@ -144,7 +176,12 @@ export const uploadListenerGuard: GenericGuardDefinition<UploadListenerFacts> = 
     return problems;
   },
   build(facts) {
-    const names = new RegExp([quotedPattern(facts.collectionName), ...facts.collectionSpellings.map((s) => `\\b${dottedPattern(s)}\\b`)].join('|'));
+    const names = new RegExp(
+      [
+        quotedPattern(facts.collectionName),
+        ...facts.collectionSpellings.map((s) => `\\b${dottedPattern(s)}\\b`),
+      ].join('|'),
+    );
     const subscribe = matchPattern(/\bonSnapshot\b/, () => 'onSnapshot');
     return [
       reviewedAllowlist({
@@ -157,7 +194,10 @@ export const uploadListenerGuard: GenericGuardDefinition<UploadListenerFacts> = 
         allowlist: [],
         samples: {
           flags: [`onSnapshot(doc(db, '${facts.collectionName}', id), cb);`],
-          passes: [`onSnapshot(doc(db, 'otherThings', id), cb);`, `getDoc(doc(db, '${facts.collectionName}', id));`],
+          passes: [
+            `onSnapshot(doc(db, 'otherThings', id), cb);`,
+            `getDoc(doc(db, '${facts.collectionName}', id));`,
+          ],
         },
       }),
     ];
@@ -174,10 +214,14 @@ export interface MediaRendererFacts {
   rawImageAllowlist: readonly AllowlistEntry[];
 }
 
-const RAW_IMAGE = /<img\b|from\s*['"]next\/image['"]|\bbackgroundImage\s*:|background(?:-image)?\s*:\s*url\(/g;
+const RAW_IMAGE =
+  /<img\b|from\s*['"]next\/image['"]|\bbackgroundImage\s*:|background(?:-image)?\s*:\s*url\(/g;
 
 /** Each import of a renderer's names (or of anything, for `all`) from its module or a subpath. */
-export function rendererImports(file: FileView, renderer: MediaRendererFacts['renderers'][number]): Hit[] {
+export function rendererImports(
+  file: FileView,
+  renderer: MediaRendererFacts['renderers'][number],
+): Hit[] {
   const hits: Hit[] = [];
   for (const site of fromStatements(file.sourceFile)) {
     if (!namesModule(site.spec, renderer.module)) continue;
@@ -187,7 +231,8 @@ export function rendererImports(file: FileView, renderer: MediaRendererFacts['re
       continue;
     }
     for (const name of renderer.imports) {
-      if (site.named.some((n) => n.imported === name || n.local === name)) hits.push({ index, detail: `imports ${name} from ${site.spec}` });
+      if (site.named.some((n) => n.imported === name || n.local === name))
+        hits.push({ index, detail: `imports ${name} from ${site.spec}` });
     }
   }
   return hits;
@@ -198,12 +243,14 @@ export const mediaRendererGuard: GenericGuardDefinition<MediaRendererFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.renderers) || !facts.renderers.length) problems.push('renderers is missing or empty');
+    if (!Array.isArray(facts?.renderers) || !facts.renderers.length)
+      problems.push('renderers is missing or empty');
     else {
       for (const r of facts.renderers) {
         textProblem(r?.owner, 'a renderer owner', problems);
         textProblem(r?.module, `renderer ${String(r?.owner)}'s module`, problems);
-        if (r?.imports !== 'all') namesProblem(r?.imports, `renderer ${String(r?.owner)}'s imports (or 'all')`, problems);
+        if (r?.imports !== 'all')
+          namesProblem(r?.imports, `renderer ${String(r?.owner)}'s imports (or 'all')`, problems);
       }
     }
     allowlistProblems(facts?.rawImageAllowlist, 'rawImageAllowlist', problems);
@@ -221,8 +268,17 @@ export const mediaRendererGuard: GenericGuardDefinition<MediaRendererFacts> = {
       match: matchPattern(RAW_IMAGE),
       allowlist: facts.rawImageAllowlist,
       samples: {
-        flags: ['<img src={url} alt="" />', "import Image from 'next/image';", '<div style={{ backgroundImage: `url(${url})` }} />'],
-        passes: ["import { Image } from 'lucide-react';", '<Image className="icon-sm" />', '// never an <img>', "const tag = 'img';"],
+        flags: [
+          '<img src={url} alt="" />',
+          "import Image from 'next/image';",
+          '<div style={{ backgroundImage: `url(${url})` }} />',
+        ],
+        passes: [
+          "import { Image } from 'lucide-react';",
+          '<Image className="icon-sm" />',
+          '// never an <img>',
+          "const tag = 'img';",
+        ],
       },
     });
     return [
@@ -236,12 +292,26 @@ export const mediaRendererGuard: GenericGuardDefinition<MediaRendererFacts> = {
               const hits = rendererImports(file, renderer);
               if (!hits.length) continue;
               if (file.path === renderer.owner) held.add(renderer.owner);
-              else for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `outside its renderer owner ${renderer.owner}: ${hit.detail}` });
+              else
+                for (const hit of hits)
+                  findings.push({
+                    file: file.path,
+                    line: file.lineOf(hit.index),
+                    detail: `outside its renderer owner ${renderer.owner}: ${hit.detail}`,
+                  });
             }
           }
           for (const renderer of facts.renderers) {
-            if (!context.reader.exists(renderer.owner)) findings.push({ file: renderer.owner, detail: 'the renderer owner no longer exists' });
-            else if (!held.has(renderer.owner)) findings.push({ file: renderer.owner, detail: `stale owner: it no longer imports from ${renderer.module}` });
+            if (!context.reader.exists(renderer.owner))
+              findings.push({
+                file: renderer.owner,
+                detail: 'the renderer owner no longer exists',
+              });
+            else if (!held.has(renderer.owner))
+              findings.push({
+                file: renderer.owner,
+                detail: `stale owner: it no longer imports from ${renderer.module}`,
+              });
           }
           return findings;
         },
@@ -266,7 +336,8 @@ export function mimePrefixClassifications(file: FileView): Hit[] {
     if (isPlainString(node) && MIME_PREFIX.test(node.text)) {
       hits.push({ index: node.getStart(sf), detail: `'${node.text}'` });
     }
-    if (ts.isRegularExpressionLiteral(node) && MIME_PREFIX_REGEX.test(node.text)) hits.push({ index: node.getStart(sf), detail: node.text });
+    if (ts.isRegularExpressionLiteral(node) && MIME_PREFIX_REGEX.test(node.text))
+      hits.push({ index: node.getStart(sf), detail: node.text });
     if (
       ts.isElementAccessExpression(node) &&
       ts.isNumericLiteral(node.argumentExpression) &&
@@ -305,8 +376,16 @@ export const mimePrefixGuard: GenericGuardDefinition<MimePrefixFacts> = {
         match: mimePrefixClassifications,
         allowlist: [],
         samples: {
-          flags: ["const a = contentType.startsWith('video/');", 'const b = /^audio\\//.test(contentType);', "const c = contentType.split('/')[0];", 'const e = mime.includes(`image/`);'],
-          passes: ["// contentType.startsWith('image/')", "const d = new File([blob], 'x.jpg', { type: 'image/jpeg' });"],
+          flags: [
+            "const a = contentType.startsWith('video/');",
+            'const b = /^audio\\//.test(contentType);',
+            "const c = contentType.split('/')[0];",
+            'const e = mime.includes(`image/`);',
+          ],
+          passes: [
+            "// contentType.startsWith('image/')",
+            "const d = new File([blob], 'x.jpg', { type: 'image/jpeg' });",
+          ],
         },
       }),
     ];
@@ -343,7 +422,10 @@ export const effectiveMotionGuard: GenericGuardDefinition<EffectiveMotionFacts> 
       allowlist: [],
       samples: {
         flags: ["const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;"],
-        passes: ['// the store owns prefers-reduced-motion', "window.matchMedia('(min-width: 768px)')"],
+        passes: [
+          '// the store owns prefers-reduced-motion',
+          "window.matchMedia('(min-width: 768px)')",
+        ],
       },
     });
     return [
@@ -351,7 +433,8 @@ export const effectiveMotionGuard: GenericGuardDefinition<EffectiveMotionFacts> 
         ...guard,
         async run(context) {
           const findings = await guard.run(context);
-          if (!context.reader.exists(facts.store)) findings.push({ file: facts.store, detail: 'the motion store no longer exists' });
+          if (!context.reader.exists(facts.store))
+            findings.push({ file: facts.store, detail: 'the motion store no longer exists' });
           return findings;
         },
       },
@@ -382,12 +465,23 @@ export const dateOfBirthGuard: GenericGuardDefinition<DateOfBirthFacts> = {
         description:
           `Whole years are computed from a date only in ${facts.owner}. A second year subtraction anywhere else is a ` +
           'copy that drifts from the owner at a boundary birthday: call the owner.',
-        scope: { roots: ['app', 'functions', 'coreDist'], kinds: ['code'], tests: false, optionalRoots: ['functions', 'coreDist'] },
+        scope: {
+          roots: ['app', 'functions', 'coreDist'],
+          kinds: ['code'],
+          tests: false,
+          optionalRoots: ['functions', 'coreDist'],
+        },
         match: matchPattern(/\.get(?:UTC)?FullYear\(\)\s*-/),
         owners: [facts.owner],
         samples: {
-          flags: ['const age = now.getFullYear() - dob.getFullYear();', 'let years = asOf.getUTCFullYear() - dob.year;'],
-          passes: ['const year = now.getUTCFullYear();', '// now.getFullYear() - dob.getFullYear()'],
+          flags: [
+            'const age = now.getFullYear() - dob.getFullYear();',
+            'let years = asOf.getUTCFullYear() - dob.year;',
+          ],
+          passes: [
+            'const year = now.getUTCFullYear();',
+            '// now.getFullYear() - dob.getFullYear()',
+          ],
         },
       }),
     ];
@@ -403,7 +497,10 @@ export interface PartialMockFacts {
 }
 
 /** Each `vi.mock` / `vi.doMock` call on exactly `module`, as its balanced source slice. */
-export function moduleMockCalls(code: string, module: string): Array<{ call: string; index: number }> {
+export function moduleMockCalls(
+  code: string,
+  module: string,
+): Array<{ call: string; index: number }> {
   const opener = new RegExp(`vi\\.(?:mock|doMock)\\(\\s*(['"\`])${escapeRegExp(module)}\\1`, 'g');
   const calls: Array<{ call: string; index: number }> = [];
   for (let m = opener.exec(code); m; m = opener.exec(code)) {
@@ -431,7 +528,8 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.packageRoots) || !facts.packageRoots.length) return ['packageRoots is missing or empty'];
+    if (!Array.isArray(facts?.packageRoots) || !facts.packageRoots.length)
+      return ['packageRoots is missing or empty'];
     for (const r of facts.packageRoots) {
       textProblem(r?.module, 'a package root', problems);
       textProblem(r?.why, `package root ${String(r?.module)}'s why`, problems);
@@ -446,21 +544,36 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
           'A `vi.mock` of a listed package root spreads the real module: ' +
           "`vi.mock('<root>', async (importOriginal) => ({ ...(await importOriginal()), <override> }))`. A factory that " +
           'returns only the exports one test steers deletes the rest, and code that needs them fails away from the ' +
-          'assertion. ' + facts.packageRoots.map((r) => `${r.module}: ${r.why}.`).join(' '),
+          'assertion. ' +
+          facts.packageRoots.map((r) => `${r.module}: ${r.why}.`).join(' '),
         run(context) {
           const findings: Finding[] = [];
           const mocked = new Set<string>();
-          const files = context.files({ roots: ['app', 'functions'], kinds: ['code'], tests: true, optionalRoots: ['functions'] });
+          const files = context.files({
+            roots: ['app', 'functions'],
+            kinds: ['code'],
+            tests: true,
+            optionalRoots: ['functions'],
+          });
           for (const file of files) {
             for (const { module } of facts.packageRoots) {
               for (const { call, index } of moduleMockCalls(file.code, module)) {
                 mocked.add(module);
-                if (!spreadsImportOriginal(call)) findings.push({ file: file.path, line: file.lineOf(index), detail: `a full-module mock of ${module}` });
+                if (!spreadsImportOriginal(call))
+                  findings.push({
+                    file: file.path,
+                    line: file.lineOf(index),
+                    detail: `a full-module mock of ${module}`,
+                  });
               }
             }
           }
           for (const { module } of facts.packageRoots) {
-            if (!mocked.has(module)) findings.push({ file: '(packageRoots)', detail: `stale entry: nothing mocks ${module}` });
+            if (!mocked.has(module))
+              findings.push({
+                file: '(packageRoots)',
+                detail: `stale entry: nothing mocks ${module}`,
+              });
           }
           return findings;
         },
@@ -468,4 +581,3 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
     ];
   },
 };
-

@@ -22,7 +22,11 @@ const CHARACTER_RULE_BY_FORMAT = {
 } as const satisfies Record<InputFormat, string | null>;
 
 /** The sentence for one refusal of `text` by `declaration`. */
-export function textFieldRefusal(declaration: TextFieldDeclaration, issue: InputFormatIssue, text: string): string {
+export function textFieldRefusal(
+  declaration: TextFieldDeclaration,
+  issue: InputFormatIssue,
+  text: string,
+): string {
   const { label } = declaration;
   if (issue === 'tooShort') {
     return text.trim().length === 0
@@ -43,8 +47,7 @@ export function textFieldReformatNotice(declaration: TextFieldDeclaration): stri
 }
 
 export type TextFieldResult =
-  | { readonly ok: true; readonly value: string }
-  | { readonly ok: false; readonly reason: string };
+  { readonly ok: true; readonly value: string } | { readonly ok: false; readonly reason: string };
 
 /** Checks `text` against its field's declaration: the value to keep, or the sentence that refuses it. */
 export function checkTextField(declaration: TextFieldDeclaration, text: string): TextFieldResult {

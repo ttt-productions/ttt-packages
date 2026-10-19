@@ -48,7 +48,11 @@ import {
   SquareStreetzAgreementsAcceptedAuditPayloadSchema,
 } from '../src/schemas/users.js';
 import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents.js';
-import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents.js';
+import {
+  changedPublicDocuments,
+  planPublicDocumentRelease,
+  samePublicDocumentVersions,
+} from '../src/utils/public-documents.js';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments.js';
 import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library.js';
 
@@ -92,9 +96,15 @@ describe('public document identity', () => {
       SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY,
     ]);
     expect(PATH_BUILDERS.publicDocumentProjection(TERMS)).toEqual(PATH_BUILDERS.termsPage());
-    expect(PATH_BUILDERS.publicDocumentProjection(SPECIAL_DOCS.PRIVACY_PAGE)).toEqual(PATH_BUILDERS.privacyPage());
-    expect(PATH_BUILDERS.publicDocumentProjection(RULES)).toEqual(PATH_BUILDERS.rulesAndAgreements());
-    expect(PATH_BUILDERS.publicDocumentProjection(SPECIAL_DOCS.FUTURE_PLANS)).toEqual(PATH_BUILDERS.futurePlans());
+    expect(PATH_BUILDERS.publicDocumentProjection(SPECIAL_DOCS.PRIVACY_PAGE)).toEqual(
+      PATH_BUILDERS.privacyPage(),
+    );
+    expect(PATH_BUILDERS.publicDocumentProjection(RULES)).toEqual(
+      PATH_BUILDERS.rulesAndAgreements(),
+    );
+    expect(PATH_BUILDERS.publicDocumentProjection(SPECIAL_DOCS.FUTURE_PLANS)).toEqual(
+      PATH_BUILDERS.futurePlans(),
+    );
     expect(PATH_BUILDERS.publicDocumentProjection(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY)).toEqual(
       PATH_BUILDERS.takeItDownPageCopy(),
     );
@@ -102,7 +112,8 @@ describe('public document identity', () => {
   });
 
   it('labels every document', () => {
-    for (const id of PUBLIC_DOCUMENT_IDS) expect(PUBLIC_DOCUMENT_LABELS[id].length, id).toBeGreaterThan(0);
+    for (const id of PUBLIC_DOCUMENT_IDS)
+      expect(PUBLIC_DOCUMENT_LABELS[id].length, id).toBeGreaterThan(0);
     expect(PUBLIC_DOCUMENT_LABELS[TERMS]).toBe('Terms of Service');
     expect(PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.PRIVACY_PAGE]).toBe('Privacy Policy');
   });
@@ -125,7 +136,10 @@ describe('public document identity', () => {
       const entry = PUBLIC_DOCUMENT_PROJECTIONS[id];
       expect(entry.path(), id).toEqual([COLLECTIONS.APP_CONFIG, id]);
       expect(entry.path(), id).toEqual(PATH_BUILDERS.publicDocumentProjection(id));
-      expect(COLLECTION_SCHEMAS[entry.path().join('/') as keyof typeof COLLECTION_SCHEMAS], id).toBe(entry.schema);
+      expect(
+        COLLECTION_SCHEMAS[entry.path().join('/') as keyof typeof COLLECTION_SCHEMAS],
+        id,
+      ).toBe(entry.schema);
     }
   });
 });
@@ -138,7 +152,10 @@ describe('public document paths', () => {
       NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS,
       'v3',
     ]);
-    expect(PATH_BUILDERS.publicDocumentDraft(DMCA)).toEqual([COLLECTIONS.PUBLIC_DOCUMENT_DRAFTS, DMCA]);
+    expect(PATH_BUILDERS.publicDocumentDraft(DMCA)).toEqual([
+      COLLECTIONS.PUBLIC_DOCUMENT_DRAFTS,
+      DMCA,
+    ]);
     expect(PATH_BUILDERS.publicDocumentRelease(RELEASE_ID)).toEqual([
       COLLECTIONS.PUBLIC_DOCUMENT_RELEASES,
       RELEASE_ID,
@@ -157,11 +174,13 @@ describe('public document paths', () => {
   });
 
   it('registers every public-document collection and the DMCA projection', () => {
-    expect(COLLECTION_SCHEMAS['publicDocuments/{documentId}/publicDocumentVersions/{versionId}']).toBe(
-      PublicDocumentVersionSchema,
-    );
+    expect(
+      COLLECTION_SCHEMAS['publicDocuments/{documentId}/publicDocumentVersions/{versionId}'],
+    ).toBe(PublicDocumentVersionSchema);
     expect(COLLECTION_SCHEMAS['publicDocumentDrafts/{documentId}']).toBe(PublicDocumentDraftSchema);
-    expect(COLLECTION_SCHEMAS['publicDocumentReleases/{releaseId}']).toBe(PublicDocumentReleaseSchema);
+    expect(COLLECTION_SCHEMAS['publicDocumentReleases/{releaseId}']).toBe(
+      PublicDocumentReleaseSchema,
+    );
     expect(COLLECTION_SCHEMAS['_appConfig/dmcaPolicy']).toBe(DmcaPolicyDocumentSchema);
   });
 });
@@ -182,10 +201,12 @@ describe('immutable version document', () => {
 
   it('validates the content by its document', () => {
     expect(
-      PublicDocumentVersionSchema.safeParse({ ...version, content: { rules: [], agreements: {} } }).success,
+      PublicDocumentVersionSchema.safeParse({ ...version, content: { rules: [], agreements: {} } })
+        .success,
     ).toBe(false);
     expect(
-      PublicDocumentVersionSchema.safeParse({ ...version, documentId: DMCA, content: dmcaContent }).success,
+      PublicDocumentVersionSchema.safeParse({ ...version, documentId: DMCA, content: dmcaContent })
+        .success,
     ).toBe(true);
   });
 
@@ -195,7 +216,9 @@ describe('immutable version document', () => {
   });
 
   it('rejects an unknown document', () => {
-    expect(PublicDocumentVersionSchema.safeParse({ ...version, documentId: 'cookiePolicy' }).success).toBe(false);
+    expect(
+      PublicDocumentVersionSchema.safeParse({ ...version, documentId: 'cookiePolicy' }).success,
+    ).toBe(false);
   });
 
   it('types the content by document id', () => {
@@ -246,7 +269,9 @@ describe('working copy and release record', () => {
       publishedAt: 1,
     };
     expect(PublicDocumentReleaseSchema.safeParse(release).success).toBe(true);
-    expect(PublicDocumentReleaseSchema.safeParse({ ...release, documents: [] }).success).toBe(false);
+    expect(PublicDocumentReleaseSchema.safeParse({ ...release, documents: [] }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -259,7 +284,9 @@ describe('version block on _appConfig/app', () => {
   it('AppConfig carries it, and still parses without it', () => {
     const base = { appVersion: '1.0.0', maintenanceMode: false, registrationEnabled: true };
     expect(AppConfigSchema.safeParse(base).success).toBe(true);
-    expect(AppConfigSchema.safeParse({ ...base, publicDocumentVersions: block }).success).toBe(true);
+    expect(AppConfigSchema.safeParse({ ...base, publicDocumentVersions: block }).success).toBe(
+      true,
+    );
   });
 
   it('a required version can never pass the current version', () => {
@@ -272,9 +299,10 @@ describe('version block on _appConfig/app', () => {
   });
 
   it('accepts only known documents, and a document never published simply has no entry', () => {
-    expect(PublicDocumentVersionBlockSchema.safeParse({ documents: {}, requiredAcceptanceLevel: 0 }).success).toBe(
-      true,
-    );
+    expect(
+      PublicDocumentVersionBlockSchema.safeParse({ documents: {}, requiredAcceptanceLevel: 0 })
+        .success,
+    ).toBe(true);
     expect(
       PublicDocumentVersionBlockSchema.safeParse({
         documents: { cookiePolicy: { currentVersion: 1, requiredVersion: 0 } },
@@ -298,24 +326,32 @@ describe('private acceptance summary', () => {
     expect(shape.publicDocumentAcceptance.safeParse(undefined).success).toBe(true);
     // The registration fields stay compatible.
     expect(
-      shape.agreements.safeParse({ age: true, terms: true, agreedOn: 1, termsVersion: 1, privacyVersion: 0 }).success,
+      shape.agreements.safeParse({
+        age: true,
+        terms: true,
+        agreedOn: 1,
+        termsVersion: 1,
+        privacyVersion: 0,
+      }).success,
     ).toBe(true);
   });
 
   it('is strict, and the notice revision is optional (absent while the notice was off)', () => {
-    expect(PublicDocumentAcceptanceSchema.safeParse({ ...summary, history: [] }).success).toBe(false);
+    expect(PublicDocumentAcceptanceSchema.safeParse({ ...summary, history: [] }).success).toBe(
+      false,
+    );
     const { legalReviewNoticeRevision: _omit, ...withoutNotice } = summary;
     expect(PublicDocumentAcceptanceSchema.safeParse(withoutNotice).success).toBe(true);
   });
 
-  it('records the Artisan upgrade\'s Rules version', () => {
+  it("records the Artisan upgrade's Rules version", () => {
     const field = UserPrivateDataSchema.shape.artisanCreatorAgreementsVersion;
     expect(field.safeParse(4).success).toBe(true);
     expect(field.safeParse(0).success).toBe(true);
     expect(field.safeParse(-1).success).toBe(false);
   });
 
-  it('records the Square agreements\' Rules version as the canonical version-or-none value', () => {
+  it("records the Square agreements' Rules version as the canonical version-or-none value", () => {
     const field = UserPrivateDataSchema.shape.squareStreetzAgreementsVersion;
     expect(field.safeParse(3).success).toBe(true);
     expect(field.safeParse(0).success).toBe(true);
@@ -336,13 +372,18 @@ describe('current projection', () => {
   });
 
   it('the DMCA projection is intro + contact blocks + sections, versioned', () => {
-    expect(DmcaPolicyDocumentSchema.safeParse({ version: 1, lastUpdated: 1, ...dmcaContent }).success).toBe(true);
-    expect(LegalPageDocumentSchema.safeParse({ version: 1, lastUpdated: 1, sections: [section] }).success).toBe(true);
+    expect(
+      DmcaPolicyDocumentSchema.safeParse({ version: 1, lastUpdated: 1, ...dmcaContent }).success,
+    ).toBe(true);
+    expect(
+      LegalPageDocumentSchema.safeParse({ version: 1, lastUpdated: 1, sections: [section] })
+        .success,
+    ).toBe(true);
   });
 });
 
 describe('callable inputs', () => {
-  it('save draft validates each document\'s content by its own schema', () => {
+  it("save draft validates each document's content by its own schema", () => {
     expect(
       SavePublicDocumentDraftInputSchema.safeParse({
         documentId: TERMS,
@@ -352,8 +393,12 @@ describe('callable inputs', () => {
       }).success,
     ).toBe(true);
     expect(
-      SavePublicDocumentDraftInputSchema.safeParse({ documentId: DMCA, baseVersion: 0, expectedRevision: 2, content: dmcaContent })
-        .success,
+      SavePublicDocumentDraftInputSchema.safeParse({
+        documentId: DMCA,
+        baseVersion: 0,
+        expectedRevision: 2,
+        content: dmcaContent,
+      }).success,
     ).toBe(true);
     // Terms content under the Rules id.
     expect(
@@ -376,14 +421,23 @@ describe('callable inputs', () => {
   });
 
   it('save draft names the working-copy revision the editor opened, 0 for none', () => {
-    const input = { documentId: TERMS, baseVersion: 1, expectedRevision: 4, content: { sections: [section] } };
+    const input = {
+      documentId: TERMS,
+      baseVersion: 1,
+      expectedRevision: 4,
+      content: { sections: [section] },
+    };
     expect(SavePublicDocumentDraftInputSchema.safeParse(input).success).toBe(true);
     const { expectedRevision: _expected, ...withoutRevision } = input;
     expect(SavePublicDocumentDraftInputSchema.safeParse(withoutRevision).success).toBe(false);
-    expect(SavePublicDocumentDraftInputSchema.safeParse({ ...input, expectedRevision: -1 }).success).toBe(false);
+    expect(
+      SavePublicDocumentDraftInputSchema.safeParse({ ...input, expectedRevision: -1 }).success,
+    ).toBe(false);
     const result = { documentId: TERMS, baseVersion: 1, revision: 5, savedAt: 1 };
     expect(SavePublicDocumentDraftResultSchema.safeParse(result).success).toBe(true);
-    expect(SavePublicDocumentDraftResultSchema.safeParse({ ...result, revision: 0 }).success).toBe(false);
+    expect(SavePublicDocumentDraftResultSchema.safeParse({ ...result, revision: 0 }).success).toBe(
+      false,
+    );
   });
 
   it('save draft is strict — no version smuggling, full content only', () => {
@@ -416,24 +470,35 @@ describe('callable inputs', () => {
     };
     expect(PublishPublicDocumentReleaseInputSchema.safeParse(input).success).toBe(true);
     expect(
-      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [terms, { ...terms, expectedRevision: 3 }] })
-        .success,
+      PublishPublicDocumentReleaseInputSchema.safeParse({
+        ...input,
+        drafts: [terms, { ...terms, expectedRevision: 3 }],
+      }).success,
     ).toBe(false);
-    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [] }).success).toBe(false);
+    expect(
+      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [] }).success,
+    ).toBe(false);
     // A publish reviews a saved working copy, so it names a real revision.
     expect(
-      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [{ ...terms, expectedRevision: 0 }] })
-        .success,
+      PublishPublicDocumentReleaseInputSchema.safeParse({
+        ...input,
+        drafts: [{ ...terms, expectedRevision: 0 }],
+      }).success,
     ).toBe(false);
-    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, documentIds: [TERMS] }).success).toBe(false);
-    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, releaseId: 'r1' }).success).toBe(false);
+    expect(
+      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, documentIds: [TERMS] }).success,
+    ).toBe(false);
+    expect(
+      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, releaseId: 'r1' }).success,
+    ).toBe(false);
     const { requireAcceptance: _omit, ...withoutChoice } = input;
     expect(PublishPublicDocumentReleaseInputSchema.safeParse(withoutChoice).success).toBe(false);
   });
 
   it('accept carries only the document/version pairs the prompt showed', () => {
     expect(
-      AcceptPublicDocumentsInputSchema.safeParse({ documents: [{ documentId: TERMS, version: 3 }] }).success,
+      AcceptPublicDocumentsInputSchema.safeParse({ documents: [{ documentId: TERMS, version: 3 }] })
+        .success,
     ).toBe(true);
     expect(AcceptPublicDocumentsInputSchema.safeParse({ documents: [] }).success).toBe(true);
     expect(
@@ -449,27 +514,40 @@ describe('callable inputs', () => {
       AcceptPublicDocumentsInputSchema.safeParse({ documents: [], acceptedLevel: 5 }).success,
     ).toBe(false);
     expect(
-      AcceptPublicDocumentsInputSchema.safeParse({ documents: [{ documentId: TERMS, version: 0 }] }).success,
+      AcceptPublicDocumentsInputSchema.safeParse({ documents: [{ documentId: TERMS, version: 0 }] })
+        .success,
     ).toBe(false);
   });
 
   it('accept answers accepted or refreshRequired', () => {
-    expect(AcceptPublicDocumentsResultSchema.safeParse({ status: 'accepted', acceptedLevel: 2 }).success).toBe(true);
-    expect(AcceptPublicDocumentsResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(true);
+    expect(
+      AcceptPublicDocumentsResultSchema.safeParse({ status: 'accepted', acceptedLevel: 2 }).success,
+    ).toBe(true);
+    expect(AcceptPublicDocumentsResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(
+      true,
+    );
   });
 
   it('history pages newest-first by version', () => {
-    expect(ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS }).success).toBe(true);
-    expect(ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS, beforeVersion: null }).success).toBe(
+    expect(ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS }).success).toBe(
       true,
     );
-    expect(ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS, beforeVersion: 0 }).success).toBe(false);
+    expect(
+      ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS, beforeVersion: null })
+        .success,
+    ).toBe(true);
+    expect(
+      ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS, beforeVersion: 0 })
+        .success,
+    ).toBe(false);
   });
 });
 
 describe('registration carries the versions the signup page showed', () => {
   it('takes the same shown-versions list the acceptance callable takes', () => {
-    expect(RegisterUserInputSchema.shape.publicDocuments).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
+    expect(RegisterUserInputSchema.shape.publicDocuments).toBe(
+      AcceptPublicDocumentsInputSchema.shape.documents,
+    );
   });
 
   const registration = {
@@ -493,8 +571,12 @@ describe('registration carries the versions the signup page showed', () => {
   it('first-admin bootstrap: before any release the page shows nothing, and that matches', () => {
     const shown = changedPublicDocuments(undefined, undefined);
     expect(shown).toEqual([]);
-    expect(RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: shown }).success).toBe(true);
-    expect(samePublicDocumentVersions(shown, changedPublicDocuments(undefined, undefined))).toBe(true);
+    expect(
+      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: shown }).success,
+    ).toBe(true);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(undefined, undefined))).toBe(
+      true,
+    );
   });
 
   it('takes the same list shape as the Accept input — each document once, published versions only', () => {
@@ -508,32 +590,46 @@ describe('registration carries the versions the signup page showed', () => {
       }).success,
     ).toBe(false);
     expect(
-      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [{ documentId: TERMS, version: 0 }] }).success,
+      RegisterUserInputSchema.safeParse({
+        ...registration,
+        publicDocuments: [{ documentId: TERMS, version: 0 }],
+      }).success,
     ).toBe(false);
     expect(
-      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [{ documentId: 'cookiePolicy', version: 1 }] })
-        .success,
+      RegisterUserInputSchema.safeParse({
+        ...registration,
+        publicDocuments: [{ documentId: 'cookiePolicy', version: 1 }],
+      }).success,
     ).toBe(false);
     // The client never names a level.
     expect(
-      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [], acceptedLevel: 1 }).success,
+      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [], acceptedLevel: 1 })
+        .success,
     ).toBe(false);
   });
 
   it('a release racing the signup page is detected by the one comparison rule', () => {
     const first = planPublicDocumentRelease(undefined, [TERMS, RULES], true);
     const shown = changedPublicDocuments(first.block, undefined);
-    expect(samePublicDocumentVersions(shown, changedPublicDocuments(first.block, undefined))).toBe(true);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(first.block, undefined))).toBe(
+      true,
+    );
     const raced = planPublicDocumentRelease(first.block, [TERMS], false);
-    expect(samePublicDocumentVersions(shown, changedPublicDocuments(raced.block, undefined))).toBe(false);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(raced.block, undefined))).toBe(
+      false,
+    );
   });
 
   it('answers registered or refreshRequired — the same refusal arm as Accept', () => {
     expect(RegisterUserResultSchema.safeParse({ status: 'registered' }).success).toBe(true);
     expect(RegisterUserResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(true);
-    expect(AcceptPublicDocumentsResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(true);
+    expect(AcceptPublicDocumentsResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(
+      true,
+    );
     expect(RegisterUserResultSchema.safeParse({ success: true }).success).toBe(false);
-    expect(RegisterUserResultSchema.safeParse({ status: 'accepted', acceptedLevel: 1 }).success).toBe(false);
+    expect(
+      RegisterUserResultSchema.safeParse({ status: 'accepted', acceptedLevel: 1 }).success,
+    ).toBe(false);
   });
 });
 
@@ -559,10 +655,16 @@ describe('audit payloads', () => {
     };
     expect(PublicDocumentsAcceptedAuditPayloadSchema.safeParse(payload).success).toBe(true);
     expect(
-      PublicDocumentsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedVia: 'registration', legalReviewNoticeRevision: null })
-        .success,
+      PublicDocumentsAcceptedAuditPayloadSchema.safeParse({
+        ...payload,
+        acceptedVia: 'registration',
+        legalReviewNoticeRevision: null,
+      }).success,
     ).toBe(true);
-    expect(PublicDocumentsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedVia: 'popup' }).success).toBe(false);
+    expect(
+      PublicDocumentsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedVia: 'popup' })
+        .success,
+    ).toBe(false);
   });
 
   it('social.squareStreetzAgreementsAccepted — the Rules version accepted and the one it replaced (or null)', () => {
@@ -570,19 +672,35 @@ describe('audit payloads', () => {
     expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse(payload).success).toBe(true);
     // The first acceptance replaces nothing; before any Rules release the version accepted is 0.
     expect(
-      SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ acceptedVersion: 0, previousAcceptedVersion: null }).success,
+      SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({
+        acceptedVersion: 0,
+        previousAcceptedVersion: null,
+      }).success,
     ).toBe(true);
     // Both versions are the canonical version-or-none value, never a bare number.
-    expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.shape.acceptedVersion).toBe(PublicDocumentVersionOrNoneSchema);
+    expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.shape.acceptedVersion).toBe(
+      PublicDocumentVersionOrNoneSchema,
+    );
     for (const version of [-1, 1.5, '3', null]) {
-      expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedVersion: version }).success).toBe(false);
+      expect(
+        SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({
+          ...payload,
+          acceptedVersion: version,
+        }).success,
+      ).toBe(false);
     }
     for (const version of [-1, 1.5, '2', undefined]) {
       expect(
-        SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, previousAcceptedVersion: version }).success,
+        SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({
+          ...payload,
+          previousAcceptedVersion: version,
+        }).success,
       ).toBe(false);
     }
-    expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedAt: 1 }).success).toBe(false);
+    expect(
+      SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedAt: 1 })
+        .success,
+    ).toBe(false);
   });
 });
 
@@ -591,18 +709,50 @@ describe('founder-notice receipts on the pledge and Hall-submission paths', () =
 
   it('the checkout and submit inputs carry the checkbox — true when ticked, omitted or null otherwise', () => {
     const checkout = { amount: 500, checkoutAttemptId: RELEASE_ID, ageAttested: true as const };
-    expect(CreateStripeCheckoutSessionInputSchema.safeParse({ ...checkout, legalReviewNoticeAcknowledged: true }).success).toBe(true);
-    expect(CreateStripeCheckoutSessionInputSchema.safeParse({ ...checkout, legalReviewNoticeAcknowledged: null }).success).toBe(true);
+    expect(
+      CreateStripeCheckoutSessionInputSchema.safeParse({
+        ...checkout,
+        legalReviewNoticeAcknowledged: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      CreateStripeCheckoutSessionInputSchema.safeParse({
+        ...checkout,
+        legalReviewNoticeAcknowledged: null,
+      }).success,
+    ).toBe(true);
     expect(CreateStripeCheckoutSessionInputSchema.safeParse(checkout).success).toBe(true);
-    expect(CreateStripeCheckoutSessionInputSchema.safeParse({ ...checkout, legalReviewNoticeAcknowledged: false }).success).toBe(false);
+    expect(
+      CreateStripeCheckoutSessionInputSchema.safeParse({
+        ...checkout,
+        legalReviewNoticeAcknowledged: false,
+      }).success,
+    ).toBe(false);
 
-    const submit = { workProjectId: 'w1', workProjectType: 'Tales', selectedItemIds: ['c1'], depictsRealPeople: false };
-    expect(SubmitForThresholdLibraryReviewInputSchema.safeParse({ ...submit, legalReviewNoticeAcknowledged: true }).success).toBe(true);
-    expect(SubmitForThresholdLibraryReviewInputSchema.safeParse({ ...submit, legalReviewNoticeAcknowledged: 'yes' }).success).toBe(false);
+    const submit = {
+      workProjectId: 'w1',
+      workProjectType: 'Tales',
+      selectedItemIds: ['c1'],
+      depictsRealPeople: false,
+    };
+    expect(
+      SubmitForThresholdLibraryReviewInputSchema.safeParse({
+        ...submit,
+        legalReviewNoticeAcknowledged: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      SubmitForThresholdLibraryReviewInputSchema.safeParse({
+        ...submit,
+        legalReviewNoticeAcknowledged: 'yes',
+      }).success,
+    ).toBe(false);
   });
 
   it('the provider-ref evidence and the threshold item hold the receipt', () => {
-    expect(PledgePaymentProviderRefSchema.shape.legalReviewNotice.safeParse(receipt).success).toBe(true);
+    expect(PledgePaymentProviderRefSchema.shape.legalReviewNotice.safeParse(receipt).success).toBe(
+      true,
+    );
     expect(ThresholdItemSchema.shape.legalReviewNotice.safeParse(receipt).success).toBe(true);
     expect(ThresholdItemSchema.shape.legalReviewNotice.safeParse(undefined).success).toBe(true);
   });
@@ -611,7 +761,12 @@ describe('founder-notice receipts on the pledge and Hall-submission paths', () =
 describe('type surface', () => {
   it('PublicDocumentId is the canonical union', () => {
     expectTypeOf<PublicDocumentId>().toEqualTypeOf<
-      'termsOfService' | 'privacyPolicy' | 'rulesAndAgreements' | 'futurePlans' | 'dmcaPolicy' | 'takeItDownPageCopy'
+      | 'termsOfService'
+      | 'privacyPolicy'
+      | 'rulesAndAgreements'
+      | 'futurePlans'
+      | 'dmcaPolicy'
+      | 'takeItDownPageCopy'
     >();
   });
 });

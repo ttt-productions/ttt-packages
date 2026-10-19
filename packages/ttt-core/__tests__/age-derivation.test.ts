@@ -33,12 +33,21 @@ describe('ageInWholeYears', () => {
 
 describe('deriveAgeBracket', () => {
   it('is adult from the 18th birthday, teen the day before', () => {
-    expect(deriveAgeBracket({ year: 2012, month: 6, day: 15 }, asOf)).toEqual({ kind: 'eligible', bracket: 'adult' });
-    expect(deriveAgeBracket({ year: 2012, month: 6, day: 16 }, asOf)).toEqual({ kind: 'eligible', bracket: 'teen' });
+    expect(deriveAgeBracket({ year: 2012, month: 6, day: 15 }, asOf)).toEqual({
+      kind: 'eligible',
+      bracket: 'adult',
+    });
+    expect(deriveAgeBracket({ year: 2012, month: 6, day: 16 }, asOf)).toEqual({
+      kind: 'eligible',
+      bracket: 'teen',
+    });
   });
 
   it('is teen from the 13th birthday, under 13 the day before', () => {
-    expect(deriveAgeBracket({ year: 2017, month: 6, day: 15 }, asOf)).toEqual({ kind: 'eligible', bracket: 'teen' });
+    expect(deriveAgeBracket({ year: 2017, month: 6, day: 15 }, asOf)).toEqual({
+      kind: 'eligible',
+      bracket: 'teen',
+    });
     expect(deriveAgeBracket({ year: 2017, month: 6, day: 16 }, asOf)).toEqual({ kind: 'under13' });
   });
 
@@ -53,8 +62,14 @@ describe('deriveAgeBracket', () => {
   it('handles a leap-day birthday: 18 only once 1 March has come in a common year', () => {
     const feb28 = new Date(Date.UTC(2030, 1, 28));
     const mar1 = new Date(Date.UTC(2030, 2, 1));
-    expect(deriveAgeBracket({ year: 2012, month: 2, day: 29 }, feb28)).toEqual({ kind: 'eligible', bracket: 'teen' });
-    expect(deriveAgeBracket({ year: 2012, month: 2, day: 29 }, mar1)).toEqual({ kind: 'eligible', bracket: 'adult' });
+    expect(deriveAgeBracket({ year: 2012, month: 2, day: 29 }, feb28)).toEqual({
+      kind: 'eligible',
+      bracket: 'teen',
+    });
+    expect(deriveAgeBracket({ year: 2012, month: 2, day: 29 }, mar1)).toEqual({
+      kind: 'eligible',
+      bracket: 'adult',
+    });
   });
 
   it('refuses a date that is not a real date of birth', () => {
@@ -97,10 +112,16 @@ describe('DateOfBirthSchema', () => {
 
 describe('DateOfBirthShapeSchema', () => {
   it('has the same fields as DateOfBirthSchema and no bounds, so an out-of-range date reaches the derivation', () => {
-    expect(Object.keys(DateOfBirthShapeSchema.shape).sort()).toEqual(Object.keys(DateOfBirthSchema.shape).sort());
+    expect(Object.keys(DateOfBirthShapeSchema.shape).sort()).toEqual(
+      Object.keys(DateOfBirthSchema.shape).sort(),
+    );
     expect(DateOfBirthShapeSchema.safeParse({ year: 2000, month: 13, day: 40 }).success).toBe(true);
     expect(DateOfBirthShapeSchema.safeParse({ year: 2000.5, month: 1, day: 1 }).success).toBe(true);
-    expect(DateOfBirthShapeSchema.safeParse({ year: '2000', month: 1, day: 1 }).success).toBe(false);
-    expect(DateOfBirthShapeSchema.safeParse({ year: 2000, month: 1, day: 1, extra: 1 }).success).toBe(false);
+    expect(DateOfBirthShapeSchema.safeParse({ year: '2000', month: 1, day: 1 }).success).toBe(
+      false,
+    );
+    expect(
+      DateOfBirthShapeSchema.safeParse({ year: 2000, month: 1, day: 1, extra: 1 }).success,
+    ).toBe(false);
   });
 });

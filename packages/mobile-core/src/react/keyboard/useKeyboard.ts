@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { hasVisualViewport, isBrowser } from "../../env.js";
-import type { KeyboardState } from "../../types.js";
+import { useEffect, useMemo, useState } from 'react';
+import { hasVisualViewport, isBrowser } from '../../env.js';
+import type { KeyboardState } from '../../types.js';
 
 /**
  * Best effort keyboard detection:
@@ -11,7 +11,7 @@ export function useKeyboard(): KeyboardState {
   const [baseline, setBaseline] = useState<number>(() => (isBrowser ? window.innerHeight : 0));
   const [height, setHeight] = useState(0);
   const [open, setOpen] = useState(false);
-  const [source, setSource] = useState<KeyboardState["source"]>("fallback");
+  const [source, setSource] = useState<KeyboardState['source']>('fallback');
 
   useEffect(() => {
     if (!isBrowser) return;
@@ -28,7 +28,7 @@ export function useKeyboard(): KeyboardState {
       const vvH = window.visualViewport?.height ?? window.innerHeight;
       const delta = Math.max(0, Math.round(baseline - vvH));
       const isOpen = delta > 80; // threshold
-      setSource("visualViewport");
+      setSource('visualViewport');
       setHeight(isOpen ? delta : 0);
       setOpen(isOpen);
       if (!isOpen) setBaseIfNeeded();
@@ -48,25 +48,25 @@ export function useKeyboard(): KeyboardState {
     };
 
     if (hasVisualViewport) {
-      window.visualViewport!.addEventListener("resize", onVV, { passive: true });
-      window.visualViewport!.addEventListener("scroll", onVV, { passive: true });
+      window.visualViewport!.addEventListener('resize', onVV, { passive: true });
+      window.visualViewport!.addEventListener('scroll', onVV, { passive: true });
       onVV();
     }
 
-    window.addEventListener("focusin", onFocusIn, { passive: true } as any);
-    window.addEventListener("focusout", onFocusOut, { passive: true } as any);
-    window.addEventListener("orientationchange", setBaseIfNeeded, { passive: true });
+    window.addEventListener('focusin', onFocusIn, { passive: true } as any);
+    window.addEventListener('focusout', onFocusOut, { passive: true } as any);
+    window.addEventListener('orientationchange', setBaseIfNeeded, { passive: true });
 
     setBaseIfNeeded();
 
     return () => {
       if (hasVisualViewport) {
-        window.visualViewport!.removeEventListener("resize", onVV);
-        window.visualViewport!.removeEventListener("scroll", onVV);
+        window.visualViewport!.removeEventListener('resize', onVV);
+        window.visualViewport!.removeEventListener('scroll', onVV);
       }
-      window.removeEventListener("focusin", onFocusIn as any);
-      window.removeEventListener("focusout", onFocusOut as any);
-      window.removeEventListener("orientationchange", setBaseIfNeeded);
+      window.removeEventListener('focusin', onFocusIn as any);
+      window.removeEventListener('focusout', onFocusOut as any);
+      window.removeEventListener('orientationchange', setBaseIfNeeded);
     };
   }, [baseline]);
 

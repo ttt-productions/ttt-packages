@@ -19,21 +19,41 @@ const themes: ThemeOption[] = [
 function makeProps() {
   return {
     themes,
-    renderTrigger: ({ srLabel, disabled }: { activeIcon: React.ReactNode; srLabel: string; disabled: boolean }) => (
-      <button disabled={disabled} aria-label={srLabel}>toggle</button>
+    renderTrigger: ({
+      srLabel,
+      disabled,
+    }: {
+      activeIcon: React.ReactNode;
+      srLabel: string;
+      disabled: boolean;
+    }) => (
+      <button disabled={disabled} aria-label={srLabel}>
+        toggle
+      </button>
     ),
-    renderMenu: ({ trigger, children }: { trigger: React.ReactNode; children: React.ReactNode }) => (
+    renderMenu: ({
+      trigger,
+      children,
+    }: {
+      trigger: React.ReactNode;
+      children: React.ReactNode;
+    }) => (
       <>
         {trigger}
         <ul>{children}</ul>
       </>
     ),
-    renderItem: ({ option, isActive, onSelect }: { option: ThemeOption; isActive: boolean; onSelect: () => void }) => (
+    renderItem: ({
+      option,
+      isActive,
+      onSelect,
+    }: {
+      option: ThemeOption;
+      isActive: boolean;
+      onSelect: () => void;
+    }) => (
       <li key={option.value}>
-        <button
-          onClick={onSelect}
-          data-active={isActive ? 'true' : 'false'}
-        >
+        <button onClick={onSelect} data-active={isActive ? 'true' : 'false'}>
           {option.label}
         </button>
       </li>
@@ -48,9 +68,20 @@ beforeEach(() => {
 
 describe('ThemeSwitcher', () => {
   it('calls renderTrigger with the srLabel and a disabled flag', () => {
-    const renderTrigger = vi.fn(({ srLabel, disabled }: { activeIcon: React.ReactNode; srLabel: string; disabled: boolean }) => (
-      <button disabled={disabled} aria-label={srLabel}>toggle</button>
-    ));
+    const renderTrigger = vi.fn(
+      ({
+        srLabel,
+        disabled,
+      }: {
+        activeIcon: React.ReactNode;
+        srLabel: string;
+        disabled: boolean;
+      }) => (
+        <button disabled={disabled} aria-label={srLabel}>
+          toggle
+        </button>
+      ),
+    );
     render(<ThemeSwitcher {...makeProps()} renderTrigger={renderTrigger} />);
     // renderTrigger is called at least once (pre-mount with disabled=true)
     expect(renderTrigger).toHaveBeenCalledWith(
@@ -82,9 +113,11 @@ describe('ThemeSwitcher', () => {
   });
 
   it('passes custom srLabel to renderTrigger', () => {
-    const renderTrigger = vi.fn(({ srLabel }: { activeIcon: React.ReactNode; srLabel: string; disabled: boolean }) => (
-      <button aria-label={srLabel}>toggle</button>
-    ));
+    const renderTrigger = vi.fn(
+      ({ srLabel }: { activeIcon: React.ReactNode; srLabel: string; disabled: boolean }) => (
+        <button aria-label={srLabel}>toggle</button>
+      ),
+    );
     render(<ThemeSwitcher {...makeProps()} renderTrigger={renderTrigger} srLabel="Pick a theme" />);
     expect(renderTrigger).toHaveBeenCalledWith(
       expect.objectContaining({ srLabel: 'Pick a theme' }),

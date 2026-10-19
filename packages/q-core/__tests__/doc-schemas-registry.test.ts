@@ -29,7 +29,9 @@ const pending = new Set<string>(PENDING_COLLECTIONS);
 
 describe('Firestore collection schema registry', () => {
   it('binds or explicitly defers every known collection (no silent gaps)', () => {
-    const uncovered = allCollectionNames.filter((name) => !boundSegments.has(name) && !pending.has(name));
+    const uncovered = allCollectionNames.filter(
+      (name) => !boundSegments.has(name) && !pending.has(name),
+    );
     expect(uncovered).toEqual([]);
   });
 

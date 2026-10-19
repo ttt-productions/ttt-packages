@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // A whole-row action that can still hold controls of its own (FRONTEND-001, FRONTEND-203). A row can
 // never be a single <button> or <a>: a control inside it would be nested in the row's target. So the
@@ -6,19 +6,19 @@
 // letting clicks through everywhere but on its own controls. The target comes first in tab order,
 // then any control inside the row.
 
-import * as React from "react";
-import { cn } from "../../lib/utils.js";
+import * as React from 'react';
+import { cn } from '../../lib/utils.js';
 
 const TARGET_CLASS =
-  "peer absolute inset-0 w-full cursor-pointer transition-colors duration-[var(--motion-fast)] ease-[var(--motion-ease)] group-hover/action-row:bg-accent disabled:cursor-default disabled:group-hover/action-row:bg-transparent";
+  'peer absolute inset-0 w-full cursor-pointer transition-colors duration-[var(--motion-fast)] ease-[var(--motion-ease)] group-hover/action-row:bg-accent disabled:cursor-default disabled:group-hover/action-row:bg-transparent';
 
 const CONTENT_CLASS =
-  "relative pointer-events-none peer-disabled:opacity-70 [&_:is(a,button,input,select,textarea,[role=button])]:pointer-events-auto";
+  'relative pointer-events-none peer-disabled:opacity-70 [&_:is(a,button,input,select,textarea,[role=button])]:pointer-events-auto';
 
 /** What the app's link element must carry to be a row's link target. */
 export interface ActionRowLinkTargetProps {
   className: string;
-  "aria-labelledby": string;
+  'aria-labelledby': string;
 }
 
 interface ActionRowCommonProps {
@@ -53,7 +53,7 @@ export function ActionRow(props: ActionRowProps) {
   return (
     <div className="ui-action-row group/action-row relative">
       {props.renderLink ? (
-        props.renderLink({ className: TARGET_CLASS, "aria-labelledby": contentId })
+        props.renderLink({ className: TARGET_CLASS, 'aria-labelledby': contentId })
       ) : (
         <button
           type="button"

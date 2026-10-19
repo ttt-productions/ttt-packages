@@ -18,7 +18,7 @@ import {
 
 /** Human display name for every reportable surface (report dialog + admin views). */
 export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
-  'username': 'Username',
+  username: 'Username',
   'craft-skill': 'Craft Skill',
   'commission-listing': 'Commission Listing',
   'commission-proposal': 'Commission Proposal',
@@ -29,7 +29,7 @@ export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
   'conversation-file': 'Conversation File',
   'hall-library-item': 'Hall Item',
   'hall-library-sub-item': 'Hall Sub-Item',
-  'audition': 'Audition',
+  audition: 'Audition',
   'audition-entry': 'Audition Entry',
   'work-project': 'Work Project',
   'work-asset': 'Work File',
@@ -47,12 +47,12 @@ export const REPORT_REASON_SCORES: Record<ReportReason, number> = {
   'Violence or Threats': 500,
   'Sexual Content': 400,
   'Hate Speech': 400,
-  'Harassment': 300,
-  'Impersonation': 200,
+  Harassment: 300,
+  Impersonation: 200,
   'Intellectual Property': 150,
-  'Spam': 100,
+  Spam: 100,
   'Not related to on-site entertainment': 75,
-  'Other': 50,
+  Other: 50,
 };
 
 /** Multiplier for each canonical reportable item type. High-reach public surfaces
@@ -64,13 +64,13 @@ export const REPORT_ITEM_TYPE_MULTIPLIERS: Record<ReportableItemType, number> = 
   'square-streetz-post': 1.5,
   'hall-library-item': 1.3,
   'hall-library-sub-item': 1.3,
-  'audition': 1.2,
+  audition: 1.2,
   'audition-entry': 1.2,
   'commission-listing': 1.1,
   'work-project': 1.1,
   'work-realm': 1.1,
   'commission-proposal': 1.0,
-  'username': 1.0,
+  username: 1.0,
   'craft-skill': 1.0,
   'profile-picture': 1.0,
   'work-asset': 1.0,
@@ -90,8 +90,9 @@ export const REPORT_PRIORITY_BONUSES = {
  * everything EXCEPT 'Nonconsensual Intimate Image (NCII)', which for a logged-in
  * user is an app-owned AdditionalReportAction routing to the take-it-down form —
  * a true 48h statutory request, not an ordinary report (§1.1). */
-export const ORDINARY_REPORT_REASONS: readonly ReportReason[] =
-  ReportReasonSchema.options.filter((r) => r !== 'Nonconsensual Intimate Image (NCII)');
+export const ORDINARY_REPORT_REASONS: readonly ReportReason[] = ReportReasonSchema.options.filter(
+  (r) => r !== 'Nonconsensual Intimate Image (NCII)',
+);
 
 /** One admin task-queue definition (display copy + checkout/work-later windows).
  * The client config consumes all four fields; the server config consumes the
@@ -170,7 +171,8 @@ export const REPORT_TASK_QUEUES: Record<string, ReportTaskQueueDefinition> = {
   },
   pledgeDisputeOpened: {
     displayName: 'Pledge Disputes',
-    description: 'Chargeback disputes opened against a pledge, surfaced by the refund/dispute webhook',
+    description:
+      'Chargeback disputes opened against a pledge, surfaced by the refund/dispute webhook',
     defaultCheckoutMinutes: 60,
     workLaterMinutes: 1440,
     maxWorkLaterMinutes: 2880,

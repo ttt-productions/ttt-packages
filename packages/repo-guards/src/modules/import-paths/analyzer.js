@@ -36,7 +36,16 @@ export const IMPORT_PATH_VIOLATION_KINDS = Object.freeze([
   'stale-exclusion',
 ]);
 
-const DEFAULT_CODE_EXTENSIONS = Object.freeze(['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']);
+const DEFAULT_CODE_EXTENSIONS = Object.freeze([
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.cts',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+]);
 // TypeScript's ESM convention writes the emitted extension in the specifier: `./x.js` names `x.ts`.
 const EMITTED_TO_SOURCE = Object.freeze({
   '.js': ['.ts', '.tsx'],
@@ -51,7 +60,8 @@ const extensionOf = (p) => {
   return dot <= 0 ? '' : base.slice(dot);
 };
 
-const defaultIsTestFile = (p) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(p) || p.split('/').includes('__tests__');
+const defaultIsTestFile = (p) =>
+  /\.(test|spec)\.[cm]?[jt]sx?$/.test(p) || p.split('/').includes('__tests__');
 
 /**
  * Everything the guard knows about one app.
@@ -75,7 +85,10 @@ export function createImportPathProfile({
 } = {}) {
   const problems = [];
   reviewedProblems(exceptions, 'exceptions', problems, { key: 'file' });
-  if (problems.length) throw new Error(`repo-guards: the import-path exceptions are malformed: ${problems.join('; ')}`);
+  if (problems.length)
+    throw new Error(
+      `repo-guards: the import-path exceptions are malformed: ${problems.join('; ')}`,
+    );
   for (const [prefix, target] of Object.entries(importAliases)) {
     if (!prefix || typeof target !== 'string') {
       throw new Error(`repo-guards: alias ${JSON.stringify(prefix)} needs a target folder`);
@@ -98,9 +111,11 @@ function scriptKindOf(path) {
 }
 
 const hasExportModifier = (node) =>
-  ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  ts.canHaveModifiers(node) &&
+  (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 const hasDefaultModifier = (node) =>
-  ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.DefaultKeyword);
+  ts.canHaveModifiers(node) &&
+  (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.DefaultKeyword);
 
 /** The names a dynamic import or `require` reads, when the code says; `'*'` when it does not. */
 function namesReadFromCall(call) {
@@ -108,7 +123,11 @@ function namesReadFromCall(call) {
   if (ts.isAwaitExpression(node.parent)) node = node.parent;
   while (ts.isParenthesizedExpression(node.parent)) node = node.parent;
   const parent = node.parent;
-  if (ts.isVariableDeclaration(parent) && parent.initializer === node && ts.isObjectBindingPattern(parent.name)) {
+  if (
+    ts.isVariableDeclaration(parent) &&
+    parent.initializer === node &&
+    ts.isObjectBindingPattern(parent.name)
+  ) {
     const names = [];
     for (const el of parent.name.elements) {
       if (el.dotDotDotToken) return '*';
@@ -118,7 +137,8 @@ function namesReadFromCall(call) {
     }
     return names;
   }
-  if (ts.isPropertyAccessExpression(parent) && parent.expression === node) return [parent.name.text];
+  if (ts.isPropertyAccessExpression(parent) && parent.expression === node)
+    return [parent.name.text];
   return '*';
 }
 
@@ -131,7 +151,8 @@ const isClassExtends = (node) =>
 function isNameNotReference(node) {
   const p = node.parent;
   if (!p) return false;
-  if (ts.isPropertyAccessExpression(p) || ts.isQualifiedName(p)) return p.name === node || p.right === node;
+  if (ts.isPropertyAccessExpression(p) || ts.isQualifiedName(p))
+    return p.name === node || p.right === node;
   return (
     (ts.isPropertyAssignment(p) ||
       ts.isPropertyDeclaration(p) ||
@@ -161,8 +182,15 @@ function valueReferencedNames(sf) {
     }
     if (ts.isTypeNode(node)) return;
     if (ts.isExportDeclaration(node)) {
-      if (node.isTypeOnly || node.moduleSpecifier || !node.exportClause || !ts.isNamedExports(node.exportClause)) return;
-      for (const el of node.exportClause.elements) if (!el.isTypeOnly) used.add((el.propertyName ?? el.name).text);
+      if (
+        node.isTypeOnly ||
+        node.moduleSpecifier ||
+        !node.exportClause ||
+        !ts.isNamedExports(node.exportClause)
+      )
+        return;
+      for (const el of node.exportClause.elements)
+        if (!el.isTypeOnly) used.add((el.propertyName ?? el.name).text);
       return;
     }
     if (ts.isIdentifier(node)) {
@@ -185,7 +213,8 @@ function valueReferencedNames(sf) {
  */
 export function parseModule(path, text, sourceFile = null) {
   // A module the reader already parsed is never parsed a second time.
-  const sf = sourceFile ?? ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKindOf(path));
+  const sf =
+    sourceFile ?? ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKindOf(path));
   /** @type {Array<{ spec: string, kind: 'static' | 'dynamic' | 'mock' | 'export-from', names: string[] | '*', typeOnly: boolean }>} */
   const imports = [];
   let valueNames = null;
@@ -224,7 +253,11 @@ export function parseModule(path, text, sourceFile = null) {
     }
   }
 
-  const exportFrom = new Map(sites.filter((site) => site.kind === 'export' && site.topLevel).map((site) => [site.node, site]));
+  const exportFrom = new Map(
+    sites
+      .filter((site) => site.kind === 'export' && site.topLevel)
+      .map((site) => [site.node, site]),
+  );
   for (const stmt of sf.statements) {
     if (ts.isExportDeclaration(stmt)) {
       const site = exportFrom.get(stmt);
@@ -232,23 +265,41 @@ export function parseModule(path, text, sourceFile = null) {
       if (site) {
         const { spec } = site;
         if (site.star) {
-          reExports.push(site.namespace
-            ? { spec, name: site.namespace, imported: '*', form: 'namespace' }
-            : { spec, name: '*', imported: '*', form: 'star' });
+          reExports.push(
+            site.namespace
+              ? { spec, name: site.namespace, imported: '*', form: 'namespace' }
+              : { spec, name: '*', imported: '*', form: 'star' },
+          );
           imports.push({ spec, kind: 'export-from', names: '*', typeOnly: site.typeOnly });
         } else {
           for (const { imported, local } of site.named) {
-            reExports.push({ spec, name: local, imported, form: imported === local ? 'named' : 'aliased' });
+            reExports.push({
+              spec,
+              name: local,
+              imported,
+              form: imported === local ? 'named' : 'aliased',
+            });
           }
-          const typeOnly = site.typeOnly || (site.named.length > 0 && site.named.every((n) => n.typeOnly));
-          imports.push({ spec, kind: 'export-from', names: site.named.map((n) => n.imported), typeOnly });
+          const typeOnly =
+            site.typeOnly || (site.named.length > 0 && site.named.every((n) => n.typeOnly));
+          imports.push({
+            spec,
+            kind: 'export-from',
+            names: site.named.map((n) => n.imported),
+            typeOnly,
+          });
         }
       } else if (clause && ts.isNamedExports(clause)) {
         for (const el of clause.elements) {
           const local = (el.propertyName ?? el.name).text;
           const binding = importedBindings.get(local);
           if (binding) {
-            reExports.push({ spec: binding.spec, name: el.name.text, imported: binding.imported, form: 'two-statement' });
+            reExports.push({
+              spec: binding.spec,
+              name: el.name.text,
+              imported: binding.imported,
+              form: 'two-statement',
+            });
           } else {
             ownExports.add(el.name.text);
           }
@@ -257,7 +308,13 @@ export function parseModule(path, text, sourceFile = null) {
     } else if (ts.isExportAssignment(stmt) && !stmt.isExportEquals) {
       const expr = stmt.expression;
       const binding = ts.isIdentifier(expr) ? importedBindings.get(expr.text) : undefined;
-      if (binding) reExports.push({ spec: binding.spec, name: 'default', imported: binding.imported, form: 'two-statement' });
+      if (binding)
+        reExports.push({
+          spec: binding.spec,
+          name: 'default',
+          imported: binding.imported,
+          form: 'two-statement',
+        });
       else ownExports.add('default');
     } else if (hasExportModifier(stmt)) {
       if (ts.isVariableStatement(stmt)) {
@@ -275,11 +332,18 @@ export function parseModule(path, text, sourceFile = null) {
   }
 
   for (const { kind, node, spec } of sites) {
-    if (kind === 'dynamic' || kind === 'require') imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node), typeOnly: false });
+    if (kind === 'dynamic' || kind === 'require')
+      imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node), typeOnly: false });
     else if (kind === 'mock') imports.push({ spec, kind: 'mock', names: '*', typeOnly: false });
     else if (kind === 'importType') {
       const q = node.qualifier;
-      const first = q ? (ts.isIdentifier(q) ? q.text : q.left && ts.isIdentifier(q.left) ? q.left.text : null) : null;
+      const first = q
+        ? ts.isIdentifier(q)
+          ? q.text
+          : q.left && ts.isIdentifier(q.left)
+            ? q.left.text
+            : null
+        : null;
       imports.push({ spec, kind: 'static', names: first ? [first] : '*', typeOnly: true });
     }
   }
@@ -290,7 +354,9 @@ export function parseModule(path, text, sourceFile = null) {
 function isIndexFile(path, profile) {
   const base = path.slice(path.lastIndexOf('/') + 1);
   const ext = extensionOf(base);
-  return base.slice(0, base.length - ext.length) === 'index' && profile.codeExtensions.includes(ext);
+  return (
+    base.slice(0, base.length - ext.length) === 'index' && profile.codeExtensions.includes(ext)
+  );
 }
 
 /** Under a folder, the repository root (`''`) holding everything. */
@@ -306,15 +372,26 @@ const within = (path, dir) => dir === '' || isUnder(path, dir);
  */
 export function analyzeImportPaths({ files, roots, profile }) {
   if (!profile) throw new Error('repo-guards: analyzeImportPaths needs a profile');
-  if (!Array.isArray(roots) || roots.length === 0) throw new Error('repo-guards: analyzeImportPaths needs its roots');
+  if (!Array.isArray(roots) || roots.length === 0)
+    throw new Error('repo-guards: analyzeImportPaths needs its roots');
   const model = buildModel(files, roots, profile);
   const violations = [];
   const add = (kind, file, detail) => violations.push({ kind, file, detail });
 
   for (const exception of profile.exceptions) {
     const mod = model.modules.get(exception.file);
-    if (!mod) add('stale-exception', exception.file, 'the exception names a module that is not in the analyzed trees');
-    else if (mod.parsed.reExports.length === 0) add('stale-exception', exception.file, 'the exception names a module that no longer re-exports anything');
+    if (!mod)
+      add(
+        'stale-exception',
+        exception.file,
+        'the exception names a module that is not in the analyzed trees',
+      );
+    else if (mod.parsed.reExports.length === 0)
+      add(
+        'stale-exception',
+        exception.file,
+        'the exception names a module that no longer re-exports anything',
+      );
   }
 
   for (const [path, mod] of model.modules) {
@@ -325,11 +402,18 @@ export function analyzeImportPaths({ files, roots, profile }) {
       const target = model.resolve(path, re.spec);
       if (target.kind === 'unresolved') continue; // reported once, on the import edge below
       if (exception) continue;
-      const shown = re.form === 'star' ? `* from '${re.spec}'` : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
+      const shown =
+        re.form === 'star'
+          ? `* from '${re.spec}'`
+          : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
       if (!index) {
         add('reexport-outside-index', path, `${re.form} re-export of ${shown}`);
       } else if (target.kind !== 'file' || !within(target.path, dirnameOf(path))) {
-        add('index-forwards-outside-folder', path, `forwards ${shown}, which is outside ${dirnameOf(path) || 'the repo root'}/`);
+        add(
+          'index-forwards-outside-folder',
+          path,
+          `forwards ${shown}, which is outside ${dirnameOf(path) || 'the repo root'}/`,
+        );
       }
     }
 
@@ -337,14 +421,22 @@ export function analyzeImportPaths({ files, roots, profile }) {
     for (const edge of mod.parsed.imports) {
       const target = model.resolve(path, edge.spec);
       if (target.kind === 'unresolved') {
-        add('unresolved-import', path, `'${edge.spec}' names no module under the analyzed trees (looked for ${target.base})`);
+        add(
+          'unresolved-import',
+          path,
+          `'${edge.spec}' names no module under the analyzed trees (looked for ${target.base})`,
+        );
         continue;
       }
       if (target.kind !== 'file' || target.path === path) continue;
 
       const own = model.ownIndexCrossing(path, target.path);
       if (own) {
-        add('import-through-own-index', path, `imports '${edge.spec}', the entry point of ${own}/ which contains it — import the sibling module directly`);
+        add(
+          'import-through-own-index',
+          path,
+          `imports '${edge.spec}', the entry point of ${own}/ which contains it — import the sibling module directly`,
+        );
         continue;
       }
       if (edge.kind === 'mock' && test) continue;
@@ -354,12 +446,22 @@ export function analyzeImportPaths({ files, roots, profile }) {
       const crossed = model.indexesCrossed(path, target.path);
       if (!crossed.length) continue;
       const outer = crossed[crossed.length - 1];
-      if (test && !crossed.some((indexPath) => model.forwardsFrom(indexPath, target.path, edge.names))) continue;
-      add('import-past-index', path, `imports '${edge.spec}' past ${outer} — import it through that entry point`);
+      if (
+        test &&
+        !crossed.some((indexPath) => model.forwardsFrom(indexPath, target.path, edge.names))
+      )
+        continue;
+      add(
+        'import-past-index',
+        path,
+        `imports '${edge.spec}' past ${outer} — import it through that entry point`,
+      );
     }
   }
 
-  violations.sort((a, b) => (a.file === b.file ? (a.detail < b.detail ? -1 : 1) : a.file < b.file ? -1 : 1));
+  violations.sort((a, b) =>
+    a.file === b.file ? (a.detail < b.detail ? -1 : 1) : a.file < b.file ? -1 : 1,
+  );
   return { violations, stats: { modules: model.modules.size, indexes: model.indexDirs.size } };
 }
 
@@ -406,7 +508,8 @@ const BUILT_EXTENSION = Object.freeze({
   '.cjs': '.cjs',
 });
 
-const isRelative = (spec) => spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../');
+const isRelative = (spec) =>
+  spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../');
 
 /** The specifier that names `targetPath` by its built file, written the way `spec` reaches it. */
 function specifierWithExtension(spec, targetPath) {
@@ -416,7 +519,8 @@ function specifierWithExtension(spec, targetPath) {
   const trimmed = spec.replace(/\/$/, '');
   const specBase = trimmed.slice(trimmed.lastIndexOf('/') + 1);
   // A specifier naming a folder reaches its index; one naming a file carries the file's stem.
-  if (stem === 'index' && specBase !== 'index' && extensionOf(specBase) === '') return `${trimmed}/index${built}`;
+  if (stem === 'index' && specBase !== 'index' && extensionOf(specBase) === '')
+    return `${trimmed}/index${built}`;
   const specExt = extensionOf(specBase);
   return `${specExt ? trimmed.slice(0, -specExt.length) : trimmed}${built}`;
 }
@@ -460,57 +564,99 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
     const indexFile = packageIndex(path);
     const entryIndex = indexFile && entries.has(path);
     if (indexFile && !entryIndex) {
-      add('non-entry-index', path, 'an index that is not a package entry — delete it and import the files it forwarded directly');
+      add(
+        'non-entry-index',
+        path,
+        'an index that is not a package entry — delete it and import the files it forwarded directly',
+      );
     }
     if (entryIndex && mod.parsed.ownExports.size) {
       const names = [...mod.parsed.ownExports].sort().join(', ');
-      add('index-declares', path, `declares ${names} — an index only forwards; move each definition into a named file and forward that file`);
+      add(
+        'index-declares',
+        path,
+        `declares ${names} — an index only forwards; move each definition into a named file and forward that file`,
+      );
     }
 
     const forwardedSpecs = new Set();
     for (const re of mod.parsed.reExports) {
       forwardedSpecs.add(re.spec);
-      const shown = re.form === 'star' ? `* from '${re.spec}'` : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
+      const shown =
+        re.form === 'star'
+          ? `* from '${re.spec}'`
+          : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
       if (!entryIndex) {
         // A non-entry index is reported once, as itself: deleting it removes its forwards too.
-        if (!indexFile) add('reexport-outside-entry', path, `${re.form} re-export of ${shown} — only an entry index re-exports`);
+        if (!indexFile)
+          add(
+            'reexport-outside-entry',
+            path,
+            `${re.form} re-export of ${shown} — only an entry index re-exports`,
+          );
         continue;
       }
       const target = model.resolve(path, re.spec);
       if (target.kind === 'unresolved') continue; // reported once, on the import edge below
       if (target.kind !== 'file' || !within(target.path, dirnameOf(path))) {
-        add('entry-forwards-outside-folder', path, `forwards ${shown}, which is outside ${dirnameOf(path)}/`);
+        add(
+          'entry-forwards-outside-folder',
+          path,
+          `forwards ${shown}, which is outside ${dirnameOf(path)}/`,
+        );
       } else if (packageIndex(target.path)) {
-        add('entry-forwards-index', path, `forwards ${shown}, an index — name the file that defines it`);
+        add(
+          'entry-forwards-index',
+          path,
+          `forwards ${shown}, an index — name the file that defines it`,
+        );
       }
     }
 
     const entrySurfaceTest = profile.isTestFile(path) && ENTRY_SURFACE_TEST.test(path);
     for (const edge of mod.parsed.imports) {
       if (ownName(edge.spec)) {
-        add('import-own-package-name', path, `imports '${edge.spec}', the package's own name — import the file that defines each name`);
+        add(
+          'import-own-package-name',
+          path,
+          `imports '${edge.spec}', the package's own name — import the file that defines each name`,
+        );
         continue;
       }
       const target = model.resolve(path, edge.spec);
       if (target.kind === 'unresolved') {
-        add('unresolved-import', path, `'${edge.spec}' names no module in the package (looked for ${target.base})`);
+        add(
+          'unresolved-import',
+          path,
+          `'${edge.spec}' names no module in the package (looked for ${target.base})`,
+        );
         continue;
       }
       if (target.kind === 'file' && isRelative(edge.spec)) {
         const named = specifierWithExtension(edge.spec, target.path);
         if (named !== edge.spec) {
-          add('relative-import-without-extension', path, `imports '${edge.spec}' — a relative import names its file with its built extension: '${named}'`);
+          add(
+            'relative-import-without-extension',
+            path,
+            `imports '${edge.spec}' — a relative import names its file with its built extension: '${named}'`,
+          );
         }
       }
       if (target.kind !== 'file' || target.path === path || !packageIndex(target.path)) continue;
       // A forward is judged as a re-export above.
       if (edge.kind === 'export-from' || (entryIndex && forwardedSpecs.has(edge.spec))) continue;
       if (entrySurfaceTest && entries.has(target.path)) continue;
-      add('import-through-index', path, `imports '${edge.spec}', an index — import the file that defines each name`);
+      add(
+        'import-through-index',
+        path,
+        `imports '${edge.spec}', an index — import the file that defines each name`,
+      );
     }
   }
 
-  violations.sort((a, b) => (a.file === b.file ? (a.detail < b.detail ? -1 : 1) : a.file < b.file ? -1 : 1));
+  violations.sort((a, b) =>
+    a.file === b.file ? (a.detail < b.detail ? -1 : 1) : a.file < b.file ? -1 : 1,
+  );
   return { violations };
 }
 
@@ -580,7 +726,8 @@ export function findImportCycles({ files, roots, profile }) {
           onStack.delete(member);
           group.push(member);
         } while (member !== frame.node);
-        if (group.length > 1 || (edges.get(frame.node) ?? []).includes(frame.node)) groups.push(group.sort());
+        if (group.length > 1 || (edges.get(frame.node) ?? []).includes(frame.node))
+          groups.push(group.sort());
       }
     }
   }
@@ -618,7 +765,12 @@ function buildModel(files, roots, profile) {
   const modules = new Map();
   // A module's entry is its text, or the reader's view of it ({ text, sourceFile }).
   for (const [path, entry] of files) {
-    modules.set(path, { parsed: typeof entry === 'string' ? parseModule(path, entry) : parseModule(path, entry.text, entry.sourceFile) });
+    modules.set(path, {
+      parsed:
+        typeof entry === 'string'
+          ? parseModule(path, entry)
+          : parseModule(path, entry.text, entry.sourceFile),
+    });
   }
   const exceptionFiles = new Set(profile.exceptions.map((e) => e.file));
   /** folder → its index module (exceptions are not folder entry points). */
@@ -626,7 +778,10 @@ function buildModel(files, roots, profile) {
   for (const path of modules.keys()) {
     if (isIndexFile(path, profile) && !exceptionFiles.has(path)) {
       const dir = dirnameOf(path);
-      if (indexDirs.has(dir)) throw new Error(`repo-guards: ${dir}/ has two index modules (${indexDirs.get(dir)}, ${path})`);
+      if (indexDirs.has(dir))
+        throw new Error(
+          `repo-guards: ${dir}/ has two index modules (${indexDirs.get(dir)}, ${path})`,
+        );
       indexDirs.set(dir, path);
     }
   }
@@ -644,7 +799,10 @@ function buildModel(files, roots, profile) {
         break;
       }
     }
-    if (base === null && (spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../'))) {
+    if (
+      base === null &&
+      (spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../'))
+    ) {
       base = normalizePath(`${dirnameOf(from)}/${spec}`).path;
     }
     let result;
@@ -656,7 +814,8 @@ function buildModel(files, roots, profile) {
       else {
         const ext = extensionOf(base);
         if (ext && !profile.codeExtensions.includes(ext)) result = { kind: 'asset' };
-        else if (normalizedRoots.some((r) => within(base, r) || base === r)) result = { kind: 'unresolved', base };
+        else if (normalizedRoots.some((r) => within(base, r) || base === r))
+          result = { kind: 'unresolved', base };
         else result = { kind: 'outside' };
       }
     }
@@ -671,7 +830,8 @@ function buildModel(files, roots, profile) {
       for (const src of EMITTED_TO_SOURCE[ext]) if (modules.has(stem + src)) return stem + src;
     }
     for (const e of profile.codeExtensions) if (modules.has(base + e)) return base + e;
-    for (const e of profile.codeExtensions) if (modules.has(`${base}/index${e}`)) return `${base}/index${e}`;
+    for (const e of profile.codeExtensions)
+      if (modules.has(`${base}/index${e}`)) return `${base}/index${e}`;
     return null;
   }
 
@@ -702,7 +862,8 @@ function buildModel(files, roots, profile) {
     for (const re of mod ? mod.parsed.reExports : []) {
       if (re.form === 'star') {
         const t = resolve(path, re.spec);
-        if (t.kind === 'file') for (const n of exportedNames(t.path, seen)) if (n !== 'default') names.add(n);
+        if (t.kind === 'file')
+          for (const n of exportedNames(t.path, seen)) if (n !== 'default') names.add(n);
       } else names.add(re.name);
     }
     exportCache.set(path, names);
@@ -728,7 +889,16 @@ function buildModel(files, roots, profile) {
     return false;
   }
 
-  return { modules, exceptionFiles, indexDirs, resolve, indexesCrossed, ownIndexCrossing, exportedNames, forwardsFrom };
+  return {
+    modules,
+    exceptionFiles,
+    indexDirs,
+    resolve,
+    indexesCrossed,
+    ownIndexCrossing,
+    exportedNames,
+    forwardsFrom,
+  };
 }
 
 /** A printable report of `analyzeImportPaths`' result. */

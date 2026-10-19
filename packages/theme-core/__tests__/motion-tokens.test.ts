@@ -13,13 +13,21 @@ const MOTION_TOKENS = ['--motion-fast', '--motion-base', '--motion-slow', '--mot
 
 function rootDeclarations(css: string): Map<string, string> {
   const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  const root = [...withoutComments.matchAll(/(^|\})\s*:root\s*\{([^{}]*)\}/g)].map((m) => m[2]).join(';');
+  const root = [...withoutComments.matchAll(/(^|\})\s*:root\s*\{([^{}]*)\}/g)]
+    .map((m) => m[2])
+    .join(';');
   return new Map(
     root
       .split(';')
       .map((d) => d.trim())
       .filter((d) => d.startsWith('--'))
-      .map((d) => [d.slice(0, d.indexOf(':')).trim(), d.slice(d.indexOf(':') + 1).trim()] as [string, string]),
+      .map(
+        (d) =>
+          [d.slice(0, d.indexOf(':')).trim(), d.slice(d.indexOf(':') + 1).trim()] as [
+            string,
+            string,
+          ],
+      ),
   );
 }
 
@@ -34,9 +42,9 @@ describe('motion tokens', () => {
     const elsewhere = readdirSync(STYLES)
       .filter((f) => f.endsWith('.css') && f !== 'contract.css')
       .flatMap((f) =>
-        MOTION_TOKENS.filter((t) => new RegExp(`${t} *:`).test(readFileSync(path.join(STYLES, f), 'utf8'))).map(
-          (t) => `${f}: ${t}`,
-        ),
+        MOTION_TOKENS.filter((t) =>
+          new RegExp(`${t} *:`).test(readFileSync(path.join(STYLES, f), 'utf8')),
+        ).map((t) => `${f}: ${t}`),
       );
     expect(elsewhere).toEqual([]);
   });
@@ -71,7 +79,12 @@ function rawMotionClass(token: string): string | null {
 }
 
 function classStringsOf(file: string): string[] {
-  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+  const source = ts.createSourceFile(
+    file,
+    readFileSync(file, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+  );
   const found: string[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) found.push(node.text);
@@ -96,14 +109,18 @@ const CSS_MOTION_PROPERTIES = new Set([
   'animation-delay',
 ]);
 const RAW_TIME = /(?<![\w-])\d*\.?\d+m?s\b/;
-const RAW_EASING = /(?<![\w-])(?:ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end)\b|cubic-bezier\(|steps\(/;
+const RAW_EASING =
+  /(?<![\w-])(?:ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end)\b|cubic-bezier\(|steps\(/;
 
 /** Why a stylesheet declaration breaks the motion rule, or null when it does not. */
 function rawMotionDeclaration(property: string, value: string): string | null {
   if (!CSS_MOTION_PROPERTIES.has(property)) return null;
   // A continuous indicator (a spinner, a pulse) loops on its own clock; it is not a change of state.
   if (property === 'animation' && /\binfinite\b/.test(value)) return null;
-  if ((property === 'transition' || property === 'transition-property') && /(?<![\w-])all\b/.test(value)) {
+  if (
+    (property === 'transition' || property === 'transition-property') &&
+    /(?<![\w-])all\b/.test(value)
+  ) {
     return 'transitions all';
   }
   if (RAW_TIME.test(value)) return 'raw duration';

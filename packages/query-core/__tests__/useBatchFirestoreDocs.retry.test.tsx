@@ -6,7 +6,11 @@ import React from 'react';
 // Per-id reads (`transport: 'get'`) answered by the test: each `getDoc` waits until the test
 // resolves it with a document, an absence, or a failure.
 const h = vi.hoisted(() => ({
-  waiting: [] as Array<{ id: string; resolve: (snap: unknown) => void; reject: (error: Error) => void }>,
+  waiting: [] as Array<{
+    id: string;
+    resolve: (snap: unknown) => void;
+    reject: (error: Error) => void;
+  }>,
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -35,7 +39,9 @@ function answer(id: string, how: 'present' | 'absent' | Error) {
 }
 
 function renderLookup(ids: string[]) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } },
+  });
   const Wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
   Wrapper.displayName = 'TestWrapper';
@@ -53,7 +59,8 @@ function renderLookup(ids: string[]) {
   );
 }
 
-const waitingFor = (id: string) => waitFor(() => expect(h.waiting.some((entry) => entry.id === id)).toBe(true));
+const waitingFor = (id: string) =>
+  waitFor(() => expect(h.waiting.some((entry) => entry.id === id)).toBe(true));
 
 beforeEach(() => {
   h.waiting.length = 0;
@@ -132,7 +139,13 @@ describe('useBatchFirestoreDocs — a failed id through its retry', () => {
       answer('a', denied);
       answer('b', 'present');
     });
-    await waitFor(() => expect(result.current.outcomes.a).toEqual({ status: 'failed', error: denied, retrying: false }));
+    await waitFor(() =>
+      expect(result.current.outcomes.a).toEqual({
+        status: 'failed',
+        error: denied,
+        retrying: false,
+      }),
+    );
 
     act(() => void result.current.refetch());
     await waitingFor('a');
@@ -143,7 +156,7 @@ describe('useBatchFirestoreDocs — a failed id through its retry', () => {
     await waitFor(() => expect(result.current.outcomes.a).toMatchObject({ status: 'present' }));
   });
 
-  it('replaces the held failure with the retry\'s own failure', async () => {
+  it("replaces the held failure with the retry's own failure", async () => {
     const { result } = renderLookup(['a']);
     await waitingFor('a');
     await act(async () => answer('a', new Error('denied')));
@@ -153,6 +166,12 @@ describe('useBatchFirestoreDocs — a failed id through its retry', () => {
     await waitingFor('a');
     const again = new Error('denied again');
     await act(async () => answer('a', again));
-    await waitFor(() => expect(result.current.outcomes.a).toEqual({ status: 'failed', error: again, retrying: false }));
+    await waitFor(() =>
+      expect(result.current.outcomes.a).toEqual({
+        status: 'failed',
+        error: again,
+        retrying: false,
+      }),
+    );
   });
 });

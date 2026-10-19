@@ -20,7 +20,12 @@ vi.mock('firebase/firestore', () => ({
   doc: () => ({ __kind: 'doc' }),
   collection: () => ({ __kind: 'col' }),
   query: (ref: unknown) => ref,
-  onSnapshot: (target: { __kind: 'doc' | 'col' }, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
+  onSnapshot: (
+    target: { __kind: 'doc' | 'col' },
+    _options: unknown,
+    next: (s: unknown) => void,
+    error: (e: Error) => void,
+  ) => {
     const unsubscribe = vi.fn();
     h.listeners.push({ kind: target.__kind, next, error, unsubscribe });
     return unsubscribe;
@@ -58,7 +63,12 @@ const hooks = [
     render: (enabled = true) =>
       renderHook(
         ({ on, id }: { on: boolean; id: string }) =>
-          useFirestoreDoc({ docPath: `games/${id}`, queryKey: ['game', id], subscribe: true, enabled: on }),
+          useFirestoreDoc({
+            docPath: `games/${id}`,
+            queryKey: ['game', id],
+            subscribe: true,
+            enabled: on,
+          }),
         { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
       ),
     oneShotReads: () => h.getDoc.mock.calls.length,
@@ -75,7 +85,12 @@ const hooks = [
     render: (enabled = true) =>
       renderHook(
         ({ on, id }: { on: boolean; id: string }) =>
-          useFirestoreCollection({ collectionPath: `leagues/${id}/games`, queryKey: ['games', id], subscribe: true, enabled: on }),
+          useFirestoreCollection({
+            collectionPath: `leagues/${id}/games`,
+            queryKey: ['games', id],
+            subscribe: true,
+            enabled: on,
+          }),
         { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
       ),
     oneShotReads: () => h.getDocs.mock.calls.length,

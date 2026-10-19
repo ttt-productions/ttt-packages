@@ -38,7 +38,7 @@ export const GallerySummarySchema = z
     featuredPictureId: pictureIdSchema.optional(),
     updatedAt: epochMsSchema,
   })
-  .refine((summary) => (summary.count > 0) === (summary.featuredPictureId !== undefined), {
+  .refine((summary) => summary.count > 0 === (summary.featuredPictureId !== undefined), {
     message: 'featuredPictureId is present exactly when the gallery holds a picture',
     path: ['featuredPictureId'],
   });

@@ -49,9 +49,12 @@ beforeEach(() => {
 
 /** The error shape the Storage SDK rejects a cancelled upload task with. */
 function storageCanceledError() {
-  return Object.assign(new Error('Firebase Storage: User canceled the upload/download. (storage/canceled)'), {
-    code: 'storage/canceled',
-  });
+  return Object.assign(
+    new Error('Firebase Storage: User canceled the upload/download. (storage/canceled)'),
+    {
+      code: 'storage/canceled',
+    },
+  );
 }
 
 function makeFile() {
@@ -148,7 +151,9 @@ describe('startResumableUpload — abort behavior', () => {
     const err = await outcome;
     expect(err).toBeInstanceOf(DOMException);
     expect((err as DOMException).name).toBe('AbortError');
-    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'canceled' }));
+    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'canceled' }),
+    );
   });
 
   it('treats storage/canceled from the controller cancel() as the canonical cancel', async () => {
@@ -162,7 +167,9 @@ describe('startResumableUpload — abort behavior', () => {
     await lastObservers.error!(storageCanceledError());
 
     expect(((await outcome) as DOMException).name).toBe('AbortError');
-    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'canceled' }));
+    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'canceled' }),
+    );
   });
 
   it('keeps a storage/canceled the upload did not ask for as a real error', async () => {
@@ -177,7 +184,9 @@ describe('startResumableUpload — abort behavior', () => {
     await lastObservers.error!(remote);
 
     expect(await outcome).toBe(remote);
-    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'error' }));
+    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'error' }),
+    );
   });
 
   it('resolves the path, content type, and size without minting a download URL', async () => {
@@ -185,7 +194,11 @@ describe('startResumableUpload — abort behavior', () => {
 
     await lastObservers.complete!();
 
-    await expect(c.done).resolves.toEqual({ fullPath: 'tmp/test.jpg', contentType: 'image/jpeg', size: 1 });
+    await expect(c.done).resolves.toEqual({
+      fullPath: 'tmp/test.jpg',
+      contentType: 'image/jpeg',
+      size: 1,
+    });
     expect(getDownloadURLMock).not.toHaveBeenCalled();
   });
 

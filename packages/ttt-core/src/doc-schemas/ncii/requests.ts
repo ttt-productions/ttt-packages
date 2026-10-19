@@ -44,34 +44,36 @@ import {
 // idempotencyKey + ':' + normalizedTargetKey) so retries resolve to one doc.
 // ===========================================================================
 
-export const TakeItDownRequestRootV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  requestId: z.string().min(1),
-  caseId: z.string().min(1).optional(),
-  requesterRole: TakeItDownRequesterRoleSchema,
-  // privacy-safe summary ONLY — never the narrative
-  targetLocatorSummary: TargetLocatorSummaryV1Schema,
-  receivedAt: z.number(),
-  completenessStatus: TakeItDownCompletenessStatusSchema, // 'incomplete' | 'complete'
-  validityStatus: TakeItDownValidityStatusSchema, // 'pending' | 'valid' | 'invalid' | 'unableToLocate'
-  invalidReasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
-  completenessDeterminedAt: z.number().optional(),
-  validityDeterminedAt: z.number().optional(),
-  completedBySubmissionId: z.string().min(1).optional(), // which immutable submission completed the request
-  validRequestReceivedAt: z.number().optional(), // EARLIEST complete+valid receipt — pins the clock
-  removalDeadlineAt: z.number().optional(), // = validRequestReceivedAt + 48h (non-authoritative projection)
-  publicStatus: TakeItDownPublicStatusSchema,
-  requestClosedAt: z.number().optional(), // when the request reached a terminal disposition
-  removalCompletionAt: z.number().optional(), // set when removal verified-completes
-  finalClosedAt: z.number().optional(), // = requestClosedAt (no appeal window); arms for EVERY terminal disposition. The request's retention clocks (PII / evidence / status-token) count from here.
-  removalCompletionOutcome: NciiRemovalCompletionOutcomeSchema.nullable().optional(), // null is the explicit pending/backstop state; NEVER 'completed' for a partial technical failure
-  // Retention-sweep terminal marker. Seeded as an EXPLICIT null when the request closes — the sweep
-  // selects unfinished rows with `where('retentionCompletedAt', '==', null)`, which an absent field
-  // never matches — and set to the completion time once every retention obligation is discharged.
-  retentionCompletedAt: z.number().nullable().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-}).strict();
+export const TakeItDownRequestRootV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    requestId: z.string().min(1),
+    caseId: z.string().min(1).optional(),
+    requesterRole: TakeItDownRequesterRoleSchema,
+    // privacy-safe summary ONLY — never the narrative
+    targetLocatorSummary: TargetLocatorSummaryV1Schema,
+    receivedAt: z.number(),
+    completenessStatus: TakeItDownCompletenessStatusSchema, // 'incomplete' | 'complete'
+    validityStatus: TakeItDownValidityStatusSchema, // 'pending' | 'valid' | 'invalid' | 'unableToLocate'
+    invalidReasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
+    completenessDeterminedAt: z.number().optional(),
+    validityDeterminedAt: z.number().optional(),
+    completedBySubmissionId: z.string().min(1).optional(), // which immutable submission completed the request
+    validRequestReceivedAt: z.number().optional(), // EARLIEST complete+valid receipt — pins the clock
+    removalDeadlineAt: z.number().optional(), // = validRequestReceivedAt + 48h (non-authoritative projection)
+    publicStatus: TakeItDownPublicStatusSchema,
+    requestClosedAt: z.number().optional(), // when the request reached a terminal disposition
+    removalCompletionAt: z.number().optional(), // set when removal verified-completes
+    finalClosedAt: z.number().optional(), // = requestClosedAt (no appeal window); arms for EVERY terminal disposition. The request's retention clocks (PII / evidence / status-token) count from here.
+    removalCompletionOutcome: NciiRemovalCompletionOutcomeSchema.nullable().optional(), // null is the explicit pending/backstop state; NEVER 'completed' for a partial technical failure
+    // Retention-sweep terminal marker. Seeded as an EXPLICIT null when the request closes — the sweep
+    // selects unfinished rows with `where('retentionCompletedAt', '==', null)`, which an absent field
+    // never matches — and set to the completion time once every retention obligation is discharged.
+    retentionCompletedAt: z.number().nullable().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  })
+  .strict();
 export type TakeItDownRequestRootV1 = z.infer<typeof TakeItDownRequestRootV1Schema>;
 
 // ===========================================================================
@@ -85,11 +87,13 @@ export const TakeItDownSignatureMethodSchema = z.enum(['typedName', 'drawnSignat
 export type TakeItDownSignatureMethod = z.infer<typeof TakeItDownSignatureMethodSchema>;
 
 /** The statutory electronic signature block (embedded on the restricted subdoc). */
-export const TakeItDownElectronicSignatureV1Schema = z.object({
-  signedName: z.string(),
-  signedAt: z.number(),
-  signatureMethod: TakeItDownSignatureMethodSchema,
-}).strict();
+export const TakeItDownElectronicSignatureV1Schema = z
+  .object({
+    signedName: z.string(),
+    signedAt: z.number(),
+    signatureMethod: TakeItDownSignatureMethodSchema,
+  })
+  .strict();
 export type TakeItDownElectronicSignatureV1 = z.infer<typeof TakeItDownElectronicSignatureV1Schema>;
 
 /** Server-owned scan status for the optional authority-proof photo.
@@ -111,12 +115,14 @@ export type AuthorityProofScanStatus = z.infer<typeof AuthorityProofScanStatusSc
 /** Server-owned authority-proof scan state. Embedded on the authorized-
  * representative block; written by the `onNciiEvidenceUploaded` trigger (never
  * by the client). Present only when an authority-proof photo was uploaded. */
-export const AuthorityProofScanStateV1Schema = z.object({
-  scanStatus: AuthorityProofScanStatusSchema,
-  objectGeneration: z.string().min(1),
-  objectHash: z.string().min(1),
-  scannedAt: z.number().optional(),
-}).strict();
+export const AuthorityProofScanStateV1Schema = z
+  .object({
+    scanStatus: AuthorityProofScanStatusSchema,
+    objectGeneration: z.string().min(1),
+    objectHash: z.string().min(1),
+    scannedAt: z.number().optional(),
+  })
+  .strict();
 export type AuthorityProofScanStateV1 = z.infer<typeof AuthorityProofScanStateV1Schema>;
 
 /** The authorized-representative block — present only for an
@@ -125,38 +131,44 @@ export type AuthorityProofScanStateV1 = z.infer<typeof AuthorityProofScanStateV1
  * authority; `authorityEvidenceRef` + `authorityProofScan` are OPTIONAL
  * (presence is supporting material; absence never blocks completeness or the
  * 48h clock). */
-export const TakeItDownAuthorizedRepresentativeV1Schema = z.object({
-  representedPersonName: z.string(),
-  authorityBasis: z.string(),
-  authorityCertification: z.boolean(),
-  authorityEvidenceRef: z.string().min(1).optional(),
-  authorityProofScan: AuthorityProofScanStateV1Schema.optional(),
-}).strict();
-export type TakeItDownAuthorizedRepresentativeV1 = z.infer<typeof TakeItDownAuthorizedRepresentativeV1Schema>;
+export const TakeItDownAuthorizedRepresentativeV1Schema = z
+  .object({
+    representedPersonName: z.string(),
+    authorityBasis: z.string(),
+    authorityCertification: z.boolean(),
+    authorityEvidenceRef: z.string().min(1).optional(),
+    authorityProofScan: AuthorityProofScanStateV1Schema.optional(),
+  })
+  .strict();
+export type TakeItDownAuthorizedRepresentativeV1 = z.infer<
+  typeof TakeItDownAuthorizedRepresentativeV1Schema
+>;
 
 /** `takeItDownRequests/{requestId}/privateDetails/requester` = TakeItDownRequesterPrivateV1.
  * RESTRICTED — nciiRequestReviewer / nciiEvidenceReviewer only. Fixed doc id
  * `requester`. */
-export const TakeItDownRequesterPrivateV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  requesterName: z.string(),
-  contactEmail: z.string(),
-  contactPhone: z.string().optional(),
-  electronicSignature: TakeItDownElectronicSignatureV1Schema,
-  authorizedRepresentative: TakeItDownAuthorizedRepresentativeV1Schema.optional(),
-  nonconsentStatement: z.string(), // the statutory non-consent statement
-  supportingFacts: z.string(),
-  goodFaithCertification: z.boolean(),
-  accuracyCertification: z.boolean().optional(), // NOT a hard validity gate
-  // The EXACT validated locator the requester submitted (restricted; operator-only — never on the
-  // PII-free root, which keeps only TargetLocatorSummaryV1). For the public no-login url-only intake
-  // this is the raw `{ kind:'url', url }` so the operator can FIND the on-platform content and
-  // mark + link it as NCII evidence (the public intake never auto-resolves a TTT target, so a
-  // requester cannot point it at someone else's content). Optional so a not-yet-backfilled request still validates; intake always writes it.
-  targetLocator: TargetLocatorV1Schema.optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-}).strict();
+export const TakeItDownRequesterPrivateV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    requesterName: z.string(),
+    contactEmail: z.string(),
+    contactPhone: z.string().optional(),
+    electronicSignature: TakeItDownElectronicSignatureV1Schema,
+    authorizedRepresentative: TakeItDownAuthorizedRepresentativeV1Schema.optional(),
+    nonconsentStatement: z.string(), // the statutory non-consent statement
+    supportingFacts: z.string(),
+    goodFaithCertification: z.boolean(),
+    accuracyCertification: z.boolean().optional(), // NOT a hard validity gate
+    // The EXACT validated locator the requester submitted (restricted; operator-only — never on the
+    // PII-free root, which keeps only TargetLocatorSummaryV1). For the public no-login url-only intake
+    // this is the raw `{ kind:'url', url }` so the operator can FIND the on-platform content and
+    // mark + link it as NCII evidence (the public intake never auto-resolves a TTT target, so a
+    // requester cannot point it at someone else's content). Optional so a not-yet-backfilled request still validates; intake always writes it.
+    targetLocator: TargetLocatorV1Schema.optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+  })
+  .strict();
 export type TakeItDownRequesterPrivateV1 = z.infer<typeof TakeItDownRequesterPrivateV1Schema>;
 
 // ===========================================================================
@@ -171,19 +183,21 @@ export type TakeItDownSubmissionCreatedBy = z.infer<typeof TakeItDownSubmissionC
 
 /** `takeItDownRequests/{requestId}/submissions/{submissionId}` = TakeItDownSubmissionV1
  * — IMMUTABLE append-only. Doc id `submissionId` is a deterministic/assigned id. */
-export const TakeItDownSubmissionV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  submissionId: z.string().min(1),
-  sequence: z.number(), // monotonic per request — append order
-  receivedAt: z.number(), // the immutable statutory receipt time of THIS submission
-  suppliedFieldCodes: z.array(TakeItDownFieldCodeSchema).max(16),
-  evidenceIds: z.array(z.string().min(1)).max(16),
-  cumulativeRequestSnapshotHash: z.string(), // hash of the cumulative request state as of this submission
-  cumulativeCompleteness: TakeItDownCompletenessStatusSchema, // 'incomplete' | 'complete'
-  firstCompletedRequest: z.boolean(), // true on the submission whose cumulative state FIRST became complete
-  supersedesSubmissionId: z.string().min(1).optional(),
-  createdBy: TakeItDownSubmissionCreatedBySchema,
-}).strict();
+export const TakeItDownSubmissionV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    submissionId: z.string().min(1),
+    sequence: z.number(), // monotonic per request — append order
+    receivedAt: z.number(), // the immutable statutory receipt time of THIS submission
+    suppliedFieldCodes: z.array(TakeItDownFieldCodeSchema).max(16),
+    evidenceIds: z.array(z.string().min(1)).max(16),
+    cumulativeRequestSnapshotHash: z.string(), // hash of the cumulative request state as of this submission
+    cumulativeCompleteness: TakeItDownCompletenessStatusSchema, // 'incomplete' | 'complete'
+    firstCompletedRequest: z.boolean(), // true on the submission whose cumulative state FIRST became complete
+    supersedesSubmissionId: z.string().min(1).optional(),
+    createdBy: TakeItDownSubmissionCreatedBySchema,
+  })
+  .strict();
 export type TakeItDownSubmissionV1 = z.infer<typeof TakeItDownSubmissionV1Schema>;
 
 // ===========================================================================
@@ -195,25 +209,33 @@ export type TakeItDownSubmissionV1 = z.infer<typeof TakeItDownSubmissionV1Schema
 
 /** The validity-decision result. `incomplete` is a COMPLETENESS state, NEVER a
  * validity result. */
-export const TakeItDownValidityDecisionResultSchema = z.enum(['valid', 'invalid', 'unableToLocate']);
-export type TakeItDownValidityDecisionResult = z.infer<typeof TakeItDownValidityDecisionResultSchema>;
+export const TakeItDownValidityDecisionResultSchema = z.enum([
+  'valid',
+  'invalid',
+  'unableToLocate',
+]);
+export type TakeItDownValidityDecisionResult = z.infer<
+  typeof TakeItDownValidityDecisionResultSchema
+>;
 
 /** `takeItDownRequests/{requestId}/validityDecisions/{decisionId}` =
  * TakeItDownValidityDecisionV1 — IMMUTABLE append-only. Doc id `decisionId` is a
  * deterministic/assigned id. */
-export const TakeItDownValidityDecisionV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  decisionId: z.string().min(1),
-  requestId: z.string().min(1),
-  result: TakeItDownValidityDecisionResultSchema,
-  basisSubmissionIds: z.array(z.string().min(1)).max(16), // the submissions the decision relied on
-  validFromSubmissionId: z.string().min(1).optional(), // the EARLIEST submission whose cumulative snapshot satisfies the valid decision
-  validRequestReceivedAt: z.number().optional(), // = that submission's immutable receivedAt (the binding statutory time)
-  reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
-  rationaleRef: z.string(), // pointer to a restricted rationale row
-  decidedByUid: z.string().min(1),
-  decidedAt: z.number(),
-}).strict();
+export const TakeItDownValidityDecisionV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    decisionId: z.string().min(1),
+    requestId: z.string().min(1),
+    result: TakeItDownValidityDecisionResultSchema,
+    basisSubmissionIds: z.array(z.string().min(1)).max(16), // the submissions the decision relied on
+    validFromSubmissionId: z.string().min(1).optional(), // the EARLIEST submission whose cumulative snapshot satisfies the valid decision
+    validRequestReceivedAt: z.number().optional(), // = that submission's immutable receivedAt (the binding statutory time)
+    reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
+    rationaleRef: z.string(), // pointer to a restricted rationale row
+    decidedByUid: z.string().min(1),
+    decidedAt: z.number(),
+  })
+  .strict();
 export type TakeItDownValidityDecisionV1 = z.infer<typeof TakeItDownValidityDecisionV1Schema>;
 
 /** `takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record`
@@ -221,15 +243,17 @@ export type TakeItDownValidityDecisionV1 = z.infer<typeof TakeItDownValidityDeci
  * `rationaleRef` and the action row's `detailRef` point at. Bound to (requestId, decisionId);
  * written create-only in the same transaction as the decision, so a decision can never exist
  * without its rationale. Backend-only; never inline on the decision. */
-export const TakeItDownValidityRationaleV1Schema = z.object({
-  requestId: z.string().min(1),
-  decisionId: z.string().min(1),
-  result: TakeItDownValidityDecisionResultSchema,
-  reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
-  text: z.string().min(1).max(MAX_NCII_RATIONALE_LENGTH),
-  authoredByUid: z.string().min(1),
-  authoredAt: z.number(),
-}).strict();
+export const TakeItDownValidityRationaleV1Schema = z
+  .object({
+    requestId: z.string().min(1),
+    decisionId: z.string().min(1),
+    result: TakeItDownValidityDecisionResultSchema,
+    reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
+    text: z.string().min(1).max(MAX_NCII_RATIONALE_LENGTH),
+    authoredByUid: z.string().min(1),
+    authoredAt: z.number(),
+  })
+  .strict();
 export type TakeItDownValidityRationaleV1 = z.infer<typeof TakeItDownValidityRationaleV1Schema>;
 
 // ===========================================================================
@@ -240,17 +264,19 @@ export type TakeItDownValidityRationaleV1 = z.infer<typeof TakeItDownValidityRat
 
 /** `takeItDownRequests/{requestId}/actions/{actionId}` — the closed-enum +
  * detailRef row. Doc id `actionId` is a deterministic/assigned id. */
-export const TakeItDownRequestActionV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  actionId: z.string().min(1),
-  at: z.number(),
-  actorId: z.string().min(1),
-  capability: SafetyReviewerCapabilitySchema, // = the reviewer capability used
-  actionType: NciiActionTypeSchema,
-  result: NciiActionResultSchema,
-  summary: z.string().max(MAX_NCII_ACTION_SUMMARY_LENGTH), // BOUNDED, non-sensitive
-  detailRef: z.string().min(1), // pointer to a RESTRICTED detail row holding any sensitive rationale
-}).strict();
+export const TakeItDownRequestActionV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    actionId: z.string().min(1),
+    at: z.number(),
+    actorId: z.string().min(1),
+    capability: SafetyReviewerCapabilitySchema, // = the reviewer capability used
+    actionType: NciiActionTypeSchema,
+    result: NciiActionResultSchema,
+    summary: z.string().max(MAX_NCII_ACTION_SUMMARY_LENGTH), // BOUNDED, non-sensitive
+    detailRef: z.string().min(1), // pointer to a RESTRICTED detail row holding any sensitive rationale
+  })
+  .strict();
 export type TakeItDownRequestActionV1 = z.infer<typeof TakeItDownRequestActionV1Schema>;
 
 // ===========================================================================
@@ -273,22 +299,24 @@ export type TakeItDownRequestActionV1 = z.infer<typeof TakeItDownRequestActionV1
  * INVARIANT: this record NEVER sets `originatingUploaderUid` — enforcement / NCMEC
  * attribution targets the ORIGINAL content's originatingUploaderUid (perpetrator)
  * via MediaOriginLineageV1 (a correlation, not a merge). */
-export const TakeItDownEvidenceV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  evidenceId: z.string().min(1),
-  requestId: z.string().min(1),
-  uploadContext: z.literal('takeItDownEvidence'), // LITERAL tag — never an ordinary content origin
-  submitterUid: z.string().min(1).optional(), // the submitter is NEVER auto-actioned for evidence they submit
-  bucket: z.string().min(1),
-  key: z.string().min(1),
-  generation: z.string().min(1),
-  contentType: z.string().min(1),
-  sizeBytes: z.number(),
-  sha256: z.string().min(1),
-  md5: z.string().min(1),
-  capturedAt: z.number(),
-  createdAt: z.number(),
-}).strict();
+export const TakeItDownEvidenceV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    evidenceId: z.string().min(1),
+    requestId: z.string().min(1),
+    uploadContext: z.literal('takeItDownEvidence'), // LITERAL tag — never an ordinary content origin
+    submitterUid: z.string().min(1).optional(), // the submitter is NEVER auto-actioned for evidence they submit
+    bucket: z.string().min(1),
+    key: z.string().min(1),
+    generation: z.string().min(1),
+    contentType: z.string().min(1),
+    sizeBytes: z.number(),
+    sha256: z.string().min(1),
+    md5: z.string().min(1),
+    capturedAt: z.number(),
+    createdAt: z.number(),
+  })
+  .strict();
 export type TakeItDownEvidenceV1 = z.infer<typeof TakeItDownEvidenceV1Schema>;
 
 // ===========================================================================
@@ -315,20 +343,22 @@ export type NciiRetainedEvidenceReason = z.infer<typeof NciiRetainedEvidenceReas
 
 /** `nciiRetainedEvidenceInventory/{inventoryId}` — the retained-object row.
  * Doc id is deterministic on bucket+key+generation (idempotent re-fire). */
-export const NciiRetainedEvidenceInventoryV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  inventoryId: z.string().min(1),
-  reason: NciiRetainedEvidenceReasonSchema,
-  bucket: z.string().min(1),
-  key: z.string().min(1),
-  generation: z.string().min(1),
-  /** The path segment (an orphan reference matches no request). */
-  requestReference: z.string().min(1).optional(),
-  contentType: z.string().min(1).optional(),
-  sizeBytes: z.number().optional(),
-  detectedAt: z.number(),
-  createdAt: z.number(),
-}).strict();
+export const NciiRetainedEvidenceInventoryV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    inventoryId: z.string().min(1),
+    reason: NciiRetainedEvidenceReasonSchema,
+    bucket: z.string().min(1),
+    key: z.string().min(1),
+    generation: z.string().min(1),
+    /** The path segment (an orphan reference matches no request). */
+    requestReference: z.string().min(1).optional(),
+    contentType: z.string().min(1).optional(),
+    sizeBytes: z.number().optional(),
+    detectedAt: z.number(),
+    createdAt: z.number(),
+  })
+  .strict();
 export type NciiRetainedEvidenceInventoryV1 = z.infer<typeof NciiRetainedEvidenceInventoryV1Schema>;
 
 // ===========================================================================

@@ -1,5 +1,5 @@
-import { now } from "@ttt-productions/firebase-helpers";
-import type { UploadSessionState, UploadSessionPersistenceAdapter } from "../types.js";
+import { now } from '@ttt-productions/firebase-helpers';
+import type { UploadSessionState, UploadSessionPersistenceAdapter } from '../types.js';
 
 type Listener = (s: UploadSessionState) => void;
 type ListListener = () => void;
@@ -14,7 +14,11 @@ export function setUploadSessionPersistence(adapter: UploadSessionPersistenceAda
   persistence = adapter;
 }
 
-export type PersistenceErrorHandler = (err: unknown, op: "set" | "remove" | "get", id: string) => void;
+export type PersistenceErrorHandler = (
+  err: unknown,
+  op: 'set' | 'remove' | 'get',
+  id: string,
+) => void;
 
 let persistenceErrorHandler: PersistenceErrorHandler | null = null;
 
@@ -26,8 +30,8 @@ async function persistUpsert(state: UploadSessionState) {
   try {
     await persistence?.set(state.id, state);
   } catch (err) {
-    console.error("[upload-store] Failed to persist session:", state.id, err);
-    persistenceErrorHandler?.(err, "set", state.id);
+    console.error('[upload-store] Failed to persist session:', state.id, err);
+    persistenceErrorHandler?.(err, 'set', state.id);
   }
 }
 
@@ -35,8 +39,8 @@ async function persistRemove(id: string) {
   try {
     await persistence?.remove(id);
   } catch (err) {
-    console.error("[upload-store] Failed to remove persisted session:", id, err);
-    persistenceErrorHandler?.(err, "remove", id);
+    console.error('[upload-store] Failed to remove persisted session:', id, err);
+    persistenceErrorHandler?.(err, 'remove', id);
   }
 }
 
@@ -55,10 +59,13 @@ export function pruneOldUploadSessions() {
   let pruned = 0;
 
   for (const s of all) {
-    if (s.status === "success" && t - s.updatedAt > SUCCESS_TTL_MS) {
+    if (s.status === 'success' && t - s.updatedAt > SUCCESS_TTL_MS) {
       removeUploadSession(s.id);
       pruned++;
-    } else if ((s.status === "error" || s.status === "canceled") && t - s.updatedAt > ERROR_TTL_MS) {
+    } else if (
+      (s.status === 'error' || s.status === 'canceled') &&
+      t - s.updatedAt > ERROR_TTL_MS
+    ) {
       removeUploadSession(s.id);
       pruned++;
     }
@@ -85,8 +92,8 @@ export async function rehydrateUploadSessions() {
       const s = await persistence.get(id);
       if (s) sessions.set(id, s);
     } catch (err) {
-      console.error("[upload-store] Failed to read persisted session:", id, err);
-      persistenceErrorHandler?.(err, "get", id);
+      console.error('[upload-store] Failed to read persisted session:', id, err);
+      persistenceErrorHandler?.(err, 'get', id);
     }
   }
 
@@ -102,16 +109,18 @@ export function listUploadSessions(): UploadSessionState[] {
   return Array.from(sessions.values()).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<UploadSessionState, "id">) {
+export function upsertUploadSession(
+  partial: Partial<UploadSessionState> & Pick<UploadSessionState, 'id'>,
+) {
   const prev = sessions.get(partial.id);
 
   // Guard against out-of-order async updates.
   if (prev && partial.updatedAt != null && partial.updatedAt < prev.updatedAt) return;
 
-  const prevStatus = prev?.status ?? "idle";
+  const prevStatus = prev?.status ?? 'idle';
   const nextStatus = partial.status ?? prevStatus;
 
-  const isTerminal = (s: string) => s === "success" || s === "error" || s === "canceled";
+  const isTerminal = (s: string) => s === 'success' || s === 'error' || s === 'canceled';
   const prevIsTerminal = isTerminal(prevStatus);
   const nextIsTerminal = isTerminal(nextStatus);
 
@@ -128,7 +137,7 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
   const next: UploadSessionState = {
     id: partial.id,
     status,
-    path: partial.path ?? prev?.path ?? "",
+    path: partial.path ?? prev?.path ?? '',
     version,
     transferred,
     total,

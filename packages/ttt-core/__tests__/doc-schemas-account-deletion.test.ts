@@ -95,7 +95,19 @@ describe('isActiveDeletionRequest truth table', () => {
   }
 
   it('is false for unknown, absent, and non-string values', () => {
-    for (const value of [undefined, null, '', 'PENDING', 'pending ', 'unknownStatus', 0, 1, {}, [], true]) {
+    for (const value of [
+      undefined,
+      null,
+      '',
+      'PENDING',
+      'pending ',
+      'unknownStatus',
+      0,
+      1,
+      {},
+      [],
+      true,
+    ]) {
       expect(isActiveDeletionRequest(value)).toBe(false);
     }
   });

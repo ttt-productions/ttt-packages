@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { toPath } from '../src/paths/utils.js';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections.js';
+import {
+  COLLECTIONS,
+  USER_SUBCOLLECTIONS,
+  WORK_PROJECT_SUBCOLLECTIONS,
+  NESTED_SUBCOLLECTIONS,
+} from '../src/paths/collections.js';
 
 describe('COLLECTION_REFS', () => {
   describe('Top-level collection refs', () => {
@@ -43,8 +48,12 @@ describe('COLLECTION_REFS', () => {
     });
 
     it('active notification lanes return the canonical category collections', () => {
-      expect(COLLECTION_REFS.activeUserNotifications()).toEqual([COLLECTIONS.ACTIVE_USER_NOTIFICATIONS]);
-      expect(COLLECTION_REFS.activeAdminNotifications()).toEqual([COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS]);
+      expect(COLLECTION_REFS.activeUserNotifications()).toEqual([
+        COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,
+      ]);
+      expect(COLLECTION_REFS.activeAdminNotifications()).toEqual([
+        COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS,
+      ]);
     });
 
     it('commissionListings returns single-element tuple', () => {
@@ -163,7 +172,9 @@ describe('COLLECTION_REFS', () => {
     });
 
     it('userSuggestions is the parent collection of userSuggestion, so a query reads the docs the writer wrote', () => {
-      expect(toPath(PATH_BUILDERS.userSuggestion('bug', 's1'))).toBe(`${toPath(COLLECTION_REFS.userSuggestions('bug'))}/s1`);
+      expect(toPath(PATH_BUILDERS.userSuggestion('bug', 's1'))).toBe(
+        `${toPath(COLLECTION_REFS.userSuggestions('bug'))}/s1`,
+      );
     });
 
     it('adminDispatchConversationFiles stays the files collection, not the messages one', () => {
@@ -202,6 +213,3 @@ describe('COLLECTION_REFS', () => {
     });
   });
 });
-
-
-

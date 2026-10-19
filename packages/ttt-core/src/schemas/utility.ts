@@ -17,32 +17,42 @@ import {
 } from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
 
-export const AcceptViolationDecisionInputSchema = z.object({
-  violationId: violationIdSchema,
-}).strict();
+export const AcceptViolationDecisionInputSchema = z
+  .object({
+    violationId: violationIdSchema,
+  })
+  .strict();
 export type AcceptViolationDecisionInput = z.infer<typeof AcceptViolationDecisionInputSchema>;
 
 // One member per `ShortLinkTargetTypeSchema` value (schemas/atoms.ts), each carrying exactly the
 // id(s) its destination URL needs.
 
 export const CreateShortLinkInputSchema = z.discriminatedUnion('targetType', [
-  z.object({
-    targetType: z.literal('audition'),
-    auditionId: auditionIdSchema,
-  }).strict(),
-  z.object({
-    targetType: z.literal('audition-entry'),
-    auditionId: auditionIdSchema,
-    auditionEntryId: auditionEntryIdSchema,
-  }).strict(),
-  z.object({
-    targetType: z.literal('commission'),
-    commissionListingId: commissionListingIdSchema,
-  }).strict(),
-  z.object({
-    targetType: z.literal('hall-library-item'),
-    hallItemId: hallItemIdSchema,
-  }).strict(),
+  z
+    .object({
+      targetType: z.literal('audition'),
+      auditionId: auditionIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      targetType: z.literal('audition-entry'),
+      auditionId: auditionIdSchema,
+      auditionEntryId: auditionEntryIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      targetType: z.literal('commission'),
+      commissionListingId: commissionListingIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      targetType: z.literal('hall-library-item'),
+      hallItemId: hallItemIdSchema,
+    })
+    .strict(),
 ]);
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
 
@@ -124,8 +134,14 @@ const curatedProfanityTermSchema = textFieldSchema(CURATED_PROFANITY_TERM_INPUT)
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z
   .object({
-    add: z.array(curatedProfanityTermSchema).max(MAX_CURATED_PROFANITY_TERMS_PER_REQUEST).optional(),
-    remove: z.array(curatedProfanityTermSchema).max(MAX_CURATED_PROFANITY_TERMS_PER_REQUEST).optional(),
+    add: z
+      .array(curatedProfanityTermSchema)
+      .max(MAX_CURATED_PROFANITY_TERMS_PER_REQUEST)
+      .optional(),
+    remove: z
+      .array(curatedProfanityTermSchema)
+      .max(MAX_CURATED_PROFANITY_TERMS_PER_REQUEST)
+      .optional(),
   })
   .strict()
   .refine((v) => (v.add?.length ?? 0) + (v.remove?.length ?? 0) > 0, {
@@ -142,17 +158,21 @@ export const CurateProfanityListResultSchema = z.object({
 });
 export type CurateProfanityListResult = z.infer<typeof CurateProfanityListResultSchema>;
 
-export const SubmitContentAppealInputSchema = z.object({
-  violationId: violationIdSchema,
-  appealMessage: textFieldSchema(APPEAL_MESSAGE_INPUT),
-}).strict();
+export const SubmitContentAppealInputSchema = z
+  .object({
+    violationId: violationIdSchema,
+    appealMessage: textFieldSchema(APPEAL_MESSAGE_INPUT),
+  })
+  .strict();
 export type SubmitContentAppealInput = z.infer<typeof SubmitContentAppealInputSchema>;
 
-export const SubmitFeedbackInputSchema = z.object({
-  feedbackType: z.enum(FEEDBACK_TYPES),
-  // Stored lowercase, so "Dark" and "dark" are one suggestion.
-  suggestion: textFieldSchema(FEEDBACK_SUGGESTION_INPUT).transform((word) => word.toLowerCase()),
-}).strict();
+export const SubmitFeedbackInputSchema = z
+  .object({
+    feedbackType: z.enum(FEEDBACK_TYPES),
+    // Stored lowercase, so "Dark" and "dark" are one suggestion.
+    suggestion: textFieldSchema(FEEDBACK_SUGGESTION_INPUT).transform((word) => word.toLowerCase()),
+  })
+  .strict();
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;
 
 export const SubmitFeedbackResultSchema = z.object({
@@ -161,9 +181,11 @@ export const SubmitFeedbackResultSchema = z.object({
 });
 export type SubmitFeedbackResult = z.infer<typeof SubmitFeedbackResultSchema>;
 
-export const TrackShortLinkClickInputSchema = z.object({
-  shortId: shortLinkIdSchema.max(64),
-}).strict();
+export const TrackShortLinkClickInputSchema = z
+  .object({
+    shortId: shortLinkIdSchema.max(64),
+  })
+  .strict();
 export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
 
 export const TrackShortLinkClickResultSchema = z.object({
@@ -176,12 +198,13 @@ export type TrackShortLinkClickResult = z.infer<typeof TrackShortLinkClickResult
 // moves the caller's OWN marker (AdminDispatchReadMarkerSchema) to that time, never past the
 // thread's latest message and never backwards, so a message that arrived after the screen
 // rendered stays unseen.
-export const MarkAdminDispatchReadInputSchema = z.object({
-  adminDispatchId: adminDispatchIdSchema.max(128),
-  seenThroughMessageAt: z.number().int().nonnegative(),
-}).strict();
+export const MarkAdminDispatchReadInputSchema = z
+  .object({
+    adminDispatchId: adminDispatchIdSchema.max(128),
+    seenThroughMessageAt: z.number().int().nonnegative(),
+  })
+  .strict();
 export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
-
 
 /** The caller's committed marker — the client patches its cached thread rows from it. */
 export const MarkAdminDispatchReadResultSchema = z.object({
@@ -217,4 +240,3 @@ export const AcceptViolationDecisionResultSchema = z.object({
   auditEventId: z.string().min(1).optional(),
 });
 export type AcceptViolationDecisionResult = z.infer<typeof AcceptViolationDecisionResultSchema>;
-

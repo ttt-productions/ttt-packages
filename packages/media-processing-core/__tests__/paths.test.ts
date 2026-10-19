@@ -39,6 +39,8 @@ describe('joinPath', () => {
   });
 
   it('handles deep paths', () => {
-    expect(joinPath('users', 'abc123', 'uploads', 'file.jpg')).toBe('users/abc123/uploads/file.jpg');
+    expect(joinPath('users', 'abc123', 'uploads', 'file.jpg')).toBe(
+      'users/abc123/uploads/file.jpg',
+    );
   });
 });

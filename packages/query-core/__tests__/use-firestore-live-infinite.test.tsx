@@ -45,7 +45,11 @@ function doc(id: string, createdAt: number) {
 function lastListener(): Listener {
   return h.listeners[h.listeners.length - 1];
 }
-function emit(listener: Listener, docs: Array<{ id: string; data: () => Record<string, unknown> }>, fromCache = false) {
+function emit(
+  listener: Listener,
+  docs: Array<{ id: string; data: () => Record<string, unknown> }>,
+  fromCache = false,
+) {
   act(() => listener.next({ docs, metadata: { fromCache } }));
 }
 function constraintOf(listener: Listener, key: string): unknown {
@@ -265,7 +269,10 @@ describe('useFirestoreLiveInfinite — order', () => {
   });
 
   it('orders rows whose ordering field is not a number, such as a timestamp', () => {
-    const stamped = (id: string, seconds: number) => ({ id, data: () => ({ createdAt: { seconds } }) });
+    const stamped = (id: string, seconds: number) => ({
+      id,
+      data: () => ({ createdAt: { seconds } }),
+    });
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
@@ -274,7 +281,9 @@ describe('useFirestoreLiveInfinite — order', () => {
   });
 
   it('shows a row that is in both reads once, as its live copy', async () => {
-    h.getDocs.mockResolvedValueOnce({ docs: [{ id: 'a', data: () => ({ createdAt: 10, v: 'old' }) }] });
+    h.getDocs.mockResolvedValueOnce({
+      docs: [{ id: 'a', data: () => ({ createdAt: 10, v: 'old' }) }],
+    });
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
@@ -511,7 +520,12 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
 
   it('an older page of the previous thread that resolves after a switch never appears', async () => {
     let resolveOlder: (value: unknown) => void = () => {};
-    h.getDocs.mockImplementationOnce(() => new Promise((resolve) => { resolveOlder = resolve; }));
+    h.getDocs.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOlder = resolve;
+        }),
+    );
     const { result, rerender } = renderHook(
       ({ thread }: { thread: string }) =>
         useFirestoreLiveInfinite({

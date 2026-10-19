@@ -91,12 +91,16 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
     });
 
     it('rejects ageAttested: false', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid({ ageAttested: false }));
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ ageAttested: false }),
+      );
       expect(result.success).toBe(false);
     });
 
     it('rejects a truthy non-boolean ageAttested', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid({ ageAttested: 'true' }));
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ ageAttested: 'true' }),
+      );
       expect(result.success).toBe(false);
     });
 
@@ -108,7 +112,10 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
 
   describe('checkoutAttemptId', () => {
     it('rejects a missing checkoutAttemptId', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 500, ageAttested: true });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
+        amount: 500,
+        ageAttested: true,
+      });
       expect(result.success).toBe(false);
     });
 
@@ -145,7 +152,7 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
 });
 
 describe('MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
-  it('is the $2.50 platform business floor (above Stripe\'s 50-cent technical floor), mode-invariant', () => {
+  it("is the $2.50 platform business floor (above Stripe's 50-cent technical floor), mode-invariant", () => {
     expect(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(250);
   });
 });
@@ -242,21 +249,34 @@ describe('AdminResolvePledgeRefundRequestInputSchema', () => {
 
 describe('the checkout success lookup', () => {
   it('takes the Stripe Checkout session id', () => {
-    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'cs_test_a1' }).success).toBe(true);
+    expect(
+      GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'cs_test_a1' }).success,
+    ).toBe(true);
   });
 
   it('refuses an empty, oversized, or extra-keyed lookup', () => {
-    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: '' }).success).toBe(false);
+    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: '' }).success).toBe(
+      false,
+    );
     expect(
-      GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'c'.repeat(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH + 1) }).success,
+      GetMyPledgeByCheckoutSessionInputSchema.safeParse({
+        sessionId: 'c'.repeat(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH + 1),
+      }).success,
     ).toBe(false);
-    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'cs_1', uid: 'u1' }).success).toBe(false);
+    expect(
+      GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'cs_1', uid: 'u1' }).success,
+    ).toBe(false);
   });
 
   it('answers only the pledge display fields — never Stripe ids or the supporter', () => {
-    expect(Object.keys(PledgeDisplaySchema.shape).sort()).toEqual(
-      ['amount', 'createdAt', 'currency', 'netAmount', 'pledgePaymentId', 'status'],
-    );
+    expect(Object.keys(PledgeDisplaySchema.shape).sort()).toEqual([
+      'amount',
+      'createdAt',
+      'currency',
+      'netAmount',
+      'pledgePaymentId',
+      'status',
+    ]);
     expect(
       PledgeDisplaySchema.safeParse({
         pledgePaymentId: 'pp1',
@@ -273,7 +293,10 @@ describe('the checkout success lookup', () => {
 describe('resolving a failed refund follow-up', () => {
   it('an admin may resolve the follow-up of a failed refund request', () => {
     expect(
-      AdminResolvePledgeRefundRequestInputSchema.safeParse({ requestId: 'req-1', decision: 'resolveFailure' }).success,
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'req-1',
+        decision: 'resolveFailure',
+      }).success,
     ).toBe(true);
   });
 });

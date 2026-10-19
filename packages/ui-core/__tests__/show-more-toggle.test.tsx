@@ -41,22 +41,41 @@ describe('ShowMoreToggle — the one show-more disclosure control', () => {
   it('a second press hides it again', () => {
     render(<Harness initial />);
     fireEvent.click(screen.getByRole('button', { name: 'Hide the rumors' }));
-    expect(screen.getByRole('button', { name: 'Show the rumors' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Show the rumors' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     expect(screen.queryByText('The rumors')).not.toBeInTheDocument();
   });
 
   it('reports the next state to its owner rather than holding its own', () => {
     const onExpandedChange = vi.fn();
-    render(<ShowMoreToggle expanded={false} onExpandedChange={onExpandedChange} openLabel="More" closeLabel="Less" />);
+    render(
+      <ShowMoreToggle
+        expanded={false}
+        onExpandedChange={onExpandedChange}
+        openLabel="More"
+        closeLabel="Less"
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
     expect(onExpandedChange).toHaveBeenCalledWith(true);
     expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('is always the small outline button, never a form submit, with a decorative chevron', () => {
-    render(<ShowMoreToggle expanded={false} onExpandedChange={() => {}} openLabel="More" closeLabel="Less" />);
+    render(
+      <ShowMoreToggle
+        expanded={false}
+        onExpandedChange={() => {}}
+        openLabel="More"
+        closeLabel="Less"
+      />,
+    );
     const toggle = screen.getByRole('button', { name: 'More' });
-    for (const c of buttonVariants({ variant: 'outline', size: 'sm' }).split(/\s+/).filter(Boolean)) {
+    for (const c of buttonVariants({ variant: 'outline', size: 'sm' })
+      .split(/\s+/)
+      .filter(Boolean)) {
       expect(toggle).toHaveClass(c);
     }
     expect(toggle).toHaveAttribute('type', 'button');

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from 'react';
 
 export interface UseAsyncActionOptions {
   /**

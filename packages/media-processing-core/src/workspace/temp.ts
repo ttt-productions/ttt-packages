@@ -1,13 +1,13 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 export interface TempWorkspace {
   dir: string;
   cleanup: () => Promise<void>;
 }
 
-export async function createTempWorkspace(prefix = "media-"): Promise<TempWorkspace> {
+export async function createTempWorkspace(prefix = 'media-'): Promise<TempWorkspace> {
   const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
   return {
     dir,

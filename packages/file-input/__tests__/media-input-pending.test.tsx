@@ -7,8 +7,9 @@ import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal.j
 import { getCroppedImg } from '../src/lib/image-utils.js';
 import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from '../src/progress-bar.js';
 
-vi.mock('@ttt-productions/media-viewer/react', async () =>
-  import('../../media-viewer/src/react/index.js'),
+vi.mock(
+  '@ttt-productions/media-viewer/react',
+  async () => import('../../media-viewer/src/react/index.js'),
 );
 
 // A controllable meta read: while `metaGate` is set, validation waits on it.
@@ -49,7 +50,12 @@ function deferred<T = void>() {
 const AUDIO_SPEC: MediaOriginSpec = {
   kind: 'audio',
   accept: { kinds: ['audio'] },
-  client: { allowPick: true, allowCapturePhoto: false, allowRecordVideo: false, allowRecordAudio: false },
+  client: {
+    allowPick: true,
+    allowCapturePhoto: false,
+    allowRecordVideo: false,
+    allowRecordAudio: false,
+  },
 };
 
 beforeEach(() => {
@@ -95,7 +101,9 @@ describe('MediaInput — validation window and progress', () => {
     render(<MediaInput spec={AUDIO_SPEC} onChange={onChange} />);
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File(['x'], 'take.mp3', { type: 'audio/mpeg' })] } });
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'take.mp3', { type: 'audio/mpeg' })] },
+    });
 
     const trigger = await screen.findByRole('button', { name: 'Choose file' });
     await waitFor(() => expect(trigger).toHaveAttribute('aria-busy', 'true'));
@@ -111,9 +119,15 @@ describe('MediaInput — validation window and progress', () => {
 
   it('shows the real percent bar for a large emitted file even when the consumer passes selectedFile={null}', async () => {
     const onChange = vi.fn();
-    const { rerender } = render(<MediaInput spec={AUDIO_SPEC} onChange={onChange} selectedFile={null} />);
-    const big = new File([new Uint8Array(DEFAULT_PROGRESS_BAR_MIN_BYTES + 1)], 'long.mp3', { type: 'audio/mpeg' });
-    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [big] } });
+    const { rerender } = render(
+      <MediaInput spec={AUDIO_SPEC} onChange={onChange} selectedFile={null} />,
+    );
+    const big = new File([new Uint8Array(DEFAULT_PROGRESS_BAR_MIN_BYTES + 1)], 'long.mp3', {
+      type: 'audio/mpeg',
+    });
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
+      target: { files: [big] },
+    });
     await waitFor(() => expect(onChange).toHaveBeenCalled());
 
     rerender(
@@ -131,7 +145,9 @@ describe('MediaInput — validation window and progress', () => {
 
   it('keeps the indeterminate row (no percent bar) for a small emitted file', async () => {
     const onChange = vi.fn();
-    const { rerender } = render(<MediaInput spec={AUDIO_SPEC} onChange={onChange} selectedFile={null} />);
+    const { rerender } = render(
+      <MediaInput spec={AUDIO_SPEC} onChange={onChange} selectedFile={null} />,
+    );
     fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, {
       target: { files: [new File(['x'], 'tiny.mp3', { type: 'audio/mpeg' })] },
     });

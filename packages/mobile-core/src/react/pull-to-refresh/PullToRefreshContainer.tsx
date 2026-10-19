@@ -1,6 +1,6 @@
-import React from "react";
-import { usePullToRefresh } from "./usePullToRefresh.js";
-import { resolvePrefix } from "../css-prefix.js";
+import React from 'react';
+import { usePullToRefresh } from './usePullToRefresh.js';
+import { resolvePrefix } from '../css-prefix.js';
 
 type Props = {
   onRefresh: () => Promise<void>;
@@ -18,7 +18,15 @@ type Props = {
 
 const INDICATOR_SIZE = 32;
 
-function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number; isRefreshing: boolean; prefix: string }) {
+function SpinnerIndicator({
+  progress,
+  isRefreshing,
+  prefix,
+}: {
+  progress: number;
+  isRefreshing: boolean;
+  prefix: string;
+}) {
   const radius = 10;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - progress);
@@ -29,8 +37,8 @@ function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number
       height={INDICATOR_SIZE}
       viewBox="0 0 24 24"
       style={{
-        display: "block",
-        animation: isRefreshing ? `${prefix}-ptr-spin 0.8s linear infinite` : "none",
+        display: 'block',
+        animation: isRefreshing ? `${prefix}-ptr-spin 0.8s linear infinite` : 'none',
       }}
     >
       <circle
@@ -52,7 +60,11 @@ function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number
         strokeDasharray={circumference}
         strokeDashoffset={isRefreshing ? circumference * 0.25 : dashOffset}
         strokeLinecap="round"
-        style={{ transition: isRefreshing ? "none" : "stroke-dashoffset var(--motion-fast) var(--motion-ease)" }}
+        style={{
+          transition: isRefreshing
+            ? 'none'
+            : 'stroke-dashoffset var(--motion-fast) var(--motion-ease)',
+        }}
         transform="rotate(-90 12 12)"
       />
     </svg>
@@ -70,7 +82,14 @@ function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number
  * </PullToRefreshContainer>
  * ```
  */
-export function PullToRefreshContainer({ onRefresh, disabled, className, children, cssPrefix, refreshingIndicator }: Props) {
+export function PullToRefreshContainer({
+  onRefresh,
+  disabled,
+  className,
+  children,
+  cssPrefix,
+  refreshingIndicator,
+}: Props) {
   const prefix = resolvePrefix({ cssPrefix });
   const { isRefreshing, pullProgress, pullDistance, handlers, style } = usePullToRefresh({
     onRefresh,
@@ -88,24 +107,27 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
       <div
         className={className}
         {...handlers}
-        style={{ position: "relative", overscrollBehaviorY: "contain" }}
+        style={{ position: 'relative', overscrollBehaviorY: 'contain' }}
       >
         {/* Indicator: positioned above content, revealed by pull */}
         <div
           aria-hidden
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            display: "flex",
-            justifyContent: "center",
+            display: 'flex',
+            justifyContent: 'center',
             transform: `translateY(${showIndicator ? pullDistance - INDICATOR_SIZE - 8 : -INDICATOR_SIZE - 8}px)`,
             opacity: indicatorOpacity,
-            transition: pullDistance > 0 && !isRefreshing ? "none" : "transform var(--motion-slow) var(--motion-ease), opacity var(--motion-slow) var(--motion-ease)",
-            pointerEvents: "none",
+            transition:
+              pullDistance > 0 && !isRefreshing
+                ? 'none'
+                : 'transform var(--motion-slow) var(--motion-ease), opacity var(--motion-slow) var(--motion-ease)',
+            pointerEvents: 'none',
             zIndex: 10,
-            color: "hsl(var(--foreground))",
+            color: 'hsl(var(--foreground))',
           }}
         >
           {isRefreshing && refreshingIndicator ? (
@@ -116,9 +138,7 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
         </div>
 
         {/* Content shifts down during pull */}
-        <div style={style}>
-          {children}
-        </div>
+        <div style={style}>{children}</div>
       </div>
     </>
   );

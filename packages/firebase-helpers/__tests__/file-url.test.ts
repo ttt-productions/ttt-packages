@@ -15,7 +15,8 @@ describe('getFileNameFromUrl', () => {
   });
 
   it('extracts filename from a basic Storage URL', () => {
-    const url = 'https://firebasestorage.googleapis.com/v0/b/my-bucket/o/images%2Fphoto.jpg?alt=media&token=abc';
+    const url =
+      'https://firebasestorage.googleapis.com/v0/b/my-bucket/o/images%2Fphoto.jpg?alt=media&token=abc';
     expect(getFileNameFromUrl(url)).toBe('photo.jpg');
   });
 
@@ -25,12 +26,14 @@ describe('getFileNameFromUrl', () => {
   });
 
   it('decodes URL-encoded paths', () => {
-    const url = 'https://firebasestorage.googleapis.com/v0/b/my-bucket/o/folder%2Fsub%2Fmy%20file.pdf?alt=media';
+    const url =
+      'https://firebasestorage.googleapis.com/v0/b/my-bucket/o/folder%2Fsub%2Fmy%20file.pdf?alt=media';
     expect(getFileNameFromUrl(url)).toBe('my file.pdf');
   });
 
   it('handles nested paths and returns only the last segment', () => {
-    const url = 'https://firebasestorage.googleapis.com/v0/b/my-bucket/o/a%2Fb%2Fc%2Fdeep.txt?token=xyz';
+    const url =
+      'https://firebasestorage.googleapis.com/v0/b/my-bucket/o/a%2Fb%2Fc%2Fdeep.txt?token=xyz';
     expect(getFileNameFromUrl(url)).toBe('deep.txt');
   });
 

@@ -74,7 +74,9 @@ describe('createCallables — action', () => {
   it('calls the declared function with the input and returns its answer', async () => {
     const invoke = mockCallable({ ok: true });
     const policy = makePolicy();
-    const useAction = createCallables(policy).createCallableHook<{ id: string }, { ok: boolean }>('doThing');
+    const useAction = createCallables(policy).createCallableHook<{ id: string }, { ok: boolean }>(
+      'doThing',
+    );
     const { result } = renderHook(() => useAction(), { wrapper: wrapperFor(retryingClient()) });
 
     let answer: unknown;
@@ -96,7 +98,9 @@ describe('createCallables — action', () => {
     });
 
     await act(async () => {
-      await expect(result.current.mutateAsync()).rejects.toMatchObject({ code: 'functions/internal' });
+      await expect(result.current.mutateAsync()).rejects.toMatchObject({
+        code: 'functions/internal',
+      });
     });
 
     expect(invoke).toHaveBeenCalledTimes(1);
@@ -116,7 +120,10 @@ describe('createCallables — action', () => {
     expect(policy.onActionError).toHaveBeenCalledTimes(1);
     expect(policy.onActionError).toHaveBeenCalledWith(error, DEFAULT_ROUTING);
     expect(policy.captureFault).toHaveBeenCalledTimes(1);
-    expect(policy.captureFault).toHaveBeenCalledWith(error, { functionName: 'doThing', timeoutMs: TIMEOUT_MS });
+    expect(policy.captureFault).toHaveBeenCalledWith(error, {
+      functionName: 'doThing',
+      timeoutMs: TIMEOUT_MS,
+    });
     expect(policy.captureRecoveredFallback).not.toHaveBeenCalled();
   });
 
@@ -127,7 +134,12 @@ describe('createCallables — action', () => {
     const isAnswerSurfacedByCaller = (e: unknown) => e === error;
     const useAction = createCallables(policy).createCallableHook<void, unknown>('doThing');
     const { result } = renderHook(
-      () => useAction({ showErrorToast: false, answeredRefusals: ['not-found'], isAnswerSurfacedByCaller }),
+      () =>
+        useAction({
+          showErrorToast: false,
+          answeredRefusals: ['not-found'],
+          isAnswerSurfacedByCaller,
+        }),
       { wrapper: wrapperFor(retryingClient()) },
     );
 
@@ -232,7 +244,10 @@ describe('createCallables — reader', () => {
 
   it('returns the answer for a queryFn', async () => {
     mockCallable({ rows: [1] });
-    const useRead = createCallables(makePolicy()).createCallableReader<{ q: string }, { rows: number[] }>('read');
+    const useRead = createCallables(makePolicy()).createCallableReader<
+      { q: string },
+      { rows: number[] }
+    >('read');
     const { result } = renderHook(() => useRead());
 
     await expect(result.current({ q: 'x' })).resolves.toEqual({ rows: [1] });
@@ -262,7 +277,11 @@ describe('createCallables — recovered limited-use fallback', () => {
   beforeEach(() => vi.mocked(httpsCallable).mockReset());
 
   const throttled = () => fault('appCheck/throttled');
-  const FALLBACK_REPORT = { functionName: 'sensitiveRead', timeoutMs: TIMEOUT_MS, limitedUseAppCheckFallback: true };
+  const FALLBACK_REPORT = {
+    functionName: 'sensitiveRead',
+    timeoutMs: TIMEOUT_MS,
+    limitedUseAppCheckFallback: true,
+  };
 
   it('a reader whose throttled limited-use call recovers hands that report, and only it, to captureRecoveredFallback', async () => {
     const error = throttled();
@@ -324,7 +343,9 @@ describe('createCallables — invoker', () => {
     const error = fault();
     mockCallable(throwing(error));
     const policy = makePolicy();
-    const useInvoke = createCallables(policy).createCallableInvoker<{ id: string }, unknown>('archive');
+    const useInvoke = createCallables(policy).createCallableInvoker<{ id: string }, unknown>(
+      'archive',
+    );
     const { result } = renderHook(() => useInvoke());
 
     await expect(result.current({ id: 'n1' })).rejects.toBe(error);
@@ -346,10 +367,10 @@ describe('createCallables — resumable', () => {
   });
 
   function renderResumable(policy = makePolicy()) {
-    const useResumable = createCallables(policy).createResumableCallableHook<{ id: string }, Progress>(
-      'removeAll',
-      sumRemoved,
-    );
+    const useResumable = createCallables(policy).createResumableCallableHook<
+      { id: string },
+      Progress
+    >('removeAll', sumRemoved);
     return renderHook(() => useResumable(), { wrapper: wrapperFor(retryingClient()) });
   }
 
@@ -413,12 +434,12 @@ describe('createCallables — resumable', () => {
     const mergeFault = new Error('merge broke');
     const invoke = mockCallable({ complete: false, removed: 2 }, { complete: true, removed: 3 });
     const policy = makePolicy();
-    const useResumable = createCallables(policy).createResumableCallableHook<{ id: string }, Progress>(
-      'removeAll',
-      () => {
-        throw mergeFault;
-      },
-    );
+    const useResumable = createCallables(policy).createResumableCallableHook<
+      { id: string },
+      Progress
+    >('removeAll', () => {
+      throw mergeFault;
+    });
     const { result } = renderHook(() => useResumable(), { wrapper: wrapperFor(retryingClient()) });
 
     await act(async () => {

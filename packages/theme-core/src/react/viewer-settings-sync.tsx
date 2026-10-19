@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -10,15 +10,15 @@ import {
   useState,
   useSyncExternalStore,
   type ReactNode,
-} from "react";
-import { useTheme } from "next-themes";
-import { isThemeName, type ThemeName } from "../themes.js";
+} from 'react';
+import { useTheme } from 'next-themes';
+import { isThemeName, type ThemeName } from '../themes.js';
 import type {
   SavedViewerSettings,
   ViewerSettingDifference,
   ViewerSettingName,
   ViewerSettings,
-} from "../viewer-settings.js";
+} from '../viewer-settings.js';
 import {
   advanceBaseline,
   beginSave,
@@ -35,10 +35,10 @@ import {
   viewerSettingsFromDifferences,
   type Baseline,
   type SaveTracks,
-} from "../viewer-settings-logic.js";
-import { noteStoredValue, readStoredValue, writeStoredValue } from "../device-storage.js";
-import type { ReducedMotionStore } from "./reduced-motion-store.js";
-import { useThemeStorageKey } from "./theme-provider.js";
+} from '../viewer-settings-logic.js';
+import { noteStoredValue, readStoredValue, writeStoredValue } from '../device-storage.js';
+import type { ReducedMotionStore } from './reduced-motion-store.js';
+import { useThemeStorageKey } from './theme-provider.js';
 
 /** The account half of the sync, built by the app from its auth state, account read, and settings write. */
 export interface ViewerSettingsAccount {
@@ -125,10 +125,10 @@ function storedValue(key: string): StoredValue {
     },
     subscribe: (onChange) => {
       listeners.add(onChange);
-      window.addEventListener("storage", onChange);
+      window.addEventListener('storage', onChange);
       return () => {
         listeners.delete(onChange);
-        window.removeEventListener("storage", onChange);
+        window.removeEventListener('storage', onChange);
       };
     },
   };
@@ -143,7 +143,9 @@ const NO_SETTINGS: ReadonlySet<ViewerSettingName> = new Set();
 function useRequiredThemeStorageKey(): string {
   const key = useThemeStorageKey();
   if (key === null) {
-    throw new Error("ViewerSettingsSyncProvider must be mounted inside theme-core's ThemeProvider.");
+    throw new Error(
+      "ViewerSettingsSyncProvider must be mounted inside theme-core's ThemeProvider.",
+    );
   }
   return key;
 }
@@ -167,8 +169,16 @@ export function ViewerSettingsSyncProvider({
 
   const storedTheme = useSyncExternalStore(themeStore.subscribe, themeStore.read, readNothing);
   const deviceTheme = isThemeName(storedTheme) ? storedTheme : null;
-  const deviceMotion = useSyncExternalStore(motion.subscribe, motion.savedReducedMotion, readNothing);
-  const storedDismissals = useSyncExternalStore(dismissalStore.subscribe, dismissalStore.read, readNothing);
+  const deviceMotion = useSyncExternalStore(
+    motion.subscribe,
+    motion.savedReducedMotion,
+    readNothing,
+  );
+  const storedDismissals = useSyncExternalStore(
+    dismissalStore.subscribe,
+    dismissalStore.read,
+    readNothing,
+  );
   const dismissals = useMemo(() => parseDismissals(storedDismissals), [storedDismissals]);
 
   const { accountId, settings, save, onSilentSaveError } = account;
@@ -308,7 +318,15 @@ export function ViewerSettingsSyncProvider({
         onSilentSaveError(error);
       }
     })();
-  }, [generation, silentTheme, silentMotion, accountTheme, accountMotion, saveTracked, onSilentSaveError]);
+  }, [
+    generation,
+    silentTheme,
+    silentMotion,
+    accountTheme,
+    accountMotion,
+    saveTracked,
+    onSilentSaveError,
+  ]);
 
   useEffect(() => {
     if (accountValues === null) return;
@@ -322,9 +340,10 @@ export function ViewerSettingsSyncProvider({
     if (open.length === 0) return null;
     return {
       differences: open,
-      adoptAccountSettings: () => writeDevice(viewerSettingsFromDifferences(open, "account")),
-      saveDeviceSettings: () => save(viewerSettingsFromDifferences(open, "device")),
-      dismiss: () => dismissalStore.write(serializeDismissals([...dismissals, ...open.map(dismissalOf)])),
+      adoptAccountSettings: () => writeDevice(viewerSettingsFromDifferences(open, 'account')),
+      saveDeviceSettings: () => save(viewerSettingsFromDifferences(open, 'device')),
+      dismiss: () =>
+        dismissalStore.write(serializeDismissals([...dismissals, ...open.map(dismissalOf)])),
     };
   }, [differences, dismissals, writeDevice, save, dismissalStore]);
 
@@ -334,12 +353,17 @@ export function ViewerSettingsSyncProvider({
     [theme, setTheme, setReducedMotion, prompt],
   );
 
-  return <ViewerSettingsSyncContext.Provider value={value}>{children}</ViewerSettingsSyncContext.Provider>;
+  return (
+    <ViewerSettingsSyncContext.Provider value={value}>
+      {children}
+    </ViewerSettingsSyncContext.Provider>
+  );
 }
 
 export function useViewerSettingsSync(): ViewerSettingsSync {
   const sync = useContext(ViewerSettingsSyncContext);
-  if (!sync) throw new Error("useViewerSettingsSync must be used within a ViewerSettingsSyncProvider.");
+  if (!sync)
+    throw new Error('useViewerSettingsSync must be used within a ViewerSettingsSyncProvider.');
   return sync;
 }
 

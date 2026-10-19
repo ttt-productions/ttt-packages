@@ -30,13 +30,16 @@ export const NCMEC_MANUAL_PORTAL_FILED_CONFIRMATION =
   'I confirm this NCMEC report was filed via the manual portal';
 
 /** `revealCaseEvidence` — metadata→evidence reveal under reauth. */
-export const REVEAL_CASE_EVIDENCE_CONFIRMATION = 'I confirm I am revealing case evidence under reauth';
+export const REVEAL_CASE_EVIDENCE_CONFIRMATION =
+  'I confirm I am revealing case evidence under reauth';
 
 /** `recordNcmecPortalCorrection` — record an NCMEC manual-portal correction filing. */
-export const NCMEC_PORTAL_CORRECTION_CONFIRMATION = 'I confirm this NCMEC portal correction was filed';
+export const NCMEC_PORTAL_CORRECTION_CONFIRMATION =
+  'I confirm this NCMEC portal correction was filed';
 
 /** `decideTakeItDownValidity` — the operator validity ruling on a TAKE IT DOWN request. */
 export const TAKE_IT_DOWN_VALIDITY_CONFIRMATION = 'I confirm this TAKE IT DOWN validity decision';
 
 /** `setReportDisposition` — the legal reporting disposition on a protected case. */
-export const LEGAL_REPORTING_DISPOSITION_CONFIRMATION = 'I confirm this legal reporting disposition';
+export const LEGAL_REPORTING_DISPOSITION_CONFIRMATION =
+  'I confirm this legal reporting disposition';

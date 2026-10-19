@@ -17,21 +17,37 @@ describe('self-leave contract', () => {
   });
 
   it('depart requires a user and rejects an unknown reason or extra keys', () => {
-    expect(StakeShareOperationSchema.safeParse({ type: 'depart', reason: 'selfLeave' }).success).toBe(false);
     expect(
-      StakeShareOperationSchema.safeParse({ type: 'depart', user: { uid: 'u1' }, reason: 'banned' }).success,
+      StakeShareOperationSchema.safeParse({ type: 'depart', reason: 'selfLeave' }).success,
     ).toBe(false);
     expect(
-      StakeShareOperationSchema.safeParse({ type: 'depart', user: { uid: 'u1' }, reason: 'selfLeave', amount: 5 }).success,
+      StakeShareOperationSchema.safeParse({ type: 'depart', user: { uid: 'u1' }, reason: 'banned' })
+        .success,
+    ).toBe(false);
+    expect(
+      StakeShareOperationSchema.safeParse({
+        type: 'depart',
+        user: { uid: 'u1' },
+        reason: 'selfLeave',
+        amount: 5,
+      }).success,
     ).toBe(false);
   });
 
   it('PublicStakeShareOperationSchema REJECTS depart — the public surface is add-active only', () => {
     expect(
-      PublicStakeShareOperationSchema.safeParse({ type: 'depart', user: { uid: 'u1' }, reason: 'selfLeave' }).success,
+      PublicStakeShareOperationSchema.safeParse({
+        type: 'depart',
+        user: { uid: 'u1' },
+        reason: 'selfLeave',
+      }).success,
     ).toBe(false);
     expect(
-      PublicStakeShareOperationSchema.safeParse({ type: 'add-active', user: { uid: 'u1' }, amount: 5 }).success,
+      PublicStakeShareOperationSchema.safeParse({
+        type: 'add-active',
+        user: { uid: 'u1' },
+        amount: 5,
+      }).success,
     ).toBe(true);
   });
 
@@ -53,6 +69,8 @@ describe('self-leave contract', () => {
   it('LeaveWorkProjectInputSchema takes only { workProjectId } and forbids a client-supplied uid', () => {
     expect(LeaveWorkProjectInputSchema.safeParse({ workProjectId: 'wp1' }).success).toBe(true);
     expect(LeaveWorkProjectInputSchema.safeParse({}).success).toBe(false);
-    expect(LeaveWorkProjectInputSchema.safeParse({ workProjectId: 'wp1', uid: 'u1' }).success).toBe(false);
+    expect(LeaveWorkProjectInputSchema.safeParse({ workProjectId: 'wp1', uid: 'u1' }).success).toBe(
+      false,
+    );
   });
 });

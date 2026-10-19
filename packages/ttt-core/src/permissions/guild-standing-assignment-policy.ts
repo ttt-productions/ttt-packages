@@ -1,13 +1,12 @@
 import type { GuildStandingId } from './work-project-permissions-data.js';
 import { STEWARD_OWNER_GUILD_STANDING_ID } from './work-project-permissions-data.js';
-import {
-  getGuildStandingIdFromValue,
-  isGuildStandingValue,
-} from './work-project-permissions.js';
+import { getGuildStandingIdFromValue, isGuildStandingValue } from './work-project-permissions.js';
 
 export type GuildStandingAssignmentAction = 'add' | 'remove';
 
-export const NON_ASSIGNABLE_GUILD_STANDINGS = [STEWARD_OWNER_GUILD_STANDING_ID] as const satisfies readonly GuildStandingId[];
+export const NON_ASSIGNABLE_GUILD_STANDINGS = [
+  STEWARD_OWNER_GUILD_STANDING_ID,
+] as const satisfies readonly GuildStandingId[];
 export const STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS = [
   'WorkProjectManager',
   'GuildStandingManager',
@@ -63,13 +62,18 @@ export function canAssignGuildStanding({
     normalizedActorGuildStandingIds.includes('GuildStandingManager');
 
   if (!actorCanManageGuildStandings) {
-    return { allowed: false, reason: 'WorkProjectManager or GuildStandingManager standing is required.' };
+    return {
+      allowed: false,
+      reason: 'WorkProjectManager or GuildStandingManager standing is required.',
+    };
   }
 
   if (ownerOnlyAssignable.has(targetGuildStandingId)) {
-    return { allowed: false, reason: `${targetGuildStanding} can only be assigned or removed by the work steward.` };
+    return {
+      allowed: false,
+      reason: `${targetGuildStanding} can only be assigned or removed by the work steward.`,
+    };
   }
 
   return { allowed: true };
 }
-

@@ -1,26 +1,37 @@
-import * as React from "react";
-import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
-import type { SimplifiedMediaType } from "@ttt-productions/media-schemas";
+import * as React from 'react';
+import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
+import type { SimplifiedMediaType } from '@ttt-productions/media-schemas';
 
-import type { MediaViewerType, FallbackMode } from "../types.js";
-import type { MediaPreviewProps } from "./types.js";
-import { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback, PendingFallback } from "./fallback.js";
-import { ImageViewer } from "./image-viewer.js";
-import { VideoViewer } from "./video-viewer.js";
-import { AudioViewer } from "./audio-viewer.js";
-import { useMediaRecovery } from "./use-media-recovery.js";
-import type { RecoveryState } from "../recovery.js";
+import type { MediaViewerType, FallbackMode } from '../types.js';
+import type { MediaPreviewProps } from './types.js';
+import {
+  MediaFallbackLink,
+  shouldShowFallback,
+  EmptyFallback,
+  ErrorFallback,
+  PendingFallback,
+} from './fallback.js';
+import { ImageViewer } from './image-viewer.js';
+import { VideoViewer } from './video-viewer.js';
+import { AudioViewer } from './audio-viewer.js';
+import { useMediaRecovery } from './use-media-recovery.js';
+import type { RecoveryState } from '../recovery.js';
 
-function inferType(props: { type?: MediaPreviewProps["type"]; mime?: string; name?: string; url?: string }): MediaViewerType {
+function inferType(props: {
+  type?: MediaPreviewProps['type'];
+  mime?: string;
+  name?: string;
+  url?: string;
+}): MediaViewerType {
   if (props.type) {
     // Handle MIME strings like "image/png" -> "image"
-    const primary = typeof props.type === "string" ? props.type.split("/")[0] : props.type;
-    if (primary === "image" || primary === "video" || primary === "audio") return primary;
-    if (primary === "other") return "other";
+    const primary = typeof props.type === 'string' ? props.type.split('/')[0] : props.type;
+    if (primary === 'image' || primary === 'video' || primary === 'audio') return primary;
+    if (primary === 'other') return 'other';
   }
 
   const hint = props.mime ?? props.name ?? props.url;
-  if (!hint) return "other";
+  if (!hint) return 'other';
   const simplified: SimplifiedMediaType = getSimplifiedMediaType(hint);
   return simplified;
 }
@@ -29,23 +40,27 @@ function inferType(props: { type?: MediaPreviewProps["type"]; mime?: string; nam
 // Recovery-phase UI helpers
 // ---------------------------------------------------------------------------
 
-function RecoveryOverlay({ state, onManualRetry, isCircular }: {
+function RecoveryOverlay({
+  state,
+  onManualRetry,
+  isCircular,
+}: {
   state: RecoveryState;
   onManualRetry: () => void;
   isCircular?: boolean;
 }) {
   const wrapStyle: React.CSSProperties = {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
-    gap: "0.5rem",
-    ...(isCircular ? { borderRadius: "50%" } : {}),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    gap: '0.5rem',
+    ...(isCircular ? { borderRadius: '50%' } : {}),
   };
 
-  if (state.phase === "processing") {
+  if (state.phase === 'processing') {
     return (
       <div className="mv-recovery-processing" style={wrapStyle}>
         <span className="mv-recovery-label">Processing media&hellip;</span>
@@ -53,7 +68,7 @@ function RecoveryOverlay({ state, onManualRetry, isCircular }: {
     );
   }
 
-  if (state.phase === "finalizing") {
+  if (state.phase === 'finalizing') {
     return (
       <div className="mv-recovery-finalizing" style={wrapStyle}>
         <span className="mv-recovery-label">Finishing media&hellip;</span>
@@ -61,7 +76,7 @@ function RecoveryOverlay({ state, onManualRetry, isCircular }: {
     );
   }
 
-  if (state.phase === "transient-retry" || state.phase === "propagating") {
+  if (state.phase === 'transient-retry' || state.phase === 'propagating') {
     return (
       <div className="mv-recovery-retrying" style={wrapStyle}>
         <span className="mv-recovery-label">Loading&hellip;</span>
@@ -69,7 +84,7 @@ function RecoveryOverlay({ state, onManualRetry, isCircular }: {
     );
   }
 
-  if (state.phase === "auth-retry") {
+  if (state.phase === 'auth-retry') {
     return (
       <div className="mv-recovery-auth" style={wrapStyle}>
         <span className="mv-recovery-label">Refreshing access&hellip;</span>
@@ -77,11 +92,11 @@ function RecoveryOverlay({ state, onManualRetry, isCircular }: {
     );
   }
 
-  if (state.phase === "hard-unavailable") {
+  if (state.phase === 'hard-unavailable') {
     return (
       <div className="mv-recovery-hard" style={wrapStyle}>
         <ErrorFallback isCircular={isCircular} />
-        {state.reason === "auth" ? (
+        {state.reason === 'auth' ? (
           <span className="mv-recovery-label">Access denied.</span>
         ) : (
           <span className="mv-recovery-label">Media unavailable.</span>
@@ -90,15 +105,11 @@ function RecoveryOverlay({ state, onManualRetry, isCircular }: {
     );
   }
 
-  if (state.phase === "max-wait-fallback") {
+  if (state.phase === 'max-wait-fallback') {
     return (
       <div className="mv-recovery-max-wait" style={wrapStyle}>
         <span className="mv-recovery-label">This media is taking longer than expected.</span>
-        <button
-          type="button"
-          className="mv-recovery-retry-btn"
-          onClick={onManualRetry}
-        >
+        <button type="button" className="mv-recovery-retry-btn" onClick={onManualRetry}>
           Retry
         </button>
       </div>
@@ -143,7 +154,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     audioVisualizerMode,
     audioPersistKey,
     audioExtraActions,
-    fallbackMode = "link",
+    fallbackMode = 'link',
     fallbackLabel,
     filename,
     mime,
@@ -179,21 +190,20 @@ export function MediaViewer(props: MediaPreviewProps) {
   }
 
   // Recovery hook (no-op when recoveryAdapter is omitted)
-  const { recoveryState, onMediaError, onMediaLoad, manualRetry } =
-    useMediaRecovery({
-      url: typeof url === "string" ? url : null,
-      adapter: recoveryAdapter,
-      isElementVisible: elementVisible,
-      statusHint: assetStatusHint,
-      onRemount: handleRemount,
-    });
+  const { recoveryState, onMediaError, onMediaLoad, manualRetry } = useMediaRecovery({
+    url: typeof url === 'string' ? url : null,
+    adapter: recoveryAdapter,
+    isElementVisible: elementVisible,
+    statusHint: assetStatusHint,
+    onRemount: handleRemount,
+  });
   const onVisibilityChange = listensForVisibility ? setElementVisible : undefined;
 
   React.useEffect(() => {
     setHasError(false);
     let objectUrl: string | null = null;
 
-    if (typeof url === "string") {
+    if (typeof url === 'string') {
       setSourceUrl(url);
     } else if (url instanceof Blob) {
       objectUrl = URL.createObjectURL(url);
@@ -226,28 +236,32 @@ export function MediaViewer(props: MediaPreviewProps) {
   }, [onLoad, recoveryAdapter, onMediaLoad]);
 
   const circularStyle: React.CSSProperties = isCircular
-    ? { borderRadius: "50%", overflow: "hidden" }
+    ? { borderRadius: '50%', overflow: 'hidden' }
     : {};
 
   const wrapperStyle: React.CSSProperties = {
-    position: "relative",
-    width: "100%",
-    height: "100%",
+    position: 'relative',
+    width: '100%',
+    height: '100%',
     ...circularStyle,
   };
 
   // When recovery is active and in a terminal/blocking state, show the overlay.
   const isInRecovery =
     recoveryAdapter !== undefined &&
-    recoveryState.phase !== "idle" &&
-    recoveryState.phase !== "loaded" &&
-    recoveryState.phase !== "loading";
+    recoveryState.phase !== 'idle' &&
+    recoveryState.phase !== 'loaded' &&
+    recoveryState.phase !== 'loading';
 
   // No URL -> empty fallback
   if (!sourceUrl) {
     return (
       <div className={className} style={wrapperStyle}>
-        {urlPending ? <PendingFallback isCircular={isCircular} /> : <EmptyFallback isCircular={isCircular} />}
+        {urlPending ? (
+          <PendingFallback isCircular={isCircular} />
+        ) : (
+          <EmptyFallback isCircular={isCircular} />
+        )}
       </div>
     );
   }
@@ -271,7 +285,7 @@ export function MediaViewer(props: MediaPreviewProps) {
 
   const t = inferType({ type, mime, name, url: sourceUrl });
 
-  if (t === "image") {
+  if (t === 'image') {
     return (
       <div className={className} style={wrapperStyle}>
         <ImageViewer
@@ -294,7 +308,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     );
   }
 
-  if (t === "video") {
+  if (t === 'video') {
     return (
       <div className={className} style={wrapperStyle}>
         <VideoViewer
@@ -326,7 +340,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     );
   }
 
-  if (t === "audio") {
+  if (t === 'audio') {
     return (
       <div className={className} style={wrapperStyle}>
         <AudioViewer
@@ -360,7 +374,7 @@ export function MediaViewer(props: MediaPreviewProps) {
   // Unknown type -> fallback link
   return shouldShowFallback(fallbackMode as FallbackMode) ? (
     <div className={className} style={wrapperStyle}>
-      <MediaFallbackLink url={sourceUrl} filename={filename} label={fallbackLabel ?? "Download"} />
+      <MediaFallbackLink url={sourceUrl} filename={filename} label={fallbackLabel ?? 'Download'} />
     </div>
   ) : null;
 }

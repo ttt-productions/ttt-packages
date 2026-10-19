@@ -25,9 +25,7 @@ type DocData = Record<string, unknown>;
 type Store = Map<string, DocData>;
 
 function getByPath(data: DocData, dotted: string): unknown {
-  return dotted
-    .split('.')
-    .reduce<unknown>((acc, k) => (acc as DocData | undefined)?.[k], data);
+  return dotted.split('.').reduce<unknown>((acc, k) => (acc as DocData | undefined)?.[k], data);
 }
 
 interface MockDbOptions {
@@ -67,7 +65,13 @@ function createMockDb(opts: MockDbOptions = {}) {
     dir: 'asc' | 'desc';
   }
 
-  const makeQuery = (colPath: string, clauses: Clause[], orders: Order[], lim?: number, afterPath?: string) => {
+  const makeQuery = (
+    colPath: string,
+    clauses: Clause[],
+    orders: Order[],
+    lim?: number,
+    afterPath?: string,
+  ) => {
     const query = {
       _isQuery: true,
       where: (field: string, op: string, value: unknown) =>
@@ -167,7 +171,15 @@ function createMockDb(opts: MockDbOptions = {}) {
     }),
   } as any;
 
-  return { db, transaction, store, sets, updates, queryCount: () => queryCount, docsRead: () => docsRead };
+  return {
+    db,
+    transaction,
+    store,
+    sets,
+    updates,
+    queryCount: () => queryCount,
+    docsRead: () => docsRead,
+  };
 }
 
 const pendingTask = (taskId: string, priority: number, createdAt = 1): DocData => ({
@@ -199,9 +211,9 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { adminUserIds: ['admin1'] },
     });
 
-    await expect(
-      handler({}, { uid: 'random-user', token: null }),
-    ).rejects.toThrow('Administrator access required');
+    await expect(handler({}, { uid: 'random-user', token: null })).rejects.toThrow(
+      'Administrator access required',
+    );
   });
 
   it('throws a TYPED not-found ReportCoreTaskError when the queue is empty', async () => {
@@ -251,7 +263,11 @@ describe('createCheckoutNextImportantHandler', () => {
         'activeReportGroups/group1': { reportedItemType: 'post' },
       },
     });
-    const handler = createCheckoutNextImportantHandler({ config: TEST_CONFIG, db, auth: { adminUserIds: ['admin1'] } });
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { adminUserIds: ['admin1'] },
+    });
 
     const result = await handler({}, { uid: 'admin1', token: null });
 
@@ -498,9 +514,7 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { adminUserIds: ['admin1'] },
     });
 
-    await expect(handler({}, { uid: 'admin1', token: null })).rejects.toThrow(
-      'queue is busy',
-    );
+    await expect(handler({}, { uid: 'admin1', token: null })).rejects.toThrow('queue is busy');
     expect(queryCount()).toBe(5);
   });
 });
@@ -535,7 +549,10 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
     expect(updates).toHaveLength(1);
     expect(updates[0].path).toBe('adminTasks/free');
     expect(onAuditEvent).toHaveBeenCalledTimes(1);
-    expect(onAuditEvent).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'groupFree' }), expect.anything());
+    expect(onAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'groupFree' }),
+      expect.anything(),
+    );
   });
 
   it('hands the guard the task, its item, and the claim transaction', async () => {
@@ -560,7 +577,9 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
     expect(args.taskData).toMatchObject({ taskId: 'group1', status: 'pending' });
     expect(args.originalData).toEqual({ status: 'pending' });
     expect(args.transaction).toBe(transaction);
-    expect(transaction.update.mock.invocationCallOrder[0]).toBeGreaterThan(guard.mock.invocationCallOrder[0]);
+    expect(transaction.update.mock.invocationCallOrder[0]).toBeGreaterThan(
+      guard.mock.invocationCallOrder[0],
+    );
   });
 
   it('reads past refused candidates one document per refusal, never re-reading the queue head', async () => {

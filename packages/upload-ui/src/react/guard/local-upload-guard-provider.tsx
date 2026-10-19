@@ -231,9 +231,7 @@ export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
   );
 
   return (
-    <LocalUploadGuardContext.Provider value={value}>
-      {children}
-    </LocalUploadGuardContext.Provider>
+    <LocalUploadGuardContext.Provider value={value}>{children}</LocalUploadGuardContext.Provider>
   );
 }
 
@@ -245,9 +243,7 @@ export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
 export function useLocalUploadGuardContext(): LocalUploadGuardContextValue {
   const ctx = useContext(LocalUploadGuardContext);
   if (ctx === undefined) {
-    throw new Error(
-      'useLocalUploadGuard must be used within LocalUploadGuardProvider',
-    );
+    throw new Error('useLocalUploadGuard must be used within LocalUploadGuardProvider');
   }
   return ctx;
 }

@@ -38,7 +38,8 @@ describe('every rate-limit charge names its own preset', () => {
   const clean = {
     'functions/src/shared/rate-limiter.ts': owner(),
     'functions/src/hall/progress.ts': 'await checkRateLimit(uid, RATE_LIMITS.HALL);',
-    'functions/src/admin/appeal.ts': 'await checkRateLimit(uid, admin ? RATE_LIMITS.APPEAL : RATE_LIMITS.APPEAL);',
+    'functions/src/admin/appeal.ts':
+      'await checkRateLimit(uid, admin ? RATE_LIMITS.APPEAL : RATE_LIMITS.APPEAL);',
     'functions/src/users/name.ts': 'await checkRateLimit(uid, RATE_LIMITS.SENSITIVE);',
   };
 
@@ -51,7 +52,8 @@ describe('every rate-limit charge names its own preset', () => {
   it('FLAGS an inline config, a spread preset, a shared prefix, a charge outside its surface in both directions, and a listed module that charges nothing', async () => {
     repo = backendRepo({
       'functions/src/shared/rate-limiter.ts': owner('rl:hall'),
-      'functions/src/hall/progress.ts': 'await checkRateLimit(uid, RATE_LIMITS.HALL);\nawait checkRateLimit(uid, RATE_LIMITS.SENSITIVE);',
+      'functions/src/hall/progress.ts':
+        'await checkRateLimit(uid, RATE_LIMITS.HALL);\nawait checkRateLimit(uid, RATE_LIMITS.SENSITIVE);',
       'functions/src/users/name.ts': [
         "await checkRateLimit(uid, { ...RATE_LIMITS.SENSITIVE, prefix: 'rl:other' });",
         "const cfg = { ...RATE_LIMITS.HALL, prefix: 'x' };",
@@ -60,14 +62,36 @@ describe('every rate-limit charge names its own preset', () => {
     });
     const [guard] = rateLimitGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/users/name.ts', line: 1, detail: 'passes an inline config to checkRateLimit' },
-      { file: 'functions/src/users/name.ts', line: 1, detail: 'spreads RATE_LIMITS.SENSITIVE into a new config' },
-      { file: 'functions/src/users/name.ts', line: 2, detail: 'spreads RATE_LIMITS.HALL into a new config' },
-      { file: 'functions/src/users/name.ts', line: 3, detail: 'passes an inline config to checkRateLimit' },
-      { file: 'functions/src/shared/rate-limiter.ts', detail: 'two presets share the prefix rl:hall' },
+      {
+        file: 'functions/src/users/name.ts',
+        line: 1,
+        detail: 'passes an inline config to checkRateLimit',
+      },
+      {
+        file: 'functions/src/users/name.ts',
+        line: 1,
+        detail: 'spreads RATE_LIMITS.SENSITIVE into a new config',
+      },
+      {
+        file: 'functions/src/users/name.ts',
+        line: 2,
+        detail: 'spreads RATE_LIMITS.HALL into a new config',
+      },
+      {
+        file: 'functions/src/users/name.ts',
+        line: 3,
+        detail: 'passes an inline config to checkRateLimit',
+      },
+      {
+        file: 'functions/src/shared/rate-limiter.ts',
+        detail: 'two presets share the prefix rl:hall',
+      },
       { file: 'functions/src/shared/rate-limiter.ts', detail: 'hall/progress charges SENSITIVE' },
       { file: 'functions/src/shared/rate-limiter.ts', detail: 'users/name charges HALL' },
-      { file: 'functions/src/shared/rate-limiter.ts', detail: 'APPEAL lists admin/appeal, which does not charge it' },
+      {
+        file: 'functions/src/shared/rate-limiter.ts',
+        detail: 'APPEAL lists admin/appeal, which does not charge it',
+      },
     ]);
   });
 
@@ -75,17 +99,33 @@ describe('every rate-limit charge names its own preset', () => {
     repo = backendRepo({ 'functions/src/shared/rate-limiter.ts': 'export const x = 1;' });
     const [guard] = rateLimitGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/shared/rate-limiter.ts', detail: 'no RATE_LIMITS with a prefix found' },
-      { file: 'functions/src/shared/rate-limiter.ts', detail: 'no RATE_LIMIT_SURFACES object found' },
-      { file: 'functions/src/shared/rate-limiter.ts', detail: 'no SHARED_RATE_LIMIT_PRESETS list found' },
+      {
+        file: 'functions/src/shared/rate-limiter.ts',
+        detail: 'no RATE_LIMITS with a prefix found',
+      },
+      {
+        file: 'functions/src/shared/rate-limiter.ts',
+        detail: 'no RATE_LIMIT_SURFACES object found',
+      },
+      {
+        file: 'functions/src/shared/rate-limiter.ts',
+        detail: 'no SHARED_RATE_LIMIT_PRESETS list found',
+      },
     ]);
     repo.remove();
     repo = backendRepo({});
-    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/shared/rate-limiter.ts', detail: 'the limiter owner is gone or outside the Functions tree' }]);
+    expect(await repo.run(guard!)).toEqual([
+      {
+        file: 'functions/src/shared/rate-limiter.ts',
+        detail: 'the limiter owner is gone or outside the Functions tree',
+      },
+    ]);
   });
 
   it('refuses facts with no charge call', () => {
-    expect(rateLimitGuard.factProblems({ ...facts, chargeCall: '' })).toEqual(['chargeCall is missing']);
+    expect(rateLimitGuard.factProblems({ ...facts, chargeCall: '' })).toEqual([
+      'chargeCall is missing',
+    ]);
   });
 });
 
@@ -93,7 +133,12 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
   const facts = {
     loader: 'lazyModule',
     testRunnerConfigs: ['functions/vitest.config.ts'],
-    testExceptions: [{ path: 'functions/src/shared/lazy-module.test.ts', why: "the loader's premise test overlaps two imports on purpose" }],
+    testExceptions: [
+      {
+        path: 'functions/src/shared/lazy-module.test.ts',
+        why: "the loader's premise test overlaps two imports on purpose",
+      },
+    ],
   };
   const clean = {
     'functions/src/a.ts': [
@@ -102,7 +147,8 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
       "let u: import('x').U | null = null;",
       'export async function run() { return (await loadSharp()).default; }',
     ].join('\n'),
-    'functions/src/shared/lazy-module.test.ts': "await Promise.all([import('./x.js'), import('./x.js')]);",
+    'functions/src/shared/lazy-module.test.ts':
+      "await Promise.all([import('./x.js'), import('./x.js')]);",
     'functions/src/b.test.ts': [
       "it('a', async () => { await import('./a.js'); });",
       "it('b', async () => { await Promise.all([run(), run()]); const { b } = await import('./b.js'); });",
@@ -138,17 +184,53 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
     });
     const [guard] = lazyLoaderGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/a.ts', line: 1, detail: "import('./a.js') is not a module-level lazyModule loader" },
-      { file: 'functions/src/a.ts', line: 2, detail: "import('./a.js') is not a module-level lazyModule loader" },
-      { file: 'functions/src/a.ts', line: 3, detail: "import('./a.js') is not a module-level lazyModule loader" },
-      { file: 'functions/src/a.ts', line: 4, detail: 'import(name) is not a module-level lazyModule loader' },
-      { file: 'functions/src/a.ts', line: 5, detail: "import('./a.js') is not a module-level lazyModule loader" },
-      { file: 'functions/src/b.test.ts', line: 1, detail: 'describe.concurrent runs tests concurrently' },
+      {
+        file: 'functions/src/a.ts',
+        line: 1,
+        detail: "import('./a.js') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'functions/src/a.ts',
+        line: 2,
+        detail: "import('./a.js') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'functions/src/a.ts',
+        line: 3,
+        detail: "import('./a.js') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'functions/src/a.ts',
+        line: 4,
+        detail: 'import(name) is not a module-level lazyModule loader',
+      },
+      {
+        file: 'functions/src/a.ts',
+        line: 5,
+        detail: "import('./a.js') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'functions/src/b.test.ts',
+        line: 1,
+        detail: 'describe.concurrent runs tests concurrently',
+      },
       { file: 'functions/src/b.test.ts', line: 2, detail: 'it.concurrent runs tests concurrently' },
-      { file: 'functions/src/b.test.ts', line: 3, detail: 'test.concurrent runs tests concurrently' },
+      {
+        file: 'functions/src/b.test.ts',
+        line: 3,
+        detail: 'test.concurrent runs tests concurrently',
+      },
       { file: 'functions/src/b.test.ts', line: 4, detail: 'a concurrent test option' },
-      { file: 'functions/src/b.test.ts', line: 5, detail: "import('./a.js') overlaps the other imports of a Promise combinator" },
-      { file: 'functions/vitest.config.ts', line: 1, detail: 'the runner config makes tests concurrent' },
+      {
+        file: 'functions/src/b.test.ts',
+        line: 5,
+        detail: "import('./a.js') overlaps the other imports of a Promise combinator",
+      },
+      {
+        file: 'functions/vitest.config.ts',
+        line: 1,
+        detail: 'the runner config makes tests concurrent',
+      },
     ]);
   });
 
@@ -157,13 +239,18 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
     const [guard] = lazyLoaderGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
       { file: '(functions)', detail: 'no lazyModule loader found, so the guard checks nothing' },
-      { file: 'functions/src/shared/lazy-module.test.ts', detail: 'stale test exception: the file overlaps no import' },
+      {
+        file: 'functions/src/shared/lazy-module.test.ts',
+        detail: 'stale test exception: the file overlaps no import',
+      },
       { file: 'functions/vitest.config.ts', detail: 'the test runner config no longer exists' },
     ]);
   });
 
   it('refuses facts with no runner config', () => {
-    expect(lazyLoaderGuard.factProblems({ ...facts, testRunnerConfigs: [] })).toEqual(['testRunnerConfigs is empty']);
+    expect(lazyLoaderGuard.factProblems({ ...facts, testRunnerConfigs: [] })).toEqual([
+      'testRunnerConfigs is empty',
+    ]);
   });
 
   it('reads every root the app names: a bare app import and an app test overlap are flagged, a reviewed other loader passes', async () => {
@@ -171,7 +258,8 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
       ...clean,
       'src/lib/policy.ts': "const loadFirebase = lazyModule(() => import('./firebase.js'));",
       'src/app/page.tsx': "const Redirector = dynamic(() => import('./redirector.js'));",
-      'src/lib/list.ts': "export async function read() { const { getDoc } = await import('firebase/firestore'); return getDoc; }",
+      'src/lib/list.ts':
+        "export async function read() { const { getDoc } = await import('firebase/firestore'); return getDoc; }",
       'src/lib/list.test.ts': "await Promise.all([import('./list.js'), import('./list.js')]);",
     });
     const [guard] = lazyLoaderGuard.build({
@@ -180,9 +268,21 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
       otherLoaders: [{ name: 'dynamic', why: "the framework's memoized component loader" }],
     });
     expect(await repo.run(guard!)).toEqual([
-      { file: 'src/lib/list.ts', line: 1, detail: "import('firebase/firestore') is not a module-level lazyModule loader" },
-      { file: 'src/lib/list.test.ts', line: 1, detail: "import('./list.js') overlaps the other imports of a Promise combinator" },
-      { file: 'src/lib/list.test.ts', line: 1, detail: "import('./list.js') overlaps the other imports of a Promise combinator" },
+      {
+        file: 'src/lib/list.ts',
+        line: 1,
+        detail: "import('firebase/firestore') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'src/lib/list.test.ts',
+        line: 1,
+        detail: "import('./list.js') overlaps the other imports of a Promise combinator",
+      },
+      {
+        file: 'src/lib/list.test.ts',
+        line: 1,
+        detail: "import('./list.js') overlaps the other imports of a Promise combinator",
+      },
     ]);
   });
 
@@ -192,7 +292,7 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
       'src/app/page.tsx': [
         "const Sidebar = dynamic(() => import('./sidebar.js').then((mod) => mod.Sidebar), { ssr: false });",
         "const Redirector = dynamic(() => import('./redirector.js'), { ssr: false, loading: () => null });",
-        "const Computed = dynamic(() => import(name).then((mod) => mod.X), { ssr: false });",
+        'const Computed = dynamic(() => import(name).then((mod) => mod.X), { ssr: false });',
         "const Nested = dynamic(() => import('./n.js').then((mod) => mod.X).then((x) => x), { ssr: false });",
       ].join('\n'),
       'src/lib/policy.ts': [
@@ -206,23 +306,51 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
       otherLoaders: [{ name: 'dynamic', why: "the framework's memoized component loader" }],
     });
     expect(await repo.run(guard!)).toEqual([
-      { file: 'src/app/page.tsx', line: 3, detail: 'import(name) is not a module-level lazyModule loader' },
-      { file: 'src/app/page.tsx', line: 4, detail: "import('./n.js') is not a module-level lazyModule loader" },
-      { file: 'src/lib/policy.ts', line: 1, detail: "import('./a.js') is not a module-level lazyModule loader" },
-      { file: 'src/lib/policy.ts', line: 2, detail: "import('./b.js') is not a module-level lazyModule loader" },
+      {
+        file: 'src/app/page.tsx',
+        line: 3,
+        detail: 'import(name) is not a module-level lazyModule loader',
+      },
+      {
+        file: 'src/app/page.tsx',
+        line: 4,
+        detail: "import('./n.js') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'src/lib/policy.ts',
+        line: 1,
+        detail: "import('./a.js') is not a module-level lazyModule loader",
+      },
+      {
+        file: 'src/lib/policy.ts',
+        line: 2,
+        detail: "import('./b.js') is not a module-level lazyModule loader",
+      },
     ]);
   });
 
   it('FLAGS an other loader that wraps no import, and reads Functions alone when no roots are named', async () => {
-    repo = backendRepo({ ...clean, 'src/lib/list.ts': "export const load = () => import('./x.js');" });
-    const [guard] = lazyLoaderGuard.build({ ...facts, otherLoaders: [{ name: 'dynamic', why: 'a component loader' }] });
-    expect(await repo.run(guard!)).toEqual([{ file: '(otherLoaders)', detail: 'stale other loader: dynamic wraps no import' }]);
+    repo = backendRepo({
+      ...clean,
+      'src/lib/list.ts': "export const load = () => import('./x.js');",
+    });
+    const [guard] = lazyLoaderGuard.build({
+      ...facts,
+      otherLoaders: [{ name: 'dynamic', why: 'a component loader' }],
+    });
+    expect(await repo.run(guard!)).toEqual([
+      { file: '(otherLoaders)', detail: 'stale other loader: dynamic wraps no import' },
+    ]);
   });
 
   it('refuses a root that is not a root role, an empty root list, and an other loader with no why', () => {
     expect(lazyLoaderGuard.factProblems({ ...facts, roots: [] })).toEqual(['roots is empty']);
-    expect(lazyLoaderGuard.factProblems({ ...facts, roots: ['web' as never] })).toEqual(['roots names web, which is not a root role']);
-    expect(lazyLoaderGuard.factProblems({ ...facts, otherLoaders: [{ name: 'dynamic', why: '' }] })).not.toEqual([]);
+    expect(lazyLoaderGuard.factProblems({ ...facts, roots: ['web' as never] })).toEqual([
+      'roots names web, which is not a root role',
+    ]);
+    expect(
+      lazyLoaderGuard.factProblems({ ...facts, otherLoaders: [{ name: 'dynamic', why: '' }] }),
+    ).not.toEqual([]);
   });
 });
 
@@ -232,12 +360,17 @@ describe('light functions never statically reach a heavy module', () => {
     lightFunctions: ['follow', 'like'],
     heavyPackages: [
       { specifier: 'sharp', lightSubpaths: [], why: 'the native image addon' },
-      { specifier: '@pkg/media', lightSubpaths: ['@pkg/media/server'], why: 'its root loads the image addon' },
+      {
+        specifier: '@pkg/media',
+        lightSubpaths: ['@pkg/media/server'],
+        why: 'its root loads the image addon',
+      },
     ],
     heavyFiles: [{ path: 'functions/src/media/hub.ts', why: 'fans out to every processor' }],
   };
   const clean = {
-    'functions/src/index.ts': "export { follow } from './social/follow.js';\nexport { like as like } from './social/like.js';\nexport { process } from './media/hub.js';",
+    'functions/src/index.ts':
+      "export { follow } from './social/follow.js';\nexport { like as like } from './social/like.js';\nexport { process } from './media/hub.js';",
     'functions/src/social/follow.ts': [
       "import { helper } from '../shared/helper.js';",
       "import type { T } from '../media/hub.js';",
@@ -261,28 +394,55 @@ describe('light functions never statically reach a heavy module', () => {
       ...clean,
       'functions/src/social/follow.ts': `${clean['functions/src/social/follow.ts']}\nimport { z } from './missing.js';`,
       'functions/src/social/like.ts': "import { x } from '../shared/util';\nexport const like = 1;",
-      'functions/src/shared/util/index.ts': "import '@pkg/media';\nexport { y } from '../../media/hub.js';\nexport const x = 1;",
+      'functions/src/shared/util/index.ts':
+        "import '@pkg/media';\nexport { y } from '../../media/hub.js';\nexport const x = 1;",
     });
-    const [guard] = lightFunctionGuard.build({ ...facts, lightFunctions: [...facts.lightFunctions, 'ghost'] });
+    const [guard] = lightFunctionGuard.build({
+      ...facts,
+      lightFunctions: [...facts.lightFunctions, 'ghost'],
+    });
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/social/follow.ts', detail: 'cannot resolve ./missing.js, so the closure through it is unread' },
-      { file: 'functions/src/social/like.ts', detail: 'light function like statically reaches @pkg/media' },
-      { file: 'functions/src/social/like.ts', detail: 'light function like statically reaches sharp' },
-      { file: 'functions/src/social/like.ts', detail: 'light function like statically reaches functions/src/media/hub.ts' },
-      { file: 'functions/src/index.ts', detail: 'light function ghost is not re-exported from a Functions module' },
+      {
+        file: 'functions/src/social/follow.ts',
+        detail: 'cannot resolve ./missing.js, so the closure through it is unread',
+      },
+      {
+        file: 'functions/src/social/like.ts',
+        detail: 'light function like statically reaches @pkg/media',
+      },
+      {
+        file: 'functions/src/social/like.ts',
+        detail: 'light function like statically reaches sharp',
+      },
+      {
+        file: 'functions/src/social/like.ts',
+        detail: 'light function like statically reaches functions/src/media/hub.ts',
+      },
+      {
+        file: 'functions/src/index.ts',
+        detail: 'light function ghost is not re-exported from a Functions module',
+      },
     ]);
   });
 
   it('FLAGS a heavy file that is gone', async () => {
     repo = backendRepo(clean);
-    const [guard] = lightFunctionGuard.build({ ...facts, heavyFiles: [{ path: 'functions/src/media/gone.ts', why: 'x' }] });
-    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/media/gone.ts', detail: 'stale heavy file: it is not a Functions module' }]);
+    const [guard] = lightFunctionGuard.build({
+      ...facts,
+      heavyFiles: [{ path: 'functions/src/media/gone.ts', why: 'x' }],
+    });
+    expect(await repo.run(guard!)).toEqual([
+      {
+        file: 'functions/src/media/gone.ts',
+        detail: 'stale heavy file: it is not a Functions module',
+      },
+    ]);
   });
 
   it('refuses facts that name nothing heavy', () => {
-    expect(lightFunctionGuard.factProblems({ ...facts, heavyPackages: [], heavyFiles: [] })).toEqual([
-      'neither heavyPackages nor heavyFiles names anything, so the guard checks nothing',
-    ]);
+    expect(
+      lightFunctionGuard.factProblems({ ...facts, heavyPackages: [], heavyFiles: [] }),
+    ).toEqual(['neither heavyPackages nor heavyFiles names anything, so the guard checks nothing']);
   });
 });
 
@@ -304,7 +464,9 @@ describe('the codebase manifest deploys every function exactly once', () => {
   it('passes a manifest that covers every export once and a deploy config that declares each codebase', async () => {
     repo = backendRepo({
       'functions/src/index.ts': "export { a } from './a.js';\nexport { b as bee } from './b.js';",
-      'functions/codebases.manifest.json': JSON.stringify({ codebases: { one: ['a'], two: ['bee'] } }),
+      'functions/codebases.manifest.json': JSON.stringify({
+        codebases: { one: ['a'], two: ['bee'] },
+      }),
       'firebase.json': JSON.stringify({ functions: [entry('one'), entry('two')] }),
     });
     const [guard] = codebaseManifestGuard.build(facts);
@@ -313,20 +475,45 @@ describe('the codebase manifest deploys every function exactly once', () => {
 
   it('FLAGS export *, an export in two codebases, one in none, a stale entry, undeclared and unknown codebases, a wrong source, and a wrong predeploy', async () => {
     repo = backendRepo({
-      'functions/src/index.ts': "export { a } from './a.js';\nexport { b as bee } from './b.js';\nexport * from './c.js';\nexport { d } from './d.js';",
-      'functions/codebases.manifest.json': JSON.stringify({ codebases: { one: ['a', 'bee'], two: ['bee', 'gone'], three: [] } }),
-      'firebase.json': JSON.stringify({ functions: [entry('one', { source: 'functions/one' }), entry('two', { predeploy: undefined }), entry('four')] }),
+      'functions/src/index.ts':
+        "export { a } from './a.js';\nexport { b as bee } from './b.js';\nexport * from './c.js';\nexport { d } from './d.js';",
+      'functions/codebases.manifest.json': JSON.stringify({
+        codebases: { one: ['a', 'bee'], two: ['bee', 'gone'], three: [] },
+      }),
+      'firebase.json': JSON.stringify({
+        functions: [
+          entry('one', { source: 'functions/one' }),
+          entry('two', { predeploy: undefined }),
+          entry('four'),
+        ],
+      }),
     });
     const [guard] = codebaseManifestGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/index.ts', line: 3, detail: 'export * hides which functions the module deploys' },
-      { file: 'functions/codebases.manifest.json', detail: 'bee is in two codebases (one and two)' },
+      {
+        file: 'functions/src/index.ts',
+        line: 3,
+        detail: 'export * hides which functions the module deploys',
+      },
+      {
+        file: 'functions/codebases.manifest.json',
+        detail: 'bee is in two codebases (one and two)',
+      },
       { file: 'functions/codebases.manifest.json', detail: 'd is exported but in no codebase' },
-      { file: 'functions/codebases.manifest.json', detail: 'stale entry gone: the entry module does not export it' },
+      {
+        file: 'functions/codebases.manifest.json',
+        detail: 'stale entry gone: the entry module does not export it',
+      },
       { file: 'firebase.json', detail: 'codebase three is not declared' },
       { file: 'firebase.json', detail: 'codebase four is not in the manifest' },
-      { file: 'firebase.json', detail: 'codebase one deploys from functions/one, not functions/build/one' },
-      { file: 'firebase.json', detail: 'codebase two\'s predeploy is not ["node functions/scripts/build.mjs --only two"]' },
+      {
+        file: 'firebase.json',
+        detail: 'codebase one deploys from functions/one, not functions/build/one',
+      },
+      {
+        file: 'firebase.json',
+        detail: 'codebase two\'s predeploy is not ["node functions/scripts/build.mjs --only two"]',
+      },
     ]);
   });
 
@@ -344,6 +531,8 @@ describe('the codebase manifest deploys every function exactly once', () => {
   });
 
   it('refuses a source template that names no codebase', () => {
-    expect(codebaseManifestGuard.factProblems({ ...facts, sourceTemplate: 'functions/build' })).toEqual(['sourceTemplate names no {codebase}']);
+    expect(
+      codebaseManifestGuard.factProblems({ ...facts, sourceTemplate: 'functions/build' }),
+    ).toEqual(['sourceTemplate names no {codebase}']);
   });
 });

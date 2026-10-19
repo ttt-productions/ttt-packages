@@ -2,7 +2,13 @@
 // SDKs and in every syntax that builds the same path; the owners' shapes, computed ids, and prose pass.
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { literalSegmentGuard, pathAssemblyGuard, retiredSegmentGuard, type PathAssemblyFacts, type RetiredSegmentFacts } from '../../src/modules/firestore/path-guards.js';
+import {
+  literalSegmentGuard,
+  pathAssemblyGuard,
+  retiredSegmentGuard,
+  type PathAssemblyFacts,
+  type RetiredSegmentFacts,
+} from '../../src/modules/firestore/path-guards.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import type { RepoLayout } from '../../src/node/layout.js';
 import { contextOf } from '../helpers/context.js';
@@ -25,12 +31,21 @@ function readerOver(files: Record<string, string>, extra: Partial<RepoLayout['ro
   });
 }
 
-async function run(guard: { run: (c: ReturnType<typeof contextOf>) => unknown }, files: Record<string, string>, extra?: Partial<RepoLayout['roots']>) {
-  const findings = (await guard.run(contextOf(readerOver(files, extra)))) as Array<{ file: string; line?: number; detail: string }>;
+async function run(
+  guard: { run: (c: ReturnType<typeof contextOf>) => unknown },
+  files: Record<string, string>,
+  extra?: Partial<RepoLayout['roots']>,
+) {
+  const findings = (await guard.run(contextOf(readerOver(files, extra)))) as Array<{
+    file: string;
+    line?: number;
+    detail: string;
+  }>;
   return findings;
 }
 
-const at = (findings: Array<{ file: string; line?: number }>) => findings.map((f) => `${f.file}:${f.line}`);
+const at = (findings: Array<{ file: string; line?: number }>) =>
+  findings.map((f) => `${f.file}:${f.line}`);
 
 describe('no typed path segment reaches a Firestore accessor', () => {
   const [guard] = literalSegmentGuard.build({});
@@ -50,11 +65,15 @@ describe('no typed path segment reaches a Firestore accessor', () => {
       'const b = doc(db, COLLECTIONS.LEAGUES, leagueId, COLLECTIONS.GAMES, gameId);',
       'const c = doc(db, ...SEGMENTS.gameRoster(gameId), userId);',
     ].join('\n');
-    expect(await run(guard, { 'src/clean.ts': clean, 'functions/src/clean.ts': clean })).toEqual([]);
+    expect(await run(guard, { 'src/clean.ts': clean, 'functions/src/clean.ts': clean })).toEqual(
+      [],
+    );
   });
 
   it('FLAGS a literal behind a type assertion', async () => {
-    const findings = await run(guard, { 'functions/src/asserted.ts': 'const a = db.collection(<string>"jobs");' });
+    const findings = await run(guard, {
+      'functions/src/asserted.ts': 'const a = db.collection(<string>"jobs");',
+    });
     expect(at(findings)).toEqual(['functions/src/asserted.ts:1']);
   });
 
@@ -99,13 +118,21 @@ describe('no typed path segment reaches a Firestore accessor', () => {
 
   it('FLAGS a literal hoisted into a file-local binding of any keyword, typed, exported, or without a semicolon', async () => {
     const findings = await run(guard, {
-      'functions/src/a.ts': "const AUDIT = 'auditEvents';\nexport const n = () => db.collection(AUDIT).count();",
-      'functions/src/b.ts': 'const ID: string = "cursor";\nconst ref = db.collection(COLLECTIONS.SERVER).doc(ID);',
+      'functions/src/a.ts':
+        "const AUDIT = 'auditEvents';\nexport const n = () => db.collection(AUDIT).count();",
+      'functions/src/b.ts':
+        'const ID: string = "cursor";\nconst ref = db.collection(COLLECTIONS.SERVER).doc(ID);',
       'functions/src/c.ts': "let R = 'roster'\nconst ref = gameRef.collection(R);",
       'functions/src/d.ts': "export var R = 'roster';\nconst ref = gameRef.collection(R);",
       'src/e.ts': "const USERS = 'users';\nconst ref = doc(db, USERS, uid);",
     });
-    expect(at(findings)).toEqual(['functions/src/a.ts:2', 'functions/src/b.ts:2', 'functions/src/c.ts:2', 'functions/src/d.ts:2', 'src/e.ts:2']);
+    expect(at(findings)).toEqual([
+      'functions/src/a.ts:2',
+      'functions/src/b.ts:2',
+      'functions/src/c.ts:2',
+      'functions/src/d.ts:2',
+      'src/e.ts:2',
+    ]);
   });
 
   it('FLAGS a literal in ANY modular path position, behind a spread owner, multiline, and on a call handle', async () => {
@@ -118,15 +145,28 @@ describe('no typed path segment reaches a Firestore accessor', () => {
         'const e = doc(\n  getDb(),\n  "leagues",\n  leagueId,\n);',
       ].join('\n'),
     });
-    expect(at(findings)).toEqual(['src/modular.ts:1', 'src/modular.ts:2', 'src/modular.ts:3', 'src/modular.ts:4', 'src/modular.ts:5']);
+    expect(at(findings)).toEqual([
+      'src/modular.ts:1',
+      'src/modular.ts:2',
+      'src/modular.ts:3',
+      'src/modular.ts:4',
+      'src/modular.ts:5',
+    ]);
   });
 
   it('reads no test code', async () => {
-    expect(await run(guard, { 'src/thing.test.ts': "db.collection('jobs');", 'src/__tests__/x.ts': "db.collection('jobs');" })).toEqual([]);
+    expect(
+      await run(guard, {
+        'src/thing.test.ts': "db.collection('jobs');",
+        'src/__tests__/x.ts': "db.collection('jobs');",
+      }),
+    ).toEqual([]);
   });
 
   it('refuses facts: it takes none', () => {
-    expect(literalSegmentGuard.factProblems({ x: 1 } as never)).toEqual(['this guard takes no facts: declare it with {}']);
+    expect(literalSegmentGuard.factProblems({ x: 1 } as never)).toEqual([
+      'this guard takes no facts: declare it with {}',
+    ]);
     expect(literalSegmentGuard.factProblems({})).toEqual([]);
   });
 });
@@ -154,7 +194,9 @@ describe('no Firestore path is assembled by hand', () => {
       'const j = doc(db, ...SEGMENTS.signup(`${leagueId}_${userId}`));',
       '// never write db.doc(`${COLLECTIONS.LANDING}/base`)',
     ].join('\n');
-    expect(await run(guard, { 'src/clean.ts': clean, 'functions/src/clean.ts': clean })).toEqual([]);
+    expect(await run(guard, { 'src/clean.ts': clean, 'functions/src/clean.ts': clean })).toEqual(
+      [],
+    );
   });
 
   it('FLAGS every assembly shape: spliced owner, slash-and-hole templates in either order, concatenation, a joined id, and a hand-built joiner array', async () => {
@@ -172,7 +214,8 @@ describe('no Firestore path is assembled by hand', () => {
         'const i = { targetRef: `${COLLECTIONS.ADMIN_TASKS}/${taskId}` };',
         'const j = db.doc(toPath(\n  [ COLLECTIONS.USER_PROFILES, uid ],\n));',
       ].join('\n'),
-      'src/modular.ts': 'const ref = doc(db, `${COLLECTIONS.LEAGUES}/${leagueId}`);\nconst r2 = doc(db, "leagues/" + leagueId);',
+      'src/modular.ts':
+        'const ref = doc(db, `${COLLECTIONS.LEAGUES}/${leagueId}`);\nconst r2 = doc(db, "leagues/" + leagueId);',
     });
     expect(at(findings)).toEqual([
       'functions/src/assemble.ts:1',
@@ -203,15 +246,24 @@ describe('no Firestore path is assembled by hand', () => {
       'functions/src/irregular.ts': 'const p = `${COLLECTIONS.REPORTS}/${id}/${sub}`;',
       'functions/src/fixed.ts': 'const p = toPath(PATH_BUILDERS.report(id));',
     });
-    expect(findings).toEqual([{ file: 'functions/src/fixed.ts', detail: 'stale reviewed site: the file no longer assembles a path (or is gone)' }]);
+    expect(findings).toEqual([
+      {
+        file: 'functions/src/fixed.ts',
+        detail: 'stale reviewed site: the file no longer assembles a path (or is gone)',
+      },
+    ]);
   });
 
   it('refuses missing owner constants, a missing joiner list, and a reviewed site with no why', () => {
-    expect(pathAssemblyGuard.factProblems({ segmentArrayJoiners: [], reviewedSites: [{ path: 'a.ts', why: ' ' }] } as never)).toEqual([
-      'ownerConstants is missing',
-      'reviewedSites entry a.ts carries no why',
-    ]);
-    expect(pathAssemblyGuard.factProblems({ ownerConstants: [], reviewedSites: [] } as never)).toEqual([
+    expect(
+      pathAssemblyGuard.factProblems({
+        segmentArrayJoiners: [],
+        reviewedSites: [{ path: 'a.ts', why: ' ' }],
+      } as never),
+    ).toEqual(['ownerConstants is missing', 'reviewedSites entry a.ts carries no why']);
+    expect(
+      pathAssemblyGuard.factProblems({ ownerConstants: [], reviewedSites: [] } as never),
+    ).toEqual([
       'ownerConstants is empty',
       'segmentArrayJoiners is missing (declare [] when there is none)',
     ]);
@@ -240,7 +292,10 @@ describe('no retired Firestore segment survives in a path string', () => {
         'e2e/d.ts': "await seed('works/w1/tales');",
         'workers/chat/src/e.ts': "collectionGroup(db, 'actions');",
       },
-      { e2e: { path: 'e2e', anchor: 'e2e/d.ts' }, workers: { chat: { path: 'workers/chat/src', anchor: 'workers/chat/src/e.ts' } } },
+      {
+        e2e: { path: 'e2e', anchor: 'e2e/d.ts' },
+        workers: { chat: { path: 'workers/chat/src', anchor: 'workers/chat/src/e.ts' } },
+      },
     );
     expect(findings.map((f) => `${f.file}:${f.line} ${f.detail.split(' in ')[0]}`)).toEqual([
       "e2e/d.ts:1 retired segment 'tales' (now 'hallTales')",
@@ -269,20 +324,37 @@ describe('no retired Firestore segment survives in a path string', () => {
     const [guard] = retiredSegmentGuard.build(
       facts({
         reviewedMatches: [
-          { file: 'src/emulator.ts', contains: '/emulator/v1/', why: 'an Auth emulator endpoint, not a collection' },
+          {
+            file: 'src/emulator.ts',
+            contains: '/emulator/v1/',
+            why: 'an Auth emulator endpoint, not a collection',
+          },
           { file: 'src/gone.ts', contains: 'nothing', why: 'stale' },
         ],
       }),
     );
-    const findings = await run(guard, { 'src/emulator.ts': 'const u = `${host}/emulator/v1/projects/${p}/actions/x`;', 'src/gone.ts': 'export {};' });
-    expect(findings).toEqual([{ file: 'src/gone.ts', detail: 'stale reviewed match: no retired segment in a literal containing "nothing"' }]);
+    const findings = await run(guard, {
+      'src/emulator.ts': 'const u = `${host}/emulator/v1/projects/${p}/actions/x`;',
+      'src/gone.ts': 'export {};',
+    });
+    expect(findings).toEqual([
+      {
+        file: 'src/gone.ts',
+        detail: 'stale reviewed match: no retired segment in a literal containing "nothing"',
+      },
+    ]);
   });
 
   it('refuses an empty segment list, a segment with no replacement, and a reviewed match with no text or why', () => {
-    expect(retiredSegmentGuard.factProblems({ segments: [], reviewedMatches: [] })).toEqual(['segments is empty (declare the guard absent instead)']);
+    expect(retiredSegmentGuard.factProblems({ segments: [], reviewedMatches: [] })).toEqual([
+      'segments is empty (declare the guard absent instead)',
+    ]);
     expect(
       retiredSegmentGuard.factProblems({
-        segments: [{ name: 'tales', replacement: '' }, { name: 'a/b', replacement: 'x' }],
+        segments: [
+          { name: 'tales', replacement: '' },
+          { name: 'a/b', replacement: 'x' },
+        ],
         reviewedMatches: [{ file: 'src/a.ts', contains: '', why: '' }],
       }),
     ).toEqual([

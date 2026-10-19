@@ -22,7 +22,9 @@ describe('the admin queue hooks', () => {
   it("check out through the app's checkout call", async () => {
     const claim = { success: true, alreadyHeld: true } as CheckoutTaskResult;
     const checkoutTaskFn = vi.fn().mockResolvedValue(claim);
-    const { result } = renderHook(() => useCheckoutTask({ checkoutTaskFn, userId: 'u1' }), { wrapper });
+    const { result } = renderHook(() => useCheckoutTask({ checkoutTaskFn, userId: 'u1' }), {
+      wrapper,
+    });
 
     await expect(result.current.mutateAsync({ taskType: 'userReport' })).resolves.toBe(claim);
     expect(checkoutTaskFn).toHaveBeenCalledWith({ taskType: 'userReport' });
@@ -30,7 +32,9 @@ describe('the admin queue hooks', () => {
 
   it("check in through the app's check-in call", async () => {
     const checkinTaskFn = vi.fn().mockResolvedValue({ success: true, alreadyResolved: true });
-    const { result } = renderHook(() => useCheckinTask({ checkinTaskFn, userId: 'u1' }), { wrapper });
+    const { result } = renderHook(() => useCheckinTask({ checkinTaskFn, userId: 'u1' }), {
+      wrapper,
+    });
 
     await expect(result.current.mutateAsync({ taskId: 't1', resolved: true })).resolves.toEqual({
       success: true,
@@ -41,7 +45,9 @@ describe('the admin queue hooks', () => {
 
   it("release through the app's release call", async () => {
     const releaseTaskFn = vi.fn().mockResolvedValue(lifecycle);
-    const { result } = renderHook(() => useReleaseTask({ releaseTaskFn, userId: 'u1' }), { wrapper });
+    const { result } = renderHook(() => useReleaseTask({ releaseTaskFn, userId: 'u1' }), {
+      wrapper,
+    });
 
     await expect(result.current.mutateAsync({ taskId: 't1' })).resolves.toBe(lifecycle);
     expect(releaseTaskFn).toHaveBeenCalledWith({ taskId: 't1' });
@@ -49,9 +55,13 @@ describe('the admin queue hooks', () => {
 
   it("mark work-later through the app's work-later call", async () => {
     const markWorkLaterFn = vi.fn().mockResolvedValue(lifecycle);
-    const { result } = renderHook(() => useWorkLater({ markWorkLaterFn, userId: 'u1' }), { wrapper });
+    const { result } = renderHook(() => useWorkLater({ markWorkLaterFn, userId: 'u1' }), {
+      wrapper,
+    });
 
-    await expect(result.current.mutateAsync({ taskId: 't1', extendHours: 24 })).resolves.toBe(lifecycle);
+    await expect(result.current.mutateAsync({ taskId: 't1', extendHours: 24 })).resolves.toBe(
+      lifecycle,
+    );
     expect(markWorkLaterFn).toHaveBeenCalledWith({ taskId: 't1', extendHours: 24 });
   });
 });

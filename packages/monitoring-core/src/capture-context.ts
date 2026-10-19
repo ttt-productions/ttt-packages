@@ -18,7 +18,7 @@
  * also falls back to the extra.
  */
 
-import type { MonitoringLevel, ScopeLike } from "./types.js";
+import type { MonitoringLevel, ScopeLike } from './types.js';
 
 /**
  * Narrow an arbitrary value to a flat `Record<string, string>`, or `null` when
@@ -26,21 +26,23 @@ import type { MonitoringLevel, ScopeLike } from "./types.js";
  * information, so it yields neither a tag nor an extra).
  */
 export function asFlatStringTagMap(value: unknown): Record<string, string> | null {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
 
   const out: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof entry !== "string") return null;
+    if (typeof entry !== 'string') return null;
     out[key] = entry;
   }
   return out;
 }
 
-const MONITORING_LEVELS: readonly string[] = ["fatal", "error", "warning", "info", "debug"];
+const MONITORING_LEVELS: readonly string[] = ['fatal', 'error', 'warning', 'info', 'debug'];
 
 /** Narrow a value to a monitoring severity name, or `null` when it is not one. */
 export function asMonitoringLevel(value: unknown): MonitoringLevel | null {
-  return typeof value === "string" && MONITORING_LEVELS.includes(value) ? (value as MonitoringLevel) : null;
+  return typeof value === 'string' && MONITORING_LEVELS.includes(value)
+    ? (value as MonitoringLevel)
+    : null;
 }
 
 /**
@@ -52,10 +54,10 @@ export function applyCaptureContext(scope: unknown, context: Record<string, unkn
   const target = scope as Partial<ScopeLike> | null | undefined;
 
   for (const [key, value] of Object.entries(context)) {
-    if (key === "tags") {
+    if (key === 'tags') {
       const tagMap = asFlatStringTagMap(value);
       if (tagMap) {
-        if (typeof target?.setTag === "function") {
+        if (typeof target?.setTag === 'function') {
           for (const [tagKey, tagValue] of Object.entries(tagMap)) {
             target.setTag(tagKey, tagValue);
           }
@@ -64,14 +66,14 @@ export function applyCaptureContext(scope: unknown, context: Record<string, unkn
       }
     }
 
-    if (key === "level") {
+    if (key === 'level') {
       const level = asMonitoringLevel(value);
-      if (level && typeof target?.setLevel === "function") {
+      if (level && typeof target?.setLevel === 'function') {
         target.setLevel(level);
         continue;
       }
     }
 
-    if (typeof target?.setExtra === "function") target.setExtra(key, value);
+    if (typeof target?.setExtra === 'function') target.setExtra(key, value);
   }
 }

@@ -264,9 +264,21 @@ describe('MediaAssetSchema — what the realm-file invariant deliberately does N
     // This one schema covers EVERY media origin, so binding tier to a realm-file standing
     // would misjudge assets that have nothing to do with realms. Both of these parse; the
     // callable transactions (and their tests) own tier correctness.
-    expect(ok({ realmFileCanonStatus: 'pendingApproval', realmId: 'realm-1', ...requestFields, accessTier: 'artisan' })).toBe(true);
     expect(
-      ok({ realmFileCanonStatus: 'canon', realmId: 'realm-1', realmFileFolderId: 'f-1', accessTier: 'scoped' }),
+      ok({
+        realmFileCanonStatus: 'pendingApproval',
+        realmId: 'realm-1',
+        ...requestFields,
+        accessTier: 'artisan',
+      }),
+    ).toBe(true);
+    expect(
+      ok({
+        realmFileCanonStatus: 'canon',
+        realmId: 'realm-1',
+        realmFileFolderId: 'f-1',
+        accessTier: 'scoped',
+      }),
     ).toBe(true);
   });
 

@@ -433,7 +433,8 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     // until the restarted listener answers); every other run starts over as `connecting`.
     // A restart belongs to the identity it was asked for: one that lands with a sign-out or a switch
     // of account is an ordinary new subscription, which starts over.
-    let restarting = restartRequestedRef.current && userId !== null && userId === trackedUserIdRef.current;
+    let restarting =
+      restartRequestedRef.current && userId !== null && userId === trackedUserIdRef.current;
     restartRequestedRef.current = false;
     setUploads(new Map());
     if (!restarting) {
@@ -524,7 +525,11 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       // subscription: not yet live, never offline.
       if (!(restarting && fromCache)) {
         setSourceState((prev) =>
-          fromCache ? (prev === 'connecting' || prev === 'error' ? 'connecting' : 'offline') : 'live',
+          fromCache
+            ? prev === 'connecting' || prev === 'error'
+              ? 'connecting'
+              : 'offline'
+            : 'live',
         );
         restarting = false;
         setRetrying(false);
@@ -619,7 +624,6 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     };
     // adapter is intentionally NOT in the deps array — adapter is read via
     // adapterRef on every snapshot, so identity changes don't re-subscribe.
-
   }, [userId, subscribe, restarts]);
 
   const retry = useCallback(() => {
@@ -714,7 +718,9 @@ export function isTerminalUpload<TFileOrigin extends string = string>(
  * The public selector name in upload-ui is `useUploadActivityState`. The
  * mutation hook is `useClearUploadActivity` (in a separate file).
  */
-export function useUploadActivityState<TFileOrigin extends string = string>(): InFlightUpload<TFileOrigin>[] {
+export function useUploadActivityState<
+  TFileOrigin extends string = string,
+>(): InFlightUpload<TFileOrigin>[] {
   const uploads = useInFlightUploadsState<TFileOrigin>();
   return useMemo(() => {
     return Array.from(uploads.values())
@@ -748,12 +754,16 @@ export function useUploadActivityState<TFileOrigin extends string = string>(): I
  */
 const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
   const q = query(
-
     collection(args.db as any, args.collectionPath),
     where('userId', '==', args.userId),
     where('createdAt', '>=', args.windowStartMs),
   );
   // includeMetadataChanges so the provider can derive a `connecting|live|offline|error`
   // source state from `snapshot.metadata.fromCache` (the Files tray degraded indicator).
-  return onSnapshot(q, { includeMetadataChanges: true }, args.onSnapshot as never, args.onError as never);
+  return onSnapshot(
+    q,
+    { includeMetadataChanges: true },
+    args.onSnapshot as never,
+    args.onError as never,
+  );
 };

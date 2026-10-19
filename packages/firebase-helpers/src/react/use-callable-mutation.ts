@@ -1,17 +1,18 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from 'react';
 import {
   callCallable,
   type CallCallableCallbacks,
   type CallCallableTransport,
   type FunctionsProvider,
-} from "../client/call-callable.js";
+} from '../client/call-callable.js';
 
 /** Alias of the shared callback contract — kept for existing consumers' imports. */
 export type CallableMutationCallbacks = CallCallableCallbacks;
 
-export interface UseCallableMutationOptions extends CallableMutationCallbacks, CallCallableTransport {
+export interface UseCallableMutationOptions
+  extends CallableMutationCallbacks, CallCallableTransport {
   /**
    * Returns the Functions instance. Lazy so SSR-safe.
    * Required.
@@ -84,7 +85,7 @@ export function useCallableMutation(
  */
 export function createCallableClient(getFunctions: FunctionsProvider) {
   return {
-    useCallableMutation: (overrides?: Omit<UseCallableMutationOptions, "getFunctions">) =>
+    useCallableMutation: (overrides?: Omit<UseCallableMutationOptions, 'getFunctions'>) =>
       useCallableMutation({ getFunctions, ...overrides }),
   };
 }

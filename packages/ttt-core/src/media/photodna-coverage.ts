@@ -25,10 +25,7 @@ import { TTT_MEDIA_SPECS } from './ttt-media-specs.js';
  *               (a non-audio payload on an audio path is rejected, not skipped).
  *               Audio is NOT image/video hashed.
  */
-export type PhotoDnaRequiredBranch =
-  | 'imagePhotoDna'
-  | 'videoFramePhotoDna'
-  | 'audioSpoofGuard';
+export type PhotoDnaRequiredBranch = 'imagePhotoDna' | 'videoFramePhotoDna' | 'audioSpoofGuard';
 
 /**
  * The PhotoDNA-relevant subset of `MediaKind`. The generic 'file' kind has no
@@ -49,9 +46,7 @@ const REQUIRED_BRANCH_BY_KIND: Record<PhotoDnaCoveredKind, PhotoDnaRequiredBranc
   audio: 'audioSpoofGuard',
 };
 
-const PHOTODNA_COVERED_KINDS = Object.keys(
-  REQUIRED_BRANCH_BY_KIND,
-) as PhotoDnaCoveredKind[];
+const PHOTODNA_COVERED_KINDS = Object.keys(REQUIRED_BRANCH_BY_KIND) as PhotoDnaCoveredKind[];
 
 function isPhotoDnaCoveredKind(kind: MediaKind): kind is PhotoDnaCoveredKind {
   return (PHOTODNA_COVERED_KINDS as MediaKind[]).includes(kind);
@@ -67,9 +62,7 @@ function acceptedKindsForOrigin(origin: FileOrigin): MediaKind[] {
  * `accept.kinds` per the §A10 algorithm. Deduped, in
  * image → video → audio canonical order. Pure / decision-free.
  */
-export function requiredPhotoDnaBranchesForOrigin(
-  origin: FileOrigin,
-): PhotoDnaRequiredBranch[] {
+export function requiredPhotoDnaBranchesForOrigin(origin: FileOrigin): PhotoDnaRequiredBranch[] {
   const kinds = new Set(acceptedKindsForOrigin(origin));
   // Iterate the canonical kind order (not the registry array order) so output is
   // deterministic regardless of how an origin lists its accepted kinds.
@@ -93,13 +86,16 @@ export interface PhotoDnaCoverageEntry {
  * fails CI if any origin is missing OR any accepted kind has no required branch.
  */
 export const PHOTODNA_COVERAGE_MATRIX: Record<FileOrigin, PhotoDnaCoverageEntry> =
-  FileOriginSchema.options.reduce((matrix, origin) => {
-    matrix[origin] = {
-      acceptedKinds: acceptedKindsForOrigin(origin),
-      requiredBranches: requiredPhotoDnaBranchesForOrigin(origin),
-    };
-    return matrix;
-  }, {} as Record<FileOrigin, PhotoDnaCoverageEntry>);
+  FileOriginSchema.options.reduce(
+    (matrix, origin) => {
+      matrix[origin] = {
+        acceptedKinds: acceptedKindsForOrigin(origin),
+        requiredBranches: requiredPhotoDnaBranchesForOrigin(origin),
+      };
+      return matrix;
+    },
+    {} as Record<FileOrigin, PhotoDnaCoverageEntry>,
+  );
 
 /**
  * Runtime dispatch (per uploaded object). `serverKind` is the SERVER-DETECTED
@@ -116,7 +112,5 @@ export const PHOTODNA_COVERAGE_MATRIX: Record<FileOrigin, PhotoDnaCoverageEntry>
 export function runtimePhotoDnaBranchForDetectedKind(
   serverKind: MediaKind,
 ): PhotoDnaRequiredBranch | null {
-  return isPhotoDnaCoveredKind(serverKind)
-    ? REQUIRED_BRANCH_BY_KIND[serverKind]
-    : null;
+  return isPhotoDnaCoveredKind(serverKind) ? REQUIRED_BRANCH_BY_KIND[serverKind] : null;
 }

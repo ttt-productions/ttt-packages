@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import { clearRedirectPath, readRedirectPath, saveRedirectPath } from "./redirect-storage.js";
+import { useEffect, useRef } from 'react';
+import { clearRedirectPath, readRedirectPath, saveRedirectPath } from './redirect-storage.js';
 
 export interface AuthGuardConfig {
   /**
@@ -32,7 +32,7 @@ export interface AuthGuardConfig {
   isAuthenticated: boolean;
 }
 
-const DEFAULT_REDIRECT_KEY = "auth_redirect_path";
+const DEFAULT_REDIRECT_KEY = 'auth_redirect_path';
 
 /**
  * Handles route protection. Call in app shell component.
@@ -98,7 +98,7 @@ export function useAuthGuard(config: AuthGuardConfig): void {
     }
 
     // Root path special handling
-    if (rootRedirect && pathname === "/") {
+    if (rootRedirect && pathname === '/') {
       replace(isAuthenticated ? rootRedirect.authenticated : rootRedirect.unauthenticated);
       return;
     }

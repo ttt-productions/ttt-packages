@@ -28,10 +28,12 @@ function contextFor(reader: RepoReader) {
       named += 1;
       return reader.file(relPath);
     },
-    rulesFiles: (service) => counted(reader.rulesFiles(service), `the layout's ${service ?? 'listed'} rules files`),
+    rulesFiles: (service) =>
+      counted(reader.rulesFiles(service), `the layout's ${service ?? 'listed'} rules files`),
   };
   const vacuity = (): string | null => {
-    if (emptyScopes.size) return `its scope reached no file, so it checked nothing there: ${[...emptyScopes].join('; ')}`;
+    if (emptyScopes.size)
+      return `its scope reached no file, so it checked nothing there: ${[...emptyScopes].join('; ')}`;
     if (!scopes && !named) return 'the guard read no file, so it checked nothing';
     return null;
   };
@@ -63,4 +65,3 @@ export function checkSamples(guard: Guard) {
     );
   }
 }
-

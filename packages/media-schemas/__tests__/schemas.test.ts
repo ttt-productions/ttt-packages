@@ -152,8 +152,12 @@ describe('parseMediaProcessingResult', () => {
 describe('ClientContextSchema target ids', () => {
   it('refuses a blank, space-only, or space-padded target id and accepts a plain one', () => {
     for (const id of ['', ' ', ' abc', 'abc ', '\tabc', 'abc\n']) {
-      expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: [id] }).success).toBe(false);
+      expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: [id] }).success).toBe(
+        false,
+      );
     }
-    expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: ['abc'] }).success).toBe(true);
+    expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: ['abc'] }).success).toBe(
+      true,
+    );
   });
 });

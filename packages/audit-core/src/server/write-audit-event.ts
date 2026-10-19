@@ -1,24 +1,19 @@
-import type { AuditEvent } from "../types.js";
+import type { AuditEvent } from '../types.js';
 
 // Type-only imports — no firebase-admin runtime initialization in this package.
 // The consumer supplies the live Firestore instance.
-import type { Firestore, WriteBatch, Transaction } from "firebase-admin/firestore";
+import type { Firestore, WriteBatch, Transaction } from 'firebase-admin/firestore';
 
 type FirestoreLike = Firestore;
 type BatchLike = WriteBatch;
 type TransactionLike = Transaction;
 
-export interface WriteAuditEventArgs<
-  TEventType extends string,
-  TActor,
-  TTarget,
-  TMetadata,
-> {
+export interface WriteAuditEventArgs<TEventType extends string, TActor, TTarget, TMetadata> {
   type: TEventType;
   actor: TActor | null;
   target?: TTarget | null;
   metadata?: TMetadata;
-  result?: "success" | "failure";
+  result?: 'success' | 'failure';
   failureReason?: string | null;
   correlationId?: string | null;
   ip?: string | null;
@@ -64,9 +59,7 @@ export function createAuditWriter<
     args: WriteAuditEventArgs<TEventType, TActor, TTarget, TMetadata>,
   ): Promise<string> {
     if (args.batch && args.transaction) {
-      throw new Error(
-        "writeAuditEvent: pass either batch or transaction, not both.",
-      );
+      throw new Error('writeAuditEvent: pass either batch or transaction, not both.');
     }
 
     const id = idGenerator();
@@ -81,7 +74,7 @@ export function createAuditWriter<
       userAgent: args.userAgent ?? null,
       region: args.region ?? null,
       metadata: (args.metadata ?? ({} as TMetadata)) as TMetadata,
-      result: args.result ?? "success",
+      result: args.result ?? 'success',
       failureReason: args.failureReason ?? null,
       correlationId: args.correlationId ?? null,
     };

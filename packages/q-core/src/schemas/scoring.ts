@@ -65,7 +65,10 @@ function callerShape<Shape extends z.ZodRawShape, Omitted extends keyof Shape = 
 
 // A sport event's id as its caller sends it — the id minted at the tap, or, as a void's target, one a
 // copied event kept. It becomes a document path, so it is held to the shape a sport event id has.
-export const sportStatEventIdSchema = statEventIdSchema.refine(isSportStatEventId, 'Not a stat event id.');
+export const sportStatEventIdSchema = statEventIdSchema.refine(
+  isSportStatEventId,
+  'Not a stat event id.',
+);
 
 const sportEventId = { eventId: sportStatEventIdSchema };
 
@@ -80,12 +83,19 @@ export const StatEventSubmissionSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...callerShape(BasketballAssistableShotEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(BasketballPlayerTallyEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(BasketballTimeoutEventSchema.shape), ...sportEventId }),
-  z.strictObject({ ...callerShape(BasketballBulkEditEventSchema.shape), ...sportEventId, previousValue: countSchema }),
+  z.strictObject({
+    ...callerShape(BasketballBulkEditEventSchema.shape),
+    ...sportEventId,
+    previousValue: countSchema,
+  }),
   z.strictObject({ ...callerShape(CurlingRoundScoreEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(CurlingBlankEndEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(FootballScoreEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(FootballBulkEditEventSchema.shape), ...sportEventId }),
-  z.strictObject({ ...callerShape(StatVoidEventSchema.shape, ['eventId']), targetEventId: sportStatEventIdSchema }),
+  z.strictObject({
+    ...callerShape(StatVoidEventSchema.shape, ['eventId']),
+    targetEventId: sportStatEventIdSchema,
+  }),
   z.strictObject(callerShape(StatCorrectionEventSchema.shape)),
 ]);
 export type StatEventSubmission = z.infer<typeof StatEventSubmissionSchema>;

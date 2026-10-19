@@ -57,7 +57,10 @@ export interface Guard {
 }
 
 /** A printable failure report for one guard. */
-export function formatFindings(guard: Pick<Guard, 'title' | 'description'>, findings: readonly Finding[]): string {
+export function formatFindings(
+  guard: Pick<Guard, 'title' | 'description'>,
+  findings: readonly Finding[],
+): string {
   const lines = [`${guard.title}: ${findings.length} finding(s)`, '', guard.description, ''];
   for (const f of findings) lines.push(`  ${f.file}${f.line ? `:${f.line}` : ''} — ${f.detail}`);
   return lines.join('\n');

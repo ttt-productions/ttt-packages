@@ -1,16 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type {
-  MediaDiagnosticAdapter,
-  RecoveryState,
-  AssetStatusHint,
-} from "../recovery.js";
-import {
-  backoffForAttempt,
-  withinBudget,
-  PHASE_MAX_WAIT_MS,
-} from "../recovery.js";
+import * as React from 'react';
+import type { MediaDiagnosticAdapter, RecoveryState, AssetStatusHint } from '../recovery.js';
+import { backoffForAttempt, withinBudget, PHASE_MAX_WAIT_MS } from '../recovery.js';
 
 // ---------------------------------------------------------------------------
 // Per-asset dedup registry (module-level singleton)
@@ -79,9 +71,9 @@ function broadcastForUrl(url: string, state: RecoveryState, from: RecoveryMember
 /** Phases in which a failed element is still being recovered (not settled, not waiting on the user). */
 function isRecoveringPhase(state: RecoveryState): boolean {
   return (
-    state.phase !== "hard-unavailable" &&
-    state.phase !== "max-wait-fallback" &&
-    state.phase !== "loaded"
+    state.phase !== 'hard-unavailable' &&
+    state.phase !== 'max-wait-fallback' &&
+    state.phase !== 'loaded'
   );
 }
 
@@ -144,8 +136,8 @@ export interface UseMediaRecoveryResult {
 }
 
 function isDocumentVisible(): boolean {
-  if (typeof document === "undefined") return true;
-  return document.visibilityState !== "hidden";
+  if (typeof document === 'undefined') return true;
+  return document.visibilityState !== 'hidden';
 }
 
 export function useMediaRecovery({
@@ -156,7 +148,7 @@ export function useMediaRecovery({
   onRemount,
 }: UseMediaRecoveryOptions): UseMediaRecoveryResult {
   const [recoveryState, setRecoveryState] = React.useState<RecoveryState>({
-    phase: "idle",
+    phase: 'idle',
   });
   const recoveryStateRef = React.useRef(recoveryState);
   recoveryStateRef.current = recoveryState;
@@ -198,7 +190,7 @@ export function useMediaRecovery({
       setRecoveryState(state);
       // The shared recovery reports the asset loadable again (another member
       // loaded it, or restarted it by hand): a failed element retries now.
-      if ((state.phase === "loaded" || state.phase === "loading") && hasFailedRef.current) {
+      if ((state.phase === 'loaded' || state.phase === 'loading') && hasFailedRef.current) {
         remountForSharedRecoveryRef.current();
       }
     },
@@ -214,10 +206,10 @@ export function useMediaRecovery({
   // Document visibility
   // -------------------------------------------------------------------------
   React.useEffect(() => {
-    if (typeof document === "undefined") return;
-    const handler = () => setIsDocVisible(document.visibilityState !== "hidden");
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
+    if (typeof document === 'undefined') return;
+    const handler = () => setIsDocVisible(document.visibilityState !== 'hidden');
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
   }, []);
 
   // -------------------------------------------------------------------------
@@ -234,7 +226,7 @@ export function useMediaRecovery({
     attemptRef.current = 0;
     hasFailedRef.current = false;
 
-    setRecoveryState({ phase: "idle" });
+    setRecoveryState({ phase: 'idle' });
 
     return () => {
       // Leave the dedup registry on unmount or URL change; a follower takes the lead.
@@ -254,7 +246,7 @@ export function useMediaRecovery({
   // -------------------------------------------------------------------------
   React.useEffect(() => {
     if (!isElementVisible || !isDocVisible) return;
-    if (recoveryState.phase !== "transient-retry") return;
+    if (recoveryState.phase !== 'transient-retry') return;
     if (retryTimerRef.current !== null) return; // timer already running
 
     // Timer was cleared due to hidden state — reschedule.
@@ -272,11 +264,11 @@ export function useMediaRecovery({
   // (manual Retry), the same terminal the retry budget uses.
   // -------------------------------------------------------------------------
   React.useEffect(() => {
-    if (recoveryState.phase !== "processing" && recoveryState.phase !== "finalizing") {
+    if (recoveryState.phase !== 'processing' && recoveryState.phase !== 'finalizing') {
       return;
     }
     const timer = setTimeout(() => {
-      const fallbackState: RecoveryState = { phase: "max-wait-fallback" };
+      const fallbackState: RecoveryState = { phase: 'max-wait-fallback' };
       setRecoveryState(fallbackState);
       if (stableUrl) broadcastForUrl(stableUrl, fallbackState, member);
     }, PHASE_MAX_WAIT_MS);
@@ -299,35 +291,35 @@ export function useMediaRecovery({
       const currentAdapter = adapterRef.current;
       const hint = statusHintRef.current;
 
-      let diagnosis: import("../recovery.js").DiagnosisResult;
+      let diagnosis: import('../recovery.js').DiagnosisResult;
 
       if (!currentAdapter?.probe) {
         // No probe: treat as transient for bounded retry purposes
-        diagnosis = { kind: "transient" };
+        diagnosis = { kind: 'transient' };
       } else {
         try {
           diagnosis = await currentAdapter.probe(stableUrl);
         } catch {
-          diagnosis = { kind: "transient" };
+          diagnosis = { kind: 'transient' };
         }
       }
 
-      if (diagnosis.kind === "hard") {
-        const hardState: RecoveryState = { phase: "hard-unavailable" };
+      if (diagnosis.kind === 'hard') {
+        const hardState: RecoveryState = { phase: 'hard-unavailable' };
         setRecoveryState(hardState);
         broadcastForUrl(stableUrl, hardState, member);
         return;
       }
 
-      if (diagnosis.kind === "auth") {
+      if (diagnosis.kind === 'auth') {
         if (!authRefreshedRef.current) {
           authRefreshedRef.current = true;
-          const authState: RecoveryState = { phase: "auth-retry" };
+          const authState: RecoveryState = { phase: 'auth-retry' };
           setRecoveryState(authState);
           broadcastForUrl(stableUrl, authState, member);
 
           try {
-            if (hint !== "failed" && hint !== "rejected") {
+            if (hint !== 'failed' && hint !== 'rejected') {
               await currentAdapter?.refreshSession?.();
               await currentAdapter?.refreshGrant?.(stableUrl);
             }
@@ -340,8 +332,8 @@ export function useMediaRecovery({
         }
         // Already refreshed once → hard auth failure
         const hardAuthState: RecoveryState = {
-          phase: "hard-unavailable",
-          reason: "auth",
+          phase: 'hard-unavailable',
+          reason: 'auth',
         };
         setRecoveryState(hardAuthState);
         broadcastForUrl(stableUrl, hardAuthState, member);
@@ -356,14 +348,14 @@ export function useMediaRecovery({
         firstFailureAtRef.current !== null &&
         !withinBudget(firstFailureAtRef.current, nextRetryAt)
       ) {
-        const fallbackState: RecoveryState = { phase: "max-wait-fallback" };
+        const fallbackState: RecoveryState = { phase: 'max-wait-fallback' };
         setRecoveryState(fallbackState);
         broadcastForUrl(stableUrl, fallbackState, member);
         return;
       }
 
       const retryState: RecoveryState = {
-        phase: "transient-retry",
+        phase: 'transient-retry',
         attempt,
         nextRetryMs: nextDelay,
       };
@@ -381,7 +373,7 @@ export function useMediaRecovery({
         onRemountRef.current?.();
       }, nextDelay);
     },
-    [stableUrl, member]
+    [stableUrl, member],
   );
   runRecoveryRef.current = runRecovery;
   remountForSharedRecoveryRef.current = () => {
@@ -401,22 +393,22 @@ export function useMediaRecovery({
     const hint = statusHintRef.current;
 
     // Terminal app-hint states — no probe, immediate hard error
-    if (hint === "failed" || hint === "rejected") {
-      const s: RecoveryState = { phase: "hard-unavailable", reason: hint };
+    if (hint === 'failed' || hint === 'rejected') {
+      const s: RecoveryState = { phase: 'hard-unavailable', reason: hint };
       setRecoveryState(s);
       broadcastForUrl(stableUrl, s, member);
       return;
     }
 
     // Processing/finalizing hints — show phase overlay, no probe
-    if (hint === "processing") {
-      const s: RecoveryState = { phase: "processing" };
+    if (hint === 'processing') {
+      const s: RecoveryState = { phase: 'processing' };
       setRecoveryState(s);
       broadcastForUrl(stableUrl, s, member);
       return;
     }
-    if (hint === "finalizing") {
-      const s: RecoveryState = { phase: "finalizing" };
+    if (hint === 'finalizing') {
+      const s: RecoveryState = { phase: 'finalizing' };
       setRecoveryState(s);
       broadcastForUrl(stableUrl, s, member);
       return;
@@ -458,7 +450,7 @@ export function useMediaRecovery({
     authRefreshedRef.current = false;
     attemptRef.current = 0;
 
-    const loadedState: RecoveryState = { phase: "loaded" };
+    const loadedState: RecoveryState = { phase: 'loaded' };
     setRecoveryState(loadedState);
     if (stableUrl) {
       // Tell the members first (a failed one retries now), then leave; a
@@ -491,7 +483,7 @@ export function useMediaRecovery({
     claimRecoveryLead(stableUrl, member);
     isRegisteredRef.current = true;
 
-    const loadingState: RecoveryState = { phase: "loading" };
+    const loadingState: RecoveryState = { phase: 'loading' };
     setRecoveryState(loadingState);
     broadcastForUrl(stableUrl, loadingState, member);
     onRemountRef.current?.();

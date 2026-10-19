@@ -13,20 +13,18 @@ describe('useCallableMutation', () => {
   });
 
   it('returns callFunction and isLoading=false initially', () => {
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions }));
     expect(result.current.isLoading).toBe(false);
     expect(typeof result.current.callFunction).toBe('function');
   });
 
   it('returns data on success', async () => {
-    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), {
+      stream: vi.fn(),
+    });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions }));
 
     let returned: unknown;
     await act(async () => {
@@ -40,14 +38,17 @@ describe('useCallableMutation', () => {
   it('sets isLoading=true during the call', async () => {
     let resolveCall!: (v: { data: unknown }) => void;
     const mockCallable = Object.assign(
-      vi.fn(() => new Promise<{ data: unknown }>((res) => { resolveCall = res; })),
+      vi.fn(
+        () =>
+          new Promise<{ data: unknown }>((res) => {
+            resolveCall = res;
+          }),
+      ),
       { stream: vi.fn() },
     );
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions }));
 
     let callPromise: Promise<unknown>;
     act(() => {
@@ -67,14 +68,17 @@ describe('useCallableMutation', () => {
   it('stays loading until the LAST overlapping call settles', async () => {
     const resolvers: Array<(v: { data: unknown }) => void> = [];
     const mockCallable = Object.assign(
-      vi.fn(() => new Promise<{ data: unknown }>((res) => { resolvers.push(res); })),
+      vi.fn(
+        () =>
+          new Promise<{ data: unknown }>((res) => {
+            resolvers.push(res);
+          }),
+      ),
       { stream: vi.fn() },
     );
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions }));
 
     let first!: Promise<unknown>;
     let second!: Promise<unknown>;
@@ -104,15 +108,16 @@ describe('useCallableMutation', () => {
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const onError = vi.fn();
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions, onError }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions, onError }));
 
     await act(async () => {
       await expect(result.current.callFunction('failFn')).rejects.toThrow('call failed');
     });
 
-    expect(onError).toHaveBeenCalledWith(error, expect.objectContaining({ functionName: 'failFn' }));
+    expect(onError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ functionName: 'failFn' }),
+    );
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -122,21 +127,20 @@ describe('useCallableMutation', () => {
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const captureException = vi.fn();
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions, captureException }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions, captureException }));
 
     await act(async () => {
       await expect(result.current.callFunction('fn')).rejects.toThrow();
     });
 
-    expect(captureException).toHaveBeenCalledWith(error, expect.objectContaining({ functionName: 'fn' }));
+    expect(captureException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ functionName: 'fn' }),
+    );
   });
 
   it('throws when getFunctions returns null', async () => {
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions: () => null }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions: () => null }));
 
     await act(async () => {
       await expect(result.current.callFunction('fn')).rejects.toThrow(
@@ -146,25 +150,29 @@ describe('useCallableMutation', () => {
   });
 
   it('threads timeoutMs through to the SDK timeout option', async () => {
-    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), {
+      stream: vi.fn(),
+    });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
-    const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions, timeoutMs: 45_000 }),
-    );
+    const { result } = renderHook(() => useCallableMutation({ getFunctions, timeoutMs: 45_000 }));
 
     await act(async () => {
       await result.current.callFunction('myFn', { x: 1 });
     });
 
-    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', { timeout: 45_000 });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', {
+      timeout: 45_000,
+    });
   });
 
   // The hook constructs the transport object, so an option the primitive owns is
   // only reachable from React if this layer threads it. Default-false: an ordinary
   // hook call must produce no SDK options object at all.
   it('threads limitedUseAppCheck through to the SDK limitedUseAppCheckTokens option', async () => {
-    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), {
+      stream: vi.fn(),
+    });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const { result } = renderHook(() =>
@@ -181,7 +189,9 @@ describe('useCallableMutation', () => {
   });
 
   it('omits limitedUseAppCheckTokens when the option is not enabled', async () => {
-    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), {
+      stream: vi.fn(),
+    });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const { result } = renderHook(() => useCallableMutation({ getFunctions }));
@@ -194,7 +204,9 @@ describe('useCallableMutation', () => {
     await act(async () => {
       await withTimeout.result.current.callFunction('myFn', { x: 1 });
     });
-    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', { timeout: 45_000 });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', {
+      timeout: 45_000,
+    });
   });
 
   it('deadline expiry rejects with functions/deadline-exceeded and clears isLoading', async () => {
@@ -208,9 +220,7 @@ describe('useCallableMutation', () => {
       );
       vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
-      const { result } = renderHook(() =>
-        useCallableMutation({ getFunctions, timeoutMs: 1_000 }),
-      );
+      const { result } = renderHook(() => useCallableMutation({ getFunctions, timeoutMs: 1_000 }));
 
       let call!: Promise<unknown>;
       act(() => {
@@ -256,7 +266,13 @@ describe('useCallableMutation — an unavailable Functions provider', () => {
     const onError = vi.fn();
     const captureException = vi.fn();
     const { result } = renderHook(() =>
-      useCallableMutation({ getFunctions: () => { throw thrown; }, onError, captureException }),
+      useCallableMutation({
+        getFunctions: () => {
+          throw thrown;
+        },
+        onError,
+        captureException,
+      }),
     );
     await act(async () => {
       await expect(result.current.callFunction('fn')).rejects.toBe(thrown);

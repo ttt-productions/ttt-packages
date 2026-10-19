@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
-import { Badge, Card } from "@ttt-productions/ui-core/react";
-import { cn } from "@ttt-productions/ui-core";
+import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
+import { Badge, Card } from '@ttt-productions/ui-core/react';
+import { cn } from '@ttt-productions/ui-core';
 
 export interface MediaConstraintsHintProps {
   spec: MediaOriginSpec;
@@ -22,11 +22,11 @@ function fmtAspect(x?: number) {
   if (!x) return null;
   // show common approx ratios if close
   const candidates: Array<[string, number]> = [
-    ["1:1", 1],
-    ["4:5", 4 / 5],
-    ["3:4", 3 / 4],
-    ["9:16", 9 / 16],
-    ["16:9", 16 / 9],
+    ['1:1', 1],
+    ['4:5', 4 / 5],
+    ['3:4', 3 / 4],
+    ['9:16', 9 / 16],
+    ['16:9', 16 / 9],
   ];
   for (const [label, v] of candidates) {
     if (Math.abs(x - v) <= 0.02) return label;
@@ -35,10 +35,10 @@ function fmtAspect(x?: number) {
 }
 
 export function MediaConstraintsHint(props: MediaConstraintsHintProps) {
-  const { spec, className, title = "Upload requirements" } = props;
+  const { spec, className, title = 'Upload requirements' } = props;
 
-  const acceptKinds = spec.accept?.kinds?.length ? spec.accept.kinds.join(", ") : "any";
-  const acceptMimes = spec.accept?.mimes?.length ? spec.accept.mimes.join(", ") : "any";
+  const acceptKinds = spec.accept?.kinds?.length ? spec.accept.kinds.join(', ') : 'any';
+  const acceptMimes = spec.accept?.mimes?.length ? spec.accept.mimes.join(', ') : 'any';
 
   const maxBytes = fmtBytes(spec.maxBytes);
   const maxDur =
@@ -55,29 +55,31 @@ export function MediaConstraintsHint(props: MediaConstraintsHintProps) {
     return w && h ? `${w}×${h}` : null;
   })();
 
-  const videoOri = spec.videoOrientation && spec.videoOrientation !== "any" ? spec.videoOrientation : null;
+  const videoOri =
+    spec.videoOrientation && spec.videoOrientation !== 'any' ? spec.videoOrientation : null;
 
-  const cropDims =
-    spec.imageCrop ? `${spec.imageCrop.outputWidth}×${spec.imageCrop.outputHeight}` : null;
+  const cropDims = spec.imageCrop
+    ? `${spec.imageCrop.outputWidth}×${spec.imageCrop.outputHeight}`
+    : null;
 
-  const willAutoFormat = !!(spec.processing?.video?.allowAutoFormat);
+  const willAutoFormat = !!spec.processing?.video?.allowAutoFormat;
 
   const items: Array<{ k: string; v: string | null }> = [
-    { k: "Kind", v: acceptKinds },
-    { k: "Types", v: acceptMimes },
-    { k: "Max size", v: maxBytes },
-    { k: "Max length", v: maxDur ? `${maxDur}s` : null },
-    { k: "Orientation", v: videoOri },
-    { k: "Aspect", v: requiredAspect },
-    { k: "Exact size", v: requiredDims },
-    { k: "Crop output", v: cropDims },
-    { k: "Auto-format", v: willAutoFormat ? "yes" : null },
+    { k: 'Kind', v: acceptKinds },
+    { k: 'Types', v: acceptMimes },
+    { k: 'Max size', v: maxBytes },
+    { k: 'Max length', v: maxDur ? `${maxDur}s` : null },
+    { k: 'Orientation', v: videoOri },
+    { k: 'Aspect', v: requiredAspect },
+    { k: 'Exact size', v: requiredDims },
+    { k: 'Crop output', v: cropDims },
+    { k: 'Auto-format', v: willAutoFormat ? 'yes' : null },
   ].filter((x) => x.v);
 
   if (!items.length) return null;
 
   return (
-    <Card className={cn("p-3", className)}>
+    <Card className={cn('p-3', className)}>
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-medium">{title}</div>
         {willAutoFormat ? <Badge variant="secondary">Auto-format supported</Badge> : null}
@@ -94,15 +96,16 @@ export function MediaConstraintsHint(props: MediaConstraintsHintProps) {
 
       {spec.imageCrop ? (
         <div className="mt-2 text-xs text-muted-foreground">
-          Images will be cropped to {fmtAspect(spec.imageCrop.aspectRatio)} and exported as{" "}
-          {(spec.imageCrop.format ?? "jpeg").toUpperCase()}
-          {spec.imageCrop.quality ? ` @ ${spec.imageCrop.quality}%` : ""}.
+          Images will be cropped to {fmtAspect(spec.imageCrop.aspectRatio)} and exported as{' '}
+          {(spec.imageCrop.format ?? 'jpeg').toUpperCase()}
+          {spec.imageCrop.quality ? ` @ ${spec.imageCrop.quality}%` : ''}.
         </div>
       ) : null}
 
       {willAutoFormat ? (
         <div className="mt-2 text-xs text-muted-foreground">
-          If your video doesn't match the format, we'll ask before uploading and then auto-format it in processing.
+          If your video doesn't match the format, we'll ask before uploading and then auto-format it
+          in processing.
         </div>
       ) : null}
     </Card>

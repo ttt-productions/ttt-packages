@@ -26,9 +26,7 @@ const NAV_TARGETS = ['greenRoom', 'futurePlans'] as const;
 /** Pure, framework-free renderer: flattens a segment run to its rendered text.
  *  emphasis renders its text; link renders its label. */
 function renderSegmentsToText(segments: readonly CompanyCopySegment[]): string {
-  return segments
-    .map((seg) => (seg.kind === 'link' ? seg.label : seg.text))
-    .join('');
+  return segments.map((seg) => (seg.kind === 'link' ? seg.label : seg.text)).join('');
 }
 
 /** Recursively assert a value contains no functions anywhere (pure data). */

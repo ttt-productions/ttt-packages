@@ -1,9 +1,9 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
-const packageRoot = path.resolve(__dirname, "..");
-const srcStylesDir = path.join(packageRoot, "src", "styles");
-const distStylesDir = path.join(packageRoot, "dist", "styles");
+const packageRoot = path.resolve(__dirname, '..');
+const srcStylesDir = path.join(packageRoot, 'src', 'styles');
+const distStylesDir = path.join(packageRoot, 'dist', 'styles');
 
 function copyDirectoryRecursive(sourceDir, destinationDir) {
   const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
@@ -26,9 +26,7 @@ function copyDirectoryRecursive(sourceDir, destinationDir) {
 
 function main() {
   if (!fs.existsSync(srcStylesDir)) {
-    console.warn(
-      `[theme-core] Warning: styles source directory not found: ${srcStylesDir}`
-    );
+    console.warn(`[theme-core] Warning: styles source directory not found: ${srcStylesDir}`);
     process.exit(0);
   }
 

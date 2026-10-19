@@ -23,13 +23,16 @@ function installDomStubs() {
   }
   Element.prototype.scrollIntoView = vi.fn();
   if (!('hasPointerCapture' in Element.prototype)) {
-    (Element.prototype as unknown as { hasPointerCapture: () => boolean }).hasPointerCapture = () => false;
+    (Element.prototype as unknown as { hasPointerCapture: () => boolean }).hasPointerCapture = () =>
+      false;
   }
   if (!('setPointerCapture' in Element.prototype)) {
-    (Element.prototype as unknown as { setPointerCapture: () => void }).setPointerCapture = () => {};
+    (Element.prototype as unknown as { setPointerCapture: () => void }).setPointerCapture =
+      () => {};
   }
   if (!('releasePointerCapture' in Element.prototype)) {
-    (Element.prototype as unknown as { releasePointerCapture: () => void }).releasePointerCapture = () => {};
+    (Element.prototype as unknown as { releasePointerCapture: () => void }).releasePointerCapture =
+      () => {};
   }
 }
 
@@ -38,7 +41,12 @@ function pickOnlySpec(): MediaOriginSpec {
   return {
     kind: 'image',
     accept: { kinds: ['image'], mimes: ['image/png'] },
-    client: { allowPick: true, allowCapturePhoto: false, allowRecordVideo: false, allowRecordAudio: false },
+    client: {
+      allowPick: true,
+      allowCapturePhoto: false,
+      allowRecordVideo: false,
+      allowRecordAudio: false,
+    },
   };
 }
 
@@ -47,11 +55,19 @@ function pickAndPhotoSpec(): MediaOriginSpec {
   return {
     kind: 'image',
     accept: { kinds: ['image'], mimes: ['image/png'] },
-    client: { allowPick: true, allowCapturePhoto: true, allowRecordVideo: false, allowRecordAudio: false },
+    client: {
+      allowPick: true,
+      allowCapturePhoto: true,
+      allowRecordVideo: false,
+      allowRecordAudio: false,
+    },
   };
 }
 
-function renderInput(extra: Partial<React.ComponentProps<typeof MediaInput>> = {}, spec = pickOnlySpec()) {
+function renderInput(
+  extra: Partial<React.ComponentProps<typeof MediaInput>> = {},
+  spec = pickOnlySpec(),
+) {
   const ref = React.createRef<MediaInputHandle>();
   const utils = render(<MediaInput ref={ref} spec={spec} onChange={vi.fn()} {...extra} />);
   const input = utils.container.querySelector('input[type="file"]') as HTMLInputElement;

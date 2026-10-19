@@ -2,9 +2,9 @@
 // chat-core root; they live here so the pure chat-core package stays free of
 // react / firebase/firestore / firebase/storage references.
 
-import type { ReactNode } from "react";
-import type { ChatMessageV1 } from "@ttt-productions/chat-core";
-import type { ChatConversationRef } from "@ttt-productions/chat-schemas";
+import type { ReactNode } from 'react';
+import type { ChatMessageV1 } from '@ttt-productions/chat-core';
+import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 
 // ============================================
 // CONFIG
@@ -45,7 +45,7 @@ export interface ChatRealtimeTransportConfig {
 
 export type ChatCoreConfig = {
   chatCollectionPath: string | string[];
-  messagesSubcollection?: string;  // default: "messages"
+  messagesSubcollection?: string; // default: "messages"
   threadId: string;
   currentUserId: string;
   currentUserDisplayName?: string;
@@ -65,7 +65,7 @@ export type ChatCoreConfig = {
    * closes the conversation even when this is true.
    */
   allowed: boolean;
-  createdAtField?: string;         // default: "createdAt"
+  createdAtField?: string; // default: "createdAt"
   pageSize?: number;
   /**
    * Firestore transport only: the app's own per-message facts, read from the stored message

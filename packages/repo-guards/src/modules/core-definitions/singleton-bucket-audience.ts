@@ -46,7 +46,11 @@ export const singletonBucketAudienceGuard: GenericGuardDefinition<SingletonBucke
           const findings: Finding[] = [];
           coreBuild(context, findings);
           const buckets = new Set(await facts.clientReadableBuckets());
-          if (!buckets.size) findings.push({ file: '(core) clientReadableBuckets', detail: 'no client-readable collection was loaded' });
+          if (!buckets.size)
+            findings.push({
+              file: '(core) clientReadableBuckets',
+              detail: 'no client-readable collection was loaded',
+            });
           const inBucket = (path: string) => buckets.has(path.split('/')[0] ?? '');
           const declared = new Set((await facts.registeredDocumentPaths()).filter(inBucket));
           for (const builder of Object.values(await facts.pathBuilders())) {
@@ -56,10 +60,19 @@ export const singletonBucketAudienceGuard: GenericGuardDefinition<SingletonBucke
           }
           const reviewed = new Set(facts.reviewed.map((e) => e.path));
           for (const path of [...declared].sort()) {
-            if (!reviewed.has(path)) findings.push({ file: `(core) ${path}`, detail: 'a client-readable singleton names no reader that needs its audience' });
+            if (!reviewed.has(path))
+              findings.push({
+                file: `(core) ${path}`,
+                detail: 'a client-readable singleton names no reader that needs its audience',
+              });
           }
           for (const path of reviewed) {
-            if (!declared.has(path)) findings.push({ file: `(core) ${path}`, detail: 'stale reviewed entry: the document is no longer in a client-readable collection' });
+            if (!declared.has(path))
+              findings.push({
+                file: `(core) ${path}`,
+                detail:
+                  'stale reviewed entry: the document is no longer in a client-readable collection',
+              });
           }
           return findings;
         },

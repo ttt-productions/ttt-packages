@@ -180,16 +180,56 @@ export interface UserFacingReasonOption {
  * importing from here. Final user-/legal-facing wording is subject to lawyer review; these are
  * functional defaults. */
 export const USER_FACING_REASON_OPTIONS = [
-  { code: 'harassment', label: 'Harassment or bullying', description: 'Targeted abuse, threats, or sustained harassment of a person.' },
-  { code: 'hate', label: 'Hate speech', description: 'Attacks on people based on a protected characteristic.' },
-  { code: 'adult-content', label: 'Explicit / adult content', description: 'Sexual or graphic content not allowed on the platform.' },
-  { code: 'violence', label: 'Violence or threats', description: 'Threats of violence, or content glorifying or inciting it.' },
-  { code: 'spam', label: 'Spam or scam', description: 'Unsolicited bulk content, deceptive links, or fraud.' },
-  { code: 'impersonation', label: 'Impersonation', description: 'Pretending to be another person, brand, or entity.' },
-  { code: 'ip', label: 'Intellectual property', description: 'Use of someone else’s work without the right to do so.' },
-  { code: 'nonconsensual', label: 'Nonconsensual intimate imagery', description: 'Intimate or sexual imagery shared without the subject’s consent.' },
-  { code: 'safety', label: 'Safety violation', description: 'A serious safety violation handled under our safety policies.' },
-  { code: 'other', label: 'Other (explain)', description: 'A policy violation not covered above — describe it in the detail box.' },
+  {
+    code: 'harassment',
+    label: 'Harassment or bullying',
+    description: 'Targeted abuse, threats, or sustained harassment of a person.',
+  },
+  {
+    code: 'hate',
+    label: 'Hate speech',
+    description: 'Attacks on people based on a protected characteristic.',
+  },
+  {
+    code: 'adult-content',
+    label: 'Explicit / adult content',
+    description: 'Sexual or graphic content not allowed on the platform.',
+  },
+  {
+    code: 'violence',
+    label: 'Violence or threats',
+    description: 'Threats of violence, or content glorifying or inciting it.',
+  },
+  {
+    code: 'spam',
+    label: 'Spam or scam',
+    description: 'Unsolicited bulk content, deceptive links, or fraud.',
+  },
+  {
+    code: 'impersonation',
+    label: 'Impersonation',
+    description: 'Pretending to be another person, brand, or entity.',
+  },
+  {
+    code: 'ip',
+    label: 'Intellectual property',
+    description: 'Use of someone else’s work without the right to do so.',
+  },
+  {
+    code: 'nonconsensual',
+    label: 'Nonconsensual intimate imagery',
+    description: 'Intimate or sexual imagery shared without the subject’s consent.',
+  },
+  {
+    code: 'safety',
+    label: 'Safety violation',
+    description: 'A serious safety violation handled under our safety policies.',
+  },
+  {
+    code: 'other',
+    label: 'Other (explain)',
+    description: 'A policy violation not covered above — describe it in the detail box.',
+  },
 ] as const satisfies readonly UserFacingReasonOption[];
 
 /** One user-facing reason code — the codes the picklist owns, never a free string. */
@@ -304,7 +344,8 @@ export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], strin
  * Why a full admin cannot remove their own Admin standing: the server refuses it, and the roster
  * panel withholds the control with the same words. Another full admin removes it.
  */
-export const ADMIN_SELF_REVOKE_REFUSAL = "You can't revoke your own admin standing. Ask another full admin to do it.";
+export const ADMIN_SELF_REVOKE_REFUSAL =
+  "You can't revoke your own admin standing. Ask another full admin to do it.";
 
 /** The marker beside the sender of a support-thread message sent with admin authority. */
 export const ADMIN_SENDER_MARKER_LABEL = 'Admin';

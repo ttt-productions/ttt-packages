@@ -17,7 +17,7 @@ describe('toPath', () => {
 
   it('joins multiple segments with forward slashes', () => {
     expect(toPath(['userProfiles', 'user123', 'profileCraftSkills', 'skill456'])).toBe(
-      'userProfiles/user123/profileCraftSkills/skill456'
+      'userProfiles/user123/profileCraftSkills/skill456',
     );
   });
 
@@ -31,10 +31,7 @@ describe('toPath', () => {
 
   it('works with PATH_BUILDERS.guildChatChannel output', () => {
     expect(toPath(PATH_BUILDERS.guildChatChannel('projABC', 'chanXYZ'))).toBe(
-      'allWorkProjects/projABC/guildChatChannels/chanXYZ'
+      'allWorkProjects/projABC/guildChatChannels/chanXYZ',
     );
   });
-
 });
-
-

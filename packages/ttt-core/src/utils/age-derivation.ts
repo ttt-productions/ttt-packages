@@ -37,8 +37,10 @@ export function ageInWholeYears(dob: DateOfBirth, asOf: Date): number {
  */
 export function deriveAgeBracket(dob: DateOfBirth, asOf: Date): AgeBracketDerivation {
   const { year, month, day } = dob;
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return { kind: 'invalid' };
-  if (month < 1 || month > 12 || day < 1 || day > 31 || year < DATE_OF_BIRTH_MIN_YEAR) return { kind: 'invalid' };
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day))
+    return { kind: 'invalid' };
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < DATE_OF_BIRTH_MIN_YEAR)
+    return { kind: 'invalid' };
   const date = new Date(Date.UTC(year, month - 1, day));
   if (
     date.getUTCFullYear() !== year ||

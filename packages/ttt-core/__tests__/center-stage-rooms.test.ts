@@ -34,8 +34,16 @@ describe('CENTER_STAGE_ROOMS', () => {
 
   it('maps each room to its verbatim route + copy', () => {
     const byKey = Object.fromEntries(CENTER_STAGE_ROOMS.map((r) => [r.key, r]));
-    expect(byKey.hall).toMatchObject({ name: 'The Hall', verb: 'Watch, read & listen', href: '/hall-library' });
-    expect(byKey.square).toMatchObject({ name: 'The Square', verb: "See what's happening", href: '/square-streetz' });
+    expect(byKey.hall).toMatchObject({
+      name: 'The Hall',
+      verb: 'Watch, read & listen',
+      href: '/hall-library',
+    });
+    expect(byKey.square).toMatchObject({
+      name: 'The Square',
+      verb: "See what's happening",
+      href: '/square-streetz',
+    });
     expect(byKey.audition).toMatchObject({
       name: 'The Audition Stage',
       verb: 'Cast your vote',

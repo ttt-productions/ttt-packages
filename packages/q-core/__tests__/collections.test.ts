@@ -42,7 +42,10 @@ describe('compound camelCase collection names', () => {
 
   it('a key is the SCREAMING_SNAKE spelling of its value', () => {
     const toKey = (value: string) =>
-      value.replace(/^_/, '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase();
+      value
+        .replace(/^_/, '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+        .toUpperCase();
     for (const [mapName, map] of NAME_MAPS) {
       for (const [key, value] of Object.entries(map)) {
         expect(key, `${mapName}.${key}`).toBe(toKey(value));
@@ -69,7 +72,9 @@ describe('path builders', () => {
     expect(toPath(PATH_BUILDERS.leagueTeamContact('T'))).toBe('leagueTeamContacts/T');
     expect(toPath(PATH_BUILDERS.leagueFreeAgent('L', 'u1'))).toBe('leagueFreeAgents/L_u1');
     expect(toPath(PATH_BUILDERS.signedWaiver('L', 'u1'))).toBe('signedWaivers/L_u1');
-    expect(toPath(PATH_BUILDERS.gameRosterPlayer('g1', 'T', 'u1'))).toBe('sportGames/g1/gameRosterPlayers/T_u1');
+    expect(toPath(PATH_BUILDERS.gameRosterPlayer('g1', 'T', 'u1'))).toBe(
+      'sportGames/g1/gameRosterPlayers/T_u1',
+    );
     expect(toPath(PATH_BUILDERS.gameStatEvent('g1', 'e1'))).toBe('sportGames/g1/gameStatEvents/e1');
     expect(toPath(PATH_BUILDERS.gameStatHistoryPage('g1', 'page_0000'))).toBe(
       'sportGames/g1/gameStatHistory/page_0000',
@@ -98,14 +103,24 @@ describe('path builders', () => {
   });
 
   it('a plural builder is its singular minus the document id', () => {
-    expect(PATH_BUILDERS.gameRosterPlayers('g1')).toEqual(PATH_BUILDERS.gameRosterPlayer('g1', 'T', 'x').slice(0, 3));
-    expect(PATH_BUILDERS.gameStatEvents('g1')).toEqual(PATH_BUILDERS.gameStatEvent('g1', 'x').slice(0, 3));
-    expect(PATH_BUILDERS.gameStatHistory('g1')).toEqual(PATH_BUILDERS.gameStatHistoryPage('g1', 'x').slice(0, 3));
-    expect(PATH_BUILDERS.historicalStats('u1')).toEqual(PATH_BUILDERS.historicalStat('u1', 'curling').slice(0, 3));
+    expect(PATH_BUILDERS.gameRosterPlayers('g1')).toEqual(
+      PATH_BUILDERS.gameRosterPlayer('g1', 'T', 'x').slice(0, 3),
+    );
+    expect(PATH_BUILDERS.gameStatEvents('g1')).toEqual(
+      PATH_BUILDERS.gameStatEvent('g1', 'x').slice(0, 3),
+    );
+    expect(PATH_BUILDERS.gameStatHistory('g1')).toEqual(
+      PATH_BUILDERS.gameStatHistoryPage('g1', 'x').slice(0, 3),
+    );
+    expect(PATH_BUILDERS.historicalStats('u1')).toEqual(
+      PATH_BUILDERS.historicalStat('u1', 'curling').slice(0, 3),
+    );
     expect(PATH_BUILDERS.waiverTemplateVersions('w1')).toEqual(
       PATH_BUILDERS.waiverTemplateVersion('w1', 1).slice(0, 3),
     );
-    expect(PATH_BUILDERS.awardGroupGrantPeople('g1')).toEqual(PATH_BUILDERS.awardGroupGrantPerson('g1', 'u1').slice(0, 3));
+    expect(PATH_BUILDERS.awardGroupGrantPeople('g1')).toEqual(
+      PATH_BUILDERS.awardGroupGrantPerson('g1', 'u1').slice(0, 3),
+    );
   });
 });
 
@@ -121,8 +136,12 @@ describe('collection refs and groups', () => {
   });
 
   it('collection groups derive from the subcollection constants', () => {
-    expect(COLLECTION_GROUPS.GAME_ROSTER_PLAYERS).toBe(SPORT_GAME_SUBCOLLECTIONS.GAME_ROSTER_PLAYERS);
+    expect(COLLECTION_GROUPS.GAME_ROSTER_PLAYERS).toBe(
+      SPORT_GAME_SUBCOLLECTIONS.GAME_ROSTER_PLAYERS,
+    );
     expect(COLLECTION_GROUPS.GAME_STAT_EVENTS).toBe(SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_EVENTS);
-    expect(COLLECTION_GROUPS.AWARD_GROUP_GRANT_PEOPLE).toBe(AWARD_GROUP_GRANT_SUBCOLLECTIONS.AWARD_GROUP_GRANT_PEOPLE);
+    expect(COLLECTION_GROUPS.AWARD_GROUP_GRANT_PEOPLE).toBe(
+      AWARD_GROUP_GRANT_SUBCOLLECTIONS.AWARD_GROUP_GRANT_PEOPLE,
+    );
   });
 });

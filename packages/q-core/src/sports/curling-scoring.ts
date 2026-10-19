@@ -5,7 +5,11 @@
 // event is ever superseded and undoing one always returns its round to unrecorded (SPORT-103).
 
 import { z } from 'zod';
-import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS, MAX_STAT_EVENTS_PER_WRITE } from '../constants/sports.js';
+import {
+  CURLING_ROUND_COUNT,
+  MAX_CURLING_ROUND_POINTS,
+  MAX_STAT_EVENTS_PER_WRITE,
+} from '../constants/sports.js';
 import type { CurlingTeamStats, GameStatEvent } from '../doc-schemas/game-stats.js';
 import type { CurlingGameStats, GameStats } from '../doc-schemas/sport-game.js';
 import {
@@ -23,7 +27,11 @@ import {
   type RoundsValues,
   type StatEventDraft,
 } from './bulk-entry.js';
-import { buildGameContribution, decideParticipation, type ContributionSpec } from './contribution.js';
+import {
+  buildGameContribution,
+  decideParticipation,
+  type ContributionSpec,
+} from './contribution.js';
 import {
   FINALIZATION_READY,
   STAT_EVENT_ACCEPTED,
@@ -79,7 +87,11 @@ export function emptyCurlingTeamLine(): CurlingTeamStats {
   return { score: sumOfRounds(roundScores), roundScores };
 }
 
-function withRound(line: CurlingTeamStats, roundNumber: number, slot: number | null): CurlingTeamStats {
+function withRound(
+  line: CurlingTeamStats,
+  roundNumber: number,
+  slot: number | null,
+): CurlingTeamStats {
   const roundScores = [...line.roundScores];
   roundScores[roundNumber - 1] = slot;
   return { score: sumOfRounds(roundScores), roundScores };
@@ -97,7 +109,8 @@ function setRound(stateIn: GameStats, event: CurlingEvent, recorded: boolean): C
     teamStats[scoringTeamId] = emptyCurlingTeamLine();
   }
   for (const [teamId, line] of Object.entries(teamStats)) {
-    const points = event.type === CURLING_ROUND_SCORE_EVENT_TYPE && teamId === scoringTeamId ? event.points : 0;
+    const points =
+      event.type === CURLING_ROUND_SCORE_EVENT_TYPE && teamId === scoringTeamId ? event.points : 0;
     teamStats[teamId] = withRound(line, event.roundNumber, recorded ? points : null);
   }
   return { teamStats, playerStats: state.playerStats };
@@ -106,7 +119,8 @@ function setRound(stateIn: GameStats, event: CurlingEvent, recorded: boolean): C
 function nextCurlingRound(stateIn: GameStats): number | null {
   const lines = Object.values(ownStats(stateIn).teamStats);
   for (let roundNumber = 1; roundNumber <= CURLING_ROUND_COUNT; roundNumber += 1) {
-    if (lines.length === 0 || lines.some((line) => line.roundScores[roundNumber - 1] === null)) return roundNumber;
+    if (lines.length === 0 || lines.some((line) => line.roundScores[roundNumber - 1] === null))
+      return roundNumber;
   }
   return null;
 }
@@ -135,7 +149,9 @@ const validate: SportScoring['validate'] = (state, event, roster) => {
 };
 
 function finalizationReadiness(state: GameStats): FinalizationReadiness {
-  return nextCurlingRound(state) === null ? FINALIZATION_READY : { ready: false, reason: 'roundsIncomplete' };
+  return nextCurlingRound(state) === null
+    ? FINALIZATION_READY
+    : { ready: false, reason: 'roundsIncomplete' };
 }
 
 // What a completed curling game adds: the standings line from the two scores, and a game played
@@ -152,11 +168,13 @@ export const CURLING_SCORING: SportScoring = {
   validate,
   apply: (state, event) => {
     if (isStatCorrection(event)) throw new Error('No curling field is correctable.');
-    if (!isCurlingEvent(event)) throw new Error(`The curling adapter does not apply ${event.type}.`);
+    if (!isCurlingEvent(event))
+      throw new Error(`The curling adapter does not apply ${event.type}.`);
     return setRound(state, event, true);
   },
   undo: (state, target) => {
-    if (!isCurlingEvent(target)) throw new Error(`The curling adapter does not undo ${target.type}.`);
+    if (!isCurlingEvent(target))
+      throw new Error(`The curling adapter does not undo ${target.type}.`);
     return setRound(state, target, false);
   },
   // A curling line has no derived field.
@@ -190,7 +208,8 @@ export function describeCurlingEvent(event: GameStatEvent, resolve: StatEventNam
   if (storeEvent !== null) return storeEvent;
   if (!isCurlingEvent(event)) return event.type;
   const round = `${CURLING_ROUNDS.label} ${event.roundNumber}`;
-  if (event.type === CURLING_ROUND_BLANK_EVENT_TYPE) return `${round}: ${CURLING_EVENT_LABELS[event.type].play.toLowerCase()}`;
+  if (event.type === CURLING_ROUND_BLANK_EVENT_TYPE)
+    return `${round}: ${CURLING_EVENT_LABELS[event.type].play.toLowerCase()}`;
   return `${round}: ${resolve.team(event.teamId)} scored ${event.points}`;
 }
 
@@ -214,7 +233,8 @@ export const CURLING_SCORING_PANEL: RoundsScoringPanel = {
 export const CURLING_ROUND_POINTS_MESSAGE = `A round is worth 0 to ${MAX_CURLING_ROUND_POINTS} points.`;
 export const CURLING_ONE_SCORING_TEAM_MESSAGE =
   'A round is scored by one team (the other 0 or empty), blank (0 for every team), or left empty.';
-export const CURLING_NO_SKIPPED_ROUND_MESSAGE = 'Rounds are recorded in order: fill in every earlier round first.';
+export const CURLING_NO_SKIPPED_ROUND_MESSAGE =
+  'Rounds are recorded in order: fill in every earlier round first.';
 
 type RoundOutcome =
   | { readonly kind: 'unrecorded' }
@@ -222,7 +242,10 @@ type RoundOutcome =
   | { readonly kind: 'scored'; readonly teamId: string; readonly points: number }
   | { readonly kind: 'invalid' };
 
-function roundOutcome(row: Readonly<Record<string, number | null | undefined>>, teamIds: readonly string[]): RoundOutcome {
+function roundOutcome(
+  row: Readonly<Record<string, number | null | undefined>>,
+  teamIds: readonly string[],
+): RoundOutcome {
   const cells = teamIds.map((teamId) => ({ teamId, points: row[teamId] ?? null }));
   if (cells.every((cell) => cell.points === null)) return { kind: 'unrecorded' };
   if (cells.every((cell) => cell.points === 0)) return { kind: 'blank' };
@@ -235,20 +258,29 @@ function roundOutcome(row: Readonly<Record<string, number | null | undefined>>, 
 }
 
 function sameOutcome(left: RoundOutcome, right: RoundOutcome): boolean {
-  if (left.kind === 'scored' && right.kind === 'scored') return left.teamId === right.teamId && left.points === right.points;
+  if (left.kind === 'scored' && right.kind === 'scored')
+    return left.teamId === right.teamId && left.points === right.points;
   return left.kind === right.kind;
 }
 
-function storedRound(context: BulkEntryContext, roundNumber: number): Record<string, number | null> {
+function storedRound(
+  context: BulkEntryContext,
+  roundNumber: number,
+): Record<string, number | null> {
   const state = ownStats(context.state);
   return Object.fromEntries(
-    context.game.teamIds.map((teamId) => [teamId, state.teamStats[teamId]?.roundScores[roundNumber - 1] ?? null]),
+    context.game.teamIds.map((teamId) => [
+      teamId,
+      state.teamStats[teamId]?.roundScores[roundNumber - 1] ?? null,
+    ]),
   );
 }
 
 function roundDrafts(values: RoundsValues, context: BulkEntryContext): StatEventDraft[] {
   const { teamIds } = context.game;
-  const liveEventByRound = new Map(context.liveRoundEvents.map((event) => [event.roundNumber, event.eventId]));
+  const liveEventByRound = new Map(
+    context.liveRoundEvents.map((event) => [event.roundNumber, event.eventId]),
+  );
   const voids: StatEventDraft[] = [];
   const recorded: StatEventDraft[] = [];
   values.rounds.forEach((row, index) => {
@@ -256,9 +288,15 @@ function roundDrafts(values: RoundsValues, context: BulkEntryContext): StatEvent
     const entered = roundOutcome(row, teamIds);
     if (sameOutcome(entered, roundOutcome(storedRound(context, roundNumber), teamIds))) return;
     const liveEventId = liveEventByRound.get(roundNumber);
-    if (liveEventId !== undefined) voids.push({ type: STAT_VOID_EVENT_TYPE, targetEventId: liveEventId });
+    if (liveEventId !== undefined)
+      voids.push({ type: STAT_VOID_EVENT_TYPE, targetEventId: liveEventId });
     if (entered.kind === 'scored') {
-      recorded.push({ type: CURLING_ROUND_SCORE_EVENT_TYPE, teamId: entered.teamId, roundNumber, points: entered.points });
+      recorded.push({
+        type: CURLING_ROUND_SCORE_EVENT_TYPE,
+        teamId: entered.teamId,
+        roundNumber,
+        points: entered.points,
+      });
     } else if (entered.kind === 'blank') {
       recorded.push({ type: CURLING_ROUND_BLANK_EVENT_TYPE, roundNumber });
     }
@@ -275,7 +313,9 @@ const roundCell = bulkEntryCountField
 export const CURLING_BULK_ENTRY: RoundsBulkEntry = {
   kind: 'rounds',
   formDefaults: (context) => ({
-    rounds: Array.from({ length: CURLING_ROUND_COUNT }, (_, index) => storedRound(context, index + 1)),
+    rounds: Array.from({ length: CURLING_ROUND_COUNT }, (_, index) =>
+      storedRound(context, index + 1),
+    ),
   }),
   formSchema: (context) => {
     const { teamIds } = context.game;
@@ -287,15 +327,27 @@ export const CURLING_BULK_ENTRY: RoundsBulkEntry = {
         values.rounds.forEach((cells, index) => {
           const outcome = roundOutcome(cells, teamIds);
           if (outcome.kind === 'invalid') {
-            issues.addIssue({ code: 'custom', path: ['rounds', index], message: CURLING_ONE_SCORING_TEAM_MESSAGE });
+            issues.addIssue({
+              code: 'custom',
+              path: ['rounds', index],
+              message: CURLING_ONE_SCORING_TEAM_MESSAGE,
+            });
           } else if (outcome.kind === 'unrecorded') {
             unrecordedBefore = true;
           } else if (unrecordedBefore) {
-            issues.addIssue({ code: 'custom', path: ['rounds', index], message: CURLING_NO_SKIPPED_ROUND_MESSAGE });
+            issues.addIssue({
+              code: 'custom',
+              path: ['rounds', index],
+              message: CURLING_NO_SKIPPED_ROUND_MESSAGE,
+            });
           }
         });
         if (roundDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
-          issues.addIssue({ code: 'custom', path: ['rounds'], message: BULK_ENTRY_TOO_LARGE_MESSAGE });
+          issues.addIssue({
+            code: 'custom',
+            path: ['rounds'],
+            message: BULK_ENTRY_TOO_LARGE_MESSAGE,
+          });
         }
       });
   },

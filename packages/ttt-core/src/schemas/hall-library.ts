@@ -38,13 +38,18 @@ import { textFieldSchema } from './text-field.js';
 // unbounded array of distinct strings) onto the public hall parent.
 const TALE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tales as unknown as [string, ...string[]];
 const TUNE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tunes as unknown as [string, ...string[]];
-const TELEVISION_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Television as unknown as [string, ...string[]];
+const TELEVISION_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Television as unknown as [
+  string,
+  ...string[],
+];
 
-export const CreateChapterInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  taleId: taleIdSchema,
-  title: textFieldSchema(CHAPTER_TITLE_INPUT),
-}).strict();
+export const CreateChapterInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    taleId: taleIdSchema,
+    title: textFieldSchema(CHAPTER_TITLE_INPUT),
+  })
+  .strict();
 export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>;
 
 export const CreateChapterResultSchema = z.object({
@@ -54,11 +59,13 @@ export const CreateChapterResultSchema = z.object({
 });
 export type CreateChapterResult = z.infer<typeof CreateChapterResultSchema>;
 
-export const CreateTelevisionEpisodeInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  televisionId: televisionIdSchema,
-  title: textFieldSchema(TELEVISION_EPISODE_TITLE_INPUT),
-}).strict();
+export const CreateTelevisionEpisodeInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    televisionId: televisionIdSchema,
+    title: textFieldSchema(TELEVISION_EPISODE_TITLE_INPUT),
+  })
+  .strict();
 export type CreateTelevisionEpisodeInput = z.infer<typeof CreateTelevisionEpisodeInputSchema>;
 
 export const CreateTelevisionEpisodeResultSchema = z.object({
@@ -68,11 +75,13 @@ export const CreateTelevisionEpisodeResultSchema = z.object({
 });
 export type CreateTelevisionEpisodeResult = z.infer<typeof CreateTelevisionEpisodeResultSchema>;
 
-export const CreateTuneTrackInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  tuneId: tuneIdSchema,
-  title: textFieldSchema(TUNE_TRACK_TITLE_INPUT),
-}).strict();
+export const CreateTuneTrackInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    tuneId: tuneIdSchema,
+    title: textFieldSchema(TUNE_TRACK_TITLE_INPUT),
+  })
+  .strict();
 export type CreateTuneTrackInput = z.infer<typeof CreateTuneTrackInputSchema>;
 
 export const CreateTuneTrackResultSchema = z.object({
@@ -88,16 +97,18 @@ export type CreateTuneTrackResult = z.infer<typeof CreateTuneTrackResultSchema>;
 // real-people attestation sits in the right position for the content reviewed — a wrong position is
 // a needs-revision send-back, never an admin edit. Nullish rather than optional: the Firebase
 // callable client sends an omitted argument as null, and null reads as absent.
-export const ReviewThresholdItemInputSchema = z.object({
-  thresholdItemId: thresholdItemIdSchema,
-  decision: z.enum(['approved', 'needs_revision']),
-  adminNotes: textFieldSchema(THRESHOLD_REVIEW_NOTES_INPUT).nullable().optional(),
-  confirmedNoBegging: z.boolean().nullish(),
-  confirmedNoCredits: z.boolean().nullish(),
-  confirmedRealPeopleAttestation: z.boolean().nullish(),
-  teachesSomething: z.boolean().nullish(),
-  confirmedConsistentFormat: z.boolean().nullish(),
-}).strict();
+export const ReviewThresholdItemInputSchema = z
+  .object({
+    thresholdItemId: thresholdItemIdSchema,
+    decision: z.enum(['approved', 'needs_revision']),
+    adminNotes: textFieldSchema(THRESHOLD_REVIEW_NOTES_INPUT).nullable().optional(),
+    confirmedNoBegging: z.boolean().nullish(),
+    confirmedNoCredits: z.boolean().nullish(),
+    confirmedRealPeopleAttestation: z.boolean().nullish(),
+    teachesSomething: z.boolean().nullish(),
+    confirmedConsistentFormat: z.boolean().nullish(),
+  })
+  .strict();
 export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSchema>;
 
 export const ReviewThresholdItemResultSchema = z.object({
@@ -118,33 +129,43 @@ export type ReviewThresholdItemResult = z.infer<typeof ReviewThresholdItemResult
 // original, and that submitting locks the Work and a published Work stays in the Hall under TTT's
 // stewardship. The submit core requires each `true` and records them on every threshold item.
 // Nullish rather than optional: the Firebase callable client sends an omitted argument as null.
-export const SubmitForThresholdLibraryReviewInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  workProjectType: workProjectTypeSchema,
-  selectedItemIds: z.array(hallSubItemIdSchema).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
-  depictsRealPeople: z.boolean(),
-  legalReviewNoticeAcknowledged: LegalReviewNoticeAcknowledgedInputSchema,
-  attestConsistentFormat: z.boolean().nullish(),
-  attestNoCredits: z.boolean().nullish(),
-  attestNoBegging: z.boolean().nullish(),
-  attestHumanMadeOriginal: z.boolean().nullish(),
-  attestPublishStewardship: z.boolean().nullish(),
-}).strict();
-export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
+export const SubmitForThresholdLibraryReviewInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    workProjectType: workProjectTypeSchema,
+    selectedItemIds: z.array(hallSubItemIdSchema).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
+    depictsRealPeople: z.boolean(),
+    legalReviewNoticeAcknowledged: LegalReviewNoticeAcknowledgedInputSchema,
+    attestConsistentFormat: z.boolean().nullish(),
+    attestNoCredits: z.boolean().nullish(),
+    attestNoBegging: z.boolean().nullish(),
+    attestHumanMadeOriginal: z.boolean().nullish(),
+    attestPublishStewardship: z.boolean().nullish(),
+  })
+  .strict();
+export type SubmitForThresholdLibraryReviewInput = z.infer<
+  typeof SubmitForThresholdLibraryReviewInputSchema
+>;
 
 export const SubmitForThresholdLibraryReviewResultSchema = z.object({
   success: z.literal(true),
   hallItemId: hallItemIdSchema,
   thresholdItemIds: z.array(thresholdItemIdSchema),
 });
-export type SubmitForThresholdLibraryReviewResult = z.infer<typeof SubmitForThresholdLibraryReviewResultSchema>;
+export type SubmitForThresholdLibraryReviewResult = z.infer<
+  typeof SubmitForThresholdLibraryReviewResultSchema
+>;
 
 // Member-initiated pull-back of a still-pending threshold submission. The runner derives
 // everything else from the threshold doc; rejects unless reviewStatus === 'pending'.
-export const WithdrawFromThresholdLibraryReviewInputSchema = z.object({
-  thresholdItemId: thresholdItemIdSchema,
-}).strict();
-export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFromThresholdLibraryReviewInputSchema>;
+export const WithdrawFromThresholdLibraryReviewInputSchema = z
+  .object({
+    thresholdItemId: thresholdItemIdSchema,
+  })
+  .strict();
+export type WithdrawFromThresholdLibraryReviewInput = z.infer<
+  typeof WithdrawFromThresholdLibraryReviewInputSchema
+>;
 
 export const WithdrawFromThresholdLibraryReviewResultSchema = z.object({
   success: z.literal(true),
@@ -152,7 +173,9 @@ export const WithdrawFromThresholdLibraryReviewResultSchema = z.object({
   thresholdItemId: thresholdItemIdSchema,
   itemId: itemIdSchema,
 });
-export type WithdrawFromThresholdLibraryReviewResult = z.infer<typeof WithdrawFromThresholdLibraryReviewResultSchema>;
+export type WithdrawFromThresholdLibraryReviewResult = z.infer<
+  typeof WithdrawFromThresholdLibraryReviewResultSchema
+>;
 
 // Published change request (text-only at launch): the member proposes new values for TEXT
 // fields on a PUBLISHED surface — one pipeline, three grains:
@@ -173,81 +196,107 @@ const MAX_PROPOSED_TEXT_LENGTH = Math.max(
   ),
 );
 
-export const SubmitHallContentChangeRequestInputSchema = z.object({
-  hallItemId: hallItemIdSchema.nullish(),
-  workProjectType: workProjectTypeSchema.nullish(),
-  workRealmId: workRealmIdSchema.nullish(),
-  subItemId: hallSubItemIdSchema.nullish(),
-  proposedFields: z.record(z.string().min(1).max(64), z.string().refine((value) => value.trim().length <= MAX_PROPOSED_TEXT_LENGTH))
-    .refine((fields) => Object.keys(fields).length > 0, { message: 'Propose at least one field change.' }),
-}).strict().superRefine((val, ctx) => {
-  const hasHallItem = typeof val.hallItemId === 'string' && val.hallItemId.length > 0;
-  const hasRealm = typeof val.workRealmId === 'string' && val.workRealmId.length > 0;
-  if (hasHallItem === hasRealm) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Provide exactly one of hallItemId or workRealmId.',
-      path: [hasRealm ? 'workRealmId' : 'hallItemId'],
-    });
-    return;
-  }
-  if (hasHallItem && (val.workProjectType === null || val.workProjectType === undefined)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'workProjectType is required for a hall-item change request.',
-      path: ['workProjectType'],
-    });
-  }
-  if (hasRealm && (val.workProjectType !== null && val.workProjectType !== undefined)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'workProjectType does not apply to a realm change request.',
-      path: ['workProjectType'],
-    });
-  }
-  if (hasRealm && typeof val.subItemId === 'string' && val.subItemId.length > 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'subItemId does not apply to a realm change request.',
-      path: ['subItemId'],
-    });
-  }
-});
-export type SubmitHallContentChangeRequestInput = z.infer<typeof SubmitHallContentChangeRequestInputSchema>;
+export const SubmitHallContentChangeRequestInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema.nullish(),
+    workProjectType: workProjectTypeSchema.nullish(),
+    workRealmId: workRealmIdSchema.nullish(),
+    subItemId: hallSubItemIdSchema.nullish(),
+    proposedFields: z
+      .record(
+        z.string().min(1).max(64),
+        z.string().refine((value) => value.trim().length <= MAX_PROPOSED_TEXT_LENGTH),
+      )
+      .refine((fields) => Object.keys(fields).length > 0, {
+        message: 'Propose at least one field change.',
+      }),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    const hasHallItem = typeof val.hallItemId === 'string' && val.hallItemId.length > 0;
+    const hasRealm = typeof val.workRealmId === 'string' && val.workRealmId.length > 0;
+    if (hasHallItem === hasRealm) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Provide exactly one of hallItemId or workRealmId.',
+        path: [hasRealm ? 'workRealmId' : 'hallItemId'],
+      });
+      return;
+    }
+    if (hasHallItem && (val.workProjectType === null || val.workProjectType === undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'workProjectType is required for a hall-item change request.',
+        path: ['workProjectType'],
+      });
+    }
+    if (hasRealm && val.workProjectType !== null && val.workProjectType !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'workProjectType does not apply to a realm change request.',
+        path: ['workProjectType'],
+      });
+    }
+    if (hasRealm && typeof val.subItemId === 'string' && val.subItemId.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'subItemId does not apply to a realm change request.',
+        path: ['subItemId'],
+      });
+    }
+  });
+export type SubmitHallContentChangeRequestInput = z.infer<
+  typeof SubmitHallContentChangeRequestInputSchema
+>;
 
 export const SubmitHallContentChangeRequestResultSchema = z.object({
   success: z.literal(true),
   changeRequestId: changeRequestIdSchema,
 });
-export type SubmitHallContentChangeRequestResult = z.infer<typeof SubmitHallContentChangeRequestResultSchema>;
+export type SubmitHallContentChangeRequestResult = z.infer<
+  typeof SubmitHallContentChangeRequestResultSchema
+>;
 
 // Admin decision on a published change request. `resolutionReason` is REQUIRED on a deny
 // (the member is shown why); optional note on approve.
-export const ReviewHallContentChangeRequestInputSchema = z.object({
-  changeRequestId: changeRequestIdSchema,
-  decision: z.enum(['approved', 'denied']),
-  resolutionReason: textFieldSchema(HALL_CHANGE_REQUEST_DENY_REASON_INPUT).optional(),
-}).strict().superRefine((val, ctx) => {
-  if (val.decision === 'denied' && (!val.resolutionReason || val.resolutionReason.length === 0)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'A reason is required when denying a change request.', path: ['resolutionReason'] });
-  }
-});
-export type ReviewHallContentChangeRequestInput = z.infer<typeof ReviewHallContentChangeRequestInputSchema>;
+export const ReviewHallContentChangeRequestInputSchema = z
+  .object({
+    changeRequestId: changeRequestIdSchema,
+    decision: z.enum(['approved', 'denied']),
+    resolutionReason: textFieldSchema(HALL_CHANGE_REQUEST_DENY_REASON_INPUT).optional(),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    if (val.decision === 'denied' && (!val.resolutionReason || val.resolutionReason.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A reason is required when denying a change request.',
+        path: ['resolutionReason'],
+      });
+    }
+  });
+export type ReviewHallContentChangeRequestInput = z.infer<
+  typeof ReviewHallContentChangeRequestInputSchema
+>;
 
 export const ReviewHallContentChangeRequestResultSchema = z.object({
   success: z.literal(true),
   changeRequestId: changeRequestIdSchema,
   decision: z.enum(['approved', 'denied']),
 });
-export type ReviewHallContentChangeRequestResult = z.infer<typeof ReviewHallContentChangeRequestResultSchema>;
+export type ReviewHallContentChangeRequestResult = z.infer<
+  typeof ReviewHallContentChangeRequestResultSchema
+>;
 
-export const UpdateChapterDetailsInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  taleId: taleIdSchema,
-  chapterId: chapterIdSchema,
-  title: textFieldSchema(CHAPTER_TITLE_INPUT).optional(),
-  content: textFieldSchema(CHAPTER_CONTENT_INPUT).optional(),
-}).strict();
+export const UpdateChapterDetailsInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    taleId: taleIdSchema,
+    chapterId: chapterIdSchema,
+    title: textFieldSchema(CHAPTER_TITLE_INPUT).optional(),
+    content: textFieldSchema(CHAPTER_CONTENT_INPUT).optional(),
+  })
+  .strict();
 export type UpdateChapterDetailsInput = z.infer<typeof UpdateChapterDetailsInputSchema>;
 
 export const UpdateChapterDetailsResultSchema = z.object({
@@ -256,28 +305,36 @@ export const UpdateChapterDetailsResultSchema = z.object({
 });
 export type UpdateChapterDetailsResult = z.infer<typeof UpdateChapterDetailsResultSchema>;
 
-export const UpdateTelevisionEpisodeDetailsInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  televisionId: televisionIdSchema,
-  episodeId: episodeIdSchema,
-  title: textFieldSchema(TELEVISION_EPISODE_TITLE_INPUT).optional(),
-  description: textFieldSchema(TELEVISION_EPISODE_DESCRIPTION_INPUT).optional(),
-}).strict();
-export type UpdateTelevisionEpisodeDetailsInput = z.infer<typeof UpdateTelevisionEpisodeDetailsInputSchema>;
+export const UpdateTelevisionEpisodeDetailsInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    televisionId: televisionIdSchema,
+    episodeId: episodeIdSchema,
+    title: textFieldSchema(TELEVISION_EPISODE_TITLE_INPUT).optional(),
+    description: textFieldSchema(TELEVISION_EPISODE_DESCRIPTION_INPUT).optional(),
+  })
+  .strict();
+export type UpdateTelevisionEpisodeDetailsInput = z.infer<
+  typeof UpdateTelevisionEpisodeDetailsInputSchema
+>;
 
 export const UpdateTelevisionEpisodeDetailsResultSchema = z.object({
   success: z.literal(true),
   episodeId: episodeIdSchema,
 });
-export type UpdateTelevisionEpisodeDetailsResult = z.infer<typeof UpdateTelevisionEpisodeDetailsResultSchema>;
+export type UpdateTelevisionEpisodeDetailsResult = z.infer<
+  typeof UpdateTelevisionEpisodeDetailsResultSchema
+>;
 
-export const UpdateTuneTrackDetailsInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  tuneId: tuneIdSchema,
-  trackId: trackIdSchema,
-  title: textFieldSchema(TUNE_TRACK_TITLE_INPUT).optional(),
-  description: textFieldSchema(TUNE_TRACK_DESCRIPTION_INPUT).optional(),
-}).strict();
+export const UpdateTuneTrackDetailsInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    tuneId: tuneIdSchema,
+    trackId: trackIdSchema,
+    title: textFieldSchema(TUNE_TRACK_TITLE_INPUT).optional(),
+    description: textFieldSchema(TUNE_TRACK_DESCRIPTION_INPUT).optional(),
+  })
+  .strict();
 export type UpdateTuneTrackDetailsInput = z.infer<typeof UpdateTuneTrackDetailsInputSchema>;
 
 export const UpdateTuneTrackDetailsResultSchema = z.object({
@@ -286,12 +343,14 @@ export const UpdateTuneTrackDetailsResultSchema = z.object({
 });
 export type UpdateTuneTrackDetailsResult = z.infer<typeof UpdateTuneTrackDetailsResultSchema>;
 
-export const UpdateTaleWorkGenresInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  taleId: taleIdSchema,
-  workGenre: z.enum(TALE_GENRE_VALUES),
-  action: addRemoveActionSchema,
-}).strict();
+export const UpdateTaleWorkGenresInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    taleId: taleIdSchema,
+    workGenre: z.enum(TALE_GENRE_VALUES),
+    action: addRemoveActionSchema,
+  })
+  .strict();
 export type UpdateTaleWorkGenresInput = z.infer<typeof UpdateTaleWorkGenresInputSchema>;
 
 export const UpdateTaleWorkGenresResultSchema = z.object({
@@ -300,26 +359,32 @@ export const UpdateTaleWorkGenresResultSchema = z.object({
 });
 export type UpdateTaleWorkGenresResult = z.infer<typeof UpdateTaleWorkGenresResultSchema>;
 
-export const UpdateTelevisionWorkGenresInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  televisionId: televisionIdSchema,
-  workGenre: z.enum(TELEVISION_GENRE_VALUES),
-  action: addRemoveActionSchema,
-}).strict();
+export const UpdateTelevisionWorkGenresInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    televisionId: televisionIdSchema,
+    workGenre: z.enum(TELEVISION_GENRE_VALUES),
+    action: addRemoveActionSchema,
+  })
+  .strict();
 export type UpdateTelevisionWorkGenresInput = z.infer<typeof UpdateTelevisionWorkGenresInputSchema>;
 
 export const UpdateTelevisionWorkGenresResultSchema = z.object({
   success: z.literal(true),
   televisionId: televisionIdSchema,
 });
-export type UpdateTelevisionWorkGenresResult = z.infer<typeof UpdateTelevisionWorkGenresResultSchema>;
+export type UpdateTelevisionWorkGenresResult = z.infer<
+  typeof UpdateTelevisionWorkGenresResultSchema
+>;
 
-export const UpdateTuneWorkGenresInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  tuneId: tuneIdSchema,
-  workGenre: z.enum(TUNE_GENRE_VALUES),
-  action: addRemoveActionSchema,
-}).strict();
+export const UpdateTuneWorkGenresInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    tuneId: tuneIdSchema,
+    workGenre: z.enum(TUNE_GENRE_VALUES),
+    action: addRemoveActionSchema,
+  })
+  .strict();
 export type UpdateTuneWorkGenresInput = z.infer<typeof UpdateTuneWorkGenresInputSchema>;
 
 export const UpdateTuneWorkGenresResultSchema = z.object({
@@ -333,10 +398,12 @@ export type UpdateTuneWorkGenresResult = z.infer<typeof UpdateTuneWorkGenresResu
 // (HALL_LIBRARY_PREFS_CAPS in ../constants/business-content.js); cap enforcement is the backend
 // core's job, not this input-validation layer.
 
-export const UpdateHallWorkHiddenInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  hidden: z.boolean(),
-}).strict();
+export const UpdateHallWorkHiddenInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    hidden: z.boolean(),
+  })
+  .strict();
 export type UpdateHallWorkHiddenInput = z.infer<typeof UpdateHallWorkHiddenInputSchema>;
 
 export const UpdateHallWorkHiddenResultSchema = z.object({
@@ -349,10 +416,12 @@ export type UpdateHallWorkHiddenResult = z.infer<typeof UpdateHallWorkHiddenResu
 
 // "Inked" save-for-later watchlist toggle (My Playbill) — deliberately separate from
 // follows (Inked is private organization; follow is semi-public with a counter + notifications).
-export const UpdateHallInkedWorkInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  inked: z.boolean(),
-}).strict();
+export const UpdateHallInkedWorkInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    inked: z.boolean(),
+  })
+  .strict();
 export type UpdateHallInkedWorkInput = z.infer<typeof UpdateHallInkedWorkInputSchema>;
 
 export const UpdateHallInkedWorkResultSchema = z.object({
@@ -365,26 +434,32 @@ export type UpdateHallInkedWorkResult = z.infer<typeof UpdateHallInkedWorkResult
 
 // Playback-progress heartbeat (throttled client-side to ~60s during playback, plus writes on
 // pause / pane-exit / media-end). `durationSeconds` is optional — not always known up front.
-export const UpdateHallPlaybackProgressInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  itemId: itemIdSchema,
-  positionSeconds: z.number().min(0),
-  durationSeconds: z.number().min(0).optional(),
-}).strict();
+export const UpdateHallPlaybackProgressInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    itemId: itemIdSchema,
+    positionSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).optional(),
+  })
+  .strict();
 export type UpdateHallPlaybackProgressInput = z.infer<typeof UpdateHallPlaybackProgressInputSchema>;
 
 export const UpdateHallPlaybackProgressResultSchema = z.object({
   success: z.literal(true),
   hallItemId: hallItemIdSchema,
 });
-export type UpdateHallPlaybackProgressResult = z.infer<typeof UpdateHallPlaybackProgressResultSchema>;
+export type UpdateHallPlaybackProgressResult = z.infer<
+  typeof UpdateHallPlaybackProgressResultSchema
+>;
 
 // Recently-viewed / History rail record. `itemId` is optional — a work-level view (no
 // sub-item selected yet) still records History.
-export const UpdateHallRecentlyViewedInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  itemId: itemIdSchema.nullish(),
-}).strict();
+export const UpdateHallRecentlyViewedInputSchema = z
+  .object({
+    hallItemId: hallItemIdSchema,
+    itemId: itemIdSchema.nullish(),
+  })
+  .strict();
 export type UpdateHallRecentlyViewedInput = z.infer<typeof UpdateHallRecentlyViewedInputSchema>;
 
 export const UpdateHallRecentlyViewedResultSchema = z.object({
@@ -393,9 +468,11 @@ export const UpdateHallRecentlyViewedResultSchema = z.object({
 });
 export type UpdateHallRecentlyViewedResult = z.infer<typeof UpdateHallRecentlyViewedResultSchema>;
 
-export const UpdateHallLibrarySettingsInputSchema = z.object({
-  tunesAutoplay: z.boolean(),
-}).strict();
+export const UpdateHallLibrarySettingsInputSchema = z
+  .object({
+    tunesAutoplay: z.boolean(),
+  })
+  .strict();
 export type UpdateHallLibrarySettingsInput = z.infer<typeof UpdateHallLibrarySettingsInputSchema>;
 
 export const UpdateHallLibrarySettingsResultSchema = z.object({
@@ -403,5 +480,3 @@ export const UpdateHallLibrarySettingsResultSchema = z.object({
   settings: z.object({ tunesAutoplay: z.boolean() }),
 });
 export type UpdateHallLibrarySettingsResult = z.infer<typeof UpdateHallLibrarySettingsResultSchema>;
-
-

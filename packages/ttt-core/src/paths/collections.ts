@@ -153,7 +153,6 @@ export const COLLECTIONS = {
   // the enroll callable and is NEVER readable through Firestore.
   OPERATOR_STEP_UP: 'operatorStepUp',
 
-
   // Durable per-sweep cadence/cursor state for the scheduled user sweeps, keyed by the sweep
   // name (orphanRegistrationCleanup, reconcileAccountStatus). Wall-clock stamps that survive a
   // container recycle, so a "~once/day" or "~once/week" pass fires on real elapsed time instead
@@ -235,11 +234,12 @@ export type HallItemSubcollection =
   (typeof HALL_ITEM_SUBCOLLECTIONS)[keyof typeof HALL_ITEM_SUBCOLLECTIONS];
 
 /** WorkProjectType → published hall sub-item subcollection segment. */
-export const HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: Record<WorkProjectType, HallItemSubcollection> = {
-  Tales: HALL_ITEM_SUBCOLLECTIONS.TALES,
-  Tunes: HALL_ITEM_SUBCOLLECTIONS.TUNES,
-  Television: HALL_ITEM_SUBCOLLECTIONS.TELEVISION,
-};
+export const HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: Record<WorkProjectType, HallItemSubcollection> =
+  {
+    Tales: HALL_ITEM_SUBCOLLECTIONS.TALES,
+    Tunes: HALL_ITEM_SUBCOLLECTIONS.TUNES,
+    Television: HALL_ITEM_SUBCOLLECTIONS.TELEVISION,
+  };
 
 /**
  * WorkProjectType → the Hall sub-item kind a notification or Streetz payload carries for it.

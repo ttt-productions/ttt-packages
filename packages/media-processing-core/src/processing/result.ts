@@ -1,17 +1,17 @@
-import type { MediaProcessingError, MediaProcessingResult } from "@ttt-productions/media-schemas";
+import type { MediaProcessingError, MediaProcessingResult } from '@ttt-productions/media-schemas';
 
 export function success(
-  result: Omit<Extract<MediaProcessingResult, { ok: true }>, "ok">
+  result: Omit<Extract<MediaProcessingResult, { ok: true }>, 'ok'>,
 ): Extract<MediaProcessingResult, { ok: true }> {
   return { ok: true, ...result };
 }
 
 export function failure(
-  error: MediaProcessingError
+  error: MediaProcessingError,
 ): Extract<MediaProcessingResult, { ok: false }> {
   return {
     ok: false,
-    mediaType: "other",
+    mediaType: 'other',
     error,
   };
 }

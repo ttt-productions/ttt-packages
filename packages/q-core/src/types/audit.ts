@@ -161,13 +161,26 @@ export type GhostLinkAuditEventType = (typeof GHOST_LINK_AUDIT_EVENT_TYPE_KEYS)[
 //   adminReview   an admin or referee doing admin work that no team permission covers
 //   adminOverride an admin or referee superseding the team permission a normal entry checks
 //   system        backend automation with no human caller
-export const AUDIT_ACTOR_MODE_KEYS = ['user', 'teamManager', 'adminReview', 'adminOverride', 'system'] as const;
+export const AUDIT_ACTOR_MODE_KEYS = [
+  'user',
+  'teamManager',
+  'adminReview',
+  'adminOverride',
+  'system',
+] as const;
 export type AuditActorMode = (typeof AUDIT_ACTOR_MODE_KEYS)[number];
 
-export const AUDIT_ADMIN_ACTOR_MODE_KEYS = ['adminReview', 'adminOverride'] as const satisfies readonly AuditActorMode[];
+export const AUDIT_ADMIN_ACTOR_MODE_KEYS = [
+  'adminReview',
+  'adminOverride',
+] as const satisfies readonly AuditActorMode[];
 export type AuditAdminActorMode = (typeof AUDIT_ADMIN_ACTOR_MODE_KEYS)[number];
 
-export const AUDIT_NON_ADMIN_ACTOR_MODE_KEYS = ['user', 'teamManager', 'system'] as const satisfies readonly AuditActorMode[];
+export const AUDIT_NON_ADMIN_ACTOR_MODE_KEYS = [
+  'user',
+  'teamManager',
+  'system',
+] as const satisfies readonly AuditActorMode[];
 export type AuditNonAdminActorMode = (typeof AUDIT_NON_ADMIN_ACTOR_MODE_KEYS)[number];
 
 export const AUDIT_SYSTEM_REASON_KEYS = ['trigger', 'scheduledJob', 'migration'] as const;
@@ -181,7 +194,12 @@ export type CaptainTeamRole = (typeof CAPTAIN_TEAM_ROLES)[number];
 // non-admin action never carries one.
 export type AuditActor =
   | { uid: string | null; isAdmin: boolean; actorMode: AuditNonAdminActorMode; systemRole?: never }
-  | { uid: string | null; isAdmin: boolean; actorMode: AuditAdminActorMode; systemRole: SystemRole };
+  | {
+      uid: string | null;
+      isAdmin: boolean;
+      actorMode: AuditAdminActorMode;
+      systemRole: SystemRole;
+    };
 
 export interface AuditTarget {
   // The user the action was performed on, when there is one.

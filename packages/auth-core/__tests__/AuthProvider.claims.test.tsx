@@ -55,7 +55,11 @@ const liveAuth = {
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider<Claims>
-    config={{ auth: liveAuth, parseClaims: (raw) => ({ owner: String(raw.owner ?? '') }), defaultClaims: { owner: '' } }}
+    config={{
+      auth: liveAuth,
+      parseClaims: (raw) => ({ owner: String(raw.owner ?? '') }),
+      defaultClaims: { owner: '' },
+    }}
   >
     {children}
   </AuthProvider>

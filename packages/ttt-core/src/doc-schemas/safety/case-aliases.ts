@@ -49,15 +49,17 @@ export type ChildSafetyOwningAliasType = z.infer<typeof ChildSafetyOwningAliasTy
 //                        normalizedOriginatingUploaderUid)   (Finding-H3 hard key)
 // ===========================================================================
 
-export const ChildSafetyOwningAliasV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  caseId: z.string().min(1),
-  aliasType: ChildSafetyOwningAliasTypeSchema,
-  canonicalValueHash: z.string(),
-  createdAt: z.number(),
-  // Set only when the alias is RE-POINTED at a newer case generation: the generation it now
-  // resolves to and when the repoint happened. A never-repointed alias carries neither.
-  generation: z.number().optional(),
-  updatedAt: z.number().optional(),
-}).strict();
+export const ChildSafetyOwningAliasV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    caseId: z.string().min(1),
+    aliasType: ChildSafetyOwningAliasTypeSchema,
+    canonicalValueHash: z.string(),
+    createdAt: z.number(),
+    // Set only when the alias is RE-POINTED at a newer case generation: the generation it now
+    // resolves to and when the repoint happened. A never-repointed alias carries neither.
+    generation: z.number().optional(),
+    updatedAt: z.number().optional(),
+  })
+  .strict();
 export type ChildSafetyOwningAliasV1 = z.infer<typeof ChildSafetyOwningAliasV1Schema>;

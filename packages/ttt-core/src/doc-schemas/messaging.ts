@@ -147,10 +147,12 @@ export type GuildInviteConversation = z.infer<typeof GuildInviteConversationSche
 // the next page, `null` on the last. Homed beside the invite doc because this module imports
 // ./schemas (`InviteSourceSchema`), so the reverse import would be a module cycle; ./schemas
 // re-exports it with the callable's input.
-export const ListGuildInvitesResultSchema = z.object({
-  invites: z.array(GuildInviteConversationSchema),
-  nextCursor: z.string().min(1).nullable(),
-}).strict();
+export const ListGuildInvitesResultSchema = z
+  .object({
+    invites: z.array(GuildInviteConversationSchema),
+    nextCursor: z.string().min(1).nullable(),
+  })
+  .strict();
 export type ListGuildInvitesResult = z.infer<typeof ListGuildInvitesResultSchema>;
 
 // Typed context ref carried by a dispatch thread born from a review send-back, a

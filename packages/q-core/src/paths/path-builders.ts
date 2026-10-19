@@ -47,8 +47,14 @@ export const PATH_BUILDERS = {
     USER_PROFILE_SUBCOLLECTIONS.HISTORICAL_STATS,
   ],
   publicUser: (userId: string): [string, string] => [COLLECTIONS.PUBLIC_USERS, userId],
-  statusReconcileQueueEntry: (userId: string): [string, string] => [COLLECTIONS.STATUS_RECONCILE_QUEUE, userId],
-  registrationStart: (userId: string): [string, string] => [COLLECTIONS.REGISTRATION_STARTS, userId],
+  statusReconcileQueueEntry: (userId: string): [string, string] => [
+    COLLECTIONS.STATUS_RECONCILE_QUEUE,
+    userId,
+  ],
+  registrationStart: (userId: string): [string, string] => [
+    COLLECTIONS.REGISTRATION_STARTS,
+    userId,
+  ],
   sweepState: (name: SweepStateName): [string, string] => [COLLECTIONS.SWEEP_STATE, name],
   reservedDisplayName: (displayName: string): [string, string] => [
     COLLECTIONS.RESERVED_DISPLAY_NAMES,
@@ -58,7 +64,10 @@ export const PATH_BUILDERS = {
   // Leagues, teams, membership
   sportLeague: (leagueId: string): [string, string] => [COLLECTIONS.SPORT_LEAGUES, leagueId],
   leagueTeam: (teamId: string): [string, string] => [COLLECTIONS.LEAGUE_TEAMS, teamId],
-  leagueTeamContact: (teamId: string): [string, string] => [COLLECTIONS.LEAGUE_TEAM_CONTACTS, teamId],
+  leagueTeamContact: (teamId: string): [string, string] => [
+    COLLECTIONS.LEAGUE_TEAM_CONTACTS,
+    teamId,
+  ],
   teamMembership: (leagueId: string, teamId: string, userId: string): [string, string] => [
     COLLECTIONS.TEAM_MEMBERSHIPS,
     buildTeamMembershipId(leagueId, teamId, userId),
@@ -68,7 +77,10 @@ export const PATH_BUILDERS = {
     buildTeamMembershipId(leagueId, teamId, userId),
   ],
   teamInvitation: (inviteId: string): [string, string] => [COLLECTIONS.TEAM_INVITATIONS, inviteId],
-  teamJoinRequest: (requestId: string): [string, string] => [COLLECTIONS.TEAM_JOIN_REQUESTS, requestId],
+  teamJoinRequest: (requestId: string): [string, string] => [
+    COLLECTIONS.TEAM_JOIN_REQUESTS,
+    requestId,
+  ],
   leagueFreeAgent: (leagueId: string, userId: string): [string, string] => [
     COLLECTIONS.LEAGUE_FREE_AGENTS,
     buildLeagueFreeAgentId(leagueId, userId),
@@ -76,7 +88,11 @@ export const PATH_BUILDERS = {
 
   // Games
   sportGame: (gameId: string): [string, string] => [COLLECTIONS.SPORT_GAMES, gameId],
-  gameRosterPlayer: (gameId: string, teamId: string, userId: string): [string, string, string, string] => [
+  gameRosterPlayer: (
+    gameId: string,
+    teamId: string,
+    userId: string,
+  ): [string, string, string, string] => [
     COLLECTIONS.SPORT_GAMES,
     gameId,
     SPORT_GAME_SUBCOLLECTIONS.GAME_ROSTER_PLAYERS,
@@ -109,14 +125,20 @@ export const PATH_BUILDERS = {
     gameId,
     SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_HISTORY,
   ],
-  gameLocation: (gameLocationId: string): [string, string] => [COLLECTIONS.GAME_LOCATIONS, gameLocationId],
+  gameLocation: (gameLocationId: string): [string, string] => [
+    COLLECTIONS.GAME_LOCATIONS,
+    gameLocationId,
+  ],
 
   // Waivers and hardware
   waiverTemplate: (waiverTemplateId: string): [string, string] => [
     COLLECTIONS.WAIVER_TEMPLATES,
     waiverTemplateId,
   ],
-  waiverTemplateVersion: (waiverTemplateId: string, version: number): [string, string, string, string] => [
+  waiverTemplateVersion: (
+    waiverTemplateId: string,
+    version: number,
+  ): [string, string, string, string] => [
     COLLECTIONS.WAIVER_TEMPLATES,
     waiverTemplateId,
     WAIVER_TEMPLATE_SUBCOLLECTIONS.WAIVER_TEMPLATE_VERSIONS,
@@ -150,16 +172,31 @@ export const PATH_BUILDERS = {
     grantId,
     AWARD_GROUP_GRANT_SUBCOLLECTIONS.AWARD_GROUP_GRANT_PEOPLE,
   ],
-  sportHallOfFame: (sportKey: SportKey): [string, string] => [COLLECTIONS.SPORT_HALL_OF_FAME, sportKey],
+  sportHallOfFame: (sportKey: SportKey): [string, string] => [
+    COLLECTIONS.SPORT_HALL_OF_FAME,
+    sportKey,
+  ],
   statsValidationReport: (reportId: string): [string, string] => [
     COLLECTIONS.STATS_VALIDATION_REPORTS,
     reportId,
   ],
-  statsOperation: (operationId: string): [string, string] => [COLLECTIONS.STATS_OPERATIONS, operationId],
-  migrationActionRun: (actionId: string): [string, string] => [COLLECTIONS.MIGRATION_ACTION_RUNS, actionId],
+  statsOperation: (operationId: string): [string, string] => [
+    COLLECTIONS.STATS_OPERATIONS,
+    operationId,
+  ],
+  migrationActionRun: (actionId: string): [string, string] => [
+    COLLECTIONS.MIGRATION_ACTION_RUNS,
+    actionId,
+  ],
 
-  galleryPicture: (pictureId: string): [string, string] => [COLLECTIONS.GALLERY_PICTURES, pictureId],
-  pendingMedia: (pendingMediaId: string): [string, string] => [COLLECTIONS.PENDING_MEDIA, pendingMediaId],
+  galleryPicture: (pictureId: string): [string, string] => [
+    COLLECTIONS.GALLERY_PICTURES,
+    pictureId,
+  ],
+  pendingMedia: (pendingMediaId: string): [string, string] => [
+    COLLECTIONS.PENDING_MEDIA,
+    pendingMediaId,
+  ],
   // A picture's retirement is keyed by the picture id; a whole gallery's by `buildGalleryRetirementId`.
   pictureRetirement: (retirementId: string): [string, string] => [
     COLLECTIONS.PICTURE_RETIREMENTS,
@@ -177,15 +214,30 @@ export const PATH_BUILDERS = {
     COLLECTIONS.ADMIN_NOTIFICATION_HISTORY,
     historyId,
   ],
-  notificationDelivery: (deliveryId: string): [string, string] => [COLLECTIONS.NOTIFICATION_DELIVERIES, deliveryId],
-  notificationArchiveAllJob: (jobId: string): [string, string] => [COLLECTIONS.NOTIFICATION_ARCHIVE_ALL_JOBS, jobId],
+  notificationDelivery: (deliveryId: string): [string, string] => [
+    COLLECTIONS.NOTIFICATION_DELIVERIES,
+    deliveryId,
+  ],
+  notificationArchiveAllJob: (jobId: string): [string, string] => [
+    COLLECTIONS.NOTIFICATION_ARCHIVE_ALL_JOBS,
+    jobId,
+  ],
 
   // Fixed-ID system documents
   landingPageConfig: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.LANDING_PAGE],
   appConfig: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
   statsBeacon: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.STATS_BEACON],
   adminList: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.ADMIN_LIST],
-  migrationConsole: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.MIGRATION_CONSOLE],
-  gameLocationRegistry: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.GAME_LOCATION_REGISTRY],
-  waiverTemplateRegistry: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.WAIVER_TEMPLATE_REGISTRY],
+  migrationConsole: (): [string, string] => [
+    COLLECTIONS.SERVER_DATA,
+    SPECIAL_DOCS.MIGRATION_CONSOLE,
+  ],
+  gameLocationRegistry: (): [string, string] => [
+    COLLECTIONS.SERVER_DATA,
+    SPECIAL_DOCS.GAME_LOCATION_REGISTRY,
+  ],
+  waiverTemplateRegistry: (): [string, string] => [
+    COLLECTIONS.SERVER_DATA,
+    SPECIAL_DOCS.WAIVER_TEMPLATE_REGISTRY,
+  ],
 } as const;

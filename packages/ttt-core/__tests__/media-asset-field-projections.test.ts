@@ -29,8 +29,18 @@ describe('the reaper candidate read of an asset doc', () => {
   const candidate = { mediaAssetId: 'asset-1', ownerId: 'hall-1', createdAt: 10 };
 
   it('yields the candidate fields and drops every other stored field', () => {
-    const stored = { ...candidate, publicationState: 'published', retirement, ownerType: 'hallItem', legalHold: false };
-    expect(MediaAssetReapCandidateSchema.parse(stored)).toEqual({ ...candidate, publicationState: 'published', retirement });
+    const stored = {
+      ...candidate,
+      publicationState: 'published',
+      retirement,
+      ownerType: 'hallItem',
+      legalHold: false,
+    };
+    expect(MediaAssetReapCandidateSchema.parse(stored)).toEqual({
+      ...candidate,
+      publicationState: 'published',
+      retirement,
+    });
   });
 
   it('reads an asset with no publication state and no retirement owed', () => {
@@ -45,10 +55,14 @@ describe('the reaper candidate read of an asset doc', () => {
   });
 
   it('refuses a publication state or retirement the asset schema refuses', () => {
-    expect(MediaAssetReapCandidateSchema.safeParse({ ...candidate, publicationState: 'gone' }).success).toBe(false);
     expect(
-      MediaAssetReapCandidateSchema.safeParse({ ...candidate, retirement: { ...retirement, pendingVariantKeys: ['main', 'main'] } })
-        .success,
+      MediaAssetReapCandidateSchema.safeParse({ ...candidate, publicationState: 'gone' }).success,
+    ).toBe(false);
+    expect(
+      MediaAssetReapCandidateSchema.safeParse({
+        ...candidate,
+        retirement: { ...retirement, pendingVariantKeys: ['main', 'main'] },
+      }).success,
     ).toBe(false);
   });
 });
@@ -58,7 +72,12 @@ describe('the copy-source hold read of an asset doc', () => {
 
   it('yields the hold fields and drops every other stored field', () => {
     expect(
-      MediaAssetCopySourceHoldFieldsSchema.parse({ ...source, originLineage: lineage, ownerId: 'hall-1', createdAt: 1 }),
+      MediaAssetCopySourceHoldFieldsSchema.parse({
+        ...source,
+        originLineage: lineage,
+        ownerId: 'hall-1',
+        createdAt: 1,
+      }),
     ).toEqual({ ...source, originLineage: lineage });
   });
 
@@ -67,13 +86,18 @@ describe('the copy-source hold read of an asset doc', () => {
   });
 
   it('refuses a source whose legal hold is not recorded, so the copy is kept rather than judged unheld', () => {
-    expect(MediaAssetCopySourceHoldFieldsSchema.safeParse({ mediaAssetId: 'asset-root' }).success).toBe(false);
+    expect(
+      MediaAssetCopySourceHoldFieldsSchema.safeParse({ mediaAssetId: 'asset-root' }).success,
+    ).toBe(false);
     expect(MediaAssetCopySourceHoldFieldsSchema.safeParse(undefined).success).toBe(false);
   });
 
   it('refuses a lineage the asset schema refuses', () => {
     expect(
-      MediaAssetCopySourceHoldFieldsSchema.safeParse({ ...source, originLineage: { ...lineage, lineageVersion: 2 } }).success,
+      MediaAssetCopySourceHoldFieldsSchema.safeParse({
+        ...source,
+        originLineage: { ...lineage, lineageVersion: 2 },
+      }).success,
     ).toBe(false);
   });
 });

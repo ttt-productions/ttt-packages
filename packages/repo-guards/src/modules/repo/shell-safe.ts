@@ -14,7 +14,8 @@ import { takesNoFacts } from '../../support/facts.js';
 
 const CALLEES: ReadonlySet<string> = new Set(['spawn', 'spawnSync', 'execFile', 'execFileSync']);
 
-const propertyName = (name: ts.PropertyName): string | null => (ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : null);
+const propertyName = (name: ts.PropertyName): string | null =>
+  ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : null;
 
 /**
  * A top-level `shell` property whose value is anything but the literal `false` (Node's default), the

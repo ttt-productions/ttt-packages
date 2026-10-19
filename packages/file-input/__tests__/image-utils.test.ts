@@ -41,10 +41,7 @@ function makeFakeCtx(): FakeCtx {
   };
 }
 
-function stubCanvas(opts: {
-  contextReturns?: Array<FakeCtx | null>;
-  blob?: Blob | null;
-}) {
+function stubCanvas(opts: { contextReturns?: Array<FakeCtx | null>; blob?: Blob | null }) {
   let callIndex = 0;
   const canvases: any[] = [];
   const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
@@ -102,7 +99,7 @@ describe('getCroppedImg', () => {
       0,
       { horizontal: false, vertical: false },
       400,
-      300
+      300,
     );
     expect(canvases[1].width).toBe(400);
     expect(canvases[1].height).toBe(300);
@@ -119,9 +116,9 @@ describe('getCroppedImg', () => {
   it('rejects when toBlob returns null', async () => {
     stubImage(1000, 1000);
     stubCanvas({ blob: null });
-    await expect(
-      getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 })
-    ).rejects.toThrow(/Canvas to Blob conversion failed/);
+    await expect(getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 })).rejects.toThrow(
+      /Canvas to Blob conversion failed/,
+    );
   });
 
   it('encodes at the format and quality the crop spec declares', async () => {
@@ -168,12 +165,10 @@ describe('getCroppedImg', () => {
     stubImage(1000, 1000);
     const ctx = makeFakeCtx();
     stubCanvas({ contextReturns: [ctx, makeFakeCtx()] });
-    await getCroppedImg(
-      'blob:x',
-      { x: 0, y: 0, width: 100, height: 100 },
-      0,
-      { horizontal: true, vertical: false }
-    );
+    await getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 }, 0, {
+      horizontal: true,
+      vertical: false,
+    });
     expect(ctx.scale).toHaveBeenCalledWith(-1, 1);
   });
 
@@ -181,12 +176,10 @@ describe('getCroppedImg', () => {
     stubImage(1000, 1000);
     const ctx = makeFakeCtx();
     stubCanvas({ contextReturns: [ctx, makeFakeCtx()] });
-    await getCroppedImg(
-      'blob:x',
-      { x: 0, y: 0, width: 100, height: 100 },
-      0,
-      { horizontal: false, vertical: true }
-    );
+    await getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 }, 0, {
+      horizontal: false,
+      vertical: true,
+    });
     expect(ctx.scale).toHaveBeenCalledWith(1, -1);
   });
 });

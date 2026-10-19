@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useCallback, useState } from "react";
-import type { ListPaginationState } from "./use-paged-list.js";
+import { useCallback, useState } from 'react';
+import type { ListPaginationState } from './use-paged-list.js';
 
 /**
  * Render-time page state for a cursor feed, shaped as {@link ListPaginationState}
@@ -87,7 +87,7 @@ export function useCursorPage(options: UseCursorPageOptions = {}): CursorPager {
   // the key it belongs to is stored WITH it.
   const [pageState, setPageState] = useState<{
     page: number;
-    key: UseCursorPageOptions["resetKey"];
+    key: UseCursorPageOptions['resetKey'];
   }>({ page: 1, key: resetKey });
 
   // `Object.is`, the same comparison React uses for state and deps: a `NaN` key

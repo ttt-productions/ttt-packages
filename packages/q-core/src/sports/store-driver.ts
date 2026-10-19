@@ -88,31 +88,51 @@ export interface StatEventBatch {
 }
 
 // The fields of a stored event the writing core derives, which a caller's re-send never carries.
-const DERIVED_FIELDS: ReadonlySet<string> = new Set([...STAT_EVENT_RECORDER_FIELD_KEYS, ...STAT_EVENT_SNAPSHOT_FIELD_KEYS]);
+const DERIVED_FIELDS: ReadonlySet<string> = new Set([
+  ...STAT_EVENT_RECORDER_FIELD_KEYS,
+  ...STAT_EVENT_SNAPSHOT_FIELD_KEYS,
+]);
 
 function callerFields(event: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(event).filter(([field, value]) => !DERIVED_FIELDS.has(field) && value !== undefined));
+  return Object.fromEntries(
+    Object.entries(event).filter(
+      ([field, value]) => !DERIVED_FIELDS.has(field) && value !== undefined,
+    ),
+  );
 }
 
-function sameFields(left: Readonly<Record<string, unknown>>, right: Readonly<Record<string, unknown>>): boolean {
+function sameFields(
+  left: Readonly<Record<string, unknown>>,
+  right: Readonly<Record<string, unknown>>,
+): boolean {
   const leftFields = callerFields(left);
   const rightFields = callerFields(right);
   const keys = Object.keys(leftFields);
-  return keys.length === Object.keys(rightFields).length && keys.every((key) => Object.is(leftFields[key], rightFields[key]));
+  return (
+    keys.length === Object.keys(rightFields).length &&
+    keys.every((key) => Object.is(leftFields[key], rightFields[key]))
+  );
 }
 
 /**
  * Whether a submission is the event already held at its id. A void is the same void when it names
  * the same target; a sport event only when every field its caller supplies is the same.
  */
-function isSameEvent(submission: StatEventSubmission, held: Readonly<Record<string, unknown>>): boolean {
-  if (isStatVoid(submission)) return isStatVoid(held as StatEventBody) && held.targetEventId === submission.targetEventId;
+function isSameEvent(
+  submission: StatEventSubmission,
+  held: Readonly<Record<string, unknown>>,
+): boolean {
+  if (isStatVoid(submission))
+    return isStatVoid(held as StatEventBody) && held.targetEventId === submission.targetEventId;
   return sameFields(submission as Readonly<Record<string, unknown>>, held);
 }
 
 /** Whether any counter, or any recorded round, of any line is below zero. */
 function holdsNegativeValue(stats: GameStats): boolean {
-  const lines = [...Object.values(stats.teamStats), ...Object.values(stats.playerStats)] as Record<string, unknown>[];
+  const lines = [...Object.values(stats.teamStats), ...Object.values(stats.playerStats)] as Record<
+    string,
+    unknown
+  >[];
   return lines.some((line) =>
     Object.values(line).some((value) =>
       Array.isArray(value)
@@ -123,7 +143,11 @@ function holdsNegativeValue(stats: GameStats): boolean {
 }
 
 /** The stored fields of a new event: the void's derived id, or the caller's own id and fields. */
-function acceptedFields(submission: StatEventSubmission, eventId: string, sequence: number): Record<string, unknown> {
+function acceptedFields(
+  submission: StatEventSubmission,
+  eventId: string,
+  sequence: number,
+): Record<string, unknown> {
   return { ...callerFields(submission as Readonly<Record<string, unknown>>), eventId, sequence };
 }
 
@@ -148,18 +172,29 @@ export function decideStatEventBatch(batch: StatEventBatch): StatEventBatchDecis
   const results: RecordedStatEventResult[] = [];
   const accepted: AcceptedStatEvent[] = [];
   // Every event the batch has placed so far — stored or new — by id, with the sequence it holds.
-  const placed = new Map<string, { readonly event: Readonly<Record<string, unknown>>; readonly sequence: number }>();
+  const placed = new Map<
+    string,
+    { readonly event: Readonly<Record<string, unknown>>; readonly sequence: number }
+  >();
 
   for (const submission of submissions) {
     const eventId = statEventSubmissionId(submission);
-    const refuse = (code: StatEventRefusalCode): StatEventBatchDecision => ({ ok: false, code, eventId });
+    const refuse = (code: StatEventRefusalCode): StatEventBatchDecision => ({
+      ok: false,
+      code,
+      eventId,
+    });
 
     if (isStatCorrection(submission)) return refuse('correctionNotAccepted');
 
-    const held = placed.get(eventId) ?? (() => {
-      const stored = storedEvent(eventId);
-      return stored === undefined ? undefined : { event: stored as Readonly<Record<string, unknown>>, sequence: stored.sequence };
-    })();
+    const held =
+      placed.get(eventId) ??
+      (() => {
+        const stored = storedEvent(eventId);
+        return stored === undefined
+          ? undefined
+          : { event: stored as Readonly<Record<string, unknown>>, sequence: stored.sequence };
+      })();
     if (held !== undefined) {
       if (!isSameEvent(submission, held.event)) return refuse('eventIdConflict');
       placed.set(eventId, held);
@@ -168,7 +203,8 @@ export function decideStatEventBatch(batch: StatEventBatch): StatEventBatchDecis
     }
 
     if (isStatVoid(submission)) {
-      const target = placed.get(submission.targetEventId)?.event ?? storedEvent(submission.targetEventId);
+      const target =
+        placed.get(submission.targetEventId)?.event ?? storedEvent(submission.targetEventId);
       if (!isSportStatEventIn(adapter.eventTypes, target as StatEventBody | undefined)) {
         return refuse('voidTargetNotSportEvent');
       }

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { startWaveformLoop, drawIdleFrame } from "../src/visualizer.js";
-import type { AudioVisualizerMode } from "../src/visualizer.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { startWaveformLoop, drawIdleFrame } from '../src/visualizer.js';
+import type { AudioVisualizerMode } from '../src/visualizer.js';
 
 type RafCallback = (t: number) => void;
 
@@ -23,8 +23,8 @@ function makeCanvasMock() {
     stroke: vi.fn(),
     fillRect: vi.fn(),
     lineWidth: 0,
-    strokeStyle: "",
-    fillStyle: "",
+    strokeStyle: '',
+    fillStyle: '',
   };
   const canvas = {
     width: 300,
@@ -45,12 +45,12 @@ function makeAnalyserMock() {
 beforeEach(() => {
   rafCallbacks = new Map();
   nextRafId = 1;
-  vi.stubGlobal("requestAnimationFrame", (cb: RafCallback) => {
+  vi.stubGlobal('requestAnimationFrame', (cb: RafCallback) => {
     const id = nextRafId++;
     rafCallbacks.set(id, cb);
     return id;
   });
-  vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
     rafCallbacks.delete(id);
   });
 });
@@ -59,11 +59,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("startWaveformLoop", () => {
-  it("line mode reads time-domain data and strokes a path each frame", () => {
+describe('startWaveformLoop', () => {
+  it('line mode reads time-domain data and strokes a path each frame', () => {
     const { canvas, ctx } = makeCanvasMock();
     const analyser = makeAnalyserMock();
-    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: "line" });
+    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: 'line' });
 
     pumpFrame();
     expect(analyser.getByteTimeDomainData).toHaveBeenCalledTimes(1);
@@ -75,10 +75,10 @@ describe("startWaveformLoop", () => {
     stop();
   });
 
-  it("bars mode reads frequency data and fills bars each frame", () => {
+  it('bars mode reads frequency data and fills bars each frame', () => {
     const { canvas, ctx } = makeCanvasMock();
     const analyser = makeAnalyserMock();
-    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: "bars" });
+    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: 'bars' });
 
     pumpFrame();
     expect(analyser.getByteFrequencyData).toHaveBeenCalledTimes(1);
@@ -87,25 +87,29 @@ describe("startWaveformLoop", () => {
     stop();
   });
 
-  it("a mode getter is resolved every frame (live toggling)", () => {
+  it('a mode getter is resolved every frame (live toggling)', () => {
     const { canvas, ctx } = makeCanvasMock();
     const analyser = makeAnalyserMock();
-    let mode: AudioVisualizerMode = "line";
+    let mode: AudioVisualizerMode = 'line';
     const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: () => mode });
 
     pumpFrame();
     expect(ctx.stroke).toHaveBeenCalledTimes(1);
-    mode = "bars";
+    mode = 'bars';
     pumpFrame();
     expect(ctx.fillRect).toHaveBeenCalled();
     stop();
   });
 
-  it("keeps the loop alive while the canvas is unmounted and draws again when it returns", () => {
+  it('keeps the loop alive while the canvas is unmounted and draws again when it returns', () => {
     const { canvas, ctx } = makeCanvasMock();
     const analyser = makeAnalyserMock();
     let mounted = false;
-    const stop = startWaveformLoop({ analyser, getCanvas: () => (mounted ? canvas : null), mode: "line" });
+    const stop = startWaveformLoop({
+      analyser,
+      getCanvas: () => (mounted ? canvas : null),
+      mode: 'line',
+    });
 
     pumpFrame();
     expect(ctx.stroke).not.toHaveBeenCalled();
@@ -117,10 +121,10 @@ describe("startWaveformLoop", () => {
     stop();
   });
 
-  it("stop() cancels the loop and no further frames draw", () => {
+  it('stop() cancels the loop and no further frames draw', () => {
     const { canvas, ctx } = makeCanvasMock();
     const analyser = makeAnalyserMock();
-    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: "line" });
+    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: 'line' });
 
     pumpFrame();
     expect(ctx.stroke).toHaveBeenCalledTimes(1);
@@ -130,14 +134,14 @@ describe("startWaveformLoop", () => {
     expect(ctx.stroke).toHaveBeenCalledTimes(1);
   });
 
-  it("self-terminates when the canvas has no 2d context", () => {
+  it('self-terminates when the canvas has no 2d context', () => {
     const canvas = {
       width: 300,
       height: 100,
       getContext: vi.fn().mockReturnValue(null),
     } as unknown as HTMLCanvasElement;
     const analyser = makeAnalyserMock();
-    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: "line" });
+    const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: 'line' });
 
     pumpFrame();
     expect(rafCallbacks.size).toBe(0);
@@ -145,19 +149,19 @@ describe("startWaveformLoop", () => {
   });
 });
 
-describe("drawIdleFrame", () => {
-  it("draws a flat centerline in line mode", () => {
+describe('drawIdleFrame', () => {
+  it('draws a flat centerline in line mode', () => {
     const { canvas, ctx } = makeCanvasMock();
-    drawIdleFrame(canvas, "line");
+    drawIdleFrame(canvas, 'line');
     expect(ctx.clearRect).toHaveBeenCalled();
     expect(ctx.moveTo).toHaveBeenCalledWith(0, 50);
     expect(ctx.lineTo).toHaveBeenCalledWith(300, 50);
     expect(ctx.stroke).toHaveBeenCalled();
   });
 
-  it("only clears in bars mode", () => {
+  it('only clears in bars mode', () => {
     const { canvas, ctx } = makeCanvasMock();
-    drawIdleFrame(canvas, "bars");
+    drawIdleFrame(canvas, 'bars');
     expect(ctx.clearRect).toHaveBeenCalled();
     expect(ctx.stroke).not.toHaveBeenCalled();
   });

@@ -64,7 +64,9 @@ describe('a chat that cannot open the first time says so after the failure budge
 
   it('keeps retrying in the background after reporting, and the first data clears the failure', async () => {
     let fail = true;
-    const { client, harness, clock } = makeChannel(() => (fail ? failing() : Promise.resolve('grant')));
+    const { client, harness, clock } = makeChannel(() =>
+      fail ? failing() : Promise.resolve('grant'),
+    );
     await client.connect();
     await advance(clock, CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS + 1000);
     expect(client.getState().initialLoadFailed).toBe(true);
@@ -91,10 +93,13 @@ describe('a chat that cannot open the first time says so after the failure budge
 
   it('Retry opens at once instead of waiting out the backoff, and shows opening again meanwhile', async () => {
     let fail = true;
-    const { client, harness, clock } = makeChannel(() => (fail ? failing() : Promise.resolve('grant')), {
-      baseDelayMs: 60_000,
-      maxDelayMs: 60_000,
-    });
+    const { client, harness, clock } = makeChannel(
+      () => (fail ? failing() : Promise.resolve('grant')),
+      {
+        baseDelayMs: 60_000,
+        maxDelayMs: 60_000,
+      },
+    );
     await client.connect();
     await advance(clock, CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS + 1000);
     expect(client.getState().initialLoadFailed).toBe(true);
@@ -125,7 +130,9 @@ describe('a chat that cannot open the first time says so after the failure budge
 
   it('never reports a first-open failure after data loaded — a later outage keeps the messages', async () => {
     let fail = false;
-    const { client, harness, clock } = makeChannel(() => (fail ? failing() : Promise.resolve('grant')));
+    const { client, harness, clock } = makeChannel(() =>
+      fail ? failing() : Promise.resolve('grant'),
+    );
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
@@ -153,7 +160,9 @@ describe('the inbox tells "not loaded" from "empty" and reports a failed first o
 
   it('reports the first open failed after the budget of failed attempts, and Retry clears it', async () => {
     let fail = true;
-    const { client, harness, clock } = makeInbox(() => (fail ? failing() : Promise.resolve('grant')));
+    const { client, harness, clock } = makeInbox(() =>
+      fail ? failing() : Promise.resolve('grant'),
+    );
     await client.connect();
     await advance(clock, CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS + 1000);
     expect(client.getState().initialLoadFailed).toBe(true);

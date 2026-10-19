@@ -36,11 +36,7 @@ import { NcmecSubmissionStateSchema } from './foundation.js';
 // ===========================================================================
 
 /** Top-level run status of the quarantine saga. */
-export const QuarantineStatusSchema = z.enum([
-  'running',
-  'quarantineComplete',
-  'deadLetter',
-]);
+export const QuarantineStatusSchema = z.enum(['running', 'quarantineComplete', 'deadLetter']);
 export type QuarantineStatus = z.infer<typeof QuarantineStatusSchema>;
 
 /** The FULL quarantine phase enum. `servingDeny*` precede `evidenceCopying`;
@@ -61,31 +57,35 @@ export type QuarantinePhase = z.infer<typeof QuarantinePhaseSchema>;
 /** `quarantineSagaJobs/{caseId}` — quarantine-only durable saga. Doc id is the
  * `caseId`. `commandId` is deterministic per `(caseId, phase)`. `relatedAssetIds`
  * is bounded at MAX 256; overflow → `…/relatedAssets/{assetId}`. */
-export const QuarantineSagaJobV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  caseId: z.string().min(1),
-  quarantineStatus: QuarantineStatusSchema,
-  phase: QuarantinePhaseSchema,
-  phaseVersion: z.number(),
-  commandId: z.string().min(1), // deterministic per (caseId, phase)
-  relatedAssetIds: z.array(z.string().min(1)).max(256), // bounded; overflow → …/relatedAssets/{assetId}
-  attemptCount: z.number(),
-  nextAttemptAt: z.number(),
-  leaseOwner: z.string().min(1).optional(),
-  leaseExpiresAt: z.number().optional(),
-  lastError: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-  completedAt: z.number().optional(),
-}).strict();
+export const QuarantineSagaJobV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    caseId: z.string().min(1),
+    quarantineStatus: QuarantineStatusSchema,
+    phase: QuarantinePhaseSchema,
+    phaseVersion: z.number(),
+    commandId: z.string().min(1), // deterministic per (caseId, phase)
+    relatedAssetIds: z.array(z.string().min(1)).max(256), // bounded; overflow → …/relatedAssets/{assetId}
+    attemptCount: z.number(),
+    nextAttemptAt: z.number(),
+    leaseOwner: z.string().min(1).optional(),
+    leaseExpiresAt: z.number().optional(),
+    lastError: z.string().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+    completedAt: z.number().optional(),
+  })
+  .strict();
 export type QuarantineSagaJobV1 = z.infer<typeof QuarantineSagaJobV1Schema>;
 
 /** `quarantineSagaJobs/{caseId}/relatedAssets/{assetId}` — overflow beyond
  * `relatedAssetIds` MAX 256. Doc id is the `assetId`. */
-export const QuarantineSagaRelatedAssetV1Schema = z.object({
-  rootIngestId: z.string().min(1),
-  addedAt: z.number(),
-}).strict();
+export const QuarantineSagaRelatedAssetV1Schema = z
+  .object({
+    rootIngestId: z.string().min(1),
+    addedAt: z.number(),
+  })
+  .strict();
 export type QuarantineSagaRelatedAssetV1 = z.infer<typeof QuarantineSagaRelatedAssetV1Schema>;
 
 // ===========================================================================
@@ -100,21 +100,23 @@ export type QuarantineSagaRelatedAssetV1 = z.infer<typeof QuarantineSagaRelatedA
  * saga. Doc id is the deterministic composite `{caseId}__{submissionId}`.
  * `commandId` is the saga's idempotency key. `state` is the §A9
  * NcmecSubmissionState (NO `notRequired` — that lives on ReportDisposition). */
-export const NcmecSubmissionJobV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  caseId: z.string().min(1),
-  submissionId: z.string().min(1),
-  state: NcmecSubmissionStateSchema, // §A9 NcmecSubmissionState
-  commandId: z.string().min(1),
-  attemptCount: z.number(),
-  nextAttemptAt: z.number(),
-  leaseOwner: z.string().min(1).optional(),
-  leaseExpiresAt: z.number().optional(),
-  lastErrorCode: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-  completedAt: z.number().optional(),
-}).strict();
+export const NcmecSubmissionJobV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    caseId: z.string().min(1),
+    submissionId: z.string().min(1),
+    state: NcmecSubmissionStateSchema, // §A9 NcmecSubmissionState
+    commandId: z.string().min(1),
+    attemptCount: z.number(),
+    nextAttemptAt: z.number(),
+    leaseOwner: z.string().min(1).optional(),
+    leaseExpiresAt: z.number().optional(),
+    lastErrorCode: z.string().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+    completedAt: z.number().optional(),
+  })
+  .strict();
 export type NcmecSubmissionJobV1 = z.infer<typeof NcmecSubmissionJobV1Schema>;
 
 // ===========================================================================
@@ -152,26 +154,28 @@ export type AccountActionStatus = z.infer<typeof AccountActionStatusSchema>;
 /** `accountActionCommands/{caseId}__{uid}` — per-account safety-action durable
  * saga. Doc id is the deterministic composite `{caseId}__{uid}`. `commandId` is
  * the saga's idempotency key. */
-export const AccountActionCommandV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  caseId: z.string().min(1),
-  targetUid: z.string().min(1),
-  action: AccountActionSchema,
-  source: AccountActionSourceSchema,
-  status: AccountActionStatusSchema,
-  commandId: z.string().min(1),
-  attemptCount: z.number(),
-  nextAttemptAt: z.number(),
-  leaseOwner: z.string().min(1).optional(),
-  leaseExpiresAt: z.number().optional(),
-  lastError: z.string().optional(),
-  // Set when the bounded retry budget is exhausted and the command is parked for
-  // an explicit operator replay.
-  deadLetterAt: z.number().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-  completedAt: z.number().optional(),
-}).strict();
+export const AccountActionCommandV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    caseId: z.string().min(1),
+    targetUid: z.string().min(1),
+    action: AccountActionSchema,
+    source: AccountActionSourceSchema,
+    status: AccountActionStatusSchema,
+    commandId: z.string().min(1),
+    attemptCount: z.number(),
+    nextAttemptAt: z.number(),
+    leaseOwner: z.string().min(1).optional(),
+    leaseExpiresAt: z.number().optional(),
+    lastError: z.string().optional(),
+    // Set when the bounded retry budget is exhausted and the command is parked for
+    // an explicit operator replay.
+    deadLetterAt: z.number().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+    completedAt: z.number().optional(),
+  })
+  .strict();
 export type AccountActionCommandV1 = z.infer<typeof AccountActionCommandV1Schema>;
 
 // ===========================================================================

@@ -2,7 +2,11 @@
 // one canonical key array in ../types — never re-declared.
 
 import { z } from 'zod';
-import { checkInputFormat, type DeclaredInputFormat, type InputFormatIssue } from '@ttt-productions/input-format-core';
+import {
+  checkInputFormat,
+  type DeclaredInputFormat,
+  type InputFormatIssue,
+} from '@ttt-productions/input-format-core';
 import { REPAIR_REASON_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
 import { isStagingId } from '../ids/picture-ids.js';
@@ -68,8 +72,7 @@ export const TEXT_FIELD_ISSUE_MESSAGES: Readonly<
 export type TextFieldDeclaration = DeclaredInputFormat;
 
 export type TextFieldResult =
-  | { readonly ok: true; readonly value: string }
-  | { readonly ok: false; readonly reason: string };
+  { readonly ok: true; readonly value: string } | { readonly ok: false; readonly reason: string };
 
 /**
  * Checks `text` against its field's declaration: the value the field keeps, or the sentence that

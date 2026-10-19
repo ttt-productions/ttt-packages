@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { UserPrivateDataSchema } from '../src/doc-schemas/user.js';
-import {
-  NotificationArchiveAllJobSchema,
-} from '../src/doc-schemas/notification-archive-all-jobs.js';
+import { NotificationArchiveAllJobSchema } from '../src/doc-schemas/notification-archive-all-jobs.js';
 
 const job = {
   schemaVersion: 1,
@@ -46,6 +44,8 @@ describe('archive-all job counts', () => {
   });
 
   it('rejects a negative left-behind count', () => {
-    expect(NotificationArchiveAllJobSchema.safeParse({ ...job, notArchived: -1 }).success).toBe(false);
+    expect(NotificationArchiveAllJobSchema.safeParse({ ...job, notArchived: -1 }).success).toBe(
+      false,
+    );
   });
 });

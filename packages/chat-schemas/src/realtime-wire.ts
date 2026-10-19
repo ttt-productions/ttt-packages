@@ -211,13 +211,13 @@ export type ChatSendRejectionCode = (typeof CHAT_SEND_REJECTION_CODES)[number];
 export const CHAT_SEND_REJECTION_RETRYABLE: Record<ChatSendRejectionCode, boolean> = {
   'membership-pending': true,
   'wordlist-unavailable': true,
-  'flood': true,
+  flood: true,
   'slow-mode': true,
-  'archived': false,
-  'deleted': false,
+  archived: false,
+  deleted: false,
   'blocked-word': false,
   'too-long': false,
-  'blank': false,
+  blank: false,
 };
 
 /**
@@ -297,7 +297,9 @@ export const ChatConversationRefSchema: z.ZodType<ChatConversationRef> = z
       .string()
       .min(1)
       .max(CHAT_CONVERSATION_ID_MAX_LENGTH)
-      .refine((id) => !hasControlCharacter(id), { message: 'id must not contain control characters' }),
+      .refine((id) => !hasControlCharacter(id), {
+        message: 'id must not contain control characters',
+      }),
   })
   .strict();
 
@@ -316,8 +318,7 @@ function hasControlCharacter(value: string): boolean {
  * after verifying the signature, before it accepts the socket.
  */
 export type ChatGrantScope =
-  | { kind: 'channel'; channelRef: ChatConversationRef }
-  | { kind: 'inbox'; uid: string };
+  { kind: 'channel'; channelRef: ChatConversationRef } | { kind: 'inbox'; uid: string };
 
 /** Runtime validator for {@link ChatGrantScope}. */
 export const ChatGrantScopeSchema: z.ZodType<ChatGrantScope> = z.discriminatedUnion('kind', [
@@ -389,7 +390,11 @@ export type ChatMarkReadFailureCode = (typeof CHAT_MARK_READ_FAILURE_CODES)[numb
 /** The payload of a {@link SERVER_KINDS.MARK_READ_RESULT} frame. */
 export const ChatMarkReadResultPayloadSchema = z.discriminatedUnion('ok', [
   z.object({ requestId: ChatRequestIdSchema, ok: z.literal(true) }),
-  z.object({ requestId: ChatRequestIdSchema, ok: z.literal(false), code: z.enum(CHAT_MARK_READ_FAILURE_CODES) }),
+  z.object({
+    requestId: ChatRequestIdSchema,
+    ok: z.literal(false),
+    code: z.enum(CHAT_MARK_READ_FAILURE_CODES),
+  }),
 ]);
 export type ChatMarkReadResultPayload = z.infer<typeof ChatMarkReadResultPayloadSchema>;
 
@@ -404,7 +409,10 @@ export type ChatMarkReadResultPayload = z.infer<typeof ChatMarkReadResultPayload
  * over-long text is answered with a `blank` or `too-long` rejection that names the parsed id; a send
  * that fails this parse has no trustworthy id.
  */
-export const ChatSendPayloadSchema = z.object({ clientMessageId: ChatClientMessageIdSchema, text: z.string() });
+export const ChatSendPayloadSchema = z.object({
+  clientMessageId: ChatClientMessageIdSchema,
+  text: z.string(),
+});
 export type ChatSendPayload = z.infer<typeof ChatSendPayloadSchema>;
 
 /**
@@ -431,7 +439,9 @@ export type ChatHistoryPayload = z.infer<typeof ChatHistoryPayloadSchema>;
  * A `resume`: the last message seq the client holds, so the room answers with what came after it;
  * absent when the client holds none.
  */
-export const ChatResumePayloadSchema = z.object({ afterSeq: z.number().int().nonnegative().nullish() });
+export const ChatResumePayloadSchema = z.object({
+  afterSeq: z.number().int().nonnegative().nullish(),
+});
 export type ChatResumePayload = z.infer<typeof ChatResumePayloadSchema>;
 
 // ---- message revisions ----

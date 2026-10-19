@@ -6,7 +6,11 @@
 // inverses by construction (SPORT-103).
 
 import { z } from 'zod';
-import { FOOTBALL_POINTS_BY_EVENT_TYPE, MAX_STAT_EVENTS_PER_WRITE, TEAM_NOT_IN_GAME_MESSAGE } from '../constants/sports.js';
+import {
+  FOOTBALL_POINTS_BY_EVENT_TYPE,
+  MAX_STAT_EVENTS_PER_WRITE,
+  TEAM_NOT_IN_GAME_MESSAGE,
+} from '../constants/sports.js';
 import type { FootballTeamStats, GameStatEvent } from '../doc-schemas/game-stats.js';
 import type { FootballGameStats, GameStats } from '../doc-schemas/sport-game.js';
 import {
@@ -27,7 +31,11 @@ import {
   type TeamScoresBulkEntry,
   type TeamScoresValues,
 } from './bulk-entry.js';
-import { buildGameContribution, decideParticipation, type ContributionSpec } from './contribution.js';
+import {
+  buildGameContribution,
+  decideParticipation,
+  type ContributionSpec,
+} from './contribution.js';
 import {
   FINALIZATION_READY,
   STAT_EVENT_ACCEPTED,
@@ -72,22 +80,30 @@ function teamScoreOf(state: FootballGameStats, teamId: string): number {
 
 /** The points an event adds to its team's score: a scoring event's own, or a bulk edit's `value`. */
 function pointsOf(event: FootballEvent): number {
-  return event.type === FOOTBALL_BULK_EDIT_EVENT_TYPE ? event.value : FOOTBALL_POINTS_BY_EVENT_TYPE[event.type];
+  return event.type === FOOTBALL_BULK_EDIT_EVENT_TYPE
+    ? event.value
+    : FOOTBALL_POINTS_BY_EVENT_TYPE[event.type];
 }
 
 function addToScore(stateIn: GameStats, teamId: string, amount: number): FootballGameStats {
   const state = ownStats(stateIn);
   const line = state.teamStats[teamId] ?? emptyFootballTeamLine();
-  return { teamStats: { ...state.teamStats, [teamId]: { ...line, score: line.score + amount } }, playerStats: state.playerStats };
+  return {
+    teamStats: { ...state.teamStats, [teamId]: { ...line, score: line.score + amount } },
+    playerStats: state.playerStats,
+  };
 }
 
 // A correction to the team's score; football keeps no player line to correct.
 const CORRECTABLE_FIELDS: CorrectableFields = { team: FOOTBALL_TEAM_STAT_KEYS, player: [] };
 
 function correctionAmount(event: StatCorrectionBody): number {
-  const fields = event.playerUserId === undefined ? CORRECTABLE_FIELDS.team : CORRECTABLE_FIELDS.player;
+  const fields =
+    event.playerUserId === undefined ? CORRECTABLE_FIELDS.team : CORRECTABLE_FIELDS.player;
   if (!fields.includes(event.stat)) {
-    throw new Error(`A football correction cannot change ${event.stat} on a ${event.playerUserId === undefined ? 'team' : 'player'} line.`);
+    throw new Error(
+      `A football correction cannot change ${event.stat} on a ${event.playerUserId === undefined ? 'team' : 'player'} line.`,
+    );
   }
   return event.value;
 }
@@ -101,7 +117,8 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
   if (!roster.teamIds.includes(event.teamId)) return refuseStatEvent('teamNotInGame');
   if (namesPlayer(event)) return refuseStatEvent('playerNotAllowed');
   if (event.type === FOOTBALL_BULK_EDIT_EVENT_TYPE) {
-    if (!Number.isInteger(event.value) || event.value === 0) return refuseStatEvent('bulkValueInvalid');
+    if (!Number.isInteger(event.value) || event.value === 0)
+      return refuseStatEvent('bulkValueInvalid');
     const score = teamScoreOf(ownStats(stateIn), event.teamId);
     if (event.previousValue !== score) return refuseStatEvent('bulkStale');
     if (score + event.value < 0) return refuseStatEvent('bulkValueInvalid');
@@ -123,11 +140,13 @@ export const FOOTBALL_SCORING: SportScoring = {
   validate,
   apply: (state, event) => {
     if (isStatCorrection(event)) return addToScore(state, event.teamId, correctionAmount(event));
-    if (!isFootballEvent(event)) throw new Error(`The football adapter does not apply ${event.type}.`);
+    if (!isFootballEvent(event))
+      throw new Error(`The football adapter does not apply ${event.type}.`);
     return addToScore(state, event.teamId, pointsOf(event));
   },
   undo: (state, target) => {
-    if (!isFootballEvent(target)) throw new Error(`The football adapter does not undo ${target.type}.`);
+    if (!isFootballEvent(target))
+      throw new Error(`The football adapter does not undo ${target.type}.`);
     return addToScore(state, target.teamId, -pointsOf(target));
   },
   // A football line has no derived field.
@@ -157,7 +176,10 @@ export const FOOTBALL_FIELD_LABELS = {
   player: {},
 } as const satisfies StatFieldLabels<FootballTeamStatKey, never>;
 
-export function describeFootballEvent(event: GameStatEvent, resolve: StatEventNameResolver): string {
+export function describeFootballEvent(
+  event: GameStatEvent,
+  resolve: StatEventNameResolver,
+): string {
   const storeEvent = describeStoreEvent(event, resolve, FOOTBALL_FIELD_LABELS);
   if (storeEvent !== null) return storeEvent;
   if (!isFootballEvent(event)) return event.type;
@@ -189,7 +211,12 @@ function scoreDrafts(values: TeamScoresValues, context: BulkEntryContext): StatE
     const entered = values.scores[teamId];
     const previousValue = teamScoreOf(state, teamId);
     if (entered === undefined || entered === previousValue) continue;
-    drafts.push({ type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId, value: entered - previousValue, previousValue });
+    drafts.push({
+      type: FOOTBALL_BULK_EDIT_EVENT_TYPE,
+      teamId,
+      value: entered - previousValue,
+      previousValue,
+    });
   }
   return drafts;
 }
@@ -197,18 +224,31 @@ function scoreDrafts(values: TeamScoresValues, context: BulkEntryContext): StatE
 export const FOOTBALL_BULK_ENTRY: TeamScoresBulkEntry = {
   kind: 'teamScores',
   formDefaults: (context) => ({
-    scores: Object.fromEntries(context.game.teamIds.map((teamId) => [teamId, teamScoreOf(ownStats(context.state), teamId)])),
+    scores: Object.fromEntries(
+      context.game.teamIds.map((teamId) => [teamId, teamScoreOf(ownStats(context.state), teamId)]),
+    ),
   }),
   formSchema: (context) => {
     const teams = new Set(context.game.teamIds);
-    return z.object({ scores: z.record(z.string(), bulkEntryCountField) }).superRefine((values, issues) => {
-      for (const teamId of Object.keys(values.scores)) {
-        if (!teams.has(teamId)) issues.addIssue({ code: 'custom', path: ['scores', teamId], message: TEAM_NOT_IN_GAME_MESSAGE });
-      }
-      if (scoreDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
-        issues.addIssue({ code: 'custom', path: ['scores'], message: BULK_ENTRY_TOO_LARGE_MESSAGE });
-      }
-    });
+    return z
+      .object({ scores: z.record(z.string(), bulkEntryCountField) })
+      .superRefine((values, issues) => {
+        for (const teamId of Object.keys(values.scores)) {
+          if (!teams.has(teamId))
+            issues.addIssue({
+              code: 'custom',
+              path: ['scores', teamId],
+              message: TEAM_NOT_IN_GAME_MESSAGE,
+            });
+        }
+        if (scoreDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
+          issues.addIssue({
+            code: 'custom',
+            path: ['scores'],
+            message: BULK_ENTRY_TOO_LARGE_MESSAGE,
+          });
+        }
+      });
   },
   toEvents: scoreDrafts,
 };

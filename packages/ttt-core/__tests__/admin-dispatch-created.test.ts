@@ -28,17 +28,28 @@ describe('the first message of an admin-started thread notifies its readers', ()
 
   it('opens the Work for a Work thread and Messages for a user thread', () => {
     const target = config.defaultTargetPath as (meta: Record<string, unknown>) => string;
-    expect(target({ adminDispatchId: 'd1', partyKind: 'workProject', workProjectId: 'w1' })).toBe('/work-projects/w1');
+    expect(target({ adminDispatchId: 'd1', partyKind: 'workProject', workProjectId: 'w1' })).toBe(
+      '/work-projects/w1',
+    );
     expect(target({ adminDispatchId: 'd1', partyKind: 'user' })).toBe('/messages');
   });
 
   it('carries the thread id and its party kind', () => {
     expect(() =>
-      validateNotificationMetadata('admin_dispatch_created', { adminDispatchId: 'd1', partyKind: 'user' }),
+      validateNotificationMetadata('admin_dispatch_created', {
+        adminDispatchId: 'd1',
+        partyKind: 'user',
+      }),
     ).not.toThrow();
-    expect(() => validateNotificationMetadata('admin_dispatch_created', { adminDispatchId: 'd1' })).toThrow();
     expect(() =>
-      validateNotificationMetadata('admin_dispatch_created', { adminDispatchId: 'd1', partyKind: 'user', title: 'x' }),
+      validateNotificationMetadata('admin_dispatch_created', { adminDispatchId: 'd1' }),
+    ).toThrow();
+    expect(() =>
+      validateNotificationMetadata('admin_dispatch_created', {
+        adminDispatchId: 'd1',
+        partyKind: 'user',
+        title: 'x',
+      }),
     ).toThrow();
   });
 });

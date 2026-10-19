@@ -25,7 +25,11 @@ const uploadFacts = (over: Partial<StorageUploadOriginFacts> = {}): StorageUploa
     { function: 'signatureUploadOrigins', origins: () => ['waiver-signature'] },
   ],
   contentTypeLanes: [
-    { function: 'uploadContentTypeAllowed', expression: "origin in pictureUploadOrigins() && request.resource.contentType.matches('image/.*')" },
+    {
+      function: 'uploadContentTypeAllowed',
+      expression:
+        "origin in pictureUploadOrigins() && request.resource.contentType.matches('image/.*')",
+    },
   ],
   stagingPath: 'uploads/{origin}/{userId}/{stagingId}',
   ...over,
@@ -34,7 +38,7 @@ const uploadFacts = (over: Partial<StorageUploadOriginFacts> = {}): StorageUploa
 const CANONICAL = [
   'service firebase.storage {',
   '  match /b/{bucket}/o {',
-  '    // An origin the registry retired, kept in prose: origin == \'old\' ? 5 * 1024',
+  "    // An origin the registry retired, kept in prose: origin == 'old' ? 5 * 1024",
   '    match /uploads/{origin}/{userId}/{stagingId} {',
   '      allow create: if request.auth != null && request.resource.size <= uploadMaxBytes(origin);',
   '      allow update, delete: if false;',
@@ -56,7 +60,11 @@ const CANONICAL = [
 describe('the Storage rules restate the upload-origin registry exactly', () => {
   it('PASSES rules built from the registry, comments and line breaks included', async () => {
     repo = tempRepo({ 'src/anchor.ts': 'export {};', 'storage.rules': CANONICAL });
-    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } }, rulesFiles: ['storage.rules'] });
+    const reader = createRepoReader({
+      repoRoot: repo.root,
+      roots: { app: { path: 'src', anchor: 'src/anchor.ts' } },
+      rulesFiles: ['storage.rules'],
+    });
     const [guard] = storageUploadOriginGuard.build(uploadFacts());
     expect(await guard.run(contextOf(reader))).toEqual([]);
   });
@@ -65,7 +73,10 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
     repo = tempRepo({
       'src/anchor.ts': 'export {};',
       'storage.rules': CANONICAL,
-      'media.rules': CANONICAL.replace('allow update, delete: if false;', 'allow update: if false;'),
+      'media.rules': CANONICAL.replace(
+        'allow update, delete: if false;',
+        'allow update: if false;',
+      ),
       'firestore.rules': 'service cloud.firestore { match /databases/{database}/documents { } }',
     });
     const reader = createRepoReader({
@@ -75,7 +86,10 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
     });
     const [guard] = storageUploadOriginGuard.build(uploadFacts());
     expect(await guard.run(contextOf(reader))).toEqual([
-      { file: 'media.rules', detail: 'the staging block does not refuse delete (allow delete: if false)' },
+      {
+        file: 'media.rules',
+        detail: 'the staging block does not refuse delete (allow delete: if false)',
+      },
     ]);
   });
 
@@ -108,7 +122,12 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
   });
 
   it('FLAGS a missing cap function and a missing staging block, and checks no list or lane the app does not declare', async () => {
-    expect(await uploadOriginProblems('match /other/{x} { allow read: if true; }', uploadFacts({ originLists: [], contentTypeLanes: [] }))).toEqual([
+    expect(
+      await uploadOriginProblems(
+        'match /other/{x} { allow read: if true; }',
+        uploadFacts({ originLists: [], contentTypeLanes: [] }),
+      ),
+    ).toEqual([
       'no uploadMaxBytes(origin) function',
       'no staging block match /uploads/{origin}/{userId}/{stagingId}',
     ]);
@@ -116,7 +135,9 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
 
   it('FLAGS a staging block that refuses update alone, relying on the default for delete', async () => {
     const rules = CANONICAL.replace('allow update, delete: if false;', 'allow update: if false;');
-    expect(await uploadOriginProblems(rules, uploadFacts())).toEqual(['the staging block does not refuse delete (allow delete: if false)']);
+    expect(await uploadOriginProblems(rules, uploadFacts())).toEqual([
+      'the staging block does not refuse delete (allow delete: if false)',
+    ]);
   });
 
   it('refuses missing names and loaders, and lists that are not declared', () => {
@@ -128,12 +149,22 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
       'contentTypeLanes is missing (declare [] when there is none)',
     ]);
     expect(
-      storageUploadOriginGuard.factProblems(uploadFacts({ originLists: [{ function: 'x', origins: [] as never }], contentTypeLanes: [{ function: 'y', expression: '' }] })),
-    ).toEqual(['originLists x needs a loader function', "contentTypeLanes y's expression is missing"]);
+      storageUploadOriginGuard.factProblems(
+        uploadFacts({
+          originLists: [{ function: 'x', origins: [] as never }],
+          contentTypeLanes: [{ function: 'y', expression: '' }],
+        }),
+      ),
+    ).toEqual([
+      'originLists x needs a loader function',
+      "contentTypeLanes y's expression is missing",
+    ]);
   });
 });
 
-const metadataFacts = (over: Partial<StorageObjectMetadataFacts> = {}): StorageObjectMetadataFacts => ({
+const metadataFacts = (
+  over: Partial<StorageObjectMetadataFacts> = {},
+): StorageObjectMetadataFacts => ({
   generationReaders: ['requireStorageObjectGeneration', 'stagedObjectGenerationFromMetadata'],
   sizeReaders: ['parseStorageObjectSize'],
   packageContracts: ['UnreadableStorageObjectMetadataError', 'requireStorageObjectGeneration'],
@@ -146,12 +177,16 @@ async function runMetadata(files: Record<string, string>, facts = metadataFacts(
   repo = tempRepo({
     'src/anchor.ts': 'export {};',
     'functions/src/anchor.ts': 'export {};',
-    'functions/src/reader.ts': 'const generation = requireStorageObjectGeneration(meta, { bucket, key });',
+    'functions/src/reader.ts':
+      'const generation = requireStorageObjectGeneration(meta, { bucket, key });',
     ...files,
   });
   const reader = createRepoReader({
     repoRoot: repo.root,
-    roots: { app: { path: 'src', anchor: 'src/anchor.ts' }, functions: { path: 'functions/src', anchor: 'functions/src/anchor.ts' } },
+    roots: {
+      app: { path: 'src', anchor: 'src/anchor.ts' },
+      functions: { path: 'functions/src', anchor: 'functions/src/anchor.ts' },
+    },
   });
   const [guard] = storageObjectMetadataGuard.build(facts);
   return guard.run(contextOf(reader));
@@ -171,7 +206,9 @@ describe("a stored object's generation and size are read only through the packag
       'if (seen.size > 0) emit(seen.size);',
       '// String(meta.generation) in a comment',
     ].join('\n');
-    expect(await runMetadata({ 'functions/src/clean.ts': clean, 'src/clean.ts': clean })).toEqual([]);
+    expect(await runMetadata({ 'functions/src/clean.ts': clean, 'src/clean.ts': clean })).toEqual(
+      [],
+    );
   });
 
   it('FLAGS each hand-rolled read: conversions, toString, fallbacks, casts, metadata member reads, and destructuring', async () => {
@@ -192,7 +229,15 @@ describe("a stored object's generation and size are read only through the packag
     for (const shape of shapes) {
       const findings = await runMetadata({ 'functions/src/probe.ts': shape });
       expect(findings.length, shape).toBeGreaterThan(0);
-      expect(findings.every((f) => f.file === 'functions/src/probe.ts' && f.line === 1 && f.detail.startsWith('inline storage metadata read: ')), shape).toBe(true);
+      expect(
+        findings.every(
+          (f) =>
+            f.file === 'functions/src/probe.ts' &&
+            f.line === 1 &&
+            f.detail.startsWith('inline storage metadata read: '),
+        ),
+        shape,
+      ).toBe(true);
       repo?.remove();
       repo = undefined;
     }
@@ -207,8 +252,17 @@ describe("a stored object's generation and size are read only through the packag
       ].join('\n'),
     });
     expect(findings).toEqual([
-      { file: 'functions/src/copy.ts', line: 1, detail: 'a local copy of a package-owned contract: class UnreadableStorageObjectMetadataError' },
-      { file: 'functions/src/copy.ts', line: 2, detail: 'a local copy of a package-owned contract: function requireStorageObjectGeneration' },
+      {
+        file: 'functions/src/copy.ts',
+        line: 1,
+        detail:
+          'a local copy of a package-owned contract: class UnreadableStorageObjectMetadataError',
+      },
+      {
+        file: 'functions/src/copy.ts',
+        line: 2,
+        detail: 'a local copy of a package-owned contract: function requireStorageObjectGeneration',
+      },
     ]);
   });
 
@@ -220,19 +274,34 @@ describe("a stored object's generation and size are read only through the packag
       },
       metadataFacts({
         exceptions: [
-          { path: 'functions/src/removal.ts', shape: 'args.generation ??', why: 'a job counter, not a stored object generation' },
+          {
+            path: 'functions/src/removal.ts',
+            shape: 'args.generation ??',
+            why: 'a job counter, not a stored object generation',
+          },
           { path: 'functions/src/removal.ts', shape: 'meta.size ||', why: 'gone' },
         ],
       }),
     );
     expect(findings).toEqual([
-      { file: 'functions/src/removal.ts', detail: 'stale exception: "meta.size ||" no longer appears' },
-      { file: 'functions/src/reader.ts', detail: 'reader anchor: no package helper call left in it' },
+      {
+        file: 'functions/src/removal.ts',
+        detail: 'stale exception: "meta.size ||" no longer appears',
+      },
+      {
+        file: 'functions/src/reader.ts',
+        detail: 'reader anchor: no package helper call left in it',
+      },
     ]);
   });
 
   it('refuses missing helper names, a missing anchor list, and an exception with no shape or why', () => {
-    expect(storageObjectMetadataGuard.factProblems({ packageContracts: [], exceptions: [{ path: 'a.ts', shape: '', why: '' }] } as never)).toEqual([
+    expect(
+      storageObjectMetadataGuard.factProblems({
+        packageContracts: [],
+        exceptions: [{ path: 'a.ts', shape: '', why: '' }],
+      } as never),
+    ).toEqual([
       'generationReaders is missing',
       'sizeReaders is missing',
       'readerAnchors is missing',

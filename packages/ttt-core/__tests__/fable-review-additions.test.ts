@@ -31,7 +31,14 @@ describe('hiddenBy marker on published projections', () => {
   const bases = {
     PublishedTuneTrack: {
       schema: PublishedTuneTrackSchema,
-      valid: { uid: 't1', title: 'T', order: 0, audioAssetId: 'a1', photoAssetId: 'p1', hidden: true },
+      valid: {
+        uid: 't1',
+        title: 'T',
+        order: 0,
+        audioAssetId: 'a1',
+        photoAssetId: 'p1',
+        hidden: true,
+      },
     },
     PublishedChapter: {
       schema: PublishedChapterSchema,
@@ -39,7 +46,14 @@ describe('hiddenBy marker on published projections', () => {
     },
     PublishedTelevisionEpisode: {
       schema: PublishedTelevisionEpisodeSchema,
-      valid: { uid: 'e1', title: 'E', order: 0, videoAssetId: 'v1', photoAssetId: 'p1', hidden: true },
+      valid: {
+        uid: 'e1',
+        title: 'E',
+        order: 0,
+        videoAssetId: 'v1',
+        photoAssetId: 'p1',
+        hidden: true,
+      },
     },
   };
 
@@ -78,9 +92,19 @@ describe('hiddenBy marker on published projections', () => {
 
 describe('per-field moderation text-clear flags (uniform shape across the family)', () => {
   it('are optional on the live sub-item schemas', () => {
-    const chapter = { uid: 'c1', title: 'C', content: 'b', description: 'D', order: 0, status: 'published', createdOn: 1 };
+    const chapter = {
+      uid: 'c1',
+      title: 'C',
+      content: 'b',
+      description: 'D',
+      order: 0,
+      status: 'published',
+      createdOn: 1,
+    };
     expect(FullChapterSchema.safeParse(chapter).success).toBe(true);
-    expect(FullChapterSchema.safeParse({ ...chapter, moderationClearedFields: [] }).success).toBe(true);
+    expect(FullChapterSchema.safeParse({ ...chapter, moderationClearedFields: [] }).success).toBe(
+      true,
+    );
   });
 
   it('coexist with the existing retitle flags on workProject + workRealm', () => {
@@ -140,8 +164,15 @@ describe('GuildChatChannel delete marker', () => {
   });
 
   it('stores canonical standings and trade professions only', () => {
-    expect(GuildChatChannelSchema.safeParse({ ...valid, requiredGuildStandings: ['HallLibraryEditor', 'Actor'] }).success).toBe(true);
-    expect(GuildChatChannelSchema.safeParse({ ...valid, requiredGuildStandings: ['Wizard'] }).success).toBe(false);
+    expect(
+      GuildChatChannelSchema.safeParse({
+        ...valid,
+        requiredGuildStandings: ['HallLibraryEditor', 'Actor'],
+      }).success,
+    ).toBe(true);
+    expect(
+      GuildChatChannelSchema.safeParse({ ...valid, requiredGuildStandings: ['Wizard'] }).success,
+    ).toBe(false);
     expect(GuildChatChannelSchema.safeParse({ ...valid, isDeleted: 'yes' }).success).toBe(false);
   });
 });
@@ -164,7 +195,9 @@ describe('curated audition assembly status', () => {
       curatedAssemblyStatus: 'closed',
     };
     expect(AuditionSchema.safeParse(audition).success).toBe(true);
-    expect(AuditionSchema.safeParse({ ...audition, curatedAssemblyStatus: 'bogus' }).success).toBe(false);
+    expect(AuditionSchema.safeParse({ ...audition, curatedAssemblyStatus: 'bogus' }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -186,20 +219,31 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
 
   it('accepts a minimal entry and an entry with lastAttemptAt', () => {
     expect(StatusReconcileQueueEntrySchema.safeParse(valid).success).toBe(true);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, lastAttemptAt: 5 }).success).toBe(true);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, lastAttemptAt: 5 }).success).toBe(
+      true,
+    );
   });
 
   it('pins reason to the literal and constrains targetStatus', () => {
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'other' }).success).toBe(false);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'postCommitAuthEffectFailed' }).success).toBe(false);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, targetStatus: 'deleted' }).success).toBe(false);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'other' }).success).toBe(
+      false,
+    );
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'postCommitAuthEffectFailed' })
+        .success,
+    ).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, targetStatus: 'deleted' }).success,
+    ).toBe(false);
   });
 
   it('an entry without authEffect (written before the field) is an accountStatus entry', () => {
     const parsed = StatusReconcileQueueEntrySchema.parse(valid);
     expect(parsed.authEffect).toBeUndefined();
     expect(StatusReconcileQueueAccountStatusEntrySchema.safeParse(valid).success).toBe(true);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'accountStatus' }).success).toBe(true);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'accountStatus' }).success,
+    ).toBe(true);
   });
 
   it('an accountStatus entry requires the writeId that fences its removal', () => {
@@ -211,7 +255,8 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
     const { targetStatus: _omit, ...withoutTarget } = valid;
     expect(StatusReconcileQueueEntrySchema.safeParse(withoutTarget).success).toBe(false);
     expect(
-      StatusReconcileQueueEntrySchema.safeParse({ ...withoutTarget, authEffect: 'accountStatus' }).success,
+      StatusReconcileQueueEntrySchema.safeParse({ ...withoutTarget, authEffect: 'accountStatus' })
+        .success,
     ).toBe(false);
   });
 
@@ -224,13 +269,21 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
       reason: 'postCommitAuthEffectFailed' as const,
     };
     expect(StatusReconcileQueueEntrySchema.safeParse(acceptance).success).toBe(true);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, lastAttemptAt: 5 }).success).toBe(true);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, targetStatus: 'active' }).success).toBe(false);
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, reason: 'other' }).success).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, lastAttemptAt: 5 }).success,
+    ).toBe(true);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, targetStatus: 'active' }).success,
+    ).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, reason: 'other' }).success,
+    ).toBe(false);
   });
 
   it('rejects an unknown authEffect', () => {
-    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'status' }).success).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'status' }).success,
+    ).toBe(false);
   });
 
   it('queues a failed admin-role claim write and a failed registered-member claim write, neither with a status', () => {
@@ -243,7 +296,10 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
         reason: 'postCommitAuthEffectFailed' as const,
       };
       expect(StatusReconcileQueueEntrySchema.safeParse(entry).success, authEffect).toBe(true);
-      expect(StatusReconcileQueueEntrySchema.safeParse({ ...entry, lastAttemptAt: 5 }).success, authEffect).toBe(true);
+      expect(
+        StatusReconcileQueueEntrySchema.safeParse({ ...entry, lastAttemptAt: 5 }).success,
+        authEffect,
+      ).toBe(true);
       expect(
         StatusReconcileQueueEntrySchema.safeParse({ ...entry, targetStatus: 'active' }).success,
         authEffect,
@@ -264,8 +320,12 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
     expectTypeOf<
       Extract<StatusReconcileQueueEntry, { authEffect: 'publicDocumentsAcceptedClaim' }>
     >().toEqualTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>();
-    expectTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>().not.toHaveProperty('targetStatus');
-    expectTypeOf<StatusReconcileQueueAccountStatusEntry['targetStatus']>().toEqualTypeOf<UserAccountStatus>();
+    expectTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>().not.toHaveProperty(
+      'targetStatus',
+    );
+    expectTypeOf<
+      StatusReconcileQueueAccountStatusEntry['targetStatus']
+    >().toEqualTypeOf<UserAccountStatus>();
   });
 });
 

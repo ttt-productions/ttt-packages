@@ -60,9 +60,7 @@ describe('useAuthGuard', () => {
 
     it('an empty publicRoutes list leaves every non-root path protected', () => {
       const replace = vi.fn();
-      renderHook(() =>
-        useAuthGuard(makeConfig({ publicRoutes: [], pathname: '/terms', replace })),
-      );
+      renderHook(() => useAuthGuard(makeConfig({ publicRoutes: [], pathname: '/terms', replace })));
       expect(replace).toHaveBeenCalledWith('/login');
     });
 
@@ -99,9 +97,11 @@ describe('useAuthGuard', () => {
     // the in-flight saved-path navigation.
     localStorage.setItem(KEY, '/v/abc123');
     const replace = vi.fn();
-    const { rerender } = renderHook((props: { loading: boolean }) =>
-      useAuthGuard(makeConfig({ isAuthenticated: true, loading: props.loading, replace })),
-    { initialProps: { loading: false } });
+    const { rerender } = renderHook(
+      (props: { loading: boolean }) =>
+        useAuthGuard(makeConfig({ isAuthenticated: true, loading: props.loading, replace })),
+      { initialProps: { loading: false } },
+    );
     expect(replace).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledWith('/v/abc123');
     // Loading flap re-runs the effect on the SAME pathname — must not re-replace.
@@ -113,9 +113,11 @@ describe('useAuthGuard', () => {
   it('the latch resets once the pathname leaves the auth-route set', () => {
     localStorage.setItem(KEY, '/v/abc123');
     const replace = vi.fn();
-    const { rerender } = renderHook((props: { pathname: string }) =>
-      useAuthGuard(makeConfig({ isAuthenticated: true, pathname: props.pathname, replace })),
-    { initialProps: { pathname: '/login' } });
+    const { rerender } = renderHook(
+      (props: { pathname: string }) =>
+        useAuthGuard(makeConfig({ isAuthenticated: true, pathname: props.pathname, replace })),
+      { initialProps: { pathname: '/login' } },
+    );
     expect(replace).toHaveBeenNthCalledWith(1, '/v/abc123');
     // Navigation committed (pathname left the auth route), then a later authed
     // visit to /login redirects normally again.
@@ -136,7 +138,9 @@ describe('useAuthGuard', () => {
     type Props = { isAuthenticated: boolean; pathname: string; replace: () => void };
 
     function renderGuard(initial: Props) {
-      return renderHook((props: Props) => useAuthGuard(makeConfig(props)), { initialProps: initial });
+      return renderHook((props: Props) => useAuthGuard(makeConfig(props)), {
+        initialProps: initial,
+      });
     }
 
     it('signing out on a protected route saves nothing, clears a saved path, and still goes to login', () => {
@@ -203,7 +207,8 @@ describe('useAuthGuard', () => {
       blockStorage();
       const replace = vi.fn();
       const { rerender } = renderHook(
-        (props: { isAuthenticated: boolean; pathname: string }) => useAuthGuard(makeConfig({ ...props, replace })),
+        (props: { isAuthenticated: boolean; pathname: string }) =>
+          useAuthGuard(makeConfig({ ...props, replace })),
         { initialProps: { isAuthenticated: false, pathname: '/works/7' } },
       );
       expect(replace).toHaveBeenLastCalledWith('/login');
@@ -218,7 +223,8 @@ describe('useAuthGuard', () => {
       blockStorage();
       const replace = vi.fn();
       const { rerender } = renderHook(
-        (props: { isAuthenticated: boolean; pathname: string }) => useAuthGuard(makeConfig({ ...props, replace })),
+        (props: { isAuthenticated: boolean; pathname: string }) =>
+          useAuthGuard(makeConfig({ ...props, replace })),
         { initialProps: { isAuthenticated: true, pathname: '/profile' } },
       );
       rerender({ isAuthenticated: false, pathname: '/profile' });

@@ -90,12 +90,22 @@ describe('ConversationFileRef — EXACTLY the two supported conversation scopes'
 
   it('rejects mixed or extra scope identifiers', () => {
     expect(() =>
-      ConversationFileRefSchema.parse({ kind: 'guildInvite', guildInviteId: 'i', adminDispatchId: 'a' }),
+      ConversationFileRefSchema.parse({
+        kind: 'guildInvite',
+        guildInviteId: 'i',
+        adminDispatchId: 'a',
+      }),
     ).toThrow();
     expect(() =>
-      ConversationFileRefSchema.parse({ kind: 'adminSupport', adminDispatchId: 'a', workProjectId: 'wp' }),
+      ConversationFileRefSchema.parse({
+        kind: 'adminSupport',
+        adminDispatchId: 'a',
+        workProjectId: 'wp',
+      }),
     ).toThrow();
-    expect(() => ConversationFileRefSchema.parse({ kind: 'guildInvite', guildInviteId: '' })).toThrow();
+    expect(() =>
+      ConversationFileRefSchema.parse({ kind: 'guildInvite', guildInviteId: '' }),
+    ).toThrow();
   });
 
   it('is the conversation-file target-info schema verbatim (one declaration)', () => {
@@ -143,7 +153,9 @@ describe('the conversation-file upload origin', () => {
   });
 
   it('routes through parseTargetInfo to the strict ref schema', () => {
-    expect(parseTargetInfo('conversation-file', { kind: 'adminSupport', adminDispatchId: 'ad_1' })).toEqual({
+    expect(
+      parseTargetInfo('conversation-file', { kind: 'adminSupport', adminDispatchId: 'ad_1' }),
+    ).toEqual({
       kind: 'adminSupport',
       adminDispatchId: 'ad_1',
     });
@@ -169,18 +181,16 @@ describe('ConversationFileSchema — references and metadata ONLY', () => {
   });
 
   it('declares exactly the canonical fields', () => {
-    expect(Object.keys(ConversationFileSchema.shape).sort()).toEqual(
-      [
-        'contentType',
-        'conversationFileId',
-        'createdAt',
-        'mediaAssetId',
-        'mediaKind',
-        'name',
-        'sizeBytes',
-        'uploadedByUid',
-      ],
-    );
+    expect(Object.keys(ConversationFileSchema.shape).sort()).toEqual([
+      'contentType',
+      'conversationFileId',
+      'createdAt',
+      'mediaAssetId',
+      'mediaKind',
+      'name',
+      'sizeBytes',
+      'uploadedByUid',
+    ]);
   });
 
   it('declares NO lifecycle/status field (pendingMedia + mediaAssets own the lifecycle)', () => {
@@ -190,13 +200,27 @@ describe('ConversationFileSchema — references and metadata ONLY', () => {
   });
 
   it('declares NO URL and NO Firebase staging path', () => {
-    for (const forbidden of ['url', 'downloadUrl', 'signedUrl', 'gatewayUrl', 'storagePath', 'pendingStoragePath']) {
+    for (const forbidden of [
+      'url',
+      'downloadUrl',
+      'signedUrl',
+      'gatewayUrl',
+      'storagePath',
+      'pendingStoragePath',
+    ]) {
       expect(Object.keys(ConversationFileSchema.shape)).not.toContain(forbidden);
     }
   });
 
   it('declares NO display-identity snapshot (ARCH-103 — uid reference only)', () => {
-    for (const forbidden of ['displayName', 'username', 'profilePictureUrl', 'avatarUrl', 'workName', 'uploadedBy']) {
+    for (const forbidden of [
+      'displayName',
+      'username',
+      'profilePictureUrl',
+      'avatarUrl',
+      'workName',
+      'uploadedBy',
+    ]) {
       expect(Object.keys(ConversationFileSchema.shape)).not.toContain(forbidden);
     }
     expect(Object.keys(ConversationFileSchema.shape)).toContain('uploadedByUid');
@@ -301,10 +325,12 @@ describe('Conversation Files path builders + collection registration', () => {
 
   it('binds both paths to ConversationFileSchema in the doc-schema registry', () => {
     const registry = COLLECTION_SCHEMAS as Record<string, unknown>;
-    expect(registry['guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}'])
-      .toBe(ConversationFileSchema);
-    expect(registry['pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}'])
-      .toBe(ConversationFileSchema);
+    expect(
+      registry['guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}'],
+    ).toBe(ConversationFileSchema);
+    expect(
+      registry['pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}'],
+    ).toBe(ConversationFileSchema);
   });
 
   it('registers NO guild-channel conversationFiles path', () => {
@@ -326,24 +352,36 @@ describe('media contracts for Conversation Files', () => {
   });
 
   it('the serving scope keeps guildInvite + adminSupport and drops guildChannel', () => {
-    expect(MediaServingScopeSchema.parse({ kind: 'guildInvite', guildInviteId: 'i' }).kind).toBe('guildInvite');
-    expect(MediaServingScopeSchema.parse({ kind: 'adminSupport', adminDispatchId: 'a' }).kind).toBe('adminSupport');
+    expect(MediaServingScopeSchema.parse({ kind: 'guildInvite', guildInviteId: 'i' }).kind).toBe(
+      'guildInvite',
+    );
+    expect(MediaServingScopeSchema.parse({ kind: 'adminSupport', adminDispatchId: 'a' }).kind).toBe(
+      'adminSupport',
+    );
     expect(() =>
-      MediaServingScopeSchema.parse({ kind: 'guildChannel', workProjectId: 'w', guildChatChannelId: 'c' }),
+      MediaServingScopeSchema.parse({
+        kind: 'guildChannel',
+        workProjectId: 'w',
+        guildChatChannelId: 'c',
+      }),
     ).toThrow();
     // Work media has its own scopes.
-    expect(MediaServingScopeSchema.parse({ kind: 'workProject', workProjectId: 'w' }).kind).toBe('workProject');
+    expect(MediaServingScopeSchema.parse({ kind: 'workProject', workProjectId: 'w' }).kind).toBe(
+      'workProject',
+    );
     expect(
-      MediaServingScopeSchema.parse({ kind: 'workFileFolder', workProjectId: 'w', workFileFolderId: 'f' }).kind,
+      MediaServingScopeSchema.parse({
+        kind: 'workFileFolder',
+        workProjectId: 'w',
+        workFileFolderId: 'f',
+      }).kind,
     ).toBe('workFileFolder');
   });
 
   it('every ConversationFileRef kind has a matching serving-scope kind', () => {
     for (const kind of CONVERSATION_FILE_SCOPE_KINDS) {
       const ref =
-        kind === 'guildInvite'
-          ? { kind, guildInviteId: 'i' }
-          : { kind, adminDispatchId: 'a' };
+        kind === 'guildInvite' ? { kind, guildInviteId: 'i' } : { kind, adminDispatchId: 'a' };
       expect(MediaServingScopeSchema.parse(ref).kind).toBe(kind);
     }
   });
@@ -457,7 +495,12 @@ describe('the safety target locator points at Conversation Files, not chat attac
 
   it('rejects a conversationFile locator missing the file or asset id, or carrying extras', () => {
     const conversation = { kind: 'guildInvite' as const, guildInviteId: 'inv-1' };
-    const base = { kind: 'conversationFile', conversation, conversationFileId: 'cf-1', mediaAssetId: 'a-1' };
+    const base = {
+      kind: 'conversationFile',
+      conversation,
+      conversationFileId: 'cf-1',
+      mediaAssetId: 'a-1',
+    };
     const { conversationFileId: _cf, ...noFileId } = base;
     const { mediaAssetId: _ma, ...noAssetId } = base;
     expect(TargetLocatorV1Schema.safeParse(noFileId).success).toBe(false);

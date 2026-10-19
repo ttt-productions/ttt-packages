@@ -1,11 +1,15 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type { ChatMessageGroupKey, ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
-import { isContinuation } from "@ttt-productions/chat-core";
-import type { MessageRendererRegistry } from "../types.js";
-import { Button, Spinner } from "@ttt-productions/ui-core/react";
-import { MessageItemDefault } from "./MessageItemDefault.js";
+import * as React from 'react';
+import type {
+  ChatMessageGroupKey,
+  ChatMessageV1,
+  ModerationHandlers,
+} from '@ttt-productions/chat-core';
+import { isContinuation } from '@ttt-productions/chat-core';
+import type { MessageRendererRegistry } from '../types.js';
+import { Button, Spinner } from '@ttt-productions/ui-core/react';
+import { MessageItemDefault } from './MessageItemDefault.js';
 
 /** What `MessageList` hands a custom scroll container: the element it must render as the scrollable
  *  message region, with this ref, class, scroll handler, and children. */
@@ -96,8 +100,8 @@ export function MessageList(props: {
   } = props;
   const olderLoadFailed = olderLoadErrorRow != null;
 
-  const scrollClass = scrollClassName ?? (fillHeight ? "flex-1 min-h-0" : "h-[400px]");
-  const outerClass = fillHeight ? "relative flex flex-col flex-1 min-h-0" : "relative";
+  const scrollClass = scrollClassName ?? (fillHeight ? 'flex-1 min-h-0' : 'h-[400px]');
+  const outerClass = fillHeight ? 'relative flex flex-col flex-1 min-h-0' : 'relative';
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const topSentinelRef = React.useRef<HTMLDivElement>(null);
@@ -124,7 +128,7 @@ export function MessageList(props: {
     const root = scrollRef.current;
     const target = topSentinelRef.current;
     if (!root || !target) return;
-    if (typeof IntersectionObserver === "undefined") return;
+    if (typeof IntersectionObserver === 'undefined') return;
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -135,7 +139,7 @@ export function MessageList(props: {
         prevScrollHeightRef.current = root.scrollHeight;
         onLoadOlder?.();
       },
-      { root, threshold: 0 }
+      { root, threshold: 0 },
     );
 
     io.observe(target);
@@ -157,7 +161,7 @@ export function MessageList(props: {
         el.scrollTop = el.scrollHeight;
         // Restore page scroll if the browser moved it
         if (window.scrollY !== savedScrollY) {
-          window.scrollTo({ top: savedScrollY, behavior: "instant" as ScrollBehavior });
+          window.scrollTo({ top: savedScrollY, behavior: 'instant' as ScrollBehavior });
         }
       });
       isAtBottomRef.current = true;
@@ -173,7 +177,7 @@ export function MessageList(props: {
         const savedScrollY = window.scrollY;
         el.scrollTop = el.scrollHeight;
         if (window.scrollY !== savedScrollY) {
-          window.scrollTo({ top: savedScrollY, behavior: "instant" as ScrollBehavior });
+          window.scrollTo({ top: savedScrollY, behavior: 'instant' as ScrollBehavior });
         }
       });
     } else if (count > prev) {
@@ -197,7 +201,11 @@ export function MessageList(props: {
 
   return (
     <div className={outerClass}>
-      <ScrollContainer ref={scrollRef} className={`${scrollClass} overflow-y-auto p-4`} onScroll={onScroll}>
+      <ScrollContainer
+        ref={scrollRef}
+        className={`${scrollClass} overflow-y-auto p-4`}
+        onScroll={onScroll}
+      >
         {olderLoadFailed ? (
           <div className="mb-2">{olderLoadErrorRow}</div>
         ) : isFetchingOlder ? (
@@ -209,7 +217,9 @@ export function MessageList(props: {
         <div ref={topSentinelRef} />
 
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm opacity-70">No messages yet</div>
+          <div className="h-full flex items-center justify-center text-sm opacity-70">
+            No messages yet
+          </div>
         ) : (
           <div className="flex flex-col">
             {messages.map((m, idx) => {
@@ -224,20 +234,18 @@ export function MessageList(props: {
               const byType =
                 m.type && messageRenderers?.[m.type] ? messageRenderers[m.type]!(m) : null;
 
-              const body =
-                renderMessage?.(m) ??
-                byType ?? (
-                  <MessageItemDefault
-                    m={m}
-                    currentUserId={currentUserId}
-                    isAdmin={isAdmin}
-                    handlers={handlers}
-                    isContinuation={continuation}
-                    onSenderClick={onSenderClick}
-                    senderAdornment={renderSenderAdornment?.(m)}
-                    onRetrySend={onRetrySend}
-                  />
-                );
+              const body = renderMessage?.(m) ?? byType ?? (
+                <MessageItemDefault
+                  m={m}
+                  currentUserId={currentUserId}
+                  isAdmin={isAdmin}
+                  handlers={handlers}
+                  isContinuation={continuation}
+                  onSenderClick={onSenderClick}
+                  senderAdornment={renderSenderAdornment?.(m)}
+                  onRetrySend={onRetrySend}
+                />
+              );
 
               return (
                 <React.Fragment key={m.messageId}>
@@ -262,16 +270,16 @@ export function MessageList(props: {
           type="button"
           variant="outline"
           size="sm"
-          aria-label={unseenCount > 0 ? `${unseenCount} new messages, scroll to latest` : "Scroll to latest"}
+          aria-label={
+            unseenCount > 0 ? `${unseenCount} new messages, scroll to latest` : 'Scroll to latest'
+          }
           className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full elevation-raised gap-1"
           onClick={() => {
             scrollToBottom();
             onScrollToBottom?.();
           }}
         >
-          {unseenCount > 0
-            ? `${unseenCount} new message${unseenCount > 1 ? "s" : ""} ↓`
-            : "↓"}
+          {unseenCount > 0 ? `${unseenCount} new message${unseenCount > 1 ? 's' : ''} ↓` : '↓'}
         </Button>
       )}
     </div>

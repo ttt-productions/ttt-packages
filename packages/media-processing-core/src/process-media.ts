@@ -1,8 +1,8 @@
-import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
-import { processImage } from "./image/image-processor.js";
-import { processVideo } from "./video/video-processor.js";
-import { processAudio } from "./audio/audio-processor.js";
-import type { MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
+import type { MediaProcessingResult, MediaProcessingSpec } from '@ttt-productions/media-schemas';
+import { processImage } from './image/image-processor.js';
+import { processVideo } from './video/video-processor.js';
+import { processAudio } from './audio/audio-processor.js';
+import type { MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from './types.js';
 
 export const defaultMediaProcessors: MediaProcessors = {
   image: processImage,
@@ -14,24 +14,24 @@ export async function processMedia(
   spec: MediaProcessingSpec,
   ctx: ProcessMediaContext,
   opts?: ProcessMediaOptions,
-  processors: MediaProcessors = defaultMediaProcessors
+  processors: MediaProcessors = defaultMediaProcessors,
 ): Promise<MediaProcessingResult> {
   switch (spec.kind) {
-    case "image":
+    case 'image':
       return processors.image(spec, ctx, opts);
 
-    case "video":
+    case 'video':
       return processors.video(spec, ctx, opts);
 
-    case "audio":
+    case 'audio':
       return processors.audio(spec, ctx, opts);
 
-    case "generic":
+    case 'generic':
     default:
       return {
         ok: false,
-        mediaType: "other",
-        error: { code: "processing_failed", message: "Generic processing not implemented yet." },
+        mediaType: 'other',
+        error: { code: 'processing_failed', message: 'Generic processing not implemented yet.' },
       };
   }
 }

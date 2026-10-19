@@ -34,7 +34,11 @@ export function buildGhostSignedWaiverPath(
 }
 
 /** A referee's signature on one hardware contract, named for its staging id like every kept signature. */
-export function buildHardwareSignaturePath(userId: string, contractId: string, fileId: string): string {
+export function buildHardwareSignaturePath(
+  userId: string,
+  contractId: string,
+  fileId: string,
+): string {
   return `${USER_FILES_PREFIX}${userId}/${HARDWARE_SIGNATURES_FOLDER}/${contractId}/${fileId}`;
 }
 
@@ -56,7 +60,11 @@ export function buildPictureObjectPath(pictureId: string, variantKey: PictureVar
  * callable that accepts the upload rebuilds this from the AUTHENTICATED uid and refuses anything
  * not exactly equal (MEDIA-002), so a client can only ever name its own staged object.
  */
-export function buildStagingUploadPath(fileOrigin: FileOrigin, userId: string, stagingId: string): string {
+export function buildStagingUploadPath(
+  fileOrigin: FileOrigin,
+  userId: string,
+  stagingId: string,
+): string {
   return `${STAGING_UPLOAD_PREFIX}${fileOrigin}/${userId}/${stagingId}`;
 }
 

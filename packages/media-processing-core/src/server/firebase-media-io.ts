@@ -4,9 +4,9 @@
 // `${outputKeyPrefix}/${outputKey}` — meaning lives in the asset registry,
 // not the key. Writes return the object key; no URLs anywhere.
 
-import { getStorage } from "firebase-admin/storage";
-import type { MediaIO } from "../io/types.js";
-import type { MediaObjectStore } from "./storage-ops.js";
+import { getStorage } from 'firebase-admin/storage';
+import type { MediaIO } from '../io/types.js';
+import type { MediaObjectStore } from './storage-ops.js';
 
 export interface CreateObjectStoreMediaIOArgs {
   /** Firebase Storage staging path of the uploaded source file. */

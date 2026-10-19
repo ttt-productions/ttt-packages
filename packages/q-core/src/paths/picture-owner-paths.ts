@@ -5,7 +5,11 @@
 
 import type { AwardDefinition } from '../doc-schemas/catalogs.js';
 import type { GameLocation } from '../doc-schemas/game-location.js';
-import type { GalleryOwnerKind, PictureOwnerKind, PictureSlotOwnerKind } from '../types/picture-owners.js';
+import type {
+  GalleryOwnerKind,
+  PictureOwnerKind,
+  PictureSlotOwnerKind,
+} from '../types/picture-owners.js';
 import { SPECIAL_DOCS } from './collections.js';
 import { PATH_BUILDERS } from './path-builders.js';
 
@@ -26,7 +30,10 @@ export const PICTURE_SLOT_OWNERS = {
     ownerDoc: (ownerId: string) => PATH_BUILDERS.awardDefinition(ownerId),
     slotField: 'badgePictureId' satisfies keyof AwardDefinition,
   },
-} as const satisfies Record<PictureSlotOwnerKind, { ownerDoc: (ownerId: string) => [string, string]; slotField: string }>;
+} as const satisfies Record<
+  PictureSlotOwnerKind,
+  { ownerDoc: (ownerId: string) => [string, string]; slotField: string }
+>;
 
 export const PICTURE_OWNER_PATHS = {
   ...GALLERY_OWNER_PATHS,

@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { Badge, badgeVariants } from '../src/react/components/badge.js';
 
 // A solid status fill carries ITS OWN status foreground, and no other text colour at rest.
-const TEXT_NOT_A_COLOUR = /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
+const TEXT_NOT_A_COLOUR =
+  /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
 const restingTextColours = (classes: string) =>
   classes.split(/\s+/).filter((c) => c.startsWith('text-') && !TEXT_NOT_A_COLOUR.test(c));
 

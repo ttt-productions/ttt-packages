@@ -1,32 +1,48 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
-import { getSimplifiedMediaType, type SimplifiedMediaType } from "@ttt-productions/media-schemas";
-import { Alert, AlertDescription, Button, Card, Input, Progress, Spinner } from "@ttt-productions/ui-core/react";
-import { cn } from "@ttt-productions/ui-core";
-import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react';
+import { getSimplifiedMediaType, type SimplifiedMediaType } from '@ttt-productions/media-schemas';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  Input,
+  Progress,
+  Spinner,
+} from '@ttt-productions/ui-core/react';
+import { cn } from '@ttt-productions/ui-core';
+import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle } from 'lucide-react';
 
-import type { FileInputError, FileInputProps } from "../../types.js";
-import { validateMediaDuration } from "../../lib/validate-media-duration.js";
-import { ImageCropperModal } from "./image-cropper-modal.js";
+import type { FileInputError, FileInputProps } from '../../types.js';
+import { validateMediaDuration } from '../../lib/validate-media-duration.js';
+import { ImageCropperModal } from './image-cropper-modal.js';
 
 const MIME_MAP: Record<SimplifiedMediaType, string> = {
-  image: "image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp, image/avif",
-  video: "video/*, .mkv",
-  audio: "audio/*",
-  other: ".pdf, .doc, .docx"
+  image: 'image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp, image/avif',
+  video: 'video/*, .mkv',
+  audio: 'audio/*',
+  other: '.pdf, .doc, .docx',
 };
 
-function err(code: FileInputError["code"], message: string, details?: Record<string, unknown>): FileInputError {
+function err(
+  code: FileInputError['code'],
+  message: string,
+  details?: Record<string, unknown>,
+): FileInputError {
   return { code, message, details };
 }
 
 function getSelectedFileLabel(file: File): string {
   switch (getSimplifiedMediaType(file)) {
-    case "image": return "Image selected";
-    case "video": return "Video selected";
-    case "audio": return "Audio selected";
-    default: return "File selected";
+    case 'image':
+      return 'Image selected';
+    case 'video':
+      return 'Video selected';
+    case 'audio':
+      return 'Audio selected';
+    default:
+      return 'File selected';
   }
 }
 
@@ -39,12 +55,12 @@ export function FileInput(props: FileInputProps) {
     onError,
     isLoading = false,
     disabled = false,
-    buttonLabel = "Upload File",
-    clearLabel = "Clear selected file",
+    buttonLabel = 'Upload File',
+    clearLabel = 'Clear selected file',
     className,
     uploadProgress = null,
-    variant = "default",
-    size = "default",
+    variant = 'default',
+    size = 'default',
     cropConfig,
     videoMaxDurationSec,
     audioMaxDurationSec,
@@ -62,12 +78,15 @@ export function FileInput(props: FileInputProps) {
     lastPreviewUrlRef.current = null;
   }, []);
 
-  const makePreviewUrl = useCallback((blob: Blob) => {
-    revokeLastPreviewUrl();
-    const url = URL.createObjectURL(blob);
-    lastPreviewUrlRef.current = url;
-    return url;
-  }, [revokeLastPreviewUrl]);
+  const makePreviewUrl = useCallback(
+    (blob: Blob) => {
+      revokeLastPreviewUrl();
+      const url = URL.createObjectURL(blob);
+      lastPreviewUrlRef.current = url;
+      return url;
+    },
+    [revokeLastPreviewUrl],
+  );
 
   useEffect(() => {
     return () => revokeLastPreviewUrl();
@@ -86,23 +105,28 @@ export function FileInput(props: FileInputProps) {
   const [showDetails, setShowDetails] = useState(defaultShowDetails);
 
   const acceptString = useMemo(
-    () => (acceptTypes.length ? acceptTypes.map((t) => MIME_MAP[t]).join(", ") : undefined),
-    [acceptTypes]
+    () => (acceptTypes.length ? acceptTypes.map((t) => MIME_MAP[t]).join(', ') : undefined),
+    [acceptTypes],
   );
 
   const detailsDescriptionParts = useMemo(() => {
     const parts: string[] = [];
 
     if (cropConfig) {
-      const ratioDisplay = cropConfig.aspectRatioDisplay || `${cropConfig.aspectRatio.toFixed(2)}:1`;
-      parts.push(`Image will be cropped to a ${ratioDisplay} rect (${cropConfig.outputWidth}x${cropConfig.outputHeight}px).`);
+      const ratioDisplay =
+        cropConfig.aspectRatioDisplay || `${cropConfig.aspectRatio.toFixed(2)}:1`;
+      parts.push(
+        `Image will be cropped to a ${ratioDisplay} rect (${cropConfig.outputWidth}x${cropConfig.outputHeight}px).`,
+      );
     }
 
     const sizeParts = acceptTypes
-      .map((t) => (maxSizeMB[t] ? `${t.charAt(0).toUpperCase() + t.slice(1)} (${maxSizeMB[t]}MB)` : null))
+      .map((t) =>
+        maxSizeMB[t] ? `${t.charAt(0).toUpperCase() + t.slice(1)} (${maxSizeMB[t]}MB)` : null,
+      )
       .filter(Boolean) as string[];
 
-    if (sizeParts.length) parts.push(`Max sizes: ${sizeParts.join(", ")}.`);
+    if (sizeParts.length) parts.push(`Max sizes: ${sizeParts.join(', ')}.`);
 
     if (videoMaxDurationSec) parts.push(`Max video duration: ${videoMaxDurationSec}s.`);
     if (audioMaxDurationSec) parts.push(`Max audio duration: ${audioMaxDurationSec}s.`);
@@ -111,21 +135,24 @@ export function FileInput(props: FileInputProps) {
   }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec]);
 
   const getUploadIcon = () => {
-    if (acceptTypes.includes("image")) return <Upload className="mr-2 icon-xs" />;
-    if (acceptTypes.includes("video")) return <Film className="mr-2 icon-xs" />;
-    if (acceptTypes.includes("audio")) return <Music className="mr-2 icon-xs" />;
+    if (acceptTypes.includes('image')) return <Upload className="mr-2 icon-xs" />;
+    if (acceptTypes.includes('video')) return <Film className="mr-2 icon-xs" />;
+    if (acceptTypes.includes('audio')) return <Music className="mr-2 icon-xs" />;
     return <Upload className="mr-2 icon-xs" />;
   };
 
   const clearNative = () => {
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const emitError = useCallback((e: FileInputError, type: SimplifiedMediaType = "other") => {
-    setLocalError(e);
-    onError?.(e);
-    onChange({ type, error: e });
-  }, [onError, onChange]);
+  const emitError = useCallback(
+    (e: FileInputError, type: SimplifiedMediaType = 'other') => {
+      setLocalError(e);
+      onError?.(e);
+      onChange({ type, error: e });
+    },
+    [onError, onChange],
+  );
 
   const handleClear = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -133,68 +160,96 @@ export function FileInput(props: FileInputProps) {
     setLocalError(null);
     setInternalSelected(null);
     clearNative();
-    onChange({ type: "other" });
+    onChange({ type: 'other' });
   };
 
-  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    clearNative();
-    setLocalError(null);
+  const handleFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      clearNative();
+      setLocalError(null);
 
-    if (!file) {
-      setInternalSelected(null);
-      onChange({ type: "other" });
-      return;
-    }
-
-    const fileType = getSimplifiedMediaType(file);
-    if (acceptTypes.length && !acceptTypes.includes(fileType)) {
-      emitError(err("invalid_type", `Invalid file type. Allowed: ${acceptTypes.join(", ")}.`), fileType);
-      return;
-    }
-
-    const maxBytes = (maxSizeMB[fileType] ?? Infinity) * 1024 * 1024;
-    if (file.size > maxBytes) {
-      emitError(err("too_large", `File too large. Max ${maxSizeMB[fileType]}MB for ${fileType}.`, { size: file.size, maxBytes }), fileType);
-      return;
-    }
-
-    if (fileType === "video" && videoMaxDurationSec) {
-      const ok = await validateMediaDuration(file, videoMaxDurationSec);
-      if (!ok) {
-        emitError(err("too_long", `Video too long. Max ${videoMaxDurationSec} seconds.`), fileType);
+      if (!file) {
+        setInternalSelected(null);
+        onChange({ type: 'other' });
         return;
       }
-    }
 
-    if (fileType === "audio" && audioMaxDurationSec) {
-      const ok = await validateMediaDuration(file, audioMaxDurationSec);
-      if (!ok) {
-        emitError(err("too_long", `Audio too long. Max ${audioMaxDurationSec} seconds.`), fileType);
+      const fileType = getSimplifiedMediaType(file);
+      if (acceptTypes.length && !acceptTypes.includes(fileType)) {
+        emitError(
+          err('invalid_type', `Invalid file type. Allowed: ${acceptTypes.join(', ')}.`),
+          fileType,
+        );
         return;
       }
-    }
 
-    // cropping path
-    if (cropConfig && fileType === "image") {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageToCrop(reader.result as string);
-        setIsCropperOpen(true);
-      };
-      reader.onerror = () => {
-        emitError(err("read_failed", "Failed to read image for cropping."));
-      };
-      reader.readAsDataURL(file);
+      const maxBytes = (maxSizeMB[fileType] ?? Infinity) * 1024 * 1024;
+      if (file.size > maxBytes) {
+        emitError(
+          err('too_large', `File too large. Max ${maxSizeMB[fileType]}MB for ${fileType}.`, {
+            size: file.size,
+            maxBytes,
+          }),
+          fileType,
+        );
+        return;
+      }
+
+      if (fileType === 'video' && videoMaxDurationSec) {
+        const ok = await validateMediaDuration(file, videoMaxDurationSec);
+        if (!ok) {
+          emitError(
+            err('too_long', `Video too long. Max ${videoMaxDurationSec} seconds.`),
+            fileType,
+          );
+          return;
+        }
+      }
+
+      if (fileType === 'audio' && audioMaxDurationSec) {
+        const ok = await validateMediaDuration(file, audioMaxDurationSec);
+        if (!ok) {
+          emitError(
+            err('too_long', `Audio too long. Max ${audioMaxDurationSec} seconds.`),
+            fileType,
+          );
+          return;
+        }
+      }
+
+      // cropping path
+      if (cropConfig && fileType === 'image') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setImageToCrop(reader.result as string);
+          setIsCropperOpen(true);
+        };
+        reader.onerror = () => {
+          emitError(err('read_failed', 'Failed to read image for cropping.'));
+        };
+        reader.readAsDataURL(file);
+        setInternalSelected(file);
+        return;
+      }
+
+      // normal selection
       setInternalSelected(file);
-      return;
-    }
-
-    // normal selection
-    setInternalSelected(file);
-    const previewUrl = makePreviewUrl(file);
-    onChange({ type: fileType, file, previewUrl, revokePreviewUrl: revokeLastPreviewUrl });
-  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec, emitError, makePreviewUrl, onChange, revokeLastPreviewUrl]);
+      const previewUrl = makePreviewUrl(file);
+      onChange({ type: fileType, file, previewUrl, revokePreviewUrl: revokeLastPreviewUrl });
+    },
+    [
+      acceptTypes,
+      maxSizeMB,
+      cropConfig,
+      videoMaxDurationSec,
+      audioMaxDurationSec,
+      emitError,
+      makePreviewUrl,
+      onChange,
+      revokeLastPreviewUrl,
+    ],
+  );
 
   const handleCropComplete = (blob: Blob | null) => {
     setIsCropperOpen(false);
@@ -203,12 +258,12 @@ export function FileInput(props: FileInputProps) {
     setImageToCrop(null);
 
     if (!blob) {
-      emitError(err("crop_failed", "Cropping failed."), "image");
+      emitError(err('crop_failed', 'Cropping failed.'), 'image');
       return;
     }
 
     onChange({
-      type: "image",
+      type: 'image',
       file: original ?? undefined,
       blob,
       previewUrl: makePreviewUrl(blob),
@@ -216,10 +271,10 @@ export function FileInput(props: FileInputProps) {
     });
   };
 
-  const isUploading = typeof uploadProgress === "number" && isLoading;
+  const isUploading = typeof uploadProgress === 'number' && isLoading;
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn('relative w-full', className)}>
       {localError && (
         <Alert variant="destructive" className="mb-2">
           <AlertTriangle className="icon-xs" />
@@ -244,28 +299,49 @@ export function FileInput(props: FileInputProps) {
             disabled={disabled || isLoading}
             variant={variant}
             size={size}
-            className={cn("w-full relative overflow-hidden cursor-pointer", { "icon-xl p-0": size === "icon" })}
+            className={cn('w-full relative overflow-hidden cursor-pointer', {
+              'icon-xl p-0': size === 'icon',
+            })}
           >
             <span className="relative w-full h-full center-row">
               {isUploading && (
-                <Progress value={uploadProgress ?? 0} className="absolute left-0 top-0 h-full w-full z-0 bg-accent" />
+                <Progress
+                  value={uploadProgress ?? 0}
+                  className="absolute left-0 top-0 h-full w-full z-0 bg-accent"
+                />
               )}
 
               <span className="z-10 center-row w-full">
                 {isLoading ? (
-                  <><Spinner size="xs" className="mr-2" /> {isUploading ? `${(uploadProgress ?? 0).toFixed(0)}%` : "Processing..."}</>
+                  <>
+                    <Spinner size="xs" className="mr-2" />{' '}
+                    {isUploading ? `${(uploadProgress ?? 0).toFixed(0)}%` : 'Processing...'}
+                  </>
                 ) : fileValue ? (
                   <span className="flex items-center justify-between w-full">
                     <span className="truncate pr-2">{getSelectedFileLabel(fileValue)}</span>
-                    <Button type="button" variant="ghost" size="icon" className="icon-sm shrink-0" onClick={handleClear} aria-label={clearLabel}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="icon-sm shrink-0"
+                      onClick={handleClear}
+                      aria-label={clearLabel}
+                    >
                       <X className="icon-xs" />
                     </Button>
                   </span>
                 ) : (
                   <>
-                    {buttonLabel === "Attach"
-                      ? <><Paperclip className="mr-2 icon-xs" /> {buttonLabel}</>
-                      : <>{getUploadIcon()} {buttonLabel}</>}
+                    {buttonLabel === 'Attach' ? (
+                      <>
+                        <Paperclip className="mr-2 icon-xs" /> {buttonLabel}
+                      </>
+                    ) : (
+                      <>
+                        {getUploadIcon()} {buttonLabel}
+                      </>
+                    )}
                   </>
                 )}
               </span>
@@ -273,7 +349,7 @@ export function FileInput(props: FileInputProps) {
           </Button>
         </label>
 
-        {detailsDescriptionParts.length > 0 && size !== "icon" && (
+        {detailsDescriptionParts.length > 0 && size !== 'icon' && (
           <Button
             type="button"
             variant="default"
@@ -287,11 +363,13 @@ export function FileInput(props: FileInputProps) {
         )}
       </div>
 
-      {showDetails && detailsDescriptionParts.length > 0 && size !== "icon" && (
+      {showDetails && detailsDescriptionParts.length > 0 && size !== 'icon' && (
         <Card className="page-card w-full mt-2">
           <div className="text-center p-2 space-y-0.5">
             {detailsDescriptionParts.map((part, i) => (
-              <p key={i} className="text-small font-bold">{part}</p>
+              <p key={i} className="text-small font-bold">
+                {part}
+              </p>
             ))}
           </div>
         </Card>

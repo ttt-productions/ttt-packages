@@ -1,8 +1,8 @@
-import * as React from "react";
-import { useInView } from "react-intersection-observer";
-import { Skeleton } from "@ttt-productions/ui-core/react";
-import type { ImageViewerProps } from "./types.js";
-import { useLoadWatchdog } from "./use-load-watchdog.js";
+import * as React from 'react';
+import { useInView } from 'react-intersection-observer';
+import { Skeleton } from '@ttt-productions/ui-core/react';
+import type { ImageViewerProps } from './types.js';
+import { useLoadWatchdog } from './use-load-watchdog.js';
 
 export function ImageViewer(props: ImageViewerProps) {
   const {
@@ -35,7 +35,7 @@ export function ImageViewer(props: ImageViewerProps) {
   const { ref: inViewRef, inView } = useInView({
     triggerOnce: !unloadOnExit && !onVisibilityChange,
     threshold: 0.01,
-    rootMargin: "50px",
+    rootMargin: '50px',
     skip: priority || !lazy,
     onChange: (visible) => onVisibilityChange?.(visible),
   });
@@ -79,9 +79,9 @@ export function ImageViewer(props: ImageViewerProps) {
       if (e.touches.length > 1) e.preventDefault();
     };
 
-    img.addEventListener("touchstart", prevent, { passive: false });
+    img.addEventListener('touchstart', prevent, { passive: false });
     return () => {
-      img.removeEventListener("touchstart", prevent);
+      img.removeEventListener('touchstart', prevent);
     };
   }, [preventGestures, shouldLoad]);
 
@@ -93,16 +93,16 @@ export function ImageViewer(props: ImageViewerProps) {
   const onKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
       if (!enableZoom) return;
-      if (e.key === "Enter" || e.key === " ") {
+      if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         toggleZoom();
       }
     },
-    [enableZoom, toggleZoom]
+    [enableZoom, toggleZoom],
   );
 
   const wrapperStyle: React.CSSProperties = isCircular
-    ? { borderRadius: "50%", overflow: "hidden" }
+    ? { borderRadius: '50%', overflow: 'hidden' }
     : {};
 
   // The error state stays inside the observed wrapper, so the viewer keeps reporting
@@ -112,7 +112,7 @@ export function ImageViewer(props: ImageViewerProps) {
       <div
         ref={inViewRef}
         className={className}
-        style={{ position: "relative", width: "100%", height: "100%", ...wrapperStyle }}
+        style={{ position: 'relative', width: '100%', height: '100%', ...wrapperStyle }}
       >
         {fallback}
       </div>
@@ -123,42 +123,51 @@ export function ImageViewer(props: ImageViewerProps) {
     <div
       ref={inViewRef}
       className={className}
-      role={enableZoom ? "button" : undefined}
+      role={enableZoom ? 'button' : undefined}
       tabIndex={enableZoom ? 0 : undefined}
       aria-pressed={enableZoom ? zoomed : undefined}
-      aria-label={enableZoom ? (zoomed ? "Zoom out image" : "Zoom in image") : undefined}
+      aria-label={enableZoom ? (zoomed ? 'Zoom out image' : 'Zoom in image') : undefined}
       onClick={toggleZoom}
       onKeyDown={onKeyDown}
-      style={{ position: "relative", width: "100%", height: "100%", outline: "none", ...wrapperStyle }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        outline: 'none',
+        ...wrapperStyle,
+      }}
     >
       {showSkeleton && !isLoaded && shouldLoad && (
-        <Skeleton style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+        <Skeleton style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
       )}
       {shouldLoad && (
         <img
           ref={imgRef}
           src={url}
-          alt={alt ?? ""}
+          alt={alt ?? ''}
           draggable={false}
           className={mediaClassName}
           onLoad={handleLoad}
           onError={handleError}
-          loading={priority ? "eager" : "lazy"}
+          loading={priority ? 'eager' : 'lazy'}
           decoding="async"
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: isLoaded ? 1 : 0,
-            transition: "opacity var(--motion-slow) var(--motion-ease), transform var(--motion-fast) var(--motion-ease)",
-            transform: zoomed ? "scale(1.5)" : "scale(1)",
-            cursor: enableZoom ? (zoomed ? "zoom-out" : "zoom-in") : undefined,
-            WebkitUserSelect: "none",
-            WebkitTouchCallout: "none",
-            WebkitTapHighlightColor: "transparent",
-          } as React.CSSProperties}
+          style={
+            {
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: isLoaded ? 1 : 0,
+              transition:
+                'opacity var(--motion-slow) var(--motion-ease), transform var(--motion-fast) var(--motion-ease)',
+              transform: zoomed ? 'scale(1.5)' : 'scale(1)',
+              cursor: enableZoom ? (zoomed ? 'zoom-out' : 'zoom-in') : undefined,
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitTapHighlightColor: 'transparent',
+            } as React.CSSProperties
+          }
         />
       )}
     </div>

@@ -143,7 +143,9 @@ describe('media playback API', () => {
 
       // Advance real wall-clock past the throttle interval and fire again.
       const realNow = Date.now();
-      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(realNow + PROGRESS_SAMPLE_INTERVAL_MS + 10);
+      const nowSpy = vi
+        .spyOn(Date, 'now')
+        .mockReturnValue(realNow + PROGRESS_SAMPLE_INTERVAL_MS + 10);
       state.setTime(8);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(2);
@@ -179,7 +181,12 @@ describe('media playback API', () => {
     it('flushes a pause sample inside the suppression window (a pause at 0.5s is user intent)', () => {
       const onSample = vi.fn();
       const { container } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+        <VideoViewer
+          url="https://example.com/v.mp4"
+          priority
+          autoPlay
+          onProgressSample={onSample}
+        />,
       );
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
@@ -270,7 +277,12 @@ describe('media playback API', () => {
     it('emits no periodic sample inside the adoption window while autoplaying from 0', () => {
       const onSample = vi.fn();
       const { container } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+        <VideoViewer
+          url="https://example.com/v.mp4"
+          priority
+          autoPlay
+          onProgressSample={onSample}
+        />,
       );
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
@@ -286,7 +298,12 @@ describe('media playback API', () => {
     it('starts periodic sampling after the window when no resume position ever arrives', () => {
       const onSample = vi.fn();
       const { container } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+        <VideoViewer
+          url="https://example.com/v.mp4"
+          priority
+          autoPlay
+          onProgressSample={onSample}
+        />,
       );
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
@@ -299,7 +316,11 @@ describe('media playback API', () => {
       state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 0.5);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(1);
-      expect(onSample).toHaveBeenLastCalledWith(LATE_RESUME_ADOPT_WINDOW_SEC + 0.5, 300, 'periodic');
+      expect(onSample).toHaveBeenLastCalledWith(
+        LATE_RESUME_ADOPT_WINDOW_SEC + 0.5,
+        300,
+        'periodic',
+      );
     });
 
     // The reason argument is ADDITIVE: a consumer written against the original
@@ -322,7 +343,12 @@ describe('media playback API', () => {
     it('reports the RESUMED position as the first sample when a late seed lands (reason seeked)', () => {
       const onSample = vi.fn();
       const { container, rerender } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+        <VideoViewer
+          url="https://example.com/v.mp4"
+          priority
+          autoPlay
+          onProgressSample={onSample}
+        />,
       );
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
@@ -542,7 +568,9 @@ describe('media playback API', () => {
       fireEvent.timeUpdate(video);
 
       // The late resume position still wins: the user asked to resume, not to restart.
-      rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />);
+      rerender(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />,
+      );
       expect(state.currentTime).toBe(224);
     });
 
@@ -556,14 +584,18 @@ describe('media playback API', () => {
       state.setTime(0.2);
       fireEvent.timeUpdate(video);
 
-      rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />);
+      rerender(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />,
+      );
       expect(state.currentTime).toBe(224);
 
       // The viewer keeps watching from 224; a prop wobble back through another value
       // must not seek again (adopt-exactly-once).
       state.setTime(230);
       fireEvent.timeUpdate(video);
-      rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={50} />);
+      rerender(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={50} />,
+      );
       expect(state.currentTime).toBe(230);
     });
 
@@ -926,7 +958,12 @@ describe('media playback API', () => {
     it('emits nothing on detach inside the pre-seed window (autoplay drift must not clobber a saved position)', () => {
       const onSample = vi.fn();
       const { container, unmount } = render(
-        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+        <VideoViewer
+          url="https://example.com/v.mp4"
+          priority
+          autoPlay
+          onProgressSample={onSample}
+        />,
       );
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });

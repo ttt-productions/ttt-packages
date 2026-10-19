@@ -49,7 +49,8 @@ export async function processBatchHelper(
   while (hasMore && iterations < MAX_ITERATIONS) {
     iterations++;
 
-    const pendingQuery = db.collection(pendingPath)
+    const pendingQuery = db
+      .collection(pendingPath)
       .where('createdAt', '<=', cutoff)
       .orderBy('createdAt', 'asc')
       .limit(PROCESSING_BATCH_SIZE);
@@ -61,15 +62,18 @@ export async function processBatchHelper(
     }
 
     // Group by dedupKey
-    const groups = new Map<string, {
-      type: string;
-      category: string;
-      targetUserId: string | null;
-      metadata: Record<string, unknown>;
-      actorIds: string[];
-      count: number;
-      docs: typeof snapshot.docs;
-    }>();
+    const groups = new Map<
+      string,
+      {
+        type: string;
+        category: string;
+        targetUserId: string | null;
+        metadata: Record<string, unknown>;
+        actorIds: string[];
+        count: number;
+        docs: typeof snapshot.docs;
+      }
+    >();
 
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data() as Omit<PendingNotification, 'id'>;
@@ -83,9 +87,10 @@ export async function processBatchHelper(
       // (same type/metadata, different targetUserId) must never collapse into
       // one recipient's active doc. Shared notifications are intentionally a
       // single doc for all admins (targetUserId is null).
-      const groupKey = categoryConfig.audienceType === 'personal'
-        ? `${data.category}::${data.targetUserId}::${dedupKey}`
-        : `${data.category}::${dedupKey}`;
+      const groupKey =
+        categoryConfig.audienceType === 'personal'
+          ? `${data.category}::${data.targetUserId}::${dedupKey}`
+          : `${data.category}::${dedupKey}`;
 
       const existing = groups.get(groupKey);
       if (existing) {
@@ -119,94 +124,88 @@ export async function processBatchHelper(
     // on the deterministic ID makes concurrent writers (a racing real-time send,
     // or an overlapping batch run) converge on one doc with correct counts.
     const groupResults = await Promise.all(
-      Array.from(groups.values()).map(
-        async (group): Promise<'created' | 'updated' | 'skipped'> => {
-          const typeConfig = config.types[group.type];
-          if (!typeConfig) return 'skipped';
+      Array.from(groups.values()).map(async (group): Promise<'created' | 'updated' | 'skipped'> => {
+        const typeConfig = config.types[group.type];
+        if (!typeConfig) return 'skipped';
 
-          const categoryConfig = config.categories[group.category];
-          if (!categoryConfig) return 'skipped';
+        const categoryConfig = config.categories[group.category];
+        if (!categoryConfig) return 'skipped';
 
-          const activePath = categoryConfig.activePath;
-          const dedupKey = typeConfig.dedupKeyPattern(group.metadata);
-          const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
-          const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
+        const activePath = categoryConfig.activePath;
+        const dedupKey = typeConfig.dedupKeyPattern(group.metadata);
+        const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
+        const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-          // Personal notifications are scoped to the recipient so different
-          // recipients never share an active doc; shared notifications omit
-          // targetUserId by design.
-          const activeDocRef = db.collection(activePath).doc(
-            buildActiveNotificationDocId({
-              category: group.category,
-              audienceType: categoryConfig.audienceType,
-              targetUserId: group.targetUserId,
-              dedupKey,
-            }),
-          );
+        // Personal notifications are scoped to the recipient so different
+        // recipients never share an active doc; shared notifications omit
+        // targetUserId by design.
+        const activeDocRef = db.collection(activePath).doc(
+          buildActiveNotificationDocId({
+            category: group.category,
+            audienceType: categoryConfig.audienceType,
+            targetUserId: group.targetUserId,
+            dedupKey,
+          }),
+        );
 
-          return db.runTransaction(async (tx): Promise<'created' | 'updated'> => {
-            const existingSnap = await tx.get(activeDocRef);
+        return db.runTransaction(async (tx): Promise<'created' | 'updated'> => {
+          const existingSnap = await tx.get(activeDocRef);
 
-            if (existingSnap.exists) {
-              // Increment existing
-              const existingData = (existingSnap.data() ?? {}) as Record<string, unknown>;
-              const currentCount = (existingData.count as number) || 1;
-              const currentActorIds = (existingData.latestActorIds as string[]) || [];
+          if (existingSnap.exists) {
+            // Increment existing
+            const existingData = (existingSnap.data() ?? {}) as Record<string, unknown>;
+            const currentCount = (existingData.count as number) || 1;
+            const currentActorIds = (existingData.latestActorIds as string[]) || [];
 
-              // Merge actor ids (new first, deduped, capped)
-              const newActorIds = group.actorIds.filter(
-                (id) => !currentActorIds.includes(id)
-              );
-              const mergedActorIds = [
-                ...newActorIds,
-                ...currentActorIds,
-              ].slice(0, actorCap);
+            // Merge actor ids (new first, deduped, capped)
+            const newActorIds = group.actorIds.filter((id) => !currentActorIds.includes(id));
+            const mergedActorIds = [...newActorIds, ...currentActorIds].slice(0, actorCap);
 
-              const newCount = Math.min(currentCount + group.count, countCap);
+            const newCount = Math.min(currentCount + group.count, countCap);
 
-              tx.update(activeDocRef, {
-                count: newCount,
-                latestActorIds: mergedActorIds,
-                message: typeConfig.messagePattern(group.metadata, newCount),
-                // New activity on an existing notification re-lights the unread badge.
-                seenAt: 0,
-                updatedAt: Date.now(),
-              });
+            tx.update(activeDocRef, {
+              count: newCount,
+              latestActorIds: mergedActorIds,
+              message: typeConfig.messagePattern(group.metadata, newCount),
+              // New activity on an existing notification re-lights the unread badge.
+              seenAt: 0,
+              updatedAt: Date.now(),
+            });
 
-              return 'updated';
-            } else {
-              // Create new notification. A type with no defaultTargetPath is
-              // linkless — OMIT the field (Firestore rejects `undefined` values).
-              const targetPath = typeConfig.defaultTargetPath === undefined
+            return 'updated';
+          } else {
+            // Create new notification. A type with no defaultTargetPath is
+            // linkless — OMIT the field (Firestore rejects `undefined` values).
+            const targetPath =
+              typeConfig.defaultTargetPath === undefined
                 ? undefined
                 : typeof typeConfig.defaultTargetPath === 'function'
                   ? typeConfig.defaultTargetPath(group.metadata)
                   : typeConfig.defaultTargetPath;
-              const now = Date.now();
+            const now = Date.now();
 
-              const newDoc = {
-                type: group.type,
-                dedupKey,
-                category: group.category,
-                targetUserId: group.targetUserId,
-                title: typeConfig.titlePattern(group.metadata),
-                message: typeConfig.messagePattern(group.metadata, group.count),
-                count: group.count,
-                latestActorIds: group.actorIds.slice(0, actorCap),
-                ...(targetPath === undefined ? {} : { targetPath }),
-                metadata: group.metadata,
-                // Active docs are created unseen so the unread count() predicate matches.
-                seenAt: 0,
-                createdAt: now,
-                updatedAt: now,
-              };
+            const newDoc = {
+              type: group.type,
+              dedupKey,
+              category: group.category,
+              targetUserId: group.targetUserId,
+              title: typeConfig.titlePattern(group.metadata),
+              message: typeConfig.messagePattern(group.metadata, group.count),
+              count: group.count,
+              latestActorIds: group.actorIds.slice(0, actorCap),
+              ...(targetPath === undefined ? {} : { targetPath }),
+              metadata: group.metadata,
+              // Active docs are created unseen so the unread count() predicate matches.
+              seenAt: 0,
+              createdAt: now,
+              updatedAt: now,
+            };
 
-              tx.set(activeDocRef, newDoc);
-              return 'created';
-            }
-          });
-        }
-      )
+            tx.set(activeDocRef, newDoc);
+            return 'created';
+          }
+        });
+      }),
     );
 
     for (const r of groupResults) {

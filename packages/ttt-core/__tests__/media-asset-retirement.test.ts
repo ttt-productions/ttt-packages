@@ -55,35 +55,56 @@ describe('MediaAssetSchema — the retirement obligation', () => {
   });
 
   it('never leaves an asset owing retirement servable', () => {
-    expect(MediaAssetSchema.safeParse({ ...retiring, servingStatus: 'servable' }).success).toBe(false);
+    expect(MediaAssetSchema.safeParse({ ...retiring, servingStatus: 'servable' }).success).toBe(
+      false,
+    );
   });
 
   it('never marks an asset retired while a variant delete is still owed', () => {
     expect(
-      MediaAssetSchema.safeParse({ ...retiring, servingStatus: 'deleted', publicationState: 'retired' }).success,
+      MediaAssetSchema.safeParse({
+        ...retiring,
+        servingStatus: 'deleted',
+        publicationState: 'retired',
+      }).success,
     ).toBe(false);
-    const done = { ...liveAsset, servingStatus: 'deleted' as const, publicationState: 'retired' as const };
+    const done = {
+      ...liveAsset,
+      servingStatus: 'deleted' as const,
+      publicationState: 'retired' as const,
+    };
     expect(MediaAssetSchema.safeParse(done).success).toBe(true);
   });
 
   it("owes only the asset's own variants, each at most once", () => {
     expect(
-      MediaAssetSchema.safeParse({ ...retiring, retirement: { ...owed, pendingVariantKeys: ['full'] } }).success,
+      MediaAssetSchema.safeParse({
+        ...retiring,
+        retirement: { ...owed, pendingVariantKeys: ['full'] },
+      }).success,
     ).toBe(false);
     expect(
-      MediaAssetSchema.safeParse({ ...retiring, retirement: { ...owed, pendingVariantKeys: ['main', 'main'] } })
-        .success,
+      MediaAssetSchema.safeParse({
+        ...retiring,
+        retirement: { ...owed, pendingVariantKeys: ['main', 'main'] },
+      }).success,
     ).toBe(false);
   });
 
   it('keeps an obligation whose remaining deletes are all done until the drain retires the asset', () => {
     expect(
-      MediaAssetSchema.safeParse({ ...retiring, retirement: { ...owed, pendingVariantKeys: [] } }).success,
+      MediaAssetSchema.safeParse({ ...retiring, retirement: { ...owed, pendingVariantKeys: [] } })
+        .success,
     ).toBe(true);
   });
 
   it('records why the drain deferred it, with the error only for a failure', () => {
-    const held = { ...owed, attemptCount: 1, nextAttemptAt: owed.nextAttemptAt + 1, lastDeferral: 'held' as const };
+    const held = {
+      ...owed,
+      attemptCount: 1,
+      nextAttemptAt: owed.nextAttemptAt + 1,
+      lastDeferral: 'held' as const,
+    };
     expect(MediaAssetRetirementSchema.safeParse(held).success).toBe(true);
     const failed = {
       ...owed,
@@ -93,13 +114,19 @@ describe('MediaAssetSchema — the retirement obligation', () => {
       lastError: { code: 'r2_delete_failed', message: 'object delete failed' },
     };
     expect(MediaAssetRetirementSchema.safeParse(failed).success).toBe(true);
-    expect(MediaAssetRetirementSchema.safeParse({ ...held, lastError: failed.lastError }).success).toBe(false);
+    expect(
+      MediaAssetRetirementSchema.safeParse({ ...held, lastError: failed.lastError }).success,
+    ).toBe(false);
     expect(MediaAssetRetirementDeferralSchema.options).toEqual(['held', 'failed']);
   });
 
   it('stays strict and keeps its times as epoch milliseconds', () => {
-    expect(MediaAssetRetirementSchema.safeParse({ ...owed, bytesDeleted: true }).success).toBe(false);
-    expect(MediaAssetRetirementSchema.safeParse({ ...owed, nextAttemptAt: '1700000000000' }).success).toBe(false);
+    expect(MediaAssetRetirementSchema.safeParse({ ...owed, bytesDeleted: true }).success).toBe(
+      false,
+    );
+    expect(
+      MediaAssetRetirementSchema.safeParse({ ...owed, nextAttemptAt: '1700000000000' }).success,
+    ).toBe(false);
     expect(MediaAssetRetirementSchema.safeParse({ ...owed, attemptCount: -1 }).success).toBe(false);
   });
 });
@@ -114,7 +141,9 @@ describe('mediaAssetRetirementStanding', () => {
   });
 
   it('reads an asset still draining as owed — never as done', () => {
-    expect(mediaAssetRetirementStanding({ publicationState: 'published', retirement: owed })).toBe('owed');
+    expect(mediaAssetRetirementStanding({ publicationState: 'published', retirement: owed })).toBe(
+      'owed',
+    );
   });
 
   it('reads an asset nothing is retiring as none', () => {
@@ -140,7 +169,10 @@ describe('the serving status a retirement writes', () => {
 
   it('keeps a quarantined asset valid while its retirement is owed', () => {
     expect(
-      MediaAssetSchema.safeParse({ ...retiring, servingStatus: servingStatusOnRetirementRequest('quarantined') }).success,
+      MediaAssetSchema.safeParse({
+        ...retiring,
+        servingStatus: servingStatusOnRetirementRequest('quarantined'),
+      }).success,
     ).toBe(true);
   });
 });

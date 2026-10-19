@@ -2,13 +2,7 @@
 
 import { useEffect } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
-import {
-  collection,
-  query,
-  getDocs,
-  onSnapshot,
-  type DocumentData,
-} from 'firebase/firestore';
+import { collection, query, getDocs, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
@@ -77,9 +71,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     const start = () => {
       if (disposed) return;
       const collectionRef = collection(db, collectionPath);
-      const q = constraints.length > 0
-        ? query(collectionRef, ...constraints)
-        : collectionRef;
+      const q = constraints.length > 0 ? query(collectionRef, ...constraints) : collectionRef;
 
       currentUnsubscribe = onSnapshot(
         q,
@@ -95,7 +87,13 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
           });
           queryClient.setQueryData(queryKey, items);
           const fromCache = snapshot.metadata?.fromCache ?? false;
-          updateStatus((prev) => ({ sourceState: fromCache ? (prev.sourceState === 'connecting' ? 'connecting' : 'offline') : 'live' }));
+          updateStatus((prev) => ({
+            sourceState: fromCache
+              ? prev.sourceState === 'connecting'
+                ? 'connecting'
+                : 'offline'
+              : 'live',
+          }));
         },
         (error) => {
           // Heal a transient permission-denied by resubscribing on the backoff ladder,
@@ -113,7 +111,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
           console.error('[useFirestoreCollection] Subscription error:', error);
           updateStatus({ error, sourceState: 'error', restart: null });
           queryClient.setQueryData(queryKey, undefined);
-        }
+        },
       );
     };
 
@@ -127,15 +125,24 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     // queryKey & constraints are tracked via their stringified forms above; select is intentionally
     // excluded so an inline caller function doesn't force a re-subscribe on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus]);
+  }, [
+    db,
+    collectionPath,
+    queryKeyMemo,
+    constraintsMemo,
+    enabled,
+    subscribe,
+    restarts,
+    queryClient,
+    resetStatus,
+    updateStatus,
+  ]);
 
   const queryResult = useQuery({
     queryKey,
     queryFn: async (): Promise<WithId<T>[]> => {
       const collectionRef = collection(db, collectionPath);
-      const q = constraints.length > 0
-        ? query(collectionRef, ...constraints)
-        : collectionRef;
+      const q = constraints.length > 0 ? query(collectionRef, ...constraints) : collectionRef;
 
       const snapshot = await getDocs(q);
       return snapshot.docs.map((docSnap) => {

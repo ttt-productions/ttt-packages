@@ -2,7 +2,11 @@
 // schema bounds from named limits across the app, its Functions, and its Workers.
 
 import { describe, expect, it } from 'vitest';
-import { enumLabelsGuard, schemaBoundsGuard, textEntryGuard } from '../../src/modules/ui/definitions.js';
+import {
+  enumLabelsGuard,
+  schemaBoundsGuard,
+  textEntryGuard,
+} from '../../src/modules/ui/definitions.js';
 import { allFindings } from './helpers.js';
 
 describe('a stored enum value renders through its label map', () => {
@@ -28,30 +32,58 @@ describe('a stored enum value renders through its label map', () => {
   });
 
   it('refuses facts that declare no enum field', () => {
-    expect(enumLabelsGuard.factProblems({ fieldNames: [], exceptions: [] })).toEqual(['fieldNames is empty']);
+    expect(enumLabelsGuard.factProblems({ fieldNames: [], exceptions: [] })).toEqual([
+      'fieldNames is empty',
+    ]);
   });
 });
 
 describe('textEntry appears only on the reviewed non-free-text boxes', () => {
   const box = '<Input id="n" textEntry="numeric" value={n} />';
-  const reviewed = [{ path: 'src/ui/shares.tsx', why: 'stake shares offered (a number)', count: 1 }];
+  const reviewed = [
+    { path: 'src/ui/shares.tsx', why: 'stake shares offered (a number)', count: 1 },
+  ];
 
   it('passes exactly the reviewed boxes, and a declared free-text box', async () => {
-    expect(await allFindings(textEntryGuard, { reviewed }, { 'src/ui/shares.tsx': `export const a = ${box};`, 'src/ui/title.tsx': 'export const t = <Input inputFormat={TITLE_INPUT} />;' })).toEqual([]);
+    expect(
+      await allFindings(
+        textEntryGuard,
+        { reviewed },
+        {
+          'src/ui/shares.tsx': `export const a = ${box};`,
+          'src/ui/title.tsx': 'export const t = <Input inputFormat={TITLE_INPUT} />;',
+        },
+      ),
+    ).toEqual([]);
   });
 
   it('flags an unreviewed box, one more box than reviewed, and one fewer', async () => {
-    expect(await allFindings(textEntryGuard, { reviewed }, { 'src/ui/shares.tsx': `export const a = ${box};\nexport const b = ${box};`, 'src/ui/title.tsx': `export const t = ${box};` })).toEqual([
+    expect(
+      await allFindings(
+        textEntryGuard,
+        { reviewed },
+        {
+          'src/ui/shares.tsx': `export const a = ${box};\nexport const b = ${box};`,
+          'src/ui/title.tsx': `export const t = ${box};`,
+        },
+      ),
+    ).toEqual([
       'src/ui/shares.tsx:2 more than the 1 reviewed: textEntry=',
       'src/ui/title.tsx:1 not on the reviewed list: textEntry=',
     ]);
-    expect(await allFindings(textEntryGuard, { reviewed: [{ ...reviewed[0], count: 2 }] }, { 'src/ui/shares.tsx': `export const a = ${box};` })).toEqual([
-      'src/ui/shares.tsx stale count: reviewed 2, found 1',
-    ]);
+    expect(
+      await allFindings(
+        textEntryGuard,
+        { reviewed: [{ ...reviewed[0], count: 2 }] },
+        { 'src/ui/shares.tsx': `export const a = ${box};` },
+      ),
+    ).toEqual(['src/ui/shares.tsx stale count: reviewed 2, found 1']);
   });
 
   it('refuses a reviewed entry with no count', () => {
-    expect(textEntryGuard.factProblems({ reviewed: [{ path: 'src/ui/shares.tsx', why: 'a number' }] })).toEqual(['reviewed entry src/ui/shares.tsx needs its reviewed count']);
+    expect(
+      textEntryGuard.factProblems({ reviewed: [{ path: 'src/ui/shares.tsx', why: 'a number' }] }),
+    ).toEqual(['reviewed entry src/ui/shares.tsx needs its reviewed count']);
   });
 });
 
@@ -66,9 +98,11 @@ describe('every schema bound derives from a named limit', () => {
       schemaBoundsGuard,
       { exceptions: [] },
       {
-        'src/schemas/form.ts': 'export const s = z.object({ evidence: z.string().max(2000), priority: z.number().int().min(0).max(2) });',
+        'src/schemas/form.ts':
+          'export const s = z.object({ evidence: z.string().max(2000), priority: z.number().int().min(0).max(2) });',
         'functions/src/index.ts': 'export const ids = z.array(z.string()).length(3);',
-        'chat-worker/src/index.ts': 'export const code = z.string().min(6);\nexport const frame = z.string().min(1).max(LIMITS.MAX_FRAME_BYTES);\nexport const backoff = Math.min(60_000 * 2 ** n, 3_600_000);\n// z.string().max(4000) stays a comment',
+        'chat-worker/src/index.ts':
+          'export const code = z.string().min(6);\nexport const frame = z.string().min(1).max(LIMITS.MAX_FRAME_BYTES);\nexport const backoff = Math.min(60_000 * 2 ** n, 3_600_000);\n// z.string().max(4000) stays a comment',
         'src/schemas/form.test.ts': 'z.string().max(10);',
       },
       roots,
@@ -82,6 +116,12 @@ describe('every schema bound derives from a named limit', () => {
   });
 
   it('runs over the app alone when the app has no Functions or Workers', async () => {
-    expect(await allFindings(schemaBoundsGuard, { exceptions: [] }, { 'src/schemas/form.ts': 'z.string().max(80);' })).toEqual(['src/schemas/form.ts:1 not on the reviewed list: .max(80)']);
+    expect(
+      await allFindings(
+        schemaBoundsGuard,
+        { exceptions: [] },
+        { 'src/schemas/form.ts': 'z.string().max(80);' },
+      ),
+    ).toEqual(['src/schemas/form.ts:1 not on the reviewed list: .max(80)']);
   });
 });

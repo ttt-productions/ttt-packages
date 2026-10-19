@@ -19,9 +19,11 @@ function makeSafeAnnotation(overrides: Record<string, unknown> = {}) {
 describe('moderateImage', () => {
   it('returns safe=true for all-safe content', async () => {
     const mockClient = {
-      safeSearchDetection: vi.fn().mockResolvedValue([{
-        safeSearchAnnotation: makeSafeAnnotation(),
-      }]),
+      safeSearchDetection: vi.fn().mockResolvedValue([
+        {
+          safeSearchAnnotation: makeSafeAnnotation(),
+        },
+      ]),
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,
@@ -32,9 +34,11 @@ describe('moderateImage', () => {
 
   it('returns safe=false with adult reason when adult is LIKELY', async () => {
     const mockClient = {
-      safeSearchDetection: vi.fn().mockResolvedValue([{
-        safeSearchAnnotation: makeSafeAnnotation({ adult: 'LIKELY' }),
-      }]),
+      safeSearchDetection: vi.fn().mockResolvedValue([
+        {
+          safeSearchAnnotation: makeSafeAnnotation({ adult: 'LIKELY' }),
+        },
+      ]),
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,
@@ -47,9 +51,11 @@ describe('moderateImage', () => {
 
   it('returns safe=false with violence reason when violence is VERY_LIKELY', async () => {
     const mockClient = {
-      safeSearchDetection: vi.fn().mockResolvedValue([{
-        safeSearchAnnotation: makeSafeAnnotation({ violence: 'VERY_LIKELY' }),
-      }]),
+      safeSearchDetection: vi.fn().mockResolvedValue([
+        {
+          safeSearchAnnotation: makeSafeAnnotation({ violence: 'VERY_LIKELY' }),
+        },
+      ]),
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,

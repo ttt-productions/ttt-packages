@@ -36,7 +36,9 @@ describe('adminReadChannelContext answer', () => {
     for (const moderationKind of ['moderate', 'edit', 'restore']) {
       expect(ChatContextMessageSchema.safeParse({ ...message, moderationKind }).success).toBe(true);
     }
-    expect(ChatContextMessageSchema.safeParse({ ...message, moderationKind: 'hidden' }).success).toBe(false);
+    expect(
+      ChatContextMessageSchema.safeParse({ ...message, moderationKind: 'hidden' }).success,
+    ).toBe(false);
   });
 
   it('refuses a message without the revision a moderation action must name', () => {
@@ -48,7 +50,9 @@ describe('adminReadChannelContext answer', () => {
 
 describe('mintChatGrant answer', () => {
   it('is the signed grant and the time it expires', () => {
-    expect(MintChatGrantResultSchema.parse({ grant: 'g.t.s', expiresAt: 1_700_000_060_000 })).toEqual({
+    expect(
+      MintChatGrantResultSchema.parse({ grant: 'g.t.s', expiresAt: 1_700_000_060_000 }),
+    ).toEqual({
       grant: 'g.t.s',
       expiresAt: 1_700_000_060_000,
     });

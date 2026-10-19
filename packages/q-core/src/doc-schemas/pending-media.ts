@@ -46,10 +46,14 @@ export const PendingMediaTargetSchema = z
     newAwardName: awardNameSchema.optional(),
   })
   .strict()
-  .refine((target) => target.newAwardName === undefined || target.owner.kind === AWARD_DEFINITION_OWNER_KIND, {
-    message: 'Only a badge upload creates an award.',
-    path: ['newAwardName'],
-  })
+  .refine(
+    (target) =>
+      target.newAwardName === undefined || target.owner.kind === AWARD_DEFINITION_OWNER_KIND,
+    {
+      message: 'Only a badge upload creates an award.',
+      path: ['newAwardName'],
+    },
+  )
   .refine((target) => target.sourceIndex === undefined || target.carriedFrom !== undefined, {
     message: 'Only a carried picture has a source position.',
     path: ['sourceIndex'],

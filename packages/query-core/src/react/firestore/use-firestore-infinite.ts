@@ -54,7 +54,10 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestoreInfiniteOptions<T>): UseInfiniteQueryResult<{ pages: InfinitePage<T>[]; pageParams: (DocumentSnapshot | null)[] }, Error> {
+}: FirestoreInfiniteOptions<T>): UseInfiniteQueryResult<
+  { pages: InfinitePage<T>[]; pageParams: (DocumentSnapshot | null)[] },
+  Error
+> {
   const db = useFirestoreDb();
 
   return useInfiniteQuery({

@@ -1,11 +1,6 @@
 /** Google-style likelihood enum (string form). */
 export type Likelihood =
-  | "UNKNOWN"
-  | "VERY_UNLIKELY"
-  | "UNLIKELY"
-  | "POSSIBLE"
-  | "LIKELY"
-  | "VERY_LIKELY";
+  'UNKNOWN' | 'VERY_UNLIKELY' | 'UNLIKELY' | 'POSSIBLE' | 'LIKELY' | 'VERY_LIKELY';
 
 export interface MediaModerationScores {
   adult: string;
@@ -23,7 +18,7 @@ export interface TextModerationResult {
   safe: boolean;
   reason?: string;
   flaggedWords?: string[];
-  layer?: "word_filter";
+  layer?: 'word_filter';
 }
 
 /** Generic logger used for diagnostic output. Consumers wire to their own. */

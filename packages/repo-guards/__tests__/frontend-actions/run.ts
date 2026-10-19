@@ -21,14 +21,22 @@ export async function findingsOf<F>(
       repoRoot: repo.root,
       roots: {
         app: { path: 'src', anchor: 'src/anchor.ts' },
-        ...(functions ? { functions: { path: 'functions/src', anchor: Object.keys(files).find((p) => p.startsWith('functions/src/'))! } } : {}),
+        ...(functions
+          ? {
+              functions: {
+                path: 'functions/src',
+                anchor: Object.keys(files).find((p) => p.startsWith('functions/src/'))!,
+              },
+            }
+          : {}),
         ...roots,
       },
     });
     const out: string[] = [];
     for (const guard of definition.build(facts)) {
       await guard.prepare?.();
-      for (const f of await guard.run(contextOf(reader))) out.push(`${f.file}${f.line ? `:${f.line}` : ''} ${f.detail}`);
+      for (const f of await guard.run(contextOf(reader)))
+        out.push(`${f.file}${f.line ? `:${f.line}` : ''} ${f.detail}`);
     }
     return out;
   } finally {

@@ -10,7 +10,10 @@
 // monitoring-core's `redactString` applies them: global replace, each pattern in turn.
 
 import { describe, it, expect } from 'vitest';
-import { TTT_FORBIDDEN_TELEMETRY_PATTERNS, EVIDENCE_BUCKET_HOSTS } from '../src/constants/safety-telemetry-patterns.js';
+import {
+  TTT_FORBIDDEN_TELEMETRY_PATTERNS,
+  EVIDENCE_BUCKET_HOSTS,
+} from '../src/constants/safety-telemetry-patterns.js';
 
 const PLACEHOLDER = '[REDACTED]';
 

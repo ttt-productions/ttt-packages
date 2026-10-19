@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 import {
   ProfilePictureUpdatedEventSchema,
   ProfilePreferencesUpdatedEventSchema,
@@ -12,7 +12,7 @@ import {
   AuthRegistrationCompletedEventSchema,
   PublicDocumentsAcceptanceLandedEventSchema,
   ProfileDisplayNameChangedEventSchema,
-} from "./domain-events-user.js";
+} from './domain-events-user.js';
 import {
   WorkProjectCreatedEventSchema,
   WorkProjectUpdatedEventSchema,
@@ -37,12 +37,12 @@ import {
   WorkRealmDetailsUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
   ThresholdLibrarySubmittedEventSchema,
-} from "./domain-events-work.js";
+} from './domain-events-work.js';
 import {
   SquareStreetzPostCreatedEventSchema,
   SquareStreetzPostLikedEventSchema,
   SquareStreetzPostUnlikedEventSchema,
-} from "./domain-events-social.js";
+} from './domain-events-social.js';
 import {
   ModerationViolationCreatedEventSchema,
   ThresholdLibraryApprovedEventSchema,
@@ -55,7 +55,7 @@ import {
   AdminDisplayNameResetForcedEventSchema,
   HallContentChangeRequestApprovedEventSchema,
   SystemSlotUidUpdatedEventSchema,
-} from "./domain-events-admin.js";
+} from './domain-events-admin.js';
 
 // ============================================================================
 // DomainEvent — typed business actions emitted by mutations and upload
@@ -131,8 +131,3 @@ export type DomainEventIdsFor<T extends DomainEvent['type']> = Extract<
   DomainEvent,
   { type: T }
 >['ids'];
-
-
-
-
-

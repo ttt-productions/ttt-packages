@@ -23,7 +23,12 @@ import { MIGRATION_ACTION_IDS as A } from './action-ids.js';
 import type { MigrationActionId } from './action-ids.js';
 import type { RegisteredCollectionPath } from '../doc-schemas/registry.js';
 
-export const MIGRATION_STEP_KIND_KEYS = ['executable', 'productControl', 'operatorCheckpoint', 'cutoverMarker'] as const;
+export const MIGRATION_STEP_KIND_KEYS = [
+  'executable',
+  'productControl',
+  'operatorCheckpoint',
+  'cutoverMarker',
+] as const;
 export type MigrationStepKind = (typeof MIGRATION_STEP_KIND_KEYS)[number];
 
 /** What an executable action's pages return: documents written, or records compared. */
@@ -132,14 +137,19 @@ export function migrationActionCallableName(id: MigrationActionId): string {
   return `admin${capitalize(verb)}${capitalize(object)}`;
 }
 
-const COPY_IDEMPOTENCY = 'Deterministic destination ids written whole, so a re-run rewrites the same documents with the same content.';
+const COPY_IDEMPOTENCY =
+  'Deterministic destination ids written whole, so a re-run rewrites the same documents with the same content.';
 const VERIFY_IDEMPOTENCY = 'Reads only; a re-run compares again.';
-const DELETE_IDEMPOTENCY = 'Deletes by id; a document already gone is skipped, so a re-run removes only what is left.';
-const BY_DOCUMENT_ID = 'Source documents in document-id order; the resume key is the last id consumed.';
+const DELETE_IDEMPOTENCY =
+  'Deletes by id; a document already gone is skipped, so a re-run removes only what is left.';
+const BY_DOCUMENT_ID =
+  'Source documents in document-id order; the resume key is the last id consumed.';
 const SINGLE_DOCUMENT = 'One source document; it is never paged.';
 const COPY_RECOVERY = 'Fix the transform and run the copy again; it refuses a live destination.';
-const VERIFY_RECOVERY = 'Repair what it reports, through its copy or its resolution, and verify again.';
-const DELETE_RECOVERY = 'Forward repair only: the retained V1 Firestore export holds what was deleted.';
+const VERIFY_RECOVERY =
+  'Repair what it reports, through its copy or its resolution, and verify again.';
+const DELETE_RECOVERY =
+  'Forward repair only: the retained V1 Firestore export holds what was deleted.';
 
 interface ExecutableOptions {
   title: string;
@@ -172,7 +182,10 @@ function copyStep(id: MigrationActionId, options: ExecutableOptions): Executable
   };
 }
 
-function verifyStep(id: MigrationActionId, options: ExecutableOptions & { informational?: boolean }): ExecutableMigrationStep {
+function verifyStep(
+  id: MigrationActionId,
+  options: ExecutableOptions & { informational?: boolean },
+): ExecutableMigrationStep {
   return {
     kind: 'executable',
     id,
@@ -260,7 +273,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     kind: 'operatorCheckpoint',
     id: A.checkpointV1FirestoreExport,
     title: 'Keep a managed export of the V1 database',
-    summary: 'The managed Firestore export is the record of V1 and the only recovery after a delete.',
+    summary:
+      'The managed Firestore export is the record of V1 and the only recovery after a delete.',
     owningStep: 'migration-console',
     dependsOn: [],
     orderedAfter: [],
@@ -273,7 +287,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── Global roles ───────────────────────────────────────────────────────────────────────────────
   copyStep(A.copyAdminList, {
     title: 'Copy the admin and referee rosters',
-    summary: 'The `landing/admin` role maps become `_systemData/adminList`, the roster every role check reads.',
+    summary:
+      'The `landing/admin` role maps become `_systemData/adminList`, the roster every role check reads.',
     owningStep: 'auth',
     resumeKey: SINGLE_DOCUMENT,
   }),
@@ -288,25 +303,29 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── App configuration ──────────────────────────────────────────────────────────────────────────
   copyStep(A.copyAppConfig, {
     title: 'Copy the app configuration',
-    summary: 'The version and the banner from `landing/base` become `_appConfig/app`, its switches at their open defaults.',
+    summary:
+      'The version and the banner from `landing/base` become `_appConfig/app`, its switches at their open defaults.',
     owningStep: 'q-core',
     resumeKey: SINGLE_DOCUMENT,
   }),
   copyStep(A.copyLandingPageConfig, {
     title: 'Copy the landing page copy',
-    summary: 'The hero title and the about text become `_appConfig/landingPage`; its picture arrives with the picture carry.',
+    summary:
+      'The hero title and the about text become `_appConfig/landingPage`; its picture arrives with the picture carry.',
     owningStep: 'q-core',
     resumeKey: SINGLE_DOCUMENT,
   }),
   copyStep(A.copyStatsBeacon, {
     title: 'Copy the stats beacon',
-    summary: 'The last stats change V1 announced becomes `_appConfig/statsBeacon`, or nothing when V1 never fired one.',
+    summary:
+      'The last stats change V1 announced becomes `_appConfig/statsBeacon`, or nothing when V1 never fired one.',
     owningStep: 'query-and-invalidation',
     resumeKey: SINGLE_DOCUMENT,
   }),
   verifyStep(A.verifyAppConfig, {
     title: 'Verify the app configuration',
-    summary: 'The version and the banner match V1 before the cutover, and the document satisfies its schema after it.',
+    summary:
+      'The version and the banner match V1 before the cutover, and the document satisfies its schema after it.',
     owningStep: 'q-core',
     dependsOn: [A.copyAppConfig],
     resumeKey: SINGLE_DOCUMENT,
@@ -340,7 +359,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   copyStep(A.copyGameLocations, {
     title: 'Copy the game locations',
-    summary: 'Each venue on `landing/admin` becomes a `gameLocations` document under its id; its picture arrives with the picture carry.',
+    summary:
+      'Each venue on `landing/admin` becomes a `gameLocations` document under its id; its picture arrives with the picture carry.',
     owningStep: 'q-core',
     resumeKey: 'The venues in array order; the resume key is the last venue id.',
   }),
@@ -355,7 +375,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── Accounts and identity ──────────────────────────────────────────────────────────────────────
   copyStep(A.copyUserProfiles, {
     title: 'Copy the profiles',
-    summary: 'Each `users` document becomes its profile and its owner-only private document, every account active.',
+    summary:
+      'Each `users` document becomes its profile and its owner-only private document, every account active.',
     owningStep: 'auth',
   }),
   verifyStep(A.verifyUserProfiles, {
@@ -375,7 +396,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [],
     instructions:
       'Once the profile verification has passed, confirm every account that should keep its sign-in holds a copied profile, then record this step to let the scheduled sweep delete the sign-in accounts that hold none past their grace window.',
-    evidence: 'The passing profile verification this step follows, and the count of profiles it checked.',
+    evidence:
+      'The passing profile verification this step follows, and the count of profiles it checked.',
     noReturnBoundary: 'The sweep’s first deletion of a sign-in account that holds no profile.',
   },
   copyStep(A.copyHistoricalStats, {
@@ -392,7 +414,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   copyStep(A.deriveReservedDisplayNames, {
     title: 'Reserve the display names',
-    summary: 'One reservation per copied profile; two names that collide are reported for an admin rename.',
+    summary:
+      'One reservation per copied profile; two names that collide are reported for an admin rename.',
     owningStep: 'auth',
     dependsOn: [A.copyUserProfiles],
   }),
@@ -404,25 +427,29 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   copyStep(A.migratePublicUsers, {
     title: 'Migrate the public identities in place',
-    summary: 'Each `publicUsers` document is rewritten where it sits: epoch timestamps, the recomputed lowercase name, the ghost flag.',
+    summary:
+      'Each `publicUsers` document is rewritten where it sits: epoch timestamps, the recomputed lowercase name, the ghost flag.',
     owningStep: 'q-core',
   }),
   verifyStep(A.verifyPublicUsers, {
     title: 'Verify the public identities',
-    summary: 'Each document holds its own uid, ghost flag, and lowercase name, and shows the featured badges its profile holds.',
+    summary:
+      'Each document holds its own uid, ghost flag, and lowercase name, and shows the featured badges its profile holds.',
     owningStep: 'q-core',
     dependsOn: [A.migratePublicUsers, A.copyUserProfiles],
   }),
   copyStep(A.copyAwardDefinitions, {
     title: 'Copy the award catalog',
-    summary: 'Each award on `landing/admin` becomes an `awardDefinitions` document with its holder count; its badge arrives with the picture carry.',
+    summary:
+      'Each award on `landing/admin` becomes an `awardDefinitions` document with its holder count; its badge arrives with the picture carry.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.copyUserProfiles],
     resumeKey: 'The awards in array order; the resume key is the last award id.',
   }),
   verifyStep(A.verifyAwardDefinitions, {
     title: 'Verify the award catalog',
-    summary: 'Every award copied, every holder count equal to the profiles holding it, every grant, profile award pick, and shown badge naming an award that exists.',
+    summary:
+      'Every award copied, every holder count equal to the profiles holding it, every grant, profile award pick, and shown badge naming an award that exists.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.copyAwardDefinitions, A.migratePublicUsers],
     resumeKey: SINGLE_DOCUMENT,
@@ -431,7 +458,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── Leagues and teams ──────────────────────────────────────────────────────────────────────────
   copyStep(A.copySportLeagues, {
     title: 'Copy the leagues',
-    summary: 'Each league under its id — closed leagues included; its pictures arrive with the picture carry.',
+    summary:
+      'Each league under its id — closed leagues included; its pictures arrive with the picture carry.',
     owningStep: 'q-core',
   }),
   verifyStep(A.verifySportLeagues, {
@@ -447,49 +475,57 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   verifyStep(A.verifyLeagueTeams, {
     title: 'Verify the teams',
-    summary: 'Every V1 team copied; the season lines are held to their schema, since the rebuild replaces them.',
+    summary:
+      'Every V1 team copied; the season lines are held to their schema, since the rebuild replaces them.',
     owningStep: 'q-core',
     dependsOn: [A.copyLeagueTeams],
   }),
   copyStep(A.copyTeamMemberships, {
     title: 'Copy the memberships',
-    summary: 'Each membership under its compound id, `member` becoming `player`; one whose team was not copied into its league is left behind and reported.',
+    summary:
+      'Each membership under its compound id, `member` becoming `player`; one whose team was not copied into its league is left behind and reported.',
     owningStep: 'q-core',
     dependsOn: [A.copyLeagueTeams],
   }),
   verifyStep(A.verifyTeamMemberships, {
     title: 'Verify the memberships',
-    summary: 'Every V1 membership copied, or absent because its team is gone; a team with two captains and a ghost on two memberships are reported.',
+    summary:
+      'Every V1 membership copied, or absent because its team is gone; a team with two captains and a ghost on two memberships are reported.',
     owningStep: 'q-core',
     dependsOn: [A.copyTeamMemberships],
   }),
   copyStep(A.copyTeamInvitations, {
     title: 'Copy the invitations',
-    summary: 'Each invitation by id; a pending one whose invitee is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
+    summary:
+      'Each invitation by id; a pending one whose invitee is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships],
   }),
   verifyStep(A.verifyTeamInvitations, {
     title: 'Verify the invitations',
-    summary: 'Every V1 invitation copied as the transform makes it, or absent because its team is gone.',
+    summary:
+      'Every V1 invitation copied as the transform makes it, or absent because its team is gone.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyTeamInvitations],
   }),
   copyStep(A.copyTeamJoinRequests, {
     title: 'Copy the join requests',
-    summary: 'Each request by id; a pending one whose requester is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
+    summary:
+      'Each request by id; a pending one whose requester is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships],
   }),
   verifyStep(A.verifyTeamJoinRequests, {
     title: 'Verify the join requests',
-    summary: 'Every V1 request copied as the transform makes it, or absent because its team is gone.',
+    summary:
+      'Every V1 request copied as the transform makes it, or absent because its team is gone.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyTeamJoinRequests],
   }),
   copyStep(A.copyLeagueFreeAgents, {
     title: 'Copy the free-agent signups',
-    summary: 'Each signup under its built id; a signup whose player already joined a team in the league is left behind and reported.',
+    summary:
+      'Each signup under its built id; a signup whose player already joined a team in the league is left behind and reported.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyTeamMemberships],
   }),
@@ -503,7 +539,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── Signed waivers and hardware contracts ──────────────────────────────────────────────────────
   copyStep(A.copySignedWaivers, {
     title: 'Copy the signed waivers',
-    summary: 'Every signed waiver, a ghost’s included, under its id; its signature file stays where it is.',
+    summary:
+      'Every signed waiver, a ghost’s included, under its id; its signature file stays where it is.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.copyWaiverTemplates],
   }),
@@ -515,20 +552,24 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   copyStep(A.copyHardwareLoanContracts, {
     title: 'Copy the hardware loan contracts',
-    summary: 'Each contract from both V1 collections under its id; its signature file stays where it is.',
+    summary:
+      'Each contract from both V1 collections under its id; its signature file stays where it is.',
     owningStep: 'high-risk-callables',
-    resumeKey: 'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
+    resumeKey:
+      'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
   }),
   verifyStep(A.verifyHardwareLoanContracts, {
     title: 'Verify the hardware loan contracts',
     summary: 'Every V1 contract copied and equal.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.copyHardwareLoanContracts],
-    resumeKey: 'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
+    resumeKey:
+      'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
   }),
   verifyStep(A.verifySignatureFilesResolvable, {
     title: 'Verify the signature files resolve',
-    summary: 'Each kept signature file is in this project’s bucket and exists. A rehearsal reports every file as another environment’s, which is expected.',
+    summary:
+      'Each kept signature file is in this project’s bucket and exists. A rehearsal reports every file as another environment’s, which is expected.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.verifySignedWaivers, A.verifyHardwareLoanContracts],
     resumeKey: 'The signed waivers by id, then the contracts; the resume key is the record path.',
@@ -537,7 +578,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── Games ──────────────────────────────────────────────────────────────────────────────────────
   copyStep(A.copyGameRosterPlayers, {
     title: 'Copy the game rosters',
-    summary: 'One entry per team per person in each game, from each V1 roster document’s own team and user.',
+    summary:
+      'One entry per team per person in each game, from each V1 roster document’s own team and user.',
     owningStep: 'high-risk-callables',
     resumeKey: 'The V1 games by document id; the resume key is the last game id.',
     defaultPageSize: 50,
@@ -555,18 +597,21 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: 'One game, one line; it is never paged.',
     recovery: 'Resolve the line again with the right team, then copy the game again.',
     title: 'Resolve a stat line no roster places',
-    summary: 'For a line the game copy stops on, the admin names its team: the missing roster entry is written with its reason, and the game copied again.',
+    summary:
+      'For a line the game copy stops on, the admin names its team: the missing roster entry is written with its reason, and the game copied again.',
     owningStep: 'stat-data-model',
     dependsOn: [A.copyGameRosterPlayers],
     orderedAfter: [],
   },
   copyStep(A.copySportGames, {
     title: 'Copy the games',
-    summary: 'Each V1 game with its stats: the event documents, the rollup, the participation lists by roster entry, and a completed game’s finalized record.',
+    summary:
+      'Each V1 game with its stats: the event documents, the rollup, the participation lists by roster entry, and a completed game’s finalized record.',
     owningStep: 'stat-data-model',
     dependsOn: [A.copyGameRosterPlayers],
     orderedAfter: [A.resolveUnrosteredStatLine],
-    resumeKey: 'The V1 games by document id; a game’s documents commit before its id becomes the resume key.',
+    resumeKey:
+      'The V1 games by document id; a game’s documents commit before its id becomes the resume key.',
     defaultPageSize: 20,
   }),
   verifyStep(A.verifySportGames, {
@@ -577,7 +622,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   verifyStep(A.verifyGameStats, {
     title: 'Verify the game stats',
-    summary: 'Per game: the events replay to the rollup and to V1’s recorded lines, the finalized record matches, and every line and list names a roster entry.',
+    summary:
+      'Per game: the events replay to the rollup and to V1’s recorded lines, the finalized record matches, and every line and list names a roster entry.',
     owningStep: 'stat-data-model',
     dependsOn: [A.copySportGames],
     defaultPageSize: 20,
@@ -591,11 +637,14 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     paged: true,
     defaultPageSize: 20,
     informational: false,
-    idempotency: 'Each open game is reconciled through the roster core against the copied memberships; a reconciled game changes nothing on a re-run.',
+    idempotency:
+      'Each open game is reconciled through the roster core against the copied memberships; a reconciled game changes nothing on a re-run.',
     resumeKey: 'The open games by document id; the resume key is the last game id.',
-    recovery: 'Run it again: a game held by another operation is reported and reconciled on the next run.',
+    recovery:
+      'Run it again: a game held by another operation is reported and reconciled on the next run.',
     title: 'Reconcile the open games’ rosters',
-    summary: 'Each game open at the cutover: stale stat-free entries removed, missing members added.',
+    summary:
+      'Each game open at the cutover: stale stat-free entries removed, missing members added.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyTeamMemberships, A.verifyGameStats],
     orderedAfter: [],
@@ -611,14 +660,21 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   // ── Pictures ───────────────────────────────────────────────────────────────────────────────────
   copyStep(A.carryV1Pictures, {
     title: 'Carry the V1 pictures onto the pipeline',
-    summary: 'Each league, landing, venue, and award image is staged and accepted through the upload pipeline, which processes and publishes it. A rehearsal reports every source unavailable.',
+    summary:
+      'Each league, landing, venue, and award image is staged and accepted through the upload pipeline, which processes and publishes it. A rehearsal reports every source unavailable.',
     owningStep: 'uploads-and-media',
-    dependsOn: [A.copySportLeagues, A.copyLandingPageConfig, A.copyGameLocations, A.copyAwardDefinitions],
+    dependsOn: [
+      A.copySportLeagues,
+      A.copyLandingPageConfig,
+      A.copyGameLocations,
+      A.copyAwardDefinitions,
+    ],
     resumeKey: 'By owner kind, then owner id; the resume key is `{ownerKind}:{ownerId}`.',
   }),
   verifyStep(A.verifyV1Pictures, {
     title: 'Verify the carried pictures',
-    summary: 'Every V1 reference attached with its three sizes, or reported for a reason no re-run changes; nothing still pending. A source in another bucket, or a page it could examine none of, fails it unless the run acknowledges unexamined sources, as a rehearsal does.',
+    summary:
+      'Every V1 reference attached with its three sizes, or reported for a reason no re-run changes; nothing still pending. A source in another bucket, or a page it could examine none of, fails it unless the run acknowledges unexamined sources, as a rehearsal does.',
     owningStep: 'uploads-and-media',
     dependsOn: [A.carryV1Pictures],
     resumeKey: 'By owner kind, then owner id; the resume key is `{ownerKind}:{ownerId}`.',
@@ -634,13 +690,20 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     paged: true,
     defaultPageSize: 100,
     informational: false,
-    idempotency: 'A ghost document is deleted only when nothing references it; a re-run finds nothing further.',
+    idempotency:
+      'A ghost document is deleted only when nothing references it; a re-run finds nothing further.',
     resumeKey: BY_DOCUMENT_ID,
     recovery: DELETE_RECOVERY,
     title: 'Remove the ghost names nothing references',
-    summary: 'Each ghost `publicUsers` document no membership, roster entry, or unvoided stat event names, reported by disposition first. No signed waiver is touched.',
+    summary:
+      'Each ghost `publicUsers` document no membership, roster entry, or unvoided stat event names, reported by disposition first. No signed waiver is touched.',
     owningStep: 'high-risk-callables',
-    dependsOn: [A.verifyPublicUsers, A.verifyTeamMemberships, A.verifyGameRosterPlayers, A.verifyGameStats],
+    dependsOn: [
+      A.verifyPublicUsers,
+      A.verifyTeamMemberships,
+      A.verifyGameRosterPlayers,
+      A.verifyGameStats,
+    ],
     orderedAfter: [],
   },
 
@@ -649,39 +712,45 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     kind: 'productControl',
     id: A.rebuildLeagueStats,
     title: 'Rebuild every league’s stats',
-    summary: 'Every team’s season line and per-membership rows, closed leagues included, rebuilt from the copied games.',
+    summary:
+      'Every team’s season line and per-membership rows, closed leagues included, rebuilt from the copied games.',
     owningStep: 'stat-data-model',
     dependsOn: SOURCE_VERIFICATIONS_FOR_REBUILD,
     orderedAfter: [],
     callable: 'recalculateAllLeagueStats',
     destinations: ['leagueTeams/{teamId}'],
-    instructions: 'Run “Rebuild every league” from Stats › Fix stats as a real run, not a dry run, and let it reach the end.',
+    instructions:
+      'Run “Rebuild every league” from Stats › Fix stats as a real run, not a dry run, and let it reach the end.',
     evidence: 'statsOperation',
   },
   {
     kind: 'productControl',
     id: A.rebuildLifetimeStats,
     title: 'Rebuild every user’s lifetime stats',
-    summary: 'Every account’s lifetime lines rebuilt from the copied games and historical baselines.',
+    summary:
+      'Every account’s lifetime lines rebuilt from the copied games and historical baselines.',
     owningStep: 'stat-data-model',
     dependsOn: [A.rebuildLeagueStats, A.verifyUserProfiles, A.verifyHistoricalStats],
     orderedAfter: [],
     callable: 'recalculateAllUserStats',
     destinations: ['userProfiles/{userId}'],
-    instructions: 'Run “Rebuild every user” from Stats › Fix stats as a real run, and let it reach the end.',
+    instructions:
+      'Run “Rebuild every user” from Stats › Fix stats as a real run, and let it reach the end.',
     evidence: 'statsOperation',
   },
   {
     kind: 'productControl',
     id: A.rebuildSportHallOfFame,
     title: 'Rebuild the hall of fame',
-    summary: 'The hall of fame of every sport that keeps one, rebuilt from the copied games and baselines.',
+    summary:
+      'The hall of fame of every sport that keeps one, rebuilt from the copied games and baselines.',
     owningStep: 'stat-data-model',
     dependsOn: [A.rebuildLifetimeStats],
     orderedAfter: [],
     callable: 'recalculateHallOfFame',
     destinations: ['sportHallOfFame/{sportKey}'],
-    instructions: 'Run the hall-of-fame rebuild from Stats › Fix stats once for each sport that keeps a hall of fame, as real runs, and record every run.',
+    instructions:
+      'Run the hall-of-fame rebuild from Stats › Fix stats once for each sport that keeps a hall of fame, as real runs, and record every run.',
     evidence: 'statsOperation',
   },
   {
@@ -699,14 +768,16 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   },
   verifyStep(A.verifyLeaguePlayerStats, {
     title: 'Compare the league player totals with V1',
-    summary: 'Lists each player whose V1 league total differs from the sum of their rebuilt rows in that league. It informs the rehearsal and gates nothing.',
+    summary:
+      'Lists each player whose V1 league total differs from the sum of their rebuilt rows in that league. It informs the rehearsal and gates nothing.',
     owningStep: 'stat-data-model',
     dependsOn: [A.rebuildLeagueStats],
     informational: true,
   }),
   verifyStep(A.verifySportHallOfFame, {
     title: 'Verify the rebuilt hall of fame',
-    summary: 'Every V1 hall of fame of a sport that keeps one has its rebuilt document, which satisfies its schema and holds an entry for every V1 player with a non-zero total.',
+    summary:
+      'Every V1 hall of fame of a sport that keeps one has its rebuilt document, which satisfies its schema and holds an entry for every V1 player with a non-zero total.',
     owningStep: 'stat-data-model',
     dependsOn: [A.rebuildSportHallOfFame],
   }),
@@ -717,26 +788,35 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     id: A.recordCutoverLive,
     callable: RECORD_MIGRATION_CUTOVER_CALLABLE,
     title: 'Record the cutover',
-    summary: 'From here on the product owns every destination: no copy runs again, and each verification holds what the product edits to its schema only.',
+    summary:
+      'From here on the product owns every destination: no copy runs again, and each verification holds what the product edits to its schema only.',
     owningStep: 'migration-console',
     dependsOn: [...COPY_VERIFICATIONS, A.validateStats],
     orderedAfter: [A.verifySportHallOfFame, A.verifySignatureFilesResolvable],
-    noReturnBoundary: 'Recording the cutover. It is never undone: every copy refuses a live destination after it.',
+    noReturnBoundary:
+      'Recording the cutover. It is never undone: every copy refuses a live destination after it.',
   },
 
   // ── Cleanup: each delete gated on the verifications its core asserts ───────────────────────────
   deleteStep(A.deleteV1AdminRoles, {
     title: 'Remove the V1 role maps',
-    summary: 'The `isAdmin` and `referees` fields on `landing/admin`; the document goes with its last carried row.',
+    summary:
+      'The `isAdmin` and `referees` fields on `landing/admin`; the document goes with its last carried row.',
     owningStep: 'auth',
     dependsOn: [A.verifyAdminList],
     resumeKey: SINGLE_DOCUMENT,
   }),
   deleteStep(A.deleteV1LandingBase, {
     title: 'Delete `landing/base`',
-    summary: 'The V1 configuration document, once its three documents and its picture are verified.',
+    summary:
+      'The V1 configuration document, once its three documents and its picture are verified.',
     owningStep: 'q-core',
-    dependsOn: [A.verifyAppConfig, A.verifyLandingPageConfig, A.verifyStatsBeacon, A.verifyV1Pictures],
+    dependsOn: [
+      A.verifyAppConfig,
+      A.verifyLandingPageConfig,
+      A.verifyStatsBeacon,
+      A.verifyV1Pictures,
+    ],
     resumeKey: SINGLE_DOCUMENT,
   }),
   deleteStep(A.deleteV1Waivers, {
@@ -747,7 +827,8 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   deleteStep(A.deleteV1GameLocations, {
     title: 'Remove the V1 venues',
-    summary: 'The `locations` field on `landing/admin`; the document goes with its last carried row.',
+    summary:
+      'The `locations` field on `landing/admin`; the document goes with its last carried row.',
     owningStep: 'q-core',
     dependsOn: [A.verifyGameLocations, A.verifyV1Pictures],
     resumeKey: SINGLE_DOCUMENT,
@@ -756,7 +837,12 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     title: 'Remove the V1 award catalog',
     summary: 'The `awards` field on `landing/admin`; the document goes with its last carried row.',
     owningStep: 'uploads-and-media',
-    dependsOn: [A.verifyAwardDefinitions, A.verifyUserProfiles, A.verifyPublicUsers, A.verifyV1Pictures],
+    dependsOn: [
+      A.verifyAwardDefinitions,
+      A.verifyUserProfiles,
+      A.verifyPublicUsers,
+      A.verifyV1Pictures,
+    ],
     resumeKey: SINGLE_DOCUMENT,
   }),
   deleteStep(A.deleteV1Users, {
@@ -804,13 +890,19 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     paged: true,
     defaultPageSize: 100,
     informational: false,
-    idempotency: 'Removes a kept file’s download token; a file holding none is skipped. No file is moved or deleted.',
+    idempotency:
+      'Removes a kept file’s download token; a file holding none is skipped. No file is moved or deleted.',
     resumeKey: 'The signed waivers by id, then the contracts; the resume key is the record path.',
     recovery: 'Run it again; a file whose token went is skipped.',
     title: 'Revoke the V1 signature download links',
-    summary: 'Each kept signature file loses the download token V1’s stored links carry, so those links stop resolving.',
+    summary:
+      'Each kept signature file loses the download token V1’s stored links carry, so those links stop resolving.',
     owningStep: 'uploads-and-media',
-    dependsOn: [A.verifySignedWaivers, A.verifyHardwareLoanContracts, A.verifySignatureFilesResolvable],
+    dependsOn: [
+      A.verifySignedWaivers,
+      A.verifyHardwareLoanContracts,
+      A.verifySignatureFilesResolvable,
+    ],
     orderedAfter: [],
   },
   deleteStep(A.deleteV1WaiverSignatures, {
@@ -821,10 +913,12 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   }),
   deleteStep(A.deleteV1HardwareContracts, {
     title: 'Delete the V1 hardware contracts',
-    summary: 'Both V1 contract collections; the signature files stay, named by the copied contracts.',
+    summary:
+      'Both V1 contract collections; the signature files stay, named by the copied contracts.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyHardwareLoanContracts],
-    resumeKey: 'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
+    resumeKey:
+      'The V1 collections in turn, each by document id; the resume key is `{collection}/{id}`.',
   }),
   deleteStep(A.deleteV1GameRosters, {
     title: 'Delete the V1 game rosters',
@@ -838,45 +932,58 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     title: 'Delete the V1 games',
     summary: 'The `leagueGames` documents; a game still holding its roster is reported and kept.',
     owningStep: 'stat-data-model',
-    dependsOn: [A.verifySportGames, A.verifyGameStats, A.verifyGameRosterPlayers, A.validateStats, A.deleteV1GameRosters],
+    dependsOn: [
+      A.verifySportGames,
+      A.verifyGameStats,
+      A.verifyGameRosterPlayers,
+      A.validateStats,
+      A.deleteV1GameRosters,
+    ],
   }),
   deleteStep(A.deleteV1LeagueChats, {
     title: 'Delete the V1 league chats',
-    summary: 'The parked chat documents under each V1 league and its team paths. Any other document found under a league is reported and kept.',
+    summary:
+      'The parked chat documents under each V1 league and its team paths. Any other document found under a league is reported and kept.',
     owningStep: 'migration-console',
     dependsOn: [A.checkpointV1FirestoreExport],
-    resumeKey: 'The V1 leagues by document id; the resume key is the last league id, or `{leagueId}/unfinished` while a league holds more chats than one page deletes.',
+    resumeKey:
+      'The V1 leagues by document id; the resume key is the last league id, or `{leagueId}/unfinished` while a league holds more chats than one page deletes.',
     defaultPageSize: 50,
   }),
   deleteStep(A.deleteV1Leagues, {
     title: 'Delete the V1 leagues',
-    summary: 'The `leagues` collection; a league still holding a subcollection is reported and kept.',
+    summary:
+      'The `leagues` collection; a league still holding a subcollection is reported and kept.',
     owningStep: 'q-core',
     dependsOn: [A.verifySportLeagues, A.verifyV1Pictures],
     orderedAfter: [A.verifyLeaguePlayerStats, A.deleteV1LeagueChats],
   }),
   deleteStep(A.deleteV1HallOfFame, {
     title: 'Delete the V1 hall of fame',
-    summary: 'The `hallOfFame` collection, once every sport that keeps a hall of fame has its rebuilt document.',
+    summary:
+      'The `hallOfFame` collection, once every sport that keeps a hall of fame has its rebuilt document.',
     owningStep: 'stat-data-model',
     dependsOn: [A.verifySportHallOfFame],
   }),
   deleteStep(A.deleteV1ValidationReports, {
     title: 'Delete the V1 validation reports',
-    summary: 'The `validationReports` collection. Nothing is copied: each report describes V1 aggregates at a past moment.',
+    summary:
+      'The `validationReports` collection. Nothing is copied: each report describes V1 aggregates at a past moment.',
     owningStep: 'stat-data-model',
     dependsOn: [A.checkpointV1FirestoreExport],
     orderedAfter: [A.validateStats],
   }),
   deleteStep(A.deleteV1AdminStats, {
     title: 'Delete the V1 dashboard counts',
-    summary: 'The `adminStats` collection. Nothing is copied: the dashboard counts are counted live.',
+    summary:
+      'The `adminStats` collection. Nothing is copied: the dashboard counts are counted live.',
     owningStep: 'q-core',
     dependsOn: [A.checkpointV1FirestoreExport],
   }),
   verifyStep(A.verifyV1CommerceDiscardable, {
     title: 'Check the V1 store holds no purchase',
-    summary: 'Fails on an order that is not cancelled, a completed checkout, or a product holding inventory — any would be a real purchase, and goes to the owner.',
+    summary:
+      'Fails on an order that is not cancelled, a completed checkout, or a product holding inventory — any would be a real purchase, and goes to the owner.',
     owningStep: 'high-risk-callables',
     dependsOn: [A.checkpointV1FirestoreExport],
     resumeKey: 'The six store collections in turn, each by document id.',
@@ -907,20 +1014,23 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     kind: 'operatorCheckpoint',
     id: A.checkpointPaymentCredentialsRetired,
     title: 'Retire the payment-service credentials',
-    summary: 'V2 binds no payment-service credential, so once it is live the three V1 binds are live credentials with no reader.',
+    summary:
+      'V2 binds no payment-service credential, so once it is live the three V1 binds are live credentials with no reader.',
     owningStep: 'secret-management',
     dependsOn: [A.recordCutoverLive],
     orderedAfter: [],
     instructions:
       'Production only, once V2 is live there: revoke the payment service’s secret key and disable its webhook endpoint in its dashboard, then destroy the three secrets V1 binds for it — its secret key, its webhook secret, and APP_URL — in Secret Manager in both Firebase projects. In a rehearsal, record that this is production-only.',
-    evidence: 'The payment dashboard showing the key revoked and the endpoint disabled, and `gcloud secrets list` in each project showing none of the three.',
+    evidence:
+      'The payment dashboard showing the key revoked and the endpoint disabled, and `gcloud secrets list` in each project showing none of the three.',
     noReturnBoundary: 'The secret key revocation.',
   },
   {
     kind: 'operatorCheckpoint',
     id: A.checkpointServiceAccountKeyRevoked,
     title: 'Revoke the obsolete production service-account key',
-    summary: 'No script reads the local production key once the export script runs on the signed-in CLI credentials; revoking it makes every copy of it worthless.',
+    summary:
+      'No script reads the local production key once the export script runs on the signed-in CLI credentials; revoking it makes every copy of it worthless.',
     owningStep: 'secret-management',
     dependsOn: [A.checkpointV1FirestoreExport],
     orderedAfter: [A.recordCutoverLive],
@@ -937,6 +1047,10 @@ export const MIGRATION_STEP_BY_ID: ReadonlyMap<MigrationActionId, MigrationStep>
 );
 
 /** The steps of one kind, in cutover order. */
-export function migrationStepsOfKind<K extends MigrationStepKind>(kind: K): Extract<MigrationStep, { kind: K }>[] {
-  return MIGRATION_CUTOVER_MANIFEST.filter((step): step is Extract<MigrationStep, { kind: K }> => step.kind === kind);
+export function migrationStepsOfKind<K extends MigrationStepKind>(
+  kind: K,
+): Extract<MigrationStep, { kind: K }>[] {
+  return MIGRATION_CUTOVER_MANIFEST.filter(
+    (step): step is Extract<MigrationStep, { kind: K }> => step.kind === kind,
+  );
 }

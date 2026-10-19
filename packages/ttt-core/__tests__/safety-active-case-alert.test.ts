@@ -37,7 +37,12 @@ describe('writeActiveSafetyCaseAlert', () => {
     const create = vi.fn();
     const tx: SafetyAlertTransactionLike = { create };
 
-    writeActiveSafetyCaseAlert(tx, { db, caseId: 'case_1', caseKind: 'childSafety', now: 1_700_000_000_000 });
+    writeActiveSafetyCaseAlert(tx, {
+      db,
+      caseId: 'case_1',
+      caseKind: 'childSafety',
+      now: 1_700_000_000_000,
+    });
 
     expect(docPaths).toEqual(['activeSafetyCaseAlerts/case_1']);
     expect(create).toHaveBeenCalledTimes(1);

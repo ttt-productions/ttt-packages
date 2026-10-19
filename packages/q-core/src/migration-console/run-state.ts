@@ -9,7 +9,8 @@
  */
 export const MIGRATION_DESTINATION_STATE_KEYS = ['preCutover', 'live'] as const;
 export type MigrationDestinationState = (typeof MIGRATION_DESTINATION_STATE_KEYS)[number];
-export const PRE_CUTOVER_DESTINATION_STATE = 'preCutover' as const satisfies MigrationDestinationState;
+export const PRE_CUTOVER_DESTINATION_STATE =
+  'preCutover' as const satisfies MigrationDestinationState;
 export const LIVE_DESTINATION_STATE = 'live' as const satisfies MigrationDestinationState;
 
 /** Where one run of an action stands: still paging, at its end, or stopped by a refusal or a fault. */

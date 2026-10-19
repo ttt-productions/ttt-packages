@@ -8,7 +8,10 @@ describe('success', () => {
   });
 
   it('spreads the rest of the result fields', () => {
-    const result = success({ mediaType: 'video', outputs: [{ url: 'https://example.com/video.mp4' }] as any });
+    const result = success({
+      mediaType: 'video',
+      outputs: [{ url: 'https://example.com/video.mp4' }] as any,
+    });
     expect(result.mediaType).toBe('video');
     expect(result.outputs).toEqual([{ url: 'https://example.com/video.mp4' }]);
   });
@@ -32,7 +35,11 @@ describe('failure', () => {
   });
 
   it('includes the error', () => {
-    const error = { code: 'invalid_mime' as const, message: 'Bad mime', details: { mime: 'text/plain' } };
+    const error = {
+      code: 'invalid_mime' as const,
+      message: 'Bad mime',
+      details: { mime: 'text/plain' },
+    };
     const result = failure(error);
     expect(result.error).toEqual(error);
   });

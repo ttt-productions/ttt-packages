@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { ChevronDown } from "lucide-react";
-import { Button } from "./button.js";
-import { cn } from "../../lib/utils.js";
+import * as React from 'react';
+import { ChevronDown } from 'lucide-react';
+import { Button } from './button.js';
+import { cn } from '../../lib/utils.js';
 
 /**
  * Standard button DOM props forwarded to the rendered element, minus the props this component owns:
@@ -11,8 +11,8 @@ import { cn } from "../../lib/utils.js";
  * from them.
  */
 type ShowMoreTogglePassthrough = Omit<
-  React.ComponentPropsWithoutRef<"button">,
-  "className" | "onClick" | "children" | "aria-expanded" | "aria-controls"
+  React.ComponentPropsWithoutRef<'button'>,
+  'className' | 'onClick' | 'children' | 'aria-expanded' | 'aria-controls'
 >;
 
 export interface ShowMoreToggleProps extends ShowMoreTogglePassthrough {
@@ -42,7 +42,7 @@ export function ShowMoreToggle({
   closeLabel,
   controls,
   className,
-  type = "button",
+  type = 'button',
   ...rest
 }: ShowMoreToggleProps) {
   return (
@@ -59,8 +59,11 @@ export function ShowMoreToggle({
       {expanded ? closeLabel : openLabel}
       <ChevronDown
         aria-hidden="true"
-        data-expanded={expanded ? "true" : "false"}
-        className={cn("ml-1 h-4 w-4 transition-transform motion-reduce:transition-none", expanded && "rotate-180")}
+        data-expanded={expanded ? 'true' : 'false'}
+        className={cn(
+          'ml-1 h-4 w-4 transition-transform motion-reduce:transition-none',
+          expanded && 'rotate-180',
+        )}
       />
     </Button>
   );

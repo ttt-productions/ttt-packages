@@ -65,9 +65,7 @@ describe('TakeItDownAuthorizedRepresentativeV1Schema (H-03)', () => {
 
   it('rejects missing authorityCertification', () => {
     const { authorityCertification: _drop, ...nocert } = base;
-    expect(() =>
-      TakeItDownAuthorizedRepresentativeV1Schema.parse(nocert),
-    ).toThrow();
+    expect(() => TakeItDownAuthorizedRepresentativeV1Schema.parse(nocert)).toThrow();
   });
 
   it('rejects unknown keys (.strict)', () => {
@@ -118,15 +116,11 @@ describe('AuthorityProofScanStateV1Schema (H-02)', () => {
   });
 
   it('rejects empty objectHash', () => {
-    expect(() =>
-      AuthorityProofScanStateV1Schema.parse({ ...base, objectHash: '' }),
-    ).toThrow();
+    expect(() => AuthorityProofScanStateV1Schema.parse({ ...base, objectHash: '' })).toThrow();
   });
 
   it('rejects unknown keys (.strict)', () => {
-    expect(() =>
-      AuthorityProofScanStateV1Schema.parse({ ...base, extra: 'nope' }),
-    ).toThrow();
+    expect(() => AuthorityProofScanStateV1Schema.parse({ ...base, extra: 'nope' })).toThrow();
   });
 });
 

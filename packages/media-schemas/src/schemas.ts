@@ -1,24 +1,30 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // ---- primitives ----
 
 export const TimestampLikeSchema = z.union([z.number(), z.string()]);
 
-export const SimplifiedMediaTypeSchema = z.enum(["image", "video", "audio", "other"]);
+export const SimplifiedMediaTypeSchema = z.enum(['image', 'video', 'audio', 'other']);
 
 export const FileCategorySchema = z.enum([
-  "profile",
-  "post",
-  "message",
-  "comment",
-  "report",
-  "admin",
-  "other",
+  'profile',
+  'post',
+  'message',
+  'comment',
+  'report',
+  'admin',
+  'other',
 ]);
 
-export const MediaKindSchema = z.enum(["image", "video", "audio", "file"]);
+export const MediaKindSchema = z.enum(['image', 'video', 'audio', 'file']);
 
-export const MediaProcessingStatusSchema = z.enum(["pending", "processing", "ready", "failed", "rejected"]);
+export const MediaProcessingStatusSchema = z.enum([
+  'pending',
+  'processing',
+  'ready',
+  'failed',
+  'rejected',
+]);
 
 // Publication/serving readiness — ORTHOGONAL to the processing-outcome `status`.
 // A media upload's processing can be `completed` while it is not yet servable
@@ -26,46 +32,46 @@ export const MediaProcessingStatusSchema = z.enum(["pending", "processing", "rea
 // off processing-complete alone. notStarted → activating → publishing → live
 // (or publicationFailed).
 export const MediaPublicationStateSchema = z.enum([
-  "notStarted",
-  "activating",
-  "publishing",
-  "live",
-  "publicationFailed",
+  'notStarted',
+  'activating',
+  'publishing',
+  'live',
+  'publicationFailed',
 ]);
 export type MediaPublicationState = z.infer<typeof MediaPublicationStateSchema>;
 
 export const MediaJobStatusSchema = z.enum([
-  "selecting",
-  "uploading",
-  "queued",
-  "processing",
-  "ready",
-  "rejected",
-  "failed",
+  'selecting',
+  'uploading',
+  'queued',
+  'processing',
+  'ready',
+  'rejected',
+  'failed',
 ]);
 
 export const MediaErrorCodeSchema = z.enum([
-  "invalid_mime",
-  "too_large",
-  "too_long",
-  "upload_failed",
-  "upload_canceled",
-  "upload_timeout",
-  "network_error",
-  "quota_exceeded",
-  "invalid_spec",
-  "unsupported_format",
-  "unsupported_codec",
-  "kind_mismatch",
-  "processing_failed",
-  "processing_canceled",
-  "not_found",
-  "permission_denied",
-  "orientation_mismatch",
-  "aspect_ratio_mismatch",
-  "dimensions_mismatch",
-  "rejected",
-  "unknown",
+  'invalid_mime',
+  'too_large',
+  'too_long',
+  'upload_failed',
+  'upload_canceled',
+  'upload_timeout',
+  'network_error',
+  'quota_exceeded',
+  'invalid_spec',
+  'unsupported_format',
+  'unsupported_codec',
+  'kind_mismatch',
+  'processing_failed',
+  'processing_canceled',
+  'not_found',
+  'permission_denied',
+  'orientation_mismatch',
+  'aspect_ratio_mismatch',
+  'dimensions_mismatch',
+  'rejected',
+  'unknown',
 ]);
 
 // ---- small structs ----
@@ -89,23 +95,23 @@ export const MediaThreadRefSchema = z
 // prove and accept it.
 export const MediaFormatIdSchema = z.enum([
   // images
-  "jpeg",
-  "png",
-  "gif",
-  "webp",
-  "bmp",
-  "tiff",
-  "avif",
-  "heic",
-  "svg",
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  'bmp',
+  'tiff',
+  'avif',
+  'heic',
+  'svg',
   // audio-only containers/codecs
-  "mp3",
-  "wav",
-  "flac",
+  'mp3',
+  'wav',
+  'flac',
   // shared A/V containers (semantic kind comes from stream inspection, never the entry)
-  "isobmff", // MP4 / M4A / M4V / MOV (QuickTime rides the same box structure)
-  "webm", // WebM / Matroska (EBML)
-  "ogg",
+  'isobmff', // MP4 / M4A / M4V / MOV (QuickTime rides the same box structure)
+  'webm', // WebM / Matroska (EBML)
+  'ogg',
 ]);
 
 export const MediaAcceptSchema = z
@@ -124,8 +130,8 @@ export const MediaCropSpecSchema = z
     aspectRatio: z.number().positive(),
     outputWidth: z.number().int().positive(),
     outputHeight: z.number().int().positive(),
-    shape: z.enum(["rect", "round"]).optional(),
-    format: z.enum(["jpeg", "png", "webp", "avif"]).optional(),
+    shape: z.enum(['rect', 'round']).optional(),
+    format: z.enum(['jpeg', 'png', 'webp', 'avif']).optional(),
     quality: z.number().int().min(1).max(100).optional(),
     aspectRatioDisplay: z.string().optional(),
   })
@@ -140,11 +146,11 @@ export const ImageVariantSpecSchema = z
       .object({
         width: z.number().int().positive(),
         height: z.number().int().positive(),
-        gravity: z.enum(["center", "top", "bottom", "left", "right"]).optional(),
+        gravity: z.enum(['center', 'top', 'bottom', 'left', 'right']).optional(),
       })
       .strict()
       .optional(),
-    format: z.enum(["jpeg", "png", "webp", "avif"]).optional(),
+    format: z.enum(['jpeg', 'png', 'webp', 'avif']).optional(),
     quality: z.number().int().min(1).max(100).optional(),
   })
   .strict();
@@ -155,14 +161,14 @@ export const MediaClientConstraintsSchema = z
     allowCapturePhoto: z.boolean().optional(),
     allowRecordVideo: z.boolean().optional(),
     allowRecordAudio: z.boolean().optional(),
-    cameraFacingMode: z.enum(["user", "environment"]).optional(),
+    cameraFacingMode: z.enum(['user', 'environment']).optional(),
     maxRecordDurationSec: z.number().positive().optional(),
   })
   .strict();
 
 // ---- moderation ----
 
-export const MediaModerationStatusSchema = z.enum(["passed", "flagged", "rejected", "error"]);
+export const MediaModerationStatusSchema = z.enum(['passed', 'flagged', 'rejected', 'error']);
 
 export const MediaModerationFindingSchema = z
   .object({
@@ -188,20 +194,20 @@ export const MediaModerationResultSchema = z
 export const MediaModerationSpecSchema = z
   .object({
     provider: z.string().optional(),
-    stage: z.enum(["input", "output", "both"]).optional(),
-    rejectOn: z.array(z.enum(["flagged", "rejected"])).optional(),
+    stage: z.enum(['input', 'output', 'both']).optional(),
+    rejectOn: z.array(z.enum(['flagged', 'rejected'])).optional(),
     config: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
 // ---- processing spec/result ----
 
-export const VideoOrientationSchema = z.enum(["vertical", "horizontal", "any"]);
+export const VideoOrientationSchema = z.enum(['vertical', 'horizontal', 'any']);
 
 export const MediaProcessingSpecSchema = z
   .object({
     specVersion: z.union([z.literal(1), z.literal(2)]).optional(),
-    kind: z.enum(["image", "video", "audio", "generic"]),
+    kind: z.enum(['image', 'video', 'audio', 'generic']),
     accept: MediaAcceptSchema.optional(),
     maxBytes: z.number().int().positive().optional(),
     maxOutputBytes: z.number().int().positive().optional(),
@@ -226,12 +232,21 @@ export const MediaProcessingSpecSchema = z
     video: z
       .object({
         maxDurationSec: z.number().positive().optional(),
-        preset: z.enum([
-          "ultrafast", "superfast", "veryfast", "faster",
-          "fast", "medium", "slow", "slower", "veryslow",
-        ]).optional(),
+        preset: z
+          .enum([
+            'ultrafast',
+            'superfast',
+            'veryfast',
+            'faster',
+            'fast',
+            'medium',
+            'slow',
+            'slower',
+            'veryslow',
+          ])
+          .optional(),
         crf: z.number().int().min(1).max(51).optional(),
-        scaleMode: z.enum(["crop", "fit"]).optional(),
+        scaleMode: z.enum(['crop', 'fit']).optional(),
       })
       .strict()
       .optional(),
@@ -254,25 +269,23 @@ export const MediaProcessingByKindSchema = z
   })
   .strict();
 
-export const MediaOriginSpecSchema = MediaProcessingSpecSchema
-  .omit({
-    image: true,
-    video: true,
-    audio: true,
-    requiredWidth: true,
-    requiredHeight: true,
-    allowAutoFormat: true,
-  })
-  .extend({
-    processing: MediaProcessingByKindSchema.optional(),
-    // EXPLICIT preserve-original marker. When true, the upload is stored
-    // byte-exact and NEVER transcoded/resized (no `processing` branches) — the
-    // safety scan still runs, only variant generation is skipped. Used for legal
-    // evidence (e.g. ncii-evidence). Distinguishes an intentional no-transcode
-    // origin from a forgotten `processing` block (the per-origin test requires
-    // EITHER full processing OR this flag).
-    preserveOriginal: z.boolean().optional(),
-  });
+export const MediaOriginSpecSchema = MediaProcessingSpecSchema.omit({
+  image: true,
+  video: true,
+  audio: true,
+  requiredWidth: true,
+  requiredHeight: true,
+  allowAutoFormat: true,
+}).extend({
+  processing: MediaProcessingByKindSchema.optional(),
+  // EXPLICIT preserve-original marker. When true, the upload is stored
+  // byte-exact and NEVER transcoded/resized (no `processing` branches) — the
+  // safety scan still runs, only variant generation is skipped. Used for legal
+  // evidence (e.g. ncii-evidence). Distinguishes an intentional no-transcode
+  // origin from a forgotten `processing` block (the per-origin test requires
+  // EITHER full processing OR this flag).
+  preserveOriginal: z.boolean().optional(),
+});
 
 export const MediaProcessingErrorSchema = z
   .object({
@@ -338,9 +351,9 @@ const MediaProcessingResultMetaSchema = z
  * recording). `file-picker` is ADVISORY — an inference from browser metadata.
  */
 export const ClientMediaClaimSourceSchema = z.enum([
-  "file-picker",
-  "camera-capture",
-  "media-recorder",
+  'file-picker',
+  'camera-capture',
+  'media-recorder',
 ]);
 export type ClientMediaClaimSource = z.infer<typeof ClientMediaClaimSourceSchema>;
 
@@ -357,34 +370,34 @@ export type ClientMediaClaim = z.infer<typeof ClientMediaClaimSchema>;
 
 export const MediaInspectionStatusSchema = z.enum([
   /** Complete stream/structure table obtained within bounds — the result is authoritative. */
-  "definitive",
+  'definitive',
   /** Structure could not be completely proven (parse error, timeout, truncation,
    *  auxiliary-only, unlocatable track table). NEVER treated as audio; safety
    *  falls back to the strict visual path and publication is blocked. */
-  "indeterminate",
+  'indeterminate',
   /** Structurally recognized, but the format/codec is not enabled or not
    *  processable by the runtime (e.g. SVG, HEIC without decoder proof). */
-  "unsupported",
+  'unsupported',
   /** Recognized family with invalid structure (bad boxes/VINTs/overflow). */
-  "malformed",
+  'malformed',
 ]);
 export type MediaInspectionStatus = z.infer<typeof MediaInspectionStatusSchema>;
 
 export const MediaSafetyPlanSchema = z.enum([
   /** Single still image: hash the decoded image. */
-  "still-image",
+  'still-image',
   /** Multi-frame image (GIF/animated WebP/AVIF): every extracted frame must be
    *  hashed — hashing frame zero alone must never return clean. */
-  "animated-image-frames",
+  'animated-image-frames',
   /** Timed video: extract and hash frames. */
-  "video-frames",
+  'video-frames',
   /** Proven audio-only (no timed video, no visual attachments). */
-  "audio-only",
+  'audio-only',
   /** Audio plus attached artwork: hash every artwork image, then the audio guard. */
-  "audio-plus-artwork",
+  'audio-plus-artwork',
   /** Ambiguous/indeterminate visual possibility: strict video-path treatment;
    *  publication remains blocked unless a definitive visual scan completes. */
-  "strict-video-fallback",
+  'strict-video-fallback',
 ]);
 export type MediaSafetyPlan = z.infer<typeof MediaSafetyPlanSchema>;
 
@@ -392,25 +405,25 @@ export type MediaSafetyPlan = z.infer<typeof MediaSafetyPlanSchema>;
  *  raw probe codec strings never cross a boundary. */
 export const NormalizedCodecIdSchema = z.enum([
   // video
-  "h264",
-  "hevc",
-  "vp8",
-  "vp9",
-  "av1",
-  "theora",
-  "mpeg4",
-  "mjpeg",
+  'h264',
+  'hevc',
+  'vp8',
+  'vp9',
+  'av1',
+  'theora',
+  'mpeg4',
+  'mjpeg',
   // audio
-  "aac",
-  "alac",
-  "opus",
-  "vorbis",
-  "mp3",
-  "flac",
-  "pcm",
-  "amr",
+  'aac',
+  'alac',
+  'opus',
+  'vorbis',
+  'mp3',
+  'flac',
+  'pcm',
+  'amr',
   // catch-all (bounded)
-  "other",
+  'other',
 ]);
 export type NormalizedCodecId = z.infer<typeof NormalizedCodecIdSchema>;
 
@@ -477,7 +490,7 @@ const mediaProcessingResultSharedShape = {
   inspection: MediaInspectionResultSchema.optional(),
 };
 
-export const MediaProcessingResultSchema = z.discriminatedUnion("ok", [
+export const MediaProcessingResultSchema = z.discriminatedUnion('ok', [
   z
     .object({
       ok: z.literal(true),
@@ -522,6 +535,13 @@ export const ClientContextSchema = z
   .object({
     surface: z.string().min(1),
     // A display hint the upload tray matches on, never a path segment — but an id is never padded.
-    targetIds: z.array(z.string().min(1).refine((id) => id === id.trim())).optional(),
+    targetIds: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .refine((id) => id === id.trim()),
+      )
+      .optional(),
   })
   .strict();

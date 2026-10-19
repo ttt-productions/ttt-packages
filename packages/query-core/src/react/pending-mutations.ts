@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Authoritative pending for interactive mutations. A mutation registers in React Query's shared
 // MutationCache under a stable `mutationKey` the app declares (one key per action), and its target
@@ -12,7 +12,7 @@
 // The app owns its keys, its variable shapes and what counts as the same target; this module owns
 // only the mechanics.
 
-import { useCallback } from "react";
+import { useCallback } from 'react';
 import {
   useMutationState,
   useQueryClient,
@@ -20,12 +20,14 @@ import {
   type MutationKey,
   type QueryClient,
   type UseMutationResult,
-} from "@tanstack/react-query";
+} from '@tanstack/react-query';
 
 /** The variables of every pending mutation under `mutationKey` (prefix-matched), live. */
-export function usePendingMutationVariables<V>(mutationKey: MutationKey): ReadonlyArray<V | undefined> {
+export function usePendingMutationVariables<V>(
+  mutationKey: MutationKey,
+): ReadonlyArray<V | undefined> {
   return useMutationState({
-    filters: { mutationKey, status: "pending" },
+    filters: { mutationKey, status: 'pending' },
     select: (mutation) => mutation.state.variables as V | undefined,
   });
 }
@@ -37,7 +39,7 @@ export function pendingMutationVariables<V>(
 ): Array<V | undefined> {
   return queryClient
     .getMutationCache()
-    .findAll({ mutationKey, status: "pending" })
+    .findAll({ mutationKey, status: 'pending' })
     .map((mutation) => mutation.state.variables as V | undefined);
 }
 
@@ -79,7 +81,7 @@ export function hasPendingMutation<V>(
  */
 export function duplicateSubmissionError(what: string): Error {
   const duplicate = new Error(`${what} is already in flight.`);
-  duplicate.name = "AbortError";
+  duplicate.name = 'AbortError';
   return duplicate;
 }
 
@@ -110,5 +112,10 @@ export function useDuplicateGuardedMutation<TData, TError, TVariables, TContext>
     },
     [queryClient, rawMutateAsync, isDuplicate, what],
   );
-  return { ...mutation, mutate, mutateAsync } as UseMutationResult<TData, TError, TVariables, TContext>;
+  return { ...mutation, mutate, mutateAsync } as UseMutationResult<
+    TData,
+    TError,
+    TVariables,
+    TContext
+  >;
 }

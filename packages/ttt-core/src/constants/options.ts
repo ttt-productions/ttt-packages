@@ -104,25 +104,25 @@ export const CRAFT_SKILL_TAG_VALUES = CRAFT_SKILL_TAG_OPTIONS as unknown as [
 
 /** Human display labels for each craft-skill tag ID. Keyed by the machine-safe ID. */
 export const CRAFT_SKILL_TAG_LABELS: Record<(typeof CRAFT_SKILL_TAG_OPTIONS)[number], string> = {
-  'acting': 'Acting',
+  acting: 'Acting',
   'voice-over': 'Voice Over',
-  'singing': 'Singing',
-  'rapping': 'Rapping',
+  singing: 'Singing',
+  rapping: 'Rapping',
   'instrumental-performance': 'Instrumental Performance',
   'dance-choreography': 'Dance & Choreography',
   'stand-up-sketch-comedy': 'Stand-Up & Sketch Comedy',
   'writing-storytelling': 'Writing & Storytelling',
-  'songwriting': 'Songwriting',
+  songwriting: 'Songwriting',
   'poetry-spoken-word': 'Poetry & Spoken Word',
   'drawing-illustration': 'Drawing & Illustration',
-  'painting': 'Painting',
-  'animation': 'Animation',
+  painting: 'Painting',
+  animation: 'Animation',
   'graphic-design': 'Graphic Design',
-  'photography': 'Photography',
+  photography: 'Photography',
   'cinematography-camera': 'Cinematography & Camera',
   'video-editing': 'Video Editing',
   'visual-effects': 'Visual Effects',
-  'directing': 'Directing',
+  directing: 'Directing',
   'costume-makeup': 'Costume & Makeup',
   'set-prop-design': 'Set & Prop Design',
   'music-production': 'Music Production',
@@ -269,7 +269,11 @@ export const AUDITION_SORT_OPTIONS = {
   platformAudition: { ...AUDITION_SORT_OPTIONS_BASE },
   sponsoredAudition: {
     ...AUDITION_SORT_OPTIONS_BASE,
-    highestPrice: { label: 'Highest Price', field: 'sponsoredAuditionAmountUSD', direction: 'desc' },
+    highestPrice: {
+      label: 'Highest Price',
+      field: 'sponsoredAuditionAmountUSD',
+      direction: 'desc',
+    },
     lowestPrice: { label: 'Lowest Price', field: 'sponsoredAuditionAmountUSD', direction: 'asc' },
   },
   workAudition: {
@@ -297,6 +301,3 @@ export const HALL_LIBRARY_SORT_OPTIONS: Record<
   oldest: { label: 'Oldest First', field: 'createdOn', direction: 'asc' },
   most_followed: { label: 'Most Followed', field: 'followerCount', direction: 'desc' },
 };
-
-
-

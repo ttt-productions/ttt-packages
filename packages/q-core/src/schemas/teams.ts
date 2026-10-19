@@ -68,7 +68,11 @@ export const ghostCreateRequestIdSchema = documentIdSegmentSchema.refine(
 );
 
 export const CreateTeamGhostPlayerInputSchema = z
-  .object({ teamId: teamIdSchema, displayName: displayNameSchema, requestId: ghostCreateRequestIdSchema })
+  .object({
+    teamId: teamIdSchema,
+    displayName: displayNameSchema,
+    requestId: ghostCreateRequestIdSchema,
+  })
   .strict();
 export type CreateTeamGhostPlayerInput = z.infer<typeof CreateTeamGhostPlayerInputSchema>;
 
@@ -124,8 +128,12 @@ export type GetLeagueJoinWarningResult = z.infer<typeof GetLeagueJoinWarningResu
 // Roster reconciliation recovery — an admin puts a team's failed roster obligations back to work.
 // ---------------------------------------------------------------------------------------------
 
-export const AdminRetryLeagueTeamRosterSyncInputSchema = z.object({ teamId: teamIdSchema }).strict();
-export type AdminRetryLeagueTeamRosterSyncInput = z.infer<typeof AdminRetryLeagueTeamRosterSyncInputSchema>;
+export const AdminRetryLeagueTeamRosterSyncInputSchema = z
+  .object({ teamId: teamIdSchema })
+  .strict();
+export type AdminRetryLeagueTeamRosterSyncInput = z.infer<
+  typeof AdminRetryLeagueTeamRosterSyncInputSchema
+>;
 
 export const AdminRetryLeagueTeamRosterSyncResultSchema = z
   .object({
@@ -139,7 +147,9 @@ export const AdminRetryLeagueTeamRosterSyncResultSchema = z
     damagedTeamMembershipIds: z.array(z.string().min(1)),
   })
   .strict();
-export type AdminRetryLeagueTeamRosterSyncResult = z.infer<typeof AdminRetryLeagueTeamRosterSyncResultSchema>;
+export type AdminRetryLeagueTeamRosterSyncResult = z.infer<
+  typeof AdminRetryLeagueTeamRosterSyncResultSchema
+>;
 
 // ---------------------------------------------------------------------------------------------
 // Linking a ghost to a real account — `linkGhostPlayerToUser` in a league that is not closed, and
@@ -195,7 +205,11 @@ export const ghostUserIdSchema = userIdSchema.refine(isGhostUserId, 'Not a ghost
 // `updateTeamMembershipRole` (the captain) / `adminUpdateTeamMembershipRole`: promote a player to
 // co-captain, or demote a co-captain to player.
 export const UpdateTeamMembershipRoleInputSchema = z
-  .object({ teamId: teamIdSchema, userId: userIdSchema, role: z.enum(MEMBER_ASSIGNABLE_TEAM_ROLES) })
+  .object({
+    teamId: teamIdSchema,
+    userId: userIdSchema,
+    role: z.enum(MEMBER_ASSIGNABLE_TEAM_ROLES),
+  })
   .strict();
 export type UpdateTeamMembershipRoleInput = z.infer<typeof UpdateTeamMembershipRoleInputSchema>;
 
@@ -216,7 +230,10 @@ export type UpdateTeamMembershipRoleResult = z.infer<typeof UpdateTeamMembership
 export const DeleteTeamMembershipInputSchema = z
   .object({
     teamId: teamIdSchema,
-    userId: userIdSchema.refine((userId) => !isGhostUserId(userId), 'A ghost player is removed as a ghost player.'),
+    userId: userIdSchema.refine(
+      (userId) => !isGhostUserId(userId),
+      'A ghost player is removed as a ghost player.',
+    ),
   })
   .strict();
 export type DeleteTeamMembershipInput = z.infer<typeof DeleteTeamMembershipInputSchema>;
@@ -262,7 +279,10 @@ export type DeleteTeamGhostPlayerResult = z.infer<typeof DeleteTeamGhostPlayerRe
 // removal already under way — `finishedGameEntriesRemoved`, the removal's count so far, as the result
 // counts it. Those entries stay removed.
 export const GhostRemovalRefusalDetailsSchema = z
-  .object({ reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS), finishedGameEntriesRemoved: countSchema.optional() })
+  .object({
+    reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS),
+    finishedGameEntriesRemoved: countSchema.optional(),
+  })
   .strict();
 export type GhostRemovalRefusalDetails = z.infer<typeof GhostRemovalRefusalDetailsSchema>;
 
@@ -271,7 +291,9 @@ export type GhostRemovalRefusalDetails = z.infer<typeof GhostRemovalRefusalDetai
 export const AdminUpdateLeagueTeamCaptainInputSchema = z
   .object({ teamId: teamIdSchema, captainUserId: userIdSchema })
   .strict();
-export type AdminUpdateLeagueTeamCaptainInput = z.infer<typeof AdminUpdateLeagueTeamCaptainInputSchema>;
+export type AdminUpdateLeagueTeamCaptainInput = z.infer<
+  typeof AdminUpdateLeagueTeamCaptainInputSchema
+>;
 
 export const AdminUpdateLeagueTeamCaptainResultSchema = z
   .object({
@@ -282,7 +304,9 @@ export const AdminUpdateLeagueTeamCaptainResultSchema = z
     changed: z.boolean(),
   })
   .strict();
-export type AdminUpdateLeagueTeamCaptainResult = z.infer<typeof AdminUpdateLeagueTeamCaptainResultSchema>;
+export type AdminUpdateLeagueTeamCaptainResult = z.infer<
+  typeof AdminUpdateLeagueTeamCaptainResultSchema
+>;
 
 // `adminUpdateLeagueTeamName`: rename a team. The name lives on the team alone; nothing copies it.
 export const AdminUpdateLeagueTeamNameInputSchema = z
@@ -306,7 +330,9 @@ export type AdminUpdateLeagueTeamResult = z.infer<typeof AdminUpdateLeagueTeamRe
 export const AdminUpdateLeagueTeamContactInputSchema = z
   .object({ teamId: teamIdSchema, contactPhone: contactPhoneSchema })
   .strict();
-export type AdminUpdateLeagueTeamContactInput = z.infer<typeof AdminUpdateLeagueTeamContactInputSchema>;
+export type AdminUpdateLeagueTeamContactInput = z.infer<
+  typeof AdminUpdateLeagueTeamContactInputSchema
+>;
 
 export const AdminUpdateLeagueTeamContactResultSchema = AdminUpdateLeagueTeamResultSchema;
 export type AdminUpdateLeagueTeamContactResult = AdminUpdateLeagueTeamResult;

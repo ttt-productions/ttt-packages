@@ -66,7 +66,7 @@ describe('Alert composition', () => {
       <Alert>
         <AlertTitle>Heads up!</AlertTitle>
         <AlertDescription>Something important happened.</AlertDescription>
-      </Alert>
+      </Alert>,
     );
     expect(screen.getByText('Heads up!')).toBeInTheDocument();
     expect(screen.getByText('Something important happened.')).toBeInTheDocument();

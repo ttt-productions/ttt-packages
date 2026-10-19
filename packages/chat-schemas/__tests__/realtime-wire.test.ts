@@ -122,10 +122,30 @@ describe('ChatConversationRefSchema — a conversation is a neutral kind plus an
   });
 
   it('bounds the kind and the id', () => {
-    expect(ChatConversationRefSchema.safeParse({ kind: 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH), id: 'x' }).success).toBe(true);
-    expect(ChatConversationRefSchema.safeParse({ kind: 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH + 1), id: 'x' }).success).toBe(false);
-    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH) }).success).toBe(true);
-    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH + 1) }).success).toBe(false);
+    expect(
+      ChatConversationRefSchema.safeParse({
+        kind: 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH),
+        id: 'x',
+      }).success,
+    ).toBe(true);
+    expect(
+      ChatConversationRefSchema.safeParse({
+        kind: 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH + 1),
+        id: 'x',
+      }).success,
+    ).toBe(false);
+    expect(
+      ChatConversationRefSchema.safeParse({
+        kind: 'room',
+        id: 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH),
+      }).success,
+    ).toBe(true);
+    expect(
+      ChatConversationRefSchema.safeParse({
+        kind: 'room',
+        id: 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH + 1),
+      }).success,
+    ).toBe(false);
   });
 
   it('refuses an empty id and an id holding a control character', () => {
@@ -137,21 +157,34 @@ describe('ChatConversationRefSchema — a conversation is a neutral kind plus an
   });
 
   it('refuses any field beyond kind and id — no app business field rides the ref', () => {
-    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: 'x', workProjectId: 'w' }).success).toBe(false);
+    expect(
+      ChatConversationRefSchema.safeParse({ kind: 'room', id: 'x', workProjectId: 'w' }).success,
+    ).toBe(false);
   });
 });
 
 describe('ChatGrantScopeSchema', () => {
   it('parses a channel grant naming one conversation and an inbox grant naming its uid', () => {
-    const channelScope: ChatGrantScope = { kind: 'channel', channelRef: { kind: 'room', id: 'r1' } };
+    const channelScope: ChatGrantScope = {
+      kind: 'channel',
+      channelRef: { kind: 'room', id: 'r1' },
+    };
     const inboxScope: ChatGrantScope = { kind: 'inbox', uid: 'u1' };
     expect(ChatGrantScopeSchema.parse(channelScope)).toEqual(channelScope);
     expect(ChatGrantScopeSchema.parse(inboxScope)).toEqual(inboxScope);
   });
 
   it('refuses a channel grant whose conversation ref is malformed', () => {
-    expect(ChatGrantScopeSchema.safeParse({ kind: 'channel', channelRef: { scope: 'invite', guildInviteId: 'i1' } }).success).toBe(false);
-    expect(ChatGrantScopeSchema.safeParse({ kind: 'channel', channelRef: { kind: 'room', id: '' } }).success).toBe(false);
+    expect(
+      ChatGrantScopeSchema.safeParse({
+        kind: 'channel',
+        channelRef: { scope: 'invite', guildInviteId: 'i1' },
+      }).success,
+    ).toBe(false);
+    expect(
+      ChatGrantScopeSchema.safeParse({ kind: 'channel', channelRef: { kind: 'room', id: '' } })
+        .success,
+    ).toBe(false);
   });
 
   it('refuses an unknown scope kind and an inbox grant without a uid', () => {
@@ -166,17 +199,29 @@ describe('the send bounds', () => {
   });
 
   it('a client message id is non-empty and bounded', () => {
-    expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH)).success).toBe(true);
-    expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1)).success).toBe(false);
+    expect(
+      ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH)).success,
+    ).toBe(true);
+    expect(
+      ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1))
+        .success,
+    ).toBe(false);
     expect(ChatClientMessageIdSchema.safeParse('').success).toBe(false);
   });
 
   it('a message text is declared as any characters, never blank, at most the one text bound', () => {
-    expect(CHAT_MESSAGE_TEXT_INPUT).toEqual({ format: 'none', min: 1, max: CHAT_MESSAGE_TEXT_MAX_LENGTH });
+    expect(CHAT_MESSAGE_TEXT_INPUT).toEqual({
+      format: 'none',
+      min: 1,
+      max: CHAT_MESSAGE_TEXT_MAX_LENGTH,
+    });
   });
 
   it('a text that passes is sent and stored trimmed, line breaks and every character kept', () => {
-    expect(judgeChatMessageText('  hello\nthere 😀  ')).toEqual({ ok: true, text: 'hello\nthere 😀' });
+    expect(judgeChatMessageText('  hello\nthere 😀  ')).toEqual({
+      ok: true,
+      text: 'hello\nthere 😀',
+    });
   });
 
   it('an empty or whitespace-only text is a blank rejection', () => {
@@ -194,21 +239,38 @@ describe('the send bounds', () => {
 
 describe('the mark-read command and its correlated result', () => {
   it('a mark-read names the entry and the request its result will name', () => {
-    expect(ChatMarkReadPayloadSchema.parse({ channelRef: 'abc', requestId: 'r-1' })).toEqual({ channelRef: 'abc', requestId: 'r-1' });
+    expect(ChatMarkReadPayloadSchema.parse({ channelRef: 'abc', requestId: 'r-1' })).toEqual({
+      channelRef: 'abc',
+      requestId: 'r-1',
+    });
     expect(ChatMarkReadPayloadSchema.safeParse({ channelRef: 'abc' }).success).toBe(false);
-    expect(ChatMarkReadPayloadSchema.safeParse({ channelRef: '', requestId: 'r-1' }).success).toBe(false);
+    expect(ChatMarkReadPayloadSchema.safeParse({ channelRef: '', requestId: 'r-1' }).success).toBe(
+      false,
+    );
   });
 
   it('a success result names its request', () => {
-    expect(ChatMarkReadResultPayloadSchema.parse({ requestId: 'r-1', ok: true })).toEqual({ requestId: 'r-1', ok: true });
+    expect(ChatMarkReadResultPayloadSchema.parse({ requestId: 'r-1', ok: true })).toEqual({
+      requestId: 'r-1',
+      ok: true,
+    });
   });
 
   it('a failure result names its request and one of the declared reasons', () => {
     for (const code of CHAT_MARK_READ_FAILURE_CODES) {
-      expect(ChatMarkReadResultPayloadSchema.parse({ requestId: 'r-1', ok: false, code })).toEqual({ requestId: 'r-1', ok: false, code });
+      expect(ChatMarkReadResultPayloadSchema.parse({ requestId: 'r-1', ok: false, code })).toEqual({
+        requestId: 'r-1',
+        ok: false,
+        code,
+      });
     }
-    expect(ChatMarkReadResultPayloadSchema.safeParse({ requestId: 'r-1', ok: false, code: 'nope' }).success).toBe(false);
-    expect(ChatMarkReadResultPayloadSchema.safeParse({ requestId: 'r-1', ok: false }).success).toBe(false);
+    expect(
+      ChatMarkReadResultPayloadSchema.safeParse({ requestId: 'r-1', ok: false, code: 'nope' })
+        .success,
+    ).toBe(false);
+    expect(ChatMarkReadResultPayloadSchema.safeParse({ requestId: 'r-1', ok: false }).success).toBe(
+      false,
+    );
   });
 
   it('a result without a request id is not a result', () => {
@@ -232,27 +294,35 @@ describe('ChatSendRejectedPayloadSchema', () => {
     expect(CHAT_SEND_REJECTION_RETRYABLE).toEqual({
       'membership-pending': true,
       'wordlist-unavailable': true,
-      'flood': true,
+      flood: true,
       'slow-mode': true,
-      'archived': false,
-      'deleted': false,
+      archived: false,
+      deleted: false,
       'blocked-word': false,
       'too-long': false,
-      'blank': false,
+      blank: false,
     });
   });
 
   it('an over-bound text is a terminal rejection — the same text can never be accepted', () => {
     expect(CHAT_SEND_REJECTION_RETRYABLE['too-long']).toBe(false);
     expect(
-      ChatSendRejectedPayloadSchema.safeParse({ clientMessageId: 'c-1', code: 'too-long', retryable: true }).success,
+      ChatSendRejectedPayloadSchema.safeParse({
+        clientMessageId: 'c-1',
+        code: 'too-long',
+        retryable: true,
+      }).success,
     ).toBe(false);
   });
 
   it('a blank text is a terminal rejection — the same text can never be accepted', () => {
     expect(CHAT_SEND_REJECTION_RETRYABLE.blank).toBe(false);
     expect(
-      ChatSendRejectedPayloadSchema.safeParse({ clientMessageId: 'c-1', code: 'blank', retryable: true }).success,
+      ChatSendRejectedPayloadSchema.safeParse({
+        clientMessageId: 'c-1',
+        code: 'blank',
+        retryable: true,
+      }).success,
     ).toBe(false);
   });
 
@@ -367,7 +437,9 @@ describe('ChatGrantClaimsSchema — what the signer signs is exactly what the ve
 
   it('accepts a well-formed channel or inbox grant payload', () => {
     expect(ChatGrantClaimsSchema.parse(claims)).toEqual(claims);
-    expect(ChatGrantClaimsSchema.safeParse({ ...claims, scope: { kind: 'inbox', uid: 'u1' } }).success).toBe(true);
+    expect(
+      ChatGrantClaimsSchema.safeParse({ ...claims, scope: { kind: 'inbox', uid: 'u1' } }).success,
+    ).toBe(true);
   });
 
   it('refuses a payload for another audience, version, or token type', () => {
@@ -378,7 +450,12 @@ describe('ChatGrantClaimsSchema — what the signer signs is exactly what the ve
 
   it('refuses a missing or malformed identity, scope, or time', () => {
     expect(ChatGrantClaimsSchema.safeParse({ ...claims, uid: '' }).success).toBe(false);
-    expect(ChatGrantClaimsSchema.safeParse({ ...claims, scope: { kind: 'channel', channelRef: { scope: 'invite' } } }).success).toBe(false);
+    expect(
+      ChatGrantClaimsSchema.safeParse({
+        ...claims,
+        scope: { kind: 'channel', channelRef: { scope: 'invite' } },
+      }).success,
+    ).toBe(false);
     expect(ChatGrantClaimsSchema.safeParse({ ...claims, iat: Number.NaN }).success).toBe(false);
     expect(ChatGrantClaimsSchema.safeParse({ ...claims, exp: 1000 }).success).toBe(false);
   });
@@ -391,23 +468,41 @@ describe('ChatGrantClaimsSchema — what the signer signs is exactly what the ve
 describe('the channel socket client frame payloads', () => {
   it('a send carries a parsed id and its text; the length is judged after the parse', () => {
     const longText = 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1);
-    expect(ChatSendPayloadSchema.parse({ clientMessageId: 'm1', text: longText })).toEqual({ clientMessageId: 'm1', text: longText });
-    expect(ChatSendPayloadSchema.safeParse({ clientMessageId: '', text: 'hi' }).success).toBe(false);
+    expect(ChatSendPayloadSchema.parse({ clientMessageId: 'm1', text: longText })).toEqual({
+      clientMessageId: 'm1',
+      text: longText,
+    });
+    expect(ChatSendPayloadSchema.safeParse({ clientMessageId: '', text: 'hi' }).success).toBe(
+      false,
+    );
     expect(
-      ChatSendPayloadSchema.safeParse({ clientMessageId: 'm'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1), text: 'hi' }).success,
+      ChatSendPayloadSchema.safeParse({
+        clientMessageId: 'm'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1),
+        text: 'hi',
+      }).success,
     ).toBe(false);
     expect(ChatSendPayloadSchema.safeParse({ clientMessageId: 'm1' }).success).toBe(false);
   });
 
   it('a send carries no reply pointer or attachment: extra keys never reach the room', () => {
-    expect(ChatSendPayloadSchema.parse({ clientMessageId: 'm1', text: 'hi', replyTo: 'm0', attachment: {} })).toEqual({
+    expect(
+      ChatSendPayloadSchema.parse({
+        clientMessageId: 'm1',
+        text: 'hi',
+        replyTo: 'm0',
+        attachment: {},
+      }),
+    ).toEqual({
       clientMessageId: 'm1',
       text: 'hi',
     });
   });
 
   it('a read-ack carries a whole non-negative seq and whether the conversation is in focus (unfocused when absent)', () => {
-    expect(ChatReadAckPayloadSchema.parse({ readSeq: 5, focused: true })).toEqual({ readSeq: 5, focused: true });
+    expect(ChatReadAckPayloadSchema.parse({ readSeq: 5, focused: true })).toEqual({
+      readSeq: 5,
+      focused: true,
+    });
     expect(ChatReadAckPayloadSchema.parse({ readSeq: 0 })).toEqual({ readSeq: 0, focused: false });
     for (const readSeq of [-1, 1.5, '5', null]) {
       expect(ChatReadAckPayloadSchema.safeParse({ readSeq }).success).toBe(false);
@@ -417,7 +512,10 @@ describe('the channel socket client frame payloads', () => {
 
   it('a history request pages before a positive seq, never past the page cap', () => {
     expect(ChatHistoryPayloadSchema.parse({})).toEqual({ limit: HISTORY_PAGE_MAX });
-    expect(ChatHistoryPayloadSchema.parse({ beforeSeq: null, limit: 10 })).toEqual({ beforeSeq: null, limit: 10 });
+    expect(ChatHistoryPayloadSchema.parse({ beforeSeq: null, limit: 10 })).toEqual({
+      beforeSeq: null,
+      limit: 10,
+    });
     expect(ChatHistoryPayloadSchema.safeParse({ beforeSeq: 0 }).success).toBe(false);
     expect(ChatHistoryPayloadSchema.safeParse({ beforeSeq: '9' }).success).toBe(false);
     expect(ChatHistoryPayloadSchema.safeParse({ limit: HISTORY_PAGE_MAX + 1 }).success).toBe(false);

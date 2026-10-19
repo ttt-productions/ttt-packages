@@ -38,7 +38,10 @@ describe('holdsAdminStanding', () => {
 
 describe('adminRosterOf', () => {
   it('reads both lists from the stored document', () => {
-    expect(adminRosterOf({ admins: ['a1'], jrAdmins: ['j1'] })).toEqual({ admins: ['a1'], jrAdmins: ['j1'] });
+    expect(adminRosterOf({ admins: ['a1'], jrAdmins: ['j1'] })).toEqual({
+      admins: ['a1'],
+      jrAdmins: ['j1'],
+    });
   });
 
   it('reads an absent document as an empty roster', () => {
@@ -47,7 +50,10 @@ describe('adminRosterOf', () => {
   });
 
   it('reads a list that is not an array as empty and keeps the other list', () => {
-    expect(adminRosterOf({ admins: 'a1', jrAdmins: ['j1'] })).toEqual({ admins: [], jrAdmins: ['j1'] });
+    expect(adminRosterOf({ admins: 'a1', jrAdmins: ['j1'] })).toEqual({
+      admins: [],
+      jrAdmins: ['j1'],
+    });
   });
 
   it('drops entries that are not strings', () => {

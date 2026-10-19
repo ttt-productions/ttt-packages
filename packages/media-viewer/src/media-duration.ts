@@ -22,7 +22,7 @@ export function resolveInfiniteDuration(
     const finish = (value: number | null) => {
       if (done) return;
       done = true;
-      el.removeEventListener("durationchange", onDurationChange);
+      el.removeEventListener('durationchange', onDurationChange);
       clearTimeout(timer);
       try {
         el.currentTime = 0; // undo the workaround seek
@@ -35,7 +35,7 @@ export function resolveInfiniteDuration(
       if (Number.isFinite(el.duration)) finish(el.duration);
     };
     const timer = setTimeout(() => finish(null), timeoutMs);
-    el.addEventListener("durationchange", onDurationChange);
+    el.addEventListener('durationchange', onDurationChange);
     try {
       el.currentTime = Number.MAX_SAFE_INTEGER;
     } catch {

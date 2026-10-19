@@ -21,8 +21,16 @@ export interface CollectionGroupIndexFacts {
 }
 
 interface IndexesFile {
-  indexes?: Array<{ collectionGroup: string; queryScope: string; fields: Array<{ fieldPath: string }> }>;
-  fieldOverrides?: Array<{ collectionGroup: string; fieldPath: string; indexes?: Array<{ queryScope?: string }> }>;
+  indexes?: Array<{
+    collectionGroup: string;
+    queryScope: string;
+    fields: Array<{ fieldPath: string }>;
+  }>;
+  fieldOverrides?: Array<{
+    collectionGroup: string;
+    fieldPath: string;
+    indexes?: Array<{ queryScope?: string }>;
+  }>;
 }
 
 /** One collection-group query: its raw id argument, the resolved id (null when not static), and its filters. */
@@ -51,7 +59,10 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
     if (ts.isIdentifier(value)) return bindings.get(value.text) ?? null;
     if (ts.isPropertyAccessExpression(value) && ts.isIdentifier(value.expression)) {
       const namespace = core[value.expression.text];
-      const member = namespace && typeof namespace === 'object' ? (namespace as Record<string, unknown>)[value.name.text] : undefined;
+      const member =
+        namespace && typeof namespace === 'object'
+          ? (namespace as Record<string, unknown>)[value.name.text]
+          : undefined;
       return typeof member === 'string' ? member : null;
     }
     return null;
@@ -66,7 +77,11 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
       groupArg = node.arguments[0];
       // Walk up the chain the call heads: `.where(…)` links filter it.
       let link: ts.Node = node;
-      while (ts.isPropertyAccessExpression(link.parent) && ts.isCallExpression(link.parent.parent) && link.parent.parent.expression === link.parent) {
+      while (
+        ts.isPropertyAccessExpression(link.parent) &&
+        ts.isCallExpression(link.parent.parent) &&
+        link.parent.parent.expression === link.parent
+      ) {
         const field = whereField(link.parent.parent);
         if (field) fields.push(field);
         link = link.parent.parent;
@@ -74,7 +89,11 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
     } else if (ts.isIdentifier(callee) && node.arguments.length >= 2) {
       groupArg = node.arguments[1];
       const outer = node.parent;
-      if (ts.isCallExpression(outer) && calleeName(outer) === 'query' && outer.arguments[0] === node) {
+      if (
+        ts.isCallExpression(outer) &&
+        calleeName(outer) === 'query' &&
+        outer.arguments[0] === node
+      ) {
         for (const arg of outer.arguments.slice(1)) {
           const field = ts.isCallExpression(arg) ? whereField(arg) : null;
           if (field) fields.push(field);
@@ -82,7 +101,13 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
       }
     }
     if (!groupArg) return;
-    sites.push({ file: file.path, line: lineOfNode(file, node), argument: groupArg.getText(source), group: resolve(groupArg), fields });
+    sites.push({
+      file: file.path,
+      line: lineOfNode(file, node),
+      argument: groupArg.getText(source),
+      group: resolve(groupArg),
+      fields,
+    });
   });
   return sites;
 }
@@ -93,7 +118,10 @@ export function isIndexed(indexes: IndexesFile, group: string, fields: readonly 
   if (
     unique.length === 1 &&
     (indexes.fieldOverrides ?? []).some(
-      (o) => o.collectionGroup === group && o.fieldPath === unique[0] && (o.indexes ?? []).some((i) => i.queryScope === 'COLLECTION_GROUP'),
+      (o) =>
+        o.collectionGroup === group &&
+        o.fieldPath === unique[0] &&
+        (o.indexes ?? []).some((i) => i.queryScope === 'COLLECTION_GROUP'),
     )
   ) {
     return true;
@@ -106,7 +134,12 @@ export function isIndexed(indexes: IndexesFile, group: string, fields: readonly 
   });
 }
 
-const SCOPE: Scope = { roots: ['functions', 'app'], optionalRoots: ['functions'], kinds: ['code'], tests: false };
+const SCOPE: Scope = {
+  roots: ['functions', 'app'],
+  optionalRoots: ['functions'],
+  kinds: ['code'],
+  tests: false,
+};
 
 export const collectionGroupIndexGuard: GenericGuardDefinition<CollectionGroupIndexFacts> = {
   id: 'firestoreCollectionGroupIndexes',
@@ -117,7 +150,8 @@ export const collectionGroupIndexGuard: GenericGuardDefinition<CollectionGroupIn
     loaderProblem(facts?.coreExports, 'coreExports', problems);
     reviewedProblems(facts?.unresolvable, 'unresolvable', problems, {
       key: 'file',
-      id: (e) => (typeof e.argument === 'string' && e.argument.trim() ? `${e.file} ${e.argument}` : undefined),
+      id: (e) =>
+        typeof e.argument === 'string' && e.argument.trim() ? `${e.file} ${e.argument}` : undefined,
       idNames: 'argument',
     });
     return problems;
@@ -147,7 +181,11 @@ export const collectionGroupIndexGuard: GenericGuardDefinition<CollectionGroupIn
                 const k = key(site.file, site.argument);
                 seen.add(k);
                 if (!reviewed.has(k)) {
-                  findings.push({ file: site.file, line: site.line, detail: `collectionGroup(${site.argument}): the group id does not resolve to a static value` });
+                  findings.push({
+                    file: site.file,
+                    line: site.line,
+                    detail: `collectionGroup(${site.argument}): the group id does not resolve to a static value`,
+                  });
                 }
                 continue;
               }
@@ -165,7 +203,11 @@ export const collectionGroupIndexGuard: GenericGuardDefinition<CollectionGroupIn
             }
           }
           for (const e of facts.unresolvable) {
-            if (!seen.has(key(e.file, e.argument))) findings.push({ file: e.file, detail: `stale unresolvable site: no collectionGroup(${e.argument}) left` });
+            if (!seen.has(key(e.file, e.argument)))
+              findings.push({
+                file: e.file,
+                detail: `stale unresolvable site: no collectionGroup(${e.argument}) left`,
+              });
           }
           return findings;
         },

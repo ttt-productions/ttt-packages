@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ciParityGuard } from '../../src/modules/repo/ci-parity.js';
-import { dependencyOverrideGuard, overrideProblem } from '../../src/modules/repo/dependency-overrides.js';
+import {
+  dependencyOverrideGuard,
+  overrideProblem,
+} from '../../src/modules/repo/dependency-overrides.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
@@ -10,7 +13,10 @@ afterEach(() => repo?.remove());
 
 function readerOver(files: Record<string, string>) {
   repo = tempRepo({ 'src/index.ts': 'export {};', ...files });
-  return createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } } });
+  return createRepoReader({
+    repoRoot: repo.root,
+    roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+  });
 }
 
 const WORKFLOW = [
@@ -59,34 +65,49 @@ describe('the local gate mirrors every check the release workflow runs', () => {
       }),
     );
     expect(await guard.run(contextOf(reader))).toEqual([
-      { file: '.github/workflows/deploy.yml', detail: 'unmirrored CI command: functions :: npm test' },
+      {
+        file: '.github/workflows/deploy.yml',
+        detail: 'unmirrored CI command: functions :: npm test',
+      },
       { file: '(parity map)', detail: '. :: npm ci names no stage and no CI-only reason' },
       { file: '(parity map)', detail: 'stale entry: CI no longer runs . :: npm run e2e' },
     ]);
   });
 
   it('refuses a pattern that is no regular expression, and a missing map loader', () => {
-    expect(ciParityGuard.factProblems({ workflow: 'w.yml', verifyJobPattern: '(', selfMirrored: 'x', parity: undefined as never })).toEqual([
-      'verifyJobPattern is not a regular expression',
-      'parity needs a loader function',
-    ]);
+    expect(
+      ciParityGuard.factProblems({
+        workflow: 'w.yml',
+        verifyJobPattern: '(',
+        selfMirrored: 'x',
+        parity: undefined as never,
+      }),
+    ).toEqual(['verifyJobPattern is not a regular expression', 'parity needs a loader function']);
   });
 });
 
 describe('a dependency override exists exactly while it is needed', () => {
-  const o = { parent: '@firebase/firestore', child: '@grpc/grpc-js', affected: '<1.13.6 || >=1.14.0 <1.14.5' };
+  const o = {
+    parent: '@firebase/firestore',
+    child: '@grpc/grpc-js',
+    affected: '<1.13.6 || >=1.14.0 <1.14.5',
+  };
 
   it('passes an override pinned to a patched range while the parent can still reach an affected version', () => {
     expect(overrideProblem(o, '~1.9.0', '~1.14.5')).toBeNull();
   });
 
   it('FLAGS a redundant override once the parent reaches no affected version, and one whose parent dropped the child', () => {
-    expect(overrideProblem(o, '~1.14.5', '~1.14.5')).toMatch(/reaches no affected version: remove the override/);
+    expect(overrideProblem(o, '~1.14.5', '~1.14.5')).toMatch(
+      /reaches no affected version: remove the override/,
+    );
     expect(overrideProblem(o, undefined, '~1.14.5')).toMatch(/no longer declares @grpc\/grpc-js/);
   });
 
   it('treats a caret range that still spans an affected window as needing the override', () => {
-    expect(overrideProblem(o, '^1.13.6', undefined)).toMatch(/can reach an affected version, and no override pins it/);
+    expect(overrideProblem(o, '^1.13.6', undefined)).toMatch(
+      /can reach an affected version, and no override pins it/,
+    );
   });
 
   it('FLAGS an override that admits an affected version, or is no range at all', () => {
@@ -97,24 +118,52 @@ describe('a dependency override exists exactly while it is needed', () => {
 
   it('reads the manifest and the installed parent through the reader', async () => {
     const reader = readerOver({
-      'package.json': JSON.stringify({ overrides: { '@firebase/firestore': { '@grpc/grpc-js': '~1.14.5' } } }),
-      'node_modules/@firebase/firestore/package.json': JSON.stringify({ dependencies: { '@grpc/grpc-js': '~1.9.0' } }),
+      'package.json': JSON.stringify({
+        overrides: { '@firebase/firestore': { '@grpc/grpc-js': '~1.14.5' } },
+      }),
+      'node_modules/@firebase/firestore/package.json': JSON.stringify({
+        dependencies: { '@grpc/grpc-js': '~1.9.0' },
+      }),
     });
-    const facts = { overrides: [{ ...o, manifest: 'package.json', installedUnder: '', why: 'firestore pins an unpatched grpc line' }] };
+    const facts = {
+      overrides: [
+        {
+          ...o,
+          manifest: 'package.json',
+          installedUnder: '',
+          why: 'firestore pins an unpatched grpc line',
+        },
+      ],
+    };
     const [guard] = dependencyOverrideGuard.build(facts);
     expect(await guard.run(contextOf(reader))).toEqual([]);
   });
 
   it('refuses an override whose affected range is no semver range, or which carries no why', () => {
-    expect(dependencyOverrideGuard.factProblems({ overrides: [{ ...o, affected: 'nope', manifest: 'package.json', installedUnder: '', why: '' }] })).toEqual([
+    expect(
+      dependencyOverrideGuard.factProblems({
+        overrides: [
+          { ...o, affected: 'nope', manifest: 'package.json', installedUnder: '', why: '' },
+        ],
+      }),
+    ).toEqual([
       'overrides entry package.json: @firebase/firestore → @grpc/grpc-js carries no why',
       "overrides entry package.json: @firebase/firestore → @grpc/grpc-js's affected is not a semver range",
     ]);
   });
 
   it('accepts one parent → child override in each manifest that carries it, and refuses a manifest listing it twice', () => {
-    const sharp = { parent: 'miniflare', child: 'sharp', affected: '<0.35.5', installedUnder: '', why: 'the parent pins an affected sharp' };
-    const inEach = ['worker-a/package.json', 'worker-b/package.json'].map((manifest) => ({ ...sharp, manifest }));
+    const sharp = {
+      parent: 'miniflare',
+      child: 'sharp',
+      affected: '<0.35.5',
+      installedUnder: '',
+      why: 'the parent pins an affected sharp',
+    };
+    const inEach = ['worker-a/package.json', 'worker-b/package.json'].map((manifest) => ({
+      ...sharp,
+      manifest,
+    }));
     expect(dependencyOverrideGuard.factProblems({ overrides: inEach })).toEqual([]);
     expect(dependencyOverrideGuard.factProblems({ overrides: [inEach[0], inEach[0]] })).toEqual([
       'overrides lists worker-a/package.json: miniflare → sharp twice',

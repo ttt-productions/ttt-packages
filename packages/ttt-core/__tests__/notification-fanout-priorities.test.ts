@@ -1,5 +1,8 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { NOTIFICATION_FANOUT_PRIORITIES, type NotificationFanoutPriority } from '../src/constants/business-platform.js';
+import {
+  NOTIFICATION_FANOUT_PRIORITIES,
+  type NotificationFanoutPriority,
+} from '../src/constants/business-platform.js';
 import { NotificationFanoutPrioritySchema } from '../src/doc-schemas/notification-ledger.js';
 import { DeadLetteredFanoutJobRowSchema } from '../src/schemas/notification.js';
 
@@ -16,12 +19,17 @@ describe('notification fanout priority tiers', () => {
     for (const value of [-1, 3, 0.5, '0', null]) {
       expect(NotificationFanoutPrioritySchema.safeParse(value).success).toBe(false);
     }
-    expectTypeOf<ReturnType<typeof NotificationFanoutPrioritySchema.parse>>().toEqualTypeOf<NotificationFanoutPriority>();
+    expectTypeOf<
+      ReturnType<typeof NotificationFanoutPrioritySchema.parse>
+    >().toEqualTypeOf<NotificationFanoutPriority>();
   });
 
   it('the Ops Repairs dead-letter row reads the same tiers', () => {
     const priority = DeadLetteredFanoutJobRowSchema.shape.priority;
-    expect(priority.safeParse(NOTIFICATION_FANOUT_PRIORITIES[NOTIFICATION_FANOUT_PRIORITIES.length - 1]).success).toBe(true);
+    expect(
+      priority.safeParse(NOTIFICATION_FANOUT_PRIORITIES[NOTIFICATION_FANOUT_PRIORITIES.length - 1])
+        .success,
+    ).toBe(true);
     expect(priority.safeParse(NOTIFICATION_FANOUT_PRIORITIES.length).success).toBe(false);
   });
 });

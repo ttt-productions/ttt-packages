@@ -4,13 +4,18 @@
 // fixed: `{product}:{env}:channel:{kind}:{id}` for a conversation and `{product}:{env}:inbox:{uid}`
 // for an inbox. The product and environment are the consuming app's (ARCH-201).
 import { CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH, type ChatRoomKind } from './internal-contract.js';
-import { CHAT_ACCOUNT_ID_MAX_LENGTH, ChatConversationRefSchema, type ChatConversationRef } from './realtime-wire.js';
+import {
+  CHAT_ACCOUNT_ID_MAX_LENGTH,
+  ChatConversationRefSchema,
+  type ChatConversationRef,
+} from './realtime-wire.js';
 
 /** The app-supplied prefix of every room address: the product and the deployment environment. */
 export type ChatRoomNamespace = { product: string; env: string };
 
 /** One room: a conversation's room, or one account's inbox. */
-export type ChatRoom = { kind: 'channel'; ref: ChatConversationRef } | { kind: 'inbox'; uid: string };
+export type ChatRoom =
+  { kind: 'channel'; ref: ChatConversationRef } | { kind: 'inbox'; uid: string };
 
 const SEPARATOR = ':';
 const CHANNEL_ROOM: ChatRoomKind = 'channel';
@@ -36,13 +41,20 @@ function isNamespace(namespace: ChatRoomNamespace): boolean {
 
 function assertNamespace(namespace: ChatRoomNamespace): void {
   if (!isNamespace(namespace)) {
-    throw new RangeError('a chat room namespace needs a non-empty product and env, neither holding ":"');
+    throw new RangeError(
+      'a chat room namespace needs a non-empty product and env, neither holding ":"',
+    );
   }
   // The longest prefix is the conversation room's.
   const prefixLength =
-    namespace.product.length + namespace.env.length + CHANNEL_ROOM.length + CONVERSATION_ADDRESS_SEPARATORS;
+    namespace.product.length +
+    namespace.env.length +
+    CHANNEL_ROOM.length +
+    CONVERSATION_ADDRESS_SEPARATORS;
   if (prefixLength > CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH) {
-    throw new RangeError(`a chat room namespace may take at most ${CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH} characters of an address`);
+    throw new RangeError(
+      `a chat room namespace may take at most ${CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH} characters of an address`,
+    );
   }
 }
 
@@ -56,11 +68,15 @@ export function buildChatRoomAddress(namespace: ChatRoomNamespace, room: ChatRoo
   assertNamespace(namespace);
   const { product, env } = namespace;
   if (room.kind === 'inbox') {
-    if (!isInboxUid(room.uid)) throw new RangeError('an inbox address needs a uid that is one segment no longer than an account id');
+    if (!isInboxUid(room.uid))
+      throw new RangeError(
+        'an inbox address needs a uid that is one segment no longer than an account id',
+      );
     return [product, env, INBOX_ROOM, room.uid].join(SEPARATOR);
   }
   const ref = ChatConversationRefSchema.safeParse(room.ref);
-  if (!ref.success) throw new RangeError('a conversation room address needs a valid conversation reference');
+  if (!ref.success)
+    throw new RangeError('a conversation room address needs a valid conversation reference');
   return [product, env, CHANNEL_ROOM, ref.data.kind, ref.data.id].join(SEPARATOR);
 }
 
@@ -70,14 +86,24 @@ export function buildChatRoomAddress(namespace: ChatRoomNamespace, room: ChatRoo
  * conversation's kind never holds `:`, so its id is everything after the fourth `:`, separators
  * included.
  */
-export function parseChatRoomAddress(address: string, namespace: ChatRoomNamespace): ChatRoom | null {
+export function parseChatRoomAddress(
+  address: string,
+  namespace: ChatRoomNamespace,
+): ChatRoom | null {
   if (!isNamespace(namespace)) return null;
   const parts = address.split(SEPARATOR);
-  if (parts.length <= ROOM_PREFIX_PARTS || parts[0] !== namespace.product || parts[1] !== namespace.env) return null;
+  if (
+    parts.length <= ROOM_PREFIX_PARTS ||
+    parts[0] !== namespace.product ||
+    parts[1] !== namespace.env
+  )
+    return null;
   const room = parts[2];
   if (room === INBOX_ROOM) {
     const uid = parts[ROOM_PREFIX_PARTS];
-    return parts.length === ROOM_PREFIX_PARTS + 1 && isInboxUid(uid) ? { kind: 'inbox', uid } : null;
+    return parts.length === ROOM_PREFIX_PARTS + 1 && isInboxUid(uid)
+      ? { kind: 'inbox', uid }
+      : null;
   }
   if (room !== CHANNEL_ROOM || parts.length < ROOM_PREFIX_PARTS + 2) return null;
   const ref = ChatConversationRefSchema.safeParse({

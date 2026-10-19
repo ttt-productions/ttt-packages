@@ -11,21 +11,32 @@ import { viewOfText } from '../../src/reader/view.js';
 import { CORE, fixture, lines, type Fixture } from './fixture.js';
 
 const CORE_FILES: Record<string, string> = {
-  [`${CORE}/kinds.js`]: "export const KIND_VALUES = ['alphaKind', 'betaKind'];\nexport const KindSchema = z.enum(KIND_VALUES);\nexport const LIMIT_MAX = 5;",
+  [`${CORE}/kinds.js`]:
+    "export const KIND_VALUES = ['alphaKind', 'betaKind'];\nexport const KindSchema = z.enum(KIND_VALUES);\nexport const LIMIT_MAX = 5;",
   [`${CORE}/kinds.d.ts`]:
     'export declare const KIND_VALUES: readonly ["alphaKind", "betaKind"];\nexport type Kind = \'alphaKind\' | \'betaKind\';\nexport declare const LIMIT_MAX: 5;',
   [`${CORE}/order.js`]: "export const KIND_ORDER = ['alphaKind', 'betaKind'];",
   // A derived schema: its declaration file spells the members only inside the inferred type.
-  [`${CORE}/derived.js`]: "// 'alphaKind' named in prose\nexport const DerivedSchema = z.object({ kind: KindSchema });",
-  [`${CORE}/derived.d.ts`]: 'export declare const DerivedSchema: z.ZodObject<{ kind: z.ZodEnum<{ alphaKind: "alphaKind" }> }>;',
+  [`${CORE}/derived.js`]:
+    "// 'alphaKind' named in prose\nexport const DerivedSchema = z.object({ kind: KindSchema });",
+  [`${CORE}/derived.d.ts`]:
+    'export declare const DerivedSchema: z.ZodObject<{ kind: z.ZodEnum<{ alphaKind: "alphaKind" }> }>;',
 };
 
-const facts = (overrides: Partial<DefinitionRedeclarationFacts['guardedLiterals'][number]> = {}): DefinitionRedeclarationFacts => ({
+const facts = (
+  overrides: Partial<DefinitionRedeclarationFacts['guardedLiterals'][number]> = {},
+): DefinitionRedeclarationFacts => ({
   guardedLiterals: [
     {
       literal: 'alphaKind',
       owners: [`${CORE}/kinds.js`],
-      allowed: [{ file: `${CORE}/order.js`, declaration: 'KIND_ORDER', why: 'a typed ordering array the compiler checks' }],
+      allowed: [
+        {
+          file: `${CORE}/order.js`,
+          declaration: 'KIND_ORDER',
+          why: 'a typed ordering array the compiler checks',
+        },
+      ],
       ...overrides,
     },
   ],
@@ -50,7 +61,8 @@ describe('guarded core definition members', () => {
     const f = open({
       [`${CORE}/rogue.js`]: "export const ROGUE = 'alphaKind';",
       [`${CORE}/rogue-type.d.ts`]: "export type RogueKind = 'alphaKind' | 'other';",
-      [`${CORE}/order.js`]: "export const KIND_ORDER = ['alphaKind', 'betaKind'];\nexport function pick() {\n  return 'alphaKind';\n}",
+      [`${CORE}/order.js`]:
+        "export const KIND_ORDER = ['alphaKind', 'betaKind'];\nexport function pick() {\n  return 'alphaKind';\n}",
     });
     expect(lines(await f.run(members))).toEqual([
       `${CORE}/order.js:3 — 'alphaKind' re-declared in pick — import it from its owner (${CORE}/kinds.js)`,
@@ -105,7 +117,13 @@ describe('what counts as a member written in code', () => {
       "  return kind === 'chapter' ? kind : 'track';",
       '}',
     ].join('\n');
-    expect(declarationsOf('kinds.ts', text)).toEqual(['QUOTED', 'SubItem', 'SubItemSchema', 'TEMPLATE', 'resolve']);
+    expect(declarationsOf('kinds.ts', text)).toEqual([
+      'QUOTED',
+      'SubItem',
+      'SubItemSchema',
+      'TEMPLATE',
+      'resolve',
+    ]);
   });
 
   it('ignores an identifier key, an interpolated template, prose, and a // inside a string hides nothing', () => {
@@ -123,7 +141,8 @@ describe('what counts as a member written in code', () => {
 describe('app modules and core constants', () => {
   it('passes an import of the constant, a constant of another name, a function-scoped name, and test code', async () => {
     const f = open({
-      'src/lib/uses.ts': "import { KIND_VALUES } from '@fx/core';\nconst KIND_VALUES_SHOWN = KIND_VALUES.length;\nfunction g() {\n  const LIMIT_MAX = 1;\n  return LIMIT_MAX;\n}",
+      'src/lib/uses.ts':
+        "import { KIND_VALUES } from '@fx/core';\nconst KIND_VALUES_SHOWN = KIND_VALUES.length;\nfunction g() {\n  const LIMIT_MAX = 1;\n  return LIMIT_MAX;\n}",
       'src/lib/uses.test.ts': 'const LIMIT_MAX = 5;',
       'src/test/limits.ts': 'export const LIMIT_MAX = 5;',
     });
@@ -142,8 +161,13 @@ describe('app modules and core constants', () => {
   });
 
   it('FLAGS a core that declares no exported constant, since the check would compare nothing', async () => {
-    const f = open({ [`${CORE}/kinds.d.ts`]: 'export type Kind = string;', [`${CORE}/derived.d.ts`]: 'export {};' });
-    expect(lines(await f.run(constants))).toEqual(['(core build) — the installed core declares no exported constant, so the check compares nothing']);
+    const f = open({
+      [`${CORE}/kinds.d.ts`]: 'export type Kind = string;',
+      [`${CORE}/derived.d.ts`]: 'export {};',
+    });
+    expect(lines(await f.run(constants))).toEqual([
+      '(core build) — the installed core declares no exported constant, so the check compares nothing',
+    ]);
   });
 });
 
@@ -191,7 +215,11 @@ describe('the facts', () => {
     expect(
       definitionRedeclarationGuard.factProblems({
         guardedLiterals: [
-          { literal: 'alphaKind', owners: [], allowed: [{ file: 'x.js', declaration: 'X', why: ' ' }] },
+          {
+            literal: 'alphaKind',
+            owners: [],
+            allowed: [{ file: 'x.js', declaration: 'X', why: ' ' }],
+          },
           { literal: 'alphaKind', owners: ['kinds.js'], allowed: [] },
         ],
       }),

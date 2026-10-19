@@ -11,7 +11,10 @@ import {
   MAX_CONVERSATION_FILE_STORAGE_BYTES,
 } from '../src/constants/conversation-files.js';
 import { FullWorkProjectSchema } from '../src/doc-schemas/work-project.js';
-import { GuildInviteConversationSchema, AdminDispatchSchema } from '../src/doc-schemas/messaging.js';
+import {
+  GuildInviteConversationSchema,
+  AdminDispatchSchema,
+} from '../src/doc-schemas/messaging.js';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 
 const GIB = 1024 * 1024 * 1024;
@@ -80,8 +83,14 @@ describe('grant-minting and operator step-up buckets (BACKEND-013)', () => {
     // admin actions it unlocks, and tighter than the general sensitive-action budget the finding
     // proposed reusing (SENSITIVE_ACTION would have allowed 30-60 guesses an hour).
     for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
-      const { OPERATOR_STEP_UP, SENSITIVE_ACTION, ADMIN_TASK, MODERATION, BAN_ACTION, APPEAL_REVIEW } =
-        limits.rateLimits;
+      const {
+        OPERATOR_STEP_UP,
+        SENSITIVE_ACTION,
+        ADMIN_TASK,
+        MODERATION,
+        BAN_ACTION,
+        APPEAL_REVIEW,
+      } = limits.rateLimits;
       expect(OPERATOR_STEP_UP).toEqual({ maxRequests: 10, window: '1 h' });
       for (const guarded of [SENSITIVE_ACTION, ADMIN_TASK, MODERATION, BAN_ACTION, APPEAL_REVIEW]) {
         expect(guarded.window).toBe(OPERATOR_STEP_UP.window);
@@ -91,7 +100,9 @@ describe('grant-minting and operator step-up buckets (BACKEND-013)', () => {
   });
 
   it('OPERATOR_STEP_UP is mode-INVARIANT — a security control never loosens at the flip', () => {
-    expect(FULL_LIMITS.rateLimits.OPERATOR_STEP_UP).toEqual(CHARTER_LIMITS.rateLimits.OPERATOR_STEP_UP);
+    expect(FULL_LIMITS.rateLimits.OPERATOR_STEP_UP).toEqual(
+      CHARTER_LIMITS.rateLimits.OPERATOR_STEP_UP,
+    );
   });
 });
 
@@ -105,9 +116,9 @@ describe('countCapReachedMessage — the one owner of cap copy', () => {
   });
 
   it('appends the optional action hint as a trailing sentence', () => {
-    expect(countCapReachedMessage('This conversation', 10, 'files', 'Delete a file to add another.')).toMatch(
-      / files — caps expand when Charter Season ends\. Delete a file to add another\.$/,
-    );
+    expect(
+      countCapReachedMessage('This conversation', 10, 'files', 'Delete a file to add another.'),
+    ).toMatch(/ files — caps expand when Charter Season ends\. Delete a file to add another\.$/);
   });
 
   it('interpolates subject, limit, and noun without restating any canonical value', () => {
@@ -222,10 +233,16 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
     expect(parsed.success).toBe(true);
     for (const field of COUNTER_FIELDS) {
       expect(parsed.success && parsed.data[field]).toBeUndefined();
-      expect(GuildInviteConversationSchema.safeParse({ ...invite, [field]: 1234 }).success).toBe(true);
-      expect(GuildInviteConversationSchema.safeParse({ ...invite, [field]: 'lots' }).success).toBe(false);
+      expect(GuildInviteConversationSchema.safeParse({ ...invite, [field]: 1234 }).success).toBe(
+        true,
+      );
+      expect(GuildInviteConversationSchema.safeParse({ ...invite, [field]: 'lots' }).success).toBe(
+        false,
+      );
     }
-    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('chatAttachmentBytesUsed');
+    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain(
+      'chatAttachmentBytesUsed',
+    );
   });
 
   it('AdminDispatch carries the same four counters — one counter contract per conversation parent', () => {
@@ -241,7 +258,10 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
   it('AdminDispatch partyKind is REQUIRED — the personal-threads query and party-aware rules depend on it', () => {
     const { partyKind: _partyKind, ...withoutParty } = dispatch;
     expect(AdminDispatchSchema.safeParse(withoutParty).success).toBe(false);
-    expect(AdminDispatchSchema.safeParse({ ...dispatch, partyKind: 'workProject', workProjectId: 'wp1' }).success).toBe(true);
+    expect(
+      AdminDispatchSchema.safeParse({ ...dispatch, partyKind: 'workProject', workProjectId: 'wp1' })
+        .success,
+    ).toBe(true);
     expect(AdminDispatchSchema.safeParse({ ...dispatch, partyKind: 'guild' }).success).toBe(false);
   });
 });

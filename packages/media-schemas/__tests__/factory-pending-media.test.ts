@@ -244,7 +244,10 @@ describe('createPendingMediaSchemas', () => {
         schemas.ArchivedPendingMediaQuarantinedSchema.parse({ ...quarantined, parseFailed: false }),
       ).toThrow();
       expect(() =>
-        schemas.ArchivedPendingMediaQuarantinedSchema.parse({ parseFailed: true, archivedAt: 2000 }),
+        schemas.ArchivedPendingMediaQuarantinedSchema.parse({
+          parseFailed: true,
+          archivedAt: 2000,
+        }),
       ).toThrow();
     });
 
@@ -277,7 +280,10 @@ describe('createPendingMediaSchemas', () => {
 
     it('ArchivedPendingMediaDocSchema rejects a raw unparseable doc NOT wrapped in the quarantine shape', () => {
       expect(() =>
-        schemas.ArchivedPendingMediaDocSchema.parse({ fileOrigin: 'retired-origin', status: 'completed' }),
+        schemas.ArchivedPendingMediaDocSchema.parse({
+          fileOrigin: 'retired-origin',
+          status: 'completed',
+        }),
       ).toThrow();
     });
   });

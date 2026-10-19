@@ -22,7 +22,10 @@ const DEFAULT_PAGE_SIZE = 10;
  * Return type for useFirestorePaginated hook. `data` is the displayed page's rows; the
  * page's cache entry (rows, cursor, has-more) lives at `paginatedPageKey(queryKey, page)`.
  */
-export type UseFirestorePaginatedResult<T> = Omit<UseQueryResult<PaginatedPage<WithId<T>>, Error>, 'data'> & {
+export type UseFirestorePaginatedResult<T> = Omit<
+  UseQueryResult<PaginatedPage<WithId<T>>, Error>,
+  'data'
+> & {
   data: WithId<T>[] | undefined;
   page: number;
   pageSize: number;
@@ -143,7 +146,8 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
   const outOfChain =
     page > 1 &&
     cachedEntry !== undefined &&
-    (previousPage.data === undefined || cachedEntry.after !== (previousPage.data.cursor?.id ?? null));
+    (previousPage.data === undefined ||
+      cachedEntry.after !== (previousPage.data.cursor?.id ?? null));
   const { refetch, isFetching } = queryResult;
   useEffect(() => {
     if (enabled && outOfChain && !isFetching) void refetch();
@@ -175,7 +179,9 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
 
   return {
     ...queryResult,
-    ...(outOfChain ? { isLoading: true, isPending: true, isSuccess: false, status: 'pending' as const } : {}),
+    ...(outOfChain
+      ? { isLoading: true, isPending: true, isSuccess: false, status: 'pending' as const }
+      : {}),
     data: entry?.items,
     page,
     pageSize,

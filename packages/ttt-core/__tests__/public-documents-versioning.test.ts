@@ -30,7 +30,10 @@ const DMCA = SPECIAL_DOCS.DMCA_POLICY;
 const TAKE_IT_DOWN = SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY;
 
 const accept = (block: Parameters<typeof publicDocumentAcceptanceSummary>[0]) =>
-  publicDocumentAcceptanceSummary(block, { acceptedAt: 1, legalReviewNoticeRevision: 'founder-note-v1' });
+  publicDocumentAcceptanceSummary(block, {
+    acceptedAt: 1,
+    legalReviewNoticeRevision: 'founder-note-v1',
+  });
 
 describe('planPublicDocumentRelease — the one version-assignment rule', () => {
   it('first release of a document is v1; a required release raises the level to 1', () => {
@@ -76,7 +79,10 @@ describe('planPublicDocumentRelease — the one version-assignment rule', () => 
     const snapshot = JSON.stringify(a.block);
     planPublicDocumentRelease(a.block, [TERMS, PLANS], true);
     expect(JSON.stringify(a.block)).toBe(snapshot);
-    expect(EMPTY_PUBLIC_DOCUMENT_VERSION_BLOCK).toEqual({ documents: {}, requiredAcceptanceLevel: 0 });
+    expect(EMPTY_PUBLIC_DOCUMENT_VERSION_BLOCK).toEqual({
+      documents: {},
+      requiredAcceptanceLevel: 0,
+    });
   });
 
   it('refuses an empty or duplicated document list', () => {
@@ -100,7 +106,9 @@ describe('re-acceptance: who is asked, and what they are shown', () => {
     const quiet = planPublicDocumentRelease(launch.block, [PRIVACY], false);
     expect(isPublicDocumentAcceptanceRequired(quiet.block, user)).toBe(false);
     // Not prompted — but the quiet change is still newer than what they accepted.
-    expect(changedPublicDocuments(quiet.block, user)).toEqual([{ documentId: PRIVACY, version: 2 }]);
+    expect(changedPublicDocuments(quiet.block, user)).toEqual([
+      { documentId: PRIVACY, version: 2 },
+    ]);
 
     const required = planPublicDocumentRelease(quiet.block, [TERMS], true);
     expect(isPublicDocumentAcceptanceRequired(required.block, user)).toBe(true);
@@ -141,11 +149,16 @@ describe('re-acceptance: who is asked, and what they are shown', () => {
   it('a person with no summary is at level 0 and has accepted nothing', () => {
     const r1 = planPublicDocumentRelease(undefined, [TERMS], true);
     expect(isPublicDocumentAcceptanceRequired(r1.block, undefined)).toBe(true);
-    expect(changedPublicDocuments(r1.block, undefined)).toEqual([{ documentId: TERMS, version: 1 }]);
+    expect(changedPublicDocuments(r1.block, undefined)).toEqual([
+      { documentId: TERMS, version: 1 },
+    ]);
   });
 
   it('first-admin bootstrap: registering before any release records nothing and is never prompted', () => {
-    const summary = publicDocumentAcceptanceSummary(undefined, { acceptedAt: 1, legalReviewNoticeRevision: null });
+    const summary = publicDocumentAcceptanceSummary(undefined, {
+      acceptedAt: 1,
+      legalReviewNoticeRevision: null,
+    });
     expect(summary).toEqual({ documentVersions: {}, acceptedLevel: 0, acceptedAt: 1 });
     expect(isPublicDocumentAcceptanceRequired(undefined, summary)).toBe(false);
   });
@@ -158,7 +171,9 @@ describe('re-acceptance: who is asked, and what they are shown', () => {
     expect(samePublicDocumentVersions(shown, changedPublicDocuments(r2.block, user))).toBe(true);
 
     const raced = planPublicDocumentRelease(r2.block, [RULES], false);
-    expect(samePublicDocumentVersions(shown, changedPublicDocuments(raced.block, user))).toBe(false);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(raced.block, user))).toBe(
+      false,
+    );
   });
 });
 
@@ -179,9 +194,12 @@ describe('samePublicDocumentVersions', () => {
   });
 
   it('distinguishes versions, extra documents, and duplicates', () => {
-    expect(samePublicDocumentVersions([{ documentId: TERMS, version: 2 }], [{ documentId: TERMS, version: 3 }])).toBe(
-      false,
-    );
+    expect(
+      samePublicDocumentVersions(
+        [{ documentId: TERMS, version: 2 }],
+        [{ documentId: TERMS, version: 3 }],
+      ),
+    ).toBe(false);
     expect(samePublicDocumentVersions([], [{ documentId: TERMS, version: 1 }])).toBe(false);
     expect(
       samePublicDocumentVersions(
@@ -201,7 +219,10 @@ describe('samePublicDocumentVersions', () => {
 describe('squareStreetzAgreementsSatisfied — the one Square agreements rule', () => {
   // Rules v3 is current; v2 is the latest version a release required acceptance of.
   const block: PublicDocumentVersionBlock = {
-    documents: { [RULES]: { currentVersion: 3, requiredVersion: 2 }, [TERMS]: { currentVersion: 5, requiredVersion: 5 } },
+    documents: {
+      [RULES]: { currentVersion: 3, requiredVersion: 2 },
+      [TERMS]: { currentVersion: 5, requiredVersion: 5 },
+    },
     requiredAcceptanceLevel: 4,
   };
   const recorded = (version: number | undefined) => ({
@@ -216,7 +237,9 @@ describe('squareStreetzAgreementsSatisfied — the one Square agreements rule', 
   });
 
   it('refuses a missing acceptance date', () => {
-    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsVersion: 3 }, block)).toBe(false);
+    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsVersion: 3 }, block)).toBe(
+      false,
+    );
   });
 
   it('refuses a missing Rules version', () => {
@@ -238,7 +261,9 @@ describe('squareStreetzAgreementsSatisfied — the one Square agreements rule', 
   it('with no version block, needs only a recorded date and version (0 is the pre-release sentinel)', () => {
     expect(squareStreetzAgreementsSatisfied(recorded(0), undefined)).toBe(true);
     expect(squareStreetzAgreementsSatisfied(recorded(undefined), undefined)).toBe(false);
-    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsVersion: 0 }, undefined)).toBe(false);
+    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsVersion: 0 }, undefined)).toBe(
+      false,
+    );
   });
 
   it('with a block that has no Rules entry, needs only a recorded date and version', () => {
@@ -269,7 +294,11 @@ describe('current projection and the unchanged-draft rule', () => {
     expect(projection).toEqual({ ...content, version: 4, lastUpdated: 99 });
     expect(PUBLIC_DOCUMENT_PROJECTIONS[TERMS].schema.safeParse(projection).success).toBe(true);
 
-    const rules = buildPublicDocumentProjection<typeof RULES>({ rules: [], agreements: { points: [] } }, 2, 99);
+    const rules = buildPublicDocumentProjection<typeof RULES>(
+      { rules: [], agreements: { points: [] } },
+      2,
+      99,
+    );
     expect(PUBLIC_DOCUMENT_PROJECTIONS[RULES].schema.parse(rules)).toEqual(rules);
   });
 
@@ -282,9 +311,14 @@ describe('current projection and the unchanged-draft rule', () => {
       groups: [{ order: 0, name: 'G', id: 'g', intention: undefined }],
       plans: [{ order: 0, groupId: 'g', description: 'D', title: 'T', id: 'p' }],
     };
-    const edited = { ...a, plans: [{ id: 'p', title: 'T', description: 'D!', groupId: 'g', order: 0 }] };
+    const edited = {
+      ...a,
+      plans: [{ id: 'p', title: 'T', description: 'D!', groupId: 'g', order: 0 }],
+    };
     expect(publicDocumentContentEquals<typeof PLANS>(a, reordered)).toBe(true);
     expect(publicDocumentContentEquals<typeof PLANS>(a, edited)).toBe(false);
-    expect(publicDocumentContentEquals<typeof PLANS>(a, { ...a, plans: [...a.plans, ...a.plans] })).toBe(false);
+    expect(
+      publicDocumentContentEquals<typeof PLANS>(a, { ...a, plans: [...a.plans, ...a.plans] }),
+    ).toBe(false);
   });
 });

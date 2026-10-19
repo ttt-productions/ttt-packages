@@ -44,9 +44,15 @@ describe('keys.user', () => {
 
 describe('keys scopes', () => {
   const scopes = [
-    'follows', 'entities', 'messages',
-    'admin', 'chat', 'notifications', 'shortLinks',
-    'mentions', 'feedback',
+    'follows',
+    'entities',
+    'messages',
+    'admin',
+    'chat',
+    'notifications',
+    'shortLinks',
+    'mentions',
+    'feedback',
   ] as const;
 
   for (const scope of scopes) {

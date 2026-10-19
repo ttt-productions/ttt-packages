@@ -4,11 +4,21 @@ import { useRealtimeChatMessages } from '../../src/realtime/useRealtimeChatMessa
 import { createRealtimeChatClient, type RealtimeChatClient } from '../../src/realtime/transport.js';
 import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
 import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
-import { createMockSocketHarness, createFakeClock, type MockSocketHarness, type FakeClock } from './mock-socket.js';
+import {
+  createMockSocketHarness,
+  createFakeClock,
+  type MockSocketHarness,
+  type FakeClock,
+} from './mock-socket.js';
 
 const CHANNEL_REF: ChatConversationRef = { kind: 'room', id: 'wp1/ch1' };
 
-function makeClient(uid: string, harness: MockSocketHarness, clock: FakeClock, grant: string): RealtimeChatClient {
+function makeClient(
+  uid: string,
+  harness: MockSocketHarness,
+  clock: FakeClock,
+  grant: string,
+): RealtimeChatClient {
   return createRealtimeChatClient({
     endpoint: 'wss://chat.example',
     channelRef: CHANNEL_REF,
@@ -83,7 +93,9 @@ describe('useRealtimeChatMessages', () => {
     expect(result.current.isInitialLoading).toBe(true);
 
     await act(async () => {
-      harness.last().serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
+      harness
+        .last()
+        .serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
     });
     // A loaded, authoritative empty chat — not an eternal loader. allowed stays true.
     expect(result.current.isInitialLoading).toBe(false);
@@ -161,9 +173,12 @@ describe('useRealtimeChatMessages', () => {
     await act(async () => {
       await clientA.connect();
     });
-    const { result, rerender } = renderHook(({ c }: { c: RealtimeChatClient }) => useRealtimeChatMessages(c), {
-      initialProps: { c: clientA },
-    });
+    const { result, rerender } = renderHook(
+      ({ c }: { c: RealtimeChatClient }) => useRealtimeChatMessages(c),
+      {
+        initialProps: { c: clientA },
+      },
+    );
     await act(async () => {
       harness.last().serverOpen();
     });

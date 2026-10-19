@@ -236,7 +236,9 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
       queryFn: async ({ signal }: { signal: AbortSignal }): Promise<T | null> => {
         const loader = getDocLoader(queryClient, db, collectionPath);
         const loaded =
-          transport === 'get' ? await loader.loadOne(id, signal) : await loader.loadBatched(id, signal);
+          transport === 'get'
+            ? await loader.loadOne(id, signal)
+            : await loader.loadBatched(id, signal);
         // If a shared listener took ownership of this key while the read was in flight, the
         // listener's value is the newer truth — `onSnapshot` will not re-emit until the doc
         // changes, so returning the read result here would leave a stale value stuck. A listener
@@ -281,7 +283,9 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
           setSnapshotVersion((version) => version + 1);
         },
         onError: (error) =>
-          setSubscribeErrors((errors) => (errors[id] === error ? errors : { ...errors, [id]: error })),
+          setSubscribeErrors((errors) =>
+            errors[id] === error ? errors : { ...errors, [id]: error },
+          ),
       }),
     );
     return () => {
@@ -342,7 +346,11 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
       (subscribe ? subscribeErrors[id] : undefined) ??
       listenerErrorOf(queryClient, queryKeyPrefix, id) ??
       undefined;
-    if (result && (result.isFetching || result.isPaused) && result.errorUpdatedAt > result.dataUpdatedAt) {
+    if (
+      result &&
+      (result.isFetching || result.isPaused) &&
+      result.errorUpdatedAt > result.dataUpdatedAt
+    ) {
       failedReadsRunning = true;
     }
     const retryState = retryStates[index];

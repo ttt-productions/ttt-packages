@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { ClientContextSchema, ClientMediaClaimSchema } from "@ttt-productions/media-schemas";
-import { FileOriginSchema } from "./file-origin.js";
+import { z } from 'zod';
+import { ClientContextSchema, ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
+import { FileOriginSchema } from './file-origin.js';
 
 export const StartUploadRequestSchema = z
   .object({

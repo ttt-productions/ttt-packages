@@ -1,5 +1,5 @@
-import type { DocumentReference, Firestore, WriteBatch } from "firebase-admin/firestore";
-import { chunk } from "../utils/chunk.js";
+import type { DocumentReference, Firestore, WriteBatch } from 'firebase-admin/firestore';
+import { chunk } from '../utils/chunk.js';
 
 /**
  * The minimal create-only write surface shared by `WriteBatch`, `Transaction`, and any test
@@ -37,7 +37,7 @@ export async function commitInBatches<T>(
   opts: {
     batchSize?: number;
     apply: BatchApplyFn<T>;
-  }
+  },
 ): Promise<CommitInBatchesResult> {
   const batchSize = opts.batchSize ?? 450;
   const groups = chunk(items, batchSize);

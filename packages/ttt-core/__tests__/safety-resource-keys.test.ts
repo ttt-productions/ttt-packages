@@ -54,7 +54,9 @@ describe('storageObjectResourceKey', () => {
     const k = storageObjectResourceKey('my-bucket', 'uploads/a/b', 123);
     expect(k.resourceType).toBe('storageObject');
     expect(k.resourceId).toBe('my-bucket/uploads/a/b');
-    expect(k.canonicalResourceKey).toBe(`${KEY}${SEP}storageObject${SEP}my-bucket${SEP}uploads/a/b${SEP}123`);
+    expect(k.canonicalResourceKey).toBe(
+      `${KEY}${SEP}storageObject${SEP}my-bucket${SEP}uploads/a/b${SEP}123`,
+    );
     expect(k.resourceKeyHash).toBe(
       '55e65ca5b3f4aae03a264dc3c61d6a13b1cbfab4808e03e41eb6a381d48677cd',
     );

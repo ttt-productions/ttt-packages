@@ -102,8 +102,13 @@ describe('audit type catalog', () => {
     const actor: TTTAuditActor = { uid: 'u1', isAdmin: false, actorMode: 'guildmateUser' };
     expectTypeOf(actor).toMatchTypeOf<TTTAuditActor>();
 
-    // @ts-expect-error — a guildmateUser actor must not carry a systemRole (non-admin mode).
-    const spurious: TTTAuditActor = { uid: 'u1', isAdmin: false, actorMode: 'guildmateUser', systemRole: 'admin' };
+    const spurious: TTTAuditActor = {
+      uid: 'u1',
+      isAdmin: false,
+      actorMode: 'guildmateUser',
+      // @ts-expect-error — a guildmateUser actor must not carry a systemRole (non-admin mode).
+      systemRole: 'admin',
+    };
     void spurious;
   });
 
@@ -157,8 +162,13 @@ describe('audit type catalog', () => {
     // @ts-expect-error — an admin-mode actor without systemRole is unrepresentable.
     const missingRole: TTTAuditActor = { uid: 'admin2', isAdmin: true, actorMode: 'adminReview' };
 
-    // @ts-expect-error — a non-admin actor must not carry a systemRole.
-    const spuriousRole: TTTAuditActor = { uid: 'u2', isAdmin: false, actorMode: 'user', systemRole: 'admin' };
+    const spuriousRole: TTTAuditActor = {
+      uid: 'u2',
+      isAdmin: false,
+      actorMode: 'user',
+      // @ts-expect-error — a non-admin actor must not carry a systemRole.
+      systemRole: 'admin',
+    };
 
     void missingRole;
     void spuriousRole;
@@ -266,15 +276,27 @@ describe('the catalog names only events something writes', () => {
   });
 
   it('keeps the child-safety events something writes, and the two the legal-process intake owes', () => {
-    const written: AuditEventType[] = ['childSafety.holdReleased', 'childSafety.quarantineCompleted'];
-    const owedByLegalProcessIntake: AuditEventType[] = ['childSafety.legalProcessRecorded', 'childSafety.evidenceDisposed'];
+    const written: AuditEventType[] = [
+      'childSafety.holdReleased',
+      'childSafety.quarantineCompleted',
+    ];
+    const owedByLegalProcessIntake: AuditEventType[] = [
+      'childSafety.legalProcessRecorded',
+      'childSafety.evidenceDisposed',
+    ];
     // @ts-expect-error — nothing records a hold placement as an event of its own.
     const holdPlaced: AuditEventType = 'childSafety.holdPlaced';
     // @ts-expect-error — nothing records an account-action reversal.
     const accountActionReverted: AuditEventType = 'childSafety.accountActionReverted';
     // @ts-expect-error — the evidence manifest is itself the chain-of-custody record.
     const manifestCreated: AuditEventType = 'childSafety.evidenceManifestCreated';
-    expect([...written, ...owedByLegalProcessIntake, holdPlaced, accountActionReverted, manifestCreated]).toHaveLength(7);
+    expect([
+      ...written,
+      ...owedByLegalProcessIntake,
+      holdPlaced,
+      accountActionReverted,
+      manifestCreated,
+    ]).toHaveLength(7);
   });
 
   it('keeps the NCII intake event, with no event for a step nothing records', () => {
@@ -289,7 +311,14 @@ describe('the catalog names only events something writes', () => {
     const hashBlockReversed: AuditEventType = 'ncii.hashBlockReversed';
     // @ts-expect-error — nothing records this step.
     const policyConfigUpdated: AuditEventType = 'ncii.policyConfigUpdated';
-    expect([received, scanMatch, completeness, supplemented, hashBlockReversed, policyConfigUpdated]).toHaveLength(6);
+    expect([
+      received,
+      scanMatch,
+      completeness,
+      supplemented,
+      hashBlockReversed,
+      policyConfigUpdated,
+    ]).toHaveLength(6);
   });
 
   it('has no reviewer-capability grant or revocation events — nothing records either', () => {

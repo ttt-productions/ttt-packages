@@ -20,11 +20,15 @@ describe('off-TTT craft refusal copy', () => {
 describe('craft kinds blocked at launch — one owner', () => {
   it('blocks exactly the off-TTT kind, with its refusal copy', () => {
     expect(BLOCKED_CRAFT_SKILL_KINDS).toEqual(['mimicOffTtt']);
-    expect(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES.mimicOffTtt).toBe(CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE);
+    expect(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES.mimicOffTtt).toBe(
+      CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE,
+    );
   });
 
   it('derives the blocked set from the refusal copy, so every blocked kind has non-empty copy', () => {
-    expect([...BLOCKED_CRAFT_SKILL_KINDS].sort()).toEqual(Object.keys(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES).sort());
+    expect([...BLOCKED_CRAFT_SKILL_KINDS].sort()).toEqual(
+      Object.keys(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES).sort(),
+    );
     for (const kind of BLOCKED_CRAFT_SKILL_KINDS) {
       expect(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES[kind].length, kind).toBeGreaterThan(0);
     }
@@ -39,14 +43,18 @@ describe('craft kinds blocked at launch — one owner', () => {
 
   it('isBlockedCraftSkillKind answers for every kind and narrows to index the copy', () => {
     for (const kind of CraftSkillKindSchema.options) {
-      expect(isBlockedCraftSkillKind(kind), kind).toBe(BLOCKED_CRAFT_SKILL_KINDS.includes(kind as BlockedCraftSkillKind));
+      expect(isBlockedCraftSkillKind(kind), kind).toBe(
+        BLOCKED_CRAFT_SKILL_KINDS.includes(kind as BlockedCraftSkillKind),
+      );
     }
     expect(isBlockedCraftSkillKind('original')).toBe(false);
     expect(isBlockedCraftSkillKind('mimicOnTtt')).toBe(false);
     const kind: CraftSkillKind = 'mimicOffTtt';
     if (isBlockedCraftSkillKind(kind)) {
       expectTypeOf(kind).toEqualTypeOf<BlockedCraftSkillKind>();
-      expect(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES[kind]).toBe(CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE);
+      expect(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES[kind]).toBe(
+        CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE,
+      );
     } else {
       throw new Error('mimicOffTtt must be blocked');
     }

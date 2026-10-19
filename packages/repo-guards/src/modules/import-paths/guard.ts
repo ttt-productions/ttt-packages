@@ -15,11 +15,17 @@ export interface ImportPathFacts {
   exceptions: ReadonlyArray<{ file: string; why: string }>;
 }
 
-const SCOPE: Scope = { roots: ['app', 'functions'], kinds: ['code'], tests: true, optionalRoots: ['functions'] };
+const SCOPE: Scope = {
+  roots: ['app', 'functions'],
+  kinds: ['code'],
+  tests: true,
+  optionalRoots: ['functions'],
+};
 
 function readModules(files: ReturnType<RepoReader['files']>) {
   const modules = new Map<string, { text: string; sourceFile: import('typescript').SourceFile }>();
-  for (const file of files) modules.set(file.path, { text: file.text, sourceFile: file.sourceFile });
+  for (const file of files)
+    modules.set(file.path, { text: file.text, sourceFile: file.sourceFile });
   return modules;
 }
 
@@ -72,7 +78,10 @@ export const importPathGuard: GenericGuardDefinition<ImportPathFacts> = {
 };
 
 /** Report-only: folder index members nothing outside the folder imports. Never a failure. */
-export function unusedIndexMembers(reader: RepoReader, facts: ImportPathFacts): Array<{ file: string; unused: string[] }> {
+export function unusedIndexMembers(
+  reader: RepoReader,
+  facts: ImportPathFacts,
+): Array<{ file: string; unused: string[] }> {
   return findUnusedIndexMembers({
     files: readModules(reader.files(SCOPE)),
     roots: analyzedRoots(reader),

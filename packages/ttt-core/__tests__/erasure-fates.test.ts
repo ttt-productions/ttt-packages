@@ -12,7 +12,9 @@ const fatesOf = (path: string): readonly string[] =>
 
 describe('erasure fate declaration', () => {
   it('declares a fate for every registered collection path, and only those', () => {
-    expect(Object.keys(ERASURE_FATES_BY_COLLECTION_PATH).sort()).toEqual(Object.keys(COLLECTION_SCHEMAS).sort());
+    expect(Object.keys(ERASURE_FATES_BY_COLLECTION_PATH).sort()).toEqual(
+      Object.keys(COLLECTION_SCHEMAS).sort(),
+    );
   });
 
   it('declares at least one known fate per path, each at most once', () => {
@@ -31,10 +33,12 @@ describe('erasure fate declaration', () => {
 
   it("deletes the Playbill data, the like history, own-thread files, and an ordinary report's submission record", () => {
     expect(fatesOf('userProfiles/{userId}/privateData/hallLibraryPreferences')).toEqual(['delete']);
-    expect(fatesOf('userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}')).toEqual(['delete']);
-    expect(fatesOf('pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}')).toContain(
-      'delete',
-    );
+    expect(
+      fatesOf('userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}'),
+    ).toEqual(['delete']);
+    expect(
+      fatesOf('pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}'),
+    ).toContain('delete');
     expect(fatesOf('eventProvenance/{eventId}')).toEqual(['delete', 'retain']);
   });
 
@@ -49,7 +53,8 @@ describe('erasure fate declaration', () => {
     expect(deleted).toContain('pendingAdminDispatches/{adminDispatchId}');
     expect(deleted).not.toContain('auditEvents/{eventId}');
     expect(collectionPathsWithErasureFate('anonymize')).toContain('publicUsers/{uid}');
-    for (const path of collectionPathsWithErasureFate('none')) expect(fatesOf(path)).toEqual(['none']);
+    for (const path of collectionPathsWithErasureFate('none'))
+      expect(fatesOf(path)).toEqual(['none']);
   });
 });
 
@@ -57,27 +62,38 @@ describe('support-thread erasure fate', () => {
   const erased = 'erased-uid';
 
   it('deletes a user-party thread the member started', () => {
-    expect(adminDispatchErasureFate({ partyKind: 'user', initiatedBy: 'user', userId: erased }, erased)).toBe('delete');
+    expect(
+      adminDispatchErasureFate({ partyKind: 'user', initiatedBy: 'user', userId: erased }, erased),
+    ).toBe('delete');
   });
 
   it("keeps another member's thread the erased account took part in — an erased admin's replies never delete it", () => {
     expect(
-      adminDispatchErasureFate({ partyKind: 'user', initiatedBy: 'user', userId: 'other-member' }, erased),
+      adminDispatchErasureFate(
+        { partyKind: 'user', initiatedBy: 'user', userId: 'other-member' },
+        erased,
+      ),
     ).toBe('anonymize');
   });
 
   it('keeps a thread the admin team started to the member, showing them as Former Member', () => {
-    expect(adminDispatchErasureFate({ partyKind: 'user', initiatedBy: 'admin', userId: erased }, erased)).toBe(
-      'anonymize',
-    );
+    expect(
+      adminDispatchErasureFate({ partyKind: 'user', initiatedBy: 'admin', userId: erased }, erased),
+    ).toBe('anonymize');
   });
 
   it('keeps a Work thread the member started, showing them as Former Member', () => {
     expect(
-      adminDispatchErasureFate({ partyKind: 'workProject', initiatedBy: 'user', userId: erased }, erased),
+      adminDispatchErasureFate(
+        { partyKind: 'workProject', initiatedBy: 'user', userId: erased },
+        erased,
+      ),
     ).toBe('anonymize');
     expect(
-      adminDispatchErasureFate({ partyKind: 'workProject', initiatedBy: 'admin', userId: erased }, erased),
+      adminDispatchErasureFate(
+        { partyKind: 'workProject', initiatedBy: 'admin', userId: erased },
+        erased,
+      ),
     ).toBe('anonymize');
   });
 });
@@ -91,7 +107,9 @@ describe('pending-media rows', () => {
 
 describe('surfaces another party or a retained record depends on', () => {
   it('removes the member from a shared suggestion and keeps the suggestion', () => {
-    expect(fatesOf('feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}')).toEqual(['anonymize']);
+    expect(fatesOf('feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}')).toEqual([
+      'anonymize',
+    ]);
   });
 
   it('keeps a Hall change request and a refund request with the member as an account id', () => {
@@ -99,14 +117,13 @@ describe('surfaces another party or a retained record depends on', () => {
     expect(fatesOf('pledgeRefundRequests/{requestId}')).toEqual(['retain']);
   });
 
-  it('deletes the files the member uploaded in an invite conversation and keeps the other party\'s', () => {
-    expect(fatesOf('guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}')).toEqual([
-      'delete',
-      'retain',
-    ]);
+  it("deletes the files the member uploaded in an invite conversation and keeps the other party's", () => {
+    expect(
+      fatesOf('guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}'),
+    ).toEqual(['delete', 'retain']);
   });
 
-  it('deletes every notification sent to the member and keeps another recipient\'s that names them', () => {
+  it("deletes every notification sent to the member and keeps another recipient's that names them", () => {
     for (const path of [
       'activeUserNotifications/{notificationId}',
       'pendingNotifications/{notificationId}',
@@ -114,12 +131,14 @@ describe('surfaces another party or a retained record depends on', () => {
     ]) {
       expect(fatesOf(path), path).toEqual(['delete', 'retain']);
     }
-    expect(fatesOf('userProfiles/{userId}/notificationHistory/{notificationId}')).toEqual(['delete']);
+    expect(fatesOf('userProfiles/{userId}/notificationHistory/{notificationId}')).toEqual([
+      'delete',
+    ]);
     expect(fatesOf('notificationArchiveAllJobs/{jobId}')).toEqual(['delete']);
     expect(fatesOf('activeAdminNotifications/{notificationId}')).toEqual(['retain']);
   });
 
-  it('deletes an admin\'s step-up security record', () => {
+  it("deletes an admin's step-up security record", () => {
     expect(fatesOf('operatorStepUp/{uid}')).toEqual(['delete']);
   });
 });
@@ -153,7 +172,7 @@ describe('work that would otherwise act for the erased account after the scrub',
     expect(fatesOf('chatMessageOutbox/{commandId}')).toEqual(['delete', 'retain']);
   });
 
-  it('deletes the member\'s chat membership projections and removes an erased admin from the roster', () => {
+  it("deletes the member's chat membership projections and removes an erased admin from the roster", () => {
     expect(fatesOf('chatChannelAuthProjections/{authPairKey}')).toEqual(['delete']);
     expect(fatesOf('_systemData/adminList')).toEqual(['anonymize']);
   });

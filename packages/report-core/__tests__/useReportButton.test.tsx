@@ -17,7 +17,9 @@ const target = { itemType: 'message', itemId: 'm1', parentItemId: 'thread1' };
 describe('useReportButton', () => {
   it('opens nothing and asks for sign-in when no reporter is signed in', () => {
     const onSignInRequired = vi.fn();
-    const { result } = renderHook(() => useReportButton({ reporterUserId: undefined, onSignInRequired }));
+    const { result } = renderHook(() =>
+      useReportButton({ reporterUserId: undefined, onSignInRequired }),
+    );
 
     let opened = true;
     act(() => {
@@ -62,7 +64,8 @@ describe('useReportButton', () => {
 
 describe('ReportButton', () => {
   const copy = new Proxy({} as ReportDialogCopy, {
-    get: (_t, key) => (key === 'formDescription' || key === 'upgradeDescription' ? () => String(key) : String(key)),
+    get: (_t, key) =>
+      key === 'formDescription' || key === 'upgradeDescription' ? () => String(key) : String(key),
   });
   const config = {
     collections: {},

@@ -85,17 +85,21 @@ describe('the registry', () => {
   });
 
   it('keeps a hall of fame and a historical baseline for basketball only', () => {
-    expect(SPORT_ADAPTER_LIST.filter((adapter) => adapter.hallOfFame).map((adapter) => adapter.leagueType)).toEqual([
-      BASKETBALL,
-    ]);
     expect(
-      SPORT_ADAPTER_LIST.filter((adapter) => adapter.historicalBaseline).map((adapter) => adapter.leagueType),
+      SPORT_ADAPTER_LIST.filter((adapter) => adapter.hallOfFame).map(
+        (adapter) => adapter.leagueType,
+      ),
+    ).toEqual([BASKETBALL]);
+    expect(
+      SPORT_ADAPTER_LIST.filter((adapter) => adapter.historicalBaseline).map(
+        (adapter) => adapter.leagueType,
+      ),
     ).toEqual([BASKETBALL]);
   });
 });
 
 describe('sport facts', () => {
-  it('declares each sport\'s own event types, disjoint across sports and apart from the store events', () => {
+  it("declares each sport's own event types, disjoint across sports and apart from the store events", () => {
     expect(SPORT_ADAPTERS[BASKETBALL].eventTypes).toEqual(BASKETBALL_STAT_EVENT_TYPE_KEYS);
     expect(SPORT_ADAPTERS[CURLING].eventTypes).toEqual(CURLING_STAT_EVENT_TYPE_KEYS);
     expect(SPORT_ADAPTERS[FOOTBALL].eventTypes).toEqual(FOOTBALL_STAT_EVENT_TYPE_KEYS);
@@ -124,15 +128,17 @@ describe('sport facts', () => {
     for (const icon of icons) expect(SPORT_ICON_KEYS).toContain(icon);
   });
 
-  it('reads its lines through the one declaration of each sport\'s line schemas', () => {
+  it("reads its lines through the one declaration of each sport's line schemas", () => {
     for (const adapter of SPORT_ADAPTER_LIST) {
       expect(adapter.lineSchemas).toBe(SPORT_LINE_SCHEMAS[adapter.leagueType]);
     }
   });
 
-  it('validates each sport\'s stored game lines and lifetime line through the schemas its adapter reads', () => {
+  it("validates each sport's stored game lines and lifetime line through the schemas its adapter reads", () => {
     const gameStats = new Map(
-      SportGameSchema.options.map((option) => [option.shape.leagueType.value, option.shape.stats] as const),
+      SportGameSchema.options.map(
+        (option) => [option.shape.leagueType.value, option.shape.stats] as const,
+      ),
     );
     expect([...gameStats.keys()].sort()).toEqual([...LEAGUE_TYPE_KEYS].sort());
     for (const adapter of SPORT_ADAPTER_LIST) {
@@ -140,11 +146,13 @@ describe('sport facts', () => {
       expect(stats).toBe(SPORT_GAME_STATS_SCHEMAS[adapter.leagueType]);
       expect(stats?.shape.teamStats.valueType).toBe(adapter.lineSchemas.gameTeam);
       expect(stats?.shape.playerStats.valueType).toBe(adapter.lineSchemas.gamePlayer);
-      expect(UserLifetimeStatsSchema.shape[adapter.sportKey].unwrap()).toBe(adapter.lineSchemas.lifetime);
+      expect(UserLifetimeStatsSchema.shape[adapter.sportKey].unwrap()).toBe(
+        adapter.lineSchemas.lifetime,
+      );
     }
   });
 
-  it('builds each line\'s counters from the sport\'s declared stat keys, on every player line and the game team line', () => {
+  it("builds each line's counters from the sport's declared stat keys, on every player line and the game team line", () => {
     const countersOf = (schema: unknown) =>
       Object.keys((schema as { shape?: Record<string, unknown> }).shape ?? {})
         .filter((field) => (STAT_COUNTER_KEYS as readonly string[]).includes(field))
@@ -189,19 +197,23 @@ describe('emptyStats', () => {
     updatedAt: NOW,
   };
 
-  it.each([...LEAGUE_TYPE_KEYS])('seeds a %s game with a valid rollup: a team line for each team and no player lines', (leagueType) => {
-    const adapter = getSportAdapter(leagueType);
-    const stats = adapter.emptyStats(game);
-    expect(Object.keys(stats.teamStats).sort()).toEqual(['T1', 'T2']);
-    expect(stats.playerStats).toEqual({});
-    expect(SportGameSchema.safeParse({ ...game, leagueType, stats }).success).toBe(true);
-  });
+  it.each([...LEAGUE_TYPE_KEYS])(
+    'seeds a %s game with a valid rollup: a team line for each team and no player lines',
+    (leagueType) => {
+      const adapter = getSportAdapter(leagueType);
+      const stats = adapter.emptyStats(game);
+      expect(Object.keys(stats.teamStats).sort()).toEqual(['T1', 'T2']);
+      expect(stats.playerStats).toEqual({});
+      expect(SportGameSchema.safeParse({ ...game, leagueType, stats }).success).toBe(true);
+    },
+  );
 
   it.each([...LEAGUE_TYPE_KEYS])('starts every %s team counter at zero', (leagueType) => {
     const adapter: AnySportAdapter = getSportAdapter(leagueType);
     const { teamStats } = adapter.emptyStats(game);
     for (const line of Object.values(teamStats)) {
-      for (const key of adapter.teamStatKeys) expect((line as Record<string, unknown>)[key]).toBe(0);
+      for (const key of adapter.teamStatKeys)
+        expect((line as Record<string, unknown>)[key]).toBe(0);
     }
   });
 
@@ -230,7 +242,7 @@ describe('emptyStats', () => {
     }
   });
 
-  it('keeps each sport\'s rollup typed to that sport', () => {
+  it("keeps each sport's rollup typed to that sport", () => {
     expectTypeOf(SPORT_ADAPTERS[CURLING].emptyStats(game).teamStats.T1.roundScores).toEqualTypeOf<
       (number | null)[]
     >();

@@ -2,7 +2,11 @@ import type { FileOrigin } from '../media/file-origin.js';
 
 export const TEMP_UPLOAD_PREFIX = 'uploads/' as const;
 
-export function buildTempUploadPath(fileOrigin: FileOrigin, userId: string, fileId: string): string {
+export function buildTempUploadPath(
+  fileOrigin: FileOrigin,
+  userId: string,
+  fileId: string,
+): string {
   return `uploads/${fileOrigin}/${userId}/${fileId}`;
 }
 

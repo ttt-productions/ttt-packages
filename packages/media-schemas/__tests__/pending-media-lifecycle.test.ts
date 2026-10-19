@@ -44,7 +44,8 @@ const rawBase = {
 /** Parse a raw row through a real schema so the decision gets a genuine row. */
 function parseRow(raw: Record<string, unknown>): Row {
   const parsed = PendingMediaSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(`fixture failed to parse: ${JSON.stringify(parsed.error.issues)}`);
+  if (!parsed.success)
+    throw new Error(`fixture failed to parse: ${JSON.stringify(parsed.error.issues)}`);
   return parsed.data;
 }
 
@@ -58,7 +59,11 @@ const expectedClaimWrite = (attempt: number, policy = POLICY) => ({
 
 describe('decidePendingMediaClaim (pure state machine)', () => {
   it('claims a fresh pending row as attempt 1', () => {
-    const { outcome, write } = decidePendingMediaClaim(parseRow({ ...rawBase, status: 'pending' }), NOW, POLICY);
+    const { outcome, write } = decidePendingMediaClaim(
+      parseRow({ ...rawBase, status: 'pending' }),
+      NOW,
+      POLICY,
+    );
     expect(outcome.kind).toBe('claimed');
     if (outcome.kind !== 'claimed') throw new Error('unreachable');
     expect(outcome.attempt).toBe(1);
@@ -68,7 +73,11 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
   });
 
   it('the claimed row is the processing branch of the schema', () => {
-    const { outcome } = decidePendingMediaClaim(parseRow({ ...rawBase, status: 'pending' }), NOW, POLICY);
+    const { outcome } = decidePendingMediaClaim(
+      parseRow({ ...rawBase, status: 'pending' }),
+      NOW,
+      POLICY,
+    );
     if (outcome.kind !== 'claimed') throw new Error('unreachable');
     // Compile-time: a claimed row is assignable to the processing branch (tsc -b checks tests).
     const processing: ProcessingRow = outcome.pendingFile;
@@ -83,17 +92,34 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
     expect(write).toEqual(expectedClaimWrite(2));
   });
 
-  it.each(['completed', 'failed', 'rejected'] as const)('returns terminal (no write) for a %s row', (status) => {
-    const terminalRaw =
-      status === 'completed'
-        ? { ...rawBase, status, completedAt: NOW, terminalAt: NOW, result: { events: [] } }
-        : status === 'failed'
-          ? { ...rawBase, status, failedAt: NOW, terminalAt: NOW, errorCategory: 'system', errorMessage: 'x' }
-          : { ...rawBase, status, rejectedAt: NOW, terminalAt: NOW, rejectionType: 'media', errorMessage: 'x' };
-    const { outcome, write } = decidePendingMediaClaim(parseRow(terminalRaw), NOW, POLICY);
-    expect(outcome).toEqual({ kind: 'terminal', status });
-    expect(write).toBeUndefined();
-  });
+  it.each(['completed', 'failed', 'rejected'] as const)(
+    'returns terminal (no write) for a %s row',
+    (status) => {
+      const terminalRaw =
+        status === 'completed'
+          ? { ...rawBase, status, completedAt: NOW, terminalAt: NOW, result: { events: [] } }
+          : status === 'failed'
+            ? {
+                ...rawBase,
+                status,
+                failedAt: NOW,
+                terminalAt: NOW,
+                errorCategory: 'system',
+                errorMessage: 'x',
+              }
+            : {
+                ...rawBase,
+                status,
+                rejectedAt: NOW,
+                terminalAt: NOW,
+                rejectionType: 'media',
+                errorMessage: 'x',
+              };
+      const { outcome, write } = decidePendingMediaClaim(parseRow(terminalRaw), NOW, POLICY);
+      expect(outcome).toEqual({ kind: 'terminal', status });
+      expect(write).toBeUndefined();
+    },
+  );
 
   it('returns busy (no write) for a processing row under a still-active explicit lease', () => {
     const current = parseRow({
@@ -131,7 +157,11 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
       processingLeaseExpiresAt: NOW - 1_000,
     });
     const { outcome, write } = decidePendingMediaClaim(current, NOW, POLICY);
-    expect(outcome).toEqual({ kind: 'exhausted', pendingFile: current, attempts: POLICY.maxAttempts });
+    expect(outcome).toEqual({
+      kind: 'exhausted',
+      pendingFile: current,
+      attempts: POLICY.maxAttempts,
+    });
     expect(write).toBeUndefined();
   });
 
@@ -151,14 +181,22 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
 
   describe('lease derivation for rows written before leases existed', () => {
     it('derives an ACTIVE lease from processingStartedAt when the explicit lease is absent (busy)', () => {
-      const current = parseRow({ ...rawBase, status: 'processing', processingStartedAt: NOW - 1_000 });
+      const current = parseRow({
+        ...rawBase,
+        status: 'processing',
+        processingStartedAt: NOW - 1_000,
+      });
       const { outcome, write } = decidePendingMediaClaim(current, NOW, POLICY);
       expect(outcome).toEqual({ kind: 'busy', leaseExpiresAt: NOW - 1_000 + POLICY.leaseMs });
       expect(write).toBeUndefined();
     });
 
     it('derives an EXPIRED lease from processingStartedAt and reclaims (count absent = attempt 1)', () => {
-      const current = parseRow({ ...rawBase, status: 'processing', processingStartedAt: NOW - POLICY.leaseMs - 1_000 });
+      const current = parseRow({
+        ...rawBase,
+        status: 'processing',
+        processingStartedAt: NOW - POLICY.leaseMs - 1_000,
+      });
       const { outcome, write } = decidePendingMediaClaim(current, NOW, POLICY);
       if (outcome.kind !== 'claimed') throw new Error('unreachable');
       expect(outcome.attempt).toBe(2);
@@ -174,14 +212,23 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
     });
 
     it('falls back to createdAt when the row lacks processingStartedAt (reclaim when old)', () => {
-      const current = parseRow({ ...rawBase, createdAt: NOW - POLICY.leaseMs - 1_000, status: 'processing' });
+      const current = parseRow({
+        ...rawBase,
+        createdAt: NOW - POLICY.leaseMs - 1_000,
+        status: 'processing',
+      });
       const { outcome } = decidePendingMediaClaim(current, NOW, POLICY);
       if (outcome.kind !== 'claimed') throw new Error('unreachable');
       expect(outcome.attempt).toBe(2);
     });
 
     it('effectivePendingMediaLeaseExpiry prefers the explicit lease', () => {
-      const row = { status: 'processing' as const, createdAt: 1, processingStartedAt: 2, processingLeaseExpiresAt: 99 };
+      const row = {
+        status: 'processing' as const,
+        createdAt: 1,
+        processingStartedAt: 2,
+        processingLeaseExpiresAt: 99,
+      };
       expect(effectivePendingMediaLeaseExpiry(row, POLICY)).toBe(99);
     });
   });
@@ -189,10 +236,14 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
 
 describe('decidePendingMediaFinalize (allowed-transition table)', () => {
   it('pending → applied', () => {
-    expect(decidePendingMediaFinalize({ status: 'pending' }, 'completed')).toEqual({ decision: 'applied' });
+    expect(decidePendingMediaFinalize({ status: 'pending' }, 'completed')).toEqual({
+      decision: 'applied',
+    });
   });
   it('processing → applied', () => {
-    expect(decidePendingMediaFinalize({ status: 'processing' }, 'failed')).toEqual({ decision: 'applied' });
+    expect(decidePendingMediaFinalize({ status: 'processing' }, 'failed')).toEqual({
+      decision: 'applied',
+    });
   });
   it('missing row → missing', () => {
     expect(decidePendingMediaFinalize(undefined, 'failed')).toEqual({ decision: 'missing' });
@@ -229,32 +280,58 @@ describe('buildPendingMediaTerminalFields', () => {
     });
   });
   it('failed sets failedAt (not completedAt/rejectedAt)', () => {
-    const fields = buildPendingMediaTerminalFields('failed', { errorCategory: 'system', errorMessage: 'x' }, 5);
-    expect(fields).toMatchObject({ status: 'failed', failedAt: 5, terminalAt: 5, updatedAt: 5, errorCategory: 'system' });
+    const fields = buildPendingMediaTerminalFields(
+      'failed',
+      { errorCategory: 'system', errorMessage: 'x' },
+      5,
+    );
+    expect(fields).toMatchObject({
+      status: 'failed',
+      failedAt: 5,
+      terminalAt: 5,
+      updatedAt: 5,
+      errorCategory: 'system',
+    });
     expect(fields).not.toHaveProperty('completedAt');
     expect(fields).not.toHaveProperty('rejectedAt');
   });
   it('rejected sets rejectedAt', () => {
-    expect(buildPendingMediaTerminalFields('rejected', {}, 7)).toMatchObject({ status: 'rejected', rejectedAt: 7 });
+    expect(buildPendingMediaTerminalFields('rejected', {}, 7)).toMatchObject({
+      status: 'rejected',
+      rejectedAt: 7,
+    });
   });
   it('a terminal row built from these fields parses as that branch', () => {
     const processingRow = { ...rawBase, status: 'processing' };
     const row = {
       ...processingRow,
-      ...buildPendingMediaTerminalFields('failed', { errorCategory: 'system', errorMessage: 'boom' }, NOW),
+      ...buildPendingMediaTerminalFields(
+        'failed',
+        { errorCategory: 'system', errorMessage: 'boom' },
+        NOW,
+      ),
     };
     expect(PendingMediaSchema.safeParse(row).success).toBe(true);
   });
 
   it('with no extra fields each status returns exactly its literal field set', () => {
     expect(buildPendingMediaTerminalFields('completed', {}, 1)).toStrictEqual({
-      status: 'completed', completedAt: 1, terminalAt: 1, updatedAt: 1,
+      status: 'completed',
+      completedAt: 1,
+      terminalAt: 1,
+      updatedAt: 1,
     });
     expect(buildPendingMediaTerminalFields('failed', {}, 2)).toStrictEqual({
-      status: 'failed', failedAt: 2, terminalAt: 2, updatedAt: 2,
+      status: 'failed',
+      failedAt: 2,
+      terminalAt: 2,
+      updatedAt: 2,
     });
     expect(buildPendingMediaTerminalFields('rejected', {}, 3)).toStrictEqual({
-      status: 'rejected', rejectedAt: 3, terminalAt: 3, updatedAt: 3,
+      status: 'rejected',
+      rejectedAt: 3,
+      terminalAt: 3,
+      updatedAt: 3,
     });
   });
 
@@ -263,9 +340,15 @@ describe('buildPendingMediaTerminalFields', () => {
   });
 
   it('declares the literal field set per status, and the set merged with extra fields', () => {
-    expectTypeOf(buildPendingMediaTerminalFields('completed', {}, 1)).toEqualTypeOf<PendingMediaCompletedTerminalFields>();
-    expectTypeOf(buildPendingMediaTerminalFields('failed', {}, 1)).toEqualTypeOf<PendingMediaFailedTerminalFields>();
-    expectTypeOf(buildPendingMediaTerminalFields('rejected', {}, 1)).toEqualTypeOf<PendingMediaRejectedTerminalFields>();
+    expectTypeOf(
+      buildPendingMediaTerminalFields('completed', {}, 1),
+    ).toEqualTypeOf<PendingMediaCompletedTerminalFields>();
+    expectTypeOf(
+      buildPendingMediaTerminalFields('failed', {}, 1),
+    ).toEqualTypeOf<PendingMediaFailedTerminalFields>();
+    expectTypeOf(
+      buildPendingMediaTerminalFields('rejected', {}, 1),
+    ).toEqualTypeOf<PendingMediaRejectedTerminalFields>();
     expectTypeOf(buildPendingMediaTerminalFields('failed', { errorMessage: 'x' }, 1)).toEqualTypeOf<
       PendingMediaFailedTerminalFields & { errorMessage: string }
     >();
@@ -281,19 +364,29 @@ describe('buildPendingMediaTerminalFields', () => {
   // names a plain object type — never an intersection, conditional, or index signature.
   it('its first declared signature names the literal completed field set as a plain object type', () => {
     const file = path.resolve(__dirname, '../src/pending-media-lifecycle.ts');
-    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+    const source = ts.createSourceFile(
+      file,
+      readFileSync(file, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true,
+    );
     const signatures: ts.FunctionDeclaration[] = [];
     const aliases = new Map<string, ts.TypeAliasDeclaration>();
     source.forEachChild((node) => {
-      if (ts.isFunctionDeclaration(node) && node.name?.text === 'buildPendingMediaTerminalFields') signatures.push(node);
+      if (ts.isFunctionDeclaration(node) && node.name?.text === 'buildPendingMediaTerminalFields')
+        signatures.push(node);
       if (ts.isTypeAliasDeclaration(node)) aliases.set(node.name.text, node);
     });
     const returned = signatures[0]?.type;
-    expect(returned && ts.isTypeReferenceNode(returned) && ts.isIdentifier(returned.typeName)).toBe(true);
+    expect(returned && ts.isTypeReferenceNode(returned) && ts.isIdentifier(returned.typeName)).toBe(
+      true,
+    );
     const alias = aliases.get(((returned as ts.TypeReferenceNode).typeName as ts.Identifier).text);
     expect(alias && ts.isTypeLiteralNode(alias.type)).toBe(true);
     const keys = (alias!.type as ts.TypeLiteralNode).members.map((member) =>
-      ts.isPropertySignature(member) && ts.isIdentifier(member.name) ? member.name.text : '(not a plain key)',
+      ts.isPropertySignature(member) && ts.isIdentifier(member.name)
+        ? member.name.text
+        : '(not a plain key)',
     );
     expect(keys).toEqual(['status', 'completedAt', 'terminalAt', 'updatedAt']);
   });
@@ -302,6 +395,8 @@ describe('buildPendingMediaTerminalFields', () => {
 describe('isPendingMediaTerminalStatus', () => {
   it('is true only for the three terminal statuses', () => {
     expect(['completed', 'failed', 'rejected'].every(isPendingMediaTerminalStatus)).toBe(true);
-    expect([undefined, 'pending', 'processing', 'weird'].some(isPendingMediaTerminalStatus)).toBe(false);
+    expect([undefined, 'pending', 'processing', 'weird'].some(isPendingMediaTerminalStatus)).toBe(
+      false,
+    );
   });
 });

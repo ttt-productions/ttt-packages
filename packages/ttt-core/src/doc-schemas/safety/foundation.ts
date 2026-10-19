@@ -185,19 +185,57 @@ export const HALL_LIBRARY_TARGET_TYPES = [
  * report-config.ts has a typed locator. */
 export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('mediaAsset'), mediaAssetId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('hallItem'), hallItemId: z.string().min(1), subItemId: z.string().min(1).optional() }).strict(),
+  z
+    .object({
+      kind: z.literal('hallItem'),
+      hallItemId: z.string().min(1),
+      subItemId: z.string().min(1).optional(),
+    })
+    .strict(),
   z.object({ kind: z.literal('squarePost'), postId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('profileImage'), profileUid: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('username'), profileUid: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('craftSkill'), profileUid: z.string().min(1), craftSkillId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('commissionListing'), commissionListingId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('commissionProposal'), commissionListingId: z.string().min(1), commissionProposalId: z.string().min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal('craftSkill'),
+      profileUid: z.string().min(1),
+      craftSkillId: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({ kind: z.literal('commissionListing'), commissionListingId: z.string().min(1) })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('commissionProposal'),
+      commissionListingId: z.string().min(1),
+      commissionProposalId: z.string().min(1),
+    })
+    .strict(),
   z.object({ kind: z.literal('workProject'), workProjectId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('workAsset'), workProjectId: z.string().min(1), workAssetId: z.string().min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal('workAsset'),
+      workProjectId: z.string().min(1),
+      workAssetId: z.string().min(1),
+    })
+    .strict(),
   z.object({ kind: z.literal('workRealm'), workRealmId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('audition'), auditionId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('auditionEntry'), auditionId: z.string().min(1), auditionEntryId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('guildInviteMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal('auditionEntry'),
+      auditionId: z.string().min(1),
+      auditionEntryId: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('guildInviteMessage'),
+      channelId: z.string().min(1),
+      messageId: z.string().min(1),
+    })
+    .strict(),
   // A file in a conversation's flat Conversation Files list. A file is never embedded in,
   // sequenced with, or mutated through a chat message, so it is located by its CONVERSATION + file id,
   // never by a channel/message coordinate. `conversation` is the canonical
@@ -205,15 +243,23 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   // guild CHANNEL conversation file is structurally inexpressible here: guild
   // channels have no Conversation Files. `mediaAssetId` is carried so the removal
   // saga can hold/retire the bytes without a second resolve.
-  z.object({
-    kind: z.literal('conversationFile'),
-    conversation: ConversationFileRefSchema,
-    conversationFileId: z.string().min(1),
-    mediaAssetId: z.string().min(1),
-  }).strict(),
+  z
+    .object({
+      kind: z.literal('conversationFile'),
+      conversation: ConversationFileRefSchema,
+      conversationFileId: z.string().min(1),
+      mediaAssetId: z.string().min(1),
+    })
+    .strict(),
   // Plain guild chat message (text-only or Worker-unresolved). Chat is
   // text-only, so this is the ONLY guild-channel message locator.
-  z.object({ kind: z.literal('guildChatMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal('guildChatMessage'),
+      channelId: z.string().min(1),
+      messageId: z.string().min(1),
+    })
+    .strict(),
   z.object({ kind: z.literal('url'), url: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('additionalText'), textRef: z.string().min(1) }).strict(),
 ]);
@@ -245,11 +291,13 @@ export const TargetLocatorKindSchema = z.enum([
 export type TargetLocatorKind = z.infer<typeof TargetLocatorKindSchema>;
 
 /** Privacy-safe summary ONLY — no narrative / PII; used on roots + public rows. */
-export const TargetLocatorSummaryV1Schema = z.object({
-  kind: TargetLocatorKindSchema,
-  surfaceLabel: z.string(),
-  hasResolvedTarget: z.boolean(),
-}).strict();
+export const TargetLocatorSummaryV1Schema = z
+  .object({
+    kind: TargetLocatorKindSchema,
+    surfaceLabel: z.string(),
+    hasResolvedTarget: z.boolean(),
+  })
+  .strict();
 export type TargetLocatorSummaryV1 = z.infer<typeof TargetLocatorSummaryV1Schema>;
 
 // ===========================================================================
@@ -322,7 +370,11 @@ export function refineReportDispositionReasonCode(
   value: { disposition: ReportDisposition; dispositionReasonCode: ReportDispositionReasonCode },
   ctx: z.RefinementCtx,
 ): void {
-  if (!REPORT_DISPOSITION_ALLOWED_REASON_CODES[value.disposition].includes(value.dispositionReasonCode)) {
+  if (
+    !REPORT_DISPOSITION_ALLOWED_REASON_CODES[value.disposition].includes(
+      value.dispositionReasonCode,
+    )
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['dispositionReasonCode'],
@@ -366,13 +418,15 @@ export const SafetyCaseClosureOutcomeSchema = z.enum(['founded', 'unfounded']);
 export type SafetyCaseClosureOutcome = z.infer<typeof SafetyCaseClosureOutcomeSchema>;
 
 /** The structured closure record written on a safety-case close. */
-export const SafetyCaseClosureV1Schema = z.object({
-  outcome: SafetyCaseClosureOutcomeSchema,
-  resolutionSummary: z.string().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
-  adminNote: z.string().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
-  closedByUid: z.string().min(1),
-  closedAt: z.number(),
-}).strict();
+export const SafetyCaseClosureV1Schema = z
+  .object({
+    outcome: SafetyCaseClosureOutcomeSchema,
+    resolutionSummary: z.string().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
+    adminNote: z.string().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
+    closedByUid: z.string().min(1),
+    closedAt: z.number(),
+  })
+  .strict();
 export type SafetyCaseClosureV1 = z.infer<typeof SafetyCaseClosureV1Schema>;
 
 /** NCMEC submission lifecycle — MANUAL-PORTAL model. NO `notRequired` (that is
@@ -381,10 +435,7 @@ export type SafetyCaseClosureV1 = z.infer<typeof SafetyCaseClosureV1Schema>;
  * confirmation (markNcmecPortalComplete → `completed`). Jobs are born `awaitingManualFiling`; the
  * case-list `ncmecStatus` projection uses the same value (no separate `queued` state). There is no
  * in-app retraction — corrections are portal-manual. */
-export const NcmecSubmissionStateSchema = z.enum([
-  'awaitingManualFiling',
-  'completed',
-]);
+export const NcmecSubmissionStateSchema = z.enum(['awaitingManualFiling', 'completed']);
 export type NcmecSubmissionState = z.infer<typeof NcmecSubmissionStateSchema>;
 
 // ===========================================================================
@@ -521,7 +572,12 @@ export type TakeItDownRequesterRole = z.infer<typeof TakeItDownRequesterRoleSche
 export const TakeItDownCompletenessStatusSchema = z.enum(['incomplete', 'complete']);
 export type TakeItDownCompletenessStatus = z.infer<typeof TakeItDownCompletenessStatusSchema>;
 
-export const TakeItDownValidityStatusSchema = z.enum(['pending', 'valid', 'invalid', 'unableToLocate']);
+export const TakeItDownValidityStatusSchema = z.enum([
+  'pending',
+  'valid',
+  'invalid',
+  'unableToLocate',
+]);
 export type TakeItDownValidityStatus = z.infer<typeof TakeItDownValidityStatusSchema>;
 
 /** The request root's public status set. No appeal model — no `appealedCorrected`
@@ -627,7 +683,12 @@ export type NciiChildSafetyLinkStatus = z.infer<typeof NciiChildSafetyLinkStatus
 // Embedded on nciiCases. childSafetyCaseId lives HERE (one canonical place).
 // ===========================================================================
 
-export const NciiMinorAssessmentSchema = z.enum(['adult', 'unknown', 'possibleMinor', 'confirmedMinor']);
+export const NciiMinorAssessmentSchema = z.enum([
+  'adult',
+  'unknown',
+  'possibleMinor',
+  'confirmedMinor',
+]);
 export type NciiMinorAssessment = z.infer<typeof NciiMinorAssessmentSchema>;
 
 export const NciiCsamAssessmentSchema = z.enum([
@@ -638,13 +699,15 @@ export const NciiCsamAssessmentSchema = z.enum([
 ]);
 export type NciiCsamAssessment = z.infer<typeof NciiCsamAssessmentSchema>;
 
-export const NciiChildSafetyCrossoverSchema = z.object({
-  minorAssessment: NciiMinorAssessmentSchema,
-  csamAssessment: NciiCsamAssessmentSchema,
-  childSafetyCaseId: z.string().min(1).optional(),
-  assessedByUid: z.string().min(1).optional(),
-  assessedAt: z.number().optional(),
-}).strict();
+export const NciiChildSafetyCrossoverSchema = z
+  .object({
+    minorAssessment: NciiMinorAssessmentSchema,
+    csamAssessment: NciiCsamAssessmentSchema,
+    childSafetyCaseId: z.string().min(1).optional(),
+    assessedByUid: z.string().min(1).optional(),
+    assessedAt: z.number().optional(),
+  })
+  .strict();
 export type NciiChildSafetyCrossover = z.infer<typeof NciiChildSafetyCrossoverSchema>;
 
 /** The status of one possible-minor crossover side effect (serving deny, PhotoDNA) on a crossover

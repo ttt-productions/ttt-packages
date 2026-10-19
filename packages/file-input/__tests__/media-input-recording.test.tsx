@@ -6,8 +6,9 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input.js';
 import { RecordDialog, autoStopDelayMs } from '../src/react/components/record-dialog.js';
 
-vi.mock('@ttt-productions/media-viewer/react', async () =>
-  import('../../media-viewer/src/react/index.js'),
+vi.mock(
+  '@ttt-productions/media-viewer/react',
+  async () => import('../../media-viewer/src/react/index.js'),
 );
 
 // Fake MediaRecorder:
@@ -29,12 +30,17 @@ function installMediaRecorderMock(opts?: {
       mimeType: reportedMimeType,
       ondataavailable: null,
       onstop: null,
-      start: vi.fn(function (this: any) { this.state = 'recording'; }),
+      start: vi.fn(function (this: any) {
+        this.state = 'recording';
+      }),
       stop: vi.fn(function (this: any) {
         this.state = 'inactive';
         // Simulate a chunk, then fire onstop synchronously so the preview state flips before assertions
         act(() => {
-          this.ondataavailable?.({ data: new Blob(['chunk'], { type: reportedMimeType }), size: 5 } as any);
+          this.ondataavailable?.({
+            data: new Blob(['chunk'], { type: reportedMimeType }),
+            size: 5,
+          } as any);
           this.onstop?.();
         });
       }),
@@ -89,7 +95,9 @@ function installObjectUrlMock() {
 }
 
 describe('RecordDialog', () => {
-  let onRecorded: Mock<(file: File, previewUrl: string, recordedKind: 'audio' | 'video') => void | Promise<void>>;
+  let onRecorded: Mock<
+    (file: File, previewUrl: string, recordedKind: 'audio' | 'video') => void | Promise<void>
+  >;
   let onOpenChange: Mock<(open: boolean) => void>;
   let gumMock: ReturnType<typeof installGetUserMediaMock>;
   let urlMock: ReturnType<typeof installObjectUrlMock>;
@@ -114,20 +122,25 @@ describe('RecordDialog', () => {
         observe() {}
         unobserve() {}
         disconnect() {}
-        takeRecords() { return []; }
+        takeRecords() {
+          return [];
+        }
       },
     );
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({
-      clearRect: vi.fn(),
-      fillRect: vi.fn(),
-      beginPath: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      stroke: vi.fn(),
-      fillStyle: '',
-      lineWidth: 1,
-      strokeStyle: '',
-    } as unknown as CanvasRenderingContext2D));
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+      () =>
+        ({
+          clearRect: vi.fn(),
+          fillRect: vi.fn(),
+          beginPath: vi.fn(),
+          moveTo: vi.fn(),
+          lineTo: vi.fn(),
+          stroke: vi.fn(),
+          fillStyle: '',
+          lineWidth: 1,
+          strokeStyle: '',
+        }) as unknown as CanvasRenderingContext2D,
+    );
     // Stub play to avoid jsdom errors
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
@@ -153,7 +166,7 @@ describe('RecordDialog', () => {
         maxRecordDurationSec={60}
         onRecorded={onRecorded}
         {...overrides}
-      />
+      />,
     );
   }
 
@@ -198,7 +211,12 @@ describe('RecordDialog', () => {
 
   it('Start stays disabled while the device is still starting, so a click cannot acquire it twice', async () => {
     let resolveGum!: (s: MediaStream) => void;
-    gumMock.gum.mockImplementation(() => new Promise<MediaStream>((res) => { resolveGum = res; }));
+    gumMock.gum.mockImplementation(
+      () =>
+        new Promise<MediaStream>((res) => {
+          resolveGum = res;
+        }),
+    );
     renderDialog();
 
     const start = screen.getByRole('button', { name: /^start$/i });
@@ -217,7 +235,12 @@ describe('RecordDialog', () => {
 
   it('a device that finishes starting AFTER the dialog closed is stopped, never attached', async () => {
     let resolveGum!: (s: MediaStream) => void;
-    gumMock.gum.mockImplementation(() => new Promise<MediaStream>((res) => { resolveGum = res; }));
+    gumMock.gum.mockImplementation(
+      () =>
+        new Promise<MediaStream>((res) => {
+          resolveGum = res;
+        }),
+    );
     const { unmount } = renderDialog();
     unmount();
 
@@ -232,7 +255,12 @@ describe('RecordDialog', () => {
   it('Save shows pending and ignores a second click, so the recording is handed off once', async () => {
     const user = userEvent.setup();
     let finishHandOff!: () => void;
-    onRecorded.mockImplementation(() => new Promise<void>((res) => { finishHandOff = res; }));
+    onRecorded.mockImplementation(
+      () =>
+        new Promise<void>((res) => {
+          finishHandOff = res;
+        }),
+    );
     renderDialog();
     await user.click(screen.getByRole('button', { name: /^start$/i }));
     await user.click(screen.getByRole('button', { name: /^stop$/i }));
@@ -304,7 +332,7 @@ describe('RecordDialog', () => {
         maxRecordDurationSec={60}
         onRecorded={onRecorded}
         onRequestPhoto={onRequestPhoto}
-      />
+      />,
     );
     const photoBtn = screen.getByRole('button', { name: /^photo$/i });
     expect(photoBtn).toBeInTheDocument();
@@ -388,9 +416,7 @@ describe('RecordDialog', () => {
       kind: 'audio',
       accept: { kinds: ['audio'], mimes: ['audio/mp4'] },
     };
-    render(
-      <MediaInput spec={spec} selectedFile={file} onChange={vi.fn()} onClear={vi.fn()} />,
-    );
+    render(<MediaInput spec={spec} selectedFile={file} onChange={vi.fn()} onClear={vi.fn()} />);
     expect(screen.getByText('Audio selected')).toBeInTheDocument();
     expect(screen.queryByText('Video selected')).toBeNull();
   });
@@ -543,9 +569,7 @@ describe('RecordDialog', () => {
       kind: 'audio',
       accept: { kinds: ['audio'], mimes: ['audio/webm'] },
     };
-    render(
-      <MediaInput spec={spec} selectedFile={file} onChange={vi.fn()} onClear={vi.fn()} />,
-    );
+    render(<MediaInput spec={spec} selectedFile={file} onChange={vi.fn()} onClear={vi.fn()} />);
     expect(screen.getByText('Audio selected')).toBeInTheDocument();
     expect(screen.queryByText('Video selected')).toBeNull();
   });

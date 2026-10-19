@@ -61,7 +61,9 @@ describe('pending mutations', () => {
   it('an in-flight mutation stays pending after the control that started it unmounts, and a remounted reader sees it', async () => {
     const queryClient = makeClient();
     const server = makeServer();
-    const control = renderHook(() => useGuardedSave(server.save), { wrapper: wrapperFor(queryClient) });
+    const control = renderHook(() => useGuardedSave(server.save), {
+      wrapper: wrapperFor(queryClient),
+    });
     act(() => control.result.current.mutate({ userId: 'u1', itemId: 'a' }));
     await waitFor(() => expect(server.save).toHaveBeenCalledTimes(1));
     control.unmount();
@@ -81,7 +83,9 @@ describe('pending mutations', () => {
   it('a second submission for the same target is dropped by mutate and refused by mutateAsync while the first is pending', async () => {
     const queryClient = makeClient();
     const server = makeServer();
-    const { result } = renderHook(() => useGuardedSave(server.save), { wrapper: wrapperFor(queryClient) });
+    const { result } = renderHook(() => useGuardedSave(server.save), {
+      wrapper: wrapperFor(queryClient),
+    });
 
     act(() => result.current.mutate({ userId: 'u1', itemId: 'a' }));
     await waitFor(() => expect(server.save).toHaveBeenCalledTimes(1));
@@ -98,7 +102,9 @@ describe('pending mutations', () => {
   it('a submission for another target runs while the first is pending, and the same target runs again once it settles', async () => {
     const queryClient = makeClient();
     const server = makeServer();
-    const { result } = renderHook(() => useGuardedSave(server.save), { wrapper: wrapperFor(queryClient) });
+    const { result } = renderHook(() => useGuardedSave(server.save), {
+      wrapper: wrapperFor(queryClient),
+    });
 
     act(() => result.current.mutate({ userId: 'u1', itemId: 'a' }));
     act(() => result.current.mutate({ userId: 'u1', itemId: 'b' }));
@@ -116,7 +122,10 @@ describe('pending mutations', () => {
     const server = makeServer();
     const { result } = renderHook(
       () => {
-        const scoped = useMutation({ mutationKey: [...SAVE_KEY, 'scope-1'], mutationFn: server.save });
+        const scoped = useMutation({
+          mutationKey: [...SAVE_KEY, 'scope-1'],
+          mutationFn: server.save,
+        });
         const other = useMutation({ mutationKey: OTHER_KEY, mutationFn: server.save });
         const all = usePendingMutationVariables<SaveVariables>(SAVE_KEY);
         const scope2 = usePendingMutationVariables<SaveVariables>([...SAVE_KEY, 'scope-2']);
@@ -131,7 +140,9 @@ describe('pending mutations', () => {
     });
     await waitFor(() => expect(result.current.all).toEqual([{ userId: 'u1', itemId: 'a' }]));
     expect(result.current.scope2).toEqual([]);
-    expect(pendingMutationVariables<SaveVariables>(queryClient, OTHER_KEY)).toEqual([{ userId: 'u1', itemId: 'z' }]);
+    expect(pendingMutationVariables<SaveVariables>(queryClient, OTHER_KEY)).toEqual([
+      { userId: 'u1', itemId: 'z' },
+    ]);
 
     await act(async () => server.settleAll());
   });
@@ -139,11 +150,19 @@ describe('pending mutations', () => {
   it('a settled mutation is never pending, whether it succeeded or failed', async () => {
     const queryClient = makeClient();
     const { result } = renderHook(
-      () => useMutation({ mutationKey: SAVE_KEY, mutationFn: async () => { throw new Error('refused'); } }),
+      () =>
+        useMutation({
+          mutationKey: SAVE_KEY,
+          mutationFn: async () => {
+            throw new Error('refused');
+          },
+        }),
       { wrapper: wrapperFor(queryClient) },
     );
     await act(async () => {
-      await result.current.mutateAsync({ userId: 'u1', itemId: 'a' } as never).catch(() => undefined);
+      await result.current
+        .mutateAsync({ userId: 'u1', itemId: 'a' } as never)
+        .catch(() => undefined);
     });
     expect(hasPendingMutation(queryClient, SAVE_KEY)).toBe(false);
   });

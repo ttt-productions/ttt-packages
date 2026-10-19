@@ -51,10 +51,18 @@ export const MediaAuthorityApplyRequestSchema = z
     const seen = new Set<string>();
     val.requiredVariants.forEach((key, index) => {
       if (!own.has(key)) {
-        ctx.addIssue({ code: 'custom', path: ['requiredVariants', index], message: 'a required variant is one of the record\'s own variants' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['requiredVariants', index],
+          message: "a required variant is one of the record's own variants",
+        });
       }
       if (seen.has(key)) {
-        ctx.addIssue({ code: 'custom', path: ['requiredVariants', index], message: 'a required variant is named once' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['requiredVariants', index],
+          message: 'a required variant is named once',
+        });
       }
       seen.add(key);
     });

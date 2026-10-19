@@ -1,7 +1,7 @@
 // Client-SDK Timestamp helpers. They import firebase/firestore at runtime, so they stay off the
 // pure root. Pure timestamp normalization (toMillis/toDate/now/…) is timestamps-universal.ts, on the
 // root.
-import { Timestamp, serverTimestamp } from "firebase/firestore";
+import { Timestamp, serverTimestamp } from 'firebase/firestore';
 
 /** Firestore server timestamp (Client SDK) */
 export const serverNow = () => serverTimestamp();

@@ -35,7 +35,8 @@ describe('AUDITION_TYPES', () => {
     // vocabulary must never leak into a rendered string (ARCH-107).
     const retired = ['owner', 'member', 'project', 'opportunity', 'skill', 'universe'];
     for (const type of AuditionTypeSchema.options) {
-      const copy = `${AUDITION_TYPES[type].label} ${AUDITION_TYPES[type].description}`.toLowerCase();
+      const copy =
+        `${AUDITION_TYPES[type].label} ${AUDITION_TYPES[type].description}`.toLowerCase();
       for (const word of retired) {
         expect(copy, `'${word}' appears in the ${type} copy`).not.toContain(word);
       }
@@ -53,10 +54,7 @@ describe('AUDITION_TYPE_FILTER_ALL', () => {
   });
 
   it('AuditionTypeFilter accepts the sentinel and every audition type', () => {
-    const filters: AuditionTypeFilter[] = [
-      AUDITION_TYPE_FILTER_ALL,
-      ...AuditionTypeSchema.options,
-    ];
+    const filters: AuditionTypeFilter[] = [AUDITION_TYPE_FILTER_ALL, ...AuditionTypeSchema.options];
     expect(filters).toHaveLength(AuditionTypeSchema.options.length + 1);
   });
 });
@@ -81,7 +79,9 @@ describe('audition sort keys', () => {
     // per-feed copy of either option (and drifts its label/field/direction) fails here.
     const base = AUDITION_SORT_OPTIONS.default;
     for (const [feed, options] of Object.entries(AUDITION_SORT_OPTIONS)) {
-      expect(options.newest, `${feed}.newest drifted from the shared base pair`).toEqual(base.newest);
+      expect(options.newest, `${feed}.newest drifted from the shared base pair`).toEqual(
+        base.newest,
+      );
       expect(options.endingSoon, `${feed}.endingSoon drifted from the shared base pair`).toEqual(
         base.endingSoon,
       );

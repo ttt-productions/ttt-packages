@@ -53,7 +53,10 @@ function typesPathOf(value: unknown): string | null {
 
 /** The source module a declaration path is built from (`dist/x/index.d.ts` → `src/x/index.ts(x)`). */
 function sourceOf(packageDir: string, typesPath: string): string | null {
-  const stem = slash(typesPath).replace(/^\.\//, '').replace(/^dist\//, 'src/').replace(/\.d\.([cm]?)ts$/, '');
+  const stem = slash(typesPath)
+    .replace(/^\.\//, '')
+    .replace(/^dist\//, 'src/')
+    .replace(/\.d\.([cm]?)ts$/, '');
   for (const extension of ['.ts', '.tsx', '.mts', '.cts', '.js', '.mjs', '.cjs']) {
     const candidate = join(packageDir, `${stem}${extension}`);
     if (existsSync(candidate)) return candidate;
@@ -63,7 +66,9 @@ function sourceOf(packageDir: string, typesPath: string): string | null {
 
 /** The source module each of a package's `exports` entries is built from, absolute; entries with no source left out. */
 export function sourceEntryModules(packageDir: string): string[] {
-  const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as { exports?: Record<string, unknown> };
+  const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
+    exports?: Record<string, unknown>;
+  };
   const modules: string[] = [];
   for (const [key, value] of Object.entries(manifest.exports ?? {})) {
     if (key.includes('*') || key === './package.json') continue;
@@ -74,14 +79,18 @@ export function sourceEntryModules(packageDir: string): string[] {
   return modules;
 }
 
-const isIndexModule = (file: string) => /^index\.(d\.[cm]?ts|[cm]?[jt]sx?)$/.test(file.slice(slash(file).lastIndexOf('/') + 1));
+const isIndexModule = (file: string) =>
+  /^index\.(d\.[cm]?ts|[cm]?[jt]sx?)$/.test(file.slice(slash(file).lastIndexOf('/') + 1));
 
 /**
  * Reads a package's entries and what each exports. `from: 'source'` maps every entry to the source
  * module it is built from; `from: 'build'` reads the installed declaration files.
  */
 export function readEntryOwnership(packageDir: string, from: 'source' | 'build'): EntryOwnership {
-  const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as { name: string; exports?: Record<string, unknown> };
+  const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
+    name: string;
+    exports?: Record<string, unknown>;
+  };
   const entries: PackageEntry[] = [];
   const unreadable: Array<{ key: string; why: string }> = [];
   for (const [key, value] of Object.entries(manifest.exports ?? {})) {
@@ -90,7 +99,13 @@ export function readEntryOwnership(packageDir: string, from: 'source' | 'build')
     if (!typesPath) continue;
     const file = from === 'source' ? sourceOf(packageDir, typesPath) : join(packageDir, typesPath);
     if (!file || !existsSync(file)) {
-      unreadable.push({ key, why: from === 'source' ? `no source module builds ${typesPath}` : `${typesPath} is not installed` });
+      unreadable.push({
+        key,
+        why:
+          from === 'source'
+            ? `no source module builds ${typesPath}`
+            : `${typesPath} is not installed`,
+      });
       continue;
     }
     entries.push({
@@ -124,7 +139,8 @@ export function readEntryOwnership(packageDir: string, from: 'source' | 'build')
     const sourceFile = program.getSourceFile(entry.file);
     const moduleSymbol = sourceFile ? checker.getSymbolAtLocation(sourceFile) : undefined;
     for (const exported of moduleSymbol ? checker.getExportsOfModule(moduleSymbol) : []) {
-      const target = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+      const target =
+        exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
       const declaration = target.declarations?.[0];
       if (!declaration) continue;
       const declaredIn = resolve(declaration.getSourceFile().fileName);
@@ -152,27 +168,39 @@ export function readEntryOwnership(packageDir: string, from: 'source' | 'build')
 }
 
 /** A module's path without its extension, so a declaration file and its source compare equal. */
-const moduleStem = (file: string) => slash(file).replace(/\.d\.([cm]?)ts$/, '').replace(/\.[cm]?[jt]sx?$/, '');
+const moduleStem = (file: string) =>
+  slash(file)
+    .replace(/\.d\.([cm]?)ts$/, '')
+    .replace(/\.[cm]?[jt]sx?$/, '');
 
 /** Every definition of a package exported by more than one entry, or by an entry that does not own it. */
 export function entryOwnershipFindings(ownership: EntryOwnership, repoRoot: string): Finding[] {
   const findings: Finding[] = [];
   const rel = (file: string) => slash(relative(repoRoot, file));
-  for (const { key, why } of ownership.unreadable) findings.push({ file: rel(join(ownership.packageDir, 'package.json')), detail: `entry ${key}: ${why}` });
+  for (const { key, why } of ownership.unreadable)
+    findings.push({
+      file: rel(join(ownership.packageDir, 'package.json')),
+      detail: `entry ${key}: ${why}`,
+    });
   const byDeclaration = new Map<string, Array<{ entry: PackageEntry; name: string }>>();
   for (const entry of ownership.entries) {
     for (const [name, declaration] of ownership.exportsByEntry.get(entry.key) ?? []) {
       byDeclaration.set(declaration, [...(byDeclaration.get(declaration) ?? []), { entry, name }]);
     }
   }
-  for (const [declaration, exporters] of [...byDeclaration].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [declaration, exporters] of [...byDeclaration].sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
     const hash = declaration.lastIndexOf('#');
     const file = declaration.slice(0, hash);
     const declared = declaration.slice(hash + 1);
     const owner = ownership.ownerOf(file);
     const specs = [...new Set(exporters.map((e) => `'${e.entry.spec}'`))];
     if (!owner) {
-      findings.push({ file: rel(file), detail: `${declared} is exported by ${specs.join(', ')}, but no entry covers its file` });
+      findings.push({
+        file: rel(file),
+        detail: `${declared} is exported by ${specs.join(', ')}, but no entry covers its file`,
+      });
     } else if (specs.length > 1 || exporters[0].entry !== owner) {
       findings.push({
         file: rel(file),
@@ -212,12 +240,20 @@ export const packageEntriesGuard: GenericGuardDefinition<PackageEntryFacts> = {
           const repoRoot = context.reader.layout.repoRoot;
           const folder = join(repoRoot, facts.packagesFolder);
           const packages = existsSync(folder)
-            ? readdirSync(folder, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(folder, d.name, 'package.json')))
+            ? readdirSync(folder, { withFileTypes: true }).filter(
+                (d) => d.isDirectory() && existsSync(join(folder, d.name, 'package.json')),
+              )
             : [];
-          if (!packages.length) return [{ file: facts.packagesFolder, detail: 'the folder holds no package' }];
+          if (!packages.length)
+            return [{ file: facts.packagesFolder, detail: 'the folder holds no package' }];
           for (const dirent of packages) {
             context.file(`${slash(facts.packagesFolder)}/${dirent.name}/package.json`);
-            findings.push(...entryOwnershipFindings(readEntryOwnership(join(folder, dirent.name), 'source'), repoRoot));
+            findings.push(
+              ...entryOwnershipFindings(
+                readEntryOwnership(join(folder, dirent.name), 'source'),
+                repoRoot,
+              ),
+            );
           }
           return findings;
         },
@@ -241,7 +277,11 @@ const CONSUMER_SCOPE: Scope = {
 };
 
 /** The installed package a file resolves `packageName` to: the nearest `node_modules` above it. */
-function installedPackageDir(fromFile: string, repoRoot: string, packageName: string): string | null {
+function installedPackageDir(
+  fromFile: string,
+  repoRoot: string,
+  packageName: string,
+): string | null {
   let dir = dirname(fromFile);
   const top = resolve(repoRoot);
   for (;;) {
@@ -260,7 +300,8 @@ export const packageEntryImportsGuard: GenericGuardDefinition<PackageEntryImport
   factProblems(facts) {
     const problems: string[] = [];
     textProblem(facts?.scope, 'scope', problems);
-    if (typeof facts?.scope === 'string' && !/^@[a-z0-9][a-z0-9._-]*$/.test(facts.scope)) problems.push('scope must be an npm scope such as @acme');
+    if (typeof facts?.scope === 'string' && !/^@[a-z0-9][a-z0-9._-]*$/.test(facts.scope))
+      problems.push('scope must be an npm scope such as @acme');
     return problems;
   },
   build(facts) {
@@ -268,8 +309,8 @@ export const packageEntryImportsGuard: GenericGuardDefinition<PackageEntryImport
       {
         title: 'every package definition is imported from the entry that owns it',
         description:
-          "A consumer imports each definition of a scoped package from the entry that owns it — the entry of the folder that " +
-          'holds it — never from the root, a parent folder\'s entry, or another entry that also carries it. The failure names ' +
+          'A consumer imports each definition of a scoped package from the entry that owns it — the entry of the folder that ' +
+          "holds it — never from the root, a parent folder's entry, or another entry that also carries it. The failure names " +
           'the owning entry; import from there.',
         timeoutMs: 300_000,
         run(context: GuardContext): Finding[] {
@@ -279,7 +320,11 @@ export const packageEntryImportsGuard: GenericGuardDefinition<PackageEntryImport
           const pattern = new RegExp(`^(${facts.scope.replace(/[.]/g, '\\.')}/[^/]+)(/.+)?$`);
           for (const file of context.files(CONSUMER_SCOPE)) {
             for (const imported of file.imports) {
-              if ((imported.kind !== 'import' && imported.kind !== 'export') || !imported.named.length) continue;
+              if (
+                (imported.kind !== 'import' && imported.kind !== 'export') ||
+                !imported.named.length
+              )
+                continue;
               const match = pattern.exec(imported.spec);
               if (!match) continue;
               const packageDir = installedPackageDir(join(repoRoot, file.path), repoRoot, match[1]);
@@ -299,7 +344,10 @@ export const packageEntryImportsGuard: GenericGuardDefinition<PackageEntryImport
                 if (owner && owner.key !== key) {
                   findings.push({
                     file: file.path,
-                    line: file.sourceFile.getLineAndCharacterOfPosition(imported.node.getStart(file.sourceFile)).line + 1,
+                    line:
+                      file.sourceFile.getLineAndCharacterOfPosition(
+                        imported.node.getStart(file.sourceFile),
+                      ).line + 1,
                     detail: `imports ${name} from '${imported.spec}', but its entry is '${owner.spec}'`,
                   });
                 }

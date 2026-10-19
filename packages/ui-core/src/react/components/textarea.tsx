@@ -1,20 +1,23 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import type { DeclaredInputFormat } from "@ttt-productions/input-format-core"
-import { cn } from "../../lib/utils.js"
-import { formatControlAttributes, tidyOnBlur } from "./format-control.js"
+import * as React from 'react';
+import type { DeclaredInputFormat } from '@ttt-productions/input-format-core';
+import { cn } from '../../lib/utils.js';
+import { formatControlAttributes, tidyOnBlur } from './format-control.js';
 
-type NativeTextareaProps = React.ComponentPropsWithoutRef<"textarea">
+type NativeTextareaProps = React.ComponentPropsWithoutRef<'textarea'>;
 
 /**
  * A multi-line free-text input: its declaration is required, and its length bounds come only from
  * that declaration (ENG-005), so `maxLength`, `minLength`, and `required` are not props.
  */
-export type FreeTextTextareaProps = Omit<NativeTextareaProps, "maxLength" | "minLength" | "required"> & {
-  inputFormat: DeclaredInputFormat
-  textEntry?: never
-}
+export type FreeTextTextareaProps = Omit<
+  NativeTextareaProps,
+  'maxLength' | 'minLength' | 'required'
+> & {
+  inputFormat: DeclaredInputFormat;
+  textEntry?: never;
+};
 
 /**
  * What a multi-line box that is not free text holds: identifiers (account, document, or case ids),
@@ -22,15 +25,15 @@ export type FreeTextTextareaProps = Omit<NativeTextareaProps, "maxLength" | "min
  * by its own rule (the one-segment id rule, or the item's own field declaration) — so the box has
  * no input format of its own.
  */
-export type NonFreeTextareaEntry = "identifier" | "list"
+export type NonFreeTextareaEntry = 'identifier' | 'list';
 
 /** A multi-line box that is not free text: no input format; native bounds stay the caller's. */
 export type NonFreeTextTextareaProps = NativeTextareaProps & {
-  textEntry: NonFreeTextareaEntry
-  inputFormat?: never
-}
+  textEntry: NonFreeTextareaEntry;
+  inputFormat?: never;
+};
 
-export type TextareaProps = FreeTextTextareaProps | NonFreeTextTextareaProps
+export type TextareaProps = FreeTextTextareaProps | NonFreeTextTextareaProps;
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   // `textEntry` only selects the prop shape; it never reaches the DOM.
@@ -38,20 +41,20 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <textarea
         className={cn(
-          "flex min-h-[80px] w-full rounded-md border-2 border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-          className
+          'flex min-h-[80px] w-full rounded-md border-2 border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+          className,
         )}
         ref={ref}
         {...props}
         {...(inputFormat ? formatControlAttributes(inputFormat, props) : {})}
         onBlur={(event) => {
-          if (inputFormat) tidyOnBlur(event.currentTarget, inputFormat)
-          onBlur?.(event)
+          if (inputFormat) tidyOnBlur(event.currentTarget, inputFormat);
+          onBlur?.(event);
         }}
       />
-    )
-  }
-)
-Textarea.displayName = "Textarea"
+    );
+  },
+);
+Textarea.displayName = 'Textarea';
 
-export { Textarea }
+export { Textarea };

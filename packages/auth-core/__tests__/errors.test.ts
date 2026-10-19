@@ -95,7 +95,7 @@ describe('normalizeAuthError', () => {
       expect(result.code).toBe('AUTH_EXPIRED_ACTION_CODE');
       expect(result.firebaseCode).toBe('auth/expired-action-code');
       expect(result.message).toBe(
-        'This email action link has expired. Request a new link and try again.'
+        'This email action link has expired. Request a new link and try again.',
       );
     });
 
@@ -104,7 +104,7 @@ describe('normalizeAuthError', () => {
       expect(result.code).toBe('AUTH_INVALID_ACTION_CODE');
       expect(result.firebaseCode).toBe('auth/invalid-action-code');
       expect(result.message).toBe(
-        'This email action link is invalid or has already been used. Request a new link and try again.'
+        'This email action link is invalid or has already been used. Request a new link and try again.',
       );
     });
 
@@ -151,10 +151,10 @@ describe('normalizeAuthError', () => {
       expect(result.code).toBe('AUTH_UNKNOWN');
     });
 
-    it('never passes an unclassified error\'s own message through to the person', () => {
+    it("never passes an unclassified error's own message through to the person", () => {
       const refused = Object.assign(
         new Error('Firebase: Cloud function deadline exceeded. (auth/internal-error).'),
-        { code: 'auth/internal-error' }
+        { code: 'auth/internal-error' },
       );
       const result = normalizeAuthError(refused);
       expect(result.code).toBe('AUTH_UNKNOWN');
@@ -232,13 +232,13 @@ describe('getErrorMessage', () => {
 
   it('returns the safe copy for an expired email action link', () => {
     expect(getErrorMessage({ code: 'auth/expired-action-code' })).toBe(
-      'This email action link has expired. Request a new link and try again.'
+      'This email action link has expired. Request a new link and try again.',
     );
   });
 
   it('returns the safe copy for an invalid or used email action link', () => {
     expect(getErrorMessage({ code: 'auth/invalid-action-code' })).toBe(
-      'This email action link is invalid or has already been used. Request a new link and try again.'
+      'This email action link is invalid or has already been used. Request a new link and try again.',
     );
   });
 

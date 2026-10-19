@@ -24,20 +24,32 @@ describe('the callable maintenance refusal — one recognisable shape', () => {
   );
 
   it('recognises an Error instance carrying the code and details, whatever its message', () => {
-    const err = Object.assign(new Error('Anything the operator typed.'), { code: MAINTENANCE_REFUSAL_CODE, details });
+    const err = Object.assign(new Error('Anything the operator typed.'), {
+      code: MAINTENANCE_REFUSAL_CODE,
+      details,
+    });
     expect(isMaintenanceRefusalError(err)).toBe(true);
   });
 
   it('recognises details that carry more than the reason', () => {
-    expect(isMaintenanceRefusalError({ code: 'unavailable', details: { reason: 'maintenance', extra: 1 } })).toBe(true);
+    expect(
+      isMaintenanceRefusalError({
+        code: 'unavailable',
+        details: { reason: 'maintenance', extra: 1 },
+      }),
+    ).toBe(true);
   });
 
-  it.each(['failed-precondition', 'functions/failed-precondition', 'internal', 'functions/internal', 'UNAVAILABLE', ''])(
-    'rejects the maintenance details under the %s code',
-    (code) => {
-      expect(isMaintenanceRefusalError({ code, details })).toBe(false);
-    },
-  );
+  it.each([
+    'failed-precondition',
+    'functions/failed-precondition',
+    'internal',
+    'functions/internal',
+    'UNAVAILABLE',
+    '',
+  ])('rejects the maintenance details under the %s code', (code) => {
+    expect(isMaintenanceRefusalError({ code, details })).toBe(false);
+  });
 
   it('rejects details without a code', () => {
     expect(isMaintenanceRefusalError({ details })).toBe(false);
@@ -58,7 +70,9 @@ describe('the callable maintenance refusal — one recognisable shape', () => {
 
   it('rejects a message-only error, even one carrying the maintenance line', () => {
     expect(isMaintenanceRefusalError(new Error(DEFAULT_MAINTENANCE_MESSAGE))).toBe(false);
-    expect(isMaintenanceRefusalError({ code: 'unavailable', message: DEFAULT_MAINTENANCE_MESSAGE })).toBe(false);
+    expect(
+      isMaintenanceRefusalError({ code: 'unavailable', message: DEFAULT_MAINTENANCE_MESSAGE }),
+    ).toBe(false);
   });
 
   it.each<[string, unknown]>([
@@ -88,4 +102,3 @@ describe('isMaintenanceRefusalDetails', () => {
     expect(isMaintenanceRefusalDetails(junk)).toBe(false);
   });
 });
-

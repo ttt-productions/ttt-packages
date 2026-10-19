@@ -24,13 +24,21 @@ import {
 
 const ACCESSORS = new Set(['collection', 'collectionGroup', 'doc']);
 
-const APP_CODE: Scope = { roots: ['app', 'functions'], optionalRoots: ['functions'], kinds: ['code'], tests: false };
+const APP_CODE: Scope = {
+  roots: ['app', 'functions'],
+  optionalRoots: ['functions'],
+  kinds: ['code'],
+  tests: false,
+};
 
 /** The database handle a modular accessor takes first: `db`, `firestore.db`, `getDb()`. */
 function isHandle(node: ts.Expression): boolean {
   const plain = (n: ts.Expression): boolean =>
     ts.isIdentifier(n) || (ts.isPropertyAccessExpression(n) && plain(n.expression));
-  return plain(node) || (ts.isCallExpression(node) && node.arguments.length === 0 && plain(node.expression));
+  return (
+    plain(node) ||
+    (ts.isCallExpression(node) && node.arguments.length === 0 && plain(node.expression))
+  );
 }
 
 /**
@@ -38,10 +46,18 @@ function isHandle(node: ts.Expression): boolean {
  * `x.collection(…)` / `x.collectionGroup(…)` / `x.doc(…)` (every argument), and the modular
  * `collection(db, …)` / `collectionGroup(db, …)` / `doc(db, …)` (every argument after the handle).
  */
-function accessorPathArguments(call: ts.CallExpression): { form: 'method' | 'modular'; args: readonly ts.Expression[] } | null {
+function accessorPathArguments(
+  call: ts.CallExpression,
+): { form: 'method' | 'modular'; args: readonly ts.Expression[] } | null {
   const callee = call.expression;
-  if (ts.isPropertyAccessExpression(callee) && ACCESSORS.has(callee.name.text)) return { form: 'method', args: call.arguments };
-  if (ts.isIdentifier(callee) && ACCESSORS.has(callee.text) && call.arguments.length >= 2 && isHandle(call.arguments[0])) {
+  if (ts.isPropertyAccessExpression(callee) && ACCESSORS.has(callee.name.text))
+    return { form: 'method', args: call.arguments };
+  if (
+    ts.isIdentifier(callee) &&
+    ACCESSORS.has(callee.text) &&
+    call.arguments.length >= 2 &&
+    isHandle(call.arguments[0])
+  ) {
     return { form: 'modular', args: call.arguments.slice(1) };
   }
   return null;
@@ -54,7 +70,8 @@ export function literalSegmentHits(file: FileView): NodeHit[] {
   const typed = (arg: ts.Expression): string | null => {
     const value = unwrap(arg);
     if (isPlainString(value)) return `'${value.text}'`;
-    if (ts.isIdentifier(value) && bindings.has(value.text)) return `${value.text} (bound to '${bindings.get(value.text)}')`;
+    if (ts.isIdentifier(value) && bindings.has(value.text))
+      return `${value.text} (bound to '${bindings.get(value.text)}')`;
     return null;
   };
   const hits: NodeHit[] = [];
@@ -67,10 +84,17 @@ export function literalSegmentHits(file: FileView): NodeHit[] {
       // The Admin SDK accessor takes the whole segment as its one argument.
       if (accessor.args.length !== 1) return;
       const segment = typed(accessor.args[0]);
-      if (segment) hits.push({ node: (node.expression as ts.PropertyAccessExpression).name, detail: `.${name}(${segment})` });
+      if (segment)
+        hits.push({
+          node: (node.expression as ts.PropertyAccessExpression).name,
+          detail: `.${name}(${segment})`,
+        });
       return;
     }
-    const segments = accessor.args.filter((arg) => !ts.isSpreadElement(arg)).map(typed).filter((s): s is string => s !== null);
+    const segments = accessor.args
+      .filter((arg) => !ts.isSpreadElement(arg))
+      .map(typed)
+      .filter((s): s is string => s !== null);
     if (segments.length) hits.push({ node, detail: `${name}(db, …) with ${segments.join(', ')}` });
   });
   return hits;
@@ -118,7 +142,10 @@ function concatenationOperands(node: ts.Expression): ts.Expression[] {
 }
 
 /** Every hand-assembled path in one file, under the app's owner constants and joiners. */
-export function pathAssemblyHits(file: FileView, facts: Pick<PathAssemblyFacts, 'ownerConstants' | 'segmentArrayJoiners'>): NodeHit[] {
+export function pathAssemblyHits(
+  file: FileView,
+  facts: Pick<PathAssemblyFacts, 'ownerConstants' | 'segmentArrayJoiners'>,
+): NodeHit[] {
   const owners = new Set(facts.ownerConstants);
   const joiners = new Set(facts.segmentArrayJoiners);
   const isOwner = (node: ts.Expression) => isMemberOf(unwrap(node), owners);
@@ -133,8 +160,11 @@ export function pathAssemblyHits(file: FileView, facts: Pick<PathAssemblyFacts, 
       for (const raw of accessor?.args ?? []) {
         const arg = unwrap(raw);
         if (ts.isTemplateExpression(arg)) {
-          if (arg.templateSpans.some((span) => isOwner(span.expression))) hit(arg, 'an owner constant spliced into a template path');
-          else if ((arg.head.text + arg.templateSpans.map((s) => s.literal.text).join('')).includes('/')) {
+          if (arg.templateSpans.some((span) => isOwner(span.expression)))
+            hit(arg, 'an owner constant spliced into a template path');
+          else if (
+            (arg.head.text + arg.templateSpans.map((s) => s.literal.text).join('')).includes('/')
+          ) {
             hit(arg, 'a template path built from a `/` and a hole');
           }
         } else if (ts.isBinaryExpression(arg) && concatenationOperands(arg).some(hasSlash)) {
@@ -145,7 +175,10 @@ export function pathAssemblyHits(file: FileView, facts: Pick<PathAssemblyFacts, 
       if (name && joiners.has(name)) {
         for (const arg of node.arguments) {
           const value = unwrap(arg);
-          if (ts.isArrayLiteralExpression(value) && value.elements.some((e) => !ts.isSpreadElement(e) && isOwner(e))) {
+          if (
+            ts.isArrayLiteralExpression(value) &&
+            value.elements.some((e) => !ts.isSpreadElement(e) && isOwner(e))
+          ) {
             hit(value, `a segment array handed to ${name}() with an owner constant in it`);
           }
         }
@@ -160,10 +193,13 @@ export function pathAssemblyHits(file: FileView, facts: Pick<PathAssemblyFacts, 
     } else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
       const left = unwrap(node.left);
       const right = unwrap(node.right);
-      if ((isOwner(left) && hasSlash(right)) || (hasSlash(left) && isOwner(right))) hit(node, 'an owner constant concatenated with a slash');
+      if ((isOwner(left) && hasSlash(right)) || (hasSlash(left) && isOwner(right)))
+        hit(node, 'an owner constant concatenated with a slash');
     }
   });
-  return [...hits.values()].sort((a, b) => a.node.getStart(file.sourceFile) - b.node.getStart(file.sourceFile));
+  return [...hits.values()].sort(
+    (a, b) => a.node.getStart(file.sourceFile) - b.node.getStart(file.sourceFile),
+  );
 }
 
 export const pathAssemblyGuard: GenericGuardDefinition<PathAssemblyFacts> = {
@@ -199,7 +235,11 @@ export const pathAssemblyGuard: GenericGuardDefinition<PathAssemblyFacts> = {
             else findings.push(...findingsOf(file, hits));
           }
           for (const path of reviewed.keys()) {
-            if (!held.has(path)) findings.push({ file: path, detail: 'stale reviewed site: the file no longer assembles a path (or is gone)' });
+            if (!held.has(path))
+              findings.push({
+                file: path,
+                detail: 'stale reviewed site: the file no longer assembles a path (or is gone)',
+              });
           }
           return findings;
         },
@@ -220,7 +260,10 @@ export interface RetiredSegmentFacts {
  * whole group id of a collectionGroup call. Each hit carries the literal's source text, which a
  * reviewed match is checked against.
  */
-export function retiredSegmentHits(file: FileView, names: readonly string[]): Array<NodeHit & { name: string; text: string }> {
+export function retiredSegmentHits(
+  file: FileView,
+  names: readonly string[],
+): Array<NodeHit & { name: string; text: string }> {
   const source = file.sourceFile;
   const retired = new Set(names);
   const alternation = names.map(escapeRegExp).join('|');
@@ -241,12 +284,16 @@ export function retiredSegmentHits(file: FileView, names: readonly string[]): Ar
     else if (ts.isTemplateExpression(node)) {
       scan(node, [
         { text: node.head.text, closes: false },
-        ...node.templateSpans.map((s, i) => ({ text: s.literal.text, closes: i === node.templateSpans.length - 1 })),
+        ...node.templateSpans.map((s, i) => ({
+          text: s.literal.text,
+          closes: i === node.templateSpans.length - 1,
+        })),
       ]);
     }
     if (ts.isCallExpression(node) && calleeName(node) === 'collectionGroup') {
       for (const arg of node.arguments) {
-        if (isPlainString(arg) && retired.has(arg.text)) hits.push({ node: arg, name: arg.text, text: arg.getText(source), detail: '' });
+        if (isPlainString(arg) && retired.has(arg.text))
+          hits.push({ node: arg, name: arg.text, text: arg.getText(source), detail: '' });
       }
     }
   });
@@ -260,14 +307,18 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
     const problems: string[] = [];
     reviewedProblems(facts?.reviewedMatches, 'reviewedMatches', problems, {
       key: 'file',
-      id: (e) => (typeof e.contains === 'string' && e.contains ? `${e.file} ${e.contains}` : undefined),
+      id: (e) =>
+        typeof e.contains === 'string' && e.contains ? `${e.file} ${e.contains}` : undefined,
       idNames: 'text it contains',
     });
-    if (!Array.isArray(facts?.segments) || !facts.segments.length) return [...problems, 'segments is empty (declare the guard absent instead)'];
+    if (!Array.isArray(facts?.segments) || !facts.segments.length)
+      return [...problems, 'segments is empty (declare the guard absent instead)'];
     const names = facts.segments.map((s) => s?.name);
     for (const s of facts.segments) {
-      if (typeof s?.name !== 'string' || !/^[\w$-]+$/.test(s.name)) problems.push(`segments: ${String(s?.name)} is not a segment name`);
-      if (typeof s?.replacement !== 'string' || !s.replacement.trim()) problems.push(`segments: ${String(s?.name)} names no replacement`);
+      if (typeof s?.name !== 'string' || !/^[\w$-]+$/.test(s.name))
+        problems.push(`segments: ${String(s?.name)} is not a segment name`);
+      if (typeof s?.replacement !== 'string' || !s.replacement.trim())
+        problems.push(`segments: ${String(s?.name)} names no replacement`);
     }
     if (new Set(names).size !== names.length) problems.push('segments names one entry twice');
     return problems;
@@ -296,7 +347,9 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
           const used = new Set<number>();
           for (const file of context.files(scope)) {
             for (const hit of retiredSegmentHits(file, names)) {
-              const index = facts.reviewedMatches.findIndex((r) => r.file === file.path && hit.text.includes(r.contains));
+              const index = facts.reviewedMatches.findIndex(
+                (r) => r.file === file.path && hit.text.includes(r.contains),
+              );
               if (index !== -1) {
                 used.add(index);
                 continue;
@@ -309,7 +362,11 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
             }
           }
           facts.reviewedMatches.forEach((r, i) => {
-            if (!used.has(i)) findings.push({ file: r.file, detail: `stale reviewed match: no retired segment in a literal containing "${r.contains}"` });
+            if (!used.has(i))
+              findings.push({
+                file: r.file,
+                detail: `stale reviewed match: no retired segment in a literal containing "${r.contains}"`,
+              });
           });
           return findings;
         },

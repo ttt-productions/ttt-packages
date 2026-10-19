@@ -30,7 +30,12 @@ const adminAuditionVariableFields = {
   mode: AuditionModeSchema.optional(),
   // Curated only: the fixed number of option videos (2..8) uploaded as one atomic batch. Required by
   // the callable when mode === 'curated'; ignored for open auditions.
-  expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
+  expectedOptionCount: z
+    .number()
+    .int()
+    .min(MIN_CURATED_AUDITION_OPTIONS)
+    .max(MAX_CURATED_AUDITION_OPTIONS)
+    .optional(),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 };

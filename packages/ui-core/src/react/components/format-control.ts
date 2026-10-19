@@ -1,10 +1,10 @@
-import { checkInputFormat, type InputFormatSpec } from "@ttt-productions/input-format-core"
+import { checkInputFormat, type InputFormatSpec } from '@ttt-productions/input-format-core';
 
 interface CallerAttributes {
-  value?: unknown
-  readOnly?: boolean
-  "aria-required"?: boolean | "true" | "false"
-  "aria-invalid"?: boolean | "true" | "false" | "grammar" | "spelling"
+  value?: unknown;
+  readOnly?: boolean;
+  'aria-required'?: boolean | 'true' | 'false';
+  'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
 }
 
 /**
@@ -26,17 +26,17 @@ export function formatControlAttributes(spec: InputFormatSpec, props: CallerAttr
   if (props.readOnly) {
     return {
       maxLength: spec.max,
-      "aria-required": props["aria-required"],
-      "aria-invalid": props["aria-invalid"],
-    }
+      'aria-required': props['aria-required'],
+      'aria-invalid': props['aria-invalid'],
+    };
   }
-  const result = typeof props.value === "string" ? checkInputFormat(props.value, spec) : null
-  const malformed = result !== null && !result.ok && result.issue !== "tooShort"
+  const result = typeof props.value === 'string' ? checkInputFormat(props.value, spec) : null;
+  const malformed = result !== null && !result.ok && result.issue !== 'tooShort';
   return {
     maxLength: spec.max,
-    "aria-required": props["aria-required"] ?? (spec.min > 0 ? true : undefined),
-    "aria-invalid": props["aria-invalid"] ?? (malformed ? true : undefined),
-  }
+    'aria-required': props['aria-required'] ?? (spec.min > 0 ? true : undefined),
+    'aria-invalid': props['aria-invalid'] ?? (malformed ? true : undefined),
+  };
 }
 
 /**
@@ -46,10 +46,11 @@ export function formatControlAttributes(spec: InputFormatSpec, props: CallerAttr
  * A read-only or disabled box shows a stored value nobody edits there, so it is never tidied.
  */
 export function tidyOnBlur(box: HTMLInputElement | HTMLTextAreaElement, spec: InputFormatSpec) {
-  if (box.readOnly || box.disabled) return
-  const kept = checkInputFormat(box.value, spec).value
-  if (kept === box.value) return
-  const prototype = box instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
-  Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(box, kept)
-  box.dispatchEvent(new Event("input", { bubbles: true }))
+  if (box.readOnly || box.disabled) return;
+  const kept = checkInputFormat(box.value, spec).value;
+  if (kept === box.value) return;
+  const prototype =
+    box instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(box, kept);
+  box.dispatchEvent(new Event('input', { bubbles: true }));
 }

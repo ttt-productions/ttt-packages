@@ -26,7 +26,9 @@ export type InputFormat = keyof typeof INPUT_FORMAT_RULES;
 export const INPUT_FORMATS = Object.freeze(Object.keys(INPUT_FORMAT_RULES) as InputFormat[]);
 
 export function isInputFormat(value: unknown): value is InputFormat {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(INPUT_FORMAT_RULES, value);
+  return (
+    typeof value === 'string' && Object.prototype.hasOwnProperty.call(INPUT_FORMAT_RULES, value)
+  );
 }
 
 /**
@@ -80,7 +82,8 @@ export function checkInputFormat(text: string, spec: InputFormatSpec): InputForm
   if (trimmed.length < spec.min) return { ok: false, value, issue: 'tooShort' };
   if (value.length > spec.max) return { ok: false, value, issue: 'tooLong' };
   const allowed = INPUT_FORMAT_RULES[spec.format];
-  if (allowed !== null && !allowed.test(value)) return { ok: false, value, issue: 'invalidCharacters' };
+  if (allowed !== null && !allowed.test(value))
+    return { ok: false, value, issue: 'invalidCharacters' };
   if (spec.keepAsTyped || spec.format === 'none') return { ok: true, value, reformatted: false };
   const kept = value.replace(/\s+/g, ' ');
   return { ok: true, value: kept, reformatted: kept !== trimmed };
@@ -91,12 +94,16 @@ export function checkInputFormat(text: string, spec: InputFormatSpec): InputForm
  * not a whole number of at least 0, or a max that is not a whole number of at least 1 and at least the
  * min — so a wrong declaration fails where it is written, not at the first text checked against it.
  */
-export function defineInputFormat<const S extends InputFormatSpec>(spec: S): DeclaredInputFormat<S> {
+export function defineInputFormat<const S extends InputFormatSpec>(
+  spec: S,
+): DeclaredInputFormat<S> {
   if (!isInputFormat(spec.format)) {
     throw new TypeError(`Unknown input format: ${String(spec.format)}`);
   }
   if (!Number.isInteger(spec.min) || spec.min < 0) {
-    throw new RangeError(`An input format's min must be a whole number of at least 0; got ${spec.min}`);
+    throw new RangeError(
+      `An input format's min must be a whole number of at least 0; got ${spec.min}`,
+    );
   }
   if (!Number.isInteger(spec.max) || spec.max < 1 || spec.max < spec.min) {
     throw new RangeError(

@@ -27,13 +27,21 @@ function isPristineForRefund(pledge: PledgeRefundFields): boolean {
  * flight, or failed with the admin's follow-up unresolved). Each is its own answer and
  * failure-audit reason in the request callable.
  */
-export const PLEDGE_REFUND_REQUEST_REFUSALS = ['not-owner', 'window-expired', 'ineligible', 'already-open'] as const;
+export const PLEDGE_REFUND_REQUEST_REFUSALS = [
+  'not-owner',
+  'window-expired',
+  'ineligible',
+  'already-open',
+] as const;
 export type PledgeRefundRequestRefusal = (typeof PLEDGE_REFUND_REQUEST_REFUSALS)[number];
 
 type PledgeRefundRequestFields = Pick<PledgePayment, 'userId' | 'createdAt'> & PledgeRefundFields;
 
 /** The pledge's most recent refund request — the only one that can still be open — or null for none. */
-type LatestPledgeRefundRequest = Pick<PledgeRefundRequest, 'status' | 'failureFollowUpResolvedAt'> | null;
+type LatestPledgeRefundRequest = Pick<
+  PledgeRefundRequest,
+  'status' | 'failureFollowUpResolvedAt'
+> | null;
 
 /**
  * The refusal `callerUid` gets for requesting a refund of `pledge` at `now`, given the pledge's
@@ -68,6 +76,9 @@ export function isPledgeRefundRequestable(
  * still pristine, and its live net still the amount the request was made for. The window and the
  * owner were settled when the request was made.
  */
-export function isPledgeRefundApprovable(pledge: PledgeRefundFields, requestAmount: number): boolean {
+export function isPledgeRefundApprovable(
+  pledge: PledgeRefundFields,
+  requestAmount: number,
+): boolean {
   return isPristineForRefund(pledge) && pledge.netAmount === requestAmount;
 }

@@ -42,7 +42,9 @@ describe('getRateLimitErrorMessage', () => {
       reset,
       copy: { suffix: 'Early-launch rate limits in place.' },
     });
-    expect(msg).toBe('Rate limit exceeded. Try again in 2 minutes. Early-launch rate limits in place.');
+    expect(msg).toBe(
+      'Rate limit exceeded. Try again in 2 minutes. Early-launch rate limits in place.',
+    );
   });
 
   it('copy.format overrides default formatting entirely', () => {

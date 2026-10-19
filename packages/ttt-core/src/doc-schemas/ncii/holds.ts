@@ -40,29 +40,31 @@ export type NciiTemporaryHoldStatus = z.infer<typeof NciiTemporaryHoldStatusSche
 /** `nciiTemporaryHolds/{holdId}` — NON-AUTHORITATIVE workflow/projection of the
  * authoritative A3 hold (via `safetyHoldRefId`). Doc id `holdId` is a
  * deterministic/assigned id (z.string().min(1)). */
-export const NciiTemporaryHoldV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  holdId: z.string().min(1),
-  requestId: z.string().min(1),
-  caseId: z.string().min(1).optional(),
-  resourceType: z.literal('nciiTemporaryTarget'),
-  // [H1] pointer to the AUTHORITATIVE safetyHoldRefs entry — this row is a NON-AUTHORITATIVE projection
-  safetyHoldRefId: z.string().min(1),
-  // [H4] the discriminated locator — NOT an all-optional contentRef
-  target: TargetLocatorV1Schema,
-  rootLineageRef: z.string().min(1).optional(),
-  contentHashes: z.array(z.string().min(1)).max(16).optional(),
-  ownerUid: z.string().min(1).optional(),
-  capturedRevision: z.number().optional(),
-  capturedGeneration: z.string().min(1).optional(),
-  // pointer to the immutable request-target snapshot
-  snapshotRef: z.string().min(1),
-  purpose: z.literal('nciiTemporaryPreservation'),
-  createdAt: z.number(),
-  // short minimize-retention expiry; extended while request valid/pending
-  expiresAt: z.number(),
-  status: NciiTemporaryHoldStatusSchema,
-  releasedAt: z.number().optional(),
-  releaseReason: z.string().optional(),
-}).strict();
+export const NciiTemporaryHoldV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    holdId: z.string().min(1),
+    requestId: z.string().min(1),
+    caseId: z.string().min(1).optional(),
+    resourceType: z.literal('nciiTemporaryTarget'),
+    // [H1] pointer to the AUTHORITATIVE safetyHoldRefs entry — this row is a NON-AUTHORITATIVE projection
+    safetyHoldRefId: z.string().min(1),
+    // [H4] the discriminated locator — NOT an all-optional contentRef
+    target: TargetLocatorV1Schema,
+    rootLineageRef: z.string().min(1).optional(),
+    contentHashes: z.array(z.string().min(1)).max(16).optional(),
+    ownerUid: z.string().min(1).optional(),
+    capturedRevision: z.number().optional(),
+    capturedGeneration: z.string().min(1).optional(),
+    // pointer to the immutable request-target snapshot
+    snapshotRef: z.string().min(1),
+    purpose: z.literal('nciiTemporaryPreservation'),
+    createdAt: z.number(),
+    // short minimize-retention expiry; extended while request valid/pending
+    expiresAt: z.number(),
+    status: NciiTemporaryHoldStatusSchema,
+    releasedAt: z.number().optional(),
+    releaseReason: z.string().optional(),
+  })
+  .strict();
 export type NciiTemporaryHoldV1 = z.infer<typeof NciiTemporaryHoldV1Schema>;

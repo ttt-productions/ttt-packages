@@ -29,51 +29,65 @@ import { AdminDispatchContextRefSchema } from '../doc-schemas/messaging.js';
  * conversation — the grant request, the admin moderation and context reads, the staged chat
  * tombstone — takes this one schema.
  */
-const GuildChatChannelConversationSchema = z.object({
-  kind: z.literal('channel'),
-  workProjectId: workProjectIdSchema,
-  guildChatChannelId: guildChatChannelIdSchema,
-}).strict();
-const GuildInviteConversationRefSchema = z.object({
-  kind: z.literal('invite'),
-  guildInviteId: guildInviteIdSchema,
-}).strict();
+const GuildChatChannelConversationSchema = z
+  .object({
+    kind: z.literal('channel'),
+    workProjectId: workProjectIdSchema,
+    guildChatChannelId: guildChatChannelIdSchema,
+  })
+  .strict();
+const GuildInviteConversationRefSchema = z
+  .object({
+    kind: z.literal('invite'),
+    guildInviteId: guildInviteIdSchema,
+  })
+  .strict();
 export const GuildChatConversationSchema = z.discriminatedUnion('kind', [
   GuildChatChannelConversationSchema,
   GuildInviteConversationRefSchema,
 ]) satisfies z.ZodType<GuildChatConversation>;
 
-export const ArchiveGuildChatChannelInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  guildChatChannelId: guildChatChannelIdSchema,
-}).strict();
+export const ArchiveGuildChatChannelInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    guildChatChannelId: guildChatChannelIdSchema,
+  })
+  .strict();
 export type ArchiveGuildChatChannelInput = z.infer<typeof ArchiveGuildChatChannelInputSchema>;
 
 // Restore an archived guild chat channel — same input shape as archive. The callable clears
 // `isArchived` and bumps configVersion; it is the inverse of archive, never a path to a deleted
 // (tombstoned) channel. Declared as its OWN named schema per the delete precedent below: one
 // named schema per callable, so a lane's input can diverge without touching its siblings.
-export const UnarchiveGuildChatChannelInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  guildChatChannelId: guildChatChannelIdSchema,
-}).strict();
+export const UnarchiveGuildChatChannelInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    guildChatChannelId: guildChatChannelIdSchema,
+  })
+  .strict();
 export type UnarchiveGuildChatChannelInput = z.infer<typeof UnarchiveGuildChatChannelInputSchema>;
 
 // Tombstone (delete) a guild chat channel — same input shape as archive. The callable marks the
 // channel `isDeleted`, bumps configVersion, revokes grants, and re-projects members to `removed`;
 // storage is retained (never a physical purge).
-export const DeleteGuildChatChannelInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  guildChatChannelId: guildChatChannelIdSchema,
-}).strict();
+export const DeleteGuildChatChannelInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    guildChatChannelId: guildChatChannelIdSchema,
+  })
+  .strict();
 export type DeleteGuildChatChannelInput = z.infer<typeof DeleteGuildChatChannelInputSchema>;
 
-export const CreateGuildChatChannelInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  channelName: textFieldSchema(GUILD_CHAT_CHANNEL_NAME_INPUT),
-  description: textFieldSchema(GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT).optional(),
-  requiredGuildStandings: z.array(guildChatChannelRequirementSchema).max(MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS),
-}).strict();
+export const CreateGuildChatChannelInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    channelName: textFieldSchema(GUILD_CHAT_CHANNEL_NAME_INPUT),
+    description: textFieldSchema(GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT).optional(),
+    requiredGuildStandings: z
+      .array(guildChatChannelRequirementSchema)
+      .max(MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS),
+  })
+  .strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
 /**
@@ -102,13 +116,15 @@ export type GuildChatChannelLifecycleResult = z.infer<typeof GuildChatChannelLif
 // send through the realtime chat (Cloudflare DOs). ONE input for both sides of a support thread:
 // `sendGuildChatMessage` is the thread owner's reply and `adminSendGuildChatMessage` the admin's,
 // so the callable — never a flag in the input — says which side is speaking.
-export const SendGuildChatMessageInputSchema = z.object({
-  threadKind: z.literal('adminSupport'),
-  adminDispatchId: adminDispatchIdSchema,
-  text: textFieldSchema(SUPPORT_THREAD_MESSAGE_INPUT),
-  // No reply pointer: chat has no reply-authoring affordance, so a client could never
-  // legitimately send one. `.strict()` therefore REJECTS a client-sent `replyTo`.
-}).strict();
+export const SendGuildChatMessageInputSchema = z
+  .object({
+    threadKind: z.literal('adminSupport'),
+    adminDispatchId: adminDispatchIdSchema,
+    text: textFieldSchema(SUPPORT_THREAD_MESSAGE_INPUT),
+    // No reply pointer: chat has no reply-authoring affordance, so a client could never
+    // legitimately send one. `.strict()` therefore REJECTS a client-sent `replyTo`.
+  })
+  .strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 
 // Wire result contract for both support-thread send callables — what the CLIENT relies on.
@@ -124,10 +140,12 @@ export const SendGuildChatMessageResultSchema = z.object({
 export type SendGuildChatMessageResult = z.infer<typeof SendGuildChatMessageResultSchema>;
 
 // Subject/initial-text share the admin-dispatch caps (the "contact admin" composer enforces them).
-export const StartAdminSupportThreadInputSchema = z.object({
-  subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
-  initialMessage: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
-}).strict();
+export const StartAdminSupportThreadInputSchema = z
+  .object({
+    subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
+    initialMessage: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
+  })
+  .strict();
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
 
 // Authoritative result of startAdminSupportThread — both ids are minted inside the
@@ -144,23 +162,31 @@ export type StartAdminSupportThreadResult = z.infer<typeof StartAdminSupportThre
 // partyKind 'workProject'). Initiating is a Work ACTION (`adminDispatch.start`, BACKEND-006);
 // the callable enforces the one-open-work-initiated-thread spam guard. `contextRef` is
 // server-validated against the workProject before it is stored.
-export const StartWorkProjectAdminSupportThreadInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
-  initialMessage: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
-  contextRef: AdminDispatchContextRefSchema.optional(),
-}).strict();
-export type StartWorkProjectAdminSupportThreadInput = z.infer<typeof StartWorkProjectAdminSupportThreadInputSchema>;
+export const StartWorkProjectAdminSupportThreadInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
+    initialMessage: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
+    contextRef: AdminDispatchContextRefSchema.optional(),
+  })
+  .strict();
+export type StartWorkProjectAdminSupportThreadInput = z.infer<
+  typeof StartWorkProjectAdminSupportThreadInputSchema
+>;
 
 // Admin-initiated dispatch to a workProject party (mirrors the admin→user dispatch:
 // lands unread for the work's active guildmates, creates NO admin task, uncapped).
-export const CreateAdminDispatchToWorkProjectInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
-  message: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
-  contextRef: AdminDispatchContextRefSchema.optional(),
-}).strict();
-export type CreateAdminDispatchToWorkProjectInput = z.infer<typeof CreateAdminDispatchToWorkProjectInputSchema>;
+export const CreateAdminDispatchToWorkProjectInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
+    message: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
+    contextRef: AdminDispatchContextRefSchema.optional(),
+  })
+  .strict();
+export type CreateAdminDispatchToWorkProjectInput = z.infer<
+  typeof CreateAdminDispatchToWorkProjectInputSchema
+>;
 
 // ONE result for both dispatch-creation callables (to a user, to a Work).
 export const CreateAdminDispatchResultSchema = z.object({
@@ -173,11 +199,13 @@ export type CreateAdminDispatchResult = z.infer<typeof CreateAdminDispatchResult
 // `userId`). Sibling of the workProject dispatch above and the same admin-initiated contract:
 // lands unread in the target user's Messages tray, creates NO admin task. No `contextRef` —
 // that field is validated against a workProject, which a user-party thread has none of.
-export const CreateAdminDispatchToUserInputSchema = z.object({
-  userId: userIdSchema,
-  subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
-  message: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
-}).strict();
+export const CreateAdminDispatchToUserInputSchema = z
+  .object({
+    userId: userIdSchema,
+    subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
+    message: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
+  })
+  .strict();
 export type CreateAdminDispatchToUserInput = z.infer<typeof CreateAdminDispatchToUserInputSchema>;
 
 // CLIENT-CALLED wire contract for the `mintChatGrant` callable. The REAL Firestore
@@ -189,40 +217,49 @@ export const ChatGrantInputSchema = z.discriminatedUnion('kind', [
 ]);
 export type ChatGrantInput = z.infer<typeof ChatGrantInputSchema>;
 
-export const UpdateGuildChatChannelInputSchema = z.object({
-  workProjectId: workProjectIdSchema,
-  guildChatChannelId: guildChatChannelIdSchema,
-  channelName: textFieldSchema(GUILD_CHAT_CHANNEL_NAME_INPUT).optional(),
-  description: textFieldSchema(GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT).optional(),
-  requiredGuildStandings: z.array(guildChatChannelRequirementSchema).max(MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS).optional(),
-}).strict();
+export const UpdateGuildChatChannelInputSchema = z
+  .object({
+    workProjectId: workProjectIdSchema,
+    guildChatChannelId: guildChatChannelIdSchema,
+    channelName: textFieldSchema(GUILD_CHAT_CHANNEL_NAME_INPUT).optional(),
+    description: textFieldSchema(GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT).optional(),
+    requiredGuildStandings: z
+      .array(guildChatChannelRequirementSchema)
+      .max(MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS)
+      .optional(),
+  })
+  .strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 
 // `adminModerateChatMessage` — queue a DO-owned hide/delete command. A chat message carries
 // no media (files live in the conversation's Conversation Files list), so this is a text-only
 // hide/delete; `.strict()` rejects any asset-id field.
-export const AdminModerateChatMessageInputSchema = z.object({
-  requestId: documentIdSegmentSchema.max(200),
-  action: z.enum(['hide', 'delete']),
-  messageSeq: z.number().int().nonnegative(),
-  expectedMessageRevision: z.number().int().nonnegative(),
-  caseId: reportGroupIdSchema.max(200),
-  reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
-  channel: GuildChatConversationSchema,
-}).strict();
+export const AdminModerateChatMessageInputSchema = z
+  .object({
+    requestId: documentIdSegmentSchema.max(200),
+    action: z.enum(['hide', 'delete']),
+    messageSeq: z.number().int().nonnegative(),
+    expectedMessageRevision: z.number().int().nonnegative(),
+    caseId: reportGroupIdSchema.max(200),
+    reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
+    channel: GuildChatConversationSchema,
+  })
+  .strict();
 export type AdminModerateChatMessageInput = z.infer<typeof AdminModerateChatMessageInputSchema>;
 
 // `adminReadChannelContext` — case-bound admin read of a bounded (≤50 before / ≤50 after)
 // message window around a reported message. Requires a case id + reason; both request and
 // outcome are audited.
-export const AdminReadChannelContextInputSchema = z.object({
-  reportedSeq: z.number().int().nonnegative(),
-  caseId: reportGroupIdSchema.max(200),
-  reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
-  before: z.number().int().min(0).max(50).optional(),
-  after: z.number().int().min(0).max(50).optional(),
-  channel: GuildChatConversationSchema,
-}).strict();
+export const AdminReadChannelContextInputSchema = z
+  .object({
+    reportedSeq: z.number().int().nonnegative(),
+    caseId: reportGroupIdSchema.max(200),
+    reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
+    before: z.number().int().min(0).max(50).optional(),
+    after: z.number().int().min(0).max(50).optional(),
+    channel: GuildChatConversationSchema,
+  })
+  .strict();
 export type AdminReadChannelContextInput = z.infer<typeof AdminReadChannelContextInputSchema>;
 
 /** One message of the context window, as the conversation's room holds it now. */
@@ -254,6 +291,3 @@ export const MintChatGrantResultSchema = z.object({
   expiresAt: z.number(),
 });
 export type MintChatGrantResult = z.infer<typeof MintChatGrantResultSchema>;
-
-
-

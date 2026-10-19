@@ -57,7 +57,8 @@ const CLOSERS: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
 const BOUNDARY = new Set(['&&', '||', ',', ';', '?', ':', '==', '!=', '<', '>', '<=', '>=', '=']);
 const BOUNDARY_WORDS = new Set(['return', 'if', 'let', 'in', 'is', 'allow', 'function', 'match']);
 
-const isBoundary = (t: Token) => (t.kind === 'punct' && BOUNDARY.has(t.text)) || (t.kind === 'name' && BOUNDARY_WORDS.has(t.text));
+const isBoundary = (t: Token) =>
+  (t.kind === 'punct' && BOUNDARY.has(t.text)) || (t.kind === 'name' && BOUNDARY_WORDS.has(t.text));
 
 /** The operand ending just before `at` (exclusive), as a token range. */
 export function operandBefore(tokens: readonly Token[], at: number): [number, number] {
@@ -141,7 +142,8 @@ export function fieldOf(tokens: readonly Token[], [from, to]: [number, number]):
     if (open < from + 2) return null;
     const callee = tokens[open - 1];
     const arg = tokens[open + 1];
-    if (callee.text === 'get' && tokens[open - 2]?.text === '.' && arg?.kind === 'string') return arg.text;
+    if (callee.text === 'get' && tokens[open - 2]?.text === '.' && arg?.kind === 'string')
+      return arg.text;
   }
   return null;
 }

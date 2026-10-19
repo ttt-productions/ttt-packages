@@ -1,8 +1,8 @@
-import type { UploadSessionPersistenceAdapter, UploadSessionState } from "../types.js";
+import type { UploadSessionPersistenceAdapter, UploadSessionState } from '../types.js';
 
 function hasLocalStorage(): boolean {
   try {
-    return typeof window !== "undefined" && !!window.localStorage;
+    return typeof window !== 'undefined' && !!window.localStorage;
   } catch {
     return false;
   }
@@ -12,7 +12,7 @@ export function createLocalStorageUploadSessionPersistence(opts?: {
   /** Prefix for keys. Default: "upload_session:" */
   prefix?: string;
 }): UploadSessionPersistenceAdapter {
-  const prefix = opts?.prefix ?? "upload_session:";
+  const prefix = opts?.prefix ?? 'upload_session:';
 
   const k = (id: string) => `${prefix}${id}`;
 

@@ -2,7 +2,10 @@
 // literal, each file's exact values reviewed, and no literal minimum sits above 1.
 
 import { afterAll, describe, expect, it } from 'vitest';
-import { schemaLengthLiteralGuard, type SchemaLengthLiteralFacts } from '../../src/modules/core-definitions/schema-length-literal.js';
+import {
+  schemaLengthLiteralGuard,
+  type SchemaLengthLiteralFacts,
+} from '../../src/modules/core-definitions/schema-length-literal.js';
 import { CORE, fixture, lines, type Fixture } from './fixture.js';
 
 const CLEAN: Record<string, string> = {
@@ -14,7 +17,8 @@ const CLEAN: Record<string, string> = {
     '});',
     '// .max(999) named in prose',
   ].join('\n'),
-  [`${CORE}/doc-schemas/safety.js`]: 'export const B = z.object({ a: z.array(x).max(200), b: z.string().max( 1_6 ) });',
+  [`${CORE}/doc-schemas/safety.js`]:
+    'export const B = z.object({ a: z.array(x).max(200), b: z.string().max( 1_6 ) });',
   [`${CORE}/constants/limits.js`]: 'export const C = z.string().max(5).min(3);',
 };
 
@@ -22,7 +26,11 @@ const facts = (overrides: Partial<SchemaLengthLiteralFacts> = {}): SchemaLengthL
   schemaFolders: [`${CORE}/schemas`, `${CORE}/doc-schemas`],
   reviewedMaxLiterals: [
     { file: `${CORE}/schemas/admin.js`, values: [128], why: 'an opaque-id cap' },
-    { file: `${CORE}/doc-schemas/safety.js`, values: [16, 200], why: 'a fan-out count and a code length' },
+    {
+      file: `${CORE}/doc-schemas/safety.js`,
+      values: [16, 200],
+      why: 'a fan-out count and a code length',
+    },
   ],
   ...overrides,
 });
@@ -47,18 +55,27 @@ describe('literal .max() bounds', () => {
         schemaFolders: [`${CORE}/schemas`, `${CORE}/doc-schemas`, `${CORE}/media`],
         reviewedMaxLiterals: [
           { file: `${CORE}/schemas/admin.js`, values: [128, 128], why: 'two opaque-id caps' },
-          { file: `${CORE}/doc-schemas/safety.js`, values: [16, 200], why: 'a fan-out count and a code length' },
+          {
+            file: `${CORE}/doc-schemas/safety.js`,
+            values: [16, 200],
+            why: 'a fan-out count and a code length',
+          },
           { file: `${CORE}/constants/limits.js`, values: [5], why: 'reviewed in the wrong folder' },
         ],
       }),
     );
-    const f = open({ [`${CORE}/doc-schemas/safety.js`]: 'export const B = z.object({\n  a: z.array(x).max(200),\n  b: z.string().max(16),\n  c: z.string().max(2500),\n});' });
-    expect(lines(await f.run(maxGuard)).sort()).toEqual([
-      `${CORE}/media — the folder holds no compiled module of the core build (moved, or outside the core build root)`,
-      `${CORE}/doc-schemas/safety.js:4 — .max(2500) is a literal bound not on the reviewed list`,
-      `${CORE}/schemas/admin.js — stale reviewed bound: .max(128) is no longer in the file`,
-      `${CORE}/constants/limits.js — stale reviewed entry: the module is gone or outside the schema folders`,
-    ].sort());
+    const f = open({
+      [`${CORE}/doc-schemas/safety.js`]:
+        'export const B = z.object({\n  a: z.array(x).max(200),\n  b: z.string().max(16),\n  c: z.string().max(2500),\n});',
+    });
+    expect(lines(await f.run(maxGuard)).sort()).toEqual(
+      [
+        `${CORE}/media — the folder holds no compiled module of the core build (moved, or outside the core build root)`,
+        `${CORE}/doc-schemas/safety.js:4 — .max(2500) is a literal bound not on the reviewed list`,
+        `${CORE}/schemas/admin.js — stale reviewed bound: .max(128) is no longer in the file`,
+        `${CORE}/constants/limits.js — stale reviewed entry: the module is gone or outside the schema folders`,
+      ].sort(),
+    );
   });
 });
 
@@ -70,7 +87,10 @@ describe('literal .min() bounds', () => {
 
   it('FLAGS a literal minimum above 1, with or without a message', async () => {
     const [, minGuard] = schemaLengthLiteralGuard.build(facts());
-    const f = open({ [`${CORE}/schemas/users.js`]: "export const U = z.object({\n  name: z.string().min(3),\n  bio: z.string().min(10, 'too short'),\n});" });
+    const f = open({
+      [`${CORE}/schemas/users.js`]:
+        "export const U = z.object({\n  name: z.string().min(3),\n  bio: z.string().min(10, 'too short'),\n});",
+    });
     expect(lines(await f.run(minGuard))).toEqual([
       `${CORE}/schemas/users.js:2 — .min(3) is a literal minimum`,
       `${CORE}/schemas/users.js:3 — .min(10) is a literal minimum`,

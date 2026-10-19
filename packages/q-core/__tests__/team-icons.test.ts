@@ -7,9 +7,35 @@ import { teamIconSchema } from '../src/doc-schemas/atoms.js';
 
 // The set as first shipped. A team document may hold any of these, so none is renamed or removed.
 const FIRST_ICON_KEYS = [
-  'Shield', 'Swords', 'Skull', 'Ghost', 'Cat', 'Dog', 'Bird', 'Fish', 'Rabbit', 'Snail', 'Turtle',
-  'Cherry', 'Apple', 'Grape', 'Rocket', 'Plane', 'Ship', 'Train', 'Car', 'Bike', 'Bolt', 'Star',
-  'Sun', 'Moon', 'Cloud', 'Crown', 'Diamond', 'Gem', 'Anchor',
+  'Shield',
+  'Swords',
+  'Skull',
+  'Ghost',
+  'Cat',
+  'Dog',
+  'Bird',
+  'Fish',
+  'Rabbit',
+  'Snail',
+  'Turtle',
+  'Cherry',
+  'Apple',
+  'Grape',
+  'Rocket',
+  'Plane',
+  'Ship',
+  'Train',
+  'Car',
+  'Bike',
+  'Bolt',
+  'Star',
+  'Sun',
+  'Moon',
+  'Cloud',
+  'Crown',
+  'Diamond',
+  'Gem',
+  'Anchor',
 ];
 
 describe('the team icon set', () => {
@@ -24,7 +50,24 @@ describe('the team icon set', () => {
   });
 
   it('carries the seasonal and event icons', () => {
-    for (const icon of ['TreePine', 'Snowflake', 'Gift', 'PartyPopper', 'Trophy', 'Medal', 'Flame', 'Zap', 'Mountain', 'Leaf', 'Flower', 'Clover', 'Heart', 'Egg', 'Candy', 'Sword']) {
+    for (const icon of [
+      'TreePine',
+      'Snowflake',
+      'Gift',
+      'PartyPopper',
+      'Trophy',
+      'Medal',
+      'Flame',
+      'Zap',
+      'Mountain',
+      'Leaf',
+      'Flower',
+      'Clover',
+      'Heart',
+      'Egg',
+      'Candy',
+      'Sword',
+    ]) {
       expect(TEAM_ICON_KEYS).toContain(icon);
     }
   });

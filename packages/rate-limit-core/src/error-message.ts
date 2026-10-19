@@ -21,7 +21,7 @@ export interface RateLimitErrorMessageOptions {
 export function getRateLimitErrorMessage(opts: RateLimitErrorMessageOptions): string {
   const { reset, context, copy } = opts;
   const minutes = Math.max(1, Math.ceil((reset - Date.now()) / 60_000));
-  const timeString = minutes === 1 ? "1 minute" : `${minutes} minutes`;
+  const timeString = minutes === 1 ? '1 minute' : `${minutes} minutes`;
 
   if (copy?.format) {
     return copy.format({ timeString, context });

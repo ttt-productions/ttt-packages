@@ -26,9 +26,15 @@ describe('createLocalStorageUploadSessionPersistence', () => {
     // Mock window.localStorage
     const localStorageMock = {
       getItem: (key: string) => mockStorage.get(key) ?? null,
-      setItem: (key: string, value: string) => { mockStorage.set(key, value); },
-      removeItem: (key: string) => { mockStorage.delete(key); },
-      get length() { return mockStorage.size; },
+      setItem: (key: string, value: string) => {
+        mockStorage.set(key, value);
+      },
+      removeItem: (key: string) => {
+        mockStorage.delete(key);
+      },
+      get length() {
+        return mockStorage.size;
+      },
       key: (index: number) => Array.from(mockStorage.keys())[index] ?? null,
       clear: () => mockStorage.clear(),
     };

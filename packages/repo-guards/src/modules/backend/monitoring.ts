@@ -17,16 +17,26 @@ import { escapeRegExp } from '../../support/text.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
-const APP_AND_FUNCTIONS_CODE: Scope = { roots: ['app', 'functions'], kinds: ['code'], tests: false };
+const APP_AND_FUNCTIONS_CODE: Scope = {
+  roots: ['app', 'functions'],
+  kinds: ['code'],
+  tests: false,
+};
 
 /** A pattern for a call to `name` (`a.b` matches `a . b (`), never a longer name ending in it. */
 function callPattern(name: string): RegExp {
-  return new RegExp(`(?<![\\w$])${name.split('.').map(escapeRegExp).join('\\s*\\.\\s*')}\\s*\\(`, 'g');
+  return new RegExp(
+    `(?<![\\w$])${name.split('.').map(escapeRegExp).join('\\s*\\.\\s*')}\\s*\\(`,
+    'g',
+  );
 }
 
 /** The index of every match of a pattern in a file's comment-stripped code. */
 function matchIndexes(file: FileView, pattern: RegExp): number[] {
-  const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
+  const re = new RegExp(
+    pattern.source,
+    pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`,
+  );
   const out: number[] = [];
   for (let m = re.exec(file.code); m; m = re.exec(file.code)) out.push(m.index);
   return out;
@@ -78,9 +88,19 @@ function importsModule(file: FileView, corePath: string): boolean {
 }
 
 /** True when a file imports the monitoring package and calls one of its capture calls. */
-function reportsToMonitoring(file: FileView, facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls'>): boolean {
-  const importsMonitoring = moduleImports(file.sourceFile, MODULE_LOADS).some(({ spec, typeOnly }) => !typeOnly && namesModule(spec, facts.monitoringPackage));
-  return importsMonitoring && facts.captureCalls.some((capture) => new RegExp(`\\b${escapeRegExp(capture)}\\s*\\(`).test(file.code));
+function reportsToMonitoring(
+  file: FileView,
+  facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls'>,
+): boolean {
+  const importsMonitoring = moduleImports(file.sourceFile, MODULE_LOADS).some(
+    ({ spec, typeOnly }) => !typeOnly && namesModule(spec, facts.monitoringPackage),
+  );
+  return (
+    importsMonitoring &&
+    facts.captureCalls.some((capture) =>
+      new RegExp(`\\b${escapeRegExp(capture)}\\s*\\(`).test(file.code),
+    )
+  );
 }
 
 /** Every Cloud Functions entry-point shape, with the label a finding reports. */
@@ -97,15 +117,23 @@ const ENTRY_POINT_SHAPES: ReadonlyArray<{ shape: string; re: RegExp }> = [
 ];
 
 /** The entry-point shapes a file defines, or none when its failures reach monitoring. */
-export function unmonitoredEntryPoint(file: FileView, facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls' | 'callableExits'>): string[] {
-  const shapes = ENTRY_POINT_SHAPES.filter(({ re }) => re.test(file.code)).map(({ shape }) => shape);
+export function unmonitoredEntryPoint(
+  file: FileView,
+  facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls' | 'callableExits'>,
+): string[] {
+  const shapes = ENTRY_POINT_SHAPES.filter(({ re }) => re.test(file.code)).map(
+    ({ shape }) => shape,
+  );
   if (!shapes.length) return [];
   if (facts.callableExits.some((exit) => callPattern(exit).test(file.code))) return [];
   return reportsToMonitoring(file, facts) ? [] : shapes;
 }
 
 /** Every import of a provider SDK package. */
-export function providerSdkImports(file: FileView, sdks: readonly string[]): Array<{ node: ts.Node; spec: string }> {
+export function providerSdkImports(
+  file: FileView,
+  sdks: readonly string[],
+): Array<{ node: ts.Node; spec: string }> {
   return moduleImports(file.sourceFile, MODULE_LOADS)
     .filter(({ spec }) => sdks.some((sdk) => namesModule(spec, sdk)))
     .map(({ node, spec }) => ({ node, spec }));
@@ -114,12 +142,16 @@ export function providerSdkImports(file: FileView, sdks: readonly string[]): Arr
 /** Every `vi.mock` / `vi.doMock` of a package. */
 export function packageMocks(file: FileView, pkg: string): ts.Node[] {
   return moduleImports(file.sourceFile, ['mock'])
-    .filter(({ callee, spec }) => (callee === 'vi.mock' || callee === 'vi.doMock') && namesModule(spec, pkg))
+    .filter(
+      ({ callee, spec }) =>
+        (callee === 'vi.mock' || callee === 'vi.doMock') && namesModule(spec, pkg),
+    )
     .map(({ node }) => node);
 }
 
 /** True when a file renders `<Element />` (or `<Element>…`). */
-const mountsElement = (file: FileView, element: string) => new RegExp(`<${escapeRegExp(element)}(?=[\\s/>])`).test(file.code);
+const mountsElement = (file: FileView, element: string) =>
+  new RegExp(`<${escapeRegExp(element)}(?=[\\s/>])`).test(file.code);
 
 export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
   id: 'monitoring',
@@ -131,17 +163,23 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
     namesProblem(facts?.captureCalls, 'captureCalls', problems);
     namesProblem(facts?.callableExits, 'callableExits', problems, { nonEmpty: false });
     textProblem(facts?.functionsInit, 'functionsInit', problems);
-    if (!Array.isArray(facts?.appReporters)) problems.push('appReporters is missing (declare [] when the app root binds no reporter)');
+    if (!Array.isArray(facts?.appReporters))
+      problems.push('appReporters is missing (declare [] when the app root binds no reporter)');
     for (const r of facts?.appReporters ?? []) {
-      if (!r?.file || !r.mountedIn || !r.element) problems.push('an app reporter needs its file, the layout that mounts it, and the element');
+      if (!r?.file || !r.mountedIn || !r.element)
+        problems.push('an app reporter needs its file, the layout that mounts it, and the element');
     }
     namesProblem(facts?.providerSdks, 'providerSdks', problems);
     textProblem(facts?.providerInitCall, 'providerInitCall', problems);
     reviewedProblems(facts?.sdkInitFiles, 'sdkInitFiles', problems);
     textProblem(facts?.functionsTestRecorder, 'functionsTestRecorder', problems);
-    if (!Array.isArray(facts?.reportedByCore)) problems.push('reportedByCore is missing (declare [] when every entry point reports its own failures)');
+    if (!Array.isArray(facts?.reportedByCore))
+      problems.push(
+        'reportedByCore is missing (declare [] when every entry point reports its own failures)',
+      );
     for (const entry of facts?.reportedByCore ?? []) {
-      if (!entry?.path || !entry.core || !entry.why?.trim()) problems.push('a reportedByCore entry needs its entry file, its core module, and its why');
+      if (!entry?.path || !entry.core || !entry.why?.trim())
+        problems.push('a reportedByCore entry needs its entry file, its core module, and its why');
     }
     return problems;
   },
@@ -152,7 +190,7 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
       title: 'every Cloud Function entry point reports its failures to monitoring',
       description:
         'Every file that defines a deployed Cloud Function — callable, HTTP, schedule, Firestore, Storage, pub/sub, task, ' +
-        `or database trigger — either exits its callable through ${facts.callableExits.join(' / ') || 'the app\'s callable exit'} ` +
+        `or database trigger — either exits its callable through ${facts.callableExits.join(' / ') || "the app's callable exit"} ` +
         `or imports ${facts.monitoringPackage} and calls ${facts.captureCalls.join(' / ')} on its failure path. A failure ` +
         'path that only writes a log line is not monitored: nothing watches the log, so a background trigger fails ' +
         'invisibly. An import that is never called is not monitoring either. An entry point whose core reports every ' +
@@ -166,22 +204,45 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
           const shapes = unmonitoredEntryPoint(file, facts);
           const entry = reviewed.get(file.path);
           if (!entry) {
-            if (shapes.length) findings.push({ file: file.path, detail: `defines ${shapes.join(', ')} and reports no failure to monitoring` });
+            if (shapes.length)
+              findings.push({
+                file: file.path,
+                detail: `defines ${shapes.join(', ')} and reports no failure to monitoring`,
+              });
             continue;
           }
           seen.add(file.path);
           if (!ENTRY_POINT_SHAPES.some(({ re }) => re.test(file.code))) {
-            findings.push({ file: file.path, detail: 'a reportedByCore entry for a file that defines no entry point' });
+            findings.push({
+              file: file.path,
+              detail: 'a reportedByCore entry for a file that defines no entry point',
+            });
           } else if (!shapes.length) {
-            findings.push({ file: file.path, detail: 'a reportedByCore entry for an entry point that reports on its own' });
+            findings.push({
+              file: file.path,
+              detail: 'a reportedByCore entry for an entry point that reports on its own',
+            });
           } else if (!importsModule(file, entry.core)) {
-            findings.push({ file: file.path, detail: `a reportedByCore entry names ${entry.core}, which the entry point does not import` });
-          } else if (!context.reader.exists(entry.core) || !reportsToMonitoring(context.file(entry.core), facts)) {
-            findings.push({ file: file.path, detail: `a reportedByCore entry names ${entry.core}, which reports no failure to monitoring` });
+            findings.push({
+              file: file.path,
+              detail: `a reportedByCore entry names ${entry.core}, which the entry point does not import`,
+            });
+          } else if (
+            !context.reader.exists(entry.core) ||
+            !reportsToMonitoring(context.file(entry.core), facts)
+          ) {
+            findings.push({
+              file: file.path,
+              detail: `a reportedByCore entry names ${entry.core}, which reports no failure to monitoring`,
+            });
           }
         }
         for (const entry of facts.reportedByCore) {
-          if (!seen.has(entry.path)) findings.push({ file: entry.path, detail: 'a reportedByCore entry for a file the Functions code does not hold' });
+          if (!seen.has(entry.path))
+            findings.push({
+              file: entry.path,
+              detail: 'a reportedByCore entry for a file the Functions code does not hold',
+            });
         }
         return findings;
       },
@@ -200,22 +261,49 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
         for (const file of context.files(FUNCTIONS_CODE)) {
           const sites = matchIndexes(file, initPattern);
           if (file.path === facts.functionsInit) functionsInits += sites.length;
-          else for (const i of sites) findings.push({ file: file.path, line: file.lineOf(i), detail: `${facts.initCall} outside the Functions adapter` });
+          else
+            for (const i of sites)
+              findings.push({
+                file: file.path,
+                line: file.lineOf(i),
+                detail: `${facts.initCall} outside the Functions adapter`,
+              });
         }
-        if (functionsInits !== 1) findings.push({ file: facts.functionsInit, detail: `the Functions adapter calls ${facts.initCall} ${functionsInits} times, not once` });
+        if (functionsInits !== 1)
+          findings.push({
+            file: facts.functionsInit,
+            detail: `the Functions adapter calls ${facts.initCall} ${functionsInits} times, not once`,
+          });
         const reporters = new Map(facts.appReporters.map((r) => [r.file, r]));
         const reporterInits = new Map<string, number>();
         for (const file of context.files(APP_CODE)) {
           const sites = matchIndexes(file, initPattern);
           if (reporters.has(file.path)) reporterInits.set(file.path, sites.length);
-          else for (const i of sites) findings.push({ file: file.path, line: file.lineOf(i), detail: `${facts.initCall} outside the app's reporter adapters` });
+          else
+            for (const i of sites)
+              findings.push({
+                file: file.path,
+                line: file.lineOf(i),
+                detail: `${facts.initCall} outside the app's reporter adapters`,
+              });
         }
         for (const reporter of facts.appReporters) {
           const count = reporterInits.get(reporter.file) ?? 0;
-          if (count !== 1) findings.push({ file: reporter.file, detail: `the reporter adapter calls ${facts.initCall} ${count} times, not once` });
-          if (!context.reader.exists(reporter.mountedIn)) findings.push({ file: reporter.mountedIn, detail: 'the layout that mounts the reporter no longer exists' });
+          if (count !== 1)
+            findings.push({
+              file: reporter.file,
+              detail: `the reporter adapter calls ${facts.initCall} ${count} times, not once`,
+            });
+          if (!context.reader.exists(reporter.mountedIn))
+            findings.push({
+              file: reporter.mountedIn,
+              detail: 'the layout that mounts the reporter no longer exists',
+            });
           else if (!mountsElement(context.file(reporter.mountedIn), reporter.element)) {
-            findings.push({ file: reporter.mountedIn, detail: `does not mount <${reporter.element} />, so the reporter is never bound` });
+            findings.push({
+              file: reporter.mountedIn,
+              detail: `does not mount <${reporter.element} />, so the reporter is never bound`,
+            });
           }
         }
         return findings;
@@ -232,21 +320,35 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
         const findings: Finding[] = [];
         for (const file of context.files(APP_AND_FUNCTIONS_CODE)) {
           for (const { node, spec } of providerSdkImports(file, facts.providerSdks)) {
-            findings.push({ file: file.path, line: lineOfNode(file, node), detail: `imports ${spec}` });
+            findings.push({
+              file: file.path,
+              line: lineOfNode(file, node),
+              detail: `imports ${spec}`,
+            });
           }
-          for (const i of matchIndexes(file, providerInit)) findings.push({ file: file.path, line: file.lineOf(i), detail: `calls ${facts.providerInitCall}` });
+          for (const i of matchIndexes(file, providerInit))
+            findings.push({
+              file: file.path,
+              line: file.lineOf(i),
+              detail: `calls ${facts.providerInitCall}`,
+            });
         }
         for (const entry of facts.sdkInitFiles) {
-          if (!context.reader.exists(entry.path)) findings.push({ file: entry.path, detail: 'stale SDK init file: it no longer exists' });
+          if (!context.reader.exists(entry.path))
+            findings.push({ file: entry.path, detail: 'stale SDK init file: it no longer exists' });
           else if (!matchIndexes(context.file(entry.path), providerInit).length) {
-            findings.push({ file: entry.path, detail: `stale SDK init file: it no longer calls ${facts.providerInitCall}` });
+            findings.push({
+              file: entry.path,
+              detail: `stale SDK init file: it no longer calls ${facts.providerInitCall}`,
+            });
           }
         }
         return findings;
       },
     };
     const recorderSeam: Guard = {
-      title: 'Functions tests capture through the recording seam, never a local mock of the monitoring package',
+      title:
+        'Functions tests capture through the recording seam, never a local mock of the monitoring package',
       description:
         `No Functions test replaces ${facts.monitoringPackage} with a local vi.mock / vi.doMock. A test that asserts a ` +
         `capture installs the recording adapter (${facts.functionsTestRecorder}) through the package's own adapter seam; a ` +
@@ -255,13 +357,25 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
       run(context) {
         const findings: Finding[] = [];
         let seam = false;
-        for (const file of context.files({ roots: ['functions'], kinds: ['code'], tests: 'only' })) {
+        for (const file of context.files({
+          roots: ['functions'],
+          kinds: ['code'],
+          tests: 'only',
+        })) {
           if (file.path === facts.functionsTestRecorder) seam = true;
           for (const node of packageMocks(file, facts.monitoringPackage)) {
-            findings.push({ file: file.path, line: lineOfNode(file, node), detail: `mocks ${facts.monitoringPackage}` });
+            findings.push({
+              file: file.path,
+              line: lineOfNode(file, node),
+              detail: `mocks ${facts.monitoringPackage}`,
+            });
           }
         }
-        if (!seam) findings.push({ file: facts.functionsTestRecorder, detail: 'the recording seam is gone or is not test code' });
+        if (!seam)
+          findings.push({
+            file: facts.functionsTestRecorder,
+            detail: 'the recording seam is gone or is not test code',
+          });
         return findings;
       },
     };
@@ -274,7 +388,8 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
 
 export interface TelemetryTagFacts {
   /** The app's telemetry content policy, as its monitoring package builds it, loaded at run time. */
-  policy: () => Promise<{ isDiagnosticKey(key: string): boolean }> | { isDiagnosticKey(key: string): boolean };
+  policy: () =>
+    Promise<{ isDiagnosticKey(key: string): boolean }> | { isDiagnosticKey(key: string): boolean };
   /** Tag keys whose value is always a flag, which passes under any key; a key set nowhere is stale. */
   flagKeys: ReadonlyArray<{ key: string; why: string }>;
   /** The name suffix of a constant whose values are tag keys (`_TAG_KEYS`). */
@@ -282,26 +397,47 @@ export interface TelemetryTagFacts {
 }
 
 /** Every tag key a file sets: a `tags: { … }` literal's keys, `setTag('key', …)`, and a tag-key map's values. */
-export function tagKeysSet(file: FileView, mapSuffix: string): Array<{ key: string; node: ts.Node }> {
+export function tagKeysSet(
+  file: FileView,
+  mapSuffix: string,
+): Array<{ key: string; node: ts.Node }> {
   const sf = file.sourceFile;
   const out: Array<{ key: string; node: ts.Node }> = [];
-  const keyOf = (name: ts.PropertyName) => (ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined);
+  const keyOf = (name: ts.PropertyName) =>
+    ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined;
   forEachNode(sf, (node) => {
-    if (ts.isPropertyAssignment(node) && keyOf(node.name) === 'tags' && ts.isObjectLiteralExpression(node.initializer)) {
+    if (
+      ts.isPropertyAssignment(node) &&
+      keyOf(node.name) === 'tags' &&
+      ts.isObjectLiteralExpression(node.initializer)
+    ) {
       for (const prop of node.initializer.properties) {
-        const key = (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) && keyOf(prop.name);
+        const key =
+          (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) &&
+          keyOf(prop.name);
         if (key) out.push({ key, node: prop });
       }
     }
-    if (ts.isCallExpression(node) && calleeName(node) === 'setTag' && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0])) {
+    if (
+      ts.isCallExpression(node) &&
+      calleeName(node) === 'setTag' &&
+      node.arguments[0] &&
+      ts.isStringLiteralLike(node.arguments[0])
+    ) {
       out.push({ key: node.arguments[0].text, node });
     }
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text.endsWith(mapSuffix) && node.initializer) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text.endsWith(mapSuffix) &&
+      node.initializer
+    ) {
       let init: ts.Expression = node.initializer;
       while (ts.isAsExpression(init) || ts.isSatisfiesExpression(init)) init = init.expression;
       if (ts.isObjectLiteralExpression(init)) {
         for (const prop of init.properties) {
-          if (ts.isPropertyAssignment(prop) && ts.isStringLiteralLike(prop.initializer)) out.push({ key: prop.initializer.text, node: prop });
+          if (ts.isPropertyAssignment(prop) && ts.isStringLiteralLike(prop.initializer))
+            out.push({ key: prop.initializer.text, node: prop });
         }
       }
     }
@@ -337,12 +473,25 @@ export const telemetryTagGuard: GenericGuardDefinition<TelemetryTagFacts> = {
             for (const { key, node } of tagKeysSet(file, facts.tagKeyMapSuffix)) {
               seen.add(key);
               if (!flags.has(key) && !policy.isDiagnosticKey(key)) {
-                findings.push({ file: file.path, line: lineOfNode(file, node), detail: `tag key ${key} is not a diagnostic key, so the policy drops it` });
+                findings.push({
+                  file: file.path,
+                  line: lineOfNode(file, node),
+                  detail: `tag key ${key} is not a diagnostic key, so the policy drops it`,
+                });
               }
             }
           }
-          if (!seen.size) findings.push({ file: '(functions)', detail: 'no tag key found, so the guard checks nothing' });
-          for (const key of flags) if (!seen.has(key)) findings.push({ file: '(flagKeys)', detail: `stale flag key ${key}: no capture site sets it` });
+          if (!seen.size)
+            findings.push({
+              file: '(functions)',
+              detail: 'no tag key found, so the guard checks nothing',
+            });
+          for (const key of flags)
+            if (!seen.has(key))
+              findings.push({
+                file: '(flagKeys)',
+                detail: `stale flag key ${key}: no capture site sets it`,
+              });
           return findings;
         },
       },
@@ -390,7 +539,8 @@ export function serviceNamePatterns(name: string): RegExp[] {
 function readableLines(file: FileView): string[] {
   const lines = file.code.split('\n');
   const name = file.path.slice(file.path.lastIndexOf('/') + 1);
-  if (file.kind === 'config' && !/\.jsonc?$/.test(name)) return lines.map((l) => (/^\s*#/.test(l) ? '' : l));
+  if (file.kind === 'config' && !/\.jsonc?$/.test(name))
+    return lines.map((l) => (/^\s*#/.test(l) ? '' : l));
   if (file.kind === 'rules') return lines.map((l) => (/^\s*\/\//.test(l) ? '' : l));
   return lines;
 }
@@ -404,7 +554,8 @@ export function serviceNameSites(
   const out: Array<{ line: number; detail: string }> = [];
   for (const { name } of facts.services) {
     const segment = new RegExp(`^${escapeRegExp(name)}(?:\\.[cm]?[jt]sx?)?$`, 'i');
-    if (file.path.split('/').some((s) => segment.test(s))) out.push({ line: 1, detail: `the file path is named for ${name}` });
+    if (file.path.split('/').some((s) => segment.test(s)))
+      out.push({ line: 1, detail: `the file path is named for ${name}` });
   }
   readableLines(file).forEach((line, index) => {
     const covered: Array<[number, number]> = [];
@@ -419,7 +570,8 @@ export function serviceNameSites(
         for (let m = re.exec(line); m; m = re.exec(line)) {
           const start = m.index;
           const end = start + m[0].length;
-          if (!covered.some(([a, b]) => a <= start && end <= b)) out.push({ line: index + 1, detail: `names ${name}: ${line.trim().slice(0, 100)}` });
+          if (!covered.some(([a, b]) => a <= start && end <= b))
+            out.push({ line: index + 1, detail: `names ${name}: ${line.trim().slice(0, 100)}` });
         }
       }
     }
@@ -439,7 +591,9 @@ export const unusedServiceGuard: GenericGuardDefinition<UnusedServiceFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     reviewedProblems(facts?.services, 'services', problems, { key: 'name', nonEmpty: true });
-    for (const s of facts?.services ?? []) if (typeof s?.name === 'string' && !/^[A-Za-z][A-Za-z0-9]*$/.test(s.name)) problems.push(`service ${s.name} is not one word`);
+    for (const s of facts?.services ?? [])
+      if (typeof s?.name === 'string' && !/^[A-Za-z][A-Za-z0-9]*$/.test(s.name))
+        problems.push(`service ${s.name} is not one word`);
     reviewedProblems(facts?.collisions, 'collisions', problems, { key: 'text' });
     namesProblem(facts?.namedFiles, 'namedFiles', problems, { nonEmpty: false });
     return problems;
@@ -462,13 +616,20 @@ export const unusedServiceGuard: GenericGuardDefinition<UnusedServiceFacts> = {
           const read = new Set(files.map((f) => f.path));
           for (const path of facts.namedFiles) {
             if (read.has(path)) continue;
-            if (!context.reader.exists(path)) findings.push({ file: path, detail: 'a named file no longer exists' });
+            if (!context.reader.exists(path))
+              findings.push({ file: path, detail: 'a named file no longer exists' });
             else files.push(context.file(path));
           }
           for (const file of files) {
-            for (const site of serviceNameSites(file, facts, collisionHits)) findings.push({ file: file.path, line: site.line, detail: site.detail });
+            for (const site of serviceNameSites(file, facts, collisionHits))
+              findings.push({ file: file.path, line: site.line, detail: site.detail });
           }
-          for (const { text } of facts.collisions) if (!collisionHits.get(text)) findings.push({ file: '(collisions)', detail: `stale collision ${text}: it appears nowhere` });
+          for (const { text } of facts.collisions)
+            if (!collisionHits.get(text))
+              findings.push({
+                file: '(collisions)',
+                detail: `stale collision ${text}: it appears nowhere`,
+              });
           return findings;
         },
       },

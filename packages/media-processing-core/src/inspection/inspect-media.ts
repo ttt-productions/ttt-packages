@@ -26,20 +26,20 @@
 //   - FAIL-CLOSED: anything unproven is `indeterminate` with the
 //     `strict-video-fallback` safety plan — never audio, never publishable.
 
-import { open } from "node:fs/promises";
-import { z } from "zod";
+import { open } from 'node:fs/promises';
+import { z } from 'zod';
 import {
   MediaInspectionResultSchema,
   type MediaInspectionResult,
   type MediaInspectionStreams,
   type NormalizedCodecId,
   type MediaFormatId,
-} from "@ttt-productions/media-schemas";
-import { DEFAULT_PROBE_TIMEOUT_MS, runCmd } from "../video/ffmpeg.js";
-import { measureDurationSec, type MeasureDurationFn } from "../duration/media-duration.js";
+} from '@ttt-productions/media-schemas';
+import { DEFAULT_PROBE_TIMEOUT_MS, runCmd } from '../video/ffmpeg.js';
+import { measureDurationSec, type MeasureDurationFn } from '../duration/media-duration.js';
 
 /** Bump on any classification-rule change (rides every decision event). */
-export const INSPECTOR_VERSION = "mpc-inspect-2";
+export const INSPECTOR_VERSION = 'mpc-inspect-2';
 
 const SIGNATURE_READ_BYTES = 64 * 1024;
 const PROBE_SIZE_BYTES = 4 * 1024 * 1024; // -probesize: metadata, not playback
@@ -60,7 +60,10 @@ const ProbeStreamSchema = z
 
 const ProbeJsonSchema = z
   .object({
-    format: z.object({ format_name: z.string().max(200).optional() }).loose().optional(),
+    format: z
+      .object({ format_name: z.string().max(200).optional() })
+      .loose()
+      .optional(),
     streams: z.array(ProbeStreamSchema).max(256).optional(),
   })
   .loose();
@@ -68,48 +71,59 @@ const ProbeJsonSchema = z
 // ---- codec normalization (bounded — raw strings never escape) ----
 
 const CODEC_MAP: Record<string, NormalizedCodecId> = {
-  h264: "h264",
-  hevc: "hevc",
-  vp8: "vp8",
-  vp9: "vp9",
-  av1: "av1",
-  theora: "theora",
-  mpeg4: "mpeg4",
-  mjpeg: "mjpeg",
-  aac: "aac",
-  alac: "alac",
-  opus: "opus",
-  vorbis: "vorbis",
-  mp3: "mp3",
-  flac: "flac",
+  h264: 'h264',
+  hevc: 'hevc',
+  vp8: 'vp8',
+  vp9: 'vp9',
+  av1: 'av1',
+  theora: 'theora',
+  mpeg4: 'mpeg4',
+  mjpeg: 'mjpeg',
+  aac: 'aac',
+  alac: 'alac',
+  opus: 'opus',
+  vorbis: 'vorbis',
+  mp3: 'mp3',
+  flac: 'flac',
 };
 
 function normalizeCodec(name: string | undefined): NormalizedCodecId {
-  if (!name) return "other";
+  if (!name) return 'other';
   const n = name.toLowerCase();
   if (CODEC_MAP[n]) return CODEC_MAP[n];
-  if (n.startsWith("pcm_")) return "pcm";
-  if (n.startsWith("amr")) return "amr";
-  return "other";
+  if (n.startsWith('pcm_')) return 'pcm';
+  if (n.startsWith('amr')) return 'amr';
+  return 'other';
 }
 
 // ---- signature families ----
 
 type SignatureFamily =
-  | { family: "image"; formatId: MediaFormatId; container: string }
-  | { family: "svg" }
-  | { family: "ebml" }
-  | { family: "isobmff"; brand: string }
-  | { family: "ogg" }
-  | { family: "avi" }
-  | { family: "wav" }
-  | { family: "mp3" }
-  | { family: "flac" }
-  | { family: "unknown" };
+  | { family: 'image'; formatId: MediaFormatId; container: string }
+  | { family: 'svg' }
+  | { family: 'ebml' }
+  | { family: 'isobmff'; brand: string }
+  | { family: 'ogg' }
+  | { family: 'avi' }
+  | { family: 'wav' }
+  | { family: 'mp3' }
+  | { family: 'flac' }
+  | { family: 'unknown' };
 
 /** ISO-BMFF brands that declare an IMAGE-item file (HEIF family). Resolved via
  *  decoder proof BEFORE the timed-video rule — see the AVIF note above. */
-const ISOBMFF_IMAGE_BRANDS = new Set(["avif", "avis", "heic", "heix", "heim", "heis", "hevc", "hevx", "mif1", "msf1"]);
+const ISOBMFF_IMAGE_BRANDS = new Set([
+  'avif',
+  'avis',
+  'heic',
+  'heix',
+  'heim',
+  'heis',
+  'hevc',
+  'hevx',
+  'mif1',
+  'msf1',
+]);
 
 function ascii(b: Uint8Array, off: number, s: string): boolean {
   if (off + s.length > b.length) return false;
@@ -118,47 +132,61 @@ function ascii(b: Uint8Array, off: number, s: string): boolean {
 }
 
 export function detectSignatureFamily(b: Uint8Array): SignatureFamily {
-  if (b.length < 12) return { family: "unknown" };
+  if (b.length < 12) return { family: 'unknown' };
   // images (single-format signatures)
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { family: "image", formatId: "jpeg", container: "jpeg" };
-  if (b[0] === 0x89 && ascii(b, 1, "PNG")) return { family: "image", formatId: "png", container: "png" };
-  if (ascii(b, 0, "GIF8")) return { family: "image", formatId: "gif", container: "gif" };
-  if (ascii(b, 0, "RIFF") && ascii(b, 8, "WEBP")) return { family: "image", formatId: "webp", container: "webp" };
-  if (b[0] === 0x42 && b[1] === 0x4d) return { family: "image", formatId: "bmp", container: "bmp" };
-  if ((b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2a) || (b[0] === 0x4d && b[1] === 0x4d && b[3] === 0x2a)) {
-    return { family: "image", formatId: "tiff", container: "tiff" };
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff)
+    return { family: 'image', formatId: 'jpeg', container: 'jpeg' };
+  if (b[0] === 0x89 && ascii(b, 1, 'PNG'))
+    return { family: 'image', formatId: 'png', container: 'png' };
+  if (ascii(b, 0, 'GIF8')) return { family: 'image', formatId: 'gif', container: 'gif' };
+  if (ascii(b, 0, 'RIFF') && ascii(b, 8, 'WEBP'))
+    return { family: 'image', formatId: 'webp', container: 'webp' };
+  if (b[0] === 0x42 && b[1] === 0x4d) return { family: 'image', formatId: 'bmp', container: 'bmp' };
+  if (
+    (b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2a) ||
+    (b[0] === 0x4d && b[1] === 0x4d && b[3] === 0x2a)
+  ) {
+    return { family: 'image', formatId: 'tiff', container: 'tiff' };
   }
   // SVG: XML text — scan a short prefix for '<svg' (bounded; case-insensitive).
   {
     const prefix = Buffer.from(b.slice(0, Math.min(b.length, 4096)))
-      .toString("latin1")
+      .toString('latin1')
       .toLowerCase();
-    if (prefix.includes("<svg") && (prefix.trimStart().startsWith("<?xml") || prefix.trimStart().startsWith("<svg") || prefix.includes("<!doctype svg"))) {
-      return { family: "svg" };
+    if (
+      prefix.includes('<svg') &&
+      (prefix.trimStart().startsWith('<?xml') ||
+        prefix.trimStart().startsWith('<svg') ||
+        prefix.includes('<!doctype svg'))
+    ) {
+      return { family: 'svg' };
     }
   }
   // containers
-  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return { family: "ebml" };
-  if (ascii(b, 4, "ftyp")) {
+  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return { family: 'ebml' };
+  if (ascii(b, 4, 'ftyp')) {
     const brand = String.fromCharCode(b[8], b[9], b[10], b[11]).trim().toLowerCase();
-    return { family: "isobmff", brand };
+    return { family: 'isobmff', brand };
   }
-  if (ascii(b, 0, "OggS")) return { family: "ogg" };
-  if (ascii(b, 0, "RIFF") && ascii(b, 8, "AVI ")) return { family: "avi" };
-  if (ascii(b, 0, "RIFF") && ascii(b, 8, "WAVE")) return { family: "wav" };
-  if (ascii(b, 0, "ID3")) return { family: "mp3" };
-  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return { family: "mp3" };
-  if (ascii(b, 0, "fLaC")) return { family: "flac" };
-  return { family: "unknown" };
+  if (ascii(b, 0, 'OggS')) return { family: 'ogg' };
+  if (ascii(b, 0, 'RIFF') && ascii(b, 8, 'AVI ')) return { family: 'avi' };
+  if (ascii(b, 0, 'RIFF') && ascii(b, 8, 'WAVE')) return { family: 'wav' };
+  if (ascii(b, 0, 'ID3')) return { family: 'mp3' };
+  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return { family: 'mp3' };
+  if (ascii(b, 0, 'fLaC')) return { family: 'flac' };
+  return { family: 'unknown' };
 }
 
 // ---- dependency seams (tests inject; production uses the real tools) ----
 
 export interface InspectMediaDeps {
   /** Probe the local file; default shells to the hardened `ffprobe`. */
-  probe?: (localPath: string, opts: { timeoutMs: number; signal?: AbortSignal }) => Promise<
+  probe?: (
+    localPath: string,
+    opts: { timeoutMs: number; signal?: AbortSignal },
+  ) => Promise<
     | { ok: true; json: unknown }
-    | { ok: false; reason: "timeout" | "truncated" | "failed" | "bad_json" }
+    | { ok: false; reason: 'timeout' | 'truncated' | 'failed' | 'bad_json' }
   >;
   /** Decode-prove an image; default uses sharp metadata. Returns frame count
    *  (pages) on success, null on decode failure. */
@@ -175,8 +203,8 @@ let cachedFfprobeVersion: string | null | undefined;
 async function getFfprobeVersion(): Promise<string | undefined> {
   if (cachedFfprobeVersion !== undefined) return cachedFfprobeVersion ?? undefined;
   try {
-    const r = await runCmd("ffprobe", ["-version"], { timeoutMs: 5_000 });
-    const first = (r.stdout || r.stderr).split(/\r?\n/)[0]?.trim() ?? "";
+    const r = await runCmd('ffprobe', ['-version'], { timeoutMs: 5_000 });
+    const first = (r.stdout || r.stderr).split(/\r?\n/)[0]?.trim() ?? '';
     cachedFfprobeVersion = first ? first.slice(0, 120) : null;
   } catch {
     cachedFfprobeVersion = null;
@@ -187,43 +215,48 @@ async function getFfprobeVersion(): Promise<string | undefined> {
 async function defaultProbe(
   localPath: string,
   opts: { timeoutMs: number; signal?: AbortSignal },
-): Promise<{ ok: true; json: unknown } | { ok: false; reason: "timeout" | "truncated" | "failed" | "bad_json" }> {
+): Promise<
+  | { ok: true; json: unknown }
+  | { ok: false; reason: 'timeout' | 'truncated' | 'failed' | 'bad_json' }
+> {
   let r;
   try {
     r = await runCmd(
-      "ffprobe",
+      'ffprobe',
       [
-        "-v",
-        "error",
-        "-print_format",
-        "json",
-        "-show_format",
-        "-show_streams",
-        "-probesize",
+        '-v',
+        'error',
+        '-print_format',
+        'json',
+        '-show_format',
+        '-show_streams',
+        '-probesize',
         String(PROBE_SIZE_BYTES),
-        "-analyzeduration",
+        '-analyzeduration',
         String(ANALYZE_DURATION_US),
         localPath,
       ],
       { timeoutMs: opts.timeoutMs, signal: opts.signal },
     );
   } catch {
-    return { ok: false, reason: "failed" }; // spawn failure (ffprobe missing) — fail closed
+    return { ok: false, reason: 'failed' }; // spawn failure (ffprobe missing) — fail closed
   }
-  if (r.timedOut) return { ok: false, reason: "timeout" };
-  if (r.truncated) return { ok: false, reason: "truncated" };
-  if (r.code !== 0) return { ok: false, reason: "failed" };
+  if (r.timedOut) return { ok: false, reason: 'timeout' };
+  if (r.truncated) return { ok: false, reason: 'truncated' };
+  if (r.code !== 0) return { ok: false, reason: 'failed' };
   try {
-    return { ok: true, json: JSON.parse(r.stdout || "{}") };
+    return { ok: true, json: JSON.parse(r.stdout || '{}') };
   } catch {
-    return { ok: false, reason: "bad_json" };
+    return { ok: false, reason: 'bad_json' };
   }
 }
 
 async function defaultDecodeImage(localPath: string): Promise<{ frames: number } | null> {
   try {
-    const sharp = (await import("sharp")).default;
-    const meta = await sharp(localPath, { limitInputPixels: 268402689 /* sharp default ~16k x 16k */ }).metadata();
+    const sharp = (await import('sharp')).default;
+    const meta = await sharp(localPath, {
+      limitInputPixels: 268402689 /* sharp default ~16k x 16k */,
+    }).metadata();
     if (!meta.width || !meta.height) return null;
     return { frames: Math.max(1, meta.pages ?? 1) };
   } catch {
@@ -234,14 +267,20 @@ async function defaultDecodeImage(localPath: string): Promise<{ frames: number }
 // ---- result builders ----
 
 function baseResult(
-  partial: Omit<MediaInspectionResult, "inspectorVersion" | "streams" | "codecs"> &
-    Partial<Pick<MediaInspectionResult, "streams" | "codecs">>,
+  partial: Omit<MediaInspectionResult, 'inspectorVersion' | 'streams' | 'codecs'> &
+    Partial<Pick<MediaInspectionResult, 'streams' | 'codecs'>>,
   ffprobeVersion: string | undefined,
 ): MediaInspectionResult {
   const result: MediaInspectionResult = {
     inspectorVersion: INSPECTOR_VERSION,
     ...(ffprobeVersion ? { ffprobeVersion } : {}),
-    streams: partial.streams ?? { audio: 0, timedVideo: 0, attachedPictures: 0, imageFrames: 0, auxiliary: 0 },
+    streams: partial.streams ?? {
+      audio: 0,
+      timedVideo: 0,
+      attachedPictures: 0,
+      imageFrames: 0,
+      auxiliary: 0,
+    },
     codecs: partial.codecs ?? { audio: [], video: [] },
     status: partial.status,
     container: partial.container,
@@ -262,9 +301,9 @@ function indeterminate(
 ): MediaInspectionResult {
   return baseResult(
     {
-      status: "indeterminate",
+      status: 'indeterminate',
       container,
-      safetyPlan: "strict-video-fallback",
+      safetyPlan: 'strict-video-fallback',
       reasonCode,
       ...(formatId ? { formatId } : {}),
     },
@@ -290,7 +329,7 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
   // 1) bounded signature read (header only)
   let head: Uint8Array;
   try {
-    const fh = await open(args.localPath, "r");
+    const fh = await open(args.localPath, 'r');
     try {
       const buf = Buffer.alloc(SIGNATURE_READ_BYTES);
       const { bytesRead } = await fh.read(buf, 0, SIGNATURE_READ_BYTES, 0);
@@ -299,109 +338,139 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
       await fh.close();
     }
   } catch {
-    return indeterminate("unknown", "read_failed", ffprobeVersion);
+    return indeterminate('unknown', 'read_failed', ffprobeVersion);
   }
 
   const sig = detectSignatureFamily(head);
 
   // 2) family routing
   switch (sig.family) {
-    case "unknown":
-      return indeterminate("unknown", "unrecognized_signature", ffprobeVersion);
+    case 'unknown':
+      return indeterminate('unknown', 'unrecognized_signature', ffprobeVersion);
 
-    case "svg":
+    case 'svg':
       // Scriptable XML "image" — structurally recognized, deliberately NOT a
       // processable format: it can carry script and no sanitize/rasterize step
       // exists. Never classified by decoder capability alone.
       return baseResult(
         {
-          status: "unsupported",
-          container: "svg",
-          formatId: "svg",
-          safetyPlan: "strict-video-fallback",
-          reasonCode: "unsupported_format:svg",
+          status: 'unsupported',
+          container: 'svg',
+          formatId: 'svg',
+          safetyPlan: 'strict-video-fallback',
+          reasonCode: 'unsupported_format:svg',
         },
         ffprobeVersion,
       );
 
-    case "image": {
+    case 'image': {
       // Single-format image signature: decoder proof required — a signature is
       // a candidate, not a classification.
       const decoded = await decodeImage(args.localPath);
-      if (!decoded) return baseResult(
-        { status: "malformed", container: sig.container, formatId: sig.formatId, safetyPlan: "strict-video-fallback", reasonCode: "image_decode_failed" },
-        ffprobeVersion,
-      );
+      if (!decoded)
+        return baseResult(
+          {
+            status: 'malformed',
+            container: sig.container,
+            formatId: sig.formatId,
+            safetyPlan: 'strict-video-fallback',
+            reasonCode: 'image_decode_failed',
+          },
+          ffprobeVersion,
+        );
       const frames = decoded.frames;
       return baseResult(
         {
-          status: "definitive",
-          canonicalKind: "image",
+          status: 'definitive',
+          canonicalKind: 'image',
           container: sig.container,
           formatId: sig.formatId,
-          streams: { audio: 0, timedVideo: 0, attachedPictures: 0, imageFrames: frames, auxiliary: 0 },
-          safetyPlan: frames > 1 ? "animated-image-frames" : "still-image",
-          reasonCode: "ok",
+          streams: {
+            audio: 0,
+            timedVideo: 0,
+            attachedPictures: 0,
+            imageFrames: frames,
+            auxiliary: 0,
+          },
+          safetyPlan: frames > 1 ? 'animated-image-frames' : 'still-image',
+          reasonCode: 'ok',
         },
         ffprobeVersion,
       );
     }
 
-    case "isobmff":
+    case 'isobmff':
       if (ISOBMFF_IMAGE_BRANDS.has(sig.brand)) {
         // IMAGE-FAMILY ISO-BMFF resolves BEFORE the timed-video rule: a valid
         // AVIF probes as a one-frame AV1 `video` stream. Proof = image brand +
         // successful bounded decode + no ordinary timed A/V presentation.
         const probed = await probe(args.localPath, { timeoutMs, signal: args.signal });
         const parsed = probed.ok ? ProbeJsonSchema.safeParse(probed.json) : null;
-        const streams = parsed?.success ? parsed.data.streams ?? [] : null;
-        const hasAudio = streams ? streams.some((s) => s.codec_type === "audio") : true; // unknown ⇒ assume worst
-        const formatId: MediaFormatId | undefined = sig.brand.startsWith("avi") ? "avif" : "heic";
+        const streams = parsed?.success ? (parsed.data.streams ?? []) : null;
+        const hasAudio = streams ? streams.some((s) => s.codec_type === 'audio') : true; // unknown ⇒ assume worst
+        const formatId: MediaFormatId | undefined = sig.brand.startsWith('avi') ? 'avif' : 'heic';
         const decoded = await decodeImage(args.localPath);
         if (!decoded || hasAudio) {
-          if (formatId === "heic" && !decoded && !hasAudio) {
+          if (formatId === 'heic' && !decoded && !hasAudio) {
             // Recognized HEIC-family that the runtime cannot decode: explicit
             // unsupported-image (launch policy) — NEVER relabeled video.
             return baseResult(
-              { status: "unsupported", container: "heif", formatId, safetyPlan: "strict-video-fallback", reasonCode: "unsupported_format:heic" },
+              {
+                status: 'unsupported',
+                container: 'heif',
+                formatId,
+                safetyPlan: 'strict-video-fallback',
+                reasonCode: 'unsupported_format:heic',
+              },
               ffprobeVersion,
             );
           }
           // Undecodable/ambiguous image-brand file, or one carrying audio (a
           // real timed presentation wearing an image brand): fail toward the
           // stricter visual path.
-          return indeterminate("heif", decoded ? "image_brand_with_audio" : "image_decode_failed", ffprobeVersion, formatId);
+          return indeterminate(
+            'heif',
+            decoded ? 'image_brand_with_audio' : 'image_decode_failed',
+            ffprobeVersion,
+            formatId,
+          );
         }
         const frames = decoded.frames;
         return baseResult(
           {
-            status: "definitive",
-            canonicalKind: "image",
-            container: "heif",
+            status: 'definitive',
+            canonicalKind: 'image',
+            container: 'heif',
             formatId,
-            streams: { audio: 0, timedVideo: 0, attachedPictures: 0, imageFrames: frames, auxiliary: 0 },
-            safetyPlan: frames > 1 ? "animated-image-frames" : "still-image",
-            reasonCode: "ok",
+            streams: {
+              audio: 0,
+              timedVideo: 0,
+              attachedPictures: 0,
+              imageFrames: frames,
+              auxiliary: 0,
+            },
+            safetyPlan: frames > 1 ? 'animated-image-frames' : 'still-image',
+            reasonCode: 'ok',
           },
           ffprobeVersion,
         );
       }
-      return classifyAvContainer(args, "isobmff", "isobmff", probe, timeoutMs, ffprobeVersion);
+      return classifyAvContainer(args, 'isobmff', 'isobmff', probe, timeoutMs, ffprobeVersion);
 
-    case "ebml":
-      return classifyAvContainer(args, "webm", "webm", probe, timeoutMs, ffprobeVersion);
-    case "ogg":
-      return classifyAvContainer(args, "ogg", "ogg", probe, timeoutMs, ffprobeVersion);
-    case "avi":
+    case 'ebml':
+      return classifyAvContainer(args, 'webm', 'webm', probe, timeoutMs, ffprobeVersion);
+    case 'ogg':
+      return classifyAvContainer(args, 'ogg', 'ogg', probe, timeoutMs, ffprobeVersion);
+    case 'avi':
       // Real container ffprobe parses; no registry entry (no origin enables it
       // today) — the stream truth still classifies it, policy rejects by format.
-      return classifyAvContainer(args, "avi", undefined, probe, timeoutMs, ffprobeVersion);
-    case "wav":
-      return classifyAvContainer(args, "wav", "wav", probe, timeoutMs, ffprobeVersion);
-    case "mp3":
-      return classifyAvContainer(args, "mp3", "mp3", probe, timeoutMs, ffprobeVersion);
-    case "flac":
-      return classifyAvContainer(args, "flac", "flac", probe, timeoutMs, ffprobeVersion);
+      return classifyAvContainer(args, 'avi', undefined, probe, timeoutMs, ffprobeVersion);
+    case 'wav':
+      return classifyAvContainer(args, 'wav', 'wav', probe, timeoutMs, ffprobeVersion);
+    case 'mp3':
+      return classifyAvContainer(args, 'mp3', 'mp3', probe, timeoutMs, ffprobeVersion);
+    case 'flac':
+      return classifyAvContainer(args, 'flac', 'flac', probe, timeoutMs, ffprobeVersion);
   }
 }
 
@@ -409,7 +478,7 @@ async function classifyAvContainer(
   args: InspectMediaArgs,
   container: string,
   formatId: MediaFormatId | undefined,
-  probe: NonNullable<InspectMediaDeps["probe"]>,
+  probe: NonNullable<InspectMediaDeps['probe']>,
   timeoutMs: number,
   ffprobeVersion: string | undefined,
 ): Promise<MediaInspectionResult> {
@@ -418,22 +487,30 @@ async function classifyAvContainer(
     return indeterminate(container, `probe_${probed.reason}`, ffprobeVersion, formatId);
   }
   const parsed = ProbeJsonSchema.safeParse(probed.json);
-  if (!parsed.success) return indeterminate(container, "probe_schema_invalid", ffprobeVersion, formatId);
+  if (!parsed.success)
+    return indeterminate(container, 'probe_schema_invalid', ffprobeVersion, formatId);
 
   const rawStreams = parsed.data.streams ?? [];
-  if (rawStreams.length === 0) return indeterminate(container, "no_streams", ffprobeVersion, formatId);
+  if (rawStreams.length === 0)
+    return indeterminate(container, 'no_streams', ffprobeVersion, formatId);
 
-  const counts: MediaInspectionStreams = { audio: 0, timedVideo: 0, attachedPictures: 0, imageFrames: 0, auxiliary: 0 };
+  const counts: MediaInspectionStreams = {
+    audio: 0,
+    timedVideo: 0,
+    attachedPictures: 0,
+    imageFrames: 0,
+    auxiliary: 0,
+  };
   const audioCodecs = new Set<NormalizedCodecId>();
   const videoCodecs = new Set<NormalizedCodecId>();
   let sawUnknownType = false;
 
   for (const s of rawStreams) {
-    const type = s.codec_type ?? "";
-    if (type === "audio") {
+    const type = s.codec_type ?? '';
+    if (type === 'audio') {
       counts.audio++;
       audioCodecs.add(normalizeCodec(s.codec_name));
-    } else if (type === "video") {
+    } else if (type === 'video') {
       // An attached picture (cover art) is NOT a timed presentation — but the
       // disposition flag is untrusted container data, so it is COUNTED and the
       // safety plan forces every such picture through the image hash path
@@ -444,7 +521,7 @@ async function classifyAvContainer(
         counts.timedVideo++;
         videoCodecs.add(normalizeCodec(s.codec_name));
       }
-    } else if (type === "subtitle" || type === "data" || type === "attachment") {
+    } else if (type === 'subtitle' || type === 'data' || type === 'attachment') {
       counts.auxiliary++;
     } else {
       counts.auxiliary++;
@@ -461,15 +538,15 @@ async function classifyAvContainer(
   if (counts.timedVideo > 0) {
     return baseResult(
       {
-        status: "definitive",
-        canonicalKind: "video",
+        status: 'definitive',
+        canonicalKind: 'video',
         container,
         ...(formatId ? { formatId } : {}),
         streams: counts,
         codecs,
         ...duration,
-        safetyPlan: "video-frames",
-        reasonCode: "ok",
+        safetyPlan: 'video-frames',
+        reasonCode: 'ok',
       },
       ffprobeVersion,
     );
@@ -477,15 +554,15 @@ async function classifyAvContainer(
   if (counts.audio > 0 && !sawUnknownType) {
     return baseResult(
       {
-        status: "definitive",
-        canonicalKind: "audio",
+        status: 'definitive',
+        canonicalKind: 'audio',
         container,
         ...(formatId ? { formatId } : {}),
         streams: counts,
         codecs,
         ...duration,
-        safetyPlan: counts.attachedPictures > 0 ? "audio-plus-artwork" : "audio-only",
-        reasonCode: "ok",
+        safetyPlan: counts.attachedPictures > 0 ? 'audio-plus-artwork' : 'audio-only',
+        reasonCode: 'ok',
       },
       ffprobeVersion,
     );
@@ -494,14 +571,14 @@ async function classifyAvContainer(
   // never audio — the strict visual fallback owns it.
   return baseResult(
     {
-      status: "indeterminate",
+      status: 'indeterminate',
       container,
       ...(formatId ? { formatId } : {}),
       streams: counts,
       codecs,
       ...duration,
-      safetyPlan: "strict-video-fallback",
-      reasonCode: sawUnknownType ? "unknown_stream_type" : "auxiliary_only",
+      safetyPlan: 'strict-video-fallback',
+      reasonCode: sawUnknownType ? 'unknown_stream_type' : 'auxiliary_only',
     },
     ffprobeVersion,
   );

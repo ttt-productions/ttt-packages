@@ -6,15 +6,25 @@
 // The Functions side adds the one field this module cannot carry: `timestampFromMillis`, which needs
 // the Admin SDK (ARCH-202).
 
-import type { NotificationSystemConfig, NotificationTypeConfig } from '@ttt-productions/notification-core';
+import type {
+  NotificationSystemConfig,
+  NotificationTypeConfig,
+} from '@ttt-productions/notification-core';
 import { ADMIN_NOTIFICATION_METADATA_SCHEMAS } from '../doc-schemas/admin-notifications.js';
 import type { AdminNotificationMetadataByType } from '../doc-schemas/admin-notifications.js';
 import { COLLECTION_REFS } from '../paths/collection-refs.js';
 import { toPath } from '../paths/utils.js';
 import { buildLeagueFreeAgentId } from '../ids/compound-ids.js';
-import { ADMIN_NOTIFICATION_CATEGORY, ADMIN_NOTIFICATION_TYPE_KEYS } from '../types/notifications.js';
+import {
+  ADMIN_NOTIFICATION_CATEGORY,
+  ADMIN_NOTIFICATION_TYPE_KEYS,
+} from '../types/notifications.js';
 import type { AdminNotificationType } from '../types/notifications.js';
-import { LEAGUE_FREE_AGENTS_SECTION, adminLeagueHref, leagueTeamHref } from '../utils/app-routes.js';
+import {
+  LEAGUE_FREE_AGENTS_SECTION,
+  adminLeagueHref,
+  leagueTeamHref,
+} from '../utils/app-routes.js';
 
 export interface AdminNotificationDefinition<T extends AdminNotificationType> {
   /**
@@ -37,7 +47,9 @@ export interface AdminNotificationDefinition<T extends AdminNotificationType> {
   countCap?: number;
 }
 
-export const ADMIN_NOTIFICATION_DEFINITIONS: { [T in AdminNotificationType]: AdminNotificationDefinition<T> } = {
+export const ADMIN_NOTIFICATION_DEFINITIONS: {
+  [T in AdminNotificationType]: AdminNotificationDefinition<T>;
+} = {
   leagueTeamCreated: {
     // One card per team, so each card links to its own team page.
     aggregationKey: ({ teamId }) => teamId,
@@ -56,7 +68,9 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: { [T in AdminNotificationType]: Adm
     title: 'Free agent signup',
     icon: '🙋',
     message: (count) =>
-      count === 1 ? 'A player signed up as a free agent.' : `A player signed up as a free agent ${count} times.`,
+      count === 1
+        ? 'A player signed up as a free agent.'
+        : `A player signed up as a free agent ${count} times.`,
     targetPath: ({ leagueId }) => adminLeagueHref(leagueId, LEAGUE_FREE_AGENTS_SECTION),
   },
 };

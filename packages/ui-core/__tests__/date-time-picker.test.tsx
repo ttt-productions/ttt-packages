@@ -6,9 +6,16 @@ import userEvent from '@testing-library/user-event';
 import { DateTimePicker } from '../src/react/components/date-time-picker.js';
 
 // Local-time construction, so the tests hold in any time zone.
-const at = (y: number, m1: number, day: number, h = 0, min = 0) => new Date(y, m1 - 1, day, h, min, 0, 0);
+const at = (y: number, m1: number, day: number, h = 0, min = 0) =>
+  new Date(y, m1 - 1, day, h, min, 0, 0);
 
-function Controlled(props: { initial?: Date; min?: Date; max?: Date; minuteStep?: number; onChange?: (d: Date) => void }) {
+function Controlled(props: {
+  initial?: Date;
+  min?: Date;
+  max?: Date;
+  minuteStep?: number;
+  onChange?: (d: Date) => void;
+}) {
   const [value, setValue] = useState<Date | undefined>(props.initial);
   return (
     <DateTimePicker
@@ -77,7 +84,13 @@ describe('DateTimePicker', () => {
   it('moves a kept time that falls before the minimum to the earliest allowed time', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<Controlled initial={at(2030, 3, 12, 8, 0)} min={at(2030, 3, 10, 14, 30)} onChange={onChange} />);
+    render(
+      <Controlled
+        initial={at(2030, 3, 12, 8, 0)}
+        min={at(2030, 3, 10, 14, 30)}
+        onChange={onChange}
+      />,
+    );
     await user.click(button('March 10, 2030'));
     expect(onChange).toHaveBeenLastCalledWith(at(2030, 3, 10, 14, 30));
   });
@@ -110,7 +123,13 @@ describe('DateTimePicker', () => {
   });
 
   it('keeps every day strictly between the bounds available', () => {
-    render(<DateTimePicker value={at(2030, 3, 12, 9, 0)} min={at(2030, 3, 10, 23, 30)} max={at(2030, 3, 20, 0, 10)} />);
+    render(
+      <DateTimePicker
+        value={at(2030, 3, 12, 9, 0)}
+        min={at(2030, 3, 10, 23, 30)}
+        max={at(2030, 3, 20, 0, 10)}
+      />,
+    );
     expect(button('March 11, 2030')).toBeEnabled();
     expect(button('March 19, 2030')).toBeEnabled();
     expect(button('March 10, 2030')).toBeEnabled();

@@ -1,5 +1,5 @@
-import { useCallback, type RefObject } from "react";
-import { getFocusableInputs } from "./focusOrder.js";
+import { useCallback, type RefObject } from 'react';
+import { getFocusableInputs } from './focusOrder.js';
 
 type Options = {
   /**
@@ -12,7 +12,7 @@ type Options = {
   onDone?: () => void;
 };
 
-function resolveRoot(root: Options["root"]): HTMLElement | null {
+function resolveRoot(root: Options['root']): HTMLElement | null {
   if (!root) return null;
   if (root instanceof HTMLElement) return root;
   return root.current ?? null;
@@ -40,15 +40,15 @@ export function useInputNavigation(opts?: Options) {
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
+      if (e.key === 'Enter') {
         // allow textarea newlines
         const el = e.currentTarget as HTMLElement;
-        if (el.tagName.toLowerCase() === "textarea") return;
+        if (el.tagName.toLowerCase() === 'textarea') return;
         e.preventDefault();
         focusNext();
       }
     },
-    [focusNext]
+    [focusNext],
   );
 
   return { focusNext, onKeyDown };

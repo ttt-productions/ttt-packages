@@ -17,7 +17,7 @@
  */
 
 /** The fixed replacement written over any matched forbidden substring. */
-export const REDACTION_PLACEHOLDER = "[REDACTED]";
+export const REDACTION_PLACEHOLDER = '[REDACTED]';
 
 /**
  * A forbidden pattern. Either a `RegExp` (matched globally against every string
@@ -84,21 +84,21 @@ export const DEFAULT_FORBIDDEN_PATTERNS: RegExp[] = [
 type CompiledPattern = { regex: RegExp; isLiteral: boolean; literal?: string };
 
 function escapeRegExp(input: string): string {
-  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function compilePatterns(patterns: ForbiddenPattern[]): CompiledPattern[] {
   return patterns.map((p) => {
-    if (typeof p === "string") {
+    if (typeof p === 'string') {
       return {
-        regex: new RegExp(escapeRegExp(p), "g"),
+        regex: new RegExp(escapeRegExp(p), 'g'),
         isLiteral: true,
         literal: p,
       };
     }
     // Ensure the flag set is global so `String.replace` strips every hit; clone
     // so we never mutate a caller-owned RegExp's lastIndex across calls.
-    const flags = p.flags.includes("g") ? p.flags : p.flags + "g";
+    const flags = p.flags.includes('g') ? p.flags : p.flags + 'g';
     return { regex: new RegExp(p.source, flags), isLiteral: false };
   });
 }
@@ -131,10 +131,10 @@ type DeepRedactOptions = {
  * are scrubbed. Guards against cycles.
  */
 function deepRedact(value: unknown, options: DeepRedactOptions, seen: WeakSet<object>): unknown {
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     return redactString(value, options);
   }
-  if (value === null || typeof value !== "object") {
+  if (value === null || typeof value !== 'object') {
     return value;
   }
   if (seen.has(value as object)) {
@@ -200,9 +200,9 @@ export type TelemetryScrubberOptions = {
  */
 export function redactEvent<T extends ScrubbableEvent>(
   event: T,
-  options: TelemetryScrubberOptions = {}
+  options: TelemetryScrubberOptions = {},
 ): T {
-  if (event === null || typeof event !== "object") return event;
+  if (event === null || typeof event !== 'object') return event;
 
   const includeDefaults = options.includeDefaults ?? true;
   const patterns: ForbiddenPattern[] = [
@@ -230,7 +230,16 @@ export function redactEvent<T extends ScrubbableEvent>(
 
   // Free-form containers — walked wholesale. `transaction` is a page load's URL and
   // `urls` a replay event's visited pages, so both can carry query-string credentials.
-  for (const container of ["breadcrumbs", "extra", "contexts", "tags", "request", "user", "transaction", "urls"] as const) {
+  for (const container of [
+    'breadcrumbs',
+    'extra',
+    'contexts',
+    'tags',
+    'request',
+    'user',
+    'transaction',
+    'urls',
+  ] as const) {
     if (event[container] !== undefined) {
       event[container] = deepRedact(event[container], deepOptions, seen);
     }
@@ -241,9 +250,9 @@ export function redactEvent<T extends ScrubbableEvent>(
   // timestamps, and op stay intact so the trace still assembles.
   if (Array.isArray(event.spans)) {
     for (const span of event.spans) {
-      if (span === null || typeof span !== "object") continue;
+      if (span === null || typeof span !== 'object') continue;
       const record = span as Record<string, unknown>;
-      for (const field of ["description", "data"] as const) {
+      for (const field of ['description', 'data'] as const) {
         if (record[field] !== undefined) {
           record[field] = deepRedact(record[field], deepOptions, seen);
         }
@@ -260,7 +269,7 @@ export function redactEvent<T extends ScrubbableEvent>(
  */
 export type BeforeSendHook = (
   event: ScrubbableEvent,
-  hint?: { originalException?: unknown } & Record<string, unknown>
+  hint?: { originalException?: unknown } & Record<string, unknown>,
 ) => ScrubbableEvent | null;
 
 /**
@@ -281,7 +290,7 @@ export type BeforeSendHook = (
  */
 export function createTelemetryScrubber(options: TelemetryScrubberOptions = {}): BeforeSendHook {
   return (event, _hint) => {
-    if (event === null || typeof event !== "object") return event;
+    if (event === null || typeof event !== 'object') return event;
     return redactEvent(event, options);
   };
 }

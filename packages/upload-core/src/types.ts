@@ -9,13 +9,7 @@ export interface UploadFileResumableResult {
 }
 
 export type UploadSessionStatus =
-  | "idle"
-  | "queued"
-  | "uploading"
-  | "paused"
-  | "success"
-  | "error"
-  | "canceled";
+  'idle' | 'queued' | 'uploading' | 'paused' | 'success' | 'error' | 'canceled';
 
 export interface UploadSessionPersistenceAdapter {
   /** Return all session ids currently stored. */

@@ -30,7 +30,8 @@ beforeAll(() => {
     'functions/src/run.spec.ts': 'export {};',
     'e2e/helpers/seed.ts': 'export {};',
     'chat-worker/src/index.ts': 'export {};',
-    'firestore.rules': 'rules_version = "2";\nservice cloud.firestore { match /databases/{database}/documents { } }',
+    'firestore.rules':
+      'rules_version = "2";\nservice cloud.firestore { match /databases/{database}/documents { } }',
     'storage.rules': 'service firebase.storage { match /b/{bucket}/o { } }',
     'node_modules/@scope/kit/dist/index.d.ts': 'export declare const a: 1;',
     'node_modules/@scope/kit/dist/lib/deep.d.ts': 'export type B = 2;',
@@ -47,7 +48,9 @@ beforeAll(() => {
     },
     rulesFiles: ['firestore.rules', 'storage.rules'],
     testCodePaths: [{ path: 'src/test', why: 'the frontend suite setup and mocks' }],
-    testCodeNameMarkers: [{ marker: '.test-helper.', why: 'a test helper beside the code it serves' }],
+    testCodeNameMarkers: [
+      { marker: '.test-helper.', why: 'a test helper beside the code it serves' },
+    ],
     exclusions: [{ path: 'src/generated', why: 'generated output' }],
   };
 });
@@ -59,7 +62,10 @@ const paths = (files: Array<{ path: string }>) => files.map((f) => f.path);
 describe('the scope policy', () => {
   it('reads code by kind, leaving out declarations, dependency, build, dot, and excluded folders', () => {
     const reader = createRepoReader(layout);
-    expect(paths(reader.files({ roots: ['app'], kinds: ['code'], tests: false }))).toEqual(['src/app/page.tsx', 'src/lib/owner.ts']);
+    expect(paths(reader.files({ roots: ['app'], kinds: ['code'], tests: false }))).toEqual([
+      'src/app/page.tsx',
+      'src/lib/owner.ts',
+    ]);
   });
 
   it('counts a test name, a __tests__ folder, a declared test path, and a declared name marker as test code', () => {
@@ -75,12 +81,22 @@ describe('the scope policy', () => {
   it('reads everything under an end-to-end root as test code', () => {
     const reader = createRepoReader(layout);
     expect(paths(reader.files({ roots: ['e2e'], kinds: ['code'], tests: false }))).toEqual([]);
-    expect(paths(reader.files({ roots: ['e2e'], kinds: ['code'], tests: 'only' }))).toEqual(['e2e/helpers/seed.ts']);
+    expect(paths(reader.files({ roots: ['e2e'], kinds: ['code'], tests: 'only' }))).toEqual([
+      'e2e/helpers/seed.ts',
+    ]);
   });
 
   it('reads each kind of file by its name, and never a file of no kind', () => {
     const reader = createRepoReader(layout);
-    expect(paths(reader.files({ roots: ['app'], kinds: ['stylesheet', 'markdown', 'config', 'declarations'], tests: true }))).toEqual([
+    expect(
+      paths(
+        reader.files({
+          roots: ['app'],
+          kinds: ['stylesheet', 'markdown', 'config', 'declarations'],
+          tests: true,
+        }),
+      ),
+    ).toEqual([
       'src/config/app.json',
       'src/docs/notes.md',
       'src/lib/types.d.ts',
@@ -90,13 +106,24 @@ describe('the scope policy', () => {
 
   it('reads every Worker tree for the workers role', () => {
     const reader = createRepoReader(layout);
-    expect(paths(reader.files({ roots: ['workers'], kinds: ['code'], tests: true }))).toEqual(['chat-worker/src/index.ts']);
+    expect(paths(reader.files({ roots: ['workers'], kinds: ['code'], tests: true }))).toEqual([
+      'chat-worker/src/index.ts',
+    ]);
   });
 
   it('throws when a guard asks for a role the layout does not declare, unless the guard reads it only when present', () => {
     const reader = createRepoReader(layout);
-    expect(() => reader.files({ roots: ['scripts'], kinds: ['code'], tests: true })).toThrow(/reads the scripts root, which the layout does not declare/);
-    expect(reader.files({ roots: ['app', 'scripts'], optionalRoots: ['scripts'], kinds: ['code'], tests: false })).toHaveLength(2);
+    expect(() => reader.files({ roots: ['scripts'], kinds: ['code'], tests: true })).toThrow(
+      /reads the scripts root, which the layout does not declare/,
+    );
+    expect(
+      reader.files({
+        roots: ['app', 'scripts'],
+        optionalRoots: ['scripts'],
+        kinds: ['code'],
+        tests: false,
+      }),
+    ).toHaveLength(2);
   });
 
   it('hands every guard the same view of a file: read, stripped, and parsed once', () => {
@@ -132,10 +159,20 @@ describe('the scope policy', () => {
   });
 
   it('reads the whole repository as one root when the root is .', () => {
-    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: '.', anchor: 'src/lib/owner.ts' } } });
+    const reader = createRepoReader({
+      repoRoot: repo.root,
+      roots: { app: { path: '.', anchor: 'src/lib/owner.ts' } },
+    });
     expect(reader.unreachedAnchors()).toEqual([]);
     const read = paths(reader.files({ roots: ['app'], kinds: ['code'], tests: true }));
-    expect(read).toEqual(expect.arrayContaining(['src/lib/owner.ts', 'functions/src/index.ts', 'chat-worker/src/index.ts', 'e2e/helpers/seed.ts']));
+    expect(read).toEqual(
+      expect.arrayContaining([
+        'src/lib/owner.ts',
+        'functions/src/index.ts',
+        'chat-worker/src/index.ts',
+        'e2e/helpers/seed.ts',
+      ]),
+    );
     expect(read.some((p) => p.includes('node_modules/'))).toBe(false);
   });
 
@@ -146,10 +183,12 @@ describe('the scope policy', () => {
       'node_modules/@scope/kit/dist/index.d.ts',
       'node_modules/@scope/kit/dist/lib/deep.d.ts',
     ]);
-    expect(paths(reader.installedFiles('@scope/kit', { kinds: ['code'] }))).toEqual(['node_modules/@scope/kit/dist/index.js']);
-    expect(paths(reader.installedFiles('@scope/server-kit', { kinds: ['code'], under: 'functions' }))).toEqual([
-      'functions/node_modules/@scope/server-kit/dist/index.js',
+    expect(paths(reader.installedFiles('@scope/kit', { kinds: ['code'] }))).toEqual([
+      'node_modules/@scope/kit/dist/index.js',
     ]);
+    expect(
+      paths(reader.installedFiles('@scope/server-kit', { kinds: ['code'], under: 'functions' })),
+    ).toEqual(['functions/node_modules/@scope/server-kit/dist/index.js']);
     expect(reader.installedFiles('@scope/server-kit', { kinds: ['code'] })).toEqual([]);
     expect(reader.installedFiles('@scope/absent', { kinds: ['code'] })).toEqual([]);
   });
@@ -169,9 +208,14 @@ describe('the scope policy', () => {
   });
 
   it('knows env files by any name, and shell scripts', () => {
-    for (const name of ['.env', '.env.local', 'temp.env.dev', 'app.env']) expect(kindOfFile(name)).toBe('config');
+    for (const name of ['.env', '.env.local', 'temp.env.dev', 'app.env'])
+      expect(kindOfFile(name)).toBe('config');
     for (const name of ['deploy.sh', 'setup.ps1']) expect(kindOfFile(name)).toBe('shell');
-    for (const [name, kind] of [['env.ts', 'code'], ['environment.json', 'config'], ['README.md', 'markdown']] as const) {
+    for (const [name, kind] of [
+      ['env.ts', 'code'],
+      ['environment.json', 'config'],
+      ['README.md', 'markdown'],
+    ] as const) {
       expect(kindOfFile(name)).toBe(kind);
     }
     expect(kindOfFile('LICENSE')).toBeNull();
@@ -212,7 +256,12 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
   it('refuses a rules file that declares neither service, or both, and one listed twice', () => {
     repo.write('neither.rules', "rules_version = '2';\n// service cloud.firestore, in prose only");
     repo.write('both.rules', 'service cloud.firestore { }\nservice firebase.storage { }');
-    expect(layoutProblems({ ...layout, rulesFiles: ['neither.rules', 'both.rules', 'firestore.rules', 'firestore.rules'] })).toEqual([
+    expect(
+      layoutProblems({
+        ...layout,
+        rulesFiles: ['neither.rules', 'both.rules', 'firestore.rules', 'firestore.rules'],
+      }),
+    ).toEqual([
       'rulesFiles lists a file twice',
       'rules file neither.rules declares neither service cloud.firestore nor service firebase.storage, or both',
       'rules file both.rules declares neither service cloud.firestore nor service firebase.storage, or both',
@@ -220,13 +269,15 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
   });
 
   it('refuses an anchor that an exclusion hides', () => {
-    expect(layoutProblems({ ...layout, exclusions: [{ path: 'src/lib', why: 'hides the anchor' }] })).toContain(
-      'anchor src/lib/owner.ts is excluded by src/lib',
-    );
+    expect(
+      layoutProblems({ ...layout, exclusions: [{ path: 'src/lib', why: 'hides the anchor' }] }),
+    ).toContain('anchor src/lib/owner.ts is excluded by src/lib');
   });
 
   it('refuses to build a reader over a layout with any problem', () => {
-    expect(() => createRepoReader({ ...layout, exclusions: [{ path: 'src/gone', why: 'stale' }] })).toThrow(/exclusions entry src\/gone no longer exists/);
+    expect(() =>
+      createRepoReader({ ...layout, exclusions: [{ path: 'src/gone', why: 'stale' }] }),
+    ).toThrow(/exclusions entry src\/gone no longer exists/);
   });
 });
 
@@ -243,7 +294,9 @@ describe('MUST FAIL — a folder that cannot be read', () => {
       return (real as (...a: unknown[]) => unknown).call(fs, dir, ...rest);
     }) as typeof fs.readdirSync);
     const reader = createRepoReader(layout);
-    expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow('cannot read folder src/lib (EACCES)');
+    expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow(
+      'cannot read folder src/lib (EACCES)',
+    );
   });
 });
 
@@ -257,7 +310,11 @@ describe('MUST FAIL — a symbolic link in a walked tree', () => {
     vi.spyOn(fs, 'readdirSync').mockImplementation(((dir: fs.PathLike, ...rest: unknown[]) => {
       const entries = (real as (...a: unknown[]) => fs.Dirent[]).call(fs, dir, ...rest);
       if (String(dir) !== folder) return entries;
-      const link = Object.assign(Object.create(fs.Dirent.prototype), { name, parentPath: folder, path: folder });
+      const link = Object.assign(Object.create(fs.Dirent.prototype), {
+        name,
+        parentPath: folder,
+        path: folder,
+      });
       link.isSymbolicLink = () => true;
       link.isDirectory = () => false;
       link.isFile = () => false;
@@ -268,23 +325,31 @@ describe('MUST FAIL — a symbolic link in a walked tree', () => {
   it('throws naming a link under a root', () => {
     linkAt(join(repo.root, `src${sep}lib`), 'linked');
     const reader = createRepoReader(layout);
-    expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow('src/lib/linked is a symbolic link');
+    expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow(
+      'src/lib/linked is a symbolic link',
+    );
   });
 
   it('skips a link named like a dependency folder, as the folder itself is skipped', () => {
     linkAt(join(repo.root, `src${sep}lib`), 'node_modules');
-    expect(() => createRepoReader(layout).files({ roots: ['app'], kinds: ['code'], tests: false })).not.toThrow();
+    expect(() =>
+      createRepoReader(layout).files({ roots: ['app'], kinds: ['code'], tests: false }),
+    ).not.toThrow();
   });
 
   it('skips a link named like a dot folder', () => {
     linkAt(join(repo.root, 'src'), '.cache');
-    expect(() => createRepoReader(layout).files({ roots: ['app'], kinds: ['code'], tests: false })).not.toThrow();
+    expect(() =>
+      createRepoReader(layout).files({ roots: ['app'], kinds: ['code'], tests: false }),
+    ).not.toThrow();
   });
 
   it("throws naming a link inside an installed package's files", () => {
     linkAt(join(repo.root, 'node_modules/@scope/kit/dist'), 'linked.js');
     const reader = createRepoReader(layout);
-    expect(() => reader.installedFiles('@scope/kit', { kinds: ['code'] })).toThrow('node_modules/@scope/kit/dist/linked.js is a symbolic link');
+    expect(() => reader.installedFiles('@scope/kit', { kinds: ['code'] })).toThrow(
+      'node_modules/@scope/kit/dist/linked.js is a symbolic link',
+    );
   });
 });
 
@@ -320,7 +385,7 @@ describe('comments never reach a guard', () => {
     repo.write(
       'commented.rules',
       [
-        "match /users/{uid} { // admins read the live roster",
+        'match /users/{uid} { // admins read the live roster',
         '  /* a block',
         "     comment */ allow read: if request.auth.token.get('role', '//not-a-comment') == 'admin';",
         '  allow write: if get(/databases/$(database)/documents/_systemData/adminList).data.size() > 0;',
@@ -337,7 +402,10 @@ describe('comments never reach a guard', () => {
   });
 
   it('blanks stylesheet comments and keeps quoted text', () => {
-    repo.write('src/styles/commented.css', "a { color: red; /* hsl(0 0% 0%) */ content: '/* kept */'; }");
+    repo.write(
+      'src/styles/commented.css',
+      "a { color: red; /* hsl(0 0% 0%) */ content: '/* kept */'; }",
+    );
     const view = createRepoReader(layout).file('src/styles/commented.css');
     expect(view.code).not.toContain('hsl(');
     expect(view.code).toContain("'/* kept */'");
@@ -354,19 +422,58 @@ describe('a file view names the modules its code loads', () => {
         "// import { hidden } from 'commented';",
         "export * as ns from './ns';",
         "const lazy = () => import('./lazy');",
-        "const text = \"import x from 'in-a-string'\";",
+        'const text = "import x from \'in-a-string\'";',
       ].join('\n'),
     );
-    expect(view.imports.map(({ spec, kind, typeOnly, defaultName, namespace, named }) => ({ spec, kind, typeOnly, defaultName, namespace, named }))).toEqual([
-      { spec: './types', kind: 'import', typeOnly: true, defaultName: null, namespace: null, named: [{ imported: 'A', local: 'A', typeOnly: false }] },
-      { spec: 'pkg', kind: 'import', typeOnly: false, defaultName: 'def', namespace: null, named: [{ imported: 'b', local: 'local', typeOnly: false }] },
-      { spec: './ns', kind: 'export', typeOnly: false, defaultName: null, namespace: 'ns', named: [] },
-      { spec: './lazy', kind: 'dynamic', typeOnly: false, defaultName: null, namespace: null, named: [] },
+    expect(
+      view.imports.map(({ spec, kind, typeOnly, defaultName, namespace, named }) => ({
+        spec,
+        kind,
+        typeOnly,
+        defaultName,
+        namespace,
+        named,
+      })),
+    ).toEqual([
+      {
+        spec: './types',
+        kind: 'import',
+        typeOnly: true,
+        defaultName: null,
+        namespace: null,
+        named: [{ imported: 'A', local: 'A', typeOnly: false }],
+      },
+      {
+        spec: 'pkg',
+        kind: 'import',
+        typeOnly: false,
+        defaultName: 'def',
+        namespace: null,
+        named: [{ imported: 'b', local: 'local', typeOnly: false }],
+      },
+      {
+        spec: './ns',
+        kind: 'export',
+        typeOnly: false,
+        defaultName: null,
+        namespace: 'ns',
+        named: [],
+      },
+      {
+        spec: './lazy',
+        kind: 'dynamic',
+        typeOnly: false,
+        defaultName: null,
+        namespace: null,
+        named: [],
+      },
     ]);
   });
 
   it('fails closed on a file that is not code', () => {
-    expect(() => viewOfText('src/a.css', "@import 'x.css';").imports).toThrow(/is stylesheet, not code/);
+    expect(() => viewOfText('src/a.css', "@import 'x.css';").imports).toThrow(
+      /is stylesheet, not code/,
+    );
   });
 });
 
@@ -374,17 +481,29 @@ describe('MUST FAIL — a rules file the deploy config deploys that the layout d
   it('names each deployed rules file missing from rulesFiles, and passes when every one is listed', () => {
     const own = tempRepo({
       'src/index.ts': 'export {};',
-      'firestore.rules': "rules_version = '2';\nservice cloud.firestore { match /databases/{d}/documents {} }",
+      'firestore.rules':
+        "rules_version = '2';\nservice cloud.firestore { match /databases/{d}/documents {} }",
       'storage.rules': "rules_version = '2';\nservice firebase.storage { match /b/{bucket}/o {} }",
-      'firebase.json': JSON.stringify({ firestore: { rules: 'firestore.rules' }, storage: [{ bucket: 'b', rules: 'storage.rules' }] }),
+      'firebase.json': JSON.stringify({
+        firestore: { rules: 'firestore.rules' },
+        storage: [{ bucket: 'b', rules: 'storage.rules' }],
+      }),
     });
     try {
-      const base: RepoLayout = { repoRoot: own.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } }, firebaseConfig: 'firebase.json' };
+      const base: RepoLayout = {
+        repoRoot: own.root,
+        roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+        firebaseConfig: 'firebase.json',
+      };
       expect(layoutProblems({ ...base, rulesFiles: ['firestore.rules'] })).toEqual([
         'firebase.json deploys the storage rules file storage.rules, which rulesFiles does not list',
       ]);
-      expect(layoutProblems({ ...base, rulesFiles: ['firestore.rules', 'storage.rules'] })).toEqual([]);
-      expect(layoutProblems({ ...base, rulesFiles: [], firebaseConfig: 'gone.json' })).toEqual(['firebaseConfig gone.json does not exist']);
+      expect(layoutProblems({ ...base, rulesFiles: ['firestore.rules', 'storage.rules'] })).toEqual(
+        [],
+      );
+      expect(layoutProblems({ ...base, rulesFiles: [], firebaseConfig: 'gone.json' })).toEqual([
+        'firebaseConfig gone.json does not exist',
+      ]);
     } finally {
       own.remove();
     }

@@ -49,7 +49,11 @@ import {
 } from './team-membership.js';
 import { HistoricalStatsSchema, UserPrivateDataSchema, UserProfileSchema } from './user-profile.js';
 import { HardwareLoanContractSchema, SignedWaiverSchema } from './waivers-and-hardware.js';
-import { WaiverTemplateRegistrySchema, WaiverTemplateSchema, WaiverTemplateVersionSchema } from './waiver-template.js';
+import {
+  WaiverTemplateRegistrySchema,
+  WaiverTemplateSchema,
+  WaiverTemplateVersionSchema,
+} from './waiver-template.js';
 
 export const COLLECTION_SCHEMAS = {
   'userProfiles/{userId}': UserProfileSchema,
@@ -76,7 +80,8 @@ export const COLLECTION_SCHEMAS = {
   'gameLocations/{gameLocationId}': GameLocationSchema,
 
   'waiverTemplates/{waiverTemplateId}': WaiverTemplateSchema,
-  'waiverTemplates/{waiverTemplateId}/waiverTemplateVersions/{versionId}': WaiverTemplateVersionSchema,
+  'waiverTemplates/{waiverTemplateId}/waiverTemplateVersions/{versionId}':
+    WaiverTemplateVersionSchema,
   'signedWaivers/{signedWaiverId}': SignedWaiverSchema,
   'hardwareLoanContracts/{contractId}': HardwareLoanContractSchema,
 

@@ -1,7 +1,7 @@
-import { createPendingMediaSchemas } from "@ttt-productions/media-schemas";
-import type { z } from "zod";
-import { FileOriginSchema } from "./file-origin.js";
-import { DomainEventSchema } from "./domain-events.js";
+import { createPendingMediaSchemas } from '@ttt-productions/media-schemas';
+import type { z } from 'zod';
+import { FileOriginSchema } from './file-origin.js';
+import { DomainEventSchema } from './domain-events.js';
 
 const schemas = createPendingMediaSchemas({
   fileOriginSchema: FileOriginSchema,

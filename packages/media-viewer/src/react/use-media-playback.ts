@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import type { MediaPlaybackControls, MediaProgressSampleReason } from "../types.js";
-import type { MediaPlaybackProps } from "./types.js";
+import * as React from 'react';
+import type { MediaPlaybackControls, MediaProgressSampleReason } from '../types.js';
+import type { MediaPlaybackProps } from './types.js';
 
 /**
  * Throttle interval for periodic progress samples. A sample fires at most once
@@ -108,7 +108,7 @@ export function useMediaPlayback(
   // startAtSeconds, or null when the caller supplies none. One declaration —
   // the mount seed, the mediaKey reset, and the late-arrival effect all read it.
   const seedFromProps =
-    typeof startAtSeconds === "number" && startAtSeconds > 0 ? startAtSeconds : null;
+    typeof startAtSeconds === 'number' && startAtSeconds > 0 ? startAtSeconds : null;
 
   // Last known playback position. Seeded from startAtSeconds, then updated once
   // playback has actually started. Survives the unloadOnExit unload/remount
@@ -167,7 +167,7 @@ export function useMediaPlayback(
 
   const emitSample = React.useCallback(
     (el: HTMLMediaElement, reason: MediaProgressSampleReason) => {
-      if (reason !== "periodic") {
+      if (reason !== 'periodic') {
         lastCommittedRef.current = el.currentTime;
       }
       const cb = onProgressSampleRef.current;
@@ -199,11 +199,10 @@ export function useMediaPlayback(
     if (el && activeRef.current) {
       if (hasStartedRef.current) {
         const position = el.currentTime;
-        const preSeed =
-          !seededRef.current && position <= LATE_RESUME_ADOPT_WINDOW_SEC;
+        const preSeed = !seededRef.current && position <= LATE_RESUME_ADOPT_WINDOW_SEC;
         if (!preSeed && lastCommittedRef.current !== position) {
           lastPositionRef.current = position;
-          emitSample(el, "pause");
+          emitSample(el, 'pause');
         }
       }
     }
@@ -242,7 +241,7 @@ export function useMediaPlayback(
 
   const applyInitialSeek = React.useCallback((el: HTMLMediaElement, adoptWindowSec = 0.01) => {
     const target = lastPositionRef.current;
-    if (typeof target !== "number" || target <= 0) return;
+    if (typeof target !== 'number' || target <= 0) return;
     // Only seek an element still near the start. The DEFAULT window keeps the
     // metadata handler idempotent (a metadata event on an already-positioned
     // element is a no-op) and re-applies the LAST KNOWN position to the new
@@ -326,7 +325,7 @@ export function useMediaPlayback(
       const now = Date.now();
       if (now - lastSampleAtRef.current >= PROGRESS_SAMPLE_INTERVAL_MS) {
         lastSampleAtRef.current = now;
-        emitSample(el, "periodic");
+        emitSample(el, 'periodic');
       }
     },
     [emitSample, trackPosition, isFromActiveElement],
@@ -352,7 +351,7 @@ export function useMediaPlayback(
       trackPosition(el);
       // Flush a sample immediately on pause (final position for this segment).
       lastSampleAtRef.current = Date.now();
-      emitSample(el, "pause");
+      emitSample(el, 'pause');
     },
     [emitSample, trackPosition, isFromActiveElement],
   );
@@ -368,7 +367,7 @@ export function useMediaPlayback(
       // This is also how the programmatic initial-resume seek reports the
       // adopted position — the element fires `seeked` after applyInitialSeek.
       lastSampleAtRef.current = Date.now();
-      emitSample(el, "seeked");
+      emitSample(el, 'seeked');
     },
     [emitSample, trackPosition, isFromActiveElement],
   );
@@ -382,7 +381,7 @@ export function useMediaPlayback(
       lastPositionRef.current = el.currentTime;
       // Flush a final sample with the ended position.
       lastSampleAtRef.current = Date.now();
-      emitSample(el, "ended");
+      emitSample(el, 'ended');
       setHasEnded(true);
       onEndedRef.current?.();
     },
@@ -410,7 +409,9 @@ export function useMediaPlayback(
         if (!el) return;
         const dur = el.duration;
         const clamped =
-          Number.isFinite(dur) && dur > 0 ? Math.min(Math.max(seconds, 0), dur) : Math.max(seconds, 0);
+          Number.isFinite(dur) && dur > 0
+            ? Math.min(Math.max(seconds, 0), dur)
+            : Math.max(seconds, 0);
         try {
           el.currentTime = clamped;
         } catch {

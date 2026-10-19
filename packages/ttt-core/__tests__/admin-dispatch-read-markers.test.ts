@@ -11,11 +11,15 @@ describe('per-person dispatch unread', () => {
   });
 
   it('is read once the reader has seen through the latest message', () => {
-    expect(hasUnseenAdminDispatchMessage({ lastMessageAt: 10 }, { lastSeenMessageAt: 10 })).toBe(false);
+    expect(hasUnseenAdminDispatchMessage({ lastMessageAt: 10 }, { lastSeenMessageAt: 10 })).toBe(
+      false,
+    );
   });
 
   it('relights for a reader when a newer message arrives', () => {
-    expect(hasUnseenAdminDispatchMessage({ lastMessageAt: 11 }, { lastSeenMessageAt: 10 })).toBe(true);
+    expect(hasUnseenAdminDispatchMessage({ lastMessageAt: 11 }, { lastSeenMessageAt: 10 })).toBe(
+      true,
+    );
   });
 
   it('is decided per reader — one reader seeing the thread leaves another unread', () => {
@@ -27,20 +31,40 @@ describe('per-person dispatch unread', () => {
 
 describe('mark-read contract', () => {
   it('names the newest message time the caller has on screen', () => {
-    expect(MarkAdminDispatchReadInputSchema.safeParse({ adminDispatchId: 'd1', seenThroughMessageAt: 10 }).success).toBe(true);
-    expect(MarkAdminDispatchReadInputSchema.safeParse({ adminDispatchId: 'd1' }).success).toBe(false);
-    expect(MarkAdminDispatchReadInputSchema.safeParse({ adminDispatchId: 'd1', seenThroughMessageAt: -1 }).success).toBe(false);
+    expect(
+      MarkAdminDispatchReadInputSchema.safeParse({
+        adminDispatchId: 'd1',
+        seenThroughMessageAt: 10,
+      }).success,
+    ).toBe(true);
+    expect(MarkAdminDispatchReadInputSchema.safeParse({ adminDispatchId: 'd1' }).success).toBe(
+      false,
+    );
+    expect(
+      MarkAdminDispatchReadInputSchema.safeParse({
+        adminDispatchId: 'd1',
+        seenThroughMessageAt: -1,
+      }).success,
+    ).toBe(false);
   });
 
   it('never accepts a reader other than the caller', () => {
     expect(
-      MarkAdminDispatchReadInputSchema.safeParse({ adminDispatchId: 'd1', seenThroughMessageAt: 10, uid: 'other' }).success,
+      MarkAdminDispatchReadInputSchema.safeParse({
+        adminDispatchId: 'd1',
+        seenThroughMessageAt: 10,
+        uid: 'other',
+      }).success,
     ).toBe(false);
   });
 
   it("answers the caller's committed marker", () => {
     expect(
-      MarkAdminDispatchReadResultSchema.safeParse({ success: true, adminDispatchId: 'd1', lastSeenMessageAt: 10 }).success,
+      MarkAdminDispatchReadResultSchema.safeParse({
+        success: true,
+        adminDispatchId: 'd1',
+        lastSeenMessageAt: 10,
+      }).success,
     ).toBe(true);
     expect(MarkAdminDispatchReadResultSchema.safeParse({ success: true }).success).toBe(false);
   });

@@ -29,6 +29,9 @@ export const ProtocolVersionSchema = z.number().int().positive();
  * One rolling version of backward/forward compatibility: a message tagged
  * `current ± 1` is accepted during a rolling deploy; anything further is not.
  */
-export function isProtocolSupported(version: number, current: number = EDGE_PROTOCOL_VERSION): boolean {
+export function isProtocolSupported(
+  version: number,
+  current: number = EDGE_PROTOCOL_VERSION,
+): boolean {
   return Number.isInteger(version) && version >= 1 && Math.abs(version - current) <= 1;
 }

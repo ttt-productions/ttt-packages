@@ -1,13 +1,13 @@
-import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
+import type { MediaProcessingResult, MediaProcessingSpec } from '@ttt-productions/media-schemas';
 
 export interface MediaPipelineProgress {
   phase:
-    | "read_input"
-    | "moderation_input"
-    | "process"
-    | "persist_outputs"
-    | "moderation_output"
-    | "done";
+    | 'read_input'
+    | 'moderation_input'
+    | 'process'
+    | 'persist_outputs'
+    | 'moderation_output'
+    | 'done';
   /** 0..1 when known */
   percent?: number;
   detail?: Record<string, unknown>;
@@ -28,7 +28,7 @@ export interface ProcessMediaOptions {
 export type ProcessMediaFn = (
   spec: MediaProcessingSpec,
   ctx: ProcessMediaContext,
-  opts?: ProcessMediaOptions
+  opts?: ProcessMediaOptions,
 ) => Promise<MediaProcessingResult>;
 
 export interface MediaProcessors {

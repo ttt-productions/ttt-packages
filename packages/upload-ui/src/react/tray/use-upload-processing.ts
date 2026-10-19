@@ -13,14 +13,18 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { isPendingMediaNonTerminalStatus, PendingMediaStatusSchema } from '@ttt-productions/media-schemas';
+import {
+  isPendingMediaNonTerminalStatus,
+  PendingMediaStatusSchema,
+} from '@ttt-productions/media-schemas';
 import { useInFlightUpload, type InFlightUpload } from './in-flight-uploads-provider.js';
 
 // Pending-media status values derive from media-schemas' one declaration.
 const STATUS = PendingMediaStatusSchema.enum;
 
 export interface UploadProcessingState {
-  status: 'idle' | 'pending' | 'processing' | 'success' | 'failed' | 'rejected-text' | 'rejected-media';
+  status:
+    'idle' | 'pending' | 'processing' | 'success' | 'failed' | 'rejected-text' | 'rejected-media';
   message: string;
   errorMessage?: string;
   isProcessing: boolean;
@@ -144,7 +148,15 @@ export function useUploadProcessing<TFileOrigin extends string = string>(
         onTerminal(state);
       }
     }
-  }, [pendingMediaId, state.status, state.isComplete, state.isFailed, state.isRejected, state, onTerminal]);
+  }, [
+    pendingMediaId,
+    state.status,
+    state.isComplete,
+    state.isFailed,
+    state.isRejected,
+    state,
+    onTerminal,
+  ]);
 
   return state;
 }

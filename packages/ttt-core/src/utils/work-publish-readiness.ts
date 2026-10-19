@@ -30,7 +30,10 @@ export const WORK_PUBLISH_REQUIREMENT_LABELS = {
 export type WorkPublishRequirement = keyof typeof WORK_PUBLISH_REQUIREMENT_LABELS;
 
 /** The Work fields the rule reads: its status and its own title and description. */
-export type WorkPublishReadinessWork = Pick<FullWorkProject, 'status' | 'workingTitle' | 'workingDescription'>;
+export type WorkPublishReadinessWork = Pick<
+  FullWorkProject,
+  'status' | 'workingTitle' | 'workingDescription'
+>;
 
 /** The Tale / Tune / Television section fields the rule reads: its covers and genres. */
 export type WorkPublishReadinessSection = Pick<
@@ -45,7 +48,10 @@ export type WorkPublishReadinessGuildmate = Pick<
 >;
 
 /** The Realm fields the Realm-cover rule reads. */
-export type WorkPublishReadinessRealm = Pick<WorkRealm, 'realmType' | 'realmStatus' | 'realmCoverAssetId'>;
+export type WorkPublishReadinessRealm = Pick<
+  WorkRealm,
+  'realmType' | 'realmStatus' | 'realmCoverAssetId'
+>;
 
 export interface WorkPublishReadinessInput {
   readonly work: WorkPublishReadinessWork;
@@ -90,7 +96,9 @@ export function isWorkFirstPublication(work: Pick<FullWorkProject, 'status'>): b
  * its Work submits content (the first publication releases the Realm). `null` when the rule does
  * not apply — no Realm, a standalone Realm, or a released one.
  */
-export function realmCoverSubmitRule(realm: WorkPublishReadinessRealm | null): { readonly met: boolean } | null {
+export function realmCoverSubmitRule(
+  realm: WorkPublishReadinessRealm | null,
+): { readonly met: boolean } | null {
   if (realm === null || realm.realmType !== 'public' || realm.realmStatus !== 'draft') return null;
   return { met: typeof realm.realmCoverAssetId === 'string' && realm.realmCoverAssetId.length > 0 };
 }
@@ -115,7 +123,9 @@ export function checkWorkPublishReadiness(input: WorkPublishReadinessInput): Wor
   if (firstPublication) {
     // Founding-Work stake holders hold shares but are not people, so they have no trade
     // profession: they count toward the total and are left out of the per-person check.
-    const collaborators = active.filter((member) => member.holderType !== FOUNDING_WORK_HOLDER_TYPE);
+    const collaborators = active.filter(
+      (member) => member.holderType !== FOUNDING_WORK_HOLDER_TYPE,
+    );
     checks.push(
       { requirement: 'title', met: hasText(work.workingTitle) },
       { requirement: 'description', met: hasText(work.workingDescription) },
@@ -135,7 +145,8 @@ export function checkWorkPublishReadiness(input: WorkPublishReadinessInput): Wor
       {
         requirement: 'collaborators',
         met: collaborators.every(
-          (member) => (member.stakeShareCount || 0) > 0 && (member.tradeProfessions || []).length > 0,
+          (member) =>
+            (member.stakeShareCount || 0) > 0 && (member.tradeProfessions || []).length > 0,
         ),
       },
     );

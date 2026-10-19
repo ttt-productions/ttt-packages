@@ -18,7 +18,9 @@ describe('Craft change marker on the private user doc', () => {
 
   it('is a declared field of the registered privateData doc, so a writer may store it', () => {
     expect(Object.keys(UserPrivateDataSchema.shape)).toContain('craftSkillChangeMarker');
-    expect(COLLECTION_SCHEMAS['userProfiles/{userId}/privateData/{userId}']).toBe(UserPrivateDataSchema);
+    expect(COLLECTION_SCHEMAS['userProfiles/{userId}/privateData/{userId}']).toBe(
+      UserPrivateDataSchema,
+    );
   });
 
   it('keeps a whole, non-negative marker through the parse', () => {
@@ -31,7 +33,11 @@ describe('Craft change marker on the private user doc', () => {
   });
 
   it('refuses a negative or fractional marker', () => {
-    expect(UserPrivateDataSchema.safeParse({ ...base, craftSkillChangeMarker: -1 }).success).toBe(false);
-    expect(UserPrivateDataSchema.safeParse({ ...base, craftSkillChangeMarker: 1.5 }).success).toBe(false);
+    expect(UserPrivateDataSchema.safeParse({ ...base, craftSkillChangeMarker: -1 }).success).toBe(
+      false,
+    );
+    expect(UserPrivateDataSchema.safeParse({ ...base, craftSkillChangeMarker: 1.5 }).success).toBe(
+      false,
+    );
   });
 });

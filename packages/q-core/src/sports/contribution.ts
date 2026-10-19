@@ -52,7 +52,11 @@ export interface GameContribution {
   readonly personLines: Readonly<Record<string, StatLineValues>>;
 }
 
-export const EMPTY_GAME_CONTRIBUTION: GameContribution = { teamLines: {}, membershipRows: {}, personLines: {} };
+export const EMPTY_GAME_CONTRIBUTION: GameContribution = {
+  teamLines: {},
+  membershipRows: {},
+  personLines: {},
+};
 
 /** One sport's aggregate mapping, declared once by its adapter (SPORT-207). */
 export interface ContributionSpec {
@@ -103,16 +107,27 @@ export function decideParticipation(
 }
 
 /** Whether the stored decision credits the entry a game played. */
-export function isCreditedGamePlayed(game: Pick<FinalizedGame, 'absentRosterPlayerIds' | 'nonScoringRosterPlayerIds'>, entryId: string): boolean {
-  return !game.absentRosterPlayerIds.includes(entryId) && !game.nonScoringRosterPlayerIds.includes(entryId);
+export function isCreditedGamePlayed(
+  game: Pick<FinalizedGame, 'absentRosterPlayerIds' | 'nonScoringRosterPlayerIds'>,
+  entryId: string,
+): boolean {
+  return (
+    !game.absentRosterPlayerIds.includes(entryId) &&
+    !game.nonScoringRosterPlayerIds.includes(entryId)
+  );
 }
 
 /** `left` with every number of `right` added `sign` times; a field only one holds is kept. */
-export function addStatLines(left: StatLineValues, right: StatLineValues, sign: 1 | -1 = 1): Record<string, number> {
+export function addStatLines(
+  left: StatLineValues,
+  right: StatLineValues,
+  sign: 1 | -1 = 1,
+): Record<string, number> {
   const sum: Record<string, number> = {};
   for (const field of new Set([...Object.keys(left), ...Object.keys(right)])) {
     const [a, b] = [left[field], right[field]];
-    if ((a !== undefined && typeof a !== 'number') || (b !== undefined && typeof b !== 'number')) continue;
+    if ((a !== undefined && typeof a !== 'number') || (b !== undefined && typeof b !== 'number'))
+      continue;
     sum[field] = (a ?? 0) + sign * (b ?? 0);
   }
   return sum;
@@ -131,10 +146,14 @@ export function addStatLines(left: StatLineValues, right: StatLineValues, sign: 
  *
  * A row or person line that sums to nothing is left out.
  */
-export function buildGameContribution(spec: ContributionSpec, game: FinalizedGame): GameContribution {
+export function buildGameContribution(
+  spec: ContributionSpec,
+  game: FinalizedGame,
+): GameContribution {
   const teamStats = game.stats.teamStats as Readonly<Record<string, StatLineValues>>;
   const playerStats = game.stats.playerStats as Readonly<Record<string, StatLineValues>>;
-  const opponentOf = (teamId: string): string | undefined => game.teamIds.find((other) => other !== teamId);
+  const opponentOf = (teamId: string): string | undefined =>
+    game.teamIds.find((other) => other !== teamId);
   const counted = new Set(game.teamIds.filter((teamId) => opponentOf(teamId) !== undefined));
 
   const teamLines: Record<string, StatLineValues> = {};
@@ -152,7 +171,8 @@ export function buildGameContribution(spec: ContributionSpec, game: FinalizedGam
     for (const field of spec.teamSeasonPlayerSums) line[field] = 0;
     for (const [entryId, playerLine] of Object.entries(playerStats)) {
       if (parseGameRosterPlayerId(entryId)?.teamId !== teamId) continue;
-      for (const field of spec.teamSeasonPlayerSums) line[field] = (line[field] ?? 0) + counter(playerLine, field);
+      for (const field of spec.teamSeasonPlayerSums)
+        line[field] = (line[field] ?? 0) + counter(playerLine, field);
     }
     teamLines[teamId] = spec.deriveLine('teamSeason', line);
   }
@@ -163,7 +183,9 @@ export function buildGameContribution(spec: ContributionSpec, game: FinalizedGam
   for (const entryId of entryIds) {
     const entry = parseGameRosterPlayerId(entryId);
     if (entry === null || !counted.has(entry.teamId)) continue;
-    const row: Record<string, number> = { gamesPlayed: isCreditedGamePlayed(game, entryId) ? 1 : 0 };
+    const row: Record<string, number> = {
+      gamesPlayed: isCreditedGamePlayed(game, entryId) ? 1 : 0,
+    };
     for (const field of spec.playerStatKeys) row[field] = counter(playerStats[entryId], field);
     if (isZeroStatLine(row)) continue;
     membershipRows[entryId] = spec.deriveLine('membershipRow', row);
@@ -172,7 +194,8 @@ export function buildGameContribution(spec: ContributionSpec, game: FinalizedGam
   }
 
   const personLines: Record<string, StatLineValues> = {};
-  for (const [userId, line] of personTotals) personLines[userId] = spec.deriveLine('lifetime', line);
+  for (const [userId, line] of personTotals)
+    personLines[userId] = spec.deriveLine('lifetime', line);
   return { teamLines, membershipRows, personLines };
 }
 
@@ -191,7 +214,10 @@ export function sumGameContributions(
   deriveLine: ContributionSpec['deriveLine'],
   signed: readonly SignedContribution[],
 ): GameContribution {
-  const fold = (pick: (contribution: GameContribution) => Readonly<Record<string, StatLineValues>>, kind: StatLineKind) => {
+  const fold = (
+    pick: (contribution: GameContribution) => Readonly<Record<string, StatLineValues>>,
+    kind: StatLineKind,
+  ) => {
     const totals = new Map<string, Record<string, number>>();
     for (const { contribution, sign } of signed) {
       for (const [key, line] of Object.entries(pick(contribution))) {

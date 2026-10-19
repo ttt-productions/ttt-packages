@@ -29,32 +29,32 @@ describe('validateAndNormalizeUploadFile', () => {
   it('throws on undetectable kind and fires onError with upload_kind_indeterminate', () => {
     const f = makeFile('a.bin', 'application/octet-stream');
     const onError = vi.fn();
-    expect(() =>
-      validateAndNormalizeUploadFile(f, 'test-origin', 'image', { onError })
-    ).toThrow(/Could not determine the file type/);
+    expect(() => validateAndNormalizeUploadFile(f, 'test-origin', 'image', { onError })).toThrow(
+      /Could not determine the file type/,
+    );
     expect(onError).toHaveBeenCalledWith(
       'upload_kind_indeterminate',
       expect.objectContaining({
         fileOrigin: 'test-origin',
         detectedKind: 'other',
         fileName: 'a.bin',
-      })
+      }),
     );
   });
 
   it('throws on kind mismatch and fires onError with upload_kind_mismatch', () => {
     const f = makeFile('a.mp4', 'video/mp4');
     const onError = vi.fn();
-    expect(() =>
-      validateAndNormalizeUploadFile(f, 'test-origin', 'image', { onError })
-    ).toThrow(/This slot only accepts image files/);
+    expect(() => validateAndNormalizeUploadFile(f, 'test-origin', 'image', { onError })).toThrow(
+      /This slot only accepts image files/,
+    );
     expect(onError).toHaveBeenCalledWith(
       'upload_kind_mismatch',
       expect.objectContaining({
         fileOrigin: 'test-origin',
         expectedKind: 'image',
         detectedKind: 'video',
-      })
+      }),
     );
   });
 
@@ -78,7 +78,7 @@ describe('validateAndNormalizeUploadFile', () => {
   it('allowIndeterminate does NOT weaken the mismatch check for determinate metadata', () => {
     const f = makeFile('a.mp4', 'video/mp4');
     expect(() =>
-      validateAndNormalizeUploadFile(f, 'test-origin', 'image', { allowIndeterminate: true })
+      validateAndNormalizeUploadFile(f, 'test-origin', 'image', { allowIndeterminate: true }),
     ).toThrow(/This slot only accepts image files/);
   });
 });

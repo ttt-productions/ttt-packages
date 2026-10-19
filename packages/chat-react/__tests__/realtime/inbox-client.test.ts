@@ -34,7 +34,10 @@ function makeInbox(overrides?: {
   return { client, harness, clock };
 }
 
-const snap = (registry: WireInboxSnapshot['registry'], hasUnread: boolean): Record<string, unknown> => ({
+const snap = (
+  registry: WireInboxSnapshot['registry'],
+  hasUnread: boolean,
+): Record<string, unknown> => ({
   registry,
   hasUnread,
 });
@@ -62,16 +65,34 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       'snapshot',
       snap(
         [
-          { channelRef: 'ttt:test:channel:wp1:ch1', kind: 'channel', state: 'active', registryVersion: 3 },
-          { channelRef: 'ttt:test:channel:wp1:ch2', kind: 'channel', state: 'tombstoned', registryVersion: 5 },
-          { channelRef: 'ttt:test:invite:inv1', kind: 'invite', state: 'active', registryVersion: 1 },
+          {
+            channelRef: 'ttt:test:channel:wp1:ch1',
+            kind: 'channel',
+            state: 'active',
+            registryVersion: 3,
+          },
+          {
+            channelRef: 'ttt:test:channel:wp1:ch2',
+            kind: 'channel',
+            state: 'tombstoned',
+            registryVersion: 5,
+          },
+          {
+            channelRef: 'ttt:test:invite:inv1',
+            kind: 'invite',
+            state: 'active',
+            registryVersion: 1,
+          },
         ],
         true,
       ),
     );
     const st = client.getState();
     // Tombstoned entries are filtered out — Chats-view visibility is active-only.
-    expect(st.registry.map((e) => e.channelRef)).toEqual(['ttt:test:channel:wp1:ch1', 'ttt:test:invite:inv1']);
+    expect(st.registry.map((e) => e.channelRef)).toEqual([
+      'ttt:test:channel:wp1:ch1',
+      'ttt:test:invite:inv1',
+    ]);
     expect(st.hasUnread).toBe(true);
   });
 
@@ -80,10 +101,16 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
-    sock.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], false));
+    sock.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], false),
+    );
     expect(client.getState().hasUnread).toBe(false);
     // A new message arrives in c1 → the DO pushes a new snapshot with hasUnread true.
-    sock.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true));
+    sock.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true),
+    );
     expect(client.getState().hasUnread).toBe(true);
   });
 
@@ -129,7 +156,14 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
     sock.serverFrame('snapshot', {
       registry: [
         { channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true },
-        { channelRef: 'c2', kind: 'channel', state: 'active', registryVersion: 1, unread: true, archived: true },
+        {
+          channelRef: 'c2',
+          kind: 'channel',
+          state: 'active',
+          registryVersion: 1,
+          unread: true,
+          archived: true,
+        },
       ],
       hasUnread: true,
     } as unknown as Record<string, unknown>);
@@ -143,9 +177,15 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
-    sock.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true));
+    sock.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true),
+    );
     // A channel snapshot ({ lastMessageSeq, readSeq }) must not clobber inbox state.
-    sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 } as unknown as Record<string, unknown>);
+    sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 } as unknown as Record<
+      string,
+      unknown
+    >);
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
     expect(client.getState().hasUnread).toBe(true);
   });
@@ -199,7 +239,10 @@ describe('InboxClient — terminal access denial (ChatAccessDeniedError)', () =>
   });
 
   it('a transient grant error still reconnects (not terminal)', async () => {
-    const grant = vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue('inbox-grant-ok');
+    const grant = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValue('inbox-grant-ok');
     const { client, clock } = makeInbox({ grantProvider: grant });
     await client.connect();
     expect(client.getState().status).toBe('reconnecting');
@@ -302,7 +345,10 @@ describe('InboxClient — connect() idempotency + lifecycle revival', () => {
     await client.connect();
     const s1 = harness.last();
     s1.serverOpen();
-    s1.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true));
+    s1.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true),
+    );
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
 
     client.close();
@@ -333,7 +379,10 @@ describe('InboxClient — markRead (tray clear without opening the chat)', () =>
     sock.serverOpen();
     sock.serverFrame(
       'snapshot',
-      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }], true),
+      snap(
+        [{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }],
+        true,
+      ),
     );
     void client.markRead('c1');
     const frame = sock.sent.find((f) => f.type === 'mark-read');
@@ -345,7 +394,10 @@ describe('InboxClient — markRead (tray clear without opening the chat)', () =>
     // The DO applies the cursor advance and pushes the authoritative snapshot.
     sock.serverFrame(
       'snapshot',
-      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: false }], false),
+      snap(
+        [{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: false }],
+        false,
+      ),
     );
     expect(client.channelHasUnread('c1')).toBe(false);
     expect(client.getState().hasUnread).toBe(false);
@@ -366,7 +418,10 @@ describe('InboxClient — standalone unread frame (C-M2)', () => {
     sock.serverOpen();
     sock.serverFrame(
       'unread',
-      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }], true),
+      snap(
+        [{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }],
+        true,
+      ),
     );
     expect(client.getState().hasUnread).toBe(true);
     expect(client.channelHasUnread('c1')).toBe(true);
@@ -377,7 +432,10 @@ describe('InboxClient — standalone unread frame (C-M2)', () => {
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
-    sock.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], false));
+    sock.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], false),
+    );
     expect(client.getState().hasUnread).toBe(false);
     sock.serverFrame('unread', { hasUnread: true });
     expect(client.getState().hasUnread).toBe(true);
@@ -412,9 +470,26 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
     'snapshot',
     snap(
       [
-        { channelRef: SECRET_REF, kind: 'channel', state: 'active', registryVersion: 3, unread: true },
-        { channelRef: 'ttt:test:channel:gone', kind: 'channel', state: 'tombstoned', registryVersion: 5 },
-        { channelRef: 'ttt:test:invite:inv1', kind: 'invite', state: 'active', registryVersion: 1, archived: true },
+        {
+          channelRef: SECRET_REF,
+          kind: 'channel',
+          state: 'active',
+          registryVersion: 3,
+          unread: true,
+        },
+        {
+          channelRef: 'ttt:test:channel:gone',
+          kind: 'channel',
+          state: 'tombstoned',
+          registryVersion: 5,
+        },
+        {
+          channelRef: 'ttt:test:invite:inv1',
+          kind: 'invite',
+          state: 'active',
+          registryVersion: 1,
+          archived: true,
+        },
       ],
       true,
     ),
@@ -422,7 +497,18 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
   client.markRead(SECRET_REF);
   sock.serverFrame(
     'snapshot',
-    snap([{ channelRef: SECRET_REF, kind: 'channel', state: 'active', registryVersion: 4, unread: false }], false),
+    snap(
+      [
+        {
+          channelRef: SECRET_REF,
+          kind: 'channel',
+          state: 'active',
+          registryVersion: 4,
+          unread: false,
+        },
+      ],
+      false,
+    ),
   );
   sock.serverFrame('unread', { hasUnread: true });
   sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 }); // stray CHANNEL snapshot
@@ -435,14 +521,28 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
   sock.serverOpen();
   sock.serverFrame(
     'snapshot',
-    snap([{ channelRef: SECRET_REF, kind: 'channel', state: 'active', registryVersion: 5, unread: false }], false),
+    snap(
+      [
+        {
+          channelRef: SECRET_REF,
+          kind: 'channel',
+          state: 'active',
+          registryVersion: 5,
+          unread: false,
+        },
+      ],
+      false,
+    ),
   );
   return ctx;
 }
 
 /** Every frame every socket sent, as a stable comparable string (a request's random id aside). */
 function allInboxFrames(harness: { sockets: Array<{ sent: unknown[] }> }): string {
-  return JSON.stringify(harness.sockets.map((s) => s.sent), (key, value) => (key === 'requestId' ? '<id>' : value));
+  return JSON.stringify(
+    harness.sockets.map((s) => s.sent),
+    (key, value) => (key === 'requestId' ? '<id>' : value),
+  );
 }
 
 describe('InboxClient — diagnostics OFF (the default: zero behavior change, zero output)', () => {
@@ -495,7 +595,11 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
       [2, 'transient-close'],
     ]);
     expect(of(DIAG.INBOX_SOCKET_OPEN).map((d) => d.attempt)).toEqual([1, 2]);
-    expect(of(DIAG.INBOX_SOCKET_CLOSE)[0]).toMatchObject({ code: 1006, closedByUs: false, outcome: 'reconnect' });
+    expect(of(DIAG.INBOX_SOCKET_CLOSE)[0]).toMatchObject({
+      code: 1006,
+      closedByUs: false,
+      outcome: 'reconnect',
+    });
     const scheduled = of(DIAG.INBOX_RECONNECT_SCHEDULED)[0];
     expect(scheduled).toMatchObject({ cause: 'transient-close' });
     expect(typeof scheduled.delayMs).toBe('number');
@@ -521,7 +625,13 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
       unreadCount: 1,
       registryDelta: 2,
     });
-    expect(applied[1]).toMatchObject({ received: 1, active: 1, archived: 0, hasUnread: false, unreadCount: 0 });
+    expect(applied[1]).toMatchObject({
+      received: 1,
+      active: 1,
+      archived: 0,
+      hasUnread: false,
+      unreadCount: 0,
+    });
   });
 
   it('records unread-projection changes as counts and deltas only', async () => {
@@ -529,12 +639,28 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
     const updates = of(DIAG.INBOX_UNREAD_UPDATED);
     // false -> true (first snapshot), true -> false (the cleared snapshot), then the
     // lightweight dock-dot patch back to true.
-    expect(updates[0]).toMatchObject({ hasUnreadBefore: false, hasUnreadAfter: true, unreadCountDelta: 1 });
-    expect(updates[1]).toMatchObject({ hasUnreadBefore: true, hasUnreadAfter: false, unreadCountDelta: -1 });
-    expect(updates[2]).toMatchObject({ source: 'unread-patch', hasUnreadBefore: false, hasUnreadAfter: true });
+    expect(updates[0]).toMatchObject({
+      hasUnreadBefore: false,
+      hasUnreadAfter: true,
+      unreadCountDelta: 1,
+    });
+    expect(updates[1]).toMatchObject({
+      hasUnreadBefore: true,
+      hasUnreadAfter: false,
+      unreadCountDelta: -1,
+    });
+    expect(updates[2]).toMatchObject({
+      source: 'unread-patch',
+      hasUnreadBefore: false,
+      hasUnreadAfter: true,
+    });
     // The reconnect's AUTHORITATIVE snapshot corrects the dock dot the patch had set —
     // exactly the "client state vs. server truth" divergence this log exists to show.
-    expect(updates[3]).toMatchObject({ source: 'snapshot', hasUnreadBefore: true, hasUnreadAfter: false });
+    expect(updates[3]).toMatchObject({
+      source: 'snapshot',
+      hasUnreadBefore: true,
+      hasUnreadAfter: false,
+    });
     // Bounded: only real changes emit — four transitions, four lines, no repeats.
     expect(updates).toHaveLength(4);
   });
@@ -554,7 +680,9 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
 
   it('emits NOTHING during an idle window (no heartbeat / no per-render lines)', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
-    const { client, harness, clock } = makeInbox({ diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client, harness, clock } = makeInbox({
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     harness.last().serverOpen();
     const afterOpen = entries.length;
@@ -565,7 +693,10 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
   it('records a terminal grant denial and never leaks the grant token', async () => {
     const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
     const grant = vi.fn().mockRejectedValue(new ChatAccessDeniedError());
-    const { client } = makeInbox({ grantProvider: grant, diagnostics: (event, data) => entries.push({ event, data }) });
+    const { client } = makeInbox({
+      grantProvider: grant,
+      diagnostics: (event, data) => entries.push({ event, data }),
+    });
     await client.connect();
     expect(entries.filter((e) => e.event === DIAG.INBOX_GRANT_FAILED).map((e) => e.data)).toEqual([
       { attempt: 1, terminal: true },

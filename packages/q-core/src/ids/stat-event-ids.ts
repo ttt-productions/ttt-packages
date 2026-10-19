@@ -36,7 +36,11 @@ export function buildStatVoidId(targetEventId: string): string {
 }
 
 // `lineKey` is the roster-entry id of a player line, or the team id of a team line.
-export function buildStatCorrectionId(operationId: string, lineKey: string, field: StatCounterKey): string {
+export function buildStatCorrectionId(
+  operationId: string,
+  lineKey: string,
+  field: StatCounterKey,
+): string {
   return [STAT_CORRECTION_ID_PREFIX, operationId, lineKey, field].join(COMPOUND_ID_SEPARATOR);
 }
 

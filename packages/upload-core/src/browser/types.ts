@@ -1,5 +1,10 @@
-import type { FirebaseStorage, UploadMetadata, UploadTask, UploadTaskSnapshot } from "firebase/storage";
-import type { UploadFileResumableResult } from "../types.js";
+import type {
+  FirebaseStorage,
+  UploadMetadata,
+  UploadTask,
+  UploadTaskSnapshot,
+} from 'firebase/storage';
+import type { UploadFileResumableResult } from '../types.js';
 
 export type UploadProgressHandler = (p: {
   transferred: number;
@@ -36,7 +41,7 @@ export interface UploadController {
   done: Promise<UploadFileResumableResult>;
 }
 
-export interface StartUploadArgs extends Omit<UploadFileResumableArgs, "onProgress"> {
+export interface StartUploadArgs extends Omit<UploadFileResumableArgs, 'onProgress'> {
   /** Optional stable id for UI tracking. */
   id?: string;
 

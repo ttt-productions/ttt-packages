@@ -9,16 +9,25 @@ import { REPORT_TASK_QUEUES } from '../src/report/report-config-values.js';
 
 describe('admin-task resolution owners', () => {
   it('classifies every admin task type, and only those', () => {
-    expect(Object.keys(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE).sort()).toEqual([...AdminTaskTypeSchema.options].sort());
+    expect(Object.keys(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE).sort()).toEqual(
+      [...AdminTaskTypeSchema.options].sort(),
+    );
     for (const owner of Object.values(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE)) {
       expect(ADMIN_TASK_RESOLUTION_OWNERS).toContain(owner);
     }
   });
 
   it('lets a generic check-in resolve only the task types that carry no decision of their own', () => {
-    const resolvedByCheckin = AdminTaskTypeSchema.options.filter(isAdminTaskResolvedByCheckin).sort();
+    const resolvedByCheckin = AdminTaskTypeSchema.options
+      .filter(isAdminTaskResolvedByCheckin)
+      .sort();
     expect(resolvedByCheckin).toEqual(
-      ['pledgeDisputeOpened', 'pledgeLedgerAnomaly', 'pledgePaymentRepairNeeded', 'stakeShareAnomaly'].sort(),
+      [
+        'pledgeDisputeOpened',
+        'pledgeLedgerAnomaly',
+        'pledgePaymentRepairNeeded',
+        'stakeShareAnomaly',
+      ].sort(),
     );
   });
 

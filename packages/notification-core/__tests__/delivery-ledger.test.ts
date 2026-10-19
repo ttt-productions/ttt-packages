@@ -20,41 +20,78 @@ function createMockFirestore() {
   };
   const makeDocRef = (colPath: string, id: string): ServerDocRef => ({
     id,
-    set: async (data) => { getCol(colPath).set(id, { ...data }); },
-    update: async (data) => { getCol(colPath).set(id, { ...(getCol(colPath).get(id) ?? {}), ...data }); },
+    set: async (data) => {
+      getCol(colPath).set(id, { ...data });
+    },
+    update: async (data) => {
+      getCol(colPath).set(id, { ...(getCol(colPath).get(id) ?? {}), ...data });
+    },
     create: async (data) => {
       if (getCol(colPath).has(id)) throw Object.assign(new Error('already-exists'), { code: 6 });
       getCol(colPath).set(id, { ...data });
     },
-    delete: async () => { getCol(colPath).delete(id); },
+    delete: async () => {
+      getCol(colPath).delete(id);
+    },
     get: async (): Promise<ServerDocSnapshot> => {
       const data = getCol(colPath).get(id);
-      return { id, exists: !!data, data: () => (data ? { ...data } : undefined), ref: makeDocRef(colPath, id) };
+      return {
+        id,
+        exists: !!data,
+        data: () => (data ? { ...data } : undefined),
+        ref: makeDocRef(colPath, id),
+      };
     },
   });
   const makeColRef = (colPath: string) => ({
     doc: (id?: string) => makeDocRef(colPath, id ?? `auto_${getCol(colPath).size}`),
-    where: () => { throw new Error('not used'); },
-    orderBy: () => { throw new Error('not used'); },
-    limit: () => { throw new Error('not used'); },
-    add: async (data: Record<string, unknown>) => { const id = `auto_${getCol(colPath).size}`; getCol(colPath).set(id, { ...data }); return makeDocRef(colPath, id); },
+    where: () => {
+      throw new Error('not used');
+    },
+    orderBy: () => {
+      throw new Error('not used');
+    },
+    limit: () => {
+      throw new Error('not used');
+    },
+    add: async (data: Record<string, unknown>) => {
+      const id = `auto_${getCol(colPath).size}`;
+      getCol(colPath).set(id, { ...data });
+      return makeDocRef(colPath, id);
+    },
   });
   // Doc ids whose transactional reads fail, as an unavailable backend would.
   const failingReads = new Set<string>();
   const db: ServerFirestore = {
     collection: (p) => makeColRef(p) as never,
-    doc: (path) => { const { colPath, id } = splitDoc(path); return makeDocRef(colPath, id); },
-    batch: () => { throw new Error('not used'); },
+    doc: (path) => {
+      const { colPath, id } = splitDoc(path);
+      return makeDocRef(colPath, id);
+    },
+    batch: () => {
+      throw new Error('not used');
+    },
     runTransaction: async (fn) => {
       // Single-threaded test executor: reads hit the store directly; writes are buffered and
       // applied only once the transaction function resolves, so a throw commits nothing.
       const writes: Array<() => Promise<unknown>> = [];
       const tx = {
         get: (ref: ServerDocRef) =>
-          failingReads.has(ref.id) ? Promise.reject(new Error(`read of ${ref.id} failed`)) : ref.get(),
-        set: (ref: ServerDocRef, data: Record<string, unknown>) => { writes.push(() => ref.set(data)); return tx; },
-        update: (ref: ServerDocRef, data: Record<string, unknown>) => { writes.push(() => ref.update(data)); return tx; },
-        delete: (ref: ServerDocRef) => { writes.push(() => ref.delete()); return tx; },
+          failingReads.has(ref.id)
+            ? Promise.reject(new Error(`read of ${ref.id} failed`))
+            : ref.get(),
+        set: (ref: ServerDocRef, data: Record<string, unknown>) => {
+          writes.push(() => ref.set(data));
+          return tx;
+        },
+        update: (ref: ServerDocRef, data: Record<string, unknown>) => {
+          writes.push(() => ref.update(data));
+          return tx;
+        },
+        delete: (ref: ServerDocRef) => {
+          writes.push(() => ref.delete());
+          return tx;
+        },
       };
       const result = await fn(tx);
       for (const write of writes) await write();
@@ -66,15 +103,52 @@ function createMockFirestore() {
 
 const config: NotificationSystemConfig = {
   categories: {
-    user: { activePath: 'activeUserNotifications', historyPath: (uid) => `userProfiles/${uid}/notificationHistory`, audienceType: 'personal' },
+    user: {
+      activePath: 'activeUserNotifications',
+      historyPath: (uid) => `userProfiles/${uid}/notificationHistory`,
+      audienceType: 'personal',
+    },
   },
   types: {
-    test_increment: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Title', messagePattern: (_m, c) => `count ${c}`, defaultTargetPath: '/x', countCap: 100, actorCap: 3 },
-    test_static: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Static', messagePattern: () => 'static', defaultTargetPath: '/y' },
+    test_increment: {
+      category: 'user',
+      delivery: 'queued',
+      dedupKeyPattern: (m) => String(m.k),
+      titlePattern: () => 'Title',
+      messagePattern: (_m, c) => `count ${c}`,
+      defaultTargetPath: '/x',
+      countCap: 100,
+      actorCap: 3,
+    },
+    test_static: {
+      category: 'user',
+      delivery: 'queued',
+      dedupKeyPattern: (m) => String(m.k),
+      titlePattern: () => 'Static',
+      messagePattern: () => 'static',
+      defaultTargetPath: '/y',
+    },
     // Title + targetPath derived from the occurrence metadata — exercises the N-I4 refresh.
-    test_refresh: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: (m) => `Title ${m.title}`, messagePattern: (_m, c) => `count ${c}`, defaultTargetPath: (m) => `/item/${m.id}`, countCap: 100, actorCap: 3 },
+    test_refresh: {
+      category: 'user',
+      delivery: 'queued',
+      dedupKeyPattern: (m) => String(m.k),
+      titlePattern: (m) => `Title ${m.title}`,
+      messagePattern: (_m, c) => `count ${c}`,
+      defaultTargetPath: (m) => `/item/${m.id}`,
+      countCap: 100,
+      actorCap: 3,
+    },
     // No defaultTargetPath — a linkless, clear-only type; the doc must OMIT targetPath.
-    test_linkless: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Linkless', messagePattern: () => 'linkless', countCap: 1, actorCap: 1 },
+    test_linkless: {
+      category: 'user',
+      delivery: 'queued',
+      dedupKeyPattern: (m) => String(m.k),
+      titlePattern: () => 'Linkless',
+      messagePattern: () => 'linkless',
+      countCap: 1,
+      actorCap: 1,
+    },
   },
   deliveriesCollectionPath: 'notificationDeliveries',
   timestampFromMillis: (ms) => ({ __ts: ms }),
@@ -103,31 +177,85 @@ function row(over: Partial<DeliveryRowInput> = {}): DeliveryRowInput {
 describe('applyAggregation (pure)', () => {
   const buildMessage = (c: number) => `count ${c}`;
   it('increment counts up to the cap and rotates generation', () => {
-    const d = applyAggregation({ strategy: 'increment', existing: { count: 2, latestActorIds: ['x'] }, actorId: 'a', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'gen2' });
+    const d = applyAggregation({
+      strategy: 'increment',
+      existing: { count: 2, latestActorIds: ['x'] },
+      actorId: 'a',
+      countCap: 100,
+      actorCap: 3,
+      buildMessage,
+      now: 5,
+      generation: 'gen2',
+    });
     expect(d.count).toBe(3);
     expect(d.latestActorIds).toEqual(['a', 'x']);
     expect(d.activityGeneration).toBe('gen2');
     expect(d.seenAt).toBe(0);
   });
   it('increment respects the count cap', () => {
-    const d = applyAggregation({ strategy: 'increment', existing: { count: 100, latestActorIds: [] }, actorId: 'a', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    const d = applyAggregation({
+      strategy: 'increment',
+      existing: { count: 100, latestActorIds: [] },
+      actorId: 'a',
+      countCap: 100,
+      actorCap: 3,
+      buildMessage,
+      now: 5,
+      generation: 'g',
+    });
     expect(d.count).toBe(100);
   });
   it('staticRelight keeps count at 1', () => {
-    const d = applyAggregation({ strategy: 'staticRelight', existing: { count: 1, latestActorIds: ['x'] }, actorId: 'a', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    const d = applyAggregation({
+      strategy: 'staticRelight',
+      existing: { count: 1, latestActorIds: ['x'] },
+      actorId: 'a',
+      countCap: 100,
+      actorCap: 3,
+      buildMessage,
+      now: 5,
+      generation: 'g',
+    });
     expect(d.count).toBe(1);
   });
   it('creates at count 1 when there is no existing card', () => {
-    const d = applyAggregation({ strategy: 'increment', existing: null, actorId: 'a', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    const d = applyAggregation({
+      strategy: 'increment',
+      existing: null,
+      actorId: 'a',
+      countCap: 100,
+      actorCap: 3,
+      buildMessage,
+      now: 5,
+      generation: 'g',
+    });
     expect(d.count).toBe(1);
     expect(d.latestActorIds).toEqual(['a']);
   });
   it('does not inject a null actor into latestActorIds (N-M2)', () => {
-    const d = applyAggregation({ strategy: 'increment', existing: { count: 1, latestActorIds: ['x'] }, actorId: null, countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    const d = applyAggregation({
+      strategy: 'increment',
+      existing: { count: 1, latestActorIds: ['x'] },
+      actorId: null,
+      countCap: 100,
+      actorCap: 3,
+      buildMessage,
+      now: 5,
+      generation: 'g',
+    });
     expect(d.latestActorIds).toEqual(['x']);
   });
   it('does not inject an empty-string actor into latestActorIds (N-M2)', () => {
-    const d = applyAggregation({ strategy: 'increment', existing: null, actorId: '', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    const d = applyAggregation({
+      strategy: 'increment',
+      existing: null,
+      actorId: '',
+      countCap: 100,
+      actorCap: 3,
+      buildMessage,
+      now: 5,
+      generation: 'g',
+    });
     expect(d.latestActorIds).toEqual([]);
   });
 });
@@ -153,7 +281,9 @@ describe('createDeliveryLedger.enqueue', () => {
         ...col,
         doc: (id?: string) => ({
           ...col.doc(id),
-          create: async () => { throw Object.assign(new Error('boom'), { code: 13 }); },
+          create: async () => {
+            throw Object.assign(new Error('boom'), { code: 13 });
+          },
         }),
       } as never;
     };
@@ -165,7 +295,9 @@ describe('createDeliveryLedger.enqueue', () => {
 
   it('throws when timestampFromMillis is missing', () => {
     const { db } = createMockFirestore();
-    expect(() => createDeliveryLedger(db, { ...config, timestampFromMillis: undefined }, ELIGIBLE)).toThrow(/timestampFromMillis/);
+    expect(() =>
+      createDeliveryLedger(db, { ...config, timestampFromMillis: undefined }, ELIGIBLE),
+    ).toThrow(/timestampFromMillis/);
   });
 });
 
@@ -192,11 +324,23 @@ describe('createDeliveryLedger.materialize', () => {
   it('aggregates a second occurrence onto the same active card and rotates the generation', async () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
-    await ledger.enqueue([row({ deliveryId: 'd1', eventId: 'e1', payload: { actorId: 'a1', metadata: { k: 'agg1' }, occurrenceAt: 1 } })]);
+    await ledger.enqueue([
+      row({
+        deliveryId: 'd1',
+        eventId: 'e1',
+        payload: { actorId: 'a1', metadata: { k: 'agg1' }, occurrenceAt: 1 },
+      }),
+    ]);
     await ledger.materialize('d1');
     const gen1 = [...getCol('activeUserNotifications').values()][0].activityGeneration;
 
-    await ledger.enqueue([row({ deliveryId: 'd2', eventId: 'e2', payload: { actorId: 'a2', metadata: { k: 'agg1' }, occurrenceAt: 2 } })]);
+    await ledger.enqueue([
+      row({
+        deliveryId: 'd2',
+        eventId: 'e2',
+        payload: { actorId: 'a2', metadata: { k: 'agg1' }, occurrenceAt: 2 },
+      }),
+    ]);
     await ledger.materialize('d2');
 
     const active = [...getCol('activeUserNotifications').values()][0];
@@ -208,9 +352,13 @@ describe('createDeliveryLedger.materialize', () => {
   it('staticRelight keeps count at 1 across occurrences', async () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
-    await ledger.enqueue([row({ deliveryId: 'd1', notificationType: 'test_static', strategy: 'staticRelight' })]);
+    await ledger.enqueue([
+      row({ deliveryId: 'd1', notificationType: 'test_static', strategy: 'staticRelight' }),
+    ]);
     await ledger.materialize('d1');
-    await ledger.enqueue([row({ deliveryId: 'd2', notificationType: 'test_static', strategy: 'staticRelight' })]);
+    await ledger.enqueue([
+      row({ deliveryId: 'd2', notificationType: 'test_static', strategy: 'staticRelight' }),
+    ]);
     await ledger.materialize('d2');
     const active = [...getCol('activeUserNotifications').values()][0];
     expect(active.count).toBe(1);
@@ -229,11 +377,29 @@ describe('createDeliveryLedger.materialize', () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([
-      row({ deliveryId: 'd1', notificationType: 'test_refresh', aggregationKey: 'agg', payload: { actorId: 'a1', metadata: { k: 'agg', title: 'First', id: '1' }, occurrenceAt: 1 } }),
+      row({
+        deliveryId: 'd1',
+        notificationType: 'test_refresh',
+        aggregationKey: 'agg',
+        payload: {
+          actorId: 'a1',
+          metadata: { k: 'agg', title: 'First', id: '1' },
+          occurrenceAt: 1,
+        },
+      }),
     ]);
     await ledger.materialize('d1');
     await ledger.enqueue([
-      row({ deliveryId: 'd2', notificationType: 'test_refresh', aggregationKey: 'agg', payload: { actorId: 'a2', metadata: { k: 'agg', title: 'Second', id: '2' }, occurrenceAt: 2 } }),
+      row({
+        deliveryId: 'd2',
+        notificationType: 'test_refresh',
+        aggregationKey: 'agg',
+        payload: {
+          actorId: 'a2',
+          metadata: { k: 'agg', title: 'Second', id: '2' },
+          occurrenceAt: 2,
+        },
+      }),
     ]);
     await ledger.materialize('d2');
 
@@ -257,7 +423,9 @@ describe('createDeliveryLedger.materialize', () => {
     expect(Object.keys(active)).not.toContain('targetPath');
 
     // An aggregate update on the existing card must not introduce the field either.
-    await ledger.enqueue([row({ deliveryId: 'd2', eventId: 'e2', notificationType: 'test_linkless' })]);
+    await ledger.enqueue([
+      row({ deliveryId: 'd2', eventId: 'e2', notificationType: 'test_linkless' }),
+    ]);
     await ledger.materialize('d2');
     const relit = [...getCol('activeUserNotifications').values()][0];
     expect(Object.keys(relit)).not.toContain('targetPath');
@@ -343,7 +511,11 @@ describe('createDeliveryLedger lifecycle', () => {
     await ledger.deadLetter('d1', new Error('infra'));
     const before = { ...getCol('notificationDeliveries').get('d1')! };
     await expect(
-      ledger.replay('d1', { auditWrite: async () => { throw new Error('audit failed'); } }),
+      ledger.replay('d1', {
+        auditWrite: async () => {
+          throw new Error('audit failed');
+        },
+      }),
     ).rejects.toThrow('audit failed');
     expect(getCol('notificationDeliveries').get('d1')).toEqual(before);
   });
@@ -351,7 +523,14 @@ describe('createDeliveryLedger lifecycle', () => {
   it('materializeMany tallies outcomes', async () => {
     const { db } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
-    await ledger.enqueue([row({ deliveryId: 'a' }), row({ deliveryId: 'b', aggregationKey: 'agg2', payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 } })]);
+    await ledger.enqueue([
+      row({ deliveryId: 'a' }),
+      row({
+        deliveryId: 'b',
+        aggregationKey: 'agg2',
+        payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 },
+      }),
+    ]);
     const tally = await ledger.materializeMany(['a', 'b', 'missing'], { concurrency: 2 });
     expect(tally.materialized).toBe(2);
     expect(tally.missing).toBe(1);
@@ -364,13 +543,24 @@ describe('materializeMany isolates each row', () => {
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([
       row({ deliveryId: 'a' }),
-      row({ deliveryId: 'bad', aggregationKey: 'agg-bad', payload: { actorId: 'a', metadata: { k: 'agg-bad' }, occurrenceAt: 1 } }),
-      row({ deliveryId: 'b', aggregationKey: 'agg2', payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 } }),
+      row({
+        deliveryId: 'bad',
+        aggregationKey: 'agg-bad',
+        payload: { actorId: 'a', metadata: { k: 'agg-bad' }, occurrenceAt: 1 },
+      }),
+      row({
+        deliveryId: 'b',
+        aggregationKey: 'agg2',
+        payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 },
+      }),
     ]);
     failingReads.add('bad');
     const onUnrecordedFailure = vi.fn();
 
-    const tally = await ledger.materializeMany(['a', 'bad', 'b'], { concurrency: 1, onUnrecordedFailure });
+    const tally = await ledger.materializeMany(['a', 'bad', 'b'], {
+      concurrency: 1,
+      onUnrecordedFailure,
+    });
 
     expect(tally.materialized).toBe(2);
     expect(onUnrecordedFailure).toHaveBeenCalledTimes(1);
@@ -397,7 +587,9 @@ describe('materializeMany isolates each row', () => {
 
     await ledger.materializeMany(['bad'], { onUnrecordedFailure });
 
-    expect(onUnrecordedFailure).toHaveBeenCalledWith('bad', recordFailure, { cause: materializeFailure });
+    expect(onUnrecordedFailure).toHaveBeenCalledWith('bad', recordFailure, {
+      cause: materializeFailure,
+    });
   });
 
   it('without a handler the unrecorded failure goes to the console, and a throwing handler does not fail the batch', async () => {
@@ -405,10 +597,19 @@ describe('materializeMany isolates each row', () => {
     try {
       const { db, failingReads } = createMockFirestore();
       const ledger = createDeliveryLedger(db, config, ELIGIBLE);
-      await ledger.enqueue([row({ deliveryId: 'bad' }), row({ deliveryId: 'a', aggregationKey: 'agg2', payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 } })]);
+      await ledger.enqueue([
+        row({ deliveryId: 'bad' }),
+        row({
+          deliveryId: 'a',
+          aggregationKey: 'agg2',
+          payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 },
+        }),
+      ]);
       failingReads.add('bad');
 
-      await expect(ledger.materializeMany(['bad', 'a'], { concurrency: 1 })).resolves.toMatchObject({ materialized: 1 });
+      await expect(ledger.materializeMany(['bad', 'a'], { concurrency: 1 })).resolves.toMatchObject(
+        { materialized: 1 },
+      );
       expect(errors).toHaveBeenCalled();
 
       errors.mockClear();
@@ -426,7 +627,10 @@ describe('materializeMany isolates each row', () => {
 });
 
 describe('recipient eligibility', () => {
-  function ledgerRejecting(ineligible: Set<string>, seen: Array<{ uid: string; inTransaction: boolean }> = []) {
+  function ledgerRejecting(
+    ineligible: Set<string>,
+    seen: Array<{ uid: string; inTransaction: boolean }> = [],
+  ) {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, {
       isRecipientEligible: async (uid, tx) => {
@@ -463,7 +667,9 @@ describe('recipient eligibility', () => {
 
     expect(tally.materialized).toBe(2);
     expect(tally['skipped-ineligible-recipient']).toBe(1);
-    const targets = [...getCol('activeUserNotifications').values()].map((c) => c.targetUserId).sort();
+    const targets = [...getCol('activeUserNotifications').values()]
+      .map((c) => c.targetUserId)
+      .sort();
     expect(targets).toEqual(['alice', 'bob']);
   });
 
@@ -494,7 +700,9 @@ describe('recipient eligibility', () => {
   it('a failing eligibility read leaves the row queued for a retry, never skipped', async () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, {
-      isRecipientEligible: async () => { throw new Error('profile read failed'); },
+      isRecipientEligible: async () => {
+        throw new Error('profile read failed');
+      },
     });
     await ledger.enqueue([row({ deliveryId: 'dr', recipientUid: 'alice' })]);
 

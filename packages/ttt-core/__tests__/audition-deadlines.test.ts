@@ -26,19 +26,28 @@ describe('audition deadline minimums', () => {
 
   it('accepts deadlines exactly on both minimums', () => {
     expect(
-      auditionDeadlineProblem({ entriesCloseAt: posted + 7 * DAY, auditionCloseAt: posted + 8 * DAY }, posted),
+      auditionDeadlineProblem(
+        { entriesCloseAt: posted + 7 * DAY, auditionCloseAt: posted + 8 * DAY },
+        posted,
+      ),
     ).toBeNull();
   });
 
   it('refuses entries that close sooner than 7 days after posting', () => {
     expect(
-      auditionDeadlineProblem({ entriesCloseAt: posted + 7 * DAY - 1, auditionCloseAt: posted + 30 * DAY }, posted),
+      auditionDeadlineProblem(
+        { entriesCloseAt: posted + 7 * DAY - 1, auditionCloseAt: posted + 30 * DAY },
+        posted,
+      ),
     ).toBe('entriesCloseTooSoon');
   });
 
   it('refuses an audition that closes sooner than 24 hours after entries close', () => {
     expect(
-      auditionDeadlineProblem({ entriesCloseAt: posted + 10 * DAY, auditionCloseAt: posted + 11 * DAY - 1 }, posted),
+      auditionDeadlineProblem(
+        { entriesCloseAt: posted + 10 * DAY, auditionCloseAt: posted + 11 * DAY - 1 },
+        posted,
+      ),
     ).toBe('auditionCloseTooSoon');
   });
 });
@@ -70,14 +79,24 @@ describe('entries are judged by submit time, votes by now', () => {
 });
 
 describe('picker defaults', () => {
-  const parts = (d: Date) => [d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes()];
+  const parts = (d: Date) => [
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    d.getHours(),
+    d.getMinutes(),
+  ];
 
   it('opens the entries-close picker on the end of the day three weeks out', () => {
-    expect(parts(defaultAuditionEntriesCloseAt(new Date(2030, 2, 1, 9, 30)))).toEqual([2030, 2, 22, 23, 59]);
+    expect(parts(defaultAuditionEntriesCloseAt(new Date(2030, 2, 1, 9, 30)))).toEqual([
+      2030, 2, 22, 23, 59,
+    ]);
   });
 
   it('opens the audition-close picker on the end of the day after entries close', () => {
-    expect(parts(defaultAuditionCloseAt(new Date(2030, 2, 22, 23, 59)))).toEqual([2030, 2, 23, 23, 59]);
+    expect(parts(defaultAuditionCloseAt(new Date(2030, 2, 22, 23, 59)))).toEqual([
+      2030, 2, 23, 23, 59,
+    ]);
   });
 
   it('always opens on deadlines that meet both minimums', () => {
@@ -85,7 +104,10 @@ describe('picker defaults', () => {
     const entries = defaultAuditionEntriesCloseAt(today);
     const close = defaultAuditionCloseAt(entries);
     expect(
-      auditionDeadlineProblem({ entriesCloseAt: entries.getTime(), auditionCloseAt: close.getTime() }, today.getTime()),
+      auditionDeadlineProblem(
+        { entriesCloseAt: entries.getTime(), auditionCloseAt: close.getTime() },
+        today.getTime(),
+      ),
     ).toBeNull();
   });
 });
@@ -111,8 +133,14 @@ describe('the deadline refusal copy', () => {
   });
 
   it('has the words for every problem the rule can report', () => {
-    const tooSoonEntries = auditionDeadlineProblem({ entriesCloseAt: posted + DAY, auditionCloseAt: posted + 30 * DAY }, posted);
-    const tooSoonClose = auditionDeadlineProblem({ entriesCloseAt: posted + 8 * DAY, auditionCloseAt: posted + 8 * DAY + HOUR }, posted);
+    const tooSoonEntries = auditionDeadlineProblem(
+      { entriesCloseAt: posted + DAY, auditionCloseAt: posted + 30 * DAY },
+      posted,
+    );
+    const tooSoonClose = auditionDeadlineProblem(
+      { entriesCloseAt: posted + 8 * DAY, auditionCloseAt: posted + 8 * DAY + HOUR },
+      posted,
+    );
     expect(AUDITION_DEADLINE_PROBLEM_MESSAGES[tooSoonEntries!]).toContain('7 days');
     expect(AUDITION_DEADLINE_PROBLEM_MESSAGES[tooSoonClose!]).toContain('24 hours');
   });

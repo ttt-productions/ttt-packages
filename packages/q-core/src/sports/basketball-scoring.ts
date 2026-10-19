@@ -12,7 +12,11 @@ import {
   MAX_STAT_EVENTS_PER_WRITE,
   NOT_ON_GAME_ROSTER_MESSAGE,
 } from '../constants/sports.js';
-import type { BasketballPlayerStats, BasketballTeamStats, GameStatEvent } from '../doc-schemas/game-stats.js';
+import type {
+  BasketballPlayerStats,
+  BasketballTeamStats,
+  GameStatEvent,
+} from '../doc-schemas/game-stats.js';
 import type { BasketballGameStats, GameStats } from '../doc-schemas/sport-game.js';
 import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../ids/compound-ids.js';
 import {
@@ -45,7 +49,11 @@ import {
   type PlayerLinesValues,
   type StatEventDraft,
 } from './bulk-entry.js';
-import { buildGameContribution, decideParticipation, type ContributionSpec } from './contribution.js';
+import {
+  buildGameContribution,
+  decideParticipation,
+  type ContributionSpec,
+} from './contribution.js';
 import {
   FINALIZATION_READY,
   STAT_EVENT_ACCEPTED,
@@ -96,7 +104,9 @@ function ownTeamLine(line: GameTeamLine): BasketballTeamStats {
  * Fantasy points (FP) of a basketball line: each player counter times its weight. Every stored
  * `fantasyPoints` equals this over the counters of its own line; `deriveLine` is what applies it.
  */
-export function basketballFantasyPoints(line: Pick<BasketballPlayerStats, BasketballPlayerStatKey>): number {
+export function basketballFantasyPoints(
+  line: Pick<BasketballPlayerStats, BasketballPlayerStatKey>,
+): number {
   return BASKETBALL_PLAYER_STAT_KEYS.reduce(
     (total, key) => total + line[key] * BASKETBALL_FANTASY_POINT_WEIGHTS[key],
     0,
@@ -107,7 +117,9 @@ const FANTASY_POINTS_FIELD = 'fantasyPoints' satisfies keyof BasketballPlayerSta
 const PLAYER_LINE_KINDS: readonly StatLineKind[] = PLAYER_STAT_LINE_KIND_KEYS;
 
 export function emptyBasketballTeamLine(): BasketballTeamStats {
-  return Object.fromEntries(BASKETBALL_TEAM_STAT_KEYS.map((key) => [key, 0])) as BasketballTeamStats;
+  return Object.fromEntries(
+    BASKETBALL_TEAM_STAT_KEYS.map((key) => [key, 0]),
+  ) as BasketballTeamStats;
 }
 
 function emptyPlayerCounters(): PlayerCounters {
@@ -116,7 +128,8 @@ function emptyPlayerCounters(): PlayerCounters {
 
 function counterOf(line: StatLineValues, field: string): number {
   const value = line[field] ?? 0;
-  if (typeof value !== 'number') throw new TypeError(`A basketball line's ${field} is not a number.`);
+  if (typeof value !== 'number')
+    throw new TypeError(`A basketball line's ${field} is not a number.`);
   return value;
 }
 
@@ -129,9 +142,14 @@ function playerCountersOf(line: StatLineValues | undefined): PlayerCounters {
 
 // FP is an individual stat: it goes on the four player kinds and on no team kind.
 function deriveBasketballLine(kind: StatLineKind, line: StatLineValues): StatLineValues {
-  const withoutDerived = Object.fromEntries(Object.entries(line).filter(([field]) => field !== FANTASY_POINTS_FIELD));
+  const withoutDerived = Object.fromEntries(
+    Object.entries(line).filter(([field]) => field !== FANTASY_POINTS_FIELD),
+  );
   if (!PLAYER_LINE_KINDS.includes(kind)) return withoutDerived;
-  return { ...withoutDerived, [FANTASY_POINTS_FIELD]: basketballFantasyPoints(playerCountersOf(line)) };
+  return {
+    ...withoutDerived,
+    [FANTASY_POINTS_FIELD]: basketballFantasyPoints(playerCountersOf(line)),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -146,7 +164,10 @@ const CORRECTABLE_FIELDS: CorrectableFields = {
 const TALLY_FIELD = {
   [BASKETBALL_REBOUND_EVENT_TYPE]: 'rebounds',
   [BASKETBALL_ASSIST_EVENT_TYPE]: 'assists',
-} as const satisfies Record<(typeof BASKETBALL_PLAYER_TALLY_EVENT_TYPE_KEYS)[number], BasketballPlayerStatKey>;
+} as const satisfies Record<
+  (typeof BASKETBALL_PLAYER_TALLY_EVENT_TYPE_KEYS)[number],
+  BasketballPlayerStatKey
+>;
 
 interface LineChange<Field extends string> {
   /** The team id of a team line, or the roster-entry id of a player line. */
@@ -161,7 +182,9 @@ interface Effects {
 }
 
 function assisterOf(event: StatEventBody): string | undefined {
-  return 'assistedByUserId' in event && typeof event.assistedByUserId === 'string' ? event.assistedByUserId : undefined;
+  return 'assistedByUserId' in event && typeof event.assistedByUserId === 'string'
+    ? event.assistedByUserId
+    : undefined;
 }
 
 function namesPlayer(event: StatEventBody): boolean {
@@ -176,7 +199,10 @@ function effectsOf(event: BasketballEvent): Effects {
   if (event.type === BASKETBALL_BULK_EDIT_EVENT_TYPE) {
     // A scorer's points edit keeps the team's score the sum of its players' points.
     return {
-      team: event.stat === 'points' ? [{ line: event.teamId, field: 'score', amount: event.value }] : [],
+      team:
+        event.stat === 'points'
+          ? [{ line: event.teamId, field: 'score', amount: event.value }]
+          : [],
       player: [{ line: scorer, field: event.stat, amount: event.value }],
     };
   }
@@ -193,19 +219,31 @@ function effectsOf(event: BasketballEvent): Effects {
   }
   const assister = assisterOf(event);
   if (assister !== undefined) {
-    player.push({ line: buildGameRosterPlayerId(event.teamId, assister), field: 'assists', amount: 1 });
+    player.push({
+      line: buildGameRosterPlayerId(event.teamId, assister),
+      field: 'assists',
+      amount: 1,
+    });
   }
   return { team, player };
 }
 
 function correctionEffects(event: StatCorrectionBody): Effects {
-  const fields = event.playerUserId === undefined ? CORRECTABLE_FIELDS.team : CORRECTABLE_FIELDS.player;
+  const fields =
+    event.playerUserId === undefined ? CORRECTABLE_FIELDS.team : CORRECTABLE_FIELDS.player;
   if (!fields.includes(event.stat)) {
-    throw new Error(`A basketball correction cannot change ${event.stat} on a ${event.playerUserId === undefined ? 'team' : 'player'} line.`);
+    throw new Error(
+      `A basketball correction cannot change ${event.stat} on a ${event.playerUserId === undefined ? 'team' : 'player'} line.`,
+    );
   }
   // A correction moves only its own field: a player-points correction does not move the team score.
   return event.playerUserId === undefined
-    ? { team: [{ line: event.teamId, field: event.stat as BasketballTeamStatKey, amount: event.value }], player: [] }
+    ? {
+        team: [
+          { line: event.teamId, field: event.stat as BasketballTeamStatKey, amount: event.value },
+        ],
+        player: [],
+      }
     : {
         team: [],
         player: [
@@ -218,7 +256,11 @@ function correctionEffects(event: StatCorrectionBody): Effects {
       };
 }
 
-function applyEffects(state: BasketballGameStats, effects: Effects, sign: 1 | -1): BasketballGameStats {
+function applyEffects(
+  state: BasketballGameStats,
+  effects: Effects,
+  sign: 1 | -1,
+): BasketballGameStats {
   const teamStats = { ...state.teamStats };
   for (const change of effects.team) {
     const line = { ...(teamStats[change.line] ?? emptyBasketballTeamLine()) };
@@ -231,7 +273,11 @@ function applyEffects(state: BasketballGameStats, effects: Effects, sign: 1 | -1
     const counters = playerCountersOf(playerStats[change.line]);
     counters[change.field] += sign * change.amount;
     if (isAllZeroLine(counters, BASKETBALL_PLAYER_STAT_KEYS)) delete playerStats[change.line];
-    else playerStats[change.line] = deriveBasketballLine('gamePlayer', counters) as BasketballPlayerStats;
+    else
+      playerStats[change.line] = deriveBasketballLine(
+        'gamePlayer',
+        counters,
+      ) as BasketballPlayerStats;
   }
   return { teamStats, playerStats };
 }
@@ -248,7 +294,9 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
   if (!isBasketballEvent(event)) return refuseStatEvent('eventTypeNotInSport');
   if (!roster.teamIds.includes(event.teamId)) return refuseStatEvent('teamNotInGame');
   if (event.type === BASKETBALL_TIMEOUT_EVENT_TYPE) {
-    return namesPlayer(event) || assisterOf(event) !== undefined ? refuseStatEvent('playerNotAllowed') : STAT_EVENT_ACCEPTED;
+    return namesPlayer(event) || assisterOf(event) !== undefined
+      ? refuseStatEvent('playerNotAllowed')
+      : STAT_EVENT_ACCEPTED;
   }
 
   const scorer = buildGameRosterPlayerId(event.teamId, event.playerUserId);
@@ -256,20 +304,23 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
 
   const assister = assisterOf(event);
   if (assister !== undefined) {
-    if (!isAssistableShot(event.type) || assister === event.playerUserId) return refuseStatEvent('assistNotAllowed');
+    if (!isAssistableShot(event.type) || assister === event.playerUserId)
+      return refuseStatEvent('assistNotAllowed');
     if (!roster.rosterPlayerIds.has(buildGameRosterPlayerId(event.teamId, assister))) {
       return refuseStatEvent('assisterNotRostered');
     }
   }
 
   if (event.type === BASKETBALL_BULK_EDIT_EVENT_TYPE) {
-    if (!Number.isInteger(event.value) || event.value === 0) return refuseStatEvent('bulkValueInvalid');
+    if (!Number.isInteger(event.value) || event.value === 0)
+      return refuseStatEvent('bulkValueInvalid');
     const state = ownStats(stateIn);
     const current = playerCountersOf(state.playerStats[scorer])[event.stat];
     if (event.previousValue !== current) return refuseStatEvent('bulkStale');
     if (current + event.value < 0) return refuseStatEvent('bulkValueInvalid');
     const teamScore = (state.teamStats[event.teamId] ?? emptyBasketballTeamLine()).score;
-    if (event.stat === 'points' && teamScore + event.value < 0) return refuseStatEvent('bulkValueInvalid');
+    if (event.stat === 'points' && teamScore + event.value < 0)
+      return refuseStatEvent('bulkValueInvalid');
   }
   return STAT_EVENT_ACCEPTED;
 };
@@ -288,11 +339,13 @@ export const BASKETBALL_SCORING: SportScoring = {
   validate,
   apply: (state, event) => {
     if (isStatCorrection(event)) return applyEffects(ownStats(state), correctionEffects(event), 1);
-    if (!isBasketballEvent(event)) throw new Error(`The basketball adapter does not apply ${event.type}.`);
+    if (!isBasketballEvent(event))
+      throw new Error(`The basketball adapter does not apply ${event.type}.`);
     return applyEffects(ownStats(state), effectsOf(event), 1);
   },
   undo: (state, target) => {
-    if (!isBasketballEvent(target)) throw new Error(`The basketball adapter does not undo ${target.type}.`);
+    if (!isBasketballEvent(target))
+      throw new Error(`The basketball adapter does not undo ${target.type}.`);
     return applyEffects(ownStats(state), effectsOf(target), -1);
   },
   deriveLine: deriveBasketballLine,
@@ -324,13 +377,17 @@ export const BASKETBALL_FIELD_LABELS = {
   player: { points: 'Points', rebounds: 'Rebounds', assists: 'Assists' },
 } as const satisfies StatFieldLabels<BasketballTeamStatKey, BasketballPlayerStatKey>;
 
-export function describeBasketballEvent(event: GameStatEvent, resolve: StatEventNameResolver): string {
+export function describeBasketballEvent(
+  event: GameStatEvent,
+  resolve: StatEventNameResolver,
+): string {
   const storeEvent = describeStoreEvent(event, resolve, BASKETBALL_FIELD_LABELS);
   if (storeEvent !== null) return storeEvent;
   if (!isBasketballEvent(event)) return event.type;
 
   const team = resolve.team(event.teamId);
-  if (event.type === BASKETBALL_TIMEOUT_EVENT_TYPE) return `${team}: ${BASKETBALL_EVENT_LABELS[event.type].play}`;
+  if (event.type === BASKETBALL_TIMEOUT_EVENT_TYPE)
+    return `${team}: ${BASKETBALL_EVENT_LABELS[event.type].play}`;
 
   const player = `${resolve.player(event.playerUserId)} (${team})`;
   if (event.type === BASKETBALL_BULK_EDIT_EVENT_TYPE) {
@@ -342,23 +399,45 @@ export function describeBasketballEvent(event: GameStatEvent, resolve: StatEvent
   return assister === undefined ? play : `${play}, assisted by ${resolve.player(assister)}`;
 }
 
-function sumOf(lines: readonly { readonly rebounds: number; readonly assists: number }[], field: 'rebounds' | 'assists'): number {
+function sumOf(
+  lines: readonly { readonly rebounds: number; readonly assists: number }[],
+  field: 'rebounds' | 'assists',
+): number {
   return lines.reduce((total, line) => total + line[field], 0);
 }
 
 export const BASKETBALL_SCOREBOARD: Scoreboard = {
   figures: [
-    { id: 'points', label: BASKETBALL_FIELD_LABELS.player.points, value: (teamLine) => teamLine.score },
-    { id: 'rebounds', label: BASKETBALL_FIELD_LABELS.player.rebounds, value: (_teamLine, sideLines) => sumOf(sideLines, 'rebounds') },
-    { id: 'assists', label: BASKETBALL_FIELD_LABELS.player.assists, value: (_teamLine, sideLines) => sumOf(sideLines, 'assists') },
-    { id: 'timeouts', label: BASKETBALL_FIELD_LABELS.team.timeouts, value: (teamLine) => ownTeamLine(teamLine).timeouts },
+    {
+      id: 'points',
+      label: BASKETBALL_FIELD_LABELS.player.points,
+      value: (teamLine) => teamLine.score,
+    },
+    {
+      id: 'rebounds',
+      label: BASKETBALL_FIELD_LABELS.player.rebounds,
+      value: (_teamLine, sideLines) => sumOf(sideLines, 'rebounds'),
+    },
+    {
+      id: 'assists',
+      label: BASKETBALL_FIELD_LABELS.player.assists,
+      value: (_teamLine, sideLines) => sumOf(sideLines, 'assists'),
+    },
+    {
+      id: 'timeouts',
+      label: BASKETBALL_FIELD_LABELS.team.timeouts,
+      value: (teamLine) => ownTeamLine(teamLine).timeouts,
+    },
   ],
   jumpBall: true,
 };
 
 export const BASKETBALL_SCORING_PANEL: PlayerEventsScoringPanel = {
   kind: 'playerEvents',
-  playerEventTypes: [...BASKETBALL_SCORE_EVENT_TYPE_KEYS, ...BASKETBALL_PLAYER_TALLY_EVENT_TYPE_KEYS],
+  playerEventTypes: [
+    ...BASKETBALL_SCORE_EVENT_TYPE_KEYS,
+    ...BASKETBALL_PLAYER_TALLY_EVENT_TYPE_KEYS,
+  ],
   assistableEventTypes: BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   teamEventTypes: [BASKETBALL_TIMEOUT_EVENT_TYPE],
 };
@@ -367,13 +446,13 @@ export const BASKETBALL_SCORING_PANEL: PlayerEventsScoringPanel = {
 // Bulk entry — one row per roster entry, absent entries included
 // ---------------------------------------------------------------------------------------------
 
-export const BASKETBALL_TEAM_SCORE_FLOOR_MESSAGE = "These changes would leave a team's score below zero.";
+export const BASKETBALL_TEAM_SCORE_FLOOR_MESSAGE =
+  "These changes would leave a team's score below zero.";
 
 const playerLineValuesSchema = z.strictObject(
-  Object.fromEntries(BASKETBALL_PLAYER_STAT_KEYS.map((key) => [key, bulkEntryCountField])) as Record<
-    BasketballPlayerStatKey,
-    typeof bulkEntryCountField
-  >,
+  Object.fromEntries(
+    BASKETBALL_PLAYER_STAT_KEYS.map((key) => [key, bulkEntryCountField]),
+  ) as Record<BasketballPlayerStatKey, typeof bulkEntryCountField>,
 );
 
 function currentPlayerCounters(context: BulkEntryContext, entryId: string): PlayerCounters {
@@ -410,29 +489,46 @@ function bulkDrafts(values: PlayerLinesValues, context: BulkEntryContext): StatE
 export const BASKETBALL_BULK_ENTRY: PlayerLinesBulkEntry = {
   kind: 'playerLines',
   formDefaults: (context) => ({
-    lines: Object.fromEntries(context.rosterPlayerIds.map((entryId) => [entryId, currentPlayerCounters(context, entryId)])),
+    lines: Object.fromEntries(
+      context.rosterPlayerIds.map((entryId) => [entryId, currentPlayerCounters(context, entryId)]),
+    ),
   }),
   formSchema: (context) => {
     const roster = new Set(context.rosterPlayerIds);
-    return z.object({ lines: z.record(z.string(), playerLineValuesSchema) }).superRefine((values, issues) => {
-      for (const entryId of Object.keys(values.lines)) {
-        if (!roster.has(entryId)) {
-          issues.addIssue({ code: 'custom', path: ['lines', entryId], message: NOT_ON_GAME_ROSTER_MESSAGE });
+    return z
+      .object({ lines: z.record(z.string(), playerLineValuesSchema) })
+      .superRefine((values, issues) => {
+        for (const entryId of Object.keys(values.lines)) {
+          if (!roster.has(entryId)) {
+            issues.addIssue({
+              code: 'custom',
+              path: ['lines', entryId],
+              message: NOT_ON_GAME_ROSTER_MESSAGE,
+            });
+          }
         }
-      }
-      const state = ownStats(context.state);
-      for (const teamId of context.game.teamIds) {
-        let score = (state.teamStats[teamId] ?? emptyBasketballTeamLine()).score;
-        for (const [entryId, entered] of Object.entries(values.lines)) {
-          if (parseGameRosterPlayerId(entryId)?.teamId !== teamId) continue;
-          score += entered.points - currentPlayerCounters(context, entryId).points;
+        const state = ownStats(context.state);
+        for (const teamId of context.game.teamIds) {
+          let score = (state.teamStats[teamId] ?? emptyBasketballTeamLine()).score;
+          for (const [entryId, entered] of Object.entries(values.lines)) {
+            if (parseGameRosterPlayerId(entryId)?.teamId !== teamId) continue;
+            score += entered.points - currentPlayerCounters(context, entryId).points;
+          }
+          if (score < 0)
+            issues.addIssue({
+              code: 'custom',
+              path: ['lines'],
+              message: BASKETBALL_TEAM_SCORE_FLOOR_MESSAGE,
+            });
         }
-        if (score < 0) issues.addIssue({ code: 'custom', path: ['lines'], message: BASKETBALL_TEAM_SCORE_FLOOR_MESSAGE });
-      }
-      if (bulkDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
-        issues.addIssue({ code: 'custom', path: ['lines'], message: BULK_ENTRY_TOO_LARGE_MESSAGE });
-      }
-    });
+        if (bulkDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
+          issues.addIssue({
+            code: 'custom',
+            path: ['lines'],
+            message: BULK_ENTRY_TOO_LARGE_MESSAGE,
+          });
+        }
+      });
   },
   toEvents: bulkDrafts,
 };

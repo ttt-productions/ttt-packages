@@ -10,7 +10,11 @@
 // transport (per-thread) and the inbox transport (per-user) cleanly split, exactly
 // as the worker splits Channel DOs from the Inbox DO.
 
-import { ChannelClient, type ChannelClientConfig, type ChannelClientState } from './channel-client.js';
+import {
+  ChannelClient,
+  type ChannelClientConfig,
+  type ChannelClientState,
+} from './channel-client.js';
 import { InboxClient, type InboxClientConfig } from './inbox-client.js';
 import { browserSocketFactory, type SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers } from './shared.js';

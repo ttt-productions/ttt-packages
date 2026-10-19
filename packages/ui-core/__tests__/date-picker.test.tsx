@@ -226,11 +226,16 @@ describe('DatePicker', () => {
 
     it('keeps exactly one day in the tab order', () => {
       render(<DatePicker selected={d(1990, 8, 15)} />);
-      const roving = screen.getAllByRole('button').filter((b) => b.getAttribute('tabindex') === '0');
+      const roving = screen
+        .getAllByRole('button')
+        .filter((b) => b.getAttribute('tabindex') === '0');
       // Only the roving day carries tabindex 0 (header triggers/arrows are naturally tabbable, not tabindex-0-annotated).
       const dayZeroTab = screen
         .getAllByRole('button')
-        .filter((b) => b.getAttribute('aria-label')?.includes('1990') && b.getAttribute('tabindex') === '0');
+        .filter(
+          (b) =>
+            b.getAttribute('aria-label')?.includes('1990') && b.getAttribute('tabindex') === '0',
+        );
       expect(roving.length).toBe(1);
       expect(dayZeroTab).toHaveLength(1);
       expect(dayZeroTab[0]).toHaveAccessibleName('August 15, 1990');

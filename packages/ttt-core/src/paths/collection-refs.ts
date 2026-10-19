@@ -30,34 +30,58 @@ export const COLLECTION_REFS = {
   activeAdminNotifications: (): [string] => [COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS],
 
   // User subcollections
-  userCraftSkills: (userId: string): [string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS],
+  userCraftSkills: (userId: string): [string, string, string] => [
+    COLLECTIONS.USER_PROFILES,
+    userId,
+    USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS,
+  ],
 
   // WorkProject subcollections
-  workProjectTales: (workProjectId: string): [string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES],
+  workProjectTales: (workProjectId: string): [string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES,
+  ],
 
-  workProjectTunes: (workProjectId: string): [string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES],
+  workProjectTunes: (workProjectId: string): [string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES,
+  ],
 
-  workProjectTelevision: (workProjectId: string): [string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION],
+  workProjectTelevision: (workProjectId: string): [string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION,
+  ],
 
-  workProjectPublicGuildmateUsers: (workProjectId: string): [string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS],
+  workProjectPublicGuildmateUsers: (workProjectId: string): [string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS,
+  ],
 
-  guildChatChannels: (workProjectId: string): [string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS],
+  guildChatChannels: (workProjectId: string): [string, string, string] => [
+    COLLECTIONS.ALL_WORK_PROJECTS,
+    workProjectId,
+    WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS,
+  ],
 
   // WorkRealm subcollections — the steward's realm shared-file folders. The projection owner
   // lists this collection (bounded by MAX_REALM_FILE_FOLDERS) and the folder-cap /
   // name-uniqueness checks query it; clients never read it directly.
-  realmFileFolders: (workRealmId: string): [string, string, string] =>
-    [COLLECTIONS.WORK_REALMS, workRealmId, WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS],
+  realmFileFolders: (workRealmId: string): [string, string, string] => [
+    COLLECTIONS.WORK_REALMS,
+    workRealmId,
+    WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS,
+  ],
 
   // SquareStreetz collections
-  activePosts: (): [string, string, string] =>
-    [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS],
+  activePosts: (): [string, string, string] => [
+    COLLECTIONS.SQUARE_STREETZ_FEED,
+    NESTED_SUBCOLLECTIONS.ACTIVE_POSTS,
+    NESTED_SUBCOLLECTIONS.SOCIAL_POSTS,
+  ],
 
   // HallLibrary collections
   thresholdItems: (): [string] => [COLLECTIONS.THRESHOLD_ITEMS],
@@ -67,40 +91,73 @@ export const COLLECTION_REFS = {
   hallContentChangeRequests: (): [string] => [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS],
 
   // Commission/Audition collections
-  commissionProposals: (commissionListingId: string): [string, string, string] =>
-    [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId, NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS],
+  commissionProposals: (commissionListingId: string): [string, string, string] => [
+    COLLECTIONS.COMMISSION_LISTINGS,
+    commissionListingId,
+    NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS,
+  ],
 
-  auditionEntries: (auditionId: string): [string, string, string] =>
-    [COLLECTIONS.AUDITION_BOARD, auditionId, NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES],
+  auditionEntries: (auditionId: string): [string, string, string] => [
+    COLLECTIONS.AUDITION_BOARD,
+    auditionId,
+    NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES,
+  ],
 
-  tuneTracks: (workProjectId: string, tuneId: string): readonly [string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_TRACKS] as const,
+  tuneTracks: (
+    workProjectId: string,
+    tuneId: string,
+  ): readonly [string, string, string, string, string] =>
+    [
+      COLLECTIONS.ALL_WORK_PROJECTS,
+      workProjectId,
+      WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES,
+      tuneId,
+      NESTED_SUBCOLLECTIONS.TUNE_TRACKS,
+    ] as const,
 
-  moderationCascadeChangedDocs: (cascadeId: string): [string, string, string] =>
-    [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId, NESTED_SUBCOLLECTIONS.CHANGED_DOCS],
+  moderationCascadeChangedDocs: (cascadeId: string): [string, string, string] => [
+    COLLECTIONS.MODERATION_CASCADE_MANIFESTS,
+    cascadeId,
+    NESTED_SUBCOLLECTIONS.CHANGED_DOCS,
+  ],
 
   // Conversation Files list for each supported ConversationFileRef scope (the panel
   // subscribes to the collection; the backend writes the docs).
-  guildInviteConversationFiles: (guildInviteId: string): [string, string, string] =>
-    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES],
+  guildInviteConversationFiles: (guildInviteId: string): [string, string, string] => [
+    COLLECTIONS.GUILD_INVITE_CONVERSATIONS,
+    guildInviteId,
+    NESTED_SUBCOLLECTIONS.CONVERSATION_FILES,
+  ],
 
-  adminDispatchConversationFiles: (adminDispatchId: string): [string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES],
+  adminDispatchConversationFiles: (adminDispatchId: string): [string, string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+    NESTED_SUBCOLLECTIONS.CONVERSATION_FILES,
+  ],
 
-  adminDispatchReadMarkers: (adminDispatchId: string): [string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS],
+  adminDispatchReadMarkers: (adminDispatchId: string): [string, string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+    NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS,
+  ],
 
   // The admin-support thread's message subcollection. Backend writers mint a new message
   // document with `db.collection(toPath(...)).doc()` so the id is a Firestore auto-id; the
   // admin-dispatch panel subscribes to the same collection. The per-document counterpart is
   // PATH_BUILDERS.adminConversationMessage.
-  adminDispatchConversationMessages: (adminDispatchId: string): [string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES],
+  adminDispatchConversationMessages: (adminDispatchId: string): [string, string, string] => [
+    COLLECTIONS.PENDING_ADMIN_DISPATCHES,
+    adminDispatchId,
+    NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES,
+  ],
 
   // One feedback type's suggestions, which account erasure queries for the departing user's
   // entries; the per-document counterpart is PATH_BUILDERS.userSuggestion.
-  userSuggestions: (feedbackType: string): [string, string, string] =>
-    [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType, NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS],
+  userSuggestions: (feedbackType: string): [string, string, string] => [
+    COLLECTIONS.FEEDBACK_SUBMISSIONS,
+    feedbackType,
+    NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS,
+  ],
 
   // The upload pipeline's pending-row collection and the archive it sweeps terminal rows
   // into. The sweep addresses both as COLLECTIONS (query the live one, write a row per
@@ -116,6 +173,9 @@ export const COLLECTION_REFS = {
 
   // One public document's immutable version history (queried newest-first by `version` for
   // the admin history read). The per-document counterpart is PATH_BUILDERS.publicDocumentVersion.
-  publicDocumentVersions: (documentId: PublicDocumentId): [string, string, string] =>
-    [COLLECTIONS.PUBLIC_DOCUMENTS, documentId, NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS],
+  publicDocumentVersions: (documentId: PublicDocumentId): [string, string, string] => [
+    COLLECTIONS.PUBLIC_DOCUMENTS,
+    documentId,
+    NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS,
+  ],
 } as const;

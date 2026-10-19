@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { AUTH_FULL_SCAN_EXAMINED_PER_RUN, AUTH_LIST_USERS_PAGE_SIZE } from '../src/constants/scheduled-jobs.js';
+import {
+  AUTH_FULL_SCAN_EXAMINED_PER_RUN,
+  AUTH_LIST_USERS_PAGE_SIZE,
+} from '../src/constants/scheduled-jobs.js';
 import { ADMIN_SELF_REVOKE_REFUSAL } from '../src/constants/admin-labels.js';
 
 describe('Auth full-scan budget', () => {

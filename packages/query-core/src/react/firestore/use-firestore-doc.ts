@@ -47,7 +47,9 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
 
   // Listener errors can't surface through useQuery (the queryFn is disabled while
   // subscribed), so they're tracked per subscription identity and merged into the result.
-  const subscription = useSubscriptionStatus(JSON.stringify([docPath, queryKeyMemo, enabled, subscribe]));
+  const subscription = useSubscriptionStatus(
+    JSON.stringify([docPath, queryKeyMemo, enabled, subscribe]),
+  );
   const { reset: resetStatus, update: updateStatus, restarts } = subscription;
 
   // Set up realtime subscription
@@ -84,7 +86,13 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
             queryClient.setQueryData(queryKey, null);
           }
           const fromCache = snapshot.metadata?.fromCache ?? false;
-          updateStatus((prev) => ({ sourceState: fromCache ? (prev.sourceState === 'connecting' ? 'connecting' : 'offline') : 'live' }));
+          updateStatus((prev) => ({
+            sourceState: fromCache
+              ? prev.sourceState === 'connecting'
+                ? 'connecting'
+                : 'offline'
+              : 'live',
+          }));
         },
         (error) => {
           // Heal a transient permission-denied by resubscribing on the backoff ladder,
@@ -102,7 +110,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
           console.error('[useFirestoreDoc] Subscription error:', error);
           updateStatus({ error, sourceState: 'error', restart: null });
           queryClient.setQueryData(queryKey, undefined);
-        }
+        },
       );
     };
 
@@ -116,7 +124,17 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     // Note: select intentionally excluded to prevent re-subscribing on every render if the caller
     // passes an inline function. queryKey is tracked via queryKeyMemo above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, docPath, queryKeyMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus]);
+  }, [
+    db,
+    docPath,
+    queryKeyMemo,
+    enabled,
+    subscribe,
+    restarts,
+    queryClient,
+    resetStatus,
+    updateStatus,
+  ]);
 
   const query = useQuery({
     queryKey,

@@ -43,7 +43,20 @@ export const TTT_TELEMETRY_CONTENT_POLICY = {
     'extra',
   ],
   /** An identifier, hash, code, or enum value named by its suffix (`caseId`, `targetKeyHash`, `fileOrigin`). */
-  diagnosticKeySuffixes: ['Id', 'Ids', 'Uid', 'Uids', 'Hash', 'Type', 'Kind', 'Status', 'Code', 'Outcome', 'Origin', 'Source'],
+  diagnosticKeySuffixes: [
+    'Id',
+    'Ids',
+    'Uid',
+    'Uids',
+    'Hash',
+    'Type',
+    'Kind',
+    'Status',
+    'Code',
+    'Outcome',
+    'Origin',
+    'Source',
+  ],
   /** The context capture sites name the running function in (`scope.setContext('function', { name })`). */
   codeNameContexts: ['function'],
 } as const;

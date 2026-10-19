@@ -9,9 +9,7 @@ import type { WithId, FirestoreBaseOptions } from '../../firestore/types.js';
 /**
  * Extract document data with ID from a QueryDocumentSnapshot.
  */
-export function docWithId<T extends DocumentData>(
-  snap: QueryDocumentSnapshot<T>
-): WithId<T> {
+export function docWithId<T extends DocumentData>(snap: QueryDocumentSnapshot<T>): WithId<T> {
   return { id: snap.id, ...snap.data() };
 }
 

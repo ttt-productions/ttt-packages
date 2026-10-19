@@ -11,7 +11,9 @@ import { PictureOwnerRefSchema } from '../doc-schemas/pending-media.js';
 import { DomainEventSchema } from '../domain-events/domain-events.js';
 
 // A gallery picture as a client holds it in its cached pages: the document with its id.
-export const GalleryPictureEntrySchema = GalleryPictureSchema.extend({ id: pictureIdSchema }).strict();
+export const GalleryPictureEntrySchema = GalleryPictureSchema.extend({
+  id: pictureIdSchema,
+}).strict();
 export type GalleryPictureEntry = z.infer<typeof GalleryPictureEntrySchema>;
 
 export const AdminMovePictureInputSchema = z
@@ -27,12 +29,16 @@ export const AdminMovePictureResultSchema = z
   .strict();
 export type AdminMovePictureResult = z.infer<typeof AdminMovePictureResultSchema>;
 
-export const AdminUpdateFeaturedPictureInputSchema = z.object({ pictureId: pictureIdSchema }).strict();
+export const AdminUpdateFeaturedPictureInputSchema = z
+  .object({ pictureId: pictureIdSchema })
+  .strict();
 export type AdminUpdateFeaturedPictureInput = z.infer<typeof AdminUpdateFeaturedPictureInputSchema>;
 export const AdminUpdateFeaturedPictureResultSchema = z
   .object({ picture: GalleryPictureEntrySchema, event: DomainEventSchema })
   .strict();
-export type AdminUpdateFeaturedPictureResult = z.infer<typeof AdminUpdateFeaturedPictureResultSchema>;
+export type AdminUpdateFeaturedPictureResult = z.infer<
+  typeof AdminUpdateFeaturedPictureResultSchema
+>;
 
 export const AdminDeletePictureInputSchema = z
   .object({

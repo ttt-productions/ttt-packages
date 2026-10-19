@@ -4,10 +4,18 @@
 // schedule core or the admin form relies on.
 
 import { describe, it, expect } from 'vitest';
-import { MAX_SCHEDULE_WEEK_GAMES, MAX_SCHEDULE_WEEK_TITLE_LENGTH } from '../src/constants/business.js';
+import {
+  MAX_SCHEDULE_WEEK_GAMES,
+  MAX_SCHEDULE_WEEK_TITLE_LENGTH,
+} from '../src/constants/business.js';
 import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
-import { BYE_TEAM_ID, buildScheduleWeekId, buildSportGameId, isByeTeamId } from '../src/ids/minted-ids.js';
+import {
+  BYE_TEAM_ID,
+  buildScheduleWeekId,
+  buildSportGameId,
+  isByeTeamId,
+} from '../src/ids/minted-ids.js';
 import { buildGameDeletionOperationId } from '../src/ids/stats-operation-ids.js';
 import { isDocumentIdSegment } from '../src/paths/utils.js';
 import {
@@ -41,7 +49,12 @@ import { GAME_STATUS_ON_CREATE } from '../src/types/unions.js';
 const NOW = 1_760_000_000_000;
 const HOUR = 60 * 60 * 1000;
 
-const game = { teams: ['team-a', 'team-b'], startTime: NOW, gameLocationId: 'venue-1', subLocation: 'Court 1' };
+const game = {
+  teams: ['team-a', 'team-b'],
+  startTime: NOW,
+  gameLocationId: 'venue-1',
+  subLocation: 'Court 1',
+};
 const createWeekInput = {
   leagueId: 'league-1',
   weekTitle: 'Week 1',
@@ -69,17 +82,30 @@ describe('the week and game callable inputs', () => {
         weekStartDate: NOW,
       }).success,
     ).toBe(true);
-    expect(AdminDeleteScheduleWeekInputSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1' }).success).toBe(true);
-    expect(AdminCreateSportGameInputSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1', ...game }).success).toBe(
-      true,
-    );
+    expect(
+      AdminDeleteScheduleWeekInputSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1' })
+        .success,
+    ).toBe(true);
+    expect(
+      AdminCreateSportGameInputSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1', ...game })
+        .success,
+    ).toBe(true);
     expect(AdminUpdateSportGameInputSchema.safeParse(updateGameInput).success).toBe(true);
     expect(AdminDeleteSportGameInputSchema.safeParse({ gameId: 'game-1' }).success).toBe(true);
   });
 
   it('refuse an acting identity, a derived label, the sport, and every stat field the server owns', () => {
-    for (const field of ['createdBy', 'createdByUserId', 'locationLabel', 'leagueType', 'weekLocation', 'dayKey']) {
-      expect(AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, [field]: 'x' }).success).toBe(false);
+    for (const field of [
+      'createdBy',
+      'createdByUserId',
+      'locationLabel',
+      'leagueType',
+      'weekLocation',
+      'dayKey',
+    ]) {
+      expect(
+        AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, [field]: 'x' }).success,
+      ).toBe(false);
     }
     for (const [field, value] of Object.entries({
       stats: { teamStats: {}, playerStats: {} },
@@ -91,18 +117,28 @@ describe('the week and game callable inputs', () => {
       locationLabel: 'Main Gym',
       teamIds: ['team-a', 'team-b'],
     })) {
-      expect(AdminUpdateSportGameInputSchema.safeParse({ ...updateGameInput, [field]: value }).success).toBe(false);
+      expect(
+        AdminUpdateSportGameInputSchema.safeParse({ ...updateGameInput, [field]: value }).success,
+      ).toBe(false);
     }
     expect(
-      AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games: [{ ...game, locationLabel: 'x' }] })
-        .success,
+      AdminCreateScheduleWeekInputSchema.safeParse({
+        ...createWeekInput,
+        games: [{ ...game, locationLabel: 'x' }],
+      }).success,
     ).toBe(false);
   });
 
   it('trim the week title and bound it', () => {
-    const parsed = AdminCreateScheduleWeekInputSchema.parse({ ...createWeekInput, weekTitle: '  Week 2  ' });
+    const parsed = AdminCreateScheduleWeekInputSchema.parse({
+      ...createWeekInput,
+      weekTitle: '  Week 2  ',
+    });
     expect(parsed.weekTitle).toBe('Week 2');
-    expect(AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, weekTitle: '   ' }).success).toBe(false);
+    expect(
+      AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, weekTitle: '   ' })
+        .success,
+    ).toBe(false);
     expect(
       AdminCreateScheduleWeekInputSchema.safeParse({
         ...createWeekInput,
@@ -112,18 +148,27 @@ describe('the week and game callable inputs', () => {
   });
 
   it('take at least one game and at most the games one save seeds with their rosters', () => {
-    expect(AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games: [] }).success).toBe(false);
+    expect(
+      AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games: [] }).success,
+    ).toBe(false);
     const games = Array.from({ length: MAX_SCHEDULE_WEEK_GAMES }, () => game);
-    expect(AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games }).success).toBe(true);
-    expect(AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games: [...games, game] }).success).toBe(
-      false,
-    );
+    expect(
+      AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games }).success,
+    ).toBe(true);
+    expect(
+      AdminCreateScheduleWeekInputSchema.safeParse({ ...createWeekInput, games: [...games, game] })
+        .success,
+    ).toBe(false);
   });
 
   it('give a game two different teams, one of which may be the bye, never two byes', () => {
     const teams = (first: string, second: string) =>
-      AdminCreateSportGameInputSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1', ...game, teams: [first, second] })
-        .success;
+      AdminCreateSportGameInputSchema.safeParse({
+        leagueId: 'league-1',
+        weekId: 'week-1',
+        ...game,
+        teams: [first, second],
+      }).success;
     expect(teams('team-a', BYE_TEAM_ID)).toBe(true);
     expect(teams(BYE_TEAM_ID, 'team-a')).toBe(true);
     expect(teams(BYE_TEAM_ID, BYE_TEAM_ID)).toBe(false);
@@ -134,14 +179,21 @@ describe('the week and game callable inputs', () => {
   it('name a new game venue by id, and a court only within a venue', () => {
     const { gameLocationId: _venue, ...noVenue } = game;
     expect(
-      AdminCreateSportGameInputSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1', ...noVenue }).success,
+      AdminCreateSportGameInputSchema.safeParse({
+        leagueId: 'league-1',
+        weekId: 'week-1',
+        ...noVenue,
+      }).success,
     ).toBe(false);
     const { gameLocationId: _editVenue, ...editWithoutVenue } = updateGameInput;
     expect(AdminUpdateSportGameInputSchema.safeParse(editWithoutVenue).success).toBe(true);
-    expect(AdminUpdateSportGameInputSchema.safeParse({ ...editWithoutVenue, subLocation: 'Court 1' }).success).toBe(
-      false,
-    );
-    expect(AdminUpdateSportGameInputSchema.safeParse({ ...updateGameInput, subLocation: '   ' }).success).toBe(false);
+    expect(
+      AdminUpdateSportGameInputSchema.safeParse({ ...editWithoutVenue, subLocation: 'Court 1' })
+        .success,
+    ).toBe(false);
+    expect(
+      AdminUpdateSportGameInputSchema.safeParse({ ...updateGameInput, subLocation: '   ' }).success,
+    ).toBe(false);
   });
 
   it('require the game edit to carry the updatedAt it was loaded at', () => {
@@ -150,24 +202,38 @@ describe('the week and game callable inputs', () => {
   });
 
   it('take no operation id for a game delete: the server derives it from the game', () => {
-    expect(AdminDeleteSportGameInputSchema.safeParse({ gameId: 'game-1', operationId: 'op-1' }).success).toBe(false);
+    expect(
+      AdminDeleteSportGameInputSchema.safeParse({ gameId: 'game-1', operationId: 'op-1' }).success,
+    ).toBe(false);
   });
 
   it('take only the week fields the admin changed, and at least one', () => {
     const week = { leagueId: 'league-1', weekId: 'week-1' };
-    expect(AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekTitle: 'Week 1' }).success).toBe(true);
-    expect(AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekStartDate: NOW }).success).toBe(true);
-    expect(AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekGameLocationId: 'venue-1' }).success).toBe(true);
+    expect(
+      AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekTitle: 'Week 1' }).success,
+    ).toBe(true);
+    expect(
+      AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekStartDate: NOW }).success,
+    ).toBe(true);
+    expect(
+      AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekGameLocationId: 'venue-1' })
+        .success,
+    ).toBe(true);
     expect(AdminUpdateScheduleWeekInputSchema.safeParse(week).success).toBe(false);
-    expect(AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekTitle: '   ' }).success).toBe(false);
+    expect(
+      AdminUpdateScheduleWeekInputSchema.safeParse({ ...week, weekTitle: '   ' }).success,
+    ).toBe(false);
   });
 });
 
 describe('the week and game callable results', () => {
   it('answer with the ids written, the fields changed, and whether a paged delete finished', () => {
     expect(
-      AdminCreateScheduleWeekResultSchema.safeParse({ leagueId: 'league-1', weekId: 'week-1', gameIds: ['g1', 'g2'] })
-        .success,
+      AdminCreateScheduleWeekResultSchema.safeParse({
+        leagueId: 'league-1',
+        weekId: 'week-1',
+        gameIds: ['g1', 'g2'],
+      }).success,
     ).toBe(true);
     expect(
       AdminUpdateScheduleWeekResultSchema.safeParse({
@@ -194,13 +260,21 @@ describe('the week and game callable results', () => {
       }).success,
     ).toBe(true);
     expect(
-      AdminDeleteSportGameResultSchema.safeParse({ gameId: 'game-1', operationId: 'op-1', complete: true }).success,
+      AdminDeleteSportGameResultSchema.safeParse({
+        gameId: 'game-1',
+        operationId: 'op-1',
+        complete: true,
+      }).success,
     ).toBe(true);
   });
 
   it('refuse a changed field the edit does not write', () => {
     expect(
-      AdminUpdateSportGameResultSchema.safeParse({ gameId: 'game-1', changedFields: ['stats'], updatedAt: NOW }).success,
+      AdminUpdateSportGameResultSchema.safeParse({
+        gameId: 'game-1',
+        changedFields: ['stats'],
+        updatedAt: NOW,
+      }).success,
     ).toBe(false);
   });
 });
@@ -219,7 +293,9 @@ describe('minted schedule ids', () => {
   it('derives one deletion operation id per game, distinct across games', () => {
     const gameId = buildSportGameId(NOW, 'abc');
     expect(buildGameDeletionOperationId(gameId)).toBe(buildGameDeletionOperationId(gameId));
-    expect(buildGameDeletionOperationId(gameId)).not.toBe(buildGameDeletionOperationId(buildSportGameId(NOW, 'abd')));
+    expect(buildGameDeletionOperationId(gameId)).not.toBe(
+      buildGameDeletionOperationId(buildSportGameId(NOW, 'abd')),
+    );
     expect(buildGameDeletionOperationId(gameId)).not.toBe(gameId);
     expect(isDocumentIdSegment(buildGameDeletionOperationId(gameId))).toBe(true);
   });
@@ -239,7 +315,10 @@ describe('the venue label', () => {
 
 describe('the conflict warnings', () => {
   const at = (hour: number) => NOW + hour * HOUR;
-  const conflictGame = (key: string, overrides: Partial<ScheduleConflictGame> = {}): ScheduleConflictGame => ({
+  const conflictGame = (
+    key: string,
+    overrides: Partial<ScheduleConflictGame> = {},
+  ): ScheduleConflictGame => ({
     key,
     startTime: at(0),
     teamIds: [`${key}-home`, `${key}-away`],
@@ -250,28 +329,46 @@ describe('the conflict warnings', () => {
   });
 
   it('declares exactly the two conflict kinds', () => {
-    expect([...SCHEDULE_CONFLICT_KIND_KEYS].sort()).toEqual([SHARED_LOCATION_CONFLICT, TEAM_DOUBLE_BOOKED_CONFLICT].sort());
+    expect([...SCHEDULE_CONFLICT_KIND_KEYS].sort()).toEqual(
+      [SHARED_LOCATION_CONFLICT, TEAM_DOUBLE_BOOKED_CONFLICT].sort(),
+    );
   });
 
   it('warns about two games at one venue court at one start time', () => {
     const conflicts = findScheduleConflicts([conflictGame('draft-1'), conflictGame('draft-2')], []);
-    expect(conflicts).toEqual([{ kind: SHARED_LOCATION_CONFLICT, startTime: at(0), gameKeys: ['draft-1', 'draft-2'] }]);
+    expect(conflicts).toEqual([
+      { kind: SHARED_LOCATION_CONFLICT, startTime: at(0), gameKeys: ['draft-1', 'draft-2'] },
+    ]);
   });
 
   it('does not warn about two courts of one venue, or one court at two times', () => {
     expect(
-      findScheduleConflicts([conflictGame('draft-1'), conflictGame('draft-2', { subLocation: 'Court 2' })], []),
+      findScheduleConflicts(
+        [conflictGame('draft-1'), conflictGame('draft-2', { subLocation: 'Court 2' })],
+        [],
+      ),
     ).toEqual([]);
-    expect(findScheduleConflicts([conflictGame('draft-1'), conflictGame('draft-2', { startTime: at(1) })], [])).toEqual(
-      [],
-    );
+    expect(
+      findScheduleConflicts(
+        [conflictGame('draft-1'), conflictGame('draft-2', { startTime: at(1) })],
+        [],
+      ),
+    ).toEqual([]);
   });
 
   it('compares games with no venue by their label, ignoring case and surrounding space', () => {
     const conflicts = findScheduleConflicts(
       [
-        conflictGame('draft-1', { gameLocationId: undefined, subLocation: undefined, locationLabel: 'Old Gym' }),
-        conflictGame('draft-2', { gameLocationId: undefined, subLocation: undefined, locationLabel: ' old gym ' }),
+        conflictGame('draft-1', {
+          gameLocationId: undefined,
+          subLocation: undefined,
+          locationLabel: 'Old Gym',
+        }),
+        conflictGame('draft-2', {
+          gameLocationId: undefined,
+          subLocation: undefined,
+          locationLabel: ' old gym ',
+        }),
       ],
       [],
     );
@@ -280,14 +377,22 @@ describe('the conflict warnings', () => {
 
   it('warns about one team booked into two games at one start time, naming the team', () => {
     const conflicts = findScheduleConflicts(
-      [conflictGame('draft-1', { teamIds: ['team-a', 'team-b'] }), conflictGame('draft-2', {
-        teamIds: ['team-a', 'team-c'],
-        subLocation: 'Court 2',
-      })],
+      [
+        conflictGame('draft-1', { teamIds: ['team-a', 'team-b'] }),
+        conflictGame('draft-2', {
+          teamIds: ['team-a', 'team-c'],
+          subLocation: 'Court 2',
+        }),
+      ],
       [],
     );
     expect(conflicts).toEqual([
-      { kind: TEAM_DOUBLE_BOOKED_CONFLICT, startTime: at(0), teamId: 'team-a', gameKeys: ['draft-1', 'draft-2'] },
+      {
+        kind: TEAM_DOUBLE_BOOKED_CONFLICT,
+        startTime: at(0),
+        teamId: 'team-a',
+        gameKeys: ['draft-1', 'draft-2'],
+      },
     ]);
   });
 
@@ -297,25 +402,46 @@ describe('the conflict warnings', () => {
       [conflictGame('saved-1', { teamIds: ['team-a', 'team-z'], subLocation: 'Court 3' })],
     );
     expect(conflicts).toEqual([
-      { kind: TEAM_DOUBLE_BOOKED_CONFLICT, startTime: at(0), teamId: 'team-a', gameKeys: ['draft-1', 'saved-1'] },
+      {
+        kind: TEAM_DOUBLE_BOOKED_CONFLICT,
+        startTime: at(0),
+        teamId: 'team-a',
+        gameKeys: ['draft-1', 'saved-1'],
+      },
     ]);
   });
 
   it('does not report a conflict among saved games alone', () => {
-    expect(findScheduleConflicts([], [conflictGame('saved-1'), conflictGame('saved-2')])).toEqual([]);
+    expect(findScheduleConflicts([], [conflictGame('saved-1'), conflictGame('saved-2')])).toEqual(
+      [],
+    );
     expect(
-      findScheduleConflicts([conflictGame('draft-1', { startTime: at(5) })], [conflictGame('saved-1'), conflictGame('saved-2')]),
+      findScheduleConflicts(
+        [conflictGame('draft-1', { startTime: at(5) })],
+        [conflictGame('saved-1'), conflictGame('saved-2')],
+      ),
     ).toEqual([]);
   });
 
   it('replaces a saved game with its edit, so a game never conflicts with its own old slot', () => {
     expect(findScheduleConflicts([conflictGame('saved-1')], [conflictGame('saved-1')])).toEqual([]);
-    expect(findScheduleConflicts([conflictGame('saved-1', { startTime: at(2) })], [conflictGame('saved-1')])).toEqual([]);
+    expect(
+      findScheduleConflicts(
+        [conflictGame('saved-1', { startTime: at(2) })],
+        [conflictGame('saved-1')],
+      ),
+    ).toEqual([]);
   });
 
   it('ignores a bye, which books no venue and no team', () => {
     expect(
-      findScheduleConflicts([conflictGame('draft-1', { teamIds: ['team-a'] }), conflictGame('draft-2', { teamIds: ['team-a'] })], []),
+      findScheduleConflicts(
+        [
+          conflictGame('draft-1', { teamIds: ['team-a'] }),
+          conflictGame('draft-2', { teamIds: ['team-a'] }),
+        ],
+        [],
+      ),
     ).toEqual([]);
   });
 
@@ -388,8 +514,12 @@ describe('a new game as the schedule writes it', () => {
       updatedAt: NOW,
     };
     expect(SportGameSchema.safeParse(base).success).toBe(true);
-    expect(SportGameSchema.safeParse({ ...base, score: { 'team-a': 0, 'team-b': 0 } }).success).toBe(false);
-    const twoTeamStats = getSportAdapter(LEAGUE_TYPE_KEYS[0]).emptyStats({ teamIds: ['team-a', 'team-b'] });
+    expect(
+      SportGameSchema.safeParse({ ...base, score: { 'team-a': 0, 'team-b': 0 } }).success,
+    ).toBe(false);
+    const twoTeamStats = getSportAdapter(LEAGUE_TYPE_KEYS[0]).emptyStats({
+      teamIds: ['team-a', 'team-b'],
+    });
     expect(SportGameSchema.safeParse({ ...base, stats: twoTeamStats }).success).toBe(false);
   });
 
@@ -419,7 +549,9 @@ describe('a new game as the schedule writes it', () => {
     expect(SportGameSchema.safeParse(base).success).toBe(true);
     expect(SportGameSchema.safeParse({ ...base, gameLocationId: 'venue-1' }).success).toBe(true);
     expect(SportGameSchema.safeParse({ ...base, gameLocationId: '' }).success).toBe(false);
-    expect(AdminUpdateSportGameInputSchema.safeParse({ ...updateGameInput, gameLocationId: '' }).success).toBe(false);
+    expect(
+      AdminUpdateSportGameInputSchema.safeParse({ ...updateGameInput, gameLocationId: '' }).success,
+    ).toBe(false);
   });
 
   it('mirrors each team line’s score, whatever else the line holds', () => {
@@ -444,13 +576,17 @@ describe('the schedule vocabulary', () => {
 
   it('names what changed for the client: the league’s schedule, or one game', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'leagueSchedule.changed', ids: { leagueId: 'league-1' } }).success,
+      DomainEventSchema.safeParse({ type: 'leagueSchedule.changed', ids: { leagueId: 'league-1' } })
+        .success,
     ).toBe(true);
     for (const type of ['sportGame.updated', 'sportGame.deleted']) {
       expect(
-        DomainEventSchema.safeParse({ type, ids: { leagueId: 'league-1', gameId: 'game-1' } }).success,
+        DomainEventSchema.safeParse({ type, ids: { leagueId: 'league-1', gameId: 'game-1' } })
+          .success,
       ).toBe(true);
-      expect(DomainEventSchema.safeParse({ type, ids: { leagueId: 'league-1' } }).success).toBe(false);
+      expect(DomainEventSchema.safeParse({ type, ids: { leagueId: 'league-1' } }).success).toBe(
+        false,
+      );
     }
   });
 });

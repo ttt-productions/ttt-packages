@@ -14,24 +14,32 @@
 // The consuming app supplies policy (lease length, attempt ceiling) and the clock; the
 // Admin-SDK transaction wrappers live in `@ttt-productions/media-processing-core/server`.
 
-import type { z } from "zod";
-import { PendingMediaStatusSchema } from "./factories/pending-media.js";
+import type { z } from 'zod';
+import { PendingMediaStatusSchema } from './factories/pending-media.js';
 
 // Every status value below derives from the one declaration, PendingMediaStatusSchema.
 const STATUS = PendingMediaStatusSchema.enum;
 
 export type PendingMediaStatus = z.infer<typeof PendingMediaStatusSchema>;
 export type PendingMediaNonTerminalStatus = typeof STATUS.pending | typeof STATUS.processing;
-export const PENDING_MEDIA_TERMINAL_STATUSES = [STATUS.completed, STATUS.failed, STATUS.rejected] as const;
+export const PENDING_MEDIA_TERMINAL_STATUSES = [
+  STATUS.completed,
+  STATUS.failed,
+  STATUS.rejected,
+] as const;
 export type PendingMediaTerminalStatus = (typeof PENDING_MEDIA_TERMINAL_STATUSES)[number];
 
 /** True for `completed` / `failed` / `rejected`; false for anything else, including a missing status. */
-export function isPendingMediaTerminalStatus(status: unknown): status is PendingMediaTerminalStatus {
+export function isPendingMediaTerminalStatus(
+  status: unknown,
+): status is PendingMediaTerminalStatus {
   return (PENDING_MEDIA_TERMINAL_STATUSES as readonly unknown[]).includes(status);
 }
 
 /** True for `pending` / `processing` — the only statuses a row may transition from. */
-export function isPendingMediaNonTerminalStatus(status: unknown): status is PendingMediaNonTerminalStatus {
+export function isPendingMediaNonTerminalStatus(
+  status: unknown,
+): status is PendingMediaNonTerminalStatus {
   return status === STATUS.pending || status === STATUS.processing;
 }
 
@@ -84,11 +92,11 @@ export type ClaimedPendingMedia<TRow extends ClaimablePendingMedia> =
  * - `missing`   — no row, or a row that no longer parses (the wrapper decides this).
  */
 export type PendingMediaClaimOutcome<TRow extends ClaimablePendingMedia> =
-  | { kind: "claimed"; pendingFile: ClaimedPendingMedia<TRow>; attempt: number }
-  | { kind: "busy"; leaseExpiresAt: number }
-  | { kind: "terminal"; status: PendingMediaTerminalStatus }
-  | { kind: "exhausted"; pendingFile: TRow; attempts: number }
-  | { kind: "missing" };
+  | { kind: 'claimed'; pendingFile: ClaimedPendingMedia<TRow>; attempt: number }
+  | { kind: 'busy'; leaseExpiresAt: number }
+  | { kind: 'terminal'; status: PendingMediaTerminalStatus }
+  | { kind: 'exhausted'; pendingFile: TRow; attempts: number }
+  | { kind: 'missing' };
 
 export interface PendingMediaClaimDecision<TRow extends ClaimablePendingMedia> {
   outcome: PendingMediaClaimOutcome<TRow>;
@@ -96,7 +104,11 @@ export interface PendingMediaClaimDecision<TRow extends ClaimablePendingMedia> {
   write?: PendingMediaClaimWrite;
 }
 
-function buildClaimWrite(attempt: number, now: number, policy: PendingMediaClaimPolicy): PendingMediaClaimWrite {
+function buildClaimWrite(
+  attempt: number,
+  now: number,
+  policy: PendingMediaClaimPolicy,
+): PendingMediaClaimWrite {
   return {
     status: STATUS.processing,
     processingAttemptCount: attempt,
@@ -113,10 +125,11 @@ function buildClaimWrite(attempt: number, now: number, policy: PendingMediaClaim
  */
 export function effectivePendingMediaLeaseExpiry(
   current: ClaimablePendingMedia,
-  policy: Pick<PendingMediaClaimPolicy, "leaseMs">,
+  policy: Pick<PendingMediaClaimPolicy, 'leaseMs'>,
 ): number {
-  if (typeof current.processingLeaseExpiresAt === "number") return current.processingLeaseExpiresAt;
-  if (typeof current.processingStartedAt === "number") return current.processingStartedAt + policy.leaseMs;
+  if (typeof current.processingLeaseExpiresAt === 'number') return current.processingLeaseExpiresAt;
+  if (typeof current.processingStartedAt === 'number')
+    return current.processingStartedAt + policy.leaseMs;
   return current.createdAt + policy.leaseMs;
 }
 
@@ -129,25 +142,25 @@ export function decidePendingMediaClaim<TRow extends ClaimablePendingMedia>(
   const claim = (attempt: number): PendingMediaClaimDecision<TRow> => {
     const write = buildClaimWrite(attempt, now, policy);
     const pendingFile = { ...current, ...write } as unknown as ClaimedPendingMedia<TRow>;
-    return { outcome: { kind: "claimed", pendingFile, attempt }, write };
+    return { outcome: { kind: 'claimed', pendingFile, attempt }, write };
   };
 
   switch (current.status) {
     case STATUS.completed:
     case STATUS.failed:
     case STATUS.rejected:
-      return { outcome: { kind: "terminal", status: current.status } };
+      return { outcome: { kind: 'terminal', status: current.status } };
 
     case STATUS.pending:
       return claim((current.processingAttemptCount ?? 0) + 1);
 
     case STATUS.processing: {
       const leaseExpiresAt = effectivePendingMediaLeaseExpiry(current, policy);
-      if (leaseExpiresAt > now) return { outcome: { kind: "busy", leaseExpiresAt } };
+      if (leaseExpiresAt > now) return { outcome: { kind: 'busy', leaseExpiresAt } };
       // A `processing` row with no attempt count was claimed once before counts existed.
       const attemptsSoFar = current.processingAttemptCount ?? 1;
       if (attemptsSoFar >= policy.maxAttempts) {
-        return { outcome: { kind: "exhausted", pendingFile: current, attempts: attemptsSoFar } };
+        return { outcome: { kind: 'exhausted', pendingFile: current, attempts: attemptsSoFar } };
       }
       return claim(attemptsSoFar + 1);
     }
@@ -165,7 +178,7 @@ export function decidePendingMediaClaim<TRow extends ClaimablePendingMedia>(
  *                caller alerts and retires anything produced for the losing write).
  * - `missing`  — no row: write nothing.
  */
-export type PendingMediaFinalizeDecision = "applied" | "noop" | "conflict" | "missing";
+export type PendingMediaFinalizeDecision = 'applied' | 'noop' | 'conflict' | 'missing';
 
 export interface PendingMediaFinalizeResult {
   decision: PendingMediaFinalizeDecision;
@@ -181,11 +194,11 @@ export function decidePendingMediaFinalize(
   current: { status?: unknown } | undefined,
   targetStatus: PendingMediaTerminalStatus,
 ): PendingMediaFinalizeResult {
-  if (current === undefined) return { decision: "missing" };
+  if (current === undefined) return { decision: 'missing' };
   const status = current.status;
-  if (isPendingMediaNonTerminalStatus(status)) return { decision: "applied" };
-  if (status === targetStatus) return { decision: "noop", currentStatus: targetStatus };
-  return { decision: "conflict", currentStatus: status === undefined ? undefined : String(status) };
+  if (isPendingMediaNonTerminalStatus(status)) return { decision: 'applied' };
+  if (status === targetStatus) return { decision: 'noop', currentStatus: targetStatus };
+  return { decision: 'conflict', currentStatus: status === undefined ? undefined : String(status) };
 }
 
 // The literal terminal field set each status writes. Plain object types rather than
@@ -218,12 +231,13 @@ export type PendingMediaRejectedTerminalFields = {
 };
 
 /** The terminal field set for `S`; a union of statuses gives the union of their sets. */
-export type PendingMediaTerminalFields<S extends PendingMediaTerminalStatus = PendingMediaTerminalStatus> =
-  S extends typeof STATUS.completed
-    ? PendingMediaCompletedTerminalFields
-    : S extends typeof STATUS.failed
-      ? PendingMediaFailedTerminalFields
-      : PendingMediaRejectedTerminalFields;
+export type PendingMediaTerminalFields<
+  S extends PendingMediaTerminalStatus = PendingMediaTerminalStatus,
+> = S extends typeof STATUS.completed
+  ? PendingMediaCompletedTerminalFields
+  : S extends typeof STATUS.failed
+    ? PendingMediaFailedTerminalFields
+    : PendingMediaRejectedTerminalFields;
 
 /**
  * The terminal field set for a status — the status, its `completedAt` / `failedAt` /
@@ -250,11 +264,10 @@ export function buildPendingMediaTerminalFields(
   extraFields: Record<string, never>,
   now: number,
 ): PendingMediaRejectedTerminalFields;
-export function buildPendingMediaTerminalFields<S extends PendingMediaTerminalStatus, E extends Record<string, unknown>>(
-  status: S,
-  extraFields: E,
-  now: number,
-): PendingMediaTerminalFields<S> & E;
+export function buildPendingMediaTerminalFields<
+  S extends PendingMediaTerminalStatus,
+  E extends Record<string, unknown>,
+>(status: S, extraFields: E, now: number): PendingMediaTerminalFields<S> & E;
 export function buildPendingMediaTerminalFields(
   status: PendingMediaTerminalStatus,
   extraFields: Record<string, unknown>,

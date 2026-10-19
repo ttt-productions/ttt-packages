@@ -14,7 +14,10 @@ export const PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS = [
 ] as const satisfies readonly (keyof PledgePayment)[];
 
 /** Those fields' values for one pledge, or their sums over many (cents). */
-export type PledgePaymentAmountSums = Pick<PledgePayment, (typeof PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS)[number]>;
+export type PledgePaymentAmountSums = Pick<
+  PledgePayment,
+  (typeof PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS)[number]
+>;
 
 /** The amounts a dispute closed as lost stamps on its pledge: the withdrawn amount and the
  * recomputed net. Every other dispute transition moves only the dispute state and number. */
@@ -30,7 +33,10 @@ export const PLEDGE_DISPUTE_LOST_STAMPED_FIELDS = [
  * caller counts them. The money formula is linear, so it gives the whole ledger's totals from the
  * ledger's sums; one pledge's share is `pledgePaymentContributionOf`.
  */
-export function pledgePaymentTotalsOf(sums: PledgePaymentAmountSums, pledgeCount: number): PledgePaymentTotals {
+export function pledgePaymentTotalsOf(
+  sums: PledgePaymentAmountSums,
+  pledgeCount: number,
+): PledgePaymentTotals {
   return {
     netRaised: sums.netAmount,
     grossRaised: sums.amount,

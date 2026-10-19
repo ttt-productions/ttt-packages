@@ -4,7 +4,10 @@ import { VoteForAuditionEntryInputSchema } from '../src/schemas/voting.js';
 describe('VoteForAuditionEntryInputSchema', () => {
   it('accepts the audition and the entry being voted for', () => {
     expect(
-      VoteForAuditionEntryInputSchema.parse({ auditionId: 'a1', newVote: { auditionEntryId: 'e1' } }),
+      VoteForAuditionEntryInputSchema.parse({
+        auditionId: 'a1',
+        newVote: { auditionEntryId: 'e1' },
+      }),
     ).toEqual({ auditionId: 'a1', newVote: { auditionEntryId: 'e1' } });
   });
 

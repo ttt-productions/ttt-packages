@@ -19,11 +19,31 @@ describe('no swallowed read or write', () => {
     captureCalls: ['captureException', 'captureMessage'],
     failureExits: ['exitCallableCatch'],
     notReadOrWrite: [
-      { file: 'functions/src/work.ts', pattern: /^rm\(/, why: 'a scratch file delete changes no record' },
-      { file: 'functions/src/work.ts', pattern: /^res\.(json|text)\(\)$/, why: 'an HTTP body read for an error message' },
+      {
+        file: 'functions/src/work.ts',
+        pattern: /^rm\(/,
+        why: 'a scratch file delete changes no record',
+      },
+      {
+        file: 'functions/src/work.ts',
+        pattern: /^res\.(json|text)\(\)$/,
+        why: 'an HTTP body read for an error message',
+      },
     ],
-    catchSites: [{ file: 'functions/src/init.ts', receiver: 'initMonitoring(', why: "monitoring's own init failure cannot be captured by monitoring" }],
-    tryCatchSites: [{ file: 'functions/src/lease.ts', function: 'leaseStillHeld', why: 'a failed lease read answers not held (fail closed)' }],
+    catchSites: [
+      {
+        file: 'functions/src/init.ts',
+        receiver: 'initMonitoring(',
+        why: "monitoring's own init failure cannot be captured by monitoring",
+      },
+    ],
+    tryCatchSites: [
+      {
+        file: 'functions/src/lease.ts',
+        function: 'leaseStillHeld',
+        why: 'a failed lease read answers not held (fail closed)',
+      },
+    ],
   };
 
   it('FLAGS a .catch that falls back or only logs and a try/catch that only logs; PASSES capture, rethrow, an awaited record, an exit, the reviewed shapes and sites', async () => {
@@ -44,39 +64,75 @@ describe('no swallowed read or write', () => {
         "async function k() { try { await tx.commit(); } catch (e) { exitCallableCatch('k', e, 'x'); } }",
       ].join('\n'),
       'functions/src/init.ts': 'initMonitoring(opts).catch((err) => logger.error(err));',
-      'functions/src/lease.ts': 'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch { return false; } }',
+      'functions/src/lease.ts':
+        'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch { return false; } }',
       'functions/src/work.test.ts': 'await ref.get().catch(() => null);',
     });
     const [guard] = swallowedReadWriteGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/work.ts', line: 4, detail: '.catch on ref.get() neither rethrows nor captures' },
-      { file: 'functions/src/work.ts', line: 5, detail: '.catch on ref.update(p) neither rethrows nor captures' },
-      { file: 'functions/src/work.ts', line: 2, detail: 'try/catch around a read or write in readIt neither rethrows, captures, nor records the failure' },
+      {
+        file: 'functions/src/work.ts',
+        line: 4,
+        detail: '.catch on ref.get() neither rethrows nor captures',
+      },
+      {
+        file: 'functions/src/work.ts',
+        line: 5,
+        detail: '.catch on ref.update(p) neither rethrows nor captures',
+      },
+      {
+        file: 'functions/src/work.ts',
+        line: 2,
+        detail:
+          'try/catch around a read or write in readIt neither rethrows, captures, nor records the failure',
+      },
     ]);
   });
 
   it('FLAGS a reviewed shape caught in a file it is not bound to', async () => {
     repo = backendRepo({
-      'functions/src/work.ts': 'async function j() { await rm(tmp, { force: true }).catch(() => undefined); const b = await res.json().catch(() => null); }',
+      'functions/src/work.ts':
+        'async function j() { await rm(tmp, { force: true }).catch(() => undefined); const b = await res.json().catch(() => null); }',
       'functions/src/other.ts': 'async function m() { await rm(record).catch(() => undefined); }',
       'functions/src/init.ts': 'initMonitoring(opts).catch((err) => logger.error(err));',
-      'functions/src/lease.ts': 'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch { return false; } }',
+      'functions/src/lease.ts':
+        'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch { return false; } }',
     });
     const [guard] = swallowedReadWriteGuard.build(facts);
-    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/other.ts', line: 1, detail: '.catch on rm(record) neither rethrows nor captures' }]);
+    expect(await repo.run(guard!)).toEqual([
+      {
+        file: 'functions/src/other.ts',
+        line: 1,
+        detail: '.catch on rm(record) neither rethrows nor captures',
+      },
+    ]);
   });
 
   it('FLAGS every reviewed shape and site that matches nothing', async () => {
     repo = backendRepo({
       'functions/src/init.ts': 'initMonitoring(opts).catch((err) => captureException(err));',
-      'functions/src/lease.ts': 'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch (e) { throw e; } }',
+      'functions/src/lease.ts':
+        'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch (e) { throw e; } }',
     });
     const [guard] = swallowedReadWriteGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/work.ts', detail: 'stale shape /^rm\\(/: no caught expression in this file matches it' },
-      { file: 'functions/src/work.ts', detail: 'stale shape /^res\\.(json|text)\\(\\)$/: no caught expression in this file matches it' },
-      { file: 'functions/src/init.ts', detail: 'stale catch site: no swallowing .catch on initMonitoring(' },
-      { file: 'functions/src/lease.ts', detail: 'stale try/catch site: leaseStillHeld keeps no failure' },
+      {
+        file: 'functions/src/work.ts',
+        detail: 'stale shape /^rm\\(/: no caught expression in this file matches it',
+      },
+      {
+        file: 'functions/src/work.ts',
+        detail:
+          'stale shape /^res\\.(json|text)\\(\\)$/: no caught expression in this file matches it',
+      },
+      {
+        file: 'functions/src/init.ts',
+        detail: 'stale catch site: no swallowing .catch on initMonitoring(',
+      },
+      {
+        file: 'functions/src/lease.ts',
+        detail: 'stale try/catch site: leaseStillHeld keeps no failure',
+      },
     ]);
   });
 
@@ -84,10 +140,17 @@ describe('no swallowed read or write', () => {
     expect(
       swallowedReadWriteGuard.factProblems({
         ...facts,
-        notReadOrWrite: [{ pattern: '^rm' as never, why: 'x' } as never, { file: '', pattern: /^rm/, why: 'x' }],
+        notReadOrWrite: [
+          { pattern: '^rm' as never, why: 'x' } as never,
+          { file: '', pattern: /^rm/, why: 'x' },
+        ],
         tryCatchSites: [{ file: 'functions/src/lease.ts', function: '', why: 'x' }],
       }),
-    ).toEqual(['an entry of notReadOrWrite names no file', 'an entry of notReadOrWrite names no file', 'tryCatchSites entry functions/src/lease.ts names no function']);
+    ).toEqual([
+      'an entry of notReadOrWrite names no file',
+      'an entry of notReadOrWrite names no file',
+      'tryCatchSites entry functions/src/lease.ts names no function',
+    ]);
   });
 });
 
@@ -97,8 +160,17 @@ describe('every post-commit side effect captures its failure', () => {
     marker: 'Post-commit side effect (non-blocking)',
     captureCalls: ['captureException', 'captureMessage'],
     helpers: [
-      { name: 'drainNow', file: 'functions/src/drain.ts', why: 'one immediate drain; the scheduled drain owns completion' },
-      { name: 'drainAll', file: 'functions/src/drain.ts', why: 'delegates to drainNow', delegates: true },
+      {
+        name: 'drainNow',
+        file: 'functions/src/drain.ts',
+        why: 'one immediate drain; the scheduled drain owns completion',
+      },
+      {
+        name: 'drainAll',
+        file: 'functions/src/drain.ts',
+        why: 'delegates to drainNow',
+        delegates: true,
+      },
     ],
   };
   const cleanDrain = [
@@ -142,13 +214,29 @@ describe('every post-commit side effect captures its failure', () => {
     });
     const [guard] = postCommitCaptureGuard.build({
       ...facts,
-      helpers: [...facts.helpers, { name: 'gone', file: 'functions/src/drain.ts', why: 'x' }, { name: 'elsewhere', file: 'functions/src/nope.ts', why: 'x' }],
+      helpers: [
+        ...facts.helpers,
+        { name: 'gone', file: 'functions/src/drain.ts', why: 'x' },
+        { name: 'elsewhere', file: 'functions/src/nope.ts', why: 'x' },
+      ],
     });
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/drain.ts', detail: 'reviewed helper drainNow: a leaf helper awaits before its try' },
-      { file: 'functions/src/drain.ts', detail: 'reviewed helper drainAll: a delegating helper calls risky' },
-      { file: 'functions/src/drain.ts', detail: 'reviewed helper gone: gone is not declared in it' },
-      { file: 'functions/src/nope.ts', detail: 'reviewed helper elsewhere: the file is gone or outside the Functions tree' },
+      {
+        file: 'functions/src/drain.ts',
+        detail: 'reviewed helper drainNow: a leaf helper awaits before its try',
+      },
+      {
+        file: 'functions/src/drain.ts',
+        detail: 'reviewed helper drainAll: a delegating helper calls risky',
+      },
+      {
+        file: 'functions/src/drain.ts',
+        detail: 'reviewed helper gone: gone is not declared in it',
+      },
+      {
+        file: 'functions/src/nope.ts',
+        detail: 'reviewed helper elsewhere: the file is gone or outside the Functions tree',
+      },
     ]);
   });
 
@@ -156,21 +244,34 @@ describe('every post-commit side effect captures its failure', () => {
     repo = backendRepo({ 'functions/src/drain.ts': cleanDrain });
     const [guard] = postCommitCaptureGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: '(marker)', detail: 'no file carries the marker "Post-commit side effect (non-blocking)", so the guard checks nothing' },
+      {
+        file: '(marker)',
+        detail:
+          'no file carries the marker "Post-commit side effect (non-blocking)", so the guard checks nothing',
+      },
     ]);
   });
 
   it('refuses a helper with no file and a missing marker', () => {
-    expect(postCommitCaptureGuard.factProblems({ ...facts, marker: '', helpers: [{ name: 'h', file: '', why: 'x' }] })).toEqual([
-      'marker is missing',
-      'helper h names no file',
-    ]);
+    expect(
+      postCommitCaptureGuard.factProblems({
+        ...facts,
+        marker: '',
+        helpers: [{ name: 'h', file: '', why: 'x' }],
+      }),
+    ).toEqual(['marker is missing', 'helper h names no file']);
   });
 });
 
 describe('a scheduled handler isolates its passes', () => {
   const facts = {
-    dependentUnits: [{ file: 'functions/src/deadline.ts', units: ['runEscalation', 'stampHeartbeat'], why: 'the heartbeat records that the pass succeeded' }],
+    dependentUnits: [
+      {
+        file: 'functions/src/deadline.ts',
+        units: ['runEscalation', 'stampHeartbeat'],
+        why: 'the heartbeat records that the pass succeeded',
+      },
+    ],
   };
 
   it('FLAGS two awaited passes in one try, a loop and a call included, and a reviewed file gains no cover for a second try; PASSES one unit per try and code outside a schedule', async () => {
@@ -195,8 +296,16 @@ describe('a scheduled handler isolates its passes', () => {
     });
     const [guard] = scheduledPassGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: 'functions/src/deadline.ts', line: 3, detail: 'one try awaits 2 passes: sweepA, sweepB' },
-      { file: 'functions/src/jobs.ts', line: 2, detail: 'one try awaits 2 passes: loop, sweepOthers' },
+      {
+        file: 'functions/src/deadline.ts',
+        line: 3,
+        detail: 'one try awaits 2 passes: sweepA, sweepB',
+      },
+      {
+        file: 'functions/src/jobs.ts',
+        line: 2,
+        detail: 'one try awaits 2 passes: loop, sweepOthers',
+      },
     ]);
   });
 
@@ -205,13 +314,19 @@ describe('a scheduled handler isolates its passes', () => {
     const [guard] = scheduledPassGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
       { file: '(functions)', detail: 'no onSchedule handler found, so the guard checks nothing' },
-      { file: 'functions/src/deadline.ts', detail: 'stale dependent-unit entry: functions/src/deadline.ts runEscalation, stampHeartbeat' },
+      {
+        file: 'functions/src/deadline.ts',
+        detail:
+          'stale dependent-unit entry: functions/src/deadline.ts runEscalation, stampHeartbeat',
+      },
     ]);
   });
 
   it('refuses an entry that names fewer than two units', () => {
-    expect(scheduledPassGuard.factProblems({ dependentUnits: [{ file: 'functions/src/a.ts', units: ['one'], why: 'x' }] })).toEqual([
-      'dependentUnits entry functions/src/a.ts names no second unit',
-    ]);
+    expect(
+      scheduledPassGuard.factProblems({
+        dependentUnits: [{ file: 'functions/src/a.ts', units: ['one'], why: 'x' }],
+      }),
+    ).toEqual(['dependentUnits entry functions/src/a.ts names no second unit']);
   });
 });

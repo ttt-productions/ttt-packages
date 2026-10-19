@@ -19,11 +19,21 @@ export interface WorkSectionPaths {
   /** The Work's live section collection (allWorkProjects/{wp}/workProject{Tales|Tunes|Television}). */
   readonly section: (workProjectId: string) => readonly [string, string, string];
   /** One section doc (the Tale / Tune / Television detail). */
-  readonly sectionDoc: (workProjectId: string, sectionId: string) => readonly [string, string, string, string];
+  readonly sectionDoc: (
+    workProjectId: string,
+    sectionId: string,
+  ) => readonly [string, string, string, string];
   /** The section's sub-item collection (taleChapters / tuneTracks / televisionEpisodes). */
-  readonly subItems: (workProjectId: string, sectionId: string) => readonly [string, string, string, string, string];
+  readonly subItems: (
+    workProjectId: string,
+    sectionId: string,
+  ) => readonly [string, string, string, string, string];
   /** One sub-item doc (chapter / track / episode). */
-  readonly subItem: (workProjectId: string, sectionId: string, subItemId: string) => readonly [string, string, string, string, string, string];
+  readonly subItem: (
+    workProjectId: string,
+    sectionId: string,
+    subItemId: string,
+  ) => readonly [string, string, string, string, string, string];
 }
 
 export const WORK_SECTION_PATHS_BY_TYPE: Record<WorkProjectType, WorkSectionPaths> = {

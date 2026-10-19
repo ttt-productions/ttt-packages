@@ -1,7 +1,12 @@
-import type * as React from "react";
-import type { MediaDiagnosticAdapter, AssetStatusHint } from "../recovery.js";
-import type { AudioVisualizerMode } from "../visualizer.js";
-import type { MediaViewerType, FallbackMode, MediaPlaybackControls, MediaProgressSampleReason } from "../types.js";
+import type * as React from 'react';
+import type { MediaDiagnosticAdapter, AssetStatusHint } from '../recovery.js';
+import type { AudioVisualizerMode } from '../visualizer.js';
+import type {
+  MediaViewerType,
+  FallbackMode,
+  MediaPlaybackControls,
+  MediaProgressSampleReason,
+} from '../types.js';
 
 /**
  * Additive, fully optional playback API shared by `VideoViewer` and
@@ -113,33 +118,35 @@ export type ImageViewerProps = BaseMediaProps & {
   preventGestures?: boolean;
 };
 
-export type VideoViewerProps = BaseMediaProps & MediaPlaybackProps & {
-  controls?: boolean;
-  autoPlay?: boolean;
-  muted?: boolean;
-  loop?: boolean;
-  posterUrl?: string;
-  enableFullscreen?: boolean;
-  unloadOnExit?: boolean;
-  preload?: "auto" | "metadata" | "none";
-  autoPlayOnVisible?: boolean;
-};
+export type VideoViewerProps = BaseMediaProps &
+  MediaPlaybackProps & {
+    controls?: boolean;
+    autoPlay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    posterUrl?: string;
+    enableFullscreen?: boolean;
+    unloadOnExit?: boolean;
+    preload?: 'auto' | 'metadata' | 'none';
+    autoPlayOnVisible?: boolean;
+  };
 
-export type AudioViewerProps = BaseMediaProps & MediaPlaybackProps & {
-  autoPlay?: boolean;
-  loop?: boolean;
-  preload?: "auto" | "metadata" | "none";
-  onLoadChange?: (isLoading: boolean) => void;
+export type AudioViewerProps = BaseMediaProps &
+  MediaPlaybackProps & {
+    autoPlay?: boolean;
+    loop?: boolean;
+    preload?: 'auto' | 'metadata' | 'none';
+    onLoadChange?: (isLoading: boolean) => void;
 
-  // AudioViewer always uses the package-owned control surface. Native browser
-  // audio controls are intentionally not part of the public contract.
-  /** Initial visualizer mode ("line" oscilloscope | "bars" EQ). A persisted user choice wins. */
-  visualizerMode?: AudioVisualizerMode;
-  /** localStorage key base for the minimize/mode prefs. `null` disables persistence. */
-  persistKey?: string | null;
-  /** App-injected action buttons rendered at the end of the player control row. */
-  extraActions?: React.ReactNode;
-};
+    // AudioViewer always uses the package-owned control surface. Native browser
+    // audio controls are intentionally not part of the public contract.
+    /** Initial visualizer mode ("line" oscilloscope | "bars" EQ). A persisted user choice wins. */
+    visualizerMode?: AudioVisualizerMode;
+    /** localStorage key base for the minimize/mode prefs. `null` disables persistence. */
+    persistKey?: string | null;
+    /** App-injected action buttons rendered at the end of the player control row. */
+    extraActions?: React.ReactNode;
+  };
 
 export type MediaPreviewProps = {
   url?: string | File | Blob | null;
@@ -158,7 +165,7 @@ export type MediaPreviewProps = {
   /** Image type only — forwarded to ImageViewer's click-to-zoom toggle (which
    *  defaults ON). Pass `false` to render a plain, non-zooming image surface.
    *  Ignored for video/audio/other types. */
-  enableZoom?: ImageViewerProps["enableZoom"];
+  enableZoom?: ImageViewerProps['enableZoom'];
   priority?: boolean;
   skeleton?: boolean;
   lazy?: boolean;
@@ -168,7 +175,7 @@ export type MediaPreviewProps = {
   muted?: boolean;
   loop?: boolean;
   posterUrl?: string;
-  preload?: "auto" | "metadata" | "none";
+  preload?: 'auto' | 'metadata' | 'none';
   autoPlayOnVisible?: boolean;
   onLoad?: () => void;
   onError?: () => void;
@@ -178,11 +185,11 @@ export type MediaPreviewProps = {
   // Playback API (additive, optional) — forwarded to the video/audio viewer.
   // Ignored for image/other types. See MediaPlaybackProps for the contract.
   // -------------------------------------------------------------------------
-  onEnded?: MediaPlaybackProps["onEnded"];
-  onProgressSample?: MediaPlaybackProps["onProgressSample"];
-  startAtSeconds?: MediaPlaybackProps["startAtSeconds"];
-  endOverlay?: MediaPlaybackProps["endOverlay"];
-  playbackControlsRef?: MediaPlaybackProps["playbackControlsRef"];
+  onEnded?: MediaPlaybackProps['onEnded'];
+  onProgressSample?: MediaPlaybackProps['onProgressSample'];
+  startAtSeconds?: MediaPlaybackProps['startAtSeconds'];
+  endOverlay?: MediaPlaybackProps['endOverlay'];
+  playbackControlsRef?: MediaPlaybackProps['playbackControlsRef'];
 
   // Audio always uses the package-owned player. These props customize that
   // single control surface and are ignored for every other media type.

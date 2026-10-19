@@ -15,12 +15,8 @@ describe('StakeShareOperationSchema', () => {
       expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
     it('rejects amount of 0 or negative', () => {
-      expect(() =>
-        StakeShareOperationSchema.parse({ type: 'add-pending', amount: 0 }),
-      ).toThrow();
-      expect(() =>
-        StakeShareOperationSchema.parse({ type: 'add-pending', amount: -1 }),
-      ).toThrow();
+      expect(() => StakeShareOperationSchema.parse({ type: 'add-pending', amount: 0 })).toThrow();
+      expect(() => StakeShareOperationSchema.parse({ type: 'add-pending', amount: -1 })).toThrow();
     });
     it('rejects sourceType as an unknown key (.strict)', () => {
       expect(() =>
@@ -88,9 +84,7 @@ describe('StakeShareOperationSchema', () => {
 
   describe('discriminator', () => {
     it('rejects unknown operation type', () => {
-      expect(() =>
-        StakeShareOperationSchema.parse({ type: 'delete-everything' }),
-      ).toThrow();
+      expect(() => StakeShareOperationSchema.parse({ type: 'delete-everything' })).toThrow();
     });
     it('rejects accept-proposalArtisan (removed operation)', () => {
       expect(() =>
@@ -103,9 +97,7 @@ describe('StakeShareOperationSchema', () => {
       ).toThrow();
     });
     it('rejects missing type field', () => {
-      expect(() =>
-        StakeShareOperationSchema.parse({ amount: 5 }),
-      ).toThrow();
+      expect(() => StakeShareOperationSchema.parse({ amount: 5 })).toThrow();
     });
   });
 
@@ -157,5 +149,3 @@ describe('ManageWorkProjectStakeSharesInputSchema', () => {
     ).toThrow();
   });
 });
-
-

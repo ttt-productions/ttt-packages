@@ -103,7 +103,10 @@ export type StatsDiscrepancy = z.infer<typeof StatsDiscrepancySchema>;
 
 export const StatsValidationScopeSchema = z
   .strictObject({ gameId: gameIdSchema.optional(), leagueId: leagueIdSchema.optional() })
-  .refine((scope) => scope.gameId === undefined || scope.leagueId === undefined, 'One game or one league, not both.');
+  .refine(
+    (scope) => scope.gameId === undefined || scope.leagueId === undefined,
+    'One game or one league, not both.',
+  );
 export type StatsValidationScope = z.infer<typeof StatsValidationScopeSchema>;
 
 export const StatsValidationSummarySchema = z.strictObject({

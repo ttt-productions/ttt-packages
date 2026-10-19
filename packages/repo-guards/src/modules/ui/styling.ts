@@ -6,7 +6,12 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { reviewedAllowlist, type AllowlistEntry, type Hit, type Matcher } from '../../shapes/shapes.js';
+import {
+  reviewedAllowlist,
+  type AllowlistEntry,
+  type Hit,
+  type Matcher,
+} from '../../shapes/shapes.js';
 import { cssBlocks, selectorsOf, subjectCompound } from './css.js';
 import { allowlistProblems, objectProblem, pathProblem } from '../../support/facts.js';
 import { bareToken, codeStrings, tokensOf } from './source.js';
@@ -23,14 +28,21 @@ const tsx = (text: string) => ({ path: 'sample.tsx', text });
 function patternHits(file: FileView, patterns: readonly RegExp[]): Hit[] {
   const hits: Hit[] = [];
   for (const pattern of patterns) {
-    const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
-    for (let m = re.exec(file.code); m; m = re.exec(file.code)) hits.push({ index: m.index, detail: m[0] });
+    const re = new RegExp(
+      pattern.source,
+      pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`,
+    );
+    for (let m = re.exec(file.code); m; m = re.exec(file.code))
+      hits.push({ index: m.index, detail: m[0] });
   }
   return hits.sort((a, b) => a.index - b.index);
 }
 
 /** Hits for every token of every string the code writes that `test` picks out. */
-function tokenHits(file: FileView, test: (token: string, tokens: readonly string[]) => boolean): Hit[] {
+function tokenHits(
+  file: FileView,
+  test: (token: string, tokens: readonly string[]) => boolean,
+): Hit[] {
   if (file.kind !== 'code') return [];
   const hits: Hit[] = [];
   for (const { text, index } of codeStrings(file)) {
@@ -42,7 +54,8 @@ function tokenHits(file: FileView, test: (token: string, tokens: readonly string
 
 // ---- color literals -----------------------------------------------------------------------------
 
-const PALETTE_PREFIX = 'text|bg|border|ring|from|via|to|fill|stroke|decoration|outline|divide|placeholder|caret|accent|shadow';
+const PALETTE_PREFIX =
+  'text|bg|border|ring|from|via|to|fill|stroke|decoration|outline|divide|placeholder|caret|accent|shadow';
 const PALETTE_HUE =
   'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|grey|zinc|neutral|stone';
 const COLOR_LITERALS = [
@@ -62,7 +75,8 @@ export const colorLiteralsGuard: GenericGuardDefinition<ColorLiteralFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (objectProblem(facts, 'facts', problems)) allowlistProblems(facts.exceptions, 'exceptions', problems);
+    if (objectProblem(facts, 'facts', problems))
+      allowlistProblems(facts.exceptions, 'exceptions', problems);
     return problems;
   },
   build(facts) {
@@ -108,7 +122,8 @@ export function declaredScaleClasses(sheet: FileView): string[] {
 }
 
 /** Every scale class token a string in the code names. */
-export const usedScaleClasses: Matcher = (file) => tokenHits(file, (token) => SCALE_CLASS.test(bareToken(token)));
+export const usedScaleClasses: Matcher = (file) =>
+  tokenHits(file, (token) => SCALE_CLASS.test(bareToken(token)));
 
 export interface EntryStylesheetFacts {
   /** The one stylesheet the app loads, repo-relative. */
@@ -120,13 +135,15 @@ export const scaleClassesGuard: GenericGuardDefinition<EntryStylesheetFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (objectProblem(facts, 'facts', problems)) pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
+    if (objectProblem(facts, 'facts', problems))
+      pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
     return problems;
   },
   build(facts): Guard[] {
     return [
       {
-        title: 'every stack-*, icon-*, and spinner-* class app code uses is declared by a loaded stylesheet',
+        title:
+          'every stack-*, icon-*, and spinner-* class app code uses is declared by a loaded stylesheet',
         description:
           'The stack-*, icon-* and spinner-* scales are semantic classes, not Tailwind utilities, so nothing flags a step ' +
           'nobody declares: an undeclared one renders as nothing and reads as a working class. Use a step a stylesheet ' +
@@ -134,11 +151,20 @@ export const scaleClassesGuard: GenericGuardDefinition<EntryStylesheetFacts> = {
         run(context) {
           const { sheets, findings } = loadedStylesheets(context, facts.entryStylesheet);
           const defined = new Set(sheets.flatMap(({ file }) => declaredScaleClasses(file)));
-          if (!defined.size) findings.push({ file: facts.entryStylesheet, detail: 'no loaded stylesheet declares a scale class, so nothing could be checked' });
+          if (!defined.size)
+            findings.push({
+              file: facts.entryStylesheet,
+              detail: 'no loaded stylesheet declares a scale class, so nothing could be checked',
+            });
           for (const file of context.files(APP_CODE)) {
             for (const hit of usedScaleClasses(file)) {
               const name = bareToken(hit.detail ?? '');
-              if (!defined.has(name)) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `${name} is declared by no loaded stylesheet` });
+              if (!defined.has(name))
+                findings.push({
+                  file: file.path,
+                  line: file.lineOf(hit.index),
+                  detail: `${name} is declared by no loaded stylesheet`,
+                });
             }
           }
           return findings;
@@ -178,8 +204,14 @@ export const statusForegroundGuard: GenericGuardDefinition<Record<string, never>
         match: tintedStatusForegrounds,
         allowlist: [],
         samples: {
-          flags: [tsx('<p className="center-row text-warning-foreground bg-warning/10" />'), tsx("cn('hover:text-destructive-foreground bg-destructive')")],
-          passes: [tsx('<p className="bg-success text-success-foreground" />'), tsx("cn('hover:bg-destructive hover:text-destructive-foreground')")],
+          flags: [
+            tsx('<p className="center-row text-warning-foreground bg-warning/10" />'),
+            tsx("cn('hover:text-destructive-foreground bg-destructive')"),
+          ],
+          passes: [
+            tsx('<p className="bg-success text-success-foreground" />'),
+            tsx("cn('hover:bg-destructive hover:text-destructive-foreground')"),
+          ],
         },
       }),
     ];
@@ -189,7 +221,8 @@ export const statusForegroundGuard: GenericGuardDefinition<Record<string, never>
 // ---- shadow ownership --------------------------------------------------------------------------
 
 const normalizeShadow = (value: string) => value.replace(/\s+/g, ' ').trim();
-const pairedTwShadow = (value: string) => (normalizeShadow(value) === 'none' ? '0 0 transparent' : normalizeShadow(value));
+const pairedTwShadow = (value: string) =>
+  normalizeShadow(value) === 'none' ? '0 0 transparent' : normalizeShadow(value);
 
 /** Every box-shadow declaration whose block does not set the identical --tw-shadow. */
 export const unpairedShadows: Matcher = (file) => {
@@ -200,7 +233,10 @@ export const unpairedShadows: Matcher = (file) => {
     for (const d of block.declarations) {
       if (d.property !== 'box-shadow') continue;
       if (tw === undefined || normalizeShadow(tw) !== pairedTwShadow(d.value)) {
-        hits.push({ index: d.index, detail: `box-shadow: ${d.value} — --tw-shadow: ${tw ?? '(missing)'}` });
+        hits.push({
+          index: d.index,
+          detail: `box-shadow: ${d.value} — --tw-shadow: ${tw ?? '(missing)'}`,
+        });
       }
     }
   }
@@ -213,7 +249,8 @@ const SHADOW_UTILITY = (() => {
   const sized = String.raw`-(?:2xs|xs|sm|md|lg|xl|2xl|inner|\[[^\]]+\]|\([^)]+\))`;
   return new RegExp(`^(?:${variants}*${shadow}${sized}|${variants}+${shadow})$`);
 })();
-export const shadowUtilities: Matcher = (file) => tokenHits(file, (token) => SHADOW_UTILITY.test(token));
+export const shadowUtilities: Matcher = (file) =>
+  tokenHits(file, (token) => SHADOW_UTILITY.test(token));
 
 export const shadowOwnershipGuard: GenericGuardDefinition<Record<string, never>> = {
   id: 'shadowOwnership',
@@ -235,8 +272,18 @@ export const shadowOwnershipGuard: GenericGuardDefinition<Record<string, never>>
         match: unpairedShadows,
         allowlist: [],
         samples: {
-          flags: [css('.a {\n  box-shadow: 0 0 1rem hsl(var(--ring) / 0.24);\n}'), css('.a { --tw-shadow: 0 0 1rem red; box-shadow: 0 0 2rem red; }'), css('.a { --tw-shadow: none; box-shadow: none; }')],
-          passes: [css('.a { --tw-shadow: 0 0 1rem hsl(var(--ring)); box-shadow: 0 0 1rem hsl(var(--ring)); }'), css('.a { --tw-shadow: 0 0 transparent; box-shadow: none; }'), css('.a { transition: box-shadow var(--motion-fast) var(--motion-ease); }')],
+          flags: [
+            css('.a {\n  box-shadow: 0 0 1rem hsl(var(--ring) / 0.24);\n}'),
+            css('.a { --tw-shadow: 0 0 1rem red; box-shadow: 0 0 2rem red; }'),
+            css('.a { --tw-shadow: none; box-shadow: none; }'),
+          ],
+          passes: [
+            css(
+              '.a { --tw-shadow: 0 0 1rem hsl(var(--ring)); box-shadow: 0 0 1rem hsl(var(--ring)); }',
+            ),
+            css('.a { --tw-shadow: 0 0 transparent; box-shadow: none; }'),
+            css('.a { transition: box-shadow var(--motion-fast) var(--motion-ease); }'),
+          ],
         },
       }),
       reviewedAllowlist({
@@ -249,8 +296,14 @@ export const shadowOwnershipGuard: GenericGuardDefinition<Record<string, never>>
         match: shadowUtilities,
         allowlist: [],
         samples: {
-          flags: [tsx('<Card className="w-full shadow-md rounded-xl" />'), tsx("cn('hover:shadow', 'md:shadow-[0_0_4px_red]', 'drop-shadow-sm')")],
-          passes: [tsx('<Card className="border-none shadow-none" />'), tsx("const label = 'a little shadow hatching';")],
+          flags: [
+            tsx('<Card className="w-full shadow-md rounded-xl" />'),
+            tsx("cn('hover:shadow', 'md:shadow-[0_0_4px_red]', 'drop-shadow-sm')"),
+          ],
+          passes: [
+            tsx('<Card className="border-none shadow-none" />'),
+            tsx("const label = 'a little shadow hatching';"),
+          ],
         },
       }),
     ];
@@ -262,7 +315,10 @@ export const shadowOwnershipGuard: GenericGuardDefinition<Record<string, never>>
 export const horizontalStacks: Matcher = (file) =>
   tokenHits(file, (token, tokens) => {
     if (!/^stack-\d+$/.test(bareToken(token))) return false;
-    const row = (tokens.includes('flex') || tokens.includes('inline-flex')) && !tokens.includes('flex-col') && !tokens.includes('flex-col-reverse');
+    const row =
+      (tokens.includes('flex') || tokens.includes('inline-flex')) &&
+      !tokens.includes('flex-col') &&
+      !tokens.includes('flex-col-reverse');
     return row;
   });
 
@@ -285,8 +341,15 @@ export const stackRowsGuard: GenericGuardDefinition<Record<string, never>> = {
         match: horizontalStacks,
         allowlist: [],
         samples: {
-          flags: [tsx('<div className="flex items-center stack-2" />'), tsx('<label className="inline-flex md:stack-3" />')],
-          passes: [tsx('<div className="flex flex-col stack-2" />'), tsx('<div className="stack-4" />'), tsx('<div className="flex gap-2" />')],
+          flags: [
+            tsx('<div className="flex items-center stack-2" />'),
+            tsx('<label className="inline-flex md:stack-3" />'),
+          ],
+          passes: [
+            tsx('<div className="flex flex-col stack-2" />'),
+            tsx('<div className="stack-4" />'),
+            tsx('<div className="flex gap-2" />'),
+          ],
         },
       }),
     ];
@@ -306,8 +369,12 @@ export const affordanceOnUnavailable: Matcher = (file) => {
   const hits: Hit[] = [];
   for (const block of cssBlocks(file.code)) {
     if (block.atRule) continue;
-    const pointer = block.declarations.some((d) => d.property === 'cursor' && /^pointer\b/.test(d.value));
-    const transform = block.declarations.some((d) => d.property === 'transform' || d.property === 'scale' || d.property === 'translate');
+    const pointer = block.declarations.some(
+      (d) => d.property === 'cursor' && /^pointer\b/.test(d.value),
+    );
+    const transform = block.declarations.some(
+      (d) => d.property === 'transform' || d.property === 'scale' || d.property === 'translate',
+    );
     for (const selector of selectorsOf(block)) {
       const press = transform && selector.includes(':active');
       if (!pointer && !press) continue;
@@ -319,7 +386,11 @@ export const affordanceOnUnavailable: Matcher = (file) => {
       const missing: string[] = [];
       if (typeButton && !EXCLUDES_DISABLED.test(subject)) missing.push(':not(:disabled)');
       if (!EXCLUDES_ARIA_DISABLED.test(subject)) missing.push(":not([aria-disabled='true'])");
-      if (missing.length) hits.push({ index: block.index, detail: `${selector} gives the ${press ? 'press effect' : 'pointer cursor'} without ${missing.join(' and ')}` });
+      if (missing.length)
+        hits.push({
+          index: block.index,
+          detail: `${selector} gives the ${press ? 'press effect' : 'pointer cursor'} without ${missing.join(' and ')}`,
+        });
     }
   }
   return hits;
@@ -338,17 +409,25 @@ export const unavailableAffordanceGuard: GenericGuardDefinition<Record<string, n
       reviewedAllowlist({
         title: 'an unavailable control never wears the clickable affordance',
         description:
-          "A pending control is aria-disabled and never natively disabled (it keeps focus), so an app rule that gives a " +
+          'A pending control is aria-disabled and never natively disabled (it keeps focus), so an app rule that gives a ' +
           "button the pointer cursor or a press effect excludes :disabled AND [aria-disabled='true'] (a [role=button] " +
           'element excludes the second); otherwise a control that ignores activation still looks pressable.',
         scope: APP_STYLES,
         match: affordanceOnUnavailable,
         allowlist: [],
         samples: {
-          flags: [css('button:not(:disabled) { cursor: pointer; }'), css(':is(button, a).btn:active:not(:disabled) { transform: scale(0.97); }'), css("[role='button'] { cursor: pointer; }")],
+          flags: [
+            css('button:not(:disabled) { cursor: pointer; }'),
+            css(':is(button, a).btn:active:not(:disabled) { transform: scale(0.97); }'),
+            css("[role='button'] { cursor: pointer; }"),
+          ],
           passes: [
-            css("button:not(:disabled):not([aria-disabled='true']), [role='button']:not([aria-disabled='true']), summary { cursor: pointer; }"),
-            css(":is(button, a).btn:active:not(:disabled):not([aria-disabled='true']) { transform: scale(0.97); }"),
+            css(
+              "button:not(:disabled):not([aria-disabled='true']), [role='button']:not([aria-disabled='true']), summary { cursor: pointer; }",
+            ),
+            css(
+              ":is(button, a).btn:active:not(:disabled):not([aria-disabled='true']) { transform: scale(0.97); }",
+            ),
             css('.coin { cursor: pointer; }'),
           ],
         },
@@ -359,5 +438,11 @@ export const unavailableAffordanceGuard: GenericGuardDefinition<Record<string, n
 
 /** Findings for a file-level matcher run over a scope, for guards that run one directly. */
 export function scopeFindings(files: readonly FileView[], match: Matcher, prefix = ''): Finding[] {
-  return files.flatMap((file) => match(file).map((hit) => ({ file: file.path, line: file.lineOf(hit.index), detail: `${prefix}${hit.detail ?? ''}` })));
+  return files.flatMap((file) =>
+    match(file).map((hit) => ({
+      file: file.path,
+      line: file.lineOf(hit.index),
+      detail: `${prefix}${hit.detail ?? ''}`,
+    })),
+  );
 }

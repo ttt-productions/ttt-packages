@@ -40,8 +40,12 @@ describe('DEFAULT_APP_CONFIG — _appConfig/app at rest', () => {
     // VersionGate skips a falsy `appVersion`; any other default would reload every browser that
     // stored a different version before the doc was recreated.
     expect(DEFAULT_APP_CONFIG.appVersion).toBe('');
-    expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: '' } }).success).toBe(false);
-    expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: '1.0.1' } }).success).toBe(true);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: '' } }).success,
+    ).toBe(false);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: '1.0.1' } }).success,
+    ).toBe(true);
   });
 
   it('carries no public-document version block — that is absent until the first release', () => {
@@ -78,71 +82,125 @@ describe('mergeAppConfigUpdate — the one rule for writing _appConfig/app', () 
   });
 
   it('the admin card never sends appVersion, and still writes a complete doc onto a missing one', () => {
-    const { next: doc } = mergeAppConfigUpdate(null, { maintenanceMode: true, maintenanceMessage: 'Back soon.' });
-    expect(doc).toEqual({ ...DEFAULT_APP_CONFIG, maintenanceMode: true, maintenanceMessage: 'Back soon.' });
+    const { next: doc } = mergeAppConfigUpdate(null, {
+      maintenanceMode: true,
+      maintenanceMessage: 'Back soon.',
+    });
+    expect(doc).toEqual({
+      ...DEFAULT_APP_CONFIG,
+      maintenanceMode: true,
+      maintenanceMessage: 'Back soon.',
+    });
   });
 
   it('keeps every field already on the doc that the update does not name', () => {
-    const existing = { appVersion: '1.4.2', maintenanceMode: false, registrationEnabled: false, publicDocumentVersions: block };
+    const existing = {
+      appVersion: '1.4.2',
+      maintenanceMode: false,
+      registrationEnabled: false,
+      publicDocumentVersions: block,
+    };
     const { next: doc } = mergeAppConfigUpdate(existing, { announcementMessage: 'Tonight at 9.' });
-    expect(doc).toEqual({ ...DEFAULT_APP_CONFIG, ...existing, announcementMessage: 'Tonight at 9.' });
+    expect(doc).toEqual({
+      ...DEFAULT_APP_CONFIG,
+      ...existing,
+      announcementMessage: 'Tonight at 9.',
+    });
   });
 
   it('the update wins over the doc, and an undefined update field changes nothing', () => {
     const existing = { appVersion: '1.4.2', maintenanceMode: true, registrationEnabled: true };
-    const { next: doc } = mergeAppConfigUpdate(existing, { appVersion: '1.4.3', maintenanceMode: undefined });
+    const { next: doc } = mergeAppConfigUpdate(existing, {
+      appVersion: '1.4.3',
+      maintenanceMode: undefined,
+    });
     expect(doc.appVersion).toBe('1.4.3');
     expect(doc.maintenanceMode).toBe(true);
   });
 
   it('heals a doc an earlier bare merge left without its required fields', () => {
-    const { next: doc } = mergeAppConfigUpdate({ publicDocumentVersions: block }, { registrationEnabled: false });
-    expect(doc).toEqual({ ...DEFAULT_APP_CONFIG, registrationEnabled: false, publicDocumentVersions: block });
+    const { next: doc } = mergeAppConfigUpdate(
+      { publicDocumentVersions: block },
+      { registrationEnabled: false },
+    );
+    expect(doc).toEqual({
+      ...DEFAULT_APP_CONFIG,
+      registrationEnabled: false,
+      publicDocumentVersions: block,
+    });
   });
 
   it('refuses an invalid update, naming the field', () => {
-    expect(() => mergeAppConfigUpdate(undefined, { rateLimitMultiplier: 2 })).toThrow(/rateLimitMultiplier/);
+    expect(() => mergeAppConfigUpdate(undefined, { rateLimitMultiplier: 2 })).toThrow(
+      /rateLimitMultiplier/,
+    );
   });
 
   it('turns maintenance on over a refused stored version, resetting the unsent version to unpublished', () => {
-    const { next, repairs } = mergeAppConfigUpdate({ appVersion: 7, registrationEnabled: false }, { maintenanceMode: true });
-    expect(next).toEqual({ ...DEFAULT_APP_CONFIG, registrationEnabled: false, maintenanceMode: true });
+    const { next, repairs } = mergeAppConfigUpdate(
+      { appVersion: 7, registrationEnabled: false },
+      { maintenanceMode: true },
+    );
+    expect(next).toEqual({
+      ...DEFAULT_APP_CONFIG,
+      registrationEnabled: false,
+      maintenanceMode: true,
+    });
     expect(repairs).toEqual([{ lever: 'appVersion', storedValue: 7 }]);
   });
 
   it('replaces a refused stored lever with the value the update sends, and still reports the repair', () => {
-    const { next, repairs } = mergeAppConfigUpdate({ rateLimitMultiplier: 'fast' }, { rateLimitMultiplier: 0.5 });
+    const { next, repairs } = mergeAppConfigUpdate(
+      { rateLimitMultiplier: 'fast' },
+      { rateLimitMultiplier: 0.5 },
+    );
     expect(next.rateLimitMultiplier).toBe(0.5);
     expect(repairs).toEqual([{ lever: 'rateLimitMultiplier', storedValue: 'fast' }]);
   });
 
   it('reports no repair when every stored lever is valid', () => {
-    expect(mergeAppConfigUpdate({ appVersion: '1.0.0' }, { maintenanceMode: true }).repairs).toEqual([]);
+    expect(
+      mergeAppConfigUpdate({ appVersion: '1.0.0' }, { maintenanceMode: true }).repairs,
+    ).toEqual([]);
   });
 
   it('turns maintenance on over a refused stored version block, leaving the block for the writer to keep as it is', () => {
-    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate({ publicDocumentVersions: 'v2' }, { maintenanceMode: true });
+    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate(
+      { publicDocumentVersions: 'v2' },
+      { maintenanceMode: true },
+    );
     expect(keepsStoredVersionBlock).toBe(true);
     expect(next).toEqual({ ...DEFAULT_APP_CONFIG, maintenanceMode: true });
     expect('publicDocumentVersions' in next).toBe(false);
   });
 
   it('an update that sends a version block replaces a refused stored one', () => {
-    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate({ publicDocumentVersions: 'v2' }, { publicDocumentVersions: block });
+    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate(
+      { publicDocumentVersions: 'v2' },
+      { publicDocumentVersions: block },
+    );
     expect(keepsStoredVersionBlock).toBe(false);
     expect(next.publicDocumentVersions).toEqual(block);
   });
 
   it('a valid stored version block is carried in the written doc, never left to a merge', () => {
-    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate({ publicDocumentVersions: block }, { maintenanceMode: true });
+    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate(
+      { publicDocumentVersions: block },
+      { maintenanceMode: true },
+    );
     expect(keepsStoredVersionBlock).toBe(false);
     expect(next.publicDocumentVersions).toEqual(block);
   });
 
   it('writes a maintenance message up to its cap, and refuses one over it', () => {
     const atCap = 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH);
-    expect(mergeAppConfigUpdate(undefined, { maintenanceMode: true, maintenanceMessage: atCap }).next.maintenanceMessage).toBe(atCap);
-    expect(() => mergeAppConfigUpdate(undefined, { maintenanceMessage: `${atCap}m` })).toThrow(/maintenanceMessage/);
+    expect(
+      mergeAppConfigUpdate(undefined, { maintenanceMode: true, maintenanceMessage: atCap }).next
+        .maintenanceMessage,
+    ).toBe(atCap);
+    expect(() => mergeAppConfigUpdate(undefined, { maintenanceMessage: `${atCap}m` })).toThrow(
+      /maintenanceMessage/,
+    );
   });
 
   it('repairs an over-cap text lever already on the doc instead of refusing the save', () => {
@@ -203,8 +261,16 @@ describe('readAppConfigLever — the one rule for reading a lever off the untrus
   it.each<[string, AppConfigLeverKey, unknown]>([
     ['a number for the maintenance message', 'maintenanceMessage', 42],
     ['null for the maintenance message', 'maintenanceMessage', null],
-    ['an over-cap maintenance message', 'maintenanceMessage', 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1)],
-    ['an over-cap announcement', 'announcementMessage', 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH + 1)],
+    [
+      'an over-cap maintenance message',
+      'maintenanceMessage',
+      'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1),
+    ],
+    [
+      'an over-cap announcement',
+      'announcementMessage',
+      'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH + 1),
+    ],
     ['an over-cap app version', 'appVersion', '1'.repeat(MAX_APP_VERSION_LENGTH + 1)],
     ['a number for the app version', 'appVersion', 7],
     ['the string "true" for the kill switch', 'maintenanceMode', 'true'],
@@ -222,7 +288,9 @@ describe('readAppConfigLever — the one rule for reading a lever off the untrus
     const message = 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH);
     const announcement = 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH);
     expect(readAppConfigLever({ maintenanceMessage: message }, 'maintenanceMessage')).toBe(message);
-    expect(readAppConfigLever({ announcementMessage: announcement }, 'announcementMessage')).toBe(announcement);
+    expect(readAppConfigLever({ announcementMessage: announcement }, 'announcementMessage')).toBe(
+      announcement,
+    );
   });
 });
 
@@ -265,7 +333,10 @@ describe('readAppConfigLevers — every lever through the one read rule', () => 
     ['a boolean', true],
     ['an array', [true, 'x']],
     ['a function', () => ({ maintenanceMode: true })],
-    ['a nested junk object', { maintenanceMode: { on: true }, maintenanceMessage: ['x'], rateLimitMultiplier: {} }],
+    [
+      'a nested junk object',
+      { maintenanceMode: { on: true }, maintenanceMessage: ['x'], rateLimitMultiplier: {} },
+    ],
     ['an object with no prototype', Object.create(null)],
   ])('never throws on %s, and answers only schema-valid levers', (_label, junk) => {
     let levers: ReturnType<typeof readAppConfigLevers> | undefined;

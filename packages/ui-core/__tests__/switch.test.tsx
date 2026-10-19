@@ -59,7 +59,9 @@ describe('Switch', () => {
 
   it('pending and disabled: keeps focus and toggles nothing while pending, and disables once pending ends', () => {
     const onCheckedChange = vi.fn();
-    const { container, rerender } = render(<Switch checked={false} onCheckedChange={onCheckedChange} />);
+    const { container, rerender } = render(
+      <Switch checked={false} onCheckedChange={onCheckedChange} />,
+    );
     const root = container.querySelector('button') as HTMLButtonElement;
     root.focus();
     rerender(<Switch checked={false} onCheckedChange={onCheckedChange} pending disabled />);

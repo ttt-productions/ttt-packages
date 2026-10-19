@@ -6,7 +6,9 @@ import * as docSchemasBarrel from '../src/doc-schemas/index.js';
 
 describe('retained child-safety case list', () => {
   it('is exported from the schemas entry point', () => {
-    expect(schemasBarrel.ListRetainedChildSafetyCasesInputSchema).toBe(ListRetainedChildSafetyCasesInputSchema);
+    expect(schemasBarrel.ListRetainedChildSafetyCasesInputSchema).toBe(
+      ListRetainedChildSafetyCasesInputSchema,
+    );
   });
 });
 

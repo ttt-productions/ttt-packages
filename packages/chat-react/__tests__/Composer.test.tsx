@@ -62,16 +62,20 @@ describe('Composer send failure (C-B8)', () => {
 
 describe('Composer navigation-guard registration (in-flight send)', () => {
   it('registers with the LocalUploadGuard while a send is in flight and unregisters when it settles', async () => {
-    const { LocalUploadGuardProvider, useLocalUploadGuard } = await import(
-      '@ttt-productions/upload-ui/react/guard'
-    );
+    const { LocalUploadGuardProvider, useLocalUploadGuard } =
+      await import('@ttt-productions/upload-ui/react/guard');
     function GuardCountProbe() {
       const { activeUploadCount } = useLocalUploadGuard();
       return <div data-testid="guard-count">{activeUploadCount}</div>;
     }
 
     let resolveSend: () => void = () => {};
-    const onSend = vi.fn(() => new Promise<void>((res) => { resolveSend = res; }));
+    const onSend = vi.fn(
+      () =>
+        new Promise<void>((res) => {
+          resolveSend = res;
+        }),
+    );
 
     render(
       <LocalUploadGuardProvider>
@@ -86,7 +90,9 @@ describe('Composer navigation-guard registration (in-flight send)', () => {
     // Registered for the whole in-flight window — this is what a navigation would abort.
     expect(screen.getByTestId('guard-count').textContent).toBe('1');
 
-    await act(async () => { resolveSend(); });
+    await act(async () => {
+      resolveSend();
+    });
     expect(screen.getByTestId('guard-count').textContent).toBe('0');
   });
 
@@ -122,7 +128,9 @@ describe('Composer enforces the one chat text bound', () => {
   it('sends the text trimmed, as the Worker stores it', async () => {
     const onSend = vi.fn().mockResolvedValue(undefined);
     render(<Composer onSend={onSend} />);
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  line one\nline two  \n' } });
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '  line one\nline two  \n' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
     await act(async () => {});
     expect(onSend).toHaveBeenCalledWith('line one\nline two');

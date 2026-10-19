@@ -76,11 +76,7 @@ export async function signInternalRequest(
 }
 
 export type InternalVerifyFailure =
-  | 'bad-version'
-  | 'bad-timestamp'
-  | 'expired'
-  | 'future'
-  | 'bad-signature';
+  'bad-version' | 'bad-timestamp' | 'expired' | 'future' | 'bad-signature';
 
 export type InternalVerifyResult = { ok: true } | { ok: false; reason: InternalVerifyFailure };
 
@@ -142,7 +138,12 @@ export function precheckInternalHeaders(
 ): InternalPrecheckResult {
   const version = headers.get(INTERNAL_AUTH_OPERATION_VERSION_HEADER);
   const timestampSec = parseTimestampHeader(headers.get(INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER));
-  const check = checkVersionAndWindow(version, timestampSec, options.nowSec, options.replayWindowSec);
+  const check = checkVersionAndWindow(
+    version,
+    timestampSec,
+    options.nowSec,
+    options.replayWindowSec,
+  );
   if (!check.ok) return check;
   return { ok: true, version: SIGNING_VERSION, timestampSec };
 }
@@ -152,7 +153,12 @@ export async function verifyInternalRequest(
   input: InternalVerifyInput,
   secret: string,
 ): Promise<InternalVerifyResult> {
-  const check = checkVersionAndWindow(input.version, input.timestampSec, input.nowSec, input.replayWindowSec);
+  const check = checkVersionAndWindow(
+    input.version,
+    input.timestampSec,
+    input.nowSec,
+    input.replayWindowSec,
+  );
   if (!check.ok) return check;
 
   const sigBytes = b64urlToBytes(input.signature);

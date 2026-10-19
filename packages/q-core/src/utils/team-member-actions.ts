@@ -42,7 +42,10 @@ export interface TeamMemberActions {
 
 const NONE: TeamMemberActions = { promote: false, demote: false, remove: false };
 
-export function teamMemberActions(actor: TeamMemberActor, target: TeamMemberTarget): TeamMemberActions {
+export function teamMemberActions(
+  actor: TeamMemberActor,
+  target: TeamMemberTarget,
+): TeamMemberActions {
   if (target.role === TEAM_CAPTAIN_ROLE) return NONE;
   const managesCoCaptains = actor === TEAM_MEMBER_ADMIN_ACTOR || actor === TEAM_CAPTAIN_ROLE;
   return {

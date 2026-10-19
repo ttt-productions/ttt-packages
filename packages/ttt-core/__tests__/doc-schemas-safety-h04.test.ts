@@ -7,7 +7,10 @@
 // intake opens a protected case with the immutable locator preserved, never downgrading to ordinary.
 
 import { describe, it, expect } from 'vitest';
-import { TargetLocatorV1Schema, TargetLocatorKindSchema } from '../src/doc-schemas/safety/foundation.js';
+import {
+  TargetLocatorV1Schema,
+  TargetLocatorKindSchema,
+} from '../src/doc-schemas/safety/foundation.js';
 import {
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
@@ -254,7 +257,9 @@ describe('ChildSafetyCaseListV1 — no initial-review deadline', () => {
   });
 
   it('rejects a case that still carries a review due date', () => {
-    expect(ChildSafetyCaseListV1Schema.safeParse({ ...BASE_CASE_LIST_DOC, reviewDueAt: 2000 }).success).toBe(false);
+    expect(
+      ChildSafetyCaseListV1Schema.safeParse({ ...BASE_CASE_LIST_DOC, reviewDueAt: 2000 }).success,
+    ).toBe(false);
   });
 
   it('no monitor kind is an initial-review deadline', () => {

@@ -44,7 +44,9 @@ describe('UserSiteTourStateSchema', () => {
   it('rejects a malformed notTodayDate (strict YYYY-MM-DD)', () => {
     expect(UserSiteTourStateSchema.safeParse({ notTodayDate: '2026-7-20' }).success).toBe(false);
     expect(UserSiteTourStateSchema.safeParse({ notTodayDate: '07/20/2026' }).success).toBe(false);
-    expect(UserSiteTourStateSchema.safeParse({ notTodayDate: '2026-07-20T00:00:00Z' }).success).toBe(false);
+    expect(
+      UserSiteTourStateSchema.safeParse({ notTodayDate: '2026-07-20T00:00:00Z' }).success,
+    ).toBe(false);
     expect(UserSiteTourStateSchema.safeParse({ notTodayDate: 20260720 }).success).toBe(false);
   });
 
@@ -53,7 +55,10 @@ describe('UserSiteTourStateSchema', () => {
   });
 
   it('strips unknown keys (non-strict, matching the privateData sub-object convention)', () => {
-    const parsed = UserSiteTourStateSchema.parse({ completedVersion: 1, bogus: 'x' } as Record<string, unknown>);
+    const parsed = UserSiteTourStateSchema.parse({ completedVersion: 1, bogus: 'x' } as Record<
+      string,
+      unknown
+    >);
     expect(parsed).toEqual({ completedVersion: 1 });
   });
 });

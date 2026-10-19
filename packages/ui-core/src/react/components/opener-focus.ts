@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 
 interface OpenerFocusHandlers {
-  onOpenAutoFocus?: (event: Event) => void
-  onCloseAutoFocus?: (event: Event) => void
+  onOpenAutoFocus?: (event: Event) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 /**
@@ -14,21 +14,24 @@ interface OpenerFocusHandlers {
  * moves inside. The caller's own `onCloseAutoFocus` runs first; when it calls `event.preventDefault()`
  * it has chosen the destination, and when the opener has left the page Radix's own return runs.
  */
-export function useOpenerFocus({ onOpenAutoFocus, onCloseAutoFocus }: OpenerFocusHandlers): Required<OpenerFocusHandlers> {
-  const opener = React.useRef<HTMLElement | null>(null)
+export function useOpenerFocus({
+  onOpenAutoFocus,
+  onCloseAutoFocus,
+}: OpenerFocusHandlers): Required<OpenerFocusHandlers> {
+  const opener = React.useRef<HTMLElement | null>(null);
   return {
     onOpenAutoFocus: (event) => {
-      const active = document.activeElement
-      opener.current = active instanceof HTMLElement && active !== document.body ? active : null
-      onOpenAutoFocus?.(event)
+      const active = document.activeElement;
+      opener.current = active instanceof HTMLElement && active !== document.body ? active : null;
+      onOpenAutoFocus?.(event);
     },
     onCloseAutoFocus: (event) => {
-      onCloseAutoFocus?.(event)
-      const target = opener.current
-      opener.current = null
-      if (event.defaultPrevented || !target?.isConnected) return
-      event.preventDefault()
-      target.focus()
+      onCloseAutoFocus?.(event);
+      const target = opener.current;
+      opener.current = null;
+      if (event.defaultPrevented || !target?.isConnected) return;
+      event.preventDefault();
+      target.focus();
     },
-  }
+  };
 }

@@ -15,7 +15,8 @@ const pageEventsSchema = z
   .array(GameStatEventSchema)
   .max(STAT_HISTORY_PAGE_SIZE)
   .refine(
-    (events) => events.every((event, index) => index === 0 || events[index - 1].sequence < event.sequence),
+    (events) =>
+      events.every((event, index) => index === 0 || events[index - 1].sequence < event.sequence),
     'A page holds its events in sequence order.',
   );
 
@@ -33,7 +34,10 @@ export const GameStatHistoryFirstPageSchema = z.strictObject({
 export type GameStatHistoryFirstPage = z.infer<typeof GameStatHistoryFirstPageSchema>;
 
 export const GameStatHistoryContinuationPageSchema = z.strictObject({
-  events: pageEventsSchema.refine((events) => events.length > 0, 'A continuation page holds events.'),
+  events: pageEventsSchema.refine(
+    (events) => events.length > 0,
+    'A continuation page holds events.',
+  ),
 });
 export type GameStatHistoryContinuationPage = z.infer<typeof GameStatHistoryContinuationPageSchema>;
 

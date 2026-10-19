@@ -30,7 +30,8 @@ export class InitialLoadBudget {
   /** An attempt failed before any data loaded: once the budget is spent, that is reported at once. */
   noteFailedAttempt(): void {
     if (this.startedAt == null) return;
-    if (this.timers.now() - this.startedAt >= CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS) this.onExhausted();
+    if (this.timers.now() - this.startedAt >= CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS)
+      this.onExhausted();
   }
 
   /**

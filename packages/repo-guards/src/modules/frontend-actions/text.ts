@@ -49,7 +49,8 @@ export function exportBlocks(code: string): Block[] {
 }
 
 /** The name an exported block declares, or null for module-scope code. */
-export const exportedName = (block: string) => /export\s+(?:default\s+)?(?:async\s+)?(?:function|const)\s+(\w+)/.exec(block)?.[1] ?? null;
+export const exportedName = (block: string) =>
+  /export\s+(?:default\s+)?(?:async\s+)?(?:function|const)\s+(\w+)/.exec(block)?.[1] ?? null;
 
 /** Bodies of every `catch (…) { … }`, brace-matched so a trailing `finally` is never included. */
 export function catchBodies(source: string): Array<{ body: string; index: number }> {
@@ -64,7 +65,9 @@ export function catchBodies(source: string): Array<{ body: string; index: number
 }
 
 /** Every `try { … } catch (…) { … }` pair, brace-matched, nested pairs included. */
-export function tryCatchPairs(source: string): Array<{ tryBody: string; catchBody: string; index: number }> {
+export function tryCatchPairs(
+  source: string,
+): Array<{ tryBody: string; catchBody: string; index: number }> {
   const pairs: Array<{ tryBody: string; catchBody: string; index: number }> = [];
   const re = /\btry\s*\{/g;
   for (let m = re.exec(source); m; m = re.exec(source)) {
@@ -141,11 +144,19 @@ export function localDeclarations(block: string): Map<string, string> {
 
 /** Where each call of `symbol` starts, bare (`f(`) or as a member (`x.f(`, `g().f(`). */
 export function memberOrBareCalls(code: string, symbol: string): number[] {
-  return [...code.matchAll(new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}\\s*\\(`, 'g'))].map((m) => m.index!);
+  return [...code.matchAll(new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}\\s*\\(`, 'g'))].map(
+    (m) => m.index!,
+  );
 }
 
 /** True when the name at `index` is reached through one of `namespaces` (`ns.name`). */
-export function throughNamespace(code: string, index: number, namespaces: readonly string[]): boolean {
+export function throughNamespace(
+  code: string,
+  index: number,
+  namespaces: readonly string[],
+): boolean {
   const before = code.slice(Math.max(0, index - 200), index);
-  return namespaces.some((ns) => new RegExp(`(?<![\\w$])${escapeRegExp(ns)}\\s*\\.\\s*$`).test(before));
+  return namespaces.some((ns) =>
+    new RegExp(`(?<![\\w$])${escapeRegExp(ns)}\\s*\\.\\s*$`).test(before),
+  );
 }

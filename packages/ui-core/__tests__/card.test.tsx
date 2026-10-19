@@ -91,7 +91,7 @@ describe('Card composition', () => {
         </CardHeader>
         <CardContent>Body</CardContent>
         <CardFooter>Actions</CardFooter>
-      </Card>
+      </Card>,
     );
     expect(screen.getByText('Hello')).toBeInTheDocument();
     expect(screen.getByText('World')).toBeInTheDocument();

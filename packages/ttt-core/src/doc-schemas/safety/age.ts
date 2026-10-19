@@ -45,30 +45,32 @@ export type AgeAttestationNonceStatus = z.infer<typeof AgeAttestationNonceStatus
 /** `ageAttestationNonces/{nonceHash}` — the registration attestation nonce record.
  * Doc id is the SHA-256 hex of the 256-bit server nonce (deterministic; the raw
  * nonce lives only in the signed token, never in Firestore). */
-export const AgeAttestationNonceV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  bracket: AgeBracketSchema, // SERVER-derived audience bracket
-  policyVersion: z.string().min(1), // the agePolicyVersion in force when issued
-  signingKeyVersion: z.string().min(1), // the versioned KMS/Secret-Manager key that signs the token (= JWS `kid`)
-  requestSessionHash: z.string().min(1), // SHA-256 of the registering session/request marker — the binding
-  issuedAt: z.number(), // epoch ms
-  expiresAt: z.number(), // epoch ms; issuedAt + 10-min TTL
-  consumedAt: z.number().optional(), // epoch ms; set on the one successful consume
-  consumedByUid: z.string().min(1).optional(), // the new Auth uid this nonce was transactionally bound to
-  status: AgeAttestationNonceStatusSchema,
-  // The nonce carries NO date of birth for ANY bracket. Registration never persists a DOB
-  // (adult or teen — only the derived bracket survives). The ONLY place a DOB is ever
-  // persisted is becomeArtisanCreator ('artisanOnboarding') — see
-  // UserPrivateDataAgeFieldsSchema below. Raw DOBs are no-log everywhere.
-  // Firestore NATIVE-TTL field (ARCH-105 exception). Set to a real Firestore `Timestamp` of (consume/expire time +
-  // ~24h) at the moment the nonce becomes spent; a TTL policy on `ageAttestationNonces.ttlExpireAt`
-  // then auto-deletes the spent single-use record (no scheduled reaper). DOCUMENTED EXCEPTION to this
-  // file's epoch-ms-number convention: native TTL requires a real Timestamp, and this field is
-  // WRITE-ONLY (never read by app code), so it is typed opaquely here (`z.unknown`) to avoid pulling a
-  // firebase `Timestamp` type into the environment-agnostic ttt-core schema layer (the app writes it via
-  // `admin.firestore.Timestamp.fromMillis`, mirroring notification-core's `expireAt`). Absent until spent.
-  ttlExpireAt: z.unknown().optional(),
-}).strict();
+export const AgeAttestationNonceV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    bracket: AgeBracketSchema, // SERVER-derived audience bracket
+    policyVersion: z.string().min(1), // the agePolicyVersion in force when issued
+    signingKeyVersion: z.string().min(1), // the versioned KMS/Secret-Manager key that signs the token (= JWS `kid`)
+    requestSessionHash: z.string().min(1), // SHA-256 of the registering session/request marker — the binding
+    issuedAt: z.number(), // epoch ms
+    expiresAt: z.number(), // epoch ms; issuedAt + 10-min TTL
+    consumedAt: z.number().optional(), // epoch ms; set on the one successful consume
+    consumedByUid: z.string().min(1).optional(), // the new Auth uid this nonce was transactionally bound to
+    status: AgeAttestationNonceStatusSchema,
+    // The nonce carries NO date of birth for ANY bracket. Registration never persists a DOB
+    // (adult or teen — only the derived bracket survives). The ONLY place a DOB is ever
+    // persisted is becomeArtisanCreator ('artisanOnboarding') — see
+    // UserPrivateDataAgeFieldsSchema below. Raw DOBs are no-log everywhere.
+    // Firestore NATIVE-TTL field (ARCH-105 exception). Set to a real Firestore `Timestamp` of (consume/expire time +
+    // ~24h) at the moment the nonce becomes spent; a TTL policy on `ageAttestationNonces.ttlExpireAt`
+    // then auto-deletes the spent single-use record (no scheduled reaper). DOCUMENTED EXCEPTION to this
+    // file's epoch-ms-number convention: native TTL requires a real Timestamp, and this field is
+    // WRITE-ONLY (never read by app code), so it is typed opaquely here (`z.unknown`) to avoid pulling a
+    // firebase `Timestamp` type into the environment-agnostic ttt-core schema layer (the app writes it via
+    // `admin.firestore.Timestamp.fromMillis`, mirroring notification-core's `expireAt`). Absent until spent.
+    ttlExpireAt: z.unknown().optional(),
+  })
+  .strict();
 export type AgeAttestationNonceV1 = z.infer<typeof AgeAttestationNonceV1Schema>;
 
 // ===========================================================================
@@ -93,16 +95,18 @@ export type AgeAttestationNonceV1 = z.infer<typeof AgeAttestationNonceV1Schema>;
 // `iat`/`exp` are epoch-SECONDS (per JWT), NOT epoch-millis like the rest of this file.
 // ===========================================================================
 
-export const AgeBracketAttestationClaimsV1Schema = z.object({
-  iss: z.literal('ttt-age-attest'), // issuer
-  aud: z.literal('ttt-register-complete'), // AUDIENCE/purpose binding — /api/register/complete MUST verify aud
-  sub: z.string().min(1), // the SHA-256 nonce hash (also the ageAttestationNonces doc id)
-  iat: z.number().int(), // epoch SECONDS (per JWT)
-  exp: z.number().int(), // epoch SECONDS (per JWT); exp = iat + 600 (10-min TTL)
-  bkt: AgeBracketSchema, // the SERVER-derived bracket (never client-derived)
-  pv: z.string().min(1), // agePolicyVersion string
-  rsh: z.string().min(1), // sha256(cookieValue) — the session binding
-}).strict();
+export const AgeBracketAttestationClaimsV1Schema = z
+  .object({
+    iss: z.literal('ttt-age-attest'), // issuer
+    aud: z.literal('ttt-register-complete'), // AUDIENCE/purpose binding — /api/register/complete MUST verify aud
+    sub: z.string().min(1), // the SHA-256 nonce hash (also the ageAttestationNonces doc id)
+    iat: z.number().int(), // epoch SECONDS (per JWT)
+    exp: z.number().int(), // epoch SECONDS (per JWT); exp = iat + 600 (10-min TTL)
+    bkt: AgeBracketSchema, // the SERVER-derived bracket (never client-derived)
+    pv: z.string().min(1), // agePolicyVersion string
+    rsh: z.string().min(1), // sha256(cookieValue) — the session binding
+  })
+  .strict();
 export type AgeBracketAttestationClaimsV1 = z.infer<typeof AgeBracketAttestationClaimsV1Schema>;
 
 // ===========================================================================
@@ -134,13 +138,15 @@ export const AGE_SESSION_COOKIE_SPEC = {
 // is removed only by the orphan-registration cleanup after `registrationGracePeriodMinutes`.
 // ===========================================================================
 
-export const AgePolicyConfigV1Schema = z.object({
-  agePolicyVersion: z.string().min(1),
-  registrationGracePeriodMinutes: z.number().int(),
-  cleanupSchedule: z.string().min(1), // cron expression for the orphan-Auth cleanup worker
-  ageTokenTtlSeconds: z.number().int(), // token TTL
-  keyRetirementVerificationMinutes: z.number().int(), // retired-signingKeyVersion verification window (> TTL so no live token is orphaned by a rotation)
-}).strict();
+export const AgePolicyConfigV1Schema = z
+  .object({
+    agePolicyVersion: z.string().min(1),
+    registrationGracePeriodMinutes: z.number().int(),
+    cleanupSchedule: z.string().min(1), // cron expression for the orphan-Auth cleanup worker
+    ageTokenTtlSeconds: z.number().int(), // token TTL
+    keyRetirementVerificationMinutes: z.number().int(), // retired-signingKeyVersion verification window (> TTL so no live token is orphaned by a rotation)
+  })
+  .strict();
 export type AgePolicyConfigV1 = z.infer<typeof AgePolicyConfigV1Schema>;
 
 /** The pinned literal default for `_serverData/agePolicy` — the build defaults. */
@@ -163,14 +169,16 @@ export const DEFAULT_AGE_POLICY_CONFIG_V1: AgePolicyConfigV1 = {
 // This is a token claims shape (decoded payload), NOT a stored Firestore doc.
 // ===========================================================================
 
-export const AgeUpgradeAttestationV1Schema = z.object({
-  uid: z.string().min(1), // the authenticated, recently-reauthenticated account
-  accountCapabilityVersion: z.number().int(), // the capability version this upgrade is bound to
-  policyVersion: z.string().min(1), // agePolicyVersion in force
-  issuedAt: z.number(), // epoch ms
-  expiresAt: z.number(), // epoch ms
-  nonce: z.string().min(1), // single-use upgrade nonce (never the registration nonce; never cross-account)
-}).strict();
+export const AgeUpgradeAttestationV1Schema = z
+  .object({
+    uid: z.string().min(1), // the authenticated, recently-reauthenticated account
+    accountCapabilityVersion: z.number().int(), // the capability version this upgrade is bound to
+    policyVersion: z.string().min(1), // agePolicyVersion in force
+    issuedAt: z.number(), // epoch ms
+    expiresAt: z.number(), // epoch ms
+    nonce: z.string().min(1), // single-use upgrade nonce (never the registration nonce; never cross-account)
+  })
+  .strict();
 export type AgeUpgradeAttestationV1 = z.infer<typeof AgeUpgradeAttestationV1Schema>;
 
 // ===========================================================================
@@ -182,36 +190,45 @@ export type AgeUpgradeAttestationV1 = z.infer<typeof AgeUpgradeAttestationV1Sche
 
 /** Manual age-correction audit stub (who corrected, when, why) — embedded on the
  * private user data when a reviewer hand-corrects the recorded age state. */
-export const UserPrivateDataAgeManualCorrectionSchema = z.object({
-  at: z.number(), // epoch ms
-  actorId: z.string().min(1),
-  reason: z.string().min(1),
-}).strict();
-export type UserPrivateDataAgeManualCorrection = z.infer<typeof UserPrivateDataAgeManualCorrectionSchema>;
+export const UserPrivateDataAgeManualCorrectionSchema = z
+  .object({
+    at: z.number(), // epoch ms
+    actorId: z.string().min(1),
+    reason: z.string().min(1),
+  })
+  .strict();
+export type UserPrivateDataAgeManualCorrection = z.infer<
+  typeof UserPrivateDataAgeManualCorrectionSchema
+>;
 
 /** STANDALONE age-fields shape — merged into
  * `UserPrivateDataSchema` (privateData/{uid}, server-write-only). Exported as a raw
  * object shape (NOT a z.object) so it can be spread into the canonical schema. */
-export const UserPrivateDataAgeFieldsSchema = z.object({
-  accountType: AgeBracketSchema, // 'teen' | 'adult'
-  is18Plus: z.boolean(),
-  agePolicyVersion: z.string().min(1),
-  accountCapabilityVersion: z.number().int(),
-  ageAttestedAt: z.number(), // epoch ms
-  adultUpgradedAt: z.number().optional(), // epoch ms; set on a successful teen→adult upgrade
-  ageManualCorrection: UserPrivateDataAgeManualCorrectionSchema.optional(),
-  // The DOB is persisted at EXACTLY ONE point: becomeArtisanCreator ('artisanOnboarding'). Registration
-  // and the teen→adult upgrade derive the bracket server-side and persist NO DOB for anyone
-  // (the register screen's "It is not stored" notice is literally true). Rationale: the
-  // payout-KYC cross-check (compare to Stripe KYC DOB before paying out) only ever applies to
-  // artisans — the money boundary — so collection happens there, with UI copy warning the
-  // DOB must match the user's future payout identity. Server re-derives 18+ from the entered
-  // DOB; an under-18 derivation rejects with a failure audit and stores nothing. PII —
-  // privateData only (BACKEND-105); same no-log posture as the raw DOB (scrubber + canary).
-  attestedDateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // 'YYYY-MM-DD'
-  attestedDobRecordedAt: z.number().optional(), // epoch ms
-  attestedDobSource: z.enum(['artisanOnboarding']).optional(),
-}).strict();
+export const UserPrivateDataAgeFieldsSchema = z
+  .object({
+    accountType: AgeBracketSchema, // 'teen' | 'adult'
+    is18Plus: z.boolean(),
+    agePolicyVersion: z.string().min(1),
+    accountCapabilityVersion: z.number().int(),
+    ageAttestedAt: z.number(), // epoch ms
+    adultUpgradedAt: z.number().optional(), // epoch ms; set on a successful teen→adult upgrade
+    ageManualCorrection: UserPrivateDataAgeManualCorrectionSchema.optional(),
+    // The DOB is persisted at EXACTLY ONE point: becomeArtisanCreator ('artisanOnboarding'). Registration
+    // and the teen→adult upgrade derive the bracket server-side and persist NO DOB for anyone
+    // (the register screen's "It is not stored" notice is literally true). Rationale: the
+    // payout-KYC cross-check (compare to Stripe KYC DOB before paying out) only ever applies to
+    // artisans — the money boundary — so collection happens there, with UI copy warning the
+    // DOB must match the user's future payout identity. Server re-derives 18+ from the entered
+    // DOB; an under-18 derivation rejects with a failure audit and stores nothing. PII —
+    // privateData only (BACKEND-105); same no-log posture as the raw DOB (scrubber + canary).
+    attestedDateOfBirth: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(), // 'YYYY-MM-DD'
+    attestedDobRecordedAt: z.number().optional(), // epoch ms
+    attestedDobSource: z.enum(['artisanOnboarding']).optional(),
+  })
+  .strict();
 export type UserPrivateDataAgeFields = z.infer<typeof UserPrivateDataAgeFieldsSchema>;
 
 /** The raw shape (to `.extend(...)` / spread into
@@ -224,7 +241,10 @@ export const userPrivateDataAgeFieldsShape = {
   ageAttestedAt: z.number(),
   adultUpgradedAt: z.number().optional(),
   ageManualCorrection: UserPrivateDataAgeManualCorrectionSchema.optional(),
-  attestedDateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  attestedDateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   attestedDobRecordedAt: z.number().optional(),
   attestedDobSource: z.enum(['artisanOnboarding']).optional(),
 } as const;
@@ -238,8 +258,10 @@ export const userPrivateDataAgeFieldsShape = {
 
 /** The result envelope `completeRegistration.ts` returns. `outcome` is the imported
  * domain enum (never a raw gRPC code) the completion route acts on. */
-export const RegistrationCompletionResultV1Schema = z.object({
-  outcome: RegistrationCompletionOutcomeSchema,
-  uid: z.string().min(1).optional(), // present on 'completed' / 'alreadyCompletedSameUid'
-}).strict();
+export const RegistrationCompletionResultV1Schema = z
+  .object({
+    outcome: RegistrationCompletionOutcomeSchema,
+    uid: z.string().min(1).optional(), // present on 'completed' / 'alreadyCompletedSameUid'
+  })
+  .strict();
 export type RegistrationCompletionResultV1 = z.infer<typeof RegistrationCompletionResultV1Schema>;

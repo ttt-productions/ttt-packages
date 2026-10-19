@@ -24,9 +24,18 @@ import { gameLocationIdSchema } from './game-location.js';
 // from `SPORT_LINE_SCHEMAS` — the one pairing of a sport with its lines. Spelled per sport so each
 // payload keeps its exact type; `satisfies` fails the build when a sport is missing.
 export const SPORT_GAME_STATS_SCHEMAS = {
-  Basketball: gameStatsSchema(SPORT_LINE_SCHEMAS.Basketball.gameTeam, SPORT_LINE_SCHEMAS.Basketball.gamePlayer),
-  Curling: gameStatsSchema(SPORT_LINE_SCHEMAS.Curling.gameTeam, SPORT_LINE_SCHEMAS.Curling.gamePlayer),
-  Football: gameStatsSchema(SPORT_LINE_SCHEMAS.Football.gameTeam, SPORT_LINE_SCHEMAS.Football.gamePlayer),
+  Basketball: gameStatsSchema(
+    SPORT_LINE_SCHEMAS.Basketball.gameTeam,
+    SPORT_LINE_SCHEMAS.Basketball.gamePlayer,
+  ),
+  Curling: gameStatsSchema(
+    SPORT_LINE_SCHEMAS.Curling.gameTeam,
+    SPORT_LINE_SCHEMAS.Curling.gamePlayer,
+  ),
+  Football: gameStatsSchema(
+    SPORT_LINE_SCHEMAS.Football.gameTeam,
+    SPORT_LINE_SCHEMAS.Football.gamePlayer,
+  ),
 } as const satisfies Record<LeagueType, z.ZodType>;
 
 export type BasketballGameStats = z.infer<typeof SPORT_GAME_STATS_SCHEMAS.Basketball>;
@@ -95,11 +104,14 @@ function rollupMatchesTeams(game: {
   stats: { teamStats: Record<string, unknown>; playerStats: Record<string, unknown> };
 }): boolean {
   const teams = new Set(game.teamIds);
-  const namesEveryTeam = (keys: string[]) => keys.length === teams.size && keys.every((key) => teams.has(key));
+  const namesEveryTeam = (keys: string[]) =>
+    keys.length === teams.size && keys.every((key) => teams.has(key));
   return (
     namesEveryTeam(Object.keys(game.stats.teamStats)) &&
     namesEveryTeam(Object.keys(game.score)) &&
-    Object.keys(game.stats.playerStats).every((key) => teams.has(parseGameRosterPlayerId(key)?.teamId ?? ''))
+    Object.keys(game.stats.playerStats).every((key) =>
+      teams.has(parseGameRosterPlayerId(key)?.teamId ?? ''),
+    )
   );
 }
 const ROLLUP_MISMATCH = "The stats rollup and score mirror hold exactly the game's teams.";

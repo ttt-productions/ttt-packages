@@ -1,9 +1,9 @@
-import * as React from "react";
-import { useInView } from "react-intersection-observer";
-import { Skeleton } from "@ttt-productions/ui-core/react";
-import type { VideoViewerProps } from "./types.js";
-import { useMediaPlayback } from "./use-media-playback.js";
-import { useLoadWatchdog } from "./use-load-watchdog.js";
+import * as React from 'react';
+import { useInView } from 'react-intersection-observer';
+import { Skeleton } from '@ttt-productions/ui-core/react';
+import type { VideoViewerProps } from './types.js';
+import { useMediaPlayback } from './use-media-playback.js';
+import { useLoadWatchdog } from './use-load-watchdog.js';
 
 export function VideoViewer(props: VideoViewerProps) {
   const {
@@ -20,7 +20,7 @@ export function VideoViewer(props: VideoViewerProps) {
     unloadOnExit = true,
     priority = false,
     skeleton: showSkeleton = true,
-    preload = "metadata",
+    preload = 'metadata',
     autoPlayOnVisible = false,
     onLoad,
     onError,
@@ -46,7 +46,12 @@ export function VideoViewer(props: VideoViewerProps) {
   // Additive playback API (onEnded, progress sampling, startAt/resume,
   // endOverlay, imperative controls). Derives everything from element events —
   // adds no observer (MEDIA-102).
-  const { hasEnded, handlers: playbackHandlers, attachElement, retireElement } = useMediaPlayback(
+  const {
+    hasEnded,
+    handlers: playbackHandlers,
+    attachElement,
+    retireElement,
+  } = useMediaPlayback(
     videoRef,
     { onEnded, onProgressSample, startAtSeconds, endOverlay },
     playbackControlsRef,
@@ -67,10 +72,14 @@ export function VideoViewer(props: VideoViewerProps) {
   // viewer reports to its owner (MEDIA-102). threshold: [0, 0.5] — 0 fires "any pixel
   // visible" (drives shouldLoad), 0.5 fires "at least half visible" (drives
   // autoplay/pause). A listener keeps it observing after the first sighting.
-  const { ref: inViewRef, inView, entry } = useInView({
+  const {
+    ref: inViewRef,
+    inView,
+    entry,
+  } = useInView({
     triggerOnce: !unloadOnExit && !autoplayActive && !onVisibilityChange,
     threshold: [0, 0.5],
-    rootMargin: "200px",
+    rootMargin: '200px',
     skip: !autoplayActive && (priority || !lazy),
     onChange: (visible) => onVisibilityChange?.(visible),
   });
@@ -88,7 +97,7 @@ export function VideoViewer(props: VideoViewerProps) {
         // pause/seek/reset events the teardown below makes the element emit.
         retireElement();
         video.pause();
-        video.removeAttribute("src");
+        video.removeAttribute('src');
         video.load();
       }
       setIsLoaded(false);
@@ -122,7 +131,7 @@ export function VideoViewer(props: VideoViewerProps) {
       reveal();
       playbackHandlers.onLoadedMetadata(e);
     },
-    [reveal, playbackHandlers]
+    [reveal, playbackHandlers],
   );
 
   useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
@@ -155,20 +164,24 @@ export function VideoViewer(props: VideoViewerProps) {
       el.webkitRequestFullscreen ||
       el.mozRequestFullScreen ||
       el.msRequestFullscreen;
-    if (typeof fn === "function") {
-      try { fn.call(el); } catch { /* ignore */ }
+    if (typeof fn === 'function') {
+      try {
+        fn.call(el);
+      } catch {
+        /* ignore */
+      }
     }
   }, [enableFullscreen]);
 
   const onKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
       if (!enableFullscreen) return;
-      if (e.key === "Enter" || e.key === " ") {
+      if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         requestFullscreen();
       }
     },
-    [enableFullscreen, requestFullscreen]
+    [enableFullscreen, requestFullscreen],
   );
 
   // The error state stays inside the observed wrapper, so the viewer keeps reporting
@@ -178,7 +191,7 @@ export function VideoViewer(props: VideoViewerProps) {
       <div
         ref={inViewRef}
         className={className}
-        style={fallback ? { position: "relative", width: "100%", height: "100%" } : undefined}
+        style={fallback ? { position: 'relative', width: '100%', height: '100%' } : undefined}
       >
         {fallback ?? (
           <div className="mv-video-error">
@@ -193,15 +206,21 @@ export function VideoViewer(props: VideoViewerProps) {
     <div
       ref={inViewRef}
       className={className}
-      role={enableFullscreen ? "button" : undefined}
+      role={enableFullscreen ? 'button' : undefined}
       tabIndex={enableFullscreen ? 0 : undefined}
-      aria-label={enableFullscreen ? "Open video fullscreen" : undefined}
+      aria-label={enableFullscreen ? 'Open video fullscreen' : undefined}
       onDoubleClick={requestFullscreen}
       onKeyDown={onKeyDown}
-      style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", outline: "none" }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        outline: 'none',
+      }}
     >
       {showSkeleton && !isLoaded && shouldLoad && (
-        <Skeleton style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+        <Skeleton style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
       )}
       {shouldLoad && (
         <video
@@ -221,25 +240,24 @@ export function VideoViewer(props: VideoViewerProps) {
           onPause={playbackHandlers.onPause}
           onSeeked={playbackHandlers.onSeeked}
           onEnded={playbackHandlers.onEnded}
-          preload={priority ? "auto" : preload}
+          preload={priority ? 'auto' : preload}
           playsInline
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: isLoaded ? 1 : 0,
-            transition: "opacity var(--motion-slow) var(--motion-ease)",
-            WebkitUserSelect: "none",
-            WebkitTouchCallout: "none",
-            WebkitTapHighlightColor: "transparent",
-          } as React.CSSProperties}
+          style={
+            {
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: isLoaded ? 1 : 0,
+              transition: 'opacity var(--motion-slow) var(--motion-ease)',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              WebkitTapHighlightColor: 'transparent',
+            } as React.CSSProperties
+          }
         />
       )}
       {endOverlay != null && hasEnded && (
-        <div
-          className="mv-end-overlay"
-          style={{ position: "absolute", inset: 0, zIndex: 2 }}
-        >
+        <div className="mv-end-overlay" style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
           {endOverlay}
         </div>
       )}

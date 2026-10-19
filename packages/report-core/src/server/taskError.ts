@@ -18,11 +18,7 @@
  * owns the HttpsError construction.
  */
 export type ReportCoreTaskErrorCode =
-  | 'not-found'
-  | 'failed-precondition'
-  | 'permission-denied'
-  | 'invalid-argument'
-  | 'aborted';
+  'not-found' | 'failed-precondition' | 'permission-denied' | 'invalid-argument' | 'aborted';
 
 export class ReportCoreTaskError extends Error {
   readonly code: ReportCoreTaskErrorCode;

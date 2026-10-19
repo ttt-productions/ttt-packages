@@ -175,4 +175,3 @@ describe('the tray Safety Cases count', () => {
     expect(pagination.SAFETY_CASE_TRAY_READ_LIMIT).toBe(101);
   });
 });
-

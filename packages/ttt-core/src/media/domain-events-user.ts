@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // DomainEvent schemas for the user/identity domain — profile, craft skills,
 // follows, mentions, auth status, registration, and public-document acceptance. Assembled into the discriminated union in

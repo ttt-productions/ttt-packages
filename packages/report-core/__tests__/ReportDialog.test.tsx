@@ -11,8 +11,20 @@ vi.mock('@ttt-productions/ui-core/react', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    Select: ({ value, onValueChange, children }: { value: string; onValueChange: (v: string) => void; children: ReactNode }) => (
-      <select aria-label="reason picker" value={value} onChange={(e) => onValueChange(e.target.value)}>
+    Select: ({
+      value,
+      onValueChange,
+      children,
+    }: {
+      value: string;
+      onValueChange: (v: string) => void;
+      children: ReactNode;
+    }) => (
+      <select
+        aria-label="reason picker"
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+      >
         <option value="" />
         {children}
       </select>
@@ -20,14 +32,20 @@ vi.mock('@ttt-productions/ui-core/react', async (importOriginal) => {
     SelectTrigger: () => null,
     SelectValue: () => null,
     SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-    SelectItem: ({ value, children }: { value: string; children: ReactNode }) => <option value={value}>{children}</option>,
+    SelectItem: ({ value, children }: { value: string; children: ReactNode }) => (
+      <option value={value}>{children}</option>
+    ),
   };
 });
 
 import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
 import { ReportDialog } from '../src/react/components/ReportDialog.js';
 import type { ReportCoreConfig } from '../src/contracts/config.js';
-import type { AdditionalReportAction, ReportDialogCopy, ReportDialogProps } from '../src/react/types-ui-props.js';
+import type {
+  AdditionalReportAction,
+  ReportDialogCopy,
+  ReportDialogProps,
+} from '../src/react/types-ui-props.js';
 import type { SubmitReportRequest, SubmitReportResult } from '../src/schemas/requests.js';
 
 const config = {
@@ -49,7 +67,8 @@ const copy: ReportDialogCopy = {
   cancelLabel: 'copy:cancel',
   submitLabel: 'copy:submit',
   upgradeTitle: 'copy:upgradeTitle',
-  upgradeDescription: ({ itemTypeLabel, reason }) => `copy:upgradeDescription:${itemTypeLabel}:${reason}`,
+  upgradeDescription: ({ itemTypeLabel, reason }) =>
+    `copy:upgradeDescription:${itemTypeLabel}:${reason}`,
   upgradeBackLabel: 'copy:back',
   upgradeConfirmLabel: 'copy:upgrade',
   alreadyReportedTitle: 'copy:alreadyTitle',
@@ -91,11 +110,13 @@ function setup(
 ) {
   const providerConfig = { ...config, ...options.config } as ReportCoreConfig;
   const answers = [...(options.answers ?? [])];
-  const submitReportFn = vi.fn(async (_request: SubmitReportRequest): Promise<SubmitReportResult> => {
-    const next = answers.shift();
-    if (next instanceof Error) throw next;
-    return next as SubmitReportResult | Promise<SubmitReportResult>;
-  });
+  const submitReportFn = vi.fn(
+    async (_request: SubmitReportRequest): Promise<SubmitReportResult> => {
+      const next = answers.shift();
+      if (next instanceof Error) throw next;
+      return next as SubmitReportResult | Promise<SubmitReportResult>;
+    },
+  );
   const onOpenChange = vi.fn();
   const onSubmitSuccess = vi.fn();
   const onSubmitError = vi.fn();
@@ -114,7 +135,11 @@ function setup(
   };
   const ui = (p: ReportDialogProps) => (
     <QueryClientProvider client={queryClient}>
-      <ReportCoreProvider config={providerConfig} submitReportFn={submitReportFn} additionalReportActions={options.actions}>
+      <ReportCoreProvider
+        config={providerConfig}
+        submitReportFn={submitReportFn}
+        additionalReportActions={options.actions}
+      >
         <ReportDialog {...p} />
       </ReportCoreProvider>
     </QueryClientProvider>
@@ -177,7 +202,9 @@ describe('ReportDialog outcomes', () => {
   });
 
   it('an upgrade offer shows the upgrade view, and confirming escalates the existing report', async () => {
-    const t = setup({ answers: [{ outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Child Safety' }, upgraded] });
+    const t = setup({
+      answers: [{ outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Child Safety' }, upgraded],
+    });
     pick('Child Safety');
     typeComment('  now worse  ');
     await clickSubmit();
@@ -187,11 +214,13 @@ describe('ReportDialog outcomes', () => {
 
     await clickSubmit('copy:upgrade');
 
-    expect(t.submitReportFn).toHaveBeenLastCalledWith(expect.objectContaining({
-      reason: 'Child Safety',
-      comment: 'now worse',
-      confirmUpgrade: true,
-    }));
+    expect(t.submitReportFn).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        reason: 'Child Safety',
+        comment: 'now worse',
+        confirmUpgrade: true,
+      }),
+    );
     expect(t.onSubmitSuccess).toHaveBeenCalledWith(upgraded);
     expect(t.onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -237,7 +266,13 @@ describe('ReportDialog outcomes', () => {
 
   it('cannot be dismissed while a submit is in flight', async () => {
     let settle!: (r: SubmitReportResult) => void;
-    const t = setup({ answers: [new Promise<SubmitReportResult>((r) => { settle = r; })] });
+    const t = setup({
+      answers: [
+        new Promise<SubmitReportResult>((r) => {
+          settle = r;
+        }),
+      ],
+    });
     pick('Spam');
     typeComment('x');
     await clickSubmit();
@@ -263,7 +298,9 @@ describe('ReportDialog comments', () => {
   });
 
   it('submits without a comment when its declaration has min 0', () => {
-    setup({ config: { reportCommentInput: defineInputFormat({ format: 'none', min: 0, max: 20 }) } });
+    setup({
+      config: { reportCommentInput: defineInputFormat({ format: 'none', min: 0, max: 20 }) },
+    });
     pick('Spam');
     expect(screen.getByRole('button', { name: 'copy:submit' })).toBeEnabled();
   });
@@ -277,7 +314,9 @@ describe('ReportDialog comments', () => {
   });
 
   it('refuses a comment with characters its declared format does not allow', () => {
-    setup({ config: { reportCommentInput: defineInputFormat({ format: 'singleLine', min: 1, max: 20 }) } });
+    setup({
+      config: { reportCommentInput: defineInputFormat({ format: 'singleLine', min: 1, max: 20 }) },
+    });
     pick('Spam');
     typeComment('two\nlines');
     expect(screen.getByRole('button', { name: 'copy:submit' })).toBeDisabled();
@@ -315,7 +354,9 @@ describe('ReportDialog comments', () => {
 describe('ReportDialog additional actions', () => {
   it('a hand-off hides the comment, needs none, passes only the target, and closes without a success', async () => {
     const handOff = vi.fn(async () => {});
-    const t = setup({ actions: [{ id: 'removal', label: 'Request removal', kind: 'handOff', handler: handOff }] });
+    const t = setup({
+      actions: [{ id: 'removal', label: 'Request removal', kind: 'handOff', handler: handOff }],
+    });
     typeComment('private facts typed before choosing');
     pick('__rc_action__:removal');
 
@@ -334,7 +375,16 @@ describe('ReportDialog additional actions', () => {
   it('a cancelled hand-off keeps the dialog open and reports the cancel', async () => {
     const cancelled = new DOMException('cancelled', 'AbortError');
     const t = setup({
-      actions: [{ id: 'removal', label: 'Request removal', kind: 'handOff', handler: async () => { throw cancelled; } }],
+      actions: [
+        {
+          id: 'removal',
+          label: 'Request removal',
+          kind: 'handOff',
+          handler: async () => {
+            throw cancelled;
+          },
+        },
+      ],
     });
     pick('__rc_action__:removal');
     await clickSubmit('Request removal');
@@ -345,7 +395,9 @@ describe('ReportDialog additional actions', () => {
 
   it('a submit action receives the comment and is reported as a completed action', async () => {
     const mark = vi.fn(async (_target: unknown, _comment: string) => {});
-    const t = setup({ actions: [{ id: 'evidence', label: 'Mark evidence', kind: 'submit', handler: mark }] });
+    const t = setup({
+      actions: [{ id: 'evidence', label: 'Mark evidence', kind: 'submit', handler: mark }],
+    });
     pick('__rc_action__:evidence');
     expect(screen.getByRole('button', { name: 'Mark evidence' })).toBeDisabled();
     typeComment('  why  ');
@@ -353,7 +405,10 @@ describe('ReportDialog additional actions', () => {
 
     expect(mark).toHaveBeenCalledWith(expect.objectContaining({ itemId: 'p1' }), 'why');
     expect(t.submitReportFn).not.toHaveBeenCalled();
-    expect(t.onSubmitSuccess).toHaveBeenCalledWith({ outcome: 'actionCompleted', actionId: 'evidence' });
+    expect(t.onSubmitSuccess).toHaveBeenCalledWith({
+      outcome: 'actionCompleted',
+      actionId: 'evidence',
+    });
   });
 });
 

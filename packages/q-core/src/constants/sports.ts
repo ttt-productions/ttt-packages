@@ -14,7 +14,11 @@ import {
   FOOTBALL_SIX_POINT_EVENT_TYPE,
   FOOTBALL_TWO_POINT_EVENT_TYPE,
 } from '../types/sports.js';
-import type { BasketballPlayerStatKey, BasketballStatEventType, FootballStatEventType } from '../types/sports.js';
+import type {
+  BasketballPlayerStatKey,
+  BasketballStatEventType,
+  FootballStatEventType,
+} from '../types/sports.js';
 import type {
   FinalizationNotReadyReason,
   GameRepairRefusal,
@@ -85,16 +89,20 @@ export const STAT_EVENT_REFUSAL_COPY = {
   teamNotInGame: TEAM_NOT_IN_GAME_MESSAGE,
   playerNotRostered: "That player is not on this game's roster for that team.",
   assisterNotRostered: "The assisting player is not on this game's roster for that team.",
-  assistNotAllowed: 'Only a 2- or 3-point basket can be assisted, and never by the player who scored it.',
+  assistNotAllowed:
+    'Only a 2- or 3-point basket can be assisted, and never by the player who scored it.',
   playerNotAllowed: "That stat is the team's; it cannot name a player.",
   roundNotNext: 'That round is not the next one to record.',
   roundsComplete: 'Every round is already recorded.',
-  bulkValueInvalid: 'That entry is not a real result: stats are whole numbers and never go below zero.',
+  bulkValueInvalid:
+    'That entry is not a real result: stats are whole numbers and never go below zero.',
   bulkStale: 'The numbers changed while you were editing. Check the flagged values and save again.',
-  eventIdConflict: 'A different stat was already saved under this one. Discard it and enter it again.',
+  eventIdConflict:
+    'A different stat was already saved under this one. Discard it and enter it again.',
   voidTargetNotSportEvent: 'There is no recorded stat there to undo.',
   correctionNotAccepted: 'Corrections are made from Fix stats, not from the scoring screen.',
-  undoBelowZero: 'Undoing that play would leave a stat below zero, because a later entry already lowered it.',
+  undoBelowZero:
+    'Undoing that play would leave a stat below zero, because a later entry already lowered it.',
 } as const satisfies Record<StatEventRefusalCode, string>;
 
 // The operation every correction the game copy appends is recorded under, and the reason it carries.
@@ -106,7 +114,8 @@ export const STATS_MIGRATION_CORRECTION_REASON =
 
 // What an admin reads when Fix stats refuses a game repair.
 export const GAME_REPAIR_REFUSAL_COPY = {
-  eventUnreadable: "One of this game's recorded stats can no longer be read. Fix the event in the console, then repair the game.",
+  eventUnreadable:
+    "One of this game's recorded stats can no longer be read. Fix the event in the console, then repair the game.",
   eventSequenceGap:
     "This game's recorded stats are numbered with a gap or a repeat. Fix the event documents in the console, then restore the game.",
   sourcesDisagree:
@@ -114,9 +123,9 @@ export const GAME_REPAIR_REFUSAL_COPY = {
   scoreAmbiguous:
     "The team's score was edited in two places to different values. Enter the score you want as a correction instead.",
   fieldNotCorrectable:
-    "That number cannot be corrected for this sport. Restore the game from its recorded stats, or reopen it and score it again.",
+    'That number cannot be corrected for this sport. Restore the game from its recorded stats, or reopen it and score it again.',
   lineNotRostered: "That player is not on this game's roster.",
-  teamNotInGame: "That team is not playing in this game.",
+  teamNotInGame: 'That team is not playing in this game.',
   gameTooLarge: 'This repair is too large to save at once.',
 } as const satisfies Record<GameRepairRefusal, string>;
 

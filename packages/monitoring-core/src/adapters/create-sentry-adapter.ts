@@ -1,6 +1,11 @@
-import type { MonitoringAdapter } from "../adapter.js";
-import type { MonitoringInitOptions, MonitoringLevel, MonitoringUser, ScopeLike } from "../types.js";
-import { applyCaptureContext } from "../capture-context.js";
+import type { MonitoringAdapter } from '../adapter.js';
+import type {
+  MonitoringInitOptions,
+  MonitoringLevel,
+  MonitoringUser,
+  ScopeLike,
+} from '../types.js';
+import { applyCaptureContext } from '../capture-context.js';
 
 /** The slice of a Sentry SDK (browser `@sentry/nextjs` or `@sentry/node`) the adapters call. */
 export type SentrySdkLike = {
@@ -22,11 +27,11 @@ export function toSdkInitOptions(options: MonitoringInitOptions): Record<string,
     release: options.release,
   };
   const passThrough = [
-    "tracesSampleRate",
-    "integrations",
-    "defaultIntegrations",
-    "beforeSend",
-    "beforeSendTransaction",
+    'tracesSampleRate',
+    'integrations',
+    'defaultIntegrations',
+    'beforeSend',
+    'beforeSendTransaction',
   ] as const;
   for (const key of passThrough) {
     if (options[key] !== undefined) sdkOptions[key] = options[key];
@@ -37,7 +42,9 @@ export function toSdkInitOptions(options: MonitoringInitOptions): Record<string,
     // kept defaults are the SDK's instances and the app never constructs one.
     const added = options.integrations ?? [];
     sdkOptions.integrations = (defaults: Array<{ name?: unknown }>) => [
-      ...defaults.filter((integration) => typeof integration?.name === "string" && keep.includes(integration.name)),
+      ...defaults.filter(
+        (integration) => typeof integration?.name === 'string' && keep.includes(integration.name),
+      ),
       ...added,
     ];
   }
@@ -53,7 +60,10 @@ type UndeliveredReason = 'did not load' | 'failed to initialize' | 'threw';
  * which step failed — never a silent loss and never an unhandled rejection (ENG-009).
  */
 function reportUndelivered(operation: string, reason: UndeliveredReason, error: unknown): void {
-  console.error(`[monitoring-core] ${operation} was not delivered: the monitoring SDK ${reason}`, error);
+  console.error(
+    `[monitoring-core] ${operation} was not delivered: the monitoring SDK ${reason}`,
+    error,
+  );
 }
 
 /**
@@ -95,7 +105,11 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
     );
   }
 
-  function sendException(S: SentrySdkLike, error: unknown, context?: Record<string, unknown>): void {
+  function sendException(
+    S: SentrySdkLike,
+    error: unknown,
+    context?: Record<string, unknown>,
+  ): void {
     if (context && S.withScope) {
       S.withScope((scope) => {
         applyCaptureContext(scope, context);
@@ -110,7 +124,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
     S: SentrySdkLike,
     message: string,
     level?: MonitoringLevel,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   ): void {
     if (context && S.withScope) {
       S.withScope((scope) => {
@@ -148,7 +162,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
         sendException(instance, error, context);
         return;
       }
-      deferred("captureException", (S) => sendException(S, error, context));
+      deferred('captureException', (S) => sendException(S, error, context));
     },
 
     captureMessage(message: string, level?: MonitoringLevel, context?: Record<string, unknown>) {
@@ -156,7 +170,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
         sendMessage(instance, message, level, context);
         return;
       }
-      deferred("captureMessage", (S) => sendMessage(S, message, level, context));
+      deferred('captureMessage', (S) => sendMessage(S, message, level, context));
     },
 
     setUser(user: MonitoringUser | null) {
@@ -164,7 +178,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
         instance.setUser(user);
         return;
       }
-      deferred("setUser", (S) => S.setUser(user));
+      deferred('setUser', (S) => S.setUser(user));
     },
 
     setTag(key: string, value: string) {
@@ -172,7 +186,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
         instance.setTag(key, value);
         return;
       }
-      deferred("setTag", (S) => S.setTag(key, value));
+      deferred('setTag', (S) => S.setTag(key, value));
     },
 
     // `fn` runs exactly once on every path. With the SDK ready it runs through the real
@@ -207,7 +221,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
         instance.addBreadcrumb?.(breadcrumb);
         return;
       }
-      deferred("addBreadcrumb", (S) => S.addBreadcrumb?.(breadcrumb));
+      deferred('addBreadcrumb', (S) => S.addBreadcrumb?.(breadcrumb));
     },
   };
 }

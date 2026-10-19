@@ -59,14 +59,17 @@ export function literalBindings(source: ts.SourceFile): Map<string, string> {
 /** `ROOT.member` (or `ROOT.a.b`) whose root identifier is one of `roots`. */
 export function isMemberOf(node: ts.Node, roots: ReadonlySet<string>): boolean {
   let current: ts.Node = node;
-  if (!ts.isPropertyAccessExpression(current) && !ts.isElementAccessExpression(current)) return false;
-  while (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) current = current.expression;
+  if (!ts.isPropertyAccessExpression(current) && !ts.isElementAccessExpression(current))
+    return false;
+  while (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current))
+    current = current.expression;
   return ts.isIdentifier(current) && roots.has(current.text);
 }
 
 /** The text of the literal pieces of a template, or of a plain string. */
 export function literalText(node: ts.Node): string | null {
   if (isPlainString(node)) return node.text;
-  if (ts.isTemplateExpression(node)) return node.head.text + node.templateSpans.map((s) => s.literal.text).join('');
+  if (ts.isTemplateExpression(node))
+    return node.head.text + node.templateSpans.map((s) => s.literal.text).join('');
   return null;
 }

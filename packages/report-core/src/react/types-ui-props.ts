@@ -88,7 +88,8 @@ export interface ReportDialogProps extends ReportTargetRef {
 }
 
 export interface ReportButtonProps
-  extends ReportTargetRef,
+  extends
+    ReportTargetRef,
     Omit<ReportDialogProps, 'open' | 'onOpenChange' | keyof ReportTargetRef> {
   /** The trigger's accessible name, and its visible text unless it is icon-only. */
   triggerLabel: string;

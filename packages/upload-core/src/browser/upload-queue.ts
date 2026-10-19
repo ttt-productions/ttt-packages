@@ -1,8 +1,8 @@
-import type { UploadFileResumableResult, UploadQueueOptions } from "../types.js";
-import type { UploadController, StartUploadArgs } from "./types.js";
-import { getFileSize } from "../utils/file-size.js";
-import { upsertUploadSession, removeUploadSession } from "../utils/upload-store.js";
-import { startResumableUpload } from "./upload.js";
+import type { UploadFileResumableResult, UploadQueueOptions } from '../types.js';
+import type { UploadController, StartUploadArgs } from './types.js';
+import { getFileSize } from '../utils/file-size.js';
+import { upsertUploadSession, removeUploadSession } from '../utils/upload-store.js';
+import { startResumableUpload } from './upload.js';
 
 function safeId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -50,7 +50,7 @@ export class UploadQueue {
     const startedAt = Date.now();
     upsertUploadSession({
       id,
-      status: "queued",
+      status: 'queued',
       path: args.path,
       transferred: 0,
       total: getFileSize(args.file),
@@ -78,7 +78,7 @@ export class UploadQueue {
         if (real) return real.cancel();
         this.pending = this.pending.filter((j) => j.id !== id);
         removeUploadSession(id);
-        rejectDone(new DOMException("Aborted", "AbortError"));
+        rejectDone(new DOMException('Aborted', 'AbortError'));
         return true;
       },
       done,
@@ -108,7 +108,7 @@ export class UploadQueue {
 
   private pump() {
     while (this.running < this.concurrency && this.pending.length > 0) {
-      this.pending.sort((a, b) => (b.priority - a.priority) || (a.seq - b.seq));
+      this.pending.sort((a, b) => b.priority - a.priority || a.seq - b.seq);
 
       const job = this.pending.shift()!;
       this.running += 1;
@@ -131,7 +131,7 @@ export class UploadQueue {
 
         upsertUploadSession({
           id: job.id,
-          status: "error",
+          status: 'error',
           path: job.args.path,
           error: e,
           updatedAt: Date.now(),

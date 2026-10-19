@@ -61,7 +61,9 @@ export interface SportTypeMap {
 export type SportLineSchemas<L extends LeagueType> = (typeof SPORT_LINE_SCHEMAS)[L];
 
 /** `never` for a kind the sport keeps no line of. */
-export type SportLine<L extends LeagueType, K extends StatLineKind> = z.infer<SportLineSchemas<L>[K]>;
+export type SportLine<L extends LeagueType, K extends StatLineKind> = z.infer<
+  SportLineSchemas<L>[K]
+>;
 
 /** The game `stats` payload of one sport: its team lines and roster-entry lines. */
 export type SportGameStats<L extends LeagueType> = z.infer<(typeof SPORT_GAME_STATS_SCHEMAS)[L]>;
@@ -94,7 +96,10 @@ export interface SportDisplay<L extends LeagueType> {
   /** Each of the sport's event types: its scoring-panel button and its play-by-play label. */
   readonly eventLabels: Readonly<Record<SportTypeMap[L]['eventType'], StatEventLabel>>;
   /** Each counter of a team line and of a player line — what a correction row and the Correct a game form name. */
-  readonly fieldLabels: StatFieldLabels<SportTypeMap[L]['teamStatKey'], SportTypeMap[L]['playerStatKey']>;
+  readonly fieldLabels: StatFieldLabels<
+    SportTypeMap[L]['teamStatKey'],
+    SportTypeMap[L]['playerStatKey']
+  >;
   /** One play-by-play line for any stored event but a void, a correction included. */
   readonly describeEvent: (event: GameStatEvent, resolve: StatEventNameResolver) => string;
   /** Present only for a sport played in rounds: the header's round line and the scoreboard's grid. */

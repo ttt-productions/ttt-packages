@@ -27,11 +27,18 @@ export interface GenericGuardDefinition<Facts> {
 }
 
 export const isAbsent = (value: unknown): value is Absent =>
-  !!value && typeof value === 'object' && Object.keys(value).length === 1 && typeof (value as Absent).absent === 'string';
+  !!value &&
+  typeof value === 'object' &&
+  Object.keys(value).length === 1 &&
+  typeof (value as Absent).absent === 'string';
 
 /** Every problem with a config, in words, against the package's generic guards. Empty = runnable. */
 export function configProblems(
-  config: { layout: RepoLayout; generic: Readonly<Record<string, unknown>>; business: readonly Guard[] },
+  config: {
+    layout: RepoLayout;
+    generic: Readonly<Record<string, unknown>>;
+    business: readonly Guard[];
+  },
   definitions: ReadonlyArray<GenericGuardDefinition<never>>,
 ): string[] {
   const problems: string[] = [];
@@ -39,22 +46,34 @@ export function configProblems(
   problems.push(...layoutProblems(config.layout));
   const generic = config.generic ?? {};
   const known = new Set(definitions.map((d) => d.id));
-  for (const key of Object.keys(generic)) if (!known.has(key)) problems.push(`generic.${key} names no guard this package carries`);
+  for (const key of Object.keys(generic))
+    if (!known.has(key)) problems.push(`generic.${key} names no guard this package carries`);
   for (const definition of definitions) {
     if (!(definition.id in generic)) {
-      problems.push(`generic.${definition.id} is missing — every guard needs its facts${definition.absentWhen ? ' or an { absent: why }' : ''}`);
+      problems.push(
+        `generic.${definition.id} is missing — every guard needs its facts${definition.absentWhen ? ' or an { absent: why }' : ''}`,
+      );
       continue;
     }
     const value = generic[definition.id];
     if (isAbsent(value)) {
-      if (!definition.absentWhen) problems.push(`generic.${definition.id} cannot be declared absent: every app runs it`);
-      else if (!value.absent.trim()) problems.push(`generic.${definition.id} is declared absent with no why`);
-      else if (definition.absentOnlyWithoutRoot && config.layout?.roots && declaredRoots(config.layout).some((r) => r.role === definition.absentOnlyWithoutRoot)) {
-        problems.push(`generic.${definition.id} is declared absent, but the layout declares a ${definition.absentOnlyWithoutRoot} root for it to check`);
+      if (!definition.absentWhen)
+        problems.push(`generic.${definition.id} cannot be declared absent: every app runs it`);
+      else if (!value.absent.trim())
+        problems.push(`generic.${definition.id} is declared absent with no why`);
+      else if (
+        definition.absentOnlyWithoutRoot &&
+        config.layout?.roots &&
+        declaredRoots(config.layout).some((r) => r.role === definition.absentOnlyWithoutRoot)
+      ) {
+        problems.push(
+          `generic.${definition.id} is declared absent, but the layout declares a ${definition.absentOnlyWithoutRoot} root for it to check`,
+        );
       }
       continue;
     }
-    for (const problem of definition.factProblems(value as never)) problems.push(`generic.${definition.id}: ${problem}`);
+    for (const problem of definition.factProblems(value as never))
+      problems.push(`generic.${definition.id}: ${problem}`);
   }
   const titles = new Set<string>();
   for (const guard of config.business ?? []) {
@@ -62,7 +81,8 @@ export function configProblems(
       problems.push('a business guard was not built from a shape');
       continue;
     }
-    if (titles.has(guard.title)) problems.push(`two business guards share the title "${guard.title}"`);
+    if (titles.has(guard.title))
+      problems.push(`two business guards share the title "${guard.title}"`);
     titles.add(guard.title);
     if (!guard.samples) problems.push(`business guard "${guard.title}" carries no samples`);
   }
@@ -74,5 +94,7 @@ export function buildGenericGuards(
   generic: Readonly<Record<string, unknown>>,
   definitions: ReadonlyArray<GenericGuardDefinition<never>>,
 ): Guard[] {
-  return definitions.flatMap((d) => (isAbsent(generic[d.id]) ? [] : d.build(generic[d.id] as never)));
+  return definitions.flatMap((d) =>
+    isAbsent(generic[d.id]) ? [] : d.build(generic[d.id] as never),
+  );
 }

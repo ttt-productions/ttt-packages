@@ -52,7 +52,10 @@ export interface RepoReader {
    * installed there ships none; one that is installed but cannot be read throws. Each file's role is
    * `installed` and its root name the package's, unless it lies under a declared root.
    */
-  installedFiles(packageName: string, options: { kinds: readonly FileKind[]; under?: string }): FileView[];
+  installedFiles(
+    packageName: string,
+    options: { kinds: readonly FileKind[]; under?: string },
+  ): FileView[];
   /**
    * The text of a file outside the checkout (a sibling repository), by absolute path, or null when
    * it is absent. A file that exists but cannot be read throws. A guard that reads one says so in
@@ -70,7 +73,9 @@ const toPosix = (p: string) => p.split(path.sep).join('/');
  * and skipping one would leave whatever it points at unchecked while every guard passes.
  */
 function symbolicLinkError(rel: string): Error {
-  return new Error(`repo-guards: ${rel} is a symbolic link, which the reader neither follows nor skips — replace it with what it points at, or exclude it by path`);
+  return new Error(
+    `repo-guards: ${rel} is a symbolic link, which the reader neither follows nor skips — replace it with what it points at, or exclude it by path`,
+  );
 }
 
 /**
@@ -78,7 +83,8 @@ function symbolicLinkError(rel: string): Error {
  * so a linked dependency tree is skipped like a real one. A link with a dot name a guard reads as a
  * file is no such folder, and fails like any other link.
  */
-const skippedByName = (name: string) => SKIPPED_FOLDER_NAMES.has(name) || (name.startsWith('.') && kindOfFile(name) === null);
+const skippedByName = (name: string) =>
+  SKIPPED_FOLDER_NAMES.has(name) || (name.startsWith('.') && kindOfFile(name) === null);
 
 /** Each rules file the deploy config deploys that the layout's `rulesFiles` does not list, in words. */
 function deployedRulesProblems(layout: RepoLayout, onDisk: (rel: string) => boolean): string[] {
@@ -87,7 +93,10 @@ function deployedRulesProblems(layout: RepoLayout, onDisk: (rel: string) => bool
   if (!onDisk(config)) return [`firebaseConfig ${config} does not exist`];
   let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(fs.readFileSync(path.join(layout.repoRoot, config), 'utf8')) as Record<string, unknown>;
+    parsed = JSON.parse(fs.readFileSync(path.join(layout.repoRoot, config), 'utf8')) as Record<
+      string,
+      unknown
+    >;
   } catch (err) {
     return [`firebaseConfig ${config} cannot be read as JSON (${(err as Error).message})`];
   }
@@ -99,7 +108,10 @@ function deployedRulesProblems(layout: RepoLayout, onDisk: (rel: string) => bool
       const rules = (entry as { rules?: unknown })?.rules;
       if (typeof rules !== 'string') continue;
       const deployed = normalizePath(`${dirnameOf(config)}/${rules}`).path;
-      if (!listed.has(deployed)) problems.push(`${config} deploys the ${service} rules file ${deployed}, which rulesFiles does not list`);
+      if (!listed.has(deployed))
+        problems.push(
+          `${config} deploys the ${service} rules file ${deployed}, which rulesFiles does not list`,
+        );
     }
   }
   return problems;
@@ -119,11 +131,14 @@ export function layoutProblems(layout: RepoLayout): string[] {
       continue;
     }
     if (!onDisk(root.path)) problems.push(`root ${name} (${root.path}) does not exist`);
-    if (root.anchor === root.path || !isUnderRoot(root.anchor, root.path)) problems.push(`root ${name}'s anchor ${root.anchor} is not under ${root.path}`);
-    else if (!onDisk(root.anchor)) problems.push(`root ${name}'s anchor ${root.anchor} does not exist`);
+    if (root.anchor === root.path || !isUnderRoot(root.anchor, root.path))
+      problems.push(`root ${name}'s anchor ${root.anchor} is not under ${root.path}`);
+    else if (!onDisk(root.anchor))
+      problems.push(`root ${name}'s anchor ${root.anchor} does not exist`);
   }
   const rulesFiles = layout.rulesFiles ?? [];
-  if (new Set(rulesFiles).size !== rulesFiles.length) problems.push('rulesFiles lists a file twice');
+  if (new Set(rulesFiles).size !== rulesFiles.length)
+    problems.push('rulesFiles lists a file twice');
   for (const file of rulesFiles) {
     if (!onDisk(file)) {
       problems.push(`rules file ${file} does not exist`);
@@ -133,23 +148,33 @@ export function layoutProblems(layout: RepoLayout): string[] {
     try {
       text = fs.readFileSync(path.join(layout.repoRoot, file), 'utf8');
     } catch (err) {
-      problems.push(`rules file ${file} cannot be read (${(err as NodeJS.ErrnoException)?.code ?? err})`);
+      problems.push(
+        `rules file ${file} cannot be read (${(err as NodeJS.ErrnoException)?.code ?? err})`,
+      );
       continue;
     }
     if (!rulesServiceOf(stripRulesComments(text))) {
-      problems.push(`rules file ${file} declares neither service cloud.firestore nor service firebase.storage, or both`);
+      problems.push(
+        `rules file ${file} declares neither service cloud.firestore nor service firebase.storage, or both`,
+      );
     }
   }
   if (layout.firebaseConfig !== undefined) problems.push(...deployedRulesProblems(layout, onDisk));
   const stillThere = (entry: Record<string, unknown>, label: string) => {
     if (isText(entry.path) && !onDisk(entry.path)) problems.push(`${label} no longer exists`);
   };
-  if (layout.exclusions !== undefined) reviewedProblems(layout.exclusions, 'exclusions', problems, { extra: stillThere });
-  if (layout.testCodePaths !== undefined) reviewedProblems(layout.testCodePaths, 'testCodePaths', problems, { extra: stillThere });
-  if (layout.testCodeNameMarkers !== undefined) reviewedProblems(layout.testCodeNameMarkers, 'testCodeNameMarkers', problems, { key: 'marker' });
+  if (layout.exclusions !== undefined)
+    reviewedProblems(layout.exclusions, 'exclusions', problems, { extra: stillThere });
+  if (layout.testCodePaths !== undefined)
+    reviewedProblems(layout.testCodePaths, 'testCodePaths', problems, { extra: stillThere });
+  if (layout.testCodeNameMarkers !== undefined)
+    reviewedProblems(layout.testCodeNameMarkers, 'testCodeNameMarkers', problems, {
+      key: 'marker',
+    });
   for (const { anchor, path: rootPath } of declaredRoots(layout).map(({ root }) => root)) {
     for (const { path: excluded } of layout.exclusions ?? []) {
-      if (isUnderRoot(anchor, excluded)) problems.push(`anchor ${anchor} is excluded by ${excluded}`);
+      if (isUnderRoot(anchor, excluded))
+        problems.push(`anchor ${anchor} is excluded by ${excluded}`);
       if (rootPath === excluded) problems.push(`root ${rootPath} is itself excluded`);
     }
   }
@@ -159,7 +184,10 @@ export function layoutProblems(layout: RepoLayout): string[] {
 /** The reader for one app's repository. A layout with any problem throws, listing every one. */
 export function createRepoReader(layout: RepoLayout): RepoReader {
   const problems = layoutProblems(layout);
-  if (problems.length) throw new Error(`repo-guards: the repository layout is not readable:\n  - ${problems.join('\n  - ')}`);
+  if (problems.length)
+    throw new Error(
+      `repo-guards: the repository layout is not readable:\n  - ${problems.join('\n  - ')}`,
+    );
 
   const repoRoot = layout.repoRoot;
   const excluded = new Set((layout.exclusions ?? []).map((e) => e.path));
@@ -180,7 +208,10 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         try {
           return fs.readFileSync(path.join(repoRoot, rel), 'utf8');
         } catch (err) {
-          throw new Error(`repo-guards: cannot read ${rel} (${(err as NodeJS.ErrnoException)?.code ?? err})`, { cause: err });
+          throw new Error(
+            `repo-guards: cannot read ${rel} (${(err as NodeJS.ErrnoException)?.code ?? err})`,
+            { cause: err },
+          );
         }
       },
     });
@@ -197,13 +228,21 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
       try {
         entries = fs.readdirSync(dir, { withFileTypes: true });
       } catch (err) {
-        throw new Error(`repo-guards: cannot read folder ${toPosix(path.relative(repoRoot, dir)) || '.'} (${(err as NodeJS.ErrnoException)?.code ?? err})`, { cause: err });
+        throw new Error(
+          `repo-guards: cannot read folder ${toPosix(path.relative(repoRoot, dir)) || '.'} (${(err as NodeJS.ErrnoException)?.code ?? err})`,
+          { cause: err },
+        );
       }
       for (const entry of entries) {
         const full = path.join(dir, entry.name);
         const rel = toPosix(path.relative(repoRoot, full));
         if (excluded.has(rel)) continue;
-        if (entry.isDirectory() ? entry.name.startsWith('.') || SKIPPED_FOLDER_NAMES.has(entry.name) : entry.isSymbolicLink() && skippedByName(entry.name)) continue;
+        if (
+          entry.isDirectory()
+            ? entry.name.startsWith('.') || SKIPPED_FOLDER_NAMES.has(entry.name)
+            : entry.isSymbolicLink() && skippedByName(entry.name)
+        )
+          continue;
         if (entry.isSymbolicLink()) throw symbolicLinkError(rel);
         if (entry.isDirectory()) {
           walk(full);
@@ -223,7 +262,8 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
     let best: { role: RootRole; name: string; length: number } | null = null;
     for (const { role, name, root } of roots) {
       const length = root.path === '.' ? 0 : root.path.length;
-      if (isUnderRoot(rel, root.path) && (!best || length > best.length)) best = { role, name, length };
+      if (isUnderRoot(rel, root.path) && (!best || length > best.length))
+        best = { role, name, length };
     }
     return best;
   };
@@ -232,9 +272,15 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
     const name = relPath.slice(relPath.lastIndexOf('/') + 1);
     const kind = kindOfFile(name);
     if (!kind) throw new Error(`repo-guards: ${relPath} is no kind of file a guard reads`);
-    if (!fs.existsSync(path.join(repoRoot, relPath))) throw new Error(`repo-guards: ${relPath} does not exist`);
+    if (!fs.existsSync(path.join(repoRoot, relPath)))
+      throw new Error(`repo-guards: ${relPath} does not exist`);
     const owner = roleOf(relPath);
-    const view = makeView(relPath, owner?.role ?? 'repository', owner?.name ?? '(repository)', kind);
+    const view = makeView(
+      relPath,
+      owner?.role ?? 'repository',
+      owner?.name ?? '(repository)',
+      kind,
+    );
     void view.text;
     return view;
   };
@@ -243,7 +289,8 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
     layout,
     files(scope) {
       if (!scope.roots.length) throw new Error('repo-guards: a scope names no root');
-      for (const kind of scope.kinds) if (!FILE_KINDS.includes(kind)) throw new Error(`repo-guards: unknown file kind ${kind}`);
+      for (const kind of scope.kinds)
+        if (!FILE_KINDS.includes(kind)) throw new Error(`repo-guards: unknown file kind ${kind}`);
       if (!scope.kinds.length) throw new Error('repo-guards: a scope names no file kind');
       const out: FileView[] = [];
       const seen = new Set<string>();
@@ -252,7 +299,9 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         const matching = roots.filter((r) => r.role === role);
         if (!matching.length) {
           if (scope.optionalRoots?.includes(role)) continue;
-          throw new Error(`repo-guards: a guard reads the ${role} root, which the layout does not declare`);
+          throw new Error(
+            `repo-guards: a guard reads the ${role} root, which the layout does not declare`,
+          );
         }
         for (const { name, root } of matching) {
           for (const entry of walkRoot(root.path)) {
@@ -275,7 +324,9 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
       return fs.existsSync(path.join(repoRoot, relPath));
     },
     rulesFiles(service) {
-      return (layout.rulesFiles ?? []).map(readFile).filter((view) => !service || rulesServiceOf(view.code) === service);
+      return (layout.rulesFiles ?? [])
+        .map(readFile)
+        .filter((view) => !service || rulesServiceOf(view.code) === service);
     },
     installedFiles(packageName, { kinds, under }) {
       const base = toPosix(path.join(under ?? '', 'node_modules', ...packageName.split('/')));
@@ -286,18 +337,23 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         try {
           entries = fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true });
         } catch (err) {
-          throw new Error(`repo-guards: cannot read installed package folder ${dir} (${(err as NodeJS.ErrnoException)?.code ?? err})`, { cause: err });
+          throw new Error(
+            `repo-guards: cannot read installed package folder ${dir} (${(err as NodeJS.ErrnoException)?.code ?? err})`,
+            { cause: err },
+          );
         }
         for (const entry of entries) {
           const rel = `${dir}/${entry.name}`;
-          if ((entry.isDirectory() || entry.isSymbolicLink()) && entry.name === 'node_modules') continue;
+          if ((entry.isDirectory() || entry.isSymbolicLink()) && entry.name === 'node_modules')
+            continue;
           if (entry.isSymbolicLink()) throw symbolicLinkError(rel);
           if (entry.isDirectory()) {
             walk(rel);
           } else if (entry.isFile()) {
             const kind = kindOfFile(entry.name);
             const owner = roleOf(rel);
-            if (kind && kinds.includes(kind)) out.push(makeView(rel, owner?.role ?? 'installed', owner?.name ?? packageName, kind));
+            if (kind && kinds.includes(kind))
+              out.push(makeView(rel, owner?.role ?? 'installed', owner?.name ?? packageName, kind));
           }
         }
       };
@@ -305,16 +361,21 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
       return out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
     },
     readOutside(absolutePath) {
-      if (!path.isAbsolute(absolutePath)) throw new Error(`repo-guards: ${absolutePath} is not an absolute path`);
+      if (!path.isAbsolute(absolutePath))
+        throw new Error(`repo-guards: ${absolutePath} is not an absolute path`);
       try {
         return fs.readFileSync(absolutePath, 'utf8');
       } catch (err) {
         if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') return null;
-        throw new Error(`repo-guards: cannot read ${absolutePath} (${(err as NodeJS.ErrnoException)?.code ?? err})`, { cause: err });
+        throw new Error(
+          `repo-guards: cannot read ${absolutePath} (${(err as NodeJS.ErrnoException)?.code ?? err})`,
+          { cause: err },
+        );
       }
     },
     existsOutside(absolutePath) {
-      if (!path.isAbsolute(absolutePath)) throw new Error(`repo-guards: ${absolutePath} is not an absolute path`);
+      if (!path.isAbsolute(absolutePath))
+        throw new Error(`repo-guards: ${absolutePath} is not an absolute path`);
       return fs.existsSync(absolutePath);
     },
     unreachedAnchors() {

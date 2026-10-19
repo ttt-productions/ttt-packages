@@ -52,45 +52,47 @@ export const MAX_COMMUNICATION_ATTACHMENTS = 256;
 /** The source-kind discriminator (Finding-H5). Selects WHICH sub-object is present
  * on the manifest: `media` → original/variants/lineage/evidenceCopy;
  * `communication` → communication; `externalFact` → externalFact. */
-export const SafetyEvidenceSourceKindSchema = z.enum([
-  'media',
-  'communication',
-  'externalFact',
-]);
+export const SafetyEvidenceSourceKindSchema = z.enum(['media', 'communication', 'externalFact']);
 export type SafetyEvidenceSourceKind = z.infer<typeof SafetyEvidenceSourceKindSchema>;
 
 /** §A4 `original` — present ONLY when sourceKind='media'. The captured original
  * object descriptor (never a serving URL). */
-export const SafetyEvidenceOriginalV1Schema = z.object({
-  bucket: z.string().min(1),
-  key: z.string().min(1),
-  generation: z.string().min(1),
-  contentType: z.string().min(1),
-  filename: z.string().min(1).optional(),
-  sizeBytes: z.number(),
-  md5: z.string().min(1),
-  sha256: z.string().min(1),
-  capturedAt: z.number(),
-}).strict();
+export const SafetyEvidenceOriginalV1Schema = z
+  .object({
+    bucket: z.string().min(1),
+    key: z.string().min(1),
+    generation: z.string().min(1),
+    contentType: z.string().min(1),
+    filename: z.string().min(1).optional(),
+    sizeBytes: z.number(),
+    md5: z.string().min(1),
+    sha256: z.string().min(1),
+    capturedAt: z.number(),
+  })
+  .strict();
 export type SafetyEvidenceOriginalV1 = z.infer<typeof SafetyEvidenceOriginalV1Schema>;
 
 /** §A4 `variants[]` — media only; MAX 64. */
-export const SafetyEvidenceVariantV1Schema = z.object({
-  variantKey: z.string().min(1),
-  sha256: z.string().min(1),
-  sizeBytes: z.number(),
-}).strict();
+export const SafetyEvidenceVariantV1Schema = z
+  .object({
+    variantKey: z.string().min(1),
+    sha256: z.string().min(1),
+    sizeBytes: z.number(),
+  })
+  .strict();
 export type SafetyEvidenceVariantV1 = z.infer<typeof SafetyEvidenceVariantV1Schema>;
 
 /** §A4 `communication` — present ONLY when sourceKind='communication'.
  * `attachmentItemIds` MAX 256. */
-export const SafetyEvidenceCommunicationV1Schema = z.object({
-  channelId: z.string().min(1),
-  messageSeqStart: z.number(),
-  messageSeqEnd: z.number(),
-  transcriptObjectRef: z.string().min(1),
-  attachmentItemIds: z.array(z.string().min(1)).max(MAX_COMMUNICATION_ATTACHMENTS),
-}).strict();
+export const SafetyEvidenceCommunicationV1Schema = z
+  .object({
+    channelId: z.string().min(1),
+    messageSeqStart: z.number(),
+    messageSeqEnd: z.number(),
+    transcriptObjectRef: z.string().min(1),
+    attachmentItemIds: z.array(z.string().min(1)).max(MAX_COMMUNICATION_ATTACHMENTS),
+  })
+  .strict();
 export type SafetyEvidenceCommunicationV1 = z.infer<typeof SafetyEvidenceCommunicationV1Schema>;
 
 /** §A4 externalFact `factKind`. */
@@ -103,39 +105,47 @@ export const SafetyEvidenceExternalFactKindSchema = z.enum([
 export type SafetyEvidenceExternalFactKind = z.infer<typeof SafetyEvidenceExternalFactKindSchema>;
 
 /** §A4 `externalFact` — present ONLY when sourceKind='externalFact'. */
-export const SafetyEvidenceExternalFactV1Schema = z.object({
-  factKind: SafetyEvidenceExternalFactKindSchema,
-  narrativeRef: z.string().min(1),
-  establishedActualKnowledgeAt: z.number().optional(),
-  sourceContactRef: z.string().min(1).optional(),
-}).strict();
+export const SafetyEvidenceExternalFactV1Schema = z
+  .object({
+    factKind: SafetyEvidenceExternalFactKindSchema,
+    narrativeRef: z.string().min(1),
+    establishedActualKnowledgeAt: z.number().optional(),
+    sourceContactRef: z.string().min(1).optional(),
+  })
+  .strict();
 export type SafetyEvidenceExternalFactV1 = z.infer<typeof SafetyEvidenceExternalFactV1Schema>;
 
 /** §A4 `detector` — never the raw hash. */
-export const SafetyEvidenceDetectorV1Schema = z.object({
-  source: z.string().min(1),
-  listId: z.string().min(1),
-  sdkVersion: z.string().min(1),
-  requestTraceId: z.string().min(1),
-  matchResult: z.string().min(1),
-}).strict();
+export const SafetyEvidenceDetectorV1Schema = z
+  .object({
+    source: z.string().min(1),
+    listId: z.string().min(1),
+    sdkVersion: z.string().min(1),
+    requestTraceId: z.string().min(1),
+    matchResult: z.string().min(1),
+  })
+  .strict();
 export type SafetyEvidenceDetectorV1 = z.infer<typeof SafetyEvidenceDetectorV1Schema>;
 
 /** §A4 `evidenceCopy` — media only; the verified evidence-vault copy descriptor. */
-export const SafetyEvidenceCopyV1Schema = z.object({
-  destinationBucket: z.string().min(1),
-  destinationKey: z.string().min(1),
-  keyVersion: z.string().min(1),
-  verifyMethod: z.string().min(1),
-  verifyResult: z.string().min(1),
-}).strict();
+export const SafetyEvidenceCopyV1Schema = z
+  .object({
+    destinationBucket: z.string().min(1),
+    destinationKey: z.string().min(1),
+    keyVersion: z.string().min(1),
+    verifyMethod: z.string().min(1),
+    verifyResult: z.string().min(1),
+  })
+  .strict();
 export type SafetyEvidenceCopyV1 = z.infer<typeof SafetyEvidenceCopyV1Schema>;
 
 /** §A4 `reporter` — restricted; segregated from ordinary admin views. */
-export const SafetyEvidenceReporterV1Schema = z.object({
-  reporterUidRef: z.string().min(1),
-  narrativeRef: z.string().min(1),
-}).strict();
+export const SafetyEvidenceReporterV1Schema = z
+  .object({
+    reporterUidRef: z.string().min(1),
+    narrativeRef: z.string().min(1),
+  })
+  .strict();
 export type SafetyEvidenceReporterV1 = z.infer<typeof SafetyEvidenceReporterV1Schema>;
 
 /**
@@ -159,59 +169,70 @@ export type SafetyEvidenceReporterV1 = z.infer<typeof SafetyEvidenceReporterV1Sc
  * the case `…/accounts` subcollection (`subjectAccountsRef`), never a synthesized
  * uploader.
  */
-export const SafetyEvidenceManifestV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  manifestId: z.string().min(1),
-  caseId: z.string().min(1),
-  createdAt: z.number(),
-  sourceKind: SafetyEvidenceSourceKindSchema, // REQUIRED — selects the present sub-object
-  original: SafetyEvidenceOriginalV1Schema.optional(), // present ONLY when sourceKind='media'
-  variants: z.array(SafetyEvidenceVariantV1Schema).max(MAX_MANIFEST_VARIANTS).optional(), // media only
-  lineage: MediaOriginLineageV1Schema.optional(), // present ONLY when sourceKind='media'
-  communication: SafetyEvidenceCommunicationV1Schema.optional(), // present ONLY when sourceKind='communication'
-  externalFact: SafetyEvidenceExternalFactV1Schema.optional(), // present ONLY when sourceKind='externalFact'
-  // multi-subject lives in the case childSafetyCases/{caseId}/accounts subcollection
-  // (no fake uploader on the manifest); this points at …/accounts:
-  subjectAccountsRef: z.string().min(1),
-  provenanceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_PROVENANCE_REFS), // eventProvenance ids promoted into the case
-  contentDocSnapshotRef: z.string().min(1).optional(),
-  contentDocRevision: z.number().optional(),
-  detector: SafetyEvidenceDetectorV1Schema.optional(), // never the raw hash
-  evidenceCopy: SafetyEvidenceCopyV1Schema.optional(), // media only
-  reporter: SafetyEvidenceReporterV1Schema.optional(), // restricted; segregated from ordinary admin views
-  ncmecReceiptRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_NCMEC_RECEIPTS),
-}).strict().superRefine((val, ctx) => {
-  // H5 invariant: the sourceKind→present-object set. `media` requires original +
-  // lineage and forbids communication/externalFact; `communication` requires
-  // communication and forbids all media-only fields + externalFact; `externalFact`
-  // requires externalFact and forbids all media-only fields + communication.
-  const present = (field: string) =>
-    ctx.addIssue({ code: 'custom', path: [field], message: `${field} is only allowed when sourceKind matches` });
-  const missing = (field: string) =>
-    ctx.addIssue({ code: 'custom', path: [field], message: `${field} is required for this sourceKind` });
+export const SafetyEvidenceManifestV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    manifestId: z.string().min(1),
+    caseId: z.string().min(1),
+    createdAt: z.number(),
+    sourceKind: SafetyEvidenceSourceKindSchema, // REQUIRED — selects the present sub-object
+    original: SafetyEvidenceOriginalV1Schema.optional(), // present ONLY when sourceKind='media'
+    variants: z.array(SafetyEvidenceVariantV1Schema).max(MAX_MANIFEST_VARIANTS).optional(), // media only
+    lineage: MediaOriginLineageV1Schema.optional(), // present ONLY when sourceKind='media'
+    communication: SafetyEvidenceCommunicationV1Schema.optional(), // present ONLY when sourceKind='communication'
+    externalFact: SafetyEvidenceExternalFactV1Schema.optional(), // present ONLY when sourceKind='externalFact'
+    // multi-subject lives in the case childSafetyCases/{caseId}/accounts subcollection
+    // (no fake uploader on the manifest); this points at …/accounts:
+    subjectAccountsRef: z.string().min(1),
+    provenanceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_PROVENANCE_REFS), // eventProvenance ids promoted into the case
+    contentDocSnapshotRef: z.string().min(1).optional(),
+    contentDocRevision: z.number().optional(),
+    detector: SafetyEvidenceDetectorV1Schema.optional(), // never the raw hash
+    evidenceCopy: SafetyEvidenceCopyV1Schema.optional(), // media only
+    reporter: SafetyEvidenceReporterV1Schema.optional(), // restricted; segregated from ordinary admin views
+    ncmecReceiptRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_NCMEC_RECEIPTS),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    // H5 invariant: the sourceKind→present-object set. `media` requires original +
+    // lineage and forbids communication/externalFact; `communication` requires
+    // communication and forbids all media-only fields + externalFact; `externalFact`
+    // requires externalFact and forbids all media-only fields + communication.
+    const present = (field: string) =>
+      ctx.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `${field} is only allowed when sourceKind matches`,
+      });
+    const missing = (field: string) =>
+      ctx.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `${field} is required for this sourceKind`,
+      });
 
-  if (val.sourceKind === 'media') {
-    if (val.original === undefined) missing('original');
-    if (val.lineage === undefined) missing('lineage');
-    if (val.communication !== undefined) present('communication');
-    if (val.externalFact !== undefined) present('externalFact');
-  } else if (val.sourceKind === 'communication') {
-    if (val.communication === undefined) missing('communication');
-    if (val.original !== undefined) present('original');
-    if (val.variants !== undefined) present('variants');
-    if (val.lineage !== undefined) present('lineage');
-    if (val.evidenceCopy !== undefined) present('evidenceCopy');
-    if (val.externalFact !== undefined) present('externalFact');
-  } else {
-    // externalFact
-    if (val.externalFact === undefined) missing('externalFact');
-    if (val.original !== undefined) present('original');
-    if (val.variants !== undefined) present('variants');
-    if (val.lineage !== undefined) present('lineage');
-    if (val.evidenceCopy !== undefined) present('evidenceCopy');
-    if (val.communication !== undefined) present('communication');
-  }
-});
+    if (val.sourceKind === 'media') {
+      if (val.original === undefined) missing('original');
+      if (val.lineage === undefined) missing('lineage');
+      if (val.communication !== undefined) present('communication');
+      if (val.externalFact !== undefined) present('externalFact');
+    } else if (val.sourceKind === 'communication') {
+      if (val.communication === undefined) missing('communication');
+      if (val.original !== undefined) present('original');
+      if (val.variants !== undefined) present('variants');
+      if (val.lineage !== undefined) present('lineage');
+      if (val.evidenceCopy !== undefined) present('evidenceCopy');
+      if (val.externalFact !== undefined) present('externalFact');
+    } else {
+      // externalFact
+      if (val.externalFact === undefined) missing('externalFact');
+      if (val.original !== undefined) present('original');
+      if (val.variants !== undefined) present('variants');
+      if (val.lineage !== undefined) present('lineage');
+      if (val.evidenceCopy !== undefined) present('evidenceCopy');
+      if (val.communication !== undefined) present('communication');
+    }
+  });
 export type SafetyEvidenceManifestV1 = z.infer<typeof SafetyEvidenceManifestV1Schema>;
 
 // ===========================================================================
@@ -227,11 +248,7 @@ export type SafetyEvidenceManifestV1 = z.infer<typeof SafetyEvidenceManifestV1Sc
 // ===========================================================================
 
 /** §A4 job phase — one worker per phase. */
-export const SafetyEvidenceJobPhaseSchema = z.enum([
-  'capture',
-  'verify',
-  'disposition',
-]);
+export const SafetyEvidenceJobPhaseSchema = z.enum(['capture', 'verify', 'disposition']);
 export type SafetyEvidenceJobPhase = z.infer<typeof SafetyEvidenceJobPhaseSchema>;
 
 /** §A4 job status — disambiguated by the (phase, status) pairing rules above; never
@@ -248,24 +265,26 @@ export type SafetyEvidenceJobStatus = z.infer<typeof SafetyEvidenceJobStatusSche
 /** `safetyEvidenceJobs/{jobId}` — the capture/verify/disposition saga row
  * (Finding-M2). Doc id is the deterministic `jobId`. `commandId` is deterministic
  * per (jobId, phase) — idempotent + replayed by commandId. */
-export const SafetyEvidenceJobV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  jobId: z.string().min(1),
-  caseId: z.string().min(1),
-  phase: SafetyEvidenceJobPhaseSchema,
-  commandId: z.string().min(1), // deterministic per (jobId, phase)
-  status: SafetyEvidenceJobStatusSchema,
-  attemptCount: z.number(),
-  nextAttemptAt: z.number(),
-  leaseOwner: z.string().min(1).optional(),
-  leaseExpiresAt: z.number().optional(),
-  lastErrorCode: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-  completedAt: z.number().optional(), // (capture|verify, verified)
-  disposedAt: z.number().optional(), // (disposition, disposed)
-  deadLetterAt: z.number().optional(), // any deadLetter
-}).strict();
+export const SafetyEvidenceJobV1Schema = z
+  .object({
+    schemaVersion: z.literal(1),
+    jobId: z.string().min(1),
+    caseId: z.string().min(1),
+    phase: SafetyEvidenceJobPhaseSchema,
+    commandId: z.string().min(1), // deterministic per (jobId, phase)
+    status: SafetyEvidenceJobStatusSchema,
+    attemptCount: z.number(),
+    nextAttemptAt: z.number(),
+    leaseOwner: z.string().min(1).optional(),
+    leaseExpiresAt: z.number().optional(),
+    lastErrorCode: z.string().optional(),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+    completedAt: z.number().optional(), // (capture|verify, verified)
+    disposedAt: z.number().optional(), // (disposition, disposed)
+    deadLetterAt: z.number().optional(), // any deadLetter
+  })
+  .strict();
 export type SafetyEvidenceJobV1 = z.infer<typeof SafetyEvidenceJobV1Schema>;
 
 // ===========================================================================
@@ -278,20 +297,24 @@ export type SafetyEvidenceJobItemRole = z.infer<typeof SafetyEvidenceJobItemRole
 
 /** §A4 job-item verify result. */
 export const SafetyEvidenceJobItemVerifyResultSchema = z.enum(['pending', 'ok', 'mismatch']);
-export type SafetyEvidenceJobItemVerifyResult = z.infer<typeof SafetyEvidenceJobItemVerifyResultSchema>;
+export type SafetyEvidenceJobItemVerifyResult = z.infer<
+  typeof SafetyEvidenceJobItemVerifyResultSchema
+>;
 
 /** `safetyEvidenceJobs/{jobId}/items/{itemId}` — per-object source/destination row.
  * Doc id is the `itemId`. */
-export const SafetyEvidenceJobItemV1Schema = z.object({
-  role: SafetyEvidenceJobItemRoleSchema,
-  bucket: z.string().min(1),
-  key: z.string().min(1),
-  generation: z.string().min(1).optional(),
-  sizeBytes: z.number(),
-  sha256: z.string().min(1),
-  md5: z.string().min(1).optional(),
-  verifyResult: SafetyEvidenceJobItemVerifyResultSchema,
-}).strict();
+export const SafetyEvidenceJobItemV1Schema = z
+  .object({
+    role: SafetyEvidenceJobItemRoleSchema,
+    bucket: z.string().min(1),
+    key: z.string().min(1),
+    generation: z.string().min(1).optional(),
+    sizeBytes: z.number(),
+    sha256: z.string().min(1),
+    md5: z.string().min(1).optional(),
+    verifyResult: SafetyEvidenceJobItemVerifyResultSchema,
+  })
+  .strict();
 export type SafetyEvidenceJobItemV1 = z.infer<typeof SafetyEvidenceJobItemV1Schema>;
 
 // The items subcollection ALSO carries one CONTROL document per job, at a deterministic id derived
@@ -300,54 +323,74 @@ export type SafetyEvidenceJobItemV1 = z.infer<typeof SafetyEvidenceJobItemV1Sche
 
 /** What an evidence capture job is asked to capture — stored whole on the capture control row. */
 export const SafetyEvidenceCaptureRequestV1Schema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('media'),
-    sourceBucket: z.string().min(1),
-    sourceKey: z.string().min(1),
-    lineage: MediaOriginLineageV1Schema,
-    variants: z.array(SafetyEvidenceVariantV1Schema).max(MAX_MANIFEST_VARIANTS).optional(),
-    detector: SafetyEvidenceDetectorV1Schema.optional(),
-    contentDocSnapshotRef: z.string().min(1).optional(),
-    contentDocRevision: z.number().optional(),
-  }).strict(),
-  z.object({
-    kind: z.literal('communication'),
-    communication: SafetyEvidenceCommunicationV1Schema,
-    contentDocSnapshotRef: z.string().min(1).optional(),
-    contentDocRevision: z.number().optional(),
-  }).strict(),
-  z.object({
-    kind: z.literal('externalFact'),
-    externalFact: SafetyEvidenceExternalFactV1Schema,
-    contentDocSnapshotRef: z.string().min(1).optional(),
-    contentDocRevision: z.number().optional(),
-  }).strict(),
+  z
+    .object({
+      kind: z.literal('media'),
+      sourceBucket: z.string().min(1),
+      sourceKey: z.string().min(1),
+      lineage: MediaOriginLineageV1Schema,
+      variants: z.array(SafetyEvidenceVariantV1Schema).max(MAX_MANIFEST_VARIANTS).optional(),
+      detector: SafetyEvidenceDetectorV1Schema.optional(),
+      contentDocSnapshotRef: z.string().min(1).optional(),
+      contentDocRevision: z.number().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('communication'),
+      communication: SafetyEvidenceCommunicationV1Schema,
+      contentDocSnapshotRef: z.string().min(1).optional(),
+      contentDocRevision: z.number().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('externalFact'),
+      externalFact: SafetyEvidenceExternalFactV1Schema,
+      contentDocSnapshotRef: z.string().min(1).optional(),
+      contentDocRevision: z.number().optional(),
+    })
+    .strict(),
 ]);
 export type SafetyEvidenceCaptureRequestV1 = z.infer<typeof SafetyEvidenceCaptureRequestV1Schema>;
 
 /** The kinds a capture request can take — what the verify control row records about its source. */
-export const SafetyEvidenceCaptureRequestKindSchema = z.enum(['media', 'communication', 'externalFact']);
-export type SafetyEvidenceCaptureRequestKind = z.infer<typeof SafetyEvidenceCaptureRequestKindSchema>;
+export const SafetyEvidenceCaptureRequestKindSchema = z.enum([
+  'media',
+  'communication',
+  'externalFact',
+]);
+export type SafetyEvidenceCaptureRequestKind = z.infer<
+  typeof SafetyEvidenceCaptureRequestKindSchema
+>;
 
 /** Control row of a CAPTURE-phase job: the request itself, plus the promoted eventProvenance ids
  * the resulting manifest will carry. */
-export const SafetyEvidenceJobCaptureControlV1Schema = z.object({
-  role: z.literal('control'),
-  sourceDiscriminator: z.string().min(1),
-  request: SafetyEvidenceCaptureRequestV1Schema,
-  provenanceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_PROVENANCE_REFS),
-}).strict();
-export type SafetyEvidenceJobCaptureControlV1 = z.infer<typeof SafetyEvidenceJobCaptureControlV1Schema>;
+export const SafetyEvidenceJobCaptureControlV1Schema = z
+  .object({
+    role: z.literal('control'),
+    sourceDiscriminator: z.string().min(1),
+    request: SafetyEvidenceCaptureRequestV1Schema,
+    provenanceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_PROVENANCE_REFS),
+  })
+  .strict();
+export type SafetyEvidenceJobCaptureControlV1 = z.infer<
+  typeof SafetyEvidenceJobCaptureControlV1Schema
+>;
 
 /** Control row of a VERIFY-phase job: which capture job produced the object to re-check, and the
  * kind of request it captured (a reference-only capture has no bytes to verify). */
-export const SafetyEvidenceJobVerifyControlV1Schema = z.object({
-  role: z.literal('control'),
-  sourceDiscriminator: z.string().min(1),
-  captureJobId: z.string().min(1),
-  requestKind: SafetyEvidenceCaptureRequestKindSchema,
-}).strict();
-export type SafetyEvidenceJobVerifyControlV1 = z.infer<typeof SafetyEvidenceJobVerifyControlV1Schema>;
+export const SafetyEvidenceJobVerifyControlV1Schema = z
+  .object({
+    role: z.literal('control'),
+    sourceDiscriminator: z.string().min(1),
+    captureJobId: z.string().min(1),
+    requestKind: SafetyEvidenceCaptureRequestKindSchema,
+  })
+  .strict();
+export type SafetyEvidenceJobVerifyControlV1 = z.infer<
+  typeof SafetyEvidenceJobVerifyControlV1Schema
+>;
 
 /** Every document `safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}` can hold: an object
  * row, or one of the two control rows. This — not the object row alone — is the stored shape. */
@@ -384,16 +427,18 @@ export type SafetyEvidenceDispositionResult = z.infer<typeof SafetyEvidenceDispo
 // BUCKET — recoverable until that window purges — and is never a permanent-destruction attestation.
 // In both homes the record is the CURRENT status: a `leftover` is overwritten by the next verified
 // attempt, and `verifiedAt` is the time of the check that produced this result.
-export const SafetyEvidenceDispositionV1Schema = z.object({
-  bucket: z.string().min(1),
-  key: z.string().min(1),
-  // [M-5] the exact object generation this record attests destroyed — pins the attestation to a
-  // single immutable object version so a same-key re-upload (new generation) is not covered by it.
-  // Optional: an object with no generation concept (or a leftover with none read) omits it.
-  generation: z.string().min(1).optional(),
-  method: SafetyEvidenceDispositionMethodSchema,
-  verifiedAt: z.number(),
-  result: SafetyEvidenceDispositionResultSchema,
-  leftoverDetail: z.string().min(1).optional(),
-}).strict();
+export const SafetyEvidenceDispositionV1Schema = z
+  .object({
+    bucket: z.string().min(1),
+    key: z.string().min(1),
+    // [M-5] the exact object generation this record attests destroyed — pins the attestation to a
+    // single immutable object version so a same-key re-upload (new generation) is not covered by it.
+    // Optional: an object with no generation concept (or a leftover with none read) omits it.
+    generation: z.string().min(1).optional(),
+    method: SafetyEvidenceDispositionMethodSchema,
+    verifiedAt: z.number(),
+    result: SafetyEvidenceDispositionResultSchema,
+    leftoverDetail: z.string().min(1).optional(),
+  })
+  .strict();
 export type SafetyEvidenceDispositionV1 = z.infer<typeof SafetyEvidenceDispositionV1Schema>;

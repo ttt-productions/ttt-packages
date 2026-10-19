@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { LOAD_WATCHDOG_MS } from "../recovery.js";
+import * as React from 'react';
+import { LOAD_WATCHDOG_MS } from '../recovery.js';
 
 /**
  * Bounded load watchdog shared by the three viewers. While `armed`, a media
@@ -21,7 +21,7 @@ import { LOAD_WATCHDOG_MS } from "../recovery.js";
 export function useLoadWatchdog(
   armed: boolean,
   timeoutMs: number | undefined,
-  onTimeout: () => void
+  onTimeout: () => void,
 ): void {
   const onTimeoutRef = React.useRef(onTimeout);
   onTimeoutRef.current = onTimeout;
@@ -36,10 +36,7 @@ export function useLoadWatchdog(
     const arm = () => {
       timer = setTimeout(() => {
         timer = null;
-        if (
-          typeof document !== "undefined" &&
-          document.visibilityState === "hidden"
-        ) {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
           arm();
           return;
         }

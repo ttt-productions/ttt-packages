@@ -13,7 +13,10 @@ const untouched = { amount: 500, refundedAmount: 0, disputeLostAmount: 0, netAmo
 
 const sum = (pledges: Array<typeof refunded>) =>
   Object.fromEntries(
-    PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS.map((field) => [field, pledges.reduce((total, p) => total + p[field], 0)]),
+    PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS.map((field) => [
+      field,
+      pledges.reduce((total, p) => total + p[field], 0),
+    ]),
   ) as typeof refunded;
 
 describe('the pledge-totals formula', () => {
@@ -26,19 +29,26 @@ describe('the pledge-totals formula', () => {
     });
   });
 
-  it('gives the ledger total as the sum of each pledge\'s contribution — the lost dispute holds no money, so 2 pledges count', () => {
+  it("gives the ledger total as the sum of each pledge's contribution — the lost dispute holds no money, so 2 pledges count", () => {
     const ledger = pledgePaymentTotalsOf(sum([refunded, disputeLost, untouched]), 2);
-    const contributions = [refunded, disputeLost, untouched].map((p) => pledgePaymentContributionOf(p));
-    expect(contributions.reduce((a, b) => ({
-      netRaised: a.netRaised + b.netRaised,
-      grossRaised: a.grossRaised + b.grossRaised,
-      totalRefunded: a.totalRefunded + b.totalRefunded,
-      pledgeCount: a.pledgeCount + b.pledgeCount,
-    }))).toEqual(ledger);
+    const contributions = [refunded, disputeLost, untouched].map((p) =>
+      pledgePaymentContributionOf(p),
+    );
+    expect(
+      contributions.reduce((a, b) => ({
+        netRaised: a.netRaised + b.netRaised,
+        grossRaised: a.grossRaised + b.grossRaised,
+        totalRefunded: a.totalRefunded + b.totalRefunded,
+        pledgeCount: a.pledgeCount + b.pledgeCount,
+      })),
+    ).toEqual(ledger);
   });
 
-  it('gives a lost dispute\'s increment as the change in that pledge\'s contribution', () => {
-    const before = pledgePaymentTotalsOf({ ...disputeLost, disputeLostAmount: 0, netAmount: 2500 }, 1);
+  it("gives a lost dispute's increment as the change in that pledge's contribution", () => {
+    const before = pledgePaymentTotalsOf(
+      { ...disputeLost, disputeLostAmount: 0, netAmount: 2500 },
+      1,
+    );
     const after = pledgePaymentTotalsOf(disputeLost, 1);
     expect(after.totalRefunded - before.totalRefunded).toBe(2500);
     expect(after.netRaised - before.netRaised).toBe(-2500);
@@ -74,12 +84,20 @@ describe('which pledges count', () => {
   });
 
   it('a lost dispute that takes all the money takes the pledge out of the count', () => {
-    const before = pledgePaymentContributionOf({ ...disputeLost, disputeLostAmount: 0, netAmount: 2500 });
+    const before = pledgePaymentContributionOf({
+      ...disputeLost,
+      disputeLostAmount: 0,
+      netAmount: 2500,
+    });
     expect(pledgePaymentContributionOf(disputeLost).pledgeCount - before.pledgeCount).toBe(-1);
   });
 
   it('a refund that fails puts the pledge back in the count', () => {
-    const refundedFully = pledgePaymentContributionOf({ ...untouched, refundedAmount: 500, netAmount: 0 });
+    const refundedFully = pledgePaymentContributionOf({
+      ...untouched,
+      refundedAmount: 500,
+      netAmount: 0,
+    });
     expect(pledgePaymentContributionOf(untouched).pledgeCount - refundedFully.pledgeCount).toBe(1);
   });
 });

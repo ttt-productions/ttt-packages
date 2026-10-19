@@ -59,16 +59,31 @@ const PROFILE = createGuardProfile({
 
 let registry;
 beforeAll(async () => {
-  registry = await loadRegistry({ sources: FIXTURE_SOURCES, constantMapNames: FIXTURE_CONSTANT_MAPS });
+  registry = await loadRegistry({
+    sources: FIXTURE_SOURCES,
+    constantMapNames: FIXTURE_CONSTANT_MAPS,
+  });
 });
 
 /** Analyze one fixture file and return its violations. */
 function analyze(source, { exceptions = [] } = {}) {
-  return runGuardOnSources({ sources: { 'fixture/writer.ts': source }, registry, profile: PROFILE, exceptions, packageDeclarations: fixturePackageDeclarations });
+  return runGuardOnSources({
+    sources: { 'fixture/writer.ts': source },
+    registry,
+    profile: PROFILE,
+    exceptions,
+    packageDeclarations: fixturePackageDeclarations,
+  });
 }
 
 function analyzeSources(sources, { exceptions = [] } = {}) {
-  return runGuardOnSources({ sources, registry, profile: PROFILE, exceptions, packageDeclarations: fixturePackageDeclarations });
+  return runGuardOnSources({
+    sources,
+    registry,
+    profile: PROFILE,
+    exceptions,
+    packageDeclarations: fixturePackageDeclarations,
+  });
 }
 
 const kindsOf = (result) => result.violations.map((violation) => violation.kind);
@@ -396,7 +411,8 @@ describe('MUST FAIL — a key the document schema does not declare', () => {
   it('follows every entry in a bounded finite selector registry', () => {
     const entries = Array.from(
       { length: 13 },
-      (_, index) => `entry${index}: { ref: db.doc(toPath(PATH_BUILDERS.publicUser(uid))), patch: { uid } }`,
+      (_, index) =>
+        `entry${index}: { ref: db.doc(toPath(PATH_BUILDERS.publicUser(uid))), patch: { uid } }`,
     ).join(',\n');
     const result = analyze(`${PREAMBLE}
       const registry = { ${entries} };
@@ -411,7 +427,8 @@ describe('MUST FAIL — a key the document schema does not declare', () => {
   it('fails closed when a selector registry exceeds the finite candidate bound', () => {
     const entries = Array.from(
       { length: 17 },
-      (_, index) => `entry${index}: { ref: db.doc(toPath(PATH_BUILDERS.publicUser(uid))), patch: { uid } }`,
+      (_, index) =>
+        `entry${index}: { ref: db.doc(toPath(PATH_BUILDERS.publicUser(uid))), patch: { uid } }`,
     ).join(',\n');
     const result = analyze(`${PREAMBLE}
       const registry = { ${entries} };
@@ -469,9 +486,18 @@ describe('MUST FAIL — a key the document schema does not declare', () => {
 
   it('retains every returning builder in a bounded mixed selector registry', () => {
     const builders = [
-      'userProfile', 'publicUser', 'statusReconcileQueueEntry', 'sportLeague',
-      'leagueTeam', 'leagueTeamContact', 'teamInvitation', 'teamJoinRequest',
-      'sportGame', 'gameLocation', 'waiverTemplate', 'hardwareLoanContract',
+      'userProfile',
+      'publicUser',
+      'statusReconcileQueueEntry',
+      'sportLeague',
+      'leagueTeam',
+      'leagueTeamContact',
+      'teamInvitation',
+      'teamJoinRequest',
+      'sportGame',
+      'gameLocation',
+      'waiverTemplate',
+      'hardwareLoanContract',
     ];
     const entries = builders.map((name) => `${name}: { build: PATH_BUILDERS.${name} }`).join(',\n');
     const result = analyze(`${PREAMBLE}
@@ -540,7 +566,6 @@ describe('MUST FAIL — a key the document schema does not declare', () => {
       "'displayName' is not declared by userProfiles/{userId}/privateData/{privateDataId}",
     );
   });
-
 });
 
 describe('MUST FAIL — casts and hand-built paths on a write', () => {
@@ -561,7 +586,9 @@ describe('MUST FAIL — casts and hand-built paths on a write', () => {
         await ref.set(({ uid } as unknown) as Record<string, unknown>, { merge: true });
       }
     `);
-    expect(kindsOf(result).filter((kind) => kind === VIOLATION_KINDS.PAYLOAD_CAST).length).toBeGreaterThan(0);
+    expect(
+      kindsOf(result).filter((kind) => kind === VIOLATION_KINDS.PAYLOAD_CAST).length,
+    ).toBeGreaterThan(0);
   });
 
   it('fires on a hand-built document path feeding a write', () => {
@@ -613,7 +640,9 @@ describe('MUST FAIL — fail-closed on what the guard cannot read', () => {
         await ref.set(LocalAlias.parse({ uid }), { merge: true });
       }
     `);
-    expect(kindsOf(result).filter((kind) => kind === VIOLATION_KINDS.UNREADABLE_PAYLOAD).length).toBe(2);
+    expect(
+      kindsOf(result).filter((kind) => kind === VIOLATION_KINDS.UNREADABLE_PAYLOAD).length,
+    ).toBe(2);
   });
 
   it('does not trust .data from a local alias of a canonical schema', () => {
@@ -645,8 +674,17 @@ describe('a canonical builder that validates a numeric argument', () => {
       if (!Number.isInteger(version) || version < 1) throw new Error('whole numbers only');
       return ['waiverTemplates', waiverTemplateId, 'waiverTemplateVersions', `v${version}`];
     };
-    expect(numericSentinelSegments(builder)).toEqual(['waiverTemplates', 'ID', 'waiverTemplateVersions', 'ID']);
-    expect(numericSentinelSegments(() => { throw new Error('never runs'); })).toBeNull();
+    expect(numericSentinelSegments(builder)).toEqual([
+      'waiverTemplates',
+      'ID',
+      'waiverTemplateVersions',
+      'ID',
+    ]);
+    expect(
+      numericSentinelSegments(() => {
+        throw new Error('never runs');
+      }),
+    ).toBeNull();
   });
 
   it('resolves a write through it, and still fails an undeclared key there', () => {
@@ -918,7 +956,7 @@ describe('MUST PASS — the documented non-violations', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it('MUST FAIL — an undeclared key in ONE call site\'s patch builder, named on THAT document', () => {
+  it("MUST FAIL — an undeclared key in ONE call site's patch builder, named on THAT document", () => {
     const result = analyze(`${PREAMBLE}
       function claim(args: {
         ref: FirebaseFirestore.DocumentReference;
@@ -940,7 +978,9 @@ describe('MUST PASS — the documented non-violations', () => {
         });
       }
     `);
-    expect(detailsOf(result)).toContain("'carrierPairUndeclared' is not declared by publicUsers/{userId}");
+    expect(detailsOf(result)).toContain(
+      "'carrierPairUndeclared' is not declared by publicUsers/{userId}",
+    );
     expect(detailsOf(result)).not.toContain('privateData');
   });
 
@@ -1008,7 +1048,9 @@ describe('MUST PASS — the documented non-violations', () => {
         }, false);
       }
     `);
-    expect(detailsOf(result)).toContain("'reassignedUndeclared' is not declared by publicUsers/{userId}");
+    expect(detailsOf(result)).toContain(
+      "'reassignedUndeclared' is not declared by publicUsers/{userId}",
+    );
   });
 
   it('resolves a finite config-selected PATH_BUILDERS alias without trusting a dynamic builder', () => {
@@ -1024,7 +1066,6 @@ describe('MUST PASS — the documented non-violations', () => {
     expect(detailsOf(result)).toContain('userProfiles/{userId}/privateData/{privateDataId}');
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
   });
-
 });
 
 describe('write FORMS the guard must see', () => {
@@ -1075,7 +1116,9 @@ describe('scope awareness', () => {
         void ref.set({ displayName: 'x' }, { merge: true });
       }
     `);
-    const unresolved = result.violations.filter((violation) => violation.kind === VIOLATION_KINDS.UNRESOLVED_TARGET);
+    const unresolved = result.violations.filter(
+      (violation) => violation.kind === VIOLATION_KINDS.UNRESOLVED_TARGET,
+    );
     expect(unresolved.length).toBe(1);
     expect(result.writes.find((write) => write.line > 8)?.templates).toBeNull();
   });
@@ -1135,7 +1178,13 @@ describe('the exception list', () => {
   it('reports an exception that matches nothing, so a stale entry is deleted not kept', () => {
     const result = analyze(source, {
       exceptions: [
-        { kind: VIOLATION_KINDS.PAYLOAD_CAST, file: 'fixture/writer.ts', marker: 'gone', detail: 'never', why: 'fixture' },
+        {
+          kind: VIOLATION_KINDS.PAYLOAD_CAST,
+          file: 'fixture/writer.ts',
+          marker: 'gone',
+          detail: 'never',
+          why: 'fixture',
+        },
       ],
     });
     expect(result.staleExceptions.length).toBe(1);
@@ -1176,9 +1225,9 @@ describe('declaredKeys over the schema shapes the registry actually holds', () =
   });
 
   it('allows a closed document schema whose nested value is open', () => {
-    expect([...closedCanonicalKeys(z.object({ metadata: z.record(z.string(), z.unknown()) })).keys]).toEqual([
-      'metadata',
-    ]);
+    expect([
+      ...closedCanonicalKeys(z.object({ metadata: z.record(z.string(), z.unknown()) })).keys,
+    ]).toEqual(['metadata']);
   });
 });
 
@@ -1270,15 +1319,28 @@ describe('the independent structural cross-check', () => {
   });
 
   it('FAILS when a call site the classifier never saw is present', () => {
-    const registryStub = { declaredFor: () => ({ keys: new Set(), open: false }), schemaFor: () => null };
+    const registryStub = {
+      declaredFor: () => ({ keys: new Set(), open: false }),
+      schemaFor: () => null,
+    };
     const result = evaluate({
       writes: [],
       notFirestore: [],
       registry: registryStub,
       trees: ['fixture'],
-      callSites: [{ file: 'fixture/writer.ts', pos: 42, method: 'set', at: 'fixture/writer.ts:3', snippet: 'x.set(y)' }],
+      callSites: [
+        {
+          file: 'fixture/writer.ts',
+          pos: 42,
+          method: 'set',
+          at: 'fixture/writer.ts:3',
+          snippet: 'x.set(y)',
+        },
+      ],
     });
-    expect(result.violations.map((violation) => violation.kind)).toEqual([VIOLATION_KINDS.UNCLASSIFIED_CALL]);
+    expect(result.violations.map((violation) => violation.kind)).toEqual([
+      VIOLATION_KINDS.UNCLASSIFIED_CALL,
+    ]);
   });
 });
 
@@ -1289,24 +1351,26 @@ describe('MUST FAIL — a registered template whose declared keys cannot be read
     schemaFor: () => schema,
   });
 
-  const oneWrite = (keys) => [{
-    file: 'fixture/writer.ts',
-    line: 3,
-    pos: 10,
-    at: 'fixture/writer.ts:3',
-    method: 'set',
-    fn: 'writeIt',
-    snippetOrdinal: 1,
-    snippet: 'ref.set(patch)',
-    templates: ['waiverTemplates/{waiverTemplateId}'],
-    unresolvedReason: null,
-    handBuilt: false,
-    keys,
-    casts: [],
-    opaque: null,
-    literals: new Map(),
-    correlatedBranches: null,
-  }];
+  const oneWrite = (keys) => [
+    {
+      file: 'fixture/writer.ts',
+      line: 3,
+      pos: 10,
+      at: 'fixture/writer.ts:3',
+      method: 'set',
+      fn: 'writeIt',
+      snippetOrdinal: 1,
+      snippet: 'ref.set(patch)',
+      templates: ['waiverTemplates/{waiverTemplateId}'],
+      unresolvedReason: null,
+      handBuilt: false,
+      keys,
+      casts: [],
+      opaque: null,
+      literals: new Map(),
+      correlatedBranches: null,
+    },
+  ];
 
   it('reports an undiffable template instead of counting the payload as checked', () => {
     const wrapped = z.preprocess((value) => value, z.object({ declared: z.string() }));
@@ -1315,7 +1379,9 @@ describe('MUST FAIL — a registered template whose declared keys cannot be read
       registry: stubRegistry(wrapped),
       trees: ['fixture'],
     });
-    expect(result.violations.map((violation) => violation.kind)).toEqual([VIOLATION_KINDS.UNDIFFABLE_TEMPLATE]);
+    expect(result.violations.map((violation) => violation.kind)).toEqual([
+      VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
+    ]);
     expect([...result.coverage.values()][0].payloadsRead).toBe(0);
     expect([...result.coverage.values()][0].payloadsParsed).toBe(1);
   });
@@ -1329,12 +1395,14 @@ describe('MUST FAIL — a registered template whose declared keys cannot be read
       writes: oneWrite(['declared']),
       registry: stubRegistry(wrapped),
       trees: ['fixture'],
-      exceptions: [{
-        kind: VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
-        file: 'fixture/writer.ts',
-        marker: 'waiverTemplates',
-        why: 'fixture — must NOT excuse a sole undiffable candidate',
-      }],
+      exceptions: [
+        {
+          kind: VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
+          file: 'fixture/writer.ts',
+          marker: 'waiverTemplates',
+          why: 'fixture — must NOT excuse a sole undiffable candidate',
+        },
+      ],
     });
     expect(result.violations.map((violation) => violation.kind)).toEqual([
       VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
@@ -1348,18 +1416,22 @@ describe('MUST FAIL — a registered template whose declared keys cannot be read
     const result = evaluate({
       writes: [write],
       registry: {
-        declaredFor: (template) => declaredKeys(template === 'undiffable/{id}' ? wrapped : readable),
+        declaredFor: (template) =>
+          declaredKeys(template === 'undiffable/{id}' ? wrapped : readable),
         schemaFor: (template) => (template === 'undiffable/{id}' ? wrapped : readable),
       },
       trees: ['fixture'],
-      exceptions: [{
-        kind: VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
-        file: 'fixture/writer.ts',
-        fn: 'writeIt',
-        marker: 'ref.set(patch)',
-        detail: "'undiffable/{id}' has no readable declared keys (a wrapper/record/open schema), so this payload was diffed against nothing",
-        why: 'fixture — the other candidate still diffs the payload',
-      }],
+      exceptions: [
+        {
+          kind: VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
+          file: 'fixture/writer.ts',
+          fn: 'writeIt',
+          marker: 'ref.set(patch)',
+          detail:
+            "'undiffable/{id}' has no readable declared keys (a wrapper/record/open schema), so this payload was diffed against nothing",
+          why: 'fixture — the other candidate still diffs the payload',
+        },
+      ],
     });
     expect(result.violations).toEqual([]);
   });
@@ -1434,7 +1506,9 @@ describe('union narrowing on a readable discriminant', () => {
       z.object({ kind: z.literal('two'), b: z.string() }),
     ]);
     expect(narrowedDeclaredKeys(schema, new Map())).toBeNull();
-    expect([...narrowedDeclaredKeys(schema, new Map([['kind', new Set(['one'])]])).keys].sort()).toEqual(['a', 'kind']);
+    expect(
+      [...narrowedDeclaredKeys(schema, new Map([['kind', new Set(['one'])]])).keys].sort(),
+    ).toEqual(['a', 'kind']);
   });
 });
 
@@ -1646,7 +1720,9 @@ describe('an object-literal lane registry holding patches', () => {
   });
 
   it('fails closed when the lane registry exceeds the finite candidate bound', () => {
-    const entries = Array.from({ length: 17 }, (_, index) => `lane${index}: { uid: 'x' }`).join(',\n');
+    const entries = Array.from({ length: 17 }, (_, index) => `lane${index}: { uid: 'x' }`).join(
+      ',\n',
+    );
     const result = analyze(`${PREAMBLE}
       const PATCHES = { ${entries} };
       export async function writeIt(uid: string, lane: string) {
@@ -1822,15 +1898,17 @@ describe('a payload built by a PACKAGE function', () => {
         }
       `,
       {
-        exceptions: [{
-          kind: VIOLATION_KINDS.PACKAGE_BUILDER,
-          file: 'fixture/writer.ts',
-          callee: 'buildPendingMediaTerminalFields',
-          module: '@fixture/media',
-          args: ["'completed'", '{}', 'nowMs'],
-          schema: 'PublicUserSchema',
-          why: 'fixture',
-        }],
+        exceptions: [
+          {
+            kind: VIOLATION_KINDS.PACKAGE_BUILDER,
+            file: 'fixture/writer.ts',
+            callee: 'buildPendingMediaTerminalFields',
+            module: '@fixture/media',
+            args: ["'completed'", '{}', 'nowMs'],
+            schema: 'PublicUserSchema',
+            why: 'fixture',
+          },
+        ],
       },
     );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNREADABLE_PAYLOAD);
@@ -1862,7 +1940,12 @@ describe('a payload built by a PACKAGE function', () => {
       const result = analyze(terminal("'completed', {}, nowMs"), { exceptions: [entry] });
       expect(result.violations).toEqual([]);
       expect(result.staleExceptions).toEqual([]);
-      expect(result.writes[0].keys.sort()).toEqual(['completedAt', 'status', 'terminalAt', 'updatedAt']);
+      expect(result.writes[0].keys.sort()).toEqual([
+        'completedAt',
+        'status',
+        'terminalAt',
+        'updatedAt',
+      ]);
     });
 
     it('does not cover the same builder called for ANOTHER status', () => {
@@ -1879,21 +1962,26 @@ describe('a payload built by a PACKAGE function', () => {
   });
 
   it('reports the entry as STALE when nothing matches it', () => {
-    const result = analyze(`${PREAMBLE}
+    const result = analyze(
+      `${PREAMBLE}
       export async function writeIt(uid: string) {
         const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
         await ref.set({ uid }, { merge: true });
       }
-    `, {
-      exceptions: [{
-        kind: VIOLATION_KINDS.PACKAGE_BUILDER,
-        file: 'fixture/writer.ts',
-        callee: 'goneFromTheTree',
-        module: '@fixture/media',
-        schema: 'PublicUserSchema',
-        why: 'fixture',
-      }],
-    });
+    `,
+      {
+        exceptions: [
+          {
+            kind: VIOLATION_KINDS.PACKAGE_BUILDER,
+            file: 'fixture/writer.ts',
+            callee: 'goneFromTheTree',
+            module: '@fixture/media',
+            schema: 'PublicUserSchema',
+            why: 'fixture',
+          },
+        ],
+      },
+    );
     expect(result.staleExceptions.length).toBe(1);
   });
 });
@@ -2175,8 +2263,10 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
     }
   `;
 
-  it('a bracket call `ref[\'set\'](…)` is the same write as `ref.set(…)`', () => {
-    const result = analyze(undeclaredThrough("await ref['set']({ uid, bracketUndeclared: 1 }, { merge: true });"));
+  it("a bracket call `ref['set'](…)` is the same write as `ref.set(…)`", () => {
+    const result = analyze(
+      undeclaredThrough("await ref['set']({ uid, bracketUndeclared: 1 }, { merge: true });"),
+    );
     expect(detailsOf(result)).toContain('bracketUndeclared');
   });
 
@@ -2229,15 +2319,18 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
     },
     {
       name: 'Reflect.apply',
-      body: "await Reflect.apply(ref.set, ref, [{ uid, reflectMethodUndeclared: 1 }, { merge: true }]);",
+      body: 'await Reflect.apply(ref.set, ref, [{ uid, reflectMethodUndeclared: 1 }, { merge: true }]);',
       field: 'reflectMethodUndeclared',
     },
   ];
 
-  it.each(dynamicWriteForms)('$name is classified and its payload is checked', ({ body, field }) => {
-    const result = analyze(undeclaredThrough(body));
-    expect(detailsOf(result)).toContain(field);
-  });
+  it.each(dynamicWriteForms)(
+    '$name is classified and its payload is checked',
+    ({ body, field }) => {
+      const result = analyze(undeclaredThrough(body));
+      expect(detailsOf(result)).toContain(field);
+    },
+  );
 
   it.each(dynamicWriteForms)('the independent cross-check sees $name', ({ body }) => {
     const source = undeclaredThrough(body);
@@ -2246,24 +2339,30 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
   });
 
   it('`.bind` defers the payload, so the bind SITE is where it must be accounted for', () => {
-    const result = analyze(undeclaredThrough(
-      'const w = ref.set.bind(ref);\n      await w({ uid, boundUndeclared: 1 }, { merge: true });',
-    ));
+    const result = analyze(
+      undeclaredThrough(
+        'const w = ref.set.bind(ref);\n      await w({ uid, boundUndeclared: 1 }, { merge: true });',
+      ),
+    );
     expect(result.writes.length).toBeGreaterThan(0);
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNREADABLE_PAYLOAD);
   });
 
   it('`.call` writes the SAME document, and its payload is read', () => {
-    const result = analyze(undeclaredThrough(
-      'const { set } = ref;\n      await set.call(ref, { uid, calledUndeclared: 1 }, { merge: true });',
-    ));
+    const result = analyze(
+      undeclaredThrough(
+        'const { set } = ref;\n      await set.call(ref, { uid, calledUndeclared: 1 }, { merge: true });',
+      ),
+    );
     expect(detailsOf(result)).toContain('calledUndeclared');
   });
 
   it('`.apply` reads the payload out of its argument array', () => {
-    const result = analyze(undeclaredThrough(
-      'await ref.set.apply(ref, [{ uid, appliedUndeclared: 1 }, { merge: true }]);',
-    ));
+    const result = analyze(
+      undeclaredThrough(
+        'await ref.set.apply(ref, [{ uid, appliedUndeclared: 1 }, { merge: true }]);',
+      ),
+    );
     expect(detailsOf(result)).toContain('appliedUndeclared');
   });
 
@@ -2325,9 +2424,9 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
   it('a DOTTED COMPUTED key in a merge-set is a literal field name, not a path', () => {
     // Only `update()` addresses the top-level segment before the dot (BACKEND-104).
     // Shortening a merge-set key to its prefix would let `displayName.${k}` pass as `displayName`.
-    const result = analyze(undeclaredThrough(
-      'await ref.set({ [`displayName.${uid}`]: 1 }, { merge: true });',
-    ));
+    const result = analyze(
+      undeclaredThrough('await ref.set({ [`displayName.${uid}`]: 1 }, { merge: true });'),
+    );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNREADABLE_PAYLOAD);
   });
 
@@ -2368,9 +2467,11 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
   });
 
   it('an ANGLE-BRACKET cast raises payload-cast like an `as` cast', () => {
-    const result = analyze(undeclaredThrough(
-      'await ref.set(<Record<string, unknown>>{ uid, angleUndeclared: 1 }, { merge: true });',
-    ));
+    const result = analyze(
+      undeclaredThrough(
+        'await ref.set(<Record<string, unknown>>{ uid, angleUndeclared: 1 }, { merge: true });',
+      ),
+    );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.PAYLOAD_CAST);
   });
 });
@@ -2384,14 +2485,16 @@ describe('reviewed exception field binding', () => {
       }
     `;
     const result = analyze(source, {
-      exceptions: [{
-        kind: VIOLATION_KINDS.UNDECLARED_FIELD,
-        file: 'fixture/writer.ts',
-        fn: 'writeIt',
-        marker: 'ref.update',
-        field: 'someOtherField',
-        why: 'fixture',
-      }],
+      exceptions: [
+        {
+          kind: VIOLATION_KINDS.UNDECLARED_FIELD,
+          file: 'fixture/writer.ts',
+          fn: 'writeIt',
+          marker: 'ref.update',
+          field: 'someOtherField',
+          why: 'fixture',
+        },
+      ],
     });
     expect(detailsOf(result)).toContain('unrelatedUndeclared');
     expect(result.applied).toEqual([]);
@@ -2405,14 +2508,16 @@ describe('reviewed exception field binding', () => {
       }
     `;
     const result = analyze(source, {
-      exceptions: [{
-        kind: VIOLATION_KINDS.UNDECLARED_FIELD,
-        file: 'fixture/writer.ts',
-        fn: 'writeIt',
-        marker: 'oldRef.update',
-        field: 'reusableUndeclared',
-        why: 'fixture',
-      }],
+      exceptions: [
+        {
+          kind: VIOLATION_KINDS.UNDECLARED_FIELD,
+          file: 'fixture/writer.ts',
+          fn: 'writeIt',
+          marker: 'oldRef.update',
+          field: 'reusableUndeclared',
+          why: 'fixture',
+        },
+      ],
     });
     expect(detailsOf(result)).toContain('reusableUndeclared');
     expect(result.applied).toEqual([]);
@@ -2427,14 +2532,16 @@ describe('reviewed exception field binding', () => {
       }
     `;
     const result = analyze(source, {
-      exceptions: [{
-        kind: VIOLATION_KINDS.UNDECLARED_FIELD,
-        file: 'fixture/writer.ts',
-        fn: 'writeIt',
-        marker: 'oldRef.update',
-        field: 'reusableUndeclared',
-        why: 'fixture',
-      }],
+      exceptions: [
+        {
+          kind: VIOLATION_KINDS.UNDECLARED_FIELD,
+          file: 'fixture/writer.ts',
+          fn: 'writeIt',
+          marker: 'oldRef.update',
+          field: 'reusableUndeclared',
+          why: 'fixture',
+        },
+      ],
     });
     expect(detailsOf(result)).toContain('reusableUndeclared');
     expect(result.applied).toEqual([]);
@@ -2485,17 +2592,21 @@ describe('MUST FAIL — a computed write-method selector that does not resolve',
     },
     {
       name: 'a method aliased off the ref and invoked through .call',
-      source: throughRef('const fn = ref[m];\n      await fn.call(ref, { uid, aliasedCallUndeclared: 1 });'),
+      source: throughRef(
+        'const fn = ref[m];\n      await fn.call(ref, { uid, aliasedCallUndeclared: 1 });',
+      ),
     },
     {
       name: 'Function.prototype.call.call of a write method',
-      source: throughRef('await Function.prototype.call.call(ref.set, ref, { uid, fpCallUndeclared: 1 });'),
+      source: throughRef(
+        'await Function.prototype.call.call(ref.set, ref, { uid, fpCallUndeclared: 1 });',
+      ),
     },
     {
       name: 'a method extracted through a property descriptor',
       source: throughRef(
         "const d = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ref), 'set');\n" +
-        '      await d!.value.call(ref, { uid, descriptorUndeclared: 1 });',
+          '      await d!.value.call(ref, { uid, descriptorUndeclared: 1 });',
       ),
     },
     {
@@ -2544,10 +2655,13 @@ describe('MUST FAIL — a computed write-method selector that does not resolve',
     expect(result.violations.length).toBeGreaterThan(0);
   });
 
-  it.each(unresolvedSelectorForms)('the independent cross-check catches $name on its own', ({ source }) => {
-    const sites = enumerateWriteCallSites([parseFile('fixture/writer.ts', source)]);
-    expect(sites.length).toBeGreaterThan(0);
-  });
+  it.each(unresolvedSelectorForms)(
+    'the independent cross-check catches $name on its own',
+    ({ source }) => {
+      const sites = enumerateWriteCallSites([parseFile('fixture/writer.ts', source)]);
+      expect(sites.length).toBeGreaterThan(0);
+    },
+  );
 
   it('a Symbol selector is unresolvable, not absent', () => {
     const result = analyze(`${PREAMBLE}
@@ -2628,7 +2742,9 @@ describe('MUST PASS — ordinary dispatch whose own members supply the method', 
       }
     `);
     expect(result.violations).toEqual([]);
-    expect(result.notFirestore.map((entry) => entry.reason).join(' ')).toContain('createDevicePreferenceStore()');
+    expect(result.notFirestore.map((entry) => entry.reason).join(' ')).toContain(
+      'createDevicePreferenceStore()',
+    );
   });
 });
 
@@ -2668,21 +2784,25 @@ describe('the exception list binds to a structural write site', () => {
     }
   `;
 
-  const entryFor = (fn, extra = {}) => [{
-    kind: VIOLATION_KINDS.UNDECLARED_FIELD,
-    file: 'fixture/writer.ts',
-    fn,
-    marker: 'tx.update(ref, patch)',
-    field: 'sharedSnippetUndeclared',
-    why: 'fixture',
-    ...extra,
-  }];
+  const entryFor = (fn, extra = {}) => [
+    {
+      kind: VIOLATION_KINDS.UNDECLARED_FIELD,
+      file: 'fixture/writer.ts',
+      fn,
+      marker: 'tx.update(ref, patch)',
+      field: 'sharedSnippetUndeclared',
+      why: 'fixture',
+      ...extra,
+    },
+  ];
 
   it('does not let an entry bound to one function excuse the identical snippet in another', () => {
     const result = analyze(TWO_IDENTICAL_SNIPPETS, { exceptions: entryFor('intended') });
     expect(result.applied).toHaveLength(1);
     expect(result.violations).toHaveLength(1);
-    expect(result.violations[0].at).toBe(result.writes.find((write) => write.fn === 'unrelated').at);
+    expect(result.violations[0].at).toBe(
+      result.writes.find((write) => write.fn === 'unrelated').at,
+    );
   });
 
   it('reports an entry whose named function does not exist as stale', () => {
@@ -2693,16 +2813,15 @@ describe('the exception list binds to a structural write site', () => {
   });
 
   it('reports an OVER-STATED count as stale, so surplus wildcards cannot stand', () => {
-    const result = analyze(TWO_IDENTICAL_SNIPPETS, { exceptions: entryFor('intended', { count: 5 }) });
+    const result = analyze(TWO_IDENTICAL_SNIPPETS, {
+      exceptions: entryFor('intended', { count: 5 }),
+    });
     expect(result.staleExceptions).toHaveLength(1);
     expect(result.staleExceptions[0]).toContain('1 of 5');
   });
 
   it('accepts an exact count across the sites it really covers', () => {
-    const exceptions = [
-      ...entryFor('intended'),
-      ...entryFor('unrelated'),
-    ];
+    const exceptions = [...entryFor('intended'), ...entryFor('unrelated')];
     const result = analyze(TWO_IDENTICAL_SNIPPETS, { exceptions });
     expect(result.violations).toEqual([]);
     expect(result.staleExceptions).toEqual([]);
@@ -2710,13 +2829,15 @@ describe('the exception list binds to a structural write site', () => {
 
   it('still requires a marker AND an exact field — a marker-only entry is malformed and stale', () => {
     const result = analyze(TWO_IDENTICAL_SNIPPETS, {
-      exceptions: [{
-        kind: VIOLATION_KINDS.UNDECLARED_FIELD,
-        file: 'fixture/writer.ts',
-        fn: 'intended',
-        marker: 'tx.update(ref, patch)',
-        why: 'fixture',
-      }],
+      exceptions: [
+        {
+          kind: VIOLATION_KINDS.UNDECLARED_FIELD,
+          file: 'fixture/writer.ts',
+          fn: 'intended',
+          marker: 'tx.update(ref, patch)',
+          why: 'fixture',
+        },
+      ],
     });
     expect(result.applied).toEqual([]);
     expect(result.violations).toHaveLength(2);
@@ -2761,39 +2882,48 @@ describe('MUST FAIL — the registry cannot be built from an incomplete core', (
   it('a core entry point that does not load fails the registry, naming it', async () => {
     const sources = {
       ...FIXTURE_SOURCES,
-      subpaths: { '@fixture/core/notifications': () => Promise.reject(new Error('Cannot find module')) },
-    };
-    await expect(loadRegistry({ sources, constantMapNames: FIXTURE_CONSTANT_MAPS })).rejects.toThrow(
-      /@fixture\/core\/notifications did not load/,
-    );
-  });
-
-  it.each(FIXTURE_CONSTANT_MAPS)('a core build without the constant map %s fails the registry', async (name) => {
-    const sources = {
-      ...FIXTURE_SOURCES,
-      core: async () => {
-        const core = { ...(await FIXTURE_SOURCES.core()) };
-        delete core[name];
-        return core;
+      subpaths: {
+        '@fixture/core/notifications': () => Promise.reject(new Error('Cannot find module')),
       },
     };
-    await expect(loadRegistry({ sources, constantMapNames: FIXTURE_CONSTANT_MAPS })).rejects.toThrow(
-      `the core no longer exports the constant map ${name}`,
-    );
+    await expect(
+      loadRegistry({ sources, constantMapNames: FIXTURE_CONSTANT_MAPS }),
+    ).rejects.toThrow(/@fixture\/core\/notifications did not load/);
   });
+
+  it.each(FIXTURE_CONSTANT_MAPS)(
+    'a core build without the constant map %s fails the registry',
+    async (name) => {
+      const sources = {
+        ...FIXTURE_SOURCES,
+        core: async () => {
+          const core = { ...(await FIXTURE_SOURCES.core()) };
+          delete core[name];
+          return core;
+        },
+      };
+      await expect(
+        loadRegistry({ sources, constantMapNames: FIXTURE_CONSTANT_MAPS }),
+      ).rejects.toThrow(`the core no longer exports the constant map ${name}`);
+    },
+  );
 
   it('a core without COLLECTION_SCHEMAS fails the registry', async () => {
     const sources = { ...FIXTURE_SOURCES, docSchemas: async () => ({}) };
-    await expect(loadRegistry({ sources, constantMapNames: FIXTURE_CONSTANT_MAPS })).rejects.toThrow(/COLLECTION_SCHEMAS/);
+    await expect(
+      loadRegistry({ sources, constantMapNames: FIXTURE_CONSTANT_MAPS }),
+    ).rejects.toThrow(/COLLECTION_SCHEMAS/);
   });
 
   it('the fixture core builds the registry', async () => {
-    await expect(loadRegistry({ sources: FIXTURE_SOURCES, constantMapNames: FIXTURE_CONSTANT_MAPS })).resolves.toBeTruthy();
+    await expect(
+      loadRegistry({ sources: FIXTURE_SOURCES, constantMapNames: FIXTURE_CONSTANT_MAPS }),
+    ).resolves.toBeTruthy();
   });
 });
 
 describe('a reference reached through destructuring', () => {
-  it('reads a nested pattern over Promise.all as that entry\'s property', () => {
+  it("reads a nested pattern over Promise.all as that entry's property", () => {
     const result = analyze(`${PREAMBLE}
       async function readSignup(tx: FirebaseFirestore.Transaction, leagueId: string, userId: string) {
         const ref = db.doc(toPath(PATH_BUILDERS.leagueFreeAgent(leagueId, userId)));
@@ -2809,7 +2939,7 @@ describe('a reference reached through destructuring', () => {
     expect(detailsOf(result)).toContain('nestedPatternUndeclared');
   });
 
-  it('fails closed when the nested pattern\'s index sits past a spread', () => {
+  it("fails closed when the nested pattern's index sits past a spread", () => {
     const result = analyze(`${PREAMBLE}
       declare const rest: Promise<unknown>[];
       async function readSignup(leagueId: string, userId: string) {
@@ -2823,7 +2953,7 @@ describe('a reference reached through destructuring', () => {
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
   });
 
-  it('reads a for…of object pattern as the property of each element, a flatMap\'s returned arrays included', () => {
+  it("reads a for…of object pattern as the property of each element, a flatMap's returned arrays included", () => {
     const result = analyze(`${PREAMBLE}
       export function writeIt(tx: FirebaseFirestore.Transaction, gameIds: string[], skip: boolean) {
         const edits = gameIds.flatMap((id) => (skip ? [] : [{ id, ref: db.doc(toPath(PATH_BUILDERS.sportGame(id))) }]));
@@ -2835,7 +2965,7 @@ describe('a reference reached through destructuring', () => {
     expect(detailsOf(result)).toContain('sportGames/{gameId}');
   });
 
-  it('reads an array callback\'s object pattern as the property of each element', () => {
+  it("reads an array callback's object pattern as the property of each element", () => {
     const result = analyze(`${PREAMBLE}
       export function writeIt(tx: FirebaseFirestore.Transaction, gameIds: string[]) {
         const games = gameIds.map((id) => ({ id, ref: db.doc(toPath(PATH_BUILDERS.sportGame(id))) }));
@@ -2869,7 +2999,7 @@ describe('the references in an array a reader hands back', () => {
       return { pendingRefs: invitations.docs.map((doc) => doc.ref) };
     }`;
 
-  it('reads each property value\'s elements, through a helper\'s parameter, an empty branch adding none', () => {
+  it("reads each property value's elements, through a helper's parameter, an empty branch adding none", () => {
     const result = analyze(`${PREAMBLE}
       import { COLLECTION_REFS } from '@fixture/core';
       ${reader}
@@ -2970,7 +3100,9 @@ describe('a Map carrier', () => {
         if (second) tx.update(second.ref, { uid: 'b' });
       }
     `);
-    expect(result.violations.filter((violation) => violation.kind === VIOLATION_KINDS.UNRESOLVED_TARGET)).toHaveLength(2);
+    expect(
+      result.violations.filter((violation) => violation.kind === VIOLATION_KINDS.UNRESOLVED_TARGET),
+    ).toHaveLength(2);
   });
 });
 
@@ -3103,7 +3235,7 @@ describe('positive evidence that a receiver is not Firestore', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it("reads a table of plain values handed to a helper as no Firestore handle, and a table holding a call as unproven", () => {
+  it('reads a table of plain values handed to a helper as no Firestore handle, and a table holding a call as unproven', () => {
     // A copy table's message functions are named like write methods and are never a write.
     const handedTo = (table) => `
       declare function makeUpdater(): (value: string) => unknown;
@@ -3114,9 +3246,13 @@ describe('positive evidence that a receiver is not Firestore', () => {
         return send(${table}, name);
       }
     `;
-    const plain = analyze(handedTo(`{ title: 'Saved', nested: { count: 2 }, update: (n: string) => 'Updated ' + n }`));
+    const plain = analyze(
+      handedTo(`{ title: 'Saved', nested: { count: 2 }, update: (n: string) => 'Updated ' + n }`),
+    );
     expect(plain.violations).toEqual([]);
-    expect(plain.notFirestore.map((entry) => entry.reason)).toContain('receiver is a table of plain values');
+    expect(plain.notFirestore.map((entry) => entry.reason)).toContain(
+      'receiver is a table of plain values',
+    );
     const unproven = analyze(handedTo(`{ update: makeUpdater() }`));
     expect(kindsOf(unproven)).toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
   });
@@ -3162,16 +3298,23 @@ describe("the core's own code, read as library code", () => {
     }
   `;
   const analyzeWithLibrary = (returned) =>
-    runGuardOnSources({ sources: { 'fixture/writer.ts': writer }, librarySources: library(returned), registry, profile: PROFILE });
+    runGuardOnSources({
+      sources: { 'fixture/writer.ts': writer },
+      librarySources: library(returned),
+      registry,
+      profile: PROFILE,
+    });
 
   it('reads a core helper through its export chain, its relative schema import being the core export', () => {
-    const result = analyzeWithLibrary('return AppConfigSchema.safeParse({ ...(existing as object), ...(update as object) }).data;');
+    const result = analyzeWithLibrary(
+      'return AppConfigSchema.safeParse({ ...(existing as object), ...(update as object) }).data;',
+    );
     expect(result.violations).toEqual([]);
     expect(result.writes[0].keys).not.toEqual([]);
   });
 
   it('still reports the undeclared field a core helper returns', () => {
-    const result = analyzeWithLibrary("return { libraryHelperUndeclared: 1 };");
+    const result = analyzeWithLibrary('return { libraryHelperUndeclared: 1 };');
     expect(detailsOf(result)).toContain('libraryHelperUndeclared');
   });
 
@@ -3219,7 +3362,11 @@ describe('a converter read through its call sites', () => {
   });
 
   it("still reports a branch's undeclared field", () => {
-    const result = analyze(converter("if (data.z) return { ok: true, signup: { ...parsed.data, converterBranchUndeclared: 1 } };"));
+    const result = analyze(
+      converter(
+        'if (data.z) return { ok: true, signup: { ...parsed.data, converterBranchUndeclared: 1 } };',
+      ),
+    );
     expect(detailsOf(result)).toContain('converterBranchUndeclared');
   });
 });
@@ -3408,7 +3555,7 @@ describe("one lookup of a core map read by a write's target and its payload", ()
     expect(result.violations).toEqual([]);
   });
 
-  it('still fails a key no entry\'s document declares', () => {
+  it("still fails a key no entry's document declares", () => {
     const result = analyze(`${SLOT_PREAMBLE}
       export async function fill(kind: 'gameLocation' | 'awardDefinition', id: string, pictureId: string) {
         const slot = PICTURE_SLOT_OWNERS[kind];
@@ -3416,8 +3563,12 @@ describe("one lookup of a core map read by a write's target and its payload", ()
       }
     `);
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
-    expect(detailsOf(result)).toContain("'notASlotField' is not declared by gameLocations/{gameLocationId}");
-    expect(detailsOf(result)).toContain("'notASlotField' is not declared by awardDefinitions/{awardId}");
+    expect(detailsOf(result)).toContain(
+      "'notASlotField' is not declared by gameLocations/{gameLocationId}",
+    );
+    expect(detailsOf(result)).toContain(
+      "'notASlotField' is not declared by awardDefinitions/{awardId}",
+    );
     expect(detailsOf(result)).not.toContain("'pictureId'");
     expect(detailsOf(result)).not.toContain("'badgePictureId'");
   });
@@ -3429,8 +3580,12 @@ describe("one lookup of a core map read by a write's target and its payload", ()
         await db.doc(toPath(PICTURE_SLOT_OWNERS[kind].ownerDoc(id))).update({ [PICTURE_SLOT_OWNERS[other].slotField]: pictureId });
       }
     `);
-    expect(detailsOf(result)).toContain("'badgePictureId' is not declared by gameLocations/{gameLocationId}");
-    expect(detailsOf(result)).toContain("'pictureId' is not declared by awardDefinitions/{awardId}");
+    expect(detailsOf(result)).toContain(
+      "'badgePictureId' is not declared by gameLocations/{gameLocationId}",
+    );
+    expect(detailsOf(result)).toContain(
+      "'pictureId' is not declared by awardDefinitions/{awardId}",
+    );
   });
 
   it('keeps every document against every key when the lookup is a rebindable `let`', () => {
@@ -3445,7 +3600,7 @@ describe("one lookup of a core map read by a write's target and its payload", ()
     expect(kindsOf(result)).not.toEqual([]);
   });
 
-  it("judges a gallery summary written through the all-kinds map against the slot owners too", () => {
+  it('judges a gallery summary written through the all-kinds map against the slot owners too', () => {
     const result = analyze(`${SLOT_PREAMBLE}
       export async function summarize(kind: 'sportLeague' | 'gameLocation', id: string, summary: unknown) {
         await db.doc(toPath(PICTURE_OWNER_PATHS[kind].ownerDoc(id))).update({ pictures: summary });
@@ -3491,7 +3646,9 @@ describe('a V1 source document accepts only a removal', () => {
     });
 
   it('passes an update whose every value is a field delete', () => {
-    const result = analyzeV1(`await sourceRef.update({ legacyField: FieldValue.delete(), other: FieldValue.delete() });`);
+    const result = analyzeV1(
+      `await sourceRef.update({ legacyField: FieldValue.delete(), other: FieldValue.delete() });`,
+    );
     expect(result.writes).toHaveLength(1);
     expect(result.violations).toEqual([]);
   });
@@ -3503,13 +3660,21 @@ describe('a V1 source document accepts only a removal', () => {
   });
 
   it('fails an update that stores a value beside a delete', () => {
-    const result = analyzeV1(`await sourceRef.update({ legacyField: FieldValue.delete(), stored: 'x' });`);
-    expect(detailsOf(result)).toContain('V1_SOURCES.adminList is a V1 source document: a write may only remove from it');
+    const result = analyzeV1(
+      `await sourceRef.update({ legacyField: FieldValue.delete(), stored: 'x' });`,
+    );
+    expect(detailsOf(result)).toContain(
+      'V1_SOURCES.adminList is a V1 source document: a write may only remove from it',
+    );
   });
 
   it('fails a merge-set even when it only deletes', () => {
-    const result = analyzeV1(`await sourceRef.set({ legacyField: FieldValue.delete() }, { merge: true });`);
-    expect(detailsOf(result)).toContain('V1_SOURCES.adminList is a V1 source document: a write may only remove from it');
+    const result = analyzeV1(
+      `await sourceRef.set({ legacyField: FieldValue.delete() }, { merge: true });`,
+    );
+    expect(detailsOf(result)).toContain(
+      'V1_SOURCES.adminList is a V1 source document: a write may only remove from it',
+    );
   });
 
   it('does not treat a path whose halves come from two entries as a V1 source document', () => {

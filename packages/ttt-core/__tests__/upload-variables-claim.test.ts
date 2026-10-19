@@ -8,9 +8,7 @@
 import { readdirSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import {
-  UploadProfilePictureVariablesSchema,
-} from '../src/upload-variables/upload-profile-picture-variables.js';
+import { UploadProfilePictureVariablesSchema } from '../src/upload-variables/upload-profile-picture-variables.js';
 
 const FILE_FIELDS = ['file', 'mediaFile', 'videoFile'];
 const VARIABLES_DIR = new URL('../src/upload-variables/', import.meta.url);
@@ -46,9 +44,9 @@ describe('the upload-variables claim field', () => {
     expect(
       schema.safeParse({ ...base, claim: { kind: 'image', source: 'file-picker' } }).success,
     ).toBe(true);
-    expect(
-      schema.safeParse({ ...base, claim: { kind: 'image', source: 'guess' } }).success,
-    ).toBe(false);
+    expect(schema.safeParse({ ...base, claim: { kind: 'image', source: 'guess' } }).success).toBe(
+      false,
+    );
     expect(schema.safeParse({ ...base, claim: { kind: 'image' } }).success).toBe(false);
   });
 

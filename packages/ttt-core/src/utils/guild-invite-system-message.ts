@@ -8,7 +8,10 @@
  */
 
 import { z } from 'zod';
-import { CHAT_SYSTEM_SENDER_ID, type ChatServerMessagePayload } from '@ttt-productions/chat-schemas';
+import {
+  CHAT_SYSTEM_SENDER_ID,
+  type ChatServerMessagePayload,
+} from '@ttt-productions/chat-schemas';
 import { userIdSchema } from '../schemas/atoms.js';
 
 export const GuildInviteSystemMessageSchema = z.discriminatedUnion('event', [
@@ -26,7 +29,9 @@ const STORED_MESSAGE_KEY = 'guildInviteSystemMessage';
 
 /** What the text stores: the event and any non-person value — never an account id. */
 const StoredEventSchema = z.discriminatedUnion('event', [
-  z.object({ event: z.enum(['agreed', 'declined', 'cancelled', 'retracted', 'finalized']) }).strict(),
+  z
+    .object({ event: z.enum(['agreed', 'declined', 'cancelled', 'retracted', 'finalized']) })
+    .strict(),
   z.object({ event: z.literal('offerUpdated'), stakeShares: z.number().int().positive() }).strict(),
 ]);
 
@@ -39,7 +44,9 @@ export function encodeGuildInviteSystemMessage(
 ): ChatServerMessagePayload & { referencedUids: string[] } {
   const m = GuildInviteSystemMessageSchema.parse(message);
   const stored =
-    m.event === 'offerUpdated' ? { event: m.event, stakeShares: m.stakeShares } : { event: m.event };
+    m.event === 'offerUpdated'
+      ? { event: m.event, stakeShares: m.stakeShares }
+      : { event: m.event };
   const referencedUids =
     m.event === 'finalized' ? [m.recipientUid] : m.event === 'offerUpdated' ? [] : [m.actorUid];
   return {
@@ -69,7 +76,9 @@ export function decodeGuildInviteSystemMessage(message: {
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
   const keys = Object.keys(parsed);
   if (keys.length !== 1 || keys[0] !== STORED_MESSAGE_KEY) return null;
-  const stored = StoredEventSchema.safeParse((parsed as Record<string, unknown>)[STORED_MESSAGE_KEY]);
+  const stored = StoredEventSchema.safeParse(
+    (parsed as Record<string, unknown>)[STORED_MESSAGE_KEY],
+  );
   if (!stored.success) return null;
   const refs = message.referencedUids ?? [];
   const event = stored.data;
@@ -92,7 +101,9 @@ export function decodeGuildInviteSystemMessage(message: {
 export type GuildInviteSystemMessageSegment = { text: string } | { uid: string };
 
 /** A system message's sentence, with a name slot wherever it names an account. */
-export function guildInviteSystemMessageSegments(message: GuildInviteSystemMessage): GuildInviteSystemMessageSegment[] {
+export function guildInviteSystemMessageSegments(
+  message: GuildInviteSystemMessage,
+): GuildInviteSystemMessageSegment[] {
   switch (message.event) {
     case 'agreed':
       return [{ uid: message.actorUid }, { text: ' agreed to the terms.' }];

@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import {
-  createDomainEventInvalidator,
-} from '../../src/react/domain-events/create-domain-event-invalidator.js';
+import { createDomainEventInvalidator } from '../../src/react/domain-events/create-domain-event-invalidator.js';
 import { exact, prefix, predicate } from '../../src/react/domain-events/cache-invalidation.js';
 
 type UserFollowed = { type: 'user.followed'; ids: { userId: string } };
@@ -25,7 +23,9 @@ describe('createDomainEventInvalidator', () => {
 
     invalidator.notify(client, { type: 'user.followed', ids: { userId: 'u1' } });
 
-    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['users', 'u1'], exact: true }));
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['users', 'u1'], exact: true }),
+    );
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['feed'], exact: false }));
   });
 
@@ -35,8 +35,12 @@ describe('createDomainEventInvalidator', () => {
 
     invalidator.notify(client, { type: 'entity.published', ids: { entityId: 'e42' } });
 
-    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['entities'], exact: false }));
-    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['entities', 'e42'], exact: true }));
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['entities'], exact: false }),
+    );
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['entities', 'e42'], exact: true }),
+    );
   });
 
   it('notifyAll flattens invalidations from multiple events', async () => {

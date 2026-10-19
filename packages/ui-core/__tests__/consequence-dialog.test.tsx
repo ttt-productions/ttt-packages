@@ -153,7 +153,9 @@ describe('ConsequenceDialog', () => {
 
     it('a reason that cannot be blank keeps confirm disabled until it holds more than whitespace', async () => {
       const user = userEvent.setup();
-      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 2000 })} />);
+      render(
+        <ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 2000 })} />,
+      );
       const confirm = screen.getByRole('button', { name: 'Deny' });
       expect(confirm).toBeDisabled();
       await user.type(screen.getByRole('textbox'), '   ');
@@ -164,7 +166,9 @@ describe('ConsequenceDialog', () => {
 
     it("enforces the declaration's min on the trimmed reason", async () => {
       const user = userEvent.setup();
-      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 5, max: 2000 })} />);
+      render(
+        <ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 5, max: 2000 })} />,
+      );
       const confirm = screen.getByRole('button', { name: 'Deny' });
       await user.type(screen.getByRole('textbox'), ' abc  ');
       expect(confirm).toBeDisabled();
@@ -174,7 +178,11 @@ describe('ConsequenceDialog', () => {
 
     it("refuses a reason with characters the declaration's format does not allow", async () => {
       const user = userEvent.setup();
-      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })} />);
+      render(
+        <ReasonHarness
+          inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })}
+        />,
+      );
       const confirm = screen.getByRole('button', { name: 'Deny' });
       await user.type(screen.getByRole('textbox'), 'first line');
       expect(confirm).toBeEnabled();
@@ -183,12 +191,16 @@ describe('ConsequenceDialog', () => {
     });
 
     it('leaves confirm enabled for an empty optional reason', () => {
-      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 0, max: 2000 })} />);
+      render(
+        <ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 0, max: 2000 })} />,
+      );
       expect(screen.getByRole('button', { name: 'Deny' })).toBeEnabled();
     });
 
     it('derives the Textarea maxLength from the declaration', () => {
-      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />);
+      render(
+        <ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />,
+      );
       expect(screen.getByRole('textbox')).toHaveAttribute('maxLength', '280');
     });
 
@@ -209,7 +221,9 @@ describe('ConsequenceDialog', () => {
               value,
               onChange: setValue,
               hint: (id) => (
-                <p id={id}>{value.trim().length > 0 && value.trim().length < 10 ? 'Too short.' : null}</p>
+                <p id={id}>
+                  {value.trim().length > 0 && value.trim().length < 10 ? 'Too short.' : null}
+                </p>
               ),
             }}
             confirmLabel="Reopen"
@@ -226,7 +240,9 @@ describe('ConsequenceDialog', () => {
     });
 
     it('describes the reason box by nothing when no hint is given', () => {
-      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />);
+      render(
+        <ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />,
+      );
       expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-describedby');
     });
   });
@@ -265,7 +281,10 @@ describe('ConsequenceDialog', () => {
           onConfirm={noop}
         />,
       );
-      expect(screen.getByRole('textbox')).toHaveAttribute('maxLength', String('CONFIRM REOPEN'.length));
+      expect(screen.getByRole('textbox')).toHaveAttribute(
+        'maxLength',
+        String('CONFIRM REOPEN'.length),
+      );
     });
   });
 
@@ -273,7 +292,12 @@ describe('ConsequenceDialog', () => {
     it('stays open with a visible spinner, an inert confirm, and a disabled cancel while onConfirm is pending, then closes on resolve', async () => {
       const user = userEvent.setup();
       let resolveConfirm: (() => void) | undefined;
-      const onConfirm = vi.fn(() => new Promise<void>((resolve) => { resolveConfirm = resolve; }));
+      const onConfirm = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveConfirm = resolve;
+          }),
+      );
       const onOpenChange = vi.fn();
 
       render(

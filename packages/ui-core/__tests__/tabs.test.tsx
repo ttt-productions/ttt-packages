@@ -56,7 +56,9 @@ describe('Tabs components', () => {
     const { container } = render(
       <Tabs defaultValue="a">
         <TabsList>
-          <TabsTrigger value="a" className="my-trigger">A</TabsTrigger>
+          <TabsTrigger value="a" className="my-trigger">
+            A
+          </TabsTrigger>
         </TabsList>
       </Tabs>,
     );
@@ -70,7 +72,9 @@ describe('Tabs components', () => {
         <TabsList>
           <TabsTrigger value="a">A</TabsTrigger>
         </TabsList>
-        <TabsContent value="a" className="my-content">Content</TabsContent>
+        <TabsContent value="a" className="my-content">
+          Content
+        </TabsContent>
       </Tabs>,
     );
     const content = container.querySelector('[class*="my-content"]');

@@ -15,7 +15,11 @@ import {
   viewerSettingsFromDifferences,
   type Dismissal,
 } from '../src/viewer-settings-logic.js';
-import type { SavedViewerSettings, ViewerSettingDifference, ViewerSettingName } from '../src/viewer-settings.js';
+import type {
+  SavedViewerSettings,
+  ViewerSettingDifference,
+  ViewerSettingName,
+} from '../src/viewer-settings.js';
 
 const NOTHING: SavedViewerSettings = { theme: null, reducedMotion: null };
 const NONE: ReadonlySet<ViewerSettingName> = new Set();
@@ -26,7 +30,7 @@ function compareAtLoad(device: SavedViewerSettings, account: SavedViewerSettings
 }
 
 describe('compareViewerSettings', () => {
-  it('takes the account\'s values for every setting the device has nothing saved for', () => {
+  it("takes the account's values for every setting the device has nothing saved for", () => {
     const result = compareAtLoad(NOTHING, { theme: 'dark', reducedMotion: true });
     expect(result).toEqual({
       adoptFromAccount: { theme: 'dark', reducedMotion: true },
@@ -35,14 +39,17 @@ describe('compareViewerSettings', () => {
     });
   });
 
-  it('saves the device\'s values for every setting the account has nothing saved for', () => {
+  it("saves the device's values for every setting the account has nothing saved for", () => {
     const result = compareAtLoad({ theme: 'light', reducedMotion: false }, NOTHING);
     expect(result.saveToAccount).toEqual({ theme: 'light', reducedMotion: false });
     expect(result.adoptFromAccount).toEqual({});
   });
 
   it('reports every setting saved on both sides with different values, a saved "full motion" included', () => {
-    const result = compareAtLoad({ theme: 'light', reducedMotion: false }, { theme: 'dark', reducedMotion: true });
+    const result = compareAtLoad(
+      { theme: 'light', reducedMotion: false },
+      { theme: 'dark', reducedMotion: true },
+    );
     expect(result.differences).toEqual([
       { setting: 'theme', device: 'light', account: 'dark' },
       { setting: 'reducedMotion', device: false, account: true },
@@ -50,7 +57,10 @@ describe('compareViewerSettings', () => {
   });
 
   it('handles each setting on its own', () => {
-    const result = compareAtLoad({ theme: null, reducedMotion: true }, { theme: 'dark', reducedMotion: null });
+    const result = compareAtLoad(
+      { theme: null, reducedMotion: true },
+      { theme: 'dark', reducedMotion: null },
+    );
     expect(result.adoptFromAccount).toEqual({ theme: 'dark' });
     expect(result.saveToAccount).toEqual({ reducedMotion: true });
     expect(result.differences).toEqual([]);
@@ -58,7 +68,11 @@ describe('compareViewerSettings', () => {
 
   it('asks nothing when the two sides agree', () => {
     const same: SavedViewerSettings = { theme: 'high-contrast', reducedMotion: false };
-    expect(compareAtLoad(same, same)).toEqual({ adoptFromAccount: {}, saveToAccount: {}, differences: [] });
+    expect(compareAtLoad(same, same)).toEqual({
+      adoptFromAccount: {},
+      saveToAccount: {},
+      differences: [],
+    });
   });
 
   it('leaves out a setting the device changed after its account value arrived', () => {
@@ -94,12 +108,22 @@ describe('advanceBaseline', () => {
 
   it('returns the same baseline while no account value changes', () => {
     const baseline = advanceBaseline(null, NOTHING, device);
-    expect(advanceBaseline(baseline, { ...NOTHING }, { theme: 'light', reducedMotion: false })).toBe(baseline);
+    expect(
+      advanceBaseline(baseline, { ...NOTHING }, { theme: 'light', reducedMotion: false }),
+    ).toBe(baseline);
   });
 
   it('moves only the settings whose account value changed', () => {
-    const baseline = advanceBaseline(null, { theme: 'light', reducedMotion: false }, { theme: 'light', reducedMotion: false });
-    const next = advanceBaseline(baseline, { theme: 'dark', reducedMotion: false }, { theme: 'dark', reducedMotion: true });
+    const baseline = advanceBaseline(
+      null,
+      { theme: 'light', reducedMotion: false },
+      { theme: 'light', reducedMotion: false },
+    );
+    const next = advanceBaseline(
+      baseline,
+      { theme: 'dark', reducedMotion: false },
+      { theme: 'dark', reducedMotion: true },
+    );
     expect(next).toEqual({
       account: { theme: 'dark', reducedMotion: false },
       device: { theme: 'dark', reducedMotion: false },
@@ -148,20 +172,31 @@ describe('viewerSettingsFromDifferences', () => {
   ];
 
   it('reads either side', () => {
-    expect(viewerSettingsFromDifferences(differences, 'device')).toEqual({ theme: 'light', reducedMotion: false });
-    expect(viewerSettingsFromDifferences(differences, 'account')).toEqual({ theme: 'dark', reducedMotion: true });
+    expect(viewerSettingsFromDifferences(differences, 'device')).toEqual({
+      theme: 'light',
+      reducedMotion: false,
+    });
+    expect(viewerSettingsFromDifferences(differences, 'account')).toEqual({
+      theme: 'dark',
+      reducedMotion: true,
+    });
   });
 });
 
 describe('dismissals', () => {
   const themeDiff: ViewerSettingDifference = { setting: 'theme', device: 'light', account: 'dark' };
-  const motionDiff: ViewerSettingDifference = { setting: 'reducedMotion', device: false, account: true };
+  const motionDiff: ViewerSettingDifference = {
+    setting: 'reducedMotion',
+    device: false,
+    account: true,
+  };
 
   it('round-trips through storage, and reads anything unreadable as none', () => {
     const dismissals: Dismissal[] = [dismissalOf(themeDiff), dismissalOf(motionDiff)];
     expect(parseDismissals(serializeDismissals(dismissals))).toEqual(dismissals);
     expect(serializeDismissals([])).toBeNull();
-    for (const stored of [null, 'not json', '{}', '[["colour", 1, 2]]']) expect(parseDismissals(stored)).toEqual([]);
+    for (const stored of [null, 'not json', '{}', '[["colour", 1, 2]]'])
+      expect(parseDismissals(stored)).toEqual([]);
   });
 
   it('matches each difference on its own, by setting and both values', () => {
@@ -173,8 +208,12 @@ describe('dismissals', () => {
 
   it('keeps only the dismissals whose values the device and account still carry', () => {
     const dismissals = [dismissalOf(themeDiff), dismissalOf(motionDiff)];
-    expect(holdingDismissals(dismissals, { theme: 'dark', reducedMotion: false }, { theme: 'dark', reducedMotion: true })).toEqual([
-      dismissalOf(motionDiff),
-    ]);
+    expect(
+      holdingDismissals(
+        dismissals,
+        { theme: 'dark', reducedMotion: false },
+        { theme: 'dark', reducedMotion: true },
+      ),
+    ).toEqual([dismissalOf(motionDiff)]);
   });
 });

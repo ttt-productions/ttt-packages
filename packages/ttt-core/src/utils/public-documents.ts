@@ -39,7 +39,9 @@ export function requiredPublicDocumentVersion(
 }
 
 /** The required-acceptance level in force; 0 when nothing has ever required acceptance. */
-export function requiredPublicDocumentAcceptanceLevel(block: PublicDocumentVersionBlock | undefined): number {
+export function requiredPublicDocumentAcceptanceLevel(
+  block: PublicDocumentVersionBlock | undefined,
+): number {
   return block?.requiredAcceptanceLevel ?? 0;
 }
 
@@ -55,7 +57,9 @@ export function requiredPublicDocumentAcceptanceLevelOfReading(
 }
 
 /** The level a person has accepted; 0 when they have accepted nothing. */
-export function acceptedPublicDocumentAcceptanceLevel(acceptance: PublicDocumentAcceptance | undefined): number {
+export function acceptedPublicDocumentAcceptanceLevel(
+  acceptance: PublicDocumentAcceptance | undefined,
+): number {
   return acceptance?.acceptedLevel ?? 0;
 }
 
@@ -72,7 +76,9 @@ export function isPublicDocumentAcceptanceRequired(
   block: PublicDocumentVersionBlock | undefined,
   acceptance: PublicDocumentAcceptance | undefined,
 ): boolean {
-  return requiredPublicDocumentAcceptanceLevel(block) > acceptedPublicDocumentAcceptanceLevel(acceptance);
+  return (
+    requiredPublicDocumentAcceptanceLevel(block) > acceptedPublicDocumentAcceptanceLevel(acceptance)
+  );
 }
 
 /**
@@ -88,7 +94,8 @@ export function changedPublicDocuments(
   const changed: PublicDocumentVersionRef[] = [];
   for (const documentId of PUBLIC_DOCUMENT_IDS) {
     const version = currentPublicDocumentVersion(block, documentId);
-    if (version > acceptedPublicDocumentVersion(acceptance, documentId)) changed.push({ documentId, version });
+    if (version > acceptedPublicDocumentVersion(acceptance, documentId))
+      changed.push({ documentId, version });
   }
   return changed;
 }

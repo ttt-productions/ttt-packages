@@ -4,10 +4,10 @@ import {
   type HttpsCallable,
   type HttpsCallableOptions,
   type HttpsCallableResult,
-} from "firebase/functions";
+} from 'firebase/functions';
 
-import { isAppCheckThrottleError } from "../utils/app-check-throttle.js";
-import { RECOVERED_FALLBACK_MARKER } from "./recovered-fallback.js";
+import { isAppCheckThrottleError } from '../utils/app-check-throttle.js';
+import { RECOVERED_FALLBACK_MARKER } from './recovered-fallback.js';
 
 export interface CallCallableCallbacks {
   /**
@@ -100,11 +100,7 @@ export function stripUndefinedDeep<T>(value: T): T {
   if (Array.isArray(value)) {
     return value.map((entry) => stripUndefinedDeep(entry)) as unknown as T;
   }
-  if (
-    value !== null &&
-    typeof value === "object" &&
-    (value as object).constructor === Object
-  ) {
+  if (value !== null && typeof value === 'object' && (value as object).constructor === Object) {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
         .filter(([, v]) => v !== undefined)
@@ -119,20 +115,17 @@ export function stripUndefinedDeep<T>(value: T): T {
  * the app's Firebase init) and may answer null/undefined where Functions is unavailable.
  */
 export type FunctionsProvider = () =>
-  | Functions
-  | null
-  | undefined
-  | Promise<Functions | null | undefined>;
+  Functions | null | undefined | Promise<Functions | null | undefined>;
 
 /** The error an invocation fails with when its provider has no Functions instance. */
 export const FUNCTIONS_UNAVAILABLE_MESSAGE =
-  "Firebase Functions is not available in this environment.";
+  'Firebase Functions is not available in this environment.';
 
 function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return (
-    typeof value === "object" &&
+    typeof value === 'object' &&
     value !== null &&
-    typeof (value as { then?: unknown }).then === "function"
+    typeof (value as { then?: unknown }).then === 'function'
   );
 }
 
@@ -141,8 +134,8 @@ function deadlineExceededError(functionName: string, timeoutMs: number): Error {
   const error = new Error(
     `deadline-exceeded: ${functionName} did not settle within ${timeoutMs}ms (outcome unknown — the server may still complete the request)`,
   );
-  error.name = "FirebaseError";
-  (error as Error & { code: string }).code = "functions/deadline-exceeded";
+  error.name = 'FirebaseError';
+  (error as Error & { code: string }).code = 'functions/deadline-exceeded';
   return error;
 }
 
@@ -193,7 +186,10 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
       timeoutMs === undefined
         ? undefined
         : new Promise<never>((_, reject) => {
-            timer = setTimeout(() => reject(deadlineExceededError(functionName, timeoutMs)), timeoutMs);
+            timer = setTimeout(
+              () => reject(deadlineExceededError(functionName, timeoutMs)),
+              timeoutMs,
+            );
           });
     // A synchronous provider is used as-is, so the SDK is invoked in the same tick
     // as the call; only an async provider is awaited (inside the deadline).

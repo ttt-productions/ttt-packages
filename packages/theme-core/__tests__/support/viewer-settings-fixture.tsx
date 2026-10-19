@@ -61,7 +61,11 @@ export function createSyncFixture(prefix: string) {
 
   function Probe() {
     latest = useViewerSettingsSync();
-    return <span data-testid="prompt">{latest.prompt ? JSON.stringify(latest.prompt.differences) : 'none'}</span>;
+    return (
+      <span data-testid="prompt">
+        {latest.prompt ? JSON.stringify(latest.prompt.differences) : 'none'}
+      </span>
+    );
   }
 
   function Harness({
@@ -78,7 +82,8 @@ export function createSyncFixture(prefix: string) {
   }) {
     const [settings, setSettings] = useState(initial);
     account.setSettings = setSettings;
-    account.apply = (values) => setSettings((previous) => ({ ...(previous ?? NOTHING), ...values }));
+    account.apply = (values) =>
+      setSettings((previous) => ({ ...(previous ?? NOTHING), ...values }));
     return (
       <ThemeProvider storageKey={keys.theme} defaultTheme="light" enableSystem={false}>
         <ViewerSettingsSyncProvider
@@ -101,7 +106,8 @@ export function createSyncFixture(prefix: string) {
 
   function seedDevice({ theme, reducedMotion }: Partial<ViewerSettings>) {
     if (theme !== undefined) window.localStorage.setItem(keys.theme, theme);
-    if (reducedMotion !== undefined) window.localStorage.setItem(keys.motion, String(reducedMotion));
+    if (reducedMotion !== undefined)
+      window.localStorage.setItem(keys.motion, String(reducedMotion));
   }
 
   function sync(): ViewerSettingsSync {

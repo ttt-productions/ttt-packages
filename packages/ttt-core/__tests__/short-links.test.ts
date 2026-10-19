@@ -8,7 +8,12 @@ const storedLink = {
   shortUrl: 'https://ttt.productions/s/abc123',
   destinationUrl: '/audition/a1',
   type: 'audition' as const,
-  metadata: { auditionId: 'a1', auditionEntryId: null, commissionListingId: null, hallItemId: null },
+  metadata: {
+    auditionId: 'a1',
+    auditionEntryId: null,
+    commissionListingId: null,
+    hallItemId: null,
+  },
   createdAt: 1,
   createdBy: 'u1',
   clicks: 0,
@@ -22,25 +27,42 @@ describe('short-link targets', () => {
   });
 
   it('a Hall entry link is created from the Hall entry id', () => {
-    expect(CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: 'h1' }).success).toBe(true);
+    expect(
+      CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: 'h1' })
+        .success,
+    ).toBe(true);
   });
 
   it('a Hall entry link needs its Hall entry id, as one document-id segment', () => {
-    expect(CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item' }).success).toBe(false);
-    expect(CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: '' }).success).toBe(false);
-    expect(CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: 'h1/x' }).success).toBe(false);
+    expect(CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item' }).success).toBe(
+      false,
+    );
+    expect(
+      CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: '' })
+        .success,
+    ).toBe(false);
+    expect(
+      CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: 'h1/x' })
+        .success,
+    ).toBe(false);
   });
 
   it('a Hall entry link points at the whole entry, never one chapter, track, or episode', () => {
     expect(
-      CreateShortLinkInputSchema.safeParse({ targetType: 'hall-library-item', hallItemId: 'h1', subItemId: 's1' }).success,
+      CreateShortLinkInputSchema.safeParse({
+        targetType: 'hall-library-item',
+        hallItemId: 'h1',
+        subItemId: 's1',
+      }).success,
     ).toBe(false);
   });
 });
 
 describe('the stored short link', () => {
   it('stores exactly the target types a link can be created for', () => {
-    expect([...ShortLinkSchema.shape.type.options].sort()).toEqual([...ShortLinkTargetTypeSchema.options].sort());
+    expect([...ShortLinkSchema.shape.type.options].sort()).toEqual(
+      [...ShortLinkTargetTypeSchema.options].sort(),
+    );
   });
 
   it('records the Hall entry it points at', () => {
@@ -48,7 +70,12 @@ describe('the stored short link', () => {
       ...storedLink,
       destinationUrl: '/hall/h1',
       type: 'hall-library-item' as const,
-      metadata: { auditionId: null, auditionEntryId: null, commissionListingId: null, hallItemId: 'h1' },
+      metadata: {
+        auditionId: null,
+        auditionEntryId: null,
+        commissionListingId: null,
+        hallItemId: 'h1',
+      },
     };
     expect(ShortLinkSchema.safeParse(hallLink).success).toBe(true);
   });
@@ -56,7 +83,8 @@ describe('the stored short link', () => {
   it('every stored link says which Hall entry it points at, null when none', () => {
     expect(ShortLinkSchema.safeParse(storedLink).success).toBe(true);
     const { hallItemId: _hallItemId, ...withoutHallItem } = storedLink.metadata;
-    expect(ShortLinkSchema.safeParse({ ...storedLink, metadata: withoutHallItem }).success).toBe(false);
+    expect(ShortLinkSchema.safeParse({ ...storedLink, metadata: withoutHallItem }).success).toBe(
+      false,
+    );
   });
 });
-

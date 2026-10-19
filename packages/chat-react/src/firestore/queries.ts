@@ -9,7 +9,7 @@ export function threadDocPath(chatCollectionPath: string | string[], threadId: s
 export function messagesColPath(
   chatCollectionPath: string | string[],
   threadId: string,
-  messagesSubcollection = "messages"
+  messagesSubcollection = 'messages',
 ): [string, string, ...string[]] {
   const segments = [...normalizeSegments(chatCollectionPath), threadId, messagesSubcollection];
   return segments as [string, string, ...string[]];

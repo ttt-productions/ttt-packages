@@ -84,10 +84,7 @@ describe('createAuditWriter', () => {
 
     await writeAuditEvent({ type: 'e.f', actor: 'u3', transaction });
 
-    expect(txSet).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ type: 'e.f' }),
-    );
+    expect(txSet).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ type: 'e.f' }));
   });
 
   it('throws when both batch and transaction are provided', async () => {
@@ -96,14 +93,18 @@ describe('createAuditWriter', () => {
     const batch = { set: vi.fn() } as unknown as WriteBatch;
     const transaction = { set: vi.fn() } as unknown as Transaction;
 
-    await expect(
-      writeAuditEvent({ type: 'x.y', actor: 'u4', batch, transaction }),
-    ).rejects.toThrow('writeAuditEvent: pass either batch or transaction, not both.');
+    await expect(writeAuditEvent({ type: 'x.y', actor: 'u4', batch, transaction })).rejects.toThrow(
+      'writeAuditEvent: pass either batch or transaction, not both.',
+    );
   });
 
   it('TEventType generic constraint — @ts-expect-error for invalid type', async () => {
     const { db } = makeMockDb();
-    const { writeAuditEvent } = createAuditWriter<'a' | 'b'>({ db, collectionPath: 'events', idGenerator: () => 'id' });
+    const { writeAuditEvent } = createAuditWriter<'a' | 'b'>({
+      db,
+      collectionPath: 'events',
+      idGenerator: () => 'id',
+    });
 
     // @ts-expect-error — 'c' is not assignable to type '"a" | "b"'
     await writeAuditEvent({ type: 'c', actor: 'u5' });

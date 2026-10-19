@@ -142,19 +142,28 @@ describe('UpdateGuildInviteStakeSharesInputSchema', () => {
 
   it('rejects newStakeShares: 0', () => {
     expect(() =>
-      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 0 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({
+        guildInviteId: 'invite-1',
+        newStakeShares: 0,
+      }),
     ).toThrow();
   });
 
   it('rejects negative newStakeShares', () => {
     expect(() =>
-      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: -5 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({
+        guildInviteId: 'invite-1',
+        newStakeShares: -5,
+      }),
     ).toThrow();
   });
 
   it('rejects non-integer newStakeShares', () => {
     expect(() =>
-      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 1.5 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({
+        guildInviteId: 'invite-1',
+        newStakeShares: 1.5,
+      }),
     ).toThrow();
   });
 
@@ -184,7 +193,9 @@ describe('dispatch-action result receipts carry an optional auditEventId', () =>
       closedBy: 'admin-1',
     };
     expect(UpdateAdminDispatchStatusResultSchema.parse(base).auditEventId).toBeUndefined();
-    expect(UpdateAdminDispatchStatusResultSchema.parse({ ...base, auditEventId: 'evt-3' }).auditEventId).toBe('evt-3');
+    expect(
+      UpdateAdminDispatchStatusResultSchema.parse({ ...base, auditEventId: 'evt-3' }).auditEventId,
+    ).toBe('evt-3');
   });
 });
 

@@ -38,10 +38,7 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    await handler(
-      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 10 },
-      'group1',
-    );
+    await handler({ reportedItemType: 'post', totalReports: 1, highestReasonScore: 10 }, 'group1');
 
     expect(setFn).toHaveBeenCalledTimes(1);
     const args = setFn.mock.calls[0][0];
@@ -75,7 +72,10 @@ describe('createAdminTaskHandler', () => {
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
     // harassment(10) * default(1.0) + 0 = 10
-    await handler({ reportedItemType: 'unknown_type', totalReports: 1, highestReasonScore: 10 }, 'g3');
+    await handler(
+      { reportedItemType: 'unknown_type', totalReports: 1, highestReasonScore: 10 },
+      'g3',
+    );
     expect(setFn.mock.calls[0][0].priority).toBe(10);
   });
 
@@ -92,10 +92,7 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    await handler(
-      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 5 },
-      'g5',
-    );
+    await handler({ reportedItemType: 'post', totalReports: 1, highestReasonScore: 5 }, 'g5');
     expect(setFn.mock.calls[0][0].summary).toBe('1 report for post');
   });
 
@@ -103,10 +100,7 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    await handler(
-      { reportedItemType: 'post', totalReports: 3, highestReasonScore: 5 },
-      'g6',
-    );
+    await handler({ reportedItemType: 'post', totalReports: 3, highestReasonScore: 5 }, 'g6');
     expect(setFn.mock.calls[0][0].summary).toBe('3 reports for post');
   });
 
@@ -122,7 +116,10 @@ describe('createAdminTaskHandler', () => {
     const { db, docFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    await handler({ reportedItemType: 'post', totalReports: 1, highestReasonScore: 5 }, 'myGroupId');
+    await handler(
+      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 5 },
+      'myGroupId',
+    );
     expect(docFn).toHaveBeenCalledWith('userReport-myGroupId');
   });
 

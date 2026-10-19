@@ -41,7 +41,9 @@ describe('createRedisClientFactory', () => {
     const url = 'https://redis-url';
     const token = 'my-token';
     const mockInstance = {};
-    MockedRedis.mockImplementation(function () { return mockInstance as unknown as Redis; });
+    MockedRedis.mockImplementation(function () {
+      return mockInstance as unknown as Redis;
+    });
 
     const factory = createRedisClientFactory({
       credentials: { url: () => url, token: () => token },
@@ -60,9 +62,11 @@ describe('createRedisClientFactory', () => {
     const token = 'my-token';
     const instance1 = { id: 1 };
     const instance2 = { id: 2 };
-    MockedRedis
-      .mockImplementationOnce(function () { return instance1 as unknown as Redis; })
-      .mockImplementationOnce(function () { return instance2 as unknown as Redis; });
+    MockedRedis.mockImplementationOnce(function () {
+      return instance1 as unknown as Redis;
+    }).mockImplementationOnce(function () {
+      return instance2 as unknown as Redis;
+    });
 
     const factory = createRedisClientFactory({
       credentials: { url: () => url, token: () => token },

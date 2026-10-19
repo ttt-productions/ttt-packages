@@ -7,10 +7,10 @@
 // `failed-precondition` whose details name the reason. The client tells it apart from every
 // other failed-precondition by that reason — never by the message text.
 
-import { failedPreconditionDetails } from "./refusal.js";
+import { failedPreconditionDetails } from './refusal.js';
 
 /** The `details.reason` of the refusal a caller without a verified email receives. */
-export const EMAIL_VERIFICATION_REQUIRED_REASON = "email-verification-required" as const;
+export const EMAIL_VERIFICATION_REQUIRED_REASON = 'email-verification-required' as const;
 
 /**
  * Structured details carried by the email-verification refusal. Server side it rides
@@ -23,9 +23,9 @@ export interface EmailVerificationRequiredDetails {
 
 /** True when `details` is the email-verification refusal's structured details. */
 export function isEmailVerificationRequiredDetails(
-  details: unknown
+  details: unknown,
 ): details is EmailVerificationRequiredDetails {
-  if (!details || typeof details !== "object") return false;
+  if (!details || typeof details !== 'object') return false;
   return (details as Record<string, unknown>).reason === EMAIL_VERIFICATION_REQUIRED_REASON;
 }
 

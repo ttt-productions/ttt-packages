@@ -76,8 +76,10 @@ export function auditionDeadlineProblem(
   deadlines: AuditionDeadlines,
   postedAt: number,
 ): AuditionDeadlineProblem | null {
-  if (deadlines.entriesCloseAt < earliestAuditionEntriesCloseAt(postedAt)) return 'entriesCloseTooSoon';
-  if (deadlines.auditionCloseAt < earliestAuditionCloseAt(deadlines.entriesCloseAt)) return 'auditionCloseTooSoon';
+  if (deadlines.entriesCloseAt < earliestAuditionEntriesCloseAt(postedAt))
+    return 'entriesCloseTooSoon';
+  if (deadlines.auditionCloseAt < earliestAuditionCloseAt(deadlines.entriesCloseAt))
+    return 'auditionCloseTooSoon';
   return null;
 }
 
@@ -102,7 +104,15 @@ export function isAuditionVotingOpen(
 }
 
 function endOfLocalDay(year: number, monthIndex: number, day: number): Date {
-  return new Date(year, monthIndex, day, AUDITION_END_OF_DAY.hours, AUDITION_END_OF_DAY.minutes, 0, 0);
+  return new Date(
+    year,
+    monthIndex,
+    day,
+    AUDITION_END_OF_DAY.hours,
+    AUDITION_END_OF_DAY.minutes,
+    0,
+    0,
+  );
 }
 
 /** Where the entries-close picker opens: the end of the day three weeks from `today`. */
@@ -120,10 +130,18 @@ export function defaultAuditionEntriesCloseAt(today: Date): Date {
  */
 export function defaultAuditionCloseAt(entriesCloseAt: Date): Date {
   let offset = AUDITION_DEFAULT_CLOSE_AFTER_ENTRIES_DAYS;
-  let candidate = endOfLocalDay(entriesCloseAt.getFullYear(), entriesCloseAt.getMonth(), entriesCloseAt.getDate() + offset);
+  let candidate = endOfLocalDay(
+    entriesCloseAt.getFullYear(),
+    entriesCloseAt.getMonth(),
+    entriesCloseAt.getDate() + offset,
+  );
   while (candidate.getTime() < earliestAuditionCloseAt(entriesCloseAt.getTime())) {
     offset += 1;
-    candidate = endOfLocalDay(entriesCloseAt.getFullYear(), entriesCloseAt.getMonth(), entriesCloseAt.getDate() + offset);
+    candidate = endOfLocalDay(
+      entriesCloseAt.getFullYear(),
+      entriesCloseAt.getMonth(),
+      entriesCloseAt.getDate() + offset,
+    );
   }
   return candidate;
 }

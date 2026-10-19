@@ -4,7 +4,10 @@
 
 import { z } from 'zod';
 import { MAX_PLAYOFF_CUTOFF } from '../constants/business.js';
-import { LEAGUE_DESCRIPTION_INPUT_FORMAT, LEAGUE_TITLE_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import {
+  LEAGUE_DESCRIPTION_INPUT_FORMAT,
+  LEAGUE_TITLE_INPUT_FORMAT,
+} from '../input-formats/input-formats.js';
 import {
   calendarDateSchema,
   textFieldSchema,
@@ -86,14 +89,20 @@ export type AdminUpdateSportLeagueInput = z.infer<typeof AdminUpdateSportLeagueI
 // changed — and the league it names holds exactly the settings sent, so it is the form's next
 // `expectedUpdatedAt` and a second save from the same form is not refused as stale.
 export const AdminUpdateSportLeagueResultSchema = z
-  .object({ leagueId: leagueIdSchema, changedFields: z.array(leagueSettingsFieldSchema), updatedAt: epochMsSchema })
+  .object({
+    leagueId: leagueIdSchema,
+    changedFields: z.array(leagueSettingsFieldSchema),
+    updatedAt: epochMsSchema,
+  })
   .strict();
 export type AdminUpdateSportLeagueResult = z.infer<typeof AdminUpdateSportLeagueResultSchema>;
 
 export const AdminUpdateSportLeagueStatusInputSchema = z
   .object({ leagueId: leagueIdSchema, status: leagueStatusSchema })
   .strict();
-export type AdminUpdateSportLeagueStatusInput = z.infer<typeof AdminUpdateSportLeagueStatusInputSchema>;
+export type AdminUpdateSportLeagueStatusInput = z.infer<
+  typeof AdminUpdateSportLeagueStatusInputSchema
+>;
 
 // The league's `updatedAt` before and after a status move or a mode switch, equal when nothing moved.
 // Neither changes a setting and neither checks the settings form, so a form advances its
@@ -105,7 +114,9 @@ const leagueUpdatedAtMoveShape = { previousUpdatedAt: epochMsSchema, updatedAt: 
 export const AdminUpdateSportLeagueStatusResultSchema = z
   .object({ leagueId: leagueIdSchema, status: leagueStatusSchema, ...leagueUpdatedAtMoveShape })
   .strict();
-export type AdminUpdateSportLeagueStatusResult = z.infer<typeof AdminUpdateSportLeagueStatusResultSchema>;
+export type AdminUpdateSportLeagueStatusResult = z.infer<
+  typeof AdminUpdateSportLeagueStatusResultSchema
+>;
 
 export const SwitchLeagueModeInputSchema = z
   .object({ leagueId: leagueIdSchema, newMode: leagueModeSchema })
@@ -113,6 +124,11 @@ export const SwitchLeagueModeInputSchema = z
 export type SwitchLeagueModeInput = z.infer<typeof SwitchLeagueModeInputSchema>;
 // `teamsUpdated` is 0 when the league was already in `newMode`: nothing is rewritten.
 export const SwitchLeagueModeResultSchema = z
-  .object({ leagueId: leagueIdSchema, leagueMode: leagueModeSchema, teamsUpdated: countSchema, ...leagueUpdatedAtMoveShape })
+  .object({
+    leagueId: leagueIdSchema,
+    leagueMode: leagueModeSchema,
+    teamsUpdated: countSchema,
+    ...leagueUpdatedAtMoveShape,
+  })
   .strict();
 export type SwitchLeagueModeResult = z.infer<typeof SwitchLeagueModeResultSchema>;

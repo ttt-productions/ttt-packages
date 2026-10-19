@@ -88,7 +88,10 @@ function chainedCalls(source: string, from: number): ChainedCall[] {
     const close = closingParenthesis(source, open);
     if (close < 0) return calls;
     const argumentsWritten = source.slice(open + 1, close - 1);
-    calls.push({ name: link[1] as string, firstArgument: (argumentsWritten.split(',')[0] ?? '').trim() });
+    calls.push({
+      name: link[1] as string,
+      firstArgument: (argumentsWritten.split(',')[0] ?? '').trim(),
+    });
     at = close;
   }
 }
@@ -97,7 +100,8 @@ function chainedCalls(source: string, from: number): ChainedCall[] {
 function isInlineCount(constructor: string, calls: readonly ChainedCall[]): boolean {
   const whole = constructor === 'int' || calls.some((call) => call.name === 'int');
   const nonNegative = calls.some(
-    (call) => call.name === 'nonnegative' || (LOWER_BOUNDS.has(call.name) && call.firstArgument === '0'),
+    (call) =>
+      call.name === 'nonnegative' || (LOWER_BOUNDS.has(call.name) && call.firstArgument === '0'),
   );
   const bounded = calls.some((call) => UPPER_BOUNDS.has(call.name));
   return whole && nonNegative && !bounded;
@@ -127,7 +131,9 @@ function sourceFiles(directory: string): string[] {
 const files = sourceFiles(SRC);
 const inlineCountSites = files
   .filter((file) => file !== ATOMS_FILE)
-  .flatMap((file) => inlineCounts(readFileSync(path.join(SRC, file), 'utf8')).map((binding) => `${file}#${binding}`));
+  .flatMap((file) =>
+    inlineCounts(readFileSync(path.join(SRC, file), 'utf8')).map((binding) => `${file}#${binding}`),
+  );
 
 describe('countSchema is the one count atom', () => {
   it('scanned the package source', () => {
@@ -140,7 +146,9 @@ describe('countSchema is the one count atom', () => {
   });
 
   it('lists only declarations that still hold an inline whole number', () => {
-    expect(Object.keys(OUTSIDE_THE_ATOM).filter((site) => !inlineCountSites.includes(site))).toEqual([]);
+    expect(
+      Object.keys(OUTSIDE_THE_ATOM).filter((site) => !inlineCountSites.includes(site)),
+    ).toEqual([]);
   });
 
   it.each([
@@ -186,13 +194,17 @@ describe('countSchema is the one count atom', () => {
       '  retryCount: z.int().min(0),',
       '});',
     ].join('\n');
-    const sites = inlineCounts(source).map((binding) => `doc-schemas/membership-roster-sync.ts#${binding}`);
+    const sites = inlineCounts(source).map(
+      (binding) => `doc-schemas/membership-roster-sync.ts#${binding}`,
+    );
     expect(sites).toEqual([
       'doc-schemas/membership-roster-sync.ts#firstSchema',
       'doc-schemas/membership-roster-sync.ts#reconciledRosterRevision',
       'doc-schemas/membership-roster-sync.ts#retryCount',
     ]);
-    const allowed: Readonly<Record<string, string>> = { 'doc-schemas/membership-roster-sync.ts#reconciledRosterRevision': 'why' };
+    const allowed: Readonly<Record<string, string>> = {
+      'doc-schemas/membership-roster-sync.ts#reconciledRosterRevision': 'why',
+    };
     expect(sites.filter((site) => !(site in allowed))).toEqual([
       'doc-schemas/membership-roster-sync.ts#firstSchema',
       'doc-schemas/membership-roster-sync.ts#retryCount',
@@ -213,7 +225,13 @@ describe('countSchema is the one count atom', () => {
   });
 
   it('the dashboard counts, a gallery’s count, and a league’s playoff cutoffs are the atom', () => {
-    for (const field of ['totalUsers', 'totalTeams', 'totalLeagues', 'activeLeagues', 'upcomingLeagues'] as const) {
+    for (const field of [
+      'totalUsers',
+      'totalTeams',
+      'totalLeagues',
+      'activeLeagues',
+      'upcomingLeagues',
+    ] as const) {
       expect(AdminStatsSchema.shape[field]).toBe(countSchema);
     }
     expect(AdminStatsSchema.shape.totalGamesPlayed).toBe(countSchema);
@@ -243,7 +261,9 @@ describe('HistoricalStatsSchema is the basketball totals line without FP', () =>
     expect(Object.keys(HistoricalStatsSchema.shape).sort()).toEqual(
       ['gamesPlayed', ...BASKETBALL_PLAYER_STAT_KEYS].sort(),
     );
-    for (const field of Object.keys(HistoricalStatsSchema.shape) as (keyof typeof HistoricalStatsSchema.shape)[]) {
+    for (const field of Object.keys(
+      HistoricalStatsSchema.shape,
+    ) as (keyof typeof HistoricalStatsSchema.shape)[]) {
       expect(HistoricalStatsSchema.shape[field]).toBe(BasketballPlayerTotalsSchema.shape[field]);
       expect(HistoricalStatsSchema.shape[field]).toBe(countSchema);
     }

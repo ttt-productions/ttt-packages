@@ -1,6 +1,6 @@
-import type { Auth, User, IdTokenResult } from "firebase/auth";
+import type { Auth, User, IdTokenResult } from 'firebase/auth';
 
-export type IdTokenClaims = IdTokenResult["claims"];
+export type IdTokenClaims = IdTokenResult['claims'];
 
 export type ParsedClaims = {
   // common defaults (kept generic)
@@ -60,10 +60,11 @@ export function parseClaims(claims: IdTokenClaims | null | undefined): ParsedCla
   const raw = (claims ?? {}) as IdTokenClaims;
 
   const rolesValue = (raw as any).roles;
-  const roles =
-    Array.isArray(rolesValue) ? rolesValue.filter((x) => typeof x === "string") :
-    typeof rolesValue === "string" ? [rolesValue] :
-    [];
+  const roles = Array.isArray(rolesValue)
+    ? rolesValue.filter((x) => typeof x === 'string')
+    : typeof rolesValue === 'string'
+      ? [rolesValue]
+      : [];
 
   return { roles, raw };
 }

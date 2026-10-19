@@ -23,7 +23,10 @@ import {
   MAX_WAIVER_TEMPLATE_TITLE_LENGTH,
 } from '../src/constants/business.js';
 import { GameLocationSchema } from '../src/doc-schemas/game-location.js';
-import { WaiverTemplateSchema, WaiverTemplateVersionSchema } from '../src/doc-schemas/waiver-template.js';
+import {
+  WaiverTemplateSchema,
+  WaiverTemplateVersionSchema,
+} from '../src/doc-schemas/waiver-template.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
@@ -72,9 +75,11 @@ describe('waiver template version ids', () => {
 
 describe('league status subsets', () => {
   it('open is every status but closed', () => {
-    expect(LEAGUE_STATUS_KEYS.filter((status) => !(OPEN_LEAGUE_STATUS_KEYS as readonly string[]).includes(status))).toEqual([
-      'closed',
-    ]);
+    expect(
+      LEAGUE_STATUS_KEYS.filter(
+        (status) => !(OPEN_LEAGUE_STATUS_KEYS as readonly string[]).includes(status),
+      ),
+    ).toEqual(['closed']);
   });
 
   it('current is the published leagues that are not closed', () => {
@@ -99,7 +104,9 @@ describe('the admin dashboard counts', () => {
 
   it('key the breakdown by a four-digit year only', () => {
     expect(AdminStatsSchema.safeParse({ ...COUNTS, teamsByYear: { '25': 3 } }).success).toBe(false);
-    expect(AdminStatsSchema.safeParse({ ...COUNTS, teamsByYear: { '2025-09-01': 3 } }).success).toBe(false);
+    expect(
+      AdminStatsSchema.safeParse({ ...COUNTS, teamsByYear: { '2025-09-01': 3 } }).success,
+    ).toBe(false);
   });
 
   it('refuse a count that is not a whole, non-negative number', () => {
@@ -108,7 +115,9 @@ describe('the admin dashboard counts', () => {
   });
 
   it('are counted on every read, so no document stores them and no admin-read bucket exists', () => {
-    expect(Object.keys(COLLECTION_SCHEMAS).filter((path) => path.endsWith('/adminStats'))).toEqual([]);
+    expect(Object.keys(COLLECTION_SCHEMAS).filter((path) => path.endsWith('/adminStats'))).toEqual(
+      [],
+    );
     expect(Object.values(COLLECTIONS)).not.toContain('_adminData');
   });
 
@@ -126,11 +135,20 @@ describe('the admin dashboard counts', () => {
 });
 
 describe('waiver templates', () => {
-  const template = { title: 'Season waiver', waiverText: 'Terms.', version: 2, createdAt: 1, updatedAt: 2, retired: false };
+  const template = {
+    title: 'Season waiver',
+    waiverText: 'Terms.',
+    version: 2,
+    createdAt: 1,
+    updatedAt: 2,
+    retired: false,
+  };
 
   it('carry the current version number and an optional retirement', () => {
     expect(WaiverTemplateSchema.safeParse(template).success).toBe(true);
-    expect(WaiverTemplateSchema.safeParse({ ...template, retired: true, retiredAt: 3 }).success).toBe(true);
+    expect(
+      WaiverTemplateSchema.safeParse({ ...template, retired: true, retiredAt: 3 }).success,
+    ).toBe(true);
     expect(WaiverTemplateSchema.safeParse({ ...template, version: 0 }).success).toBe(false);
   });
 
@@ -150,11 +168,15 @@ describe('waiver templates', () => {
   it('keep each published version, with or without a recorded author', () => {
     const version = { version: 1, title: 'Season waiver', waiverText: 'Terms.', publishedAt: 1 };
     expect(WaiverTemplateVersionSchema.safeParse(version).success).toBe(true);
-    expect(WaiverTemplateVersionSchema.safeParse({ ...version, publishedByUserId: 'admin-1' }).success).toBe(true);
+    expect(
+      WaiverTemplateVersionSchema.safeParse({ ...version, publishedByUserId: 'admin-1' }).success,
+    ).toBe(true);
   });
 
   it('refuse blank or oversized wording at the callable', () => {
-    expect(AdminCreateWaiverTemplateInputSchema.safeParse({ title: ' ', waiverText: 'x' }).success).toBe(false);
+    expect(
+      AdminCreateWaiverTemplateInputSchema.safeParse({ title: ' ', waiverText: 'x' }).success,
+    ).toBe(false);
     expect(
       AdminCreateWaiverTemplateInputSchema.safeParse({
         title: 'x'.repeat(MAX_WAIVER_TEMPLATE_TITLE_LENGTH + 1),
@@ -172,31 +194,62 @@ describe('waiver templates', () => {
   });
 
   it('take, with new wording, the version the editor loaded, so a stale base can be refused', () => {
-    const save = { waiverTemplateId: 'w1', expectedVersion: 2, title: 'Waiver', waiverText: 'Terms.' };
+    const save = {
+      waiverTemplateId: 'w1',
+      expectedVersion: 2,
+      title: 'Waiver',
+      waiverText: 'Terms.',
+    };
     expect(AdminUpdateWaiverTemplateInputSchema.safeParse(save).success).toBe(true);
     const { expectedVersion: _loaded, ...withoutBase } = save;
     expect(AdminUpdateWaiverTemplateInputSchema.safeParse(withoutBase).success).toBe(false);
-    expect(AdminUpdateWaiverTemplateInputSchema.safeParse({ ...save, expectedVersion: 0 }).success).toBe(false);
+    expect(
+      AdminUpdateWaiverTemplateInputSchema.safeParse({ ...save, expectedVersion: 0 }).success,
+    ).toBe(false);
   });
 
   it("keep a waiver's title and wording exactly as typed, since a player signs those words", () => {
-    const parsed = AdminCreateWaiverTemplateInputSchema.parse({ title: '  Season waiver ', waiverText: ' Terms.\n' });
+    const parsed = AdminCreateWaiverTemplateInputSchema.parse({
+      title: '  Season waiver ',
+      waiverText: ' Terms.\n',
+    });
     expect(parsed).toEqual({ title: '  Season waiver ', waiverText: ' Terms.\n' });
   });
 
   it('report a delete as deleted or retired, nothing else', () => {
-    expect(AdminDeleteWaiverTemplateResultSchema.safeParse({ waiverTemplateId: 'w1', outcome: 'retired' }).success).toBe(true);
-    expect(AdminDeleteWaiverTemplateResultSchema.safeParse({ waiverTemplateId: 'w1', outcome: 'archived' }).success).toBe(false);
+    expect(
+      AdminDeleteWaiverTemplateResultSchema.safeParse({
+        waiverTemplateId: 'w1',
+        outcome: 'retired',
+      }).success,
+    ).toBe(true);
+    expect(
+      AdminDeleteWaiverTemplateResultSchema.safeParse({
+        waiverTemplateId: 'w1',
+        outcome: 'archived',
+      }).success,
+    ).toBe(false);
   });
 });
 
 describe('game locations', () => {
-  const fields = { name: 'Northside', streetAddress: '12 Court St', subLocations: ['Court 1'], memo: '' };
+  const fields = {
+    name: 'Northside',
+    streetAddress: '12 Court St',
+    subLocations: ['Court 1'],
+    memo: '',
+  };
   // A picture id is its upload's staging id, a lowercase UUID.
   const PICTURE_ID = '6a1c0f3e-2b4d-4c5e-9f7a-8b0c1d2e3f40';
 
   it('store one venue per document, its picture by id only', () => {
-    const stored = { name: 'Northside', streetAddress: '12 Court St', subLocations: [], createdAt: 1, updatedAt: 1 };
+    const stored = {
+      name: 'Northside',
+      streetAddress: '12 Court St',
+      subLocations: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
     expect(GameLocationSchema.safeParse(stored).success).toBe(true);
     expect(GameLocationSchema.safeParse({ ...stored, pictureId: PICTURE_ID }).success).toBe(true);
     expect(GameLocationSchema.safeParse({ ...stored, pictureId: 'pic-1' }).success).toBe(false);
@@ -205,13 +258,27 @@ describe('game locations', () => {
   });
 
   it('take the venue fields, trimmed and bounded, and nothing else', () => {
-    expect(AdminCreateGameLocationInputSchema.parse({ ...fields, name: '  Northside  ' }).name).toBe('Northside');
-    expect(AdminCreateGameLocationInputSchema.safeParse({ ...fields, memo: 'x'.repeat(MAX_GAME_LOCATION_MEMO_LENGTH + 1) }).success).toBe(false);
-    expect(AdminUpdateGameLocationInputSchema.safeParse({ ...fields, gameLocationId: 'loc-1', pictureId: PICTURE_ID }).success).toBe(false);
+    expect(
+      AdminCreateGameLocationInputSchema.parse({ ...fields, name: '  Northside  ' }).name,
+    ).toBe('Northside');
+    expect(
+      AdminCreateGameLocationInputSchema.safeParse({
+        ...fields,
+        memo: 'x'.repeat(MAX_GAME_LOCATION_MEMO_LENGTH + 1),
+      }).success,
+    ).toBe(false);
+    expect(
+      AdminUpdateGameLocationInputSchema.safeParse({
+        ...fields,
+        gameLocationId: 'loc-1',
+        pictureId: PICTURE_ID,
+      }).success,
+    ).toBe(false);
   });
 
   it('edit only the fields the admin changed, at least one, and nothing undeclared', () => {
-    const edit = (changed: object) => AdminUpdateGameLocationInputSchema.safeParse({ gameLocationId: 'loc-1', ...changed }).success;
+    const edit = (changed: object) =>
+      AdminUpdateGameLocationInputSchema.safeParse({ gameLocationId: 'loc-1', ...changed }).success;
     expect(edit({ memo: 'Park on the street.' })).toBe(true);
     expect(edit({ name: 'Northside', subLocations: ['Court 1', 'Court 2'] })).toBe(true);
     expect(edit(fields)).toBe(true);
@@ -221,12 +288,21 @@ describe('game locations', () => {
   });
 
   it('refuse a line break in a one-line field, and allow one in the memo', () => {
-    expect(AdminCreateGameLocationInputSchema.safeParse({ ...fields, name: 'North\nside' }).success).toBe(false);
-    expect(AdminCreateGameLocationInputSchema.safeParse({ ...fields, streetAddress: '12\nCourt St' }).success).toBe(false);
-    expect(AdminCreateGameLocationInputSchema.safeParse({ ...fields, subLocations: ['Court\n1'] }).success).toBe(false);
-    expect(AdminCreateGameLocationInputSchema.parse({ ...fields, memo: '  Park in back.\nSide door.  ' }).memo).toBe(
-      'Park in back.\nSide door.',
-    );
+    expect(
+      AdminCreateGameLocationInputSchema.safeParse({ ...fields, name: 'North\nside' }).success,
+    ).toBe(false);
+    expect(
+      AdminCreateGameLocationInputSchema.safeParse({ ...fields, streetAddress: '12\nCourt St' })
+        .success,
+    ).toBe(false);
+    expect(
+      AdminCreateGameLocationInputSchema.safeParse({ ...fields, subLocations: ['Court\n1'] })
+        .success,
+    ).toBe(false);
+    expect(
+      AdminCreateGameLocationInputSchema.parse({ ...fields, memo: '  Park in back.\nSide door.  ' })
+        .memo,
+    ).toBe('Park in back.\nSide door.');
   });
 });
 
@@ -246,8 +322,21 @@ describe('the vocabulary these actions record and announce', () => {
   });
 
   it('declares their domain events', () => {
-    expect(DomainEventSchema.safeParse({ type: 'waiverTemplate.updated', ids: { waiverTemplateId: 'w1' } }).success).toBe(true);
-    expect(DomainEventSchema.safeParse({ type: 'gameLocation.deleted', ids: { gameLocationId: 'loc-1' } }).success).toBe(true);
-    expect(DomainEventSchema.safeParse({ type: 'gameLocation.deleted', ids: { locationId: 'loc-1' } }).success).toBe(false);
+    expect(
+      DomainEventSchema.safeParse({
+        type: 'waiverTemplate.updated',
+        ids: { waiverTemplateId: 'w1' },
+      }).success,
+    ).toBe(true);
+    expect(
+      DomainEventSchema.safeParse({
+        type: 'gameLocation.deleted',
+        ids: { gameLocationId: 'loc-1' },
+      }).success,
+    ).toBe(true);
+    expect(
+      DomainEventSchema.safeParse({ type: 'gameLocation.deleted', ids: { locationId: 'loc-1' } })
+        .success,
+    ).toBe(false);
   });
 });

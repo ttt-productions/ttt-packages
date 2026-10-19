@@ -19,8 +19,14 @@ describe('game roster entry ids', () => {
   });
 
   it('round-trips a real user id and a ghost id, whose own underscores stay in the userId part', () => {
-    expect(parseGameRosterPlayerId(buildGameRosterPlayerId(TEAM, UID))).toEqual({ teamId: TEAM, userId: UID });
-    expect(parseGameRosterPlayerId(buildGameRosterPlayerId(TEAM, GHOST))).toEqual({ teamId: TEAM, userId: GHOST });
+    expect(parseGameRosterPlayerId(buildGameRosterPlayerId(TEAM, UID))).toEqual({
+      teamId: TEAM,
+      userId: UID,
+    });
+    expect(parseGameRosterPlayerId(buildGameRosterPlayerId(TEAM, GHOST))).toEqual({
+      teamId: TEAM,
+      userId: GHOST,
+    });
   });
 
   it('parses nothing from an id that is not a roster entry', () => {
@@ -39,7 +45,9 @@ describe('stat event ids', () => {
   it('derives one void id per target, so a second undo of an event is the same document', () => {
     const target = buildStatEventId(1712345678901, 'k3j9x2');
     expect(buildStatVoidId(target)).toBe(buildStatVoidId(target));
-    expect(buildStatVoidId(target)).not.toBe(buildStatVoidId(buildStatEventId(1712345678901, 'k3j9x3')));
+    expect(buildStatVoidId(target)).not.toBe(
+      buildStatVoidId(buildStatEventId(1712345678901, 'k3j9x3')),
+    );
   });
 
   it('never gives a void or a correction the id of a sport event', () => {

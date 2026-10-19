@@ -38,7 +38,6 @@ export type OperatorStepUp = z.infer<typeof OperatorStepUpSchema>;
 /** A `sweepState/{sweepName}` doc id — one of SWEEP_STATE_NAMES. */
 export const SweepStateNameSchema = z.enum(SWEEP_STATE_NAMES);
 
-
 // One row a pass's rolling cursor moved past without positively clearing it (a read error, a
 // missing owner, a hold). The pass retries it from here once due instead of stopping at it, so one
 // uncertain row never pins the window. `key` / `value` are the row's position in the cursor's
@@ -93,7 +92,11 @@ export const SweepStateSchema = z
     const seen = new Set<string>();
     (val.deferred ?? []).forEach((row, index) => {
       if (seen.has(row.key)) {
-        ctx.addIssue({ code: 'custom', path: ['deferred', index, 'key'], message: 'a row is deferred at most once' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['deferred', index, 'key'],
+          message: 'a row is deferred at most once',
+        });
       }
       seen.add(row.key);
     });

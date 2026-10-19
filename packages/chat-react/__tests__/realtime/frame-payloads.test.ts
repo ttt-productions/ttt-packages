@@ -34,13 +34,27 @@ describe('ChannelClient frames match the chat-schemas payloads the Worker parses
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
-    sock.serverFrame('message', { message: { seq: 10, senderUid: 'u-a', clientMessageId: 'srv-10', text: 'ten', createdAt: 1010, epoch: 1 } });
+    sock.serverFrame('message', {
+      message: {
+        seq: 10,
+        senderUid: 'u-a',
+        clientMessageId: 'srv-10',
+        text: 'ten',
+        createdAt: 1010,
+        epoch: 1,
+      },
+    });
     client.send({ clientMessageId: 'c-1', text: 'hello' });
     client.readAck(10, false);
     client.fetchOlder();
 
     const checked = sock.sent.filter((frame) => frame.type in SCHEMA_BY_FRAME);
-    expect(checked.map((frame) => frame.type).sort()).toEqual(['history', 'read-ack', 'resume', 'send']);
+    expect(checked.map((frame) => frame.type).sort()).toEqual([
+      'history',
+      'read-ack',
+      'resume',
+      'send',
+    ]);
     for (const frame of checked) {
       const schema = SCHEMA_BY_FRAME[frame.type as keyof typeof SCHEMA_BY_FRAME];
       expect(schema.parse(frame.payload), frame.type).toEqual(frame.payload);

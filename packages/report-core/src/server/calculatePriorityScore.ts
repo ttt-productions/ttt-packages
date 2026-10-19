@@ -19,11 +19,9 @@ export function calculatePriorityScore(
   itemType: string,
   reportCount: number,
 ): number {
-  const reasonScore =
-    config.reasonScores[reason] ?? config.defaultReasonScore;
+  const reasonScore = config.reasonScores[reason] ?? config.defaultReasonScore;
 
-  const itemMultiplier =
-    config.itemTypeMultipliers[itemType] ?? config.defaultItemTypeMultiplier;
+  const itemMultiplier = config.itemTypeMultipliers[itemType] ?? config.defaultItemTypeMultiplier;
 
   const bonusReports = Math.max(0, reportCount - 1);
   const bonus = bonusReports * config.additionalReportBonus;

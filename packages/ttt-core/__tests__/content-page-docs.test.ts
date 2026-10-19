@@ -13,51 +13,74 @@ import { COLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
-const section = { id: 's1', heading: 'Part 1', level: 1, body: 'First paragraph.\n\nSecond paragraph.', order: 0 };
+const section = {
+  id: 's1',
+  heading: 'Part 1',
+  level: 1,
+  body: 'First paragraph.\n\nSecond paragraph.',
+  order: 0,
+};
 
 describe('content-page doc schemas (content-pages migration)', () => {
   it('LegalPageDocumentSchema requires version + lastUpdated + sections', () => {
-    expect(LegalPageDocumentSchema.safeParse({
-      version: 1,
-      lastUpdated: 1751000000000,
-      sections: [section, { ...section, id: 's2', level: 2, order: 1 }],
-    }).success).toBe(true);
+    expect(
+      LegalPageDocumentSchema.safeParse({
+        version: 1,
+        lastUpdated: 1751000000000,
+        sections: [section, { ...section, id: 's2', level: 2, order: 1 }],
+      }).success,
+    ).toBe(true);
     // New docs are seeded with version from birth — it is required.
-    expect(LegalPageDocumentSchema.safeParse({
-      lastUpdated: 1751000000000,
-      sections: [section],
-    }).success).toBe(false);
+    expect(
+      LegalPageDocumentSchema.safeParse({
+        lastUpdated: 1751000000000,
+        sections: [section],
+      }).success,
+    ).toBe(false);
   });
 
   it('TakeItDownPageCopySchema is a versioned keyed-strings map', () => {
-    expect(TakeItDownPageCopySchema.safeParse({
-      version: 1,
-      lastUpdated: 1751000000000,
-      strings: { pageTitle: 'Take It Down', introBody: 'Report non-consensual intimate imagery.' },
-    }).success).toBe(true);
-    expect(TakeItDownPageCopySchema.safeParse({
-      lastUpdated: 1751000000000,
-      strings: {},
-    }).success).toBe(false);
+    expect(
+      TakeItDownPageCopySchema.safeParse({
+        version: 1,
+        lastUpdated: 1751000000000,
+        strings: {
+          pageTitle: 'Take It Down',
+          introBody: 'Report non-consensual intimate imagery.',
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      TakeItDownPageCopySchema.safeParse({
+        lastUpdated: 1751000000000,
+        strings: {},
+      }).success,
+    ).toBe(false);
   });
 
   it('existing FuturePlans / RulesAndAgreements docs still parse WITHOUT version (pre-migration data)', () => {
-    expect(FuturePlansDocumentSchema.safeParse({
-      lastUpdated: 1751000000000,
-      groups: [],
-      plans: [],
-    }).success).toBe(true);
-    expect(RulesAndAgreementsSchema.safeParse({
-      rules: [],
-      agreements: { points: [] },
-    }).success).toBe(true);
+    expect(
+      FuturePlansDocumentSchema.safeParse({
+        lastUpdated: 1751000000000,
+        groups: [],
+        plans: [],
+      }).success,
+    ).toBe(true);
+    expect(
+      RulesAndAgreementsSchema.safeParse({
+        rules: [],
+        agreements: { points: [] },
+      }).success,
+    ).toBe(true);
     // ...and WITH version once the migration bumps them.
-    expect(FuturePlansDocumentSchema.safeParse({
-      lastUpdated: 1751000000000,
-      groups: [],
-      plans: [],
-      version: 3,
-    }).success).toBe(true);
+    expect(
+      FuturePlansDocumentSchema.safeParse({
+        lastUpdated: 1751000000000,
+        groups: [],
+        plans: [],
+        version: 3,
+      }).success,
+    ).toBe(true);
   });
 
   it('registers the three _appConfig singletons in COLLECTION_SCHEMAS', () => {
@@ -68,8 +91,14 @@ describe('content-page doc schemas (content-pages migration)', () => {
 
   it('builds the _appConfig paths', () => {
     expect(PATH_BUILDERS.termsPage()).toEqual([COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TERMS_PAGE]);
-    expect(PATH_BUILDERS.privacyPage()).toEqual([COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVACY_PAGE]);
-    expect(PATH_BUILDERS.takeItDownPageCopy()).toEqual([COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]);
+    expect(PATH_BUILDERS.privacyPage()).toEqual([
+      COLLECTIONS.APP_CONFIG,
+      SPECIAL_DOCS.PRIVACY_PAGE,
+    ]);
+    expect(PATH_BUILDERS.takeItDownPageCopy()).toEqual([
+      COLLECTIONS.APP_CONFIG,
+      SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY,
+    ]);
   });
 });
 
@@ -78,26 +107,36 @@ describe('content-page content input schemas (the working-copy content of each p
     expect(LegalPageContentInputSchema.safeParse({ sections: [section] }).success).toBe(true);
     // A bare divider heading (empty body) is legal content — a faithfully-seeded
     // doc must round-trip through the editor's save.
-    expect(LegalPageContentInputSchema.safeParse({
-      sections: [{ ...section, body: '' }],
-    }).success).toBe(true);
+    expect(
+      LegalPageContentInputSchema.safeParse({
+        sections: [{ ...section, body: '' }],
+      }).success,
+    ).toBe(true);
     // `version` is assigned by the release publish — content carrying it is rejected (strict).
-    expect(LegalPageContentInputSchema.safeParse({ sections: [section], version: 99 }).success).toBe(false);
+    expect(
+      LegalPageContentInputSchema.safeParse({ sections: [section], version: 99 }).success,
+    ).toBe(false);
     // Empty sections would blank a legal page — rejected.
     expect(LegalPageContentInputSchema.safeParse({ sections: [] }).success).toBe(false);
   });
 
   it('take-it-down strings input enforces the 1–200 entry bound and strictness', () => {
-    expect(TakeItDownPageCopyContentInputSchema.safeParse({
-      strings: { pageTitle: 'Take It Down' },
-    }).success).toBe(true);
+    expect(
+      TakeItDownPageCopyContentInputSchema.safeParse({
+        strings: { pageTitle: 'Take It Down' },
+      }).success,
+    ).toBe(true);
     expect(TakeItDownPageCopyContentInputSchema.safeParse({ strings: {} }).success).toBe(false);
     const tooMany: Record<string, string> = {};
     for (let i = 0; i < 201; i++) tooMany[`k${i}`] = 'v';
-    expect(TakeItDownPageCopyContentInputSchema.safeParse({ strings: tooMany }).success).toBe(false);
-    expect(TakeItDownPageCopyContentInputSchema.safeParse({
-      strings: { pageTitle: 'x' },
-      version: 2,
-    }).success).toBe(false);
+    expect(TakeItDownPageCopyContentInputSchema.safeParse({ strings: tooMany }).success).toBe(
+      false,
+    );
+    expect(
+      TakeItDownPageCopyContentInputSchema.safeParse({
+        strings: { pageTitle: 'x' },
+        version: 2,
+      }).success,
+    ).toBe(false);
   });
 });

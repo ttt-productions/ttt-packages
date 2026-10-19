@@ -4,4 +4,5 @@
 export const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** True when a repo-relative `path` is `folder` itself or lies under it; a trailing slash on `folder` is ignored. */
-export const isUnder = (path: string, folder: string): boolean => path === folder || path.startsWith(`${folder.replace(/\/$/, '')}/`);
+export const isUnder = (path: string, folder: string): boolean =>
+  path === folder || path.startsWith(`${folder.replace(/\/$/, '')}/`);

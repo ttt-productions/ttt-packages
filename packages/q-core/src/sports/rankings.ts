@@ -21,7 +21,10 @@ export interface RankingRow {
 
 /** The season rows: every team's stored per-membership rows, one per team a player played for. */
 export function seasonRankingRows(
-  teams: readonly { readonly teamId: string; readonly playerSeasonStats?: Readonly<Record<string, StatLineValues>> }[],
+  teams: readonly {
+    readonly teamId: string;
+    readonly playerSeasonStats?: Readonly<Record<string, StatLineValues>>;
+  }[],
 ): RankingRow[] {
   return teams.flatMap(({ teamId, playerSeasonStats }) =>
     Object.entries(playerSeasonStats ?? {}).map(([userId, line]) => ({ teamId, userId, line })),
@@ -50,10 +53,15 @@ export function playedWeeks(
   const weeks = new Map<string, PlayedWeek>();
   for (const game of games) {
     if (game.status !== COMPLETED_GAME_STATUS || weeks.has(game.weekId)) continue;
-    weeks.set(game.weekId, { weekId: game.weekId, weekTitle: game.weekTitle, weekStartDate: game.weekStartDate });
+    weeks.set(game.weekId, {
+      weekId: game.weekId,
+      weekTitle: game.weekTitle,
+      weekStartDate: game.weekStartDate,
+    });
   }
   return [...weeks.values()].sort(
-    (left, right) => left.weekStartDate - right.weekStartDate || left.weekId.localeCompare(right.weekId),
+    (left, right) =>
+      left.weekStartDate - right.weekStartDate || left.weekId.localeCompare(right.weekId),
   );
 }
 
@@ -62,7 +70,10 @@ export function playedWeeks(
  * finalized record (`finalizedGameFromRecord`). A player who played both sides of a game that week
  * has a row on each team.
  */
-export function weekRankingRows(adapter: AnySportAdapter, games: readonly FinalizedGame[]): RankingRow[] {
+export function weekRankingRows(
+  adapter: AnySportAdapter,
+  games: readonly FinalizedGame[],
+): RankingRow[] {
   const summed = sumGameContributions(
     adapter.deriveLine,
     games.map((game) => ({ contribution: adapter.contribution(game), sign: 1 as const })),

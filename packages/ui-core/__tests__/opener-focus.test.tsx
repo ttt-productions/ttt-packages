@@ -3,14 +3,31 @@ import { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from '../src/react/components/dialog.js';
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from '../src/react/components/sheet.js';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '../src/react/components/dialog.js';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from '../src/react/components/sheet.js';
 import { ConsequenceDialog } from '../src/react/components/consequence-dialog.js';
 
 type CloseFocus = (event: Event) => void;
 
 /** A dialog opened from state: its opener is an ordinary button, never a `DialogTrigger`. */
-function StateDialog({ onCloseAutoFocus, removeOpenerOnClose = false }: { onCloseAutoFocus?: CloseFocus; removeOpenerOnClose?: boolean }) {
+function StateDialog({
+  onCloseAutoFocus,
+  removeOpenerOnClose = false,
+}: {
+  onCloseAutoFocus?: CloseFocus;
+  removeOpenerOnClose?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [openerShown, setOpenerShown] = useState(true);
   return (

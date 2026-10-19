@@ -1,21 +1,28 @@
-import { z } from "zod";
-import { ClientContextSchema, ClientMediaClaimSchema, MediaPublicationStateSchema } from "../schemas.js";
+import { z } from 'zod';
+import {
+  ClientContextSchema,
+  ClientMediaClaimSchema,
+  MediaPublicationStateSchema,
+} from '../schemas.js';
 
 /**
  * The pending-media lifecycle statuses, `pending → processing → completed | failed |
  * rejected` — the ONE declaration. The status branches below, the lifecycle decisions
  * (`pending-media-lifecycle.ts`), and upload-ui's tray all derive from it.
  */
-export const PendingMediaStatusSchema = z.enum(["pending", "processing", "completed", "failed", "rejected"]);
+export const PendingMediaStatusSchema = z.enum([
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'rejected',
+]);
 const STATUS = PendingMediaStatusSchema.enum;
 
 export function createPendingMediaSchemas<
   TFileOriginSchema extends z.ZodTypeAny,
   TDomainEventSchema extends z.ZodTypeAny,
->(deps: {
-  fileOriginSchema: TFileOriginSchema;
-  domainEventSchema: TDomainEventSchema;
-}) {
+>(deps: { fileOriginSchema: TFileOriginSchema; domainEventSchema: TDomainEventSchema }) {
   const { fileOriginSchema, domainEventSchema } = deps;
 
   const PendingMediaErrorCategorySchema = z.enum([

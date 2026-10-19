@@ -9,7 +9,12 @@ const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const onSnapshotMock = vi.fn(
-    (target: { __kind: 'doc' | 'col' }, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
+    (
+      target: { __kind: 'doc' | 'col' },
+      _options: unknown,
+      next: (s: unknown) => void,
+      error: (e: Error) => void,
+    ) => {
       (target.__kind === 'doc' ? docCaps : colCaps).push({ next, error });
       return vi.fn();
     },
@@ -51,14 +56,23 @@ function makeWrapper() {
   return { queryClient, Wrapper };
 }
 
-const colSnap = (fromCache: boolean) => ({ docs: [{ id: 'i1', data: () => ({ name: 'x' }) }], metadata: { fromCache } });
-const docSnap = (fromCache: boolean) => ({ exists: () => true, id: 'u1', data: () => ({ n: 1 }), metadata: { fromCache } });
+const colSnap = (fromCache: boolean) => ({
+  docs: [{ id: 'i1', data: () => ({ name: 'x' }) }],
+  metadata: { fromCache },
+});
+const docSnap = (fromCache: boolean) => ({
+  exists: () => true,
+  id: 'u1',
+  data: () => ({ n: 1 }),
+  metadata: { fromCache },
+});
 
 describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('subscribes with includeMetadataChanges and starts connecting', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     expect(result.current.sourceState).toBe('connecting');
@@ -69,7 +83,8 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('cache-first snapshot stays connecting until a server-confirmed snapshot makes it live', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     act(() => colCaps[0].next(colSnap(true)));
@@ -81,7 +96,8 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('goes offline after being live, then back to live on reconnect', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     act(() => colCaps[0].next(colSnap(false)));
@@ -95,7 +111,8 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('goes error on a listener error (permission loss)', () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     act(() => colCaps[0].next(colSnap(false)));
@@ -107,7 +124,11 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
     const { Wrapper } = makeWrapper();
     const { result, rerender } = renderHook(
       ({ key }: { key: string }) =>
-        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items', key], subscribe: true }),
+        useFirestoreCollection({
+          collectionPath: 'items',
+          queryKey: ['items', key],
+          subscribe: true,
+        }),
       { wrapper: Wrapper, initialProps: { key: 'u1' } },
     );
     act(() => colCaps[0].next(colSnap(false)));
@@ -154,7 +175,11 @@ describe('source state and error belong to the subscription identity that produc
     const seen: Array<{ key: string; state: string }> = [];
     const { rerender } = renderHook(
       ({ key }: { key: string }) => {
-        const r = useFirestoreCollection({ collectionPath: 'items', queryKey: ['items', key], subscribe: true });
+        const r = useFirestoreCollection({
+          collectionPath: 'items',
+          queryKey: ['items', key],
+          subscribe: true,
+        });
         seen.push({ key, state: r.sourceState });
         return r;
       },
@@ -191,7 +216,11 @@ describe('source state and error belong to the subscription identity that produc
     const { Wrapper } = makeWrapper();
     const { result, rerender } = renderHook(
       ({ key }: { key: string }) =>
-        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items', key], subscribe: true }),
+        useFirestoreCollection({
+          collectionPath: 'items',
+          queryKey: ['items', key],
+          subscribe: true,
+        }),
       { wrapper: Wrapper, initialProps: { key: 'u1' } },
     );
     const retired = colCaps[0];

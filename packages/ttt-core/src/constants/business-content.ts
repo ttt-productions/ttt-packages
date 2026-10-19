@@ -1,6 +1,6 @@
 // Content-surface business-rule constants — commissions, auditions, the social
 // feed, and messaging.
-import { MAX_WORK_PROJECT_TITLE_LENGTH } from "./business-work-project.js";
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from './business-work-project.js';
 import { ACTIVE_LIMITS } from './app-mode.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../media/hall-library-target-fields.js';
 import type { WorkProjectType } from '../types/content.js';

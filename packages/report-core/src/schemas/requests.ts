@@ -4,10 +4,12 @@ import { z } from 'zod';
 // Consumed by the consuming app's onCall wrappers; the handlers in ../server/
 // re-import the inferred types so the schema is the single source of truth.
 
-export const CheckoutTaskRequestSchema = z.object({
-  taskType: z.string().min(1),
-  specificTaskId: z.string().min(1).optional(),
-}).strict();
+export const CheckoutTaskRequestSchema = z
+  .object({
+    taskType: z.string().min(1),
+    specificTaskId: z.string().min(1).optional(),
+  })
+  .strict();
 
 export type CheckoutTaskRequest = z.infer<typeof CheckoutTaskRequestSchema>;
 
@@ -18,12 +20,16 @@ export type CheckoutTaskRequest = z.infer<typeof CheckoutTaskRequestSchema>;
 export type ReportTextFieldSchema = z.ZodType<string | undefined, unknown>;
 
 /** The check-in request, its `resolution` note judged by the app's field schema. */
-export function createCheckinTaskRequestSchema<R extends ReportTextFieldSchema>(fields: { resolution: R }) {
-  return z.object({
-    taskId: z.string().min(1),
-    resolved: z.boolean(),
-    resolution: fields.resolution,
-  }).strict();
+export function createCheckinTaskRequestSchema<R extends ReportTextFieldSchema>(fields: {
+  resolution: R;
+}) {
+  return z
+    .object({
+      taskId: z.string().min(1),
+      resolved: z.boolean(),
+      resolution: fields.resolution,
+    })
+    .strict();
 }
 
 /** A check-in request whose resolution note is optional text — the shape the handler reads. */
@@ -31,9 +37,11 @@ export type CheckinTaskRequest = z.infer<
   ReturnType<typeof createCheckinTaskRequestSchema<z.ZodOptional<z.ZodString>>>
 >;
 
-export const ReleaseTaskRequestSchema = z.object({
-  taskId: z.string().min(1),
-}).strict();
+export const ReleaseTaskRequestSchema = z
+  .object({
+    taskId: z.string().min(1),
+  })
+  .strict();
 
 export type ReleaseTaskRequest = z.infer<typeof ReleaseTaskRequestSchema>;
 
@@ -45,20 +53,24 @@ export type ReleaseTaskRequest = z.infer<typeof ReleaseTaskRequestSchema>;
 // `reportedUserId` is a HINT ONLY — the server re-derives the owner and never trusts
 // it as authority. `comment` is the free-text reporter narrative (segregated server-side), judged
 // by the app's field schema — the same declaration the dialog's `reportCommentInput` carries.
-export function createSubmitReportRequestSchema<C extends ReportTextFieldSchema>(fields: { comment: C }) {
-  return z.object({
-    itemType: z.string().min(1).max(64),
-    reportedItemId: z.string().min(1).max(256),
-    parentItemId: z.string().min(1).max(256).optional(),
-    reportedUserId: z.string().min(1).max(256).optional(),
-    reason: z.string().min(1).max(128),
-    comment: fields.comment,
-    // When true, this is the user-confirmed SECOND call that escalates an EXISTING report on the same
-    // target to a protected reason (Child Safety / NCII). Only meaningful when `reason` is a protected
-    // reason and the reporter already has a report on this target; the server then opens the protected
-    // case for the existing report (the original deadline/disposition is preserved). Ignored otherwise.
-    confirmUpgrade: z.boolean().optional(),
-  }).strict();
+export function createSubmitReportRequestSchema<C extends ReportTextFieldSchema>(fields: {
+  comment: C;
+}) {
+  return z
+    .object({
+      itemType: z.string().min(1).max(64),
+      reportedItemId: z.string().min(1).max(256),
+      parentItemId: z.string().min(1).max(256).optional(),
+      reportedUserId: z.string().min(1).max(256).optional(),
+      reason: z.string().min(1).max(128),
+      comment: fields.comment,
+      // When true, this is the user-confirmed SECOND call that escalates an EXISTING report on the same
+      // target to a protected reason (Child Safety / NCII). Only meaningful when `reason` is a protected
+      // reason and the reporter already has a report on this target; the server then opens the protected
+      // case for the existing report (the original deadline/disposition is preserved). Ignored otherwise.
+      confirmUpgrade: z.boolean().optional(),
+    })
+    .strict();
 }
 
 /** A submit request whose comment is optional text — the shape the dialog's hook sends. */
