@@ -39,7 +39,9 @@ full gates at once.
 **Rule.** A `eslint-disable-next-line` is permitted only for a narrow intentional case and carries
 its reason on the line; it is preferred over weakening the rule. A real violation is fixed at its
 source. Every package code file, source and tests, is in the one format Prettier writes from the
-root `.prettierrc.json`; the gate's format stage (`prettier --check`) fails a file that is not, and
+root `.prettierrc.json`; `test:quiet`'s format stage writes that format and then checks it, the
+release preflight and `test:all` only check (a release never publishes formatting nobody
+committed), and a check fails a file that is not formatted; and
 `eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier,
 never reflowed by hand.
 

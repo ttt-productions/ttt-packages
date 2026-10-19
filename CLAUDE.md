@@ -43,7 +43,7 @@ Orientation only (read the docs above before designing): generic Tier 0 foundati
 
 **Linting.** Root `eslint.config.mjs` (flat config) lints `packages/**` only: `@eslint/js` + `typescript-eslint` recommended + `react-hooks` (rules-of-hooks / exhaustive-deps as **error**). `no-explicit-any` off, `^_` unused-ignore, empty `catch` allowed. Run with `npm run lint` (or `lint:fix`); it runs right after the audit stage in `test:all` / `test:quiet`. `eslint-config-prettier` runs last, so no ESLint rule formats. Lint policy (a justified, reasoned `eslint-disable-next-line` is permitted for the narrow intentional cases) is owned by **QUALITY-006**.
 
-**Formatting.** Prettier formats every package code file (`.prettierrc.json`: 100 columns, single quotes, Prettier's defaults otherwise). `npm run format` writes it; `npm run format:check` is the gate's format stage, right after lint. The format rule is **QUALITY-006**.
+**Formatting.** Prettier formats every package code file (`.prettierrc.json`: 100 columns, single quotes, Prettier's defaults otherwise). `npm run format` writes it and `npm run format:check` checks it. `npm run test:quiet`'s format stage, right after lint, does both — Prettier writes every package file, then the check runs — so a gate run leaves the tree formatted; `test:all` and the release preflight (`test:quiet --format-check-only`) only check, so a release never publishes formatting nobody committed. The format rule is **QUALITY-006**.
 
 ## Release gate & tooling
 

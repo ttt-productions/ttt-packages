@@ -24,6 +24,7 @@ import { localOnlyVariablesGuard, type LocalOnlyVariablesFacts } from './local-o
 import { projectScriptGuard, type ProjectScriptFacts } from './project-scripts.js';
 import { secretBindingGuard, type SecretBindingFacts } from './secret-bindings.js';
 import { shellSafeGuard, type ShellSafeFacts } from './shell-safe.js';
+import { testCaseModuleLoadGuard, type TestCaseModuleLoadFacts } from './test-case-module-loads.js';
 import { testSourceRootGuard, type TestSourceRootFacts } from './test-source-root.js';
 import { walkerReadFailureGuard, type WalkerReadFailureFacts } from './walker-read-failure.js';
 import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from './worker-bounded-body.js';
@@ -34,6 +35,7 @@ export interface RepoGuardFacts {
   shellSafeChildProcesses: ShellSafeFacts;
   walkerReadFailure: WalkerReadFailureFacts;
   testSourceRoot: TestSourceRootFacts | Absent;
+  testCaseModuleLoads: TestCaseModuleLoadFacts;
   localOnlyVariables: LocalOnlyVariablesFacts;
   workerConfigIsolation: WorkerConfigFacts | Absent;
   workerBoundedBody: WorkerBoundedBodyFacts | Absent;
@@ -54,6 +56,7 @@ export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.
   shellSafeGuard,
   walkerReadFailureGuard,
   testSourceRootGuard,
+  testCaseModuleLoadGuard,
   localOnlyVariablesGuard,
   workerConfigGuard,
   workerBoundedBodyGuard,

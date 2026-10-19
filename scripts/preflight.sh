@@ -46,8 +46,9 @@ echo "preflight: npm run test:quiet (the full quiet gate; concise output)..."
 # test:quiet runs the same gate as test:all but with one-line-per-stage output, plus a final schema
 # stage that checks docs/generated/firestore-schema.{md,mmd} and AUTO-REGENERATES them if stale (it
 # prints "regenerated" and still exits 0 — commit the regenerated docs). That replaces the old
-# separate `generate-schema-docs.mjs --check` step here.
-npm run test:quiet
+# separate `generate-schema-docs.mjs --check` step here. --format-check-only keeps the format stage to
+# a check: the tree here is the commit being released, and a write would publish formatting it lacks.
+npm run test:quiet -- --format-check-only
 
 # License sweep over third-party production deps — informational (never blocks a release; `|| true`).
 # Surfaces any incoming copyleft/unknown license before it lands silently. --excludePrivatePackages

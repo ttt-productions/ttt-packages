@@ -17,8 +17,8 @@
 // Exit codes: 0 if everything passed — including when the schema docs were stale and got regenerated
 // (commit the regenerated files before publishing); non-zero if any stage failed, including if the
 // schema regeneration itself errored. This is the single command to run before committing + publishing.
-// The release preflight (scripts/preflight.sh) runs this same command after its install and lockfile
-// checks.
+// The release preflight (scripts/preflight.sh) runs this same command, with --format-check-only, after its
+// install and lockfile checks.
 import { spawn } from 'child_process';
 import { performance } from 'perf_hooks';
 
@@ -38,12 +38,14 @@ const RESET = '\x1b[0m';
 //   node test-quiet.mjs --only=test           # same, equals form
 //   node test-quiet.mjs --only build,test     # comma-separated list
 //   node test-quiet.mjs --schema              # short alias for --only schema
+//   node test-quiet.mjs --format-check-only   # the format stage checks and never writes (release preflight)
 //   node test-quiet.mjs --help                # print usage and exit
 //
 // Stage keys accepted by --only:
 //   audit      -> npm audit --omit=dev --audit-level=high (the publish CI security gate, verbatim)
 //   lint       -> npm run lint            (eslint, all workspaces)
-//   format     -> npm run format:check    (prettier --check over every package's code)
+//   format     -> npm run format, then npm run format:check (Prettier writes every package's code,
+//                 then checks it); with --format-check-only, the check alone
 //   typecheck  -> npm run typecheck       (per-workspace tsc --noEmit; skips __tests__)
 //   tscb       -> npx tsc -b --noEmit     (project refs; the ONLY step that type-checks __tests__)
 //   build      -> npm run build           (every package, topo order)
@@ -84,6 +86,10 @@ Options:
   --typecheck       Shortcut for --only typecheck
   --tscb            Shortcut for --only tscb
   --schema          Shortcut for --only schema
+  --format-check-only
+                    The format stage only checks (prettier --check) and never writes —
+                    the release preflight's form, so a release never publishes
+                    formatting nobody committed
   -h, --help        Show this help and exit
 
 Examples:
@@ -404,8 +410,16 @@ async function stageSchema(name, root) {
     if (shouldRun('lint')) {
         if (!(await stagePlain('lint', 'npm', ['run', 'lint'], root))) return finish(overallStart);
     }
+    // Format: Prettier writes every package file, then the check proves the tree is formatted. The
+    // release preflight passes --format-check-only: it runs on a committed tree, and a write there would
+    // publish formatting the release commit does not hold.
     if (shouldRun('format')) {
-        if (!(await stagePlain('format (prettier --check)', 'npm', ['run', 'format:check'], root))) return finish(overallStart);
+        if (hasFlag('--format-check-only')) {
+            if (!(await stagePlain('format (prettier --check)', 'npm', ['run', 'format:check'], root))) return finish(overallStart);
+        } else {
+            if (!(await stagePlain('format (prettier --write)', 'npm', ['run', 'format'], root))) return finish(overallStart);
+            if (!(await stagePlain('format (prettier --check)', 'npm', ['run', 'format:check'], root))) return finish(overallStart);
+        }
     }
     // Build first: the two type-check stages below resolve @ttt-productions/* via node_modules -> dist,
     // so dist must exist. `npm run build` is topo-ordered and self-sufficient from a clean tree.
