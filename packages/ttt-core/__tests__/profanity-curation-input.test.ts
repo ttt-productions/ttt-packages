@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { hashStringSet } from '@ttt-productions/edge-protocol-core';
-import { CurateProfanityListInputSchema } from '../src/schemas/utility.js';
+import {
+  CurateProfanityListInputSchema,
+  CurateProfanityListResultSchema,
+} from '../src/schemas/utility.js';
+import * as c from '../src/constants/moderation.js';
 
 // A curated word list is published under edge-protocol-core's `hashStringSet`, which refuses a
 // value holding a line break (it joins values with one). A term with a line break must be refused
@@ -29,7 +33,6 @@ describe('CurateProfanityListInputSchema terms', () => {
 
 describe('the curation limits and answer', () => {
   it('the term and batch bounds are the named limits', async () => {
-    const c = await import('../src/constants/moderation.js');
     expect([
       c.MIN_CURATED_PROFANITY_TERM_LENGTH,
       c.MAX_CURATED_PROFANITY_TERM_LENGTH,
@@ -49,7 +52,6 @@ describe('the curation limits and answer', () => {
   });
 
   it('the callable answers what it added and removed and the list size', async () => {
-    const { CurateProfanityListResultSchema } = await import('../src/schemas/utility.js');
     const answer = { success: true, added: ['a'], removed: [], wordCount: 12 };
     expect(CurateProfanityListResultSchema.parse(answer)).toEqual(answer);
     expect(CurateProfanityListResultSchema.safeParse({ ...answer, wordCount: -1 }).success).toBe(

@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
+import { SentryAdapter } from '../src/adapters/sentry.js';
+import { initMonitoring, __resetMonitoring } from '../src/init.js';
 
 vi.mock('@sentry/node', () => {
   throw new Error('sdk failed to load');
@@ -12,7 +15,7 @@ describe('a Sentry SDK that fails to load', () => {
   let consoleError: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    vi.resetModules();
+    __resetMonitoring();
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -21,18 +24,16 @@ describe('a Sentry SDK that fails to load', () => {
   });
 
   it.each([
-    ['SentryNodeAdapter', '../src/adapters/sentry-node'],
-    ['SentryAdapter', '../src/adapters/sentry'],
-  ])(
+    ['SentryNodeAdapter', SentryNodeAdapter],
+    ['SentryAdapter', SentryAdapter],
+  ] as const)(
     '%s reports each undelivered call on the console instead of an unhandled rejection',
-    async (name, path) => {
-      const adapter = (await import(path))[name];
-
+    async (_name, adapter) => {
       adapter.captureException(new Error('boom'));
       adapter.captureMessage('note', 'info');
       adapter.setTag('k', 'v');
       adapter.setUser({ id: 'u1' });
-      adapter.addBreadcrumb({ message: 'crumb' });
+      adapter.addBreadcrumb!({ message: 'crumb' });
       await vi.waitFor(() => expect(consoleError).toHaveBeenCalledTimes(5));
 
       const reported = consoleError.mock.calls.map((call: unknown[]) => String(call[0]));
@@ -51,7 +52,6 @@ describe('a Sentry SDK that fails to load', () => {
   );
 
   it('initMonitoring rejects so its caller can report the failed init', async () => {
-    const { initMonitoring } = await import('../src/init.js');
     await expect(
       initMonitoring({ provider: 'sentry-node', dsn: 'https://test@example.com/1' }),
     ).rejects.toThrow();

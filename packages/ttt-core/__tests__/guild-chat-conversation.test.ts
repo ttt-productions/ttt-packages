@@ -11,6 +11,7 @@ import {
   tttChatRoomNamespace,
   type GuildChatConversation,
 } from '../src/ids/guild-chat-conversation.js';
+import { parseChatChannelRef } from '../src/report/chat-report-channel-ref.js';
 
 const CHANNEL: GuildChatConversation = {
   kind: 'channel',
@@ -73,7 +74,6 @@ describe('TTT conversations travel as the neutral chat reference', () => {
 
 describe('a chat report reads its conversation through the same mapping', () => {
   it('a channel report parent is exactly two ids; an invite report parent is one', async () => {
-    const { parseChatChannelRef } = await import('../src/report/chat-report-channel-ref.js');
     expect(parseChatChannelRef('guild-chat-message', 'wp1/ch1')).toEqual(CHANNEL);
     expect(parseChatChannelRef('guild-invite-message', 'gi1')).toEqual(INVITE);
     expect(parseChatChannelRef('guild-chat-message', 'a/b/c')).toBeNull();

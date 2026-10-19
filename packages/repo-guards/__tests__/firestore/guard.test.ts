@@ -13,6 +13,8 @@ import {
 import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
 import type { RepoLayout } from '../../src/node/layout.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import * as fixtureCore from './fixture-core/index.js';
+import * as fixtureDocSchemas from './fixture-core/doc-schemas.js';
 
 const MAPS = [
   'COLLECTIONS',
@@ -64,8 +66,8 @@ const facts = (overrides: Partial<WriteGuardFacts> = {}): WriteGuardFacts => ({
   handleModulePrefixes: [],
   removalOnlyTables: [],
   registrySources: {
-    core: () => import('./fixture-core/index.js'),
-    docSchemas: () => import('./fixture-core/doc-schemas.js'),
+    core: async () => fixtureCore,
+    docSchemas: async () => fixtureDocSchemas,
   },
   constantMapNames: MAPS,
   writerRoots: ['app'],

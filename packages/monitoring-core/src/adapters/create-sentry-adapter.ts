@@ -72,6 +72,19 @@ function reportUndelivered(operation: string, reason: UndeliveredReason, error: 
  * `S.init` when an init is running, so the init-time hooks (`beforeSend`,
  * `beforeSendTransaction`) already apply to the first event it sends.
  */
+/** Each adapter this factory built, with the reset that returns it to never-loaded. */
+const RESETS = new WeakMap<MonitoringAdapter, () => void>();
+
+/**
+ * Test-only: returns an adapter this factory built to its never-loaded, never-initialized state.
+ * Never call in production code.
+ */
+export function __resetSentryAdapter(adapter: MonitoringAdapter): void {
+  const reset = RESETS.get(adapter);
+  if (!reset) throw new Error('[monitoring-core] __resetSentryAdapter: not a Sentry adapter');
+  reset();
+}
+
 export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): MonitoringAdapter {
   let sdkPromise: Promise<SentrySdkLike> | null = null;
   let readyPromise: Promise<SentrySdkLike> | null = null;
@@ -136,7 +149,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
     S.captureMessage(message, level);
   }
 
-  return {
+  const adapter: MonitoringAdapter = {
     init(options: MonitoringInitOptions) {
       const enabled = options.enabled ?? true;
       if (!enabled || !options.dsn) return;
@@ -224,4 +237,11 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
       deferred('addBreadcrumb', (S) => S.addBreadcrumb?.(breadcrumb));
     },
   };
+  RESETS.set(adapter, () => {
+    sdkPromise = null;
+    readyPromise = null;
+    instance = null;
+    initFailed = false;
+  });
+  return adapter;
 }

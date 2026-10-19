@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ChannelClient } from '../../src/realtime/channel-client.js';
 import { createMockSocketHarness, createFakeClock, type FakeClock } from './mock-socket.js';
+import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
 
 // A channel is CURRENT (`isSynced`) only while its socket is open, its initial data has loaded,
 // and its authoritative state has been re-applied since that socket opened. A consumer that lets
@@ -115,7 +116,6 @@ describe('ChannelClient — isSynced', () => {
 
   it('a terminal access denial is never current', async () => {
     const harness = createMockSocketHarness();
-    const { ChatAccessDeniedError } = await import('../../src/realtime/shared.js');
     const client = new ChannelClient({
       endpoint: 'wss://chat.example',
       threadId: 't1',

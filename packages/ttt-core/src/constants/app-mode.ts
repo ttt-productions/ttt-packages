@@ -19,9 +19,12 @@ export type AppMode = (typeof APP_MODES)[number];
 /** The deployed mode. Changing this constant (and publishing) IS the flip. */
 export const APP_MODE: AppMode = 'charter';
 
+/** Pick a mode-varied limit's value in the given mode. */
+export const valueInMode = <T>(mode: AppMode, charter: T, full: T): T =>
+  mode === 'charter' ? charter : full;
+
 /** Pick the active value for a mode-varied limit. */
-export const byMode = <T>(charter: T, full: T): T =>
-  (APP_MODE as AppMode) === 'charter' ? charter : full;
+export const byMode = <T>(charter: T, full: T): T => valueInMode(APP_MODE, charter, full);
 
 /** Upstash-style sliding-window duration, e.g. '1 h'. */
 export type RateLimitWindow = `${number} ${'ms' | 's' | 'm' | 'h' | 'd'}`;

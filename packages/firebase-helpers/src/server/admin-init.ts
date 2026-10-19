@@ -85,3 +85,8 @@ export function getAdminApp(options: AdminInitOptions = {}): AdminAppHandles {
     admin,
   };
 }
+
+/** Test-only: forgets the memoized app so the next call initializes again. Never call in production code. */
+export function __resetAdminAppCache(): void {
+  cachedApp = undefined;
+}

@@ -15,6 +15,7 @@ vi.mock('@ttt-productions/firebase-helpers', () => ({
 
 import { useChatMessages } from '../src/hooks/useChatMessages.js';
 import type { ChatCoreConfig } from '../src/types.js';
+import { ChatNameResolverProvider } from '../src/context/ChatNameResolverContext.js';
 
 function baseConfig(over: Partial<ChatCoreConfig> = {}): ChatCoreConfig {
   return {
@@ -170,7 +171,6 @@ describe('useChatMessages', () => {
 
 describe('useChatMessages prewarms every account a message names', () => {
   it('asks the app for the senders and the referenced accounts of server-written lines', async () => {
-    const { ChatNameResolverProvider } = await import('../src/context/ChatNameResolverContext.js');
     const React = await import('react');
     mocks.useFirestoreLiveInfinite.mockReturnValue({
       items: [

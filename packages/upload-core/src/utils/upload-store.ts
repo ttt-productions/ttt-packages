@@ -194,3 +194,12 @@ export function subscribeUploadSessionsList(fn: ListListener): () => void {
   listListeners.add(fn);
   return () => listListeners.delete(fn);
 }
+
+/** Test-only: empties every session, listener, and persistence binding. Never call in production code. */
+export function __resetUploadStore(): void {
+  sessions.clear();
+  listeners.clear();
+  listListeners.clear();
+  persistence = null;
+  persistenceErrorHandler = null;
+}

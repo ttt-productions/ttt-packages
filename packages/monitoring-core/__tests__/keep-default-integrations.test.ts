@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { initMonitoring, getMonitoringAdapter, __resetMonitoring } from '../src/init.js';
+import { NoopAdapter } from '../src/adapters/noop.js';
 
 const browserSdk = vi.hoisted(() => ({
   init: vi.fn(),
@@ -41,7 +43,7 @@ function integrationsTheSdkRuns(sdkOptions: Record<string, unknown>): Integratio
 
 describe('keepDefaultIntegrations', () => {
   beforeEach(() => {
-    vi.resetModules();
+    __resetMonitoring();
     vi.clearAllMocks();
   });
 
@@ -51,7 +53,6 @@ describe('keepDefaultIntegrations', () => {
   ])(
     'runs only the named %s defaults, by their SDK name — every other default is off',
     async (provider, sdk) => {
-      const { initMonitoring } = await import('../src/init.js');
       await initMonitoring({
         provider,
         dsn: DSN,
@@ -67,7 +68,6 @@ describe('keepDefaultIntegrations', () => {
   );
 
   it('still adds the integrations the caller lists, after the kept defaults', async () => {
-    const { initMonitoring } = await import('../src/init.js');
     const extra: Integration = { name: 'Extra' };
     await initMonitoring({
       provider: 'sentry-node',
@@ -80,7 +80,6 @@ describe('keepDefaultIntegrations', () => {
   });
 
   it('an empty list turns every default off', async () => {
-    const { initMonitoring } = await import('../src/init.js');
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, keepDefaultIntegrations: [] });
 
     expect(integrationsTheSdkRuns(nodeSdk.init.mock.calls[0][0])).toEqual([]);
@@ -89,9 +88,6 @@ describe('keepDefaultIntegrations', () => {
   it.each(['sentry-node' as const, 'noop' as const])(
     'refuses keepDefaultIntegrations combined with defaultIntegrations on the %s provider, before any SDK init',
     async (provider) => {
-      const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
-      const { NoopAdapter } = await import('../src/adapters/noop.js');
-
       await expect(
         initMonitoring({
           provider,
@@ -106,7 +102,6 @@ describe('keepDefaultIntegrations', () => {
   );
 
   it('re-initializes when the kept set changes, and not for an equal set', async () => {
-    const { initMonitoring } = await import('../src/init.js');
     await initMonitoring({
       provider: 'sentry-node',
       dsn: DSN,

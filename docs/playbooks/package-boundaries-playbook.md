@@ -5,7 +5,8 @@
 Audit the generic `@ttt-productions/*` packages against the package rules they own: no
 application-data import (ARCH-201, ARCH-207), monitoring-agnostic sources and manifests
 (QUALITY-102), and Firestore access through query-core (ARCH-206). Entry-point and client-peer safety
-(ARCH-202) is `REACT_LEAK_AUDIT_PLAYBOOK.md`. Whether an app's own vocabulary has leaked into the
+(ARCH-202) is `REACT_LEAK_AUDIT_PLAYBOOK.md`; ARCH-202's no-wildcard-import check and QUALITY-008's
+test loading are here. Whether an app's own vocabulary has leaked into the
 packages it installs is that app's audit — only the app knows its vocabulary.
 
 ## When to run
@@ -118,6 +119,32 @@ rg -n "prettier-ignore" packages -g '*.ts' -g '*.tsx' -g '*.js' -g '*.mjs' -g '*
 ```
 **Expected:** the first passes. Every line the second prints carries its reason; one that does not is
 the finding.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 8. A test loads the code it tests when its file loads
+**Rules:** QUALITY-008. The repo-guards `testCaseModuleLoads` guard reads every test in the
+repository: no test, hook, or helper resets the module registry or runs a dynamic `import()` of
+package code inside a case.
+```bash
+npm run build
+npx vitest run --project boundary test/boundary/test-case-module-loads.test.ts
+rg -n "export function __reset" packages -g '*.ts' -g '!*.test.ts'
+```
+**Expected:** the run passes, and each reviewed entry is a test whose fresh module per case is itself
+what it proves. Every line the `rg` prints is a test-only seam that says so and clears all of its
+module's per-instance state; production code never calls one.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 9. No wildcard import of a package
+**Rules:** ARCH-202. The repo-guards `packageWildcardImports` guard reads every package, script, and
+boundary test: none takes another package whole through `import * as`, `export * as`, or
+`export * from`.
+```bash
+npm run build
+npx vitest run --project boundary test/boundary/package-wildcard-imports.test.ts
+```
+**Expected:** the run passes. Each finding names the file and the wildcard; the fix imports each
+name the code uses, never an allowlist entry.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Common failure patterns

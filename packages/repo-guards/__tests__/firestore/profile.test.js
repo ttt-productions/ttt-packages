@@ -7,10 +7,12 @@ import {
   runGuardOnSources,
   VIOLATION_KINDS,
 } from '../../src/modules/firestore/analyzer.js';
+import * as fixtureCore from './fixture-core/index.js';
+import * as fixtureDocSchemas from './fixture-core/doc-schemas.js';
 
 const SOURCES = {
-  core: () => import('./fixture-core/index.js'),
-  docSchemas: () => import('./fixture-core/doc-schemas.js'),
+  core: async () => fixtureCore,
+  docSchemas: async () => fixtureDocSchemas,
 };
 const MAPS = [
   'COLLECTIONS',

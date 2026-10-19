@@ -4,29 +4,18 @@ vi.mock('@ttt-productions/firebase-helpers', () => ({
   now: vi.fn(() => Date.now()),
 }));
 
-// Must use dynamic imports + resetModules to get fresh module state per test
-// since upload-store has module-level Map singletons
+import * as store from '../src/utils/upload-store.js';
 
 describe('upload-store', () => {
-  beforeEach(async () => {
-    vi.resetModules();
-    // Re-mock after resetModules
-    vi.mock('@ttt-productions/firebase-helpers', () => ({
-      now: vi.fn(() => Date.now()),
-    }));
+  beforeEach(() => {
+    store.__resetUploadStore();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  async function getStore() {
-    const mod = await import('../src/utils/upload-store.js');
-    return mod;
-  }
-
   it('upsertUploadSession creates a new session', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'session-1', status: 'idle', path: 'uploads/file.jpg' });
     const session = store.getUploadSession('session-1');
     expect(session).toBeDefined();
@@ -36,12 +25,10 @@ describe('upload-store', () => {
   });
 
   it('getUploadSession returns undefined for unknown id', async () => {
-    const store = await getStore();
     expect(store.getUploadSession('nonexistent')).toBeUndefined();
   });
 
   it('listUploadSessions returns all sessions sorted by updatedAt descending', async () => {
-    const store = await getStore();
     const { now } = await import('@ttt-productions/firebase-helpers');
     const nowMock = now as ReturnType<typeof vi.fn>;
 
@@ -57,14 +44,12 @@ describe('upload-store', () => {
   });
 
   it('removeUploadSession deletes a session', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'to-remove', status: 'idle', path: '' });
     store.removeUploadSession('to-remove');
     expect(store.getUploadSession('to-remove')).toBeUndefined();
   });
 
   it('progress values never go backwards', async () => {
-    const store = await getStore();
     store.upsertUploadSession({
       id: 'prog',
       status: 'uploading',
@@ -81,7 +66,6 @@ describe('upload-store', () => {
   });
 
   it('progress increases normally', async () => {
-    const store = await getStore();
     store.upsertUploadSession({
       id: 'prog2',
       status: 'uploading',
@@ -97,28 +81,24 @@ describe('upload-store', () => {
   });
 
   it('terminal status is sticky (success)', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'terminal', status: 'success', path: '' });
     store.upsertUploadSession({ id: 'terminal', status: 'uploading' });
     expect(store.getUploadSession('terminal')?.status).toBe('success');
   });
 
   it('terminal status is sticky (error)', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'err', status: 'error', path: '' });
     store.upsertUploadSession({ id: 'err', status: 'idle' });
     expect(store.getUploadSession('err')?.status).toBe('error');
   });
 
   it('terminal status is sticky (canceled)', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'can', status: 'canceled', path: '' });
     store.upsertUploadSession({ id: 'can', status: 'queued' });
     expect(store.getUploadSession('can')?.status).toBe('canceled');
   });
 
   it('out-of-order updates rejected by updatedAt guard', async () => {
-    const store = await getStore();
     store.upsertUploadSession({
       id: 'order',
       status: 'uploading',
@@ -133,7 +113,6 @@ describe('upload-store', () => {
   });
 
   it('subscribeUploadSession fires callback immediately with current state', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'sub', status: 'idle', path: '' });
     const cb = vi.fn();
     const unsub = store.subscribeUploadSession('sub', cb);
@@ -143,7 +122,6 @@ describe('upload-store', () => {
   });
 
   it('subscribeUploadSession fires callback on update', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'sub2', status: 'idle', path: '' });
     const cb = vi.fn();
     const unsub = store.subscribeUploadSession('sub2', cb);
@@ -154,7 +132,6 @@ describe('upload-store', () => {
   });
 
   it('unsubscribe stops receiving updates', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'unsub', status: 'idle', path: '' });
     const cb = vi.fn();
     const unsub = store.subscribeUploadSession('unsub', cb);
@@ -165,7 +142,6 @@ describe('upload-store', () => {
   });
 
   it('subscribeUploadSessionsList fires on new session added', async () => {
-    const store = await getStore();
     const cb = vi.fn();
     const unsub = store.subscribeUploadSessionsList(cb);
     store.upsertUploadSession({ id: 'new-session', status: 'idle', path: '' });
@@ -174,7 +150,6 @@ describe('upload-store', () => {
   });
 
   it('subscribeUploadSessionsList fires on session removed', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'remove-me', status: 'idle', path: '' });
     const cb = vi.fn();
     const unsub = store.subscribeUploadSessionsList(cb);
@@ -185,7 +160,6 @@ describe('upload-store', () => {
   });
 
   it('version increments on each upsert', async () => {
-    const store = await getStore();
     store.upsertUploadSession({ id: 'ver', status: 'idle', path: '' });
     const v1 = store.getUploadSession('ver')?.version ?? 0;
     store.upsertUploadSession({ id: 'ver', status: 'uploading' });
@@ -195,7 +169,6 @@ describe('upload-store', () => {
 
   describe('pruneOldUploadSessions', () => {
     it('prunes expired success sessions (>24h)', async () => {
-      const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
 
@@ -213,7 +186,6 @@ describe('upload-store', () => {
     });
 
     it('keeps fresh success sessions (<24h)', async () => {
-      const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
       const recentTime = Date.now() - 1 * 60 * 60 * 1000; // 1h ago
@@ -229,7 +201,6 @@ describe('upload-store', () => {
     });
 
     it('prunes expired error sessions (>7d)', async () => {
-      const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
       const pastTime = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
@@ -246,7 +217,6 @@ describe('upload-store', () => {
     });
 
     it('returns count of pruned sessions', async () => {
-      const store = await getStore();
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
       const pastTime = Date.now() - 25 * 60 * 60 * 1000;

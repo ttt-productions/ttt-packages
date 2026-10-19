@@ -180,6 +180,12 @@ function compareReviewed(
 }
 
 type Declaration = { format?: unknown; min?: number; keepAsTyped?: unknown };
+
+/**
+ * input-format-core's format for free text — a description, a message, a chapter — which holds its
+ * spacing as typed; every other format holds a run of spaces to one.
+ */
+const FREE_TEXT_FORMAT = 'none';
 const textDeclarations = (exports: Readonly<Record<string, unknown>>) =>
   Object.entries(exports).filter(
     (e): e is [string, Declaration] =>
@@ -318,11 +324,11 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
       },
       {
         title:
-          'every declared text field trims, keeps one space for each run of spaces, and a required one refuses blank text',
+          'every declared text field trims, one that holds words keeps one space for each run of spaces, and a required one refuses blank text',
         description:
           "Each text field's wire schema, built from its declaration, refuses whitespace-only text when the field requires " +
-          'text (min of 1 or more), and trims the text of every field that does not keep it as typed; a field that accepts ' +
-          'a space between words keeps one space for a run of them — so the form, the wire, and the writer agree, and a ' +
+          'text (min of 1 or more), and trims the text of every field that does not keep it as typed; a field whose format ' +
+          "holds words (every format but free text, 'none') keeps one space for a run of them — so the form, the wire, and the writer agree, and a " +
           'name spaced twice is never stored, searched, or reserved apart from the same name spaced once.',
         async run(context) {
           const findings: Finding[] = [];
@@ -347,6 +353,7 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
             const parsed = schema.safeParse(`  ${sample}  `);
             if (!parsed.success || parsed.data !== sample)
               findings.push({ file: `(core) ${name}`, detail: 'does not trim its text' });
+            if (declaration.format === FREE_TEXT_FORMAT) continue;
             const word = 'a'.repeat(Math.max(min - 2, 1));
             if (!schema.safeParse(`${word} a`).success) continue;
             const run = schema.safeParse(`${word}  a`);

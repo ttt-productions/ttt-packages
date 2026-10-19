@@ -3,6 +3,7 @@ import type { MonitoringInitOptions } from './types.js';
 import { NoopAdapter } from './adapters/noop.js';
 import { SentryAdapter } from './adapters/sentry.js';
 import { SentryNodeAdapter } from './adapters/sentry-node.js';
+import { __resetSentryAdapter } from './adapters/create-sentry-adapter.js';
 
 let adapter: MonitoringAdapter = NoopAdapter;
 let initialized = false;
@@ -134,4 +135,14 @@ export function resetMonitoringAdapter(): void {
   adapter = NoopAdapter;
   initialized = false;
   currentOptions = null;
+}
+
+/**
+ * Test-only: `resetMonitoringAdapter`, and both Sentry adapters returned to never-loaded, so a
+ * case starts from a cold module without reloading it. Never call in production code.
+ */
+export function __resetMonitoring(): void {
+  resetMonitoringAdapter();
+  __resetSentryAdapter(SentryAdapter);
+  __resetSentryAdapter(SentryNodeAdapter);
 }

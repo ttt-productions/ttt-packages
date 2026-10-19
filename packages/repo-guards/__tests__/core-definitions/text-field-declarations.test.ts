@@ -1,7 +1,8 @@
 // Every typed text field is declared once in the core's declarations module and every wire schema
 // reads it through the field-schema builder: no undeclared free-text property, no self-bounded
 // wire string, no declaration elsewhere, keep-as-typed only where reviewed, and every field trims,
-// keeps one space for each run of spaces it accepts, and refuses blank text when it requires text.
+// keeps one space for each run of spaces unless it is free text, and refuses blank text when it
+// requires text.
 
 import { afterAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -32,6 +33,7 @@ const DECLARATIONS: Record<string, unknown> = {
   TITLE_INPUT: { format: 'plain', min: 1, max: 10 },
   NOTE_INPUT: { format: 'plain', min: 0, max: 10 },
   CODE_INPUT: { format: 'noSpaces', min: 1, max: 10 },
+  BODY_INPUT: { format: 'none', min: 1, max: 10 },
   LEGAL_INPUT: { format: 'plain', min: 1, max: 10, keepAsTyped: true },
   MAX_TITLE: 10,
 };
@@ -49,6 +51,7 @@ const fieldSchema = (d: Decl) => {
       .refine((s) => s.trim().length >= d.min)
       .pipe(z.string().max(d.max));
   if (d.format === 'noSpaces') return z.string().trim().min(d.min).max(d.max).regex(/^\S*$/);
+  if (d.format === 'none') return z.string().trim().min(d.min).max(d.max);
   return collapsed(d);
 };
 
@@ -157,7 +160,7 @@ describe('the declarations module', () => {
 });
 
 describe('declared fields at run time', () => {
-  it('passes reviewed keep-as-typed fields, trimmed fields, and required fields that refuse blank text', async () => {
+  it('passes reviewed keep-as-typed fields, trimmed fields, required fields that refuse blank text, and a free-text field that keeps its runs of spaces', async () => {
     const f = open({});
     const [, , , keep, behave] = guards();
     expect(lines(await f.run(keep))).toEqual([]);
@@ -199,6 +202,8 @@ describe('declared fields at run time', () => {
       '(core) TITLE_INPUT — accepts whitespace-only text although the field requires text',
       '(core) TITLE_INPUT — does not trim its text',
       '(core) NOTE_INPUT — does not trim its text',
+      '(core) BODY_INPUT — accepts whitespace-only text although the field requires text',
+      '(core) BODY_INPUT — does not trim its text',
     ]);
   });
 });

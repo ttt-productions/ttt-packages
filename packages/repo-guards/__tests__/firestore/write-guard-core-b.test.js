@@ -11,10 +11,12 @@ import {
   runGuardOnSources,
   VIOLATION_KINDS,
 } from '../../src/modules/firestore/analyzer.js';
+import * as fixtureCore from './fixture-core-b/index.js';
+import * as fixtureDocSchemas from './fixture-core-b/doc-schemas.js';
 
 const FIXTURE_SOURCES = Object.freeze({
-  core: () => import('./fixture-core-b/index.js'),
-  docSchemas: () => import('./fixture-core-b/doc-schemas.js'),
+  core: async () => fixtureCore,
+  docSchemas: async () => fixtureDocSchemas,
   subpaths: Object.freeze({}),
 });
 

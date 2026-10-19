@@ -20,8 +20,10 @@ const sentryMock = {
 
 vi.mock('@sentry/nextjs', () => sentryMock);
 
+import { SentryAdapter } from '../src/adapters/sentry.js';
+import { __resetSentryAdapter } from '../src/adapters/create-sentry-adapter.js';
+
 async function loadInitializedAdapter() {
-  const { SentryAdapter } = await import('../src/adapters/sentry.js');
   await SentryAdapter.init({
     provider: 'sentry',
     dsn: 'https://test@example.com/1',
@@ -39,7 +41,7 @@ async function flushPendingWork() {
 describe('SentryAdapter (browser) withScope', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    __resetSentryAdapter(SentryAdapter);
   });
 
   it('runs fn once through the real Sentry scope once loaded, returning its value', async () => {
@@ -54,8 +56,6 @@ describe('SentryAdapter (browser) withScope', () => {
   });
 
   it('invokes fn exactly once against the no-op scope pre-load and never replays it after the SDK loads', async () => {
-    const { SentryAdapter } = await import('../src/adapters/sentry.js');
-
     const fn = vi.fn(() => 'early-result');
     const result = SentryAdapter.withScope!(fn);
 
@@ -74,8 +74,6 @@ describe('SentryAdapter (browser) withScope', () => {
   });
 
   it("returns an async fn's promise pre-load and resolves it once", async () => {
-    const { SentryAdapter } = await import('../src/adapters/sentry.js');
-
     const fn = vi.fn(async () => 'async-result');
     await expect(SentryAdapter.withScope!(fn)).resolves.toBe('async-result');
 
@@ -90,8 +88,6 @@ describe('SentryAdapter (browser) withScope', () => {
   });
 
   it('rejects the returned promise once when an async fn throws pre-load, with no second un-awaited run', async () => {
-    const { SentryAdapter } = await import('../src/adapters/sentry.js');
-
     const boom = new Error('boom');
     const fn = vi.fn(async () => {
       throw boom;
@@ -112,7 +108,7 @@ describe('SentryAdapter (browser) withScope', () => {
 describe('SentryAdapter (browser) captureException context → tags vs extras', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    __resetSentryAdapter(SentryAdapter);
   });
 
   it('applies a flat string `tags` map as REAL tags, not an extra', async () => {
@@ -166,8 +162,6 @@ describe('SentryAdapter (browser) captureException context → tags vs extras', 
   });
 
   it('applies tags on the pre-load path too (context arrives before the SDK resolves)', async () => {
-    const { SentryAdapter } = await import('../src/adapters/sentry.js');
-
     SentryAdapter.captureException(new Error('boom'), { tags: { operation: 'early' } });
     await vi.waitFor(() => expect(sentryMock.captureException).toHaveBeenCalledTimes(1));
 
@@ -178,7 +172,7 @@ describe('SentryAdapter (browser) captureException context → tags vs extras', 
 describe('SentryAdapter (browser) captureMessage context → tags vs extras', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    __resetSentryAdapter(SentryAdapter);
   });
 
   it('reports message + level unchanged when no context is passed', async () => {
@@ -251,8 +245,6 @@ describe('SentryAdapter (browser) captureMessage context → tags vs extras', ()
   });
 
   it('applies context on the no-instance path and still reports exactly once', async () => {
-    const { SentryAdapter } = await import('../src/adapters/sentry.js');
-
     SentryAdapter.captureMessage('early', 'warning', {
       tags: { operation: 'early' },
       requestId: 'req-1',

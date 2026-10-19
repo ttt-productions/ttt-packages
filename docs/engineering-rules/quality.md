@@ -71,6 +71,27 @@ today's files, exports, or packages.
 
 **References.** ENG-002, ENG-005.
 
+### QUALITY-008 — A test loads the code it tests when its file loads
+
+**Rule.** A test imports the code it tests at the top of its file — a static import, or a top-level
+`await import()` — never inside a case, a hook, or a helper they call, and never resets the module
+registry. A case that needs other state gets it without a reload: an environment the code reads at
+load is set in `vi.hoisted` before the import, per-instance state is cleared through the module's
+test-only `__reset…()` seam, and a flag the code reads once is read when it is called instead. A
+file whose fresh module per case is itself what it proves is a reviewed entry with its why. The
+repo-guards `testCaseModuleLoads` guard in the boundary suite enforces it.
+
+**Why.** A module's first load pulls its whole graph; inside a case that cold load is timed as the
+case's own work, so a file's first case is slow for nothing it does and, under a full parallel run,
+crosses its timeout.
+
+**Prohibits.**
+- A dynamic `import()` of package code inside a case, a hook, or a helper they call.
+- `vi.resetModules()` / `jest.resetModules()` outside a reviewed entry.
+- A reviewed entry whose file no longer loads a module per case.
+
+**References.** QUALITY-001, QUALITY-007.
+
 ### QUALITY-102 — Generic packages stay monitoring-agnostic
 
 **Rule.** No generic package imports `@sentry/*`, a cloud runtime's params module, or app config. A

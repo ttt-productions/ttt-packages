@@ -20,8 +20,10 @@ const sentryMock = {
 
 vi.mock('@sentry/node', () => sentryMock);
 
+import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
+import { __resetSentryAdapter } from '../src/adapters/create-sentry-adapter.js';
+
 async function loadInitializedAdapter() {
-  const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
   await SentryNodeAdapter.init({
     provider: 'sentry-node',
     dsn: 'https://test@example.com/1',
@@ -39,11 +41,10 @@ async function flushPendingWork() {
 describe('SentryNodeAdapter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    __resetSentryAdapter(SentryNodeAdapter);
   });
 
   it('withScope calls fn exactly once once Sentry is loaded (regression: used to double-fire)', async () => {
-    const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
     await SentryNodeAdapter.init({
       provider: 'sentry-node',
       dsn: 'https://test@example.com/1',
@@ -59,7 +60,6 @@ describe('SentryNodeAdapter', () => {
   });
 
   it('withScope propagates a thrown error synchronously instead of firing an un-awaited async branch', async () => {
-    const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
     await SentryNodeAdapter.init({
       provider: 'sentry-node',
       dsn: 'https://test@example.com/1',
@@ -77,8 +77,6 @@ describe('SentryNodeAdapter', () => {
 
   describe('withScope before the SDK import resolves', () => {
     it('invokes fn exactly once against the no-op scope and never replays it after the SDK loads', async () => {
-      const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
-
       const fn = vi.fn(() => 'early-result');
       const result = SentryNodeAdapter.withScope!(fn);
 
@@ -97,8 +95,6 @@ describe('SentryNodeAdapter', () => {
     });
 
     it("returns an async fn's promise and resolves it once", async () => {
-      const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
-
       const fn = vi.fn(async () => 'async-result');
       await expect(SentryNodeAdapter.withScope!(fn)).resolves.toBe('async-result');
 
@@ -113,8 +109,6 @@ describe('SentryNodeAdapter', () => {
     });
 
     it('rejects the returned promise once when an async fn throws, with no second un-awaited run', async () => {
-      const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
-
       const boom = new Error('boom');
       const fn = vi.fn(async () => {
         throw boom;
@@ -133,7 +127,6 @@ describe('SentryNodeAdapter', () => {
   });
 
   it('captureException forwards exactly once once Sentry is loaded (no duplicate report)', async () => {
-    const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
     await SentryNodeAdapter.init({
       provider: 'sentry-node',
       dsn: 'https://test@example.com/1',
@@ -200,8 +193,6 @@ describe('SentryNodeAdapter', () => {
     });
 
     it('applies tags on the pre-load path too (context arrives before the SDK resolves)', async () => {
-      const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
-
       SentryNodeAdapter.captureException(new Error('boom'), { tags: { operation: 'early' } });
       await vi.waitFor(() => expect(sentryMock.captureException).toHaveBeenCalledTimes(1));
 
@@ -280,8 +271,6 @@ describe('SentryNodeAdapter', () => {
     });
 
     it('applies context on the no-instance path and still reports exactly once', async () => {
-      const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
-
       SentryNodeAdapter.captureMessage('early', 'warning', {
         tags: { operation: 'early' },
         docId: 'doc-1',

@@ -268,7 +268,7 @@ export const MAX_HALL_CHANGE_REQUEST_REASON_LENGTH = 2000;
  * text is never persisted on docs). The MESSAGE deliberately never ADMITS the
  * work depicts real people — it hedges ("even those based on real people",
  * the standard film-boilerplate move) so the disclaimer never hands over the
- * depiction element of a claim. Legal wording pending counsel confirmation.
+ * depiction element of a claim.
  */
 export const REAL_PEOPLE_DISCLAIMER_HEADER =
   'A Notice from the Management: the faces may be familiar, but the players are pure ' +

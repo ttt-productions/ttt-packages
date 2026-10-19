@@ -99,13 +99,19 @@ same purity (ARCH-203). A server-side module graph never
 pulls React, browser upload code, or app-shell code, and every client-only peer is declared `optional`
 so a server-only install never force-installs React.
 
+A consumer imports each package definition by name, never the whole module through `import * as`,
+`export * as`, or `export * from` a package; the repo-guards `packageWildcardImports` check in the
+boundary suite enforces it.
+
 **Why.** A server module that pulls React into its graph crashes on cold start; a required
-client-only peer forces React into a server-only install.
+client-only peer forces React into a server-only install. A wildcard names no definition, so nothing
+traces the names it uses to their entries, and a test's mock of one name stands in for the rest.
 
 **Prohibits.**
 - A React, browser, or Admin SDK export on a server-safe root.
 - A non-pure root outside the declared exceptions; a client-only peer not declared `optional`.
-- `import * as X` wildcards across package boundaries; ambient `.d.ts` shims for broken exports.
+- `import * as X`, `export * as X from`, or `export * from` another package; ambient `.d.ts` shims
+  for broken exports.
 
 **References.** `docs/design/react-safety.md`; `docs/packages/package-architecture.md`; ARCH-203.
 

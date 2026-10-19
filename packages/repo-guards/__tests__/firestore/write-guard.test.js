@@ -29,11 +29,13 @@ import {
 } from '../../src/modules/firestore/analyzer.js';
 import { COLLECTION_DOC_ID_FIELDS } from './fixture-core/doc-schemas.js';
 import { fixturePackageDeclarations } from './fixture-declarations.js';
+import * as fixtureCore from './fixture-core/index.js';
+import * as fixtureDocSchemas from './fixture-core/doc-schemas.js';
 
 /** The fixture core's entry points, loaded the way an app hands its own core to the guard. */
 const FIXTURE_SOURCES = Object.freeze({
-  core: () => import('./fixture-core/index.js'),
-  docSchemas: () => import('./fixture-core/doc-schemas.js'),
+  core: async () => fixtureCore,
+  docSchemas: async () => fixtureDocSchemas,
   subpaths: Object.freeze({}),
 });
 

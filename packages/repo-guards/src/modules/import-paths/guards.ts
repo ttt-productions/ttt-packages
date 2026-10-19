@@ -11,6 +11,10 @@ import {
   type PackageEntryImportFacts,
 } from './package-entries.js';
 import {
+  packageWildcardImportsGuard,
+  type PackageWildcardImportFacts,
+} from './package-wildcard-imports.js';
+import {
   packageImportCyclesGuard,
   packageImportsGuard,
   type PackageImportFacts,
@@ -21,6 +25,7 @@ export interface ImportPathGuardFacts {
   importPaths: ImportPathFacts;
   packageEntries: PackageEntryFacts;
   packageEntryImports: PackageEntryImportFacts;
+  packageWildcardImports: PackageWildcardImportFacts;
   packageImports: PackageImportFacts;
   packageImportCycles: PackageImportFacts;
   entryPurity: EntryPurityFacts;
@@ -31,6 +36,7 @@ export const IMPORT_PATH_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = 
   importPathGuard,
   packageEntriesGuard,
   packageEntryImportsGuard,
+  packageWildcardImportsGuard,
   packageImportsGuard,
   packageImportCyclesGuard,
   entryPurityGuard,
