@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { Textarea } from '../src/react/components/textarea';
@@ -137,5 +137,37 @@ describe('a multi-line box that is not free text takes no input format', () => {
       </>
     );
     expect(compileOnly).toBeTypeOf('function');
+  });
+});
+
+describe('a free-text Textarea tidies its text when focus leaves it', () => {
+  function Controlled({ initial, onBlur, readOnly }: { initial: string; onBlur?: () => void; readOnly?: boolean }) {
+    const [value, setValue] = React.useState(initial);
+    return (
+      <>
+        <Textarea inputFormat={DESCRIPTION} value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur} readOnly={readOnly} />
+        <output data-testid="parent-value">{value}</output>
+      </>
+    );
+  }
+
+  it('trims a none box on blur and keeps its inner spacing and line breaks', () => {
+    render(<Controlled initial={'  one  two\n\nthree  '} />);
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(screen.getByRole('textbox')).toHaveValue('one  two\n\nthree');
+    expect(screen.getByTestId('parent-value').textContent).toBe('one  two\n\nthree');
+  });
+
+  it("chains the caller's own onBlur", () => {
+    const onBlur = vi.fn();
+    render(<Controlled initial=" text " onBlur={onBlur} />);
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(onBlur).toHaveBeenCalledTimes(1);
+  });
+
+  it('never tidies a read-only box', () => {
+    render(<Controlled initial=" text " readOnly />);
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(screen.getByRole('textbox')).toHaveValue(' text ');
   });
 });

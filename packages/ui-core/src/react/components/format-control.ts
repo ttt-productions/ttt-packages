@@ -38,3 +38,18 @@ export function formatControlAttributes(spec: InputFormatSpec, props: CallerAttr
     "aria-invalid": props["aria-invalid"] ?? (malformed ? true : undefined),
   }
 }
+
+/**
+ * Shows a free-text box's kept value once focus leaves it, delivered through the parent's own
+ * `onChange`: the native value setter plus an input event is what React hears as a typed change, so a
+ * controlled box and a react-hook-form `register` box both receive it. Nothing changes while typing.
+ * A read-only or disabled box shows a stored value nobody edits there, so it is never tidied.
+ */
+export function tidyOnBlur(box: HTMLInputElement | HTMLTextAreaElement, spec: InputFormatSpec) {
+  if (box.readOnly || box.disabled) return
+  const kept = checkInputFormat(box.value, spec).value
+  if (kept === box.value) return
+  const prototype = box instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+  Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(box, kept)
+  box.dispatchEvent(new Event("input", { bubbles: true }))
+}

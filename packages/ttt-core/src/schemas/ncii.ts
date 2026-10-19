@@ -7,6 +7,7 @@ import {
   nciiAllegationIdSchema,
   takeItDownRequestIdSchema,
   mediaAssetIdSchema,
+  unpaddedValueSchema,
 } from './atoms.js';
 import {
   ReportableItemTypeSchema,
@@ -204,8 +205,24 @@ export type SubmitInAppNciiRequestResult = z.infer<typeof SubmitInAppNciiRequest
 // it never carries a TTT-hosted locator the server would resolve and hold, so an anonymous caller
 // cannot take platform content down without an account. A report of TTT content goes through the
 // authenticated report path. The route parses this before it reads anything else of the request.
+/** The web address a no-login statutory request names: http or https only. The stored link is the
+ *  request's duplicate key, so the wire holds it trimmed exactly as the form sends it. */
+export const nciiLocatorUrlSchema = unpaddedValueSchema
+  .max(MAX_NCII_LOCATOR_URL_LENGTH)
+  .refine(
+    (value) => {
+      try {
+        const { protocol } = new URL(value);
+        return protocol === 'http:' || protocol === 'https:';
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Enter a web address that starts with http:// or https://.' },
+  );
+
 export const PublicTakeItDownLocatorSchema = z
-  .object({ kind: z.literal('url'), url: z.string().min(1).max(MAX_NCII_LOCATOR_URL_LENGTH) })
+  .object({ kind: z.literal('url'), url: nciiLocatorUrlSchema })
   .strict();
 
 export const TakeItDownElectronicSignatureInputSchema = z

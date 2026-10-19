@@ -16,6 +16,18 @@ describe('workRealmNameReservationKey', () => {
   });
 });
 
+describe('a Realm name reserves one key however its words are spaced', () => {
+  it('gives two names differing only in internal spacing one reservation key', () => {
+    const single = workRealmNameReservationKey(realmWorkingTitleSchema.parse('The Dark Woods'));
+    expect(workRealmNameReservationKey(realmWorkingTitleSchema.parse('The  Dark   Woods'))).toBe(single);
+    expect(workRealmNameReservationKey(realmWorkingTitleSchema.parse('  the dark  woods '))).toBe(single);
+  });
+
+  it('stores the name with one space between words', () => {
+    expect(realmWorkingTitleSchema.parse('The  Dark   Woods')).toBe('The Dark Woods');
+  });
+});
+
 describe('realmWorkingTitleSchema', () => {
   it('stores the trimmed name', () => {
     expect(realmWorkingTitleSchema.parse('  Dragonlands  ')).toBe('Dragonlands');

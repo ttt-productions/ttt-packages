@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CloseAccountUnder13InputSchema } from '../src/schemas/index';
+import { CloseAccountUnder13InputSchema, CloseAccountUnder13OutcomeSchema, CloseAccountUnder13ResultSchema } from '../src/schemas/index';
 import { MAX_UNDER_13_CLOSE_REASON_LENGTH } from '../src/index';
 
 describe('close under-13 account input', () => {
@@ -36,5 +36,18 @@ describe('close under-13 account input', () => {
       CloseAccountUnder13InputSchema.safeParse({ userId: 'target-uid', reason: 'r', dob: { year: 2015, month: 1, day: 1 } }).success,
     ).toBe(false);
     expect(CloseAccountUnder13InputSchema.safeParse({ userId: 'target-uid', reason: 'r', age: 12 }).success).toBe(false);
+  });
+});
+
+describe('close under-13 account answer', () => {
+  it('names the outcome that happened: erased now, or parked behind a safety lock', () => {
+    expect(CloseAccountUnder13OutcomeSchema.options).toEqual(['scrubbed', 'parked']);
+    expect(CloseAccountUnder13ResultSchema.parse({ success: true, outcome: 'scrubbed' })).toEqual({ success: true, outcome: 'scrubbed' });
+    expect(CloseAccountUnder13ResultSchema.parse({ success: true, outcome: 'parked' })).toEqual({ success: true, outcome: 'parked' });
+  });
+
+  it('never answers a preserved outcome, and always names one', () => {
+    expect(CloseAccountUnder13ResultSchema.safeParse({ success: true, outcome: 'preserved' }).success).toBe(false);
+    expect(CloseAccountUnder13ResultSchema.safeParse({ success: true }).success).toBe(false);
   });
 });

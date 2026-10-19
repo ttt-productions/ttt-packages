@@ -283,8 +283,15 @@ export const CloseAccountUnder13InputSchema = z.object({
 }).strict();
 export type CloseAccountUnder13Input = z.infer<typeof CloseAccountUnder13InputSchema>;
 
+/** What an under-13 closure did with the account's data: `scrubbed` — erased now; `parked` — a
+ *  safety lock holds it, and it is erased when the hold clears. The callable's answer and its audit
+ *  event both record it. */
+export const CloseAccountUnder13OutcomeSchema = z.enum(['scrubbed', 'parked']);
+export type CloseAccountUnder13Outcome = z.infer<typeof CloseAccountUnder13OutcomeSchema>;
+
 export const CloseAccountUnder13ResultSchema = z.object({
   success: z.literal(true),
+  outcome: CloseAccountUnder13OutcomeSchema,
 });
 export type CloseAccountUnder13Result = z.infer<typeof CloseAccountUnder13ResultSchema>;
 

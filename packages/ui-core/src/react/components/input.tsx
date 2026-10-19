@@ -3,7 +3,7 @@
 import * as React from "react"
 import type { DeclaredInputFormat } from "@ttt-productions/input-format-core"
 import { cn } from "../../lib/utils.js"
-import { formatControlAttributes } from "./format-control.js"
+import { formatControlAttributes, tidyOnBlur } from "./format-control.js"
 
 /**
  * The input types whose value the browser itself formats or picks — not free text — so they take no
@@ -74,7 +74,7 @@ export type InputProps = FreeTextInputProps | NonFreeTextInputProps | BuiltInFor
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   // `textEntry` only selects the prop shape; it never reaches the DOM.
-  ({ className, type, inputFormat, textEntry: _textEntry, ...props }, ref) => {
+  ({ className, type, inputFormat, textEntry: _textEntry, onBlur, ...props }, ref) => {
     return (
       <input
         type={type}
@@ -85,6 +85,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         {...props}
         {...(inputFormat ? formatControlAttributes(inputFormat, props) : {})}
+        onBlur={(event) => {
+          if (inputFormat) tidyOnBlur(event.currentTarget, inputFormat)
+          onBlur?.(event)
+        }}
       />
     )
   }

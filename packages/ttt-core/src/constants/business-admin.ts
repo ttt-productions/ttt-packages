@@ -39,8 +39,7 @@ export const TASK_PRIORITY_SCORE = {
   HIGH: 800,
   CRITICAL: 1000,
   /** Money-integrity anomaly (stake-share / pledge-ledger corruption signal) — outranks
-   * everything except safety-class reports. The three anomaly creators that previously
-   * hardcoded `priority: 1` (LOW) all write this. */
+   * everything except safety-class reports. Every money-anomaly task creator writes this. */
   MONEY_ANOMALY: 1100,
 } as const;
 
@@ -209,6 +208,13 @@ export const MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH = 500;
 
 /** Operator proof note on a manual NCMEC portal filing. */
 export const MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH = 2000;
+
+/** The report number NCMEC assigns a manual-portal filing, as the operator copies it. */
+export const MAX_NCMEC_REPORT_NUMBER_LENGTH = 64;
+
+/** The key of an object in the restricted evidence vault — Cloud Storage caps an object name at
+ *  1,024 bytes. */
+export const MAX_EVIDENCE_VAULT_KEY_LENGTH = 1024;
 
 /** Requester's typed name on the no-login TAKE IT DOWN statutory intake. */
 export const MAX_NCII_REQUESTER_NAME_LENGTH = 256;

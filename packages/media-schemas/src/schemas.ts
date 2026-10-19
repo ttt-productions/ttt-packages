@@ -24,8 +24,7 @@ export const MediaProcessingStatusSchema = z.enum(["pending", "processing", "rea
 // A media upload's processing can be `completed` while it is not yet servable
 // from every edge; this axis tracks that readiness so the UI never shows "Done"
 // off processing-complete alone. notStarted → activating → publishing → live
-// (or publicationFailed). See the consuming app's media-serving and
-// upload-pipeline design docs (serving authority + publication gating).
+// (or publicationFailed).
 export const MediaPublicationStateSchema = z.enum([
   "notStarted",
   "activating",
@@ -522,6 +521,7 @@ export function parseMediaProcessingResult(input: unknown) {
 export const ClientContextSchema = z
   .object({
     surface: z.string().min(1),
-    targetIds: z.array(z.string().min(1)).optional(),
+    // A display hint the upload tray matches on, never a path segment — but an id is never padded.
+    targetIds: z.array(z.string().min(1).refine((id) => id === id.trim())).optional(),
   })
   .strict();

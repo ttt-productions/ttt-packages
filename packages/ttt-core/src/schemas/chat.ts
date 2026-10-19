@@ -9,7 +9,9 @@ import {
   adminDispatchIdSchema,
   documentIdSegmentSchema,
   reportGroupIdSchema,
+  guildChatChannelRequirementSchema,
 } from './atoms.js';
+import { MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS } from '../constants/chat.js';
 import { MAX_CHAT_MODERATION_REASON_LENGTH } from '../constants/business.js';
 import {
   ADMIN_DISPATCH_MESSAGE_INPUT,
@@ -70,7 +72,7 @@ export const CreateGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   channelName: textFieldSchema(GUILD_CHAT_CHANNEL_NAME_INPUT),
   description: textFieldSchema(GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT).optional(),
-  requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20),
+  requiredGuildStandings: z.array(guildChatChannelRequirementSchema).max(MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS),
 }).strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
@@ -192,7 +194,7 @@ export const UpdateGuildChatChannelInputSchema = z.object({
   guildChatChannelId: guildChatChannelIdSchema,
   channelName: textFieldSchema(GUILD_CHAT_CHANNEL_NAME_INPUT).optional(),
   description: textFieldSchema(GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT).optional(),
-  requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20).optional(),
+  requiredGuildStandings: z.array(guildChatChannelRequirementSchema).max(MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS).optional(),
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 

@@ -12,6 +12,7 @@ import {
   hallSubItemIdSchema,
   changeRequestIdSchema,
   userIdSchema,
+  guildChatChannelRequirementSchema,
 } from '../schemas/atoms.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 
@@ -19,9 +20,8 @@ const userRefSchema = z.object({ uid: z.string() });
 
 // ===========================================================================
 // CONVERSATION FILES — the flat, Firestore-owned file list on a conversation.
-// Replaces inline chat attachments: a file is associated WITH a conversation but
-// never embedded in, sequenced with, or mutated through a chat message.
-// See ttt-prod docs/design/upload-and-media-pipeline.md.
+// A file is associated WITH a conversation but never embedded in, sequenced with, or
+// mutated through a chat message.
 // ===========================================================================
 
 /** Backend-owned Conversation Files counters carried by EVERY conversation parent
@@ -77,7 +77,7 @@ export const GuildChatChannelSchema = z.object({
   channelName: z.string(),
   description: z.string().optional(),
   // Who may use the channel is decided from this list alone, by `canAccessGuildChatChannel`.
-  requiredGuildStandings: z.array(z.string()),
+  requiredGuildStandings: z.array(guildChatChannelRequirementSchema),
   createdAt: z.number(),
   // NOTE: createdBy here is a flat uid string (unlike the `{ uid }` object form on
   // most other docs). Preserved as-is; flagged in the schema-registry recon.
@@ -86,7 +86,7 @@ export const GuildChatChannelSchema = z.object({
   lastMessage: z.string().optional(),
   messageCount: z.number(),
   isArchived: z.boolean(),
-  // Delete/tombstone marker (ttt-prod docs/design/chat-realtime-system.md "Channel lifecycle semantics").
+  // Delete/tombstone marker.
   // Independent of `isArchived`: archive = visible-under-a-toggle, delete = gone from every user's
   // UI with grants revoked and sends rejected DO-side; storage is RETAINED (never a physical purge).
   // Optional, absent ⇒ false, so existing/seeded channels need no backfill. Backend-only-writable.
@@ -123,8 +123,7 @@ export const GuildInviteConversationSchema = z.object({
   source: InviteSourceSchema,
   // State machine: pending → accepted (transient, trigger-consumed) → finalized (terminal
   // success), or pending → declined / cancelled (terminal failure). No 'error' state is ever
-  // written (dead state removed 2026-07-03). See ttt-prod
-  // docs/design/work-guild-membership-and-stake.md for the invite lifecycle.
+  // written.
   status: guildInviteConversationStatusSchema,
   createdAt: z.number(),
   updatedAt: z.number(),

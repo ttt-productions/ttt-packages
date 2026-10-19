@@ -2,8 +2,9 @@
 // (ARCH-102). input-format-core owns the formats and the one check; this file only says which
 // format each field uses and how long it may be. The field's form input, its wire schema
 // (`textFieldSchema`), and its writer all read the one declaration, so they accept exactly the same
-// texts. Every text is trimmed before it is judged and kept; `keepAsTyped` is reserved for the
-// legal public documents and the NCII statutory fields, whose words are kept verbatim.
+// texts. Every text is trimmed before it is judged, and every format but `none` keeps one space for
+// each run of whitespace; `keepAsTyped` is reserved for the legal public documents and the NCII
+// statutory fields, whose words are kept verbatim.
 
 import { CHAT_MESSAGE_TEXT_INPUT } from '@ttt-productions/chat-schemas';
 import { defineInputFormat, type InputFormatSpec } from '@ttt-productions/input-format-core';

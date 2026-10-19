@@ -9,6 +9,7 @@ import {
   type GuildChatAccessMember,
 } from '../src/utils/guild-chat-access';
 import { FOUNDING_WORK_HOLDER_TYPE } from '../src/doc-schemas/work-project';
+import type { GuildChatChannel } from '../src/doc-schemas/messaging';
 
 const member = (over: Partial<GuildChatAccessMember> = {}): GuildChatAccessMember => ({
   status: 'active',
@@ -18,7 +19,7 @@ const member = (over: Partial<GuildChatAccessMember> = {}): GuildChatAccessMembe
 });
 
 describe('one guild chat channel rule: standings OR trades', () => {
-  const writersOnly = { requiredGuildStandings: ['HallLibraryEditor'] };
+  const writersOnly: Pick<GuildChatChannel, 'requiredGuildStandings'> = { requiredGuildStandings: ['HallLibraryEditor'] };
 
   it('admits a member who holds a required standing', () => {
     expect(canAccessGuildChatChannel(member({ guildStandings: ['HallLibraryEditor'] }), writersOnly)).toBe(true);

@@ -18,6 +18,9 @@ import {
 } from '../src/schemas/chat';
 import { StagedActionSchema } from '../src/schemas/admin';
 import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from '@ttt-productions/chat-schemas';
+import { GUILD_STANDING_IDS } from '../src/permissions/work-project-permissions-data';
+import { TRADE_PROFESSION_OPTIONS } from '../src/constants/options';
+import { MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS } from '../src/constants/chat';
 
 const validInput = { workProjectId: 'wp-1', guildChatChannelId: 'chan-1' };
 
@@ -73,7 +76,7 @@ describe('the three channel-lifecycle inputs are separate declarations of one sh
 });
 
 describe('a guild chat channel stores and accepts no member list', () => {
-  const create = { workProjectId: 'wp-1', channelName: 'General', requiredGuildStandings: ['Writer'] };
+  const create = { workProjectId: 'wp-1', channelName: 'General', requiredGuildStandings: ['HallLibraryEditor'] };
 
   it('create and update take the access requirement alone', () => {
     expect(CreateGuildChatChannelInputSchema.safeParse(create).success).toBe(true);
@@ -83,6 +86,27 @@ describe('a guild chat channel stores and accepts no member list', () => {
   it('a client-sent allowedUserIds list is refused, never stored', () => {
     expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, allowedUserIds: ['u1'] }).success).toBe(false);
     expect(UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, allowedUserIds: ['u1'] }).success).toBe(false);
+  });
+});
+
+describe("a channel's requirement holds canonical standings and trade professions only", () => {
+  const create = { workProjectId: 'wp-1', channelName: 'General' };
+
+  it('accepts every canonical standing and every canonical trade profession', () => {
+    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: [...GUILD_STANDING_IDS] }).success).toBe(true);
+    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: TRADE_PROFESSION_OPTIONS.slice(0, MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS) }).success).toBe(true);
+  });
+
+  it('refuses an unknown, re-cased, or padded entry on create and update', () => {
+    for (const standing of ['Wizard', 'actor', ' Actor', 'hallLibraryEditor', ' HallLibraryEditor', 'HallLibraryEditor ', '']) {
+      expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: [standing] }).success).toBe(false);
+      expect(UpdateGuildChatChannelInputSchema.safeParse({ ...validInput, requiredGuildStandings: [standing] }).success).toBe(false);
+    }
+  });
+
+  it('holds the list to its declared maximum', () => {
+    const tooMany = Array.from({ length: MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS + 1 }, () => 'HallLibraryEditor');
+    expect(CreateGuildChatChannelInputSchema.safeParse({ ...create, requiredGuildStandings: tooMany }).success).toBe(false);
   });
 });
 

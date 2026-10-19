@@ -59,17 +59,20 @@ export type DeclaredInputFormat<S extends InputFormatSpec = InputFormatSpec> = R
 export type InputFormatIssue = 'tooShort' | 'tooLong' | 'invalidCharacters';
 
 /**
- * The check's answer. `value` is the text the field keeps — trimmed, unless the declaration keeps it
- * as typed — so a caller sends or stores `value`, never the raw text it checked.
+ * The check's answer. `value` is the text the field keeps — trimmed, and with every run of whitespace
+ * held to one space for every format but `none`, unless the declaration keeps it as typed — so a
+ * caller sends or stores `value`, never the raw text it checked. `reformatted` is true when the kept
+ * value differs from the typed text by more than its ends.
  */
 export type InputFormatResult =
-  | { readonly ok: true; readonly value: string }
+  | { readonly ok: true; readonly value: string; readonly reformatted: boolean }
   | { readonly ok: false; readonly value: string; readonly issue: InputFormatIssue };
 
 /**
  * The one check every text input and every server bound runs: trim, then min, then max, then the
- * format's characters. The same function runs in the browser and on the server, so both accept
- * exactly the same texts.
+ * format's characters, all judged on the trimmed typed text; then, for every format but `none`, each
+ * run of whitespace in the kept value becomes one space. The same function runs in the browser and on
+ * the server, so both accept and keep exactly the same texts.
  */
 export function checkInputFormat(text: string, spec: InputFormatSpec): InputFormatResult {
   const trimmed = text.trim();
@@ -78,7 +81,9 @@ export function checkInputFormat(text: string, spec: InputFormatSpec): InputForm
   if (value.length > spec.max) return { ok: false, value, issue: 'tooLong' };
   const allowed = INPUT_FORMAT_RULES[spec.format];
   if (allowed !== null && !allowed.test(value)) return { ok: false, value, issue: 'invalidCharacters' };
-  return { ok: true, value };
+  if (spec.keepAsTyped || spec.format === 'none') return { ok: true, value, reformatted: false };
+  const kept = value.replace(/\s+/g, ' ');
+  return { ok: true, value: kept, reformatted: kept !== trimmed };
 }
 
 /**

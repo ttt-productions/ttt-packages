@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkTextField, textFieldRefusal } from '../src/utils/text-field';
+import { checkTextField, textFieldRefusal, textFieldReformatNotice } from '../src/utils/text-field';
 import { textFieldSchema } from '../src/schemas/text-field';
 import { validateHallContentTextFields } from '../src/utils/hall-content';
 import {
@@ -77,5 +77,12 @@ describe('a text shorter than a min above 1', () => {
       reason: 'Internal reason must be at least 10 characters.',
     });
     expect(checkTextField(USERNAME_INPUT, 'ab')).toEqual({ ok: false, reason: 'Username must be at least 3 characters.' });
+  });
+});
+
+describe('the reformat notice', () => {
+  it('names the field and says its words keep one space between them, in the field declaration', () => {
+    expect(textFieldReformatNotice(WORK_TITLE_INPUT)).toBe(`${WORK_TITLE_INPUT.label} will be saved with one space between words.`);
+    expect(textFieldReformatNotice(REALM_NAME_INPUT)).toContain(REALM_NAME_INPUT.label);
   });
 });

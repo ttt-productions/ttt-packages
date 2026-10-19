@@ -211,7 +211,7 @@ describe("an invitation's note", () => {
   });
 
   it('accepts an empty note, kept as the empty string', () => {
-    expect(checkInputFormat('   ', TEAM_INVITATION_MESSAGE_INPUT_FORMAT)).toEqual({ ok: true, value: '' });
+    expect(checkInputFormat('   ', TEAM_INVITATION_MESSAGE_INPUT_FORMAT)).toEqual({ ok: true, value: '', reformatted: false });
   });
 });
 
@@ -441,7 +441,7 @@ describe("the admin forms' text fields", () => {
   }
 
   it("keeps a waiver's words exactly as typed, and still refuses a blank one", () => {
-    expect(checkInputFormat('  I agree.\n', WAIVER_TEMPLATE_TEXT_INPUT_FORMAT)).toEqual({ ok: true, value: '  I agree.\n' });
+    expect(checkInputFormat('  I agree.\n', WAIVER_TEMPLATE_TEXT_INPUT_FORMAT)).toEqual({ ok: true, value: '  I agree.\n', reformatted: false });
     expect(checkInputFormat('   ', WAIVER_TEMPLATE_TEXT_INPUT_FORMAT).ok).toBe(false);
   });
 });

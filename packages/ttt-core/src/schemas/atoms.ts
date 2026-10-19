@@ -7,6 +7,8 @@ import {
   FIRESTORE_DOCUMENT_ID_MAX_BYTES,
 } from '../constants/business.js';
 import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
+import { GUILD_STANDING_IDS } from '../permissions/work-project-permissions-data.js';
+import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   type ModerationClearableSurface,
@@ -15,13 +17,20 @@ import {
 /** A stake-share offer (a commission listing, an audition): whole, positive, within the Work total. */
 export const stakeSharesOfferedSchema = z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES);
 
+// A value a caller copies or a client mints — an id, a key, a reference number — that is never
+// blank and never carries whitespace at either end. The one padding rule every id and every reviewed
+// non-segment id builds on.
+export const unpaddedValueSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value === value.trim(), { message: 'This value cannot begin or end with whitespace.' });
+
 // One Firestore document-id segment. A client string that becomes a path segment is validated as ONE
 // segment before any path is built from it: a "/" addresses a different document or a subcollection,
 // "." and ".." are not ids, and Firestore reserves the "__name__" form and caps an id at 1,500 bytes.
-// Every id atom below derives from it.
-export const documentIdSegmentSchema = z
-  .string()
-  .min(1)
+// No id the platform mints holds surrounding whitespace, so a padded or space-only id only ever
+// arrives from a caller and names nothing. Every id atom below derives from it.
+export const documentIdSegmentSchema = unpaddedValueSchema
   .refine((id) => !id.includes('/'), { message: 'An id is one path segment and cannot contain "/".' })
   .refine((id) => id !== '.' && id !== '..', { message: 'An id cannot be "." or "..".' })
   .refine((id) => !/^__.*__$/.test(id), { message: 'An id cannot use the reserved __name__ form.' })
@@ -178,3 +187,8 @@ export const storedTitleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LE
  * or a time.
  */
 export const LegalReviewNoticeAcknowledgedInputSchema = z.literal(true).nullish();
+
+/** One entry of a guild chat channel's requirement: a canonical guild standing (`GUILD_STANDINGS`) or
+ *  a canonical trade profession (`TRADE_PROFESSION_OPTIONS`) — `canAccessGuildChatChannel` admits a
+ *  member holding either — never a free string. */
+export const guildChatChannelRequirementSchema = z.enum([...GUILD_STANDING_IDS, ...TRADE_PROFESSION_OPTIONS]);

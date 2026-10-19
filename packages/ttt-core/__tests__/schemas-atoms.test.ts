@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  documentIdSegmentSchema,
   workProjectIdSchema,
   userIdSchema,
   addRemoveActionSchema,
@@ -11,6 +12,21 @@ import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business';
 import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content';
 
 describe('atom schemas', () => {
+  describe('documentIdSegmentSchema', () => {
+    it('refuses an id with whitespace at either end, so a space-only id too', () => {
+      for (const id of [' ', '  ', ' abc', 'abc ', '\tabc', 'abc\n', ' a b ']) {
+        expect(documentIdSegmentSchema.safeParse(id).success).toBe(false);
+      }
+    });
+    it('every id atom inherits the refusal', () => {
+      expect(userIdSchema.safeParse(' user-1').success).toBe(false);
+      expect(workProjectIdSchema.safeParse('proj-1 ').success).toBe(false);
+    });
+    it('still accepts a plain id', () => {
+      expect(documentIdSegmentSchema.parse('abc123XYZ')).toBe('abc123XYZ');
+    });
+  });
+
   describe('workProjectIdSchema', () => {
     it('accepts a non-empty string', () => {
       expect(workProjectIdSchema.parse('proj-123')).toBe('proj-123');

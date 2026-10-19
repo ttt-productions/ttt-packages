@@ -14,7 +14,7 @@
 //
 // The notification audit-event payload shapes live here too (the `AuditEventType`
 // union members `notification.broadcastSent` / `notification.adminArchived` /
-// `notification.adminArchiveAllRequested` are added in ../types/audit.ts; their actor
+// `notification.adminArchiveAllRequested` live in ../types/audit.ts; their actor
 // is always an admin mode — `adminReview` / `adminOverride`).
 
 import { z } from 'zod';
@@ -35,6 +35,7 @@ import {
   realmFileShareRequestIdSchema,
   documentIdSegmentSchema,
   activeNotificationIdSchema,
+  unpaddedValueSchema,
 } from './atoms.js';
 import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
@@ -359,10 +360,14 @@ export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
 ]);
 export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelectorSchema>;
 
+// A client-minted idempotency key the server hashes into a deterministic id — never a path segment,
+// but never padding either.
+const clientRequestIdSchema = unpaddedValueSchema;
+
 export const CreateNotificationBroadcastInputSchema = z.object({
   // Client-generated idempotency key — the app derives the broadcast eventId
   // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
-  requestId: z.string().min(1),
+  requestId: clientRequestIdSchema,
   selector: BroadcastAudienceSelectorSchema,
   title: textFieldSchema(BROADCAST_TITLE_INPUT),
   message: textFieldSchema(BROADCAST_MESSAGE_INPUT),
@@ -464,7 +469,7 @@ export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificatio
  * forms part of.
  */
 export const ArchiveNotificationObservedInputSchema = z.object({
-  requestId: z.string().min(1),
+  requestId: clientRequestIdSchema,
   scope: ArchiveNotificationObservedScopeSchema,
 }).strict();
 export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificationObservedInputSchema>;
@@ -491,7 +496,7 @@ export type ArchiveNotificationResult = z.infer<typeof ArchiveNotificationResult
 // No category, for the reason ArchiveNotificationObservedInputSchema gives: `enqueueArchiveAll`
 // clears the caller's `user` tab and `adminEnqueueArchiveAll` the shared `admin` tab.
 export const EnqueueArchiveAllInputSchema = z.object({
-  requestId: z.string().min(1),
+  requestId: clientRequestIdSchema,
 }).strict();
 export type EnqueueArchiveAllInput = z.infer<typeof EnqueueArchiveAllInputSchema>;
 

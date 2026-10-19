@@ -1,7 +1,7 @@
 // Every typed text field is declared once in the core's declarations module and every wire schema
 // reads it through the field-schema builder: no undeclared free-text property, no self-bounded
-// wire string, no declaration elsewhere, keep-as-typed only where reviewed, and every field trims
-// and refuses blank text when it requires text.
+// wire string, no declaration elsewhere, keep-as-typed only where reviewed, and every field trims,
+// keeps one space for each run of spaces it accepts, and refuses blank text when it requires text.
 
 import { afterAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -30,11 +30,16 @@ type Decl = { format: string; min: number; max: number; keepAsTyped?: true };
 const DECLARATIONS: Record<string, unknown> = {
   TITLE_INPUT: { format: 'plain', min: 1, max: 10 },
   NOTE_INPUT: { format: 'plain', min: 0, max: 10 },
+  CODE_INPUT: { format: 'noSpaces', min: 1, max: 10 },
   LEGAL_INPUT: { format: 'plain', min: 1, max: 10, keepAsTyped: true },
   MAX_TITLE: 10,
 };
-const fieldSchema = (d: Decl) =>
-  d.keepAsTyped ? z.string().refine((s) => s.trim().length >= d.min).pipe(z.string().max(d.max)) : z.string().trim().min(d.min).max(d.max);
+const collapsed = (d: Decl) => z.string().trim().min(d.min).max(d.max).transform((s) => s.replace(/\s+/g, ' '));
+const fieldSchema = (d: Decl) => {
+  if (d.keepAsTyped) return z.string().refine((s) => s.trim().length >= d.min).pipe(z.string().max(d.max));
+  if (d.format === 'noSpaces') return z.string().trim().min(d.min).max(d.max).regex(/^\S*$/);
+  return collapsed(d);
+};
 
 const facts = (overrides: Partial<TextFieldDeclarationFacts> = {}): TextFieldDeclarationFacts => ({
   wireFolders: [`${CORE}/schemas`],
@@ -138,8 +143,18 @@ describe('declared fields at run time', () => {
     ]);
   });
 
+  it('FLAGS a field that keeps a run of spaces it accepts', async () => {
+    const keepsRuns = (d: Decl) => (d.keepAsTyped || d.format === 'noSpaces' ? fieldSchema(d) : z.string().trim().min(d.min).max(d.max));
+    const [, , , , behave] = guards({ fieldSchema: () => keepsRuns as never });
+    expect(lines(await open({}).run(behave))).toEqual([
+      '(core) TITLE_INPUT — keeps a run of spaces instead of one space',
+      '(core) NOTE_INPUT — keeps a run of spaces instead of one space',
+    ]);
+  });
+
   it('FLAGS a required field that accepts whitespace-only text and a field that does not trim', async () => {
-    const untrimmed = (d: Decl) => (d.keepAsTyped ? fieldSchema(d) : z.string().max(d.max));
+    const untrimmed = (d: Decl) =>
+      d.keepAsTyped || d.format === 'noSpaces' ? fieldSchema(d) : z.string().max(d.max).transform((s) => s.replace(/ {2,}/g, ' '));
     const [, , , , behave] = guards({ fieldSchema: () => untrimmed as never });
     expect(lines(await open({}).run(behave))).toEqual([
       '(core) TITLE_INPUT — accepts whitespace-only text although the field requires text',

@@ -10,6 +10,7 @@ import {
   reportTargetItemIdSchema,
   reportTargetParentRefSchema,
   documentIdSegmentSchema,
+  unpaddedValueSchema,
   reportGroupIdSchema,
   hallSubItemIdSchema,
   workRealmIdSchema,
@@ -59,6 +60,7 @@ import {
   MAX_PLATFORM_RULES,
   MAX_AGREEMENT_POINTS,
 } from '../constants/business.js';
+import { USER_FACING_REASON_CODES } from '../constants/admin-labels.js';
 import {
   ACCOUNT_ACTION_REASON_INPUT,
   DISPLAY_NAME_RESET_REASON_INPUT,
@@ -149,7 +151,9 @@ export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResult
 // document, never a partial merge). The client never sends a version — the release publish
 // assigns it.
 
-const publicDocumentItemIdSchema = z.string().min(1).max(128);
+// The key of one item inside a public document's stored content (a section, a plan, a rule, a
+// contact block or row) — never a path segment, so it may hold any character, but never padding.
+const publicDocumentItemIdSchema = unpaddedValueSchema.max(128);
 const publicDocumentIntroSchema = textFieldSchema(PUBLIC_DOCUMENT_INTRO_INPUT).optional();
 const publicDocumentIntentionSchema = textFieldSchema(PUBLIC_DOCUMENT_INTENTION_INPUT).optional();
 const appliesToTypeInputFields = {
@@ -219,7 +223,7 @@ export const RulesAndAgreementsContentInputSchema = z.object({
 export type RulesAndAgreementsContentInput = z.infer<typeof RulesAndAgreementsContentInputSchema>;
 
 export const ContentPageSectionInputSchema = z.object({
-  id: z.string().min(1).max(128),
+  id: publicDocumentItemIdSchema,
   heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
   level: z.union([z.literal(1), z.literal(2)]),
   // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
@@ -248,14 +252,14 @@ export const TakeItDownPageCopyContentInputSchema = z.object({
 export type TakeItDownPageCopyContentInput = z.infer<typeof TakeItDownPageCopyContentInputSchema>;
 
 const DmcaContactRowInputSchema = z.object({
-  id: z.string().min(1).max(128),
+  id: publicDocumentItemIdSchema,
   label: textFieldSchema(DMCA_CONTACT_LABEL_INPUT),
   value: textFieldSchema(DMCA_CONTACT_VALUE_INPUT),
   order: z.number().int().min(0),
 }).strict();
 
 const DmcaContactBlockInputSchema = z.object({
-  id: z.string().min(1).max(128),
+  id: publicDocumentItemIdSchema,
   heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
   order: z.number().int().min(0),
   rows: z.array(DmcaContactRowInputSchema).min(1).max(MAX_DMCA_CONTACT_ROWS),
@@ -350,33 +354,30 @@ export const UpdateSystemUidSlotResultSchema = z.object({
 });
 export type UpdateSystemUidSlotResult = z.infer<typeof UpdateSystemUidSlotResultSchema>;
 
-const uidSchema = z.string().min(1).max(128);
-
 /**
  * Wire input for the `updateAdminList` callable in ttt-prod.
  * Used to grant or revoke admin / jrAdmin status on `_systemData/adminList`.
  *
- * All four fields are optional arrays of UIDs. At least one must be non-empty.
- * The callable's core function rejects conflicting input (e.g. same UID in
- * both addAdmins and removeAdmins) with HttpsError invalid-argument.
+ * All four fields are optional arrays of account uids. At least one must be non-empty.
+ * The callable's core function rejects conflicting input (e.g. same uid in
+ * both addAdminUids and removeAdminUids) with HttpsError invalid-argument.
  */
 export const UpdateAdminListInputSchema = z.object({
-  addAdmins: z.array(uidSchema).optional(),
-  removeAdmins: z.array(uidSchema).optional(),
-  addJrAdmins: z.array(uidSchema).optional(),
-  removeJrAdmins: z.array(uidSchema).optional(),
+  addAdminUids: z.array(userIdSchema).optional(),
+  removeAdminUids: z.array(userIdSchema).optional(),
+  addJrAdminUids: z.array(userIdSchema).optional(),
+  removeJrAdminUids: z.array(userIdSchema).optional(),
 })
   .strict()
   .refine(
     (data) =>
-      (data.addAdmins?.length ?? 0) +
-        (data.removeAdmins?.length ?? 0) +
-        (data.addJrAdmins?.length ?? 0) +
-        (data.removeJrAdmins?.length ?? 0) >
+      (data.addAdminUids?.length ?? 0) +
+        (data.removeAdminUids?.length ?? 0) +
+        (data.addJrAdminUids?.length ?? 0) +
+        (data.removeJrAdminUids?.length ?? 0) >
       0,
-    { message: 'At least one of addAdmins/removeAdmins/addJrAdmins/removeJrAdmins must be non-empty.' },
+    { message: 'At least one of addAdminUids/removeAdminUids/addJrAdminUids/removeJrAdminUids must be non-empty.' },
   );
-
 export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
 
 // Authoritative result of updateAdminList — the grant/revoke delta counts computed inside
@@ -857,7 +858,7 @@ export const NormalReportInputSchema = z
     outcome: z.enum(['founded', 'unfounded']),
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(StagedActionSchema).max(16).default([]),
-    userFacingReasonCode: z.string().trim().min(1).max(128).optional(),
+    userFacingReasonCode: z.enum(USER_FACING_REASON_CODES).optional(),
     userFacingReasonDetail: textFieldSchema(USER_FACING_REASON_DETAIL_INPUT).optional(),
     adminNote: textFieldSchema(CLOSE_OUT_ADMIN_NOTE_INPUT).optional(),
   })

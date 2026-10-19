@@ -16,6 +16,7 @@ import {
   MAX_USER_FACING_REASON_LENGTH,
   OPERATOR_STEP_UP_CODE_LENGTH,
 } from '../constants/business.js';
+import { MAX_NCMEC_REPORT_NUMBER_LENGTH, MAX_EVIDENCE_VAULT_KEY_LENGTH } from '../constants/business-admin.js';
 import {
   ADMIN_TASK_RESOLUTION_INPUT,
   NCMEC_ARTIFACT_DESCRIPTION_INPUT,
@@ -47,6 +48,7 @@ import {
   reportTargetParentRefSchema,
   reportTargetUserIdSchema,
   documentIdSegmentSchema,
+  unpaddedValueSchema,
   safetyCaseIdSchema,
   userIdSchema,
   takeItDownRequestIdSchema,
@@ -557,12 +559,19 @@ export type ListRetainedChildSafetyCasesResult = z.infer<typeof ListRetainedChil
 
 // ncmecOperatorCommands — NCMEC manual-portal completion path.
 
+/** The report number NCMEC assigns a manual-portal filing. It is stored as the filing's proof, so the
+ *  completion, the correction, and the forms that send them all hold it to this one rule. */
+export const ncmecReportNumberSchema = unpaddedValueSchema.max(MAX_NCMEC_REPORT_NUMBER_LENGTH);
+
+/** The key of an object in the restricted evidence vault — a storage path, so it may hold "/". */
+export const evidenceVaultKeySchema = unpaddedValueSchema.max(MAX_EVIDENCE_VAULT_KEY_LENGTH);
+
 export const RecordNcmecPortalReceiptArtifactInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,
     submissionId: documentIdSegmentSchema,
     /** The key of an object already in the restricted evidence vault (verified via statObject). */
-    evidenceVaultKey: z.string().min(1, 'An evidence vault object key is required.'),
+    evidenceVaultKey: evidenceVaultKeySchema,
     /** Optional operator description of what the artifact is (e.g. "NCMEC portal screenshot"). */
     description: textFieldSchema(NCMEC_ARTIFACT_DESCRIPTION_INPUT).optional(),
     /** Explicit typed confirmation. */
@@ -594,7 +603,7 @@ export const MarkNcmecPortalCompleteInputSchema = z
     /** Optional operator free-text note describing the portal confirmation. */
     proofText: textFieldSchema(NCMEC_PORTAL_PROOF_TEXT_INPUT).optional(),
     /** The NCMEC-assigned report id — REQUIRED (it IS the proof; no "filed, number pending" grace). */
-    ncmecReportId: z.string().min(1, 'The NCMEC report id is required to mark the report complete.'),
+    ncmecReportId: ncmecReportNumberSchema,
     /** Explicit typed confirmation. */
     confirmation: z.literal(NCMEC_MANUAL_PORTAL_FILED_CONFIRMATION),
   })
@@ -689,7 +698,7 @@ export type RefetchProtectedCaseContextInput = z.infer<typeof RefetchProtectedCa
 export const RecordNcmecPortalCorrectionInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,
-    ncmecReportId: z.string().min(1),
+    ncmecReportId: ncmecReportNumberSchema,
     correctionFiledAt: z.number(),
     reason: textFieldSchema(NCMEC_CORRECTION_REASON_INPUT),
     confirmation: z.literal(NCMEC_PORTAL_CORRECTION_CONFIRMATION),

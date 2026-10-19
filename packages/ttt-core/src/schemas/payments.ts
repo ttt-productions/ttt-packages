@@ -11,6 +11,7 @@ import {
   LegalReviewNoticeAcknowledgedInputSchema,
   pledgePaymentIdSchema,
   pledgeRefundRequestIdSchema,
+  unpaddedValueSchema,
 } from './atoms.js';
 
 export const CreateStripeCheckoutSessionInputSchema = z.object({
@@ -77,7 +78,7 @@ export type AdminResolvePledgeRefundRequestResult = z.infer<typeof AdminResolveP
 // The server resolves the session against the server-only provider reference and answers the pledge
 // as PledgeDisplay, or null while the webhook has not recorded it yet.
 export const GetMyPledgeByCheckoutSessionInputSchema = z.object({
-  sessionId: z.string().min(1).max(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH),
+  sessionId: unpaddedValueSchema.max(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH),
 }).strict();
 export type GetMyPledgeByCheckoutSessionInput = z.infer<typeof GetMyPledgeByCheckoutSessionInputSchema>;
 

@@ -24,8 +24,14 @@ and max, and the one check every text input and every server bound runs.
   - `min` is judged on the trimmed text: `min: 1` means the text cannot be blank, `min: 0` means it
     is optional.
   - Length is counted in UTF-16 code units — the unit a zod `.max()` and an HTML `maxLength` count.
-  - The answer carries `value`, the text the field keeps: trimmed, or exactly as typed when the
-    declaration sets `keepAsTyped`. Callers send and store `value`, never the raw text.
+  - Every judgment is made on the trimmed typed text, so a line break or a character the format
+    refuses is refused before anything else happens to it.
+  - The answer carries `value`, the text the field keeps: trimmed, and — for every format but `none`
+    — with each run of whitespace held to one space after the checks pass, so `The  Dark Woods` is
+    kept as `The Dark Woods`; or exactly as typed when the declaration sets `keepAsTyped`. Callers
+    send and store `value`, never the raw text.
+  - An accepted answer also carries `reformatted`: true when the kept value differs from the typed
+    text by more than its ends, so a form can say the text will be tidied.
   - A failure carries `issue`: `tooShort`, `tooLong`, or `invalidCharacters`.
   - `keepAsTyped` keeps surrounding whitespace in the value and judges `max` and the characters on the
     text as typed; `min` is still judged on the trimmed text, so a required field is never blank

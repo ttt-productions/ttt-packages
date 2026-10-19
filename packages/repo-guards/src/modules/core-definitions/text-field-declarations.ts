@@ -232,11 +232,12 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
         },
       },
       {
-        title: 'every declared text field trims, and a required one refuses blank text',
+        title: 'every declared text field trims, keeps one space for each run of spaces, and a required one refuses blank text',
         description:
           "Each text field's wire schema, built from its declaration, refuses whitespace-only text when the field requires " +
-          'text (min of 1 or more), and trims the text of every field that does not keep it as typed — so the form, the ' +
-          'wire, and the writer agree.',
+          'text (min of 1 or more), and trims the text of every field that does not keep it as typed; a field that accepts ' +
+          'a space between words keeps one space for a run of them — so the form, the wire, and the writer agree, and a ' +
+          'name spaced twice is never stored, searched, or reserved apart from the same name spaced once.',
         async run(context) {
           const findings: Finding[] = [];
           coreBuild(context, findings);
@@ -251,6 +252,10 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
             const sample = 'a'.repeat(Math.max(min, 1));
             const parsed = schema.safeParse(`  ${sample}  `);
             if (!parsed.success || parsed.data !== sample) findings.push({ file: `(core) ${name}`, detail: 'does not trim its text' });
+            const word = 'a'.repeat(Math.max(min - 2, 1));
+            if (!schema.safeParse(`${word} a`).success) continue;
+            const run = schema.safeParse(`${word}  a`);
+            if (!run.success || run.data !== `${word} a`) findings.push({ file: `(core) ${name}`, detail: 'keeps a run of spaces instead of one space' });
           }
           return findings;
         },

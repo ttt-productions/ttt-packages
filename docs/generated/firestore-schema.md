@@ -429,7 +429,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `workProjectId` | `string` |  |
 | `channelName` | `string` |  |
 | `description` | `string` | yes |
-| `requiredGuildStandings` | `string[]` |  |
+| `requiredGuildStandings` | `'StewardOwner' \| 'WorkProjectManager' \| 'PublicWorkProjectEditor' \| 'GuildStandingManager' \| 'StakeShareManager' \| 'InviteManager' \| 'WorkAssetAdmin' \| 'CommissionManager' \| 'AuditionManager' \| 'HallLibraryEditor' \| 'HallLibrarySubmitter' \| 'GuildChatChannelManager' \| 'Actor' \| 'Voice Actor' \| 'Singer' \| 'Musician' \| 'Dancer & Choreographer' \| 'Writer' \| 'Editor' \| 'Director' \| 'Producer' \| 'Cinematographer' \| 'Photographer' \| 'Animator' \| 'Artist' \| 'Graphic Designer' \| 'VFX Artist' \| 'Costume & Makeup Artist' \| 'Set & Prop Designer' \| 'Composer' \| 'Music Producer' \| 'Sound Designer'[]` |  |
 | `createdAt` | `number` |  |
 | `createdBy` | `string` |  |
 | `lastMessageAt` | `string` | yes |

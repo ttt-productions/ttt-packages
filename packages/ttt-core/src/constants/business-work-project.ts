@@ -18,14 +18,15 @@ export const EXISTING_REALM_STAKE_SHARES = 75;
 /** Maximum length for a workProject title. */
 export const MAX_WORK_PROJECT_TITLE_LENGTH = 150;
 
-/** Maximum length for a workProject description (DJ ruling 2026-07-13: 1000 — room for
- *  a real paragraph; browse cards render a truncated excerpt with click-to-expand). */
+/** Maximum length for a workProject description — room for a real paragraph; browse cards
+ *  render a truncated excerpt with click-to-expand. */
 export const MAX_WORK_PROJECT_DESCRIPTION_LENGTH = 1000;
 
 // --- Work Realm titles & descriptions ---
 // Aliases of the workProject pair — realms share the platform title/description limits.
-// NOTE: a realm working title doubles as the `reservedRealmNames/{UPPER(title)}` doc ID,
-// so realmWorkingTitleSchema layers doc-ID character rules on top of this length.
+// A realm working title doubles as its `reservedRealmNames` document id. realmWorkingTitleSchema
+// adds no document-id rules of its own: the englishNormal characters its declaration allows keep
+// the reservation key one segment.
 
 export const MAX_WORK_REALM_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 export const MAX_WORK_REALM_DESCRIPTION_LENGTH = MAX_WORK_PROJECT_DESCRIPTION_LENGTH;
@@ -91,7 +92,7 @@ export const MAX_CHAPTERS = ACTIVE_LIMITS.workProject.maxChapters;
 export const MAX_CHAPTER_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 
 /** Maximum length for chapter body content. Mode-varied (charter 30k / full 100k) —
- *  the ONE mode-varied text limit (DJ 2026-07-13); the flip raises it automatically. */
+ *  the ONE mode-varied text limit; the flip raises it automatically. */
 export const MAX_CHAPTER_CONTENT_LENGTH = ACTIVE_LIMITS.workProject.maxChapterContentLength;
 
 /** Chapter-body EXCERPT length for preview rows (hall reading view chapter list). */

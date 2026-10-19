@@ -1,5 +1,6 @@
 // Every id a client sends is one document-id segment: each id atom, and each id-named field of a wire
-// contract, refuses an empty id, a "/", "." / "..", and the reserved __name__ form.
+// contract, refuses an empty id, a "/", "." / "..", and the reserved __name__ form; and every
+// id-named field a client sends, reviewed or not, refuses a space-only or space-padded value.
 
 import { afterAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -9,8 +10,9 @@ import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 import { CORE, fixture, lines } from './fixture.js';
 
-const segmentId = z.string().min(1).regex(/^(?!\.\.?$)(?!__.*__$)[^/]+$/);
-const parentRef = z.string().regex(/^[^/]+(\/[^/]+)?$/);
+const unpadded = z.string().min(1).refine((s) => s === s.trim());
+const segmentId = unpadded.regex(/^(?!\.\.?$)(?!__.*__$)[^/]+$/);
+const parentRef = unpadded.regex(/^[^/]+(\/[^/]+)?$/);
 
 const cleanModules = {
   schemas: {
@@ -24,7 +26,8 @@ const cleanModules = {
       items: z.array(z.object({ itemId: segmentId })).optional(),
     }),
     SignedApplyRequestSchema: z.object({ id: z.string() }),
-    ImportInputSchema: z.object({ requestId: z.string() }),
+    ImportInputSchema: z.object({ requestId: unpadded }),
+    ShareInputSchema: z.object({ uids: z.array(segmentId), ids: z.array(segmentId) }),
   },
   media: {
     AttachTargetInfoSchema: z.object({ ownerUid: segmentId }),
@@ -46,7 +49,7 @@ const facts = (modules: Record<string, Record<string, unknown>>, overrides: Part
 const f = fixture({ [`${CORE}/kinds.js`]: 'export const KIND = 1;' });
 afterAll(() => f.repo.remove());
 
-const run = async (index: 0 | 1, modules: Record<string, Record<string, unknown>>, overrides?: Partial<DocumentIdSegmentFacts>) =>
+const run = async (index: 0 | 1 | 2, modules: Record<string, Record<string, unknown>>, overrides?: Partial<DocumentIdSegmentFacts>) =>
   lines(await f.run(documentIdSegmentGuard.build(facts(modules, overrides))[index]));
 
 describe('id atoms', () => {
@@ -124,6 +127,47 @@ describe('id fields of wire contracts', () => {
     } finally {
       repo.remove();
     }
+  });
+});
+
+describe('id fields refuse padding', () => {
+  it('passes fields that refuse a space-only or padded value, the reviewed ones included', async () => {
+    expect(await run(2, cleanModules)).toEqual([]);
+  });
+
+  it('FLAGS a padded-accepting id field, a reviewed non-segment one, a multi-segment one, and lowercase plural ids / uids', async () => {
+    const padded = z.string().min(1).regex(/^[^/]+$/);
+    const modules = {
+      schemas: {
+        ...cleanModules.schemas,
+        parentRefSchema: z.string().regex(/^[^/]+(\/[^/]+)?$/),
+        DoThingInputSchema: z.object({ thingId: padded, parentItemId: z.string().regex(/^[^/]+(\/[^/]+)?$/) }),
+        ImportInputSchema: z.object({ requestId: z.string().min(1) }),
+        ShareInputSchema: z.object({ uids: z.array(padded), ids: z.array(padded) }),
+      },
+    };
+    expect(await run(2, modules)).toEqual([
+      '(core) DoThingInputSchema.parentItemId — admits a space-only or space-padded value',
+      '(core) DoThingInputSchema.thingId — admits a space-only or space-padded value',
+      '(core) ImportInputSchema.requestId — admits a space-only or space-padded value',
+      '(core) ShareInputSchema.ids — admits a space-only or space-padded value',
+      '(core) ShareInputSchema.uids — admits a space-only or space-padded value',
+    ]);
+  });
+});
+
+describe('an admin-list field named for the uids it holds', () => {
+  const weakUid = z.string().min(1).max(128);
+  const asNamed = (field: string) => ({ schemas: { ...cleanModules.schemas, UpdateAdminListInputSchema: z.object({ [field]: z.array(weakUid).optional() }) } });
+
+  it('is invisible to both probes while its name does not say it holds uids', async () => {
+    expect(await run(1, asNamed('addAdmins'))).toEqual([]);
+    expect(await run(2, asNamed('addAdmins'))).toEqual([]);
+  });
+
+  it('FLAGS a weak uid copy once the field is named for its uids', async () => {
+    expect(await run(1, asNamed('addAdminUids'))).toEqual(['(core) UpdateAdminListInputSchema.addAdminUids — admits a value that is not one document-id segment']);
+    expect(await run(2, asNamed('addAdminUids'))).toEqual(['(core) UpdateAdminListInputSchema.addAdminUids — admits a space-only or space-padded value']);
   });
 });
 

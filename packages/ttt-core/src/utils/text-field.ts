@@ -36,6 +36,12 @@ export function textFieldRefusal(declaration: TextFieldDeclaration, issue: Input
   return `${label} ${rule}`;
 }
 
+/** The sentence shown while a field's text holds a run of spaces the check keeps as one — never a
+ *  refusal: the text is accepted, and leaving the box tidies it. */
+export function textFieldReformatNotice(declaration: TextFieldDeclaration): string {
+  return `${declaration.label} will be saved with one space between words.`;
+}
+
 export type TextFieldResult =
   | { readonly ok: true; readonly value: string }
   | { readonly ok: false; readonly reason: string };

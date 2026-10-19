@@ -45,7 +45,7 @@ export type HallContentTextFieldsValidation<S extends HallContentTextFieldSurfac
 /**
  * The ONE strict per-surface check for a proposed hall-content text map: every key must be a
  * field that surface owns, and every value must meet that field's change-request declaration
- * (`HALL_CONTENT_CHANGE_REQUEST_INPUTS` — trimmed, never empty, within its max, in its format). The
+ * (`HALL_CONTENT_CHANGE_REQUEST_INPUTS` — never empty once trimmed, within its max, in its format). The
  * stored `hallContentChangeRequests` shape is a flat field map with the request's own `surface`
  * as the single authoritative discriminator, so this is where the allowlist is enforced — at the
  * backend boundary, before the map is persisted or written onto a published doc.
@@ -53,7 +53,7 @@ export type HallContentTextFieldsValidation<S extends HallContentTextFieldSurfac
  * The allowlist comes from the canonical Hall text-field map and each rule from the field's
  * declaration; there is no second allowlist anywhere.
  *
- * @returns the normalized (trimmed) field map, or the user-facing reason it was rejected.
+ * @returns the field map holding each field's kept value, or the user-facing reason it was rejected.
  */
 export function validateHallContentTextFields<S extends HallContentTextFieldSurface>(
   surface: S,

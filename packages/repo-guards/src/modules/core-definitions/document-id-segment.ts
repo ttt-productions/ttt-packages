@@ -1,7 +1,9 @@
 // Document-id segments: an id a client sends becomes a Firestore path segment, so every id the
 // core's wire contracts accept must be exactly one segment. A "/" addresses another document or a
 // subcollection, an empty id addresses the collection, and "." / ".." / the reserved `__name__`
-// form are not document ids. The guard probes the core's own schemas, loaded by the app.
+// form are not document ids. No id the platform mints is space-padded, so every id-named field a
+// client sends — a reviewed non-segment one included — also refuses a space-only or padded value.
+// The guard probes the core's own schemas, loaded by the app.
 
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
@@ -29,8 +31,9 @@ export interface DocumentIdSegmentFacts {
 }
 
 export const NOT_ONE_SEGMENT: readonly string[] = Object.freeze(['', 'a/b', '/a', 'a/', '.', '..', '__reserved__']);
+export const PADDED: readonly string[] = Object.freeze([' ', '  ', ' a', 'a ', '\ta', 'a\t', '\na', 'a\n']);
 const PLAIN_ID = 'abc123XYZ';
-const ID_FIELD_NAME = /^(id|uid)$|(Id|Ids|Uid|Uids)$/;
+const ID_FIELD_NAME = /^(id|uid|ids|uids)$|(Id|Ids|Uid|Uids)$/;
 const WRAPPERS = new Set(['optional', 'nullable', 'default', 'prefault', 'readonly', 'catch', 'nonoptional']);
 
 type Def = { type: string } & Record<string, unknown>;
@@ -51,12 +54,13 @@ function leafOf(schema: unknown): unknown {
   return current;
 }
 
-/** Every id-named field under `root` that admits a value which is not one segment. */
-export function nonSegmentIdFields(
+/** Every id-named field under `root` whose leaf admits one of `values`, skipping leaves in `skip`. */
+function idFieldsAdmitting(
   root: unknown,
   rootName: string,
   exportedNames: ReadonlyMap<unknown, string>,
-  multiSegment: ReadonlySet<unknown>,
+  values: readonly string[],
+  skip: ReadonlySet<unknown>,
 ): string[] {
   const found = new Set<string>();
   const visiting = new Set<unknown>();
@@ -69,8 +73,8 @@ export function nonSegmentIdFields(
       for (const [key, field] of Object.entries(def.shape as Record<string, unknown>)) {
         const fieldPath = `${at}.${key}`;
         const leaf = leafOf(field);
-        if (ID_FIELD_NAME.test(key) && !multiSegment.has(leaf) && isParseable(leaf)) {
-          if (NOT_ONE_SEGMENT.some((value) => leaf.safeParse(value).success)) found.add(fieldPath);
+        if (ID_FIELD_NAME.test(key) && !skip.has(leaf) && isParseable(leaf)) {
+          if (values.some((value) => leaf.safeParse(value).success)) found.add(fieldPath);
         }
         visit(field, fieldPath);
       }
@@ -86,6 +90,21 @@ export function nonSegmentIdFields(
   };
   visit(root, rootName);
   return [...found];
+}
+
+/** Every id-named field under `root` that admits a value which is not one segment. */
+export function nonSegmentIdFields(
+  root: unknown,
+  rootName: string,
+  exportedNames: ReadonlyMap<unknown, string>,
+  multiSegment: ReadonlySet<unknown>,
+): string[] {
+  return idFieldsAdmitting(root, rootName, exportedNames, NOT_ONE_SEGMENT, multiSegment);
+}
+
+/** Every id-named field under `root` that admits a space-only or space-padded value. */
+export function paddedIdFields(root: unknown, rootName: string, exportedNames: ReadonlyMap<unknown, string>): string[] {
+  return idFieldsAdmitting(root, rootName, exportedNames, PADDED, new Set());
 }
 
 const entry = (name: string) => `(core) ${name}`;
@@ -183,6 +202,27 @@ export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFac
           for (const field of reviewed) {
             if (!offenders.has(field)) findings.push({ file: entry(field), detail: 'stale reviewed entry: the field is gone or now one segment' });
           }
+          return findings;
+        },
+      },
+      {
+        title: 'no id field a client sends admits a space-only or space-padded value',
+        description:
+          'An id-named field (id, uid, ids, uids, or ending Id / Ids / Uid / Uids) in any wire contract a client sends ' +
+          'refuses a space-only value and a value with whitespace at either end — every field, with no reviewed exemption, ' +
+          'since no id the platform mints holds either. Build the field on an id atom, or give a field that is not a ' +
+          'document id its own rule that refuses padding.',
+        async run(context) {
+          const findings: Finding[] = [];
+          coreBuild(context, findings);
+          const { exported, names } = await exportsOf(facts);
+          const excluded = new Set(facts.notClientSent.map((e) => e.schema));
+          const offenders = new Set<string>();
+          for (const [name, schema] of exported) {
+            if (!isWireInput(name) || excluded.has(name)) continue;
+            for (const field of paddedIdFields(schema, name, names)) offenders.add(field);
+          }
+          for (const field of [...offenders].sort()) findings.push({ file: entry(field), detail: 'admits a space-only or space-padded value' });
           return findings;
         },
       },

@@ -184,23 +184,23 @@ describe('_appConfig/app text levers — one cap for the doc and its update inpu
 });
 
 describe('UpdateAdminListInputSchema', () => {
-  it('accepts a single addAdmins entry', () => {
-    const parsed = UpdateAdminListInputSchema.parse({ addAdmins: ['uid-1'] });
-    expect(parsed.addAdmins).toEqual(['uid-1']);
+  it('accepts a single addAdminUids entry', () => {
+    const parsed = UpdateAdminListInputSchema.parse({ addAdminUids: ['uid-1'] });
+    expect(parsed.addAdminUids).toEqual(['uid-1']);
   });
 
   it('accepts all four fields together', () => {
     const parsed = UpdateAdminListInputSchema.parse({
-      addAdmins: ['a1'],
-      removeAdmins: ['a2'],
-      addJrAdmins: ['j1'],
-      removeJrAdmins: ['j2'],
+      addAdminUids: ['a1'],
+      removeAdminUids: ['a2'],
+      addJrAdminUids: ['j1'],
+      removeJrAdminUids: ['j2'],
     });
     expect(parsed).toEqual({
-      addAdmins: ['a1'],
-      removeAdmins: ['a2'],
-      addJrAdmins: ['j1'],
-      removeJrAdmins: ['j2'],
+      addAdminUids: ['a1'],
+      removeAdminUids: ['a2'],
+      addJrAdminUids: ['j1'],
+      removeJrAdminUids: ['j2'],
     });
   });
 
@@ -208,27 +208,26 @@ describe('UpdateAdminListInputSchema', () => {
     expect(() => UpdateAdminListInputSchema.parse({})).toThrow();
     expect(() =>
       UpdateAdminListInputSchema.parse({
-        addAdmins: [],
-        removeAdmins: [],
-        addJrAdmins: [],
-        removeJrAdmins: [],
+        addAdminUids: [],
+        removeAdminUids: [],
+        addJrAdminUids: [],
+        removeJrAdminUids: [],
       }),
     ).toThrow();
   });
 
   it('rejects unknown fields (strict)', () => {
     expect(() =>
-      UpdateAdminListInputSchema.parse({ addAdmins: ['uid-1'], extra: 'nope' } as unknown),
+      UpdateAdminListInputSchema.parse({ addAdminUids: ['uid-1'], extra: 'nope' } as unknown),
     ).toThrow();
   });
 
-  it('rejects an empty-string UID', () => {
-    expect(() => UpdateAdminListInputSchema.parse({ addAdmins: [''] })).toThrow();
-  });
-
-  it('rejects an over-length UID (>128 chars)', () => {
-    const longUid = 'a'.repeat(129);
-    expect(() => UpdateAdminListInputSchema.parse({ addAdmins: [longUid] })).toThrow();
+  it('takes only a real account uid in every list: never blank, a non-segment, or padded', () => {
+    for (const field of ['addAdminUids', 'removeAdminUids', 'addJrAdminUids', 'removeJrAdminUids']) {
+      for (const uid of ['', 'a/b', '.', '..', ' ', ' uid-1', 'uid-1 ']) {
+        expect(UpdateAdminListInputSchema.safeParse({ [field]: [uid] }).success).toBe(false);
+      }
+    }
   });
 });
 

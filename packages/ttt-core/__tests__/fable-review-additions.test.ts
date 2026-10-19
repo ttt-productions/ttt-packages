@@ -137,6 +137,11 @@ describe('GuildChatChannel delete marker', () => {
   it('isDeleted is an optional boolean, coherent alongside isArchived', () => {
     expect(GuildChatChannelSchema.safeParse(valid).success).toBe(true); // absent OK
     expect(GuildChatChannelSchema.safeParse({ ...valid, isDeleted: true }).success).toBe(true);
+  });
+
+  it('stores canonical standings and trade professions only', () => {
+    expect(GuildChatChannelSchema.safeParse({ ...valid, requiredGuildStandings: ['HallLibraryEditor', 'Actor'] }).success).toBe(true);
+    expect(GuildChatChannelSchema.safeParse({ ...valid, requiredGuildStandings: ['Wizard'] }).success).toBe(false);
     expect(GuildChatChannelSchema.safeParse({ ...valid, isDeleted: 'yes' }).success).toBe(false);
   });
 });

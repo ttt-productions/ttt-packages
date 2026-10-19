@@ -22,7 +22,7 @@ const answers: Array<[name: string, schema: ZodTypeAny, answer: Record<string, u
   ['setMyDisplayName', schemas.SetMyDisplayNameResultSchema, ok],
   ['setUserStatus', schemas.SetUserStatusResultSchema, { ...ok, message: 'User suspended.', auditEventId: 'a1' }],
   ['forceDisplayNameReset', schemas.ForceDisplayNameResetResultSchema, { ...ok, auditEventId: 'a1' }],
-  ['closeAccountUnder13', schemas.CloseAccountUnder13ResultSchema, ok],
+  ['closeAccountUnder13', schemas.CloseAccountUnder13ResultSchema, { success: true, outcome: 'parked' }],
   ['updateSiteTourPreference', schemas.UpdateSiteTourPreferenceResultSchema, ok],
   ['upgradeAccountToAdult', schemas.UpgradeAccountToAdultResultSchema, { ...ok, alreadyAdult: false }],
   ['createFileFolder', schemas.CreateFileFolderResultSchema, { ...ok, folderId: 'f1' }],

@@ -91,12 +91,9 @@ export type ClearableTextFieldLabelOverrides = {
 };
 
 /**
- * A Realm's identity field is called **Name** on every Realm surface (DJ ruling 2026-07-29,
- * settling a four-surface Name/Title conflict: the creation flow said "Realm Name", the inline
- * edit form "Working Title", the moderation-cleared banner "Title", and the request-update
- * dialog "Name"). The `workingTitle` doc field is shared with the Work shell, where it IS a
- * Title — so the difference is per-surface, not per-field, and lives here rather than flattening
- * one of the two settled terms.
+ * A Realm's identity field is called **Name** on every Realm surface. The `workingTitle` doc
+ * field is shared with the Work shell, where it IS a Title — so the difference is per-surface, not
+ * per-field, and lives here rather than flattening one of the two settled terms.
  */
 export const CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES = {
   workRealm: { workingTitle: 'Name' },
@@ -182,7 +179,7 @@ export interface UserFacingReasonOption {
  * enumeration, so every client (web, phone, TV, admin app) renders the same options + labels by
  * importing from here. Final user-/legal-facing wording is subject to lawyer review; these are
  * functional defaults. */
-export const USER_FACING_REASON_OPTIONS: readonly UserFacingReasonOption[] = [
+export const USER_FACING_REASON_OPTIONS = [
   { code: 'harassment', label: 'Harassment or bullying', description: 'Targeted abuse, threats, or sustained harassment of a person.' },
   { code: 'hate', label: 'Hate speech', description: 'Attacks on people based on a protected characteristic.' },
   { code: 'adult-content', label: 'Explicit / adult content', description: 'Sexual or graphic content not allowed on the platform.' },
@@ -193,7 +190,16 @@ export const USER_FACING_REASON_OPTIONS: readonly UserFacingReasonOption[] = [
   { code: 'nonconsensual', label: 'Nonconsensual intimate imagery', description: 'Intimate or sexual imagery shared without the subject’s consent.' },
   { code: 'safety', label: 'Safety violation', description: 'A serious safety violation handled under our safety policies.' },
   { code: 'other', label: 'Other (explain)', description: 'A policy violation not covered above — describe it in the detail box.' },
-] as const;
+] as const satisfies readonly UserFacingReasonOption[];
+
+/** One user-facing reason code — the codes the picklist owns, never a free string. */
+export type UserFacingReasonCode = (typeof USER_FACING_REASON_OPTIONS)[number]['code'];
+
+/** Every user-facing reason code, in picklist order. */
+export const USER_FACING_REASON_CODES = USER_FACING_REASON_OPTIONS.map((o) => o.code) as [
+  UserFacingReasonCode,
+  ...UserFacingReasonCode[],
+];
 
 /** The user-facing label for a reason code (undefined when the code is unknown/absent). */
 export function userFacingReasonLabel(code: string | undefined): string | undefined {

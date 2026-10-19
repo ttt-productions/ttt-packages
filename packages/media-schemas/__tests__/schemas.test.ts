@@ -3,6 +3,7 @@ import {
   MediaCropSpecSchema,
   parseMediaProcessingSpec,
   parseMediaProcessingResult,
+  ClientContextSchema,
 } from '../src/schemas';
 
 describe('MediaCropSpecSchema', () => {
@@ -145,5 +146,14 @@ describe('parseMediaProcessingResult', () => {
 
   it('rejects unknown fields', () => {
     expect(() => parseMediaProcessingResult({ ...validResult, extra: 'nope' })).toThrow();
+  });
+});
+
+describe('ClientContextSchema target ids', () => {
+  it('refuses a blank, space-only, or space-padded target id and accepts a plain one', () => {
+    for (const id of ['', ' ', ' abc', 'abc ', '\tabc', 'abc\n']) {
+      expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: [id] }).success).toBe(false);
+    }
+    expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: ['abc'] }).success).toBe(true);
   });
 });

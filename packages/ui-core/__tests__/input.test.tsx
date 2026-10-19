@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { Input } from '../src/react/components/input';
@@ -155,5 +155,54 @@ describe('a text box that is not free text takes no input format', () => {
       </>
     );
     expect(compileOnly).toBeTypeOf('function');
+  });
+});
+
+describe('a free-text Input tidies its text when focus leaves it', () => {
+  function Controlled({ initial, onBlur, readOnly }: { initial: string; onBlur?: () => void; readOnly?: boolean }) {
+    const [value, setValue] = React.useState(initial);
+    return (
+      <>
+        <Input inputFormat={TITLE} value={value} onChange={(e) => setValue(e.target.value)} onBlur={onBlur} readOnly={readOnly} />
+        <output data-testid="parent-value">{value}</output>
+      </>
+    );
+  }
+
+  it("delivers the check's kept value through the parent's own onChange", () => {
+    render(<Controlled initial="  The  Dark   Woods " />);
+    const box = screen.getByRole('textbox');
+    fireEvent.focus(box);
+    fireEvent.blur(box);
+    expect(box).toHaveValue('The Dark Woods');
+    expect(screen.getByTestId('parent-value')).toHaveTextContent(/^The Dark Woods$/);
+  });
+
+  it("chains the caller's own onBlur instead of replacing it", () => {
+    const onBlur = vi.fn();
+    render(<Controlled initial="The  Woods" onBlur={onBlur} />);
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('textbox')).toHaveValue('The Woods');
+  });
+
+  it('changes nothing while typing', () => {
+    render(<Controlled initial="" />);
+    const box = screen.getByRole('textbox');
+    fireEvent.change(box, { target: { value: 'The  Woods ' } });
+    expect(box).toHaveValue('The  Woods ');
+  });
+
+  it('never tidies a read-only box', () => {
+    render(<Controlled initial="The  Woods" readOnly />);
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(screen.getByRole('textbox')).toHaveValue('The  Woods');
+  });
+
+  it('leaves a box with no input format as typed', () => {
+    render(<Input textEntry="identifier" aria-label="Case id" defaultValue=" a  b " />);
+    const box = screen.getByRole('textbox', { name: 'Case id' });
+    fireEvent.blur(box);
+    expect(box).toHaveValue(' a  b ');
   });
 });

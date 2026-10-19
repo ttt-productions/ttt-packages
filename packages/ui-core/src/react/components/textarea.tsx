@@ -3,7 +3,7 @@
 import * as React from "react"
 import type { DeclaredInputFormat } from "@ttt-productions/input-format-core"
 import { cn } from "../../lib/utils.js"
-import { formatControlAttributes } from "./format-control.js"
+import { formatControlAttributes, tidyOnBlur } from "./format-control.js"
 
 type NativeTextareaProps = React.ComponentPropsWithoutRef<"textarea">
 
@@ -34,7 +34,7 @@ export type TextareaProps = FreeTextTextareaProps | NonFreeTextTextareaProps
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   // `textEntry` only selects the prop shape; it never reaches the DOM.
-  ({ className, inputFormat, textEntry: _textEntry, ...props }, ref) => {
+  ({ className, inputFormat, textEntry: _textEntry, onBlur, ...props }, ref) => {
     return (
       <textarea
         className={cn(
@@ -44,6 +44,10 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         ref={ref}
         {...props}
         {...(inputFormat ? formatControlAttributes(inputFormat, props) : {})}
+        onBlur={(event) => {
+          if (inputFormat) tidyOnBlur(event.currentTarget, inputFormat)
+          onBlur?.(event)
+        }}
       />
     )
   }
