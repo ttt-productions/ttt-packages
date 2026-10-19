@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { Toast, ToastProvider, ToastViewport, ToastTitle } from '../src/react/components/toast';
+import { Toast, ToastProvider, ToastViewport, ToastTitle } from '../src/react/components/toast.js';
 
 // A solid status fill carries ITS OWN status foreground, and no other text colour at rest:
 // each toast variant reads its fill, text, and edge from one --toast-<family> set.

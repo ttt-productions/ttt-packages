@@ -6,9 +6,9 @@ import {
   WORK_REALM_SUBCOLLECTIONS,
   HALL_ITEM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
-} from '../src/paths/collections';
-import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
-import { STATUS_RECONCILE_QUEUE_AUTH_EFFECTS } from '../src/doc-schemas/operational';
+} from '../src/paths/collections.js';
+import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry.js';
+import { STATUS_RECONCILE_QUEUE_AUTH_EFFECTS } from '../src/doc-schemas/operational.js';
 
 const allCollectionNames = [
   ...Object.values(COLLECTIONS),

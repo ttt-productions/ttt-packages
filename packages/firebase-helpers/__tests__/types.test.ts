@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSerializedTimestamp, hasToDateMethod } from '../src/firestore/types';
+import { isSerializedTimestamp, hasToDateMethod } from '../src/firestore/types.js';
 
 describe('isSerializedTimestamp', () => {
   it('returns true for a valid SerializedTimestamp', () => {

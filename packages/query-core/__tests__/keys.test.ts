@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { keys, createKeyScope } from '../src/keys';
+import { keys, createKeyScope } from '../src/keys.js';
 
 describe('keys.user', () => {
   it('all returns ["user"]', () => {

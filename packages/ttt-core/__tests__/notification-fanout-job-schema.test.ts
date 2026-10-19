@@ -3,8 +3,8 @@ import {
   NotificationFanoutJobSchema,
   NotificationFanoutPhaseSchema,
   NotificationFanoutPhaseSelectorSchema,
-} from '../src/doc-schemas/notification-ledger';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/notification-ledger.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
 // A fanout job drains each phase's selector into recipients. A malformed selector, cursor, or
 // phase must be refused where the row is written and read, never drained to zero recipients.

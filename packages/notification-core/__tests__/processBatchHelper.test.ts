@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { processBatchHelper } from '../src/server/processBatchHelper';
-import { buildActiveNotificationDocId } from '../src/server/activeNotificationId';
-import type { NotificationSystemConfig, PendingNotification } from '../src/types';
-import type { ServerFirestore, ServerTransaction } from '../src/server/types';
+import { processBatchHelper } from '../src/server/processBatchHelper.js';
+import { buildActiveNotificationDocId } from '../src/server/activeNotificationId.js';
+import type { NotificationSystemConfig, PendingNotification } from '../src/types.js';
+import type { ServerFirestore, ServerTransaction } from '../src/server/types.js';
 
 // ---- Config ----
 

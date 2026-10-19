@@ -4,8 +4,8 @@
 // SITE_TOUR_CURRENT_VERSION cross-boundary constant.
 
 import { describe, it, expect } from 'vitest';
-import { UserSiteTourStateSchema, UserPrivateDataSchema } from '../src/doc-schemas/user';
-import { SITE_TOUR_CURRENT_VERSION } from '../src/constants/business-user';
+import { UserSiteTourStateSchema, UserPrivateDataSchema } from '../src/doc-schemas/user.js';
+import { SITE_TOUR_CURRENT_VERSION } from '../src/constants/business-user.js';
 
 // A minimal-but-valid privateData body (the age cluster fields are required on the
 // canonical schema); siteTour is layered on top per-case.

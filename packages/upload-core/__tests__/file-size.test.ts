@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFileSize } from '../src/utils/file-size';
+import { getFileSize } from '../src/utils/file-size.js';
 
 describe('getFileSize', () => {
   it('returns size from a Blob-like object', () => {

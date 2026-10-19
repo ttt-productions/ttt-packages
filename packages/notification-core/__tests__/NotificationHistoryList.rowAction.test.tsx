@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { withRetryState } from './read-retry-state';
+import { withRetryState } from './read-retry-state.js';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
@@ -10,8 +10,8 @@ vi.mock('../src/react/hooks/useNotificationHistory.js', () => ({
   useNotificationHistory: (...args: unknown[]) => withRetryState(mocks.useNotificationHistory(...args)),
 }));
 
-import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList';
-import type { NotificationHistoryItem, NotificationRowActions, NotificationSystemConfig } from '../src/types';
+import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList.js';
+import type { NotificationHistoryItem, NotificationRowActions, NotificationSystemConfig } from '../src/types.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {

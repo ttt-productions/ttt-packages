@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ReportGroupV1Schema } from '../src/doc-schemas/safety/report';
+import { ReportGroupV1Schema } from '../src/doc-schemas/safety/report.js';
 
 const resolvedGroup = {
   schemaVersion: 1,

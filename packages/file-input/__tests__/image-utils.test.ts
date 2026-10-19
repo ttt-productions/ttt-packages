@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { getCroppedImg } from '../src/lib/image-utils';
+import { getCroppedImg } from '../src/lib/image-utils.js';
 
 function stubImage(width: number, height: number, shouldError = false) {
   class FakeImage {

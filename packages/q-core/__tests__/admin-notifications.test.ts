@@ -10,10 +10,10 @@ import {
   NotificationArchiveAllJobSchema,
   NotificationDeliverySchema,
   isAdminNotificationMetadata,
-} from '../src/doc-schemas/admin-notifications';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
-import { buildLeagueFreeAgentId } from '../src/ids/compound-ids';
+} from '../src/doc-schemas/admin-notifications.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
+import { buildLeagueFreeAgentId } from '../src/ids/compound-ids.js';
 import {
   buildAdminNotificationArchiveKey,
   buildAdminNotificationHistoryId,
@@ -21,39 +21,39 @@ import {
   buildNotificationArchiveAllJobId,
   buildNotificationDeliveryId,
   parseNotificationArchiveAllJobId,
-} from '../src/ids/notification-ids';
-import { archiveAllPartialOutcomeMessage } from '../src/notifications/archive-all';
+} from '../src/ids/notification-ids.js';
+import { archiveAllPartialOutcomeMessage } from '../src/notifications/archive-all.js';
 import {
   ADMIN_NOTIFICATION_DEFINITIONS,
   NOTIFICATION_SYSTEM_CONFIG,
-} from '../src/notifications/admin-notification-config';
+} from '../src/notifications/admin-notification-config.js';
 import {
   leagueFreeAgentSignedUpNotification,
   leagueTeamCreatedNotification,
-} from '../src/notifications/occurrences';
-import { COLLECTIONS } from '../src/paths/collections';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
+} from '../src/notifications/occurrences.js';
+import { COLLECTIONS } from '../src/paths/collections.js';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
 import {
   AdminArchiveAllNotificationsInputSchema,
   AdminArchiveNotificationInputSchema,
   AdminGetNotificationArchiveAllStatusInputSchema,
   AdminGetNotificationArchiveAllStatusResultSchema,
-} from '../src/schemas/admin-notifications';
+} from '../src/schemas/admin-notifications.js';
 import {
   GetDeadLettersInputSchema,
   GetDeadLettersResultSchema,
   AdminReplayDeadLetterInputSchema,
   AdminReplayDeadLetterResultSchema,
-} from '../src/schemas/dead-letters';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/schemas/dead-letters.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   ADMIN_NOTIFICATION_CATEGORY,
   ADMIN_NOTIFICATION_TYPE_KEYS,
   NOTIFICATION_DELIVERY_PAYLOAD_VERSION,
-} from '../src/types/notifications';
-import { adminLeagueHref, leagueTeamHref, LEAGUE_FREE_AGENTS_SECTION } from '../src/utils/app-routes';
+} from '../src/types/notifications.js';
+import { adminLeagueHref, leagueTeamHref, LEAGUE_FREE_AGENTS_SECTION } from '../src/utils/app-routes.js';
 
 const NOW = 1_760_000_000_000;
 const REQUEST_ID = '2f1c0a3e-8b1d-4c6f-9a2e-5d7b3c1e9f00';

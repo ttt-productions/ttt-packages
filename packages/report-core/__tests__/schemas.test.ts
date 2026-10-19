@@ -6,7 +6,7 @@ import {
   createCheckinTaskRequestSchema,
   ReleaseTaskRequestSchema,
   createSubmitReportRequestSchema,
-} from '../src/schemas/requests';
+} from '../src/schemas/requests.js';
 
 // Stands in for the consuming app's field-schema builder over a declaration: trim, then the check.
 function textField(spec: InputFormatSpec) {

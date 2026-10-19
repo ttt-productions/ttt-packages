@@ -8,37 +8,37 @@ import {
   HARDWARE_CATALOG,
   MAX_AWARD_GRANT_TARGETS,
   MAX_AWARD_NAME_LENGTH,
-} from '../src/constants/business';
-import { MAX_STATS_VALIDATION_DISCREPANCIES } from '../src/constants/sports';
+} from '../src/constants/business.js';
+import { MAX_STATS_VALIDATION_DISCREPANCIES } from '../src/constants/sports.js';
 import {
   MEDIA_ORIGIN_SPECS,
   PICTURE_KINDS,
   isPictureOrigin,
   isSignatureOrigin,
-} from '../src/media/file-origins';
-import { AwardDefinitionSchema } from '../src/doc-schemas/catalogs';
-import { HardwareLoanContractSchema } from '../src/doc-schemas/waivers-and-hardware';
-import { PendingMediaTargetSchema } from '../src/doc-schemas/pending-media';
-import { StatsValidationReportSchema } from '../src/doc-schemas/system';
-import { UserProfileSchema } from '../src/doc-schemas/user-profile';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/media/file-origins.js';
+import { AwardDefinitionSchema } from '../src/doc-schemas/catalogs.js';
+import { HardwareLoanContractSchema } from '../src/doc-schemas/waivers-and-hardware.js';
+import { PendingMediaTargetSchema } from '../src/doc-schemas/pending-media.js';
+import { StatsValidationReportSchema } from '../src/doc-schemas/system.js';
+import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   AdminCorrectGameStatsInputSchema,
   AdminDeleteStatsValidationReportInputSchema,
   AdminDeleteStatsValidationReportResultSchema,
   RecalculateLeagueStatsInputSchema,
   RunStatsValidationInputSchema,
-} from '../src/schemas/stats';
+} from '../src/schemas/stats.js';
 import {
   AdminCreateHardwareLoanContractInputSchema,
   SubmitHardwareLoanContractSignatureInputSchema,
-} from '../src/schemas/hardware-loan-contracts';
+} from '../src/schemas/hardware-loan-contracts.js';
 import {
   AdminUpdateAwardGrantsInputSchema,
   UpdateFeaturedAwardsInputSchema,
-} from '../src/schemas/awards';
-import { newAwardNameOf, parseTargetInfo } from '../src/schemas/uploads';
+} from '../src/schemas/awards.js';
+import { newAwardNameOf, parseTargetInfo } from '../src/schemas/uploads.js';
 
 const NOW = 1712345678901;
 

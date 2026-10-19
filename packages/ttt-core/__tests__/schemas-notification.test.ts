@@ -18,8 +18,8 @@ import {
   type MarkNotificationsSeenObservedInput,
   type ArchiveNotificationObservedInput,
   validateNotificationMetadata,
-} from '../src/schemas/notification';
-import type { AuditEventType } from '../src/types/audit';
+} from '../src/schemas/notification.js';
+import type { AuditEventType } from '../src/types/audit.js';
 
 describe('NotificationType + catalog', () => {
   it('parses every canonical type and rejects any other name', () => {

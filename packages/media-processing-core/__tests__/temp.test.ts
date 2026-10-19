@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { createTempWorkspace } from '../src/workspace/temp';
+import { createTempWorkspace } from '../src/workspace/temp.js';
 import { stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';

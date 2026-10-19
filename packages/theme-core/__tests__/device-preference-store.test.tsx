@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { createDevicePreferenceStore } from '../src/react/device-preference-store';
+import { createDevicePreferenceStore } from '../src/react/device-preference-store.js';
 
 // Values held for a blocked page live for the module's life, so every test takes its own keys.
 let nextPrefix = 0;

@@ -14,16 +14,16 @@ import {
   statsOperationIdSchema,
   teamIdSchema,
   userIdSchema,
-} from '../src/doc-schemas/atoms';
-import { gameLocationIdSchema } from '../src/doc-schemas/game-location';
-import { waiverTemplateIdSchema } from '../src/doc-schemas/waiver-template';
-import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
-import { MAX_DOCUMENT_ID_BYTES, isDocumentIdSegment } from '../src/paths/utils';
+} from '../src/doc-schemas/atoms.js';
+import { gameLocationIdSchema } from '../src/doc-schemas/game-location.js';
+import { waiverTemplateIdSchema } from '../src/doc-schemas/waiver-template.js';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
+import { MAX_DOCUMENT_ID_BYTES, isDocumentIdSegment } from '../src/paths/utils.js';
 import {
   AdminDeleteSportGameInputSchema,
   AdminUpdateScheduleWeekInputSchema,
-} from '../src/schemas/schedules';
-import { teamInvitationIdSchema, teamJoinRequestIdSchema } from '../src/schemas/atoms';
+} from '../src/schemas/schedules.js';
+import { teamInvitationIdSchema, teamJoinRequestIdSchema } from '../src/schemas/atoms.js';
 
 const ID_ATOMS = {
   documentIdSegmentSchema,

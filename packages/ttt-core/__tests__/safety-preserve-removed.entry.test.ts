@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import * as schemas from '../src/schemas';
-import * as root from '../src/index';
+import * as schemas from '../src/schemas/index.js';
+import * as root from '../src/index.js';
 
 describe('preserve-as-evidence has no contract', () => {
   it('ships no preserve target or input schema — evidence is held by the case openers', () => {

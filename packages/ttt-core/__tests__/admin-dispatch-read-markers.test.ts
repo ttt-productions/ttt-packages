@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { hasUnseenAdminDispatchMessage } from '../src/doc-schemas/admin-dispatch-read-markers';
+import { hasUnseenAdminDispatchMessage } from '../src/doc-schemas/admin-dispatch-read-markers.js';
 import {
   MarkAdminDispatchReadInputSchema,
   MarkAdminDispatchReadResultSchema,
-} from '../src/schemas/utility';
+} from '../src/schemas/utility.js';
 
 describe('per-person dispatch unread', () => {
   it('is unread for a reader with no marker yet', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { log, warn, error } from '../src/utils/log';
+import { log, warn, error } from '../src/utils/log.js';
 
 describe('log utilities', () => {
   beforeEach(() => {

@@ -4,8 +4,8 @@ import {
   ERASURE_FATES_BY_COLLECTION_PATH,
   adminDispatchErasureFate,
   collectionPathsWithErasureFate,
-} from '../src/doc-schemas/erasure-fates';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/erasure-fates.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
 const fatesOf = (path: string): readonly string[] =>
   (ERASURE_FATES_BY_COLLECTION_PATH as Record<string, readonly string[]>)[path];

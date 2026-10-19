@@ -1,26 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import * as F from '../src/constants/text-fields';
+import * as F from '../src/constants/text-fields.js';
 import { CHAT_MESSAGE_TEXT_INPUT } from '@ttt-productions/chat-schemas';
-import { CreateChapterInputSchema } from '../src/schemas/hall-library';
+import { CreateChapterInputSchema } from '../src/schemas/hall-library.js';
 import {
   CreateWorkProjectInputSchema,
   InviteUserToGuildInputSchema,
   UpdatePublicWorkProjectDetailsInputSchema,
-} from '../src/schemas/work-project-management';
-import { displayNameSchema } from '../src/schemas/users';
-import { SubmitFeedbackInputSchema } from '../src/schemas/utility';
-import { CommissionPostingTargetInfoSchema, CommissionProposalTargetInfoSchema } from '../src/media/target-info';
-import { ReopenSafetyCaseInputSchema } from '../src/schemas/admin';
-import { SubmitReportInputSchema } from '../src/schemas/safety';
+} from '../src/schemas/work-project-management.js';
+import { displayNameSchema } from '../src/schemas/users.js';
+import { SubmitFeedbackInputSchema } from '../src/schemas/utility.js';
+import { CommissionPostingTargetInfoSchema, CommissionProposalTargetInfoSchema } from '../src/media/target-info.js';
+import { ReopenSafetyCaseInputSchema } from '../src/schemas/admin.js';
+import { SubmitReportInputSchema } from '../src/schemas/safety.js';
 import {
   MAX_WORK_PROJECT_STAKE_SHARES,
-} from '../src/constants/business-work-project';
+} from '../src/constants/business-work-project.js';
 import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_REPORT_COMMENT_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   MIN_SAFETY_RATIONALE_LENGTH,
-} from '../src/constants/business-admin';
+} from '../src/constants/business-admin.js';
 
 const spec = (d: { format: string; min: number; max: number }) => ({ format: d.format, min: d.min, max: d.max });
 

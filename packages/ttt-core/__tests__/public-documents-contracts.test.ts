@@ -6,11 +6,11 @@ import {
   REGISTERED_MEMBER_CLAIM,
   PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
   type PublicDocumentId,
-} from '../src/constants/public-documents';
-import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
-import { PATH_BUILDERS, publicDocumentVersionDocId } from '../src/paths/path-builders';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/constants/public-documents.js';
+import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections.js';
+import { PATH_BUILDERS, publicDocumentVersionDocId } from '../src/paths/path-builders.js';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import {
   PublicDocumentVersionSchema,
   PublicDocumentDraftSchema,
@@ -21,17 +21,17 @@ import {
   PUBLIC_DOCUMENT_PROJECTIONS,
   type PublicDocumentVersion,
   type PublicDocumentProjection,
-} from '../src/doc-schemas/public-documents';
+} from '../src/doc-schemas/public-documents.js';
 import {
   DmcaPolicyDocumentSchema,
   LegalPageDocumentSchema,
   ThresholdItemSchema,
   type LegalPageDocument,
   type RulesAndAgreements,
-} from '../src/doc-schemas/content';
-import { AppConfigSchema } from '../src/doc-schemas/system';
-import { FullUserSchema, UserPrivateDataSchema } from '../src/doc-schemas/user';
-import { PledgePaymentProviderRefSchema } from '../src/doc-schemas/payments';
+} from '../src/doc-schemas/content.js';
+import { AppConfigSchema } from '../src/doc-schemas/system.js';
+import { FullUserSchema, UserPrivateDataSchema } from '../src/doc-schemas/user.js';
+import { PledgePaymentProviderRefSchema } from '../src/doc-schemas/payments.js';
 import {
   SavePublicDocumentDraftInputSchema,
   SavePublicDocumentDraftResultSchema,
@@ -41,16 +41,16 @@ import {
   ReadPublicDocumentHistoryInputSchema,
   PublicDocumentsReleasedAuditPayloadSchema,
   PublicDocumentsAcceptedAuditPayloadSchema,
-} from '../src/schemas/public-documents';
+} from '../src/schemas/public-documents.js';
 import {
   RegisterUserInputSchema,
   RegisterUserResultSchema,
   SquareStreetzAgreementsAcceptedAuditPayloadSchema,
-} from '../src/schemas/users';
-import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents';
-import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents';
-import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
-import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library';
+} from '../src/schemas/users.js';
+import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents.js';
+import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents.js';
+import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments.js';
+import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library.js';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const RULES = SPECIAL_DOCS.RULES_AND_AGREEMENTS;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ActionRow } from '../src/react/components/action-row';
+import { ActionRow } from '../src/react/components/action-row.js';
 
 describe('ActionRow', () => {
   it("is one button named by the row's content, which runs the row's action", () => {

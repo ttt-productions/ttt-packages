@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { WORK_SECTION_PATHS_BY_TYPE } from '../src/paths/work-section-paths';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
+import { WORK_SECTION_PATHS_BY_TYPE } from '../src/paths/work-section-paths.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 
 describe('WORK_SECTION_PATHS_BY_TYPE', () => {
   it('covers every WorkProjectType — a dispatch with a hole would silently write nowhere', () => {

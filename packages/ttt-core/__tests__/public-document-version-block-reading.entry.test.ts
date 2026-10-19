@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { readPublicDocumentVersionBlock } from '../src/utils/app-config';
-import { requiredPublicDocumentAcceptanceLevelOfReading } from '../src/utils/public-documents';
-import * as utils from '../src/utils';
+import { readPublicDocumentVersionBlock } from '../src/utils/app-config.js';
+import { requiredPublicDocumentAcceptanceLevelOfReading } from '../src/utils/public-documents.js';
+import * as utils from '../src/utils/index.js';
 
 describe('readPublicDocumentVersionBlock — the one reader of the release-owned version block', () => {
   it('is exported from the utils entry', () => {

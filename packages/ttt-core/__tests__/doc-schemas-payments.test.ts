@@ -8,7 +8,7 @@ import {
   PledgeRefundRequestSchema,
   pledgeDisputeNumberForEvent,
   isPledgeDisputeTransitionLegal,
-} from '../src/doc-schemas/payments';
+} from '../src/doc-schemas/payments.js';
 
 const validPledgePayment = {
   pledgePaymentId: 'pp1',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { joinPath } from '../src/utils/paths';
+import { joinPath } from '../src/utils/paths.js';
 
 describe('joinPath', () => {
   it('joins two simple segments', () => {

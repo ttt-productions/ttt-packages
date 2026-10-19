@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { withRetryState } from './read-retry-state';
+import { withRetryState } from './read-retry-state.js';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
@@ -18,8 +18,8 @@ vi.mock('../src/react/hooks/useArchiveAllNotifications.js', () => ({
   useArchiveAllNotifications: mocks.useArchiveAllNotifications,
 }));
 
-import { NotificationList } from '../src/react/components/NotificationList';
-import type { NotificationDoc, NotificationRowActions, NotificationSystemConfig } from '../src/types';
+import { NotificationList } from '../src/react/components/NotificationList.js';
+import type { NotificationDoc, NotificationRowActions, NotificationSystemConfig } from '../src/types.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {

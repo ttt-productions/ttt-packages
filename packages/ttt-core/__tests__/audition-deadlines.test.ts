@@ -10,7 +10,7 @@ import {
   defaultAuditionCloseAt,
   earliestAuditionEntriesCloseAt,
   earliestAuditionCloseAt,
-} from '../src/constants/audition-deadlines';
+} from '../src/constants/audition-deadlines.js';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -92,7 +92,7 @@ describe('picker defaults', () => {
 
 describe('the stored audition holds its deadlines to the wire constraints', () => {
   it('refuses a non-positive or fractional deadline on the audition doc', async () => {
-    const { AuditionSchema } = await import('../src/doc-schemas/commissions');
+    const { AuditionSchema } = await import('../src/doc-schemas/commissions.js');
     const field = AuditionSchema.shape.entriesCloseAt;
     expect(field.safeParse(1_700_000_000_000).success).toBe(true);
     for (const bad of [0, -1, 1.5]) {

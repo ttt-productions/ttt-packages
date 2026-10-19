@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { adminRosterOf, adminStandingOf, holdsAdminStanding } from '../src/utils/admin-standing';
+import { adminRosterOf, adminStandingOf, holdsAdminStanding } from '../src/utils/admin-standing.js';
 
 const roster = { admins: ['a1', 'both'], jrAdmins: ['j1', 'both'] };
 

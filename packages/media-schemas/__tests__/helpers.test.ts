@@ -5,7 +5,7 @@ import {
   isVideoType,
   isAudioType,
   isSupportedMime,
-} from '../src/helpers';
+} from '../src/helpers.js';
 
 describe('getSimplifiedMediaType', () => {
   describe('with mime strings', () => {

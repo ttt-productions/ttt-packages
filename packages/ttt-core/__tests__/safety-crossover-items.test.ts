@@ -4,11 +4,11 @@ import {
   ChildSafetyCrossoverItemV1Schema,
   isCrossoverItemRegistrationDone,
   rollupCrossoverLegStatus,
-} from '../src/doc-schemas/safety/case';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { collectionPathsWithErasureFate } from '../src/doc-schemas/erasure-fates';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
+} from '../src/doc-schemas/safety/case.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { collectionPathsWithErasureFate } from '../src/doc-schemas/erasure-fates.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections.js';
 
 const ITEM_PATH = 'childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}';
 

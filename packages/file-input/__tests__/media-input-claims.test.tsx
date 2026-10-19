@@ -2,7 +2,7 @@ import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/re
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import type { MediaInputChangePayload } from '../src/types.js';
-import { MediaInput } from '../src/react/components/media-input';
+import { MediaInput } from '../src/react/components/media-input.js';
 
 vi.mock('@ttt-productions/media-viewer/react', async () =>
   import('../../media-viewer/src/react/index.js'),

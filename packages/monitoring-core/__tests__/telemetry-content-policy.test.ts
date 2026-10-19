@@ -8,7 +8,7 @@ import {
   createTelemetryContentPolicy,
   DEFAULT_SDK_CONTEXTS,
   type TelemetryContentPolicyOptions,
-} from '../src/telemetry-content-policy';
+} from '../src/telemetry-content-policy.js';
 
 const options: TelemetryContentPolicyOptions = {
   diagnosticKeys: ['uid', 'operation', 'reason', 'code', 'issues', 'remaining', 'type', 'extra', 'safe_code'],

@@ -1,18 +1,18 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { CURLING_ROUND_COUNT } from '../src/constants/sports';
-import { SPORT_GAME_STATS_SCHEMAS, SportGameSchema } from '../src/doc-schemas/sport-game';
-import { SPORT_LINE_SCHEMAS, UserLifetimeStatsSchema } from '../src/doc-schemas/aggregate-stats';
+import { CURLING_ROUND_COUNT } from '../src/constants/sports.js';
+import { SPORT_GAME_STATS_SCHEMAS, SportGameSchema } from '../src/doc-schemas/sport-game.js';
+import { SPORT_LINE_SCHEMAS, UserLifetimeStatsSchema } from '../src/doc-schemas/aggregate-stats.js';
 import {
   SPORT_ADAPTERS,
   SPORT_ADAPTER_LIST,
   UnknownSportError,
   getSportAdapter,
-} from '../src/sports/registry';
+} from '../src/sports/registry.js';
 import {
   type AnySportAdapter,
   type SportAdapter,
   type SportLine,
-} from '../src/sports/sport-adapter';
+} from '../src/sports/sport-adapter.js';
 import {
   BASKETBALL_PLAYER_STAT_KEYS,
   BASKETBALL_STAT_EVENT_TYPE_KEYS,
@@ -25,8 +25,8 @@ import {
   SPORT_ICON_KEYS,
   SPORT_KEY_BY_LEAGUE_TYPE,
   STAT_COUNTER_KEYS,
-} from '../src/types/sports';
-import { STAT_STORE_EVENT_TYPE_KEYS } from '../src/types/stats';
+} from '../src/types/sports.js';
+import { STAT_STORE_EVENT_TYPE_KEYS } from '../src/types/stats.js';
 
 const NOW = 1712345678901;
 

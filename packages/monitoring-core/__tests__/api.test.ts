@@ -7,10 +7,10 @@ import {
     setTag,
     withScope,
     addBreadcrumb,
-} from '../src/api';
-import { setMonitoringAdapter, resetMonitoringAdapter } from '../src/init';
-import type { MonitoringAdapter } from '../src/adapter';
-import type { ScopeLike } from '../src/types';
+} from '../src/api.js';
+import { setMonitoringAdapter, resetMonitoringAdapter } from '../src/init.js';
+import type { MonitoringAdapter } from '../src/adapter.js';
+import type { ScopeLike } from '../src/types.js';
 
 function makeRecordingAdapter() {
     const recordingScope: ScopeLike = {

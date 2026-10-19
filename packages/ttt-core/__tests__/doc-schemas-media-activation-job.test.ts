@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import {
   MediaActivationJobSchema,
   MediaActivationJobStatusSchema,
-} from '../src/doc-schemas/media-activation-jobs';
+} from '../src/doc-schemas/media-activation-jobs.js';
 
 /** A structural Firestore Timestamp (ttt-core validates the shape, never firebase-admin). */
 function ts(ms: number) {

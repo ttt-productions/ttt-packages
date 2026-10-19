@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { RegistrationCompletionResultV1Schema } from '../src/doc-schemas/safety/age';
-import { RegistrationCompletionOutcomeSchema } from '../src/doc-schemas/safety/foundation';
+import { RegistrationCompletionResultV1Schema } from '../src/doc-schemas/safety/age.js';
+import { RegistrationCompletionOutcomeSchema } from '../src/doc-schemas/safety/foundation.js';
 
 // The domain outcomes registration completion can end in: the age fields are written (now or by an
 // earlier run), a transient failure leaves the attestation retryable, or the attestation can never
@@ -37,7 +37,7 @@ describe('RegistrationCompletionOutcomeSchema', () => {
 
 describe('RegisterUserResultSchema', () => {
   it('answers a registration on a login the orphan cleanup claimed with registrationExpired', async () => {
-    const { RegisterUserResultSchema } = await import('../src/schemas/users');
+    const { RegisterUserResultSchema } = await import('../src/schemas/users.js');
     expect(RegisterUserResultSchema.safeParse({ status: 'registrationExpired' }).success).toBe(true);
     expect(RegisterUserResultSchema.safeParse({ status: 'registered' }).success).toBe(true);
   });

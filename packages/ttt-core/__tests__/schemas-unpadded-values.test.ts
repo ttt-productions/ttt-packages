@@ -6,8 +6,8 @@ import {
   RecordNcmecPortalReceiptArtifactInputSchema,
   ncmecReportNumberSchema,
   evidenceVaultKeySchema,
-} from '../src/schemas/safety';
-import { PublicTakeItDownLocatorSchema, nciiLocatorUrlSchema } from '../src/schemas/ncii';
+} from '../src/schemas/safety.js';
+import { PublicTakeItDownLocatorSchema, nciiLocatorUrlSchema } from '../src/schemas/ncii.js';
 import {
   FuturePlanGroupInputSchema,
   FuturePlanItemInputSchema,
@@ -15,18 +15,18 @@ import {
   AgreementPointInputSchema,
   ContentPageSectionInputSchema,
   DmcaPolicyContentInputSchema,
-} from '../src/schemas/admin';
+} from '../src/schemas/admin.js';
 import {
   CreateNotificationBroadcastInputSchema,
   EnqueueArchiveAllInputSchema,
   ArchiveNotificationObservedInputSchema,
-} from '../src/schemas/notification';
-import { GetMyPledgeByCheckoutSessionInputSchema } from '../src/schemas/payments';
+} from '../src/schemas/notification.js';
+import { GetMyPledgeByCheckoutSessionInputSchema } from '../src/schemas/payments.js';
 import {
   MAX_NCMEC_REPORT_NUMBER_LENGTH,
   MAX_EVIDENCE_VAULT_KEY_LENGTH,
   MAX_NCII_LOCATOR_URL_LENGTH,
-} from '../src/constants/business-admin';
+} from '../src/constants/business-admin.js';
 
 const PADDED = [' ', '   ', ' abc', 'abc ', '\tabc', 'abc\n'];
 

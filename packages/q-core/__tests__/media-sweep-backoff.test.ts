@@ -4,8 +4,8 @@ import {
   MEDIA_SWEEP_BACKOFF_MAX_MS,
   PICTURE_RETIREMENT_PAGE_SIZE,
   STALE_PENDING_MEDIA_PAGE_SIZE,
-} from '../src/constants/media';
-import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/scheduled-jobs';
+} from '../src/constants/media.js';
+import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/scheduled-jobs.js';
 
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * MINUTE_MS;

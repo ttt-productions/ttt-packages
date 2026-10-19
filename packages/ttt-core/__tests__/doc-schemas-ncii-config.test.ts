@@ -4,7 +4,7 @@ import {
   DEFAULT_NCII_POLICY_CONFIG_V1,
   NCII_EVIDENCE_MAX_FILE_BYTES,
   NCII_EVIDENCE_MAX_FILES_PER_REQUEST,
-} from '../src/doc-schemas/ncii/config';
+} from '../src/doc-schemas/ncii/config.js';
 
 describe('NciiPolicyConfigV1Schema (`_serverData/nciiPolicy`)', () => {
   it('accepts the frozen launch default', () => {

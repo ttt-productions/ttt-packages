@@ -10,11 +10,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { ImageViewer } from '../src/react/image-viewer';
-import { VideoViewer } from '../src/react/video-viewer';
-import { AudioViewer } from '../src/react/audio-viewer';
-import { useMediaRecovery } from '../src/react/use-media-recovery';
-import { LOAD_WATCHDOG_MS, PHASE_MAX_WAIT_MS } from '../src/recovery';
+import { ImageViewer } from '../src/react/image-viewer.js';
+import { VideoViewer } from '../src/react/video-viewer.js';
+import { AudioViewer } from '../src/react/audio-viewer.js';
+import { useMediaRecovery } from '../src/react/use-media-recovery.js';
+import { LOAD_WATCHDOG_MS, PHASE_MAX_WAIT_MS } from '../src/recovery.js';
 
 vi.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: () => {}, inView: true, entry: undefined }),

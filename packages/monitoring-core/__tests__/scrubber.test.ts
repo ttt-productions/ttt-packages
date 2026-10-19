@@ -6,7 +6,7 @@ import {
   REDACTION_PLACEHOLDER,
   DEFAULT_FORBIDDEN_PATTERNS,
   type ScrubbableEvent,
-} from '../src/scrubber';
+} from '../src/scrubber.js';
 
 // --- Synthetic FORBIDDEN canary values (all fake — never real) ---------------
 const FAKE_EVIDENCE_URL =

@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   TakeItDownIntakeBodySchema,
   SubmitInAppNciiRequestInputSchema,
-} from '../src/schemas/ncii';
+} from '../src/schemas/ncii.js';
 import {
   MAX_NCII_LOCATOR_URL_LENGTH,
   NCII_IDEMPOTENCY_KEY_MIN_LENGTH,
   NCII_IDEMPOTENCY_KEY_MAX_LENGTH,
   MAX_NCII_CONTACT_EMAIL_LENGTH,
   NCII_CONTACT_PHONE_MAX_LENGTH,
-} from '../src/constants/business-admin';
+} from '../src/constants/business-admin.js';
 
 const body = {
   idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MIN_LENGTH),

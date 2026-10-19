@@ -1,19 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project';
-import { MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH } from '../src/constants/business-content';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
+import { MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH } from '../src/constants/business-content.js';
 import {
   TASK_PRIORITY,
   TASK_PRIORITY_LABELS,
   TASK_PRIORITY_SCORE,
   TASK_PRIORITY_LEVEL_TO_SCORE,
-} from '../src/constants/business-admin';
+} from '../src/constants/business-admin.js';
 import {
   SHORT_LINK_CHARS,
   SHORT_LINK_LENGTH,
   SHORT_LINK_MAX_ATTEMPTS,
   FIRESTORE_BATCH_LIMIT,
-} from '../src/constants/business-platform';
-import * as pagination from '../src/constants/pagination';
+} from '../src/constants/business-platform.js';
+import * as pagination from '../src/constants/pagination.js';
 
 describe('TASK_PRIORITY', () => {
   it('CRITICAL is 4', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { applyCaptureContext, asFlatStringTagMap, asMonitoringLevel } from '../src/capture-context';
+import { applyCaptureContext, asFlatStringTagMap, asMonitoringLevel } from '../src/capture-context.js';
 
 function makeScope() {
     return {

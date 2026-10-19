@@ -1,7 +1,7 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { MediaInput } from '../src/react/components/media-input';
+import { MediaInput } from '../src/react/components/media-input.js';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 
 const spec: MediaOriginSpec = {

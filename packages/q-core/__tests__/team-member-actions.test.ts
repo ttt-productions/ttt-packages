@@ -3,8 +3,8 @@
 // plain players only. The team's management callables refuse what this leaves out.
 
 import { describe, expect, it } from 'vitest';
-import { TEAM_CAPTAIN_ROLE, TEAM_CO_CAPTAIN_ROLE, TEAM_PLAYER_ROLE } from '../src/types/unions';
-import { TEAM_MEMBER_ADMIN_ACTOR, teamMemberActions } from '../src/utils/team-member-actions';
+import { TEAM_CAPTAIN_ROLE, TEAM_CO_CAPTAIN_ROLE, TEAM_PLAYER_ROLE } from '../src/types/unions.js';
+import { TEAM_MEMBER_ADMIN_ACTOR, teamMemberActions } from '../src/utils/team-member-actions.js';
 
 const player = { role: TEAM_PLAYER_ROLE, isGhost: false };
 const ghost = { role: TEAM_PLAYER_ROLE, isGhost: true };

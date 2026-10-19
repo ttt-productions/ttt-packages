@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { HALL_SUB_ITEM_TYPE_BY_WORK_TYPE } from '../src/paths/collections';
-import { HallSubItemTypeSchema } from '../src/doc-schemas/content';
-import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
+import { HALL_SUB_ITEM_TYPE_BY_WORK_TYPE } from '../src/paths/collections.js';
+import { HallSubItemTypeSchema } from '../src/doc-schemas/content.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 
 describe('HALL_SUB_ITEM_TYPE_BY_WORK_TYPE', () => {
   it('covers every work type and nothing else', () => {

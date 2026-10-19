@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY,
   PLEDGE_BADGE_RECOGNITION_COPY,
-} from '../src/constants/pledge-and-bouquet-copy';
-import { BOUQUET_STAGE_1_LIVE, BOUQUET_STAGE_3_LIVE } from '../src/constants/release-flags';
+} from '../src/constants/pledge-and-bouquet-copy.js';
+import { BOUQUET_STAGE_1_LIVE, BOUQUET_STAGE_3_LIVE } from '../src/constants/release-flags.js';
 
 describe('pledge badge recognition copy', () => {
   it('is the settled wording, verbatim', () => {

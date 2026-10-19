@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn } from '../src/lib/utils';
+import { cn } from '../src/lib/utils.js';
 
 describe('cn', () => {
   it('joins two class names', () => {

@@ -7,7 +7,7 @@ import {
   HALL_ITEM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
-} from '../src/paths/collections';
+} from '../src/paths/collections.js';
 
 function allValues(obj: Record<string, string>): string[] {
   return Object.values(obj);

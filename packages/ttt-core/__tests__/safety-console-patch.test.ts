@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as safety from '../src/schemas/safety';
+import * as safety from '../src/schemas/safety.js';
 
 // The safety case console is an endless list a console action must patch in place, never reload
 // (FRONTEND-103). Its rows come from Functions-only collections the client cannot read, so every

@@ -1,21 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_Q_SPORTS_CLAIMS, parseQSportsClaims } from '../src/types/claims';
-import { SYSTEM_ROLE_KEYS, USER_STATUS_KEYS } from '../src/types/unions';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+import { DEFAULT_Q_SPORTS_CLAIMS, parseQSportsClaims } from '../src/types/claims.js';
+import { SYSTEM_ROLE_KEYS, USER_STATUS_KEYS } from '../src/types/unions.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   MAX_ADMIN_LIST_CHANGES,
   MAX_DISPLAY_NAME_LENGTH,
   MIN_DISPLAY_NAME_LENGTH,
-} from '../src/constants/business';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
-import { toReservedDisplayNameKey } from '../src/utils/display-name';
-import { isActiveAccount } from '../src/utils/account-status';
-import { AuditEventSchema } from '../src/doc-schemas/audit-event';
-import { ReservedDisplayNameSchema } from '../src/doc-schemas/reserved-display-name';
-import { UserPrivateDataSchema, UserProfileSchema } from '../src/doc-schemas/user-profile';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
-import { StatusReconcileQueueEntrySchema } from '../src/doc-schemas/status-reconcile-queue';
+} from '../src/constants/business.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
+import { toReservedDisplayNameKey } from '../src/utils/display-name.js';
+import { isActiveAccount } from '../src/utils/account-status.js';
+import { AuditEventSchema } from '../src/doc-schemas/audit-event.js';
+import { ReservedDisplayNameSchema } from '../src/doc-schemas/reserved-display-name.js';
+import { UserPrivateDataSchema, UserProfileSchema } from '../src/doc-schemas/user-profile.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
+import { StatusReconcileQueueEntrySchema } from '../src/doc-schemas/status-reconcile-queue.js';
 import {
   ADMIN_STANDING_BAN_REFUSAL_REASON,
   AdminUpdateUserStatusInputSchema,
@@ -28,7 +28,7 @@ import {
   RegisterUserResultSchema,
   UpdateAdminListInputSchema,
   UpdateDisplayNameInputSchema,
-} from '../src/schemas/users';
+} from '../src/schemas/users.js';
 
 const NOW = 1_760_000_000_000;
 

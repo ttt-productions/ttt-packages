@@ -3,10 +3,10 @@ import {
   PICTURE_ASPECT_KEYS,
   PICTURE_ASPECT_RATIOS,
   pictureAspectRatio,
-} from '../src/media/picture-aspects';
-import { createPictureUrlBuilder } from '../src/media/picture-url';
-import { PICTURE_VARIANT_KEYS } from '../src/types/unions';
-import { buildPictureObjectPath } from '../src/paths/storage-paths';
+} from '../src/media/picture-aspects.js';
+import { createPictureUrlBuilder } from '../src/media/picture-url.js';
+import { PICTURE_VARIANT_KEYS } from '../src/types/unions.js';
+import { buildPictureObjectPath } from '../src/paths/storage-paths.js';
 
 const PICTURE_ID = '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34';
 const BUCKET = 'q-sports-dev.firebasestorage.app';

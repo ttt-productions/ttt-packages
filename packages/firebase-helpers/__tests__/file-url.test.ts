@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFileNameFromUrl } from '../src/utils/file-url';
+import { getFileNameFromUrl } from '../src/utils/file-url.js';
 
 describe('getFileNameFromUrl', () => {
   it('returns empty string for empty input', () => {

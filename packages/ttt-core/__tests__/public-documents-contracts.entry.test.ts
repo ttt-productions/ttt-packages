@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import {
   REGISTERED_MEMBER_CLAIM,
   PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
-} from '../src/constants/public-documents';
-import * as constants from '../src/constants/index';
-import { ShownPublicDocumentVersionsSchema } from '../src/schemas/public-documents';
+} from '../src/constants/public-documents.js';
+import * as constants from '../src/constants/index.js';
+import { ShownPublicDocumentVersionsSchema } from '../src/schemas/public-documents.js';
 import {
   RegisterUserInputSchema,
   RegisterUserResultSchema,
   SquareStreetzAgreementsAcceptedAuditPayloadSchema,
-} from '../src/schemas/users';
-import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents';
-import * as docSchemasBarrel from '../src/doc-schemas';
-import * as schemasBarrel from '../src/schemas';
+} from '../src/schemas/users.js';
+import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents.js';
+import * as docSchemasBarrel from '../src/doc-schemas/index.js';
+import * as schemasBarrel from '../src/schemas/index.js';
 
 describe('public document identity', () => {
   it('exports the registered-member claim from the server-safe constants entry', () => {

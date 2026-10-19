@@ -12,35 +12,35 @@ import {
   SubmitHallContentChangeRequestInputSchema,
   SubmitForThresholdLibraryReviewInputSchema,
   ReviewThresholdItemInputSchema,
-} from '../src/schemas/hall-library';
+} from '../src/schemas/hall-library.js';
 import {
   HallContentTextSurfaceSchema,
   HallContentChangeRequestSchema,
   ThresholdItemSchema,
   PublishedHallItemSchema,
-} from '../src/doc-schemas/content';
-import { WorkRealmSchema } from '../src/doc-schemas/work-project';
+} from '../src/doc-schemas/content.js';
+import { WorkRealmSchema } from '../src/doc-schemas/work-project.js';
 import {
   HALL_CONTENT_TEXT_FIELDS,
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
   MODERATION_CLEARABLE_TEXT_FIELDS,
   REAL_PEOPLE_DISCLAIMER_HEADER,
   REAL_PEOPLE_DISCLAIMER_MESSAGE,
-} from '../src/constants/business-content';
-import { validateHallContentTextFields } from '../src/utils/hall-content';
+} from '../src/constants/business-content.js';
+import { validateHallContentTextFields } from '../src/utils/hall-content.js';
 import {
   CHAPTER_CONTENT_INPUT,
   CHAPTER_TITLE_INPUT,
   HALL_CONTENT_CHANGE_REQUEST_INPUTS,
   REALM_DESCRIPTION_INPUT,
   REALM_NAME_INPUT,
-} from '../src/constants/text-fields';
-import { CLEARABLE_TEXT_FIELD_LABELS } from '../src/constants/admin-labels';
-import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
+} from '../src/constants/text-fields.js';
+import { CLEARABLE_TEXT_FIELD_LABELS } from '../src/constants/admin-labels.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 import {
   MAX_WORK_REALM_TITLE_LENGTH,
   MAX_WORK_REALM_DESCRIPTION_LENGTH,
-} from '../src/constants/business-work-project';
+} from '../src/constants/business-work-project.js';
 
 describe('SubmitHallContentChangeRequestInputSchema grains', () => {
   const talePatch = { title: 'New title' };

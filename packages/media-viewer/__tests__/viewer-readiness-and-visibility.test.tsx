@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 import { Profiler } from "react";
-import { VideoViewer } from "../src/react/video-viewer";
-import { AudioViewer } from "../src/react/audio-viewer";
-import { ImageViewer } from "../src/react/image-viewer";
-import { MediaViewer } from "../src/react/media-viewer";
-import type { MediaDiagnosticAdapter, DiagnosisResult } from "../src/recovery";
+import { VideoViewer } from "../src/react/video-viewer.js";
+import { AudioViewer } from "../src/react/audio-viewer.js";
+import { ImageViewer } from "../src/react/image-viewer.js";
+import { MediaViewer } from "../src/react/media-viewer.js";
+import type { MediaDiagnosticAdapter, DiagnosisResult } from "../src/recovery.js";
 
 // Each viewer's one observer: the options it passed, so a test can report visibility
 // through the same `onChange` the real observer would call.

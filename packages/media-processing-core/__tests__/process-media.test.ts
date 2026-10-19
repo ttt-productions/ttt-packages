@@ -3,7 +3,7 @@ import type { MediaProcessingResult, MediaProcessingSpec } from '@ttt-production
 import {
   processMedia,
   defaultMediaProcessors,
-} from '../src/process-media';
+} from '../src/process-media.js';
 import { processImage } from '../src/image/image-processor.js';
 import { processVideo } from '../src/video/video-processor.js';
 import { processAudio } from '../src/audio/audio-processor.js';
@@ -11,7 +11,7 @@ import type {
   MediaProcessors,
   ProcessMediaContext,
   ProcessMediaOptions,
-} from '../src/types';
+} from '../src/types.js';
 
 const ctx: ProcessMediaContext = {
   inputPath: '/tmp/in',

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { toMillis, toDate, now, formatDate } from '../src/firestore/timestamps-universal';
+import { toMillis, toDate, now, formatDate } from '../src/firestore/timestamps-universal.js';
 
 afterEach(() => {
   vi.restoreAllMocks();

@@ -26,10 +26,10 @@ import {
   SCHEDULE_WEEK_FULL_MESSAGE,
   TEAM_FULL_MESSAGE,
   countCapReachedMessage,
-} from '../src/constants/business';
-import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location';
-import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
+} from '../src/constants/business.js';
+import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location.js';
+import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 
 // The most writes one Firestore transaction commits.
 const TRANSACTION_WRITES = 500;

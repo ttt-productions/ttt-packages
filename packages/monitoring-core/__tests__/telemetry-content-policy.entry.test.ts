@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   createTelemetryContentPolicy,
   DEFAULT_SDK_CONTEXTS,
-} from '../src/telemetry-content-policy';
-import * as root from '../src/index';
+} from '../src/telemetry-content-policy.js';
+import * as root from '../src/index.js';
 
 describe('createTelemetryContentPolicy', () => {
   it('is exported from the server-safe root', () => {

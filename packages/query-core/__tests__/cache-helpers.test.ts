@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import { invalidateByPrefix, placeRowInPages, removeByPrefix, updateQueryData, type PagedRows } from '../src/react/cache-helpers';
+import { invalidateByPrefix, placeRowInPages, removeByPrefix, updateQueryData, type PagedRows } from '../src/react/cache-helpers.js';
 
 function makeClient() {
     return new QueryClient({

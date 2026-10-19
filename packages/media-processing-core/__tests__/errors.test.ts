@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processingError } from '../src/processing/errors';
+import { processingError } from '../src/processing/errors.js';
 
 describe('processingError', () => {
   it('returns object with code and message', () => {

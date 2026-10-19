@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from '../src/react/components/card';
+} from '../src/react/components/card.js';
 
 describe('Card', () => {
   it('renders children', () => {

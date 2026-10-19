@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../src/paths/collections';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../src/paths/collections.js';
 
 describe('PATH_BUILDERS', () => {
   // ===== USER PATHS =====

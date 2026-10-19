@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createReleaseTaskHandler } from '../src/server/createReleaseTaskHandler';
-import { ReportCoreTaskError } from '../src/server/taskError';
-import type { ServerReportCoreConfig } from '../src/server/types';
+import { createReleaseTaskHandler } from '../src/server/createReleaseTaskHandler.js';
+import { ReportCoreTaskError } from '../src/server/taskError.js';
+import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {

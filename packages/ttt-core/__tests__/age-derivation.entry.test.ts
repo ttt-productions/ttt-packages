@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { deriveAgeBracket } from '../src/utils/age-derivation';
-import * as utils from '../src/utils/index';
+import { deriveAgeBracket } from '../src/utils/age-derivation.js';
+import * as utils from '../src/utils/index.js';
 
 describe('deriveAgeBracket', () => {
   it('is exported from the utils entry', () => {

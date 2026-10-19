@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '../src/constants/business-user';
-import { validateTttPassword } from '../src/utils/password';
+import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '../src/constants/business-user.js';
+import { validateTttPassword } from '../src/utils/password.js';
 
 const TOO_SHORT = `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
 const TOO_LONG = `Password must be no more than ${PASSWORD_MAX_LENGTH} characters.`;

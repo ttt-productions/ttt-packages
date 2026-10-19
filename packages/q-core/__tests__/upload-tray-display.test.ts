@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { FILE_ORIGIN_KEYS } from '../src/media/file-origins';
+import { FILE_ORIGIN_KEYS } from '../src/media/file-origins.js';
 import {
   fileOriginRowLabel,
   UPLOAD_ROW_DISPLAY_COPY,
   UPLOAD_ROW_RELATIVE_TIME_CUTOFF_MS,
-} from '../src/media/upload-tray-display';
+} from '../src/media/upload-tray-display.js';
 
 describe('fileOriginRowLabel', () => {
   it('gives every canonical file origin a non-empty label', () => {

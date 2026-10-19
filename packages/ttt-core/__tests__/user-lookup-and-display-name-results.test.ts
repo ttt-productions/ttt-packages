@@ -3,7 +3,7 @@ import {
   CheckDisplayNameAvailableResultSchema,
   LookupUserByEmailOrUidResultSchema,
   detectUserSearchKind,
-} from '../src/schemas/users';
+} from '../src/schemas/users.js';
 
 describe('CheckDisplayNameAvailableResultSchema', () => {
   it('answers available, or unavailable with one of the three reasons', () => {

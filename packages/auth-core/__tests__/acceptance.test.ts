@@ -4,8 +4,8 @@ import {
   isAcceptanceRequiredDetails,
   isAcceptanceRequiredError,
   normalizeAcceptanceLevel,
-} from '../src/acceptance';
-import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../src/email-verification';
+} from '../src/acceptance.js';
+import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../src/email-verification.js';
 
 describe('normalizeAcceptanceLevel', () => {
   it('keeps a whole non-negative level', () => {

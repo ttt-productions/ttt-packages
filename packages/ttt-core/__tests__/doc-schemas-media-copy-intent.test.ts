@@ -8,12 +8,12 @@ import {
   MediaCopyIntentSchema,
   MediaCopyIntentStateSchema,
   MediaIngestIntentSchema,
-} from '../src/doc-schemas/media-copy-intents';
-import { MEDIA_VARIANT_KEYS, MediaAssetOwnerTypeSchema } from '../src/doc-schemas/media-assets';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { toPath } from '../src/paths/utils';
+} from '../src/doc-schemas/media-copy-intents.js';
+import { MEDIA_VARIANT_KEYS, MediaAssetOwnerTypeSchema } from '../src/doc-schemas/media-assets.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { toPath } from '../src/paths/utils.js';
 
 /** A structural Firestore Timestamp (ttt-core validates the shape, never firebase-admin). */
 function ts(ms: number) {

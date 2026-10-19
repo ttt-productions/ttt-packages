@@ -6,8 +6,8 @@ import type {
   TTTAuditActorMode,
   TTTAuditTarget,
   TTTAuditEvent,
-} from '../src/types/audit';
-import { TTTAuditEventSchema } from '../src/doc-schemas/audit';
+} from '../src/types/audit.js';
+import { TTTAuditEventSchema } from '../src/doc-schemas/audit.js';
 
 describe('audit type catalog', () => {
   it('AuditEventType includes representative members from each domain', () => {

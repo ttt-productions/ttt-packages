@@ -7,9 +7,9 @@ import {
   isGuildInviteConversationLive,
   GUILD_INVITE_CONVERSATION_LIVE_STATUSES,
   type GuildChatAccessMember,
-} from '../src/utils/guild-chat-access';
-import { FOUNDING_WORK_HOLDER_TYPE } from '../src/doc-schemas/work-project';
-import type { GuildChatChannel } from '../src/doc-schemas/messaging';
+} from '../src/utils/guild-chat-access.js';
+import { FOUNDING_WORK_HOLDER_TYPE } from '../src/doc-schemas/work-project.js';
+import type { GuildChatChannel } from '../src/doc-schemas/messaging.js';
 
 const member = (over: Partial<GuildChatAccessMember> = {}): GuildChatAccessMember => ({
   status: 'active',

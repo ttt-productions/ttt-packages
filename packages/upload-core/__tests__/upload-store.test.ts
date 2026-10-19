@@ -21,7 +21,7 @@ describe('upload-store', () => {
   });
 
   async function getStore() {
-    const mod = await import('../src/utils/upload-store');
+    const mod = await import('../src/utils/upload-store.js');
     return mod;
   }
 

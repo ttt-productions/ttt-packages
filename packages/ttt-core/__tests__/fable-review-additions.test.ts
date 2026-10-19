@@ -10,10 +10,10 @@ import {
   PublishedChapterSchema,
   PublishedTelevisionEpisodeSchema,
   FullChapterSchema,
-} from '../src/doc-schemas/content';
-import { GuildChatChannelSchema } from '../src/doc-schemas/messaging';
-import { AuditionSchema } from '../src/doc-schemas/commissions';
-import { ModerationCascadeChangedEntityTypeSchema } from '../src/doc-schemas/moderation';
+} from '../src/doc-schemas/content.js';
+import { GuildChatChannelSchema } from '../src/doc-schemas/messaging.js';
+import { AuditionSchema } from '../src/doc-schemas/commissions.js';
+import { ModerationCascadeChangedEntityTypeSchema } from '../src/doc-schemas/moderation.js';
 import {
   STATUS_RECONCILE_QUEUE_AUTH_EFFECTS,
   StatusReconcileQueueEntrySchema,
@@ -22,10 +22,10 @@ import {
   type StatusReconcileQueueAuthEffect,
   type StatusReconcileQueueAccountStatusEntry,
   type StatusReconcileQueuePublicDocumentsAcceptedClaimEntry,
-} from '../src/doc-schemas/operational';
-import type { UserAccountStatus } from '../src/doc-schemas/user';
-import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs';
-import { FullWorkProjectSchema, WorkRealmSchema } from '../src/doc-schemas/work-project';
+} from '../src/doc-schemas/operational.js';
+import type { UserAccountStatus } from '../src/doc-schemas/user.js';
+import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs.js';
+import { FullWorkProjectSchema, WorkRealmSchema } from '../src/doc-schemas/work-project.js';
 
 describe('hiddenBy marker on published projections', () => {
   const bases = {

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
-import { createReducedMotionStore } from '../src/react/reduced-motion-store';
-import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion';
-import { installMatchMedia, removeMatchMedia } from './support/match-media';
-import { createSyncFixture, fakeAccount } from './support/viewer-settings-fixture';
+import { createReducedMotionStore } from '../src/react/reduced-motion-store.js';
+import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion.js';
+import { installMatchMedia, removeMatchMedia } from './support/match-media.js';
+import { createSyncFixture, fakeAccount } from './support/viewer-settings-fixture.js';
 
 // A browser that blocks site data throws on localStorage. Values held for the page live for the
 // module's life, so every test takes its own keys.

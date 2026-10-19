@@ -15,7 +15,7 @@ import {
   TEXT_SIZE_CHANGE_EVENT,
   COOKIE_CONSENT_STORAGE_KEY,
   THEME_STORAGE_KEY,
-} from '../src/constants/storage-keys';
+} from '../src/constants/storage-keys.js';
 
 describe('Company dock storage keys + events are byte-stable', () => {
   it('holds the exact historical literal values', () => {

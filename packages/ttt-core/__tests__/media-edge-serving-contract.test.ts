@@ -16,15 +16,15 @@ import {
   type EdgeServingRecord,
   type MediaAuthorityApplyRequest,
   type MediaGrantScope,
-} from '../src/media/edge-serving-contract';
+} from '../src/media/edge-serving-contract.js';
 import {
   MEDIA_VARIANT_KEYS,
   MediaAccessTierSchema,
   MediaAssetOwnerTypeSchema,
   type MediaServingAuthorityRecord,
-} from '../src/doc-schemas/media-assets';
-import { MAX_DOWNLOAD_FILENAME_BYTES } from '../src/constants/media-download';
-import { CreateMediaGrantInputSchema } from '../src/schemas/media';
+} from '../src/doc-schemas/media-assets.js';
+import { MAX_DOWNLOAD_FILENAME_BYTES } from '../src/constants/media-download.js';
+import { CreateMediaGrantInputSchema } from '../src/schemas/media.js';
 
 // Firestore's document-id limit: no id the backend can put in a record is longer.
 const MAX_DOC_ID_BYTES = 1500;

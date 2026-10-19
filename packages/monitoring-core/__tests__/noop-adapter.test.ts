@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { NoopAdapter } from '../src/adapters/noop';
+import { NoopAdapter } from '../src/adapters/noop.js';
 
 describe('NoopAdapter', () => {
     it('captureException accepts any value without side effects on context', () => {

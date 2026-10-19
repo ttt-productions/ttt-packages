@@ -3,7 +3,7 @@ import {
   MAX_STAGING_DELETES_PER_RUN,
   MAX_STAGING_EXAMINED_PER_RUN,
   STAGING_LIST_PAGE_SIZE,
-} from '../src/constants/media';
+} from '../src/constants/media.js';
 
 describe('abandoned-staging pass caps', () => {
   it('examines whole listing pages, so a pass never stops partway through a page it fetched', () => {

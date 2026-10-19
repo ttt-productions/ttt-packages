@@ -2,8 +2,8 @@
 // event count and the last sequence given; anything else is damage the check names.
 
 import { describe, it, expect } from 'vitest';
-import { findLedgerContinuityBreak } from '../src/sports/ledger-continuity';
-import { STATS_DISCREPANCY_KIND_KEYS } from '../src/types/unions';
+import { findLedgerContinuityBreak } from '../src/sports/ledger-continuity.js';
+import { STATS_DISCREPANCY_KIND_KEYS } from '../src/types/unions.js';
 
 const ledger = (...sequences: number[]) => sequences.map((sequence) => ({ sequence }));
 

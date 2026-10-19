@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeFilename } from '../src/utils/filename';
+import { normalizeFilename } from '../src/utils/filename.js';
 
 describe('normalizeFilename', () => {
   it('lowercases the base name', () => {

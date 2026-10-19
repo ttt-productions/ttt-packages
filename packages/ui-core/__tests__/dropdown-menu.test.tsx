@@ -5,8 +5,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../src/react/components/dropdown-menu';
-import { Button } from '../src/react/components/button';
+} from '../src/react/components/dropdown-menu.js';
+import { Button } from '../src/react/components/button.js';
 
 function menuWith(item: React.ReactNode) {
   return (

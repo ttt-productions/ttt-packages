@@ -14,7 +14,7 @@ import {
   UpgradeAccountToAdultResultSchema,
   RequestAccountDeletionInputSchema,
   CancelAccountDeletionInputSchema,
-} from '../src/schemas/users';
+} from '../src/schemas/users.js';
 import {
   CreateFileFolderResultSchema,
   RenameFileFolderResultSchema,
@@ -28,8 +28,8 @@ import {
   UpdatePublicWorkProjectDetailsResultSchema,
   UpdateWorkRealmDetailsResultSchema,
   CheckRealmNameAvailableResultSchema,
-} from '../src/schemas/work-project-management';
-import { ManageWorkProjectStakeSharesResultSchema } from '../src/schemas/stake-share-operation';
+} from '../src/schemas/work-project-management.js';
+import { ManageWorkProjectStakeSharesResultSchema } from '../src/schemas/stake-share-operation.js';
 import {
   ClearHallContentTextResultSchema,
   ClearModerationTextResultSchema,
@@ -49,8 +49,8 @@ import {
   GetLatestHideCascadeResultSchema,
   GetPendingGuildInviteCountResultSchema,
   GetPendingGuildInviteCountInputSchema,
-} from '../src/schemas/admin';
-import { CreateAdminDispatchResultSchema } from '../src/schemas/chat';
+} from '../src/schemas/admin.js';
+import { CreateAdminDispatchResultSchema } from '../src/schemas/chat.js';
 import {
   SeedPublicDocumentResultSchema,
   TrackShortLinkClickResultSchema,
@@ -59,8 +59,8 @@ import {
   SeedReservedUsernamesResultSchema,
   SeedProfanityListResultSchema,
   CreateShortLinkResultSchema,
-} from '../src/schemas/utility';
-import { CloseAuditionResultSchema } from '../src/schemas/auditions';
+} from '../src/schemas/utility.js';
+import { CloseAuditionResultSchema } from '../src/schemas/auditions.js';
 import {
   ConfirmOperatorStepUpResultSchema,
   RecordNcmecPortalReceiptArtifactResultSchema,
@@ -70,14 +70,14 @@ import {
   GetSafetyCasePartiesResultSchema,
   RevealCaseEvidenceResultSchema,
   EnrollOperatorStepUpInputSchema,
-} from '../src/schemas/safety';
+} from '../src/schemas/safety.js';
 import {
   LinkNciiEvidenceToCaseResultSchema,
   UnlinkNciiEvidenceFromCaseResultSchema,
   MarkNciiEvidenceResultSchema,
   ResolveNciiReportPreviewResultSchema,
   SubmitInAppNciiRequestResultSchema,
-} from '../src/schemas/ncii';
+} from '../src/schemas/ncii.js';
 import {
   CreateChapterResultSchema,
   CreateTelevisionEpisodeResultSchema,
@@ -98,32 +98,32 @@ import {
   UpdateTelevisionEpisodeDetailsResultSchema,
   UpdateTuneTrackDetailsResultSchema,
   WithdrawFromThresholdLibraryReviewResultSchema,
-} from '../src/schemas/hall-library';
+} from '../src/schemas/hall-library.js';
 import {
   CreateNotificationBroadcastResultSchema,
   MarkNotificationsSeenResultSchema,
-} from '../src/schemas/notification';
-import { DeleteConversationFileResultSchema } from '../src/schemas/conversation-files';
+} from '../src/schemas/notification.js';
+import { DeleteConversationFileResultSchema } from '../src/schemas/conversation-files.js';
 import {
   RejectCommissionProposalResultSchema,
   SetCommissionProposalSavedResultSchema,
   CloseCommissionResultSchema,
-} from '../src/schemas/commissions';
+} from '../src/schemas/commissions.js';
 import {
   AdminResolvePledgeRefundRequestResultSchema,
   RequestPledgeRefundResultSchema,
   CreateStripeCheckoutSessionResultSchema,
   GetMyPledgeByCheckoutSessionResultSchema,
-} from '../src/schemas/payments';
+} from '../src/schemas/payments.js';
 import {
   UpdateGuildInviteConfirmationResultSchema,
   UpdateGuildInviteStakeSharesResultSchema,
-} from '../src/schemas/admin-dispatch-actions';
+} from '../src/schemas/admin-dispatch-actions.js';
 import {
   ClearUploadActivityResultSchema,
   MarkUploadsSeenResultSchema,
   StartUploadResultSchema,
-} from '../src/schemas/uploads';
+} from '../src/schemas/uploads.js';
 
 // Each callable's answer is declared once here, so Functions returns it and the app types it from
 // the same shape (ARCH-101). Every case is an answer its callable gives; an answer that reports

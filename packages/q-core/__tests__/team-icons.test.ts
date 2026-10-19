@@ -2,8 +2,8 @@
 // key a team may already hold stays, in its place.
 
 import { describe, expect, it } from 'vitest';
-import { TEAM_ICON_KEYS } from '../src/types/unions';
-import { teamIconSchema } from '../src/doc-schemas/atoms';
+import { TEAM_ICON_KEYS } from '../src/types/unions.js';
+import { teamIconSchema } from '../src/doc-schemas/atoms.js';
 
 // The set as first shipped. A team document may hold any of these, so none is renamed or removed.
 const FIRST_ICON_KEYS = [

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createCheckoutNextImportantHandler } from '../src/server/createCheckoutNextImportantHandler';
-import { ReportCoreTaskError } from '../src/server/taskError';
-import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types';
+import { createCheckoutNextImportantHandler } from '../src/server/createCheckoutNextImportantHandler.js';
+import { ReportCoreTaskError } from '../src/server/taskError.js';
+import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {

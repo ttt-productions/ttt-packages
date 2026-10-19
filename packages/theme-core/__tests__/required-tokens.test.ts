@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REQUIRED_TOKENS } from '../src/required-tokens';
+import { REQUIRED_TOKENS } from '../src/required-tokens.js';
 
 // These three tokens are the brand contract between `@ttt-productions/theme-core`
 // and every consuming app. Apps that import this package must define them in

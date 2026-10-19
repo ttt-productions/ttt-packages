@@ -6,8 +6,8 @@ import {
   CRAFT_SKILL_KIND_ORDER,
   isBlockedCraftSkillKind,
   type BlockedCraftSkillKind,
-} from '../src/constants/craft-skill-statements';
-import { CraftSkillKindSchema, type CraftSkillKind } from '../src/doc-schemas/user';
+} from '../src/constants/craft-skill-statements.js';
+import { CraftSkillKindSchema, type CraftSkillKind } from '../src/doc-schemas/user.js';
 
 describe('off-TTT craft refusal copy', () => {
   it('is the settled sentence, verbatim', () => {

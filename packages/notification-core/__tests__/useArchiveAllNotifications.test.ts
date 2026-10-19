@@ -3,8 +3,8 @@ import { renderHook } from '@testing-library/react';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { useArchiveAllNotifications } from '../src/react/hooks/useArchiveAllNotifications';
-import type { ArchiveAllJobSnapshot } from '../src/types';
+import { useArchiveAllNotifications } from '../src/react/hooks/useArchiveAllNotifications.js';
+import type { ArchiveAllJobSnapshot } from '../src/types.js';
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });

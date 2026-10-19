@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../src/react/components/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../src/react/components/select.js';
 
 function renderTrigger(pending?: boolean, onOpenChange = vi.fn(), disabled?: boolean) {
   return render(

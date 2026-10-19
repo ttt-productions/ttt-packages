@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
-import { ThemeSwitcher, type ThemeOption } from '../src/react/theme-switcher';
+import { ThemeSwitcher, type ThemeOption } from '../src/react/theme-switcher.js';
 
 const mockSetTheme = vi.fn();
 const mockUseTheme = vi.hoisted(() => vi.fn());

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { FullTaleSchema, FullTuneSchema, FullTelevisionSchema } from '../src/doc-schemas/content';
-import * as hallLibrarySchemas from '../src/schemas/hall-library';
-import { WORK_PROJECT_ACTIONS } from '../src/permissions/work-project-permissions-data';
+import { FullTaleSchema, FullTuneSchema, FullTelevisionSchema } from '../src/doc-schemas/content.js';
+import * as hallLibrarySchemas from '../src/schemas/hall-library.js';
+import { WORK_PROJECT_ACTIONS } from '../src/permissions/work-project-permissions-data.js';
 import {
   HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD,
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
-} from '../src/constants/business-content';
+} from '../src/constants/business-content.js';
 
 // A Work has one title and one description, typed on the Work; the Tale / Tune / Television
 // section carries no text of its own.

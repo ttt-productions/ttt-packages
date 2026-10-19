@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { ListRetainedChildSafetyCasesInputSchema } from '../src/schemas/safety';
-import { SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case';
-import * as schemasBarrel from '../src/schemas';
-import * as docSchemasBarrel from '../src/doc-schemas';
+import { ListRetainedChildSafetyCasesInputSchema } from '../src/schemas/safety.js';
+import { SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case.js';
+import * as schemasBarrel from '../src/schemas/index.js';
+import * as docSchemasBarrel from '../src/doc-schemas/index.js';
 
 describe('retained child-safety case list', () => {
   it('is exported from the schemas entry point', () => {

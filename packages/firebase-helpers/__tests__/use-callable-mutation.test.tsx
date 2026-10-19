@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useCallableMutation } from '../src/react/use-callable-mutation';
+import { useCallableMutation } from '../src/react/use-callable-mutation.js';
 import { httpsCallable, type Functions } from 'firebase/functions';
 
 const mockFunctions = {} as Functions;

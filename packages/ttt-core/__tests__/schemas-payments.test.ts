@@ -5,13 +5,13 @@ import {
   AdminResolvePledgeRefundRequestInputSchema,
   GetMyPledgeByCheckoutSessionInputSchema,
   PledgeDisplaySchema,
-} from '../src/schemas/payments';
+} from '../src/schemas/payments.js';
 import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
   PLEDGE_REFUND_REQUEST_WINDOW_MS,
   MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
-} from '../src/constants/business-platform';
+} from '../src/constants/business-platform.js';
 
 const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
 

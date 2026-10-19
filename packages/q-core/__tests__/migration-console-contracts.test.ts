@@ -6,35 +6,35 @@ import { describe, it, expect } from 'vitest';
 import {
   GAME_SCOPED_STATS_BEACON_ACTION_KEYS,
   STATS_BEACON_ACTION_KEYS,
-} from '../src/types/unions';
+} from '../src/types/unions.js';
 import {
   MAX_MIGRATION_PAGE_SIZE,
   MAX_MIGRATION_RUN_FINDINGS,
-} from '../src/migration-console/run-state';
+} from '../src/migration-console/run-state.js';
 import {
   MIGRATION_ACTION_IDS,
   MIGRATION_ACTION_ID_KEYS,
-} from '../src/migration-console/action-ids';
+} from '../src/migration-console/action-ids.js';
 import {
   MIGRATION_CUTOVER_MANIFEST,
   MIGRATION_STEP_BY_ID,
   migrationActionCallableName,
-} from '../src/migration-console/manifest';
-import { MAX_REPAIR_REASON_LENGTH } from '../src/constants/business';
-import { TELEMETRY_CONTENT_POLICY } from '../src/constants/telemetry';
-import { AuditEventSchema } from '../src/doc-schemas/audit-event';
+} from '../src/migration-console/manifest.js';
+import { MAX_REPAIR_REASON_LENGTH } from '../src/constants/business.js';
+import { TELEMETRY_CONTENT_POLICY } from '../src/constants/telemetry.js';
+import { AuditEventSchema } from '../src/doc-schemas/audit-event.js';
 import {
   MigrationActionRunSchema,
   MigrationConsoleLockSchema,
   MigrationConsoleSchema,
   migrationActionIdSchema,
-} from '../src/doc-schemas/migration-console';
-import { AdminResolveUnrosteredStatLineInputSchema } from '../src/schemas/stats';
+} from '../src/doc-schemas/migration-console.js';
+import { AdminResolveUnrosteredStatLineInputSchema } from '../src/schemas/stats.js';
 import {
   RecordMigrationCheckpointInputSchema,
   RecordMigrationControlRunInputSchema,
   RunMigrationActionInputSchema,
-} from '../src/schemas/migration-console';
+} from '../src/schemas/migration-console.js';
 
 const REASON = 'Rehearse the cutover on a production copy.';
 const page = (overrides: Record<string, unknown> = {}) => ({

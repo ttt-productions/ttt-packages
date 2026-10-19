@@ -18,7 +18,7 @@ import {
   sportGameHref,
   sportGameScoringHref,
   withAdminSection,
-} from '../src/utils/app-routes';
+} from '../src/utils/app-routes.js';
 
 describe("a league's pages", () => {
   it('addresses the league, a team, a game, and its scoring page under the league', () => {

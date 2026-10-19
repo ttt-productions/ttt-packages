@@ -10,20 +10,20 @@ import {
   RealmFileFolderSchema,
   WorkFileFolderSchema,
   WorkRealmSchema,
-} from '../src/doc-schemas/work-project';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { COLLECTIONS, WORK_REALM_SUBCOLLECTIONS } from '../src/paths/collections';
+} from '../src/doc-schemas/work-project.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { COLLECTIONS, WORK_REALM_SUBCOLLECTIONS } from '../src/paths/collections.js';
 import {
   MAX_REALM_FILE_FOLDERS,
   MAX_FILE_FOLDER_NAME_LENGTH,
   MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
-} from '../src/constants/business-work-project';
+} from '../src/constants/business-work-project.js';
 import {
   REALM_SHARED_FILES_PAGE_LIMIT,
   REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT,
-} from '../src/constants/pagination';
+} from '../src/constants/pagination.js';
 import {
   RealmSharedFileProjectionSchema,
   RealmFileFolderProjectionSchema,
@@ -44,8 +44,8 @@ import {
   WorkFileRealmShareStateSchema,
   GetWorkFileRealmShareStatesInputSchema,
   GetWorkFileRealmShareStatesResponseSchema,
-} from '../src/schemas/work-project-management';
-import { WORK_PROJECT_ACTIONS } from '../src/permissions/work-project-permissions-data';
+} from '../src/schemas/work-project-management.js';
+import { WORK_PROJECT_ACTIONS } from '../src/permissions/work-project-permissions-data.js';
 
 const REGISTRY_PATH = 'workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}';
 

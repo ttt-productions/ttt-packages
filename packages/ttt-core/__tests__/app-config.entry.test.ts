@@ -5,8 +5,8 @@ import {
   mergeAppConfigUpdate,
   readAppConfigLever,
   readAppConfigLevers,
-} from '../src/utils/app-config';
-import * as utils from '../src/utils';
+} from '../src/utils/app-config.js';
+import * as utils from '../src/utils/index.js';
 
 describe('DEFAULT_APP_CONFIG — _appConfig/app at rest', () => {
   it('is exported from the utils entry', () => {

@@ -3,27 +3,27 @@
 // mode's registry is loaded with the app-mode module mocked to that mode.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import type { AppMode } from '../src/constants/app-mode';
-import type { FileOrigin } from '../src/media/file-origin';
+import type { AppMode } from '../src/constants/app-mode.js';
+import type { FileOrigin } from '../src/media/file-origin.js';
 
 const THIRTY_MINUTES_SEC = 30 * 60;
 
 async function specsInMode(mode: AppMode): Promise<Record<FileOrigin, MediaOriginSpec>> {
   vi.resetModules();
-  vi.doMock('../src/constants/app-mode', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../src/constants/app-mode')>();
+  vi.doMock('../src/constants/app-mode.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../src/constants/app-mode.js')>();
     return {
       ...actual,
       APP_MODE: mode,
       byMode: <T>(charter: T, full: T): T => (mode === 'charter' ? charter : full),
     };
   });
-  const { TTT_MEDIA_SPECS } = await import('../src/media/ttt-media-specs');
+  const { TTT_MEDIA_SPECS } = await import('../src/media/ttt-media-specs.js');
   return TTT_MEDIA_SPECS;
 }
 
 afterEach(() => {
-  vi.doUnmock('../src/constants/app-mode');
+  vi.doUnmock('../src/constants/app-mode.js');
   vi.resetModules();
 });
 

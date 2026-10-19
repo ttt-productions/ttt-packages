@@ -3,9 +3,9 @@ import {
   createDeliveryLedger,
   applyAggregation,
   type DeliveryRowInput,
-} from '../src/server/delivery-ledger';
-import type { NotificationSystemConfig } from '../src/types';
-import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types';
+} from '../src/server/delivery-ledger.js';
+import type { NotificationSystemConfig } from '../src/types.js';
+import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types.js';
 
 // ---- In-memory Firestore (create-if-absent + transactions) ----
 function createMockFirestore() {

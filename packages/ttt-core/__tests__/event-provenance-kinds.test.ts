@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   EventProvenanceKindSchema,
   EVENT_PROVENANCE_ROUTINE_TTL_DAYS,
-} from '../src/doc-schemas/safety/provenance';
+} from '../src/doc-schemas/safety/provenance.js';
 
 describe('event provenance kinds', () => {
   it('records the source events that are written: uploads, messages, and reports', () => {

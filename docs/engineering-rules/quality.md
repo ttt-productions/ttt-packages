@@ -34,19 +34,25 @@ full gates at once.
 
 **References.** ENG-007.
 
-### QUALITY-006 — Lint: justified disables only
+### QUALITY-006 — Lint: justified disables only; one enforced format
 
 **Rule.** A `eslint-disable-next-line` is permitted only for a narrow intentional case and carries
 its reason on the line; it is preferred over weakening the rule. A real violation is fixed at its
-source.
+source. Every package code file, source and tests, is in the one format Prettier writes from the
+root `.prettierrc.json`; the gate's format stage (`prettier --check`) fails a file that is not, and
+`eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier,
+never reflowed by hand.
 
-**Why.** A reasonless suppression silences the next real violation on that line.
+**Why.** A reasonless suppression silences the next real violation on that line. Without one
+enforced format, every edit carries layout churn and line lengths drift with whoever wrote the file.
 
 **Prohibits.**
 - A reasonless `eslint-disable-next-line`, or one used to dodge a real fix.
 - Suppressing `exhaustive-deps` instead of fixing at the source.
+- An unformatted package code file; a `prettier-ignore` without its reason; an ESLint formatting
+  rule that fights Prettier.
 
-**References.** The root `eslint.config.mjs`.
+**References.** The root `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`.
 
 ### QUALITY-007 — Guard tests enforce ownership and boundaries, never inventories
 

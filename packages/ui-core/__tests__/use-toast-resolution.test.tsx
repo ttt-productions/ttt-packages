@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { toast, useToast } from '../src/react/hooks/use-toast';
+import { toast, useToast } from '../src/react/hooks/use-toast.js';
 
 // Each test resets toast state by dismissing everything from the previous one.
 function clearAllToasts() {

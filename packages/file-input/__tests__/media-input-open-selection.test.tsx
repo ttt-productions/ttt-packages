@@ -2,8 +2,8 @@ import * as React from 'react';
 import { render, act, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { MediaInput } from '../src/react/components/media-input';
-import type { MediaInputHandle } from '../src/types';
+import { MediaInput } from '../src/react/components/media-input.js';
+import type { MediaInputHandle } from '../src/types.js';
 
 // The imperative `openSelection()` handle must activate the SAME trigger
 // semantics as a human click — single enabled action runs directly through the

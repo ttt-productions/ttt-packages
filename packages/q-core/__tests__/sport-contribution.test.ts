@@ -5,27 +5,27 @@
 // assists 2), never read back from the code.
 
 import { describe, expect, it } from 'vitest';
-import { MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports';
-import type { GameStatEvent } from '../src/doc-schemas/game-stats';
-import type { GameStats } from '../src/doc-schemas/sport-game';
-import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids';
+import { MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports.js';
+import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
+import type { GameStats } from '../src/doc-schemas/sport-game.js';
+import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import {
   applyStatLineDelta,
   sumGameContributions,
   type FinalizedGame,
-} from '../src/sports/contribution';
+} from '../src/sports/contribution.js';
 import {
   buildFinalizedRecordPages,
   finalizedGameFromRecord,
   readFinalizedRecord,
-} from '../src/sports/finalized-record';
-import { gameScoreMirror } from '../src/sports/score-mirror';
-import { getSportAdapter } from '../src/sports/registry';
-import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings';
-import { rollupDifferences } from '../src/sports/rollup-check';
-import { type StatEventBody } from '../src/sports/scoring';
-import { CURLING_ROUND_SCORE_EVENT_TYPE, FOOTBALL_SCORE_EVENT_TYPE_KEYS } from '../src/types/sports';
-import { higherTeamRole } from '../src/types/unions';
+} from '../src/sports/finalized-record.js';
+import { gameScoreMirror } from '../src/sports/score-mirror.js';
+import { getSportAdapter } from '../src/sports/registry.js';
+import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings.js';
+import { rollupDifferences } from '../src/sports/rollup-check.js';
+import { type StatEventBody } from '../src/sports/scoring.js';
+import { CURLING_ROUND_SCORE_EVENT_TYPE, FOOTBALL_SCORE_EVENT_TYPE_KEYS } from '../src/types/sports.js';
+import { higherTeamRole } from '../src/types/unions.js';
 
 const A = 'team-a';
 const B = 'team-b';

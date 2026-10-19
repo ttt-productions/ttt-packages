@@ -4,8 +4,8 @@ import {
   CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES,
   BLOCKED_CRAFT_SKILL_KINDS,
   isBlockedCraftSkillKind,
-} from '../src/constants/craft-skill-statements';
-import * as constants from '../src/constants/index';
+} from '../src/constants/craft-skill-statements.js';
+import * as constants from '../src/constants/index.js';
 
 describe('off-TTT craft refusal copy', () => {
   it('ships on the server-safe constants entry, so the picker and the upload callable share one sentence', () => {

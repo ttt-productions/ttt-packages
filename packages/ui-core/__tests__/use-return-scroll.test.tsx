@@ -6,7 +6,7 @@ import {
   saveReturnScroll,
   clearReturnScroll,
   readReturnScroll,
-} from '../src/react/hooks/use-return-scroll';
+} from '../src/react/hooks/use-return-scroll.js';
 
 // A controllable animation-frame queue: the hook schedules its restore in a frame, so the
 // tests decide exactly when (and whether) that frame runs.

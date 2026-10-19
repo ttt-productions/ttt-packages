@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createLocalStorageUploadSessionPersistence } from '../src/browser/localstorage';
-import type { UploadSessionState } from '../src/types';
+import { createLocalStorageUploadSessionPersistence } from '../src/browser/localstorage.js';
+import type { UploadSessionState } from '../src/types.js';
 
 function makeSession(id: string, overrides: Partial<UploadSessionState> = {}): UploadSessionState {
   return {

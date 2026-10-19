@@ -14,8 +14,8 @@ import {
   settleSave,
   viewerSettingsFromDifferences,
   type Dismissal,
-} from '../src/viewer-settings-logic';
-import type { SavedViewerSettings, ViewerSettingDifference, ViewerSettingName } from '../src/viewer-settings';
+} from '../src/viewer-settings-logic.js';
+import type { SavedViewerSettings, ViewerSettingDifference, ViewerSettingName } from '../src/viewer-settings.js';
 
 const NOTHING: SavedViewerSettings = { theme: null, reducedMotion: null };
 const NONE: ReadonlySet<ViewerSettingName> = new Set();

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { DatePicker } from '../src/react/components/date-picker';
+import { DatePicker } from '../src/react/components/date-picker.js';
 
 // Fixed, timezone-agnostic construction (local midnight).
 const d = (y: number, m1: number, day: number) => new Date(y, m1 - 1, day);

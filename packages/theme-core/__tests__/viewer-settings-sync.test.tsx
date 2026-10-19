@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { hydrateRoot, type Root } from 'react-dom/client';
-import { ThemeSwitcher, type ThemeOption } from '../src/react/theme-switcher';
-import { ViewerSettingsSyncProvider } from '../src/react/viewer-settings-sync';
-import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion';
-import { installMatchMedia, removeMatchMedia } from './support/match-media';
-import { NOTHING, createSyncFixture, fakeAccount } from './support/viewer-settings-fixture';
+import { ThemeSwitcher, type ThemeOption } from '../src/react/theme-switcher.js';
+import { ViewerSettingsSyncProvider } from '../src/react/viewer-settings-sync.js';
+import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion.js';
+import { installMatchMedia, removeMatchMedia } from './support/match-media.js';
+import { NOTHING, createSyncFixture, fakeAccount } from './support/viewer-settings-fixture.js';
 
 const { keys, motion, Harness, seedDevice, sync, promptText } = createSyncFixture('test');
 

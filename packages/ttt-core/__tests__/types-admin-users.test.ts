@@ -1,7 +1,7 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type { PublicUserSearchResult } from '../src/types/admin-users';
-import type { AdminUserLookupResult } from '../src/schemas/users';
-import type { UserAccountStatus } from '../src/doc-schemas/user';
+import type { PublicUserSearchResult } from '../src/types/admin-users.js';
+import type { AdminUserLookupResult } from '../src/schemas/users.js';
+import type { UserAccountStatus } from '../src/doc-schemas/user.js';
 
 describe('admin user-directory result types', () => {
   it('PublicUserSearchResult reuses the canonical UserAccountStatus union for its status tier', () => {

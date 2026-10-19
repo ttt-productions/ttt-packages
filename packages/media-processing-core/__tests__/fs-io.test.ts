@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { createFsIO } from '../src/io/fs';
+import { createFsIO } from '../src/io/fs.js';
 import { mkdtemp, writeFile, readFile, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';

@@ -5,12 +5,12 @@ import {
   SPECIAL_DOCS,
   USER_PROFILE_SUBCOLLECTIONS,
   WAIVER_TEMPLATE_SUBCOLLECTIONS,
-} from '../src/paths/collections';
+} from '../src/paths/collections.js';
 import {
   COLLECTION_DOC_ID_FIELDS,
   COLLECTION_SCHEMAS,
   PENDING_COLLECTIONS,
-} from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/registry.js';
 
 const allCollectionNames = [
   ...Object.values(COLLECTIONS),

@@ -4,7 +4,7 @@ import {
   parseMediaProcessingSpec,
   parseMediaProcessingResult,
   ClientContextSchema,
-} from '../src/schemas';
+} from '../src/schemas.js';
 
 describe('MediaCropSpecSchema', () => {
   const validCrop = {

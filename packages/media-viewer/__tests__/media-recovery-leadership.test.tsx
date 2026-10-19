@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { useMediaRecovery } from "../src/react/use-media-recovery";
-import type { MediaDiagnosticAdapter, DiagnosisResult } from "../src/recovery";
+import { useMediaRecovery } from "../src/react/use-media-recovery.js";
+import type { MediaDiagnosticAdapter, DiagnosisResult } from "../src/recovery.js";
 
 const URL_A = "https://cdn.example.com/shared.jpg";
 

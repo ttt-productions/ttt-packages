@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { success, failure } from '../src/processing/result';
+import { success, failure } from '../src/processing/result.js';
 
 describe('success', () => {
   it('sets ok to true', () => {

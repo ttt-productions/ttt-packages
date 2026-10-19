@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { NormalReportInputSchema } from '../src/schemas/admin';
-import { USER_FACING_REASON_OPTIONS } from '../src/constants/admin-labels';
+import { NormalReportInputSchema } from '../src/schemas/admin.js';
+import { USER_FACING_REASON_OPTIONS } from '../src/constants/admin-labels.js';
 
 // The affected person is shown the label of the reason code a report close-out names, so the code
 // is one the picklist owns — an unknown code would reach them raw.

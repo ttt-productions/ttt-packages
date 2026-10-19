@@ -3,7 +3,7 @@ import {
   AdminReadChannelContextResultSchema,
   ChatContextMessageSchema,
   MintChatGrantResultSchema,
-} from '../src/schemas/chat';
+} from '../src/schemas/chat.js';
 
 // The answers of the two chat callables both trees read — the admin context read and the grant
 // mint — are declared once here, so Functions and the app type the same shape (ARCH-101).

@@ -12,12 +12,12 @@ import {
   REPORT_REQUIRED_DISPOSITION_REASON_CODES,
   NOT_REQUIRED_DISPOSITION_REASON_CODES,
   REPORT_DISPOSITION_ALLOWED_REASON_CODES,
-} from '../src/doc-schemas/safety/foundation';
+} from '../src/doc-schemas/safety/foundation.js';
 import {
   SetReportDispositionInputV1Schema,
   SetReportDispositionCallableInputSchema,
-} from '../src/doc-schemas/safety/case';
-import { SafetyStagedActionSchema } from '../src/schemas/admin';
+} from '../src/doc-schemas/safety/case.js';
+import { SafetyStagedActionSchema } from '../src/schemas/admin.js';
 
 describe('ReportDispositionReasonCode enum + pairing map', () => {
   it('includes the two new report-required reason codes', () => {

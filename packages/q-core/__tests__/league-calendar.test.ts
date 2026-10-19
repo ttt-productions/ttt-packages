@@ -4,7 +4,7 @@
 // four.
 
 import { describe, it, expect } from 'vitest';
-import { leagueInstantOf, toLeagueDayKey, toLeagueTimeOfDay } from '../src/utils/league-calendar';
+import { leagueInstantOf, toLeagueDayKey, toLeagueTimeOfDay } from '../src/utils/league-calendar.js';
 
 describe('leagueInstantOf', () => {
   it('reads a winter evening on standard time, five hours behind UTC', () => {

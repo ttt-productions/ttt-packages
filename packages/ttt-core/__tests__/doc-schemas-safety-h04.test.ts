@@ -7,12 +7,12 @@
 // intake opens a protected case with the immutable locator preserved, never downgrading to ordinary.
 
 import { describe, it, expect } from 'vitest';
-import { TargetLocatorV1Schema, TargetLocatorKindSchema } from '../src/doc-schemas/safety/foundation';
+import { TargetLocatorV1Schema, TargetLocatorKindSchema } from '../src/doc-schemas/safety/foundation.js';
 import {
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
-} from '../src/doc-schemas/safety/case';
-import { SafetySlaMonitorKindSchema } from '../src/doc-schemas/safety/monitors';
+} from '../src/doc-schemas/safety/case.js';
+import { SafetySlaMonitorKindSchema } from '../src/doc-schemas/safety/monitors.js';
 
 // ---------------------------------------------------------------------------
 // TargetLocatorV1 — guildChatMessage variant

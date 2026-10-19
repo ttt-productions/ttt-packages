@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { RealtimeMessageEnvelopeSchema, VersionedSyncItemSchema } from '../src/envelopes';
-import { createReconnectController } from '../src/reconnect';
-import { decideApply, applyVersioned, type StoredVersioned } from '../src/apply';
-import { allocateNext, advanceFloor, recoveredFloor } from '../src/allocators';
-import { REALTIME_ERROR_CODES } from '../src/protocol';
+import { RealtimeMessageEnvelopeSchema, VersionedSyncItemSchema } from '../src/envelopes.js';
+import { createReconnectController } from '../src/reconnect.js';
+import { decideApply, applyVersioned, type StoredVersioned } from '../src/apply.js';
+import { allocateNext, advanceFloor, recoveredFloor } from '../src/allocators.js';
+import { REALTIME_ERROR_CODES } from '../src/protocol.js';
 
 describe('protocol', () => {
   it('exposes stable namespaced error codes', () => {

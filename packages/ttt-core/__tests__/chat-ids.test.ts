@@ -19,8 +19,8 @@ import {
   moderationFailedAuditId,
   chatAnonymizeJobId,
   chatParkedDeliveryId,
-} from '../src/ids/chat-ids';
-import { toChatConversationRef } from '../src/ids/guild-chat-conversation';
+} from '../src/ids/chat-ids.js';
+import { toChatConversationRef } from '../src/ids/guild-chat-conversation.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 

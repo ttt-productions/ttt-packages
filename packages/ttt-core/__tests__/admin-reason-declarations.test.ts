@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import {
   CLOSE_UNDER_13_REASON_INPUT,
   APP_MODE_FLIP_EVIDENCE_INPUT,
-} from '../src/constants/text-fields';
+} from '../src/constants/text-fields.js';
 import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_UNDER_13_CLOSE_REASON_LENGTH,
-} from '../src/constants/business-admin';
-import { APP_MODE, APP_MODES } from '../src/constants/app-mode';
-import { RecordAppModeFlipInputSchema, RecordAppModeFlipResultSchema } from '../src/schemas/admin';
-import { textFieldSchema } from '../src/schemas/text-field';
-import { AppModeMarkerSchema, AppModeSchema } from '../src/doc-schemas/system';
+} from '../src/constants/business-admin.js';
+import { APP_MODE, APP_MODES } from '../src/constants/app-mode.js';
+import { RecordAppModeFlipInputSchema, RecordAppModeFlipResultSchema } from '../src/schemas/admin.js';
+import { textFieldSchema } from '../src/schemas/text-field.js';
+import { AppModeMarkerSchema, AppModeSchema } from '../src/doc-schemas/system.js';
 
 describe('app-mode flip milestone evidence', () => {
   it('is optional free text up to the internal reason length', () => {

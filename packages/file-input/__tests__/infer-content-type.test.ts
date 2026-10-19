@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inferContentType, ensureFileWithContentType } from '../src/lib/infer-content-type';
+import { inferContentType, ensureFileWithContentType } from '../src/lib/infer-content-type.js';
 
 function makeFile(name: string, type: string): File {
   return new File([new Uint8Array([0])], name, { type });

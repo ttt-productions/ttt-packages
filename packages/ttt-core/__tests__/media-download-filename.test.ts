@@ -15,17 +15,17 @@ import {
   MediaAssetSchema,
   MediaAssetVariantSchema,
   MediaServingAuthorityRecordSchema,
-} from '../src/doc-schemas/media-assets';
-import type { EdgeServingRecord } from '../src/media/edge-serving-contract';
+} from '../src/doc-schemas/media-assets.js';
+import type { EdgeServingRecord } from '../src/media/edge-serving-contract.js';
 import {
   buildContentDispositionFilenameForms,
   extensionForContentType,
   normalizeDownloadFilename,
-} from '../src/media/download-filename';
+} from '../src/media/download-filename.js';
 import {
   DOWNLOAD_FILENAME_FALLBACK_STEM,
   MAX_DOWNLOAD_FILENAME_BYTES,
-} from '../src/constants/media-download';
+} from '../src/constants/media-download.js';
 
 const utf8Len = (s: string) => new TextEncoder().encode(s).length;
 

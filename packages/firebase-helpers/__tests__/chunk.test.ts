@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chunk, FIRESTORE_IN_FILTER_LIMIT } from '../src/utils/chunk';
+import { chunk, FIRESTORE_IN_FILTER_LIMIT } from '../src/utils/chunk.js';
 
 describe('chunk', () => {
   it('returns empty array for empty input', () => {

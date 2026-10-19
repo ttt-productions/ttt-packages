@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateDuration } from '../src/validation/validate-duration';
+import { validateDuration } from '../src/validation/validate-duration.js';
 
 describe('validateDuration', () => {
   it('returns true when duration is under the limit', () => {

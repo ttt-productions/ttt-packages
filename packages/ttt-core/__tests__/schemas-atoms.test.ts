@@ -7,9 +7,9 @@ import {
   workProjectTypeSchema,
   moderationClearableSurfaceSchema,
   storedTitleSchema,
-} from '../src/schemas/atoms';
-import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business-work-project';
-import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content';
+} from '../src/schemas/atoms.js';
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business-work-project.js';
+import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content.js';
 
 describe('atom schemas', () => {
   describe('documentIdSegmentSchema', () => {

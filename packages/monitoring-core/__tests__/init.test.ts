@@ -38,27 +38,27 @@ describe('initMonitoring', () => {
     });
 
     it('getMonitoringAdapter returns the NoopAdapter singleton before any init', async () => {
-        const { getMonitoringAdapter } = await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+        const { getMonitoringAdapter } = await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         expect(getMonitoringAdapter()).toBe(NoopAdapter);
     });
 
     it('initializes with noop provider, enabled: true, installs the NoopAdapter', async () => {
-        const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+        const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         await initMonitoring({ provider: 'noop', enabled: true });
         expect(getMonitoringAdapter()).toBe(NoopAdapter);
     });
 
     it('initializes with noop provider, enabled: false, installs the NoopAdapter', async () => {
-        const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+        const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         await initMonitoring({ provider: 'noop', enabled: false });
         expect(getMonitoringAdapter()).toBe(NoopAdapter);
     });
 
     it('re-init with same options is a no-op (does not swap the adapter reference)', async () => {
-        const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
+        const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
         const opts = { provider: 'noop' as const };
         await initMonitoring(opts);
         const first = getMonitoringAdapter();
@@ -67,16 +67,16 @@ describe('initMonitoring', () => {
     });
 
     it('re-init with different options reinitializes and ends on the noop adapter', async () => {
-        const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+        const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         await initMonitoring({ provider: 'noop', environment: 'test' });
         await initMonitoring({ provider: 'noop', environment: 'prod' });
         expect(getMonitoringAdapter()).toBe(NoopAdapter);
     });
 
     it('force=true reinitializes even with same options and keeps the noop adapter installed', async () => {
-        const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+        const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         const opts = { provider: 'noop' as const };
         await initMonitoring(opts);
         await initMonitoring(opts, true);
@@ -84,7 +84,7 @@ describe('initMonitoring', () => {
     });
 
     it('setMonitoringAdapter installs the given adapter and getMonitoringAdapter returns it', async () => {
-        const { getMonitoringAdapter, setMonitoringAdapter } = await import('../src/init');
+        const { getMonitoringAdapter, setMonitoringAdapter } = await import('../src/init.js');
         const fake = {
             init: vi.fn(),
             captureException: vi.fn(),
@@ -98,8 +98,8 @@ describe('initMonitoring', () => {
 
     it('resetMonitoringAdapter restores the NoopAdapter singleton', async () => {
         const { getMonitoringAdapter, setMonitoringAdapter, resetMonitoringAdapter } =
-            await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+            await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         const fake = {
             init: vi.fn(),
             captureException: vi.fn(),
@@ -115,8 +115,8 @@ describe('initMonitoring', () => {
 
     it('initMonitoring after setMonitoringAdapter re-installs the configured adapter (no stale-options short circuit)', async () => {
         const { initMonitoring, getMonitoringAdapter, setMonitoringAdapter } =
-            await import('../src/init');
-        const { NoopAdapter } = await import('../src/adapters/noop');
+            await import('../src/init.js');
+        const { NoopAdapter } = await import('../src/adapters/noop.js');
         const fake = {
             init: vi.fn(),
             captureException: vi.fn(),
@@ -135,8 +135,8 @@ describe('initMonitoring', () => {
         const prev = process.env.NEXT_PUBLIC_USE_EMULATORS;
         process.env.NEXT_PUBLIC_USE_EMULATORS = 'true';
         try {
-            const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-            const { NoopAdapter } = await import('../src/adapters/noop');
+            const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+            const { NoopAdapter } = await import('../src/adapters/noop.js');
             await initMonitoring({ provider: 'sentry', enabled: true });
             expect(getMonitoringAdapter()).toBe(NoopAdapter);
         } finally {
@@ -149,8 +149,8 @@ describe('initMonitoring', () => {
         const prev = process.env.FUNCTIONS_EMULATOR;
         process.env.FUNCTIONS_EMULATOR = 'true';
         try {
-            const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-            const { NoopAdapter } = await import('../src/adapters/noop');
+            const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+            const { NoopAdapter } = await import('../src/adapters/noop.js');
             await initMonitoring({ provider: 'sentry-node', enabled: true });
             expect(getMonitoringAdapter()).toBe(NoopAdapter);
         } finally {
@@ -170,8 +170,8 @@ describe('initMonitoring — the DSN is the only switch', () => {
         const prev = process.env.NEXT_PUBLIC_SENTRY_ENABLED;
         process.env.NEXT_PUBLIC_SENTRY_ENABLED = 'false';
         try {
-            const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
-            const { NoopAdapter } = await import('../src/adapters/noop');
+            const { initMonitoring, getMonitoringAdapter } = await import('../src/init.js');
+            const { NoopAdapter } = await import('../src/adapters/noop.js');
             await initMonitoring({ provider: 'sentry', dsn: DSN });
             expect(getMonitoringAdapter()).not.toBe(NoopAdapter);
             expect(browserSdk.init).toHaveBeenCalledTimes(1);
@@ -182,7 +182,7 @@ describe('initMonitoring — the DSN is the only switch', () => {
     });
 
     it('a provider with no DSN initializes no SDK', async () => {
-        const { initMonitoring } = await import('../src/init');
+        const { initMonitoring } = await import('../src/init.js');
         await initMonitoring({ provider: 'sentry-node' });
         expect(nodeSdk.init).not.toHaveBeenCalled();
     });
@@ -198,7 +198,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
         ['sentry' as const, browserSdk],
         ['sentry-node' as const, nodeSdk],
     ])('passes beforeSend, beforeSendTransaction, and the integration options into the %s SDK init', async (provider, sdk) => {
-        const { initMonitoring } = await import('../src/init');
+        const { initMonitoring } = await import('../src/init.js');
         const beforeSend = vi.fn((event) => event);
         const beforeSendTransaction = vi.fn((event) => event);
         const integrations = [{ name: 'Dedupe' }];
@@ -214,7 +214,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
     });
 
     it('leaves out of the SDK init every hook the caller did not set', async () => {
-        const { initMonitoring } = await import('../src/init');
+        const { initMonitoring } = await import('../src/init.js');
         await initMonitoring({ provider: 'sentry-node', dsn: DSN });
         const sdkOptions = nodeSdk.init.mock.calls[0][0];
         for (const key of ['beforeSend', 'beforeSendTransaction', 'defaultIntegrations', 'integrations', 'tracesSampleRate']) {
@@ -226,9 +226,9 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
         ['sentry' as const, browserSdk],
         ['sentry-node' as const, nodeSdk],
     ])('a %s capture issued while the SDK loads is delivered after the SDK init, not dropped', async (provider, sdk) => {
-        const { initMonitoring, captureException, captureMessage } = await import('../src/init').then(async (init) => ({
+        const { initMonitoring, captureException, captureMessage } = await import('../src/init.js').then(async (init) => ({
             ...init,
-            ...(await import('../src/api')),
+            ...(await import('../src/api.js')),
         }));
         const early = new Error('during startup');
 
@@ -245,7 +245,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
     });
 
     it('re-initializes when only a function-valued option changes', async () => {
-        const { initMonitoring } = await import('../src/init');
+        const { initMonitoring } = await import('../src/init.js');
         const first = vi.fn((event) => event);
         const second = vi.fn(() => null);
         await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend: first });
@@ -256,7 +256,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
     });
 
     it('does not re-initialize for the same options, hook references included', async () => {
-        const { initMonitoring } = await import('../src/init');
+        const { initMonitoring } = await import('../src/init.js');
         const beforeSend = vi.fn((event) => event);
         await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend, integrations: [] });
         await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend, integrations: [] });

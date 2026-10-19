@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
+import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections.js';
 
 describe('COLLECTION_REFS', () => {
   describe('Top-level collection refs', () => {

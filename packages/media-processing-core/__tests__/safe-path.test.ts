@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeKey, safeOutputPathFor } from '../src/utils/safe-path';
+import { sanitizeKey, safeOutputPathFor } from '../src/utils/safe-path.js';
 
 describe('sanitizeKey', () => {
   it('passes through a safe alphanumeric key', () => {

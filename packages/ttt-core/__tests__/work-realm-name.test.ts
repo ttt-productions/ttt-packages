@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { workRealmNameReservationKey } from '../src/utils/work-realm-name';
+import { workRealmNameReservationKey } from '../src/utils/work-realm-name.js';
 import {
   CheckRealmNameAvailableInputSchema,
   CreateWorkProjectInputSchema,
   UpdateWorkRealmDetailsInputSchema,
   realmWorkingTitleSchema,
-} from '../src/schemas/work-project-management';
-import { documentIdSegmentSchema } from '../src/schemas/atoms';
-import { validateHallContentTextFields } from '../src/utils/hall-content';
+} from '../src/schemas/work-project-management.js';
+import { documentIdSegmentSchema } from '../src/schemas/atoms.js';
+import { validateHallContentTextFields } from '../src/utils/hall-content.js';
 
 describe('workRealmNameReservationKey', () => {
   it('reserves one name however it is cased or padded', () => {

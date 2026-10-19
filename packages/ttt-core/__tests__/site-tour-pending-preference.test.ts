@@ -11,7 +11,7 @@ import {
   SiteTourPendingPreferenceSchema,
   UpdateSiteTourPreferenceInputSchema,
   type SiteTourPendingPreference,
-} from '../src/schemas/users';
+} from '../src/schemas/users.js';
 import {
   siteTourPendingStorageKey,
   SITE_TOUR_PENDING_CHANGE_EVENT,
@@ -21,8 +21,8 @@ import {
   TEXT_SIZE_CHANGE_EVENT,
   REDUCED_MOTION_CHANGE_EVENT,
   MASCOT_HIDDEN_CHANGE_EVENT,
-} from '../src/constants/storage-keys';
-import { SITE_TOUR_CURRENT_VERSION } from '../src/constants/business-user';
+} from '../src/constants/storage-keys.js';
+import { SITE_TOUR_CURRENT_VERSION } from '../src/constants/business-user.js';
 
 const envelope = {
   schemaVersion: 1 as const,

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { CreateWorkProjectAuditionVariablesSchema } from '../src/upload-variables/create-work-project-audition-variables';
-import { CreateAdminAuditionVariablesSchema } from '../src/upload-variables/create-admin-audition-variables';
-import { CreateCommissionVariablesSchema } from '../src/upload-variables/create-commission-variables';
-import { MAX_SPONSORED_AUDITION_AMOUNT_USD } from '../src/constants/business-content';
+import { CreateWorkProjectAuditionVariablesSchema } from '../src/upload-variables/create-work-project-audition-variables.js';
+import { CreateAdminAuditionVariablesSchema } from '../src/upload-variables/create-admin-audition-variables.js';
+import { CreateCommissionVariablesSchema } from '../src/upload-variables/create-commission-variables.js';
+import { MAX_SPONSORED_AUDITION_AMOUNT_USD } from '../src/constants/business-content.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const file = new Blob(['x']);

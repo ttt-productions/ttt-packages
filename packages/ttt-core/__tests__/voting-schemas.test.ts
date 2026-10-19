@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VoteForAuditionEntryInputSchema } from '../src/schemas/voting';
+import { VoteForAuditionEntryInputSchema } from '../src/schemas/voting.js';
 
 describe('VoteForAuditionEntryInputSchema', () => {
   it('accepts the audition and the entry being voted for', () => {

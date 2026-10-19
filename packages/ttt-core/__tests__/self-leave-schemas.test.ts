@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   StakeShareOperationSchema,
   PublicStakeShareOperationSchema,
-} from '../src/schemas/stake-share-operation';
-import { LeaveWorkProjectInputSchema } from '../src/schemas/work-project-management';
-import { GuildmateUserSchema } from '../src/doc-schemas/work-project';
+} from '../src/schemas/stake-share-operation.js';
+import { LeaveWorkProjectInputSchema } from '../src/schemas/work-project-management.js';
+import { GuildmateUserSchema } from '../src/doc-schemas/work-project.js';
 
 describe('self-leave contract', () => {
   it('StakeShareOperationSchema accepts an internal depart op', () => {

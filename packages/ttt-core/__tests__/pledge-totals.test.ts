@@ -4,8 +4,8 @@ import {
   isPledgePaymentCounted,
   pledgePaymentContributionOf,
   pledgePaymentTotalsOf,
-} from '../src/utils/pledge-totals';
-import { PledgePaymentSchema } from '../src/doc-schemas/payments';
+} from '../src/utils/pledge-totals.js';
+import { PledgePaymentSchema } from '../src/doc-schemas/payments.js';
 
 const refunded = { amount: 1000, refundedAmount: 400, disputeLostAmount: 0, netAmount: 600 };
 const disputeLost = { amount: 2500, refundedAmount: 0, disputeLostAmount: 2500, netAmount: 0 };

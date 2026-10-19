@@ -109,6 +109,17 @@ npx vitest run --project boundary test/boundary/package-imports.test.ts
 be (`'../src/x'` → `'../src/x.js'`); the fix is that specifier, never an allowlist entry.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
+### 7. Every package code file is in the one Prettier format
+**Rules:** QUALITY-006. Prettier formats package source and tests from the root `.prettierrc.json`;
+`eslint-config-prettier` is the last entry of `eslint.config.mjs`.
+```bash
+npm run format:check
+rg -n "prettier-ignore" packages -g '*.ts' -g '*.tsx' -g '*.js' -g '*.mjs' -g '*.cjs'
+```
+**Expected:** the first passes. Every line the second prints carries its reason; one that does not is
+the finding.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
 ## Common failure patterns
 
 - An app's collection name, origin id, or copy string added to a generic package "just for now".

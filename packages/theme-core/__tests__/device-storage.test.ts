@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readStoredValue, writeStoredValue, type DeviceStorageArea } from '../src/device-storage';
+import { readStoredValue, writeStoredValue, type DeviceStorageArea } from '../src/device-storage.js';
 
 // Values held for a blocked page live for the module's life, so every test takes its own keys.
 let nextKey = 0;

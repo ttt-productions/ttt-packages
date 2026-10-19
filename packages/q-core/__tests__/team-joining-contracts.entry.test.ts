@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import * as schemas from '../src/schemas';
+import * as schemas from '../src/schemas/index.js';
 
 describe('the invitation wire contracts', () => {
   it('name an answer by the callable, never by a payload field — accept and decline are separate entries', () => {

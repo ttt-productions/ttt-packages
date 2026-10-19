@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { COLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
-import { GALLERY_OWNER_KIND_KEYS, PICTURE_OWNER_KIND_KEYS } from '../src/types/picture-owners';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { GalleryPictureSchema, GallerySummarySchema } from '../src/doc-schemas/gallery';
-import { LandingPageConfigSchema } from '../src/doc-schemas/system';
-import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
-import { PendingMediaTargetSchema } from '../src/doc-schemas/pending-media';
-import { SportLeagueSchema } from '../src/doc-schemas/sport-league';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { COLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
+import { GALLERY_OWNER_KIND_KEYS, PICTURE_OWNER_KIND_KEYS } from '../src/types/picture-owners.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { GalleryPictureSchema, GallerySummarySchema } from '../src/doc-schemas/gallery.js';
+import { LandingPageConfigSchema } from '../src/doc-schemas/system.js';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { PendingMediaTargetSchema } from '../src/doc-schemas/pending-media.js';
+import { SportLeagueSchema } from '../src/doc-schemas/sport-league.js';
 
 const PICTURE = { ownerKind: 'sportLeague', ownerId: 'league-1', position: 'a0', createdAt: 1_700_000_000_000 };
 // A picture id is its upload's staging id, a lowercase UUID.

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { SearchDropdown } from '../src/react/components/search-dropdown';
+import { SearchDropdown } from '../src/react/components/search-dropdown.js';
 
 interface Person {
   name: string;

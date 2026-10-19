@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { checkTextField, textFieldRefusal, textFieldReformatNotice } from '../src/utils/text-field';
-import { textFieldSchema } from '../src/schemas/text-field';
-import { validateHallContentTextFields } from '../src/utils/hall-content';
+import { checkTextField, textFieldRefusal, textFieldReformatNotice } from '../src/utils/text-field.js';
+import { textFieldSchema } from '../src/schemas/text-field.js';
+import { validateHallContentTextFields } from '../src/utils/hall-content.js';
 import {
   ADMIN_DISPATCH_SUBJECT_INPUT,
   FEEDBACK_SUGGESTION_INPUT,
@@ -10,8 +10,8 @@ import {
   USERNAME_INPUT,
   WORK_DESCRIPTION_INPUT,
   WORK_TITLE_INPUT,
-} from '../src/constants/text-fields';
-import { CheckRealmNameAvailableInputSchema } from '../src/schemas/work-project-management';
+} from '../src/constants/text-fields.js';
+import { CheckRealmNameAvailableInputSchema } from '../src/schemas/work-project-management.js';
 
 function schemaReason(schema: ReturnType<typeof textFieldSchema>, text: string): string | undefined {
   const parsed = schema.safeParse(text);

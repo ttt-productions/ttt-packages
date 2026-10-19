@@ -1,21 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { BASKETBALL_FANTASY_POINT_WEIGHTS } from '../src/constants/sports';
+import { BASKETBALL_FANTASY_POINT_WEIGHTS } from '../src/constants/sports.js';
 import {
   COLUMN_CATALOG_KEYS,
   perGameAverage,
   type ColumnCatalog,
   type PerGameColumn,
-} from '../src/sports/column-catalog';
-import { COLUMN_CATALOG_LINE_KINDS, type AnySportAdapter } from '../src/sports/sport-adapter';
+} from '../src/sports/column-catalog.js';
+import { COLUMN_CATALOG_LINE_KINDS, type AnySportAdapter } from '../src/sports/sport-adapter.js';
 import {
   GAMES_PLAYED_COLUMN,
   TEAM_SEASON_BASE_COLUMN,
   TEAM_SEASON_BASE_COLUMNS,
-} from '../src/sports/shared-columns';
-import { SPORT_ADAPTERS, SPORT_ADAPTER_LIST } from '../src/sports/registry';
-import { basketballFantasyPoints } from '../src/sports/basketball-scoring';
-import { LEAGUE_TYPE_KEYS, type LeagueType } from '../src/types/sports';
-import type { StatLineKind } from '../src/types/stats';
+} from '../src/sports/shared-columns.js';
+import { SPORT_ADAPTERS, SPORT_ADAPTER_LIST } from '../src/sports/registry.js';
+import { basketballFantasyPoints } from '../src/sports/basketball-scoring.js';
+import { LEAGUE_TYPE_KEYS, type LeagueType } from '../src/types/sports.js';
+import type { StatLineKind } from '../src/types/stats.js';
 
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;
 

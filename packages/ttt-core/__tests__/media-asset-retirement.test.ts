@@ -9,8 +9,8 @@ import {
   mediaAssetRetirementStanding,
   servingStatusOnRetirementComplete,
   servingStatusOnRetirementRequest,
-} from '../src/doc-schemas/media-assets';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/media-assets.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
 const liveAsset = {
   mediaAssetId: 'asset-1',

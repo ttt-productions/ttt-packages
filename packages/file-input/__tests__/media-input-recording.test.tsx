@@ -3,8 +3,8 @@ import { render, screen, act, cleanup, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { MediaInput } from '../src/react/components/media-input';
-import { RecordDialog, autoStopDelayMs } from '../src/react/components/record-dialog';
+import { MediaInput } from '../src/react/components/media-input.js';
+import { RecordDialog, autoStopDelayMs } from '../src/react/components/record-dialog.js';
 
 vi.mock('@ttt-productions/media-viewer/react', async () =>
   import('../../media-viewer/src/react/index.js'),

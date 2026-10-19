@@ -6,11 +6,11 @@ import {
   SPECIAL_DOCS,
   USER_PROFILE_SUBCOLLECTIONS,
   WAIVER_TEMPLATE_SUBCOLLECTIONS,
-} from '../src/paths/collections';
-import { COLLECTION_GROUPS } from '../src/paths/collection-groups';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
+} from '../src/paths/collections.js';
+import { COLLECTION_GROUPS } from '../src/paths/collection-groups.js';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
 
 const NAME_MAPS: Array<[string, Record<string, string>]> = [
   ['COLLECTIONS', COLLECTIONS],

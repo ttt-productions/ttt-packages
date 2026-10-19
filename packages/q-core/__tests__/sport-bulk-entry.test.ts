@@ -5,24 +5,24 @@
 // the store driver refuses the event that value would have become.
 
 import { describe, it, expect } from 'vitest';
-import { MAX_CURLING_ROUND_POINTS, MAX_STAT_EVENTS_PER_WRITE, CURLING_ROUND_COUNT } from '../src/constants/sports';
-import { countSchema } from '../src/doc-schemas/atoms';
-import { type GameStatEvent } from '../src/doc-schemas/game-stats';
-import { type GameStats } from '../src/doc-schemas/sport-game';
-import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
-import { buildStatEventId } from '../src/ids/stat-event-ids';
-import { RecordGameStatEventsInputSchema, type StatEventSubmission } from '../src/schemas/scoring';
+import { MAX_CURLING_ROUND_POINTS, MAX_STAT_EVENTS_PER_WRITE, CURLING_ROUND_COUNT } from '../src/constants/sports.js';
+import { countSchema } from '../src/doc-schemas/atoms.js';
+import { type GameStatEvent } from '../src/doc-schemas/game-stats.js';
+import { type GameStats } from '../src/doc-schemas/sport-game.js';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
+import { buildStatEventId } from '../src/ids/stat-event-ids.js';
+import { RecordGameStatEventsInputSchema, type StatEventSubmission } from '../src/schemas/scoring.js';
 import {
   BULK_ENTRY_COUNT_MESSAGE,
   BULK_ENTRY_TOO_LARGE_MESSAGE,
   bulkEntryCountField,
   type BulkEntryContext,
   type StatEventDraft,
-} from '../src/sports/bulk-entry';
-import { decideStatEventBatch } from '../src/sports/store-driver';
-import { getSportAdapter } from '../src/sports/registry';
-import { isStatVoid, type StatEventBody } from '../src/sports/scoring';
-import { type AnySportAdapter } from '../src/sports/sport-adapter';
+} from '../src/sports/bulk-entry.js';
+import { decideStatEventBatch } from '../src/sports/store-driver.js';
+import { getSportAdapter } from '../src/sports/registry.js';
+import { isStatVoid, type StatEventBody } from '../src/sports/scoring.js';
+import { type AnySportAdapter } from '../src/sports/sport-adapter.js';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_BULK_EDIT_EVENT_TYPE,
@@ -32,8 +32,8 @@ import {
   FOOTBALL_BULK_EDIT_EVENT_TYPE,
   FOOTBALL_SCORE_EVENT_TYPE_KEYS,
   LEAGUE_TYPE_KEYS,
-} from '../src/types/sports';
-import { STAT_CORRECTION_EVENT_TYPE, STAT_VOID_EVENT_TYPE } from '../src/types/stats';
+} from '../src/types/sports.js';
+import { STAT_CORRECTION_EVENT_TYPE, STAT_VOID_EVENT_TYPE } from '../src/types/stats.js';
 
 const NOW = 1712345678901;
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;

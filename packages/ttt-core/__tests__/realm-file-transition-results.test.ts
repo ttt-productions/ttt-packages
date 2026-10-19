@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import * as wpm from '../src/schemas/work-project-management';
-import { REALM_FILE_NON_CANON_STATUS, REALM_FILE_PENDING_APPROVAL_STATUS } from '../src/doc-schemas/media-assets';
+import * as wpm from '../src/schemas/work-project-management.js';
+import { REALM_FILE_NON_CANON_STATUS, REALM_FILE_PENDING_APPROVAL_STATUS } from '../src/doc-schemas/media-assets.js';
 
 // The Realm gallery and the steward's queue are endless lists an action must patch in place,
 // never reload (FRONTEND-103). Their rows are server projections the client cannot read, so a

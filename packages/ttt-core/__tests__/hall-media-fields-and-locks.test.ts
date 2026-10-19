@@ -8,14 +8,14 @@ import {
   HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS,
   HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS,
   HALL_LIBRARY_TARGET_FIELDS,
-} from '../src/media/hall-library-target-fields';
-import { HALL_SUB_ITEM_LOCKED_STATUSES, isHallSubItemLocked } from '../src/utils/hall-content';
+} from '../src/media/hall-library-target-fields.js';
+import { HALL_SUB_ITEM_LOCKED_STATUSES, isHallSubItemLocked } from '../src/utils/hall-content.js';
 import {
   FullChapterSchema,
   FullTelevisionEpisodeSchema,
   FullTuneTrackSchema,
   PublishedHallItemSchema,
-} from '../src/doc-schemas/content';
+} from '../src/doc-schemas/content.js';
 
 describe('Hall media asset-reference fields', () => {
   it('lists every cover field the cover map writes, once each', () => {

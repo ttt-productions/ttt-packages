@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { startWaveformLoop, drawIdleFrame } from "../src/visualizer";
-import type { AudioVisualizerMode } from "../src/visualizer";
+import { startWaveformLoop, drawIdleFrame } from "../src/visualizer.js";
+import type { AudioVisualizerMode } from "../src/visualizer.js";
 
 type RafCallback = (t: number) => void;
 

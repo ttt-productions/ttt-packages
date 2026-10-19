@@ -3,8 +3,8 @@ import {
   REJECTED_MEDIA_RETENTION_DAYS,
   isRejectedMediaAppealOpen,
   rejectedMediaAppealDeadline,
-} from '../src/constants/retention';
-import { contentViolationActions } from '../src/doc-schemas/moderation';
+} from '../src/constants/retention.js';
+import { contentViolationActions } from '../src/doc-schemas/moderation.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const rejectedAt = 1_000_000;

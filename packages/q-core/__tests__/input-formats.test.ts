@@ -38,7 +38,7 @@ import {
   MIN_REPAIR_REASON_LENGTH,
   MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
   MIN_TEAM_NAME_LENGTH,
-} from '../src/constants/business';
+} from '../src/constants/business.js';
 import {
   ANNOUNCEMENT_MESSAGE_INPUT_FORMAT,
   APP_VERSION_INPUT_FORMAT,
@@ -62,38 +62,38 @@ import {
   TEAM_NAME_INPUT_FORMAT,
   WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
   WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
-} from '../src/input-formats/input-formats';
-import { LeagueTeamContactSchema } from '../src/doc-schemas/league-team';
-import { repairReasonSchema, textFieldSchema } from '../src/doc-schemas/atoms';
+} from '../src/input-formats/input-formats.js';
+import { LeagueTeamContactSchema } from '../src/doc-schemas/league-team.js';
+import { repairReasonSchema, textFieldSchema } from '../src/doc-schemas/atoms.js';
 import {
   AdminUpdateLandingPageInputSchema,
   UpdateAppConfigInputSchema,
-} from '../src/schemas/app-config';
+} from '../src/schemas/app-config.js';
 import {
   AdminUpdateLeagueTeamContactInputSchema,
   AdminUpdateLeagueTeamNameInputSchema,
   CreateTeamGhostPlayerInputSchema,
-} from '../src/schemas/teams';
+} from '../src/schemas/teams.js';
 import {
   contactPhoneSchema,
   displayNameSchema,
   teamInvitationMessageSchema,
   teamJoinRequestMessageSchema,
   teamNameSchema,
-} from '../src/schemas/atoms';
+} from '../src/schemas/atoms.js';
 import {
   gameLocationMemoSchema,
   gameLocationNameSchema,
   gameLocationStreetAddressSchema,
   gameLocationSubLocationSchema,
-} from '../src/schemas/game-locations';
-import { gameMemoSchema } from '../src/schemas/scoring';
-import { leagueDescriptionSchema, leagueTitleSchema } from '../src/schemas/leagues';
-import { scheduleWeekTitleSchema } from '../src/schemas/schedules';
+} from '../src/schemas/game-locations.js';
+import { gameMemoSchema } from '../src/schemas/scoring.js';
+import { leagueDescriptionSchema, leagueTitleSchema } from '../src/schemas/leagues.js';
+import { scheduleWeekTitleSchema } from '../src/schemas/schedules.js';
 import {
   waiverTemplateTextSchema,
   waiverTemplateTitleSchema,
-} from '../src/schemas/waiver-templates';
+} from '../src/schemas/waiver-templates.js';
 
 describe('the repair reason', () => {
   it('is declared from the repair-reason limits, any character and line breaks allowed', () => {

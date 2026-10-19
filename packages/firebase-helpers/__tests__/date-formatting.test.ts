@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { formatDateDisplay } from '../src/firestore-client/date-formatting';
+import { formatDateDisplay } from '../src/firestore-client/date-formatting.js';
 
 // Mock date-fns format so we don't depend on locale/timezone behavior
 vi.mock('date-fns', () => ({

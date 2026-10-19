@@ -4,7 +4,7 @@
 // existing explicit-confirmation style).
 
 import { describe, it, expect } from 'vitest';
-import { RevealCaseEvidenceInputSchema } from '../src/schemas/safety';
+import { RevealCaseEvidenceInputSchema } from '../src/schemas/safety.js';
 
 const CONFIRMATION = 'I confirm I am revealing case evidence under reauth';
 

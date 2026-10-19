@@ -22,7 +22,7 @@ import {
   REALM_FILE_NONE_STATUS,
   REALM_FILE_NON_CANON_STATUS,
   REALM_FILE_CANON_STATUS,
-} from '../src/doc-schemas/media-assets';
+} from '../src/doc-schemas/media-assets.js';
 
 /** A work file's asset, unshared. The realm fields are layered on per-case. */
 const baseWorkFileAsset = {

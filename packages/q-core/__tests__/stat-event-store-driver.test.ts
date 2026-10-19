@@ -3,37 +3,37 @@
 // the events the store then holds.
 
 import { describe, it, expect } from 'vitest';
-import { MAX_STAT_EVENTS_PER_WRITE } from '../src/constants/sports';
-import type { GameStatEvent } from '../src/doc-schemas/game-stats';
-import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
+import { MAX_STAT_EVENTS_PER_WRITE } from '../src/constants/sports.js';
+import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import {
   MAX_SPORT_STAT_EVENT_ID_LENGTH,
   buildStatCorrectionId,
   buildStatEventId,
   buildStatVoidId,
   isSportStatEventId,
-} from '../src/ids/stat-event-ids';
+} from '../src/ids/stat-event-ids.js';
 import {
   RecordGameStatEventsInputSchema,
   StatEventRefusalDetailsSchema,
   type StatEventSubmission,
-} from '../src/schemas/scoring';
+} from '../src/schemas/scoring.js';
 import {
   decideStatEventBatch,
   statEventIdsToRead,
   type StatEventBatch,
   type StatEventBatchDecision,
-} from '../src/sports/store-driver';
-import { getSportAdapter } from '../src/sports/registry';
-import { replayGameStats } from '../src/sports/replay';
+} from '../src/sports/store-driver.js';
+import { getSportAdapter } from '../src/sports/registry.js';
+import { replayGameStats } from '../src/sports/replay.js';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_BULK_EDIT_EVENT_TYPE,
   BASKETBALL_ONE_POINT_EVENT_TYPE,
   BASKETBALL_REBOUND_EVENT_TYPE,
   LEAGUE_TYPE_KEYS,
-} from '../src/types/sports';
-import { STAT_CORRECTION_EVENT_TYPE, STAT_EVENT_REFUSAL_KEYS, STAT_VOID_EVENT_TYPE } from '../src/types/stats';
+} from '../src/types/sports.js';
+import { STAT_CORRECTION_EVENT_TYPE, STAT_EVENT_REFUSAL_KEYS, STAT_VOID_EVENT_TYPE } from '../src/types/stats.js';
 
 const NOW = 1712345678901;
 const [BASKETBALL] = LEAGUE_TYPE_KEYS;

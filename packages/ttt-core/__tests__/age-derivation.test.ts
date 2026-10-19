@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { ageInWholeYears, deriveAgeBracket } from '../src/utils/age-derivation';
+import { ageInWholeYears, deriveAgeBracket } from '../src/utils/age-derivation.js';
 import {
   AGE_ADULT_FLOOR_YEARS,
   AGE_TEEN_FLOOR_YEARS,
   DATE_OF_BIRTH_MIN_YEAR,
-} from '../src/constants/business-user';
+} from '../src/constants/business-user.js';
 import {
   BecomeArtisanCreatorInputSchema,
   DateOfBirthSchema,
   DateOfBirthShapeSchema,
   UpgradeAccountToAdultInputSchema,
-} from '../src/schemas/users';
+} from '../src/schemas/users.js';
 
 const asOf = new Date(Date.UTC(2030, 5, 15, 12)); // 15 June 2030, midday UTC
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { GUIDE_VIDEO_DEFINITIONS, guideVideoSlotId } from '../src/system-slots/guide-videos';
+import { GUIDE_VIDEO_DEFINITIONS, guideVideoSlotId } from '../src/system-slots/guide-videos.js';
 import {
   SYSTEM_SLOTS,
   SystemSlotKindSchema,
@@ -10,27 +10,27 @@ import {
   SYSTEM_SLOT_GROUPS,
   isRequiredVideoSlot,
   systemSlotsByGroup,
-} from '../src/system-slots/system-slots';
-import { HELP_VIDEO_DEFINITIONS, helpVideoSlotId } from '../src/system-slots/help-videos';
-import { SystemContentTargetInfoSchema, parseTargetInfo } from '../src/media/target-info';
-import { FileOriginSchema } from '../src/media/file-origin';
-import { fileOriginRowLabel } from '../src/media/upload-tray-display';
-import { DomainEventSchema } from '../src/media/domain-events';
-import { ClearSystemVideoSlotInputSchema, UpdateSystemUidSlotInputSchema } from '../src/schemas/admin';
-import { MAX_SYSTEM_UID_LIST } from '../src/constants/business-admin';
+} from '../src/system-slots/system-slots.js';
+import { HELP_VIDEO_DEFINITIONS, helpVideoSlotId } from '../src/system-slots/help-videos.js';
+import { SystemContentTargetInfoSchema, parseTargetInfo } from '../src/media/target-info.js';
+import { FileOriginSchema } from '../src/media/file-origin.js';
+import { fileOriginRowLabel } from '../src/media/upload-tray-display.js';
+import { DomainEventSchema } from '../src/media/domain-events.js';
+import { ClearSystemVideoSlotInputSchema, UpdateSystemUidSlotInputSchema } from '../src/schemas/admin.js';
+import { MAX_SYSTEM_UID_LIST } from '../src/constants/business-admin.js';
 import {
   UploadSystemContentVariablesSchema,
-} from '../src/upload-variables/upload-system-content-variables';
+} from '../src/upload-variables/upload-system-content-variables.js';
 import {
   EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT,
   SystemUidSlotsDocumentSchema,
   SystemVideoSlotsDocumentSchema,
-} from '../src/doc-schemas/system-slots';
-import { MediaAssetOwnerTypeSchema, MediaPublicationKindSchema } from '../src/doc-schemas/media-assets';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTIONS } from '../src/paths/collections';
-import type { AuditEventType } from '../src/types/audit';
+} from '../src/doc-schemas/system-slots.js';
+import { MediaAssetOwnerTypeSchema, MediaPublicationKindSchema } from '../src/doc-schemas/media-assets.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTIONS } from '../src/paths/collections.js';
+import type { AuditEventType } from '../src/types/audit.js';
 
 const KEBAB_CASE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 

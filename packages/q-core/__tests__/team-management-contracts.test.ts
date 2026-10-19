@@ -7,10 +7,10 @@ import { describe, it, expect } from 'vitest';
 import {
   GhostPlayerStatsOperationSchema,
   StatsOperationSchema,
-} from '../src/doc-schemas/stats-operation';
-import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
-import { buildGameDeletionOperationId, buildGhostLinkOperationId } from '../src/ids/stats-operation-ids';
+} from '../src/doc-schemas/stats-operation.js';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
+import { buildGameDeletionOperationId, buildGhostLinkOperationId } from '../src/ids/stats-operation-ids.js';
 import {
   AdminDeleteLeagueTeamInputSchema,
   AdminLinkClosedLeagueGhostPlayerInputSchema,
@@ -22,8 +22,8 @@ import {
   DeleteTeamMembershipInputSchema,
   LinkGhostPlayerInputSchema,
   UpdateTeamMembershipRoleInputSchema,
-} from '../src/schemas/teams';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/schemas/teams.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   CAPTAIN_TEAM_ROLES,
   MEMBER_ASSIGNABLE_TEAM_ROLES,
@@ -31,7 +31,7 @@ import {
   TEAM_CO_CAPTAIN_ROLE,
   TEAM_PLAYER_ROLE,
   TEAM_ROLE_KEYS,
-} from '../src/types/unions';
+} from '../src/types/unions.js';
 
 const GHOST = 'ghost_1760000000000_abcd';
 const REASON = 'Added by mistake';

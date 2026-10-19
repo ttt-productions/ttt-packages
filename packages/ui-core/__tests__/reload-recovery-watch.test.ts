@@ -3,7 +3,7 @@
 // prevented, so monitoring still captures each one. Any other failure records nothing.
 
 import { describe, it, expect, vi } from 'vitest';
-import { createReloadRecoveryWatch, type ReloadRecoveryTarget } from '../src/browser/reload-recovery-watch';
+import { createReloadRecoveryWatch, type ReloadRecoveryTarget } from '../src/browser/reload-recovery-watch.js';
 
 const DISCONNECT = new DOMException('Connection to Indexed Database server lost. Refresh the page to try again', 'UnknownError');
 

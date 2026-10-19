@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateSize } from '../src/validation/validate-size';
+import { validateSize } from '../src/validation/validate-size.js';
 
 describe('validateSize', () => {
   it('returns true when bytes are under the limit', () => {

@@ -5,7 +5,7 @@ import {
   buildSportGameId,
   isByeTeamId,
   isGhostUserId,
-} from '../src/ids/minted-ids';
+} from '../src/ids/minted-ids.js';
 import {
   COMPOUND_ID_SEPARATOR,
   buildLeagueFreeAgentId,
@@ -14,7 +14,7 @@ import {
   parseLeagueFreeAgentId,
   parseTeamMembershipId,
   parseSignedWaiverId,
-} from '../src/ids/compound-ids';
+} from '../src/ids/compound-ids.js';
 
 const LEAGUE = 'Zx9Qw3Er7Ty1Ui5Op2As';
 const TEAM = 'aB3dE5gH7jK9mN1pQ3sT';

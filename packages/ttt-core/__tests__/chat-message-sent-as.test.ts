@@ -3,7 +3,7 @@
 // ordinary one. Readers trust only that recorded value — a missing or malformed one is ordinary.
 
 import { describe, it, expect } from 'vitest';
-import { ChatMessageV1Schema, isChatMessageSentAsAdmin } from '../src/doc-schemas/messaging';
+import { ChatMessageV1Schema, isChatMessageSentAsAdmin } from '../src/doc-schemas/messaging.js';
 
 const ordinary = { senderId: 'u_1', text: 'hello', createdAt: 1 };
 

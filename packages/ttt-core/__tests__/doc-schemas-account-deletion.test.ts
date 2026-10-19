@@ -11,7 +11,7 @@ import {
   ACTIVE_DELETION_REQUEST_STATUSES,
   MID_SCRUB_DELETION_REQUEST_STATUSES,
   isActiveDeletionRequest,
-} from '../src/doc-schemas/account-deletion';
+} from '../src/doc-schemas/account-deletion.js';
 
 const ALL_STATUSES = AccountDeletionRequestStatusSchema.options;
 

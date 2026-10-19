@@ -11,7 +11,7 @@ describe('mobile-core env', () => {
 
   it('isBrowser is true when window and document exist (jsdom)', async () => {
     // jsdom sets window and document
-    const mod = await import('../src/env');
+    const mod = await import('../src/env.js');
     expect(mod.isBrowser).toBe(true);
   });
 
@@ -19,7 +19,7 @@ describe('mobile-core env', () => {
     vi.resetModules();
     // Ensure the property is absent for this evaluation
     delete (window as any).visualViewport;
-    const mod = await import('../src/env');
+    const mod = await import('../src/env.js');
     expect(mod.hasVisualViewport).toBe(false);
   });
 
@@ -29,20 +29,20 @@ describe('mobile-core env', () => {
       configurable: true,
       value: { width: 320, height: 480 } as unknown as VisualViewport,
     });
-    const mod = await import('../src/env');
+    const mod = await import('../src/env.js');
     expect(mod.hasVisualViewport).toBe(true);
     // Cleanup so subsequent tests see jsdom default again
     delete (window as any).visualViewport;
   });
 
   it('isIOS is false with default jsdom userAgent', async () => {
-    const mod = await import('../src/env');
+    const mod = await import('../src/env.js');
     // jsdom default UA does not contain iPhone/iPad/iPod
     expect(mod.isIOS).toBe(false);
   });
 
   it('isSafari is false with default jsdom userAgent', async () => {
-    const mod = await import('../src/env');
+    const mod = await import('../src/env.js');
     // jsdom default UA is not Safari
     expect(mod.isSafari).toBe(false);
   });
@@ -52,7 +52,7 @@ describe('mobile-core env', () => {
     const originalWindow = global.window;
     // @ts-expect-error - window is typed non-optional; deleting it simulates a non-browser environment
     delete global.window;
-    const mod = await import('../src/env');
+    const mod = await import('../src/env.js');
     expect(mod.isBrowser).toBe(false);
     // Restore
     global.window = originalWindow;

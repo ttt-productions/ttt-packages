@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { FullCommissionListingSchema, AuditionSchema } from '../src/doc-schemas/commissions';
-import { GuildInviteConversationSchema } from '../src/doc-schemas/messaging';
-import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project';
+import { FullCommissionListingSchema, AuditionSchema } from '../src/doc-schemas/commissions.js';
+import { GuildInviteConversationSchema } from '../src/doc-schemas/messaging.js';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
 
 const offered = (schema: { shape: Record<string, { safeParse: (v: unknown) => { success: boolean } }> }) =>
   schema.shape.stakeSharesOffered;
@@ -36,8 +36,8 @@ describe('stored stake-share offers are whole, positive numbers', () => {
 
 describe('one stake-share offer constraint', () => {
   it('every offer site uses the one atom', async () => {
-    const { stakeSharesOfferedSchema } = await import('../src/schemas/atoms');
-    const { CommissionPostingTargetInfoSchema } = await import('../src/media/target-info');
+    const { stakeSharesOfferedSchema } = await import('../src/schemas/atoms.js');
+    const { CommissionPostingTargetInfoSchema } = await import('../src/media/target-info.js');
     expect(FullCommissionListingSchema.shape.stakeSharesOffered).toBe(stakeSharesOfferedSchema);
     expect(CommissionPostingTargetInfoSchema.shape.stakeSharesOffered).toBe(stakeSharesOfferedSchema);
     for (const bad of [0, 1.5, MAX_WORK_PROJECT_STAKE_SHARES + 1]) {

@@ -9,16 +9,16 @@ import {
   MIN_DISPLAY_NAME_LENGTH,
   MIN_TEAM_NAME_LENGTH,
   TEAM_CREATION_CUTOFF_DAYS,
-} from '../src/constants/business';
-import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/league-team';
-import { MembershipRosterSyncSchema } from '../src/doc-schemas/membership-roster-sync';
-import { SignedWaiverSchema } from '../src/doc-schemas/waivers-and-hardware';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
-import { buildGhostUserId, buildGhostUserIdForRequest, isGhostUserId } from '../src/ids/minted-ids';
-import { buildTeamMembershipId, parseTeamMembershipId } from '../src/ids/compound-ids';
-import { COLLECTIONS } from '../src/paths/collections';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
+} from '../src/constants/business.js';
+import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { MembershipRosterSyncSchema } from '../src/doc-schemas/membership-roster-sync.js';
+import { SignedWaiverSchema } from '../src/doc-schemas/waivers-and-hardware.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
+import { buildGhostUserId, buildGhostUserIdForRequest, isGhostUserId } from '../src/ids/minted-ids.js';
+import { buildTeamMembershipId, parseTeamMembershipId } from '../src/ids/compound-ids.js';
+import { COLLECTIONS } from '../src/paths/collections.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
 import {
   AdminCreateLeagueTeamInputSchema,
   AdminRetryLeagueTeamRosterSyncInputSchema,
@@ -28,14 +28,14 @@ import {
   CreateTeamGhostPlayerInputSchema,
   GetLeagueJoinWarningInputSchema,
   GetLeagueJoinWarningResultSchema,
-} from '../src/schemas/teams';
+} from '../src/schemas/teams.js';
 import {
   AdminCreateSignedWaiverInputSchema,
   CreateSignedWaiverInputSchema,
   GetSignedWaiverFileInputSchema,
-} from '../src/schemas/signed-waivers';
-import { AdminStartUploadInputSchema } from '../src/schemas/uploads';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/schemas/signed-waivers.js';
+import { AdminStartUploadInputSchema } from '../src/schemas/uploads.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   ACTIVE_TEAM_MEMBERSHIP_STATUS,
   APPROVED_TEAM_INVITATION_STATUS,
@@ -56,9 +56,9 @@ import {
   TEAM_MEMBERSHIP_STATUS_KEYS,
   WAIVER_WITNESS_AUTHORITY_KEYS,
   isOpenGameStatus,
-} from '../src/types/unions';
-import { addCalendarDays, toLeagueDayKey } from '../src/utils/league-calendar';
-import { isTeamCreationOpen, teamCreationLastDay } from '../src/utils/team-creation';
+} from '../src/types/unions.js';
+import { addCalendarDays, toLeagueDayKey } from '../src/utils/league-calendar.js';
+import { isTeamCreationOpen, teamCreationLastDay } from '../src/utils/team-creation.js';
 import {
   LEAGUE_JOIN_WARNING_ACTION_KEYS,
   LEAGUE_JOIN_WARNING_COPY,
@@ -68,8 +68,8 @@ import {
   formatLeagueJoinWarning,
   leagueJoinWarningActedOnSchema,
   leagueJoinWarningFindingSchema,
-} from '../src/utils/league-join-warning';
-import type { LeagueJoinWarningFacts } from '../src/utils/league-join-warning';
+} from '../src/utils/league-join-warning.js';
+import type { LeagueJoinWarningFacts } from '../src/utils/league-join-warning.js';
 
 const NOW = 1_712_345_678_901;
 const STAGING_PATH = 'uploads/waiver-signature/signer-1/2f1c0a3e-8b1d-4c6f-9a2e-5d7b3c1e9f00';

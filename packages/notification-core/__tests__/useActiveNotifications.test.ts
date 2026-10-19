@@ -9,13 +9,17 @@ vi.mock('firebase/firestore', () => ({
   orderBy: (field: string, dir: string) => ({ field, dir }),
   where: (field: string, op: string, value: unknown) => ({ field, op, value }),
 }));
-vi.mock('@ttt-productions/query-core/react', async (importOriginal) => ({
-  useFirestorePaginated: mocks.useFirestorePaginated,
-  useReadRetryState: (await importOriginal<typeof import('@ttt-productions/query-core/react')>()).useReadRetryState,
-}));
+vi.mock('@ttt-productions/query-core/react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@ttt-productions/query-core/react')>();
+  return {
+    useFirestorePaginated: mocks.useFirestorePaginated,
+    useReadRetryState: actual.useReadRetryState,
+    paginatedPageKey: actual.paginatedPageKey,
+  };
+});
 
-import { useActiveNotifications } from '../src/react/hooks/useActiveNotifications';
-import type { NotificationSystemConfig } from '../src/types';
+import { useActiveNotifications } from '../src/react/hooks/useActiveNotifications.js';
+import type { NotificationSystemConfig } from '../src/types.js';
 
 const config: NotificationSystemConfig = {
   categories: {

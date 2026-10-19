@@ -6,10 +6,10 @@ import {
   validateMentionCorrespondence,
   SquareStreetzPostMentionSchema,
   SquareStreetzPostMentionsSchema,
-} from '../src/media/atoms';
-import { CreateSquareStreetzTextPostInputSchema } from '../src/schemas/social';
-import { SquareStreetzPostVariablesSchema } from '../src/upload-variables/square-streetz-post-variables';
-import { MAX_MENTIONS } from '../src/constants/business-content';
+} from '../src/media/atoms.js';
+import { CreateSquareStreetzTextPostInputSchema } from '../src/schemas/social.js';
+import { SquareStreetzPostVariablesSchema } from '../src/upload-variables/square-streetz-post-variables.js';
+import { MAX_MENTIONS } from '../src/constants/business-content.js';
 
 const mention = (placeholder: string, id = 'u1') => ({ placeholder, type: 'user' as const, id });
 

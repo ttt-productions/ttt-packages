@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from '../src/react/components/dialog';
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from '../src/react/components/sheet';
-import { ConsequenceDialog } from '../src/react/components/consequence-dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger } from '../src/react/components/dialog.js';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '../src/react/components/sheet.js';
+import { ConsequenceDialog } from '../src/react/components/consequence-dialog.js';
 
 type CloseFocus = (event: Event) => void;
 

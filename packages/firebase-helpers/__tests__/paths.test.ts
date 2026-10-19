@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { joinPath, colPath, docPath } from '../src/firestore/paths';
+import { joinPath, colPath, docPath } from '../src/firestore/paths.js';
 
 describe('joinPath', () => {
   it('joins segments with /', () => {

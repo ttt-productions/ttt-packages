@@ -3,12 +3,12 @@
 // reaches the staging call.
 
 import { describe, it, expect } from 'vitest';
-import { PICTURE_ORIGIN_KEYS } from '../src/media/file-origins';
-import { PictureUploadVariablesSchema } from '../src/upload-variables/picture-upload-variables';
+import { PICTURE_ORIGIN_KEYS } from '../src/media/file-origins.js';
+import { PictureUploadVariablesSchema } from '../src/upload-variables/picture-upload-variables.js';
 import {
   SignHardwareContractVariablesSchema,
-} from '../src/upload-variables/sign-hardware-contract-variables';
-import { SignWaiverVariablesSchema } from '../src/upload-variables/sign-waiver-variables';
+} from '../src/upload-variables/sign-hardware-contract-variables.js';
+import { SignWaiverVariablesSchema } from '../src/upload-variables/sign-waiver-variables.js';
 
 const file = new File(['x'], 'picture.png', { type: 'image/png' });
 

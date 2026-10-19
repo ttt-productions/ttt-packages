@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ForceDisplayNameResetInputSchema } from '../src/schemas/users';
-import { DISPLAY_NAME_RESET_REASON_INPUT } from '../src/constants/text-fields';
+import { ForceDisplayNameResetInputSchema } from '../src/schemas/users.js';
+import { DISPLAY_NAME_RESET_REASON_INPUT } from '../src/constants/text-fields.js';
 
 describe('force display-name reset input', () => {
   it('takes the account alone: the admin note is optional', () => {

@@ -4,8 +4,8 @@ import {
   UpdateInviteConfirmationInputSchema,
   UpdateGuildInviteStakeSharesInputSchema,
   UpdateAdminDispatchStatusResultSchema,
-} from '../src/schemas/admin-dispatch-actions';
-import * as adminDispatchActions from '../src/schemas/admin-dispatch-actions';
+} from '../src/schemas/admin-dispatch-actions.js';
+import * as adminDispatchActions from '../src/schemas/admin-dispatch-actions.js';
 
 describe('UpdateAdminDispatchStatusInputSchema', () => {
   it('accepts a valid input with closed_resolved', () => {

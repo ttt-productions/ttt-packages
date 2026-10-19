@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useViewportHeightVars } from '../src/react/viewport/useViewportHeightVars';
+import { useViewportHeightVars } from '../src/react/viewport/useViewportHeightVars.js';
 
 afterEach(() => {
   document.documentElement.style.removeProperty('--app-vh');

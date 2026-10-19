@@ -24,23 +24,23 @@ import {
   ADMIN_DISPATCH_STATUS_LABELS,
   CHILD_SAFETY_CASE_WORK_STATUS_LABELS,
   NCII_CASE_STATUS_LABELS,
-} from '../src/constants/admin-labels';
-import { ChildSafetyWorkStatusSchema } from '../src/doc-schemas/safety/case';
-import { NciiInternalStatusSchema } from '../src/doc-schemas/safety/foundation';
-import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms';
-import { AdminDispatchSchema } from '../src/doc-schemas/messaging';
-import { guildInviteConversationStatusSchema } from '../src/schemas/atoms';
-import { CommissionProposalStatusSchema } from '../src/schemas/commissions';
-import { InviteSourceSchema } from '../src/schemas/work-project-management';
-import { FullChapterSchema, FullTuneTrackSchema, FullTelevisionEpisodeSchema } from '../src/doc-schemas/content';
-import { AuditionSchema } from '../src/doc-schemas/commissions';
-import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
-import { FEEDBACK_TYPES } from '../src/constants/business-admin';
+} from '../src/constants/admin-labels.js';
+import { ChildSafetyWorkStatusSchema } from '../src/doc-schemas/safety/case.js';
+import { NciiInternalStatusSchema } from '../src/doc-schemas/safety/foundation.js';
+import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms.js';
+import { AdminDispatchSchema } from '../src/doc-schemas/messaging.js';
+import { guildInviteConversationStatusSchema } from '../src/schemas/atoms.js';
+import { CommissionProposalStatusSchema } from '../src/schemas/commissions.js';
+import { InviteSourceSchema } from '../src/schemas/work-project-management.js';
+import { FullChapterSchema, FullTuneTrackSchema, FullTelevisionEpisodeSchema } from '../src/doc-schemas/content.js';
+import { AuditionSchema } from '../src/doc-schemas/commissions.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
+import { FEEDBACK_TYPES } from '../src/constants/business-admin.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CONTENT_TEXT_FIELDS,
-} from '../src/constants/business-content';
-import { HallContentTextSurfaceSchema } from '../src/doc-schemas/content';
+} from '../src/constants/business-content.js';
+import { HallContentTextSurfaceSchema } from '../src/doc-schemas/content.js';
 
 describe('USER_FACING_REASON_OPTIONS', () => {
   it('carries the full canonical code set', () => {

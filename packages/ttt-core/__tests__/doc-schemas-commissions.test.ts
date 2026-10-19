@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CommissionProposalSchema, FullCommissionListingSchema } from '../src/doc-schemas/commissions';
+import { CommissionProposalSchema, FullCommissionListingSchema } from '../src/doc-schemas/commissions.js';
 
 const validListing = {
   commissionListingId: 'cl1',

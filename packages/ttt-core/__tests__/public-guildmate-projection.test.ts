@@ -11,11 +11,11 @@ import {
   GUILDMATE_USER_PUBLIC_FIELDS,
   buildPublicGuildmateUserPayload,
   publicGuildmateUserPayloadEqual,
-} from '../src/types/work-project';
+} from '../src/types/work-project.js';
 import {
   FOUNDING_WORK_HOLDER_TYPE,
   PublicGuildmateUserSchema,
-} from '../src/doc-schemas/work-project';
+} from '../src/doc-schemas/work-project.js';
 
 const guildmate = {
   uid: 'u1',

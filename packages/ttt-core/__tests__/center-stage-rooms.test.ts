@@ -6,7 +6,7 @@ import {
   CENTER_STAGE_ROOMS,
   centerStageRoomEnterLabel,
   type CenterStageRoomKey,
-} from '../src/constants/center-stage-rooms';
+} from '../src/constants/center-stage-rooms.js';
 
 const EXPECTED_KEYS: readonly CenterStageRoomKey[] = ['hall', 'square', 'audition'];
 

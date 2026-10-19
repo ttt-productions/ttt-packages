@@ -6,9 +6,9 @@ import {
   realmCoverSubmitRule,
   type WorkPublishReadinessGuildmate,
   type WorkPublishReadinessInput,
-} from '../src/utils/work-publish-readiness';
-import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project';
-import { FOUNDING_WORK_HOLDER_TYPE } from '../src/doc-schemas/work-project';
+} from '../src/utils/work-publish-readiness.js';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
+import { FOUNDING_WORK_HOLDER_TYPE } from '../src/doc-schemas/work-project.js';
 
 const steward: WorkPublishReadinessGuildmate = {
   status: 'active',

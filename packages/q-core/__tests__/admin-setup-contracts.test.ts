@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildWaiverTemplateVersionId,
   parseWaiverTemplateVersionId,
-} from '../src/ids/waiver-template-ids';
+} from '../src/ids/waiver-template-ids.js';
 import {
   ACTIVE_LEAGUE_STATUS,
   COMPLETED_GAME_STATUS,
@@ -15,32 +15,32 @@ import {
   OPEN_GAME_STATUS_KEYS,
   OPEN_LEAGUE_STATUS_KEYS,
   UPCOMING_LEAGUE_STATUS,
-} from '../src/types/unions';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/types/unions.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   MAX_GAME_LOCATION_MEMO_LENGTH,
   MAX_WAIVER_TEMPLATE_TEXT_LENGTH,
   MAX_WAIVER_TEMPLATE_TITLE_LENGTH,
-} from '../src/constants/business';
-import { GameLocationSchema } from '../src/doc-schemas/game-location';
-import { WaiverTemplateSchema, WaiverTemplateVersionSchema } from '../src/doc-schemas/waiver-template';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
+} from '../src/constants/business.js';
+import { GameLocationSchema } from '../src/doc-schemas/game-location.js';
+import { WaiverTemplateSchema, WaiverTemplateVersionSchema } from '../src/doc-schemas/waiver-template.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
   AdminCreateGameLocationInputSchema,
   AdminUpdateGameLocationInputSchema,
-} from '../src/schemas/game-locations';
+} from '../src/schemas/game-locations.js';
 import {
   AdminCreateWaiverTemplateInputSchema,
   AdminDeleteWaiverTemplateResultSchema,
   AdminUpdateWaiverTemplateInputSchema,
-} from '../src/schemas/waiver-templates';
+} from '../src/schemas/waiver-templates.js';
 import {
   AdminStatsSchema,
   GetAdminStatsInputSchema,
   GetAdminStatsResultSchema,
-} from '../src/schemas/admin-stats';
-import { COLLECTIONS } from '../src/paths/collections';
+} from '../src/schemas/admin-stats.js';
+import { COLLECTIONS } from '../src/paths/collections.js';
 
 const COUNTS = {
   totalUsers: 478,

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { ThemeProvider, useThemeStorageKey } from '../src/react/theme-provider';
-import { REQUIRED_TOKENS } from '../src/required-tokens';
-import { THEME_NAMES } from '../src/themes';
+import { ThemeProvider, useThemeStorageKey } from '../src/react/theme-provider.js';
+import { REQUIRED_TOKENS } from '../src/required-tokens.js';
+import { THEME_NAMES } from '../src/themes.js';
 
 // `theme-provider.tsx` wraps `next-themes`. Mock it so the test does not
 // depend on next-themes runtime behavior — only on the props theme-core hands it.

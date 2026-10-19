@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
-import { Toast, ToastProvider, ToastViewport, ToastTitle } from '../src/react/components/toast';
+import { Toast, ToastProvider, ToastViewport, ToastTitle } from '../src/react/components/toast.js';
 
 function renderToast(props: React.ComponentProps<typeof Toast>) {
     return render(

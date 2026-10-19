@@ -1,7 +1,7 @@
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { MediaInput } from '../src/react/components/media-input';
+import { MediaInput } from '../src/react/components/media-input.js';
 import { getCroppedImg } from '../src/lib/image-utils.js';
 
 vi.mock('@ttt-productions/media-viewer/react', async () =>

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildMediaAssetKey,
   buildMediaAssetKeyPrefix,
-} from '../src/media/media-asset-url';
+} from '../src/media/media-asset-url.js';
 
 describe('buildMediaAssetKeyPrefix', () => {
   it('builds the prefix owning every variant of one asset', () => {

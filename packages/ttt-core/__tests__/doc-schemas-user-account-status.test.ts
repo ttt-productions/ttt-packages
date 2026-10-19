@@ -3,7 +3,7 @@ import {
   ABSENT_USER_ACCOUNT_STATUS,
   UserAccountStatusSchema,
   parseUserAccountStatus,
-} from '../src/doc-schemas/user';
+} from '../src/doc-schemas/user.js';
 
 describe('parseUserAccountStatus', () => {
   it('reads every account status as itself', () => {

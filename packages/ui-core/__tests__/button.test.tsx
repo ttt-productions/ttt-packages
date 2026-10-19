@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Button, buttonVariants } from '../src/react/components/button';
-import { Tabs, TabsList, TabsTrigger } from '../src/react/components/tabs';
+import { Button, buttonVariants } from '../src/react/components/button.js';
+import { Tabs, TabsList, TabsTrigger } from '../src/react/components/tabs.js';
 
 // ---------------------------------------------------------------------------
 // Variant + size class contract (table-driven, no render)

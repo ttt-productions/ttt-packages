@@ -10,8 +10,8 @@ import {
   DEFAULT_AUDITION_SORT,
   type AuditionTypeFilter,
   type AuditionSortKey,
-} from '../src/constants/options';
-import { AuditionTypeSchema } from '../src/doc-schemas/commissions';
+} from '../src/constants/options.js';
+import { AuditionTypeSchema } from '../src/doc-schemas/commissions.js';
 
 describe('AUDITION_TYPES', () => {
   it('is Record-complete over the canonical AuditionType union', () => {

@@ -2,10 +2,10 @@
 // file renders by the kind the server inspected from its bytes, never by the client-declared MIME.
 
 import { describe, it, expect } from 'vitest';
-import { WorkFileSchema } from '../src/doc-schemas/work-project';
-import { ContentMediaKindSchema } from '../src/doc-schemas/media-assets';
-import { ConversationFileSchema } from '../src/doc-schemas/messaging';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+import { WorkFileSchema } from '../src/doc-schemas/work-project.js';
+import { ContentMediaKindSchema } from '../src/doc-schemas/media-assets.js';
+import { ConversationFileSchema } from '../src/doc-schemas/messaging.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
 const workFile = {
   workFileId: 'file-1',

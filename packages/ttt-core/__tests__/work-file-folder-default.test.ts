@@ -3,9 +3,9 @@ import {
   DEFAULT_WORK_FILE_FOLDER_ID,
   DEFAULT_WORK_FILE_FOLDER_NAME,
   buildDefaultWorkFileFolder,
-} from '../src/utils/work-file-folder';
-import { WorkFileFolderSchema } from '../src/doc-schemas/work-project';
-import { documentIdSegmentSchema } from '../src/schemas/atoms';
+} from '../src/utils/work-file-folder.js';
+import { WorkFileFolderSchema } from '../src/doc-schemas/work-project.js';
+import { documentIdSegmentSchema } from '../src/schemas/atoms.js';
 
 describe('the default Work file folder', () => {
   const folder = buildDefaultWorkFileFolder('wp1', 'steward1', 1_000);

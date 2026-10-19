@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatLargeNumber } from '../src/lib/format-numbers';
+import { formatLargeNumber } from '../src/lib/format-numbers.js';
 
 describe('formatLargeNumber', () => {
   it('returns raw string for numbers under 10,000', () => {

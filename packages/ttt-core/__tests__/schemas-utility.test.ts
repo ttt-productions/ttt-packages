@@ -9,8 +9,8 @@ import {
   SeedPrivacyPageInputSchema,
   SeedTakeItDownPageCopyInputSchema,
   SeedDmcaPolicyInputSchema,
-} from '../src/schemas/utility';
-import { FEEDBACK_TYPES } from '../src/constants/business-admin';
+} from '../src/schemas/utility.js';
+import { FEEDBACK_TYPES } from '../src/constants/business-admin.js';
 
 describe('public-document seed inputs (one per public document, intentionally empty)', () => {
   const seeds = {

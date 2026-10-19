@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { RelativeTime } from '../src/react/components/relative-time';
+import { RelativeTime } from '../src/react/components/relative-time.js';
 
 vi.mock('date-fns', async (importOriginal) => {
   const real = await importOriginal<typeof import('date-fns')>();

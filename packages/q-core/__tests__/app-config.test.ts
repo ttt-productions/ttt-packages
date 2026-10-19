@@ -11,27 +11,27 @@ import {
   mergeAppConfigUpdate,
   readAppConfigLever,
   readAppConfigLevers,
-} from '../src/utils/app-config';
+} from '../src/utils/app-config.js';
 import {
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APP_VERSION_LENGTH,
   MAX_LANDING_ABOUT_TEXT_LENGTH,
   MAX_LANDING_HERO_TITLE_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
-} from '../src/constants/business';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
+} from '../src/constants/business.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
 import {
   AppConfigSchema,
   LandingPageConfigSchema,
   StatsBeaconSchema,
-} from '../src/doc-schemas/system';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/system.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import {
   AdminUpdateLandingPageInputSchema,
   UpdateAppConfigInputSchema,
   UpdateAppConfigResultSchema,
-} from '../src/schemas/app-config';
+} from '../src/schemas/app-config.js';
 
 const COMPLETE = {
   appVersion: '2.0.1',

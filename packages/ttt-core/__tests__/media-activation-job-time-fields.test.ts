@@ -12,7 +12,7 @@
 // would make these assertions pass or fail for the wrong reason.
 
 import { describe, it, expect } from 'vitest';
-import { MediaActivationJobSchema } from '../src/doc-schemas/media-activation-jobs';
+import { MediaActivationJobSchema } from '../src/doc-schemas/media-activation-jobs.js';
 
 const timestamp = {
   seconds: 1_700_000_000,

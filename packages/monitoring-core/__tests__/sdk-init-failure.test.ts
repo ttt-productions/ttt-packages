@@ -39,7 +39,7 @@ describe('a Sentry SDK that loads but cannot take the call', () => {
     });
 
     it('reports a call that waited on a failed SDK init as an init failure, not a load failure', async () => {
-        const { SentryNodeAdapter } = await import('../src/adapters/sentry-node');
+        const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
         const ready = SentryNodeAdapter.init({ provider: 'sentry-node', dsn: DSN });
         SentryNodeAdapter.captureException(new Error('boom'));
         await expect(ready).rejects.toThrow('invalid option');
@@ -51,7 +51,7 @@ describe('a Sentry SDK that loads but cannot take the call', () => {
     });
 
     it('keeps naming the init failure for every later call', async () => {
-        const { SentryNodeAdapter } = await import('../src/adapters/sentry-node');
+        const { SentryNodeAdapter } = await import('../src/adapters/sentry-node.js');
         await expect(SentryNodeAdapter.init({ provider: 'sentry-node', dsn: DSN })).rejects.toThrow();
 
         SentryNodeAdapter.captureMessage('later', 'info');
@@ -66,7 +66,7 @@ describe('a Sentry SDK that loads but cannot take the call', () => {
     });
 
     it('reports an SDK that throws on a waiting call as a throw, not a load failure', async () => {
-        const { SentryAdapter } = await import('../src/adapters/sentry');
+        const { SentryAdapter } = await import('../src/adapters/sentry.js');
         const ready = SentryAdapter.init({ provider: 'sentry', dsn: DSN });
         SentryAdapter.captureException(new Error('boom'));
         await ready;

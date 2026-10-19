@@ -6,7 +6,7 @@ import {
   guildInviteSystemMessageSegments,
   type GuildInviteSystemMessage,
   type GuildInviteSystemMessageSegment,
-} from '../src/utils/guild-invite-system-message';
+} from '../src/utils/guild-invite-system-message.js';
 
 /** Renders segments the way a screen does, with a stand-in for each account's current name. */
 function render(segments: GuildInviteSystemMessageSegment[], names: Record<string, string>): string {

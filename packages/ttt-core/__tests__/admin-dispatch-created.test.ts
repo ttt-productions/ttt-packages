@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   NOTIFICATION_TYPE_CATALOG,
   validateNotificationMetadata,
-} from '../src/schemas/notification';
-import { TTT_NOTIFICATION_CONFIG } from '../src/notifications/notification-config';
+} from '../src/schemas/notification.js';
+import { TTT_NOTIFICATION_CONFIG } from '../src/notifications/notification-config.js';
 
 const config = TTT_NOTIFICATION_CONFIG.types.admin_dispatch_created;
 

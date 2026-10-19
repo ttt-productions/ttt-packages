@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SWEEP_STATE_MAX_DEFERRED } from '../src/constants/scheduled-jobs';
-import { SweepRollingCursorSchema, SweepStateSchema } from '../src/doc-schemas/sweep-state';
+import { SWEEP_STATE_MAX_DEFERRED } from '../src/constants/scheduled-jobs.js';
+import { SweepRollingCursorSchema, SweepStateSchema } from '../src/doc-schemas/sweep-state.js';
 
 const row = (key: string) => ({ key, nextAttemptAt: 1, attemptCount: 1 });
 

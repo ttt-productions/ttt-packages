@@ -3,8 +3,8 @@ import {
   MAX_TEAM_INVITATION_MESSAGE_LENGTH,
   MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
   MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
-} from '../src/constants/business';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/constants/business.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   APPROVED_TEAM_INVITATION_STATUS,
   APPROVED_TEAM_JOIN_REQUEST_STATUS,
@@ -16,10 +16,10 @@ import {
   REJECTED_TEAM_JOIN_REQUEST_STATUS,
   TEAM_INVITATION_STATUS_KEYS,
   TEAM_JOIN_REQUEST_STATUS_KEYS,
-} from '../src/types/unions';
-import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
-import { TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas/team-membership';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
+} from '../src/types/unions.js';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas/team-membership.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
   AcceptTeamInvitationResultSchema,
   AcceptTeamJoinRequestResultSchema,
@@ -34,7 +34,7 @@ import {
   TeamInvitationTargetInputSchema,
   TeamJoinRequestResultSchema,
   TeamJoinRequestTargetInputSchema,
-} from '../src/schemas/team-joining';
+} from '../src/schemas/team-joining.js';
 
 const NOW = 1_712_345_678_901;
 

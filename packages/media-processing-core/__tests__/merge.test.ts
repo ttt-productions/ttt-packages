@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeModeration } from '../src/moderation/merge';
+import { mergeModeration } from '../src/moderation/merge.js';
 
 describe('mergeModeration', () => {
   it('returns undefined when both are undefined', () => {

@@ -62,7 +62,7 @@ describe('getAdminApp', () => {
   });
 
   it('returns app, db, auth, storage, and admin handles', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     const result = getAdminApp();
     expect(result).toHaveProperty('app');
     expect(result).toHaveProperty('db');
@@ -72,7 +72,7 @@ describe('getAdminApp', () => {
   });
 
   it('derives db/auth/storage from the modular getters bound to the initialized app', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     const result = getAdminApp();
     expect(mocks.getFirestore).toHaveBeenCalledWith(mocks.mockApp);
     expect(mocks.getAuth).toHaveBeenCalledWith(mocks.mockApp);
@@ -83,25 +83,25 @@ describe('getAdminApp', () => {
   });
 
   it('exposes the firebase-admin package root as the admin handle', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     expect(getAdminApp().admin).toBe(mocks.mockAdminRoot);
   });
 
   it('is idempotent — returns same handle on second call', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     const first = getAdminApp();
     const second = getAdminApp();
     expect(first.app).toBe(second.app);
   });
 
   it('calls initializeApp with no argument when no options are provided', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     getAdminApp();
     expect(mocks.initializeApp).toHaveBeenCalledWith();
   });
 
   it('calls initializeApp when apps list is empty', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     getAdminApp({ projectId: 'test-project' });
     expect(mocks.initializeApp).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: 'test-project' }),
@@ -120,7 +120,7 @@ describe('getAdminApp', () => {
   });
 
   it('initializes before resolving the default app — never calls getApp against an empty store', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     expect(mocks.apps).toHaveLength(0);
     // getApp throws 'app/no-app' on an empty store, so this only resolves if
     // initializeApp ran first.
@@ -133,7 +133,7 @@ describe('getAdminApp', () => {
   });
 
   it('skips initializeApp when apps list is non-empty', async () => {
-    const { getAdminApp } = await import('../src/server/admin-init');
+    const { getAdminApp } = await import('../src/server/admin-init.js');
     mocks.apps.push({});
     getAdminApp();
     expect(mocks.initializeApp).not.toHaveBeenCalled();

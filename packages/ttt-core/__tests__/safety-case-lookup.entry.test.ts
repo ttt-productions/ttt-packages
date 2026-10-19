@@ -4,10 +4,10 @@ import {
   NCII_ACTIVE_INTERNAL_STATUSES,
   TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES,
   isActiveSafetyCaseStatus,
-} from '../src/constants/safety-active-statuses';
-import { SafetyCaseByIdResultSchema } from '../src/schemas/safety';
-import * as constants from '../src/constants/index';
-import * as schemasBarrel from '../src/schemas';
+} from '../src/constants/safety-active-statuses.js';
+import { SafetyCaseByIdResultSchema } from '../src/schemas/safety.js';
+import * as constants from '../src/constants/index.js';
+import * as schemasBarrel from '../src/schemas/index.js';
 
 describe('active safety statuses', () => {
   it('is importable from the server-safe constants entry, where both trees read it', () => {

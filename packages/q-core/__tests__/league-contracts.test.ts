@@ -8,10 +8,10 @@ import {
   MAX_PLAYOFF_CUTOFF,
   MIN_LEAGUE_DESCRIPTION_LENGTH,
   MIN_LEAGUE_TITLE_LENGTH,
-} from '../src/constants/business';
-import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
-import { SportLeagueSchema } from '../src/doc-schemas/sport-league';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
+} from '../src/constants/business.js';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { SportLeagueSchema } from '../src/doc-schemas/sport-league.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
   AdminCreateSportLeagueInputSchema,
   AdminUpdateSportLeagueInputSchema,
@@ -21,10 +21,10 @@ import {
   LEAGUE_SETTINGS_FIELD_KEYS,
   SwitchLeagueModeInputSchema,
   SwitchLeagueModeResultSchema,
-} from '../src/schemas/leagues';
-import { SPORT_ADAPTER_LIST } from '../src/sports/registry';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
-import { LEAGUE_TYPE_KEYS } from '../src/types/sports';
+} from '../src/schemas/leagues.js';
+import { SPORT_ADAPTER_LIST } from '../src/sports/registry.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
+import { LEAGUE_TYPE_KEYS } from '../src/types/sports.js';
 import {
   CLOSED_LEAGUE_STATUS,
   LEAGUE_MODE_KEYS,
@@ -35,8 +35,8 @@ import {
   TEAM_TYPED_LEAGUE_MODE,
   TEAM_TYPE_KEYS,
   TEAM_TYPE_ON_MODE_SWITCH,
-} from '../src/types/unions';
-import type { LeagueStatus } from '../src/types/unions';
+} from '../src/types/unions.js';
+import type { LeagueStatus } from '../src/types/unions.js';
 
 const NOW = 1712345678901;
 

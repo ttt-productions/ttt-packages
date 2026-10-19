@@ -14,42 +14,42 @@ import {
   ReportGroupV1Schema,
   ReportGroupModerationStateSchema,
   ReportGroupResolutionOutcomeSchema,
-} from '../src/doc-schemas/safety/report';
+} from '../src/doc-schemas/safety/report.js';
 import {
   ContentViolationSchema,
   ModerationEdgeSyncOpSchema,
   ModerationEdgeSyncStateSchema,
-} from '../src/doc-schemas/moderation';
+} from '../src/doc-schemas/moderation.js';
 import {
   ThresholdItemSchema,
   PublishedChapterSchema,
   PublishedTuneTrackSchema,
   PublishedTelevisionEpisodeSchema,
   PublishedHallItemSchema,
-} from '../src/doc-schemas/content';
+} from '../src/doc-schemas/content.js';
 import {
   SafetyEvidenceJobItemDocV1Schema,
   SafetyEvidenceJobItemV1Schema,
   SafetyEvidenceExternalFactKindSchema,
-} from '../src/doc-schemas/safety/evidence';
-import { ChildSafetyOwningAliasV1Schema } from '../src/doc-schemas/safety/case-aliases';
-import { TakeItDownRequestRootV1Schema, TakeItDownRequestActionV1Schema } from '../src/doc-schemas/ncii/requests';
-import { SafetyEvidenceDispositionV1Schema } from '../src/doc-schemas/safety/evidence';
-import { NciiCaseClosureEventV1Schema } from '../src/doc-schemas/ncii/cases';
-import { AccountActionCommandV1Schema } from '../src/doc-schemas/safety/sagas';
-import { ProtectedReportRootV1Schema } from '../src/doc-schemas/safety/report';
-import { AdminTaskDocSchema } from '../src/doc-schemas/report-docs';
-import { ModerationCascadeChangedDocSchema } from '../src/doc-schemas/moderation';
-import { NotificationFanoutJobSchema } from '../src/doc-schemas/notification-ledger';
+} from '../src/doc-schemas/safety/evidence.js';
+import { ChildSafetyOwningAliasV1Schema } from '../src/doc-schemas/safety/case-aliases.js';
+import { TakeItDownRequestRootV1Schema, TakeItDownRequestActionV1Schema } from '../src/doc-schemas/ncii/requests.js';
+import { SafetyEvidenceDispositionV1Schema } from '../src/doc-schemas/safety/evidence.js';
+import { NciiCaseClosureEventV1Schema } from '../src/doc-schemas/ncii/cases.js';
+import { AccountActionCommandV1Schema } from '../src/doc-schemas/safety/sagas.js';
+import { ProtectedReportRootV1Schema } from '../src/doc-schemas/safety/report.js';
+import { AdminTaskDocSchema } from '../src/doc-schemas/report-docs.js';
+import { ModerationCascadeChangedDocSchema } from '../src/doc-schemas/moderation.js';
+import { NotificationFanoutJobSchema } from '../src/doc-schemas/notification-ledger.js';
 import {
   NotificationDocSchema,
   NotificationHistoryDocSchema,
   StoredNotificationCardSchema,
-} from '../src/doc-schemas/notifications';
-import { COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { ChatChannelAuthProjectionSchema } from '../src/doc-schemas/chat-sync';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/notifications.js';
+import { COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { ChatChannelAuthProjectionSchema } from '../src/doc-schemas/chat-sync.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
 // A real member of the external-fact kind set, taken from its own schema rather than restated.
 const EXTERNAL_FACT_KIND = SafetyEvidenceExternalFactKindSchema.options[0];

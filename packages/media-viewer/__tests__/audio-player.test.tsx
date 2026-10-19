@@ -1,8 +1,8 @@
 import * as React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
-import { AudioViewer } from "../src/react/audio-viewer";
-import { AudioPlayer } from "../src/react/audio-player";
+import { AudioViewer } from "../src/react/audio-viewer.js";
+import { AudioPlayer } from "../src/react/audio-player.js";
 
 vi.mock("react-intersection-observer", () => ({
   useInView: () => ({ ref: () => {}, inView: true }),

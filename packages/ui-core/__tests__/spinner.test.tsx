@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Spinner } from '../src/react/components/spinner';
+import { Spinner } from '../src/react/components/spinner.js';
 
 describe('Spinner', () => {
   it('defaults to the in-control size and is decorative (aria-hidden) without a label', () => {

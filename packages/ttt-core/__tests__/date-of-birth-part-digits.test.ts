@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { DATE_OF_BIRTH_MIN_YEAR, DATE_OF_BIRTH_PART_DIGITS } from '../src/constants/business-user';
-import { deriveAgeBracket } from '../src/utils/age-derivation';
-import { DateOfBirthSchema } from '../src/schemas/users';
+import { DATE_OF_BIRTH_MIN_YEAR, DATE_OF_BIRTH_PART_DIGITS } from '../src/constants/business-user.js';
+import { deriveAgeBracket } from '../src/utils/age-derivation.js';
+import { DateOfBirthSchema } from '../src/schemas/users.js';
 
 describe('date-of-birth part widths', () => {
   it('are two digits for the month and day and four for the year', () => {

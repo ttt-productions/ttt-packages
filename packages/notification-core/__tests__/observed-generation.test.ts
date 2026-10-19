@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   markNotificationSeenWithGeneration,
   archiveNotificationWithGeneration,
-} from '../src/server/observed-generation';
-import type { ServerFirestore, ServerDocRef, ServerDocSnapshot, ServerTransaction } from '../src/server/types';
+} from '../src/server/observed-generation.js';
+import type { ServerFirestore, ServerDocRef, ServerDocSnapshot, ServerTransaction } from '../src/server/types.js';
 
 function createMockFirestore() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();

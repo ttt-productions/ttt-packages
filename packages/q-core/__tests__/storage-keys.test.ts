@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { COLUMN_CATALOG_KEYS } from '../src/sports/column-catalog';
-import { SPORT_KEYS } from '../src/types/sports';
+import { COLUMN_CATALOG_KEYS } from '../src/sports/column-catalog.js';
+import { SPORT_KEYS } from '../src/types/sports.js';
 import {
   ADMIN_SIDEBAR_COLLAPSED_CHANGE_EVENT,
   ADMIN_SIDEBAR_COLLAPSED_STORAGE_KEY,
@@ -16,7 +16,7 @@ import {
   VIEWER_SETTINGS_DISMISSAL_STORAGE_KEY,
   statQueueStorageKey,
   statsTableViewStorageKey,
-} from '../src/constants/storage-keys';
+} from '../src/constants/storage-keys.js';
 
 const STATS_TABLE_VIEW_KEYS = COLUMN_CATALOG_KEYS.flatMap((tableType) =>
   SPORT_KEYS.map((sportKey) => statsTableViewStorageKey(tableType, sportKey)),

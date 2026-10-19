@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeAuthError, getErrorMessage, UNKNOWN_AUTH_ERROR_MESSAGE } from '../src/errors';
+import { normalizeAuthError, getErrorMessage, UNKNOWN_AUTH_ERROR_MESSAGE } from '../src/errors.js';
 
 describe('normalizeAuthError', () => {
   describe('known Firebase error codes', () => {

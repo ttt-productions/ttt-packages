@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   REJECTION_LIKELIHOODS,
   TEXT_MODERATION_MIN_LENGTH,
-} from '../src/constants/moderation';
+} from '../src/constants/moderation.js';
 import {
   REJECTED_MEDIA_RETENTION_DAYS,
   PENDING_MEDIA_ARCHIVE_AFTER_DAYS,
   ORPHAN_UPLOAD_TTL_HOURS,
   PUBLIC_LOOKUP_ABSENT_STALE_TIME_MS,
   PUBLIC_USERS_STALE_TIME_MS,
-} from '../src/constants/retention';
+} from '../src/constants/retention.js';
 
 describe('REJECTION_LIKELIHOODS', () => {
   it('is a Set', () => {

@@ -15,8 +15,8 @@ vi.mock('@ttt-productions/query-core/react', () => ({
   useFirestoreCount: mocks.useFirestoreCount,
 }));
 
-import { useUnreadCount } from '../src/react/hooks/useUnreadCount';
-import type { NotificationSystemConfig } from '../src/types';
+import { useUnreadCount } from '../src/react/hooks/useUnreadCount.js';
+import type { NotificationSystemConfig } from '../src/types.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {

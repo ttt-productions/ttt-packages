@@ -12,9 +12,9 @@ import userEvent from '@testing-library/user-event';
 // that is the only way they are ever used — the hook's state and the control's
 // disabled/hidden semantics are one behavior.
 
-import { usePagedList } from '../src/react/hooks/use-paged-list';
-import { useCursorPage } from '../src/react/hooks/use-cursor-page';
-import { ListPagination } from '../src/react/components/list-pagination';
+import { usePagedList } from '../src/react/hooks/use-paged-list.js';
+import { useCursorPage } from '../src/react/hooks/use-cursor-page.js';
+import { ListPagination } from '../src/react/components/list-pagination.js';
 
 const onPageChange = vi.fn();
 

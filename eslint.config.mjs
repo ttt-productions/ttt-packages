@@ -8,6 +8,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
+import prettierCompat from 'eslint-config-prettier';
 
 export default [
   {
@@ -40,4 +41,8 @@ export default [
       'react-hooks/exhaustive-deps': 'error',
     },
   },
+
+  // Last, so it wins: Prettier owns formatting, and this turns off every ESLint rule that would
+  // fight it.
+  prettierCompat,
 ];

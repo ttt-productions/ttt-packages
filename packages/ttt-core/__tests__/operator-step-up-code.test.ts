@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/constants/business-admin';
-import { OperatorStepUpCodeInputSchema } from '../src/schemas/safety';
+import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/constants/business-admin.js';
+import { OperatorStepUpCodeInputSchema } from '../src/schemas/safety.js';
 
 describe('operator step-up code length', () => {
   it('is six digits', () => {

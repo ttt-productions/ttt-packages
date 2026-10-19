@@ -13,7 +13,7 @@ vi.mock('../../src/react/pull-to-refresh/usePullToRefresh.js', () => ({
   }),
 }));
 
-import { PullToRefreshContainer } from '../../src/react/pull-to-refresh/PullToRefreshContainer';
+import { PullToRefreshContainer } from '../../src/react/pull-to-refresh/PullToRefreshContainer.js';
 
 describe('PullToRefreshContainer', () => {
   beforeEach(() => {

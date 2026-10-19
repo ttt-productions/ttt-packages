@@ -4,7 +4,7 @@ import {
   buildTempUploadPath,
   isTempUploadPath,
   extractFileIdFromTempPath,
-} from '../src/paths/storage-paths';
+} from '../src/paths/storage-paths.js';
 
 describe('TEMP_UPLOAD_PREFIX', () => {
   it('equals "uploads/"', () => {

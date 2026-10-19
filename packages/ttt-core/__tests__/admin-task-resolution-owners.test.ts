@@ -3,9 +3,9 @@ import {
   ADMIN_TASK_RESOLUTION_OWNERS,
   ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE,
   isAdminTaskResolvedByCheckin,
-} from '../src/constants/business-admin';
-import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs';
-import { REPORT_TASK_QUEUES } from '../src/report/report-config-values';
+} from '../src/constants/business-admin.js';
+import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs.js';
+import { REPORT_TASK_QUEUES } from '../src/report/report-config-values.js';
 
 describe('admin-task resolution owners', () => {
   it('classifies every admin task type, and only those', () => {

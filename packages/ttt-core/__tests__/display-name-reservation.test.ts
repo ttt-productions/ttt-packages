@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { displayNameReservationKey } from '../src/utils/display-name-reservation';
-import { displayNameSchema } from '../src/schemas/users';
-import { documentIdSegmentSchema } from '../src/schemas/atoms';
+import { displayNameReservationKey } from '../src/utils/display-name-reservation.js';
+import { displayNameSchema } from '../src/schemas/users.js';
+import { documentIdSegmentSchema } from '../src/schemas/atoms.js';
 
 describe('displayNameReservationKey', () => {
   it('keys names that differ only by case to one reservation', () => {

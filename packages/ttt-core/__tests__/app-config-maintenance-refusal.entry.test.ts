@@ -4,8 +4,8 @@ import {
   MAINTENANCE_REFUSAL_REASON,
   isMaintenanceRefusalDetails,
   isMaintenanceRefusalError,
-} from '../src/utils/app-config';
-import * as utils from '../src/utils';
+} from '../src/utils/app-config.js';
+import * as utils from '../src/utils/index.js';
 
 describe('the maintenance refusal exports', () => {
   it('ship beside DEFAULT_MAINTENANCE_MESSAGE from the utils entry', () => {

@@ -7,8 +7,8 @@ import {
   RealmCanonStatusSchema,
   FullWorkProjectSchema,
   PublicWorkProjectSchema,
-} from '../src/doc-schemas/work-project';
-import { RealmFileCanonStatusSchema } from '../src/doc-schemas/media-assets';
+} from '../src/doc-schemas/work-project.js';
+import { RealmFileCanonStatusSchema } from '../src/doc-schemas/media-assets.js';
 
 describe('RealmCanonStatusSchema', () => {
   it('is the schema object both Work shapes use for realmCanonStatus', () => {

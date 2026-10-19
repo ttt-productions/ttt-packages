@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports';
+import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports.js';
 import {
   BasketballPlayerStatsSchema,
   GameStatEventSchema,
   StatCorrectionEventSchema,
   type GameStatEventType,
-} from '../src/doc-schemas/game-stats';
+} from '../src/doc-schemas/game-stats.js';
 import {
   BasketballPlayerTotalsSchema,
   PlayerSeasonStatsSchema,
@@ -14,23 +14,23 @@ import {
   SportHallOfFameSchema,
   TeamSeasonStatsSchema,
   UserLifetimeStatsSchema,
-} from '../src/doc-schemas/aggregate-stats';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/aggregate-stats.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import {
   GameStatHistoryFirstPageSchema,
   GameStatHistoryPageSchema,
-} from '../src/doc-schemas/game-stat-history';
-import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
-import { SportGameSchema } from '../src/doc-schemas/sport-game';
-import { StatsOperationSchema } from '../src/doc-schemas/stats-operation';
-import { UserProfileSchema } from '../src/doc-schemas/user-profile';
-import { repairReasonSchema } from '../src/doc-schemas/atoms';
-import { BYE_TEAM_ID } from '../src/ids/minted-ids';
-import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
-import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids';
-import { ReopenGameInputSchema } from '../src/schemas/stats';
-import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports';
-import type { StatsOperationKind } from '../src/types/stats';
+} from '../src/doc-schemas/game-stat-history.js';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
+import { StatsOperationSchema } from '../src/doc-schemas/stats-operation.js';
+import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
+import { repairReasonSchema } from '../src/doc-schemas/atoms.js';
+import { BYE_TEAM_ID } from '../src/ids/minted-ids.js';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
+import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids.js';
+import { ReopenGameInputSchema } from '../src/schemas/stats.js';
+import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports.js';
+import type { StatsOperationKind } from '../src/types/stats.js';
 
 const NOW = 1712345678901;
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;

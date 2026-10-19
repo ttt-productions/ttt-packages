@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { useAsyncAction } from '../src/react/hooks/use-async-action';
+import { useAsyncAction } from '../src/react/hooks/use-async-action.js';
 
 function deferred() {
   let resolve!: () => void;

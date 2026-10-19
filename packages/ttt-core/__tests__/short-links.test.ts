@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { CreateShortLinkInputSchema } from '../src/schemas/utility';
-import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms';
-import { ShortLinkSchema } from '../src/doc-schemas/operational';
+import { CreateShortLinkInputSchema } from '../src/schemas/utility.js';
+import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms.js';
+import { ShortLinkSchema } from '../src/doc-schemas/operational.js';
 
 const storedLink = {
   shortId: 'abc123',

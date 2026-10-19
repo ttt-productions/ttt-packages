@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { UserPrivateDataSchema } from '../src/doc-schemas/user';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { UserPrivateDataSchema } from '../src/doc-schemas/user.js';
 
 // Every Craft publish and every Craft delete writes the owner's Craft change marker inside its
 // transaction, so two publishes that both counted a free slot write the same document and

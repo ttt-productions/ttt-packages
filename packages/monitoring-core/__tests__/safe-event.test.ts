@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildSafeEvent,
   DEFAULT_SAFE_EVENT_KEYS,
-} from '../src/safe-event';
+} from '../src/safe-event.js';
 
 describe('buildSafeEvent — allowlist', () => {
   it('keeps only the default allowlisted keys and drops everything else', () => {

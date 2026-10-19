@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveInfiniteDuration } from '../src/media-duration';
+import { resolveInfiniteDuration } from '../src/media-duration.js';
 
 /** Minimal HTMLMediaElement stand-in: duration + currentTime + durationchange. */
 function makeEl(duration: number, opts: { seekRevealsDuration?: number } = {}) {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
-import { Switch } from '../src/react/components/switch';
+import { Switch } from '../src/react/components/switch.js';
 
 describe('Switch', () => {
   it('renders without crashing', () => {

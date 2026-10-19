@@ -3,7 +3,7 @@ import {
   createUploadDisplayFormatters,
   formatFileSize,
   type UploadDisplayCopy,
-} from '../src/upload-display';
+} from '../src/upload-display.js';
 
 const COPY: UploadDisplayCopy = {
   justNow: 'just now',

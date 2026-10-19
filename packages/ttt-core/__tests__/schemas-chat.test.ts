@@ -15,12 +15,12 @@ import {
   GuildChatConversationSchema,
   AdminModerateChatMessageInputSchema,
   SendGuildChatMessageInputSchema,
-} from '../src/schemas/chat';
-import { StagedActionSchema } from '../src/schemas/admin';
+} from '../src/schemas/chat.js';
+import { StagedActionSchema } from '../src/schemas/admin.js';
 import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from '@ttt-productions/chat-schemas';
-import { GUILD_STANDING_IDS } from '../src/permissions/work-project-permissions-data';
-import { TRADE_PROFESSION_OPTIONS } from '../src/constants/options';
-import { MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS } from '../src/constants/chat';
+import { GUILD_STANDING_IDS } from '../src/permissions/work-project-permissions-data.js';
+import { TRADE_PROFESSION_OPTIONS } from '../src/constants/options.js';
+import { MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS } from '../src/constants/chat.js';
 
 const validInput = { workProjectId: 'wp-1', guildChatChannelId: 'chan-1' };
 

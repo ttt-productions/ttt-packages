@@ -17,13 +17,13 @@ import {
   TargetLocatorKindSchema,
   CONTENT_ACTION_PANEL_ITEM_TYPES,
   CHAT_REPORT_ITEM_TYPES,
-} from '../src/doc-schemas/safety/foundation';
-import { ChatMessageV1Schema } from '../src/doc-schemas/messaging';
+} from '../src/doc-schemas/safety/foundation.js';
+import { ChatMessageV1Schema } from '../src/doc-schemas/messaging.js';
 import {
   REPORTABLE_ITEM_LABELS,
   REPORT_ITEM_TYPE_MULTIPLIERS,
-} from '../src/report/report-config-values';
-import { ModerateReportedContentInputSchema } from '../src/schemas/admin';
+} from '../src/report/report-config-values.js';
+import { ModerateReportedContentInputSchema } from '../src/schemas/admin.js';
 
 describe('ReportableItemType — admin correspondence is not a reportable surface', () => {
   it('rejects the removed admin-work-message item type', () => {

@@ -11,12 +11,12 @@ import {
   ListRetainedEvidenceInventoryInputSchema,
   RetainedChildSafetyCaseRowSchema,
   SafetyCaseConsoleSourceSchema,
-} from '../src/schemas/safety';
+} from '../src/schemas/safety.js';
 import {
   ChildSafetyPreservationStatusSchema,
   SafetyCaseLaneSchema,
-} from '../src/doc-schemas/safety/case';
-import { SafetyCaseInputSchema, ReopenSafetyCaseInputSchema } from '../src/schemas/admin';
+} from '../src/doc-schemas/safety/case.js';
+import { SafetyCaseInputSchema, ReopenSafetyCaseInputSchema } from '../src/schemas/admin.js';
 
 const caseListRow = {
   schemaVersion: 1,

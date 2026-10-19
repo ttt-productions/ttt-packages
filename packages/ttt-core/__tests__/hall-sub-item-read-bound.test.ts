@@ -4,9 +4,9 @@ import {
   FULL_LIMITS,
   HALL_SUB_ITEM_READ_BOUND_BY_WORK_TYPE,
   type TttLimits,
-} from '../src/constants/app-mode';
-import { HALL_ITEM_SUBCOLLECTIONS, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../src/paths/collections';
-import { WORK_PROJECT_TYPE_KEYS, type WorkProjectType } from '../src/types/content';
+} from '../src/constants/app-mode.js';
+import { HALL_ITEM_SUBCOLLECTIONS, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../src/paths/collections.js';
+import { WORK_PROJECT_TYPE_KEYS, type WorkProjectType } from '../src/types/content.js';
 
 // Which count cap bounds each kind, stated independently of the source so a bound wired to the
 // wrong cap fails here.

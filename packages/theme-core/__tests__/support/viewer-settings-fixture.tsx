@@ -1,14 +1,14 @@
 import { vi } from 'vitest';
 import { useState, type ReactNode } from 'react';
 import { screen } from '@testing-library/react';
-import { ThemeProvider } from '../../src/react/theme-provider';
-import { createReducedMotionStore } from '../../src/react/reduced-motion-store';
+import { ThemeProvider } from '../../src/react/theme-provider.js';
+import { createReducedMotionStore } from '../../src/react/reduced-motion-store.js';
 import {
   ViewerSettingsSyncProvider,
   useViewerSettingsSync,
   type ViewerSettingsSync,
-} from '../../src/react/viewer-settings-sync';
-import type { SavedViewerSettings, ViewerSettings } from '../../src/viewer-settings';
+} from '../../src/react/viewer-settings-sync.js';
+import type { SavedViewerSettings, ViewerSettings } from '../../src/viewer-settings.js';
 
 export const NOTHING: SavedViewerSettings = { theme: null, reducedMotion: null };
 

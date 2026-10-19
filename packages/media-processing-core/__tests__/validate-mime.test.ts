@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateMime } from '../src/validation/validate-mime';
+import { validateMime } from '../src/validation/validate-mime.js';
 
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'audio/mpeg'];
 

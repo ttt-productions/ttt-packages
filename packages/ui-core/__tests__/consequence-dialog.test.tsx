@@ -4,7 +4,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { defineInputFormat, type DeclaredInputFormat } from '@ttt-productions/input-format-core';
 
-import { ConsequenceDialog } from '../src/react/components/consequence-dialog';
+import { ConsequenceDialog } from '../src/react/components/consequence-dialog.js';
 
 const noop = () => {};
 

@@ -1,6 +1,6 @@
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal';
+import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal.js';
 
 function deferred<T>() {
   let resolve!: (v: T) => void;

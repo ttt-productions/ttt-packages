@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { THEME_NAMES, isThemeName } from '../src/themes';
+import { THEME_NAMES, isThemeName } from '../src/themes.js';
 
 // Each theme name is stored on viewers' devices and accounts, so the set is a persisted contract:
 // renaming a member forgets every viewer who chose it.

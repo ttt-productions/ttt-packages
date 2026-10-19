@@ -6,20 +6,20 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BASKETBALL_PLAYER_STAT_KEYS } from '../src/types/sports';
-import { BasketballPlayerTotalsSchema } from '../src/doc-schemas/aggregate-stats';
-import { GallerySummarySchema } from '../src/doc-schemas/gallery';
-import { HistoricalStatsSchema } from '../src/doc-schemas/user-profile';
+import { BASKETBALL_PLAYER_STAT_KEYS } from '../src/types/sports.js';
+import { BasketballPlayerTotalsSchema } from '../src/doc-schemas/aggregate-stats.js';
+import { GallerySummarySchema } from '../src/doc-schemas/gallery.js';
+import { HistoricalStatsSchema } from '../src/doc-schemas/user-profile.js';
 import {
   MembershipRosterSyncCursorSchema,
   MembershipRosterSyncSchema,
-} from '../src/doc-schemas/membership-roster-sync';
-import { SportLeagueSchema, playoffCutoffCountSchema } from '../src/doc-schemas/sport-league';
-import { appliedRevisionSchema, countSchema, revisionSchema } from '../src/doc-schemas/atoms';
-import { GameStatsCorrectionTargetSchema } from '../src/schemas/stats';
-import { UpdateAdminListResultSchema } from '../src/schemas/users';
-import { AdminRetryLeagueTeamRosterSyncResultSchema } from '../src/schemas/teams';
-import { AdminStatsSchema } from '../src/schemas/admin-stats';
+} from '../src/doc-schemas/membership-roster-sync.js';
+import { SportLeagueSchema, playoffCutoffCountSchema } from '../src/doc-schemas/sport-league.js';
+import { appliedRevisionSchema, countSchema, revisionSchema } from '../src/doc-schemas/atoms.js';
+import { GameStatsCorrectionTargetSchema } from '../src/schemas/stats.js';
+import { UpdateAdminListResultSchema } from '../src/schemas/users.js';
+import { AdminRetryLeagueTeamRosterSyncResultSchema } from '../src/schemas/teams.js';
+import { AdminStatsSchema } from '../src/schemas/admin-stats.js';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
 

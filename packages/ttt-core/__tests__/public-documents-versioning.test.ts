@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SPECIAL_DOCS } from '../src/paths/collections';
+import { SPECIAL_DOCS } from '../src/paths/collections.js';
 import {
   EMPTY_PUBLIC_DOCUMENT_VERSION_BLOCK,
   planPublicDocumentRelease,
@@ -13,14 +13,14 @@ import {
   publicDocumentContentEquals,
   requiredPublicDocumentVersion,
   squareStreetzAgreementsSatisfied,
-} from '../src/utils/public-documents';
+} from '../src/utils/public-documents.js';
 import {
   PublicDocumentVersionBlockSchema,
   PublicDocumentAcceptanceSchema,
   PUBLIC_DOCUMENT_PROJECTIONS,
   type PublicDocumentContent,
   type PublicDocumentVersionBlock,
-} from '../src/doc-schemas/public-documents';
+} from '../src/doc-schemas/public-documents.js';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const PRIVACY = SPECIAL_DOCS.PRIVACY_PAGE;

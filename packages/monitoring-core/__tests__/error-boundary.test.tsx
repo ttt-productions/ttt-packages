@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 
 const mockCaptureException = vi.hoisted(() => vi.fn());
 
-vi.mock('../src/api', () => ({
+vi.mock('../src/api.js', () => ({
   captureException: mockCaptureException,
   captureMessage: vi.fn(),
   setUser: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../src/api', () => ({
   addBreadcrumb: vi.fn(),
 }));
 
-import { ErrorBoundary } from '../src/react/error-boundary';
+import { ErrorBoundary } from '../src/react/error-boundary.js';
 
 function ThrowingChild({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) throw new Error('test render error');

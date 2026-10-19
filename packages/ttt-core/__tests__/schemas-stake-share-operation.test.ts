@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   StakeShareOperationSchema,
   ManageWorkProjectStakeSharesInputSchema,
-} from '../src/schemas/stake-share-operation';
+} from '../src/schemas/stake-share-operation.js';
 
 describe('StakeShareOperationSchema', () => {
   describe('add-pending branch', () => {

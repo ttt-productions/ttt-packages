@@ -5,12 +5,12 @@ import {
   NcmecPortalReceiptArtifactV1Schema,
   SweepStateNameSchema,
   SweepStateSchema,
-} from '../src/doc-schemas/backend-state';
-import { SweepRollingCursorSchema } from '../src/doc-schemas/sweep-cursor';
-import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/scheduled-jobs';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
+} from '../src/doc-schemas/backend-state.js';
+import { SweepRollingCursorSchema } from '../src/doc-schemas/sweep-cursor.js';
+import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/scheduled-jobs.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections.js';
 
 describe('NcmecPortalReceiptArtifactV1Schema', () => {
   // The exact record recordNcmecPortalReceiptArtifact writes: the operator-supplied vault key

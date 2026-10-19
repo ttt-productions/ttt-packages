@@ -20,10 +20,10 @@ import {
   withinBudget,
   BACKOFF_SCHEDULE_MS,
   MAX_RECOVERY_DURATION_MS,
-} from "../src/recovery";
-import { useMediaRecovery } from "../src/react/use-media-recovery";
-import type { MediaDiagnosticAdapter, DiagnosisResult } from "../src/recovery";
-import { MediaViewer } from "../src/react/media-viewer";
+} from "../src/recovery.js";
+import { useMediaRecovery } from "../src/react/use-media-recovery.js";
+import type { MediaDiagnosticAdapter, DiagnosisResult } from "../src/recovery.js";
+import { MediaViewer } from "../src/react/media-viewer.js";
 
 // ---------------------------------------------------------------------------
 // Module-level mocks
@@ -62,7 +62,7 @@ class FakeIO {
 interface TestHookCompProps {
   url: string | null;
   adapter?: MediaDiagnosticAdapter;
-  statusHint?: import("../src/recovery").AssetStatusHint;
+  statusHint?: import("../src/recovery.js").AssetStatusHint;
   onStateChange?: (s: string) => void;
 }
 

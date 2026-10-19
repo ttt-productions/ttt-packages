@@ -2,16 +2,16 @@ import { describe, it, expect } from 'vitest';
 import {
   FuturePlansContentInputSchema,
   RulesAndAgreementsContentInputSchema,
-} from '../src/schemas/admin';
-import { FuturePlansContentSchema, RulesAndAgreementsContentSchema } from '../src/doc-schemas/public-documents';
-import { RULE_GROUP_KEYS } from '../src/types/content';
+} from '../src/schemas/admin.js';
+import { FuturePlansContentSchema, RulesAndAgreementsContentSchema } from '../src/doc-schemas/public-documents.js';
+import { RULE_GROUP_KEYS } from '../src/types/content.js';
 import {
   SYSTEM_SLOTS,
   getSystemSlot,
   isRequiredVideoSlot,
   ruleGroupVideoSlotId,
   systemSlotsByGroup,
-} from '../src/system-slots/system-slots';
+} from '../src/system-slots/system-slots.js';
 
 const group = { id: 'world-engine', name: 'The World Engine', order: 0 };
 const plan = { id: 'p1', title: 'Build whole worlds', description: 'Words.', groupId: 'world-engine', order: 0 };

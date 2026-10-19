@@ -2,7 +2,7 @@
 // The switch module is mocked so the real copy/helper module runs against `false`.
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../src/constants/legal-review-notice-state', () => ({
+vi.mock('../src/constants/legal-review-notice-state.js', () => ({
   LEGAL_REVIEW_NOTICE_ACTIVE: false,
   LEGAL_REVIEW_NOTICE_REVISION: 'founder-note-v1',
 }));
@@ -16,7 +16,7 @@ import {
   activeLegalReviewNoticeRevision,
   buildLegalReviewNoticeReceipt,
   type LegalReviewNoticeContext,
-} from '../src/constants/legal-review-notice';
+} from '../src/constants/legal-review-notice.js';
 
 describe('founder legal-review notice — switched off', () => {
   it('returns no plain text for any placement or variant', () => {

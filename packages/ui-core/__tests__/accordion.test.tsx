@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../src/react/components/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../src/react/components/accordion.js';
 
 // The open content box clips its animation without ever being a scroll container: a hidden-overflow
 // box can be scrolled by a focus or scroll-into-view mid-animation, then snaps back when it ends.

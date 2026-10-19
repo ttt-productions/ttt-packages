@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
-import { createReducedMotionStore } from '../src/react/reduced-motion-store';
-import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion';
-import { installMatchMedia, removeMatchMedia } from './support/match-media';
+import { createReducedMotionStore } from '../src/react/reduced-motion-store.js';
+import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion.js';
+import { installMatchMedia, removeMatchMedia } from './support/match-media.js';
 
 const STORAGE_KEY = 'test-reduced-motion';
 const CHANGE_EVENT = 'test-reduced-motion-change';

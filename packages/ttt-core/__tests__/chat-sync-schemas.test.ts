@@ -9,17 +9,17 @@ import {
   ChatSyncFanoutJobSchema,
   ChatMessageOutboxSchema,
   ChatAdminActionCommandSchema,
-} from '../src/doc-schemas/chat-sync';
+} from '../src/doc-schemas/chat-sync.js';
 import {
   NotificationDeliverySchema,
   NotificationDeliveryStateSchema,
   type NotificationDeliveryState,
   type NotificationDeliverySkipReason,
   NotificationFanoutJobSchema,
-} from '../src/doc-schemas/notification-ledger';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { COLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
+} from '../src/doc-schemas/notification-ledger.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { COLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 
 describe('chat-sync doc schemas parse representative docs', () => {
   it('ChatChannelAuthProjection (fail-closed fact)', () => {

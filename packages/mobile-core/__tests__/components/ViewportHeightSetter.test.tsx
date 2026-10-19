@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
-import { ViewportHeightSetter } from '../../src/react/components/ViewportHeightSetter';
+import { ViewportHeightSetter } from '../../src/react/components/ViewportHeightSetter.js';
 
 afterEach(() => {
   ['app', 'x'].forEach((p) => {

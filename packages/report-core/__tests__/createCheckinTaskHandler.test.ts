@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createCheckinTaskHandler } from '../src/server/createCheckinTaskHandler';
-import type { ServerReportCoreConfig } from '../src/server/types';
+import { createCheckinTaskHandler } from '../src/server/createCheckinTaskHandler.js';
+import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {

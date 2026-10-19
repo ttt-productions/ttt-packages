@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
-import { Input } from '../src/react/components/input';
+import { Input } from '../src/react/components/input.js';
 
 const TITLE = defineInputFormat({ format: 'englishNormal', min: 1, max: 150 });
 const OPTIONAL_NOTE = defineInputFormat({ format: 'singleLine', min: 0, max: 500 });

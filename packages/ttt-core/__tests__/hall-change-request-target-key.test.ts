@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   hallContentChangeRequestTargetKey,
   workRealmChangeRequestTargetKey,
-} from '../src/utils/hall-content';
+} from '../src/utils/hall-content.js';
 import {
   HallContentChangeRequestSchema,
   hallContentChangeRequestTargetKeySchema,
-} from '../src/doc-schemas/content';
-import { HallContentChangeRequestApprovedEventSchema } from '../src/media/domain-events-admin';
-import { FIRESTORE_INDEXED_VALUE_MAX_BYTES } from '../src/constants/business-platform';
+} from '../src/doc-schemas/content.js';
+import { HallContentChangeRequestApprovedEventSchema } from '../src/media/domain-events-admin.js';
+import { FIRESTORE_INDEXED_VALUE_MAX_BYTES } from '../src/constants/business-platform.js';
 
 // Stored requests are found again by these exact bytes, so the builders must keep them.
 describe('change-request target keys', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { AppConfigSchema } from '../src/doc-schemas/system';
-import { UpdateAppConfigInputSchema } from '../src/schemas/admin';
+import { AppConfigSchema } from '../src/doc-schemas/system.js';
+import { UpdateAppConfigInputSchema } from '../src/schemas/admin.js';
 import {
   DEFAULT_APP_CONFIG,
   DEFAULT_MAINTENANCE_MESSAGE,
@@ -8,14 +8,14 @@ import {
   readAppConfigLever,
   readAppConfigLevers,
   type AppConfigLeverKey,
-} from '../src/utils/app-config';
-import { planPublicDocumentRelease } from '../src/utils/public-documents';
-import { SPECIAL_DOCS } from '../src/paths/collections';
+} from '../src/utils/app-config.js';
+import { planPublicDocumentRelease } from '../src/utils/public-documents.js';
+import { SPECIAL_DOCS } from '../src/paths/collections.js';
 import {
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APP_VERSION_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
-} from '../src/constants/business-admin';
+} from '../src/constants/business-admin.js';
 
 const block = planPublicDocumentRelease(undefined, [SPECIAL_DOCS.TERMS_PAGE], true).block;
 

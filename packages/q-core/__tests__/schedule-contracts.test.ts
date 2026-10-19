@@ -4,12 +4,12 @@
 // schedule core or the admin form relies on.
 
 import { describe, it, expect } from 'vitest';
-import { MAX_SCHEDULE_WEEK_GAMES, MAX_SCHEDULE_WEEK_TITLE_LENGTH } from '../src/constants/business';
-import { SportGameSchema } from '../src/doc-schemas/sport-game';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
-import { BYE_TEAM_ID, buildScheduleWeekId, buildSportGameId, isByeTeamId } from '../src/ids/minted-ids';
-import { buildGameDeletionOperationId } from '../src/ids/stats-operation-ids';
-import { isDocumentIdSegment } from '../src/paths/utils';
+import { MAX_SCHEDULE_WEEK_GAMES, MAX_SCHEDULE_WEEK_TITLE_LENGTH } from '../src/constants/business.js';
+import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
+import { BYE_TEAM_ID, buildScheduleWeekId, buildSportGameId, isByeTeamId } from '../src/ids/minted-ids.js';
+import { buildGameDeletionOperationId } from '../src/ids/stats-operation-ids.js';
+import { isDocumentIdSegment } from '../src/paths/utils.js';
 import {
   AdminCreateScheduleWeekInputSchema,
   AdminCreateScheduleWeekResultSchema,
@@ -22,21 +22,21 @@ import {
   AdminUpdateScheduleWeekResultSchema,
   AdminUpdateSportGameInputSchema,
   AdminUpdateSportGameResultSchema,
-} from '../src/schemas/schedules';
-import { gameScoreMirror } from '../src/sports/score-mirror';
-import { getSportAdapter } from '../src/sports/registry';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+} from '../src/schemas/schedules.js';
+import { gameScoreMirror } from '../src/sports/score-mirror.js';
+import { getSportAdapter } from '../src/sports/registry.js';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   SCHEDULE_CONFLICT_KIND_KEYS,
   SCHEDULE_WEEK_FIELD_KEYS,
   SHARED_LOCATION_CONFLICT,
   SPORT_GAME_SCHEDULE_FIELD_KEYS,
   TEAM_DOUBLE_BOOKED_CONFLICT,
-} from '../src/types/schedules';
-import type { ScheduleConflictGame } from '../src/utils/schedules';
-import { findScheduleConflicts, formatGameLocationLabel } from '../src/utils/schedules';
-import { LEAGUE_TYPE_KEYS } from '../src/types/sports';
-import { GAME_STATUS_ON_CREATE } from '../src/types/unions';
+} from '../src/types/schedules.js';
+import type { ScheduleConflictGame } from '../src/utils/schedules.js';
+import { findScheduleConflicts, formatGameLocationLabel } from '../src/utils/schedules.js';
+import { LEAGUE_TYPE_KEYS } from '../src/types/sports.js';
+import { GAME_STATUS_ON_CREATE } from '../src/types/unions.js';
 
 const NOW = 1_760_000_000_000;
 const HOUR = 60 * 60 * 1000;

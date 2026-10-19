@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   LEGAL_REVIEW_NOTICE_ACTIVE,
   LEGAL_REVIEW_NOTICE_REVISION,
-} from '../src/constants/legal-review-notice-state';
-import { LEGAL_REVIEW_NOTICE_BODY } from '../src/constants/legal-review-notice';
-import * as constants from '../src/constants/index';
+} from '../src/constants/legal-review-notice-state.js';
+import { LEGAL_REVIEW_NOTICE_BODY } from '../src/constants/legal-review-notice.js';
+import * as constants from '../src/constants/index.js';
 
 describe('founder legal-review notice — the switch', () => {
   it('lives in the server-safe constants entry', () => {

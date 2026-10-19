@@ -1,5 +1,5 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type { OpsStatus, OpsSafetyClocks, OpsBrokenMachinery } from '../src/types/admin-ops';
+import type { OpsStatus, OpsSafetyClocks, OpsBrokenMachinery } from '../src/types/admin-ops.js';
 
 describe('OpsStatus snapshot shape (Mission Control landing)', () => {
   const basePledge = { netRaised: 0, grossRaised: 0, totalRefunded: 0, pledgeCount: 0 };

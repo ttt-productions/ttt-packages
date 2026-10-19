@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { AppConfigSchema } from '../src/doc-schemas/system';
-import { readPublicDocumentVersionBlock, type PublicDocumentVersionBlockReading } from '../src/utils/app-config';
+import { AppConfigSchema } from '../src/doc-schemas/system.js';
+import { readPublicDocumentVersionBlock, type PublicDocumentVersionBlockReading } from '../src/utils/app-config.js';
 import {
   planPublicDocumentRelease,
   requiredPublicDocumentAcceptanceLevel,
   requiredPublicDocumentAcceptanceLevelOfReading,
-} from '../src/utils/public-documents';
-import { SPECIAL_DOCS } from '../src/paths/collections';
+} from '../src/utils/public-documents.js';
+import { SPECIAL_DOCS } from '../src/paths/collections.js';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const RULES = SPECIAL_DOCS.RULES_AND_AGREEMENTS;

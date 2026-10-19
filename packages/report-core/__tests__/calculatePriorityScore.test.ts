@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   calculatePriorityScore,
   getHighestScoringReason,
-} from '../src/server/calculatePriorityScore';
-import type { ServerReportCoreConfig } from '../src/server/types';
+} from '../src/server/calculatePriorityScore.js';
+import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const config: ServerReportCoreConfig['priorityConfig'] = {
   reasonScores: {

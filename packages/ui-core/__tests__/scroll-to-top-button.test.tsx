@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
-import { ScrollToTopButton } from '../src/react/components/scroll-to-top-button';
+import { ScrollToTopButton } from '../src/react/components/scroll-to-top-button.js';
 
 beforeEach(() => {
   Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });

@@ -7,9 +7,9 @@ import {
   CreateWorkProjectInputSchema,
   CreateWorkProjectResultSchema,
   realmWorkingTitleSchema,
-} from '../src/schemas/work-project-management';
-import { ListGuildInvitesResultSchema } from '../src/doc-schemas/messaging';
-import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business-content';
+} from '../src/schemas/work-project-management.js';
+import { ListGuildInvitesResultSchema } from '../src/doc-schemas/messaging.js';
+import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business-content.js';
 
 const validStandaloneSource = { type: 'standalone' } as const;
 

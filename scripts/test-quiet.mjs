@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 // Quiet pre-commit / pre-publish gate for ttt-packages. Runs the canonical `test:all` stages —
-// audit -> lint -> build (every package, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
+// audit -> lint -> format -> build (every package, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
 // ONLY if every one of those passed, a final `schema` stage that checks the generated Firestore
 // schema docs are in sync and AUTO-REGENERATES them if they are stale.
 //
@@ -43,6 +43,7 @@ const RESET = '\x1b[0m';
 // Stage keys accepted by --only:
 //   audit      -> npm audit --omit=dev --audit-level=high (the publish CI security gate, verbatim)
 //   lint       -> npm run lint            (eslint, all workspaces)
+//   format     -> npm run format:check    (prettier --check over every package's code)
 //   typecheck  -> npm run typecheck       (per-workspace tsc --noEmit; skips __tests__)
 //   tscb       -> npx tsc -b --noEmit     (project refs; the ONLY step that type-checks __tests__)
 //   build      -> npm run build           (every package, topo order)
@@ -74,11 +75,12 @@ Quiet pre-commit / pre-publish gate. Runs the test:all stages, then a final sche
 
 Options:
   --only <stages>   Comma-separated list of stages to run.
-                    Stages: audit, lint, typecheck, tscb, build, test, schema
+                    Stages: audit, lint, format, typecheck, tscb, build, test, schema
   --test            Shortcut for --only test
   --build           Shortcut for --only build
   --audit           Shortcut for --only audit (mirrors the publish CI security gate)
   --lint            Shortcut for --only lint
+  --format          Shortcut for --only format
   --typecheck       Shortcut for --only typecheck
   --tscb            Shortcut for --only tscb
   --schema          Shortcut for --only schema
@@ -99,6 +101,7 @@ if (!onlyRaw) {
     const aliases = [];
     if (hasFlag('--audit')) aliases.push('audit');
     if (hasFlag('--lint')) aliases.push('lint');
+    if (hasFlag('--format')) aliases.push('format');
     if (hasFlag('--typecheck')) aliases.push('typecheck');
     if (hasFlag('--tscb')) aliases.push('tscb');
     if (hasFlag('--build')) aliases.push('build');
@@ -107,7 +110,7 @@ if (!onlyRaw) {
     if (aliases.length > 0) onlyRaw = aliases.join(',');
 }
 
-const KNOWN_STAGES = new Set(['audit', 'lint', 'typecheck', 'tscb', 'build', 'test', 'schema']);
+const KNOWN_STAGES = new Set(['audit', 'lint', 'format', 'typecheck', 'tscb', 'build', 'test', 'schema']);
 const only = onlyRaw
     ? new Set(
         onlyRaw
@@ -388,7 +391,7 @@ async function stageSchema(name, root) {
         : `${BOLD}Running quiet test suite${RESET}\n\n`;
     process.stdout.write(header);
 
-    // Stop-on-fail chain — strict mirror of `test:all` (audit && lint && build && typecheck && tsc -b
+    // Stop-on-fail chain — strict mirror of `test:all` (audit && lint && format && build && typecheck && tsc -b
     // && test), with a final schema gate that only runs if everything above (tests included) passed.
     //
     // 0. Security audit FIRST — the publish workflow's "Security audit (production deps)" step,
@@ -400,6 +403,9 @@ async function stageSchema(name, root) {
     }
     if (shouldRun('lint')) {
         if (!(await stagePlain('lint', 'npm', ['run', 'lint'], root))) return finish(overallStart);
+    }
+    if (shouldRun('format')) {
+        if (!(await stagePlain('format (prettier --check)', 'npm', ['run', 'format:check'], root))) return finish(overallStart);
     }
     // Build first: the two type-check stages below resolve @ttt-productions/* via node_modules -> dist,
     // so dist must exist. `npm run build` is topo-ordered and self-sufficient from a clean tree.

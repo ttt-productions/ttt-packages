@@ -7,8 +7,8 @@ import {
   REQUIRED_FIELD_CODES_AUTHORIZED_REPRESENTATIVE,
   computeCompleteness,
   requiredFieldCodes,
-} from '../src/doc-schemas/ncii/requests';
-import type { TakeItDownFieldCode } from '../src/doc-schemas/safety/foundation';
+} from '../src/doc-schemas/ncii/requests.js';
+import type { TakeItDownFieldCode } from '../src/doc-schemas/safety/foundation.js';
 
 // ---------------------------------------------------------------------------
 // H-03 — authorized-rep field requirements

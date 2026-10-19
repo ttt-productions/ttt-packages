@@ -4,7 +4,7 @@ import type {
   NormalReportInputSchema,
   ResolveAdminTaskInput,
   SafetyCaseInputSchema,
-} from '../src/schemas/admin';
+} from '../src/schemas/admin.js';
 
 // `resolveAdminTask` parses an ordinary report or a CSAM / NCII safety case, chosen by `caseType`,
 // so its declared input is exactly that either-or and a client can send both closes through it.

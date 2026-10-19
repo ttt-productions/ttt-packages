@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE,
   ITEMS_PER_PAGE_ADMIN_TASK_BROWSE,
-} from '../src/constants/pagination';
-import * as constants from '../src/constants/index';
+} from '../src/constants/pagination.js';
+import * as constants from '../src/constants/index.js';
 
 describe('admin Dispatches browse page size', () => {
   it('is importable from the server-safe constants entry, where the browse list reads it', () => {

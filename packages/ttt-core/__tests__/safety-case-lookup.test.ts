@@ -4,10 +4,10 @@ import {
   NCII_ACTIVE_INTERNAL_STATUSES,
   TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES,
   isActiveSafetyCaseStatus,
-} from '../src/constants/safety-active-statuses';
-import { SafetyCaseByIdResultSchema } from '../src/schemas/safety';
-import { ChildSafetyWorkStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case';
-import { NciiInternalStatusSchema, TakeItDownPublicStatusSchema } from '../src/doc-schemas/safety/foundation';
+} from '../src/constants/safety-active-statuses.js';
+import { SafetyCaseByIdResultSchema } from '../src/schemas/safety.js';
+import { ChildSafetyWorkStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case.js';
+import { NciiInternalStatusSchema, TakeItDownPublicStatusSchema } from '../src/doc-schemas/safety/foundation.js';
 
 describe('active safety statuses', () => {
   // A case stays active — on the console and in the Legal-Clocks count — until its worker verifies

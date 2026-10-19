@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { DateTimePicker } from '../src/react/components/date-time-picker';
+import { DateTimePicker } from '../src/react/components/date-time-picker.js';
 
 // Local-time construction, so the tests hold in any time zone.
 const at = (y: number, m1: number, day: number, h = 0, min = 0) => new Date(y, m1 - 1, day, h, min, 0, 0);

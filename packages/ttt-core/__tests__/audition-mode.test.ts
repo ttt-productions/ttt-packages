@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AuditionModeSchema, AuditionSchema } from '../src/doc-schemas/commissions';
+import { AuditionModeSchema, AuditionSchema } from '../src/doc-schemas/commissions.js';
 
 // An audition takes entries one of two ways, declared once; every schema that carries the mode
 // reads that one declaration.

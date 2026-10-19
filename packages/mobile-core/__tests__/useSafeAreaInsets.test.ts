@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useSafeAreaInsets } from '../src/react/safe-area/useSafeAreaInsets';
+import { useSafeAreaInsets } from '../src/react/safe-area/useSafeAreaInsets.js';
 
 afterEach(() => {
   ['top', 'right', 'bottom', 'left'].forEach((side) => {

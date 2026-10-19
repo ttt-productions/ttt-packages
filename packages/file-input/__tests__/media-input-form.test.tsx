@@ -3,8 +3,8 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { MediaInput } from '../src/react/components/media-input';
-import { FileInput } from '../src/react/components/file-input';
+import { MediaInput } from '../src/react/components/media-input.js';
+import { FileInput } from '../src/react/components/file-input.js';
 
 vi.mock('@ttt-productions/media-viewer/react', () => ({
   MediaPreview: () => <div data-testid="media-preview" />,

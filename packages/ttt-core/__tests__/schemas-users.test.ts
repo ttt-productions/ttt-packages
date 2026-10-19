@@ -4,8 +4,8 @@ import {
   MarkNonUsArtisanInterestInputSchema,
   LookupUserByEmailOrUidInputSchema,
   UpdateSiteTourPreferenceInputSchema,
-} from '../src/schemas/users';
-import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business-admin';
+} from '../src/schemas/users.js';
+import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business-admin.js';
 
 describe('BecomeArtisanCreatorInputSchema (18+ AND U.S.-person attestation + DOB)', () => {
   const dob = { year: 1990, month: 5, day: 17 };

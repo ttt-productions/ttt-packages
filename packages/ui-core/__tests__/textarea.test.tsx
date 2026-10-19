@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
-import { Textarea } from '../src/react/components/textarea';
+import { Textarea } from '../src/react/components/textarea.js';
 
 const DESCRIPTION = defineInputFormat({ format: 'none', min: 1, max: 1000 });
 

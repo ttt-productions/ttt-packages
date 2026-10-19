@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import {
   AdminTaskDocSchema,
   AdminTaskClosureHistoryEntrySchema,
-} from '../src/doc-schemas/report-docs';
+} from '../src/doc-schemas/report-docs.js';
 
 /** A fresh userReport task exactly as report-core's buildUserReportAdminTaskDoc writes it. */
 const freshUserReportTask = () => ({

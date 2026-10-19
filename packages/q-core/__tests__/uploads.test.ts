@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { SPECIAL_DOCS } from '../src/paths/collections';
+import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { SPECIAL_DOCS } from '../src/paths/collections.js';
 import {
   STAGING_UPLOAD_PREFIX,
   buildPictureObjectPath,
   buildPictureObjectPrefix,
   buildStagingUploadPath,
   parseStagingUploadPath,
-} from '../src/paths/storage-paths';
-import { toPath } from '../src/paths/utils';
+} from '../src/paths/storage-paths.js';
+import { toPath } from '../src/paths/utils.js';
 import {
   FILE_ORIGIN_KEYS,
   MEDIA_ORIGIN_SPECS,
@@ -20,19 +20,19 @@ import {
   SIGNATURE_ORIGIN_KEYS,
   isPictureOrigin,
   isSignatureOrigin,
-} from '../src/media/file-origins';
-import { PICTURE_ASPECT_RATIOS, pictureAspectRatio } from '../src/media/picture-aspects';
-import { GALLERY_OWNER_KIND_KEYS, isGalleryOwnerKind } from '../src/types/picture-owners';
-import { PICTURE_VARIANT_KEYS } from '../src/types/unions';
+} from '../src/media/file-origins.js';
+import { PICTURE_ASPECT_RATIOS, pictureAspectRatio } from '../src/media/picture-aspects.js';
+import { GALLERY_OWNER_KIND_KEYS, isGalleryOwnerKind } from '../src/types/picture-owners.js';
+import { PICTURE_VARIANT_KEYS } from '../src/types/unions.js';
 import {
   MAX_UPLOADS_MARKED_SEEN_PER_CALL,
   STALE_PENDING_MEDIA_AGE_MS,
   UPLOAD_TRAY_WINDOW_MS,
-} from '../src/constants/media';
-import { buildGalleryRetirementId, isStagingId } from '../src/ids/picture-ids';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { PendingMediaSchema, PendingMediaTargetSchema } from '../src/doc-schemas/pending-media';
-import { PictureRetirementSchema } from '../src/doc-schemas/picture-retirement';
+} from '../src/constants/media.js';
+import { buildGalleryRetirementId, isStagingId } from '../src/ids/picture-ids.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { PendingMediaSchema, PendingMediaTargetSchema } from '../src/doc-schemas/pending-media.js';
+import { PictureRetirementSchema } from '../src/doc-schemas/picture-retirement.js';
 import {
   AdminClearUploadActivityInputSchema,
   AdminClearUploadActivityResultSchema,
@@ -40,13 +40,13 @@ import {
   AdminMarkUploadsSeenResultSchema,
   AdminStartUploadInputSchema,
   parseTargetInfo,
-} from '../src/schemas/uploads';
+} from '../src/schemas/uploads.js';
 import {
   AdminDeletePictureInputSchema,
   AdminMovePictureInputSchema,
   AdminUpdateFeaturedPictureInputSchema,
-} from '../src/schemas/pictures';
-import { DomainEventSchema } from '../src/domain-events/domain-events';
+} from '../src/schemas/pictures.js';
+import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 
 const STAGING_ID = '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34';
 const UID = 'aB3dE5gH7jK9mN1pQ3sT5vW7xY9z';

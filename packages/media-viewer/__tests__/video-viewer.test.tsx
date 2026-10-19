@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
-import { VideoViewer } from '../src/react/video-viewer';
+import { VideoViewer } from '../src/react/video-viewer.js';
 
 let mockInView = false;
 let mockRatio = 0;

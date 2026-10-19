@@ -11,7 +11,7 @@ import {
   TableFooter,
   SortableTableHead,
   type SortableTableHeadProps,
-} from '../src/react/components/table';
+} from '../src/react/components/table.js';
 
 describe('Table components', () => {
   it('Table renders a table element', () => {

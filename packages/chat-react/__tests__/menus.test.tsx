@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { MessageActions, ThreadActions } from '../src/ui/menus';
+import { MessageActions, ThreadActions } from '../src/ui/menus.js';
 
 function deferred() {
   let resolve!: () => void;

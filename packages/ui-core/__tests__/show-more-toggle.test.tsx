@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ShowMoreToggle } from '../src/react/components/show-more-toggle';
-import { buttonVariants } from '../src/react/components/button';
+import { ShowMoreToggle } from '../src/react/components/show-more-toggle.js';
+import { buttonVariants } from '../src/react/components/button.js';
 
 function Harness({ initial = false }: { initial?: boolean }) {
   const [expanded, setExpanded] = React.useState(initial);

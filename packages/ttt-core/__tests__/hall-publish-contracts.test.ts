@@ -23,12 +23,12 @@ import {
   PublishedTuneTrackSchema,
   PublishedTelevisionEpisodeSchema,
   ThresholdItemSchema,
-} from '../src/doc-schemas/content';
+} from '../src/doc-schemas/content.js';
 import {
   FullWorkProjectSchema,
   PublicWorkProjectSchema,
   WorkRealmSchema,
-} from '../src/doc-schemas/work-project';
+} from '../src/doc-schemas/work-project.js';
 import {
   HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE,
   HALL_SUB_ITEM_REQUIREMENT_LABELS,
@@ -36,9 +36,9 @@ import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
   HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD,
-} from '../src/constants/business-content';
-import { HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE } from '../src/constants/hall-content-routing';
-import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../src/constants/business-admin';
+} from '../src/constants/business-content.js';
+import { HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE } from '../src/constants/hall-content-routing.js';
+import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../src/constants/business-admin.js';
 import {
   HALL_LIBRARY_TARGET_FIELDS,
   HALL_LIBRARY_COVER_TARGET_FIELDS,
@@ -47,13 +47,13 @@ import {
   isHallLibraryCoverFileOrigin,
   HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS,
   isHallLibrarySubItemFileOrigin,
-} from '../src/media/hall-library-target-fields';
-import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
-import { WORK_SECTION_PATHS_BY_TYPE } from '../src/paths/work-section-paths';
+} from '../src/media/hall-library-target-fields.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
+import { WORK_SECTION_PATHS_BY_TYPE } from '../src/paths/work-section-paths.js';
 import {
   unmetHallSubItemRequirements,
   isHallSubItemPublishable,
-} from '../src/utils/hall-content';
+} from '../src/utils/hall-content.js';
 
 /** Structural view of a document schema — just enough to read its declared keys, so the table
  *  below can hold schemas of different strictness side by side. */

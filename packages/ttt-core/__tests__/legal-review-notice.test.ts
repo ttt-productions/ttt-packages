@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import {
   LEGAL_REVIEW_NOTICE_ACTIVE,
   LEGAL_REVIEW_NOTICE_REVISION,
-} from '../src/constants/legal-review-notice-state';
+} from '../src/constants/legal-review-notice-state.js';
 import {
   LEGAL_REVIEW_NOTICE_HEADING,
   LEGAL_REVIEW_NOTICE_BODY,
@@ -20,10 +20,10 @@ import {
   buildLegalReviewNoticeReceipt,
   type LegalReviewNoticeContext,
   type LegalReviewNoticeVariantFor,
-} from '../src/constants/legal-review-notice';
-import { PUBLIC_DOCUMENT_IDS } from '../src/constants/public-documents';
-import { SPECIAL_DOCS } from '../src/paths/collections';
-import { LegalReviewNoticeReceiptSchema } from '../src/doc-schemas/legal-review-notice';
+} from '../src/constants/legal-review-notice.js';
+import { PUBLIC_DOCUMENT_IDS } from '../src/constants/public-documents.js';
+import { SPECIAL_DOCS } from '../src/paths/collections.js';
+import { LegalReviewNoticeReceiptSchema } from '../src/doc-schemas/legal-review-notice.js';
 
 // The settled notice copy, verbatim.
 const FULL_NOTE =

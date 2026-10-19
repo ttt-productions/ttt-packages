@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids';
-import { buildGhostUserId } from '../src/ids/minted-ids';
+import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids.js';
+import { buildGhostUserId } from '../src/ids/minted-ids.js';
 import {
   buildStatCorrectionId,
   buildStatEventId,
   buildStatHistoryPageId,
   buildStatVoidId,
-} from '../src/ids/stat-event-ids';
+} from '../src/ids/stat-event-ids.js';
 
 const TEAM = 'aB3dE5gH7jK9mN1pQ3sT';
 const UID = 'aB3dE5gH7jK9mN1pQ3sT5vW7xY9z';

@@ -11,24 +11,24 @@ import {
   ModerationHiddenBySchema,
   moderationCascadeManifestId,
   moderationTargetKey,
-} from '../src/doc-schemas/moderation';
-import { ReportableItemTypeSchema } from '../src/doc-schemas/safety/foundation';
-import { ReportGroupV1Schema } from '../src/doc-schemas/safety/report';
+} from '../src/doc-schemas/moderation.js';
+import { ReportableItemTypeSchema } from '../src/doc-schemas/safety/foundation.js';
+import { ReportGroupV1Schema } from '../src/doc-schemas/safety/report.js';
 import {
   AuditionEntrySchema,
   AuditionSchema,
   CommissionProposalSchema,
   FullCommissionListingSchema,
-} from '../src/doc-schemas/commissions';
-import { SquareStreetzPostSchema } from '../src/doc-schemas/social';
-import { CraftSkillReferenceSchema, CraftSkillSchema } from '../src/doc-schemas/user';
-import { PublicWorkProjectSchema, WorkRealmSchema } from '../src/doc-schemas/work-project';
+} from '../src/doc-schemas/commissions.js';
+import { SquareStreetzPostSchema } from '../src/doc-schemas/social.js';
+import { CraftSkillReferenceSchema, CraftSkillSchema } from '../src/doc-schemas/user.js';
+import { PublicWorkProjectSchema, WorkRealmSchema } from '../src/doc-schemas/work-project.js';
 import {
   PublishedChapterSchema,
   PublishedHallItemSchema,
   PublishedTelevisionEpisodeSchema,
   PublishedTuneTrackSchema,
-} from '../src/doc-schemas/content';
+} from '../src/doc-schemas/content.js';
 
 const entryTarget = { entityType: 'audition-entry', entityId: 'entry-1', parentEntityId: 'audition-1' } as const;
 const manifest = {

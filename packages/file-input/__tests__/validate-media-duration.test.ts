@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
-import { validateMediaDuration } from '../src/lib/validate-media-duration';
+import { validateMediaDuration } from '../src/lib/validate-media-duration.js';
 
 function makeFakeMediaEl(
   duration: number,

@@ -3,8 +3,8 @@ import {
   isPledgePaymentCounted,
   pledgePaymentContributionOf,
   pledgePaymentTotalsOf,
-} from '../src/utils/pledge-totals';
-import * as utils from '../src/utils/index';
+} from '../src/utils/pledge-totals.js';
+import * as utils from '../src/utils/index.js';
 
 describe('the pledge-totals formula', () => {
   it('is exported from the utils entry', () => {

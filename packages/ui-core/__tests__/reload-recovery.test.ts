@@ -8,7 +8,7 @@ import {
   isStaleChunkError,
   isStorageDisconnectError,
   reloadRecoveryKindOf,
-} from '../src/lib/reload-recovery';
+} from '../src/lib/reload-recovery.js';
 
 const DISCONNECT_MESSAGE = 'Connection to Indexed Database server lost. Refresh the page to try again';
 

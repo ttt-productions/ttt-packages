@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { UploadError, isValidMediaContentType } from '../src/storage/upload-error';
+import { UploadError, isValidMediaContentType } from '../src/storage/upload-error.js';
 
 describe('UploadError', () => {
   it('carries the code property', () => {

@@ -6,7 +6,7 @@ import {
   isMaintenanceRefusalDetails,
   isMaintenanceRefusalError,
   type MaintenanceRefusalDetails,
-} from '../src/utils/app-config';
+} from '../src/utils/app-config.js';
 
 const details: MaintenanceRefusalDetails = { reason: MAINTENANCE_REFUSAL_REASON };
 

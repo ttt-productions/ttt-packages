@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE } from '../src/utils/hall-content';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
+import { PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE } from '../src/utils/hall-content.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 
 // A writer takes a published Hall sub-item's subcollection AND its schema from one entry, so each
 // entry's schema must be exactly the one the registry binds to that entry's subcollection.

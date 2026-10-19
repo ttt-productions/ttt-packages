@@ -5,18 +5,18 @@ import {
   FINALIZATION_NOT_READY_COPY,
   MAX_CURLING_ROUND_POINTS,
   STAT_EVENT_REFUSAL_COPY,
-} from '../src/constants/sports';
-import type { GameStatEvent } from '../src/doc-schemas/game-stats';
-import type { GameStats } from '../src/doc-schemas/sport-game';
-import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
-import { buildStatCorrectionId, buildStatEventId, buildStatVoidId } from '../src/ids/stat-event-ids';
-import { SPORT_ADAPTER_LIST, getSportAdapter } from '../src/sports/registry';
-import { basketballFantasyPoints } from '../src/sports/basketball-scoring';
-import { gameScoreMirror } from '../src/sports/score-mirror';
-import { replayGameStats } from '../src/sports/replay';
-import { VOID_PLAY_DESCRIPTION } from '../src/sports/scoring-display';
-import { type AnySportAdapter } from '../src/sports/sport-adapter';
-import { type StatEventBody, type StatEventRoster } from '../src/sports/scoring';
+} from '../src/constants/sports.js';
+import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
+import type { GameStats } from '../src/doc-schemas/sport-game.js';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
+import { buildStatCorrectionId, buildStatEventId, buildStatVoidId } from '../src/ids/stat-event-ids.js';
+import { SPORT_ADAPTER_LIST, getSportAdapter } from '../src/sports/registry.js';
+import { basketballFantasyPoints } from '../src/sports/basketball-scoring.js';
+import { gameScoreMirror } from '../src/sports/score-mirror.js';
+import { replayGameStats } from '../src/sports/replay.js';
+import { VOID_PLAY_DESCRIPTION } from '../src/sports/scoring-display.js';
+import { type AnySportAdapter } from '../src/sports/sport-adapter.js';
+import { type StatEventBody, type StatEventRoster } from '../src/sports/scoring.js';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_ASSIST_EVENT_TYPE,
@@ -33,7 +33,7 @@ import {
   FOOTBALL_SCORE_EVENT_TYPE_KEYS,
   FOOTBALL_STAT_EVENT_TYPE_KEYS,
   LEAGUE_TYPE_KEYS,
-} from '../src/types/sports';
+} from '../src/types/sports.js';
 import {
   FINALIZATION_NOT_READY_KEYS,
   PLAYER_STAT_LINE_KIND_KEYS,
@@ -42,7 +42,7 @@ import {
   STAT_LINE_KIND_KEYS,
   STAT_VOID_EVENT_TYPE,
   TEAM_STAT_LINE_KIND_KEYS,
-} from '../src/types/stats';
+} from '../src/types/stats.js';
 
 const NOW = 1712345678901;
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;

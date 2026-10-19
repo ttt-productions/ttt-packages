@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/constants/business-admin';
-import * as constantsBarrel from '../src/constants/index';
+import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/constants/business-admin.js';
+import * as constantsBarrel from '../src/constants/index.js';
 
 describe('operator step-up code length', () => {
   it('is exported from the constants entry', () => {

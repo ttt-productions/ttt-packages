@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { COLLECTION_GROUPS } from '../src/paths/collection-groups';
-import { USER_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
+import { COLLECTION_GROUPS } from '../src/paths/collection-groups.js';
+import { USER_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections.js';
 
 describe('COLLECTION_GROUPS', () => {
   it("declares the support threads' read markers, which the per-member read and the erasure query as one group", () => {

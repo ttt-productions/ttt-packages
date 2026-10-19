@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toPath } from '../src/paths/utils';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
+import { toPath } from '../src/paths/utils.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 
 describe('toPath', () => {
   it('returns empty string for empty array', () => {

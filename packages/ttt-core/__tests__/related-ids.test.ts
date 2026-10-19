@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { RELATED_ID_PREFIXES, buildRelatedId } from '../src/paths/related-ids';
-import { MentionTypeSchema } from '../src/media/atoms';
+import { RELATED_ID_PREFIXES, buildRelatedId } from '../src/paths/related-ids.js';
+import { MentionTypeSchema } from '../src/media/atoms.js';
 
 describe('related-ids', () => {
   it('builds prefixed ids for each entity', () => {

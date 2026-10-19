@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as React from 'react';
 import { render, fireEvent, act } from '@testing-library/react';
-import { VideoViewer } from '../src/react/video-viewer';
-import { AudioViewer } from '../src/react/audio-viewer';
+import { VideoViewer } from '../src/react/video-viewer.js';
+import { AudioViewer } from '../src/react/audio-viewer.js';
 import {
   PROGRESS_SAMPLE_INTERVAL_MS,
   LATE_RESUME_ADOPT_WINDOW_SEC,
-} from '../src/react/use-media-playback';
-import type { MediaPlaybackControls } from '../src/types';
+} from '../src/react/use-media-playback.js';
+import type { MediaPlaybackControls } from '../src/types.js';
 
 // The video-viewer's autoplay/unload logic reads useInView. Keep the element
 // mounted and non-autoplaying by default (inView true, ratio 0 => not >= 0.5).

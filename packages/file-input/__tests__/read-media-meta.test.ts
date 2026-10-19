@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readMediaMeta } from '../src/lib/read-media-meta';
+import { readMediaMeta } from '../src/lib/read-media-meta.js';
 
 function stubImage(width: number, height: number, shouldError = false) {
   class FakeImage {

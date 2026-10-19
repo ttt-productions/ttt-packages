@@ -5,14 +5,14 @@ import {
   CHARTER_LIMITS,
   FULL_LIMITS,
   countCapReachedMessage,
-} from '../src/constants/app-mode';
+} from '../src/constants/app-mode.js';
 import {
   MAX_CONVERSATION_FILES,
   MAX_CONVERSATION_FILE_STORAGE_BYTES,
-} from '../src/constants/conversation-files';
-import { FullWorkProjectSchema } from '../src/doc-schemas/work-project';
-import { GuildInviteConversationSchema, AdminDispatchSchema } from '../src/doc-schemas/messaging';
-import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
+} from '../src/constants/conversation-files.js';
+import { FullWorkProjectSchema } from '../src/doc-schemas/work-project.js';
+import { GuildInviteConversationSchema, AdminDispatchSchema } from '../src/doc-schemas/messaging.js';
+import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
 
 const GIB = 1024 * 1024 * 1024;
 const MIB = 1024 * 1024;

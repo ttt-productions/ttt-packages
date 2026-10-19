@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   MediaAssetReapCandidateSchema,
   MediaAssetCopySourceHoldFieldsSchema,
-} from '../src/doc-schemas/media-assets';
+} from '../src/doc-schemas/media-assets.js';
 
 const retirement = {
   requestedAt: 1,

@@ -4,14 +4,14 @@ import {
   TakeItDownPageCopySchema,
   FuturePlansDocumentSchema,
   RulesAndAgreementsSchema,
-} from '../src/doc-schemas/content';
+} from '../src/doc-schemas/content.js';
 import {
   LegalPageContentInputSchema,
   TakeItDownPageCopyContentInputSchema,
-} from '../src/schemas/admin';
-import { COLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/schemas/admin.js';
+import { COLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
 const section = { id: 's1', heading: 'Part 1', level: 1, body: 'First paragraph.\n\nSecond paragraph.', order: 0 };
 

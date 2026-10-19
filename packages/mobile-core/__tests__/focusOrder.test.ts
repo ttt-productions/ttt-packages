@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getFocusableInputs } from '../src/react/keyboard/focusOrder';
+import { getFocusableInputs } from '../src/react/keyboard/focusOrder.js';
 
 function createElement(tag: string, attrs: Record<string, string> = {}): HTMLElement {
   const el = document.createElement(tag);

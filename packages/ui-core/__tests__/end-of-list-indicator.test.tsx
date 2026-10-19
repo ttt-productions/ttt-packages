@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { EndOfListIndicator } from '../src/react/components/end-of-list-indicator';
+import { EndOfListIndicator } from '../src/react/components/end-of-list-indicator.js';
 
 describe('EndOfListIndicator', () => {
   it('renders the default message', () => {

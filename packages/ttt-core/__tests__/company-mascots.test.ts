@@ -17,7 +17,7 @@ import {
   getCompanyMascot,
   type CompanyCopySegment,
   type CompanyMascot,
-} from '../src/constants/company-mascots';
+} from '../src/constants/company-mascots.js';
 
 const SEGMENT_KINDS = ['text', 'emphasis', 'link'] as const;
 const BLOCK_KINDS = ['paragraph', 'aside'] as const;

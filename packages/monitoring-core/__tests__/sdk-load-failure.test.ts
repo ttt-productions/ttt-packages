@@ -40,7 +40,7 @@ describe('a Sentry SDK that fails to load', () => {
     });
 
     it('initMonitoring rejects so its caller can report the failed init', async () => {
-        const { initMonitoring } = await import('../src/init');
+        const { initMonitoring } = await import('../src/init.js');
         await expect(initMonitoring({ provider: 'sentry-node', dsn: 'https://test@example.com/1' })).rejects.toThrow();
     });
 });

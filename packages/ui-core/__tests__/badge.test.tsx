@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Badge, badgeVariants } from '../src/react/components/badge';
+import { Badge, badgeVariants } from '../src/react/components/badge.js';
 
 // A solid status fill carries ITS OWN status foreground, and no other text colour at rest.
 const TEXT_NOT_A_COLOUR = /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;

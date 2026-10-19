@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createAdminTaskHandler } from '../src/server/createAdminTaskHandler';
-import type { ServerReportCoreConfig } from '../src/server/types';
+import { createAdminTaskHandler } from '../src/server/createAdminTaskHandler.js';
+import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {

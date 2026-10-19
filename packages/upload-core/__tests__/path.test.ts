@@ -8,7 +8,7 @@ vi.mock('@ttt-productions/firebase-helpers', () => ({
       .join('/'),
 }));
 
-import { buildUploadPath } from '../src/utils/path';
+import { buildUploadPath } from '../src/utils/path.js';
 
 describe('buildUploadPath', () => {
   it('builds a path with all segments', () => {

@@ -1,9 +1,9 @@
 import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { MediaInput } from '../src/react/components/media-input';
-import { ImageCropperModal } from '../src/react/components/image-cropper-modal';
-import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal';
+import { MediaInput } from '../src/react/components/media-input.js';
+import { ImageCropperModal } from '../src/react/components/image-cropper-modal.js';
+import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal.js';
 import { getCroppedImg } from '../src/lib/image-utils.js';
 import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from '../src/progress-bar.js';
 

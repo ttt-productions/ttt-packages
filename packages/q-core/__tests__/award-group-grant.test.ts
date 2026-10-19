@@ -2,21 +2,21 @@
 // out a page of people at a time, with every person recorded before their profile changes.
 
 import { describe, it, expect } from 'vitest';
-import { buildAwardGroupGrantId, buildAwardGroupGrantTargetKey } from '../src/ids/award-grant-ids';
+import { buildAwardGroupGrantId, buildAwardGroupGrantTargetKey } from '../src/ids/award-grant-ids.js';
 import {
   AwardGroupGrantPersonSchema,
   AwardGroupGrantSchema,
   awardGroupGrantOpens,
-} from '../src/doc-schemas/award-group-grant';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+} from '../src/doc-schemas/award-group-grant.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import {
   AdminGetAwardGroupGrantStatusInputSchema,
   AdminGetAwardGroupGrantStatusResultSchema,
   AdminUpdateAwardGroupGrantInputSchema,
   AdminUpdateAwardGroupGrantResultSchema,
-} from '../src/schemas/awards';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { toPath } from '../src/paths/utils';
+} from '../src/schemas/awards.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { toPath } from '../src/paths/utils.js';
 
 const target = { awardId: 'award-1', groupType: 'league', groupId: 'league-1' } as const;
 const targetKey = buildAwardGroupGrantTargetKey(target);

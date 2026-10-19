@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { ChatParkedDeliveryReportSchema, type ChatParkedDeliveryReport } from '@ttt-productions/chat-schemas';
-import { ChatParkedDeliverySchema } from '../src/doc-schemas/chat-sync';
-import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { ERASURE_FATES_BY_COLLECTION_PATH } from '../src/doc-schemas/erasure-fates';
-import { COLLECTIONS } from '../src/paths/collections';
-import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { AdminReplayDeadLetterInputSchema, DeadLetterCollectionSchema, FlatDeadLetterCollectionSchema } from '../src/schemas/admin';
-import { DEAD_LETTER_COLLECTION_LABELS } from '../src/constants/admin-labels';
+import { ChatParkedDeliverySchema } from '../src/doc-schemas/chat-sync.js';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
+import { ERASURE_FATES_BY_COLLECTION_PATH } from '../src/doc-schemas/erasure-fates.js';
+import { COLLECTIONS } from '../src/paths/collections.js';
+import { PATH_BUILDERS } from '../src/paths/path-builders.js';
+import { AdminReplayDeadLetterInputSchema, DeadLetterCollectionSchema, FlatDeadLetterCollectionSchema } from '../src/schemas/admin.js';
+import { DEAD_LETTER_COLLECTION_LABELS } from '../src/constants/admin-labels.js';
 
 const report: ChatParkedDeliveryReport = {
   targetDo: 'ttt:dev:inbox:u1',

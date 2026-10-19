@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
-import { FileInput } from '../src/react/components/file-input';
-import { MediaInput } from '../src/react/components/media-input';
+import { FileInput } from '../src/react/components/file-input.js';
+import { MediaInput } from '../src/react/components/media-input.js';
 
 vi.mock('@ttt-productions/media-viewer/react', () => ({
   MediaPreview: (props: { type?: string; className?: string }) => (
