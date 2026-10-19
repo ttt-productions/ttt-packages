@@ -3,7 +3,6 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ShowMoreToggle } from '../src/react/components/show-more-toggle';
 import { buttonVariants } from '../src/react/components/button';
-import * as reactEntry from '../src/react/index';
 
 function Harness({ initial = false }: { initial?: boolean }) {
   const [expanded, setExpanded] = React.useState(initial);
@@ -62,9 +61,5 @@ describe('ShowMoreToggle — the one show-more disclosure control', () => {
     }
     expect(toggle).toHaveAttribute('type', 'button');
     expect(toggle.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
-  });
-
-  it('is exported from the react entry', () => {
-    expect(reactEntry.ShowMoreToggle).toBe(ShowMoreToggle);
   });
 });

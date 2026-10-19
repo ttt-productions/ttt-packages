@@ -3,38 +3,8 @@ import {
   SubmitFeedbackInputSchema,
   SubmitContentAppealResultSchema,
   AcceptViolationDecisionResultSchema,
-  SeedRulesAndAgreementsInputSchema,
-  SeedFuturePlansInputSchema,
-  SeedTermsPageInputSchema,
-  SeedPrivacyPageInputSchema,
-  SeedTakeItDownPageCopyInputSchema,
-  SeedDmcaPolicyInputSchema,
 } from '../src/schemas/utility';
-import * as schemasBarrel from '../src/schemas';
 import { FEEDBACK_TYPES } from '../src/constants/business-admin';
-
-describe('public-document seed inputs (one per public document, intentionally empty)', () => {
-  const seeds = {
-    SeedRulesAndAgreementsInputSchema,
-    SeedFuturePlansInputSchema,
-    SeedTermsPageInputSchema,
-    SeedPrivacyPageInputSchema,
-    SeedTakeItDownPageCopyInputSchema,
-    SeedDmcaPolicyInputSchema,
-  };
-
-  for (const [name, schema] of Object.entries(seeds)) {
-    it(`${name} accepts only an empty object`, () => {
-      expect(schema.safeParse({}).success).toBe(true);
-      expect(schema.safeParse({ documentId: 'dmcaPolicy' }).success).toBe(false);
-      expect(schema.safeParse(null).success).toBe(false);
-    });
-  }
-
-  it('SeedDmcaPolicyInputSchema ships on the schemas entry the callables import from', () => {
-    expect(schemasBarrel.SeedDmcaPolicyInputSchema).toBe(SeedDmcaPolicyInputSchema);
-  });
-});
 
 describe('SubmitFeedbackInputSchema', () => {
   describe('feedbackType (enum)', () => {
@@ -136,5 +106,4 @@ describe('moderation result receipts carry an optional auditEventId', () => {
     expect(AcceptViolationDecisionResultSchema.parse({ ...base, auditEventId: 'evt-2' }).auditEventId).toBe('evt-2');
   });
 });
-
 

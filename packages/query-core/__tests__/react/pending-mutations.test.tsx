@@ -58,7 +58,6 @@ function useGuardedSave(save: (variables: SaveVariables) => Promise<string>) {
 }
 
 describe('pending mutations', () => {
-
   it('an in-flight mutation stays pending after the control that started it unmounts, and a remounted reader sees it', async () => {
     const queryClient = makeClient();
     const server = makeServer();

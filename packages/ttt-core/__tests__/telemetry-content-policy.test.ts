@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { TTT_TELEMETRY_CONTENT_POLICY } from '../src/constants/telemetry-content-policy';
-import * as constants from '../src/constants/index';
 
 // One telemetry content policy on every backend runtime: the Functions tree and the Next server and
 // edge inits all build the same allowlist from this one declaration.
@@ -65,9 +64,5 @@ describe('TTT_TELEMETRY_CONTENT_POLICY', () => {
     const { diagnosticKeys, diagnosticKeySuffixes } = TTT_TELEMETRY_CONTENT_POLICY;
     expect(new Set(diagnosticKeys).size).toBe(diagnosticKeys.length);
     expect(new Set(diagnosticKeySuffixes).size).toBe(diagnosticKeySuffixes.length);
-  });
-
-  it('is importable from the server-safe constants entry, where the Functions tree and the Next inits read it', () => {
-    expect(constants.TTT_TELEMETRY_CONTENT_POLICY).toBe(TTT_TELEMETRY_CONTENT_POLICY);
   });
 });

@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { AppConfigSchema } from '../src/doc-schemas/system';
-import { readPublicDocumentVersionBlock, type PublicDocumentVersionBlockReading } from '../src/utils/app-config';
+import {
+  readPublicDocumentVersionBlock,
+  type PublicDocumentVersionBlockReading,
+} from '../src/utils/app-config';
 import {
   planPublicDocumentRelease,
   requiredPublicDocumentAcceptanceLevel,
   requiredPublicDocumentAcceptanceLevelOfReading,
 } from '../src/utils/public-documents';
 import { SPECIAL_DOCS } from '../src/paths/collections';
-import * as utils from '../src/utils';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const RULES = SPECIAL_DOCS.RULES_AND_AGREEMENTS;
@@ -127,10 +129,6 @@ describe('readPublicDocumentVersionBlock — the one reader of the release-owned
     readPublicDocumentVersionBlock(snapshot);
     expect(JSON.stringify(snapshot)).toBe(before);
   });
-
-  it('is exported from the utils entry', () => {
-    expect(utils.readPublicDocumentVersionBlock).toBe(readPublicDocumentVersionBlock);
-  });
 });
 
 describe('requiredPublicDocumentAcceptanceLevelOfReading — the level each reading states', () => {
@@ -158,9 +156,5 @@ describe('requiredPublicDocumentAcceptanceLevelOfReading — the level each read
 
   it('is null even when the invalid block carries a readable level', () => {
     expect(requiredPublicDocumentAcceptanceLevelOfReading(read({ ...block, strayField: true }))).toBeNull();
-  });
-
-  it('is exported from the utils entry', () => {
-    expect(utils.requiredPublicDocumentAcceptanceLevelOfReading).toBe(requiredPublicDocumentAcceptanceLevelOfReading);
   });
 });

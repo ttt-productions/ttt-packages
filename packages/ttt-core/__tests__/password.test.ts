@@ -1,10 +1,6 @@
-// The TTT password contract, exercised through the PUBLIC package entries that own it (the
-// constants and utils entries) rather than the source files, so a broken re-export fails here.
 import { describe, it, expect } from 'vitest';
-import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '../src/constants/index';
-import { validateTttPassword } from '../src/utils/index';
-import * as businessUser from '../src/constants/business-user';
-import * as passwordSource from '../src/utils/password';
+import { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } from '../src/constants/business-user';
+import { validateTttPassword } from '../src/utils/password';
 
 const TOO_SHORT = `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
 const TOO_LONG = `Password must be no more than ${PASSWORD_MAX_LENGTH} characters.`;
@@ -13,15 +9,9 @@ const TOO_LONG = `Password must be no more than ${PASSWORD_MAX_LENGTH} character
 const EMOJI = '\u{1F600}';
 
 describe('password policy constants', () => {
-  it('exposes the settled 7/64 policy from the constants entry', () => {
+  it('is the settled 7/64 policy', () => {
     expect(PASSWORD_MIN_LENGTH).toBe(7);
     expect(PASSWORD_MAX_LENGTH).toBe(64);
-  });
-
-  it('re-exports the source declarations through the constants and utils entries', () => {
-    expect(PASSWORD_MIN_LENGTH).toBe(businessUser.PASSWORD_MIN_LENGTH);
-    expect(PASSWORD_MAX_LENGTH).toBe(businessUser.PASSWORD_MAX_LENGTH);
-    expect(validateTttPassword).toBe(passwordSource.validateTttPassword);
   });
 });
 

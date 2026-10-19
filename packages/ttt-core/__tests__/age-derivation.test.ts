@@ -82,7 +82,6 @@ describe('deriveAgeBracket', () => {
       bracket: 'adult',
     });
   });
-
 });
 
 describe('DateOfBirthSchema', () => {

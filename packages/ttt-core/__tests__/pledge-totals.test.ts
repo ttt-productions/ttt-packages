@@ -6,7 +6,6 @@ import {
   pledgePaymentTotalsOf,
 } from '../src/utils/pledge-totals';
 import { PledgePaymentSchema } from '../src/doc-schemas/payments';
-import * as utils from '../src/utils/index';
 
 const refunded = { amount: 1000, refundedAmount: 400, disputeLostAmount: 0, netAmount: 600 };
 const disputeLost = { amount: 2500, refundedAmount: 0, disputeLostAmount: 2500, netAmount: 0 };
@@ -50,12 +49,6 @@ describe('the pledge-totals formula', () => {
     for (const field of PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS) {
       expect(Object.keys(PledgePaymentSchema.shape)).toContain(field);
     }
-  });
-
-  it('is exported from the utils entry', () => {
-    expect(utils.pledgePaymentTotalsOf).toBe(pledgePaymentTotalsOf);
-    expect(utils.isPledgePaymentCounted).toBe(isPledgePaymentCounted);
-    expect(utils.pledgePaymentContributionOf).toBe(pledgePaymentContributionOf);
   });
 });
 

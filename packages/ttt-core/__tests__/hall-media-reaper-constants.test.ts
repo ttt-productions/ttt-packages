@@ -47,5 +47,4 @@ describe('Hall-media orphan reaper policy constants', () => {
   it('expires a claim inside the day-long retry budget of the publish trigger', () => {
     expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeLessThan(DAY_MS);
   });
-
 });

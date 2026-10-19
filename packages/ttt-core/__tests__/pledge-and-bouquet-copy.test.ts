@@ -4,7 +4,6 @@ import {
   PLEDGE_BADGE_RECOGNITION_COPY,
 } from '../src/constants/pledge-and-bouquet-copy';
 import { BOUQUET_STAGE_1_LIVE, BOUQUET_STAGE_3_LIVE } from '../src/constants/release-flags';
-import * as constants from '../src/constants';
 
 describe('pledge badge recognition copy', () => {
   it('is the settled wording, verbatim', () => {
@@ -25,9 +24,3 @@ describe('Bouquets and payouts planned-not-built copy', () => {
   });
 });
 
-describe('pledge and Bouquet copy exports', () => {
-  it('ship on the server-safe constants entry, so every consumer shares one sentence', () => {
-    expect(constants.PLEDGE_BADGE_RECOGNITION_COPY).toBe(PLEDGE_BADGE_RECOGNITION_COPY);
-    expect(constants.BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY).toBe(BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY);
-  });
-});

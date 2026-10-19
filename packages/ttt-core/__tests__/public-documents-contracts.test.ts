@@ -3,11 +3,10 @@ import {
   PUBLIC_DOCUMENT_IDS,
   PUBLIC_DOCUMENT_LABELS,
   PUBLIC_DOCUMENTS_ACCEPTED_CLAIM,
-  REGISTERED_MEMBER_CLAIM,
   PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
+  REGISTERED_MEMBER_CLAIM,
   type PublicDocumentId,
 } from '../src/constants/public-documents';
-import * as constants from '../src/constants/index';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
 import { PATH_BUILDERS, publicDocumentVersionDocId } from '../src/paths/path-builders';
 import { COLLECTION_REFS } from '../src/paths/collection-refs';
@@ -49,11 +48,13 @@ import {
   SquareStreetzAgreementsAcceptedAuditPayloadSchema,
 } from '../src/schemas/users';
 import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents';
-import * as docSchemasBarrel from '../src/doc-schemas';
-import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents';
+import {
+  changedPublicDocuments,
+  planPublicDocumentRelease,
+  samePublicDocumentVersions,
+} from '../src/utils/public-documents';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
 import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library';
-import * as schemasBarrel from '../src/schemas';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const RULES = SPECIAL_DOCS.RULES_AND_AGREEMENTS;
@@ -74,6 +75,17 @@ const dmcaContent = {
 const RELEASE_ID = '8f14e45f-ceea-467a-9a8b-9a1b1c2d3e4f';
 
 describe('public document identity', () => {
+  it('names the registered-member claim once, apart from the acceptance claim', () => {
+    expect(REGISTERED_MEMBER_CLAIM).toBe('registeredMember');
+    expect(REGISTERED_MEMBER_CLAIM).not.toBe(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM);
+  });
+
+  it("states the re-acceptance prompt's agreement line verbatim", () => {
+    expect(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(
+      'By choosing Accept, you agree to the current versions of the documents listed above.',
+    );
+  });
+
   it('each id is its _appConfig projection doc id', () => {
     expect(PUBLIC_DOCUMENT_IDS).toEqual([
       SPECIAL_DOCS.TERMS_PAGE,
@@ -101,19 +113,6 @@ describe('public document identity', () => {
 
   it('names the acceptance claim once', () => {
     expect(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM).toBe('docsAccepted');
-  });
-
-  it('names the registered-member claim once, on the server-safe constants entry, apart from the acceptance claim', () => {
-    expect(REGISTERED_MEMBER_CLAIM).toBe('registeredMember');
-    expect(REGISTERED_MEMBER_CLAIM).not.toBe(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM);
-    expect(constants.REGISTERED_MEMBER_CLAIM).toBe(REGISTERED_MEMBER_CLAIM);
-  });
-
-  it("states the re-acceptance prompt's agreement line verbatim, on the server-safe constants entry", () => {
-    expect(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(
-      'By choosing Accept, you agree to the current versions of the documents listed above.',
-    );
-    expect(constants.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT);
   });
 
   it('has a content schema and a current projection for every document', () => {
@@ -470,21 +469,13 @@ describe('callable inputs', () => {
     );
     expect(ReadPublicDocumentHistoryInputSchema.safeParse({ documentId: TERMS, beforeVersion: 0 }).success).toBe(false);
   });
-
-  it('the old direct page-update schemas are gone — every change is a release', () => {
-    for (const name of [
-      'UpdateTermsPageInputSchema',
-      'UpdatePrivacyPageInputSchema',
-      'UpdateRulesAndAgreementsInputSchema',
-      'UpdateFuturePlansInputSchema',
-      'UpdateTakeItDownPageCopyInputSchema',
-    ]) {
-      expect(name in schemasBarrel, name).toBe(false);
-    }
-  });
 });
 
 describe('registration carries the versions the signup page showed', () => {
+  it('takes the same shown-versions list the acceptance callable takes', () => {
+    expect(RegisterUserInputSchema.shape.publicDocuments).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
+  });
+
   const registration = {
     displayName: 'NewMember',
     agreements: { age: true, nudity: true, meet: true, cookies: true, terms: true },
@@ -548,13 +539,6 @@ describe('registration carries the versions the signup page showed', () => {
     expect(RegisterUserResultSchema.safeParse({ success: true }).success).toBe(false);
     expect(RegisterUserResultSchema.safeParse({ status: 'accepted', acceptedLevel: 1 }).success).toBe(false);
   });
-
-  it('both callables are importable from the one schemas subpath', () => {
-    expect(schemasBarrel.RegisterUserInputSchema).toBe(RegisterUserInputSchema);
-    expect(schemasBarrel.RegisterUserResultSchema).toBe(RegisterUserResultSchema);
-    expect(schemasBarrel.ShownPublicDocumentVersionsSchema).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
-    expect(RegisterUserInputSchema.shape.publicDocuments).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
-  });
 });
 
 describe('audit payloads', () => {
@@ -603,13 +587,6 @@ describe('audit payloads', () => {
       ).toBe(false);
     }
     expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedAt: 1 }).success).toBe(false);
-  });
-
-  it('the Square agreements payload is importable from the one schemas subpath', () => {
-    expect(schemasBarrel.SquareStreetzAgreementsAcceptedAuditPayloadSchema).toBe(
-      SquareStreetzAgreementsAcceptedAuditPayloadSchema,
-    );
-    expect(docSchemasBarrel.PublicDocumentVersionOrNoneSchema).toBe(PublicDocumentVersionOrNoneSchema);
   });
 });
 

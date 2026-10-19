@@ -47,10 +47,14 @@ describe('DEFAULT_APP_CONFIG — _appConfig/app at rest', () => {
   it('carries no public-document version block — that is absent until the first release', () => {
     expect('publicDocumentVersions' in DEFAULT_APP_CONFIG).toBe(false);
   });
-
 });
 
 describe('DEFAULT_MAINTENANCE_MESSAGE — the line for a blank maintenance message', () => {
+  it('is the one fallback line', () => {
+    expect(DEFAULT_MAINTENANCE_MESSAGE).toBe(
+      'TTT Productions is down for maintenance right now. We will be back shortly — thank you for your patience.',
+    );
+  });
 
   it('is not the stored default — a blank stored message is what selects it', () => {
     expect(DEFAULT_APP_CONFIG.maintenanceMessage).toBe('');
@@ -220,7 +224,6 @@ describe('readAppConfigLever — the one rule for reading a lever off the untrus
     expect(readAppConfigLever({ maintenanceMessage: message }, 'maintenanceMessage')).toBe(message);
     expect(readAppConfigLever({ announcementMessage: announcement }, 'announcementMessage')).toBe(announcement);
   });
-
 });
 
 describe('readAppConfigLevers — every lever through the one read rule', () => {
@@ -279,5 +282,4 @@ describe('readAppConfigLevers — every lever through the one read rule', () => 
     expect(levers).not.toBe(DEFAULT_APP_CONFIG);
     expect(DEFAULT_APP_CONFIG.maintenanceMode).toBe(false);
   });
-
 });

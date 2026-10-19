@@ -105,6 +105,10 @@ describe('the invitation wire contracts', () => {
     expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'a/b' }).success).toBe(false);
   });
 
+  it('name an answer by the callable, never by a payload field — accept and decline are separate entries', () => {
+    expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'inv-1', response: 'approved' }).success).toBe(false);
+  });
+
   it('answer with the ids a client names its event by, an acceptance adding where its roster work stands', () => {
     const result = { leagueId: 'L1', teamId: 'T1', teamInvitationId: 'inv-1', invitedUserId: 'u1' };
     expect(TeamInvitationResultSchema.parse(result)).toEqual(result);

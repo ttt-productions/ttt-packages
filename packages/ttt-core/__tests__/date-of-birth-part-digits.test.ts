@@ -4,6 +4,9 @@ import { deriveAgeBracket } from '../src/utils/age-derivation';
 import { DateOfBirthSchema } from '../src/schemas/users';
 
 describe('date-of-birth part widths', () => {
+  it('are two digits for the month and day and four for the year', () => {
+    expect(DATE_OF_BIRTH_PART_DIGITS).toEqual({ month: 2, day: 2, year: 4 });
+  });
 
   it('hold the largest month and day the schema accepts', () => {
     expect(DateOfBirthSchema.safeParse({ year: 2000, month: 12, day: 31 }).success).toBe(true);

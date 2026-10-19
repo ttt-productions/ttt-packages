@@ -21,7 +21,6 @@ describe('the appeal window', () => {
     expect(isRejectedMediaAppealOpen(rejectedAt, afterWindow - 1)).toBe(true);
     expect(isRejectedMediaAppealOpen(rejectedAt, afterWindow)).toBe(false);
   });
-
 });
 
 describe('the actions a violation offers', () => {

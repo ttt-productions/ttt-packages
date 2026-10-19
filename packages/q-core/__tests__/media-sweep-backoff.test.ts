@@ -28,7 +28,6 @@ describe('the media sweep deferral backoff', () => {
     expect(SWEEP_STATE_MAX_DEFERRED).toBeLessThanOrEqual(PICTURE_RETIREMENT_PAGE_SIZE);
     expect(SWEEP_STATE_MAX_DEFERRED).toBeLessThan(STALE_PENDING_MEDIA_PAGE_SIZE);
   });
-
 });
 
 describe('the sweep-state documents', () => {

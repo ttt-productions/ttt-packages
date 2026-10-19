@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CLOSE_UNDER_13_REASON_INPUT } from '../src/constants/text-fields';
+import { APP_MODE_FLIP_EVIDENCE_INPUT, CLOSE_UNDER_13_REASON_INPUT } from '../src/constants/text-fields';
 import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_UNDER_13_CLOSE_REASON_LENGTH,
@@ -10,6 +10,10 @@ import { textFieldSchema } from '../src/schemas/text-field';
 import { AppModeMarkerSchema, AppModeSchema } from '../src/doc-schemas/system';
 
 describe('app-mode flip milestone evidence', () => {
+  it('is optional free text up to the internal reason length', () => {
+    expect(APP_MODE_FLIP_EVIDENCE_INPUT).toMatchObject({ format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
+    expect(MAX_INTERNAL_REASON_LENGTH).toBe(2000);
+  });
 
   it('the callable input takes only the evidence, trimmed, and may omit it', () => {
     expect(RecordAppModeFlipInputSchema.parse({})).toEqual({});
@@ -45,6 +49,10 @@ describe('app-mode flip answer', () => {
 });
 
 describe('under-13 account close reason', () => {
+  it('is required free text up to its own named length', () => {
+    expect(CLOSE_UNDER_13_REASON_INPUT).toMatchObject({ format: 'none', min: 1, max: MAX_UNDER_13_CLOSE_REASON_LENGTH });
+    expect(MAX_UNDER_13_CLOSE_REASON_LENGTH).toBe(1000);
+  });
 
   it('as a callable field it refuses a blank reason, trims, takes the cap, and refuses one more', () => {
     const reason = textFieldSchema(CLOSE_UNDER_13_REASON_INPUT);

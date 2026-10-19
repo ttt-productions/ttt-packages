@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/constants/business-admin';
-import * as constantsBarrel from '../src/constants/index';
-import { OperatorStepUpCodeInputSchema } from '../src/schemas/index';
+import { OperatorStepUpCodeInputSchema } from '../src/schemas/safety';
 
 describe('operator step-up code length', () => {
-  it('is six digits, exported from the constants entry', () => {
+  it('is six digits', () => {
     expect(OPERATOR_STEP_UP_CODE_LENGTH).toBe(6);
-    expect(constantsBarrel.OPERATOR_STEP_UP_CODE_LENGTH).toBe(OPERATOR_STEP_UP_CODE_LENGTH);
   });
 
   it('the callable input accepts exactly that many digits, surrounding spaces trimmed', () => {

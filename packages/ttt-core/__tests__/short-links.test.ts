@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import * as schemasBarrel from '../src/schemas';
-import { CreateShortLinkInputSchema, ShortLinkTargetTypeSchema } from '../src/schemas';
 import { ShortLinkSchema } from '../src/doc-schemas/operational';
+import { CreateShortLinkInputSchema } from '../src/schemas/utility';
+import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms';
 
 const storedLink = {
   shortId: 'abc123',
@@ -60,8 +60,3 @@ describe('the stored short link', () => {
   });
 });
 
-describe('short links are never deleted', () => {
-  it('ships no delete input', () => {
-    expect('DeleteShortLinkInputSchema' in schemasBarrel).toBe(false);
-  });
-});

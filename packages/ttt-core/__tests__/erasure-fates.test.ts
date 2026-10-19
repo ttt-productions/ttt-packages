@@ -51,7 +51,6 @@ describe('erasure fate declaration', () => {
     expect(collectionPathsWithErasureFate('anonymize')).toContain('publicUsers/{uid}');
     for (const path of collectionPathsWithErasureFate('none')) expect(fatesOf(path)).toEqual(['none']);
   });
-
 });
 
 describe('support-thread erasure fate', () => {

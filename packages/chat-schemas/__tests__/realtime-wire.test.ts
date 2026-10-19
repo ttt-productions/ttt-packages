@@ -24,6 +24,14 @@ import {
   CHAT_SEND_REJECTION_CODES,
   CHAT_SEND_REJECTION_RETRYABLE,
   ChatSendRejectedPayloadSchema,
+  CHAT_MESSAGE_TEXT_INPUT,
+  judgeChatMessageText,
+  ChatSendPayloadSchema,
+  ChatReadAckPayloadSchema,
+  ChatHistoryPayloadSchema,
+  ChatResumePayloadSchema,
+  CHAT_MESSAGE_REVISION_KINDS,
+  ChatMessageRevisionKindSchema,
   type ChatConversationRef,
   type ChatGrantScope,
   type ChatSendRejectionCode,
@@ -161,6 +169,26 @@ describe('the send bounds', () => {
     expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH)).success).toBe(true);
     expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1)).success).toBe(false);
     expect(ChatClientMessageIdSchema.safeParse('').success).toBe(false);
+  });
+
+  it('a message text is declared as any characters, never blank, at most the one text bound', () => {
+    expect(CHAT_MESSAGE_TEXT_INPUT).toEqual({ format: 'none', min: 1, max: CHAT_MESSAGE_TEXT_MAX_LENGTH });
+  });
+
+  it('a text that passes is sent and stored trimmed, line breaks and every character kept', () => {
+    expect(judgeChatMessageText('  hello\nthere 😀  ')).toEqual({ ok: true, text: 'hello\nthere 😀' });
+  });
+
+  it('an empty or whitespace-only text is a blank rejection', () => {
+    expect(judgeChatMessageText('')).toEqual({ ok: false, code: 'blank' });
+    expect(judgeChatMessageText(' \n\t ')).toEqual({ ok: false, code: 'blank' });
+  });
+
+  it('a text over the bound is a too-long rejection, and surrounding whitespace never counts toward it', () => {
+    const atBound = 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH);
+    expect(judgeChatMessageText(atBound)).toEqual({ ok: true, text: atBound });
+    expect(judgeChatMessageText(` ${atBound} `)).toEqual({ ok: true, text: atBound });
+    expect(judgeChatMessageText(`${atBound}x`)).toEqual({ ok: false, code: 'too-long' });
   });
 });
 
@@ -360,3 +388,61 @@ describe('ChatGrantClaimsSchema — what the signer signs is exactly what the ve
   });
 });
 
+describe('the channel socket client frame payloads', () => {
+  it('a send carries a parsed id and its text; the length is judged after the parse', () => {
+    const longText = 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1);
+    expect(ChatSendPayloadSchema.parse({ clientMessageId: 'm1', text: longText })).toEqual({ clientMessageId: 'm1', text: longText });
+    expect(ChatSendPayloadSchema.safeParse({ clientMessageId: '', text: 'hi' }).success).toBe(false);
+    expect(
+      ChatSendPayloadSchema.safeParse({ clientMessageId: 'm'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1), text: 'hi' }).success,
+    ).toBe(false);
+    expect(ChatSendPayloadSchema.safeParse({ clientMessageId: 'm1' }).success).toBe(false);
+  });
+
+  it('a send carries no reply pointer or attachment: extra keys never reach the room', () => {
+    expect(ChatSendPayloadSchema.parse({ clientMessageId: 'm1', text: 'hi', replyTo: 'm0', attachment: {} })).toEqual({
+      clientMessageId: 'm1',
+      text: 'hi',
+    });
+  });
+
+  it('a read-ack carries a whole non-negative seq and whether the conversation is in focus (unfocused when absent)', () => {
+    expect(ChatReadAckPayloadSchema.parse({ readSeq: 5, focused: true })).toEqual({ readSeq: 5, focused: true });
+    expect(ChatReadAckPayloadSchema.parse({ readSeq: 0 })).toEqual({ readSeq: 0, focused: false });
+    for (const readSeq of [-1, 1.5, '5', null]) {
+      expect(ChatReadAckPayloadSchema.safeParse({ readSeq }).success).toBe(false);
+    }
+    expect(ChatReadAckPayloadSchema.safeParse({ readSeq: 1, focused: 'yes' }).success).toBe(false);
+  });
+
+  it('a history request pages before a positive seq, never past the page cap', () => {
+    expect(ChatHistoryPayloadSchema.parse({})).toEqual({ limit: HISTORY_PAGE_MAX });
+    expect(ChatHistoryPayloadSchema.parse({ beforeSeq: null, limit: 10 })).toEqual({ beforeSeq: null, limit: 10 });
+    expect(ChatHistoryPayloadSchema.safeParse({ beforeSeq: 0 }).success).toBe(false);
+    expect(ChatHistoryPayloadSchema.safeParse({ beforeSeq: '9' }).success).toBe(false);
+    expect(ChatHistoryPayloadSchema.safeParse({ limit: HISTORY_PAGE_MAX + 1 }).success).toBe(false);
+    expect(ChatHistoryPayloadSchema.safeParse({ limit: 0 }).success).toBe(false);
+  });
+
+  it('a resume names the last seq the client holds, or none', () => {
+    expect(ChatResumePayloadSchema.parse({ afterSeq: 0 })).toEqual({ afterSeq: 0 });
+    expect(ChatResumePayloadSchema.parse({})).toEqual({});
+    expect(ChatResumePayloadSchema.safeParse({ afterSeq: -1 }).success).toBe(false);
+    expect(ChatResumePayloadSchema.safeParse({ afterSeq: '3' }).success).toBe(false);
+  });
+});
+
+describe('message revision kinds', () => {
+  it('is the closed set of what a revision does to a message', () => {
+    expect(CHAT_MESSAGE_REVISION_KINDS).toEqual(['delete', 'moderate', 'edit', 'restore']);
+    for (const kind of CHAT_MESSAGE_REVISION_KINDS) {
+      expect(ChatMessageRevisionKindSchema.parse(kind)).toBe(kind);
+    }
+  });
+
+  it('refuses any other kind', () => {
+    for (const kind of ['hide', 'Delete', '', null]) {
+      expect(ChatMessageRevisionKindSchema.safeParse(kind).success).toBe(false);
+    }
+  });
+});

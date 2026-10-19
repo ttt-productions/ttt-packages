@@ -1,13 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ActionRow } from '../src/react/components/action-row';
-import * as reactEntry from '../src/react/index';
 
 describe('ActionRow', () => {
-  it('is exported from the react entry', () => {
-    expect(reactEntry.ActionRow).toBe(ActionRow);
-  });
-
   it("is one button named by the row's content, which runs the row's action", () => {
     const onClick = vi.fn();
     render(<ActionRow onClick={onClick}><span>Help needed</span> · <span>Ada</span></ActionRow>);

@@ -15,7 +15,6 @@ describe('off-TTT craft refusal copy', () => {
       "This option isn't available yet: sharing covers or recreations of work from outside TTT needs legal review first.",
     );
   });
-
 });
 
 describe('craft kinds blocked at launch — one owner', () => {
@@ -58,5 +57,4 @@ describe('craft kinds blocked at launch — one owner', () => {
     expect(untyped('toString')).toBe(false);
     expect(untyped('constructor')).toBe(false);
   });
-
 });

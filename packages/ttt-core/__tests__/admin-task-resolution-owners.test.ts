@@ -41,7 +41,6 @@ describe('admin-task resolution owners', () => {
     expect(isAdminTaskResolvedByCheckin('toString')).toBe(false);
     expect(isAdminTaskResolvedByCheckin('__proto__')).toBe(false);
   });
-
 });
 
 describe('the failed pledge refund task', () => {

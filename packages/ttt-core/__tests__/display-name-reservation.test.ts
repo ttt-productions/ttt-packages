@@ -29,5 +29,4 @@ describe('displayNameReservationKey', () => {
       expect(displayNameSchema.safeParse(name).success, name).toBe(false);
     }
   });
-
 });

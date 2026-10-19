@@ -49,9 +49,8 @@ describe('chunk', () => {
 });
 
 describe('FIRESTORE_IN_FILTER_LIMIT', () => {
-  it('is Firestore’s thirty-value cap on one in filter, exported from the server-safe root', async () => {
-    const root = await import('../src/index');
-    expect(root.FIRESTORE_IN_FILTER_LIMIT).toBe(30);
+  it('is Firestore’s thirty-value cap on one in filter', () => {
+    expect(FIRESTORE_IN_FILTER_LIMIT).toBe(30);
   });
 
   it('splits an id list into in-filter-sized reads', () => {

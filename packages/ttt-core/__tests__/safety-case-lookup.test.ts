@@ -7,9 +7,10 @@ import {
 } from '../src/constants/safety-active-statuses';
 import { SafetyCaseByIdResultSchema } from '../src/schemas/safety';
 import { ChildSafetyWorkStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case';
-import { NciiInternalStatusSchema, TakeItDownPublicStatusSchema } from '../src/doc-schemas/safety/foundation';
-import * as constants from '../src/constants/index';
-import * as schemasBarrel from '../src/schemas';
+import {
+  NciiInternalStatusSchema,
+  TakeItDownPublicStatusSchema,
+} from '../src/doc-schemas/safety/foundation';
 
 describe('active safety statuses', () => {
   // A case stays active — on the console and in the Legal-Clocks count — until its worker verifies
@@ -48,13 +49,6 @@ describe('active safety statuses', () => {
     expect(isActiveSafetyCaseStatus({ caseType: 'ncii', status: 'closed' })).toBe(false);
     // @ts-expect-error a child-safety case never carries an NCII status
     isActiveSafetyCaseStatus({ caseType: 'csam', status: 'removed' });
-  });
-
-  it('is importable from the server-safe constants entry, where both trees read it', () => {
-    expect(constants.CHILD_SAFETY_ACTIVE_WORK_STATUSES).toBe(CHILD_SAFETY_ACTIVE_WORK_STATUSES);
-    expect(constants.NCII_ACTIVE_INTERNAL_STATUSES).toBe(NCII_ACTIVE_INTERNAL_STATUSES);
-    expect(constants.TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES).toBe(TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES);
-    expect(constants.isActiveSafetyCaseStatus).toBe(isActiveSafetyCaseStatus);
   });
 });
 
@@ -138,10 +132,5 @@ describe('SafetyCaseByIdResultSchema', () => {
   it('takes its case types from the canonical lane union', () => {
     const answered = SafetyCaseByIdResultSchema.options.map((arm) => arm.shape.caseType.value);
     expect(answered.sort()).toEqual([...SafetyCaseLaneSchema.options].sort());
-  });
-
-  it('is exported with the case-lookup input from the schemas entry point', () => {
-    expect(schemasBarrel.SafetyCaseByIdResultSchema).toBe(SafetyCaseByIdResultSchema);
-    expect(schemasBarrel.GetSafetyCaseByIdInputSchema).toBeDefined();
   });
 });

@@ -156,6 +156,23 @@ describe('admin Dispatches browse page size', () => {
     expect(pagination.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(12);
     expect(pagination.ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS).toBe(10);
   });
+});
 
+describe('admin task browse page size', () => {
+  it('is 12 tasks a page', () => {
+    expect(pagination.ITEMS_PER_PAGE_ADMIN_TASK_BROWSE).toBe(12);
+  });
+});
+
+describe('the tray Safety Cases count', () => {
+  it('shows an exact count up to 100 and "100+" once more than 100 cases are open', () => {
+    expect(pagination.formatSafetyCaseTrayCount(99)).toBe('99');
+    expect(pagination.formatSafetyCaseTrayCount(100)).toBe('100');
+    expect(pagination.formatSafetyCaseTrayCount(101)).toBe('100+');
+  });
+
+  it('reads one case past the cap, so 100 open cases are told apart from more', () => {
+    expect(pagination.SAFETY_CASE_TRAY_READ_LIMIT).toBe(101);
+  });
 });
 

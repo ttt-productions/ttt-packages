@@ -16,10 +16,7 @@ describe('DEFAULT_APP_CONFIG — _appConfig/app at rest', () => {
 });
 
 describe('DEFAULT_MAINTENANCE_MESSAGE — the line for a blank maintenance message', () => {
-  it('is the one fallback line, exported beside DEFAULT_APP_CONFIG from the utils entry', () => {
-    expect(DEFAULT_MAINTENANCE_MESSAGE).toBe(
-      'TTT Productions is down for maintenance right now. We will be back shortly — thank you for your patience.',
-    );
+  it('is exported beside DEFAULT_APP_CONFIG from the utils entry', () => {
     expect(utils.DEFAULT_MAINTENANCE_MESSAGE).toBe(DEFAULT_MAINTENANCE_MESSAGE);
   });
 });

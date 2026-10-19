@@ -14,5 +14,4 @@ describe('Auth full-scan budget', () => {
     expect(AUTH_LIST_USERS_PAGE_SIZE).toBeLessThanOrEqual(1000);
     expect(AUTH_LIST_USERS_PAGE_SIZE).toBeGreaterThan(0);
   });
-
 });

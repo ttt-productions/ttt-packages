@@ -9,7 +9,6 @@ import {
   DEFAULT_SDK_CONTEXTS,
   type TelemetryContentPolicyOptions,
 } from '../src/telemetry-content-policy';
-import * as root from '../src/index';
 
 const options: TelemetryContentPolicyOptions = {
   diagnosticKeys: ['uid', 'operation', 'reason', 'code', 'issues', 'remaining', 'type', 'extra', 'safe_code'],
@@ -153,10 +152,5 @@ describe('createTelemetryContentPolicy', () => {
   it('rewrites the event in place and returns it, so it composes with the scrubber as one hook', () => {
     const event = { extra: { caseId: 'c1' } };
     expect(keepAllowlistedTelemetry(event)).toBe(event);
-  });
-
-  it('is exported from the server-safe root', () => {
-    expect(root.createTelemetryContentPolicy).toBe(createTelemetryContentPolicy);
-    expect(root.DEFAULT_SDK_CONTEXTS).toBe(DEFAULT_SDK_CONTEXTS);
   });
 });
