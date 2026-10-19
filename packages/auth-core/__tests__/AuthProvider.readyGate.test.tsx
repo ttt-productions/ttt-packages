@@ -6,7 +6,7 @@ const mockUseAuthState = vi.fn(() => ({ user: null, loading: false }));
 vi.mock('../src/react/useAuthState.js', () => ({
   useAuthState: (...args: unknown[]) => mockUseAuthState(...(args as [])),
 }));
-vi.mock('../src/claims.js', () => ({
+vi.mock('../src/client/claims.js', () => ({
   getIdTokenClaims: vi.fn(async () => ({})),
 }));
 

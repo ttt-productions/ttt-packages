@@ -66,8 +66,7 @@ export type CreateCommissionProposalTextInput = z.infer<typeof CreateCommissionP
 // accept time without any read.
 // (The TEXT path's created-item result, CreateCommissionProposalTextResultSchema, lives
 // in ../doc-schemas/commissions.ts — it composes CommissionProposalSchema, and that
-// module imports THIS one, so declaring it here would be a module cycle. It is
-// re-exported on ./schemas via schemas/index.ts.)
+// module imports THIS one, so declaring it here would be a module cycle.)
 export const ApplyToCommissionAcceptedResultSchema = z.object({
   success: z.literal(true),
   commissionListingId: commissionListingIdSchema,

@@ -1,13 +1,6 @@
 export type {
   MediaViewerType,
   FallbackMode,
-  BaseMediaProps,
-  ImageViewerProps,
-  VideoViewerProps,
-  AudioViewerProps,
-  MediaPreviewProps,
-  MediaViewerProps,
-  MediaPlaybackProps,
   MediaPlaybackControls,
   MediaProgressSampleReason,
 } from "./types.js";

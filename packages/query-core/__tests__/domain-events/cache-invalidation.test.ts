@@ -6,7 +6,7 @@ import {
   predicate,
   serializeInvalidation,
   applyInvalidations,
-} from '../../src/domain-events/cache-invalidation';
+} from '../../src/react/domain-events/cache-invalidation';
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });

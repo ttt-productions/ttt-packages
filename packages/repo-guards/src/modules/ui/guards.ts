@@ -1,7 +1,7 @@
 // The generic guards over the UI system: styling, theme tokens, motion, and shared interaction patterns. The registry runs every guard listed here; an app supplies
 // each one's facts under its id.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   stylesheetEntryGuard,
   tailwindSourcesGuard,

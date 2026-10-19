@@ -12,26 +12,6 @@
 // We keep that field name here to match; realtime-core's envelope schema is the
 // generic transport primitive, the chat protocol chose `type` for its frames.
 
-// Re-export the canonical wire contract so this package's public surface is
-// unchanged. `CLIENT_FRAME`/`SERVER_FRAME` are this package's historical names
-// for the frame-kind maps (`CLIENT_KINDS`/`SERVER_KINDS` in the contract).
-export {
-  CHAT_SUBPROTOCOL,
-  CHAT_WIRE_VERSION,
-  CHAT_CLOSE_CODES,
-  CLIENT_KINDS as CLIENT_FRAME,
-  SERVER_KINDS as SERVER_FRAME,
-  // Correlated send-rejection contract (SERVER_FRAME.SEND_REJECTED payload).
-  ChatSendRejectedPayloadSchema,
-  CHAT_SEND_REJECTION_CODES,
-  CHAT_SEND_REJECTION_RETRYABLE,
-} from '@ttt-productions/chat-schemas';
-export type {
-  ChatCloseCode,
-  ChatSendRejectedPayload,
-  ChatSendRejectionCode,
-} from '@ttt-productions/chat-schemas';
-
 import { CHAT_WIRE_VERSION } from '@ttt-productions/chat-schemas';
 import type {
   ChatConversationRef,
@@ -147,7 +127,7 @@ export type ServerFrame =
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
   // The inbox runtime's correlated answer to one `mark-read`.
   | { type: 'mark-read-result'; payload: ChatMarkReadResultPayload }
-  // A CORRELATED send rejection (SERVER_FRAME.SEND_REJECTED): names the SAME
+  // A CORRELATED send rejection (SERVER_KINDS.SEND_REJECTED): names the SAME
   // clientMessageId as the rejected send + the canonical retry classification, so
   // exactly one optimistic bubble is failed/retried. See ChatSendRejectedPayload.
   | { type: 'send-rejected'; payload: ChatSendRejectedPayload }

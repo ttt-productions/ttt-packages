@@ -2,7 +2,7 @@
 // `match` block and every block names a declared collection, no block spans an unnamed collection,
 // and every fixed document, status, and role the rules spell is a value the core declares.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import {
   documentPathLiterals,

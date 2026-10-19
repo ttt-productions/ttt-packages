@@ -30,8 +30,8 @@ package may consume either.
   (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
   header contract; WebCrypto + zod only), `repo-guards` (the one guard suite every app runs in
   its gate: one reader of the repository, every generic guard, and the three shapes
-  an app builds its business guards on; its root is pure, its `./node` reader and
-  `./suite` entry run under Node).
+  an app builds its business guards on; its root is pure; its `./node` reader and the
+  `./node/suite` and `./node/reports` entries run under Node).
 - **Tier 1 — depend on Tier 0 only:**
   `ui-core` (→ `input-format-core`; its free-text inputs take a field
   declaration), `chat-schemas` (→ `input-format-core`; the chat message text's
@@ -113,6 +113,10 @@ universal or server.
 Inside a package, code imports the file that defines each name — never a folder
 `index`, a nested entry, or the package's own name. Tests do the same, except that
 an entry-surface test may import an entry `index` to prove it forwards a name.
+Every relative import, in source and tests alike — a static import, an
+`export … from`, an `import()`, and a test runner's module mock — names its file
+with its built extension: `./x.js` for `x.ts` or `x.tsx`, `./folder/index.js` for a
+folder (source must under `node16` resolution; tests follow the same one style).
 Only an entry `index` re-exports, and only files in its own subtree, each named
 directly; an index declares nothing of its own, and no `index.ts` exists that
 is not a package entry (ARCH-203). An
@@ -325,7 +329,8 @@ the rules above so they fail loudly:
 
 - `package-imports.test.ts` — runs repo-guards' package-architecture guards through
   the suite entry: inside each package code imports the file that defines each
-  name and only an entry index re-exports (Imports inside a package); no package
+  name by its built extension and only an entry index re-exports (Imports inside a
+  package); no package
   has a runtime import cycle; every entry not declared runtime-specific reaches no
   Node, React, or browser runtime in its built JavaScript or declaration files,
   and every universal and Node entry loads under plain Node (Entry purity rule —

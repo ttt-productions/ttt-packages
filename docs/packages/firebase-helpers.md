@@ -126,8 +126,8 @@ Backend code should prefer `@ttt-productions/firebase-helpers/server` when it ne
 
 The root is pure/server-safe — pure path, timestamp, and chunking helpers that never load a browser Firebase runtime. Client-only and Admin-only runtimes live behind explicit subpaths.
 
-- `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer and App Check throttle classifiers, the designed-refusal readers); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import.
+- `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer and App Check throttle classifiers, the designed-refusal readers); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import. The names typed on `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`, `formatDateDisplay`) live on `./firestore-client` too, so the root's declaration files reach no Firebase type.
 - `./server` — Admin SDK init helper, server-only handles, and the Admin-SDK batch and Timestamp helpers. The universal helpers (`chunk`, the Firestore types, `toMillis` / `toDate`, `getFileNameFromUrl`) are root-only; backend code imports them from `.`.
 - `./react` — generic callable hook/client primitives and the callable factories (`createCallables`).
 - `./client` — Firebase **client** app init helper (browser runtime).
-- `./firestore-client` — client Firestore helpers (browser runtime).
+- `./firestore-client` — client Firestore helpers (browser runtime) and the Firestore-typed names above.

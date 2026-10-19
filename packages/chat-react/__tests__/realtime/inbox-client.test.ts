@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { CHAT_CLOSE_CODES } from '@ttt-productions/chat-schemas';
 import { InboxClient } from '../../src/realtime/inbox-client.js';
-import { CHAT_CLOSE_CODES, type WireInboxSnapshot } from '../../src/realtime/wire.js';
+import { type WireInboxSnapshot } from '../../src/realtime/wire.js';
 import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
 import {
   CHAT_CLIENT_DIAGNOSTIC_EVENTS as DIAG,

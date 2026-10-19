@@ -3,7 +3,7 @@
 // test mocks of pure package roots.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { Scope } from '../../node/reader.js';

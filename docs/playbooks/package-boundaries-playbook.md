@@ -97,6 +97,18 @@ package building its own callable mutation hook is the finding — it takes a ho
 `createCallables` from the app instead.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
+### 6. Imports inside a package name the defining file by its built extension
+**Rules:** ARCH-203. Inside a package, code and tests import the file that defines each name, never an
+index (an entry-surface test excepted), and every relative import names its file with its built
+extension. The repo-guards `packageImports` guard reads every package through the analyzer's parse.
+```bash
+npm run build
+npx vitest run --project boundary test/boundary/package-imports.test.ts
+```
+**Expected:** the run passes. Each finding names the file, the specifier, and the specifier it must
+be (`'../src/x'` → `'../src/x.js'`); the fix is that specifier, never an allowlist entry.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
 ## Common failure patterns
 
 - An app's collection name, origin id, or copy string added to a generic package "just for now".

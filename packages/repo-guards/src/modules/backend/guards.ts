@@ -1,7 +1,7 @@
 // The generic guards over server code: Cloud Functions and other backend trees. The registry runs every guard listed here; an app supplies
 // each one's facts under its id.
 
-import type { Absent, GenericGuardDefinition } from '../../suite/config.js';
+import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   auditPayloadGuard,
   auditWriterGuard,

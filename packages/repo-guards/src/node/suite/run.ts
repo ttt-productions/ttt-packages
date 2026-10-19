@@ -1,8 +1,8 @@
 // Running one guard and proving one guard's samples — what each registered test does.
 
-import { formatFindings, type Guard, type GuardContext } from '../guard.js';
-import type { RepoReader, Scope } from '../node/reader.js';
-import { sampleHits } from '../shapes/shapes.js';
+import { formatFindings, type Guard, type GuardContext } from '../../guard.js';
+import type { RepoReader, Scope } from '../reader.js';
+import { sampleHits } from '../../shapes/shapes.js';
 
 const describeScope = (scope: Scope) =>
   `${scope.kinds.join('/')} files under ${scope.roots.join(', ')}${scope.tests === 'only' ? ' (tests only)' : scope.tests ? '' : ' (tests left out)'}`;

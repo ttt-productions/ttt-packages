@@ -18,8 +18,6 @@ export type {
   NotificationArchiveResult,
   NotificationArchiveFn,
   NotificationListErrorState,
-  NotificationListProps,
-  NotificationHistoryListProps,
   NotificationEmptyStateProps,
   NotificationUnreadBadgeProps,
 } from './types.js';

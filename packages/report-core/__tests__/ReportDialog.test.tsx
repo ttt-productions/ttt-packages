@@ -27,7 +27,7 @@ vi.mock('@ttt-productions/ui-core/react', async (importOriginal) => {
 import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
 import { ReportDialog } from '../src/react/components/ReportDialog.js';
 import type { ReportCoreConfig } from '../src/contracts/config.js';
-import type { AdditionalReportAction, ReportDialogCopy, ReportDialogProps } from '../src/types-ui-props.js';
+import type { AdditionalReportAction, ReportDialogCopy, ReportDialogProps } from '../src/react/types-ui-props.js';
 import type { SubmitReportRequest, SubmitReportResult } from '../src/schemas/requests.js';
 
 const config = {

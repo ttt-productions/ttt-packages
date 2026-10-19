@@ -6,11 +6,8 @@ import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
-import type {
-  FirestoreDocOptions,
-  WithId,
-  WithSourceState,
-} from '../../firestore/types.js';
+import type { WithId, WithSourceState } from '../../firestore/types.js';
+import type { FirestoreDocOptions } from './types.js';
 
 /**
  * Fetch a single Firestore document with optional realtime updates.

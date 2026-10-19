@@ -1,7 +1,7 @@
 // The generic guards over Firestore and Storage access. The registry runs every guard listed here; an
 // app supplies each one's facts under its id.
 
-import type { Absent, GenericGuardDefinition } from '../../suite/config.js';
+import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import { firestoreRuntimeInUiGuard, liveSubscriptionGuard, type FirestoreRuntimeInUiFacts, type LiveSubscriptionFacts } from './client-guards.js';
 import { testPathGuard, writeGuard, type TestPathFacts, type WriteGuardFacts } from './guard.js';
 import { collectionGroupIndexGuard, type CollectionGroupIndexFacts } from './index-guard.js';

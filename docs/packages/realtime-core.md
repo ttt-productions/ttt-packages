@@ -9,11 +9,11 @@ Cloudflare Workers, and browsers.
 
 ## Owns
 
-- **Protocol + stable error codes** — re-exports the shared
-  `EDGE_PROTOCOL_VERSION` / `isProtocolSupported` / `StructuredError` from
-  `edge-protocol-core` (one source of truth) plus the app-neutral
-  `REALTIME_ERROR_CODES` (`unauthorized`, `origin-not-allowed`, `grant-expired`,
-  `protocol-unsupported`, `rate-limited`, `not-found-yet`, `conflict`, `internal`).
+- **Stable error codes** — the app-neutral `REALTIME_ERROR_CODES` (`unauthorized`,
+  `origin-not-allowed`, `grant-expired`, `protocol-unsupported`, `rate-limited`,
+  `not-found-yet`, `conflict`, `internal`). The protocol version, `isProtocolSupported`,
+  `StructuredError`, and `VersionedDecision` are `edge-protocol-core`'s; consumers
+  import them from there.
 - **Wire envelopes** — `RealtimeMessageEnvelopeSchema` (client↔DO transport:
   version, seq/ackSeq, clientMessageId, opaque app `payload`) and
   `VersionedSyncItemSchema` (the neutral shape of an authoritative projection /

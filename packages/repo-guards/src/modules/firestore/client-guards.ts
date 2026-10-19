@@ -4,7 +4,7 @@
 //     callables, apart from reviewed root providers.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { FileView } from '../../reader/view.js';

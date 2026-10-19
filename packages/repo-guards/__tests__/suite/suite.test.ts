@@ -2,9 +2,9 @@
 // registered test passes. Each check's must-fail side is proven where the check lives.
 
 import { afterAll } from 'vitest';
-import type { GenericGuardDefinition } from '../../src/suite/config.js';
+import type { GenericGuardDefinition } from '../../src/node/suite/config.js';
 import { matchPattern, ownerOnly } from '../../src/shapes/shapes.js';
-import { registerSuiteOf } from '../../src/suite/register.js';
+import { registerSuiteOf } from '../../src/node/suite/register.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 
 const repo = tempRepo({

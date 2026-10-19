@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { APP_MODE_FLIP_EVIDENCE_INPUT, CLOSE_UNDER_13_REASON_INPUT } from '../src/constants/text-fields';
+import {
+  APP_MODE_FLIP_EVIDENCE_INPUT,
+  CLOSE_UNDER_13_REASON_INPUT,
+} from '../src/constants/text-fields';
 import * as constantsBarrel from '../src/constants/index';
 
 describe('app-mode flip milestone evidence', () => {

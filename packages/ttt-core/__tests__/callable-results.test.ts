@@ -29,9 +29,7 @@ import {
   UpdateWorkRealmDetailsResultSchema,
   CheckRealmNameAvailableResultSchema,
 } from '../src/schemas/work-project-management';
-import {
-  ManageWorkProjectStakeSharesResultSchema,
-} from '../src/schemas/stake-share-operation';
+import { ManageWorkProjectStakeSharesResultSchema } from '../src/schemas/stake-share-operation';
 import {
   ClearHallContentTextResultSchema,
   ClearModerationTextResultSchema,
@@ -52,9 +50,7 @@ import {
   GetPendingGuildInviteCountResultSchema,
   GetPendingGuildInviteCountInputSchema,
 } from '../src/schemas/admin';
-import {
-  CreateAdminDispatchResultSchema,
-} from '../src/schemas/chat';
+import { CreateAdminDispatchResultSchema } from '../src/schemas/chat';
 import {
   SeedPublicDocumentResultSchema,
   TrackShortLinkClickResultSchema,
@@ -64,9 +60,7 @@ import {
   SeedProfanityListResultSchema,
   CreateShortLinkResultSchema,
 } from '../src/schemas/utility';
-import {
-  CloseAuditionResultSchema,
-} from '../src/schemas/auditions';
+import { CloseAuditionResultSchema } from '../src/schemas/auditions';
 import {
   ConfirmOperatorStepUpResultSchema,
   RecordNcmecPortalReceiptArtifactResultSchema,
@@ -109,9 +103,7 @@ import {
   CreateNotificationBroadcastResultSchema,
   MarkNotificationsSeenResultSchema,
 } from '../src/schemas/notification';
-import {
-  DeleteConversationFileResultSchema,
-} from '../src/schemas/conversation-files';
+import { DeleteConversationFileResultSchema } from '../src/schemas/conversation-files';
 import {
   RejectCommissionProposalResultSchema,
   SetCommissionProposalSavedResultSchema,

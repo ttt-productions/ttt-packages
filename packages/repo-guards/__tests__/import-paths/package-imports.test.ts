@@ -72,6 +72,7 @@ describe('imports inside a package', () => {
   it('FLAG source importing a folder by its name, which resolves to its index', async () => {
     const files = { ...CLEAN, 'src/text/format.ts': "import { UserSchema } from '../schemas';\nexport const format = () => String(UserSchema);" };
     expect(await runImports(files)).toEqual([
+      "packages/kit/src/text/format.ts — relative import without extension: imports '../schemas' — a relative import names its file with its built extension: '../schemas/index.js'",
       "packages/kit/src/text/format.ts — import through index: imports '../schemas', an index — import the file that defines each name",
     ]);
   });
@@ -147,6 +148,72 @@ describe('imports inside a package', () => {
 
   it('require the packages folder', () => {
     expect(packageImportsGuard.factProblems({ packagesFolder: '' })).toEqual(['packagesFolder is missing']);
+  });
+});
+
+const NO_EXTENSION = (file: string, spec: string, named: string) =>
+  `packages/kit/${file} — relative import without extension: imports '${spec}' — a relative import names its file with its built extension: '${named}'`;
+
+describe('relative imports inside a package name their file by its built extension', () => {
+  it('FLAG an extensionless static import in source', async () => {
+    const files = { ...CLEAN, 'src/text/format.ts': "import { version } from '../version';\nexport const format = () => String(version);" };
+    expect(await runImports(files)).toEqual([NO_EXTENSION('src/text/format.ts', '../version', '../version.js')]);
+  });
+
+  it('FLAG an extensionless export … from in an entry index', async () => {
+    const files = { ...CLEAN, 'src/schemas/index.ts': "export { UserSchema } from './user';" };
+    expect(await runImports(files)).toEqual([NO_EXTENSION('src/schemas/index.ts', './user', './user.js')]);
+  });
+
+  it('FLAG an extensionless import()', async () => {
+    const files = { ...CLEAN, 'src/version.ts': "export const version = 1;\nexport const load = () => import('./text/format');" };
+    expect(await runImports(files)).toEqual([NO_EXTENSION('src/version.ts', './text/format', './text/format.js')]);
+  });
+
+  it('FLAG an extensionless static import in a test', async () => {
+    const files = { ...CLEAN, '__tests__/format.test.ts': "import { format } from '../src/text/format';\nformat();" };
+    expect(await runImports(files)).toEqual([NO_EXTENSION('__tests__/format.test.ts', '../src/text/format', '../src/text/format.js')]);
+  });
+
+  it('FLAG an extensionless module mock and an extensionless vi.importActual in a test', async () => {
+    const files = {
+      ...CLEAN,
+      '__tests__/format.test.ts':
+        "import { vi } from 'vitest';\nvi.mock('../src/version');\nawait vi.importActual('../src/text/format');",
+    };
+    expect(await runImports(files)).toEqual([
+      NO_EXTENSION('__tests__/format.test.ts', '../src/text/format', '../src/text/format.js'),
+      NO_EXTENSION('__tests__/format.test.ts', '../src/version', '../src/version.js'),
+    ]);
+  });
+
+  it('FLAG an extensionless import of a .tsx file, which is named .js', async () => {
+    const files = {
+      ...CLEAN,
+      'src/text/badge.tsx': 'export const Badge = () => null;',
+      'src/text/format.ts': "import { version } from '../version.js';\nimport { Badge } from './badge';\nexport const format = () => String(version) + String(Badge);",
+    };
+    expect(await runImports(files)).toEqual([NO_EXTENSION('src/text/format.ts', './badge', './badge.js')]);
+  });
+
+  it('FLAG a specifier naming the source extension instead of the built one', async () => {
+    const files = { ...CLEAN, 'src/text/format.ts': "import { version } from '../version.ts';\nexport const format = () => String(version);" };
+    expect(await runImports(files)).toEqual([NO_EXTENSION('src/text/format.ts', '../version.ts', '../version.js')]);
+  });
+
+  it('pass .js, .json, and .css specifiers, a package specifier, and an import written inside a string', async () => {
+    const files = {
+      ...CLEAN,
+      'src/text/format.ts': [
+        "import { version } from '../version.js';",
+        "import data from '../data.json';",
+        "import '../styles/kit.css';",
+        "import { z } from 'zod';",
+        "export const FIXTURE = \"import { gone } from './gone';\";",
+        'export const format = () => String(version) + String(data) + String(z);',
+      ].join('\n'),
+    };
+    expect(await runImports(files)).toEqual([]);
   });
 });
 

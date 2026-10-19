@@ -9,7 +9,7 @@ import type {
   ReportTargetRef,
   UseReportButtonOptions,
   UseReportButtonResult,
-} from '../../types-ui-props.js';
+} from '../types-ui-props.js';
 
 /**
  * Open state for a report dialog, for a custom trigger or a target chosen at click time (a

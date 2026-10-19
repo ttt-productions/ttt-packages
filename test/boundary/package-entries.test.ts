@@ -1,5 +1,5 @@
 import type { RepoLayout } from '@ttt-productions/repo-guards/node';
-import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/suite';
+import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/node/suite';
 import { REPO_ROOT } from './leak-utils';
 
 // One package entry per definition, run over this repository through the suite entry, exactly as an

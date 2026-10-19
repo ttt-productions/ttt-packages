@@ -23,10 +23,10 @@ Consuming apps wire the generic factory at their boundary: the app's own assert-
 
 ## Entry points
 
-The root is pure: it exposes only contracts, claims parsing, normalized errors, and environment helpers, and never loads `firebase/auth` at runtime. Client/Admin/React runtimes each live behind an explicit subpath.
+The root is pure: it exposes only contracts, normalized errors, and environment helpers, and never loads `firebase/auth` at runtime or in its types. Client/Admin/React runtimes each live behind an explicit subpath.
 
-- `.` — pure contracts, claims parsing, errors, env helpers, and the email-verification and acceptance refusal contracts (server-safe).
-- `./client` — Firebase **client** auth runtime (`onAuthStateChanged` wrapper, `getAuthUser`); importing it pulls `firebase/auth`.
+- `.` — pure contracts, errors, env helpers, and the email-verification and acceptance refusal contracts (server-safe).
+- `./client` — Firebase **client** auth runtime (`onAuthStateChanged` wrapper, `getAuthUser`) and the ID-token claims helpers typed on `firebase/auth` (`getIdTokenClaims`, `refreshClaims`, `refreshClaimsFromAuth`, `parseClaims`, `IdTokenClaims`, `ParsedClaims`); importing it pulls `firebase/auth`.
 - `./react` — React auth provider and hooks.
 - `./server` — Admin SDK / Functions helpers, including `createAssertAuth`.
 

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import { createDomainEventInvalidator } from '../../src/domain-events/create-domain-event-invalidator';
-import { exact, prefix, predicate } from '../../src/domain-events/cache-invalidation';
+import {
+  createDomainEventInvalidator,
+} from '../../src/react/domain-events/create-domain-event-invalidator';
+import { exact, prefix, predicate } from '../../src/react/domain-events/cache-invalidation';
 
 type UserFollowed = { type: 'user.followed'; ids: { userId: string } };
 type EntityPublished = { type: 'entity.published'; ids: { entityId: string } };

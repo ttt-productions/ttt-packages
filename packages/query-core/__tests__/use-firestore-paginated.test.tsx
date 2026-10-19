@@ -25,7 +25,7 @@ import {
   mapPaginatedItems,
   paginatedPageKey,
   prependToFirstPaginatedPage,
-} from '../src/cache-helpers.js';
+} from '../src/react/cache-helpers.js';
 
 // A fake ordered collection: getDocs honours startAfter + limit like Firestore does.
 function serve(q: { __c: Array<Record<string, unknown>> }) {

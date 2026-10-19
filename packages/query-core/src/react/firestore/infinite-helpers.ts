@@ -1,4 +1,5 @@
-import type { InfinitePage, WithId } from './types.js';
+import type { WithId } from '../../firestore/types.js';
+import type { InfinitePage } from './types.js';
 
 /**
  * Flatten infinite query pages into a single array of items.

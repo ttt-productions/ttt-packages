@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createTelemetryContentPolicy, DEFAULT_SDK_CONTEXTS } from '../src/telemetry-content-policy';
+import {
+  createTelemetryContentPolicy,
+  DEFAULT_SDK_CONTEXTS,
+} from '../src/telemetry-content-policy';
 import * as root from '../src/index';
 
 describe('createTelemetryContentPolicy', () => {

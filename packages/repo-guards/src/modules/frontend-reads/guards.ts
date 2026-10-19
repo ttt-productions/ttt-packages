@@ -1,7 +1,7 @@
 // The generic guards over the client data layer: reads, read failures, query keys, and the cache. The registry runs every guard listed here; an app supplies
 // each one's facts under its id.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { CACHE_GUARDS, type DomainEventRegistryFacts, type QueryCacheFacts } from './cache.js';
 import { QUERY_KEY_GUARDS, type AuthScopedKeyFacts, type QueryKeyFacts } from './query-keys.js';
 import {

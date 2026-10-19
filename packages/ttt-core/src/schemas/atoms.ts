@@ -11,7 +11,7 @@ import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   type ModerationClearableSurface,
 } from '../constants/business-content.js';
-import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
+import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { GUILD_STANDING_IDS } from '../permissions/work-project-permissions-data.js';
 
 /** A stake-share offer (a commission listing, an audition): whole, positive, within the Work total. */
@@ -124,7 +124,7 @@ export const systemRoleSchema = z.enum(SYSTEM_ROLES);
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 // Derives from the ONE canonical WORK_PROJECT_TYPE_KEYS (types/content.ts) — never re-declared.
 export const workProjectTypeSchema = z.enum(WORK_PROJECT_TYPE_KEYS);
-export const hallWingTypeSchema = z.enum(['entertainment', 'educational', 'newsPolitical']);
+export const hallWingTypeSchema = z.enum(HALL_WING_TYPE_KEYS);
 
 // The moderation-clearable SURFACE atom (`workProject` | `workRealm` | `tale` | `tune` |
 // `television` | `chapter` | `tuneTrack` | `televisionEpisode`). Derived from the KEYS of the

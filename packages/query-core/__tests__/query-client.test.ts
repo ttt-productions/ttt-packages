@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { createQueryClient } from '../src/react/query-client';
-import { defaultQueryOptions } from '../src/defaults';
+import { defaultQueryOptions } from '../src/react/defaults';
 
 describe('createQueryClient', () => {
   it('returns a QueryClient instance', () => {

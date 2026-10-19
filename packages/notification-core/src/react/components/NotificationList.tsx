@@ -7,7 +7,8 @@ import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
 import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
-import type { NotificationDoc, NotificationListProps } from '../../types.js';
+import type { NotificationDoc } from '../../types.js';
+import type { NotificationListProps } from '../types.js';
 
 /** Pending archives keyed by card id, holding the activity generation the archive was sent for. */
 type PendingArchives = ReadonlyMap<string, string | undefined>;

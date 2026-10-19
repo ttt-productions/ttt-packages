@@ -3,7 +3,7 @@
 // answers fast, the roster makes a removed role lose access at once instead of when the stale token
 // expires.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import {
   documentPathLiterals,

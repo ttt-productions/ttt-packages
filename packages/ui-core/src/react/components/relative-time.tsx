@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { formatDistanceToNowStrict, toDate } from "@ttt-productions/firebase-helpers";
+import { formatDistanceToNowStrict } from "date-fns";
+import { toDate } from "@ttt-productions/firebase-helpers";
 
 export interface RelativeTimeProps {
   /** Number (ms or seconds), ISO string, Firestore Timestamp, or Date. */

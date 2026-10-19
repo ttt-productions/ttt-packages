@@ -1,8 +1,7 @@
-// Barrel for the Firestore document SCHEMAS (Zod) and the collection registry.
-// Exposed on the `@ttt-productions/ttt-core/doc-schemas` subpath. The schema registry
+// The `@ttt-productions/ttt-core/doc-schemas` entry: the Firestore document SCHEMAS (Zod),
+// the document types inferred from them, and the collection registry. The schema registry
 // (COLLECTION_SCHEMAS) is consumed by the schema-doc generator (ttt-packages) and the
-// drift-check (ttt-prod). Document TYPES are inferred from these schemas and surface on
-// the main barrel via ../types/*; this subpath is the home of the runtime schemas.
+// drift-check (ttt-prod).
 
 export * from './user.js';
 export * from './firestore-primitives.js';

@@ -6,7 +6,7 @@
 // at the top level reaches production, and an environment with its own list stops receiving
 // top-level migrations it does not repeat.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { effectiveMigrations, environmentResources, migrationLists, readTables, topLevelResources, type Table } from './wrangler-toml.js';
 import { isText, namesProblem, objectProblem, reviewedProblems, textProblem } from '../../support/facts.js';

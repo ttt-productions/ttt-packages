@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AppConfigSchema } from '../src/doc-schemas/system';
-import {
-  readPublicDocumentVersionBlock,
-  type PublicDocumentVersionBlockReading,
-} from '../src/utils/app-config';
+import { readPublicDocumentVersionBlock, type PublicDocumentVersionBlockReading } from '../src/utils/app-config';
 import {
   planPublicDocumentRelease,
   requiredPublicDocumentAcceptanceLevel,

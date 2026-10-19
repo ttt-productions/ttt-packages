@@ -1,10 +1,7 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import {
-  NOTIFICATION_FANOUT_PRIORITIES,
-  type NotificationFanoutPriority,
-} from '../src/constants/business-platform';
-import { DeadLetteredFanoutJobRowSchema } from '../src/schemas/notification';
+import { NOTIFICATION_FANOUT_PRIORITIES, type NotificationFanoutPriority } from '../src/constants/business-platform';
 import { NotificationFanoutPrioritySchema } from '../src/doc-schemas/notification-ledger';
+import { DeadLetteredFanoutJobRowSchema } from '../src/schemas/notification';
 
 describe('notification fanout priority tiers', () => {
   it('are 0 urgent, 1 normal, 2 bulk', () => {

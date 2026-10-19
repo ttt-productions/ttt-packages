@@ -5,7 +5,7 @@
 //   - no Firestore Timestamp is minted with Timestamp.now().
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { FileView } from '../../reader/view.js';

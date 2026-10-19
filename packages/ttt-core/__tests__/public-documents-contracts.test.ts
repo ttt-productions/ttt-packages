@@ -3,8 +3,8 @@ import {
   PUBLIC_DOCUMENT_IDS,
   PUBLIC_DOCUMENT_LABELS,
   PUBLIC_DOCUMENTS_ACCEPTED_CLAIM,
-  PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
   REGISTERED_MEMBER_CLAIM,
+  PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
   type PublicDocumentId,
 } from '../src/constants/public-documents';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
@@ -48,11 +48,7 @@ import {
   SquareStreetzAgreementsAcceptedAuditPayloadSchema,
 } from '../src/schemas/users';
 import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents';
-import {
-  changedPublicDocuments,
-  planPublicDocumentRelease,
-  samePublicDocumentVersions,
-} from '../src/utils/public-documents';
+import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
 import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library';
 

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { CHAT_CLOSE_CODES, CHAT_SUBPROTOCOL, HEARTBEAT_MS } from '@ttt-productions/chat-schemas';
 import { ChannelClient } from '../../src/realtime/channel-client.js';
 import {
   CHAT_CLIENT_DIAGNOSTIC_EVENTS as DIAG,
   type ChatClientDiagnosticsOption,
 } from '../../src/realtime/diagnostics.js';
-import { CHAT_CLOSE_CODES, CHAT_SUBPROTOCOL, type WireMessageRow } from '../../src/realtime/wire.js';
+import { type WireMessageRow } from '../../src/realtime/wire.js';
 import {
   ChatAccessDeniedError,
-  HEARTBEAT_MS,
   MAX_PENDING_SEND_ATTEMPTS,
   PENDING_SEND_MAX_AGE_MS,
   SERVER_RETRYABLE_MAX_AGE_MS,

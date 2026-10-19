@@ -2,10 +2,9 @@
 //
 // The client-agreed limits (`HEARTBEAT_MS`, `TYPING_COALESCE_MS`,
 // `HISTORY_PAGE_MAX`) come from the one wire contract in
-// `@ttt-productions/chat-schemas`; they are re-exported here so the transport's
-// existing import sites are unchanged. The worker runtime is the authority and
+// `@ttt-productions/chat-schemas`. The worker runtime is the authority and
 // rejects anything out of bounds, but the client uses these to coalesce and
-// paginate politely. The remaining constants below are client-only retry policy.
+// paginate politely. The constants below are client-only retry policy.
 
 /**
  * Mints a short-lived chat grant token for the socket's scope. The app wires this
@@ -102,10 +101,6 @@ export function isTerminalErrorCode(code: string | null | undefined): code is Te
  * constant.
  */
 export const CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS = 15_000;
-
-// The client-agreed limits live in the wire contract; re-export to keep this
-// module's public surface stable.
-export { HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from '@ttt-productions/chat-schemas';
 
 /**
  * Max reconnect resends of one un-acked send before its optimistic row is flipped

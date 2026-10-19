@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
 import { ReportButton, useReportButton } from '../src/react/components/ReportButton.js';
 import type { ReportCoreConfig } from '../src/contracts/config.js';
-import type { ReportDialogCopy } from '../src/types-ui-props.js';
+import type { ReportDialogCopy } from '../src/react/types-ui-props.js';
 
 afterEach(() => {
   cleanup();

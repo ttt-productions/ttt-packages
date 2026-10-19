@@ -3,7 +3,7 @@
 // and with copy from the one failure-copy owner.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type Hit } from '../../shapes/shapes.js';

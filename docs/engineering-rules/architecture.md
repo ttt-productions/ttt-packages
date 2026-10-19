@@ -121,7 +121,8 @@ imports each definition from its owning entry.
 
 Inside a package, code imports the file that defines each name — never a folder `index`, a nested
 entry, or the package's own name; tests too, except that an entry-surface test may import an entry
-`index` to prove it forwards a name. Only an entry `index` re-exports, and only files in its own
+`index` to prove it forwards a name. Every relative import, in source and tests alike, names its
+file with its built extension: `./x.js` for `x.ts` or `x.tsx`, `./folder/index.js` for a folder. Only an entry `index` re-exports, and only files in its own
 subtree, each named directly; an index declares nothing of its own, and no `index.ts` exists that
 is not a package entry. An entry not
 declared runtime-specific carries no Node, React, or browser runtime import or type, `node:*`
@@ -141,6 +142,8 @@ make a consumer evaluate a whole folder to use one name.
 - Two entries of one package exporting the same definition.
 - Importing a folder `index`, a nested entry, or the package's own name from inside the package,
   except an entry-surface test proving an entry forwards a name.
+- A relative import, mock, or `import()` that does not name its file with its built extension
+  (`./x`, `./folder`, `./x.ts`), in source or a test.
 - A re-export from any file but an entry `index`; an entry `index` forwarding a file outside its
   subtree or through another index; an `index.ts` that is not an entry; a definition declared in an
   index.

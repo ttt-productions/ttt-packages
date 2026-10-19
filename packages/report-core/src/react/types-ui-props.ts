@@ -1,8 +1,5 @@
-// Prop and contract types for the report-core UI surface. Type-only (no React runtime import),
-// so the pure root can export them without pulling React into pure consumers.
-
 import type * as React from 'react';
-import type { SubmitReportResult } from './schemas/requests.js';
+import type { SubmitReportResult } from '../schemas/requests.js';
 
 /** The item a report is about. */
 export interface ReportTargetRef {

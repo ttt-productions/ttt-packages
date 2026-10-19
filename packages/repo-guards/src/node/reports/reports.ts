@@ -1,14 +1,14 @@
 // Reports run by hand, never in the gate: what they list is a judgment call, not a boundary.
 
-import { createRepoReader } from '../node/reader.js';
-import type { RepoLayout } from '../node/layout.js';
-import { formatReport as formatWriteGuardReport } from '../modules/firestore/analyzer.js';
-import { runWriteGuard, type WriteGuardFacts } from '../modules/firestore/guard.js';
-import { unusedIndexMembers, type ImportPathFacts } from '../modules/import-paths/guard.js';
+import { createRepoReader } from '../reader.js';
+import type { RepoLayout } from '../layout.js';
+import { formatReport as formatWriteGuardReport } from '../../modules/firestore/analyzer.js';
+import { runWriteGuard, type WriteGuardFacts } from '../../modules/firestore/guard.js';
+import { unusedIndexMembers, type ImportPathFacts } from '../../modules/import-paths/guard.js';
 import {
   duplicateExportsReport as runDuplicateExports,
   type DuplicateExportFacts,
-} from '../modules/repo/duplicate-exports.js';
+} from '../../modules/repo/duplicate-exports.js';
 
 /** Folder index members nothing outside the folder imports — candidates to drop from the index. */
 export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFacts): string {

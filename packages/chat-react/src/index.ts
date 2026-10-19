@@ -44,14 +44,7 @@ export {
   isChatAccessDeniedError,
   CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS,
 } from "./realtime/shared.js";
-export {
-  CHAT_SUBPROTOCOL,
-  CHAT_CLOSE_CODES,
-  CLIENT_FRAME,
-  SERVER_FRAME,
-  buildFrame,
-  parseFrame,
-} from "./realtime/wire.js";
+export { buildFrame, parseFrame } from "./realtime/wire.js";
 export { CHAT_CLIENT_DIAGNOSTIC_EVENTS } from "./realtime/diagnostics.js";
 export type { RealtimeChatClient, RealtimeTransportConfig } from "./realtime/transport.js";
 export type {

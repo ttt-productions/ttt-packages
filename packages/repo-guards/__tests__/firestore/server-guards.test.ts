@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { counterDecrementGuard, randomUuidGuard, timestampNowGuard, transactionReadGuard } from '../../src/modules/firestore/server-guards.js';
-import { checkSamples } from '../../src/suite/run.js';
+import { checkSamples } from '../../src/node/suite/run.js';
 import type { Guard } from '../../src/guard.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';

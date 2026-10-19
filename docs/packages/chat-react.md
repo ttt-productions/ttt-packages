@@ -101,8 +101,7 @@ version, `CLIENT_KINDS` / `SERVER_KINDS`, close codes, the neutral conversation
 reference `ChatConversationRef`, grant scope/audience, the send and mark-read
 contracts, and the client-agreed limits) is owned by
 [`@ttt-productions/chat-schemas`](./chat-schemas.md); the transport imports it
-(re-exporting the frame-kind maps under its historical `CLIENT_FRAME` /
-`SERVER_FRAME` names) and adds the client-side row/frame shapes (`WireMessageRow`,
+(consumers import those names from `chat-schemas` too) and adds the client-side row/frame shapes (`WireMessageRow`,
 `ServerFrame`, …) it maps into the UI message shape. The chat Worker consumes the
 same contract, so the two agree on the wire without importing each other. The app
 injects everything app-specific (the grant provider, the endpoint, and the

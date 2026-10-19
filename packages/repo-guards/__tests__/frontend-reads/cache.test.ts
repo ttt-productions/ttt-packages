@@ -12,7 +12,7 @@ import {
   type QueryCacheFacts,
 } from '../../src/modules/frontend-reads/cache.js';
 import { runDefinition } from './run.js';
-import { runGuard } from '../../src/suite/run.js';
+import { runGuard } from '../../src/node/suite/run.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 

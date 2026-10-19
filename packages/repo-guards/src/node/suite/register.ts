@@ -4,9 +4,9 @@
 
 import { describe, it, beforeAll } from 'vitest';
 import { buildGenericGuards, configProblems, type GenericGuardDefinition } from './config.js';
-import type { Guard } from '../guard.js';
-import { createRepoReader } from '../node/reader.js';
-import type { RepoLayout } from '../node/layout.js';
+import type { Guard } from '../../guard.js';
+import { createRepoReader } from '../reader.js';
+import type { RepoLayout } from '../layout.js';
 import { GENERIC_GUARDS, type GenericGuardFacts } from './registry.js';
 import { checkSamples, runGuard } from './run.js';
 

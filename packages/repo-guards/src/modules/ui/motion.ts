@@ -1,7 +1,7 @@
 // The motion guard: transitions ride the motion tokens and name the property they animate, and
 // motion a script asks for by name reads the one effective reduced-motion preference.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
 import { cssBlocks } from './css.js';

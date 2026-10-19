@@ -15,17 +15,16 @@ Generic report-filing UI and admin-task queue package.
 
 ## Entry points
 
-- `.` — the report-dialog contract types (`ReportTargetRef`, `AdditionalReportAction`,
-  `ReportDialogCopy`, `ReportDialogSuccess`, `ReportDialogProps`, `ReportButtonProps`,
-  `UseReportButtonOptions`, `UseReportButtonResult`, and the timer and badge props), type-only, so
-  importing them pulls in no React.
 - `./contracts` — pure, dependency-light surface: the admin-task shapes (`AdminTask`, its status
   union, the checkout and lifecycle results — there is no `Report` type or report-status constant in
   this package), the provider config shapes, and the constants (`ADMIN_TASK_STATUS`,
   `USER_REPORT_TASK_TYPE`, `DEFAULT_PRIORITY_THRESHOLDS`). No React, no server, no Admin SDK
   reachable from it; an app's data package and its Cloud Functions import these from here.
 - `./react` — `ReportCoreProvider` / `useReportCoreContext`, the report dialog, the queue hooks, and
-  `CountdownTimer` / `PriorityBadge`.
+  `CountdownTimer` / `PriorityBadge`, with their prop and contract types (`ReportTargetRef`,
+  `AdditionalReportAction`, `ReportDialogCopy`, `ReportDialogSuccess`, `ReportDialogProps`,
+  `ReportButtonProps`, `UseReportButtonOptions`, `UseReportButtonResult`, and the timer and badge
+  props). The package has no root entry.
 - `./server` — the queue handler factories.
 - `./schemas` — wire-format Zod schemas. A free-text field in them is never bounded here: `createCheckinTaskRequestSchema({ resolution })`
   and `createSubmitReportRequestSchema({ comment })` take the consuming app's own field schema

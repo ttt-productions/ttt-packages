@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getIdTokenClaims, parseClaims } from '../src/claims';
+import { getIdTokenClaims, parseClaims } from '../src/client/claims';
 import type { User } from 'firebase/auth';
 
 function makeUser(opts: {

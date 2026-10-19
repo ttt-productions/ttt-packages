@@ -23,3 +23,16 @@ export { ReportButton, useReportButton } from './components/ReportButton.js';
 export { ReportDialog } from './components/ReportDialog.js';
 export { CountdownTimer } from './components/CountdownTimer.js';
 export { PriorityBadge } from './components/PriorityBadge.js';
+
+export type {
+  ReportTargetRef,
+  AdditionalReportAction,
+  ReportDialogCopy,
+  ReportDialogSuccess,
+  ReportDialogProps,
+  ReportButtonProps,
+  UseReportButtonOptions,
+  UseReportButtonResult,
+  CountdownTimerProps,
+  PriorityBadgeProps,
+} from './types-ui-props.js';

@@ -83,8 +83,7 @@ export type CommissionProposal = z.infer<typeof CommissionProposalSchema>;
 // instead of refetching. Declared HERE (not schemas/commissions.ts) because it composes
 // CommissionProposalSchema and this module already imports schemas/commissions.js
 // (CommissionProposalStatusSchema) — the reverse runtime import would be a module cycle.
-// Re-exported on the ./schemas subpath via schemas/index.ts. Non-strict (server → client
-// result posture).
+// Non-strict (server → client result posture).
 export const CreateCommissionProposalTextResultSchema = z.object({
   success: z.literal(true),
   commissionListingId: z.string().min(1),

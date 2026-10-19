@@ -1,11 +1,8 @@
 "use client";
 
 import * as React from "react";
-import type {
-  MediaPlaybackControls,
-  MediaPlaybackProps,
-  MediaProgressSampleReason,
-} from "../types.js";
+import type { MediaPlaybackControls, MediaProgressSampleReason } from "../types.js";
+import type { MediaPlaybackProps } from "./types.js";
 
 /**
  * Throttle interval for periodic progress samples. A sample fires at most once

@@ -1,5 +1,5 @@
 import type { RepoLayout } from '@ttt-productions/repo-guards/node';
-import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/suite';
+import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/node/suite';
 import { REPO_ROOT } from './leak-utils';
 
 // The package architecture's import and entry rules, run over this repository through the suite
@@ -33,6 +33,7 @@ registerSuiteOf(
         exceptions: [
           { entry: '@ttt-productions/media-processing-core', runtime: 'node', why: 'the package is server-only: its root runs ffmpeg and reads local files' },
           { entry: '@ttt-productions/chat-react', runtime: 'react', why: 'the package is the chat React surface; its root is that surface' },
+          { entry: '@ttt-productions/ttt-core/safety', runtime: 'node', why: 'its one sha256 helper hashes with node:crypto, and every consumer runs under Node' },
         ],
       },
       applicationDataImports: { ...PACKAGES, applicationDataPackages: ['ttt-core', 'q-core'] },

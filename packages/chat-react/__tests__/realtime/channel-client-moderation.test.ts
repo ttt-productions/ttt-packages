@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { MODERATION_REDACTED_TEXT } from '@ttt-productions/chat-schemas';
 import { ChannelClient } from '../../src/realtime/channel-client.js';
 import type { RevisionKind, WireMessageRow } from '../../src/realtime/wire.js';
-import { MODERATION_REDACTED_TEXT } from '../../src/realtime/map.js';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
 function wireRow(

@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ReportCoreConfig, PriorityThreshold } from '../../contracts/config.js';
 import { DEFAULT_PRIORITY_THRESHOLDS } from '../../contracts/config.js';
-import type { AdditionalReportAction } from '../../types-ui-props.js';
+import type { AdditionalReportAction } from '../types-ui-props.js';
 import type { SubmitReportRequest, SubmitReportResult } from '../../schemas/requests.js';
 
 /** The app's call to its report-intake callable, typed and bound once by the app. */

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { Progress } from '@ttt-productions/ui-core/react';
-import type { CountdownTimerProps } from '../../types-ui-props.js';
+import type { CountdownTimerProps } from '../types-ui-props.js';
 
 /**
  * Countdown timer showing time remaining on a checked-out task.

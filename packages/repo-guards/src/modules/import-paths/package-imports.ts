@@ -1,13 +1,13 @@
 // The import rules inside a repository's own packages: each package's code imports the file that
-// defines each name, only an entry index re-exports, and no package has a runtime import cycle. Both
-// run on the import-path analyzer's own parse and resolution.
+// defines each name by its built extension, only an entry index re-exports, and no package has a
+// runtime import cycle. Both run on the import-path analyzer's own parse and resolution.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type { Finding, GuardContext } from '../../guard.js';
 import { isTestPath } from '../../node/layout.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { textProblem } from '../../support/facts.js';
 import { analyzePackageImports, createImportPathProfile, findImportCycles } from './analyzer.js';
 import { sourceEntryModules } from './package-entries.js';
@@ -64,12 +64,14 @@ export const packageImportsGuard: GenericGuardDefinition<PackageImportFacts> = {
   build(facts) {
     return [
       {
-        title: "inside a package, code imports the file that defines each name, and only an entry index re-exports",
+        title: "inside a package, code imports the file that defines each name by its built extension, and only an entry index re-exports",
         description:
           "Inside a package, import the file that defines each name — never a folder index, a nested entry, or the package's own " +
           'name; a test does the same, except an entry-surface test (`<name>.entry.test.ts`), which may import an entry index. ' +
           'Only an entry index re-exports, and only files in its own folder, each named directly; an index that is not a ' +
-          'package entry is deleted and its importers import the defining files.',
+          'package entry is deleted and its importers import the defining files. Every relative import, in source and tests ' +
+          "alike — a static import or `export … from`, an `import()`, and a test runner's module mock — names its file with " +
+          "the file's built extension: `./x.js` for `x.ts` or `x.tsx`, `./folder/index.js` for a folder.",
         timeoutMs: 300_000,
         run(context: GuardContext): Finding[] {
           const { packages, missing } = packagesOf(context, facts.packagesFolder);

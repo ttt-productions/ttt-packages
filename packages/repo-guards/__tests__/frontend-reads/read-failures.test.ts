@@ -14,7 +14,7 @@ import {
   type LaterPageFailureFacts,
   type ReadFailureCopyFacts,
 } from '../../src/modules/frontend-reads/read-failures.js';
-import { checkSamples } from '../../src/suite/run.js';
+import { checkSamples } from '../../src/node/suite/run.js';
 import { runOne } from './run.js';
 
 const MODULE = 'src/components/shared/read-state.tsx';

@@ -1,4 +1,4 @@
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { format } from "date-fns";
 import { isSerializedTimestamp, hasToDateMethod } from "./types.js";
 
 /**
@@ -86,5 +86,3 @@ export function formatDate(
     return "Invalid Date";
   }
 }
-
-export { formatDistanceToNowStrict };

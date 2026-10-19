@@ -3,7 +3,7 @@
 // package or names the product. Read from what is installed, so a published build is checked, not
 // its source.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { isText, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 

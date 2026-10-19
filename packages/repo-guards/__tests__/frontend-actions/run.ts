@@ -1,10 +1,10 @@
 // Runs one client-action guard over a throwaway repository: the app root is `src`, `functions/src`
 // joins when a fixture has it, and each finding comes back as `file:line detail`.
 
-import type { GenericGuardDefinition } from '../../src/suite/config.js';
+import type { GenericGuardDefinition } from '../../src/node/suite/config.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import type { RepoLayout } from '../../src/node/layout.js';
-import { checkSamples } from '../../src/suite/run.js';
+import { checkSamples } from '../../src/node/suite/run.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 

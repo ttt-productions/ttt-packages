@@ -1,7 +1,7 @@
 // The generic guards over the repository, its supply chain, and its tooling surface. The registry runs every guard listed here; an app supplies
 // each one's facts under its id.
 
-import type { Absent, GenericGuardDefinition } from '../../suite/config.js';
+import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   entryPointGuard,
   isolatedRootsGuard,

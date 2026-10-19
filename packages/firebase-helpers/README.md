@@ -10,15 +10,17 @@ nor the Admin SDK at runtime, so it is safe for backend, browser, and React
 consumers alike. Firebase client/admin runtime lives behind subpaths.
 
 - `.` — pure helpers: Firestore type guards, path builders, universal
-  timestamp/date normalization (`toMillis`, `toDate`, `now`, `formatDate`,
-  `formatDistanceToNowStrict`, `formatDateDisplay`), `chunk`, and
-  `getFileNameFromUrl`. No `firebase/*` import at runtime.
+  timestamp/date normalization (`toMillis`, `toDate`, `now`, `formatDate`),
+  `chunk`, and `getFileNameFromUrl`. No `firebase/*` import at runtime or in
+  its types.
 - `./client` — Firebase **client** SDK initialization (`initFirebaseClient`):
   app/auth/firestore/storage/functions + optional emulator wiring.
 - `./firestore-client` — Firestore **client** SDK helpers: batched writes
   (`commitInBatches`, `batchSet`), cursor pagination (`fetchPage`,
   `fetchOrderedPage`), and Timestamp helpers that touch the client SDK
-  (`serverNow`, `dateToTs`, `msToTs`, `tsToDate`).
+  (`serverNow`, `dateToTs`, `msToTs`, `tsToDate`), and the names typed on
+  `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`,
+  `formatDateDisplay`).
 - `./server` — Admin SDK init + server timestamp helpers.
 - `./react` — React Query-friendly callable hook primitives.
 

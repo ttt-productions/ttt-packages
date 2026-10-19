@@ -5,7 +5,8 @@ import { Badge, ListPagination, Separator, Spinner } from '@ttt-productions/ui-c
 import { useNotificationHistory } from '../hooks/useNotificationHistory.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
-import type { NotificationHistoryItem, NotificationHistoryListProps } from '../../types.js';
+import type { NotificationHistoryItem } from '../../types.js';
+import type { NotificationHistoryListProps } from '../types.js';
 
 /**
  * Read-only, paginated list of ARCHIVED notifications (the history tier). Rows are

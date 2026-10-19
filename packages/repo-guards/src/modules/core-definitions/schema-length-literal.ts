@@ -4,7 +4,7 @@
 // stay literal, each file's exact set reviewed with its why. A text minimum always derives.
 
 import type { Finding } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { namesProblem, reviewedProblems } from '../../support/facts.js';
 import { CORE_CODE, filesIn } from './shared.js';

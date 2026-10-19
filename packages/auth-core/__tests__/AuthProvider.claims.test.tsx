@@ -11,7 +11,7 @@ vi.mock('../src/react/useAuthState.js', () => ({
 }));
 
 const pendingInitialReads = new Map<string, Array<(claims: Record<string, unknown>) => void>>();
-vi.mock('../src/claims.js', () => ({
+vi.mock('../src/client/claims.js', () => ({
   getIdTokenClaims: vi.fn(
     (user: User) =>
       new Promise((resolve) => {

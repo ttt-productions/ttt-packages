@@ -73,9 +73,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     the last seq the client holds, or absent). Unknown keys are stripped, so a client one
     release ahead still parses.
 
-  Consumers import these (never re-declare them); `chat-react`'s realtime transport
-  re-exports the frame-kind maps under its historical names (`CLIENT_FRAME` /
-  `SERVER_FRAME`).
+  Consumers import these from `chat-schemas` (never re-declare or forward them).
 
 - **The chat internal-endpoint contract** (`src/internal-contract.ts`):
   - `CHAT_INTERNAL_BODY_MAX_BYTES` (256 KiB), the largest body a signed chat internal

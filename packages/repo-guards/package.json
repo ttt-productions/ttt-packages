@@ -23,13 +23,13 @@
             "types": "./dist/node/index.d.ts",
             "default": "./dist/node/index.js"
         },
-        "./suite": {
-            "types": "./dist/suite/index.d.ts",
-            "default": "./dist/suite/index.js"
+        "./node/suite": {
+            "types": "./dist/node/suite/index.d.ts",
+            "default": "./dist/node/suite/index.js"
         },
-        "./reports": {
-            "types": "./dist/reports/index.d.ts",
-            "default": "./dist/reports/index.js"
+        "./node/reports": {
+            "types": "./dist/node/reports/index.d.ts",
+            "default": "./dist/node/reports/index.js"
         },
         "./seed": {
             "types": "./dist/seed/index.d.ts",

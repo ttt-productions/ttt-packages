@@ -9,7 +9,7 @@ import ts from 'typescript';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
 import { textProblem } from '../../support/facts.js';
 

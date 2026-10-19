@@ -1,7 +1,7 @@
 // The generic guards over client actions: callables, the auth boundary, browser storage, and media
 // rendering. The registry runs every guard listed here; an app supplies each one's facts under its id.
 
-import type { Absent, GenericGuardDefinition } from '../../suite/config.js';
+import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   authFailureCaptureGuard,
   bannedAuthCallGuard,

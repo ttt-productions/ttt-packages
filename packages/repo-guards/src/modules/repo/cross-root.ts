@@ -4,7 +4,7 @@
 //   - each package is imported from the entry point that matches the runtime of the importing root;
 //   - nothing is imported from, or depended on at, a path outside the repository.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { declaredRoots, type RepoLayout, type Reviewed, type RootRole } from '../../node/layout.js';
 import type { Scope } from '../../node/reader.js';

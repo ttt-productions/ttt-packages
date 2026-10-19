@@ -53,11 +53,11 @@ Generic TanStack Query package.
   and a snapshot it may no longer read is never presented as readable, so it and its restart read as a
   failure before any answer. A disabled read's
   `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
-- The generic debounced prefix-search hook `useFirestoreSearch`, its types
-  (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
-  rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`)
+- The generic debounced prefix-search hook `useFirestoreSearch`, its options type
+  (`FirestoreSearchOptions`, on `./react`), and its config types (`FirestoreSearchConfig`,
+  `SearchEqualityFilter`) and search rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`)
 - The read failure-and-retry state, `useReadRetryState` (below)
-- `placeRowInPages` (root entry, with its `PagedRows` adapter): places, moves, or drops one row in a
+- `placeRowInPages` (`./react`, with its `PagedRows` adapter): places, moves, or drops one row in a
   cached infinite list's loaded pages at its position in the list's own order, keeping every other
   row, page, and cursor — so an action updates a paged list without reloading it
 - The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
@@ -83,7 +83,7 @@ displayed page while it is mounted. The result's `data` is the displayed page's 
 Because entries are shared by key, the caller's `queryKey` encodes everything that
 changes the read — path, filters, ordering, and page size.
 
-Cache updaters for these entries live on the server-safe root (they take the
+Cache updaters for these entries live on `./react` (they take the
 `QueryClient` and the base `queryKey` the hook was given):
 `mapPaginatedItems(client, queryKey, mapItem)` patches rows in place across every cached
 page, and `prependToFirstPaginatedPage(client, queryKey, item)` puts a new row at the
@@ -222,10 +222,10 @@ Together they give three guarantees a control's own `isPending` cannot: an in-fl
 
 ## Entry points
 
-- `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), cache helpers (including the paginated-entry updaters and `paginatedPageKey`), infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
+- `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), the search config types, and the `STALE_TIMES` presets. No React, react-query, or Firebase in its runtime graph or its types.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, and the `createQueryClient` factory.
-- `./types` — the Firestore types (`WithId`, the hook option types, `PaginatedPage`, `InfinitePage`, the source-state and batch-outcome types) and the pure `docWithId` helper; the one entry that exports them.
+- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
+- `./types` — the Firestore types that carry no Firebase type (`WithId`, `FirestoreBaseOptions`, the mutation and batch option types, the source-state and batch-outcome types); the one entry that exports them.
 
 Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers` (server-safe root only, for `chunk` and `FIRESTORE_IN_FILTER_LIMIT`), so a server-only install pulls no client runtime through it.
 

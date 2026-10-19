@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core/react";
-import type { AudioViewerProps } from "../types.js";
+import type { AudioViewerProps } from "./types.js";
 import { useMediaPlayback } from "./use-media-playback.js";
 import { AudioPlayerChrome } from "./audio-player-chrome.js";
 import { useLoadWatchdog } from "./use-load-watchdog.js";

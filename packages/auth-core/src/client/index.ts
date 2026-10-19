@@ -2,3 +2,4 @@
 // at runtime (e.g. onAuthStateChanged), so it is intentionally kept off the
 // pure root. The pure root exposes only contracts/config/errors.
 export * from "./auth.js";
+export * from "./claims.js";

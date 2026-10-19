@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { RelativeTime } from '../src/react/components/relative-time';
 
-vi.mock('@ttt-productions/firebase-helpers', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@ttt-productions/firebase-helpers')>();
+vi.mock('date-fns', async (importOriginal) => {
+  const real = await importOriginal<typeof import('date-fns')>();
   return {
     ...real,
     formatDistanceToNowStrict: vi.fn(() => '5 minutes ago'),
@@ -58,7 +58,7 @@ describe('RelativeTime', () => {
   });
 
   it('sets up a refresh interval when refreshIntervalMs > 0', async () => {
-    const { formatDistanceToNowStrict } = await import('@ttt-productions/firebase-helpers');
+    const { formatDistanceToNowStrict } = await import('date-fns');
     const mockFn = vi.mocked(formatDistanceToNowStrict);
     mockFn.mockReturnValue('1 minute ago');
 

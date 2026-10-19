@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { textProblem } from '../../support/facts.js';
 
 export interface ApplicationDataFacts {

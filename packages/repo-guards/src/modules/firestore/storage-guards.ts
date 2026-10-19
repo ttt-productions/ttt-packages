@@ -5,7 +5,7 @@
 
 import { matchBlocks, rulesFunctions } from './rules-syntax.js';
 import type { Finding } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { listProblem, loaderProblem, namesProblem, reviewedProblems, textProblem, type Loader } from '../../support/facts.js';

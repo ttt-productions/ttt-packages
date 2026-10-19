@@ -2,7 +2,7 @@
 // classes that exist, status foregrounds on their solid fill, shadows owned by classes, vertical
 // stacks never on rows, and no clickable affordance on an unavailable control.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';

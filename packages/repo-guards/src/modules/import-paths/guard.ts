@@ -4,7 +4,7 @@
 import type { Finding, GuardContext } from '../../guard.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
 import { isTestPath } from '../../node/layout.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { objectProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
 

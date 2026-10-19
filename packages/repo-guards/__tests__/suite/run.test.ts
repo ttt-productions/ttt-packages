@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Guard } from '../../src/guard.js';
 import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
-import { runGuard } from '../../src/suite/run.js';
+import { runGuard } from '../../src/node/suite/run.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 let repo: TempRepo;

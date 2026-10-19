@@ -1,3 +1,4 @@
+import { CHAT_SUBPROTOCOL } from '@ttt-productions/chat-schemas';
 // The minimal socket abstraction the realtime clients drive, plus the default
 // browser-WebSocket factory. Injectable so unit tests pass a MOCK socket and no
 // real network is touched.
@@ -9,7 +10,6 @@
 // worker validates cookie + grant + Origin BEFORE accept and echoes back only
 // CHAT_SUBPROTOCOL.
 
-import { CHAT_SUBPROTOCOL } from './wire.js';
 
 /** Lifecycle events a socket surfaces to its owning client. */
 export interface SocketHandlers {

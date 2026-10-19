@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { User } from "firebase/auth";
 import { useAuthState } from "./useAuthState.js";
-import { getIdTokenClaims } from "../claims.js";
+import { getIdTokenClaims } from "../client/claims.js";
 import type { AuthProviderConfig, AuthContextValue } from "./types.js";
 
 /**

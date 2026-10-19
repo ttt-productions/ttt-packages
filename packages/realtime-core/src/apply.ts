@@ -9,8 +9,6 @@
 
 import { decideVersionedApply, type VersionedDecision } from '@ttt-productions/edge-protocol-core';
 
-export type { VersionedDecision } from '@ttt-productions/edge-protocol-core';
-
 export interface StoredVersioned {
   version: number;
   payloadHash: string;

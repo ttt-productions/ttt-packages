@@ -3,14 +3,9 @@ import { RealtimeMessageEnvelopeSchema, VersionedSyncItemSchema } from '../src/e
 import { createReconnectController } from '../src/reconnect';
 import { decideApply, applyVersioned, type StoredVersioned } from '../src/apply';
 import { allocateNext, advanceFloor, recoveredFloor } from '../src/allocators';
-import { REALTIME_ERROR_CODES, REALTIME_PROTOCOL_VERSION, isProtocolSupported } from '../src/protocol';
+import { REALTIME_ERROR_CODES } from '../src/protocol';
 
 describe('protocol', () => {
-  it('re-exports the edge protocol version + rolling-window check', () => {
-    expect(REALTIME_PROTOCOL_VERSION).toBe(1);
-    expect(isProtocolSupported(1)).toBe(true);
-    expect(isProtocolSupported(99)).toBe(false);
-  });
   it('exposes stable namespaced error codes', () => {
     expect(REALTIME_ERROR_CODES.GRANT_EXPIRED).toBe('realtime/grant-expired');
     expect(REALTIME_ERROR_CODES.NOT_FOUND_YET).toBe('realtime/not-found-yet');

@@ -1,7 +1,7 @@
 // The UI guards over definitions reaching the screen and the wire: stored enum values render through
 // label maps, non-free-text boxes are reviewed, and schema bounds derive from named limits.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { allowlistProblems, namesProblem, objectProblem } from '../../support/facts.js';
 import type { Scope } from '../../node/reader.js';
 import { matchPattern, reviewedAllowlist, type AllowlistEntry, type Hit, type Matcher } from '../../shapes/shapes.js';

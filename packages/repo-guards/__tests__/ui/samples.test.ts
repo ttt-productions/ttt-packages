@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { UI_GUARDS, type UiGuardFacts } from '../../src/modules/ui/guards.js';
-import { checkSamples } from '../../src/suite/run.js';
+import { checkSamples } from '../../src/node/suite/run.js';
 
 const entryStylesheet = 'src/app/styles/globals.css';
 const FACTS: UiGuardFacts = {

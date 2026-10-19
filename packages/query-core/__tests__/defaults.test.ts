@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defaultQueryOptions, defaultQueryClientConfig } from '../src/defaults';
+import { defaultQueryOptions, defaultQueryClientConfig } from '../src/react/defaults';
 
 describe('defaultQueryOptions', () => {
   it('has queries configuration', () => {

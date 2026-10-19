@@ -10,10 +10,6 @@ import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import { CHAT_SYSTEM_SENDER_ID, MODERATION_REDACTED_TEXT } from '@ttt-productions/chat-schemas';
 import type { RevisionKind, WireMessageRow } from './wire.js';
 
-// The redacted-text constant lives in the wire contract; re-export to keep this
-// module's public surface stable.
-export { MODERATION_REDACTED_TEXT };
-
 /** The effective moderation overlay for a message: the max-`messageRevision` kind. */
 export interface ModerationOverlay {
   kind: RevisionKind;

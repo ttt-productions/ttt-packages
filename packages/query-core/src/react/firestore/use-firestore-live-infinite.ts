@@ -16,7 +16,8 @@ import {
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
-import type { FirestoreLiveInfiniteOptions, FirestoreSourceState } from '../../firestore/types.js';
+import type { FirestoreSourceState } from '../../firestore/types.js';
+import type { FirestoreLiveInfiniteOptions } from './types.js';
 
 const MAX_PAGE_SIZE = 100;
 

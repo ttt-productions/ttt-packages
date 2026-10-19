@@ -394,6 +394,33 @@ export function findUnusedIndexMembers({ files, roots, profile }) {
 /** The one kind of test that may import an entry index: one that proves the entry forwards a name. */
 const ENTRY_SURFACE_TEST = /\.entry\.(test|spec)\.[cm]?[jt]sx?$/;
 
+// The extension a module's built file carries, which is the one a relative specifier names it by.
+const BUILT_EXTENSION = Object.freeze({
+  '.ts': '.js',
+  '.tsx': '.js',
+  '.js': '.js',
+  '.jsx': '.jsx',
+  '.mts': '.mjs',
+  '.mjs': '.mjs',
+  '.cts': '.cjs',
+  '.cjs': '.cjs',
+});
+
+const isRelative = (spec) => spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../');
+
+/** The specifier that names `targetPath` by its built file, written the way `spec` reaches it. */
+function specifierWithExtension(spec, targetPath) {
+  const built = BUILT_EXTENSION[extensionOf(targetPath)];
+  const targetBase = targetPath.slice(targetPath.lastIndexOf('/') + 1);
+  const stem = targetBase.slice(0, targetBase.length - extensionOf(targetBase).length);
+  const trimmed = spec.replace(/\/$/, '');
+  const specBase = trimmed.slice(trimmed.lastIndexOf('/') + 1);
+  // A specifier naming a folder reaches its index; one naming a file carries the file's stem.
+  if (stem === 'index' && specBase !== 'index' && extensionOf(specBase) === '') return `${trimmed}/index${built}`;
+  const specExt = extensionOf(specBase);
+  return `${specExt ? trimmed.slice(0, -specExt.length) : trimmed}${built}`;
+}
+
 /**
  * The import rules inside one package, over its module set:
  *
@@ -403,6 +430,9 @@ const ENTRY_SURFACE_TEST = /\.entry\.(test|spec)\.[cm]?[jt]sx?$/;
  *   2. Only an entry index re-exports, and only files inside its own folder, each named directly
  *      (never through another index). An index declares nothing of its own, and an `index` that is
  *      not a package entry does not exist.
+ *   3. Every relative specifier names its file with the file's built extension — `./x.js` for
+ *      `x.ts` or `x.tsx`, `./folder/index.js` for a folder — in source and tests alike: a static
+ *      import or `export … from`, an `import()`, and a test runner's module mock.
  *
  * @param {{
  *   files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>,
@@ -465,6 +495,12 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
       if (target.kind === 'unresolved') {
         add('unresolved-import', path, `'${edge.spec}' names no module in the package (looked for ${target.base})`);
         continue;
+      }
+      if (target.kind === 'file' && isRelative(edge.spec)) {
+        const named = specifierWithExtension(edge.spec, target.path);
+        if (named !== edge.spec) {
+          add('relative-import-without-extension', path, `imports '${edge.spec}' — a relative import names its file with its built extension: '${named}'`);
+        }
       }
       if (target.kind !== 'file' || target.path === path || !packageIndex(target.path)) continue;
       // A forward is judged as a re-export above.

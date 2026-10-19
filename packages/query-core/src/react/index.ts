@@ -44,6 +44,53 @@ export { ABSENT_RETRY_DELAYS_MS } from './firestore/absence-scheduler.js';
 // Search Hook
 export { useFirestoreSearch } from './search/use-firestore-search.js';
 
+// Cache Helpers
+export {
+  invalidateByPrefix,
+  removeByPrefix,
+  updateQueryData,
+  paginatedPageKey,
+  mapPaginatedItems,
+  prependToFirstPaginatedPage,
+  placeRowInPages,
+} from './cache-helpers.js';
+export type { PagedRows } from './cache-helpers.js';
+
+// Domain-event invalidator (mechanism — consumers register their event registry)
+export { createDomainEventInvalidator } from "./domain-events/create-domain-event-invalidator.js";
+export {
+  exact,
+  prefix,
+  predicate,
+  serializeInvalidation,
+  applyInvalidations,
+} from "./domain-events/cache-invalidation.js";
+export type {
+  DomainEventInvalidator,
+  DomainEventInvalidationRegistry,
+} from "./domain-events/create-domain-event-invalidator.js";
+export type {
+  CacheAction,
+  CacheInvalidation,
+  RefetchType,
+} from "./domain-events/cache-invalidation.js";
+
+// Firestore hook option and page types, and the snapshot helpers
+export { docWithId } from './firestore/types.js';
+export type {
+  FirestoreDocOptions,
+  FirestoreCollectionOptions,
+  FirestoreInfiniteOptions,
+  FirestorePaginatedOptions,
+  FirestoreCountOptions,
+  FirestoreLiveInfiniteOptions,
+  InfinitePage,
+  PaginatedPage,
+  MutationOperation,
+} from './firestore/types.js';
+export { flattenInfiniteData, getInfiniteDataCount } from './firestore/infinite-helpers.js';
+export type { FirestoreSearchOptions } from './search/types.js';
+
 // Read retry state
 export { useReadRetryState, useReadRetryStates } from './use-read-retry-state.js';
 export type { ReadRetryEntry, ReadRetrySource, ReadRetryState } from './use-read-retry-state.js';

@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 /** Client↔DO transport envelope. `kind`/`payload` are app-defined; the rest is transport. */
 export const RealtimeMessageEnvelopeSchema = z.object({
-  /** Protocol version (see REALTIME_PROTOCOL_VERSION). */
+  /** Protocol version (see edge-protocol-core's EDGE_PROTOCOL_VERSION). */
   v: z.number(),
   /** App-defined message kind. */
   kind: z.string(),

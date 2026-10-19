@@ -3,8 +3,33 @@ import {
   SubmitFeedbackInputSchema,
   SubmitContentAppealResultSchema,
   AcceptViolationDecisionResultSchema,
+  SeedRulesAndAgreementsInputSchema,
+  SeedFuturePlansInputSchema,
+  SeedTermsPageInputSchema,
+  SeedPrivacyPageInputSchema,
+  SeedTakeItDownPageCopyInputSchema,
+  SeedDmcaPolicyInputSchema,
 } from '../src/schemas/utility';
 import { FEEDBACK_TYPES } from '../src/constants/business-admin';
+
+describe('public-document seed inputs (one per public document, intentionally empty)', () => {
+  const seeds = {
+    SeedRulesAndAgreementsInputSchema,
+    SeedFuturePlansInputSchema,
+    SeedTermsPageInputSchema,
+    SeedPrivacyPageInputSchema,
+    SeedTakeItDownPageCopyInputSchema,
+    SeedDmcaPolicyInputSchema,
+  };
+
+  for (const [name, schema] of Object.entries(seeds)) {
+    it(`${name} accepts only an empty object`, () => {
+      expect(schema.safeParse({}).success).toBe(true);
+      expect(schema.safeParse({ documentId: 'dmcaPolicy' }).success).toBe(false);
+      expect(schema.safeParse(null).success).toBe(false);
+    });
+  }
+});
 
 describe('SubmitFeedbackInputSchema', () => {
   describe('feedbackType (enum)', () => {

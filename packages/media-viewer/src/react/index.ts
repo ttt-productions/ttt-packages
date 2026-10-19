@@ -15,3 +15,12 @@ export {
   LATE_RESUME_ADOPT_WINDOW_SEC,
 } from "./use-media-playback.js";
 export type { UseMediaPlaybackResult } from "./use-media-playback.js";
+export type {
+  BaseMediaProps,
+  ImageViewerProps,
+  VideoViewerProps,
+  AudioViewerProps,
+  MediaPreviewProps,
+  MediaViewerProps,
+  MediaPlaybackProps,
+} from "./types.js";

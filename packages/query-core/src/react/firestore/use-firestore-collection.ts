@@ -12,11 +12,8 @@ import {
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
-import type {
-  FirestoreCollectionOptions,
-  WithId,
-  WithSourceState,
-} from '../../firestore/types.js';
+import type { WithId, WithSourceState } from '../../firestore/types.js';
+import type { FirestoreCollectionOptions } from './types.js';
 
 /**
  * Fetch all documents from a Firestore collection with optional realtime updates.

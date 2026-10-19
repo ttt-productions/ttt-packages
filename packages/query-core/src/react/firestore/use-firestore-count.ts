@@ -3,7 +3,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { collection, query, getCountFromServer } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreCountOptions } from '../../firestore/types.js';
+import type { FirestoreCountOptions } from './types.js';
 
 /**
  * Count documents in a Firestore collection via a server-side `count()`

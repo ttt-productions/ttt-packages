@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRepoReader, type RepoLayout } from '@ttt-productions/repo-guards/node';
-import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/suite';
+import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/node/suite';
 import { REPO_ROOT } from './leak-utils';
 
 // The shared shell-safety guard — no child process gets an args array together with a shell — run

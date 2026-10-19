@@ -3,7 +3,7 @@
 // app's own code, so every directory read there must throw on failure. There is no allowlist.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';

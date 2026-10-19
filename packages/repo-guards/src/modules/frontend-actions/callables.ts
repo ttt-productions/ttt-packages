@@ -2,7 +2,7 @@
 // copy owner, callable names written only in their declarations, one toast and one capture per
 // failure, and reads that live in hooks and go through readers.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';

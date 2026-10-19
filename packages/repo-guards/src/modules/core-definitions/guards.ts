@@ -1,7 +1,7 @@
 // The generic guards over an app's core package definitions and the app code that restates them.
 // The registry runs every guard listed here; an app supplies each one's facts under its id.
 
-import type { Absent, GenericGuardDefinition } from '../../suite/config.js';
+import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import { coreContractsGuard, type CoreContractFacts } from './contracts.js';
 import { definitionRedeclarationGuard, type DefinitionRedeclarationFacts } from './redeclaration.js';
 import { documentIdSegmentGuard, type DocumentIdSegmentFacts } from './document-id-segment.js';

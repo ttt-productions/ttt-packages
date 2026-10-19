@@ -13,10 +13,10 @@ import {
   ChatMarkReadResultPayloadSchema,
   SERVER_KINDS,
   type ChatMarkReadFailureCode,
+  CLIENT_KINDS,
+  CHAT_CLOSE_CODES,
 } from '@ttt-productions/chat-schemas';
 import {
-  CLIENT_FRAME,
-  CHAT_CLOSE_CODES,
   buildFrame,
   parseFrame,
   isInboxSnapshot,
@@ -284,7 +284,7 @@ export class InboxClient {
       hasUnread: this.state.hasUnread,
     });
     // The DO sends a snapshot on accept; a `resume` re-requests it after a reconnect gap.
-    const sent = this.sendFrame(CLIENT_FRAME.RESUME, {});
+    const sent = this.sendFrame(CLIENT_KINDS.RESUME, {});
     // The inbox resume is CURSORLESS by contract (the DO always answers with a full
     // authoritative snapshot) — there is no `afterSeq` half to record here.
     this.diag?.(DIAG.INBOX_RESUME_REQUEST, { attempt: this.connectAttempt, cursorless: true, sent });
@@ -461,7 +461,7 @@ export class InboxClient {
    */
   markRead(channelRef: string): Promise<ChatMarkReadOutcome> {
     const requestId = newCorrelationId();
-    const sent = this.sendFrame(CLIENT_FRAME.MARK_READ, { channelRef, requestId });
+    const sent = this.sendFrame(CLIENT_KINDS.MARK_READ, { channelRef, requestId });
     // The ref itself is never logged — only that a mark-read was written and what the
     // unread projection looked like at that moment (the DO's snapshot is what clears it).
     this.diag?.(DIAG.INBOX_MARK_READ, { sent, unreadCount: this.state.unreadChannelRefs.length });

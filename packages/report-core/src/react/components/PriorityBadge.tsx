@@ -2,7 +2,7 @@
 
 import { Badge } from '@ttt-productions/ui-core/react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
-import type { PriorityBadgeProps } from '../../types-ui-props.js';
+import type { PriorityBadgeProps } from '../types-ui-props.js';
 
 /**
  * Displays a priority badge based on the numeric priority score.

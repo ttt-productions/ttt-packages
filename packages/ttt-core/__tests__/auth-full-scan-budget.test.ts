@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AUTH_FULL_SCAN_EXAMINED_PER_RUN,
-  AUTH_LIST_USERS_PAGE_SIZE,
-} from '../src/constants/scheduled-jobs.js';
+import { AUTH_FULL_SCAN_EXAMINED_PER_RUN, AUTH_LIST_USERS_PAGE_SIZE } from '../src/constants/scheduled-jobs.js';
+import { ADMIN_SELF_REVOKE_REFUSAL } from '../src/constants/admin-labels.js';
 
 describe('Auth full-scan budget', () => {
   it('examines whole listUsers pages, so a run stops only where a saved page token can resume it', () => {
@@ -13,5 +11,11 @@ describe('Auth full-scan budget', () => {
   it('asks for no more accounts per page than Firebase Auth returns in one call', () => {
     expect(AUTH_LIST_USERS_PAGE_SIZE).toBeLessThanOrEqual(1000);
     expect(AUTH_LIST_USERS_PAGE_SIZE).toBeGreaterThan(0);
+  });
+});
+
+describe('the admin self-revoke refusal', () => {
+  it('tells the admin another full admin must make the change', () => {
+    expect(ADMIN_SELF_REVOKE_REFUSAL).toMatch(/another full admin/);
   });
 });

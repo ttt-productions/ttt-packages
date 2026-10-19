@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { configProblems, type GenericGuardDefinition } from '../../src/suite/config.js';
-import { GENERIC_GUARDS } from '../../src/suite/registry.js';
+import { configProblems, type GenericGuardDefinition } from '../../src/node/suite/config.js';
+import { GENERIC_GUARDS } from '../../src/node/suite/registry.js';
 import type { RepoLayout } from '../../src/node/layout.js';
 import { matchPattern, ownerOnly } from '../../src/shapes/shapes.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';

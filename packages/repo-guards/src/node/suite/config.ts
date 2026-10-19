@@ -2,9 +2,9 @@
 // package carries needs its facts in the config — or, where the guard allows it, an explicit
 // absence with its why. Nothing is skipped by leaving it out.
 
-import type { Guard } from '../guard.js';
-import { layoutProblems } from '../node/reader.js';
-import { declaredRoots, type RepoLayout, type RootRole } from '../node/layout.js';
+import type { Guard } from '../../guard.js';
+import { layoutProblems } from '../reader.js';
+import { declaredRoots, type RepoLayout, type RootRole } from '../layout.js';
 
 /** An app's statement that a generic guard does not apply to it, and why. */
 export interface Absent {

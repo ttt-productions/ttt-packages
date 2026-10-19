@@ -4,7 +4,7 @@ import {
   PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
 } from '../src/constants/public-documents';
 import * as constants from '../src/constants/index';
-import { AcceptPublicDocumentsInputSchema } from '../src/schemas/public-documents';
+import { ShownPublicDocumentVersionsSchema } from '../src/schemas/public-documents';
 import {
   RegisterUserInputSchema,
   RegisterUserResultSchema,
@@ -42,7 +42,7 @@ describe('registration carries the versions the signup page showed', () => {
   it('both callables are importable from the one schemas subpath', () => {
     expect(schemasBarrel.RegisterUserInputSchema).toBe(RegisterUserInputSchema);
     expect(schemasBarrel.RegisterUserResultSchema).toBe(RegisterUserResultSchema);
-    expect(schemasBarrel.ShownPublicDocumentVersionsSchema).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
+    expect(schemasBarrel.ShownPublicDocumentVersionsSchema).toBe(ShownPublicDocumentVersionsSchema);
   });
 });
 

@@ -4,7 +4,7 @@
 // admits no affected version.
 
 import semver from 'semver';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { isText, reviewedProblems, textProblem } from '../../support/facts.js';
 

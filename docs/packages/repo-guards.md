@@ -46,11 +46,11 @@ aliases, its owner files, its reviewed exceptions — never logic.
   with the `ImportKind`, `ImportedName`, and `ModuleImport` types.
 - `./node` — the reader: `createRepoReader(layout)`, `layoutProblems(layout)`, the layout types, and
   the scope policy (`isTestPath`, `kindOfFile`).
-- `./suite` — `registerGuardSuite(config)`, called once at the top of an app's one guard test file;
+- `./node/suite` — `registerGuardSuite(config)`, called once at the top of an app's one guard test file;
   needs `vitest` (an optional peer) and runs under Node. A repository that is no app (this
   monorepo's boundary suite) runs the generic guards that apply to it through
   `registerSuiteOf(config, definitions)`, picking them from `GENERIC_GUARDS` by id.
-- `./reports` — the hand-run reports.
+- `./node/reports` — the hand-run reports; run under Node.
 - `./seed` — `createRegistrySeedWriter`, `registeredSchemaForPath`.
 - `./zod-shape` — `kindOf`, `unwrap`, `objectShape`, `arrayElement`, `compositeMembers`, `knownKeys`.
 

@@ -12,8 +12,9 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import { paginatedPageKey } from '../../cache-helpers.js';
-import type { FirestorePaginatedOptions, PaginatedPage, WithId } from '../../firestore/types.js';
+import { paginatedPageKey } from '../cache-helpers.js';
+import type { WithId } from '../../firestore/types.js';
+import type { FirestorePaginatedOptions, PaginatedPage } from './types.js';
 
 const DEFAULT_PAGE_SIZE = 10;
 

@@ -23,7 +23,7 @@ import { checkInputFormat } from '@ttt-productions/input-format-core';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { useReportSubmit } from '../hooks/useReportSubmit.js';
 import type { SubmitReportResult } from '../../schemas/requests.js';
-import type { ReportDialogProps, ReportTargetRef } from '../../types-ui-props.js';
+import type { ReportDialogProps, ReportTargetRef } from '../types-ui-props.js';
 
 // The picker value for an additional action is its id, prefixed so it can never collide with a
 // report reason.

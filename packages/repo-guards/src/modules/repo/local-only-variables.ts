@@ -6,7 +6,7 @@
 // This covers the repository's own config only: a value set in a hosting console can carry any name
 // and override the repository's files, which no check over the repository can see.
 
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { ownerOnly } from '../../shapes/shapes.js';
 import { escapeRegExp } from '../../support/text.js';

@@ -7,10 +7,7 @@ import {
 } from '../src/constants/safety-active-statuses';
 import { SafetyCaseByIdResultSchema } from '../src/schemas/safety';
 import { ChildSafetyWorkStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case';
-import {
-  NciiInternalStatusSchema,
-  TakeItDownPublicStatusSchema,
-} from '../src/doc-schemas/safety/foundation';
+import { NciiInternalStatusSchema, TakeItDownPublicStatusSchema } from '../src/doc-schemas/safety/foundation';
 
 describe('active safety statuses', () => {
   // A case stays active — on the console and in the Legal-Clocks count — until its worker verifies

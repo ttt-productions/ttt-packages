@@ -18,16 +18,20 @@
 import { createReconnectController, type ReconnectController } from '@ttt-productions/realtime-core';
 import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import {
-  CLIENT_FRAME,
+  CLIENT_KINDS,
   CHAT_CLOSE_CODES,
+  ChatSendRejectedPayloadSchema,
+  HEARTBEAT_MS,
+  TYPING_COALESCE_MS,
+  HISTORY_PAGE_MAX,
+} from '@ttt-productions/chat-schemas';
+import {
   buildFrame,
   parseFrame,
   isInboxSnapshot,
-  ChatSendRejectedPayloadSchema,
   type WireMessageRow,
   type WireChannelSnapshot,
   type RevisionKind,
-  type ChatSendRejectionCode,
 } from './wire.js';
 import type {
   ChatHistoryPayload,
@@ -35,6 +39,7 @@ import type {
   ChatResumePayload,
   ChatSendPayload,
   ClientFrameKind,
+  ChatSendRejectionCode,
 } from '@ttt-productions/chat-schemas';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
 import {
@@ -58,9 +63,6 @@ import {
   isChatAccessDeniedError,
   isTerminalErrorCode,
   TERMINAL_ERROR_CODE,
-  HEARTBEAT_MS,
-  TYPING_COALESCE_MS,
-  HISTORY_PAGE_MAX,
   MAX_PENDING_SEND_ATTEMPTS,
   PENDING_SEND_MAX_AGE_MS,
   SERVER_RETRYABLE_MAX_AGE_MS,
@@ -74,13 +76,13 @@ import { InitialLoadBudget } from './initial-load-budget.js';
  * it with, so a sender that drifts from the contract fails to compile. A frame with no payload
  * schema (typing, presence, heartbeat) carries an empty object.
  */
-type ChannelFramePayload<K extends ClientFrameKind> = K extends typeof CLIENT_FRAME.SEND
+type ChannelFramePayload<K extends ClientFrameKind> = K extends typeof CLIENT_KINDS.SEND
   ? ChatSendPayload
-  : K extends typeof CLIENT_FRAME.READ_ACK
+  : K extends typeof CLIENT_KINDS.READ_ACK
     ? ChatReadAckPayload
-    : K extends typeof CLIENT_FRAME.HISTORY
+    : K extends typeof CLIENT_KINDS.HISTORY
       ? ChatHistoryPayload
-      : K extends typeof CLIENT_FRAME.RESUME
+      : K extends typeof CLIENT_KINDS.RESUME
         ? ChatResumePayload
         : Record<string, never>;
 
@@ -501,13 +503,13 @@ export class ChannelClient {
     // Resume: ask the DO for the authoritative snapshot, then live deltas flow. The
     // field name MUST be `afterSeq` — the Channel DO reads `payload.afterSeq`; any other
     // name reads as cursorless and forces a full resync every reconnect.
-    this.sendFrame(CLIENT_FRAME.RESUME, { afterSeq: this.resumeSeq });
+    this.sendFrame(CLIENT_KINDS.RESUME, { afterSeq: this.resumeSeq });
     this.diag?.(DIAG.RESUME_REQUEST, { afterSeq: this.resumeSeq, attempt: this.connectAttempt });
     // If the UI had presence open, re-subscribe after a reconnect.
-    if (this.presenceSubscribed) this.sendFrame(CLIENT_FRAME.PRESENCE_SUBSCRIBE, {});
+    if (this.presenceSubscribed) this.sendFrame(CLIENT_KINDS.PRESENCE_SUBSCRIBE, {});
     // Re-send the last read cursor so a read-ack dropped during the disconnect window
     // (sendFrame returns false on a closed socket) is not lost until the next message.
-    if (this.lastReadAck) this.sendFrame(CLIENT_FRAME.READ_ACK, { ...this.lastReadAck });
+    if (this.lastReadAck) this.sendFrame(CLIENT_KINDS.READ_ACK, { ...this.lastReadAck });
     // Re-send every un-acked pending send with its ORIGINAL clientMessageId so a send
     // that lost its socket before the ack is not silently dropped. The DO dedups
     // (re-acks, no re-broadcast, no flood-token) — this is the client half of the
@@ -552,7 +554,7 @@ export class ChannelClient {
           continue;
         }
       }
-      const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+      const sent = this.sendFrame(CLIENT_KINDS.SEND, {
         clientMessageId: pending.clientMessageId,
         text: pending.text,
       });
@@ -732,7 +734,7 @@ export class ChannelClient {
       }
       // A server-retryable resend does NOT count toward the attempt cap (that cap is
       // for blind reconnect resends only) — leave `attempts` untouched.
-      const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+      const sent = this.sendFrame(CLIENT_KINDS.SEND, {
         clientMessageId: current.clientMessageId,
         text: current.text,
       });
@@ -802,7 +804,7 @@ export class ChannelClient {
     pending.serverRetryable = false;
     pending.lastRejectionCode = undefined;
     pending.sentAt = this.timers.now();
-    const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+    const sent = this.sendFrame(CLIENT_KINDS.SEND, {
       clientMessageId: pending.clientMessageId,
       text: pending.text,
     });
@@ -1345,7 +1347,7 @@ export class ChannelClient {
     // actually sent over an open socket. A closed socket returns false — no phantom
     // "sent" bubble, and the caller keeps the composer text — so a disconnect between
     // render and click can't silently swallow the message.
-    const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+    const sent = this.sendFrame(CLIENT_KINDS.SEND, {
       clientMessageId: args.clientMessageId,
       text: args.text,
     });
@@ -1396,7 +1398,7 @@ export class ChannelClient {
    */
   readAck(readSeq: number, focused: boolean): boolean {
     this.lastReadAck = { readSeq, focused };
-    return this.sendFrame(CLIENT_FRAME.READ_ACK, { readSeq, focused });
+    return this.sendFrame(CLIENT_KINDS.READ_ACK, { readSeq, focused });
   }
 
   /** Coalesced typing signal: at most one frame per TYPING_COALESCE_MS. */
@@ -1404,17 +1406,17 @@ export class ChannelClient {
     const now = this.timers.now();
     if (now - this.lastTypingSentAt < TYPING_COALESCE_MS) return;
     this.lastTypingSentAt = now;
-    this.sendFrame(CLIENT_FRAME.TYPING, {});
+    this.sendFrame(CLIENT_KINDS.TYPING, {});
   }
 
   presenceSubscribe(): void {
     this.presenceSubscribed = true;
-    this.sendFrame(CLIENT_FRAME.PRESENCE_SUBSCRIBE, {});
+    this.sendFrame(CLIENT_KINDS.PRESENCE_SUBSCRIBE, {});
   }
 
   presenceUnsubscribe(): void {
     this.presenceSubscribed = false;
-    this.sendFrame(CLIENT_FRAME.PRESENCE_UNSUBSCRIBE, {});
+    this.sendFrame(CLIENT_KINDS.PRESENCE_UNSUBSCRIBE, {});
     this.setState({ presence: [] });
   }
 
@@ -1429,7 +1431,7 @@ export class ChannelClient {
   }
 
   private requestHistory(beforeSeq: number | null, kind: HistoryRequestKind): boolean {
-    const sent = this.sendFrame(CLIENT_FRAME.HISTORY, { beforeSeq, limit: HISTORY_PAGE_MAX });
+    const sent = this.sendFrame(CLIENT_KINDS.HISTORY, { beforeSeq, limit: HISTORY_PAGE_MAX });
     if (sent) this.historyRequests.push(kind);
     this.diag?.(DIAG.HISTORY_REQUEST, { beforeSeq, limit: HISTORY_PAGE_MAX, sent });
     return sent;
@@ -1445,7 +1447,7 @@ export class ChannelClient {
       // not be handed another frame. Closing here does not reschedule — onClose
       // stops the heartbeat and owns what happens next.
       if (this.isInboundSilent()) return this.closeDeadSocket();
-      this.sendFrame(CLIENT_FRAME.HEARTBEAT, {});
+      this.sendFrame(CLIENT_KINDS.HEARTBEAT, {});
       this.heartbeatTimer = this.timers.setTimeout(tick, HEARTBEAT_MS);
     };
     this.heartbeatTimer = this.timers.setTimeout(tick, HEARTBEAT_MS);

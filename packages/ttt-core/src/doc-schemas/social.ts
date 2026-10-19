@@ -168,8 +168,7 @@ export type MentionHistoryDocument = z.infer<typeof MentionHistoryDocumentSchema
 // the deduped, capped list in memory before committing, so returning it costs no read.
 // Declared HERE (not schemas/social.ts) because it composes MentionHistoryItemSchema
 // and this module already imports schemas/social.js (FollowableTargetTypeSchema) — the
-// reverse runtime import would be a module cycle. Re-exported on the ./schemas subpath
-// via schemas/index.ts.
+// reverse runtime import would be a module cycle.
 export const AddToMentionHistoryResultSchema = z.object({
   success: z.literal(true),
   itemCount: z.number().int().nonnegative(),

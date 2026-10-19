@@ -566,7 +566,7 @@ TTT Productions application-data package.
 - `./schemas` — general TTT wire/data schemas, the notification type catalog and broadcast/archive input schemas included
 - `./doc-schemas` — the whole-app Firestore document-schema registry (`COLLECTION_SCHEMAS`)
 - `./notifications` — the one TTT notification system config
-- `./safety` — server-safe Trust & Safety runtime helpers that are not document schemas
+- `./safety` — Node-only Trust & Safety runtime helpers that are not document schemas (its hashing runs `node:crypto`; the boundary suite declares it a Node exception)
 
 ## Text fields — one declaration per field
 

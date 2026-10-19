@@ -8,7 +8,7 @@
 
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { isPlainString, lineOfNode } from '../../support/ast.js';
 import { isText, namesProblem, reviewedProblems } from '../../support/facts.js';

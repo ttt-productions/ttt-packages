@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { APP_MODE_FLIP_EVIDENCE_INPUT, CLOSE_UNDER_13_REASON_INPUT } from '../src/constants/text-fields';
+import {
+  CLOSE_UNDER_13_REASON_INPUT,
+  APP_MODE_FLIP_EVIDENCE_INPUT,
+} from '../src/constants/text-fields';
 import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_UNDER_13_CLOSE_REASON_LENGTH,

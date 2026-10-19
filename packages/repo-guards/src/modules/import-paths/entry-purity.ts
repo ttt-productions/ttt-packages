@@ -12,7 +12,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { reviewedProblems, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
 

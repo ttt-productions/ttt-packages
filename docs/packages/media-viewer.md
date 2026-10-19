@@ -182,7 +182,7 @@ type), so a consumer can render plain, non-zooming image surfaces app-wide from 
 
 ## Playback API (VideoViewer / AudioViewer)
 
-Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (MEDIA-102). Types are exported from the package root: `MediaPlaybackProps`, `MediaPlaybackControls`.
+Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (MEDIA-102). `MediaPlaybackControls` is exported from the package root; `MediaPlaybackProps`, like every props type that carries a React type, is exported from `./react`.
 
 ```tsx
 import type { MediaPlaybackControls } from "@ttt-productions/media-viewer";

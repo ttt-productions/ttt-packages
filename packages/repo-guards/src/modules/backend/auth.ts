@@ -3,7 +3,7 @@
 // its App Check posture, and the client presents a limited-use token exactly where it is consumed.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { Reviewed } from '../../node/layout.js';

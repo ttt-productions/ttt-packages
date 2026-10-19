@@ -1,19 +1,11 @@
 /**
- * Realtime wire protocol version + stable error codes (GENERIC).
+ * Realtime stable error codes (GENERIC).
  *
- * The protocol VERSION and the structured-error envelope are reused from
- * `@ttt-productions/edge-protocol-core` so the realtime layer and the internal
+ * The protocol version and the structured-error envelope are
+ * `@ttt-productions/edge-protocol-core`'s, so the realtime layer and the internal
  * signed-call layer share one source of truth. This module adds the realtime
  * transport's stable, app-neutral error codes.
  */
-
-export {
-  EDGE_PROTOCOL_VERSION as REALTIME_PROTOCOL_VERSION,
-  ProtocolVersionSchema,
-  isProtocolSupported,
-  StructuredErrorSchema,
-} from '@ttt-productions/edge-protocol-core';
-export type { StructuredError } from '@ttt-productions/edge-protocol-core';
 
 /**
  * Stable realtime wire error codes — app-neutral. Apps map these to behavior
