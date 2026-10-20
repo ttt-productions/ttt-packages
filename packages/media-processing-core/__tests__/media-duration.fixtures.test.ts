@@ -11,6 +11,7 @@ import { probeAudio } from '../src/audio/probe.js';
 import { processVideo } from '../src/video/video-processor.js';
 import { processAudio } from '../src/audio/audio-processor.js';
 import { runCmd } from '../src/video/ffmpeg.js';
+import { SLOW_TEST_TIMEOUT_MS } from '../../../test/timeouts.js';
 
 // REAL-TOOL proof of the one length rule: every length is measured, never read
 // from the header. Chromium's MediaRecorder writes WebM with no length in its
@@ -128,7 +129,7 @@ beforeAll(async () => {
   await writeFile(f.headerOnlyVideo, (await readFile(f.recVideo)).subarray(0, 600));
   f.headerOnlyAudio = path.join(dir, 'header-only-audio.webm');
   await writeFile(f.headerOnlyAudio, (await readFile(f.recAudio)).subarray(0, 600));
-}, 180_000);
+}, SLOW_TEST_TIMEOUT_MS);
 
 function spec(kind: 'video' | 'audio', maxDurationSec: number): MediaProcessingSpec {
   return { kind, maxDurationSec };
@@ -182,21 +183,25 @@ describe('a header that claims a short length for a long file', () => {
     expect((await probeAudio(f.lieAudio)).durationSec).toBe(audio.durationSec);
   });
 
-  it('is too_long under a max its header satisfies but its real length exceeds', async () => {
-    const video = await processVideo(spec('video', LIE_SECONDS - 2), {
-      inputPath: f.lieVideo,
-      outputBasePath: outBase('lie-v'),
-    });
-    expect(video.ok).toBe(false);
-    if (!video.ok) expect(video.error.code).toBe('too_long');
+  it(
+    'is too_long under a max its header satisfies but its real length exceeds',
+    async () => {
+      const video = await processVideo(spec('video', LIE_SECONDS - 2), {
+        inputPath: f.lieVideo,
+        outputBasePath: outBase('lie-v'),
+      });
+      expect(video.ok).toBe(false);
+      if (!video.ok) expect(video.error.code).toBe('too_long');
 
-    const audio = await processAudio(spec('audio', LIE_SECONDS - 2), {
-      inputPath: f.lieAudio,
-      outputBasePath: outBase('lie-a'),
-    });
-    expect(audio.ok).toBe(false);
-    if (!audio.ok) expect(audio.error.code).toBe('too_long');
-  }, 60_000);
+      const audio = await processAudio(spec('audio', LIE_SECONDS - 2), {
+        inputPath: f.lieAudio,
+        outputBasePath: outBase('lie-a'),
+      });
+      expect(audio.ok).toBe(false);
+      if (!audio.ok) expect(audio.error.code).toBe('too_long');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 });
 
 describe('every format measures its real length, and inspection and its probe agree', () => {
@@ -220,73 +225,89 @@ describe('every format measures its real length, and inspection and its probe ag
 });
 
 describe("processors check the length against the spec's max", () => {
-  it('a header-less video passes a max above its length and is too_long under a max below it', async () => {
-    expect(
-      (
-        await processVideo(spec('video', SECONDS + 2), {
-          inputPath: f.recVideo,
-          outputBasePath: outBase('rv-pass'),
-        })
-      ).ok,
-    ).toBe(true);
-    const over = await processVideo(spec('video', SECONDS - 1), {
-      inputPath: f.recVideo,
-      outputBasePath: outBase('rv-over'),
-    });
-    expect(over.ok).toBe(false);
-    if (!over.ok) expect(over.error.code).toBe('too_long');
-  }, 60_000);
+  it(
+    'a header-less video passes a max above its length and is too_long under a max below it',
+    async () => {
+      expect(
+        (
+          await processVideo(spec('video', SECONDS + 2), {
+            inputPath: f.recVideo,
+            outputBasePath: outBase('rv-pass'),
+          })
+        ).ok,
+      ).toBe(true);
+      const over = await processVideo(spec('video', SECONDS - 1), {
+        inputPath: f.recVideo,
+        outputBasePath: outBase('rv-over'),
+      });
+      expect(over.ok).toBe(false);
+      if (!over.ok) expect(over.error.code).toBe('too_long');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
-  it('an MP4 video passes a max above its length and is too_long under a max below it', async () => {
-    expect(
-      (
-        await processVideo(spec('video', SECONDS + 2), {
-          inputPath: f.mp4,
-          outputBasePath: outBase('mp4-pass'),
-        })
-      ).ok,
-    ).toBe(true);
-    const over = await processVideo(spec('video', SECONDS - 1), {
-      inputPath: f.mp4,
-      outputBasePath: outBase('mp4-over'),
-    });
-    expect(over.ok).toBe(false);
-    if (!over.ok) expect(over.error.code).toBe('too_long');
-  }, 60_000);
+  it(
+    'an MP4 video passes a max above its length and is too_long under a max below it',
+    async () => {
+      expect(
+        (
+          await processVideo(spec('video', SECONDS + 2), {
+            inputPath: f.mp4,
+            outputBasePath: outBase('mp4-pass'),
+          })
+        ).ok,
+      ).toBe(true);
+      const over = await processVideo(spec('video', SECONDS - 1), {
+        inputPath: f.mp4,
+        outputBasePath: outBase('mp4-over'),
+      });
+      expect(over.ok).toBe(false);
+      if (!over.ok) expect(over.error.code).toBe('too_long');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
-  it('a header-less audio passes a max above its length and is too_long under a max below it', async () => {
-    expect(
-      (
-        await processAudio(spec('audio', SECONDS + 2), {
-          inputPath: f.recAudio,
-          outputBasePath: outBase('ra-pass'),
-        })
-      ).ok,
-    ).toBe(true);
-    const over = await processAudio(spec('audio', SECONDS - 1), {
-      inputPath: f.recAudio,
-      outputBasePath: outBase('ra-over'),
-    });
-    expect(over.ok).toBe(false);
-    if (!over.ok) expect(over.error.code).toBe('too_long');
-  }, 60_000);
+  it(
+    'a header-less audio passes a max above its length and is too_long under a max below it',
+    async () => {
+      expect(
+        (
+          await processAudio(spec('audio', SECONDS + 2), {
+            inputPath: f.recAudio,
+            outputBasePath: outBase('ra-pass'),
+          })
+        ).ok,
+      ).toBe(true);
+      const over = await processAudio(spec('audio', SECONDS - 1), {
+        inputPath: f.recAudio,
+        outputBasePath: outBase('ra-over'),
+      });
+      expect(over.ok).toBe(false);
+      if (!over.ok) expect(over.error.code).toBe('too_long');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
-  it('an M4A audio passes a max above its length and is too_long under a max below it', async () => {
-    expect(
-      (
-        await processAudio(spec('audio', SECONDS + 2), {
-          inputPath: f.m4a,
-          outputBasePath: outBase('m4a-pass'),
-        })
-      ).ok,
-    ).toBe(true);
-    const over = await processAudio(spec('audio', SECONDS - 1), {
-      inputPath: f.m4a,
-      outputBasePath: outBase('m4a-over'),
-    });
-    expect(over.ok).toBe(false);
-    if (!over.ok) expect(over.error.code).toBe('too_long');
-  }, 60_000);
+  it(
+    'an M4A audio passes a max above its length and is too_long under a max below it',
+    async () => {
+      expect(
+        (
+          await processAudio(spec('audio', SECONDS + 2), {
+            inputPath: f.m4a,
+            outputBasePath: outBase('m4a-pass'),
+          })
+        ).ok,
+      ).toBe(true);
+      const over = await processAudio(spec('audio', SECONDS - 1), {
+        inputPath: f.m4a,
+        outputBasePath: outBase('m4a-over'),
+      });
+      expect(over.ok).toBe(false);
+      if (!over.ok) expect(over.error.code).toBe('too_long');
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 });
 
 describe('a file with no readable or measurable length', () => {

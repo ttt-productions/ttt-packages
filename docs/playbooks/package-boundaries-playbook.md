@@ -5,8 +5,8 @@
 Audit the generic `@ttt-productions/*` packages against the package rules they own: no
 application-data import (ARCH-201, ARCH-207), monitoring-agnostic sources and manifests
 (QUALITY-102), and Firestore access through query-core (ARCH-206). Entry-point and client-peer safety
-(ARCH-202) is `REACT_LEAK_AUDIT_PLAYBOOK.md`; ARCH-202's no-wildcard-import check and QUALITY-008's
-test loading are here. Whether an app's own vocabulary has leaked into the
+(ARCH-202) is `REACT_LEAK_AUDIT_PLAYBOOK.md`; ARCH-202's no-wildcard-import check, QUALITY-008's
+test loading, and QUALITY-009's test time budgets are here. Whether an app's own vocabulary has leaked into the
 packages it installs is that app's audit — only the app knows its vocabulary.
 
 ## When to run
@@ -145,6 +145,20 @@ npx vitest run --project boundary test/boundary/package-wildcard-imports.test.ts
 ```
 **Expected:** the run passes. Each finding names the file and the wildcard; the fix imports each
 name the code uses, never an allowlist entry.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 10. A test needing more time names a budget
+**Rules:** QUALITY-009. The repo-guards `testTimeouts` guard reads every test in the repository:
+every test, suite, hook, config, or Testing Library limit names a budget imported from
+`test/timeouts.ts`, never a number.
+```bash
+npm run build
+npx vitest run --project boundary test/boundary/test-timeouts.test.ts
+rg -n "SLOW_TEST_TIMEOUT_MS" packages test -g '*.ts' -g '*.tsx'
+```
+**Expected:** the run passes. Every case or hook the `rg` prints does real heavy work, such as an
+ffmpeg encode; one that only waits out a real timer (a retry delay, a debounce) is a finding, and
+its fix is the fake clock, never a budget.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Common failure patterns

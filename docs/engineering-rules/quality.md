@@ -92,6 +92,28 @@ crosses its timeout.
 
 **References.** QUALITY-001, QUALITY-007.
 
+### QUALITY-009 — A test's time limit names a budget
+
+**Rule.** Every test runs on the runner's default limit, and every Testing Library wait on its
+default. A case that does real heavy work — an ffmpeg encode — names a budget exported by the
+package tests' timeout file (`test/timeouts.ts`), as the test's, hook's, or `describe`'s limit and
+in the waits inside it; a new tier is added to that file, never written in place. A case that is
+slow only because it waits out a real timer — a retry delay, a debounce — runs on the fake clock and
+steps the timer instead of taking a budget. The repo-guards `testTimeouts` guard in the boundary
+suite enforces it.
+
+**Why.** The suites run while the machine is in other use, so a case within a few times of its limit
+on an idle machine fails under load; a number written in place hides how many tests need more time
+and lets one raise its own limit to get past a slow run, and a budget spent on a timer pays seconds
+of real waiting the fake clock skips.
+
+**Prohibits.**
+- A test, suite, hook, `vi.setConfig`, or Testing Library limit written as a number, or as a name
+  that is no budget imported from the timeout file.
+- A budget on a case that only waits out a real timer.
+
+**References.** QUALITY-001, QUALITY-007; ENG-005.
+
 ### QUALITY-102 — Generic packages stay monitoring-agnostic
 
 **Rule.** No generic package imports `@sentry/*`, a cloud runtime's params module, or app config. A
