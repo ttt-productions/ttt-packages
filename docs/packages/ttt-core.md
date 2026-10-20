@@ -314,7 +314,8 @@ TTT Productions application-data package.
     eventIds, `chatSyncFanoutJobId`, the degraded-cause/scope keys, the inbox
     projection eventId, `notificationDeliveryId`/archive ids (the active-card id
     is NOT here — it is `notification-core`'s `buildActiveNotificationDocId`), the
-    moderation audit ids, and `chatAnonymizeJobId`.
+    moderation audit ids, `chatAnonymizeJobId`, and `chatAnonTombstoneUid` (the uid an erased
+    member's chat rows are rewritten to).
   - The new Admin-SDK-only Firestore doc-schemas: `notificationDeliveries` +
     `notificationFanoutJobs` (delivery ledger / fanout engine) and the chat-sync
     set `chatChannelAuthProjections`, `chatScopeDegraded` (+ `causes`),

@@ -8,6 +8,8 @@ import type { Finding, Guard } from '../../guard.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
+import type { GuardContext } from '../../guard.js';
+import type { SharedFakeFacts } from '../repo/shared-fakes.js';
 import {
   matchPattern,
   ownerOnly,
@@ -24,6 +26,7 @@ import {
 import { fromStatements, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 import { isPlainString } from '../../support/ast.js';
+import { aliasList, resolveSpecifier } from '../../support/resolve-specifier.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
@@ -494,6 +497,11 @@ export const dateOfBirthGuard: GenericGuardDefinition<DateOfBirthFacts> = {
 export interface PartialMockFacts {
   /** Package roots whose mocks must spread the real module, each with what breaks when one does not. */
   packageRoots: ReadonlyArray<{ module: string; why: string }>;
+  /**
+   * The app's shared fakes: a mock whose factory loads a listed root's shared fake keeps the root's
+   * real exports when that fake does.
+   */
+  sharedFakes?: Pick<SharedFakeFacts, 'importAliases' | 'fakes'>;
 }
 
 /** Each `vi.mock` / `vi.doMock` call on exactly `module`, as its balanced source slice. */
@@ -523,6 +531,53 @@ export function spreadsImportOriginal(call: string): boolean {
   return binding !== null && new RegExp(`\\.\\.\\.\\s*${escapeRegExp(binding[1])}\\b`).test(call);
 }
 
+/** The specifiers a mock call's factory loads with `import()`. */
+function factoryLoads(call: string): string[] {
+  const loads: string[] = [];
+  const load = /\bimport\(\s*(['"`])([^'"`]+)\1\s*\)/g;
+  for (let m = load.exec(call); m; m = load.exec(call)) loads.push(m[2]);
+  return loads;
+}
+
+/** The source of a function `name` declares, as a declaration or a variable holding a function. */
+function functionText(file: FileView, name: string): string | null {
+  for (const statement of file.sourceFile.statements) {
+    if (ts.isFunctionDeclaration(statement) && statement.name?.text === name)
+      return statement.getText(file.sourceFile);
+    if (ts.isVariableStatement(statement))
+      for (const d of statement.declarationList.declarations)
+        if (ts.isIdentifier(d.name) && d.name.text === name && d.initializer)
+          return d.initializer.getText(file.sourceFile);
+  }
+  return null;
+}
+
+/**
+ * True when a shared fake keeps its module's real exports: it spreads `importOriginal` itself, or it
+ * calls a helper from a local file whose own body does.
+ */
+function ownerKeepsRealExports(
+  context: GuardContext,
+  owner: string,
+  aliases: ReadonlyArray<[string, string]>,
+): boolean {
+  if (!context.reader.exists(owner)) return false;
+  const file = context.file(owner);
+  if (spreadsImportOriginal(file.code)) return true;
+  for (const site of file.imports) {
+    if (site.typeOnly) continue;
+    const target = resolveSpecifier(context.reader, owner, site.spec, aliases);
+    if (target === site.spec || !context.reader.exists(target)) continue;
+    for (const name of site.named) {
+      if (name.typeOnly || !new RegExp(`\\b${escapeRegExp(name.local)}\\s*[<(]`).test(file.code))
+        continue;
+      const helper = functionText(context.file(target), name.imported);
+      if (helper !== null && spreadsImportOriginal(helper)) return true;
+    }
+  }
+  return false;
+}
+
 export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
   id: 'partialMocks',
   absentWhen: false,
@@ -534,6 +589,14 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
       textProblem(r?.module, 'a package root', problems);
       textProblem(r?.why, `package root ${String(r?.module)}'s why`, problems);
     }
+    if (facts.sharedFakes !== undefined) {
+      if (
+        typeof facts.sharedFakes?.importAliases !== 'object' ||
+        facts.sharedFakes.importAliases === null
+      )
+        problems.push('sharedFakes.importAliases is missing');
+      if (!Array.isArray(facts.sharedFakes?.fakes)) problems.push('sharedFakes.fakes is missing');
+    }
     return problems;
   },
   build(facts): Guard[] {
@@ -544,11 +607,29 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
           'A `vi.mock` of a listed package root spreads the real module: ' +
           "`vi.mock('<root>', async (importOriginal) => ({ ...(await importOriginal()), <override> }))`. A factory that " +
           'returns only the exports one test steers deletes the rest, and code that needs them fails away from the ' +
-          'assertion. ' +
+          "assertion. A mock whose factory loads the root's shared fake passes when that fake spreads the real module. " +
           facts.packageRoots.map((r) => `${r.module}: ${r.why}.`).join(' '),
         run(context) {
           const findings: Finding[] = [];
           const mocked = new Set<string>();
+          const aliases = aliasList(facts.sharedFakes?.importAliases ?? {});
+          const ownerOf = (module: string, rootName: string): string | undefined =>
+            facts.sharedFakes?.fakes.find(
+              (f) =>
+                f.module === module &&
+                context.reader.exists(f.owner) &&
+                context.file(f.owner).rootName === rootName,
+            )?.owner;
+          const loadsKeepingOwner = (file: FileView, module: string, call: string): boolean => {
+            const owner = ownerOf(module, file.rootName);
+            return (
+              owner !== undefined &&
+              factoryLoads(call).some(
+                (spec) => resolveSpecifier(context.reader, file.path, spec, aliases) === owner,
+              ) &&
+              ownerKeepsRealExports(context, owner, aliases)
+            );
+          };
           const files = context.files({
             roots: ['app', 'functions'],
             kinds: ['code'],
@@ -559,7 +640,7 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
             for (const { module } of facts.packageRoots) {
               for (const { call, index } of moduleMockCalls(file.code, module)) {
                 mocked.add(module);
-                if (!spreadsImportOriginal(call))
+                if (!spreadsImportOriginal(call) && !loadsKeepingOwner(file, module, call))
                   findings.push({
                     file: file.path,
                     line: file.lineOf(index),

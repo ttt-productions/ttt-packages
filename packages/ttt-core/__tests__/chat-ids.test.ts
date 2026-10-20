@@ -18,6 +18,7 @@ import {
   moderationAppliedAuditId,
   moderationFailedAuditId,
   chatAnonymizeJobId,
+  chatAnonTombstoneUid,
   chatParkedDeliveryId,
 } from '../src/ids/chat-ids.js';
 import { toChatConversationRef } from '../src/ids/guild-chat-conversation.js';
@@ -151,5 +152,10 @@ describe('moderation audit + anonymize ids', () => {
     expect(await chatAnonymizeJobId('do1', 5, 'u1')).toBe(
       await hash('chat-anonymize', 'do1', 5, 'u1'),
     );
+  });
+
+  it('the anonymization tombstone uid is a frozen hash of the member alone, distinct per member', async () => {
+    expect(await chatAnonTombstoneUid('u1')).toBe(await hash('chat-anon-tombstone', 'u1'));
+    expect(await chatAnonTombstoneUid('u1')).not.toBe(await chatAnonTombstoneUid('u2'));
   });
 });

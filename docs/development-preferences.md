@@ -82,7 +82,11 @@ ttt-packages; a change is made in all three in the same edit, and a test fails w
 - Packages-first per the repo's Normal Dev Flow — plus: never combine a package change and its
   adoption in one turn; never adopt against unpublished source, even unattended; never run
   ttt-packages work and app work CONCURRENTLY, personally or through agents — "the app doesn't
-  import the changed symbols" is NOT an exception.
+  import the changed symbols" is NOT an exception. The one sanctioned overlap is the publish wait:
+  once the package batch is finished, its gate is green, and DJ has run the release command, the
+  session keeps working in the app in scope on anything that does not depend on the package change
+  — investigating, planning, or building independent work — while it polls npm. The adoption, and
+  any work that needs the new package, waits for the install.
 - NEVER design around avoiding a publish; a "to avoid a publish" shim is auto-rejected. Never create
   a compatibility shim unless DJ asks.
 - The release command is ALWAYS `./scripts/release-multiple.sh <folder> [<folder>…] <bump>` with

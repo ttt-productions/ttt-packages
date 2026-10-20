@@ -199,3 +199,11 @@ export function chatAnonymizeJobId(
 ): Promise<string> {
   return hash('chat-anonymize', channelDoId, epoch, anonymizedUid);
 }
+
+/**
+ * The uid an erased member's chat rows are rewritten to. It depends on the member alone, so the
+ * live rows and the stored history of every channel name the same former member.
+ */
+export function chatAnonTombstoneUid(anonymizedUid: string): Promise<string> {
+  return hash('chat-anon-tombstone', anonymizedUid);
+}

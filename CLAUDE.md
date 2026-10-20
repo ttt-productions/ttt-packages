@@ -108,7 +108,9 @@ polls npm and installs → app work → the app's Normal Test Flow).
   metadata right after a publish. It confirms each lockfile names the new version and continues the
   app adoption with no further go. A version still missing from npm after 20 minutes = stop and tell
   DJ which package. Never adopt against unpublished sibling source, and never install anything but
-  the published version.
+  the published version. While it polls, the session works in the app in scope on whatever does not
+  depend on the release — the publish-wait overlap in `docs/development-preferences.md` §
+  Shared-package publish.
 - Do not reference a sibling local checkout from consuming-app implementation prompts.
 - Run package builds/tests for every package touched.
 - Regenerate lockfiles after package renames or dependency graph changes.

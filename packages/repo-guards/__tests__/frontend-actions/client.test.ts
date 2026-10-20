@@ -436,4 +436,79 @@ describe('partial mocks keep a pure root', () => {
       ["package root icons's why is missing"],
     );
   });
+
+  describe('a mock that loads the root’s shared fake', () => {
+    const withFakes = {
+      ...facts,
+      sharedFakes: {
+        importAliases: { '@/': 'src/' },
+        fakes: [
+          { module: '@kit/helpers', owner: 'src/test/fakes/helpers.ts' },
+          { module: 'icons', owner: 'src/test/fakes/icons.ts' },
+        ],
+      },
+    };
+    const helperFile = lines(
+      'export function withOverrides(base, overrides = {}) { return { ...base, ...overrides }; }',
+      'export function passThroughFake() {',
+      '  return async (importOriginal, overrides = {}) => withOverrides({ ...(await importOriginal()) }, overrides);',
+      '}',
+    );
+    const loadsOwners = lines(
+      "vi.mock('@kit/helpers', async (io) => (await import('@/test/fakes/helpers')).helpersFake(io, { toMillis: vi.fn() }));",
+      "vi.mock('icons', async (io) => (await import('../test/fakes/icons')).iconsFake(io, {}));",
+    );
+
+    it('passes when the fake spreads the real module itself or through a local helper', async () => {
+      expect(
+        await findingsOf(partialMockGuard, withFakes, {
+          'src/__tests__/a.test.ts': loadsOwners,
+          'src/test/fakes/with-overrides.ts': helperFile,
+          'src/test/fakes/helpers.ts':
+            'export async function helpersFake(importOriginal, overrides) { return { ...(await importOriginal()), ...overrides }; }',
+          'src/test/fakes/icons.ts':
+            "import { passThroughFake } from './with-overrides';\nexport const iconsFake = passThroughFake();",
+        }),
+      ).toEqual([]);
+    });
+
+    it('flags a fake that drops the real module, even when its helper file spreads elsewhere', async () => {
+      expect(
+        await findingsOf(partialMockGuard, withFakes, {
+          'src/__tests__/a.test.ts': loadsOwners,
+          'src/test/fakes/with-overrides.ts': helperFile,
+          'src/test/fakes/helpers.ts':
+            'export async function helpersFake(importOriginal, overrides) { return { toMillis: () => 0, ...overrides }; }',
+          'src/test/fakes/icons.ts':
+            "import { withOverrides } from './with-overrides';\nexport const iconsFake = async (io, o) => withOverrides({ Info: () => null }, o);",
+        }),
+      ).toEqual([
+        'src/__tests__/a.test.ts:1 a full-module mock of @kit/helpers',
+        'src/__tests__/a.test.ts:2 a full-module mock of icons',
+      ]);
+    });
+
+    it('flags a factory that loads a file that is not the module’s registered fake', async () => {
+      expect(
+        await findingsOf(partialMockGuard, withFakes, {
+          'src/__tests__/a.test.ts':
+            "vi.mock('icons', async (io) => (await import('@/test/fakes/helpers')).helpersFake(io, {}));",
+          'src/test/fakes/helpers.ts':
+            'export async function helpersFake(importOriginal, overrides) { return { ...(await importOriginal()), ...overrides }; }',
+          'src/test/fakes/icons.ts': 'export const iconsFake = 1;',
+          'src/__tests__/b.test.ts':
+            "vi.mock('@kit/helpers', async (importOriginal) => ({ ...(await importOriginal()) }));",
+        }),
+      ).toEqual(['src/__tests__/a.test.ts:1 a full-module mock of icons']);
+    });
+
+    it('refuses shared fakes with no aliases or no list', () => {
+      expect(
+        partialMockGuard.factProblems({
+          ...facts,
+          sharedFakes: {} as unknown as typeof withFakes.sharedFakes,
+        }),
+      ).toEqual(['sharedFakes.importAliases is missing', 'sharedFakes.fakes is missing']);
+    });
+  });
 });
