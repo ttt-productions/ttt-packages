@@ -9,6 +9,10 @@ import {
   duplicateExportsReport as runDuplicateExports,
   type DuplicateExportFacts,
 } from '../../modules/repo/duplicate-exports.js';
+import {
+  sharedFakeReport as runSharedFakeReport,
+  type SharedFakeFacts,
+} from '../../modules/repo/shared-fakes.js';
 
 /** Folder index members nothing outside the folder imports — candidates to drop from the index. */
 export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFacts): string {
@@ -19,6 +23,26 @@ export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFac
     'unused index members (report only):',
     ...report.map((r) => `  ${r.file}: ${r.unused.join(', ')}`),
   ].join('\n');
+}
+
+/**
+ * Modules faked, and helpers declared, in several test files of one tree with no shared owner there —
+ * candidates for a shared fake or helper. Never a gate failure.
+ */
+export function sharedFakeReport(layout: RepoLayout, facts: SharedFakeFacts): string {
+  const { modules, helpers } = runSharedFakeReport(createRepoReader(layout), facts);
+  if (!modules.length && !helpers.length)
+    return 'shared fakes: none — no module or helper is copied across test files without an owner.';
+  const lines = ['shared fakes (report only):'];
+  if (modules.length) {
+    lines.push('  modules faked in several test files with no shared fake:');
+    for (const m of modules) lines.push(`    ${m.root}: ${m.module} — ${m.files.length} files`);
+  }
+  if (helpers.length) {
+    lines.push('  helpers declared in several test files with no shared owner:');
+    for (const h of helpers) lines.push(`    ${h.root}: ${h.name} — ${h.files.length} files`);
+  }
+  return lines.join('\n');
 }
 
 /**

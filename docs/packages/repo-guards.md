@@ -31,7 +31,9 @@ aliases, its owner files, its reviewed exceptions — never logic.
   it.
 - **The three shapes** — owner-only, reviewed allowlist, and declared literal.
 - **Hand-run reports** — what they list is a judgment call, never a gate failure: the duplicate
-  exports report, the unused index-member report, and the Firestore write guard's coverage table.
+  exports report, the unused index-member report, the shared-fake report (modules faked and helpers
+  declared in several test files of one tree with no shared owner yet), and the Firestore write
+  guard's coverage table.
 - **The registry seed writer and Zod introspection**, which an app's test tooling and audit
   scripts use beside the guards.
 

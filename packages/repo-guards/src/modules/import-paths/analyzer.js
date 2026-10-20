@@ -71,17 +71,21 @@ const defaultIsTestFile = (p) =>
  *   exceptions?: Array<{ file: string, why: string }>,
  *   codeExtensions?: string[],
  *   isTestFile?: (path: string) => boolean,
+ *   isExcludedModule?: (path: string) => boolean,
  * }} [options]
  *   `importAliases` maps a specifier prefix to a repo-relative folder (`{ '@/': 'src/' }`).
  *   `exceptions` names the framework entry modules that may re-export; every one needs a `why`.
  *   `isTestFile` decides which modules are tests (default: a `.test.` / `.spec.` name, or any
  *   `__tests__` folder on the path).
+ *   `isExcludedModule` says whether a module file exists inside a path the analyzed set leaves out
+ *   on purpose; an import of one resolves without being judged, the way a package import does.
  */
 export function createImportPathProfile({
   importAliases = {},
   exceptions = [],
   codeExtensions = DEFAULT_CODE_EXTENSIONS,
   isTestFile = defaultIsTestFile,
+  isExcludedModule = () => false,
 } = {}) {
   const problems = [];
   reviewedProblems(exceptions, 'exceptions', problems, { key: 'file' });
@@ -99,6 +103,7 @@ export function createImportPathProfile({
     exceptions: Object.freeze(exceptions.map((e) => Object.freeze({ file: e.file, why: e.why }))),
     codeExtensions: Object.freeze([...codeExtensions]),
     isTestFile,
+    isExcludedModule,
   });
 }
 
@@ -368,7 +373,8 @@ const within = (path, dir) => dir === '' || isUnder(path, dir);
  * @param {{ files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>, roots: string[], profile: ReturnType<typeof createImportPathProfile> }} input
  *   `files` maps every analyzed module (repo-relative, forward-slashed) to its text; `roots` are the
  *   analyzed folders. A local specifier that resolves under a root to no analyzed module is
- *   `unresolved-import` — the guard never treats a path it cannot read as clean.
+ *   `unresolved-import` — the guard never treats a path it cannot read as clean — unless the
+ *   profile's `isExcludedModule` says the module exists inside a path left out on purpose.
  */
 export function analyzeImportPaths({ files, roots, profile }) {
   if (!profile) throw new Error('repo-guards: analyzeImportPaths needs a profile');
@@ -408,6 +414,8 @@ export function analyzeImportPaths({ files, roots, profile }) {
           : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
       if (!index) {
         add('reexport-outside-index', path, `${re.form} re-export of ${shown}`);
+      } else if (target.kind === 'excluded') {
+        continue;
       } else if (target.kind !== 'file' || !within(target.path, dirnameOf(path))) {
         add(
           'index-forwards-outside-folder',
@@ -811,6 +819,7 @@ function buildModel(files, roots, profile) {
     } else {
       const found = findModule(base);
       if (found) result = { kind: 'file', path: found };
+      else if (moduleCandidates(base).some(profile.isExcludedModule)) result = { kind: 'excluded' };
       else {
         const ext = extensionOf(base);
         if (ext && !profile.codeExtensions.includes(ext)) result = { kind: 'asset' };
@@ -822,17 +831,20 @@ function buildModel(files, roots, profile) {
     resolveCache.set(key, result);
     return result;
   }
-  function findModule(base) {
-    if (modules.has(base)) return base;
+  /** Every module file a specifier's resolved base may name, in the order they are tried. */
+  function moduleCandidates(base) {
+    const out = [base];
     const ext = extensionOf(base);
     if (EMITTED_TO_SOURCE[ext]) {
       const stem = base.slice(0, -ext.length);
-      for (const src of EMITTED_TO_SOURCE[ext]) if (modules.has(stem + src)) return stem + src;
+      for (const src of EMITTED_TO_SOURCE[ext]) out.push(stem + src);
     }
-    for (const e of profile.codeExtensions) if (modules.has(base + e)) return base + e;
-    for (const e of profile.codeExtensions)
-      if (modules.has(`${base}/index${e}`)) return `${base}/index${e}`;
-    return null;
+    for (const e of profile.codeExtensions) out.push(base + e);
+    for (const e of profile.codeExtensions) out.push(`${base}/index${e}`);
+    return out;
+  }
+  function findModule(base) {
+    return moduleCandidates(base).find((candidate) => modules.has(candidate)) ?? null;
   }
 
   /** Every index whose folder holds `target` but not `from`, innermost first; `target` is never its own crossing. */

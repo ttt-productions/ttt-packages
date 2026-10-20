@@ -295,6 +295,26 @@ describe('unresolved imports fail closed', () => {
       }),
     ).toEqual([]);
   });
+
+  it('resolves a module the profile says exists inside an excluded path, and still flags a missing one', () => {
+    const profile = createImportPathProfile({
+      importAliases: { '@/': 'src/' },
+      isExcludedModule: (p) => p === 'src/config/facts.ts',
+    });
+    const violations = run(
+      {
+        'src/__tests__/a.test.ts': [
+          `import { facts } from '../config/facts.ts';`,
+          `import { more } from '@/config/facts';`,
+          `import { gone } from '../config/gone.ts';`,
+        ].join('\n'),
+      },
+      { profile },
+    );
+    expect(violations.map((v) => `${v.kind} ${v.detail}`)).toEqual([
+      "unresolved-import '../config/gone.ts' names no module under the analyzed trees (looked for src/config/gone.ts)",
+    ]);
+  });
 });
 
 describe('findUnusedIndexMembers (report-only)', () => {

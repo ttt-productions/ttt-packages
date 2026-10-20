@@ -52,6 +52,33 @@ describe('the import-path guard over the reader', () => {
     ]);
   });
 
+  it('resolves an import of a file inside an excluded path, and flags one of a missing file there', async () => {
+    const excluded = tempRepo({
+      'src/app/page.tsx': 'export const page = 1;',
+      'src/config/facts.ts': 'export const facts = 1;',
+      'src/__tests__/facts.test.ts': [
+        "import { facts } from '../config/facts.ts';",
+        "import { gone } from '../config/gone.ts';",
+      ].join('\n'),
+    });
+    try {
+      const excludedReader = createRepoReader({
+        repoRoot: excluded.root,
+        roots: { app: { path: 'src', anchor: 'src/app/page.tsx' } },
+        exclusions: [
+          { path: 'src/config', why: 'the guard config spells what the guards look for' },
+        ],
+      });
+      const [guard] = importPathGuard.build(facts);
+      const findings = await guard.run(contextOf(excludedReader));
+      expect(findings.map((f) => `${f.file} ${f.detail}`)).toEqual([
+        "src/__tests__/facts.test.ts unresolved import: '../config/gone.ts' names no module under the analyzed trees (looked for src/config/gone.ts)",
+      ]);
+    } finally {
+      excluded.remove();
+    }
+  });
+
   it('refuses facts with an exception that carries no why', () => {
     expect(
       importPathGuard.factProblems({

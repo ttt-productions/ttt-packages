@@ -3,7 +3,7 @@
 
 import type { Finding, GuardContext } from '../../guard.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
-import { isTestPath } from '../../node/layout.js';
+import { isTestPath, isUnderRoot, kindOfFile } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { objectProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
@@ -34,11 +34,24 @@ function analyzedRoots(reader: RepoReader) {
   return [app.path, ...(functions ? [functions.path] : [])];
 }
 
+/**
+ * A code file on disk inside a path the layout excludes. The reader never reads it, so an import of
+ * it resolves without being judged; a missing file is still an unresolved import.
+ */
+function excludedModuleExists(reader: RepoReader, p: string): boolean {
+  return (
+    (reader.layout.exclusions ?? []).some((e) => isUnderRoot(p, e.path)) &&
+    kindOfFile(p.slice(p.lastIndexOf('/') + 1)) === 'code' &&
+    reader.exists(p)
+  );
+}
+
 function profileFor(reader: RepoReader, facts: ImportPathFacts) {
   return createImportPathProfile({
     importAliases: { ...facts.importAliases },
     exceptions: facts.exceptions.map((e) => ({ ...e })),
     isTestFile: (p: string) => isTestPath(reader.layout, p),
+    isExcludedModule: (p: string) => excludedModuleExists(reader, p),
   });
 }
 
