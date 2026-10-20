@@ -1,5 +1,6 @@
 // Reports run by hand, never in the gate: what they list is a judgment call, not a boundary.
 
+import fs from 'node:fs';
 import { createRepoReader } from '../reader.js';
 import type { RepoLayout } from '../layout.js';
 import { formatReport as formatWriteGuardReport } from '../../modules/firestore/analyzer.js';
@@ -13,6 +14,10 @@ import {
   sharedFakeReport as runSharedFakeReport,
   type SharedFakeFacts,
 } from '../../modules/repo/shared-fakes.js';
+import {
+  slowTestReport as runSlowTestReport,
+  type TestTimeoutFacts,
+} from '../../modules/repo/test-timeouts.js';
 
 /** Folder index members nothing outside the folder imports — candidates to drop from the index. */
 export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFacts): string {
@@ -43,6 +48,27 @@ export function sharedFakeReport(layout: RepoLayout, facts: SharedFakeFacts): st
     for (const h of helpers) lines.push(`    ${h.root}: ${h.name} — ${h.files.length} files`);
   }
   return lines.join('\n');
+}
+
+/**
+ * Test cases at or over `thresholdMs` in files that name no timeout budget — the ones a busier
+ * machine pushes past the default limit — read from the test runner's JSON results files
+ * (`--reporter=json --outputFile=…`, absolute paths). Never a gate failure.
+ */
+export function slowTestReport(
+  layout: RepoLayout,
+  facts: TestTimeoutFacts,
+  resultFiles: readonly string[],
+  thresholdMs = 1000,
+): string {
+  const results = resultFiles.map((file) => JSON.parse(fs.readFileSync(file, 'utf8')));
+  const slow = runSlowTestReport(createRepoReader(layout), facts, results, thresholdMs);
+  if (!slow.length)
+    return `slow tests: none — every case at or over ${thresholdMs} ms names a timeout budget.`;
+  return [
+    `slow tests (report only) — cases at or over ${thresholdMs} ms whose file names no timeout budget:`,
+    ...slow.map((c) => `  ${Math.round(c.durationMs)} ms  ${c.file} > ${c.name}`),
+  ].join('\n');
 }
 
 /**

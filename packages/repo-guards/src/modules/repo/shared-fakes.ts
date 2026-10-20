@@ -11,13 +11,13 @@
 
 import ts from 'typescript';
 import type { Finding } from '../../guard.js';
-import { isTestPath, kindOfFile } from '../../node/layout.js';
+import { isTestPath } from '../../node/layout.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, lineOfNode, unwrap } from '../../support/ast.js';
 import { isText, objectProblem, pathProblem } from '../../support/facts.js';
-import { normalizePath, resolveRelative } from '../../support/paths.js';
+import { aliasList, isLocalModule, resolveSpecifier } from '../../support/resolve-specifier.js';
 
 /** The test-runner calls that replace a module with a fake. */
 const MOCK_CALLS: ReadonlySet<string> = new Set([
@@ -26,15 +26,6 @@ const MOCK_CALLS: ReadonlySet<string> = new Set([
   'jest.mock',
   'jest.doMock',
 ]);
-
-const CODE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
-// A specifier names a TypeScript file by its built extension: `./x.js` names `x.ts`.
-const BUILT_TO_SOURCE: Readonly<Record<string, readonly string[]>> = {
-  '.js': ['.ts', '.tsx'],
-  '.jsx': ['.tsx'],
-  '.mjs': ['.mts'],
-  '.cjs': ['.cts'],
-};
 
 const SCOPE: Scope = {
   roots: ['app', 'functions', 'scripts', 'workers'],
@@ -58,47 +49,6 @@ export interface SharedFakeFacts {
   /** The repo-relative test-code files whose exports are the shared test helpers; `[]` when none. */
   helperOwners: readonly string[];
 }
-
-const nameOf = (p: string) => p.slice(p.lastIndexOf('/') + 1);
-const extensionOf = (p: string) => {
-  const name = nameOf(p);
-  const dot = name.lastIndexOf('.');
-  return dot <= 0 ? '' : name.slice(dot);
-};
-
-/** A fake's module names a local file when its last segment carries a code extension. */
-const isLocalModule = (module: string) => CODE_EXTENSIONS.includes(extensionOf(module));
-
-/**
- * What a specifier names, read from `fromPath`: a local module's repo-relative file (or, when no file
- * answers, the path it reached), or the package specifier itself.
- */
-function resolveSpecifier(
-  reader: RepoReader,
-  fromPath: string,
-  spec: string,
-  aliases: ReadonlyArray<[string, string]>,
-): string {
-  let base: string | null = null;
-  for (const [prefix, folder] of aliases) {
-    if (spec === prefix.replace(/\/$/, '') || spec.startsWith(prefix)) {
-      base = normalizePath(`${folder}/${spec.slice(prefix.length)}`).path;
-      break;
-    }
-  }
-  base ??= resolveRelative(fromPath, spec)?.path ?? null;
-  if (base === null) return spec;
-  const candidates = [base];
-  const ext = extensionOf(base);
-  for (const source of BUILT_TO_SOURCE[ext] ?? [])
-    candidates.push(base.slice(0, -ext.length) + source);
-  for (const e of CODE_EXTENSIONS) candidates.push(base + e);
-  for (const e of CODE_EXTENSIONS) candidates.push(`${base}/index${e}`);
-  return candidates.find((c) => kindOfFile(nameOf(c)) === 'code' && reader.exists(c)) ?? base;
-}
-
-const aliasList = (facts: SharedFakeFacts): Array<[string, string]> =>
-  Object.entries(facts.importAliases).sort((a, b) => b[0].length - a[0].length);
 
 /** One fake a test writes: the mock call, the module it names, and the modules its factory loads. */
 interface MockSite {
@@ -201,7 +151,7 @@ function ownerRoot(
 
 function checkFakes(reader: RepoReader, facts: SharedFakeFacts, files: FileView[]): Finding[] {
   const findings: Finding[] = [];
-  const aliases = aliasList(facts);
+  const aliases = aliasList(facts.importAliases);
   /** root → module → owner */
   const owners = new Map<string, Map<string, string>>();
   for (const fake of facts.fakes) {
@@ -366,7 +316,7 @@ export interface SharedFakeReport {
 
 /** Report-only: what tests copy that has no shared owner yet. Never a failure. */
 export function sharedFakeReport(reader: RepoReader, facts: SharedFakeFacts): SharedFakeReport {
-  const aliases = aliasList(facts);
+  const aliases = aliasList(facts.importAliases);
   const files = reader.files(SCOPE);
   const faked = new Set<string>();
   for (const fake of facts.fakes)

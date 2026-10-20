@@ -26,6 +26,7 @@ import { secretBindingGuard, type SecretBindingFacts } from './secret-bindings.j
 import { sharedFakeGuard, type SharedFakeFacts } from './shared-fakes.js';
 import { shellSafeGuard, type ShellSafeFacts } from './shell-safe.js';
 import { testCaseModuleLoadGuard, type TestCaseModuleLoadFacts } from './test-case-module-loads.js';
+import { testTimeoutGuard, type TestTimeoutFacts } from './test-timeouts.js';
 import { testSourceRootGuard, type TestSourceRootFacts } from './test-source-root.js';
 import { walkerReadFailureGuard, type WalkerReadFailureFacts } from './walker-read-failure.js';
 import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from './worker-bounded-body.js';
@@ -38,6 +39,7 @@ export interface RepoGuardFacts {
   testSourceRoot: TestSourceRootFacts | Absent;
   testCaseModuleLoads: TestCaseModuleLoadFacts;
   sharedFakes: SharedFakeFacts;
+  testTimeouts: TestTimeoutFacts;
   localOnlyVariables: LocalOnlyVariablesFacts;
   workerConfigIsolation: WorkerConfigFacts | Absent;
   workerBoundedBody: WorkerBoundedBodyFacts | Absent;
@@ -60,6 +62,7 @@ export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.
   testSourceRootGuard,
   testCaseModuleLoadGuard,
   sharedFakeGuard,
+  testTimeoutGuard,
   localOnlyVariablesGuard,
   workerConfigGuard,
   workerBoundedBodyGuard,
