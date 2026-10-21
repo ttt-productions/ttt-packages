@@ -7,10 +7,10 @@
     "composite": true,
     "allowJs": true,
     "checkJs": false,
-    "rootDir": ".",
+    "rootDir": "../..",
     "outDir": "node_modules/.cache/tsc-test",
     "tsBuildInfoFile": "node_modules/.cache/tsc-test/tsconfig.test.tsbuildinfo"
   },
-  "include": ["src", "__tests__"],
+  "include": ["src", "__tests__", "../../test/timeouts.ts"],
   "exclude": ["node_modules", "dist"]
 }

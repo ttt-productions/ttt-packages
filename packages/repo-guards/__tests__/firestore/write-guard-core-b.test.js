@@ -22,12 +22,8 @@ const FIXTURE_SOURCES = Object.freeze({
 
 const FIXTURE_CONSTANT_MAPS = Object.freeze([
   'COLLECTIONS',
-  'COLLECTION_GROUPS',
   'NESTED_SUBCOLLECTIONS',
-  'USER_SUBCOLLECTIONS',
-  'WORK_PROJECT_SUBCOLLECTIONS',
-  'WORK_REALM_SUBCOLLECTIONS',
-  'HALL_ITEM_SUBCOLLECTIONS',
+  'SHELF_SUBCOLLECTIONS',
   'SPECIAL_DOCS',
 ]);
 
@@ -65,12 +61,12 @@ const db = getFirestore();
 `;
 
 describe('MUST FAIL — a key the document schema does not declare', () => {
-  it('fires on the top-level authorityCertification the NCII requester document never declared', () => {
-    // The exact write the sweep found: the canonical value lives INSIDE
-    // authorizedRepresentative, and the top-level copy is not a stored field.
+  it('fires on a top-level key the requester document declares only inside a nested object', () => {
+    // The canonical value lives INSIDE authorizedRepresentative; a top-level copy is not a stored
+    // field.
     const result = analyze(`${PREAMBLE}
       export function writeIt(tx: FirebaseFirestore.Transaction, requestId: string, input: never) {
-        const privateRef = db.doc(toPath(PATH_BUILDERS.takeItDownRequesterPrivate(requestId)));
+        const privateRef = db.doc(toPath(PATH_BUILDERS.accessRequesterPrivate(requestId)));
         tx.create(privateRef, {
           schemaVersion: 1,
           requesterName: 'x',
@@ -79,30 +75,30 @@ describe('MUST FAIL — a key the document schema does not declare', () => {
       }
     `);
     expect(detailsOf(result)).toContain(
-      "'authorityCertification' is not declared by takeItDownRequests/{requestId}/privateDetails/requester",
+      "'authorityCertification' is not declared by accessRequests/{requestId}/privateDetails/requester",
     );
   });
 
   it('keeps literal canonical-builder arguments correlated with their one target schema', () => {
     const result = analyze(`${PREAMBLE}
-      export async function writeIt(hallItemId: string, itemId: string) {
-        await db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, 'hallItemTunes', itemId))).set(
-          { content: 'a chapter cannot be written to a tune' },
+      export async function writeIt(shelfId: string, itemId: string) {
+        await db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, 'shelfAlbums', itemId))).set(
+          { content: 'a book text cannot be written to an album' },
           { merge: true },
         );
       }
     `);
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
-    expect(detailsOf(result)).toContain('hallItems/{hallItemId}/hallItemTunes/{itemId}');
+    expect(detailsOf(result)).toContain('shelves/{shelfId}/shelfAlbums/{itemId}');
   });
 });
 
 describe('MUST PASS — a literal canonical-builder argument', () => {
   it('uses a literal canonical-builder argument to select its exact registered schema', () => {
     const result = analyze(`${PREAMBLE}
-      export async function writeIt(hallItemId: string, itemId: string) {
-        await db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, 'hallItemTales', itemId))).set(
-          { content: 'chapter text' },
+      export async function writeIt(shelfId: string, itemId: string) {
+        await db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, 'shelfBooks', itemId))).set(
+          { content: 'book text' },
           { merge: true },
         );
       }
@@ -114,11 +110,11 @@ describe('MUST PASS — a literal canonical-builder argument', () => {
 describe('computed keys drawn from a canonical core const map', () => {
   it('reads one property hop off a map entry, and every entry of an array-valued map', () => {
     const result = analyze(`
-      import { PATH_BUILDERS, toPath, MODERATION_CLEARABLE_TEXT_FIELDS } from '@fixture/core-b';
+      import { PATH_BUILDERS, toPath, CLEARABLE_TEXT_FIELDS } from '@fixture/core-b';
       const db = getFirestore();
-      export async function writeIt(hallItemId: string, itemId: string, kind: string) {
-        await db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, 'hallItemTales', itemId))).set(
-          { [MODERATION_CLEARABLE_TEXT_FIELDS[kind]]: '' },
+      export async function writeIt(shelfId: string, itemId: string, kind: string) {
+        await db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, 'shelfBooks', itemId))).set(
+          { [CLEARABLE_TEXT_FIELDS[kind]]: '' },
           { merge: true },
         );
       }
@@ -133,16 +129,16 @@ describe('a discriminated path written with a discriminated payload', () => {
   // One core map entry carrying each kind's subcollection AND its schema, read once by both sides,
   // is that proof: every kind becomes its own branch, its document diffed against its own schema.
   const throughOneEntry = (payload) => `${PREAMBLE}
-    import { PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE } from '@fixture/core-b';
+    import { PUBLISHED_SHELF_ITEM_BY_KIND } from '@fixture/core-b';
     export function writeIt(
       tx: FirebaseFirestore.Transaction,
-      hallItemId: string,
+      shelfId: string,
       itemId: string,
-      workProjectType: string,
+      kind: string,
       carried: unknown,
     ) {
-      const published = PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE[workProjectType];
-      const ref = db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, published.subcollection, itemId)));
+      const published = PUBLISHED_SHELF_ITEM_BY_KIND[kind];
+      const ref = db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, published.subcollection, itemId)));
       ${payload}
     }
   `;
@@ -151,9 +147,9 @@ describe('a discriminated path written with a discriminated payload', () => {
     const result = analyze(throughOneEntry('tx.set(ref, published.schema.parse(carried));'));
     expect(result.violations).toEqual([]);
     expect(result.writes[0].correlatedBranches.map((branch) => branch.templates)).toEqual([
-      ['hallItems/{hallItemId}/hallItemTales/{itemId}'],
-      ['hallItems/{hallItemId}/hallItemTunes/{itemId}'],
-      ['hallItems/{hallItemId}/hallItemTelevision/{itemId}'],
+      ['shelves/{shelfId}/shelfBooks/{itemId}'],
+      ['shelves/{shelfId}/shelfAlbums/{itemId}'],
+      ['shelves/{shelfId}/shelfFilms/{itemId}'],
     ]);
   });
 
@@ -177,14 +173,14 @@ describe('a discriminated path written with a discriminated payload', () => {
 
   it('MUST FAIL — the entry picks the path while a fixed schema picks the payload', () => {
     const result = analyze(`${PREAMBLE}
-      import { PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE, PublishedTuneTrackSchema } from '@fixture/core-b';
-      export function writeIt(tx: FirebaseFirestore.Transaction, hallItemId: string, itemId: string, workProjectType: string, carried: unknown) {
-        const published = PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE[workProjectType];
-        tx.set(db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, published.subcollection, itemId))), PublishedTuneTrackSchema.parse(carried));
+      import { PUBLISHED_SHELF_ITEM_BY_KIND, PublishedAlbumSchema } from '@fixture/core-b';
+      export function writeIt(tx: FirebaseFirestore.Transaction, shelfId: string, itemId: string, kind: string, carried: unknown) {
+        const published = PUBLISHED_SHELF_ITEM_BY_KIND[kind];
+        tx.set(db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, published.subcollection, itemId))), PublishedAlbumSchema.parse(carried));
       }
     `);
     expect(detailsOf(result)).toContain(
-      "'audioAssetId' is not declared by hallItems/{hallItemId}/hallItemTales/{itemId}",
+      "'audioAssetId' is not declared by shelves/{shelfId}/shelfBooks/{itemId}",
     );
   });
 
@@ -193,38 +189,38 @@ describe('a discriminated path written with a discriminated payload', () => {
   // document is diffed against every key the payload can carry.
   const twoPlaces = (cases) => `${PREAMBLE}
     import {
-      HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
-      PublishedChapterSchema,
-      PublishedTuneTrackSchema,
-      PublishedTelevisionEpisodeSchema,
+      SHELF_SUBCOLLECTION_BY_KIND,
+      PublishedBookSchema,
+      PublishedAlbumSchema,
+      PublishedFilmSchema,
     } from '@fixture/core-b';
-    function buildSubItem(workProjectType: string, carried: unknown) {
-      switch (workProjectType) {
+    function buildSubItem(kind: string, carried: unknown) {
+      switch (kind) {
         ${cases}
       }
     }
     export function writeIt(
       tx: FirebaseFirestore.Transaction,
-      hallItemId: string,
+      shelfId: string,
       itemId: string,
-      workProjectType: string,
+      kind: string,
       carried: unknown,
     ) {
-      const subcollection = HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[workProjectType];
-      const ref = db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, subcollection, itemId)));
-      tx.set(ref, buildSubItem(workProjectType, carried).data);
+      const subcollection = SHELF_SUBCOLLECTION_BY_KIND[kind];
+      const ref = db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, subcollection, itemId)));
+      tx.set(ref, buildSubItem(kind, carried).data);
     }
   `;
 
   it('MUST FAIL — the same selector read in two places is not a proven pairing', () => {
     const result = analyze(
       twoPlaces(`
-      case 'Tales':
-        return { data: PublishedChapterSchema.parse(carried) };
-      case 'Tunes':
-        return { data: PublishedTuneTrackSchema.parse(carried) };
+      case 'Books':
+        return { data: PublishedBookSchema.parse(carried) };
+      case 'Albums':
+        return { data: PublishedAlbumSchema.parse(carried) };
       default:
-        return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
+        return { data: PublishedFilmSchema.parse(carried) };
     `),
     );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
@@ -234,12 +230,12 @@ describe('a discriminated path written with a discriminated payload', () => {
   it("MUST FAIL — crossed branches, each kind handed another kind's schema", () => {
     const result = analyze(
       twoPlaces(`
-      case 'Tales':
-        return { data: PublishedTuneTrackSchema.parse(carried) };
-      case 'Tunes':
-        return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
+      case 'Books':
+        return { data: PublishedAlbumSchema.parse(carried) };
+      case 'Albums':
+        return { data: PublishedFilmSchema.parse(carried) };
       default:
-        return { data: PublishedChapterSchema.parse(carried) };
+        return { data: PublishedBookSchema.parse(carried) };
     `),
     );
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
@@ -248,13 +244,13 @@ describe('a discriminated path written with a discriminated payload', () => {
   it('MUST FAIL — independent selectors over the same set of documents', () => {
     const result = analyze(`${PREAMBLE}
       import {
-        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
-        PublishedChapterSchema,
-        PublishedTuneTrackSchema,
+        SHELF_SUBCOLLECTION_BY_KIND,
+        PublishedBookSchema,
+        PublishedAlbumSchema,
       } from '@fixture/core-b';
-      export function writeIt(tx: FirebaseFirestore.Transaction, hallItemId: string, itemId: string, pathKind: string, shapeIsTale: boolean, carried: unknown) {
-        const ref = db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[pathKind], itemId)));
-        tx.set(ref, shapeIsTale ? PublishedChapterSchema.parse(carried) : PublishedTuneTrackSchema.parse(carried));
+      export function writeIt(tx: FirebaseFirestore.Transaction, shelfId: string, itemId: string, pathKind: string, shapeIsBook: boolean, carried: unknown) {
+        const ref = db.doc(toPath(PATH_BUILDERS.shelfItemType(shelfId, SHELF_SUBCOLLECTION_BY_KIND[pathKind], itemId)));
+        tx.set(ref, shapeIsBook ? PublishedBookSchema.parse(carried) : PublishedAlbumSchema.parse(carried));
       }
     `);
     expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
@@ -263,13 +259,13 @@ describe('a discriminated path written with a discriminated payload', () => {
 
 describe('a canonical builder that MAPS one of its arguments', () => {
   it('leaves the mapped slot unknown instead of matching no template at all', () => {
-    // `PATH_BUILDERS.hallItemSubItem(id, workType, itemId)` routes the work TYPE to its Hall
+    // `PATH_BUILDERS.shelfSubItem(id, kind, itemId)` routes the KIND to its shelf
     // subcollection. Probing it with a placeholder yields nothing for that slot, and a
     // literal `undefined` there would make the builder resolve to no document at all —
     // silently turning every write through it into an unresolved-target.
     const result = analyze(`${PREAMBLE}
-      export async function writeIt(hallItemId: string, workProjectType: string, subItemId: string) {
-        const ref = db.doc(toPath(PATH_BUILDERS.hallItemSubItem(hallItemId, workProjectType, subItemId)));
+      export async function writeIt(shelfId: string, kind: string, subItemId: string) {
+        const ref = db.doc(toPath(PATH_BUILDERS.shelfSubItem(shelfId, kind, subItemId)));
         await ref.set({ mappedBuilderUndeclared: 1 }, { merge: true });
       }
     `);
@@ -280,21 +276,21 @@ describe('a canonical builder that MAPS one of its arguments', () => {
 
 describe('a canonical core map of PATH BUILDERS', () => {
   const source = (payload) => `${PREAMBLE}
-    import { WORK_SECTION_PATHS_BY_TYPE } from '@fixture/core-b';
-    export async function writeIt(workProjectType: string, workProjectId: string, subItemId: string) {
-      const paths = WORK_SECTION_PATHS_BY_TYPE[workProjectType];
-      const sectionSnap = await db.collection(toPath(paths.section(workProjectId))).get();
+    import { PROJECT_SECTION_PATHS_BY_KIND } from '@fixture/core-b';
+    export async function writeIt(kind: string, projectId: string, subItemId: string) {
+      const paths = PROJECT_SECTION_PATHS_BY_KIND[kind];
+      const sectionSnap = await db.collection(toPath(paths.section(projectId))).get();
       const liveRef = subItemId
-        ? db.doc(toPath(paths.subItem(workProjectId, sectionSnap.docs[0].id, subItemId)))
+        ? db.doc(toPath(paths.subItem(projectId, sectionSnap.docs[0].id, subItemId)))
         : sectionSnap.docs[0].ref;
       await liveRef.update(${payload});
     }
   `;
 
   it('resolves BOTH branches — the mapped collection and the mapped document', () => {
-    // `WORK_SECTION_PATHS_BY_TYPE` is the one owner of the per-work-type routing. Its
+    // `PROJECT_SECTION_PATHS_BY_KIND` is the one owner of the per-kind routing. Its
     // entries hold canonical builders, so they are invoked with sentinels exactly as
-    // PATH_BUILDERS is; every work type stays a candidate.
+    // PATH_BUILDERS is; every kind stays a candidate.
     const result = analyze(source("{ title: 'x' }"));
     expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
   });

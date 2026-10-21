@@ -53,6 +53,7 @@ const FACTS: UiGuardFacts = {
     displayComponents: ['Badge'],
   },
   wholeInputNumbers: { surfaceTrees: ['src/components'], allowlist: [] },
+  selfHostedFonts: {},
 };
 
 describe('the ui area', () => {

@@ -30,8 +30,9 @@ package may consume either.
   (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
   header contract; WebCrypto + zod only), `repo-guards` (the one guard suite every app runs in
   its gate: one reader of the repository, every generic guard, and the three shapes
-  an app builds its business guards on; its root is pure; its `./node` reader and the
-  `./node/suite` and `./node/reports` entries run under Node).
+  an app builds its business guards on, and the repository tooling every app runs; its root is
+  pure; its `./node` reader and the `./node/suite`, `./node/reports`, and `./node/tooling`
+  entries run under Node).
 - **Tier 1 — depend on Tier 0 only:**
   `ui-core` (→ `input-format-core`; its free-text inputs take a field
   declaration), `chat-schemas` (→ `input-format-core`; the chat message text's

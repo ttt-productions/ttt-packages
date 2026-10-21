@@ -37,6 +37,12 @@ aliases, its owner files, its reviewed exceptions — never logic.
   timeout budget), and the Firestore write guard's coverage table.
 - **The registry seed writer and Zod introspection**, which an app's test tooling and audit
   scripts use beside the guards.
+- **The repository tooling** an app's thin scripts run: the quiet verification gate, the
+  release-scope resolver and the release gate and verdict, the App Hosting build environment, the
+  post-deploy cloud checks (Storage CORS, callable invokers, deployed functions), stopping the local
+  stack, the playbook file-reference check, the field-lineage report, cleanup, the fresh-login
+  chain, and the emulator seed runner. Each tool has one behavior for every app, with no switch
+  that changes it: an app passes only its facts (projects, ports, paths, stages, components).
 
 ## Contract shape
 
@@ -54,6 +60,7 @@ aliases, its owner files, its reviewed exceptions — never logic.
   monorepo's boundary suite) runs the generic guards that apply to it through
   `registerSuiteOf(config, definitions)`, picking them from `GENERIC_GUARDS` by id.
 - `./node/reports` — the hand-run reports; run under Node.
+- `./node/tooling` — the repository tooling; runs under Node.
 - `./seed` — `createRegistrySeedWriter`, `registeredSchemaForPath`.
 - `./zod-shape` — `kindOf`, `unwrap`, `objectShape`, `arrayElement`, `compositeMembers`, `knownKeys`.
 

@@ -37,6 +37,7 @@ import {
   type PendingNameSeatFacts,
   type ShowMoreFacts,
 } from './interaction.js';
+import { selfHostedFontsGuard } from './fonts.js';
 import { motionGuard, type MotionFacts } from './motion.js';
 import {
   colorLiteralsGuard,
@@ -72,6 +73,7 @@ export interface UiGuardFacts {
   pendingNameSeat: PendingNameSeatFacts;
   accessibleControls: AccessibleControlFacts;
   wholeInputNumbers: WholeInputNumberFacts;
+  selfHostedFonts: Record<string, never>;
 }
 
 export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -96,4 +98,5 @@ export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.fr
   pendingNameSeatGuard,
   accessibleControlsGuard,
   wholeInputNumbersGuard,
+  selfHostedFontsGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

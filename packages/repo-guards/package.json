@@ -31,6 +31,10 @@
             "types": "./dist/node/reports/index.d.ts",
             "default": "./dist/node/reports/index.js"
         },
+        "./node/tooling": {
+            "types": "./dist/node/tooling/index.d.ts",
+            "default": "./dist/node/tooling/index.js"
+        },
         "./seed": {
             "types": "./dist/seed/index.d.ts",
             "default": "./dist/seed/index.js"
