@@ -11,7 +11,7 @@ import { isText, reviewedProblems, textProblem } from '../../support/facts.js';
 export interface DependencyOverride {
   /** The manifest holding the parent-scoped `overrides` entry, repo-relative. */
   manifest: string;
-  /** The folder whose `node_modules` holds the installed parent ('' for the repository root). */
+  /** The folder whose `package-lock.json` records the installed parent ('' for the repository root). */
   installedUnder: string;
   parent: string;
   child: string;
@@ -82,17 +82,28 @@ export const dependencyOverrideGuard: GenericGuardDefinition<DependencyOverrideF
             const manifest = JSON.parse(context.file(o.manifest).text) as {
               overrides?: Record<string, unknown>;
             };
-            const parentPath = `${o.installedUnder ? `${o.installedUnder}/` : ''}node_modules/${o.parent}/package.json`;
-            if (!context.reader.exists(parentPath)) {
+            // The parent's declared range is read from the committed lockfile, never `node_modules`:
+            // every checkout has the lockfile, a CI job that never installs this folder included, and
+            // `npm ci` installs exactly what it records.
+            const lockPath = `${o.installedUnder ? `${o.installedUnder}/` : ''}package-lock.json`;
+            if (!context.reader.exists(lockPath)) {
               findings.push({
                 file: o.manifest,
-                detail: `${o.parent} is not installed under ${o.installedUnder || 'the root'}, so the override cannot be judged`,
+                detail: `${lockPath} is missing, so the override cannot be judged`,
               });
               continue;
             }
-            const parent = JSON.parse(context.file(parentPath).text) as {
-              dependencies?: Record<string, string>;
+            const lock = JSON.parse(context.file(lockPath).text) as {
+              packages?: Record<string, { dependencies?: Record<string, string> } | undefined>;
             };
+            const parent = lock.packages?.[`node_modules/${o.parent}`];
+            if (!parent) {
+              findings.push({
+                file: o.manifest,
+                detail: `${lockPath} records no installed ${o.parent}, so the override cannot be judged`,
+              });
+              continue;
+            }
             const scoped = manifest.overrides?.[o.parent];
             const pinned =
               scoped !== null && typeof scoped === 'object'

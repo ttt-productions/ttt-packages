@@ -116,27 +116,91 @@ describe('a dependency override exists exactly while it is needed', () => {
     }
   });
 
-  it('reads the manifest and the installed parent through the reader', async () => {
+  const firestoreOverride = {
+    ...o,
+    manifest: 'package.json',
+    installedUnder: '',
+    why: 'firestore pins an unpatched grpc line',
+  };
+  const rootManifest = JSON.stringify({
+    overrides: { '@firebase/firestore': { '@grpc/grpc-js': '~1.14.5' } },
+  });
+  const lockRecording = (parent: string, childRange: string) =>
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: { [`node_modules/${parent}`]: { dependencies: { '@grpc/grpc-js': childRange } } },
+    });
+
+  it("judges the override from the parent's range in the committed lockfile", async () => {
     const reader = readerOver({
-      'package.json': JSON.stringify({
-        overrides: { '@firebase/firestore': { '@grpc/grpc-js': '~1.14.5' } },
+      'package.json': rootManifest,
+      'package-lock.json': lockRecording('@firebase/firestore', '~1.9.0'),
+    });
+    const [guard] = dependencyOverrideGuard.build({ overrides: [firestoreOverride] });
+    expect(await guard.run(contextOf(reader))).toEqual([]);
+  });
+
+  it("judges an override in a folder whose dependencies are not installed, from that folder's lockfile", async () => {
+    const reader = readerOver({
+      'worker-a/package.json': JSON.stringify({ overrides: { miniflare: { sharp: '^0.35.5' } } }),
+      'worker-a/package-lock.json': JSON.stringify({
+        lockfileVersion: 3,
+        packages: { 'node_modules/miniflare': { dependencies: { sharp: '0.35.4' } } },
       }),
+    });
+    const [guard] = dependencyOverrideGuard.build({
+      overrides: [
+        {
+          parent: 'miniflare',
+          child: 'sharp',
+          affected: '<0.35.5',
+          manifest: 'worker-a/package.json',
+          installedUnder: 'worker-a',
+          why: 'the parent pins an affected sharp',
+        },
+      ],
+    });
+    expect(await guard.run(contextOf(reader))).toEqual([]);
+  });
+
+  it('reads the range the lockfile records, never an installed copy that disagrees with it', async () => {
+    const reader = readerOver({
+      'package.json': rootManifest,
+      'package-lock.json': lockRecording('@firebase/firestore', '~1.14.5'),
       'node_modules/@firebase/firestore/package.json': JSON.stringify({
         dependencies: { '@grpc/grpc-js': '~1.9.0' },
       }),
     });
-    const facts = {
-      overrides: [
-        {
-          ...o,
-          manifest: 'package.json',
-          installedUnder: '',
-          why: 'firestore pins an unpatched grpc line',
-        },
-      ],
-    };
-    const [guard] = dependencyOverrideGuard.build(facts);
-    expect(await guard.run(contextOf(reader))).toEqual([]);
+    const [guard] = dependencyOverrideGuard.build({ overrides: [firestoreOverride] });
+    expect(await guard.run(contextOf(reader))).toEqual([
+      {
+        file: 'package.json',
+        detail:
+          '@firebase/firestore now declares @grpc/grpc-js ~1.14.5, which reaches no affected version: remove the override',
+      },
+    ]);
+  });
+
+  it('FLAGS an override whose folder has no lockfile, or whose lockfile records no installed parent', async () => {
+    const [guard] = dependencyOverrideGuard.build({ overrides: [firestoreOverride] });
+    expect(await guard.run(contextOf(readerOver({ 'package.json': rootManifest })))).toEqual([
+      {
+        file: 'package.json',
+        detail: 'package-lock.json is missing, so the override cannot be judged',
+      },
+    ]);
+    repo?.remove();
+    const unrecorded = readerOver({
+      'package.json': rootManifest,
+      'package-lock.json': lockRecording('firebase-admin', '~1.9.0'),
+    });
+    expect(await guard.run(contextOf(unrecorded))).toEqual([
+      {
+        file: 'package.json',
+        detail:
+          'package-lock.json records no installed @firebase/firestore, so the override cannot be judged',
+      },
+    ]);
   });
 
   it('refuses an override whose affected range is no semver range, or which carries no why', () => {
