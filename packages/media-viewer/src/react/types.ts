@@ -146,6 +146,14 @@ export type AudioViewerProps = BaseMediaProps &
     persistKey?: string | null;
     /** App-injected action buttons rendered at the end of the player control row. */
     extraActions?: React.ReactNode;
+    /**
+     * CORS mode of the audio element. The visualizer reads the audio through Web Audio, which
+     * hears only silence from a cross-origin file fetched without CORS — and, once routed, so does
+     * the listener. Set it whenever the file is served from another origin that sends CORS
+     * (`use-credentials` when that origin authorizes by cookie). Without it a cross-origin file
+     * still plays, with the visualizer idle.
+     */
+    crossOrigin?: 'anonymous' | 'use-credentials';
   };
 
 export type MediaPreviewProps = {
@@ -196,6 +204,8 @@ export type MediaPreviewProps = {
   audioVisualizerMode?: AudioVisualizerMode;
   audioPersistKey?: string | null;
   audioExtraActions?: React.ReactNode;
+  /** Audio type only — forwarded to AudioViewer's `crossOrigin` (see AudioViewerProps). */
+  audioCrossOrigin?: AudioViewerProps['crossOrigin'];
 
   fallbackMode?: FallbackMode;
   fallbackLabel?: string;

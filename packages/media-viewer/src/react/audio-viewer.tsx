@@ -31,6 +31,7 @@ export function AudioViewer(props: AudioViewerProps) {
     visualizerMode,
     persistKey,
     extraActions,
+    crossOrigin,
   } = props;
 
   const [isLoaded, setIsLoaded] = React.useState(false);
@@ -158,6 +159,7 @@ export function AudioViewer(props: AudioViewerProps) {
           <audio
             ref={setAudioRef}
             src={url}
+            crossOrigin={crossOrigin}
             className={mediaClassName}
             controls={false}
             autoPlay={autoPlay}

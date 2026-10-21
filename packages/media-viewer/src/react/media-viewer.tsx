@@ -154,6 +154,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     audioVisualizerMode,
     audioPersistKey,
     audioExtraActions,
+    audioCrossOrigin,
     fallbackMode = 'link',
     fallbackLabel,
     filename,
@@ -355,6 +356,7 @@ export function MediaViewer(props: MediaPreviewProps) {
           visualizerMode={audioVisualizerMode}
           persistKey={audioPersistKey}
           extraActions={audioExtraActions}
+          crossOrigin={audioCrossOrigin}
           loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onLoadChange={onLoadChange}

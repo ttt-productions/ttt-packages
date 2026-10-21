@@ -11,7 +11,10 @@
 // is best-effort throughout: if anything throws, the player still plays and
 // only the visualizer goes dark. `createMediaElementSource` is once-per-
 // element, so the graph is keyed to the element instance and rebuilt only if
-// the element itself changes.
+// the element itself changes. The graph is built only for audio Web Audio can
+// hear (`graphCanHear`): a cross-origin file fetched without CORS reaches the
+// graph as silence, and once routed the element's own output is that silence,
+// so such a file plays straight to the speakers with the visualizer idle.
 
 import * as React from 'react';
 import {
@@ -46,6 +49,22 @@ function writePref(persistKey: string | null, suffix: string, value: string): vo
     window.localStorage.setItem(`${persistKey}:${suffix}`, value);
   } catch {
     /* storage unavailable (private mode, SSR) — session-only prefs */
+  }
+}
+
+/**
+ * Whether Web Audio can hear the element's current file: one read with CORS (`crossOrigin` set),
+ * a local `blob:` / `data:` URL, or a same-origin file.
+ */
+function graphCanHear(el: HTMLAudioElement): boolean {
+  if (el.crossOrigin) return true;
+  const src = el.currentSrc || el.src;
+  if (!src) return false;
+  try {
+    const u = new URL(src, window.location.href);
+    return u.protocol === 'blob:' || u.protocol === 'data:' || u.origin === window.location.origin;
+  } catch {
+    return false;
   }
 }
 
@@ -126,6 +145,7 @@ export function AudioPlayerChrome({
           }
           return;
         }
+        if (!graphCanHear(el)) return;
         teardownGraph();
         const AudioCtx: typeof AudioContext =
           (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext ||

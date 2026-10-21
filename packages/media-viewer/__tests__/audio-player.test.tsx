@@ -126,7 +126,7 @@ describe('AudioViewer canonical player', () => {
   });
 
   it('builds the Web Audio graph on first play: element source → analyser → destination', () => {
-    const { getByLabelText } = renderPlayer();
+    const { getByLabelText } = renderPlayer({ crossOrigin: 'use-credentials' });
     expect(audioCtxMock.ctor).not.toHaveBeenCalled();
     fireEvent.click(getByLabelText('Play'));
     expect(audioCtxMock.ctor).toHaveBeenCalledTimes(1);
@@ -134,6 +134,25 @@ describe('AudioViewer canonical player', () => {
     expect(audioCtxMock.analyser.connect).toHaveBeenCalled(); // → destination
     // Second play does not rebuild the graph for the same element.
     fireEvent.click(getByLabelText('Pause'));
+    fireEvent.click(getByLabelText('Play'));
+    expect(audioCtxMock.ctor).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads a cross-origin file with the CORS mode it is given', () => {
+    const { container } = renderPlayer({ crossOrigin: 'use-credentials' });
+    expect(container.querySelector('audio')).toHaveAttribute('crossorigin', 'use-credentials');
+  });
+
+  it('never routes a cross-origin file fetched without CORS through Web Audio, which would silence it', () => {
+    const { container, getByLabelText } = renderPlayer();
+    expect(container.querySelector('audio')).not.toHaveAttribute('crossorigin');
+    fireEvent.click(getByLabelText('Play'));
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+    expect(audioCtxMock.ctor).not.toHaveBeenCalled();
+  });
+
+  it('routes a same-origin file through the visualizer without a CORS mode', () => {
+    const { getByLabelText } = renderPlayer({ url: '/media/a.mp3' });
     fireEvent.click(getByLabelText('Play'));
     expect(audioCtxMock.ctor).toHaveBeenCalledTimes(1);
   });
