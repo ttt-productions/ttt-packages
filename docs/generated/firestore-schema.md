@@ -1602,7 +1602,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `servingDenyState` | `'pending' \| 'denied' \| 'failed'` |  |
 | `removalState` | `'pending' \| 'removed' \| 'tombstoned' \| 'failed'` |  |
 | `verificationState` | `'pending' \| 'verifiedGone' \| 'leftover'` |  |
-| `outcome` | `'pending' \| 'removed' \| 'tombstoned' \| 'verifiedGone' \| 'leftoverRetrying' \| 'unableToComplete' \| 'terminalException'` |  |
+| `outcome` | `'pending' \| 'removed' \| 'tombstoned' \| 'verifiedGone' \| 'leftoverRetrying' \| 'unableToComplete'` |  |
 | `attemptCount` | `number` |  |
 | `leaseOwner` | `string` | yes |
 | `leaseExpiresAt` | `number` | yes |
@@ -2303,7 +2303,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `receivedAt` | `number` |  |
 | `completenessStatus` | `'incomplete' \| 'complete'` |  |
 | `validityStatus` | `'pending' \| 'valid' \| 'invalid' \| 'unableToLocate'` |  |
-| `invalidReasonCode` | `'missingSignature' \| 'missingLocator' \| 'missingNonconsentStatement' \| 'missingContactInformation' \| 'requesterNotDepictedPersonOrAuthorizedRepresentative' \| 'authorityNotEstablished' \| 'locatorNotResolvableAfterReasonableEffort' \| 'requestOutsideCoveredDepiction' \| 'duplicateSuperseded' \| 'fraudulentOrBadFaith' \| 'otherCounselApproved'` | yes |
+| `invalidReasonCode` | `'missingSignature' \| 'missingLocator' \| 'missingNonconsentStatement' \| 'missingContactInformation' \| 'requesterNotDepictedPersonOrAuthorizedRepresentative' \| 'authorityNotEstablished' \| 'locatorNotResolvableAfterReasonableEffort' \| 'requestOutsideCoveredDepiction' \| 'duplicateSuperseded' \| 'fraudulentOrBadFaith'` | yes |
 | `completenessDeterminedAt` | `number` | yes |
 | `validityDeterminedAt` | `number` | yes |
 | `completedBySubmissionId` | `string` | yes |
@@ -2313,7 +2313,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `requestClosedAt` | `number` | yes |
 | `removalCompletionAt` | `number` | yes |
 | `finalClosedAt` | `number` | yes |
-| `removalCompletionOutcome` | `'completed' \| 'completedWithApprovedException' \| 'unableToComplete' \| null` | yes |
+| `removalCompletionOutcome` | `'completed' \| 'unableToComplete' \| null` | yes |
 | `retentionCompletedAt` | `number \| null` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
@@ -2408,7 +2408,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `basisSubmissionIds` | `string[]` |  |
 | `validFromSubmissionId` | `string` | yes |
 | `validRequestReceivedAt` | `number` | yes |
-| `reasonCode` | `'missingSignature' \| 'missingLocator' \| 'missingNonconsentStatement' \| 'missingContactInformation' \| 'requesterNotDepictedPersonOrAuthorizedRepresentative' \| 'authorityNotEstablished' \| 'locatorNotResolvableAfterReasonableEffort' \| 'requestOutsideCoveredDepiction' \| 'duplicateSuperseded' \| 'fraudulentOrBadFaith' \| 'otherCounselApproved'` | yes |
+| `reasonCode` | `'missingSignature' \| 'missingLocator' \| 'missingNonconsentStatement' \| 'missingContactInformation' \| 'requesterNotDepictedPersonOrAuthorizedRepresentative' \| 'authorityNotEstablished' \| 'locatorNotResolvableAfterReasonableEffort' \| 'requestOutsideCoveredDepiction' \| 'duplicateSuperseded' \| 'fraudulentOrBadFaith'` | yes |
 | `rationaleRef` | `string` |  |
 | `decidedByUid` | `string` |  |
 | `decidedAt` | `number` |  |
@@ -2420,7 +2420,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `requestId` | `string` |  |
 | `decisionId` | `string` |  |
 | `result` | `'valid' \| 'invalid' \| 'unableToLocate'` |  |
-| `reasonCode` | `'missingSignature' \| 'missingLocator' \| 'missingNonconsentStatement' \| 'missingContactInformation' \| 'requesterNotDepictedPersonOrAuthorizedRepresentative' \| 'authorityNotEstablished' \| 'locatorNotResolvableAfterReasonableEffort' \| 'requestOutsideCoveredDepiction' \| 'duplicateSuperseded' \| 'fraudulentOrBadFaith' \| 'otherCounselApproved'` | yes |
+| `reasonCode` | `'missingSignature' \| 'missingLocator' \| 'missingNonconsentStatement' \| 'missingContactInformation' \| 'requesterNotDepictedPersonOrAuthorizedRepresentative' \| 'authorityNotEstablished' \| 'locatorNotResolvableAfterReasonableEffort' \| 'requestOutsideCoveredDepiction' \| 'duplicateSuperseded' \| 'fraudulentOrBadFaith'` | yes |
 | `text` | `string` |  |
 | `authoredByUid` | `string` |  |
 | `authoredAt` | `number` |  |

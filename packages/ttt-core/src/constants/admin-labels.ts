@@ -177,8 +177,7 @@ export interface UserFacingReasonOption {
 /** User-facing reason picklist for the guided case-resolution flow — the affected user sees the
  * label for any user-affecting action. Canonical home (ARCH-102): the codes ARE this list's own
  * enumeration, so every client (web, phone, TV, admin app) renders the same options + labels by
- * importing from here. Final user-/legal-facing wording is subject to lawyer review; these are
- * functional defaults. */
+ * importing from here. */
 export const USER_FACING_REASON_OPTIONS = [
   {
     code: 'harassment',

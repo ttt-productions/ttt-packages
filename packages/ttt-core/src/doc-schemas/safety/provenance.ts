@@ -1,30 +1,20 @@
-// Trust & Safety — the provenance cluster (Appendix A §A6, Finding-M2 concrete
-// retention profile).
+// Trust & Safety — the provenance cluster and its retention profile.
 //
 // `eventProvenance/{eventId}` — server-only, restricted provenance for source
 // events (upload/message/report). On a hold the record is copied/linked into
 // the evidence manifest (retentionClass='casePromoted', hold-governed). A scheduled
 // deletion worker enforces the routine TTLs with a hold-aware no-delete guard.
-//
-// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
-// (Appendix A §A6) — no invented values, no placeholders; the durable design owner
-// is ttt-prod docs/design/safety-evidence-control-profile.md.
-//
-// Collection note: this cluster introduces ONE NEW Firestore collection. Wiring
-// collections.ts / path-builders.ts / registry.ts is deferred to the app leg (the
-// orchestrator binds the schema + path builder there); the deterministic doc-id
-// shape is documented on the schema below.
 
 import { z } from 'zod';
 
 // ===========================================================================
-// §A6 — eventProvenance/{eventId}
+// eventProvenance/{eventId}
 // `eventId` is DETERMINISTIC per source event (e.g. the upload event id, the
 // message-send seq key, or the report id) so a replayed
 // source event converges on the same provenance doc — never a duplicate.
 // ===========================================================================
 
-/** §A6 source-event kind. */
+/** Source-event kind. */
 export const EventProvenanceKindSchema = z.enum([
   'uploadInit',
   'uploadFinalize',
@@ -33,7 +23,7 @@ export const EventProvenanceKindSchema = z.enum([
 ]);
 export type EventProvenanceKind = z.infer<typeof EventProvenanceKindSchema>;
 
-/** §A6 retention class. Build defaults (counsel may only SHORTEN):
+/** Retention class. Build defaults (a later change may only SHORTEN them):
  *   routine uploadInit/uploadFinalize/messageSend = 90 days;
  *   reportSubmit = retained with the case.
  * On a hold the record is copied/linked into the evidence manifest as
@@ -42,7 +32,7 @@ export type EventProvenanceKind = z.infer<typeof EventProvenanceKindSchema>;
 export const EventProvenanceRetentionClassSchema = z.enum(['routine', 'casePromoted']);
 export type EventProvenanceRetentionClass = z.infer<typeof EventProvenanceRetentionClassSchema>;
 
-/** §A6 `subjectRefs` — a TYPED object, NOT an open array. Each field is the
+/** `subjectRefs` — a TYPED object, NOT an open array. Each field is the
  * relevant id for the source event's kind. */
 export const EventProvenanceSubjectRefsSchema = z
   .object({
@@ -74,12 +64,12 @@ export const EventProvenanceV1Schema = z
 export type EventProvenanceV1 = z.infer<typeof EventProvenanceV1Schema>;
 
 // ===========================================================================
-// §A6 — routine-retention build defaults (counsel may only SHORTEN). These are the
+// Routine-retention build defaults (a later change may only SHORTEN them). These are the
 // hold-aware deletion worker's TTL inputs; days, not ms. `reportSubmit` has NO
 // routine TTL — it is retained with the case.
 // ===========================================================================
 
-/** Routine TTL (days) by kind — build default; counsel may only shorten. */
+/** Routine TTL (days) by kind — build default; may only be shortened. */
 export const EVENT_PROVENANCE_ROUTINE_TTL_DAYS = {
   uploadInit: 90,
   uploadFinalize: 90,

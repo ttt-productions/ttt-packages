@@ -11,7 +11,7 @@ describe('NciiPolicyConfigV1Schema (`_serverData/nciiPolicy`)', () => {
     expect(NciiPolicyConfigV1Schema.safeParse(DEFAULT_NCII_POLICY_CONFIG_V1).success).toBe(true);
   });
 
-  it('carries no counsel-approval gate: nothing reads one, and uploads are not blocked on it', () => {
+  it('carries no lawyer-approval gate: nothing reads one, and uploads are not blocked on it', () => {
     expect('counselApproved' in DEFAULT_NCII_POLICY_CONFIG_V1).toBe(false);
     expect(Object.keys(NciiPolicyConfigV1Schema.shape)).not.toContain('counselApproved');
     // Strict: a config write reintroducing the field is rejected, not silently stripped.

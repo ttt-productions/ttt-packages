@@ -222,7 +222,7 @@ export const MAX_NCII_REQUESTER_NAME_LENGTH = 256;
 /** Name of the depicted person a representative files on behalf of. */
 export const MAX_NCII_REPRESENTED_PERSON_NAME_LENGTH = 256;
 
-/** Representative's stated basis of authority (parent/guardian/counsel etc.). */
+/** Representative's stated basis of authority (parent/guardian/lawyer etc.). */
 export const MAX_NCII_AUTHORITY_BASIS_LENGTH = 2000;
 
 /** Optional pointer/reference to authority evidence supplied by a representative. */

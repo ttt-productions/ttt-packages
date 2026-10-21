@@ -1,5 +1,4 @@
-// Trust & Safety — NCII per-request removal deadline + durable removal saga
-// (Appendix A §A11 [H4]).
+// Trust & Safety — NCII per-request removal deadline + durable removal saga.
 //
 // The removal job is REQUEST-scoped, not case-scoped: the deadline monitor lives
 // at `safetySlaMonitors/{requestId}__nciiRemovalDeadline` and a monitor can never
@@ -7,29 +6,16 @@
 // `nciiRemovalDeadlineAt` MAY mirror the minimum active deadline but is NOT the
 // source of truth.
 //
-// COMPLETION PREDICATE [H4]: completion is derived ONLY from verified target rows
-// + approved legal outcomes — a request is `completed` ONLY when the reported
-// target AND every known identical copy reaches `verificationState='verifiedGone'`
-// OR carries an approved `NciiTerminalException`. A partial technical failure is
-// the HONEST outcome `unableToComplete` (technical) or
-// `completedWithApprovedException` (counsel-approved) — NEVER ordinary `completed`.
-// A worker crash resumes idempotently (replay is idempotent by `targetKeyHash` +
-// the job's deterministic `jobId`); a `leftover`/`failed` target re-drives from
-// its last unverified sub-state.
-//
-// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
-// (Appendix A §A11 [H4]) — no invented values, no placeholders; the durable design
-// owner is ttt-prod docs/design/nonconsensual-intimate-imagery-and-take-it-down.md.
+// COMPLETION PREDICATE: completion is derived ONLY from verified target rows — a
+// request is `completed` ONLY when the reported target AND every known identical
+// copy reaches `verificationState='verifiedGone'`. Anything less is the HONEST
+// outcome `unableToComplete` — NEVER `completed`. A worker crash resumes
+// idempotently (replay is idempotent by `targetKeyHash` + the job's deterministic
+// `jobId`); a `leftover`/`failed` target re-drives from its last unverified
+// sub-state.
 //
 // SHARED enums + the locator come from ../safety/foundation.js (the single source
-// for every cross-cluster enum); they are NEVER redefined here. This cluster
-// IMPORTS NciiTargetSurfaceSchema, NciiTargetOutcomeSchema, and TargetLocatorV1Schema.
-//
-// Collection note: this cluster introduces NEW Firestore collections (+ one child
-// subcollection under `nciiRemovalJobs`); wiring collections.ts / path-builders.ts
-// / registry.ts is deferred to the app leg (the orchestrator binds the schemas +
-// path builders there); the deterministic doc-id shapes are documented on each
-// schema below.
+// for every cross-cluster enum); they are NEVER redefined here.
 
 import { z } from 'zod';
 import {
@@ -39,7 +25,7 @@ import {
 } from '../safety/foundation.js';
 
 // ===========================================================================
-// §A11 [H4] — phase / status vocabularies for the removal saga
+// Phase / status vocabularies for the removal saga
 // ===========================================================================
 
 /** The removal saga phase progression. `denyServing` precedes
@@ -66,7 +52,7 @@ export const NciiRemovalStatusSchema = z.enum([
 export type NciiRemovalStatus = z.infer<typeof NciiRemovalStatusSchema>;
 
 // ===========================================================================
-// §A11 [H4] — NciiDiscoveryCursorV1 (typed resumable discovery cursor — never an
+// NciiDiscoveryCursorV1 (typed resumable discovery cursor — never an
 // untyped blob). Embedded on NciiRemovalJobV1.cursor.
 // ===========================================================================
 
@@ -82,7 +68,7 @@ export const NciiDiscoveryCursorV1Schema = z
 export type NciiDiscoveryCursorV1 = z.infer<typeof NciiDiscoveryCursorV1Schema>;
 
 // ===========================================================================
-// §A11 [H4] — nciiRemovalJobs/{jobId}
+// nciiRemovalJobs/{jobId}
 // Deterministic `jobId = sha256('ncii-removal-v1:' + requestId + ':' + caseId +
 // ':' + generation)` (racing workers create the SAME job — idempotent).
 // ===========================================================================
@@ -117,7 +103,7 @@ export const NciiRemovalJobV1Schema = z
 export type NciiRemovalJobV1 = z.infer<typeof NciiRemovalJobV1Schema>;
 
 // ===========================================================================
-// §A11 [H4] — nciiRemovalJobs/{jobId}/targets/{targetKeyHash}
+// nciiRemovalJobs/{jobId}/targets/{targetKeyHash}
 // Per-target child row. `targetKeyHash` is the deterministic id derived from the
 // canonical locator. Per-target transitions are independent sub-state machines.
 // ===========================================================================

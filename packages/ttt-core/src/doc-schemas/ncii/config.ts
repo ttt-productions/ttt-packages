@@ -1,4 +1,4 @@
-// Trust & Safety — NCII config singletons (Appendix A §A11 [H6] / [H-17] / [H-18]).
+// Trust & Safety — NCII config singletons.
 //
 // Two Admin-SDK-only `_serverData` singleton documents, wired into COLLECTIONS,
 // PATH_BUILDERS, and the doc-schema registry:
@@ -9,18 +9,14 @@
 // a reader falls back to the frozen DEFAULT when the stored doc is absent. Any change
 // increments the policy version and triggers a retention/configuration review.
 //
-// Every value in the DEFAULT consts below is transcribed verbatim from the frozen
-// Trust & Safety spec (Appendix A §A11 [H6] / [H-17] / [H-18]) — no invented values,
-// no placeholders; the durable design owner is ttt-prod
-// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md. The schemas pin
-// each literal-defaulted field where the spec fixes a single literal value
-// (`policyVersion`, `approvedBy`, the security-profile string literals, etc.) so a
-// config write cannot silently drift from the frozen posture.
+// The schemas pin each field that has a single fixed value (`policyVersion`,
+// `approvedBy`, the security-profile string literals, etc.) so a config write cannot
+// silently drift from the frozen posture.
 
 import { z } from 'zod';
 
 // ===========================================================================
-// §A11 [H6] — NciiPolicyConfigV1 + DEFAULT_NCII_POLICY_CONFIG_V1
+// NciiPolicyConfigV1 + DEFAULT_NCII_POLICY_CONFIG_V1
 // `_serverData/nciiPolicy`
 // ===========================================================================
 
@@ -41,22 +37,21 @@ export const NciiPolicyConfigV1Schema = z
     maxEvidenceTotalBytesPerRequest: z.number(),
     uploadReservationMinutes: z.number(),
     abandonedUploadCleanupHours: z.number(),
-    // [H1/M3] temp-hold values:
+    // temp-hold values:
     tempHoldInitialHours: z.number(),
     tempHoldPendingValidityExtensionHours: z.number(),
     tempHoldMaxTotalHours: z.number(),
     incompleteInvalidReleaseDelayHours: z.number(),
-    // [NCII route rate-limit hardening — 2026-07-01, OPERATIONAL operator defaults, not legal-retention
-    // values; counsel may tune]. The public intake route returns 429 + Retry-After and NEVER discards a
-    // submission. App-Check is the PRIMARY defense with only a GENEROUS per-IP burst backstop (generous
-    // enough not to throttle a real VPN/shared-IP victim — per-IP was rejected for the evidence BYTES
-    // path; this is the HTTP route only). (The supplement route + status token were removed with the
-    // public post-submission tracking tail — the public flow is submit-only.)
+    // Intake route rate limit — OPERATIONAL operator defaults, not legal-retention values. The public
+    // intake route returns 429 + Retry-After and NEVER discards a submission. App-Check is the PRIMARY
+    // defense with only a GENEROUS per-IP burst backstop (generous enough not to throttle a real
+    // VPN/shared-IP victim; the evidence BYTES path carries no per-IP limit — this is the HTTP route
+    // only).
     intakeRateLimitWindowSeconds: z.number(),
     intakeRateLimitMaxPerIp: z.number(),
-    // [H-07] dedup window for the deterministic initial-intake idempotency key
+    // dedup window for the deterministic initial-intake idempotency key
     idempotencyWindowHours: z.number(),
-    // [M-10] evidence parser-hardening budgets (attacker-controlled bytes):
+    // evidence parser-hardening budgets (attacker-controlled bytes):
     maxEvidenceDecodePixels: z.number(),
     maxEvidenceImageDimension: z.number(),
     maxEvidenceVideoFrames: z.number(),
@@ -105,7 +100,7 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   tempHoldPendingValidityExtensionHours: 48,
   tempHoldMaxTotalHours: 336,
   incompleteInvalidReleaseDelayHours: 24,
-  // [NCII route rate-limit hardening — 2026-07-01 operator defaults; generous, counsel may tune]
+  // intake route rate limit — generous operator defaults
   intakeRateLimitWindowSeconds: 3600, // per source IP (secondary flood guard; App-Check is primary)
   intakeRateLimitMaxPerIp: 20, // generous so a shared/VPN IP with several genuine victims isn't throttled
   idempotencyWindowHours: 72,
@@ -121,7 +116,7 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
 };
 
 // ===========================================================================
-// §A11 [H-17] — PrivilegedReviewerSecurityProfileV1 +
+// PrivilegedReviewerSecurityProfileV1 +
 // DEFAULT_PRIVILEGED_REVIEWER_SECURITY_PROFILE_V1
 // `_serverData/privilegedReviewerSecurity`
 //

@@ -42,7 +42,7 @@ export const CRAFT_SKILL_KIND_ORDER: CraftSkillKind[] = ['original', 'mimicOnTtt
  * when a person selects that kind, and the upload callable refuses the kind with the same words.
  */
 export const CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE =
-  "This option isn't available yet: sharing covers or recreations of work from outside TTT needs legal review first.";
+  "This option isn't allowed yet. Sharing covers or recreations of work from outside TTT stays off until I've talked with a lawyer and gotten approval.";
 
 /**
  * The ONE owner of which craft kinds are blocked at launch, with each one's refusal copy. A

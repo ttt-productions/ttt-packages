@@ -12,7 +12,7 @@ import { CraftSkillKindSchema, type CraftSkillKind } from '../src/doc-schemas/us
 describe('off-TTT craft refusal copy', () => {
   it('is the settled sentence, verbatim', () => {
     expect(CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE).toBe(
-      "This option isn't available yet: sharing covers or recreations of work from outside TTT needs legal review first.",
+      "This option isn't allowed yet. Sharing covers or recreations of work from outside TTT stays off until I've talked with a lawyer and gotten approval.",
     );
   });
 });

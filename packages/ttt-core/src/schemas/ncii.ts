@@ -13,6 +13,7 @@ import {
   ReportableItemTypeSchema,
   NciiMinorAssessmentSchema,
   TakeItDownRequesterRoleSchema,
+  TakeItDownInvalidReasonCodeSchema,
 } from '../doc-schemas/safety/foundation.js';
 import { TakeItDownSignatureMethodSchema } from '../doc-schemas/ncii/requests.js';
 import { NciiAllegationV1Schema } from '../doc-schemas/ncii/allegations.js';
@@ -134,22 +135,6 @@ export const MarkNciiEvidenceResultSchema = z.object({
 export type MarkNciiEvidenceResult = z.infer<typeof MarkNciiEvidenceResultSchema>;
 
 // decideTakeItDownValidity — the nciiRequestReviewer-gated validity determination.
-
-/** Enumerated invalid-ruling reasons (never free-form). */
-export const TakeItDownInvalidReasonCodeSchema = z.enum([
-  'missingSignature',
-  'missingLocator',
-  'missingNonconsentStatement',
-  'missingContactInformation',
-  'requesterNotDepictedPersonOrAuthorizedRepresentative',
-  'authorityNotEstablished',
-  'locatorNotResolvableAfterReasonableEffort',
-  'requestOutsideCoveredDepiction',
-  'duplicateSuperseded',
-  'fraudulentOrBadFaith',
-  'otherCounselApproved',
-]);
-export type TakeItDownInvalidReasonCodeInput = z.infer<typeof TakeItDownInvalidReasonCodeSchema>;
 
 export const DecideTakeItDownValidityInputSchema = z
   .object({

@@ -560,7 +560,6 @@ export const TakeItDownInvalidReasonCodeSchema = z.enum([
   'requestOutsideCoveredDepiction',
   'duplicateSuperseded',
   'fraudulentOrBadFaith',
-  'otherCounselApproved',
 ]);
 export type TakeItDownInvalidReasonCode = z.infer<typeof TakeItDownInvalidReasonCodeSchema>;
 
@@ -611,11 +610,7 @@ export const NciiActionResultSchema = z.enum(['succeeded', 'failed', 'deferred',
 export type NciiActionResult = z.infer<typeof NciiActionResultSchema>;
 
 /** Honest derived completion — never 'completed' for a partial failure. */
-export const NciiRemovalCompletionOutcomeSchema = z.enum([
-  'completed',
-  'completedWithApprovedException',
-  'unableToComplete',
-]);
+export const NciiRemovalCompletionOutcomeSchema = z.enum(['completed', 'unableToComplete']);
 export type NciiRemovalCompletionOutcome = z.infer<typeof NciiRemovalCompletionOutcomeSchema>;
 
 export const NciiTargetSurfaceSchema = z.enum([
@@ -637,17 +632,8 @@ export const NciiTargetOutcomeSchema = z.enum([
   'verifiedGone',
   'leftoverRetrying',
   'unableToComplete',
-  'terminalException',
 ]);
 export type NciiTargetOutcome = z.infer<typeof NciiTargetOutcomeSchema>;
-
-/** CLOSED terminal-exception enum — a technical outage is NOT an exception. */
-export const NciiTerminalExceptionSchema = z.enum([
-  'legallyPermittedRetention',
-  'contentNotPresentVerified',
-  'counselApprovedException',
-]);
-export type NciiTerminalException = z.infer<typeof NciiTerminalExceptionSchema>;
 
 /** Internal operational case status.
  *

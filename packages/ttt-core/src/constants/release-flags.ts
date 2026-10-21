@@ -8,18 +8,18 @@
 // The admin Ready-for-Launch tab renders a READ-ONLY panel of these values,
 // and the public phase page renders live/coming per deliverable from the same
 // constants — the flags that gate the features ARE the display data source,
-// so neither surface can drift. See ttt-prod docs/charter-season/README.md.
+// so neither surface can drift.
 
-/** Theme Studio save & share (ttt-prod docs/charter-season/theme-sharing.md). */
+/** Theme Studio save & share. */
 export const THEME_SHARING_LIVE = false;
 
-/** Bouquet stage 1 — buy, give, see (ttt-prod docs/charter-season/bouquet-staging.md). */
+/** Bouquet stage 1 — buy, give, see. */
 export const BOUQUET_STAGE_1_LIVE = false;
 
 /** Bouquet stage 2 — artisan earnings views. */
 export const BOUQUET_STAGE_2_LIVE = false;
 
-/** Bouquet stage 3 — payouts (counsel-gated). */
+/** Bouquet stage 3 — payouts (post Charter Season). */
 export const BOUQUET_STAGE_3_LIVE = false;
 
 /** Bouquet stage 4 — Garden + Greenhouse display surfaces. */
