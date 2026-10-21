@@ -193,6 +193,20 @@ describe('saved reads change only through the domain-event registry, at keys a l
     ]);
   });
 
+  it('reads an argument count whatever the layout: a trailing comma adds no argument, and a wrapped read still counts', async () => {
+    const { targets } = await run(
+      {},
+      {
+        ...clean,
+        [REGISTRY]: registrySource(
+          'exact(\n  thingKeys.thread(\n    id,\n    uid,\n  ),\n), exact(thingKeys.folders(id, extra))',
+        ),
+        'src/hooks/use-wrapped.tsx': 'const queryKey = thingKeys.folders(\n  id,\n  extra,\n);',
+      },
+    );
+    expect(targets).toEqual([]);
+  });
+
   it('flags a read tree it cannot reach', async () => {
     const { targets } = await run({ readTrees: ['src/hooks', 'src/pages'] }, clean);
     expect(targets).toEqual([

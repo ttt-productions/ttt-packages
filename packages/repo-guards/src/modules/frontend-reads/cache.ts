@@ -120,6 +120,13 @@ export function clearCalls(file: FileView): Array<{ index: number; call: string 
   });
 }
 
+/** The text of the line holding `index`, so a match is judged by the statement it starts in. */
+function lineAt(code: string, index: number): string {
+  const start = code.lastIndexOf('\n', index - 1) + 1;
+  const end = code.indexOf('\n', index);
+  return code.slice(start, end === -1 ? code.length : end);
+}
+
 /** Key families some live query reads: a `queryKey` built from a key method outside a cache call, or a key object handed whole. */
 export function readKeyFamilies(
   files: ReadonlyArray<{ code: string }>,
@@ -128,36 +135,42 @@ export function readKeyFamilies(
 ): Set<string> {
   const read = new Set<string>();
   const names = alternation(objects);
+  // Matched over the whole file, so a key Prettier wraps onto the next line still reads; a match is
+  // skipped when the line it starts on is a cache call's.
   for (const { code } of files) {
-    for (const line of code.split('\n')) {
-      if (CACHE_WRITE_CALL.test(line)) continue;
-      for (const m of line.matchAll(new RegExp(`\\bqueryKey\\s*[:=]\\s*(${names})\\.(\\w+)`, 'g')))
+    for (const m of code.matchAll(new RegExp(`\\bqueryKey\\s*[:=]\\s*(${names})\\.(\\w+)`, 'g')))
+      if (!CACHE_WRITE_CALL.test(lineAt(code, m.index ?? 0)))
         read.add(familyOf(`${m[1]}.${m[2]}`, familySuffix));
-      for (const m of line.matchAll(
-        new RegExp(`[\\w$]+\\s*:\\s*(${names})\\b(?![\\w$]|\\s*\\.)`, 'g'),
-      ))
-        read.add(`${m[1]}.*`);
-    }
+    for (const m of code.matchAll(
+      new RegExp(`[\\w$]+\\s*:\\s*(${names})\\b(?![\\w$]|\\s*\\.)`, 'g'),
+    ))
+      if (!CACHE_WRITE_CALL.test(lineAt(code, m.index ?? 0))) read.add(`${m[1]}.*`);
   }
   return read;
 }
 
-/** The argument count of the call whose `(` is at `open`, or null when there is no call there. */
+/**
+ * The argument count of the call whose `(` is at `open`, or null when there is no call there. A
+ * trailing comma (the one Prettier writes after the last argument of a wrapped call) ends no
+ * argument, so it adds none.
+ */
 function argCountAt(code: string, open: number): number | null {
   if (code[open] !== '(') return null;
   let depth = 0;
   let count = 0;
-  let sawToken = false;
+  let argOpen = false;
   for (let i = open; i < code.length; i += 1) {
     const ch = code[i];
     if ('([{'.includes(ch)) {
       depth += 1;
-      if (depth > 1) sawToken = true;
+      if (depth > 1) argOpen = true;
     } else if (')]}'.includes(ch)) {
       depth -= 1;
-      if (depth === 0) return sawToken ? count + 1 : 0;
-    } else if (ch === ',' && depth === 1) count += 1;
-    else if (depth >= 1 && !/\s/.test(ch)) sawToken = true;
+      if (depth === 0) return count + (argOpen ? 1 : 0);
+    } else if (ch === ',' && depth === 1) {
+      count += 1;
+      argOpen = false;
+    } else if (depth >= 1 && !/\s/.test(ch)) argOpen = true;
   }
   return null;
 }
@@ -170,14 +183,12 @@ export function readArgCounts(
   const counts = new Map<string, Set<number>>();
   const re = new RegExp(`\\bqueryKey\\s*[:=]\\s*(${alternation(objects)})\\.(\\w+)\\(`, 'g');
   for (const { code } of files) {
-    for (const line of code.split('\n')) {
-      if (CACHE_WRITE_CALL.test(line)) continue;
-      for (const m of line.matchAll(re)) {
-        const n = argCountAt(line, (m.index ?? 0) + m[0].length - 1);
-        if (n === null) continue;
-        const ref = `${m[1]}.${m[2]}`;
-        counts.set(ref, (counts.get(ref) ?? new Set()).add(n));
-      }
+    for (const m of code.matchAll(re)) {
+      if (CACHE_WRITE_CALL.test(lineAt(code, m.index ?? 0))) continue;
+      const n = argCountAt(code, (m.index ?? 0) + m[0].length - 1);
+      if (n === null) continue;
+      const ref = `${m[1]}.${m[2]}`;
+      counts.set(ref, (counts.get(ref) ?? new Set()).add(n));
     }
   }
   return counts;
