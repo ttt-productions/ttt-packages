@@ -54,7 +54,7 @@ the same-named files in its `docs/engineering-rules/backend/`.
 
 **Rule.** The callable entry takes the caller from `request.auth.uid` through `assertAuth` (RULE-STD-BACKEND-001) and hands the core an actor built from it, from which the core derives `callerUid`; the input's identity fields are never the check. A core that writes a resource reads the permission-owning doc **inside the same transaction** it writes in and throws `permission-denied` on mismatch, before any write — group-scoped resources through the app's scoped-authorization rule, user-owned resources through their stored owner field (`userId` / `createdBy.uid`).
 
-**Documented exception.** When authorization is a global claim with no per-resource permission model, the wrapper's `assertAuth(request, { admin: {} })` is the sole boundary — only when the resource has no ownership/membership field AND the write path is structurally gated upstream.
+**Documented exception.** When authorization is a global claim with no per-resource permission model, the wrapper's `assertAuth(request, { admin: <the app's admin options> })` is the sole boundary — only when the resource has no ownership/membership field AND the write path is structurally gated upstream.
 
 **Why.** A pre-flight check outside the transaction is a TOCTOU hole — the permission doc can change between check and write.
 

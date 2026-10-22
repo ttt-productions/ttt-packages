@@ -27,8 +27,8 @@ Legend: **Fold** = a stricter clause added to the shared text. **TTT+** / **QS+*
 
 ## ENG
 
-- **ENG-003, ENG-004, ENG-010.** Shared text is ttt-prod's. The "why" stories (the NCII scanner, the
-  parchment agent) are ttt-prod history and become neutral statements of the failure.
+- **ENG-003, ENG-004, ENG-010.** Shared text is ttt-prod's. The "why" stories (two past
+  parallel-system incidents) are ttt-prod history and become neutral statements of the failure.
 - **ENG-011** (promoted from Q-Sports). Applies once `<HOLDS_LIVE_DATA>` is yes. TTT+: not yet; it
   becomes yes at launch. QS+: yes.
 
@@ -77,7 +77,7 @@ Legend: **Fold** = a stricter clause added to the shared text. **TTT+** / **QS+*
 ## BACKEND
 
 - **BACKEND-001.** Fold: links and callbacks are "derived through one shared URL helper from the
-  frontend's `NEXT_PUBLIC_SITE_URL` — never a host written into source or derived from the incoming
+  app's one configured public-site-URL variable — never a host written into source or derived from the incoming
   request", and "a URL assembled from string fragments at a call site" is prohibited. `<CANONICAL_ORIGIN>`
   replaces each domain.
 - **BACKEND-003.** Fold: "The callable entry takes the caller from `request.auth.uid` through
@@ -134,8 +134,8 @@ Legend: **Fold** = a stricter clause added to the shared text. **TTT+** / **QS+*
   restriction) through any writer; the roster is read in the status transaction. TTT+: suspend and
   under-13 closure, and the safety-lock exception.
 - **BACKEND-211.** Shared: one audit writer, origin from the request, person-actors built only by the
-  constructors. TTT+: the take-it-down and deferred-decision exceptions, sign-in recording, no
-  Identity Platform blocking functions.
+  constructors. TTT+: its documented exceptions and sign-in recording (kept private). Shared: no Identity Platform
+  blocking function.
 - **BACKEND-212** (promoted). Product-neutral. Scope note: rebuilding a derived copy from an
   untouched source is not a repair of a completed record.
 - **BACKEND-301.** ttt-prod's text (no `void` call is sanctioned). Q-Sports' "the one sanctioned
@@ -199,7 +199,7 @@ Legend: **Fold** = a stricter clause added to the shared text. **TTT+** / **QS+*
 
 ## MEDIA
 
-- **MEDIA-001.** TTT+: admin/non-admin origins, the `ncii-evidence` exception. QS+: signature origins.
+- **MEDIA-001.** TTT+: admin/non-admin origins and its non-pipeline origin exception (kept private). QS+: signature origins.
   Fold: "<APP_NAME> domain naming … inside a generic upload package" is prohibited.
 - **MEDIA-002.** Fold: "No other segment — filename, entity id, … — comes from the client", and the
   accepting callable "checks the object's real Storage metadata against the origin's spec before it

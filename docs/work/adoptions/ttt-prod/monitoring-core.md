@@ -1,7 +1,7 @@
 # Adopt @ttt-productions/monitoring-core 0.13.14
 
 **What:** BEHAVIOR: the package reads no environment variable; `initMonitoring({ enabled })` is the off switch.
-**Severity:** low
+**Severity:** medium
 **Came from:** the ttt-packages shared-standards run (Phase 1)
 
 - **Package and version:** `@ttt-productions/monitoring-core` 0.13.14.

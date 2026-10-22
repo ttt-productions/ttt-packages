@@ -58,7 +58,7 @@ describe('moderateVideo', () => {
     expect(result.scores.adult).toBe('VERY_LIKELY');
   });
 
-  it('returns safe=true when frames array is empty', async () => {
+  it('rejects when the analysis returns no frames, since nothing was checked', async () => {
     const mockClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
@@ -79,10 +79,11 @@ describe('moderateVideo', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
-    expect(result.safe).toBe(true);
+    expect(result.safe).toBe(false);
+    expect(result.reason).toBe('Content moderation check failed');
   });
 
-  it('returns safe=true when no explicit annotation is present', async () => {
+  it('rejects when no explicit annotation is present', async () => {
     const mockClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
@@ -99,7 +100,32 @@ describe('moderateVideo', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
-    expect(result.safe).toBe(true);
+    expect(result.safe).toBe(false);
+  });
+
+  it('rejects when the result carries an analysis error, even with frames', async () => {
+    const mockClient = {
+      annotateVideo: vi.fn().mockResolvedValue([
+        {
+          promise: () =>
+            Promise.resolve([
+              {
+                annotationResults: [
+                  {
+                    error: { code: 13, message: 'internal' },
+                    explicitAnnotation: { frames: [{ pornographyLikelihood: 1 }] },
+                  },
+                ],
+              },
+            ]),
+        },
+      ]),
+    };
+    const result = await moderateVideo('gs://bucket/video.mp4', {
+      rejectionLikelihoods,
+      getClient: async () => mockClient as never,
+    });
+    expect(result.safe).toBe(false);
   });
 
   it('passes the default longrunning poll backoff to annotateVideo', async () => {

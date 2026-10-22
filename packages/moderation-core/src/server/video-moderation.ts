@@ -63,9 +63,16 @@ export async function moderateVideo(
   const annotation = result.annotationResults?.[0];
   const explicitAnnotation = annotation?.explicitAnnotation;
 
-  if (!explicitAnnotation?.frames?.length) {
-    logger?.warn?.('[moderation-core] No explicit-content frames returned; allowing content');
-    return { safe: true, scores: { adult: 'UNKNOWN', violence: 'UNKNOWN', racy: 'UNKNOWN' } };
+  // An error or an empty frame list means nothing was checked.
+  if (annotation?.error || !explicitAnnotation?.frames?.length) {
+    logger?.warn?.(
+      '[moderation-core] Video analysis returned no checked frames; rejecting as precaution',
+    );
+    return {
+      safe: false,
+      reason: 'Content moderation check failed',
+      scores: { adult: 'UNKNOWN', violence: 'UNKNOWN', racy: 'UNKNOWN' },
+    };
   }
 
   let maxAdult: Likelihood = 'VERY_UNLIKELY';

@@ -432,7 +432,7 @@ marker's text is updated with it.
 anything generated — is checked against RULE-STD-ARCH-209. A finding blocks the first publish until
 the orchestrator moves the detail into the owning app's private addition list (for 3C) and reruns
 the check clean. The same check over `ttt-core` and the generic packages produces findings only, in
-`docs/work/raw-findings/public-content-check/`, for DJ.
+ttt-prod's private run notes, for DJ — never in this public repository, where a findings list would be a map.
 
 **Step 6 — gate and hand-off.** The orchestrator writes the adoption files (one per released package
 per app; `ttt-core` only to ttt-prod), runs one ttt-packages `npm run test:quiet`, then hands DJ the

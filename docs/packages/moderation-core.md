@@ -16,7 +16,7 @@ Generic moderation adapter package.
 - `.` — `Likelihood` union + `LIKELIHOOD_MAP`/`LIKELIHOOD_ORDER`/`likelihoodToString`/`isRejectionLikelihood(value, rejectionLikelihoods)`; result types `MediaModerationResult` (`{ safe, reason?, scores }`), `TextModerationResult` (`{ safe, reason?, flaggedWords?, layer? }`).
 - `./server` —
   - `moderateImage(imageSource, { rejectionLikelihoods, logger?, getClient? })` — Vision SafeSearch; GCS URI or HTTPS URL.
-  - `moderateVideo(gcsUri, { rejectionLikelihoods, logger?, getClient? })` — Video Intelligence explicit-content; GCS only.
+  - `moderateVideo(gcsUri, { rejectionLikelihoods, logger?, getClient? })` — Video Intelligence explicit-content; GCS only. An analysis error or an empty frame list returns `safe: false`, like an image with no annotation.
   - `moderateText(text, { wordList, minLength?, logger? })` — word filter (leet-speak-normalized); rejects with `layer: 'word_filter'` and the flagged words.
   - `quickWordFilter(text, wordList)`, `createWordListCache({ loader, ttlMs, logger? })` (TTL-memoized `WordListProvider` with `__reset`), plus test-only `__resetDefaultVisionClient`/`__resetDefaultVideoClient`.
 

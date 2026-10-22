@@ -43,14 +43,14 @@ async function run(guard: Guard, files: Record<string, string>) {
 const LOCAL: LocalOnlyVariablesFacts = {
   deployedConfigs: ['deploy.yaml', 'deploy.production.yaml'],
   neverDeployed: [
-    { name: 'SERVER_USE_EMULATORS', why: 'switches the server onto the emulators' },
-    { name: 'PUBLIC_USE_EMULATORS', why: 'emulator wiring for the client build' },
+    { name: 'LOCAL_ONLY_FLAG', why: 'switches the server onto the emulators' },
+    { name: 'CLIENT_WIRING_FLAG', why: 'emulator wiring for the client build' },
     { name: 'PUBLIC_DEBUG_TOKEN', why: 'an attestation bypass' },
   ],
   readers: [
     {
       owner: 'src/runtime.ts',
-      names: ['SERVER_USE_EMULATORS', 'FUNCTIONS_EMULATOR'],
+      names: ['LOCAL_ONLY_FLAG', 'FUNCTIONS_EMULATOR'],
       why: 'the one local predicate',
     },
     {
@@ -62,13 +62,13 @@ const LOCAL: LocalOnlyVariablesFacts = {
 };
 const CLEAN_LOCAL = {
   'deploy.yaml':
-    'env:\n  # SERVER_USE_EMULATORS is set by the local scripts only, never here.\n  - variable: SITE_KEY\n    value: real\n',
+    'env:\n  # LOCAL_ONLY_FLAG is set by the local scripts only, never here.\n  - variable: SITE_KEY\n    value: real\n',
   'deploy.production.yaml': 'env:\n  - variable: SITE_KEY\n    value: real\n',
   'src/runtime.ts':
-    "export const local = () => process.env.FUNCTIONS_EMULATOR === 'true' || process.env.SERVER_USE_EMULATORS === 'true';",
+    "export const local = () => process.env.FUNCTIONS_EMULATOR === 'true' || process.env.LOCAL_ONLY_FLAG === 'true';",
   'src/client.ts':
     'export const token = usingEmulators ? process.env.PUBLIC_DEBUG_TOKEN : undefined;',
-  'src/__tests__/runtime.test.ts': "vi.stubEnv('SERVER_USE_EMULATORS', 'true');",
+  'src/__tests__/runtime.test.ts': "vi.stubEnv('LOCAL_ONLY_FLAG', 'true');",
 };
 
 describe('local-only variables', () => {
@@ -83,19 +83,19 @@ describe('local-only variables', () => {
   it('flags every declaration shape in a deployed config, a trailing-comment mention included', async () => {
     const config = [
       'env:',
-      '  - variable: SERVER_USE_EMULATORS',
+      '  - variable: LOCAL_ONLY_FLAG',
       '    value: "true"',
-      '  - variable: "PUBLIC_USE_EMULATORS"',
+      '  - variable: "CLIENT_WIRING_FLAG"',
       '  - {variable: PUBLIC_DEBUG_TOKEN, value: "x"}',
-      '  - variable: SITE_KEY   # not SERVER_USE_EMULATORS',
+      '  - variable: SITE_KEY   # not LOCAL_ONLY_FLAG',
       '  - variable: PUBLIC_DEBUG_TOKEN',
       '    secret: debugToken',
     ].join('\n');
     expect(await run(configGuard, { ...CLEAN_LOCAL, 'deploy.production.yaml': config })).toEqual([
-      'deploy.production.yaml:2 names SERVER_USE_EMULATORS',
-      'deploy.production.yaml:4 names PUBLIC_USE_EMULATORS',
+      'deploy.production.yaml:2 names LOCAL_ONLY_FLAG',
+      'deploy.production.yaml:4 names CLIENT_WIRING_FLAG',
       'deploy.production.yaml:5 names PUBLIC_DEBUG_TOKEN',
-      'deploy.production.yaml:6 names SERVER_USE_EMULATORS',
+      'deploy.production.yaml:6 names LOCAL_ONLY_FLAG',
       'deploy.production.yaml:7 names PUBLIC_DEBUG_TOKEN',
     ]);
   });
@@ -112,10 +112,10 @@ describe('local-only variables', () => {
       await run(runtimeReader, {
         ...CLEAN_LOCAL,
         'src/runtime.ts': 'export const local = () => false;',
-        'src/lib/admin.ts': "const local = process.env['SERVER_USE_EMULATORS'] === 'true';",
+        'src/lib/admin.ts': "const local = process.env['LOCAL_ONLY_FLAG'] === 'true';",
       }),
     ).toEqual([
-      'src/lib/admin.ts:1 outside its owner: SERVER_USE_EMULATORS',
+      'src/lib/admin.ts:1 outside its owner: LOCAL_ONLY_FLAG',
       'src/runtime.ts stale owner: the pattern no longer appears in it (or it is outside the scope)',
     ]);
   });

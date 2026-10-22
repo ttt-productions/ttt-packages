@@ -3,9 +3,13 @@ set -euo pipefail
 
 # Never pin internal deps here: publish CI pins them at pack time, and a pin here would commit it.
 
-PKG="${1:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
-PKGDIR="${2:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
+PKG="${1:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch]}"
+PKGDIR="${2:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch]}"
 BUMP="${3:-patch}"
+if [[ "$BUMP" != "patch" ]]; then
+  echo "❌ Refusing '$BUMP': every release is a patch bump until v1 (RULE-STD-ARCH-208)."
+  exit 1
+fi
 
 # Stale nested node_modules or a cached dist can shadow the workspace symlinks.
 if [[ "${SKIP_PREFLIGHT:-0}" != "1" ]]; then

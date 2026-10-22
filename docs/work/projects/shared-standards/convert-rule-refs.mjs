@@ -20,8 +20,6 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PREFIXES = ['ENG', 'ARCH', 'BACKEND', 'FRONTEND', 'MEDIA', 'QUALITY', 'COMMENT'];
 const PREFIX_ALT = PREFIXES.join('|');
 
-// ---------- arguments ----------
-
 function parseArgs(argv) {
   const args = { write: false, only: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -39,8 +37,6 @@ function parseArgs(argv) {
   if (!args.root) throw new Error('--root <repo> is required');
   return args;
 }
-
-// ---------- tables ----------
 
 function parseCsv(text) {
   const rows = [];
@@ -83,8 +79,6 @@ function ruleMap(rows) {
   return map;
 }
 
-// ---------- shared rule headings (for anchors) ----------
-
 function sharedHeadings(rulesRoot) {
   const out = new Map();
   if (!rulesRoot || !existsSync(rulesRoot)) return out;
@@ -109,8 +103,6 @@ const slug = (heading) =>
     .replace(/[^\p{L}\p{N} _-]/gu, '')
     .replace(/ /g, '-');
 
-// ---------- the repo's view of a table path ----------
-
 const SHARED = '@ttt-productions/dev-standards/';
 
 function repoPathOf(repo, tablePath) {
@@ -118,8 +110,6 @@ function repoPathOf(repo, tablePath) {
   const rest = tablePath.slice(SHARED.length);
   return repo === 'ttt-packages' ? `packages/dev-standards/${rest}` : `node_modules/@ttt-productions/dev-standards/${rest}`;
 }
-
-// ---------- the conversion context ----------
 
 export function buildContext(args) {
   const prodRules = ruleMap(loadTable('ttt-prod-rule-ids.csv'));
@@ -158,8 +148,6 @@ function headingOf(ctx, row) {
   if (ctx.headings.has(row.new_id)) return ctx.headings.get(row.new_id);
   return `${row.new_id} — ${row.title}`;
 }
-
-// ---------- rule IDs ----------
 
 // One citation group: an ID, then any members joined by "/", " / ", "–", or "..", each either a
 // bare number (same prefix) or a full ID of any prefix.
@@ -229,8 +217,6 @@ function qualifyChains(line) {
   );
 }
 
-// ---------- links and paths ----------
-
 const ANCHOR_RE = new RegExp(`^(${PREFIX_ALT.toLowerCase()})-(\\d{3})(?:-|$)`);
 
 function convertLinkTarget(ctx, table, file, target, forms) {
@@ -277,8 +263,6 @@ function convertPaths(ctx, line, forms) {
   return out;
 }
 
-// ---------- one file ----------
-
 export function convertText(ctx, file, text, skip = new Set()) {
   const table = tableFor(ctx, file);
   // The shared package is written in the new forms; its paths name an app's layout, so only its
@@ -314,8 +298,6 @@ export function convertText(ctx, file, text, skip = new Set()) {
   return { text: lines.join('\n'), rewrites, unclassified };
 }
 
-// ---------- the file set ----------
-
 const EXCLUDE = {
   'ttt-packages': [
     /^packages\/q-core\//,
@@ -340,8 +322,6 @@ function fileSet(args) {
       statSync(join(args.root, f)).isFile(),
   );
 }
-
-// ---------- main ----------
 
 function main() {
   const args = parseArgs(process.argv.slice(2));

@@ -11,7 +11,7 @@ import { probeAudio } from '../src/audio/probe.js';
 import { processVideo } from '../src/video/video-processor.js';
 import { processAudio } from '../src/audio/audio-processor.js';
 import { runCmd } from '../src/video/ffmpeg.js';
-import { SLOW_TEST_TIMEOUT_MS } from '../../../test/timeouts.js';
+import { FIXTURE_SETUP_TIMEOUT_MS, SLOW_TEST_TIMEOUT_MS } from '../../../test/timeouts.js';
 
 const SECONDS = 3;
 const LIE_LOOPS = 8;
@@ -118,7 +118,7 @@ beforeAll(async () => {
   await writeFile(f.headerOnlyVideo, (await readFile(f.recVideo)).subarray(0, 600));
   f.headerOnlyAudio = path.join(dir, 'header-only-audio.webm');
   await writeFile(f.headerOnlyAudio, (await readFile(f.recAudio)).subarray(0, 600));
-}, SLOW_TEST_TIMEOUT_MS);
+}, FIXTURE_SETUP_TIMEOUT_MS);
 
 function spec(kind: 'video' | 'audio', maxDurationSec: number): MediaProcessingSpec {
   return { kind, maxDurationSec };

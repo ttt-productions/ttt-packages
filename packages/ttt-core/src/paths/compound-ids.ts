@@ -1,4 +1,4 @@
-// No part contains its id's separator, so each parser decodes one way.
+// A part must not contain its id's separator: each parser splits on it.
 
 import type { FollowableTargetType } from '../schemas/social.js';
 import type { NotificationType } from '../schemas/notification.js';
