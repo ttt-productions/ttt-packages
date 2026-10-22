@@ -11,12 +11,12 @@ Generic Firebase helper package.
 - Client Firebase init helper
 - Generic file-url helper `getFileNameFromUrl`
 - Firestore's `in`-filter cap, `FIRESTORE_IN_FILTER_LIMIT` (30 values in one `in`, `not-in`, or `array-contains-any` filter), beside `chunk`, which splits an id list into one read per chunk of that size. It is a Firestore platform limit, so every chunked `in` read in either app or a package splits by this one constant, never its own `30`.
-- Generic callable hook/client helpers on `./react`, and the callable factories (`createCallables`) every app declares its callables through
+- Generic callable hook/client helpers on `./react` (`useCallableMutation`, `createCallableClient`)
 - The designed-refusal readers on the root, beside `isExpectedCallableAnswerCode`: `callableRefusalCode` (the bare expected-answer code of a refusal, either wire form, or null) and `callableRefusalReason` (a `failed-precondition` refusal's `details.reason` when it is one of the caller's reasons, or null) — a refusal is told apart by its code and `details.reason`, never its message
 
 ## Boundary
 
-App config, Firebase project values, toast behavior, monitoring behavior, and callable names live in the app. `firebase-helpers/react` exposes generic primitives and factories; the consuming app decides how errors are surfaced, through the policy it hands `createCallables`.
+App config, Firebase project values, toast behavior, monitoring behavior, and callable names live in the app. `firebase-helpers/react` exposes generic primitives; the consuming app decides how errors are surfaced, through the callbacks it hands them and the policy it hands query-core's `createCallables`.
 
 ## Callable invocation contract
 
@@ -62,50 +62,12 @@ App config, Firebase project values, toast behavior, monitoring behavior, and ca
   class (`APP_CHECK_THROTTLE_CODES`); `callCallable` classifies with it rather than restating
   the codes.
 
-## Callable declarations contract
+## Callable factories live in query-core
 
-`createCallables(policy)` (`./react`) binds an app's policy once and returns the four callable
-kinds. Each named callable is declared once in the app — `createCallableHook<TInput, TResult>(functionName,
-{ limitedUseAppCheck?: true })`, and likewise for the others — so the function name, its types, and
-its App Check posture live beside each other, and a call site sees only the named hook. Every kind
-calls through `callCallable` with the policy's Functions provider and deadline; the kind fixes the
-retry, surface, and capture:
-
-- **action** (`createCallableHook`) — a TanStack mutation hook with `retry: false` that no call site
-  can override (a deadline expiry is an unknown outcome, never retried). A call site passes the
-  mutation options (minus `mutationFn` and `retry`) plus `showErrorToast`, `answeredRefusals`,
-  `isAnswerSurfacedByCaller`, and `captureFaults` (false for a caller that re-sends on a fault and
-  captures the final failure itself).
-- **reader** (`createCallableReader`) — a hook returning the function a query's `queryFn` calls. It
-  routes its failure with `showErrorToast: false` and captures no fault (the query layer captures
-  it once).
-- **invoker** (`createCallableInvoker`) — a hook returning a function a package hook drives inside its
-  own mutation: the failure is routed and its fault captured once, and the call rejects so that
-  mutation settles on it.
-- **resumable** (`createResumableCallableHook(functionName, merge, declaration?)`) — an action for
-  work the server does a budget at a time: one request calls again with the same input until the
-  answer is `complete` or `MAX_RESUMABLE_CALLS` calls were made, `merge` folding each later answer
-  into the earlier ones. It settles on a `ResumableOutcome` — the merged answer plus
-  `interruption`: a failure on the first call rejects the request; a failure on a later one settles
-  on the merged progress, never `complete`, with that failure as `interruption`, so earlier calls'
-  committed work is never lost. A `merge` that throws rejects the request.
-
-The policy (`CallablePolicy`) is everything app-specific; the package names no app copy and
-imports no toast or monitoring module (RULE-STD-QUALITY-102):
-
-- `getFunctions` and `timeoutMs` — the Functions provider and the total-invocation deadline.
-- `resolveLimitedUseAppCheck(requested)` — the effective limited-use mode for a callable declared
-  limited-use or not.
-- `captureFault(error, context)` — receives every `callCallable` report (failures and the
-  recovered-fallback report) for a call whose kind owns its capture. For a reader or a
-  `captureFaults: false` action, `captureRecoveredFallback` receives only the recovered-fallback
-  report — the package filters it out by its own marker — and the failure is captured by neither,
-  since another layer owns it.
-- `onActionError(error, { showErrorToast, answeredRefusals, isAnswerSurfacedByCaller })` — called
-  once for every failed call of every kind, with the call site's routing (defaults `true` and
-  `[]`), so the app owns which answers have their own surface and which failures toast.
-
-`@tanstack/react-query` is an optional peer, used only by the `./react` entry.
+The callable factories every app declares its callables through (`createCallables`) are query-core
+`./react`'s, built on `callCallable` and on query-core's session-aware mutation owner. This package
+supplies the primitive and `isRecoveredFallbackReport(context)` (`./client`), the one check of the
+marker `callCallable` sets on its recovered limited-use fallback report.
 
 Backend code should prefer `@ttt-productions/firebase-helpers/server` when it needs Admin SDK handles.
 
@@ -115,6 +77,6 @@ The root is pure/server-safe — pure path, timestamp, and chunking helpers that
 
 - `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer and App Check throttle classifiers, the designed-refusal readers); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import. The names typed on `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`, `formatDateDisplay`) live on `./firestore-client` too, so the root's declaration files reach no Firebase type.
 - `./server` — Admin SDK init helper, server-only handles, and the Admin-SDK batch and Timestamp helpers. The universal helpers (`chunk`, the Firestore types, `toMillis` / `toDate`, `getFileNameFromUrl`) are root-only; backend code imports them from `.`.
-- `./react` — generic callable hook/client primitives and the callable factories (`createCallables`).
-- `./client` — Firebase **client** app init helper (browser runtime).
+- `./react` — generic callable hook/client primitives (`useCallableMutation`, `createCallableClient`); no react-query.
+- `./client` — Firebase **client** app init helper, `callCallable`, and `isRecoveredFallbackReport` (browser runtime).
 - `./firestore-client` — client Firestore helpers (browser runtime) and the Firestore-typed names above.

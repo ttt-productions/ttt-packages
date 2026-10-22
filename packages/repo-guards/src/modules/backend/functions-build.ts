@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, GuardContext } from '../../guard.js';
@@ -23,8 +24,8 @@ function functionsRoot(context: GuardContext): string {
   return root.path;
 }
 
-const moduleIdOf = (root: string, path: string) =>
-  path.slice(root.length + 1).replace(CODE_EXTENSION, '');
+const moduleIdOf = (root: string, file: string) =>
+  posix.relative(root, file).replace(CODE_EXTENSION, '');
 
 export interface RateLimitFacts {
   owner: string;

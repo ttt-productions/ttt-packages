@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { documentDriftGuard, firstDifferingLine } from '../../src/modules/repo/document-drift.js';
 import { createRepoReader } from '../../src/node/reader.js';
+import { buildGenericGuards, configProblems } from '../../src/node/suite/config.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
@@ -28,6 +29,28 @@ function setUp(ours: string, theirs: string | 'no copy' | 'no checkout') {
 }
 
 describe('a document kept identical across sibling repositories', () => {
+  it('may be declared absent with its why, and then builds no check', () => {
+    workspace = tempRepo({ 'app/src/index.ts': 'export {};' });
+    const generic = {
+      documentDrift: { absent: 'the app keeps no document identical across repositories' },
+    };
+    const config = {
+      layout: {
+        repoRoot: join(workspace.root, 'app'),
+        roots: { app: { path: 'src', anchor: 'src/index.ts' } },
+      },
+      generic,
+      business: [],
+    };
+    expect(configProblems(config, [documentDriftGuard as never])).toEqual([]);
+    expect(buildGenericGuards(generic, [documentDriftGuard as never])).toEqual([]);
+    expect(
+      configProblems({ ...config, generic: { documentDrift: { absent: ' ' } } }, [
+        documentDriftGuard as never,
+      ]),
+    ).toEqual(['generic.documentDrift is declared absent with no why']);
+  });
+
   it('passes identical copies', async () => {
     const { reader, guard } = setUp('# One\ntext\n', '# One\ntext\n');
     expect(guard.skipReason!(reader)).toBeNull();

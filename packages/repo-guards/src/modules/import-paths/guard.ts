@@ -25,8 +25,8 @@ function readModules(files: ReturnType<RepoReader['files']>) {
 }
 
 function analyzedRoots(reader: RepoReader) {
-  const { app, functions } = reader.layout.roots;
-  return [app.path, ...(functions ? [functions.path] : [])];
+  const { app, functions, sharedSource } = reader.layout.roots;
+  return [app.path, ...[functions, sharedSource].flatMap((root) => (root ? [root.path] : []))];
 }
 
 function excludedModuleExists(reader: RepoReader, p: string): boolean {

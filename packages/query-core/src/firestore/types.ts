@@ -7,7 +7,7 @@ export type WithSourceState<R> = R & { sourceState: FirestoreSourceState };
 
 export type BatchFirestoreDocOutcome<T> =
   | { status: 'loading' }
-  | { status: 'present'; data: T }
+  | { status: 'present'; data: T; failure?: { error: Error; retrying: boolean } }
   | { status: 'absent' }
   | { status: 'failed'; error: Error; retrying: boolean };
 

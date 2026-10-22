@@ -15,7 +15,6 @@ export type ChatCoreConfig = {
   threadId: string;
   currentUserId: string;
   currentUserDisplayName?: string;
-  isAdmin: boolean;
   transport?: ChatTransportMode;
   realtime?: ChatRealtimeTransportConfig;
   allowed: boolean;

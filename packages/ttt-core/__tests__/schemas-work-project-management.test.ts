@@ -19,7 +19,6 @@ const validSkillSource = {
   data: {
     craftSkillId: 'craftSkill-1',
     craftSkillOwnerUserId: 'user-1',
-    craftSkillName: 'Guitar',
   },
 } as const;
 
@@ -54,6 +53,15 @@ describe('InviteSourceSchema', () => {
 
   it('accepts a valid craftSkill source', () => {
     expect(InviteSourceSchema.parse(validSkillSource)).toEqual(validSkillSource);
+  });
+
+  it('refuses a craftSkill source that carries the skill name', () => {
+    expect(
+      InviteSourceSchema.safeParse({
+        type: 'craftSkill',
+        data: { ...validSkillSource.data, craftSkillName: 'Guitar' },
+      }).success,
+    ).toBe(false);
   });
 
   it('accepts a valid commission source', () => {

@@ -4,6 +4,7 @@ import { ProfilePictureUpdatedEventSchema } from '../src/media/domain-events-use
 import { SquareStreetzPostCreatedEventSchema } from '../src/media/domain-events-social.js';
 import { ModerationViolationCreatedEventSchema } from '../src/media/domain-events-admin.js';
 import {
+  AuditionEntrySubmittedEventSchema,
   HallLibraryCoverUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
 } from '../src/media/domain-events-work.js';
@@ -419,5 +420,31 @@ describe('cache events with no write of their own: registration, a violation dec
         DomainEventSchema.safeParse({ ...event, ids: { ...event.ids, extra: 'x' } }).success,
       ).toBe(false);
     }
+  });
+});
+
+describe('AuditionEntrySubmittedEventSchema', () => {
+  const ids = { userId: 'u_1', auditionId: 'a_1', auditionEntryId: 'e_2' };
+
+  it("names the entrant's earlier entry when the new entry replaces one", () => {
+    const event = {
+      type: 'audition.entryCreated',
+      ids: { ...ids, previousAuditionEntryId: 'e_1' },
+    };
+    expect(AuditionEntrySubmittedEventSchema.parse(event)).toEqual(event);
+  });
+
+  it('parses a first entry, which replaces nothing', () => {
+    const event = { type: 'audition.entryCreated', ids };
+    expect(AuditionEntrySubmittedEventSchema.parse(event)).toEqual(event);
+  });
+
+  it('refuses an empty earlier-entry id', () => {
+    expect(
+      AuditionEntrySubmittedEventSchema.safeParse({
+        type: 'audition.entryCreated',
+        ids: { ...ids, previousAuditionEntryId: '' },
+      }).success,
+    ).toBe(false);
   });
 });

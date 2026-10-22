@@ -24,7 +24,7 @@ function renderWith(
       resolveName={() => resolution}
       renderUnresolvedName={renderUnresolvedName}
     >
-      <MessageItemDefault m={message} currentUserId="u-me" isAdmin={false} />
+      <MessageItemDefault m={message} currentUserId="u-me" />
     </ChatNameResolverProvider>,
   );
 }
@@ -74,12 +74,7 @@ describe("a sender's name is the resolved name, or the app's own state — never
     const onSenderClick = vi.fn();
     const { getByRole } = render(
       <ChatNameResolverProvider resolveName={() => ({ status: 'resolved', name: 'Ada' })}>
-        <MessageItemDefault
-          m={message}
-          currentUserId="u-me"
-          isAdmin={false}
-          onSenderClick={onSenderClick}
-        />
+        <MessageItemDefault m={message} currentUserId="u-me" onSenderClick={onSenderClick} />
       </ChatNameResolverProvider>,
     );
     fireEvent.click(getByRole('button', { name: 'Ada' }));
@@ -102,12 +97,7 @@ describe("the app's unresolved state is never nested inside the sender click tar
           ) : null
         }
       >
-        <MessageItemDefault
-          m={message}
-          currentUserId="u-me"
-          isAdmin={false}
-          onSenderClick={onSenderClick}
-        />
+        <MessageItemDefault m={message} currentUserId="u-me" onSenderClick={onSenderClick} />
       </ChatNameResolverProvider>,
     );
     fireEvent.click(getByRole('button', { name: 'Retry name' }));

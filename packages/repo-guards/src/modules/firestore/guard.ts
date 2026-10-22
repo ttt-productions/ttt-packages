@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Finding } from '../../guard.js';
 import type { RepoReader } from '../../node/reader.js';
-import type { RootRole } from '../../node/layout.js';
+import { withSharedSource, type RootRole } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   listProblem,
@@ -87,7 +87,7 @@ export async function runWriteGuard(
     exceptions,
     packageDeclarations,
   });
-  const trees = facts.writerRoots.flatMap((role) => rootPaths(reader, role));
+  const trees = withSharedSource(facts.writerRoots).flatMap((role) => rootPaths(reader, role));
   const evaluated = evaluate({
     writes,
     registry,

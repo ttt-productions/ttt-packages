@@ -46,8 +46,7 @@
         "firebase": ">=12.0.0",
         "firebase-admin": ">=10.0.0",
         "date-fns": ">=3.0.0",
-        "react": ">=19.0.0",
-        "@tanstack/react-query": ">=5.0.0"
+        "react": ">=19.0.0"
     },
     "peerDependenciesMeta": {
         "firebase": {
@@ -58,17 +57,13 @@
         },
         "react": {
             "optional": true
-        },
-        "@tanstack/react-query": {
-            "optional": true
         }
     },
     "devDependencies": {
         "date-fns": "^4.1.0",
         "firebase-admin": "^14.0.0",
         "react": "^19.2.0",
-        "@types/react": "^19.0.0",
-        "@tanstack/react-query": "^5.90.17"
+        "@types/react": "^19.0.0"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

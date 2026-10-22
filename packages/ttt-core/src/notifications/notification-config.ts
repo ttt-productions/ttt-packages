@@ -1,6 +1,15 @@
 import type { NotificationSystemConfig } from '@ttt-productions/notification-core';
 import { NOTIFICATION_TYPE_CATALOG } from '../schemas/notification.js';
 import { COLLECTIONS } from '../paths/collections.js';
+import { APP_ROUTES } from '../paths/app-routes.js';
+import {
+  hallItemIdSchema,
+  userIdSchema,
+  workProjectIdSchema,
+  workRealmIdSchema,
+} from '../schemas/atoms.js';
+import { HallSubItemTypeSchema } from '../doc-schemas/content.js';
+import { contentPublishedStoredCopy } from './content-published-copy.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -32,7 +41,7 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       titlePattern: (meta) => `Content Report: ${meta.reportedItemType}`,
       messagePattern: (_meta, count) =>
         `${count} user${count > 1 ? 's' : ''} reported this content`,
-      defaultTargetPath: '/admin',
+      defaultTargetPath: APP_ROUTES.admin(),
       countCap: 5000,
       actorCap: 5,
       icon: '🚩',
@@ -42,7 +51,7 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       dedupKeyPattern: (meta) => `invite_${meta.workProjectId}_${meta.guildInviteId}`,
       titlePattern: () => 'Guild Invite',
       messagePattern: () => 'You have been invited to collaborate',
-      defaultTargetPath: '/invites',
+      defaultTargetPath: APP_ROUTES.invites(),
       countCap: 100,
       actorCap: 5,
       icon: '📬',
@@ -57,8 +66,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
           : 'An admin has responded to your message',
       defaultTargetPath: (meta) =>
         meta.partyKind === 'workProject' && typeof meta.workProjectId === 'string'
-          ? `/work-projects/${meta.workProjectId}`
-          : '/messages',
+          ? APP_ROUTES.workProject(workProjectIdSchema.parse(meta.workProjectId))
+          : APP_ROUTES.messages(),
       countCap: 100,
       actorCap: 1,
       icon: '📩',
@@ -70,8 +79,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       messagePattern: () => 'An admin has created a new thread message',
       defaultTargetPath: (meta) =>
         meta.partyKind === 'workProject' && typeof meta.workProjectId === 'string'
-          ? `/work-projects/${meta.workProjectId}`
-          : '/messages',
+          ? APP_ROUTES.workProject(workProjectIdSchema.parse(meta.workProjectId))
+          : APP_ROUTES.messages(),
       countCap: 1,
       actorCap: 1,
       icon: '📩',
@@ -81,7 +90,7 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       dedupKeyPattern: (meta) => `thresholdLibrarySubmission_${meta.workProjectId}`,
       titlePattern: () => 'Threshold Library Submission',
       messagePattern: () => 'New content submitted for review',
-      defaultTargetPath: '/admin',
+      defaultTargetPath: APP_ROUTES.admin(),
       countCap: 100,
       actorCap: 5,
       icon: '📚',
@@ -94,7 +103,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
         typeof meta.adminNotes === 'string' && meta.adminNotes.trim().length > 0
           ? `Your submission needs revision: ${meta.adminNotes}`
           : 'Your submission needs revision before it can be published.',
-      defaultTargetPath: (meta) => `/work-projects/${meta.workProjectId}`,
+      defaultTargetPath: (meta) =>
+        APP_ROUTES.workProject(workProjectIdSchema.parse(meta.workProjectId)),
       countCap: 100,
       actorCap: 1,
       icon: '📝',
@@ -114,8 +124,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       },
       defaultTargetPath: (meta) =>
         typeof meta.workRealmId === 'string' && meta.workRealmId.length > 0
-          ? `/work-realms/${meta.workRealmId}`
-          : `/work-projects/${meta.workProjectId}`,
+          ? APP_ROUTES.workRealm(workRealmIdSchema.parse(meta.workRealmId))
+          : APP_ROUTES.workProject(workProjectIdSchema.parse(meta.workProjectId)),
       countCap: 100,
       actorCap: 1,
       icon: '📝',
@@ -137,7 +147,7 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
         meta.decision === 'approved'
           ? 'Your appeal was approved — your content is being restored.'
           : 'Your appeal was denied. The moderation decision stands.',
-      defaultTargetPath: '/profile/uploads',
+      defaultTargetPath: APP_ROUTES.profileUploads(),
       countCap: 100,
       actorCap: 1,
       icon: '⚖️',
@@ -154,10 +164,19 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
     followed_content_published: {
       ...catalogEntry('followed_content_published'),
       dedupKeyPattern: (meta) => `relpub_${meta.hallItemId}`,
-      titlePattern: (meta) => `New in ${meta.workTitle}`,
+      titlePattern: (meta) =>
+        contentPublishedStoredCopy({
+          type: 'followed_content_published',
+          count: 1,
+          hallSubItemType: HallSubItemTypeSchema.parse(meta.hallSubItemType),
+        }).title,
       messagePattern: (meta, count) =>
-        count > 1 ? `${count} new items published` : `"${meta.hallItemTitle}" was published`,
-      defaultTargetPath: (meta) => `/hall-library/${meta.hallItemId}`,
+        contentPublishedStoredCopy({
+          type: 'followed_content_published',
+          count,
+          hallSubItemType: HallSubItemTypeSchema.parse(meta.hallSubItemType),
+        }).message,
+      defaultTargetPath: (meta) => APP_ROUTES.hallItem(hallItemIdSchema.parse(meta.hallItemId)),
       countCap: 5000,
       actorCap: 5,
       icon: '📖',
@@ -165,12 +184,20 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
     member_content_published: {
       ...catalogEntry('member_content_published'),
       dedupKeyPattern: (meta) => `mempub_${meta.hallItemId}`,
-      titlePattern: (meta) => `Your work "${meta.workTitle}" was published`,
+      titlePattern: (meta) =>
+        contentPublishedStoredCopy({
+          type: 'member_content_published',
+          count: 1,
+          hallSubItemType: HallSubItemTypeSchema.parse(meta.hallSubItemType),
+        }).title,
       messagePattern: (meta, count) =>
-        count > 1
-          ? `${count} of your items were published to the Hall Library`
-          : `"${meta.hallItemTitle}" is now in the Hall Library`,
-      defaultTargetPath: (meta) => `/work-projects/${meta.workProjectId}`,
+        contentPublishedStoredCopy({
+          type: 'member_content_published',
+          count,
+          hallSubItemType: HallSubItemTypeSchema.parse(meta.hallSubItemType),
+        }).message,
+      defaultTargetPath: (meta) =>
+        APP_ROUTES.workProject(workProjectIdSchema.parse(meta.workProjectId)),
       countCap: 5000,
       actorCap: 5,
       icon: '🎉',
@@ -180,7 +207,7 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       dedupKeyPattern: (meta) => `realmFileShareRequested_${meta.requestId}`,
       titlePattern: () => 'Realm file request',
       messagePattern: () => 'A work file admin asked to share a file into your Realm.',
-      defaultTargetPath: (meta) => `/work-realms/${meta.workRealmId}`,
+      defaultTargetPath: (meta) => APP_ROUTES.workRealm(workRealmIdSchema.parse(meta.workRealmId)),
       countCap: 1,
       actorCap: 1,
       icon: '🗂️',
@@ -200,8 +227,8 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       },
       defaultTargetPath: (meta) =>
         meta.resolution === 'withdrawn'
-          ? `/work-realms/${meta.workRealmId}`
-          : `/work-projects/${meta.workProjectId}`,
+          ? APP_ROUTES.workRealm(workRealmIdSchema.parse(meta.workRealmId))
+          : APP_ROUTES.workProject(workProjectIdSchema.parse(meta.workProjectId)),
       countCap: 1,
       actorCap: 1,
       icon: '🗃️',
@@ -211,7 +238,7 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       dedupKeyPattern: (meta) => `craftskill_${meta.artisanUid}`,
       titlePattern: () => 'New craft skills',
       messagePattern: () => 'An artisan you follow uploaded new craft skills',
-      defaultTargetPath: (meta) => `/profile/${meta.artisanUid}`,
+      defaultTargetPath: (meta) => APP_ROUTES.profile(userIdSchema.parse(meta.artisanUid)),
       countCap: 1,
       actorCap: 1,
       icon: '🎨',

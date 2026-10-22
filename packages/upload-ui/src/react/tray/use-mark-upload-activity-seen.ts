@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useSessionMutation, type MutationSession } from '@ttt-productions/query-core/react';
 
 export interface MarkUploadActivitySeenOptions {
   markFn: (pendingMediaIds: string[]) => Promise<void>;
@@ -24,6 +24,7 @@ async function markInBatches(
   markFn: (pendingMediaIds: string[]) => Promise<void>,
   maxIdsPerCall: number,
   pendingMediaIds: string[],
+  session: MutationSession,
 ): Promise<void> {
   if (!Number.isInteger(maxIdsPerCall) || maxIdsPerCall < 1) {
     throw new Error(`maxIdsPerCall must be a positive whole number, got ${maxIdsPerCall}.`);
@@ -32,6 +33,7 @@ async function markInBatches(
   const unmarkedIds: string[] = [];
   for (let start = 0; start < pendingMediaIds.length; start += maxIdsPerCall) {
     const batch = pendingMediaIds.slice(start, start + maxIdsPerCall);
+    session.assertCurrent();
     try {
       await markFn(batch);
     } catch (err) {
@@ -44,8 +46,9 @@ async function markInBatches(
 
 export function useMarkUploadActivitySeen(options: MarkUploadActivitySeenOptions) {
   const { markFn, maxIdsPerCall, onError } = options;
-  return useMutation<void, Error, string[]>({
-    mutationFn: (pendingMediaIds) => markInBatches(markFn, maxIdsPerCall, pendingMediaIds),
+  return useSessionMutation<void, Error, string[]>({
+    mutationFn: (pendingMediaIds, { session }) =>
+      markInBatches(markFn, maxIdsPerCall, pendingMediaIds, session),
     onError: (error, pendingMediaIds) => {
       if (error instanceof MarkUploadActivitySeenError) onError?.(error.failure, error.unmarkedIds);
       else onError?.(error, pendingMediaIds);

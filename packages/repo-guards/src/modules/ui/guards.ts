@@ -46,6 +46,7 @@ import {
   type ColorLiteralFacts,
   type EntryStylesheetFacts,
 } from './styling.js';
+import { sharedTruncationGuard, type SharedTruncationFacts } from './truncation.js';
 
 export interface UiGuardFacts {
   colorLiterals: ColorLiteralFacts;
@@ -70,6 +71,7 @@ export interface UiGuardFacts {
   accessibleControls: AccessibleControlFacts;
   wholeInputNumbers: WholeInputNumberFacts;
   selfHostedFonts: Record<string, never>;
+  sharedTruncation: SharedTruncationFacts;
 }
 
 export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -95,4 +97,5 @@ export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.fr
   accessibleControlsGuard,
   wholeInputNumbersGuard,
   selfHostedFontsGuard,
+  sharedTruncationGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

@@ -29,8 +29,14 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   for such a field, and `utils/text-field` is the one owner of its refusal and notice sentences. The
   form, the wire, and the writer read the same declaration, so they accept the same texts.
 - **Paths and ids.** `paths/` owns collection and subcollection names, the path builders, collection
-  references and groups, Storage paths, and the related-id contracts. Every persisted compound
-  document id is built — and, where read back, parsed — only by `paths/compound-ids`. TTT's
+  references and groups, Storage paths, the related-id contracts, and the app's page routes
+  (`APP_ROUTES` in `paths/app-routes`: one builder per app page a link, redirect, or notification
+  reaches, with its query parameters; paths only — each runtime joins its own origin). Every route
+  ttt-core names goes through `APP_ROUTES`. `paths/hall-browse` owns the Hall library's browse
+  state, its query keys, and its parser; the admin views and the Backstage Guide topic ids a route
+  takes are declared in `constants/`. Every persisted compound
+  document id, the NCII durable case id included, is built — and, where read back, parsed — only by
+  `paths/compound-ids`. TTT's
   realtime conversation kinds and the chat keys and ids derived from a conversation live in `ids/`.
 - **Constants and limits.** `constants/` owns TTT's limits, business constants, option lists,
   labels, and product copy, one file per concern. `constants/app-mode` owns the app mode
@@ -49,7 +55,9 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   and publication arguments. `upload-variables/` owns each upload hook's variables schema.
 - **Notifications.** `schemas/notification` owns the notification type catalog and the broadcast
   and archive inputs; `notifications/` owns `TTT_NOTIFICATION_CONFIG`, the one configuration TTT
-  hands `notification-core`, derived from that catalog.
+  hands `notification-core`, derived from that catalog. Notification metadata carries ids, never a
+  referenced record's title; `notifications/content-published-copy` owns the Hall-publication
+  cards' title-free stored text and the copy the app renders from the titles it resolves.
 - **Audit.** `types/audit` owns TTT's audit event type catalog and its actor and target
   specialization of the `audit-core` generic event.
 - **Reports and the safety data model.** The documents and wire shapes of reports, report groups,

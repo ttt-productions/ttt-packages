@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  adminActionSurfaceGuard,
   adminClaimGuard,
   appCheckGuard,
   noBlockingFunctionGuard,
   requestOriginGuard,
+  type AdminActionSurfaceFacts,
   type AdminClaimFacts,
   type AppCheckFacts,
 } from '../../src/modules/backend/auth.js';
@@ -437,5 +439,189 @@ describe('every callable declares its App Check posture', () => {
         }),
       ).toEqual(['clientDeclarations is missing', 'noClientDeclaration entry a carries no why']);
     });
+  });
+});
+
+describe('admin actions outside the admin area go through the admin-actions affordance', () => {
+  const facts: AdminActionSurfaceFacts = {
+    adminAuth: { call: 'assertAuth', option: 'admin' },
+    adminCheckers: ['requireAdmin'],
+    checkerReaders: [
+      {
+        path: 'functions/src/admin/projection.ts',
+        why: 'widens a read-only projection for an admin',
+      },
+    ],
+    adminDeclarations: {
+      modules: ['src/lib/admin-remote.ts'],
+      factories: {
+        action: 'defineAction',
+        reader: 'defineReader',
+        invoker: 'defineInvoker',
+        resumable: 'defineResumable',
+      },
+    },
+    claimKeys: ['isAdmin'],
+    adminHooks: ['useIsAdmin'],
+    adminAreaRoots: ['src/app/admin'],
+    affordanceOwner: 'src/components/admin-actions.tsx',
+    reviewed: [
+      { path: 'src/components/nav.tsx', symbol: 'useIsAdmin', why: 'links to the admin area' },
+    ],
+    importAliases: { '@/': 'src/' },
+    appServerZone: { folders: ['src/app/api'], serverModules: ['firebase-admin'] },
+  };
+  const clean: Record<string, string> = {
+    'functions/src/admin/hide.ts':
+      'export const adminHide = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
+    'functions/src/admin/projection.ts': [
+      'export const listThings = onCall({ enforceAppCheck: true }, async (request) => {',
+      '  const ctx = await assertAuth(request);',
+      '  const wide = await requireAdmin(ctx);',
+      '});',
+    ].join('\n'),
+    'functions/src/factory.ts': [
+      'function make(id: string) {',
+      '  return onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
+      '}',
+      "export const adminCopy = make('a');",
+    ].join('\n'),
+    'functions/src/member.ts':
+      'export const join = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request); });',
+    'src/lib/admin-remote.ts': [
+      "export const useAdminHide = defineAction('adminHide');",
+      "export const useAdminCopy = defineAction('adminCopy');",
+    ].join('\n'),
+    'src/hooks/use-is-admin.ts': 'export {};',
+    'src/app/admin/page.tsx': [
+      "import { useAdminHide } from '@/lib/admin-remote';",
+      "import { useIsAdmin } from '@/hooks/use-is-admin';",
+      'if (claims?.isAdmin) show();',
+    ].join('\n'),
+    'src/components/admin-actions.tsx': [
+      "import { useAdminHide, useAdminCopy } from '../lib/admin-remote';",
+      "import { useIsAdmin } from '@/hooks/use-is-admin';",
+    ].join('\n'),
+    'src/components/nav.tsx': "import { useIsAdmin } from '@/hooks/use-is-admin';",
+    'src/app/api/hide/route.ts': 'const ok = decoded.isAdmin === true;',
+    'src/components/card.tsx': "const label = 'isAdmin';",
+    'src/components/card.test.tsx': "import { useAdminHide } from '@/lib/admin-remote';",
+  };
+  const run = async (files: Record<string, string>, f: AdminActionSurfaceFacts = facts) => {
+    repo = backendRepo(files);
+    const [guard] = adminActionSurfaceGuard.build(f);
+    return (await repo.run(guard!)).map(
+      (x) => `${x.file}${x.line ? `:${x.line}` : ''} ${x.detail}`,
+    );
+  };
+
+  it('passes the admin area, the affordance, a reviewed read, server code, tests, and a declarations module that matches the backend', async () => {
+    expect(await run(clean)).toEqual([]);
+    const [guard] = adminActionSurfaceGuard.build(facts);
+    expect(samplesHold(guard!)).toBe(true);
+  });
+
+  it('FLAGS an admin claim read, an admin declaration import, and an admin hook import outside the admin area', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/components/row.tsx': [
+          "import { useAdminHide } from '@/lib/admin-remote';",
+          "import { useIsAdmin } from '../hooks/use-is-admin';",
+          'if (claims?.isAdmin) show();',
+        ].join('\n'),
+        'src/components/nav.tsx': [
+          "import { useIsAdmin } from '@/hooks/use-is-admin';",
+          'const a = userClaims.isAdmin;',
+        ].join('\n'),
+      }),
+    ).toEqual([
+      'src/components/nav.tsx:2 outside the admin area: reads the admin claim (userClaims.isAdmin)',
+      'src/components/row.tsx:1 outside the admin area: imports useAdminHide from the admin declarations src/lib/admin-remote.ts',
+      'src/components/row.tsx:2 outside the admin area: imports the admin hook useIsAdmin',
+      'src/components/row.tsx:3 outside the admin area: reads the admin claim (claims?.isAdmin)',
+    ]);
+  });
+
+  it('FLAGS an admin checker called in a callable module outside its reviewed readers', async () => {
+    expect(
+      await run({
+        ...clean,
+        'functions/src/other.ts': [
+          'export const peek = onCall({ enforceAppCheck: true }, async (request) => {',
+          '  const ctx = await assertAuth(request);',
+          '  if (await requireAdmin(ctx)) return all;',
+          '});',
+        ].join('\n'),
+      }),
+    ).toEqual([
+      'functions/src/other.ts:3 a callable module checks admin standing through requireAdmin instead of its assertAuth',
+    ]);
+  });
+
+  it('FLAGS a declarations module that misses an admin-only callable or declares one that is not', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/lib/admin-remote.ts': [
+          "export const useAdminHide = defineAction('adminHide');",
+          "export const useJoin = defineAction('join');",
+        ].join('\n'),
+        'src/components/admin-actions.tsx': "import { useAdminHide } from '../lib/admin-remote';",
+      }),
+    ).toEqual([
+      'src/lib/admin-remote.ts:2 useJoin declares join, which is not an admin-only callable',
+      'functions/src/factory.ts:4 adminCopy is admin-only, but src/lib/admin-remote.ts does not declare it',
+    ]);
+  });
+
+  it('FLAGS a stale reader, a stale reviewed entry, a gone admin root, and an affordance that holds no admin standing', async () => {
+    expect(
+      await run(
+        {
+          ...clean,
+          'functions/src/admin/projection.ts':
+            'export const listThings = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request); });',
+          'src/components/nav.tsx': 'export const Nav = () => null;',
+          'src/components/admin-actions.tsx': 'export const AdminActions = () => null;',
+        },
+        { ...facts, adminAreaRoots: ['src/app/admin', 'src/gone'] },
+      ),
+    ).toEqual([
+      'functions/src/admin/projection.ts stale reader: it no longer calls an admin checker in a callable module',
+      'src/gone stale admin-area root: it no longer exists',
+      'src/components/admin-actions.tsx stale affordance owner: it reads no admin standing and imports no admin declaration or hook',
+      'src/components/nav.tsx stale entry: it no longer reads admin standing through useIsAdmin',
+    ]);
+  });
+
+  it('does not count an admin option set to false, null, or undefined as admin-only', async () => {
+    expect(
+      await run({
+        ...clean,
+        'functions/src/off.ts': [
+          'export const offA = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: false }); });',
+          'export const offB = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: null }); });',
+          'export const offC = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: undefined }); });',
+        ].join('\n'),
+        'src/lib/admin-remote.ts': [
+          "export const useAdminHide = defineAction('adminHide');",
+          "export const useAdminCopy = defineAction('adminCopy');",
+          "export const useOffA = defineAction('offA');",
+        ].join('\n'),
+      }),
+    ).toEqual([
+      'src/lib/admin-remote.ts:3 useOffA declares offA, which is not an admin-only callable',
+    ]);
+  });
+
+  it('may be declared absent, and refuses a reviewed entry with an empty symbol', () => {
+    expect(adminActionSurfaceGuard.absentWhen).toBeTruthy();
+    expect(
+      adminActionSurfaceGuard.factProblems({
+        ...facts,
+        reviewed: [{ path: 'src/a.tsx', symbol: ' ', why: 'w' }],
+      }),
+    ).toEqual(["reviewed entry src/a.tsx's symbol is empty"]);
   });
 });

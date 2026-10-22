@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  useMutation,
-  useQueryClient,
-  type QueryKey,
-  type UseMutationResult,
-} from '@tanstack/react-query';
+import { useQueryClient, type QueryKey, type UseMutationResult } from '@tanstack/react-query';
 import {
   doc,
   setDoc,
@@ -15,6 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
+import { useSessionMutation } from '../session-mutation.js';
 import type { FirestoreMutationOptions, FirestoreBatchOptions } from '../../firestore/types.js';
 import type { MutationOperation } from './types.js';
 
@@ -35,7 +31,7 @@ export function useFirestoreSet<T extends DocumentData>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async ({
       docPath,
       data,
@@ -69,7 +65,7 @@ export function useFirestoreUpdate<T extends DocumentData>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async ({ docPath, data }: { docPath: string; data: Partial<T> }) => {
       const docRef = doc(db, docPath);
       await updateDoc(docRef, data as DocumentData);
@@ -121,7 +117,7 @@ export function useFirestoreDelete<T = unknown>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async ({ docPath }: { docPath: string }) => {
       const docRef = doc(db, docPath);
       await deleteDoc(docRef);
@@ -169,7 +165,7 @@ export function useFirestoreBatch({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async ({ operations }: { operations: MutationOperation[] }) => {
       const chunks: MutationOperation[][] = [];
       for (let i = 0; i < operations.length; i += batchSize) {

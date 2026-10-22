@@ -610,6 +610,24 @@ describe('one surface per callable rejection', () => {
     ]);
   });
 
+  it("flags an invoker driven by the session mutation owner that toasts its failure again, and passes one that doesn't", async () => {
+    const hooks = lines(
+      'export function useArchiveFlow() {',
+      '  const archive = useArchiveThing();',
+      "  return useSessionMutation({ mutationFn: (v: V) => archive(v), onError: () => toast({ title: 'Failed' }) });",
+      '}',
+      'export function useResetFlow() {',
+      '  const archive = useArchiveThing();',
+      '  return useSessionMutation({ mutationFn: (v: V) => archive(v), onError: () => reset() });',
+      '}',
+    );
+    expect(
+      await findingsOf(doubleSurfaceGuard, facts, { ...base, 'src/hooks/use-archive.ts': hooks }),
+    ).toEqual([
+      'src/hooks/use-archive.ts:3 archive (useArchiveThing, src/lib/remote.ts) toasts again in the onError of the mutation that calls it',
+    ]);
+  });
+
   it('flags a call site that toasts again through an app hook built over a toasting declared hook', async () => {
     expect(
       await view(

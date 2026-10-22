@@ -11,7 +11,6 @@ describe('ChatCoreConfig transport', () => {
       chatCollectionPath: 'guildChatChannels',
       threadId: 'ch1',
       currentUserId: 'u1',
-      isAdmin: false,
       allowed: true,
     };
     expect(cfg.transport).toBeUndefined();
@@ -23,7 +22,6 @@ describe('ChatCoreConfig transport', () => {
       chatCollectionPath: 'guildChatChannels',
       threadId: 'ch1',
       currentUserId: 'u1',
-      isAdmin: false,
       allowed: false,
     };
     expect(cfg.transport).toBe('firestore');
@@ -39,7 +37,6 @@ describe('ChatCoreConfig transport', () => {
       chatCollectionPath: 'guildChatChannels',
       threadId: 'ch1',
       currentUserId: 'u1',
-      isAdmin: false,
       allowed: true,
       realtime,
     };
@@ -52,7 +49,6 @@ describe('ChatCoreConfig transport', () => {
       chatCollectionPath: 'c',
       threadId: 't',
       currentUserId: 'u',
-      isAdmin: false,
       allowed: true,
     };
     const legacy: ChatCoreConfig = {

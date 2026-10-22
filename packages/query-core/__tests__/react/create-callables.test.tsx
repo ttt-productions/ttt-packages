@@ -9,7 +9,11 @@ import {
   MAX_RESUMABLE_CALLS,
   type CallablePolicy,
   type CallableErrorRouting,
-} from '../src/react/create-callables.js';
+} from '../../src/react/callables/create-callables.js';
+import {
+  MutationSessionEndedError,
+  MutationSessionProvider,
+} from '../../src/react/session-mutation.js';
 
 const TIMEOUT_MS = 30_000;
 const functionsInstance = {} as Functions;
@@ -463,5 +467,192 @@ describe('createCallables — resumable', () => {
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(policy.captureFault).toHaveBeenCalledTimes(1);
     expect(policy.onActionError).toHaveBeenCalledTimes(1);
+  });
+});
+
+function deferredCallable() {
+  let settle!: (outcome: { data?: unknown; error?: Error }) => void;
+  const answer = new Promise<{ data?: unknown; error?: Error }>((resolve) => {
+    settle = resolve;
+  });
+  const invoke = vi.fn(async () => {
+    const outcome = await answer;
+    if (outcome.error) throw outcome.error;
+    return { data: outcome.data };
+  });
+  vi.mocked(httpsCallable).mockReturnValue(
+    Object.assign(invoke, { stream: vi.fn() }) as unknown as ReturnType<typeof httpsCallable>,
+  );
+  return { invoke, settle };
+}
+
+function sessionWrapper(client: QueryClient, session: { uid: string | null }) {
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={client}>
+        <MutationSessionProvider currentUid={session.uid}>{children}</MutationSessionProvider>
+      </QueryClientProvider>
+    );
+  };
+}
+
+describe('createCallables — an answer that lands after the session ended', () => {
+  beforeEach(() => vi.mocked(httpsCallable).mockReset());
+
+  it('an action skips its toast and callbacks, still captures the fault, and rejects as ended', async () => {
+    const { invoke, settle } = deferredCallable();
+    const policy = makePolicy();
+    const onError = vi.fn();
+    const onSettled = vi.fn();
+    const useAction = createCallables(policy).createCallableHook<void, unknown>('doThing');
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(() => useAction({ onError, onSettled }), {
+      wrapper: sessionWrapper(retryingClient(), session),
+    });
+
+    let request!: Promise<unknown>;
+    act(() => {
+      request = result.current.mutateAsync();
+    });
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    session.uid = null;
+    rerender();
+    const error = fault();
+    await act(async () => {
+      settle({ error });
+      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
+    });
+
+    expect(policy.onActionError).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(policy.captureFault).toHaveBeenCalledTimes(1);
+    expect(policy.captureFault).toHaveBeenCalledWith(error, {
+      functionName: 'doThing',
+      timeoutMs: TIMEOUT_MS,
+    });
+  });
+
+  it("an action's success skips its callbacks once the session ended", async () => {
+    const { invoke, settle } = deferredCallable();
+    const onSuccess = vi.fn();
+    const perCallSuccess = vi.fn();
+    const useAction = createCallables(makePolicy()).createCallableHook<void, unknown>('doThing');
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(() => useAction({ onSuccess }), {
+      wrapper: sessionWrapper(retryingClient(), session),
+    });
+
+    act(() => {
+      result.current.mutate(undefined, { onSuccess: perCallSuccess });
+    });
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    session.uid = 'member-b';
+    rerender();
+    await act(async () => {
+      settle({ data: { ok: true } });
+    });
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(perCallSuccess).not.toHaveBeenCalled();
+  });
+
+  it('an action in the same session still routes its failure', async () => {
+    const { settle } = deferredCallable();
+    const policy = makePolicy();
+    const useAction = createCallables(policy).createCallableHook<void, unknown>('doThing');
+    const session = { uid: 'member-a' as string | null };
+    const { result } = renderHook(() => useAction(), {
+      wrapper: sessionWrapper(retryingClient(), session),
+    });
+
+    let request!: Promise<unknown>;
+    act(() => {
+      request = result.current.mutateAsync();
+    });
+    const error = fault();
+    await act(async () => {
+      settle({ error });
+      await expect(request).rejects.toBe(error);
+    });
+
+    expect(policy.onActionError).toHaveBeenCalledWith(error, DEFAULT_ROUTING);
+  });
+
+  it('a reader whose call started in an ended session routes nothing', async () => {
+    const { settle } = deferredCallable();
+    const policy = makePolicy();
+    const useRead = createCallables(policy).createCallableReader<void, unknown>('read');
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(() => useRead(), {
+      wrapper: sessionWrapper(retryingClient(), session),
+    });
+
+    const read = result.current();
+    session.uid = null;
+    rerender();
+    const error = fault();
+    settle({ error });
+    await expect(read).rejects.toBe(error);
+
+    expect(policy.onActionError).not.toHaveBeenCalled();
+  });
+
+  it('an invoker whose call started in an ended session skips the routing but still captures', async () => {
+    const { settle } = deferredCallable();
+    const policy = makePolicy();
+    const useInvoke = createCallables(policy).createCallableInvoker<{ id: string }, unknown>(
+      'invoke',
+    );
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(() => useInvoke(), {
+      wrapper: sessionWrapper(retryingClient(), session),
+    });
+
+    const call = result.current({ id: 'a' });
+    session.uid = null;
+    rerender();
+    const error = fault();
+    settle({ error });
+    await expect(call).rejects.toBe(error);
+
+    expect(policy.onActionError).not.toHaveBeenCalled();
+    expect(policy.captureFault).toHaveBeenCalledTimes(1);
+  });
+
+  it('a resumable request makes no further call once the session ended', async () => {
+    const answers: Array<(value: unknown) => void> = [];
+    const invoke = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          answers.push(resolve);
+        }),
+    );
+    vi.mocked(httpsCallable).mockReturnValue(
+      Object.assign(invoke, { stream: vi.fn() }) as unknown as ReturnType<typeof httpsCallable>,
+    );
+    const useResumable = createCallables(makePolicy()).createResumableCallableHook<
+      void,
+      { complete: boolean; done: number }
+    >('sweep', (earlier, later) => ({ ...later, done: earlier.done + later.done }));
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(() => useResumable(), {
+      wrapper: sessionWrapper(retryingClient(), session),
+    });
+
+    let request!: Promise<unknown>;
+    act(() => {
+      request = result.current.mutateAsync();
+    });
+    await waitFor(() => expect(answers).toHaveLength(1));
+    session.uid = null;
+    rerender();
+    await act(async () => {
+      answers[0]({ data: { complete: false, done: 1 } });
+      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
   });
 });

@@ -383,7 +383,7 @@ describe('useBatchFirestoreDocs — error semantics', () => {
     });
     await waitFor(() => expect(result.current.data.u1).toBeTruthy());
 
-    failNextWith(new Error('permission-denied'));
+    failNextWith(Object.assign(new Error('permission-denied'), { code: 'permission-denied' }));
     await act(async () => {
       await queryClient.refetchQueries({ queryKey: ['publicUser', 'u1'], exact: true });
     });

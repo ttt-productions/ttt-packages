@@ -22,7 +22,6 @@ function baseConfig(over: Partial<ChatCoreConfig> = {}): ChatCoreConfig {
     chatCollectionPath: 'chats',
     threadId: 't1',
     currentUserId: 'u1',
-    isAdmin: false,
     allowed: true,
     ...over,
   } as ChatCoreConfig;

@@ -1,6 +1,7 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSessionMutation } from '@ttt-productions/query-core/react';
 import type { ReleaseTaskRequest } from '../../schemas/requests.js';
 import type { TaskLifecycleResult } from '../../contracts/types-admin-task.js';
 
@@ -12,7 +13,7 @@ interface UseReleaseTaskOptions {
 export function useReleaseTask({ releaseTaskFn, userId }: UseReleaseTaskOptions) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useSessionMutation({
     mutationFn: (input: ReleaseTaskRequest): Promise<TaskLifecycleResult> => releaseTaskFn(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report-core', 'checkedOutTasks', userId] });

@@ -286,11 +286,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
             <div>{header}</div>
             <div className="flex flex-col items-end gap-2">
-              <ThreadActions
-                threadId={config.threadId}
-                isAdmin={config.isAdmin}
-                handlers={handlers}
-              />
+              <ThreadActions threadId={config.threadId} handlers={handlers} />
             </div>
           </CardHeader>
         )}
@@ -332,11 +328,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>{header}</div>
           <div className="flex flex-col items-end gap-2">
-            <ThreadActions
-              threadId={config.threadId}
-              isAdmin={config.isAdmin}
-              handlers={handlers}
-            />
+            <ThreadActions threadId={config.threadId} handlers={handlers} />
           </div>
         </CardHeader>
       )}
@@ -353,7 +345,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         <MessageList
           messages={messages}
           currentUserId={config.currentUserId}
-          isAdmin={config.isAdmin}
           isFetchingOlder={isFetchingOlder}
           hasOlder={hasOlder}
           onLoadOlder={() => fetchOlder()}

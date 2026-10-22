@@ -110,6 +110,24 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     its outbox; the room answers `ChatParkedDeliveryReplayResultSchema` — `requeued`, or
     `not-parked` when it holds no parked delivery by that id, so a repeated replay is a no-op.
 
+- **The chat internal-call table** (`src/internal-calls.ts`) declares, in one place, every
+  endpoint the server signs a `to-room` call to. The server's caller and the chat runtime both
+  import it.
+  - `CHAT_INTERNAL_PATHS` holds the endpoint paths (sync apply, outbox append, word-list publish,
+    channel moderation and context, the anonymization steps, and parked-delivery replay).
+    `ChatInternalPath` is their union, and `isChatInternalPath(path)` recognizes exactly those paths.
+  - `CHAT_INTERNAL_CALLS` maps each path to its strict body schema and to the reader that names the
+    call's operation id from the body.
+    `chatInternalOperationId(path, body)` gives the call's operation id.
+    `parseChatInternalRequest(path, body)` returns `{ ok: true, path, body, operationId }`, or
+    `{ ok: false, reason }` with `unknown-path` or `bad-body`.
+  - The body schemas this table adds beside the ones above: `ChatChannelModerateRequestSchema` (a
+    `prepare` naming the message, its expected revision and an action from
+    `CHAT_MODERATION_ACTIONS`, or a `finalize`, or a reservation `probe`),
+    `ChatChannelContextRequestSchema`, `ChatAnonymizableEpochsRequestSchema`, and one schema per
+    anonymization step (`ChatAnonymizeLive/Scan/Rewrite/Swap/Delete/CleanupRequestSchema`).
+  - Archive object keys are bounded by `CHAT_ARCHIVE_KEY_MAX_LENGTH`.
+
 - **A chat room's address** (`src/room-address.ts`) — the one build and parse the server and the
   chat Worker share; the Worker derives a room's Durable Object id from it. A conversation's room is `{product}:{env}:channel:{kind}:{id}` and an
   inbox is `{product}:{env}:inbox:{uid}`; existing rooms live under these exact strings, so the
@@ -144,6 +162,6 @@ This package is intentionally tiny. Its one internal `@ttt-productions/*` depend
 - **Any reply-to contract.** There is no `ReplyToSchema`, `ReplyTo` type, or
   preview-length bound. No chat surface has an authoring affordance for replying
   to a specific message (`chat-react`'s `MessageActions` renders only
-  Report/Delete; the composer's `onSend` takes text alone), so a reply pointer
+  Report; the composer's `onSend` takes text alone), so a reply pointer
   could never be populated — the machinery was removed rather than left dormant.
   The package contract test asserts against its return.

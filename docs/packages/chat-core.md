@@ -6,6 +6,9 @@ Pure chat contracts and logic package. **No React, no Firebase.**
 
 - Message/thread contract types that are not React-shaped (`ChatMessageV1`,
   `ChatThreadV1`, `ChatId`, `ModerationHandlers`, `ChatPrewarmSenders`).
+  `ModerationHandlers` carries a member's report handlers only (`onReportMessage`,
+  `onReportThread`); an admin action on a conversation is the consuming app's,
+  offered from its own admin surface (RULE-STD-FRONTEND-111).
   `ChatMessageV1` is TEXT-only — there is no attachment field or attachment-send
   contract; a conversation's files are owned by the consuming app. It carries no `replyTo` field either (see "Not owned" below).
   `ChatThreadV1` carries no access list: who may read or write a conversation is
@@ -44,7 +47,7 @@ atoms and its own implementation) — chat never had a product reason for them, 
 `ChatMessageV1` has no `replyTo` field and this package declares no reply
 contract. The product has no authoring affordance for replying to a specific
 message on any chat surface — `chat-react`'s `MessageActions` renders only
-Report/Delete, and the composer's `onSend` takes text alone — so a reply pointer
+Report, and the composer's `onSend` takes text alone — so a reply pointer
 could never be populated by a user action. It was removed rather than left
 dormant.
 

@@ -76,6 +76,33 @@ describe('the import-path guard over the reader', () => {
     }
   });
 
+  it('analyzes the shared source folder as one of its trees: an import of it resolves, one of a missing file there is flagged', async () => {
+    const sharedRepo = tempRepo({
+      'src/app/page.tsx': [
+        "import { LIMIT } from '../../shared/limits.js';",
+        "import { gone } from '../../shared/gone.js';",
+      ].join('\n'),
+      'shared/limits.ts': 'export const LIMIT = 1;',
+    });
+    try {
+      const sharedReader = createRepoReader({
+        repoRoot: sharedRepo.root,
+        roots: {
+          app: { path: 'src', anchor: 'src/app/page.tsx' },
+          sharedSource: { path: 'shared', anchor: 'shared/limits.ts' },
+        },
+      });
+      const [guard] = importPathGuard.build(facts);
+      const findings = await guard.run(contextOf(sharedReader));
+      expect(findings.map((f) => `${f.file} ${f.detail.split(':')[0]}`)).toEqual([
+        'src/app/page.tsx unresolved import',
+      ]);
+      expect(findings[0]!.detail).toContain('shared/gone');
+    } finally {
+      sharedRepo.remove();
+    }
+  });
+
   it('refuses facts with an exception that carries no why', () => {
     expect(
       importPathGuard.factProblems({

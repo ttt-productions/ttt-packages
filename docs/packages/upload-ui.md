@@ -43,10 +43,16 @@ The root holds the one copy of what an upload row shows besides its title. `form
 
 `useMarkUploadActivitySeen({ markFn, maxIdsPerCall, onError })` takes every unseen id to mark and sends them to `markFn` in sequential calls of at most `maxIdsPerCall` — the app's callable cap — so a large set is never refused whole. A failed call does not stop the rest; its ids stay unseen. When any call failed, the mutation fails with `MarkUploadActivitySeenError` (the first failure, `unmarkedIds`), and `onError` receives that failure and the unmarked ids once.
 
+Both tray mutations are query-core `useSessionMutation`s, so a mark-seen or a clear whose answer
+lands after the member's session ended reaches no `onError` and no other callback, and a mark-seen
+sends no further call once that session ends. That is why
+`upload-ui` declares `@ttt-productions/query-core` as an optional peer (the app supplies the one
+instance, like `@tanstack/react-query`).
+
 ## Clear-activity mutation joins the shared pending layer
 
 `useClearUploadActivity({ clearFn, onError, mutationKey })` returns the standard `useMutation`
-result (`mutate`, `mutateAsync`, `isPending`, …). The optional `mutationKey` is passed straight
+result (`mutate`, `mutateAsync`, `isPending`, …), through query-core's `useSessionMutation`. The optional `mutationKey` is passed straight
 to that mutation, registering it in React Query's shared `MutationCache` under a stable,
 app-chosen key; the pendingMediaId is the mutation variables, so a consumer reads per-item
 pending with `useMutationState` — pending that survives the clearing row unmounting. The key

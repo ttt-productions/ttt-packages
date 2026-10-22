@@ -43,6 +43,7 @@ import {
   type PartialMockFacts,
   type UploadListenerFacts,
 } from './client.js';
+import { mutationOwnerGuard, type MutationOwnerFacts } from './mutations.js';
 
 export interface FrontendActionsGuardFacts {
   callableErrorCopy: CallableErrorCopyFacts;
@@ -64,6 +65,7 @@ export interface FrontendActionsGuardFacts {
   mimePrefixClassification: MimePrefixFacts;
   effectiveMotion: EffectiveMotionFacts;
   dateOfBirthDerivation: DateOfBirthFacts | Absent;
+  mutationOwner: MutationOwnerFacts;
 }
 
 export const FRONTEND_ACTIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -86,4 +88,5 @@ export const FRONTEND_ACTIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never
   mimePrefixGuard,
   effectiveMotionGuard,
   dateOfBirthGuard,
+  mutationOwnerGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

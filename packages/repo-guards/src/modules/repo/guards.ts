@@ -45,7 +45,7 @@ export interface RepoGuardFacts {
   noOutsideCheckout: NoOutsideCheckoutFacts;
   projectScripts: ProjectScriptFacts | Absent;
   secretBindings: SecretBindingFacts | Absent;
-  documentDrift: DocumentDriftFacts;
+  documentDrift: DocumentDriftFacts | Absent;
   envPublicValues: EnvPublicValuesFacts | Absent;
   installedPackagesAgnostic: InstalledPackagesAgnosticFacts;
   ciParity: CiParityFacts | Absent;

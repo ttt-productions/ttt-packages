@@ -240,6 +240,7 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
 
 const TOAST_OPTION = 'showErrorToast';
 const ANSWER_OPTION = 'isAnswerSurfacedByCaller';
+const MUTATION_HOOKS = ['useMutation', 'useSessionMutation'] as const;
 const ACTION_MEMBERS = ['mutate', 'mutateAsync'];
 
 interface HookBinding {
@@ -663,7 +664,7 @@ export function doubleSurfaces(
       if (ref.test(pair.tryBody) && surfaces(pair.catchBody))
         report(pair.index, `${who} toasts again in a catch`);
     }
-    for (const mutation of callArgs(code, 'useMutation')) {
+    for (const mutation of MUTATION_HOOKS.flatMap((hook) => callArgs(code, hook))) {
       if (ref.test(mutation.args) && handlersFor(mutation.args, 'onError').some(surfaces)) {
         report(mutation.index, `${who} toasts again in the onError of the mutation that calls it`);
       }

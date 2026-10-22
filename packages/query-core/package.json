@@ -40,7 +40,7 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-        "@tanstack/react-query": ">=5.0.0",
+        "@tanstack/react-query": ">=5.90.0",
         "firebase": ">=12.0.0",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0"
@@ -63,7 +63,7 @@
         "@ttt-productions/firebase-helpers": "*"
     },
     "devDependencies": {
-        "@tanstack/react-query": "^5.0.0",
+        "@tanstack/react-query": "^5.90.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "firebase": "^12.14.0",

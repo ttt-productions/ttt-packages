@@ -17,6 +17,7 @@ export {
   type Sample,
 } from './guard.js';
 export { viewOfText, type FileView } from './reader/view.js';
+export { rawMutations } from './modules/frontend-actions/raw-mutations.js';
 export {
   MODULE_LOADS,
   type ImportedName,

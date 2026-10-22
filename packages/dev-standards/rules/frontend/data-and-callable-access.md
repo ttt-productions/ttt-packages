@@ -64,7 +64,7 @@ How the client reads server state, builds cache keys, invalidates, calls callabl
 ### RULE-STD-FRONTEND-105 — One callable invocation path; never raw `httpsCallable`
 **Scope.** apps
 
-**Rule.** Every callable is declared once in `<CALLABLE_DECLARATIONS>`, through the firebase-helpers factory kind that fixes its retry, surface, and capture — an action, a reader, an invoker, or a resumable action — built from the one app callable policy (`<CALLABLE_POLICY>`). Screens and hooks call the declared hook, and the callable's name is written nowhere else. The factories ride the package primitive, which owns the **undefined-strip** (the SDK encodes `undefined` as `null`, which strict `.optional()` `<APP_DATA_PACKAGE>` schemas reject — the primitive drops undefined keys deep), and the policy owns the **error taxonomy**: the expected-answer monitoring filter, the standard error toast, and the answers that have their own surface (the app's addition lists them) — announced and never toasted, which a caller-owned surface skips through the policy's surfaced-elsewhere predicate. A hook that wraps both a callable and a non-callable leg (e.g. a Storage upload) toasts only the leg the callable can't see — gate its local `onError` on the policy's callable-rejection predicate returning false, or declare the call `{ showErrorToast: false }` and own the copy. A React Query READ calls its declared reader, which neither toasts nor captures, and its failure is a rendered state (RULE-STD-FRONTEND-109). **One rejection gets ONE toast, and that budget spans files**: a hook's declared action with its toast on and an `onError`/`catch` toast in a component that calls that hook are one surface between them, so exactly one side owns the copy — either the hook declares the toast off, or the call site drops its toast and lets the action own it.
+**Rule.** Every callable is declared once in `<CALLABLE_DECLARATIONS>`, through the factory kind from query-core `./react`'s `createCallables` that fixes its retry, surface, and capture — an action, a reader, an invoker, or a resumable action — built from the one app callable policy (`<CALLABLE_POLICY>`). Screens and hooks call the declared hook, and the callable's name is written nowhere else. The factories ride firebase-helpers' `callCallable` primitive, which owns the **undefined-strip** (the SDK encodes `undefined` as `null`, which strict `.optional()` `<APP_DATA_PACKAGE>` schemas reject — the primitive drops undefined keys deep), and the policy owns the **error taxonomy**: the expected-answer monitoring filter, the standard error toast, and the answers that have their own surface (the app's addition lists them) — announced and never toasted, which a caller-owned surface skips through the policy's surfaced-elsewhere predicate. A hook that wraps both a callable and a non-callable leg (e.g. a Storage upload) toasts only the leg the callable can't see — gate its local `onError` on the policy's callable-rejection predicate returning false, or declare the call `{ showErrorToast: false }` and own the copy. A React Query READ calls its declared reader, which neither toasts nor captures, and its failure is a rendered state (RULE-STD-FRONTEND-109). **One rejection gets ONE toast, and that budget spans files**: a hook's declared action with its toast on and an `onError`/`catch` toast in a component that calls that hook are one surface between them, so exactly one side owns the copy — either the hook declares the toast off, or the call site drops its toast and lets the action own it.
 
 **Why.** A raw `httpsCallable` skips the undefined-strip (the schema rejects valid input) and the error taxonomy (double toasts, unfiltered monitoring noise, and answers that have their own surface toasted as errors).
 
@@ -72,7 +72,7 @@ How the client reads server state, builds cache keys, invalidates, calls callabl
 - Importing `httpsCallable`/`getFunctions` from `firebase/functions`, or `callCallable`, anywhere in `src/`; a callable's name written outside `<CALLABLE_DECLARATIONS>`, including as a bare string at a call site; a file-local `callable()` wrapper.
 - A callable hook that double-surfaces one rejection as two destructive toasts — in ONE file, or split across the hook module and its consuming component.
 
-**References.** RULE-STD-FRONTEND-109; RULE-STD-QUALITY-103; ttt-packages `docs/packages/firebase-helpers.md`.
+**References.** RULE-STD-FRONTEND-109; RULE-STD-QUALITY-103; ttt-packages `docs/packages/query-core.md`, `docs/packages/firebase-helpers.md`.
 
 ### RULE-STD-FRONTEND-106 — Gated actions go through the canonical auth gate
 **Scope.** apps
@@ -153,3 +153,17 @@ Classification predicates are generic and come from `@ttt-productions/firebase-h
 - A picker whose selectable range disagrees with the backend's rule for the value.
 
 **References.** RULE-STD-ENG-002, RULE-STD-ENG-006; RULE-STD-FRONTEND-106 (the auth-readiness gate), RULE-STD-FRONTEND-206.
+
+### RULE-STD-FRONTEND-111 — Admin actions outside the admin area go through the one admin-actions affordance
+**Scope.** both
+
+**Rule.** **Apps:** outside the app's admin area, an admin action is offered only through the app's one shield-marked admin-actions affordance, never as an inline control beside a member's own actions. Outside the admin area, a read of the viewer's admin standing is allowed for three purposes only: navigation to the admin area, an admin's viewing reach (seeing what a member could not), or the admin's own inbox. Each such read is a reviewed entry naming its purpose, and every other read of admin standing outside the admin area is a violation. The backend stays the authority on every admin action (RULE-STD-BACKEND-004). **Packages:** a React package never renders a control gated on admin standing. It takes no admin flag; an admin action on a package's surface is the app's, offered through the app's affordance.
+
+**Why.** An inline admin control looks like a member action. One page offers it and the next one doesn't, and every screen that gates on admin standing is one more place where that gate can drift away from the one owner. When a package carries an admin control, every app that installs it gets an admin action outside its admin affordance.
+
+**Prohibits.**
+- An admin action rendered outside the admin area other than through the admin-actions affordance; a second admin-actions affordance.
+- A read of admin standing outside the admin area that is not a reviewed entry for navigation, viewing reach, or the admin's inbox.
+- A React package component, prop, or config field that shows, hides, or enables a control on admin standing.
+
+**References.** RULE-STD-ENG-002, RULE-STD-ENG-006; RULE-STD-ARCH-201; RULE-STD-BACKEND-004, RULE-STD-BACKEND-011; RULE-STD-FRONTEND-001, RULE-STD-FRONTEND-110.

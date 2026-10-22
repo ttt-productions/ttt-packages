@@ -132,6 +132,7 @@ export const AuditionEntrySubmittedEventSchema = z
         userId: z.string().min(1),
         auditionId: z.string().min(1),
         auditionEntryId: z.string().min(1),
+        previousAuditionEntryId: z.string().min(1).optional(),
         workProjectId: z.string().min(1).optional(),
       })
       .strict(),

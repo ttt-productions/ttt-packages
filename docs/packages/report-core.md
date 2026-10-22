@@ -94,6 +94,10 @@ and each queue hook's own function — `useCheckoutTask({ checkoutTaskFn })`,
 `useReleaseTask({ releaseTaskFn })`, `useWorkLater({ markWorkLaterFn })`. A hook answers with what
 its function answered and refreshes the admin's checked-out tasks on success.
 
+Every queue hook and the dialog's submit is a query-core `useSessionMutation`: an answer that lands
+after the session that sent it ended refreshes nothing and reaches no callback, and `mutateAsync`
+rejects with query-core's `MutationSessionEndedError`.
+
 ## The admin-task queue handlers (`./server`)
 
 Factories for the consuming app's queue callables. `createCheckoutTaskHandler`,

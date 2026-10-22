@@ -1,0 +1,11 @@
+# Adopt @ttt-productions/dev-standards 0.0.3
+
+**What:** New rule RULE-STD-FRONTEND-111 (admin actions go through one admin-actions affordance), audited by hygiene step 121.
+**Severity:** medium
+**Came from:** the ttt-packages shared-standards run (Phase 3 package batch)
+
+- **Package and version:** `@ttt-productions/dev-standards` 0.0.3.
+- **Release:** `./scripts/release-multiple.sh dev-standards firebase-helpers repo-guards query-core chat-schemas report-core notification-core ttt-core upload-ui chat-core chat-react patch`.
+- **What changed:** New RULE-STD-FRONTEND-111 (scope both): admin actions outside the admin area go through the one shield-marked admin-actions affordance; admin-standing reads outside it only for navigation, viewing reach, or the admin's inbox, each a reviewed entry; a React package never renders a control gated on admin standing. `codebase-hygiene-playbook.md` step 121 audits it (crosswalk: a FRONTEND-111 row; the BACKEND-011 row is now `70, 121`). RULE-STD-COMMENT-001's required-marker list gains RULE-STD-FRONTEND-002 (the utility an `overrides.css` rule beats). RULE-STD-FRONTEND-105, hygiene step 60 and the package-boundaries playbook name query-core `./react`'s `createCallables` (firebase-helpers keeps `callCallable`). A boundary test holds that no Vitest base runs a file's tests concurrently. RULE-STD-ARCH-102's Apps clause now reads: the app owns wiring (mounting pages, composition, layout), and an app's page paths are a declaration in `<APP_DATA_PACKAGE>` built through its one route owner, so a route literal anywhere else is drift; repo-guards' `appRouteOwner` enforces it (hygiene step 61, the ARCH-102 crosswalk row).
+- **What the app must change:** Install `@ttt-productions/dev-standards@latest`. Add the app's RULE-STD-FRONTEND-111 additions to its rulebook (its affordance and its reviewed entries), wire repo-guards' `adminActionSurface` and `appRouteOwner` (repo-guards' adoption file), move every page path into the app-data package's route owner (RULE-STD-ARCH-102), and re-point any app text that names firebase-helpers as `createCallables`' home.
+- **Done when:** The lockfiles name `@ttt-productions/dev-standards` 0.0.3 or later, the app's rulebook carries its RULE-STD-FRONTEND-111 additions, and the gate is green.

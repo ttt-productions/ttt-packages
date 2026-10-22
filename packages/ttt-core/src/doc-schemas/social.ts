@@ -87,7 +87,6 @@ export const SquareStreetzPostPayloadSchema = z.object({
   craftSkill: z
     .object({
       id: z.string(),
-      name: z.string(),
       mediaAssetId: z.string(),
       type: ContentMediaKindSchema,
       tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)).optional(),
@@ -96,14 +95,11 @@ export const SquareStreetzPostPayloadSchema = z.object({
     })
     .optional(),
   craftSkillId: z.string().optional(),
-  workProjectTitle: z.string().optional(),
   workProjectId: z.string().optional(),
   workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS).optional(),
-  workProjectDescription: z.string().optional(),
   workRealmId: z.string().optional(),
-  workRealmTitle: z.string().optional(),
+  workRealmIsPublic: z.boolean().optional(),
   hallItemId: z.string().optional(),
-  hallItemTitle: z.string().optional(),
   hallSubItemType: HallSubItemTypeSchema.optional(),
   content: z.string().optional(),
   mediaAssetId: z.string().optional(),

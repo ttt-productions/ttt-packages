@@ -1,5 +1,6 @@
 // Rooms already exist under these exact strings, so this format is fixed.
-import { CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH, type ChatRoomKind } from './internal-contract.js';
+import { CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH } from './internal-atoms.js';
+import type { ChatRoomKind } from './internal-contract.js';
 import {
   CHAT_ACCOUNT_ID_MAX_LENGTH,
   ChatConversationRefSchema,

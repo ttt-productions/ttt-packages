@@ -38,6 +38,7 @@ export function NotificationList({
   renderError,
   onRenderedRowsChange,
   renderRowAction,
+  renderContent,
 }: NotificationListProps) {
   const {
     data: notifications,
@@ -262,8 +263,14 @@ export function NotificationList({
               >
                 <div className="ntf-item-icon">{getTypeIcon(notification.type)}</div>
                 <div className="ntf-item-content">
-                  <div className="ntf-item-title">{notification.title}</div>
-                  <div className="ntf-item-message">{notification.message}</div>
+                  {renderContent ? (
+                    renderContent(notification)
+                  ) : (
+                    <>
+                      <div className="ntf-item-title">{notification.title}</div>
+                      <div className="ntf-item-message">{notification.message}</div>
+                    </>
+                  )}
                   <div className="ntf-item-timestamp">
                     {formatRelativeTime(notification.updatedAt)}
                   </div>

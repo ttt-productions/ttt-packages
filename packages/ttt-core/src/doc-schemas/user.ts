@@ -77,7 +77,6 @@ export const CraftSkillReferenceSchema = z.object({
   craftSkillId: z.string(),
   compositeId: z.string(),
   userId: z.string(),
-  craftSkillName: z.string(),
   craftSkillAssetId: z.string(),
   craftSkillType: mediaKindSchema,
   tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
@@ -129,8 +128,6 @@ export const FullUserSchema = z.object({
   accountAccessVersion: z.number().optional(),
   accountAccessState: UserAccountStatusSchema.optional(),
   displayNameResetRequired: z.boolean().optional(),
-  ownedWorkProjects: z.array(OwnedWorkProjectSchema).optional(),
-  associatedWorkProjects: z.array(AssociatedWorkProjectSchema).optional(),
   createdAt: z.number(),
   anonymizedAt: z.number().optional(),
 });

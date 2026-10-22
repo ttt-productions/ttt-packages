@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   CHAT_ROOM_TARGET_MAX_LENGTH,
   CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH,
-  ChatParkedDeliveryReplayRequestSchema,
-} from '../src/internal-contract.js';
+} from '../src/internal-atoms.js';
+import { ChatParkedDeliveryReplayRequestSchema } from '../src/internal-contract.js';
 import {
   CHAT_ACCOUNT_ID_MAX_LENGTH,
   CHAT_CONVERSATION_ID_MAX_LENGTH,

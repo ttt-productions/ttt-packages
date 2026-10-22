@@ -83,6 +83,29 @@ export { useReadRetryState, useReadRetryStates } from './use-read-retry-state.js
 export type { ReadRetryEntry, ReadRetrySource, ReadRetryState } from './use-read-retry-state.js';
 
 export {
+  MutationSessionProvider,
+  MutationSessionEndedError,
+  useSessionMutation,
+} from './session-mutation.js';
+export type {
+  MutationSession,
+  MutationSessionProviderProps,
+  SessionMutationFunctionContext,
+  SessionMutationOptions,
+} from './session-mutation.js';
+
+export { createCallables, MAX_RESUMABLE_CALLS } from './callables/create-callables.js';
+export type {
+  CallableCaptureContext,
+  CallableDeclaration,
+  CallableErrorRouting,
+  CallableMutationOptions,
+  CallablePolicy,
+  Callables,
+  ResumableOutcome,
+} from './callables/create-callables.js';
+
+export {
   usePendingMutationVariables,
   pendingMutationVariables,
   usePendingMutationTargets,

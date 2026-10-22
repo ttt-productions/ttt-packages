@@ -18,6 +18,7 @@ export function NotificationHistoryList({
   renderError,
   title,
   renderRowAction,
+  renderContent,
 }: NotificationHistoryListProps) {
   const {
     data: notifications,
@@ -68,8 +69,14 @@ export function NotificationHistoryList({
                 <div key={notification.archiveOccurrenceId} className="ntf-item ntf-item-archived">
                   <div className="ntf-item-icon">{getTypeIcon(notification.type)}</div>
                   <div className="ntf-item-content">
-                    <div className="ntf-item-title">{notification.title}</div>
-                    <div className="ntf-item-message">{notification.message}</div>
+                    {renderContent ? (
+                      renderContent(notification)
+                    ) : (
+                      <>
+                        <div className="ntf-item-title">{notification.title}</div>
+                        <div className="ntf-item-message">{notification.message}</div>
+                      </>
+                    )}
                     <div className="ntf-item-timestamp">
                       {formatRelativeTime(notification.archivedAt)}
                     </div>

@@ -2,6 +2,7 @@
 
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { QueryClient } from '@tanstack/react-query';
+import { isPermissionDeniedError } from './resubscribe.js';
 
 type Subscriber = {
   onUpdate: () => void;
@@ -83,7 +84,10 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
       },
       (error) => {
         created.error = error;
-        queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
+        const held = queryClient.getQueryData([queryKeyPrefix, id]);
+        if (held === undefined || held === null || isPermissionDeniedError(error)) {
+          queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
+        }
         for (const sub of [...subscribers]) sub.onError?.(error);
       },
     );

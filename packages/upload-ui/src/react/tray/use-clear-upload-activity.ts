@@ -1,6 +1,7 @@
 'use client';
 
-import { useMutation, type MutationKey } from '@tanstack/react-query';
+import type { MutationKey } from '@tanstack/react-query';
+import { useSessionMutation } from '@ttt-productions/query-core/react';
 
 export interface ClearUploadActivityOptions {
   clearFn: (pendingMediaId: string) => Promise<void>;
@@ -10,7 +11,7 @@ export interface ClearUploadActivityOptions {
 
 export function useClearUploadActivity(options: ClearUploadActivityOptions) {
   const { clearFn, onError, mutationKey } = options;
-  return useMutation<void, Error, string>({
+  return useSessionMutation<void, Error, string>({
     mutationKey,
     mutationFn: clearFn,
     onError: (error, pendingMediaId) => {

@@ -1,4 +1,5 @@
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
+import { appRouteOwnerGuard, type AppRouteOwnerFacts } from './app-routes.js';
 import { coreContractsGuard, type CoreContractFacts } from './contracts.js';
 import {
   definitionRedeclarationGuard,
@@ -25,6 +26,7 @@ export interface CoreDefinitionsGuardFacts {
   schemaLengthLiterals: SchemaLengthLiteralFacts;
   singletonBucketAudience: SingletonBucketAudienceFacts | Absent;
   textFieldDeclarations: TextFieldDeclarationFacts | Absent;
+  appRouteOwner: AppRouteOwnerFacts;
 }
 
 export const CORE_DEFINITIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -34,4 +36,5 @@ export const CORE_DEFINITIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never
   schemaLengthLiteralGuard,
   singletonBucketAudienceGuard,
   textFieldDeclarationsGuard,
+  appRouteOwnerGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

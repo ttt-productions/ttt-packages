@@ -42,7 +42,6 @@ function SystemMessage({ m }: { m: ChatMessageV1 }) {
 export type MessageItemDefaultProps = {
   m: ChatMessageV1;
   currentUserId: string;
-  isAdmin: boolean;
   handlers?: ModerationHandlers;
 
   isContinuation?: boolean;
@@ -57,7 +56,6 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
   const {
     m,
     currentUserId,
-    isAdmin,
     handlers,
     isContinuation,
     onSenderClick: senderClick,
@@ -155,7 +153,7 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
 
       {!isContinuation && (
         <div className="mt-1">
-          <MessageActions messageId={m.messageId} isAdmin={isAdmin} handlers={handlers} />
+          <MessageActions messageId={m.messageId} handlers={handlers} />
         </div>
       )}
     </div>

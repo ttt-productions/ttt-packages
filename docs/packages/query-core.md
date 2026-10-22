@@ -14,6 +14,8 @@ Generic TanStack Query package.
   (server-side `count()`), `useFirestoreLiveInfinite` (live newest-window +
   anchored older pages — for chat / live feeds), `useBatchFirestoreDocs`,
   and the `useFirestoreSet/Update/Delete/Batch` mutations
+- The one session-aware mutation owner, `useSessionMutation` with `MutationSessionProvider` and
+  `MutationSessionEndedError` (below), and the callable factories built on it (`createCallables`)
 - A metadata-derived **subscription source state** on the realtime `useFirestoreDoc` /
   `useFirestoreCollection` hooks (`subscribe: true`): the result carries
   `sourceState: 'connecting' | 'live' | 'offline' | 'error'` (`FirestoreSourceState`),
@@ -63,6 +65,87 @@ Generic TanStack Query package.
 - The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
   `predicate`, `applyInvalidations`, `serializeInvalidation`) — the one place an app refreshes,
   removes, or resets cached reads in answer to something that happened
+
+## `useSessionMutation` — an action belongs to the session that started it
+
+Every mutation in an app and in a package goes through `useSessionMutation(options)` (`./react`), the
+one session-aware mutation owner. It returns TanStack's own `useMutation` result.
+
+- **The session.** `MutationSessionProvider({ currentUid })` is mounted by the app inside its
+  `QueryClientProvider`. Every committed change of `currentUid` starts a new session — a sign-out
+  followed by the same member signing back in included. The session ends when the render with the
+  new uid commits, before any layout effect of that commit runs; a render that is discarded before
+  it commits ends nothing. Without a provider every action runs as current, so a package hook never
+  requires one.
+- **Captured when the action starts.** An always-installed `onMutate` captures the session before the
+  caller's own `onMutate` runs. `mutationFn(variables, context)` receives TanStack's context plus
+  `context.session = { uid, isCurrent(), assertCurrent() }`, so a multi-step chain re-checks between
+  its own awaits; `assertCurrent()` throws `MutationSessionEndedError`.
+- **An answer for an ended session does nothing.** When the session has changed by the time the
+  answer comes back, every callback is skipped — the hook-level `onSuccess` / `onError` /
+  `onSettled` and the per-call ones passed to `mutate` / `mutateAsync` — so its toasts and cache
+  writes never run. `mutateAsync` rejects with `MutationSessionEndedError` (`name: 'AbortError'`);
+  it is never retried and never thrown to an error boundary under `throwOnError`. When the answer
+  was a failure, that failure is the ended error's `cause`. When the answer was a success, the
+  ended error has no `cause`, and the write may have committed.
+- **Work that has not started never starts.** A queued (`scope`) or paused (offline) `mutationFn`
+  whose session ended before it ran never runs, and neither does a mutation restored without a
+  captured session.
+- **Monitoring is not fenced.** The `MutationCache`'s own callbacks still run, receiving the ended
+  error — with the original failure as its `cause` when the answer was a failure, and no `cause`
+  after a late success.
+
+`useFirestoreSet/Update/Delete/Batch` are built on it, so an optimistic rollback or a key refresh of
+an ended session never touches the next session's cache.
+
+## Callable declarations contract
+
+`createCallables(policy)` (`./react`) binds an app's policy once and returns the four callable
+kinds. Each named callable is declared once in the app — `createCallableHook<TInput, TResult>(functionName,
+{ limitedUseAppCheck?: true })`, and likewise for the others — so the function name, its types, and
+its App Check posture live beside each other, and a call site sees only the named hook. Every kind
+calls through `callCallable` with the policy's Functions provider and deadline; the kind fixes the
+retry, surface, and capture:
+
+- **action** (`createCallableHook`) — a session mutation (`useSessionMutation`) with `retry: false` that no call site
+  can override (a deadline expiry is an unknown outcome, never retried). A call site passes the
+  mutation options (minus `mutationFn` and `retry`) plus `showErrorToast`, `answeredRefusals`,
+  `isAnswerSurfacedByCaller`, and `captureFaults` (false for a caller that re-sends on a fault and
+  captures the final failure itself).
+- **reader** (`createCallableReader`) — a hook returning the function a query's `queryFn` calls. It
+  routes its failure with `showErrorToast: false` and captures no fault (the query layer captures
+  it once).
+- **invoker** (`createCallableInvoker`) — a hook returning a function a package hook drives inside its
+  own mutation: the failure is routed and its fault captured once, and the call rejects so that
+  mutation settles on it.
+- **resumable** (`createResumableCallableHook(functionName, merge, declaration?)`) — a session action for
+  work the server does a budget at a time: one request calls again with the same input until the
+  answer is `complete` or `MAX_RESUMABLE_CALLS` calls were made, `merge` folding each later answer
+  into the earlier ones. It settles on a `ResumableOutcome` — the merged answer plus
+  `interruption`: a failure on the first call rejects the request; a failure on a later one settles
+  on the merged progress, never `complete`, with that failure as `interruption`, so earlier calls'
+  committed work is never lost. A `merge` that throws rejects the request. A request whose session
+  ended makes no further call.
+
+The policy (`CallablePolicy`) is everything app-specific; the package names no app copy and
+imports no toast or monitoring module (RULE-STD-QUALITY-102):
+
+- `getFunctions` and `timeoutMs` — the Functions provider and the total-invocation deadline.
+- `resolveLimitedUseAppCheck(requested)` — the effective limited-use mode for a callable declared
+  limited-use or not.
+- `captureFault(error, context)` — receives every `callCallable` report (failures and the
+  recovered-fallback report) for a call whose kind owns its capture. For a reader or a
+  `captureFaults: false` action, `captureRecoveredFallback` receives only the recovered-fallback
+  report — the package filters it out by its own marker — and the failure is captured by neither,
+  since another layer owns it.
+- `onActionError(error, { showErrorToast, answeredRefusals, isAnswerSurfacedByCaller })` — called
+  once for every failed call of every kind whose session is still current, with the call site's
+  routing (defaults `true` and `[]`), so the app owns which answers have their own surface and which
+  failures toast. Every kind shares the mutation owner's session fence: a failure that lands after
+  the session that made the call ended reaches no `onActionError` (so it raises no toast), while
+  `captureFault` still receives it — monitoring is never fenced. An action or resumable call takes
+  its session from its mutation; a reader or invoker takes the session current when its function
+  is called.
 
 ## `useFirestorePaginated` — one cache entry per page
 
@@ -224,10 +307,10 @@ Together they give three guarantees a control's own `isPending` cannot: an in-fl
 
 - `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), the search config types, and the `STALE_TIMES` presets. No React, react-query, or Firebase in its runtime graph or its types.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
+- `./react` — React/TanStack runtime: provider, the session-aware mutation owner, the callable factories (`createCallables`, `MAX_RESUMABLE_CALLS`, and their types), Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
 - `./types` — the Firestore types that carry no Firebase type (`WithId`, `FirestoreBaseOptions`, the mutation and batch option types, the source-state and batch-outcome types); the one entry that exports them.
 
-Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers` (server-safe root only, for `chunk` and `FIRESTORE_IN_FILTER_LIMIT`), so a server-only install pulls no client runtime through it.
+Client peers (`react`, `react-dom`, `@tanstack/react-query` from `5.90.0`, `firebase`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers`: its server-safe root (`chunk`, `FIRESTORE_IN_FILTER_LIMIT`, the expected-answer code type) and, from `./react` only, its `./client` (`callCallable`, `isRecoveredFallbackReport`) — so a server-only install pulls no client runtime through it.
 
 ## `useBatchFirestoreDocs` — id-list lookups
 
@@ -245,7 +328,7 @@ The one-shot `queryFn` also yields to the shared listener: if a key became liste
 
 Consumers of one key that ask for different ladders combine by **union**, never by mount order: the key polls if ANY mounted consumer wants polling, on the LONGEST ladder among them, recomputed on every mount and unmount. A consumer passing `[]` therefore silences only re-reads nobody else asked for; when the last consumer that wanted polling unmounts, an episode already in progress continues on the new effective ladder's remaining rungs, or stops if that ladder is now empty.
 
-**Errors.** An id in an error state is excluded from `data` while `isError`/`error` stay truthful, so a previously cached document is never presented as currently readable after access to it fails. A denial is never converted into a null or missing result.
+**Errors.** An answered id keeps its answer through a later failure: it stays in `data`, and its outcome is `present` with the failure beside it, while `isError`/`error` stay truthful. A `permission-denied` failure holds nothing — the reader lost access, so a document it may no longer read is never presented as readable — and drops the id from `data`, as does any failure of an id that never answered. A denial is never converted into a null or missing result.
 
 **Failed reads' fetch state.** `failedReadsRunning` is true while a read of an id whose last settled
 read failed is fetching or waiting for the network — a retry of that failure. TanStack clears a
@@ -253,9 +336,9 @@ never-answered id's error as its refetch starts, so this, not a count of fetchin
 flag a lookup hands `useReadRetryState`; a first load and the absence ladder's re-read of an id that
 answered absent never count.
 
-**Per-id outcomes.** `data`, `isLoading`, `isError`, and `error` are the aggregate view: `error` is only the first failure, and an absent id and a failed id are both simply missing from `data`. `outcomes` (`Record<string, BatchFirestoreDocOutcome<T>>`, one entry per requested id after empty ids and duplicates are dropped) answers each id on its own: `{ status: 'loading' }` until the id has an answer, `{ status: 'present', data }`, `{ status: 'absent' }` for a read that found no document, or `{ status: 'failed', error, retrying }` with that id's own error — a failure is never `absent`, and a document cached before a failure reads `failed`, not `present`. On the `'get'` transport a rules denial is a `failed` id; whether a given collection's denial means "not there for this reader" is the consumer's decision, made from `error`. A failed id stays `failed` through a retry of it — TanStack clears a never-answered read's error as its refetch starts — holding the failure it showed with `retrying: true` until the retry settles (`useReadRetryStates`, per id); an answer replaces the outcome, a new failure its `error`. The aggregate `error` / `isError` stay the live view. The map, and each entry whose answer did not change, keep their identity across renders. `BatchFirestoreDocOutcome` is exported (type-only) from `./types`.
+**Per-id outcomes.** `data`, `isLoading`, `isError`, and `error` are the aggregate view: `error` is only the first failure, and an absent id and a failed id are both simply missing from `data`. `outcomes` (`Record<string, BatchFirestoreDocOutcome<T>>`, one entry per requested id after empty ids and duplicates are dropped) answers each id on its own: `{ status: 'loading' }` until the id has an answer, `{ status: 'present', data, failure? }`, `{ status: 'absent' }` for a read that found no document, or `{ status: 'failed', error, retrying }` with that id's own error — a failure is never `absent`. A document answered before a failure stays `present`, carrying `failure: { error, retrying }`, in one-shot and subscribe mode alike; it reads `failed` only when the failure is `permission-denied` or the id has no answer to hold. On the `'get'` transport a rules denial is a `failed` id; whether a given collection's denial means "not there for this reader" is the consumer's decision, made from `error`. A failed id stays `failed` through a retry of it — TanStack clears a never-answered read's error as its refetch starts — holding the failure it showed with `retrying: true` until the retry settles (`useReadRetryStates`, per id), and a held answer's `failure` does the same; an answer replaces the outcome (dropping `failure`), a new failure its `error`. The aggregate `error` / `isError` stay the live view. The map, and each entry whose answer did not change, keep their identity across renders. `BatchFirestoreDocOutcome` is exported (type-only) from `./types`.
 
-**Optional `subscribe` mode.** Each id is instead resolved through a shared, reference-counted `onSnapshot` listener (registry in source) that writes the same per-id keys; the per-id queries are disabled with `staleTime: Infinity`, `isLoading` means "a subscribed id has no cache entry yet", and `refetch()` is a no-op. A listener error writes `null` for its id (so the id resolves instead of loading forever) and is recorded against that id: the id's outcome is `failed` with the listener's error, the other ids keep their own answers, and the registry keeps the error: Firestore ends a listener that errors, so the error stands until the listener's last subscriber leaves (a later snapshot, were one to arrive, would clear it). A consumer that joins an already-failed listener receives the failure instead of reading the `null` as an absence, and so does a one-shot consumer of the same key — its outcome is `failed` with the listener's error, and its `queryFn` answers a refetch with that error rather than the listener's `null`. When the failed listener's last subscriber leaves, the key is invalidated, so a remaining one-shot reader reads the document for itself. Use it for small, change-sensitive documents where live propagation is genuinely required — not as the default for public display lookups.
+**Optional `subscribe` mode.** Each id is instead resolved through a shared, reference-counted `onSnapshot` listener (registry in source) that writes the same per-id keys; the per-id queries are disabled with `staleTime: Infinity`, `isLoading` means "a subscribed id has no cache entry yet", and `refetch()` is a no-op. A listener error is recorded against its id. An id the listener already answered keeps that answer (`present` with the listener's error as `failure`) unless the error is `permission-denied`; otherwise the error writes `null` for the id (so it resolves instead of loading forever) and the id's outcome is `failed` with the listener's error. The other ids keep their own answers, and the registry keeps the error: Firestore ends a listener that errors, so the error stands until the listener's last subscriber leaves (a later snapshot, were one to arrive, would clear it). A consumer that joins an already-failed listener receives the failure instead of reading the `null` as an absence, and so does a one-shot consumer of the same key — its outcome is `failed` with the listener's error, and its `queryFn` answers a refetch with that error rather than the listener's `null`. When the failed listener's last subscriber leaves, the key is invalidated, so a remaining one-shot reader reads the document for itself. Use it for small, change-sensitive documents where live propagation is genuinely required — not as the default for public display lookups.
 
 ## Boundary
 

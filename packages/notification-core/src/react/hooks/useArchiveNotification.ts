@@ -1,6 +1,7 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSessionMutation } from '@ttt-productions/query-core/react';
 import type {
   NotificationArchiveResult,
   NotificationDoc,
@@ -21,7 +22,7 @@ export function useArchiveNotification({
     ['notifications', 'history', category, userId],
   ];
 
-  return useMutation<NotificationArchiveResult, Error, NotificationDoc>({
+  return useSessionMutation<NotificationArchiveResult, Error, NotificationDoc>({
     mutationFn: (notification: NotificationDoc) => archiveFn(notification),
     onSuccess: () => {
       const keysToInvalidate = invalidateKeys ?? defaultInvalidateKeys;

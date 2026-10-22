@@ -29,8 +29,9 @@ A step can protect more than one area; overlap is intentional.
 
 - **Architecture:** 9, 10, 12, 16–18, 25, 31, 35, 38, 41, 51, 52, 55, 61, 63, 64, 80, 83, 96, 99
 - **Backend:** 10, 13, 20, 21, 23, 29, 32, 33, 36, 40, 49, 50, 56, 67, 77, 80, 87, 97, 98, 102, 105,
-  107, 108, 111, 112
-- **Frontend:** 1–3, 7, 15, 17, 21, 28, 35, 36, 57, 60, 65, 66, 68, 82, 91, 99, 101, 103, 104, 114
+  107, 108, 111, 112, 121
+- **Frontend:** 1–3, 7, 15, 17, 21, 28, 35, 36, 57, 60, 65, 66, 68, 82, 91, 99, 101, 103, 104, 114,
+  121
 - **Media:** 4–6, 11, 14, 37, 39, 53, 58, 59, 83
 - **Quality / documentation:** 25, 27, 28, 30, 40, 42, 46, 63, 69, 73, 75, 88, 89, 90, 95, 117–120
 
@@ -798,9 +799,10 @@ RULE-STD-ENG-009. **Scope:** `src`.
 # Swallowed rejections — a user-initiated action's failure always reaches one surface.
 rg -n "\.catch\(\s*\(\s*\w*\s*\)\s*=>\s*(undefined|null|\{\s*\}|void 0)\s*\)" src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**' -g '!src/test/**'
 ```
-**Expected:** the guards are green: every callable is declared once through the firebase-helpers
-factory kind that fixes its retry, surface, and capture, from the app's one callable policy, and is
-called through its declaration — a raw callable site opts out of the policy's filter and interceptions.
+**Expected:** the guards are green: every callable is declared once through the factory kind from
+query-core `./react`'s `createCallables` that fixes its retry, surface, and capture, from the app's
+one callable policy, and is called through its declaration — a raw callable site opts out of the
+policy's filter and interceptions.
 One rejection gets exactly one surface: no second capture or second destructive toast. A CALLABLE
 failure's copy comes only from the policy's one describer, so a raw SDK string never reaches the user;
 a READ failure renders the canonical load-error state, which owns the one "could not load" sentence
@@ -816,12 +818,14 @@ half is guard-enforced).
 ```bash
 <GUARD_SUITE> -t "every schema bound in the app, its Functions, and its Workers derives from a named limit|a stored enum value renders through its label map, never as raw text|no app module re-declares a constant the core package exports|no app module restates a core literal union"
 <GUARD_SUITE> -t "every core schema bound derives from a named constant outside the reviewed structural bounds|every free-text property of a core wire input is a declared text field"
+<GUARD_SUITE> -t "app routes are built by the one route owner"
 rg -n "maxLength=\{[0-9]|minLength=\{[0-9]" src -g '*.tsx' -g '*.ts' -g '!**/__tests__/**'
 rg -n "\.length\s*[<>]=?\s*[0-9]{2,}|\.slice\(0,\s*[0-9]" src functions/src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**' -g '!*.test.ts' -g '!*.test.tsx'
 ```
 **Expected:** the guards are green: every schema bound is a named limit, a text-field declaration, or an
 enum schema; a stored enum value renders through its label map (never raw, never CSS-transformed); no app
-module restates a package constant or union. The greps: no free-text input carries a literal
+module restates a package constant or union; every page path is built through the app's one route
+owner in `<APP_DATA_PACKAGE>`, never written as a route literal. The greps: no free-text input carries a literal
 `maxLength` — its cap is its `<APP_DATA_PACKAGE>` text-field declaration passed as the input's format;
 every remaining length attribute reads a named constant; each length or excerpt guard on user text
 imports its constant or is a reviewed structural literal; and a mode-varied value is never a literal
@@ -1473,6 +1477,22 @@ rg -n "localFont\(|@font-face|fonts.googleapis|fonts.gstatic" src
 **Expected:** the guard is green, and every face loads through `localFont` in the root layout from a
 file in the repository with its license beside it; no stylesheet declares its own `@font-face` and
 nothing names a hosted font service.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 121. Admin actions outside the admin area go through the admin-actions affordance
+**Rules:** RULE-STD-FRONTEND-111, RULE-STD-BACKEND-011. **Scope:** `src`, read against the admin-only
+callables the guard derives. A FULL audit classifies every reviewed entry; a PARTIAL audit, the
+touched areas.
+```bash
+<GUARD_SUITE> -t "admin actions outside the admin area go through the admin-actions affordance"
+```
+**Expected:** the guard is green. Outside the admin area, every admin-only callable is reached only
+through the one shield-marked admin-actions affordance. Every other read of admin standing outside the
+admin area is a reviewed entry whose stated purpose is navigation to the admin area, an admin's viewing
+reach, or the admin's inbox. Read each reviewed entry against its code: an entry whose read now offers
+an action is the finding, and so is an entry whose code is gone. An action that the affordance offers
+stays reachable on the admin standing alone (step 70). No installed React package renders a control
+gated on admin standing.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Pass / Fail

@@ -24,8 +24,6 @@ export type ChatMessageV1 = {
 export type ModerationHandlers = {
   onReportMessage?: (messageId: string, reason?: string) => void | Promise<void>;
   onReportThread?: (threadId: string, reason?: string) => void | Promise<void>;
-  onDeleteMessage?: (messageId: string) => void | Promise<void>;
-  onDeleteThread?: (threadId: string) => void | Promise<void>;
 };
 
 export const GROUP_GAP_SEC = 120;

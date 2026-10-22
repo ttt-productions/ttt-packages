@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import {
+  MutationSessionEndedError,
+  MutationSessionProvider,
+} from '@ttt-productions/query-core/react';
 import {
   MarkUploadActivitySeenError,
   useMarkUploadActivitySeen,
@@ -82,5 +86,47 @@ describe('useMarkUploadActivitySeen', () => {
       await expect(result.current.mutateAsync(ids(3))).rejects.toThrow(/maxIdsPerCall/);
     });
     expect(markFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('useMarkUploadActivitySeen after the member who marked signed out', () => {
+  it('sends no later batch once the session that started the marking ended', async () => {
+    const answers: Array<() => void> = [];
+    const markFn = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          answers.push(resolve);
+        }),
+    );
+    const onError = vi.fn();
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const session = { uid: 'u1' as string | null };
+    function SessionWrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <QueryClientProvider client={qc}>
+          <MutationSessionProvider currentUid={session.uid}>{children}</MutationSessionProvider>
+        </QueryClientProvider>
+      );
+    }
+    const { result, rerender } = renderHook(
+      () => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 2, onError }),
+      { wrapper: SessionWrapper },
+    );
+
+    let request!: Promise<void>;
+    act(() => {
+      request = result.current.mutateAsync(ids(6));
+    });
+    await waitFor(() => expect(markFn).toHaveBeenCalledTimes(1));
+    session.uid = 'u2';
+    rerender();
+    await act(async () => {
+      answers[0]();
+      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
+    });
+
+    expect(markFn).toHaveBeenCalledTimes(1);
+    expect(markFn).toHaveBeenCalledWith(['upload-1', 'upload-2']);
+    expect(onError).not.toHaveBeenCalled();
   });
 });

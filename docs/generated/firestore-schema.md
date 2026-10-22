@@ -1160,7 +1160,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `craftSkillId` | `string` |  |
 | `compositeId` | `string` |  |
 | `userId` | `string` |  |
-| `craftSkillName` | `string` |  |
 | `craftSkillAssetId` | `string` |  |
 | `craftSkillType` | `'image' \| 'video' \| 'audio'` |  |
 | `tags` | `'acting' \| 'voice-over' \| 'singing' \| 'rapping' \| 'instrumental-performance' \| 'dance-choreography' \| 'stand-up-sketch-comedy' \| 'writing-storytelling' \| 'songwriting' \| 'poetry-spoken-word' \| 'drawing-illustration' \| 'painting' \| 'animation' \| 'graphic-design' \| 'photography' \| 'cinematography-camera' \| 'video-editing' \| 'visual-effects' \| 'directing' \| 'costume-makeup' \| 'set-prop-design' \| 'music-production' \| 'composing-scoring' \| 'sound-design'[]` |  |
@@ -2475,8 +2474,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `accountAccessVersion` | `number` | yes |
 | `accountAccessState` | `'active' \| 'suspended' \| 'banned'` | yes |
 | `displayNameResetRequired` | `boolean` | yes |
-| `ownedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, createdOn, hallWingType }[]` | yes |
-| `associatedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, joinedOn }[]` | yes |
 | `createdAt` | `number` |  |
 | `anonymizedAt` | `number` | yes |
 

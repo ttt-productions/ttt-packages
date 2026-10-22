@@ -221,9 +221,8 @@ describe('NotificationMetadataByType', () => {
       NotificationMetadataByTypeSchema.safeParse({
         type: 'followed_content_published',
         workProjectId: 'wp1',
-        workTitle: 'My Work',
         hallItemId: 'hi1',
-        hallItemTitle: 'My Hall Item',
+        hallSubItemId: 'sub1',
         hallSubItemType: 'chapter',
       }).success,
     ).toBe(true);
@@ -232,9 +231,8 @@ describe('NotificationMetadataByType', () => {
       NotificationMetadataByTypeSchema.safeParse({
         type: 'member_content_published',
         workProjectId: 'wp1',
-        workTitle: 'My Work',
         hallItemId: 'hi1',
-        hallItemTitle: 'My Hall Item',
+        hallSubItemId: 'sub1',
         hallSubItemType: 'track',
       }).success,
     ).toBe(true);
@@ -243,11 +241,24 @@ describe('NotificationMetadataByType', () => {
       const base = {
         type,
         workProjectId: 'wp1',
-        workTitle: 'My Work',
         hallItemId: 'hi1',
-        hallItemTitle: 'My Hall Item',
+        hallSubItemId: 'sub1',
         hallSubItemType: 'chapter',
       };
+      expect(
+        NotificationMetadataByTypeSchema.safeParse({ ...base, workTitle: 'My Work' }).success,
+        `${type} refuses a stored Work title`,
+      ).toBe(false);
+      expect(
+        NotificationMetadataByTypeSchema.safeParse({ ...base, hallItemTitle: 'Chapter One' })
+          .success,
+        `${type} refuses a stored item title`,
+      ).toBe(false);
+      const { hallSubItemId: _omit, ...withoutSubItem } = base;
+      expect(
+        NotificationMetadataByTypeSchema.safeParse(withoutSubItem).success,
+        `${type} needs the published sub-item's id`,
+      ).toBe(false);
       expect(
         NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: 'wr1' }).success,
       ).toBe(true);

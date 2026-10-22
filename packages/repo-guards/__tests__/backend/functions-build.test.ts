@@ -11,6 +11,12 @@ import {
 import { backendRepo, type BackendRepo } from './repo.js';
 
 let repo: BackendRepo | undefined;
+
+const SHARED_ROOTS = {
+  app: { path: 'src', anchor: 'src/anchor.ts' },
+  functions: { path: 'functions/src', anchor: 'functions/src/anchor.ts' },
+  sharedSource: { path: 'shared', anchor: 'shared/anchor.ts' },
+};
 afterEach(() => repo?.remove());
 
 describe('every rate-limit charge names its own preset', () => {
@@ -44,6 +50,21 @@ describe('every rate-limit charge names its own preset', () => {
     repo = backendRepo(clean);
     const [guard] = rateLimitGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([]);
+  });
+
+  it('FLAGS a charge in the shared source folder outside its surface, naming the module as Functions imports it', async () => {
+    repo = backendRepo(
+      {
+        ...clean,
+        'shared/anchor.ts': 'export {};',
+        'shared/charge.ts': 'await checkRateLimit(uid, RATE_LIMITS.HALL);',
+      },
+      { roots: SHARED_ROOTS },
+    );
+    const [guard] = rateLimitGuard.build(facts);
+    expect(await repo.run(guard!)).toEqual([
+      { file: facts.owner, detail: '../../shared/charge charges HALL' },
+    ]);
   });
 
   it('FLAGS an inline config, a spread preset, a shared prefix, a charge outside its surface in both directions, and a listed module that charges nothing', async () => {
@@ -418,6 +439,33 @@ describe('light functions never statically reach a heavy module', () => {
       {
         file: 'functions/src/index.ts',
         detail: 'light function ghost is not re-exported from a Functions module',
+      },
+    ]);
+  });
+
+  it('follows an import into the shared source folder, and flags a heavy package reached through it', async () => {
+    const throughShared = {
+      ...clean,
+      'functions/src/social/like.ts':
+        "import { LIMIT } from '../../../shared/limits.js';\nexport const like = LIMIT;",
+      'shared/anchor.ts': 'export {};',
+      'shared/limits.ts': 'export const LIMIT = 1;',
+    };
+    repo = backendRepo(throughShared, { roots: SHARED_ROOTS });
+    const [guard] = lightFunctionGuard.build(facts);
+    expect(await repo.run(guard!)).toEqual([]);
+    repo.remove();
+    repo = backendRepo(
+      {
+        ...throughShared,
+        'shared/limits.ts': "import sharp from 'sharp';\nexport const LIMIT = 1;",
+      },
+      { roots: SHARED_ROOTS },
+    );
+    expect(await repo.run(guard!)).toEqual([
+      {
+        file: 'functions/src/social/like.ts',
+        detail: 'light function like statically reaches sharp',
       },
     ]);
   });

@@ -36,7 +36,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-ARCH-005 | Cross-tree trust contracts: one definition, one proof | codebase-hygiene 31; auth-boundary 13; testing-coverage 2 | — |
 | RULE-STD-ARCH-006 | Code from another product is adapted, never carried with its identity | **No audit step yet.** No shared step; an app's own step is the candidate. | — |
 | RULE-STD-ARCH-101 | `<APP_DATA_PACKAGE>` owns cross-boundary contracts | codebase-hygiene 16, 18, 31, 51, 56, 80; client-write-security-audit 8; data-integrity 2, 7, 8; dependency-audit 1, 4, 5; field-lineage 5; migration 1 | `isolatedRoots`, `tsconfigAliasesInRoot` |
-| RULE-STD-ARCH-102 | One named declaration; enforcement points derive | codebase-hygiene 31, 51, 61, 99; callable-functions 3; client-write-security-audit 8; data-integrity 7; dependency-audit 5; migration 8 | `definitionRedeclaration`, `schemaLengthLiterals`, `textFieldDeclarations`, `schemaBounds`, `enumLabels` |
+| RULE-STD-ARCH-102 | One named declaration; enforcement points derive | codebase-hygiene 31, 51, 61, 99; callable-functions 3; client-write-security-audit 8; data-integrity 7; dependency-audit 5; migration 8 | `definitionRedeclaration`, `schemaLengthLiterals`, `textFieldDeclarations`, `schemaBounds`, `enumLabels`, `appRouteOwner` |
 | RULE-STD-ARCH-103 | Persist identity references, not snapshots | codebase-hygiene 35; data-integrity 2, 13; field-lineage 1, 2, 3, 5 | — |
 | RULE-STD-ARCH-104 | Canonical Firestore paths and compound-camelCase naming | codebase-hygiene 10, 12, 56, 80, 117; data-integrity 8; field-lineage 3; firestore-storage-rules 1 | `firestorePathAssembly`, `firestoreLiteralSegments`, `firestoreRetiredSegments`, `firestoreTestPaths`, `rulesMirrorCore` |
 | RULE-STD-ARCH-105 | Timestamps are epoch milliseconds via firebase-helpers | codebase-hygiene 9 | `firestoreTimestampNow` |
@@ -62,7 +62,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-BACKEND-004 | Admin authority is explicit; the claim is metadata | codebase-hygiene 32, 49, 70; auth-boundary 4; callable-functions 4; firestore-storage-rules 4 | `adminClaimRead` |
 | RULE-STD-BACKEND-005 | Identity fields must match the authenticated caller | codebase-hygiene 77; auth-boundary 2, 12; callable-functions 2; client-write-security-audit 5, 11; firestore-storage-rules 6; testing-coverage 3 | — |
 | RULE-STD-BACKEND-010 | Callables enforce App Check attestation | codebase-hygiene 29; auth-boundary 3, 12, 13; callable-functions 6, 12 | `appCheck` |
-| RULE-STD-BACKEND-011 | Admin capability is self-sufficient; never coupled to a participant status | codebase-hygiene 70 | — |
+| RULE-STD-BACKEND-011 | Admin capability is self-sufficient; never coupled to a participant status | codebase-hygiene 70, 121 | — |
 | RULE-STD-BACKEND-012 | Privileged route handlers and server modules carry the callable obligations | codebase-hygiene 23, 77; auth-boundary 12; callable-functions 12; client-write-security-audit 11 | — |
 | RULE-STD-BACKEND-013 | Named surface classes carry a rate-limit decision | codebase-hygiene 40, 77; auth-boundary 12; callable-functions 5 | `rateLimitSurfaces` |
 | RULE-STD-BACKEND-101 | All transaction reads before all transaction writes | codebase-hygiene 97; async-workflow 6; callable-functions 8; data-integrity 5 | — |
@@ -124,6 +124,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-108 | Auth-scoped subscribers reset on identity change | codebase-hygiene 35, 114; auth-boundary 14 | `authScopedKeys`, `signOutLiveness` |
 | RULE-STD-FRONTEND-109 | One owner per data-layer failure's user-facing copy; never a raw SDK string | codebase-hygiene 60; ux-audit 8 | `callableErrorCopy`, `readFailureCopy`, `errorInternalsRender` |
 | RULE-STD-FRONTEND-110 | An offered action mirrors the backend's predicate | codebase-hygiene 101, 108; auth-boundary 9 | — |
+| RULE-STD-FRONTEND-111 | Admin actions outside the admin area go through the one admin-actions affordance | codebase-hygiene 121 | `adminActionSurface` |
 | RULE-STD-FRONTEND-201 | Every async control shows its own pending state through the shared primitives | codebase-hygiene 57, 65, 68; ux-audit 2, 5, 6, 11, 12 | `loadingFeedback` |
 | RULE-STD-FRONTEND-202 | ConsequenceDialog for consequential confirmations | codebase-hygiene 57, 65, 68, 104 | — |
 | RULE-STD-FRONTEND-203 | Accessibility baseline: landmarks, labels, focus, Escape | codebase-hygiene 68, 103; ux-audit 4, 5, 12 | `accessibleControls`; guard-enforced: the `@ttt-productions/dev-standards/node/a11y` axe run (default, high-contrast, reduced-motion) in the app's e2e stage, and the shared ESLint base's `jsx-a11y` recommended rules |

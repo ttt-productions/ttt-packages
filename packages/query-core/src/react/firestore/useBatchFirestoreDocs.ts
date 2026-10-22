@@ -8,6 +8,7 @@ import { getDocLoader } from './batch-doc-loader.js';
 import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
 import type { BatchFirestoreDocOutcome } from '../../firestore/types.js';
 import { useReadRetryStates, type ReadRetrySource } from '../use-read-retry-state.js';
+import { isPermissionDeniedError } from './resubscribe.js';
 
 export type BatchFirestoreDocsTransport = 'batch' | 'get';
 
@@ -58,12 +59,30 @@ const ABSENT_OUTCOME = { status: 'absent' } as const;
 
 function sameOutcome<T>(a: BatchFirestoreDocOutcome<T>, b: BatchFirestoreDocOutcome<T>): boolean {
   if (a.status !== b.status) return false;
-  if (a.status === 'present') return a.data === (b as { data: T }).data;
+  if (a.status === 'present') {
+    const other = b as { data: T; failure?: { error: Error; retrying: boolean } };
+    return (
+      a.data === other.data &&
+      a.failure?.error === other.failure?.error &&
+      a.failure?.retrying === other.failure?.retrying
+    );
+  }
   if (a.status === 'failed') {
     const other = b as { error: Error; retrying: boolean };
     return a.error === other.error && a.retrying === other.retrying;
   }
   return true;
+}
+
+function failedOrHeld<T>(
+  value: T | null | undefined,
+  error: Error,
+  retrying: boolean,
+): BatchFirestoreDocOutcome<T> {
+  if (value === null || value === undefined || isPermissionDeniedError(error)) {
+    return { status: 'failed', error, retrying };
+  }
+  return { status: 'present', data: value, failure: { error, retrying } };
 }
 
 function shallowRecordEqual<T>(a: Record<string, T>, b: Record<string, T>): boolean {
@@ -212,22 +231,22 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     }
     const retryState = retryStates[index];
     if (result?.isError) anyError ??= result.error as Error;
+    const value = result?.data as T | null | undefined;
     if (retryState && retryState.error !== null) {
-      outcome = { status: 'failed', error: retryState.error, retrying: retryState.isRetrying };
+      outcome = failedOrHeld(value, retryState.error, retryState.isRetrying);
     } else if (result) {
       if (result.isLoading) oneShotLoading = true;
-      const value = result.data as T | null | undefined;
       if (value === undefined) anyUnresolved = true;
       if (listenerError) {
         anyListenerError ??= listenerError;
-        outcome = { status: 'failed', error: listenerError, retrying: false };
+        outcome = failedOrHeld(value, listenerError, false);
       } else if (value === null) {
         outcome = ABSENT_OUTCOME;
       } else if (value !== undefined) {
-        nextData[id] = value;
         outcome = { status: 'present', data: value };
       }
     }
+    if (outcome.status === 'present') nextData[id] = outcome.data;
     const committed = committedOutcomesRef.current[id];
     nextOutcomes[id] = committed && sameOutcome(committed, outcome) ? committed : outcome;
   }

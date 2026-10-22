@@ -32,7 +32,6 @@ function realtimeConfig(allowed = true): ChatCoreConfig {
     chatCollectionPath: 'c',
     threadId: 't',
     currentUserId: 'u1',
-    isAdmin: false,
     allowed,
     realtime: { channelRef: { kind: 'room', id: 'r1' }, client: {} },
   };
@@ -43,7 +42,6 @@ function firestoreConfig(): ChatCoreConfig {
     chatCollectionPath: 'c',
     threadId: 't',
     currentUserId: 'u1',
-    isAdmin: false,
     allowed: true,
   };
 }

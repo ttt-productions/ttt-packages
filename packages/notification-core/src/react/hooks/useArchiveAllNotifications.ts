@@ -1,6 +1,7 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSessionMutation } from '@ttt-productions/query-core/react';
 import type { ArchiveAllPollResult, UseArchiveAllNotificationsOptions } from '../../types.js';
 
 const DEFAULT_POLL_INTERVAL_MS = 1500;
@@ -27,12 +28,13 @@ export function useArchiveAllNotifications({
     ['notifications', 'history', category, userId],
   ];
 
-  return useMutation({
-    mutationFn: async (): Promise<ArchiveAllPollResult> => {
+  return useSessionMutation({
+    mutationFn: async (_: void, { session }): Promise<ArchiveAllPollResult> => {
       const { jobId } = await enqueueArchiveAllFn(category);
 
       let lastArchived = 0;
       for (let poll = 0; poll < maxPolls; poll += 1) {
+        session.assertCurrent();
         const snap = await getArchiveAllStatusFn(jobId);
         lastArchived = snap.archived ?? 0;
 

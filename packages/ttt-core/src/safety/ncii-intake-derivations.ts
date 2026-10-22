@@ -18,6 +18,14 @@ export function tempHoldId(requestId: string): string {
   return sha256Hex(`nciiTemporaryHold:v1:${requestId}`);
 }
 
+export function firstSubmissionId(requestId: string): string {
+  return sha256Hex(`takeItDownSubmission:v1:${requestId}:0`);
+}
+
+export function intakeActionId(requestId: string): string {
+  return sha256Hex(`takeItDownAction:v1:intakeReceived:${requestId}`);
+}
+
 export function normalizedTargetKey(locator: TargetLocatorV1): string {
   const k = locator.kind;
   switch (locator.kind) {

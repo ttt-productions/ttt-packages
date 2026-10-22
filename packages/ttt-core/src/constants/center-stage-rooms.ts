@@ -1,3 +1,5 @@
+import { APP_ROUTES } from '../paths/app-routes.js';
+
 export type CenterStageRoomKey = 'hall' | 'square' | 'audition';
 
 export interface CenterStageRoom {
@@ -13,7 +15,7 @@ export const CENTER_STAGE_ROOMS: readonly CenterStageRoom[] = [
     key: 'hall',
     name: 'The Hall',
     verb: 'Watch, read & listen',
-    href: '/hall-library',
+    href: APP_ROUTES.hallLibrary(),
     description:
       'Home to the finished works — read original Tales, listen to Tunes, and watch Television, all made by real people and reviewed before it goes up.',
   },
@@ -21,7 +23,7 @@ export const CENTER_STAGE_ROOMS: readonly CenterStageRoom[] = [
     key: 'square',
     name: 'The Square',
     verb: "See what's happening",
-    href: '/square-streetz',
+    href: APP_ROUTES.squareStreetz(),
     description:
       'The community feed. Post your news, follow artisans you admire, and watch the Town Crier announce what’s happening across TTT Productions.',
   },
@@ -29,7 +31,7 @@ export const CENTER_STAGE_ROOMS: readonly CenterStageRoom[] = [
     key: 'audition',
     name: 'The Audition Stage',
     verb: 'Cast your vote',
-    href: '/audition-board',
+    href: APP_ROUTES.auditionBoard(),
     description:
       'Artisans post auditions for their works, and the community votes on the entries. Cast your vote — one per audition, switch it anytime.',
   },

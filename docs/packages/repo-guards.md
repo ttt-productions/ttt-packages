@@ -7,8 +7,10 @@ aliases, its owner files, its reviewed exceptions — never logic.
 ## Owns
 
 - **The reader** — one scope policy for every guard: the roots an app declares by role (`app`,
-  `functions`, `e2e`, `hostedE2e`, `scripts`, `coreDist`, and each named Worker tree; a root may be
-  the whole repository, `.`), the file
+  `functions`, `sharedSource`, `e2e`, `hostedE2e`, `scripts`, `coreDist`, and each named Worker tree;
+  a root may be the whole repository, `.`) — `sharedSource` is an optional private source folder both
+  the app and its Functions build from, and every scope that reads the app or the Functions root
+  reads it too, so each guard over either tree also guards it; the file
   kinds (code, declarations, stylesheets, rules files, config — env files by any name included —,
   markdown, shell scripts), what counts as test code
   (a `.test.` / `.spec.` name, a `__tests__` folder, an end-to-end root, or a declared test-code path
@@ -55,7 +57,10 @@ aliases, its owner files, its reviewed exceptions — never logic.
 ## Contract shape
 
 - `.` — pure: `ownerOnly`, `reviewedAllowlist`, `declaredLiteral`, `matchPattern`, `sampleHits`, the
-  `Guard` / `Finding` / `Sample` / `GuardContext` types, `formatFindings`, and `viewOfText`. A
+  `Guard` / `Finding` / `Sample` / `GuardContext` types, `formatFindings`, `viewOfText`, and
+  `rawMutations(file)` — the one detector of a raw TanStack `useMutation` (by name, through a
+  namespace, re-exported, or loaded at run time), which the mutation-owner guard and any
+  repository's own check share. A
   `FileView` carries the file's `imports`: every place its code names a module (imports,
   re-exports, `import()`, `require()`, test-runner mocks, type-position imports) with the names each
   binds, read once from its parse. Only code and declarations have imports; reading them on any
@@ -135,20 +140,31 @@ this section says what the facts mean, area by area, and never lists them guard 
 - **Backend** — the owner of each server concern (the audit writer and its entry points, the
   monitoring package with its capture calls and failure exits, the lazy loader, the Functions entry
   index and deploy manifest, and the module that owns each server boundary the app declares), the
-  folders and modules that make up the app's server zone, and the reviewed exceptions to each.
+  folders and modules that make up the app's server zone, and the reviewed exceptions to each. The
+  admin action surface adds the auth call and the option that marks a callable admin-only, the
+  app's admin-checker names with their reviewed readers, the admin declarations module, the admin
+  claim keys and hooks, the admin-area roots, the admin-actions affordance, and the reviewed
+  admin-standing reads outside them, each a path with an optional symbol.
 - **Frontend reads** — the read-state module and its failure seat, the hooks tree, the query-key
-  module (with a loader for its builders), the domain-event registry, and the session-retirement
-  owner.
+  module (with a loader for its builders), the domain-event registry, the session-retirement
+  owner, and the read fields a render surface branches on (data, failure, failure carriers, and
+  loading) with the reviewed failure branches and loading-only surfaces.
 - **Frontend actions** — the callable declaration modules and the factory for each callable kind,
   the callable transports, the client auth accessor and boundary modules, and each client owner
   (the app-config provider, the browser-storage helper, the media renderers, the upload listener)
-  with its allowlist.
+  with its allowlist, and the mutation owner every mutation is built with (its module and hook
+  name).
 - **UI** — the entry stylesheet, token sheet, and pinned stylesheet order, the root layout module
   and what it mounts in which order, the navigation, motion, and loading helpers, the accessible
-  control and display components, and the reviewed colour, label, text-entry, and bound exceptions.
+  control and display components, the trees the shared truncation class governs with that class and
+  the clamp-owner selectors, and the reviewed colour, label, text-entry, bound, and truncation
+  exceptions.
 - **Core definitions** — the app's data package, its schema and wire folders, the wire-input name
   suffixes, loaders for its wire modules, field declarations, and field schema builder, and the
-  reviewed exceptions (guarded literals, length literals, non-segment ids, verbatim fields).
+  reviewed exceptions (guarded literals, length literals, non-segment ids, verbatim fields). The
+  route owner adds the module and name that build every app page path, the page roots it builds
+  (each a whole leading segment), the trees where no other code may write one, and the reviewed
+  exceptions, among them the framework route files the app names.
 
 A guard over a security boundary takes only names and paths — which module owns the boundary and
 which sites are reviewed exceptions. What the boundary does is the app's, and stays in its private

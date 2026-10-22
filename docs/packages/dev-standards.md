@@ -48,7 +48,9 @@ The package has no root entry: `exports` names only the subpaths below, so a con
 config base by its subpath and reads the docs as files.
 
 - `@ttt-productions/dev-standards/node/eslint` — the ESLint bases (Node).
-- `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node).
+- `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node). No base runs the tests
+  of a file concurrently, and `test/boundary/dev-standards-vitest-bases.test.ts` fails if one sets
+  `concurrent`.
 - `@ttt-productions/dev-standards/node/playwright` — the Playwright base (Node).
 - `@ttt-productions/dev-standards/node/postcss` — the PostCSS base (Node).
 - `@ttt-productions/dev-standards/node/a11y` — the axe accessibility check for Playwright e2e:

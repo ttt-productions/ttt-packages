@@ -51,6 +51,12 @@ const FACTS: UiGuardFacts = {
   },
   wholeInputNumbers: { surfaceTrees: ['src/components'], allowlist: [] },
   selfHostedFonts: {},
+  sharedTruncation: {
+    trees: ['src'],
+    sharedClass: 'kit-truncate',
+    clampOwners: [{ selector: '.kit-truncate', why: 'the shared truncation class' }],
+    exceptions: [],
+  },
 };
 
 describe('the ui area', () => {

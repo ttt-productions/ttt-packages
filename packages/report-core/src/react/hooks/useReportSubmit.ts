@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useSessionMutation } from '@ttt-productions/query-core/react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { SubmitReportRequest, SubmitReportResult } from '../../schemas/requests.js';
 
@@ -17,7 +17,7 @@ interface SubmitReportInput {
 export function useReportSubmit() {
   const { submitReportFn } = useReportCoreContext();
 
-  return useMutation({
+  return useSessionMutation({
     mutationFn: async (input: SubmitReportInput): Promise<SubmitReportResult> => {
       const request: SubmitReportRequest = {
         itemType: input.itemType,

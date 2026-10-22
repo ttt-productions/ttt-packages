@@ -76,6 +76,24 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
     renderError: () => <div role="alert">read failed</div>,
   };
 
+  it("shows each row's stored title and message when no content slot is given", () => {
+    render(<NotificationHistoryList {...baseProps} />);
+    expect(screen.getAllByText('Title')).toHaveLength(2);
+    expect(screen.getAllByText('Message')).toHaveLength(2);
+  });
+
+  it('renders the content slot in place of the stored title and message', () => {
+    const renderContent = vi.fn((notification: { id: string }) => (
+      <div data-testid={`content-${notification.id}`}>Resolved for {notification.id}</div>
+    ));
+    render(<NotificationHistoryList {...baseProps} renderContent={renderContent} />);
+    expect(screen.getByTestId('content-n1')).toHaveTextContent('Resolved for n1');
+    expect(screen.getByTestId('content-n2')).toHaveTextContent('Resolved for n2');
+    expect(screen.queryByText('Title')).toBeNull();
+    expect(screen.queryByText('Message')).toBeNull();
+    expect(renderContent.mock.calls.map(([notification]) => notification.id)).toEqual(['n1', 'n2']);
+  });
+
   it('renders a plain row with no action slot when renderRowAction is absent', () => {
     const { container } = render(<NotificationHistoryList {...baseProps} />);
     expect(container.querySelectorAll('.ntf-item')).toHaveLength(2);

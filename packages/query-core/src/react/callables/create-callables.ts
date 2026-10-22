@@ -1,14 +1,19 @@
 'use client';
 
 import { useCallback, useMemo, useRef } from 'react';
+import type { UseMutationResult } from '@tanstack/react-query';
+import type { ExpectedCallableAnswerCode } from '@ttt-productions/firebase-helpers';
 import {
-  useMutation,
-  type UseMutationOptions,
-  type UseMutationResult,
-} from '@tanstack/react-query';
-import { callCallable, type FunctionsProvider } from '../client/call-callable.js';
-import { isRecoveredFallbackReport } from '../client/recovered-fallback.js';
-import type { ExpectedCallableAnswerCode } from '../utils/expected-callable-answers.js';
+  callCallable,
+  isRecoveredFallbackReport,
+  type FunctionsProvider,
+} from '@ttt-productions/firebase-helpers/client';
+import {
+  useMutationSessionCapture,
+  useSessionMutation,
+  type MutationSession,
+  type SessionMutationOptions,
+} from '../session-mutation.js';
 
 export interface CallableErrorRouting {
   showErrorToast: boolean;
@@ -36,7 +41,7 @@ interface CallableTransportOptions extends Partial<CallableErrorRouting> {
 }
 
 export type CallableMutationOptions<TInput, TResult, TOnMutateResult = unknown> = Omit<
-  UseMutationOptions<TResult, Error, TInput, TOnMutateResult>,
+  SessionMutationOptions<TResult, Error, TInput, TOnMutateResult>,
   'mutationFn' | 'retry'
 > &
   Pick<
@@ -72,12 +77,17 @@ export interface Callables {
   ): () => (input: TInput) => Promise<TResult>;
 }
 
+type CallableTransport = <TInput, TResult>(
+  input: TInput,
+  session: MutationSession,
+) => Promise<TResult>;
+
 export function createCallables(policy: CallablePolicy): Callables {
   function useCallableTransport(
     functionName: string,
     declaration: CallableDeclaration,
     options: CallableTransportOptions,
-  ): <TInput, TResult>(input: TInput) => Promise<TResult> {
+  ): CallableTransport {
     const optionsRef = useRef(options);
     optionsRef.current = options;
     const limitedUseAppCheck = policy.resolveLimitedUseAppCheck(
@@ -85,7 +95,7 @@ export function createCallables(policy: CallablePolicy): Callables {
     );
 
     return useCallback(
-      <TInput, TResult>(input: TInput) =>
+      <TInput, TResult>(input: TInput, session: MutationSession) =>
         callCallable<TInput, TResult>(
           policy.getFunctions,
           functionName,
@@ -97,6 +107,7 @@ export function createCallables(policy: CallablePolicy): Callables {
                 policy.captureRecoveredFallback(error, context);
             },
             onError: (error) => {
+              if (!session.isCurrent()) return;
               const {
                 showErrorToast = true,
                 answeredRefusals = [],
@@ -112,6 +123,16 @@ export function createCallables(policy: CallablePolicy): Callables {
           { timeoutMs: policy.timeoutMs, limitedUseAppCheck },
         ),
       [functionName, limitedUseAppCheck],
+    );
+  }
+
+  function useSessionBoundCall<TInput, TResult>(
+    call: CallableTransport,
+  ): (input: TInput) => Promise<TResult> {
+    const captureSession = useMutationSessionCapture();
+    return useMemo(
+      () => (input: TInput) => call<TInput, TResult>(input, captureSession()),
+      [call, captureSession],
     );
   }
 
@@ -136,13 +157,12 @@ export function createCallables(policy: CallablePolicy): Callables {
           isAnswerSurfacedByCaller,
           captureFaults,
         });
-        const mutationFn = useMemo(() => (input: TInput) => call<TInput, TResult>(input), [call]);
         // `retry: false` comes last so nothing overrides it: a deadline expiry is an unknown outcome,
         // and a retry after a committed first attempt writes twice.
-        return useMutation<TResult, Error, TInput, TOnMutateResult>({
+        return useSessionMutation<TResult, Error, TInput, TOnMutateResult>({
           ...mutationOptions,
           retry: false,
-          mutationFn,
+          mutationFn: (input, { session }) => call<TInput, TResult>(input, session),
         });
       };
     },
@@ -168,28 +188,24 @@ export function createCallables(policy: CallablePolicy): Callables {
           isAnswerSurfacedByCaller,
           captureFaults,
         });
-        const mutationFn = useMemo(
-          () =>
-            async (input: TInput): Promise<ResumableOutcome<TResult>> => {
-              let progress = await call<TInput, TResult>(input);
-              for (let calls = 1; !progress.complete && calls < MAX_RESUMABLE_CALLS; calls += 1) {
-                let later: TResult;
-                try {
-                  later = await call<TInput, TResult>(input);
-                } catch (error) {
-                  const interruption = error instanceof Error ? error : new Error(String(error));
-                  return { ...progress, complete: false, interruption };
-                }
-                progress = merge(progress, later);
-              }
-              return { ...progress, interruption: null };
-            },
-          [call],
-        );
-        return useMutation<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult>({
+        return useSessionMutation<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult>({
           ...mutationOptions,
           retry: false,
-          mutationFn,
+          mutationFn: async (input, { session }): Promise<ResumableOutcome<TResult>> => {
+            let progress = await call<TInput, TResult>(input, session);
+            for (let calls = 1; !progress.complete && calls < MAX_RESUMABLE_CALLS; calls += 1) {
+              session.assertCurrent();
+              let later: TResult;
+              try {
+                later = await call<TInput, TResult>(input, session);
+              } catch (error) {
+                const interruption = error instanceof Error ? error : new Error(String(error));
+                return { ...progress, complete: false, interruption };
+              }
+              progress = merge(progress, later);
+            }
+            return { ...progress, interruption: null };
+          },
         });
       };
     },
@@ -203,7 +219,7 @@ export function createCallables(policy: CallablePolicy): Callables {
           showErrorToast: false,
           captureFaults: false,
         });
-        return useMemo(() => (input: TInput) => call<TInput, TResult>(input), [call]);
+        return useSessionBoundCall<TInput, TResult>(call);
       };
     },
 
@@ -213,7 +229,7 @@ export function createCallables(policy: CallablePolicy): Callables {
     ) {
       return function useNamedCallableInvoker(): (input: TInput) => Promise<TResult> {
         const call = useCallableTransport(functionName, declaration, {});
-        return useMemo(() => (input: TInput) => call<TInput, TResult>(input), [call]);
+        return useSessionBoundCall<TInput, TResult>(call);
       };
     },
   };

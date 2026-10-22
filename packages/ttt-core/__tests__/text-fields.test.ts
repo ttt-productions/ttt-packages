@@ -212,7 +212,7 @@ describe('the wire schemas read the declarations', () => {
       message: 'Join us',
       source: {
         type: 'craftSkill',
-        data: { craftSkillId: 'c', craftSkillOwnerUserId: 'u', craftSkillName: 'Score' },
+        data: { craftSkillId: 'c', craftSkillOwnerUserId: 'u' },
       },
     };
     expect(

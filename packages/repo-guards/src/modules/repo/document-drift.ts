@@ -18,7 +18,7 @@ export function firstDifferingLine(ours: string, theirs: string): number | null 
 
 export const documentDriftGuard: GenericGuardDefinition<DocumentDriftFacts> = {
   id: 'documentDrift',
-  absentWhen: false,
+  absentWhen: 'the app keeps no document identical across repositories',
   factProblems(facts) {
     const problems: string[] = [];
     pathProblem(facts?.file, 'file', problems);

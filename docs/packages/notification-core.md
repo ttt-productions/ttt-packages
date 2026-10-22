@@ -37,6 +37,10 @@ in the active collection until archived; personal unread state is tracked with
   result can carry `notArchived > 0`: cards that each failed and stay listed, so their Clear All
   pending is released at once and the copy for them is the app's. An incomplete or failed drain
   never fires `onClearAll`; the list shows its own "Some notifications remain — try again."
+- **Session-bound archives.** `useArchiveNotification` and `useArchiveAllNotifications` are
+  query-core `useSessionMutation`s: an archive or a Clear All whose answer lands after the
+  member's session ended refreshes nothing and reaches no callback, and a Clear All stops
+  polling its job once that session ends.
 - **Read states.** While a list's first page loads it renders ui-core's `Spinner` as
   a status region. A failed read renders the app's required `renderError` slot
   (`NotificationListErrorState`: `error`, `retry` — re-reads the displayed page —
@@ -49,6 +53,10 @@ in the active collection until archived; personal unread state is tracked with
   (Previous / counter / Next), which stays on a failed or empty later page so the
   user can step back; Next replaces the list, and the clicked control spins while
   its page loads. All copy in these slots is the app's.
+- **Row content.** A row shows the stored `notification.title` and `notification.message`. Both
+  lists take an optional `renderContent(notification)` slot that renders in their place, for a
+  row whose text the app resolves when it renders; the timestamp, count, and action slot stay
+  the package's.
 - **Rendered rows.** The active list calls `onRenderedRowsChange(rows)` with the rows on
   screen each time the displayed page's answered rows change — the rows the app marks
   seen, on any page.

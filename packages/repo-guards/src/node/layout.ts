@@ -12,11 +12,12 @@ export const FILE_KINDS: readonly FileKind[] = Object.freeze([
 ]);
 
 export type RootRole =
-  'app' | 'functions' | 'e2e' | 'hostedE2e' | 'scripts' | 'coreDist' | 'workers';
+  'app' | 'functions' | 'sharedSource' | 'e2e' | 'hostedE2e' | 'scripts' | 'coreDist' | 'workers';
 
 export const ROOT_ROLES: readonly RootRole[] = Object.freeze([
   'app',
   'functions',
+  'sharedSource',
   'e2e',
   'hostedE2e',
   'scripts',
@@ -39,6 +40,7 @@ export interface RepoLayout {
   roots: {
     app: RootDeclaration;
     functions?: RootDeclaration;
+    sharedSource?: RootDeclaration;
     e2e?: RootDeclaration;
     hostedE2e?: RootDeclaration;
     scripts?: RootDeclaration;
@@ -53,6 +55,15 @@ export interface RepoLayout {
 }
 
 export const REPOSITORY_ROOT = '.';
+
+const SHARED_SOURCE_READERS: readonly RootRole[] = ['app', 'functions'];
+
+export function withSharedSource(roles: readonly RootRole[]): RootRole[] {
+  const out = [...roles];
+  if (!out.includes('sharedSource') && roles.some((role) => SHARED_SOURCE_READERS.includes(role)))
+    out.push('sharedSource');
+  return out;
+}
 
 export function isUnderRoot(path: string, rootPath: string): boolean {
   return rootPath === REPOSITORY_ROOT || path === rootPath || path.startsWith(`${rootPath}/`);

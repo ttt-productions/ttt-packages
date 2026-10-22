@@ -31,8 +31,6 @@ export const MAX_ASSOCIATED_WORK_PROJECTS = ACTIVE_LIMITS.user.maxAssociatedWork
 
 export const MAX_CRAFT_SKILL_TAGS = 5;
 
-export const MAX_CRAFT_SKILL_NAME_LENGTH = 200;
-
 export const MAX_ARTISAN_LOCATION_LENGTH = 100;
 
 export const MAX_HISTORY_ITEMS = 10;

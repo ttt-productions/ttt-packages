@@ -22,7 +22,6 @@ import {
   stakeSharesOfferedSchema,
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
-import { MAX_CRAFT_SKILL_NAME_LENGTH } from '../constants/business-user.js';
 import { WORK_REALM_FOUNDING_AGREEMENT_VERSION } from '../constants/member-agreements.js';
 import {
   GUILD_INVITE_MESSAGE_INPUT,
@@ -286,7 +285,6 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
         .object({
           craftSkillId: craftSkillIdSchema,
           craftSkillOwnerUserId: userIdSchema,
-          craftSkillName: z.string().min(1).max(MAX_CRAFT_SKILL_NAME_LENGTH),
         })
         .strict(),
     })

@@ -16,9 +16,11 @@ import {
   followEdgeDocId,
   ncmecSubmissionJobDocId,
   nciiCaseClosureEventDocId,
+  nciiDurableCaseId,
   notificationFanoutJobDocId,
   parseAccountActionCommandDocId,
   parseAdminTaskForItemDocId,
+  parseAuditionEntryMediaOwnerId,
   parseNcmecSubmissionJobDocId,
   parseSafetyHoldRefDocId,
   parseSafetySlaMonitorDocId,
@@ -177,6 +179,18 @@ describe('safety hold ref ids', () => {
   });
 });
 
+describe('NCII durable case ids', () => {
+  it("an NCII case's durable hold case id is the case id with the nciiDurable suffix", () => {
+    expect(nciiDurableCaseId('case1')).toBe('case1::nciiDurable');
+  });
+
+  it('a durable hold ref is keyed under the durable case id', () => {
+    expect(safetyHoldRefDocId(nciiDurableCaseId('case1'), 'serving-key')).toBe(
+      'case1::nciiDurable__serving-key',
+    );
+  });
+});
+
 describe('account action command ids', () => {
   it('the automatic command is keyed case then account, joined by a double underscore', () => {
     expect(accountActionCommandDocId('case1', 'uid1', 'autoHash')).toBe('case1__uid1');
@@ -314,6 +328,21 @@ describe('notification event ids', () => {
 describe('media owner ids', () => {
   it('an audition entry is owned under its audition, then its entry id', () => {
     expect(auditionEntryMediaOwnerId('audition1', 'uid1')).toBe('audition1:uid1');
+  });
+
+  it('an audition entry owner id parses back to the audition and entry it was built from', () => {
+    expect(parseAuditionEntryMediaOwnerId(auditionEntryMediaOwnerId('audition1', 'uid1'))).toEqual({
+      auditionId: 'audition1',
+      auditionEntryId: 'uid1',
+    });
+  });
+
+  it('an audition entry owner id that is not exactly two non-empty parts is refused', () => {
+    expect(parseAuditionEntryMediaOwnerId('audition1')).toBeNull();
+    expect(parseAuditionEntryMediaOwnerId('audition1:')).toBeNull();
+    expect(parseAuditionEntryMediaOwnerId(':uid1')).toBeNull();
+    expect(parseAuditionEntryMediaOwnerId('audition1:uid1:extra')).toBeNull();
+    expect(parseAuditionEntryMediaOwnerId('')).toBeNull();
   });
 
   it('a commission proposal is owned under its listing, then its proposal id', () => {

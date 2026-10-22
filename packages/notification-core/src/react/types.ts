@@ -26,6 +26,7 @@ export interface NotificationListProps {
   renderError: (state: NotificationListErrorState) => ReactNode;
   onRenderedRowsChange?: (rows: readonly NotificationDoc[]) => void;
   renderRowAction?: (notification: NotificationDoc, actions: NotificationRowActions) => ReactNode;
+  renderContent?: (notification: NotificationDoc) => ReactNode;
 }
 
 export interface NotificationHistoryListProps {
@@ -41,4 +42,5 @@ export interface NotificationHistoryListProps {
     notification: NotificationHistoryItem,
     actions: NotificationRowActions,
   ) => ReactNode;
+  renderContent?: (notification: NotificationHistoryItem) => ReactNode;
 }

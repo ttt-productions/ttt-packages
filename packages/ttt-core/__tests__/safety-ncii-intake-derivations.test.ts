@@ -5,6 +5,8 @@ import { describe, it, expect } from 'vitest';
 import {
   sha256Hex,
   tempHoldId,
+  firstSubmissionId,
+  intakeActionId,
   normalizedTargetKey,
   normalizeExternalUrl,
   deterministicRequestId,
@@ -39,6 +41,25 @@ describe('tempHoldId', () => {
     expect(tempHoldId('req_1')).toBe(
       'c8847057e2e60d82d9fca8df67aed23645d688fd00a3bed3bbdab8002f41c43f',
     );
+  });
+});
+
+describe('intake document ids', () => {
+  it("builds the exact deterministic id of a request's first submission", () => {
+    expect(firstSubmissionId('req_1')).toBe(
+      'd8cbc58070bfe0d00d5453ce6053403d288df218443767257e840a968ebe48fc',
+    );
+  });
+
+  it("builds the exact deterministic id of a request's intake-received action", () => {
+    expect(intakeActionId('req_1')).toBe(
+      'e53395b0a3edb3d428ad22aa41f60dfcd557a386ef3536e0e3a7363a636ee1e3',
+    );
+  });
+
+  it('a different request gets different submission and action ids', () => {
+    expect(firstSubmissionId('req_2')).not.toBe(firstSubmissionId('req_1'));
+    expect(intakeActionId('req_2')).not.toBe(intakeActionId('req_1'));
   });
 });
 

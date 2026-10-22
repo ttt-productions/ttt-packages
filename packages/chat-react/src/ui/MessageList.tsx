@@ -29,7 +29,6 @@ function DefaultScrollContainer({ ref, className, onScroll, children }: ChatScro
 export function MessageList(props: {
   messages: ChatMessageV1[];
   currentUserId: string;
-  isAdmin: boolean;
 
   isFetchingOlder?: boolean;
   hasOlder?: boolean;
@@ -55,7 +54,6 @@ export function MessageList(props: {
   const {
     messages,
     currentUserId,
-    isAdmin,
     isFetchingOlder,
     hasOlder,
     onLoadOlder,
@@ -205,7 +203,6 @@ export function MessageList(props: {
                 <MessageItemDefault
                   m={m}
                   currentUserId={currentUserId}
-                  isAdmin={isAdmin}
                   handlers={handlers}
                   isContinuation={continuation}
                   onSenderClick={onSenderClick}

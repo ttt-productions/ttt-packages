@@ -33,3 +33,5 @@ export * from './storage-keys.js';
 export * from './company-mascots.js';
 export * from './center-stage-rooms.js';
 export * from './audition-deadlines.js';
+export * from './admin-views.js';
+export * from './backstage-guide-topics.js';

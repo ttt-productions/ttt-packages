@@ -12,10 +12,12 @@ import {
   type RefusalAuditFacts,
 } from './audit.js';
 import {
+  adminActionSurfaceGuard,
   adminClaimGuard,
   appCheckGuard,
   noBlockingFunctionGuard,
   requestOriginGuard,
+  type AdminActionSurfaceFacts,
   type AdminClaimFacts,
   type AppCheckFacts,
   type NoBlockingFunctionFacts,
@@ -68,6 +70,7 @@ export interface BackendGuardFacts {
   lazyLoader: LazyLoaderFacts;
   lightFunctions: LightFunctionFacts | Absent;
   codebaseManifest: CodebaseManifestFacts | Absent;
+  adminActionSurface: AdminActionSurfaceFacts | Absent;
 }
 
 export const BACKEND_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -90,4 +93,5 @@ export const BACKEND_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Obje
   lazyLoaderGuard,
   lightFunctionGuard,
   codebaseManifestGuard,
+  adminActionSurfaceGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

@@ -79,7 +79,10 @@ Chat **React UI** package — the React half of the chat split.
   — the client half of the consuming app's chat Worker wire protocol. See the
   "Realtime transport" section below. The FIRESTORE transport stays the unchanged
   default.
-- Moderation actions (`MessageActions` / `ThreadActions`): a promise-returning
+- Member report actions (`MessageActions` / `ThreadActions`): Report and Report
+  thread, each shown only when the app passes its handler. The package renders no
+  admin control and takes no admin flag — an admin action on a conversation is the
+  app's, offered from its own admin surface (RULE-STD-FRONTEND-111). A promise-returning
   handler runs as a pending action — the button spins and ignores repeats until
   it settles; a rejection is re-raised on the global error channel, never
   swallowed. Every chat loader renders ui-core's `Spinner`.
@@ -365,7 +368,7 @@ reply stylesheet, and no reply argument anywhere on the send path:
 `ChatShellProps.onSend`, `ComposerProps.onSend`, and the realtime
 `send`/`ChannelClient.send` all take text alone, and no `send` frame carries a
 reply pointer. The product has no affordance for replying to a specific message
-(`MessageActions` renders only Report/Delete), so the machinery was removed
+(`MessageActions` renders only Report), so the machinery was removed
 rather than left dormant. The realtime mapper ignores a
 legacy `replyTo` column an older channel runtime may still broadcast — guarded by
 `__tests__/realtime/wire-contract.test.ts`.

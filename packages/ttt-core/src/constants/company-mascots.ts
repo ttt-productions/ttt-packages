@@ -355,13 +355,12 @@ export interface SiteTourStepCopy {
   speaker: CompanyCharacterId;
   heading: string;
   body: readonly string[];
-  bodyNonArtisanFinal?: string;
 }
 
 export const SITE_TOUR_INVITATION_LINES: readonly SiteTourLine[] = [
   {
     speaker: 'bill',
-    text: 'Welcome to TTT! Before the curtain rises, may we show you the few controls that will help you find your way around?',
+    text: 'Welcome to TTT, Curtainfolk! Before the curtain rises, may we show you the few controls that will help you find your way around?',
   },
   { speaker: 'kit', text: 'Four quick stops. He rehearsed twelve.' },
   { speaker: 'yorick', text: 'I was told there would be snacks.' },
@@ -380,11 +379,7 @@ export const SITE_TOUR_STEPS: readonly SiteTourStepCopy[] = [
     anchor: 'accountArea',
     speaker: 'kit',
     heading: 'Most of the theatre waits behind your account menu.',
-    body: [
-      'Use it to visit The Town, open Your Corner, change settings, or sign out. Artisans also have a separate My Work button for reaching their Works quickly.',
-    ],
-    bodyNonArtisanFinal:
-      'If you become an Artisan, My Work will appear here for reaching your Works quickly.',
+    body: ['Use it to visit The Town, open Your Corner, change settings, or sign out.'],
   },
   {
     anchor: 'dock',

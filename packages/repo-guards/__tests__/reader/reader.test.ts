@@ -226,6 +226,69 @@ describe('the scope policy', () => {
   });
 });
 
+describe('a shared source folder both the app and Functions build from', () => {
+  let shared: TempRepo;
+  let sharedLayout: RepoLayout;
+  beforeAll(() => {
+    shared = tempRepo({
+      'src/page.ts': 'export {};',
+      'functions/src/index.ts': 'export {};',
+      'shared/limits.ts': 'export const LIMIT = 1;',
+      'shared/limits.test.ts': 'export {};',
+      'scripts/run.mjs': 'export {};',
+    });
+    sharedLayout = {
+      repoRoot: shared.root,
+      roots: {
+        app: { path: 'src', anchor: 'src/page.ts' },
+        functions: { path: 'functions/src', anchor: 'functions/src/index.ts' },
+        sharedSource: { path: 'shared', anchor: 'shared/limits.ts' },
+        scripts: { path: 'scripts', anchor: 'scripts/run.mjs' },
+      },
+    };
+  });
+  afterAll(() => shared.remove());
+
+  it('is read by every scope over the app tree or the Functions tree, labelled as shared source', () => {
+    const reader = createRepoReader(sharedLayout);
+    expect(paths(reader.files({ roots: ['app'], kinds: ['code'], tests: false }))).toEqual([
+      'shared/limits.ts',
+      'src/page.ts',
+    ]);
+    expect(paths(reader.files({ roots: ['functions'], kinds: ['code'], tests: 'only' }))).toEqual([
+      'shared/limits.test.ts',
+    ]);
+    expect(reader.file('shared/limits.ts').role).toBe('sharedSource');
+  });
+
+  it('is not read by a scope over neither tree', () => {
+    const reader = createRepoReader(sharedLayout);
+    expect(paths(reader.files({ roots: ['scripts'], kinds: ['code'], tests: true }))).toEqual([
+      'scripts/run.mjs',
+    ]);
+  });
+
+  it('is optional: a layout without one reads the app tree alone', () => {
+    const { sharedSource: _, ...roots } = sharedLayout.roots;
+    const reader = createRepoReader({ ...sharedLayout, roots });
+    expect(paths(reader.files({ roots: ['app'], kinds: ['code'], tests: false }))).toEqual([
+      'src/page.ts',
+    ]);
+  });
+
+  it('MUST FAIL — a shared source root whose anchor is missing', () => {
+    expect(
+      layoutProblems({
+        ...sharedLayout,
+        roots: {
+          ...sharedLayout.roots,
+          sharedSource: { path: 'shared', anchor: 'shared/gone.ts' },
+        },
+      }),
+    ).toContain("root sharedSource's anchor shared/gone.ts does not exist");
+  });
+});
+
 describe('MUST FAIL — a layout that cannot be read whole', () => {
   it('lists a missing root, a missing or misplaced anchor, a stale exclusion, a reviewed entry with no why, and a missing rules file', () => {
     const problems = layoutProblems({

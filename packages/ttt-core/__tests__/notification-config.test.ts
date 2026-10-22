@@ -144,3 +144,81 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
     expect(TTT_NOTIFICATION_CONFIG.timestampFromMillis).toBeUndefined();
   });
 });
+
+describe('content-published notifications store no titles', () => {
+  const meta = {
+    workProjectId: 'wp1',
+    hallItemId: 'hi1',
+    hallSubItemId: 'sub1',
+    hallSubItemType: 'episode',
+  };
+
+  it('a follower card stores title-free text', () => {
+    const entry = TTT_NOTIFICATION_CONFIG.types.followed_content_published;
+    expect(entry.titlePattern(meta)).toBe('New in the Hall Library');
+    expect(entry.messagePattern(meta, 1)).toBe('A new episode was published');
+    expect(entry.messagePattern(meta, 4)).toBe('4 new items published');
+  });
+
+  it("a follower card opens the published item's Hall library page", () => {
+    const target = TTT_NOTIFICATION_CONFIG.types.followed_content_published.defaultTargetPath;
+    expect(typeof target === 'function' ? target(meta) : target).toBe('/hall-library/hi1');
+  });
+
+  it('a member card stores title-free text', () => {
+    const entry = TTT_NOTIFICATION_CONFIG.types.member_content_published;
+    expect(entry.titlePattern(meta)).toBe('Your work was published');
+    expect(entry.messagePattern(meta, 1)).toBe('A new episode is now in the Hall Library');
+    expect(entry.messagePattern(meta, 4)).toBe(
+      '4 of your items were published to the Hall Library',
+    );
+  });
+});
+
+describe('notification target pages', () => {
+  function targetOf(
+    type: keyof typeof TTT_NOTIFICATION_CONFIG.types,
+    meta: Record<string, unknown>,
+  ): string | undefined {
+    const target = TTT_NOTIFICATION_CONFIG.types[type].defaultTargetPath;
+    return typeof target === 'function' ? target(meta) : target;
+  }
+
+  it('admin review cards open the admin area', () => {
+    expect(targetOf('content_report', {})).toBe('/admin');
+    expect(targetOf('threshold_library_submission', {})).toBe('/admin');
+  });
+
+  it('a guild invite opens the invites page', () => {
+    expect(targetOf('guild_invite', {})).toBe('/invites');
+  });
+
+  it("an admin-started thread opens the Work's page for a Work thread, else Messages", () => {
+    expect(
+      targetOf('admin_dispatch_created', { partyKind: 'workProject', workProjectId: 'wp1' }),
+    ).toBe('/work-projects/wp1');
+    expect(targetOf('admin_dispatch_created', { partyKind: 'user' })).toBe('/messages');
+  });
+
+  it("a library review or a member's publication opens the Work's page", () => {
+    expect(targetOf('threshold_library_reviewed', { workProjectId: 'wp1' })).toBe(
+      '/work-projects/wp1',
+    );
+    expect(targetOf('member_content_published', { workProjectId: 'wp1' })).toBe(
+      '/work-projects/wp1',
+    );
+  });
+
+  it("an appeal decision opens the member's uploads", () => {
+    expect(targetOf('content_appeal_reviewed', {})).toBe('/profile/uploads');
+  });
+
+  it("a followed artisan's new craft skills open the artisan's profile", () => {
+    expect(targetOf('followed_craft_skill_published', { artisanUid: 'u1' })).toBe('/profile/u1');
+  });
+
+  it('an id that is not one path segment is refused rather than routed', () => {
+    expect(() => targetOf('threshold_library_reviewed', { workProjectId: 'wp1/x' })).toThrow();
+    expect(() => targetOf('followed_craft_skill_published', {})).toThrow();
+  });
+});

@@ -37,7 +37,6 @@ const config = (allowed = true): ChatCoreConfig => ({
   chatCollectionPath: 'guildInviteConversations',
   threadId: 'inv1',
   currentUserId: 'u1',
-  isAdmin: false,
   allowed,
   realtime: {
     channelRef: { kind: 'invite', id: 'inv1' },

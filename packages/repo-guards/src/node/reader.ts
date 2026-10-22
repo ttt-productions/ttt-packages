@@ -9,6 +9,7 @@ import {
   isUnderRoot,
   kindOfFile,
   rulesServiceOf,
+  withSharedSource,
   type FileKind,
   type RepoLayout,
   type RootRole,
@@ -257,11 +258,11 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
       if (!scope.kinds.length) throw new Error('repo-guards: a scope names no file kind');
       const out: FileView[] = [];
       const seen = new Set<string>();
-      for (const role of scope.roots) {
+      for (const role of withSharedSource(scope.roots)) {
         if (!ROOT_ROLES.includes(role)) throw new Error(`repo-guards: unknown root role ${role}`);
         const matching = roots.filter((r) => r.role === role);
         if (!matching.length) {
-          if (scope.optionalRoots?.includes(role)) continue;
+          if (scope.optionalRoots?.includes(role) || !scope.roots.includes(role)) continue;
           throw new Error(
             `repo-guards: a guard reads the ${role} root, which the layout does not declare`,
           );

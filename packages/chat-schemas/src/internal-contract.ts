@@ -1,7 +1,6 @@
 import { z } from 'zod';
+import { digestSchema, operationIdSchema, roomTargetSchema } from './internal-atoms.js';
 import {
-  CHAT_CONVERSATION_ID_MAX_LENGTH,
-  CHAT_CONVERSATION_KIND_MAX_LENGTH,
   CHAT_GRANT_AUDIENCE,
   CHAT_MESSAGE_TEXT_MAX_LENGTH,
   ChatReferencedUidsSchema,
@@ -29,20 +28,12 @@ export type ChatServerMessagePayload = z.infer<typeof ChatServerMessagePayloadSc
 export const CHAT_ROOM_KINDS = ['channel', 'inbox'] as const;
 export type ChatRoomKind = (typeof CHAT_ROOM_KINDS)[number];
 
-export const CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH = 64;
-
-export const CHAT_ROOM_TARGET_MAX_LENGTH =
-  CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH +
-  CHAT_CONVERSATION_KIND_MAX_LENGTH +
-  CHAT_CONVERSATION_ID_MAX_LENGTH;
-
 export const CHAT_OUTBOX_EVENT_ID_MAX_LENGTH = 200;
 
 export const CHAT_DELIVERY_KIND_MAX_LENGTH = 64;
 
 export const CHAT_PARKED_DELIVERY_ERROR_MAX_LENGTH = 500;
 
-const roomTargetSchema = z.string().min(1).max(CHAT_ROOM_TARGET_MAX_LENGTH);
 const outboxEventIdSchema = z.string().min(1).max(CHAT_OUTBOX_EVENT_ID_MAX_LENGTH);
 
 export const ChatParkedDeliveryReportSchema = z
@@ -81,13 +72,6 @@ export const ChatParkedDeliveryReplayResultSchema = z
   .object({ outcome: z.enum(CHAT_PARKED_DELIVERY_REPLAY_OUTCOMES) })
   .strict();
 export type ChatParkedDeliveryReplayResult = z.infer<typeof ChatParkedDeliveryReplayResultSchema>;
-
-export const CHAT_INTERNAL_OPERATION_ID_MAX_LENGTH = 200;
-
-export const CHAT_DIGEST_MAX_LENGTH = 128;
-
-const operationIdSchema = z.string().min(1).max(CHAT_INTERNAL_OPERATION_ID_MAX_LENGTH);
-const digestSchema = z.string().min(1).max(CHAT_DIGEST_MAX_LENGTH);
 
 export const CHAT_SYNC_APPLY_KINDS = ['channelAuth', 'accountAccess', 'config'] as const;
 export type ChatSyncApplyKind = (typeof CHAT_SYNC_APPLY_KINDS)[number];

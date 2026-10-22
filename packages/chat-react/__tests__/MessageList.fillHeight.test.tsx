@@ -11,15 +11,13 @@ function scrollRegion(container: HTMLElement): HTMLElement {
 
 describe('MessageList — height modes', () => {
   it('defaults to a fixed-height scroll region (h-[400px])', () => {
-    const { container } = render(<MessageList messages={[]} currentUserId="u1" isAdmin={false} />);
+    const { container } = render(<MessageList messages={[]} currentUserId="u1" />);
     expect(scrollRegion(container).className).toContain('h-[400px]');
     expect(container.firstElementChild?.className).toBe('relative');
   });
 
   it('fillHeight makes the list flex to fill its parent (flex-1 min-h-0)', () => {
-    const { container } = render(
-      <MessageList messages={[]} currentUserId="u1" isAdmin={false} fillHeight />,
-    );
+    const { container } = render(<MessageList messages={[]} currentUserId="u1" fillHeight />);
     const scroll = scrollRegion(container);
     expect(scroll.className).toContain('flex-1');
     expect(scroll.className).toContain('min-h-0');
@@ -30,7 +28,7 @@ describe('MessageList — height modes', () => {
 
   it('an explicit scrollClassName overrides both defaults', () => {
     const { container } = render(
-      <MessageList messages={[]} currentUserId="u1" isAdmin={false} scrollClassName="h-[600px]" />,
+      <MessageList messages={[]} currentUserId="u1" scrollClassName="h-[600px]" />,
     );
     expect(scrollRegion(container).className).toContain('h-[600px]');
     expect(scrollRegion(container).className).not.toContain('h-[400px]');
@@ -56,7 +54,6 @@ describe('MessageList — a custom scroll container', () => {
       <MessageList
         messages={[]}
         currentUserId="u1"
-        isAdmin={false}
         scrollClassName="h-[600px]"
         scrollContainer={Surface}
       />,
@@ -70,13 +67,7 @@ describe('MessageList — a custom scroll container', () => {
 
   it("hands the container the list's ref, so the list still drives its scroll position", () => {
     const { container } = render(
-      <MessageList
-        messages={[]}
-        currentUserId="u1"
-        isAdmin={false}
-        scrollContainer={Surface}
-        showScrollToBottom
-      />,
+      <MessageList messages={[]} currentUserId="u1" scrollContainer={Surface} showScrollToBottom />,
     );
     const region = scrollRegion(container);
     Object.defineProperty(region, 'scrollHeight', { configurable: true, value: 900 });
@@ -101,13 +92,7 @@ describe('MessageList — a failed older page', () => {
     try {
       const onLoadOlder = vi.fn();
       const { getByText, rerender } = render(
-        <MessageList
-          messages={[]}
-          currentUserId="u1"
-          isAdmin={false}
-          hasOlder
-          onLoadOlder={onLoadOlder}
-        />,
+        <MessageList messages={[]} currentUserId="u1" hasOlder onLoadOlder={onLoadOlder} />,
       );
       fire!([{ isIntersecting: true }]);
       expect(onLoadOlder).toHaveBeenCalledTimes(1);
@@ -116,7 +101,6 @@ describe('MessageList — a failed older page', () => {
         <MessageList
           messages={[]}
           currentUserId="u1"
-          isAdmin={false}
           hasOlder
           onLoadOlder={onLoadOlder}
           olderLoadErrorRow={<div>older page failed</div>}

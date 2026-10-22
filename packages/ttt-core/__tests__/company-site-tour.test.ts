@@ -22,4 +22,19 @@ describe('site tour copy', () => {
     ].map((l) => l.speaker);
     for (const speaker of speakers) expect(COMPANY_MASCOT_ORDER).toContain(speaker);
   });
+
+  it('Bill opens the tour by welcoming the member as Curtainfolk', () => {
+    expect(SITE_TOUR_INVITATION_LINES[0]).toEqual({
+      speaker: 'bill',
+      text: 'Welcome to TTT, Curtainfolk! Before the curtain rises, may we show you the few controls that will help you find your way around?',
+    });
+  });
+
+  it('the account-area stop shows every member the same copy', () => {
+    const accountArea = SITE_TOUR_STEPS.find((step) => step.anchor === 'accountArea');
+    expect(accountArea?.body).toEqual([
+      'Use it to visit The Town, open Your Corner, change settings, or sign out.',
+    ]);
+    expect(accountArea).not.toHaveProperty('bodyNonArtisanFinal');
+  });
 });

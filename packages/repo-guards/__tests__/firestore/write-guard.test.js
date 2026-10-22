@@ -2196,6 +2196,44 @@ describe('a lane registry whose entries hold their own path builder', () => {
   });
 });
 
+describe('a lane factory handed a canonical builder or a local function that parses, then builds', () => {
+  const source = (payload, parsedBuild = 'PATH_BUILDERS.publicUser(uid)') => `${PREAMBLE}
+    function lane(build: (docId: string) => [string, string], statusField: string) {
+      return { build, statusField };
+    }
+    function parsedUserPath(docId: string): [string, string] {
+      const uid = docId.split(':')[0];
+      if (!uid) throw new Error('not a lane id');
+      return ${parsedBuild};
+    }
+    const SUPPORTED = {
+      games: lane(PATH_BUILDERS.sportGame, 'status'),
+      users: lane(parsedUserPath, 'status'),
+    };
+    export async function writeIt(tx: FirebaseFirestore.Transaction, which: string, docId: string) {
+      const entry = SUPPORTED[which];
+      tx.update(db.doc(toPath(entry.build(docId))), ${payload});
+    }
+  `;
+
+  it('resolves both lanes to their registered documents', () => {
+    const result = analyze(source("{ uid: 'x' }"));
+    expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+    expect(detailsOf(result)).toContain('sportGames/{gameId}');
+  });
+
+  it('MUST FAIL — a field neither lane declares', () => {
+    expect(detailsOf(analyze(source('{ laneFactoryUndeclared: 1 }')))).toContain(
+      'laneFactoryUndeclared',
+    );
+  });
+
+  it('MUST FAIL — a local function that hand-builds its path stays unresolved', () => {
+    const result = analyze(source("{ uid: 'x' }", "['publicUsers', uid] as [string, string]"));
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+  });
+});
+
 describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', () => {
   const undeclaredThrough = (body) => `${PREAMBLE}
     export async function writeIt(uid: string) {

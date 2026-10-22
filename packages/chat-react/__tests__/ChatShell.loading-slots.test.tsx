@@ -37,7 +37,6 @@ function realtimeConfig(): ChatCoreConfig {
     chatCollectionPath: 'guildChatChannels',
     threadId: 'ch1',
     currentUserId: 'u1',
-    isAdmin: false,
     allowed: true,
     realtime: {
       channelRef: { kind: 'room', id: 'ch1' },

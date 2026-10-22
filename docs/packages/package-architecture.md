@@ -42,7 +42,8 @@ package may consume either.
   comment's check — its UI/query needs are optional peers), `media-processing-core`
   (→ `media-schemas`), `upload-core` (→ `firebase-helpers`, `media-schemas`),
   `query-core` (→ `firebase-helpers`; its id-list batch loader splits by
-  `FIRESTORE_IN_FILTER_LIMIT`),
+  `FIRESTORE_IN_FILTER_LIMIT`, and its `./react` callable factories call `callCallable` from
+  `firebase-helpers/client`),
   `realtime-core` (→ `edge-protocol-core`; generic runtime-neutral realtime
   primitives), `notification-core` (no internal runtime deps; its UI/query needs are
   optional peers).
@@ -91,7 +92,7 @@ order) already places `media-viewer` before `file-input`, so dependencies still
 build and release before their dependents.
 
 Every other package has zero internal runtime dependencies. `ui-core`,
-`report-core`, `notification-core`, and `chat-react` declare some
+`report-core`, `notification-core`, `upload-ui`, and `chat-react` declare some
 `@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`) —
 a peer is not a runtime edge, but a package whose source imports one compiles
 against its `dist`, so the peer still builds and releases first.
@@ -199,7 +200,7 @@ mutations — rather than calling `firebase/firestore` operations (`getDoc(s)`,
 A package that needs those hooks declares `@ttt-productions/query-core` as an
 **optional peer** so the consuming app supplies the single instance (preserving
 `FirestoreProvider` context identity) — see `report-core`, `notification-core`,
-`chat-react`. `firebase-helpers` (low-level Firestore primitives) and `query-core`
+`upload-ui`, `chat-react`. `firebase-helpers` (low-level Firestore primitives) and `query-core`
 itself are the two layers that intentionally call `firebase/firestore` directly:
 they are the abstraction, not consumers of it.
 
@@ -238,7 +239,7 @@ atoms, and the surface that uses them is the app's own.
 
 Neither package carries **reply-to** machinery either. No chat surface has an
 authoring affordance for replying to a specific message — `MessageActions`
-renders only Report/Delete and the composer's `onSend` takes text alone — so
+renders only Report and the composer's `onSend` takes text alone — so
 `ChatMessageV1` has no `replyTo` field, there is no reply-quote renderer or
 stylesheet, and no send path (Firestore callable or DO socket frame) carries a
 reply pointer. A DO row that still stores a legacy

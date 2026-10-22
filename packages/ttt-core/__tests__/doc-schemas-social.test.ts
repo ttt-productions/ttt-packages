@@ -137,3 +137,33 @@ describe('a stored Square post holds its mentions to the post mention grammar', 
     ).toBe(false);
   });
 });
+
+describe('a Square announcement payload stores no names', () => {
+  it('the announcement payload keeps no Work, Realm, Hall item, or craft-skill name', () => {
+    const parsed = SquareStreetzPostPayloadSchema.parse({
+      userId: 'u1',
+      workProjectId: 'wp1',
+      workProjectTitle: 'A Work',
+      workProjectDescription: 'About the Work',
+      workRealmId: 'realm1',
+      workRealmTitle: 'A Realm',
+      hallItemId: 'hall1',
+      hallItemTitle: 'A Hall item',
+      craftSkill: { id: 'skill1', name: 'Guitar', mediaAssetId: 'asset1', type: 'video' },
+    });
+    expect(parsed).not.toHaveProperty('workProjectTitle');
+    expect(parsed).not.toHaveProperty('workProjectDescription');
+    expect(parsed).not.toHaveProperty('workRealmTitle');
+    expect(parsed).not.toHaveProperty('hallItemTitle');
+    expect(parsed.craftSkill).not.toHaveProperty('name');
+  });
+
+  it('the announcement payload says whether the Realm is public as a yes/no', () => {
+    const payload = { userId: 'u1', workRealmId: 'realm1', workRealmIsPublic: true };
+    expect(SquareStreetzPostPayloadSchema.parse(payload).workRealmIsPublic).toBe(true);
+    expect(
+      SquareStreetzPostPayloadSchema.safeParse({ ...payload, workRealmIsPublic: 'A Realm' })
+        .success,
+    ).toBe(false);
+  });
+});

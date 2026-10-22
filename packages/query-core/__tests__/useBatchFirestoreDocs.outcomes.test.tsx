@@ -125,6 +125,10 @@ function emit(id: string, data: DocData | null) {
   });
 }
 
+function permissionDenied(): Error {
+  return Object.assign(new Error('permission-denied'), { code: 'permission-denied' });
+}
+
 function emitError(id: string, error: Error) {
   act(() => {
     caps.get(id)!.error(error);
@@ -188,7 +192,7 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
     expect(result.current.outcomes.ghost).toEqual({ status: 'loading' });
   });
 
-  it('reports a document read before a failed refetch as failed, never present', async () => {
+  it('keeps an answered document present beside a later failure of its refetch', async () => {
     docs.set('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -197,7 +201,74 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
     );
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
-    const denied = new Error('permission-denied');
+    const unavailable = Object.assign(new Error('unavailable'), { code: 'unavailable' });
+    denials.set('w1', unavailable);
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    await waitFor(() =>
+      expect(result.current.outcomes.w1).toEqual({
+        status: 'present',
+        data: { id: 'w1', title: 'One' },
+        failure: { error: unavailable, retrying: false },
+      }),
+    );
+    expect(result.current.data).toEqual({ w1: { id: 'w1', title: 'One' } });
+    expect(result.current.isError).toBe(true);
+  });
+
+  it('holds the answer through a retry of its failure and drops the failure once the retry answers', async () => {
+    docs.set('w1', { title: 'One' });
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1'] }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
+    const unavailable = Object.assign(new Error('unavailable'), { code: 'unavailable' });
+    denials.set('w1', unavailable);
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    denials.clear();
+    docs.set('w1', { title: 'One, again' });
+    setAutoResolve(false);
+    let retry!: Promise<void>;
+    act(() => {
+      retry = result.current.refetch();
+    });
+    await waitFor(() => expect(pendingGets).toHaveLength(1));
+    expect(result.current.outcomes.w1).toEqual({
+      status: 'present',
+      data: { id: 'w1', title: 'One' },
+      failure: { error: unavailable, retrying: true },
+    });
+
+    await act(async () => {
+      pendingGets[0]();
+      await retry;
+    });
+    await waitFor(() =>
+      expect(result.current.outcomes.w1).toEqual({
+        status: 'present',
+        data: { id: 'w1', title: 'One, again' },
+      }),
+    );
+  });
+
+  it('drops an answered document once a refetch of it is denied permission', async () => {
+    docs.set('w1', { title: 'One' });
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1'] }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
+
+    const denied = permissionDenied();
     denials.set('w1', denied);
     await act(async () => {
       await result.current.refetch();
@@ -321,6 +392,45 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     expect(late.result.current.isError).toBe(true);
   });
 
+  it('keeps an answered id present beside a later listener failure', () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
+      { wrapper: Wrapper },
+    );
+    emit('w1', { title: 'One' });
+
+    const unavailable = Object.assign(new Error('unavailable'), { code: 'unavailable' });
+    emitError('w1', unavailable);
+
+    expect(result.current.outcomes.w1).toEqual({
+      status: 'present',
+      data: { id: 'w1', title: 'One' },
+      failure: { error: unavailable, retrying: false },
+    });
+    expect(result.current.data).toEqual({ w1: { id: 'w1', title: 'One' } });
+    expect(result.current.isError).toBe(true);
+  });
+
+  it('drops an answered id once its listener is denied permission', () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
+      { wrapper: Wrapper },
+    );
+    emit('w1', { title: 'One' });
+
+    const denied = permissionDenied();
+    emitError('w1', denied);
+
+    expect(result.current.outcomes.w1).toEqual({
+      status: 'failed',
+      error: denied,
+      retrying: false,
+    });
+    expect(result.current.data).toEqual({});
+  });
+
   it("clears an id's failure when a later snapshot lands", () => {
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -373,7 +483,7 @@ describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed l
     renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
       wrapper: Wrapper,
     });
-    const denied = new Error('permission-denied');
+    const denied = permissionDenied();
     emitError('w1', denied);
     await act(async () => {
       await oneShot.result.current.refetch();

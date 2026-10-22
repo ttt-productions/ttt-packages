@@ -90,6 +90,21 @@ export function auditionEntryMediaOwnerId(auditionId: string, auditionEntryId: s
   return `${auditionId}:${auditionEntryId}`;
 }
 
+export interface AuditionEntryMediaOwnerIdParts {
+  readonly auditionId: string;
+  readonly auditionEntryId: string;
+}
+
+export function parseAuditionEntryMediaOwnerId(
+  ownerId: string,
+): AuditionEntryMediaOwnerIdParts | null {
+  const parts = ownerId.split(':');
+  if (parts.length !== 2) return null;
+  const [auditionId, auditionEntryId] = parts;
+  if (!auditionId || !auditionEntryId) return null;
+  return { auditionId, auditionEntryId };
+}
+
 export function commissionProposalMediaOwnerId(
   commissionListingId: string,
   commissionProposalId: string,
@@ -109,6 +124,12 @@ export function conversationFileMediaOwnerId(
 export interface SafetyHoldRefDocIdParts {
   readonly caseId: string;
   readonly resourceKeyHash: string;
+}
+
+const NCII_DURABLE_CASE_SUFFIX = '::nciiDurable';
+
+export function nciiDurableCaseId(caseId: string): string {
+  return `${caseId}${NCII_DURABLE_CASE_SUFFIX}`;
 }
 
 export function safetyHoldRefDocId(caseId: string, resourceKeyHash: string): string {

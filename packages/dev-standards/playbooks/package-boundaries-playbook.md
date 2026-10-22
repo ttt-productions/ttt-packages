@@ -89,16 +89,16 @@ names, and exceptions arrive as its facts.
 
 ### 5. A callable is declared through the shared callable factories
 **Rules:** RULE-STD-ENG-002, RULE-STD-ENG-003, RULE-STD-FRONTEND-105. **Scope:** `packages/*/src`.
-`firebase-helpers/react`'s
-`createCallables` is the one factory set for a callable hook (action, reader, invoker, resumable); the
-SDK's callable primitives stay inside firebase-helpers.
+`query-core/react`'s `createCallables` is the one factory set for a callable hook (action, reader,
+invoker, resumable). It builds on query-core's session-aware mutation owner, `useSessionMutation`. The
+SDK's callable primitives stay inside firebase-helpers, behind `callCallable`.
 ```bash
 rg -n "^[^/*]*\bhttpsCallable(FromURL)?\(" packages/*/src -g '*.ts' -g '*.tsx' | rg -v "packages/firebase-helpers/"
 rg -n "useMutation\(" packages/*/src -g '*.ts' -g '*.tsx' | rg -i "callable"
 ```
-**Expected:** the first prints nothing. The second prints only firebase-helpers' own factories; a
-package building its own callable mutation hook is the finding — it takes a hook built by
-`createCallables` from the app instead.
+**Expected:** the first prints nothing. The second prints nothing: every callable hook is built by
+`createCallables` on the session-aware owner. A package that builds its own callable mutation hook is
+the finding; it takes a hook built by `createCallables` from the app instead.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 6. Imports inside a package name the defining file by its built extension

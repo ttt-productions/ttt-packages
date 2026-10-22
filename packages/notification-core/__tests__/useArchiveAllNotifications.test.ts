@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  MutationSessionEndedError,
+  MutationSessionProvider,
+} from '@ttt-productions/query-core/react';
 
 import { useArchiveAllNotifications } from '../src/react/hooks/useArchiveAllNotifications.js';
 import type { ArchiveAllJobSnapshot } from '../src/types.js';
@@ -190,5 +194,57 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
 
     await expect(result.current.mutateAsync()).rejects.toThrow('enqueue boom');
     expect(getArchiveAllStatusFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('useArchiveAllNotifications after the member who cleared signed out', () => {
+  it('stops polling and refreshes nothing for the next session', async () => {
+    let enqueued!: (value: { jobId: string }) => void;
+    const enqueueArchiveAllFn = vi.fn(
+      () =>
+        new Promise<{ jobId: string }>((resolve) => {
+          enqueued = resolve;
+        }),
+    );
+    const getArchiveAllStatusFn = vi
+      .fn<(jobId: string) => Promise<ArchiveAllJobSnapshot>>()
+      .mockResolvedValue({ state: 'complete', category: 'user', archived: 3 });
+    const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const invalidate = vi.spyOn(qc, 'invalidateQueries');
+    const session = { uid: 'u1' as string | null };
+    const Wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        QueryClientProvider,
+        { client: qc },
+        React.createElement(MutationSessionProvider, { currentUid: session.uid }, children),
+      );
+    Wrapper.displayName = 'SessionWrapper';
+
+    const { result, rerender } = renderHook(
+      () =>
+        useArchiveAllNotifications({
+          userId: 'u1',
+          category: 'user',
+          enqueueArchiveAllFn,
+          getArchiveAllStatusFn,
+          ...FAST,
+        }),
+      { wrapper: Wrapper },
+    );
+
+    let request!: Promise<unknown>;
+    act(() => {
+      request = result.current.mutateAsync();
+    });
+    await waitFor(() => expect(enqueueArchiveAllFn).toHaveBeenCalledTimes(1));
+    session.uid = null;
+    rerender();
+    await act(async () => {
+      enqueued({ jobId: 'job-9' });
+      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
+    });
+
+    expect(getArchiveAllStatusFn).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

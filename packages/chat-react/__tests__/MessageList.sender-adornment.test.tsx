@@ -25,7 +25,6 @@ function renderList(messages: ChatMessageV1[]) {
       <MessageList
         messages={messages}
         currentUserId="viewer"
-        isAdmin={false}
         messageGroupKey={groupKey}
         renderSenderAdornment={adornment}
       />

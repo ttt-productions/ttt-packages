@@ -46,13 +46,17 @@
         "@ttt-productions/upload-core": "*"
     },
     "peerDependencies": {
-        "@tanstack/react-query": ">=5.0.0",
+        "@tanstack/react-query": ">=5.90.0",
+        "@ttt-productions/query-core": "*",
         "firebase": ">=12.0.0",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
         "@tanstack/react-query": {
+            "optional": true
+        },
+        "@ttt-productions/query-core": {
             "optional": true
         },
         "firebase": {
@@ -64,6 +68,9 @@
         "react-dom": {
             "optional": true
         }
+    },
+    "devDependencies": {
+        "@ttt-productions/query-core": "*"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

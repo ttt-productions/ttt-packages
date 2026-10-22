@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import {
+  MutationSessionEndedError,
+  MutationSessionProvider,
+} from '@ttt-productions/query-core/react';
 import { useCheckoutTask } from '../src/react/hooks/useCheckoutTask.js';
 import { useCheckinTask } from '../src/react/hooks/useCheckinTask.js';
 import { useReleaseTask } from '../src/react/hooks/useReleaseTask.js';
@@ -61,5 +65,44 @@ describe('the admin queue hooks', () => {
       lifecycle,
     );
     expect(markWorkLaterFn).toHaveBeenCalledWith({ taskId: 't1', extendHours: 24 });
+  });
+});
+
+describe('the admin queue hooks after the admin who acted signed out', () => {
+  it('refresh nothing for the next session when the answer lands after the session ended', async () => {
+    let answer!: (result: typeof lifecycle) => void;
+    const releaseTaskFn = vi.fn(
+      () =>
+        new Promise<typeof lifecycle>((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    const session = { uid: 'u1' as string | null };
+    function SessionWrapper({ children }: { children: React.ReactNode }) {
+      return React.createElement(
+        QueryClientProvider,
+        { client },
+        React.createElement(MutationSessionProvider, { currentUid: session.uid }, children),
+      );
+    }
+    const { result, rerender } = renderHook(() => useReleaseTask({ releaseTaskFn, userId: 'u1' }), {
+      wrapper: SessionWrapper,
+    });
+
+    let request!: Promise<unknown>;
+    act(() => {
+      request = result.current.mutateAsync({ taskId: 't1' });
+    });
+    await waitFor(() => expect(releaseTaskFn).toHaveBeenCalledTimes(1));
+    session.uid = null;
+    rerender();
+    await act(async () => {
+      answer(lifecycle);
+      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
+    });
+
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

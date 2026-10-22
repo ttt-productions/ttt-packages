@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, useMutationState } from '@tanstack/react-query';
 import React from 'react';
+import {
+  MutationSessionEndedError,
+  MutationSessionProvider,
+} from '@ttt-productions/query-core/react';
 import { useClearUploadActivity } from '../src/react/tray/use-clear-upload-activity.js';
 
 function makeClient() {
@@ -108,5 +112,44 @@ describe('useClearUploadActivity', () => {
     await act(async () => {
       gate.resolve();
     });
+  });
+});
+
+describe('useClearUploadActivity after the member who cleared signed out', () => {
+  it('never reports a failure that lands after the session ended', async () => {
+    let fail!: (error: Error) => void;
+    const clearFn = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    const onError = vi.fn();
+    const qc = makeClient();
+    const session = { uid: 'u1' as string | null };
+    function SessionWrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <QueryClientProvider client={qc}>
+          <MutationSessionProvider currentUid={session.uid}>{children}</MutationSessionProvider>
+        </QueryClientProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useClearUploadActivity({ clearFn, onError }), {
+      wrapper: SessionWrapper,
+    });
+
+    let request!: Promise<void>;
+    act(() => {
+      request = result.current.mutateAsync('doc-9');
+    });
+    await waitFor(() => expect(clearFn).toHaveBeenCalledTimes(1));
+    session.uid = null;
+    rerender();
+    await act(async () => {
+      fail(new Error('refused'));
+      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
+    });
+
+    expect(onError).not.toHaveBeenCalled();
   });
 });

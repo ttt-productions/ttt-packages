@@ -2920,6 +2920,30 @@ export function analyzeFiles({
       return segments ? { segments } : null;
     }
 
+    function suppliedCandidates(candidates) {
+      if (!candidates?.length) return candidates;
+      const out = [];
+      for (const candidate of candidates) {
+        const node = stripWrappers(candidate.node);
+        const owner = resolverFor(candidate.facts);
+        const supplied =
+          ts.isIdentifier(node) && !owner.nearestDecl(node.text, node.pos, node)
+            ? owner.parameterValues(node)
+            : null;
+        if (supplied) out.push(...supplied);
+        else out.push(candidate);
+      }
+      return out;
+    }
+
+    function moduleFunctionDeclaration(ownerFacts, owner, identifier) {
+      if (owner.nearestDecl(identifier.text, identifier.pos, identifier)) return null;
+      const declared = ownerFacts.functions.get(identifier.text)?.node;
+      return declared && ts.isFunctionDeclaration(declared) && ts.isSourceFile(declared.parent)
+        ? declared
+        : null;
+    }
+
     /**
      * @returns {{ segments?: Array, templates?: Set<string>, handBuilt?: boolean,
      *            usedBuilder?: boolean, reason?: string } | null}
@@ -3178,7 +3202,9 @@ export function analyzeFiles({
         ts.isPropertyAccessExpression(stripWrappers(node.expression))
       ) {
         const callee = stripWrappers(node.expression);
-        const candidates = staticPropertyCandidates(callee.expression, callee.name.text, depth + 1);
+        const candidates = suppliedCandidates(
+          staticPropertyCandidates(callee.expression, callee.name.text, depth + 1),
+        );
         if (candidates?.length && candidates.length <= MAX_CANDIDATES) {
           const templates = new Set();
           let ok = true;
@@ -3190,6 +3216,8 @@ export function analyzeFiles({
               if (!inner?.initializer) break;
               fn = stripWrappers(inner.initializer);
             }
+            if (ts.isIdentifier(fn))
+              fn = moduleFunctionDeclaration(candidate.facts, owner, fn) ?? fn;
             const alwaysThrows =
               (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) &&
               ts.isBlock(fn.body) &&
@@ -3199,7 +3227,8 @@ export function analyzeFiles({
             if (
               ts.isArrowFunction(fn) ||
               ts.isFunctionExpression(fn) ||
-              ts.isMethodDeclaration(fn)
+              ts.isMethodDeclaration(fn) ||
+              ts.isFunctionDeclaration(fn)
             ) {
               const returns = callbackReturns(fn);
               if (!returns.length) {
