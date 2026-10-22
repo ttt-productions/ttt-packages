@@ -64,7 +64,9 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   Trust & Safety cases, holds, evidence, and take-it-down (NCII) requests live in
   `doc-schemas/safety/`, `doc-schemas/ncii/`, `schemas/safety`, and `schemas/ncii`; `report/` owns
   the TTT configuration values `report-core` is given. Runtime helpers over this model that need
-  Node live in `safety/`, off the universal entries.
+  Node live in `safety/`, off the universal entries; the hashed ids of a take-it-down request's
+  documents (its submissions, actions, case, validity decisions, and holds) are built only by
+  `safety/ncii-intake-derivations`.
 - **Public documents and the legal-review notice.** The versioned public pages, their working
   copies, releases, and acceptance records live in `doc-schemas/public-documents`, with their
   version and acceptance rules in `utils/public-documents`; the notice's copy lives in

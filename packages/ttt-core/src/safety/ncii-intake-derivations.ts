@@ -5,6 +5,7 @@ import type {
   TargetLocatorV1,
   TargetLocatorSummaryV1,
 } from '../doc-schemas/safety/foundation.js';
+import type { TakeItDownValidityDecisionResult } from '../doc-schemas/ncii/requests.js';
 
 export const sha256Hex = resourceKeyHash;
 
@@ -24,6 +25,29 @@ export function firstSubmissionId(requestId: string): string {
 
 export function intakeActionId(requestId: string): string {
   return sha256Hex(`takeItDownAction:v1:intakeReceived:${requestId}`);
+}
+
+export function nciiCaseIdForRequest(requestId: string): string {
+  return sha256Hex(`nciiCase:v1:${requestId}`);
+}
+
+export function validityDecisionId(
+  requestId: string,
+  result: TakeItDownValidityDecisionResult,
+  decidedByUid: string,
+  sequence: number,
+): string {
+  return sha256Hex(
+    `takeItDownValidityDecision:v1:${requestId}:${result}:${decidedByUid}:${sequence}`,
+  );
+}
+
+export function validityActionId(
+  requestId: string,
+  result: TakeItDownValidityDecisionResult,
+  sequence: number,
+): string {
+  return sha256Hex(`takeItDownAction:v1:validityDecided:${requestId}:${result}:${sequence}`);
 }
 
 export function normalizedTargetKey(locator: TargetLocatorV1): string {

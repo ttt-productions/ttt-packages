@@ -7,6 +7,9 @@ import {
   tempHoldId,
   firstSubmissionId,
   intakeActionId,
+  nciiCaseIdForRequest,
+  validityDecisionId,
+  validityActionId,
   normalizedTargetKey,
   normalizeExternalUrl,
   deterministicRequestId,
@@ -60,6 +63,35 @@ describe('intake document ids', () => {
   it('a different request gets different submission and action ids', () => {
     expect(firstSubmissionId('req_2')).not.toBe(firstSubmissionId('req_1'));
     expect(intakeActionId('req_2')).not.toBe(intakeActionId('req_1'));
+  });
+});
+
+describe('validity document ids', () => {
+  it("builds the exact deterministic id of a request's NCII case", () => {
+    expect(nciiCaseIdForRequest('req_1')).toBe(
+      '0093c428a4442cfdd465ebd150130549cdfa6a74ffefdb387206a763a19ec27c',
+    );
+  });
+
+  it('builds the exact deterministic id of a validity decision', () => {
+    expect(validityDecisionId('req_1', 'valid', 'admin_1', 0)).toBe(
+      '702d9e4a8968fef8b5f5b7f1251bb34e792a7c33bc9f13eb249d99517617e0fe',
+    );
+  });
+
+  it('builds the exact deterministic id of a validity-decided action', () => {
+    expect(validityActionId('req_1', 'valid', 0)).toBe(
+      'afb3648f861955d2de6b9fc88da6dd8d226782af000bc4d48efe81ee0730a710',
+    );
+  });
+
+  it('a different result or sequence gets a different validity-decided action id', () => {
+    expect(validityActionId('req_1', 'invalid', 0)).toBe(
+      '90f19adf8fec33ece822e59646f0866429f9dc82240a4afcf8a41bb00e037510',
+    );
+    expect(validityActionId('req_1', 'valid', 1)).toBe(
+      'bcc9d9b8311c43751ee4c90ce3a1ed76bcd91e2580e3bacbe12186342b39927e',
+    );
   });
 });
 
