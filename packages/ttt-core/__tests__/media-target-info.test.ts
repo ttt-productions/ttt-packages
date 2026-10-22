@@ -29,6 +29,10 @@ import {
 } from '../src/constants/business-content.js';
 import { MAX_CRAFT_SKILL_TAGS } from '../src/constants/business-user.js';
 import { CRAFT_SKILL_STATEMENT_VERSION } from '../src/constants/craft-skill-statements.js';
+import {
+  AUDITION_ENTRY_AGREEMENT_VERSION,
+  COMMISSION_PROPOSAL_AGREEMENT_VERSION,
+} from '../src/constants/member-agreements.js';
 import { CRAFT_SKILL_TAG_OPTIONS } from '../src/constants/options.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -310,18 +314,31 @@ describe('CommissionPostingTargetInfoSchema', () => {
 });
 
 describe('CommissionProposalTargetInfoSchema', () => {
+  const valid = {
+    commissionListingId: 'j',
+    replyText: 'r',
+    agreementVersion: COMMISSION_PROPOSAL_AGREEMENT_VERSION,
+  };
   it('accepts valid', () => {
-    expect(() =>
-      CommissionProposalTargetInfoSchema.parse({ commissionListingId: 'j', replyText: 'r' }),
-    ).not.toThrow();
+    expect(() => CommissionProposalTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it('rejects an over-long replyText', () => {
     expect(() =>
       CommissionProposalTargetInfoSchema.parse({
-        commissionListingId: 'j',
+        ...valid,
         replyText: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1),
       }),
     ).toThrow();
+  });
+  it('requires the proposal agreement at its current wording version', () => {
+    const { agreementVersion: _omitted, ...withoutAgreement } = valid;
+    expect(CommissionProposalTargetInfoSchema.safeParse(withoutAgreement).success).toBe(false);
+    expect(
+      CommissionProposalTargetInfoSchema.safeParse({
+        ...valid,
+        agreementVersion: COMMISSION_PROPOSAL_AGREEMENT_VERSION + 1,
+      }).success,
+    ).toBe(false);
   });
 });
 
@@ -477,8 +494,18 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
 });
 
 describe('AuditionEntryTargetInfoSchema', () => {
+  const valid = { auditionId: 'op_1', agreementVersion: AUDITION_ENTRY_AGREEMENT_VERSION };
   it('accepts valid', () => {
-    expect(() => AuditionEntryTargetInfoSchema.parse({ auditionId: 'op_1' })).not.toThrow();
+    expect(() => AuditionEntryTargetInfoSchema.parse(valid)).not.toThrow();
+  });
+  it('requires the entry agreement at its current wording version', () => {
+    expect(AuditionEntryTargetInfoSchema.safeParse({ auditionId: 'op_1' }).success).toBe(false);
+    expect(
+      AuditionEntryTargetInfoSchema.safeParse({
+        ...valid,
+        agreementVersion: AUDITION_ENTRY_AGREEMENT_VERSION + 1,
+      }).success,
+    ).toBe(false);
   });
 });
 

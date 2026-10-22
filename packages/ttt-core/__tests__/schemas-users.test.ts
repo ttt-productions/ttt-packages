@@ -17,6 +17,7 @@ describe('BecomeArtisanCreatorInputSchema (a U.S. Yes, a DOB, and every box unde
     realDateOfBirth: true,
     humanMadeOnly: true,
     uploadRights: true,
+    ownershipAndStewardship: true,
     rulesAndAgreements: true,
     collaborateOnline: true,
   } as const;

@@ -1,7 +1,7 @@
 import type { CraftSkillKind } from '../doc-schemas/user.js';
 
 // Bump when any statement below changes; each craft-skill doc records the version agreed to.
-export const CRAFT_SKILL_STATEMENT_VERSION = 2;
+export const CRAFT_SKILL_STATEMENT_VERSION = 3;
 
 export const CRAFT_SKILL_KIND_LABELS: Record<CraftSkillKind, string> = {
   original: 'My own work',
@@ -17,9 +17,9 @@ export const CRAFT_SKILL_KIND_DESCRIPTIONS: Record<CraftSkillKind, string> = {
 
 export const CRAFT_SKILL_STATEMENTS: Record<CraftSkillKind, string> = {
   original:
-    'I certify this craft is entirely my own original creation and I own all rights to it. No part of it copies or imitates another person’s work.',
+    'I certify this craft is entirely my own original creation and I own all rights to it. No part of it copies or imitates another person’s work. It stays mine: TTT only hosts and shows it here, and never sells, licenses, or gives it to anyone else.',
   mimicOnTtt:
-    'This craft is my performance or recreation of work created by a member of the TTT Productions community, shown here to demonstrate my abilities. I have linked the original artisan or work below. The original work belongs to its creator, and I claim no ownership of it.',
+    'This craft is my performance or recreation of work created by a member of the TTT Productions community, shown here to demonstrate my abilities. I have linked the original artisan or work below. The original belongs to its creator — or, if it’s a published Work, is held by TTT in stewardship — and I claim no ownership of it. I won’t make money from this mimic outside TTT.',
   mimicOffTtt:
     'This craft is my performance or recreation of a work that did not originate on TTT Productions (including public-domain or out-of-copyright works), shown only to demonstrate my abilities. The underlying work belongs to its owner, and I claim no ownership of it. I understand TTT Productions may remove this content at any time, including in response to a rights-holder request.',
 };

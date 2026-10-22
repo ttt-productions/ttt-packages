@@ -55,6 +55,7 @@ describe('CommissionProposalSchema — the attached file kind', () => {
     commissionListingId: 'l1',
     workProjectId: 'w1',
     proposalText: 'I can do this.',
+    agreementVersion: 1,
     createdBy: { uid: 'u1' },
     createdOn: 1,
     status: 'open' as const,
@@ -82,6 +83,11 @@ describe('CommissionProposalSchema — the attached file kind', () => {
         }).success,
       ).toBe(false);
     }
+  });
+
+  it('records the proposal agreement version the proposer agreed to', () => {
+    const { agreementVersion: _omitted, ...unagreed } = proposal;
+    expect(CommissionProposalSchema.safeParse(unagreed).success).toBe(false);
   });
 
   it('carries no kind on a text-only proposal', () => {

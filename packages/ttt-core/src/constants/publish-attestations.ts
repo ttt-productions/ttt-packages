@@ -1,7 +1,7 @@
 import type { WorkProjectType } from '../types/content.js';
 
 // Bump when any attestation below changes.
-export const PUBLISH_ATTESTATIONS_VERSION = 1;
+export const PUBLISH_ATTESTATIONS_VERSION = 2;
 
 export const CONSISTENT_FORMAT_WORDING: Record<WorkProjectType, string> = {
   Tales:
@@ -22,4 +22,4 @@ export const PUBLISH_HUMAN_MADE_ORIGINAL_ATTESTATION =
   "This Work is entirely human-made and original: no AI-generated, AI-modified, or AI-completed content, and it is not built from anyone else's creative work.";
 
 export const PUBLISH_STEWARDSHIP_ATTESTATION =
-  "I understand that submitting locks this Work for editing, and once published it becomes TTT-owned, held in stewardship: it stays in the Hall, and its creators can't edit it directly — corrections go through an admin-reviewed change request.";
+  "I understand that submitting locks this Work for editing, and once published it becomes TTT-owned, held in stewardship: it stays in the Hall, it is never sold, and no one — including me — can make money from it except through a TTT license and the split. Its creators can't edit it directly; corrections go through an admin-reviewed change request.";

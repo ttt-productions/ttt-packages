@@ -648,6 +648,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `shortId` | `string` | yes |
 | `shortUrl` | `string` | yes |
 | `isCreatorOption` | `boolean` | yes |
+| `agreementVersion` | `number` | yes |
 | `hidden` | `boolean` |  |
 | `hiddenBy` | `'direct' \| 'cascade'` | yes |
 
@@ -1055,6 +1056,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `proposalText` | `string` |  |
 | `proposalFileAssetId` | `string` | yes |
 | `proposalFileType` | `'image' \| 'video' \| 'audio'` | yes |
+| `agreementVersion` | `number` |  |
 | `createdBy` | `{ uid }` |  |
 | `createdOn` | `number` |  |
 | `status` | `'open' \| 'invited' \| 'accepted' \| 'rejected'` |  |

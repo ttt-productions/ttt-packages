@@ -35,6 +35,10 @@ import {
   CRAFT_SKILL_TAG_VALUES,
 } from '../constants/options.js';
 import { CRAFT_SKILL_STATEMENT_VERSION } from '../constants/craft-skill-statements.js';
+import {
+  AUDITION_ENTRY_AGREEMENT_VERSION,
+  COMMISSION_PROPOSAL_AGREEMENT_VERSION,
+} from '../constants/member-agreements.js';
 import { HALL_CONTENT_DETAIL_SURFACES } from '../constants/hall-content-routing.js';
 import {
   AuditionDeadlineSchema,
@@ -144,6 +148,7 @@ export const CommissionProposalTargetInfoSchema = z
   .object({
     commissionListingId: commissionListingIdSchema,
     replyText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
+    agreementVersion: z.literal(COMMISSION_PROPOSAL_AGREEMENT_VERSION),
   })
   .strict();
 
@@ -205,6 +210,7 @@ export const AdminAuditionPromptTargetInfoSchema = z
 export const AuditionEntryTargetInfoSchema = z
   .object({
     auditionId: auditionIdSchema,
+    agreementVersion: z.literal(AUDITION_ENTRY_AGREEMENT_VERSION),
   })
   .strict();
 

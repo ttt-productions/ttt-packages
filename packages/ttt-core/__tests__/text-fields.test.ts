@@ -14,6 +14,7 @@ import {
   CommissionProposalTargetInfoSchema,
 } from '../src/media/target-info.js';
 import { ReopenSafetyCaseInputSchema } from '../src/schemas/admin.js';
+import { COMMISSION_PROPOSAL_AGREEMENT_VERSION } from '../src/constants/member-agreements.js';
 import { SubmitReportInputSchema } from '../src/schemas/safety.js';
 import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
 import {
@@ -200,8 +201,11 @@ describe('the wire schemas read the declarations', () => {
     };
     expect(CommissionPostingTargetInfoSchema.safeParse(posting).success).toBe(false);
     expect(
-      CommissionProposalTargetInfoSchema.safeParse({ commissionListingId: 'c', replyText: ' ' })
-        .success,
+      CommissionProposalTargetInfoSchema.safeParse({
+        commissionListingId: 'c',
+        replyText: ' ',
+        agreementVersion: COMMISSION_PROPOSAL_AGREEMENT_VERSION,
+      }).success,
     ).toBe(false);
   });
 

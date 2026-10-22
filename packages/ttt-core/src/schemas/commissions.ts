@@ -6,6 +6,7 @@ import {
   workProjectIdSchema,
 } from './atoms.js';
 import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
+import { COMMISSION_PROPOSAL_AGREEMENT_VERSION } from '../constants/member-agreements.js';
 import { textFieldSchema } from './text-field.js';
 
 export const CommissionProposalStatusSchema = z.enum(['open', 'invited', 'accepted', 'rejected']);
@@ -64,6 +65,7 @@ export const CreateCommissionProposalTextInputSchema = z
   .object({
     commissionListingId: commissionListingIdSchema,
     coverLetterText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
+    agreementVersion: z.literal(COMMISSION_PROPOSAL_AGREEMENT_VERSION),
   })
   .strict();
 export type CreateCommissionProposalTextInput = z.infer<

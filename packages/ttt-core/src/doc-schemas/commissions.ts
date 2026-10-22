@@ -46,6 +46,7 @@ export const CommissionProposalSchema = z.object({
   proposalText: z.string(),
   proposalFileAssetId: z.string().optional(),
   proposalFileType: ContentMediaKindSchema.optional(),
+  agreementVersion: z.number().int().positive(),
   createdBy: userRefSchema,
   createdOn: z.number(),
   status: CommissionProposalStatusSchema,
@@ -115,6 +116,7 @@ export const AuditionEntrySchema = z.object({
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),
   isCreatorOption: z.boolean().optional(),
+  agreementVersion: z.number().int().positive().optional(),
   hidden: z.boolean(),
   hiddenBy: ModerationHiddenBySchema.optional(),
 });
