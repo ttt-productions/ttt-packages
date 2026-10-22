@@ -143,7 +143,7 @@ export const ThresholdItemSchema = z.object({
   adminNotes: z.string().optional(),
   reviewedAt: z.number().optional(),
   reviewedBy: z.string().optional(),
-  // Parody / real-people AUTHOR ATTESTATION (R3, 2026-07-12). The submitting artisan
+  // Parody / real-people AUTHOR ATTESTATION. The submitting artisan
   // attests at threshold SUBMIT time that this work depicts real people (parody /
   // satire / commentary); stored with the submission and displayed READ-ONLY to the
   // reviewer. Admins never set or edit it — a reviewer who believes the flag is
@@ -160,6 +160,8 @@ export const ThresholdItemSchema = z.object({
   attestHumanMadeOriginal: z.literal(true),
   attestPublishStewardship: z.literal(true),
   attestedAt: z.number(),
+  // The attestation wording ticked (PUBLISH_ATTESTATIONS_VERSION).
+  attestationsVersion: z.number().int().positive(),
   // The founder legal-review notice acknowledgment given with the attestations, written in the
   // same submission transaction. Present while the notice is active (the submit core refuses a
   // submission without the checkbox then); absent when the notice is off.
@@ -172,9 +174,8 @@ export const ThresholdItemSchema = z.object({
   confirmedRealPeopleAttestation: z.literal(true).optional(),
   // Terminal publish PARK. An approved item whose publish stops without publishing (source media
   // ineligible, a blocking safety hold, a moderation hide landing after approval, an invalid work
-  // type) leaves the threshold doc + admin task in place for operator intervention. The reason was
-  // only ever visible in Sentry and the `system.manualIntervention` audit event; stamping it here
-  // is what lets the admin review work view say WHY the item is sitting there. Optional because
+  // type) leaves the threshold doc + admin task in place for operator intervention. Stamping the
+  // reason here lets the admin review work view say WHY the item is sitting there. Optional because
   // only a park stamps it, and `reviewStatus` keeps its meaning — a park is not a new status.
   publishParkedReason: z.string().max(MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH).optional(),
   publishParkedAt: z.number().optional(),
@@ -187,7 +188,7 @@ export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
  *  moderation text-clear remedy) can target. Detail surfaces live on the hall parent;
  *  sub-item surfaces on the published chapter/track/episode doc; the `workRealm`
  *  surface targets the single `workRealms/{id}` doc (the realm grain of the one
- *  text-change pipeline — R1, 2026-07-12). */
+ *  text-change pipeline). */
 export const HallContentTextSurfaceSchema = z.enum([
   ...HALL_CONTENT_DETAIL_SURFACES,
   ...HALL_CONTENT_SUB_ITEM_SURFACES,
@@ -288,7 +289,7 @@ export const PublishedHallItemSchema = z.object({
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
   // Parody / real-people flag (carried from the approved ThresholdItem's AUTHOR
-  // attestation — R3, 2026-07-12). When true, display surfaces render the ONE
+  // attestation). When true, display surfaces render the ONE
   // standard platform message (REAL_PEOPLE_DISCLAIMER_MESSAGE) prominently on the
   // published Work — never a stored free-text disclaimer. Backend-written at publish.
   hasRealPeople: z.boolean().optional(),
@@ -380,8 +381,7 @@ export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpiso
 
 // --- Hall library user preferences (per-user Hall viewing-state doc) ---
 
-// One per-user home, server-synced from day 1 (hall-viewing-experience Area 2, ruled
-// 2026-07-04): `userProfiles/{uid}/privateData/hallLibraryPreferences` (see
+// One per-user home, server-synced: `userProfiles/{uid}/privateData/hallLibraryPreferences` (see
 // PATH_BUILDERS.hallLibraryPreferences). Writes are CALLABLE-ONLY — one core owns this
 // doc; heartbeat throttling for playback progress is client-side before the callable
 // fires. Every list on this doc is capped for launch (see HALL_LIBRARY_PREFS_CAPS) —
@@ -408,10 +408,10 @@ export type HallLibrarySettings = z.infer<typeof HallLibrarySettingsSchema>;
 
 export const HallLibraryPreferencesSchema = z.object({
   userId: z.string(),
-  // Hall items the user personally hid (view filter only — see Area 6 ruling 5). Capped
+  // Hall items the user personally hid (a view filter only). Capped
   // ~200: oldest-pruned, or the hide is rejected with a friendly message once full.
   hiddenWorkIds: z.array(z.string()),
-  // The "Inked" save-for-later watchlist (My Playbill Area 7). Capped ~200.
+  // The "Inked" save-for-later watchlist. Capped ~200.
   inkedWorkIds: z.array(z.string()),
   // Resume position per hallItemId, LRU-capped ~50 (see HALL_LIBRARY_PREFS_CAPS.inProgress).
   // Cap enforcement is the backend core's job on write; this schema only models the shape.
@@ -506,7 +506,7 @@ export const RulesAndAgreementsSchema = z.object({
 });
 export type RulesAndAgreements = z.infer<typeof RulesAndAgreementsSchema>;
 
-// --- Editable content-page docs (content-pages Firestore migration, DJ ruling 2026-07-06) ---
+// --- Editable content-page docs ---
 //
 // /terms, /privacy, and the /take-it-down page copy render EXCLUSIVELY from
 // these `_config` singletons — no hardcoded fallbacks anywhere (banned design).
@@ -514,7 +514,7 @@ export type RulesAndAgreements = z.infer<typeof RulesAndAgreementsSchema>;
 // editors are the only writers after that, and every save bumps `version`.
 // Acceptance records (e.g. privateData.agreements.termsVersion) read `version`
 // from the DOC server-side at acceptance time — never from a constant.
-// There is NO draft flag on any content doc (DJ ruling 2026-07-06).
+// There is NO draft flag on any content doc.
 
 /** One section of a long-form content page. `level` 1 = section (h2), 2 = subsection (h3). */
 export const ContentPageSectionSchema = z.object({

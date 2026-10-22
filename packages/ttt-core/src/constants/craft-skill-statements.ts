@@ -11,7 +11,7 @@ import type { CraftSkillKind } from '../doc-schemas/user.js';
 
 /** Bump when any VERBATIM statement below changes; the version is recorded on every
  * craft-skill doc so we know which wording the user agreed to. */
-export const CRAFT_SKILL_STATEMENT_VERSION = 1;
+export const CRAFT_SKILL_STATEMENT_VERSION = 2;
 
 export const CRAFT_SKILL_KIND_LABELS: Record<CraftSkillKind, string> = {
   original: 'My own work',
@@ -28,11 +28,11 @@ export const CRAFT_SKILL_KIND_DESCRIPTIONS: Record<CraftSkillKind, string> = {
 
 export const CRAFT_SKILL_STATEMENTS: Record<CraftSkillKind, string> = {
   original:
-    'I certify this craft skill is entirely my own original creation and I own all rights to it. No part of it copies or imitates another person’s work.',
+    'I certify this craft is entirely my own original creation and I own all rights to it. No part of it copies or imitates another person’s work.',
   mimicOnTtt:
-    'This craft skill is my performance or recreation of work created by a member of the TTT Productions community, shown here to demonstrate my abilities. I have linked the original artisan or work below. The original work belongs to its creator, and I claim no ownership of it.',
+    'This craft is my performance or recreation of work created by a member of the TTT Productions community, shown here to demonstrate my abilities. I have linked the original artisan or work below. The original work belongs to its creator, and I claim no ownership of it.',
   mimicOffTtt:
-    'This craft skill is my performance or recreation of a work that did not originate on TTT Productions (including public-domain or out-of-copyright works), shown only to demonstrate my abilities. The underlying work belongs to its owner, and I claim no ownership of it. I understand TTT Productions may remove this content at any time, including in response to a rights-holder request.',
+    'This craft is my performance or recreation of a work that did not originate on TTT Productions (including public-domain or out-of-copyright works), shown only to demonstrate my abilities. The underlying work belongs to its owner, and I claim no ownership of it. I understand TTT Productions may remove this content at any time, including in response to a rights-holder request.',
 };
 
 export const CRAFT_SKILL_KIND_ORDER: CraftSkillKind[] = ['original', 'mimicOnTtt', 'mimicOffTtt'];

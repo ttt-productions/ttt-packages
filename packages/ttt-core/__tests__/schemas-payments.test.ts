@@ -12,6 +12,7 @@ import {
   PLEDGE_REFUND_REQUEST_WINDOW_MS,
   MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
 } from '../src/constants/business-platform.js';
+import { PLEDGE_ATTESTATION_VERSION } from '../src/constants/member-agreements.js';
 
 const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
 
@@ -20,6 +21,7 @@ const valid = (overrides: Record<string, unknown> = {}) => ({
   amount: 500,
   checkoutAttemptId: ATTEMPT_ID,
   ageAttested: true,
+  attestationVersion: PLEDGE_ATTESTATION_VERSION,
   ...overrides,
 });
 
@@ -107,6 +109,16 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
     it('accepts ageAttested: true', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid());
       expect(result.success).toBe(true);
+    });
+
+    it('requires the wording version the checkout showed, and only the current one', () => {
+      const { attestationVersion: _omitted, ...rest } = valid();
+      expect(CreateStripeCheckoutSessionInputSchema.safeParse(rest).success).toBe(false);
+      expect(
+        CreateStripeCheckoutSessionInputSchema.safeParse(
+          valid({ attestationVersion: PLEDGE_ATTESTATION_VERSION + 1 }),
+        ).success,
+      ).toBe(false);
     });
   });
 

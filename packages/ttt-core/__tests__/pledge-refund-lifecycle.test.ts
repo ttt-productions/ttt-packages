@@ -106,6 +106,7 @@ describe('the refund correlation and observation stamps on the provider referenc
     refundIds: [],
     disputeId: null,
     ageAttestedAt: 1,
+    ageAttestationVersion: 1,
     createdAt: 1,
     updatedAt: 1,
   };

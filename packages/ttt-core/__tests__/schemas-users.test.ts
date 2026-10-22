@@ -6,104 +6,104 @@ import {
   UpdateSiteTourPreferenceInputSchema,
 } from '../src/schemas/users.js';
 import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business-admin.js';
+import {
+  ARTISAN_CREATOR_AGREEMENT_IDS,
+  ARTISAN_CREATOR_AGREEMENTS_VERSION,
+} from '../src/constants/member-agreements.js';
 
-describe('BecomeArtisanCreatorInputSchema (18+ AND U.S.-person attestation + DOB)', () => {
+describe('BecomeArtisanCreatorInputSchema (a U.S. Yes, a DOB, and every box under the shown wording)', () => {
   const dob = { year: 1990, month: 5, day: 17 };
+  const agreements = {
+    realDateOfBirth: true,
+    humanMadeOnly: true,
+    uploadRights: true,
+    rulesAndAgreements: true,
+    collaborateOnline: true,
+  } as const;
+  const valid = {
+    livesInUnitedStates: true,
+    dob,
+    agreements,
+    agreementsVersion: ARTISAN_CREATOR_AGREEMENTS_VERSION,
+  };
 
-  it('accepts both attestations true with a valid dob', () => {
+  it('accepts a Yes, a valid dob, every box ticked, and the current wording version', () => {
+    expect(BecomeArtisanCreatorInputSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('names exactly the boxes the dialog shows', () => {
+    expect(Object.keys(agreements)).toEqual([...ARTISAN_CREATOR_AGREEMENT_IDS]);
+  });
+
+  it('rejects a No (or a missing answer) — only U.S. persons may become Artisans', () => {
+    const { livesInUnitedStates: _omitted, ...withoutAnswer } = valid;
+    expect(BecomeArtisanCreatorInputSchema.safeParse(withoutAnswer).success).toBe(false);
     expect(
-      BecomeArtisanCreatorInputSchema.safeParse({ ageAttested: true, usPersonAttested: true, dob })
-        .success,
-    ).toBe(true);
+      BecomeArtisanCreatorInputSchema.safeParse({ ...valid, livesInUnitedStates: false }).success,
+    ).toBe(false);
+  });
+
+  it.each(ARTISAN_CREATOR_AGREEMENT_IDS)('rejects when %s is not ticked', (id) => {
+    expect(
+      BecomeArtisanCreatorInputSchema.safeParse({
+        ...valid,
+        agreements: { ...agreements, [id]: false },
+      }).success,
+    ).toBe(false);
+    const { [id]: _omitted, ...withoutBox } = agreements;
+    expect(
+      BecomeArtisanCreatorInputSchema.safeParse({ ...valid, agreements: withoutBox }).success,
+    ).toBe(false);
+  });
+
+  it('rejects any wording version but the current one', () => {
+    expect(
+      BecomeArtisanCreatorInputSchema.safeParse({
+        ...valid,
+        agreementsVersion: ARTISAN_CREATOR_AGREEMENTS_VERSION + 1,
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects when dob is missing (the artisan DOB is the only persisted DOB in the system)', () => {
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({ ageAttested: true, usPersonAttested: true })
-        .success,
-    ).toBe(false);
+    const { dob: _omitted, ...withoutDob } = valid;
+    expect(BecomeArtisanCreatorInputSchema.safeParse(withoutDob).success).toBe(false);
   });
 
   it('rejects an out-of-range dob month/day and a non-integer year', () => {
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({
-        ageAttested: true,
-        usPersonAttested: true,
-        dob: { year: 1990, month: 13, day: 1 },
-      }).success,
-    ).toBe(false);
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({
-        ageAttested: true,
-        usPersonAttested: true,
-        dob: { year: 1990, month: 1, day: 32 },
-      }).success,
-    ).toBe(false);
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({
-        ageAttested: true,
-        usPersonAttested: true,
-        dob: { year: 1990.5, month: 1, day: 1 },
-      }).success,
-    ).toBe(false);
+    for (const bad of [
+      { year: 1990, month: 13, day: 1 },
+      { year: 1990, month: 1, day: 32 },
+      { year: 1990.5, month: 1, day: 1 },
+    ]) {
+      expect(BecomeArtisanCreatorInputSchema.safeParse({ ...valid, dob: bad }).success).toBe(false);
+    }
   });
 
   it('rejects extra fields inside dob (dob is .strict())', () => {
     expect(
+      BecomeArtisanCreatorInputSchema.safeParse({ ...valid, dob: { ...dob, extra: 1 } }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a truthy non-boolean box', () => {
+    expect(
       BecomeArtisanCreatorInputSchema.safeParse({
-        ageAttested: true,
-        usPersonAttested: true,
-        dob: { ...dob, extra: 1 },
+        ...valid,
+        agreements: { ...agreements, humanMadeOnly: 'true' },
       }).success,
     ).toBe(false);
   });
 
-  it('rejects when usPersonAttested is missing', () => {
-    expect(BecomeArtisanCreatorInputSchema.safeParse({ ageAttested: true, dob }).success).toBe(
-      false,
-    );
-  });
-
-  it('rejects when ageAttested is missing', () => {
-    expect(BecomeArtisanCreatorInputSchema.safeParse({ usPersonAttested: true, dob }).success).toBe(
-      false,
-    );
-  });
-
-  it('rejects an empty input', () => {
+  it('rejects an empty input, an unknown box, and unknown extra fields', () => {
     expect(BecomeArtisanCreatorInputSchema.safeParse({}).success).toBe(false);
-  });
-
-  it('rejects ageAttested: false / usPersonAttested: false', () => {
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({ ageAttested: false, usPersonAttested: true, dob })
-        .success,
-    ).toBe(false);
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({ ageAttested: true, usPersonAttested: false, dob })
-        .success,
-    ).toBe(false);
-  });
-
-  it('rejects a truthy non-boolean attestation', () => {
     expect(
       BecomeArtisanCreatorInputSchema.safeParse({
-        ageAttested: 'true',
-        usPersonAttested: true,
-        dob,
+        ...valid,
+        agreements: { ...agreements, extra: true },
       }).success,
     ).toBe(false);
-  });
-
-  it('rejects unknown extra fields (schema is .strict())', () => {
-    expect(
-      BecomeArtisanCreatorInputSchema.safeParse({
-        ageAttested: true,
-        usPersonAttested: true,
-        dob,
-        extra: 1,
-      }).success,
-    ).toBe(false);
+    expect(BecomeArtisanCreatorInputSchema.safeParse({ ...valid, extra: 1 }).success).toBe(false);
   });
 });
 

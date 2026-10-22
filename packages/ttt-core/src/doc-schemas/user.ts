@@ -201,12 +201,11 @@ export const FullUserSchema = z.object({
 export type FullUser = z.infer<typeof FullUserSchema>;
 
 export const UserAgreementsSchema = z.object({
-  age: z.boolean().optional(),
-  nudity: z.boolean().optional(),
-  meet: z.boolean().optional(),
-  cookies: z.boolean().optional(),
+  cleanContent: z.boolean().optional(),
   terms: z.boolean().optional(),
   agreedOn: z.number().optional(),
+  /** The registration wording agreed to (REGISTRATION_AGREEMENTS_VERSION). */
+  wordingVersion: z.number().int().positive().optional(),
   /**
    * The Terms / Privacy versions accepted at registration, read server-side from the live
    * docs at acceptance time — never client-supplied, never a hardcoded constant. Kept for the
@@ -265,9 +264,8 @@ export const UserPrivateDataSchema = z.object({
   // `artisanCreator?: number` grant-timestamp pattern. Truthy when set, so truthiness reads
   // work; absent until the user applies.
   isWaitingForNewsApproval: z.number().optional(),
-  // Epoch ms when the user attested they are a U.S.-based person while becoming an artisan
-  // (required at artisan signup). Mirrors the ageAttested attestation pattern; written
-  // server-side by becomeArtisanCreator.
+  // Epoch ms when the user answered Yes to "Do you live in the United States?" while becoming an
+  // Artisan (required at Artisan signup); written server-side by becomeArtisanCreator.
   usPersonAttestedAt: z.number().optional(),
   // Non-U.S. artisan-interest "waitlist" recorded ONLY for adult accounts when a non-U.S. person
   // asks to be notified once creator signups open in their region. Owner-only, backend-written.
@@ -288,10 +286,17 @@ export const UserPrivateDataSchema = z.object({
   // agreement, read server-side in the grant transaction (the grant time is the profile's
   // `artisanCreator` stamp). Same 0 sentinel as `squareStreetzAgreementsVersion`.
   artisanCreatorAgreementsVersion: PublicDocumentVersionOrNoneSchema.optional(),
-  // Epoch ms when the user accepted the one-time Hall download acknowledgement
-  // (personal offline use only, no redistribution). Written server-side by the
-  // acceptHallDownloadAcknowledgement callable; gates the Hall download button.
+  // The become-an-Artisan wording agreed to (ARTISAN_CREATOR_AGREEMENTS_VERSION), written with the grant.
+  artisanCreatorAgreementsWordingVersion: z.number().int().positive().optional(),
+  // The Square first-post wording agreed to (SQUARE_STREETZ_AGREEMENTS_VERSION), written with
+  // `squareStreetzAgreementsDate`.
+  squareStreetzAgreementsWordingVersion: z.number().int().positive().optional(),
+  // Epoch ms when the user accepted the one-time Hall download acknowledgement (personal offline
+  // use only, no redistribution). Written server-side by acceptHallDownloadAcknowledgement; the
+  // media session carries it, and the media Worker refuses a Hall download without it.
   hallDownloadAcknowledgedAt: z.number().optional(),
+  // The acknowledgment wording agreed to (HALL_DOWNLOAD_ACKNOWLEDGEMENT_VERSION).
+  hallDownloadAcknowledgementVersion: z.number().int().positive().optional(),
   agreements: UserAgreementsSchema.optional(),
   // The latest accepted version of each public document and the accepted level (see
   // PublicDocumentAcceptanceSchema). Written by registration and the acceptance callable only;

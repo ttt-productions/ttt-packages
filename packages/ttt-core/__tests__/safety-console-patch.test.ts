@@ -74,7 +74,7 @@ describe('the console patch an action answers with', () => {
   });
 
   it('the console read and the patch share one urgent-entry shape', () => {
-    const entry = { caseId: 'c1', lane: 'csam' as const, monitors: [] };
+    const entry = { scope: 'case' as const, caseId: 'c1', lane: 'csam' as const, monitors: [] };
     expect(safety.SafetyCaseConsoleUrgentEntrySchema.parse(entry)).toEqual(entry);
     expect(safety.GetSafetyCaseConsoleResultSchema.shape.urgentProjection.element).toBe(
       safety.SafetyCaseConsoleUrgentEntrySchema,

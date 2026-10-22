@@ -139,6 +139,8 @@ export const PledgePaymentProviderRefSchema = z.object({
   // fraud-evidence plumbing, not transparency data, so it rides THIS server-only doc and never the
   // member-readable pledgePayments ledger.
   ageAttestedAt: z.number(),
+  // The checkout attestation wording ticked (PLEDGE_ATTESTATION_VERSION), stamped with `ageAttestedAt`.
+  ageAttestationVersion: z.number().int().positive(),
   // The founder legal-review notice acknowledgment given at checkout (its own required checkbox
   // on every pledge while the notice is active): the revision and server time, stamped at session
   // creation and carried through the Stripe metadata like `ageAttestedAt`. Absent when the notice

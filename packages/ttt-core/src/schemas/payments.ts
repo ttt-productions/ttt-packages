@@ -5,6 +5,7 @@ import {
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
 } from '../constants/business-platform.js';
+import { PLEDGE_ATTESTATION_VERSION } from '../constants/member-agreements.js';
 import { textFieldSchema } from './text-field.js';
 import { PledgePaymentSchema, PledgeRefundRequestSchema } from '../doc-schemas/payments.js';
 import {
@@ -31,6 +32,8 @@ export const CreateStripeCheckoutSessionInputSchema = z
     // is absent and stamps ageAttestedAt onto the SERVER-ONLY pledgePaymentProviderRefs doc (never
     // the member-readable pledgePayments ledger) so the consent is provable.
     ageAttested: z.literal(true),
+    // The wording of that checkbox, as the checkout showed it; recorded beside `ageAttestedAt`.
+    attestationVersion: z.literal(PLEDGE_ATTESTATION_VERSION),
     // The founder legal-review notice checkbox — its own required checkbox on every pledge while
     // the notice is active (the callable refuses a checkout without it then, and records the
     // receipt from `buildLegalReviewNoticeReceipt`). Omitted, or null, while the notice is off.

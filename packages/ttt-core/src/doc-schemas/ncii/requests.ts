@@ -437,6 +437,18 @@ export function computeCompleteness(input: {
   };
 }
 
+/**
+ * Whether a request can be ruled Valid: it is facially complete AND its stored locator — the content
+ * the 48h removal acts on — is present. The validity callable refuses a Valid ruling otherwise, and
+ * the console offers Valid only when this holds.
+ */
+export function takeItDownRequestCanBeRuledValid(input: {
+  completenessStatus: TakeItDownRequestRootV1['completenessStatus'];
+  hasStoredLocator: boolean;
+}): boolean {
+  return input.completenessStatus === 'complete' && input.hasStoredLocator;
+}
+
 // ===========================================================================
 // Intake field-code derivation + completeness (SINGLE-SOURCED).
 // `NciiIntakeFacts`, `suppliedFieldCodes`, and `deriveCompleteness` are pure and sit

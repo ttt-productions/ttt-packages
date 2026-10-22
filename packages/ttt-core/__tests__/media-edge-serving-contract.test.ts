@@ -13,6 +13,7 @@ import {
   MediaGrantTokenPayloadSchema,
   MediaSessionTokenPayloadSchema,
   mediaBrowserCacheControl,
+  mediaDownloadAllowed,
   type EdgeServingRecord,
   type MediaAuthorityApplyRequest,
   type MediaGrantScope,
@@ -324,6 +325,7 @@ describe('MediaSessionTokenPayloadSchema — the one media-session cookie payloa
     uid: 'user-1',
     art: 1,
     adm: 0,
+    hdl: 0,
     iat: 1_700_000_000,
     exp: 1_700_003_600,
   };
@@ -339,6 +341,9 @@ describe('MediaSessionTokenPayloadSchema — the one media-session cookie payloa
     expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, uid: '' }).success).toBe(false);
     expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, adm: 2 }).success).toBe(false);
     expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, adm: true }).success).toBe(false);
+    expect(MediaSessionTokenPayloadSchema.safeParse({ ...payload, hdl: 2 }).success).toBe(false);
+    const { hdl: _hdl, ...noDownloadBit } = payload;
+    expect(MediaSessionTokenPayloadSchema.safeParse(noDownloadBit).success).toBe(false);
     expect(
       MediaSessionTokenPayloadSchema.safeParse({ ...payload, scope: { w: 'work-1' } }).success,
     ).toBe(false);
@@ -347,5 +352,18 @@ describe('MediaSessionTokenPayloadSchema — the one media-session cookie payloa
   it('requires the issue and expiry times', () => {
     const { exp: _exp, ...noExpiry } = payload;
     expect(MediaSessionTokenPayloadSchema.safeParse(noExpiry).success).toBe(false);
+  });
+});
+
+describe('mediaDownloadAllowed — a Hall download needs the acknowledgment bit', () => {
+  it('refuses a Hall item download to a session without the acknowledgment, and allows it with', () => {
+    expect(mediaDownloadAllowed({ ownerType: 'hallItem' }, { hdl: 0 })).toBe(false);
+    expect(mediaDownloadAllowed({ ownerType: 'hallItem' }, { hdl: 1 })).toBe(true);
+  });
+
+  it('leaves every other owner type to its tier alone', () => {
+    for (const ownerType of MediaAssetOwnerTypeSchema.options.filter((t) => t !== 'hallItem')) {
+      expect(mediaDownloadAllowed({ ownerType }, { hdl: 0 }), ownerType).toBe(true);
+    }
   });
 });

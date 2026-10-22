@@ -1884,6 +1884,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `refundIds` | `string[]` |  |
 | `disputeId` | `string \| null` |  |
 | `ageAttestedAt` | `number` |  |
+| `ageAttestationVersion` | `number` |  |
 | `legalReviewNotice` | `{ revision, acknowledgedAt }` | yes |
 | `refundCorrelation` | `{ requestId, intendedAmount, refundId }` | yes |
 | `refundObservedAt` | `number` | yes |
@@ -2449,6 +2450,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `attestHumanMadeOriginal` | `true` |  |
 | `attestPublishStewardship` | `true` |  |
 | `attestedAt` | `number` |  |
+| `attestationsVersion` | `number` |  |
 | `legalReviewNotice` | `{ revision, acknowledgedAt }` | yes |
 | `confirmedNoBegging` | `true` | yes |
 | `confirmedNoCredits` | `true` | yes |
@@ -2532,8 +2534,11 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `squareStreetzAgreementsDate` | `number` | yes |
 | `squareStreetzAgreementsVersion` | `number` | yes |
 | `artisanCreatorAgreementsVersion` | `number` | yes |
+| `artisanCreatorAgreementsWordingVersion` | `number` | yes |
+| `squareStreetzAgreementsWordingVersion` | `number` | yes |
 | `hallDownloadAcknowledgedAt` | `number` | yes |
-| `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn, termsVersion, privacyVersion }` | yes |
+| `hallDownloadAcknowledgementVersion` | `number` | yes |
+| `agreements` | `{ cleanContent, terms, agreedOn, wordingVersion, termsVersion, privacyVersion }` | yes |
 | `publicDocumentAcceptance` | `{ documentVersions, acceptedLevel, legalReviewNoticeRevision, acceptedAt }` | yes |
 | `siteTour` | `{ completedVersion, completedAt, notTodayDate, automaticInvitesDisabledAt }` | yes |
 | `statusReason` | `string` | yes |

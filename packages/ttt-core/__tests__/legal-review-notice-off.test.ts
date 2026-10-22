@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../src/constants/legal-review-notice-state.js', () => ({
   LEGAL_REVIEW_NOTICE_ACTIVE: false,
-  LEGAL_REVIEW_NOTICE_REVISION: 'founder-note-v1',
+  LEGAL_REVIEW_NOTICE_REVISION: 'founder-note-v2',
 }));
 
 import {
@@ -37,7 +37,7 @@ describe('founder legal-review notice — switched off', () => {
 
   it('reverts the registration Terms checkbox to the plain agreement', () => {
     expect(legalReviewNoticeSegmentsText(registrationTermsAgreementSegments())).toBe(
-      'I have read and agree to the Terms of Service and Privacy Policy.',
+      "I've read and agree to the Terms of Service, Privacy Policy (including the essential cookies the site needs to run), and Rules & Agreements, and I've seen the Future Plans, DMCA Policy, and Take It Down pages.",
     );
   });
 });

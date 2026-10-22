@@ -55,6 +55,10 @@ import {
 } from '../src/utils/public-documents.js';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments.js';
 import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library.js';
+import {
+  PLEDGE_ATTESTATION_VERSION,
+  REGISTRATION_AGREEMENTS_VERSION,
+} from '../src/constants/member-agreements.js';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const RULES = SPECIAL_DOCS.RULES_AND_AGREEMENTS;
@@ -552,7 +556,8 @@ describe('registration carries the versions the signup page showed', () => {
 
   const registration = {
     displayName: 'NewMember',
-    agreements: { age: true, nudity: true, meet: true, cookies: true, terms: true },
+    agreements: { cleanContent: true, terms: true },
+    agreementsVersion: REGISTRATION_AGREEMENTS_VERSION,
   } as const;
 
   it('requires the shown list — a registration never omits what it agreed to', () => {
@@ -668,13 +673,14 @@ describe('audit payloads', () => {
   });
 
   it('social.squareStreetzAgreementsAccepted — the Rules version accepted and the one it replaced (or null)', () => {
-    const payload = { acceptedVersion: 3, previousAcceptedVersion: 2 };
+    const payload = { acceptedVersion: 3, previousAcceptedVersion: 2, agreementsWordingVersion: 1 };
     expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse(payload).success).toBe(true);
     // The first acceptance replaces nothing; before any Rules release the version accepted is 0.
     expect(
       SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({
         acceptedVersion: 0,
         previousAcceptedVersion: null,
+        agreementsWordingVersion: 1,
       }).success,
     ).toBe(true);
     // Both versions are the canonical version-or-none value, never a bare number.
@@ -708,7 +714,12 @@ describe('founder-notice receipts on the pledge and Hall-submission paths', () =
   const receipt = { revision: 'founder-note-v1', acknowledgedAt: 1 };
 
   it('the checkout and submit inputs carry the checkbox — true when ticked, omitted or null otherwise', () => {
-    const checkout = { amount: 500, checkoutAttemptId: RELEASE_ID, ageAttested: true as const };
+    const checkout = {
+      amount: 500,
+      checkoutAttemptId: RELEASE_ID,
+      ageAttested: true as const,
+      attestationVersion: PLEDGE_ATTESTATION_VERSION,
+    };
     expect(
       CreateStripeCheckoutSessionInputSchema.safeParse({
         ...checkout,

@@ -61,35 +61,38 @@ export const LEGAL_REVIEW_NOTICE_CHECKBOX =
   "I understand TTT's terms express the founder's intentions, have not had legal review, and " +
   'will be updated once Charter Season support makes that possible.';
 
-// The registration Terms checkbox. While the notice is active it carries the notice clause;
-// otherwise it is the plain agreement. Both link the two documents by their canonical labels.
+/** A public document as a link run, labelled by its canonical label. */
+function documentLink(target: PublicDocumentId): LegalReviewNoticeSegment {
+  return { kind: 'link', label: PUBLIC_DOCUMENT_LABELS[target], target };
+}
+
+// The registration Terms checkbox names and links every public document registration accepts.
+// While the notice is active it carries the notice clause; otherwise it is the plain agreement.
 const REGISTRATION_TERMS_AGREEMENT_LEAD: readonly LegalReviewNoticeSegment[] = [
-  { kind: 'text', text: 'I have read and agree to the ' },
-  {
-    kind: 'link',
-    label: PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.TERMS_PAGE],
-    target: SPECIAL_DOCS.TERMS_PAGE,
-  },
-  { kind: 'text', text: ' and ' },
-  {
-    kind: 'link',
-    label: PUBLIC_DOCUMENT_LABELS[SPECIAL_DOCS.PRIVACY_PAGE],
-    target: SPECIAL_DOCS.PRIVACY_PAGE,
-  },
+  { kind: 'text', text: "I've read and agree to the " },
+  documentLink(SPECIAL_DOCS.TERMS_PAGE),
+  { kind: 'text', text: ', ' },
+  documentLink(SPECIAL_DOCS.PRIVACY_PAGE),
+  { kind: 'text', text: ' (including the essential cookies the site needs to run), and ' },
+  documentLink(SPECIAL_DOCS.RULES_AND_AGREEMENTS),
+  { kind: 'text', text: ", and I've seen the " },
+  documentLink(SPECIAL_DOCS.FUTURE_PLANS),
+  { kind: 'text', text: ', ' },
+  documentLink(SPECIAL_DOCS.DMCA_POLICY),
+  { kind: 'text', text: ', and ' },
+  documentLink(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY),
+  { kind: 'text', text: ' pages.' },
 ];
 
 const REGISTRATION_TERMS_AGREEMENT_WITH_NOTICE: readonly LegalReviewNoticeSegment[] = [
   ...REGISTRATION_TERMS_AGREEMENT_LEAD,
   {
     kind: 'text',
-    text: ", and I understand they express the founder's intentions and have not had legal review.",
+    text: " I understand these express the founder's intentions and have not had legal review.",
   },
 ];
 
-const REGISTRATION_TERMS_AGREEMENT_WITHOUT_NOTICE: readonly LegalReviewNoticeSegment[] = [
-  ...REGISTRATION_TERMS_AGREEMENT_LEAD,
-  { kind: 'text', text: '.' },
-];
+const REGISTRATION_TERMS_AGREEMENT_WITHOUT_NOTICE = REGISTRATION_TERMS_AGREEMENT_LEAD;
 
 /** The registration Terms checkbox label, with the notice clause exactly while the notice is active. */
 export function registrationTermsAgreementSegments(): readonly LegalReviewNoticeSegment[] {

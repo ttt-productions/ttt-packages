@@ -43,13 +43,17 @@ import {
   ReportReasonSchema,
   SafetyCaseClosureV1Schema,
   TargetLocatorV1Schema,
+  type TakeItDownFieldCode,
 } from '../doc-schemas/safety/foundation.js';
 import { SafetySlaMonitorV1Schema } from '../doc-schemas/safety/monitors.js';
 import { NciiCaseLaneSchema, NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
 import {
   AuthorityProofScanStatusSchema,
   NciiRetainedEvidenceInventoryV1Schema,
+  TakeItDownAuthorizedRepresentativeV1Schema,
+  TakeItDownRequesterPrivateV1Schema,
   TakeItDownRequestRootV1Schema,
+  TakeItDownSubmissionV1Schema,
 } from '../doc-schemas/ncii/requests.js';
 import {
   ChildSafetyAccountRoleSchema,
@@ -211,14 +215,28 @@ export const SafetyCaseConsolePageInfoSchema = z
   .strict();
 export type SafetyCaseConsolePageInfo = z.infer<typeof SafetyCaseConsolePageInfoSchema>;
 
-/** One case in the urgent projection: an active case with an armed or overdue monitor. */
-export const SafetyCaseConsoleUrgentEntrySchema = z
-  .object({
-    caseId: z.string().min(1),
-    lane: SafetyCaseLaneSchema,
-    monitors: z.array(SafetySlaMonitorV1Schema),
-  })
-  .strict();
+/**
+ * One entry in the urgent projection: an active case with an armed or overdue case monitor, or a
+ * TAKE IT DOWN request whose removal clock is armed or overdue. A request's clock is keyed by the
+ * request, never a case — it arms at intake, before any case exists — so it is its own entry.
+ */
+export const SafetyCaseConsoleUrgentEntrySchema = z.discriminatedUnion('scope', [
+  z
+    .object({
+      scope: z.literal('case'),
+      caseId: z.string().min(1),
+      lane: SafetyCaseLaneSchema,
+      monitors: z.array(SafetySlaMonitorV1Schema),
+    })
+    .strict(),
+  z
+    .object({
+      scope: z.literal('request'),
+      requestId: takeItDownRequestIdSchema,
+      monitors: z.array(SafetySlaMonitorV1Schema),
+    })
+    .strict(),
+]);
 export type SafetyCaseConsoleUrgentEntry = z.infer<typeof SafetyCaseConsoleUrgentEntrySchema>;
 
 /** The `getSafetyCaseConsole` answer: one page per source, the per-source pagination, and the
@@ -490,23 +508,89 @@ export const GetTakeItDownRequestDetailInputSchema = z
   .strict();
 export type GetTakeItDownRequestDetailInput = z.infer<typeof GetTakeItDownRequestDetailInputSchema>;
 
-export const GetTakeItDownRequestDetailResultSchema = z.object({
-  requestId: takeItDownRequestIdSchema,
-  /** The case a 'valid' ruling armed; absent until then. */
-  caseId: safetyCaseIdSchema.optional(),
-  requesterRole: TakeItDownRequestRootV1Schema.shape.requesterRole,
-  targetLocatorSummary: TakeItDownRequestRootV1Schema.shape.targetLocatorSummary,
-  completenessStatus: TakeItDownRequestRootV1Schema.shape.completenessStatus,
-  validityStatus: TakeItDownRequestRootV1Schema.shape.validityStatus,
-  publicStatus: TakeItDownRequestRootV1Schema.shape.publicStatus,
-  targetLocator: TargetLocatorV1Schema.optional(),
-  supportingFacts: z.string().optional(),
-  /** An authorized representative only: the basis of authority they asserted. */
-  authorityBasis: z.string().optional(),
-  /** An authorized representative only: whether an authority-proof file is attached. */
-  hasAuthorityEvidence: z.boolean().optional(),
-  authorityProofScanStatus: AuthorityProofScanStatusSchema.optional(),
-});
+const requesterPrivate = TakeItDownRequesterPrivateV1Schema.shape;
+const authorizedRepresentative = TakeItDownAuthorizedRepresentativeV1Schema.shape;
+
+/**
+ * The review packet: everything the requester submitted that a validity ruling adjudicates — each
+ * statutory element, the certifications, the locator, the first submission's receipt, and how much
+ * evidence was recorded. A field the requester left out is absent or blank, never filled in.
+ */
+export const TakeItDownReviewPacketSchema = z
+  .object({
+    requesterName: requesterPrivate.requesterName,
+    contactEmail: requesterPrivate.contactEmail,
+    contactPhone: requesterPrivate.contactPhone,
+    electronicSignature: requesterPrivate.electronicSignature,
+    nonconsentStatement: requesterPrivate.nonconsentStatement,
+    supportingFacts: requesterPrivate.supportingFacts,
+    goodFaithCertification: requesterPrivate.goodFaithCertification,
+    accuracyCertification: requesterPrivate.accuracyCertification,
+    targetLocator: TargetLocatorV1Schema.optional(),
+    /** An authorized representative only. */
+    authorizedRepresentative: z
+      .object({
+        representedPersonName: authorizedRepresentative.representedPersonName,
+        authorityBasis: authorizedRepresentative.authorityBasis,
+        authorityCertification: authorizedRepresentative.authorityCertification,
+        hasAuthorityEvidence: z.boolean(),
+        authorityProofScanStatus: AuthorityProofScanStatusSchema.optional(),
+      })
+      .strict()
+      .optional(),
+    /** The first submission: its statutory receipt time and the field codes it supplied. */
+    firstSubmission: TakeItDownSubmissionV1Schema.pick({
+      receivedAt: true,
+      suppliedFieldCodes: true,
+    })
+      .strict()
+      .nullable(),
+    /** Evidence files recorded on the request (each one passed its scan). */
+    evidenceCount: z.number().int().nonnegative(),
+  })
+  .strict();
+export type TakeItDownReviewPacket = z.infer<typeof TakeItDownReviewPacketSchema>;
+
+/**
+ * The field codes a review packet exposes — each element returned with a value. The privileged
+ * read records this list on its audit event, so the record says what the operator was shown.
+ */
+export function takeItDownReviewPacketExposedFieldCodes(
+  packet: TakeItDownReviewPacket,
+): TakeItDownFieldCode[] {
+  const filled = (s: string | undefined) => typeof s === 'string' && s.trim().length > 0;
+  const codes: TakeItDownFieldCode[] = [];
+  if (filled(packet.requesterName)) codes.push('requesterName');
+  if (filled(packet.contactEmail)) codes.push('contactEmail');
+  if (filled(packet.contactPhone)) codes.push('contactPhone');
+  if (filled(packet.electronicSignature.signedName)) codes.push('electronicSignature');
+  if (filled(packet.nonconsentStatement)) codes.push('nonconsentStatement');
+  if (filled(packet.supportingFacts)) codes.push('supportingFacts');
+  codes.push('goodFaithCertification');
+  if (packet.targetLocator) codes.push('targetLocator');
+  const rep = packet.authorizedRepresentative;
+  if (rep) {
+    if (filled(rep.authorityBasis)) codes.push('authorityBasis');
+    codes.push('authorityCertification');
+    if (rep.hasAuthorityEvidence) codes.push('authorityEvidence');
+  }
+  return codes;
+}
+
+export const GetTakeItDownRequestDetailResultSchema = z
+  .object({
+    requestId: takeItDownRequestIdSchema,
+    /** The case a 'valid' ruling armed; absent until then. */
+    caseId: safetyCaseIdSchema.optional(),
+    requesterRole: TakeItDownRequestRootV1Schema.shape.requesterRole,
+    targetLocatorSummary: TakeItDownRequestRootV1Schema.shape.targetLocatorSummary,
+    completenessStatus: TakeItDownRequestRootV1Schema.shape.completenessStatus,
+    validityStatus: TakeItDownRequestRootV1Schema.shape.validityStatus,
+    publicStatus: TakeItDownRequestRootV1Schema.shape.publicStatus,
+    /** Null when the request holds no requester record to review. */
+    packet: TakeItDownReviewPacketSchema.nullable(),
+  })
+  .strict();
 export type GetTakeItDownRequestDetailResult = z.infer<
   typeof GetTakeItDownRequestDetailResultSchema
 >;

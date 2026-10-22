@@ -9,6 +9,14 @@ import {
   DISPLAY_NAME_RESET_REASON_INPUT,
   USERNAME_INPUT,
 } from '../constants/text-fields.js';
+import {
+  ARTISAN_CREATOR_AGREEMENT_IDS,
+  ARTISAN_CREATOR_AGREEMENTS_VERSION,
+  HALL_DOWNLOAD_ACKNOWLEDGEMENT_VERSION,
+  REGISTRATION_AGREEMENTS_VERSION,
+  SQUARE_STREETZ_AGREEMENT_IDS,
+  SQUARE_STREETZ_AGREEMENTS_VERSION,
+} from '../constants/member-agreements.js';
 import { textFieldSchema } from './text-field.js';
 import type { PublicUserSearchResult } from '../types/admin-users.js';
 import { UserAccountStatusSchema } from '../doc-schemas/user.js';
@@ -47,7 +55,22 @@ export const DateOfBirthSchema = DateOfBirthShapeSchema.extend({
 });
 export type DateOfBirth = z.infer<typeof DateOfBirthSchema>;
 
-export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
+/** Every box of one agreement surface, each required ticked: `{ [id]: true }` for every id. */
+function everyAgreementTicked<const Id extends string>(ids: readonly Id[]) {
+  return z
+    .object(
+      Object.fromEntries(ids.map((id) => [id, z.literal(true)])) as Record<Id, z.ZodLiteral<true>>,
+    )
+    .strict();
+}
+
+/** The Square first-post boxes, each ticked, under the wording version the form showed. */
+export const AcceptSquareStreetzAgreementsInputSchema = z
+  .object({
+    agreements: everyAgreementTicked(SQUARE_STREETZ_AGREEMENT_IDS),
+    agreementsVersion: z.literal(SQUARE_STREETZ_AGREEMENTS_VERSION),
+  })
+  .strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<
   typeof AcceptSquareStreetzAgreementsInputSchema
 >;
@@ -72,16 +95,21 @@ export const SquareStreetzAgreementsAcceptedAuditPayloadSchema = z
   .object({
     acceptedVersion: PublicDocumentVersionOrNoneSchema,
     previousAcceptedVersion: PublicDocumentVersionOrNoneSchema.nullable(),
+    /** The wording version of the boxes ticked (SQUARE_STREETZ_AGREEMENTS_VERSION). */
+    agreementsWordingVersion: z.number().int().positive(),
   })
   .strict();
 export type SquareStreetzAgreementsAcceptedAuditPayload = z.infer<
   typeof SquareStreetzAgreementsAcceptedAuditPayloadSchema
 >;
 
-// One-time acknowledgement gate before a user may download Hall content for personal
-// offline use. No payload — the
-// callable records the timestamp in the caller's privateData.
-export const AcceptHallDownloadAcknowledgementInputSchema = z.object({}).strict();
+// One-time acknowledgement before a member may download Hall content for personal offline use.
+// The callable records the time and the wording version in the caller's privateData.
+export const AcceptHallDownloadAcknowledgementInputSchema = z
+  .object({
+    acknowledgementVersion: z.literal(HALL_DOWNLOAD_ACKNOWLEDGEMENT_VERSION),
+  })
+  .strict();
 export type AcceptHallDownloadAcknowledgementInput = z.infer<
   typeof AcceptHallDownloadAcknowledgementInputSchema
 >;
@@ -94,22 +122,22 @@ export type AcceptHallDownloadAcknowledgementResult = z.infer<
   typeof AcceptHallDownloadAcknowledgementResultSchema
 >;
 
-// The become-creator dialog's "I confirm I am 18 years of age or older" checkbox must reach the
-// server: the callable rejects when absent and records the attestation on the
-// artisanCreator.grantedToUser audit event (immutable, timestamped, with IP/UA) so it is provable.
+// Becoming an Artisan: the person's Yes to ARTISAN_CREATOR_US_PERSON_QUESTION, their date of
+// birth, and every become-an-Artisan box ticked under the wording version the dialog showed. The
+// callable records the answer, the date, and the version with the grant.
 export const BecomeArtisanCreatorInputSchema = z
   .object({
-    ageAttested: z.literal(true),
-    // "I confirm I am a person located in the United States" — only U.S. persons may become
-    // artisans. Mirrors ageAttested: the callable rejects when absent and records the
-    // attestation timestamp (privateData.usPersonAttestedAt) + the grant audit event.
-    usPersonAttested: z.literal(true),
-    // The artisan's date of birth — the ONLY point in the system where a DOB is collected for
-    // persistence (registration/upgrade derive the bracket and store nothing). The dialog copy
-    // tells the user this must be THEIR birthday: it has to match their payout (KYC) identity. The callable re-derives 18+ server-side
-    // from this value; an under-18 derivation rejects (failure audit, nothing stored). Stored as
-    // privateData attestedDateOfBirth + attestedDobSource 'artisanOnboarding'.
+    // Only U.S. persons may become Artisans; a No leads to the regional interest list instead, so
+    // the only answer this callable takes is Yes.
+    livesInUnitedStates: z.literal(true),
+    // The ONLY point in the system where a DOB is collected for persistence (registration derives
+    // the bracket and stores nothing). It must be the person's own: it is checked against their
+    // payout (KYC) identity. The callable re-derives 18+ from it; an under-18 date is refused
+    // (failure audit, nothing stored). Stored as privateData attestedDateOfBirth +
+    // attestedDobSource 'artisanOnboarding'.
     dob: DateOfBirthSchema,
+    agreements: everyAgreementTicked(ARTISAN_CREATOR_AGREEMENT_IDS),
+    agreementsVersion: z.literal(ARTISAN_CREATOR_AGREEMENTS_VERSION),
   })
   .strict();
 export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInputSchema>;
@@ -249,13 +277,11 @@ export const RegisterUserInputSchema = z
     displayName: displayNameSchema,
     agreements: z
       .object({
-        age: z.literal(true),
-        nudity: z.literal(true),
-        meet: z.literal(true),
-        cookies: z.literal(true),
+        cleanContent: z.literal(true),
         terms: z.literal(true),
       })
       .strict(),
+    agreementsVersion: z.literal(REGISTRATION_AGREEMENTS_VERSION),
     // The public-document versions the signup page SHOWED when the person agreed: every published
     // document at its current version, `changedPublicDocuments(block, undefined)` off the live
     // `_appConfig/app` version block. Empty before the first release (the first-admin bootstrap).

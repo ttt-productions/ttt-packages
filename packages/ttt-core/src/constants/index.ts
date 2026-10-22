@@ -15,6 +15,7 @@ export * from './admin-labels.js';
 export * from './craft-skill-statements.js';
 export * from './publish-attestations.js';
 export * from './pledge-and-bouquet-copy.js';
+export * from './member-agreements.js';
 export * from './public-documents.js';
 export * from './admin-claims.js';
 export * from './legal-review-notice-state.js';

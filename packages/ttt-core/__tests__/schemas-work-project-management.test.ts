@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { WORK_REALM_FOUNDING_AGREEMENT_VERSION } from '../src/constants/member-agreements.js';
 import {
   InviteSourceSchema,
   InviteUserToGuildInputSchema,
@@ -336,6 +337,7 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
       hallWingType: 'entertainment' as const,
       realmCreationMode: 'newPublicRealm' as const,
       realmWorkingDescription: 'realm desc',
+      realmFoundingAgreementVersion: WORK_REALM_FOUNDING_AGREEMENT_VERSION,
     };
     // A valid realm title parses on both surfaces.
     expect(

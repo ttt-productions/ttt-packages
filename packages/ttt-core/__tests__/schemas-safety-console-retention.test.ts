@@ -150,7 +150,10 @@ describe('safety console — the one result shape both trees read', () => {
           ...emptyResult.pagination,
           ncii: { total: 3, hasMore: true, nextCursor: { v: 5, id: 'n1' } },
         },
-        urgentProjection: [{ caseId: 'case-1', lane: 'csam', monitors: [] }],
+        urgentProjection: [
+          { scope: 'case', caseId: 'case-1', lane: 'csam', monitors: [] },
+          { scope: 'request', requestId: 'n1', monitors: [] },
+        ],
       }).success,
     ).toBe(true);
     const { takeItDown: _missing, ...twoSources } = emptyResult.pagination;

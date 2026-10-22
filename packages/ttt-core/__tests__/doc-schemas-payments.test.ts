@@ -39,6 +39,7 @@ const SERVER_ONLY_LEDGER_FIELDS = [
   'refundIds',
   'disputeId',
   'ageAttestedAt',
+  'ageAttestationVersion',
   'message',
 ] as const;
 
@@ -104,6 +105,7 @@ describe('PledgePaymentProviderRefSchema (server-only Stripe refs)', () => {
     refundIds: [],
     disputeId: null,
     ageAttestedAt: 1,
+    ageAttestationVersion: 1,
     createdAt: 1,
     updatedAt: 1,
   };
@@ -118,6 +120,11 @@ describe('PledgePaymentProviderRefSchema (server-only Stripe refs)', () => {
     const { ageAttestedAt, ...withoutAttestation } = validRef;
     void ageAttestedAt;
     expect(PledgePaymentProviderRefSchema.safeParse(withoutAttestation).success).toBe(false);
+  });
+
+  it('requires the attestation wording version beside ageAttestedAt', () => {
+    const { ageAttestationVersion: _omitted, ...withoutVersion } = validRef;
+    expect(PledgePaymentProviderRefSchema.safeParse(withoutVersion).success).toBe(false);
   });
 
   it('accepts a resolved charge id and refund/dispute ids', () => {

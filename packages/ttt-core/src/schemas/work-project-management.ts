@@ -23,6 +23,7 @@ import {
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import { MAX_CRAFT_SKILL_NAME_LENGTH } from '../constants/business-user.js';
+import { WORK_REALM_FOUNDING_AGREEMENT_VERSION } from '../constants/member-agreements.js';
 import {
   GUILD_INVITE_MESSAGE_INPUT,
   REALM_DESCRIPTION_INPUT,
@@ -335,6 +336,9 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
       realmCreationMode: z.literal('newPublicRealm'),
       realmWorkingTitle: realmWorkingTitleSchema,
       realmWorkingDescription: realmWorkingDescriptionSchema,
+      // The Realm Creation Agreement, ticked under the wording version the flow showed; the
+      // creation records it with the new Realm.
+      realmFoundingAgreementVersion: z.literal(WORK_REALM_FOUNDING_AGREEMENT_VERSION),
     })
     .strict(),
   // Standalone realms are background plumbing: the user enters NO

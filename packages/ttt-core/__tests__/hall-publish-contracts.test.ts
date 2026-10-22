@@ -263,6 +263,7 @@ describe('threshold item parked-publication state', () => {
     attestHumanMadeOriginal: true,
     attestPublishStewardship: true,
     attestedAt: 1,
+    attestationsVersion: 1,
   };
 
   it('is optional — only a park stamps it', () => {

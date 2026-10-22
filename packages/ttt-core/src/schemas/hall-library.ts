@@ -18,6 +18,7 @@ import {
   workRealmIdSchema,
 } from './atoms.js';
 import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business-admin.js';
+import { PUBLISH_ATTESTATIONS_VERSION } from '../constants/publish-attestations.js';
 import {
   CHAPTER_CONTENT_INPUT,
   CHAPTER_TITLE_INPUT,
@@ -141,6 +142,8 @@ export const SubmitForThresholdLibraryReviewInputSchema = z
     attestNoBegging: z.boolean().nullish(),
     attestHumanMadeOriginal: z.boolean().nullish(),
     attestPublishStewardship: z.boolean().nullish(),
+    // The wording of the attestations as the submission showed them; the core refuses any other.
+    attestationsVersion: z.literal(PUBLISH_ATTESTATIONS_VERSION).nullish(),
   })
   .strict();
 export type SubmitForThresholdLibraryReviewInput = z.infer<

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { WORK_REALM_FOUNDING_AGREEMENT_VERSION } from '../src/constants/member-agreements.js';
 import { workRealmNameReservationKey } from '../src/utils/work-realm-name.js';
 import {
   CheckRealmNameAvailableInputSchema,
@@ -71,6 +72,7 @@ describe('one Realm-name declaration on every path', () => {
       realmCreationMode: 'newPublicRealm',
       realmWorkingTitle,
       realmWorkingDescription: 'Realm desc',
+      realmFoundingAgreementVersion: WORK_REALM_FOUNDING_AGREEMENT_VERSION,
     });
   const check = (workingTitle: string) =>
     CheckRealmNameAvailableInputSchema.safeParse({ workingTitle });

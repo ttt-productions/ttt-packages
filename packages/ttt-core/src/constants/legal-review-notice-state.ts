@@ -17,4 +17,4 @@
 export const LEGAL_REVIEW_NOTICE_ACTIVE: boolean = true;
 
 /** Identifies the exact notice copy in force. Recorded with every acceptance and receipt. */
-export const LEGAL_REVIEW_NOTICE_REVISION = 'founder-note-v1';
+export const LEGAL_REVIEW_NOTICE_REVISION = 'founder-note-v2';

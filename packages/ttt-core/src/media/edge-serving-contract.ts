@@ -1,13 +1,10 @@
 // ============================================================================
 // MEDIA EDGE-SERVING CONTRACT — the ONE declaration of the wire contracts shared
 // by the backend (functions media-authority client / edge-sync / media-session
-// route / createMediaGrant) and the Cloudflare media-worker. Consolidated here
-// 2026-07-13 from the former hand-mirrored pair (media-worker/src/types.ts +
-// apply-endpoint.ts ↔ functions media-authority-client.ts / edge-sync.ts); the
-// worker's "deliberately dependency-free" rationale no longer holds — it already
-// imports @ttt-productions/edge-protocol-core, and these shapes are TTT media
-// business truth, so they live in ttt-core. Tier/status/scope derive from the
-// canonical doc-schemas enums — the worker never re-declares them again.
+// route / createMediaGrant) and the Cloudflare media-worker (ARCH-005). These
+// shapes are TTT media business truth, so they live in ttt-core; tier, status,
+// and scope derive from the canonical doc-schemas enums and the worker never
+// re-declares them.
 // ============================================================================
 
 import { z } from 'zod';
@@ -133,11 +130,27 @@ export const MediaSessionTokenPayloadSchema = z
     art: z.union([z.literal(0), z.literal(1)]),
     /** 1 = admin (unlocks the 'adminOnly' tier). */
     adm: z.union([z.literal(0), z.literal(1)]),
+    /** 1 = accepted the Hall download acknowledgment (unlocks downloading Hall media). */
+    hdl: z.union([z.literal(0), z.literal(1)]),
     iat: z.number(),
     exp: z.number(),
   })
   .strict();
 export type SessionTokenPayload = z.infer<typeof MediaSessionTokenPayloadSchema>;
+
+/**
+ * Whether a verified session may take this record's bytes as a download (`?download=1`). A Hall
+ * item's media downloads only for a member who accepted the Hall download acknowledgment; every
+ * other owner's download follows its tier alone. Viewing is unaffected — this gates the download
+ * response only. The media-session route sets `hdl`; the Worker refuses a download this answers
+ * false for.
+ */
+export function mediaDownloadAllowed(
+  record: Pick<EdgeServingRecord, 'ownerType'>,
+  session: Pick<SessionTokenPayload, 'hdl'>,
+): boolean {
+  return record.ownerType !== 'hallItem' || session.hdl === 1;
+}
 
 const grantIdSchema = documentIdSegmentSchema;
 

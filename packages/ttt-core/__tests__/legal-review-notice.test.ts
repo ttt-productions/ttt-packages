@@ -33,13 +33,14 @@ const SHORT_LINE =
 const CHECKBOX =
   "I understand TTT's terms express the founder's intentions, have not had legal review, and will be updated once Charter Season support makes that possible.";
 const REGISTRATION_TERMS =
-  "I have read and agree to the Terms of Service and Privacy Policy, and I understand they express the founder's intentions and have not had legal review.";
+  "I've read and agree to the Terms of Service, Privacy Policy (including the essential cookies the site needs to run), and Rules & Agreements, and I've seen the Future Plans, DMCA Policy, and Take It Down pages. I understand these express the founder's intentions and have not had legal review.";
 
 // Each revision names exactly one wording. Changing any notice copy without minting a new
 // revision id (and pinning it here) fails this table — recorded receipts must keep meaning
 // the words the person saw.
 const PINNED_COPY_SHA256: Record<string, string> = {
   'founder-note-v1': 'c8c625441937dbde5e83627e8486cd1a7923a6747431cc68d6062de5296c8f1c',
+  'founder-note-v2': '0287c862691ea35971938693e915a36163f54ccaf77991a91aa990ad83aac79f',
 };
 
 function copyFingerprint(): string {
@@ -56,7 +57,7 @@ function copyFingerprint(): string {
 describe('founder legal-review notice — the switch', () => {
   it('is active, with an immutable revision id', () => {
     expect(LEGAL_REVIEW_NOTICE_ACTIVE).toBe(true);
-    expect(LEGAL_REVIEW_NOTICE_REVISION).toBe('founder-note-v1');
+    expect(LEGAL_REVIEW_NOTICE_REVISION).toBe('founder-note-v2');
   });
 
   it('pins the active revision to its exact copy', () => {
@@ -82,14 +83,19 @@ describe('founder legal-review notice — the settled copy, verbatim', () => {
     expect(LEGAL_REVIEW_NOTICE_CHECKBOX).toBe(CHECKBOX);
   });
 
-  it('registration Terms checkbox carries the notice clause and links both documents', () => {
+  it('registration Terms checkbox carries the notice clause and links every document registration accepts', () => {
     const segments = registrationTermsAgreementSegments();
     expect(legalReviewNoticeSegmentsText(segments)).toBe(REGISTRATION_TERMS);
     const links = segments.filter((segment) => segment.kind === 'link');
     expect(links.map((link) => link.target)).toEqual([
       SPECIAL_DOCS.TERMS_PAGE,
       SPECIAL_DOCS.PRIVACY_PAGE,
+      SPECIAL_DOCS.RULES_AND_AGREEMENTS,
+      SPECIAL_DOCS.FUTURE_PLANS,
+      SPECIAL_DOCS.DMCA_POLICY,
+      SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY,
     ]);
+    expect([...links.map((link) => link.target)].sort()).toEqual([...PUBLIC_DOCUMENT_IDS].sort());
   });
 });
 

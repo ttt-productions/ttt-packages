@@ -280,6 +280,7 @@ describe('thresholdItems — submission attestations and reviewer confirmations'
     attestHumanMadeOriginal: true,
     attestPublishStewardship: true,
     attestedAt: 3,
+    attestationsVersion: 1,
   } as const;
   const item = {
     thresholdItemId: 't1',
@@ -305,6 +306,7 @@ describe('thresholdItems — submission attestations and reviewer confirmations'
       'attestHumanMadeOriginal',
       'attestPublishStewardship',
       'attestedAt',
+      'attestationsVersion',
       'confirmedNoBegging',
       'confirmedNoCredits',
       'confirmedConsistentFormat',
@@ -314,7 +316,7 @@ describe('thresholdItems — submission attestations and reviewer confirmations'
     }
   });
 
-  it('REQUIRES every attestation and attestedAt — a submission without them is not valid', () => {
+  it('REQUIRES every attestation, attestedAt, and the wording version — a submission without them is not valid', () => {
     expect(ThresholdItemSchema.safeParse(item).success).toBe(true);
     for (const k of Object.keys(attestations)) {
       const { [k]: _omitted, ...missingOne } = item as Record<string, unknown>;
