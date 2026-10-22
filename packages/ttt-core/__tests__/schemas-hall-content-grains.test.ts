@@ -1,12 +1,3 @@
-/**
- * R1 / R3 contract tests (2026-07-12):
- *  - the change-request submit input carries exactly one grain (hall item XOR realm)
- *  - the realm grain's surface + field allowlist/caps exist and match the realm
- *    authoring input caps
- *  - the threshold submit input requires the author real-people attestation
- *  - the ONE standard real-people disclaimer message exists (no free-text anywhere)
- */
-
 import { describe, it, expect } from 'vitest';
 import {
   SubmitHallContentChangeRequestInputSchema,
@@ -253,8 +244,6 @@ describe('HALL_CONTENT_SURFACES_BY_WORK_TYPE', () => {
   });
 
   it('distinguishes the Tale chapter tuple from the track/episode tuple', () => {
-    // The failure this guards: the admin picker's old `type === 'Tales' ? chapter : tuneTrack`
-    // ternary handed Television the tuneTrack tuple — correct only while the two happen to match.
     expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemFields).toEqual(['title', 'content']);
     expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemFields).toEqual([
       'title',
@@ -313,8 +302,7 @@ describe('HallContentChangeRequest doc grains', () => {
   });
 
   it('stays a plain top-level-diffable object schema (the write guard reads its keys)', () => {
-    // A ZodPreprocess / ZodEffects at the top level has no readable `shape`, so a writer's
-    // payload gets checked against nothing and every undeclared field passes silently.
+    // A top-level Zod preprocess/effects schema has no readable `shape`.
     expect(HallContentChangeRequestSchema.shape).toBeDefined();
     expect(Object.keys(HallContentChangeRequestSchema.shape)).toContain('proposedFields');
     expect(Object.keys(HallContentChangeRequestSchema.shape)).toContain('surface');
@@ -348,7 +336,7 @@ describe('HallContentChangeRequest doc grains', () => {
   });
 });
 
-describe('R3 reviewer checklist', () => {
+describe('threshold reviewer checklist', () => {
   it('review input accepts the real-people attestation confirmation', () => {
     const r = ReviewThresholdItemInputSchema.safeParse({
       thresholdItemId: 'ti-1',
@@ -361,7 +349,7 @@ describe('R3 reviewer checklist', () => {
   });
 });
 
-describe('R3 author attestation + standard disclaimer', () => {
+describe('author attestation + standard disclaimer', () => {
   it('threshold submit input requires depictsRealPeople', () => {
     const base = {
       workProjectId: 'wp-1',
@@ -392,7 +380,6 @@ describe('R3 author attestation + standard disclaimer', () => {
     expect(REAL_PEOPLE_DISCLAIMER_HEADER).toContain('Notice from the Management');
     expect(REAL_PEOPLE_DISCLAIMER_MESSAGE).toContain('parody');
     expect(REAL_PEOPLE_DISCLAIMER_MESSAGE.length).toBeGreaterThan(100);
-    // The legal message must HEDGE, never admit depiction (the load-bearing move).
     expect(REAL_PEOPLE_DISCLAIMER_MESSAGE).toContain('even those based on real people');
     expect(REAL_PEOPLE_DISCLAIMER_MESSAGE.startsWith('This work depicts')).toBe(false);
   });

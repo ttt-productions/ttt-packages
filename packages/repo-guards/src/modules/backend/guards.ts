@@ -1,6 +1,3 @@
-// The generic guards over server code: Cloud Functions and other backend trees. The registry runs every guard listed here; an app supplies
-// each one's facts under its id.
-
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   auditPayloadGuard,
@@ -51,7 +48,6 @@ import {
   type UnusedServiceFacts,
 } from './monitoring.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface BackendGuardFacts {
   auditWriter: AuditWriterFacts | Absent;
   auditPayload: AuditPayloadFacts | Absent;

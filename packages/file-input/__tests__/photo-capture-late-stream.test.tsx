@@ -15,7 +15,6 @@ function fakeStream() {
   return { stream: { getTracks: () => tracks } as unknown as MediaStream, track: tracks[0] };
 }
 
-// Each getUserMedia call gets its own deferred acquisition, resolved by the test.
 let acquisitions: Array<ReturnType<typeof deferred<MediaStream>>>;
 
 beforeEach(() => {

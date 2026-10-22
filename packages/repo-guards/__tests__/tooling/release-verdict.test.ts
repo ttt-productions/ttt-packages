@@ -1,7 +1,3 @@
-// The release gate and verdict: every selected component's job must have run and every unselected
-// one must have been skipped — exactly, because a skipped job reports as success — and a stale or
-// rollback-blocked run never finishes green, since a green run becomes the next release baseline.
-
 import { describe, it, expect } from 'vitest';
 import {
   assertReleaseVerdict,

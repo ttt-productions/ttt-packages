@@ -1,17 +1,13 @@
-// The local-stack tools: dev:kill matches only this repository's stack processes, by the app's
-// signatures and repository markers; the playbook check finds every cited file that
-// is gone; field lineage counts every alias; cleanup deletes only its fixed targets; and dev:login
-// stops at the first failed step.
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runCleanup } from '../../src/node/tooling/cleanup.js';
 import { adcCandidatePaths, devLoginPlan, runDevLogin } from '../../src/node/tooling/dev-login.js';
 import { isStackProcess, killDevStack, listeningOn } from '../../src/node/tooling/dev-stack.js';
 import { analyzeFieldLineage } from '../../src/node/tooling/field-lineage.js';
-import { checkPlaybookRefs } from '../../src/node/tooling/playbook-refs.js';
+import { checkPlaybookRefs, runPlaybookRefsCli } from '../../src/node/tooling/playbook-refs.js';
 
 let dir: string;
 beforeEach(() => {
@@ -76,11 +72,23 @@ describe('dev:kill matching', () => {
 });
 
 describe('playbook references', () => {
-  const config = () => ({
-    repoRoot: dir,
-    playbooksDir: 'docs/playbooks',
+  const appFolder = {
+    dir: 'docs/playbooks',
+    refsRoot: '.',
     pathPrefixes: ['src', '.github'],
     rootFiles: ['package.json'],
+    minChecked: 1,
+  };
+  const sharedFolder = {
+    dir: 'node_modules/@scope/standards/playbooks',
+    refsRoot: 'node_modules/@scope/standards',
+    pathPrefixes: ['rules', 'playbooks'],
+    rootFiles: ['preferences.md'],
+    minChecked: 1,
+  };
+  const config = (...folders: (typeof appFolder)[]) => ({
+    repoRoot: dir,
+    folders: folders.length > 0 ? folders : [appFolder],
   });
 
   it('finds every cited file that is gone, once per playbook, and checks the rest', () => {
@@ -94,24 +102,24 @@ describe('playbook references', () => {
         'A pattern `src/**/*.ts` and <!-- no-check --> `src/hypothetical.ts`.',
       ].join('\n'),
     );
-    const { checked, misses } = checkPlaybookRefs(config());
-    expect(checked).toBe(4);
+    const { folders, misses, shortfalls } = checkPlaybookRefs(config());
+    expect(folders).toEqual([{ dir: 'docs/playbooks', checked: 4, minChecked: 1 }]);
     expect(misses).toEqual([
       { file: 'docs/playbooks/audit.md', line: 1, token: 'src/gone.ts' },
       { file: 'docs/playbooks/audit.md', line: 2, token: '.github/workflows/missing.yml' },
     ]);
+    expect(shortfalls).toEqual([]);
   });
 
-  it('strips every line-anchor form before checking the path', () => {
+  it('strips every line-anchor and fragment form before checking the path', () => {
     put('src/real.ts');
     put(
       'docs/playbooks/a.md',
-      '`src/real.ts#L4-L9` `src/real.ts#L12` `src/real.ts:4-9` `src/real.ts:12:3` `src/gone.ts#L2`',
+      '`src/real.ts#L4-L9` `src/real.ts#L12` `src/real.ts:4-9` `src/real.ts:12:3` `src/real.ts#some-heading` `src/gone.ts#L2`',
     );
-    expect(checkPlaybookRefs(config())).toEqual({
-      checked: 2,
-      misses: [{ file: 'docs/playbooks/a.md', line: 1, token: 'src/gone.ts' }],
-    });
+    const { folders, misses } = checkPlaybookRefs(config());
+    expect(folders[0]!.checked).toBe(2);
+    expect(misses).toEqual([{ file: 'docs/playbooks/a.md', line: 1, token: 'src/gone.ts' }]);
   });
 
   it('a folder is not a file reference that exists', () => {
@@ -120,6 +128,162 @@ describe('playbook references', () => {
     expect(checkPlaybookRefs(config()).misses).toEqual([
       { file: 'docs/playbooks/a.md', line: 1, token: 'src/folder.d' },
     ]);
+  });
+
+  it('fails a missing reference inside an installed shared playbook', () => {
+    put('node_modules/@scope/standards/rules/core.md');
+    put(
+      'node_modules/@scope/standards/playbooks/audit.md',
+      'Audit against `rules/core.md` and `rules/gone.md`.',
+    );
+    const { misses } = checkPlaybookRefs(config(sharedFolder));
+    expect(misses).toEqual([
+      { file: 'node_modules/@scope/standards/playbooks/audit.md', line: 1, token: 'rules/gone.md' },
+    ]);
+  });
+
+  it("resolves a shared folder's references against its package and the app's against the repository", () => {
+    put('node_modules/@scope/standards/rules/shared-only.md');
+    put('node_modules/@scope/standards/preferences.md');
+    put('rules/app-only.md');
+    put('src/real.ts');
+    put(
+      'node_modules/@scope/standards/playbooks/audit.md',
+      '`rules/shared-only.md` `rules/app-only.md` `preferences.md`',
+    );
+    put('docs/playbooks/audit.md', '`src/real.ts` `rules/app-only.md`');
+    const appWithRules = { ...appFolder, pathPrefixes: ['src', 'rules'] };
+    const { folders, misses } = checkPlaybookRefs(config(sharedFolder, appWithRules));
+    expect(folders).toEqual([
+      { dir: 'node_modules/@scope/standards/playbooks', checked: 3, minChecked: 1 },
+      { dir: 'docs/playbooks', checked: 2, minChecked: 1 },
+    ]);
+    expect(misses).toEqual([
+      {
+        file: 'node_modules/@scope/standards/playbooks/audit.md',
+        line: 1,
+        token: 'rules/app-only.md',
+      },
+    ]);
+  });
+
+  it('skips a path holding a placeholder and never takes a rule ID for a path', () => {
+    put('src/real.ts');
+    put(
+      'docs/playbooks/a.md',
+      [
+        '`src/<APP_DATA_PACKAGE>/paths.ts` and src/<APP_NAME>/page.tsx are filled in by the app.',
+        'Cites `RULE-STD-ARCH-209`, RULE-STD-BACKEND-003/006, and `src/real.ts`.',
+      ].join('\n'),
+    );
+    expect(checkPlaybookRefs(config())).toEqual({
+      folders: [{ dir: 'docs/playbooks', checked: 1, minChecked: 1 }],
+      misses: [],
+      shortfalls: [],
+    });
+  });
+
+  it('reports each folder that checks fewer references than its own floor', () => {
+    put('src/real.ts');
+    put('node_modules/@scope/standards/rules/core.md');
+    put('docs/playbooks/a.md', '`src/real.ts`');
+    put('node_modules/@scope/standards/playbooks/a.md', '`rules/core.md`');
+    const { shortfalls } = checkPlaybookRefs(
+      config({ ...sharedFolder, minChecked: 1 }, { ...appFolder, minChecked: 2 }),
+    );
+    expect(shortfalls).toEqual([{ dir: 'docs/playbooks', checked: 1, minChecked: 2 }]);
+  });
+
+  it('refuses a floor below one, no folder, and a folder that cannot be read', () => {
+    put('docs/playbooks/a.md', '`src/real.ts`');
+    expect(() => checkPlaybookRefs(config({ ...appFolder, minChecked: 0 }))).toThrow(
+      'docs/playbooks needs a minChecked of at least 1',
+    );
+    expect(() => checkPlaybookRefs({ repoRoot: dir, folders: [] })).toThrow(
+      'no playbook folder is configured',
+    );
+    expect(() => checkPlaybookRefs(config(sharedFolder))).toThrow(
+      'cannot read the playbook folder node_modules/@scope/standards/playbooks',
+    );
+  });
+
+  it("resolves a bare .md token and a link target with no slash against the playbook's own folder", () => {
+    put('docs/playbooks/sibling.md');
+    put('docs/playbooks/notes.txt');
+    put('README.md');
+    put(
+      'docs/playbooks/a.md',
+      [
+        'See `sibling.md` and `gone-sibling.md`, and [the index](README.md#steps).',
+        'Also [notes](notes.txt), [gone](gone.txt), [a heading](#steps), [up](../README.md).',
+        'In code, `[x](not-a-link.md)` is neither a link nor a file name.',
+      ].join('\n'),
+    );
+    const { folders, misses } = checkPlaybookRefs(config());
+    expect(folders).toEqual([{ dir: 'docs/playbooks', checked: 5, minChecked: 1 }]);
+    expect(misses).toEqual([
+      { file: 'docs/playbooks/a.md', line: 1, token: 'gone-sibling.md' },
+      { file: 'docs/playbooks/a.md', line: 1, token: 'README.md' },
+      { file: 'docs/playbooks/a.md', line: 2, token: 'gone.txt' },
+    ]);
+  });
+
+  it('a bare token the folder declares as a root file resolves against its root, not the folder', () => {
+    put('package.json', '{}');
+    put('docs/playbooks/a.md', '`package.json`');
+    expect(checkPlaybookRefs(config()).misses).toEqual([]);
+  });
+
+  it('counts a sibling reference toward the floor of a folder with no prefixes', () => {
+    put('docs/playbooks/sibling.md');
+    put('docs/playbooks/a.md', '`sibling.md`');
+    const noPrefixes = { ...appFolder, pathPrefixes: [], rootFiles: [] };
+    expect(checkPlaybookRefs(config(noPrefixes))).toEqual({
+      folders: [{ dir: 'docs/playbooks', checked: 1, minChecked: 1 }],
+      misses: [],
+      shortfalls: [],
+    });
+  });
+
+  it('an empty prefix list counts no prefixed path, not every path that starts with a slash', () => {
+    put(
+      'docs/playbooks/a.md',
+      ['`/gone/abs.ts` and /gone/bare.ts', '`src/gone.ts` src/gone-too.ts'].join('\n'),
+    );
+    const noPrefixes = { ...appFolder, pathPrefixes: [], rootFiles: [] };
+    expect(checkPlaybookRefs(config(noPrefixes))).toEqual({
+      folders: [{ dir: 'docs/playbooks', checked: 0, minChecked: 1 }],
+      misses: [],
+      shortfalls: [{ dir: 'docs/playbooks', checked: 0, minChecked: 1 }],
+    });
+  });
+
+  it('every reference in the shared dev-standards playbooks exists', () => {
+    const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
+    const refsRoot = 'packages/dev-standards';
+    const { folders, misses, shortfalls } = checkPlaybookRefs({
+      repoRoot,
+      folders: [
+        {
+          dir: `${refsRoot}/playbooks`,
+          refsRoot,
+          pathPrefixes: ['rules', 'playbooks', 'workflows', 'claude', 'work', 'runbooks', 'config'],
+          rootFiles: [],
+          minChecked: 1,
+        },
+      ],
+    });
+    expect(folders[0]!.checked).toBeGreaterThan(0);
+    expect(shortfalls).toEqual([]);
+    expect(misses).toEqual([]);
+  });
+
+  it('the command exits non-zero on a shortfall alone', () => {
+    vi.spyOn(process, 'exit').mockImplementation((code) => {
+      throw new Error(`exit ${String(code)}`);
+    });
+    put('docs/playbooks/a.md', 'No file references here.');
+    expect(() => runPlaybookRefsCli(config())).toThrow('exit 1');
   });
 });
 

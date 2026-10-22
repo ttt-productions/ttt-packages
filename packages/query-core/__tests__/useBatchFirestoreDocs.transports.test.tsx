@@ -133,7 +133,6 @@ const baseOpts = {
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
-  // The absence ladder is exercised in its own suite; keep it out of these reads.
   absentRetryDelaysMs: [] as readonly number[],
 };
 
@@ -187,7 +186,6 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
 
     expect(await cancelled).toBe('aborted');
     expect(await kept).toMatchObject({ v: 2 });
-    // u1 never rode into the billed `in` query.
     expect(batchCalls).toHaveLength(1);
     expect(batchCalls[0].ids).toEqual(['u2']);
   });
@@ -250,7 +248,6 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     });
 
     await waitFor(() => expect(result.current.data.u2).toMatchObject({ v: 2 }));
-    // One shared request served the whole batch; cancelling u1 did not cancel it.
     expect(getDocsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -293,8 +290,7 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
 
     setAutoResolve(false);
 
-    // Refetch #1 goes in flight, then a second refetch supersedes it (TanStack cancels the
-    // first fetch because the query already holds data).
+    // TanStack cancels the first refetch when a second starts because the query already holds data.
     await act(async () => {
       void queryClient.refetchQueries({ queryKey: ['publicUser', 'u1'], exact: true });
       await Promise.resolve();
@@ -309,7 +305,6 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     });
     await waitFor(() => expect(batchCalls).toHaveLength(3));
 
-    // The NEWER request lands first…
     docs.set('u1', { v: 'new' });
     await act(async () => {
       batchCalls[2].release();
@@ -317,7 +312,6 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     });
     await waitFor(() => expect(result.current.data.u1).toMatchObject({ v: 'new' }));
 
-    // …and the superseded one lands afterwards with a stale value.
     docs.set('u1', { v: 'stale' });
     await act(async () => {
       batchCalls[1].release();
@@ -338,7 +332,6 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids }), { wrapper: Wrapper });
 
     await waitFor(() => expect(batchCalls).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS));
-    // Still capped after the microtask queue drains.
     await act(async () => {
       await Promise.resolve();
     });
@@ -371,7 +364,6 @@ describe("useBatchFirestoreDocs — 'get' transport", () => {
     expect(result.current.data).toEqual({ readable: { id: 'readable', v: 1 } });
     expect(result.current.error?.message).toBe('permission-denied');
     expect(getCalls.sort()).toEqual(['hidden', 'missing', 'readable']);
-    // Per-document gets — never a list query.
     expect(getDocsMock).not.toHaveBeenCalled();
   });
 

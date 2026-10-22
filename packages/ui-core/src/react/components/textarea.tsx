@@ -7,10 +7,6 @@ import { formatControlAttributes, tidyOnBlur } from './format-control.js';
 
 type NativeTextareaProps = React.ComponentPropsWithoutRef<'textarea'>;
 
-/**
- * A multi-line free-text input: its declaration is required, and its length bounds come only from
- * that declaration (ENG-005), so `maxLength`, `minLength`, and `required` are not props.
- */
 export type FreeTextTextareaProps = Omit<
   NativeTextareaProps,
   'maxLength' | 'minLength' | 'required'
@@ -19,15 +15,8 @@ export type FreeTextTextareaProps = Omit<
   textEntry?: never;
 };
 
-/**
- * What a multi-line box that is not free text holds: identifiers (account, document, or case ids),
- * or a list of items. The box's text is split into items by the consumer, and each item is judged
- * by its own rule (the one-segment id rule, or the item's own field declaration) — so the box has
- * no input format of its own.
- */
 export type NonFreeTextareaEntry = 'identifier' | 'list';
 
-/** A multi-line box that is not free text: no input format; native bounds stay the caller's. */
 export type NonFreeTextTextareaProps = NativeTextareaProps & {
   textEntry: NonFreeTextareaEntry;
   inputFormat?: never;
@@ -36,7 +25,6 @@ export type NonFreeTextTextareaProps = NativeTextareaProps & {
 export type TextareaProps = FreeTextTextareaProps | NonFreeTextTextareaProps;
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  // `textEntry` only selects the prop shape; it never reaches the DOM.
   ({ className, inputFormat, textEntry: _textEntry, onBlur, ...props }, ref) => {
     return (
       <textarea

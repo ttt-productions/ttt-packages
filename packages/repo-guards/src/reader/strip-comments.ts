@@ -1,16 +1,9 @@
-// The one comment stripper. Comments are blanked to spaces with every line break kept, so an index
-// or line number into the stripped text is the same index or line number in the file.
-
 import ts from 'typescript';
 
 const blank = (chars: string[], from: number, to: number) => {
   for (let i = from; i < to; i += 1) if (chars[i] !== '\n' && chars[i] !== '\r') chars[i] = ' ';
 };
 
-/**
- * Code with its comments blanked, read from the parsed file so a `//` inside a string, a template,
- * a regular expression, or JSX text is never taken for a comment.
- */
 export function stripCodeComments(sourceFile: ts.SourceFile): string {
   const text = sourceFile.text;
   const chars = text.split('');
@@ -40,7 +33,6 @@ export function stripCodeComments(sourceFile: ts.SourceFile): string {
   return chars.join('');
 }
 
-/** A stylesheet with its block comments blanked; a quoted string is never read as a comment. */
 export function stripStylesheetComments(text: string): string {
   const chars = text.split('');
   let quote: string | null = null;
@@ -61,11 +53,8 @@ export function stripStylesheetComments(text: string): string {
   return chars.join('');
 }
 
-/**
- * A Firestore or Storage rules file with its `//` and block comments blanked; a quoted string is
- * never read as a comment. Rules have no regular-expression literal and no template, so the quotes are
- * the only text that can hold a comment marker.
- */
+// Rules have no regular-expression literal and no template, so quotes are the only text that can
+// hold a comment marker.
 export function stripRulesComments(text: string): string {
   const chars = text.split('');
   let quote: string | null = null;

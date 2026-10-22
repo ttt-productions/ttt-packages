@@ -16,35 +16,6 @@ import type { FirestoreInfiniteOptions, InfinitePage } from './types.js';
 
 const DEFAULT_PAGE_SIZE = 20;
 
-/**
- * Infinite scroll pagination for Firestore collections.
- * Automatically handles cursor-based pagination with React Query.
- *
- * @example
- * ```tsx
- * const {
- *   data,
- *   fetchNextPage,
- *   hasNextPage,
- *   isFetchingNextPage,
- *   isLoading,
- * } = useFirestoreInfinite<Post>({
- *   collectionPath: 'posts',
- *   queryKey: ['posts', 'feed'],
- *   constraints: [
- *     where('status', '==', 'published'),
- *     orderBy('createdAt', 'desc'),
- *   ],
- *   pageSize: 20,
- * });
- *
- * // Flatten pages for rendering
- * const posts = data?.pages.flatMap(page => page.items) ?? [];
- *
- * // Load more on scroll
- * <InfiniteScroll onLoadMore={fetchNextPage} hasMore={hasNextPage} />
- * ```
- */
 export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
   collectionPath,
   queryKey,
@@ -65,7 +36,6 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
     queryFn: async ({ pageParam }): Promise<InfinitePage<T>> => {
       const collectionRef = collection(db, collectionPath);
 
-      // Build query with constraints
       const queryConstraints = [
         ...constraints,
         ...(pageParam ? [startAfter(pageParam as DocumentSnapshot)] : []),
@@ -77,7 +47,6 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
 
       const items = snapshot.docs.map((docSnap) => {
         const rawData = docSnap.data();
-        // Include id in data passed to select, so it can be renamed/transformed
         const dataWithId = { id: docSnap.id, ...rawData };
         const data = select ? select(dataWithId) : dataWithId;
         return data as WithId<T>;
@@ -91,7 +60,6 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
     },
     initialPageParam: null as DocumentSnapshot | null,
     getNextPageParam: (lastPage) => {
-      // If we got fewer items than requested, there are no more pages
       if (lastPage.size < pageSize) return undefined;
       return lastPage.lastDoc;
     },

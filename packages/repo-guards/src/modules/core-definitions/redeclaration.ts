@@ -1,11 +1,3 @@
-// The definition re-declaration guards: a definition the core package owns is written once.
-//   - guarded members: each guarded literal appears in the core build only in its owners and the
-//     reviewed `module#declaration` uses, and every owner still holds it;
-//   - constants: no app module declares, at module scope, a constant under a name the core exports;
-//   - unions: no app module spells two or more members of a core literal union itself.
-// The core is read as the installed build: its compiled modules for values, and its declarations
-// for the type aliases and interfaces it wrote and for the constants and unions it exports.
-
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -15,35 +7,23 @@ import { isText, namesProblem, reviewedProblems } from '../../support/facts.js';
 import { APP_SOURCE, CORE_CODE_AND_DECLARATIONS, declarationNameOf, moduleOf } from './shared.js';
 
 export interface GuardedLiteral {
-  /** The member's text, as its union declares it. */
   literal: string;
-  /**
-   * The modules that declare it (repo-relative compiled paths; a module's type declaration counts
-   * as the module). More than one owner means two different unions share the spelling.
-   */
   owners: readonly string[];
-  /** Compiler-checked uses elsewhere, each one top-level declaration of one module, with its why. */
   allowed: ReadonlyArray<{ file: string; declaration: string; why: string }>;
 }
 
 export interface DefinitionRedeclarationFacts {
-  /** The most distinctive member of each canonical union the core owns. */
   guardedLiterals: readonly GuardedLiteral[];
 }
 
-/** One string literal written in code, with the top-level declaration it sits in. */
 export interface CodeLiteral {
   value: string;
   declaration: string;
   line: number;
 }
 
-/**
- * Every whole string literal written in a file's code (an interpolated template builds a string and
- * declares nothing). In a type declaration file only the type aliases and interfaces count: the
- * compiler writes every other declaration's inferred type out in full, so a schema that merely
- * derives from a union carries its members there without restating anything.
- */
+// In a declaration file only type aliases and interfaces count: the compiler writes every other
+// declaration's inferred type out in full.
 export function codeLiterals(file: FileView): CodeLiteral[] {
   const found: CodeLiteral[] = [];
   const declarations = file.kind === 'declarations';
@@ -126,7 +106,6 @@ const CONSTANT_NAME = /^[A-Z][A-Z0-9_]*$/;
 const hasModifier = (node: ts.Node, kind: ts.SyntaxKind) =>
   ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === kind);
 
-/** The constants and literal unions the core's declarations export. */
 export function coreVocabulary(declarationFiles: readonly FileView[]) {
   const constants = new Set<string>();
   const unions: Array<{ name: string; members: ReadonlySet<string> }> = [];
@@ -143,7 +122,6 @@ export function coreVocabulary(declarationFiles: readonly FileView[]) {
         const name = declaration.name.text;
         constants.add(name);
         const type = declaration.type;
-        // An `as const` array declares a readonly tuple of its literal members.
         if (
           type &&
           ts.isTypeOperatorNode(type) &&
@@ -166,7 +144,6 @@ function coreDeclarations(context: GuardContext): FileView[] {
   return context.files({ roots: ['coreDist'], kinds: ['declarations'], tests: false });
 }
 
-/** Module-scope constants an app module declares under a name the core exports. */
 export function redeclaredConstants(file: FileView, constants: ReadonlySet<string>): Finding[] {
   const findings: Finding[] = [];
   for (const statement of file.sourceFile.statements) {
@@ -206,7 +183,6 @@ const unwrapValue = (node: ts.Node): ts.Node => {
   return current;
 };
 
-/** A value bound with `=`: a variable, parameter, property or binding default, or an assignment. */
 function isBound(array: ts.ArrayLiteralExpression): boolean {
   const value = unwrapValue(array);
   const parent = value.parent;
@@ -229,11 +205,6 @@ const isZodEnum = (node: ts.Node): node is ts.CallExpression =>
   ts.isIdentifier(node.expression.expression) &&
   node.expression.expression.text === 'z';
 
-/**
- * The places an app module spells members of a core union itself: a union type of string literals,
- * a `z.enum([...])` of quoted members, or an array literal of nothing but quoted members bound with
- * `=`. A place restates a union when it names two or more members and every one belongs to it.
- */
 export function restatedUnions(
   file: FileView,
   unions: ReadonlyArray<{ name: string; members: ReadonlySet<string> }>,

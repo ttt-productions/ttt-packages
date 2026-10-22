@@ -20,10 +20,7 @@ const mocks = vi.hoisted(() => {
       return mockApp;
     }),
     getApps: vi.fn(() => apps),
-    // Real SDK semantics: `getApp()` THROWS `app/no-app` when no default app has been
-    // initialized. Modelling that is what makes every test below a real guard — a
-    // regression that skipped `initializeApp` and called `getApp()` against an empty
-    // store would otherwise be handed an app and pass silently.
+    // Real SDK semantics: `getApp()` throws `app/no-app` until a default app is initialized.
     getApp: vi.fn(() => {
       if (apps.length === 0) {
         const err = new Error(
@@ -117,8 +114,6 @@ describe('getAdminApp', () => {
 
   it('initializes before resolving the default app — never calls getApp against an empty store', () => {
     expect(mocks.apps).toHaveLength(0);
-    // getApp throws 'app/no-app' on an empty store, so this only resolves if
-    // initializeApp ran first.
     expect(() => getAdminApp()).not.toThrow();
     expect(mocks.initializeApp.mock.invocationCallOrder).toHaveLength(1);
     expect(mocks.getApp.mock.invocationCallOrder).toHaveLength(1);

@@ -35,7 +35,7 @@ describe('selected file display', () => {
     expect(preview.parentElement).not.toHaveClass('overflow-hidden');
   });
 
-  it('hides the original filename in the legacy FileInput', () => {
+  it('hides the original filename in FileInput', () => {
     render(
       <FileInput
         acceptTypes={['image']}

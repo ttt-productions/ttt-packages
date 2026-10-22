@@ -58,7 +58,6 @@ describe('upload-store', () => {
       total: 1000,
       percent: 50,
     });
-    // Try to lower progress
     store.upsertUploadSession({ id: 'prog', transferred: 100, total: 1000, percent: 10 });
     const session = store.getUploadSession('prog');
     expect(session?.transferred).toBe(500);
@@ -106,7 +105,6 @@ describe('upload-store', () => {
       percent: 50,
       updatedAt: 2000,
     });
-    // Earlier update
     store.upsertUploadSession({ id: 'order', status: 'idle', percent: 10, updatedAt: 1000 });
     expect(store.getUploadSession('order')?.status).toBe('uploading');
     expect(store.getUploadSession('order')?.percent).toBe(50);
@@ -172,7 +170,7 @@ describe('upload-store', () => {
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
 
-      const pastTime = Date.now() - 25 * 60 * 60 * 1000; // 25h ago
+      const pastTime = Date.now() - 25 * 60 * 60 * 1000;
       store.upsertUploadSession({
         id: 'old-success',
         status: 'success',
@@ -188,7 +186,7 @@ describe('upload-store', () => {
     it('keeps fresh success sessions (<24h)', async () => {
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
-      const recentTime = Date.now() - 1 * 60 * 60 * 1000; // 1h ago
+      const recentTime = Date.now() - 1 * 60 * 60 * 1000;
       store.upsertUploadSession({
         id: 'fresh-success',
         status: 'success',
@@ -203,7 +201,7 @@ describe('upload-store', () => {
     it('prunes expired error sessions (>7d)', async () => {
       const { now } = await import('@ttt-productions/firebase-helpers');
       const nowMock = now as ReturnType<typeof vi.fn>;
-      const pastTime = Date.now() - 8 * 24 * 60 * 60 * 1000; // 8 days ago
+      const pastTime = Date.now() - 8 * 24 * 60 * 60 * 1000;
       store.upsertUploadSession({
         id: 'old-error',
         status: 'error',

@@ -41,7 +41,15 @@ aliases, its owner files, its reviewed exceptions — never logic.
   release-scope resolver and the release gate and verdict, the App Hosting build environment, the
   post-deploy cloud checks (Storage CORS, callable invokers, deployed functions), stopping the local
   stack, the playbook file-reference check, the field-lineage report, cleanup, the fresh-login
-  chain, and the emulator seed runner. Each tool has one behavior for every app, with no switch
+  chain, and the emulator seed runner. The playbook check reads every playbook folder a repository
+  declares — an installed package's and its own — and resolves each folder's references against
+  that folder's declared root, so an installed playbook's package-relative path is checked inside
+  the installed package. A bare `*.md` token or a Markdown link target with no `/` names a sibling
+  playbook file and resolves against the playbook folder itself, counting toward its floor; a
+  folder with no path prefixes counts no prefixed path. A path holding a `<UPPER_SNAKE>` placeholder
+  or a glob is skipped, as is a line marked `<!-- no-check -->`; a rule ID is never a file reference;
+  and each folder declares its own floor (at least 1): a folder that checks fewer references than
+  its floor fails, as does a missing reference or a folder that cannot be read. Each tool has one behavior for every app, with no switch
   that changes it: an app passes only its facts (projects, ports, paths, stages, components).
 
 ## Contract shape
@@ -85,6 +93,66 @@ aliases, its owner files, its reviewed exceptions — never logic.
   the suite runs them beside the guard.
 - **Failures are in words.** A failure states what the check requires and how it is fixed; it never
   cites a rule ID.
+
+## Facts
+
+An app's config gives every generic guard its facts under `generic.<guard id>`. The facts types in
+the guard source are the one statement of what each guard takes (`GenericGuardFacts` joins them);
+this section says what the facts mean, area by area, and never lists them guard by guard.
+
+**What a fact is.** Every area uses the same few kinds:
+
+- **A path** — repo-relative and forward-slashed, with no trailing slash — naming a file or folder
+  the app's layout reaches. A whole root is named by its role (`RootRole`), never by a path.
+- **A name** — an identifier as the app's code spells it: the exported function, component,
+  constant, hook, or prop the guard treats as the one owner of a behavior, or a call it looks for.
+  An app's import aliases map each alias prefix to the repo path it stands for.
+- **A reviewed exception** — an entry naming the site it excuses (a `path`, a `file`, or a name)
+  and its `why`; an allowlist entry may also carry the reviewed `count` of matches. An entry with no
+  `why` or a duplicate fails the config, and one that no longer matches anything fails as stale.
+- **A loader** — a function that returns, or resolves to, a value read from the app's own code or
+  installed build (its application-data package's registry, path builders, schemas, declarations,
+  or policy), so the guard checks the code against what the app ships rather than a copy kept in
+  the config.
+- `{}` for a guard that takes no facts, and `{ absent: why }` only where the guard allows it (see
+  Guarantees).
+
+**By area** (each area is a folder of `src/modules/`):
+
+- **Import paths** — the app's import aliases, the packages folder and package scope, the
+  runtime-specific package subpaths, the application-data packages, and the reviewed files and
+  entries that are exceptions.
+- **Repository** — the repository-wide facts: the CI workflow and the gate it must mirror, the
+  roots kept isolated from each other and the tsconfig files whose aliases must stay inside their
+  root, the package scope and which roots are server or client, the shared fakes and their owners,
+  the files that may set a test timeout, each Worker tree's config files and production
+  environment, the dependency overrides, the env files and the values in them that are public, the
+  project ids, and the product names no installed generic package may carry.
+- **Firestore and Storage** — the app's data package and import aliases, the constants and
+  builders that own path assembly, retired segments with their replacements, the indexes file,
+  the server-side metadata readers, and loaders for the registry, collection names, and the values
+  the rules files must agree with.
+- **Backend** — the owner of each server concern (the audit writer and its entry points, the
+  monitoring package with its capture calls and failure exits, the lazy loader, the Functions entry
+  index and deploy manifest, and the module that owns each server boundary the app declares), the
+  folders and modules that make up the app's server zone, and the reviewed exceptions to each.
+- **Frontend reads** — the read-state module and its failure seat, the hooks tree, the query-key
+  module (with a loader for its builders), the domain-event registry, and the session-retirement
+  owner.
+- **Frontend actions** — the callable declaration modules and the factory for each callable kind,
+  the callable transports, the client auth accessor and boundary modules, and each client owner
+  (the app-config provider, the browser-storage helper, the media renderers, the upload listener)
+  with its allowlist.
+- **UI** — the entry stylesheet, token sheet, and pinned stylesheet order, the root layout module
+  and what it mounts in which order, the navigation, motion, and loading helpers, the accessible
+  control and display components, and the reviewed colour, label, text-entry, and bound exceptions.
+- **Core definitions** — the app's data package, its schema and wire folders, the wire-input name
+  suffixes, loaders for its wire modules, field declarations, and field schema builder, and the
+  reviewed exceptions (guarded literals, length literals, non-segment ids, verbatim fields).
+
+A guard over a security boundary takes only names and paths — which module owns the boundary and
+which sites are reviewed exceptions. What the boundary does is the app's, and stays in its private
+code and docs (RULE-STD-ARCH-209).
 
 ## Boundary
 

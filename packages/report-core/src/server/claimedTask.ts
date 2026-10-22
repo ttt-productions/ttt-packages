@@ -4,10 +4,6 @@ import type {
   ClaimedTask,
 } from '../contracts/types-admin-task.js';
 
-/**
- * The one shape both checkout handlers answer with. The task document is read from Firestore
- * untyped; its fields are the ones every admin task document is written with.
- */
 export function toClaimedTask(
   id: string,
   taskData: Record<string, unknown>,

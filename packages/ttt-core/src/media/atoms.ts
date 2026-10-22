@@ -4,7 +4,6 @@ import { MAX_MENTIONS, MAX_MENTION_PLACEHOLDER_LENGTH } from '../constants/busin
 import { SQUARE_POST_TEXT_INPUT } from '../constants/text-fields.js';
 import { textFieldSchema } from '../schemas/text-field.js';
 
-/** A Square post's text — the ONE schema for a text post's text and a media post's caption. */
 export const SquareStreetzPostTextSchema = textFieldSchema(SQUARE_POST_TEXT_INPUT);
 
 export const MentionTypeSchema = z.enum([
@@ -15,10 +14,6 @@ export const MentionTypeSchema = z.enum([
   'audition',
 ]);
 
-// The persisted + wire Mention shape carries ids ONLY — never display text. Display
-// identity (names/titles) is resolved by id at render time (Display Identity Invariant).
-// `.strict()` rejects any unknown key (including a client-sent `text`), so a mention name
-// snapshot can never persist. Caps bound the two id-bearing fields against doc-bloat abuse.
 export const MentionSchema = z
   .object({
     placeholder: z.string().min(1).max(MAX_MENTION_PLACEHOLDER_LENGTH),
@@ -30,12 +25,6 @@ export const MentionSchema = z
 export type MentionType = z.infer<typeof MentionTypeSchema>;
 export type Mention = z.infer<typeof MentionSchema>;
 
-/**
- * Rejects duplicate `placeholder` values within a mentions array. Two mentions
- * sharing a placeholder collide at render time (the post card builds a
- * placeholder→mention map, last write wins), silently resolving BOTH tokens to
- * the later entity. Attached via `.superRefine` on every mentions-array schema.
- */
 export function rejectDuplicateMentionPlaceholders(
   mentions: readonly { placeholder: string }[],
   ctx: z.RefinementCtx,
@@ -54,12 +43,7 @@ export function rejectDuplicateMentionPlaceholders(
   }
 }
 
-// --- Square post mentions: the placeholder grammar ---
-// A post's text carries one placeholder token where each mention sits, and its `mentions` list
-// says what each placeholder names. A placeholder is `@m` followed by a positive whole number
-// (the composer's counter). In text, a run of `@m` and digits is ONE token, read whole — so `@m1`
-// is never found inside `@m10` — and it is a mention only when the whole run is a listed
-// placeholder; any other run is plain text.
+// A run of `@m` and digits is one token, read whole, so `@m1` is never found inside `@m10`.
 
 const MENTION_PLACEHOLDER_PATTERN = /^@m[1-9][0-9]*$/;
 const MENTION_PLACEHOLDER_RUN = /@m[0-9]+/g;
@@ -69,7 +53,6 @@ export const MentionPlaceholderSchema = z
   .max(MAX_MENTION_PLACEHOLDER_LENGTH)
   .regex(MENTION_PLACEHOLDER_PATTERN);
 
-/** The placeholder for the composer's `counter`-th mention. Throws for a counter that is not a positive whole number. */
 export function buildMentionPlaceholder(counter: number): string {
   if (!Number.isSafeInteger(counter) || counter < 1) {
     throw new RangeError('A mention placeholder counter is a positive whole number.');
@@ -80,7 +63,6 @@ export function buildMentionPlaceholder(counter: number): string {
 export type MentionContentSegment =
   { kind: 'text'; text: string } | { kind: 'mention'; placeholder: string };
 
-/** Splits post text into text and mention segments, in order; adjacent text is one segment. */
 export function tokenizeMentionContent(
   content: string,
   mentions: readonly { placeholder: string }[],
@@ -107,16 +89,12 @@ export function tokenizeMentionContent(
   return segments;
 }
 
-/** A listed mention whose placeholder the text does not carry exactly once. */
 export interface MentionCorrespondenceIssue {
-  /** The mention's position in the list. */
   index: number;
   placeholder: string;
-  /** How many times the text carries it as a whole token. */
   occurrences: number;
 }
 
-/** Every listed placeholder must appear in the text exactly once, as a whole token. */
 export function validateMentionCorrespondence(
   content: string,
   mentions: readonly { placeholder: string }[],
@@ -134,10 +112,6 @@ export function validateMentionCorrespondence(
   return issues;
 }
 
-/**
- * The `superRefine` form of `validateMentionCorrespondence` for an object holding the text and the
- * list: one issue per failing mention, at `[mentionsKey, index, 'placeholder']`.
- */
 export function refineMentionCorrespondence(
   content: string,
   mentions: readonly { placeholder: string }[] | undefined,
@@ -154,12 +128,10 @@ export function refineMentionCorrespondence(
   }
 }
 
-/** One mention in a Square post: the shared Mention shape with a grammar placeholder. */
 export const SquareStreetzPostMentionSchema = MentionSchema.extend({
   placeholder: MentionPlaceholderSchema,
 }).strict();
 
-/** A Square post's mention list — at most MAX_MENTIONS, each placeholder once. Every post input derives from it. */
 export const SquareStreetzPostMentionsSchema = z
   .array(SquareStreetzPostMentionSchema)
   .max(MAX_MENTIONS)

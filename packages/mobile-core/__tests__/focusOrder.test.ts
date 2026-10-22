@@ -51,7 +51,7 @@ describe('getFocusableInputs', () => {
   });
 
   it('finds contenteditable elements', () => {
-    // In jsdom, div tabIndex defaults to -1 — must set 0 to be "focusable"
+    // jsdom gives a div tabIndex -1, so it needs 0 to count as focusable.
     const el = createElement('div', { contenteditable: 'true', tabindex: '0' });
     root.appendChild(el);
     const result = getFocusableInputs(root);
@@ -59,7 +59,6 @@ describe('getFocusableInputs', () => {
   });
 
   it('finds elements with data-app-input attribute (default prefix)', () => {
-    // In jsdom, div tabIndex defaults to -1 — must set 0 to be "focusable"
     const el = createElement('div', { 'data-app-input': '', tabindex: '0' });
     root.appendChild(el);
     const result = getFocusableInputs(root);
@@ -105,9 +104,9 @@ describe('getFocusableInputs', () => {
     root.appendChild(el3);
 
     const result = getFocusableInputs(root);
-    expect(result[0]).toBe(el2); // order 1
-    expect(result[1]).toBe(el3); // order 2
-    expect(result[2]).toBe(el1); // order 3
+    expect(result[0]).toBe(el2);
+    expect(result[1]).toBe(el3);
+    expect(result[2]).toBe(el1);
   });
 
   it('elements with data-input-order come before those without', () => {
@@ -115,7 +114,7 @@ describe('getFocusableInputs', () => {
     withOrder.setAttribute('data-input-order', '1');
     const withoutOrder = createElement('input');
 
-    root.appendChild(withoutOrder); // DOM order first
+    root.appendChild(withoutOrder);
     root.appendChild(withOrder);
 
     const result = getFocusableInputs(root);
@@ -123,19 +122,15 @@ describe('getFocusableInputs', () => {
   });
 
   it('preserves DOM order for elements without data-input-order', () => {
-    const el1 = createElement('input');
-    const el2 = createElement('textarea');
-    const el3 = createElement('select');
+    const select = createElement('select');
+    const input = createElement('input');
+    const textarea = createElement('textarea');
 
-    root.appendChild(el1);
-    root.appendChild(el2);
-    root.appendChild(el3);
+    root.appendChild(select);
+    root.appendChild(input);
+    root.appendChild(textarea);
 
-    const result = getFocusableInputs(root);
-    // All without data-input-order - relative order should be stable (DOM order within group)
-    expect(result).toContain(el1);
-    expect(result).toContain(el2);
-    expect(result).toContain(el3);
+    expect(getFocusableInputs(root)).toEqual([select, input, textarea]);
   });
 
   it('returns empty array when no focusable elements', () => {
@@ -144,8 +139,7 @@ describe('getFocusableInputs', () => {
     expect(getFocusableInputs(root)).toEqual([]);
   });
 
-  it('uses document as default root', () => {
-    // Doesn't throw when called with document
+  it('accepts the document as the root', () => {
     expect(() => getFocusableInputs(document)).not.toThrow();
   });
 });

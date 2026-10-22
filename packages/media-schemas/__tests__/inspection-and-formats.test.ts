@@ -110,10 +110,10 @@ describe('format registry', () => {
 
   it('projects kind-narrowed accept tokens for an audio-only origin', () => {
     const tokens = projectAcceptTokens(['mp3', 'isobmff', 'webm', 'ogg', 'flac', 'wav'], ['audio']);
-    expect(tokens).toContain('audio/mp4'); // Safari audio recording container
+    expect(tokens).toContain('audio/mp4');
     expect(tokens).toContain('audio/webm');
     expect(tokens).toContain('.m4a');
-    expect(tokens).not.toContain('video/mp4'); // audio origin never advertises video aliases
+    expect(tokens).not.toContain('video/mp4');
     expect(tokens).not.toContain('video/webm');
   });
 
@@ -125,7 +125,7 @@ describe('format registry', () => {
     expect(new Set(tokens).size).toBe(tokens.length);
   });
 
-  it('MediaAcceptSchema.formats is optional (legacy accept parses) and enum-bounded', () => {
+  it('MediaAcceptSchema.formats is optional (an accept without formats parses) and enum-bounded', () => {
     expect(MediaAcceptSchema.parse({ kinds: ['image'] }).formats).toBeUndefined();
     expect(MediaAcceptSchema.parse({ kinds: ['image'], formats: ['jpeg', 'png'] }).formats).toEqual(
       ['jpeg', 'png'],

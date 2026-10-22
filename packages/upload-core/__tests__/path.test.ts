@@ -55,7 +55,6 @@ describe('buildUploadPath', () => {
       ownerId: '../../../etc',
       filename: 'test.jpg',
     });
-    // The sanitizer converts '/' and '\' to '_' and collapses '..', preventing traversal
     expect(result).not.toContain('../');
     expect(result).not.toContain('/../../');
   });

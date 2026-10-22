@@ -39,14 +39,6 @@ import {
 } from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
 
-// NCII / TAKE IT DOWN callable schemas: the cross-boundary contracts of the `functions/src/ncii/`
-// callables.
-
-// Operator sets the child-safety crossover minorAssessment on an NCII case (CSAM possible-minor
-// crossover — operator-only, no automated age signal). A routing action: it
-// opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT touching the NCII
-// removal clock and WITHOUT auto-NCMEC (that still needs a validated hash or explicit human
-// confirmApparentViolation). Writes the `ncii.minorAssessmentSet` audit event.
 export const SetNciiMinorAssessmentInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,
@@ -55,8 +47,6 @@ export const SetNciiMinorAssessmentInputSchema = z
   .strict();
 export type SetNciiMinorAssessmentInput = z.infer<typeof SetNciiMinorAssessmentInputSchema>;
 
-// listNciiEvidencePool — admin-only pool read for the find-&-link flow.
-// Optional caseId selects the currently-linked evidence to also return.
 export const ListNciiEvidencePoolInputSchema = z
   .object({
     caseId: safetyCaseIdSchema.optional(),
@@ -80,7 +70,6 @@ export const ListNciiEvidencePoolResultSchema = z.object({
 });
 export type ListNciiEvidencePoolResult = z.infer<typeof ListNciiEvidencePoolResultSchema>;
 
-// linkNciiEvidenceToCase / unlinkNciiEvidenceFromCase — find-&-link step 2 (+ reverse).
 export const LinkNciiEvidenceToCaseInputSchema = z
   .object({
     allegationId: nciiAllegationIdSchema,
@@ -93,7 +82,6 @@ export const LinkNciiEvidenceToCaseResultSchema = z.object({
   success: z.literal(true),
   caseId: safetyCaseIdSchema,
   allegationId: nciiAllegationIdSchema,
-  /** The owner or uploader, when resolved: the default account-action target. */
   ownerUid: z.string().min(1).nullable(),
   holdRefId: z.string().min(1),
 });
@@ -114,8 +102,6 @@ export type UnlinkNciiEvidenceFromCaseResult = z.infer<
   typeof UnlinkNciiEvidenceFromCaseResultSchema
 >;
 
-// markNciiEvidence — admin-only "NCII linked evidence" intake (find-&-link step 1).
-// Client ids are HINTS; the target is re-resolved server-side.
 export const MarkNciiEvidenceInputSchema = z
   .object({
     itemType: ReportableItemTypeSchema,
@@ -134,24 +120,17 @@ export const MarkNciiEvidenceResultSchema = z.object({
 });
 export type MarkNciiEvidenceResult = z.infer<typeof MarkNciiEvidenceResultSchema>;
 
-// decideTakeItDownValidity — the nciiRequestReviewer-gated validity determination.
-
 export const DecideTakeItDownValidityInputSchema = z
   .object({
     requestId: takeItDownRequestIdSchema,
     result: z.enum(['valid', 'invalid', 'unableToLocate']),
-    /** Required for an 'invalid' result; an enumerated reason (never free-form). */
     reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
-    /** The operator's written rationale for this ruling, persisted as an IMMUTABLE restricted
-     *  rationale row that `rationaleRef` points at. Required + substantive (non-placeholder). */
     rationaleText: textFieldSchema(TAKE_IT_DOWN_VALIDITY_RATIONALE_INPUT),
-    /** Explicit typed confirmation. */
     confirmation: z.literal(TAKE_IT_DOWN_VALIDITY_CONFIRMATION),
   })
   .strict();
 export type DecideTakeItDownValidityInput = z.infer<typeof DecideTakeItDownValidityInputSchema>;
 
-// The statutory intake fields both entries share (in-app and no-login).
 const nciiIdempotencyKeySchema = z
   .string()
   .min(NCII_IDEMPOTENCY_KEY_MIN_LENGTH)
@@ -162,8 +141,6 @@ const nciiContactPhoneSchema = z
   .min(NCII_CONTACT_PHONE_MIN_LENGTH)
   .max(NCII_CONTACT_PHONE_MAX_LENGTH);
 
-// The form must carry at least one contact method: rejecting at the door gives a clean 400 instead
-// of an incomplete receipt for a wholly uncontactable request.
 const ONE_CONTACT_METHOD_REQUIRED = {
   message: 'At least one contact method (email or phone) is required.',
   path: ['contactEmail'],
@@ -171,8 +148,6 @@ const ONE_CONTACT_METHOD_REQUIRED = {
 const hasContactMethod = (body: { contactEmail?: string; contactPhone?: string }): boolean =>
   Boolean(body.contactEmail) || Boolean(body.contactPhone);
 
-// submitInAppNciiRequest — logged-in entry to the one NCII statutory intake core.
-// Client ids are HINTS; the target is re-resolved server-side.
 export const SubmitInAppNciiRequestInputSchema = z
   .object({
     idempotencyKey: nciiIdempotencyKeySchema,
@@ -180,7 +155,6 @@ export const SubmitInAppNciiRequestInputSchema = z
     reportedItemId: reportTargetItemIdSchema,
     parentItemId: reportTargetParentRefSchema.optional(),
     nonconsentStatement: textFieldSchema(NCII_NONCONSENT_STATEMENT_INPUT),
-    /** Typed-name electronic signature. */
     signedName: textFieldSchema(NCII_SIGNED_NAME_INPUT),
     goodFaithCertification: z.literal(true),
     contactEmail: nciiContactEmailSchema.optional(),
@@ -188,7 +162,6 @@ export const SubmitInAppNciiRequestInputSchema = z
     supportingFacts: textFieldSchema(NCII_SUPPORTING_FACTS_INPUT).default(''),
   })
   .strict()
-  // The form prefills the account email but allows an override.
   .refine(hasContactMethod, ONE_CONTACT_METHOD_REQUIRED);
 export type SubmitInAppNciiRequestInput = z.infer<typeof SubmitInAppNciiRequestInputSchema>;
 
@@ -200,12 +173,6 @@ export const SubmitInAppNciiRequestResultSchema = z.object({
 });
 export type SubmitInAppNciiRequestResult = z.infer<typeof SubmitInAppNciiRequestResultSchema>;
 
-// POST /api/take-it-down — the PUBLIC, no-login statutory intake body. It is url-ONLY by design:
-// it never carries a TTT-hosted locator the server would resolve and hold, so an anonymous caller
-// cannot take platform content down without an account. A report of TTT content goes through the
-// authenticated report path. The route parses this before it reads anything else of the request.
-/** The web address a no-login statutory request names: http or https only. The stored link is the
- *  request's duplicate key, so the wire holds it trimmed exactly as the form sends it. */
 export const nciiLocatorUrlSchema = unpaddedValueSchema.max(MAX_NCII_LOCATOR_URL_LENGTH).refine(
   (value) => {
     try {
@@ -272,8 +239,6 @@ export const TakeItDownIntakeBodySchema = z
   });
 export type TakeItDownIntakeBody = z.infer<typeof TakeItDownIntakeBodySchema>;
 
-// resolveNciiReportPreview — logged-in read resolving a reported item to a previewable asset.
-// Client ids are HINTS; the target is re-resolved server-side.
 export const ResolveNciiReportPreviewInputSchema = z
   .object({
     itemType: ReportableItemTypeSchema,

@@ -1,19 +1,12 @@
-// The env files a deploy copies into a runtime (a committed `temp.env.*` CI copies into the Functions
-// `.env`) carry public values only: every key is a declared public key, and no value is shaped like a
-// credential. A secret is bound from the secret manager, never written into a committed env file.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { namesProblem, reviewedProblems } from '../../support/facts.js';
 
 export interface EnvPublicValuesFacts {
-  /** The committed env files a deploy delivers, repo-relative. */
   files: readonly string[];
-  /** The keys those files may hold, each with why its value is public. */
   publicKeys: ReadonlyArray<{ key: string; why: string }>;
 }
 
-/** Shapes no public value takes: a PEM key, a service-account field, and providers' token prefixes. */
 export const CREDENTIAL_SHAPES: readonly RegExp[] = Object.freeze([
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
   /"?private_key(?:_id)?"?\s*[:=]/,
@@ -29,7 +22,6 @@ export const CREDENTIAL_SHAPES: readonly RegExp[] = Object.freeze([
 
 const ASSIGNMENT = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/;
 
-/** Each offending line of one env file, named by file, line, and key — never by its value. */
 export function envOffenders(
   file: string,
   text: string,

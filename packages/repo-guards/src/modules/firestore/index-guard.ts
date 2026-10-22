@@ -1,7 +1,3 @@
-// Every filtered collection-group query has a collection-group-scoped index declared. The Firestore
-// emulator enforces no index, so a missing one passes every local run and fails the query closed in
-// every deployed project.
-
 import ts from 'typescript';
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -12,11 +8,8 @@ import { loaderProblem, reviewedProblems, textProblem } from '../../support/fact
 import { literalBindings } from './support.js';
 
 export interface CollectionGroupIndexFacts {
-  /** The repo-relative index declaration file (`firestore.indexes.json`). */
   indexesFile: string;
-  /** The core package's root exports, loaded at run time: `CONST.KEY` group ids resolve through them. */
   coreExports: () => Promise<Record<string, unknown>>;
-  /** Call sites whose group id is not a static value, each with the groups and fields it really uses. */
   unresolvable: ReadonlyArray<{ file: string; argument: string; why: string }>;
 }
 
@@ -33,7 +26,6 @@ interface IndexesFile {
   }>;
 }
 
-/** One collection-group query: its raw id argument, the resolved id (null when not static), and its filters. */
 export interface GroupSite {
   file: string;
   line: number;
@@ -42,14 +34,12 @@ export interface GroupSite {
   fields: string[];
 }
 
-/** The string field a `where('field', …)` call filters on, or null. */
 function whereField(call: ts.CallExpression): string | null {
   if (calleeName(call) !== 'where') return null;
   const first = call.arguments[0];
   return first && isPlainString(first) ? first.text : null;
 }
 
-/** Every collection-group query in one file: the Admin chain `x.collectionGroup(g).where(…)…` and the modular `query(collectionGroup(db, g), where(…))`. */
 export function collectionGroupSites(file: FileView, core: Record<string, unknown>): GroupSite[] {
   const source = file.sourceFile;
   const bindings = literalBindings(source);
@@ -75,7 +65,6 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
     const fields: string[] = [];
     if (ts.isPropertyAccessExpression(callee)) {
       groupArg = node.arguments[0];
-      // Walk up the chain the call heads: `.where(…)` links filter it.
       let link: ts.Node = node;
       while (
         ts.isPropertyAccessExpression(link.parent) &&
@@ -112,7 +101,6 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
   return sites;
 }
 
-/** Whether the declared indexes serve a collection-group query filtering on `fields`. */
 export function isIndexed(indexes: IndexesFile, group: string, fields: readonly string[]): boolean {
   const unique = [...new Set(fields)];
   if (

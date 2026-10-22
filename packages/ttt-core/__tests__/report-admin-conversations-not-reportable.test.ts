@@ -1,15 +1,3 @@
-// Admin correspondence is NEVER reportable (DJ ruling 2026-07-29, superseding the
-// 2026-07-13 work-party carve-out): an admin is already a participant in every admin
-// conversation, so there is nothing for a user to escalate to an admin. These are
-// regression guards for the REMOVAL of the whole admin-work-message intake path:
-//   - the 'admin-work-message' ReportableItemType member (foundation.ts)
-//   - the 'adminWorkMessage' TargetLocatorV1 kind + TargetLocatorKindSchema member
-//   - its content-action target sets (foundation.ts + schemas/admin.ts)
-//   - its report-config label / priority-multiplier entries
-//   - the `hidden` moderation tombstone flag on the stored conversationMessage body
-//     (messaging.ts ChatMessageV1Schema), which existed only for that flip
-// The reportable MESSAGE surfaces that remain are the two DO-transported guild ones.
-
 import { describe, it, expect } from 'vitest';
 import {
   ReportableItemTypeSchema,
@@ -26,7 +14,7 @@ import {
 import { ModerateReportedContentInputSchema } from '../src/schemas/admin.js';
 
 describe('ReportableItemType — admin correspondence is not a reportable surface', () => {
-  it('rejects the removed admin-work-message item type', () => {
+  it('rejects an admin-work-message item type', () => {
     expect(ReportableItemTypeSchema.safeParse('admin-work-message').success).toBe(false);
     expect(ReportableItemTypeSchema.options).not.toContain('admin-work-message');
   });
@@ -65,8 +53,8 @@ describe('admin correspondence has no content-action path', () => {
   });
 });
 
-describe('TargetLocatorV1 — the adminWorkMessage locator is gone', () => {
-  it('no longer parses a well-formed adminWorkMessage locator', () => {
+describe('TargetLocatorV1 — there is no adminWorkMessage locator', () => {
+  it('refuses a well-formed adminWorkMessage locator', () => {
     expect(
       TargetLocatorV1Schema.safeParse({
         kind: 'adminWorkMessage',
@@ -76,12 +64,12 @@ describe('TargetLocatorV1 — the adminWorkMessage locator is gone', () => {
     ).toBe(false);
   });
 
-  it('drops adminWorkMessage from the locator-kind enum', () => {
+  it('leaves adminWorkMessage out of the locator-kind enum', () => {
     expect(TargetLocatorKindSchema.safeParse('adminWorkMessage').success).toBe(false);
     expect(TargetLocatorKindSchema.options).not.toContain('adminWorkMessage');
   });
 
-  it('leaves the remaining message locators intact (no regression)', () => {
+  it('parses the guild message locators', () => {
     expect(
       TargetLocatorV1Schema.safeParse({
         kind: 'guildChatMessage',
@@ -99,7 +87,7 @@ describe('TargetLocatorV1 — the adminWorkMessage locator is gone', () => {
   });
 });
 
-describe('ChatMessageV1Schema — the moderation tombstone flag is gone', () => {
+describe('ChatMessageV1Schema — there is no moderation tombstone flag', () => {
   const baseMessage = { senderId: 'user-1', text: 'hello', createdAt: 1000 };
 
   it('declares no hidden field', () => {

@@ -1,7 +1,5 @@
-// Pagination page sizes and hallLibrary UX constants.
 import { ACTIVE_LIMITS } from './app-mode.js';
 
-/** Default pagination size when no other size applies. */
 export const ITEMS_PER_PAGE_GENERAL = 5;
 
 export const ITEMS_PER_PAGE_MESSAGES = 5;
@@ -17,55 +15,29 @@ export const ITEMS_PER_PAGE_TELEVISION_EPISODES = 3;
 export const ITEMS_PER_PAGE_PROPOSAL_ARTISANS = 5;
 export const ITEMS_PER_PAGE_FOLLOWED_USERS = 10;
 export const ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS = 10;
-/** The admin Dispatches browse list (every support thread, admin-only) — not a member's own thread list above. */
 export const ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE = 12;
-/** The admin task browse list (every queue task of one type, admin-only). */
 export const ITEMS_PER_PAGE_ADMIN_TASK_BROWSE = 12;
 
-// --- Hook-specific page sizes ---
-
-/** Page size for the pledge-payments list hook. */
 export const PLEDGE_PAYMENTS_PER_PAGE = 20;
 
-/** Page size for the pending-media archive list hook. */
 export const ARCHIVE_PER_PAGE = 10;
 
-/** Page size for the workProject-channels list hook. */
 export const CHANNELS_PER_PAGE = 10;
 
-/** Page size for the social feed hook. */
 export const POSTS_PER_PAGE = 20;
 
-/** Page size for the content-violation list hook. */
 export const VIOLATIONS_PER_PAGE = 5;
 
-/** Page size for the craft-skills list hook. */
 export const CRAFT_SKILL_MEDIA_PER_PAGE = 12;
 
-/** Page size for each Works list on a Realm's page (canon and non-canon), a card grid like the craft list. */
 export const ITEMS_PER_PAGE_REALM_WORKS = 12;
 
-/**
- * Hard page limit for the Realm shared-files gallery projection (`getRealmSharedFiles`).
- * The query was previously unbounded; this is the named cap the input schema derives its
- * `limit` bound from and the server clamps to, so one Realm's pool can never be read (or
- * requested) in a single unbounded page. Matches the card-grid rhythm of the gallery.
- */
 export const REALM_SHARED_FILES_PAGE_LIMIT = 24;
 
-/**
- * Hard page limit for the steward/admin realm-file promotion queue
- * (`getRealmFilePromotionQueue`). Smaller than the gallery page: the queue is a decision
- * surface a steward works through, not a browse grid.
- */
 export const REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT = 20;
 
-/** Maximum number of recent posts the trending-feed scheduled commission processes per run. Mode-varied. */
 export const TRENDING_FEED_PROCESS_LIMIT = ACTIVE_LIMITS.batches.trendingFeedProcessLimit;
 
-// --- HallLibrary UX constants ---
-
-/** HallLibrary page-level UX values (page size, recency window, search debounce, per-item tag cap). */
 export const HALL_LIBRARY_PAGE_CONSTANTS = {
   ITEMS_PER_PAGE: 20,
   MAX_RECENT_VIEWS: 50,
@@ -73,17 +45,10 @@ export const HALL_LIBRARY_PAGE_CONSTANTS = {
   SEARCH_DEBOUNCE_MS: 300,
 } as const;
 
-/**
- * The notification tray's Safety Cases view shows how many safety cases are open, up to this
- * many; above it the view says `${SAFETY_CASE_TRAY_COUNT_CAP}+`. The view only signals that there
- * is work — the Safety Case Console holds the details — so it never counts past the cap.
- */
 export const SAFETY_CASE_TRAY_COUNT_CAP = 100;
 
-/** The tray's open-case read limit: one row past the cap, so a full cap is told apart from more. */
 export const SAFETY_CASE_TRAY_READ_LIMIT = SAFETY_CASE_TRAY_COUNT_CAP + 1;
 
-/** The tray's open safety-case count as shown: exact up to the cap, `"100+"` above it. */
 export function formatSafetyCaseTrayCount(loadedRows: number): string {
   return loadedRows > SAFETY_CASE_TRAY_COUNT_CAP
     ? `${SAFETY_CASE_TRAY_COUNT_CAP}+`

@@ -1,29 +1,3 @@
-// A Cloud Function only receives a secret it declares in its own `secrets: [...]` option; an unbound
-// secret is undefined at runtime, and the call it feeds fails, or silently degrades, in deployed
-// environments only. What this proves:
-//
-//   direct binding    An entry point whose own handler or options consume a secret (`X.value()`,
-//                     `process.env.NAME`) binds it in its own `secrets` array — read from the parse,
-//                     so an import or a mention proves nothing. An entry whose options cannot be
-//                     resolved statically (a spread, a non-literal) is held to every `secrets` array in
-//                     its module; consumption at module scope is held to the same module-wide set.
-//   pinned binders    Each safety-critical secret the facts pin is bound by exactly its pinned entry
-//                     modules: a new binder or a lost binder of a pinned secret fails, forcing review
-//                     of exactly the change that matters. Every other secret is held by the direct
-//                     binding check alone.
-//   over-declaration  An entry declaring a secret nothing in its static or lazy import closure
-//                     consumes is needless exposure. The closure over-approximates reachability, so
-//                     the check is sound only in this negative direction; a secret read by an
-//                     installed package is a reviewed exception.
-//   indirect hops     A secret consumed behind a helper (a client factory, a rate limiter, a removal
-//                     chokepoint) is registered with the helper's exports: an entry module importing
-//                     one binds the secrets, a helper module importing one registers an export of its
-//                     own, and every registered export is live.
-//   one declaration   Each secret is declared by exactly one module.
-//
-// Deep transitive reachability is NOT proven: importing a helper that imports a client is not
-// calling it, and proving the call needs a call graph dependency injection defeats.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -41,29 +15,18 @@ import { moduleImports } from '../../support/imports.js';
 import { resolveRelative } from '../../support/paths.js';
 
 export interface SecretBindingFacts {
-  /** Entry-point factory names, each mapped to the argument index holding its options object. */
   entryFactories: Readonly<Record<string, number>>;
-  /**
-   * The safety-critical secrets only, each mapped to exactly the entry modules that bind it, with
-   * why. Every other secret is held by the bind-what-you-consume check alone: pinning every secret
-   * would be a hand-kept inventory that breaks on each ordinary new consumer.
-   */
   pinnedBinders: Readonly<Record<string, ReadonlyArray<{ module: string; why: string }>>>;
-  /** An entry declaring a secret its closure never consumes, for a reviewed reason. */
   deliberateOverDeclarations: ReadonlyArray<{
     module: string;
     entry: string;
     secrets: readonly string[];
     why: string;
   }>;
-  /** Secrets consumed behind helper exports, and the registry of exports that reach them. */
   indirectConsumers: ReadonlyArray<{
     secrets: readonly string[];
-    /** The module defining the chokepoints, whose own code consumes the secrets. */
     definer: string;
-    /** The definer's exports that consume the secrets. */
     chokepoints: readonly string[];
-    /** Exports of other modules that reach a chokepoint, each with why. */
     reachingExports: ReadonlyArray<{ name: string; why: string }>;
     why: string;
   }>;
@@ -94,7 +57,6 @@ function propertyOf(obj: ts.ObjectLiteralExpression, name: string): ts.PropertyA
   return null;
 }
 
-/** An options literal that may carry secrets the scan cannot see: a spread, or a non-literal `secrets`. */
 function hasUnseenSecrets(obj: ts.ObjectLiteralExpression): boolean {
   for (const p of obj.properties) {
     if (ts.isSpreadAssignment(p)) return true;
@@ -104,7 +66,6 @@ function hasUnseenSecrets(obj: ts.ObjectLiteralExpression): boolean {
   return !!secrets && !asArrayLiteral(secrets.initializer);
 }
 
-/** The analysis over a set of non-test Functions modules. */
 export function analyzeSecretBindings(
   files: readonly FileView[],
   facts: Pick<
@@ -363,7 +324,6 @@ export function analyzeSecretBindings(
   return { violations, entryPoints, fileBinds, staleExemptions, envNames };
 }
 
-/** One line per violation. */
 export function formatViolation(v: SecretViolation): string {
   if (v.kind === 'unbound-direct') {
     const where = v.entryName ? `${v.entry} → ${v.entryName}` : `${v.entry} (module scope)`;
@@ -378,11 +338,6 @@ export function formatViolation(v: SecretViolation): string {
   return `${v.entry} now binds ${v.env}, which the pinned binders do not name it for — confirm it needs the secret, then pin it`;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Indirect hops
-// ---------------------------------------------------------------------------------------------
-
-/** Every runtime (not type-only) import or export-from a module makes, with the names it takes. */
 export function runtimeImports(
   file: FileView,
 ): Array<{ source: string; named: string[]; namespace: boolean }> {
@@ -399,7 +354,6 @@ const hasExportModifier = (node: ts.Node) =>
   ts.canHaveModifiers(node) &&
   !!ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
-/** Every value name a module exports by declaration or export list. */
 export function exportedValueNames(file: FileView): Set<string> {
   const out = new Set<string>();
   for (const stmt of file.sourceFile.statements) {
@@ -426,12 +380,10 @@ export function exportedValueNames(file: FileView): Set<string> {
   return out;
 }
 
-/** The module a relative specifier names from `fromPath`, extension dropped, or null for a package specifier. */
 const moduleBase = (fromPath: string, spec: string): string | null =>
   resolveRelative(fromPath, spec)?.path.replace(/\.(?:js|mjs|cjs|ts|mts|cts)$/, '') ?? null;
 const withoutExtension = (path: string) => path.replace(/\.(?:js|mjs|cjs|ts|mts|cts|tsx)$/, '');
 
-/** Every indirect-hop finding for one registered consumer. */
 export function indirectHopFindings(
   files: readonly FileView[],
   entryModules: ReadonlySet<string>,
@@ -508,7 +460,6 @@ export function indirectHopFindings(
   return findings;
 }
 
-/** Each secret name declared (by `defineSecret('NAME')`) in more than one module. */
 export function duplicateDeclarations(files: readonly FileView[]): Map<string, string[]> {
   const byEnv = new Map<string, string[]>();
   for (const file of files) {

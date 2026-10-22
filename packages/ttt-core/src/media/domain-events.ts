@@ -57,19 +57,8 @@ import {
   SystemSlotUidUpdatedEventSchema,
 } from './domain-events-admin.js';
 
-// ============================================================================
-// DomainEvent — typed business actions emitted by mutations and upload
-// processors. The frontend registry (ttt-prod/src/lib/domain-events.ts) maps
-// each variant to a list of TanStack Query cache invalidations.
-//
-// Adding a new variant is a coordinated deploy:
-//   1. Add it here. Publish this package.
-//   2. Add a registry entry in ttt-prod. Deploy.
-//   3. Update producers (mutation hooks or processors) to emit it.
-//
-// The schema is .strict() end-to-end — unknown event types fail parse and
-// the consuming hook in ttt-prod logs to Sentry and skips the doc.
-// ============================================================================
+// A new variant ships in order: publish this package, add its ttt-prod registry entry, then emit
+// it.
 
 export const DomainEventSchema = z.discriminatedUnion('type', [
   ProfilePictureUpdatedEventSchema,
@@ -125,8 +114,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
 
 export type DomainEvent = z.infer<typeof DomainEventSchema>;
 
-// Helper for callers that need to extract the ids type for a specific
-// event variant (e.g. registry entries in the consuming repo).
 export type DomainEventIdsFor<T extends DomainEvent['type']> = Extract<
   DomainEvent,
   { type: T }

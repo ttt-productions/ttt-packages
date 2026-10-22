@@ -1,9 +1,3 @@
-// Every typed text field is declared once in the core's declarations module and every wire schema
-// reads it through the field-schema builder: no undeclared free-text property, no self-bounded
-// wire string, no declaration elsewhere, keep-as-typed only where reviewed, and every field trims,
-// keeps one space for each run of spaces unless it is free text, and refuses blank text when it
-// requires text.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {

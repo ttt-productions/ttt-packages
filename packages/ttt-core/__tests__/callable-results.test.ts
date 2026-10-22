@@ -125,9 +125,6 @@ import {
   StartUploadResultSchema,
 } from '../src/schemas/uploads.js';
 
-// Each callable's answer is declared once here, so Functions returns it and the app types it from
-// the same shape (ARCH-101). Every case is an answer its callable gives; an answer that reports
-// success must report it as `success: true`, never a boolean the client could read as a failure.
 const ok = { success: true } as const;
 const claimed = {
   ...ok,
@@ -436,7 +433,6 @@ describe('callable answers', () => {
   });
 });
 
-// Answers that carry no success flag: each is a read or a lookup whose content is the answer.
 describe('callable read answers', () => {
   it('checkRealmNameAvailable names why a name is unavailable only as taken', () => {
     expect(

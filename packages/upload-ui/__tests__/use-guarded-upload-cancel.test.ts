@@ -2,15 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 
-// --- mocks (must precede component imports) ---
+// Mocks must precede the component imports.
 
 const uploadFileResumableMock = vi.fn();
 
 vi.mock('@ttt-productions/upload-core/browser', () => ({
   uploadFileResumable: (args: any) => uploadFileResumableMock(args),
 }));
-
-// --- imports after mocks ---
 
 import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
 import { LocalUploadGuardProvider } from '../src/react/guard/local-upload-guard-provider.js';
@@ -95,7 +93,7 @@ describe('useGuardedUpload — AbortSignal threading', () => {
     expect(phases).toContain('finalizing');
   });
 
-  it('works without a signal (backwards compatible)', async () => {
+  it('works without a signal', async () => {
     uploadFileResumableMock.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useGuardedUpload(), { wrapper });
 

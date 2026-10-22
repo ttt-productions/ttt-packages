@@ -1,7 +1,3 @@
-/**
- * Generic audit-event record. Consumers parameterize the type-discriminator
- * (`TEventType`), actor shape, target shape, and metadata shape.
- */
 export interface AuditEvent<
   TEventType extends string = string,
   TActor = string,

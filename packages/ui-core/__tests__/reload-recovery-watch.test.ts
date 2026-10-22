@@ -1,7 +1,3 @@
-// The watch records the first failure only a reload repairs, from an `error` or an
-// `unhandledrejection` event, and tells its subscribers once. It only listens: no event it sees is
-// prevented, so monitoring still captures each one. Any other failure records nothing.
-
 import { describe, it, expect, vi } from 'vitest';
 import {
   createReloadRecoveryWatch,

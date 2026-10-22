@@ -218,7 +218,6 @@ export function FileInput(props: FileInputProps) {
         }
       }
 
-      // cropping path
       if (cropConfig && fileType === 'image') {
         const reader = new FileReader();
         reader.onload = () => {
@@ -233,7 +232,6 @@ export function FileInput(props: FileInputProps) {
         return;
       }
 
-      // normal selection
       setInternalSelected(file);
       const previewUrl = makePreviewUrl(file);
       onChange({ type: fileType, file, previewUrl, revokePreviewUrl: revokeLastPreviewUrl });

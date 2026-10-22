@@ -43,9 +43,6 @@ export function VideoViewer(props: VideoViewerProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const loadReportedRef = React.useRef(false);
 
-  // Additive playback API (onEnded, progress sampling, startAt/resume,
-  // endOverlay, imperative controls). Derives everything from element events —
-  // adds no observer (MEDIA-102).
   const {
     hasEnded,
     handlers: playbackHandlers,
@@ -58,8 +55,6 @@ export function VideoViewer(props: VideoViewerProps) {
     url,
   );
 
-  // The element attaches through the playback lifecycle so the hook knows the
-  // active generation; detach (unmount) retires it.
   const setVideoRef = React.useCallback(
     (el: HTMLVideoElement | null) => {
       videoRef.current = el;
@@ -68,10 +63,6 @@ export function VideoViewer(props: VideoViewerProps) {
     [attachElement],
   );
 
-  // Single observer for lazy-load gating, autoplay-on-visible, AND the visibility the
-  // viewer reports to its owner (MEDIA-102). threshold: [0, 0.5] — 0 fires "any pixel
-  // visible" (drives shouldLoad), 0.5 fires "at least half visible" (drives
-  // autoplay/pause). A listener keeps it observing after the first sighting.
   const {
     ref: inViewRef,
     inView,
@@ -93,8 +84,7 @@ export function VideoViewer(props: VideoViewerProps) {
     if (!inView && unloadOnExit && shouldLoad && !priority && lazy) {
       const video = videoRef.current;
       if (video) {
-        // Retire FIRST: snapshot/commit the still-live cursor, then ignore the
-        // pause/seek/reset events the teardown below makes the element emit.
+        // Retire first: the teardown below makes the element emit pause/seek/reset events.
         retireElement();
         video.pause();
         video.removeAttribute('src');
@@ -112,8 +102,7 @@ export function VideoViewer(props: VideoViewerProps) {
     loadReportedRef.current = false;
   }, [url]);
 
-  // A preload="metadata" element may not fire loadeddata until play, so metadata alone makes
-  // it usable: the skeleton goes, the element shows, and onLoad fires once for this load.
+  // A preload="metadata" element may not fire loadeddata until play.
   const reveal = React.useCallback(() => {
     setIsLoaded(true);
     if (loadReportedRef.current) return;
@@ -136,7 +125,6 @@ export function VideoViewer(props: VideoViewerProps) {
 
   useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
 
-  // Autoplay on >=50% visible / pause when below (same single observer above)
   React.useEffect(() => {
     if (!autoplayActive) return;
     const video = videoRef.current;
@@ -150,7 +138,6 @@ export function VideoViewer(props: VideoViewerProps) {
     }
   }, [autoplayActive, shouldLoad, isFullyVisible]);
 
-  // Fullscreen
   const requestFullscreen = React.useCallback(() => {
     if (!enableFullscreen) return;
     const el = videoRef.current as HTMLVideoElement & {
@@ -167,9 +154,7 @@ export function VideoViewer(props: VideoViewerProps) {
     if (typeof fn === 'function') {
       try {
         fn.call(el);
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     }
   }, [enableFullscreen]);
 
@@ -184,8 +169,6 @@ export function VideoViewer(props: VideoViewerProps) {
     [enableFullscreen, requestFullscreen],
   );
 
-  // The error state stays inside the observed wrapper, so the viewer keeps reporting
-  // its visibility while its owner recovers it.
   if (hasError) {
     return (
       <div

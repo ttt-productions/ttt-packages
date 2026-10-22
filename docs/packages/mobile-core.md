@@ -6,7 +6,7 @@ Generic mobile/browser behavior package.
 
 - Viewport height helpers
 - iOS Safari fixes
-- Keyboard/focused-input helpers
+- Keyboard/focused-input helpers. `useInputNavigation` and `useKeepFocusedInputVisible` treat an element carrying `data-<cssPrefix>-input` as an input, with the same `cssPrefix` option (default `app`) as the other helpers
 - Safe-area and scroll-lock helpers
 - React setup components such as `IOSSetup` and `ViewportHeightSetter`
 - Pull-to-refresh gesture handling (`usePullToRefresh`, `PullToRefreshContainer`). The progress ring tracks the pull; `refreshingIndicator` replaces it for the refresh phase, so the app supplies its canonical spinner without this package taking a UI dependency

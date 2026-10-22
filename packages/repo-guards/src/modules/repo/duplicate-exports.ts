@@ -1,21 +1,10 @@
-// Report only, run by hand — never a gate: "are these two exports the same concept?" is a semantic
-// judgment. It lists every exported name DEFINED in more than one module of the app root or of the
-// Functions root, and every value name defined on both sides of that boundary. A re-export is never
-// a definition: `export { x } from './y'` and the two-statement `import { x } …; export { x }` surface
-// a definition that lives elsewhere, and counting them would bury the real duplicates.
-
 import ts from 'typescript';
 import type { RepoReader, Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { moduleImports } from '../../support/imports.js';
 
 export interface DuplicateExportFacts {
-  /**
-   * Shared names reviewed and deliberately kept, with the files they may appear in. A group stays
-   * quiet only while every file it appears in is listed; a copy in any other file reports.
-   */
   knownLegit: Readonly<Record<string, { files: readonly string[]; why: string }>>;
-  /** Exports a framework requires of every module under a path (route handlers, page config). */
   frameworkReservedExports: ReadonlyArray<{
     pathPrefix: string;
     names: readonly string[];
@@ -27,7 +16,6 @@ const hasExport = (node: ts.Node) =>
   ts.canHaveModifiers(node) &&
   !!ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
-/** The value and type names a module defines and exports — re-exports excluded. */
 export function definedExports(file: FileView): { values: Set<string>; types: Set<string> } {
   const sf = file.sourceFile;
   const values = new Set<string>();
@@ -67,7 +55,6 @@ export function definedExports(file: FileView): { values: Set<string>; types: Se
           if (!from && !imported.has(local)) (el.isTypeOnly ? types : bucket).add(el.name.text);
         }
       } else if (from && stmt.exportClause && ts.isNamespaceExport(stmt.exportClause)) {
-        // `export * as ns from` binds a new namespace name of its own.
         bucket.add(stmt.exportClause.name.text);
       }
     } else if (ts.isExportAssignment(stmt) && !stmt.isExportEquals) {
@@ -80,9 +67,7 @@ export function definedExports(file: FileView): { values: Set<string>; types: Se
 export interface DuplicateGroup {
   name: string;
   files: string[];
-  /** Files outside a reviewed group's listed set; empty for a name nobody reviewed. */
   unexpected: string[];
-  /** The reviewed why, when a reviewed group gained a copy. */
   why?: string;
 }
 
@@ -96,7 +81,6 @@ export interface DuplicateExportResult {
   modules: number;
 }
 
-/** The analysis over a set of modules, split into the app tree and the Functions tree by role. */
 export function analyzeDuplicateExports(
   files: readonly FileView[],
   facts: DuplicateExportFacts,
@@ -164,7 +148,6 @@ export function analyzeDuplicateExports(
   return result;
 }
 
-/** The printable report. */
 export function formatDuplicateExports(result: DuplicateExportResult): string {
   const lines: string[] = [];
   const section = (label: string, groups: DuplicateGroup[]) => {
@@ -204,7 +187,6 @@ const SCOPE: Scope = {
   optionalRoots: ['functions'],
 };
 
-/** Runs the report over the app and Functions roots the reader's layout declares. */
 export function duplicateExportsReport(
   reader: RepoReader,
   facts: DuplicateExportFacts,

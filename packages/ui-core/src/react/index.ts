@@ -195,7 +195,6 @@ export { useMediaQuery } from './hooks/use-media-query.js';
 export { useAsyncAction } from './hooks/use-async-action.js';
 export type { AsyncAction, UseAsyncActionOptions } from './hooks/use-async-action.js';
 
-// Shared building blocks
 export { RelativeTime } from './components/relative-time.js';
 export type { RelativeTimeProps } from './components/relative-time.js';
 
@@ -219,8 +218,6 @@ export type { ShowMoreToggleProps } from './components/show-more-toggle.js';
 export { ReloadRecoveryNotice } from './components/reload-recovery-notice.js';
 export type { ReloadRecoveryNoticeProps } from './components/reload-recovery-notice.js';
 
-// List pagination — the one Previous / counter / Next control plus the page-state
-// hooks for its two flavors (known total, and cursor/`hasMore`).
 export { ListPagination } from './components/list-pagination.js';
 export type { ListPaginationProps } from './components/list-pagination.js';
 
@@ -234,9 +231,6 @@ export type {
 export { useCursorPage } from './hooks/use-cursor-page.js';
 export type { CursorPage, CursorPager, UseCursorPageOptions } from './hooks/use-cursor-page.js';
 
-// Return-scroll: restore a list's window offset when the user comes back to it after a
-// route change (save on leave, restore once on an eligible + ready return, keyed by the
-// caller's canonical list URL).
 export {
   useReturnScroll,
   saveReturnScroll,

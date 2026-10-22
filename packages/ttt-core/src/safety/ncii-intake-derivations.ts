@@ -1,24 +1,3 @@
-// Shared NCII / TAKE IT DOWN intake derivations (frozen Trust & Safety spec,
-// Appendix A §A11; durable design owner: ttt-prod
-// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md).
-// Pure, deterministic id/key/summary derivations
-// used by BOTH the public Next.js intake route and the Cloud Functions deadline/scan
-// workers. These used to be hand-mirrored in two app TS projects (the Cloud Functions
-// graph AND the App Hosting route graph, which cannot cross-import). This is now the ONE
-// canonical declaration (ARCH-102 / Cross-Boundary Type Invariant): both module graphs
-// import these derivations from ttt-core so the deterministic id/key contracts can never
-// drift between the two runtimes.
-//
-// These are LOAD-BEARING KEYSPACE CONTRACTS. A formula (or version-tag) change re-keys
-// EVERY existing intake request doc / receipt / snapshot — treat any such change as a
-// breaking migration of the intake keyspace, never a routine edit. The per-function
-// version-bump warnings below are not decorative.
-//
-// node:crypto sha256 keeps this pure + server-safe: this module lives behind the
-// `./safety` entry (never on the main barrel), so the frontend bundle never loads it.
-// The completeness predicate + intake-facts shape are NOT here — they are canonical on
-// `./doc-schemas` (beside `computeCompleteness`); import those from there.
-
 import { resourceKeyHash } from './resource-keys.js';
 import type {
   TakeItDownFieldCode,
@@ -27,44 +6,18 @@ import type {
   TargetLocatorSummaryV1,
 } from '../doc-schemas/safety/foundation.js';
 
-/**
- * sha256-hex chokepoint. Aliased to `resourceKeyHash` (the single canonical hashing
- * helper in `./resource-keys`) so the whole `./safety` surface has ONE sha256
- * implementation, never two. Named `sha256Hex` here because these intake derivations
- * hash arbitrary keyspace strings, not resource keys.
- */
 export const sha256Hex = resourceKeyHash;
 
-/** Unit separator — illegal in any id/url/field we join, so a flat separator-joined
- *  string is stable by construction (no key-ordering ambiguity, no JSON). */
+// Cannot appear in any joined id, url, or field.
 const SEP = '\x1f';
 
-// ===========================================================================
-// Deterministic ids ([H-07] idempotent intake)
-// ===========================================================================
-
-/** Version tag for the deterministic intake requestId. A bump re-keys EVERY
- *  request doc id — treat as a breaking migration of the intake keyspace. */
+// Bumping it re-keys every request doc id.
 const REQUEST_ID_VERSION = 'takeItDownRequest:v1';
 
-/** Deterministic `nciiTemporaryHolds/{holdId}` doc id for a request. ONE definition shared
- *  by intake (which writes the row) and the removal saga (which reads its `target` locator as
- *  the fallback when a public-form request has no case-linked allegation). */
 export function tempHoldId(requestId: string): string {
   return sha256Hex(`nciiTemporaryHold:v1:${requestId}`);
 }
 
-/**
- * Canonical, collision-resistant key for a request target. For a resolvable
- * TTT-hosted locator the key is the locator discriminant + its identity fields;
- * for an external/unresolvable locator (a bare URL or free text) it is the
- * `url`/`additionalText` payload. The SAME logical target ALWAYS normalizes to the
- * SAME key so two submissions about the same content with the same idempotencyKey
- * resolve to ONE request doc, and two DIFFERENT targets never collide.
- *
- * No JSON — a flat unit-separator-joined string (the separator is illegal in any
- * id/url field) is stable by construction (no key-ordering ambiguity).
- */
 export function normalizedTargetKey(locator: TargetLocatorV1): string {
   const k = locator.kind;
   switch (locator.kind) {
@@ -89,10 +42,6 @@ export function normalizedTargetKey(locator: TargetLocatorV1): string {
     case 'guildInviteMessage':
       return [k, locator.channelId, locator.messageId].join(SEP);
     case 'conversationFile':
-      // The conversation scope + the deterministic file id are the file's identity;
-      // `mediaAssetId` is included because it is 1:1 with that id (the publication
-      // adapter mints both together), so two submissions about the same file still
-      // normalize identically.
       return [
         k,
         locator.conversation.kind,
@@ -113,16 +62,12 @@ export function normalizedTargetKey(locator: TargetLocatorV1): string {
     case 'workRealm':
       return [k, locator.workRealmId].join(SEP);
     case 'url':
-      // Normalize the URL (trim + lowercase scheme/host) so trivially-different
-      // spellings of the same external link collapse to one request.
       return [k, normalizeExternalUrl(locator.url)].join(SEP);
     case 'additionalText':
       return [k, locator.textRef].join(SEP);
   }
 }
 
-/** Best-effort URL normalization for the external-locator key. A non-parseable
- *  string is lowercased + trimmed (still deterministic). NEVER throws. */
 export function normalizeExternalUrl(raw: string): string {
   const trimmed = raw.trim();
   try {
@@ -135,38 +80,14 @@ export function normalizeExternalUrl(raw: string): string {
   }
 }
 
-/**
- * [H-07] The deterministic intake requestId:
- *   sha256('takeItDownRequest:v1:' + idempotencyKey + ':' + normalizedTargetKey).
- * A retry with the SAME client idempotencyKey + the SAME target re-derives the SAME
- * id, so the create-if-absent transaction is a no-op and re-returns the same receipt
- * (never double-arms a clock / double-commits a hold).
- */
 export function deterministicRequestId(idempotencyKey: string, targetKey: string): string {
   return sha256Hex(`${REQUEST_ID_VERSION}:${idempotencyKey}:${targetKey}`);
 }
 
-/**
- * The opaque public `requestReference` printed on the one-time receipt and stored on the
- * public-status projection. Since the status token was removed, this is a deterministic
- * derivation of the internal `requestId` — a separate sha256 so the raw `requestId` is
- * never recoverable from the reference (which appears on the receipt / projection).
- * 32 hex chars is ample entropy for an opaque, non-enumerable capability.
- */
 export function deriveRequestReference(requestId: string): string {
   return sha256Hex(`takeItDownRequestRef:v1:${requestId}`).slice(0, 32);
 }
 
-// ===========================================================================
-// Cumulative submission snapshot hash (the immutable receipt fingerprint)
-// ===========================================================================
-
-/**
- * Deterministic hash of the cumulative request state as of a submission — recorded
- * on `TakeItDownSubmissionV1.cumulativeRequestSnapshotHash`. Built from the SORTED
- * supplied field codes + the normalized target key + the requester role so the same
- * cumulative state always fingerprints identically (append-order independent).
- */
 export function cumulativeSnapshotHash(args: {
   requesterRole: TakeItDownRequesterRole;
   targetKey: string;
@@ -178,11 +99,6 @@ export function cumulativeSnapshotHash(args: {
   );
 }
 
-// ===========================================================================
-// Privacy-safe target summary (root + public projection — NO narrative / PII)
-// ===========================================================================
-
-/** A short, non-sensitive surface label per locator kind (no ids, no narrative). */
 export function surfaceLabelFor(locator: TargetLocatorV1): string {
   switch (locator.kind) {
     case 'mediaAsset':
@@ -224,8 +140,6 @@ export function surfaceLabelFor(locator: TargetLocatorV1): string {
   }
 }
 
-/** Build the privacy-safe `TargetLocatorSummaryV1` (kind + surface label +
- *  whether a TTT-hosted target was server-resolved). NEVER the narrative or ids. */
 export function targetLocatorSummary(
   locator: TargetLocatorV1,
   hasResolvedTarget: boolean,
@@ -237,9 +151,6 @@ export function targetLocatorSummary(
   };
 }
 
-/** TTT-hosted locator kinds the intake will synchronously server-resolve +
- *  snapshot + temp-hold. `url` / `additionalText` are external/unresolvable: store
- *  the locator + submission, invent NO target. */
 const TTT_HOSTED_KINDS: ReadonlySet<TargetLocatorV1['kind']> = new Set([
   'mediaAsset',
   'hallItem',
@@ -254,15 +165,6 @@ const TTT_HOSTED_KINDS: ReadonlySet<TargetLocatorV1['kind']> = new Set([
   'conversationFile',
 ]);
 
-/** True when the locator points at a TTT-hosted surface (server-resolvable). */
 export function isTttHostedLocator(locator: TargetLocatorV1): boolean {
   return TTT_HOSTED_KINDS.has(locator.kind);
 }
-
-// The intake temp hold is placed on the canonical key(s) every destructive guard checks — the
-// content-doc key (`contentDocResourceKey(docPath, 'current')` in `./resource-keys`) + the
-// mediaAsset byte key when the target is media-backed. There is intentionally NO bespoke
-// `nciiTemporaryTarget` key builder here: that namespace was consulted by NO guard, so a hold
-// placed on it never blocked deletion ([H3] void). The route-side mirror's `contentDocCanonicalKey`
-// is likewise NOT ported — it duplicated `contentDocResourceKey(docPath, 'current')`, which is the
-// single key authority.

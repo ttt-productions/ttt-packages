@@ -40,9 +40,8 @@ const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
-  // `overflow-clip`, never `overflow-hidden`: a hidden box is still a scroll container, so a focus or
-  // scroll-into-view while it animates open scrolls it, and the content snaps back down when the
-  // animation ends — carrying an open select or popover out of a scroll-locked viewport.
+  // `overflow-clip`, never `overflow-hidden`: a hidden box is still a scroll container, so a focus
+  // mid-animation scrolls it and the content snaps back when the animation ends.
   <AccordionPrimitive.Content
     ref={ref}
     className="overflow-clip text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"

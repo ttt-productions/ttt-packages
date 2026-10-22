@@ -1,7 +1,3 @@
-// A throwaway app with an installed core build, read through the one reader, for the core-definition
-// guard tests. The core is installed at `node_modules/@fx/core/dist`, the app at `src` and
-// `functions/src`.
-
 import type { Finding, Guard, GuardContext } from '../../src/guard.js';
 import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
@@ -16,7 +12,6 @@ export interface Fixture {
   run(guard: Guard): Promise<Finding[]>;
 }
 
-/** A repository holding `files` plus the anchors every root needs. */
 export function fixture(files: Record<string, string>): Fixture {
   const repo = tempRepo({
     'src/app.ts': 'export const app = 1;',
@@ -38,6 +33,5 @@ export function fixture(files: Record<string, string>): Fixture {
   return { repo, reader, context, run: async (guard) => guard.run(context) };
 }
 
-/** Findings as `file:line — detail` lines, so a test states every expected finding exactly. */
 export const lines = (findings: readonly Finding[]) =>
   findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ''} — ${f.detail}`);

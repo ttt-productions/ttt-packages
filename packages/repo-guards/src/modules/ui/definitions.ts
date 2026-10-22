@@ -1,6 +1,3 @@
-// The UI guards over definitions reaching the screen and the wire: stored enum values render through
-// label maps, non-free-text boxes are reviewed, and schema bounds derive from named limits.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { allowlistProblems, namesProblem, objectProblem } from '../../support/facts.js';
 import type { Scope } from '../../node/reader.js';
@@ -16,9 +13,6 @@ import { APP_CODE } from './styling.js';
 
 const tsx = (text: string) => ({ path: 'sample.tsx', text });
 
-// ---- stored enum values render through label maps ---------------------------------------------
-
-/** A JSX child that is nothing but a stored enum field (`>{row.status}<`). */
 export function rawEnumRenders(fieldNames: readonly string[]): Matcher {
   return matchPattern(
     new RegExp(
@@ -28,9 +22,7 @@ export function rawEnumRenders(fieldNames: readonly string[]): Matcher {
 }
 
 export interface EnumLabelFacts {
-  /** The field names that hold a stored enum value across the app (`status`, `kind`, …). */
   fieldNames: readonly string[];
-  /** Files that render such a value for a reason other than member-facing copy, each with its why. */
   exceptions: readonly AllowlistEntry[];
 }
 
@@ -66,12 +58,9 @@ export const enumLabelsGuard: GenericGuardDefinition<EnumLabelFacts> = {
   },
 };
 
-// ---- non-free-text boxes are a reviewed allowlist -------------------------------------------------
-
 export const textEntryBoxes = matchPattern(/\btextEntry\s*=/);
 
 export interface TextEntryFacts {
-  /** Each file holding boxes that are not free text (a number, a code, an id), with how many and why. */
   reviewed: readonly AllowlistEntry[];
 }
 
@@ -108,11 +97,8 @@ export const textEntryGuard: GenericGuardDefinition<TextEntryFacts> = {
   },
 };
 
-// ---- schema bounds derive from named limits ----------------------------------------------------
-
 const BARE_BOUND = /(?<!Math)\.(max|min|length)\(\s*(\d[\d_]*)\s*[,)]/g;
 
-/** Every schema bound written as a bare number; `.min(0)` / `.min(1)` are presence checks, not limits. */
 export const bareBounds: Matcher = (file) => {
   const hits: Hit[] = [];
   for (const m of file.code.matchAll(BARE_BOUND)) {
@@ -131,7 +117,6 @@ export const SCHEMA_ROOTS: Scope = {
 };
 
 export interface SchemaBoundFacts {
-  /** Files that must hold a bare bound, each with its why and count. */
   exceptions: readonly AllowlistEntry[];
 }
 

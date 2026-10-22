@@ -1,22 +1,5 @@
-// ============================================================================
-// PUBLIC DOCUMENTS — the Admin-editable public web pages that are versioned and
-// published in release bundles: Terms of Service, Privacy Policy, Rules &
-// Agreements, Future Plans, the DMCA policy, and the Take It Down explanatory
-// copy. ONE owner for the document identity, display labels, and the numbers the
-// release / acceptance flow uses.
-//
-// Each PublicDocumentId is ALSO the doc id of that document's public current
-// projection under `_appConfig` (PATH_BUILDERS.publicDocumentProjection), so the
-// ids derive from SPECIAL_DOCS rather than being restated.
-//
-// Versions are whole numbers v1, v2, … per document. "Require acceptance" is a
-// property of a RELEASE, never a second version number: a release that requires
-// acceptance raises the single required-acceptance level by one.
-// ============================================================================
-
 import { SPECIAL_DOCS } from '../paths/collections.js';
 
-/** Every public document, in canonical display order. */
 export const PUBLIC_DOCUMENT_IDS = [
   SPECIAL_DOCS.TERMS_PAGE,
   SPECIAL_DOCS.PRIVACY_PAGE,
@@ -27,7 +10,6 @@ export const PUBLIC_DOCUMENT_IDS = [
 ] as const;
 export type PublicDocumentId = (typeof PUBLIC_DOCUMENT_IDS)[number];
 
-/** The user-facing name of each public document (Admin list, acceptance prompt, links). */
 export const PUBLIC_DOCUMENT_LABELS: Record<PublicDocumentId, string> = {
   [SPECIAL_DOCS.TERMS_PAGE]: 'Terms of Service',
   [SPECIAL_DOCS.PRIVACY_PAGE]: 'Privacy Policy',
@@ -37,35 +19,14 @@ export const PUBLIC_DOCUMENT_LABELS: Record<PublicDocumentId, string> = {
   [SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]: 'Take It Down',
 };
 
-/**
- * The custom claim holding the caller's accepted level. Written by the acceptance core
- * (through `updateClaim`) and read by the backend acceptance gate (auth-core's
- * `acceptance.claimKey`) — one name for both sides.
- */
 export const PUBLIC_DOCUMENTS_ACCEPTED_CLAIM = 'docsAccepted';
 
-/**
- * The custom claim a finished registration carries (value `true`). Set when registration
- * completes, and re-derived from the account's canonical state by the claim reconciler; the
- * member-content read rules require it, so a bare login that skipped the age step reads nothing.
- */
 export const REGISTERED_MEMBER_CLAIM = 'registeredMember';
 
-/**
- * How an acceptance was recorded: at registration, or through the re-acceptance prompt.
- * Both write the same private summary and the same `publicDocuments.accepted` audit event.
- */
 export const PUBLIC_DOCUMENT_ACCEPTANCE_SOURCES = ['registration', 'reacceptance'] as const;
 export type PublicDocumentAcceptanceSource = (typeof PUBLIC_DOCUMENT_ACCEPTANCE_SOURCES)[number];
 
-/**
- * The re-acceptance prompt's explicit agreement line, shown above its Accept and Log out
- * choices. Verbatim and independent of the founder notice: it shows whether or not the notice
- * is active. What a person accepted is recorded as the document/version pairs the prompt
- * listed, so this line carries no revision of its own.
- */
 export const PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT =
   'By choosing Accept, you agree to the current versions of the documents listed above.';
 
-/** Versions returned per page by the Admin history read (newest first). */
 export const PUBLIC_DOCUMENT_HISTORY_PAGE_LIMIT = 10;

@@ -1,6 +1,3 @@
-// The styling guards: colors through tokens, scale classes that exist, status foregrounds on their
-// fill, class-owned shadows, stacks never on rows, and no affordance on an unavailable control.
-
 import { describe, expect, it } from 'vitest';
 import {
   colorLiteralsGuard,

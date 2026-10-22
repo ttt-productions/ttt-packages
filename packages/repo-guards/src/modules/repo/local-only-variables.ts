@@ -1,11 +1,3 @@
-// Environment variables that exist only for a local or emulator run — an emulator switch, a debug
-// token — never reach a deployed environment's configuration, and each is read in the app's source
-// only by its one owner module, where it is gated. A deployed config naming one switches a local
-// relaxation on in production; a second reader is a second gate that drifts from the first.
-//
-// This covers the repository's own config only: a value set in a hosting console can carry any name
-// and override the repository's files, which no check over the repository can see.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { ownerOnly } from '../../shapes/shapes.js';
@@ -13,20 +5,13 @@ import { escapeRegExp } from '../../support/text.js';
 import { namesProblem, objectProblem, reviewedProblems } from '../../support/facts.js';
 
 export interface LocalOnlyVariablesFacts {
-  /** Deployed environments' config files, repo-relative (each must exist). */
   deployedConfigs: readonly string[];
-  /** Variable names no deployed config may name, each with why it is local-only. */
   neverDeployed: ReadonlyArray<{ name: string; why: string }>;
-  /** The one app module that reads each set of variables, with why it owns them. */
   readers: ReadonlyArray<{ owner: string; names: readonly string[]; why: string }>;
 }
 
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-/**
- * A config's text with every whole-line `#` comment removed — what the deployment declares. A
- * trailing comment stays: a mention there is read as a declaration, never guessed away.
- */
 export function declarationsOf(text: string): string {
   return text
     .split('\n')
@@ -34,7 +19,6 @@ export function declarationsOf(text: string): string {
     .join('\n');
 }
 
-/** Each place a declared config names one of the variables, by line. */
 export function deployedMentions(
   text: string,
   names: readonly string[],

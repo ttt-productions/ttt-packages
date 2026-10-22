@@ -1,6 +1,3 @@
-// The import-path guard as the suite runs it: the app's code (tests included, since a test's imports
-// are held to the rules too) read through the one reader and handed to the analyzer.
-
 import type { Finding, GuardContext } from '../../guard.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
 import { isTestPath, isUnderRoot, kindOfFile } from '../../node/layout.js';
@@ -9,9 +6,7 @@ import { objectProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
 
 export interface ImportPathFacts {
-  /** Specifier prefix → repo-relative folder (`{ '@/': 'src/' }`). */
   importAliases: Readonly<Record<string, string>>;
-  /** Framework entry modules that may re-export (a deploy manifest), each with its why. */
   exceptions: ReadonlyArray<{ file: string; why: string }>;
 }
 
@@ -34,10 +29,6 @@ function analyzedRoots(reader: RepoReader) {
   return [app.path, ...(functions ? [functions.path] : [])];
 }
 
-/**
- * A code file on disk inside a path the layout excludes. The reader never reads it, so an import of
- * it resolves without being judged; a missing file is still an unresolved import.
- */
 function excludedModuleExists(reader: RepoReader, p: string): boolean {
   return (
     (reader.layout.exclusions ?? []).some((e) => isUnderRoot(p, e.path)) &&
@@ -90,7 +81,6 @@ export const importPathGuard: GenericGuardDefinition<ImportPathFacts> = {
   },
 };
 
-/** Report-only: folder index members nothing outside the folder imports. Never a failure. */
 export function unusedIndexMembers(
   reader: RepoReader,
   facts: ImportPathFacts,

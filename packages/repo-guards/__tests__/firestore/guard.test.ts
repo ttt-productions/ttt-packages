@@ -1,6 +1,3 @@
-// The Firestore guards read through the one reader: the write guard sweeps the writer roots and
-// reads the core's installed build as library code; the test-path guard reads only test code.
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
 import { contextOf } from '../helpers/context.js';

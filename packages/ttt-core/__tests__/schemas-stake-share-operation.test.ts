@@ -86,7 +86,7 @@ describe('StakeShareOperationSchema', () => {
     it('rejects unknown operation type', () => {
       expect(() => StakeShareOperationSchema.parse({ type: 'delete-everything' })).toThrow();
     });
-    it('rejects accept-proposalArtisan (removed operation)', () => {
+    it('rejects accept-proposalArtisan (not an operation)', () => {
       expect(() =>
         StakeShareOperationSchema.parse({
           type: 'accept-proposalArtisan',
@@ -101,8 +101,8 @@ describe('StakeShareOperationSchema', () => {
     });
   });
 
-  describe('legacy workProjectData field rejection (dead-code removed)', () => {
-    it('rejects payloads that include legacy workProjectData/projectData', () => {
+  describe('workProjectData field rejection', () => {
+    it('rejects payloads that include workProjectData/projectData', () => {
       expect(() =>
         StakeShareOperationSchema.parse({
           type: 'create-workProject',

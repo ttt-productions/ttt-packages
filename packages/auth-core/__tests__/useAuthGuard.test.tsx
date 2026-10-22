@@ -33,8 +33,6 @@ describe('useAuthGuard', () => {
 
   describe('publicRoutes is the SOLE source of public routes (no built-in literals)', () => {
     it('a configured prefix makes every path beneath it public while signed out', () => {
-      // Prefix semantics: one '/v/' entry covers every '/v/:id' share link, which is
-      // exactly what a previously hardcoded '/v/' literal did inside the hook.
       const replace = vi.fn();
       renderHook(() =>
         useAuthGuard(
@@ -50,8 +48,6 @@ describe('useAuthGuard', () => {
     });
 
     it('NO hidden default: the same path is protected when its prefix is NOT configured', () => {
-      // Regression guard for the removed in-hook '/v/' literal. If any implicit
-      // public route creeps back in, this redirect stops happening.
       const replace = vi.fn();
       renderHook(() => useAuthGuard(makeConfig({ pathname: '/v/abc123', replace })));
       expect(localStorage.getItem(KEY)).toBe('/v/abc123');
@@ -91,10 +87,6 @@ describe('useAuthGuard', () => {
   });
 
   it('SINGLE-SHOT: a re-run on the auth route never clobbers the consumed-path navigation with defaultRoute', () => {
-    // The consuming redirect navigates asynchronously, so the effect can re-run
-    // (loading flap / auth re-render) while pathname still reads the auth route —
-    // with the key already consumed, a second replace(defaultRoute) would clobber
-    // the in-flight saved-path navigation.
     localStorage.setItem(KEY, '/v/abc123');
     const replace = vi.fn();
     const { rerender } = renderHook(
@@ -104,7 +96,6 @@ describe('useAuthGuard', () => {
     );
     expect(replace).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledWith('/v/abc123');
-    // Loading flap re-runs the effect on the SAME pathname — must not re-replace.
     rerender({ loading: true });
     rerender({ loading: false });
     expect(replace).toHaveBeenCalledTimes(1);
@@ -119,8 +110,6 @@ describe('useAuthGuard', () => {
       { initialProps: { pathname: '/login' } },
     );
     expect(replace).toHaveBeenNthCalledWith(1, '/v/abc123');
-    // Navigation committed (pathname left the auth route), then a later authed
-    // visit to /login redirects normally again.
     rerender({ pathname: '/v/abc123' });
     rerender({ pathname: '/login' });
     expect(replace).toHaveBeenNthCalledWith(2, '/landing');

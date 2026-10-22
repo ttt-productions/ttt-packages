@@ -27,7 +27,6 @@ import {
   prependToFirstPaginatedPage,
 } from '../src/react/cache-helpers.js';
 
-// A fake ordered collection: getDocs honours startAfter + limit like Firestore does.
 function serve(q: { __c: Array<Record<string, unknown>> }) {
   const after = q.__c.find((c) => '__startAfter' in c)?.__startAfter as string | undefined;
   const lim = q.__c.find((c) => '__limit' in c)?.__limit as number;
@@ -120,7 +119,6 @@ describe('useFirestorePaginated', () => {
       wrapper: wrapperFor(client),
     });
     await waitFor(() => expect(ids(second.result.current.data)).toEqual(['d', 'e', 'f']));
-    // Page 1 came from the cache; only page 2 was read, after page 1's last row.
     expect(h.getDocs.mock.calls.length).toBe(callsBefore + 1);
     expect(startedAfter(callsBefore)).toBe('c');
   });
@@ -140,7 +138,6 @@ describe('useFirestorePaginated', () => {
     await act(async () => {
       await result.current.refetch();
     });
-    // Page 1 is read again first, so page 2 starts after its new last row.
     expect(startedAfter(callsBefore)).toBeUndefined();
     expect(startedAfter(callsBefore + 1)).toBe('b');
     await waitFor(() => expect(ids(result.current.data)).toEqual(['c', 'd', 'e']));
@@ -195,7 +192,6 @@ describe('a page re-read moves where the next page starts', () => {
     act(() => result.current.nextPage());
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
 
-    // A new row arrives at the top; page 1 is read again and now ends at b, not c.
     h.rows = ['z', ...h.rows];
     act(() => result.current.prevPage());
     await act(async () => {
@@ -204,7 +200,6 @@ describe('a page re-read moves where the next page starts', () => {
     await waitFor(() => expect(ids(result.current.data)).toEqual(['z', 'a', 'b']));
 
     act(() => result.current.nextPage());
-    // c is neither skipped nor is page 2 shown from its old start.
     await waitFor(() => expect(ids(result.current.data)).toEqual(['c', 'd', 'e']));
   });
 

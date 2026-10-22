@@ -1,8 +1,3 @@
-// The `@ttt-productions/ttt-core/doc-schemas` entry: the Firestore document SCHEMAS (Zod),
-// the document types inferred from them, and the collection registry. The schema registry
-// (COLLECTION_SCHEMAS) is consumed by the schema-doc generator (ttt-packages) and the
-// drift-check (ttt-prod).
-
 export * from './user.js';
 export * from './firestore-primitives.js';
 export * from './media-assets.js';
@@ -31,7 +26,6 @@ export * from './notification-archive-all-jobs.js';
 export * from './chat-sync.js';
 export * from './operational.js';
 
-// ===== Trust & Safety — shared foundation + cluster schemas (§A1–A11) =====
 export * from './safety/foundation.js';
 export * from './safety/report.js';
 export * from './safety/case-alert.js';
@@ -44,7 +38,6 @@ export * from './safety/sagas.js';
 export * from './safety/monitors.js';
 export * from './safety/age.js';
 
-// ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
 export * from './ncii/allegations.js';
 export * from './ncii/requests.js';
 export * from './ncii/cases.js';
@@ -52,11 +45,9 @@ export * from './ncii/holds.js';
 export * from './ncii/removal.js';
 export * from './ncii/config.js';
 
-// ===== Backend-only cursor / operational state =====
 export * from './backend-state.js';
 export * from './sweep-cursor.js';
 
 export * from './registry.js';
 
-// ===== Account-erasure fate of every registered path =====
 export * from './erasure-fates.js';

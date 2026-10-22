@@ -105,7 +105,6 @@ describe('re-acceptance: who is asked, and what they are shown', () => {
 
     const quiet = planPublicDocumentRelease(launch.block, [PRIVACY], false);
     expect(isPublicDocumentAcceptanceRequired(quiet.block, user)).toBe(false);
-    // Not prompted — but the quiet change is still newer than what they accepted.
     expect(changedPublicDocuments(quiet.block, user)).toEqual([
       { documentId: PRIVACY, version: 2 },
     ]);
@@ -217,7 +216,6 @@ describe('samePublicDocumentVersions', () => {
 });
 
 describe('squareStreetzAgreementsSatisfied — the one Square agreements rule', () => {
-  // Rules v3 is current; v2 is the latest version a release required acceptance of.
   const block: PublicDocumentVersionBlock = {
     documents: {
       [RULES]: { currentVersion: 3, requiredVersion: 2 },
@@ -280,7 +278,6 @@ describe('squareStreetzAgreementsSatisfied — the one Square agreements rule', 
   });
 
   it('ignores other documents’ required versions', () => {
-    // Terms requires v5, but only the Rules page is incorporated by the Square card.
     expect(squareStreetzAgreementsSatisfied(recorded(2), block)).toBe(true);
   });
 });

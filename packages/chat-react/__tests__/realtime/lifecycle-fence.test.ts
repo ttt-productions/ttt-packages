@@ -3,7 +3,6 @@ import { ChannelClient } from '../../src/realtime/channel-client.js';
 import { InboxClient } from '../../src/realtime/inbox-client.js';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
-/** A grant provider whose every mint waits until the test resolves it, in any order. */
 function deferredGrants() {
   const pending: Array<(token: string) => void> = [];
   return {
@@ -37,14 +36,14 @@ describe('a grant from a closed lifecycle never opens a socket (channel client)'
   it('close → connect with grant A still minting: B opens the one socket, late A opens nothing', async () => {
     const grants = deferredGrants();
     const { client, harness } = makeChannel(grants);
-    void client.connect(); // lifecycle A — its grant hangs
+    void client.connect();
     client.close();
-    void client.connect(); // lifecycle B
+    void client.connect();
     expect(grants.count).toBe(2);
 
     grants.resolve(1, 'grant-B');
     await flush();
-    grants.resolve(0, 'grant-A'); // late completion of the closed lifecycle
+    grants.resolve(0, 'grant-A');
     await flush();
 
     expect(harness.sockets).toHaveLength(1);
@@ -67,7 +66,6 @@ describe('a grant from a closed lifecycle never opens a socket (channel client)'
     const socketB = harness.sockets[1];
     socketB.serverOpen();
 
-    // The old socket speaks after it was replaced: none of it may land.
     socketA.serverFrame('snapshot', { lastMessageSeq: 7, readSeq: 0, resync: false, delta: [] });
     socketA.serverFrame('message', {
       message: {

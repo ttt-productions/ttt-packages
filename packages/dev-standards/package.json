@@ -1,0 +1,124 @@
+{
+    "name": "@ttt-productions/dev-standards",
+    "version": "0.0.1",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/dev-standards"
+    },
+    "type": "module",
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "rules",
+        "claude",
+        "workflows",
+        "playbooks",
+        "work",
+        "runbooks",
+        "config",
+        "development-preferences.md",
+        "model-tiers.md",
+        "AGENTS.base.md"
+    ],
+    "exports": {
+        "./node/eslint": {
+            "types": "./dist/node/eslint.d.ts",
+            "default": "./dist/node/eslint.js"
+        },
+        "./node/vitest": {
+            "types": "./dist/node/vitest.d.ts",
+            "default": "./dist/node/vitest.js"
+        },
+        "./node/playwright": {
+            "types": "./dist/node/playwright.d.ts",
+            "default": "./dist/node/playwright.js"
+        },
+        "./node/postcss": {
+            "types": "./dist/node/postcss.d.ts",
+            "default": "./dist/node/postcss.js"
+        },
+        "./node/a11y": {
+            "types": "./dist/node/a11y.d.ts",
+            "default": "./dist/node/a11y.js"
+        },
+        "./config/tsconfig.app.json": "./config/tsconfig.app.json",
+        "./config/tsconfig.functions.json": "./config/tsconfig.functions.json",
+        "./config/prettier.json": "./config/prettier.json",
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+        "eslint": ">=9.0.0",
+        "@eslint/js": ">=9.0.0",
+        "typescript-eslint": ">=8.0.0",
+        "eslint-config-prettier": ">=10.0.0",
+        "eslint-config-next": ">=16.0.0",
+        "globals": ">=14.0.0",
+        "vitest": ">=4.0.0",
+        "@vitejs/plugin-react": ">=6.0.0",
+        "@playwright/test": ">=1.50.0",
+        "@tailwindcss/postcss": ">=4.0.0",
+        "@axe-core/playwright": ">=4.10.0"
+    },
+    "peerDependenciesMeta": {
+        "eslint": {
+            "optional": true
+        },
+        "@eslint/js": {
+            "optional": true
+        },
+        "typescript-eslint": {
+            "optional": true
+        },
+        "eslint-config-prettier": {
+            "optional": true
+        },
+        "eslint-config-next": {
+            "optional": true
+        },
+        "globals": {
+            "optional": true
+        },
+        "vitest": {
+            "optional": true
+        },
+        "@vitejs/plugin-react": {
+            "optional": true
+        },
+        "@playwright/test": {
+            "optional": true
+        },
+        "@tailwindcss/postcss": {
+            "optional": true
+        },
+        "@axe-core/playwright": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@axe-core/playwright": "^4.14.0",
+        "@eslint/js": "^10.0.1",
+        "@playwright/test": "^1.62.1",
+        "@types/node": "^24.13.6",
+        "@vitejs/plugin-react": "^6.1.1",
+        "eslint": "^10.4.1",
+        "eslint-config-next": "^16.2.11",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^17.6.0",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.3.0",
+        "vitest": "^4.1.12"
+    },
+    "engines": {
+        "node": ">=22",
+        "npm": ">=10"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

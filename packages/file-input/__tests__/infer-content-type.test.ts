@@ -43,10 +43,7 @@ describe('inferContentType', () => {
     expect(inferContentType(makeFile('noext', ''), 'audio')).toBe('audio/webm');
   });
 
-  it('NEVER fabricates a media type for an unknown picker file — neutral pass-through (2026-07-31)', () => {
-    // The old behavior defaulted this to image/jpeg, inventing a false media
-    // fact the whole pipeline then trusted. Unknown stays unknown; the server
-    // byte inspector is the classification authority.
+  it('NEVER fabricates a media type for an unknown picker file — neutral pass-through', () => {
     expect(inferContentType(makeFile('noext', ''))).toBe('application/octet-stream');
     expect(inferContentType(makeFile('data.xyz', ''))).toBe('application/octet-stream');
     expect(inferContentType(makeFile('report.pdf', 'application/pdf'))).toBe(
@@ -59,14 +56,12 @@ describe('inferContentType', () => {
   });
 
   it('strips codec parameters and returns the parameter-less base type', () => {
-    // Chrome MediaRecorder's default audio container — the recorded-audio defect.
     expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'))).toBe(
       'audio/webm',
     );
     expect(inferContentType(makeFile('x.mp4', 'video/mp4;codecs=avc1.42e01e,mp4a.40.2'))).toBe(
       'video/mp4',
     );
-    // Whitespace around the base or parameters is tolerated.
     expect(inferContentType(makeFile('recording.webm', 'audio/webm ; codecs=opus'))).toBe(
       'audio/webm',
     );
@@ -98,7 +93,7 @@ describe('inferContentType', () => {
     expect(inferContentType(makeFile('clip.ogg', ''), 'audio')).toBe('audio/ogg');
   });
 
-  it('keeps the historical single-kind guess for ambiguous containers when no kind is supplied', () => {
+  it('uses the single-kind guess for ambiguous containers when no kind is supplied', () => {
     expect(inferContentType(makeFile('clip.webm', ''))).toBe('video/webm');
     expect(inferContentType(makeFile('clip.ogg', ''))).toBe('audio/ogg');
   });
@@ -110,12 +105,11 @@ describe('inferContentType', () => {
     );
   });
 
-  it('a declared type that MATCHES the chosen kind wins over the extension (current behavior preserved)', () => {
+  it('a declared type that MATCHES the chosen kind wins over the extension', () => {
     expect(inferContentType(makeFile('x.mp3', 'video/mp4'), 'video')).toBe('video/mp4');
   });
 
   it('conflicting type with an unambiguous extension: the extension supplies the in-kind resolution', () => {
-    // Chosen kind audio distrusts the declared video/mp4; mp3 is audio-only.
     expect(inferContentType(makeFile('x.mp3', 'video/mp4'), 'audio')).toBe('audio/mpeg');
   });
 
@@ -131,16 +125,10 @@ describe('inferContentType', () => {
   });
 
   it('an audio recording misreported as video/mp4 but named .m4a resolves to audio/mp4', () => {
-    // The mp4 container is audio-only-capable (.m4a). The RecordDialog names an
-    // audio-only recording `.m4a`; a surprising video/mp4 mimeType is distrusted
-    // (kind mismatch) and the .m4a extension supplies the in-kind audio/mp4. This
-    // is the contract the recorder relies on for its video/mp4 defensive case.
     expect(inferContentType(makeFile('recording.m4a', 'video/mp4'), 'audio')).toBe('audio/mp4');
   });
 
   it('a user-picked .mp4 with no chosen kind is still trusted as video/mp4 (scope guard)', () => {
-    // Only the recorder knows a stream is audio-only; an arbitrary .mp4 pick (no
-    // fallbackKind) must NOT be reinterpreted as audio.
     expect(inferContentType(makeFile('clip.mp4', 'video/mp4'))).toBe('video/mp4');
     expect(inferContentType(makeFile('clip.mp4', ''))).toBe('video/mp4');
   });

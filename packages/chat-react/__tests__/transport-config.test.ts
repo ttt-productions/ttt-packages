@@ -5,12 +5,8 @@ import type {
   ChatRealtimeTransportConfig,
 } from '../src/types.js';
 
-// Shape guards for the discriminated transport config, exercised at runtime: a firestore
-// config (the default transport) and a realtime config must both satisfy ChatCoreConfig,
-// and both carry the app's one access fact, `allowed`.
-
 describe('ChatCoreConfig transport', () => {
-  it('defaults to the firestore transport when `transport` is omitted (non-breaking)', () => {
+  it('defaults to the firestore transport when `transport` is omitted', () => {
     const cfg: ChatCoreConfig = {
       chatCollectionPath: 'guildChatChannels',
       threadId: 'ch1',
@@ -18,7 +14,7 @@ describe('ChatCoreConfig transport', () => {
       isAdmin: false,
       allowed: true,
     };
-    expect(cfg.transport).toBeUndefined(); // consumers treat undefined as 'firestore'
+    expect(cfg.transport).toBeUndefined();
   });
 
   it('accepts an explicit firestore transport', () => {
@@ -61,7 +57,7 @@ describe('ChatCoreConfig transport', () => {
     };
     const legacy: ChatCoreConfig = {
       ...cfg,
-      // @ts-expect-error — the allowlist mode and its member list are gone from the config.
+      // @ts-expect-error — the config has no access mode or member list.
       accessMode: 'explicit-allowlist',
       threadAllowedUserIds: ['u'],
     };

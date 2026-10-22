@@ -34,8 +34,8 @@ App config, Firebase project values, toast behavior, monitoring behavior, and ca
   caller-local handling; `captureException` (the telemetry channel) receives BOUNDED metadata
   only (`{ functionName, timeoutMs }`) and never the request payload.
 - **The optional total-invocation deadline** — `CallCallableTransport.timeoutMs` starts an outer
-  timer BEFORE the SDK is invoked (the SDK's own `timeout` starts only after its auth/App Check
-  header phase, so a stalled token mint is otherwise unbounded) and also forwards the value to the
+  timer BEFORE the SDK is invoked (the SDK's own `timeout` starts only after its token phase, so
+  a stalled token mint is otherwise unbounded) and also forwards the value to the
   SDK's `timeout` option. Expiry rejects with a Firebase-shaped error, `code:
   "functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
   commit, so callers treat the outcome as UNKNOWN, never as a definite failure, and never
@@ -44,32 +44,19 @@ App config, Firebase project values, toast behavior, monitoring behavior, and ca
   overrides / the `callCallable` transport argument.
 - **The optional limited-use App Check opt-in** — `CallCallableTransport.limitedUseAppCheck`
   (default false, threaded by `useCallableMutation` too) sets the SDK's
-  `limitedUseAppCheckTokens`, so the call mints a SINGLE-USE App Check token and a backend
-  running `consumeAppCheckToken` can actually REFUSE a replay instead of only recording one.
-  It costs an attestation round trip PER CALL, so it is for sensitive callable groups only —
-  never a blanket default. Rollout order is load-bearing: handler-side `alreadyConsumed`
-  refusal must stay off until the consumers of that callable have adopted the option, because
-  a cached (non-limited-use) token presents as already consumed. Absent unless explicitly
-  enabled — the SDK options object is omitted entirely when no transport option is set.
-- **The limited-use throttle fallback** — the limited-use path has no soft failure of its own:
-  the SDK asks the App Check provider for a fresh token with no catch, so one failed exchange
-  opens the provider's in-memory backoff window and every later limited-use invocation rejects
-  (`appCheck/initial-throttle`, then `appCheck/throttled`) before reaching the wire. When a
-  limited-use invocation rejects with either code, `callCallable` retries EXACTLY ONCE with the
-  option omitted, taking the standard cached-token path. Retrying is safe against double
-  submission because both codes are thrown in the SDK's pre-transport token phase — the first
-  attempt never reached the backend. The retry races the SAME deadline (the timer is never
-  restarted, so both attempts together stay inside `timeoutMs`), and a retry failure flows
-  through the normal `captureException` + `onError` + rethrow tail exactly once. No other error
-  class retries, and a call that did not request limited-use never does.
-
-  The fallback itself is reported through `captureException` with
-  `{ functionName, timeoutMs, limitedUseAppCheckFallback: true }` — bounded safe metadata, never
-  the payload.
-
-  **ROLLOUT CAVEAT.** The fallback is effective only while server-side token consumption is
-  record-only. Once a handler arms `alreadyConsumed` refusal, a reused standard token would be
-  refused, so the fallback must be revisited at that point.
+  `limitedUseAppCheckTokens` for that call. It costs an attestation round trip per call; which
+  callables use it is the app's. Absent unless explicitly enabled — the SDK options object is
+  omitted entirely when no transport option is set.
+- **The limited-use throttle fallback** — when a limited-use invocation rejects with an App Check
+  throttle code (`appCheck/initial-throttle`, `appCheck/throttled`), which the SDK throws in its
+  pre-transport token phase before anything reaches the backend, `callCallable` retries EXACTLY
+  ONCE with the option omitted. The retry races the SAME deadline (the timer is never restarted,
+  so both attempts together stay inside `timeoutMs`), and a retry failure flows through the
+  normal `captureException` + `onError` + rethrow tail exactly once. No other error class
+  retries, and a call that did not request limited-use never does. The fallback itself is
+  reported through `captureException` with `{ functionName, timeoutMs, limitedUseAppCheckFallback:
+  true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
+  the app's decision, made through its policy's `resolveLimitedUseAppCheck`.
 - **The App Check throttle predicate** — `isAppCheckThrottleError(error)` is exported from the
   server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error
   class (`APP_CHECK_THROTTLE_CODES`); `callCallable` classifies with it rather than restating
@@ -104,7 +91,7 @@ retry, surface, and capture:
   committed work is never lost. A `merge` that throws rejects the request.
 
 The policy (`CallablePolicy`) is everything app-specific; the package names no app copy and
-imports no toast or monitoring module (QUALITY-102):
+imports no toast or monitoring module (RULE-STD-QUALITY-102):
 
 - `getFunctions` and `timeoutMs` — the Functions provider and the total-invocation deadline.
 - `resolveLimitedUseAppCheck(requested)` — the effective limited-use mode for a callable declared

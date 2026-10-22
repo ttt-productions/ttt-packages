@@ -1,33 +1,4 @@
 #!/usr/bin/env node
-// Rewrite a package's internal @ttt-productions/* dependency ranges from "*"
-// to a concrete range at PACK/PUBLISH time, across dependencies,
-// peerDependencies, AND devDependencies:
-//   - dependencies / devDependencies / peerDependencies → CARET range ("^1.2.3")
-//
-// WHY caret for EVERYTHING internal (never exact): source manifests legitimately use
-// "*" so workspace dev resolves to the local package, but a packed/published tarball
-// must not ship "*" (a consumer could then resolve an incompatible newer internal
-// version). We pin to CARET rather than EXACT so that bumping ONE internal package by a
-// patch/minor does NOT force every dependent to be republished in lockstep. Exact pins
-// caused exactly that cascade: a stale exact REGULAR dep surfaces as a duplicate nested
-// install, and a stale exact PEER dep as a `peerOptional` ERESOLVE warning, in the
-// consuming app until the dependent is also republished. Caret on a 0.x version still
-// locks the minor, so a breaking minor/major is never auto-adopted — only compatible
-// patches flow through. This applies uniformly to deps, devDeps, and peerDeps.
-//
-// This runs in the publish pipeline (.github/workflows/publish.yml) right
-// before `npm publish`, where the checkout is ephemeral, so the rewrite is
-// discarded after publish and committed source keeps "*". A `.pin-bak` backup
-// is written so `--restore` can revert in a local/non-ephemeral run.
-//
-// Usage:
-//   node scripts/pin-internal-deps.mjs <pkgDir>            # rewrite <pkgDir>/package.json in place
-//   node scripts/pin-internal-deps.mjs <pkgDir> --check    # exit 1 if any internal "*" remains (no write)
-//   node scripts/pin-internal-deps.mjs <pkgDir> --restore  # restore <pkgDir>/package.json from .pin-bak
-//
-// All internal ranges use caret ("^1.2.3") so a consumer (or dependent package) can take
-// a compatible patch/minor without forcing dependents to be republished in lockstep.
-
 import { readFileSync, writeFileSync, readdirSync, existsSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,7 +24,6 @@ const pkgJsonPath = join(pkgDir, 'package.json');
 const bakPath = join(pkgDir, 'package.json.pin-bak');
 if (!existsSync(pkgJsonPath)) fail(`No package.json at ${pkgDir}`);
 
-// Build a map of internal package name -> exact current version.
 function loadInternalVersions() {
   const map = new Map();
   const pkgsDir = join(REPO_ROOT, 'packages');
@@ -93,7 +63,6 @@ if (mode === 'check') {
   process.exit(0);
 }
 
-// mode === 'pin'
 const pinned = [];
 const missing = [];
 for (const field of DEP_FIELDS) {
@@ -106,10 +75,6 @@ for (const field of DEP_FIELDS) {
       missing.push(`${field} › ${dep}`);
       continue;
     }
-    // Caret for every internal range (deps, devDeps, peerDeps): a consumer can take a
-    // compatible patch/minor without forcing dependents to be republished in lockstep.
-    // Exact pins caused that cascade; caret on 0.x still locks the minor (no breaking
-    // minor/major auto-adopted).
     const pinnedRange = `^${version}`;
     deps[dep] = pinnedRange;
     pinned.push(`${field} › ${dep} -> ${pinnedRange}`);
@@ -126,6 +91,6 @@ if (pinned.length === 0) {
 }
 
 copyFileSync(pkgJsonPath, bakPath);
-// Preserve trailing newline; 2-space indent matches npm's own writes.
+// 2-space indent and a trailing newline match npm's own writes.
 writeFileSync(pkgJsonPath, `${JSON.stringify(json, null, 2)}\n`);
 console.log(`[pin-internal-deps] ${json.name}: pinned\n  ${pinned.join('\n  ')}`);

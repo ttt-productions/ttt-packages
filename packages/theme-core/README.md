@@ -1,6 +1,6 @@
 # @ttt-productions/theme-core
 
-Theme provider + CSS token contract for TTT Productions apps.
+Theme provider + CSS token contract for consuming apps.
 
 ## Install
 ```bash

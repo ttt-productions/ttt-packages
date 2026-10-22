@@ -1,29 +1,13 @@
-// MediaIO adapter: reads the staged upload from Firebase Storage, writes
-// processed outputs through whichever MediaObjectStore the app selected for the
-// environment (see storage-ops.ts). Output keys are extension-less:
-// `${outputKeyPrefix}/${outputKey}` — meaning lives in the asset registry,
-// not the key. Writes return the object key; no URLs anywhere.
-
 import { getStorage } from 'firebase-admin/storage';
 import type { MediaIO } from '../io/types.js';
 import type { MediaObjectStore } from './storage-ops.js';
 
 export interface CreateObjectStoreMediaIOArgs {
-  /** Firebase Storage staging path of the uploaded source file. */
   inputStoragePath: string;
-  /** Store receiving the processed outputs. */
   outputStore: MediaObjectStore;
-  /** Key prefix for outputs, e.g. `mediaAssets/{mediaAssetId}`. */
   outputKeyPrefix: string;
-  /** Optional mime hint for the input. */
   inputMime?: string;
-  /**
-   * Optional object generation to pin the input download to. When set, the
-   * download resolves the exact immutable generation of the staged object
-   * (per GCS generation-precondition semantics), so a concurrent overwrite of
-   * the source path cannot swap the bytes that get read. Accepts the numeric
-   * generation or its string form (GCS generations exceed 2^53).
-   */
+  /** GCS generations exceed 2^53, so the string form is accepted too. */
   inputGeneration?: string | number;
 }
 

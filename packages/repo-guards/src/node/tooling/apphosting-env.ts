@@ -1,14 +1,3 @@
-// The App Hosting BUILD environment, derived from the same committed `apphosting*.yaml` files App
-// Hosting reads, so a CI parity build carries exactly the build inputs the real rollout bakes into
-// the bundle — never a second copy of the values in workflow YAML.
-//
-// Merge semantics mirror App Hosting: production reads the base file AND its overlay, and the
-// overlay wins per keyed variable.
-//
-// Fails closed: a BUILD-available `secret:` reference cannot be resolved in CI, so its presence is
-// an error, not a silently missing build input. The only exceptions are the app's named skips, each
-// justified as absence-non-fatal.
-
 import { parse as parseYaml } from 'yaml';
 
 export const BASE_CONFIG = 'apphosting.yaml';
@@ -16,7 +5,6 @@ export const PRODUCTION_CONFIG = 'apphosting.production.yaml';
 
 export class AppHostingConfigError extends Error {}
 
-/** A BUILD secret the parity build may proceed without, and why its absence changes nothing. */
 export interface BuildSecretSkip {
   variable: string;
   why: string;
@@ -29,7 +17,7 @@ export interface AppHostingEnvEntry {
   secret?: unknown;
 }
 
-/** App Hosting's default when `availability` is omitted is BUILD + RUNTIME. */
+// App Hosting's default when `availability` is omitted is BUILD + RUNTIME.
 export function isBuildAvailable(entry: AppHostingEnvEntry): boolean {
   if (entry.availability === undefined || entry.availability === null) return true;
   if (!Array.isArray(entry.availability)) {
@@ -38,10 +26,6 @@ export function isBuildAvailable(entry: AppHostingEnvEntry): boolean {
   return entry.availability.includes('BUILD');
 }
 
-/**
- * One config file's `env` entries. A duplicate `variable` inside one file is an error: the keyed
- * merge applies BETWEEN the base and the overlay, and an ambiguous duplicate has no winner.
- */
 export function parseConfig(text: string, label: string): AppHostingEnvEntry[] {
   let doc: unknown;
   try {
@@ -86,7 +70,7 @@ export function parseConfig(text: string, label: string): AppHostingEnvEntry[] {
   });
 }
 
-/** Keyed merge: an overlay entry REPLACES the base entry of the same variable, order kept. */
+// Mirrors App Hosting: an overlay entry replaces the base entry of the same variable.
 export function mergeEnv(
   baseEntries: readonly AppHostingEnvEntry[],
   overlayEntries: readonly AppHostingEnvEntry[],
@@ -97,11 +81,6 @@ export function mergeEnv(
   return [...merged.values()];
 }
 
-/**
- * The BUILD-available environment from the ordered config files (`[base]` for develop,
- * `[base, overlay]` for production). RUNTIME-only entries are left out. Throws when any
- * BUILD-available entry is a secret reference not in `skips`.
- */
 export function buildEnvFromConfigs(
   configs: readonly { text: string; label: string }[],
   skips: readonly BuildSecretSkip[],
@@ -130,7 +109,6 @@ export function buildEnvFromConfigs(
   return env;
 }
 
-/** The config files an environment reads, in merge order. */
 export function configFilesFor(environment: string): string[] {
   if (environment === 'develop' || environment === 'development') return [BASE_CONFIG];
   if (environment === 'production') return [BASE_CONFIG, PRODUCTION_CONFIG];

@@ -10,7 +10,6 @@ import {
 } from '../src/paths/collections.js';
 
 describe('PATH_BUILDERS', () => {
-  // ===== USER PATHS =====
   describe('User Paths', () => {
     it('userProfile returns 2-segment tuple with correct collection', () => {
       const result = PATH_BUILDERS.userProfile('user123');
@@ -73,8 +72,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== WORK PATHS =====
-  describe('WorkWORK PATHS', () => {
+  describe('Work Paths', () => {
     it('workProject returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.workProject('proj1');
       expect(result).toHaveLength(2);
@@ -177,8 +175,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== SQUARE PATHS =====
-  describe('SquareSQUARE PATHS', () => {
+  describe('Square Paths', () => {
     it('activePost returns 4-segment tuple starting with squareStreetzFeed', () => {
       const result = PATH_BUILDERS.activePost('post1');
       expect(result).toHaveLength(4);
@@ -196,13 +193,12 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== HALL PATHS =====
-  describe('HallHALL PATHS', () => {
-    it('thresholdItem returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.thresholdItem('lib1');
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.THRESHOLD_ITEMS);
-      expect(result[1]).toBe('lib1');
+  describe('Hall Paths', () => {
+    it("thresholdItem addresses one Work sub-item's review doc", () => {
+      expect(PATH_BUILDERS.thresholdItem('wp1', 'item1')).toEqual([
+        COLLECTIONS.THRESHOLD_ITEMS,
+        'wp1_item1',
+      ]);
     });
 
     it('hallItem returns 2-segment tuple', () => {
@@ -258,8 +254,6 @@ describe('PATH_BUILDERS', () => {
     });
 
     it('hall sub-item segments are independent compound names, NOT a lowercased WorkProjectType', () => {
-      // ARCH-104: the segment carries its parent context. A `.toLowerCase()` derivation
-      // would produce 'tales'/'tunes'/'television' — collections that do not exist.
       expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales).toBe('hallItemTales');
       expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes).toBe('hallItemTunes');
       expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television).toBe('hallItemTelevision');
@@ -269,7 +263,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== COMMISSION PATHS =====
   describe('Commission Paths', () => {
     it('commissionListing returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.commissionListing('job1');
@@ -288,7 +281,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== AUDITION PATHS =====
   describe('Audition Paths', () => {
     it('audition returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.audition('opp1');
@@ -307,7 +299,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== REALM PATHS =====
   describe('WorkRealm Paths', () => {
     it('workRealm returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.workRealm('uni1');
@@ -334,7 +325,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== ADMIN & SYSTEM PATHS =====
   describe('Admin & System Paths', () => {
     it('adminDispatch returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.adminDispatch('msg1');
@@ -382,7 +372,6 @@ describe('PATH_BUILDERS', () => {
         NESTED_SUBCOLLECTIONS.PRIVATE,
         SPECIAL_DOCS.REPORT_NARRATIVE_ESCALATION,
       ]);
-      // Same restricted subcollection, different doc id — a re-create can never collide.
       expect(PATH_BUILDERS.reportPrivateEscalationNarrative('rep1')).not.toEqual(
         PATH_BUILDERS.reportPrivateNarrative('rep1'),
       );
@@ -417,7 +406,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== UTILITY PATHS =====
   describe('Utility Paths', () => {
     it('reservedDisplayName returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.reservedDisplayName('JOHNDOE');
@@ -455,7 +443,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== PAYMENT & PLEDGE PATHS =====
   describe('Payment & Pledge Paths', () => {
     it('pledgePayment returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.pledgePayment('pp1');
@@ -500,7 +487,6 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== BACKEND-ONLY QUEUES =====
   describe('Backend-only queue paths', () => {
     it('statusReconcileQueueEntry returns 2-segment tuple keyed by uid', () => {
       const result = PATH_BUILDERS.statusReconcileQueueEntry('uid1');
@@ -510,8 +496,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== FEEDBACK & CRAFT PATHS =====
-  describe('FEEDBACK & CRAFT PATHS', () => {
+  describe('Feedback & Craft Paths', () => {
     it('feedbackSubmission returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.feedbackSubmission('bug');
       expect(result).toHaveLength(2);
@@ -548,17 +533,16 @@ describe('PATH_BUILDERS', () => {
       ]);
     });
 
-    it('taggedCraftSkill returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.taggedCraftSkill('photography', 'compositeId1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.CRAFT_SKILLS_BY_TAG);
-      expect(result[1]).toBe('photography');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS);
-      expect(result[3]).toBe('compositeId1');
+    it("taggedCraftSkill addresses one owner's craft skill under its tag", () => {
+      expect(PATH_BUILDERS.taggedCraftSkill('photography', 'skill1', 'uid1')).toEqual([
+        COLLECTIONS.CRAFT_SKILLS_BY_TAG,
+        'photography',
+        NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS,
+        'skill1-uid1',
+      ]);
     });
   });
 
-  // ===== SYSTEM DATA PATHS =====
   describe('System Data Paths', () => {
     it('adminList returns 2-segment tuple with ADMIN_LIST special doc', () => {
       const result = PATH_BUILDERS.adminList();
@@ -588,13 +572,12 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe(SPECIAL_DOCS.RULES_AND_AGREEMENTS);
     });
 
-    it('the public app-config bucket is the compound `_appConfig`, never the old `_config`', () => {
+    it('the public app-config bucket is the compound `_appConfig`, never `_config`', () => {
       expect(COLLECTIONS.APP_CONFIG).toBe('_appConfig');
       expect(PATH_BUILDERS.appConfig()).toEqual(['_appConfig', SPECIAL_DOCS.APP_CONFIG]);
     });
   });
 
-  // ===== BACKEND-ONLY OPERATOR PATHS =====
   describe('Backend-only operator paths', () => {
     it('operatorStepUp returns 2-segment tuple keyed by uid', () => {
       expect(PATH_BUILDERS.operatorStepUp('op-1')).toEqual([COLLECTIONS.OPERATOR_STEP_UP, 'op-1']);
@@ -629,8 +612,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== ADOPTION-GAP BUILDERS (added for hand-assembled call sites) =====
-  describe('Adoption-gap builders', () => {
+  describe('Further path and collection builders', () => {
     it('publicUser returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.publicUser('uid1');
       expect(result).toEqual([COLLECTIONS.PUBLIC_USERS, 'uid1']);
@@ -735,11 +717,11 @@ describe('PATH_BUILDERS', () => {
         'c1',
         NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
       ]);
-      expect(PATH_BUILDERS.nciiCaseClosureEvent('c1', 'e1')).toEqual([
+      expect(PATH_BUILDERS.nciiCaseClosureEvent('c1', 'reopen', 4)).toEqual([
         COLLECTIONS.NCII_CASES,
         'c1',
         NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
-        'e1',
+        'reopen-r4',
       ]);
     });
   });

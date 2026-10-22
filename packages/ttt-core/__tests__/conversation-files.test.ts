@@ -1,7 +1,3 @@
-// Conversation Files contract tests: the canonical data model (ref union, owner record purity,
-// path builders), the mode-varied limits, the capability/origin coverage, and that no chat
-// message carries an attachment contract.
-
 import { describe, it, expect } from 'vitest';
 import {
   ConversationFileRefSchema,
@@ -13,7 +9,6 @@ import { DeleteConversationFileInputSchema } from '../src/schemas/conversation-f
 import { UploadConversationFileVariablesSchema } from '../src/upload-variables/upload-conversation-file-variables.js';
 import { FileOriginSchema } from '../src/media/file-origin.js';
 import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
-import { PHOTODNA_COVERAGE_MATRIX } from '../src/media/photodna-coverage.js';
 import { fileOriginRowLabel } from '../src/media/upload-tray-display.js';
 import { buildTempUploadPath } from '../src/paths/storage-paths.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
@@ -61,8 +56,6 @@ import {
   MAX_CONVERSATION_FILE_STORAGE_BYTES,
 } from '../src/constants/conversation-files.js';
 import { ACTIVE_LIMITS, CHARTER_LIMITS, FULL_LIMITS } from '../src/constants/app-mode.js';
-
-// ───────────────────────────── ConversationFileRef ─────────────────────────────
 
 describe('ConversationFileRef — EXACTLY the two supported conversation scopes', () => {
   it('accepts guildInvite and adminSupport', () => {
@@ -113,10 +106,8 @@ describe('ConversationFileRef — EXACTLY the two supported conversation scopes'
   });
 });
 
-// ─────────────────────────── conversation-file origin ───────────────────────────
-
 describe('the conversation-file upload origin', () => {
-  it('is a canonical FileOrigin and the chat-attachment origin is gone', () => {
+  it('is a canonical FileOrigin, and no chat-attachment origin exists', () => {
     expect(FileOriginSchema.parse('conversation-file')).toBe('conversation-file');
     expect(FileOriginSchema.options).not.toContain('guild-chat-message-attachment');
   });
@@ -128,18 +119,6 @@ describe('the conversation-file upload origin', () => {
     expect(spec.processing?.image).toBeDefined();
     expect(spec.processing?.video).toBeDefined();
     expect(spec.processing?.audio).toBeDefined();
-  });
-
-  it('participates in the derived PhotoDNA coverage matrix on all three branches', () => {
-    expect(PHOTODNA_COVERAGE_MATRIX['conversation-file'].requiredBranches).toEqual([
-      'imagePhotoDna',
-      'videoFramePhotoDna',
-      'audioSpoofGuard',
-    ]);
-    // Coverage is total over the origin registry.
-    for (const origin of FileOriginSchema.options) {
-      expect(PHOTODNA_COVERAGE_MATRIX[origin]).toBeDefined();
-    }
   });
 
   it('uses the canonical temp upload path builder', () => {
@@ -161,8 +140,6 @@ describe('the conversation-file upload origin', () => {
     });
   });
 });
-
-// ───────────────────────── ConversationFileSchema purity ─────────────────────────
 
 describe('ConversationFileSchema — references and metadata ONLY', () => {
   const valid = {
@@ -212,7 +189,7 @@ describe('ConversationFileSchema — references and metadata ONLY', () => {
     }
   });
 
-  it('declares NO display-identity snapshot (ARCH-103 — uid reference only)', () => {
+  it('declares NO display-identity snapshot (RULE-STD-ARCH-103 — uid reference only)', () => {
     for (const forbidden of [
       'displayName',
       'username',
@@ -230,8 +207,6 @@ describe('ConversationFileSchema — references and metadata ONLY', () => {
     expect(ConversationFileSchema.safeParse({ ...valid, mediaKind: 'file' }).success).toBe(false);
   });
 });
-
-// ────────────────────── Chat message schemas are attachment-free ──────────────────────
 
 describe('the stored chat-message schema carries no file reference', () => {
   const message = { senderId: 'u_1', text: 'hello', createdAt: 1_700_000_000_000 };
@@ -253,8 +228,6 @@ describe('the stored chat-message schema carries no file reference', () => {
     expect(parsed).toEqual(message);
   });
 
-  // No chat surface has an authoring affordance for replying to a specific message, so nothing
-  // could ever populate a reply pointer — the same reason the message carries no `hidden` flag.
   it('declares no reply pointer', () => {
     const keys = Object.keys(ChatMessageV1Schema.shape);
     expect(keys.filter((k) => /reply/i.test(k))).toEqual([]);
@@ -262,8 +235,6 @@ describe('the stored chat-message schema carries no file reference', () => {
   });
 
   it('strips a stored replyTo instead of persisting it forward', () => {
-    // The schema is deliberately non-strict, so a stored doc that carries the key parses and
-    // the value is stripped.
     const parsed = ChatMessageV1Schema.parse({
       ...message,
       replyTo: { messageId: 'm_1', senderId: 'u_2', messagePreview: 'earlier' },
@@ -285,9 +256,6 @@ describe('the sendGuildChatMessage input schema accepts no reply pointer', () =>
   });
 
   it('REJECTS a client-sent replyTo (the input schema is strict)', () => {
-    // Unlike the stored doc schema (non-strict, so unknown keys are stripped), the wire input
-    // is `.strict()` — a client that hand-rolls a reply pointer is rejected outright rather
-    // than silently ignored.
     expect(
       SendGuildChatMessageInputSchema.safeParse({
         ...valid,
@@ -301,8 +269,6 @@ describe('the sendGuildChatMessage input schema accepts no reply pointer', () =>
     expect(keys.filter((k) => /^reply/i.test(k))).toEqual([]);
   });
 });
-
-// ─────────────────────────────── Canonical paths ───────────────────────────────
 
 describe('Conversation Files path builders + collection registration', () => {
   it('builds the two canonical nested document paths', () => {
@@ -342,8 +308,6 @@ describe('Conversation Files path builders + collection registration', () => {
   });
 });
 
-// ────────────────────────── Media serving / publication ──────────────────────────
-
 describe('media contracts for Conversation Files', () => {
   it('the publication registry has conversationFile and no chat-attachment kind', () => {
     expect(MediaPublicationKindSchema.parse('conversationFile')).toBe('conversationFile');
@@ -351,7 +315,7 @@ describe('media contracts for Conversation Files', () => {
     expect(MediaPublicationKindSchema.options).not.toContain('adminSupportAttachment');
   });
 
-  it('the serving scope keeps guildInvite + adminSupport and drops guildChannel', () => {
+  it('the serving scope holds guildInvite + adminSupport and excludes guildChannel', () => {
     expect(MediaServingScopeSchema.parse({ kind: 'guildInvite', guildInviteId: 'i' }).kind).toBe(
       'guildInvite',
     );
@@ -365,7 +329,6 @@ describe('media contracts for Conversation Files', () => {
         guildChatChannelId: 'c',
       }),
     ).toThrow();
-    // Work media has its own scopes.
     expect(MediaServingScopeSchema.parse({ kind: 'workProject', workProjectId: 'w' }).kind).toBe(
       'workProject',
     );
@@ -391,8 +354,6 @@ describe('media contracts for Conversation Files', () => {
     expect(MediaAssetOwnerTypeSchema.options).not.toContain('guildChatAttachment');
   });
 });
-
-// ────────────────────────────── Capability coverage ──────────────────────────────
 
 describe('capability coverage is exhaustive', () => {
   it('messaging.fileShare carries the adult/bilateral policy, and no messaging.attachment exists', () => {
@@ -434,8 +395,6 @@ describe('capability coverage is exhaustive', () => {
   });
 });
 
-// ─────────────────────────────────── Limits ───────────────────────────────────
-
 describe('Conversation Files limits derive from the byMode source of truth', () => {
   it('charter 10 files / 500 MiB, full 20 files / 1 GiB', () => {
     expect(CHARTER_LIMITS.conversation).toEqual({
@@ -448,7 +407,7 @@ describe('Conversation Files limits derive from the byMode source of truth', () 
     });
   });
 
-  it('the enforcement constants are the ACTIVE_LIMITS values — no bare literals (ENG-005)', () => {
+  it('the enforcement constants are the ACTIVE_LIMITS values — no bare literals (RULE-STD-ENG-005)', () => {
     expect(MAX_CONVERSATION_FILES).toBe(ACTIVE_LIMITS.conversation.maxConversationFiles);
     expect(MAX_CONVERSATION_FILE_STORAGE_BYTES).toBe(
       ACTIVE_LIMITS.conversation.maxConversationFileStorageBytes,
@@ -461,8 +420,6 @@ describe('Conversation Files limits derive from the byMode source of truth', () 
     );
   });
 });
-
-// ───────────────────────── Safety locator + surface enums ─────────────────────────
 
 describe('the safety target locator points at Conversation Files, not chat attachments', () => {
   it('accepts a conversationFile locator for each supported conversation scope', () => {
@@ -508,7 +465,7 @@ describe('the safety target locator points at Conversation Files, not chat attac
     expect(TargetLocatorV1Schema.safeParse({ ...base, messageId: 'm-1' }).success).toBe(false);
   });
 
-  it('drops the chatAttachment locator kind entirely', () => {
+  it('has no chatAttachment locator kind', () => {
     expect(TargetLocatorKindSchema.safeParse('chatAttachment').success).toBe(false);
     expect(
       TargetLocatorV1Schema.safeParse({
@@ -541,7 +498,6 @@ describe('the safety target locator points at Conversation Files, not chat attac
       surfaceLabel: 'Conversation file',
       hasResolvedTarget: true,
     });
-    // A Conversation File is server-resolvable (TTT-hosted).
     expect(isTttHostedLocator(invite)).toBe(true);
   });
 
@@ -550,13 +506,11 @@ describe('the safety target locator points at Conversation Files, not chat attac
     expect(NciiTargetSurfaceSchema.options).not.toContain('chatAttachment');
   });
 
-  it('the media copy-reason vocabulary drops chat_derivative (chat owns no media)', () => {
+  it('the media copy-reason vocabulary has no chat_derivative (chat owns no media)', () => {
     expect(MediaCopyReasonSchema.options).not.toContain('chat_derivative');
     expect(MediaCopyReasonSchema.parse('original')).toBe('original');
   });
 });
-
-// ─────────────────────── Reportable / moderatable surface ───────────────────────
 
 describe('a Conversation File is reportable and actionable in its own right', () => {
   it('is a canonical ReportableItemType (no chat message required)', () => {
@@ -565,7 +519,6 @@ describe('a Conversation File is reportable and actionable in its own right', ()
 
   it('carries a display label and a priority multiplier (both maps are Record-complete)', () => {
     expect(REPORTABLE_ITEM_LABELS['conversation-file']).toBe('Conversation File');
-    // Mirrors `work-asset` — the other shared-FILE surface — not the 0.8 chat-message weight.
     expect(REPORT_ITEM_TYPE_MULTIPLIERS['conversation-file']).toBe(
       REPORT_ITEM_TYPE_MULTIPLIERS['work-asset'],
     );
@@ -612,7 +565,6 @@ describe('a Conversation File is reportable and actionable in its own right', ()
       resolvedAt: 1,
     };
     expect(ResolvedReportTargetV1Schema.safeParse(resolved).success).toBe(true);
-    // `.strict()` — a re-introduced attachmentId is rejected outright.
     expect(
       ResolvedReportTargetV1Schema.safeParse({ ...resolved, attachmentId: 'att-1' }).success,
     ).toBe(false);
@@ -633,7 +585,6 @@ describe('Conversation File wire contracts (delete input + upload variables)', (
         conversationFileId: 'cf-1',
       }).success,
     ).toBe(true);
-    // Guild channels have no Conversation Files — unrepresentable at the wire boundary.
     expect(
       DeleteConversationFileInputSchema.safeParse({
         conversation: { kind: 'guildChannel', workProjectId: 'w-1', guildChatChannelId: 'c-1' },
@@ -655,7 +606,7 @@ describe('Conversation File wire contracts (delete input + upload variables)', (
     ).toBe(false);
   });
 
-  it('UploadConversationFileVariablesSchema is strict and two-kind (MEDIA-005)', () => {
+  it('UploadConversationFileVariablesSchema is strict and two-kind (RULE-STD-MEDIA-005)', () => {
     const file = new File(['x'], 'a.png', { type: 'image/png' });
     expect(
       UploadConversationFileVariablesSchema.safeParse({

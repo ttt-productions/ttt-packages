@@ -1,33 +1,16 @@
-// The release gate and verdict: the one implementation of selected <-> result pairing. Both answer
-// "did every job whose selection said it must run actually run?", so both live here.
-//
-// The pairing is EXACT, never "success or skipped": a skipped job reports as success to a
-// dependent's status check, so without an exact pair a selected deploy job that was unexpectedly
-// skipped lets the run finish green, become the next last-green baseline, and permanently strand
-// the component it claimed to release.
-//
-// Every input arrives as the step's environment; nothing here calls a provider or reads a
-// credential.
-
 export type ReleaseEnv = Readonly<Record<string, string | undefined>>;
 
 export interface VerdictComponent {
-  /** The scope output key (`backend`, `apphosting`, a Worker's key). */
   key: string;
-  /** How the component is named in messages and the summary. */
   label: string;
-  /** The env key carrying the component's selection (`true` / `false`). */
   selection: string;
-  /** The env key carrying its verify job's result, and that job's name. */
   verifyResult: string;
   verifyJob: string;
-  /** The env keys carrying its deploy job's result, per environment. */
   deploy: { dev: string; prod: string };
 }
 
 export interface ReleaseVerdictConfig {
   components: readonly VerdictComponent[];
-  /** Extra summary lines an app reports, each a label and the env key it reads. */
   summaryFields?: readonly { label: string; env: string }[];
 }
 
@@ -39,10 +22,7 @@ export interface Blocker {
 const read = (env: ReleaseEnv, key: string): string => String(env[key] ?? '').trim();
 const isSelected = (env: ReleaseEnv, key: string): boolean => read(env, key) === 'true';
 
-/**
- * The verification gate's assertions; an empty list passes. They live in the required STEP, never
- * in a job `if:` — a false job-level condition marks the job skipped, which reports as success.
- */
+// In the required step, never a job `if:`: a skipped job reports as success.
 export function assertVerificationGate(config: ReleaseVerdictConfig, env: ReleaseEnv): Blocker[] {
   const blockers: Blocker[] = [];
   const add = (code: string, message: string): void => {
@@ -112,11 +92,6 @@ export function assertVerificationGate(config: ReleaseVerdictConfig, env: Releas
   return blockers;
 }
 
-/**
- * The release verdict: the required final fail-closed check. For the active environment, selected
- * means deploy `success` and unselected means deploy `skipped`; every opposite-environment deploy
- * must be `skipped`. A run is an eligible last-green baseline only when this passes.
- */
 export function assertReleaseVerdict(config: ReleaseVerdictConfig, env: ReleaseEnv): Blocker[] {
   const blockers: Blocker[] = [];
   const add = (code: string, message: string): void => {
@@ -140,9 +115,6 @@ export function assertReleaseVerdict(config: ReleaseVerdictConfig, env: ReleaseE
     );
   }
 
-  // Asserted here in their own right, not merely inherited through GATE_RESULT: a green run is
-  // what becomes the next last-green baseline, so a stale or rollback-blocked run never finishes
-  // green.
   if (read(env, 'STALE') === 'true') {
     add(
       'stale-run',
@@ -186,7 +158,6 @@ export function assertReleaseVerdict(config: ReleaseVerdictConfig, env: ReleaseE
 const mark = (value: string): string =>
   value === 'success' ? 'success' : value === 'skipped' ? 'skipped' : value || '—';
 
-/** The run summary for `GITHUB_STEP_SUMMARY`. No secrets, no credentials, no external calls. */
 export function renderSummary(config: ReleaseVerdictConfig, env: ReleaseEnv): string {
   const active = read(env, 'RELEASE_ENVIRONMENT');
   const lines = [

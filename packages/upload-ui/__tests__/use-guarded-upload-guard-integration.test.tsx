@@ -2,14 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 
-// --- mocks (must precede component imports) ---
+// Mocks must precede the component imports.
 
 const uploadFileResumableMock = vi.fn();
 vi.mock('@ttt-productions/upload-core/browser', () => ({
   uploadFileResumable: (args: any) => uploadFileResumableMock(args),
 }));
-
-// --- imports after mocks ---
 
 import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
 import {
@@ -55,16 +53,13 @@ describe('useGuardedUpload — guard provider integration', () => {
     const { result } = renderHook(() => useGuardedUploadAndCount(), { wrapper });
     expect(result.current.activeUploadCount).toBe(0);
 
-    // Start the upload without awaiting — let it hang
     let uploadDone: Promise<void> | undefined;
     act(() => {
       uploadDone = result.current.guarded(makeArgs());
     });
 
-    // Count should be 1 while upload is in flight
     expect(result.current.activeUploadCount).toBe(1);
 
-    // Resolve the upload and flush
     await act(async () => {
       resolveUpload();
       await uploadDone;
@@ -130,14 +125,12 @@ describe('useGuardedUpload — guard provider integration', () => {
 
     expect(result.current.activeUploadCount).toBe(2);
 
-    // Resolve B first
     await act(async () => {
       resolveB();
       await doneB;
     });
     expect(result.current.activeUploadCount).toBe(1);
 
-    // Then resolve A
     await act(async () => {
       resolveA();
       await doneA;

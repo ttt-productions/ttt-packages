@@ -1,7 +1,3 @@
-// Audition board display + filter/sort contracts (constants/options.ts). ttt-core owns the
-// audition type labels, the board's ALL filter sentinel, and the typed sort keys, so every
-// client renders the same copy and no surface hand-rolls its own filter/sort state.
-
 import { describe, it, expect } from 'vitest';
 import {
   AUDITION_TYPES,
@@ -31,8 +27,6 @@ describe('AUDITION_TYPES', () => {
   });
 
   it('uses only settled user-facing terminology (no compound or retired terms)', () => {
-    // UI copy uses the SHORT settled terms; the compound identifiers and the retired
-    // vocabulary must never leak into a rendered string (ARCH-107).
     const retired = ['owner', 'member', 'project', 'opportunity', 'skill', 'universe'];
     for (const type of AuditionTypeSchema.options) {
       const copy =
@@ -74,9 +68,6 @@ describe('audition sort keys', () => {
   });
 
   it('shares ONE declaration of the newest/endingSoon pair across every feed', () => {
-    // The pair used to be restated verbatim in all four feed entries; it is now spread from a
-    // single base declaration. This pins VALUE equality, so a future edit that reintroduces a
-    // per-feed copy of either option (and drifts its label/field/direction) fails here.
     const base = AUDITION_SORT_OPTIONS.default;
     for (const [feed, options] of Object.entries(AUDITION_SORT_OPTIONS)) {
       expect(options.newest, `${feed}.newest drifted from the shared base pair`).toEqual(
@@ -102,8 +93,6 @@ describe('audition sort keys', () => {
   });
 
   it('platformAudition stays an exact copy of the default set (the by-type lookup must be total)', () => {
-    // `AUDITION_SORT_OPTIONS[filter]` is indexed by the canonical AuditionType, so platform
-    // auditions need an entry even though they offer nothing beyond the shared pair.
     expect(AUDITION_SORT_OPTIONS.platformAudition).toEqual(AUDITION_SORT_OPTIONS.default);
   });
 
@@ -119,16 +108,11 @@ describe('audition sort keys', () => {
       'lowestStakeShares',
       'newest',
     ]);
-    // Compile-checked: the shared pair's keys are still members of the derived union.
     const sharedPairKeys: AuditionSortKey[] = ['newest', 'endingSoon'];
     for (const key of sharedPairKeys) expect(declared.has(key)).toBe(true);
   });
 
   it('AuditionSortKey spans every feed, not just the default one', () => {
-    // The failure this guards: deriving the union from AUDITION_SORT_OPTIONS.default only,
-    // which silently rejects the type-specific keys. These two are declared on exactly one
-    // feed each, so a narrowed derivation fails to compile right here. Their presence in the
-    // options is then asserted at runtime.
     const sponsoredOnly: AuditionSortKey = 'highestPrice';
     const workOnly: AuditionSortKey = 'highestStakeShares';
     expect(Object.keys(AUDITION_SORT_OPTIONS.sponsoredAudition)).toContain(sponsoredOnly);

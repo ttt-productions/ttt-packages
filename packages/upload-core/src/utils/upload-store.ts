@@ -49,8 +49,8 @@ function notifyList() {
 }
 
 const MAX_SESSIONS = 100;
-const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
+const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000;
+const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function pruneOldUploadSessions() {
   const t = now();
@@ -82,7 +82,6 @@ export function pruneOldUploadSessions() {
   return pruned;
 }
 
-/** Load persisted sessions into the in-memory store. */
 export async function rehydrateUploadSessions() {
   if (!persistence) return;
 
@@ -114,7 +113,6 @@ export function upsertUploadSession(
 ) {
   const prev = sessions.get(partial.id);
 
-  // Guard against out-of-order async updates.
   if (prev && partial.updatedAt != null && partial.updatedAt < prev.updatedAt) return;
 
   const prevStatus = prev?.status ?? 'idle';
@@ -124,10 +122,8 @@ export function upsertUploadSession(
   const prevIsTerminal = isTerminal(prevStatus);
   const nextIsTerminal = isTerminal(nextStatus);
 
-  // Once terminal, stay terminal. If we receive a terminal nextStatus first, accept it.
   const status = prevIsTerminal ? prevStatus : nextIsTerminal ? nextStatus : nextStatus;
 
-  // Progress values should never go backwards.
   const transferred = Math.max(partial.transferred ?? 0, prev?.transferred ?? 0);
   const total = Math.max(partial.total ?? 0, prev?.total ?? 0);
   const percent = Math.max(partial.percent ?? 0, prev?.percent ?? 0);
@@ -189,13 +185,11 @@ export function subscribeUploadSession(id: string, fn: Listener): () => void {
   };
 }
 
-/** Subscribe to changes in the *list* (new/removed sessions, rehydrate). */
 export function subscribeUploadSessionsList(fn: ListListener): () => void {
   listListeners.add(fn);
   return () => listListeners.delete(fn);
 }
 
-/** Test-only: empties every session, listener, and persistence binding. Never call in production code. */
 export function __resetUploadStore(): void {
   sessions.clear();
   listeners.clear();

@@ -1,6 +1,3 @@
-// Inside a package, code imports the file that defines each name and only an entry index re-exports;
-// no package has a runtime import cycle.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   packageImportCyclesGuard,
@@ -27,7 +24,6 @@ const manifest = (entries: Record<string, string>) =>
     ),
   });
 
-/** A repository holding one package `@acme/kit`, its files named relative to the package folder. */
 function packageRepo(files: Record<string, string>, entries: Record<string, string> = ENTRIES) {
   const all: Record<string, string> = {
     'scripts/anchor.ts': 'export {};',

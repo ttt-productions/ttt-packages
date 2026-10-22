@@ -1,11 +1,3 @@
-// The site-tour PENDING preference — the device-local slot behind the ONE sanctioned
-// optimistic-hide exception. `privateData/{uid}.siteTour` stays the sole authority; this
-// entry only overlays it while a callable write is unconfirmed.
-//
-// Every case here maps to a failure the shape exists to prevent: a choice leaking across
-// accounts, malformed storage hiding the tour forever, an old completion completing a NEW
-// tour, and a slow tab erasing a newer tab's choice (the compare-and-remove `id`).
-
 import { describe, it, expect } from 'vitest';
 import {
   SiteTourPendingPreferenceSchema,
@@ -52,7 +44,6 @@ describe('siteTourPendingStorageKey', () => {
       MASCOT_HIDDEN_CHANGE_EVENT,
     ];
     expect(new Set(events).size).toBe(events.length);
-    // A shared value would make the same-tab broadcast collide with the storage key itself.
     expect(SITE_TOUR_PENDING_CHANGE_EVENT).not.toBe(siteTourPendingStorageKey('user-1'));
   });
 });
@@ -238,8 +229,6 @@ describe('SiteTourPendingPreferenceSchema — rejected entries fall back to the 
 
 describe('the pending entry is a replay guard, never server authority', () => {
   it('carries a tourVersion the CALLABLE payload deliberately does not accept', () => {
-    // The server stamps SITE_TOUR_CURRENT_VERSION at completion; the local version exists
-    // only so a stale pending completion can be discarded instead of completing a NEW tour.
     expect(
       UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'completeTour', tourVersion: 1 })
         .success,

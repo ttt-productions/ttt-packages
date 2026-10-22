@@ -2,11 +2,6 @@ import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
 
 export type UploadErrorCode = 'missing_content_type' | 'invalid_content_type';
 
-/**
- * Typed error thrown by upload-core when a client-side guard rejects an upload
- * before it reaches Firebase Storage. Consumers can catch this and show a
- * friendly message instead of parsing a storage 403.
- */
 export class UploadError extends Error {
   readonly code: UploadErrorCode;
 
@@ -19,11 +14,6 @@ export class UploadError extends Error {
   }
 }
 
-/**
- * Returns true if the given string looks like a valid media MIME type
- * for an image, video, or audio upload: image/*, video/*, or audio/*.
- * Empty strings, application/octet-stream, and anything else → false.
- */
 export function isValidMediaContentType(contentType: string | undefined | null): boolean {
   if (!contentType) return false;
   const ct = contentType.toLowerCase().trim();

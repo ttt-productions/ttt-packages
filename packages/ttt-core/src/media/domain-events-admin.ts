@@ -2,10 +2,6 @@ import { z } from 'zod';
 import { FileOriginSchema } from './file-origin.js';
 import { SystemAccountSlotIdSchema } from '../system-slots/system-slots.js';
 
-// DomainEvent schemas for the admin/moderation domain — content violations,
-// threshold-library review decisions, admin dispatch, and appeals. Assembled
-// into the discriminated union in ./domain-events.ts.
-
 export const ModerationViolationCreatedEventSchema = z
   .object({
     type: z.literal('moderation.violationCreated'),
@@ -74,9 +70,6 @@ export const AdminDispatchReviewedEventSchema = z
   })
   .strict();
 
-// An admin forced a display-name reset on a member. The target's displayName is
-// a publicUsers-mirrored field; the actor is an admin, never the member, which
-// is why this is separate from profile.displayNameChanged.
 export const AdminDisplayNameResetForcedEventSchema = z
   .object({
     type: z.literal('admin.displayNameResetForced'),
@@ -88,11 +81,6 @@ export const AdminDisplayNameResetForcedEventSchema = z
   })
   .strict();
 
-// A hall content change request was APPROVED — the only decision that writes
-// anything. On the Hall grains an approval updates the Hall entry (`hallItemId`;
-// `subItemId` when the request targeted a chapter / track / episode) and, for the
-// detail, the Work and its public mirror; on the realm grain it updates the Realm
-// doc (`workRealmId`, and no Hall ids). A denial changes no content and emits nothing.
 export const HallContentChangeRequestApprovedEventSchema = z
   .object({
     type: z.literal('hallContentChangeRequest.approved'),
@@ -107,7 +95,6 @@ export const HallContentChangeRequestApprovedEventSchema = z
   })
   .strict();
 
-// The owner accepted a violation decision: the violation record and its upload are deleted.
 export const ViolationDecisionAcceptedEventSchema = z
   .object({
     type: z.literal('violation.decisionAccepted'),
@@ -132,7 +119,6 @@ export const ViolationAppealSubmittedEventSchema = z
   })
   .strict();
 
-// A system account slot (`uid` or `uidList`) was set or cleared.
 export const SystemSlotUidUpdatedEventSchema = z
   .object({
     type: z.literal('systemSlot.uidUpdated'),

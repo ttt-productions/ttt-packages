@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider, onlineManager, useQuery } from '@tans
 import React from 'react';
 import { useReadRetryState, type ReadRetryState } from '../../src/react/use-read-retry-state.js';
 
-// Each read's answers are queued per key, so a test decides when a retry resolves or fails.
 interface Pending {
   resolve: (value: string) => void;
   reject: (error: Error) => void;
@@ -85,7 +84,6 @@ describe('useReadRetryState', () => {
 
     act(() => void result.current.query.refetch());
     await waitFor(() => expect(result.current.query.isFetching).toBe(true));
-    // The query itself has dropped its failure and gone back to pending under the retry.
     expect(result.current.query.error).toBeNull();
     expect(result.current.query.isPending).toBe(true);
     expect(result.current.state).toEqual({ error: failure, isRetrying: true, isLoading: false });
@@ -171,7 +169,6 @@ describe('useReadRetryState', () => {
   });
 });
 
-// A composite read builds its error in render, so every render hands the helper a new object.
 interface RebuiltProps {
   code: string | null;
   running: boolean;

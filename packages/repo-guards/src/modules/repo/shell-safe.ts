@@ -1,9 +1,3 @@
-// No child process gets an args array together with a shell. Node only space-joins an args array
-// for a shell, unescaped, and deprecates that form: a child that needs a shell gets ONE command
-// string plus its options, and one that needs no shell keeps its args array with `shell` unset or
-// `false`. The check reads the parse, so it sees an options object written at the call site, not one
-// passed in through a variable or a spread.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -17,10 +11,6 @@ const CALLEES: ReadonlySet<string> = new Set(['spawn', 'spawnSync', 'execFile', 
 const propertyName = (name: ts.PropertyName): string | null =>
   ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : null;
 
-/**
- * A top-level `shell` property whose value is anything but the literal `false` (Node's default), the
- * `shell` shorthand included. A `shell` key nested inside another property sets no spawn option.
- */
 function turnsOnShell(options: ts.ObjectLiteralExpression): boolean {
   return options.properties.some((property) => {
     if (ts.isShorthandPropertyAssignment(property)) return property.name.text === 'shell';
@@ -29,10 +19,6 @@ function turnsOnShell(options: ts.ObjectLiteralExpression): boolean {
   });
 }
 
-/**
- * The index of every call whose third argument — the options slot after an args array — is an
- * object literal that turns a shell on. A string is read as a sample file of code.
- */
 export function shellWithArgsArray(source: FileView | string): number[] {
   const file = typeof source === 'string' ? viewOfText('sample.ts', source) : source;
   const sf = file.sourceFile;
@@ -48,7 +34,6 @@ export function shellWithArgsArray(source: FileView | string): number[] {
   return hits;
 }
 
-/** Every finding the check makes in one file. */
 export function shellArgsFindings(file: FileView): Finding[] {
   return shellWithArgsArray(file).map((index) => ({
     file: file.path,
@@ -70,7 +55,6 @@ export const SHELL_SAFE_DESCRIPTION =
   '(shell: true, a shell path, or the shell shorthand): Node joins that array with spaces, unescaped. Drop the shell ' +
   'and keep the args array, or build one command string and pass it with the options.';
 
-/** Takes no facts: it reads every code root the layout declares. */
 export type ShellSafeFacts = Readonly<Record<string, never>>;
 
 export const shellSafeGuard: GenericGuardDefinition<ShellSafeFacts> = {

@@ -1,7 +1,5 @@
 import type { AuditEvent } from '../types.js';
 
-// Type-only imports — no firebase-admin runtime initialization in this package.
-// The consumer supplies the live Firestore instance.
 import type { Firestore, WriteBatch, Transaction } from 'firebase-admin/firestore';
 
 type FirestoreLike = Firestore;
@@ -20,28 +18,17 @@ export interface WriteAuditEventArgs<TEventType extends string, TActor, TTarget,
   userAgent?: string | null;
   region?: string | null;
   schemaVersion?: number;
-  /** Optional batch — write is added to this batch instead of committing immediately. */
   batch?: BatchLike;
-  /** Optional transaction — write is added to this transaction instead of committing. */
   transaction?: TransactionLike;
 }
 
 export interface AuditWriterConfig {
-  /** Live Firestore instance. */
   db: FirestoreLike;
-  /** Collection path where audit events are written (e.g. "auditEvents"). */
   collectionPath: string;
-  /** Default schemaVersion applied when args don't override. Default: 1. */
   defaultSchemaVersion?: number;
-  /** Override the id generator (for testing). Default: crypto.randomUUID(). */
   idGenerator?: () => string;
 }
 
-/**
- * Build an `writeAuditEvent` function bound to a Firestore + collection path.
- * The generic parameters allow consumers to lock the event-type catalog,
- * actor/target/metadata shapes once and get full type-safety at every call site.
- */
 export function createAuditWriter<
   TEventType extends string = string,
   TActor = string,

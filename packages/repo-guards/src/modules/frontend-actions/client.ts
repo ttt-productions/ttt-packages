@@ -1,7 +1,3 @@
-// The guards over client resources with one owner each: the app config document, browser storage,
-// upload-progress listeners, media rendering, media classification, motion, age derivation, and the
-// test mocks of pure package roots.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
@@ -30,27 +26,18 @@ import { aliasList, resolveSpecifier } from '../../support/resolve-specifier.js'
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
-/** A dotted code spelling (`A.b`) as a pattern that allows whitespace around each dot. */
 const dottedPattern = (spelling: string) =>
   spelling
     .split('.')
     .map((part) => escapeRegExp(part.trim()))
     .join('\\s*\\.\\s*');
 
-/** A name in any quote: `'x'`, `"x"`, or a backtick literal. */
 const quotedPattern = (name: string) => `(['"\`])${escapeRegExp(name)}\\1`;
 
-// ---------------------------------------------------------------------------------------------
-// App config: one client module names the app config document.
-
 export interface AppConfigReaderFacts {
-  /** The one client module that reads the app config document. */
   provider: string;
-  /** The code spellings that name the document (`PATHS.appConfig`). */
   docSpellings: readonly string[];
-  /** The document's collection name, matched when quoted. */
   collectionName: string;
-  /** Server-side folders that read the document as the backend, each with why (declare [] when none). */
   serverPaths: readonly Reviewed[];
 }
 
@@ -111,11 +98,7 @@ export const appConfigReaderGuard: GenericGuardDefinition<AppConfigReaderFacts> 
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Browser storage: touched only through the guarded helper.
-
 export interface BrowserStorageFacts {
-  /** The guarded helper every read and write goes through. */
   helper: string;
   allowlist: readonly AllowlistEntry[];
 }
@@ -156,15 +139,9 @@ export const browserStorageGuard: GenericGuardDefinition<BrowserStorageFacts> = 
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Upload listeners: no component subscribes to the upload-processing collection itself.
-
 export interface UploadListenerFacts {
-  /** The upload-processing collection's name, matched when quoted. */
   collectionName: string;
-  /** Code spellings that name the collection (`COLLECTIONS.UPLOADS`). */
   collectionSpellings: readonly string[];
-  /** The one global subscriber and the hooks feature code reads instead. */
   subscriber: string;
 }
 
@@ -207,20 +184,14 @@ export const uploadListenerGuard: GenericGuardDefinition<UploadListenerFacts> = 
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Media renderer: every stored picture draws through the app's renderer owners.
-
 export interface MediaRendererFacts {
-  /** Each renderer owner: the one file that may import the listed names (or every import) from a module. */
   renderers: ReadonlyArray<{ owner: string; module: string; imports: readonly string[] | 'all' }>;
-  /** Files that may draw a raw image, each with why (declare [] when none). */
   rawImageAllowlist: readonly AllowlistEntry[];
 }
 
 const RAW_IMAGE =
   /<img\b|from\s*['"]next\/image['"]|\bbackgroundImage\s*:|background(?:-image)?\s*:\s*url\(/g;
 
-/** Each import of a renderer's names (or of anything, for `all`) from its module or a subpath. */
 export function rendererImports(
   file: FileView,
   renderer: MediaRendererFacts['renderers'][number],
@@ -323,15 +294,11 @@ export const mediaRendererGuard: GenericGuardDefinition<MediaRendererFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// MIME prefix classification: what a file IS comes from the server's inspection, never a MIME prefix.
-
 export type MimePrefixFacts = Record<string, never>;
 
 const MIME_PREFIX = /^(image|video|audio)\/$/;
 const MIME_PREFIX_REGEX = /\^\(?\??:?(image|video|audio)/;
 
-/** Each MIME-prefix classification: a bare prefix literal, a regex anchored on a media type, or `split('/')[0]`. */
 export function mimePrefixClassifications(file: FileView): Hit[] {
   const sf = file.sourceFile;
   const hits: Hit[] = [];
@@ -395,11 +362,7 @@ export const mimePrefixGuard: GenericGuardDefinition<MimePrefixFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Effective motion: one store reads the device's reduced-motion request.
-
 export interface EffectiveMotionFacts {
-  /** The store that owns the effective-motion value. */
   store: string;
 }
 
@@ -413,8 +376,6 @@ export const effectiveMotionGuard: GenericGuardDefinition<EffectiveMotionFacts> 
   },
   build(facts) {
     const query = matchPattern(/matchMedia\([^)]*prefers-reduced-motion/);
-    // The store may hold the media query itself or build on a package store that does, so it is
-    // exempt rather than required to hold it; it must still exist.
     const guard = reviewedAllowlist({
       title: 'one store reads the reduced-motion request',
       description:
@@ -445,11 +406,7 @@ export const effectiveMotionGuard: GenericGuardDefinition<EffectiveMotionFacts> 
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Date-of-birth derivation: one owner computes whole years from a date.
-
 export interface DateOfBirthFacts {
-  /** The one file that derives an age from a date of birth (may be in the core package's build). */
   owner: string;
 }
 
@@ -491,20 +448,11 @@ export const dateOfBirthGuard: GenericGuardDefinition<DateOfBirthFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Partial mocks: a test mock of a listed package root keeps the root's real exports.
-
 export interface PartialMockFacts {
-  /** Package roots whose mocks must spread the real module, each with what breaks when one does not. */
   packageRoots: ReadonlyArray<{ module: string; why: string }>;
-  /**
-   * The app's shared fakes: a mock whose factory loads a listed root's shared fake keeps the root's
-   * real exports when that fake does.
-   */
   sharedFakes?: Pick<SharedFakeFacts, 'importAliases' | 'fakes'>;
 }
 
-/** Each `vi.mock` / `vi.doMock` call on exactly `module`, as its balanced source slice. */
 export function moduleMockCalls(
   code: string,
   module: string,
@@ -524,14 +472,12 @@ export function moduleMockCalls(
   return calls;
 }
 
-/** True when a mock call spreads the real module, inline or through a binding. */
 export function spreadsImportOriginal(call: string): boolean {
   if (/\.\.\.\s*\(\s*await\s+importOriginal\b/.test(call)) return true;
   const binding = /const\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+importOriginal\b/.exec(call);
   return binding !== null && new RegExp(`\\.\\.\\.\\s*${escapeRegExp(binding[1])}\\b`).test(call);
 }
 
-/** The specifiers a mock call's factory loads with `import()`. */
 function factoryLoads(call: string): string[] {
   const loads: string[] = [];
   const load = /\bimport\(\s*(['"`])([^'"`]+)\1\s*\)/g;
@@ -539,7 +485,6 @@ function factoryLoads(call: string): string[] {
   return loads;
 }
 
-/** The source of a function `name` declares, as a declaration or a variable holding a function. */
 function functionText(file: FileView, name: string): string | null {
   for (const statement of file.sourceFile.statements) {
     if (ts.isFunctionDeclaration(statement) && statement.name?.text === name)
@@ -552,10 +497,6 @@ function functionText(file: FileView, name: string): string | null {
   return null;
 }
 
-/**
- * True when a shared fake keeps its module's real exports: it spreads `importOriginal` itself, or it
- * calls a helper from a local file whose own body does.
- */
 function ownerKeepsRealExports(
   context: GuardContext,
   owner: string,

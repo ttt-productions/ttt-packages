@@ -22,11 +22,6 @@ export function isGuildStandingId(value: unknown): value is GuildStandingId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(GUILD_STANDINGS, value);
 }
 
-/**
- * True when a `GuildmateUser.guildStandings` array (standing IDs) carries the steward
- * standing. The one predicate for "is this member the work steward" — callers must not
- * re-quote the member, and must not test it against a standing VALUE ('Steward').
- */
 export function hasStewardOwnerStanding(
   guildStandings: readonly string[] | null | undefined,
 ): boolean {
@@ -66,11 +61,6 @@ export function getActionsForGuildStanding(
   );
 }
 
-/**
- * Whether a standing set grants a Work action — the one reading of `WORK_PROJECT_ACTIONS`'
- * grants. It answers for the standings alone: the active-Guildmate floor (an active guildmate
- * doc and membership) is the caller's check, made before this one.
- */
 export function guildStandingsGrantAction(
   guildStandings: readonly string[] | null | undefined,
   action: WorkProjectActionId,
@@ -79,11 +69,6 @@ export function guildStandingsGrantAction(
   return guildStandings?.some((standing) => grantedTo.includes(standing)) === true;
 }
 
-/**
- * Whether a Guildmate administers the Work's file system: active, and holding one of
- * `WORK_FILE_ADMIN_GUILD_STANDING_IDS`. A file admin's access overrides every folder's
- * trade-profession lists.
- */
 export function isWorkFileAdmin(member: {
   status: string;
   guildStandings: readonly string[];

@@ -3,12 +3,11 @@ import { render, act, screen, fireEvent } from '@testing-library/react';
 import { Composer } from '../src/ui/Composer.js';
 import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from '@ttt-productions/chat-schemas';
 
-describe('Composer is text-only (Conversation Files replaced chat attachments)', () => {
+describe('Composer is text-only (files belong to the conversation, never a message)', () => {
   it('renders no attach control and no file picker', () => {
     render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
     expect(screen.queryByRole('button', { name: /attach/i })).toBeNull();
     expect(document.querySelector('input[type="file"]')).toBeNull();
-    // Exactly one action button: Send.
     expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Send']);
   });
 
@@ -39,7 +38,7 @@ describe('Composer is text-only (Conversation Files replaced chat attachments)',
   });
 });
 
-describe('Composer send failure (C-B8)', () => {
+describe('Composer send failure', () => {
   it('keeps the text and shows an error when send fails — no clear, no re-throw', async () => {
     const onSend = vi.fn().mockRejectedValue(new Error('chat-send-failed'));
     render(<Composer onSend={onSend} />);
@@ -54,7 +53,6 @@ describe('Composer send failure (C-B8)', () => {
     await act(async () => {});
 
     expect(onSend).toHaveBeenCalled();
-    // Text preserved (setText('') only runs on the success path), error surfaced.
     expect(textarea.value).toBe('keep me');
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
@@ -87,7 +85,6 @@ describe('Composer navigation-guard registration (in-flight send)', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'in flight' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
-    // Registered for the whole in-flight window — this is what a navigation would abort.
     expect(screen.getByTestId('guard-count').textContent).toBe('1');
 
     await act(async () => {

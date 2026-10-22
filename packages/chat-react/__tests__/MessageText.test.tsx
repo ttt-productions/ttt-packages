@@ -11,7 +11,6 @@ describe('MessageText', () => {
   it('renders token-looking text verbatim — there is no inline token grammar', () => {
     const { container } = render(<MessageText text="hi @[user:u1|Alice]!" />);
     expect(container.textContent).toBe('hi @[user:u1|Alice]!');
-    // One wrapper span holding a single text node: nothing is parsed out into chips.
     const outer = container.firstElementChild as HTMLElement;
     expect(outer.tagName).toBe('SPAN');
     expect(outer.children.length).toBe(0);

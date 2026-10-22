@@ -1,8 +1,3 @@
-// Reads Vitest's JSON report for the quiet gate. A Vitest stage is red whenever Vitest exits
-// non-zero, and the red output has to say why. Two failure kinds reach the report: a failed test,
-// and a test FILE that failed to load (an import that threw, a syntax error), which carries its
-// error as the file's own `message` and adds nothing to `numFailedTests`. Both are collected.
-
 export interface VitestAssertion {
   status?: string;
   title?: string;
@@ -51,10 +46,7 @@ export interface VitestTotals {
   failedSuites: number;
 }
 
-/**
- * The report object from Vitest's `--reporter=json` stdout, or null when none parses. Vitest may
- * print other text around it, so the object between the first `{` and the last `}` is tried too.
- */
+// Vitest may print other text around the JSON object.
 export function parseVitestJson(stdout: string): VitestJsonReport | null {
   const trimmed = stdout.trim();
   try {
@@ -71,11 +63,8 @@ export function parseVitestJson(stdout: string): VitestJsonReport | null {
   }
 }
 
-/**
- * The failed tests, the files that failed to load, the skipped or pending tests, and the stage
- * totals of one report. A file failed to load when its status is `failed` and none of its tests
- * failed; its error is the file's own message.
- */
+// A test file that failed to load carries its error as the file's own `message` and adds nothing
+// to `numFailedTests`.
 export function collectVitestFailures(report: VitestJsonReport | null): {
   failures: TestFailure[];
   suiteFailures: SuiteFailure[];
@@ -115,12 +104,6 @@ export function collectVitestFailures(report: VitestJsonReport | null): {
   return { failures, suiteFailures, skippedTests, totals };
 }
 
-/**
- * A Vitest stage's verdict: green only when Vitest exited 0, no test failed, no file failed to
- * load, and no test was skipped or left pending — a skipped test proves nothing, so a stage that
- * passes with one is not measuring what it claims. `skippedReason` names the skips when they are
- * what keeps the stage from green.
- */
 export function vitestStageVerdict({
   code,
   totals,
@@ -142,7 +125,6 @@ export function vitestStageVerdict({
   return { ok, skippedReason };
 }
 
-/** Each file that failed to load: its path, then its error, indented. Empty when none did. */
 export function formatSuiteFailures(suiteFailures: SuiteFailure[]): string {
   return suiteFailures
     .map(

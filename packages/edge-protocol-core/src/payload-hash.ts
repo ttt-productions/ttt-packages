@@ -1,18 +1,3 @@
-// Canonical payload hashing — the shared `payloadHash` primitive used by the
-// versioned-apply rule and every signed internal edge call (media-authority
-// apply and the chat sync/command/outbox endpoints). WebCrypto only, so the
-// SAME code runs in Cloud Functions (Node 24) and Cloudflare Workers/DOs.
-//
-// The hash is computed over a DETERMINISTIC serialization (object keys sorted
-// recursively) so the same logical payload always produces the same digest
-// across processes and runtimes — the property the apply rule depends on
-// ("equal version + identical payloadHash ⇒ idempotent").
-
-/**
- * Deterministic JSON: object keys sorted recursively; arrays keep order;
- * `undefined` properties are dropped (standard JSON semantics). The same
- * logical value always serializes to the same string.
- */
 export function canonicalize(value: unknown): string {
   return JSON.stringify(sortValue(value));
 }
@@ -37,31 +22,16 @@ function bytesToHex(bytes: Uint8Array): string {
   return s;
 }
 
-/** Lowercase-hex SHA-256 of a UTF-8 string. */
 export async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest('SHA-256', data);
   return bytesToHex(new Uint8Array(digest));
 }
 
-/**
- * Canonical hash of a payload object: sorted-key serialization → SHA-256 hex.
- * This is the `payloadHash` of the serving-record / sync contracts; it is
- * computed over the payload fields EXCLUDING the hash itself (callers pass the
- * payload without its `payloadHash`/`authorityPayloadHash` field).
- */
 export async function hashPayload(payload: unknown): Promise<string> {
   return sha256Hex(canonicalize(payload));
 }
 
-/**
- * Canonical hash of a set of strings: the values sorted by UTF-16 code unit, joined
- * with `\n`, then SHA-256 hex. Order-independent, so two runtimes holding the same
- * values in a different order agree on the digest — the property a published
- * snapshot's hash check depends on. A value containing `\n` is refused, because the
- * separator would then stop being unambiguous (two different sets could join to the
- * same string). Duplicates are kept: the input is hashed as given.
- */
 export async function hashStringSet(values: readonly string[]): Promise<string> {
   for (const value of values) {
     if (value.includes('\n'))

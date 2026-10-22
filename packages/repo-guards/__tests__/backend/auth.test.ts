@@ -1,6 +1,3 @@
-// The authority guards: the admin claim read only by its resolver, one request-origin reader, no
-// blocking function, every callable's App Check posture, and the client's limited-use declarations.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   adminClaimGuard,

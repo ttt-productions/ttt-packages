@@ -9,60 +9,45 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 - **Internal request auth** — `signInternalRequest` / `verifyInternalRequest`:
   HMAC-SHA256 over protocol marker + audience + method + exact path + timestamp +
   body hash + deterministic `operationId`, with a narrow replay window. Fails closed.
-- **Pre-body header check** — `precheckInternalHeaders(headers, { nowSec, replayWindowSec })`:
-  the rejects that need no body and no secret, for an operation-id-profile request (ARCH-005's
-  "cheap pre-body rejects"). It reads `INTERNAL_AUTH_OPERATION_VERSION_HEADER` and
-  `INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER` (decimal seconds, digits only) and answers
+- **Pre-body header check** — `precheckInternalHeaders(headers, names, { nowSec, replayWindowSec })`:
+  the rejects that need no body and no secret (RULE-STD-ARCH-005's "cheap pre-body rejects"). It
+  reads `names.version` and `names.timestamp` (decimal seconds, digits only) and answers
   `{ ok: true, version, timestampSec }` or `{ ok: false, reason: 'bad-version' | 'bad-timestamp' |
   'expired' | 'future' }` (`InternalPrecheckResult`). It applies the same version + window rule
   `verifyInternalRequest` applies — one rule, not a copy — so an endpoint runs it before
-  `readBoundedBody`, answers a refusal at once (e.g. 401), and hands the returned `version` and
-  `timestampSec` to `verifyInternalRequest` after the bounded read. The compact profile has no
-  pre-body check (it has no consumer). `headers` is structural, so a Workers or Node `Headers`
-  passes as is.
-- **Internal-auth transport headers** (`internal-auth-headers.ts`) — the wire names
-  that carry a signature from the Cloud Functions tree that MINTS it to the
-  Worker/DO tree that VERIFIES it, in the two deployed profiles: the **compact**
-  profile (`INTERNAL_AUTH_SIGNATURE_HEADER` / `_TIMESTAMP_HEADER` /
-  `_VERSION_HEADER`), where the verifying side recomputes the signed
-  `operationId` from the body, and the **operation-id** profile
-  (`INTERNAL_AUTH_OPERATION_ID_HEADER` / `_OPERATION_TIMESTAMP_HEADER` /
-  `_OPERATION_VERSION_HEADER` / `_OPERATION_SIGNATURE_HEADER`), where the
-  operation id rides the wire under its own name. The two profiles use different
-  strings and are deliberately not unified — both are already deployed on both
-  sides of independent trust boundaries, so collapsing them is a protocol break.
-  Names only, same as the provenance headers; ARCH-005's one definition for a
-  cross-tree trust contract.
+  `readBoundedBody`, answers a refusal at once, and hands the returned `version` and `timestampSec`
+  to `verifyInternalRequest` after the bounded read. `headers` is structural, so a Workers or Node
+  `Headers` passes as is; `names` is any `defineInternalAuthHeaders` result.
+- **Internal-auth header names** — `defineInternalAuthHeaders({ signature, timestamp, version,
+  operationId? })` returns the consumer's names for one transport profile, frozen, with the
+  literal types of what it was given (`InternalAuthHeaders<T>`). Every name must be a lowercase
+  `[a-z0-9-]` header name and the names must be distinct, or it throws a `TypeError`. The package
+  holds no header name of its own: the consumer defines each profile once, in the one place every
+  tree that signs or verifies it imports (RULE-STD-ARCH-005).
 - **Canonical payload hashing** — `canonicalize` (sorted-key deterministic JSON),
   `sha256Hex`, `hashPayload`: the `payloadHash` used by the versioned-apply rule
   and the activation contract (hash computed EXCLUDING the hash field itself).
 - **Canonical string-set hashing** — `hashStringSet(values)`: SHA-256 hex of the
   values sorted by UTF-16 code unit and joined with `\n`, so two runtimes holding
   the same values in any order agree on the digest. A value containing `\n` is
-  refused (`RangeError`) — the separator must stay unambiguous. It is the one
-  definition of the chat word-list snapshot hash: the Cloud Function that publishes
-  the snapshot, the Worker that stores it, and the room that loads it each compute it
-  here and refuse a snapshot whose hash disagrees.
+  refused (`RangeError`) — the separator must stay unambiguous.
 - **Versioned-apply rule** — `decideVersionedApply`: the frozen
-  apply / idempotent / conflict / stale decision shared by the media serving
-  authority and the chat realtime authorities.
+  apply / idempotent / conflict / stale decision.
 - **Envelopes** — `StructuredErrorSchema` (edge responses + durable-job `lastError`),
   `EDGE_PROTOCOL_VERSION` + `isProtocolSupported` (one rolling version of
   backward/forward compatibility for rolling Worker/DO deploys).
 - **Signed opaque tokens** — `signToken` / `verifyToken`: the `v1.{payload}.{sig}`
   signed-token format used for short-lived, verifiable capability tokens.
-- **Edge→origin provenance headers** — `ORIGIN_MARKER_HEADER` / `_VALUE`,
-  `EDGE_MARKER_HEADER` / `_VALUE`, `EDGE_SECRET_HEADER`,
-  `EDGE_CANONICAL_HOST_HEADER`, `EDGE_CLIENT_IP_HEADER`,
-  `VERIFIED_CLIENT_IP_HEADER`, plus `EDGE_INTERNAL_HEADERS` (the
-  client-forgeable set every front door deletes inbound) and its
-  `EdgeInternalHeader` type. The single definition ARCH-005 requires for a
-  cross-tree trust contract: the Worker front door that mints the headers and
-  the origin that validates the secret+host pair and mints the verified client
-  IP import the SAME strings. Names only — each tree keeps its own trust logic.
+- **Edge→origin provenance header names** — `defineProvenanceHeaders({ originMarker: { name,
+  value }, edgeMarker: { name, value }, edgeSecret, canonicalHost, clientIp, verifiedClientIp })`
+  returns those names and marker values, frozen, plus `internalHeaders`: the derived set of
+  `edgeSecret`, `canonicalHost`, `clientIp`, `verifiedClientIp`, and `originMarker.name` (every name
+  but `edgeMarker.name`). Names follow the same lowercase, distinct check as the internal-auth names;
+  a marker value must be non-empty visible ASCII. Names and values only — the consumer defines them
+  once for every tree that shares them (RULE-STD-ARCH-005), and each tree keeps its own logic.
 
 - **Bounded body read** — `readBoundedBody(source, { maxBytes })`: the one pre-authentication
-  body read for an endpoint whose signature covers the body (ARCH-005). A declared
+  body read for an endpoint whose signature covers the body (RULE-STD-ARCH-005). A declared
   `Content-Length` over `maxBytes` is refused without reading; otherwise the stream is read with a
   running byte count and cancelled the moment it passes `maxBytes`, so an absent or understated
   `Content-Length` buys nothing. It answers `{ ok: true, text }` — the UTF-8 text `request.text()`
@@ -73,25 +58,13 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 
 ## Boundary
 
-Deliberately **domain-neutral**: it never names chat or media, never imports a
-chat- or media-shaped package, and holds no state. Each consumer supplies its own
-secret + audience (e.g. a media authority's sync secret and its own
-`<name>:{env}` audience). The media serving authority and the chat
-realtime layer (chat-sync writer, chat-grant minting, chat-worker auth) both
-consume it today. Concrete domain schemas and collection names live in the
-consuming app's data package, never here.
+Deliberately **domain-neutral**: it never names a consumer's domain, never imports a
+domain-shaped package, and holds no state. Each consumer supplies its own secrets,
+audiences, paths, and header names. Concrete domain schemas and collection names live
+in the consuming app's data package, never here.
 
-The `x-ttt-*` header names are the one `ttt`-branded surface: they are literal
-wire strings two independently deployed runtimes must agree on, which is a named
-ARCH-201 exception recorded in `package-architecture.md` § Direction rules and in
-a comment block at the top of `src/provenance-headers.ts`. That ONE block's scope
-covers every `x-ttt-*` wire name the package owns — the provenance names and the
-internal-auth transport names in `src/internal-auth-headers.ts` alike; neither
-file carries a duplicate rationale. The constant NAMES stay domain-neutral (the
-profiles are named for the mechanism, never for the consumer). The exception is
-scoped to a single adopting product — if a second product adopts this package, the
-constants must be relocated (app-supplied header-name configuration, or a
-per-product contract package) or the exception revisited.
+The package holds no consumer's header names or marker values; the protocol constants it does hold
+(the signing and token versions, the envelope layout) are the scheme itself.
 
 ## Entry points
 

@@ -5,14 +5,7 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input.js';
 import type { MediaInputHandle } from '../src/types.js';
 
-// The imperative `openSelection()` handle must activate the SAME trigger
-// semantics as a human click — single enabled action runs directly through the
-// canonical selection path (honoring onBeforeSelect / validation / crop), and it
-// must never open anything while disabled or loading. A hidden-input shortcut is
-// forbidden, so we assert on the canonical picker click, not the raw input.
-
-// Radix's controlled dropdown mounts its portal content when opened; stub the
-// browser APIs jsdom lacks so a multi-action open doesn't throw.
+// jsdom lacks the browser APIs Radix's controlled dropdown calls when its portal opens.
 function installDomStubs() {
   if (typeof globalThis.ResizeObserver === 'undefined') {
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
@@ -36,7 +29,6 @@ function installDomStubs() {
   }
 }
 
-/** Single enabled action (choose file) → the plain button path. */
 function pickOnlySpec(): MediaOriginSpec {
   return {
     kind: 'image',
@@ -50,7 +42,6 @@ function pickOnlySpec(): MediaOriginSpec {
   };
 }
 
-/** Two enabled actions (choose file + take photo) → the dropdown path. */
 function pickAndPhotoSpec(): MediaOriginSpec {
   return {
     kind: 'image',
@@ -149,7 +140,6 @@ describe('MediaInput.openSelection — multi-action dropdown path', () => {
       ref.current!.openSelection();
     });
 
-    // Menu opened — but no action ran yet, so neither the picker nor the guard fired.
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(clickSpy).not.toHaveBeenCalled();
     expect(onBeforeSelect).not.toHaveBeenCalled();

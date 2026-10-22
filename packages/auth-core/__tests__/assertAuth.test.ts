@@ -1,8 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// There is deliberately NO `vi.mock("firebase-functions/v2/https")` here: assertAuth
-// throws AuthAssertionError, never HttpsError, and the consuming app maps it (authError.ts
-// says why). Its only firebase-functions reference is a TYPE import, erased at runtime.
 import { createAssertAuth } from '../src/server/assertAuth.js';
 import { AuthAssertionError } from '../src/server/authError.js';
 import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from '../src/acceptance.js';
@@ -10,13 +7,15 @@ import {
   EMAIL_VERIFICATION_REQUIRED_REASON,
   isEmailVerificationRequiredError,
 } from '../src/email-verification.js';
-import type { AssertAuthConfig, UserStatus } from '../src/server/types.js';
+import type { AssertAuthConfig, AssertAuthFn, UserStatus } from '../src/server/types.js';
 
 type TestUser = {
   uid: string;
   displayName?: string;
   status?: 'active' | 'suspended' | 'banned';
 };
+
+type TestAdminOptions = { level: 'basic' | 'elevated' };
 
 function makeRequest(opts?: { uid?: string; emailVerified?: boolean }): any {
   const uid = opts?.uid ?? 'uid-123';
@@ -40,8 +39,6 @@ const activeUserDoc: TestUser = {
   status: 'active',
 };
 
-// Minimal Firestore stub returning the active user doc, for tests that build
-// their own config instead of using the shared beforeEach harness.
 function fakeDbWithUser(): any {
   const userDocRef = {
     get: vi.fn().mockResolvedValue({ exists: true, data: () => activeUserDoc }),
@@ -49,12 +46,10 @@ function fakeDbWithUser(): any {
   return { doc: vi.fn(() => userDocRef) };
 }
 
-// --- harness ---------------------------------------------------------------
-
 let mockUserGet: ReturnType<typeof vi.fn>;
 let mockRequireAdmin: ReturnType<typeof vi.fn>;
 let mockDbDoc: ReturnType<typeof vi.fn>;
-let assertAuth: ReturnType<typeof createAssertAuth<TestUser>>;
+let assertAuth: AssertAuthFn<TestUser, void, TestAdminOptions>;
 
 beforeEach(() => {
   mockUserGet = vi.fn().mockResolvedValue({ exists: true, data: () => activeUserDoc });
@@ -66,9 +61,9 @@ beforeEach(() => {
 
   const fakeDb = { doc: mockDbDoc } as any;
 
-  const config: AssertAuthConfig<TestUser> = {
+  const config: AssertAuthConfig<TestUser, void, TestAdminOptions> = {
     firestore: () => fakeDb,
-    userProfilePath: (uid) => `userProfiles/${uid}`,
+    userProfilePath: (uid) => `profiles/${uid}`,
     getUserStatus: (user): UserStatus => {
       if (user.status === 'banned') return 'banned';
       if (user.status === 'suspended') return 'suspended';
@@ -77,18 +72,9 @@ beforeEach(() => {
     requireAdmin: mockRequireAdmin as any,
   };
 
-  assertAuth = createAssertAuth<TestUser>(config);
+  assertAuth = createAssertAuth<TestUser, void, TestAdminOptions>(config);
 });
 
-// --- tests -----------------------------------------------------------------
-
-// REGRESSION GUARD (2026-07-20). assertAuth must throw a plain, framework-free
-// AuthAssertionError — never an HttpsError built inside this package. firebase-functions
-// 7.2.5 ships two distinct HttpsError classes (ESM entry vs the CJS callable runtime), so
-// a package-built HttpsError fails the runtime's `instanceof` check and onCall converts a
-// correct 400 into a 500 INTERNAL. Since assertAuth is the first line of every callable,
-// that silently broke EVERY auth rejection in deployed environments. If someone
-// reintroduces `new HttpsError(...)` here, these assertions fail.
 describe('throws a framework-free typed error (never a package-built HttpsError)', () => {
   it('rejects with an AuthAssertionError instance carrying the HttpsError code string', async () => {
     const err = await assertAuth(makeUnauthRequest()).catch((e: unknown) => e);
@@ -101,8 +87,6 @@ describe('throws a framework-free typed error (never a package-built HttpsError)
     const err = (await assertAuth(makeUnauthRequest()).catch(
       (e: unknown) => e,
     )) as AuthAssertionError & { httpErrorCode?: unknown; toJSON?: unknown };
-    // `httpErrorCode`/`toJSON` are HttpsError internals — their absence proves the
-    // package is not constructing one, which is the whole point of the fix.
     expect(err.httpErrorCode).toBeUndefined();
     expect(err.toJSON).toBeUndefined();
   });
@@ -265,7 +249,7 @@ describe('Admin check', () => {
     );
     await expect(
       assertAuth(makeRequest(), {
-        admin: { allowJrAdmin: false },
+        admin: { level: 'basic' },
         allowAnyStatus: true,
       }),
     ).rejects.toMatchObject({ code: 'permission-denied' });
@@ -274,21 +258,21 @@ describe('Admin check', () => {
   it('succeeds and returns ctx when requireAdmin resolves', async () => {
     mockRequireAdmin.mockResolvedValue(undefined);
     const ctx = await assertAuth(makeRequest(), {
-      admin: { allowJrAdmin: true },
+      admin: { level: 'elevated' },
       allowAnyStatus: true,
     });
     expect(ctx.uid).toBe('uid-123');
     expect(mockRequireAdmin).toHaveBeenCalledWith('uid-123', expect.any(Object), {
-      allowJrAdmin: true,
+      level: 'elevated',
     });
   });
 
   it('populates ctx.admin with the requireAdmin result when an admin check runs', async () => {
     type AdminResult = { role: string };
     const adminMock = vi.fn().mockResolvedValue({ role: 'superadmin' });
-    const config: AssertAuthConfig<TestUser, AdminResult> = {
+    const config: AssertAuthConfig<TestUser, AdminResult, TestAdminOptions> = {
       firestore: () => fakeDbWithUser(),
-      userProfilePath: (uid) => `userProfiles/${uid}`,
+      userProfilePath: (uid) => `profiles/${uid}`,
       getUserStatus: (user): UserStatus => {
         if (user.status === 'banned') return 'banned';
         if (user.status === 'suspended') return 'suspended';
@@ -296,13 +280,27 @@ describe('Admin check', () => {
       },
       requireAdmin: adminMock as any,
     };
-    const typedAssertAuth = createAssertAuth<TestUser, AdminResult>(config);
+    const typedAssertAuth = createAssertAuth<TestUser, AdminResult, TestAdminOptions>(config);
 
     const ctx = await typedAssertAuth(makeRequest(), {
-      admin: { allowJrAdmin: true },
+      admin: { level: 'elevated' },
     });
 
     expect(ctx.admin).toEqual({ role: 'superadmin' });
+  });
+
+  it('types an admin requirement as unavailable when the app declares no admin options type', async () => {
+    const config: AssertAuthConfig<TestUser> = {
+      firestore: () => fakeDbWithUser(),
+      userProfilePath: (uid) => `profiles/${uid}`,
+      getUserStatus: (): UserStatus => 'active',
+      requireAdmin: mockRequireAdmin as any,
+    };
+    const untyped = createAssertAuth<TestUser>(config);
+    await expect(
+      // @ts-expect-error an admin requirement needs the app's admin options type
+      untyped(makeRequest(), { admin: { level: 'elevated' } }),
+    ).resolves.toMatchObject({ uid: 'uid-123' });
   });
 
   it('leaves ctx.admin undefined when no admin requirement is set', async () => {
@@ -319,7 +317,7 @@ describe('Combined checks', () => {
 
     const ctx = await assertAuth(makeRequest({ emailVerified: true }), {
       emailVerified: true,
-      admin: { allowJrAdmin: true },
+      admin: { level: 'elevated' },
     });
 
     expect(ctx.uid).toBe('uid-123');
@@ -328,21 +326,19 @@ describe('Combined checks', () => {
   });
 });
 
-// Acceptance-level gate (optional `acceptance` config). Every case below that expects a
-// refusal passes on the pre-gate factory only if the gate is ignored — i.e. it fails there.
 describe('Acceptance-level gate', () => {
   const CLAIM = 'acceptedLevelClaim';
 
   function gatedAssertAuth(requiredLevel: () => number | Promise<number>) {
     const requireAdmin = vi.fn().mockResolvedValue('admin');
-    const config: AssertAuthConfig<TestUser, string> = {
+    const config: AssertAuthConfig<TestUser, string, TestAdminOptions> = {
       firestore: () => fakeDbWithUser(),
-      userProfilePath: (uid) => `userProfiles/${uid}`,
+      userProfilePath: (uid) => `profiles/${uid}`,
       getUserStatus: (user): UserStatus => (user.status === 'banned' ? 'banned' : 'active'),
       requireAdmin: requireAdmin as any,
       acceptance: { claimKey: CLAIM, requiredLevel },
     };
-    return { assert: createAssertAuth<TestUser, string>(config), requireAdmin };
+    return { assert: createAssertAuth<TestUser, string, TestAdminOptions>(config), requireAdmin };
   }
 
   function requestWithClaim(claim: unknown): any {
@@ -426,7 +422,7 @@ describe('Acceptance-level gate', () => {
   it('refuses before the admin check runs', async () => {
     const { assert, requireAdmin } = gatedAssertAuth(() => 2);
     await expect(
-      assert(requestWithClaim(1), { admin: { allowJrAdmin: true }, allowAnyStatus: true }),
+      assert(requestWithClaim(1), { admin: { level: 'elevated' }, allowAnyStatus: true }),
     ).rejects.toMatchObject({ code: 'failed-precondition' });
     expect(requireAdmin).not.toHaveBeenCalled();
   });
@@ -445,8 +441,7 @@ describe('Acceptance-level gate', () => {
     expect(requiredLevel).not.toHaveBeenCalled();
   });
 
-  it('is absent without config: an app that never sets `acceptance` behaves exactly as before', async () => {
-    // The shared harness config has no `acceptance`; a token with no level claim still passes.
+  it('is off without config: a caller with no level claim passes', async () => {
     await expect(assertAuth(makeRequest(), { allowUnaccepted: false })).resolves.toMatchObject({
       uid: 'uid-123',
     });

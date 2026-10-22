@@ -1,17 +1,11 @@
-// The expression side of a rules file, for the checks that read what a rule compares: a token
-// stream over the comment-blanked code, the operand on either side of an operator, and the stored
-// field an operand reads.
-
 export interface Token {
   readonly kind: 'string' | 'name' | 'number' | 'punct';
-  /** A string token's value (quotes off); otherwise the token's text. */
   readonly text: string;
   readonly index: number;
 }
 
 const PUNCT = ['&&', '||', '==', '!=', '<=', '>=', '**'];
 
-/** The code's tokens, in order. Whitespace is dropped; a path's slashes are punctuation like any other. */
 export function tokenize(code: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
@@ -53,14 +47,12 @@ export function tokenize(code: string): Token[] {
 
 const OPENERS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
 const CLOSERS: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
-/** What ends an operand at its own depth. */
 const BOUNDARY = new Set(['&&', '||', ',', ';', '?', ':', '==', '!=', '<', '>', '<=', '>=', '=']);
 const BOUNDARY_WORDS = new Set(['return', 'if', 'let', 'in', 'is', 'allow', 'function', 'match']);
 
 const isBoundary = (t: Token) =>
   (t.kind === 'punct' && BOUNDARY.has(t.text)) || (t.kind === 'name' && BOUNDARY_WORDS.has(t.text));
 
-/** The operand ending just before `at` (exclusive), as a token range. */
 export function operandBefore(tokens: readonly Token[], at: number): [number, number] {
   let depth = 0;
   let i = at - 1;
@@ -75,7 +67,6 @@ export function operandBefore(tokens: readonly Token[], at: number): [number, nu
   return [i + 1, at];
 }
 
-/** The operand starting just after `at` (exclusive), as a token range. */
 export function operandAfter(tokens: readonly Token[], at: number): [number, number] {
   let depth = 0;
   let i = at + 1;
@@ -90,7 +81,6 @@ export function operandAfter(tokens: readonly Token[], at: number): [number, num
   return [at + 1, i];
 }
 
-/** The index of the token that opens the bracket closed at `close`. */
 export function openerOf(tokens: readonly Token[], close: number): number {
   let depth = 0;
   for (let i = close; i >= 0; i -= 1) {
@@ -104,7 +94,6 @@ export function openerOf(tokens: readonly Token[], close: number): number {
   return -1;
 }
 
-/** The index of the token that closes the bracket opened at `open`. */
 export function closerOf(tokens: readonly Token[], open: number): number {
   let depth = 0;
   for (let i = open; i < tokens.length; i += 1) {
@@ -118,7 +107,6 @@ export function closerOf(tokens: readonly Token[], open: number): number {
   return tokens.length;
 }
 
-/** A lone quoted string as the whole operand (parentheses around it allowed), or null. */
 export function loneString(tokens: readonly Token[], [from, to]: [number, number]): Token | null {
   let a = from;
   let b = to - 1;
@@ -129,10 +117,6 @@ export function loneString(tokens: readonly Token[], [from, to]: [number, number
   return a === b && tokens[a].kind === 'string' ? tokens[a] : null;
 }
 
-/**
- * The stored field an operand reads: `….status` → `status`, `….get('status', …)` → `status`;
- * null when the operand reads no named field (a variable, a call, an index).
- */
 export function fieldOf(tokens: readonly Token[], [from, to]: [number, number]): string | null {
   if (to - from < 2) return null;
   const last = tokens[to - 1];

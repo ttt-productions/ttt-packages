@@ -4,10 +4,6 @@ export interface MonitoringAdapter {
   init(options: MonitoringInitOptions): void | Promise<void>;
 
   captureException(error: unknown, context?: Record<string, unknown>): void;
-  /** `context` follows the same contract as `captureException`: keys become extras,
-   *  with `tags` (flat string map) and `level` special-cased onto the real Sentry
-   *  fields — see `capture-context.ts`. The explicit `level` argument remains the
-   *  message's severity; a `level` inside `context` is applied to the scope. */
   captureMessage(
     message: string,
     level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug',

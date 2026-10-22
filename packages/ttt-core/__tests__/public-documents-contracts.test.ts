@@ -134,8 +134,6 @@ describe('public document identity', () => {
   });
 
   it("addresses each document's own projection, registered under that path with that schema", () => {
-    // A writer that looks a document up once writes that document's _appConfig doc with that
-    // document's schema; a mixed-up entry would write one page's content over another's.
     for (const id of PUBLIC_DOCUMENT_IDS) {
       const entry = PUBLIC_DOCUMENT_PROJECTIONS[id];
       expect(entry.path(), id).toEqual([COLLECTIONS.APP_CONFIG, id]);
@@ -328,7 +326,6 @@ describe('private acceptance summary', () => {
     const { shape } = UserPrivateDataSchema;
     expect(shape.publicDocumentAcceptance.safeParse(summary).success).toBe(true);
     expect(shape.publicDocumentAcceptance.safeParse(undefined).success).toBe(true);
-    // The registration fields stay compatible.
     expect(
       shape.agreements.safeParse({
         age: true,
@@ -364,7 +361,7 @@ describe('private acceptance summary', () => {
     expect(field.safeParse(1.5).success).toBe(false);
   });
 
-  it('charterSignupMember is gone — Charter signup is derived from createdAt vs the flip', () => {
+  it('carries no charterSignupMember — Charter signup is derived from createdAt vs the flip', () => {
     expect(Object.keys(FullUserSchema.shape)).not.toContain('charterSignupMember');
   });
 });
@@ -404,7 +401,6 @@ describe('callable inputs', () => {
         content: dmcaContent,
       }).success,
     ).toBe(true);
-    // Terms content under the Rules id.
     expect(
       SavePublicDocumentDraftInputSchema.safeParse({
         documentId: RULES,
@@ -413,7 +409,6 @@ describe('callable inputs', () => {
         content: { sections: [section] },
       }).success,
     ).toBe(false);
-    // The DMCA page exists to name the agent: at least one contact block.
     expect(
       SavePublicDocumentDraftInputSchema.safeParse({
         documentId: DMCA,
@@ -454,7 +449,6 @@ describe('callable inputs', () => {
         content: { sections: [section] },
       }).success,
     ).toBe(false);
-    // Rules content is the whole document — a partial (rules only) is rejected.
     expect(
       SavePublicDocumentDraftInputSchema.safeParse({
         documentId: RULES,
@@ -482,7 +476,6 @@ describe('callable inputs', () => {
     expect(
       PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [] }).success,
     ).toBe(false);
-    // A publish reviews a saved working copy, so it names a real revision.
     expect(
       PublishPublicDocumentReleaseInputSchema.safeParse({
         ...input,
@@ -513,7 +506,6 @@ describe('callable inputs', () => {
         ],
       }).success,
     ).toBe(false);
-    // The client never names a level, identity, or time.
     expect(
       AcceptPublicDocumentsInputSchema.safeParse({ documents: [], acceptedLevel: 5 }).success,
     ).toBe(false);
@@ -606,7 +598,6 @@ describe('registration carries the versions the signup page showed', () => {
         publicDocuments: [{ documentId: 'cookiePolicy', version: 1 }],
       }).success,
     ).toBe(false);
-    // The client never names a level.
     expect(
       RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [], acceptedLevel: 1 })
         .success,
@@ -675,7 +666,6 @@ describe('audit payloads', () => {
   it('social.squareStreetzAgreementsAccepted — the Rules version accepted and the one it replaced (or null)', () => {
     const payload = { acceptedVersion: 3, previousAcceptedVersion: 2, agreementsWordingVersion: 1 };
     expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse(payload).success).toBe(true);
-    // The first acceptance replaces nothing; before any Rules release the version accepted is 0.
     expect(
       SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({
         acceptedVersion: 0,
@@ -683,7 +673,6 @@ describe('audit payloads', () => {
         agreementsWordingVersion: 1,
       }).success,
     ).toBe(true);
-    // Both versions are the canonical version-or-none value, never a bare number.
     expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.shape.acceptedVersion).toBe(
       PublicDocumentVersionOrNoneSchema,
     );

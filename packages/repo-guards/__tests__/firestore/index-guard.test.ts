@@ -1,7 +1,3 @@
-// The collection-group index guard: a filtered collection-group query with no collection-group index
-// fails on both SDKs; an index of the right scope, an unfiltered scan, and a reviewed unresolvable
-// site pass; an id that cannot be resolved fails unless reviewed, and a stale review fails.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   collectionGroupIndexGuard,

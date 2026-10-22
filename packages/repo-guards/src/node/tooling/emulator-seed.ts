@@ -1,7 +1,3 @@
-// Clear and seed the running local emulators with an app's deterministic test data, without a
-// browser or a served build, then verify the seed. The app's seed clears all emulator data first,
-// so a run is idempotent; it never reaches a hosted project.
-
 export async function runEmulatorSeed({
   seedAll,
   verifySeed,
@@ -9,7 +5,6 @@ export async function runEmulatorSeed({
 }: {
   seedAll: () => Promise<unknown>;
   verifySeed: () => Promise<unknown>;
-  /** What starts the emulators, printed when the seed fails. */
   startHint: string;
 }): Promise<void> {
   try {

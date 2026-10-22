@@ -25,7 +25,6 @@ import { PUBLIC_DOCUMENT_IDS } from '../src/constants/public-documents.js';
 import { SPECIAL_DOCS } from '../src/paths/collections.js';
 import { LegalReviewNoticeReceiptSchema } from '../src/doc-schemas/legal-review-notice.js';
 
-// The settled notice copy, verbatim.
 const FULL_NOTE =
   "A note from DJ, TTT's founder. These pages describe how I intend TTT to work: my principles and what I'm trying to build. I wrote them myself, with help from AI tools, before I could afford a lawyer, so none of it has had legal review, and I honestly don't know whether all of it is legally sound. Charter Season support keeps TTT running first; after that, it's how I'll get a lawyer to turn this into real, reviewed legal wording. The words may change when that happens. My intentions won't. If a change needs your agreement, I'll ask you before it applies.";
 const SHORT_LINE =
@@ -35,9 +34,8 @@ const CHECKBOX =
 const REGISTRATION_TERMS =
   "I've read and agree to the Terms of Service, Privacy Policy (including the essential cookies the site needs to run), and Rules & Agreements, and I've seen the Future Plans, DMCA Policy, and Take It Down pages. I understand these express the founder's intentions and have not had legal review.";
 
-// Each revision names exactly one wording. Changing any notice copy without minting a new
-// revision id (and pinning it here) fails this table — recorded receipts must keep meaning
-// the words the person saw.
+// Recorded receipts must keep meaning the words the person saw, so each revision id names one
+// wording.
 const PINNED_COPY_SHA256: Record<string, string> = {
   'founder-note-v1': 'c8c625441937dbde5e83627e8486cd1a7923a6747431cc68d6062de5296c8f1c',
   'founder-note-v2': '0287c862691ea35971938693e915a36163f54ccaf77991a91aa990ad83aac79f',

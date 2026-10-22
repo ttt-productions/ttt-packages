@@ -1,15 +1,6 @@
-// ============================================================================
-// HALL-PUBLISH ATTESTATION COPY — the ONE home for the attestations a Guild ticks
-// before submitting a Work for Hall review (ARCH-102), and the version naming
-// their wording. The consistent-format attestation carries a Work-type-specific
-// example using the Work's own unit word; the publish flow always knows the type.
-// A wording change bumps PUBLISH_ATTESTATIONS_VERSION, which the submission
-// records with the attestations.
-// ============================================================================
-
 import type { WorkProjectType } from '../types/content.js';
 
-/** Names the wording of every attestation below. */
+// Bump when any attestation below changes.
 export const PUBLISH_ATTESTATIONS_VERSION = 1;
 
 export const CONSISTENT_FORMAT_WORDING: Record<WorkProjectType, string> = {

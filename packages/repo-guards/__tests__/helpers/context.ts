@@ -1,5 +1,3 @@
-// A guard context over a reader, as the suite builds one, for tests that run a guard directly.
-
 import type { GuardContext } from '../../src/guard.js';
 import type { RepoReader } from '../../src/node/reader.js';
 

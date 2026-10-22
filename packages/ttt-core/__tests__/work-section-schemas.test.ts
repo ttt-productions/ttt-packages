@@ -11,8 +11,6 @@ import {
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
 } from '../src/constants/business-content.js';
 
-// A Work has one title and one description, typed on the Work; the Tale / Tune / Television
-// section carries no text of its own.
 describe('the Tale, Tune, and Television section docs', () => {
   it.each([
     ['Tale', FullTaleSchema],

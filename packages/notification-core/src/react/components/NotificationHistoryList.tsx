@@ -8,12 +8,6 @@ import { formatRelativeTime } from './relative-time.js';
 import type { NotificationHistoryItem } from '../../types.js';
 import type { NotificationHistoryListProps } from '../types.js';
 
-/**
- * Read-only, paginated list of ARCHIVED notifications (the history tier). Rows are
- * inert and read-only — archive is one-way, there is no re-archive, so the row
- * exposes no `archive` action. Any per-row control (e.g. an
- * ArrowRight "go to") is rendered by the consumer via `renderRowAction`.
- */
 export function NotificationHistoryList({
   config,
   userId,
@@ -44,8 +38,6 @@ export function NotificationHistoryList({
   });
 
   const hasRows = !!notifications && notifications.length > 0;
-  // A later page that came back empty keeps its pager so the user can step back; the
-  // empty state is the answer for page 1 only.
   const showEmptyState =
     retryState.error === null &&
     notifications !== undefined &&

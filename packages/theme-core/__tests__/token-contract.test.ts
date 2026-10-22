@@ -5,34 +5,14 @@ import { viewOfText, type FileView } from '@ttt-productions/repo-guards';
 import { createRepoReader } from '@ttt-productions/repo-guards/node';
 import { SLOW_TEST_TIMEOUT_MS } from '../../../test/timeouts.js';
 
-// theme-core's token layer is the contract every shared recipe and ui-core
-// component reads. These guards pin the PROPERTIES, not today's token list:
-//  - every variable read without a fallback, in any package, resolves in every theme;
-//  - an HSL-triplet token is only ever read inside hsl(), never as a complete colour;
-//  - every semantic Tailwind colour utility ui-core renders maps to a token, and
-//    ui-core renders no raw colour (palette utility or literal);
-//  - shadows are token- and class-owned: no Tailwind shadow utility in ui-core, no
-//    literal shadow in a theme-core recipe;
-//  - every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is
-//    declared here — an undeclared one silently renders nothing;
-//  - no package stylesheet carries a raw colour literal (values live in theme-core's
-//    token declarations), and every package stylesheet reads only resolvable tokens;
-//  - every black-drop-shadow token is redeclared for the dark canvases.
-// Each check judges only what a package RENDERS — class lists, JSX attribute values, inline
-// styles, stylesheet rules. A pattern a guard matches or a sample string it reads renders nothing.
-
 const DARK_CANVAS_BLOCKS = ['.dark', '.high-contrast'] as const;
 
-// Variables set at runtime on individual elements by a library. theme-core cannot
-// (and must not) declare them. Each entry states who sets it.
 const RUNTIME_VARIABLES: ReadonlyArray<{ pattern: RegExp; setBy: string }> = [
   {
     pattern: /^--radix-/,
     setBy: 'Radix primitives, on their own elements (trigger size, swipe offset)',
   },
 ];
-
-// --- reading every package through the repo-guards reader ----------------------------
 
 const reader = createRepoReader({
   repoRoot: path.resolve(__dirname, '../../..'),
@@ -43,7 +23,6 @@ const packageFiles = reader
   .files({ roots: ['app'], kinds: ['code', 'stylesheet'], tests: false })
   .filter((file) => PACKAGE_SOURCE.test(file.path));
 
-/** A file's path under `packages/`. */
 const where = (file: FileView): string => file.path.slice('packages/'.length);
 
 interface CssRule {
@@ -52,7 +31,6 @@ interface CssRule {
   declarations: Array<[property: string, value: string]>;
 }
 
-/** Innermost rule blocks of a stylesheet's comment-free code (a rule nested in @media keeps its own selector). */
 function cssRules(file: FileView): CssRule[] {
   return [...file.code.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({
     file: path.posix.basename(file.path),
@@ -74,8 +52,6 @@ const themeStylesheets = packageFiles.filter(
 );
 const themeRules = themeStylesheets.flatMap(cssRules);
 
-// Every OTHER package's shipped stylesheet (report-core, media-viewer, chat-react, …): they
-// read theme-core tokens too, never an app-defined variable or a raw colour.
 const packageStylesheets = packageFiles.filter(
   (file) => isStylesheet(file) && !file.path.startsWith('packages/theme-core/'),
 );
@@ -85,43 +61,28 @@ function blockDeclarations(selector: string): Map<string, string> {
   return new Map(themeRules.filter((r) => r.selector === selector).flatMap((r) => r.declarations));
 }
 
-// A token declared in :root resolves in every theme: .dark / .high-contrast match
-// the same root element and either redeclare it or leave the :root value in force.
 const rootTokens = new Set(
   [...blockDeclarations(':root').keys()].filter((p) => p.startsWith('--')),
 );
 
-// Class names theme-core defines. ui-core also renders these, and some share a
-// Tailwind prefix (`text-caption`), so they are recipes, not colour utilities.
 const themeClasses = new Set(
   themeRules.flatMap((r) => [...r.selector.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1])),
 );
-
-// --- package Tailwind utilities ---------------------------------------------------
 
 const COLOUR_UTILITY =
   /(?<=^|[\s"'`:!])((?:bg|text|border|ring-offset|ring|outline|divide|fill|stroke|placeholder|caret|decoration)-[a-z0-9][a-z0-9-]*)(?:\/\d+)?(?=$|[\s"'`])/g;
 const COLOUR_PREFIX =
   /^(?:ring-offset|border-[xytblrse]|border|divide-[xy]|divide|bg|text|ring|outline|fill|stroke|placeholder|caret|decoration)-(.+)$/;
-// Tailwind's raw palette. None of it may appear in any package: colours come from tokens.
 const PALETTE =
   /^((slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|black|white)$/;
-// Not raw colours: CSS colour keywords, and non-colour utilities that share a colour
-// prefix (sizes, sides, alignment, styles).
 const NOT_A_RAW_COLOUR =
   /^(transparent|current|inherit|\d+(\.\d+)?|px|xs|sm|base|md|lg|\d?xl|[xytblrse]|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip|solid|dashed|dotted|double|wavy|hidden|none|collapse|separate|inset|auto|offset-\d+|from-font|fixed|local|scroll|cover|contain|repeat|no-repeat|repeat-[xy]|clip-\w+|origin-\w+|gradient-[\w-]+)$/;
-// A literal colour in a rendered string: hex at the start of a value or arbitrary value, or a
-// colour function whose first argument is a number rather than var(...).
 const SOURCE_COLOUR_LITERAL =
   /(?<=^|[\s"'`(:[,])#[0-9a-fA-F]{3,8}(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]/g;
-// A raw colour in a stylesheet value: hex, a colour function with a numeric argument, or
-// a black/white keyword.
 const STYLESHEET_COLOUR_LITERAL =
   /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]|\b(white|black)\b/i;
-// A bare HSL triplet ("0 84% 60%"): only a colour inside hsl(), so it hides in a fallback.
 const HSL_TRIPLET = /^-?\d*\.?\d+(?:deg|turn|rad|grad)?[\s,]+\d*\.?\d+%[\s,]+\d*\.?\d+%/;
 
-/** The fallback text of every var() in `value`, nested var() fallbacks included. */
 function varFallbacks(value: string): string[] {
   return [...value.matchAll(/var\(\s*--[\w-]+\s*,/g)].map((m) => {
     let depth = 1;
@@ -139,18 +100,14 @@ const isRawColour = (fallback: string) =>
 
 const SHADOW_UTILITY = /(?<=^|[\s"'`:!])((?:inset-|drop-)?shadow(?:-[^\s"'`]*)?)(?=$|[\s"'`])/g;
 const ELEVATION_HOOK = /(?<=^|[\s"'`])(elevation-[a-z-]+|card-border|tabs-trigger)(?=$|[\s"'`])/g;
-// theme-core's scale families. Tailwind defines none of these names, so a member theme-core
-// does not declare matches no rule at all: the element silently loses its spacing or size.
+// Tailwind defines none of these names, so an undeclared member matches no rule at all.
 const SCALE_CLASS = /(?<=^|[\s:!])((?:stack|icon|spinner)-[\w-]+)(?=$|\s)/g;
 
-// Every package's component source: raw colours and shadow utilities are banned in all of
-// them, not just ui-core (file-input, chat-react, media-viewer, … render with the same tokens).
 const packageSources = packageFiles.filter((file) => file.kind === 'code');
 
 const CLASS_HELPERS = new Set(['cn', 'cva', 'clsx', 'cx', 'twMerge']);
 const CLASS_NAME = /(?:^|[a-z])(?:Class|ClassName|Classes)$|^[A-Z_]*CLASS(?:ES)?$|^className$/;
 
-/** Every string literal and template chunk under `node`, appended to `out`. */
 function collectStrings(node: ts.Node, out: string[]): void {
   if (
     ts.isStringLiteralLike(node) ||
@@ -163,11 +120,6 @@ function collectStrings(node: ts.Node, out: string[]): void {
   ts.forEachChild(node, (child) => collectStrings(child, out));
 }
 
-/**
- * The values `node` applies as a CLASS LIST: a `className` / `*ClassName` JSX attribute, the
- * arguments of cn / cva / clsx / cx / twMerge, or a variable or property named as a class string
- * (`triggerClass`, `SIZE_CLASS`).
- */
 function classListValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] | undefined {
   if (ts.isJsxAttribute(node))
     return node.initializer && CLASS_NAME.test(node.name.getText(sf))
@@ -191,15 +143,9 @@ function classListValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] |
 
 const isStyleType = (type: ts.TypeNode | undefined, sf: ts.SourceFile) =>
   !!type && /(?:^|\.)CSSProperties$/.test(type.getText(sf));
-/** `el.style`: the DOM inline-style object. */
 const isDomStyle = (expression: ts.Expression) =>
   ts.isPropertyAccessExpression(expression) && expression.name.text === 'style';
 
-/**
- * The values `node` applies as an INLINE STYLE outside a JSX attribute: an object typed
- * `CSSProperties` (declared, or cast with `as` / `satisfies`), a write to a DOM element's
- * `style` property, or a `style.setProperty(…)` call.
- */
 function inlineStyleValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] | undefined {
   if (ts.isVariableDeclaration(node) && node.initializer && isStyleType(node.type, sf))
     return [node.initializer];
@@ -224,7 +170,6 @@ function inlineStyleValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[]
   return undefined;
 }
 
-/** The strings under every node `select` picks out of a code file, read from its one parse. */
 function stringsAt(
   file: FileView,
   select: (node: ts.Node, sf: ts.SourceFile) => readonly ts.Node[] | undefined,
@@ -241,14 +186,8 @@ function stringsAt(
   return out;
 }
 
-/** The strings a code file uses as class lists — never prose, CSS text in a style string, or a sample a guard reads. */
 const classStrings = (file: FileView): string[] => stringsAt(file, classListValues);
 
-/**
- * Every string a code file RENDERS: its class lists, every JSX attribute value (an SVG `fill`
- * included), and its inline styles. A string handed to anything else — a pattern, a guard's
- * sample, a message — renders nothing.
- */
 const renderedStrings = (file: FileView): string[] =>
   stringsAt(file, (node, sf) =>
     ts.isJsxAttribute(node)
@@ -258,22 +197,16 @@ const renderedStrings = (file: FileView): string[] =>
       : (classListValues(node, sf) ?? inlineStyleValues(node, sf)),
   );
 
-/** What a file renders, as text: a stylesheet's comment-free code, or a code file's rendered strings. */
 const renderedTexts = (file: FileView): string[] =>
   isStylesheet(file) ? [file.code] : renderedStrings(file);
 
-/**
- * The raw colours hidden in var() fallbacks inside source strings. A Tailwind arbitrary value
- * spells its spaces as `_` (`bg-[hsl(var(--x,_0_84%_60%))]`), so each fallback is decoded
- * before it is judged.
- */
+// A Tailwind arbitrary value spells its spaces as `_`, so each fallback is decoded before it is judged.
 function sourceFallbackColours(text: string): string[] {
   return varFallbacks(text)
     .map((fallback) => fallback.replace(/_/g, ' ').trim())
     .filter(isRawColour);
 }
 
-/** Colour-prefixed utilities in a file's class lists, minus the theme-core recipe classes. */
 function classListColourUtilities(file: FileView): Array<{ utility: string; name: string }> {
   return classStrings(file)
     .flatMap((list) => [...list.matchAll(COLOUR_UTILITY)].map(([, utility]) => utility))
@@ -282,7 +215,6 @@ function classListColourUtilities(file: FileView): Array<{ utility: string; name
     .filter(({ name }) => name !== '');
 }
 
-/** Every variable a file renders without a fallback that does not resolve in every theme. */
 function unresolvedVariables(file: FileView): string[] {
   return renderedTexts(file)
     .flatMap((text) => [...text.matchAll(/var\(\s*(--[\w-]+)\s*([,)])/g)])
@@ -293,7 +225,6 @@ function unresolvedVariables(file: FileView): string[] {
     );
 }
 
-/** Every raw colour a code file renders: a palette utility in a class list, a colour literal, or a colour in a var() fallback. */
 function rawColours(file: FileView): string[] {
   const palette = classListColourUtilities(file)
     .filter(({ name }) => PALETTE.test(name))
@@ -302,15 +233,12 @@ function rawColours(file: FileView): string[] {
   const literals = rendered.flatMap((text) =>
     [...text.matchAll(SOURCE_COLOUR_LITERAL)].map((m) => m[0]),
   );
-  // A var() fallback is a second, hidden value, and a bare HSL triplet in one slips past
-  // SOURCE_COLOUR_LITERAL (it is only a colour inside hsl()).
   const fallbacks = rendered.flatMap((text) =>
     sourceFallbackColours(text).map((colour) => `raw colour "${colour}" in a var() fallback`),
   );
   return [...palette, ...literals, ...fallbacks];
 }
 
-/** Every Tailwind shadow utility, and every elevation hook theme-core does not declare, in a file's class lists. */
 function shadowClasses(file: FileView): string[] {
   const lists = classStrings(file);
   const utilities = lists.flatMap((list) => [...list.matchAll(SHADOW_UTILITY)].map((m) => m[1]));
@@ -321,34 +249,21 @@ function shadowClasses(file: FileView): string[] {
   return [...utilities, ...undeclaredHooks];
 }
 
-// --- status fill / foreground pairing -------------------------------------------------
-
-// A token's status family comes from its name: `destructive` / `status-error` /
-// `toast-destructive` are the destructive family, `success` / `button-success` /
-// `toast-success-foreground` the success family, and so on.
 const STATUS_WORD = /(?:^|-)(destructive|error|success|warning|info)(?:-|$)/;
 function statusFamily(token: string): string | undefined {
   const word = STATUS_WORD.exec(token)?.[1];
   return word === 'error' ? 'destructive' : word;
 }
-/** A token that paints a status family's fill (not its text, edge, or deep shade). */
 const isStatusFill = (token: string) =>
   statusFamily(token) !== undefined && !/-(foreground|border)$/.test(token);
 const isForegroundOf = (token: string, family: string) =>
   token.endsWith('-foreground') && statusFamily(token) === family;
 
-/** The first variable a colour value reads, or the named token of a semantic utility. */
 const firstVar = (value: string) => /var\(\s*--([\w-]+)/.exec(value)?.[1];
 
-/**
- * The status-fill pairing violations in one class list: a SOLID status fill at rest (no
- * modifier prefix, no alpha — a faint tint carries ordinary body text instead) must carry
- * a text colour, and every resting text colour must be that family's own foreground.
- */
 function classListPairingViolations(list: string): string[] {
   const tokens = list.split(/\s+/).filter(Boolean);
   const fills = tokens
-    // `bg-x/10`, `bg-[…]/90`, `bg-[hsl(var(--x)_/_0.1)]` are alpha tints, not solid fills
     .filter((t) => t.startsWith('bg-') && !/\/[_\s]*\.?\d/.test(t))
     .map((t) => (t.startsWith('bg-[') ? firstVar(t) : t.slice(3)))
     .filter((token): token is string => token !== undefined && isStatusFill(token));
@@ -367,7 +282,6 @@ function classListPairingViolations(list: string): string[] {
   });
 }
 
-/** The same pairing, for one stylesheet rule's background + color declarations. */
 function cssRulePairingViolations(rule: CssRule): string[] {
   const decls = new Map(rule.declarations);
   const background = decls.get('background-color') ?? decls.get('background');
@@ -385,16 +299,12 @@ function cssRulePairingViolations(rule: CssRule): string[] {
     : [`--${fill} fill carries --${text} text (needs a ${family} foreground)`];
 }
 
-// Solid status fills that render NO text, so they pair with no foreground. Each entry
-// states what the element is.
 const TEXTLESS_STATUS_FILLS: ReadonlyArray<{ file: string; selector: string; why: string }> = [
   { file: 'hooks.css', selector: '.notify-dot', why: 'the 8px unread dot — a shape, no text' },
 ];
 
-// --- guards --------------------------------------------------------------------------
-
-// The cases that read every package's files are real heavy work: under load they run past the
-// runner's default limit, so each names the slow budget.
+// The cases that read every package's files run past the runner's default limit under load, so
+// each names the slow budget.
 describe('theme-core token contract', () => {
   it('reads every package through the one reader walk', () => {
     expect(packageSources.length).toBeGreaterThan(100);
@@ -470,9 +380,8 @@ describe('theme-core token contract', () => {
     ).toEqual([]);
   });
 
-  // Semantic colour tokens are HSL TRIPLETS ("240 5% 88%"): only hsl(var(--x)) makes a
-  // colour of one. Read bare — color: var(--foreground) — the value is invalid and the
-  // property silently falls back (inherited colour, transparent background).
+  // Semantic colour tokens are HSL triplets: read bare, outside hsl(), the value is invalid and the
+  // property silently falls back.
   it(
     'an HSL-triplet token is only ever read inside hsl(), never as a complete colour',
     () => {
@@ -488,7 +397,6 @@ describe('theme-core token contract', () => {
       const triplets = new Set([...rootTokens].filter((name) => isTriplet(name)));
       expect(triplets.has('--foreground') && triplets.has('--input')).toBe(true);
 
-      /** The function whose argument list encloses `index` (skipping var() fallbacks), or undefined. */
       const enclosingColourFunction = (text: string, index: number): string | undefined => {
         let depth = 0;
         for (let i = index - 1; i >= 0; i--) {
@@ -505,7 +413,6 @@ describe('theme-core token contract', () => {
         }
         return undefined;
       };
-      /** `--x: var(--triplet)` — one token derived from another, not a colour read. */
       const isTokenDerivation = (text: string, index: number): boolean => {
         const lineStart = Math.max(
           text.lastIndexOf(';', index),
@@ -680,9 +587,8 @@ describe('theme-core token contract', () => {
     expect(offToken).toEqual([]);
   });
 
-  // A Tailwind ring utility (a focus ring) writes the WHOLE box-shadow, as a composite
-  // ending in var(--tw-shadow). A layered recipe that set only box-shadow would vanish
-  // while its element is focused; setting --tw-shadow too keeps elevation under the ring.
+  // A Tailwind ring utility writes the whole box-shadow, ending in var(--tw-shadow); setting
+  // --tw-shadow too keeps elevation under a focus ring.
   it('every theme-core shadow composes with a Tailwind focus ring (--tw-shadow carries the same token)', () => {
     const shadowed = themeRules.filter((rule) =>
       rule.declarations.some(([property, value]) => property === 'box-shadow' && value !== 'none'),
@@ -701,11 +607,6 @@ describe('theme-core token contract', () => {
     expect(uncomposed).toEqual([]);
   });
 
-  // A var() fallback is a second, hidden value: `hsl(var(--muted, 220 14% 96%))` renders
-  // the literal whenever the token is missing, and the bare triplet slips past a literal
-  // check because it is only a colour inside hsl(). Every token a package reads resolves
-  // from theme-core's :root, so a colour fallback is never needed — in any declaration,
-  // token declarations included.
   it('no raw colour literal survives in a theme-core or package stylesheet outside a token declaration, nor in any var() fallback', () => {
     const literals = [...themeRules, ...packageStyleRules].flatMap((rule) =>
       rule.declarations
@@ -760,10 +661,6 @@ describe('theme-core token contract', () => {
   });
 });
 
-// A solid status fill carries ITS OWN status foreground. A fill from one family under
-// another family's text is unreadable in some theme even though both tokens resolve: the
-// ui-core success Button once rendered the default button's text-primary-foreground on the
-// green fill (2.09:1 on a dark canvas). Every package's class lists and stylesheets.
 describe('status fills carry their own status foreground', () => {
   it("flags a status fill under another family's text, and passes the same fill under its own", () => {
     expect(
@@ -780,7 +677,6 @@ describe('status fills carry their own status foreground', () => {
     ).toEqual([]);
     expect(classListPairingViolations('bg-destructive text-warning-foreground')).toHaveLength(1);
     expect(classListPairingViolations('bg-destructive')).toHaveLength(1);
-    // Not a solid resting fill: a tint, or a hover-only fill.
     expect(classListPairingViolations('bg-destructive/10 text-foreground')).toEqual([]);
     expect(classListPairingViolations('hover:bg-destructive/90 text-primary-foreground')).toEqual(
       [],

@@ -10,7 +10,6 @@ import {
 const spawnMock = vi.hoisted(() => vi.fn());
 vi.mock('node:child_process', () => ({ spawn: spawnMock }));
 
-/** A child that prints `stdoutText`, then ends with `exitCode` / `signal`. */
 function fakeChild(stdoutText: string, exitCode: number | null, signal: NodeJS.Signals | null) {
   const child = Object.assign(new EventEmitter(), {
     stdout: new PassThrough(),

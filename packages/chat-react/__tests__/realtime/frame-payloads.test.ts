@@ -9,9 +9,6 @@ import {
 import { ChannelClient } from '../../src/realtime/channel-client.js';
 import { createFakeClock, createMockSocketHarness } from './mock-socket.js';
 
-// The Worker parses each of these frames with its chat-schemas payload schema. Every payload this
-// client puts on the socket must parse with that schema unchanged — no field the Worker drops, none
-// it lacks.
 const SCHEMA_BY_FRAME = {
   [CLIENT_KINDS.SEND]: ChatSendPayloadSchema,
   [CLIENT_KINDS.READ_ACK]: ChatReadAckPayloadSchema,

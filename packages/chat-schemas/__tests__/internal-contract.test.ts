@@ -67,7 +67,6 @@ describe('a room parked-delivery report', () => {
     const kind = 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH);
     const id = 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH);
     expect(ChatConversationRefSchema.safeParse({ kind, id }).success).toBe(true);
-    // The Worker's room address: a product, an environment, the room kind, the conversation kind and id.
     const targetDo = `ttt:prod:channel:${kind}:${id}`;
     expect(
       ChatParkedDeliveryReportSchema.safeParse({ ...largestValidReport, targetDo }).success,

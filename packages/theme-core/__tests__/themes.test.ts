@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { THEME_NAMES, isThemeName } from '../src/themes.js';
 
-// Each theme name is stored on viewers' devices and accounts, so the set is a persisted contract:
-// renaming a member forgets every viewer who chose it.
 describe('THEME_NAMES', () => {
   it('declares the light, dark, and high-contrast themes', () => {
     expect([...THEME_NAMES].sort()).toEqual(['dark', 'high-contrast', 'light']);

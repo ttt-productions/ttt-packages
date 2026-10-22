@@ -58,12 +58,6 @@ export const GUILD_STANDINGS = {
 export type GuildStandingId = keyof typeof GUILD_STANDINGS;
 export const GUILD_STANDING_IDS = Object.keys(GUILD_STANDINGS) as GuildStandingId[];
 
-/**
- * The work steward's standing id — the one standing that is never assignable and that
- * `GuildmateUser.guildStandings` carries (that array stores IDs, not display values;
- * this id's display value is 'Steward', so the two are not interchangeable).
- * Consumers branch on this rather than re-quoting the member.
- */
 export const STEWARD_OWNER_GUILD_STANDING_ID = 'StewardOwner' as const satisfies GuildStandingId;
 export const GUILD_STANDING_VALUE_BY_ID = {
   StewardOwner: 'Steward',
@@ -84,23 +78,12 @@ export const GUILD_STANDING_VALUES = Object.values(
   GUILD_STANDING_VALUE_BY_ID,
 ) as GuildStandingValue[];
 
-/**
- * The standings that administer a Work's file system: create and manage folders, see every folder
- * and file, upload anywhere, delete any file, and request a file's share to the Realm. Every file
- * action's grant reads this list, and so does the file-admin check (`isWorkFileAdmin`).
- */
 export const WORK_FILE_ADMIN_GUILD_STANDING_IDS = [
   'StewardOwner',
   'WorkProjectManager',
   'WorkAssetAdmin',
 ] as const satisfies readonly GuildStandingId[];
 
-/**
- * A Work's invite handlers: they send the Work's invites, list them, cancel them, and take the
- * Work's side in every invite conversation — they see it, reply in it, share files in it, and
- * agree for the Work. A Stake Share Manager is one: it handles invites like an Invite Manager and
- * also changes their offers.
- */
 export const GUILD_INVITE_HANDLER_GUILD_STANDING_IDS = [
   'StewardOwner',
   'WorkProjectManager',
@@ -108,7 +91,6 @@ export const GUILD_INVITE_HANDLER_GUILD_STANDING_IDS = [
   'StakeShareManager',
 ] as const satisfies readonly GuildStandingId[];
 
-/** The standings that change stake amounts — active Guildmates' stakes and pending invite offers. */
 export const STAKE_SHARE_POWER_GUILD_STANDING_IDS = [
   'StewardOwner',
   'WorkProjectManager',

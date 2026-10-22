@@ -1,7 +1,3 @@
-// The callable guards: one copy owner, one transport owner, callable names written only in their
-// declarations, reads that live in hooks and go through readers, one surface per rejection, and no
-// rendered error internals.
-
 import { describe, expect, it } from 'vitest';
 import {
   callableErrorCopyGuard,
@@ -18,7 +14,6 @@ import { findingsOf, samplesProve } from './run.js';
 
 const lines = (...l: string[]) => l.join('\n');
 
-// ---------------------------------------------------------------------------------------------
 describe('callable error copy owner', () => {
   const facts = {
     owner: { file: 'src/lib/policy.ts', exportName: 'describeFailure' },
@@ -98,7 +93,6 @@ describe('callable error copy owner', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('callable transport through its owner', () => {
   const facts = {
     transports: [
@@ -200,9 +194,6 @@ describe('callable transport through its owner', () => {
     ).toEqual(["transport m's owner is missing", "transport m's symbols is empty"]);
   });
 });
-
-// ---------------------------------------------------------------------------------------------
-// The declarations every callable guard below reads: one module, one factory per kind.
 
 const declarations: CallableDeclarationFacts = {
   modules: ['src/lib/remote.ts'],
@@ -338,7 +329,6 @@ describe("a callable's name is written only in its declaration", () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('callable-backed reads', () => {
   const facts: CallableReadFacts = {
     declarations,
@@ -524,7 +514,6 @@ describe('callable-backed reads', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('one surface per callable rejection', () => {
   const facts: DoubleSurfaceFacts = {
     declarations,
@@ -667,7 +656,6 @@ describe('one surface per callable rejection', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('no rendered error internals', () => {
   const facts = {
     renderRoots: ['src/components'],

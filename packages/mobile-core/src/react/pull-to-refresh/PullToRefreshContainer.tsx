@@ -8,11 +8,6 @@ type Props = {
   className?: string;
   children: React.ReactNode;
   cssPrefix?: string;
-  /**
-   * Rendered in place of the progress ring while the refresh itself runs; the ring
-   * still tracks the pull. Supply the app's canonical spinner so a refresh reads like
-   * every other loading state. Omitted, the ring spins for the refresh as well.
-   */
   refreshingIndicator?: React.ReactNode;
 };
 
@@ -71,17 +66,6 @@ function SpinnerIndicator({
   );
 }
 
-/**
- * Drop-in wrapper that adds pull-to-refresh to its children.
- * Desktop-safe: touch handlers never fire, indicator never shows.
- *
- * Usage:
- * ```tsx
- * <PullToRefreshContainer onRefresh={async () => { await refetch(); }}>
- *   <YourContent />
- * </PullToRefreshContainer>
- * ```
- */
 export function PullToRefreshContainer({
   onRefresh,
   disabled,
@@ -101,7 +85,6 @@ export function PullToRefreshContainer({
 
   return (
     <>
-      {/* Keyframe injected once — harmless if duplicated */}
       <style>{`@keyframes ${prefix}-ptr-spin { to { transform: rotate(360deg); } }`}</style>
 
       <div
@@ -109,7 +92,6 @@ export function PullToRefreshContainer({
         {...handlers}
         style={{ position: 'relative', overscrollBehaviorY: 'contain' }}
       >
-        {/* Indicator: positioned above content, revealed by pull */}
         <div
           aria-hidden
           style={{
@@ -137,7 +119,6 @@ export function PullToRefreshContainer({
           )}
         </div>
 
-        {/* Content shifts down during pull */}
         <div style={style}>{children}</div>
       </div>
     </>

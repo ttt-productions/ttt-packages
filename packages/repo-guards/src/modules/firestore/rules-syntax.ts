@@ -1,9 +1,3 @@
-// The small reader of a Firebase rules file the rules guards share: the file's `match` blocks with
-// their full paths, its functions with their bodies, and the Firestore document paths it spells.
-// Every reader works on the comment-blanked code the reader hands out, so indexes and lines stay the
-// file's own.
-
-/** The code with every quoted string's contents blanked, so braces and parens in a string are never structure. */
 export function maskStrings(code: string): string {
   const chars = code.split('');
   let quote: string | null = null;
@@ -21,7 +15,6 @@ export function maskStrings(code: string): string {
   return chars.join('');
 }
 
-/** Each `{` index → the index of its matching `}` (unmatched braces map to the end of the text). */
 function braceMap(masked: string): Map<number, number> {
   const pairs = new Map<number, number>();
   const stack: number[] = [];
@@ -36,15 +29,10 @@ function braceMap(masked: string): Map<number, number> {
   return pairs;
 }
 
-/** One `match` block: its own path, its full path from the service root, and where it sits. */
 export interface MatchBlock {
-  /** The path as written after `match`. */
   readonly path: string;
-  /** Every segment from the outermost block down, this block's own last. */
   readonly segments: readonly string[];
-  /** The enclosing block, or null for a block at service level. */
   readonly parent: MatchBlock | null;
-  /** Index of the `match` keyword, and of the block's braces. */
   readonly index: number;
   readonly open: number;
   readonly close: number;
@@ -54,7 +42,6 @@ const MATCH_HEADER = /\bmatch\s+((?:\/(?:\{[^{}\s]*\}|[^\s/{}]+))+)\s*\{/g;
 
 const splitPath = (path: string) => path.split('/').filter(Boolean);
 
-/** Every `match` block in the file, outermost first in source order. */
 export function matchBlocks(code: string): MatchBlock[] {
   const masked = maskStrings(code);
   const braces = braceMap(masked);
@@ -79,12 +66,10 @@ export function matchBlocks(code: string): MatchBlock[] {
   return blocks;
 }
 
-/** One `function name(params) { … }` of a rules file. */
 export interface RulesFunction {
   readonly name: string;
   readonly params: readonly string[];
   readonly index: number;
-  /** The body's text (between its braces), from the comment-blanked code with strings intact. */
   readonly body: string;
   readonly bodyStart: number;
   readonly bodyEnd: number;
@@ -92,7 +77,6 @@ export interface RulesFunction {
 
 const FUNCTION_HEADER = /\bfunction\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{/g;
 
-/** Every function the file declares, by name; a name declared twice keeps its first declaration. */
 export function rulesFunctions(code: string): Map<string, RulesFunction> {
   const masked = maskStrings(code);
   const braces = braceMap(masked);
@@ -116,7 +100,6 @@ export function rulesFunctions(code: string): Map<string, RulesFunction> {
   return out;
 }
 
-/** The function whose body holds `index`, or null when it sits in no function. */
 export function enclosingFunction(
   functions: Map<string, RulesFunction>,
   index: number,
@@ -127,7 +110,6 @@ export function enclosingFunction(
 
 const CALL = /(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g;
 
-/** The names of the file's own functions a text calls (a `.name(` member call is no such call). */
 export function calledFunctions(text: string, functions: Map<string, RulesFunction>): string[] {
   const names: string[] = [];
   for (const m of maskStrings(text).matchAll(CALL))
@@ -135,10 +117,6 @@ export function calledFunctions(text: string, functions: Map<string, RulesFuncti
   return names;
 }
 
-/**
- * A function's body with every function of the same file it calls, at any depth, appended once —
- * what the function really checks when it runs.
- */
 export function expandedBody(name: string, functions: Map<string, RulesFunction>): string {
   const seen = new Set<string>();
   const parts: string[] = [];
@@ -153,10 +131,8 @@ export function expandedBody(name: string, functions: Map<string, RulesFunction>
   return parts.join('\n;\n');
 }
 
-/** One Firestore document path a rules file spells (`/databases/$(database)/documents/…`). */
 export interface DocumentPathLiteral {
   readonly index: number;
-  /** Segments after `documents`; a `$(…)` segment reads as `{}`. */
   readonly segments: readonly string[];
   readonly text: string;
 }
@@ -164,7 +140,6 @@ export interface DocumentPathLiteral {
 const DOCUMENT_PATH =
   /\/databases\/(?:\$\(\s*[\w$]+\s*\)|\(default\))\/documents((?:\/(?:\$\([^()]*\)|[\w-]+))+)/g;
 
-/** Every document path the code spells, in either service's form. */
 export function documentPathLiterals(code: string): DocumentPathLiteral[] {
   const masked = maskStrings(code);
   return [...masked.matchAll(DOCUMENT_PATH)].map((m) => ({
@@ -174,15 +149,12 @@ export function documentPathLiterals(code: string): DocumentPathLiteral[] {
   }));
 }
 
-/** A path segment that is a variable: `{name}` or `{name=**}`. */
 export const isVariable = (segment: string) => /^\{[^{}]*\}$/.test(segment);
 export const isRecursive = (segment: string) => /^\{[^{}=]*=\*\*\}$/.test(segment);
 
-/** A path with every variable written as `{}`, so two spellings of one path compare equal. */
 export const wildcardPath = (segments: readonly string[]) =>
   segments.map((s) => (isVariable(s) ? '{}' : s)).join('/');
 
-/** `a/{b}/c` → its segments, normalized; the form every declared path is compared in. */
 export const normalizeDeclared = (path: string) => wildcardPath(splitPath(path));
 
 export { splitPath };

@@ -1,6 +1,3 @@
-// Phase 1A proof: the Company contract + content migrated to ttt-core losslessly,
-// stays pure data (no React/JSX/functions), and every approved line survives.
-
 import { describe, it, expect } from 'vitest';
 import {
   COMPANY_CHARACTER_IDS,
@@ -23,13 +20,10 @@ const SEGMENT_KINDS = ['text', 'emphasis', 'link'] as const;
 const BLOCK_KINDS = ['paragraph', 'aside'] as const;
 const NAV_TARGETS = ['greenRoom', 'futurePlans'] as const;
 
-/** Pure, framework-free renderer: flattens a segment run to its rendered text.
- *  emphasis renders its text; link renders its label. */
 function renderSegmentsToText(segments: readonly CompanyCopySegment[]): string {
   return segments.map((seg) => (seg.kind === 'link' ? seg.label : seg.text)).join('');
 }
 
-/** Recursively assert a value contains no functions anywhere (pure data). */
 function assertNoFunctions(value: unknown, path: string): void {
   expect(typeof value, `function found at ${path}`).not.toBe('function');
   if (value && typeof value === 'object') {
@@ -132,7 +126,7 @@ describe('Performances', () => {
   });
 });
 
-describe('Dialogue counts survive migration', () => {
+describe('Dialogue counts', () => {
   it('Bill has 14 lines, Kit 14, Yorick 6', () => {
     expect(COMPANY_MASCOTS.bill.lines).toHaveLength(14);
     expect(COMPANY_MASCOTS.kit.lines).toHaveLength(14);

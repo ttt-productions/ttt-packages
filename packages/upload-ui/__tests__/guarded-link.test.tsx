@@ -142,7 +142,6 @@ describe('useGuardedNavigation — full-page navigation', () => {
     return hook;
   }
 
-  /** Runs the installed beforeunload handler; true when it warned (prevented the unload). */
   function nextUnloadWarns(): boolean {
     const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
     const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;

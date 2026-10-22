@@ -15,10 +15,7 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   queryClient?: QueryClient;
 }
 
-export function renderWithProviders(
-  ui: ReactElement,
-  options: RenderWithProvidersOptions = {}
-) {
+export function renderWithProviders(ui: ReactElement, options: RenderWithProvidersOptions = {}) {
   const { queryClient, ...renderOptions } = options;
   const client = queryClient ?? createTestQueryClient();
 

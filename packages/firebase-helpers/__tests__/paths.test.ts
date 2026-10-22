@@ -15,13 +15,13 @@ describe('joinPath', () => {
   });
 
   it('accepts numbers', () => {
-    expect(joinPath('seasons', 1, 'games')).toBe('seasons/1/games');
+    expect(joinPath('folders', 1, 'files')).toBe('folders/1/files');
   });
 });
 
 describe('colPath', () => {
   it('builds collection path', () => {
-    expect(colPath('leagues', 'abc', 'teams')).toBe('leagues/abc/teams');
+    expect(colPath('groups', 'abc', 'members')).toBe('groups/abc/members');
   });
 });
 

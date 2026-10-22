@@ -1,28 +1,17 @@
-// Field lineage: everywhere an identity concept (or one raw field name) is stored or referenced
-// across an app and the shared packages. Alias-aware: one concept expands to every spelling that
-// means the same thing, so the report never misses a name a reference hides behind.
-
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 export interface FieldLineageConfig {
-  /** Concept name -> every field spelling that means it. */
   aliasSets: Readonly<Record<string, readonly string[]>>;
-  /** Absolute source roots walked for `.ts`, `.tsx`, and `.mjs` files. */
   roots: readonly string[];
-  /** A root that may be absent (a sibling checkout); the report says when it was not scanned. */
   optionalRoots?: readonly string[];
-  /** Absolute single files read beside the roots (rules files, index config). */
   extraFiles: readonly string[];
-  /** A note printed after the report when the concept's terms include one of `terms`. */
   notes?: readonly { terms: readonly string[]; text: string }[];
 }
 
 const SKIPPED_FOLDERS = new Set(['node_modules', 'dist', '.next']);
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mjs']);
 
-// A folder or file that cannot be read stops the report: passing over it would print a lineage
-// that silently leaves references out.
 function* walk(dir: string): Generator<string> {
   const entries = readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -33,7 +22,6 @@ function* walk(dir: string): Generator<string> {
   }
 }
 
-/** Scan every root for a concept (an alias-set key) or one raw field name. */
 export function analyzeFieldLineage(
   config: FieldLineageConfig,
   arg: string,

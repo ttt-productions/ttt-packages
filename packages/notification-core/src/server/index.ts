@@ -1,9 +1,7 @@
-// Server-side helpers (for Cloud Functions)
 export { processBatchHelper } from './processBatchHelper.js';
 export { NotificationPermissionError } from './errors.js';
 export { buildActiveNotificationDocId } from './activeNotificationId.js';
 
-// Delivery ledger
 export { createDeliveryLedger, applyAggregation } from './delivery-ledger.js';
 export type {
   DeliveryLedger,
@@ -22,14 +20,12 @@ export type {
   ReplayOptions,
 } from './delivery-ledger.js';
 
-// Observed-generation seen/archive protocol
 export {
   markNotificationSeenWithGeneration,
   archiveNotificationWithGeneration,
 } from './observed-generation.js';
 export type { MarkSeenOutcome, ArchiveOutcome } from './observed-generation.js';
 
-// Server types
 export type {
   ServerFirestore,
   ServerCollectionRef,

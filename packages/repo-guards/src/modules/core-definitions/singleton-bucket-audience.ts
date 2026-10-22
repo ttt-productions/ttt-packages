@@ -1,8 +1,3 @@
-// Singleton bucket audience: a singleton document's collection IS its read grant, chosen by its
-// least-privileged necessary reader. A document the core places in a client-readable collection is
-// reviewed with the reader that needs that audience; a document no client reads belongs in a
-// server-only collection, which needs no entry.
-
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Reviewed } from '../../node/layout.js';
@@ -12,13 +7,9 @@ import { coreBuild } from './shared.js';
 type PathBuilder = (...args: never[]) => readonly string[];
 
 export interface SingletonBucketAudienceFacts {
-  /** The collections any client may read (an everyone-readable and a signed-in-readable bucket). */
   clientReadableBuckets: Loader<readonly string[]>;
-  /** The document paths the core's schema registry binds. */
   registeredDocumentPaths: Loader<readonly string[]>;
-  /** The core's path builders; a builder that takes no argument names a singleton. */
   pathBuilders: Loader<Readonly<Record<string, PathBuilder>>>;
-  /** Each client-readable singleton, with the reader that needs its collection's audience. */
   reviewed: readonly Reviewed[];
 }
 

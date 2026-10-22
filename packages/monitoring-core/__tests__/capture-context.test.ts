@@ -17,9 +17,9 @@ function makeScope() {
 
 describe('asFlatStringTagMap', () => {
   it('accepts a flat string map', () => {
-    expect(asFlatStringTagMap({ operation: 'x', lane: 'ncii' })).toEqual({
+    expect(asFlatStringTagMap({ operation: 'x', lane: 'lane-a' })).toEqual({
       operation: 'x',
-      lane: 'ncii',
+      lane: 'lane-a',
     });
   });
 
@@ -62,13 +62,13 @@ describe('applyCaptureContext', () => {
     const scope = makeScope();
 
     applyCaptureContext(scope, {
-      tags: { operation: 'runPublishApprovedHallLibraryItem.audit', action: 'approve' },
+      tags: { operation: 'publishItem.audit', action: 'approve' },
       level: 'warning',
       extra: { itemId: 'item-1' },
     });
 
     expect(scope.setTag.mock.calls).toEqual([
-      ['operation', 'runPublishApprovedHallLibraryItem.audit'],
+      ['operation', 'publishItem.audit'],
       ['action', 'approve'],
     ]);
     expect(scope.setLevel.mock.calls).toEqual([['warning']]);

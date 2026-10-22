@@ -3,9 +3,6 @@ import { render } from '@testing-library/react';
 import type { ChatCoreConfig } from '../src/types.js';
 import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
 
-// `onReadinessChange` tells a consumer whether the conversation can be acted on: allowed, its
-// initial data loaded with no failure, and the realtime channel current since its socket last
-// opened. A socket that is merely open, or data loaded before a disconnect, is not ready.
 const mockRealtimeResult: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
 vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
   useRealtimeChatMessages: () => mockRealtimeResult.current,

@@ -1,31 +1,9 @@
-// The import-path guard: every definition has exactly one import path.
-//
-// Four structural facts, checked over an app's module set held in memory:
-//
-//   1. A module that is not a folder `index` never re-exports — value or type, named, aliased,
-//      star, or the two-statement `import { x } …; export { x }`. Its consumers import the owner.
-//   2. A folder `index` forwards only modules inside its own folder's subtree — never a module
-//      outside it, never a package.
-//   3. Code outside a folder that has an `index` imports through that index, never past it. A test
-//      may import a file inside the folder only for names the index does not forward from it. A
-//      test's module mocks (`vi.mock` and kin) name the path the code under test imports, so they
-//      are never held to this.
-//   4. Code inside a folder never imports the `index` of a folder that contains it — it imports its
-//      siblings directly, so a folder entry point can never import itself in a cycle.
-//
-// An exception (a framework entry module such as a deploy manifest) may re-export and is not a
-// folder entry point. Each one carries a justification, and one that stops re-exporting is stale.
-//
-// Whether an index member is still imported by anything outside its folder is a usage question,
-// not a boundary, so it is a separate report (`findUnusedIndexMembers`), never a violation.
-
 import ts from 'typescript';
 import { moduleImports } from '../../support/imports.js';
 import { reviewedProblems } from '../../support/facts.js';
 import { dirnameOf, normalizePath } from '../../support/paths.js';
 import { isUnder } from '../../support/text.js';
 
-/** Every violation kind the guard reports. */
 export const IMPORT_PATH_VIOLATION_KINDS = Object.freeze([
   'reexport-outside-index',
   'index-forwards-outside-folder',
@@ -64,8 +42,6 @@ const defaultIsTestFile = (p) =>
   /\.(test|spec)\.[cm]?[jt]sx?$/.test(p) || p.split('/').includes('__tests__');
 
 /**
- * Everything the guard knows about one app.
- *
  * @param {{
  *   importAliases?: Record<string, string>,
  *   exceptions?: Array<{ file: string, why: string }>,
@@ -73,12 +49,6 @@ const defaultIsTestFile = (p) =>
  *   isTestFile?: (path: string) => boolean,
  *   isExcludedModule?: (path: string) => boolean,
  * }} [options]
- *   `importAliases` maps a specifier prefix to a repo-relative folder (`{ '@/': 'src/' }`).
- *   `exceptions` names the framework entry modules that may re-export; every one needs a `why`.
- *   `isTestFile` decides which modules are tests (default: a `.test.` / `.spec.` name, or any
- *   `__tests__` folder on the path).
- *   `isExcludedModule` says whether a module file exists inside a path the analyzed set leaves out
- *   on purpose; an import of one resolves without being judged, the way a package import does.
  */
 export function createImportPathProfile({
   importAliases = {},
@@ -122,7 +92,6 @@ const hasDefaultModifier = (node) =>
   ts.canHaveModifiers(node) &&
   (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.DefaultKeyword);
 
-/** The names a dynamic import or `require` reads, when the code says; `'*'` when it does not. */
 function namesReadFromCall(call) {
   let node = call;
   if (ts.isAwaitExpression(node.parent)) node = node.parent;
@@ -152,7 +121,6 @@ const isClassExtends = (node) =>
   node.parent.token === ts.SyntaxKind.ExtendsKeyword &&
   (ts.isClassDeclaration(node.parent.parent) || ts.isClassExpression(node.parent.parent));
 
-/** A declaration's own name, or a property name read off an object — never a reference to a binding. */
 function isNameNotReference(node) {
   const p = node.parent;
   if (!p) return false;
@@ -172,10 +140,6 @@ function isNameNotReference(node) {
   );
 }
 
-/**
- * Every name the module reads as a value. An imported binding read only in type positions is erased
- * by the build, so its import loads nothing at run time.
- */
 function valueReferencedNames(sf) {
   const used = new Set();
   const visit = (node) => {
@@ -209,15 +173,11 @@ function valueReferencedNames(sf) {
 }
 
 /**
- * One module's import edges, re-exports, and exported names. An edge is `typeOnly` when the build
- * erases it: written type-only, or binding only names the module reads in type positions.
- *
- * @param {string} path repo-relative, forward-slashed
+ * @param {string} path
  * @param {string} text
- * @param {import('typescript').SourceFile | null} [sourceFile] the file already parsed
+ * @param {import('typescript').SourceFile | null} [sourceFile]
  */
 export function parseModule(path, text, sourceFile = null) {
-  // A module the reader already parsed is never parsed a second time.
   const sf =
     sourceFile ?? ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKindOf(path));
   /** @type {Array<{ spec: string, kind: 'static' | 'dynamic' | 'mock' | 'export-from', names: string[] | '*', typeOnly: boolean }>} */
@@ -226,7 +186,6 @@ export function parseModule(path, text, sourceFile = null) {
   const readAsValue = (local) => (valueNames ??= valueReferencedNames(sf)).has(local);
   /** @type {Array<{ spec: string, name: string, imported: string, form: 'named' | 'aliased' | 'star' | 'namespace' | 'two-statement' }>} */
   const reExports = [];
-  /** Names this module exports from its own declarations (not forwards). */
   const ownExports = new Set();
   const importedBindings = new Map();
 
@@ -364,17 +323,10 @@ function isIndexFile(path, profile) {
   );
 }
 
-/** Under a folder, the repository root (`''`) holding everything. */
 const within = (path, dir) => dir === '' || isUnder(path, dir);
 
 /**
- * The guard over an in-memory module set.
- *
  * @param {{ files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>, roots: string[], profile: ReturnType<typeof createImportPathProfile> }} input
- *   `files` maps every analyzed module (repo-relative, forward-slashed) to its text; `roots` are the
- *   analyzed folders. A local specifier that resolves under a root to no analyzed module is
- *   `unresolved-import` — the guard never treats a path it cannot read as clean — unless the
- *   profile's `isExcludedModule` says the module exists inside a path left out on purpose.
  */
 export function analyzeImportPaths({ files, roots, profile }) {
   if (!profile) throw new Error('repo-guards: analyzeImportPaths needs a profile');
@@ -406,7 +358,7 @@ export function analyzeImportPaths({ files, roots, profile }) {
 
     for (const re of mod.parsed.reExports) {
       const target = model.resolve(path, re.spec);
-      if (target.kind === 'unresolved') continue; // reported once, on the import edge below
+      if (target.kind === 'unresolved') continue;
       if (exception) continue;
       const shown =
         re.form === 'star'
@@ -448,8 +400,6 @@ export function analyzeImportPaths({ files, roots, profile }) {
         continue;
       }
       if (edge.kind === 'mock' && test) continue;
-      // A non-index forward is already a violation above; an exception's forwards are allowed. An
-      // index's own forward still may not reach past a nested folder's index.
       if (edge.kind === 'export-from' && (!index || exception)) continue;
       const crossed = model.indexesCrossed(path, target.path);
       if (!crossed.length) continue;
@@ -473,10 +423,6 @@ export function analyzeImportPaths({ files, roots, profile }) {
   return { violations, stats: { modules: model.modules.size, indexes: model.indexDirs.size } };
 }
 
-/**
- * Report-only: index members no module outside the index's folder imports. Never a violation —
- * whether a member is used is a usage question, not a boundary.
- */
 export function findUnusedIndexMembers({ files, roots, profile }) {
   const model = buildModel(files, roots, profile);
   const used = new Map();
@@ -501,10 +447,8 @@ export function findUnusedIndexMembers({ files, roots, profile }) {
   return report.sort((a, b) => (a.file < b.file ? -1 : 1));
 }
 
-/** The one kind of test that may import an entry index: one that proves the entry forwards a name. */
 const ENTRY_SURFACE_TEST = /\.entry\.(test|spec)\.[cm]?[jt]sx?$/;
 
-// The extension a module's built file carries, which is the one a relative specifier names it by.
 const BUILT_EXTENSION = Object.freeze({
   '.ts': '.js',
   '.tsx': '.js',
@@ -519,14 +463,12 @@ const BUILT_EXTENSION = Object.freeze({
 const isRelative = (spec) =>
   spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../');
 
-/** The specifier that names `targetPath` by its built file, written the way `spec` reaches it. */
 function specifierWithExtension(spec, targetPath) {
   const built = BUILT_EXTENSION[extensionOf(targetPath)];
   const targetBase = targetPath.slice(targetPath.lastIndexOf('/') + 1);
   const stem = targetBase.slice(0, targetBase.length - extensionOf(targetBase).length);
   const trimmed = spec.replace(/\/$/, '');
   const specBase = trimmed.slice(trimmed.lastIndexOf('/') + 1);
-  // A specifier naming a folder reaches its index; one naming a file carries the file's stem.
   if (stem === 'index' && specBase !== 'index' && extensionOf(specBase) === '')
     return `${trimmed}/index${built}`;
   const specExt = extensionOf(specBase);
@@ -534,18 +476,6 @@ function specifierWithExtension(spec, targetPath) {
 }
 
 /**
- * The import rules inside one package, over its module set:
- *
- *   1. Code imports the file that defines each name — never an index (a folder's, a nested
- *      entry's, or the package root's) and never the package's own name. A test does the same,
- *      except an entry-surface test (`<name>.entry.test.ts`), which may import an entry index.
- *   2. Only an entry index re-exports, and only files inside its own folder, each named directly
- *      (never through another index). An index declares nothing of its own, and an `index` that is
- *      not a package entry does not exist.
- *   3. Every relative specifier names its file with the file's built extension — `./x.js` for
- *      `x.ts` or `x.tsx`, `./folder/index.js` for a folder — in source and tests alike: a static
- *      import or `export … from`, an `import()`, and a test runner's module mock.
- *
  * @param {{
  *   files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>,
  *   packageRoot: string,
@@ -553,8 +483,6 @@ function specifierWithExtension(spec, targetPath) {
  *   entryFiles: string[],
  *   profile: ReturnType<typeof createImportPathProfile>,
  * }} input
- *   `packageRoot` is the package's repo-relative folder; `entryFiles` are the source modules its
- *   `exports` are built from.
  */
 export function analyzePackageImports({ files, packageRoot, packageName, entryFiles, profile }) {
   if (!profile) throw new Error('repo-guards: analyzePackageImports needs a profile');
@@ -564,8 +492,6 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
   const violations = [];
   const add = (kind, file, detail) => violations.push({ kind, file, detail });
   const ownName = (spec) => spec === packageName || spec.startsWith(`${packageName}/`);
-  // Only the package's own code has indexes the rules govern; an index a test fixture holds models
-  // another package's entry.
   const packageIndex = (p) => isIndexFile(p, profile) && within(p, source);
 
   for (const [path, mod] of model.modules) {
@@ -595,7 +521,6 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
           ? `* from '${re.spec}'`
           : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
       if (!entryIndex) {
-        // A non-entry index is reported once, as itself: deleting it removes its forwards too.
         if (!indexFile)
           add(
             'reexport-outside-entry',
@@ -605,7 +530,7 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
         continue;
       }
       const target = model.resolve(path, re.spec);
-      if (target.kind === 'unresolved') continue; // reported once, on the import edge below
+      if (target.kind === 'unresolved') continue;
       if (target.kind !== 'file' || !within(target.path, dirnameOf(path))) {
         add(
           'entry-forwards-outside-folder',
@@ -651,7 +576,6 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
         }
       }
       if (target.kind !== 'file' || target.path === path || !packageIndex(target.path)) continue;
-      // A forward is judged as a re-export above.
       if (edge.kind === 'export-from' || (entryIndex && forwardedSpecs.has(edge.spec))) continue;
       if (entrySurfaceTest && entries.has(target.path)) continue;
       add(
@@ -669,10 +593,6 @@ export function analyzePackageImports({ files, packageRoot, packageName, entryFi
 }
 
 /**
- * Every runtime import cycle among a module set: the strongly connected groups of its static
- * imports and forwards, type-only edges and lazy `import()` left out (neither runs while a module
- * evaluates). Each cycle is reported once, as one closed path through it.
- *
  * @param {{ files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>, roots: string[], profile: ReturnType<typeof createImportPathProfile> }} input
  */
 export function findImportCycles({ files, roots, profile }) {
@@ -744,7 +664,6 @@ export function findImportCycles({ files, roots, profile }) {
     .map((group) => {
       const members = new Set(group);
       const first = group[0];
-      // The shortest way back to the group's first module, through the group alone.
       const previous = new Map([[first, null]]);
       const queue = [first];
       let closing = null;
@@ -771,7 +690,6 @@ export function findImportCycles({ files, roots, profile }) {
 
 function buildModel(files, roots, profile) {
   const modules = new Map();
-  // A module's entry is its text, or the reader's view of it ({ text, sourceFile }).
   for (const [path, entry] of files) {
     modules.set(path, {
       parsed:
@@ -781,7 +699,6 @@ function buildModel(files, roots, profile) {
     });
   }
   const exceptionFiles = new Set(profile.exceptions.map((e) => e.file));
-  /** folder → its index module (exceptions are not folder entry points). */
   const indexDirs = new Map();
   for (const path of modules.keys()) {
     if (isIndexFile(path, profile) && !exceptionFiles.has(path)) {
@@ -831,7 +748,6 @@ function buildModel(files, roots, profile) {
     resolveCache.set(key, result);
     return result;
   }
-  /** Every module file a specifier's resolved base may name, in the order they are tried. */
   function moduleCandidates(base) {
     const out = [base];
     const ext = extensionOf(base);
@@ -847,7 +763,6 @@ function buildModel(files, roots, profile) {
     return moduleCandidates(base).find((candidate) => modules.has(candidate)) ?? null;
   }
 
-  /** Every index whose folder holds `target` but not `from`, innermost first; `target` is never its own crossing. */
   function indexesCrossed(from, target) {
     const out = [];
     for (let dir = dirnameOf(target); ; dir = dirnameOf(dir)) {
@@ -857,14 +772,12 @@ function buildModel(files, roots, profile) {
     }
     return out;
   }
-  /** The folder whose index `target` is, when that folder also contains `from`. */
   function ownIndexCrossing(from, target) {
     const dir = dirnameOf(target);
     return indexDirs.get(dir) === target && within(from, dir) && from !== target ? dir : null;
   }
 
   const exportCache = new Map();
-  /** Every name `path` exports, its forwards followed. */
   function exportedNames(path, seen = new Set()) {
     if (exportCache.has(path)) return exportCache.get(path);
     if (seen.has(path)) return new Set();
@@ -882,7 +795,6 @@ function buildModel(files, roots, profile) {
     return names;
   }
 
-  /** Does `indexPath` forward, directly or through a nested index, any of `names` defined in `target`? */
   function forwardsFrom(indexPath, target, names, seen = new Set()) {
     if (seen.has(indexPath)) return false;
     seen.add(indexPath);
@@ -913,7 +825,6 @@ function buildModel(files, roots, profile) {
   };
 }
 
-/** A printable report of `analyzeImportPaths`' result. */
 export function formatImportPathReport({ violations }) {
   if (!violations.length) return 'import-path guard: clean — every definition has one import path.';
   const lines = [`import-path guard: ${violations.length} violation(s)`];

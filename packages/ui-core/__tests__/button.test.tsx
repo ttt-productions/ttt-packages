@@ -4,17 +4,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Button, buttonVariants } from '../src/react/components/button.js';
 import { Tabs, TabsList, TabsTrigger } from '../src/react/components/tabs.js';
 
-// ---------------------------------------------------------------------------
-// Variant + size class contract (table-driven, no render)
-//
-// `buttonVariants` is the public contract: it maps (variant, size) → class
-// string. Asserting on the resolved class string is the cheapest way to lock
-// the contract without depending on render output or design-token internals.
-// Each row picks one or two SIGNATURE classes for that variant/size — the
-// ones a regression would most likely break. We don't snapshot the full
-// class string because that's brittle to ordering/whitespace.
-// ---------------------------------------------------------------------------
-
 describe('buttonVariants — variant class contract', () => {
   const cases: Array<{
     variant: NonNullable<Parameters<typeof buttonVariants>[0]>['variant'];
@@ -28,7 +17,6 @@ describe('buttonVariants — variant class contract', () => {
         'border-[hsl(var(--brand-primary-deep))]',
       ],
     },
-    // The destructive edge follows the destructive family, never the brand.
     {
       variant: 'destructive',
       signatureClasses: [
@@ -62,9 +50,6 @@ describe('buttonVariants — variant class contract', () => {
   }
 });
 
-// A solid status fill carries ITS OWN status foreground, and no other text colour at
-// rest. The success variant once rendered the default button's text on the green fill
-// (text-primary-foreground), which measured 2.09:1 in a dark theme.
 const TEXT_NOT_A_COLOUR =
   /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
 const restingTextColours = (classes: string) =>
@@ -88,7 +73,7 @@ describe('buttonVariants — a status fill carries its own status foreground', (
     });
   }
 
-  it('the success variant no longer borrows the default button text colour', () => {
+  it('the success variant never borrows the default button text colour', () => {
     expect(buttonVariants({ variant: 'success' })).not.toContain('text-primary-foreground');
   });
 
@@ -127,7 +112,6 @@ describe('buttonVariants — size class contract', () => {
 describe('buttonVariants — base styling applies regardless of variant/size', () => {
   it('always includes the base flex + focus-visible ring classes', () => {
     const classes = buttonVariants({});
-    // These are part of the always-on base string in the cva call.
     expect(classes).toContain('inline-flex');
     expect(classes).toContain('focus-visible:ring-2');
     expect(classes).toContain('disabled:pointer-events-none');
@@ -136,9 +120,7 @@ describe('buttonVariants — base styling applies regardless of variant/size', (
 
   it('default variant + default size are applied when no args given', () => {
     const classes = buttonVariants({});
-    // default variant signature
     expect(classes).toContain('bg-primary');
-    // default size signature
     expect(classes).toContain('h-10');
   });
 
@@ -147,10 +129,6 @@ describe('buttonVariants — base styling applies regardless of variant/size', (
     expect(classes).toContain('my-extra-class');
   });
 });
-
-// ---------------------------------------------------------------------------
-// Render-level behavior — anything not purely class-string driven
-// ---------------------------------------------------------------------------
 
 describe('<Button> — render contract', () => {
   it('renders the children passed in', () => {
@@ -172,7 +150,6 @@ describe('<Button> — render contract', () => {
     );
     const node = container.firstChild as HTMLElement;
     const expected = buttonVariants({ variant: 'outline', size: 'lg' });
-    // Every signature token in the expected string should appear on the element.
     for (const cls of ['border-2', 'border-border', 'h-11', 'px-8']) {
       expect(node).toHaveClass(cls);
       expect(expected).toContain(cls);
@@ -183,7 +160,6 @@ describe('<Button> — render contract', () => {
     render(<Button className="my-btn">Test</Button>);
     const btn = screen.getByRole('button');
     expect(btn).toHaveClass('my-btn');
-    // And the variant class is still there.
     expect(btn).toHaveClass('bg-primary');
   });
 });
@@ -367,7 +343,6 @@ describe('<Button asChild> — Slot delegation', () => {
         <a href="/path">Link Button</a>
       </Button>,
     );
-    // The rendered element is an <a>, not a <button>.
     expect(screen.getByRole('link')).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -401,7 +376,6 @@ describe('<Button> — HTML attribute passthrough', () => {
 
   it('passes through `aria-label`', () => {
     render(<Button aria-label="Close dialog">X</Button>);
-    // Querying by accessible name proves the attribute is wired correctly.
     expect(screen.getByRole('button', { name: 'Close dialog' })).toBeInTheDocument();
   });
 
@@ -411,8 +385,6 @@ describe('<Button> — HTML attribute passthrough', () => {
   });
 });
 
-// An app styles every button's press from its own stylesheet through one stable class, so the
-// hook must reach every rendered shape of Button and nothing that merely looks like one.
 describe('<Button> — the ui-button hook class', () => {
   const variants = [
     'default',

@@ -1,35 +1,20 @@
-// Operational / utility Firestore document SCHEMAS — small backend-written docs that aren't
-// part of a feature domain. Reverse-engineered from their backend write sites. Types via z.infer.
-
 import { z } from 'zod';
 import { UserAccountStatusSchema } from './user.js';
 import { ShortLinkTargetTypeSchema } from '../schemas/atoms.js';
 
-// reservedDisplayNames/{displayNameUppercase} — uniqueness claim written in the registerUser
-// transaction; existence == name taken. (functions/src/users/registerUser.ts)
 export const ReservedDisplayNameSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
 });
 export type ReservedDisplayName = z.infer<typeof ReservedDisplayNameSchema>;
 
-// reservedRealmNames/{workingTitleUppercase} — platform-wide Realm-name uniqueness claim, written
-// in the createWorkRealm transaction (existence == name taken). Mirrors reservedDisplayNames; key is
-// the UPPERCASE realm working title. (legal-convo [BUILD]: realm names unique platform-wide.)
 export const ReservedRealmNameSchema = z.object({
   workRealmId: z.string(),
   workingTitle: z.string(),
-  // RETIRED name (DJ ruling 2026-07-12, option B): set true when a moderation
-  // force-retitle removes this name — the name is dead platform-wide FOREVER; no
-  // realm (including the original owner) can ever claim it again, and no rename
-  // path releases the reservation. Ordinary renames release un-retired
-  // reservations normally. Backend-only-writable.
   retired: z.boolean().optional(),
 });
 export type ReservedRealmName = z.infer<typeof ReservedRealmNameSchema>;
 
-// stakeShareAuditEvents/{eventId} — Firestore-trigger audit of guildmate stake-share changes.
-// (functions/src/audit/runWorkProjectGuildmateUserStakeShareAudit.ts)
 export const StakeShareAuditEventSchema = z.object({
   eventId: z.string(),
   subtype: z.string(),
@@ -44,15 +29,11 @@ export const StakeShareAuditEventSchema = z.object({
 });
 export type StakeShareAuditEvent = z.infer<typeof StakeShareAuditEventSchema>;
 
-// shortLinks/{shortId} — short link to a share target (an audition, an audition entry, a
-// commission listing, or a whole Hall entry), with a click counter. Written once by
-// `createShortLink` and never deleted. `type` is the create input's target type.
 export const ShortLinkSchema = z.object({
   shortId: z.string(),
   shortUrl: z.string(),
   destinationUrl: z.string(),
   type: ShortLinkTargetTypeSchema,
-  // The ids of what the link points at, one field per target kind, null where it does not apply.
   metadata: z.object({
     auditionId: z.string().nullable(),
     auditionEntryId: z.string().nullable(),
@@ -65,22 +46,6 @@ export const ShortLinkSchema = z.object({
 });
 export type ShortLink = z.infer<typeof ShortLinkSchema>;
 
-// statusReconcileQueue/{uid} — backend-only retry queue for post-commit Auth-effect reconciliation.
-// A status change writes its entry in the status transaction itself; the other effects are written
-// when a change committed to Firestore but its follow-on Auth effect failed. The drain
-// re-converges every Auth-side mirror of the uid from its canonical docs and deletes the entry on
-// success. Keyed by the affected uid (doc id == uid; one entry per uid, whichever effect queued
-// it); Admin-SDK-only. Timestamps are epoch-millis numbers (this repo never uses Firestore
-// Timestamps).
-
-/**
- * Which post-commit Auth effect failed and queued the uid:
- * - `accountStatus` — the status claim / `disabled` flag / token revocation after a status change;
- * - `publicDocumentsAcceptedClaim` — the `docsAccepted` claim after a public-document acceptance;
- * - `adminClaims` — the admin-role claims after an admin-roster change;
- * - `registeredMemberClaim` — the registered-member claim after a registration completed.
- * An entry without `authEffect` predates the field and is an `accountStatus` entry.
- */
 export const STATUS_RECONCILE_QUEUE_AUTH_EFFECTS = [
   'accountStatus',
   'publicDocumentsAcceptedClaim',
@@ -98,12 +63,6 @@ const statusReconcileQueueEntryBase = {
   reason: z.literal('postCommitAuthEffectFailed'),
 };
 
-/**
- * A status change's Auth effect, owed until it lands. Written in the SAME transaction as the status
- * change (so a committed status always has its entry), removed once the Auth effect lands. `writeId`
- * names the status change that wrote it: a removal compares it, so finishing an older change never
- * removes the entry a newer change wrote. The drain converges the account on its canonical status.
- */
 export const StatusReconcileQueueAccountStatusEntrySchema = z.object({
   ...statusReconcileQueueEntryBase,
   reason: z.literal('statusChangePending'),
@@ -115,7 +74,6 @@ export type StatusReconcileQueueAccountStatusEntry = z.infer<
   typeof StatusReconcileQueueAccountStatusEntrySchema
 >;
 
-/** A failed `docsAccepted` claim write. Strict: it carries no status, so no `targetStatus`. */
 export const StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema = z
   .object({
     ...statusReconcileQueueEntryBase,
@@ -126,7 +84,6 @@ export type StatusReconcileQueuePublicDocumentsAcceptedClaimEntry = z.infer<
   typeof StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema
 >;
 
-/** A failed admin-role claim write. Strict: it carries no status. */
 export const StatusReconcileQueueAdminClaimsEntrySchema = z
   .object({
     ...statusReconcileQueueEntryBase,
@@ -137,7 +94,6 @@ export type StatusReconcileQueueAdminClaimsEntry = z.infer<
   typeof StatusReconcileQueueAdminClaimsEntrySchema
 >;
 
-/** A failed registered-member claim write. Strict: it carries no status. */
 export const StatusReconcileQueueRegisteredMemberClaimEntrySchema = z
   .object({
     ...statusReconcileQueueEntryBase,
@@ -156,17 +112,12 @@ export const StatusReconcileQueueEntrySchema = z.discriminatedUnion('authEffect'
 ]);
 export type StatusReconcileQueueEntry = z.infer<typeof StatusReconcileQueueEntrySchema>;
 
-// feedbackAliases/{aliasId} — Console-managed map collapsing a synonym suggestion onto a canonical
-// one; read by submitFeedback, no callable writes it. (firestore.rules §3F / submitFeedback.ts)
 export const FeedbackAliasSchema = z.object({
   canonicalId: z.string(),
   originalType: z.string(),
 });
 export type FeedbackAlias = z.infer<typeof FeedbackAliasSchema>;
 
-// feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId} — an aggregated user
-// suggestion with its deduped submitter list + count. The path nests the feedbackSubmissions +
-// userSuggestions registry segments. (functions/src/utility/submitFeedback.ts)
 export const UserSuggestionSchema = z.object({
   suggestionText: z.string(),
   count: z.number(),

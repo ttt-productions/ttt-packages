@@ -65,8 +65,8 @@ describe('the pledge-totals formula', () => {
 describe('which pledges count', () => {
   it('a pledge counts while it holds money, and stops once its net is 0', () => {
     expect(isPledgePaymentCounted(untouched)).toBe(true);
-    expect(isPledgePaymentCounted(refunded)).toBe(true); // partly refunded, money left
-    expect(isPledgePaymentCounted({ netAmount: 0 })).toBe(false); // fully refunded
+    expect(isPledgePaymentCounted(refunded)).toBe(true);
+    expect(isPledgePaymentCounted({ netAmount: 0 })).toBe(false);
     expect(isPledgePaymentCounted(disputeLost)).toBe(false);
   });
 

@@ -11,19 +11,15 @@ vi.mock(
   async () => import('../../media-viewer/src/react/index.js'),
 );
 
-// Fake MediaRecorder:
 type MRCtor = new (stream: MediaStream, opts?: MediaRecorderOptions) => MediaRecorder;
 
 function installMediaRecorderMock(opts?: {
-  /** mimeType the fake recorder reports (default 'audio/webm'). */
   mimeType?: string;
-  /** When provided, installed as the static MediaRecorder.isTypeSupported. */
   isTypeSupported?: (type: string) => boolean;
 }) {
   const reportedMimeType = opts?.mimeType ?? 'audio/webm';
   const instances: any[] = [];
-  // Function expression, not an arrow: the component does `new MediaRecorder(...)`
-  // and Vitest 4 mock implementations are only constructible when the impl is.
+  // A function expression, not an arrow: a Vitest mock is constructible only when its impl is.
   const ctor = vi.fn(function (stream: MediaStream, _opts?: any) {
     const inst: any = {
       state: 'inactive',
@@ -35,7 +31,6 @@ function installMediaRecorderMock(opts?: {
       }),
       stop: vi.fn(function (this: any) {
         this.state = 'inactive';
-        // Simulate a chunk, then fire onstop synchronously so the preview state flips before assertions
         act(() => {
           this.ondataavailable?.({
             data: new Blob(['chunk'], { type: reportedMimeType }),
@@ -57,8 +52,6 @@ function installMediaRecorderMock(opts?: {
 }
 
 function installGetUserMediaMock() {
-  // Stable track objects so teardown's getTracks() call and the test's call
-  // both reference the same spies.
   const tracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
   const stream = {
     getTracks: () => tracks,
@@ -111,8 +104,7 @@ describe('RecordDialog', () => {
     urlMock = installObjectUrlMock();
     vi.stubGlobal('requestAnimationFrame', vi.fn().mockReturnValue(1));
     vi.stubGlobal('cancelAnimationFrame', vi.fn());
-    // MediaInput's selected-file preview (react-intersection-observer) needs
-    // an IntersectionObserver; jsdom has none.
+    // MediaInput's preview (react-intersection-observer) needs an IntersectionObserver; jsdom has none.
     vi.stubGlobal(
       'IntersectionObserver',
       class {
@@ -141,7 +133,7 @@ describe('RecordDialog', () => {
           strokeStyle: '',
         }) as unknown as CanvasRenderingContext2D,
     );
-    // Stub play to avoid jsdom errors
+    // jsdom does not implement media playback.
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
       value: vi.fn().mockResolvedValue(undefined),
@@ -188,11 +180,8 @@ describe('RecordDialog', () => {
     const user = userEvent.setup();
     const { baseElement } = renderDialog();
     await user.click(screen.getByRole('button', { name: /^start$/i }));
-    // mr.start was called; now stop
     await user.click(screen.getByRole('button', { name: /^stop$/i }));
-    // After stop, dialog transitions to preview state. onRecorded MUST NOT have fired.
     expect(onRecorded).not.toHaveBeenCalled();
-    // Recorded audio previews use the one package-owned player, never native chrome.
     expect(baseElement.querySelector('[data-mv-player]')).toBeInTheDocument();
     expect(baseElement.querySelector('audio')).not.toHaveAttribute('controls');
   });
@@ -285,7 +274,6 @@ describe('RecordDialog', () => {
     await user.click(screen.getByRole('button', { name: /^stop$/i }));
     await user.click(screen.getByRole('button', { name: /re-?record/i }));
     expect(urlMock.revoke).toHaveBeenCalledWith('blob:mock-url');
-    // Back in idle — Start button visible again
     expect(screen.getByRole('button', { name: /^start$/i })).toBeInTheDocument();
     expect(onRecorded).not.toHaveBeenCalled();
   });
@@ -295,11 +283,9 @@ describe('RecordDialog', () => {
     renderDialog();
     await user.click(screen.getByRole('button', { name: /^start$/i }));
     await user.click(screen.getByRole('button', { name: /^stop$/i }));
-    // DialogContent (shadcn) injects its own sr-only "Close" button, so there are
-    // two matches; the footer's explicit Close button is first in DOM order.
+    // DialogContent injects its own sr-only "Close" button; the footer's Close is first in DOM order.
     const [footerCloseBtn] = screen.getAllByRole('button', { name: /^close$/i });
     await user.click(footerCloseBtn);
-    // AlertDialog should appear with a Discard option
     expect(screen.getByText(/discard recording/i)).toBeInTheDocument();
     expect(onRecorded).not.toHaveBeenCalled();
   });
@@ -318,7 +304,6 @@ describe('RecordDialog', () => {
   it('renders Photo button only when canPhoto + onRequestPhoto are provided', async () => {
     const onRequestPhoto = vi.fn();
     const { rerender } = renderDialog();
-    // canPhoto=false by default in renderDialog — no photo button
     expect(screen.queryByRole('button', { name: /^photo$/i })).not.toBeInTheDocument();
 
     rerender(
@@ -339,13 +324,8 @@ describe('RecordDialog', () => {
     const user = userEvent.setup();
     await user.click(photoBtn);
     expect(onRequestPhoto).toHaveBeenCalledTimes(1);
-    // And the dialog requested close (onOpenChange(false))
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
-
-  // --- Recorded-audio MIME normalization (regression: Chrome's
-  // "audio/webm;codecs=opus" used to fail validation, fall back to the
-  // .webm extension map, and emit video/webm for every audio recording). ---
 
   async function recordStopSave() {
     const user = userEvent.setup();
@@ -363,17 +343,14 @@ describe('RecordDialog', () => {
       isTypeSupported: (t) => t === 'audio/webm;codecs=opus',
     });
     const file = await recordStopSave();
-    // The first supported candidate was requested explicitly.
     expect((ctor as any).isTypeSupported).toHaveBeenCalledWith('audio/webm;codecs=opus');
     expect(ctor).toHaveBeenCalledWith(expect.anything(), { mimeType: 'audio/webm;codecs=opus' });
-    // Emitted File carries the parameter-less base type (storage rules
-    // validate a parameter-less image|video|audio regex).
     expect(file.type).toBe('audio/webm');
     expect(file.name).toBe('recording.webm');
   });
 
   it('falls back to the no-argument constructor when isTypeSupported is unavailable (test environments)', async () => {
-    const { ctor } = installMediaRecorderMock(); // no static isTypeSupported
+    const { ctor } = installMediaRecorderMock();
     const file = await recordStopSave();
     expect(ctor.mock.calls[0][1]).toBeUndefined();
     expect(file.type).toBe('audio/webm');
@@ -386,21 +363,12 @@ describe('RecordDialog', () => {
   });
 
   it('passes the RECORDED KIND as the third onRecorded argument regardless of the recorder-reported MIME (the strong media-recorder claim source)', async () => {
-    // The claim contract (canonical-upload-content-classification): the
-    // media-recorder claim comes from the dialog's OWN recording kind — the
-    // requested MediaStream — never from the blob's reported container. A
-    // Safari-style recorder reporting video/mp4 for an audio-only session must
-    // still yield recordedKind 'audio'.
     installMediaRecorderMock({ mimeType: 'video/mp4' });
     await recordStopSave();
     expect(onRecorded.mock.calls[0][2]).toBe('audio');
   });
 
   it('a recorder that reports video/mp4 for a chosen-audio recording emits audio/mp4 named recording.m4a', async () => {
-    // Defensive edge: an audio-only stream (video:false) reported as the mp4
-    // container. mp4 is not in the ambiguous-extension map, so naming the file
-    // by its declared video/mp4 would re-derive video/mp4 from the .mp4 extension.
-    // The recorder's authoritative audio kind names it .m4a → audio/mp4.
     installMediaRecorderMock({ mimeType: 'video/mp4' });
     const file = await recordStopSave();
     expect(file.type).toBe('audio/mp4');
@@ -444,15 +412,7 @@ describe('RecordDialog', () => {
     expect(file.name).toBe('recording.mp4');
   });
 
-  // --- Auto-stop headroom (regression: the recorder used to stop at exactly
-  // maxRecordDurationSec * 1000, and the MediaRecorder flush/frame-rounding
-  // overshoot pushed the blob a few hundred ms OVER the cap — which the client
-  // upload gate and the server processor both enforce exactly, so a user who
-  // recorded to the cap got "Media too long. Max 60 seconds." on their own
-  // recording). ---
-
-  // Fake only the timers the recorder uses (leaves the stubbed rAF the
-  // waveform loop relies on alone); Date drives the elapsed label.
+  // Fake only the timers the recorder uses: the waveform loop relies on the stubbed rAF.
   function useRecorderFakeTimers() {
     vi.useFakeTimers({
       toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
@@ -460,12 +420,8 @@ describe('RecordDialog', () => {
   }
 
   it('autoStopDelayMs leaves headroom under the cap, and never eats a short cap', () => {
-    // A real 60s cap stops early, but only just — the user still records
-    // essentially the full minute.
     expect(autoStopDelayMs(60)).toBeLessThan(60_000);
     expect(autoStopDelayMs(60)).toBeGreaterThan(59_000);
-    // Degenerate tiny caps keep at least half the cap rather than being
-    // swallowed by the margin.
     expect(autoStopDelayMs(1)).toBeGreaterThanOrEqual(500);
     expect(autoStopDelayMs(1)).toBeLessThan(1_000);
   });
@@ -475,7 +431,6 @@ describe('RecordDialog', () => {
     try {
       const { instances } = installMediaRecorderMock();
       renderDialog();
-      // Let the live-preview device acquisition settle: Start is disabled until it does.
       await act(async () => {});
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
@@ -493,8 +448,6 @@ describe('RecordDialog', () => {
         vi.advanceTimersByTime(1);
       });
       expect(mr.stop).toHaveBeenCalledTimes(1);
-      // Stopped strictly before the cap boundary, and still in preview (not
-      // re-stopped) once the cap instant passes.
       expect(delay).toBeLessThan(60_000);
       await act(async () => {
         vi.advanceTimersByTime(60_000);
@@ -511,13 +464,11 @@ describe('RecordDialog', () => {
     try {
       installMediaRecorderMock();
       renderDialog();
-      // Let the live-preview device acquisition settle: Start is disabled until it does.
       await act(async () => {});
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
       });
       expect(screen.getByText('0:00 / 1:00')).toBeInTheDocument();
-      // Right before the auto-stop the label still promises the real cap.
       await act(async () => {
         vi.advanceTimersByTime(autoStopDelayMs(60) - 1);
       });
@@ -532,7 +483,6 @@ describe('RecordDialog', () => {
     try {
       const { instances } = installMediaRecorderMock();
       renderDialog();
-      // Let the live-preview device acquisition settle: Start is disabled until it does.
       await act(async () => {});
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
@@ -546,7 +496,6 @@ describe('RecordDialog', () => {
       const mr = instances[0];
       expect(mr.stop).toHaveBeenCalledTimes(1);
       expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
-      // Passing the auto-stop point afterwards must not fire a second stop.
       await act(async () => {
         vi.advanceTimersByTime(120_000);
       });

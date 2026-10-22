@@ -83,7 +83,6 @@ describe('ThemeSwitcher', () => {
       ),
     );
     render(<ThemeSwitcher {...makeProps()} renderTrigger={renderTrigger} />);
-    // renderTrigger is called at least once (pre-mount with disabled=true)
     expect(renderTrigger).toHaveBeenCalledWith(
       expect.objectContaining({ srLabel: 'Toggle theme' }),
     );
@@ -91,7 +90,6 @@ describe('ThemeSwitcher', () => {
 
   it('renders menu items after mount', () => {
     render(<ThemeSwitcher {...makeProps()} />);
-    // After mount (useEffect fires in jsdom), menu items appear
     expect(screen.getByText('Light')).toBeInTheDocument();
     expect(screen.getByText('Dark')).toBeInTheDocument();
     expect(screen.getByText('High Contrast')).toBeInTheDocument();
@@ -134,14 +132,12 @@ describe('ThemeSwitcher', () => {
       ),
     );
     render(<ThemeSwitcher {...makeProps()} renderMenu={renderMenu} />);
-    // renderMenu was called with both keys
     expect(renderMenu).toHaveBeenCalledWith(
       expect.objectContaining({
         trigger: expect.anything(),
         children: expect.anything(),
       }),
     );
-    // The trigger button rendered by makeProps' renderTrigger is now inside the menu slot
     const slot = screen.getByTestId('trigger-slot');
     expect(slot.querySelector('button')).not.toBeNull();
   });

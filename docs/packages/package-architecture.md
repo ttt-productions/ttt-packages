@@ -8,7 +8,7 @@ Code is the source of truth. This document explains the durable model; exact
 exports live in each package's `package.json`, and the wiring lives in the root
 `package.json` build chain and `scripts/`.
 
-Generic packages never know about TTT-specific identifiers, Firestore collection
+Generic packages never know about any app's identifiers, Firestore collection
 names, copy, moderation policy, or domain-event catalogs — that lives in the app's
 application-data package (`@ttt-productions/ttt-core`, `@ttt-productions/q-core`) or in the
 consuming app.
@@ -27,12 +27,14 @@ package may consume either.
   import every lazy load goes through; no dependencies at all), `firebase-helpers`, `chat-core`, `media-schemas`,
   `mobile-core`, `monitoring-core`, `theme-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
-  (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
-  header contract; WebCrypto + zod only), `repo-guards` (the one guard suite every app runs in
+  (runtime-neutral signed-edge-call primitives plus the factories a consumer
+  defines its own header sets with; WebCrypto + zod only), `repo-guards` (the one guard suite every app runs in
   its gate: one reader of the repository, every generic guard, and the three shapes
   an app builds its business guards on, and the repository tooling every app runs; its root is
   pure; its `./node` reader and the `./node/suite`, `./node/reports`, and `./node/tooling`
-  entries run under Node).
+  entries run under Node), `dev-standards` (the shared rulebook, AI docs, workflows,
+  playbooks, and config bases every product reads; its docs ship as plain files, and its
+  `./node/*` config bases run under Node).
 - **Tier 1 — depend on Tier 0 only:**
   `ui-core` (→ `input-format-core`; its free-text inputs take a field
   declaration), `chat-schemas` (→ `input-format-core`; the chat message text's
@@ -59,7 +61,7 @@ package may consume either.
   `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
   `report-core`) for ttt-prod, and `q-core` (→ `input-format-core`, `media-schemas`,
   `notification-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
-  rulebook (ARCH-207), and neither imports the other.
+  rulebook (RULE-STD-ARCH-207), and neither imports the other.
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
 build and release order still honors them):
@@ -101,7 +103,7 @@ conventions) is pure/universal: no Node, React, or browser runtime import or
 type — `node:*` included — in its built JS or its `.d.ts`, and no app-specific
 contract pulled in at runtime. Anything that is browser/client-Firebase, React
 UI, Admin SDK, Node-only, or app-specific lives behind a runtime-specific
-subpath or a separate package (ARCH-202, ARCH-203).
+subpath or a separate package (RULE-STD-ARCH-202, RULE-STD-ARCH-203).
 
 Three intentional exceptions exist, each declared in the boundary suite:
 `media-processing-core` (server-only root), `chat-react` (its root *is* the
@@ -120,7 +122,7 @@ with its built extension: `./x.js` for `x.ts` or `x.tsx`, `./folder/index.js` fo
 folder (source must under `node16` resolution; tests follow the same one style).
 Only an entry `index` re-exports, and only files in its own subtree, each named
 directly; an index declares nothing of its own, and no `index.ts` exists that
-is not a package entry (ARCH-203). An
+is not a package entry (RULE-STD-ARCH-203). An
 entry-surface test is a file named `<name>.entry.test.ts`; no other test imports
 an entry index.
 
@@ -129,7 +131,7 @@ an entry index.
 Every definition a package exports is exported by exactly one entry — the entry of the folder that
 holds it. A file-level entry exists only for a file no folder entry covers, and a root-level file
 with no entry of its own belongs to the root, so the root never forwards what a folder entry exports
-(ARCH-203; the repo-guards package-entry check holds it in the boundary suite).
+(RULE-STD-ARCH-203; the repo-guards package-entry check holds it in the boundary suite).
 
 Subpath names are consistent across packages so an import site reads its own
 safety:
@@ -144,6 +146,11 @@ safety:
 - `./browser` — browser runtime with no React: the upload runtime (`upload-core/browser`) and the
   reload-recovery watch (`ui-core/browser`).
 - `./styles` (or `*.css`) — CSS assets.
+- `./node/<tool>` — a Node-only config base named for the tool it configures
+  (`dev-standards/node/eslint`, `…/node/vitest`, `…/node/playwright`, `…/node/postcss`, `…/node/a11y`).
+- `./config/<file>.json` — a JSON config file exported by its own path for `extends`
+  (`dev-standards/config/tsconfig.app.json`, `…/config/tsconfig.functions.json`,
+  `…/config/prettier.json`).
 
 ## Direction rules
 
@@ -164,32 +171,18 @@ safety:
   package that imports `ttt-core` or `q-core`.
 - Backend chat schema/contract imports use `chat-schemas`, not `chat-core`.
 
-**Sanctioned exceptions** — a small number of generic packages carry a
-`ttt`-branded string. Each is a **wire-protocol token**, not business policy or
-app config: it is the literal value on the network that two independently
-deployed runtimes must agree on, so it belongs with the protocol it defines, and
-renaming it is a protocol break rather than a refactor. Each is single-declared
-in its owning package and imported everywhere else, so ENG-002 holds. No further
-action is expected on either entry; do not "fix" them by relocating the value to
-`ttt-core`.
+**Sanctioned exceptions** — one generic package carries app-branded strings. Each is
+a **wire-protocol token**, not business policy or app config: the literal value on the network
+that independently deployed runtimes and every browser must agree on, so it belongs with the
+protocol it defines, and renaming it is a protocol break rather than a refactor. Each is
+single-declared in its owning package, imported everywhere else (RULE-STD-ENG-002), and marked by a
+one-line `RULE-STD-ARCH-201` exception comment above its declaration. Do not "fix" them by relocating
+the value to `ttt-core`.
 
 - `chat-schemas` → `CHAT_SUBPROTOCOL` (`ttt.chat.v1`), the pinned WebSocket
   subprotocol tag, and `CHAT_GRANT_AUDIENCE` (`ttt-chat`), the grant token's
-  `aud` claim. Both are offered/verified across the browser client, the chat
-  Worker, and the Cloud Function that mints grants.
-- `edge-protocol-core` → the `x-ttt-*` wire header names: the edge→origin
-  provenance names (`provenance-headers.ts`), shared by the Worker front door that
-  mints them and the origin that validates them, and the internal-auth transport
-  names (`internal-auth-headers.ts`), shared by the Cloud Functions tree that signs
-  an internal request and the Worker/DO tree that verifies it. ARCH-005 requires
-  one definition of each cross-tree trust contract, in the shared package every
-  participating tree installs: `edge-protocol-core` for the generic contracts (these
-  header names, the signing primitives, the bounded body reader), `ttt-core` for the
-  TTT-specific shapes (the media grant scope, session cookie, and apply body), and
-  `chat-schemas` for the chat contracts. A per-tree copy is the drift the rule exists
-  to prevent. ONE named-exception block, at the top of `provenance-headers.ts`, is
-  scoped to every `x-ttt-*` wire name the package owns — do not duplicate it per
-  file, and do not extend it to a branded string that is not a wire name.
+  `aud` claim. Every runtime that offers or verifies them must agree on the
+  literal value.
 
 ## Firestore access goes through query-core
 
@@ -240,8 +233,8 @@ Non-React consumers install `chat-core` and never inherit the frontend tree.
 Neither package carries mention machinery. Chat message text is PLAIN text —
 stored and rendered verbatim, with no token grammar, parser, serializer,
 autocomplete UI, or mention-provider contract on either side of the split.
-Mentions are a Square-posts concept: the `Mention` / `MentionType` atoms live in
-`ttt-core` and the surface that uses them is the app's own.
+Mentions belong to the consuming app: its application-data package holds the
+atoms, and the surface that uses them is the app's own.
 
 Neither package carries **reply-to** machinery either. No chat surface has an
 authoring affordance for replying to a specific message — `MessageActions`
@@ -253,10 +246,10 @@ reply pointer. A DO row that still stores a legacy
 
 ## auth-core generics
 
-`createAssertAuth<TUser, TAdmin>(config)` and `AuthContext<TUser, TAdmin>` are
-generic over both the consuming app's user-document shape and its admin-check
-result type. The package stays app-agnostic: the consumer supplies the role
-type and the `requireAdmin` callback. When a callable passes
+`createAssertAuth<TUser, TAdmin, TAdminOptions>(config)` and `AuthContext<TUser, TAdmin>` are
+generic over the consuming app's user-document shape, its admin-check result
+type, and its admin-check options type. The package stays app-agnostic: the
+consumer supplies those types and the `requireAdmin` callback. When a callable passes
 `requirements.admin`, the factory delegates to `config.requireAdmin` and
 surfaces the returned value on `ctx.admin` (left `undefined` when no admin check
 ran). App-specific role logic and Firestore paths are wired at the consuming
@@ -324,75 +317,23 @@ the published tarball; the repo keeps `"*"`.
 
 ## Boundary guard tests
 
-The Step-0 boundary suite lives in `test/boundary/` (its own
-`vitest.config.ts`) and runs as part of the workspace test fan-out. It encodes
-the rules above so they fail loudly:
+The boundary suite lives in `test/boundary/` (its own `vitest.config.ts`) and runs
+in the workspace test fan-out, so the package gate fails loudly when a rule in this
+doc — or a repo-wide rule the gate holds — is broken. Every test file there guards
+one rule, and its own title says which: a hand-written file through its `describe`
+title, a file that registers a repo-guards guard through that guard's title. Read
+the file for what it checks; this doc does not list them. A new rule that can be
+checked gets its file in the same change.
 
-- `package-imports.test.ts` — runs repo-guards' package-architecture guards through
-  the suite entry: inside each package code imports the file that defines each
-  name by its built extension and only an entry index re-exports (Imports inside a
-  package); no package
-  has a runtime import cycle; every entry not declared runtime-specific reaches no
-  Node, React, or browser runtime in its built JavaScript or declaration files,
-  and every universal and Node entry loads under plain Node (Entry purity rule —
-  the runtime subpaths and the declared exceptions are this file's facts); and no
-  generic package depends on `ttt-core` or `q-core`. The guards read `dist/`, so
-  the build runs first, and an entry that is not built fails.
-- `internal-star-range.test.ts` (check #2) — **report-only** audit of
-  `@ttt-productions/*: "*"` ranges in source manifests. Source `"*"` is expected;
-  the hard-fail against published output lives in the release flow
-  (`pin-internal-deps.mjs --check`), not here.
-- `docs-export-sync.test.ts` (check #3) — fails if any markdown under `docs/`
-  or a package `README.md` references a package subpath
-  (`@ttt-productions/<pkg>/<subpath>`, or a leading `` `./subpath` `` entry
-  declaration in `docs/packages/<pkg>.md`) that is not present in that package's
-  `exports`. This is what catches a stale `chat-core/schemas` or removed
-  `chat-core/react` reference after the concept moves.
-- `canonical-audio-renderer.test.ts` — fails if a raw `<audio>` element appears in
-  package source outside media-viewer's `AudioViewer` (one audio renderer).
-- `canonical-spinner.test.ts` — fails if lucide's spinner icon (`Loader2` under
-  any of its aliases) is imported anywhere but ui-core's `Spinner`, or if package
-  source applies the `animate-spin` utility as a class — in a `className` / `class`
-  attribute, a `cn` / `clsx` argument, an `@apply`, or a stylesheet rule
-  (theme-core's `spinner-*` classes own the animation).
-- `lucide-peer.test.ts` — fails if any package takes `lucide-react` as a hard
-  dependency, if a package that imports it does not declare it as an optional peer
-  (with a devDependency to build and test alone), if a package whose source never
-  imports it declares it at all, or if the workspace's lucide ranges diverge — the
-  consuming app supplies the ONE lucide every package renders from.
-- `neutral-content-type.test.ts` — fails if the neutral content type
-  (`application/octet-stream`) is re-typed as a string literal anywhere in package
-  source outside its one declaration, media-schemas' `NEUTRAL_CONTENT_TYPE`. The same
-  bytes declared for a different concept, in a package that cannot import media-schemas,
-  is a reviewed entry with its justification (chat-schemas' parked-delivery report body
-  type), allowed exactly one literal in its file; an entry whose file no longer declares
-  the value exactly once fails the guard.
-- `sourcemap-sources.test.ts` (check #4) — after the build, fails if any package
-  emits a JavaScript sourcemap without complete embedded `sourcesContent`, so a
-  published `dist` never points consumers at source files the tarball omits.
-- `tests-outside-src.test.ts` — fails if a test file (`*.test.*` / `*.spec.*`) or a
-  `__tests__` / `__mocks__` folder sits under any package's `src`. Every package
-  build compiles all of `src` into the published `dist`, so package tests live in
-  the package's own `__tests__/` beside `src`.
-- `package-order.test.ts` — fails if the package order `scripts/package-order.mjs`
-  prints (the root `package.json` build chain) misses a package folder, lists one
-  twice, or puts a package ahead of an internal package it declares in any
-  dependency field; or if `release-multiple.sh` stops reading that order or
-  `release-all.sh` stops releasing through `release-multiple.sh`.
-- `publish-manifest.test.ts` — fails if a package's `prepublishOnly` is not
-  `npm run clean && npm run build`, its `clean` does not remove `dist`, its
-  `files` omits `dist`, or any other `files` entry is missing on disk or holds
-  TypeScript source. A stylesheet folder behind a `./styles` export is the only
-  other thing a tarball needs.
-- `no-shell-args-array.test.ts` — fails if any repo source file calls
-  `spawn` / `spawnSync` / `execFile` / `execFileSync` with an args array plus an
-  inline options object whose top-level `shell` is anything but `false`
-  (`shell` shorthand included): Node space-joins that array unescaped
-  and deprecates the form, so a child that needs a shell gets one command string
-  (the quiet runner's `runCmd`). It also pins the quiet runner's
-  `SHELL_SAFE_TOKEN` to accepting plain command/flag/path tokens and rejecting
-  every character `cmd.exe` or `sh` would reinterpret.
-- `ci-runner-pinned.test.ts` — fails if any `.github/workflows/` job's `runs-on`
-  names a runner label ending in `-latest`. GitHub moves a `-latest` label to a
-  new OS image on its own schedule, so every job names an explicit image and a
-  runner OS change is a deliberate edit.
+Three behaviors matter when changing packages:
+
+- `package-imports.test.ts` checks package structure against the built `dist/`, so
+  the build runs first and an entry that is not built fails. The runtime-specific
+  subpaths and the declared Entry purity exceptions are facts written in this file.
+- `docs-export-sync.test.ts` fails any package subpath a doc or package `README.md`
+  names, and any `` `./subpath` `` entry bullet in `docs/packages/<pkg>.md`, that is
+  not in that package's `exports` — so removing or renaming an entry updates its docs
+  in the same change.
+- `package-order.test.ts` fails a package missing from the root `package.json` build
+  chain or placed ahead of an internal package it declares — so adding, renaming, or
+  removing a package edits that chain.

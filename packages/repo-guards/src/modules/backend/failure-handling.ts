@@ -1,7 +1,3 @@
-// The failure-handling guards over Cloud Functions code: no read or write whose failure is
-// swallowed, every post-commit effect captures its failure, and a scheduled handler isolates its
-// passes so one pass's throw never skips the next.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -13,7 +9,6 @@ import { calleePath } from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
-/** Whether a subtree throws, rejects, captures, or calls one of the given surfacing calls. */
 function surfaces(
   node: ts.Node,
   surfacingCalls: ReadonlySet<string>,
@@ -31,26 +26,14 @@ function surfaces(
   return found;
 }
 
-// ---------------------------------------------------------------------------------------------
-// No swallowed read or write.
-
 export interface SwallowedReadWriteFacts {
-  /** The monitoring capture calls (`captureException`, `captureMessage`). */
   captureCalls: readonly string[];
-  /** App calls that surface a failure themselves (a callable's one exit that rethrows it). */
   failureExits: readonly string[];
-  /**
-   * Caught promises that are never a database read or write, each bound to the file it is caught in
-   * and matched against the caught expression there.
-   */
   notReadOrWrite: ReadonlyArray<{ file: string; pattern: RegExp; why: string }>;
-  /** `.catch` sites reviewed by file and the start of the caught expression. */
   catchSites: ReadonlyArray<{ file: string; receiver: string; why: string }>;
-  /** `try`/`catch` sites reviewed by file and enclosing function. */
   tryCatchSites: ReadonlyArray<{ file: string; function: string; why: string }>;
 }
 
-/** A call inside a `try` block that reads or writes the database. */
 const READ_WRITE_METHODS = new Set([
   'get',
   'set',
@@ -76,7 +59,6 @@ function readsOrWrites(block: ts.Node): boolean {
   return found;
 }
 
-/** The name the enclosing function is known by: a declaration, a method, or the variable it is bound to. */
 function enclosingName(node: ts.Node, sf: ts.SourceFile): string {
   for (let p = node.parent; p; p = p.parent) {
     if ((ts.isFunctionDeclaration(p) || ts.isMethodDeclaration(p)) && p.name)
@@ -86,7 +68,6 @@ function enclosingName(node: ts.Node, sf: ts.SourceFile): string {
   return '(module)';
 }
 
-/** Every swallowing `.catch` (with its caught expression) and swallowing `try`/`catch` (with its function). */
 export function swallowedFailures(
   file: FileView,
   facts: Pick<SwallowedReadWriteFacts, 'captureCalls' | 'failureExits'>,
@@ -222,26 +203,14 @@ export const swallowedReadWriteGuard: GenericGuardDefinition<SwallowedReadWriteF
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Every post-commit effect captures its failure.
-
 export interface PostCommitCaptureFacts {
-  /** The comment text that marks a post-commit side effect. */
   marker: string;
-  /** The monitoring capture calls. */
   captureCalls: readonly string[];
-  /**
-   * Reviewed best-effort helpers a marked effect may delegate to, each held to a shape that cannot
-   * throw: a leaf runs its work in one capturing try; a delegating helper only calls captures and
-   * reviewed helpers.
-   */
   helpers: ReadonlyArray<{ name: string; file: string; why: string; delegates?: boolean }>;
 }
 
-/** Builtins a delegating helper may call: none throws on the arguments a helper passes. */
 const PURE_BUILTINS = new Set(['Date.now', 'Math.max', 'Math.min', 'Array.from', 'Promise.all']);
 
-/** Visit a subtree without entering nested function bodies (their code runs only where it is called). */
 function forEachOutsideFunctions(node: ts.Node, visit: (n: ts.Node) => void): void {
   const walk = (n: ts.Node) => {
     visit(n);
@@ -251,7 +220,6 @@ function forEachOutsideFunctions(node: ts.Node, visit: (n: ts.Node) => void): vo
   walk(node);
 }
 
-/** The post-commit checker for one app's capture calls and reviewed helpers. */
 export function postCommitChecker(
   facts: Pick<PostCommitCaptureFacts, 'captureCalls' | 'helpers' | 'marker'>,
 ) {
@@ -340,7 +308,6 @@ export function postCommitChecker(
     return null;
   };
 
-  /** Every marked statement or function in a file that fails to capture. */
   const uncaptured = (file: FileView): Array<{ node: ts.Node; fault: string }> => {
     const sf = file.sourceFile;
     const text = sf.getFullText();
@@ -364,7 +331,6 @@ export function postCommitChecker(
     return out;
   };
 
-  /** The body of one named helper in its file. */
   const helperBody = (file: FileView, name: string): ts.Node | undefined => {
     let body: ts.Node | undefined;
     forEachNode(file.sourceFile, (n) => {
@@ -456,11 +422,7 @@ export const postCommitCaptureGuard: GenericGuardDefinition<PostCommitCaptureFac
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// A scheduled handler isolates its passes.
-
 export interface ScheduledPassFacts {
-  /** Tries whose second awaited unit depends on the first, by file and the exact units, each with its why. */
   dependentUnits: ReadonlyArray<{ file: string; units: readonly string[]; why: string }>;
 }
 
@@ -485,7 +447,6 @@ function containsAwait(node: ts.Node): boolean {
   return found;
 }
 
-/** The awaited units a try block holds itself: each awaited call, and each loop that awaits. */
 function awaitedUnits(block: ts.Block, sf: ts.SourceFile): string[] {
   const units: string[] = [];
   const visit = (node: ts.Node): void => {
@@ -504,7 +465,6 @@ function awaitedUnits(block: ts.Block, sf: ts.SourceFile): string[] {
   return units;
 }
 
-/** Every try inside an `onSchedule(…)` handler whose own statements await two or more units. */
 export function multiPassTries(file: FileView): Array<{ node: ts.Node; units: string[] }> {
   const sf = file.sourceFile;
   const out: Array<{ node: ts.Node; units: string[] }> = [];

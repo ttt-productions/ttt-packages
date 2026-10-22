@@ -1,7 +1,7 @@
 # @ttt-productions/q-core
 
 Q-Sports application-data package — Q-Sports' counterpart of `ttt-core`. It is governed by Q-Sports'
-engineering rules (`C:\DjDev\q-sports-league\docs\engineering-rules\`), not this repo's (ARCH-207); its
+engineering rules (its own repo's `docs/engineering-rules/`), not this repo's (RULE-STD-ARCH-207); its
 system model lives in Q-Sports' `docs/design/`.
 
 ## Owns

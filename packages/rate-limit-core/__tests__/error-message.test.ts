@@ -4,14 +4,14 @@ import { getRateLimitErrorMessage } from '../src/error-message.js';
 describe('getRateLimitErrorMessage', () => {
   const now = Date.now();
 
-  it('default message without context matches expected shape', () => {
+  it('without context, says the limit was exceeded and how many minutes until it resets', () => {
     const reset = now + 5 * 60_000;
     const msg = getRateLimitErrorMessage({ reset });
     expect(msg).toBe('Rate limit exceeded. Try again in 5 minutes.');
   });
 
   it('uses singular "1 minute" for short windows', () => {
-    const reset = now + 30_000; // 30 seconds → ceil to 1 minute
+    const reset = now + 30_000;
     const msg = getRateLimitErrorMessage({ reset });
     expect(msg).toContain('1 minute');
     expect(msg).not.toMatch(/\d+ minutes/);

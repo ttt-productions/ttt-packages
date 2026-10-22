@@ -32,8 +32,6 @@ describe('FullCommissionListingSchema — Display Identity Invariant', () => {
   it('does not surface a snapshotted working title/description on the parsed embed', () => {
     const parsed = FullCommissionListingSchema.parse({
       ...validListing,
-      // Even if a caller sends the legacy snapshot fields, the non-strict embed drops them
-      // rather than persisting a display-name snapshot (resolved at render instead).
       workProjectAssociatedWith: {
         workProjectId: 'wp1',
         type: 'Television',

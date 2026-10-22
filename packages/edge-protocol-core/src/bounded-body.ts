@@ -1,34 +1,17 @@
-// Bounded request-body reading for endpoints that must authenticate a body before trusting it
-// (ARCH-005): the body an HMAC covers has to be read before the signature can be checked, so
-// that read is the one piece of unauthenticated work the endpoint does, and it is capped. A
-// declared Content-Length over the budget is refused without reading; otherwise the stream is
-// read with a running byte count and cancelled the moment it passes the budget, so a missing
-// or false Content-Length buys nothing. Runtime-neutral: a Cloudflare Workers or Node `Request`
-// satisfies `BoundedBodySource` structurally.
-
-/** The subset of a byte-stream reader this module uses. */
 interface BodyReader {
   read(): Promise<{ done: boolean; value?: Uint8Array }>;
   cancel(reason?: unknown): Promise<void>;
 }
 
-/** Anything with request headers and a readable byte-stream body (a `Request`). */
 export interface BoundedBodySource {
   headers: { get(name: string): string | null };
   body: { getReader(): BodyReader; cancel?(reason?: unknown): Promise<void> } | null;
 }
 
 export interface BoundedBodyReadOptions {
-  /** The largest body, in bytes, the endpoint accepts. A non-negative integer. */
   maxBytes: number;
 }
 
-/**
- * `ok: true` carries the body decoded as UTF-8 exactly as `request.text()` decodes it — the
- * text a signed body's hash is computed over. `too-large` means the declared length or the
- * bytes actually sent passed `maxBytes`; the caller answers it (typically 413) and does no
- * further work on the request.
- */
 export type BoundedBodyReadResult =
   { ok: true; text: string } | { ok: false; reason: 'too-large'; maxBytes: number };
 

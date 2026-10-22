@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { toast, useToast } from '../src/react/hooks/use-toast.js';
 
-// Each test resets toast state by dismissing everything from the previous one.
 function clearAllToasts() {
   const { result } = renderHook(() => useToast());
   act(() => {
@@ -91,7 +90,6 @@ describe('toast() persistent option', () => {
       toast({ title: 'Persistent override toast', persistent: true, duration: 1234 });
     });
     const t = result.current.toasts.find((x) => x.title === 'Persistent override toast');
-    // Persistent wins — duration is ignored.
     expect(t?.duration).toBe(Infinity);
   });
 
@@ -101,7 +99,6 @@ describe('toast() persistent option', () => {
       toast({ title: 'Persistent variant toast', variant: 'success', persistent: true });
     });
     const t = result.current.toasts.find((x) => x.title === 'Persistent variant toast');
-    // Persistent wins over the 3000ms success default.
     expect(t?.duration).toBe(Infinity);
   });
 

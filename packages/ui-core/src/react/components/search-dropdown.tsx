@@ -12,79 +12,26 @@ function defaultResultsAnnouncement(count: number): string {
 }
 
 export interface SearchDropdownProps<T> {
-  /** Current search value */
   value: string;
-  /** Called when search value changes */
   onValueChange: (value: string) => void;
-  /** Search results array */
   results: T[];
-  /** Loading state */
   isLoading: boolean;
-  /** The search's failure exactly as the data layer reported it; `null` or `undefined` when it did not fail. */
   error: unknown;
-  /**
-   * Renders a failed search inside the open dropdown. The consumer owns the failure's words and any
-   * retry, so the dropdown never shows a failure state of its own.
-   */
   renderError: (error: unknown) => React.ReactNode;
-  /** Called when a result is selected */
   onSelect: (result: T) => void;
-  /** Called when search is cleared (after the value has been reset). Optional notification hook. */
   onClear?: () => void;
-  /** Placeholder text */
   placeholder?: string;
-  /** Label for the input */
   label?: string;
-  /** Custom className */
   className?: string;
-  /** Disabled state */
   disabled?: boolean;
-  /** Icon to show in input (default: Search) */
   icon?: React.ReactNode;
-  /**
-   * The search rule of the hook behind the dropdown, passed from that hook rather than restated:
-   * `isSearchable(value)` decides whether the value is searched (and the dropdown opens), and
-   * `minChars` is the minimum the below-minimum hint names.
-   */
   minChars: number;
   isSearchable: (value: string) => boolean;
-  /** Message to show when no results found */
   emptyMessage?: string;
-  /** What assistive technology hears when results arrive (default: "1 result" / "N results"). */
   resultsAnnouncement?: (count: number) => string;
-  /** Custom render function for each result */
   renderResult: (result: T, index: number) => React.ReactNode;
 }
 
-/**
- * A search box with a results dropdown, following the combobox pattern: the input keeps focus, the
- * results are a listbox, and the arrow-highlighted result is the input's active descendant. Every
- * instance carries its own ids, so several can share a page.
- *
- * Once the value is long enough the dropdown stays open through every settled state — results, an
- * empty answer, or a failure — until the user dismisses it (Escape, a click outside, a selection).
- * A dismissal holds for the value it was made on: re-rendered props never reopen it, while typing,
- * a new value, or ArrowDown does.
- *
- * @example
- * ```tsx
- * <SearchDropdown<User>
- *   value={searchValue}
- *   onValueChange={setSearchValue}
- *   results={users}
- *   isLoading={isLoading}
- *   error={error}
- *   renderError={(error) => <MyErrorState error={error} />}
- *   minChars={SEARCH_MIN_LENGTH}
- *   isSearchable={isSearchableText}
- *   onSelect={(user) => console.log(user)}
- *   placeholder="Search users..."
- *   renderResult={(user) => (
- *     <div>{user.displayName}</div>
- *   )}
- * />
- * ```
- */
 export function SearchDropdown<T>({
   value,
   onValueChange,
@@ -114,8 +61,6 @@ export function SearchDropdown<T>({
   const optionId = (index: number) => `${baseId}-option-${index}`;
 
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
-  // The highlight belongs to the value it was made on, so a new query starts with none, while a
-  // refreshed result list for the same query keeps it.
   const [highlight, setHighlight] = useState<{ value: string; index: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,8 +125,7 @@ export function SearchDropdown<T>({
         select(results[activeIndex]);
         break;
       case 'Escape':
-        // Escape never falls through to the search field's own clear, which would skip onClear:
-        // it closes an open dropdown, and clears a closed one through handleClear.
+        // Escape never falls through to the search field's own clear, which would skip onClear.
         e.preventDefault();
         if (isOpen) setDismissedFor(value);
         else if (value) handleClear();
@@ -277,7 +221,6 @@ export function SearchDropdown<T>({
                   id={optionId(index)}
                   role="option"
                   aria-selected={index === activeIndex}
-                  // Keeps focus in the input, where the combobox's keyboard handling lives.
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => select(result)}
                   onMouseEnter={() => setHighlight({ value, index })}
@@ -294,8 +237,6 @@ export function SearchDropdown<T>({
         </div>
       )}
 
-      {/* Always mounted, so every change of the open panel's state is announced. A failure is
-          announced by the consumer's renderError. */}
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>

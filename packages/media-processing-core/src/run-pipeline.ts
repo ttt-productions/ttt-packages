@@ -22,28 +22,11 @@ export interface RunPipelineArgs {
   moderation?: ModerationAdapter;
   signal?: AbortSignal;
   onProgress?: (p: import('./types.js').MediaPipelineProgress) => void;
-  /**
-   * CANONICAL INSPECTION SEAM (canonical-upload-content-classification).
-   * When present, the pipeline runs `inspectMedia` on the just-downloaded temp
-   * input — BEFORE moderation and processing — and calls this policy hook with
-   * the bounded result. The hook either:
-   *   - returns `{ spec }` — the caller's policy adapter selected the
-   *     processing spec FROM the inspection (the byte-derived kind, never the
-   *     client MIME); the pipeline continues with that spec; or
-   *   - returns `{ reject }` — a typed terminal (`kind_mismatch`,
-   *     `unsupported_format`, `unsupported_codec`, …); the pipeline stops
-   *     before any transcode/moderation work.
-   * The inspection result rides the returned `MediaProcessingResult.inspection`
-   * either way, so the finalizer hands the SAME object to the safety gate —
-   * one authority, no re-detection. Callers that omit the hook get the
-   * pre-existing behavior unchanged.
-   */
   resolveAfterInspection?: (
     inspection: MediaInspectionResult,
   ) =>
     | Promise<{ spec: MediaProcessingSpec } | { reject: MediaProcessingError }>
     | ({ spec: MediaProcessingSpec } | { reject: MediaProcessingError });
-  /** Inspection tool overrides (tests). */
   inspectionDeps?: InspectMediaDeps;
 }
 
@@ -74,8 +57,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
     onProgress,
     resolveAfterInspection,
   } = args;
-  // Carried onto every return path once produced — the finalizer must hand the
-  // SAME inspection object to the safety gate (one classification authority).
   let inspection: MediaInspectionResult | undefined;
   const withInspection = (r: MediaProcessingResult): MediaProcessingResult =>
     inspection ? { ...r, inspection } : r;
@@ -88,7 +69,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
     };
   }
 
-  // Runtime contract validation (fast-fail with actionable errors).
   try {
     spec = parseMediaProcessingSpec(spec);
   } catch (e: any) {
@@ -120,9 +100,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
     await io.input.readToFile(inputPath);
     onProgress?.({ phase: 'read_input', percent: 1 });
 
-    // CANONICAL INSPECTION (before moderation and processing): classify the
-    // just-downloaded bytes structurally and let the caller's policy adapter
-    // pick the spec from the result. See RunPipelineArgs.resolveAfterInspection.
     if (resolveAfterInspection) {
       inspection = await inspectMedia({
         localPath: inputPath,
@@ -152,7 +129,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       }
     }
 
-    // PRE moderation (original)
     let mIn: MediaModerationResult | null | undefined;
     if (moderation?.moderateInput) {
       onProgress?.({ phase: 'moderation_input', percent: 0 });
@@ -167,14 +143,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       );
       onProgress?.({ phase: 'moderation_input', percent: 1 });
 
-      // Fail closed on both "rejected" (policy violation) and "error" (the
-      // moderation check itself did not complete — quota/outage/API failure).
-      // A non-passing check must NEVER fall through to transcode + persist:
-      // published bytes must always have been scanned. An "error" is a system
-      // failure, not a content rejection, so it returns the distinct,
-      // retryable `processing_failed` code AND carries `moderation` (status
-      // "error") on the result — callers route that to their retryable
-      // moderation lane and land the row failed rather than publishing it.
       if (mIn?.status === 'rejected' || mIn?.status === 'error') {
         return withInspection({
           ok: false,
@@ -206,11 +174,10 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       { signal, onProgress },
     );
 
-    // Output size enforcement (processed outputs)
     if (result.ok && result.outputs?.length) {
-      const perFileLimit = spec.maxOutputBytes ?? spec.maxBytes ?? 200 * 1024 * 1024; // 200MB default
+      const perFileLimit = spec.maxOutputBytes ?? spec.maxBytes ?? 200 * 1024 * 1024;
       const totalLimit =
-        spec.maxTotalOutputBytes ?? spec.maxOutputBytes ?? spec.maxBytes ?? 400 * 1024 * 1024; // 400MB default
+        spec.maxTotalOutputBytes ?? spec.maxOutputBytes ?? spec.maxBytes ?? 400 * 1024 * 1024;
 
       let total = 0;
       for (const o of result.outputs) {
@@ -250,10 +217,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       return withInspection(result);
     }
 
-    // POST moderation (processed outputs) — runs on the LOCAL output paths
-    // BEFORE any final persistence, so rejected output never reaches the
-    // final store (R2 / emulator). Ordering is load-bearing — see
-    // the consuming app's media-serving design docs.
     let mOut: MediaModerationResult | null | undefined;
     if (moderation?.moderateOutput) {
       onProgress?.({ phase: 'moderation_output', percent: 0 });
@@ -269,10 +232,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       );
       onProgress?.({ phase: 'moderation_output', percent: 1 });
 
-      // Same fail-closed posture as the input check: block both "rejected"
-      // and "error" before any persistence, so an incomplete check can never
-      // publish unscanned output. Ordering is load-bearing — see the
-      // consuming app's media-serving design docs.
       if (mOut?.status === 'rejected' || mOut?.status === 'error') {
         return withInspection({
           ok: false,
@@ -298,7 +257,6 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       }
     }
 
-    // Persist outputs — only after input AND output moderation both passed.
     onProgress?.({ phase: 'persist_outputs', percent: 0 });
     const totalOut = result.outputs.length;
     let outIdx = 0;

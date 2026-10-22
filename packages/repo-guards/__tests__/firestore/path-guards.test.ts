@@ -1,6 +1,3 @@
-// The path guards: a typed segment, a hand-assembled path, and a retired segment each fail, on both
-// SDKs and in every syntax that builds the same path; the owners' shapes, computed ids, and prose pass.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   literalSegmentGuard,

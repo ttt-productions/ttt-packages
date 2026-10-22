@@ -22,23 +22,14 @@ import type { FirestoreLiveInfiniteOptions } from './types.js';
 const MAX_PAGE_SIZE = 100;
 
 export interface FirestoreLiveInfiniteResult<T> {
-  /** The current subscription identity's rows — live set plus loaded older pages, ordered per `sort`. */
   items: T[];
-  /** True until the current identity's first snapshot arrives, unless its listener has failed. */
   isInitialLoading: boolean;
-  /** Liveness of the current identity's listener; `connecting` from that identity's first render. */
   sourceState: FirestoreSourceState;
-  /** The listener's failure for the current identity; `null` while connecting, live, or offline. */
   error: Error | null;
-  /** Load the next older page; nothing older is read until this is called. Never rejects — a failed read lands in `olderError`. */
   fetchOlder: () => Promise<void>;
-  /** Whether older rows exist that are not loaded yet (a one-doc look-ahead, never a full-page guess). */
   hasOlder: boolean;
-  /** Whether an older page is being read (including a `retry` of one). */
   isFetchingOlder: boolean;
-  /** The last older-page read failed; `null` once an older read succeeds. */
   olderError: Error | null;
-  /** Re-run what failed: resubscribe a failed listener, re-read a failed older page. */
   retry: () => void;
 }
 
@@ -67,31 +58,6 @@ function freshWindow<T>(identity: string): WindowState<T> {
   };
 }
 
-/**
- * A live list (newest rows realtime) with older rows paged in on request, merged into
- * one ordered list.
- *
- * Until the first server-confirmed snapshot that has rows, the listener reads the newest
- * `pageSize` rows plus one look-ahead row. That snapshot fixes an anchor — the oldest row
- * of the window — and from then on the listener covers anchor → newest with no limit, so
- * it grows only with rows that arrive while the list is open, and every older page starts
- * after the anchor. Nothing can fall between the live set and the older pages, however
- * many rows arrive. Older pages carry the same one-row look-ahead, so `hasOlder` is false
- * exactly when nothing older exists. No older page is read until `fetchOlder` asks for one.
- *
- * Both reads arrive newest first and meet at the anchor, so the merged list is their
- * concatenation: a snapshot never re-sorts the rows already loaded.
- *
- * Everything read is tagged to its subscription identity (path, key, ordering,
- * constraints, page size, enabled): a new identity renders empty and connecting in its
- * first render, and a retired identity's late callback or older page never lands.
- *
- * A `permission-denied` listener error resubscribes on the `RESUBSCRIBE_DELAYS_MS` ladder
- * before surfacing; any other listener error surfaces at once. Rows already shown are
- * kept beside the error — except beside a surfaced `permission-denied`: the reader lost
- * access, so the live rows, the anchor, and the loaded older pages are all dropped, and a
- * retry reads the list afresh. `db` comes from `<FirestoreProvider>`.
- */
 export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   collectionPath,
   queryKey,
@@ -106,7 +72,6 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   const queryClient = useQueryClient();
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
 
-  // Latest-callback ref: an inline select must not re-subscribe the listener on every render.
   const selectRef = React.useRef(select);
   selectRef.current = select;
 
@@ -116,7 +81,6 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
     return { docId: snap.id, item };
   }, []);
 
-  // Constraint objects are fresh every render; their serialized form is the identity.
   const queryKeyMemo = JSON.stringify(queryKey);
   const constraintsMemo = JSON.stringify(constraints);
   const identity = JSON.stringify([
@@ -138,12 +102,10 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
 
   React.useEffect(() => {
     if (!enabled) {
-      // Retire the enabled identity's rows, so re-enabling starts afresh rather than resuming.
       setWindowState(freshWindow<T>(identity));
       return;
     }
 
-    // A retry of the same identity resumes from its anchor and keeps its rows.
     const prior = windowRef.current;
     const resumed = prior.identity === identity;
     setWindowState((prev) =>
@@ -254,15 +216,12 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
       if (retryTimer) clearTimeout(retryTimer);
       unsubscribe?.();
     };
-    // `identity` carries collectionPath, queryKey, orderByField, constraints, pageSize, and
-    // enabled; constraints are read from the render that produced it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- identity carries every read input; constraints are read from the render that produced it
   }, [db, identity, retryNonce, toEntry, queryClient]);
 
   const anchor = enabled ? current.anchor : null;
   const olderEnabled = anchor !== null && current.olderExists;
 
-  // Never fetched on its own: `fetchOlder` reads the first page (`refetch`) and each one after it.
   const older = useInfiniteQuery({
     queryKey: [...queryKey, 'older', identity, anchor?.id ?? null],
     enabled: false,
@@ -343,8 +302,6 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
 
   const items = React.useMemo(() => {
     if (!enabled) return [];
-    // A row edited so its ordering value moved into the live range is in both reads; its live
-    // copy is the fresh one.
     const liveIds = new Set(current.entries.map((entry) => entry.docId));
     const newestFirst = [
       ...current.entries.map((entry) => entry.item),

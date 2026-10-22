@@ -1,10 +1,3 @@
-// Document-id segments: an id a client sends becomes a Firestore path segment, so every id the
-// core's wire contracts accept must be exactly one segment. A "/" addresses another document or a
-// subcollection, an empty id addresses the collection, and "." / ".." / the reserved `__name__`
-// form are not document ids. No id the platform mints is space-padded, so every id-named field a
-// client sends — a reviewed non-segment one included — also refuses a space-only or padded value.
-// The guard probes the core's own schemas, loaded by the app.
-
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import {
@@ -19,20 +12,13 @@ import { coreBuild } from './shared.js';
 type SchemaModules = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 
 export interface DocumentIdSegmentFacts {
-  /** The core modules that hold the wire contracts clients send, by any name. */
   wireModules: Loader<SchemaModules>;
-  /** Export-name endings that mark a wire contract a client sends (`InputSchema`, `RequestSchema`, …). */
   wireInputNameSuffixes: readonly string[];
-  /** The export-name ending of an id atom (`IdSchema`). */
   idAtomNameSuffix: string;
-  /** Wire contracts and id atoms the guard must find, so a renamed export cannot empty its scan. */
   requiredWireInputs: readonly string[];
   requiredIdAtoms: readonly string[];
-  /** Wire contracts matching the naming that no client composes, each with its why. */
   notClientSent: ReadonlyArray<{ schema: string; why: string }>;
-  /** Id-named fields that are not a document id, keyed `<nearest exported schema>.<field path>`. */
   notAPathSegment: ReadonlyArray<{ field: string; why: string }>;
-  /** Exported schemas that by design reference more than one segment, each with its why. */
   multiSegmentReferences: ReadonlyArray<{ schema: string; why: string }>;
 }
 
@@ -75,7 +61,6 @@ const defOf = (schema: unknown): Def | undefined =>
 const isParseable = (value: unknown): value is Parseable =>
   typeof (value as Parseable | undefined)?.safeParse === 'function';
 
-/** The schema a field's value is checked by: wrappers and arrays unwrapped to the element. */
 function leafOf(schema: unknown): unknown {
   let current = schema;
   for (let def = defOf(current); def; def = defOf(current)) {
@@ -87,7 +72,6 @@ function leafOf(schema: unknown): unknown {
   return current;
 }
 
-/** Every id-named field under `root` whose leaf admits one of `values`, skipping leaves in `skip`. */
 function idFieldsAdmitting(
   root: unknown,
   rootName: string,
@@ -125,7 +109,6 @@ function idFieldsAdmitting(
   return [...found];
 }
 
-/** Every id-named field under `root` that admits a value which is not one segment. */
 export function nonSegmentIdFields(
   root: unknown,
   rootName: string,
@@ -135,7 +118,6 @@ export function nonSegmentIdFields(
   return idFieldsAdmitting(root, rootName, exportedNames, NOT_ONE_SEGMENT, multiSegment);
 }
 
-/** Every id-named field under `root` that admits a space-only or space-padded value. */
 export function paddedIdFields(
   root: unknown,
   rootName: string,

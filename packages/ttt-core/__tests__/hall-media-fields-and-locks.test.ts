@@ -1,6 +1,3 @@
-// The Hall media asset-reference field lists derive from the target-field maps, and the one locked
-// sub-item status set decides the sub-item lock for every reader.
-
 import { describe, it, expect } from 'vitest';
 import {
   HALL_LIBRARY_COVER_ASSET_FIELDS,

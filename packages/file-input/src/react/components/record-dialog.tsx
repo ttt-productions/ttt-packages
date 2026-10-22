@@ -27,13 +27,8 @@ import {
 
 type RecorderState = 'idle' | 'recording' | 'preview';
 
-// Explicit MediaRecorder container preferences, probed via isTypeSupported.
-// A no-argument MediaRecorder leaves the container to the browser (Chrome
-// reports "audio/webm;codecs=opus" for audio); requesting an explicit
-// supported type keeps the recorded container deterministic. Safari has no
-// webm support and falls through to mp4. When isTypeSupported is unavailable
-// or nothing matches (test environments), we fall back to the no-argument
-// constructor and normalize whatever the recorder produced.
+// An explicit supported container keeps mr.mimeType deterministic; Safari has no webm and falls
+// through to mp4.
 const RECORDER_MIME_CANDIDATES: Record<'audio' | 'video', readonly string[]> = {
   audio: ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'],
   video: ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'],
@@ -46,23 +41,13 @@ function pickRecorderMimeType(kind: 'audio' | 'video'): string | undefined {
   for (const candidate of RECORDER_MIME_CANDIDATES[kind]) {
     try {
       if (MediaRecorder.isTypeSupported(candidate)) return candidate;
-    } catch {
-      // Treat probe errors as "unsupported" and keep trying.
-    }
+    } catch {}
   }
   return undefined;
 }
 
-// Name the recording after its actual container so the filename never
-// contradicts the emitted contentType (a webm-named mp4 would mislead any
-// extension-based fallback downstream). The mp4 container holds either audio
-// (.m4a → audio/mp4) or video (.mp4 → video/mp4), and — unlike webm/ogg — mp4
-// is NOT in the extension-inference ambiguous map (a user-picked .mp4 is trusted
-// as video). Here the RecordDialog's selected `kind` IS authoritative: an audio
-// recording uses an audio-only, `video: false` getUserMedia stream, so no video
-// track can exist. A surprising `video/mp4` mimeType on that audio recording is
-// therefore still named `.m4a`; ensureFileWithContentType distrusts the
-// kind-mismatched video/mp4 type and the `.m4a` extension yields audio/mp4.
+// mp4 is not in the ambiguous-extension map, so an audio recording is named .m4a whatever
+// container type the recorder reports.
 function recordingFileName(mime: string, kind: 'audio' | 'video'): string {
   const base = mime.split(';')[0].trim().toLowerCase();
   const ext =
@@ -76,31 +61,10 @@ function recordingFileName(mime: string, kind: 'audio' | 'video'): string {
   return `recording.${ext}`;
 }
 
-// A MediaRecorder blob is always a little LONGER than the wall-clock window
-// between start() and stop(). Three effects stack, all in the same direction:
-//   1. stop() flushes whatever the encoder/muxer still had buffered, so the
-//      last written packet extends past the stop() call (Chromium's webm muxer
-//      and Firefox's are both in the tens-to-low-hundreds of ms here; typical
-//      observed flush is well under 500ms).
-//   2. The container duration is the END of the final frame/packet, not the
-//      moment capture stopped — one video frame is ~33ms at 30fps and one Opus
-//      packet is 20ms, and both readers round that way (the client gate's
-//      seek-to-end duration and ffprobe on the server agree with the container).
-//   3. setTimeout fires LATE, never early — a busy main thread encoding video
-//      routinely adds tens of ms, more under load or in a hidden tab.
-//
-// Both duration gates are exact — the client upload gate (validateMediaDuration:
-// `duration <= maxDurationSec`) and the server processor
-// (media-processing-core validateDuration: `durationSec <= maxDurationSec`) —
-// with no tolerance. So stopping the recorder exactly AT the cap produced blobs
-// the product then rejected as its own "Media too long. Max N seconds." error.
-// Stopping early by 750ms clears all three effects above with headroom for
-// timer jitter, and costs 1.25% of the smallest real cap (60s).
+// A MediaRecorder blob runs a little longer than start() to stop() (muxer flush, frame-end
+// duration, late timers) and both duration gates are exact, so recording stops before the cap.
 const AUTO_STOP_SAFETY_MARGIN_MS = 750;
 
-// The auto-stop delay for a cap. The clamp keeps the margin from swallowing a
-// very short cap (a 1s cap would otherwise stop at 250ms); real caps are >= 60s,
-// where the clamp never applies.
 export function autoStopDelayMs(maxRecordDurationSec: number): number {
   const capMs = Math.floor(maxRecordDurationSec * 1000);
   return Math.max(capMs - AUTO_STOP_SAFETY_MARGIN_MS, Math.ceil(capMs / 2));
@@ -117,10 +81,6 @@ interface RecordDialogProps {
   maxRecordDurationSec?: number;
   disabled?: boolean;
   isLoading?: boolean;
-  /** `recordedKind` is the kind of the ACTUAL recording session (the dialog's
-   *  own state at Save time, which tracks the requested MediaStream — audio
-   *  requests `video:false`). It feeds the STRONG `media-recorder` client
-   *  claim, so it must never be re-derived from the blob's reported MIME. */
   onRecorded: (
     file: File,
     previewUrl: string,
@@ -166,8 +126,7 @@ export function RecordDialog({
   const lastRecordUrlRef = useRef<string | null>(null);
   const livePreviewRef = useRef<HTMLVideoElement | null>(null);
   const autoStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Bumped by every teardown. An acquisition that resolves after a teardown (dialog
-  // closed, kind switched, re-record) belongs to nobody and must not be attached.
+  // An acquisition that resolves after a teardown belongs to nobody and is never attached.
   const acquireGenRef = useRef(0);
   const previewReqRef = useRef(0);
 
@@ -180,7 +139,6 @@ export function RecordDialog({
   const waveformStopRef = useRef<(() => void) | null>(null);
   const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Reset all transient state whenever the dialog opens.
   useEffect(() => {
     if (open) {
       setRecordKind(initialKind);
@@ -260,23 +218,16 @@ export function RecordDialog({
         audioSourceRef.current = source;
         audioAnalyserRef.current = analyser;
 
-        // Draw loop is the shared media-viewer engine (the same one the
-        // playback AudioPlayer uses) in oscilloscope mode — one waveform
-        // implementation across recording and playback.
         waveformStopRef.current = startWaveformLoop({
           analyser,
           getCanvas: () => waveformCanvasRef.current,
           mode: 'line',
         });
-      } catch {
-        // Waveform is best-effort; silent failures are acceptable.
-      }
+      } catch {}
     },
     [stopWaveform],
   );
 
-  // Teardown MediaRecorder / MediaStream / auto-stop timeout / timer / waveform.
-  // Leaves recorderState alone — callers decide the next state.
   const teardownCapture = useCallback(() => {
     acquireGenRef.current += 1;
     if (autoStopTimeoutRef.current) {
@@ -300,8 +251,6 @@ export function RecordDialog({
     stopWaveform();
   }, [stopElapsedTimer, stopWaveform]);
 
-  // Acquire camera/mic and attach the live preview (video) or waveform (audio)
-  // WITHOUT starting the recorder. Returns the live stream for reuse on Start.
   const acquireStream = useCallback(
     async (kind: 'audio' | 'video') => {
       const wantVideo = kind === 'video';
@@ -332,8 +281,6 @@ export function RecordDialog({
     [cameraFacingMode, startWaveform],
   );
 
-  // Start a live preview for the given kind (used on open and on kind switch),
-  // tearing down any existing stream first. Surfaces permission errors inline.
   const startLivePreview = useCallback(
     async (kind: 'audio' | 'video') => {
       teardownCapture();
@@ -350,9 +297,6 @@ export function RecordDialog({
     [teardownCapture, acquireStream],
   );
 
-  // Request camera/mic as soon as the dialog opens (parity with PhotoCaptureModal)
-  // so the permission prompt fires on open and the user sees a live preview before
-  // pressing Start. Release all devices when the dialog closes or unmounts.
   useEffect(() => {
     if (open) {
       void startLivePreview(initialKind);
@@ -365,7 +309,6 @@ export function RecordDialog({
 
   const startRecording = useCallback(
     async (kind: 'audio' | 'video') => {
-      // Discard any previous preview before starting fresh.
       revokeLastRecordUrl();
       setRecordPreviewUrl(null);
       setRecordedFile(null);
@@ -373,8 +316,6 @@ export function RecordDialog({
 
       const wantVideo = kind === 'video';
 
-      // Reuse the live-preview stream when it matches the requested kind;
-      // otherwise acquire a fresh one (also (re)triggers the permission prompt).
       let stream = recordStreamRef.current;
       if (!stream || liveStreamKindRef.current !== kind) {
         try {
@@ -386,9 +327,6 @@ export function RecordDialog({
       }
       if (!stream) return;
 
-      // Request an explicit, supported container so mr.mimeType is
-      // deterministic; fall back to the browser default when the explicit
-      // request is unavailable or rejected.
       const preferredMimeType = pickRecorderMimeType(kind);
       let mr: MediaRecorder;
       try {
@@ -411,10 +349,6 @@ export function RecordDialog({
         });
 
         const rawFile = new File([blob], recordingFileName(blob.type, kind), { type: blob.type });
-        // Normalize to the valid, parameter-less base type
-        // ("audio/webm;codecs=opus" → "audio/webm"). The chosen kind is
-        // authoritative: an audio recording must never emit a video/* type
-        // even if the recorder reports a surprising container.
         const file = ensureFileWithContentType(rawFile, wantVideo ? 'video' : 'audio');
         const url = makeRecordUrl(file);
 
@@ -422,7 +356,6 @@ export function RecordDialog({
         setRecordPreviewUrl(url);
         setRecorderState('preview');
 
-        // Release devices but keep the recorded file/url in state.
         teardownCapture();
       };
 
@@ -430,8 +363,6 @@ export function RecordDialog({
       setRecorderState('recording');
       startElapsedTimer();
 
-      // Hard cap. Stops with deliberate headroom (autoStopDelayMs) so the blob
-      // this produces lands legally UNDER maxRecordDurationSec at both gates.
       if (maxRecordDurationSec && maxRecordDurationSec > 0) {
         autoStopTimeoutRef.current = setTimeout(() => {
           try {
@@ -477,8 +408,6 @@ export function RecordDialog({
     void startLivePreview(recordKind);
   }, [revokeLastRecordUrl, startLivePreview, recordKind]);
 
-  // Switching kind in idle restarts the live preview for the new kind so the
-  // correct device prompt/preview shows before recording.
   const handleSelectKind = useCallback(
     (kind: 'audio' | 'video') => {
       setRecordKind(kind);
@@ -492,14 +421,10 @@ export function RecordDialog({
     setError(e instanceof Error ? e.message : 'Something went wrong with the recording.');
   }, []);
 
-  // Start may need to acquire a device first; pending covers that and a repeat click
-  // is ignored, so two clicks can never start two recorders.
   const start = useAsyncAction((kind: 'audio' | 'video') => startRecording(kind), {
     onError: reportError,
   });
 
-  // Save hands the recording off (the consumer validates and emits it). Pending covers
-  // the hand-off and a repeat click is ignored, so a double click can never emit twice.
   const save = useAsyncAction(
     async () => {
       if (!recordedFile || !recordPreviewUrl) return;
@@ -509,8 +434,6 @@ export function RecordDialog({
     { onError: reportError },
   );
 
-  // Close the dialog for real (no confirmation). Used for idle/recording
-  // states and as the "Discard" action in the confirm AlertDialog.
   const closeDialogImmediately = useCallback(() => {
     const mr = mediaRecorderRef.current;
     if (mr && mr.state === 'recording') {
@@ -528,12 +451,10 @@ export function RecordDialog({
     onOpenChange(false);
   }, [teardownCapture, revokeLastRecordUrl, onOpenChange]);
 
-  // Dialog close requests. In "preview" state we ask for confirmation
-  // (the user has unsaved work). Other states close immediately.
   const handleDialogOpenChange = useCallback(
     (v: boolean) => {
-      if (v) return; // opening is parent-driven via the `open` prop
-      if (save.pending) return; // never drop a recording mid-hand-off
+      if (v) return;
+      if (save.pending) return;
       if (recorderState === 'preview') {
         setDiscardConfirmOpen(true);
         return;
@@ -547,8 +468,6 @@ export function RecordDialog({
   const isPreview = recorderState === 'preview';
   const isIdle = recorderState === 'idle';
 
-  // The label shows the REAL cap ("0:42 / 1:00"), not the earlier auto-stop
-  // point — the promise to the user is the cap; the margin is internal.
   const elapsedLabel = maxRecordDurationSec
     ? `${formatDuration(elapsedMs)} / ${formatDuration(maxRecordDurationSec * 1000)}`
     : formatDuration(elapsedMs);
@@ -566,7 +485,6 @@ export function RecordDialog({
             </DialogDescription>
           </DialogHeader>
 
-          {/* Kind toggle — only active in idle state */}
           <div className="flex flex-wrap gap-2">
             {canRecVideo && (
               <Button
@@ -608,7 +526,6 @@ export function RecordDialog({
             )}
           </div>
 
-          {/* Live video preview — rendered in idle+recording states for video kind */}
           {recordKind === 'video' && !isPreview && (
             <div className="relative mt-2 rounded-md overflow-hidden bg-[hsl(var(--neutral-black))] aspect-video">
               <video
@@ -625,7 +542,6 @@ export function RecordDialog({
             </div>
           )}
 
-          {/* Audio waveform — live mic level (idle = ready indicator, recording = active) */}
           {recordKind === 'audio' && !isPreview && (
             <div className="relative mt-2 rounded-md bg-muted p-2 text-primary">
               <canvas
@@ -649,7 +565,6 @@ export function RecordDialog({
             </p>
           )}
 
-          {/* Recording indicator + elapsed timer */}
           {isRecording && (
             <div className="flex items-center gap-2 text-sm" aria-live="polite">
               <span
@@ -660,7 +575,6 @@ export function RecordDialog({
             </div>
           )}
 
-          {/* Recorded preview — only in preview state */}
           {isPreview && recordPreviewUrl && (
             <div className="mt-2">
               <MediaPreview

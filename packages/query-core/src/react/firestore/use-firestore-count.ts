@@ -5,21 +5,6 @@ import { collection, query, getCountFromServer } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import type { FirestoreCountOptions } from './types.js';
 
-/**
- * Count documents in a Firestore collection via a server-side `count()`
- * aggregation (cheap — it does not read the matching documents). Optional
- * polling via `refetchInterval`.
- *
- * @example
- * ```tsx
- * const { data: count } = useFirestoreCount({
- *   collectionPath: 'activeUserNotifications',
- *   queryKey: ['notifications', 'unread-count', userId],
- *   constraints: [where('targetUserId', '==', userId), where('seenAt', '==', 0)],
- *   refetchInterval: 30_000,
- * });
- * ```
- */
 export function useFirestoreCount({
   collectionPath,
   queryKey,

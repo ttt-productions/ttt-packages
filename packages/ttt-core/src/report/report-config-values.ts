@@ -1,22 +1,9 @@
-// ============================================================================
-// REPORT-SYSTEM CONFIG VALUES — the ONE home for every TTT report-system value
-// (labels, priority scores, multipliers, queue definitions, bonuses, comment
-// cap). Consolidated here 2026-07-13 from the former lockstep pair in ttt-prod
-// `src/lib/report-config.ts` (client ReportCoreConfig) and
-// `functions/src/shared/report-core-config.ts` (ServerReportCoreConfig); both
-// trees now ASSEMBLE their config objects from these values (assembly is
-// wiring; the values are truth), and the cross-tree lockstep test is deleted.
-// Every map is Record-complete over its canonical enum, so adding an enum
-// member fails the BUILD here until its entries exist.
-// ============================================================================
-
 import {
   ReportReasonSchema,
   type ReportReason,
   type ReportableItemType,
 } from '../doc-schemas/safety/foundation.js';
 
-/** Human display name for every reportable surface (report dialog + admin views). */
 export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
   username: 'Username',
   'craft-skill': 'Craft Skill',
@@ -36,10 +23,6 @@ export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
   'work-realm': 'Work Realm',
 };
 
-/** Score for each canonical report reason. Higher = higher priority in the admin
- * queue. Protected reasons (Child Safety Concern, NCII) fork to protected cases and
- * never reach the ordinary queue, but are kept here so the defaultReasonScore
- * fallback is never silently applied to them. */
 export const REPORT_REASON_SCORES: Record<ReportReason, number> = {
   'Child Safety Concern': 1000,
   'Nonconsensual Intimate Image (NCII)': 900,
@@ -55,11 +38,6 @@ export const REPORT_REASON_SCORES: Record<ReportReason, number> = {
   Other: 50,
 };
 
-/** Multiplier for each canonical reportable item type. High-reach public surfaces
- * carry a higher multiplier; chat-message surfaces (admin-visible or low-reach) sit
- * below 1. `conversation-file` mirrors `work-asset` (1.0) — the other shared-FILE
- * surface — rather than the 0.8 chat-message weight: the report is about stored
- * media, not a line of conversation text. */
 export const REPORT_ITEM_TYPE_MULTIPLIERS: Record<ReportableItemType, number> = {
   'square-streetz-post': 1.5,
   'hall-library-item': 1.3,
@@ -79,24 +57,16 @@ export const REPORT_ITEM_TYPE_MULTIPLIERS: Record<ReportableItemType, number> = 
   'guild-invite-message': 0.8,
 };
 
-/** Priority bonuses/fallbacks shared by client + server priority scoring. */
 export const REPORT_PRIORITY_BONUSES = {
   additionalReportBonus: 50,
   defaultReasonScore: 50,
   defaultItemTypeMultiplier: 1.0,
 } as const;
 
-/** The reasons offered in the report picker. Derived from the canonical enum:
- * everything EXCEPT 'Nonconsensual Intimate Image (NCII)', which for a logged-in
- * user is an app-owned AdditionalReportAction routing to the take-it-down form —
- * a true 48h statutory request, not an ordinary report (§1.1). */
 export const ORDINARY_REPORT_REASONS: readonly ReportReason[] = ReportReasonSchema.options.filter(
   (r) => r !== 'Nonconsensual Intimate Image (NCII)',
 );
 
-/** One admin task-queue definition (display copy + checkout/work-later windows).
- * The client config consumes all four fields; the server config consumes the
- * minute windows. */
 export interface ReportTaskQueueDefinition {
   displayName: string;
   description: string;
@@ -127,8 +97,6 @@ export const REPORT_TASK_QUEUES: Record<string, ReportTaskQueueDefinition> = {
     workLaterMinutes: 1440,
     maxWorkLaterMinutes: 2880,
   },
-  // Published change request (member "Update details" proposal) — same review
-  // queue + checkout window as threshold publishes.
   hallContentChangeRequest: {
     displayName: 'Published Change Requests',
     description: 'Member-proposed text changes to published library items',
@@ -143,11 +111,6 @@ export const REPORT_TASK_QUEUES: Record<string, ReportTaskQueueDefinition> = {
     workLaterMinutes: 1440,
     maxWorkLaterMinutes: 2880,
   },
-  // Ops-anomaly / integrity lanes (money + stake-share signals). Their tasks are
-  // created by Firestore-trigger / webhook integrity checks, not user flows, and are
-  // worked through the ONE generic ops-anomaly work card. Present so per-type
-  // checkout accepts them, checkoutNextImportantTask leases the intended window,
-  // and "My Checked-Out Tasks" resolves a display name (never "Unknown Task").
   stakeShareAnomaly: {
     displayName: 'Stake Share Anomalies',
     description: 'Unexpected work-project stake-share changes flagged by the integrity trigger',
@@ -192,5 +155,3 @@ export const REPORT_TASK_QUEUES: Record<string, ReportTaskQueueDefinition> = {
     maxWorkLaterMinutes: 2880,
   },
 };
-// (The comment cap MAX_REPORT_COMMENT_LENGTH lives with the other business
-// constants — import it from the constants barrel.)

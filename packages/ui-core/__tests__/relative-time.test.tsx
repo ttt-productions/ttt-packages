@@ -22,13 +22,12 @@ afterEach(() => {
 describe('RelativeTime', () => {
   it('renders placeholder initially (before effect)', () => {
     const { container } = render(<RelativeTime timestamp={Date.now()} placeholder="loading..." />);
-    // In RTL, effects run in act, so we need to check before act
-    // The initial state is the placeholder — verify it was set
+    // RTL runs effects inside act, so the placeholder is checked before act.
     expect(container.textContent).toBeTruthy();
   });
 
   it('renders relative time after effect fires', async () => {
-    const timestamp = Date.now() - 300_000; // 5 minutes ago
+    const timestamp = Date.now() - 300_000;
     await act(async () => {
       render(<RelativeTime timestamp={timestamp} />);
     });

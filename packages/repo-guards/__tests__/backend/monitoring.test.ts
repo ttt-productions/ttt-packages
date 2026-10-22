@@ -1,6 +1,3 @@
-// The monitoring guards: entry points report failures, one init per runtime, the provider SDK named
-// only where it starts, the recording seam, telemetry tag keys, and a service named nowhere.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   monitoringGuard,

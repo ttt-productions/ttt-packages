@@ -2,13 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// file-input's components are rendered inside consumers' forms, and ui-core's Button
-// passes no `type`, so an untyped one is a submit button there (FRONTEND-203). Every
-// Button this package renders states its type, or renders through `asChild`.
+// ui-core's Button passes no `type`, so an untyped one submits a consumer's form (RULE-STD-FRONTEND-203).
 
 const COMPONENTS_DIR = join(__dirname, '..', 'src', 'react', 'components');
 
-/** Every `<Button …>` opening tag in a source string (JSX braces and quotes respected). */
 function buttonOpeningTags(source: string): string[] {
   const tags: string[] = [];
   let from = 0;

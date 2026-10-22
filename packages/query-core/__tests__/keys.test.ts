@@ -31,7 +31,6 @@ describe('keys.user', () => {
 
   it('keys are arrays of Firestore-safe primitives only', () => {
     const k = keys.feedback.custom('list', 'All', 'newest');
-    // Compile-time: must be assignable to readonly (string|number|boolean|null)[]
     const _check: ReadonlyArray<string | number | boolean | null> = k;
     expect(_check).toEqual(['feedback', 'list', 'All', 'newest']);
   });

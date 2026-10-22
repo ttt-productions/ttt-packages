@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { hasVisualViewport, isBrowser } from '../../env.js';
 import type { KeyboardState } from '../../types.js';
 
-/**
- * Best effort keyboard detection:
- * - iOS Safari: visualViewport.height shrinks when keyboard shows
- * - fallback: focusin/focusout heuristics + innerHeight snapshots
- */
+// iOS Safari reports an open keyboard only as a shrinking visualViewport.height.
 export function useKeyboard(): KeyboardState {
   const [baseline, setBaseline] = useState<number>(() => (isBrowser ? window.innerHeight : 0));
   const [height, setHeight] = useState(0);
@@ -17,7 +13,6 @@ export function useKeyboard(): KeyboardState {
     if (!isBrowser) return;
 
     const setBaseIfNeeded = () => {
-      // update baseline when keyboard likely closed
       const vvH = window.visualViewport?.height ?? window.innerHeight;
       const inner = window.innerHeight;
       const candidate = Math.max(vvH, inner);
@@ -27,7 +22,7 @@ export function useKeyboard(): KeyboardState {
     const onVV = () => {
       const vvH = window.visualViewport?.height ?? window.innerHeight;
       const delta = Math.max(0, Math.round(baseline - vvH));
-      const isOpen = delta > 80; // threshold
+      const isOpen = delta > 80;
       setSource('visualViewport');
       setHeight(isOpen ? delta : 0);
       setOpen(isOpen);
@@ -35,11 +30,9 @@ export function useKeyboard(): KeyboardState {
     };
 
     const onFocusIn = () => {
-      // baseline snapshot on focus to reduce false positives
       setBaseline((b) => Math.max(b, window.innerHeight));
     };
     const onFocusOut = () => {
-      // allow baseline update shortly after blur
       setTimeout(setBaseIfNeeded, 50);
       setTimeout(() => {
         setOpen(false);

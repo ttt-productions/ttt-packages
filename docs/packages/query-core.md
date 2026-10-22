@@ -157,7 +157,7 @@ TanStack Query v5 starts a fetch on a query that never succeeded by clearing its
 it back to `pending`, and a subscribed read's `refetch()` clears its listener error the same way. A
 retry state built from `isFetching && error` is therefore never true while the retry of a failed
 first read runs, and the surface's failure panel turns into a loading state under the retry the
-person pressed (FRONTEND-201). `useReadRetryState(source, queryKey)` (in `./react`) is the one owner
+person pressed (RULE-STD-FRONTEND-201). `useReadRetryState(source, queryKey)` (in `./react`) is the one owner
 of a read's failure-and-retry state:
 
 - **Input.** `source` is any read result carrying `error`, `isFetching`, `isLoading`, and optionally
@@ -261,7 +261,7 @@ answered absent never count.
 
 Concrete query keys, search presets, and domain-event invalidation entries live in the consuming app or its data package. This package exports no application-branded presets.
 
-## Search hook boundary for Realm / Work discovery
+## Search hook boundary for app discovery
 
 `query-core` may provide generic Firestore prefix-search utilities, but it must not hard-code any app's collection names or presets. App-specific search configs live in the consuming app or its data package.
 

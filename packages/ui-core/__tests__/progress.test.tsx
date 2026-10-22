@@ -28,7 +28,6 @@ describe('Progress', () => {
     const { container } = render(<Progress value={60} />);
     const indicator = container.querySelector('[style*="translateX"]');
     expect(indicator).toBeInTheDocument();
-    // translateX(-40%) for value=60
     expect((indicator as HTMLElement).style.transform).toContain('translateX(-40%)');
   });
 

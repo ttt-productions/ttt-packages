@@ -46,29 +46,19 @@ describe('ScrollToTopButton', () => {
   it('forwards variant prop to the underlying Button', () => {
     render(<ScrollToTopButton variant="inverted" />);
     const btn = screen.getByRole('button', { name: 'Scroll to top' });
-    // The inverted variant adds bg-[hsl(var(--inverted-background))] via buttonVariants.
     expect(btn.className).toContain('inverted-background');
   });
 
   it('uses size="icon" by default and accepts a size override', () => {
     const { rerender } = render(<ScrollToTopButton />);
     const defaultBtn = screen.getByRole('button', { name: 'Scroll to top' });
-    // Button's size="icon" => h-9 w-9
     expect(defaultBtn.className).toContain('h-9');
 
     rerender(<ScrollToTopButton size="lg" />);
     const lgBtn = screen.getByRole('button', { name: 'Scroll to top' });
-    // Button's size="lg" => h-11
     expect(lgBtn.className).toContain('h-11');
   });
 });
-
-// ---------------------------------------------------------------------------
-// Rest-prop passthrough (…rest) — arbitrary button DOM props reach the element,
-// and the component's owned semantics (aria-label, scroll onClick, own classes)
-// survive alongside them. Owned props win: they are Omitted from the passthrough
-// type AND applied after the {...rest} spread, so nothing can clobber them.
-// ---------------------------------------------------------------------------
 
 describe('ScrollToTopButton — rest-prop passthrough', () => {
   it('forwards an arbitrary data-* attribute through to the rendered button', () => {
@@ -81,7 +71,6 @@ describe('ScrollToTopButton — rest-prop passthrough', () => {
     render(<ScrollToTopButton id="to-top" />);
     const btn = screen.getByRole('button', { name: 'Scroll to top' });
     expect(btn).toHaveAttribute('id', 'to-top');
-    // Component's own positioning class is still applied.
     expect(btn.className).toContain('fixed');
   });
 
@@ -89,9 +78,7 @@ describe('ScrollToTopButton — rest-prop passthrough', () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     try {
       render(<ScrollToTopButton data-tour-anchor="scroll-top" />);
-      // Owned aria-label survives — still queryable by its default accessible name.
       const btn = screen.getByRole('button', { name: 'Scroll to top' });
-      // Owned onClick survives — clicking still triggers the smooth scroll-to-top.
       fireEvent.click(btn);
       expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
     } finally {
@@ -102,21 +89,11 @@ describe('ScrollToTopButton — rest-prop passthrough', () => {
   it('merges a consumer className rather than replacing the component classes', () => {
     render(<ScrollToTopButton className="my-anchor-class" />);
     const btn = screen.getByRole('button', { name: 'Scroll to top' });
-    // Consumer class is present...
     expect(btn).toHaveClass('my-anchor-class');
-    // ...and the component's own classes are still there (merged, not replaced).
     expect(btn.className).toContain('fixed');
     expect(btn.className).toContain('rounded-full');
   });
 });
-
-// ---------------------------------------------------------------------------
-// scrollBehavior prop — the JS `behavior` passed to window.scrollTo is
-// configurable. Default is "smooth" (zero behavior change for existing
-// consumers); passing "auto" lets a consumer's reduced-motion mode disable the
-// animation, which a CSS `scroll-behavior` kill-switch cannot do against an
-// explicit JS `behavior: "smooth"`. The package itself stays motion-agnostic.
-// ---------------------------------------------------------------------------
 
 describe('ScrollToTopButton — scrollBehavior', () => {
   it('defaults to smooth scroll when scrollBehavior is not provided', () => {

@@ -84,7 +84,6 @@ describe('DropdownMenuItem', () => {
     const above = screen.getByRole('menuitem', { name: 'Edit' });
     above.focus();
     fireEvent.keyDown(above, { key: 'ArrowDown' });
-    // The menu moves focus on the next task.
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });

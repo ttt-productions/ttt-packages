@@ -100,7 +100,6 @@ describe('NotificationMetadataByType', () => {
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'content_report',
-        // reportedItemType is the canonical ReportableItemType enum, so a non-canonical value fails.
         reportGroupId: 'rg1',
         reportedItemType: 'hall-library-item',
         reportedItemId: 'tale1',
@@ -148,7 +147,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(true);
 
-    // Appellant feedback — both decisions valid; anything else rejected.
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'content_appeal_reviewed',
@@ -184,7 +182,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(true);
 
-    // adminNotes is nullable — the writer sends null when the reviewer left none.
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'threshold_library_reviewed',
@@ -242,8 +239,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(true);
 
-    // Hall publication may release the Work's Realm; both publish types carry the released
-    // Realm id optionally so the client can refresh the Realm lookup on arrival.
     for (const type of ['followed_content_published', 'member_content_published'] as const) {
       const base = {
         type,
@@ -275,8 +270,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(true);
 
-    // Privacy ceiling: reporter-feedback metadata must never carry fields that
-    // identify the reported user/content/remedy.
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'report_action_taken',
@@ -303,8 +296,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(true);
 
-    // The recorded requester is required — a resolution addressed by guesswork (e.g. the
-    // uploader instead of the promoting file admin) would reach the wrong person.
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'realm_file_share_requested',
@@ -336,7 +327,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(false);
 
-    // The request id is the occurrence identity — without it there is no dedup key.
     const { requestId: _omitted, ...noRequestId } = requestBase;
     expect(
       NotificationMetadataByTypeSchema.safeParse({
@@ -346,7 +336,6 @@ describe('NotificationMetadataByType', () => {
       }).success,
     ).toBe(false);
 
-    // Display-identity snapshots are structurally inexpressible (strict).
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'realm_file_share_requested',
@@ -358,7 +347,6 @@ describe('NotificationMetadataByType', () => {
   });
 
   it('rejects a payload whose fields do not match its discriminant', () => {
-    // guild_invite fields under content_report → invalid.
     expect(
       NotificationMetadataByTypeSchema.safeParse({
         type: 'content_report',
@@ -486,7 +474,6 @@ describe('callable input schemas', () => {
       }).success,
     ).toBe(true);
 
-    // Missing the required idempotency key is rejected.
     expect(
       CreateNotificationBroadcastInputSchema.safeParse({
         selector: { kind: 'allActiveUsers' },
@@ -507,7 +494,6 @@ describe('callable input schemas', () => {
 
   it('validates markNotificationsSeen input (user only)', () => {
     expect(MarkNotificationsSeenInputSchema.safeParse({ category: 'user' }).success).toBe(true);
-    // Shared admin notifications have no per-admin seen state.
     expect(MarkNotificationsSeenInputSchema.safeParse({ category: 'admin' }).success).toBe(false);
   });
 });
@@ -523,10 +509,6 @@ describe('audit event union', () => {
     expectTypeOf<NotificationType>().toEqualTypeOf<(typeof NOTIFICATION_TYPE_VALUES)[number]>();
   });
 });
-
-// ============================================================================
-// OBSERVED-GENERATION SCHEMAS (the notification tray)
-// ============================================================================
 
 describe('MarkNotificationsSeenObservedInputSchema', () => {
   it('accepts a valid single-item payload', () => {
@@ -695,7 +677,6 @@ describe('ArchiveNotificationObservedInputSchema', () => {
   });
 
   it('rejects all scope with an extra observedActivityGeneration field (strict)', () => {
-    // archive-all carries no single generation; reject extra fields.
     expect(
       ArchiveNotificationObservedInputSchema.safeParse({
         requestId: 'r1',

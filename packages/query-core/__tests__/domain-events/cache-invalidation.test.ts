@@ -109,16 +109,6 @@ describe('applyInvalidations', () => {
   });
 });
 
-// ============================================================================
-// Stale-response protection for PENDING INITIAL READS.
-//
-// TanStack's Query.fetch reuses an in-flight request when the query has no data
-// yet (it only silently cancels a refetch when data is already present), so an
-// invalidation landing during a first read would otherwise resolve with the
-// value the server returned BEFORE the mutation committed — and mark it fresh.
-// applyInvalidations cancels those pending initial reads first.
-// ============================================================================
-
 interface Deferred<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
@@ -132,12 +122,10 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve };
 }
 
-/** Let microtasks and notifyManager batches settle. */
 function flush(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** Mount an ACTIVE observer (fetches synchronously when the query has no data). */
 function observe(
   client: QueryClient,
   queryKey: QueryKey,
@@ -153,7 +141,6 @@ function observe(
   return observer.subscribe(() => {});
 }
 
-/** A queryFn whose Nth call returns the Nth supplied deferred promise. */
 function sequencedQueryFn(responses: ReadonlyArray<Deferred<string>>) {
   let call = 0;
   return vi.fn(() => {
@@ -177,14 +164,11 @@ describe('applyInvalidations — pending initial read (stale-response protection
     expect(client.getQueryState(key)?.fetchStatus).toBe('fetching');
     expect(client.getQueryState(key)?.data).toBeUndefined();
 
-    // The mutation commits while the first read is still in flight.
     applyInvalidations(client, [exact(key)]);
     expect(queryFn).toHaveBeenCalledTimes(2);
 
-    // The abandoned read now answers with the PRE-COMMIT value...
     staleRead.resolve('stale-display-name');
     await flush();
-    // ...and it must never land.
     expect(client.getQueryData(key)).not.toBe('stale-display-name');
 
     freshRead.resolve('fresh-display-name');
@@ -280,10 +264,6 @@ describe('applyInvalidations — pending initial read (stale-response protection
       const nextRead = deferred<string>();
       const queryFn = sequencedQueryFn([staleRead, nextRead]);
 
-      // No observer: an observerless query that has never completed a fetch is
-      // "disabled" to TanStack's refetch pass, so nothing restarts it here. The
-      // cancellation still matters — it is what stops the pre-commit value from
-      // landing as this query's first (and therefore fresh-marked) data.
       void client.fetchQuery({ queryKey: key, queryFn, retry: false }).catch(() => {});
       expect(queryFn).toHaveBeenCalledTimes(1);
       expect(client.getQueryState(key)?.fetchStatus).toBe('fetching');
@@ -294,7 +274,6 @@ describe('applyInvalidations — pending initial read (stale-response protection
       await flush();
       expect(client.getQueryData(key)).toBeUndefined();
 
-      // The next consumer to mount the query reads fresh.
       const unsubscribe = observe(client, key, queryFn);
       nextRead.resolve('fresh');
       await flush();
@@ -320,7 +299,6 @@ describe('applyInvalidations — pending initial read (stale-response protection
       onlyRead.resolve('in-flight-value');
       await flush();
 
-      // The consumer keeps the only answer it was ever going to get.
       expect(client.getQueryData(key)).toBe('in-flight-value');
 
       unsubscribe();
@@ -398,13 +376,6 @@ describe('applyInvalidations — pending initial read (stale-response protection
   });
 });
 
-// ============================================================================
-// Awaitable refresh: the returned promise settles only once every refetch the
-// invalidations triggered has settled, so a mutation onSuccess that returns it
-// stays pending until the refreshed data is in the cache.
-// ============================================================================
-
-/** Track whether a promise has settled without awaiting it. */
 function track(promise: Promise<void>): { settled: () => boolean } {
   let done = false;
   void promise.then(() => {
@@ -563,11 +534,8 @@ describe('applyInvalidations — remove and reset entries', () => {
 
     await applyInvalidations(client, [exact(key, { action: 'remove' })]);
     expect(client.getQueryCache().find({ queryKey: key, exact: true })).toBeUndefined();
-    // The abandoned read is over: the screen still watching it stops showing it as running.
     expect(observer.getCurrentResult().fetchStatus).toBe('idle');
 
-    // The read that started before the removal answers afterwards: neither the cache nor the
-    // screen may hold the removed answer.
     read.resolve('the deleted record');
     await flush();
     expect(client.getQueryData(key)).toBeUndefined();
@@ -625,8 +593,6 @@ describe('applyInvalidations — remove and reset entries', () => {
     await flush();
     expect(client.getQueryState(failedKey)?.status).toBe('error');
 
-    // The reset clears each matched query's failure, so a predicate over it matches nothing once
-    // the reset has run: the reset acts on the queries it matched when it was applied.
     await applyInvalidations(client, [
       predicate('refused', (query) => query.state.error !== null, { action: 'reset' }),
     ]);
@@ -644,8 +610,6 @@ describe('applyInvalidations — remove and reset entries', () => {
     const unsubscribe = observe(client, key, sequencedQueryFn([read]));
     await flush();
 
-    // Cancelling the matched read idles it, so a predicate over fetchStatus would no longer match
-    // it by the time it is removed.
     await applyInvalidations(client, [
       predicate('in flight', (query) => query.state.fetchStatus === 'fetching', {
         action: 'remove',

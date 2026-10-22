@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as notificationSchemas from '../src/schemas/notification.js';
 
-// The archive answer is read by the tray (a row is cleared only when a card was archived) and
-// written by the callable; both type it from this one declaration.
 describe('archiveNotification answer', () => {
   it('says how many cards were archived, and for archive-all whether more remain', () => {
     expect(

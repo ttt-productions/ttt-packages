@@ -1,8 +1,5 @@
-// Registry schema for auditEvents/{eventId}. Mirrors the structural shape of
-// TTTAuditEvent in ../types/audit.ts — which stays the canonical TYPE because it encodes
-// compiler-enforced actor/role rules (systemRole required on admin modes, forbidden
-// otherwise) that Zod can't express. `type` is validated as a string here; the exact
-// ~80-value AuditEventType union remains the source of truth in ../types/audit.ts.
+// `type` is a plain string here: TTTAuditEvent's actor/role rules in ../types/audit.ts cannot be
+// expressed in Zod.
 
 import { z } from 'zod';
 import { systemRoleSchema } from '../schemas/atoms.js';

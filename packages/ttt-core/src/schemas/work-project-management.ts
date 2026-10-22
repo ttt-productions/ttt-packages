@@ -48,65 +48,30 @@ import {
   ContentMediaKindSchema,
 } from '../doc-schemas/media-assets.js';
 
-// The Realm shared-files gallery (ARTISAN-ONLY, plus a full-admin bypass for the admin-only
-// un-share support action). `mediaAssets` is client-unreadable, so the gallery reads
-// realm-shared work files via THIS server projection callable (never a client query) — and
-// for the same reason the Realm's FOLDER documents are returned through the same projection
-// owner rather than opened to direct client reads: artisan / admin / hidden-Realm access is
-// decided in ONE backend owner.
-//
-// Serving is the `'artisan'` media tier (mutate-in-place scoped→artisan at APPROVAL — see the
-// approval gate below). V1 = view + download, grouped by the steward's folders.
-
-/** One APPROVED shared file. Accepts only the two approved standings — a pending or
- *  unshared row is structurally inexpressible in this response. */
 export const RealmSharedFileProjectionSchema = z
   .object({
     mediaAssetId: mediaAssetIdSchema,
-    // The canonical stored media kind — RealmSharedFileProjection is a projection OF a
-    // MediaAsset, so it shares the ONE ContentMediaKindSchema.
     mediaKind: ContentMediaKindSchema,
-    // Never the full status union: 'nonCanon' | 'canon' only.
     realmFileCanonStatus: RealmFileApprovedStatusSchema,
-    /** The Work file's own `name`. A file browser that groups unnamed thumbnails by folder is
-     *  not a file browser — the name is part of the projection, not something the client is
-     *  expected to resolve. (It is file metadata, NOT display identity: creator names and
-     *  avatars still resolve at render from `creatorUid`.) */
     name: z.string(),
-    /** The steward-assigned folder this file sits in. Always present — approval IS folder
-     *  assignment, so an approved file without a folder cannot exist. */
     realmFileFolderId: realmFileFolderIdSchema,
     creatorUid: userIdSchema,
-    /** The asset's `createdAt` (epoch ms): the gallery reads newest first by it, then by
-     *  `mediaAssetId`, so a row entering the gallery is placed in that order. */
     createdAt: z.number(),
-    // For the per-file steward canon toggle + download (updateWorkFileRealmCanon takes these).
     workProjectId: workProjectIdSchema,
     workFileId: z.string(),
   })
   .strict();
 export type RealmSharedFileProjection = z.infer<typeof RealmSharedFileProjectionSchema>;
 
-/** A Realm shared-file folder as the gallery sees it. The FOLDER DOCUMENT stores no counts;
- *  `fileCount` here is SERVER-COMPUTED per response, so it can never drift the way a stored
- *  counter would. */
 export const RealmFileFolderProjectionSchema = z
   .object({
     realmFileFolderId: realmFileFolderIdSchema,
     name: z.string(),
-    /** Number of files currently ASSIGNED to this folder — counting every assigned file
-     *  regardless of canon state and regardless of serving state (a hidden or quarantined file
-     *  still occupies its folder, and is still why a delete-folder attempt will refuse).
-     *  Server-computed so the steward UI stops deriving counts from whichever gallery pages
-     *  happen to be loaded — a paged client can only ever see part of a folder. */
     fileCount: z.number().int().min(0),
   })
   .strict();
 export type RealmFileFolderProjection = z.infer<typeof RealmFileFolderProjectionSchema>;
 
-// Paginated: `limit` is bounded by the ONE named
-// page constant the server also clamps to, and `cursor` is an OPAQUE server-minted token —
-// the client never constructs or interprets it, so the ordering fields stay a server detail.
 export const GetRealmSharedFilesInputSchema = z
   .object({
     realmId: workRealmIdSchema,
@@ -116,9 +81,6 @@ export const GetRealmSharedFilesInputSchema = z
   .strict();
 export type GetRealmSharedFilesInput = z.infer<typeof GetRealmSharedFilesInputSchema>;
 
-/** `folders` is the Realm's complete folder set (bounded by MAX_REALM_FILE_FOLDERS), not a page — the gallery
- *  must be able to render an empty folder, and the steward must see one to move files into.
- *  `nextCursor` is absent/null on the last page. */
 export const GetRealmSharedFilesResponseSchema = z
   .object({
     files: z.array(RealmSharedFileProjectionSchema),
@@ -128,29 +90,16 @@ export const GetRealmSharedFilesResponseSchema = z
   .strict();
 export type GetRealmSharedFilesResponse = z.infer<typeof GetRealmSharedFilesResponseSchema>;
 
-// Realm-file promotion queue (steward / full admin):
-// A SEPARATE bounded projection rather than an `includePending` flag on the artisan gallery:
-// a caller-controlled flag would put "may this caller see pending rows" in the client's
-// hands. Ordinary artisans can never enumerate pending requests.
-
-/** One AWAITING-DECISION request. Accepts only the pending-approval standing (via
- *  RealmFilePendingApprovalStatusSchema) — an approved or unshared row is structurally
- *  inexpressible in the queue. */
 export const RealmFilePromotionQueueRowSchema = z
   .object({
     mediaAssetId: mediaAssetIdSchema,
     mediaKind: ContentMediaKindSchema,
     realmFileCanonStatus: RealmFilePendingApprovalStatusSchema,
-    /** The Work file's own name — the steward decides on a named file, not a thumbnail. */
     name: z.string(),
     creatorUid: userIdSchema,
     workProjectId: workProjectIdSchema,
     workFileId: z.string(),
-    /** Echoed so the approve/decline call can carry the exact observed request id; a stale tab
-     *  deciding a superseded request is then a visible conflict, not a silent overwrite. */
     realmFileShareRequestId: realmFileShareRequestIdSchema,
-    /** The RECORDED requester — the resolution notification is addressed from this, never
-     *  guessed from the uploader. */
     realmFileShareRequestedByUid: userIdSchema,
     realmFileShareRequestedAt: z.number(),
   })
@@ -166,8 +115,6 @@ export const GetRealmFilePromotionQueueInputSchema = z
   .strict();
 export type GetRealmFilePromotionQueueInput = z.infer<typeof GetRealmFilePromotionQueueInputSchema>;
 
-/** `folders` rides along so the approval UI can offer the folder picker (and detect the
- *  "no folders yet" state) without a second round-trip. */
 export const GetRealmFilePromotionQueueResponseSchema = z
   .object({
     requests: z.array(RealmFilePromotionQueueRowSchema),
@@ -179,30 +126,9 @@ export type GetRealmFilePromotionQueueResponse = z.infer<
   typeof GetRealmFilePromotionQueueResponseSchema
 >;
 
-// WORK-side share-state projection:
-// The mirror image of the two Realm-side projections above, for the WORK's own files surface:
-// a file admin looking at their folder listing needs to know which files are already shared
-// or awaiting a steward decision, so the row can show "Requested" / "Shared" and offer
-// withdraw where it applies.
-//
-// It is a SERVER projection for the same reason the gallery is: `mediaAssets` is
-// client-unreadable, so share state cannot be read from the file document. File-admin
-// authorization is asserted in the callable; this shape carries no authority hint.
-
-/** One work file's realm-share state.
- *
- *  The `requestId` is present EXACTLY while the file is awaiting a decision — it is what the
- *  withdraw call must carry, and it is meaningless once the request is resolved. Enforced
- *  rather than merely optional, mirroring the asset's own legal-combination invariant, so the
- *  UI can never be handed a pending row with nothing to withdraw (or an approved row carrying
- *  a stale request id it might send).
- *
- *  `workFileId` uses plain `z.string()` like the sibling projection rows in this file
- *  (inputs use `.min(1)`; projection rows describe server-produced data). */
 export const WorkFileRealmShareStateSchema = z
   .object({
     workFileId: z.string(),
-    // Never `none`: an unshared file simply has no row (see the response below).
     realmFileCanonStatus: RealmFileActiveStatusSchema,
     realmFileShareRequestId: realmFileShareRequestIdSchema.optional(),
   })
@@ -236,10 +162,6 @@ export type GetWorkFileRealmShareStatesInput = z.infer<
   typeof GetWorkFileRealmShareStatesInputSchema
 >;
 
-/** Rows exist ONLY for files whose standing is not `none`. An ABSENT row therefore means the
- *  file has never been requested or shared — that is the encoding, so the client must treat a
- *  missing entry as "not shared" rather than "unknown". Bounded implicitly by the Work's own
- *  file cap (MAX_WORK_FILES), so this response needs no page cursor of its own. */
 export const GetWorkFileRealmShareStatesResponseSchema = z
   .object({
     states: z.array(WorkFileRealmShareStateSchema),
@@ -249,22 +171,6 @@ export type GetWorkFileRealmShareStatesResponse = z.infer<
   typeof GetWorkFileRealmShareStatesResponseSchema
 >;
 
-// What a Realm-file action changed:
-// The gallery and the steward's queue are endless lists a client patches in place, never reloads
-// (FRONTEND-103); their rows are server projections the client cannot read, so every action that
-// changes a file's standing answers with the file's row in each list after it, built inside the
-// action's own transaction by the same projection owners the reads use.
-
-/**
- * One file's rows after an action: its gallery row, its queue row, and its Work-side share state —
- * each `null` when the file is absent from that list, built in the action's transaction — plus
- * `folders`: every folder whose server-computed `fileCount` the action changed (an approval, a move,
- * or an un-share), as the gallery shows it, read after the commit. `folders` is omitted when that
- * read failed (the client keeps its folder entries), and is empty only when no count changed.
- * Each row is non-null only when the file passes that list's own read filters — `sharedFile` only
- * for an approved file whose serving status is `servable`, so an action on a hidden or quarantined
- * file never puts it back into a gallery the read would not show it in.
- */
 export const RealmFileListsChangeSchema = z
   .object({
     mediaAssetId: mediaAssetIdSchema,
@@ -278,40 +184,30 @@ export const RealmFileListsChangeSchema = z
   .strict();
 export type RealmFileListsChange = z.infer<typeof RealmFileListsChangeSchema>;
 
-/** The answer of every action that changes a file's Realm standing: request, withdraw, approve,
- *  decline, canon toggle, folder move, and the admin un-share. `change` is always answered: its rows
- *  come from the action's transaction; only its `folders` is read after the commit and may be
- *  omitted (ENG-009). */
 export const RealmFileTransitionResultSchema = z.object({
   success: z.literal(true),
   change: RealmFileListsChangeSchema,
 });
 export type RealmFileTransitionResult = z.infer<typeof RealmFileTransitionResultSchema>;
 
-/** The answer of a Realm folder create or rename: the folder as the gallery shows it, present when
- *  the read after the commit succeeded (ENG-009; the client keeps its pages when it is absent). */
 export const RealmFileFolderResultSchema = z.object({
   success: z.literal(true),
   folder: RealmFileFolderProjectionSchema.optional(),
 });
 export type RealmFileFolderResult = z.infer<typeof RealmFileFolderResultSchema>;
 
-/** The answer of a Realm folder delete: the folder it removed. */
 export const DeleteRealmFileFolderResultSchema = z.object({
   success: z.literal(true),
   realmFileFolderId: realmFileFolderIdSchema,
 });
 export type DeleteRealmFileFolderResult = z.infer<typeof DeleteRealmFileFolderResultSchema>;
 
-// The Work's and the Realm's named text schemas: one each, used by create and by the edit.
 export const workProjectTitleSchema = textFieldSchema(WORK_TITLE_INPUT);
 export const workProjectDescriptionSchema = textFieldSchema(WORK_DESCRIPTION_INPUT);
-// A Realm working title, used by create, the availability check, and the draft rename. Its
-// declaration (`REALM_NAME_INPUT`: English letters, digits, and spaces) also keeps the reservation
-// key (`workRealmNameReservationKey`) one document-id segment (ARCH-106): no "/", ".", or "_".
+// Its declaration's characters keep the reservation key (`workRealmNameReservationKey`) one
+// document-id segment (RULE-STD-ARCH-106).
 export const realmWorkingTitleSchema = textFieldSchema(REALM_NAME_INPUT);
 export const realmWorkingDescriptionSchema = textFieldSchema(REALM_DESCRIPTION_INPUT);
-// A folder's name — one schema for create and rename, per folder kind.
 export const workFileFolderNameSchema = textFieldSchema(WORK_FILE_FOLDER_NAME_INPUT);
 export const realmFileFolderNameSchema = textFieldSchema(REALM_FILE_FOLDER_NAME_INPUT);
 
@@ -336,15 +232,9 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
       realmCreationMode: z.literal('newPublicRealm'),
       realmWorkingTitle: realmWorkingTitleSchema,
       realmWorkingDescription: realmWorkingDescriptionSchema,
-      // The Realm Creation Agreement, ticked under the wording version the flow showed; the
-      // creation records it with the new Realm.
       realmFoundingAgreementVersion: z.literal(WORK_REALM_FOUNDING_AGREEMENT_VERSION),
     })
     .strict(),
-  // Standalone realms are background plumbing: the user enters NO
-  // realm information — the backend creates the realm shell with a synthetic unique
-  // title/description (the generated workRealmId), so nothing user-authored exists on it
-  // and no human realm name is consumed from the reservedRealmNames namespace.
   z
     .object({
       ...baseFields,
@@ -361,7 +251,6 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
 ]);
 export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema>;
 
-/** The `createWorkProject` answer: the new Work's id and its stored document, which that id names. */
 export const CreateWorkProjectResultSchema = z
   .object({
     success: z.literal(true),
@@ -376,8 +265,6 @@ export const CreateWorkProjectResultSchema = z
   });
 export type CreateWorkProjectResult = z.infer<typeof CreateWorkProjectResultSchema>;
 
-// Identified by the workAssets subcollection doc id — never by URL parsing
-// (no delete path may depend on a URL).
 export const DeleteWorkAssetInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -407,10 +294,6 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('commission'),
-      // Titles are NOT snapshotted here (Display Identity Invariant — client display text
-      // must be re-sourced at render by id). `postingStakeSharesOffered` is not display text;
-      // the server re-sources it from the posting doc in the invite transaction (never trusts
-      // the client copy) — kept so the shape stays server-writable.
       data: z
         .object({
           commissionListingId: commissionListingIdSchema,
@@ -456,13 +339,6 @@ export const InviteUserToGuildResultSchema = z.object({
 });
 export type InviteUserToGuildResult = z.infer<typeof InviteUserToGuildResultSchema>;
 
-// `finalized` is the terminal SUCCESS state (`accepted` is a transient state a trigger
-// consumes within seconds). Managers must be able to list finalized invites to see the
-// guild's actual recruitment history — not only failures and in-flight items. Derives from
-// the ONE canonical status enum (schemas/atoms.ts), never a re-declared literal.
-// The history is paged: the server reads `ITEMS_PER_PAGE_GUILD_INVITES` invites per call (the
-// caller sends no page size), and `cursor` is the opaque token the previous page answered.
-// The result is `ListGuildInvitesResultSchema` (doc-schemas/messaging, beside the invite doc).
 export const ListGuildInvitesInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -511,9 +387,6 @@ export const UpdateGuildmateStandingResultSchema = z.object({
 });
 export type UpdateGuildmateStandingResult = z.infer<typeof UpdateGuildmateStandingResultSchema>;
 
-// Member self-leave (leaveWorkProject). The leaver is ALWAYS request.auth.uid — never a
-// client-supplied uid — so the input carries only the workProjectId. The
-// callable composes the internal `depart` stake-share operation for ctx.uid.
 export const LeaveWorkProjectInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -527,8 +400,6 @@ export const LeaveWorkProjectResultSchema = z.object({
 });
 export type LeaveWorkProjectResult = z.infer<typeof LeaveWorkProjectResultSchema>;
 
-// An edit sends only the fields its user changed (BACKEND-116), so each is optional and at
-// least one is required.
 export const UpdatePublicWorkProjectDetailsInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -548,8 +419,6 @@ export type UpdatePublicWorkProjectDetailsResult = z.infer<
   typeof UpdatePublicWorkProjectDetailsResultSchema
 >;
 
-// An edit sends only the fields its user changed (BACKEND-116), so each is optional and at
-// least one is required.
 export const UpdateWorkRealmDetailsInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -565,8 +434,6 @@ export const UpdateWorkRealmDetailsResultSchema = z.object({
 });
 export type UpdateWorkRealmDetailsResult = z.infer<typeof UpdateWorkRealmDetailsResultSchema>;
 
-// Unauthenticated soft-check for a Realm working title: the same declaration create uses, so a
-// name valid at create is never refused at form time, and the reverse.
 export const CheckRealmNameAvailableInputSchema = z
   .object({
     workingTitle: realmWorkingTitleSchema,
@@ -579,10 +446,6 @@ export const CheckRealmNameAvailableResultSchema = z.object({
   reason: z.literal('taken').optional(),
 });
 export type CheckRealmNameAvailableResult = z.infer<typeof CheckRealmNameAvailableResultSchema>;
-
-// Work-project file folders:
-// The default "All Guildmates" folder is immutable; custom-folder access is by trade
-// profession. All four callables require a file-admin standing via assertCanManageFolders.
 
 const tradeProfessionListSchema = z
   .array(z.enum(TRADE_PROFESSION_VALUES))
@@ -648,8 +511,6 @@ export const DeleteFileFolderResultSchema = z.object({
 });
 export type DeleteFileFolderResult = z.infer<typeof DeleteFileFolderResultSchema>;
 
-// Delete a single work file (by folder + file id). File-admin authz is enforced in the
-// callable/core transaction.
 export const DeleteWorkFileInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -664,8 +525,6 @@ export const DeleteWorkFileResultSchema = z.object({
 });
 export type DeleteWorkFileResult = z.infer<typeof DeleteWorkFileResultSchema>;
 
-// Set canon status on a realm shared file. Realm-steward-only authz is enforced inside the
-// core's transaction against workRealms/{workRealmId}.workStewardUid.
 export const UpdateWorkFileRealmCanonInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -675,20 +534,6 @@ export const UpdateWorkFileRealmCanonInputSchema = z
   .strict();
 export type UpdateWorkFileRealmCanonInput = z.infer<typeof UpdateWorkFileRealmCanonInputSchema>;
 
-// The promotion approval gate:
-// Promotion is a REQUEST, not an instant share: the Work file admin asks, and the REALM
-// steward approves (choosing the folder) or declines. Nothing is served to the Realm until
-// approval — a requested file stays `scoped` and invisible to the member gallery.
-//
-// Every one of these carries the `requestId` so a decision always names the exact request it
-// observed. Realm-side authority (steward, public + non-hidden Realm) is derived from the
-// Realm document inside each core's transaction; these shapes carry no authority hints.
-
-// REQUEST promotion of a work file into its Realm's shared-file pool. File-admin authz
-// (`workFile.promoteToRealm`) is enforced inside the core's transaction.
-// `requestId` is CLIENT-generated and stable: replaying the same id is an idempotent success
-// (no second audit event, no second notification), while a DIFFERENT id arriving while one
-// request is already pending is a conflict — never a silent overwrite.
 export const UpdateWorkFileRealmShareInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -698,10 +543,6 @@ export const UpdateWorkFileRealmShareInputSchema = z
   .strict();
 export type UpdateWorkFileRealmShareInput = z.infer<typeof UpdateWorkFileRealmShareInputSchema>;
 
-// WITHDRAW a still-pending request (the requesting Work's file admin). Realm-share
-// permanence begins at APPROVAL — before a steward decides, an accidental request must be
-// correctable by the side that made it. Addressed by Work coordinates like the request
-// itself, and compares `requestId` so a withdrawal can never cancel a newer re-request.
 export const WithdrawRealmFilePromotionRequestInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -713,9 +554,6 @@ export type WithdrawRealmFilePromotionRequestInput = z.infer<
   typeof WithdrawRealmFilePromotionRequestInputSchema
 >;
 
-// APPROVE a pending request (Realm steward). Approval assigns the folder — there is no
-// default folder, so `realmFileFolderId` is REQUIRED and the core verifies the folder is
-// under this exact Realm before flipping the file to `nonCanon` + the artisan tier.
 export const ApproveRealmFilePromotionInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -726,8 +564,6 @@ export const ApproveRealmFilePromotionInputSchema = z
   .strict();
 export type ApproveRealmFilePromotionInput = z.infer<typeof ApproveRealmFilePromotionInputSchema>;
 
-// DECLINE a pending request (Realm steward). Returns the file to `none` and clears the Realm
-// + request fields. No folder is involved — a declined file never entered the pool.
 export const DeclineRealmFilePromotionInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -737,15 +573,6 @@ export const DeclineRealmFilePromotionInputSchema = z
   .strict();
 export type DeclineRealmFilePromotionInput = z.infer<typeof DeclineRealmFilePromotionInputSchema>;
 
-// ADMIN un-share of an ALREADY-APPROVED realm file (`adminUpdateWorkFileRealmUnshare`).
-// Once a steward approves, sharing is PERMANENT for members — the only way out is an admin
-// acting on a support thread. This is its own input rather than a reuse of the share/request
-// shape: an approved file has NO pending request, so `requestId` is meaningless here and
-// requiring one would make the callable unusable against exactly the state it exists to
-// unwind. It carries the two-field Work-coordinate shape; the core resolves the file by collection-group query on
-// (`workProjectId`, `workFileId`). Admin authority is asserted at the callable's admin gate
-// and re-asserted in the core (which rejects any non-`adminOverride` actor) — never inferred
-// from anything in this payload.
 export const AdminUpdateWorkFileRealmUnshareInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -756,12 +583,6 @@ export type AdminUpdateWorkFileRealmUnshareInput = z.infer<
   typeof AdminUpdateWorkFileRealmUnshareInputSchema
 >;
 
-// Realm shared-file folders (steward-managed):
-// Mirrors the Work-side folder CRUD shapes, minus the trade-profession access lists: Realm
-// folders are organizational only (Realm-level visibility is the whole access model at
-// launch). Names reuse the ONE platform folder-name bound; the server derives
-// `name_lowercase` and enforces case-insensitive uniqueness within the Realm.
-
 export const CreateRealmFileFolderInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -770,7 +591,6 @@ export const CreateRealmFileFolderInputSchema = z
   .strict();
 export type CreateRealmFileFolderInput = z.infer<typeof CreateRealmFileFolderInputSchema>;
 
-/** Rename. `update*` per BACKEND-305 — it modifies an existing doc in place. */
 export const UpdateRealmFileFolderInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -780,10 +600,6 @@ export const UpdateRealmFileFolderInputSchema = z
   .strict();
 export type UpdateRealmFileFolderInput = z.infer<typeof UpdateRealmFileFolderInputSchema>;
 
-/** Delete requires the folder to be EMPTY (the steward moves files out first) — no surprise
- *  data moves and no reassignment-target picker at launch. Emptiness is proven by an
- *  in-transaction query for ANY asset carrying this folder id, regardless of serving/hidden/
- *  canon state: a hidden file still occupies its folder. */
 export const DeleteRealmFileFolderInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,
@@ -792,9 +608,6 @@ export const DeleteRealmFileFolderInputSchema = z
   .strict();
 export type DeleteRealmFileFolderInput = z.infer<typeof DeleteRealmFileFolderInputSchema>;
 
-/** Move an approved shared file between folders. `expectedRealmFileFolderId` is a
- *  compare-and-set precondition — a steward acting on a stale view must not silently undo a
- *  move made from another tab. */
 export const UpdateRealmFileFolderAssignmentInputSchema = z
   .object({
     workRealmId: workRealmIdSchema,

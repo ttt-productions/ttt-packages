@@ -52,15 +52,15 @@ describe('callableRefusalCode', () => {
 });
 
 describe('callableRefusalReason', () => {
-  const REASONS = ['team-full', 'season-closed'] as const;
+  const REASONS = ['list-full', 'window-closed'] as const;
 
   it('answers the details.reason of a failed-precondition refusal when it is one of the reasons', () => {
-    const error = { code: 'functions/failed-precondition', details: { reason: 'team-full' } };
-    expect(callableRefusalReason(error, REASONS)).toBe('team-full');
+    const error = { code: 'functions/failed-precondition', details: { reason: 'list-full' } };
+    expect(callableRefusalReason(error, REASONS)).toBe('list-full');
   });
 
   it('never reads the message', () => {
-    const error = { code: 'functions/failed-precondition', message: 'team-full', details: {} };
+    const error = { code: 'functions/failed-precondition', message: 'list-full', details: {} };
     expect(callableRefusalReason(error, REASONS)).toBeNull();
   });
 
@@ -73,7 +73,7 @@ describe('callableRefusalReason', () => {
     ).toBeNull();
     expect(
       callableRefusalReason(
-        { code: 'functions/permission-denied', details: { reason: 'team-full' } },
+        { code: 'functions/permission-denied', details: { reason: 'list-full' } },
         REASONS,
       ),
     ).toBeNull();
@@ -82,7 +82,7 @@ describe('callableRefusalReason', () => {
     ).toBeNull();
     expect(
       callableRefusalReason(
-        { code: 'functions/internal', details: { reason: 'team-full' } },
+        { code: 'functions/internal', details: { reason: 'list-full' } },
         REASONS,
       ),
     ).toBeNull();

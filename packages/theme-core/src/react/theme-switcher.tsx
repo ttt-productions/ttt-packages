@@ -6,44 +6,27 @@ import type { ThemeName } from '../themes.js';
 import { useOptionalViewerSettingsSync } from './viewer-settings-sync.js';
 
 export interface ThemeOption {
-  /** The theme this option selects. */
   value: ThemeName;
-  /** Human-readable label rendered in the menu. */
   label: string;
-  /** Icon rendered next to the label and in the trigger when this theme is active. */
   icon?: React.ReactNode;
 }
 
 export interface ThemeSwitcherProps {
-  /** Ordered list of selectable themes. */
   themes: ThemeOption[];
-  /** Render prop for the trigger button. Receives the icon for the active theme. */
   renderTrigger: (args: {
     activeIcon: React.ReactNode;
     srLabel: string;
     disabled: boolean;
   }) => React.ReactNode;
-  /** Render prop for the menu container. Receives both the trigger node and the rendered items. */
   renderMenu: (args: { trigger: React.ReactNode; children: React.ReactNode }) => React.ReactNode;
-  /**
-   * Render prop for each menu item. `onSelect` switches the device's theme at once; under a
-   * `ViewerSettingsSyncProvider` it goes through the sync, so a signed-in viewer's account is
-   * saved too and the promise rejects when that save fails.
-   */
   renderItem: (args: {
     option: ThemeOption;
     isActive: boolean;
     onSelect: () => Promise<void>;
   }) => React.ReactNode;
-  /** Accessible label for the trigger. Defaults to "Toggle theme". */
   srLabel?: string;
 }
 
-/**
- * Headless, fully-render-prop-driven theme switcher.
- * theme-core owns the next-themes integration and the "available themes" data shape.
- * Consumers own all visual styling — wrap their own DropdownMenu / Button / Icon set.
- */
 export function ThemeSwitcher({
   themes,
   renderTrigger,

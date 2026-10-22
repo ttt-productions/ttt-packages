@@ -1,8 +1,3 @@
-// The local gate mirrors what the release workflow verifies: every command a verify job runs is
-// mapped to the local gate stage that runs the same check, or to the reason it stays CI-only, and
-// every mapped command is one the workflow still runs. A new CI check cannot go unmirrored, and a
-// mirror of a check CI dropped cannot linger. Audit commands are mirrored by the gate itself.
-
 import { parse as parseYaml } from 'yaml';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -11,18 +6,13 @@ import { isText, loaderProblem, textProblem } from '../../support/facts.js';
 type ParityEntry = { stage: string; partial?: string } | { ciOnly: string };
 
 export interface CiParityFacts {
-  /** The release workflow, repo-relative (`.github/workflows/deploy.yml`). */
   workflow: string;
-  /** A regular-expression source matching the names of the jobs that verify before a deploy. */
   verifyJobPattern: string;
-  /** Commands the local gate mirrors on its own (the audits), as a regular-expression source. */
   selfMirrored: string;
-  /** The app's parity map, keyed `<dir> :: <command>`, loaded from where its gate reads it. */
   parity: () =>
     Readonly<Record<string, ParityEntry>> | Promise<Readonly<Record<string, ParityEntry>>>;
 }
 
-/** One line per command, so a multi-line `run:` compares as the same string everywhere. */
 const normalizeRun = (run: string) =>
   run
     .split('\n')
@@ -30,7 +20,6 @@ const normalizeRun = (run: string) =>
     .filter(Boolean)
     .join(' ; ');
 
-/** Every `run:` step of every verify job, keyed `<dir> :: <command>` (dir `.` is the repository root). */
 export function verifyCommands(workflowText: string, verifyJob: RegExp): string[] {
   const jobs =
     (

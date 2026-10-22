@@ -11,8 +11,6 @@ import type { MessageRendererRegistry } from '../types.js';
 import { Button, Spinner } from '@ttt-productions/ui-core/react';
 import { MessageItemDefault } from './MessageItemDefault.js';
 
-/** What `MessageList` hands a custom scroll container: the element it must render as the scrollable
- *  message region, with this ref, class, scroll handler, and children. */
 export type ChatScrollContainerProps = {
   ref: React.Ref<HTMLDivElement>;
   className: string;
@@ -20,7 +18,6 @@ export type ChatScrollContainerProps = {
   children: React.ReactNode;
 };
 
-/** The default scroll container: a plain div. */
 function DefaultScrollContainer({ ref, className, onScroll, children }: ChatScrollContainerProps) {
   return (
     <div ref={ref} className={className} onScroll={onScroll}>
@@ -43,37 +40,16 @@ export function MessageList(props: {
 
   showScrollToBottom?: boolean;
   onScrollToBottom?: () => void;
-  /** Reports whether the list is scrolled to the bottom so the consumer can advance
-   *  authoritative read state only when the latest message is actually in view. */
   onAtBottomChange?: (atBottom: boolean) => void;
-  /** Class for the scrollable message region. Overrides the default. The default is
-   *  `h-[400px]` (fixed-height card) unless `fillHeight` is set, in which case it is
-   *  `flex-1 min-h-0`. */
   scrollClassName?: string;
-  /** Renders the scrollable message region in place of the default div, so the consumer can give it
-   *  its own surface component. It must render one element carrying the given ref, class, scroll
-   *  handler, and children. */
   scrollContainer?: React.ComponentType<ChatScrollContainerProps>;
-  /** Fill the parent's height instead of a fixed `h-[400px]`. Makes the list a flex-col
-   *  that flexes to fill its container, so a bounded-height page panel scrolls inside.
-   *  The consuming layout must give MessageList's ancestor a bounded height (ChatShell's
-   *  `fillHeight` wires Card → CardContent → MessageList for this). */
   fillHeight?: boolean;
 
   handlers?: ModerationHandlers;
   onSenderClick?: (senderId: string) => void;
-  /** The app's per-message grouping fact (chat-core `isContinuation`): a change in it breaks a
-   *  same-sender group, so the sender line — and its adornment — shows again. */
   messageGroupKey?: ChatMessageGroupKey;
-  /** The app's adornment beside a message's sender name (default renderer only). */
   renderSenderAdornment?: (m: ChatMessageV1) => React.ReactNode;
-  /** Retry a failed realtime send by clientMessageId (realtime transport only). */
   onRetrySend?: (clientMessageId: string) => void;
-  /**
-   * The failed older-page row (the consumer's error state with its retry). While set, it
-   * renders at the top of the list and the list stops requesting older pages — a failed
-   * page is retried only through the row, never by scrolling into it again.
-   */
   olderLoadErrorRow?: React.ReactNode;
 }) {
   const {
@@ -110,8 +86,6 @@ export function MessageList(props: {
   const prevScrollHeightRef = React.useRef<number | null>(null);
   const prevCountRef = React.useRef(0);
 
-  // Count of messages that arrived while the user was scrolled up — drives the
-  // "new messages" pill. Reset when the user returns to the bottom.
   const [unseenCount, setUnseenCount] = React.useState(0);
 
   const scrollToBottom = React.useCallback(() => {
@@ -123,7 +97,6 @@ export function MessageList(props: {
     onAtBottomChange?.(true);
   }, [onAtBottomChange]);
 
-  // IntersectionObserver for infinite scroll (older messages)
   React.useEffect(() => {
     const root = scrollRef.current;
     const target = topSentinelRef.current;
@@ -146,7 +119,8 @@ export function MessageList(props: {
     return () => io.disconnect();
   }, [hasOlder, isFetchingOlder, olderLoadFailed, onLoadOlder]);
 
-  // Scroll management — FIXES accordion scroll jump
+  // Scroll management assigns scrollTop (never a smooth scrollTo), so a scrolling parent such as an
+  // accordion never jumps.
   React.useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -155,7 +129,6 @@ export function MessageList(props: {
     const prev = prevCountRef.current;
 
     if (prev === 0 && count > 0) {
-      // Initial load — scroll to bottom WITHOUT triggering parent scroll
       requestAnimationFrame(() => {
         const savedScrollY = window.scrollY;
         el.scrollTop = el.scrollHeight;
@@ -166,13 +139,10 @@ export function MessageList(props: {
       });
       isAtBottomRef.current = true;
     } else if (count > prev && prevScrollHeightRef.current != null) {
-      // Older messages prepended — maintain scroll position
       const diff = el.scrollHeight - prevScrollHeightRef.current;
       el.scrollTop += diff;
       prevScrollHeightRef.current = null;
     } else if (count > prev && isAtBottomRef.current) {
-      // New message at bottom, user is at bottom — scroll down
-      // Use scrollTop assignment, NOT scrollTo with behavior:"smooth" (causes parent scroll jump)
       requestAnimationFrame(() => {
         const savedScrollY = window.scrollY;
         el.scrollTop = el.scrollHeight;
@@ -181,8 +151,6 @@ export function MessageList(props: {
         }
       });
     } else if (count > prev) {
-      // New message(s) arrived while the user was scrolled up — surface the pill
-      // instead of yanking their scroll position.
       setUnseenCount((c) => c + (count - prev));
     }
 
@@ -228,7 +196,6 @@ export function MessageList(props: {
               lastDay = day;
 
               const prevMsg = idx > 0 ? messages[idx - 1] : undefined;
-              // Date separators always break grouping
               const continuation = showDay ? false : isContinuation(prevMsg, m, messageGroupKey);
 
               const byType =
@@ -251,7 +218,6 @@ export function MessageList(props: {
                 <React.Fragment key={m.messageId}>
                   {showDay && (
                     <div className="my-2 flex justify-center">
-                      {/* theme-core: components.css */}
                       <div className="chat-date-separator">
                         {new Date(m.createdAt).toLocaleDateString()}
                       </div>

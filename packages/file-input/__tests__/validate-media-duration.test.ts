@@ -22,9 +22,6 @@ function makeFakeMediaEl(
       listeners.get(type)?.delete(fn);
     },
   };
-  // The Chromium MediaRecorder-blob workaround seeks far past the end; a fake
-  // configured with `seekRevealsDuration` then learns the real duration and
-  // fires durationchange (mirroring real engine behavior).
   Object.defineProperty(el, 'currentTime', {
     set(v: number) {
       el._currentTime = v;
@@ -127,9 +124,6 @@ describe('validateMediaDuration', () => {
     expect((globalThis as any).URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake');
   });
 
-  // Chromium MediaRecorder blobs report duration Infinity at loadedmetadata —
-  // the regression that falsely rejected a 5s recording as "over 60s"
-  // (live 2026-07-19). The seek workaround must learn the REAL duration.
   it('accepts a recording whose Infinity metadata resolves to a short real duration', async () => {
     stubCreateElement(Infinity, false, { seekRevealsDuration: 5 });
     const file = new File([''], 'rec.webm', { type: 'audio/webm' });
@@ -145,10 +139,9 @@ describe('validateMediaDuration', () => {
   it('fails open when the duration stays unresolvable after the workaround', async () => {
     vi.useFakeTimers();
     try {
-      stubCreateElement(Infinity); // no seekRevealsDuration — durationchange never fires
+      stubCreateElement(Infinity);
       const file = new File([''], 'rec.webm', { type: 'audio/webm' });
       const resultPromise = validateMediaDuration(file, 60);
-      // Flush the microtask that fires onloadedmetadata, then the workaround timeout.
       await vi.advanceTimersByTimeAsync(0);
       await vi.advanceTimersByTimeAsync(3_000);
       await expect(resultPromise).resolves.toBe(true);

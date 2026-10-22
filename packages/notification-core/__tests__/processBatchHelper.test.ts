@@ -4,8 +4,6 @@ import { buildActiveNotificationDocId } from '../src/server/activeNotificationId
 import type { NotificationSystemConfig, PendingNotification } from '../src/types.js';
 import type { ServerFirestore, ServerTransaction } from '../src/server/types.js';
 
-// ---- Config ----
-
 function makeConfig(): NotificationSystemConfig {
   return {
     categories: {
@@ -24,7 +22,6 @@ function makeConfig(): NotificationSystemConfig {
         messagePattern: (_, count) => `${count} report(s)`,
         defaultTargetPath: '/admin/reports',
       },
-      // No defaultTargetPath — a linkless, clear-only type; the doc must OMIT targetPath.
       linkless_note: {
         category: 'admin',
         delivery: 'queued',
@@ -37,23 +34,16 @@ function makeConfig(): NotificationSystemConfig {
   };
 }
 
-// ---- Mock DB builder ----
-// In-memory collections so deterministic-ID transactional writes land somewhere
-// inspectable. Active docs are seeded at their deterministic IDs (the helper
-// under test computes the same ID via buildActiveNotificationDocId).
-
 interface BobDoc {
   id: string;
   data: PendingNotification;
 }
 
 interface SeedActiveDoc {
-  /** Inputs that determine the deterministic doc ID */
   category: string;
   audienceType: 'personal' | 'shared';
   targetUserId: string | null;
   dedupKey: string;
-  /** Stored doc data */
   data: Record<string, unknown>;
 }
 
@@ -81,7 +71,6 @@ function createMockDb({
       targetUserId: seed.targetUserId,
       dedupKey: seed.dedupKey,
     });
-    // Tests assume a single active collection per category config.
     getCol(seed.category === 'user' ? 'userNotifications' : 'adminNotifications').set(id, {
       ...seed.data,
     });
@@ -93,7 +82,6 @@ function createMockDb({
     ref: { id: pd.id },
   }));
 
-  // Track pending query call count for iteration control
   let pendingCallCount = 0;
 
   const makeDocRef = (colPath: string, id: string) => ({
@@ -181,8 +169,6 @@ function createMockDb({
   return { db, collections, activeDocs, updatedDocs, createdIds, batchDeletedIds };
 }
 
-// ---- Helpers ----
-
 function makePendingDoc(
   overrides: Partial<PendingNotification> & {
     type: string;
@@ -197,13 +183,11 @@ function makePendingDoc(
       id,
       category: 'admin',
       targetUserId: null,
-      createdAt: Date.now() - 60_000, // 1 minute ago (past cutoff)
+      createdAt: Date.now() - 60_000,
       ...overrides,
     },
   };
 }
-
-// ---- Tests ----
 
 describe('processBatchHelper', () => {
   it('returns totals of 0 when pending queue is empty', async () => {
@@ -237,9 +221,7 @@ describe('processBatchHelper', () => {
     expect(doc!.dedupKey).toBe('report_item1');
     expect(doc!.count).toBe(1);
     expect(doc!.latestActorIds).toEqual(['user1']);
-    // Active docs are created unseen so the unread count() predicate matches.
     expect(doc!.seenAt).toBe(0);
-    // Identity is stored id-only — no persisted display names.
     expect(doc!.latestActorNames).toBeUndefined();
   });
 
@@ -255,8 +237,6 @@ describe('processBatchHelper', () => {
 
     const [doc] = activeDocs('adminNotifications');
     expect(doc).toBeDefined();
-    // The KEY must be absent (a Firestore write with `undefined` throws), so the
-    // consumer's `targetPath ?` check renders a clear-only row.
     expect(Object.keys(doc)).not.toContain('targetPath');
   });
 
@@ -304,8 +284,7 @@ describe('processBatchHelper', () => {
     expect(result.notificationsUpdated).toBe(1);
     expect(result.notificationsCreated).toBe(0);
     expect(updatedDocs).toHaveLength(1);
-    expect(updatedDocs[0].data.count).toBe(4); // 3 + 1
-    // Dedup-increment re-lights the unread badge.
+    expect(updatedDocs[0].data.count).toBe(4);
     expect(updatedDocs[0].data.seenAt).toBe(0);
   });
 
@@ -335,7 +314,6 @@ describe('processBatchHelper', () => {
 
     await processBatchHelper(db, makeConfig());
 
-    // New actor (user2) should come first; identity is id-only.
     expect(updatedDocs[0].data.latestActorIds).toEqual(['user2', 'user1']);
     expect(updatedDocs[0].data.latestActorNames).toBeUndefined();
   });
@@ -343,7 +321,7 @@ describe('processBatchHelper', () => {
   it('deduplicates actors that already exist in the list', async () => {
     const pending = makePendingDoc({
       type: 'content_report',
-      actorId: 'user1', // same actor as in existing
+      actorId: 'user1',
       metadata: { itemId: 'item1' },
     });
     const { db, updatedDocs } = createMockDb({
@@ -366,7 +344,6 @@ describe('processBatchHelper', () => {
 
     await processBatchHelper(db, makeConfig());
 
-    // user1 is already in the list — should not be duplicated
     expect(updatedDocs[0].data.latestActorIds).toEqual(['user1']);
   });
 
@@ -377,7 +354,6 @@ describe('processBatchHelper', () => {
       metadata: { itemId: 'item1' },
     });
 
-    // Use a config with low countCap
     const config: NotificationSystemConfig = {
       ...makeConfig(),
       types: {
@@ -408,7 +384,7 @@ describe('processBatchHelper', () => {
 
     await processBatchHelper(db, config);
 
-    expect(updatedDocs[0].data.count).toBe(5000); // capped
+    expect(updatedDocs[0].data.count).toBe(5000);
   });
 
   it('deletes processed pending docs', async () => {
@@ -433,13 +409,12 @@ describe('processBatchHelper', () => {
     const pending2 = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      metadata: { itemId: 'item1' }, // same dedupKey
+      metadata: { itemId: 'item1' },
     });
     const { db, activeDocs } = createMockDb({ pendingDocs: [pending1, pending2] });
 
     const result = await processBatchHelper(db, makeConfig());
 
-    // Both should be grouped into one notification
     expect(result.notificationsCreated).toBe(1);
     const docs = activeDocs('adminNotifications');
     expect(docs).toHaveLength(1);
@@ -455,7 +430,7 @@ describe('processBatchHelper', () => {
     const pending2 = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      metadata: { itemId: 'item2' }, // different dedupKey
+      metadata: { itemId: 'item2' },
     });
     const { db, activeDocs } = createMockDb({ pendingDocs: [pending1, pending2] });
 
@@ -484,9 +459,6 @@ describe('processBatchHelper', () => {
   });
 
   it('is idempotent-converged: re-processing the same group targets the SAME doc', async () => {
-    // Two separate runs over equivalent pending docs (e.g. overlapping batch
-    // runs reading the queue before deletion) must converge on one active doc
-    // via the deterministic ID instead of creating duplicates.
     const mkPending = () =>
       makePendingDoc({
         type: 'content_report',
@@ -498,7 +470,6 @@ describe('processBatchHelper', () => {
     await processBatchHelper(first.db, makeConfig());
     expect(first.activeDocs('adminNotifications')).toHaveLength(1);
 
-    // Second run with the surviving active doc seeded — same dedup scope.
     const second = createMockDb({
       pendingDocs: [mkPending()],
       seedActiveDocs: [
@@ -519,12 +490,6 @@ describe('processBatchHelper', () => {
   });
 });
 
-// ---- Personal (per-recipient) dedup scoping ----
-// Regression coverage for the multi-recipient fan-out bug: personal
-// notifications with identical type/metadata but different targetUserId must
-// NOT collapse into a single recipient's active doc. With deterministic IDs the
-// scoping is structural — the recipient is part of the ID hash.
-
 function makePersonalConfig(): NotificationSystemConfig {
   return {
     categories: {
@@ -538,8 +503,6 @@ function makePersonalConfig(): NotificationSystemConfig {
       admin_announcement: {
         category: 'user',
         delivery: 'queued',
-        // Recipient-blind dedup key on purpose — the package must scope by
-        // targetUserId itself, not rely on the app embedding the uid here.
         dedupKeyPattern: (meta) => `announcement_${meta.title}`,
         titlePattern: (meta) => String(meta.title),
         messagePattern: (_, count) => `${count} update(s)`,
@@ -582,7 +545,7 @@ describe('processBatchHelper — personal recipient scoping', () => {
       type: 'admin_announcement',
       actorId: 'admin',
       targetUserId: 'userB',
-      metadata: { title: 'Launch' }, // identical metadata → identical dedupKey
+      metadata: { title: 'Launch' },
     });
     const { db, activeDocs } = createMockDb({ pendingDocs: [p1, p2] });
 
@@ -623,7 +586,6 @@ describe('processBatchHelper — personal recipient scoping', () => {
 
     const result = await processBatchHelper(db, makePersonalConfig());
 
-    // B gets its own new doc; A's doc is untouched.
     expect(result.notificationsCreated).toBe(1);
     expect(result.notificationsUpdated).toBe(0);
     expect(updatedDocs).toHaveLength(0);

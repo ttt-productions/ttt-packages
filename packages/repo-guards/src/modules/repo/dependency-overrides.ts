@@ -1,21 +1,13 @@
-// A dependency override exists only while it is needed: while the parent's declared range for the
-// child can still resolve to an affected version. Once the parent's range can no longer reach one,
-// the override is redundant and is removed; while it can, the override is present and its own range
-// admits no affected version.
-
 import semver from 'semver';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { isText, reviewedProblems, textProblem } from '../../support/facts.js';
 
 export interface DependencyOverride {
-  /** The manifest holding the parent-scoped `overrides` entry, repo-relative. */
   manifest: string;
-  /** The folder whose `package-lock.json` records the installed parent ('' for the repository root). */
   installedUnder: string;
   parent: string;
   child: string;
-  /** The child's affected versions, as a semver range. */
   affected: string;
   why: string;
 }
@@ -24,7 +16,6 @@ export interface DependencyOverrideFacts {
   overrides: readonly DependencyOverride[];
 }
 
-/** Why the override is wrong for these ranges, or null when it is exactly as it must be. */
 export function overrideProblem(
   o: Pick<DependencyOverride, 'parent' | 'child' | 'affected'>,
   parentRange: string | undefined,
@@ -50,7 +41,6 @@ export const dependencyOverrideGuard: GenericGuardDefinition<DependencyOverrideF
     const problems: string[] = [];
     reviewedProblems(facts?.overrides, 'overrides', problems, {
       key: 'parent',
-      // One override per manifest: each manifest that installs the parent carries its own copy.
       id: (o) =>
         isText(o.child) && isText(o.manifest)
           ? `${o.manifest}: ${o.parent} → ${o.child}`
@@ -82,9 +72,7 @@ export const dependencyOverrideGuard: GenericGuardDefinition<DependencyOverrideF
             const manifest = JSON.parse(context.file(o.manifest).text) as {
               overrides?: Record<string, unknown>;
             };
-            // The parent's declared range is read from the committed lockfile, never `node_modules`:
-            // every checkout has the lockfile, a CI job that never installs this folder included, and
-            // `npm ci` installs exactly what it records.
+            // Read from the committed lockfile, never `node_modules`: a CI job may never install this folder.
             const lockPath = `${o.installedUnder ? `${o.installedUnder}/` : ''}package-lock.json`;
             if (!context.reader.exists(lockPath)) {
               findings.push({

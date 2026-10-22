@@ -1,48 +1,11 @@
-// The `_appConfig/app` singleton at rest, and the ONE rule each for writing to it and reading it.
-//
-// WRITE. Several backend writers touch this doc (the admin App configuration card through
-// updateAppConfig, the public-document release publish, a seed), and each sends only the fields
-// it owns. Written as a bare merge, the first of them to run after the doc is gone (a fresh or
-// wiped environment) creates a doc WITHOUT the fields AppConfigSchema requires. The write rule
-// is `mergeAppConfigUpdate(existing, update)`: the writer's update on top of the doc it read,
-// with any field that doc lacks — and any lever it holds at a value its schema refuses — taken
-// from DEFAULT_APP_CONFIG, validated as a whole. A stored version block that does not parse is
-// never written over and never dropped: the writer leaves it as it is (see AppConfigMerge).
-//
-// READ. The stored doc is untrusted — an operator can console-edit any field into any shape —
-// and a config read must never take the product down by itself. The read rule is
-// `readAppConfigLever(snapshot, lever)`: the lever's stored value when its AppConfigSchema field
-// accepts it, otherwise its DEFAULT_APP_CONFIG value, one lever at a time so a bad field never
-// costs the good ones. `readAppConfigLevers` is every lever through it. The backend's cached
-// snapshot reader and the client shell both read through these. The release-owned version block
-// has no default to fall back to, so its reader, `readPublicDocumentVersionBlock`, reports what it
-// found instead — absent, valid, or invalid — and each consumer applies its own policy.
-
 import { AppConfigSchema, type AppConfig } from '../doc-schemas/system.js';
 import type { PublicDocumentVersionBlock } from '../doc-schemas/public-documents.js';
 
-/**
- * Every operator lever of `_appConfig/app`, each at a value its AppConfigSchema field accepts.
- * The release-owned `publicDocumentVersions` block is not a lever.
- */
 export type AppConfigLevers = Readonly<Required<Omit<AppConfig, 'publicDocumentVersions'>>>;
 
-/** The name of one operator lever — a key of DEFAULT_APP_CONFIG. */
 export type AppConfigLeverKey = keyof AppConfigLevers;
 
-/**
- * Every operator lever of `_appConfig/app` at rest — the doc a fresh environment behaves as if
- * it held, and the value each reader falls back to for a missing or unreadable field. The OPEN
- * posture: maintenance off, registration open, no banner, no throttle.
- *
- * `appVersion` is `''`: no version has been published. VersionGate skips a falsy version, so it
- * stays dormant — no reload for any browser, whatever version it stored before — until an
- * operator sets a real one through updateAppConfig (whose input refuses `''`). From then on the
- * gate compares as usual.
- *
- * The release-owned `publicDocumentVersions` block is not a lever and has no default: it is
- * absent until the first release.
- */
+// `appVersion: ''` keeps VersionGate dormant: it skips a falsy version.
 export const DEFAULT_APP_CONFIG: AppConfigLevers = Object.freeze({
   appVersion: '',
   maintenanceMode: false,
@@ -52,35 +15,24 @@ export const DEFAULT_APP_CONFIG: AppConfigLevers = Object.freeze({
   rateLimitMultiplier: 1,
 });
 
-/**
- * The line shown while maintenance is on and the operator left `maintenanceMessage` blank — on
- * the maintenance takeover screen and in the callable refusal alike.
- */
 export const DEFAULT_MAINTENANCE_MESSAGE =
   'TTT Productions is down for maintenance right now. We will be back shortly — thank you for your patience.';
 
-/**
- * The code the callable maintenance refusal is thrown with. `unavailable` is also what a real
- * outage produces, so the code alone never identifies the refusal — its details do.
- */
+// A real outage also answers `unavailable`, so the code alone never identifies this refusal.
 export const MAINTENANCE_REFUSAL_CODE = 'unavailable' as const;
 
-/** The `details.reason` the callable maintenance refusal carries. */
 export const MAINTENANCE_REFUSAL_REASON = 'maintenance' as const;
 
-/** Structured details carried by the callable maintenance refusal. */
 export interface MaintenanceRefusalDetails {
   readonly reason: typeof MAINTENANCE_REFUSAL_REASON;
 }
 
-// The refusal code as the server (`unavailable`) and the Firebase client SDK
-// (`functions/unavailable`) spell it.
+// The server spells the code `unavailable`, the Firebase client SDK `functions/unavailable`.
 const MAINTENANCE_REFUSAL_CODES: ReadonlySet<string> = new Set([
   MAINTENANCE_REFUSAL_CODE,
   `functions/${MAINTENANCE_REFUSAL_CODE}`,
 ]);
 
-/** True when `details` is the maintenance refusal's structured details. */
 export function isMaintenanceRefusalDetails(
   details: unknown,
 ): details is MaintenanceRefusalDetails {
@@ -88,12 +40,6 @@ export function isMaintenanceRefusalDetails(
   return (details as Record<string, unknown>).reason === MAINTENANCE_REFUSAL_REASON;
 }
 
-/**
- * True when `err` is the callable maintenance refusal — an `unavailable` error in either
- * spelling whose details carry `reason: 'maintenance'`. Works on the server-side error and on
- * the client-side callable error alike. Decided by the code and the details, never the message
- * text, so a genuine outage is never mistaken for a designed refusal.
- */
 export function isMaintenanceRefusalError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { code?: unknown; details?: unknown };
@@ -108,46 +54,19 @@ function definedFields(fields: Readonly<Record<string, unknown>>): Record<string
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
-/** A stored lever its AppConfigSchema field refused, with the raw value the doc held. */
 export interface AppConfigLeverRepair {
   readonly lever: AppConfigLeverKey;
   readonly storedValue: unknown;
 }
 
-/**
- * The doc a writer writes, every stored lever the merge had to repair to write it, and whether the
- * stored version block must be left as it is.
- */
 export interface AppConfigMerge {
   readonly next: AppConfig;
   readonly repairs: readonly AppConfigLeverRepair[];
-  /**
-   * True when the stored version block does not parse and the update does not replace it. `next`
-   * then holds no block, and the writer must write `next` as a MERGE (never a full overwrite), so
-   * the stored block is kept as it is — the read side keeps reporting it `invalid` (failing closed
-   * and alerting) instead of it disappearing and reading as "nothing released".
-   */
+  // When true, the writer must write `next` as a merge, never a full overwrite, so the stored block
+  // is kept.
   readonly keepsStoredVersionBlock: boolean;
 }
 
-/**
- * The `_appConfig/app` doc to write after applying `update` to `existing` (the doc as read in the
- * writer's transaction; `undefined` or `null` when it does not exist). The update's fields win;
- * `existing` supplies the rest; any field still missing comes from DEFAULT_APP_CONFIG. An
- * `undefined` update field changes nothing. Pure.
- *
- * A stored value its schema refuses never blocks a save — a console typo must not disable the
- * maintenance kill switch:
- * - a refused LEVER is dropped, so the update's value replaces it when the update sends that lever
- *   and its DEFAULT_APP_CONFIG value (what every reader already falls back to) otherwise; it is
- *   reported in `repairs`;
- * - a refused version block has no default and must never read as "nothing released", so when the
- *   update does not send a block it is left untouched (`keepsStoredVersionBlock`); an update that
- *   sends a block replaces it.
- *
- * Throws when the update itself would not parse under AppConfigSchema, so nothing invalid is ever
- * written.
- */
 export function mergeAppConfigUpdate(
   existing: Readonly<Record<string, unknown>> | null | undefined,
   update: Readonly<Partial<AppConfig>>,
@@ -177,13 +96,6 @@ export function mergeAppConfigUpdate(
   return { next: parsed.data, repairs, keepsStoredVersionBlock };
 }
 
-/**
- * One operator lever off an unvalidated `_appConfig/app` snapshot (the raw stored doc; `null` or
- * `undefined` when it is missing or not yet read): the stored value when its AppConfigSchema
- * field accepts it, otherwise the lever's DEFAULT_APP_CONFIG value — for an absent field and for
- * a value the schema refuses (a wrong type, an over-cap message, an out-of-range multiplier)
- * alike. Pure; never throws.
- */
 export function readAppConfigLever<L extends AppConfigLeverKey>(
   snapshot: Readonly<Record<string, unknown>> | null | undefined,
   lever: L,
@@ -194,12 +106,6 @@ export function readAppConfigLever<L extends AppConfigLeverKey>(
     : DEFAULT_APP_CONFIG[lever];
 }
 
-/**
- * Every operator lever off an unvalidated `_appConfig/app` snapshot, each read through
- * `readAppConfigLever` — so a field the schema refuses falls back to its default while every
- * valid field survives, and a missing doc reads as DEFAULT_APP_CONFIG: the open posture. Pure;
- * never throws.
- */
 export function readAppConfigLevers(
   snapshot: Readonly<Record<string, unknown>> | null | undefined,
 ): AppConfigLevers {
@@ -210,15 +116,6 @@ export function readAppConfigLevers(
   return levers as AppConfigLevers;
 }
 
-/**
- * What an unvalidated `_appConfig/app` snapshot holds in its release-owned version block:
- * - `absent` — no block, so nothing has been released (every document at version 0, nothing
- *   required); `block` is `undefined`, which every public-document rule reads that way;
- * - `valid` — the block, parsed;
- * - `invalid` — a block is stored but its AppConfigSchema field refuses it (`null` included);
- *   `issue` names the first refused field. It carries no block, so no rule can be computed
- *   from it by accident.
- */
 export type PublicDocumentVersionBlockReading =
   | { readonly status: 'absent'; readonly block: undefined }
   | { readonly status: 'valid'; readonly block: PublicDocumentVersionBlock }
@@ -229,12 +126,6 @@ const ABSENT_PUBLIC_DOCUMENT_VERSION_BLOCK: PublicDocumentVersionBlockReading = 
   block: undefined,
 });
 
-/**
- * The version block off an unvalidated `_appConfig/app` snapshot (the raw stored doc; `null` or
- * `undefined` when it is missing or not yet read), judged by its AppConfigSchema field. Unlike a
- * lever there is no default to fall back to, so an invalid block is reported, never read as
- * absent: what to do about it is the caller's policy. Pure; never throws.
- */
 export function readPublicDocumentVersionBlock(
   snapshot: Readonly<Record<string, unknown>> | null | undefined,
 ): PublicDocumentVersionBlockReading {

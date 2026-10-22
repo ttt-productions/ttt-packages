@@ -1,6 +1,3 @@
-// The test-case module-load guard: a test loads the code it tests when its file loads, never inside
-// a case. Each shape that loads code inside a case is a finding; each collection-time load passes.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   testCaseModuleLoadGuard,

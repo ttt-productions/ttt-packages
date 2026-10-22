@@ -1,7 +1,6 @@
 
 :root {
-  /* Motion (theme-invariant, FRONTEND-204): the durations and easing every transition reads,
-     package or app. Defaults; an app overrides any of them from its own later-loading token layer. */
+  /* Motion (theme-invariant, RULE-STD-FRONTEND-204) */
   --motion-fast: 150ms;
   --motion-base: 200ms;
   --motion-slow: 250ms;
@@ -18,8 +17,7 @@
   --status-error: 0 84% 60%;
   --status-info: 221 83% 53%;
 
-  /* Deep shades: OPTIONAL. ui-core's primary/destructive/tab and success edges read
-     these; by default each tracks its base token (re-resolved in every theme). */
+  /* Deep shades: OPTIONAL */
   --brand-primary-deep: var(--brand-primary);
   --status-success-border: var(--status-success);
 

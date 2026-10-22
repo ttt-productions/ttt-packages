@@ -18,7 +18,7 @@ and max, and the one check every text input and every server bound runs.
   a `max` that is not a whole number ≥ 1 and ≥ `min`). What it returns is a `DeclaredInputFormat` — a
   type only `defineInputFormat` produces. Inputs that render a field (ui-core's `Input` / `Textarea`,
   ConsequenceDialog's reason, report-core's comment) take only that type, so a bound is never written
-  as an inline literal where it is enforced (ENG-005, ARCH-102); `checkInputFormat` takes any spec.
+  as an inline literal where it is enforced (RULE-STD-ENG-005, RULE-STD-ARCH-102); `checkInputFormat` takes any spec.
 - **The check** — `checkInputFormat(text, spec)` → `InputFormatResult`. It trims, then judges `min`,
   then `max`, then the format's characters, and stops at the first failure:
   - `min` is judged on the trimmed text: `min: 1` means the text cannot be blank, `min: 0` means it
@@ -35,7 +35,7 @@ and max, and the one check every text input and every server bound runs.
   - A failure carries `issue`: `tooShort`, `tooLong`, or `invalidCharacters`.
   - `keepAsTyped` keeps surrounding whitespace in the value and judges `max` and the characters on the
     text as typed; `min` is still judged on the trimmed text, so a required field is never blank
-    (ARCH-102). It is for fields whose words are kept verbatim.
+    (RULE-STD-ARCH-102). It is for fields whose words are kept verbatim.
 
 The same function runs in the browser input and in every server parse, so the form, the wire, and the
 writer accept exactly the same texts.
@@ -46,7 +46,7 @@ writer accept exactly the same texts.
 - It declares no field. Which format, min, and max a field uses is the consumer's declaration — an
   application's field table, or a generic package's own contract (a chat message's bound lives in
   `chat-schemas`). A generic package that renders a text input takes the declaration from its consumer
-  wherever the bound is application policy (ARCH-201).
+  wherever the bound is application policy (RULE-STD-ARCH-201).
 - It builds no schema. A consumer that validates with zod wraps `checkInputFormat` in its own schema
   builder, so there is one zod builder per application rather than one per package.
 - It carries no user-facing copy: an `issue` is a code, and the words shown for it belong to the app.

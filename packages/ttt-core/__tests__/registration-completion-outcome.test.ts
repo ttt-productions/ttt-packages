@@ -3,9 +3,6 @@ import { RegistrationCompletionResultV1Schema } from '../src/doc-schemas/safety/
 import { RegistrationCompletionOutcomeSchema } from '../src/doc-schemas/safety/foundation.js';
 import { RegisterUserResultSchema } from '../src/schemas/users.js';
 
-// The domain outcomes registration completion can end in: the age fields are written (now or by an
-// earlier run), a transient failure leaves the attestation retryable, or the attestation can never
-// complete. An outcome nothing produces is a dead branch every consumer must still handle.
 const PRODUCED_OUTCOMES = [
   'completed',
   'alreadyCompletedSameUid',

@@ -1,12 +1,3 @@
-// A test loads the code it tests once, when its file loads — never inside a test case. A dynamic
-// `import()` of a local module run from a test, a hook, or a helper they call pays the module
-// graph's cold load inside that case's timeout, so the first case of a file is slow for no work of
-// its own and, under a full parallel run, crosses the timeout; a module-registry reset re-pays that
-// load for every case. A static import (or a top-level `await import()`) loads it at collection,
-// where no case is timed. A file that truly needs a fresh module per case — code that reads its
-// environment once at load and is tested under several environments — is a reviewed entry with its
-// why; one that no longer does either is stale.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -15,10 +6,8 @@ import { viewOfText, type FileView } from '../../reader/view.js';
 import { forEachNode } from '../../support/ast.js';
 import { namesProblem, objectProblem, reviewedProblems } from '../../support/facts.js';
 
-/** The test-runner calls that empty the module registry, so the next import loads every module anew. */
 const REGISTRY_RESETS: ReadonlySet<string> = new Set(['vi.resetModules', 'jest.resetModules']);
 
-/** Calls whose callback runs while the file is collected, never inside a timed case. */
 const COLLECTION_CALLBACKS: ReadonlySet<string> = new Set([
   'vi.hoisted',
   'vi.mock',
@@ -32,14 +21,9 @@ const dottedCallee = (call: ts.CallExpression): string | null =>
     ? `${call.expression.expression.text}.${call.expression.name.text}`
     : null;
 
-/** A specifier naming the app's own code: a relative path, or one of the app's import aliases. */
 const isLocal = (spec: string, aliases: readonly string[]) =>
   spec.startsWith('./') || spec.startsWith('../') || aliases.some((a) => spec.startsWith(a));
 
-/**
- * Whether code at `node` runs inside a function a test runs — a case, a hook, or a helper — rather
- * than at collection: inside any function that is not the callback of a collection-time call.
- */
 function runsInsideACase(node: ts.Node): boolean {
   for (let at: ts.Node | undefined = node.parent; at; at = at.parent) {
     if (!ts.isFunctionLike(at)) continue;
@@ -56,10 +40,6 @@ export interface TestCaseModuleLoad {
   detail: string;
 }
 
-/**
- * Every place a test file loads code inside a case: a module-registry reset, or a dynamic `import()`
- * of a local module run from a case, a hook, or a helper. A string is read as a sample test file.
- */
 export function testCaseModuleLoads(
   source: FileView | string,
   aliases: readonly string[],
@@ -93,15 +73,7 @@ const SCOPE: Scope = {
 };
 
 export interface TestCaseModuleLoadFacts {
-  /**
-   * The prefixes the app's own import aliases begin with (`@/`), beside relative paths; `[]` when
-   * the app has none.
-   */
   localAliases: readonly string[];
-  /**
-   * The test files that must load a module fresh per case, each with its why (code that reads its
-   * environment once at load, tested under several environments). One that no longer does is stale.
-   */
   reviewed: ReadonlyArray<{ path: string; why: string }>;
 }
 

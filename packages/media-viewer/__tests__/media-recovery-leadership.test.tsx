@@ -78,7 +78,6 @@ describe('useMediaRecovery leadership', () => {
     await click('b-error');
     expect(probe).toHaveBeenCalledTimes(1);
 
-    // The leader unmounts, then a later failure of the follower's element is recovered.
     rerender(<Pair showLeader={false} />);
     await act(async () => {
       await Promise.resolve();

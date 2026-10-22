@@ -1,7 +1,5 @@
-// Child processes for the tooling. On Windows `npm` and `npx` are `.cmd` shims, which Node refuses
-// to spawn without a shell. Node only space-joins an args ARRAY for a shell, unescaped, and
-// deprecates that form, so a command is built as one command line — and only from tokens that
-// neither cmd.exe nor sh reinterprets. Any other token fails instead of reaching the shell.
+// On Windows `npm` and `npx` are `.cmd` shims Node spawns only through a shell, and Node joins an
+// args array for a shell unescaped, so a command is one command line.
 
 import { spawn, spawnSync, type SpawnOptions } from 'node:child_process';
 import path from 'node:path';
@@ -15,7 +13,6 @@ export interface CommandResult {
   stderr: string;
 }
 
-/** Run one command through a shell and collect its output; never rejects. */
 export function runCommand(
   cmd: string,
   args: readonly string[],
@@ -45,7 +42,6 @@ export function runCommand(
   });
 }
 
-/** Run `npm run <script>` with the given environment and return its exit status. */
 export function runNpmScript(
   script: string,
   {
@@ -64,7 +60,6 @@ export function runNpmScript(
   return result.status ?? 1;
 }
 
-/** Whether the module at `moduleUrl` is the script Node was started with. */
 export function isMainModule(moduleUrl: string): boolean {
   const entry = process.argv[1];
   return Boolean(entry) && pathToFileURL(path.resolve(entry!)).href === moduleUrl;

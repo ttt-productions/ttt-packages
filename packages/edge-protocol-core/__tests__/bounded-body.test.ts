@@ -4,7 +4,6 @@ import { sha256Hex } from '../src/payload-hash.js';
 
 const encoder = new TextEncoder();
 
-/** A request whose body arrives in the given chunks, recording how much was pulled and whether it was cancelled. */
 function streamedRequest(chunks: Uint8Array[], contentLength?: string) {
   let pulled = 0;
   const cancel = vi.fn(async () => {});
@@ -31,7 +30,7 @@ function streamedRequest(chunks: Uint8Array[], contentLength?: string) {
 
 describe('readBoundedBody', () => {
   it('returns the body text when it fits the budget', async () => {
-    const body = JSON.stringify({ record: { assetId: 'a1' } });
+    const body = JSON.stringify({ item: { id: 'a1' } });
     const result = await readBoundedBody(
       new Request('https://x.test/p', { method: 'POST', body }),
       {

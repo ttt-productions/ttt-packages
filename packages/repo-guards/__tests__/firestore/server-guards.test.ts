@@ -1,6 +1,3 @@
-// The server write guards: a read outside the transaction inside its callback, a blind negative
-// increment, an unreviewed randomUUID, and Timestamp.now() each fail; their sanctioned forms pass.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   counterDecrementGuard,

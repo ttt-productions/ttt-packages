@@ -2,8 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Toast, ToastProvider, ToastViewport, ToastTitle } from '../src/react/components/toast.js';
 
-// A solid status fill carries ITS OWN status foreground, and no other text colour at rest:
-// each toast variant reads its fill, text, and edge from one --toast-<family> set.
 const TEXT_NOT_A_COLOUR =
   /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
 const restingTextColours = (classes: string) =>

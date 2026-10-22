@@ -4,10 +4,6 @@ import {
   HALL_CONTENT_SUB_ITEM_SURFACES,
 } from '../constants/hall-content-routing.js';
 
-// DomainEvent schemas for the work-project domain — work projects, guild
-// invites, auditions, commissions, hall library, and threshold-library
-// submission. Assembled into the discriminated union in ./domain-events.ts.
-
 export const WorkProjectCreatedEventSchema = z
   .object({
     type: z.literal('workProject.created'),
@@ -103,8 +99,6 @@ export const GuildInviteCancelledEventSchema = z
   })
   .strict();
 
-// A guildmate left the Work — the leave callable's committed departure. Carries the departing
-// user, whose own Works lose this one; the Work's member-only reads are no longer theirs.
 export const WorkProjectGuildmateLeftEventSchema = z
   .object({
     type: z.literal('workProject.guildmateLeft'),
@@ -197,9 +191,6 @@ export const CommissionProposalSubmittedEventSchema = z
   })
   .strict();
 
-// Commission closed — the closeCommission callable's terminal transition. A
-// commission listing is never deleted; closing is the only way it leaves the
-// board, so the event name says closed.
 export const CommissionClosedEventSchema = z
   .object({
     type: z.literal('commission.closed'),
@@ -251,8 +242,6 @@ export const HallLibraryCoverUpdatedEventSchema = z
   })
   .strict();
 
-// Realm cover published — the 'realm-cover' upload origin's publication adapter
-// wrote `realmCoverAssetId` onto workRealms/{workRealmId}.
 export const WorkRealmCoverUpdatedEventSchema = z
   .object({
     type: z.literal('workRealm.coverUpdated'),
@@ -264,8 +253,6 @@ export const WorkRealmCoverUpdatedEventSchema = z
   })
   .strict();
 
-// Realm details edited — the realm doc's own text/detail fields, as opposed to
-// workRealm.coverUpdated's `realmCoverAssetId`.
 export const WorkRealmDetailsUpdatedEventSchema = z
   .object({
     type: z.literal('workRealm.detailsUpdated'),

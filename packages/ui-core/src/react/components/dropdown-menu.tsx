@@ -69,8 +69,7 @@ const DropdownMenuContent = React.forwardRef<
 ));
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
-// Every selection — a pointer, Enter, or Space — reaches the item as a click; stopping it in the
-// capture phase keeps the item's select (and an `asChild` link's navigation) from running.
+// Every selection — a pointer, Enter, or Space — reaches the item as a click, so the capture-phase stop keeps its select from running.
 function blockActivation(event: React.MouseEvent<HTMLElement>) {
   event.preventDefault();
   event.stopPropagation();
@@ -80,15 +79,7 @@ const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean;
-    /**
-     * The action this item started is in flight: the item ignores selection, sets
-     * `aria-disabled` and `aria-busy`, and shows the spinner in place of its `icon`. It is
-     * never natively disabled while pending (a `disabled` passed alongside applies once pending
-     * ends), so it keeps focus (FRONTEND-203). Keeping the menu
-     * open meanwhile is the caller's `onSelect` (`event.preventDefault()`, close on settle).
-     */
     pending?: boolean;
-    /** Leading icon. While `pending`, the spinner takes its place. */
     icon?: React.ReactNode;
   }
 >(({ className, inset, pending = false, icon, disabled, children, ...props }, ref) => (
@@ -110,8 +101,7 @@ const DropdownMenuItem = React.forwardRef<
       : {})}
     disabled={(disabled && !pending) || undefined}
   >
-    {/* Direct siblings, never a fragment: under `asChild` Radix Slot finds the Slottable
-        among its direct children and renders the icon/spinner inside the child element. */}
+    {/* Radix Slot finds the Slottable among its direct children, so these are siblings, never a fragment. */}
     {pending ? <Spinner size="xs" /> : icon}
     <Slottable>{children}</Slottable>
   </DropdownMenuPrimitive.Item>

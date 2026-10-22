@@ -27,7 +27,7 @@ describe('public document identity', () => {
 });
 
 describe('callable inputs', () => {
-  it('the old direct page-update schemas are gone — every change is a release', () => {
+  it('ships no direct page-update schemas — every change is a release', () => {
     for (const name of [
       'UpdateTermsPageInputSchema',
       'UpdatePrivacyPageInputSchema',

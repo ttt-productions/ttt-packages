@@ -1,6 +1,3 @@
-// JSON that may carry comments and trailing commas, as tsconfig files do. Scanned character by
-// character so a comment delimiter inside a string (`"@/*"`, `"**/*.ts"`) stays part of the string.
-
 export function parseJsonc(text: string): unknown {
   let out = '';
   let index = 0;

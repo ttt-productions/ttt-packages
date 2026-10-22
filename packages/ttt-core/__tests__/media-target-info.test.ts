@@ -71,8 +71,6 @@ describe('CraftSkillMediaTargetInfoSchema', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, extra: 1 })).toThrow();
   });
 
-  // The three-kind attestation is part of THIS schema (ARCH-101) — it is not split off and
-  // validated by an app-local copy on either layer.
   it('requires the three-kind attestation triple alongside the base fields', () => {
     for (const field of ['kind', 'attestation', 'tags'] as const) {
       const { [field]: _dropped, ...missing } = valid;
@@ -272,7 +270,6 @@ describe('CommissionPostingTargetInfoSchema', () => {
     const { workProjectId, ...rest } = valid;
     expect(() => CommissionPostingTargetInfoSchema.parse(rest)).toThrow();
   });
-  // Identity is server-derived — a client-supplied createdBy must be rejected.
   it('rejects a client-supplied createdBy', () => {
     expect(() =>
       CommissionPostingTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } }),

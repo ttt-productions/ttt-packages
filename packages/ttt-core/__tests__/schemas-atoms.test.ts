@@ -89,7 +89,6 @@ describe('atom schemas', () => {
     });
 
     it('every accepted surface indexes a non-empty clearable field tuple', () => {
-      // The whole point of the atom: a consumer can index the field map with a parsed value.
       for (const surface of moderationClearableSurfaceSchema.options) {
         expect(MODERATION_CLEARABLE_TEXT_FIELDS[surface].length).toBeGreaterThan(0);
       }

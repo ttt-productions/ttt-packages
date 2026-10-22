@@ -1,6 +1,3 @@
-// The query-key guards: every key is a named builder in the one key module, the module holds one
-// name per key, and a key for the signed-in account's own data carries its uid.
-
 import { describe, expect, it } from 'vitest';
 import {
   authScopedKeysGuard,

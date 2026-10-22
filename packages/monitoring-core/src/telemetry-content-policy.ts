@@ -1,25 +1,5 @@
-/**
- * Telemetry content policy — what an outgoing monitoring event may carry at all.
- *
- * The scrubber redacts known forbidden patterns; it cannot recognise free text. This policy is
- * the allowlist in front of it: an event keeps its error (type, message, stack — the scrubber
- * still runs over them) and only the diagnostic fields the app's key lists admit:
- *
- *   - never the incoming request (body, headers, cookies, query) and never breadcrumbs (console
- *     lines and HTTP records carry content);
- *   - the user as its account id only;
- *   - in tags, extras, and scope contexts: numbers, flags, and null under any key, since they
- *     cannot carry text; text and lists only under a diagnostic key, and only as tokens — a value
- *     holding whitespace is prose and is dropped, as is anything under another key;
- *   - the SDK's own runtime contexts, which carry no member data.
- *
- * GENERIC: the package owns the mechanism; the consuming app supplies which keys are diagnostic.
- * It imports no SDK and no Node API, so every runtime (browser, Node, edge) can apply it.
- */
-
 import type { ScrubbableEvent } from './scrubber.js';
 
-/** The contexts the Sentry SDKs generate about the running process. */
 export const DEFAULT_SDK_CONTEXTS = [
   'trace',
   'runtime',
@@ -31,26 +11,17 @@ export const DEFAULT_SDK_CONTEXTS = [
 ] as const;
 
 export type TelemetryContentPolicyOptions = {
-  /** Keys whose text value is diagnostic, matched exactly. */
   diagnosticKeys: readonly string[];
-  /** A key that starts with a lowercase letter and ends in one of these (camelCase: `Id` admits
-   *  `caseId`, never `Id` alone) is diagnostic. */
   diagnosticKeySuffixes: readonly string[];
-  /** Contexts whose `name` field is the code name of what ran, kept as a token. Any other
-   *  context's `name` is checked like every other key. */
   codeNameContexts?: readonly string[];
-  /** Contexts kept whole. Defaults to {@link DEFAULT_SDK_CONTEXTS}. */
   sdkContexts?: readonly string[];
 };
 
 export type TelemetryContentPolicy = {
-  /** The event cut down to the policy, rewritten in place and returned, so it composes with the
-   *  scrubber as one pre-send hook. */
   keepAllowlistedTelemetry: <T extends ScrubbableEvent>(event: T) => T;
   isDiagnosticKey: (key: string) => boolean;
 };
 
-/** An identifier, code, or enum value never holds whitespace; prose does. */
 const TOKEN_VALUE = /^[A-Za-z0-9_.:@/+=#-]{1,200}$/;
 const MAX_DEPTH = 4;
 const MAX_ARRAY_ITEMS = 20;
@@ -63,7 +34,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-/** A number, flag, or null cannot carry text, so it is kept under any key. */
 function keepScalar(value: unknown): unknown {
   if (value === null || typeof value === 'boolean') return value;
   if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
@@ -87,7 +57,6 @@ export function createTelemetryContentPolicy(
     return diagnosticKeys.has(key) || (suffixPattern !== null && suffixPattern.test(key));
   }
 
-  /** The diagnostic part of a value held under a diagnostic key, or `undefined` when none is. */
   function keepDiagnosticValue(value: unknown, depth: number): unknown {
     const scalar = keepScalar(value);
     if (scalar !== undefined) return scalar;
@@ -113,8 +82,7 @@ export function createTelemetryContentPolicy(
   ): Record<string, unknown> {
     const kept: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
-      // A validation issue's `path` is a list of field names; a string `path` is a storage or
-      // document path, which can name a member or their file.
+      // A string `path` is a storage or document path, which can name a member or their file.
       const isIssuePath = key === 'path' && Array.isArray(value);
       const diagnostic =
         isIssuePath || isDiagnosticKey(key) ? keepDiagnosticValue(value, depth) : keepScalar(value);
@@ -138,7 +106,6 @@ export function createTelemetryContentPolicy(
     }
 
     if (isRecord(event.tags)) {
-      // A tag holds one scalar: a number or flag under any key, text only under a diagnostic key.
       const tags: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(event.tags)) {
         const text =

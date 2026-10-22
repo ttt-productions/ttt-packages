@@ -1,84 +1,37 @@
-/**
- * Generic notification delivery ledger (notification redesign — P1).
- *
- * One Firestore doc per (recipient|shared, type, occurrence) is BOTH the queue
- * row AND the idempotency ledger. This package owns the GENERIC mechanism;
- * the consuming app owns the concrete collection name, the deterministic
- * `deliveryId`/`eventId`/`aggregationKey` construction, and the worker that
- * selects rows per `materializationClass`. The app passes fully-formed
- * `DeliveryRowInput`s; this module never invents domain ids.
- *
- * Key invariants (FROZEN — this module is their single source; the consuming app's
- * notification design doc explains the product rationale):
- *  - Enqueue = create-if-absent. `ALREADY_EXISTS` is a per-row duplicate no-op,
- *    never a failure — there is no marker-without-payload state, so the
- *    "marker created, payload lost" crash window cannot exist.
- *  - Materialize = ONE transaction that reads the delivery row + active card,
- *    applies the aggregation exactly once (per strategy + caps), rotates the
- *    opaque `activityGeneration`, resets `seenAt`, and flips the row to
- *    `materialized` — so the "applied but not marked" double-apply window is gone.
- *    Retrying a `materialized` row is a successful no-op.
- *  - The same transaction asks the app whether the recipient may still receive
- *    (`options.isRecipientEligible`); an ineligible recipient gets no card and the
- *    row turns terminal `skipped`, so a row queued before (or retried after) the
- *    recipient became ineligible can never recreate a card. Re-running it is a no-op.
- *  - TTL (`expireAt`, a real Firestore Timestamp via `config.timestampFromMillis`)
- *    is set ONLY at `materialized` / `skipped`; a `queued` or `deadLetter` row is NEVER TTL'd
- *    so an unresolved delivery can't be silently deleted before replay.
- */
-
 import { randomUUID } from 'node:crypto';
 import type { NotificationSystemConfig, NotificationDoc } from '../types.js';
 import type { ServerFirestore, ServerDocRef, ServerTransaction } from './types.js';
 import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 const DEFAULT_DELIVERIES_PATH = 'notificationDeliveries';
-const DEFAULT_DELIVERY_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+const DEFAULT_DELIVERY_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const DEFAULT_MAX_ATTEMPTS = 8;
 const DEFAULT_COUNT_CAP = 5000;
 const DEFAULT_ACTOR_CAP = 5;
-const BACKOFF_BASE_MS = 60 * 1000; // 1 min
-const BACKOFF_MAX_MS = 60 * 60 * 1000; // 1 hour
+const BACKOFF_BASE_MS = 60 * 1000;
+const BACKOFF_MAX_MS = 60 * 60 * 1000;
 
-/**
- * `skipped` is terminal: the recipient was not eligible when the row was materialized, so no card
- * was written. It is TTL'd like `materialized` and never retried.
- */
 export type DeliveryState = 'queued' | 'materialized' | 'skipped' | 'deadLetter';
 
-/** Why a row was terminalized as `skipped`. */
 export type DeliverySkipReason = 'recipientIneligible';
 
-/**
- * Ledger options the consuming app must decide.
- */
 export interface DeliveryLedgerOptions {
-  /**
-   * Whether `recipientUid` may still receive a notification. Called INSIDE the materialize
-   * transaction, after the delivery row is read and before anything is written, so the answer
-   * and the card write commit together (BACKEND-116): read through `tx` only. A recipient that
-   * answers false gets no card, and the row becomes `skipped`. Not called for a shared
-   * (recipient-less) row. A consumer with no eligibility rule answers true.
-   */
+  /** Runs inside the materialize transaction before any write: read through `tx` only (RULE-STD-BACKEND-116). */
   isRecipientEligible: (recipientUid: string, tx: ServerTransaction) => Promise<boolean>;
 }
 export type AggregationStrategy = 'increment' | 'staticRelight';
 export type MaterializationClass = 'directQueued' | 'realtimeFallback' | 'fanoutOrphan' | 'retry';
 
-/** The materialization payload carried on every delivery row. */
 export interface DeliveryPayload {
-  /** The acting user's uid, or `null`/`''` for a system / no-actor occurrence (N-M2). */
   actorId: string | null;
   metadata: Record<string, unknown>;
   occurrenceAt: number;
 }
 
-/** App-supplied, fully-formed delivery row (the app owns all id construction). */
 export interface DeliveryRowInput {
   deliveryId: string;
   notificationType: string;
   eventId: string;
-  /** `null` for shared-admin occurrences (the deliveryId hash uses the literal `'shared'`). */
   recipientUid: string | null;
   aggregationKey: string;
   strategy: AggregationStrategy;
@@ -94,7 +47,6 @@ export type EnqueueRowResult =
 
 export interface EnqueueResult {
   results: EnqueueRowResult[];
-  /** True iff EVERY row is now represented by a created-or-pre-existing doc (page-cursor invariant input). */
   allResolved: boolean;
 }
 
@@ -106,49 +58,28 @@ export type MaterializeOutcome =
   | 'skipped-non-queued';
 
 export interface MaterializeManyOptions {
-  /** Rows materialized at once (default 10). */
   concurrency?: number;
-  /**
-   * Called for a row whose materialize threw and whose failure could not then be recorded either —
-   * `error` is the recording's own failure and `details.cause` the materialize failure it was
-   * recording. The row stays as it was (queued, attempt count
-   * unchanged), so a later run selects it again; the rest of the batch proceeds. The app's capture
-   * goes here; without it the ledger writes the failure to `console.error`.
-   */
   onUnrecordedFailure?: (deliveryId: string, error: unknown, details: { cause: unknown }) => void;
 }
 
-/** What a `replay` did: re-queued the row, found no row, or found a row that is not dead-lettered. */
 export type ReplayOutcome = 'replayed' | 'missing' | 'not-dead-lettered';
 
 export interface ReplayOptions {
-  /**
-   * The caller's own write (its audit event), composed into the replay transaction and awaited
-   * there on the `replayed` path only. A hook that throws or rejects fails the replay, so the
-   * reset never commits without it.
-   */
   auditWrite?: (txn: ServerTransaction) => void | Promise<void>;
 }
 
 export interface DeliveryLedger {
   enqueue(rows: DeliveryRowInput[]): Promise<EnqueueResult>;
   materialize(deliveryId: string): Promise<MaterializeOutcome>;
-  /**
-   * Materialize many rows with bounded concurrency. A row whose materialize throws has the failure
-   * recorded (a retry or a dead letter); each row is isolated, so one row's failure — even one
-   * whose recording also fails — never fails the batch or stops the rows behind it.
-   */
   materializeMany(
     deliveryIds: string[],
     options?: MaterializeManyOptions,
   ): Promise<Record<MaterializeOutcome, number>>;
   recordTransientFailure(deliveryId: string, error: unknown): Promise<void>;
   deadLetter(deliveryId: string, error: unknown): Promise<void>;
-  /** Re-queue a dead-lettered row. A missing or non-dead-lettered row is answered, never written. */
   replay(deliveryId: string, options?: ReplayOptions): Promise<ReplayOutcome>;
 }
 
-/** gRPC ALREADY_EXISTS (6) — the create-if-absent duplicate signal. */
 function isAlreadyExists(error: unknown): boolean {
   const e = error as { code?: number; message?: string } | undefined;
   return e?.code === 6 || /already.?exists/i.test(e?.message ?? '');
@@ -156,15 +87,9 @@ function isAlreadyExists(error: unknown): boolean {
 
 function backoffMs(attemptCount: number): number {
   const exp = Math.min(BACKOFF_BASE_MS * 2 ** Math.max(0, attemptCount - 1), BACKOFF_MAX_MS);
-  // Full jitter — spread retries so a burst of failures doesn't synchronize.
   return Math.floor(exp / 2 + Math.random() * (exp / 2));
 }
 
-/**
- * Apply the aggregation strategy to produce the active-doc field delta.
- * PURE — exported for direct unit testing. `existing` is the current active doc
- * (or null to create). Always rotates `activityGeneration` and resets `seenAt`.
- */
 export function applyAggregation(params: {
   strategy: AggregationStrategy;
   existing: Pick<NotificationDoc, 'count' | 'latestActorIds'> | null;
@@ -184,12 +109,9 @@ export function applyAggregation(params: {
 } {
   const { strategy, existing, actorId, countCap, actorCap, buildMessage, now, generation } = params;
   const prevActors = existing?.latestActorIds ?? [];
-  // N-M2: a system / no-actor occurrence (null or '') is never injected into the actor
-  // list — it would render as a blank avatar / unresolvable uid in `latestActorIds`.
   const latestActorIds = actorId
     ? [actorId, ...prevActors.filter((id) => id !== actorId)].slice(0, actorCap)
     : prevActors.slice(0, actorCap);
-  // staticRelight never shows a count (stays 1); increment counts up to the cap.
   const count = strategy === 'staticRelight' ? 1 : Math.min((existing?.count ?? 0) + 1, countCap);
   return {
     count,
@@ -216,8 +138,7 @@ export function createDeliveryLedger(
       '[notification-core] createDeliveryLedger requires config.timestampFromMillis (Firestore TTL needs a real Timestamp for expireAt).',
     );
   }
-  // Bind to an explicitly non-optional type so the nested transaction closures
-  // (called later) see it as defined, not `... | undefined`.
+  // An explicitly non-optional binding: TS does not carry the narrowing into closures called later.
   const toTimestamp: (ms: number) => unknown = configTimestampFromMillis;
 
   const deliveries = db.collection(deliveriesPath);
@@ -244,7 +165,6 @@ export function createDeliveryLedger(
       createdAt: now,
       materializedAt: null,
       deadLetteredAt: null,
-      // No expireAt while queued.
     };
   }
 
@@ -291,8 +211,6 @@ export function createDeliveryLedger(
       const aggregationKey = d.aggregationKey as string;
       const recipientUid = (d.recipientUid as string | null) ?? null;
 
-      // The recipient is checked in this transaction, so a recipient that became ineligible
-      // (e.g. an erased account) never gets a card from a row queued before, or retried after.
       if (recipientUid !== null && !(await isRecipientEligible(recipientUid, tx))) {
         const skippedAt = Date.now();
         tx.update(dRef, {
@@ -320,20 +238,15 @@ export function createDeliveryLedger(
           notificationType,
         }),
       );
-      const activeSnap = await tx.get(activeRef); // all reads before writes
+      const activeSnap = await tx.get(activeRef); // Firestore transactions take every read before any write.
 
       const now = Date.now();
       const generation = randomUUID();
       const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
       const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
       const buildMessage = (count: number) => typeConfig.messagePattern(payload.metadata, count);
-      // Latest-occurrence-derived fields — recomputed every materialize so an EXISTING
-      // aggregate card reflects the newest activity (title/targetPath/metadata), not the
-      // first occurrence's stale values (N-I4).
       const title = typeConfig.titlePattern(payload.metadata);
-      // A type with no defaultTargetPath is linkless: the doc must OMIT the field
-      // entirely (Firestore rejects `undefined` values). A pre-existing doc written
-      // before a type went linkless keeps its stale targetPath until archived.
+      // Firestore rejects `undefined` values, so a linkless type omits the field.
       const targetPath =
         typeConfig.defaultTargetPath === undefined
           ? undefined
@@ -415,11 +328,6 @@ export function createDeliveryLedger(
           deadLetteredAt: now,
         });
       } else {
-        // n1: re-stamp the row into the reserved `retry` materialization lane on backoff. Without
-        // this the row keeps its original class and competes for that lane's capacity while backed
-        // off; the worker's reserved `retry` slice (separate CLASS_CAPS capacity, drained in
-        // DRAIN_ORDER) would always select 0 rows. Re-stamping moves a backed-off row into the
-        // anti-starvation lane so it drains there instead of starving in its original lane.
         tx.update(dRef, {
           attemptCount,
           nextAttemptAt: now + backoffMs(attemptCount),
@@ -459,7 +367,7 @@ export function createDeliveryLedger(
         nextAttemptAt: Date.now(),
         lastError: null,
         deadLetteredAt: null,
-        expireAt: null, // clear any TTL set on a prior terminal
+        expireAt: null,
       });
       await options?.auditWrite?.(tx);
       return 'replayed';

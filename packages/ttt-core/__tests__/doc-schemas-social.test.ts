@@ -18,7 +18,7 @@ const textOnlyPost = {
   hidden: false,
 };
 
-describe('SquareStreetzPostSchema — MEDIA-101 media-pair invariant', () => {
+describe('SquareStreetzPostSchema — RULE-STD-MEDIA-101 media-pair invariant', () => {
   it('accepts a text-only post (neither mediaAssetId nor mediaType)', () => {
     expect(SquareStreetzPostSchema.safeParse(textOnlyPost).success).toBe(true);
   });
@@ -34,9 +34,6 @@ describe('SquareStreetzPostSchema — MEDIA-101 media-pair invariant', () => {
     }
   });
 
-  // The bug this invariant closes: an extensionless gateway URL carries no kind, so a
-  // post stored with an asset and no mediaType classifies as 'other' and renders a
-  // Download link INSTEAD of the image/video.
   it('REJECTS a post with mediaAssetId and no mediaType', () => {
     const result = SquareStreetzPostSchema.safeParse({
       ...textOnlyPost,

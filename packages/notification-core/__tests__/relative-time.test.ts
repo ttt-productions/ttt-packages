@@ -6,7 +6,7 @@ afterEach(() => {
 });
 
 describe('formatRelativeTime', () => {
-  const BASE_NOW = 1700000000000; // fixed reference point
+  const BASE_NOW = 1700000000000;
 
   function setNow(ms: number) {
     vi.spyOn(Date, 'now').mockReturnValue(ms);

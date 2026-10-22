@@ -1,6 +1,5 @@
 import type { Likelihood } from './types.js';
 
-/** Numeric enum value → string form, matching the Google APIs convention. */
 export const LIKELIHOOD_MAP: Record<string | number, Likelihood> = {
   0: 'UNKNOWN',
   1: 'VERY_UNLIKELY',
@@ -10,7 +9,6 @@ export const LIKELIHOOD_MAP: Record<string | number, Likelihood> = {
   5: 'VERY_LIKELY',
 };
 
-/** Comparison order for likelihoods (higher = more severe). */
 export const LIKELIHOOD_ORDER: Record<Likelihood, number> = {
   UNKNOWN: 0,
   VERY_UNLIKELY: 1,
@@ -29,10 +27,6 @@ export function likelihoodToString(value: string | number | null | undefined): L
   return LIKELIHOOD_MAP[value] ?? 'UNKNOWN';
 }
 
-/**
- * Returns true if `value` is at or above any of the `rejectionLikelihoods`.
- * The caller provides the set — `moderation-core` does not bake in app-specific thresholds.
- */
 export function isRejectionLikelihood(
   value: string | number | null | undefined,
   rejectionLikelihoods: ReadonlySet<string>,

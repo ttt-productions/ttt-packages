@@ -5,7 +5,6 @@ import { validateTttPassword } from '../src/utils/password.js';
 const TOO_SHORT = `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
 const TOO_LONG = `Password must be no more than ${PASSWORD_MAX_LENGTH} characters.`;
 
-/** A surrogate pair: one code point, two UTF-16 code units. */
 const EMOJI = '\u{1F600}';
 
 describe('password policy constants', () => {
@@ -48,7 +47,6 @@ describe('validateTttPassword — length boundaries', () => {
 
 describe('validateTttPassword — no trimming, normalizing, or mutation', () => {
   it('counts leading spaces toward the minimum', () => {
-    // 6 spaces + 1 letter: valid as written, too short if trimmed.
     expect(validateTttPassword('      a')).toBeNull();
   });
 
@@ -65,7 +63,6 @@ describe('validateTttPassword — no trimming, normalizing, or mutation', () => 
   });
 
   it('does not Unicode-normalize before counting', () => {
-    // 'a' + combining acute + 'bcdef' is 7 code units; NFC would collapse it to 6.
     const decomposed = 'ábcdef';
     expect(decomposed.length).toBe(7);
     expect(decomposed.normalize('NFC').length).toBe(6);
@@ -79,7 +76,6 @@ describe('validateTttPassword — no composition rules', () => {
   });
 
   it('accepts ordinary non-ASCII Unicode', () => {
-    // 10 units, and a 7-unit Cyrillic password sitting exactly on the minimum.
     expect(validateTttPassword('contraseña')).toBeNull();
     expect(validateTttPassword('пароль!')).toBeNull();
   });
@@ -93,13 +89,11 @@ describe('validateTttPassword — UTF-16 code units, not code points', () => {
   it('counts a surrogate-pair emoji as two units at the minimum boundary', () => {
     const fourEmoji = EMOJI.repeat(4);
     expect(fourEmoji.length).toBe(8);
-    expect([...fourEmoji].length).toBe(4); // code-point counting would reject this
+    expect([...fourEmoji].length).toBe(4);
     expect(validateTttPassword(fourEmoji)).toBeNull();
 
-    // 3 emoji + 1 ASCII = 7 units / 4 code points — still valid.
     expect(validateTttPassword(`${EMOJI.repeat(3)}a`)).toBeNull();
 
-    // 3 emoji = 6 units: one unit short.
     expect(validateTttPassword(EMOJI.repeat(3))).toBe(TOO_SHORT);
   });
 
@@ -108,7 +102,6 @@ describe('validateTttPassword — UTF-16 code units, not code points', () => {
     expect(thirtyTwoEmoji.length).toBe(PASSWORD_MAX_LENGTH);
     expect(validateTttPassword(thirtyTwoEmoji)).toBeNull();
 
-    // 65 units — one over, despite being only 33 code points.
     expect(validateTttPassword(`${thirtyTwoEmoji}a`)).toBe(TOO_LONG);
     expect(validateTttPassword(EMOJI.repeat(33))).toBe(TOO_LONG);
   });

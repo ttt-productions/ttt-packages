@@ -1,21 +1,13 @@
-// A document kept word for word identical across sibling repositories: this checkout's copy is
-// compared with each sibling's. CI checks out one repository, so a sibling checkout that is not beside
-// this one shows the comparison SKIPPED with that reason — never passed. A sibling checkout that is
-// there but has lost its copy fails: that is drift, not an absent repository.
-
 import path from 'node:path';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Guard } from '../../guard.js';
 import { isText, pathProblem, textProblem } from '../../support/facts.js';
 
 export interface DocumentDriftFacts {
-  /** The shared document, repo-relative (the same path in every copy). */
   file: string;
-  /** The sibling checkouts holding the other copies, each a folder relative to this repository's root. */
   copies: ReadonlyArray<{ name: string; checkout: string }>;
 }
 
-/** The first line on which two texts differ, 1-based, or null when they are identical. */
 export function firstDifferingLine(ours: string, theirs: string): number | null {
   if (ours === theirs) return null;
   const a = ours.split('\n');

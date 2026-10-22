@@ -22,21 +22,9 @@ export const CreateStripeCheckoutSessionInputSchema = z
       .int()
       .min(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS)
       .max(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS),
-    // One-time attempt id, generated client-side per payment intent and stable
-    // across retries of the same submit. The server derives pledgePaymentId from
-    // it and passes a Stripe idempotency key so a double-submit returns the SAME
-    // Checkout Session instead of creating a duplicate.
     checkoutAttemptId: z.string().uuid(),
-    // Payments are 18+ (site policy: 13+ to use, 18+ to pay). The checkout checkbox carries the
-    // age attestation AND the public-pledge transparency disclosure; the callable rejects when it
-    // is absent and stamps ageAttestedAt onto the SERVER-ONLY pledgePaymentProviderRefs doc (never
-    // the member-readable pledgePayments ledger) so the consent is provable.
     ageAttested: z.literal(true),
-    // The wording of that checkbox, as the checkout showed it; recorded beside `ageAttestedAt`.
     attestationVersion: z.literal(PLEDGE_ATTESTATION_VERSION),
-    // The founder legal-review notice checkbox — its own required checkbox on every pledge while
-    // the notice is active (the callable refuses a checkout without it then, and records the
-    // receipt from `buildLegalReviewNoticeReceipt`). Omitted, or null, while the notice is off.
     legalReviewNoticeAcknowledged: LegalReviewNoticeAcknowledgedInputSchema,
   })
   .strict();
@@ -51,9 +39,6 @@ export type CreateStripeCheckoutSessionResult = z.infer<
   typeof CreateStripeCheckoutSessionResultSchema
 >;
 
-// User-initiated pledge refund request. The callable resolves userId from auth and
-// enforces the PLEDGE_REFUND_REQUEST_WINDOW_MS eligibility window server-side; the client only
-// names which pledge it wants refunded.
 export const RequestPledgeRefundInputSchema = z
   .object({
     pledgePaymentId: pledgePaymentIdSchema,
@@ -68,9 +53,6 @@ export const RequestPledgeRefundResultSchema = z.object({
 });
 export type RequestPledgeRefundResult = z.infer<typeof RequestPledgeRefundResultSchema>;
 
-// Admin resolution of a pledge refund request: approve or deny a requested one (approve initiates the
-// Stripe refund), or resolveFailure — close the follow-up of a failed refund, which lets the
-// supporter request again. `denialReason` is REQUIRED when denying.
 export const AdminResolvePledgeRefundRequestInputSchema = z
   .object({
     requestId: pledgeRefundRequestIdSchema,
@@ -97,9 +79,6 @@ export type AdminResolvePledgeRefundRequestResult = z.infer<
   typeof AdminResolvePledgeRefundRequestResultSchema
 >;
 
-// The checkout success page's lookup of the caller's own pledge by its Stripe Checkout session id.
-// The server resolves the session against the server-only provider reference and answers the pledge
-// as PledgeDisplay, or null while the webhook has not recorded it yet.
 export const GetMyPledgeByCheckoutSessionInputSchema = z
   .object({
     sessionId: unpaddedValueSchema.max(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH),
@@ -109,8 +88,7 @@ export type GetMyPledgeByCheckoutSessionInput = z.infer<
   typeof GetMyPledgeByCheckoutSessionInputSchema
 >;
 
-/** The pledge fields the success page shows — never a Stripe id. Each field is the ledger's own
- *  field schema; the ledger's whole-document refinement keeps zod from `pick`ing it. */
+// Read off `.shape`: the ledger's whole-document refinement keeps zod from `pick`ing it.
 const pledgeFields = PledgePaymentSchema.shape;
 export const PledgeDisplaySchema = z.object({
   pledgePaymentId: pledgeFields.pledgePaymentId,
@@ -122,7 +100,6 @@ export const PledgeDisplaySchema = z.object({
 });
 export type PledgeDisplay = z.infer<typeof PledgeDisplaySchema>;
 
-// Null when the session names no pledge of the caller's.
 export const GetMyPledgeByCheckoutSessionResultSchema = PledgeDisplaySchema.nullable();
 export type GetMyPledgeByCheckoutSessionResult = z.infer<
   typeof GetMyPledgeByCheckoutSessionResultSchema

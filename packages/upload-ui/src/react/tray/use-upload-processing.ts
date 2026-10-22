@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * Adapter that maps `useInFlightUpload` state to the
- * `{ isProcessing, message, isComplete, isRejected, isFailed }` shape used
- * by per-component spinners and overlays.
- *
- * Routing of toasts and rejection dialogs lives in `InFlightUploadsProvider`
- * via the consumer-supplied callbacks — `useUploadProcessing` only surfaces
- * local UI state. The `onTerminal` callback fires once per terminal status
- * (completed / failed / rejected) and is intended for local UI cleanup
- * (clearing form state, closing modals, etc.).
- */
-
 import { useEffect, useRef } from 'react';
 import {
   isPendingMediaNonTerminalStatus,
@@ -19,7 +7,6 @@ import {
 } from '@ttt-productions/media-schemas';
 import { useInFlightUpload, type InFlightUpload } from './in-flight-uploads-provider.js';
 
-// Pending-media status values derive from media-schemas' one declaration.
 const STATUS = PendingMediaStatusSchema.enum;
 
 export interface UploadProcessingState {
@@ -39,13 +26,9 @@ const DEFAULT_FAILED_MESSAGE = 'Processing failed';
 const DEFAULT_REJECTED_MESSAGE = 'Content rejected';
 
 export interface UseUploadProcessingOptions {
-  /** Override the processing-phase message. */
   processingMessage?: string;
-  /** Override the success-phase message. */
   successMessage?: string;
-  /** Override the failed-phase message. */
   failedMessage?: string;
-  /** Override the rejected-phase message. */
   rejectedMessage?: string;
 }
 
@@ -120,12 +103,6 @@ function buildState<TFileOrigin extends string>(
   };
 }
 
-/**
- * Returns local UI processing state for the given pendingMediaId. If the
- * `onTerminal` callback is provided, it fires once when the doc reaches a
- * terminal status (completed / failed / rejected). Use `onTerminal` for
- * local UI cleanup — global toast/dialog routing belongs in the provider.
- */
 export function useUploadProcessing<TFileOrigin extends string = string>(
   pendingMediaId: string | null | undefined,
   onTerminal?: (state: UploadProcessingState) => void,

@@ -7,7 +7,6 @@ import {
 import type { NotificationSystemConfig } from '../src/types.js';
 import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types.js';
 
-// ---- In-memory Firestore (create-if-absent + transactions) ----
 function createMockFirestore() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
   const getCol = (p: string) => {
@@ -60,7 +59,6 @@ function createMockFirestore() {
       return makeDocRef(colPath, id);
     },
   });
-  // Doc ids whose transactional reads fail, as an unavailable backend would.
   const failingReads = new Set<string>();
   const db: ServerFirestore = {
     collection: (p) => makeColRef(p) as never,
@@ -72,8 +70,6 @@ function createMockFirestore() {
       throw new Error('not used');
     },
     runTransaction: async (fn) => {
-      // Single-threaded test executor: reads hit the store directly; writes are buffered and
-      // applied only once the transaction function resolves, so a throw commits nothing.
       const writes: Array<() => Promise<unknown>> = [];
       const tx = {
         get: (ref: ServerDocRef) =>
@@ -128,7 +124,6 @@ const config: NotificationSystemConfig = {
       messagePattern: () => 'static',
       defaultTargetPath: '/y',
     },
-    // Title + targetPath derived from the occurrence metadata — exercises the N-I4 refresh.
     test_refresh: {
       category: 'user',
       delivery: 'queued',
@@ -139,7 +134,6 @@ const config: NotificationSystemConfig = {
       countCap: 100,
       actorCap: 3,
     },
-    // No defaultTargetPath — a linkless, clear-only type; the doc must OMIT targetPath.
     test_linkless: {
       category: 'user',
       delivery: 'queued',
@@ -156,7 +150,6 @@ const config: NotificationSystemConfig = {
   maxDeliveryAttempts: 3,
 };
 
-/** A ledger whose consumer has no eligibility rule: every recipient may receive. */
 const ELIGIBLE = { isRecipientEligible: async () => true };
 
 function row(over: Partial<DeliveryRowInput> = {}): DeliveryRowInput {
@@ -232,7 +225,7 @@ describe('applyAggregation (pure)', () => {
     expect(d.count).toBe(1);
     expect(d.latestActorIds).toEqual(['a']);
   });
-  it('does not inject a null actor into latestActorIds (N-M2)', () => {
+  it('does not inject a null actor into latestActorIds', () => {
     const d = applyAggregation({
       strategy: 'increment',
       existing: { count: 1, latestActorIds: ['x'] },
@@ -245,7 +238,7 @@ describe('applyAggregation (pure)', () => {
     });
     expect(d.latestActorIds).toEqual(['x']);
   });
-  it('does not inject an empty-string actor into latestActorIds (N-M2)', () => {
+  it('does not inject an empty-string actor into latestActorIds', () => {
     const d = applyAggregation({
       strategy: 'increment',
       existing: null,
@@ -373,7 +366,7 @@ describe('createDeliveryLedger.materialize', () => {
     expect(await ledger.materialize('nope')).toBe('missing');
   });
 
-  it('refreshes title / targetPath / metadata from the latest occurrence on an existing card (N-I4)', async () => {
+  it('refreshes title / targetPath / metadata from the latest occurrence on an existing card', async () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([
@@ -405,7 +398,6 @@ describe('createDeliveryLedger.materialize', () => {
 
     const active = [...getCol('activeUserNotifications').values()][0];
     expect(active.count).toBe(2);
-    // N-I4: the aggregated card reflects the NEWEST occurrence, not the first.
     expect(active.title).toBe('Title Second');
     expect(active.targetPath).toBe('/item/2');
     expect((active.metadata as { title: string }).title).toBe('Second');
@@ -418,11 +410,8 @@ describe('createDeliveryLedger.materialize', () => {
     await ledger.materialize('d1');
 
     const active = [...getCol('activeUserNotifications').values()][0];
-    // The KEY must be absent (a Firestore write with an `undefined` value throws),
-    // so the consumer's `targetPath ?` check renders a clear-only row.
     expect(Object.keys(active)).not.toContain('targetPath');
 
-    // An aggregate update on the existing card must not introduce the field either.
     await ledger.enqueue([
       row({ deliveryId: 'd2', eventId: 'e2', notificationType: 'test_linkless' }),
     ]);
@@ -435,14 +424,12 @@ describe('createDeliveryLedger.materialize', () => {
 describe('createDeliveryLedger lifecycle', () => {
   it('records transient failures with backoff, then dead-letters at the attempt cap', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config, ELIGIBLE); // maxDeliveryAttempts: 3
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
     expect(getCol('notificationDeliveries').get('d1')!.materializationClass).toBe('directQueued');
     await ledger.recordTransientFailure('d1', new Error('e1'));
     expect(getCol('notificationDeliveries').get('d1')!.state).toBe('queued');
     expect(getCol('notificationDeliveries').get('d1')!.attemptCount).toBe(1);
-    // n1: a backed-off row is re-stamped into the reserved `retry` lane so it drains there
-    // (separate capacity) instead of competing in its original `directQueued` lane.
     expect(getCol('notificationDeliveries').get('d1')!.materializationClass).toBe('retry');
     await ledger.recordTransientFailure('d1', new Error('e2'));
     await ledger.recordTransientFailure('d1', new Error('e3'));
@@ -450,7 +437,7 @@ describe('createDeliveryLedger lifecycle', () => {
     expect(d.state).toBe('deadLetter');
     expect(d.attemptCount).toBe(3);
     expect(d.deadLetteredAt).toBeTypeOf('number');
-    expect(d.expireAt).toBeUndefined(); // never TTL a deadLetter (round-19)
+    expect(d.expireAt).toBeUndefined();
   });
 
   it('replay returns a dead-letter to queued and clears terminal/TTL fields', async () => {

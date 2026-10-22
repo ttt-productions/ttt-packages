@@ -1,9 +1,9 @@
 # @ttt-productions/chat-react
 
-Chat **React UI** for TTT Productions apps: chat shell, composer, message list,
+Chat **React UI** for consuming apps: chat shell, composer, message list,
 the name-resolver context, and the realtime-newest-window + infinite-older
-hooks. Chat is PLAIN-TEXT-only — a conversation's files live in the consuming
-app's Conversation Files surface, never in the message timeline, and message text
+hooks. Chat is PLAIN-TEXT-only — files an app attaches to a conversation are the
+app's own surface, never in the message timeline, and message text
 carries no token grammar (no mentions, no autocomplete, no chips).
 
 Built on the pure [`@ttt-productions/chat-core`](../chat-core) package

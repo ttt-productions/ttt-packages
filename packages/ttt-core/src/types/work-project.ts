@@ -1,12 +1,6 @@
-// The public guildmate projection: which GuildmateUser fields the public mirror copies, and
-// the one builder of that projection.
 import { FOUNDING_WORK_HOLDER_TYPE } from '../doc-schemas/work-project.js';
 import type { GuildmateUser, PublicGuildmateUser } from '../doc-schemas/work-project.js';
 
-/**
- * Single source of truth for which GuildmateUser fields the public mirror copies,
- * so the mirror trigger can't drift from the PublicGuildmateUser shape.
- */
 export const GUILDMATE_USER_PUBLIC_FIELDS: readonly (keyof GuildmateUser)[] = [
   'uid',
   'tradeProfessions',
@@ -14,21 +8,6 @@ export const GUILDMATE_USER_PUBLIC_FIELDS: readonly (keyof GuildmateUser)[] = [
   'status',
 ];
 
-/**
- * Build the public collaborator projection from a raw guildmate document. THE single
- * owner of this projection — the mirror trigger and the post-deploy backfill both call
- * it, so the privacy boundary cannot drift between them.
- *
- * Returns null (meaning "no public doc") for missing data (guildmate doc deleted) and
- * for the founding-Work holder. A `departed` guildmate IS projected, keeping historical
- * collaborator credit; only a hard-deleted guildmate doc removes the projection.
- *
- * Projects exactly `GUILDMATE_USER_PUBLIC_FIELDS`. `tradeProfessions` is a
- * company-controlled enum and safe to expose; guild standings and stake counts are NOT
- * projected. The return type is `PublicGuildmateUser`, so a field added to
- * `PublicGuildmateUserSchema` breaks this function at compile time rather than silently
- * shipping an unprojected field.
- */
 export function buildPublicGuildmateUserPayload(
   uid: string,
   guildmateData: Record<string, unknown> | undefined | null,
@@ -46,7 +25,6 @@ export function buildPublicGuildmateUserPayload(
   };
 }
 
-/** Change detection for the public roster mirror — skips a write when nothing changed. */
 export function publicGuildmateUserPayloadEqual(
   a: PublicGuildmateUser | null,
   b: PublicGuildmateUser | null,

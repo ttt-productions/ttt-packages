@@ -1,6 +1,3 @@
-// The Storage guards: the Storage rules restate the declared upload-origin registry exactly, and a
-// stored object's generation and size are read only through the package helpers.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   storageObjectMetadataGuard,

@@ -1,10 +1,3 @@
-// Flat config for the ttt-packages monorepo. Lints the published package source under
-// packages/*. Mirrors the rule philosophy of ttt-prod's eslint.config.js — `no-explicit-any` off,
-// `_`-prefixed unused allowed, react-hooks elevated to error — but WITHOUT the Next.js rule set:
-// these are framework-agnostic libraries, only some of which ship React.
-//
-// Scope is `packages` only (see the root `lint` script). Build tooling under scripts/ and generated
-// output under docs/generated and **/dist are not linted.
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -17,7 +10,7 @@ export default [
       '**/node_modules/**',
       '**/coverage/**',
       '**/*.d.ts',
-      '**/scripts/**', // package build helpers (e.g. theme-core copy-styles.cjs) — CommonJS Node tooling, not library source
+      '**/scripts/**', // CommonJS package build helpers, not library source
     ],
   },
 
@@ -28,21 +21,23 @@ export default [
     files: ['**/*.ts', '**/*.tsx'],
     plugins: { 'react-hooks': reactHooks },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_',
-        destructuredArrayIgnorePattern: '^_',
-        ignoreRestSiblings: true, // `const { omit, ...rest } = x` to drop a key is intentional
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
-      'no-empty': ['error', { allowEmptyCatch: true }], // best-effort try/catch around media/storage APIs is intentional
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
     },
   },
 
-  // Last, so it wins: Prettier owns formatting, and this turns off every ESLint rule that would
-  // fight it.
+  // Last, so it turns off every ESLint rule that would fight Prettier.
   prettierCompat,
 ];

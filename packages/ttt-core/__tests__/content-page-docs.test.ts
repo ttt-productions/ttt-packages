@@ -21,7 +21,7 @@ const section = {
   order: 0,
 };
 
-describe('content-page doc schemas (content-pages migration)', () => {
+describe('content-page doc schemas', () => {
   it('LegalPageDocumentSchema requires version + lastUpdated + sections', () => {
     expect(
       LegalPageDocumentSchema.safeParse({
@@ -30,7 +30,6 @@ describe('content-page doc schemas (content-pages migration)', () => {
         sections: [section, { ...section, id: 's2', level: 2, order: 1 }],
       }).success,
     ).toBe(true);
-    // New docs are seeded with version from birth — it is required.
     expect(
       LegalPageDocumentSchema.safeParse({
         lastUpdated: 1751000000000,
@@ -58,7 +57,7 @@ describe('content-page doc schemas (content-pages migration)', () => {
     ).toBe(false);
   });
 
-  it('existing FuturePlans / RulesAndAgreements docs still parse WITHOUT version (pre-migration data)', () => {
+  it('FuturePlans / RulesAndAgreements docs parse with and WITHOUT version', () => {
     expect(
       FuturePlansDocumentSchema.safeParse({
         lastUpdated: 1751000000000,
@@ -72,7 +71,6 @@ describe('content-page doc schemas (content-pages migration)', () => {
         agreements: { points: [] },
       }).success,
     ).toBe(true);
-    // ...and WITH version once the migration bumps them.
     expect(
       FuturePlansDocumentSchema.safeParse({
         lastUpdated: 1751000000000,
@@ -105,18 +103,14 @@ describe('content-page doc schemas (content-pages migration)', () => {
 describe('content-page content input schemas (the working-copy content of each page)', () => {
   it('accepts a valid sections payload and rejects extra keys / version smuggling', () => {
     expect(LegalPageContentInputSchema.safeParse({ sections: [section] }).success).toBe(true);
-    // A bare divider heading (empty body) is legal content — a faithfully-seeded
-    // doc must round-trip through the editor's save.
     expect(
       LegalPageContentInputSchema.safeParse({
         sections: [{ ...section, body: '' }],
       }).success,
     ).toBe(true);
-    // `version` is assigned by the release publish — content carrying it is rejected (strict).
     expect(
       LegalPageContentInputSchema.safeParse({ sections: [section], version: 99 }).success,
     ).toBe(false);
-    // Empty sections would blank a legal page — rejected.
     expect(LegalPageContentInputSchema.safeParse({ sections: [] }).success).toBe(false);
   });
 

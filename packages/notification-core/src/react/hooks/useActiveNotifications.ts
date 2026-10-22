@@ -12,10 +12,6 @@ const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_REFETCH_INTERVAL = 30_000;
 const DEFAULT_STALE_TIME = 30_000;
 
-/**
- * Paginated read of active notifications. The displayed page is re-read every
- * `refetchInterval` ms while mounted — polling, not a realtime listener, for cost.
- */
 export function useActiveNotifications({
   config,
   userId,
@@ -48,7 +44,7 @@ export function useActiveNotifications({
     refetchInterval,
     staleTime,
   });
-  // The displayed page's failure held through its retry: a refetch of a never-succeeded page clears
-  // `error` while it runs, so the list would drop its failure under the retry the person pressed.
+  // A refetch of a never-succeeded page clears `error` while it runs, so the failure is held
+  // through the retry.
   return { ...read, retryState: useReadRetryState(read, paginatedPageKey(queryKey, read.page)) };
 }

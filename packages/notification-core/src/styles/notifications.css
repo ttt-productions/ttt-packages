@@ -1,10 +1,3 @@
-/* ============================================================================
- * @ttt-productions/notification-core — Notification Styles
- *
- * Uses theme-core CSS variables for automatic light/dark/high-contrast support.
- * All classes use the `ntf-` prefix to avoid collisions.
- * Apps can override any class for custom branding.
- * ============================================================================ */
 
 /* === NOTIFICATION LIST === */
 .ntf-list {
@@ -13,7 +6,6 @@
   max-height: 24rem;
 }
 
-/* Header stays pinned; only the body scrolls. */
 .ntf-list-body {
   flex: 1;
   min-height: 0;
@@ -62,9 +54,6 @@
 }
 
 /* === NOTIFICATION ITEM === */
-/* The row itself is inert — every affordance is a control in its action slot — so it wears no
- * pointer cursor. Its hover tint helps the eye along a long list; it moves on theme-core's motion
- * tokens, so an app's reduced-motion kill switch covers it. */
 .ntf-item {
   display: flex;
   align-items: flex-start;
@@ -127,9 +116,6 @@
   align-self: center;
 }
 
-/* Sibling action slot next to the archive control — consumer-supplied via
- * `renderRowAction`. Purely a layout/isolation wrapper; the consumer's node
- * supplies its own visual treatment. */
 .ntf-item-row-action {
   flex-shrink: 0;
   align-self: center;

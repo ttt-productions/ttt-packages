@@ -1,5 +1,3 @@
-// The local-only-variable guards and the two Worker guards over temp repositories.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Guard } from '../../src/guard.js';
 import {
@@ -41,8 +39,6 @@ async function run(guard: Guard, files: Record<string, string>) {
   const findings = await guard.run(contextOf(readerOf(files)));
   return findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ''} ${f.detail}`);
 }
-
-// ---------------------------------------------------------------------------------------------
 
 const LOCAL: LocalOnlyVariablesFacts = {
   deployedConfigs: ['deploy.yaml', 'deploy.production.yaml'],
@@ -147,8 +143,6 @@ describe('local-only variables', () => {
     ]);
   });
 });
-
-// ---------------------------------------------------------------------------------------------
 
 const WORKER: WorkerConfigFacts = {
   configFiles: ['edge/wrangler.toml'],
@@ -368,8 +362,6 @@ describe("each Worker's environments keep their bindings and migrations apart", 
     ]);
   });
 });
-
-// ---------------------------------------------------------------------------------------------
 
 const BODY: WorkerBoundedBodyFacts = {
   boundedReader: 'readBoundedBody',

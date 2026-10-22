@@ -3,12 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// A subscribed read that has not delivered its first snapshot is LOADING — never an answer. The
-// query underneath is disabled in subscribe mode, so on its own it reports pending but not loading,
-// and a consumer deciding from `isLoading` rendered "not found" / an empty list until the listener
-// answered. The read reports loading (and fetching) until its first snapshot or its error, exactly
-// as a one-shot read's first fetch does.
-
 const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
@@ -87,7 +81,6 @@ describe('a subscribed read before its first snapshot', () => {
       data: undefined,
     });
 
-    // An answered absence is an answer: the read stops loading and holds `null`.
     act(() => docCaps[0].next(missingDoc));
     expect(result.current).toMatchObject({ isLoading: false, data: null });
   });

@@ -4,8 +4,8 @@ import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   taskQueues: {
@@ -20,9 +20,8 @@ const TEST_CONFIG: ServerReportCoreConfig = {
   },
 };
 
-/** Every task type resolves on check-in except the one a domain resolver owns. */
 const OWNER = {
-  isResolvedByCheckin: (taskType: string) => taskType !== 'guidedDecision',
+  isResolvedByCheckin: (taskType: string) => taskType !== 'exampleDecisionTask',
   domainResolutionRefusalMessage: 'Resolve this task from its own decision.',
 };
 
@@ -187,7 +186,7 @@ describe('createCheckinTaskHandler', () => {
 
   it('audits timeSpentMinutes based on checkedOutAt', async () => {
     const now = Date.now();
-    const checkedOutAt = now - 10 * 60_000; // 10 minutes ago
+    const checkedOutAt = now - 10 * 60_000;
     const taskData = {
       taskType: 'userReport',
       taskId: 'group1',
@@ -235,7 +234,7 @@ describe('createCheckinTaskHandler', () => {
 
   describe('a task whose resolution a domain resolver owns', () => {
     const heldGuidedTask = () => ({
-      taskType: 'guidedDecision',
+      taskType: 'exampleDecisionTask',
       taskId: 'group1',
       status: 'checkedOut',
       checkoutDetails: { userId: 'admin1', checkedOutAt: Date.now() - 1000 },

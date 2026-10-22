@@ -1,13 +1,5 @@
-// Load-bearing contract tests for the canonical NCII / TAKE IT DOWN intake derivations.
-//
-// Every value here is part of the intake KEYSPACE: the deterministic requestId is a
-// Firestore doc id, the requestReference is printed on the one-time receipt, the temp-hold
-// id keys `nciiTemporaryHolds/{holdId}`, and the cumulative snapshot hash is the immutable
-// submission fingerprint. A formula (or version-tag) change silently re-keys every existing
-// request, so these assertions hardcode both the exact intermediate key STRINGS and the
-// exact hex DIGESTS for fixed inputs — computing a digest in-test would let a drift pass
-// unnoticed (both sides would move together). The `\x1f` unit separator is written
-// explicitly so an accidental separator change is caught too.
+// These values are stored document ids and printed references: a formula change re-keys every
+// stored request, so the digests are hardcoded rather than computed in-test.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -36,7 +28,6 @@ describe('sha256Hex', () => {
   });
 
   it('is the SAME hashing helper as resource-keys.resourceKeyHash (one implementation)', () => {
-    // The `./safety` surface must have ONE sha256 chokepoint, never two.
     expect(sha256Hex).toBe(resourceKeyHash);
     expect(sha256Hex('abc')).toBe(resourceKeyHash('abc'));
   });
@@ -91,7 +82,7 @@ describe('normalizeExternalUrl', () => {
 });
 
 describe('deterministicRequestId', () => {
-  it('builds the exact [H-07] requestId for a fixed idempotencyKey + targetKey', () => {
+  it('builds the exact requestId for a fixed idempotencyKey + targetKey', () => {
     const targetKey = normalizedTargetKey({ kind: 'mediaAsset', mediaAssetId: 'asset_1' });
     expect(deterministicRequestId('idem_1', targetKey)).toBe(
       sha256Hex(`takeItDownRequest:v1:idem_1:${targetKey}`),
@@ -114,7 +105,6 @@ describe('deriveRequestReference', () => {
     expect(ref).toHaveLength(32);
     expect(ref).toBe(sha256Hex('takeItDownRequestRef:v1:req_1').slice(0, 32));
     expect(ref).toBe('6a796b042bc82361154be76f22190baa');
-    // Must NOT equal the raw requestId (the whole point of a separate opaque reference).
     expect(ref).not.toBe('req_1');
   });
 });

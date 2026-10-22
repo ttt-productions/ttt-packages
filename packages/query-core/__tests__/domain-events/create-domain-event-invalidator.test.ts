@@ -52,7 +52,6 @@ describe('createDomainEventInvalidator', () => {
       { type: 'entity.published', ids: { entityId: 'e1' } },
     ]);
 
-    // 4 distinct invalidations: 2 from user.followed + 2 from entity.published
     expect(spy).toHaveBeenCalledTimes(4);
   });
 
@@ -60,13 +59,11 @@ describe('createDomainEventInvalidator', () => {
     const client = makeClient();
     const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
 
-    // Both events produce prefix(['entities']) -> should only fire once
     invalidator.notifyAll(client, [
       { type: 'entity.published', ids: { entityId: 'e1' } },
       { type: 'entity.published', ids: { entityId: 'e1' } },
     ]);
 
-    // ['entities'] prefix + ['entities','e1'] exact = 2 unique
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
@@ -136,7 +133,6 @@ describe('createDomainEventInvalidator — awaitable refresh', () => {
     void result.then(() => {
       settled = true;
     });
-    // users/u1, users/u2, and the shared feed prefix (deduped) = 3 dispatches.
     expect(spy).toHaveBeenCalledTimes(3);
 
     gates[0].resolve();

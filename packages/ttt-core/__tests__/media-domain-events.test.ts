@@ -288,12 +288,6 @@ describe('workProject.published carries the released Realm when publication touc
   });
 });
 
-// ---------------------------------------------------------------------------
-// ENG-005 / ARCH-102 — the hall-library event surface enums DERIVE from the
-// canonical HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE owner, so a new
-// WorkProjectType cannot leave a domain event carrying a stale vocabulary.
-// ---------------------------------------------------------------------------
-
 describe('hallLibrary event itemType enums equal the canonical surface projections', () => {
   const detailProjection = WORK_PROJECT_TYPE_KEYS.map(
     (type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].detailSurface,

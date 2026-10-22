@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 import { z } from 'zod';
 import {
   checkInputFormat,
@@ -10,9 +10,9 @@ import {
   createCheckinTaskRequestSchema,
   ReleaseTaskRequestSchema,
   createSubmitReportRequestSchema,
+  type SubmitReportResult,
 } from '../src/schemas/requests.js';
 
-// Stands in for the consuming app's field-schema builder over a declaration: trim, then the check.
 function textField(spec: InputFormatSpec) {
   return z.string().transform((text, ctx) => {
     const result = checkInputFormat(text, spec);
@@ -29,11 +29,11 @@ const COMMENT = defineInputFormat({ format: 'none', min: 1, max: 1000 });
 
 describe('CheckoutTaskRequestSchema', () => {
   it('accepts taskType only', () => {
-    const r = { taskType: 'profilePicture' };
+    const r = { taskType: 'exampleTask' };
     expect(CheckoutTaskRequestSchema.parse(r)).toEqual(r);
   });
   it('accepts taskType + specificTaskId', () => {
-    const r = { taskType: 'profilePicture', specificTaskId: 'task-1' };
+    const r = { taskType: 'exampleTask', specificTaskId: 'task-1' };
     expect(CheckoutTaskRequestSchema.parse(r)).toEqual(r);
   });
   it('rejects empty taskType', () => {
@@ -138,5 +138,21 @@ describe('createSubmitReportRequestSchema', () => {
   it('rejects empty itemType and reportedItemId', () => {
     expect(() => schema.parse({ ...minimal, itemType: '' })).toThrow();
     expect(() => schema.parse({ ...minimal, reportedItemId: '' })).toThrow();
+  });
+});
+
+describe('SubmitReportResult', () => {
+  type AppResult = SubmitReportResult<'caseA' | 'caseB'>;
+
+  it('types a filed result protectedFork as the app-supplied union or null', () => {
+    expectTypeOf<Extract<AppResult, { outcome: 'filed' }>['protectedFork']>().toEqualTypeOf<
+      'caseA' | 'caseB' | null
+    >();
+  });
+
+  it('types an upgraded result protectedFork as the app-supplied union', () => {
+    expectTypeOf<Extract<AppResult, { outcome: 'upgraded' }>['protectedFork']>().toEqualTypeOf<
+      'caseA' | 'caseB'
+    >();
   });
 });

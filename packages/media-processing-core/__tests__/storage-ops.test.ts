@@ -14,9 +14,6 @@ import { R2StorageError } from '../src/server/r2-retry.js';
 import { UnreadableStorageObjectMetadataError } from '../src/server/staged-object.js';
 import { isObjectNotFoundError } from '../src/server/gcs-errors.js';
 
-// Track every createReadStream call so the "fresh stream per PUT attempt" test
-// can prove a new stream object is created each attempt. Everything else in
-// node:fs passes straight through to the real implementation.
 const fsHoisted = vi.hoisted(() => ({ readStreamCalls: [] as unknown[] }));
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>();
@@ -111,11 +108,6 @@ describe('createR2ObjectStore', () => {
   });
 });
 
-/**
- * Firebase Admin bucket double for put/read/delete. `file(key)` returns a per-key
- * handle, and every call lands in one ordered `events` log tagged with the key it
- * acted on.
- */
 function makeFirebaseBucketMock(
   opts: {
     storedContentType?: string;
@@ -172,16 +164,6 @@ describe('createFirebaseStorageObjectStore (deployed, token-free)', () => {
   });
 });
 
-/**
- * In-memory Cloud Storage bucket without object versioning, faithful to what the copy
- * relies on: every write mints a new generation; a rewrite reads the source generation
- * its handle is pinned to (404 once that generation is no longer live), checks
- * `ifGenerationMatch` (0 = no live object) against the LIVE destination when it commits
- * (412), and REPLACES the destination's metadata with the resource it was sent. A delete
- * answers 404 for a missing object and 412 when `ifGenerationMatch` names a generation
- * that is no longer live. The hooks let a test hold a copy before it commits, act before a
- * metadata read, or act before a delete commits.
- */
 function makeGcsFake() {
   interface StoredObject {
     bytes: string;
@@ -276,12 +258,7 @@ function deferred() {
   return { promise, resolve };
 }
 
-/**
- * Holds every copy at its commit until the test releases it, in arrival order. Arrival order is not
- * call order — R2 requests are signed asynchronously, so either racing copy can reach the commit
- * first — so a test identifies a released copy by the result it settles with, never by which call
- * it started.
- */
+/** R2 requests are signed asynchronously, so arrival order is not call order: a released copy is identified by its result. */
 function holdCopies(count: number) {
   const gates = Array.from({ length: count }, deferred);
   let arrivals = 0;
@@ -499,7 +476,6 @@ describe('Firebase Storage copy: never overwrites, idempotent, one call', () => 
 });
 
 describe('Firebase Storage deleteCopy: deletes only a copy of the named source', () => {
-  /** A fake bucket holding SOURCE and its copy at KEPT, with the call log cleared. */
   async function withCopy() {
     const gcs = makeGcsFake();
     gcs.write(SOURCE, STAGED);
@@ -510,7 +486,6 @@ describe('Firebase Storage deleteCopy: deletes only a copy of the named source',
     return { gcs, store, copied };
   }
 
-  /** The metadata a copy of `fromKey` records, at a made-up source version. */
   const provenanceOf = (fromKey: string) => ({
     'copy-source': encodeURIComponent(fromKey),
     'copy-source-version': '1700000000000001',
@@ -737,8 +712,6 @@ describe('createFirebaseEmulatorObjectStore', () => {
   });
 });
 
-// The deployed and emulator Firebase stores are one implementation that differs
-// only in token policy; read and delete behave identically in both.
 describe.each([
   [
     'createFirebaseStorageObjectStore',
@@ -803,10 +776,6 @@ describe('getMimeFromExt', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// R2 bounded transient retry (plan section 7 / test matrix 13.5)
-// ---------------------------------------------------------------------------
-
 interface SeamOverrides {
   sleepImpl?: (ms: number) => Promise<void>;
   randomImpl?: () => number;
@@ -824,11 +793,7 @@ function makeR2WithSeams(fetchImpl: typeof fetch, seams: SeamOverrides = {}) {
   });
 }
 
-/**
- * Build a fetch mock that yields one factory result per call, repeating the
- * last factory for any further calls. Factories return a FRESH Response each
- * time (bodies are single-use), or throw to simulate a transport failure.
- */
+/** Each factory returns a fresh Response: a body is single-use. */
 function fetchSequence(steps: Array<() => Response | Promise<Response>>) {
   let i = 0;
   return vi.fn(async () => {
@@ -953,7 +918,6 @@ describe('createR2ObjectStore — bounded transient retry', () => {
       () => new Response(null, { status: 200 }),
     ]);
     const sleep = vi.fn(noSleep);
-    // random 0.999 would dominate if backoff were (wrongly) added on top.
     const store = makeR2WithSeams(fetchMock, { sleepImpl: sleep, randomImpl: () => 0.999 });
 
     await store.putFile({ localPath, key: 'k' });
@@ -999,7 +963,6 @@ describe('createR2ObjectStore — bounded transient retry', () => {
     const store = makeR2WithSeams(fetchMock, { sleepImpl: sleep, randomImpl: () => 0.5 });
 
     await store.putFile({ localPath, key: 'k' });
-    // floor(0.5 * min(5000, 250 * 2 ** 0)) = floor(125) = 125
     expect(sleep).toHaveBeenCalledWith(125);
   });
 
@@ -1106,7 +1069,6 @@ describe('createR2ObjectStore — bounded transient retry', () => {
     const encoder = new TextEncoder();
     const fetchMock = fetchSequence([
       () => {
-        // A 200 whose body errors mid-stream after writing a partial chunk.
         const body = new ReadableStream<Uint8Array>({
           start(controller) {
             controller.enqueue(encoder.encode('PARTIAL-GARBAGE'));
@@ -1212,16 +1174,6 @@ describe('createR2ObjectStore — bounded transient retry', () => {
   });
 });
 
-/**
- * In-memory R2 behind the store's S3 requests, faithful to what the copy relies on: a GET
- * answers an object's headers (404 `NoSuchKey` with an XML body when absent); a CopyObject
- * checks `x-amz-copy-source-if-match` against the source's ETag and
- * `cf-copy-destination-if-none-match: *` against the destination when it commits (412
- * `PreconditionFailed`), and with the REPLACE directive writes exactly the request's content
- * headers and `x-amz-meta-*`. A copy gets an ETag of its own, never its source's. A DELETE
- * honors no precondition header, as R2's DeleteObject does not, and answers 204 whether or
- * not an object was there.
- */
 function makeR2Fake() {
   interface R2Object {
     body: string;
@@ -1560,7 +1512,6 @@ describe('R2 deleteCopy: deletes only a copy of the named source', () => {
   const store = (fetchImpl: typeof fetch) =>
     makeR2WithSeams(fetchImpl, { sleepImpl: noSleep, randomImpl: () => 0 });
 
-  /** A fake R2 holding R2_SOURCE and its copy at R2_KEPT, with the request log cleared. */
   async function withCopy() {
     const r2 = makeR2Fake();
     r2.write(R2_SOURCE, R2_STAGED);

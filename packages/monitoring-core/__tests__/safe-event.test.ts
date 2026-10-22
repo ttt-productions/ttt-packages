@@ -5,30 +5,28 @@ describe('buildSafeEvent — allowlist', () => {
   it('keeps only the default allowlisted keys and drops everything else', () => {
     const out = buildSafeEvent({
       caseId: 'case_123',
-      phase: 'quarantine',
-      safeCode: 'CS-DENY',
+      phase: 'review',
+      safeCode: 'E-DENY',
       traceId: 't-abc',
-      // forbidden extras that must NOT survive:
-      evidenceUrl: 'https://storage.googleapis.com/app-ncii-evidence/x',
-      reporterIp: '203.0.113.7',
-      detectorHash: 'a'.repeat(64),
-      ncmecCredential: 'ncmec-key-abcdef0123456789',
+      fileUrl: 'https://storage.example.test/private-bucket/x',
+      clientIp: '203.0.113.7',
+      digest: '0123456789abcdef'.repeat(4),
+      vendorKey: 'vendorx-key-abcdef0123456789',
       reportXml: '<report>secret</report>',
       content: 'do not leak',
     });
 
     expect(out).toEqual({
       caseId: 'case_123',
-      phase: 'quarantine',
-      safeCode: 'CS-DENY',
+      phase: 'review',
+      safeCode: 'E-DENY',
       traceId: 't-abc',
     });
-    // Positively assert no forbidden key leaked.
     const serialized = JSON.stringify(out);
-    expect(serialized).not.toContain('ncii-evidence');
+    expect(serialized).not.toContain('private-bucket');
     expect(serialized).not.toContain('203.0.113.7');
-    expect(serialized).not.toContain('a'.repeat(64));
-    expect(serialized).not.toContain('ncmec-key');
+    expect(serialized).not.toContain('0123456789abcdef'.repeat(4));
+    expect(serialized).not.toContain('vendorx-key');
     expect(serialized).not.toContain('report');
     expect(serialized).not.toContain('do not leak');
   });

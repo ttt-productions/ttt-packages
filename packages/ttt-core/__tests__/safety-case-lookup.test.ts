@@ -16,9 +16,6 @@ import {
 } from '../src/doc-schemas/safety/foundation.js';
 
 describe('active safety statuses', () => {
-  // A case stays active — on the console and in the Legal-Clocks count — until its worker verifies
-  // a terminal status: a close in progress (`processing`) and a worker out of retries (`failed`)
-  // are still open work.
   it('a child-safety case is active until it is operationally resolved', () => {
     expect([...CHILD_SAFETY_ACTIVE_WORK_STATUSES].sort()).toEqual(
       ['new', 'triaged', 'reporting', 'actioning', 'processing', 'failed'].sort(),
@@ -156,7 +153,6 @@ describe('SafetyCaseByIdResultSchema', () => {
     expect(
       SafetyCaseByIdResultSchema.safeParse(withRow({ ...closure, outcome: 'unfounded' })).success,
     ).toBe(true);
-    // A work or case status is never a closure outcome.
     expect(
       SafetyCaseByIdResultSchema.safeParse(
         withRow({ ...closure, outcome: 'operationallyResolved' }),

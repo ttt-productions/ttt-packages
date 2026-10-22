@@ -1,49 +1,22 @@
 import type { FileOrigin } from './file-origin.js';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { APP_MODE, valueInMode, type AppMode } from '../constants/app-mode.js';
-import { DEFAULT_NCII_POLICY_CONFIG_V1 } from '../doc-schemas/ncii/config.js';
+import { NCII_EVIDENCE_MAX_FILE_BYTES } from '../doc-schemas/ncii/config.js';
+import { MIB } from '../constants/byte-units.js';
 
-// Mode-aware media-origin registry. Two distinct caps per origin (see
-// ttt-prod docs/design/charter-season-and-app-mode.md):
-//  - `maxBytes` — the RAW-INPUT cap at the upload gate. Deliberately generous:
-//    modern phones record high-bitrate by default and the user can't control
-//    that; the pipeline absorbs it. This is an abuse bound, not the quality cap.
-//  - processing `maxOutputBytes` / `maxDurationSec` — the PROCESSED-OUTPUT
-//    spec the transcoder enforces. This is what actually gets stored/served.
-// Charter mode = lower durations/output quality; full mode raises them.
-// storage.rules `uploadMaxBytes` restates the raw caps because rules cannot import TypeScript; the
-// app's storage-rules cap test fails when the two differ.
+// storage.rules restates the raw-input caps because rules cannot import TypeScript.
 
-const MB = 1024 * 1024;
+const IMAGE_RAW_BYTES = 25 * MIB;
+const FULL_VIDEO_RAW_BYTES = 1024 * MIB;
+const NCII_EVIDENCE_RAW_BYTES = NCII_EVIDENCE_MAX_FILE_BYTES;
 
-// --- Raw-input caps (upload gate) ---
-const IMAGE_RAW_BYTES = 25 * MB; // 48MP phone HEIC/JPEG fits comfortably
-const FULL_VIDEO_RAW_BYTES = 1024 * MB;
-// NCII take-it-down evidence: the NCII policy's per-file cap is the one owner. The scan trigger
-// downloads the whole object into a ~512MiB Function before scanning, so an allowed file must fit
-// in memory. No mode variation (the evidence is preserveOriginal — never transcoded).
-const NCII_EVIDENCE_RAW_BYTES = DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes;
-
-// --- Full-mode Hall Television's output caps ---
 const FULL_TELEVISION_DURATION_SEC = 1800;
-const FULL_TELEVISION_OUTPUT_BYTES = 1024 * MB;
+const FULL_TELEVISION_OUTPUT_BYTES = 1024 * MIB;
 
-// --- System-content limits (admin videos for system slots) ---
-// Fixed across modes at full-mode Hall Television's ceiling: a technical ceiling, not a target
-// length for the recordings.
 const SYSTEM_CONTENT_DURATION_SEC = FULL_TELEVISION_DURATION_SEC;
 const SYSTEM_CONTENT_RAW_BYTES = FULL_VIDEO_RAW_BYTES;
 const SYSTEM_CONTENT_OUTPUT_BYTES = FULL_TELEVISION_OUTPUT_BYTES;
 
-// --- Enabled-format policy (canonical-upload-content-classification launch
-// policy, DJ 2026-07-31): the picker advertises EXACTLY these and the server
-// accepts only an INSPECTED formatId in the origin's list. Kind for the shared
-// A/V containers (isobmff/webm/ogg) comes from stream inspection, never the
-// entry. DELIBERATELY ABSENT at launch: svg (scriptable — needs a
-// sanitize/rasterize design), heic/heif (no proven decode+PhotoDNA path in the
-// deployed runtime), avif (present-capability unproven — enable only with a
-// deployed-runtime decode+scan proof). Enabling any of them later is a policy
-// edit HERE plus that format's processing/safety proof — never a MIME tweak.
 const IMAGE_FORMATS = ['jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'] as const;
 const AUDIO_FORMATS = ['mp3', 'wav', 'flac', 'isobmff', 'webm', 'ogg'] as const;
 const VIDEO_FORMATS = ['isobmff', 'webm'] as const;
@@ -60,40 +33,28 @@ const ACCEPT_IMAGE_VIDEO = {
   formats: [...new Set([...IMAGE_FORMATS, ...VIDEO_FORMATS])],
 };
 
-// Variant `key` values below are USAGES of the ONE canonical variant-key set
-// (`MEDIA_VARIANT_KEYS`, doc-schemas/media-assets.ts). The generic MediaOriginSpec
-// types them as open strings, so the CI validation lives in
-// media-origin-lineage.test.ts: every declared key must parse against
-// MediaVariantKeySchema, and every schema member must be produced by some origin (a spec's image
-// variants, or the video/audio outputs).
-/** The media-origin registry in the given mode: each mode-varied limit read in that mode. */
 export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginSpec> {
   const inMode = <T>(charter: T, full: T): T => valueInMode(mode, charter, full);
 
-  // --- Raw-input caps (upload gate) ---
-  const VIDEO_RAW_BYTES = inMode(500 * MB, FULL_VIDEO_RAW_BYTES);
-  const AUDIO_RAW_BYTES = inMode(100 * MB, 250 * MB);
-  const CONVERSATION_FILE_RAW_BYTES = inMode(250 * MB, 500 * MB);
+  const VIDEO_RAW_BYTES = inMode(500 * MIB, FULL_VIDEO_RAW_BYTES);
+  const AUDIO_RAW_BYTES = inMode(100 * MIB, 250 * MIB);
+  const CONVERSATION_FILE_RAW_BYTES = inMode(250 * MIB, 500 * MIB);
 
-  // --- Output duration caps (seconds) ---
   const SHORT_VIDEO_DURATION_SEC = inMode(60, 180);
   const ADMIN_PROMPT_DURATION_SEC = inMode(120, 600);
   const TELEVISION_DURATION_SEC = inMode(300, FULL_TELEVISION_DURATION_SEC);
   const LONG_AUDIO_DURATION_SEC = inMode(600, 900);
   const CONVERSATION_FILE_AUDIO_DURATION_SEC = inMode(60, 180);
 
-  // --- Output size caps (post-transcode) ---
-  const SHORT_VIDEO_OUTPUT_BYTES = inMode(60 * MB, 300 * MB);
-  const TELEVISION_OUTPUT_BYTES = inMode(200 * MB, FULL_TELEVISION_OUTPUT_BYTES);
-  const AUDIO_OUTPUT_BYTES = inMode(20 * MB, 60 * MB);
+  const SHORT_VIDEO_OUTPUT_BYTES = inMode(60 * MIB, 300 * MIB);
+  const TELEVISION_OUTPUT_BYTES = inMode(200 * MIB, FULL_TELEVISION_OUTPUT_BYTES);
+  const AUDIO_OUTPUT_BYTES = inMode(20 * MIB, 60 * MIB);
 
-  // --- Output resolutions (full mode unlocks 1080p on the big surfaces) ---
   const WIDE_VIDEO_WIDTH = inMode(1280, 1920);
   const WIDE_VIDEO_HEIGHT = inMode(720, 1080);
   const ENTRY_VIDEO_WIDTH = inMode(360, 720);
   const ENTRY_VIDEO_HEIGHT = inMode(640, 1280);
 
-  // --- Client recording caps ---
   const RECORD_DURATION_SEC = SHORT_VIDEO_DURATION_SEC;
 
   return {
@@ -231,8 +192,6 @@ export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginS
       },
     },
 
-    // Realm cover art — same square recipe as the Work square cover. One 'full'
-    // variant; draft realms may lack a cover, release requires one.
     'realm-cover': {
       kind: 'image',
       accept: ACCEPT_IMAGE_ONLY,
@@ -721,9 +680,6 @@ export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginS
       },
     },
 
-    // Conversation Files (guild-invite + admin-support conversations). Same
-    // image/video/audio processing recipe the removed chat-attachment origin used —
-    // the replacement changed the OWNER of the published asset, not the pipeline.
     'conversation-file': {
       kind: 'generic',
       accept: ACCEPT_MEDIA_ALL,
@@ -799,7 +755,6 @@ export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginS
       },
     },
 
-    // Admin video for a system slot: picked from the computer only, never recorded in the browser.
     'system-content': {
       kind: 'video',
       accept: ACCEPT_VIDEO_ONLY,
@@ -826,17 +781,10 @@ export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginS
       },
     },
 
-    // NCII / TAKE IT DOWN evidence: a take-it-down requester (App Check, no login)
-    // uploads the actual image/video as evidence. Preserved BYTE-EXACT — NO
-    // `processing` block, so the pipeline never transcodes/resizes it (legal
-    // integrity + the hash). Never served — the evidence processor scans it, lands
-    // the original in the admin-only nciiEvidence bucket, and stops.
     'ncii-evidence': {
       kind: 'generic',
       accept: ACCEPT_IMAGE_VIDEO,
       maxBytes: NCII_EVIDENCE_RAW_BYTES,
-      // Byte-exact: scanned, but NEVER transcoded/resized (legal evidence integrity).
-      // The explicit flag marks this no-`processing` origin as intentional, not forgotten.
       preserveOriginal: true,
       client: {
         allowPick: true,

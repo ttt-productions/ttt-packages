@@ -1,8 +1,3 @@
-/**
- * Batch processor helper — called by the app's scheduled Cloud Function.
- * Reads pending notifications, groups by dedupKey, creates/increments active docs.
- */
-
 import type { NotificationSystemConfig, PendingNotification } from '../types.js';
 import type { ServerFirestore } from './types.js';
 import { buildActiveNotificationDocId } from './activeNotificationId.js';
@@ -18,27 +13,12 @@ interface BatchProcessResult {
   notificationsUpdated: number;
 }
 
-/**
- * Process the pending notifications queue.
- *
- * @example
- * ```ts
- * // In your scheduled Cloud Function:
- * export const processNotificationBatch = onSchedule(
- *   { schedule: 'every 10 minutes' },
- *   async () => {
- *     const result = await processBatchHelper(db as any, TTT_NOTIFICATION_CONFIG);
- *     logger.info('Batch processed', result);
- *   }
- * );
- * ```
- */
 export async function processBatchHelper(
   db: ServerFirestore,
   config: NotificationSystemConfig,
 ): Promise<BatchProcessResult> {
   const pendingPath = config.pendingCollectionPath ?? 'pendingNotifications';
-  const cutoff = Date.now() - 30_000; // Process items older than 30 seconds
+  const cutoff = Date.now() - 30_000;
 
   let totalProcessed = 0;
   let notificationsCreated = 0;
@@ -61,7 +41,6 @@ export async function processBatchHelper(
       break;
     }
 
-    // Group by dedupKey
     const groups = new Map<
       string,
       {
@@ -83,10 +62,6 @@ export async function processBatchHelper(
       if (!categoryConfig) continue;
 
       const dedupKey = typeConfig.dedupKeyPattern(data.metadata);
-      // Personal notifications dedup per-recipient: a multi-recipient fan-out
-      // (same type/metadata, different targetUserId) must never collapse into
-      // one recipient's active doc. Shared notifications are intentionally a
-      // single doc for all admins (targetUserId is null).
       const groupKey =
         categoryConfig.audienceType === 'personal'
           ? `${data.category}::${data.targetUserId}::${dedupKey}`
@@ -95,7 +70,6 @@ export async function processBatchHelper(
       const existing = groups.get(groupKey);
       if (existing) {
         existing.count++;
-        // Add actor id if not already present
         if (!existing.actorIds.includes(data.actorId)) {
           existing.actorIds.push(data.actorId);
         }
@@ -113,16 +87,6 @@ export async function processBatchHelper(
       }
     }
 
-    // Process each group: create or increment the group's active doc.
-    // Each group's groupKey uniquely determines a single active doc — the doc ID
-    // is a deterministic hash of exactly the dedupKey + category (+ targetUserId
-    // for personal) that compose the groupKey — so two distinct groups can never
-    // resolve to the same active doc and there is no cross-group contention. The
-    // work per group is independent I/O, so Promise.all turns N sequential
-    // round-trips into one parallel wave, removing the timeout risk under high
-    // dedup-group counts. WITHIN a dedup scope, the transactional read-modify-write
-    // on the deterministic ID makes concurrent writers (a racing real-time send,
-    // or an overlapping batch run) converge on one doc with correct counts.
     const groupResults = await Promise.all(
       Array.from(groups.values()).map(async (group): Promise<'created' | 'updated' | 'skipped'> => {
         const typeConfig = config.types[group.type];
@@ -136,9 +100,6 @@ export async function processBatchHelper(
         const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
         const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-        // Personal notifications are scoped to the recipient so different
-        // recipients never share an active doc; shared notifications omit
-        // targetUserId by design.
         const activeDocRef = db.collection(activePath).doc(
           buildActiveNotificationDocId({
             category: group.category,
@@ -152,12 +113,10 @@ export async function processBatchHelper(
           const existingSnap = await tx.get(activeDocRef);
 
           if (existingSnap.exists) {
-            // Increment existing
             const existingData = (existingSnap.data() ?? {}) as Record<string, unknown>;
             const currentCount = (existingData.count as number) || 1;
             const currentActorIds = (existingData.latestActorIds as string[]) || [];
 
-            // Merge actor ids (new first, deduped, capped)
             const newActorIds = group.actorIds.filter((id) => !currentActorIds.includes(id));
             const mergedActorIds = [...newActorIds, ...currentActorIds].slice(0, actorCap);
 
@@ -167,15 +126,13 @@ export async function processBatchHelper(
               count: newCount,
               latestActorIds: mergedActorIds,
               message: typeConfig.messagePattern(group.metadata, newCount),
-              // New activity on an existing notification re-lights the unread badge.
               seenAt: 0,
               updatedAt: Date.now(),
             });
 
             return 'updated';
           } else {
-            // Create new notification. A type with no defaultTargetPath is
-            // linkless — OMIT the field (Firestore rejects `undefined` values).
+            // Firestore rejects `undefined` values, so a linkless type omits the field.
             const targetPath =
               typeConfig.defaultTargetPath === undefined
                 ? undefined
@@ -195,7 +152,6 @@ export async function processBatchHelper(
               latestActorIds: group.actorIds.slice(0, actorCap),
               ...(targetPath === undefined ? {} : { targetPath }),
               metadata: group.metadata,
-              // Active docs are created unseen so the unread count() predicate matches.
               seenAt: 0,
               createdAt: now,
               updatedAt: now,
@@ -213,7 +169,6 @@ export async function processBatchHelper(
       else if (r === 'updated') notificationsUpdated++;
     }
 
-    // Delete processed pending docs in batches of 500
     const allDocs = snapshot.docs;
     for (let i = 0; i < allDocs.length; i += 500) {
       const chunk = allDocs.slice(i, i + 500);

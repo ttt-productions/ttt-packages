@@ -1,10 +1,7 @@
-// sharp resize helpers extracted from the image-processor
 import type { Sharp, Gravity as SharpGravity } from 'sharp';
 
-/** Logical crop/resize gravity, mapped to sharp positions by toSharpPosition. */
 export type Gravity = 'center' | 'top' | 'bottom' | 'left' | 'right';
 
-/** Map a logical gravity to a sharp position string. Defaults to centre. */
 export function toSharpPosition(g?: Gravity): SharpGravity {
   switch (g) {
     case 'top':
@@ -21,10 +18,6 @@ export function toSharpPosition(g?: Gravity): SharpGravity {
   }
 }
 
-/**
- * Cover-resize to an exact width/height (crop to fill), never enlarging beyond
- * the source. Used for explicit crops and required-size normalization.
- */
 export function resizeCover(
   pipeline: Sharp,
   width: number,
@@ -38,10 +31,6 @@ export function resizeCover(
   });
 }
 
-/**
- * Fit-inside resize bounded by maxWidth/maxHeight (preserves aspect ratio),
- * never enlarging beyond the source. Either bound may be omitted.
- */
 export function resizeInside(pipeline: Sharp, maxWidth?: number, maxHeight?: number): Sharp {
   return pipeline.resize(maxWidth ?? null, maxHeight ?? null, {
     fit: 'inside',
@@ -49,10 +38,6 @@ export function resizeInside(pipeline: Sharp, maxWidth?: number, maxHeight?: num
   });
 }
 
-/**
- * Compute a centered crop box that brings (width x height) to targetAspect,
- * shrinking only the longer dimension. Returns sharp .extract() coordinates.
- */
 export function computeAspectCropBox(
   width: number,
   height: number,
@@ -63,10 +48,8 @@ export function computeAspectCropBox(
   let cropH = height;
 
   if (a > targetAspect) {
-    // too wide -> reduce width
     cropW = Math.max(1, Math.floor(height * targetAspect));
   } else {
-    // too tall -> reduce height
     cropH = Math.max(1, Math.floor(width / targetAspect));
   }
 

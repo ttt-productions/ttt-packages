@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider, useQueries } from '@tanstack/react-qu
 import React from 'react';
 import { useReadRetryStates } from '../../src/react/use-read-retry-state.js';
 
-// Each read's answers are queued per key, so a test decides when each retry resolves or fails.
 interface Pending {
   resolve: (value: string) => void;
   reject: (error: Error) => void;

@@ -5,24 +5,16 @@ import { DatePicker } from './date-picker.js';
 import { cn } from '../../lib/utils.js';
 
 export interface DateTimePickerTime {
-  /** 0–23 */
   hours: number;
-  /** 0–59 */
   minutes: number;
 }
 
 export interface DateTimePickerProps {
-  /** The chosen instant (local time). */
   value?: Date;
-  /** Called with the new instant — always inside `min`/`max`, seconds and milliseconds zero. */
   onChange?: (value: Date) => void;
-  /** The earliest selectable instant. Earlier days and times are unavailable. */
   min?: Date;
-  /** The latest selectable instant. Later days and times are unavailable. */
   max?: Date;
-  /** Minutes offered are multiples of this (default 1). */
   minuteStep?: number;
-  /** Time of day a picked day takes when there is no `value` yet (default 23:59 — end of day). */
   defaultTime?: DateTimePickerTime;
   className?: string;
 }
@@ -48,21 +40,6 @@ const to24 = (hour12: number, period: Period) => (hour12 % 12) + (period === 'PM
 const periodOf = (hours: number): Period => (hours >= 12 ? 'PM' : 'AM');
 const hour12Of = (hours: number) => (hours % 12 === 0 ? 12 : hours % 12);
 
-/**
- * Generic date-and-time picker: `DatePicker` for the day, then hour / minute / AM-PM
- * columns of buttons for the time of day — never a native time input, so it looks and
- * behaves the same everywhere and honours `min` / `max` to the minute.
- *
- * Every offered day, hour, minute, and period is one the value may take: a day with
- * no allowed instant is disabled in the calendar, and an hour, minute, or period
- * that would land outside `min` / `max` on the chosen day is disabled. Picking a day
- * keeps the chosen time of day (or `defaultTime` when there is no value) and moves it
- * to the nearest allowed time on that day; picking an hour or period whose current
- * minute is unavailable takes the nearest allowed minute.
- *
- * Keyboard: each time column is one tab stop with roving focus (ArrowUp / ArrowDown,
- * Home / End); Enter or Space picks.
- */
 function DateTimePicker({
   value,
   onChange,
@@ -88,7 +65,6 @@ function DateTimePicker({
     [offeredMinutes],
   );
 
-  /** Allowed minutes-of-day on `day`, ascending. */
   const allowedMinutesOn = React.useCallback(
     (day: Date) => {
       const out: number[] = [];
@@ -114,8 +90,6 @@ function DateTimePicker({
     onChange?.(at(day, m));
   };
 
-  // A day strictly between the bounds' own days is decided by its first and last offered
-  // minute; only the bounds' days need the minute-by-minute check.
   const firstOfferedMinute = minuteOptions[0];
   const lastOfferedMinute = 23 * 60 + minuteOptions[minuteOptions.length - 1];
   const isSameDay = (a: Date, b: Date) =>
@@ -246,7 +220,6 @@ function TimeColumn({ label, options }: { label: string; options: TimeOption[] }
         ? selectedIndex
         : firstEnabled;
 
-  // Keep the chosen option in view inside the fixed-height column.
   React.useLayoutEffect(() => {
     if (selectedIndex < 0) return;
     const el = listRef.current?.querySelector<HTMLButtonElement>(`[data-index="${selectedIndex}"]`);

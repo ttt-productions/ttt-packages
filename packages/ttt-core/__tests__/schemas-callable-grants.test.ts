@@ -7,8 +7,6 @@ import {
 import { ChatGrantInputSchema } from '../src/schemas/chat.js';
 import { ResumeFanoutJobInputSchema } from '../src/schemas/notification.js';
 
-// Client-called callable input schemas: every callable's input lives in ttt-core/schemas.
-
 describe('CreateMediaGrantInputSchema (media grant wire contract)', () => {
   it('accepts each scopeKind variant', () => {
     expect(

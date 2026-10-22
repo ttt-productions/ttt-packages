@@ -29,7 +29,6 @@ async function openInbox() {
   return { client, sock, requestIdOf };
 }
 
-/** Records when a promise settles, so a test can prove it has NOT settled yet. */
 function track(promise: Promise<ChatMarkReadOutcome>) {
   const box: { outcome?: ChatMarkReadOutcome } = {};
   void promise.then((outcome) => {

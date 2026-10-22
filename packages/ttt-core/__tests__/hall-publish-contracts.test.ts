@@ -1,15 +1,3 @@
-/**
- * Hall publication contracts:
- *  - a PUBLISHED hall entry always carries its three covers, and a published sub-item always
- *    carries its picture plus its type's media; the working/draft shapes stay able to represent
- *    incomplete content
- *  - the ONE per-work-type sub-item requirement owner the UI filter, submit, approve, and publish
- *    all read
- *  - a terminally parked publish is visible on the threshold doc, not only in Sentry
- *  - DECLARED-KEY CONFORMANCE: every value in the closed field maps that writers index with a
- *    COMPUTED key is a field the target document's schema actually declares (BACKEND-115)
- */
-
 import { describe, it, expect } from 'vitest';
 import {
   FullTaleSchema,
@@ -55,8 +43,6 @@ import {
   isHallSubItemPublishable,
 } from '../src/utils/hall-content.js';
 
-/** Structural view of a document schema — just enough to read its declared keys, so the table
- *  below can hold schemas of different strictness side by side. */
 type AnySchema = { shape: Record<string, { isOptional: () => boolean }> };
 
 const declares = (schema: AnySchema, field: string): boolean =>
@@ -293,9 +279,6 @@ describe('threshold item parked-publication state', () => {
   });
 });
 
-// --- Declared-key conformance for the closed maps writers index with a COMPUTED key ---
-
-/** Which document schemas each hall-library upload origin's field is written onto. */
 const HALL_LIBRARY_ORIGIN_TARGETS: Record<string, AnySchema[]> = {
   'hallLibrary-cover-square': WORKING_SECTION_SCHEMAS as AnySchema[],
   'hallLibrary-cover-poster': WORKING_SECTION_SCHEMAS as AnySchema[],
@@ -482,8 +465,6 @@ describe('MODERATION_CLEARABLE_TEXT_FIELDS values are declared keys on the docs 
   const TARGETS: Record<string, AnySchema[]> = {
     workProject: [FullWorkProjectSchema as AnySchema, PublicWorkProjectSchema as AnySchema],
     workRealm: [WorkRealmSchema as AnySchema],
-    // A Hall detail's text is the Work's own: the Hall entry holds its snapshot, and the clear
-    // also writes the Work fields HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD names (below).
     tale: [PublishedHallItemSchema as AnySchema],
     tune: [PublishedHallItemSchema as AnySchema],
     television: [PublishedHallItemSchema as AnySchema],
@@ -516,9 +497,6 @@ describe('MODERATION_CLEARABLE_TEXT_FIELDS values are declared keys on the docs 
   });
 
   it('the moderation-flag fields the same writers set are declared too', () => {
-    // The `publicWorkProjects` search projection deliberately carries the placeholder TEXT only —
-    // the flag pair lives on the steward-authoritative shell, which is where the member's edit
-    // surface reads it.
     for (const schemas of Object.values(TARGETS)) {
       for (const schema of schemas) {
         if (schema === (PublicWorkProjectSchema as AnySchema)) continue;

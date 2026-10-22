@@ -1,6 +1,3 @@
-// A throwaway app repository for the backend guard tests: an app root, a Functions root, and
-// optionally a scripts root, read through the one reader.
-
 import type { Guard } from '../../src/guard.js';
 import { sampleHits } from '../../src/shapes/shapes.js';
 import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
@@ -14,10 +11,6 @@ export interface BackendRepo {
   remove(): void;
 }
 
-/**
- * A repository holding `files`. `src/anchor.ts` and `functions/src/anchor.ts` are always written so
- * both roots exist; a `scripts/` file makes the scripts root.
- */
 export function backendRepo(
   files: Record<string, string>,
   layout: Partial<RepoLayout> = {},
@@ -51,7 +44,6 @@ export function backendRepo(
   };
 }
 
-/** Every must-fail sample a guard carries hits, and every must-pass sample does not. */
 export function samplesHold(guard: Guard): boolean {
   if (!guard.samples) return true;
   return (

@@ -1,9 +1,3 @@
-// The guards over how code names a Firestore path:
-//   - no typed path segment reaches a Firestore accessor, on either SDK;
-//   - no path is assembled by hand from an owner constant, a slash, and a hole;
-//   - no retired segment name survives in a path string.
-// Each reads the syntax tree, so a comment is never a hit and a newline is never an escape hatch.
-
 import ts from 'typescript';
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -31,7 +25,6 @@ const APP_CODE: Scope = {
   tests: false,
 };
 
-/** The database handle a modular accessor takes first: `db`, `firestore.db`, `getDb()`. */
 function isHandle(node: ts.Expression): boolean {
   const plain = (n: ts.Expression): boolean =>
     ts.isIdentifier(n) || (ts.isPropertyAccessExpression(n) && plain(n.expression));
@@ -41,11 +34,6 @@ function isHandle(node: ts.Expression): boolean {
   );
 }
 
-/**
- * The path arguments of a Firestore accessor call, or null when the call is not one:
- * `x.collection(…)` / `x.collectionGroup(…)` / `x.doc(…)` (every argument), and the modular
- * `collection(db, …)` / `collectionGroup(db, …)` / `doc(db, …)` (every argument after the handle).
- */
 function accessorPathArguments(
   call: ts.CallExpression,
 ): { form: 'method' | 'modular'; args: readonly ts.Expression[] } | null {
@@ -63,7 +51,6 @@ function accessorPathArguments(
   return null;
 }
 
-/** Every typed segment reaching an accessor in one file: an inline literal or a file-local literal binding. */
 export function literalSegmentHits(file: FileView): NodeHit[] {
   const source = file.sourceFile;
   const bindings = literalBindings(source);
@@ -122,17 +109,13 @@ export const literalSegmentGuard: GenericGuardDefinition<NoFacts> = {
 };
 
 export interface PathAssemblyFacts {
-  /** The core's path-owner constant maps (`COLLECTIONS`): a member of one spliced into a path is assembly. */
   ownerConstants: readonly string[];
-  /** Path joiners that take a segment array (`toPath`); an array literal holding an owner member is assembly. */
   segmentArrayJoiners: readonly string[];
-  /** Files reviewed to assemble a path by hand, each with its why. An entry with no assembly left is stale. */
   reviewedSites: readonly Reviewed[];
 }
 
 const hasSlash = (node: ts.Expression) => isPlainString(node) && node.text.includes('/');
 
-/** The operands of a `+` chain, flattened. */
 function concatenationOperands(node: ts.Expression): ts.Expression[] {
   const value = unwrap(node);
   if (ts.isBinaryExpression(value) && value.operatorToken.kind === ts.SyntaxKind.PlusToken) {
@@ -141,7 +124,6 @@ function concatenationOperands(node: ts.Expression): ts.Expression[] {
   return [value];
 }
 
-/** Every hand-assembled path in one file, under the app's owner constants and joiners. */
 export function pathAssemblyHits(
   file: FileView,
   facts: Pick<PathAssemblyFacts, 'ownerConstants' | 'segmentArrayJoiners'>,
@@ -249,17 +231,10 @@ export const pathAssemblyGuard: GenericGuardDefinition<PathAssemblyFacts> = {
 };
 
 export interface RetiredSegmentFacts {
-  /** Segment names the app retired, each with what it became. */
   segments: ReadonlyArray<{ name: string; replacement: string }>;
-  /** Literals reviewed to hold a retired word in path position that is not a Firestore segment. */
   reviewedMatches: ReadonlyArray<{ file: string; contains: string; why: string }>;
 }
 
-/**
- * Every retired name in path position in one file: `/name/`, `/name` closing a literal, or the
- * whole group id of a collectionGroup call. Each hit carries the literal's source text, which a
- * reviewed match is checked against.
- */
 export function retiredSegmentHits(
   file: FileView,
   names: readonly string[],

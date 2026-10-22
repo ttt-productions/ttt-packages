@@ -1,8 +1,3 @@
-// A content policy keeps diagnostics and drops request content: no request, no breadcrumbs, the
-// user as an account id, and — in tags, extras, and contexts — numbers and flags under any key,
-// text only under a diagnostic key and only as a whitespace-free token. The key lists here are a
-// test app's; the package ships the mechanism and no app's keys.
-
 import { describe, it, expect } from 'vitest';
 import {
   createTelemetryContentPolicy,
@@ -54,7 +49,7 @@ describe('createTelemetryContentPolicy', () => {
 
   it.each([
     ['caseId', true],
-    ['workProjectIds', true],
+    ['projectIds', true],
     ['targetKeyHash', true],
     ['fileOrigin', true],
     ['operation', true],
@@ -83,13 +78,13 @@ describe('createTelemetryContentPolicy', () => {
   it('keeps identifier and code text under a diagnostic key, and drops prose and non-finite numbers', () => {
     const event = keepAllowlistedTelemetry({
       extra: {
-        hallItemId: 'hall_1',
+        libraryItemId: 'item_1',
         reason: 'not-found',
         operation: 'publish item for a member',
         waitedMs: Number.POSITIVE_INFINITY,
       },
     });
-    expect(event.extra).toEqual({ hallItemId: 'hall_1', reason: 'not-found' });
+    expect(event.extra).toEqual({ libraryItemId: 'item_1', reason: 'not-found' });
   });
 
   it('keeps numbers, flags, and null under any key — they cannot carry text — but never text under such a key', () => {
@@ -99,7 +94,7 @@ describe('createTelemetryContentPolicy', () => {
         foreign: false,
         cleared: null,
         dueAt: 1_700_000_000_000,
-        workTitle: 'Moonrise',
+        itemTitle: 'Moonrise',
       },
     });
     expect(event.extra).toEqual({
@@ -137,7 +132,6 @@ describe('createTelemetryContentPolicy', () => {
   });
 
   it('bounds how deep and how long a kept value can be', () => {
-    // A container four levels below the field is not read; a token at the fourth level still is.
     const kept = { caseId: { caseId: { caseId: { caseId: { caseId: 'four-down' } } } } };
     expect(keepAllowlistedTelemetry({ extra: kept }).extra).toEqual(kept);
     const deep = { caseId: { caseId: { caseId: { caseId: { caseId: { caseId: 'too-deep' } } } } } };
@@ -174,17 +168,17 @@ describe('createTelemetryContentPolicy', () => {
       contexts: {
         runtime: { name: 'node', version: 'v24' },
         function: { name: 'checkinTask', taskId: 'task_1', note: 'free text' },
-        erasure: { remaining: ['chatAnonymization'], dueAt: 5 },
-        trademark: { workTitle: 'A Title' },
-        moderation: { type: 'video', source: 'gs://bucket/uploads/uid_1/clip.mp4' },
+        cleanup: { remaining: ['messageCleanup'], dueAt: 5 },
+        listing: { itemTitle: 'A Title' },
+        media: { type: 'video', source: 'gs://bucket/uploads/uid_1/clip.mp4' },
         payload: { name: 'Alex' },
       },
     });
     expect(event.contexts).toEqual({
       runtime: { name: 'node', version: 'v24' },
       function: { name: 'checkinTask', taskId: 'task_1' },
-      erasure: { remaining: ['chatAnonymization'], dueAt: 5 },
-      moderation: { type: 'video' },
+      cleanup: { remaining: ['messageCleanup'], dueAt: 5 },
+      media: { type: 'video' },
     });
   });
 
@@ -218,10 +212,10 @@ describe('createTelemetryContentPolicy', () => {
 
   it('leaves the error itself — its message and exception — for the scrubber', () => {
     const event = keepAllowlistedTelemetry({
-      message: 'Hall publish failed',
+      message: 'Item publish failed',
       exception: { values: [{ type: 'Error', value: 'transaction aborted' }] },
     });
-    expect(event.message).toBe('Hall publish failed');
+    expect(event.message).toBe('Item publish failed');
     expect(event.exception).toEqual({ values: [{ type: 'Error', value: 'transaction aborted' }] });
   });
 

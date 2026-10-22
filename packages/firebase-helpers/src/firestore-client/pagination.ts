@@ -9,7 +9,7 @@ import { getDocs, limit, orderBy, query as fsQuery, startAfter } from 'firebase/
 
 export type PageResult<T> = {
   items: QueryDocumentSnapshot<T>[];
-  nextCursor: DocumentSnapshot<T> | null; // ✅ broadened
+  nextCursor: DocumentSnapshot<T> | null;
   size: number;
 };
 
@@ -17,7 +17,7 @@ export async function fetchPage<T extends DocumentData>(
   baseQuery: Query<T>,
   opts: {
     pageSize: number;
-    cursor?: DocumentSnapshot<T> | null; // ✅ broadened
+    cursor?: DocumentSnapshot<T> | null;
     constraints?: QueryConstraint[];
   },
 ): Promise<PageResult<T>> {
@@ -44,7 +44,7 @@ export async function fetchOrderedPage<T extends DocumentData>(
     pageSize: number;
     orderByField: string;
     direction?: 'asc' | 'desc';
-    cursor?: DocumentSnapshot<T> | null; // ✅ broadened
+    cursor?: DocumentSnapshot<T> | null;
     constraints?: QueryConstraint[];
   },
 ): Promise<PageResult<T>> {

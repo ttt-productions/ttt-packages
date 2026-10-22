@@ -50,7 +50,6 @@ describe('UploadQueue', () => {
   });
 
   it('constructs with custom concurrency', () => {
-    // The concurrency is internal but we can verify it by enqueuing multiple jobs
     const queue = new UploadQueue({ concurrency: 1 });
 
     const ctrl1 = makeMockController('c1');
@@ -62,7 +61,6 @@ describe('UploadQueue', () => {
     queue.enqueue({ ...baseArgs, id: 'job1' });
     queue.enqueue({ ...baseArgs, id: 'job2' });
 
-    // With concurrency 1, only 1 should be running
     expect(queue.getRunningCount()).toBe(1);
     expect(queue.getPendingCount()).toBe(1);
   });
@@ -77,23 +75,20 @@ describe('UploadQueue', () => {
 
     expect(queue.getRunningCount()).toBe(1);
 
-    // Increase concurrency — should start the second job
     queue.setConcurrency(2);
     expect(queue.getRunningCount()).toBe(2);
   });
 
   it('getPendingCount returns correct value', () => {
-    const queue = new UploadQueue({ concurrency: 0 }); // concurrency minimum is 1
+    const queue = new UploadQueue({ concurrency: 0 });
 
     const ctrl = makeMockController();
     vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
 
-    // concurrency 1 means 1 running, rest pending
     queue.enqueue({ ...baseArgs, id: 'job1' });
     queue.enqueue({ ...baseArgs, id: 'job2' });
     queue.enqueue({ ...baseArgs, id: 'job3' });
 
-    // 1 running, 2 pending
     expect(queue.getRunningCount()).toBe(1);
     expect(queue.getPendingCount()).toBe(2);
   });
@@ -128,15 +123,14 @@ describe('UploadQueue', () => {
     const ctrl = makeMockController();
     vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
 
-    queue.enqueue({ ...baseArgs, id: 'job1' }); // starts immediately
-    const job2 = queue.enqueue({ ...baseArgs, id: 'job2' }); // queued
+    queue.enqueue({ ...baseArgs, id: 'job1' });
+    const job2 = queue.enqueue({ ...baseArgs, id: 'job2' });
 
     expect(queue.getPendingCount()).toBe(1);
 
     // Suppress the unhandled rejection from cancellation
     job2.done.catch(() => {});
 
-    // Cancel the pending job
     job2.cancel();
     expect(queue.getPendingCount()).toBe(0);
   });
@@ -148,13 +142,12 @@ describe('UploadQueue', () => {
     const ctrl2 = makeMockController('c2');
     const ctrl3 = makeMockController('c3');
 
-    // Block queue with a running job so next enqueues go to pending
     vi.mocked(startResumableUpload)
-      .mockReturnValueOnce(ctrl1 as any) // job1 starts running
-      .mockReturnValueOnce(ctrl3 as any) // high-priority goes first from pending
-      .mockReturnValueOnce(ctrl2 as any); // low-priority goes second
+      .mockReturnValueOnce(ctrl1 as any)
+      .mockReturnValueOnce(ctrl3 as any)
+      .mockReturnValueOnce(ctrl2 as any);
 
-    queue.enqueue({ ...baseArgs, id: 'job1', priority: 0 }); // starts running immediately
+    queue.enqueue({ ...baseArgs, id: 'job1', priority: 0 });
 
     // These both go to pending; suppress unhandled rejections from leaked promises
     const lowPriCtrl = queue.enqueue({ ...baseArgs, id: 'job2', priority: 0 });
@@ -162,17 +155,12 @@ describe('UploadQueue', () => {
     lowPriCtrl.done.catch(() => {});
     highPriCtrl.done.catch(() => {});
 
-    // Complete job1 — should start the high priority job next
     ctrl1.resolveDone({ fullPath: '', contentType: null, size: 0 });
 
-    // The startResumableUpload call count tells us ordering.
-    // The queue picks up the next pending job via a microtask after the
-    // current one resolves; flush the microtask queue deterministically
-    // instead of waiting on a real timer.
+    // The queue starts the next pending job in a microtask after the current one resolves.
     await Promise.resolve();
     await Promise.resolve();
-    // job3 (priority 10) should have been started
-    expect(startResumableUpload).toHaveBeenCalledTimes(2); // job1 + next from pending
+    expect(startResumableUpload).toHaveBeenCalledTimes(2);
   });
 
   it('FIFO within same priority (lower seq runs first)', () => {
@@ -180,12 +168,10 @@ describe('UploadQueue', () => {
     const ctrl = makeMockController();
     vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
 
-    queue.enqueue({ ...baseArgs, id: 'job1', priority: 5 }); // starts running
-    queue.enqueue({ ...baseArgs, id: 'job2', priority: 5 }); // pending, seq 1
-    queue.enqueue({ ...baseArgs, id: 'job3', priority: 5 }); // pending, seq 2
+    queue.enqueue({ ...baseArgs, id: 'job1', priority: 5 });
+    queue.enqueue({ ...baseArgs, id: 'job2', priority: 5 });
+    queue.enqueue({ ...baseArgs, id: 'job3', priority: 5 });
 
-    // Both job2 and job3 are pending with same priority
-    // job2 should be next (lower seq)
     expect(queue.getPendingCount()).toBe(2);
   });
 
@@ -210,12 +196,9 @@ describe('UploadQueue', () => {
     queue.enqueue({ ...baseArgs, id: 'job1' });
     expect(queue.getRunningCount()).toBe(1);
 
-    // Resolve the job
     ctrl.resolveDone({ fullPath: '', contentType: null, size: 0 });
 
-    // Wait for the promise chain to settle. Two microtask flushes match
-    // the two `.then` hops the queue uses to mark the slot freed; no
-    // real timers needed.
+    // Two microtask flushes match the two `.then` hops the queue takes to free the slot.
     await Promise.resolve();
     await Promise.resolve();
     expect(queue.getRunningCount()).toBe(0);

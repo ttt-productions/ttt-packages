@@ -1,104 +1,41 @@
-// Well-known keys used in browser sessionStorage / localStorage.
-
-/** localStorage key holding the path the user wanted before being sent to sign in or register. */
 export const REDIRECT_PATH_KEY = 'redirectPath';
 
-/** localStorage key holding the last-seen app version (used by version-gate component). */
 export const LS_VERSION_KEY = 'ttt-app-version';
 
-/** sessionStorage key marking that a version-mismatch reload was already attempted. */
 export const SS_RELOAD_ATTEMPTED_KEY = 'ttt-version-reload-attempted';
 
-/** localStorage key the theme provider saves the chosen theme under. Byte-stable with
- *  next-themes' own default key, so a theme saved before the key was named keeps applying. */
+// Byte-stable with next-themes' default key, so an already-saved theme keeps applying.
 export const THEME_STORAGE_KEY = 'theme';
 
-// --- Company / Green Room dock companion (device-local v1 stores) ---
-// Values are byte-stable for backward compatibility — the historical 'bill'
-// naming predates the Company rename and MUST NOT change.
+// Byte-stable with what browsers already store: the 'bill' naming must not change.
 
-/** localStorage key holding the user's chosen dock companion id ('bill' | 'kit'). */
 export const COMPANION_STORAGE_KEY = 'ttt-company-companion';
 
-/** localStorage key: 'true' when the user has hidden the dock companion entirely. */
 export const MASCOT_HIDDEN_STORAGE_KEY = 'ttt-bill-hidden';
 
-/** localStorage key holding the last-shown dock-bubble line index (avoids an
- *  immediate repeat across visits). */
 export const MASCOT_LINE_INDEX_STORAGE_KEY = 'ttt-bill-line-index';
 
-/** Same-tab window event dispatched when MASCOT_HIDDEN_STORAGE_KEY changes
- *  (localStorage 'storage' events do not fire in the writing tab). */
+// localStorage 'storage' events do not fire in the writing tab, so each store dispatches its own
+// same-tab event.
 export const MASCOT_HIDDEN_CHANGE_EVENT = 'ttt-bill-pref-change';
 
-/** Same-tab window event dispatched when COMPANION_STORAGE_KEY changes. */
 export const COMPANION_CHANGE_EVENT = 'ttt-company-companion-change';
 
-/** Same-tab window event dispatched when the transient dock-puppet pose changes
- *  (in-memory store; never persisted). */
 export const MASCOT_POSE_CHANGE_EVENT = 'ttt-bill-pose-change';
 
-// --- Manual reduced-motion House control (device-local) ---
-// Independent of the companion visibility store above: reducing motion does not hide the
-// companion, and hiding the companion does not change motion. Effective reduced motion is
-// (the device's prefers-reduced-motion request) OR (this manual preference); the device
-// request always wins. Device-local BY DESIGN — never mirrored to Firestore or the private
-// user document (unlike the account-durable site-tour state).
-
-/** localStorage key: 'true' when the member has manually enabled TTT's app-wide
- *  reduced-motion preference (the "Motion: Full / Reduced" House control). */
 export const REDUCED_MOTION_STORAGE_KEY = 'ttt-reduced-motion';
 
-/** Same-tab window event dispatched when REDUCED_MOTION_STORAGE_KEY changes (localStorage
- *  'storage' events do not fire in the writing tab), mirroring COMPANION_CHANGE_EVENT. */
 export const REDUCED_MOTION_CHANGE_EVENT = 'ttt-reduced-motion-change';
 
-// --- Large-text House control (device-local) ---
-// The root font-size scale behind the House "Text size" control. Same device-local
-// useSyncExternalStore shape as the reduced-motion control above — never mirrored to Firestore
-// or the private user document. The <html> CSS hook it applies stays app-side next to the rule
-// that defines it (as the reduced-motion store's root attribute does).
-
-/** localStorage key holding the member's text-size preference ('standard' | 'large'). */
 export const TEXT_SIZE_STORAGE_KEY = 'ttt-text-size';
 
-/** Same-tab window event dispatched when TEXT_SIZE_STORAGE_KEY changes (localStorage
- *  'storage' events do not fire in the writing tab), mirroring REDUCED_MOTION_CHANGE_EVENT. */
 export const TEXT_SIZE_CHANGE_EVENT = 'ttt-text-size-change';
 
-// --- GDPR cookie / analytics consent (device-local) ---
-// Device-local like the House controls above — consent is a per-device choice, never mirrored
-// to Firestore or the private user document. The app persists the same value in BOTH
-// localStorage (under this key) and a first-party cookie of the SAME name, so SSR/middleware can
-// read it; both derive from this one declaration. Values are the ConsentState strings
-// ('granted' | 'denied'); ABSENT means un-chosen (opt-in default, analytics OFF).
-
-/** localStorage key — and the matching first-party cookie name — holding the visitor's
- *  cookie/analytics consent choice. The underscore spelling is byte-stable for backward
- *  compatibility with already-stored values and MUST NOT be re-styled to match the
- *  hyphenated House-control keys above. */
+// Byte-stable with already-stored values: the underscore spelling must not change.
 export const COOKIE_CONSENT_STORAGE_KEY = 'ttt_cookie_consent';
 
-// --- First-visit site-tour pending preference (the ONE sanctioned optimistic-hide slot) ---
-// Unlike the House controls above, site-tour state is ACCOUNT-DURABLE: `privateData/{uid}.siteTour`
-// stays the sole authority and the `updateSiteTourPreference` callable stays its sole writer. This
-// key holds a SINGLE uid-scoped entry recording a choice the member has already made but whose
-// server write has not been confirmed yet, so the overlay can close instantly and the write can be
-// replayed on the next boot. It is a one-entry durable retry SLOT, never a cache, mirror, or second
-// source of eligibility — a member with no pending entry is evaluated purely from the server state.
-//
-// UID-SCOPED BY CONSTRUCTION: a browser-global key would let user A's choice suppress (or replay
-// into) the tour for user B after a sign-out/sign-in on the same device. The stored entry ALSO
-// carries its own `uid` (SiteTourPendingPreferenceSchema, schemas/users.ts) and must match the key
-// owner before it may affect eligibility or be replayed.
-
-/** localStorage key holding the caller's single unconfirmed site-tour choice. Scoped by the
- *  AUTHENTICATED uid — never a browser-global key. */
 export function siteTourPendingStorageKey(uid: string): string {
   return `ttt-site-tour-pending:${uid}`;
 }
 
-/** Same-tab window event dispatched when a `siteTourPendingStorageKey(uid)` entry is written or
- *  removed (localStorage 'storage' events do not fire in the writing tab), mirroring
- *  TEXT_SIZE_CHANGE_EVENT. Cross-tab propagation still rides the native 'storage' event. */
 export const SITE_TOUR_PENDING_CHANGE_EVENT = 'ttt-site-tour-pending-change';

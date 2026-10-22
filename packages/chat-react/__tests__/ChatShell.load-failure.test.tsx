@@ -6,8 +6,7 @@ import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeC
 import type { UseChatMessagesResult } from '../src/hooks/useChatMessages.js';
 import { ChatNameResolverProvider } from '../src/context/ChatNameResolverContext.js';
 
-// Drive both transports' data hooks directly so each failure seat is exercised
-// deterministically. `mock`-prefixed so vitest allows referencing them inside the factories.
+// `mock`-prefixed so vitest allows referencing them inside the hoisted factories.
 const mockRealtime: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
 const mockFirestore: { current: Partial<UseChatMessagesResult> } = { current: {} };
 vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
@@ -86,7 +85,6 @@ function firestoreResult(over: Partial<UseChatMessagesResult>): Partial<UseChatM
   };
 }
 
-/** The app's error seat: records every failure it was handed and offers its retry. */
 function seat() {
   const seen: ChatLoadFailure[] = [];
   const renderLoadError = (failure: ChatLoadFailure) => {
@@ -133,7 +131,6 @@ describe('ChatShell — one failure seat for a chat that cannot load', () => {
     expect(seen.at(-1)).toMatchObject({ scope: 'initial', error: null });
     fireEvent.click(getByRole('button', { name: 'Retry initial' }));
     expect(retry).toHaveBeenCalledTimes(1);
-    // The consumer's other slots still render around the failure.
     expect(getByText('FOOTER')).toBeTruthy();
   });
 

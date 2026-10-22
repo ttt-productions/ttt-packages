@@ -40,7 +40,6 @@ describe('Textarea', () => {
     expect(ref.current).toBeInstanceOf(HTMLTextAreaElement);
   });
 
-  // Every form control reads the one form-control edge token (--input), like Select.
   it('draws its edge from the form-control token, not the generic border', () => {
     const { container } = render(<Textarea inputFormat={DESCRIPTION} />);
     const el = container.querySelector('textarea')!;

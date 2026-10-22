@@ -161,8 +161,6 @@ describe('COLLECTION_REFS', () => {
     });
 
     it('adminDispatchConversationMessages is the parent collection of adminConversationMessage', () => {
-      // The auto-id mint (`collection(...).doc()`) and the per-document builder must address
-      // the same collection — a divergence would write messages a thread never reads.
       expect(toPath(COLLECTION_REFS.adminDispatchConversationMessages('ad1'))).toBe(
         'pendingAdminDispatches/ad1/conversationMessages',
       );
@@ -202,8 +200,6 @@ describe('COLLECTION_REFS', () => {
     });
 
     it('both are the parent collections of their per-document builders', () => {
-      // The sweep reads and writes these as collections while the processors address single
-      // rows — a divergence would archive into a collection nothing reads.
       expect(toPath(PATH_BUILDERS.pendingMedia('pm1'))).toBe(
         `${toPath(COLLECTION_REFS.pendingMedia())}/pm1`,
       );

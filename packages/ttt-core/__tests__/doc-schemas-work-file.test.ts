@@ -1,6 +1,3 @@
-// allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId} — a Work
-// file renders by the kind the server inspected from its bytes, never by the client-declared MIME.
-
 import { describe, it, expect } from 'vitest';
 import { WorkFileSchema } from '../src/doc-schemas/work-project.js';
 import { ContentMediaKindSchema } from '../src/doc-schemas/media-assets.js';
@@ -13,7 +10,6 @@ const workFile = {
   workFileFolderId: 'folder-1',
   name: 'demo.mp4',
   mediaAssetId: 'asset-1',
-  // A picker may declare the neutral type; only the inspected kind says what the file is.
   contentType: 'application/octet-stream',
   mediaKind: 'video' as const,
   sizeBytes: 1024,

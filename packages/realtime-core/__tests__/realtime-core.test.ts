@@ -78,7 +78,7 @@ describe('applyVersioned', () => {
     expect(await applyVersioned({ version: 1, payloadHash: 'a' }, adapter)).toBe('idempotent');
     expect(await applyVersioned({ version: 1, payloadHash: 'b' }, adapter)).toBe('conflict');
     expect(await applyVersioned({ version: 2, payloadHash: 'c' }, adapter)).toBe('apply');
-    expect(written.map((w) => (w as { version: number }).version)).toEqual([1, 2]); // conflict/idempotent did not write
+    expect(written.map((w) => (w as { version: number }).version)).toEqual([1, 2]);
   });
 });
 
@@ -87,9 +87,9 @@ describe('reconnect controller', () => {
     const c = createReconnectController({ baseDelayMs: 100, maxDelayMs: 10_000, random: () => 1 });
     c.start();
     expect(c.state).toBe('connecting');
-    const d1 = c.onClose(); // attempt 1 → base*2^0 = 100
+    const d1 = c.onClose();
     expect(d1).toBe(100);
-    const d2 = c.onClose(); // attempt 2 → base*2^1 = 200
+    const d2 = c.onClose();
     expect(d2).toBe(200);
     expect(c.attempt).toBe(2);
     c.onOpen();
@@ -100,14 +100,14 @@ describe('reconnect controller', () => {
   it('full-jitter uses the injected random', () => {
     const c = createReconnectController({ baseDelayMs: 1000, random: () => 0.5 });
     c.start();
-    expect(c.onClose()).toBe(500); // floor(0.5 * 1000)
+    expect(c.onClose()).toBe(500);
   });
 
   it('caps delay at maxDelayMs', () => {
     const c = createReconnectController({ baseDelayMs: 1000, maxDelayMs: 1500, random: () => 1 });
     c.start();
-    c.onClose(); // 1000
-    expect(c.onClose()).toBe(1500); // 2000 capped to 1500
+    c.onClose();
+    expect(c.onClose()).toBe(1500);
   });
 
   it('closes after maxAttempts', () => {

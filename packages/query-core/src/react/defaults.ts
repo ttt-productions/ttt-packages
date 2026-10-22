@@ -1,17 +1,13 @@
 import type { DefaultOptions, QueryClientConfig } from '@tanstack/react-query';
 
-/**
- * Small, conservative defaults intended to work well across apps.
- * Apps can override via `createQueryClient({ defaultOptions: ... })`.
- */
 export const defaultQueryOptions: DefaultOptions = {
   queries: {
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     refetchOnMount: false,
 
-    staleTime: 30_000, // 30s
-    gcTime: 5 * 60_000, // 5m
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
 
     retry: (failureCount) => failureCount < 2,
   },

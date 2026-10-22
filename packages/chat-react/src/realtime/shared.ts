@@ -1,39 +1,7 @@
-// Shared injected contracts + tunable constants for the realtime transport.
-//
-// The client-agreed limits (`HEARTBEAT_MS`, `TYPING_COALESCE_MS`,
-// `HISTORY_PAGE_MAX`) come from the one wire contract in
-// `@ttt-productions/chat-schemas`. The worker runtime is the authority and
-// rejects anything out of bounds, but the client uses these to coalesce and
-// paginate politely. The constants below are client-only retry policy.
-
-/**
- * Mints a short-lived chat grant token for the socket's scope. The app wires this
- * to its `mintChatGrant` callable (channel grant for a ChannelClient, inbox grant
- * for an InboxClient). Called on every connect AND once on a 4401 re-grant. The
- * app owns the Firestore permission check, the scope shape, caching to a React
- * Query staleTime < grant exp, and returning a FRESH token when re-invoked.
- */
 export type GrantProvider = () => Promise<string>;
 
-/**
- * Package-owned, Firebase-FREE terminal access-denial signal. A grant provider
- * throws this (from `GrantProvider`) when the authoritative authorization answer
- * is a genuine, terminal "no" — as opposed to a transient/retryable mint failure.
- *
- * The transport treats it specially: instead of the normal reconnect backoff it
- * STOPS reconnecting, closes the lifecycle, fails any pending optimistic sends,
- * and surfaces the stable `access-denied` error code (which the React hook maps to
- * `allowed: false` so the shell renders its no-access surface instead of an eternal
- * loader). Every other thrown error stays transient and reconnects as before.
- *
- * This is deliberately generic: the consuming app translates its own backend
- * denial (e.g. a Firebase `functions/permission-denied`) into this class at the
- * grant-provider boundary. The package never imports or names Firebase. Consumers
- * that cannot subclass may instead throw any error carrying `isChatAccessDenied:
- * true` — `isChatAccessDeniedError` recognizes both (also cross-realm safe).
- */
 export class ChatAccessDeniedError extends Error {
-  /** Duck-typed marker so detection survives module-realm / re-throw boundaries. */
+  // Duck-typed so detection survives module-realm and re-throw boundaries.
   readonly isChatAccessDenied = true;
   constructor(message = 'Chat access denied') {
     super(message);
@@ -41,7 +9,6 @@ export class ChatAccessDeniedError extends Error {
   }
 }
 
-/** True when `err` is a terminal chat access denial (class instance or duck-typed marker). */
 export function isChatAccessDeniedError(err: unknown): err is ChatAccessDeniedError {
   return (
     err instanceof ChatAccessDeniedError ||
@@ -51,7 +18,6 @@ export function isChatAccessDeniedError(err: unknown): err is ChatAccessDeniedEr
   );
 }
 
-/** Injectable timers so the transport runs deterministically under fake timers in tests. */
 export interface TransportTimers {
   setTimeout: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
   clearTimeout: (h: ReturnType<typeof setTimeout>) => void;
@@ -64,81 +30,31 @@ export const defaultTimers: TransportTimers = {
   now: () => Date.now(),
 };
 
-/** Connection status surfaced to the UI. */
 export type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';
 
-/**
- * The TERMINAL lifecycle verdicts both realtime clients surface on
- * `lastErrorCode` — the two codes that mean "this lifecycle stopped on an
- * authoritative NO", as opposed to a transient/protocol code (`send-failed`,
- * `blocked-word`, …) that leaves the socket running.
- *
- * ONE declaration for both clients: each sets and clears the same two strings,
- * and `useRealtimeChatMessages` maps `access-denied` to `allowed: false`.
- * A terminal verdict is terminal WITHIN its lifecycle; a later explicit
- * `connect()` is a fresh attempt the authority may legitimately re-deny, so the
- * stale code is cleared there (never carried into the new lifecycle's state).
- */
 export const TERMINAL_ERROR_CODE = {
-  /** A 4403 REVOKED close: access was pulled while the socket was open. */
   REVOKED: 'revoked',
-  /** The grant provider threw `ChatAccessDeniedError` — a terminal policy "no". */
   ACCESS_DENIED: 'access-denied',
 } as const;
 
 export type TerminalErrorCode = (typeof TERMINAL_ERROR_CODE)[keyof typeof TERMINAL_ERROR_CODE];
 
-/** True when `code` is one of the terminal lifecycle verdicts above. */
 export function isTerminalErrorCode(code: string | null | undefined): code is TerminalErrorCode {
   return code === TERMINAL_ERROR_CODE.REVOKED || code === TERMINAL_ERROR_CODE.ACCESS_DENIED;
 }
 
-/**
- * How long a client keeps failing to open for the first time before it reports the
- * first open as failed (`initialLoadFailed`) — so a chat or inbox that cannot connect
- * shows a failure the user can retry instead of an opening state that never ends. The
- * client keeps retrying in the background after it reports. Client policy, not a wire
- * constant.
- */
 export const CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS = 15_000;
 
-/**
- * Max reconnect resends of one un-acked send before its optimistic row is flipped
- * to a visible failed state (retry affordance) instead of a permanent ghost. Each
- * reconnect that resumes with the pending send still un-acked counts one attempt.
- */
 export const MAX_PENDING_SEND_ATTEMPTS = 5;
 
-/**
- * Max wall-clock age of an un-acked pending send before it is flipped to failed on
- * the next resume, even if the attempt cap hasn't been hit (a long offline window).
- */
 export const PENDING_SEND_MAX_AGE_MS = 60_000;
 
-/**
- * Wall-clock budget (ms) for a SERVER-DECLARED retryable send. Once the Worker has
- * rejected a send as retryable — a correlated `send-rejected` frame OR the legacy
- * uncorrelated `error{code:'membership-pending'}` — that send keeps retrying on the
- * server's own hint until this budget elapses, and is NEVER failed by the generic
- * {@link MAX_PENDING_SEND_ATTEMPTS} cap (which governs only blind reconnect
- * resends). 90 s comfortably covers the backend projection/grant-bootstrap window
- * without stranding an optimistic bubble on "Sending…" the way the old ~10 s
- * five-attempt cap did.
- */
+// Covers the backend's projection window, which the five-attempt cap (~10 s) does not.
 export const SERVER_RETRYABLE_MAX_AGE_MS = 90_000;
 
-/**
- * Lower/upper clamp (ms) applied to a server `retryAfterMs` hint before scheduling a
- * resend, so a pathological (but schema-valid) hint can neither hammer the socket
- * nor park a send for minutes.
- */
 export const SEND_RETRY_MIN_DELAY_MS = 250;
 export const SEND_RETRY_MAX_DELAY_MS = 30_000;
 
-/**
- * A fresh client-minted id for a command the client correlates with its answer (a send's
- * `clientMessageId`, a mark-read's `requestId`). Random, so two tabs never collide.
- */
 export function newCorrelationId(): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c?.randomUUID) return c.randomUUID();

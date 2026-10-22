@@ -3,15 +3,10 @@ import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { ConversationFileRefSchema } from '../media/conversation-file-ref.js';
 
-// Variables for the conversation-file upload mutation hook (MEDIA-005). The
-// conversation ref is the strict two-kind ConversationFileRef — a guild-CHANNEL
-// target is unrepresentable.
 export const UploadConversationFileVariablesSchema = z
   .object({
     conversation: ConversationFileRefSchema,
     file: z.instanceof(File),
-    // Untrusted client claim of what the user's action implies (advisory; the
-    // server byte inspection is the only classification authority).
     claim: ClientMediaClaimSchema.optional(),
     onProgress: onProgressSchema,
     signal: z.instanceof(AbortSignal).optional(),

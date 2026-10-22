@@ -9,7 +9,7 @@ import type { UploadFileResumableResult } from '../types.js';
 export type UploadProgressHandler = (p: {
   transferred: number;
   total: number;
-  percent: number; // 0..100
+  percent: number;
   snapshot?: UploadTaskSnapshot;
 }) => void;
 
@@ -20,7 +20,6 @@ export interface UploadFileResumableArgs {
   metadata?: UploadMetadata;
   onProgress?: UploadProgressHandler;
 
-  /** Optional cancellation signal. */
   signal?: AbortSignal;
 }
 
@@ -37,17 +36,11 @@ export interface UploadController {
   resume: () => boolean;
   cancel: () => boolean;
 
-  /** Resolves on success, rejects on error/cancel. */
   done: Promise<UploadFileResumableResult>;
 }
 
 export interface StartUploadArgs extends Omit<UploadFileResumableArgs, 'onProgress'> {
-  /** Optional stable id for UI tracking. */
   id?: string;
 
-  /**
-   * UploadQueue-only: higher numbers run sooner.
-   * Ignored by startResumableUpload/uploadFileResumable.
-   */
   priority?: number;
 }

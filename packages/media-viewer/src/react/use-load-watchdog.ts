@@ -3,21 +3,7 @@
 import * as React from 'react';
 import { LOAD_WATCHDOG_MS } from '../recovery.js';
 
-/**
- * Bounded load watchdog shared by the three viewers. While `armed`, a media
- * element is expected to produce a load (or at least metadata) or error event
- * within `timeoutMs`; when neither arrives, `onTimeout` fires so the viewer
- * can synthesize an error and hand the asset to the bounded recovery path —
- * no viewer may sit on a skeleton forever.
- *
- * A hidden document pauses the deadline (browsers deprioritize background
- * loads): if the timer fires while the tab is hidden, it re-arms for a full
- * period instead of failing the asset.
- *
- * `timeoutMs <= 0` disables the watchdog. No IntersectionObserver is used
- * (MEDIA-102) — visibility gating comes from the caller's `armed` flag, which
- * viewers derive from their existing single observer's `shouldLoad`.
- */
+/** Browsers deprioritize background loads, so a deadline that passes while the tab is hidden re-arms. */
 export function useLoadWatchdog(
   armed: boolean,
   timeoutMs: number | undefined,

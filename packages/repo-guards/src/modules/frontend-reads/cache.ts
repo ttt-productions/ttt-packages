@@ -1,8 +1,3 @@
-// What may touch the query cache, and how: invalidation only through the domain-event registry,
-// aimed at keys a live query reads and never at an infinite list; an infinite list never reloaded
-// by an action; a whole-cache drop only by the session-retirement owner; and a registry whose every
-// event is produced, well formed, and awaited.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
@@ -37,16 +32,13 @@ import {
   type ReviewedCall,
 } from './shared.js';
 
-/** query-core's registry factory and the two invalidation builders a registry entry uses. */
 const REGISTRY_FACTORY = 'createDomainEventInvalidator';
 const EXACT = 'exact';
 
-/** The registry: where it is. */
 export interface RegistryFacts {
   path: string;
 }
 
-/** The object literal the registry module hands to query-core's registry factory, as code. */
 export function registryObjectCode(file: FileView): { name: string; code: string } | null {
   const sf = file.sourceFile;
   let name: string | null = null;
@@ -88,20 +80,13 @@ export function registryObjectCode(file: FileView): { name: string; code: string
 const keyRefPattern = (objects: readonly string[]) =>
   new RegExp(`\\b(${alternation(objects)})\\.(\\w+)`, 'g');
 
-// =============================================================================================
-// Cache invalidation only through the registry; the registry's targets are read, and never an infinite list.
-// =============================================================================================
-
 export interface CacheInvalidationFacts {
   registry: RegistryFacts;
   keyModule: KeyModuleFacts;
-  /** The trees whose `queryKey:` sites are the app's live reads (hooks, components, pages). */
   readTrees: readonly string[];
-  /** The suffix the key module names a family helper with (`listPrefix()` → `Prefix`). */
   familySuffix: string;
 }
 
-/** What the registry rule leaves to the other cache owners: the session-retirement owner, and a person's own refreshes. */
 interface OwnedElsewhere {
   sessionOwner: string;
   memberRefreshes: readonly ReviewedCall[];
@@ -111,7 +96,6 @@ const CLEAR_CALL = /\.\s*(invalidateQueries|removeQueries|resetQueries)(\s*\()/g
 const CACHE_WRITE_CALL =
   /\b(refetchQueries|resetQueries|cancelQueries|setQueryData|setQueriesData|getQueryData|getQueriesData|invalidateQueries|removeQueries|ensureQueryData|prefetchQuery)\b/;
 
-/** Every invalidate / remove / reset call in a file, as its collapsed text from the method name on. */
 export function clearCalls(file: FileView): Array<{ index: number; call: string }> {
   return [...file.code.matchAll(CLEAR_CALL)].map((m) => {
     const name = (m.index ?? 0) + m[0].indexOf(m[1]);
@@ -120,14 +104,12 @@ export function clearCalls(file: FileView): Array<{ index: number; call: string 
   });
 }
 
-/** The text of the line holding `index`, so a match is judged by the statement it starts in. */
 function lineAt(code: string, index: number): string {
   const start = code.lastIndexOf('\n', index - 1) + 1;
   const end = code.indexOf('\n', index);
   return code.slice(start, end === -1 ? code.length : end);
 }
 
-/** Key families some live query reads: a `queryKey` built from a key method outside a cache call, or a key object handed whole. */
 export function readKeyFamilies(
   files: ReadonlyArray<{ code: string }>,
   objects: readonly string[],
@@ -135,8 +117,7 @@ export function readKeyFamilies(
 ): Set<string> {
   const read = new Set<string>();
   const names = alternation(objects);
-  // Matched over the whole file, so a key Prettier wraps onto the next line still reads; a match is
-  // skipped when the line it starts on is a cache call's.
+  // Matched over the whole file, so a key Prettier wraps onto the next line still reads.
   for (const { code } of files) {
     for (const m of code.matchAll(new RegExp(`\\bqueryKey\\s*[:=]\\s*(${names})\\.(\\w+)`, 'g')))
       if (!CACHE_WRITE_CALL.test(lineAt(code, m.index ?? 0)))
@@ -149,11 +130,6 @@ export function readKeyFamilies(
   return read;
 }
 
-/**
- * The argument count of the call whose `(` is at `open`, or null when there is no call there. A
- * trailing comma (the one Prettier writes after the last argument of a wrapped call) ends no
- * argument, so it adds none.
- */
 function argCountAt(code: string, open: number): number | null {
   if (code[open] !== '(') return null;
   let depth = 0;
@@ -175,7 +151,6 @@ function argCountAt(code: string, open: number): number | null {
   return null;
 }
 
-/** Each key method → the argument counts the app's live reads build it with. */
 export function readArgCounts(
   files: ReadonlyArray<{ code: string }>,
   objects: readonly string[],
@@ -194,7 +169,6 @@ export function readArgCounts(
   return counts;
 }
 
-/** Registry targets that miss: unread, an exact on a family, an exact shaped unlike every read, or one reaching an infinite list. */
 export function registryTargetProblems(input: {
   registryCode: string;
   reads: ReadonlyArray<{ code: string }>;
@@ -332,18 +306,11 @@ const cacheInvalidationGuards = (facts: CacheInvalidationFacts, owned: OwnedElse
   },
 ];
 
-// =============================================================================================
-// No action-driven reload of an infinite list.
-// =============================================================================================
-
 export interface ListResetFacts {
   keyModule: KeyModuleFacts;
   familySuffix: string;
-  /** The app predicate that is true for a query holding loaded pages; a reload filtered by its negation reloads no shown list. */
   loadedPagesPredicate: string;
-  /** A person's own refreshes (pull-to-refresh, a Refresh button): each call site with its why. */
   memberRefreshes: readonly ReviewedCall[];
-  /** Hooks that run a member's own refresh, each handed only to its refresh control on the named prop; [] for none. */
   refreshHandoffs: ReadonlyArray<{ hook: string; control: string; prop: string }>;
 }
 
@@ -352,7 +319,6 @@ const PATCH_CALL = /\b(setQueryData|setQueriesData)\s*(?:<[^>]*>)?\s*\(/g;
 const FIRST_PAGE_TRIM =
   /\bpages\.slice\(\s*0\s*,\s*1\s*\)|\bpageParams\.slice\(\s*0\s*,\s*1\s*\)|\bpages\s*:\s*\[\s*[\w.?]+\.pages\[0\]\s*\]/;
 
-/** The key refs a call targets: its key method, or every one a constant map it indexes holds; null when unresolved. */
 function targetRefs(call: string, code: string, objects: readonly string[]): string[] | null {
   const names = alternation(objects);
   const direct = call.match(new RegExp(`\\bqueryKey\\s*:\\s*(${names})\\.(\\w+)`));
@@ -368,7 +334,6 @@ function targetRefs(call: string, code: string, objects: readonly string[]): str
   return refs.length ? refs : null;
 }
 
-/** Every call that reloads or trims an infinite list, outside the reviewed reloads. */
 export function listReloads(
   files: readonly FileView[],
   builders: KeyBuilders,
@@ -415,7 +380,6 @@ export function listReloads(
   return { infinite, findings: found };
 }
 
-/** Each refresh hook's result used anywhere but on its refresh control's prop, and each hook no file calls. */
 export function refreshHandoffMisuses(
   files: readonly FileView[],
   handoffs: ListResetFacts['refreshHandoffs'],
@@ -491,14 +455,8 @@ const listResetGuards = (facts: ListResetFacts, sessionOwner: string): Guard[] =
   },
 ];
 
-// =============================================================================================
-// An unscoped cancel or a whole-cache clear only by session retirement.
-// =============================================================================================
-
 export interface SessionRetirementFacts {
-  /** The session-retirement owner. */
   owner: string;
-  /** Retirements beyond a session's end that the owner runs by predicate (a member leaving a group), each with its why; [] for none. */
   predicateRetirements: ReadonlyArray<{ trigger: string; why: string }>;
 }
 
@@ -576,19 +534,11 @@ const sessionRetirementPart = {
   ],
 };
 
-// =============================================================================================
-// The domain-event registry: every event produced, every variant registered and well formed, every
-// notification handed on.
-// =============================================================================================
-
 export interface DomainEventRegistryFacts {
   registry: RegistryFacts & {
-    /** A loader of the registry object itself (event type → invalidation builder). */
     load: Loader<Record<string, unknown>>;
   };
-  /** A loader of the core's domain-event schema: a discriminated union on `type`, each variant carrying an `ids` object. */
   eventSchema: Loader<unknown>;
-  /** The app's functions that dispatch a domain event and return the refresh's promise. */
   notifiers: readonly string[];
 }
 
@@ -605,7 +555,6 @@ const kindOf = (field: ZodLike): 'optional' | 'nullable' | 'enum' | 'required' =
   return type === 'optional' || type === 'nullable' || type === 'enum' ? type : 'required';
 };
 
-/** Synthetic `ids` for one variant: every field filled, then each optional field dropped in turn. */
 export function syntheticIds(idsSchema: ZodLike): Array<Record<string, unknown>> {
   const baseline: Record<string, unknown> = {};
   const optional: string[] = [];
@@ -626,11 +575,9 @@ export function syntheticIds(idsSchema: ZodLike): Array<Record<string, unknown>>
   ];
 }
 
-/** What a query-core registry entry may do to the reads it matches, and how a refresh refetches. */
 const CACHE_ACTIONS: ReadonlySet<unknown> = new Set([undefined, 'refresh', 'remove', 'reset']);
 const REFETCH_TYPES: ReadonlySet<unknown> = new Set([undefined, 'active', 'all', 'none']);
 
-/** Why a builder's answer is not a list of well-formed invalidations, or null. */
 export function malformedInvalidations(answer: unknown): string | null {
   if (!Array.isArray(answer)) return 'does not answer a list of invalidations';
   for (const inv of answer as Array<Record<string, unknown>>) {
@@ -656,7 +603,6 @@ export function malformedInvalidations(answer: unknown): string | null {
   return null;
 }
 
-/** Whether the call at `index` starts a statement, so its promise is dropped. */
 function startsStatement(code: string, index: number): boolean {
   const before = code.slice(0, index).trimEnd();
   return before.length === 0 || ';{})'.includes(before.charAt(before.length - 1));
@@ -721,7 +667,6 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
         'for every shape of its ids (each optional id present and absent), a list of invalidations that are each an exact or prefix ' +
         'target with a non-empty key, or a predicate with a description and a matcher.',
       async run(context) {
-        // The loaded registry is judged, but the file the facts name must be the one it comes from.
         if (!context.reader.exists(facts.registry.path))
           return [{ file: facts.registry.path, detail: 'the registry file does not exist' }];
         context.file(facts.registry.path);
@@ -792,10 +737,6 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
   ],
 };
 
-/**
- * Every fact the query-cache owners need, declared once: the registry (the one place something that
- * happened changes saved reads), a person's own refreshes, and the session-retirement owner.
- */
 export interface QueryCacheFacts extends CacheInvalidationFacts {
   loadedPagesPredicate: string;
   memberRefreshes: readonly ReviewedCall[];

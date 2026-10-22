@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { filesOf, packagesTree, workspacePackages } from './workspace';
 
-// A package tarball carries its compiled `dist` plus any stylesheet folder a `./styles` export points
-// into, never TypeScript source: the maps already embed their sources. prepublishOnly cleans before
-// it builds, so a file the source no longer produces (a moved test, a deleted module) never ships
-// from a stale dist.
-
 const PREPUBLISH = 'npm run clean && npm run build';
 const CLEANS_DIST = /\brm -rf\b[^&|;]*\bdist\b/;
 const TS_SOURCE = /\.[cm]?tsx?$/;
@@ -16,7 +11,9 @@ interface Manifest {
 }
 
 const packages = workspacePackages<Manifest>();
-const typeScriptFiles = filesOf(packagesTree, ['code', 'declarations']).filter((file) => TS_SOURCE.test(file.path));
+const typeScriptFiles = filesOf(packagesTree, ['code', 'declarations']).filter((file) =>
+  TS_SOURCE.test(file.path),
+);
 
 describe('boundary: every package publishes a clean build and no source', () => {
   it('finds the workspace packages', () => {
@@ -25,8 +22,12 @@ describe('boundary: every package publishes a clean build and no source', () => 
 
   it(`every prepublishOnly is "${PREPUBLISH}", and every clean script removes dist`, () => {
     const wrong = packages.flatMap(({ dir, manifest }) => [
-      ...(manifest.scripts?.prepublishOnly !== PREPUBLISH ? [`${dir}: prepublishOnly is not "${PREPUBLISH}"`] : []),
-      ...(!CLEANS_DIST.test(manifest.scripts?.clean ?? '') ? [`${dir}: clean does not remove dist`] : []),
+      ...(manifest.scripts?.prepublishOnly !== PREPUBLISH
+        ? [`${dir}: prepublishOnly is not "${PREPUBLISH}"`]
+        : []),
+      ...(!CLEANS_DIST.test(manifest.scripts?.clean ?? '')
+        ? [`${dir}: clean does not remove dist`]
+        : []),
     ]);
     expect(wrong).toEqual([]);
   });
@@ -40,8 +41,11 @@ describe('boundary: every package publishes a clean build and no source', () => 
           .filter((entry) => entry !== 'dist')
           .flatMap((entry) => {
             const path = `packages/${dir}/${entry}`;
-            if (!packagesTree.exists(path)) return [`${dir}: files entry "${entry}" matches nothing on disk`];
-            return typeScriptFiles.some((file) => file.path === path || file.path.startsWith(`${path}/`))
+            if (!packagesTree.exists(path))
+              return [`${dir}: files entry "${entry}" matches nothing on disk`];
+            return typeScriptFiles.some(
+              (file) => file.path === path || file.path.startsWith(`${path}/`),
+            )
               ? [`${dir}: files entry "${entry}" ships TypeScript source`]
               : [];
           }),

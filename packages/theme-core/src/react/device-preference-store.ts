@@ -4,36 +4,22 @@ import { useSyncExternalStore } from 'react';
 import { readStoredValue, writeStoredValue } from '../device-storage.js';
 
 export interface DevicePreferenceStoreConfig<T> {
-  /** localStorage key the preference is saved under. */
   storageKey: string;
   /** Window event dispatched on every save: the native `storage` event never fires in the tab that wrote. */
   changeEvent: string;
-  /**
-   * Reads a saved string. Returns `undefined` for a value it does not recognise, which reads as
-   * `fallback`, so a stale or hand-edited entry never reaches the app.
-   */
   parse: (stored: string) => T | undefined;
-  /** The string a value is saved as. */
   serialize: (value: T) => string;
-  /** The value while nothing is saved, the saved string is unrecognised, storage is blocked, or on the server. */
   fallback: T;
 }
 
-/** One device-local preference, kept consistent across this tab and every other open tab. */
 export interface DevicePreferenceStore<T> {
-  /** The current value, read at call time. */
   get: () => T;
-  /** Saves `value` on this device (held for the page when storage is blocked) and notifies every reader. */
   set: (value: T) => void;
-  /** Removes the saved value, so the store reads `fallback`, and notifies every reader. */
   clear: () => void;
-  /** Subscribes to this tab's saves and to other tabs' saves (the native `storage` event). */
   subscribe: (onChange: () => void) => () => void;
-  /** The current value, reactive; `fallback` during server render and hydration. */
   useValue: () => T;
 }
 
-/** Creates the store once, at module scope, with the app's storage key, change event, and codec. */
 export function createDevicePreferenceStore<T>({
   storageKey,
   changeEvent,

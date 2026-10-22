@@ -1,7 +1,3 @@
-// The audit guards: one writer of the audit collection, one builder of person-actors, no
-// member-written text in an audit payload, no handler wrapped around an audit write, and a
-// refusal recorded through the failure entry points as the caller.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
@@ -21,23 +17,13 @@ import {
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
-// ---------------------------------------------------------------------------------------------
-// One audit writer.
-
 export interface AuditWriterFacts {
-  /** The one module that writes audit documents. */
   writer: string;
-  /** The audit collection's name as stored (`auditEvents`). */
   collectionName: string;
-  /** The core's handles on the collection, as `OWNER.member` (`COLLECTIONS.AUDIT_EVENTS`). */
   collectionHandles: readonly string[];
-  /** Packages that write audit documents themselves; only the writer imports them. */
   writerPackages: readonly string[];
-  /** Modules that name the collection to READ it, never to write; a stale entry fails. */
   readers: readonly Reviewed[];
-  /** The one module that builds a person-actor, the field that says an actor's mode, and the person modes. */
   personActor: { constructors: string; modeField: string; modes: readonly string[] };
-  /** Server code in the app root, held to the same rules as the Functions tree. */
   appServerZone: ServerZone;
 }
 
@@ -48,7 +34,6 @@ const AUDIT_WRITER_SCOPE: Scope = {
   tests: false,
 };
 
-/** Every place a file names the audit collection or imports a package that writes it. */
 export function auditCollectionMatcher(
   facts: Pick<AuditWriterFacts, 'collectionName' | 'collectionHandles' | 'writerPackages'>,
 ): Matcher {
@@ -85,7 +70,6 @@ export function auditCollectionMatcher(
   };
 }
 
-/** Every object literal that builds a person-actor by hand: its mode field set to a person mode. */
 export function personActorMatcher(facts: AuditWriterFacts['personActor']): Matcher {
   const modes = new Set(facts.modes);
   return (file) => {
@@ -184,27 +168,17 @@ export const auditWriterGuard: GenericGuardDefinition<AuditWriterFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// No member-written text in an audit payload.
-
 export interface AuditPayloadFacts {
-  /** The audit writer's entry points (`writeAuditEventAs`, the failure entry points). */
   entryPoints: readonly string[];
-  /** The key under which an entry point takes its payload (`payload`). */
   payloadKey: string;
-  /** Keys elsewhere whose object literal is handed to an entry point as its payload (`auditPayload`). */
   forwardedPayloadKeys: readonly string[];
-  /** Prose-named keys an operator (never a member) writes, as `file#key`, each with its why. */
   operatorCopy: ReadonlyArray<{ site: string; why: string }>;
 }
 
-/** A key named like prose: a title, a name, a body of text. */
 const PROSE_KEY =
   /(title|name|description|subject|body|text|message|content|caption|narrative|comment|bio|words)$/i;
-/** A map whose keys NAME fields rather than carry their text (`changedFieldLengths`). */
 const NAMES_NOT_TEXT = /(Lengths|Fields)$/;
 
-/** Every prose-named key, at any depth, of the payload literals a file hands to an audit entry point. */
 export function proseKeysInAuditPayloads(
   file: FileView,
   facts: AuditPayloadFacts,
@@ -302,15 +276,10 @@ export const auditPayloadGuard: GenericGuardDefinition<AuditPayloadFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// No handler chained onto a failure-audit entry point.
-
 export interface FailureAuditFacts {
-  /** The audit writer's best-effort failure entry points, which log and capture and never throw. */
   failureEntryPoints: readonly string[];
 }
 
-/** Each aliased import of a failure entry point, and each call with a handler chained onto it. */
 export function chainedFailureAudits(
   file: FileView,
   names: ReadonlySet<string>,
@@ -387,23 +356,14 @@ export const failureAuditGuard: GenericGuardDefinition<FailureAuditFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// A refusal's failure event goes through the failure entry points, attributed to the caller.
-
 export interface RefusalAuditFacts {
-  /** The audit writer's plain entry point, which throws when its write fails (`writeAuditEventAs`). */
   plainWriter: string;
-  /** The audit writer's best-effort failure entry points, which never throw. */
   failureEntryPoints: readonly string[];
-  /** The calls that build a system actor (`systemActor`). */
   systemActorBuilders: readonly string[];
-  /** The field and value that mark an actor literal as the system (`mode: 'system'`). */
   systemActorMode: { field: string; value: string };
-  /** The calls that define a callable (`onCall`). */
   callableFactories: readonly string[];
 }
 
-/** The name a function declaration or a `const f = …` function carries, if any. */
 function functionName(node: ts.Node): string | undefined {
   if (ts.isFunctionDeclaration(node)) return node.name?.text;
   if (
@@ -415,12 +375,6 @@ function functionName(node: ts.Node): string | undefined {
   return undefined;
 }
 
-/**
- * In a module that defines a callable: each plain-writer failure event written outside a
- * transaction, and each failure event or failure entry point handed a system actor. Calls inside a
- * failure entry point's own body are the owner's and are not read. `called` names every declared
- * plain writer, builder, and factory the file calls.
- */
 export function refusalAuditShapes(
   file: FileView,
   facts: RefusalAuditFacts,
@@ -556,17 +510,11 @@ export const refusalAuditGuard: GenericGuardDefinition<RefusalAuditFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// No fire-and-forget work and no swallowed audit write.
-
 export interface FireAndForgetFacts {
-  /** The audit writer's success entry points, whose failure is never swallowed by a `.catch`. */
   auditWrites: readonly string[];
-  /** Files whose `void`-ed calls are reviewed, each with its why; a file that no longer has one is stale. */
   voidSites: readonly Reviewed[];
 }
 
-/** Every `void`-ed call, every `.catch` chained onto an audit write, and every audit write call. */
 export function fireAndForgetShapes(file: FileView, auditWrites: ReadonlySet<string>) {
   const sf = file.sourceFile;
   const voided: ts.Node[] = [];

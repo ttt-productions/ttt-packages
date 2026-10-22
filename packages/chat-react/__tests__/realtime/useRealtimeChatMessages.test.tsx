@@ -30,27 +30,22 @@ function makeClient(
   });
 }
 
-// C-B7: the hook is a pure SUBSCRIBER — the owning hook (e.g. useRealtimeChannelClient)
-// is the single connect/close owner. These tests drive connect/close as that owner would.
 describe('useRealtimeChatMessages', () => {
-  it('reflects the owner-connected client state and opens NO socket of its own (C-B7)', async () => {
+  it('reflects the owner-connected client state and opens NO socket of its own', async () => {
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
     const client = makeClient('u-1', harness, clock, 'g1');
 
-    // The OWNER connects the client; THEN the view mounts the hook.
     await act(async () => {
       await client.connect();
     });
     const { result } = renderHook(() => useRealtimeChatMessages(client));
-    // The hook must not open a second socket — exactly one exists (the owner's).
     expect(harness.sockets).toHaveLength(1);
 
     await act(async () => {
       harness.last().serverOpen();
     });
     expect(result.current.status).toBe('open');
-    // Socket `open` ALONE does not end initial loading — an authoritative snapshot must land.
     expect(result.current.isInitialLoading).toBe(true);
 
     await act(async () => {
@@ -70,7 +65,6 @@ describe('useRealtimeChatMessages', () => {
         ],
       });
     });
-    // The authoritative non-resync snapshot both ends initial loading and delivers the row.
     expect(result.current.isInitialLoading).toBe(false);
     expect(result.current.messages.map((m) => m.text)).toEqual(['hi']);
   });
@@ -80,7 +74,6 @@ describe('useRealtimeChatMessages', () => {
     const clock = createFakeClock();
     const client = makeClient('u-1', harness, clock, 'g1');
     const { result } = renderHook(() => useRealtimeChatMessages(client));
-    // A brand-new (unconnected) client is in initial loading.
     expect(result.current.isInitialLoading).toBe(true);
 
     await act(async () => {
@@ -89,7 +82,6 @@ describe('useRealtimeChatMessages', () => {
     await act(async () => {
       harness.last().serverOpen();
     });
-    // Open, no snapshot → still loading.
     expect(result.current.isInitialLoading).toBe(true);
 
     await act(async () => {
@@ -97,7 +89,6 @@ describe('useRealtimeChatMessages', () => {
         .last()
         .serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
     });
-    // A loaded, authoritative empty chat — not an eternal loader. allowed stays true.
     expect(result.current.isInitialLoading).toBe(false);
     expect(result.current.allowed).toBe(true);
     expect(result.current.messages).toHaveLength(0);
@@ -122,7 +113,6 @@ describe('useRealtimeChatMessages', () => {
     expect(result.current.allowed).toBe(false);
     expect(result.current.lastErrorCode).toBe('access-denied');
     expect(result.current.status).toBe('closed');
-    // Denied at mint → no socket ever opened.
     expect(harness.sockets).toHaveLength(0);
   });
 
@@ -148,7 +138,7 @@ describe('useRealtimeChatMessages', () => {
     expect(harness.last().sent.some((f) => f.type === 'send')).toBe(true);
   });
 
-  it('does NOT close the socket on unmount — the owner owns teardown (C-B7)', async () => {
+  it('does NOT close the socket on unmount — the owner owns teardown', async () => {
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
     const client = makeClient('u-1', harness, clock, 'g1');
@@ -162,7 +152,6 @@ describe('useRealtimeChatMessages', () => {
     const sock = harness.last();
     expect(sock.closed).toBe(false);
     unmount();
-    // The hook only unsubscribes; the owning hook closes the socket.
     expect(sock.closed).toBe(false);
   });
 
@@ -184,7 +173,6 @@ describe('useRealtimeChatMessages', () => {
     });
     expect(harness.sockets[0].grantToken).toBe('grant-A');
 
-    // Auth switches to user B: the OWNER closes A + connects B; the hook re-subscribes.
     clientA.close();
     const clientB = makeClient('u-B', harness, clock, 'grant-B');
     await act(async () => {

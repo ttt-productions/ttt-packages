@@ -1,17 +1,7 @@
-// TTT audit event catalog. The `AuditEventType` union is the canonical list
-// of all sensitive actions the system logs. The `TTTAuditActor` and
-// `TTTAuditTarget` shapes describe who performed the action and what was
-// affected. `TTTAuditEvent` specializes the generic `AuditEvent` from
-// @ttt-productions/audit-core with the TTT-specific shapes.
-//
-// Backend writers and future native/TV/console readers all consume this
-// catalog from here.
-
 import type { AuditEvent } from '@ttt-productions/audit-core';
 import type { SystemRole } from '../schemas/atoms.js';
 
 export type AuditEventType =
-  // user status
   | 'artisanCreator.grantedToUser'
   | 'user.accountRegistered'
   | 'user.statusChanged'
@@ -21,43 +11,30 @@ export type AuditEventType =
   | 'user.displayNameResetForced'
   | 'user.displayNameChanged'
   | 'user.nonUsArtisanInterestRecorded'
-  // Credential and session records, each with the request origin: the sign-in the Identity Platform
-  // hook records, and a completed password reset, recorded from Identity Platform's own request log.
   | 'user.signedIn'
   | 'user.passwordResetCompleted'
-  // account deletion / GDPR erasure (N3)
   | 'account.deletionRequested'
   | 'account.deletionCancelled'
   | 'account.erasureCompleted'
   | 'account.erasureParkedOnHold'
   | 'account.erasureSuperseded'
-  // admin actions
   | 'admin.systemRoleGranted'
   | 'admin.systemRoleRevoked'
   | 'admin.systemRoleSyncedFromDirectEdit'
   | 'admin.contentAppealReviewed'
   | 'admin.thresholdItemReviewed'
-  // versioned public documents. Payload shapes: PublicDocumentsReleasedAuditPayload /
-  // PublicDocumentsAcceptedAuditPayload in ../schemas/public-documents.ts. `accepted` is the
-  // ONLY acceptance history (registration and the re-acceptance prompt both write it).
   | 'publicDocuments.released'
   | 'publicDocuments.accepted'
-  // admin launch-seed actions (Ready for Launch tab)
   | 'admin.reservedUsernamesSeeded'
   | 'admin.blockedFranchiseNamesSeeded'
-  // trademark-assist (advisory check at approval) + parody/real-people disclaimer baked at approval
   | 'admin.trademarkChecked'
   | 'content.parodyDisclaimerApplied'
-  // workProject
   | 'workProject.created'
   | 'workProject.guildmateUserGuildStandingChanged'
   | 'workProject.guildmateUserTradeProfessionsChanged'
-  // Member self-leave (leaveWorkProject) — pre-publish voluntary exit, shares forfeited to the pool.
   | 'workProject.guildMemberDeparted'
   | 'workProject.publicDetailsUpdated'
   | 'workProject.workAssetDeleted'
-  // work-file folders (S7). fileFolderAccessChanged is an ACL change (folder trade-profession
-  // view/upload/delete lists gate custom-folder confidentiality) — audited with before/after lists.
   | 'workProject.fileFolderCreated'
   | 'workProject.fileFolderRenamed'
   | 'workProject.fileFolderAccessChanged'
@@ -76,35 +53,22 @@ export type AuditEventType =
   | 'workProject.stakeShares.created'
   | 'workProject.stakeShares.increased'
   | 'workProject.stakeShares.anomaly'
-  // realm shared files — the promotion approval gate. A Work file admin REQUESTS promotion;
-  // the Realm steward approves (assigning the folder) or declines; the requester may withdraw
-  // while the request is still pending. Every one of these carries the request id, so a
-  // request and its resolution are one traceable pair.
   | 'workFile.realmShareRequested'
   | 'workFile.realmShareRequestWithdrawn'
   | 'workFile.realmSharePromotionApproved'
   | 'workFile.realmSharePromotionDeclined'
-  // The steward moves an already-approved shared file between realm folders.
   | 'workFile.realmFileFolderAssignmentChanged'
-  // Canon toggle on an approved file + the ADMIN-only un-share (sharing is permanent for
-  // members once approved; the only way out is an admin acting on a support thread).
   | 'workFile.realmCanonChanged'
   | 'workFile.unsharedFromRealm'
-  // craft-skills
   | 'craftSkill.userCraftSkillDeleted'
   | 'craftSkill.hidden'
   | 'craftSkill.restored'
   | 'craftSkill.removed'
-  // content
   | 'content.itemReported'
   | 'content.violationRecorded'
   | 'content.thresholdItemSubmitted'
-  // Member-initiated pull-back of a still-pending threshold submission (withdraw callable —
-  // deletes the threshold doc + admin task, flips the live sub-item back to unpublished).
   | 'content.thresholdItemWithdrawn'
   | 'content.hallItemPublished'
-  // Published change requests (text-only at launch): a member proposes new text-field values
-  // for a PUBLISHED hall item; an admin approves (server writes values in place) or denies.
   | 'content.hallContentChangeRequestSubmitted'
   | 'admin.hallContentChangeRequestResolved'
   | 'content.appealSubmitted'
@@ -112,7 +76,6 @@ export type AuditEventType =
   | 'content.hidden'
   | 'content.restored'
   | 'content.removed'
-  // content (workProject content)
   | 'content.taleWorkGenresUpdated'
   | 'content.chapterCreated'
   | 'content.chapterDetailsUpdated'
@@ -122,60 +85,43 @@ export type AuditEventType =
   | 'content.televisionWorkGenresUpdated'
   | 'content.televisionEpisodeCreated'
   | 'content.televisionEpisodeDetailsUpdated'
-  // money
   | 'payment.sessionCreated'
   | 'payment.pledgePaymentCompleted'
   | 'payment.pledgePaymentAbandoned'
   | 'payment.pledgePaymentFailed'
   | 'payment.pledgePaymentQuarantined'
-  // money — refund + dispute lifecycle (post-launch handlers; types added now to avoid a
-  // second package publish). Refund REQUESTS are the user-initiated ask; the refund itself is
-  // the money movement. Disputes are Stripe-initiated (chargeback) open/close.
   | 'payment.pledgePaymentRefunded'
   | 'payment.pledgePaymentDisputeOpened'
   | 'payment.pledgePaymentDisputeClosed'
   | 'payment.pledgeRefundRequested'
   | 'payment.pledgeRefundRequestResolved'
-  // money — independent ledger-integrity trigger (mirrors workProject.stakeShares.*)
   | 'payment.pledgeLedger.recorded'
   | 'payment.pledgeLedger.anomaly'
-  // admin task lifecycle
   | 'admin.taskCheckedOut'
   | 'admin.taskCheckedIn'
   | 'admin.taskReleased'
   | 'admin.taskAutoReleased'
   | 'admin.taskDeferredLater'
-  // audition
   | 'workProject.auditionCreated'
   | 'admin.auditionCreated'
   | 'audition.entryCreated'
   | 'audition.closedByUser'
-  // system-actor event: a curated audition's option batch failed to assemble (media
-  // rejection) and its curatedAssemblyStatus flipped to 'failed' (runFailCuratedAudition).
   | 'audition.curatedBatchFailed'
-  // system
   | 'system.manualIntervention'
   | 'system.appConfigUpdated'
-  // records (never controls) a charter↔full APP_MODE flip after deploy — written
-  // by the idempotent recordAppModeFlip admin callable
   | 'admin.appModeFlipRecorded'
   | 'system.pendingMediaArchived'
   | 'system.orphanUploadsCleanedUp'
   | 'admin.profanityListSeeded'
   | 'admin.profanityListCurated'
-  // system slots: a slot's new video published (system actor), a video slot cleared, and an
-  // account slot set or cleared (admin actors)
   | 'system.videoSlotPublished'
   | 'admin.videoSlotCleared'
   | 'admin.systemUidSlotUpdated'
-  // social. Payload shape of the Square agreements acceptance:
-  // SquareStreetzAgreementsAcceptedAuditPayload in ../schemas/users.ts.
   | 'social.squareStreetzAgreementsAccepted'
   | 'social.squareStreetzPostLiked'
   | 'social.squareStreetzPostUnliked'
   | 'social.targetFollowed'
   | 'social.targetUnfollowed'
-  // chat
   | 'chat.guildChatChannelCreated'
   | 'chat.guildChatChannelUpdated'
   | 'chat.guildChatChannelArchived'
@@ -183,25 +129,14 @@ export type AuditEventType =
   | 'chat.guildChatChannelDeleted'
   | 'chat.adminThreadStarted'
   | 'chat.adminThreadStatusChanged'
-  // conversation files — every successful delete is audited with UID references and
-  // canonical resource ids (the conversation ref, conversationFileId, mediaAssetId).
   | 'conversationFile.deleted'
-  // chat moderation (DO-owned hide/delete via chatAdminActionCommands) — append-only,
-  // deterministic ids hash('chat-moderation-{requested,applied,failed}', requestId, …).
   | 'chat.moderationActionRequested'
   | 'chat.moderationActionApplied'
   | 'chat.moderationActionFailed'
-  // case-bound admin context read (read-on-demand, REVIEW-ONLY) — audits the request
-  // AND outcome; one event per read keyed deterministically by the read's requestId.
   | 'chat.moderationContextRead'
-  // notification (admin-only). Actor mode is always adminReview / adminOverride.
-  // Payload shapes: NotificationBroadcastSentAuditMetadata /
-  // NotificationAdminArchivedAuditMetadata /
-  // NotificationAdminArchiveAllRequestedAuditMetadata in ../schemas/notification.ts.
   | 'notification.broadcastSent'
   | 'notification.adminArchived'
   | 'notification.adminArchiveAllRequested'
-  // workProject
   | 'workProject.released'
   | 'workProject.hidden'
   | 'workProject.restored'
@@ -213,17 +148,10 @@ export type AuditEventType =
   | 'workRealm.restored'
   | 'workRealm.moderationPlaceholderApplied'
   | 'workRealm.moderationRetitleCleared'
-  // Realm shared-file FOLDER management (steward-curated, Realm-wide-visible names —
-  // mirrors the workProject.fileFolder* family). The Realm folder has no access lists, so
-  // there is no `AccessChanged` sibling: a rename is the only in-place edit.
   | 'workRealm.fileFolderCreated'
   | 'workRealm.fileFolderUpdated'
   | 'workRealm.fileFolderDeleted'
-  // hall-content moderation text-clear remedy (extends the workProject/workRealm placeholder
-  // family across Tale/Tune/Television details + their chapter/track/episode sub-items and the
-  // published Hall projections). Same past-tense placeholder-applied shape as the pair above.
   | 'hallItem.moderationPlaceholderApplied'
-  // trust & safety — child safety / CSAM
   | 'report.childSafetyCaseOpened'
   | 'report.nciiCaseOpened'
   | 'childSafety.reportDispositionSet'
@@ -235,67 +163,32 @@ export type AuditEventType =
   | 'childSafety.ncmecPortalReceiptArtifactRecorded'
   | 'childSafety.legalProcessRecorded'
   | 'childSafety.falsePositiveCorrected'
-  // trust & safety — age / registration
   | 'user.ageUpgradedToAdult'
   | 'user.orphanAuthDeleted'
   | 'user.accountClosedUnder13'
   | 'user.safetyLocked'
-  // trust & safety — NCII / TAKE IT DOWN
   | 'ncii.requestReceived'
   | 'ncii.validityDecided'
   | 'ncii.tempHoldPlaced'
   | 'ncii.tempHoldReleased'
   | 'ncii.removalCompleted'
   | 'ncii.removalUnableToComplete'
-  // operator marks NCII evidence (e.g. flags/annotates an evidence item on the case) — a reviewed
-  // evidence-handling action, audited like the other ncii evidence events.
   | 'ncii.evidenceMarked'
   | 'ncii.requesterPiiScrubbed'
-  // operator sets the child-safety crossover minorAssessment on an NCII case (e.g. → possibleMinor):
-  // routing action that opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT
-  // touching the NCII removal clock and WITHOUT auto-NCMEC. Payload records from→to assessment.
   | 'ncii.minorAssessmentSet'
-  // [H-2] a failed possible-minor crossover leg (serving-deny / PhotoDNA) was reconciled or replayed
-  // by an operator/reconciler (crossoverLegs.<leg> failed → done). Payload records which leg + outcome.
   | 'ncii.crossoverLegReconciled'
-  // trust & safety — operator security
-  // Passkey enrollment/assertion reuses safety.privilegedReauthPerformed (the reauth catalog entry, as
-  // the TOTP step-up enroll/confirm/verify phases already do) — no distinct passkey-registration type.
   | 'safety.privilegedReauthPerformed'
-  // [P2-08] A privileged operator read of a TAKE IT DOWN request's RAW target locator (the
-  // reveal-on-demand, review-only read of the sensitive locator itself — distinct from the
-  // reveal reauth above, which is the step-up). One event per read. Mirrors the
-  // chat.moderationContextRead privileged-read convention.
   | 'safety.privilegedRawLocatorRead'
   | 'safety.deadlineBreachRecorded';
 
-/**
- * How the actor was acting when the audited action was performed. This is
- * orthogonal to the event name — the same event type can be produced by
- * different actor modes (e.g. a normal member vs. an admin override).
- *
- * - 'user'          — authenticated action not tied to Work guild membership
- * - 'guildmateUser' — acting through normal Work guild (guild standing) permissions
- * - 'adminReview'   — admin queue/support work on admin surfaces (no guild-permission concept)
- * - 'adminOverride' — system-admin authority superseding normal user/guild permission
- * - 'system'        — backend automation: trigger, scheduled job, migration, media pipeline
- */
 export type TTTAuditActorMode =
   'user' | 'guildmateUser' | 'adminReview' | 'adminOverride' | 'system';
 
-/** Fields common to every audited actor regardless of mode. `isAdmin` is
- * claim-present metadata only — it records that the caller held an admin
- * claim at the time, NOT that the action was an override. */
 export type TTTAuditActorBase = {
   uid: string | null;
   isAdmin: boolean;
 };
 
-/** TTT actor shape, discriminated on `actorMode`. The admin system role is
- * REQUIRED on admin modes (adminReview / adminOverride) and FORBIDDEN on
- * non-admin modes (user / guildmateUser / system) — so an admin action can
- * never be audited without recording full-vs-jr, and a non-admin action can
- * never carry a spurious role. */
 export type TTTAuditActor =
   | (TTTAuditActorBase & {
       actorMode: 'user' | 'guildmateUser' | 'system';
@@ -306,17 +199,8 @@ export type TTTAuditActor =
       systemRole: SystemRole;
     });
 
-/**
- * TTT target shape: the uid the audited action affects (if any), plus the
- * Firestore path of the affected document (if any).
- */
 export type TTTAuditTarget = { uid: string | null; ref: string | null };
 
-/**
- * The canonical TTT audit event document shape. Specializes the generic
- * `AuditEvent` from @ttt-productions/audit-core with the TTT event-type
- * union, actor shape, target shape, and a generic metadata bag.
- */
 export type TTTAuditEvent = AuditEvent<
   AuditEventType,
   TTTAuditActor,

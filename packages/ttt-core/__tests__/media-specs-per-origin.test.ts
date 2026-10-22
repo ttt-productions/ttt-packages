@@ -1,12 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
 import { FileOriginSchema } from '../src/media/file-origin.js';
-import { DEFAULT_NCII_POLICY_CONFIG_V1 } from '../src/doc-schemas/ncii/config.js';
+import { NCII_EVIDENCE_MAX_FILE_BYTES } from '../src/doc-schemas/ncii/config.js';
 
-// Per-origin correctness of the TTT media-spec registry. The Record<FileOrigin, …>
-// type already forces one entry per origin at compile time; these runtime checks
-// catch shape drift TypeScript can't (a processing branch missing for an accepted
-// kind, a capture mode enabled for a kind the origin doesn't accept, a zero cap).
 describe('TTT_MEDIA_SPECS per-origin correctness', () => {
   const origins = FileOriginSchema.options;
 
@@ -28,15 +24,8 @@ describe('TTT_MEDIA_SPECS per-origin correctness', () => {
       });
 
       it('has a processing branch for every accepted kind (unless preserveOriginal)', () => {
-        // A `preserveOriginal: true` origin is stored byte-exact and never
-        // transcoded (e.g. `ncii-evidence` — legal evidence). It INTENTIONALLY has
-        // no per-kind processing. An origin with NEITHER processing NOR
-        // preserveOriginal is a bug (forgotten processing) — the assertion below
-        // still fires for it, so this exemption can't hide a real oversight.
         if (spec.preserveOriginal === true) return;
         for (const kind of spec.accept?.kinds ?? []) {
-          // 'file' is the generic (stored-as-is) kind — it has no image/video/audio
-          // processing branch by design, so it's not part of this invariant.
           if (kind === 'file') continue;
           expect(
             spec.processing?.[kind],
@@ -56,9 +45,7 @@ describe('TTT_MEDIA_SPECS per-origin correctness', () => {
 });
 
 describe('the NCII evidence upload cap', () => {
-  it('is the NCII policy per-file cap — one owner, never a second number', () => {
-    expect(TTT_MEDIA_SPECS['ncii-evidence'].maxBytes).toBe(
-      DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes,
-    );
+  it('is the NCII per-file cap — one owner, never a second number', () => {
+    expect(TTT_MEDIA_SPECS['ncii-evidence'].maxBytes).toBe(NCII_EVIDENCE_MAX_FILE_BYTES);
   });
 });

@@ -1,6 +1,3 @@
-// The single-owner client guards: the app config reader, browser storage, upload listeners, media
-// rendering, MIME classification, motion, date-of-birth derivation, and partial package mocks.
-
 import { describe, expect, it } from 'vitest';
 import {
   appConfigReaderGuard,
@@ -17,7 +14,6 @@ import { findingsOf, samplesProve } from './run.js';
 
 const lines = (...l: string[]) => l.join('\n');
 
-// ---------------------------------------------------------------------------------------------
 describe('app config read only by its provider', () => {
   const facts = {
     provider: 'src/components/app-config-provider.tsx',
@@ -77,7 +73,6 @@ describe('app config read only by its provider', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('browser storage through the guarded helper', () => {
   const facts = { helper: 'readStoredValue / writeStoredValue', allowlist: [] };
 
@@ -125,7 +120,6 @@ describe('browser storage through the guarded helper', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('no per-component upload listeners', () => {
   const facts = {
     collectionName: 'pendingUploads',
@@ -164,7 +158,6 @@ describe('no per-component upload listeners', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('media renderer owners', () => {
   const facts: MediaRendererFacts = {
     renderers: [
@@ -238,7 +231,6 @@ describe('media renderer owners', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('no MIME-prefix media classification', () => {
   it('passes a full type and a comment', async () => {
     expect(
@@ -275,7 +267,6 @@ describe('no MIME-prefix media classification', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('one effective-motion source', () => {
   const facts = { store: 'src/shared/reduced-motion.ts' };
   const store = {
@@ -319,7 +310,6 @@ describe('one effective-motion source', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('one date-of-birth derivation owner', () => {
   const core = {
     'node_modules/@kit/core/dist/index.js': 'export * from "./age.js";',
@@ -383,7 +373,6 @@ describe('one date-of-birth derivation owner', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('partial mocks keep a pure root', () => {
   const facts = {
     packageRoots: [

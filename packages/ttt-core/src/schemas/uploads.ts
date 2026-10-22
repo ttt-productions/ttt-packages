@@ -6,9 +6,6 @@ import { UploadCraftSkillAcceptedResultSchema } from './craft-skills.js';
 import { ApplyToCommissionAcceptedResultSchema } from './commissions.js';
 import { CreateAuditionEntryAcceptedResultSchema } from './auditions.js';
 
-// Clears a single finished (completed/failed/rejected) upload from the File-status
-// tray. The callable derives ownership + terminal-status from the stored pendingMedia
-// doc; this input only carries which one. Tray UX state — not a sensitive action.
 export const ClearUploadActivityRequestSchema = z
   .object({
     pendingMediaId: pendingMediaIdSchema,
@@ -21,10 +18,6 @@ export const ClearUploadActivityResultSchema = z.object({
 });
 export type ClearUploadActivityResult = z.infer<typeof ClearUploadActivityResultSchema>;
 
-// Marks terminal pendingMedia docs as seen in the File-status tray (parity with
-// notification `seenAt`). The frontend sends every currently-unseen terminal
-// pendingMediaId when the File-status tab opens; the callable owns the per-doc
-// ownership/terminal/already-seen filtering.
 export const MarkUploadsSeenRequestSchema = z
   .object({
     pendingMediaIds: z.array(pendingMediaIdSchema).min(1).max(MAX_UPLOADS_MARKED_SEEN_PER_CALL),
@@ -38,8 +31,6 @@ export const MarkUploadsSeenResultSchema = z.object({
 });
 export type MarkUploadsSeenResult = z.infer<typeof MarkUploadsSeenResultSchema>;
 
-// The member startUpload answers by lane: most lanes return the pending media doc it opened;
-// the craft-skill, commission-application and audition-entry lanes accept the upload outright.
 export const StartUploadResultSchema = z.union([
   StartUploadResponseSchema,
   UploadCraftSkillAcceptedResultSchema,

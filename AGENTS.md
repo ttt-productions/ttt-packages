@@ -1,6 +1,5 @@
 # Codex instructions for ttt-packages
 
-Read this repository's `CLAUDE.md` before reviewing, planning, editing, or running commands, and
-everything it names as required reading — `docs/development-preferences.md` (how an AI works with
-DJ) and the package engineering rules. All of it applies to Codex exactly as written; nothing is
-restated here.
+Read [`packages/dev-standards/AGENTS.base.md`](packages/dev-standards/AGENTS.base.md) — the shared
+Codex base — and this repository's `CLAUDE.md`, whose values block at its top declares every
+placeholder the shared docs use. Nothing else is restated here.

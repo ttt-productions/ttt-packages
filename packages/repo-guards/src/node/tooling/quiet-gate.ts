@@ -1,11 +1,3 @@
-// The quiet gate: every stage of an app's verification in order, printing one line per step with
-// its pass counts and, on failure, only the failing tests — never the raw multi-thousand-line log.
-//
-// Static stages stop the run on their first failure. Test stages all run and then summarize, so
-// one failing suite cannot hide another. A stage that needs live local services (an emulator, a
-// served build) is skipped in a full run when they are down, but FAILS when it was named in
-// `--only`: a skip there would read as verified while nothing ran.
-
 import {
   appendFileSync,
   existsSync,
@@ -43,9 +35,7 @@ export type GateStep =
       kind: 'playwright';
       label: string;
       cwd: string;
-      /** The retry-pass log, relative to `cwd`. */
       flakyLogPath: string;
-      /** Paths under `cwd` removed before the run (a stale saved sign-in, for one). */
       clearBeforeRun?: readonly string[];
     };
 
@@ -55,24 +45,16 @@ export interface LiveService {
 }
 
 export interface GateStage {
-  /** The `--only` name; `--<id>` is its shortcut. */
   id: string;
-  /** The one-line help text. */
   description: string;
-  /** A failed step ends the whole run. */
   stopOnFailure: boolean;
-  /** The stage's steps, built when the stage runs. */
   steps: () => readonly GateStep[];
-  /** Local services the stage needs listening. */
   services?: readonly LiveService[];
-  /** What starts those services, printed when the stage was named and they are down. */
   startHint?: string;
 }
 
 export interface QuietGateConfig {
-  /** The heading the run prints. */
   title: string;
-  /** The script's name in the usage text. */
   script: string;
   stages: readonly GateStage[];
 }
@@ -93,11 +75,6 @@ export type GateSelection =
   | { kind: 'usage-error'; message: string }
   | { kind: 'run'; only: ReadonlySet<string> | null };
 
-/**
- * The stages a command line selects. An `--only` that names no stage would run nothing and exit
- * 0, which anything reading the exit status takes as a pass, so it is a usage error, like a
- * misspelled stage name.
- */
 export function selectStages(argv: readonly string[], stageIds: readonly string[]): GateSelection {
   if (argv.includes('--help') || argv.includes('-h')) return { kind: 'help' };
   const eq = argv.find((a) => a.startsWith('--only='));
@@ -161,7 +138,6 @@ const write = (text: string): void => {
   process.stdout.write(text);
 };
 
-/** The one-line "still running" heartbeat, repainted each second on a terminal. */
 class Heartbeat {
   private timer: NodeJS.Timeout | null = null;
   private start = 0;
@@ -234,7 +210,6 @@ function detailOf(totals: Totals, elapsed: number, loadFailures = 0): string {
   return `${totals.passed} passed${totals.failed ? `, ${totals.failed} failed` : ''}${loads}${totals.skipped ? `, ${totals.skipped} skipped` : ''}${totals.flaky ? `, ${totals.flaky} flaky` : ''} · ${fmtTime(elapsed)}`;
 }
 
-/** Run the gate for the process's command line, then exit with its verdict. */
 export async function runQuietGate(
   config: QuietGateConfig,
   argv: readonly string[] = process.argv.slice(2),
@@ -328,13 +303,11 @@ export async function runQuietGate(
       }
       write('\n');
     }
-    // A file that failed to load has no failed test to name it, so it is printed first, in full.
     if (suiteFailures.length > 0) {
       write(`${YELLOW}${formatSuiteFailures(suiteFailures)}${RESET}\n\n`);
     }
     if (failures.length === 0 && suiteFailures.length === 0 && code !== 0) {
-      // The usual cause is an unhandled error, which the JSON reporter records against no test;
-      // Vitest's own diagnosis is printed in full before any truncated raw tail.
+      // The JSON reporter records an unhandled error against no test.
       const unhandled = formatUnhandledErrorReport(`${stderr}\n${stdout}`);
       if (unhandled) write(`${YELLOW}${unhandled}${RESET}\n\n`);
       printRawTail('Vitest', code, stdout, stderr);
@@ -459,7 +432,6 @@ function appendFlakyLog(logPath: string, flakyTests: readonly FlakyTest[]): void
     appendFileSync(logPath, `${flakyLogRows(flakyTests, new Date())}\n`);
     write(`${YELLOW}⚑${RESET} ${flakyTests.length} retry-pass(es) appended to ${logPath}\n`);
   } catch (error) {
-    // The log is a record only: the stage already fails on any retry-pass.
     write(
       `${DIM}Could not append to ${logPath}: ${error instanceof Error ? error.message : String(error)}${RESET}\n`,
     );

@@ -24,9 +24,6 @@ export const AcceptViolationDecisionInputSchema = z
   .strict();
 export type AcceptViolationDecisionInput = z.infer<typeof AcceptViolationDecisionInputSchema>;
 
-// One member per `ShortLinkTargetTypeSchema` value (schemas/atoms.ts), each carrying exactly the
-// id(s) its destination URL needs.
-
 export const CreateShortLinkInputSchema = z.discriminatedUnion('targetType', [
   z
     .object({
@@ -62,8 +59,6 @@ export const CreateShortLinkResultSchema = z.object({
 });
 export type CreateShortLinkResult = z.infer<typeof CreateShortLinkResultSchema>;
 
-// No-input seed callables (Ready for Launch tab). Each prepopulates one system
-// dataset from a canonical backend constant; the input is intentionally empty.
 export const SeedProfanityListInputSchema = z.object({}).strict();
 export type SeedProfanityListInput = z.infer<typeof SeedProfanityListInputSchema>;
 
@@ -94,10 +89,6 @@ export const SeedBlockedFranchiseNamesResultSchema = z.object({
 });
 export type SeedBlockedFranchiseNamesResult = z.infer<typeof SeedBlockedFranchiseNamesResultSchema>;
 
-// Public-document seed callables (Ready for Launch tab), one per PublicDocumentId. Each
-// publishes its document's launch content as v1 through the public-document release owner,
-// only while that document has never been published (otherwise a no-op). The input is
-// intentionally empty.
 export const SeedRulesAndAgreementsInputSchema = z.object({}).strict();
 export type SeedRulesAndAgreementsInput = z.infer<typeof SeedRulesAndAgreementsInputSchema>;
 
@@ -107,10 +98,8 @@ export type SeedFuturePlansInput = z.infer<typeof SeedFuturePlansInputSchema>;
 export const SeedTermsPageInputSchema = z.object({}).strict();
 export type SeedTermsPageInput = z.infer<typeof SeedTermsPageInputSchema>;
 
-// ONE result for every public-document seed callable.
 export const SeedPublicDocumentResultSchema = z.object({
   success: z.literal(true),
-  /** False when the document was already published, so nothing was written. */
   seeded: z.boolean(),
   version: z.number().int().positive(),
 });
@@ -125,13 +114,10 @@ export type SeedTakeItDownPageCopyInput = z.infer<typeof SeedTakeItDownPageCopyI
 export const SeedDmcaPolicyInputSchema = z.object({}).strict();
 export type SeedDmcaPolicyInput = z.infer<typeof SeedDmcaPolicyInputSchema>;
 
-/** One curated word-list term. The published list is hashed with edge-protocol-core's
- *  `hashStringSet`, which joins terms with a line break and refuses a term holding one, so its
- *  declaration is single-line and a term with a line break is refused here rather than failing
- *  every later publish. */
+// edge-protocol-core's `hashStringSet` joins terms with a line break and refuses a term holding
+// one, so such a term is refused here rather than failing every later publish.
 const curatedProfanityTermSchema = textFieldSchema(CURATED_PROFANITY_TERM_INPUT);
 
-/** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z
   .object({
     add: z
@@ -149,7 +135,6 @@ export const CurateProfanityListInputSchema = z
   });
 export type CurateProfanityListInput = z.infer<typeof CurateProfanityListInputSchema>;
 
-/** The `curateProfanityList` answer: the terms it added and removed, and the list's size after it. */
 export const CurateProfanityListResultSchema = z.object({
   success: z.literal(true),
   added: z.array(z.string()),
@@ -169,7 +154,6 @@ export type SubmitContentAppealInput = z.infer<typeof SubmitContentAppealInputSc
 export const SubmitFeedbackInputSchema = z
   .object({
     feedbackType: z.enum(FEEDBACK_TYPES),
-    // Stored lowercase, so "Dark" and "dark" are one suggestion.
     suggestion: textFieldSchema(FEEDBACK_SUGGESTION_INPUT).transform((word) => word.toLowerCase()),
   })
   .strict();
@@ -194,10 +178,6 @@ export const TrackShortLinkClickResultSchema = z.object({
 });
 export type TrackShortLinkClickResult = z.infer<typeof TrackShortLinkClickResultSchema>;
 
-// The caller marks the thread seen through the newest message it has on screen. The server
-// moves the caller's OWN marker (AdminDispatchReadMarkerSchema) to that time, never past the
-// thread's latest message and never backwards, so a message that arrived after the screen
-// rendered stays unseen.
 export const MarkAdminDispatchReadInputSchema = z
   .object({
     adminDispatchId: adminDispatchIdSchema.max(128),
@@ -206,7 +186,6 @@ export const MarkAdminDispatchReadInputSchema = z
   .strict();
 export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
 
-/** The caller's committed marker — the client patches its cached thread rows from it. */
 export const MarkAdminDispatchReadResultSchema = z.object({
   success: z.literal(true),
   adminDispatchId: adminDispatchIdSchema,
@@ -214,29 +193,19 @@ export const MarkAdminDispatchReadResultSchema = z.object({
 });
 export type MarkAdminDispatchReadResult = z.infer<typeof MarkAdminDispatchReadResultSchema>;
 
-// submitContentAppeal — the transaction sets appealStatus 'pending' + appealedAt = now on
-// the violation; both are known at commit and let the client patch its violations list.
 export const SubmitContentAppealResultSchema = z.object({
   success: z.literal(true),
   violationId: violationIdSchema,
-  /** The violation's appeal state after commit. */
   appealStatus: z.literal('pending'),
   appealedAt: z.number(),
-  /** Operation-receipt audit id — the `content.appealSubmitted` event written in the same
-   * transaction. */
   auditEventId: z.string().min(1).optional(),
 });
 export type SubmitContentAppealResult = z.infer<typeof SubmitContentAppealResultSchema>;
 
-// acceptViolationDecision — the violation record (and its pendingMedia/archive docs) are
-// removed at commit; the client drops the row from its violation + pendingMedia caches.
 export const AcceptViolationDecisionResultSchema = z.object({
   success: z.literal(true),
   violationId: violationIdSchema,
-  /** True when the record was already gone (idempotent accept). */
   alreadyRemoved: z.boolean(),
-  /** Operation-receipt audit id — the `content.violationAccepted` event written in the same
-   * transaction. */
   auditEventId: z.string().min(1).optional(),
 });
 export type AcceptViolationDecisionResult = z.infer<typeof AcceptViolationDecisionResultSchema>;

@@ -32,7 +32,6 @@ async function loadInitializedAdapter() {
   return SentryAdapter;
 }
 
-/** Let every pending microtask and timer-0 continuation run, so a replay would have fired. */
 async function flushPendingWork() {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -254,7 +253,6 @@ describe('SentryAdapter (browser) captureMessage context → tags vs extras', ()
     expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'early');
     expect(scopeMock.setExtra).toHaveBeenCalledWith('requestId', 'req-1');
     expect(sentryMock.withScope).toHaveBeenCalledTimes(1);
-    // No double-report: the pre-load branch is the ONLY reporting path taken.
     expect(sentryMock.captureMessage).toHaveBeenCalledTimes(1);
     expect(sentryMock.captureMessage).toHaveBeenCalledWith('early', 'warning');
   });

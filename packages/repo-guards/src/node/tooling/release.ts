@@ -1,8 +1,3 @@
-// The release workflow's two helpers as command lines: the scope resolver (`--event --repo
-// --branch --run-id --head-sha` and the dispatch inputs; `GITHUB_TOKEN` from the environment,
-// outputs to `GITHUB_OUTPUT`) and the gate / verdict (`--mode gate|verdict`, inputs from the
-// step's environment).
-
 import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import {
@@ -28,7 +23,6 @@ function argOf(argv: readonly string[], name: string): string | undefined {
   return i !== -1 ? argv[i + 1] : undefined;
 }
 
-/** Git, run in the repository. */
 export function repoGit(repoRoot: string): ReleaseGit {
   const run = (...args: string[]): string =>
     execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
@@ -55,7 +49,6 @@ export function repoGit(repoRoot: string): ReleaseGit {
   };
 }
 
-/** The GitHub API calls the resolver makes. */
 export function githubReleaseApi({
   repo,
   branch,
@@ -96,11 +89,6 @@ export function githubReleaseApi({
   };
 }
 
-/**
- * Resolve the scope from the command line and write the outputs. Dispatch inputs are
- * `--dispatch-<component key with dashes>` true/false flags, `--dispatch-codebases` for the
- * component chosen by codebase, and `--dispatch-full-fleet`.
- */
 export async function runReleaseScopeCli(
   config: ReleaseScopeConfig,
   {
@@ -151,7 +139,6 @@ export async function runReleaseScopeCli(
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${outputs}\n`);
 }
 
-/** Run the gate or the verdict over the step's environment; exits non-zero on any blocker. */
 export function runReleaseVerdictCli(
   config: ReleaseVerdictConfig,
   argv: readonly string[] = process.argv.slice(2),

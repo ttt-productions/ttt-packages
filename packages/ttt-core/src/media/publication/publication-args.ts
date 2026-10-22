@@ -1,10 +1,5 @@
-// The args each media publication kind's activation job carries. A processor writes them at
-// PREPARE and the kind's adapter parses them before every publish attempt: the scheduled
-// recovery worker re-reads them from the stored job, so the stored row is never trusted as-is.
-//
-// Text a person typed (titles, descriptions, captions, cover letters) is a plain string here.
-// The adapter judges it with its declaration after the parse, so a refused text ends the job
-// terminally instead of failing the parse on every retry.
+// Typed text is a plain string here: the adapter judges it after the parse, so a refused text ends
+// the job instead of failing every retry.
 
 import { z } from 'zod';
 import { CRAFT_SKILL_TAG_VALUES } from '../../constants/options.js';
@@ -72,7 +67,6 @@ export const WorkAssetPublicationArgsSchema = z
     name: z.string(),
     size: z.number().int().nonnegative(),
     contentType: z.string().min(1),
-    // The server-inspected kind every Work-file preview renders by, never the declared type.
     mediaKind: ContentMediaKindSchema,
   })
   .strict();
@@ -110,8 +104,6 @@ export const ConversationFilePublicationArgsSchema = z
     name: z.string().min(1),
     mediaKind: ContentMediaKindSchema,
     contentType: z.string().min(1),
-    // The bytes startUpload reserved for this upload. The publish subtracts them from the
-    // parent's reserved total, so its byte-ceiling check honors every other live reservation.
     reservedBytes: z.number().int().nonnegative(),
   })
   .strict();
@@ -139,7 +131,6 @@ export const CommissionListingMediaPublicationArgsSchema = z
     attachmentName: z.string(),
     attachmentType: ContentMediaKindSchema,
     attachmentSize: z.number().int().nonnegative(),
-    // Id and type only: the Work's title and description resolve at render (ARCH-103).
     workProjectAssociatedWith: z
       .object({
         workProjectId: workProjectIdSchema,
@@ -164,8 +155,6 @@ export type CommissionProposalMediaPublicationArgs = z.infer<
   typeof CommissionProposalMediaPublicationArgsSchema
 >;
 
-// `auditionMode` carries the audition's own `mode`; it is named apart from the branch
-// discriminant `mode` below.
 const auditionPromptModeFields = {
   auditionMode: AuditionModeSchema.optional(),
   expectedOptionCount: z.number().optional(),
@@ -209,7 +198,6 @@ const EntryPublicationArgsSchema = z
     userId: userIdSchema,
     auditionId: auditionIdSchema,
     auditionEntryId: auditionEntryIdSchema,
-    // The upload's submit time, which the entry deadline is judged by.
     submittedAt: z.number(),
   })
   .strict();
@@ -226,7 +214,6 @@ export const SystemVideoSlotPublicationArgsSchema = z
   .strict();
 export type SystemVideoSlotPublicationArgs = z.infer<typeof SystemVideoSlotPublicationArgsSchema>;
 
-/** Every publication kind's args schema, keyed by kind, so a new kind cannot build without its args. */
 export const MEDIA_PUBLICATION_ARGS_SCHEMAS = {
   profilePicture: ProfilePicturePublicationArgsSchema,
   squarePostMedia: SquarePostMediaPublicationArgsSchema,

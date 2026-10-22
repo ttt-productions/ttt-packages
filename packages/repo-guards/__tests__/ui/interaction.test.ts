@@ -1,6 +1,3 @@
-// The interaction guards: navigation through the helper, pending through the shared primitives,
-// one show-more control, one pending-name seat, and the root layout's provider order.
-
 import { describe, expect, it } from 'vitest';
 import {
   layoutOrderGuard,

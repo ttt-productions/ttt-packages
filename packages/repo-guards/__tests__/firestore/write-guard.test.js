@@ -1,17 +1,3 @@
-// The write guard's OWN tests.
-//
-// An app's live-tree guard proves its repository is clean. It cannot prove the guard still WORKS:
-// a guard that silently stopped resolving anything would pass that test forever with a green tree.
-//
-// So every rule the guard enforces has a MUST-FAIL fixture here — a source snippet that has to
-// produce exactly that violation — and every documented non-violation has a MUST-PASS fixture.
-// The fixtures are analyzed against the fixture core (`./fixture-core`): an illustrative
-// application's core whose registry structure — templates, declared keys, closedness, unions,
-// builders — is what every snippet below writes against.
-//
-// The fixtures are source strings on purpose: the shape being tested and the violation it must
-// produce read together, in one place.
-
 import { describe, it, expect, beforeAll } from 'vitest';
 import { z } from 'zod';
 import {
@@ -32,14 +18,12 @@ import { fixturePackageDeclarations } from './fixture-declarations.js';
 import * as fixtureCore from './fixture-core/index.js';
 import * as fixtureDocSchemas from './fixture-core/doc-schemas.js';
 
-/** The fixture core's entry points, loaded the way an app hands its own core to the guard. */
 const FIXTURE_SOURCES = Object.freeze({
   core: async () => fixtureCore,
   docSchemas: async () => fixtureDocSchemas,
   subpaths: Object.freeze({}),
 });
 
-/** The fixture core's path-constant maps. */
 const FIXTURE_CONSTANT_MAPS = Object.freeze([
   'COLLECTIONS',
   'COLLECTION_GROUPS',
@@ -49,7 +33,6 @@ const FIXTURE_CONSTANT_MAPS = Object.freeze([
   'SPECIAL_DOCS',
 ]);
 
-/** The module declaring the fixture app's removal-only documents. */
 const V1_MODULE = 'functions/src/migration-console/actions/v1-sources.ts';
 
 const PROFILE = createGuardProfile({
@@ -67,7 +50,6 @@ beforeAll(async () => {
   });
 });
 
-/** Analyze one fixture file and return its violations. */
 function analyze(source, { exceptions = [] } = {}) {
   return runGuardOnSources({
     sources: { 'fixture/writer.ts': source },
@@ -91,7 +73,6 @@ function analyzeSources(sources, { exceptions = [] } = {}) {
 const kindsOf = (result) => result.violations.map((violation) => violation.kind);
 const detailsOf = (result) => result.violations.map((violation) => violation.detail).join('\n');
 
-/** Every fixture opens with the imports a real writer has. */
 const PREAMBLE = `
 import { PATH_BUILDERS, COLLECTIONS, toPath } from '@fixture/core';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -111,7 +92,7 @@ describe('MUST FAIL — a key the document schema does not declare', () => {
     expect(detailsOf(result)).not.toContain("'uid'");
   });
 
-  it("fires on an update()'s DOTTED key, which addresses the TOP-LEVEL field (BACKEND-104)", () => {
+  it("fires on an update()'s DOTTED key, which addresses the TOP-LEVEL field (RULE-STD-BACKEND-104)", () => {
     const result = analyze(`${PREAMBLE}
       export async function writeIt(uid: string) {
         const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
@@ -1106,9 +1087,6 @@ describe('write FORMS the guard must see', () => {
 
 describe('scope awareness', () => {
   it('never matches a variable to a same-named declaration in ANOTHER function', () => {
-    // Matching by name across functions would resolve `ref` in one function to an unrelated
-    // `ref` declared in a different one and diff the payload against the wrong schema. A wrong
-    // answer is worse than no answer, so this must fail CLOSED.
     const result = analyze(`${PREAMBLE}
       function somewhereElse(uid: string) {
         const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
@@ -1233,16 +1211,8 @@ describe('declaredKeys over the schema shapes the registry actually holds', () =
   });
 });
 
-// ===========================================================================
-// EXPLICIT OUTCOMES — no candidate write is ever dropped for "not looking Firestore"
-// ===========================================================================
-
 describe('MUST FAIL — a write a name-based classifier would drop silently', () => {
   it('fires on a DocumentReference-typed local whose NAME says nothing about Firestore', () => {
-    // A classifier reading the receiver's SOURCE TEXT for db/firestore/.doc(/ref would match
-    // none of it for a handle named `target`, and the write would never be recorded at all —
-    // not resolved, not violated, not counted. Silence is the one outcome a fail-closed guard
-    // may not have.
     const result = analyze(`${PREAMBLE}
       export async function writeIt(target: FirebaseFirestore.DocumentReference) {
         await target.set({ anything: 1 }, { merge: true });
@@ -1347,7 +1317,6 @@ describe('the independent structural cross-check', () => {
 });
 
 describe('MUST FAIL — a registered template whose declared keys cannot be read', () => {
-  /** A registry stub is the honest way to test the condition the real registry must never have. */
   const stubRegistry = (schema) => ({
     declaredFor: () => declaredKeys(schema),
     schemaFor: () => schema,
@@ -1389,9 +1358,6 @@ describe('MUST FAIL — a registered template whose declared keys cannot be read
   });
 
   it('MUST FAIL: an undiffable SOLE candidate is never excusable', () => {
-    // With one candidate template and no readable keys, the payload is checked against
-    // nothing at all. An exception may vouch for a known key; it may not vouch for an
-    // unknown set of them, so this state has to stay impossible to silence.
     const wrapped = z.preprocess((value) => value, z.object({ declared: z.string() }));
     const result = evaluate({
       writes: oneWrite(['declared']),
@@ -1477,8 +1443,6 @@ describe('MUST FAIL — every visible assignment of a payload variable is read',
 
 describe('union narrowing on a readable discriminant', () => {
   it('narrows a discriminated union to the member the payload names', () => {
-    // `completedAt` exists only on the COMPLETED pendingMedia member. A payload that says
-    // `status: 'processing'` cannot carry it, and "declared by ANY member" would allow it.
     const result = analyze(`${PREAMBLE}
       export async function writeIt(id: string) {
         await db.doc(toPath(PATH_BUILDERS.pendingMedia(id))).set(
@@ -1513,10 +1477,6 @@ describe('union narrowing on a readable discriminant', () => {
     ).toEqual(['a', 'kind']);
   });
 });
-
-// ===========================================================================
-// THE CANONICAL WRITER SHAPES — each with a positive fixture and a must-fail twin
-// ===========================================================================
 
 describe('COLLECTION_REFS auto-id and preset-id references', () => {
   it('accepts an auto-id mint through a canonical collection builder', () => {
@@ -1618,9 +1578,6 @@ describe('COLLECTION_REFS auto-id and preset-id references', () => {
 
 describe('computed keys drawn from a canonical core const map', () => {
   it('reads EVERY value of the map as a written key', () => {
-    // A writer that addresses its field through a package-owned map is checked against every
-    // value the map holds. Unrolling that map into a hand-written field chain to satisfy the
-    // analyzer is the defect this capability exists to prevent (ARCH-102).
     const result = analyze(`
       import { PATH_BUILDERS, toPath } from '@fixture/core';
       import { COLLECTION_DOC_ID_FIELDS } from '@fixture/core/doc-schemas';
@@ -1648,7 +1605,6 @@ describe('computed keys drawn from a canonical core const map', () => {
         );
       }
     `);
-    // A public user declares uid but not a stat event's eventId.
     expect(detailsOf(result)).toContain('eventId');
   });
 
@@ -1878,14 +1834,10 @@ describe('a payload built by a PACKAGE function', () => {
       schema: 'PendingMediaCompletedSchema',
       why: 'fixture — the entry names the schema the DECLARED keys must fit',
     };
-    // The keys come from media-schemas' own .d.ts (PendingMediaCompletedTerminalFields), not
-    // from the bound schema: a four-key builder may not draw on the whole document's licence.
     const result = analyze(source, { exceptions: [entry] });
     expect(result.staleExceptions).toEqual([]);
     expect(result.writes[0].keys).toContain('terminalAt');
     expect(result.writes[0].keys).not.toContain('originalFileName');
-    // Written to publicUsers, those declared keys are undeclared — the assertion says what
-    // the builder produces, never that wherever it lands will accept it.
     expect(detailsOf(result)).toContain('terminalAt');
   });
 
@@ -1918,9 +1870,6 @@ describe('a payload built by a PACKAGE function', () => {
   });
 
   describe('an OVERLOADED builder, bound to one exact call by `args`', () => {
-    // media-schemas' buildPendingMediaTerminalFields declares one signature per status, and
-    // the guard reads only the FIRST ('completed', Record<string, never>, now). The entry is
-    // therefore true for exactly the call that selects that signature.
     const terminal = (args) => `${PREAMBLE}
       import { buildPendingMediaTerminalFields } from '@fixture/media';
       export async function writeIt(id: string, nowMs: number) {
@@ -2161,7 +2110,6 @@ describe('a query a helper merely runs and hands back', () => {
         if (msgs) for (const m of msgs.docs) await m.ref.update({ passThroughUndeclared: 1 });
       }
     `);
-    // The second loop's documents are the gameStatEvents group's — NOT publicUsers'.
     expect(detailsOf(result)).toContain('passThroughUndeclared');
     expect(detailsOf(result)).toContain('gameStatEvents');
     expect(detailsOf(result)).not.toContain('publicUsers');
@@ -2182,9 +2130,6 @@ describe('a carrier built in one array, spread into a second, read back in a lat
   `;
 
   it('follows the ref through both arrays and the override spread', () => {
-    // `{ ...candidate, order: liveOrder }` is a readable carrier: properties are read in
-    // source order and a later definition replaces an earlier one, exactly as the language
-    // evaluates them. Rejecting it for repeating a spread key lost the whole chain.
     const result = analyze(source("{ displayName: 'x' }"));
     expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
   });
@@ -2250,12 +2195,6 @@ describe('a lane registry whose entries hold their own path builder', () => {
     expect(result.violations).toEqual([]);
   });
 });
-
-// ===========================================================================
-// FAIL-OPEN SHAPES — each of these reaches disk with NO outcome at all under a reader that
-// knows only the plain spellings. None of them exists in the tree; each stays here so it
-// can never arrive silently.
-// ===========================================================================
 
 describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', () => {
   const undeclaredThrough = (body) => `${PREAMBLE}
@@ -2369,8 +2308,6 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
   });
 
   it('a DocumentReference named `t` is a reference, not a transaction', () => {
-    // Dropping a single-argument write on it as "not a (ref, data) pair" because of the NAME
-    // would lose a real write. A name is never evidence.
     const result = analyze(`${PREAMBLE}
       export async function writeIt(uid: string) {
         const t = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
@@ -2424,8 +2361,6 @@ describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', ()
   });
 
   it('a DOTTED COMPUTED key in a merge-set is a literal field name, not a path', () => {
-    // Only `update()` addresses the top-level segment before the dot (BACKEND-104).
-    // Shortening a merge-set key to its prefix would let `displayName.${k}` pass as `displayName`.
     const result = analyze(
       undeclaredThrough('await ref.set({ [`displayName.${uid}`]: 1 }, { merge: true });'),
     );
@@ -2552,9 +2487,6 @@ describe('reviewed exception field binding', () => {
 });
 
 describe('MUST FAIL — a computed write-method selector that does not resolve', () => {
-  // The selector cannot be narrowed to a finite set that EXCLUDES set/update/create/add,
-  // and the receiver is a resolved Firestore reference. Silence here is the whole class the
-  // guard exists to close: writes=0, violations=0 reads as a clean file.
   const throughRef = (body) => `${PREAMBLE}
     export async function writeIt(uid: string, m: 'set' | 'create') {
       const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
@@ -2751,9 +2683,6 @@ describe('MUST PASS — ordinary dispatch whose own members supply the method', 
 });
 
 describe('MUST FAIL — every candidate of a multi-candidate selector is checked', () => {
-  // `set` and `update` read a DOTTED key differently (BACKEND-104): in an update() it is the
-  // top-level field before the dot, in a set() it is a literal top-level field name. Taking
-  // the first candidate and discarding the rest would wave one of the two branches through.
   const dotted = (selector) => `${PREAMBLE}
     export async function writeIt(uid: string, c: boolean, m: 'update' | 'set') {
       const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
@@ -2849,8 +2778,6 @@ describe('the exception list binds to a structural write site', () => {
 
 describe('the registry the guard resolves against', () => {
   it('has no registered template whose declared keys cannot be read', () => {
-    // A schema the guard cannot diff silently checks its writers against nothing. The
-    // justified set is EMPTY: every registered document is a readable object schema.
     const JUSTIFIED_UNDIFFABLE = [];
     const undiffable = registry.templates.filter((template) => {
       const declared = registry.declaredFor(template);
@@ -2865,21 +2792,15 @@ describe('the registry the guard resolves against', () => {
   });
 
   it('maps the PATH_BUILDERS the writers use to real registry templates', () => {
-    // Not an inventory: three long-lived anchors, one per path shape (root document,
-    // nested document, fixed-id singleton). A resolver that stopped mapping builders would
-    // otherwise report every write as unresolved and read as a tree-wide failure instead
-    // of a broken guard.
+    // Not an inventory (RULE-STD-QUALITY-007): one long-lived anchor per path shape.
     expect(registry.builderTemplate.get('publicUser')).toBe('publicUsers/{userId}');
     expect(registry.builderTemplate.get('userPrivateData')).toBe(
       'userProfiles/{userId}/privateData/{privateDataId}',
     );
-    // Structural, not a count: the three path shapes above must all still map.
     expect(registry.builderTemplate.get('statsBeacon')).toBe('_appConfig/statsBeacon');
   });
 });
 
-// A registry built without one of its core entry points or constant maps would lose those canonical
-// schemas or names and pass writes the guard can no longer judge — so loading it fails.
 describe('MUST FAIL — the registry cannot be built from an incomplete core', () => {
   it('a core entry point that does not load fails the registry, naming it', async () => {
     const sources = {
@@ -3130,7 +3051,6 @@ describe('a queue of paths beside their payloads', () => {
   it('pairs db.doc(op.path) with op.data entry by entry, a null payload storing nothing', () => {
     const result = analyze(queue(`{ userId: 'u', teamId: 'T1', isGhost: false, syncedAt: 1 }`));
     expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
-    // A stat event's fields are never checked against the roster entry, nor the reverse.
     expect(detailsOf(result)).not.toContain('gameRosterPlayers');
   });
 
@@ -3238,7 +3158,6 @@ describe('positive evidence that a receiver is not Firestore', () => {
   });
 
   it('reads a table of plain values handed to a helper as no Firestore handle, and a table holding a call as unproven', () => {
-    // A copy table's message functions are named like write methods and are never a write.
     const handedTo = (table) => `
       declare function makeUpdater(): (value: string) => unknown;
       function send(store: { update: (value: string) => unknown }, value: string) {
@@ -3544,8 +3463,6 @@ describe("one lookup of a core map read by a write's target and its payload", ()
   `;
 
   it("checks each entry's document against that entry's own field", () => {
-    // A venue holds its picture in `pictureId` and an award its badge in `badgePictureId`; neither
-    // document declares the other's field, and a write through one lookup writes one entry's.
     const result = analyze(`${SLOT_PREAMBLE}
       export async function fill(kind: 'gameLocation' | 'awardDefinition', id: string, pictureId: string) {
         const slot = PICTURE_SLOT_OWNERS[kind];
@@ -3576,7 +3493,6 @@ describe("one lookup of a core map read by a write's target and its payload", ()
   });
 
   it('keeps every document against every key when the target and the key are two lookups', () => {
-    // Two lookups are two evaluations: nothing proves they chose the same entry.
     const result = analyze(`${SLOT_PREAMBLE}
       export async function fill(kind: 'gameLocation' | 'awardDefinition', other: 'gameLocation' | 'awardDefinition', id: string, pictureId: string) {
         await db.doc(toPath(PICTURE_SLOT_OWNERS[kind].ownerDoc(id))).update({ [PICTURE_SLOT_OWNERS[other].slotField]: pictureId });
@@ -3713,9 +3629,6 @@ describe("a core map entry's schema parse, read with that entry's path", () => {
   `;
 
   it("checks each page document against its own entry's schema", () => {
-    // The landing page and the rules page declare different fields, and `_appConfig/app` declares
-    // neither: one lookup supplies both the path and the schema, so each page is written with its
-    // own schema's output and never against the other page or the app document.
     const result = analyze(`${PAGE_PREAMBLE}
       export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {
         const page = CONFIG_PAGE_DOCUMENTS[id];
@@ -3738,8 +3651,6 @@ describe("a core map entry's schema parse, read with that entry's path", () => {
   });
 
   it("diffs a document whose schema is none of the map's against every entry's fields", () => {
-    // The parse output pairs only with a template bound to one of the map's schemas; the app
-    // document is bound to neither, so both pages' fields are reported there.
     const result = analyze(`${PAGE_PREAMBLE}
       import { PATH_BUILDERS } from '@fixture/core';
       export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {

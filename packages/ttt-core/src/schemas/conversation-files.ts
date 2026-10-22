@@ -2,9 +2,6 @@ import { z } from 'zod';
 import { conversationFileIdSchema } from './atoms.js';
 import { ConversationFileRefSchema } from '../media/conversation-file-ref.js';
 
-// Delete a single Conversation File. Authorization (uploader-owns-file, or admin on an
-// admin-support thread) is enforced inside the callable core's transaction; the ref's
-// two-kind union makes a guild-CHANNEL target unrepresentable at the wire boundary.
 export const DeleteConversationFileInputSchema = z
   .object({
     conversation: ConversationFileRefSchema,

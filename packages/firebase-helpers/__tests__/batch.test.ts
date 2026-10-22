@@ -53,7 +53,6 @@ describe('commitInBatches', () => {
     const items = Array.from({ length: 5 }, (_, i) => i);
     const apply = vi.fn();
     const result = await commitInBatches(db, items, { batchSize: 2, apply });
-    // 5 items / 2 per batch = 3 batches (2+2+1)
     expect(result.totalBatches).toBe(3);
     expect(result.committedBatches).toBe(3);
     expect(result.totalOps).toBe(5);
@@ -91,7 +90,6 @@ describe('commitInBatches', () => {
     const result = await commitInBatches(db, items, { batchSize: 2, apply });
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
-    // First batch committed, second failed
     expect(result.committedBatches).toBe(1);
     expect(result.committedOps).toBe(2);
     expect(result.totalOps).toBe(6);
@@ -110,9 +108,7 @@ describe('commitInBatches', () => {
   it('supports async apply function', async () => {
     const db = {} as any;
     const items = [1, 2];
-    const apply = vi.fn(async () => {
-      /* async */
-    });
+    const apply = vi.fn(async () => {});
     const result = await commitInBatches(db, items, { apply });
     expect(result.success).toBe(true);
     expect(apply).toHaveBeenCalledTimes(2);

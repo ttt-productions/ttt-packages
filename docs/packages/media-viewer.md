@@ -7,19 +7,19 @@ Generic media display package.
 - Image, video, and audio viewer components
 - Fallback display behavior for unsupported or missing media
 - Loading states: `urlPending` renders a labeled pending state (`PendingFallback`) instead of the empty fallback while a URL is still being prepared, so "not yet" never reads as "nothing here"; the audio player's play button shows the spinner while playback waits on data (`waiting` / `seeking`). A video or audio element is usable — skeleton gone, element shown, `onLoad` fired once — on the first of `loadedmetadata`, `loadeddata`, or `canplay`: a healthy `preload="metadata"` element may never reach `loadeddata` before play, so metadata alone must not leave it looking like it is still loading
-- Each viewer's own visibility: every viewer owns exactly one IntersectionObserver (MEDIA-102) and reports what it sees through the optional `onVisibilityChange(visible)`; with a listener it keeps observing after the first sighting. `MediaPreview` listens only while its media has failed to load (the only time a retry is scheduled), feeds it to the recovery below, and adds no observer of its own; a healthy preview keeps its viewer's ordinary observer lifetime
-- Motion: the viewers' inline fades read theme-core's motion tokens (`--motion-slow`, `--motion-fast`, `--motion-ease`, FRONTEND-204) — never a raw duration. theme-core declares their defaults (theme-invariant), so the fade resolves in every theme; an app that overrides them in its own token layer changes the viewers' timing with it
+- Each viewer's own visibility: every viewer owns exactly one IntersectionObserver (RULE-STD-MEDIA-102) and reports what it sees through the optional `onVisibilityChange(visible)`; with a listener it keeps observing after the first sighting. `MediaPreview` listens only while its media has failed to load (the only time a retry is scheduled), feeds it to the recovery below, and adds no observer of its own; a healthy preview keeps its viewer's ordinary observer lifetime
+- Motion: the viewers' inline fades read theme-core's motion tokens (`--motion-slow`, `--motion-fast`, `--motion-ease`, RULE-STD-FRONTEND-204) — never a raw duration. theme-core declares their defaults (theme-invariant), so the fade resolves in every theme; an app that overrides them in its own token layer changes the viewers' timing with it
 - Audio playback through Web Audio: the audio player's visualizer routes the element through an analyser, and Web Audio hears only silence from a cross-origin file fetched without CORS — so the player builds that graph only for a file it can hear (`crossOrigin` set, a `blob:`/`data:` URL, or same-origin); any other file plays straight to the speakers with the visualizer idle. An app serving audio from another origin passes `crossOrigin` (`MediaPreview`'s `audioCrossOrigin`; `use-credentials` when that origin authorizes by cookie), and that origin must answer with matching CORS headers or the element fails to load visibly
 - Media-kind routing using generic media types from `media-schemas`
 - Bounded media-recovery state machine (loading → retry → fallback)
 
 ## Boundary
 
-The package does not own upload, moderation, or any app's media origins. It does not know about Cloudflare Workers, an app's deny headers, Firebase session cookies, or any app business concept. All domain-specific behavior is injected via a `MediaDiagnosticAdapter`.
+The package does not own upload, moderation, or any app's media origins. It does not know an app's media server, its response headers, its session mechanism, or any app business concept. All domain-specific behavior is injected via a `MediaDiagnosticAdapter`.
 
 ## Sizing contract — the parent owns the size
 
-`MediaPreview` / `MediaViewer` **fill their parent**: the wrapper and the inner media element carry inline `width: 100%; height: 100%` (with `max-width/max-height: 100%` on the element). Consequences for consumers:
+`MediaPreview` and the viewers it routes to **fill their parent**: the wrapper and the inner media element carry inline `width: 100%; height: 100%` (with `max-width/max-height: 100%` on the element). Consequences for consumers:
 
 - The component always expands to its containing box. To bound it, the **call site must own the size** — wrap it in a container with definite/max dimensions (and `overflow: hidden` where clipping is intended).
 - Because inline styles win over classes, `width`/`height` utilities passed via `className` are ignored; only `max-*` utilities take effect, and only reliably on the wrapper. Passing sizing classes instead of providing a sized parent is a consumer bug.
@@ -51,9 +51,9 @@ interface MediaDiagnosticAdapter {
 }
 
 type DiagnosisResult =
-  | { kind: "transient" }   // 404 no-record, 503 authority-unavailable, network err
-  | { kind: "auth" }        // 401/403 — refresh session/grant once
-  | { kind: "hard" };       // blocked, rejected, no-variant, no-object — no retry
+  | { kind: "transient" }   // may load on a later try — back off and retry
+  | { kind: "auth" }        // refresh session/grant once, then retry
+  | { kind: "hard" };       // will not load — no retry
 ```
 
 ### Asset status hint
@@ -99,7 +99,7 @@ Multiple instances of the same asset URL share one recovery cycle. Each instance
 
 ## Usage
 
-### MediaPreview / MediaViewer with recovery (additive props)
+### MediaPreview with recovery (additive props)
 
 ```tsx
 import { MediaPreview } from "@ttt-productions/media-viewer/react";
@@ -110,21 +110,19 @@ const appAdapter: MediaDiagnosticAdapter = {
   probe: async (url) => {
     try {
       const res = await fetch(url, { method: "HEAD", credentials: "include", cache: "no-store" });
-      const deny = res.headers.get("x-app-deny");
       if (res.status === 401 || res.status === 403) return { kind: "auth" };
-      if (deny && ["blocked", "not-servable", "no-variant", "no-object"].includes(deny))
-        return { kind: "hard" };
+      if (res.status === 410) return { kind: "hard" };
       return { kind: "transient" };
     } catch {
       return { kind: "transient" };
     }
   },
-  refreshSession: async () => { /* re-mint media-session cookie */ },
-  refreshGrant: async (url) => { /* re-fetch scoped grant for url */ },
+  refreshSession: async () => { /* the app refreshes its session */ },
+  refreshGrant: async (url) => { /* the app refreshes its grant for url */ },
 };
 
 <MediaPreview
-  url={buildMediaAssetUrl(assetId, "thumb")}
+  url={thumbnailUrl}
   type="image"
   recoveryAdapter={appAdapter}
   assetStatusHint={publicationState === "live" ? "live" : "finalizing"}
@@ -164,7 +162,7 @@ import { AudioPlayer } from "@ttt-productions/media-viewer/react";
   url={audioUrl}
   visualizerMode="bars"            // initial mode; a persisted user choice wins
   persistKey="mv-audio-player"     // localStorage key base; null disables persistence
-  extraActions={<InkItButton />}   // app-injected buttons at the end of the control row
+  extraActions={<ShareButton />}   // app-injected buttons at the end of the control row
 />
 ```
 
@@ -176,14 +174,14 @@ The shared render engine `startWaveformLoop({ analyser, getCanvas, mode })` (roo
 
 ## Image zoom pass-through
 
-`ImageViewer` owns a click-to-zoom toggle that defaults ON. `MediaPreview` / `MediaViewer`
+`ImageViewer` owns a click-to-zoom toggle that defaults ON. `MediaPreview`
 forward the optional `enableZoom` prop to it for `type="image"` (ignored for every other
 type), so a consumer can render plain, non-zooming image surfaces app-wide from one wrapper
 (`enableZoom={false}`). Omitted = the ImageViewer default (ON) — fully back-compatible.
 
 ## Playback API (VideoViewer / AudioViewer)
 
-Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (MEDIA-102). `MediaPlaybackControls` is exported from the package root; `MediaPlaybackProps`, like every props type that carries a React type, is exported from `./react`.
+Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (RULE-STD-MEDIA-102). `MediaPlaybackControls` is exported from the package root; `MediaPlaybackProps`, like every props type that carries a React type, is exported from `./react`.
 
 ```tsx
 import type { MediaPlaybackControls } from "@ttt-productions/media-viewer";

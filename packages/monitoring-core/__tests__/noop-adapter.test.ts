@@ -5,12 +5,11 @@ describe('NoopAdapter', () => {
   it('captureException accepts any value without side effects on context', () => {
     const ctx = { userId: '123' };
     NoopAdapter.captureException(new Error('test'), ctx);
-    // No-op contract: context object must not be mutated by the adapter.
     expect(ctx).toEqual({ userId: '123' });
   });
 
   it('captureException with a `tags` context stays inert and leaves the context untouched', () => {
-    const ctx = { tags: { operation: 'nciiDeadlineMonitor' }, level: 'error' };
+    const ctx = { tags: { operation: 'deadlineMonitor' }, level: 'error' };
     const snapshot = JSON.stringify(ctx);
     expect(NoopAdapter.captureException(new Error('test'), ctx)).toBeUndefined();
     expect(JSON.stringify(ctx)).toBe(snapshot);
@@ -19,15 +18,12 @@ describe('NoopAdapter', () => {
   it('captureMessage accepts every supported level', () => {
     const levels = ['fatal', 'error', 'warning', 'info', 'debug'] as const;
     for (const level of levels) {
-      // No throw, no return value contract — just verify each level is callable.
       expect(NoopAdapter.captureMessage('m', level)).toBeUndefined();
     }
   });
 
   it('captureMessage with a context stays inert and leaves the context untouched', () => {
-    // The no-DSN / emulator path: initMonitoring forces this adapter, so a call site
-    // passing a diagnostic payload must be a silent no-op that reports nothing.
-    const ctx = { tags: { operation: 'takeItDownRateLimit' }, level: 'warning', docId: 'doc-1' };
+    const ctx = { tags: { operation: 'rateLimitCheck' }, level: 'warning', docId: 'doc-1' };
     const snapshot = JSON.stringify(ctx);
     expect(NoopAdapter.captureMessage('m', 'warning', ctx)).toBeUndefined();
     expect(JSON.stringify(ctx)).toBe(snapshot);
@@ -79,7 +75,6 @@ describe('NoopAdapter', () => {
   });
 
   it('init returns synchronously and accepts a minimal options object', () => {
-    // The noop init contract: synchronous, no return value.
     const result = NoopAdapter.init({ provider: 'noop' });
     expect(result).toBeUndefined();
   });

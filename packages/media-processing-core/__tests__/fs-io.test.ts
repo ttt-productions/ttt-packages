@@ -114,7 +114,6 @@ describe('createFsIO', () => {
 
       const io = createFsIO({ inputPath: localPath, outputDir });
 
-      // sanitizeKey replaces traversal chars — output should stay within outputDir
       const result = await io.output.writeFromFile(localPath, '../../../etc/passwd');
       expect(result.path!.startsWith(outputDir)).toBe(true);
     });

@@ -11,7 +11,6 @@ const R2_NO_SUCH_KEY_BODY =
 const R2_NO_SUCH_BUCKET_BODY =
   '<?xml version="1.0" encoding="UTF-8"?><Error><Code>NoSuchBucket</Code><Message>The specified bucket does not exist.</Message></Error>';
 
-/** What the real R2 store throws when `readToFile` gets `status` with `body`. */
 async function r2ReadFailure(status: number, body: string): Promise<unknown> {
   const store = createR2ObjectStore({
     accountId: 'acct',

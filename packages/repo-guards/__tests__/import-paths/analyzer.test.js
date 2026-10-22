@@ -1,6 +1,3 @@
-// The import-path guard over in-memory module sets. Every rule is proved from both sides: the
-// shape it forbids is reported, and the nearest legitimate shape is not.
-
 import { describe, it, expect } from 'vitest';
 import {
   IMPORT_PATH_VIOLATION_KINDS,
@@ -209,7 +206,6 @@ describe('outside code imports through a folder index, never past it', () => {
     });
 
     it('still FLAGS a production module that calls vi.mock-shaped code past the index', () => {
-      // Only a TEST's mocks are exempt; the exemption is about the test runner, not the call shape.
       const violations = run({ ...KIT, 'src/app/odd.ts': `vi.mock('@/kit/button');` });
       expect(kinds(violations)).toEqual(['import-past-index src/app/odd.ts']);
     });

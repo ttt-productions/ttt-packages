@@ -25,7 +25,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** Runs the currently installed beforeunload handler against a fake event. */
 function fireBeforeUnload() {
   const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
   const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;

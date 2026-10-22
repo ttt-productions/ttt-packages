@@ -1,9 +1,3 @@
-// The one owner of Zod schema introspection for the guards and an app's audit tooling. Handles both
-// Zod 3 (`_def.typeName` 'ZodObject', `_def.shape()`) and Zod 4 (`_def.type` 'object',
-// `_def.shape` as a plain object) internals, so a Zod major bump is a one-file change
-// instead of a hunt through every auditor.
-
-/** Lowercase type tag of a Zod schema ('object', 'optional', 'array', …), or null. */
 export function kindOf(s) {
   const def = s?._def;
   if (!def) return null;
@@ -12,9 +6,8 @@ export function kindOf(s) {
   return null;
 }
 
-/** Strip optional/nullable/default/effects/pipe wrappers down to the inner schema. A Zod 4 pipe is
- * followed into its INPUT, so a preprocess stops at its transform: the value a preprocess admits
- * is rewritten before the shape applies, so that shape's keys are never read as the stored keys. */
+// A Zod 4 pipe is followed into its input: a preprocess rewrites the value before the output
+// shape applies, so that shape's keys are never the stored keys.
 export function unwrap(s) {
   for (let i = 0; i < 12 && s && s._def; i++) {
     const t = kindOf(s);
@@ -34,7 +27,6 @@ export function unwrap(s) {
   return s;
 }
 
-/** The raw `{ key: schema }` shape of a (possibly wrapped) Zod object; null for non-objects. */
 export function objectShape(schema) {
   const s = unwrap(schema);
   if (kindOf(s) !== 'object') return null;
@@ -47,7 +39,6 @@ export function objectShape(schema) {
   }
 }
 
-/** Element schema of a (possibly wrapped) Zod array, or null. */
 export function arrayElement(schema) {
   const s = unwrap(schema);
   if (kindOf(s) !== 'array') return null;
@@ -58,12 +49,7 @@ export function arrayElement(schema) {
   return def.type && typeof def.type === 'object' ? def.type : null;
 }
 
-/**
- * The member schemas of a (possibly wrapped) composite that is neither an object nor an array: every
- * union or discriminated-union option (Zod 3 keeps a discriminated union's options in a `Map`), an
- * intersection's two sides, a record's value schema, and every tuple item plus its rest element.
- * Null for any other schema.
- */
+// Zod 3 keeps a discriminated union's options in a `Map`.
 export function compositeMembers(schema) {
   const s = unwrap(schema);
   const kind = kindOf(s);
@@ -80,8 +66,6 @@ export function compositeMembers(schema) {
   return null;
 }
 
-/** Known top-level keys of a (possibly wrapped) Zod object. Null for non-objects (unions
- * etc.), which callers skip rather than diff. */
 export function knownKeys(schema) {
   const shape = objectShape(schema);
   return shape ? new Set(Object.keys(shape)) : null;

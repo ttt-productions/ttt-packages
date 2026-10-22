@@ -7,13 +7,7 @@ interface OpenerFocusHandlers {
   onCloseAutoFocus?: (event: Event) => void;
 }
 
-/**
- * Focus returns to the element that held it when an overlay opened, as the overlay closes. Radix's
- * modal content hands close focus to its trigger only, so an overlay opened from state — no trigger —
- * would leave focus on the page. The opener is recorded as Radix starts its open focus, before focus
- * moves inside. The caller's own `onCloseAutoFocus` runs first; when it calls `event.preventDefault()`
- * it has chosen the destination, and when the opener has left the page Radix's own return runs.
- */
+/** Radix's modal content returns close focus only to its trigger, so an overlay opened from state records its opener. */
 export function useOpenerFocus({
   onOpenAutoFocus,
   onCloseAutoFocus,

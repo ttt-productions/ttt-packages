@@ -5,8 +5,8 @@ import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   taskQueues: {
@@ -88,11 +88,6 @@ describe('createReleaseTaskHandler', () => {
   });
 
   it('IDEMPOTENT: missing task doc → success no-op (no write, no audit event)', async () => {
-    // A task can be legitimately GONE rather than never-held: an auto-resolving
-    // writer deletes the adminTasks doc inside its own resolving transaction,
-    // so an admin on a stale work view releases a task that was
-    // correctly deleted. That is a designed terminal state — nothing is held, so
-    // the caller's goal state already holds.
     const { db, updates, sets } = createMockDb(null);
     const onAuditEvent = vi.fn();
     const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
@@ -121,9 +116,6 @@ describe('createReleaseTaskHandler', () => {
   });
 
   it('typed codes: failed-precondition for a foreign checkout (a missing task is NOT an error)', async () => {
-    // Expected outcomes carry an HttpsError-shaped code (taskError.ts) so the
-    // consuming callable maps them 1:1 instead of surfacing a 500 'internal'.
-    // A checkout held by ANOTHER admin stays a real conflict.
     const { db: foreignDb } = createMockDb({
       taskType: 'userReport',
       taskId: 'group1',
@@ -137,7 +129,6 @@ describe('createReleaseTaskHandler', () => {
     expect(foreign).toBeInstanceOf(ReportCoreTaskError);
     expect(foreign.code).toBe('failed-precondition');
 
-    // The vanished-task branch answers success instead of the old 'not-found'.
     const { db: emptyDb } = createMockDb(null);
     const gone = await createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
       { taskId: 'task1' },
@@ -148,8 +139,6 @@ describe('createReleaseTaskHandler', () => {
   });
 
   it('the admin gate still rejects before any read, missing task or not', async () => {
-    // The consumer-supplied requireAdmin runs before the transaction; the
-    // idempotent branches never soften it.
     const { db, transaction } = createMockDb(null);
     const requireAdmin = vi.fn().mockRejectedValue(new Error('Administrator access required'));
     const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, auth: { requireAdmin } });
@@ -161,11 +150,8 @@ describe('createReleaseTaskHandler', () => {
   });
 
   it('IDEMPOTENT: no live checkout → success no-op (no write, no audit event)', async () => {
-    // A lapsed/expired checkout (or an earlier release/resolve) already put the
-    // task in the caller's goal state; throwing here surfaced as a spurious
-    // 'internal' 500 to clients draining stale checkout cards (live 2026-07-20).
     const taskData = {
-      taskType: 'stakeShareAnomaly',
+      taskType: 'exampleAuditTask',
       taskId: 'group1',
       status: 'pending',
       checkoutDetails: null,

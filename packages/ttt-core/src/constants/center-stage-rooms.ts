@@ -1,11 +1,3 @@
-// ============================================================================
-// CENTER STAGE ROOMS — the pure, durable definitions of the three revolving
-// landing/registration-tour rooms (ARCH-102). Moved here VERBATIM from the app's
-// `center-stage.tsx`. Pure data only: the emblems (`ROOM_EMBLEMS`), React
-// components, engraving, and stage layout stay app-owned. Each room's `href` is
-// the app route the spotlit poster navigates to.
-// ============================================================================
-
 export type CenterStageRoomKey = 'hall' | 'square' | 'audition';
 
 export interface CenterStageRoom {
@@ -13,11 +5,9 @@ export interface CenterStageRoom {
   readonly name: string;
   readonly verb: string;
   readonly href: string;
-  /** One-breath description shown on the audience placard (same words the tour uses). */
   readonly description: string;
 }
 
-/** The three rooms, in revolve order. Index 0 (The Hall) opens in the spotlight. */
 export const CENTER_STAGE_ROOMS: readonly CenterStageRoom[] = [
   {
     key: 'hall',
@@ -45,10 +35,6 @@ export const CENTER_STAGE_ROOMS: readonly CenterStageRoom[] = [
   },
 ];
 
-/**
- * The label of the button that enters a room: "Enter the Hall ›", "Enter the Square ›",
- * "Enter the Audition Stage ›" — the room's name, its leading "The" lowercased into the phrase.
- */
 export function centerStageRoomEnterLabel(room: Pick<CenterStageRoom, 'name'>): string {
   return `Enter the ${room.name.replace(/^The /, '')} ›`;
 }

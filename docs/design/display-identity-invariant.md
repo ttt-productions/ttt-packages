@@ -30,9 +30,9 @@ This applies to every shared payload a package defines: chat messages, notificat
 - Every type defined in `@ttt-productions/*` that crosses the package/app boundary. If a type lives in a package and an app consumes it, the type follows this rule.
 - Chat messages (`@ttt-productions/chat-core`): `senderId` only.
 - Notifications (`@ttt-productions/notification-core`): `targetUserId` (recipient) and `latestActorIds` (a capped array of actor uids), never names.
-- Reports (`@ttt-productions/report-core`): the reporter's identity comes from the authenticated caller, never a client-supplied field; `reportedUserId` is an optional, non-authoritative hint the server always re-derives — never display info.
+- Reports (`@ttt-productions/report-core`): the reporter and `reportedUserId` are uids — never display info.
 - Admin task queue entries: uid references for actor and subject (`userId`, `adminUserId`).
-- An application-data package's own types follow its app's rules (ARCH-207); its app's design docs say how they reference users.
+- An application-data package's own types follow its app's rules (RULE-STD-ARCH-207); its app's design docs say how they reference users.
 
 ## What it forbids
 

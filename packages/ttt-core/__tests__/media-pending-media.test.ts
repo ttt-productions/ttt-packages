@@ -164,7 +164,7 @@ describe('parseArchivedPendingMedia', () => {
 });
 
 describe('crash-recovery attempt/lease fields on the composed strict schema', () => {
-  it('parses a legacy doc without the new fields (both absent)', () => {
+  it('parses a doc without the attempt/lease fields (both absent)', () => {
     const parsed = parsePendingMedia({ ...base, status: 'pending' });
     expect(parsed.processingAttemptCount).toBeUndefined();
     expect(parsed.processingLeaseExpiresAt).toBeUndefined();
@@ -211,8 +211,6 @@ describe('crash-recovery attempt/lease fields on the composed strict schema', ()
 });
 
 describe('ArchivedPendingMediaQuarantinedSchema / ArchivedPendingMediaDocSchema', () => {
-  // A legacy doc the live schema cannot parse (the F13 shape: retired fileOrigin,
-  // missing result), preserved verbatim under `raw`.
   const quarantined = {
     parseFailed: true as const,
     archivedAt: 1_700_000_020_000,

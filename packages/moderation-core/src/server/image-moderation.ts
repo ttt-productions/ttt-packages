@@ -1,15 +1,11 @@
 import { isRejectionLikelihood, likelihoodToString } from '../likelihood.js';
 import type { MediaModerationResult, ModerationLogger } from '../types.js';
 
-// Type-only imports — the runtime modules are loaded dynamically.
 import type * as vision from '@google-cloud/vision';
 
 export interface ImageModerationOptions {
-  /** Set of likelihood strings that should cause rejection (e.g. new Set(["LIKELY","VERY_LIKELY"])). */
   rejectionLikelihoods: ReadonlySet<string>;
-  /** Optional logger. */
   logger?: ModerationLogger;
-  /** Lazy Vision client provider. Defaults to constructing a new ImageAnnotatorClient on first call. */
   getClient?: () => Promise<vision.ImageAnnotatorClient>;
 }
 
@@ -21,12 +17,6 @@ async function defaultGetVisionClient(): Promise<vision.ImageAnnotatorClient> {
   return _defaultClient;
 }
 
-/**
- * Moderate an image via Google Cloud Vision SafeSearch.
- * Throws on system errors (quota, network, etc.); returns a result on policy decisions.
- *
- * @param imageSource - GCS URI ("gs://bucket/path") or HTTPS URL.
- */
 export async function moderateImage(
   imageSource: string,
   options: ImageModerationOptions,
@@ -66,7 +56,6 @@ export async function moderateImage(
   return { safe, reason, scores };
 }
 
-/** Test-only: reset memoized default client. */
 export function __resetDefaultVisionClient() {
   _defaultClient = null;
 }

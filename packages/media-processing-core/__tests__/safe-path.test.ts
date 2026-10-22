@@ -70,7 +70,6 @@ describe('safeOutputPathFor', () => {
 
   it('produces a path with the output file in the same directory as base', () => {
     const result = safeOutputPathFor('/uploads/file.mp4', 'preview', 'jpg');
-    // Normalize separators for cross-platform comparison
     const normalized = result.replace(/\\/g, '/');
     expect(normalized).toMatch(/^\/uploads\//);
   });

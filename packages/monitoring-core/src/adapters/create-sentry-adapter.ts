@@ -7,7 +7,6 @@ import type {
 } from '../types.js';
 import { applyCaptureContext } from '../capture-context.js';
 
-/** The slice of a Sentry SDK (browser `@sentry/nextjs` or `@sentry/node`) the adapters call. */
 export type SentrySdkLike = {
   init: (opts: Record<string, unknown>) => void;
   captureException: (e: unknown) => void;
@@ -18,7 +17,6 @@ export type SentrySdkLike = {
   addBreadcrumb?: (breadcrumb: Record<string, unknown>) => void;
 };
 
-/** The options `S.init` receives: every pass-through the caller set, and nothing it left out. */
 export function toSdkInitOptions(options: MonitoringInitOptions): Record<string, unknown> {
   const sdkOptions: Record<string, unknown> = {
     dsn: options.dsn,
@@ -38,8 +36,8 @@ export function toSdkInitOptions(options: MonitoringInitOptions): Record<string,
   }
   const keep = options.keepDefaultIntegrations;
   if (keep !== undefined) {
-    // The SDK's function form of `integrations` receives the SDK's own default list, so the
-    // kept defaults are the SDK's instances and the app never constructs one.
+    // The SDK calls a function-form `integrations` with its own default list, so the app never
+    // constructs one.
     const added = options.integrations ?? [];
     sdkOptions.integrations = (defaults: Array<{ name?: unknown }>) => [
       ...defaults.filter(
@@ -51,14 +49,8 @@ export function toSdkInitOptions(options: MonitoringInitOptions): Record<string,
   return sdkOptions;
 }
 
-/** Why a call that waited for the SDK never reached the provider. */
 type UndeliveredReason = 'did not load' | 'failed to initialize' | 'threw';
 
-/**
- * A call issued before the SDK is ready waits for it; if the SDK import or its init fails, or
- * the SDK throws on the call, the call cannot reach the provider. Say so on the console, naming
- * which step failed — never a silent loss and never an unhandled rejection (ENG-009).
- */
 function reportUndelivered(operation: string, reason: UndeliveredReason, error: unknown): void {
   console.error(
     `[monitoring-core] ${operation} was not delivered: the monitoring SDK ${reason}`,
@@ -66,19 +58,8 @@ function reportUndelivered(operation: string, reason: UndeliveredReason, error: 
   );
 }
 
-/**
- * One Sentry adapter over an SDK loader. The adapter is usable the moment it is installed:
- * a call made while the SDK is still loading waits for it — behind this adapter's own
- * `S.init` when an init is running, so the init-time hooks (`beforeSend`,
- * `beforeSendTransaction`) already apply to the first event it sends.
- */
-/** Each adapter this factory built, with the reset that returns it to never-loaded. */
 const RESETS = new WeakMap<MonitoringAdapter, () => void>();
 
-/**
- * Test-only: returns an adapter this factory built to its never-loaded, never-initialized state.
- * Never call in production code.
- */
 export function __resetSentryAdapter(adapter: MonitoringAdapter): void {
   const reset = RESETS.get(adapter);
   if (!reset) throw new Error('[monitoring-core] __resetSentryAdapter: not a Sentry adapter');
@@ -202,10 +183,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
       deferred('setTag', (S) => S.setTag(key, value));
     },
 
-    // `fn` runs exactly once on every path. With the SDK ready it runs through the real
-    // scope; before that it runs against a minimal no-op scope, so scope data set in that
-    // window is not attached. It is never replayed against the real scope later: callers
-    // wrap whole request handlers in `fn`, and a replay would re-run their business logic.
+    // `fn` runs exactly once and is never replayed: callers wrap whole request handlers in it.
     withScope<T>(fn: (scope: ScopeLike) => T): T {
       if (instance && instance.withScope) {
         let result: T;

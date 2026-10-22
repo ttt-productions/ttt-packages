@@ -4,9 +4,9 @@
     "composite": true,
     "outDir": "dist",
     "rootDir": "src",
-    "moduleResolution": "node16",      // ADD THIS
-    "module": "node16",                 // ADD THIS
-    "noEmitOnError": true               // ADD THIS
+    "moduleResolution": "node16",
+    "module": "node16",
+    "noEmitOnError": true
   },
   "include": ["src"]
 }

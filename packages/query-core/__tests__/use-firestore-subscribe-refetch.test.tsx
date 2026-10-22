@@ -3,8 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// Capture each opened listener's callbacks and unsubscribe, so a test can fail a listener, call
-// refetch(), and see whether a fresh listener was opened and what the result reports meanwhile.
 const h = vi.hoisted(() => ({
   listeners: [] as Array<{
     kind: 'doc' | 'col';
@@ -56,7 +54,6 @@ function makeWrapper() {
 const unavailable = () => Object.assign(new Error('unavailable'), { code: 'unavailable' });
 const permissionDenied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
 
-// The same contract, run against both subscribed hooks.
 const hooks = [
   {
     name: 'useFirestoreDoc',
@@ -158,7 +155,6 @@ for (const hook of hooks) {
       const failure = unavailable();
       act(() => failed.error(failure));
 
-      // The rows stay, flagged as not current: the read failed after it answered.
       expect(hook.read(result.current.data)).toBe(1);
       expect(result.current.isError).toBe(true);
       expect(result.current.error).toBe(failure);
@@ -173,7 +169,6 @@ for (const hook of hooks) {
 
       expect(h.listeners).toHaveLength(2);
       expect(last()).not.toBe(failed);
-      // While the listener re-opens the held rows and the failure both stay, as a one-shot refetch keeps them.
       expect(hook.read(result.current.data)).toBe(1);
       expect(result.current.error).toBe(failure);
       expect(result.current.isFetching).toBe(true);
@@ -206,7 +201,6 @@ for (const hook of hooks) {
       const denial = permissionDenied();
       act(() => last().error(denial));
 
-      // Access was lost: the snapshot the reader may no longer read is not handed back.
       expect(result.current.data).toBeUndefined();
       expect(result.current.error).toBe(denial);
       expect(result.current.status).toBe('error');
@@ -282,7 +276,6 @@ for (const hook of hooks) {
       });
       expect(h.listeners).toHaveLength(opened + 1);
 
-      // A denial on the re-opened listener resubscribes again instead of surfacing at once.
       act(() => last().error(permissionDenied()));
       expect(result.current.isError).toBe(false);
       expect(result.current.isFetching).toBe(true);
@@ -332,7 +325,6 @@ for (const hook of hooks) {
       await act(async () => {
         await staleRefetch();
       });
-      // The earlier read's refetch re-opens nothing, and the current read still reports.
       expect(h.listeners).toHaveLength(2);
       act(() => current.next(hook.snapshot(5)));
       expect(result.current.sourceState).toBe('live');

@@ -10,11 +10,7 @@ import {
 } from '../src/doc-schemas/ncii/requests.js';
 import type { TakeItDownFieldCode } from '../src/doc-schemas/safety/foundation.js';
 
-// ---------------------------------------------------------------------------
-// H-03 — authorized-rep field requirements
-// ---------------------------------------------------------------------------
-
-describe('REQUIRED_FIELD_CODES_AUTHORIZED_REPRESENTATIVE (H-03)', () => {
+describe('REQUIRED_FIELD_CODES_AUTHORIZED_REPRESENTATIVE', () => {
   it('includes authorityBasis', () => {
     expect(REQUIRED_FIELD_CODES_AUTHORIZED_REPRESENTATIVE).toContain('authorityBasis');
   });
@@ -34,7 +30,7 @@ describe('REQUIRED_FIELD_CODES_AUTHORIZED_REPRESENTATIVE (H-03)', () => {
   });
 });
 
-describe('TakeItDownAuthorizedRepresentativeV1Schema (H-03)', () => {
+describe('TakeItDownAuthorizedRepresentativeV1Schema', () => {
   const base = {
     representedPersonName: 'Jane Smith',
     authorityBasis: 'Power of attorney',
@@ -75,11 +71,7 @@ describe('TakeItDownAuthorizedRepresentativeV1Schema (H-03)', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// H-02 — authority-proof scan state
-// ---------------------------------------------------------------------------
-
-describe('AuthorityProofScanStatusSchema (H-02)', () => {
+describe('AuthorityProofScanStatusSchema', () => {
   const validStatuses = ['pending', 'clean', 'matched', 'rejected', 'unavailable'] as const;
 
   for (const status of validStatuses) {
@@ -93,7 +85,7 @@ describe('AuthorityProofScanStatusSchema (H-02)', () => {
   });
 });
 
-describe('AuthorityProofScanStateV1Schema (H-02)', () => {
+describe('AuthorityProofScanStateV1Schema', () => {
   const base = {
     scanStatus: 'pending' as const,
     objectGeneration: 'gen-abc',
@@ -123,10 +115,6 @@ describe('AuthorityProofScanStateV1Schema (H-02)', () => {
     expect(() => AuthorityProofScanStateV1Schema.parse({ ...base, extra: 'nope' })).toThrow();
   });
 });
-
-// ---------------------------------------------------------------------------
-// computeCompleteness — depictedPerson role
-// ---------------------------------------------------------------------------
 
 describe('computeCompleteness — depictedPerson', () => {
   const depictedPersonComplete = [
@@ -184,11 +172,7 @@ describe('computeCompleteness — depictedPerson', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// computeCompleteness — authorizedRepresentative (H-03 + H-02)
-// ---------------------------------------------------------------------------
-
-describe('computeCompleteness — authorizedRepresentative (H-03 / H-02)', () => {
+describe('computeCompleteness — authorizedRepresentative', () => {
   const authRepComplete = [
     'requesterName',
     'requesterRole',
@@ -210,9 +194,7 @@ describe('computeCompleteness — authorizedRepresentative (H-03 / H-02)', () =>
     expect(result.missingFieldCodes).toHaveLength(0);
   });
 
-  it('authorityEvidence (photo) does NOT affect completeness when absent (H-03)', () => {
-    // authRepComplete never includes 'authorityEvidence'; pass it as-is to assert
-    // that completeness holds without the photo (the photo is purely optional).
+  it('authorityEvidence (photo) does NOT affect completeness when absent', () => {
     const result = computeCompleteness({
       requesterRole: 'authorizedRepresentative',
       suppliedFieldCodes: [...authRepComplete],
@@ -250,10 +232,7 @@ describe('computeCompleteness — authorizedRepresentative (H-03 / H-02)', () =>
     expect(result.missingFieldCodes).toContain('authorityBasis');
   });
 
-  it('pending scan on optional photo does NOT block completeness (H-02)', () => {
-    // suppliedFieldCodes never contains a scan-status token — scan state lives on
-    // AuthorityProofScanStateV1, not in the field-code set. Completeness sees only
-    // the written statutory elements; a pending/unavailable scan is invisible here.
+  it('pending scan on optional photo does NOT block completeness', () => {
     const result = computeCompleteness({
       requesterRole: 'authorizedRepresentative',
       suppliedFieldCodes: [...authRepComplete],
@@ -261,10 +240,6 @@ describe('computeCompleteness — authorizedRepresentative (H-03 / H-02)', () =>
     expect(result.status).toBe('complete');
   });
 });
-
-// ---------------------------------------------------------------------------
-// requiredFieldCodes — role dispatch
-// ---------------------------------------------------------------------------
 
 describe('requiredFieldCodes', () => {
   it('returns the depictedPerson set for depictedPerson role', () => {

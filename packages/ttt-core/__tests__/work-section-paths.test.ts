@@ -57,9 +57,7 @@ describe('WORK_SECTION_PATHS_BY_TYPE', () => {
       expect(paths.sectionDoc('wp1', 's1')).toHaveLength(4);
       expect(paths.subItems('wp1', 's1')).toHaveLength(5);
       expect(paths.subItem('wp1', 's1', 'i1')).toHaveLength(6);
-      // The sub-item doc is exactly its collection plus the sub-item id.
       expect(paths.subItem('wp1', 's1', 'i1')).toEqual([...paths.subItems('wp1', 's1'), 'i1']);
-      // The section doc is exactly its collection plus the section id.
       expect(paths.sectionDoc('wp1', 's1')).toEqual([...paths.section('wp1'), 's1']);
     }
   });

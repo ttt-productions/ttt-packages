@@ -1,6 +1,3 @@
-// The generic guards over the repository, its supply chain, and its tooling surface. The registry runs every guard listed here; an app supplies
-// each one's facts under its id.
-
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   entryPointGuard,
@@ -32,7 +29,6 @@ import { walkerReadFailureGuard, type WalkerReadFailureFacts } from './walker-re
 import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from './worker-bounded-body.js';
 import { workerConfigGuard, type WorkerConfigFacts } from './worker-config.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface RepoGuardFacts {
   shellSafeChildProcesses: ShellSafeFacts;
   walkerReadFailure: WalkerReadFailureFacts;

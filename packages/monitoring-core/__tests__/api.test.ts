@@ -20,7 +20,6 @@ function makeRecordingAdapter() {
   };
 
   const adapter: MonitoringAdapter & {
-    // for assertions on the fake itself
     _scope: ScopeLike;
   } = {
     init: vi.fn(),
@@ -143,8 +142,6 @@ describe('monitoring-core api forwarding', () => {
       setMonitoringAdapter(adapterWithoutScope);
 
       const result = withScope((scope) => {
-        // Synthetic scope: methods exist and are no-ops, scope-level
-        // calls do NOT forward to the adapter's top-level methods.
         scope.setTag('k', 'v');
         scope.setUser({ id: 'uid' });
         return 'ok';
@@ -180,7 +177,6 @@ describe('monitoring-core api forwarding', () => {
       setMonitoringAdapter(adapterWithoutCrumbs);
 
       expect(() => addBreadcrumb({ message: 'whatever' })).not.toThrow();
-      // No top-level adapter call should have been used as a fallback.
       expect(adapterWithoutCrumbs.captureMessage).not.toHaveBeenCalled();
     });
   });

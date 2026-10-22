@@ -9,9 +9,7 @@ vi.mock(
   async () => import('../../media-viewer/src/react/index.js'),
 );
 
-// jsdom cannot decode real media, so meta reading (Image/video element probes)
-// never settles — return the kind inference the way readMediaMeta's fast path
-// derives it. Claim derivation is what is under test, not media decoding.
+// jsdom cannot decode media, so the meta read never settles: return the fast path's kind inference.
 vi.mock('../src/lib/read-media-meta.js', () => ({
   readMediaMeta: async (file: File) => {
     const t = file.type;
@@ -25,12 +23,6 @@ vi.mock('../src/lib/read-media-meta.js', () => ({
     return { kind, mime: t || undefined, sizeBytes: file.size };
   },
 }));
-
-// The picker-path claim contract (canonical-upload-content-classification):
-// a picked file emits an ADVISORY `file-picker` claim whose kind is the
-// browser-metadata inference — and an UNKNOWN file passes through NEUTRALLY
-// (application/octet-stream, claim kind 'file') instead of being fabricated
-// into image/jpeg and/or rejected client-side.
 
 const SPEC_MULTI_KIND: MediaOriginSpec = {
   kind: 'generic',
@@ -92,8 +84,8 @@ describe('MediaInput picker claims', () => {
     pick(new File(['x'], 'mystery.bin', { type: '' }));
     await waitFor(() => expect(onChange).toHaveBeenCalled());
     const payload = onChange.mock.calls.at(-1)![0];
-    expect(payload.error).toBeUndefined(); // fail-open — the server inspector decides
-    expect(payload.file?.type).toBe('application/octet-stream'); // never image/jpeg
+    expect(payload.error).toBeUndefined();
+    expect(payload.file?.type).toBe('application/octet-stream');
     expect(payload.claim).toEqual({ kind: 'file', source: 'file-picker' });
   });
 
@@ -127,9 +119,9 @@ describe('MediaInput picker claims', () => {
     render(<MediaInput spec={withFormats} onChange={onChange} />);
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     const accept = input.getAttribute('accept') ?? '';
-    expect(accept).toContain('audio/mp4'); // Safari audio container, kind-narrowed
+    expect(accept).toContain('audio/mp4');
     expect(accept).toContain('audio/webm');
     expect(accept).toContain('.m4a');
-    expect(accept).not.toContain('video/mp4'); // audio origin never advertises video aliases
+    expect(accept).not.toContain('video/mp4');
   });
 });

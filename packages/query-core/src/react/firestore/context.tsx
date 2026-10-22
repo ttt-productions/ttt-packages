@@ -14,29 +14,10 @@ export interface FirestoreProviderProps {
   children: ReactNode;
 }
 
-/**
- * Provides Firestore instance to all useFirestore* hooks.
- * Wrap your app with this provider alongside QueryProvider.
- *
- * @example
- * ```tsx
- * import { db } from '@/lib/firebase';
- *
- * <QueryProvider>
- *   <FirestoreProvider db={db}>
- *     {children}
- *   </FirestoreProvider>
- * </QueryProvider>
- * ```
- */
 export function FirestoreProvider({ db, children }: FirestoreProviderProps) {
   return <FirestoreContext.Provider value={{ db }}>{children}</FirestoreContext.Provider>;
 }
 
-/**
- * Access the Firestore instance from context.
- * Throws if used outside of FirestoreProvider.
- */
 export function useFirestoreDb(): Firestore {
   const context = useContext(FirestoreContext);
   if (!context) {

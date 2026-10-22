@@ -20,9 +20,7 @@ export interface ModerationOutput {
 export interface ModerationAdapter {
   provider: string;
 
-  /** Run on the ORIGINAL uploaded file before processing. */
   moderateInput?: (input: ModerationInput) => Promise<MediaModerationResult | null | undefined>;
 
-  /** Run on PROCESSED outputs after processing. */
   moderateOutput?: (output: ModerationOutput) => Promise<MediaModerationResult | null | undefined>;
 }

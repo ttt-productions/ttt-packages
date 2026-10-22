@@ -1,7 +1,3 @@
-// GENERATED fixture core — an illustrative application's core package, reproducing only what the
-// write guard observes: its path-constant maps, path builders, collection references, and owner
-// maps. Test data for this package's own tests; nothing here is a definition any app imports.
-
 export const COLLECTIONS = Object.freeze({
   USER_PROFILES: 'userProfiles',
   PUBLIC_USERS: 'publicUsers',
@@ -180,5 +176,4 @@ export const COLLECTION_REFS = Object.freeze({
   notificationArchiveAllJobs: () => ['notificationArchiveAllJobs'],
 });
 
-/** Segments to a slash path. */
 export const toPath = (segments) => segments.join('/');

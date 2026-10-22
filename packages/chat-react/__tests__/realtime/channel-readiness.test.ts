@@ -3,10 +3,6 @@ import { ChannelClient } from '../../src/realtime/channel-client.js';
 import { createMockSocketHarness, createFakeClock, type FakeClock } from './mock-socket.js';
 import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
 
-// A channel is CURRENT (`isSynced`) only while its socket is open, its initial data has loaded,
-// and its authoritative state has been re-applied since that socket opened. A consumer that lets
-// someone act on what the conversation says waits for it; reading never does.
-
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function advance(clock: FakeClock, ms: number) {
@@ -106,11 +102,11 @@ describe('ChannelClient — isSynced', () => {
     await advance(clock, 2500);
     const next = harness.last();
     next.serverOpen();
-    client.fetchOlder(); // sent before the resume answers: its page is answered first
+    client.fetchOlder();
     next.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 0, resync: true });
-    next.serverFrame('history-page', { messages: [row(1)] }); // the older page
+    next.serverFrame('history-page', { messages: [row(1)] });
     expect(client.getState().isSynced).toBe(false);
-    next.serverFrame('history-page', { messages: [row(9)] }); // the re-page
+    next.serverFrame('history-page', { messages: [row(9)] });
     expect(client.getState().isSynced).toBe(true);
   });
 

@@ -51,14 +51,13 @@ describe('Firestore collection schema registry', () => {
     }
   });
 
-  it('closes the recon gap — auditEvents is now in the registry', () => {
+  it('registers auditEvents', () => {
     expect(boundSegments.has('auditEvents')).toBe(true);
   });
 });
 
 type ShapedSchema = { shape?: Record<string, unknown>; options?: readonly ShapedSchema[] };
 
-/** The object shape(s) a binding validates against: its own, or every branch of a union. */
 function boundShapes(schema: ShapedSchema): Record<string, unknown>[] | null {
   if (schema.shape) return [schema.shape];
   if (!schema.options?.length) return null;
@@ -73,9 +72,7 @@ describe('Doc-id field annotations (COLLECTION_DOC_ID_FIELDS)', () => {
     for (const [path, field] of Object.entries(COLLECTION_DOC_ID_FIELDS)) {
       const schema = (COLLECTION_SCHEMAS as Record<string, ShapedSchema>)[path];
       expect(schema, `${path} must be a registered collection`).toBeDefined();
-      // Every annotated binding is a ZodObject, or a union of ZodObjects, whose every shape
-      // includes the doc-id field; the drift-check injects doc.id under this key before
-      // validating, so whichever branch a stored doc matches must declare it.
+      // The drift check injects doc.id under this key before validating.
       const shapes = boundShapes(schema);
       expect(shapes, `${path} must be a ZodObject or a union of ZodObjects`).not.toBeNull();
       for (const shape of shapes ?? []) {

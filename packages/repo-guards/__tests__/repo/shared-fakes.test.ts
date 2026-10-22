@@ -1,7 +1,3 @@
-// The shared-fake guard: a module with a shared fake is faked only through it, and a shared helper is
-// never declared again in a test file of its tree. Each shape a test copies is a finding; going
-// through the owner, a module with no shared fake, and another tree's tests pass.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   sharedFakeGuard,

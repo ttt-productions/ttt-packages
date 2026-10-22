@@ -1,21 +1,15 @@
 import { format } from 'date-fns';
 import { isSerializedTimestamp, hasToDateMethod } from './types.js';
 
-/**
- * Convert any timestamp-like value to milliseconds since epoch.
- * Safe for use in both Client and Admin environments (no hard SDK imports).
- */
 export function toMillis(value: unknown): number {
   if (value === null || value === undefined) return 0;
 
   if (typeof value === 'number') return value;
 
-  // Handle Firestore Timestamp via duck-typing (works for both SDKs)
   if (hasToDateMethod(value)) {
     return value.toDate().getTime();
   }
 
-  // Serialized Timestamp ({_seconds, _nanoseconds})
   if (isSerializedTimestamp(value)) {
     return value._seconds * 1000 + Math.floor(value._nanoseconds / 1_000_000);
   }
@@ -34,9 +28,6 @@ export function toMillis(value: unknown): number {
   return 0;
 }
 
-/**
- * Convert any timestamp-like value to a JS Date.
- */
 export function toDate(value: unknown): Date {
   if (value === null || value === undefined) {
     return new Date(NaN);

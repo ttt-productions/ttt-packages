@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { filesOf, workflowsTree } from './workspace';
 
-// GitHub moves a `-latest` runner label to a new OS image on its own schedule, so every job on one
-// silently starts running on an image nobody has verified. Workflows name an explicit image, which
-// makes a runner OS change a deliberate edit. This guard reads each `runs-on` value as written, so a
-// label supplied through an expression such as a matrix variable is not seen.
-
 const WORKFLOW_FILE = /^\.github\/workflows\/[^/]+\.ya?ml$/;
 const RUNS_ON = /^(\s*)(['"]?)runs-on\2\s*:(.*)$/;
 const LATEST_LABEL = /-latest$/;
@@ -13,9 +8,7 @@ const LATEST_LABEL = /-latest$/;
 const indentOf = (line: string) => line.length - line.trimStart().length;
 const stripComment = (line: string) => line.replace(/(^|\s)#.*$/, '');
 
-// Line numbers of every `runs-on` whose value names a runner label ending in `-latest`. The value is
-// the rest of the key's line (a scalar or a flow list) plus the block below it: deeper-indented
-// lines, or list items at the key's own indent, which YAML allows for a list under a mapping key.
+// YAML allows a list under a mapping key at the key's own indent, not only deeper.
 function latestRunsOn(source: string): number[] {
   const lines = source.split(/\r?\n/);
   const offenders: number[] = [];
@@ -31,14 +24,20 @@ function latestRunsOn(source: string): number[] {
       if (indent < keyIndent || (indent === keyIndent && !content.startsWith('-'))) break;
       value.push(next);
     }
-    const labels = value.map(stripComment).join(' ').match(/[\w.-]+/g) ?? [];
+    const labels =
+      value
+        .map(stripComment)
+        .join(' ')
+        .match(/[\w.-]+/g) ?? [];
     if (labels.some((label) => LATEST_LABEL.test(label))) offenders.push(index + 1);
   });
   return offenders;
 }
 
 const job = (body: string) => `jobs:\n  build:\n${body}\n    steps:\n      - run: npm ci\n`;
-const workflowFiles = filesOf(workflowsTree, ['config']).filter((file) => WORKFLOW_FILE.test(file.path));
+const workflowFiles = filesOf(workflowsTree, ['config']).filter((file) =>
+  WORKFLOW_FILE.test(file.path),
+);
 
 describe('boundary: CI jobs run on a pinned runner image', () => {
   it('flags a -latest label written inline, quoted, in a flow list, in a block list, or under labels', () => {
@@ -47,7 +46,9 @@ describe('boundary: CI jobs run on a pinned runner image', () => {
     expect(latestRunsOn(job('    runs-on: [self-hosted, macos-latest]'))).toEqual([3]);
     expect(latestRunsOn(job('    runs-on:\n      - ubuntu-latest'))).toEqual([3]);
     expect(latestRunsOn(job('    runs-on:\n    - windows-latest'))).toEqual([3]);
-    expect(latestRunsOn(job('    runs-on:\n      group: builders\n      labels: ubuntu-latest'))).toEqual([3]);
+    expect(
+      latestRunsOn(job('    runs-on:\n      group: builders\n      labels: ubuntu-latest')),
+    ).toEqual([3]);
     expect(latestRunsOn(job('    runs-on: ubuntu-latest').replace(/\n/g, '\r\n'))).toEqual([3]);
   });
 
@@ -56,7 +57,9 @@ describe('boundary: CI jobs run on a pinned runner image', () => {
     expect(latestRunsOn(job('    runs-on: [self-hosted, ubuntu-24.04]'))).toEqual([]);
     expect(latestRunsOn(job('    runs-on: ubuntu-24.04 # not ubuntu-latest'))).toEqual([]);
     expect(latestRunsOn(job('    # not ubuntu-latest\n    runs-on: ubuntu-24.04'))).toEqual([]);
-    expect(latestRunsOn(job('    runs-on: ubuntu-24.04').replace('npm ci', 'echo ubuntu-latest'))).toEqual([]);
+    expect(
+      latestRunsOn(job('    runs-on: ubuntu-24.04').replace('npm ci', 'echo ubuntu-latest')),
+    ).toEqual([]);
   });
 
   it('scans at least one workflow file', () => {
@@ -64,7 +67,9 @@ describe('boundary: CI jobs run on a pinned runner image', () => {
   });
 
   it('pins every workflow job to an explicit runner image', () => {
-    const offenders = workflowFiles.flatMap((file) => latestRunsOn(file.text).map((line) => `${file.path}:${line}`));
+    const offenders = workflowFiles.flatMap((file) =>
+      latestRunsOn(file.text).map((line) => `${file.path}:${line}`),
+    );
     expect(
       offenders,
       `name an explicit runner image (such as ubuntu-24.04) instead of a -latest label:\n  ${offenders.join('\n  ')}`,

@@ -1,9 +1,3 @@
-// Text-field declarations: every text field a person types is declared once in the core's
-// declarations module (its input format, min, and max, through input-format-core's
-// `defineInputFormat`) and every wire schema reads it through the core's field-schema builder, so
-// the trim, the non-blank rule, the cap, and the characters are the same at the form, the wire, and
-// the writer.
-
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -27,21 +21,13 @@ type ReviewedCounts = ReadonlyArray<{
 type FieldSchema = { safeParse: (value: unknown) => { success: boolean; data?: unknown } };
 
 export interface TextFieldDeclarationFacts {
-  /** The core build folders that hold wire schemas (repo-relative). */
   wireFolders: readonly string[];
-  /** The core build module that holds every text-field declaration (repo-relative). */
   declarationsFile: string;
-  /** Export-name endings that mark a wire input declaration (`InputSchema`, `RequestSchema`, …). */
   wireInputNameSuffixes: readonly string[];
-  /** Wire `z.string()` chains that trim or bound themselves, per `module#declaration`: text no person types. */
   selfBounded: ReviewedCounts;
-  /** Free-text-named wire `z.string()` properties that are not typed text, per `module#declaration`. */
   undeclaredFreeText: ReviewedCounts;
-  /** The declarations that keep their text as typed, each with why. */
   keepAsTyped: ReadonlyArray<{ declaration: string; why: string }>;
-  /** The declarations module's exports. */
   declarations: Loader<Readonly<Record<string, unknown>>>;
-  /** The core's builder of a wire schema from one declaration. */
   fieldSchema: Loader<(declaration: never) => FieldSchema>;
 }
 
@@ -52,13 +38,11 @@ const isZString = (node: ts.Node): node is ts.CallExpression =>
   ts.isIdentifier(node.expression.expression) &&
   node.expression.expression.text === 'z';
 
-/** A length constant that bounds text — an id's length (`*_ID_LENGTH`) bounds an id, not text. */
 const TEXT_LENGTH_CONSTANT = /^(MAX|MIN)_(?![A-Z0-9_]*_ID_LENGTH$)[A-Z0-9_]*LENGTH$/;
 const FREE_TEXT_PROPERTY =
   /reason|message|text|note|comment|title|description|name|subject|caption|summary|statement|facts|letter|label|heading|body|query|content|suggestion|region|country|value|intro|points|strings|term/i;
 const BUILT_IN_FORMAT_METHODS = new Set(['regex', 'url', 'email', 'uuid']);
 
-/** The method calls chained onto a `z.string()` call, outermost last. */
 function chainedCalls(root: ts.CallExpression): ts.CallExpression[] {
   const calls: ts.CallExpression[] = [];
   let node: ts.Node = root;
@@ -81,7 +65,6 @@ interface Site {
   line: number;
 }
 
-/** Every `z.string()` chain that trims itself or bounds itself by a text-length constant. */
 export function selfBoundedChains(file: FileView): Site[] {
   const sites: Site[] = [];
   const visit = (node: ts.Node): void => {
@@ -109,7 +92,6 @@ export function selfBoundedChains(file: FileView): Site[] {
   return sites;
 }
 
-/** Every free-text-named `z.string()` property of a wire input declaration that carries no built-in format. */
 export function undeclaredFreeText(
   file: FileView,
   isWireInput: (declaration: string) => boolean,
@@ -148,7 +130,6 @@ export function undeclaredFreeText(
   return sites;
 }
 
-/** Sites against reviewed `module#declaration` counts: an excess site fails, a short count is stale. */
 function compareReviewed(
   sites: readonly Site[],
   reviewed: ReviewedCounts,
@@ -181,10 +162,6 @@ function compareReviewed(
 
 type Declaration = { format?: unknown; min?: number; keepAsTyped?: unknown };
 
-/**
- * input-format-core's format for free text — a description, a message, a chapter — which holds its
- * spacing as typed; every other format holds a run of spaces to one.
- */
 const FREE_TEXT_FORMAT = 'none';
 const textDeclarations = (exports: Readonly<Record<string, unknown>>) =>
   Object.entries(exports).filter(

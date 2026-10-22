@@ -1,9 +1,3 @@
-// The reload-recovery notice: nothing until the page hits a failure only a reload repairs, then one
-// notice with the app's sentence for it and a Refresh control, and no way to dismiss it. The page
-// beneath stays mounted with its input. A failure raised before the notice mounted shows on mount; a
-// repeat changes nothing. Refresh runs the app's reload once, pending until it settles, and a reload
-// the app's guard cancelled leaves the notice and the page as they were. Nothing reloads by itself.
-
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';

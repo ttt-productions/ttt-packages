@@ -1,9 +1,3 @@
-// The ONE "active account-deletion request" predicate (ARCH-102). The status classification is an
-// exhaustive Record over AccountDeletionRequestStatus, so adding a lifecycle status is a COMPILE
-// error until it is classified — that half of the completeness guarantee is enforced by tsc, not
-// here. These tests cover the runtime half: the projected set contains only real union members,
-// the helper agrees with the set across the whole union, and unrecognized/absent values are false.
-
 import { describe, it, expect } from 'vitest';
 import {
   ACCOUNT_DELETION_REQUEST_ORIGINS,
@@ -73,8 +67,6 @@ describe('MID_SCRUB_DELETION_REQUEST_STATUSES completeness against the status un
 });
 
 describe('isActiveDeletionRequest truth table', () => {
-  // Every union member, spelled out: the mid-scrub (scrubbing/leased) and terminal
-  // (cancelled/completed/superseded) statuses are NOT cancellable-active.
   const TRUTH_TABLE: ReadonlyArray<[string, boolean]> = [
     ['pending', true],
     ['parkedOnHold', true],

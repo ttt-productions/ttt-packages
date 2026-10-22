@@ -1,6 +1,3 @@
-// The account sync's pure steps, server-safe so they are tested without React. Internal to the
-// package: the root does not export them, because apps use ViewerSettingsSyncProvider, not its steps.
-
 import type {
   SavedViewerSettings,
   ViewerSettingDifference,
@@ -8,8 +5,7 @@ import type {
   ViewerSettings,
 } from './viewer-settings.js';
 
-// A record, so adding a setting to ViewerSettings fails to compile until it is listed here; its key
-// order is the order every per-setting walk takes.
+// A record, so a setting added to ViewerSettings fails to compile until it is listed here.
 const SETTING_ORDER: Record<ViewerSettingName, true> = { theme: true, reducedMotion: true };
 const SETTING_NAMES = Object.keys(SETTING_ORDER) as ViewerSettingName[];
 
@@ -31,14 +27,11 @@ function copySaved<K extends ViewerSettingName>(
   target[setting] = source[setting];
 }
 
-// Baseline: per setting, the account's value and the device's value when that account value arrived.
-
 export interface Baseline {
   account: SavedViewerSettings;
   device: SavedViewerSettings;
 }
 
-/** The settings whose account value is not the baseline's: every setting when there is no baseline. */
 export function changedAccountSettings(
   baseline: Baseline | null,
   account: SavedViewerSettings,
@@ -48,10 +41,6 @@ export function changedAccountSettings(
   );
 }
 
-/**
- * Moves each setting whose account value changed to the current account and device values; every
- * other setting keeps its baseline. Returns `baseline` itself when nothing moved.
- */
 export function advanceBaseline(
   baseline: Baseline | null,
   account: SavedViewerSettings,
@@ -69,9 +58,6 @@ export function advanceBaseline(
   }
   return next;
 }
-
-// Saves from this tab, per setting: pending until they settle; once landed, held until the account
-// shows the saved value or that setting's account value changes.
 
 export interface SaveTrack {
   id: number;
@@ -94,7 +80,6 @@ export function beginSave(
   return next;
 }
 
-/** Marks save `id` landed, or drops it when it failed; a later save of the same setting is left alone. */
 export function settleSave(
   tracks: SaveTracks,
   values: Partial<ViewerSettings>,
@@ -112,7 +97,6 @@ export function settleSave(
   return next;
 }
 
-/** Drops the landed saves of the given settings: their account value has since changed. */
 export function releaseLandedSaves(
   tracks: SaveTracks,
   settings: readonly ViewerSettingName[],
@@ -126,7 +110,6 @@ export function releaseLandedSaves(
   return next;
 }
 
-/** The settings a save from this tab still answers for: pending, or landed but not yet in the account. */
 export function savingSettings(
   tracks: SaveTracks,
   account: SavedViewerSettings,
@@ -142,18 +125,13 @@ export function savingSettings(
 export interface ViewerSettingsSides {
   device: SavedViewerSettings;
   account: SavedViewerSettings;
-  /** Per setting, the device's value when that setting's account value last changed. */
   deviceAtAccountChange: SavedViewerSettings;
-  /** Settings a save from this tab still answers for. */
   saving: ReadonlySet<ViewerSettingName>;
 }
 
 export interface ViewerSettingsComparison {
-  /** Settings the device has nothing saved for: it takes the account's values without asking. */
   adoptFromAccount: Partial<ViewerSettings>;
-  /** Settings the account has nothing saved for: the device's values are saved to it without asking. */
   saveToAccount: Partial<ViewerSettings>;
-  /** Settings saved on both sides with different values. */
   differences: ViewerSettingDifference[];
 }
 
@@ -168,9 +146,6 @@ export function compareViewerSettings({
   const differences: ViewerSettingDifference[] = [];
 
   for (const setting of SETTING_NAMES) {
-    // A setting this tab is saving, or one changed on this device (by any tab) since its account
-    // value arrived, is on its way to the account: comparing it now would ask about the viewer's
-    // own change.
     if (saving.has(setting) || device[setting] !== deviceAtAccountChange[setting]) continue;
 
     const onDevice = device[setting];
@@ -191,7 +166,6 @@ export function compareViewerSettings({
   return { adoptFromAccount, saveToAccount, differences };
 }
 
-/** One side's values for the given differences. */
 export function viewerSettingsFromDifferences(
   differences: readonly ViewerSettingDifference[],
   side: 'device' | 'account',
@@ -200,8 +174,6 @@ export function viewerSettingsFromDifferences(
   for (const difference of differences) assign(values, difference.setting, difference[side]);
   return values;
 }
-
-// Dismissals: each dismissed difference is remembered on its own, as [setting, device, account].
 
 export type Dismissal = readonly [
   setting: ViewerSettingName,
@@ -217,7 +189,6 @@ function isDismissal(value: unknown): value is Dismissal {
   );
 }
 
-/** The dismissals stored on the device; anything unreadable counts as none. */
 export function parseDismissals(stored: string | null): Dismissal[] {
   if (stored === null) return [];
   try {
@@ -228,7 +199,6 @@ export function parseDismissals(stored: string | null): Dismissal[] {
   }
 }
 
-/** The stored form of `dismissals`; `null` (remove the entry) when there are none. */
 export function serializeDismissals(dismissals: readonly Dismissal[]): string | null {
   return dismissals.length === 0 ? null : JSON.stringify(dismissals);
 }
@@ -249,7 +219,6 @@ export function isDismissed(
   );
 }
 
-/** The dismissals that still hold: the device and the account still carry exactly the dismissed values. */
 export function holdingDismissals(
   dismissals: readonly Dismissal[],
   device: SavedViewerSettings,

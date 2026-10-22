@@ -1,6 +1,3 @@
-// No wildcard import of a scoped package: a consumer names each definition it uses, so every name
-// is traced to the entry that owns it and a mock of one name cannot stand in for the whole module.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import { packageWildcardImportsGuard } from '../../src/modules/import-paths/package-wildcard-imports.js';
 import { createRepoReader } from '../../src/node/reader.js';

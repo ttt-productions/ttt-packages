@@ -1,8 +1,3 @@
-// The app's fonts are self-hosted: `next/font/google` downloads each face when the app is BUILT, so
-// every build — local, CI, and every deploy — depends on Google's font service answering in the
-// one shape Next's font loader reads, and an answer in any other shape fails the whole build. The
-// faces live in the repository and load through `next/font/local`.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { reviewedAllowlist, type Hit } from '../../shapes/shapes.js';
 import { objectProblem } from '../../support/facts.js';

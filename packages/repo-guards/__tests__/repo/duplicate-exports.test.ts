@@ -1,7 +1,3 @@
-// The hand-run duplicate-export report: re-exports are never definitions, genuine duplicates in a
-// tree and across the app / Functions boundary report, and a reviewed group stays quiet only while
-// its copies stay in its reviewed files.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   analyzeDuplicateExports,

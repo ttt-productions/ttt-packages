@@ -4,7 +4,6 @@ import type { AudioVisualizerMode } from '../src/visualizer.js';
 
 type RafCallback = (t: number) => void;
 
-// Manual rAF pump: frames advance only when we say so.
 let rafCallbacks: Map<number, RafCallback>;
 let nextRafId: number;
 
@@ -113,7 +112,7 @@ describe('startWaveformLoop', () => {
 
     pumpFrame();
     expect(ctx.stroke).not.toHaveBeenCalled();
-    expect(rafCallbacks.size).toBe(1); // still scheduled
+    expect(rafCallbacks.size).toBe(1);
 
     mounted = true;
     pumpFrame();

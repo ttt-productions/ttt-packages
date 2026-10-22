@@ -1,6 +1,3 @@
-// Phase 1A proof: the Center Stage rooms migrated to ttt-core as pure data with
-// unique, complete keys and verbatim copy.
-
 import { describe, it, expect } from 'vitest';
 import {
   CENTER_STAGE_ROOMS,

@@ -1,6 +1,3 @@
-// The auth guards: one client auth boundary, banned auth calls, auth failures that reach
-// monitoring, one sign-out liveness owner, and editors no permission read can unmount.
-
 import { describe, expect, it } from 'vitest';
 import {
   authFailureCaptureGuard,
@@ -14,7 +11,6 @@ import { findingsOf } from './run.js';
 
 const lines = (...l: string[]) => l.join('\n');
 
-// ---------------------------------------------------------------------------------------------
 describe('client auth boundary', () => {
   const facts: ClientAuthBoundaryFacts = {
     boundaryModules: [
@@ -167,7 +163,6 @@ describe('client auth boundary', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('banned auth calls', () => {
   const facts = {
     surfaces: ['src/components/auth', 'src/hooks'],
@@ -221,7 +216,6 @@ describe('banned auth calls', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('auth failure capture', () => {
   const facts = {
     reporter: 'reportAuthFailure',
@@ -318,7 +312,6 @@ describe('auth failure capture', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('sign-out liveness owner', () => {
   const facts = {
     owner: 'src/lib/still-signed-in.ts',
@@ -391,7 +384,6 @@ describe('sign-out liveness owner', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
 describe('editor never under a permission gate', () => {
   const facts = {
     editorMarker: 'useUnsavedGuard',

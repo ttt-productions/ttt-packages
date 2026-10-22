@@ -12,18 +12,9 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
-// A pending trigger opens on nothing: it opens on a pointer press or a key, and a closed
-// trigger's typeahead changes the value, so both are stopped before the trigger's own handlers.
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
-    /**
-     * The change this select started is in flight: the trigger ignores opening and typeahead,
-     * sets `aria-disabled` and `aria-busy`, and shows the spinner in place of its chevron. It
-     * is never natively disabled while pending (a `disabled` passed alongside applies once
-     * pending ends), so it keeps focus (FRONTEND-203). It keeps showing
-     * the COMMITTED value — the caller changes `value` only once the write lands.
-     */
     pending?: boolean;
   }
 >(({ className, children, pending = false, disabled, ...props }, ref) => (

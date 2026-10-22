@@ -1,6 +1,3 @@
-// The first-visit site tour: every step highlights a different permanent shell control, and every
-// line is spoken by a member of the Company.
-
 import { describe, it, expect } from 'vitest';
 import {
   COMPANY_MASCOT_ORDER,

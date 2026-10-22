@@ -1,7 +1,3 @@
-// The one fact rule set holds every guard to the same refusals: an entry listed twice, a reviewed path
-// that is not repo-relative, a name list with an empty entry. Each case here is a fact one guard
-// accepted before it checked its facts through the shared set.
-
 import { describe, expect, it } from 'vitest';
 import { coreContractsGuard } from '../../src/modules/core-definitions/contracts.js';
 import { writeGuard } from '../../src/modules/firestore/guard.js';

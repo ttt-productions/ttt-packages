@@ -5,15 +5,10 @@ import type { CheckoutTaskRequest } from '../../schemas/requests.js';
 import type { CheckoutTaskResult } from '../../contracts/types-admin-task.js';
 
 interface UseCheckoutTaskOptions {
-  /** The app's call to its callable, typed and bound once by the app. */
   checkoutTaskFn: (input: CheckoutTaskRequest) => Promise<CheckoutTaskResult>;
-  /** Current admin user ID — used to invalidate the checked-out tasks query. */
   userId?: string;
 }
 
-/**
- * Mutation to check out a task from a queue.
- */
 export function useCheckoutTask({ checkoutTaskFn, userId }: UseCheckoutTaskOptions) {
   const queryClient = useQueryClient();
 

@@ -1,8 +1,3 @@
-/**
- * Server-side types for report-core backend helpers.
- * These abstract firebase-admin so the package doesn't import it directly.
- */
-
 export interface ServerFirestore {
   collection(path: string): ServerCollectionRef;
   doc(path: string): ServerDocRef;
@@ -21,7 +16,6 @@ export interface ServerQuery {
   where(field: string, op: string, value: unknown): ServerQuery;
   orderBy(field: string, direction?: 'asc' | 'desc'): ServerQuery;
   limit(n: number): ServerQuery;
-  /** Start after a document this query returned (the Admin SDK's `Query.startAfter(snapshot)`). */
   startAfter(snapshot: ServerDocSnapshot): ServerQuery;
   get(): Promise<ServerQuerySnapshot>;
 }
@@ -63,14 +57,6 @@ export interface ServerFieldValue {
   increment(n: number): unknown;
 }
 
-/**
- * Discriminated union of activity-log actions that can occur inside a
- * report-core handler's transaction. Consumers can map these to their own
- * audit-event types and call `transaction.set` on their own audit collection.
- *
- * Each variant carries the data that has been already established by the
- * time the activity log is written (admin uid, task identity, etc.).
- */
 export type ReportCoreAuditEvent =
   | {
       action: 'checkout';
@@ -80,11 +66,8 @@ export type ReportCoreAuditEvent =
       timestamp: number;
     }
   | {
-      /** An expired checkout was taken over by a new checkout. */
       action: 'auto_released';
-      /** The admin whose checkout took the task over — the actor. */
       adminUserId: string;
-      /** The admin whose lock expired. */
       priorAdminUserId: string;
       taskType: string;
       taskId: string;
@@ -115,36 +98,14 @@ export type ReportCoreAuditEvent =
       timestamp: number;
     };
 
-/**
- * Optional consumer-supplied callback. Called inside the same transaction
- * that writes the activity log. Consumer is expected to use the supplied
- * `transaction` to perform any audit-event writes so the two are atomic.
- *
- * The callback is sync in shape (returns void or Promise<void>) but should
- * NOT perform reads on `transaction` — by the time it's invoked, all
- * transactional reads in the handler have already completed and we're in
- * write-only territory.
- */
+/** Runs after the handler's transactional reads; a read on `transaction` here would come after a write. */
 export type OnAuditEvent = (
   event: ReportCoreAuditEvent,
   transaction: ServerTransaction,
 ) => void | Promise<void>;
 
-/** A claim guard's answer: the task may be claimed, or it may not, with the app's reason. */
 export type TaskClaimVerdict = { claimable: true } | { claimable: false; message: string };
 
-/**
- * Optional consumer-supplied check that a task may be claimed RIGHT NOW, decided inside the
- * claim transaction (so it commits with the claim it guards). The checkout handlers call it
- * after their status guard and their reads, before any write — never for the "you already
- * hold this" answer. It may read more through `transaction`; it must not write. A thrown error
- * aborts the claim (a failed read never counts as claimable).
- *
- * - `taskDocId` — the admin task document's id (not the stored `taskData.taskId`).
- * - `taskData` — the task as read in this transaction.
- * - `originalData` — the document at `taskData.originalPath` as read in this transaction, or
- *   `null` when it does not exist.
- */
 export type TaskClaimGuard = (args: {
   taskDocId: string;
   taskData: Record<string, unknown>;
@@ -152,20 +113,11 @@ export type TaskClaimGuard = (args: {
   transaction: ServerTransaction;
 }) => Promise<TaskClaimVerdict>;
 
-/**
- * Admin auth config for backend factories.
- * At least one of requireAdmin or adminUserIds must be provided.
- */
 export interface AdminAuthConfig {
-  /** Primary check — async function, should throw if not admin. */
   requireAdmin?: (uid: string, authToken: unknown) => Promise<void>;
-  /** Fallback — hardcoded admin UIDs. Checked if requireAdmin not provided or throws. */
   adminUserIds?: string[];
 }
 
-/**
- * Base config passed to all server factory functions.
- */
 export interface ServerReportCoreConfig {
   collections: {
     reports: string;

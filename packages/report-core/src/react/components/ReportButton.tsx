@@ -11,12 +11,6 @@ import type {
   UseReportButtonResult,
 } from '../types-ui-props.js';
 
-/**
- * Open state for a report dialog, for a custom trigger or a target chosen at click time (a
- * message in a list). The open state is bound to the reporter who opened it, so a different
- * signed-in reporter reads it closed (FRONTEND-108); with no reporter, `openReport` calls
- * `onSignInRequired` and opens nothing.
- */
 export function useReportButton({
   reporterUserId,
   onSignInRequired,
@@ -59,7 +53,6 @@ export function useReportButton({
   };
 }
 
-/** A flag trigger that opens the report dialog for one item. */
 export function ReportButton({
   itemType,
   itemId,

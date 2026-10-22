@@ -1,8 +1,3 @@
-// Schema length literals: a business text or count limit is declared once as a named core constant,
-// and every zod bound that enforces it derives from that constant — `.max(MAX_X)`, never `.max(2500)`.
-// Only reviewed structural bounds (opaque-id caps, fan-out counts, address lengths, calendar days)
-// stay literal, each file's exact set reviewed with its why. A text minimum always derives.
-
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
@@ -10,9 +5,7 @@ import { namesProblem, reviewedProblems } from '../../support/facts.js';
 import { CORE_CODE, filesIn } from './shared.js';
 
 export interface SchemaLengthLiteralFacts {
-  /** The core build folders that hold schemas (repo-relative). */
   schemaFolders: readonly string[];
-  /** Each core build module's reviewed literal `.max()` bounds — the exact values — with why. */
   reviewedMaxLiterals: ReadonlyArray<{ file: string; values: readonly number[]; why: string }>;
 }
 
@@ -21,7 +14,6 @@ const MIN_LITERAL = /\.min\(\s*(\d[\d_]*)\s*[,)]/g;
 
 const numberOf = (digits: string) => Number(digits.replace(/_/g, ''));
 
-/** Every literal bound of one kind in a file's code, with where it sits. */
 export function literalBounds(
   file: FileView,
   pattern: RegExp,

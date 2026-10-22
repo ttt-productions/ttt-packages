@@ -2,12 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { type WireMessageRow } from '../../src/realtime/wire.js';
 import { wireRowToMessage, optimisticMessage } from '../../src/realtime/map.js';
 
-// Chat has NO reply-authoring affordance on any surface — MessageActions renders only
-// Report/Delete and the Composer sends one argument — so reply-to is dead machinery and
-// was removed end to end (DJ ruling 2026-07-29). These guard the removal at the two
-// seams a regression would come back through: the mapper (a DO that still stores a
-// legacy `replyTo` column must not resurrect a UI reply pointer) and the optimistic
-// echo. See also channel-client.test.ts for the outbound send frame.
 describe('reply-to is absent from the realtime message mapping', () => {
   it('ignores a legacy stringified replyTo column on a DO row', () => {
     const mapped = wireRowToMessage(
@@ -18,7 +12,6 @@ describe('reply-to is absent from the realtime message mapping', () => {
         text: 'hello',
         createdAt: 1007,
         epoch: 1,
-        // A pre-removal DO still has the column and broadcasts it.
         replyTo: JSON.stringify({ messageSeq: 3, preview: 'earlier' }),
       } as unknown as WireMessageRow,
       't-1',

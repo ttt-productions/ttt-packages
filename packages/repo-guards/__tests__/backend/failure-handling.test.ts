@@ -1,6 +1,3 @@
-// The failure-handling guards: no swallowed read or write, every post-commit effect captures, and a
-// scheduled handler isolates its passes.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   postCommitCaptureGuard,

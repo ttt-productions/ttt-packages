@@ -1,8 +1,3 @@
-// Collection group query constants
-//
-// Frontend: collectionGroup(db, COLLECTION_GROUPS.SOCIAL_POSTS)
-// Backend:  db.collectionGroup(COLLECTION_GROUPS.SOCIAL_POSTS)
-
 import { USER_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from './collections.js';
 
 export const COLLECTION_GROUPS = {

@@ -1,5 +1,3 @@
-// Running one UI guard definition over a throwaway repository, for the ui area's tests.
-
 import type { GenericGuardDefinition } from '../../src/node/suite/config.js';
 import type { Finding } from '../../src/guard.js';
 import type { RepoLayout } from '../../src/node/layout.js';
@@ -9,13 +7,8 @@ import { tempRepo } from '../helpers/temp-repo.js';
 
 const ANCHOR = 'src/anchor.ts';
 
-/** `file:line detail`, the shape every expectation below is written in. */
 export const show = (f: Finding) => `${f.file}${f.line ? `:${f.line}` : ''} ${f.detail}`;
 
-/**
- * Every finding each guard the definition builds reports over a repository holding `files`
- * (beside an anchor file under `src`), keyed by guard title.
- */
 export async function runDefinition<F>(
   definition: GenericGuardDefinition<F>,
   facts: F,
@@ -40,7 +33,6 @@ export async function runDefinition<F>(
   }
 }
 
-/** Every finding of every guard the definition builds, in one list. */
 export async function allFindings<F>(
   definition: GenericGuardDefinition<F>,
   facts: F,
@@ -50,7 +42,6 @@ export async function allFindings<F>(
   return Object.values(await runDefinition(definition, facts, files, roots)).flat();
 }
 
-/** A tiny installed package: its manifest and files under `node_modules/<name>/`. */
 export function installed(
   name: string,
   manifest: Record<string, unknown>,

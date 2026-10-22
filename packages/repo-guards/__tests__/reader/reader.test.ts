@@ -281,8 +281,6 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
   });
 });
 
-// A folder the reader cannot read fails the run naming it, never reads as an empty folder: its
-// files would go unchecked and every guard would still pass.
 describe('MUST FAIL — a folder that cannot be read', () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -300,8 +298,6 @@ describe('MUST FAIL — a folder that cannot be read', () => {
   });
 });
 
-// A symbolic link is neither followed (it can leave the repository or loop) nor skipped (what it
-// points at would go unchecked while every guard passes): the run fails naming it.
 describe('MUST FAIL — a symbolic link in a walked tree', () => {
   afterEach(() => vi.restoreAllMocks());
 

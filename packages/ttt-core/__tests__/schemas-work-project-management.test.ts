@@ -329,7 +329,6 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
   });
 
   it('is enforced identically by CheckRealmNameAvailableInputSchema and CreateWorkProjectInputSchema', () => {
-    // Same schema on both surfaces — a name valid at create is never rejected at form time.
     const validCreateBase = {
       workingTitle: 'Work',
       workingDescription: 'desc',
@@ -339,7 +338,6 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
       realmWorkingDescription: 'realm desc',
       realmFoundingAgreementVersion: WORK_REALM_FOUNDING_AGREEMENT_VERSION,
     };
-    // A valid realm title parses on both surfaces.
     expect(
       CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'Good Realm' }).workingTitle,
     ).toBe('Good Realm');
@@ -347,7 +345,6 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
       CreateWorkProjectInputSchema.parse({ ...validCreateBase, realmWorkingTitle: 'Good Realm' })
         .realmCreationMode,
     ).toBe('newPublicRealm');
-    // The slash-bearing title is rejected on both (only the realm title is invalid here).
     expect(() => CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'A/B' })).toThrow();
     expect(() =>
       CreateWorkProjectInputSchema.parse({ ...validCreateBase, realmWorkingTitle: 'A/B' }),

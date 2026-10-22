@@ -1,33 +1,20 @@
-// A controllable MOCK socket + a manual fake-timer clock for the realtime
-// transport tests. No real network, no real timers — every test drives the socket
-// open/message/close and advances time deterministically.
-
 import type { RealtimeSocket, SocketFactory, SocketHandlers } from '../../src/realtime/socket.js';
 import type { TransportTimers } from '../../src/realtime/shared.js';
 
 export interface MockSocket extends RealtimeSocket {
-  /** Frames the client sent, as parsed `{ v, type, payload }` objects. */
   readonly sent: Array<{ v: number; type: string; payload: Record<string, unknown> }>;
-  /** The grant token offered when this socket was opened. */
   readonly grantToken: string;
   readonly url: string;
-  /** Simulate the server accepting the upgrade. */
   serverOpen(): void;
-  /** Simulate the DO sending a `{ v, type, payload }` frame. */
   serverFrame(type: string, payload: Record<string, unknown>): void;
-  /** Simulate arbitrary/garbage bytes arriving (an UNPARSEABLE inbound frame). */
   serverRaw(data: string): void;
-  /** Simulate the socket closing (server or transport). */
   serverClose(code: number, reason?: string): void;
-  /** True after close() / serverClose(). */
   readonly closed: boolean;
 }
 
 export interface MockSocketHarness {
   factory: SocketFactory;
-  /** Every socket the factory has created, in order (reconnects append). */
   readonly sockets: MockSocket[];
-  /** The most recently created socket. */
   last(): MockSocket;
 }
 
@@ -88,11 +75,8 @@ function makeMockSocket(url: string, grantToken: string, handlers: SocketHandler
   };
 }
 
-/** A manual clock: deterministic setTimeout/clearTimeout + now, advanced by `tick`. */
 export interface FakeClock extends TransportTimers {
-  /** Advance time by `ms`, firing any timers due in that window (in order). */
   tick(ms: number): void;
-  /** Current virtual time. */
   current(): number;
 }
 
@@ -114,7 +98,6 @@ export function createFakeClock(start = 0): FakeClock {
     },
     tick(ms: number) {
       const target = nowMs + ms;
-      // Fire timers in due order until we reach the target time.
       for (;;) {
         let nextDue: number | null = null;
         let nextKey: number | null = null;

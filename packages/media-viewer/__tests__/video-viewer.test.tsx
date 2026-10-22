@@ -19,11 +19,11 @@ let pauseSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   mockInView = false;
   mockRatio = 0;
-  // jsdom stubs these as "not implemented" — silence them and let us assert calls
+  // jsdom stubs these as "not implemented".
   playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   pauseSpy = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
-  // jsdom does not define requestFullscreen — add a stub so vi.spyOn can spy on it
+  // jsdom does not define requestFullscreen.
   if (!('requestFullscreen' in HTMLElement.prototype)) {
     Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
       configurable: true,
@@ -111,14 +111,10 @@ describe('VideoViewer', () => {
     });
 
     it('does not unmount <video> when lazy=false (no viewport gating at all)', () => {
-      // mockInView is false by default in beforeEach — simulates the video sitting offscreen.
-      // With lazy=false, the unload effect must NOT tear down the video, because the consumer
-      // explicitly opted out of viewport-gated load/unload behavior.
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" lazy={false} />,
       );
       expect(container.querySelector('video')).not.toBeNull();
-      // Force a re-render to give the unload effect a chance to run with inView=false.
       rerender(<VideoViewer url="https://example.com/v.mp4" lazy={false} />);
       expect(container.querySelector('video')).not.toBeNull();
     });
@@ -322,7 +318,6 @@ describe('VideoViewer', () => {
         <VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />,
       );
       await Promise.resolve();
-      // Simulate the video having started playback so pause() will be triggered
       Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
         configurable: true,
         get: () => false,
@@ -331,7 +326,6 @@ describe('VideoViewer', () => {
       rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />);
       await Promise.resolve();
       expect(pauseSpy).toHaveBeenCalled();
-      // Restore default paused getter to avoid cross-test contamination
       Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
         configurable: true,
         get: () => true,
@@ -339,7 +333,6 @@ describe('VideoViewer', () => {
     });
 
     it('does not play before shouldLoad becomes true (lazy + autoplay path)', async () => {
-      // Lazy default + not in view + autoPlayOnVisible: even if ratio reports 0.6, no <video> exists yet
       mockInView = false;
       mockRatio = 0.6;
       const { container } = render(

@@ -1,15 +1,5 @@
-// ARCH-105 on mediaActivationJobs: only the TTL field itself may be a Firestore
-// Timestamp. Every other time field on the collection is epoch-millis, so a reader
-// never needs a conversion the rest of the codebase does not.
-//
-// This is load-bearing beyond tidiness. `dueActivationJobsQuery` filters
-// `where('nextAttemptAt', '<=', <number>)`, and Firestore's type ordering sorts numbers
-// before timestamps — a Timestamp-valued nextAttemptAt would never match, making a
-// non-terminal job INVISIBLE to the recovery worker instead of erroring.
-//
-// Asserted per-field rather than through a whole-document fixture on purpose: a fixture
-// would have to satisfy the full nested authority payload, and any unrelated change there
-// would make these assertions pass or fail for the wrong reason.
+// Firestore orders numbers before timestamps, so a Timestamp-valued nextAttemptAt would never match
+// `dueActivationJobsQuery`'s numeric filter.
 
 import { describe, it, expect } from 'vitest';
 import { MediaActivationJobSchema } from '../src/doc-schemas/media-activation-jobs.js';
@@ -24,7 +14,6 @@ const epochMillis = 1_700_000_000_000;
 
 const shape = MediaActivationJobSchema.shape;
 
-/** Every non-TTL time field on the collection. `expireAt` is deliberately absent. */
 const EPOCH_MILLIS_TIME_FIELDS = [
   'nextAttemptAt',
   'createdAt',
@@ -34,7 +23,7 @@ const EPOCH_MILLIS_TIME_FIELDS = [
   'parentWaitStartedAt',
 ] as const;
 
-describe('mediaActivationJobs time fields obey ARCH-105', () => {
+describe('mediaActivationJobs time fields obey RULE-STD-ARCH-105', () => {
   it('covers every time field the schema declares', () => {
     const declared = Object.keys(shape).filter((key) => /At$/.test(key));
     expect(declared.sort()).toEqual([...EPOCH_MILLIS_TIME_FIELDS, 'expireAt'].sort());

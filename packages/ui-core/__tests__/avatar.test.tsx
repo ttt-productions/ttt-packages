@@ -43,7 +43,6 @@ describe('AvatarImage', () => {
         <AvatarImage src="" alt="test" />
       </Avatar>,
     );
-    // No img element should be rendered when src is empty string
     const img = container.querySelector('img');
     expect(img).toBeNull();
   });

@@ -1,7 +1,3 @@
-// The read-failure guards: a read's failure renders through the one read-state module, from a retry
-// state held through its retry, out of hooks and surfaces that never pass a failed read off as
-// data, with copy from the one copy owner.
-
 import { describe, expect, it } from 'vitest';
 import {
   defaultedReadBindingGuard,
@@ -327,7 +323,6 @@ describe('a render surface that defaults a read binds its failure', () => {
       },
     ],
   };
-  /** The page that mounts the reviewed surface once its read answered — the gate, across a line break. */
   const PAGE =
     'export function Page() {\n  const rows = useRows(id);\n  if (rows.data === undefined)\n    return <Pending />;\n  return <Known />;\n}';
 

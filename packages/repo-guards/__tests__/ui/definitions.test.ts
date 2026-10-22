@@ -1,6 +1,3 @@
-// The definition guards: stored enum values through label maps, reviewed non-free-text boxes, and
-// schema bounds from named limits across the app, its Functions, and its Workers.
-
 import { describe, expect, it } from 'vitest';
 import {
   enumLabelsGuard,

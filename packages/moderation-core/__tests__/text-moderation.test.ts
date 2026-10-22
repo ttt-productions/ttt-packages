@@ -57,7 +57,6 @@ describe('quickWordFilter', () => {
   });
 
   it('normalizes leet speak — b4dge matches badge in the list', async () => {
-    // 4 → a, so "b4dge" normalizes to "badge"
     const wordList = { getWords: async () => new Set(['badge']) };
     const result = await quickWordFilter('b4dge', wordList);
     expect(result.pass).toBe(false);

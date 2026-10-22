@@ -11,8 +11,6 @@ import {
 } from '../src/paths/collections.js';
 import { WORK_PROJECT_TYPE_KEYS, type WorkProjectType } from '../src/types/content.js';
 
-// Which count cap bounds each kind, stated independently of the source so a bound wired to the
-// wrong cap fails here.
 const CAP_BY_WORK_TYPE: Record<WorkProjectType, (limits: TttLimits) => number> = {
   Tales: (limits) => limits.workProject.maxChapters,
   Tunes: (limits) => limits.workProject.maxTuneTracks,

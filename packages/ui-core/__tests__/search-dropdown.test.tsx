@@ -20,8 +20,6 @@ interface HarnessProps {
   renderError?: (error: unknown) => React.ReactNode;
 }
 
-// A consumer that hands the dropdown a fresh results array on every render, as a query hook's
-// `data ?? []` default does.
 function Harness({
   results,
   isLoading = false,
@@ -52,7 +50,6 @@ function Harness({
   );
 }
 
-// The search rule a consumer passes from its search hook.
 const SEARCH_MIN = 3;
 const isSearchable = (text: string) => text.trim().length >= SEARCH_MIN;
 
@@ -256,7 +253,6 @@ describe('SearchDropdown combobox semantics', () => {
     expect(first).toHaveAttribute('aria-controls', firstList.id);
     const firstOptionIds = screen.getAllByRole('option').map((option) => option.id);
 
-    // Clicking into the second input is a click outside the first, which closes it.
     await user.type(second, 'ada');
     expect(screen.queryByRole('listbox', { name: 'First search' })).not.toBeInTheDocument();
     const secondList = screen.getByRole('listbox', { name: 'Second search' });

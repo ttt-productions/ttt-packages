@@ -1,38 +1,27 @@
-// Reads an app's callable declarations: the named hooks its declarations modules build through the
-// shared callable factories, each with its kind, the callable it names, and whether it presents a
-// limited-use App Check token. The client callable guards and the App Check guard read them here.
-
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { namesProblem, objectProblem, textProblem } from '../../support/facts.js';
 import { isPlainString, lineOfNode } from '../../support/ast.js';
 
-/** The four callable kinds: an action, a reader, an invoker, and a resumable action. */
 export type CallableKind = 'action' | 'reader' | 'invoker' | 'resumable';
 
 export const CALLABLE_KINDS: readonly CallableKind[] = ['action', 'reader', 'invoker', 'resumable'];
 
 export interface CallableDeclarationFacts {
-  /** The modules that declare the app's callables. */
   modules: readonly string[];
-  /** The name each kind's factory is bound to in those modules. */
   factories: Readonly<Record<CallableKind, string>>;
 }
 
 export interface DeclaredCallable {
-  /** The exported hook the declaration builds. */
   hook: string;
   kind: CallableKind;
-  /** The callable's name, or null when the declaration names it through an expression. */
   callable: string | null;
-  /** The declaration carries `limitedUseAppCheck: true`. */
   limitedUse: boolean;
   file: string;
   line: number;
 }
 
-/** Problems with a declarations fact: its modules, and a distinct factory name for each kind. */
 export function declarationFactProblems(value: unknown, what: string, problems: string[]): void {
   if (!objectProblem(value, what, problems)) return;
   const facts = value as Partial<CallableDeclarationFacts>;
@@ -146,12 +135,6 @@ function declarationsIn(
   return { declared, findings };
 }
 
-/**
- * Every declaration in the app's declarations modules, with every reason a declaration cannot be
- * read: a module that is gone, a module that declares nothing, a factory call that is not an
- * exported named hook, a hook built by something other than a declared factory, a callable named
- * through an expression, and options that are not an object literal.
- */
 export function readDeclarations(
   context: GuardContext,
   facts: CallableDeclarationFacts,

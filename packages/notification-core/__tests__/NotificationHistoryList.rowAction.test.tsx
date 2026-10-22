@@ -104,7 +104,6 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
       expect.objectContaining({ id: 'n1', archiveOccurrenceId: 'occ-1' }),
       expect.anything(),
     );
-    // Archived rows cannot be re-archived — no archive action is exposed.
     expect(seen.every((a) => a.archive === undefined && a.isArchivePending === undefined)).toBe(
       true,
     );
@@ -120,7 +119,6 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
 
     const row = container.querySelectorAll('.ntf-item')[0] as HTMLElement;
     expect(row).not.toHaveAttribute('role', 'button');
-    // Clicking the row is a no-op (nothing throws, no handler).
     fireEvent.click(row);
   });
 });

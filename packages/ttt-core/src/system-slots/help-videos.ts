@@ -1,9 +1,3 @@
-// The Help components' videos: the one declaration of every Help placement — each `?` Help dialog
-// in the app — with a stable id, the readable title its dialog shows, and where it sits. The
-// system-slot registry derives an optional video slot per entry, so an admin can find any Help
-// placement and give it a video. Separate placements never share a slot, even when their written
-// Help reads the same.
-
 export const HELP_VIDEO_DEFINITIONS = [
   {
     id: 'work-project-information',
@@ -152,7 +146,6 @@ export const HELP_VIDEO_DEFINITIONS = [
 export type HelpVideoDefinition = (typeof HELP_VIDEO_DEFINITIONS)[number];
 export type HelpVideoId = HelpVideoDefinition['id'];
 
-/** The system video slot that holds a Help placement's video. */
 export function helpVideoSlotId<V extends HelpVideoId>(helpId: V): `help-${V}` {
   return `help-${helpId}`;
 }

@@ -48,9 +48,7 @@ describe('createQueryClient', () => {
       },
     });
     const options = client.getDefaultOptions();
-    // staleTime overridden
     expect(options.queries?.staleTime).toBe(60_000);
-    // other defaults still present
     expect(options.queries?.refetchOnWindowFocus).toBe(false);
   });
 

@@ -6,9 +6,6 @@ import {
 } from '../src/schemas/utility.js';
 import * as c from '../src/constants/moderation.js';
 
-// A curated word list is published under edge-protocol-core's `hashStringSet`, which refuses a
-// value holding a line break (it joins values with one). A term with a line break must be refused
-// where it enters, or every later word-list publish throws.
 describe('CurateProfanityListInputSchema terms', () => {
   it('accepts ordinary terms to add and remove', () => {
     expect(

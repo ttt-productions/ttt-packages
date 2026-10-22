@@ -1,6 +1,3 @@
-// The motion guard: token transitions that name their property, and script motion that reads the
-// one effective reduced-motion preference.
-
 import { describe, expect, it } from 'vitest';
 import { motionGuard, type MotionFacts } from '../../src/modules/ui/motion.js';
 import { allFindings } from './helpers.js';

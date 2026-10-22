@@ -1,8 +1,3 @@
-// The release-scope resolver: the two rollback guards, the last-green baseline, path
-// classification, dispatch mapping,. The API and git calls
-// are injected, so every scenario is decided by the resolver's own logic with no network and no
-// repository.
-
 import { describe, it, expect } from 'vitest';
 import {
   DispatchInputError,
@@ -20,17 +15,12 @@ import {
   type ReleaseScopeConfig,
 } from '../../src/node/tooling/release-scope.js';
 
-/** Deterministic 40-hex SHAs; a higher number is a later commit in the fake history. */
 const sha = (n: number): string => n.toString(16).padStart(40, '0');
 
 type FakeGit = ReleaseGit & {
   calls: { commitExists: number; isAncestor: number; changedFiles: number };
 };
 
-/**
- * A linear fake history: `commits[i]` is an ancestor of `commits[j]` for i <= j. Commits outside
- * the list are unreachable; `diverged` commits share no ancestry with the line.
- */
 function makeGit({
   commits = [] as string[],
   diverged = [] as string[],
@@ -91,7 +81,6 @@ const BACKEND_EXACT = [
   'scripts/post-deploy.mjs',
 ];
 
-/** An app with a backend chosen by codebase, two Workers, and a frontend rolled out on every push. */
 const CONFIG: ReleaseScopeConfig = {
   components: [
     {
@@ -107,7 +96,6 @@ const CONFIG: ReleaseScopeConfig = {
   controlPaths: ['.github/workflows/deploy.yml', 'scripts/release-scope.mjs'],
 };
 
-/** An app with a single backend chosen by a true/false dispatch flag. */
 const FLAG_CONFIG: ReleaseScopeConfig = {
   components: [
     { key: 'backend', pathPrefixes: ['functions/'], exactPaths: BACKEND_EXACT },

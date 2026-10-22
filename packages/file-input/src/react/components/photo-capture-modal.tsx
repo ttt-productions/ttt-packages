@@ -26,9 +26,7 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // Bumped by every teardown. A camera that finishes starting after a teardown (dialog closed,
-  // unmounted, superseded by Flip) belongs to nobody: its tracks are stopped, never attached,
-  // or the camera would stay on with no dialog left to turn it off.
+  // A camera that finishes starting after a teardown is stopped, never attached, or it stays on.
   const acquireGenRef = useRef(0);
   const [activeFacing, setActiveFacing] = useState(facingMode);
   const [ready, setReady] = useState(false);
@@ -96,8 +94,6 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
     { onError: reportError },
   );
 
-  // Capture is pending until the frame is encoded and handed off, and ignores a repeat
-  // tap, so a double tap can never emit (and upload) two photos.
   const capture = useAsyncAction(
     async () => {
       const video = videoRef.current;

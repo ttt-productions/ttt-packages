@@ -13,12 +13,6 @@ import { processAudio } from '../src/audio/audio-processor.js';
 import { runCmd } from '../src/video/ffmpeg.js';
 import { SLOW_TEST_TIMEOUT_MS } from '../../../test/timeouts.js';
 
-// REAL-TOOL proof of the one length rule: every length is measured, never read
-// from the header. Chromium's MediaRecorder writes WebM with no length in its
-// header; ffmpeg writing WebM to a pipe produces the same header-less file, so
-// those fixtures stand in for real browser recordings. ffmpeg/ffprobe are
-// required local prerequisites, as for the inspector fixtures.
-
 const SECONDS = 3;
 const LIE_LOOPS = 8;
 const LIE_SECONDS = LIE_LOOPS;
@@ -36,8 +30,7 @@ async function gen(name: string, args: string[]): Promise<string> {
   return out;
 }
 
-/** Writes through ffmpeg's `pipe:` output, which is never seekable, so the
- *  WebM muxer cannot go back and write the length into the header. */
+/** ffmpeg's `pipe:` output is never seekable, so the WebM muxer cannot write the length into the header. */
 async function genPiped(name: string, args: string[]): Promise<string> {
   const out = path.join(dir, name);
   const p = spawn('ffmpeg', ['-hide_banner', '-v', 'error', ...args, '-f', 'webm', 'pipe:1'], {
@@ -96,8 +89,6 @@ beforeAll(async () => {
   f.wav = await gen('a.wav', [...AUDIO]);
   f.flac = await gen('a.flac', [...AUDIO]);
   f.audioWebm = await gen('a.webm', [...AUDIO, '-c:a', 'libopus']);
-  // Looping a one-second clip through the pipe muxer carries the clip's
-  // header length into a file LIE_LOOPS times longer.
   const clipVideo = await gen('clip-v.webm', [
     ...VIDEO_1S,
     ...AUDIO_1S,
@@ -123,8 +114,6 @@ beforeAll(async () => {
     '-c',
     'copy',
   ]);
-  // The header of a recording with none of its packets: it opens and lists
-  // its streams, but has no length to read and none to measure.
   f.headerOnlyVideo = path.join(dir, 'header-only-video.webm');
   await writeFile(f.headerOnlyVideo, (await readFile(f.recVideo)).subarray(0, 600));
   f.headerOnlyAudio = path.join(dir, 'header-only-audio.webm');

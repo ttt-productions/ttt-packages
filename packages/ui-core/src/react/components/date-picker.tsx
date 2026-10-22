@@ -56,9 +56,6 @@ const DAY_NAMES_LONG = [
 ];
 
 const YEARS_PER_PAGE = 12;
-/** Six rows × seven columns — a calendar month never spans more, and always
- *  filling six rows keeps the day grid (and therefore the whole popover
- *  footprint) the same height for every month. */
 const CALENDAR_CELLS = 42;
 
 type View = 'days' | 'months' | 'years';
@@ -80,23 +77,6 @@ const isSameMonth = (a: Date, b: Date) =>
 const fullDateLabel = (date: Date) =>
   `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 
-/**
- * Generic date-of-birth-friendly calendar.
- *
- * Stable footprint: the six-row day grid is always rendered, so the outer width
- * and content height never change; the month and year choosers render as an
- * overlay ON TOP of that grid rather than replacing it, so a Radix popover never
- * flips sides just because the internal view changed.
- *
- * Month and year are INDEPENDENT pickers: choosing a month keeps the current
- * year and returns to the day grid; choosing a year keeps the current month and
- * returns DIRECTLY to the day grid (it never opens the month grid). Only
- * choosing a day calls `onSelect` (which commits and, in a popover, closes).
- *
- * Keyboard: roving day focus with Arrow (±1 day / ±7 days), Home/End (within the
- * week), PageUp/PageDown (±1 month), and Enter/Space to select — no extra
- * dependency. Exactly one day sits in the tab order at a time.
- */
 function DatePicker({
   selected,
   onSelect,
@@ -130,7 +110,6 @@ function DatePicker({
     return false;
   };
 
-  /** A whole month is unpickable only when every day in it is out of range. */
   const isMonthDisabled = (year: number, month: number) => {
     if (disableFuture && new Date(year, month, 1) > today) return true;
     if (disablePast && new Date(year, month + 1, 0) < today) return true;
@@ -152,8 +131,6 @@ function DatePicker({
     selected ? isSameDay(startOfDay(selected), startOfDay(date)) : false;
   const isTodayDate = (date: Date) => isSameDay(startOfDay(date), today);
 
-  /** The best in-month day to seed roving focus: the selected day, then today,
-   *  then the first available day, then the 1st. */
   const pickInMonthFocus = (vd: Date): Date => {
     const year = vd.getFullYear();
     const month = vd.getMonth();
@@ -170,8 +147,6 @@ function DatePicker({
     return new Date(year, month, 1);
   };
 
-  // Resynchronize the visible month/year (and roving focus) when the controlled
-  // `selected` prop changes — e.g. the consumer's typed MM/DD/YYYY fields.
   const selectedTime = selected ? startOfDay(selected).getTime() : undefined;
   React.useEffect(() => {
     if (selectedTime === undefined) return;
@@ -180,7 +155,6 @@ function DatePicker({
     setFocusedDate(startOfDay(d));
   }, [selectedTime]);
 
-  // Deliberate focus after every view transition — never left on document.body.
   React.useLayoutEffect(() => {
     const target = pendingFocusRef.current;
     if (!target) return;
@@ -228,8 +202,6 @@ function DatePicker({
     pendingFocusRef.current = 'day';
   };
 
-  /** From `origin`, walk `step` days at a time until an available day is found
-   *  (inclusive of `origin`). Returns null if none within `maxSteps`. */
   const firstAvailableFrom = (origin: Date, step: number, maxSteps: number): Date | null => {
     let d = startOfDay(origin);
     for (let i = 0; i < maxSteps; i++) {
@@ -308,8 +280,6 @@ function DatePicker({
     if (target) moveFocusTo(target);
   };
 
-  // Header prev/next adapt to the active view; disabled when the whole target
-  // range is unavailable so navigation never lands on a dead page.
   const prevMonthDate = addMonths(viewDate, -1);
   const nextMonthDate = addMonths(viewDate, 1);
 
@@ -371,13 +341,11 @@ function DatePicker({
     }
   };
 
-  // Month selection: keep the year, return to days, focus the Month trigger.
   const handleMonthPick = (month: number) => {
     setViewDate(monthStart(viewDate.getFullYear(), month));
     setView('days');
     pendingFocusRef.current = 'monthTrigger';
   };
-  // Year selection: keep the month, return to days (never months), focus Year.
   const handleYearPick = (year: number) => {
     setViewDate(monthStart(year, viewDate.getMonth()));
     setView('days');
@@ -398,7 +366,6 @@ function DatePicker({
 
   return (
     <div className={cn('p-4 bg-card rounded-lg', className)}>
-      {/* Header — same footprint in every view. */}
       <div className="flex items-center justify-between mb-4">
         <Button
           variant="ghost"
@@ -446,14 +413,11 @@ function DatePicker({
         </Button>
       </div>
 
-      {/* One polite live region for the displayed month/year. */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
       </div>
 
       <div className="relative">
-        {/* Day grid — ALWAYS rendered so width and height stay stable; inert
-            while a chooser overlay covers it. */}
         <div aria-hidden={overlayActive ? true : undefined}>
           <div className="grid grid-cols-7 gap-1 mb-2">
             {DAYS.map((day, i) => (
@@ -548,7 +512,7 @@ function DatePicker({
           </div>
         </div>
 
-        {/* Month / year choosers overlay the day grid — same footprint. */}
+        {/* The choosers overlay the day grid so the popover keeps one footprint and Radix never flips its side. */}
         {overlayActive && (
           <div
             ref={overlayRef}

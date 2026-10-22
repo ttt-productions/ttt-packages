@@ -1,11 +1,6 @@
 import { useEffect } from 'react';
 import { isBrowser } from '../../env.js';
 
-/**
- * Locks body scroll (mobile sheet/modal fix).
- * - preserves current scroll position
- * - iOS safe enough for common cases
- */
 export function useScrollLock(locked: boolean) {
   useEffect(() => {
     if (!isBrowser) return;

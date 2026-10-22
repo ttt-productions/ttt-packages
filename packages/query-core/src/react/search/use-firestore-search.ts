@@ -20,37 +20,8 @@ import { isSearchableText, normalizeSearchText } from '../../search/rule.js';
 
 const DEFAULT_LIMIT = 5;
 const DEFAULT_DEBOUNCE_MS = 300;
-const DEFAULT_STALE_TIME = 60 * 1000; // 1 minute
+const DEFAULT_STALE_TIME = 60 * 1000;
 
-/**
- * Generic Firestore search hook with debouncing and case-insensitive prefix matching.
- * Automatically normalizes search text to lowercase and uses Firestore range queries.
- *
- * Features:
- * - Debounced input (default 300ms)
- * - Case-insensitive search
- * - Searches only a text `isSearchableText` accepts (`FIRESTORE_SEARCH_MIN_LENGTH`, trimmed)
- * - No answer while the debounce lags the typed text: `data` is undefined and `isLoading` is true
- *   (idle instead when the typed text is too short or the search is disabled)
- * - Prefix matching with '\uf8ff' suffix
- * - Configurable result limit
- *
- * @example
- * ```typescript
- * const { data, isLoading } = useFirestoreSearch<UserProfile>({
- *   collectionPath: 'userProfiles',
- *   searchField: 'username',
- *   queryText: searchValue,
- * });
- *
- * const { data } = useFirestoreSearch<Team>({
- *   collectionPath: 'teams',
- *   searchField: 'name_lowercase',
- *   queryText: searchValue,
- *   limit: 10,
- * });
- * ```
- */
 export function useFirestoreSearch<T extends DocumentData = DocumentData>({
   collectionPath,
   searchField,
@@ -65,7 +36,6 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
   const db = useFirestoreDb();
   const [debouncedQuery, setDebouncedQuery] = useState(queryText);
 
-  // Debounce the search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(queryText);
@@ -92,8 +62,7 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
 
       const collectionRef = collection(db, collectionPath);
 
-      // Build range query for prefix matching
-      // Using '\uf8ff' as upper bound creates a range that matches all strings starting with the query
+      // '\uf8ff' is the highest code point Firestore orders, so the range covers every string with the prefix.
       const constraints: QueryConstraint[] = [
         ...equalityFilters.map((f) => where(f.field, '==', f.value)),
         where(searchField, '>=', normalizedQuery),
@@ -116,20 +85,13 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
     staleTime,
   });
 
-  // Until the debounce catches up, the query's key holds an earlier text, so its result (or its
-  // absence) is not an answer for the text typed now (FRONTEND-206): report no answer instead —
-  // still searching when the typed text will be searched, idle when it will not.
   const typedQuery = normalizeSearchText(queryText);
   if (typedQuery === normalizedQuery) return searchQuery;
   const willSearch = enabled && isSearchableText(queryText);
   return withoutAnswer(searchQuery, willSearch);
 }
 
-/**
- * The query result with every answer field replaced. The other fields stay getters onto the
- * original result: TanStack tracks which fields a component reads to decide when it re-renders,
- * and reading them all here (a spread) would opt every consumer out of that.
- */
+/** Other fields stay getters onto the original result: TanStack re-renders on the fields a component reads, and a spread reads them all. */
 function withoutAnswer<R extends UseQueryResult<unknown, Error>>(result: R, searching: boolean): R {
   const answerFields: Record<string, unknown> = {
     data: undefined,

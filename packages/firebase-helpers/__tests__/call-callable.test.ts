@@ -1,9 +1,3 @@
-// The undefined-strip contract (regression for the live 2026-07-12 failure):
-// firebase-js-sdk's callable serializer encodes `undefined` as `null` on the wire,
-// so a payload key with an undefined value arrives server-side as null and strict
-// zod schemas (`field: z.string().optional()` — optional, NOT nullable) reject it.
-// callCallable is the ONE invocation primitive and must drop undefined keys deep.
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const invokeSpy = vi.fn();
@@ -82,8 +76,6 @@ describe('callCallable', () => {
     await expect(
       callCallable(getFakeFunctions, 'fn', { a: 1 }, { onError, captureException }),
     ).rejects.toThrow('nope');
-    // Telemetry channel gets bounded metadata ONLY — the request payload must
-    // never reach captureException (it can forward straight to Sentry).
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledWith(boom, {
       functionName: 'fn',
@@ -92,16 +84,11 @@ describe('callCallable', () => {
     expect('requestData' in (captureException.mock.calls[0][1] as Record<string, unknown>)).toBe(
       false,
     );
-    // Caller-local channel keeps the payload (existing contract).
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith(boom, { functionName: 'fn', requestData: { a: 1 } });
   });
 });
 
-// The total-invocation deadline (CallCallableTransport.timeoutMs): starts BEFORE
-// the SDK is invoked, so it also bounds the SDK's pre-transport auth/App Check
-// phase (the SDK's own timer starts only after that phase — a stalled token mint
-// otherwise waits unbounded). Expiry is a giving-up signal, not cancellation.
 describe('callCallable deadline', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -131,8 +118,6 @@ describe('callCallable deadline', () => {
   );
 
   it('settles a never-settling invocation at the deadline with a Firebase-shaped error', async () => {
-    // A promise that never settles models the SDK stuck ANYWHERE — including
-    // the pre-transport auth/App Check phase its own timer does not cover.
     invokeSpy.mockReturnValueOnce(new Promise(() => {}));
     const call = callCallable(getFakeFunctions, 'hangs', { a: 1 }, undefined, { timeoutMs: 1_000 });
     const assertion = expect(call).rejects.toMatchObject({
@@ -188,8 +173,6 @@ describe('callCallable deadline', () => {
   });
 
   it('a post-deadline SDK settlement never becomes an unhandled rejection', async () => {
-    // The SDK's own (later-started) timer can reject AFTER the outer deadline
-    // already won the race — that late rejection must have a consumer.
     invokeSpy.mockReturnValueOnce(
       new Promise((_, reject) => {
         setTimeout(() => reject(new Error('late SDK rejection')), 3_000);
@@ -199,17 +182,11 @@ describe('callCallable deadline', () => {
     const assertion = expect(call).rejects.toMatchObject({ code: 'functions/deadline-exceeded' });
     await vi.advanceTimersByTimeAsync(1_000);
     await assertion;
-    // Fire the late rejection inside this test — vitest fails the test if it
-    // surfaces as unhandled.
+    // Fire the late rejection inside this test: vitest fails a test whose rejection goes unhandled.
     await vi.advanceTimersByTimeAsync(3_000);
   });
 });
 
-// The limited-use App Check opt-in (CallCallableTransport.limitedUseAppCheck):
-// OPTIONAL and default-false. It maps to the SDK's `limitedUseAppCheckTokens`,
-// which mints a single-use token per call so a backend running
-// `consumeAppCheckToken` can REFUSE a replay instead of only recording one.
-// Absent unless explicitly enabled — existing callers must be unaffected.
 describe('callCallable limited-use App Check', () => {
   it('sets limitedUseAppCheckTokens on the SDK options when enabled', async () => {
     await callCallable(getFakeFunctions, 'fn', { a: 1 }, undefined, { limitedUseAppCheck: true });
@@ -248,12 +225,6 @@ describe('callCallable limited-use App Check', () => {
   });
 });
 
-// The limited-use App Check THROTTLE FALLBACK. The SDK's limited-use path calls
-// the App Check provider's getToken() with no catch, so one failed exchange puts
-// the provider into its backoff window and every later limited-use invocation
-// rejects (`appCheck/initial-throttle`, then `appCheck/throttled`) BEFORE
-// reaching the wire. callCallable retries exactly once on the standard cached
-// token — safe against double submission precisely because nothing was sent.
 describe('callCallable limited-use App Check throttle fallback', () => {
   const throttleError = (code: string) => Object.assign(new Error(code), { code });
 
@@ -273,7 +244,6 @@ describe('callCallable limited-use App Check throttle fallback', () => {
       const calls = vi.mocked(httpsCallable).mock.calls;
       expect(calls).toHaveLength(2);
       expect(calls[0][2]).toEqual({ limitedUseAppCheckTokens: true });
-      // The retry takes the standard cached-token path: the option is ABSENT.
       expect(calls[1][2]).toBeUndefined();
     },
   );
@@ -302,7 +272,6 @@ describe('callCallable limited-use App Check throttle fallback', () => {
     const ctx = captureException.mock.calls[0][1] as Record<string, unknown>;
     expect('requestData' in ctx).toBe(false);
     expect(JSON.stringify(ctx)).not.toContain('secret');
-    // A recovered call is not a caller-visible failure.
     expect(onError).not.toHaveBeenCalled();
   });
 
@@ -372,8 +341,6 @@ describe('callCallable limited-use App Check throttle fallback', () => {
       functionName: 'fn',
       requestData: { a: 1 },
     });
-    // Exactly one FAILURE report for the retry's error, alongside the single
-    // informational fallback report — no duplicate capture of the final failure.
     const failureReports = captureException.mock.calls.filter(
       ([, ctx]) => (ctx as Record<string, unknown>).limitedUseAppCheckFallback !== true,
     );
@@ -386,8 +353,6 @@ describe('callCallable limited-use App Check throttle fallback', () => {
     vi.useFakeTimers();
     try {
       invokeSpy.mockReset();
-      // First attempt throttles immediately; the retry hangs forever. The
-      // deadline must still expire on the ORIGINAL schedule.
       invokeSpy.mockRejectedValueOnce(throttleError('appCheck/throttled'));
       invokeSpy.mockReturnValueOnce(new Promise(() => {}));
       const call = callCallable(getFakeFunctions, 'hangs', { a: 1 }, undefined, {

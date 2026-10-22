@@ -3,7 +3,6 @@ import { normalizeFilename } from './filename.js';
 
 function sanitizeSegment(seg: string): string {
   const s = String(seg ?? '').trim();
-  // Remove slashes and collapse dot-runs to avoid traversal.
   const noSlashes = s.replace(/[\\/]+/g, '_');
   const noDots = noSlashes.replace(/\.+/g, '.');
   const cleaned = noDots.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -19,7 +18,6 @@ export function buildUploadPath(args: {
 }) {
   const { basePath, ownerId, contentId, filename } = args;
 
-  // Sanitize segments for security (traversal prevention)
   const segments = [basePath, ownerId, contentId]
     .filter((p): p is string => !!p)
     .map(sanitizeSegment);

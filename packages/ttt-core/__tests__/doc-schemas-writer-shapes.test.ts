@@ -1,14 +1,3 @@
-// The registry must describe what the server writers ACTUALLY store.
-//
-// The defect these exist for: `functions/src` writers merged fields onto registered documents that
-// no ttt-core schema declared — 28 on `activeReportGroups` alone — so a real document failed its own
-// schema and nothing noticed, because Zod only runs where code calls it. Each case below is the shape
-// a named writer stores, reduced to the fields that were undeclared. Every one of them was INVALID
-// before its schema was completed.
-//
-// Each block also proves the completion did not loosen the schema: a field no writer stores is
-// still rejected (strict shapes) or still absent from the declared keys (non-strict shapes).
-
 import { describe, it, expect } from 'vitest';
 import {
   ReportGroupV1Schema,
@@ -54,7 +43,6 @@ import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { ChatChannelAuthProjectionSchema } from '../src/doc-schemas/chat-sync.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
-// A real member of the external-fact kind set, taken from its own schema rather than restated.
 const EXTERNAL_FACT_KIND = SafetyEvidenceExternalFactKindSchema.options[0];
 
 const group = {
@@ -78,7 +66,6 @@ describe('activeReportGroups — the whole stored document', () => {
         reportedUserId: 'u1',
       }).success,
     ).toBe(true);
-    // reportedUserId is OMITTED, never emptied, when the sender could not be resolved.
     expect(
       ReportGroupV1Schema.safeParse({ ...group, reportedItemId: 'p1', parentItemId: 'chan-1' })
         .success,
@@ -159,7 +146,6 @@ describe('activeReportGroups — the whole stored document', () => {
         failedCommandDocId: 'cmd-1',
       }).success,
     ).toBe(true);
-    // adminReplayDeadLetter's Restart NULLS the failure fields rather than deleting them.
     expect(
       ReportGroupV1Schema.safeParse({
         ...group,
@@ -407,7 +393,7 @@ describe('safetyEvidenceJobItems — object rows and the per-job control row', (
   });
 });
 
-describe('single-field completions', () => {
+describe('single-field writer shapes', () => {
   it('childSafetyOwningAliases — a repointed alias carries its generation and repoint time', () => {
     const alias = {
       schemaVersion: 1,
@@ -464,7 +450,7 @@ describe('single-field completions', () => {
   });
 });
 
-describe('second registry completion batch', () => {
+describe('writer fields on the safety, report, Hall, and listing documents', () => {
   const closure = {
     outcome: 'founded' as const,
     resolutionSummary: 'Verified removal obligation.',
@@ -475,7 +461,7 @@ describe('second registry completion batch', () => {
   it('binds strict NCII closure and reopen events at the exact canonical path', () => {
     const path = 'nciiCases/{caseId}/closureEvents/{eventId}' as const;
     expect(COLLECTION_SCHEMAS[path]).toBe(NciiCaseClosureEventV1Schema);
-    expect(PATH_BUILDERS.nciiCaseClosureEvent('case-1', 'closure-r3')).toEqual([
+    expect(PATH_BUILDERS.nciiCaseClosureEvent('case-1', 'closure', 3)).toEqual([
       'nciiCases',
       'case-1',
       'closureEvents',
@@ -514,7 +500,7 @@ describe('second registry completion batch', () => {
     ).toBe(false);
   });
 
-  it('accepts the new report, task, account-command, cascade, and fanout writer fields', () => {
+  it('accepts the report, task, account-command, cascade, and fanout writer fields', () => {
     const report = {
       schemaVersion: 1,
       reportId: 'report-1',
@@ -800,8 +786,6 @@ describe('second registry completion batch', () => {
     ]) {
       expect(Object.keys(PublishedHallItemSchema.shape)).not.toContain(key);
     }
-    // The clear runner writes moderatedAt to the live sources it clears as well: the three
-    // sub-item shapes, and — for a Hall detail, whose text is the Work's own — the Work shell.
     for (const template of [
       'allWorkProjects/{workProjectId}',
       'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}',
@@ -815,8 +799,6 @@ describe('second registry completion batch', () => {
 });
 
 describe('notification history — the archived snapshot is the STORED card', () => {
-  // What both materializers write: the delivery ledger and processBatchHelper build the
-  // active card WITHOUT `id` (it is the deterministic document id).
   const storedCard = {
     type: 'guild_invite',
     dedupKey: 'guildInvite_inv-1',
@@ -860,7 +842,6 @@ describe('notification history — the archived snapshot is the STORED card', ()
       expect(COLLECTION_SCHEMAS[template]).toBe(NotificationHistoryDocSchema);
       expect(COLLECTION_SCHEMAS[template].safeParse(history).success).toBe(true);
     }
-    // Shared-admin archives stamp the archiver.
     expect(
       NotificationHistoryDocSchema.safeParse({
         ...history,

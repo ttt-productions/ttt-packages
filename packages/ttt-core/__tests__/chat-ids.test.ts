@@ -33,7 +33,6 @@ describe('hash (canonical, frozen)', () => {
   });
 
   it('separates parts so concatenation cannot collide', async () => {
-    // ['ab','c'] vs ['a','bc'] must differ thanks to the 0x1F separator.
     expect(await hash('t', 'ab', 'c')).not.toBe(await hash('t', 'a', 'bc'));
   });
 
@@ -128,8 +127,11 @@ describe('notification ids', () => {
   });
 
   it('archive id/payloadHash', async () => {
-    expect(await notificationArchiveHistoryId('user', 'user:u1', 'req1')).toBe(
-      await hash('notification-archive', 'user', 'user:u1', 'req1'),
+    expect(await notificationArchiveHistoryId('user', 'user:u1', 'req1', 'card1')).toBe(
+      await hash('notification-archive', 'user', 'user:u1', 'req1:card1'),
+    );
+    expect(await notificationArchiveHistoryId('user', 'user:u1', 'req1', 'card2')).not.toBe(
+      await notificationArchiveHistoryId('user', 'user:u1', 'req1', 'card1'),
     );
     expect(await notificationArchivePayloadHash('a', 'g', 'user', 'user:u1')).toBe(
       await hash('notification-archive-payload', 'a', 'g', 'user', 'user:u1'),

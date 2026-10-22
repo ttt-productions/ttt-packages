@@ -1,5 +1,3 @@
-// The one declaration of the analytics events the app logs. The app's analytics hook takes only
-// these names, so an event cannot be logged without being declared here.
 export const ANALYTICS_EVENT_NAMES = [
   'page_view',
   'sign_up',

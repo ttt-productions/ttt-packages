@@ -41,12 +41,10 @@ describe('MediaInput inside a form', () => {
       selectedFile: new File(['x'], 'photo.jpg', { type: 'image/jpeg' }),
       onClear: vi.fn(),
     };
-    // Trigger, Info, and Clear.
     const count = renderInsideForm(withSelection).mediaInputButtons.length;
     expect(count).toBeGreaterThanOrEqual(3);
     cleanup();
 
-    // Each button in a fresh render, so a menu one of them opens cannot mask another.
     for (let index = 0; index < count; index++) {
       const user = userEvent.setup();
       const { onSubmit, mediaInputButtons } = renderInsideForm(withSelection);
@@ -124,7 +122,7 @@ describe('the clear button', () => {
     expect(screen.getByRole('button', { name: 'Remove photo' })).toBeInTheDocument();
   });
 
-  it('is named in the legacy FileInput too', () => {
+  it('is named in FileInput too', () => {
     render(
       <FileInput
         acceptTypes={['image']}

@@ -1,6 +1,3 @@
-// Every ui guard that carries samples proves its matcher with them, and every guard the area
-// registers takes its facts under its own id.
-
 import { describe, expect, it } from 'vitest';
 import { UI_GUARDS, type UiGuardFacts } from '../../src/modules/ui/guards.js';
 import { checkSamples } from '../../src/node/suite/run.js';

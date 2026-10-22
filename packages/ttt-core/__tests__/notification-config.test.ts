@@ -1,9 +1,3 @@
-// The unified TTT notification config (the ONE cross-boundary source both the
-// ttt-prod tray and the Cloud Functions delivery engine import). These tests
-// pin the anti-drift contract: complete type coverage, catalog agreement, and
-// the linkless rule (a type with no meaningful destination declares NO
-// defaultTargetPath — never '/' as a pseudo-target).
-
 import { describe, it, expect } from 'vitest';
 import { TTT_NOTIFICATION_CONFIG } from '../src/notifications/notification-config.js';
 import {
@@ -12,7 +6,6 @@ import {
 } from '../src/schemas/notification.js';
 import { COLLECTIONS } from '../src/paths/collections.js';
 
-// The deliberately linkless types: informational-only cards, clear-only rows.
 const LINKLESS_TYPES = ['report_action_taken', 'admin_announcement'] as const;
 
 describe('TTT_NOTIFICATION_CONFIG', () => {
@@ -74,14 +67,12 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
 
     const resolvedTarget = TTT_NOTIFICATION_CONFIG.types.realm_file_share_resolved
       .defaultTargetPath as (meta: Record<string, unknown>) => string;
-    // approved/declined reach the REQUESTER → the Work, where the file and its state live.
     expect(
       resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'approved' }),
     ).toBe('/work-projects/wp1');
     expect(
       resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'declined' }),
     ).toBe('/work-projects/wp1');
-    // withdrawn reaches the STEWARD → the Realm, where the now-stale queue card was.
     expect(
       resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'withdrawn' }),
     ).toBe('/work-realms/realm1');
@@ -124,11 +115,8 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
     const resolvedKey = resolved.dedupKeyPattern({ requestId: 'req1' });
     expect(requestedKey).toContain('req1');
     expect(resolvedKey).toContain('req1');
-    // Same occurrence identity, different cards — they must never collapse into one.
     expect(requestedKey).not.toBe(resolvedKey);
-    // A re-request after a decline is a NEW card, not a relight of the resolved one.
     expect(requested.dedupKeyPattern({ requestId: 'req2' })).not.toBe(requestedKey);
-    // One occurrence per request, forever.
     expect(requested.countCap).toBe(1);
     expect(resolved.countCap).toBe(1);
   });

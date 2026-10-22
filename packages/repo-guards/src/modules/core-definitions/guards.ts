@@ -1,6 +1,3 @@
-// The generic guards over an app's core package definitions and the app code that restates them.
-// The registry runs every guard listed here; an app supplies each one's facts under its id.
-
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import { coreContractsGuard, type CoreContractFacts } from './contracts.js';
 import {
@@ -21,7 +18,6 @@ import {
   type TextFieldDeclarationFacts,
 } from './text-field-declarations.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface CoreDefinitionsGuardFacts {
   definitionRedeclaration: DefinitionRedeclarationFacts;
   coreContracts: CoreContractFacts;

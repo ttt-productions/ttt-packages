@@ -1,7 +1,4 @@
 {
-  // Type-checks the package's source and tests together under the root `tsc -b`. The package keeps
-  // analyzers and fixtures authored in JavaScript; reading them for their types needs allowJs, which
-  // stays confined to this package.
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "composite": true,

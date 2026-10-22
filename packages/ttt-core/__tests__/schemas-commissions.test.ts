@@ -26,7 +26,7 @@ describe('Commission proposal input schemas', () => {
     expect(RejectCommissionProposalInputSchema.parse(input)).toEqual(input);
   });
 
-  it('rejects RejectCommissionProposalInput with legacy auditionEntryId', () => {
+  it('rejects RejectCommissionProposalInput with an auditionEntryId', () => {
     expect(() =>
       RejectCommissionProposalInputSchema.parse({
         commissionListingId: 'commission-1',
@@ -44,7 +44,7 @@ describe('Commission proposal input schemas', () => {
     expect(SetCommissionProposalSavedInputSchema.parse(input)).toEqual(input);
   });
 
-  it('rejects SetCommissionProposalSavedInput with legacy auditionEntryId', () => {
+  it('rejects SetCommissionProposalSavedInput with an auditionEntryId', () => {
     expect(() =>
       SetCommissionProposalSavedInputSchema.parse({
         commissionListingId: 'commission-1',

@@ -1,6 +1,3 @@
-// The accessibility guards: an icon-only button is named, a button in a form states its type, a
-// display-only component is never a control, and a typed number is read from the whole input.
-
 import { describe, expect, it } from 'vitest';
 import {
   accessibleControlsGuard,

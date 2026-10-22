@@ -59,11 +59,8 @@ export function startResumableUpload(args: {
     rejectDone = rej;
   });
 
-  // The Storage SDK rejects a cancelled task with its own `storage/canceled` error.
-  // When this upload asked for the cancel (its signal aborted, or its controller's
-  // cancel() ran), that rejection becomes the canonical AbortError every consumer
-  // already treats as a user cancel; a `storage/canceled` nobody here asked for
-  // stays a real failure.
+  // The Storage SDK rejects a cancelled task with its own `storage/canceled` error; only a cancel
+  // this upload asked for becomes the AbortError consumers treat as a user cancel.
   let canceledLocally = false;
   const cancelTask = () => {
     canceledLocally = true;
@@ -197,21 +194,9 @@ export function startResumableUpload(args: {
 export async function uploadFileResumable(
   args: Omit<Parameters<typeof startResumableUpload>[0], 'id'> & {
     id?: string;
-    /**
-     * EXPLICIT opt-in for the NEUTRAL content type: a picker file with unknown
-     * browser metadata must reach the server AS unknown
-     * (`application/octet-stream`) so the server-side byte inspector — the only
-     * classification authority — sees it unrewritten. Default false keeps the
-     * media-only gate for every other consumer. A concrete media MIME is still validated either
-     * way; this flag never permits arbitrary declared types, only the one
-     * neutral value.
-     */
     allowNeutralContentType?: boolean;
   },
 ): Promise<UploadFileResumableResult> {
-  // Defense-in-depth: reject missing or invalid contentType before any bytes are sent.
-  // file-input should already guarantee a valid or explicitly-neutral MIME, but this
-  // is the last gate before Firebase Storage.
   const ct = args.metadata?.contentType;
   if (!ct) {
     throw new UploadError(

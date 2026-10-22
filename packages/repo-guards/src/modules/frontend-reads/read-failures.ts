@@ -1,7 +1,3 @@
-// How a read's failure reaches the person: through the app's one read-state module, from a retry
-// state held through its retry, from hooks and surfaces that never pass a failed read off as data,
-// and with copy from the one failure-copy owner.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, GuardContext } from '../../guard.js';
@@ -20,16 +16,10 @@ import {
   requiredFile,
 } from './shared.js';
 
-/**
- * query-core's held retry state: the hooks that hold a read's failure through its retry, the field
- * their state carries, and the field a held answer hands on (a lookup's failed outcome, and the failed
- * answer of a hook that answers with a status).
- */
 const RETRY_STATE_HELPERS = ['useReadRetryState', 'useReadRetryStates'] as const;
 const RETRY_STATE_FIELD = 'isRetrying';
 const HELD_ANSWER_FIELD = 'retrying';
 
-/** The app's one failure seat: the component, the prop it takes a retry on, and the prop that shows it running. */
 export interface FailureSeat {
   component: string;
   retryProp: string;
@@ -45,16 +35,9 @@ function seatProblems(seat: FailureSeat | undefined): string[] {
   return problems;
 }
 
-// =============================================================================================
-// Read failures render only through the read-state module.
-// =============================================================================================
-
 export interface ReadStateOwnerFacts {
-  /** The read-state module: the one file that renders a read's failure seat. */
   module: string;
-  /** The failure seat component the module renders. */
   seatComponent: string;
-  /** The module's function that routes an infinite list's later-page failure to its retry. */
   laterPageRetry: string;
 }
 
@@ -96,15 +79,10 @@ export const readStateOwnerGuard: GenericGuardDefinition<ReadStateOwnerFacts> = 
   ],
 };
 
-// =============================================================================================
-// A read's retry state comes from its one owner, never the live fetching flags.
-// =============================================================================================
-
 export interface ReadRetryStateFacts {
   seat: FailureSeat;
 }
 
-/** A failure flag and the fetch flag in one boolean expression, either order. */
 const FAILURE_FLAG = String.raw`[\w$.?]*\b(?:isError|error)\b`;
 const FETCHING = String.raw`[\w$.?]*\bisFetching\b`;
 const LIVE_FLAG_PAIRS: ReadonlyArray<{ name: string; re: RegExp }> = [
@@ -112,14 +90,12 @@ const LIVE_FLAG_PAIRS: ReadonlyArray<{ name: string; re: RegExp }> = [
   { name: 'isFetching && failure flag', re: new RegExp(`${FETCHING}\\s*&&\\s*${FAILURE_FLAG}`) },
 ];
 
-/** The names a fetching flag goes by. */
 const FETCHING_FLAG =
   /^(?:is(?:Re)?[Ff]etching|fetchingCount|useIsFetching|fetchStatus|sourceState)$/;
 
 const fieldName = (name: ts.Node): string | null =>
   ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : null;
 
-/** Every retry state a source builds — a field, a prop, or a binding — with the expression it is built from. */
 function retryStateExpressions(
   file: FileView,
   fields: readonly string[],
@@ -143,11 +119,6 @@ function retryStateExpressions(
   return found;
 }
 
-/**
- * Whether an expression reads a fetching flag directly, or through a binding the same source declares
- * from one — a plain binding (`const busy = q.isFetching`), a renamed destructure
- * (`const { isFetching: busy } = q`), or a chain of such bindings.
- */
 function readsFetchingFlag(
   expression: ts.Node,
   file: FileView,
@@ -201,7 +172,6 @@ function readsFetchingFlag(
   });
 }
 
-/** Each retry state built from TanStack Query's live flags in one file. */
 export function liveFlagRetryStates(file: FileView, seat: FailureSeat): Hit[] {
   const code = file.code;
   const hits = new Map<number, Hit>();
@@ -244,11 +214,6 @@ const isHookFunction = (node: ts.Node, sf: ts.SourceFile): boolean => {
   return false;
 };
 
-/**
- * Each failed answer a hook that answers with a status hands out without its held retry state: an
- * object literal inside a hook with `status: 'failed'` and the read's `error`, but no `retrying` (a
- * spread supplies it). Without it the answer's Try again cannot show its retry running.
- */
 export function failedAnswersWithoutRetrying(file: FileView): Hit[] {
   const sf = file.sourceFile;
   const hits: Hit[] = [];
@@ -282,7 +247,6 @@ export function failedAnswersWithoutRetrying(file: FileView): Hit[] {
   return hits;
 }
 
-/** Each seat given a retry but not the prop that shows the retry running. A spread supplies both. */
 export function seatRetriesWithoutPending(file: FileView, seat: FailureSeat): Hit[] {
   const hits: Hit[] = [];
   const element = new RegExp(`<${escapeRegExp(seat.component)}\\b[\\s\\S]*?\\/>`, 'g');
@@ -339,14 +303,8 @@ export const readRetryStateGuard: GenericGuardDefinition<ReadRetryStateFacts> = 
   ],
 };
 
-// =============================================================================================
-// A hook never returns a default its consumers cannot tell from data.
-// =============================================================================================
-
 export interface HookReadDefaultFacts {
-  /** The app's hooks tree. */
   hooksTree: string;
-  /** App functions that collapse a read state into a yes/no (an empty list when the app has none). */
   readCollapsers: readonly string[];
 }
 
@@ -369,7 +327,6 @@ function enclosingFunction(node: ts.Node): ts.Node | undefined {
   return current;
 }
 
-/** Whether `scope` reads `<receiver>.error` / `.isError` / `.status`, or hands `receiver` to the held retry state. */
 function readsFailureOf(scope: ts.Node, receiver: string, sf: ts.SourceFile): boolean {
   let found = false;
   forEachNode(scope, (n) => {
@@ -462,7 +419,6 @@ function collapsesReadToBoolean(
   return false;
 }
 
-/** Every read default in a hook file whose failure the same function does not carry, and every hook collapsing a read to a boolean. */
 export function hookReadDefaults(
   file: FileView,
   collapsers: readonly string[],
@@ -551,25 +507,12 @@ export const hookReadDefaultGuard: GenericGuardDefinition<HookReadDefaultFacts> 
   ],
 };
 
-// =============================================================================================
-// A render surface that defaults a read binds its failure.
-// =============================================================================================
-
 export interface DefaultedReadBindingFacts {
-  /** The trees that render (components, pages). */
   surfaceTrees: readonly string[];
-  /** Fields beyond error / isError / status that carry a read's failure (a held retry state); [] for none. */
   heldFailureFields: readonly string[];
-  /**
-   * Files whose defaulted read is known to have answered before it renders, each with its why and the
-   * gate that holds the surface back until then: the file the gate is in (the surface itself or the
-   * one that renders it) and the gate's code as written there. A gate that is gone leaves the default
-   * unguarded, so the entry fails.
-   */
   allowlist: ReadonlyArray<Reviewed & { gate: ReadGate }>;
 }
 
-/** Where a reviewed default's read is known to have answered: a file, and the code there that waits for it. */
 export interface ReadGate {
   file: string;
   code: string;
@@ -595,7 +538,6 @@ function gateProblems(allowlist: unknown): string[] {
   return problems;
 }
 
-/** Each reviewed default whose gate is gone: its file no longer exists, or no longer holds the gate's code. */
 function missingGates(
   context: GuardContext,
   allowlist: DefaultedReadBindingFacts['allowlist'],
@@ -617,7 +559,6 @@ function missingGates(
   return findings;
 }
 
-/** Destructures of a hook call that default `data` but bind no failure field. */
 export function unguardedDataDefaults(file: FileView, heldFailureFields: readonly string[]): Hit[] {
   const sf = file.sourceFile;
   const failureBindings = new Set([...FAILURE_FIELDS, ...heldFailureFields]);
@@ -701,18 +642,10 @@ export const defaultedReadBindingGuard: GenericGuardDefinition<DefaultedReadBind
   },
 };
 
-// =============================================================================================
-// An infinite list's later-page failure goes through the read-state module.
-// =============================================================================================
-
 export interface LaterPageFailureFacts {
-  /** The app's hooks tree (the hooks that page are not render surfaces). */
   hooksTree: string;
-  /** The read-state module. */
   readStateModule: string;
-  /** The module's components that place a list's later-page failure, and the prop a list is handed on (omitted: any use routes). */
   listRoutes: ReadonlyArray<{ component: string; prop?: string }>;
-  /** The prop a paging surface hands its list to another component on. */
   handOffProp: string;
 }
 
@@ -730,7 +663,6 @@ function routedPattern(routes: LaterPageFailureFacts['listRoutes']): RegExp {
   );
 }
 
-/** The paging surfaces that never route their list's later-page failure through the module. */
 export function unroutedPagingSurfaces(
   files: readonly FileView[],
   facts: LaterPageFailureFacts,
@@ -796,18 +728,11 @@ export const laterPageFailureGuard: GenericGuardDefinition<LaterPageFailureFacts
   ],
 };
 
-// =============================================================================================
-// A read failure's copy has one owner.
-// =============================================================================================
-
 export interface ReadFailureCopyFacts {
-  /** The one component that builds every read-failure sentence. */
   owner: string;
-  /** Files that carry such a sentence for a reason other than copy shown to a person, each with its why. */
   allowlist: readonly Reviewed[];
 }
 
-/** A hand-written read-failure sentence, in any casing, around any read verb. */
 export const READ_FAILURE_SENTENCE =
   /(?:could not|couldn['’]?t|failed to|unable to)\s+(?:load|search|fetch|read|retrieve|check|find)\b|error\s+(?:loading|searching|fetching|reading)\b/i;
 

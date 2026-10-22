@@ -1,9 +1,3 @@
-// Cross-boundary contracts live in the core package, never beside it:
-//   - a backend tree builds no zod schema of its own: every input and document it parses is a core
-//     schema, so it uses zod for types and error checks alone;
-//   - no source gives avoiding a package publish or release as the reason a definition lives where
-//     it does.
-
 import ts from 'typescript';
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -16,18 +10,12 @@ import { escapeRegExp } from '../../support/text.js';
 import { APP_SOURCE } from './shared.js';
 
 export interface CoreContractFacts {
-  /** The app's core package specifier (`@scope/name`), as a publish-avoidance reason names it. */
   corePackage: string;
-  /** The roots whose code parses only the core's schemas (an app's Cloud Functions tree). */
   backendRoots: readonly RootRole[];
 }
 
 const ZOD_MODULE = /^zod(?:\/|$)/;
 
-/**
- * zod's functions that build no schema: the error formatters, the global config, JSON Schema output,
- * and the top-level parse functions, which only run a schema built elsewhere.
- */
 const BUILDS_NOTHING: ReadonlySet<string> = new Set([
   'prettifyError',
   'treeifyError',
@@ -45,14 +33,8 @@ const BUILDS_NOTHING: ReadonlySet<string> = new Set([
   'safeDecode',
 ]);
 
-/** zod's namespaces of schema builders: `z.coerce.*` and `z.iso.*` each build a schema. */
 const BUILDER_GROUPS: ReadonlySet<string> = new Set(['coerce', 'iso']);
 
-/**
- * The names a file binds zod under: `z` (by convention, wherever it comes from), every namespace or
- * default import of a zod module, and each named import of one, by its local name with the name zod
- * exports it as.
- */
 function zodBindings(sf: ts.SourceFile): { namespaces: Set<string>; named: Map<string, string> } {
   const namespaces = new Set(['z']);
   const named = new Map<string, string>();
@@ -69,12 +51,6 @@ function zodBindings(sf: ts.SourceFile): { namespaces: Set<string>; named: Map<s
   return { namespaces, named };
 }
 
-/**
- * Every zod schema a file builds in place: a builder called on zod (`z.object(…)`, `zod.string()`), a
- * builder imported by name (`object(…)` from `zod`), or a schema class constructed. `z.ZodError`
- * checks, type positions (`z.infer`, `z.ZodType`), and the functions that build nothing (an error
- * formatter, a parse of a schema built elsewhere) are allowed.
- */
 export function zodSchemaBuilds(file: FileView): Finding[] {
   const findings: Finding[] = [];
   const { namespaces, named } = zodBindings(file.sourceFile);
@@ -86,7 +62,6 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
     ) {
       return `${callee.expression.text}.${callee.name.text}`;
     }
-    // zod's builder groups: `z.coerce.number()`, `z.iso.date()`, and the same groups imported by name.
     if (ts.isPropertyAccessExpression(callee)) {
       const group = callee.expression;
       const viaNamespace =
@@ -130,11 +105,6 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
   return findings;
 }
 
-/**
- * The justification itself, wherever it is written — a comment is where it usually sits: avoiding,
- * skipping, or saving a publish or release, bare or of a package, the core, or the core package by
- * name. Another kind of publish (a media asset's) is no package release and is not matched.
- */
 export function publishAvoidancePattern(corePackage: string): RegExp {
   const names = [
     corePackage,
@@ -150,7 +120,6 @@ export function publishAvoidancePattern(corePackage: string): RegExp {
   );
 }
 
-/** Every place a file names avoiding a publish or release as a reason, comments included. */
 export function publishAvoidance(file: FileView, pattern: RegExp): Finding[] {
   return [...file.text.matchAll(new RegExp(pattern.source, pattern.flags))].map((m) => ({
     file: file.path,

@@ -1,26 +1,14 @@
-// Stop an app's local stack on Windows. Pass 1 kills the process tree of anything listening on the
-// app's local ports. Pass 2 catches stragglers that hold no port (a wedged emulator, an orphaned
-// watcher) by command line.
-
 import { execFileSync } from 'node:child_process';
 
 export interface DevStackConfig {
-  /** The app's name in messages. */
   name: string;
-  /** Every local port the stack listens on. */
   ports: readonly number[];
-  /** Command-line fragments of the stack's processes. */
   signatures: readonly string[];
-  /**
-   * A straggler must ALSO name one of these (the repository's folder, its dev project id), matched
-   * without regard to case, so another product's stack is never touched.
-   */
   repoMarkers: readonly string[];
 }
 
 const LISTENING = /^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$/;
 
-/** Whether a process command line is one of the stack's processes. */
 export function isStackProcess(config: DevStackConfig, commandLine: string): boolean {
   const lower = commandLine.toLowerCase();
   return (
@@ -29,7 +17,6 @@ export function isStackProcess(config: DevStackConfig, commandLine: string): boo
   );
 }
 
-/** The `port -> pid` rows of `netstat -ano -p TCP` output that are listening on `ports`. */
 export function listeningOn(netstat: string, ports: ReadonlySet<number>): [number, string][] {
   const rows: [number, string][] = [];
   for (const line of netstat.split(/\r?\n/)) {
@@ -54,10 +41,6 @@ function run(file: string, args: readonly string[]): { ok: boolean; output: stri
   }
 }
 
-/**
- * Off Windows, and when the port or process listing cannot be read, it stops rather than reading
- * the stack as empty: a stack wrongly reported stopped keeps holding its ports.
- */
 export function killDevStack(config: DevStackConfig): void {
   if (config.repoMarkers.length === 0) {
     console.error(

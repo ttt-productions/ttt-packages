@@ -1,14 +1,3 @@
-// A test's time limit is a named budget, never a number. Every test runs on the runner's default
-// limit; one that needs longer — real work such as spawning a media encoder — names a constant the
-// app declares in its timeout files, so the budgets live in one place, every test that needs more is
-// found by that name, and no test raises its own limit quietly to get past a slow run. The same holds
-// for a test library's own waits (`waitFor`, `findBy…`), which give up on their own clock.
-//
-// The constants are the numeric `const`s the app's timeout files export; a test uses one only by
-// importing it from that file. A number written where a limit is set — a test, suite, or hook
-// timeout, `vi.setConfig`, a wait's `timeout`, a library's `asyncUtilTimeout` — fails, and so does a
-// name that is no such constant.
-
 import ts from 'typescript';
 import type { Finding } from '../../guard.js';
 import { isTestPath } from '../../node/layout.js';
@@ -26,15 +15,11 @@ const SCOPE: Scope = {
   optionalRoots: ['functions', 'scripts', 'workers'],
 };
 
-/** The test-runner functions whose calls set a test's or a suite's limit. */
 const RUNNERS: ReadonlySet<string> = new Set(['it', 'test', 'describe', 'suite', 'bench']);
-/** The hooks whose second argument is their limit. */
 const HOOKS: ReadonlySet<string> = new Set(['beforeAll', 'afterAll', 'beforeEach', 'afterEach']);
-/** The waits that take `{ timeout }` beside what they wait for. */
 const WAITS: ReadonlySet<string> = new Set(['waitFor', 'waitForElementToBeRemoved']);
 const isFindQuery = (name: string) => /^find(All)?By[A-Z]/.test(name);
 
-/** The name a call chain starts from: `it.skipIf(x).each(t)(…)` → `it`. */
 function rootName(expression: ts.Expression): string | undefined {
   let at: ts.Expression = expression;
   for (;;) {
@@ -58,13 +43,11 @@ const ownName = (expression: ts.Expression): string | undefined =>
       ? expression.name.text
       : undefined;
 
-/** One place a limit is set: the expression that gives it, and what it limits. */
 interface LimitSite {
   value: ts.Expression;
   what: string;
 }
 
-/** A same-file `const X = { … }`, so `waitFor(fn, WAIT)` reads the object `WAIT` holds. */
 function objectBehind(
   file: FileView,
   expression: ts.Expression,
@@ -106,7 +89,6 @@ function limitsIn(
   return out;
 }
 
-/** Every place a test file sets a limit. A string is read as a sample test file. */
 export function limitSites(source: FileView | string): Array<LimitSite & { node: ts.Node }> {
   const file = typeof source === 'string' ? viewOfText('sample.test.ts', source) : source;
   const out: Array<LimitSite & { node: ts.Node }> = [];
@@ -136,7 +118,6 @@ export function limitSites(source: FileView | string): Array<LimitSite & { node:
       return;
     }
     if (root && RUNNERS.has(root) && !(name && WAITS.has(name))) {
-      // The title comes first; a limit is a later number, or a later options object's `timeout`.
       for (const arg of node.arguments.slice(1)) {
         const value = unwrap(arg);
         if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) continue;
@@ -165,17 +146,10 @@ export function limitSites(source: FileView | string): Array<LimitSite & { node:
 }
 
 export interface TestTimeoutFacts {
-  /** Specifier prefix → repo-relative folder (`{ '@/': 'src/' }`), so an import names its file. */
   importAliases: Readonly<Record<string, string>>;
-  /**
-   * The repo-relative test-code files that declare the timeout constants: each exported numeric
-   * `const` is one budget a test may name. `[]` when the app declares none — then no test sets a
-   * limit of its own.
-   */
   timeoutFiles: readonly string[];
 }
 
-/** The numeric `const`s a timeout file exports. */
 function exportedBudgets(file: FileView): Set<string> {
   const names = new Set<string>();
   for (const statement of file.sourceFile.statements) {
@@ -221,7 +195,6 @@ function check(reader: RepoReader, facts: TestTimeoutFacts, files: FileView[]): 
     if (budgetsOf.has(file.path)) continue;
     const sites = limitSites(file);
     if (!sites.length) continue;
-    // The budgets this file imports, by local name.
     const imported = new Set<string>();
     for (const site of file.imports) {
       if (site.kind !== 'import') continue;
@@ -293,11 +266,6 @@ export interface SlowTestCase {
   durationMs: number;
 }
 
-/**
- * Report-only: every test case at or over `thresholdMs` in a test file that imports no budget from
- * a timeout file — the ones a busier machine pushes past the default limit. Read from the runner's
- * JSON results (`--reporter=json`); a case is named by its file and full name. Never a failure.
- */
 export function slowTestReport(
   reader: RepoReader,
   facts: TestTimeoutFacts,

@@ -1,6 +1,3 @@
-// The secret-binding guard over temp Functions trees: each binding rule fails when its binding is
-// mutated out, and passes when it holds.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   secretBindingGuard,

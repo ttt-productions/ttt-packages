@@ -20,9 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Node comes from .nvmrc. check-latest forces the newest release of that line instead of a
-      # possibly stale runner cache: npm Trusted Publishing (OIDC) needs npm >= 11.5.1, which only
-      # Node 24.5+ bundles.
+      # check-latest: npm Trusted Publishing (OIDC) needs npm >= 11.5.1, which only Node 24.5+ bundles.
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -43,9 +41,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Soft-printed, high-blocking supply-chain gate. npm audit prints the full advisory
-      # report regardless of --audit-level; the threshold only sets the exit code. --omit=dev
-      # scopes it to deps that ship.
+      # The supply-chain gate: blocks on a high advisory in a shipped (non-dev) dependency.
       - name: Security audit (production deps)
         run: npm audit --omit=dev --audit-level=high
 
@@ -76,14 +72,9 @@ jobs:
             exit 0
           fi
 
-          # Pin internal @ttt-productions/* "*" ranges to caret ranges (^x.y.z) in the
-          # about-to-be-packed manifest. Source keeps "*" for workspace dev; this
-          # checkout is ephemeral, so the rewrite only affects the published
-          # tarball. --check then HARD-FAILS if any internal "*" survived.
+          # This checkout is ephemeral, so the pin reaches only the published tarball.
           node scripts/pin-internal-deps.mjs "${PKGDIR}"
           node scripts/pin-internal-deps.mjs "${PKGDIR}" --check
 
-          # Auth via npm Trusted Publishing (GitHub OIDC) — no NPM_TOKEN/NODE_AUTH_TOKEN.
-          # Every @ttt-productions/* package must have this repo+workflow configured as a
-          # Trusted Publisher on npmjs.com before this step can succeed.
+          # OIDC publishing: each package needs this repo and workflow as its npm Trusted Publisher.
           npm publish --access public --provenance --workspace "${NAME}"

@@ -1,6 +1,6 @@
 # @ttt-productions/notification-core
 
-Generic notification system for TTT Productions apps — a two-tier
+Generic notification system for consuming apps — a two-tier
 **active → history** model with dedup, batch processing, and themed React UI.
 
 ## Entrypoints
@@ -26,14 +26,13 @@ Duplicate triggers for the same `dedupKey` increment a single active doc's
 `count`, append the actor, and reset `seenAt` to `0` so new activity re-lights
 the badge.
 
-**Notifications are Cloud-Functions-only — clients never write notification
-docs.** The archive React hooks (`useArchiveNotification` /
+**The React hooks write no notification docs.** The archive React hooks (`useArchiveNotification` /
 `useArchiveAllNotifications`) perform **no Firestore writes**; they take an
-app-supplied `archiveFn` / `archiveAllFn` adapter wired to the app's callable
+app-supplied adapter (`archiveFn`, or `enqueueArchiveAllFn` + `getArchiveAllStatusFn`) wired to the app's callables
 (e.g. `httpsCallable(functions, 'archiveNotification')`) and invalidate the
-read keys on success. On the server, the app's callable enforces ownership
-(personal: `targetUserId === callerUid`; shared: caller must be admin) and then
-runs the active → history move through `archiveNotificationWithGeneration`,
+read keys on success. On the server, the app's callable decides who may archive
+a card and then runs the active → history move through
+`archiveNotificationWithGeneration`,
 which keys the history doc on a retry-stable, app-built deterministic id and
 only archives when the card's observed `activityGeneration` still matches.
 
@@ -42,7 +41,7 @@ only archives when the card's observed `activityGeneration` still matches.
 Shared notification docs persist actor **ids only** — `NotificationDoc`
 exposes `latestActorIds`, and `PendingNotification` exposes `actorId`. There are
 **no persisted display names** (no `latestActorNames` / `actorName`); names are
-resolved at read time by the consuming app (e.g. from `publicUsers`) so they
+resolved at read time by the consuming app from its own public profile source, so they
 never drift in the stored doc.
 
 ## Usage
@@ -51,7 +50,7 @@ never drift in the stored doc.
 import { useActiveNotifications } from '@ttt-productions/notification-core/react';
 
 const { data: notifications, isLoading } = useActiveNotifications({
-  config: TTT_NOTIFICATION_CONFIG,
+  config: NOTIFICATION_CONFIG,
   userId: currentUser.uid,
   category: 'user',
 });
@@ -67,7 +66,7 @@ through the observed-generation helpers (`markNotificationSeenWithGeneration` /
 ```ts
 import { createDeliveryLedger } from '@ttt-productions/notification-core/server';
 
-const ledger = createDeliveryLedger(db, TTT_NOTIFICATION_CONFIG);
+const ledger = createDeliveryLedger(db, NOTIFICATION_CONFIG, options);
 await ledger.enqueue([
   { deliveryId, notificationType, eventId, recipientUid, aggregationKey, strategy, payload, payloadVersion, materializationClass },
 ]);

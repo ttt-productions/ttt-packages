@@ -3,11 +3,8 @@ import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
 import { MediaVariantKeySchema } from '../src/doc-schemas/media-assets.js';
 import { MEDIA_PIPELINE_OUTPUT_KEYS } from '@ttt-productions/media-schemas';
 
-// `MEDIA_VARIANT_KEYS` / MediaVariantKeySchema (doc-schemas/media-assets.ts) is the ONE
-// declaration of the variant-key set. The `key` values inside TTT_MEDIA_SPECS are USAGES of
-// that set; the generic MediaOriginSpec types them as open strings (a compile-link through the
-// generic package fights TS contextual typing), so this guard enforces that every usage derives
-// from the one declaration and that the set names nothing the pipeline never writes.
+// MediaOriginSpec types `key` as an open string (TS contextual typing defeats a compile-time link
+// to MediaVariantKeySchema), so the variant keys are checked here.
 
 function declaredImageVariantKeys(): Set<string> {
   const keys = new Set<string>();

@@ -5,8 +5,6 @@ import React from 'react';
 
 type DocData = Record<string, unknown>;
 
-// One-shot path mock: the `in` query returns only the requested ids that "exist"; the hook
-// must resolve the rest to null (negative caching) so they are not re-fetched while fresh.
 const { existingDocs, batchCalls, getDocsMock, failNextWith } = vi.hoisted(() => {
   const existingDocs = new Map<string, DocData>();
   const batchCalls: string[][] = [];
@@ -69,10 +67,6 @@ function makeWrapper() {
   return { queryClient, Wrapper };
 }
 
-/**
- * The consuming app's real global query defaults. Freshness behaviour on mount only means
- * anything when the surrounding defaults are the ones production actually uses.
- */
 function makeAppDefaultsWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -97,7 +91,6 @@ const baseOpts = {
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
-  // The absence ladder has its own suite; keep its timers out of these reads.
   absentRetryDelaysMs: [] as readonly number[],
 };
 
@@ -139,8 +132,6 @@ describe('useBatchFirestoreDocs — one-shot mode', () => {
     expect(getDocsMock).toHaveBeenCalledTimes(1);
     first.unmount();
 
-    // A second consumer of the same id within absentStaleTime must hit the negative
-    // cache instead of issuing another Firestore query.
     const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'] }), {
       wrapper: Wrapper,
     });
@@ -188,7 +179,6 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     );
     expect(getDocsMock).toHaveBeenCalledTimes(2);
     expect(batchCalls[1]).toEqual(['u1']);
-    // The untouched id was not re-read.
     expect(result.current.data.u2).toMatchObject({ displayName: 'Bob' });
   });
 
@@ -202,8 +192,6 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
     first.unmount();
 
-    // Every id is already cached and fresh — the old design fetched nothing here, so no
-    // query observed the per-id key and an exact invalidation was a silent no-op.
     const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
@@ -336,8 +324,6 @@ describe('useBatchFirestoreDocs — freshness on remount (app defaults)', () => 
     expect(getDocsMock).toHaveBeenCalledTimes(1);
     first.unmount();
 
-    // Past the 30s absent window but far inside the 5m present window: the doc may have
-    // been created since, so the remount must re-read.
     advance(31_000);
 
     existingDocs.set('ghost', { displayName: 'Arrived' });
@@ -403,7 +389,6 @@ describe('useBatchFirestoreDocs — error semantics', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    // React Query still holds the last good data; the hook must not present it as readable.
     expect(queryClient.getQueryData(['publicUser', 'u1'])).toMatchObject({
       displayName: 'Alice',
     });

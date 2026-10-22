@@ -4,8 +4,8 @@ import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   taskQueues: {
@@ -44,7 +44,7 @@ describe('createAdminTaskHandler', () => {
     const args = setFn.mock.calls[0][0];
     expect(args.taskType).toBe('userReport');
     expect(args.taskId).toBe('group1');
-    expect(args.originalPath).toBe('activeReportGroups/group1');
+    expect(args.originalPath).toBe('testReportGroups/group1');
     expect(args.status).toBe('pending');
     expect(args.checkoutDetails).toBeNull();
   });
@@ -53,7 +53,6 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    // harassment(10) * post(1.0) + 0*2 = 10
     await handler({ reportedItemType: 'post', totalReports: 1, highestReasonScore: 10 }, 'g1');
     expect(setFn.mock.calls[0][0].priority).toBe(10);
   });
@@ -62,7 +61,6 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    // violence(20) * profile(1.5) + 2*2 = 34
     await handler({ reportedItemType: 'profile', totalReports: 3, highestReasonScore: 20 }, 'g2');
     expect(setFn.mock.calls[0][0].priority).toBe(34);
   });
@@ -71,7 +69,6 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    // harassment(10) * default(1.0) + 0 = 10
     await handler(
       { reportedItemType: 'unknown_type', totalReports: 1, highestReasonScore: 10 },
       'g3',
@@ -83,7 +80,6 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    // defaultReasonScore(3) * post(1.0) + 0 = 3
     await handler({ reportedItemType: 'post', totalReports: 1 }, 'g4');
     expect(setFn.mock.calls[0][0].priority).toBe(3);
   });
@@ -162,7 +158,7 @@ describe('createAdminTaskHandler', () => {
     expect(args.reportedUserId).toBeNull();
     expect(args.reportedItemId).toBeNull();
     expect(args.parentItemId).toBeNull();
-    expect(args.reportedItemType).toBe('post'); // itemType present → the string, not null
+    expect(args.reportedItemType).toBe('post');
   });
 
   it('includes createdAt and lastUpdatedAt timestamps', async () => {

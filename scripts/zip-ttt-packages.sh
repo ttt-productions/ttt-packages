@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ===== Colors =====
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
@@ -12,7 +11,6 @@ mkdir -p "$OUT_DIR"
 
 PKG_ROOT="packages"
 
-# Global excludes (safe)
 EXCLUDES=(
   "**/node_modules/**"
   "**/.git/**"
@@ -21,7 +19,6 @@ EXCLUDES=(
   "**/*.tsbuildinfo"
 )
 
-# dist handling (toggle)
 DIST_EXCLUDE=( "**/dist/**" )
 
 exclude_args=()
@@ -34,8 +31,7 @@ for ex in "${DIST_EXCLUDE[@]}"; do
   exclude_with_dist+=("-x" "$ex")
 done
 
-# Create a zip from scratch every time.
-# This prevents zip from updating an old archive and accidentally keeping stale files.
+# Each zip is written from scratch: zip -r into an existing archive updates it and keeps stale files.
 create_zip() {
   local zip_name="$1"
   shift
@@ -51,7 +47,6 @@ create_zip() {
 echo -e "${BLUE}=== TTT Productions Packages Zipper ===${NC}"
 echo ""
 
-# Gather package folders
 if [[ ! -d "$PKG_ROOT" ]]; then
   echo -e "${RED}Missing '$PKG_ROOT' folder. Run from repo root.${NC}"
   exit 1
@@ -146,10 +141,8 @@ ls -lh "$OUT_DIR" | sed -n '1,200p'
 echo ""
 echo -e "${BLUE}=== MOVING ZIP FILES ===${NC}"
 
-# Move the zips to the current repo root automatically
 mv -f "$OUT_DIR"/*.zip .
 
-# Remove the temporary directory
 rmdir "$OUT_DIR"
 
 echo -e "${GREEN}Copied zip(s) to repo root and cleaned up temp directory.${NC}"

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React, { createRef } from 'react';
 import type { DeferredUploadFormShellHandle } from '../src/react/upload/deferred-upload-form-shell.js';
 
-// --- mocks (must precede component imports) ---
+// Mocks must precede the component imports.
 
 vi.mock('@ttt-productions/file-input/react', () => ({
   MediaInput: ({ onChange, onClear, onCancel, selectedFile, uploadState }: any) =>
@@ -49,10 +49,7 @@ vi.mock('@ttt-productions/file-input/react', () => ({
 
 vi.mock('@ttt-productions/file-input', () => ({}));
 
-// --- component import (after mocks) ---
 import { DeferredUploadFormShell } from '../src/react/upload/deferred-upload-form-shell.js';
-
-// --- helpers ---
 
 function makeMutation(opts?: { mutateAsync?: (vars: any) => Promise<any>; isPending?: boolean }) {
   return {
@@ -77,8 +74,6 @@ function renderShellWithRef(props?: Partial<React.ComponentProps<typeof Deferred
   );
   return { ...result, ref };
 }
-
-// --- tests ---
 
 describe('DeferredUploadFormShell', () => {
   beforeEach(() => {
@@ -136,8 +131,6 @@ describe('DeferredUploadFormShell', () => {
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledOnce());
     expect(buildVariables.mock.calls[0][3]).toEqual({ kind: 'image', source: 'file-picker' });
 
-    // Post-success internal reset: a second submit with no reselected file
-    // must not resurrect the old claim.
     ref.current?.submit();
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
     expect(buildVariables.mock.calls[1][0]).toBeNull();
@@ -204,7 +197,6 @@ describe('DeferredUploadFormShell', () => {
 
     ref.current?.submit();
 
-    // The handler short-circuits on isPending, so mutateAsync is never called.
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
@@ -247,21 +239,17 @@ describe('DeferredUploadFormShell', () => {
     const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
     const { ref } = renderShellWithRef({ mutation: makeMutation({ mutateAsync }), onFileChange });
 
-    // 1. on select
     await user.click(screen.getByTestId('select-file-btn'));
     expect(onFileChange).toHaveBeenLastCalledWith(expect.any(File));
 
-    // 2. on clear
     await user.click(screen.getByTestId('clear-file-btn'));
     expect(onFileChange).toHaveBeenLastCalledWith(null);
 
-    // 3. on post-success reset
     await user.click(screen.getByTestId('select-file-btn'));
     ref.current?.submit();
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledOnce());
     await waitFor(() => expect(onFileChange).toHaveBeenLastCalledWith(null));
 
-    // Total call count: select (File), clear (null), select (File), success-reset (null) = 4
     expect(onFileChange).toHaveBeenCalledTimes(4);
   });
 
@@ -270,7 +258,6 @@ describe('DeferredUploadFormShell', () => {
     const onError = vi.fn();
     const onFileChange = vi.fn();
 
-    // mutateAsync that listens to the signal and rejects with AbortError when aborted
     let capturedSignal: AbortSignal | undefined;
     const mutateAsync = vi.fn((vars: any) => {
       capturedSignal = vars.signal;
@@ -288,19 +275,15 @@ describe('DeferredUploadFormShell', () => {
       onFileChange,
     });
 
-    // Select file
     await user.click(screen.getByTestId('select-file-btn'));
     expect(onFileChange).toHaveBeenLastCalledWith(expect.any(File));
 
-    // Submit (kicks off mutateAsync, which now hangs on the signal)
     ref.current?.submit();
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledOnce());
     expect(capturedSignal).toBeInstanceOf(AbortSignal);
 
-    // Click cancel
     await user.click(screen.getByTestId('cancel-upload-btn'));
 
-    // After cancel: onError NOT called (AbortError is swallowed)
     await waitFor(() => {
       expect(onFileChange).toHaveBeenLastCalledWith(null);
     });

@@ -11,6 +11,8 @@ import {
   ModerationHiddenBySchema,
   moderationCascadeManifestId,
   moderationTargetKey,
+  parseModerationCascadeManifestId,
+  parseModerationTargetKey,
 } from '../src/doc-schemas/moderation.js';
 import { ReportableItemTypeSchema } from '../src/doc-schemas/safety/foundation.js';
 import { ReportGroupV1Schema } from '../src/doc-schemas/safety/report.js';
@@ -319,5 +321,66 @@ describe('decision number on the per-document edge obligations', () => {
       expect(field.safeParse(0).success, name).toBe(false);
     }
     expect(ModerationDecisionNumberSchema.safeParse(1).success).toBe(true);
+  });
+});
+
+describe('moderation target keys and manifest ids parse back', () => {
+  const targets = [
+    { entityType: 'square-streetz-post', entityId: 'post1' },
+    { entityType: 'audition-entry', entityId: 'entry1', parentEntityId: 'audition1' },
+    { entityType: 'craft-skill', entityId: 'skill:1~2', parentEntityId: 'uid:9' },
+  ] as const;
+
+  it('a target key parses back to the target it was built from, whatever its ids contain', () => {
+    for (const target of targets) {
+      expect(parseModerationTargetKey(moderationTargetKey(target))).toEqual(target);
+    }
+  });
+
+  it('a manifest id parses back to its target key and decision', () => {
+    for (const target of targets) {
+      const targetKey = moderationTargetKey(target);
+      expect(parseModerationCascadeManifestId(moderationCascadeManifestId(targetKey, 7))).toEqual({
+        targetKey,
+        decision: 7,
+      });
+    }
+  });
+
+  it('a malformed target key is refused', () => {
+    const key = moderationTargetKey({ entityType: 'square-streetz-post', entityId: 'post1' });
+    expect(parseModerationTargetKey('')).toBeNull();
+    expect(parseModerationTargetKey(key.slice(0, -1))).toBeNull();
+    expect(parseModerationTargetKey(`${key}x`)).toBeNull();
+    expect(parseModerationTargetKey('4:nope0:5:post1')).toBeNull();
+    expect(parseModerationTargetKey('19:square-streetz-post0:0:')).toBeNull();
+    expect(parseModerationTargetKey('x:square-streetz-post0:5:post1')).toBeNull();
+  });
+
+  it('a target key whose length prefix is not written as the builder writes it is refused', () => {
+    expect(parseModerationTargetKey('19:square-streetz-post0:05:post1')).toBeNull();
+    expect(parseModerationTargetKey('019:square-streetz-post0:5:post1')).toBeNull();
+    expect(parseModerationTargetKey('19:square-streetz-post00:5:post1')).toBeNull();
+    expect(parseModerationTargetKey('19:square-streetz-post0:+5:post1')).toBeNull();
+    expect(parseModerationTargetKey('19:square-streetz-post0:-5:post1')).toBeNull();
+    expect(parseModerationTargetKey('19:square-streetz-post0:5:post1')).toEqual({
+      entityType: 'square-streetz-post',
+      entityId: 'post1',
+    });
+  });
+
+  it('a target key whose parent does not match its type is refused', () => {
+    expect(parseModerationTargetKey('19:square-streetz-post2:p15:post1')).toBeNull();
+    expect(parseModerationTargetKey('14:audition-entry0:6:entry1')).toBeNull();
+  });
+
+  it('a manifest id without a positive whole decision or a valid target key is refused', () => {
+    const key = moderationTargetKey({ entityType: 'square-streetz-post', entityId: 'post1' });
+    expect(parseModerationCascadeManifestId(key)).toBeNull();
+    expect(parseModerationCascadeManifestId(`${key}~0`)).toBeNull();
+    expect(parseModerationCascadeManifestId(`${key}~1.5`)).toBeNull();
+    expect(parseModerationCascadeManifestId(`${key}~01`)).toBeNull();
+    expect(parseModerationCascadeManifestId(`${key}~`)).toBeNull();
+    expect(parseModerationCascadeManifestId('garbage~1')).toBeNull();
   });
 });

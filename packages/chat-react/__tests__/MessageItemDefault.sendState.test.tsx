@@ -4,11 +4,6 @@ import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import { MessageItemDefault } from '../src/ui/MessageItemDefault.js';
 import { ChatNameResolverProvider } from '../src/context/ChatNameResolverContext.js';
 
-// The realtime channel client stamps meta.optimistic / meta.sendFailed on rows;
-// the DEFAULT renderer must make both states visible (a pending or failed send is
-// never indistinguishable from a delivered one) and wire the retry affordance to
-// the ORIGINAL clientMessageId so the DO's send-idempotency dedups the retry.
-
 function makeMessage(meta?: Record<string, unknown>): ChatMessageV1 {
   return {
     messageId: meta?.optimistic ? `optimistic:${String(meta.clientMessageId)}` : '42',
@@ -54,10 +49,8 @@ describe('MessageItemDefault — send states', () => {
     );
     expect(getByText("Couldn't send")).toBeTruthy();
     expect(container.querySelector('.chat-bubble--failed')).toBeTruthy();
-    // Failed supersedes pending — no "Sending…" alongside the failure.
     expect(container.querySelector('.chat-bubble--pending')).toBeNull();
 
-    // Retry re-uses the ORIGINAL clientMessageId.
     fireEvent.click(getByRole('button', { name: 'Retry' }));
     expect(onRetrySend).toHaveBeenCalledTimes(1);
     expect(onRetrySend).toHaveBeenCalledWith('c-1');
@@ -103,8 +96,6 @@ describe('MessageItemDefault — correlated send-rejection copy + retry policy',
     if (retry) {
       expect(queryByRole('button', { name: 'Retry' })).toBeTruthy();
     } else {
-      // Terminal codes: an unchanged resend cannot succeed, so no Retry is offered
-      // even when onRetrySend IS wired.
       expect(queryByRole('button', { name: 'Retry' })).toBeNull();
     }
   });
@@ -119,7 +110,6 @@ describe('MessageItemDefault — correlated send-rejection copy + retry policy',
         sendRetryable: false,
       }),
     );
-    // The user's text survives so they can copy/repurpose it — only the reason is shown.
     expect(getByText('hello there')).toBeTruthy();
     expect(getByText('Message contains blocked language')).toBeTruthy();
   });
@@ -150,8 +140,7 @@ describe('MessageItemDefault — system messages', () => {
     expect(getByText('Offer updated to 2 stake shares.')).toBeTruthy();
     const time = container.querySelector('.chat-system-message-time');
     expect(time).toBeTruthy();
-    // Same hour:minute format the regular bubbles use — locale-dependent, so assert
-    // against the same formatter rather than a hardcoded string.
+    // Locale-dependent, so assert against the same formatter rather than a hardcoded string.
     expect(time!.textContent).toBe(
       new Date(1720000000000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     );

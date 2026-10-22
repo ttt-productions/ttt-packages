@@ -1,7 +1,3 @@
-// The Firestore rules mirror the core exactly: every collection the core declares has its own
-// `match` block and every block names a declared collection, no block spans an unnamed collection,
-// and every fixed document, status, and role the rules spell is a value the core declares.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import {
@@ -26,25 +22,14 @@ import {
 } from './rules-tokens.js';
 import { loaderListProblem, loaderProblem, type Loader } from '../../support/facts.js';
 
-/** Every Firestore rules file the layout lists is read; the facts name no file of their own. */
 export interface RulesMirrorFacts {
-  /**
-   * Every collection the core declares, as its path from the root with a `{variable}` for each
-   * parent document and a parent's fixed id written as itself: `users`, `users/{userId}/settings`,
-   * `feed/active/posts`.
-   */
   collections: Loader<readonly string[]>;
-  /** Every collection group the core declares (a `{path=**}` block's collection). */
   collectionGroups: Loader<readonly string[]>;
-  /** Every fixed document the core declares, as its full path: `config/app`, `users/{userId}/meta/settings`. */
   fixedDocuments: Loader<readonly string[]>;
-  /** Each stored field the rules compare to a quoted value, with every value the core declares for it. */
   comparedFields: ReadonlyArray<{ field: string; values: Loader<readonly string[]> }>;
-  /** Each rules function that spells one list of declared values (a role or standing list), with that list. */
   valueLists: ReadonlyArray<{ function: string; values: Loader<readonly string[]> }>;
 }
 
-/** The Firestore service root every collection block sits under. */
 const isServiceRoot = (block: MatchBlock) =>
   block.segments.length === 3 &&
   block.segments[0] === 'databases' &&
@@ -58,7 +43,6 @@ interface Declared {
   fields: Map<string, Set<string>>;
 }
 
-/** Every way the blocks drift from the declared collections, one finding each. */
 function blockFindings(
   code: string,
   declared: Declared,
@@ -173,7 +157,6 @@ function blockFindings(
   return findings;
 }
 
-/** Every document path the rules read that names an undeclared collection or fixed document. */
 function readFindings(
   code: string,
   declared: Declared,
@@ -221,7 +204,6 @@ const LIST_METHODS = new Set(['hasAny', 'hasAll', 'hasOnly']);
 
 type Verb = 'compares' | 'tests' | 'lists';
 
-/** The stored fields a function's `param` is compared against, following it through the file's own calls. */
 function fieldsOfParam(
   fn: RulesFunction,
   param: string,
@@ -255,7 +237,6 @@ function fieldsOfParam(
   return fields;
 }
 
-/** The call whose argument list holds token `i` directly: its name, whether it is a `.member(` call, and the argument's position. */
 function callAround(
   tokens: readonly Token[],
   i: number,
@@ -283,7 +264,6 @@ function callAround(
   return null;
 }
 
-/** Every quoted value the rules compare to a stored field, checked against the field's declared values. */
 function valueFindings(
   code: string,
   declared: Declared,
@@ -373,7 +353,6 @@ function valueFindings(
   return findings;
 }
 
-/** A function's literal string lists: each `[…]` in its body that holds a quoted value. */
 function literalLists(code: string, fn: RulesFunction): string[][] {
   const tokens = tokenize(code).filter((t) => t.index >= fn.bodyStart && t.index < fn.bodyEnd);
   const lists: string[][] = [];
@@ -388,7 +367,6 @@ function literalLists(code: string, fn: RulesFunction): string[][] {
   return lists;
 }
 
-/** Every way the rules text drifts from the core's declarations, as findings. */
 export async function rulesMirrorFindings(
   file: { path: string; code: string; lineOf(index: number): number },
   facts: RulesMirrorFacts,

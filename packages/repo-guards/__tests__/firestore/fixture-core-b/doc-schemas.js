@@ -1,7 +1,3 @@
-// The second fixture core's document schemas: a neutral library whose shelves hold one family of
-// items in per-kind subcollections, and whose projects keep per-kind sections with per-kind
-// sub-items. Test data for this package's own tests; nothing here is a definition any app imports.
-
 import { z } from 'zod';
 
 const shelfItemBase = {

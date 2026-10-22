@@ -70,7 +70,6 @@ describe('useNotificationHistory', () => {
     const opts = lastOpts();
     expect(opts.collectionPath).toBe('userProfiles/u1/notificationHistory');
     expect(mocks.orderByFn).toHaveBeenCalledWith('archivedAt', 'desc');
-    // No where() clause — personal history is already path-scoped.
     expect(opts.constraints).toHaveLength(1);
   });
 

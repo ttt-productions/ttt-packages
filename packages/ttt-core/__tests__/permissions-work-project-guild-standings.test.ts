@@ -95,8 +95,6 @@ describe('WORK_PROJECT_ACTIONS', () => {
   });
 
   it('guildmateUser.tradeProfession.update is restricted to file-admin standings (no GuildStandingManager)', () => {
-    // tradeProfessions gate custom-folder visibility + chat-channel access, so editing
-    // them is an access-granting power that must NOT be held by a non-file-admin standing.
     const grantedTo = WORK_PROJECT_ACTIONS['guildmateUser.tradeProfession.update'].grantedTo;
     expect([...grantedTo].sort()).toEqual(['StewardOwner', 'WorkProjectManager']);
     expect(grantedTo).not.toContain('GuildStandingManager' as GuildStandingId);
@@ -112,8 +110,6 @@ describe('WORK_PROJECT_ACTIONS', () => {
   });
 
   it('guildChatChannel.unarchive has the same standing bundle as guildChatChannel.archive', () => {
-    // Lifecycle symmetry: restoring a channel from the archive is exactly as privileged as
-    // archiving it, so the inverse lane must never be reachable by a standing that cannot archive.
     expect([...WORK_PROJECT_ACTIONS['guildChatChannel.unarchive'].grantedTo].sort()).toEqual(
       [...WORK_PROJECT_ACTIONS['guildChatChannel.archive'].grantedTo].sort(),
     );
@@ -317,8 +313,8 @@ describe('UpdateGuildmateStandingInputSchema', () => {
   });
 });
 
-describe('every defined action is enforced or gone', () => {
-  it('the four defined-but-unenforced actions are deleted', () => {
+describe('every defined action is enforced', () => {
+  it('defines no action that nothing enforces', () => {
     for (const removed of [
       'guildChatMessage.moderate',
       'workProject.stakeShares.manage',
@@ -329,13 +325,13 @@ describe('every defined action is enforced or gone', () => {
     }
   });
 
-  it('the standing descriptions no longer promise the deleted powers', () => {
+  it('the standing descriptions promise no power that has no action', () => {
     expect(GUILD_STANDINGS.GuildChatChannelManager.description).not.toMatch(/moderate/i);
     expect(GUILD_STANDINGS.AuditionManager.description).not.toMatch(/\bedit\b/i);
     expect(GUILD_STANDINGS.AuditionManager.description).not.toMatch(/respondent/i);
   });
 
-  it('guildInvite.revokeAny stays — it is the invite-cancel check', () => {
+  it('keeps guildInvite.revokeAny — it is the invite-cancel check', () => {
     expect(isWorkProjectActionId('guildInvite.revokeAny')).toBe(true);
   });
 });

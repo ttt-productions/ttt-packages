@@ -1,8 +1,3 @@
-// The monitoring guards: every Cloud Function entry point reports its failures, monitoring is bound
-// once per runtime in its adapters, the provider's SDK is named only where it starts, tests capture
-// through the recording seam, telemetry tags survive the content policy, and a service the app does
-// not use is named nowhere.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
@@ -23,7 +18,6 @@ const APP_AND_FUNCTIONS_CODE: Scope = {
   tests: false,
 };
 
-/** A pattern for a call to `name` (`a.b` matches `a . b (`), never a longer name ending in it. */
 function callPattern(name: string): RegExp {
   return new RegExp(
     `(?<![\\w$])${name.split('.').map(escapeRegExp).join('\\s*\\.\\s*')}\\s*\\(`,
@@ -31,7 +25,6 @@ function callPattern(name: string): RegExp {
   );
 }
 
-/** The index of every match of a pattern in a file's comment-stripped code. */
 function matchIndexes(file: FileView, pattern: RegExp): number[] {
   const re = new RegExp(
     pattern.source,
@@ -42,42 +35,22 @@ function matchIndexes(file: FileView, pattern: RegExp): number[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Monitoring: entry points, one init per runtime, the provider SDK, the recording seam.
-
 export interface MonitoringFacts {
-  /** The one monitoring package every capture goes through. */
   monitoringPackage: string;
-  /** The package's init call, which binds the provider. */
   initCall: string;
-  /** The package's capture calls. */
   captureCalls: readonly string[];
-  /** App calls through which a callable exits, each capturing every fault. */
   callableExits: readonly string[];
-  /** The one Functions module that initializes monitoring. */
   functionsInit: string;
-  /** The app root's reporter bindings: the file that initializes, and the layout that mounts it as an element. */
   appReporters: ReadonlyArray<{ file: string; mountedIn: string; element: string }>;
-  /** The provider SDK's package names (or scope, `@vendor`), named only where the SDK starts. */
   providerSdks: readonly string[];
-  /** The provider SDK's own init call (`Vendor.init`). */
   providerInitCall: string;
-  /** The files that start the provider SDK, each with its why; one that no longer starts it is stale. */
   sdkInitFiles: readonly Reviewed[];
-  /** The Functions test seam that records captures; tests use it instead of mocking the package. */
   functionsTestRecorder: string;
-  /**
-   * Entry points whose failures their core reports: the entry file, the core module it hands every
-   * event to, and the why (`[]` when there is none). An entry is stale when the core no longer
-   * captures, the entry file no longer imports it, or the entry file reports on its own.
-   */
   reportedByCore: ReadonlyArray<{ path: string; core: string; why: string }>;
 }
 
-/** A module path without its source or emitted extension, for comparing an import to a file. */
 const withoutExtension = (path: string): string => path.replace(/\.(?:[cm]?[jt]sx?)$/, '');
 
-/** True when a file imports the module at `corePath` for its values. */
 function importsModule(file: FileView, corePath: string): boolean {
   const target = withoutExtension(corePath);
   return file.imports.some(({ spec, typeOnly }) => {
@@ -87,7 +60,6 @@ function importsModule(file: FileView, corePath: string): boolean {
   });
 }
 
-/** True when a file imports the monitoring package and calls one of its capture calls. */
 function reportsToMonitoring(
   file: FileView,
   facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls'>,
@@ -103,7 +75,6 @@ function reportsToMonitoring(
   );
 }
 
-/** Every Cloud Functions entry-point shape, with the label a finding reports. */
 const ENTRY_POINT_SHAPES: ReadonlyArray<{ shape: string; re: RegExp }> = [
   { shape: 'onCall', re: /\bonCall\s*(?:<[^>]*>)?\s*\(/ },
   { shape: 'onRequest', re: /\bonRequest\s*\(/ },
@@ -116,7 +87,6 @@ const ENTRY_POINT_SHAPES: ReadonlyArray<{ shape: string; re: RegExp }> = [
   { shape: 'onValue*', re: /\bonValue\w*\s*\(/ },
 ];
 
-/** The entry-point shapes a file defines, or none when its failures reach monitoring. */
 export function unmonitoredEntryPoint(
   file: FileView,
   facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls' | 'callableExits'>,
@@ -129,7 +99,6 @@ export function unmonitoredEntryPoint(
   return reportsToMonitoring(file, facts) ? [] : shapes;
 }
 
-/** Every import of a provider SDK package. */
 export function providerSdkImports(
   file: FileView,
   sdks: readonly string[],
@@ -139,7 +108,6 @@ export function providerSdkImports(
     .map(({ node, spec }) => ({ node, spec }));
 }
 
-/** Every `vi.mock` / `vi.doMock` of a package. */
 export function packageMocks(file: FileView, pkg: string): ts.Node[] {
   return moduleImports(file.sourceFile, ['mock'])
     .filter(
@@ -149,7 +117,6 @@ export function packageMocks(file: FileView, pkg: string): ts.Node[] {
     .map(({ node }) => node);
 }
 
-/** True when a file renders `<Element />` (or `<Element>…`). */
 const mountsElement = (file: FileView, element: string) =>
   new RegExp(`<${escapeRegExp(element)}(?=[\\s/>])`).test(file.code);
 
@@ -383,20 +350,13 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Telemetry tag keys survive the content policy.
-
 export interface TelemetryTagFacts {
-  /** The app's telemetry content policy, as its monitoring package builds it, loaded at run time. */
   policy: () =>
     Promise<{ isDiagnosticKey(key: string): boolean }> | { isDiagnosticKey(key: string): boolean };
-  /** Tag keys whose value is always a flag, which passes under any key; a key set nowhere is stale. */
   flagKeys: ReadonlyArray<{ key: string; why: string }>;
-  /** The name suffix of a constant whose values are tag keys (`_TAG_KEYS`). */
   tagKeyMapSuffix: string;
 }
 
-/** Every tag key a file sets: a `tags: { … }` literal's keys, `setTag('key', …)`, and a tag-key map's values. */
 export function tagKeysSet(
   file: FileView,
   mapSuffix: string,
@@ -499,15 +459,9 @@ export const telemetryTagGuard: GenericGuardDefinition<TelemetryTagFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// A service the app does not use is named nowhere.
-
 export interface UnusedServiceFacts {
-  /** Services the product has no surface for, each with its why. */
   services: ReadonlyArray<{ name: string; why: string }>;
-  /** Text that contains a service's name but is not the service (a word it is part of), each with its why. */
   collisions: ReadonlyArray<{ text: string; why: string }>;
-  /** Files outside the roots read by name: manifests, deployed configuration, workflows, rules, index files. */
   namedFiles: readonly string[];
 }
 
@@ -518,12 +472,6 @@ const SERVICE_SCOPE: Scope = {
   tests: true,
 };
 
-/**
- * Where a service's name appears as a name: its lowercase form starting a word and not running on
- * into lowercase letters (`svc`, `svcSessionId`, `svc.`, `'svc'`, `@svc/`); its capitalized form
- * anywhere not running on (`Svc`, `loadSvc`); its uppercase form standing alone between non-letters
- * (`SVC_KEY`). A longer word that merely contains it (`svced`, `pinsvc`) is not the service.
- */
 export function serviceNamePatterns(name: string): RegExp[] {
   const lower = escapeRegExp(name.toLowerCase());
   const cap = escapeRegExp(name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
@@ -535,7 +483,6 @@ export function serviceNamePatterns(name: string): RegExp[] {
   ];
 }
 
-/** The lines of a file's text a reader of the service name reads: comments skipped by line. */
 function readableLines(file: FileView): string[] {
   const lines = file.code.split('\n');
   const name = file.path.slice(file.path.lastIndexOf('/') + 1);
@@ -545,7 +492,6 @@ function readableLines(file: FileView): string[] {
   return lines;
 }
 
-/** Every place a file names a service, collisions taken out; `collisionHits` counts each collision seen. */
 export function serviceNameSites(
   file: FileView,
   facts: Pick<UnusedServiceFacts, 'services' | 'collisions'>,

@@ -24,7 +24,6 @@ import type {
 const NOTHING: SavedViewerSettings = { theme: null, reducedMotion: null };
 const NONE: ReadonlySet<ViewerSettingName> = new Set();
 
-// A device compared at the moment the account's values arrived, with no save in flight.
 function compareAtLoad(device: SavedViewerSettings, account: SavedViewerSettings) {
   return compareViewerSettings({ device, account, deviceAtAccountChange: device, saving: NONE });
 }

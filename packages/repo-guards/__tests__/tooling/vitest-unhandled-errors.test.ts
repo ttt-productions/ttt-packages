@@ -1,13 +1,9 @@
-// The gate's unhandled-error extractor: the path that turns "exited 1 with 0 failures" from an
-// unreadable truncated output tail into Vitest's own diagnosis.
-
 import { describe, it, expect } from 'vitest';
 import {
   extractUnhandledErrorReport,
   formatUnhandledErrorReport,
 } from '../../src/node/tooling/vitest-unhandled-errors.js';
 
-/** The shape of Vitest's real stderr for unhandled rejections. */
 const STDERR = [
   '',
   '⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯',
@@ -35,8 +31,6 @@ const STDERR = [
 describe('extractUnhandledErrorReport', () => {
   it('returns every block and the Errors summary from a real stderr blob', () => {
     const { blocks, summary } = extractUnhandledErrorReport(STDERR);
-    // The banner and its "Vitest caught N errors" count belong to the first rejection's block:
-    // they are the header a reader needs beside it.
     expect(blocks).toHaveLength(2);
     expect(blocks[0]).toContain('Vitest caught 3 errors during the test run.');
     expect(blocks[0]).toContain('use-orders.test.tsx');

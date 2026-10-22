@@ -1,14 +1,3 @@
-// A module tests fake has one shared fake, and a helper tests repeat has one shared owner. A fake
-// written out again in each test file is one behavior copied many times: the copies drift apart, and
-// a test asserting on its own copy proves nothing about the others. A test that needs its own
-// behavior from a faked module takes the shared fake and passes its overrides — its mock's factory
-// loads the owner with `import()` — so the fake stays the owner's and the override stays the test's.
-//
-// The app names each shared fake (the module, and the test-code file that owns its fake) and each
-// shared-helper file, tree by tree: an owner governs the tests of the root it lives in. A module
-// faked, or a helper declared, in several test files with no owner yet is a report, never a failure,
-// so new copies surface without the gate holding an inventory.
-
 import ts from 'typescript';
 import type { Finding } from '../../guard.js';
 import { isTestPath } from '../../node/layout.js';
@@ -19,7 +8,6 @@ import { forEachNode, lineOfNode, unwrap } from '../../support/ast.js';
 import { isText, objectProblem, pathProblem } from '../../support/facts.js';
 import { aliasList, isLocalModule, resolveSpecifier } from '../../support/resolve-specifier.js';
 
-/** The test-runner calls that replace a module with a fake. */
 const MOCK_CALLS: ReadonlySet<string> = new Set([
   'vi.mock',
   'vi.doMock',
@@ -35,27 +23,20 @@ const SCOPE: Scope = {
 };
 
 export interface SharedFake {
-  /** A package specifier (`@scope/pkg/react`), or the repo-relative path of a local module file. */
   module: string;
-  /** The repo-relative test-code file that owns the module's one fake. */
   owner: string;
 }
 
 export interface SharedFakeFacts {
-  /** Specifier prefix → repo-relative folder (`{ '@/': 'src/' }`), so a local specifier names its file. */
   importAliases: Readonly<Record<string, string>>;
-  /** Every module with a shared fake; `[]` when there is none yet. */
   fakes: readonly SharedFake[];
-  /** The repo-relative test-code files whose exports are the shared test helpers; `[]` when none. */
   helperOwners: readonly string[];
 }
 
-/** One fake a test writes: the mock call, the module it names, and the modules its factory loads. */
 interface MockSite {
   node: ts.CallExpression;
   module: string;
   factory: ts.Expression | undefined;
-  /** Every module the factory loads with `import()`. */
   factoryLoads: string[];
 }
 
@@ -91,7 +72,6 @@ const isFunctionValue = (node: ts.Expression | undefined) => {
   return ts.isArrowFunction(value) || ts.isFunctionExpression(value);
 };
 
-/** Every helper a file declares: a function declaration, or a variable holding a function. */
 function helperDeclarations(file: FileView): Array<{ name: string; node: ts.Node }> {
   const out: Array<{ name: string; node: ts.Node }> = [];
   forEachNode(file.sourceFile, (node) => {
@@ -110,7 +90,6 @@ const hasExportModifier = (node: ts.Node) =>
   ts.canHaveModifiers(node) &&
   (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
-/** The names a shared-helper file declares and exports. */
 function exportedDeclarations(file: FileView): Set<string> {
   const names = new Set<string>();
   for (const statement of file.sourceFile.statements) {
@@ -135,7 +114,6 @@ function exportedDeclarations(file: FileView): Set<string> {
   return names;
 }
 
-/** An owner file, checked: it exists and is test code. Its problem in words, or its root's name. */
 function ownerRoot(
   reader: RepoReader,
   path: string,
@@ -152,7 +130,6 @@ function ownerRoot(
 function checkFakes(reader: RepoReader, facts: SharedFakeFacts, files: FileView[]): Finding[] {
   const findings: Finding[] = [];
   const aliases = aliasList(facts.importAliases);
-  /** root → module → owner */
   const owners = new Map<string, Map<string, string>>();
   for (const fake of facts.fakes) {
     if (isLocalModule(fake.module) && !reader.exists(fake.module))
@@ -200,7 +177,6 @@ function sharedHelpers(
   facts: SharedFakeFacts,
   findings: Finding[] | null,
 ): Map<string, Map<string, string>> {
-  /** root → helper name → owner */
   const helpers = new Map<string, Map<string, string>>();
   for (const owner of facts.helperOwners) {
     const { root, problem } = ownerRoot(reader, owner, 'the shared helper file');
@@ -308,13 +284,10 @@ export const sharedFakeGuard: GenericGuardDefinition<SharedFakeFacts> = {
 };
 
 export interface SharedFakeReport {
-  /** Modules faked in more than one test file of a tree with no shared fake there, most files first. */
   modules: Array<{ root: string; module: string; files: string[] }>;
-  /** Helpers declared in more than one test file of a tree with no shared owner there, most files first. */
   helpers: Array<{ root: string; name: string; files: string[] }>;
 }
 
-/** Report-only: what tests copy that has no shared owner yet. Never a failure. */
 export function sharedFakeReport(reader: RepoReader, facts: SharedFakeFacts): SharedFakeReport {
   const aliases = aliasList(facts.importAliases);
   const files = reader.files(SCOPE);

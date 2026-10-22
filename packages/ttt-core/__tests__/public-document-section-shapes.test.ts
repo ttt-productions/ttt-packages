@@ -108,7 +108,7 @@ describe('Rules & Agreements content', () => {
     ).toBe(false);
   });
 
-  it('refuses the retired per-medium agreement lists and rule subgroups', () => {
+  it('refuses per-medium agreement lists and rule subgroups', () => {
     expect(
       RulesAndAgreementsContentInputSchema.safeParse({
         rules: [],

@@ -1,11 +1,3 @@
-// The public collaborator roster projection is a PRIVACY BOUNDARY, and it used to have
-// two implementations: the mirror trigger core in ttt-prod and a hand-copied restatement
-// in the post-deploy backfill script, under a "keep in sync" comment. A drifted copy is
-// how a non-public field (guild standings, stake counts) reaches a subcollection every
-// signed-in user can read. ttt-core now owns the one projection; these tests pin the two
-// rules that protect it and fail if the projected field set ever drifts from
-// GUILDMATE_USER_PUBLIC_FIELDS.
-
 import { describe, it, expect } from 'vitest';
 import {
   GUILDMATE_USER_PUBLIC_FIELDS,

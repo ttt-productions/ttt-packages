@@ -1,7 +1,3 @@
-// The Firestore rules mirror the core exactly: one explicit block per declared collection, no
-// wildcard collection names, declared collection groups, and only declared fixed documents,
-// statuses, and roles.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   rulesMirrorFindings,
@@ -43,7 +39,6 @@ const facts = (over: Partial<RulesMirrorFacts> = {}): RulesMirrorFacts => ({
   ...over,
 });
 
-/** A rules file built from the declarations above. */
 const CANONICAL = [
   "rules_version = '2';",
   'service cloud.firestore {',

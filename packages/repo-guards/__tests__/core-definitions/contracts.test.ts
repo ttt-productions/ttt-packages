@@ -1,6 +1,3 @@
-// Cross-boundary contracts live in the core: a backend tree builds no zod schema of its own, and no
-// source gives avoiding a package publish as its reason.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import { coreContractsGuard } from '../../src/modules/core-definitions/contracts.js';
 import { fixture, lines } from './fixture.js';

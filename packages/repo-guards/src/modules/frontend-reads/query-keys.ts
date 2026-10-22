@@ -1,7 +1,3 @@
-// Every cache key has one owner: the app's query-key module. Nothing else spells a key, a key
-// fragment, or a second key object, the module never holds two names for one key, and a key for
-// the signed-in account's own data carries that account's uid.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -11,19 +7,12 @@ import { escapeRegExp } from '../../support/text.js';
 import { pathProblem } from '../../support/facts.js';
 import { APP_CODE, declaredObjects, identifierListProblem, requiredFile } from './shared.js';
 
-// =============================================================================================
-// Query keys: one owner, no hand-typed keys or prefixes, no alias builders, no second key object.
-// =============================================================================================
-
 export interface QueryKeyFacts {
-  /** The app's one query-key module. */
   keyModule: string;
 }
 
 const RAW_QUERY_KEY = /queryKey:\s*(?:readonly\s+)?\[/g;
-/** query-core's option that takes a key's first element. */
 const RAW_QUERY_KEY_PREFIX = /queryKeyPrefix\s*:\s*['"`]/g;
-/** TanStack Query's cache methods that take the key as their first positional argument. */
 const POSITIONAL_KEY_CALL =
   /\.\s*(?:setQueryData|getQueryData|getQueryState|removeQueries|invalidateQueries|refetchQueries|cancelQueries|resetQueries|prefetchQuery|fetchQuery|ensureQueryData)\(\s*\[/g;
 
@@ -51,7 +40,6 @@ function closingBracket(text: string, open: number): number {
   return -1;
 }
 
-/** A `queryKey: [ … ]` whose contents are a tuple TYPE (`[string, string]`) declares a key's shape and spells no key. */
 function isTupleType(inner: string): boolean {
   const elements = inner
     .split(',')
@@ -75,7 +63,6 @@ function isTupleType(inner: string): boolean {
   );
 }
 
-/** Every key spelled at a call site in one file: a key array, a positional key array, a literal key prefix. */
 export function handTypedKeys(
   file: FileView,
   isKeyModule: boolean,
@@ -106,7 +93,6 @@ interface KeyBuilder {
   delegatesTo: string | null;
 }
 
-/** Every builder member (`name: (params) => body`) of every key object the module exports. */
 export function keyBuilders(file: FileView): KeyBuilder[] {
   const sf = file.sourceFile;
   const objects = declaredObjects(sf);
@@ -160,7 +146,6 @@ const normalizedBody = ({ body, params }: KeyBuilder) => {
   return out.replace(/\s+/g, ' ').trim();
 };
 
-/** Builders that are a second name for a key: one that delegates to another, or two whose bodies build one key. */
 export function aliasBuilders(
   builders: readonly KeyBuilder[],
 ): Array<{ line: number; detail: string }> {
@@ -248,19 +233,12 @@ export const queryKeysGuard: GenericGuardDefinition<QueryKeyFacts> = {
   ],
 };
 
-// =============================================================================================
-// A key for the signed-in account's own data takes the uid.
-// =============================================================================================
-
 export interface AuthScopedKeyFacts {
   keyModule: string;
-  /** Name prefixes that mark a key method as the signed-in account's own (`my`, `current`, `own`). */
   authScopedPrefixes: readonly string[];
-  /** The names a uid parameter goes by. */
   uidParamNames: readonly string[];
 }
 
-/** Every auth-scoped key method whose first parameter is not the uid, or that leaves the uid out of the key. */
 export function keyMethodsWithoutUid(
   file: FileView,
   facts: AuthScopedKeyFacts,

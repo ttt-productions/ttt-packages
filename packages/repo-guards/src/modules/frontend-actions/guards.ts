@@ -1,6 +1,3 @@
-// The generic guards over client actions: callables, the auth boundary, browser storage, and media
-// rendering. The registry runs every guard listed here; an app supplies each one's facts under its id.
-
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   authFailureCaptureGuard,
@@ -47,7 +44,6 @@ import {
   type UploadListenerFacts,
 } from './client.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface FrontendActionsGuardFacts {
   callableErrorCopy: CallableErrorCopyFacts;
   callableNames: CallableNameFacts;

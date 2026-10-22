@@ -10,10 +10,6 @@ export const UpdateChapterMediaVariablesSchema = z
     chapterId: chapterIdSchema,
     file: z.instanceof(File).or(z.instanceof(Blob)),
 
-    // Untrusted client claim of what the user's action implies (advisory; the
-
-    // server byte inspection is the only classification authority).
-
     claim: ClientMediaClaimSchema.optional(),
     mediaKey: z.literal('photoAssetId'),
     onProgress: onProgressSchema,

@@ -1,7 +1,3 @@
-// The UI guards over how app code and app stylesheets paint: colors through theme tokens, scale
-// classes that exist, status foregrounds on their solid fill, shadows owned by classes, vertical
-// stacks never on rows, and no clickable affordance on an unavailable control.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
@@ -24,7 +20,6 @@ const APP_CODE_AND_STYLES: Scope = { roots: ['app'], kinds: ['code', 'stylesheet
 const css = (text: string) => ({ path: 'sample.css', text });
 const tsx = (text: string) => ({ path: 'sample.tsx', text });
 
-/** Every match of each pattern in a file's comment-free code. */
 function patternHits(file: FileView, patterns: readonly RegExp[]): Hit[] {
   const hits: Hit[] = [];
   for (const pattern of patterns) {
@@ -38,7 +33,6 @@ function patternHits(file: FileView, patterns: readonly RegExp[]): Hit[] {
   return hits.sort((a, b) => a.index - b.index);
 }
 
-/** Hits for every token of every string the code writes that `test` picks out. */
 function tokenHits(
   file: FileView,
   test: (token: string, tokens: readonly string[]) => boolean,
@@ -52,8 +46,6 @@ function tokenHits(
   return hits;
 }
 
-// ---- color literals -----------------------------------------------------------------------------
-
 const PALETTE_PREFIX =
   'text|bg|border|ring|from|via|to|fill|stroke|decoration|outline|divide|placeholder|caret|accent|shadow';
 const PALETTE_HUE =
@@ -66,7 +58,6 @@ const COLOR_LITERALS = [
 export const colorLiteralMatcher: Matcher = (file) => patternHits(file, COLOR_LITERALS);
 
 export interface ColorLiteralFacts {
-  /** Files that must hold a color literal (an SVG whose paint cannot be a token), each with its why and count. */
   exceptions: readonly AllowlistEntry[];
 }
 
@@ -111,22 +102,17 @@ export const colorLiteralsGuard: GenericGuardDefinition<ColorLiteralFacts> = {
   },
 };
 
-// ---- theme scale classes ------------------------------------------------------------------------
-
 const SCALE_CLASS = /^(?:stack|icon|spinner)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DECLARED_SCALE_CLASS = /\.((?:stack|icon|spinner)-[a-z0-9]+(?:-[a-z0-9]+)*)(?![\w-])/g;
 
-/** Every scale class a stylesheet's selectors declare. */
 export function declaredScaleClasses(sheet: FileView): string[] {
   return [...sheet.code.matchAll(DECLARED_SCALE_CLASS)].map((m) => m[1]);
 }
 
-/** Every scale class token a string in the code names. */
 export const usedScaleClasses: Matcher = (file) =>
   tokenHits(file, (token) => SCALE_CLASS.test(bareToken(token)));
 
 export interface EntryStylesheetFacts {
-  /** The one stylesheet the app loads, repo-relative. */
   entryStylesheet: string;
 }
 
@@ -174,8 +160,6 @@ export const scaleClassesGuard: GenericGuardDefinition<EntryStylesheetFacts> = {
   },
 };
 
-// ---- status foreground on its solid fill ---------------------------------------------------------
-
 const STATUS_FOREGROUND = /^((?:[\w-]+:)*)text-(success|warning|destructive|info)-foreground$/;
 export const tintedStatusForegrounds: Matcher = (file) =>
   tokenHits(file, (token, tokens) => {
@@ -218,13 +202,10 @@ export const statusForegroundGuard: GenericGuardDefinition<Record<string, never>
   },
 };
 
-// ---- shadow ownership --------------------------------------------------------------------------
-
 const normalizeShadow = (value: string) => value.replace(/\s+/g, ' ').trim();
 const pairedTwShadow = (value: string) =>
   normalizeShadow(value) === 'none' ? '0 0 transparent' : normalizeShadow(value);
 
-/** Every box-shadow declaration whose block does not set the identical --tw-shadow. */
 export const unpairedShadows: Matcher = (file) => {
   if (file.kind !== 'stylesheet') return [];
   const hits: Hit[] = [];
@@ -310,8 +291,6 @@ export const shadowOwnershipGuard: GenericGuardDefinition<Record<string, never>>
   },
 };
 
-// ---- vertical stacks never on horizontal rows --------------------------------------------------
-
 export const horizontalStacks: Matcher = (file) =>
   tokenHits(file, (token, tokens) => {
     if (!/^stack-\d+$/.test(bareToken(token))) return false;
@@ -356,14 +335,11 @@ export const stackRowsGuard: GenericGuardDefinition<Record<string, never>> = {
   },
 };
 
-// ---- an unavailable control never wears the clickable affordance -------------------------------
-
 const EXCLUDES_DISABLED = /:not\([^)]*:disabled/;
 const EXCLUDES_ARIA_DISABLED = /:not\([^)]*\[aria-disabled\s*=\s*['"]?true['"]?\s*\]/;
 const ROLE_BUTTON = /\[role\s*=\s*['"]?button['"]?\s*\]/;
 const TYPE_BUTTON = /(?<![\w.#-])button(?![\w-])/;
 
-/** Selectors that give a button the pointer cursor or a press transform without excluding an unavailable one. */
 export const affordanceOnUnavailable: Matcher = (file) => {
   if (file.kind !== 'stylesheet') return [];
   const hits: Hit[] = [];
@@ -436,7 +412,6 @@ export const unavailableAffordanceGuard: GenericGuardDefinition<Record<string, n
   },
 };
 
-/** Findings for a file-level matcher run over a scope, for guards that run one directly. */
 export function scopeFindings(files: readonly FileView[], match: Matcher, prefix = ''): Finding[] {
   return files.flatMap((file) =>
     match(file).map((hit) => ({

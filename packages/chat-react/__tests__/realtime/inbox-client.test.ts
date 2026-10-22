@@ -88,7 +88,6 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       ),
     );
     const st = client.getState();
-    // Tombstoned entries are filtered out — Chats-view visibility is active-only.
     expect(st.registry.map((e) => e.channelRef)).toEqual([
       'ttt:test:channel:wp1:ch1',
       'ttt:test:invite:inv1',
@@ -106,7 +105,6 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], false),
     );
     expect(client.getState().hasUnread).toBe(false);
-    // A new message arrives in c1 → the DO pushes a new snapshot with hasUnread true.
     sock.serverFrame(
       'snapshot',
       snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true),
@@ -143,7 +141,6 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       ],
       hasUnread: false,
     } as unknown as Record<string, unknown>);
-    // Active + archived pass through; tombstoned is filtered out.
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1', 'c2']);
     expect(client.getState().registry.find((e) => e.channelRef === 'c2')?.archived).toBe(true);
   });
@@ -168,7 +165,6 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       hasUnread: true,
     } as unknown as Record<string, unknown>);
     expect(client.channelHasUnread('c1')).toBe(true);
-    // c2 carries unread:true but is archived — it must NOT show a dot.
     expect(client.channelHasUnread('c2')).toBe(false);
   });
 
@@ -181,7 +177,6 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       'snapshot',
       snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true),
     );
-    // A channel snapshot ({ lastMessageSeq, readSeq }) must not clobber inbox state.
     sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 } as unknown as Record<
       string,
       unknown
@@ -221,9 +216,7 @@ describe('InboxClient — terminal access denial (ChatAccessDeniedError)', () =>
     await client.connect();
     expect(client.getState().status).toBe('closed');
     expect(client.getState().lastErrorCode).toBe('access-denied');
-    // Denied at mint → no socket was ever built and no reconnect is scheduled.
     expect(harness.sockets).toHaveLength(0);
-    // No reconnect loop: the clock advancing does not trigger further mint attempts.
     clock.tick(60_000);
     await Promise.resolve();
     expect(grant).toHaveBeenCalledTimes(1);
@@ -270,10 +263,10 @@ describe('InboxClient — connect() idempotency + lifecycle revival', () => {
   it('a second connect() while already connecting/open opens NO second socket', async () => {
     const { client, harness } = makeInbox();
     await client.connect();
-    await client.connect(); // no-op: already connecting
+    await client.connect();
     expect(harness.sockets).toHaveLength(1);
     harness.last().serverOpen();
-    await client.connect(); // no-op: already open
+    await client.connect();
     expect(harness.sockets).toHaveLength(1);
   });
 
@@ -353,7 +346,6 @@ describe('InboxClient — connect() idempotency + lifecycle revival', () => {
 
     client.close();
     await client.connect();
-    // A lifecycle restart must not blank the dock — the DO's next snapshot is authoritative.
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
     expect(client.getState().hasUnread).toBe(true);
   });
@@ -388,10 +380,8 @@ describe('InboxClient — markRead (tray clear without opening the chat)', () =>
     const frame = sock.sent.find((f) => f.type === 'mark-read');
     expect(frame?.payload).toMatchObject({ channelRef: 'c1' });
     expect(typeof frame?.payload.requestId).toBe('string');
-    // No optimistic clear — only the DO's pushed snapshot removes the dot.
     expect(client.channelHasUnread('c1')).toBe(true);
     expect(client.getState().hasUnread).toBe(true);
-    // The DO applies the cursor advance and pushes the authoritative snapshot.
     sock.serverFrame(
       'snapshot',
       snap(
@@ -405,12 +395,11 @@ describe('InboxClient — markRead (tray clear without opening the chat)', () =>
 
   it('settles not-sent when the socket is not open — nothing was sent', async () => {
     const { client } = makeInbox();
-    // Never connected — no socket to send on.
     await expect(client.markRead('c1')).resolves.toEqual({ ok: false, code: 'not-sent' });
   });
 });
 
-describe('InboxClient — standalone unread frame (C-M2)', () => {
+describe('InboxClient — standalone unread frame', () => {
   it('applies a full inbox snapshot delivered as an `unread` frame', async () => {
     const { client, harness } = makeInbox();
     await client.connect();
@@ -439,27 +428,12 @@ describe('InboxClient — standalone unread frame (C-M2)', () => {
     expect(client.getState().hasUnread).toBe(false);
     sock.serverFrame('unread', { hasUnread: true });
     expect(client.getState().hasUnread).toBe(true);
-    // The lightweight patch touches only the dock dot — the registry is preserved.
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
   });
 });
 
-// ---------------------------------------------------------------------------
-// OPT-IN structured diagnostics (`diagnostics` config, default OFF) — the same
-// option type + emitter the channel client uses (ONE owner: src/realtime/diagnostics.ts).
-// Inbox payloads are SIZES ONLY: a `channelRef` names one specific conversation
-// and must never appear in a diagnostic line.
-// ---------------------------------------------------------------------------
-
-/** A channelRef whose substrings must never show up in any diagnostic payload. */
 const SECRET_REF = 'ttt:test:channel:secret-workspace:secret-channel';
 
-/**
- * One representative inbox script: connect → authoritative snapshot (mixed
- * active/tombstoned/archived + unread) → markRead → a cleared snapshot → a
- * lightweight unread patch → two frames the client deliberately ignores → an idle
- * window → a drop/reconnect → a fresh snapshot.
- */
 async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
   const ctx = makeInbox(diagnostics === undefined ? undefined : { diagnostics });
   const { client, harness, clock } = ctx;
@@ -511,9 +485,9 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
     ),
   );
   sock.serverFrame('unread', { hasUnread: true });
-  sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 }); // stray CHANNEL snapshot
-  sock.serverFrame('brand-new-frame', { whatever: 1 }); // forward-compat noise
-  clock.tick(120_000); // the inbox socket runs no heartbeat — an idle window is silent
+  sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 });
+  sock.serverFrame('brand-new-frame', { whatever: 1 });
+  clock.tick(120_000);
   sock.serverClose(1006, 'abnormal');
   clock.tick(200);
   await Promise.resolve();
@@ -537,7 +511,6 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
   return ctx;
 }
 
-/** Every frame every socket sent, as a stable comparable string (a request's random id aside). */
 function allInboxFrames(harness: { sockets: Array<{ sent: unknown[] }> }): string {
   return JSON.stringify(
     harness.sockets.map((s) => s.sent),
@@ -618,7 +591,7 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
     const applied = of(DIAG.INBOX_SNAPSHOT_APPLIED);
     expect(applied[0]).toMatchObject({
       source: 'snapshot',
-      received: 3, // one of which is tombstoned and filtered out
+      received: 3,
       active: 2,
       archived: 1,
       hasUnread: true,
@@ -637,8 +610,6 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
   it('records unread-projection changes as counts and deltas only', async () => {
     const { of } = await runCaptured();
     const updates = of(DIAG.INBOX_UNREAD_UPDATED);
-    // false -> true (first snapshot), true -> false (the cleared snapshot), then the
-    // lightweight dock-dot patch back to true.
     expect(updates[0]).toMatchObject({
       hasUnreadBefore: false,
       hasUnreadAfter: true,
@@ -654,14 +625,11 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
       hasUnreadBefore: false,
       hasUnreadAfter: true,
     });
-    // The reconnect's AUTHORITATIVE snapshot corrects the dock dot the patch had set —
-    // exactly the "client state vs. server truth" divergence this log exists to show.
     expect(updates[3]).toMatchObject({
       source: 'snapshot',
       hasUnreadBefore: true,
       hasUnreadAfter: false,
     });
-    // Bounded: only real changes emit — four transitions, four lines, no repeats.
     expect(updates).toHaveLength(4);
   });
 

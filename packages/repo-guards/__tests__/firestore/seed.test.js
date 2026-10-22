@@ -1,7 +1,3 @@
-// Seed fixtures reach the database only through the app's registry: a full seed is parsed and the
-// parsed document written; a merge patch may write only declared fields; an unregistered path, or
-// a schema whose fields cannot be read, fails closed.
-
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 import { createRegistrySeedWriter, registeredSchemaForPath } from '../../src/seed/seed-writer.js';

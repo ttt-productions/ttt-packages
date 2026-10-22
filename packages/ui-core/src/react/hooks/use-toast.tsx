@@ -1,9 +1,7 @@
 import * as React from 'react';
 
 const TOAST_LIMIT = 3;
-// Time between Radix flipping `open=false` and the toast actually unmounting.
-// Just long enough for the close animation to finish. Larger values produce a
-// visible dead-air gap after the countdown bar reaches empty.
+// Long enough for the close animation; longer leaves dead air after the countdown bar empties.
 const TOAST_REMOVE_DELAY = 150;
 
 export type ToastVariant = 'default' | 'destructive' | 'success' | 'warning' | 'error';
@@ -15,21 +13,13 @@ export type ToasterToast = {
   action?: React.ReactNode;
   variant?: ToastVariant;
 
-  /** Radix controlled open state */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 
-  /** ms */
   duration?: number;
 
-  /** show X button */
   dismissible?: boolean;
 
-  /**
-   * When `true`, the toast does not auto-dismiss and renders no countdown bar.
-   * `duration` is ignored. The user must click the X (or programmatic `dismiss`)
-   * to remove it.
-   */
   persistent?: boolean;
 };
 
@@ -132,7 +122,6 @@ export function toast(input: Omit<ToastProps, 'id'>) {
     dispatch({ type: 'UPDATE_TOAST', toast: { ...props, id } });
 
   const variant = input.variant ?? 'default';
-  // Persistent toasts disable auto-dismiss entirely; Radix accepts `Infinity`.
   const duration = input.persistent
     ? Infinity
     : (input.duration ?? defaultDurationForVariant(variant));

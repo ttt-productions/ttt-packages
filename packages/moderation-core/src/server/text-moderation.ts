@@ -1,14 +1,9 @@
 import type { ModerationLogger, TextModerationResult } from '../types.js';
 
 export interface WordListProvider {
-  /** Returns the active profanity word list. May read from cache, Firestore, etc. */
   getWords(): Promise<ReadonlySet<string>>;
 }
 
-/**
- * Build a memoized word-list provider. Calls `loader` on first use and
- * any time the cache is older than `ttlMs`.
- */
 export function createWordListCache(args: {
   loader: () => Promise<Iterable<string>>;
   ttlMs: number;
@@ -53,7 +48,6 @@ function normalizeText(text: string): string {
   for (const [leet, letter] of Object.entries(LEET_SPEAK_MAP)) {
     normalized = normalized.split(leet).join(letter);
   }
-  // Collapse 3+ repeated chars to 2 (e.g. "fuuuck" → "fuuck")
   normalized = normalized.replace(/(.)\1{2,}/g, '$1$1');
   return normalized;
 }
@@ -77,15 +71,10 @@ export async function quickWordFilter(
 
 export interface ModerateTextOptions {
   wordList: WordListProvider;
-  /** Minimum text length before any moderation runs. Default 0 (always run). */
   minLength?: number;
   logger?: ModerationLogger;
 }
 
-/**
- * Word-list text moderation (cheap, local). Returns a generic result — the
- * caller decides how to respond (throw HttpsError, log violation, etc.).
- */
 export async function moderateText(
   text: string,
   options: ModerateTextOptions,

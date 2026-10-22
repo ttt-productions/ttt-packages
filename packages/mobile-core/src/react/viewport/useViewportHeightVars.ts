@@ -2,16 +2,6 @@ import { useEffect } from 'react';
 import { isBrowser } from '../../env.js';
 import { resolvePrefix, type CssPrefixOptions } from '../css-prefix.js';
 
-/**
- * Sets:
- *  --<prefix>-vh: 1% of *layout* viewport height (window.innerHeight)
- *  --<prefix>-dvh: 1% of *visual* viewport height (visualViewport.height when available)
- *
- * Default prefix is "app": --app-vh / --app-dvh.
- *
- * Use in CSS:
- *  height: calc(var(--app-dvh, var(--app-vh, 1vh)) * 100);
- */
 export function useViewportHeightVars(options?: CssPrefixOptions) {
   const prefix = resolvePrefix(options);
   useEffect(() => {

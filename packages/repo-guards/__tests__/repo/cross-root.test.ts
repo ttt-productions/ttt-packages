@@ -1,5 +1,3 @@
-// The root-boundary guards and the privileged-script guard over temp repositories.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Guard } from '../../src/guard.js';
 import {

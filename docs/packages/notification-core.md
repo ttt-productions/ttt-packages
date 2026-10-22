@@ -57,9 +57,9 @@ in the active collection until archived; personal unread state is tracked with
   30s) as a separate setting; both are list props too. Paging is query-core's
   `useFirestorePaginated` (one cache entry per page with a look-ahead, so `hasNextPage`
   is truthful).
-- **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Owner-only (user) / admin-only (admin) reads are enforced by Firestore rules; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
+- **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Who may read a history collection is the app's; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
-- **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config, options)` —
+- **The generic delivery ledger:** `createDeliveryLedger(db, config, options)` —
   one Firestore doc per (recipient|shared, type, occurrence) that is BOTH the queue row AND the
   idempotency ledger. `enqueue` is create-if-absent (`ALREADY_EXISTS` ⇒ a per-row duplicate
   no-op, never a page failure); `materialize` is ONE transaction that reads the delivery row +
@@ -117,7 +117,7 @@ doc for several recipients.
 
 Actor identity is stored **id-only**. Persisted docs keep `latestActorIds` /
 `actorId` (capped) and never store display names; the consuming app resolves
-names at read time (e.g. from `publicUsers`), so names cannot drift in the
+names at read time from its own public profile source, so names cannot drift in the
 stored doc. The package does not own a name resolver.
 
 ## Boundary

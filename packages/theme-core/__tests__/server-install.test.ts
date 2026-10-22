@@ -3,10 +3,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// A server (Cloud Functions) installs theme-core for its server-safe root (`THEME_NAMES`), and its
-// lockfile must hold no React (ARCH-202). npm installs every dependency and every required peer, so
-// nothing theme-core declares that way may be React or need React: React and every React library
-// `./react` uses are optional peers the app supplies.
+// npm installs every dependency and every required peer, so none of theme-core's may be or need
+// React: a server's lockfile holds no React (RULE-STD-ARCH-202).
 
 interface Manifest {
   dependencies?: Record<string, string>;
@@ -36,10 +34,8 @@ const requiredPeers = (m: Manifest) =>
     (name) => m.peerDependenciesMeta?.[name]?.optional !== true,
   );
 
-/** What a server-only install of a package with this manifest is forced to install beside it. */
 const forcedInstalls = (m: Manifest) => [...Object.keys(m.dependencies ?? {}), ...requiredPeers(m)];
 
-/** Whether installing `name` installs React, through its own dependencies or required peers. */
 function pullsReact(name: string, seen = new Set<string>()): boolean {
   if (REACT.has(name)) return true;
   if (seen.has(name)) return false;

@@ -1,21 +1,3 @@
-/**
- * Lightweight, stable, Firestore-safe query key helpers.
- *
- * All keys are arrays of `string | number | boolean | null` so they can
- * be written into Firestore docs (used by the unified upload pipeline's
- * `result.invalidate` field) and read back by the frontend hook to call
- * `queryClient.invalidateQueries`. Both sides produce structurally
- * identical arrays.
- *
- * Convention:
- * - `keys.user.all` => ['user']
- * - `keys.user.detail(id)` => ['user', 'detail', id]
- * - `keys.user.list(param?)` => ['user', 'list', param?]
- * - `keys.user.custom('accountStatus', id)` => ['user', 'accountStatus', id]
- *
- * For list filters that need multiple discriminators, use `custom`:
- *   keys.feedback.custom('list', filter, sortBy)
- */
 type SerializedKeyPart = string | number | boolean | null | undefined;
 
 export type QueryKey = ReadonlyArray<string | number | boolean | null>;
@@ -89,10 +71,6 @@ export const keys = {
   custom: (...parts: SerializedKeyPart[]) => withScope('custom', ...parts),
 } as const;
 
-/**
- * Utility for apps that want to define their own scoped key sets
- * while following the same conventions.
- */
 export function createKeyScope(scope: string) {
   return {
     all: withScope(scope),

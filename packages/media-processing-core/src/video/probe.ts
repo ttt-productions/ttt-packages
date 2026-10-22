@@ -12,7 +12,6 @@ export async function probeVideo(
   inputPath: string,
   opts?: MeasureDurationOptions,
 ): Promise<VideoProbe> {
-  // ffprobe must exist in runtime environment
   const args = ['-v', 'error', '-print_format', 'json', '-show_streams', inputPath];
 
   const r = await runCmd('ffprobe', args, {

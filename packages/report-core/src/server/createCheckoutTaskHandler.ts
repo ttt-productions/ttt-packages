@@ -7,7 +7,7 @@ import type {
   TaskClaimGuard,
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
-import { createCandidateCursor } from './claimCandidates.js';
+import { createCandidateCursor, MAX_CLAIM_ROUNDS } from './claimCandidates.js';
 import type { CheckoutTaskRequest } from '../schemas/requests.js';
 import type {
   AdminTaskStatus,
@@ -21,7 +21,6 @@ export interface CheckoutTaskHandlerConfig {
   db: ServerFirestore;
   auth: AdminAuthConfig;
   onAuditEvent?: OnAuditEvent;
-  /** The app's in-transaction check that a task may be claimed now (see `TaskClaimGuard`). */
   assertTaskClaimable?: TaskClaimGuard;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
@@ -29,23 +28,6 @@ export interface CheckoutTaskHandlerConfig {
 type ClaimOutcome =
   { kind: 'claimed'; result: CheckoutTaskResult } | { kind: 'contended' } | { kind: 'refused' };
 
-/**
- * Query→claim rounds attempted before reporting contention. Candidate discovery runs
- * OUTSIDE the transaction: a range query inside it takes a range lock over the whole
- * pending queue, so every concurrent status flip (any checkout or release) becomes a
- * transaction conflict and all admin queue mutations serialize. Each round re-queries,
- * then claims the specific candidate doc with an in-transaction status re-check —
- * doc-level conflicts only. A candidate the claim guard refuses does not use a round: the
- * queue's cursor moves past it, so each refusal costs one one-document read.
- */
-const MAX_CLAIM_ROUNDS = 5;
-
-/**
- * The checkoutTask handler: the named task, else the highest-priority pending task of the type,
- * else the longest-expired checked-out one. The app's claim guard decides inside the claim
- * transaction — a refused named task is answered `failed-precondition` with the app's message,
- * a refused queue candidate is skipped for the next one.
- */
 export function createCheckoutTaskHandler({
   config,
   db,
@@ -80,12 +62,6 @@ export function createCheckoutTaskHandler({
       throw new ReportCoreTaskError('invalid-argument', 'Invalid task type specified.');
     }
 
-    /**
-     * Claim ONE specific task doc in a doc-level transaction, re-checking its status
-     * inside the transaction. `onConflict: 'throw'` (the specificTaskId path) surfaces
-     * the precise rejection to the caller; `onConflict: 'skip'` (the queue path)
-     * answers `contended` or `refused` so the caller re-queries for the next candidate.
-     */
     const claimTask = (
       taskRef: ServerDocRef,
       opts: { onConflict: 'throw' | 'skip' },
@@ -93,7 +69,7 @@ export function createCheckoutTaskHandler({
       db.runTransaction(async (transaction): Promise<ClaimOutcome> => {
         const now = Date.now();
 
-        // ── READS (all reads must happen before any writes in a Firestore transaction) ──
+        // A Firestore transaction must make every read before its first write.
         const taskDoc = await transaction.get(taskRef);
 
         if (!taskDoc.exists) {
@@ -102,11 +78,6 @@ export function createCheckoutTaskHandler({
         }
 
         const taskData = taskDoc.data()!;
-        // Status guard: only a `pending` task, or a `checkedOut`/`workLater` task whose
-        // lock has EXPIRED (the legitimate steal), may be checked out here. A `completed`
-        // (resolved) task — or any other status — must be rejected, otherwise a stale
-        // preview lets an admin re-check-out and re-work an already-resolved task
-        // (re-applying its actions on the underlying group / racing another admin's close).
         const status = taskData.status;
         const lockExpiresAt = (taskData.checkoutDetails as Record<string, unknown> | undefined)
           ?.expiresAt as number | undefined;
@@ -119,8 +90,6 @@ export function createCheckoutTaskHandler({
         const checkoutHolder = (taskData.checkoutDetails as Record<string, unknown> | undefined)
           ?.userId;
         if (lockActive && checkoutHolder === userId && opts.onConflict === 'throw') {
-          // The caller already holds this task under a live lock: answer that truthfully with
-          // the task as held, and change nothing — no lock extension, no audit event.
           const originalDocRef = db.doc(taskData.originalPath as string);
           const originalDoc = await transaction.get(originalDocRef);
           const heldCheckout = taskData.checkoutDetails as CheckoutDetails;
@@ -148,22 +117,18 @@ export function createCheckoutTaskHandler({
               'This task is already checked out by another admin.',
             );
           }
-          // completed / resolved / unknown terminal — nothing to check out.
           throw new ReportCoreTaskError(
             'failed-precondition',
             'This task has already been resolved.',
           );
         }
         if (opts.onConflict === 'skip' && lockActive) {
-          // Queue candidate stolen between the query and this transaction.
           return { kind: 'contended' };
         }
 
         const originalDocRef = db.doc(taskData.originalPath as string);
         const originalDoc = await transaction.get(originalDocRef);
 
-        // The app's claim guard: the last of the reads, before the first write (the audit
-        // hook below writes).
         if (assertTaskClaimable) {
           const verdict = await assertTaskClaimable({
             taskDocId: taskDoc.id,
@@ -177,8 +142,6 @@ export function createCheckoutTaskHandler({
           }
         }
 
-        // Audit the auto-release of a previous (expired) checkout. The caller taking it over is
-        // the actor; the holder whose lock expired is the subject.
         if (taskData.checkoutDetails) {
           const prevCheckout = taskData.checkoutDetails as Record<string, unknown>;
           if (onAuditEvent) {
@@ -204,7 +167,6 @@ export function createCheckoutTaskHandler({
           workLaterUntil: null,
         };
 
-        // ── WRITES (no more reads after this point) ──
         transaction.update(taskRef, {
           status: 'checkedOut',
           checkoutDetails,
@@ -241,14 +203,10 @@ export function createCheckoutTaskHandler({
     const tasksRef = db.collection(config.collections.adminTasks);
 
     if (specificTaskId) {
-      // Doc-level transaction on the named task; the status guard and the claim guard throw
-      // the precise error, so this path only ever answers `claimed`.
       const claim = await claimTask(tasksRef.doc(specificTaskId), { onConflict: 'throw' });
       return (claim as { kind: 'claimed'; result: CheckoutTaskResult }).result;
     }
 
-    // Candidate discovery — OUTSIDE the transaction (see MAX_CLAIM_ROUNDS): the
-    // highest-priority pending task, else the longest-expired checked-out one.
     const pending = createCandidateCursor(() =>
       tasksRef
         .where('taskType', '==', taskType)

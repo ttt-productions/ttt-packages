@@ -5,11 +5,6 @@ import {
   REALM_FILE_PENDING_APPROVAL_STATUS,
 } from '../src/doc-schemas/media-assets.js';
 
-// The Realm gallery and the steward's queue are endless lists an action must patch in place,
-// never reload (FRONTEND-103). Their rows are server projections the client cannot read, so a
-// Realm-file action answers with the one file's row in each list after it, and the folders whose
-// server-computed counts it changed.
-
 const ids = { mediaAssetId: 'asset1', workProjectId: 'wp1', workFileId: 'file1' };
 
 const galleryRow = {

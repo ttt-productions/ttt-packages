@@ -9,10 +9,6 @@ export const UpdateTuneCoverPhotoVariablesSchema = z
     tuneId: tuneIdSchema,
     file: z.instanceof(File).or(z.instanceof(Blob)),
 
-    // Untrusted client claim of what the user's action implies (advisory; the
-
-    // server byte inspection is the only classification authority).
-
     claim: ClientMediaClaimSchema.optional(),
     coverType: z.enum(['square', 'poster', 'cinematic']),
     onProgress: onProgressSchema,

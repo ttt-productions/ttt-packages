@@ -7,8 +7,7 @@ Pure chat contracts and logic package. **No React, no Firebase.**
 - Message/thread contract types that are not React-shaped (`ChatMessageV1`,
   `ChatThreadV1`, `ChatId`, `ModerationHandlers`, `ChatPrewarmSenders`).
   `ChatMessageV1` is TEXT-only — there is no attachment field or attachment-send
-  contract; a conversation's files are owned by the consuming app's Conversation
-  Files surface. It carries no `replyTo` field either (see "Not owned" below).
+  contract; a conversation's files are owned by the consuming app. It carries no `replyTo` field either (see "Not owned" below).
   `ChatThreadV1` carries no access list: who may read or write a conversation is
   the consuming app's decision, handed to the UI as one `allowed` fact
   (`chat-react`'s `ChatCoreConfig.allowed`).

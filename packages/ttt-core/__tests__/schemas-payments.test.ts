@@ -16,7 +16,6 @@ import { PLEDGE_ATTESTATION_VERSION } from '../src/constants/member-agreements.j
 
 const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
 
-/** Valid base input; tests override/remove fields from here. */
 const valid = (overrides: Record<string, unknown> = {}) => ({
   amount: 500,
   checkoutAttemptId: ATTEMPT_ID,

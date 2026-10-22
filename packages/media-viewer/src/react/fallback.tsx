@@ -26,7 +26,6 @@ export function shouldShowFallback(mode: FallbackMode | undefined): boolean {
   return mode !== 'none';
 }
 
-/** Empty state: no URL provided */
 export function EmptyFallback(props: { isCircular?: boolean; className?: string }) {
   const { isCircular, className } = props;
   if (isCircular) {
@@ -52,7 +51,6 @@ export function EmptyFallback(props: { isCircular?: boolean; className?: string 
   );
 }
 
-/** Loading state: the URL is still being prepared (see `urlPending`). */
 export function PendingFallback(props: { isCircular?: boolean; className?: string }) {
   const { isCircular, className } = props;
   return (
@@ -62,7 +60,6 @@ export function PendingFallback(props: { isCircular?: boolean; className?: strin
   );
 }
 
-/** Error state: failed to load */
 export function ErrorFallback(props: { isCircular?: boolean; className?: string }) {
   const { isCircular, className } = props;
   return (

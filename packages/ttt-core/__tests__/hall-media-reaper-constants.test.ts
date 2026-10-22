@@ -6,13 +6,11 @@ import {
   HALL_MEDIA_REAPER_CLAIM_LEASE_MS,
   SWEEP_STATE_MAX_DEFERRED,
   HALL_MEDIA_REAPER_PAGE_SIZE,
+  HALL_MEDIA_REAPER_TIMEOUT_SECONDS,
 } from '../src/constants/scheduled-jobs.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
-// The `timeoutSeconds` of the app's reaper function `reapOrphanedHallMediaCopies`, which this
-// package cannot import.
-const REAPER_FUNCTION_TIMEOUT_MS = 300 * 1000;
 
 describe('Hall-media orphan reaper policy constants', () => {
   it('leaves Hall-media copies alone for 14 days, far past the day-long retry window of the publish trigger', () => {
@@ -42,9 +40,13 @@ describe('Hall-media orphan reaper policy constants', () => {
     expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBe(HOUR_MS);
   });
 
+  it('gives the reaper function a five-minute timeout', () => {
+    expect(HALL_MEDIA_REAPER_TIMEOUT_SECONDS).toBe(300);
+  });
+
   it('holds a claim at least ten times the reaper function timeout, so a live pass never loses it', () => {
     expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(
-      10 * REAPER_FUNCTION_TIMEOUT_MS,
+      10 * HALL_MEDIA_REAPER_TIMEOUT_SECONDS * 1000,
     );
   });
 

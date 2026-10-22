@@ -8,8 +8,7 @@ import { cn } from '../../lib/utils.js';
 import { Spinner } from './spinner.js';
 import { blockActivationKey, blockEvent } from './pending-guard.js';
 
-// `ui-button` is the stable hook an app's own stylesheet keys a rule for every button on (a press
-// effect), so it never has to match this component's private utility string.
+// `ui-button` is the stable class an app's stylesheet keys every button rule on.
 const buttonVariants = cva(
   'ui-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
   {
@@ -47,17 +46,7 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
-  /**
-   * Async work this button started is in flight. The button ignores activation — a
-   * click, a key press, a form's implicit submit — sets `aria-disabled` and
-   * `aria-busy`, and shows the canonical spinner: an icon button (`size="icon"`)
-   * swaps its icon for it; any other button shows it in place of its `icon`. It is
-   * never natively disabled while pending — a `disabled` passed alongside `pending`
-   * applies once pending ends — so the button the user just pressed keeps focus
-   * (FRONTEND-203).
-   */
   pending?: boolean;
-  /** Leading icon, rendered before the label. While `pending`, the spinner takes its place. */
   icon?: React.ReactNode;
 }
 
@@ -83,9 +72,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'aria-busy': true,
             'aria-disabled': true,
             'data-pending': '',
-            // Stopped before any handler runs — the caller's, an `asChild` child's own, or a Radix
-            // trigger's — so a click submits nothing, a link goes nowhere, and neither a pointer
-            // press nor an activation key opens what the button triggers.
             onClickCapture: blockEvent,
             onPointerDownCapture: blockEvent,
             onKeyDownCapture: blockActivationKey,
@@ -98,8 +84,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const leading = pending ? spinner : icon;
 
     if (asChild) {
-      // Slot finds the Slottable among its DIRECT children, so the leading slot and the
-      // Slottable must be siblings here — never wrapped in a fragment.
+      // Radix Slot finds the Slottable among its direct children, so these are siblings, never a fragment.
       return leading ? (
         <Slot ref={ref} {...shared}>
           {leading}

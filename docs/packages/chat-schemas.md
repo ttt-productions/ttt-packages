@@ -21,15 +21,13 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     conversations onto the reference and decides who may take part.
   - **The grant scope.** `ChatGrantScope` = `{ kind: 'channel'; channelRef:
     ChatConversationRef } | { kind: 'inbox'; uid }`, its parse boundary
-    `ChatGrantScopeSchema`, and `CHAT_GRANT_AUDIENCE` (`'ttt-chat'`). Cloud Functions
-    signs the scope after the app's authorization check; the Worker parses it with the
-    schema after verifying the signature. `ChatGrantClaimsSchema` / `ChatGrantClaims` is the
-    whole grant payload (`v`, `typ: 'grant'`, `aud`, `env`, `uid`, `scope`, `iat`, `exp`; strict,
-    `exp` after `iat`): the signer types its claims with it and the Worker parses the verified
-    payload with it, then checks `env` and the times against its own environment and clock.
+    `ChatGrantScopeSchema`, and `CHAT_GRANT_AUDIENCE` (`'ttt-chat'`). `ChatGrantClaimsSchema` /
+    `ChatGrantClaims` is the whole grant payload (`v`, `typ: 'grant'`, `aud`, `env`, `uid`, `scope`,
+    `iat`, `exp`; strict, `exp` after `iat`): the signer types its claims with it and the verifier
+    parses the verified payload with it. The schema checks shape only; what a grant permits is the
+    consuming app's.
   - **Server-written messages.** `CHAT_SYSTEM_SENDER_ID` (`'system'`) is the sender of a line
-    the server writes; a member's send is always attributed to its verified account, so only the
-    server writes it. `ChatReferencedUidsSchema` (at most `CHAT_MESSAGE_REFERENCED_UIDS_MAX` ids,
+    the server writes. `ChatReferencedUidsSchema` (at most `CHAT_MESSAGE_REFERENCED_UIDS_MAX` ids,
     each at most `CHAT_ACCOUNT_ID_MAX_LENGTH`) holds the accounts a server-written message's text
     refers to — beside the text, never inside it, so the room's account anonymization rewrites
     them like a sender.
@@ -77,22 +75,16 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
 
 - **The chat internal-endpoint contract** (`src/internal-contract.ts`):
   - `CHAT_INTERNAL_BODY_MAX_BYTES` (256 KiB), the largest body a signed chat internal
-    endpoint (the Cloud Functions → chat Worker calls) accepts. The chat Worker reads each
-    internal request through edge-protocol-core's `readBoundedBody` with it before verifying
-    the signature (ARCH-005), and the Cloud Functions signer refuses a larger body, so the two
-    sides import one value. It is sized well above the largest bounded internal body (an outbox
-    message at the message-length cap, a history-swap chunk list); the curated word-list publish
-    is the one body with no size cap of its own, and a list that outgrows the budget is refused
-    at publish.
-  - **Who a signed call is for.** Every internal call is signed with edge-protocol-core's
-    internal auth. `CHAT_INTERNAL_CALL_DIRECTIONS` names the two directions — `to-room` (the
-    server's calls to the Worker's rooms) and `to-server` (a room's report) — and
-    `chatInternalAudience(direction, env)` gives each direction and environment its own audience,
-    `ttt-chat:{direction}:{env}` (rooted in `CHAT_GRANT_AUDIENCE`). Both directions share one
-    secret, so the distinct audience is what keeps a signature made for one direction from
-    verifying in the other. The signer and the verifier of each direction call the same builder.
-  - **The server's call bodies**, each parsed after its signature is verified (strict, so an
-    unknown or coerced field is refused rather than guessed):
+    endpoint accepts — the budget an endpoint hands edge-protocol-core's `readBoundedBody`
+    (RULE-STD-ARCH-005). The signer and the endpoint import the one value.
+  - **Who a signed call is for.** Internal calls are signed with edge-protocol-core's internal
+    auth. `CHAT_INTERNAL_CALL_DIRECTIONS` names the two directions — `to-room` (the server's calls
+    to the chat rooms) and `to-server` (a room's report) — and `chatInternalAudience(direction,
+    env)` gives each direction and environment its own audience, `ttt-chat:{direction}:{env}`
+    (rooted in `CHAT_GRANT_AUDIENCE`). The signer and the verifier of each direction call the same
+    builder.
+  - **The server's call bodies** (strict, so an unknown or coerced field is refused rather than
+    guessed):
     `ChatSyncApplyRequestSchema` — one versioned sync event (`eventId`, the room `targetDo`,
     `kind` from `CHAT_SYNC_APPLY_KINDS`: `channelAuth` / `accountAccess` / `config`, `version`,
     `payload` as a JSON object, `tombstone`, `payloadHash`); `ChatOutboxAppendRequestSchema` — one
@@ -110,18 +102,16 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     that parks an outbox delivery reports it to the server through a signed `to-server` call whose
     body is `ChatParkedDeliveryReportSchema` — `targetDo` (the room's address), `roomKind`,
     `eventId` (the parked row), `deliveryKind`, `roomAttemptCount`, `roomLastError`, `parkedAt` —
-    sent as `CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE` (`application/octet-stream`, so the receiving
-    platform buffers raw bytes and parses nothing before the signature is verified) and read within
+    sent as `CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE` (`application/octet-stream`) and read within
     `CHAT_PARKED_DELIVERY_REPORT_MAX_BODY_BYTES` (a package test proves the largest valid report
-    fits). The signed operation id is `chatParkedDeliveryReportOperationId(report)` — the report's
-    `eventId` — and the receiver refuses a body naming another. An operator replay asks the room,
+    fits). `chatParkedDeliveryReportOperationId(report)` gives the call's operation id — the
+    report's `eventId`. An operator replay asks the room,
     with `ChatParkedDeliveryReplayRequestSchema` (`targetDo`, `eventId`), to put the delivery back on
     its outbox; the room answers `ChatParkedDeliveryReplayResultSchema` — `requeued`, or
     `not-parked` when it holds no parked delivery by that id, so a repeated replay is a no-op.
 
 - **A chat room's address** (`src/room-address.ts`) — the one build and parse the server and the
-  chat Worker share. The Worker derives a room's Durable Object id from it and the server signs it
-  into every internal call. A conversation's room is `{product}:{env}:channel:{kind}:{id}` and an
+  chat Worker share; the Worker derives a room's Durable Object id from it. A conversation's room is `{product}:{env}:channel:{kind}:{id}` and an
   inbox is `{product}:{env}:inbox:{uid}`; existing rooms live under these exact strings, so the
   format is fixed. `ChatRoomNamespace` (`{ product, env }`) is the app's — the package names no
   product — and `ChatRoom` is `{ kind: 'channel', ref }` or `{ kind: 'inbox', uid }`.
@@ -137,7 +127,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
 
 ## Boundary
 
-This package is intentionally tiny. Its one internal `@ttt-productions/*` dependency is `input-format-core` — itself dependency-free and server-safe — so the message text is judged by the same check every other text input runs, and the chat Worker reaches that check through this package without installing anything else. It exists so an app's data package, its Cloud Functions, its chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-core`'s React/upload dependency graph.
+This package is intentionally tiny. Its one internal `@ttt-productions/*` dependency is `input-format-core` — itself dependency-free and server-safe — so the message text is judged by the same check every other text input runs, and the chat Worker reaches that check through this package without installing anything else. It exists so an app's data package, its Cloud Functions, its chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-react`'s React/upload dependency graph.
 
 ## Does not own
 

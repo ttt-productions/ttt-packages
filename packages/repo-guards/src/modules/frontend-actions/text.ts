@@ -1,9 +1,5 @@
-// Text-scanning helpers the client-action guards share. Each works on a file's comment-stripped
-// `code`, so an index it returns is also an index into the file's text and reports its real line.
-
 import { escapeRegExp } from '../../support/text.js';
 
-/** The text between the `(` at `open` and its balanced `)`. */
 export function balancedArgs(source: string, open: number): string {
   let i = open + 1;
   let depth = 1;
@@ -16,7 +12,6 @@ export function balancedArgs(source: string, open: number): string {
   return source.slice(open + 1, Math.max(open + 1, i - 1));
 }
 
-/** The body between the `{` that ends at `bodyStart` and its balanced `}`, and where it ends. */
 export function braceBody(source: string, bodyStart: number): { body: string; end: number } {
   let i = bodyStart;
   let depth = 1;
@@ -29,13 +24,11 @@ export function braceBody(source: string, bodyStart: number): { body: string; en
   return { body: source.slice(bodyStart, Math.max(bodyStart, i - 1)), end: i };
 }
 
-/** One exported declaration's text with its start: the unit that owns one hook call and its handlers. */
 export interface Block {
   text: string;
   start: number;
 }
 
-/** A file's code split before each top-level `export function` / `export const`. */
 export function exportBlocks(code: string): Block[] {
   const blocks: Block[] = [];
   const re = /\n(?=export\s+(?:async\s+)?(?:function|const)\s)/g;
@@ -48,11 +41,9 @@ export function exportBlocks(code: string): Block[] {
   return blocks;
 }
 
-/** The name an exported block declares, or null for module-scope code. */
 export const exportedName = (block: string) =>
   /export\s+(?:default\s+)?(?:async\s+)?(?:function|const)\s+(\w+)/.exec(block)?.[1] ?? null;
 
-/** Bodies of every `catch (…) { … }`, brace-matched so a trailing `finally` is never included. */
 export function catchBodies(source: string): Array<{ body: string; index: number }> {
   const bodies: Array<{ body: string; index: number }> = [];
   const opener = /\bcatch\b[^{;]*\{/g;
@@ -64,7 +55,6 @@ export function catchBodies(source: string): Array<{ body: string; index: number
   return bodies;
 }
 
-/** Every `try { … } catch (…) { … }` pair, brace-matched, nested pairs included. */
 export function tryCatchPairs(
   source: string,
 ): Array<{ tryBody: string; catchBody: string; index: number }> {
@@ -81,7 +71,6 @@ export function tryCatchPairs(
   return pairs;
 }
 
-/** The argument text of every call of `name` (a plain or dotted name) not preceded by an identifier character. */
 export function callArgs(source: string, name: string): Array<{ args: string; index: number }> {
   const out: Array<{ args: string; index: number }> = [];
   const needle = `${name}(`;
@@ -96,7 +85,6 @@ export function callArgs(source: string, name: string): Array<{ args: string; in
   return out;
 }
 
-/** The handler texts assigned to `key:` in an options-object text, bounded so a sibling key is never included. */
 export function handlersFor(options: string, key: string): string[] {
   const out: string[] = [];
   const re = new RegExp(`\\b${escapeRegExp(key)}\\s*:`, 'g');
@@ -117,7 +105,6 @@ export function handlersFor(options: string, key: string): string[] {
   return out;
 }
 
-/** The declaration text of each block-local `const x = …;` or `function x(…) {…}`. */
 export function localDeclarations(block: string): Map<string, string> {
   const decls = new Map<string, string>();
   const re = /(?:\b(?:const|let|var)\s+(\w+)\s*(?::[^=;]+)?=|\bfunction\s+(\w+)\s*[(<])/g;
@@ -142,14 +129,12 @@ export function localDeclarations(block: string): Map<string, string> {
   return decls;
 }
 
-/** Where each call of `symbol` starts, bare (`f(`) or as a member (`x.f(`, `g().f(`). */
 export function memberOrBareCalls(code: string, symbol: string): number[] {
   return [...code.matchAll(new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}\\s*\\(`, 'g'))].map(
     (m) => m.index!,
   );
 }
 
-/** True when the name at `index` is reached through one of `namespaces` (`ns.name`). */
 export function throughNamespace(
   code: string,
   index: number,

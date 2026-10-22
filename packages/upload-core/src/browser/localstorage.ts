@@ -9,7 +9,6 @@ function hasLocalStorage(): boolean {
 }
 
 export function createLocalStorageUploadSessionPersistence(opts?: {
-  /** Prefix for keys. Default: "upload_session:" */
   prefix?: string;
 }): UploadSessionPersistenceAdapter {
   const prefix = opts?.prefix ?? 'upload_session:';

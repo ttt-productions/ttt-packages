@@ -1,38 +1,25 @@
-// Reading a stylesheet's structure for the UI guards. Every function here takes a stylesheet's
-// comment-blanked `code`, so an index it reports is an index into the file and its line is real.
-
-/** One declaration directly inside a block. */
 export interface CssDeclaration {
   property: string;
   value: string;
-  /** Index of the property's first character. */
   index: number;
 }
 
-/** One block: a style rule (`.a, .b { … }`) or an at-rule block (`@media …`, `@theme`, `@layer x`). */
 export interface CssBlock {
   prelude: string;
-  /** Index of the prelude's first character. */
   index: number;
   atRule: boolean;
-  /** The preludes of the at-rule blocks that contain this one, outermost first. */
   within: readonly string[];
-  /** The declarations directly in this block; nested blocks hold their own. */
   declarations: CssDeclaration[];
 }
 
-/** A top-level statement: an at-rule ending in `;`, or a block, with its index. */
 export interface CssStatement {
-  /** The statement's text, whitespace flattened (a block's body is left out). */
   text: string;
   index: number;
-  /** For a block: the index just past its `{`. */
   bodyIndex?: number;
 }
 
 const flat = (s: string) => s.replace(/\s+/g, ' ').trim();
 
-/** Splits on a separator outside parentheses, brackets, and quotes. */
 export function splitTopLevel(value: string, separator: string): string[] {
   const out: string[] = [];
   let depth = 0;
@@ -55,7 +42,6 @@ export function splitTopLevel(value: string, separator: string): string[] {
   return out.map((s) => s.trim()).filter(Boolean);
 }
 
-/** The compound a selector styles: what follows its last combinator outside parentheses. */
 export function subjectCompound(selector: string): string {
   let depth = 0;
   let quote: string | null = null;
@@ -73,7 +59,6 @@ export function subjectCompound(selector: string): string {
   return s.slice(start).trim();
 }
 
-/** Every block in a stylesheet, in source order, nested ones included. */
 export function cssBlocks(code: string): CssBlock[] {
   const out: CssBlock[] = [];
   const walk = (from: number, to: number, within: readonly string[]): void => {
@@ -132,7 +117,6 @@ function matchingBrace(code: string, open: number, limit: number): number {
   return limit;
 }
 
-/** The declarations directly between `from` and `to`, nested blocks and their preludes left out. */
 function ownDeclarations(code: string, from: number, to: number): CssDeclaration[] {
   const out: CssDeclaration[] = [];
   let segmentStart = from;
@@ -174,7 +158,6 @@ function ownDeclarations(code: string, from: number, to: number): CssDeclaration
   return out;
 }
 
-/** The stylesheet's top-level statements in order: `@…;` statements and blocks. */
 export function topLevelStatements(code: string): CssStatement[] {
   const out: CssStatement[] = [];
   let segmentStart = 0;
@@ -209,7 +192,6 @@ export function topLevelStatements(code: string): CssStatement[] {
   return out;
 }
 
-/** An `@import` statement read: what it names, and the layer it joins (`''` for an anonymous one). */
 export function parseImport(statement: string): { spec: string; layer: string | null } | null {
   const m =
     /^@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?\s*(?:layer\(\s*([^)]*?)\s*\)|(layer)\b)?/.exec(
@@ -219,13 +201,11 @@ export function parseImport(statement: string): { spec: string; layer: string | 
   return { spec: m[1], layer: m[2] !== undefined ? m[2] : m[3] ? '' : null };
 }
 
-/** The names a cascade `@layer a, b, c;` statement declares, or null when it is not one. */
 export function layerOrder(statement: string): string[] | null {
   const m = /^@layer\s+([^{]+)$/.exec(statement);
   return m ? splitTopLevel(m[1], ',') : null;
 }
 
-/** One statement as the entry-point pin compares it: whitespace flat, quoting normalized. */
 export function normalizeStatement(text: string): string {
   const imported = /^@import\s+(?:url\(\s*)?["']([^"']+)["']\s*\)?\s*(layer\([^)]*\))?$/.exec(text);
   if (imported) return `@import "${imported[1]}"${imported[2] ? ` ${imported[2]}` : ''}`;
@@ -234,7 +214,6 @@ export function normalizeStatement(text: string): string {
   return text;
 }
 
-/** The value a whole-value `var(--x)` chain ends at in a token map, or undefined. */
 export function resolveToken(map: ReadonlyMap<string, string>, token: string): string | undefined {
   let value = map.get(token);
   for (let hops = 0; value !== undefined && hops < 12; hops += 1) {
@@ -247,6 +226,5 @@ export function resolveToken(map: ReadonlyMap<string, string>, token: string): s
 
 export const HSL_TRIPLE = /^(-?[\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/;
 
-/** A selector list's members, for a style rule. */
 export const selectorsOf = (block: CssBlock): string[] =>
   block.atRule ? [] : splitTopLevel(block.prelude, ',');

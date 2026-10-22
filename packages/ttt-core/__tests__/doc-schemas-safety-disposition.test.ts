@@ -1,11 +1,3 @@
-// §A9 report-disposition reason codes + the ONE canonical disposition↔reason cross-field rule.
-//
-// The reason enum now carries the two report-required codes (apparentCsamConfirmed /
-// hashMatchValidated) alongside the original five not-required/exception codes. The pairing is
-// declared ONCE in foundation.ts (REPORT_DISPOSITION_ALLOWED_REASON_CODES +
-// refineReportDispositionReasonCode) and applied by the setReportDisposition input schemas
-// (case.ts) and the SafetyStagedAction console command (admin.ts) — never re-declared.
-
 import { describe, it, expect } from 'vitest';
 import {
   ReportDispositionReasonCodeSchema,
@@ -20,12 +12,12 @@ import {
 import { SafetyStagedActionSchema } from '../src/schemas/admin.js';
 
 describe('ReportDispositionReasonCode enum + pairing map', () => {
-  it('includes the two new report-required reason codes', () => {
+  it('includes the two report-required reason codes', () => {
     expect(ReportDispositionReasonCodeSchema.safeParse('apparentCsamConfirmed').success).toBe(true);
     expect(ReportDispositionReasonCodeSchema.safeParse('hashMatchValidated').success).toBe(true);
   });
 
-  it('still includes the original five not-required/exception codes', () => {
+  it('includes the five not-required/exception codes', () => {
     for (const code of NOT_REQUIRED_DISPOSITION_REASON_CODES) {
       expect(ReportDispositionReasonCodeSchema.safeParse(code).success).toBe(true);
     }
@@ -41,7 +33,6 @@ describe('ReportDispositionReasonCode enum + pairing map', () => {
     expect(REPORT_DISPOSITION_ALLOWED_REASON_CODES.correctedNoApparentViolation).toEqual(
       NOT_REQUIRED_DISPOSITION_REASON_CODES,
     );
-    // 'undetermined' is the initial state, never operator-set — permits no reason code.
     expect(REPORT_DISPOSITION_ALLOWED_REASON_CODES.undetermined).toEqual([]);
   });
 

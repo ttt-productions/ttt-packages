@@ -1,22 +1,3 @@
-// TTT notification contracts.
-//
-// `@ttt-productions/notification-core` is generic — at its package boundary a
-// notification's `metadata` is `Record<string, unknown>`. All TTT notification
-// policy lives here: the canonical type catalog (category / delivery / default
-// channels), the per-type typed `metadata` discriminated union, the broadcast
-// audience selector, and the callable input schemas. There is NO single send
-// chokepoint: ttt-prod has two intake lanes — reliable single/shared occurrences
-// (`writeReliableOccurrenceRow` / `enqueueReliableOccurrence`) and audience fanout
-// (`notificationFanoutJobs` → `processNotificationFanoutJobs`) — which converge on
-// the `notificationDeliveries` ledger, with `materializeDeliveries` as the sole
-// materializer. `validateNotificationMetadata` is the one check of a row's or job's `metadata`
-// against its type, for both lanes.
-//
-// The notification audit-event payload shapes live here too (the `AuditEventType`
-// union members `notification.broadcastSent` / `notification.adminArchived` /
-// `notification.adminArchiveAllRequested` live in ../types/audit.ts; their actor
-// is always an admin mode — `adminReview` / `adminOverride`).
-
 import { z } from 'zod';
 import {
   userIdSchema,
@@ -49,10 +30,7 @@ import { textFieldSchema } from './text-field.js';
 import { ReportableItemTypeSchema } from '../doc-schemas/safety/foundation.js';
 import { NotificationFanoutPrioritySchema } from '../doc-schemas/notification-ledger.js';
 
-// A stored broadcast message an announcement's metadata carries (the typed field is the
-// broadcast input's `BROADCAST_MESSAGE_INPUT`).
 const storedNotificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
-// The canonical reportable-item enum — never an open string (ARCH-102).
 const reportedItemTypeSchema = ReportableItemTypeSchema;
 const reportedItemIdSchema = documentIdSegmentSchema.max(128);
 const reportIdSchema = documentIdSegmentSchema;
@@ -62,45 +40,16 @@ export const NOTIFICATION_TYPE_VALUES = [
   'content_report',
   'guild_invite',
   'admin_dispatch_reply',
-  // The FIRST message of a thread the admin team started — to the user, or to every active
-  // member of the Work. A reply is `admin_dispatch_reply`.
   'admin_dispatch_created',
   'threshold_library_submission',
-  // Author feedback for a Threshold Library review decision (only needs_revision is
-  // delivered today — an approval reaches the author via the publish member fanout).
   'threshold_library_reviewed',
-  // Proposer feedback for a PUBLISHED change-request decision (approve/deny).
   'hall_content_change_request_resolved',
   'admin_announcement',
   'followed_content_published',
-  // The two audience-fanout triggers.
-  // `member_content_published`: the Hall-publish MEMBER job ("your work was published!") — same
-  //   `thresholdItemId` eventId as the follower job, different type so `deliveryId` stays distinct.
-  // `followed_craft_skill_published`: craft-skill publish → the artisan's followers
-  //   (`staticRelight` strategy — count 1 forever, static copy, no count shown).
   'member_content_published',
   'followed_craft_skill_published',
-  // Reporter feedback: when a report a user submitted is
-  // closed as a REAL case WITH action (ordinary report root flips to `actioned`),
-  // the reporter gets one light informational card. Never sent on dismissals.
-  // Generic copy only — the card must not reveal the reported user, reason, or
-  // remedy (a bad-faith reporter must not be able to probe moderation outcomes).
   'report_action_taken',
-  // Appellant feedback for a content-appeal decision, so the appellant always learns the
-  // outcome. Fired on BOTH approve and deny. It is the appellant's OWN appeal, so unlike report_action_taken
-  // there is no privacy ceiling: the card states the outcome plainly and
-  // targets My Uploads, where the resulting upload state lives.
   'content_appeal_reviewed',
-  // Realm shared-file promotion approval gate. TWO canonical types, one per direction of the
-  // decision — never one type with a recipient discriminator, because they are different
-  // cards on different trays with different dedup lifetimes:
-  //  - `realm_file_share_requested`: a Work file admin asked to share a file into a Realm →
-  //    the REALM STEWARD, who decides.
-  //  - `realm_file_share_resolved`: the pending request is no longer pending → the party who
-  //    did NOT act. `metadata.resolution` distinguishes `approved` | `declined` (to the
-  //    recorded REQUESTER) from `withdrawn` (to the STEWARD, whose queue card is now stale).
-  // OCCURRENCE IDENTITY for both is the request id, so a re-request after a decline is a new
-  // card rather than a relight of the resolved one.
   'realm_file_share_requested',
   'realm_file_share_resolved',
 ] as const;
@@ -108,9 +57,6 @@ export const NOTIFICATION_TYPE_VALUES = [
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
-/** The notification types delivered on the reliable single/shared lane: each occurrence gets a
- * deterministic delivery row, so a source write never commits while its notification vanishes.
- * Every other type rides the audience-fanout lane. */
 export const RELIABLE_NOTIFICATION_TYPES = [
   'content_report',
   'admin_dispatch_reply',
@@ -126,16 +72,12 @@ export const RELIABLE_NOTIFICATION_TYPES = [
 ] as const satisfies readonly NotificationType[];
 export type ReliableNotificationType = (typeof RELIABLE_NOTIFICATION_TYPES)[number];
 
-/** The reliable types materialized inline at their origin; every other reliable type is
- * materialized by the queued drain. */
 export const REALTIME_RELIABLE_NOTIFICATION_TYPES = [
   'content_report',
   'admin_dispatch_reply',
   'admin_dispatch_created',
 ] as const satisfies readonly ReliableNotificationType[];
 
-/** Delivery channels. Only `inApp` is implemented at launch; `email`/`push` are
- * reserved for future channel handlers. */
 export const NOTIFICATION_CHANNEL_VALUES = ['inApp', 'email', 'push'] as const;
 export const NotificationChannelSchema = z.enum(NOTIFICATION_CHANNEL_VALUES);
 export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
@@ -144,19 +86,11 @@ export type NotificationCategory = 'user' | 'admin';
 export const NotificationCategorySchema = z.enum(['user', 'admin']);
 
 export interface NotificationTypeCatalogEntry {
-  /** Which active collection / audience this type writes to. */
   category: NotificationCategory;
-  /** `realtime` writes straight to active; `queued` goes through the batch processor. */
   delivery: 'realtime' | 'queued';
-  /** Default channel list applied when a send omits `channels`. All `['inApp']` at launch. */
   defaultChannels: NotificationChannel[];
 }
 
-/**
- * The canonical TTT notification type catalog — the source `TTT_NOTIFICATION_CONFIG`
- * (../notifications) derives every type's category/delivery from. `defaultChannels`
- * is `['inApp']` for every type at launch.
- */
 export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTypeCatalogEntry> = {
   content_report: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
   guild_invite: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
@@ -187,12 +121,6 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   realm_file_share_resolved: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
 
-/**
- * Typed `metadata` payload for each notification type. The generic package
- * boundary takes `Record<string, unknown>`; the app validates against this
- * before sending so each type's payload is checked like every other callable
- * schema.
- */
 export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z
     .object({
@@ -213,8 +141,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('admin_dispatch_reply'),
       adminDispatchId: adminDispatchIdSchema,
-      // Party-generic dispatch: present on workProject-party threads so the card routes
-      // to the Work's correspondence surface. Absent on user-party threads.
       partyKind: z.enum(['user', 'workProject']).optional(),
       workProjectId: workProjectIdSchema.optional(),
     })
@@ -224,7 +150,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       type: z.literal('admin_dispatch_created'),
       adminDispatchId: adminDispatchIdSchema,
       partyKind: z.enum(['user', 'workProject']),
-      // Set on workProject-party threads, so the card routes to the Work.
       workProjectId: workProjectIdSchema.optional(),
     })
     .strict(),
@@ -236,9 +161,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       workProjectId: workProjectIdSchema,
     })
     .strict(),
-  // Author feedback for a review decision. Mirrors what runReviewThresholdItem
-  // (ttt-prod) sends: only `needs_revision` is delivered; `adminNotes` is
-  // the reviewer's note, sent as null when the reviewer left none.
   z
     .object({
       type: z.literal('threshold_library_reviewed'),
@@ -251,11 +173,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       adminNotes: z.string().max(MAX_THRESHOLD_REVIEW_NOTES_LENGTH).nullable(),
     })
     .strict(),
-  // Proposer feedback for a published change-request decision. Mirrors what
-  // runReviewHallContentChangeRequest (ttt-prod) sends: `resolutionReason` is
-  // required on a deny, optional on an approve — null when absent. The realm
-  // grain sends `workRealmId` with `hallItemId` null; hall grains the
-  // reverse.
   z
     .object({
       type: z.literal('hall_content_change_request_resolved'),
@@ -285,9 +202,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       hallSubItemType: HallSubItemTypeSchema,
     })
     .strict(),
-  // Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
-  // the SAME publication to the work's members; the work route + "your work was published!" copy
-  // are set by the emitter via targetPath/title, not metadata).
   z
     .object({
       type: z.literal('member_content_published'),
@@ -299,29 +213,18 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       hallSubItemType: HallSubItemTypeSchema,
     })
     .strict(),
-  // Craft-skill publish — points at the artisan whose skills updated. The actor name
-  // ("X uploaded new craft skills") + the profile/skills route resolve from `artisanUid` at
-  // render time (Display Identity Invariant); `staticRelight` shows no count.
   z
     .object({
       type: z.literal('followed_craft_skill_published'),
       artisanUid: userIdSchema,
     })
     .strict(),
-  // Reporter feedback — metadata is deliberately minimal: `reportId` is the
-  // reporter's OWN report-root doc id (deterministic per reporterUid + target,
-  // see writeOrdinaryReport), used only as the dedup/aggregation key so a
-  // reporter gets at most one card per report they filed. NO fields that
-  // identify the reported user/content/remedy may ever be added here.
   z
     .object({
       type: z.literal('report_action_taken'),
       reportId: reportIdSchema,
     })
     .strict(),
-  // Appellant feedback for a content-appeal decision. `appealId` is the
-  // appellant's OWN appeal doc id (the dedup/aggregation key — one card per
-  // appeal, a re-decision coalesces); `decision` drives the card copy.
   z
     .object({
       type: z.literal('content_appeal_reviewed'),
@@ -329,10 +232,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       decision: z.enum(['approved', 'denied']),
     })
     .strict(),
-  // Realm shared-file promotion REQUEST → the Realm steward. Ids only: the Realm name, the
-  // Work name, the file name, and the requester's display name all resolve at render from
-  // these ids (Display Identity Invariant) — a snapshot here would go stale the moment any
-  // of them is renamed or moderated.
   z
     .object({
       type: z.literal('realm_file_share_requested'),
@@ -340,14 +239,10 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
       workProjectId: workProjectIdSchema,
       mediaAssetId: mediaAssetIdSchema,
       workFileId: z.string().min(1),
-      // The occurrence/dedup identity — one card per request, forever.
       requestId: realmFileShareRequestIdSchema,
       requestedByUid: userIdSchema,
     })
     .strict(),
-  // Realm shared-file promotion RESOLUTION. `resolution` both drives the card copy AND
-  // identifies the audience: `approved`/`declined` go to the recorded requester,
-  // `withdrawn` goes to the steward whose pending card is now stale.
   z
     .object({
       type: z.literal('realm_file_share_resolved'),
@@ -362,11 +257,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;
 
-/**
- * The one check of a notification's `metadata` against its type, for both intake lanes: the
- * reliable lane's delivery rows and the fanout lane's jobs. Metadata never carries the `type`
- * discriminant itself (it would hide the type the notification is sent as). Throws on a mismatch.
- */
 export function validateNotificationMetadata(
   type: NotificationType,
   metadata: Record<string, unknown>,
@@ -377,18 +267,11 @@ export function validateNotificationMetadata(
   return NotificationMetadataByTypeSchema.parse({ ...metadata, type });
 }
 
-/**
- * Admin broadcast audience selector. Stored on a broadcast job; the scheduled
- * fan-out worker resolves a page of it into uids (domain-aware queries live in
- * ttt-prod — the package only ever receives uids).
- */
 export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('allActiveUsers') }).strict(),
   z
     .object({
       kind: z.literal('explicitUids'),
-      // The selector's documented audience cap (dedup + serialized-byte enforcement
-      // for work/realm snapshots is app-side). Derives from the ONE named constant.
       uids: z.array(userIdSchema).min(1).max(MAX_BROADCAST_EXPLICIT_UIDS),
     })
     .strict(),
@@ -408,14 +291,10 @@ export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
 ]);
 export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelectorSchema>;
 
-// A client-minted idempotency key the server hashes into a deterministic id — never a path segment,
-// but never padding either.
 const clientRequestIdSchema = unpaddedValueSchema;
 
 export const CreateNotificationBroadcastInputSchema = z
   .object({
-    // Client-generated idempotency key — the app derives the broadcast eventId
-    // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
     requestId: clientRequestIdSchema,
     selector: BroadcastAudienceSelectorSchema,
     title: textFieldSchema(BROADCAST_TITLE_INPUT),
@@ -434,8 +313,6 @@ export type CreateNotificationBroadcastResult = z.infer<
   typeof CreateNotificationBroadcastResultSchema
 >;
 
-// Shared admin notifications have no per-admin seen state, so only the personal
-// `user` category can be marked seen.
 export const MarkNotificationsSeenInputSchema = z
   .object({
     category: z.literal('user'),
@@ -443,17 +320,8 @@ export const MarkNotificationsSeenInputSchema = z
   .strict();
 export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInputSchema>;
 
-// The inputs of the observed-generation callables the notification tray invokes. The
-// category-wide mark-seen callable takes MarkNotificationsSeenInputSchema above.
-
-// Max items per mark-seen call matches a sane notification tray page size.
 const MARK_SEEN_MAX_ITEMS = 50;
 
-/**
- * A single rendered notification row and the generation the UI observed.
- * `activeId` is the Firestore active-notification document id;
- * `observedActivityGeneration` is the opaque token from that document.
- */
 const SeenItemSchema = z
   .object({
     activeId: activeNotificationIdSchema,
@@ -461,18 +329,6 @@ const SeenItemSchema = z
   })
   .strict();
 
-/**
- * Input for the observed-generation mark-seen callable.
- *
- * The UI sends only the rows it actually rendered plus their observed
- * `activityGeneration` tokens. The server sets `seenAt = now` ONLY when the
- * card's current `activityGeneration` matches `observedActivityGeneration`;
- * otherwise it is a no-op for that row (activity arrived after render, or a
- * delete+recreate rotated the token).
- *
- * category is always `'user'` — shared admin notifications have no per-admin
- * seen state.
- */
 export const MarkNotificationsSeenObservedInputSchema = z
   .object({
     category: z.literal('user'),
@@ -489,19 +345,6 @@ export const MarkNotificationsSeenResultSchema = z.object({
 });
 export type MarkNotificationsSeenResult = z.infer<typeof MarkNotificationsSeenResultSchema>;
 
-/**
- * Archive scope for the observed-generation callable.
- *
- * `single` — archive one notification card. Carries `notificationId` (the
- *   active-card doc id) and `observedActivityGeneration` (the precondition:
- *   the server archives only if the card's current generation matches).
- *
- * `all` — archive every card in the category. The per-card generation
- *   precondition is applied server-side per card during bounded-page sweeps;
- *   the caller supplies no single generation token here because there is no
- *   single observed generation for the whole category: the server reads each card's
- *   current generation as its own precondition.
- */
 export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [
   z
     .object({
@@ -520,22 +363,6 @@ export type ArchiveNotificationObservedScope = z.infer<
   typeof ArchiveNotificationObservedScopeSchema
 >;
 
-/**
- * Input for the observed-generation archive callable.
- *
- * `requestId` is a per-call nonce — the tray mints a fresh uuid on every archive /
- * clear-all click, so it is NOT a replay-stability token. Idempotency is provided
- * by ACTIVE-DOC DELETION: a replay finds the card already gone and no-ops, so an archive
- * never double-applies. The server combines `requestId` with the card's `activeId` to
- * form the deterministic history doc id (`hash('notification-archive', category,
- * audienceScope, requestId:activeId)`), so a single archive can never collide on another
- * card's history doc.
- *
- * The input names no category: `archiveNotification` archives the caller's own `user` cards and
- * `adminArchiveNotification` the shared `admin` cards, so the callable — never a field a client
- * sets — decides which active-notification collection is archived and which history path it
- * forms part of.
- */
 export const ArchiveNotificationObservedInputSchema = z
   .object({
     requestId: clientRequestIdSchema,
@@ -546,11 +373,6 @@ export type ArchiveNotificationObservedInput = z.infer<
   typeof ArchiveNotificationObservedInputSchema
 >;
 
-/**
- * The `archiveNotification` answer: how many cards this call archived (0 when a single card was
- * relit after it rendered, so the row stays active), and for an archive-all, `hasMore` when the
- * call's bound stopped it before the category was empty.
- */
 export const ArchiveNotificationResultSchema = z.object({
   success: z.literal(true),
   archived: z.number().int().nonnegative(),
@@ -558,15 +380,6 @@ export const ArchiveNotificationResultSchema = z.object({
 });
 export type ArchiveNotificationResult = z.infer<typeof ArchiveNotificationResultSchema>;
 
-// The server-owned archive-all job: `enqueueArchiveAll` / `adminEnqueueArchiveAll` enqueue ONE durable archive-all job
-// scoped to the callable's category (idempotent per user+category+requestId) and return { jobId }; the
-// bounded server worker drains that category's active cards each in its own
-// atomic archive+audit txn (per-card observed-generation precondition preserved).
-// `getArchiveAllStatus` is polled by the thin client hook. Per-tab scoping is
-// REQUIRED — a job only ever archives its own category, never all tabs.
-
-// No category, for the reason ArchiveNotificationObservedInputSchema gives: `enqueueArchiveAll`
-// clears the caller's `user` tab and `adminEnqueueArchiveAll` the shared `admin` tab.
 export const EnqueueArchiveAllInputSchema = z
   .object({
     requestId: clientRequestIdSchema,
@@ -581,8 +394,6 @@ export const GetArchiveAllStatusInputSchema = z
   .strict();
 export type GetArchiveAllStatusInput = z.infer<typeof GetArchiveAllStatusInputSchema>;
 
-// Wire contract for the `resumeFanoutJob` callable — the admin console re-arms a
-// dead-lettered notification fanout job by id.
 export const ResumeFanoutJobInputSchema = z
   .object({
     jobId: notificationFanoutJobIdSchema,
@@ -590,9 +401,6 @@ export const ResumeFanoutJobInputSchema = z
   .strict();
 export type ResumeFanoutJobInput = z.infer<typeof ResumeFanoutJobInputSchema>;
 
-// One dead-lettered fanout job in the Ops Repairs inventory (`listDeadLetteredFanoutJobs`, oldest
-// first): the job's own identity, type, and priority, when it parked and why, and how long it has
-// been parked.
 export const DeadLetteredFanoutJobRowSchema = z.object({
   jobId: notificationFanoutJobIdSchema,
   notificationType: z.string(),
@@ -603,7 +411,6 @@ export const DeadLetteredFanoutJobRowSchema = z.object({
 });
 export type DeadLetteredFanoutJobRow = z.infer<typeof DeadLetteredFanoutJobRowSchema>;
 
-/** The `listDeadLetteredFanoutJobs` input: the inventory takes no parameters, and anything sent is refused. */
 export const ListDeadLetteredFanoutJobsInputSchema = z.object({}).strict();
 export type ListDeadLetteredFanoutJobsInput = z.infer<typeof ListDeadLetteredFanoutJobsInputSchema>;
 
@@ -614,43 +421,24 @@ export type ListDeadLetteredFanoutJobsResult = z.infer<
   typeof ListDeadLetteredFanoutJobsResultSchema
 >;
 
-// The `resumeFanoutJob` re-arm: `resumed: false` with a `reason` when the job was no longer
-// dead-lettered (an idempotent no-op).
 export const ResumeFanoutJobResultSchema = z.object({
   resumed: z.boolean(),
   reason: z.string().optional(),
 });
 export type ResumeFanoutJobResult = z.infer<typeof ResumeFanoutJobResultSchema>;
 
-/**
- * Payload of a `notification.broadcastSent` audit event — written when an admin
- * enqueues a broadcast. Actor mode is `adminReview` / `adminOverride`. Records
- * the selector (never a pre-resolved uid list) + the job it created.
- */
 export interface NotificationBroadcastSentAuditMetadata {
   jobId: string;
   selector: BroadcastAudienceSelector;
   title: string;
 }
 
-/**
- * Payload of a `notification.adminArchived` audit event — written when an admin
- * clears a shared admin notification (the `handledBy` action). Actor mode is
- * `adminReview` / `adminOverride`.
- */
 export interface NotificationAdminArchivedAuditMetadata {
   scope: 'single' | 'all';
-  /** Present for single-archive; absent for a category-wide `all` archive. */
   notificationId?: string;
   handledBy: string;
 }
 
-/**
- * Payload of a `notification.adminArchiveAllRequested` audit event — written when an
- * admin enqueues an admin-category archive-all job, in the same commit as the job. It
- * is the event that carries the request's origin: the worker's per-card
- * `notification.adminArchived` events run after the request ended and record none.
- */
 export interface NotificationAdminArchiveAllRequestedAuditMetadata {
   jobId: string;
   requestId: string;

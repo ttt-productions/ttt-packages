@@ -3,10 +3,6 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
-// FRONTEND-204's motion tokens are one theme-invariant family owned here: all four resolve from
-// `contract.css`'s :root (the first stylesheet theme-core loads), and no theme block restates them.
-// Every package's motion reads them: no class string or stylesheet carries a raw duration or easing,
-// and nothing transitions `all` or an unnamed property set.
 const STYLES = path.resolve(__dirname, '../src/styles');
 const PACKAGES = path.resolve(__dirname, '../..');
 const MOTION_TOKENS = ['--motion-fast', '--motion-base', '--motion-slow', '--motion-ease'] as const;
@@ -50,11 +46,8 @@ describe('motion tokens', () => {
   });
 });
 
-// --- raw motion in class strings and stylesheets -------------------------------------------------
-
 const TOKEN_VALUE = /^(?:\[var\(--motion-[a-z]+\)\]|\(--motion-[a-z]+\))$/;
 
-/** The utility part of one class token, with its variants (`data-[state=open]:`, `hover:`) removed. */
 function utilityOf(token: string): string {
   let depth = 0;
   let start = 0;
@@ -67,7 +60,6 @@ function utilityOf(token: string): string {
   return token.slice(start).replace(/^!/, '');
 }
 
-/** Why a class token breaks the motion rule, or null when it does not. */
 function rawMotionClass(token: string): string | null {
   const utility = utilityOf(token);
   if (utility === 'transition') return 'transitions an unnamed property set';
@@ -112,7 +104,6 @@ const RAW_TIME = /(?<![\w-])\d*\.?\d+m?s\b/;
 const RAW_EASING =
   /(?<![\w-])(?:ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end)\b|cubic-bezier\(|steps\(/;
 
-/** Why a stylesheet declaration breaks the motion rule, or null when it does not. */
 function rawMotionDeclaration(property: string, value: string): string | null {
   if (!CSS_MOTION_PROPERTIES.has(property)) return null;
   // A continuous indicator (a spinner, a pulse) loops on its own clock; it is not a change of state.
@@ -136,7 +127,6 @@ function sourceFiles(dir: string, extension: string): string[] {
   });
 }
 
-// Every package has a `src`; a package without one fails here rather than going unscanned.
 const packageSources = readdirSync(PACKAGES, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => path.join(PACKAGES, entry.name, 'src'));

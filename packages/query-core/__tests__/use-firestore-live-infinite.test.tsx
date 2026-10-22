@@ -110,7 +110,6 @@ describe('useFirestoreLiveInfinite — reading', () => {
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    // The first listener asks for one row past the page; only two exist.
     expect(constraintOf(h.listeners[0], '__limit')).toBe(3);
     emit(h.listeners[0], [doc('b', 20), doc('a', 10)]);
 
@@ -123,11 +122,8 @@ describe('useFirestoreLiveInfinite — reading', () => {
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    // Three rows exist: the page (c, b) plus a look-ahead row proving something older exists.
     emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
 
-    // The window's oldest row (b) becomes the anchor: the listener now covers b → newest
-    // with no limit, and the older page starts after b.
     const anchored = lastListener();
     expect(h.listeners).toHaveLength(2);
     expect(constraintOf(anchored, '__endAt')).toBe('b');
@@ -137,7 +133,6 @@ describe('useFirestoreLiveInfinite — reading', () => {
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
 
-    // Two new messages arrive. Nothing older drops out of view.
     emit(anchored, [doc('e', 50), doc('d', 40), doc('c', 30), doc('b', 20)]);
     expect(ids(result.current.items)).toEqual(['a', 'b', 'c', 'd', 'e']);
     expect(result.current.hasOlder).toBe(false);
@@ -240,14 +235,11 @@ describe('useFirestoreLiveInfinite — older rows only on request', () => {
 });
 
 describe('useFirestoreLiveInfinite — order', () => {
-  // Both reads are ordered by Firestore and meet at the anchor, so the merged list keeps the
-  // order they deliver: the hook never sorts rows itself.
   it('lists rows in the order the reads deliver them, oldest first by default', async () => {
     h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 999)] });
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    // Ordering values that disagree with the delivered order prove nothing re-sorts them.
     emit(h.listeners[0], [doc('c', 1), doc('b', 500), doc('a', 999)]);
     await act(async () => {
       await result.current.fetchOlder();
@@ -437,7 +429,6 @@ describe('useFirestoreLiveInfinite — failures', () => {
     const denial = denied();
     act(() => lastListener().error(denial));
 
-    // Access was lost: neither the live rows nor the older page stay readable.
     expect(result.current.error).toBe(denial);
     expect(result.current.sourceState).toBe('error');
     expect(result.current.items).toEqual([]);

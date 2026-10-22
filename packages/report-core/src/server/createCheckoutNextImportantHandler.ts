@@ -6,7 +6,7 @@ import type {
   TaskClaimGuard,
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
-import { createCandidateCursor } from './claimCandidates.js';
+import { createCandidateCursor, MAX_CLAIM_ROUNDS } from './claimCandidates.js';
 import type { CheckoutNextImportantTaskResult } from '../contracts/types-admin-task.js';
 import { toClaimedTask } from './claimedTask.js';
 
@@ -15,7 +15,6 @@ export interface CheckoutNextImportantHandlerConfig {
   db: ServerFirestore;
   auth: AdminAuthConfig;
   onAuditEvent?: OnAuditEvent;
-  /** The app's in-transaction check that a task may be claimed now (see `TaskClaimGuard`). */
   assertTaskClaimable?: TaskClaimGuard;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
@@ -25,23 +24,6 @@ type ClaimOutcome =
   | { kind: 'contended' }
   | { kind: 'refused' };
 
-/**
- * Query→claim rounds attempted before reporting contention. Candidate discovery runs
- * OUTSIDE the transaction: a range query inside it takes a range lock over the whole
- * pending queue, so every concurrent status flip (any checkout or release) becomes a
- * transaction conflict and all admin queue mutations serialize. Each round re-queries,
- * then claims the specific candidate doc with an in-transaction status re-check —
- * doc-level conflicts only. A candidate the claim guard refuses does not use a round: the
- * queue's cursor moves past it, so each refusal costs one one-document read.
- */
-const MAX_CLAIM_ROUNDS = 5;
-
-/**
- * Factory that returns the handler for checkoutNextImportantTask.
- * Finds the single highest-priority pending task across ALL queues that the app's claim
- * guard (asked inside the claim transaction) does not refuse, and checks it out to the
- * current admin.
- */
 export function createCheckoutNextImportantHandler({
   config,
   db,
@@ -67,7 +49,6 @@ export function createCheckoutNextImportantHandler({
     const userId = authContext.uid;
     await verifyAdmin(userId, authContext.token);
 
-    // Candidate discovery — OUTSIDE the transaction (see MAX_CLAIM_ROUNDS).
     const pending = createCandidateCursor(() =>
       db
         .collection(config.collections.adminTasks)
@@ -87,9 +68,7 @@ export function createCheckoutNextImportantHandler({
       const claim = await db.runTransaction(async (transaction): Promise<ClaimOutcome> => {
         const now = Date.now();
 
-        // ── READS (all reads must happen before any writes in a Firestore transaction) ──
-        // Re-read the SPECIFIC candidate doc and re-check its status: if another admin
-        // claimed it between the query and this transaction, back off to the next round.
+        // A Firestore transaction must make every read before its first write.
         const taskDoc = await transaction.get(candidateRef);
         if (!taskDoc.exists) return { kind: 'contended' };
         const taskData = taskDoc.data()!;
@@ -98,7 +77,6 @@ export function createCheckoutNextImportantHandler({
         const originalDocRef = db.doc(taskData.originalPath as string);
         const originalDoc = await transaction.get(originalDocRef);
 
-        // The app's claim guard: the last of the reads, before the first write.
         if (assertTaskClaimable) {
           const verdict = await assertTaskClaimable({
             taskDocId: taskDoc.id,
@@ -121,7 +99,6 @@ export function createCheckoutNextImportantHandler({
           workLaterUntil: null,
         };
 
-        // ── WRITES (no more reads after this point) ──
         transaction.update(candidateRef, {
           status: 'checkedOut',
           checkoutDetails,

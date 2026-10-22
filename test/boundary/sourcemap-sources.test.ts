@@ -1,11 +1,3 @@
-// Published JavaScript sourcemaps are self-contained.
-//
-// Package tarballs generally publish dist without src. Every emitted .js.map
-// therefore needs sourcesContent so consumers do not resolve missing source
-// paths or lose the original TypeScript in stack traces. Every module under a
-// package's `src` compiles to `dist`, so the map each one must have is named by
-// its source path.
-
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,9 +9,10 @@ interface SourceMap {
   sourcesContent?: unknown;
 }
 
-/** The map the compiler emits for a source module: `src/a/b.ts` → `dist/a/b.js.map`. */
 const mapOf = (source: string) =>
-  source.replace(/^(packages\/[^/]+)\/src\//, '$1/dist/').replace(/\.([cm]?)[jt]sx?$/, (_, kind: string) => `.${kind}js.map`);
+  source
+    .replace(/^(packages\/[^/]+)\/src\//, '$1/dist/')
+    .replace(/\.([cm]?)[jt]sx?$/, (_, kind: string) => `.${kind}js.map`);
 
 const sourcesByPackage = new Map<string, string[]>();
 for (const { path } of packageSource(['code'])) {
@@ -46,7 +39,9 @@ describe('boundary: published sourcemaps', () => {
       for (const mapPath of maps) {
         const file = join(REPO_ROOT, mapPath);
         if (!existsSync(file)) {
-          violations.push(`${mapPath} (missing — rebuild the package, or its build stopped emitting maps)`);
+          violations.push(
+            `${mapPath} (missing — rebuild the package, or its build stopped emitting maps)`,
+          );
           continue;
         }
         const map = JSON.parse(readFileSync(file, 'utf8')) as SourceMap;

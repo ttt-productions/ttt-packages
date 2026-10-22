@@ -13,8 +13,6 @@ import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections.js';
 
 describe('NcmecPortalReceiptArtifactV1Schema', () => {
-  // The exact record recordNcmecPortalReceiptArtifact writes: the operator-supplied vault key
-  // plus the server-verified storage facts read from the vault object before the transaction.
   const artifact = {
     schemaVersion: 1,
     caseId: 'case-1',
@@ -53,7 +51,6 @@ describe('NcmecPortalReceiptArtifactV1Schema', () => {
 });
 
 describe('NcmecPortalCorrectionRecordV1Schema', () => {
-  // The exact record recordNcmecPortalCorrection writes.
   const correction = {
     schemaVersion: 1,
     caseId: 'case-1',
@@ -102,7 +99,6 @@ describe('Portal-artifact registry + path bindings', () => {
 });
 
 describe('NcmecCompletionProofRecordV1Schema', () => {
-  // The exact record commitNcmecCompletion writes create-if-absent in the completion transaction.
   const proof = {
     caseId: 'case-1',
     submissionId: 'sub-1',
@@ -156,10 +152,9 @@ describe('NcmecCompletionProofRecordV1Schema', () => {
     );
   });
 
-  it('uses the ARCH-104 compound subcollection name and a fixed singleton doc id', () => {
+  it('uses the RULE-STD-ARCH-104 compound subcollection name and a fixed singleton doc id', () => {
     expect(NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF).toBe('ncmecCompletionProof');
     expect(SPECIAL_DOCS.RECORD).toBe('record');
-    // One proof per submission — the builder takes no doc id.
     expect(PATH_BUILDERS.childSafetyNcmecCompletionProof('c1', 's1')).toHaveLength(6);
   });
 });

@@ -21,7 +21,7 @@ Cloud Functions and schema-only consumers must not import module graphs that pul
 
 When a backend or schema package imports another package, inspect the target package entrypoint and its transitive exports. Do not rely only on TypeScript type-only intent; package root exports can still pull runtime modules if the entrypoint is not split correctly.
 
-For the full mechanical procedure (per-package classification, transitive-export checks, built-`dist` grep, and a runnable peer-optionality check), see `docs/playbooks/REACT_LEAK_AUDIT_PLAYBOOK.md`.
+For the full mechanical procedure (per-package classification, transitive-export checks, built-`dist` grep, and a runnable peer-optionality check), see `packages/dev-standards/playbooks/react-leak-audit-playbook.md`.
 
 ## Dependency (install-graph) safety
 

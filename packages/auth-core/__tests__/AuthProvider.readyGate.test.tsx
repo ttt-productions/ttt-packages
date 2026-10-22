@@ -36,7 +36,7 @@ function makeWrapper(config: AuthProviderConfig<Claims>) {
 }
 
 describe('AuthProvider readyGate', () => {
-  it('without a gate, loading resolves as before (baseline unchanged)', async () => {
+  it('without a gate, loading resolves once auth and claims settle', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: makeWrapper(makeConfig()) });
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
@@ -51,7 +51,6 @@ describe('AuthProvider readyGate', () => {
       wrapper: makeWrapper(makeConfig({ readyGate: gate })),
     });
 
-    // Auth + claims are settled (mock resolves immediately), but the gate is closed.
     await waitFor(() => expect(result.current.authLoading).toBe(false));
     await waitFor(() => expect(result.current.claimsLoading).toBe(false));
     expect(result.current.loading).toBe(true);

@@ -2,34 +2,6 @@ import { MediaFormatIdSchema } from './schemas.js';
 import type { z } from 'zod';
 import type { MediaKind } from './types.js';
 
-// =============================================================================
-// Generic supported-format registry (mechanism + web-standard catalog)
-// =============================================================================
-//
-// ONE extension point for "which concrete formats exist and how a picker
-// advertises them". Entries here are WEB FACTS (containers, their MIME aliases,
-// their extensions) — not product policy. POLICY (which formats an origin
-// accepts) is a per-origin `formats: MediaFormatId[]` selection owned by the
-// consuming application's origin registry.
-//
-// Contract (canonical-upload-content-classification design):
-//   - the app's origin specs SELECT allowed format ids;
-//   - @ttt-productions/file-input PROJECTS those ids to the browser `accept`
-//     attribute via `projectAcceptTokens` (MIME + extension tokens, for
-//     discoverability only — never validation authority);
-//   - the SERVER accepts only an INSPECTED formatId enabled for the origin.
-//     MIME and extension are advisory everywhere.
-//
-// Shared A/V containers (`family: 'av-container'`) are semantic containers:
-// their entry never predetermines audio vs video — complete stream inspection
-// does. Their MIME aliases are therefore split per kind so a kinds-constrained
-// origin (e.g. audio-only) projects only the matching aliases.
-//
-// Adding an entry here NEVER enables anything by itself: a format becomes
-// usable only when an origin selects it AND the server inspector proves and
-// accepts it (each new family still needs its processing/safety/serving policy
-// per the extension model).
-
 export type MediaFormatId = z.infer<typeof MediaFormatIdSchema>;
 
 export type MediaFormatFamily = 'image' | 'audio' | 'av-container';
@@ -37,8 +9,6 @@ export type MediaFormatFamily = 'image' | 'audio' | 'av-container';
 export interface MediaFormatDefinition {
   readonly formatId: MediaFormatId;
   readonly family: MediaFormatFamily;
-  /** Picker MIME aliases. Single-kind families use `all`; shared containers
-   *  split per semantic kind so kind-constrained origins project narrowly. */
   readonly mimes: { readonly all?: readonly string[] } & Partial<
     Record<'image' | 'video' | 'audio', readonly string[]>
   >;
@@ -109,13 +79,6 @@ export const MEDIA_FORMATS: Readonly<Record<MediaFormatId, MediaFormatDefinition
   },
 };
 
-/**
- * Project a policy-selected format set into browser `accept` attribute tokens
- * (MIME aliases + dot-extensions). `kinds` narrows shared-container aliases to
- * the origin's semantic kinds (an audio-only origin never advertises
- * `video/mp4`). Discoverability ONLY — client validation stays fail-open and
- * the server inspector is the authority.
- */
 export function projectAcceptTokens(
   formatIds: readonly MediaFormatId[],
   kinds?: readonly MediaKind[],
@@ -131,16 +94,11 @@ export function projectAcceptTokens(
       if (!wantKind(familyKind)) continue;
       for (const m of def.mimes.all ?? []) tokens.push(m);
     } else {
-      // shared container: per-kind aliases, narrowed by the origin's kinds
       for (const k of ['image', 'video', 'audio'] as const) {
         if (!wantKind(k)) continue;
         for (const m of def.mimes[k] ?? []) tokens.push(m);
       }
     }
-    // Extensions ride along whenever ANY alias of the entry was projected —
-    // they widen discoverability on pickers that match by extension. For a
-    // kind-narrowed shared container the extension token is still correct
-    // (a .mp4 audio file is selectable for an audio origin).
     if (familyKind ? wantKind(familyKind) : (['image', 'video', 'audio'] as const).some(wantKind)) {
       for (const ext of def.extensions) tokens.push(`.${ext}`);
     }

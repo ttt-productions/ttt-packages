@@ -1,13 +1,3 @@
-// ============================================================================
-// ADMIN-SURFACE DISPLAY LABELS — the ONE home for business display copy keyed
-// by canonical ttt-core enums (ARCH-102). Any client (web, phone, TV, admin app)
-// renders the same labels by importing these.
-//
-// A few entries here are copy for ADMIN-MANAGED content that a PUBLIC surface also
-// renders (the Rules & Agreements section titles). The organizing principle is one
-// declaration, not one consumer.
-// ============================================================================
-
 import type { UserAccountStatus } from '../doc-schemas/user.js';
 import type { HallContentTextSurface } from '../doc-schemas/content.js';
 import type { ReportDisposition, NciiInternalStatus } from '../doc-schemas/safety/foundation.js';
@@ -16,8 +6,6 @@ import type { AdminDispatch } from '../doc-schemas/messaging.js';
 import type { Audition } from '../doc-schemas/commissions.js';
 import type { FeedbackType } from './business-admin.js';
 import type { ClearableTextFieldName } from './business-content.js';
-// Value import: the per-surface override type below indexes this map to restrict each surface's
-// override keys to the fields that surface actually exposes.
 import { HALL_CONTENT_TEXT_FIELDS } from './business-content.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
@@ -28,14 +16,12 @@ import type { HallWingType, RuleGroup, WorkProjectType } from '../types/content.
 import { HALL_WING_TYPES, WORK_PROJECT_TYPES } from './options.js';
 import type { HallSubItemStatus } from '../utils/hall-content.js';
 
-/** Moderation status labels (user-management view, status badges). */
 export const USER_ACCOUNT_STATUS_LABELS: Record<UserAccountStatus, string> = {
   active: 'Active',
   suspended: 'Suspended',
   banned: 'Banned',
 };
 
-/** Broadcast audience selector labels (announcement composer). */
 export const BROADCAST_AUDIENCE_KIND_LABELS: Record<BroadcastAudienceSelector['kind'], string> = {
   allActiveUsers: 'All active users',
   allArtisans: 'All artisan creators',
@@ -44,11 +30,6 @@ export const BROADCAST_AUDIENCE_KIND_LABELS: Record<BroadcastAudienceSelector['k
   realmMembers: "A Realm's members",
 };
 
-/** Human labels for the canonical feedback types — the admin feedback-suggestions views and
- * the user-facing feedback-submission surface render these instead of restating copy. Keyed
- * by FeedbackType, so a new FEEDBACK_TYPES member fails the build until its label exists.
- * UI copy uses the SHORT settled terms (Trade → "Trades", Craft → "Craft Tags", Genre →
- * "<Kind> Genres"), never the compound code identifiers (ARCH-107). */
 export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   tradeProfessionSuggestions: 'Trades',
   craftSkillTagSuggestions: 'Craft Tags',
@@ -57,18 +38,6 @@ export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   televisionWorkGenreSuggestions: 'Television Genres',
 };
 
-/**
- * Human labels for the raw clearable/changeable TEXT-FIELD names the moderation text-clear
- * remedy and the published "Update details" change-request flow work in. The backend stores and
- * validates the raw doc field names (`workingTitle`, `description`, `content`); these are the
- * only display strings for them — rendered by the member-facing "text removed by moderation"
- * banners, every admin clear-text field picker, the change-request dialog, and the admin
- * change-request work view. Keyed by the derived ClearableTextFieldName union, so a new
- * clearable field fails the build here until it has a label (ARCH-102).
- *
- * The `working*` pair belongs to the Work shell and the Realm doc; the labels stay the plain
- * short terms (ARCH-107 — the code identifier carries `working`, the UI never shows it).
- */
 export const CLEARABLE_TEXT_FIELD_LABELS: Record<ClearableTextFieldName, string> = {
   workingTitle: 'Title',
   workingDescription: 'Description',
@@ -77,39 +46,16 @@ export const CLEARABLE_TEXT_FIELD_LABELS: Record<ClearableTextFieldName, string>
   content: 'Content',
 };
 
-/**
- * Per-surface label overrides for the field labels above: `[surface][field] → label`. Only a
- * surface that genuinely names a field differently appears here; everything else resolves to the
- * base map. Each surface's override keys are restricted to the fields THAT surface exposes
- * (indexed off `HALL_CONTENT_TEXT_FIELDS`), so an override for a field the surface does not have
- * is a compile error — as is an override for a surface outside `HallContentTextSurface`.
- */
 export type ClearableTextFieldLabelOverrides = {
   [S in HallContentTextSurface]?: {
     [F in (typeof HALL_CONTENT_TEXT_FIELDS)[S][number]]?: string;
   };
 };
 
-/**
- * A Realm's identity field is called **Name** on every Realm surface. The `workingTitle` doc
- * field is shared with the Work shell, where it IS a Title — so the difference is per-surface, not
- * per-field, and lives here rather than flattening one of the two settled terms.
- */
 export const CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES = {
   workRealm: { workingTitle: 'Name' },
 } as const satisfies ClearableTextFieldLabelOverrides;
 
-/**
- * The display label for one raw clearable text-field name: the surface's override when it has
- * one, otherwise the base label, otherwise the raw name. This is the ONE accessor every surface
- * calls — pass the surface whenever the caller knows it (a Realm surface must, or it renders
- * "Title" for a Name); omit it only for a genuinely surface-agnostic caller.
- *
- * Both parameters tolerate a plain `string` because callers read field names off stored documents
- * (`moderationClearedFields`) and callable payloads, and the surface may be the `workProject`
- * shell — which is a clearable surface but not a `HallContentTextSurface`, so it simply has no
- * overrides and falls through to the base map.
- */
 export function clearableTextFieldLabel(field: string, surface?: string): string {
   const overrides = surface
     ? (CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES as Record<string, Record<string, string> | undefined>)[
@@ -121,10 +67,8 @@ export function clearableTextFieldLabel(field: string, surface?: string): string
   );
 }
 
-/** What the admin screens show for a thread whose `awaitingAdminReply` is set. */
 export const ADMIN_DISPATCH_AWAITING_REPLY_LABEL = 'Awaiting reply';
 
-/** Human labels for the dead-letter replay ledgers (Ops Repairs dead-letter table). */
 export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string> = {
   chatSyncEvents: 'Chat sync event',
   chatAdminActionCommands: 'Chat moderation command',
@@ -142,8 +86,6 @@ export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string>
   chatParkedDeliveries: 'Chat room delivery',
 };
 
-/** Operator-settable report dispositions with their console copy. 'undetermined' is the
- * initial state, never a settable target, so it carries no option entry. */
 export const REPORT_DISPOSITION_OPTIONS: readonly {
   value: Exclude<ReportDisposition, 'undetermined'>;
   label: string;
@@ -167,17 +109,12 @@ export const REPORT_DISPOSITION_OPTIONS: readonly {
   },
 ];
 
-/** One user-facing reason option (shown to the affected user for any user-affecting action). */
 export interface UserFacingReasonOption {
   code: string;
   label: string;
   description: string;
 }
 
-/** User-facing reason picklist for the guided case-resolution flow — the affected user sees the
- * label for any user-affecting action. Canonical home (ARCH-102): the codes ARE this list's own
- * enumeration, so every client (web, phone, TV, admin app) renders the same options + labels by
- * importing from here. */
 export const USER_FACING_REASON_OPTIONS = [
   {
     code: 'harassment',
@@ -231,24 +168,17 @@ export const USER_FACING_REASON_OPTIONS = [
   },
 ] as const satisfies readonly UserFacingReasonOption[];
 
-/** One user-facing reason code — the codes the picklist owns, never a free string. */
 export type UserFacingReasonCode = (typeof USER_FACING_REASON_OPTIONS)[number]['code'];
 
-/** Every user-facing reason code, in picklist order. */
 export const USER_FACING_REASON_CODES = USER_FACING_REASON_OPTIONS.map((o) => o.code) as [
   UserFacingReasonCode,
   ...UserFacingReasonCode[],
 ];
 
-/** The user-facing label for a reason code (undefined when the code is unknown/absent). */
 export function userFacingReasonLabel(code: string | undefined): string | undefined {
   return USER_FACING_REASON_OPTIONS.find((o) => o.code === code)?.label;
 }
 
-// --- Rules & Agreements section titles and type labels ---
-// The admin rules editor and the public rules page both render these (ENG-002).
-
-/** Each fixed rule group's heading. */
 export const RULE_GROUP_TITLES: Record<RuleGroup, string> = {
   generic: 'General Site Rules',
   merchandising: 'Merchandising, Endorsements & Revenue Sharing',
@@ -257,10 +187,6 @@ export const RULE_GROUP_TITLES: Record<RuleGroup, string> = {
 };
 export const ARTISAN_AGREEMENTS_TITLE = 'Artisan Agreements';
 
-/**
- * The label for a rule or agreement point narrowed to one type ("Tales only", "Educational wing
- * only", "Tales, Educational wing only"); undefined when it applies to every type.
- */
 export function appliesToTypeLabel(entry: {
   workProjectType?: WorkProjectType;
   hallWingType?: HallWingType;
@@ -272,11 +198,6 @@ export function appliesToTypeLabel(entry: {
   return parts.length > 0 ? `${parts.join(', ')} only` : undefined;
 }
 
-// --- Stored-enum display labels ---
-// What a screen shows for a stored enum value, keyed by the canonical union so a new member fails
-// the build until it has its text. A screen renders the label, never the raw value.
-
-/** Guild invite statuses (a Work's invited-users list and an invite conversation's status line). */
 export const GUILD_INVITE_STATUS_LABELS: Record<GuildInviteConversationStatus, string> = {
   pending: 'Pending',
   accepted: 'Accepted',
@@ -285,7 +206,6 @@ export const GUILD_INVITE_STATUS_LABELS: Record<GuildInviteConversationStatus, s
   finalized: 'Finalized',
 };
 
-/** Commission proposal statuses (a Work's proposals table). */
 export const COMMISSION_PROPOSAL_STATUS_LABELS: Record<CommissionProposalStatus, string> = {
   open: 'Open',
   invited: 'Invited',
@@ -293,28 +213,24 @@ export const COMMISSION_PROPOSAL_STATUS_LABELS: Record<CommissionProposalStatus,
   rejected: 'Rejected',
 };
 
-/** Chapter, track, and episode review statuses (the Tale, Tune, and Television section tables). */
 export const HALL_SUB_ITEM_STATUS_LABELS: Record<HallSubItemStatus, string> = {
   unpublished: 'unpublished',
   pending_approval: 'Pending approval',
   published: 'published',
 };
 
-/** Audition statuses (the audition page). */
 export const AUDITION_STATUS_LABELS: Record<Audition['status'], string> = {
   open: 'Open',
   closed: 'Closed',
   pendingReview: 'PendingReview',
 };
 
-/** Work types (Work lists, the Work overview, the Works popover). */
 export const WORK_PROJECT_TYPE_LABELS: Record<WorkProjectType, string> = {
   Tales: 'Tales',
   Tunes: 'Tunes',
   Television: 'Television',
 };
 
-/** Invite source types, as the invite dialog names the context an invite was sent from. */
 export const INVITE_SOURCE_TYPE_LABELS: Record<InviteSourceType, string> = {
   standalone: 'standalone',
   craftSkill: 'craftSkill',
@@ -322,7 +238,6 @@ export const INVITE_SOURCE_TYPE_LABELS: Record<InviteSourceType, string> = {
   audition: 'audition',
 };
 
-/** Short-link target types (the admin Short Links list), in the target-type enum's order. */
 export const SHORT_LINK_TARGET_TYPE_LABELS: Record<ShortLinkTargetType, string> = {
   audition: 'Audition',
   'audition-entry': 'Audition entry',
@@ -330,7 +245,6 @@ export const SHORT_LINK_TARGET_TYPE_LABELS: Record<ShortLinkTargetType, string> 
   'hall-library-item': 'Hall entry',
 };
 
-/** Support-thread statuses (a member's Messages, a Work's Correspondence, the admin browse list). */
 export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], string> = {
   open: 'Open',
   user_reply: 'User replied',
@@ -339,20 +253,13 @@ export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], strin
   closed_unresolved: 'Closed',
 };
 
-/**
- * Why a full admin cannot remove their own Admin standing: the server refuses it, and the roster
- * panel withholds the control with the same words. Another full admin removes it.
- */
 export const ADMIN_SELF_REVOKE_REFUSAL =
   "You can't revoke your own admin standing. Ask another full admin to do it.";
 
-/** The marker beside the sender of a support-thread message sent with admin authority. */
 export const ADMIN_SENDER_MARKER_LABEL = 'Admin';
 
-/** The sender label on a support thread's system line (a close notice) in the admin preview. */
 export const ADMIN_DISPATCH_SYSTEM_SENDER_LABEL = 'System';
 
-/** Child-safety case work statuses (the safety case console's case rows and closed-case lookup). */
 export const CHILD_SAFETY_CASE_WORK_STATUS_LABELS: Record<ChildSafetyWorkStatus, string> = {
   new: 'new',
   triaged: 'triaged',
@@ -363,7 +270,6 @@ export const CHILD_SAFETY_CASE_WORK_STATUS_LABELS: Record<ChildSafetyWorkStatus,
   operationallyResolved: 'operationallyResolved',
 };
 
-/** NCII case statuses (the safety case console's case rows and closed-case lookup). */
 export const NCII_CASE_STATUS_LABELS: Record<NciiInternalStatus, string> = {
   open: 'open',
   removalInProgress: 'removalInProgress',

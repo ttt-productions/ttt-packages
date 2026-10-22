@@ -25,7 +25,6 @@ describe('initFirebaseClient', () => {
     const first = initFirebaseClient({ apiKey: 'a' });
     __resetFirebaseClientCache();
     const second = initFirebaseClient({ apiKey: 'b' });
-    // After reset, a fresh object is returned
     expect(first).not.toBe(second);
   });
 

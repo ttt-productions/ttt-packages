@@ -2,9 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { GuildInviteConversationSchema } from '../src/doc-schemas/messaging.js';
 import { GuildInviteAcceptedAuditPayloadSchema } from '../src/schemas/admin-dispatch-actions.js';
 
-// The Work's agreement to an invite is one flag any of its invite handlers may give. The invite
-// records WHO gave it, and the accept event carries that account, so the record of who committed
-// the Work's stake shares survives the conversation's anonymization (BACKEND-201, BACKEND-203).
 describe('who agreed for the Work on a guild invite', () => {
   const invite = {
     guildInviteId: 'inv1',

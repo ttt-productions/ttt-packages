@@ -29,7 +29,6 @@ const rawBase = {
 
 const ref = { id: 'doc-1' } as never;
 
-/** A transaction whose `get` returns a row (null = no row), recording every call in order. */
 function makeTxn(row: unknown | null) {
   const calls: string[] = [];
   const get = vi.fn(async () => {

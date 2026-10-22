@@ -27,11 +27,6 @@ const validPledgePayment = {
   updatedAt: 1,
 };
 
-// Fields the auth-readable ledger doc must NEVER declare. `pledgePayments` is
-// `allow read: if request.auth != null` (every signed-in member), so anything here is a
-// disclosure the design forbids: Stripe provider identifiers, the free-text supporter
-// message, and the 18+ age-attestation consent evidence — which lives on the server-only
-// `pledgePaymentProviderRefs` doc instead.
 const SERVER_ONLY_LEDGER_FIELDS = [
   'stripeSessionId',
   'paymentIntentId',
@@ -49,8 +44,6 @@ describe('PledgePaymentSchema (public-safe ledger)', () => {
   });
 
   it('declares NO server-only field — the ledger is readable by every signed-in member', () => {
-    // The guard that matters: this doc is auth-readable, so a server-only field declared here
-    // invites the next writer/projection to put it on a member-readable document.
     const declared = Object.keys(PledgePaymentSchema.shape);
     for (const field of SERVER_ONLY_LEDGER_FIELDS) {
       expect(declared).not.toContain(field);
@@ -115,8 +108,6 @@ describe('PledgePaymentProviderRefSchema (server-only Stripe refs)', () => {
   });
 
   it('requires ageAttestedAt — the consent evidence rides the SERVER-ONLY doc', () => {
-    // What the webhook actually writes (runProcessStripePledgeEvent.ts): the attestation
-    // timestamp goes here, not on the auth-readable ledger doc.
     const { ageAttestedAt, ...withoutAttestation } = validRef;
     void ageAttestedAt;
     expect(PledgePaymentProviderRefSchema.safeParse(withoutAttestation).success).toBe(false);
@@ -372,7 +363,6 @@ describe('the dispute number on the member-readable pledge', () => {
     it('a new dispute (number up by one) starts its own ladder at any state but none', () => {
       expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(1, 'underReview'))).toBe(true);
       expect(isPledgeDisputeTransitionLegal(at(1, 'won'), at(2, 'underReview'))).toBe(true);
-      // A close delivered before its opening.
       expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(1, 'won'))).toBe(true);
       expect(isPledgeDisputeTransitionLegal(at(1, 'lost'), at(2, 'lost'))).toBe(true);
       expect(isPledgeDisputeTransitionLegal(at(1, 'won'), at(2, 'none'))).toBe(false);

@@ -33,7 +33,7 @@ describe('FileOriginSchema', () => {
     expect(() => FileOriginSchema.parse('unknown')).toThrow();
   });
 
-  it('no longer carries the removed chat-attachment origin', () => {
+  it('carries no chat-attachment origin', () => {
     expect(() => FileOriginSchema.parse('guild-chat-message-attachment')).toThrow();
   });
 });

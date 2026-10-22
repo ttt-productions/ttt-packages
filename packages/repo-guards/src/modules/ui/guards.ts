@@ -1,6 +1,3 @@
-// The generic guards over the UI system: styling, theme tokens, motion, and shared interaction patterns. The registry runs every guard listed here; an app supplies
-// each one's facts under its id.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   accessibleControlsGuard,
@@ -50,7 +47,6 @@ import {
   type EntryStylesheetFacts,
 } from './styling.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface UiGuardFacts {
   colorLiterals: ColorLiteralFacts;
   themeScaleClasses: EntryStylesheetFacts;

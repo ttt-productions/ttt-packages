@@ -13,12 +13,10 @@ function renderToast(props: React.ComponentProps<typeof Toast>) {
   );
 }
 
-// The countdown bar is the element carrying the `toast-progress` CSS animation.
 function findBar(container: HTMLElement): HTMLElement | null {
   return container.querySelector<HTMLElement>('.origin-left');
 }
 
-/** Ends `animationName` on `el` after it ran for `elapsedMs`, as the browser reports it in seconds. */
 function fireAnimationEnd(el: HTMLElement, animationName: string, elapsedMs: number) {
   const event = new Event('animationend', { bubbles: true });
   Object.defineProperties(event, {
@@ -45,7 +43,6 @@ describe('Toast auto-dismiss (countdown bar in sync with dismissal)', () => {
     const bar = findBar(container);
     expect(bar).not.toBeNull();
 
-    // Bar reaches empty -> must request close regardless of Radix's (pausable) timer.
     fireAnimationEnd(bar!, 'toast-progress', 6000);
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -76,7 +73,6 @@ describe('Toast auto-dismiss (countdown bar in sync with dismissal)', () => {
       onOpenChange,
     });
 
-    // `animation-duration: 0.01ms !important` ends the bar at once.
     fireAnimationEnd(findBar(container)!, 'toast-progress', 0.01);
     expect(onOpenChange).not.toHaveBeenCalled();
 

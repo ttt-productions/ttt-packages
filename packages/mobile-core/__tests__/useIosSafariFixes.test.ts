@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
-// The env flags the hook reads, set per case: the mock reads them when the hook runs.
 const env = vi.hoisted(() => ({ isBrowser: true, isIOS: false, isSafari: false }));
 vi.mock('../src/env.js', () => ({
   get isBrowser() {

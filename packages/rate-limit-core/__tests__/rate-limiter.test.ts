@@ -60,7 +60,6 @@ describe('createRateLimiterFactory', () => {
       [5, '1 m'],
       [5, '1 h'],
     ]);
-    // Every rebuilt limiter counts in the same Redis namespace.
     expect(MockedRatelimit.mock.calls.map(([opts]) => (opts as { prefix: string }).prefix)).toEqual(
       ['ratelimit:write', 'ratelimit:write', 'ratelimit:write'],
     );

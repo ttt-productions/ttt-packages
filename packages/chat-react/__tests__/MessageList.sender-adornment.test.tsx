@@ -4,10 +4,6 @@ import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import { MessageList } from '../src/ui/MessageList.js';
 import { ChatNameResolverProvider } from '../src/context/ChatNameResolverContext.js';
 
-// An app shows its own per-message fact beside the sender name. A continuation hides the sender
-// line, so the app's group key decides where a same-sender group breaks: a change in the fact
-// shows the sender line again, with the adornment of THAT message.
-
 const base = 1_700_000_000_000;
 function msg(messageId: string, offsetMs: number, official?: boolean): ChatMessageV1 {
   return {

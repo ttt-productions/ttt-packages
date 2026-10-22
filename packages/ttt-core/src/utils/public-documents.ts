@@ -1,8 +1,3 @@
-// Pure rules of the versioned public-document system — the version math the one publish
-// transaction applies, and the comparisons both the acceptance prompt (client) and the
-// acceptance callable (server) make. One owner, so the prompt and the server can never
-// disagree about what changed or what is required.
-
 import { PUBLIC_DOCUMENT_IDS, type PublicDocumentId } from '../constants/public-documents.js';
 import { SPECIAL_DOCS } from '../paths/collections.js';
 import type {
@@ -16,13 +11,11 @@ import type {
 import type { UserPrivateData } from '../doc-schemas/user.js';
 import type { PublicDocumentVersionBlockReading } from './app-config.js';
 
-/** The version block before any release: every document at version 0, nothing required. */
 export const EMPTY_PUBLIC_DOCUMENT_VERSION_BLOCK: PublicDocumentVersionBlock = Object.freeze({
   documents: Object.freeze({}),
   requiredAcceptanceLevel: 0,
 }) as PublicDocumentVersionBlock;
 
-/** A document's current published version; 0 when it has never been published. */
 export function currentPublicDocumentVersion(
   block: PublicDocumentVersionBlock | undefined,
   documentId: PublicDocumentId,
@@ -30,7 +23,6 @@ export function currentPublicDocumentVersion(
   return block?.documents[documentId]?.currentVersion ?? 0;
 }
 
-/** The latest version of a document a release required acceptance of; 0 when none has. */
 export function requiredPublicDocumentVersion(
   block: PublicDocumentVersionBlock | undefined,
   documentId: PublicDocumentId,
@@ -38,32 +30,24 @@ export function requiredPublicDocumentVersion(
   return block?.documents[documentId]?.requiredVersion ?? 0;
 }
 
-/** The required-acceptance level in force; 0 when nothing has ever required acceptance. */
 export function requiredPublicDocumentAcceptanceLevel(
   block: PublicDocumentVersionBlock | undefined,
 ): number {
   return block?.requiredAcceptanceLevel ?? 0;
 }
 
-/**
- * The required-acceptance level a version-block reading states: 0 when the block is absent, the
- * block's level when it is valid, and `null` when it is invalid — an invalid block states no
- * level, so the caller decides what to require.
- */
 export function requiredPublicDocumentAcceptanceLevelOfReading(
   reading: PublicDocumentVersionBlockReading,
 ): number | null {
   return reading.status === 'invalid' ? null : requiredPublicDocumentAcceptanceLevel(reading.block);
 }
 
-/** The level a person has accepted; 0 when they have accepted nothing. */
 export function acceptedPublicDocumentAcceptanceLevel(
   acceptance: PublicDocumentAcceptance | undefined,
 ): number {
   return acceptance?.acceptedLevel ?? 0;
 }
 
-/** A document's accepted version; 0 when the person never accepted it. */
 export function acceptedPublicDocumentVersion(
   acceptance: PublicDocumentAcceptance | undefined,
   documentId: PublicDocumentId,
@@ -71,7 +55,6 @@ export function acceptedPublicDocumentVersion(
   return acceptance?.documentVersions[documentId] ?? 0;
 }
 
-/** True when the person must accept before continuing: the required level is above theirs. */
 export function isPublicDocumentAcceptanceRequired(
   block: PublicDocumentVersionBlock | undefined,
   acceptance: PublicDocumentAcceptance | undefined,
@@ -81,12 +64,6 @@ export function isPublicDocumentAcceptanceRequired(
   );
 }
 
-/**
- * Every document whose CURRENT version is newer than the one the person accepted — including
- * changes from releases that did not require acceptance — at its current version, in canonical
- * order. This is exactly the list the acceptance prompt shows and the acceptance callable
- * expects back.
- */
 export function changedPublicDocuments(
   block: PublicDocumentVersionBlock | undefined,
   acceptance: PublicDocumentAcceptance | undefined,
@@ -100,20 +77,11 @@ export function changedPublicDocuments(
   return changed;
 }
 
-/** The two private-doc fields the Square agreements card records. */
 export type SquareStreetzAgreementsRecord = Pick<
   UserPrivateData,
   'squareStreetzAgreementsDate' | 'squareStreetzAgreementsVersion'
 >;
 
-/**
- * True when the person's Square agreements still stand: they recorded an acceptance date AND
- * the Rules & Agreements version they accepted is at or above the latest version a release
- * REQUIRED acceptance of. The card incorporates the Rules page by reference, so a Rules release
- * that required acceptance asks again; one that did not never does. The composer (client) and
- * every Square post path (server) decide with this one rule. A missing version block means no
- * Rules release has required acceptance yet.
- */
 export function squareStreetzAgreementsSatisfied(
   privateData: SquareStreetzAgreementsRecord | null | undefined,
   block: PublicDocumentVersionBlock | undefined,
@@ -127,11 +95,6 @@ export function squareStreetzAgreementsSatisfied(
   );
 }
 
-/**
- * True when two document/version lists name the same pairs (order-insensitive). The acceptance
- * callable compares the versions the prompt showed with `changedPublicDocuments` now; any
- * difference means a publish raced the prompt, so it refreshes and asks again.
- */
 export function samePublicDocumentVersions(
   a: readonly PublicDocumentVersionRef[],
   b: readonly PublicDocumentVersionRef[],
@@ -143,12 +106,6 @@ export function samePublicDocumentVersions(
   return b.every((ref) => left.has(key(ref)));
 }
 
-/**
- * The summary a person holds after accepting everything current — every published document at
- * its current version and the current required level. Registration and the acceptance callable
- * both write exactly this. `legalReviewNoticeRevision` is the active notice revision, or null
- * while the notice is off (then it is not recorded).
- */
 export function publicDocumentAcceptanceSummary(
   block: PublicDocumentVersionBlock | undefined,
   recorded: { acceptedAt: number; legalReviewNoticeRevision: string | null },
@@ -168,23 +125,12 @@ export function publicDocumentAcceptanceSummary(
   };
 }
 
-/** What one release does to the version block. */
 export interface PublicDocumentReleasePlan {
-  /** The version block to write. */
   block: PublicDocumentVersionBlock;
-  /** Each released document at its newly assigned version, in canonical order. */
   documents: PublicDocumentVersionRef[];
-  /** The required-acceptance level after this release. */
   requiredAcceptanceLevel: number;
 }
 
-/**
- * Plan a release: each included document moves to its next whole-number version; when the
- * release requires acceptance, each also becomes that document's required version and the
- * required level rises by exactly one. Documents not in the release are untouched. Pure — the
- * publish transaction reads the block, plans, then writes the versions, projections, block,
- * release record, and audit event together. Throws on an empty or duplicated document list.
- */
 export function planPublicDocumentRelease(
   block: PublicDocumentVersionBlock | undefined,
   documentIds: readonly PublicDocumentId[],
@@ -219,7 +165,6 @@ export function planPublicDocumentRelease(
   };
 }
 
-/** The current projection the publish writes for a document: its content, version, and time. */
 export function buildPublicDocumentProjection<D extends PublicDocumentId>(
   content: PublicDocumentContent<D>,
   version: number,
@@ -228,8 +173,6 @@ export function buildPublicDocumentProjection<D extends PublicDocumentId>(
   return { ...content, version, lastUpdated: publishedAt };
 }
 
-// Key-order-insensitive canonical form of JSON-like content (strings, numbers, booleans,
-// null, arrays, plain objects). An `undefined` object field is the same as an absent one.
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value !== null && typeof value === 'object') {
@@ -241,11 +184,6 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
 }
 
-/**
- * True when two contents of the same document are the same words and structure (field order
- * ignored). The publish rejects a working copy equal to the current version, and the Admin
- * release form keeps Publish disabled for one.
- */
 export function publicDocumentContentEquals<D extends PublicDocumentId>(
   a: PublicDocumentContent<D>,
   b: PublicDocumentContent<D>,

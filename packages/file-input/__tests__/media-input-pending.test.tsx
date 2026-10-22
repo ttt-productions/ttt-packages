@@ -12,7 +12,6 @@ vi.mock(
   async () => import('../../media-viewer/src/react/index.js'),
 );
 
-// A controllable meta read: while `metaGate` is set, validation waits on it.
 let metaGate: Promise<void> | null = null;
 vi.mock('../src/lib/read-media-meta.js', () => ({
   readMediaMeta: async (file: File) => {

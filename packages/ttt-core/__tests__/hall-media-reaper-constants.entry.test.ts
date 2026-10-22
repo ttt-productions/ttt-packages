@@ -6,6 +6,7 @@ import {
   HALL_MEDIA_REAPER_CLAIM_LEASE_MS,
   SWEEP_STATE_MAX_DEFERRED,
   HALL_MEDIA_REAPER_PAGE_SIZE,
+  HALL_MEDIA_REAPER_TIMEOUT_SECONDS,
 } from '../src/constants/scheduled-jobs.js';
 import * as constantsBarrel from '../src/constants/index.js';
 
@@ -19,5 +20,8 @@ describe('Hall-media orphan reaper policy constants', () => {
     expect(constantsBarrel.HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_MAX_MS);
     expect(constantsBarrel.SWEEP_STATE_MAX_DEFERRED).toBe(SWEEP_STATE_MAX_DEFERRED);
     expect(constantsBarrel.HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBe(HALL_MEDIA_REAPER_CLAIM_LEASE_MS);
+    expect(constantsBarrel.HALL_MEDIA_REAPER_TIMEOUT_SECONDS).toBe(
+      HALL_MEDIA_REAPER_TIMEOUT_SECONDS,
+    );
   });
 });

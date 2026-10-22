@@ -25,14 +25,11 @@ import { useReportSubmit } from '../hooks/useReportSubmit.js';
 import type { SubmitReportResult } from '../../schemas/requests.js';
 import type { ReportDialogProps, ReportTargetRef } from '../types-ui-props.js';
 
-// The picker value for an additional action is its id, prefixed so it can never collide with a
-// report reason.
 const ACTION_PREFIX = '__rc_action__:';
 
 type DialogView =
   { kind: 'form' } | { kind: 'upgrade'; reason: string } | { kind: 'alreadyReported' };
 
-/** The dialog's in-progress input, bound to the reporter who typed it (FRONTEND-108). */
 interface DialogDraft {
   reporterUserId: string | undefined;
   reason: string;
@@ -44,12 +41,6 @@ function emptyDraft(reporterUserId: string | undefined): DialogDraft {
   return { reporterUserId, reason: '', comment: '', view: { kind: 'form' } };
 }
 
-/**
- * The report-filing dialog. Every answer the report callable gives is handled — `filed` and
- * `upgraded` close it and reach `onSubmitSuccess`, `alreadyReported` shows the already-reported
- * view, `upgradeAvailable` offers the upgrade — on the first submit and on the upgrade confirm
- * alike. Every string comes from `copy`.
- */
 export function ReportDialog({
   open,
   onOpenChange,
@@ -66,7 +57,6 @@ export function ReportDialog({
   const submitMutation = useReportSubmit();
   const fieldId = useId();
 
-  // A draft typed by a different reporter is never shown or sent: it reads as empty.
   const [storedDraft, setStoredDraft] = useState<DialogDraft>(() => emptyDraft(reporterUserId));
   const draft =
     storedDraft.reporterUserId === reporterUserId ? storedDraft : emptyDraft(reporterUserId);
@@ -110,7 +100,6 @@ export function ReportDialog({
   };
 
   const commentLength = draft.comment.length;
-  // What is sent is the checked comment — trimmed, exactly what the server keeps.
   const checkedComment = checkInputFormat(draft.comment, commentInput);
   const isOverLimit = !checkedComment.ok && checkedComment.issue === 'tooLong';
   const commentOk = isHandOff || checkedComment.ok;
@@ -120,7 +109,6 @@ export function ReportDialog({
     async () => {
       if (!canSubmit) return;
       if (selectedAction?.kind === 'handOff') {
-        // Resolves once the destination has rendered; nothing was submitted from here.
         await selectedAction.handler(target);
         closeAndReset();
         return;
@@ -159,10 +147,6 @@ export function ReportDialog({
 
   const isPending = submit.pending || upgrade.pending;
 
-  // A typed comment the reporter has not sent is unsaved input (FRONTEND-207): every close path
-  // (Cancel, Escape, an outside click) asks before dropping it. A picked reason alone is one
-  // re-pickable choice, not input to lose, and a comment the callable already answered
-  // ("already reported") has nothing left to send.
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const hasUnsentComment = draft.comment.trim().length > 0 && draft.view.kind !== 'alreadyReported';
 
@@ -171,7 +155,6 @@ export function ReportDialog({
     closeAndReset();
   };
 
-  // The dialog cannot be dismissed while its action runs (FRONTEND-201).
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isPending) return;
     if (!nextOpen && hasUnsentComment) {

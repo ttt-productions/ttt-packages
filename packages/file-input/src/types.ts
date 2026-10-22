@@ -10,7 +10,6 @@ import type {
   UploadState,
 } from '@ttt-productions/media-schemas';
 
-/** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
 
 export interface CropConfig {
@@ -58,7 +57,6 @@ export interface FileInputProps {
   disabled?: boolean;
   isLoading?: boolean;
   buttonLabel?: string;
-  /** Accessible name of the icon-only button that clears the selected file. Default "Clear selected file". */
   clearLabel?: string;
   className?: string;
 
@@ -74,7 +72,6 @@ export interface FileInputProps {
   defaultShowDetails?: boolean;
 }
 
-/** Used by MediaInput (spec-driven selection/capture/record). */
 export interface SelectedMediaMeta {
   kind: MediaKind;
   mime?: string;
@@ -92,15 +89,6 @@ export interface MediaInputChangePayload {
   previewUrl?: string;
   meta?: SelectedMediaMeta;
 
-  /**
-   * What the user actually DID (canonical-upload-content-classification):
-   * `media-recorder` / `camera-capture` are STRONG claims (the component itself
-   * requested that capture kind — an audio recording asked for `video:false`);
-   * `file-picker` is an ADVISORY inference from browser metadata (`kind:'file'`
-   * when nothing narrower is known). Crop/normalization preserves the original
-   * claim. Untrusted context for the server — never classification authority.
-   * Present on every successful selection; absent only on the error payload.
-   */
   claim?: ClientMediaClaim;
 
   autoFormat?: boolean;
@@ -117,65 +105,21 @@ export interface MediaInputProps {
   isLoading?: boolean;
   className?: string;
   buttonLabel?: string;
-  /** Accessible name of the icon-only button that clears the selected file. Default "Clear selected file". */
   clearLabel?: string;
 
-  /**
-   * Extra advisory notes shown in the "Info" affordance alongside the built-in default
-   * ("keep your own copy — this isn't a backup/storage service"). Every MediaInput shows that
-   * default note; pass surface-specific notes here to append to it. The Info button always renders.
-   */
   helpNotes?: string[];
 
-  /** Phase-aware upload state. When provided, drives the upload/processing UI. */
   uploadState?: UploadState | null;
-  /**
-   * Minimum file size (bytes) before showing a real progress bar.
-   * Files smaller than this show an indeterminate spinner during upload instead.
-   * Defaults to `DEFAULT_PROGRESS_BAR_MIN_BYTES` (512 KB) when omitted.
-   * Pass `Infinity` to always use the spinner. Pass `0` to always use the bar.
-   */
   progressBarMinBytes?: number;
-  /** Currently selected file. Shows a semantic media label + clear button when set. */
   selectedFile?: File | null;
-  /** Called when user clears the selected file. */
   onClear?: () => void;
-  /**
-   * Optional cancel callback. When provided AND the upload is in 'preparing' or
-   * 'uploading' phase AND `isLoading` is true, an inline X button renders next to
-   * the status text. Click invokes onCancel — the consumer is responsible for
-   * aborting the underlying upload (e.g. via AbortController.abort()). Never
-   * renders during 'finalizing'.
-   */
   onCancel?: () => void;
 
-  /**
-   * Optional guard fired before opening the OS picker / capture UI for ANY
-   * action (choose file, take photo, record video, record audio). Return false
-   * — or a Promise resolving to false — to abort before the picker/capture
-   * opens. Consumers use this to run a precondition (e.g. an email-verification
-   * gate) on the click, not after a file has already been selected.
-   */
   onBeforeSelect?: () => boolean | Promise<boolean>;
 
   onChange: (payload: MediaInputChangePayload) => void;
 }
 
-/**
- * Imperative handle exposed by {@link MediaInput} via `ref`. Additive — existing
- * ref-less usage is unaffected.
- */
 export interface MediaInputHandle {
-  /**
-   * Programmatically open the canonical selection path, exactly as clicking the
-   * trigger button does:
-   * - exactly one enabled action → runs that action directly (choose file / photo
-   *   / record), honoring `onBeforeSelect`, validation, and crop;
-   * - multiple enabled actions → opens the existing choice dropdown.
-   *
-   * No-op while `disabled` or `isLoading`, or when no action is enabled. Must be
-   * called synchronously from a user gesture so the browser file dialog can open.
-   * It never bypasses the trigger gates (no hidden-input shortcut).
-   */
   openSelection: () => void;
 }

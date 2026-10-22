@@ -1,9 +1,3 @@
-// Generic-at-type-level over TTaskType so consumer apps can bind their
-// own task-type union literal (e.g. an `AdminTaskType` union).
-//
-// The consuming app's composition package depends on report-core
-// (one-way edge — generic packages must not depend on app-specific packages).
-
 export type TaskPriority = 'critical' | 'high' | 'normal' | 'low';
 
 export type AdminTaskStatus = 'pending' | 'checkedOut' | 'workLater' | 'completed';
@@ -40,22 +34,18 @@ export interface AdminTask<TTaskType extends string = string> {
   itemData?: unknown;
 }
 
-/** AdminTask with non-null checkoutDetails. */
 export interface CheckedOutTask<TTaskType extends string = string> extends AdminTask<TTaskType> {
   checkoutDetails: NonNullable<AdminTask<TTaskType>['checkoutDetails']>;
 }
 
-/** The task a checkout answers with: the checked-out task and the claim it holds. */
 export interface ClaimedTask<TTaskType extends string = string> extends CheckedOutTask<TTaskType> {
   checkedOutAt: number;
   expiresAt: number;
-  /** The task's original document, or null when it no longer exists. */
   itemData: unknown;
 }
 
 export interface CheckoutTaskResult<TTaskType extends string = string> {
   success: true;
-  /** The caller already held this task under a live lock; nothing was written. */
   alreadyHeld?: true;
   task: ClaimedTask<TTaskType>;
 }
@@ -65,7 +55,6 @@ export interface CheckoutNextImportantTaskResult<TTaskType extends string = stri
   task: ClaimedTask<TTaskType>;
 }
 
-/** The check-in and release answer. `alreadyResolved`: the task was already gone, so nothing was written. */
 export interface TaskLifecycleResult {
   success: true;
   alreadyResolved?: true;

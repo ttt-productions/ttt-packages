@@ -1,9 +1,3 @@
-// The boundaries between an app's roots, its packages, and the world outside the repository:
-//   - roots that are separate projects never import one another;
-//   - a tsconfig path alias resolves only inside the root it belongs to;
-//   - each package is imported from the entry point that matches the runtime of the importing root;
-//   - nothing is imported from, or depended on at, a path outside the repository.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { declaredRoots, type RepoLayout, type Reviewed, type RootRole } from '../../node/layout.js';
@@ -32,18 +26,11 @@ const CODE_ROLES: readonly RootRole[] = [
 const isRole = (value: unknown): value is RootRole =>
   typeof value === 'string' && (CODE_ROLES as readonly string[]).includes(value);
 
-// ---------------------------------------------------------------------------------------------
-// Roots that are separate projects never import one another.
-// ---------------------------------------------------------------------------------------------
-
 export interface IsolatedRootsFacts {
-  /** Roots that are separate projects. A Worker family isolates every Worker tree from the others. */
   isolatedRoots: readonly RootRole[];
-  /** Specifier prefix → repo-relative folder, for every alias any of those roots can resolve. */
   importAliases: Readonly<Record<string, string>>;
 }
 
-/** The repo-relative path a specifier names, through a relative walk or an alias; null for a package. */
 export function targetOf(
   fromPath: string,
   spec: string,
@@ -117,16 +104,10 @@ export const isolatedRootsGuard: GenericGuardDefinition<IsolatedRootsFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// A tsconfig path alias resolves only inside the root it belongs to.
-// ---------------------------------------------------------------------------------------------
-
 export interface TsconfigAliasFacts {
-  /** Each tsconfig with the root (its role, or a Worker's name) its aliases must stay inside. */
   tsconfigs: ReadonlyArray<{ file: string; root: string }>;
 }
 
-/** Each alias target a tsconfig's `paths` declares that lands outside `rootPath`. */
 export function aliasesOutsideRoot(tsconfigFile: string, text: string, rootPath: string): string[] {
   const config = parseJsonc(text) as {
     compilerOptions?: { baseUrl?: string; paths?: Record<string, unknown> };
@@ -207,18 +188,10 @@ export const tsconfigAliasGuard: GenericGuardDefinition<TsconfigAliasFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Package entry points match the runtime of the importing root.
-// ---------------------------------------------------------------------------------------------
-
 export interface EntryPointFacts {
-  /** The shared packages' npm scope (`@scope`). */
   packageScope: string;
-  /** Roots that run only on a server (no React, browser runtime, Next.js, or stylesheet). */
   serverRoots: readonly RootRole[];
-  /** Roots that ship to a browser (no server-only package entry, no Admin SDK). */
   clientRoots: readonly RootRole[];
-  /** Folders or files inside a client root that run only on a server, each with its why. */
   serverOnlyPaths: readonly Reviewed[];
 }
 
@@ -317,11 +290,6 @@ export const entryPointGuard: GenericGuardDefinition<EntryPointFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Nothing is imported from, or depended on at, a path outside the repository.
-// ---------------------------------------------------------------------------------------------
-
-/** The filesystem target of a dependency range that names a path, or null for a registry range. */
 export function localDependencyTarget(range: string): string | null {
   const protocol = /^(?:file|link):(.*)$/.exec(range);
   if (protocol) return protocol[1];
@@ -337,7 +305,6 @@ const DEPENDENCY_SECTIONS = [
   'optionalDependencies',
 ] as const;
 
-/** Each dependency a manifest resolves to a local path. */
 export function localDependencies(manifestText: string): string[] {
   const manifest = JSON.parse(manifestText) as Partial<
     Record<(typeof DEPENDENCY_SECTIONS)[number], Record<string, string>>
@@ -352,7 +319,6 @@ export function localDependencies(manifestText: string): string[] {
   return out;
 }
 
-/** The repository's manifests: the root one and the nearest one above each declared code root. */
 export function manifestsOf(layout: RepoLayout, exists: (relPath: string) => boolean): string[] {
   const out = new Set<string>(['package.json']);
   for (const { role, root } of declaredRoots(layout)) {

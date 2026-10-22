@@ -14,8 +14,8 @@ function noopBool() {
 type Job = {
   id: string;
   args: StartUploadArgs & { priority?: number };
-  priority: number; // higher = sooner
-  seq: number; // FIFO within same priority
+  priority: number;
+  seq: number;
   resolveController: (c: UploadController) => void;
   rejectController: (e: unknown) => void;
 };

@@ -23,21 +23,6 @@ import { MessageList, type ChatScrollContainerProps } from './MessageList.js';
 import { Composer } from './Composer.js';
 import { ThreadActions } from './menus.js';
 
-/**
- * A read the chat could not complete, handed to the app's `renderLoadError`:
- * - `initial` — nothing loaded: the first open failed (the realtime client's attempts
- *   failed for its budget, or the Firestore listener failed before any message). It
- *   takes the place of the message list.
- * - `live` — the Firestore listener failed after messages loaded. The messages stay,
- *   with this band above them.
- * - `older` — an older page failed to load. It renders at the top of the list, which
- *   stops asking for older pages until `retry`.
- * `error` is the read's own error (null on the realtime transport); `retry` re-runs what
- * failed — the realtime transport also keeps retrying in the background. `retrying` is true
- * while a retry of this failure is running and the failure is still shown (an older page being
- * read again), so the app's Retry shows its pending state. A retried initial or live failure
- * gives way to the opening state instead.
- */
 export type ChatLoadFailure = {
   scope: 'initial' | 'live' | 'older';
   error: Error | null;
@@ -48,21 +33,12 @@ export type ChatLoadFailure = {
 export type ChatShellProps = {
   config: ChatCoreConfig;
 
-  /**
-   * Renders every failed read (see {@link ChatLoadFailure}) — the app's own error state and
-   * copy. Required: a chat that cannot load must say so, and the words are the app's.
-   */
   renderLoadError: (failure: ChatLoadFailure) => React.ReactNode;
 
-  // Header
   header?: React.ReactNode;
 
-  // Send handler — text-only. On the realtime transport this is OPTIONAL: the
-  // shell sends through the DO socket. If provided, it is still called (so a
-  // consumer can mirror to analytics), but the socket send is authoritative.
   onSend?: (text: string) => Promise<void>;
 
-  // Message rendering
   renderMessage?: (m: any) => React.ReactNode;
   messageRenderers?: MessageRendererRegistry;
   handlers?: ModerationHandlers;
@@ -70,78 +46,41 @@ export type ChatShellProps = {
   composerPlaceholder?: string;
   autoFocus?: boolean;
 
-  // Three render slots
   renderAboveMessages?: () => React.ReactNode;
   renderBelowMessages?: () => React.ReactNode;
-  /** If provided, replaces the Composer entirely */
   renderFooter?: () => React.ReactNode;
 
-  // Sender interaction
   onSenderClick?: (senderId: string) => void;
-  /** The app's per-message grouping fact and its sender-line adornment (forwarded to MessageList). */
   messageGroupKey?: ChatMessageGroupKey;
   renderSenderAdornment?: (m: ChatMessageV1) => React.ReactNode;
 
-  // Disable
   composerDisabled?: boolean;
 
-  /** Fill the parent's height instead of the default fixed-height card. Lays the Card out
-   *  as `flex flex-col h-full` with the message list flexing to fill (scrolls inside), so a
-   *  full-height page panel doesn't grow unbounded or waste space on a fixed 400px box.
-   *  The consumer must give ChatShell a bounded-height parent (e.g. an `h-full` panel). */
   fillHeight?: boolean;
-  /**
-   * Called with whether the conversation is READY — its access allowed, its initial data loaded
-   * with no failure, and (realtime) the channel current since its socket last opened — each time
-   * that changes, and with `false` when the shell unmounts. A consumer that lets someone act on
-   * what the conversation says (an agreement, an offer) offers and accepts that action only while
-   * it is true; reading the conversation needs no readiness.
-   */
   onReadinessChange?: (ready: boolean) => void;
-  /** Advanced override for the scrollable region's class (forwarded to MessageList).
-   *  Usually unnecessary — prefer `fillHeight`. */
   scrollClassName?: string;
-  /** Renders the scrollable message region (forwarded to MessageList) in place of the default div,
-   *  so the consumer can give it its own surface component. */
   scrollContainer?: React.ComponentType<ChatScrollContainerProps>;
 };
 
-/** The resolved data a transport hook hands the presentational view. */
 type ResolvedChat = {
   allowed: boolean;
   isInitialLoading: boolean;
-  /** The transport's own readiness beyond loaded-and-allowed (realtime: the channel is current). */
   transportCurrent: boolean;
   messages: ChatMessageV1[];
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
   isFetchingOlder: boolean;
-  /** The failed read that replaces or annotates the list (initial / live), or null. */
   loadFailure: ChatLoadFailure | null;
-  /** The failed older page, or null. */
   olderFailure: ChatLoadFailure | null;
-  /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
   send: (text: string) => Promise<void>;
-  /** Retry a failed realtime send by its original clientMessageId (realtime only;
-   *  absent on firestore). Wired to MessageItemDefault's failed-bubble retry. */
   retrySend?: (clientMessageId: string) => void;
-  /** Advance the authoritative read cursor (realtime only; absent on the firestore path).
-   *  Returns whether the ack was actually sent so the caller advances its local cursor only on success (M2). */
   readAck?: (latestSeq: number, focused: boolean) => boolean;
-  /** Realtime connection status — drives the disconnected banner (R13). Absent on firestore. */
   status?: string;
-  /** uids currently typing (realtime only) — drives the typing indicator (R14). */
   typing?: string[];
-  /** Signal the local user is typing (coalesced by the transport). Wired to the Composer (R14). */
   signalTyping?: () => void;
 };
 
-/**
- * ChatShell dispatches on `config.transport`. Hooks must be unconditional, so the
- * two transports live in separate inner components (each calls exactly ONE data
- * hook) and both render the shared presentational `ChatShellView`. The default
- * (undefined / 'firestore') transport is byte-for-byte the previous behavior.
- */
+// Hooks must be unconditional, so each transport is a separate component with one data hook.
 export function ChatShell(props: ChatShellProps) {
   if (props.config.transport === 'realtime') {
     return <RealtimeChatShell {...props} />;
@@ -207,10 +146,8 @@ function RealtimeChatShell(props: ChatShellProps) {
   const send = React.useCallback(
     async (text: string) => {
       const ok = r.send(text);
-      // C-B8: surface a closed-socket failure so the Composer keeps the user's text
-      // instead of clearing it on a no-op send.
       if (!ok) throw new Error('chat-send-failed');
-      if (onSend) await onSend(text); // optional mirror
+      if (onSend) await onSend(text);
     },
     [r, onSend],
   );
@@ -218,7 +155,6 @@ function RealtimeChatShell(props: ChatShellProps) {
     <ChatShellView
       {...props}
       resolved={{
-        // The app's access fact AND the grant's: a terminal denial closes it either way.
         allowed: config.allowed && r.allowed,
         isInitialLoading: r.isInitialLoading,
         transportCurrent: r.isSynced,
@@ -279,7 +215,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     typing,
     signalTyping,
   } = resolved;
-  // Nothing loaded and the read failed: the failure takes the list's place.
   const initialFailure = loadFailure?.scope === 'initial' ? loadFailure : null;
 
   const ready = allowed && !isInitialLoading && loadFailure === null && resolved.transportCurrent;
@@ -298,7 +233,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   const lastAckedRef = React.useRef(0);
   const leaseHeldRef = React.useRef(false);
 
-  // The latest authoritative seq currently rendered (optimistic rows have no seq).
   const latestSeq = React.useMemo(() => {
     let max = 0;
     for (const m of messages) {
@@ -308,7 +242,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     return max;
   }, [messages]);
 
-  // Track tab focus/visibility so the read-ack "focused" lease releases on blur/hide.
   React.useEffect(() => {
     const compute = () =>
       typeof document === 'undefined' ||
@@ -326,17 +259,11 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     };
   }, []);
 
-  // C-B6: advance the authoritative read cursor when the reader is actually at the
-  // latest message (channel mounted + tab focused + scrolled to bottom); release the
-  // focus lease exactly once when they stop. No-op on the firestore path (no readAck).
   React.useEffect(() => {
     if (!readAck || latestSeq <= 0) return;
     if (focused && atBottom) {
       leaseHeldRef.current = true;
       if (latestSeq > lastAckedRef.current) {
-        // Advance the local marker ONLY if the frame was actually sent — a drop during a
-        // disconnect window must stay un-acked so it retries (the client also re-sends the
-        // cursor on reconnect). (M2)
         if (readAck(latestSeq, true)) lastAckedRef.current = latestSeq;
       }
     } else if (leaseHeldRef.current) {
@@ -345,8 +272,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     }
   }, [readAck, latestSeq, atBottom, focused]);
 
-  // In fill mode the Card flexes to its parent's height and the message list fills the
-  // space between header and composer; otherwise it's the default natural-height card.
   const cardClassName = fillHeight ? 'w-full flex flex-col h-full min-h-0' : 'w-full';
   const contentClassName = fillHeight ? 'p-0 flex-1 min-h-0 flex flex-col' : 'p-0';
 
@@ -355,13 +280,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   }
 
   if (isInitialLoading || initialFailure) {
-    // Before the first authoritative snapshot/history result, show an HONEST working
-    // state — a visible "Opening chat…" spinner in a polite live region — NOT a blank
-    // parchment/skeleton box (which read as an empty chat) and NOT the reconnect banner
-    // (which must not compete with the initial-opening message). Only the MessageList
-    // region is replaced: the consumer's header + actions + the three render-slots +
-    // footer still render, and `onReadinessChange` tells a consumer whose slots carry
-    // actions that the conversation is not ready to act on.
     return (
       <Card className={cardClassName}>
         {(header || handlers) && (
@@ -377,9 +295,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           </CardHeader>
         )}
         {(() => {
-          // The wrapper (and its border) renders only when the slot actually
-          // produced content — a slot returning null (e.g. a collapsed
-          // conversation-files section) must not paint an empty bordered strip.
           const aboveMessages = renderAboveMessages?.() ?? null;
           return aboveMessages != null && aboveMessages !== false ? (
             <div className="border-b">{aboveMessages}</div>
@@ -426,13 +341,10 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         </CardHeader>
       )}
 
-      {/* R13: a disconnected/reconnecting banner so a configured-but-unreachable Worker
-          never presents a healthy-looking empty thread. Only the realtime path sets `status`. */}
       <ChatConnectionBanner status={status} />
 
       {renderAboveMessages && <div className="border-b">{renderAboveMessages()}</div>}
 
-      {/* The listener failed after messages loaded: they stay, with the failure above them. */}
       {loadFailure?.scope === 'live' && (
         <div className="border-b">{renderLoadError(loadFailure)}</div>
       )}
@@ -468,7 +380,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         <CardFooter className="border-t">{renderFooter()}</CardFooter>
       ) : (
         <CardFooter className="border-t flex-col items-stretch gap-1">
-          {/* R14: typing dots above the composer (realtime only — `typing` is undefined on firestore). */}
           <TypingIndicator typing={typing} />
           <KeyboardAvoidingView padding offset={8} className="w-full">
             <Composer
@@ -485,12 +396,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   );
 }
 
-/**
- * R13 — connection-state banner. The realtime path sets `status`; once the first
- * snapshot has loaded (ChatShellView is past `isInitialLoading`), a dropped/unreachable
- * socket surfaces here instead of a silently-empty thread. Renders nothing on the
- * firestore path (`status` undefined) or while live (`open`).
- */
 function ChatConnectionBanner({ status }: { status?: string }) {
   if (status !== 'reconnecting' && status !== 'closed') return null;
   return (
@@ -506,8 +411,6 @@ function ChatConnectionBanner({ status }: { status?: string }) {
   );
 }
 
-/** R14 — typing indicator. `typing` is the set of OTHER users typing (the transport
- *  excludes the local user). Generic copy (no name resolution) for v1. */
 function TypingIndicator({ typing }: { typing?: string[] }) {
   if (!typing || typing.length === 0) return null;
   return (

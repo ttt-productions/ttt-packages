@@ -1,17 +1,3 @@
-// Chat realtime WIRE PROTOCOL (Contract C) — the client side of the Channel +
-// Inbox Durable Object protocol. The canonical protocol declarations (subprotocol,
-// frame-kind maps, close codes, the neutral conversation reference, grant scope,
-// the send and mark-read contracts, client-agreed limits) are owned by `@ttt-productions/chat-schemas`; this file consumes them
-// and adds the client-side raw row/frame shapes the transport maps into the UI
-// message shape. The client and the worker runtime agree on the wire by both
-// importing that one contract; neither imports the other.
-//
-// Frame shape on the socket is `{ v, type, payload }` (NOT realtime-core's
-// `{ v, kind, payload }`): the worker runtime `send`/`broadcast` emit
-// `JSON.stringify({ v: 1, type, payload })` and read `env.type` + `env.payload`.
-// We keep that field name here to match; realtime-core's envelope schema is the
-// generic transport primitive, the chat protocol chose `type` for its frames.
-
 import { CHAT_WIRE_VERSION } from '@ttt-productions/chat-schemas';
 import type {
   ChatConversationRef,
@@ -20,21 +6,8 @@ import type {
   ChatSendRejectedPayload,
 } from '@ttt-productions/chat-schemas';
 
-// ---- raw wire row shapes (what the DO serializes; opaque-but-typed here) ----
-
-/** A revision's kind (chat-schemas `ChatMessageRevisionKind`), under this package's historical name. */
 export type RevisionKind = ChatMessageRevisionKind;
 
-/**
- * A message row as the Channel DO stores + broadcasts it (the worker runtime's
- * message row), declared as the fields the client actually CONSUMES. The adapter
- * mapping in `map.ts` turns it into the UI `ChatMessageV1` shape.
- *
- * The row is TEXT-only: there is no attachment lifecycle on a chat message, and
- * no reply pointer — chat has no reply-authoring affordance, so the client
- * neither sends nor reads one (DJ ruling 2026-07-29). A DO that still broadcasts
- * a legacy stringified `replyTo` key is simply ignored here.
- */
 export interface WireMessageRow {
   seq: number;
   senderUid: string;
@@ -42,35 +15,11 @@ export interface WireMessageRow {
   text: string;
   createdAt: number;
   epoch: number;
-  /** Account ids a server-written row's text refers to (absent on a member's own message). */
   referencedUids?: string[];
-  /**
-   * The effective (max-`messageRevision`) moderation kind for this row, or null
-   * when never moderated. Populated by the DO's getHistory/getDeltaSince overlay
-   * merge so a hidden/deleted/edited row arrives already-moderated and its
-   * ORIGINAL text never reaches the renderer. Optional/absent on pre-overlay rows.
-   */
   moderationKind?: RevisionKind | null;
-  /**
-   * The effective `messageRevision` that `moderationKind` reflects (the DO's
-   * max-revision). Used to break ties against a live `revision` frame: a higher
-   * `messageRevision` wins; a stale/older one is ignored. Optional/absent on
-   * pre-overlay rows (treated as revision 0).
-   */
   messageRevision?: number;
 }
 
-/**
- * The channel resume snapshot the DO returns for a `resume` frame (Contract C).
- * `resync` / `delta` are the durable gap-repair half of the contract:
- *  - `resync: false` + `delta` = the contiguous ≤500-message backlog after the
- *    client's cursor (oldest-first); the client APPLIES the delta and advances its
- *    cursor to `lastMessageSeq` — a missed broadcast is never permanent.
- *  - `resync: true` = the gap exceeds the backlog (or the client sent no cursor);
- *    the client DROPS its local tail and re-pages history from the top.
- * Both are OPTIONAL/absent on a pre-contract DO (treated as `resync: true`, empty
- * delta — the safe re-page path) so a stale worker can't leave a client stuck.
- */
 export interface WireChannelSnapshot {
   lastMessageSeq: number;
   readSeq: number;
@@ -78,41 +27,22 @@ export interface WireChannelSnapshot {
   delta?: WireMessageRow[];
 }
 
-/** A registry entry in the inbox snapshot (the worker runtime's registry entry). */
 export interface WireRegistryEntry {
   channelRef: string;
   kind: string;
   state: 'active' | 'tombstoned';
   registryVersion: number;
-  /**
-   * The conversation this entry is — the OPENABLE identity for the inbox view (the
-   * `channelRef` is an opaque registry key). The app maps it back to its own
-   * conversation; absent, the entry offers no open action.
-   */
   ref?: ChatConversationRef | null;
-  /**
-   * Per-entry unread flag (drives the per-row dot). Optional/absent until the inbox
-   * DO populates it; `deriveUnreadRefs` reads it as a typed field (no cast).
-   */
   unread?: boolean;
-  /**
-   * Archived state — DISTINCT from `tombstoned`. An archived row is still an ACTIVE
-   * membership (`state: 'active'`, history readable) but is grouped under the inbox
-   * view's Archived toggle instead of the active list. The client must NOT count
-   * archived rows in the unread roll-up (archive = done; the DO clears unread on
-   * archive). Optional/absent on a pre-archive DO (treated as not-archived).
-   */
   archived?: boolean;
 }
 
-/** The inbox snapshot payload pushed on connect / `resume` / live delta. */
 export interface WireInboxSnapshot {
   registry: WireRegistryEntry[];
   hasUnread: boolean;
 }
 
-// ---- server → client frame payloads (discriminated on `type`) ----
-
+// Chat frames carry `type`, not realtime-core's `kind`: the deployed Worker emits and reads `type`.
 export type ServerFrame =
   | { type: 'message'; payload: { message: WireMessageRow } }
   | { type: 'ack'; payload: { clientMessageId?: string; seq?: number; readSeq?: number } }
@@ -120,33 +50,19 @@ export type ServerFrame =
   | { type: 'presence'; payload: { online: string[] } }
   | { type: 'typing'; payload: { uid: string; at: number } }
   | { type: 'snapshot'; payload: WireChannelSnapshot | WireInboxSnapshot }
-  // A standalone unread push (inbox scope): either a full inbox snapshot or a
-  // lightweight dock-dot patch. Represented in the union so the inbox client routes
-  // it instead of silently dropping it (forward-compatible with a future DO push).
   | { type: 'unread'; payload: WireInboxSnapshot | { hasUnread: boolean } }
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
-  // The inbox runtime's correlated answer to one `mark-read`.
   | { type: 'mark-read-result'; payload: ChatMarkReadResultPayload }
-  // A CORRELATED send rejection (SERVER_KINDS.SEND_REJECTED): names the SAME
-  // clientMessageId as the rejected send + the canonical retry classification, so
-  // exactly one optimistic bubble is failed/retried. See ChatSendRejectedPayload.
   | { type: 'send-rejected'; payload: ChatSendRejectedPayload }
-  // A moderation revision was applied to one message. The Channel DO broadcasts
-  // this on a NEWLY-applied revision (the worker runtime's moderation apply) so live
-  // viewers hide/blank/edit/restore the message immediately with no extra fetch.
-  // `messageSeq` is the target message id; `kind` is the applied revision kind;
-  // `messageRevision` is its per-message revision number (max-revision wins).
   | {
       type: 'revision';
       payload: { messageSeq: number; kind: RevisionKind; messageRevision: number };
     };
 
-/** Build an outbound `{ v, type, payload }` frame (the wire format the DO reads). */
 export function buildFrame(type: string, payload: Record<string, unknown>): string {
   return JSON.stringify({ v: CHAT_WIRE_VERSION, type, payload });
 }
 
-/** Parse an inbound frame, tolerating malformed JSON. Returns null on garbage. */
 export function parseFrame(
   raw: string,
 ): { v?: number; type?: string; payload?: Record<string, unknown> } | null {
@@ -159,7 +75,6 @@ export function parseFrame(
   }
 }
 
-/** A snapshot with `registry` is an inbox snapshot; one with `lastMessageSeq` is a channel snapshot. */
 export function isInboxSnapshot(
   p: WireChannelSnapshot | WireInboxSnapshot,
 ): p is WireInboxSnapshot {

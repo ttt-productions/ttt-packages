@@ -1,6 +1,3 @@
-// A file as every guard sees it, over a loader: its text, its comment-stripped code, and its parse are
-// each produced once, on first use. Pure — the reader supplies a loader that reads the disk.
-
 import ts from 'typescript';
 import { kindOfFile, type FileKind, type RootRole } from '../node/layout.js';
 import { moduleImports, type ModuleImport } from '../support/imports.js';
@@ -10,34 +7,18 @@ import {
   stripStylesheetComments,
 } from './strip-comments.js';
 
-/**
- * What a file is to the reader: a declared root's role, a file an installed package ships, or a
- * named file outside every root.
- */
 export type FileRole = RootRole | 'installed' | 'repository';
 
-/** One file as every guard sees it. Each view is built once per reader and shared. */
 export interface FileView {
-  /** Repo-relative, forward-slashed. */
   readonly path: string;
   readonly role: FileRole;
-  /** The root's name: the role itself, a Worker tree's declared name, or an installed package's name. */
   readonly rootName: string;
   readonly kind: FileKind;
   readonly isTest: boolean;
-  /** The file's text as it is on disk. */
   readonly text: string;
-  /** The text with comments blanked (code, stylesheets, rules files); other kinds read as their text. */
   readonly code: string;
-  /** The parsed file, for code and declarations. */
   readonly sourceFile: ts.SourceFile;
-  /**
-   * Every place the file names a module, read from its parse in source order: imports, re-exports,
-   * dynamic `import()`, `require()`, test-runner mocks, and type-position imports, with the names
-   * each binds. Code and declarations only; any other kind throws, as `sourceFile` does.
-   */
   readonly imports: readonly ModuleImport[];
-  /** The 1-based line of an index into `text` or `code`. */
   lineOf(index: number): number;
 }
 
@@ -54,7 +35,6 @@ function lineStartsOf(text: string): number[] {
   return starts;
 }
 
-/** A file view over a loader: text, stripped code, and the parse are each produced once, on first use. */
 export function buildView(input: {
   path: string;
   role: FileRole;
@@ -121,10 +101,6 @@ export function buildView(input: {
   };
 }
 
-/**
- * A view of text that is not on disk — a guard's sample, or a package self-test's input — built
- * exactly as the reader builds a file's view. Its kind comes from the path's name.
- */
 export function viewOfText(
   relPath: string,
   text: string,

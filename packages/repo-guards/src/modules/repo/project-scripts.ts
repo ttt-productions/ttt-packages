@@ -1,9 +1,3 @@
-// A script that brings up the Admin SDK reaches a real project's data with no rules, wrapper, or
-// audit between the command and the data. It takes its target project as an argument with no
-// default — a project id written into the source turns "I ran the script" into "I ran it against
-// production" — and it reaches collections through the declared builders or by discovering them,
-// never through a path written into the source.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
@@ -12,9 +6,7 @@ import { escapeRegExp } from '../../support/text.js';
 import { namesProblem, objectProblem } from '../../support/facts.js';
 
 export interface ProjectScriptFacts {
-  /** The app's real project ids — none may be written into a privileged script. */
   projectIds: readonly string[];
-  /** Scripts known to bring up the Admin SDK; each must still be recognised as one. */
   privilegedScripts: readonly string[];
 }
 
@@ -26,7 +18,6 @@ const PATH_LITERAL =
 
 export const isPrivilegedScript = (file: FileView) => PRIVILEGED_CLIENT.test(file.code);
 
-/** Every place a privileged script names a project or writes a collection path. */
 export function projectScriptFindings(file: FileView, projectIds: readonly string[]): Finding[] {
   if (!isPrivilegedScript(file)) return [];
   const findings: Finding[] = [];

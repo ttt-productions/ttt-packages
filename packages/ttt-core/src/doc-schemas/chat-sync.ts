@@ -1,12 +1,3 @@
-// Chat realtime SYNC / projection / command Firestore schemas (chat-edge-rebuild P1).
-// The chat sync / projection / command (Firestore-side) field lists are FROZEN
-// here — this file is their single source; the durable design owner is ttt-prod
-// docs/design/chat-realtime-system.md. All of these collections are Admin-SDK-only
-// (`allow read, write: if false`). Per the TTT timestamp convention every time
-// field is epoch-ms `number`; the SINGLE exception is the native-TTL `expireAt`,
-// which is a real Firestore `Timestamp` (modeled as `unknown` so the drift-check
-// does not false-flag a Timestamp object against `z.number()`).
-
 import { z } from 'zod';
 import {
   CHAT_OUTBOX_COMMAND_KINDS,
@@ -16,11 +7,10 @@ import {
 import { systemRoleSchema } from '../schemas/atoms.js';
 import { GUILD_CHAT_CONVERSATION_KINDS } from '../ids/guild-chat-conversation.js';
 
-/** Native-TTL field — a real Firestore Timestamp (NOT epoch-ms). Absent until the terminal that sets TTL. */
+// Native TTL needs a real Firestore Timestamp, not epoch ms; `unknown` so the drift-check does not
+// flag it against `z.number()`.
 const expireAtField = z.unknown().optional();
 
-// ── chatChannelAuthProjections/{authPairKey} ────────────────────────────────
-// Per-(user, channel) authorization FACT. Absent ⇒ removed/deny (fail-closed).
 export const ChatChannelAuthProjectionSchema = z.object({
   channelRefScope: z.enum(GUILD_CHAT_CONVERSATION_KINDS),
   workProjectId: z.string().nullable(),
@@ -32,18 +22,13 @@ export const ChatChannelAuthProjectionSchema = z.object({
   channelAuthVersion: z.number(),
   inputFingerprint: z.string(),
   updatedAt: z.number(),
-  // Reconcile cursor — advanced on every reconciler visit, including a no-op one, so a stuck
-  // window rotates. Absent until the reconciler first reaches the projection.
   lastReconciledAt: z.number().optional(),
 });
 export type ChatChannelAuthProjection = z.infer<typeof ChatChannelAuthProjectionSchema>;
 
-// ── chatScopeDegraded/{scopeKey} (+ causes/{causeId}) ───────────────────────
-// Exists IFF unresolvedCauseCount > 0. Grant mints fail closed while it exists.
 export const ChatScopeDegradedSchema = z.object({
   scopeKey: z.string(),
   scopeKind: z.enum(['channel', 'memberInWork']),
-  // channel scope carries the channelRef tuple; memberInWork carries {uid, workProjectId}.
   workProjectId: z.string().nullable(),
   guildChatChannelId: z.string().nullable(),
   guildInviteId: z.string().nullable(),
@@ -61,11 +46,9 @@ export const ChatScopeDegradedCauseSchema = z.object({
 });
 export type ChatScopeDegradedCause = z.infer<typeof ChatScopeDegradedCauseSchema>;
 
-// ── chatSyncEvents/{eventId} ────────────────────────────────────────────────
 export const ChatSyncEventSchema = z.object({
   eventId: z.string(),
   targetDo: z.string(),
-  // The room applies only the chat-schemas apply kinds, so a row holds nothing else.
   kind: z.enum(CHAT_SYNC_APPLY_KINDS),
   version: z.number(),
   payload: z.record(z.string(), z.unknown()).nullable(),
@@ -83,10 +66,6 @@ export const ChatSyncEventSchema = z.object({
 });
 export type ChatSyncEvent = z.infer<typeof ChatSyncEventSchema>;
 
-// ── chatSyncFanoutJobs/{jobId} ──────────────────────────────────────────────
-// The selector is a closed discriminated contract. The worker has different expansion
-// semantics for a Work-channel page, a member-in-Work page, and the fixed two-person
-// invite re-drive; a loose optional bag lets malformed persisted jobs silently wedge.
 const ChatSyncFanoutJobBaseShape = {
   jobId: z.string(),
   causeVersion: z.number(),
@@ -159,7 +138,6 @@ export const ChatSyncFanoutJobSchema = z.discriminatedUnion('selectorKind', [
 ]);
 export type ChatSyncFanoutJob = z.infer<typeof ChatSyncFanoutJobSchema>;
 
-// ── chatMessageOutbox/{commandId} ───────────────────────────────────────────
 export const ChatMessageOutboxSchema = z.object({
   commandId: z.string(),
   kind: z.enum(CHAT_OUTBOX_COMMAND_KINDS),
@@ -177,9 +155,6 @@ export const ChatMessageOutboxSchema = z.object({
 });
 export type ChatMessageOutbox = z.infer<typeof ChatMessageOutboxSchema>;
 
-// ── chatAdminActionCommands/{requestId} ─────────────────────────────────────
-// `requestId` IS the doc id + DO dedup key. `delivering` is NOT a lease (it sets
-// nextAttemptAt = now + DELIVERY_TIMEOUT). terminalFailureGeneration default 0.
 export const ChatAdminActionCommandSchema = z.object({
   requestId: z.string(),
   actorUid: z.string(),
@@ -192,9 +167,6 @@ export const ChatAdminActionCommandSchema = z.object({
   reason: z.string(),
   expectedMessageRevision: z.number(),
   payloadHash: z.string(),
-  // `safetyRepair` is the NONTERMINAL stall loop: a RESERVED command whose reconcile
-  // leg (PROBE → FINALIZE) failed past ADMIN_COMMAND_MAX_ATTEMPTS. Drained like
-  // `delivering`; never dead-letters.
   state: z.enum(['queued', 'delivering', 'safetyRepair', 'applied', 'failed', 'deadLetter']),
   attemptCount: z.number(),
   nextAttemptAt: z.number(),
@@ -209,31 +181,12 @@ export const ChatAdminActionCommandSchema = z.object({
   reconciled: z.boolean(),
   reconciledAt: z.number().nullable(),
   safetyRepair: z.boolean(),
-  // Monotonic counter of distinct entries into the safety-repair loop — keys the
-  // per-entry idempotent failure audit.
   safetyRepairGeneration: z.number(),
-  // Failed reconcile passes on an already-reserved command. Separate from
-  // `attemptCount` (delivery attempts, which dead-letter); at the cap it escalates
-  // once into `safetyRepair` instead of dead-lettering.
   reconcileAttemptCount: z.number(),
   expireAt: expireAtField,
 });
 export type ChatAdminActionCommand = z.infer<typeof ChatAdminActionCommandSchema>;
 
-// ── chatHistoryAnonymizationJobs/{jobId} ────────────────────────────────────
-// Account-deletion history anonymization (Contract F; P8). Resumable + crash-safe:
-// the recorded source-manifest identity (key/hash/generation) + the three cursors
-// (scan/rewrite/delete) make every boundary restartable. jobId =
-// hash('chat-anonymize', channelDoId, epoch, anonymizedUid). `expireAt` (native TTL)
-// is set ONLY when the job reaches `done`.
-//
-// C-B1: the replacement generation is DO-OWNED — the Channel DO (single-threaded per
-// channel) allocates a DISTINCT monotonic generation per erasure off the epoch row and
-// rewrites against the CURRENT live manifest, so two erasures on one epoch chain instead
-// of colliding on a shared `anon-1` keyspace. These four fields are therefore RECORDED AT
-// SCAN (null until the DO reports/allocates them), not pinned at enqueue; if a concurrent
-// anonymization supersedes the source between scan and swap, the job resets to `scanning`
-// to re-derive against the new current manifest (keeping its own allocated generation).
 export const ChatHistoryAnonymizationJobSchema = z.object({
   jobId: z.string(),
   channelDoId: z.string(),
@@ -259,9 +212,6 @@ export const ChatHistoryAnonymizationJobSchema = z.object({
 });
 export type ChatHistoryAnonymizationJob = z.infer<typeof ChatHistoryAnonymizationJobSchema>;
 
-// ── chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal} ───────
-// The non-contiguous affected-chunk set (round-16 finding 7) — a crash after the
-// manifest swap resumes deletion from these rows + `deleteCursor` without re-listing R2.
 export const ChatHistoryAnonymizationAffectedChunkSchema = z.object({
   chunkOrdinal: z.number(),
   sourceChunkKey: z.string(),
@@ -275,14 +225,6 @@ export type ChatHistoryAnonymizationAffectedChunk = z.infer<
   typeof ChatHistoryAnonymizationAffectedChunkSchema
 >;
 
-// ── chatParkedDeliveries/{deliveryId} ───────────────────────────────────────
-// One delivery a chat room parked in its own outbox, as the room reported it through its signed
-// call (the report's fields, from the chat contract), plus the server-side replay ledger. The row
-// is created `deadLetter` (create-if-absent on `chatParkedDeliveryId`), so it lists with every
-// other dead-lettered row; an operator replay resets it to `pending` (the generic ledger reset —
-// `attemptCount`, `nextAttemptAt`, `lastError`, `deadLetteredAt`, `expireAt`); the server's replay
-// drain asks the room to requeue it and marks it `delivered` (and sets `expireAt`) on a `requeued`
-// or `not-parked` answer, or parks it `deadLetter` again once its own retries run out.
 export const CHAT_PARKED_DELIVERY_STATUSES = ['deadLetter', 'pending', 'delivered'] as const;
 export const ChatParkedDeliverySchema = ChatParkedDeliveryReportSchema.extend({
   status: z.enum(CHAT_PARKED_DELIVERY_STATUSES),

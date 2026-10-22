@@ -1,6 +1,3 @@
-// The tooling hands a shell one command string, so every token it joins must be one cmd.exe and sh
-// read literally; a token that is not is refused before anything runs.
-
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

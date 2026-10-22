@@ -26,16 +26,8 @@ import {
   PublicDocumentsRefreshRequiredResultSchema,
 } from './public-documents.js';
 
-/** The ONE display-name field schema, over its declaration (`USERNAME_INPUT`). Every callable
- * accepting a display name uses this — never a re-composed copy. */
 export const displayNameSchema = textFieldSchema(USERNAME_INPUT);
 
-/**
- * A date of birth's fields with no bounds at all — for the registration age step, which must answer
- * a malformed or out-of-range date exactly as it answers an under-13 one. A bound here would refuse
- * that date as a distinguishable bad request and reveal which answer the date got; the range checks
- * belong to `deriveAgeBracket`, whose `invalid` the route maps to the same refusal.
- */
 export const DateOfBirthShapeSchema = z
   .object({
     year: z.number(),
@@ -44,10 +36,6 @@ export const DateOfBirthShapeSchema = z
   })
   .strict();
 
-/**
- * A date of birth as a form submits it — whole-number parts, month 1–12, day 1–31. Only the shape:
- * whether it is a real, past date and which bracket it gives is `deriveAgeBracket`'s to decide.
- */
 export const DateOfBirthSchema = DateOfBirthShapeSchema.extend({
   year: z.number().int(),
   month: z.number().int().min(1).max(12),
@@ -55,7 +43,6 @@ export const DateOfBirthSchema = DateOfBirthShapeSchema.extend({
 });
 export type DateOfBirth = z.infer<typeof DateOfBirthSchema>;
 
-/** Every box of one agreement surface, each required ticked: `{ [id]: true }` for every id. */
 function everyAgreementTicked<const Id extends string>(ids: readonly Id[]) {
   return z
     .object(
@@ -64,7 +51,6 @@ function everyAgreementTicked<const Id extends string>(ids: readonly Id[]) {
     .strict();
 }
 
-/** The Square first-post boxes, each ticked, under the wording version the form showed. */
 export const AcceptSquareStreetzAgreementsInputSchema = z
   .object({
     agreements: everyAgreementTicked(SQUARE_STREETZ_AGREEMENT_IDS),
@@ -83,19 +69,10 @@ export type AcceptSquareStreetzAgreementsResult = z.infer<
   typeof AcceptSquareStreetzAgreementsResultSchema
 >;
 
-/**
- * `social.squareStreetzAgreementsAccepted` — the `metadata` of the event written with the
- * private acceptance record. The card incorporates the Rules & Agreements page by reference, so
- * the version is that page's: `acceptedVersion` is the one this acceptance recorded (0 while no
- * Rules version is published), and `previousAcceptedVersion` the one the record held before,
- * null when none was recorded (the first acceptance). The actor and server time ride the event
- * envelope.
- */
 export const SquareStreetzAgreementsAcceptedAuditPayloadSchema = z
   .object({
     acceptedVersion: PublicDocumentVersionOrNoneSchema,
     previousAcceptedVersion: PublicDocumentVersionOrNoneSchema.nullable(),
-    /** The wording version of the boxes ticked (SQUARE_STREETZ_AGREEMENTS_VERSION). */
     agreementsWordingVersion: z.number().int().positive(),
   })
   .strict();
@@ -103,8 +80,6 @@ export type SquareStreetzAgreementsAcceptedAuditPayload = z.infer<
   typeof SquareStreetzAgreementsAcceptedAuditPayloadSchema
 >;
 
-// One-time acknowledgement before a member may download Hall content for personal offline use.
-// The callable records the time and the wording version in the caller's privateData.
 export const AcceptHallDownloadAcknowledgementInputSchema = z
   .object({
     acknowledgementVersion: z.literal(HALL_DOWNLOAD_ACKNOWLEDGEMENT_VERSION),
@@ -122,19 +97,9 @@ export type AcceptHallDownloadAcknowledgementResult = z.infer<
   typeof AcceptHallDownloadAcknowledgementResultSchema
 >;
 
-// Becoming an Artisan: the person's Yes to ARTISAN_CREATOR_US_PERSON_QUESTION, their date of
-// birth, and every become-an-Artisan box ticked under the wording version the dialog showed. The
-// callable records the answer, the date, and the version with the grant.
 export const BecomeArtisanCreatorInputSchema = z
   .object({
-    // Only U.S. persons may become Artisans; a No leads to the regional interest list instead, so
-    // the only answer this callable takes is Yes.
     livesInUnitedStates: z.literal(true),
-    // The ONLY point in the system where a DOB is collected for persistence (registration derives
-    // the bracket and stores nothing). It must be the person's own: it is checked against their
-    // payout (KYC) identity. The callable re-derives 18+ from it; an under-18 date is refused
-    // (failure audit, nothing stored). Stored as privateData attestedDateOfBirth +
-    // attestedDobSource 'artisanOnboarding'.
     dob: DateOfBirthSchema,
     agreements: everyAgreementTicked(ARTISAN_CREATOR_AGREEMENT_IDS),
     agreementsVersion: z.literal(ARTISAN_CREATOR_AGREEMENTS_VERSION),
@@ -159,22 +124,11 @@ export type MarkWaitingForNewsApprovalResult = z.infer<
   typeof MarkWaitingForNewsApprovalResultSchema
 >;
 
-// First-visit site-tour preference writer (updateSiteTourPreference). This is the ONE
-// server writer for `privateData/{uid}.siteTour`; the client never writes tour state
-// directly. Discriminated on `action`:
-//  - deferToday: records the member's LOCAL calendar `date` ("Not today"); the automatic
-//    invitation is suppressed for exactly that date.
-//  - dismissAutomaticInvites: records the permanent "Don't show this again" time; no payload.
-//  - completeTour: records completion; the callable stamps SITE_TOUR_CURRENT_VERSION and
-//    completedAt server-side, so no version is accepted from the client (mirrors the
-//    acknowledgement callables that record the authoritative value server-side rather than
-//    trusting a client-supplied one). Bump SITE_TOUR_CURRENT_VERSION to re-invite everyone.
-// `date` uses the same strict YYYY-MM-DD convention as the age cluster's attestedDateOfBirth.
 export const UpdateSiteTourPreferenceInputSchema = z.discriminatedUnion('action', [
   z
     .object({
       action: z.literal('deferToday'),
-      date: calendarDateSchema, // 'YYYY-MM-DD' (member's LOCAL calendar date)
+      date: calendarDateSchema,
     })
     .strict(),
   z
@@ -195,32 +149,6 @@ export const UpdateSiteTourPreferenceResultSchema = z.object({
 });
 export type UpdateSiteTourPreferenceResult = z.infer<typeof UpdateSiteTourPreferenceResultSchema>;
 
-// The device-local shape behind the ONE sanctioned optimistic-hide exception: a site-tour choice
-// the member has already made, persisted at `siteTourPendingStorageKey(uid)`
-// (constants/storage-keys.ts) while its `updateSiteTourPreference` write is unconfirmed. It exists
-// so the overlay can close on the click instead of after a callable round-trip, and so a failed
-// write is replayed on the next boot rather than silently lost.
-//
-// It is NOT a cache, mirror, or second authority: `privateData/{uid}.siteTour` remains the sole
-// source of tour eligibility, and this entry only OVERLAYS it (suppressing an invitation the member
-// has already dismissed) until the server state converges.
-//
-// Every field is load-bearing against a specific failure:
-//  - `schemaVersion` lets a future shape change be recognized instead of silently mis-parsed.
-//  - `id` is the compare-and-remove token: on callable success the owner removes the entry ONLY if
-//    the stored id still matches the one it sent, so a slow response in tab A can never erase a
-//    newer choice made in tab B.
-//  - `uid` must equal the authenticated key owner before the entry may affect eligibility or be
-//    replayed — defence in depth behind the uid-scoped key itself.
-//  - `createdAt` is epoch ms, for ordering/diagnostics only; it is never an expiry.
-//  - `completeTour` carries the `tourVersion` the member actually completed. On reconciliation an
-//    entry whose version differs from SITE_TOUR_CURRENT_VERSION is STALE and is discarded, so an
-//    old pending completion can never complete a newer tour. The callable payload stays
-//    version-free (the server stamps the authoritative version) — this is a replay guard, not
-//    server authority.
-//
-// STRICT and fully validated on read: malformed or unknown persisted data is removed and
-// eligibility falls back to the server. Invalid storage must never hide the tour forever.
 export const SiteTourPendingPreferenceSchema = z.discriminatedUnion('action', [
   z
     .object({
@@ -229,7 +157,7 @@ export const SiteTourPendingPreferenceSchema = z.discriminatedUnion('action', [
       uid: userIdSchema,
       createdAt: z.number(),
       action: z.literal('deferToday'),
-      date: calendarDateSchema, // 'YYYY-MM-DD' (member's LOCAL calendar date)
+      date: calendarDateSchema,
     })
     .strict(),
   z
@@ -254,10 +182,6 @@ export const SiteTourPendingPreferenceSchema = z.discriminatedUnion('action', [
 ]);
 export type SiteTourPendingPreference = z.infer<typeof SiteTourPendingPreferenceSchema>;
 
-// Non-U.S. artisan-interest signup (the FCFS "waitlist" fields on privateData). Mirrors
-// MarkWaitingForNewsApproval but carries the applicant's country (+ optional region) so signups
-// can be opened by jurisdiction as each region's laws clear. The callable records it ONLY for
-// adult accounts (never a minor's location).
 export const MarkNonUsArtisanInterestInputSchema = z
   .object({
     country: z.string().min(1).max(MAX_ARTISAN_LOCATION_LENGTH),
@@ -282,23 +206,14 @@ export const RegisterUserInputSchema = z
       })
       .strict(),
     agreementsVersion: z.literal(REGISTRATION_AGREEMENTS_VERSION),
-    // The public-document versions the signup page SHOWED when the person agreed: every published
-    // document at its current version, `changedPublicDocuments(block, undefined)` off the live
-    // `_appConfig/app` version block. Empty before the first release (the first-admin bootstrap).
-    // Registration re-reads the block in its transaction and answers `refreshRequired`, writing
-    // nothing, when a publish raced the page — the same comparison the acceptance prompt's Accept makes.
     publicDocuments: ShownPublicDocumentVersionsSchema,
   })
   .strict();
 export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
 
 export const RegisterUserResultSchema = z.discriminatedUnion('status', [
-  // The account is registered with the documents shown accepted (or already was — an idempotent
-  // replay). Refresh the token: the `docsAccepted` claim was set after the commit.
   z.object({ status: z.literal('registered') }),
   PublicDocumentsRefreshRequiredResultSchema,
-  // The orphan-registration cleanup claimed this login for deletion after its grace window, so the
-  // registration cannot finish on it; nothing is written and the person signs up again.
   z.object({ status: z.literal('registrationExpired') }),
 ]);
 export type RegisterUserResult = z.infer<typeof RegisterUserResultSchema>;
@@ -307,9 +222,6 @@ export const SetUserStatusInputSchema = z
   .object({
     userId: userIdSchema,
     status: UserAccountStatusSchema,
-    // Required by the callable when status is 'suspended' or 'banned' (shown to the
-    // user in their restricted view and recorded on the audit event). Optional here
-    // so reinstating to 'active' can omit it; the callable enforces presence.
     reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT).optional(),
   })
   .strict();
@@ -322,12 +234,9 @@ export const SetUserStatusResultSchema = z.object({
 });
 export type SetUserStatusResult = z.infer<typeof SetUserStatusResultSchema>;
 
-// Admin forces an abusive display name off a user: the name is swapped to a neutral
-// placeholder, the old name is blocked from reuse, and the user must pick a new one.
 export const ForceDisplayNameResetInputSchema = z
   .object({
     userId: userIdSchema,
-    // Optional admin note recorded on the audit event.
     reason: textFieldSchema(DISPLAY_NAME_RESET_REASON_INPUT).optional(),
   })
   .strict();
@@ -339,9 +248,6 @@ export const ForceDisplayNameResetResultSchema = z.object({
 });
 export type ForceDisplayNameResetResult = z.infer<typeof ForceDisplayNameResetResultSchema>;
 
-// An admin closes an existing account found to belong to someone under 13 (COPPA). Strict, so it
-// never accepts a date of birth or any other new personal information about the child. The reason
-// is required: it is the recorded basis for an irreversible closure.
 export const CloseAccountUnder13InputSchema = z
   .object({
     userId: userIdSchema,
@@ -350,9 +256,6 @@ export const CloseAccountUnder13InputSchema = z
   .strict();
 export type CloseAccountUnder13Input = z.infer<typeof CloseAccountUnder13InputSchema>;
 
-/** What an under-13 closure did with the account's data: `scrubbed` — erased now; `parked` — a
- *  safety lock holds it, and it is erased when the hold clears. The callable's answer and its audit
- *  event both record it. */
 export const CloseAccountUnder13OutcomeSchema = z.enum(['scrubbed', 'parked']);
 export type CloseAccountUnder13Outcome = z.infer<typeof CloseAccountUnder13OutcomeSchema>;
 
@@ -362,8 +265,6 @@ export const CloseAccountUnder13ResultSchema = z.object({
 });
 export type CloseAccountUnder13Result = z.infer<typeof CloseAccountUnder13ResultSchema>;
 
-// User completes a forced display-name reset by choosing a new name. Only honored while
-// the caller's userProfiles doc has `displayNameResetRequired === true`.
 export const SetMyDisplayNameInputSchema = z
   .object({
     displayName: displayNameSchema,
@@ -376,9 +277,6 @@ export const SetMyDisplayNameResultSchema = z.object({
 });
 export type SetMyDisplayNameResult = z.infer<typeof SetMyDisplayNameResultSchema>;
 
-// Unauthenticated soft-check the register page runs BEFORE creating the Auth user so a
-// taken name never orphans an auth account. The authoritative claim happens inside
-// registerUser, over the same `displayNameSchema`.
 export const CheckDisplayNameAvailableInputSchema = z
   .object({
     displayName: displayNameSchema,
@@ -386,8 +284,6 @@ export const CheckDisplayNameAvailableInputSchema = z
   .strict();
 export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvailableInputSchema>;
 
-/** Why a display name cannot be had: another account holds it, it is reserved, or the word list
- *  refuses it. */
 export const DISPLAY_NAME_UNAVAILABLE_REASONS = ['taken', 'reserved', 'disallowed'] as const;
 export const DisplayNameUnavailableReasonSchema = z.enum(DISPLAY_NAME_UNAVAILABLE_REASONS);
 export type DisplayNameUnavailableReason = z.infer<typeof DisplayNameUnavailableReasonSchema>;
@@ -398,9 +294,6 @@ export const CheckDisplayNameAvailableResultSchema = z.object({
 });
 export type CheckDisplayNameAvailableResult = z.infer<typeof CheckDisplayNameAvailableResultSchema>;
 
-// Teen→adult upgrade: a transient DOB (never persisted) the callable re-derives adult
-// eligibility from server-side against a fresh attestation. Only the shape is validated
-// here; the age math + attestation binding live in the callable.
 export const UpgradeAccountToAdultInputSchema = z
   .object({
     dob: DateOfBirthSchema,
@@ -414,9 +307,6 @@ export const UpgradeAccountToAdultResultSchema = z.object({
 });
 export type UpgradeAccountToAdultResult = z.infer<typeof UpgradeAccountToAdultResultSchema>;
 
-// Admin-only user lookup for the User Management view (prefix search on publicUsers by
-// displayName). Only the trimmed query string is validated here; authz (admin/jr-admin)
-// lives in the callable.
 export const SearchPublicUsersInputSchema = z
   .object({
     query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH),
@@ -426,11 +316,6 @@ export type SearchPublicUsersInput = z.infer<typeof SearchPublicUsersInputSchema
 
 export type SearchPublicUsersResult = { users: PublicUserSearchResult[] };
 
-// Admin exact-account lookup ("look up by email or uid" in User Management): a solo full
-// admin resolves ONE account by its exact email, uid, or display name. The app detects
-// email-vs-uid-vs-name both client- and server-side, so there is ONE query field (mirrors
-// SearchPublicUsersInput's single trimmed-query shape + bound). Only the trimmed query is
-// validated here; authz (full admin) lives in the callable.
 export const LookupUserByEmailOrUidInputSchema = z
   .object({
     query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH),
@@ -438,17 +323,11 @@ export const LookupUserByEmailOrUidInputSchema = z
   .strict();
 export type LookupUserByEmailOrUidInput = z.infer<typeof LookupUserByEmailOrUidInputSchema>;
 
-/** A full email address — the exact-match lookup resolves it through Auth's email index. */
 export const USER_LOOKUP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-/** A Firebase Auth uid: 28 letters and digits. */
 export const USER_LOOKUP_UID_PATTERN = /^[A-Za-z0-9]{28}$/;
 
-/** Which search an admin's user query runs: a full email or a uid is an exact lookup; anything
- *  else is the display-name prefix search. */
 export type UserSearchKind = 'email' | 'uid' | 'name';
 
-/** The one routing of an admin user query — the User Management search box and the lookup
- *  callable's choice of Auth method both read it. */
 export function detectUserSearchKind(query: string): UserSearchKind {
   const trimmed = query.trim();
   if (USER_LOOKUP_EMAIL_PATTERN.test(trimmed)) return 'email';
@@ -456,8 +335,6 @@ export function detectUserSearchKind(query: string): UserSearchKind {
   return 'name';
 }
 
-/** One account the exact-match lookup resolved. Carries the owner-only email (the lookup is
- *  full-admin only) and the account's admin standing alongside its status tier. */
 export const AdminUserLookupResultSchema = z.object({
   uid: z.string(),
   displayName: z.string(),
@@ -467,19 +344,14 @@ export const AdminUserLookupResultSchema = z.object({
 });
 export type AdminUserLookupResult = z.infer<typeof AdminUserLookupResultSchema>;
 
-/** The `lookupUserByEmailOrUid` callable's result: the single exact match, or `null` when no
- *  account resolves. */
 export const LookupUserByEmailOrUidResultSchema = z.object({
   user: AdminUserLookupResultSchema.nullable(),
 });
 export type LookupUserByEmailOrUidResult = z.infer<typeof LookupUserByEmailOrUidResultSchema>;
 
-// Account deletion — the two user-facing callables, neither of which takes any input.
 export const RequestAccountDeletionResultSchema = z.object({
   success: z.literal(true),
-  /** When the scheduled scrub will run (requestedAt + the grace window), epoch ms. */
   scheduledScrubAt: z.number(),
-  /** True when an ACTIVE request already existed and its schedule was re-returned. */
   alreadyPending: z.boolean(),
 });
 export type RequestAccountDeletionResult = z.infer<typeof RequestAccountDeletionResultSchema>;
@@ -492,7 +364,6 @@ export type CancelAccountDeletionInput = z.infer<typeof CancelAccountDeletionInp
 
 export const CancelAccountDeletionResultSchema = z.object({
   success: z.literal(true),
-  /** False when there was no active request to cancel (idempotent no-op). */
   cancelled: z.boolean(),
 });
 export type CancelAccountDeletionResult = z.infer<typeof CancelAccountDeletionResultSchema>;

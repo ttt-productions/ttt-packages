@@ -1,7 +1,3 @@
-// The environment-parity production build: derive the App Hosting BUILD environment for
-// `--environment <develop|production>` and run `npm run build` with it, or with `--print-only`
-// stop after the derivation (it fails closed exactly as the build would, without compiling).
-
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -39,7 +35,6 @@ export function runAppHostingBuild({
     throw error;
   }
 
-  // NAMES only: a build-time value is not a secret, but the export step never prints values.
   console.log(
     `apphosting-build-env: ${environment} exports ${Object.keys(env).length} BUILD variable(s): ${Object.keys(env).sort().join(', ')}`,
   );

@@ -3,13 +3,9 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// Controllable firebase/firestore mock: capture the snapshot/error callbacks so
-// tests can emit listener errors and recovery snapshots.
 const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
-  // 4-arg form: onSnapshot(ref, options, onNext, onError) — the hooks pass
-  // { includeMetadataChanges: true } as the 2nd argument.
   const onSnapshotMock = vi.fn(
     (
       target: { __kind: 'doc' | 'col' },
@@ -52,7 +48,6 @@ afterEach(() => {
 const unavailable = () => Object.assign(new Error('unavailable'), { code: 'unavailable' });
 const permissionDenied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
 
-/** Fails the latest listener with a denial until the resubscribe ladder is spent and the denial surfaces. */
 function denyUntilSurfaced(caps: Array<{ error: (e: Error) => void }>): Error {
   for (const delay of RESUBSCRIBE_DELAYS_MS) {
     act(() => caps[caps.length - 1].error(permissionDenied()));
@@ -158,8 +153,7 @@ describe('useFirestoreDoc — subscribe:true listener errors', () => {
 
     act(() => docCaps[0].next({ exists: () => false }));
 
-    // Cache-driven updates notify observers asynchronously (no local state
-    // change forces a re-render here), so wait for the observer flush.
+    // Cache-driven updates notify observers asynchronously, so wait for the observer flush.
     await waitFor(() => expect(result.current.data).toBeNull());
     expect(result.current.isError).toBe(false);
   });

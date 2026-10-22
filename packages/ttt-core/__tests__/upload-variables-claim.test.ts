@@ -1,10 +1,3 @@
-// Every file-bearing upload-variables schema carries the optional untrusted
-// `claim` (ClientMediaClaim) so hooks can thread MediaInput's action context to
-// startUpload. Coverage is asserted structurally over every module under
-// `src/upload-variables/`, whatever its name: any `*VariablesSchema` there must
-// have a File field and the claim field, so a new file-bearing hook schema
-// cannot ship without it.
-
 import { readdirSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
@@ -13,12 +6,10 @@ import { UploadProfilePictureVariablesSchema } from '../src/upload-variables/upl
 const FILE_FIELDS = ['file', 'mediaFile', 'videoFile'];
 const VARIABLES_DIR = new URL('../src/upload-variables/', import.meta.url);
 
-// Every module in the folder but the entry index, which only forwards them.
 const variablesModules = readdirSync(VARIABLES_DIR, { recursive: true, encoding: 'utf8' }).filter(
   (file) => file.endsWith('.ts') && !/(^|[\\/])index\.ts$/.test(file),
 );
 
-// A variables schema split by type (a union) is checked option by option.
 function shapesOf(schema: unknown): z.ZodRawShape[] {
   if (schema instanceof z.ZodObject) return [schema.shape];
   if (schema instanceof z.ZodUnion) return schema.options.flatMap(shapesOf);

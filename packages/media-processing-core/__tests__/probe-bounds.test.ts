@@ -12,7 +12,6 @@ import { DEFAULT_PROBE_TIMEOUT_MS } from '../src/video/ffmpeg.js';
 const spawnMock = vi.hoisted(() => vi.fn());
 vi.mock('node:child_process', () => ({ spawn: spawnMock }));
 
-/** An ffprobe that never finishes on its own: only a kill ends it. */
 function hangingChild() {
   const child = Object.assign(new EventEmitter(), {
     stdout: new PassThrough(),
@@ -25,7 +24,6 @@ function hangingChild() {
   return child;
 }
 
-/** `ffmpeg -version` answering at once, so the processors reach their probe. */
 function versionChild() {
   const child = Object.assign(new EventEmitter(), {
     stdout: new PassThrough(),

@@ -8,25 +8,18 @@ export type MaxWidthOption =
   'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full';
 
 export interface ScreenAdaptiveViewProps {
-  /** Default content (mobile + base) */
   children: React.ReactNode;
 
-  /** Optional content to use on lg and up */
   lgContent?: React.ReactNode;
 
-  /** Optional content to use on xl and up */
   xlContent?: React.ReactNode;
 
-  /** Max width applied at lg (>=1024px) */
   lgMaxWidth?: MaxWidthOption;
 
-  /** Max width applied at xl (>=1280px) */
   xlMaxWidth?: MaxWidthOption;
 
-  /** App-only escape hatch (try to avoid) */
   className?: string;
 
-  /** App-only escape hatch (try to avoid) */
   innerClassName?: string;
 }
 
@@ -73,8 +66,7 @@ export function ScreenAdaptiveView({
   const isLg = useMediaQuery('(min-width: 1024px)');
   const isXl = useMediaQuery('(min-width: 1280px)');
 
-  // SSR-safe default: render base children as mobile (no max-width)
-  // After hydration, swaps to lg/xl content if provided.
+  // SSR-safe: base children render until hydration, then lg/xl content swaps in.
   const contentToShow =
     isXl && xlContent !== undefined && xlContent !== null
       ? xlContent

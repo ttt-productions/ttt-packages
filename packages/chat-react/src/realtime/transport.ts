@@ -1,15 +1,3 @@
-// The realtime transport HANDLE the chat-react config carries on the `realtime`
-// transport (`ChatRealtimeTransportConfig.client`). It owns:
-//   - a ChannelClient for the active thread (send/read/typing/presence/history)
-//   - the grant-mint wiring (channel scope) via the injected grantProvider
-//   - auth-user-switch teardown (close every socket before connecting as a new uid)
-//
-// The INBOX socket is created SEPARATELY (one per user, app-wide) via
-// `createInboxClient` — it is not tied to a single thread, so the app owns its
-// lifetime (mount it once at the dock, not per ChatShell). This keeps the channel
-// transport (per-thread) and the inbox transport (per-user) cleanly split, exactly
-// as the worker splits Channel DOs from the Inbox DO.
-
 import {
   ChannelClient,
   type ChannelClientConfig,
@@ -21,14 +9,8 @@ import type { GrantProvider, TransportTimers } from './shared.js';
 import type { ChatClientDiagnosticsOption } from './diagnostics.js';
 import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 
-/**
- * Everything the channel transport needs. The app supplies `grantProvider`
- * (its `mintChatGrant` callable, channel scope) + `endpoint`; `socketFactory`
- * defaults to the real browser WebSocket and is overridden in tests.
- */
 export interface RealtimeTransportConfig {
   endpoint: string;
-  /** The conversation the socket is for, as the app maps it onto the neutral reference. */
   channelRef: ChatConversationRef;
   threadId: string;
   currentUserId: string;
@@ -36,35 +18,20 @@ export interface RealtimeTransportConfig {
   socketFactory?: SocketFactory;
   timers?: TransportTimers;
   reconnect?: ChannelClientConfig['reconnect'];
-  /**
-   * OPT-IN structured client diagnostics, forwarded to the ChannelClient. Absent
-   * or `false` (the default) changes nothing and costs one nullish check; `true`
-   * emits one single-line `console.debug` entry per client DECISION with a stable
-   * `chat_client_*` event name; a function routes those entries into the app's own
-   * logger. Content-free by construction (ids/seqs/states/counts/codes only).
-   */
   diagnostics?: ChatClientDiagnosticsOption;
 }
 
-/**
- * The opaque realtime client handle stored on `ChatRealtimeTransportConfig.client`.
- * The UI hook (`useRealtimeChatMessages`) drives it; the UI never reaches into the
- * socket directly.
- */
 export interface RealtimeChatClient {
   readonly channel: ChannelClient;
   readonly channelRef: ChatConversationRef;
   readonly currentUserId: string;
   connect(): Promise<void>;
-  /** Retry the connection now (the first-open failure's Retry) — see `ChannelClient.retryNow`. */
   retry(): void;
-  /** Tear down every socket (auth-user switch / unmount). Idempotent. */
   close(): void;
   getState(): ChannelClientState;
   subscribe(fn: (s: ChannelClientState) => void): () => void;
 }
 
-/** Create the per-thread realtime client (the value placed on `config.realtime.client`). */
 export function createRealtimeChatClient(config: RealtimeTransportConfig): RealtimeChatClient {
   const channel = new ChannelClient({
     endpoint: config.endpoint,
@@ -89,7 +56,6 @@ export function createRealtimeChatClient(config: RealtimeTransportConfig): Realt
   };
 }
 
-/** Create the per-USER inbox client (mount once at the dock; not per-thread). */
 export function createInboxClient(config: {
   endpoint: string;
   currentUserId: string;
@@ -97,7 +63,6 @@ export function createInboxClient(config: {
   socketFactory?: SocketFactory;
   timers?: TransportTimers;
   reconnect?: InboxClientConfig['reconnect'];
-  /** OPT-IN structured diagnostics, forwarded to the InboxClient (default OFF). */
   diagnostics?: ChatClientDiagnosticsOption;
 }): InboxClient {
   return new InboxClient({

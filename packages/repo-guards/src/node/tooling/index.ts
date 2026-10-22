@@ -1,6 +1,3 @@
-// The repository tooling every app runs — the quiet gate, the release helpers, the post-deploy
-// cloud checks, and the local-stack commands. Each takes the app's facts; runs under Node.
-
 export {
   AppHostingConfigError,
   BASE_CONFIG,

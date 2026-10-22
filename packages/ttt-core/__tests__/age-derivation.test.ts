@@ -74,14 +74,14 @@ describe('deriveAgeBracket', () => {
 
   it('refuses a date that is not a real date of birth', () => {
     for (const dob of [
-      { year: 2000, month: 2, day: 30 }, // impossible calendar date
-      { year: 2001, month: 2, day: 29 }, // not a leap year
+      { year: 2000, month: 2, day: 30 },
+      { year: 2001, month: 2, day: 29 },
       { year: 2000, month: 13, day: 1 },
       { year: 2000, month: 0, day: 1 },
       { year: 2000, month: 1, day: 0 },
       { year: 2000, month: 1, day: 32 },
-      { year: 1899, month: 12, day: 31 }, // before the earliest birth year
-      { year: 2030, month: 6, day: 16 }, // after the day it is judged on
+      { year: 1899, month: 12, day: 31 },
+      { year: 2030, month: 6, day: 16 },
       { year: 2031, month: 1, day: 1 },
       { year: 2000.5, month: 1, day: 1 },
       { year: 2000, month: 1.5, day: 1 },

@@ -1,9 +1,3 @@
-﻿// Content Firestore document SCHEMAS — Tales/Tunes/Television sub-documents, the
-// Threshold + Hall library item shapes, Hall library user preferences, and the
-// `_config` singleton docs (futurePlans, rulesAndAgreements). Types are inferred via
-// z.infer. The enum-key consts (HALL_WING_TYPE_KEYS / WORK_PROJECT_TYPE_KEYS) and the
-// UI-only filter/view types remain in ../types/content.ts.
-
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, RULE_GROUP_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import {
@@ -22,11 +16,6 @@ import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 
-// Per-field moderation text-clear remedy on the in-Work chapter / track / episode sub-items (the
-// published Hall projections declare the same two fields). `moderationClearedFields` lists which
-// text fields (e.g. 'title', 'description', 'content') an admin cleared to a neutral placeholder
-// and which now await steward re-entry; empty/absent when nothing was cleared. `moderationClearedReason` is the operator's reason, surfaced on the member's
-// edit surface. Extends the workProject/workRealm placeholder remedy per-field. Backend-only-writable.
 const moderationClearedFieldsShape = {
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
@@ -34,13 +23,6 @@ const moderationClearedFieldsShape = {
 
 export const ItemsKeySchema = z.enum(['tuneTracks', 'chapters', 'televisionEpisodes']);
 export type ItemsKey = z.infer<typeof ItemsKeySchema>;
-
-// --- WorkProject content sub-docs ---
-
-// A Work has ONE title and ONE description, typed on the Work itself (`workingTitle` /
-// `workingDescription`); the Tale / Tune / Television section doc carries no text of its own —
-// only the covers and genres the Hall entry publishes beside the Work's text. Chapters, tracks,
-// and episodes keep their own titles and text.
 
 export const FullTaleSchema = z.object({
   uid: z.string(),
@@ -116,11 +98,6 @@ export const FullTelevisionEpisodeSchema = z.object({
 });
 export type FullTelevisionEpisode = z.infer<typeof FullTelevisionEpisodeSchema>;
 
-// --- Threshold + Hall library items ---
-
-/** `allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation` — the Work's ONE
- * hall-entry reservation, created (never updated) inside the first threshold submit's
- * transaction; every later submit converges on its `hallItemId`. Backend-only. */
 export const HallSubmissionReservationSchema = z
   .object({
     hallItemId: z.string().min(1),
@@ -143,52 +120,24 @@ export const ThresholdItemSchema = z.object({
   adminNotes: z.string().optional(),
   reviewedAt: z.number().optional(),
   reviewedBy: z.string().optional(),
-  // Parody / real-people AUTHOR ATTESTATION. The submitting artisan
-  // attests at threshold SUBMIT time that this work depicts real people (parody /
-  // satire / commentary); stored with the submission and displayed READ-ONLY to the
-  // reviewer. Admins never set or edit it — a reviewer who believes the flag is
-  // needed and missing sends the item back needs-revision. The disclaimer shown on
-  // published items is the ONE standard platform message
-  // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — there is no free-text disclaimer anywhere.
   hasRealPeople: z.boolean(),
-  // Submission attestations — REQUIRED. The submit core refuses a submission unless the artisan
-  // ticks all five, then stores each as the literal `true` with the moment they were given. A
-  // threshold item without them is not a valid submission.
   attestConsistentFormat: z.literal(true),
   attestNoCredits: z.literal(true),
   attestNoBegging: z.literal(true),
   attestHumanMadeOriginal: z.literal(true),
   attestPublishStewardship: z.literal(true),
   attestedAt: z.number(),
-  // The attestation wording ticked (PUBLISH_ATTESTATIONS_VERSION).
   attestationsVersion: z.number().int().positive(),
-  // The founder legal-review notice acknowledgment given with the attestations, written in the
-  // same submission transaction. Present while the notice is active (the submit core refuses a
-  // submission without the checkbox then); absent when the notice is off.
   legalReviewNotice: LegalReviewNoticeReceiptSchema.optional(),
-  // Reviewer confirmations — stamped `true` together by the APPROVAL write and never otherwise,
-  // so their presence means the item was approved with all four checks confirmed.
   confirmedNoBegging: z.literal(true).optional(),
   confirmedNoCredits: z.literal(true).optional(),
   confirmedConsistentFormat: z.literal(true).optional(),
   confirmedRealPeopleAttestation: z.literal(true).optional(),
-  // Terminal publish PARK. An approved item whose publish stops without publishing (source media
-  // ineligible, a blocking safety hold, a moderation hide landing after approval, an invalid work
-  // type) leaves the threshold doc + admin task in place for operator intervention. Stamping the
-  // reason here lets the admin review work view say WHY the item is sitting there. Optional because
-  // only a park stamps it, and `reviewStatus` keeps its meaning — a park is not a new status.
   publishParkedReason: z.string().max(MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH).optional(),
   publishParkedAt: z.number().optional(),
 });
 export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 
-// --- Published change requests (launch: text-only) ---
-
-/** The published hall-content surfaces whose TEXT fields a change request (and the
- *  moderation text-clear remedy) can target. Detail surfaces live on the hall parent;
- *  sub-item surfaces on the published chapter/track/episode doc; the `workRealm`
- *  surface targets the single `workRealms/{id}` doc (the realm grain of the one
- *  text-change pipeline). */
 export const HallContentTextSurfaceSchema = z.enum([
   ...HALL_CONTENT_DETAIL_SURFACES,
   ...HALL_CONTENT_SUB_ITEM_SURFACES,
@@ -196,19 +145,13 @@ export const HallContentTextSurfaceSchema = z.enum([
 ]);
 export type HallContentTextSurface = z.infer<typeof HallContentTextSurfaceSchema>;
 
-/** The ONE canonical hall sub-item kind (a Tale chapter / Tune track / Television
- * episode) as carried on notification metadata and Streetz post payloads. Distinct
- * from `HallContentTextSurfaceSchema` (which keys text-change surfaces and uses the
- * compound `tuneTrack`/`televisionEpisode` identifiers). Never re-declare inline. */
 export const HallSubItemTypeSchema = z.enum(['chapter', 'track', 'episode']);
 export type HallSubItemType = z.infer<typeof HallSubItemTypeSchema>;
 
-/** The ONE canonical published-hall-item lifecycle status. */
 export const PublishedHallItemStatusSchema = z.enum(['published', 'paused', 'banned']);
 export type PublishedHallItemStatus = z.infer<typeof PublishedHallItemStatusSchema>;
 
-/** A change request's stored `targetKey`: non-empty, and short enough for its equality query to
- *  be exact (an indexed value past Firestore's limit is truncated in the index). */
+// Firestore truncates an indexed value past its limit, which would make the equality query inexact.
 export const hallContentChangeRequestTargetKeySchema = z
   .string()
   .min(1)
@@ -216,45 +159,23 @@ export const hallContentChangeRequestTargetKeySchema = z
     message: 'A change-request target key is longer than Firestore indexes exactly.',
   });
 
-// A member's proposal to change TEXT fields on a PUBLISHED hall item (Ruling 2 of the
-// admin-work-correspondence order). The live published item is NEVER unlocked and never
-// edited by the member — this doc carries the PROPOSED values only; OLD values render
-// live from the published docs. Approve = server writes the values onto the published
-// item + its live in-Work source doc; deny = nothing changes, `resolutionReason` shown
-// to the member. Writes are callable-only; reads are the owning work's active guildmates
-// + admins. `requestKind` future-proofs a media variant (new kind, no schema break).
 export const HallContentChangeRequestSchema = z.object({
   changeRequestId: z.string(),
   requestKind: z.literal('text'),
-  // One-open-per-target enforcement/query key, built only by `hallContentChangeRequestTargetKey`
-  // (Hall grains) and `workRealmChangeRequestTargetKey` (realm grain).
   targetKey: hallContentChangeRequestTargetKeySchema,
-  // null ⇒ the workRealm grain (no hall item involved).
   hallItemId: z.string().nullable(),
-  // Always set. On the workRealm grain this is the realm's foundingWorkProjectId
-  // (server-derived) so the owner list read, rules, and admin-task fields keep
-  // one uniform key across all grains.
   workProjectId: z.string(),
-  // null ⇒ the workRealm grain (a realm has no work-project type).
   workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS).nullable(),
   surface: HallContentTextSurfaceSchema,
-  // Set ⇒ the workRealm grain; null on the hall grains.
   workRealmId: z.string().nullable(),
-  // null ⇒ the hall parent DETAIL (or the workRealm grain); set ⇒ a
-  // chapter/track/episode sub-item.
   subItemId: z.string().nullable(),
   proposerUid: z.string(),
-  // Raw doc field name → proposed new text. The top-level `surface` is the single
-  // authoritative discriminator; the allowlist and each field's declaration are enforced at
-  // the backend boundary by `validateHallContentTextFields` (HALL_CONTENT_TEXT_FIELDS,
-  // HALL_CONTENT_CHANGE_REQUEST_INPUTS).
   proposedFields: z.record(z.string(), z.string()),
   status: z.enum(['requested', 'approved', 'denied']),
   createdAt: z.number(),
   lastUpdatedAt: z.number(),
   resolvedAt: z.number().optional(),
   resolvedBy: z.string().optional(),
-  // Admin's reason, surfaced to the member (required on a deny).
   resolutionReason: z.string().optional(),
 });
 export type HallContentChangeRequest = z.infer<typeof HallContentChangeRequestSchema>;
@@ -269,29 +190,16 @@ export const PublishedHallItemSchema = z.object({
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),
   title: z.string().optional(),
   description: z.string().optional(),
-  // REQUIRED on the published hall parent: all three covers are a publish-readiness rule, so a
-  // published entry always carries every one. The working/draft section docs (FullTale / FullTune /
-  // FullTelevision) keep them optional — that is where covers are uploaded one at a time.
   coverSquareAssetId: z.string().min(1),
   coverPosterAssetId: z.string().min(1),
   coverCinematicAssetId: z.string().min(1),
   workGenres: z.array(z.string()).optional(),
   followerCount: z.number().optional(),
   hidden: z.boolean(),
-  // Whether the current hide was applied DIRECTly to this item or propagated by a moderation
-  // CASCADE from a parent (realm/work). Absent when not hidden. Backend-only-writable.
   hiddenBy: ModerationHiddenBySchema.optional(),
-  // Moderation text-clear remedy (extends the workProject/workRealm placeholder family, per-field):
-  // which text fields an admin cleared to a neutral placeholder and now await steward re-entry
-  // (e.g. ['title', 'description']). Empty/absent when nothing was cleared. `moderationClearedReason`
-  // is the operator's reason (shown on the steward's edit surface). Backend-only-writable.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
-  // Parody / real-people flag (carried from the approved ThresholdItem's AUTHOR
-  // attestation). When true, display surfaces render the ONE
-  // standard platform message (REAL_PEOPLE_DISCLAIMER_MESSAGE) prominently on the
-  // published Work — never a stored free-text disclaimer. Backend-written at publish.
   hasRealPeople: z.boolean().optional(),
 });
 export type PublishedHallItem = z.infer<typeof PublishedHallItemSchema>;
@@ -301,16 +209,10 @@ export const PublishedTuneTrackSchema = z.object({
   title: z.string(),
   order: z.number(),
   description: z.string().optional(),
-  // REQUIRED on a published sub-item (HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tunes): a track
-  // reaches the Hall only with its audio and its picture. The working `FullTuneTrack` keeps both
-  // optional — that shape has to be able to represent incomplete content.
   audioAssetId: z.string().min(1),
   photoAssetId: z.string().min(1),
   hidden: z.boolean(),
-  // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
   hiddenBy: ModerationHiddenBySchema.optional(),
-  // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
-  // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
@@ -330,14 +232,9 @@ export const PublishedChapterSchema = z.object({
   order: z.number(),
   description: z.string().optional(),
   content: z.string(),
-  // REQUIRED on a published sub-item (HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tales); the
-  // working `FullChapter` keeps it optional.
   photoAssetId: z.string().min(1),
   hidden: z.boolean(),
-  // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
   hiddenBy: ModerationHiddenBySchema.optional(),
-  // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
-  // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
@@ -356,16 +253,10 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   title: z.string(),
   order: z.number(),
   description: z.string().optional(),
-  // REQUIRED on a published sub-item (HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Television): an
-  // episode reaches the Hall only with its video and its picture. The working
-  // `FullTelevisionEpisode` keeps the picture optional.
   videoAssetId: z.string().min(1),
   photoAssetId: z.string().min(1),
   hidden: z.boolean(),
-  // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
   hiddenBy: ModerationHiddenBySchema.optional(),
-  // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
-  // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
@@ -379,13 +270,6 @@ export const PublishedTelevisionEpisodeSchema = z.object({
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;
 
-// --- Hall library user preferences (per-user Hall viewing-state doc) ---
-
-// One per-user home, server-synced: `userProfiles/{uid}/privateData/hallLibraryPreferences` (see
-// PATH_BUILDERS.hallLibraryPreferences). Writes are CALLABLE-ONLY — one core owns this
-// doc; heartbeat throttling for playback progress is client-side before the callable
-// fires. Every list on this doc is capped for launch (see HALL_LIBRARY_PREFS_CAPS) —
-// no unbounded per-user lists.
 export const HallLibraryInProgressEntrySchema = z.object({
   itemId: z.string(),
   positionSeconds: z.number(),
@@ -408,27 +292,15 @@ export type HallLibrarySettings = z.infer<typeof HallLibrarySettingsSchema>;
 
 export const HallLibraryPreferencesSchema = z.object({
   userId: z.string(),
-  // Hall items the user personally hid (a view filter only). Capped
-  // ~200: oldest-pruned, or the hide is rejected with a friendly message once full.
   hiddenWorkIds: z.array(z.string()),
-  // The "Inked" save-for-later watchlist. Capped ~200.
   inkedWorkIds: z.array(z.string()),
-  // Resume position per hallItemId, LRU-capped ~50 (see HALL_LIBRARY_PREFS_CAPS.inProgress).
-  // Cap enforcement is the backend core's job on write; this schema only models the shape.
   inProgress: z.record(z.string(), HallLibraryInProgressEntrySchema),
-  // Server-side Keep-going/History rail source, capped ~20.
   recentlyViewed: z.array(HallLibraryRecentlyViewedEntrySchema),
   settings: HallLibrarySettingsSchema,
   lastUpdated: z.number(),
 });
 export type HallLibraryPreferences = z.infer<typeof HallLibraryPreferencesSchema>;
 
-// --- _config singleton docs ---
-
-// Public-document page text: an intro and an intention line hold plain text, blank-line-separated
-// paragraphs. A section's video is a system slot, never a field here.
-
-/** A Future Plans heading; every plan belongs to exactly one group. */
 export const FuturePlanGroupSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -441,9 +313,7 @@ export const FuturePlanItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  /** The `FuturePlanGroup.id` the plan sits under. */
   groupId: z.string(),
-  /** Position within its group. */
   order: z.number(),
 });
 export type FuturePlanItem = z.infer<typeof FuturePlanItemSchema>;
@@ -453,17 +323,12 @@ export const FuturePlansDocumentSchema = z.object({
   intro: z.string().optional(),
   groups: z.array(FuturePlanGroupSchema),
   plans: z.array(FuturePlanItemSchema),
-  // Content version — bumped by every published release; readers treat absence as version 1.
   version: z.number().optional(),
 });
 export type FuturePlansDocument = z.infer<typeof FuturePlansDocumentSchema>;
 
 export const RuleGroupSchema = z.enum(RULE_GROUP_KEYS);
 
-/**
- * Who a rule or agreement point applies to: an absent type applies to every type; a set type
- * narrows it to that Work type or Hall wing only.
- */
 const appliesToTypeFields = {
   workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS).optional(),
   hallWingType: z.enum(HALL_WING_TYPE_KEYS).optional(),
@@ -479,7 +344,6 @@ export const RuleSchema = z.object({
 });
 export type Rule = z.infer<typeof RuleSchema>;
 
-/** One Artisan Agreement point; the list's order is the page order. */
 export const AgreementPointSchema = z.object({
   id: z.string(),
   text: z.string(),
@@ -495,39 +359,23 @@ export type ArtisanAgreements = z.infer<typeof ArtisanAgreementsSchema>;
 
 export const RulesAndAgreementsSchema = z.object({
   intro: z.string().optional(),
-  /** Each rule group's optional intention line, shown under its heading. */
   groupIntentions: z.partialRecord(RuleGroupSchema, z.string()).optional(),
   rules: z.array(RuleSchema),
   agreements: ArtisanAgreementsSchema,
-  // Content version — bumped by every published release; readers treat absence as version 1.
   version: z.number().optional(),
-  // Stamped by the release publish, like every other public document's current projection.
   lastUpdated: z.number().optional(),
 });
 export type RulesAndAgreements = z.infer<typeof RulesAndAgreementsSchema>;
 
-// --- Editable content-page docs ---
-//
-// /terms, /privacy, and the /take-it-down page copy render EXCLUSIVELY from
-// these `_config` singletons — no hardcoded fallbacks anywhere (banned design).
-// Seed callables create them (strict seed-if-empty: doc exists ⇒ no-op); admin
-// editors are the only writers after that, and every save bumps `version`.
-// Acceptance records (e.g. privateData.agreements.termsVersion) read `version`
-// from the DOC server-side at acceptance time — never from a constant.
-// There is NO draft flag on any content doc.
-
-/** One section of a long-form content page. `level` 1 = section (h2), 2 = subsection (h3). */
 export const ContentPageSectionSchema = z.object({
   id: z.string(),
   heading: z.string(),
   level: z.union([z.literal(1), z.literal(2)]),
-  /** Plain text; blank-line-separated paragraphs. */
   body: z.string(),
   order: z.number(),
 });
 export type ContentPageSection = z.infer<typeof ContentPageSectionSchema>;
 
-/** Long-form legal page doc — the shape of BOTH `_appConfig/termsOfService` and `_appConfig/privacyPolicy`. */
 export const LegalPageDocumentSchema = z.object({
   version: z.number(),
   lastUpdated: z.number(),
@@ -535,13 +383,6 @@ export const LegalPageDocumentSchema = z.object({
 });
 export type LegalPageDocument = z.infer<typeof LegalPageDocumentSchema>;
 
-/**
- * `_appConfig/takeItDownPageCopy` — the /take-it-down page's user-facing language as
- * a keyed strings map (the page is a functional form, so its copy is discrete
- * labeled strings, not long-form sections). Keys are stable identifiers defined
- * by the page (e.g. `pageTitle`, `introBody`); the admin editor renders one
- * labeled text field per key.
- */
 export const TakeItDownPageCopySchema = z.object({
   version: z.number(),
   lastUpdated: z.number(),
@@ -549,7 +390,6 @@ export const TakeItDownPageCopySchema = z.object({
 });
 export type TakeItDownPageCopy = z.infer<typeof TakeItDownPageCopySchema>;
 
-/** One labeled line of a DMCA contact block (e.g. `Email` → the agent's address). */
 export const DmcaContactRowSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -558,7 +398,6 @@ export const DmcaContactRowSchema = z.object({
 });
 export type DmcaContactRow = z.infer<typeof DmcaContactRowSchema>;
 
-/** A titled group of contact rows (the service-provider and designated-agent blocks). */
 export const DmcaContactBlockSchema = z.object({
   id: z.string(),
   heading: z.string(),
@@ -567,12 +406,6 @@ export const DmcaContactBlockSchema = z.object({
 });
 export type DmcaContactBlock = z.infer<typeof DmcaContactBlockSchema>;
 
-/**
- * `_appConfig/dmcaPolicy` — the /dmca page's current projection: a short intro, the labeled
- * contact blocks (the designated agent's registration details), and long-form sections for the
- * notice-and-takedown process the Terms point to. Versioned and released like every other
- * public document.
- */
 export const DmcaPolicyDocumentSchema = z.object({
   version: z.number(),
   lastUpdated: z.number(),

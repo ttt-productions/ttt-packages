@@ -240,8 +240,6 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     await act(async () => {
       resolveArchive({ archived: true });
     });
-    // Callable completion is not authoritative: the row keeps spinning while
-    // it remains in the active query.
     expect(screen.getByLabelText('pending-n1')).toBeInTheDocument();
 
     mocks.useActiveNotifications.mockReturnValue({
@@ -279,7 +277,6 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     fireEvent.click(screen.getByLabelText('clear-n1'));
     await waitFor(() => expect(screen.getByLabelText('pending-n1')).toBeInTheDocument());
 
-    // The same generation still listed: the archive has not been read back yet.
     view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
     expect(screen.getByLabelText('pending-n1')).toBeInTheDocument();
 
@@ -376,7 +373,6 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     });
     expect(onClearAll).toHaveBeenCalledWith(result);
 
-    // n2 was archived and has left the read; n1 failed on its own and stays listed.
     mocks.useActiveNotifications.mockReturnValue({
       data: [makeNotification({ id: 'n1' })],
       isLoading: false,

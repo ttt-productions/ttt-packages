@@ -1,6 +1,3 @@
-// The installed-package type declarations the package-builder fixtures read: an illustrative media
-// package's shipped `.d.ts`, served the way the `./node` reader serves a real one.
-
 const MEDIA_DECLARATIONS = `
 declare const STATUS: {
     readonly pending: "pending";
@@ -39,10 +36,8 @@ export declare function buildPendingMediaTerminalFields<S extends PendingMediaTe
 export {};
 `;
 
-/** The package fixtures import; its declarations are the ones above. */
 export const FIXTURE_MEDIA_PACKAGE = '@fixture/media';
 
-/** The `packageDeclarations` reader the fixtures hand the analyzer. */
 export const fixturePackageDeclarations = (packageName) =>
   packageName === FIXTURE_MEDIA_PACKAGE
     ? [

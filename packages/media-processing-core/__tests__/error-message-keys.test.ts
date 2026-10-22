@@ -3,11 +3,6 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// An error this package throws can escape to monitoring, and an object key or bucket
-// must not travel with it: keys and buckets ride error PROPERTIES, never message text.
-// This catches the direct shape — an error constructor or `super(` call whose arguments
-// interpolate something named for a key, bucket, or path.
-
 const SRC = fileURLToPath(new URL('../src', import.meta.url));
 
 function listSource(dir: string): string[] {
@@ -18,7 +13,6 @@ function listSource(dir: string): string[] {
   });
 }
 
-/** Every error construction in `source` whose arguments interpolate a key, bucket, or path. */
 function keyedErrorConstructions(source: string): string[] {
   const found: string[] = [];
   const start = /\b(?:new\s+\w*Error|super)\s*\(/g;

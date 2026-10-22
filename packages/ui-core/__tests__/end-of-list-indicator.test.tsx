@@ -25,7 +25,6 @@ describe('EndOfListIndicator', () => {
 
   it('renders without icon prop (uses default CheckCircle2)', () => {
     const { container } = render(<EndOfListIndicator />);
-    // Default icon is an SVG (CheckCircle2)
     expect(container.querySelector('svg')).toBeInTheDocument();
   });
 });

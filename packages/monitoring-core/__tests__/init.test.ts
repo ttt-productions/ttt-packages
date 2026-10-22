@@ -34,7 +34,6 @@ vi.mock('@sentry/node', () => nodeSdk);
 
 const DSN = 'https://test@example.com/1';
 
-/** Let every pending microtask and timer-0 continuation run. */
 async function flushPendingWork() {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -116,38 +115,62 @@ describe('initMonitoring', () => {
       setTag: vi.fn(),
     };
     setMonitoringAdapter(fake);
-    // setMonitoringAdapter clears currentOptions, so this initMonitoring
-    // call must run end-to-end and install the NoopAdapter.
     await initMonitoring({ provider: 'noop' });
     expect(getMonitoringAdapter()).toBe(NoopAdapter);
   });
+});
 
-  it('local-dev gate: NEXT_PUBLIC_USE_EMULATORS=true forces NoopAdapter even with sentry provider', async () => {
-    const prev = process.env.NEXT_PUBLIC_USE_EMULATORS;
-    process.env.NEXT_PUBLIC_USE_EMULATORS = 'true';
-    try {
-      await initMonitoring({ provider: 'sentry', enabled: true });
-      expect(getMonitoringAdapter()).toBe(NoopAdapter);
-    } finally {
-      if (prev === undefined) delete process.env.NEXT_PUBLIC_USE_EMULATORS;
-      else process.env.NEXT_PUBLIC_USE_EMULATORS = prev;
-    }
+describe('initMonitoring — the app decides when monitoring is off', () => {
+  beforeEach(() => {
+    __resetMonitoring();
+    vi.clearAllMocks();
   });
 
-  it('local-dev gate: FUNCTIONS_EMULATOR=true forces NoopAdapter even with sentry-node provider', async () => {
-    const prev = process.env.FUNCTIONS_EMULATOR;
-    process.env.FUNCTIONS_EMULATOR = 'true';
-    try {
-      await initMonitoring({ provider: 'sentry-node', enabled: true });
+  it.each([
+    ['sentry' as const, browserSdk],
+    ['sentry-node' as const, nodeSdk],
+  ])(
+    'enabled: false keeps a configured %s provider off and loads no SDK',
+    async (provider, sdk) => {
+      await initMonitoring({ provider, dsn: DSN, enabled: false });
       expect(getMonitoringAdapter()).toBe(NoopAdapter);
+      expect(sdk.init).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['sentry' as const, browserSdk],
+    ['sentry-node' as const, nodeSdk],
+  ])('a configured %s provider is on when the app does not turn it off', async (provider, sdk) => {
+    await initMonitoring({ provider, dsn: DSN });
+    expect(getMonitoringAdapter()).not.toBe(NoopAdapter);
+    expect(sdk.init).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads no environment variable while initializing', async () => {
+    const realEnv = process.env;
+    const readKeys: PropertyKey[] = [];
+    process.env = new Proxy(realEnv, {
+      get(target, key, receiver) {
+        readKeys.push(key);
+        return Reflect.get(target, key, receiver);
+      },
+      has(target, key) {
+        readKeys.push(key);
+        return Reflect.has(target, key);
+      },
+    });
+    try {
+      await initMonitoring({ provider: 'sentry-node', dsn: DSN });
+      await initMonitoring({ provider: 'sentry', dsn: DSN, enabled: false });
     } finally {
-      if (prev === undefined) delete process.env.FUNCTIONS_EMULATOR;
-      else process.env.FUNCTIONS_EMULATOR = prev;
+      process.env = realEnv;
     }
+    expect(readKeys).toEqual([]);
   });
 });
 
-describe('initMonitoring — the DSN is the only switch', () => {
+describe('initMonitoring — no environment flag switches a configured provider off', () => {
   beforeEach(() => {
     __resetMonitoring();
     vi.clearAllMocks();

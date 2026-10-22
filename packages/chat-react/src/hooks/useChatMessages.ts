@@ -10,7 +10,6 @@ import type { ChatCoreConfig } from '../types.js';
 import { messagesColPath } from '../firestore/queries.js';
 import { useOptionalChatNameResolver } from '../context/ChatNameResolverContext.js';
 
-// Safety limit to prevent memory exhaustion
 const MAX_PAGE_SIZE = 100;
 
 export type UseChatMessagesResult = {
@@ -20,13 +19,9 @@ export type UseChatMessagesResult = {
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
   isFetchingOlder: boolean;
-  /** The live listener's state: `connecting` while it (re)subscribes, `error` once it failed. */
   sourceState: FirestoreSourceState;
-  /** The live listener's failure; the messages already shown stay in `messages`. */
   error: Error | null;
-  /** The last older-page read failed; the list stops asking for older pages until `retry`. */
   olderError: Error | null;
-  /** Re-run what failed: resubscribe a failed listener, re-read a failed older page. */
   retry: () => void;
 };
 
@@ -43,9 +38,6 @@ function mapMsg(
     console.error('[useChatMessages] Message missing valid createdAt:', data.id, d.createdAt);
   }
 
-  // A stored `replyTo` (if any legacy doc still carries one) is deliberately NOT
-  // mapped: chat has no reply-authoring affordance, so the UI has no reply
-  // renderer to feed.
   const appMeta = messageMeta?.(data);
   return {
     messageId: data.id,
@@ -56,8 +48,6 @@ function mapMsg(
     type: d.type,
     isSystemMessage: d.isSystemMessage ?? undefined,
     referencedUids: Array.isArray(d.referencedUids) ? d.referencedUids : undefined,
-    // Moderation tombstone flag (backend-written) — carried through so renderers
-    // can tombstone the content.
     hidden: d.hidden ?? undefined,
     meta: appMeta ? { ...d.meta, ...appMeta } : d.meta,
   };
@@ -83,14 +73,12 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     );
   }
 
-  // Stable key segment for the message collection path (string | string[]).
   const pathKey = React.useMemo(
     () =>
       JSON.stringify(Array.isArray(chatCollectionPath) ? chatCollectionPath : [chatCollectionPath]),
     [chatCollectionPath],
   );
 
-  // Slash-joined collection path for the generic hook (handles nested paths).
   const collectionPath = React.useMemo(
     () => messagesColPath(chatCollectionPath, threadId, messagesSubcollection).join('/'),
     [chatCollectionPath, threadId, messagesSubcollection],
@@ -126,8 +114,6 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
 
   const messages = React.useMemo(() => (allowed ? items : []), [allowed, items]);
 
-  // Pre-warm name cache for all visible senders.
-  // Optional resolver: silent no-op if no provider is wrapped.
   const resolverCtx = useOptionalChatNameResolver();
   const senderIds = React.useMemo(() => {
     const set = new Set<string>();

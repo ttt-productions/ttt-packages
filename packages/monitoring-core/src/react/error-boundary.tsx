@@ -5,11 +5,8 @@ import { captureException } from '../api.js';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
-  /** Rendered when an error has been caught. */
   fallback: ReactNode;
-  /** Identifier sent to monitoring (e.g. "checkout-page"). */
   context: string;
-  /** Optional callback invoked alongside captureException. */
   onError?: (error: Error, info: ErrorInfo) => void;
 }
 
@@ -17,10 +14,6 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-/**
- * Generic React Error Boundary that reports to the configured monitoring
- * provider via `captureException`. The fallback UI is fully consumer-owned.
- */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false };
 

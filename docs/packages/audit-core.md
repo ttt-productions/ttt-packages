@@ -13,7 +13,7 @@ Generic audit-event writer package.
 Entry points: `.` (types only), `./server` (factory + writer).
 
 - `.` — `AuditEvent<TEventType, TActor, TTarget, TMetadata>`: generic audit record (id, timestamp, result success/failure, optional IP/user-agent/region/correlationId).
-- `./server` — `createAuditWriter(config: AuditWriterConfig) → { writeAuditEvent }`; `writeAuditEvent(args) → Promise<string>` (returns event id). `AuditWriterConfig` = `{ db, collectionPath, defaultSchemaVersion?, idGenerator? }`. Write args accept an optional Firestore `batch` or `transaction` so the event commits atomically with the action, so a consuming app can make an audit event commit atomically with the action it records.
+- `./server` — `createAuditWriter(config: AuditWriterConfig) → { writeAuditEvent }`; `writeAuditEvent(args) → Promise<string>` (returns event id). `AuditWriterConfig` = `{ db, collectionPath, defaultSchemaVersion?, idGenerator? }`. Write args accept an optional Firestore `batch` or `transaction`, so a consuming app can make an audit event commit atomically with the action it records.
 
 ## Boundary
 

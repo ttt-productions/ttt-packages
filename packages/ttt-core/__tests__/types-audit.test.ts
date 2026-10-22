@@ -23,9 +23,7 @@ describe('audit type catalog', () => {
       'audition.entryCreated',
       'audition.curatedBatchFailed',
       'workProject.fileFolderAccessChanged',
-      // fable-review campaign additions
       'chat.guildChatChannelDeleted',
-      // channel lifecycle symmetry — the archive lane's inverse
       'chat.guildChatChannelUnarchived',
       'payment.pledgePaymentRefunded',
       'payment.pledgePaymentDisputeOpened',
@@ -34,21 +32,15 @@ describe('audit type catalog', () => {
       'payment.pledgeRefundRequestResolved',
       'hallItem.moderationPlaceholderApplied',
       'ncii.evidenceMarked',
-      // [P2-08] privileged raw-locator read (distinct from safety.privilegedReauthPerformed)
       'safety.privilegedRawLocatorRead',
-      // versioned public documents: the release and the (only) acceptance history
       'publicDocuments.released',
       'publicDocuments.accepted',
-      // the Square posting agreements acceptance
       'social.squareStreetzAgreementsAccepted',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });
 
   it('AuditEventType covers every realm-file promotion transition and folder mutation', () => {
-    // The approval gate is only auditable if EACH transition has its own type: a request and
-    // its resolution must be a traceable pair, and a folder rename must be distinguishable
-    // from a create or a delete.
     const realmFileEvents: AuditEventType[] = [
       'workFile.realmShareRequested',
       'workFile.realmShareRequestWithdrawn',
@@ -74,7 +66,7 @@ describe('audit type catalog', () => {
   });
 
   it('AuditEventType has no commission-deletion member (closing is the only terminal transition)', () => {
-    // @ts-expect-error — 'workProject.commissionDeleted' was removed with the delete lane.
+    // @ts-expect-error — there is no commission delete lane, so no deletion event exists.
     const removed: AuditEventType = 'workProject.commissionDeleted';
     void removed;
 
@@ -89,13 +81,11 @@ describe('audit type catalog', () => {
     }>();
   });
 
-  it('the Work-membership actor mode is guildmateUser — projectMember is the retired name', () => {
-    // ARCH-107 / terminology-naming-convention.md: the bare `member` / `projectMember` noun
-    // renames to `guildmateUser` everywhere a code identifier is involved.
+  it('the Work-membership actor mode is guildmateUser, never projectMember', () => {
     const guildmate: TTTAuditActorMode = 'guildmateUser';
     void guildmate;
 
-    // @ts-expect-error — 'projectMember' is the retired identifier; it is not a member of the union.
+    // @ts-expect-error — 'projectMember' is not a member of the union.
     const retired: TTTAuditActorMode = 'projectMember';
     void retired;
 
@@ -142,7 +132,6 @@ describe('audit type catalog', () => {
   });
 
   it('TTTAuditActor requires systemRole on admin modes and forbids it otherwise', () => {
-    // Non-admin mode: systemRole is not set.
     const nonAdmin: TTTAuditActor = {
       uid: 'u1',
       isAdmin: false,
@@ -150,7 +139,6 @@ describe('audit type catalog', () => {
     };
     expectTypeOf(nonAdmin).toMatchTypeOf<TTTAuditActor>();
 
-    // Admin mode: systemRole is required and present.
     const adminActor: TTTAuditActor = {
       uid: 'admin1',
       isAdmin: true,

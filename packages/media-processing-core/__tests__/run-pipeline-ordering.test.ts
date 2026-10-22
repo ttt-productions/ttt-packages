@@ -1,5 +1,3 @@
-// Locked ordering: output moderation runs on LOCAL processed paths BEFORE any
-// final persistence, so rejected output never reaches the final store.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -64,7 +62,6 @@ describe('runMediaPipeline ordering', () => {
     const result = await runMediaPipeline({ spec, io: makeIO(events), moderation });
 
     expect(result.ok).toBe(true);
-    // Moderation saw the LOCAL path and ran before any persistence.
     expect(events[0]).toBe(`moderate:${localOut}`);
     expect(events[1]).toBe('persist:main');
   });
@@ -83,10 +80,8 @@ describe('runMediaPipeline ordering', () => {
     const result = await runMediaPipeline({ spec, io: makeIO(events), moderation });
 
     expect(result.ok).toBe(false);
-    // Distinct retryable failure code (not "rejected"), moderation carried through.
     if (!result.ok) expect(result.error?.code).toBe('processing_failed');
     expect(result.moderation?.status).toBe('error');
-    // The check terminated before transcode — no processing, no persistence.
     expect(events).not.toContain('transcode');
     expect(events.filter((e) => e.startsWith('persist:'))).toHaveLength(0);
   });

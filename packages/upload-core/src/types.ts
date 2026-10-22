@@ -1,7 +1,3 @@
-/**
- * What a finished upload reports: where the bytes landed, their stored content type, and
- * their size. No download URL is minted — a staged upload is read only by the backend.
- */
 export interface UploadFileResumableResult {
   fullPath: string;
   contentType: string | null;
@@ -12,7 +8,6 @@ export type UploadSessionStatus =
   'idle' | 'queued' | 'uploading' | 'paused' | 'success' | 'error' | 'canceled';
 
 export interface UploadSessionPersistenceAdapter {
-  /** Return all session ids currently stored. */
   listIds: () => Promise<string[]> | string[];
   get: (id: string) => Promise<UploadSessionState | null> | UploadSessionState | null;
   set: (id: string, state: UploadSessionState) => Promise<void> | void;
@@ -20,9 +15,7 @@ export interface UploadSessionPersistenceAdapter {
 }
 
 export interface UploadQueueOptions {
-  /** Maximum concurrent uploads. Default: 3 */
   concurrency?: number;
-  /** Optional persistence adapter for session state. */
   persistence?: UploadSessionPersistenceAdapter;
 }
 
@@ -31,12 +24,11 @@ export interface UploadSessionState {
   status: UploadSessionStatus;
   path: string;
 
-  /** Monotonic version counter for state updates. */
   version: number;
 
   transferred: number;
   total: number;
-  percent: number; // 0..100
+  percent: number;
 
   startedAt: number;
   updatedAt: number;
@@ -46,10 +38,7 @@ export interface UploadSessionState {
 }
 
 export interface DisposeUploadSessionArgs {
-  /** Session id to dispose. */
   id: string;
-  /** If true, cancel any active upload task before disposal. Default true. */
   cancel?: boolean;
-  /** If true, remove session state from the in-memory store. Default true. */
   remove?: boolean;
 }

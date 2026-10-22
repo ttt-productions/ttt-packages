@@ -4,7 +4,6 @@ import * as uploadVariables from '../src/upload-variables/index.js';
 
 const VARIABLES_DIR = new URL('../src/upload-variables/', import.meta.url);
 
-// Every module in the folder but the entry index itself.
 const variablesModules = readdirSync(VARIABLES_DIR, { recursive: true, encoding: 'utf8' }).filter(
   (file) => file.endsWith('.ts') && !/(^|[\\/])index\.ts$/.test(file),
 );

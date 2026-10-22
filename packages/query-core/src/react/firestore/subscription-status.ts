@@ -5,11 +5,8 @@ import type { QueryObserverResult, RefetchOptions, UseQueryResult } from '@tanst
 import type { FirestoreSourceState, WithSourceState } from '../../firestore/types.js';
 import { isPermissionDeniedError } from './resubscribe.js';
 
-/** A restart a subscribed result's `refetch()` asked for, open until the listener's first snapshot or its next error. */
 interface PendingRestart {
-  /** The listener had failed when the restart was asked for. */
   fromError: boolean;
-  /** That failure, kept beside the held data while the restart is open, as a one-shot refetch keeps it. */
   failure: Error | null;
 }
 
@@ -18,7 +15,6 @@ interface SubscriptionStatus {
   error: Error | null;
   sourceState: FirestoreSourceState;
   restart: PendingRestart | null;
-  /** Bumped by every restart; the listener effect depends on it, so a bump re-opens the listener. */
   restarts: number;
 }
 
@@ -28,15 +24,6 @@ function freshStatus(identity: string): SubscriptionStatus {
   return { identity, error: null, sourceState: 'connecting', restart: null, restarts: 0 };
 }
 
-/**
- * A realtime listener's source state and error, tagged to the subscription identity that
- * produced them. A new identity reads `connecting` with no error from its first render;
- * writes made for a retired identity are dropped once the new identity's listener has
- * started (it calls `reset`).
- *
- * `restart()` clears the error and bumps `restarts`; the listener effect re-opens on the bump,
- * and its first snapshot or next surfaced error ends the restart (`settled` in the patch).
- */
 export function useSubscriptionStatus(identity: string) {
   const [status, setStatus] = useState<SubscriptionStatus>(() => freshStatus(identity));
 
@@ -61,14 +48,11 @@ export function useSubscriptionStatus(identity: string) {
     [identity],
   );
 
-  // The identity the hook renders now. A `restart` captured under an earlier identity must not
-  // touch the current one's status, or every write the current listener makes would be dropped.
   const renderedIdentity = useRef(identity);
   useEffect(() => {
     renderedIdentity.current = identity;
   }, [identity]);
 
-  /** Re-opens the listener; false (and nothing changes) when this identity is no longer rendered. */
   const restart = useCallback((): boolean => {
     if (renderedIdentity.current !== identity) return false;
     setStatus((prev) => {
@@ -106,22 +90,6 @@ interface RefetchWaiter<TData> {
   throwOnError: boolean;
 }
 
-/**
- * The subscribed hooks' result: the query's own result, with the listener's error and source
- * state merged in. In subscribe mode `refetch()` re-opens the listener (clearing its error, with a
- * fresh resubscribe ladder) and resolves once the re-opened listener delivers its first snapshot or
- * surfaces its next error; until then the result reports fetching.
- *
- * A listener that fails after it answered keeps its last snapshot as `data` beside the failure, the
- * way a one-shot read that fails a refetch keeps its data: `status: 'error'` and `isRefetchError`
- * say the rows are not current, and a consumer can keep what it showed instead of tearing it down.
- * A restart from that failure keeps both — the held data and the failure — until the re-opened
- * listener answers. A listener that failed before it ever answered has no data to hold.
- *
- * A `permission-denied` failure holds nothing: the reader lost access, and a snapshot it may no
- * longer read is never presented as readable. It reads like a failure before any answer, and so
- * does its restart.
- */
 export function useSubscribedResult<TData>(
   query: UseQueryResult<TData, Error>,
   subscribe: boolean,
@@ -136,8 +104,6 @@ export function useSubscribedResult<TData>(
 
   const refetch = useCallback(
     (options?: RefetchOptions): Promise<QueryObserverResult<TData, Error>> => {
-      // An unmounted hook, or a refetch captured under an identity the hook has left, re-opens
-      // nothing: it settles at once rather than waiting on a listener that will never report.
       if (!active || !mounted.current) return Promise.resolve(latest.current);
       return new Promise((resolve, reject) => {
         if (!restart()) {
@@ -214,9 +180,7 @@ export function useSubscribedResult<TData>(
       refetch,
     } as UseQueryResult<TData, Error>;
   } else if (active && query.isPending) {
-    // The listener has not delivered its first snapshot. The query underneath is disabled in
-    // subscribe mode, so it reports pending but not loading; the read IS loading, exactly like a
-    // one-shot read's first fetch — never an answered absence.
+    // The query underneath is disabled in subscribe mode, so it reports pending but not loading.
     result = {
       ...query,
       isLoading: true,
@@ -240,7 +204,6 @@ export function useSubscribedResult<TData>(
     }
   });
 
-  // A refetch still open when the hook unmounts resolves with the last result instead of hanging.
   useEffect(() => {
     mounted.current = true;
     return () => {

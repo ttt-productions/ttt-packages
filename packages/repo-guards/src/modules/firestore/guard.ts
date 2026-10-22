@@ -1,8 +1,3 @@
-// The Firestore guards as the suite runs them, read through the one reader:
-//   - the write guard: every field a local writer stores on a registered document is declared by
-//     that document's schema in the app's core package (fails closed — see the analyzer);
-//   - the test-code path guard: test code builds a Firestore path through the core, never by hand.
-
 import path from 'node:path';
 import type { Finding } from '../../guard.js';
 import type { RepoReader } from '../../node/reader.js';
@@ -29,36 +24,26 @@ import {
 import { findHandTypedFirestorePaths } from './test-paths.js';
 
 export interface WriteGuardFacts {
-  /** The app's core package specifier. Its installed build is the layout's `coreDist` root. */
   corePackage: string;
   importAliases: Readonly<Record<string, string>>;
-  /** App types a write handle may be annotated with, beside Transaction / WriteBatch / BulkWriter. */
   transactionTypeNames: readonly string[];
-  /** Module specifier prefixes whose exports can hand back a real Firestore handle. */
   handleModulePrefixes: readonly string[];
   removalOnlyTables: ReadonlyArray<{ exportName: string; module: string; label: string }>;
-  /** The core's entry points, as loaders the app writes with literal specifiers. */
   registrySources: {
     core: Loader<Record<string, unknown>>;
     docSchemas: Loader<Record<string, unknown>>;
     subpaths?: Readonly<Record<string, Loader<Record<string, unknown>>>>;
   };
-  /** The core's path-constant maps the guard resolves names through. */
   constantMapNames: readonly string[];
-  /** The roots that can write a document. */
   writerRoots: readonly RootRole[];
-  /** One long-lived writer per writer root that the classifier must see writes in. */
   writerAnchors: readonly string[];
-  /** The reviewed exceptions, each bound to a structural write site with its why. */
   exceptions: readonly Record<string, unknown>[];
 }
 
 export interface TestPathFacts {
-  /** The core's declared collection names (usually `Object.values(COLLECTIONS)` loaded at run time). */
   collectionNames: () => readonly string[] | Promise<readonly string[]>;
 }
 
-/** Runs the write guard over the app's writer roots. Also the hand-run coverage report's engine. */
 export async function runWriteGuard(
   reader: RepoReader,
   facts: WriteGuardFacts,
@@ -170,8 +155,7 @@ export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
         timeoutMs: 180_000,
         async run(context) {
           const r = await runWriteGuard(context.reader, facts, context.files.bind(context));
-          // The coverage table prints on every run: numbers that collapse mean a broken guard, not a
-          // clean tree. stderr, because a JSON test reporter owns stdout.
+          // stderr: a JSON test reporter owns stdout.
           process.stderr.write(`
 ${formatReport(r)}
 

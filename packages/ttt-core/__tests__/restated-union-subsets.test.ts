@@ -1,6 +1,3 @@
-// Each named subset narrows the union beside it to exactly the members its consumers need: a
-// subset that drifted from its business rule changes what the app hides, delivers, or stamps.
-
 import { describe, it, expect } from 'vitest';
 import {
   ASSET_LEVEL_BLOCK_ITEM_TYPES,

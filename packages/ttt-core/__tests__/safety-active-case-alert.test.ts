@@ -1,7 +1,3 @@
-// The ONE canonical active-safety-case-alert writer, exercised with a fake tx/db
-// (ttt-core carries no firebase-admin runtime dependency — the writer takes minimal
-// STRUCTURAL Firestore handles).
-
 import { describe, it, expect, vi } from 'vitest';
 import {
   writeActiveSafetyCaseAlert,
@@ -11,8 +7,6 @@ import {
   type SafetyAlertTransactionLike,
 } from '../src/safety/active-safety-case-alert.js';
 
-/** A fake db whose doc() returns a ref tagged with the path it was built from, so the
- *  test can assert the writer routed through the canonical path builder. */
 function makeFakeDb(): { db: SafetyAlertDbLike; deletes: string[]; docPaths: string[] } {
   const deletes: string[] = [];
   const docPaths: string[] = [];

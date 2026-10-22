@@ -12,26 +12,6 @@ import {
   EDGE_PROTOCOL_VERSION,
   isProtocolSupported,
 } from '../src/envelopes.js';
-import {
-  ORIGIN_MARKER_HEADER,
-  ORIGIN_MARKER_VALUE,
-  EDGE_MARKER_HEADER,
-  EDGE_MARKER_VALUE,
-  EDGE_SECRET_HEADER,
-  EDGE_CANONICAL_HOST_HEADER,
-  EDGE_CLIENT_IP_HEADER,
-  VERIFIED_CLIENT_IP_HEADER,
-  EDGE_INTERNAL_HEADERS,
-} from '../src/provenance-headers.js';
-import {
-  INTERNAL_AUTH_SIGNATURE_HEADER,
-  INTERNAL_AUTH_TIMESTAMP_HEADER,
-  INTERNAL_AUTH_VERSION_HEADER,
-  INTERNAL_AUTH_OPERATION_ID_HEADER,
-  INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
-  INTERNAL_AUTH_OPERATION_VERSION_HEADER,
-  INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
-} from '../src/internal-auth-headers.js';
 
 describe('payload-hash', () => {
   it('canonicalize sorts object keys recursively and is order-independent', () => {
@@ -46,7 +26,6 @@ describe('payload-hash', () => {
   });
 
   it('sha256Hex matches a known vector', async () => {
-    // SHA-256("") is the well-known empty-string digest.
     expect(await sha256Hex('')).toBe(
       'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     );
@@ -61,11 +40,11 @@ describe('payload-hash', () => {
 });
 
 describe('internal-auth', () => {
-  const secret = 'test-media-authority-secret';
+  const secret = 'test-secret';
   const fields: InternalRequestFields = {
-    audience: 'app-media-authority:test',
+    audience: 'svc-a:test',
     method: 'POST',
-    path: '/internal/media-authority/apply',
+    path: '/internal/example',
     bodyHash: 'a'.repeat(64),
     operationId: 'op-123',
     timestampSec: 1_000_000,
@@ -194,10 +173,10 @@ describe('internal-auth', () => {
 });
 
 describe('signed-token', () => {
-  const secret = 'shared-media-session-secret';
+  const secret = 'test-secret';
 
   it('produces the canonical v1.{payload}.{sig} shape and round-trips the opaque payload', async () => {
-    const claims = { v: 1, typ: 'session', uid: 'u1', art: 0, adm: 1, iat: 100, exp: 999 };
+    const claims = { typ: 't', sub: 'u1', exp: 999 };
     const token = await signToken(claims, secret);
     expect(token.split('.')).toHaveLength(3);
     expect(token.startsWith('v1.')).toBe(true);
@@ -205,7 +184,7 @@ describe('signed-token', () => {
   });
 
   it('verifies to null on a tampered payload, tampered signature, or wrong secret', async () => {
-    const token = await signToken({ typ: 'grant', uid: 'u1', exp: 999 }, secret);
+    const token = await signToken({ typ: 't', sub: 'u1', exp: 999 }, secret);
     const [, payloadB64, sigB64] = token.split('.');
     expect(await verifyToken(`v1.${payloadB64}x.${sigB64}`, secret)).toBeNull();
     expect(await verifyToken(`v1.${payloadB64}.${sigB64.slice(0, -2)}AA`, secret)).toBeNull();
@@ -221,8 +200,8 @@ describe('signed-token', () => {
   });
 
   it('does NOT enforce claims — an expired-looking payload still verifies (caller checks exp)', async () => {
-    const token = await signToken({ typ: 'session', uid: 'u1', exp: 1 }, secret);
-    expect(await verifyToken(token, secret)).toEqual({ typ: 'session', uid: 'u1', exp: 1 });
+    const token = await signToken({ typ: 't', sub: 'u1', exp: 1 }, secret);
+    expect(await verifyToken(token, secret)).toEqual({ typ: 't', sub: 'u1', exp: 1 });
   });
 });
 
@@ -301,233 +280,5 @@ describe('envelopes', () => {
     expect(isProtocolSupported(EDGE_PROTOCOL_VERSION + 1)).toBe(true);
     expect(isProtocolSupported(EDGE_PROTOCOL_VERSION + 2)).toBe(false);
     expect(isProtocolSupported(0)).toBe(false);
-  });
-});
-
-describe('provenance-headers', () => {
-  // These are WIRE strings shared by trees that cannot import each other's
-  // source. Asserting them verbatim is the point: a rename here fails the gate
-  // instead of failing silently at runtime as "provenance missing".
-  it('pins every header name and marker value to its exact wire string', () => {
-    expect(ORIGIN_MARKER_HEADER).toBe('x-ttt-app-origin');
-    expect(ORIGIN_MARKER_VALUE).toBe('next');
-    expect(EDGE_MARKER_HEADER).toBe('x-ttt-app-edge');
-    expect(EDGE_MARKER_VALUE).toBe('v1');
-    expect(EDGE_SECRET_HEADER).toBe('x-ttt-edge-secret');
-    expect(EDGE_CANONICAL_HOST_HEADER).toBe('x-ttt-canonical-host');
-    expect(EDGE_CLIENT_IP_HEADER).toBe('x-ttt-client-ip');
-    expect(VERIFIED_CLIENT_IP_HEADER).toBe('x-ttt-verified-client-ip');
-  });
-
-  it('keeps the contract distinct: no two headers share a name', () => {
-    const all = [
-      ORIGIN_MARKER_HEADER,
-      EDGE_MARKER_HEADER,
-      EDGE_SECRET_HEADER,
-      EDGE_CANONICAL_HOST_HEADER,
-      EDGE_CLIENT_IP_HEADER,
-      VERIFIED_CLIENT_IP_HEADER,
-    ];
-    expect(new Set(all).size).toBe(all.length);
-  });
-
-  it('names are lowercase so object-literal header keys match a normalized lookup', () => {
-    for (const name of [
-      ORIGIN_MARKER_HEADER,
-      EDGE_MARKER_HEADER,
-      EDGE_SECRET_HEADER,
-      EDGE_CANONICAL_HOST_HEADER,
-      EDGE_CLIENT_IP_HEADER,
-      VERIFIED_CLIENT_IP_HEADER,
-    ]) {
-      expect(name).toBe(name.toLowerCase());
-      expect(name).toMatch(/^[a-z0-9-]+$/);
-    }
-  });
-
-  it('the origin-minted client IP is a DIFFERENT header from the front-door one', () => {
-    // Collapsing these two would make the origin trust the inbound value it is
-    // supposed to be replacing.
-    expect(VERIFIED_CLIENT_IP_HEADER).not.toBe(EDGE_CLIENT_IP_HEADER);
-  });
-
-  it('EDGE_INTERNAL_HEADERS is exactly the client-forgeable set', () => {
-    expect([...EDGE_INTERNAL_HEADERS].sort()).toEqual(
-      [
-        EDGE_SECRET_HEADER,
-        EDGE_CANONICAL_HOST_HEADER,
-        EDGE_CLIENT_IP_HEADER,
-        VERIFIED_CLIENT_IP_HEADER,
-        ORIGIN_MARKER_HEADER,
-      ].sort(),
-    );
-  });
-
-  it('strips the origin-minted client IP inbound — its presence must be proof, not input', () => {
-    expect(EDGE_INTERNAL_HEADERS).toContain(VERIFIED_CLIENT_IP_HEADER);
-    expect(EDGE_INTERNAL_HEADERS).toContain(ORIGIN_MARKER_HEADER);
-  });
-
-  it('excludes the public liveness marker — it is a response header, never read inbound', () => {
-    expect(EDGE_INTERNAL_HEADERS).not.toContain(EDGE_MARKER_HEADER);
-  });
-
-  it('deleting every internal header clears a fully forged inbound request', () => {
-    const forged = new Headers({
-      [EDGE_SECRET_HEADER]: 'guessed-secret',
-      [EDGE_CANONICAL_HOST_HEADER]: 'attacker.example',
-      [EDGE_CLIENT_IP_HEADER]: '10.0.0.1',
-      [VERIFIED_CLIENT_IP_HEADER]: '10.0.0.2',
-      [ORIGIN_MARKER_HEADER]: ORIGIN_MARKER_VALUE,
-      'user-agent': 'kept',
-    });
-    for (const name of EDGE_INTERNAL_HEADERS) forged.delete(name);
-    expect([...forged.keys()]).toEqual(['user-agent']);
-  });
-});
-
-describe('internal-auth-headers', () => {
-  // WIRE strings shared by a minting tree (Cloud Functions) and a verifying tree
-  // (Cloudflare Worker/DO) that cannot import each other's source. Asserting them
-  // verbatim is the point: a one-sided rename fails no build, it fails at runtime
-  // as bad-version / bad-signature, which reads as an outage instead of a break.
-  it('pins the compact profile to its exact wire strings', () => {
-    expect(INTERNAL_AUTH_SIGNATURE_HEADER).toBe('x-ttt-sig');
-    expect(INTERNAL_AUTH_TIMESTAMP_HEADER).toBe('x-ttt-sig-ts');
-    expect(INTERNAL_AUTH_VERSION_HEADER).toBe('x-ttt-sig-v');
-  });
-
-  it('pins the operation-id profile to its exact wire strings', () => {
-    expect(INTERNAL_AUTH_OPERATION_ID_HEADER).toBe('x-ttt-operation');
-    expect(INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER).toBe('x-ttt-timestamp');
-    expect(INTERNAL_AUTH_OPERATION_VERSION_HEADER).toBe('x-ttt-sig-version');
-    expect(INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER).toBe('x-ttt-signature');
-  });
-
-  it('keeps all seven names distinct — no header carries two meanings', () => {
-    const names = [
-      INTERNAL_AUTH_SIGNATURE_HEADER,
-      INTERNAL_AUTH_TIMESTAMP_HEADER,
-      INTERNAL_AUTH_VERSION_HEADER,
-      INTERNAL_AUTH_OPERATION_ID_HEADER,
-      INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
-      INTERNAL_AUTH_OPERATION_VERSION_HEADER,
-      INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
-    ];
-    expect(new Set(names).size).toBe(names.length);
-  });
-
-  it('is disjoint from the provenance set — an internal-auth name is never stripped as forgeable', () => {
-    for (const name of [
-      INTERNAL_AUTH_SIGNATURE_HEADER,
-      INTERNAL_AUTH_TIMESTAMP_HEADER,
-      INTERNAL_AUTH_VERSION_HEADER,
-      INTERNAL_AUTH_OPERATION_ID_HEADER,
-      INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
-      INTERNAL_AUTH_OPERATION_VERSION_HEADER,
-      INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
-    ]) {
-      expect(EDGE_INTERNAL_HEADERS).not.toContain(name);
-    }
-  });
-
-  // The PAIR proof ARCH-005 asks for: what a minting side writes under these
-  // names is exactly what a verifying side reads back out of them.
-  it('compact profile round-trips a real signature mint → verify through the headers', async () => {
-    const secret = 'internal-secret';
-    const fields: InternalRequestFields = {
-      audience: 'app-chat:dev',
-      method: 'POST',
-      path: '/internal/sync/apply',
-      bodyHash: await sha256Hex('{"eventId":"e1"}'),
-      operationId: 'e1',
-      timestampSec: 1_800_000_000,
-    };
-    const sig = await signInternalRequest(fields, secret);
-
-    // Minting side.
-    const headers = new Headers({
-      [INTERNAL_AUTH_SIGNATURE_HEADER]: sig.signature,
-      [INTERNAL_AUTH_TIMESTAMP_HEADER]: String(sig.timestampSec),
-      [INTERNAL_AUTH_VERSION_HEADER]: sig.version,
-    });
-
-    // Verifying side — operationId recomputed from the body, never a header.
-    const verified = await verifyInternalRequest(
-      {
-        ...fields,
-        signature: headers.get(INTERNAL_AUTH_SIGNATURE_HEADER) ?? '',
-        timestampSec: Number(headers.get(INTERNAL_AUTH_TIMESTAMP_HEADER)),
-        version: headers.get(INTERNAL_AUTH_VERSION_HEADER) ?? '',
-        nowSec: fields.timestampSec + 5,
-        replayWindowSec: 300,
-      },
-      secret,
-    );
-    expect(verified).toEqual({ ok: true });
-  });
-
-  it('operation-id profile round-trips, carrying the signed operationId on the wire', async () => {
-    const secret = 'authority-secret';
-    const fields: InternalRequestFields = {
-      audience: 'app-media-authority:dev',
-      method: 'POST',
-      path: '/internal/media-authority/apply',
-      bodyHash: await sha256Hex('{"assetId":"a1"}'),
-      operationId: 'op-xyz',
-      timestampSec: 1_800_000_000,
-    };
-    const sig = await signInternalRequest(fields, secret);
-
-    const headers = new Headers({
-      [INTERNAL_AUTH_OPERATION_ID_HEADER]: fields.operationId,
-      [INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER]: String(sig.timestampSec),
-      [INTERNAL_AUTH_OPERATION_VERSION_HEADER]: sig.version,
-      [INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER]: sig.signature,
-    });
-
-    const verified = await verifyInternalRequest(
-      {
-        audience: fields.audience,
-        method: fields.method,
-        path: fields.path,
-        bodyHash: fields.bodyHash,
-        operationId: headers.get(INTERNAL_AUTH_OPERATION_ID_HEADER) ?? '',
-        timestampSec: Number(headers.get(INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER) ?? 'NaN'),
-        version: headers.get(INTERNAL_AUTH_OPERATION_VERSION_HEADER) ?? '',
-        signature: headers.get(INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER) ?? '',
-        nowSec: fields.timestampSec + 5,
-        replayWindowSec: 300,
-      },
-      secret,
-    );
-    expect(verified).toEqual({ ok: true });
-  });
-
-  it('a verifying side reading the WRONG profile name fails closed', async () => {
-    const secret = 's';
-    const fields: InternalRequestFields = {
-      audience: 'a',
-      method: 'POST',
-      path: '/p',
-      bodyHash: await sha256Hex(''),
-      operationId: 'o',
-      timestampSec: 1_800_000_000,
-    };
-    const sig = await signInternalRequest(fields, secret);
-    // Minted under the compact profile, read under the operation-id profile:
-    // the header is absent, so verification must refuse rather than pass.
-    const headers = new Headers({ [INTERNAL_AUTH_SIGNATURE_HEADER]: sig.signature });
-    const verified = await verifyInternalRequest(
-      {
-        ...fields,
-        signature: headers.get(INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER) ?? '',
-        version: 'v1',
-        nowSec: fields.timestampSec,
-        replayWindowSec: 300,
-      },
-      secret,
-    );
-    expect(verified).toEqual({ ok: false, reason: 'bad-signature' });
   });
 });

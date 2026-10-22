@@ -1,7 +1,3 @@
-// The quiet gate: a command line that names no stage, or a misspelled one, is a usage error before
-// anything runs; a failed static stage stops the run; a live stage whose services are down is
-// skipped in a full run but FAILS when named.
-
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
@@ -67,7 +63,6 @@ describe('runQuietGate', () => {
       path.join(dir, 'fail.mjs'),
       "console.error('the reason it failed'); process.exit(1);",
     );
-    // A port that was free a moment ago stands in for a local service that is not running.
     freePort = await new Promise<number>((resolve) => {
       const server = net.createServer().listen(0, '127.0.0.1', () => {
         const { port } = server.address() as net.AddressInfo;

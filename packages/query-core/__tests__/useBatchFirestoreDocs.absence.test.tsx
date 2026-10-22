@@ -84,7 +84,6 @@ function makeWrapper() {
   return { queryClient, Wrapper };
 }
 
-/** Advance fake timers and drain the promise jobs they release. */
 async function tick(ms: number) {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(ms);
@@ -96,8 +95,6 @@ const baseOpts = {
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
-  // Long enough that nothing in these suites re-reads because of staleness — every extra
-  // read counted here comes from the absence ladder.
   absentStaleTime: 10 * 60 * 1000,
 };
 
@@ -123,7 +120,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     expect(getDocsMock).toHaveBeenCalledTimes(3);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(2);
 
-    // Budget spent — repeated absent results never buy another rung.
     await tick(60_000);
     expect(getDocsMock).toHaveBeenCalledTimes(3);
   });
@@ -139,8 +135,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     await tick(1000);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
 
-    // A second consumer joins mid-episode: it reads the fresh negative cache and does not
-    // open a second ladder.
     const second = renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
@@ -187,7 +181,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     expect(getDocsMock).toHaveBeenCalledTimes(2);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(1);
 
-    // Resuming picks up at the rung the episode had reached, never at the start.
     renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
@@ -222,7 +215,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     await tick(10);
     expect(result.current.isError).toBe(true);
 
-    // A denial is not an absence — the ladder must not keep hammering it.
     await tick(60_000);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
   });
@@ -238,7 +230,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     await tick(60_000);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
 
-    // The doc appears: the episode is over.
     existingDocs.set('ghost', { displayName: 'Arrived' });
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: GHOST_KEY, exact: true });
@@ -246,7 +237,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     expect(getDocsMock).toHaveBeenCalledTimes(3);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBeNull();
 
-    // …and disappears again: a fresh budget, not the exhausted one.
     existingDocs.delete('ghost');
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: GHOST_KEY, exact: true });
@@ -294,8 +284,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     await tick(1000);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
 
-    // The only ENABLED consumer goes away; the disabled and subscribed ones must not keep
-    // the ladder running.
     enabledConsumer.unmount();
     await tick(60_000);
     expect(getDocsMock).toHaveBeenCalledTimes(2);
@@ -394,8 +382,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
 
   it('shrinks the effective ladder when the last polling registrant releases', async () => {
     const { Wrapper } = makeWrapper();
-    // This consumer stays mounted and ENABLED, so the query remains active throughout —
-    // what stops the ladder is the union shrinking to empty, not eligibility.
     renderHook(
       () =>
         useBatchFirestoreDocs({
@@ -472,7 +458,6 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     expect(queryClient.getQueryState(GHOST_KEY)).toBeUndefined();
     expect(__absenceEpisodeCount(queryClient)).toBe(0);
 
-    // A later re-fetch that lands absent starts from a fresh budget.
     renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     expect(getDocsMock).toHaveBeenCalledTimes(3);

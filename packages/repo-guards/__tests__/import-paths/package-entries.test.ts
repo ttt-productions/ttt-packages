@@ -1,7 +1,3 @@
-// One package entry per definition: the package's own check reads its source entries and fails a
-// definition two entries export or an entry that is not its folder's; a consumer's check reads the
-// installed build and fails an import from an entry that does not own the name.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   packageEntriesGuard,
@@ -32,7 +28,6 @@ const ENTRIES = {
   './browser': 'browser',
 };
 
-/** A package in a repository of packages, read from its source. */
 function packageRepo(src: Record<string, string>, entries: Record<string, string> = ENTRIES) {
   const files: Record<string, string> = {
     'scripts/anchor.ts': 'export {};',
@@ -124,7 +119,6 @@ describe("a package's own entries", () => {
   });
 });
 
-/** An app with the package installed, read from its build. */
 function consumerRepo(app: Record<string, string>) {
   const files: Record<string, string> = {
     'node_modules/@acme/kit/package.json': manifest(ENTRIES),

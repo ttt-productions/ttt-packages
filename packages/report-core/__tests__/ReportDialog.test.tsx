@@ -5,8 +5,7 @@ import { render, screen, cleanup, fireEvent, waitFor, act } from '@testing-libra
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-// Radix Select does not run in jsdom; a native select stands in for the picker. Everything else
-// is the real ui-core.
+// Radix Select does not run in jsdom; a native select stands in for the picker.
 vi.mock('@ttt-productions/ui-core/react', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
@@ -51,7 +50,7 @@ import type { SubmitReportRequest, SubmitReportResult } from '../src/schemas/req
 const config = {
   collections: { reports: 'r', reportGroups: 'g', adminTasks: 't' },
   reportableItems: { post: { displayName: 'Post' } },
-  reportReasons: ['Spam', 'Child Safety'],
+  reportReasons: ['Spam', 'Protected Reason'],
   priorityConfig: {},
   taskQueues: {},
   reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 20 }),
@@ -91,8 +90,8 @@ const filed: SubmitReportResult = {
 const upgraded: SubmitReportResult = {
   outcome: 'upgraded',
   reportId: 'r1',
-  reason: 'Child Safety',
-  protectedFork: 'childSafetyCase',
+  reason: 'Protected Reason',
+  protectedFork: 'protectedCase',
   caseId: 'c1',
 };
 
@@ -203,20 +202,23 @@ describe('ReportDialog outcomes', () => {
 
   it('an upgrade offer shows the upgrade view, and confirming escalates the existing report', async () => {
     const t = setup({
-      answers: [{ outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Child Safety' }, upgraded],
+      answers: [
+        { outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Protected Reason' },
+        upgraded,
+      ],
     });
-    pick('Child Safety');
+    pick('Protected Reason');
     typeComment('  now worse  ');
     await clickSubmit();
 
-    expect(screen.getByText('copy:upgradeDescription:Post:Child Safety')).toBeInTheDocument();
+    expect(screen.getByText('copy:upgradeDescription:Post:Protected Reason')).toBeInTheDocument();
     expect(t.onSubmitSuccess).not.toHaveBeenCalled();
 
     await clickSubmit('copy:upgrade');
 
     expect(t.submitReportFn).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        reason: 'Child Safety',
+        reason: 'Protected Reason',
         comment: 'now worse',
         confirmUpgrade: true,
       }),
@@ -228,11 +230,11 @@ describe('ReportDialog outcomes', () => {
   it('a confirm that answers already-reported shows that view instead of claiming success', async () => {
     const t = setup({
       answers: [
-        { outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Child Safety' },
+        { outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Protected Reason' },
         { outcome: 'alreadyReported', reportId: 'r1' },
       ],
     });
-    pick('Child Safety');
+    pick('Protected Reason');
     typeComment('x');
     await clickSubmit();
     await clickSubmit('copy:upgrade');
@@ -242,8 +244,10 @@ describe('ReportDialog outcomes', () => {
   });
 
   it('Back from the upgrade view returns to the form', async () => {
-    setup({ answers: [{ outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Child Safety' }] });
-    pick('Child Safety');
+    setup({
+      answers: [{ outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Protected Reason' }],
+    });
+    pick('Protected Reason');
     typeComment('x');
     await clickSubmit();
 

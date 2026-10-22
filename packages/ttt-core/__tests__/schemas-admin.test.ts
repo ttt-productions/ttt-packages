@@ -97,7 +97,7 @@ describe('OperatorStepUpSchema', () => {
   });
 });
 
-describe('announcementMessage — the third operational lever on _config/app', () => {
+describe('announcementMessage — the third operational lever on _appConfig/app', () => {
   const baseConfig = {
     appVersion: '1.0.0',
     maintenanceMode: false,
@@ -112,7 +112,6 @@ describe('announcementMessage — the third operational lever on _config/app', (
     expect(
       AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: 'Back at 9pm ET.' }).success,
     ).toBe(true);
-    // Empty = no banner. There is no separate on/off boolean, so clearing the text IS the off state.
     expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: '' }).success).toBe(
       true,
     );
@@ -556,19 +555,13 @@ describe('GetReportedContentDetailResultSchema — resolved clearableSurface', (
     }
   });
 
-  it('closes the hole: each hall sub-item surface offers FEWER fields than the hall-family union', () => {
-    // The bug this field exists to fix — the picker offered title/description/content to every
-    // sub-item, so `description` on a Tale chapter (title/content) and `content` on a Tune track
-    // (title/description) passed the wire and were then silently dropped by the clear runner.
+  it('each hall sub-item surface offers FEWER fields than the hall-family union', () => {
     for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
       const surfaceFields = MODERATION_CLEARABLE_TEXT_FIELDS[routing.subItemSurface];
       expect(surfaceFields.length).toBeLessThan(HALL_CLEARABLE_TEXT_FIELD_NAMES.length);
-      // Every offered field is a real member of the union (no picker can invent one).
       for (const field of surfaceFields) {
         expect(HALL_CLEARABLE_TEXT_FIELD_NAMES).toContain(field);
       }
-      // At least one union member is NOT valid for this surface — i.e. the union genuinely
-      // over-offers and resolving the surface is what narrows it.
       expect(
         HALL_CLEARABLE_TEXT_FIELD_NAMES.some(
           (field) => !(surfaceFields as readonly string[]).includes(field),

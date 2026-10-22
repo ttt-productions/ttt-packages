@@ -1,12 +1,3 @@
-/**
- * The system messages a guild invite's conversation records — who agreed, declined, cancelled, or
- * retracted, the finalized deal, and an updated offer. A message names people by account id, never
- * by name (ARCH-103), and the account ids ride the chat message's `referencedUids`, never its text:
- * the room's account anonymization rewrites them like a sender, and the conversation shows each
- * person's CURRENT name when it renders. `guildInviteSystemMessageSegments` is the one place each
- * sentence is written.
- */
-
 import { z } from 'zod';
 import {
   CHAT_SYSTEM_SENDER_ID,
@@ -24,10 +15,8 @@ export const GuildInviteSystemMessageSchema = z.discriminatedUnion('event', [
 ]);
 export type GuildInviteSystemMessage = z.infer<typeof GuildInviteSystemMessageSchema>;
 
-/** The key that marks a stored message text as an invite system message. */
 const STORED_MESSAGE_KEY = 'guildInviteSystemMessage';
 
-/** What the text stores: the event and any non-person value — never an account id. */
 const StoredEventSchema = z.discriminatedUnion('event', [
   z
     .object({ event: z.enum(['agreed', 'declined', 'cancelled', 'retracted', 'finalized']) })
@@ -35,10 +24,6 @@ const StoredEventSchema = z.discriminatedUnion('event', [
   z.object({ event: z.literal('offerUpdated'), stakeShares: z.number().int().positive() }).strict(),
 ]);
 
-/**
- * The server message an invite system message is written as: the system sender, the event as
- * text, and the account it names in `referencedUids`.
- */
 export function encodeGuildInviteSystemMessage(
   message: GuildInviteSystemMessage,
 ): ChatServerMessagePayload & { referencedUids: string[] } {
@@ -56,11 +41,6 @@ export function encodeGuildInviteSystemMessage(
   };
 }
 
-/**
- * The invite system message a chat message holds, or null when it holds none. Only a message the
- * server wrote (`senderId` is the system sender) can hold one — a member who types the same text
- * sends an ordinary message.
- */
 export function decodeGuildInviteSystemMessage(message: {
   senderId: string;
   text?: string;
@@ -97,10 +77,8 @@ export function decodeGuildInviteSystemMessage(message: {
   return result?.success ? result.data : null;
 }
 
-/** One piece of a rendered system message: fixed text, or the place an account's current name goes. */
 export type GuildInviteSystemMessageSegment = { text: string } | { uid: string };
 
-/** A system message's sentence, with a name slot wherever it names an account. */
 export function guildInviteSystemMessageSegments(
   message: GuildInviteSystemMessage,
 ): GuildInviteSystemMessageSegment[] {

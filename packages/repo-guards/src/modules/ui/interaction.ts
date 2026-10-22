@@ -1,7 +1,3 @@
-// The UI guards over shared interaction patterns: navigation only through the app's helper,
-// pending feedback only through the shared primitives, one show-more control, one pending-name
-// seat, and the root layout's provider order.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import {
@@ -27,7 +23,6 @@ import { APP_CODE, APP_STYLES } from './styling.js';
 const tsx = (text: string) => ({ path: 'sample.tsx', text });
 const css = (text: string) => ({ path: 'sample.css', text });
 
-/** Hits of each pattern in a file's comment-free code, each hit's text as its detail. */
 const codeHits =
   (patterns: readonly RegExp[]): Matcher =>
   (file) => {
@@ -39,7 +34,6 @@ const codeHits =
     return hits.sort((a, b) => a.index - b.index);
   };
 
-/** `import { … } from '<module>'` statements that name one of `names`; `modulePattern` matches the whole specifier. */
 const namedImports =
   (modulePattern: string, names: readonly string[]): Matcher =>
   (file) => {
@@ -59,8 +53,6 @@ const namedImports =
     }
     return hits;
   };
-
-// ---- navigation only through the helper --------------------------------------------------------
 
 export const rawLinkImports: Matcher = (file) =>
   file.kind === 'code'
@@ -89,11 +81,8 @@ export const guardedNavigationImports = namedImports(
 );
 
 export interface NavigationFacts {
-  /** The one navigation helper: the only caller of the framework link, router, and full-page loads. */
   helper: string;
-  /** What the helper exports for the rest of the app to navigate with (its link component, its hook). */
   helperExports: readonly string[];
-  /** The one module that calls the upload package's guarded navigation, or null when the app has no upload guard. */
   guardedNavigationOwner: string | null;
 }
 
@@ -186,9 +175,6 @@ export const navigationGuard: GenericGuardDefinition<NavigationFacts> = {
   },
 };
 
-// ---- pending feedback through the shared primitives ---------------------------------------------
-
-/** lucide's spinner icon under every name it exports it as. */
 const SPINNER_ICONS = [
   'Loader2',
   'Loader2Icon',
@@ -207,7 +193,6 @@ export const pullToRefreshImports = namedImports(String.raw`@ttt-productions\/mo
   'PullToRefreshContainer',
 ]);
 
-/** Where a hook's hook-wide flag is read: destructured from its call, read off the call, or off a binding of it. */
 export function hookFlagReads(hook: string, flag: string): Matcher {
   const h = escapeRegExp(hook);
   const f = escapeRegExp(flag);
@@ -233,15 +218,12 @@ export function hookFlagReads(hook: string, flag: string): Matcher {
 }
 
 export interface HookWideFlag {
-  /** A hook whose return carries one flag for every action it runs. */
   hook: string;
   flag: string;
-  /** The reviewed readers of that flag, each with its why. */
   readers: readonly AllowlistEntry[];
 }
 
 export interface LoadingFeedbackFacts {
-  /** The app's one pull-to-refresh wrapper (it supplies the shared spinner), or null when the app has none. */
   pullToRefreshWrapper: string | null;
   hookWideFlags: readonly HookWideFlag[];
 }
@@ -357,8 +339,6 @@ export const loadingFeedbackGuard: GenericGuardDefinition<LoadingFeedbackFacts> 
   },
 };
 
-// ---- one show-more control --------------------------------------------------------------------
-
 const SHOW_HIDE_LABEL =
   /\b(?:show|hide|expand|collapse)\b|\b(?:read|see|view) (?:more|less|all)\b/i;
 const CHEVRON_ICON = /<Chevrons?[A-Z]\w*/;
@@ -378,7 +358,6 @@ function openingTagEnd(code: string, start: number): number {
   return code.length;
 }
 
-/** Every hand-rolled show/hide button (aria-expanded, labelled like a disclosure) and every native `<details>`. */
 export const handRolledDisclosures: Matcher = (file) => {
   if (file.kind !== 'code') return [];
   const code = file.code;
@@ -400,7 +379,6 @@ export const handRolledDisclosures: Matcher = (file) => {
 };
 
 export interface ShowMoreFacts {
-  /** The one show-more control every disclosure renders through. */
   toggle: string;
 }
 
@@ -450,14 +428,11 @@ export const showMoreGuard: GenericGuardDefinition<ShowMoreFacts> = {
   },
 };
 
-// ---- one pending-name seat ---------------------------------------------------------------------
-
 export const busyNamePlaceholders = codeHits([
   /<span\b[^>]*\baria-busy\b|<span\b[^>]*>\s*(?:…|\.\.\.|\{\s*(['"`])(?:…|\.\.\.)\1\s*\})\s*<\/span>/,
 ]);
 
 export interface PendingNameSeatFacts {
-  /** The one module that renders a name still loading inside a line of text. */
   seat: string;
 }
 
@@ -494,18 +469,11 @@ export const pendingNameSeatGuard: GenericGuardDefinition<PendingNameSeatFacts> 
   },
 };
 
-// ---- the root layout mounts its providers in order ---------------------------------------------
-
 export interface LayoutOrderFacts {
-  /** The root layout module. */
   layoutModule: string;
-  /** Elements the layout mounts exactly once. */
   mountedOnce: readonly string[];
-  /** Each outer element wraps its inner one. */
   wraps: ReadonlyArray<{ outer: string; inner: string }>;
-  /** Each element sits outside its container. */
   outside: ReadonlyArray<{ element: string; container: string }>;
-  /** Each first element opens before its then element. */
   precedes: ReadonlyArray<{ first: string; then: string }>;
 }
 

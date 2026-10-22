@@ -88,7 +88,6 @@ describe('useCallableMutation', () => {
     });
     expect(result.current.isLoading).toBe(true);
 
-    // The first call settling must NOT clear the flag while the second is in flight.
     await act(async () => {
       resolvers[0]({ data: null });
       await first;
@@ -166,9 +165,6 @@ describe('useCallableMutation', () => {
     });
   });
 
-  // The hook constructs the transport object, so an option the primitive owns is
-  // only reachable from React if this layer threads it. Default-false: an ordinary
-  // hook call must produce no SDK options object at all.
   it('threads limitedUseAppCheck through to the SDK limitedUseAppCheckTokens option', async () => {
     const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), {
       stream: vi.fn(),
@@ -212,8 +208,6 @@ describe('useCallableMutation', () => {
   it('deadline expiry rejects with functions/deadline-exceeded and clears isLoading', async () => {
     vi.useFakeTimers();
     try {
-      // Never-settling call models the SDK stuck anywhere, including the
-      // pre-transport auth/App Check phase its own timer does not cover.
       const mockCallable = Object.assign(
         vi.fn(() => new Promise(() => {})),
         { stream: vi.fn() },

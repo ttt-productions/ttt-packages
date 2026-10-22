@@ -1,11 +1,3 @@
-// The declaration of every TTT text field a person types: its input format, its min, and its max
-// (ARCH-102). input-format-core owns the formats and the one check; this file only says which
-// format each field uses and how long it may be. The field's form input, its wire schema
-// (`textFieldSchema`), and its writer all read the one declaration, so they accept exactly the same
-// texts. Every text is trimmed before it is judged, and every format but `none` keeps one space for
-// each run of whitespace; `keepAsTyped` is reserved for the legal public documents and the NCII
-// statutory fields, whose words are kept verbatim.
-
 import { CHAT_MESSAGE_TEXT_INPUT } from '@ttt-productions/chat-schemas';
 import { defineInputFormat, type InputFormatSpec } from '@ttt-productions/input-format-core';
 import type { TextFieldDeclaration } from '../utils/text-field.js';
@@ -91,23 +83,18 @@ import {
   MIN_CURATED_PROFANITY_TERM_LENGTH,
 } from './moderation.js';
 
-// --- Works, Realms, and the Hall ---
-
-/** A Work's title — its one name, which the Hall entry snapshots at first publication. */
 export const WORK_TITLE_INPUT = defineInputFormat({
   label: 'Title',
   format: 'englishNormal',
   min: 1,
   max: MAX_WORK_PROJECT_TITLE_LENGTH,
 });
-/** A Work's description — the Hall entry snapshots it with the title. */
 export const WORK_DESCRIPTION_INPUT = defineInputFormat({
   label: 'Description',
   format: 'none',
   min: 1,
   max: MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
 });
-/** A Realm's name, which is also its platform-wide reservation key. */
 export const REALM_NAME_INPUT = defineInputFormat({
   label: 'Realm name',
   format: 'englishNormal',
@@ -156,7 +143,6 @@ export const TELEVISION_EPISODE_DESCRIPTION_INPUT = defineInputFormat({
   min: 0,
   max: MAX_TELEVISION_EPISODE_DESCRIPTION_LENGTH,
 });
-/** An admin's reason for denying a published change request; the deny itself requires it. */
 export const HALL_CHANGE_REQUEST_DENY_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
@@ -182,17 +168,10 @@ export const REALM_FILE_FOLDER_NAME_INPUT = defineInputFormat({
   max: MAX_FILE_FOLDER_NAME_LENGTH,
 });
 
-/** A field as a published change request proposes it: its authoring declaration, except that a
- *  proposal always carries text — an optional field cannot be changed to nothing. */
 function proposedText<const S extends InputFormatSpec>(declaration: S) {
   return defineInputFormat({ ...declaration, min: Math.max(declaration.min, 1) });
 }
 
-/**
- * Each published surface's changeable text fields and the declaration a proposed value must meet.
- * A Tale / Tune / Television detail is the Work's own title and description, so it takes the Work's
- * declarations; a Realm proposal takes the Realm's.
- */
 export const HALL_CONTENT_CHANGE_REQUEST_INPUTS: {
   readonly [S in Exclude<ModerationClearableSurface, 'workProject'>]: Readonly<
     Record<(typeof MODERATION_CLEARABLE_TEXT_FIELDS)[S][number], TextFieldDeclaration>
@@ -212,8 +191,6 @@ export const HALL_CONTENT_CHANGE_REQUEST_INPUTS: {
   },
   workRealm: { workingTitle: REALM_NAME_INPUT, workingDescription: REALM_DESCRIPTION_INPUT },
 };
-
-// --- Commissions, auditions, and the guild ---
 
 export const COMMISSION_TITLE_INPUT = defineInputFormat({
   label: 'Commission title',
@@ -264,30 +241,24 @@ export const GUILD_CHAT_CHANNEL_DESCRIPTION_INPUT = defineInputFormat({
   max: MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH,
 });
 
-// --- Posts, messages, and chat ---
-
-/** A Square post's text: the text post and a media post's caption are one field. */
 export const SQUARE_POST_TEXT_INPUT = defineInputFormat({
   label: 'Post',
   format: 'none',
   min: 1,
   max: MAX_POST_LENGTH,
 });
-/** A message in an admin-support thread: the live chat message's format and bounds, from the chat contract. */
 export const SUPPORT_THREAD_MESSAGE_INPUT = defineInputFormat({
   label: 'Message',
   format: CHAT_MESSAGE_TEXT_INPUT.format,
   min: CHAT_MESSAGE_TEXT_INPUT.min,
   max: CHAT_MESSAGE_TEXT_INPUT.max,
 });
-/** A support thread's or an admin message's subject. */
 export const ADMIN_DISPATCH_SUBJECT_INPUT = defineInputFormat({
   label: 'Subject',
   format: 'singleLine',
   min: 1,
   max: MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
 });
-/** A support thread's first message, and the body of an admin message or warning. */
 export const ADMIN_DISPATCH_MESSAGE_INPUT = defineInputFormat({
   label: 'Message',
   format: 'none',
@@ -307,8 +278,6 @@ export const BROADCAST_MESSAGE_INPUT = defineInputFormat({
   max: MAX_NOTIFICATION_MESSAGE_LENGTH,
 });
 
-// --- Accounts and members ---
-
 export const USERNAME_INPUT = defineInputFormat({
   label: 'Username',
   format: 'englishNormalNoSpaces',
@@ -321,7 +290,6 @@ export const ARTISAN_REGION_INPUT = defineInputFormat({
   min: 0,
   max: MAX_ARTISAN_LOCATION_LENGTH,
 });
-/** A feedback suggestion: one word of English letters, stored lowercase. */
 export const FEEDBACK_SUGGESTION_INPUT = defineInputFormat({
   label: 'Suggestion',
   format: 'englishLettersOnly',
@@ -334,14 +302,12 @@ export const APPEAL_MESSAGE_INPUT = defineInputFormat({
   min: 1,
   max: MAX_APPEAL_MESSAGE_LENGTH,
 });
-/** A report's comment, and an admin's reason for marking NCII evidence. */
 export const REPORT_COMMENT_INPUT = defineInputFormat({
   label: 'Comment',
   format: 'none',
   min: 1,
   max: MAX_REPORT_COMMENT_LENGTH,
 });
-/** The name of a theme a member builds in Theme Studio. */
 export const THEME_NAME_INPUT = defineInputFormat({
   label: 'Theme name',
   format: 'singleLine',
@@ -349,9 +315,6 @@ export const THEME_NAME_INPUT = defineInputFormat({
   max: MAX_THEME_NAME_LENGTH,
 });
 
-// --- Admin and moderation ---
-
-/** The reason for hiding a Work, a Realm, or a Hall sub-item. */
 export const HIDE_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
@@ -370,29 +333,24 @@ export const CLEAR_TEXT_REASON_INPUT = defineInputFormat({
   min: 1,
   max: MAX_REQUIRE_RETITLE_REASON_LENGTH,
 });
-/** The reason on a reported item's hide or removal; the action itself requires it. */
 export const MODERATION_ACTION_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
   min: 0,
   max: MAX_INTERNAL_REASON_LENGTH,
 });
-/** An admin's reason for an account action — a suspension or a ban. */
 export const ACCOUNT_ACTION_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
   min: 1,
   max: MAX_INTERNAL_REASON_LENGTH,
 });
-/** An admin's optional note on a reinstatement. */
 export const ACCOUNT_REINSTATE_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
   min: 0,
   max: MAX_INTERNAL_REASON_LENGTH,
 });
-/** An admin's optional note on a forced display-name reset — the User Management action and the
- *  username report's close-out — recorded on its audit event. */
 export const DISPLAY_NAME_RESET_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
@@ -405,14 +363,12 @@ export const USER_FACING_REASON_DETAIL_INPUT = defineInputFormat({
   min: 0,
   max: MAX_USER_FACING_REASON_DETAIL_LENGTH,
 });
-/** The admin note on a report's or a safety case's close-out. */
 export const CLOSE_OUT_ADMIN_NOTE_INPUT = defineInputFormat({
   label: 'Admin note',
   format: 'none',
   min: 0,
   max: MAX_SAFETY_ADMIN_NOTE_LENGTH,
 });
-/** The resolution note an admin leaves when checking in an admin task (an ops anomaly's disposition). */
 export const ADMIN_TASK_RESOLUTION_INPUT = defineInputFormat({
   label: 'Resolution note',
   format: 'none',
@@ -425,7 +381,6 @@ export const APPEAL_REVIEW_NOTES_INPUT = defineInputFormat({
   min: 0,
   max: MAX_APPEAL_REVIEW_NOTES_LENGTH,
 });
-/** A pledge refund denial reason, shown to the requester; the deny itself requires it. */
 export const PLEDGE_REFUND_DENIAL_REASON_INPUT = defineInputFormat({
   label: 'Denial reason',
   format: 'none',
@@ -444,7 +399,6 @@ export const MAINTENANCE_MESSAGE_INPUT = defineInputFormat({
   min: 0,
   max: MAX_MAINTENANCE_MESSAGE_LENGTH,
 });
-/** The site announcement banner; empty clears it. */
 export const ANNOUNCEMENT_MESSAGE_INPUT = defineInputFormat({
   label: 'Announcement',
   format: 'none',
@@ -457,14 +411,12 @@ export const APP_VERSION_INPUT = defineInputFormat({
   min: 1,
   max: MAX_APP_VERSION_LENGTH,
 });
-/** The optional milestone evidence an admin records with an app-mode flip. */
 export const APP_MODE_FLIP_EVIDENCE_INPUT = defineInputFormat({
   label: 'Milestone evidence',
   format: 'none',
   min: 0,
   max: MAX_INTERNAL_REASON_LENGTH,
 });
-/** The reason an admin records when closing an account discovered to be under 13. */
 export const CLOSE_UNDER_13_REASON_INPUT = defineInputFormat({
   label: 'Reason',
   format: 'none',
@@ -472,15 +424,12 @@ export const CLOSE_UNDER_13_REASON_INPUT = defineInputFormat({
   max: MAX_UNDER_13_CLOSE_REASON_LENGTH,
 });
 
-// --- The safety console ---
-
 export const TAKE_IT_DOWN_VALIDITY_RATIONALE_INPUT = defineInputFormat({
   label: 'Rationale',
   format: 'none',
   min: MIN_SAFETY_RATIONALE_LENGTH,
   max: MAX_NCII_RATIONALE_LENGTH,
 });
-/** An operator's internal reason for reopening a safety case or taking a safety account action. */
 export const SAFETY_INTERNAL_REASON_INPUT = defineInputFormat({
   label: 'Internal reason',
   format: 'none',
@@ -505,8 +454,6 @@ export const NCMEC_CORRECTION_REASON_INPUT = defineInputFormat({
   min: 1,
   max: MAX_INTERNAL_REASON_LENGTH,
 });
-
-// --- Kept as typed: the legal public documents ---
 
 export const FUTURE_PLAN_TITLE_INPUT = defineInputFormat({
   label: 'Title',
@@ -550,7 +497,6 @@ export const FUTURE_PLAN_GROUP_NAME_INPUT = defineInputFormat({
   max: MAX_FUTURE_PLAN_GROUP_NAME_LENGTH,
   keepAsTyped: true,
 });
-/** A Future Plans or Rules & Agreements page intro; blank-line-separated paragraphs. */
 export const PUBLIC_DOCUMENT_INTRO_INPUT = defineInputFormat({
   label: 'Intro',
   format: 'none',
@@ -558,7 +504,6 @@ export const PUBLIC_DOCUMENT_INTRO_INPUT = defineInputFormat({
   max: MAX_PUBLIC_DOCUMENT_INTRO_LENGTH,
   keepAsTyped: true,
 });
-/** A section's intention line, shown under its heading. */
 export const PUBLIC_DOCUMENT_INTENTION_INPUT = defineInputFormat({
   label: 'Intention',
   format: 'none',
@@ -566,7 +511,6 @@ export const PUBLIC_DOCUMENT_INTENTION_INPUT = defineInputFormat({
   max: MAX_PUBLIC_DOCUMENT_INTENTION_LENGTH,
   keepAsTyped: true,
 });
-/** A legal page's section heading, and a DMCA contact block's heading. */
 export const CONTENT_PAGE_HEADING_INPUT = defineInputFormat({
   label: 'Heading',
   format: 'singleLine',
@@ -574,7 +518,6 @@ export const CONTENT_PAGE_HEADING_INPUT = defineInputFormat({
   max: MAX_CONTENT_PAGE_HEADING_LENGTH,
   keepAsTyped: true,
 });
-/** A legal page's section body (empty is a bare divider heading), and the DMCA policy's intro. */
 export const CONTENT_PAGE_BODY_INPUT = defineInputFormat({
   label: 'Text',
   format: 'none',
@@ -603,8 +546,6 @@ export const TAKE_IT_DOWN_COPY_INPUT = defineInputFormat({
   max: MAX_TAKE_IT_DOWN_COPY_LENGTH,
   keepAsTyped: true,
 });
-
-// --- Kept as typed: the NCII statutory fields ---
 
 export const NCII_REQUESTER_NAME_INPUT = defineInputFormat({
   label: 'Your name',

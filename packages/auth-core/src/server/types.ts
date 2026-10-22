@@ -1,153 +1,49 @@
-// Types for the createAssertAuth factory. Fully generic over the consuming
-// app's user document shape. The package contains no app-specific knowledge.
-
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
 
-/**
- * Per-callable requirements passed at every assertAuth call site.
- * These are application-agnostic.
- */
-export interface AuthRequirements {
-  /**
-   * Allow unverified email. Default: false.
-   * If true, the emailVerified check is skipped entirely.
-   * Special-case for system flows (e.g. user registration).
-   */
+export interface AuthRequirements<TAdminOptions = never> {
   allowUnverified?: boolean;
 
-  /**
-   * Require email_verified=true on the auth token.
-   * Default: false. Skipped when allowUnverified=true.
-   */
   emailVerified?: boolean;
 
-  /**
-   * Skip the status check entirely. Special-case for flows where the
-   * user doc may not exist yet (e.g. user registration).
-   * Default: false.
-   */
   allowAnyStatus?: boolean;
 
-  /**
-   * Allow suspended users to pass the status check. Banned users still fail.
-   * Use ONLY for callables that are a suspended user's last recourse
-   * (e.g. admin-support chat / ban appeal).
-   * Default: false. Does NOT skip the existence check.
-   */
   allowSuspended?: boolean;
 
-  /**
-   * Let a caller below the currently required acceptance level through. Meaningful only
-   * when the factory was configured with `acceptance`; ignored otherwise.
-   * Use ONLY for callables that must work before the caller accepts: the accept callable
-   * itself, registration (a new account holds no accepted level yet), and last-recourse
-   * paths such as sign-out, support, refunds, account deletion, and legally required
-   * reporting. Default: false.
-   */
   allowUnaccepted?: boolean;
 
-  /**
-   * Require admin status. Delegates to config.requireAdmin().
-   * The shape of this object is forwarded verbatim to the consumer's
-   * requireAdmin callback — the package does not interpret it.
-   */
-  admin?: AdminCheckOptions;
+  admin?: TAdminOptions;
 }
 
-/**
- * Options forwarded to the consumer's requireAdmin callback. Generic shape.
- * Consuming apps may add their own fields; the package does not validate.
- */
-export interface AdminCheckOptions {
-  allowJrAdmin?: boolean;
-  useFastCheck?: boolean;
-  errorMessage?: string;
-  [key: string]: unknown;
-}
-
-/**
- * Return value from assertAuth. Generic over the consuming app's user
- * document type.
- */
 export interface AuthContext<TUser = unknown, TAdmin = void> {
   uid: string;
   token: DecodedIdToken;
-  /** Populated when the user doc was read (default not-banned check). */
   userDoc?: TUser;
-  /** Result returned by config.requireAdmin. Populated only when an admin check ran (AuthRequirements.admin was set). Undefined otherwise. */
   admin?: TAdmin;
 }
 
-/**
- * Status the consuming app reports for a user doc. The package only
- * interprets these three values.
- */
 export type UserStatus = 'active' | 'suspended' | 'banned';
 
-/**
- * Configuration for createAssertAuth. The consuming app supplies every
- * app-specific operation as a callback.
- */
-export interface AssertAuthConfig<TUser, TAdmin = void> {
-  /**
-   * Returns the admin Firestore instance. Called every assertAuth invocation
-   * that needs a Firestore read. Implementations typically return
-   * `admin.firestore()` from a memoized handle.
-   */
+export interface AssertAuthConfig<TUser, TAdmin = void, TAdminOptions = never> {
   firestore: () => Firestore;
 
-  /**
-   * Returns the Firestore document path for a user profile, given a uid.
-   * Example: `userProfiles/${uid}`
-   */
   userProfilePath: (uid: string) => string;
 
-  /**
-   * Returns the user's status given the user doc data. The package only
-   * acts on 'active' | 'suspended' | 'banned'. Apps may store status in any
-   * field; this callback interprets it.
-   */
   getUserStatus: (user: TUser) => UserStatus;
 
-  /**
-   * Admin check. Called only when AuthRequirements.admin is set. The
-   * package forwards uid, token, and the admin options verbatim. The
-   * callback throws (typically HttpsError) on failure.
-   */
-  requireAdmin: (uid: string, token: DecodedIdToken, options: AdminCheckOptions) => Promise<TAdmin>;
+  requireAdmin: (uid: string, token: DecodedIdToken, options: TAdminOptions) => Promise<TAdmin>;
 
-  /**
-   * Optional acceptance-level gate. When set, every assertAuth call that does not pass
-   * `allowUnaccepted` refuses a caller whose accepted level (read from the token claim
-   * `claimKey`) is below the level `requiredLevel()` returns. Absent = no gate, exactly the
-   * behavior before the gate existed.
-   */
   acceptance?: AcceptanceGateConfig;
 }
 
-/**
- * The consuming app's acceptance-level wiring. The package holds no claim name and no
- * document knowledge: the app names the claim and supplies the current requirement.
- */
 export interface AcceptanceGateConfig {
-  /** The custom claim on the verified ID token that holds the caller's accepted level. */
   claimKey: string;
 
-  /**
-   * The level currently required. Runs on every gated assertAuth, so it must be cheap —
-   * read it from a cached snapshot, never a fresh Firestore read per call. A non-finite or
-   * non-positive result requires nothing (see `normalizeAcceptanceLevel`); a throw rejects
-   * the call.
-   */
   requiredLevel: () => number | Promise<number>;
 }
 
-/**
- * The function returned by createAssertAuth.
- */
-export type AssertAuthFn<TUser, TAdmin = void> = (
+export type AssertAuthFn<TUser, TAdmin = void, TAdminOptions = never> = (
   request: CallableRequest,
-  requirements?: AuthRequirements,
+  requirements?: AuthRequirements<TAdminOptions>,
 ) => Promise<AuthContext<TUser, TAdmin>>;

@@ -26,7 +26,6 @@ function makePolicy(overrides: Partial<CallablePolicy> = {}) {
   } satisfies CallablePolicy;
 }
 
-/** Every invocation of the callable answers from `answers` in order; a function throws its error. */
 function mockCallable(...answers: Array<unknown | (() => never)>) {
   const invoke = vi.fn();
   for (const answer of answers) {
@@ -57,7 +56,6 @@ function wrapperFor(client: QueryClient) {
   };
 }
 
-/** A client whose own default WOULD retry a mutation, so a no-retry result proves the action's. */
 function retryingClient() {
   return new QueryClient({ defaultOptions: { mutations: { retry: 3, retryDelay: 0 } } });
 }

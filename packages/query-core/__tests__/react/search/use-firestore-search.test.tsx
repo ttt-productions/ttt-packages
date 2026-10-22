@@ -32,7 +32,6 @@ function makeWrapper() {
   return Wrapper;
 }
 
-// The prefix read answers with one row named after the searched text.
 function answerWithSearchedText() {
   getDocsMock.mockImplementation(
     async (q: { __constraints: Array<{ op?: string; value?: unknown }> }) => {

@@ -1,6 +1,3 @@
-// Runs one client-action guard over a throwaway repository: the app root is `src`, `functions/src`
-// joins when a fixture has it, and each finding comes back as `file:line detail`.
-
 import type { GenericGuardDefinition } from '../../src/node/suite/config.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import type { RepoLayout } from '../../src/node/layout.js';
@@ -44,7 +41,6 @@ export async function findingsOf<F>(
   }
 }
 
-/** Every guard the definition builds proves its own samples. */
 export function samplesProve<F>(definition: GenericGuardDefinition<F>, facts: F) {
   for (const guard of definition.build(facts)) checkSamples(guard);
 }

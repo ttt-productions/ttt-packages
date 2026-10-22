@@ -1,15 +1,3 @@
-// `dev:login`: force a FRESH login on every operator CLI, one at a time.
-//
-// Always forces. A credential that still passes a validity check can expire minutes later, in the
-// middle of a long run (a Workspace re-auth policy ends the gcloud and ADC sessions on a schedule:
-// `invalid_grant … invalid_rapt`), so before a long operation the question is "is it new?", never
-// "is it still valid?", and nothing is skipped.
-//
-// Each step is interactive (a browser opens) and the next starts only after the previous exits. A
-// failed step stops the chain. Tokens are never printed. After the logins, gcloud's active project
-// and the ADC quota project are pointed at the app's dev project: a fresh gcloud login keeps
-// whatever project was active before (another product's, on a shared machine).
-
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -28,12 +16,6 @@ export interface DevLoginPlan {
   devProjectId: string;
 }
 
-/**
- * The plan for an app: the Firebase CLI, gcloud, and ADC logins, then any `extraLogins` (another
- * provider's CLI), the project setup, and the identity summary. firebase-tools is a GLOBAL install
- * that Git Bash's PATH may not reach, so it runs through npx, which resolves the global install
- * without downloading anything.
- */
 export function devLoginPlan({
   repoRoot,
   devProjectId,
@@ -47,6 +29,8 @@ export function devLoginPlan({
 }): DevLoginPlan {
   return {
     devProjectId,
+    // firebase-tools is a global install Git Bash's PATH may not reach; npx resolves it without a
+    // download.
     logins: [
       { name: 'Firebase CLI', command: 'npx firebase login --reauth', cwd: repoRoot },
       { name: 'gcloud CLI', command: 'gcloud auth login --force', cwd: repoRoot },
@@ -57,6 +41,7 @@ export function devLoginPlan({
       },
       ...extraLogins,
     ],
+    // A fresh gcloud login keeps whatever project was active before.
     projectSetup: [
       {
         name: 'gcloud active project',
@@ -78,7 +63,6 @@ export function devLoginPlan({
   };
 }
 
-/** Where gcloud keeps the signed-in user's Application Default Credentials, Windows first. */
 export function adcCandidatePaths(
   env: Readonly<Record<string, string | undefined>> = process.env,
   home: string = homedir(),
@@ -90,11 +74,6 @@ export function adcCandidatePaths(
   return paths;
 }
 
-/**
- * Every login, then the project setup, then the identity summary, each step through `runStep`
- * (which returns its exit status). A failed login or setup step stops the chain and its status is
- * returned; 0 means everything ran.
- */
 export function runDevLogin(plan: DevLoginPlan, runStep: (step: LoginStep) => number): number {
   for (const [index, step] of plan.logins.entries()) {
     console.log(`\n──── ${index + 1} of ${plan.logins.length} — ${step.name} ────\n`);
@@ -124,7 +103,6 @@ export function runDevLogin(plan: DevLoginPlan, runStep: (step: LoginStep) => nu
   return 0;
 }
 
-/** Print the plan, then (unless `--dry-run`) run it with the operator's terminal attached. */
 export function runDevLoginCli(
   plan: DevLoginPlan,
   argv: readonly string[] = process.argv.slice(2),

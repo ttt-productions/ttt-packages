@@ -8,8 +8,6 @@ export const UploadWorkFileVariablesSchema = z
     workProjectId: workProjectIdSchema,
     folderId: workFileFolderIdSchema,
     file: z.instanceof(File),
-    // Untrusted client claim of what the user's action implies (advisory; the
-    // server byte inspection is the only classification authority).
     claim: ClientMediaClaimSchema.optional(),
     onProgress: onProgressSchema,
     signal: z.instanceof(AbortSignal).optional(),

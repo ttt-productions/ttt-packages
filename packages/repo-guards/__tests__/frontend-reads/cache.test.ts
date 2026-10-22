@@ -1,8 +1,3 @@
-// The query-cache guards: saved reads are refreshed, removed, or reset only through the domain-event
-// registry and only at keys a live query reads, never an infinite list; no action reloads an
-// infinite list; a whole-cache drop only in the session-retirement owner; and a registry whose
-// events are produced, well formed, and awaited.
-
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
@@ -20,7 +15,6 @@ const KEYS = 'src/lib/query-keys.ts';
 const REGISTRY = 'src/lib/registry.ts';
 const OWNER = 'src/lib/session-retirement.ts';
 
-/** The app's key objects as its loader hands them over; `tokens` builds strings, so it is no key object. */
 const keyExports = {
   thingKeys: {
     all: ['things'],
@@ -58,7 +52,6 @@ const registrySource = (entries: string) =>
     'export function run(qc) { return qc.invalidateQueries({ queryKey }); }',
   ].join('\n');
 
-/** The session-retirement owner: it cancels and clears on a session's end, and retires one group by predicate. */
 const OWNER_SOURCE = [
   'await qc.cancelQueries();',
   'qc.getQueryCache().clear();',
@@ -87,7 +80,6 @@ const clean = {
   [OWNER]: OWNER_SOURCE,
 };
 
-/** The findings of the guards `queryCache` builds, by name. */
 async function run(overrides: Partial<QueryCacheFacts>, files: Record<string, string>) {
   const [registryRule, targets, listReload, sessionRetirement] = await runDefinition(
     queryCacheGuard,

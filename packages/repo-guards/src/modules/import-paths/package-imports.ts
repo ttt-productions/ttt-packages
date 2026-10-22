@@ -1,7 +1,3 @@
-// The import rules inside a repository's own packages: each package's code imports the file that
-// defines each name by its built extension, only an entry index re-exports, and no package has a
-// runtime import cycle. Both run on the import-path analyzer's own parse and resolution.
-
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type { Finding, GuardContext } from '../../guard.js';
@@ -13,7 +9,6 @@ import { analyzePackageImports, createImportPathProfile, findImportCycles } from
 import { sourceEntryModules } from './package-entries.js';
 
 export interface PackageImportFacts {
-  /** The repo-relative folder that holds the repository's packages, one per subfolder. */
   packagesFolder: string;
 }
 
@@ -22,14 +17,12 @@ const SCOPE: Scope = { roots: ['app'], kinds: ['code'], tests: true };
 const slash = (path: string) => path.replace(/\\/g, '/');
 
 interface PackageModules {
-  /** The package's repo-relative folder. */
   root: string;
   name: string;
   dir: string;
   files: Map<string, { text: string; sourceFile: import('typescript').SourceFile }>;
 }
 
-/** Every package in the folder, each with every code file the reader holds under it; none is a finding. */
 function packagesOf(
   context: GuardContext,
   packagesFolder: string,

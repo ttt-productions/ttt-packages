@@ -18,8 +18,6 @@ import {
   type PendingMediaTerminalStatus,
 } from '../src/pending-media-lifecycle.js';
 
-// Fixed clock and an injected policy: the package owns the state machine, the app owns
-// the numbers.
 const NOW = 1_700_000_000_000;
 const POLICY: PendingMediaClaimPolicy = { leaseMs: 12 * 60 * 1000, maxAttempts: 2 };
 
@@ -41,7 +39,6 @@ const rawBase = {
   updatedAt: NOW - 1_000,
 };
 
-/** Parse a raw row through a real schema so the decision gets a genuine row. */
 function parseRow(raw: Record<string, unknown>): Row {
   const parsed = PendingMediaSchema.safeParse(raw);
   if (!parsed.success)
@@ -359,9 +356,8 @@ describe('buildPendingMediaTerminalFields', () => {
     expect(buildPendingMediaTerminalFields('completed', {}, 1).failedAt).toBeUndefined();
   });
 
-  // A static reader of the shipped declarations (one that reads a function's declared
-  // return type, not the code) can list the keys only when the first declared signature
-  // names a plain object type — never an intersection, conditional, or index signature.
+  // A static reader of the shipped declarations lists the keys only when the first declared
+  // signature names a plain object type.
   it('its first declared signature names the literal completed field set as a plain object type', () => {
     const file = path.resolve(__dirname, '../src/pending-media-lifecycle.ts');
     const source = ts.createSourceFile(

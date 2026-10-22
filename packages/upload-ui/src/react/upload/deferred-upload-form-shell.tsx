@@ -28,8 +28,6 @@ export interface DeferredUploadFormShellProps<
   },
   TResult = unknown,
 > {
-  /** The media-origin spec describing accept patterns, size caps, and label.
-   *  Consumers pass this directly — the shell does not look it up from a registry. */
   spec: MediaOriginSpec;
   mutation: {
     mutateAsync: (vars: TVariables) => Promise<TResult>;
@@ -39,26 +37,11 @@ export interface DeferredUploadFormShellProps<
     file: File | null,
     onProgress: (s: UploadState | null) => void,
     signal: AbortSignal,
-    /** The untrusted claim MediaInput emitted with the selected file (advisory;
-     *  the server byte inspection is the only classification authority). Rides
-     *  and clears with the file. */
     claim?: ClientMediaClaim,
   ) => TVariables;
   onSuccess?: (result: TResult) => void;
   onError?: (err: unknown) => void;
-  /**
-   * Optional callback fired whenever the shell's internal selectedFile state
-   * changes — on user select, on user clear, and on the post-success internal
-   * reset. Forms typically use this to mirror selectedFile externally so they
-   * can compute their own submit-button `disabled` flag (e.g. require-a-file
-   * submit gating).
-   */
   onFileChange?: (file: File | null) => void;
-  /**
-   * Optional guard forwarded to MediaInput, fired before the picker/capture
-   * opens for any action. Return false (or a Promise resolving false) to abort
-   * — e.g. an email-verification gate. See MediaInputProps.onBeforeSelect.
-   */
   onBeforeSelect?: () => boolean | Promise<boolean>;
   children?: ReactNode;
 }
@@ -128,7 +111,6 @@ function DeferredUploadFormShellInner<
       onSuccess?.(result);
     } catch (err) {
       setUploadState(null);
-      // User-initiated cancel: swallow the AbortError, reset selection, do not fire onError.
       if (err instanceof Error && err.name === 'AbortError') {
         setSelectedFile(null);
         setSelectedClaim(undefined);

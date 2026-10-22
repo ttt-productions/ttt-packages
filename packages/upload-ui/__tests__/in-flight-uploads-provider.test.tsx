@@ -57,7 +57,6 @@ function makeDriver(): {
   return { subscribe, drive, driveError, unsubCalls };
 }
 
-/** A metadata-bearing snapshot (no doc changes) to drive source-state transitions. */
 function metaSnapshot(fromCache: boolean): FirestoreLikeSnapshot {
   return { docChanges: () => [], metadata: { fromCache } };
 }
@@ -113,7 +112,7 @@ describe('InFlightUploadsProvider', () => {
     expect(adapter.onUploadRejected).not.toHaveBeenCalled();
   });
 
-  it('fires onUploadCompleted on non-terminal â†’ terminal transition in a non-initial snapshot', () => {
+  it('fires onUploadCompleted on non-terminal → terminal transition in a non-initial snapshot', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
@@ -284,7 +283,7 @@ describe('InFlightUploadsProvider', () => {
     expect(result.current.size).toBe(0);
   });
 
-  it('unsubscribes on user sign-out (userId â†’ null)', () => {
+  it('unsubscribes on user sign-out (userId → null)', () => {
     let currentUserId: string | null = 'user1';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive: _drive, unsubCalls } = makeDriver();
@@ -299,7 +298,7 @@ describe('InFlightUploadsProvider', () => {
     expect(unsubCalls.count).toBe(1);
   });
 
-  it('resets in-memory state on UID-A â†’ UID-B transition without an intermediate null', () => {
+  it('resets in-memory state on UID-A → UID-B transition without an intermediate null', () => {
     let currentUserId: string | null = 'userA';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive } = makeDriver();
@@ -307,7 +306,6 @@ describe('InFlightUploadsProvider', () => {
       wrapper: wrap(adapter, subscribe),
     });
 
-    // UID-A: seed a terminal doc so seenTerminalIdsRef / statusByIdRef have content.
     act(() => {
       drive(
         makeSnapshot([
@@ -329,16 +327,11 @@ describe('InFlightUploadsProvider', () => {
     });
     expect(result.current.get('docA')).toBeDefined();
 
-    // UID-A â†’ UID-B (no intermediate null).
     currentUserId = 'userB';
     rerender();
 
-    // After the transition, the uploads map must be empty (UID-A's docA is gone).
     expect(result.current.size).toBe(0);
 
-    // And UID-B's initial snapshot must be treated as initial â€” drive a
-    // terminal doc and confirm the completion callback does NOT fire
-    // (initial-snapshot suppression is back in effect).
     act(() => {
       drive(
         makeSnapshot([
@@ -417,7 +410,7 @@ describe('InFlightUploadsProvider', () => {
   });
 });
 
-describe('InFlightUploadsProvider — rejected seen fields (round-9 finding 9)', () => {
+describe('InFlightUploadsProvider — rejected seen fields', () => {
   it('carries uploadTraySeenAt/By through fromParsed on the rejected branch', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
@@ -451,7 +444,6 @@ describe('InFlightUploadsProvider — rejected seen fields (round-9 finding 9)',
 
     const upload = result.current;
     expect(upload?.status).toBe('rejected');
-    // Before the fix these were dropped → a seen rejected upload relit the Files dot forever.
     expect(upload).toMatchObject({ uploadTraySeenAt: 120, uploadTraySeenBy: 'user1' });
   });
 });
@@ -547,9 +539,8 @@ describe('bounded resubscribe on listener error', () => {
       });
       expect(subscribeCount).toBe(1);
 
-      // Cold-session race (e.g. App Check enforcement before the token mints).
       act(() => d.driveError(new Error('permission-denied')));
-      expect(result.current).toBe('connecting'); // retrying, NOT terminal
+      expect(result.current).toBe('connecting');
 
       act(() => {
         vi.advanceTimersByTime(1_000);
@@ -578,7 +569,6 @@ describe('bounded resubscribe on listener error', () => {
           vi.advanceTimersByTime(ms);
         });
       }
-      // Fifth consecutive error: ladder exhausted → terminal.
       act(() => d.driveError(new Error('denied')));
       expect(result.current).toBe('error');
     } finally {
@@ -627,7 +617,6 @@ describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
 
       act(() => result.current.restart.retry());
       expect(subscriptions()).toBe(before + 1);
-      // The failure stays the answer while the restart runs — never a loading state under the press.
       expect(result.current.state).toBe('error');
       expect(result.current.restart.retrying).toBe(true);
 
@@ -645,7 +634,6 @@ describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
       const { result, d } = renderFailed();
       act(() => result.current.restart.retry());
       act(() => d.driveError(new Error('denied')));
-      // Mid-ladder: still the failure, still retrying — never `connecting`.
       expect(result.current.state).toBe('error');
       expect(result.current.restart.retrying).toBe(true);
       act(() => {
@@ -680,7 +668,6 @@ describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
       expect(result.current.state).toBe('error');
       expect(result.current.restart.retrying).toBe(true);
 
-      // The server refuses again: still the failure, still retrying — never a loading state.
       act(() => d.driveError(new Error('denied')));
       expect(result.current.state).toBe('error');
       expect(result.current.restart.retrying).toBe(true);
@@ -775,8 +762,7 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    act(() => drive(makeSnapshot([]))); // initial: empty
-    // Fast backend outcome coalesced into one delivery: first sight is terminal.
+    act(() => drive(makeSnapshot([])));
     act(() =>
       drive(
         makeSnapshot([
@@ -794,7 +780,6 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     );
     expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
 
-    // A re-delivery of the same terminal doc never double-fires.
     act(() =>
       drive(
         makeSnapshot([
@@ -821,17 +806,14 @@ describe('terminal events without an observed non-terminal predecessor', () => {
       wrapper: wrap(adapter, subscribe),
     });
 
-    act(() => drive(makeSnapshot([]))); // initial: empty
-    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }]))); // tracked non-terminal
+    act(() => drive(makeSnapshot([])));
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }])));
 
-    // Auth-settling flap: sign-out then the SAME user re-subscribes.
     currentUserId = null;
     rerender();
     currentUserId = 'user1';
     rerender();
 
-    // The new subscription's INITIAL listing already shows the doc terminal — the
-    // transition happened in the gap and must still fire exactly once.
     act(() =>
       drive(
         makeSnapshot([
@@ -858,7 +840,7 @@ describe('terminal events without an observed non-terminal predecessor', () => {
       wrapper: wrap(adapter, subscribe),
     });
 
-    act(() => drive(makeSnapshot([]))); // initial: empty
+    act(() => drive(makeSnapshot([])));
     act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }])));
     act(() =>
       drive(
@@ -874,7 +856,6 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     currentUserId = 'user1';
     rerender();
 
-    // Re-listed in the new subscription's initial snapshot: already fired, stays fired-once.
     act(() =>
       drive(
         makeSnapshot([
@@ -890,7 +871,6 @@ describe('terminal events without an observed non-terminal predecessor', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    // Refresh dedup unchanged: no tracking history, initial listing, no fire.
     act(() =>
       drive(
         makeSnapshot([

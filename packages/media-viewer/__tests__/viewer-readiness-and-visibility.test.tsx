@@ -4,11 +4,9 @@ import { Profiler } from 'react';
 import { VideoViewer } from '../src/react/video-viewer.js';
 import { AudioViewer } from '../src/react/audio-viewer.js';
 import { ImageViewer } from '../src/react/image-viewer.js';
-import { MediaViewer } from '../src/react/media-viewer.js';
+import { MediaPreview } from '../src/react/media-viewer.js';
 import type { MediaDiagnosticAdapter, DiagnosisResult } from '../src/recovery.js';
 
-// Each viewer's one observer: the options it passed, so a test can report visibility
-// through the same `onChange` the real observer would call.
 const observers: Array<{
   onChange?: (inView: boolean) => void;
   triggerOnce?: boolean;
@@ -124,7 +122,7 @@ describe("MediaPreview recovery follows the viewer's visibility", () => {
     const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
     const adapter: MediaDiagnosticAdapter = { probe };
     const { container } = render(
-      <MediaViewer
+      <MediaPreview
         url="https://cdn.example.com/vis-check.jpg"
         type="image"
         recoveryAdapter={adapter}
@@ -137,13 +135,11 @@ describe("MediaPreview recovery follows the viewer's visibility", () => {
     });
     expect(container.querySelector('.mv-recovery-retrying')).toBeInTheDocument();
 
-    // The failed viewer still owns the one observer; it reports the viewer off screen.
     act(() => latestObserver().onChange?.(false));
     act(() => vi.advanceTimersByTime(40_000));
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('.mv-recovery-retrying')).toBeInTheDocument();
 
-    // Back on screen: the retry runs and the image is requested again.
     act(() => latestObserver().onChange?.(true));
     act(() => vi.advanceTimersByTime(40_000));
     expect(container.querySelector('img')).toBeInTheDocument();
@@ -161,7 +157,7 @@ describe('MediaPreview listens for visibility only while its media has failed', 
           renders += 1;
         }}
       >
-        <MediaViewer
+        <MediaPreview
           url="https://cdn.example.com/healthy.jpg"
           type="image"
           recoveryAdapter={adapter}
@@ -181,7 +177,7 @@ describe('MediaPreview listens for visibility only while its media has failed', 
     vi.useFakeTimers();
     const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
     const { container } = render(
-      <MediaViewer
+      <MediaPreview
         url="https://cdn.example.com/fails.jpg"
         type="image"
         recoveryAdapter={{ probe }}

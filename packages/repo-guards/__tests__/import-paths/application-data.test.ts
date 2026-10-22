@@ -1,6 +1,3 @@
-// No generic package depends on an application-data package: none declares one in its manifest and
-// none imports one, while an application-data package may depend on generic packages.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import { applicationDataImportsGuard } from '../../src/modules/import-paths/application-data.js';
 import { createRepoReader } from '../../src/node/reader.js';

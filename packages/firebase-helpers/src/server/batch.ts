@@ -1,21 +1,10 @@
 import type { DocumentReference, Firestore, WriteBatch } from 'firebase-admin/firestore';
 import { chunk } from '../utils/chunk.js';
 
-/**
- * The minimal create-only write surface shared by `WriteBatch`, `Transaction`, and any test
- * double standing in for them: a single `create(ref, data)` call.
- *
- * `create()` THROWS if the document already exists, where `set()` silently overwrites — so a
- * helper that accepts a `CreateOnlyWriter` cannot clobber an existing document by accident,
- * and its callers may hand it either a batch or a transaction without the helper caring which.
- */
 export interface CreateOnlyWriter {
   create(ref: DocumentReference, data: Record<string, unknown>): unknown;
 }
 
-/**
- * Admin SDK version of BatchApplyFn
- */
 export type BatchApplyFn<T> = (batch: WriteBatch, item: T) => void | Promise<void>;
 
 export interface CommitInBatchesResult {
@@ -27,10 +16,6 @@ export interface CommitInBatchesResult {
   error?: unknown;
 }
 
-/**
- * Admin SDK version of commitInBatches.
- * Uses `db.batch()` instead of `writeBatch(db)`.
- */
 export async function commitInBatches<T>(
   db: Firestore,
   items: T[],

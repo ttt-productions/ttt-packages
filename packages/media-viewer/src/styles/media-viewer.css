@@ -8,8 +8,13 @@
 }
 
 @keyframes mv-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Error fallback */
@@ -40,8 +45,7 @@
   background: hsl(var(--muted));
 }
 
-/* Pending state: the URL is still being prepared. Same seat as the empty state,
-   but the spinner keeps its own size and color. */
+/* Pending state */
 .mv-pending-fallback {
   display: flex;
   align-items: center;
@@ -89,19 +93,14 @@
   font-size: 0.875rem;
 }
 
-/* End-of-playback overlay (only rendered when the media has ended; it covers
-   the media area above the element. Consumers style their own overlay content;
-   this just sizes and layers the container). */
+/* End-of-playback overlay */
 .mv-end-overlay {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* ---------------------------------------------------------------------------
-   Canonical audio player chrome (AudioViewer / AudioPlayer).
-   Semantic classes reading theme-core tokens; apps re-skin freely.
-   --------------------------------------------------------------------------- */
+/* Canonical audio player chrome */
 .mv-player {
   display: flex;
   flex-direction: column;

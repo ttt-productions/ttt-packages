@@ -50,8 +50,6 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
     setCroppedAreaPixels(pixels);
   }, []);
 
-  // Confirm renders the crop, then emits it. It is pending for that whole window and
-  // ignores a repeat click, so a double click can never emit (and upload) twice.
   const confirm = useAsyncAction(
     async () => {
       if (!imageSrc || !croppedAreaPixels) return;

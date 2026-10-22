@@ -5,14 +5,7 @@ import { X } from 'lucide-react';
 
 import { cn } from '../../lib/utils.js';
 
-/**
- * ui-core Toasts are consumed by multiple apps.
- *
- * Do NOT rely on app-level CSS (@apply) for critical positioning/visibility.
- * Keep all required styling inline as Tailwind utility classes.
- */
 function ToastKeyframes() {
-  // Inject a tiny global keyframe used by the optional countdown bar.
   return (
     <style
       dangerouslySetInnerHTML={{
@@ -24,9 +17,7 @@ function ToastKeyframes() {
 
 const toastVariants = cva(
   cn(
-    // base
     'pointer-events-auto relative flex w-full items-start justify-between gap-2 overflow-hidden rounded-md border bg-background p-4 text-foreground elevation-raised duration-[var(--motion-base)] ease-[var(--motion-ease)]',
-    // radix state/animation
     'data-[state=open]:animate-in data-[state=closed]:animate-out',
     'data-[state=closed]:fade-out-80 data-[state=open]:fade-in-80',
     'data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full',
@@ -74,11 +65,8 @@ ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 type ToastRootProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
   VariantProps<typeof toastVariants> & {
-    /** ms; ignored when `persistent` is true */
     duration?: number;
-    /** show X button */
     dismissible?: boolean;
-    /** When true: no auto-dismiss, no countdown bar. */
     persistent?: boolean;
   };
 
@@ -97,10 +85,7 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
     },
     ref,
   ) => {
-    // Caller is the source of truth for duration. Persistent toasts disable
-    // the auto-dismiss entirely by passing `Infinity` to Radix.
     const effectiveDuration = persistent ? Infinity : (duration ?? 5000);
-    // pass duration to Radix AND to CSS countdown bar
     const mergedStyle: React.CSSProperties = {
       ...(style as React.CSSProperties),
       ['--toast-duration' as any]: `${effectiveDuration}ms`,
@@ -120,7 +105,6 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
         <ToastKeyframes />
         {children}
 
-        {/* countdown bar — hidden entirely for persistent toasts */}
         {!persistent ? (
           <div
             aria-hidden
@@ -131,15 +115,8 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
               animationTimingFunction: 'linear',
               animationFillMode: 'forwards',
             }}
-            // Radix's own auto-close timer PAUSES on pointer-over the viewport,
-            // focus, and window-blur — but this CSS bar does not. When the bar
-            // empties we must dismiss regardless of Radix's paused timer, so the
-            // toast never lingers after the countdown visibly reaches zero.
-            // Only a bar that ran its course counts as empty: a reduced-motion
-            // stylesheet that collapses every animation to near zero ends this one
-            // at once, and closing then would hide the toast before anyone reads
-            // it. Radix's `duration` above is the motion-independent timer that
-            // closes the toast in that case.
+            // Radix's auto-close timer pauses on hover, focus, and blur but this CSS bar does not, so an emptied bar closes the toast.
+            // A reduced-motion stylesheet ends the bar at once; Radix's `duration` closes the toast then.
             onAnimationEnd={(e) => {
               if (e.animationName !== 'toast-progress') return;
               if (e.elapsedTime * 1000 < effectiveDuration / 2) return;
@@ -148,7 +125,6 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
           />
         ) : null}
 
-        {/* dismiss button */}
         {dismissible ? (
           <ToastPrimitives.Close
             className={cn(
@@ -208,7 +184,6 @@ const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
-/** Exported types for consumers */
 export type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 export type ToastActionElement = React.ReactElement<typeof ToastAction>;
 

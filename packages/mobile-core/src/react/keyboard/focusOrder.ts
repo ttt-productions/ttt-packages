@@ -9,7 +9,6 @@ export function getFocusableInputs(root: HTMLElement | Document = document, pref
     ),
   ).filter((n) => !n.hasAttribute('disabled') && n.tabIndex !== -1);
 
-  // DOM order is usually correct; allow explicit override
   list.sort((a, b) => {
     const ao = Number(a.getAttribute('data-input-order') ?? '0');
     const bo = Number(b.getAttribute('data-input-order') ?? '0');

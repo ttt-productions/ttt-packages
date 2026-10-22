@@ -1,20 +1,11 @@
-/**
- * Frozen deterministic ID + eventId formulas for chat realtime and notifications.
- *
- * These ids are computed INDEPENDENTLY by multiple producers/consumers
- * (Cloud Functions, the chat Worker, sometimes the client) and MUST match
- * byte-for-byte, so the construction is frozen here as the single source of
- * truth. Hashing uses `@ttt-productions/edge-protocol-core`'s runtime-neutral
- * WebCrypto SHA-256 (works in Node 24, Cloudflare Workers, and browsers), so
- * every builder is async.
- */
+// Functions, the chat Worker, and the client each compute these ids, so every formula must stay
+// byte-for-byte identical.
 
 import { sha256Hex } from '@ttt-productions/edge-protocol-core';
 import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 
-/** ASCII unit separator — never appears in uids/doc-ids/collection names/numbers. */
+// Never appears in a uid, document id, collection name, or number.
 const UNIT_SEPARATOR = '\x1f';
-/** A null/absent part hashes as this byte (distinct from any real value). */
 const NULL_BYTE = '\x00';
 
 function encodePart(part: string | number | null | undefined): string {
@@ -22,13 +13,6 @@ function encodePart(part: string | number | null | undefined): string {
   return typeof part === 'number' ? String(part) : part;
 }
 
-/**
- * Canonical collision-safe hash — every `hash(...)` in the chat/notification
- * doc set uses THIS. `domainTag` then each part, separated by `0x1F`; numbers
- * base-10; a null/absent part becomes the literal byte `0x00`. The full 64-char
- * lowercase-hex SHA-256 is the document id. Two id families can never collide
- * because their `domainTag`s differ.
- */
 export function hash(
   domainTag: string,
   ...parts: Array<string | number | null | undefined>
@@ -37,37 +21,25 @@ export function hash(
   return sha256Hex(input);
 }
 
-// ── Channel identity ────────────────────────────────────────────────────────
-
-/**
- * The collision-safe key of one conversation, over its neutral reference (build it with
- * `toChatConversationRef`). The kind is hashed as its own part, so two kinds never share a key.
- */
 export function channelKey(ref: ChatConversationRef): Promise<string> {
   return hash('chat-conversation', ref.kind, ref.id);
 }
 
-/** Per-(conversation, user) projection doc id. */
 export async function authPairKey(ref: ChatConversationRef, uid: string): Promise<string> {
   return hash('chat-channel-auth', await channelKey(ref), uid);
 }
 
-/** Member-in-work degraded scope key (the `workChannelsForUser` selector blocks per uid×Work). */
 export function userWorkScopeKey(uid: string, workProjectId: string): Promise<string> {
   return hash('chat-user-work', uid, workProjectId);
 }
 
-/** member-in-work degraded summary doc id. */
 export function degradedMemberInWorkScopeKey(uid: string, workProjectId: string): Promise<string> {
   return hash('chat-degraded-user-work', uid, workProjectId);
 }
 
-/** Namespaced degraded cause id (`kind` keeps event-derived and job-derived causes from colliding). */
 export function degradedCauseId(kind: 'syncEvent' | 'fanoutJob', ref: string): Promise<string> {
   return hash('chat-degraded-cause', kind, ref);
 }
-
-// ── chatSyncEvents eventIds ─────────────────────────────────────────────────
 
 export function channelAuthEventId(
   channelKeyHash: string,
@@ -87,22 +59,13 @@ export function configEventId(channelKeyHash: string, configVersion: number): Pr
   return hash('config', channelKeyHash, configVersion);
 }
 
-/** `chatMessageOutbox` commandId for invite/system messages. */
 export function serverMessageCommandId(threadRef: string, sourceDocId: string): Promise<string> {
   return hash('server-msg', threadRef, sourceDocId);
 }
 
-// ── chatSyncFanoutJobs ──────────────────────────────────────────────────────
-
 export type SyncFanoutSelectorKind =
   'channelMembers' | 'workChannelsForUser' | 'policyEditAffectedUsers';
 
-/**
- * `scopeKey` = `channelKey` for channelMembers/policyEditAffectedUsers, or
- * `userWorkScopeKey(uid, workProjectId)` for workChannelsForUser. `causeVersion`
- * = the channel's post-mutation configVersion, or the user's post-mutation
- * guildAuthInputVersion respectively.
- */
 export function chatSyncFanoutJobId(
   selectorKind: SyncFanoutSelectorKind,
   scopeKey: string,
@@ -110,8 +73,6 @@ export function chatSyncFanoutJobId(
 ): Promise<string> {
   return hash('chat-sync-fanout', selectorKind, scopeKey, causeVersion);
 }
-
-// ── Inbox projection eventId ────────────────────────────────────────────────
 
 export function inboxProjectionEventId(
   channelKeyHash: string,
@@ -122,9 +83,6 @@ export function inboxProjectionEventId(
   return hash('chat-inbox-event', channelKeyHash, recipientUid, kind, sourceVersion);
 }
 
-// ── Notification ledger / archive ───────────────────────────────────────────
-
-/** Delivery-ledger row id. Shared-admin occurrences pass `recipientUid = null` (hashed as `'shared'`). */
 export function notificationDeliveryId(
   recipientUid: string | null,
   notificationType: string,
@@ -133,16 +91,15 @@ export function notificationDeliveryId(
   return hash('notif-delivery', recipientUid ?? 'shared', notificationType, eventId);
 }
 
-/** Archive history doc id (= `archiveOccurrenceId`). */
 export function notificationArchiveHistoryId(
   category: string,
   audienceScope: string,
   requestId: string,
+  activeId: string,
 ): Promise<string> {
-  return hash('notification-archive', category, audienceScope, requestId);
+  return hash('notification-archive', category, audienceScope, `${requestId}:${activeId}`);
 }
 
-/** Archive replay-vs-conflict discriminator. */
 export function notificationArchivePayloadHash(
   activeId: string,
   observedActivityGeneration: string,
@@ -157,8 +114,6 @@ export function notificationArchivePayloadHash(
     audienceScope,
   );
 }
-
-// ── Moderation audit ids (append-only; create-if-absent) ────────────────────
 
 export function moderationRequestedAuditId(requestId: string): Promise<string> {
   return hash('chat-moderation-requested', requestId);
@@ -176,12 +131,6 @@ export function moderationFailedAuditId(
   return hash('chat-moderation-failed', requestId, terminalFailureGeneration);
 }
 
-// ── A chat room's parked deliveries ──────────────────────────────────────────
-
-/**
- * The `chatParkedDeliveries` row id of one parking of one room outbox row. `parkedAt` is part of
- * the identity: a row the room parks again after a replay is a second occurrence with its own row.
- */
 export function chatParkedDeliveryId(
   targetDo: string,
   eventId: string,
@@ -189,8 +138,6 @@ export function chatParkedDeliveryId(
 ): Promise<string> {
   return hash('chat-parked-delivery', targetDo, eventId, parkedAt);
 }
-
-// ── History anonymization ───────────────────────────────────────────────────
 
 export function chatAnonymizeJobId(
   channelDoId: string,
@@ -200,10 +147,6 @@ export function chatAnonymizeJobId(
   return hash('chat-anonymize', channelDoId, epoch, anonymizedUid);
 }
 
-/**
- * The uid an erased member's chat rows are rewritten to. It depends on the member alone, so the
- * live rows and the stored history of every channel name the same former member.
- */
 export function chatAnonTombstoneUid(anonymizedUid: string): Promise<string> {
   return hash('chat-anon-tombstone', anonymizedUid);
 }

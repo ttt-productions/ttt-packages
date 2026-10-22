@@ -64,7 +64,6 @@ describe('useActiveNotifications', () => {
       isLoading: false,
     });
 
-    // The retry of a never-succeeded page: TanStack clears the error and reports loading.
     mocks.useFirestorePaginated.mockReturnValue({
       page: 1,
       error: null,
@@ -78,7 +77,6 @@ describe('useActiveNotifications', () => {
       isLoading: false,
     });
 
-    // Another page is another read: its loading is loading, not the first page's failure.
     mocks.useFirestorePaginated.mockReturnValue({
       page: 2,
       error: null,

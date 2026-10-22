@@ -2,9 +2,6 @@
 
 import type { NotificationEmptyStateProps } from '../../types.js';
 
-/**
- * Empty state shown when there are no active notifications.
- */
 export function NotificationEmptyState({
   text = "You're all caught up!",
 }: NotificationEmptyStateProps) {

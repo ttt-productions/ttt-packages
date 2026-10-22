@@ -41,14 +41,13 @@ function byId(client: ChannelClient, messageId: string) {
   return client.getState().messages.find((m) => m.messageId === messageId);
 }
 
-describe('ChannelClient — moderation overlay (I1)', () => {
+describe('ChannelClient — moderation overlay', () => {
   it('blanks the original text for a history row that arrives with moderationKind set', async () => {
     const { client, harness } = makeClient();
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
 
-    // The DO history/delta merge stamps the effective overlay onto the row.
     sock.serverFrame('history-page', {
       messages: [
         wireRow(5, 'this is fine'),
@@ -64,7 +63,6 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     expect(fine?.text).toBe('this is fine');
     expect(fine?.meta?.moderated).toBeUndefined();
 
-    // The ORIGINAL text never renders for a deleted/hidden message.
     expect(deleted?.text).toBe(MODERATION_REDACTED_TEXT);
     expect(deleted?.text).not.toContain('SECRET ORIGINAL');
     expect(deleted?.meta?.moderated).toBe(true);
@@ -80,7 +78,6 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
-    // For `edit`, the DO rewrites `text` to the edited content; the client only marks it.
     sock.serverFrame('history-page', {
       messages: [wireRow(8, 'edited content', { moderationKind: 'edit', messageRevision: 1 })],
     });
@@ -100,7 +97,6 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     expect(byId(client, '10')?.text).toBe('ORIGINAL TEXT');
     expect(byId(client, '10')?.meta?.moderated).toBeUndefined();
 
-    // Admin deletes it → the DO broadcasts a revision frame.
     sock.serverFrame('revision', { messageSeq: 10, kind: 'delete', messageRevision: 1 });
     const after = byId(client, '10');
     expect(after?.text).toBe(MODERATION_REDACTED_TEXT);
@@ -115,11 +111,9 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     const sock = harness.last();
     sock.serverOpen();
 
-    // The revision races ahead of the message row.
     sock.serverFrame('revision', { messageSeq: 11, kind: 'moderate', messageRevision: 1 });
     expect(byId(client, '11')).toBeUndefined();
 
-    // The base row finally arrives — the retained overlay must apply on render.
     sock.serverFrame('message', { message: wireRow(11, 'LATE ORIGINAL') });
     const row = byId(client, '11');
     expect(row?.text).toBe(MODERATION_REDACTED_TEXT);
@@ -134,7 +128,6 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     sock.serverOpen();
     sock.serverFrame('message', { message: wireRow(12, 'text') });
 
-    // Delete at rev 1, then restore at rev 2 → restore (higher) wins.
     sock.serverFrame('revision', { messageSeq: 12, kind: 'delete', messageRevision: 1 });
     sock.serverFrame('revision', { messageSeq: 12, kind: 'restore', messageRevision: 2 });
     let row = byId(client, '12');
@@ -142,7 +135,6 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     expect(row?.meta?.moderated).toBe(false);
     expect(row?.text).toBe('text');
 
-    // A stale rev-1 delete frame arrives late → ignored (does not re-redact).
     sock.serverFrame('revision', { messageSeq: 12, kind: 'delete', messageRevision: 1 });
     row = byId(client, '12');
     expect(row?.meta?.moderationKind).toBe('restore');
@@ -155,13 +147,11 @@ describe('ChannelClient — moderation overlay (I1)', () => {
     const sock = harness.last();
     sock.serverOpen();
 
-    // Row arrives already deleted at rev 1 from the DO merge.
     sock.serverFrame('message', {
       message: wireRow(13, 'orig', { moderationKind: 'delete', messageRevision: 1 }),
     });
     expect(byId(client, '13')?.text).toBe(MODERATION_REDACTED_TEXT);
 
-    // A later restore (rev 2) frame supersedes the inline rev-1 delete.
     sock.serverFrame('revision', { messageSeq: 13, kind: 'restore', messageRevision: 2 });
     const row = byId(client, '13');
     expect(row?.meta?.moderationKind).toBe('restore');

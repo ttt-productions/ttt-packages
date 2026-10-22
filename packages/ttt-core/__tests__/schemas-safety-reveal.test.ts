@@ -1,8 +1,3 @@
-// revealCaseEvidence input — the operator's child-safety warning acknowledgement is carried on the
-// reveal input so the backend can persist it in the reveal audit trail. The schema serves only the
-// console reveal-under-reauth flow, so the acknowledgement is a required `true` (matching the
-// existing explicit-confirmation style).
-
 import { describe, it, expect } from 'vitest';
 import { RevealCaseEvidenceInputSchema } from '../src/schemas/safety.js';
 

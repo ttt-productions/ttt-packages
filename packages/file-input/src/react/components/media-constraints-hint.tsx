@@ -20,7 +20,6 @@ function fmtBytes(bytes?: number) {
 
 function fmtAspect(x?: number) {
   if (!x) return null;
-  // show common approx ratios if close
   const candidates: Array<[string, number]> = [
     ['1:1', 1],
     ['4:5', 4 / 5],

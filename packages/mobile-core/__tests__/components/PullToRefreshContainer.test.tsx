@@ -48,7 +48,7 @@ describe('PullToRefreshContainer', () => {
     expect(container.querySelectorAll('circle')).toHaveLength(2);
   });
 
-  it('without a refreshing indicator, the ring spins for the refresh as before', () => {
+  it('spins the ring for the refresh when no refreshing indicator is supplied', () => {
     pull.state = { isRefreshing: true, pullProgress: 1, pullDistance: 0 };
     const { container } = render(
       <PullToRefreshContainer onRefresh={async () => {}}>

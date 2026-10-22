@@ -1,9 +1,3 @@
-// The write guard's own tests over the second fixture core (`./fixture-core-b`): a core whose
-// registry routes one family of documents through per-kind subcollections — a builder taking the
-// subcollection as an argument, a builder mapping a kind to its subcollection, a map of path
-// builders per kind, field maps whose values are keys or lists of keys, and one canonical schema
-// per kind. Every snippet writes against that structure.
-
 import { describe, it, expect, beforeAll } from 'vitest';
 import {
   createGuardProfile,
@@ -40,7 +34,6 @@ beforeAll(async () => {
   });
 });
 
-/** Analyze one fixture file and return its violations. */
 function analyze(source, { exceptions = [] } = {}) {
   return runGuardOnSources({
     sources: { 'fixture/writer.ts': source },
@@ -53,7 +46,6 @@ function analyze(source, { exceptions = [] } = {}) {
 const kindsOf = (result) => result.violations.map((violation) => violation.kind);
 const detailsOf = (result) => result.violations.map((violation) => violation.detail).join('\n');
 
-/** Every fixture opens with the imports a real writer has. */
 const PREAMBLE = `
 import { PATH_BUILDERS, COLLECTIONS, toPath } from '@fixture/core-b';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -62,8 +54,6 @@ const db = getFirestore();
 
 describe('MUST FAIL — a key the document schema does not declare', () => {
   it('fires on a top-level key the requester document declares only inside a nested object', () => {
-    // The canonical value lives INSIDE authorizedRepresentative; a top-level copy is not a stored
-    // field.
     const result = analyze(`${PREAMBLE}
       export function writeIt(tx: FirebaseFirestore.Transaction, requestId: string, input: never) {
         const privateRef = db.doc(toPath(PATH_BUILDERS.accessRequesterPrivate(requestId)));
@@ -125,9 +115,6 @@ describe('computed keys drawn from a canonical core const map', () => {
 });
 
 describe('a discriminated path written with a discriminated payload', () => {
-  // A target and a payload chosen by one decision are paired only where the guard can prove it.
-  // One core map entry carrying each kind's subcollection AND its schema, read once by both sides,
-  // is that proof: every kind becomes its own branch, its document diffed against its own schema.
   const throughOneEntry = (payload) => `${PREAMBLE}
     import { PUBLISHED_SHELF_ITEM_BY_KIND } from '@fixture/core-b';
     export function writeIt(
@@ -184,9 +171,6 @@ describe('a discriminated path written with a discriminated payload', () => {
     );
   });
 
-  // The same choice made twice — a subcollection map on one side, a switch over the same kind on
-  // the other — proves nothing: the switch could hand any kind any schema. Every candidate
-  // document is diffed against every key the payload can carry.
   const twoPlaces = (cases) => `${PREAMBLE}
     import {
       SHELF_SUBCOLLECTION_BY_KIND,
@@ -259,10 +243,6 @@ describe('a discriminated path written with a discriminated payload', () => {
 
 describe('a canonical builder that MAPS one of its arguments', () => {
   it('leaves the mapped slot unknown instead of matching no template at all', () => {
-    // `PATH_BUILDERS.shelfSubItem(id, kind, itemId)` routes the KIND to its shelf
-    // subcollection. Probing it with a placeholder yields nothing for that slot, and a
-    // literal `undefined` there would make the builder resolve to no document at all —
-    // silently turning every write through it into an unresolved-target.
     const result = analyze(`${PREAMBLE}
       export async function writeIt(shelfId: string, kind: string, subItemId: string) {
         const ref = db.doc(toPath(PATH_BUILDERS.shelfSubItem(shelfId, kind, subItemId)));
@@ -288,9 +268,6 @@ describe('a canonical core map of PATH BUILDERS', () => {
   `;
 
   it('resolves BOTH branches — the mapped collection and the mapped document', () => {
-    // `PROJECT_SECTION_PATHS_BY_KIND` is the one owner of the per-kind routing. Its
-    // entries hold canonical builders, so they are invoked with sentinels exactly as
-    // PATH_BUILDERS is; every kind stays a candidate.
     const result = analyze(source("{ title: 'x' }"));
     expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
   });

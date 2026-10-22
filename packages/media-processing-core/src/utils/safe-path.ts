@@ -1,10 +1,9 @@
 import path from 'node:path';
 
-// Very conservative key sanitizer. Prevents path traversal / separators.
 export function sanitizeKey(key: string): string {
   const k = String(key ?? '');
   const stripped = k.replace(/[\\/]+/g, '_');
-  const cleaned = stripped.replace(/\.+/g, '.'); // collapse long dot runs
+  const cleaned = stripped.replace(/\.+/g, '.');
   const safe = cleaned.replace(/[^a-zA-Z0-9._-]/g, '_');
   return safe.slice(0, 80) || 'file';
 }

@@ -1,5 +1,3 @@
-// What a guard profile tells the analyzer about the consuming app.
-
 import { describe, it, expect, beforeAll } from 'vitest';
 import {
   createGuardProfile,

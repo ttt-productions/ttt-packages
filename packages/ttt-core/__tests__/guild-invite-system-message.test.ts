@@ -11,7 +11,6 @@ import {
   type GuildInviteSystemMessageSegment,
 } from '../src/utils/guild-invite-system-message.js';
 
-/** Renders segments the way a screen does, with a stand-in for each account's current name. */
 function render(
   segments: GuildInviteSystemMessageSegment[],
   names: Record<string, string>,
@@ -19,7 +18,6 @@ function render(
   return segments.map((s) => ('uid' in s ? names[s.uid] : s.text)).join('');
 }
 
-/** A stored server message read back as the chat UI sees it. */
 function roundTrip(message: GuildInviteSystemMessage) {
   return decodeGuildInviteSystemMessage(encodeGuildInviteSystemMessage(message));
 }
@@ -50,7 +48,6 @@ describe('invite system messages name accounts by id, beside the text, and rende
       event: 'finalized',
       recipientUid: 'erased-uid',
     });
-    // The room's anonymization rewrites referencedUids exactly as it rewrites a sender.
     const anonymized = { ...written, referencedUids: ['tombstone-uid'] };
     const decoded = decodeGuildInviteSystemMessage(anonymized)!;
     expect(decoded).toEqual({ event: 'finalized', recipientUid: 'tombstone-uid' });

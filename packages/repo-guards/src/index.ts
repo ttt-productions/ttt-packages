@@ -1,6 +1,3 @@
-// The pure entry: the three shapes an app builds its business guards on, and the guard contract.
-// Reading the repository is the `./node` entry's job; running the suite is `./suite`'s.
-
 export {
   declaredLiteral,
   matchPattern,

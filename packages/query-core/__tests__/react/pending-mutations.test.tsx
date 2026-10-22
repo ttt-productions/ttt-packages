@@ -19,7 +19,6 @@ interface SaveVariables {
   itemId: string;
 }
 
-// Every mutation run waits until the test settles it, so a test decides how long it is pending.
 function makeServer() {
   const waiting: Array<() => void> = [];
   const save = vi.fn(

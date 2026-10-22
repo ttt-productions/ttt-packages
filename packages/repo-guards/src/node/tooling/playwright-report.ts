@@ -1,7 +1,3 @@
-// Reads Playwright's JSON report for the quiet gate: the failed tests with their errors, the tests
-// that passed only on a retry, and the totals. A retry-pass counts toward `passed` and `flaky`; the
-// gate fails the stage on any flaky or skipped test.
-
 import type { TestFailure } from './vitest-report.js';
 
 interface PlaywrightResult {
@@ -88,11 +84,9 @@ export function collectPlaywrightFailures(report: PlaywrightJsonReport): {
   };
 }
 
-/** The header a new flaky log starts with. */
 export const FLAKY_LOG_HEADER =
   '# E2E retry-pass log\n\n| Time (UTC) | File | Test |\n|---|---|---|\n';
 
-/** One run's retry-passes as flaky-log rows, one markdown table row each. */
 export function flakyLogRows(flakyTests: readonly FlakyTest[], at: Date): string {
   return flakyTests
     .map((test) => {

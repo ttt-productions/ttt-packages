@@ -1,21 +1,9 @@
-// A reader for the flat shape a Worker's wrangler.toml takes: `key = "value"`, `[section]` and
-// `[[array.of.tables]]`. Only string values and single-line arrays are kept — the checks read bucket
-// names, namespace ids and migration keys. Inside a migration table nothing is skipped: a line this
-// reader cannot classify throws, because "unreadable" and "absent" give the same answer to a
-// destructive-key check and only one of them is true.
-
-/** One section: its header with brackets stripped and every key unquoted (`env.dev.r2_buckets`). */
 export interface Table {
   header: string;
   values: Record<string, string>;
-  /** Single-line array values as written, e.g. `["A", "B"]`. */
   arrays: Record<string, string>;
 }
 
-/**
- * Decodes a TOML basic-string body, or null when it is not one. Stripping the quotes is not
- * decoding: `"deleted_classes"` names `deleted_classes`, as wrangler reads it.
- */
 function decodeBasicString(body: string): string | null {
   let out = '';
   const simple: Record<string, string> = {
@@ -54,7 +42,6 @@ function decodeBasicString(body: string): string | null {
   return out;
 }
 
-/** A key — bare, basic-quoted, or literal-quoted — as the name TOML gives it, or null. */
 function unquoteKey(raw: string): string | null {
   const trimmed = raw.trim();
   if (/^[A-Za-z0-9_-]+$/.test(trimmed)) return trimmed;
@@ -65,14 +52,8 @@ function unquoteKey(raw: string): string | null {
   return null;
 }
 
-/** Bare, basic-quoted, or literal-quoted key, as a pattern; an escaped quote never closes the key. */
 const KEY_PATTERN = String.raw`(?:[A-Za-z_][\w-]*|"(?:[^"\\]|\\.)*"|'[^']*')`;
 
-/**
- * A header path split on its top-level dots, each segment unquoted; null when it cannot be
- * normalised. A segment holding a dot (written or escaped) is refused: segments are rejoined with
- * dots, so `env."a.b".migrations` could not be told from `env.a.b.migrations`.
- */
 function headerSegments(raw: string): string[] | null {
   const segments: string[] = [];
   let buffer = '';
@@ -109,11 +90,9 @@ function headerSegments(raw: string): string[] | null {
   return normalised as string[];
 }
 
-/** True for `[[migrations]]` and `[[env.<name>.migrations]]`. */
 export const isMigrationTable = (header: string) =>
   header === 'migrations' || /^env\.[^.]+\.migrations$/.test(header);
 
-/** Every section of a wrangler.toml. Throws, naming the line, on anything it cannot read safely. */
 export function readTables(text: string): Table[] {
   const tables: Table[] = [];
   let current: Table | null = null;
@@ -172,12 +151,10 @@ export function readTables(text: string): Table[] {
   return tables;
 }
 
-/** Migration keys that destroy or rewrite existing Durable Object storage. */
 const DESTRUCTIVE_MIGRATION_KEYS = ['deleted_classes', 'renamed_classes'] as const;
 
 export interface MigrationEntry {
   tag: string;
-  /** Destructive keys present on this tag, mapped to their contents as written. */
   destructive: Record<string, string>;
 }
 
@@ -208,14 +185,11 @@ export function migrationLists(tables: readonly Table[]): MigrationLists {
   return { topLevel, byEnv };
 }
 
-/**
- * The migration list an environment deploys with. Migrations, unlike bindings, are inherited: an
- * environment with no list of its own deploys the top-level one.
- */
+// Migrations, unlike bindings, are inherited: an environment with no list of its own deploys the
+// top-level one.
 export const effectiveMigrations = (lists: MigrationLists, env: string) =>
   lists.byEnv.get(env) ?? lists.topLevel;
 
-/** Storage identifiers (bucket names, namespace ids) each named environment binds. */
 export function environmentResources(tables: readonly Table[]): Map<string, string[]> {
   const byEnv = new Map<string, string[]>();
   for (const table of tables) {
@@ -226,7 +200,6 @@ export function environmentResources(tables: readonly Table[]): Map<string, stri
   return byEnv;
 }
 
-/** Storage identifiers bound at the top level, which only the local runtime reads. */
 export function topLevelResources(tables: readonly Table[]): string[] {
   return tables
     .filter((table) => table.header === 'r2_buckets' || table.header === 'kv_namespaces')

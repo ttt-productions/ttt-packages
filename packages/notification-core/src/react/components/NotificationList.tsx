@@ -10,15 +10,10 @@ import { formatRelativeTime } from './relative-time.js';
 import type { NotificationDoc } from '../../types.js';
 import type { NotificationListProps } from '../types.js';
 
-/** Pending archives keyed by card id, holding the activity generation the archive was sent for. */
 type PendingArchives = ReadonlyMap<string, string | undefined>;
 
 const NO_PENDING: PendingArchives = new Map();
 
-/**
- * An archive belongs to the card generation it was sent for. A card relit on the same id gets a new
- * generation, which the archive never covered, so it is not pending for that card.
- */
 function isPendingFor(pending: PendingArchives, notification: NotificationDoc): boolean {
   return (
     pending.has(notification.id) && pending.get(notification.id) === notification.activityGeneration
@@ -28,9 +23,6 @@ function isPendingFor(pending: PendingArchives, notification: NotificationDoc): 
 const FOCUSABLE =
   'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/**
- * Scrollable list of active notifications with click-to-archive and clear-all.
- */
 export function NotificationList({
   config,
   userId,
@@ -78,11 +70,6 @@ export function NotificationList({
     getArchiveAllStatusFn,
   });
 
-  // Surface a failed/incomplete clear instead of swallowing it. `onClearAll` (and the tray-closing
-  // side effects the app wires to it) fires ONLY when the server job fully drained the category —
-  // otherwise the user keeps the "notifications remain — try again" affordance. The poller resolves
-  // with an explicit terminal result (`complete` | `incomplete` | `failed`) and only rejects on a
-  // hard enqueue/poll throw.
   const [clearIncomplete, setClearIncomplete] = useState(false);
   const [pendingArchives, setPendingArchives] = useState<PendingArchives>(NO_PENDING);
   const [pendingClearAll, setPendingClearAll] = useState<PendingArchives>(NO_PENDING);
@@ -93,10 +80,6 @@ export function NotificationList({
     if (notifications) renderedRowsRef.current?.(notifications);
   }, [notifications]);
 
-  // An archive the server confirmed stays visibly pending until the authoritative
-  // active-notification query removes the row: the callable's answer alone does not
-  // prove the read has caught up. A row the read lists at a newer generation was relit
-  // after the archive, so the archive no longer holds it.
   useEffect(() => {
     if (!notifications) return;
     const activeGenerations = new Map(
@@ -115,10 +98,8 @@ export function NotificationList({
     setPendingClearAll(keepActive);
   }, [notifications]);
 
-  // A row that leaves the list while focus is inside it takes the focused control with it, so focus
-  // moves to the control of the row that followed it, or to the list itself (FRONTEND-203). A row's
-  // removal fires no blur, so the row still recorded as focused when the rows change is the row that
-  // held focus as it left.
+  // A removed row takes the focused control with it and fires no blur, so focus moves to the next
+  // row's control or to the list (RULE-STD-FRONTEND-203).
   const listRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   const focusedRowId = useRef<string | null>(null);
@@ -164,8 +145,6 @@ export function NotificationList({
       setPendingArchives((current) => new Map(current).set(notification.id, generation));
       try {
         const result = await archiveMutation.mutateAsync(notification);
-        // Nothing was archived (the card changed after it was rendered): the row stays
-        // active, so it is not left looking like it is clearing.
         if (!result.archived) clearPending();
       } catch (archiveError) {
         clearPending();
@@ -192,20 +171,15 @@ export function NotificationList({
     try {
       result = await archiveAllMutation.mutateAsync();
     } catch {
-      // Hard failure (enqueue/poll threw): do not fire onClearAll; surface the retry affordance.
       setPendingClearAll(NO_PENDING);
       setClearIncomplete(true);
       return;
     }
     if (!result.complete) {
-      // Job terminated without fully draining the category (incomplete/failed) — keep the
-      // notifications and prompt a retry.
       setPendingClearAll(NO_PENDING);
       setClearIncomplete(true);
       return;
     }
-    // The cards a complete drain left behind stay in the list and never leave the read, so their
-    // pending is released here rather than waiting on a read that will keep listing them.
     if (result.notArchived > 0) setPendingClearAll(NO_PENDING);
     onClearAll?.(result);
   }, [archiveAllMutation, hasNotifications, notifications, onClearAll]);
@@ -218,8 +192,6 @@ export function NotificationList({
     [config],
   );
 
-  // A later page that came back empty keeps its pager so the user can step back; the
-  // empty state is the answer for page 1 only.
   const showEmptyState =
     retryState.error === null &&
     notifications !== undefined &&
@@ -244,8 +216,7 @@ export function NotificationList({
             {title}
           </div>
         )}
-        {/* Unavailable with nothing to clear, but never natively disabled: the list empties under
-            a Clear All that still holds focus, and focus must keep a destination (FRONTEND-203). */}
+        {/* Never natively disabled: focus must keep a destination as the list empties (RULE-STD-FRONTEND-203). */}
         <Button
           type="button"
           className="ntf-list-clear-all"

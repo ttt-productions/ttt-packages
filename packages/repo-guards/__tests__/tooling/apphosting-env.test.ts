@@ -1,7 +1,3 @@
-// Environment-parity build inputs: the BUILD environment App Hosting bakes into the bundle, derived
-// from the committed config files with App Hosting's own merge and availability rules, failing
-// closed on a build secret CI cannot resolve.
-
 import { describe, it, expect } from 'vitest';
 import {
   AppHostingConfigError,

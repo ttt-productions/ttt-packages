@@ -9,8 +9,6 @@ import {
 } from '../src/react/use-media-playback.js';
 import type { MediaPlaybackControls } from '../src/types.js';
 
-// The video-viewer's autoplay/unload logic reads useInView. Keep the element
-// mounted and non-autoplaying by default (inView true, ratio 0 => not >= 0.5).
 let mockInView = true;
 let mockRatio = 0;
 vi.mock('react-intersection-observer', () => ({
@@ -34,11 +32,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/**
- * jsdom leaves media props as inert 0/false. Install writable instance-level
- * currentTime/duration/paused/ended so the hook can read/write them and tests
- * can drive playback state.
- */
+/** jsdom leaves media props as inert 0/false, so these are writable per instance. */
 function installMediaState(
   el: HTMLMediaElement,
   init: { currentTime?: number; duration?: number; paused?: boolean; ended?: boolean } = {},
@@ -95,7 +89,6 @@ function installMediaState(
 }
 
 describe('media playback API', () => {
-  // ---- onEnded ------------------------------------------------------------
   describe('onEnded', () => {
     it('fires onEnded when the video ends', () => {
       const onEnded = vi.fn();
@@ -120,7 +113,6 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- onProgressSample throttling + flushes ------------------------------
   describe('onProgressSample', () => {
     it('throttles periodic samples to ~one per interval of playback', () => {
       const onSample = vi.fn();
@@ -130,18 +122,15 @@ describe('media playback API', () => {
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
-      // First timeupdate PAST the pre-seed suppression window -> fires immediately.
       state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 1);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(1);
       expect(onSample).toHaveBeenLastCalledWith(LATE_RESUME_ADOPT_WINDOW_SEC + 1, 100, 'periodic');
 
-      // A second timeupdate a moment later (< interval) must NOT sample again.
       state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 2);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(1);
 
-      // Advance real wall-clock past the throttle interval and fire again.
       const realNow = Date.now();
       const nowSpy = vi
         .spyOn(Date, 'now')
@@ -191,12 +180,10 @@ describe('media playback API', () => {
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
-      // Playing at 0.5s: periodic is suppressed (no seed adopted yet)...
       state.setTime(0.5);
       fireEvent.timeUpdate(video);
       expect(onSample).not.toHaveBeenCalled();
 
-      // ...but a deliberate pause at the same position still commits.
       state.setPaused(true);
       fireEvent.pause(video);
       expect(onSample).toHaveBeenCalledTimes(1);
@@ -248,15 +235,11 @@ describe('media playback API', () => {
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
-      // Media A samples once, arming the throttle window.
       state.setTime(20);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(1);
       expect(onSample).toHaveBeenLastCalledWith(20, 100, 'periodic');
 
-      // Swap the source. Throttle bookkeeping resets with the rest of the
-      // per-source tracking, so the new media samples immediately (no waiting
-      // out media A's interval) once it is past the suppression window.
       rerender(
         <VideoViewer url="https://example.com/b.mp4" priority onProgressSample={onSample} />,
       );
@@ -267,12 +250,6 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- pre-seed periodic suppression (the resume-clobber fix) -------------
-  //
-  // Under autoPlay the element starts at 0 on its own while the app's saved
-  // position is still in flight. A periodic ~0 sample there is written to
-  // durable state and CLOBBERS the saved position. Periodic samples therefore
-  // stay silent until the resume decision is settled.
   describe('pre-seed periodic suppression', () => {
     it('emits no periodic sample inside the adoption window while autoplaying from 0', () => {
       const onSample = vi.fn();
@@ -323,8 +300,6 @@ describe('media playback API', () => {
       );
     });
 
-    // The reason argument is ADDITIVE: a consumer written against the original
-    // two-argument callback still type-checks and still receives its samples.
     it('stays source-compatible with a two-argument consumer', () => {
       const seen: Array<[number, number]> = [];
       const twoArg = (t: number, d: number) => {
@@ -354,13 +329,10 @@ describe('media playback API', () => {
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
 
-      // Autoplay drifts a fraction of a second before the prefs query resolves.
       state.setTime(0.2);
       fireEvent.timeUpdate(video);
       expect(onSample).not.toHaveBeenCalled();
 
-      // The saved position arrives and is applied to the live element. The
-      // element's own `seeked` event carries the resumed position out.
       rerender(
         <VideoViewer
           url="https://example.com/v.mp4"
@@ -377,7 +349,6 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- startAtSeconds initial application ---------------------------------
   describe('startAtSeconds', () => {
     it('seeks to startAtSeconds once metadata is available', () => {
       const { container } = render(
@@ -408,7 +379,6 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- startAtSeconds survives the unloadOnExit unload/remount ------------
   describe('startAtSeconds + unloadOnExit remount resume', () => {
     it('resumes from the last known position after unload/remount, not startAtSeconds and not 0', () => {
       mockInView = true;
@@ -418,28 +388,22 @@ describe('media playback API', () => {
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
 
-      // Initial seek applies startAtSeconds (10).
       fireEvent.loadedMetadata(video1);
       expect(s1.currentTime).toBe(10);
 
-      // Playback advances to 55 and we observe a timeupdate (marks "started").
       s1.setTime(55);
       fireEvent.timeUpdate(video1);
 
-      // Scroll off-screen -> VideoViewer unloads the element (unmounts <video>).
       mockInView = false;
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={10} />);
       expect(container.querySelector('video')).toBeNull();
 
-      // Scroll back on-screen -> a fresh <video> mounts at currentTime 0.
       mockInView = true;
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={10} />);
       const video2 = container.querySelector('video')!;
       expect(video2).not.toBe(video1);
       const s2 = installMediaState(video2, { currentTime: 0, duration: 100 });
 
-      // Metadata on the remounted element resumes from the LAST position (55),
-      // not the original startAtSeconds (10) and not 0.
       fireEvent.loadedMetadata(video2);
       expect(s2.currentTime).toBe(55);
     });
@@ -452,14 +416,10 @@ describe('media playback API', () => {
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
 
-      // Play media A to 55 and observe a timeupdate (marks "started").
       s1.setTime(55);
       fireEvent.timeUpdate(video1);
       expect(s1.currentTime).toBe(55);
 
-      // Swap the SAME viewer instance to a DIFFERENT media source. The element is
-      // reused (no unmount) but the source is new, so tracking must reset — the
-      // 55s position from media A must NOT be applied to media B.
       rerender(<VideoViewer url="https://example.com/b.mp4" priority />);
       const video2 = container.querySelector('video')!;
       const s2 = installMediaState(video2, { currentTime: 0, duration: 100 });
@@ -479,8 +439,6 @@ describe('media playback API', () => {
       s1.setTime(80);
       fireEvent.timeUpdate(video1);
 
-      // New source with a new startAtSeconds -> seek to the NEW value (25), not
-      // the old start (10) and not the last position on media A (80).
       rerender(<VideoViewer url="https://example.com/b.mp4" priority startAtSeconds={25} />);
       const video2 = container.querySelector('video')!;
       const s2 = installMediaState(video2, { currentTime: 0, duration: 100 });
@@ -489,7 +447,6 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- late-arriving startAtSeconds (async prefs resolve after mount) -----
   describe('startAtSeconds arriving after mount', () => {
     it('adopts a late startAtSeconds and seeks the already-loaded element', () => {
       const { container, rerender } = render(
@@ -498,12 +455,9 @@ describe('media playback API', () => {
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100 });
 
-      // Metadata lands BEFORE the app's resume position is known -> no seek.
       fireEvent.loadedMetadata(video);
       expect(state.currentTime).toBe(0);
 
-      // The prefs query resolves; startAtSeconds goes undefined -> 42. No further
-      // loadedmetadata event will fire, so the hook must seek the live element.
       rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={42} />);
       expect(state.currentTime).toBe(42);
     });
@@ -541,20 +495,13 @@ describe('media playback API', () => {
       const state = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video);
 
-      // The user is genuinely watching: playback advanced PAST the adoption window.
       state.setTime(5);
       fireEvent.timeUpdate(video);
 
-      // A late resume position must NOT yank the playing element back/forward.
       rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={42} />);
       expect(state.currentTime).toBe(5);
     });
 
-    // THE AUTOPLAY RACE (live 2026-07-31, hosted firefox path 14.4): an autoplaying element
-    // starts from 0 on its own; by the time the async prefs query resolves, playback has
-    // drifted a fraction of a second. That drift is NOT user intent — the saved position
-    // must still win inside LATE_RESUME_ADOPT_WINDOW_SEC. Chrome usually wins this race by
-    // luck; firefox reliably loses it (expected ~224s, read 0.2s).
     it('ADOPTS a late startAtSeconds while autoplay has only drifted within the adoption window', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
@@ -563,11 +510,9 @@ describe('media playback API', () => {
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
 
-      // Autoplay begins and drifts 0.2s before the prefs resolve (playback HAS started).
       state.setTime(0.2);
       fireEvent.timeUpdate(video);
 
-      // The late resume position still wins: the user asked to resume, not to restart.
       rerender(
         <VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />,
       );
@@ -589,8 +534,6 @@ describe('media playback API', () => {
       );
       expect(state.currentTime).toBe(224);
 
-      // The viewer keeps watching from 224; a prop wobble back through another value
-      // must not seek again (adopt-exactly-once).
       state.setTime(230);
       fireEvent.timeUpdate(video);
       rerender(
@@ -608,12 +551,9 @@ describe('media playback API', () => {
       s1.setTime(55);
       fireEvent.timeUpdate(video1);
 
-      // Late value arrives while playing -> ignored (must not become the tracked
-      // position either).
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
       expect(s1.currentTime).toBe(55);
 
-      // Unload off-screen and return: resume from the REAL last position (55).
       mockInView = false;
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
       expect(container.querySelector('video')).toBeNull();
@@ -648,19 +588,16 @@ describe('media playback API', () => {
       s1.setTime(80);
       fireEvent.timeUpdate(video);
 
-      // Advance to media B (element reused, fresh at 0) with no resume yet.
       rerender(<VideoViewer url="https://example.com/b.mp4" priority />);
       const s2 = installMediaState(video, { currentTime: 0, duration: 100 });
       fireEvent.loadedMetadata(video);
       expect(s2.currentTime).toBe(0);
 
-      // B's resume position resolves late -> applied to the loaded element.
       rerender(<VideoViewer url="https://example.com/b.mp4" priority startAtSeconds={25} />);
       expect(s2.currentTime).toBe(25);
     });
   });
 
-  // ---- endOverlay show/hide ----------------------------------------------
   describe('endOverlay', () => {
     it('shows the overlay when the media ends and hides on replay', () => {
       const { container, queryByTestId } = render(
@@ -677,7 +614,6 @@ describe('media playback API', () => {
       fireEvent.ended(video);
       expect(queryByTestId('end-ov')).toBeInTheDocument();
 
-      // Native replay fires play -> overlay removed.
       fireEvent.play(video);
       expect(queryByTestId('end-ov')).not.toBeInTheDocument();
     });
@@ -705,7 +641,6 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- imperative controls ------------------------------------------------
   describe('playbackControlsRef', () => {
     it('restart() seeks to 0 and plays and clears the overlay', () => {
       const playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
@@ -769,17 +704,7 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- active-element retirement (teardown resets never report) -----------
-  //
-  // Tearing an element down (unloadOnExit off-screen unload, unmount, source
-  // replacement) makes browsers snap the cursor to 0 and can fire
-  // pause/seeked/timeupdate DURING the teardown. Those events are
-  // indistinguishable from user playback events by value — a genuine seek to 0
-  // is legal — so the viewer retires the element generation FIRST: the
-  // still-live cursor is committed once, and everything the retired element
-  // says afterwards is ignored.
   describe('active-element retirement', () => {
-    /** Make pause()/load() emit the teardown burst a real engine can produce. */
     function installTeardownBurst(state: ReturnType<typeof installMediaState>) {
       vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(function (
         this: HTMLMediaElement,
@@ -807,7 +732,6 @@ describe('media playback API', () => {
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
 
-      // Playback runs, then the user scrubs to 224 — committed via `seeked`.
       state.setTime(50);
       fireEvent.timeUpdate(video);
       state.setTime(224);
@@ -815,15 +739,11 @@ describe('media playback API', () => {
       expect(onSample).toHaveBeenLastCalledWith(224, 300, 'seeked');
       const callsAfterScrub = onSample.mock.calls.length;
 
-      // Close: the unload path pauses, drops src, and load()-resets to 0 — the
-      // burst fires pause/seeked/timeupdate at ~0 on the retiring element.
       installTeardownBurst(state);
       mockInView = false;
       rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
       expect(container.querySelector('video')).toBeNull();
 
-      // The scrub was already committed, so retirement emits nothing new and
-      // the teardown burst emits nothing at all — no 0 ever reaches the app.
       expect(onSample.mock.calls.length).toBe(callsAfterScrub);
       expect(onSample.mock.calls.some(([t]) => t === 0)).toBe(false);
     });
@@ -838,19 +758,15 @@ describe('media playback API', () => {
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video1);
 
-      // Playing at 55 — position tracked, nothing committed yet (periodic only).
       s1.setTime(55);
       fireEvent.timeUpdate(video1);
 
-      // Scroll off-screen. Retirement commits the live 55 as one final pause;
-      // the teardown burst at 0 is ignored.
       installTeardownBurst(s1);
       mockInView = false;
       rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
       expect(onSample).toHaveBeenLastCalledWith(55, 100, 'pause');
       expect(onSample.mock.calls.some(([t]) => t === 0)).toBe(false);
 
-      // Return on-screen: the fresh element resumes from 55, not 0.
       vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
       vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
       mockInView = true;
@@ -874,9 +790,6 @@ describe('media playback API', () => {
       fireEvent.timeUpdate(video);
       const callsOnA = onSample.mock.calls.length;
 
-      // Swap the SAME element to media B. The outgoing source's teardown can
-      // still fire pause/seeked at the reset cursor — before B has metadata,
-      // those cannot be user events on B and must not be emitted.
       rerender(
         <VideoViewer url="https://example.com/b.mp4" priority onProgressSample={onSample} />,
       );
@@ -886,7 +799,6 @@ describe('media playback API', () => {
       fireEvent.seeked(video);
       expect(onSample.mock.calls.length).toBe(callsOnA);
 
-      // B settles (metadata) — a genuine user seek on B reports normally.
       fireEvent.loadedMetadata(video);
       state.setTime(42);
       fireEvent.seeked(video);
@@ -904,8 +816,6 @@ describe('media playback API', () => {
       expect(onSample).toHaveBeenCalledTimes(1);
       expect(onSample).toHaveBeenLastCalledWith(100, 100, 'ended');
 
-      // Unmount detaches (retires) the element — the ended position was already
-      // committed, so retirement must not duplicate it.
       unmount();
       expect(onSample).toHaveBeenCalledTimes(1);
     });
@@ -922,7 +832,6 @@ describe('media playback API', () => {
       fireEvent.seeked(video);
       expect(onSample).toHaveBeenLastCalledWith(20, 100, 'seeked');
 
-      // A deliberate restart-to-0 on the live element is genuine intent.
       state.setTime(0);
       fireEvent.seeked(video);
       expect(onSample).toHaveBeenLastCalledWith(0, 100, 'seeked');
@@ -969,9 +878,6 @@ describe('media playback API', () => {
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
 
-      // Autoplay drifts 0.7s while the app's saved position is still in flight,
-      // then the pane closes. Committing 0.7 here would overwrite the saved
-      // position the user asked to resume from.
       state.setTime(0.7);
       fireEvent.timeUpdate(video);
       unmount();
@@ -979,8 +885,7 @@ describe('media playback API', () => {
     });
   });
 
-  // ---- no-regression when new props absent --------------------------------
-  describe('no-regression (new props absent)', () => {
+  describe('without playback props', () => {
     it('renders and behaves normally with no playback props (video)', () => {
       const onLoad = vi.fn();
       const { container } = render(
@@ -988,7 +893,6 @@ describe('media playback API', () => {
       );
       const video = container.querySelector('video')!;
       expect(video).not.toBeNull();
-      // Firing media events with no handlers wired must not throw.
       installMediaState(video, { currentTime: 5, duration: 100, paused: false });
       expect(() => {
         fireEvent.loadedMetadata(video);

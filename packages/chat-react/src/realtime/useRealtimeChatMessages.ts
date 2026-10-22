@@ -1,15 +1,5 @@
 'use client';
 
-// React hook for the REALTIME transport, returning the SAME shape as
-// `useChatMessages` (the firestore path) so `ChatShell` is transport-agnostic.
-// It SUBSCRIBES to a `RealtimeChatClient`'s observable state. It does NOT own the
-// socket lifecycle: the caller (the app hook that CREATES the client, e.g.
-// `useRealtimeChannelClient`) is the single connect/close owner (C-B7) — connecting
-// here too opened a second WebSocket. The client instance is owned by the caller
-// (passed via config) so its identity is the subscription key — a new client for a
-// new uid replaces the old one (Contract A auth-user-switch teardown happens in the
-// owning hook).
-
 import * as React from 'react';
 import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import type { RealtimeChatClient } from './transport.js';
@@ -24,34 +14,17 @@ export type UseRealtimeChatMessagesResult = {
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
   isFetchingOlder: boolean;
-  /** True once the first open has failed (see `ChannelClientState.initialLoadFailed`). */
   initialLoadFailed: boolean;
-  /** The channel is current (see `ChannelClientState.isSynced`): act on its terms only while true. */
   isSynced: boolean;
-  /** Retry the connection now — the first-open failure's Retry. */
   retry: () => void;
-  /** Realtime extras (not present on the firestore result) — optional for the UI. */
   status: ChannelClientState['status'];
-  /** The last structured error code the DO sent (e.g. a close reason). Drives the
-   *  disconnected-banner detail (R13). */
   lastErrorCode: string | null;
   typing: string[];
   presence: string[];
-  /** Returns false when the socket was closed and nothing was sent (C-B8) — the caller keeps the composer text. */
   send: (text: string) => boolean;
-  /** Retry a failed/un-acked send by its ORIGINAL clientMessageId (read from the
-   *  failed row's `meta.clientMessageId`) — the transport re-queues the tracked
-   *  pending send with the SAME id so the DO's send-idempotency dedups any copy
-   *  that already landed. Returns false for an unknown id (already acked/
-   *  reconciled). ChatShell wires this to MessageItemDefault's failed-bubble
-   *  retry affordance by default. */
   retrySend: (clientMessageId: string) => boolean;
-  /** Returns whether the ack frame was sent (false on a closed socket) so the caller advances its local cursor only on success (M2). */
   readAck: (readSeq: number, focused: boolean) => boolean;
   signalTyping: () => void;
-  /** Watched-only presence (R14): the UI subscribes ONLY while a member-list / online
-   *  indicator is open, and unsubscribes when it closes, so an unwatched channel runs
-   *  zero presence alarms. `presence` stays empty until subscribed. */
   presenceSubscribe: () => void;
   presenceUnsubscribe: () => void;
 };
@@ -59,15 +32,12 @@ export type UseRealtimeChatMessagesResult = {
 export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtimeChatMessagesResult {
   const [state, setState] = React.useState<ChannelClientState>(() => client.getState());
 
-  // Subscribe only; the owning hook drives connect/close (single lifecycle owner, C-B7).
-  // Re-subscribes on client identity change (auth-user switch).
   React.useEffect(() => {
     const unsub = client.subscribe(setState);
     setState(client.getState());
     return unsub;
   }, [client]);
 
-  // Pre-warm the name cache for visible senders (parity with the firestore hook).
   const resolverCtx = useOptionalChatNameResolver();
   const senderIds = React.useMemo(() => {
     const set = new Set<string>();
@@ -110,19 +80,9 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   );
 
   return {
-    // On the realtime transport DATA ACCESS is enforced by the DO grant, so the hook
-    // is "allowed" client-side UNLESS the grant provider surfaced a TERMINAL access
-    // denial (ChatAccessDeniedError → stable 'access-denied' code). That single case
-    // maps to allowed:false so ChatShell renders its no-access surface instead of an
-    // eternal loader; a transient close / 4403-revoke keeps allowed:true and rides the
-    // reconnect/disconnected banner. Otherwise accessMode is presentation-only here.
     allowed: state.lastErrorCode !== 'access-denied',
-    // Derive initial loading from authoritative-data completion, NOT connection status:
-    // a socket can be 'open' with no snapshot yet, and a post-load reconnect must not
-    // fall back into the opening state. `hasLoadedInitialData` encodes the full table.
     isInitialLoading: !state.hasLoadedInitialData,
     initialLoadFailed: state.initialLoadFailed,
-    // Current: open, loaded, and resynced since this socket opened (never sticky).
     isSynced: state.isSynced,
     retry,
     messages: state.messages,

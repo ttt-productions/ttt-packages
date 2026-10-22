@@ -1,9 +1,3 @@
-// The one reader every guard reads the repository through. It walks each declared root once, reads
-// each file once, and strips and parses each file once; every guard in a run shares what it read.
-//
-// It fails closed: a folder it cannot read throws naming the folder, a root a guard asks for that
-// the layout does not declare throws, and an exclusion that names nothing on disk is stale.
-
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -25,68 +19,39 @@ import { dirnameOf, normalizePath } from '../support/paths.js';
 import { stripRulesComments } from '../reader/strip-comments.js';
 import { buildView, type FileRole, type FileView } from '../reader/view.js';
 
-/** Which files a guard reads. */
 export interface Scope {
   roots: readonly RootRole[];
   kinds: readonly FileKind[];
-  /** `true` reads tests too, `false` leaves them out, `'only'` reads nothing but test code. */
   tests: boolean | 'only';
-  /** Roles the guard reads when the app has them; any other role must be declared. */
   optionalRoots?: readonly RootRole[];
 }
 
 export interface RepoReader {
   readonly layout: RepoLayout;
-  /** Every file in the scope, sorted by path. */
   files(scope: Scope): FileView[];
-  /** One named file. A file that does not exist or cannot be read throws. */
   file(relPath: string): FileView;
   exists(relPath: string): boolean;
-  /** Every rules file the layout lists, or those written for `service`, in the layout's order. */
   rulesFiles(service?: RulesService): FileView[];
-  /** Each declared root's anchor the walk failed to reach. Empty when every root was walked whole. */
   unreachedAnchors(): string[];
-  /**
-   * The files of the given kinds an installed package ships (`<under>/node_modules/<name>`, `under`
-   * defaulting to the repository root), its own dependencies left out. A package that is not
-   * installed there ships none; one that is installed but cannot be read throws. Each file's role is
-   * `installed` and its root name the package's, unless it lies under a declared root.
-   */
   installedFiles(
     packageName: string,
     options: { kinds: readonly FileKind[]; under?: string },
   ): FileView[];
-  /**
-   * The text of a file outside the checkout (a sibling repository), by absolute path, or null when
-   * it is absent. A file that exists but cannot be read throws. A guard that reads one says so in
-   * its scope, and the suite shows it skipped, with its reason, where the file is absent.
-   */
   readOutside(absolutePath: string): string | null;
-  /** Whether a folder or file outside the checkout (a sibling repository) exists, by absolute path. */
   existsOutside(absolutePath: string): boolean;
 }
 
 const toPosix = (p: string) => p.split(path.sep).join('/');
 
-/**
- * A symbolic link is neither followed nor skipped: following one can leave the repository or loop,
- * and skipping one would leave whatever it points at unchecked while every guard passes.
- */
 function symbolicLinkError(rel: string): Error {
   return new Error(
     `repo-guards: ${rel} is a symbolic link, which the reader neither follows nor skips — replace it with what it points at, or exclude it by path`,
   );
 }
 
-/**
- * A link skipped by its name, as the folder it names would be — a dependency, build, or dot folder —
- * so a linked dependency tree is skipped like a real one. A link with a dot name a guard reads as a
- * file is no such folder, and fails like any other link.
- */
 const skippedByName = (name: string) =>
   SKIPPED_FOLDER_NAMES.has(name) || (name.startsWith('.') && kindOfFile(name) === null);
 
-/** Each rules file the deploy config deploys that the layout's `rulesFiles` does not list, in words. */
 function deployedRulesProblems(layout: RepoLayout, onDisk: (rel: string) => boolean): string[] {
   const config = layout.firebaseConfig!;
   if (!isText(config)) return ['firebaseConfig is missing'];
@@ -117,7 +82,6 @@ function deployedRulesProblems(layout: RepoLayout, onDisk: (rel: string) => bool
   return problems;
 }
 
-/** Every problem with a layout, in words. An empty list means the layout can be read. */
 export function layoutProblems(layout: RepoLayout): string[] {
   const problems: string[] = [];
   if (!layout || typeof layout.repoRoot !== 'string' || !path.isAbsolute(layout.repoRoot)) {
@@ -181,7 +145,6 @@ export function layoutProblems(layout: RepoLayout): string[] {
   return problems;
 }
 
-/** The reader for one app's repository. A layout with any problem throws, listing every one. */
 export function createRepoReader(layout: RepoLayout): RepoReader {
   const problems = layoutProblems(layout);
   if (problems.length)
@@ -306,7 +269,6 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         for (const { name, root } of matching) {
           for (const entry of walkRoot(root.path)) {
             if (seen.has(entry.path) || !scope.kinds.includes(entry.kind)) continue;
-            // A nested declared root belongs to its own role, never to the root that contains it.
             const owner = roleOf(entry.path);
             if (owner && owner.name !== name) continue;
             const test = isTestPath(layout, entry.path);

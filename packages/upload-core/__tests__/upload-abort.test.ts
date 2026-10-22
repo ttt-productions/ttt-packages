@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// --- mocks (must precede component imports) ---
+// Mocks must precede the component imports.
 
 const upsertUploadSessionMock = vi.fn();
 vi.mock('../src/utils/upload-store.js', () => ({
@@ -47,7 +47,6 @@ beforeEach(() => {
   lastObservers = {};
 });
 
-/** The error shape the Storage SDK rejects a cancelled upload task with. */
 function storageCanceledError() {
   return Object.assign(
     new Error('Firebase Storage: User canceled the upload/download. (storage/canceled)'),
@@ -58,9 +57,8 @@ function storageCanceledError() {
 }
 
 function makeFile() {
-  // Node environment: Blob.type is read-only so we can't assign it.
-  // The source only reads file.size (via getFileSize), not file.type.
-  // contentType is passed separately via args.metadata.
+  // Blob.type is read-only in Node; the source reads only file.size, and contentType rides
+  // args.metadata.
   return new Blob(['x']);
 }
 
@@ -125,13 +123,11 @@ describe('startResumableUpload — abort behavior', () => {
     const controller = new AbortController();
     const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
 
-    // Simulate successful completion
     await lastObservers.complete!();
     await c.done;
 
     const callsBefore = (lastTask.cancel as ReturnType<typeof vi.fn>).mock.calls.length;
 
-    // Abort after completion — listener should have been removed
     controller.abort();
 
     expect((lastTask.cancel as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);

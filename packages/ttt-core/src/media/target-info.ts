@@ -57,25 +57,10 @@ import { SystemVideoSlotIdSchema } from '../system-slots/system-slots.js';
 
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
-/**
- * The three-kind craft-skill upload attestation — `kind` + the agreed `attestation` + the
- * TTT-mimic-only `source` + the creation `tags`. It crosses the backend↔frontend boundary
- * (the client collects it in the add-a-craft dialog; `startUpload` and `processCraftSkill`
- * re-validate it), so it is declared ONCE here (ARCH-101/ARCH-102) — never app-locally on
- * either side.
- *
- * `source` is REQUIRED for the TTT-mimic kind (CRAFT_SKILL_KIND_REQUIRING_SOURCE) and FORBIDDEN
- * otherwise, and `attestation.statementKind` must match `kind` — enforced by the shared
- * refinement below, so a client-sent payload is fully re-validated server-side.
- * `attestation.agreedAt` is shape-validated here; the SERVER re-stamps it at `startUpload`
- * (MEDIA-004 — never trust a client timestamp on a rights-consent record).
- */
 const craftSkillUploadAttestationShape = {
   kind: CraftSkillKindSchema,
   attestation: CraftSkillAttestationSchema,
   source: CraftSkillSourceReferenceSchema.optional(),
-  // At least 1 tag is required at creation (three-kind flow) and the floor of 1 can never drop
-  // (updateCraftSkillTags refuses the last remove). Deduped, allowlisted, capped at the max.
   tags: z
     .array(z.enum(CRAFT_SKILL_TAG_VALUES))
     .min(1, 'Select at least one tag for your craft.')
@@ -122,23 +107,14 @@ function refineCraftSkillUploadAttestation(
   }
 }
 
-/** The attestation triple + tags on their own — for a caller that already holds the base
- *  targetInfo fields separately, or that re-validates the consent record in isolation. */
 export const CraftSkillUploadAttestationSchema = z
   .object(craftSkillUploadAttestationShape)
   .strict()
   .superRefine(refineCraftSkillUploadAttestation);
 export type CraftSkillUploadAttestation = z.infer<typeof CraftSkillUploadAttestationSchema>;
 
-// craft-skill-media: the WHOLE craft-skill upload targetInfo — the base media fields plus the
-// three-kind attestation above. One declaration, so `parseTargetInfo('craft-skill-media', …)`
-// validates the complete payload the client actually sends; there is no split-and-revalidate
-// dance and no app-local copy of the attestation shape on either layer.
 export const CraftSkillMediaTargetInfoSchema = z
   .object({
-    // No craftSkillId: the backend mints the craft-skill doc id from the pendingMedia id,
-    // so a client-supplied id is not accepted.
-    // The canonical display/transport media-type family — never re-declared (ARCH-102).
     skillType: MediaTypeSchema,
     originalFileName: z.string().min(1),
     ...craftSkillUploadAttestationShape,
@@ -146,28 +122,19 @@ export const CraftSkillMediaTargetInfoSchema = z
   .strict()
   .superRefine(refineCraftSkillUploadAttestation);
 
-// squareStreetz: the post's mention list. The caption travels outside targetInfo
-// (StartUploadRequest.textContent), so startUpload checks that each placeholder appears in it
-// exactly once with refineMentionCorrespondence / validateMentionCorrespondence.
 export const SquareStreetzTargetInfoSchema = z
   .object({
     mentions: SquareStreetzPostMentionsSchema,
   })
   .strict();
 
-// commission-posting: full commission creation payload.
 export const CommissionPostingTargetInfoSchema = z
   .object({
-    // No commissionListingId: the backend mints the listing id server-side at publish;
-    // it is not accepted from the client.
     title: textFieldSchema(COMMISSION_TITLE_INPUT),
     description: textFieldSchema(COMMISSION_DESCRIPTION_INPUT),
     requiredTradeProfessions: z
       .array(z.enum(TRADE_PROFESSION_VALUES))
       .max(TRADE_PROFESSION_OPTIONS.length),
-    // min(1): the create core rejects 0 shares (invalid-argument) at PUBLISH — after
-    // upload/transcode/moderation — so fail fast at the trust boundary instead of burning
-    // the activation-job retry budget on a deterministic dead-letter.
     stakeSharesOffered: stakeSharesOfferedSchema,
     workProjectId: workProjectIdSchema,
   })
@@ -180,35 +147,17 @@ export const CommissionProposalTargetInfoSchema = z
   })
   .strict();
 
-// audition-prompt: workProject-owned audition creation payload (workAudition only).
 export const AuditionPromptTargetInfoSchema = z
   .object({
-    // SANCTIONED client-minted upload-batch correlation ID. A curated audition uploads
-    // MULTIPLE files that must all share ONE audition id before any Audition doc exists,
-    // so the client mints it and stamps every file in the batch with it. The backend must
-    // treat it with create-no-overwrite semantics (first write wins; a colliding id from a
-    // different actor/batch is rejected, never overwritten). This is NOT a reference to an
-    // existing audition (contrast audition-entry's auditionId).
     auditionId: auditionIdSchema,
     type: z.literal('workAudition'),
     title: textFieldSchema(AUDITION_TITLE_INPUT),
     description: textFieldSchema(AUDITION_DESCRIPTION_INPUT),
-    // The poster's two deadlines (constants/audition-deadlines.ts). Their order is refined
-    // below; their gap from the posting time is checked when the upload starts and again at
-    // publish against the submit time.
     entriesCloseAt: AuditionDeadlineSchema,
     auditionCloseAt: AuditionDeadlineSchema,
     workProjectId: workProjectIdSchema,
-    // min(1): the create core rejects <1 shares at PUBLISH (see CommissionPosting above).
-    // Optional — defaults to a floor of 1 at invite time when absent.
     stakeSharesOffered: stakeSharesOfferedSchema.optional(),
-    // Curated vs open audition. Absent ⇒ 'open' (community replies + votes). 'curated' ⇒ the
-    // creating work posts the option entries itself and users may ONLY vote (the create/reply
-    // callable derives each option entry's isCreatorOption server-side and rejects community replies).
     mode: AuditionModeSchema.optional(),
-    // Curated ONLY: the fixed number of creator option videos (2..8) in the atomic batch, carried from
-    // the Create click through targetInfo so the create core sets it on the Audition doc and the reveal
-    // coordinator knows when ALL options have landed. Required by the create core when mode==='curated'.
     expectedOptionCount: z
       .number()
       .int()
@@ -219,28 +168,19 @@ export const AuditionPromptTargetInfoSchema = z
   .strict()
   .superRefine(refineAuditionDeadlineOrder);
 
-/** A sponsored audition's prize: a positive USD amount, up to the maximum. */
 export const SponsoredAuditionAmountUSDSchema = z
   .number()
   .positive()
   .finite()
   .max(MAX_SPONSORED_AUDITION_AMOUNT_USD);
 
-// The admin audition fields both types share.
 const adminAuditionPromptFields = {
-  // SANCTIONED client-minted upload-batch correlation ID (see AuditionPromptTargetInfoSchema.
-  // auditionId): a curated audition's multiple option videos share this one id before any
-  // Audition doc exists; the backend uses create-no-overwrite semantics. NOT a reference to
-  // an existing audition.
   auditionId: auditionIdSchema,
   title: textFieldSchema(AUDITION_TITLE_INPUT),
   description: textFieldSchema(AUDITION_DESCRIPTION_INPUT),
   entriesCloseAt: AuditionDeadlineSchema,
   auditionCloseAt: AuditionDeadlineSchema,
-  // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.
   mode: AuditionModeSchema.optional(),
-  // Curated ONLY: fixed number of option videos (2..8) in the atomic batch (see
-  // AuditionPromptTargetInfoSchema.expectedOptionCount). Required by the create core when curated.
   expectedOptionCount: z
     .number()
     .int()
@@ -249,8 +189,6 @@ const adminAuditionPromptFields = {
     .optional(),
 };
 
-// admin-audition-prompt: admin-operated audition creation payload, by type — a sponsored
-// audition carries its prize amount; a platform audition carries none.
 export const AdminAuditionPromptTargetInfoSchema = z
   .discriminatedUnion('type', [
     z.object({ type: z.literal('platformAudition'), ...adminAuditionPromptFields }).strict(),
@@ -270,17 +208,6 @@ export const AuditionEntryTargetInfoSchema = z
   })
   .strict();
 
-// ───────────────────────────────────────────────────────────────────
-// HALL LIBRARY COVER target info (square / poster / cinematic).
-// All three origins share one shape. The processor uses fileOrigin to
-// pick which field on the target doc gets written (see
-// HALL_LIBRARY_TARGET_FIELDS in `hall-library-target-fields.ts`).
-//
-// itemType discriminates which parent collection — `workProjectTales` vs
-// `workProjectTunes` vs `workProjectTelevision`. fileOrigin alone does NOT
-// disambiguate this because all three cover origins target whichever
-// hallLibrary item the user is editing.
-// ───────────────────────────────────────────────────────────────────
 const HallLibraryCoverTargetInfoSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -293,24 +220,12 @@ export const HallLibraryCoverSquareTargetInfoSchema = HallLibraryCoverTargetInfo
 export const HallLibraryCoverPosterTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
 export const HallLibraryCoverCinematicTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
 
-// realm-cover: the Realm's square cover art. The processor writes
-// `realmCoverAssetId` on workRealms/{workRealmId}. Steward-only (the upload
-// callable authorizes against the realm's workStewardUid).
 export const RealmCoverTargetInfoSchema = z
   .object({
     workRealmId: workRealmIdSchema,
   })
   .strict();
 
-// ───────────────────────────────────────────────────────────────────
-// SUB-ITEM target info — one shape per item type, NOT per media kind.
-// chapter-photo uses ChapterPhotoTargetInfoSchema.
-// tune-track-photo + tune-track-audio share TuneTrackMediaTargetInfoSchema.
-// television-episode-photo + television-episode-video share TelevisionEpisodeMediaTargetInfoSchema.
-// The processor derives the doc path from these IDs via
-// PATH_BUILDERS.taleChapter / .tuneTrack / .televisionEpisode, and derives the
-// field name from fileOrigin via HALL_LIBRARY_TARGET_FIELDS.
-// ───────────────────────────────────────────────────────────────────
 export const ChapterPhotoTargetInfoSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -341,30 +256,20 @@ const TelevisionEpisodeMediaTargetInfoSchema = z
 export const TelevisionEpisodePhotoTargetInfoSchema = TelevisionEpisodeMediaTargetInfoSchema;
 export const TelevisionEpisodeVideoTargetInfoSchema = TelevisionEpisodeMediaTargetInfoSchema;
 
-// conversation-file: STRICT — carries the ConversationFileRef and NOTHING else.
-// No message text, no replyTo, no message id, no isUserReply: a Conversation File
-// is never embedded in, sequenced with, or mutated through a chat message. Extra
-// or mixed scope identifiers (e.g. a guildInviteId alongside an adminDispatchId,
-// or a guildChatChannelId) fail the parse.
 export const ConversationFileTargetInfoSchema = ConversationFileRefSchema;
 
 export const WorkAssetTargetInfoSchema = z
   .object({
     workProjectId: workProjectIdSchema,
-    // The folder the file is uploaded INTO. Custom folders gate
-    // upload by trade profession; the default folder accepts any active guildmate.
     folderId: workFileFolderIdSchema,
   })
   .strict();
 
-// system-content: the system video slot the upload is for — a registry slot of kind `video`.
 export const SystemContentTargetInfoSchema = z
   .object({
     slotId: SystemVideoSlotIdSchema,
   })
   .strict();
-
-// ---- type aliases ----
 
 export type ProfilePictureTargetInfo = z.infer<typeof ProfilePictureTargetInfoSchema>;
 export type CraftSkillMediaTargetInfo = z.infer<typeof CraftSkillMediaTargetInfoSchema>;
@@ -397,8 +302,6 @@ export type ConversationFileTargetInfo = z.infer<typeof ConversationFileTargetIn
 export type WorkAssetTargetInfo = z.infer<typeof WorkAssetTargetInfoSchema>;
 export type SystemContentTargetInfo = z.infer<typeof SystemContentTargetInfoSchema>;
 
-// ncii-evidence: ties the uploaded evidence to a take-it-down request by its
-// public reference. The processor attaches the evidence record to that request.
 export const NciiEvidenceTargetInfoSchema = z
   .object({
     requestReference: z.string().min(1),
@@ -406,7 +309,6 @@ export const NciiEvidenceTargetInfoSchema = z
   .strict();
 export type NciiEvidenceTargetInfo = z.infer<typeof NciiEvidenceTargetInfoSchema>;
 
-// Mapped type: given a FileOrigin literal, returns its targetInfo shape.
 export type TargetInfoFor<O extends FileOrigin> = O extends 'profile-picture'
   ? ProfilePictureTargetInfo
   : O extends 'craft-skill-media'

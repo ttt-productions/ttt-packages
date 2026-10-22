@@ -3,7 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// Capture each opened listener so a test can fail it, retry, and answer the re-opened one.
 const h = vi.hoisted(() => ({
   listeners: [] as Array<{ next: (snap: unknown) => void; error: (e: Error) => void }>,
 }));
@@ -80,7 +79,6 @@ describe('useReadRetryState over a subscribed read', () => {
     expect(result.current.state).toEqual({ error: failure, isRetrying: false, isLoading: false });
 
     act(() => void result.current.query.refetch());
-    // The subscribed read itself clears the listener error while the listener re-opens.
     expect(result.current.query.error).toBeNull();
     expect(result.current.state).toEqual({ error: failure, isRetrying: true, isLoading: false });
 

@@ -1,7 +1,3 @@
-// A walker that catches a directory-read failure and answers "no entries" turns an unreadable
-// subtree into a clean pass. The reader fails closed, but it cannot stop a hand-written walk in the
-// app's own code, so every directory read there must throw on failure. There is no allowlist.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -32,7 +28,6 @@ function contains(root: ts.Node, test: (node: ts.Node) => boolean): boolean {
   return found;
 }
 
-/** A handler that rethrows: it holds a `throw`, or it returns a rejected promise. */
 const rethrows = (handler: ts.Node) =>
   contains(handler, (node) => ts.isThrowStatement(node)) ||
   contains(
@@ -45,10 +40,6 @@ const rethrows = (handler: ts.Node) =>
       node.expression.name.text === 'reject',
   );
 
-/**
- * Where a file swallows a directory-read failure: a `try` holding a directory read whose `catch`
- * never rethrows, or a directory read's promise given a `.catch` handler that never rethrows.
- */
 export function swallowedDirectoryReads(file: FileView): number[] {
   const sourceFile = file.sourceFile;
   const hits: number[] = [];
@@ -83,7 +74,6 @@ const SCOPE: Scope = {
   optionalRoots: ['functions', 'scripts'],
 };
 
-/** Takes no facts: it reads the app, Functions and scripts roots the layout declares. */
 export type WalkerReadFailureFacts = Readonly<Record<string, never>>;
 
 export const walkerReadFailureGuard: GenericGuardDefinition<WalkerReadFailureFacts> = {

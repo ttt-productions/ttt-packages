@@ -1,8 +1,4 @@
-/* ============================================
- * report-core default styles
- * Reads theme-core's semantic tokens (hsl(var(--x))) and carries no raw colour.
- * Import in your app: import "@ttt-productions/report-core/styles";
- * ============================================ */
+/* report-core default styles */
 
 /* --- Report Dialog --- */
 .rc-dialog {
@@ -40,9 +36,13 @@
 }
 
 /* --- Pulse animation for critical badges ---
- * Namespaced: a bare `pulse` would share one global keyframes name with Tailwind's
- * `animate-pulse`, and whichever loaded last would drive both. */
+ * Namespaced: a bare `pulse` shares one global keyframes name with Tailwind's `animate-pulse`. */
 @keyframes rc-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }

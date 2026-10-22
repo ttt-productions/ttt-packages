@@ -1,6 +1,3 @@
-// The generic guards over Firestore and Storage access. The registry runs every guard listed here; an
-// app supplies each one's facts under its id.
-
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
   firestoreRuntimeInUiGuard,
@@ -34,7 +31,6 @@ import {
 } from './storage-guards.js';
 import type { NoFacts } from './support.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface FirestoreGuardFacts {
   firestoreWrites: WriteGuardFacts | Absent;
   firestoreTestPaths: TestPathFacts | Absent;

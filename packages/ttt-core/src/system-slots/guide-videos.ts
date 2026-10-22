@@ -1,6 +1,3 @@
-// The Backstage Guide's videos: the one declaration of each video's identity (id and planned
-// title). The system-slot registry derives a video slot per entry.
-
 export const GUIDE_VIDEO_DEFINITIONS = [
   { id: 'ttt-in-five-minutes', plannedTitle: 'TTT in Five Minutes' },
   { id: 'finding-your-way-around', plannedTitle: 'Finding Your Way Around TTT' },
@@ -17,7 +14,6 @@ export const GUIDE_VIDEO_DEFINITIONS = [
 export type GuideVideoDefinition = (typeof GUIDE_VIDEO_DEFINITIONS)[number];
 export type GuideVideoId = GuideVideoDefinition['id'];
 
-/** The system video slot that holds a Guide video's recording. */
 export function guideVideoSlotId<V extends GuideVideoId>(videoId: V): `guide-${V}` {
   return `guide-${videoId}`;
 }

@@ -1,7 +1,3 @@
-// The UI guards over what a control says to assistive technology and to the form it sits in: an
-// icon-only button has a name, a button in a form states its type, a display-only component is never
-// a trigger or a control, and a typed number is read from the whole input.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
@@ -30,25 +26,17 @@ const attr = (open: Opening, name: string): ts.JsxAttribute | undefined =>
 const hasSpread = (open: Opening): boolean =>
   open.attributes.properties.some((p) => ts.isJsxSpreadAttribute(p));
 
-/** The opening element of the JSX element directly around `node`, if any. */
 const parentOpening = (node: ts.Node): ts.JsxOpeningElement | undefined =>
   node.parent && ts.isJsxElement(node.parent) ? node.parent.openingElement : undefined;
 
-/** A matcher that reads only the files under the app's render-surface trees. */
 const inSurfaces =
   (surfaceTrees: readonly string[], match: Matcher): Matcher =>
   (file) =>
     surfaceTrees.some((tree) => isUnder(file.path, tree)) ? match(file) : [];
 
-/** A string attribute's value as written, quotes included (`"icon"`), or undefined. */
 const writtenValue = (open: Opening, name: string, sf: ts.SourceFile): string | undefined =>
   attr(open, name)?.initializer?.getText(sf);
 
-// =============================================================================================
-// An icon-only button has an accessible name.
-// =============================================================================================
-
-/** Every icon-only button with no aria-label, aria-labelledby, or sr-only text child. */
 export function unnamedIconButtons(
   file: FileView,
   component: string,
@@ -83,11 +71,6 @@ export function unnamedIconButtons(
   return hits;
 }
 
-// =============================================================================================
-// A button inside a form states its type.
-// =============================================================================================
-
-/** Every button inside a same-file `<form>` with no `type`, unless an `asChild` trigger types it. */
 export function untypedFormButtons(file: FileView, buttonComponents: readonly string[]): Hit[] {
   const sf = file.sourceFile;
   const buttons = new Set(['button', ...buttonComponents]);
@@ -114,13 +97,8 @@ export function untypedFormButtons(file: FileView, buttonComponents: readonly st
   return hits;
 }
 
-// =============================================================================================
-// A display-only component is never a trigger or a control.
-// =============================================================================================
-
 const CONTROL_HANDLERS = ['onClick', 'onKeyDown', 'onKeyUp', 'onPointerDown'];
 
-/** Every display-only element given a handler, handed to an `asChild` parent, or passed as a `trigger`. */
 export function interactiveDisplayElements(
   file: FileView,
   displayComponents: readonly string[],
@@ -157,11 +135,8 @@ export function interactiveDisplayElements(
 }
 
 export interface AccessibleControlFacts {
-  /** The trees that hold the app's render surfaces (components and routes). */
   surfaceTrees: readonly string[];
-  /** The app's button component, and the `size` values that make it icon-only. */
   button: { component: string; iconSizes: readonly string[] };
-  /** Components that render a non-interactive element (a badge that renders a div). */
   displayComponents: readonly string[];
 }
 
@@ -277,13 +252,8 @@ export const accessibleControlsGuard: GenericGuardDefinition<AccessibleControlFa
   },
 };
 
-// =============================================================================================
-// A typed number is read from the whole input.
-// =============================================================================================
-
 const PREFIX_PARSERS = new Set(['parseInt', 'parseFloat']);
 
-/** Every call to `parseInt` / `parseFloat`, bare or on `Number`. */
 export function prefixNumberParses(file: FileView): Hit[] {
   const sf = file.sourceFile;
   const hits: Hit[] = [];
@@ -302,9 +272,7 @@ export function prefixNumberParses(file: FileView): Hit[] {
 }
 
 export interface WholeInputNumberFacts {
-  /** The trees that hold the app's render surfaces (components and routes). */
   surfaceTrees: readonly string[];
-  /** Files that may prefix-parse, each with why its input is already a whole number. */
   allowlist: readonly AllowlistEntry[];
 }
 

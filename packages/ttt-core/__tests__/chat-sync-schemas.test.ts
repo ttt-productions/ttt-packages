@@ -153,7 +153,7 @@ describe('chat-sync doc schemas parse representative docs', () => {
     ).toBe(true);
   });
 
-  it('rejects the removed attachment command/event kinds', () => {
+  it('rejects attachment command/event kinds', () => {
     expect(
       ChatMessageOutboxSchema.safeParse({
         commandId: 'pm1',
@@ -203,7 +203,6 @@ describe('chat-sync doc schemas parse representative docs', () => {
       reconcileAttemptCount: 0,
     };
     expect(ChatAdminActionCommandSchema.safeParse(representative).success).toBe(true);
-    // The nonterminal stall-repair state is a declared member, not app-side drift.
     expect(
       ChatAdminActionCommandSchema.safeParse({
         ...representative,
@@ -330,7 +329,7 @@ describe('notification ledger schemas parse representative docs', () => {
 });
 
 describe('registry + paths wiring', () => {
-  it('every new collection is bound in COLLECTION_SCHEMAS', () => {
+  it('every chat-sync and notification-ledger collection is bound in COLLECTION_SCHEMAS', () => {
     for (const path of [
       'notificationDeliveries/{deliveryId}',
       'notificationFanoutJobs/{jobId}',

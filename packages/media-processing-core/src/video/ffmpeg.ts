@@ -1,17 +1,10 @@
 import { spawn } from 'node:child_process';
 
 export interface RunCmdResult {
-  /** The exit code; `-1` when the process was ended by a signal, so a child
-   *  killed partway (a crash, an outside kill) never reads as a clean exit. */
   code: number;
   stdout: string;
   stderr: string;
-  /** True when the process was killed by the wall-clock timeout (see runCmd
-   *  opts.timeoutMs). Callers must treat a timed-out result as INVALID —
-   *  never parse its partial output as an answer. */
   timedOut?: boolean;
-  /** True when a captured stream hit the 1 MiB cap — the output is truncated
-   *  and must not be parsed as complete (e.g. incomplete probe JSON). */
   truncated?: boolean;
 }
 
@@ -20,17 +13,13 @@ export type FfmpegProgressPhase = 'transcode' | 'poster';
 export interface RunFfmpegOptions {
   cwd?: string;
   signal?: AbortSignal;
-  /** Optional total duration in milliseconds (used to compute percent). */
   durationMs?: number;
   onProgress?: (p: { phase: FfmpegProgressPhase; percent?: number; outTimeMs?: number }) => void;
-  /** Which phase to report in callbacks. */
   phase?: FfmpegProgressPhase;
 }
 
-const MAX_CAPTURE_BYTES = 1024 * 1024; // 1MB per stream
+const MAX_CAPTURE_BYTES = 1024 * 1024;
 
-/** Wall-clock ceiling for an ffprobe call that opens a file and reads its
- *  stream table (metadata only, never every packet). */
 export const DEFAULT_PROBE_TIMEOUT_MS = 20_000;
 
 let ffmpegChecked: boolean | null = null;
@@ -41,15 +30,8 @@ export function runCmd(
   args: string[],
   opts?: {
     cwd?: string;
-    /** Hard wall-clock ceiling; on expiry the child is SIGKILLed and the
-     *  result resolves with `timedOut: true`. A malformed/adversarial input
-     *  must never be able to wedge a warm instance. */
     timeoutMs?: number;
-    /** Abort kills the child immediately (same SIGKILL path as the timeout). */
     signal?: AbortSignal;
-    /** Receives stdout one line at a time instead of capturing it, so a
-     *  listing of any length is read in bounded memory; `stdout` is then
-     *  empty. A single line over the capture cap sets `truncated`. */
     onStdoutLine?: (line: string) => void;
   },
 ): Promise<RunCmdResult> {
@@ -64,9 +46,7 @@ export function runCmd(
     const kill = () => {
       try {
         p.kill('SIGKILL');
-      } catch {
-        /* already dead */
-      }
+      } catch {}
     };
     const timer =
       opts?.timeoutMs && opts.timeoutMs > 0
@@ -76,7 +56,7 @@ export function runCmd(
           }, opts.timeoutMs)
         : null;
     const onAbort = () => {
-      timedOut = true; // treated identically: the result is invalid
+      timedOut = true;
       kill();
     };
     if (opts?.signal) {
@@ -86,8 +66,7 @@ export function runCmd(
 
     const onLine = opts?.onStdoutLine;
     let lineBuf = '';
-    // Decodes across chunk boundaries, so a multi-byte character split
-    // between two chunks reaches the line intact.
+    // Decodes across chunk boundaries, so a multi-byte character split between chunks stays intact.
     if (onLine) p.stdout.setEncoding('utf8');
     p.stdout.on('data', (d) => {
       if (onLine) {
@@ -136,13 +115,11 @@ function abortError(): DOMException {
   return new DOMException('Aborted', 'AbortError');
 }
 
-// NOTE: ffmpeg prints "out_time_ms" but it is microseconds in known builds.
-// We harden parsing and sanity-check values.
+// ffmpeg's `out_time_ms` is in microseconds.
 function parseOutTimeMicroseconds(value: string): number | undefined {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) return undefined;
 
-  // Discard absurd values (100 years in microseconds).
   const MAX_REASONABLE_US = 100 * 365 * 24 * 60 * 60 * 1_000_000;
   if (n > MAX_REASONABLE_US) return undefined;
 
@@ -150,7 +127,6 @@ function parseOutTimeMicroseconds(value: string): number | undefined {
 }
 
 function parseOutTimeHmsToMs(value: string): number | undefined {
-  // "HH:MM:SS.micro" (micro may be omitted)
   const m = String(value)
     .trim()
     .match(/^(\d+):([0-5]\d):([0-5]\d)(?:\.(\d{1,6}))?$/);
@@ -176,10 +152,6 @@ function clamp01(n: number) {
   return n;
 }
 
-/**
- * Runs ffmpeg with optional AbortSignal + progress reporting.
- * If onProgress is provided, ffmpeg is invoked with "-progress pipe:1".
- */
 export function runFfmpeg(args: string[], opts?: RunFfmpegOptions): Promise<RunCmdResult> {
   const phase: FfmpegProgressPhase = opts?.phase ?? 'transcode';
   const withProgress = !!opts?.onProgress;
@@ -194,7 +166,6 @@ export function runFfmpeg(args: string[], opts?: RunFfmpegOptions): Promise<RunC
     let stderr = '';
     let progressBuf = '';
 
-    // keep progress monotonic
     let lastOutTimeMs: number | undefined;
 
     const onAbort = () => {
@@ -235,7 +206,6 @@ export function runFfmpeg(args: string[], opts?: RunFfmpegOptions): Promise<RunC
       }
 
       if (outTimeMs != null) {
-        // monotonic guard
         if (lastOutTimeMs == null || outTimeMs >= lastOutTimeMs) {
           lastOutTimeMs = outTimeMs;
         }
@@ -243,8 +213,7 @@ export function runFfmpeg(args: string[], opts?: RunFfmpegOptions): Promise<RunC
         const dur = opts?.durationMs;
         const percent =
           dur && dur > 0 && lastOutTimeMs != null
-            ? // clamp to <1 during processing (end event sends 1)
-              clamp01(Math.min(0.999, lastOutTimeMs / dur))
+            ? clamp01(Math.min(0.999, lastOutTimeMs / dur))
             : undefined;
 
         opts?.onProgress?.({ phase, percent, outTimeMs: lastOutTimeMs });

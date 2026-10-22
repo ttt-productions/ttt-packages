@@ -75,8 +75,6 @@ describe('chat realtime wire contract — constants', () => {
   });
 
   it('declares the heartbeat auto-response kind (client heartbeat is fire-and-forget)', () => {
-    // The DO runtime answers CLIENT_KINDS.HEARTBEAT with this frame without waking
-    // the DO; every runtime derives the literal from here rather than restating it.
     expect(SERVER_KINDS.HEARTBEAT_ACK).toBe(`${CLIENT_KINDS.HEARTBEAT}-ack`);
   });
 
@@ -385,7 +383,6 @@ describe('ChatSendRejectedPayloadSchema', () => {
   });
 
   it('rejects a retryability that disagrees with the canonical table', () => {
-    // blocked-word is terminal — declaring it retryable must be rejected.
     expect(() =>
       ChatSendRejectedPayloadSchema.parse({
         clientMessageId: 'c-1',
@@ -393,7 +390,6 @@ describe('ChatSendRejectedPayloadSchema', () => {
         retryable: true,
       }),
     ).toThrow();
-    // membership-pending is retryable — declaring it terminal must be rejected.
     expect(() =>
       ChatSendRejectedPayloadSchema.parse({
         clientMessageId: 'c-1',

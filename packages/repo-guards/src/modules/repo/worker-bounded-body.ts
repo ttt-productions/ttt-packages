@@ -1,9 +1,3 @@
-// Every Worker reads an incoming request body only through the bounded reader, so an unsigned
-// request can never make an isolate buffer more than its endpoint's budget. A raw read of the
-// request — `.text()`, `.json()`, `.arrayBuffer()`, `.formData()`, `.blob()`, or its `.body` stream —
-// fails. Reads of stored objects and fetch responses are not request bodies: the match keys on the
-// handler's request identifier (`request` / `req`).
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
@@ -12,21 +6,14 @@ import { escapeRegExp } from '../../support/text.js';
 import { identifierProblem, isText, objectProblem, reviewedProblems } from '../../support/facts.js';
 
 export interface WorkerBoundedBodyFacts {
-  /** The bounded body reader's function name. */
   boundedReader: string;
-  /** Endpoint files that must read their request body through the bounded reader with a budget. */
   boundedEndpoints: ReadonlyArray<{ file: string; why: string }>;
-  /**
-   * A request body stream handed on unread (never buffered), keyed by file and the exact statement
-   * so a new use in the same file is still caught.
-   */
   passThroughStreams: ReadonlyArray<{ file: string; statement: string; why: string }>;
 }
 
 const RAW_REQUEST_BODY_READ =
   /\b(?:request|req)\s*\.\s*(?:(?:text|json|arrayBuffer|formData|blob)\s*\(|body\b)/;
 
-/** Every line of a file's code that reads the request body directly, trimmed, with its line. */
 export function rawRequestBodyReads(file: FileView): Array<{ line: number; statement: string }> {
   return file.code
     .split('\n')

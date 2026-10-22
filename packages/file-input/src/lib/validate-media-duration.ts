@@ -20,19 +20,14 @@ export async function validateMediaDuration(file: File, maxDurationSec: number):
         finish(el.duration <= maxDurationSec);
         return;
       }
-      // Chromium MediaRecorder blobs (recorded audio/video) report duration
-      // Infinity at loadedmetadata, so `Infinity <= max` would reject every
-      // recording. Resolve the real duration via the shared seek workaround;
-      // if it still cannot be determined, let the file through — the server
-      // measures every file's length and refuses one over the limit or with
-      // no length at all.
+      // Chromium MediaRecorder blobs report duration Infinity at loadedmetadata; the seek workaround
+      // learns the real one.
       void resolveInfiniteDuration(el).then((duration) => {
         finish(duration === null ? true : duration <= maxDurationSec);
       });
     };
 
     el.onerror = () => {
-      // Fail open on client (backend can enforce again).
       finish(true);
     };
 

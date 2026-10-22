@@ -1,11 +1,5 @@
-// Load-bearing contract tests for the canonical safety-hold resource keys.
-//
-// The canonical key string AND its sha256 hash are the Firestore doc id for every hold
-// aggregate + ref. A format change re-keys EVERY existing hold (a silent, catastrophic
-// migration), so these assertions hardcode both the exact canonical string and the exact
-// hex digest for fixed inputs — computing the hash in-test would let a format drift pass
-// unnoticed (both sides would move together). The `\x1f` unit separator is written
-// explicitly so an accidental separator change is caught too.
+// The key and its hash are stored document ids: a format change re-keys every stored hold, so the
+// digest is hardcoded rather than computed in-test.
 
 import { describe, it, expect } from 'vitest';
 import {

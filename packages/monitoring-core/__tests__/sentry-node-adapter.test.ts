@@ -32,7 +32,6 @@ async function loadInitializedAdapter() {
   return SentryNodeAdapter;
 }
 
-/** Let every pending microtask and timer-0 continuation run, so a replay would have fired. */
 async function flushPendingWork() {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -44,7 +43,7 @@ describe('SentryNodeAdapter', () => {
     __resetSentryAdapter(SentryNodeAdapter);
   });
 
-  it('withScope calls fn exactly once once Sentry is loaded (regression: used to double-fire)', async () => {
+  it('withScope calls fn exactly once once Sentry is loaded', async () => {
     await SentryNodeAdapter.init({
       provider: 'sentry-node',
       dsn: 'https://test@example.com/1',
@@ -145,12 +144,12 @@ describe('SentryNodeAdapter', () => {
       const adapter = await loadInitializedAdapter();
 
       adapter.captureException(new Error('boom'), {
-        tags: { operation: 'nciiDeadlineMonitor', lane: 'ncii' },
+        tags: { operation: 'deadlineMonitor', lane: 'lane-a' },
       });
 
       expect(scopeMock.setTag).toHaveBeenCalledTimes(2);
-      expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'nciiDeadlineMonitor');
-      expect(scopeMock.setTag).toHaveBeenCalledWith('lane', 'ncii');
+      expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'deadlineMonitor');
+      expect(scopeMock.setTag).toHaveBeenCalledWith('lane', 'lane-a');
       expect(scopeMock.setExtra).not.toHaveBeenCalled();
     });
 
@@ -215,12 +214,12 @@ describe('SentryNodeAdapter', () => {
       const adapter = await loadInitializedAdapter();
 
       adapter.captureMessage('limiter unavailable', 'error', {
-        tags: { operation: 'takeItDownRateLimit', lane: 'ncii' },
+        tags: { operation: 'rateLimitCheck', lane: 'lane-a' },
       });
 
       expect(scopeMock.setTag).toHaveBeenCalledTimes(2);
-      expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'takeItDownRateLimit');
-      expect(scopeMock.setTag).toHaveBeenCalledWith('lane', 'ncii');
+      expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'rateLimitCheck');
+      expect(scopeMock.setTag).toHaveBeenCalledWith('lane', 'lane-a');
       expect(scopeMock.setExtra).not.toHaveBeenCalled();
     });
 
@@ -229,12 +228,12 @@ describe('SentryNodeAdapter', () => {
 
       adapter.captureMessage('limiter unavailable', 'error', {
         level: 'warning',
-        tags: { operation: 'takeItDownRateLimit' },
+        tags: { operation: 'rateLimitCheck' },
         extra: { docId: 'doc-1' },
       });
 
       expect(scopeMock.setTag).toHaveBeenCalledTimes(1);
-      expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'takeItDownRateLimit');
+      expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'rateLimitCheck');
       expect(scopeMock.setLevel).toHaveBeenCalledWith('warning');
       expect(scopeMock.setExtra).toHaveBeenCalledTimes(1);
       expect(scopeMock.setExtra).toHaveBeenCalledWith('extra', { docId: 'doc-1' });
@@ -280,7 +279,6 @@ describe('SentryNodeAdapter', () => {
       expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'early');
       expect(scopeMock.setExtra).toHaveBeenCalledWith('docId', 'doc-1');
       expect(sentryMock.withScope).toHaveBeenCalledTimes(1);
-      // No double-report: the pre-load branch is the ONLY reporting path taken.
       expect(sentryMock.captureMessage).toHaveBeenCalledTimes(1);
       expect(sentryMock.captureMessage).toHaveBeenCalledWith('early', 'warning');
     });

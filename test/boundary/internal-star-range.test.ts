@@ -1,41 +1,50 @@
-// Internal "*" range audit (REPORT-ONLY against source manifests).
-//
-// Scans dependencies, peerDependencies, and devDependencies of every package
-// manifest for `@ttt-productions/*: "*"`.
-//
-// Source manifests legitimately carry "*" so workspace dev resolves to the
-// local package. At pack time scripts/pin-internal-deps.mjs rewrites these
-// to caret ranges (^x.y.z); CI enforces the HARD-FAIL against packed/published
-// output. That hard-fail belongs to the release/CI flow, NOT here — so this
-// check only REPORTS against source and never fails.
-
-import { describe, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { workspacePackages } from './workspace';
 
 const DEP_FIELDS = ['dependencies', 'peerDependencies', 'devDependencies'] as const;
+const SCOPE = '@ttt-productions/';
 
-describe('boundary: internal "*" range audit (report-only)', () => {
-  it('reports any @ttt-productions/* "*" ranges in source manifests', () => {
-    const found: string[] = [];
+type Manifest = {
+  name?: string;
+  version?: string;
+} & Partial<Record<(typeof DEP_FIELDS)[number], Record<string, string>>>;
 
-    for (const { manifest: json } of workspacePackages<Record<string, any>>()) {
-      for (const field of DEP_FIELDS) {
-        const deps = json[field] as Record<string, string> | undefined;
-        if (!deps) continue;
-        for (const [dep, range] of Object.entries(deps)) {
-          if (dep.startsWith('@ttt-productions/') && range === '*') {
-            found.push(`${json.name} › ${field} › ${dep}`);
-          }
+function rangesSurvivingPin(manifests: readonly Manifest[]): string[] {
+  const versions = new Map<string, string>();
+  for (const m of manifests) if (m.name && m.version) versions.set(m.name, m.version);
+
+  const survivors: string[] = [];
+  for (const m of manifests) {
+    for (const field of DEP_FIELDS) {
+      for (const [dep, range] of Object.entries(m[field] ?? {})) {
+        if (dep.startsWith(SCOPE) && range === '*' && !versions.has(dep)) {
+          survivors.push(`${m.name} › ${field} › ${dep}`);
         }
       }
     }
+  }
+  return survivors;
+}
 
-    if (found.length > 0) {
-      console.warn(
-        `[boundary] internal "*" ranges in source (expected pre-release; rewritten to caret ranges at pack time by scripts/pin-internal-deps.mjs):\n  ${found.join('\n  ')}`,
-      );
-    }
-    // Intentionally no assertion — the hard-fail lives in the release flow
-    // (packed tarball inspection), not against source manifests.
+describe('boundary: internal "*" ranges', () => {
+  it('every internal "*" range in a source manifest resolves to a workspace package, so publish pinning leaves none', () => {
+    const manifests = workspacePackages<Manifest>().map((p) => p.manifest);
+    expect(rangesSurvivingPin(manifests)).toEqual([]);
+  });
+
+  it('the check reports a seeded "*" range on a package outside the workspace', () => {
+    const manifests: Manifest[] = [
+      { name: '@ttt-productions/a', version: '0.1.0' },
+      {
+        name: '@ttt-productions/b',
+        version: '0.2.0',
+        dependencies: { '@ttt-productions/a': '*', '@ttt-productions/gone': '*', other: '*' },
+        peerDependencies: { '@ttt-productions/missing-peer': '*' },
+      },
+    ];
+    expect(rangesSurvivingPin(manifests)).toEqual([
+      '@ttt-productions/b › dependencies › @ttt-productions/gone',
+      '@ttt-productions/b › peerDependencies › @ttt-productions/missing-peer',
+    ]);
   });
 });

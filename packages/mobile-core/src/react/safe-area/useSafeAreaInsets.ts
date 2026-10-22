@@ -3,11 +3,8 @@ import type { Insets } from '../../types.js';
 import { isBrowser } from '../../env.js';
 import { resolvePrefix, type CssPrefixOptions } from '../css-prefix.js';
 
-/**
- * Uses CSS env(safe-area-inset-*) by writing them to CSS vars and reading computed values.
- * Works on iOS Safari; harmless elsewhere.
- * Default CSS vars: --app-sai-top/right/bottom/left.
- */
+// Script cannot read env(safe-area-inset-*) directly, so the insets go through CSS vars and are
+// read back computed.
 export function useSafeAreaInsets(options?: CssPrefixOptions): Insets {
   const prefix = resolvePrefix(options);
   const [insets, setInsets] = useState<Insets>({ top: 0, right: 0, bottom: 0, left: 0 });
@@ -17,7 +14,6 @@ export function useSafeAreaInsets(options?: CssPrefixOptions): Insets {
 
     const el = document.documentElement;
 
-    // set vars once
     el.style.setProperty(`--${prefix}-sai-top`, 'env(safe-area-inset-top)');
     el.style.setProperty(`--${prefix}-sai-right`, 'env(safe-area-inset-right)');
     el.style.setProperty(`--${prefix}-sai-bottom`, 'env(safe-area-inset-bottom)');

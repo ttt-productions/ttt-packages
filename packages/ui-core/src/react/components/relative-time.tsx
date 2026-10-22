@@ -5,20 +5,12 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { toDate } from '@ttt-productions/firebase-helpers';
 
 export interface RelativeTimeProps {
-  /** Number (ms or seconds), ISO string, Firestore Timestamp, or Date. */
   timestamp: number | string | Date | undefined | null;
-  /** Fallback rendered before client hydration completes. Defaults to "...". */
   placeholder?: string;
-  /** Fallback rendered when the timestamp can't be parsed. Defaults to "a while ago". */
   fallback?: string;
-  /** Auto-refresh interval in ms. Defaults to 60000. Set to 0 to disable. */
   refreshIntervalMs?: number;
 }
 
-/**
- * SSR-safe relative-time component.
- * Renders `placeholder` on the server and pre-mount, then the live value.
- */
 export function RelativeTime({
   timestamp,
   placeholder = '...',

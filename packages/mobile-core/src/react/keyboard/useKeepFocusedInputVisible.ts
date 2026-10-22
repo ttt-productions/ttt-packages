@@ -3,14 +3,11 @@ import { isBrowser } from '../../env.js';
 import { useKeyboard } from './useKeyboard.js';
 import { resolvePrefix, type CssPrefixOptions } from '../css-prefix.js';
 
-/**
- * When keyboard opens, ensure focused element is visible within visual viewport.
- * - iOS Safari often hides the caret behind the keyboard.
- */
+// iOS Safari often leaves the caret hidden behind the keyboard.
 export function useKeepFocusedInputVisible(
   opts?: CssPrefixOptions & {
-    extraOffset?: number; // px
-    scrollBehavior?: ScrollBehavior; // "smooth" | "auto"
+    extraOffset?: number;
+    scrollBehavior?: ScrollBehavior;
   },
 ) {
   const { isOpen } = useKeyboard();
@@ -25,7 +22,6 @@ export function useKeepFocusedInputVisible(
     const el = document.activeElement as HTMLElement | null;
     if (!el) return;
 
-    // only inputs-ish
     const tag = el.tagName.toLowerCase();
     const isInput =
       tag === 'input' ||

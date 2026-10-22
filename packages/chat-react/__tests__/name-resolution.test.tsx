@@ -113,7 +113,6 @@ describe("the app's unresolved state is never nested inside the sender click tar
     fireEvent.click(getByRole('button', { name: 'Retry name' }));
     expect(retry).toHaveBeenCalledTimes(1);
     expect(onSenderClick).not.toHaveBeenCalled();
-    // No sender button wraps it.
     expect(queryByRole('button', { name: /retry name/i })?.closest('[role="button"]')).toBeNull();
   });
 });

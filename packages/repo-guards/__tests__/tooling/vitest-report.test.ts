@@ -1,7 +1,3 @@
-// The gate's Vitest report reader: a test file that failed to load must be named, with its error,
-// even though it adds no failed test to the report — otherwise a red stage cannot say why. A
-// skipped, pending, or todo test keeps the stage from green and is named.
-
 import { describe, it, expect } from 'vitest';
 import {
   collectVitestFailures,

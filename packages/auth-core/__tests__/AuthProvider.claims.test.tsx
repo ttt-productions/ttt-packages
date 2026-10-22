@@ -25,7 +25,6 @@ vi.mock('../src/client/claims.js', () => ({
 import { AuthProvider } from '../src/react/AuthProvider.js';
 import { useAuth } from '../src/react/useAuth.js';
 
-/** A signed-in session whose forced refreshes resolve only when the test says so. */
 function makeUser(uid: string) {
   const refreshes: Array<(claims: Record<string, unknown>) => void> = [];
   const user = {
@@ -46,7 +45,6 @@ function resolveInitialRead(uid: string, owner: string) {
   next({ owner });
 }
 
-/** Firebase Auth's `currentUser` is the live signed-in user, the same one useAuthState reports. */
 const liveAuth = {
   get currentUser() {
     return currentUser;
@@ -100,8 +98,6 @@ describe('AuthProvider claims belong to the current session', () => {
   });
 
   it('a refreshClaims taken before sign-in refreshes the account signed in when it is called', async () => {
-    // A registration's submit handler holds the callback from a signed-out render, creates the
-    // account, and then asks for the claims the server just set on it.
     const { result, rerender } = renderHook(() => useAuth<Claims>(), { wrapper });
     const refreshFromSignedOutRender = result.current.refreshClaims;
 

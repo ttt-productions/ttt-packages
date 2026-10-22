@@ -13,12 +13,4 @@ export function withId<T extends DocumentData>(snap: QueryDocumentSnapshot<T>): 
   return { id: snap.id, ...snap.data() };
 }
 
-/**
- * All possible timestamp-like values that can be converted.
- * - Timestamp: Native Firestore Timestamp
- * - Date: JavaScript Date object  
- * - number: Milliseconds since epoch
- * - SerializedTimestamp: JSON-serialized Timestamp from backend
- * - string: ISO date string
- */
 export type TimestampLike = Timestamp | Date | number | SerializedTimestamp | string;

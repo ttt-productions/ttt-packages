@@ -40,7 +40,6 @@ export function AudioViewer(props: AudioViewerProps) {
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const loadReportedRef = React.useRef(false);
 
-  // Additive playback API — derives from element events (no observer, MEDIA-102).
   const {
     hasEnded,
     handlers: playbackHandlers,
@@ -52,8 +51,6 @@ export function AudioViewer(props: AudioViewerProps) {
     url,
   );
 
-  // The element attaches through the playback lifecycle so the hook knows the
-  // active generation; detach (unmount) retires it.
   const setAudioRef = React.useCallback(
     (el: HTMLAudioElement | null) => {
       audioRef.current = el;
@@ -62,8 +59,6 @@ export function AudioViewer(props: AudioViewerProps) {
     [attachElement],
   );
 
-  // The viewer's one observer (MEDIA-102): lazy-load gating, and — while an owner listens —
-  // the visibility it reports, which is why it keeps running after the load starts then.
   const { ref: inViewRef, inView } = useInView({
     triggerOnce: false,
     threshold: 0.01,
@@ -78,7 +73,6 @@ export function AudioViewer(props: AudioViewerProps) {
     }
   }, [inView, shouldLoad]);
 
-  // Accordion compatibility: delayed auto-load on mount
   React.useEffect(() => {
     if (priority || shouldLoad) return;
     const timer = setTimeout(() => {
@@ -97,9 +91,7 @@ export function AudioViewer(props: AudioViewerProps) {
     loadReportedRef.current = false;
   }, [url]);
 
-  // A preload="metadata" element may not fire loadeddata or canplay until play, so the
-  // first of loadedmetadata / loadeddata / canplay makes it usable: the skeleton goes, the
-  // player shows, and onLoad fires once for this load.
+  // A preload="metadata" element may not fire loadeddata or canplay until play.
   const reveal = React.useCallback(() => {
     setIsLoaded(true);
     if (loadReportedRef.current) return;
@@ -109,7 +101,7 @@ export function AudioViewer(props: AudioViewerProps) {
 
   const handleError = React.useCallback(() => {
     setHasError(true);
-    setIsLoaded(true); // Stop skeleton on error
+    setIsLoaded(true);
     onError?.();
   }, [onError]);
 
@@ -123,8 +115,6 @@ export function AudioViewer(props: AudioViewerProps) {
 
   useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
 
-  // The error state stays inside the observed wrapper, so the viewer keeps reporting
-  // its visibility while its owner recovers it.
   if (hasError) {
     return (
       <div

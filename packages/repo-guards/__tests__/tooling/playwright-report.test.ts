@@ -1,7 +1,3 @@
-// The gate's Playwright report reader: failures carry their errors, a test that passed only on a
-// retry is named as flaky (it counts as passed AND flaky, and the gate fails the stage on it), and
-// each app's retry-pass log gets rows in the style it keeps.
-
 import { describe, it, expect } from 'vitest';
 import {
   collectPlaywrightFailures,

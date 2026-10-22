@@ -7,11 +7,10 @@ Chat **React UI** package — the React half of the chat split.
 - Chat shell, composer, message list, and the realtime-newest-window +
   infinite-older hooks (`useChatMessages`). The UI is
   **text-only**: there is no attachment control, attachment bubble, upload
-  adapter, media-injection context, or URL-resolver context. A conversation's
-  files live in the consuming app's Conversation Files surface (a Files button +
-  panel outside the message timeline), published through the canonical media
-  pipeline and read from Firestore — never inserted into the chat timeline, the
-  DO message table, resume deltas, or inbox previews.
+  adapter, media-injection context, or URL-resolver context. Files a consuming
+  app attaches to a conversation are the app's own surface, outside the message
+  timeline — never inserted into the chat timeline, the room's message storage,
+  resume deltas, or inbox previews.
 - `ChatShell`/`MessageList` height modes: a default fixed-height card with an
   internal scroll region, or a `fillHeight` mode that flexes to fill a
   bounded-height page panel (scrolling inside) instead of a fixed box. The
@@ -25,13 +24,13 @@ Chat **React UI** package — the React half of the chat split.
 - Message-text rendering (`MessageText`) — the ONE place every chat text surface
   (message bubbles) renders through. It renders the text
   **verbatim**: there is no mention/token grammar, no autocomplete dropdown, no
-  composer token insertion, and no chip renderer. Mentions are a Square-posts
-  concept owned by the consuming app, never a chat concept.
+  composer token insertion, and no chip renderer. Mentions are a concept owned by
+  the consuming app, never a chat concept.
 - **Access is the app's one fact.** `ChatCoreConfig.allowed` (required) is whether the
   current user may read the conversation, decided by the consuming app's own rule for
   the conversation's kind — the package never decides access, holds no member list, and
   has no access mode. False renders the no-access state and reads nothing. On the
-  realtime transport a terminal denial from the grant closes the conversation too.
+  realtime transport a terminal grant denial closes the conversation too.
 - **One failure seat.** `ChatShellProps.renderLoadError` (required) renders every read
   the chat could not complete, as a `ChatLoadFailure` (`{ scope, error, retry }`):
   `initial` — nothing loaded (the realtime client's first open failed for its budget,
@@ -49,9 +48,9 @@ Chat **React UI** package — the React half of the chat split.
 - **The one text declaration.** The `Composer`'s textarea takes `chat-schemas`'
   `CHAT_MESSAGE_TEXT_INPUT` (so it is capped at `CHAT_MESSAGE_TEXT_MAX_LENGTH` and announced as
   required) and shows a `{length}/{max}` counter once text is typed (wired by
-  `aria-describedby`). It judges the text with `judgeChatMessageText`, the Worker's own
-  judgement: Send stays disabled for a blank text, and what `onSend` receives is the trimmed
-  text. A send the Worker still refuses — `too-long` or `blank` — comes back as a correlated
+  `aria-describedby`). It judges the text with `judgeChatMessageText`, the same judgement the
+  chat runtime applies: Send stays disabled for a blank text, and what `onSend` receives is the
+  trimmed text. A send the runtime still refuses — `too-long` or `blank` — comes back as a correlated
   terminal rejection that fails exactly that bubble.
 - **Sender names.** `ChatNameResolverProvider` takes the app's `resolveName`
   (`chat-core`'s `ChatNameResolver`, answering a `ChatNameResolution`) and an optional
@@ -71,16 +70,15 @@ Chat **React UI** package — the React half of the chat split.
   fact changes, so a continuation never hides an adornment the previous message lacked.
 - The adapter config types (`ChatCoreConfig`) and the React render types
   (`MessageRenderer`, `MessageRendererRegistry`)
-- A discriminated **transport config** (chat-edge-rebuild P1): `ChatCoreConfig`
+- A discriminated **transport config**: `ChatCoreConfig`
   carries an optional `transport: ChatTransportMode` (`'firestore' | 'realtime'`,
   default `'firestore'` so existing call sites are unchanged) plus an optional
   `realtime: ChatRealtimeTransportConfig` (the DO-socket handle and the conversation's
-  neutral `ChatConversationRef`). On the `realtime` transport the DO grant is the
-  data-access authority.
+  neutral `ChatConversationRef`).
 - The **realtime (Cloudflare Durable Object) transport CLIENT** (`src/realtime/`)
   — the client half of the consuming app's chat Worker wire protocol. See the
   "Realtime transport" section below. The FIRESTORE transport stays the unchanged
-  default (admin-support threads stay firestore permanently).
+  default.
 - Moderation actions (`MessageActions` / `ThreadActions`): a promise-returning
   handler runs as a pending action — the button spins and ignores repeats until
   it settles; a rejection is re-raised on the global error channel, never
@@ -92,8 +90,7 @@ Chat **React UI** package — the React half of the chat split.
 
 ## Realtime transport
 
-The realtime transport is the client for the chat Worker's Durable Objects
-(Contract A connection + Contract C wire protocol). It is GENERIC — it imports
+The realtime transport is the client for a chat Worker's Durable Objects. It is GENERIC — it imports
 the generic [`@ttt-productions/realtime-core`](./realtime-core.md) primitives
 (reconnect/resume controller, versioned-apply) and NEVER imports an application-data package or
 the chat Worker. The canonical wire contract (`{ v, type, payload }` frame
@@ -141,13 +138,12 @@ conversation as a `ChatConversationRef` — the client never interprets its kind
   socket send is authoritative; a provided `onSend` is still called as an analytics
   mirror).
 
-**Auth (Contract A).** The grant token is offered as the SECOND WebSocket
-subprotocol (`Sec-WebSocket-Protocol: ttt.chat.v1, <grant-token>`) — never in the
-URL. The app's `grantProvider` wraps its `mintChatGrant` callable (channel scope
-for `createRealtimeChatClient`, inbox scope for `createInboxClient`), caches to a
-React Query `staleTime < grant exp`, and returns a FRESH token when re-invoked
-(the 4401 re-grant). Cookie + grant + Origin are validated by the Worker BEFORE
-accept; this client never sees an unauthenticated socket.
+**The grant.** The client offers the grant token as the SECOND WebSocket
+subprotocol, after `CHAT_SUBPROTOCOL` — never in the URL. `grantProvider` is the
+app's: it supplies a grant for the client's scope (channel scope for
+`createRealtimeChatClient`, inbox scope for `createInboxClient`) and must return a
+FRESH token when re-invoked (the 4401 re-grant). How a grant is issued and what it
+is checked against is the app's.
 
 **Initial-load tracking.** `ChannelClientState.hasLoadedInitialData` (boolean)
 records whether the FIRST authoritative chat data has been applied, so the UI shows
@@ -200,7 +196,7 @@ or whose socket drops, is not left in flight.
 **Lifecycle fence (both clients).** Every `connect()` and `close()` advances the
 client's lifecycle number. A grant that resolves for an older lifecycle opens nothing,
 and every socket callback is fenced to its own socket: a replaced or torn-down socket's
-late open, frames, and close never touch the current state (FRONTEND-108). `close()`
+late open, frames, and close never touch the current state (RULE-STD-FRONTEND-108). `close()`
 detaches the socket before closing it, and settles every pending mark-read as
 `connection-lost`.
 
@@ -248,9 +244,8 @@ re-deny. Loaded messages, `hasLoadedInitialData`, and the inbox registry/unread
 projection are deliberately KEPT across a restart — a lifecycle restart must not
 churn the UI back to an empty opening state.
 
-**Channel liveness — the dead-socket watchdog (CHANNEL ONLY).** The channel DO
-answers every 20 s client `heartbeat` through the hibernation auto-response API,
-so a healthy channel socket is never inbound-silent for a full heartbeat window.
+**Channel liveness — the dead-socket watchdog (CHANNEL ONLY).** The channel runtime
+answers every 20 s client `heartbeat`, so a healthy channel socket is never inbound-silent for a full heartbeat window.
 `ChannelClient` therefore tracks `lastInboundAt` — set when the socket opens,
 refreshed by every successfully PARSED inbound frame (the `heartbeat-ack`
 included, and a forward-compat type this build does not handle, since a newer
@@ -265,8 +260,8 @@ exactly 50 s. Watchdog state is cleared on socket replacement, on close, and on
 teardown — the heartbeat timer IS its timer, so a torn-down client has neither.
 This exists for the half-open socket whose `onclose` never fires, which would
 otherwise strand the UI on a socket that will never deliver another frame.
-`InboxClient` deliberately has NO watchdog: the inbox DO has no heartbeat
-auto-response and a healthy idle inbox is legitimately silent indefinitely, so the
+`InboxClient` deliberately has NO watchdog: the inbox runtime answers no heartbeat
+and a healthy idle inbox is legitimately silent indefinitely, so the
 same rule there would endlessly reconnect healthy sockets.
 
 **Opt-in client diagnostics (`diagnostics`, default OFF).** `ChannelClient`,
@@ -292,10 +287,8 @@ cursorBefore, cursorAfter}`, `resync_dropped_tail`), per-frame decisions
 `frame_dropped` with a reason),
 `revision_applied`, history (`history_request`, `history_page` with page size, seq
 range, cursor advance), and the send lifecycle (`send_optimistic`, `send_ack`,
-`send_rejected`, `send_retry`, `send_failed`, `error_frame`). The connection-time,
-resume, presence, and socket-timing families are the baseline-campaign metrics and
-stay; the attachment-serving instrument (`attachment_transition`) was RETIRED with
-the chat-attachment architecture — chat carries no media to observe.
+`send_rejected`, `send_retry`, `send_failed`, `error_frame`). Chat carries no media,
+so there is no attachment event.
 
 Inbox socket (`chat_client_inbox_*`): socket lifecycle with the same cause/attempt
 correlation (`inbox_connect_attempt`, `inbox_grant_failed`, `inbox_socket_open`,
@@ -330,29 +323,26 @@ refreshes the deadline; teardown disarms it), inbox unread projection,
 auth-switch teardown, and the diagnostics flag (identical state + identical sent
 frames with it off vs. on, zero console output when off, and the event payloads
 when on). Any test holding a channel socket open across a long window must model
-the DO's heartbeat auto-response (`tickAlive`) — a bare clock advance is inbound
+the runtime's heartbeat answer (`tickAlive`) — a bare clock advance is inbound
 silence, which the watchdog correctly treats as a dead socket.
 
-**Wire details, each confirmed against the Worker:**
+**Wire details:**
 - Outbound payloads are typed by the contract: `ChannelClient` sends each `send`,
   `read-ack`, `history`, and `resume` payload as chat-schemas' `ChatSendPayload` /
   `ChatReadAckPayload` / `ChatHistoryPayload` / `ChatResumePayload` — the shapes the
-  Worker parses those frames with — so a sender that drifts from the contract fails to
+  runtime parses those frames with — so a sender that drifts from the contract fails to
   compile; frames with no payload schema (typing, presence, heartbeat) send `{}`.
   `__tests__/realtime/frame-payloads.test.ts` parses every such frame the client puts on
   the socket with its schema.
-- Per-row inbox unread dots: the inbox DO snapshot carries a per-entry `unread`
+- Per-row inbox unread dots: the inbox snapshot carries a per-entry `unread`
   boolean on every active registry entry alongside the global `hasUnread` roll-up
-  that drives the dock badge (`inbox-do.ts` `snapshot()` → `listRegistryWithUnread()`).
-  `channelHasUnread(ref)` reads that per-entry flag; archived rows always report
+  that drives the dock badge. `channelHasUnread(ref)` reads that per-entry flag; archived rows always report
   `unread: false` (archive = done) on BOTH sides. Booleans only — never counts.
 - The channel `resume` frame sends `{ afterSeq }` (the client's resume cursor). The
-  DO's `resume` handler honors it via `resumeSince()` and returns
-  `{ lastMessageSeq, readSeq, resync, delta }` — a real delta when the gap is
-  within the resume backlog (≤500 messages); a gap beyond that is treated as a
-  tail-behind and the client pulls a history page instead (`channel-do.ts`).
-- Read-ack focus: the client sends `{ readSeq, focused }`; the DO reads
-  `payload.focused` (`channel-do.ts`).
+  answer is `{ lastMessageSeq, readSeq, resync, delta }` — a real delta when the
+  runtime still holds the gap; `resync` otherwise, and the client pulls a history
+  page instead.
+- Read-ack focus: the client sends `{ readSeq, focused }`.
 
 ## Boundary
 
@@ -368,7 +358,7 @@ an injected `socketFactory`).
 `chat-react` imports no application-data package, hardcodes no app origins, and
 builds no app storage paths — it runs no upload path at all, so there is no chat
 upload adapter to pass. It also owns no mention machinery: mentions belong to the
-app's Square-posts surface, not to chat.
+consuming app, not to chat.
 
 It owns no **reply-to** machinery either. There is no reply-quote renderer, no
 reply stylesheet, and no reply argument anywhere on the send path:
@@ -377,7 +367,7 @@ reply stylesheet, and no reply argument anywhere on the send path:
 reply pointer. The product has no affordance for replying to a specific message
 (`MessageActions` renders only Report/Delete), so the machinery was removed
 rather than left dormant. The realtime mapper ignores a
-legacy `replyTo` column a pre-removal Channel DO may still broadcast — guarded by
+legacy `replyTo` column an older channel runtime may still broadcast — guarded by
 `__tests__/realtime/wire-contract.test.ts`.
 
 ## Entry points

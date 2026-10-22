@@ -1,17 +1,9 @@
-// Every PUBLIC callable or webhook Cloud Run service must bind `allUsers` to `roles/run.invoker`.
-// Without it the request is refused at the Cloud Run boundary and never reaches the function, so
-// nothing runs, nothing throws, and nothing reaches error tracking. The auth and App Check gates
-// live INSIDE each function; the platform binding has to be public for a request to arrive and be
-// gated at all, so it is never a setting to tighten.
-
-/** The label the Firebase CLI puts on every `onCall` function's service. */
 export const CALLABLE_LABEL_FILTER = 'metadata.labels.deployment-callable=true';
 
 export interface IamPolicy {
   bindings?: { role?: string; members?: string[] }[];
 }
 
-/** gcloud `value(...)` output as trimmed, `\r`-stripped, non-empty lines. */
 export function lines(out: unknown): string[] {
   return String(out ?? '')
     .split(/\r?\n/)
@@ -26,11 +18,6 @@ export function hasAllUsersInvoker(policy: IamPolicy | null | undefined): boolea
   );
 }
 
-/**
- * The verdict over every service checked: which lack the binding, which could not be read, and
- * whether nothing was found at all — a check that read nothing proved nothing, so it fails.
- * `policies` maps a service to its parsed policy, or to an `Error` when it could not be read.
- */
 export function assessInvokers(
   services: readonly string[],
   policies: ReadonlyMap<string, IamPolicy | Error>,

@@ -57,7 +57,6 @@ export function Toaster() {
         );
       })}
 
-      {/* debug: proves viewport is visible/on-screen */}
       <ToastViewport />
     </ToastProvider>
   );

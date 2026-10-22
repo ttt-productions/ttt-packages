@@ -1,37 +1,24 @@
-// The three shapes an app builds its business guards on. Each takes the app's matcher and facts and
-// returns a guard the suite runs exactly like a generic one. A shape validates its facts when it is
-// built, so a malformed business guard fails the config, never passes quietly.
-//
-//   owner-only         a pattern appears only in its owner files, and every owner still holds it
-//   reviewed allowlist a pattern appears only in reviewed files, each with its why; an entry that
-//                      no longer matches is stale
-//   declared literal   declared values are banned, owned by their declaring files, or each covered
-
 import type { Finding, Guard, GuardContext, Sample } from '../guard.js';
 import type { Reviewed } from '../node/layout.js';
 import type { Scope } from '../node/reader.js';
 import { viewOfText, type FileView } from '../reader/view.js';
 import { allowlistProblems, textProblem } from '../support/facts.js';
 
-/** One match inside a file: where it starts (an index into `text`/`code`) and what it is. */
 export interface Hit {
   index: number;
   detail?: string;
 }
 
-/** Finds a guard's pattern in one file. Reading `file.code` keeps comments out of the match. */
 export type Matcher = (file: FileView) => readonly Hit[];
 
 interface ShapeBase {
   title: string;
   description: string;
   scope: Scope;
-  /** Must-fail and must-pass inputs for the matcher (required: a shape proves its matcher). */
   samples: { flags: readonly Sample[]; passes: readonly Sample[] };
   timeoutMs?: number;
 }
 
-/** Every match of a regular expression in a file's comment-stripped code. */
 export function matchPattern(
   pattern: RegExp,
   detail?: (match: RegExpExecArray) => string,
@@ -92,10 +79,6 @@ const findingsAt = (file: FileView, hits: readonly Hit[], prefix: string): Findi
     detail: `${prefix}${hit.detail ?? ''}`.trim(),
   }));
 
-/**
- * Owner-only: the pattern may appear only in the owner files. An owner the pattern no longer
- * appears in is stale — the owner moved, and the entry would otherwise license whatever lands there.
- */
 export function ownerOnly(shape: ShapeBase & { match: Matcher; owners: readonly string[] }): Guard {
   const problems: string[] = [];
   baseProblems(shape, problems);
@@ -127,15 +110,10 @@ export function ownerOnly(shape: ShapeBase & { match: Matcher; owners: readonly 
   });
 }
 
-/** One reviewed file: why it may hold the pattern, and optionally exactly how many times. */
 export interface AllowlistEntry extends Reviewed {
   count?: number;
 }
 
-/**
- * Reviewed allowlist: the pattern may appear only in reviewed files. An entry whose file no longer
- * holds the pattern (or holds it a different number of times than reviewed) is stale.
- */
 export function reviewedAllowlist(
   shape: ShapeBase & { match: Matcher; allowlist: readonly AllowlistEntry[] },
 ): Guard {
@@ -181,16 +159,8 @@ export function reviewedAllowlist(
   });
 }
 
-/** A declared value: a string matched as written, or a pattern. */
 export type Literal = string | RegExp;
 
-/**
- * Declared literal. The values come from the app (often read from its core package at run time):
- *   - `banned`:   no value appears anywhere in the scope;
- *   - `owned`:    values appear only in the owner files, and every owner still holds one;
- *   - `covered`:  every value appears somewhere in the scope.
- * An empty value list is a vacuous guard and fails.
- */
 export function declaredLiteral(
   shape: ShapeBase & {
     literals: readonly Literal[] | (() => readonly Literal[] | Promise<readonly Literal[]>);
@@ -296,7 +266,6 @@ export function declaredLiteral(
   };
 }
 
-/** True when a sample hits the guard's matcher. Exposed so the suite and package tests agree. */
 export function sampleHits(guard: Guard, sample: Sample): number {
   if (!guard.samples) throw new Error(`${guard.title}: carries no samples`);
   return guard.samples.probe(toView(sample)).length;

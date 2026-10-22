@@ -3,8 +3,6 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import React from 'react';
 
-// Per-id reads (`transport: 'get'`) answered by the test: each `getDoc` waits until the test
-// resolves it with a document, an absence, or a failure.
 const h = vi.hoisted(() => ({
   waiting: [] as Array<{
     id: string;

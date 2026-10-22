@@ -5,8 +5,8 @@ import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   taskQueues: {
@@ -45,7 +45,7 @@ describe('buildUserReportAdminTaskDoc (pure builder)', () => {
     });
     expect(adminTaskId).toBe('userReport-myGroup');
     expect(doc.taskId).toBe('myGroup');
-    expect(doc.originalPath).toBe('activeReportGroups/myGroup');
+    expect(doc.originalPath).toBe('testReportGroups/myGroup');
   });
 
   it('owns the priority formula: reasonScore * itemTypeMultiplier + (reports-1) * bonus', () => {
@@ -55,7 +55,6 @@ describe('buildUserReportAdminTaskDoc (pure builder)', () => {
       groupId: 'g2',
       now: 1,
     });
-    // violence(20) * profile(1.5) + 2*2 = 34
     expect(doc.priority).toBe(34);
   });
 
@@ -92,7 +91,7 @@ describe('buildUserReportAdminTaskDoc (pure builder)', () => {
       config: TEST_CONFIG,
       groupData,
       groupId: 'g-equiv',
-      now: written.createdAt, // align the only non-deterministic input
+      now: written.createdAt,
     });
     expect(written).toEqual(doc);
     expect(docFn).toHaveBeenCalledWith('userReport-g-equiv');

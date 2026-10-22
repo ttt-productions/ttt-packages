@@ -25,7 +25,6 @@ const report: ChatParkedDeliveryReport = {
   parkedAt: 1_000,
 };
 
-/** The row a report creates: parked, listed with every other dead-lettered row. */
 const reported = {
   ...report,
   status: 'deadLetter' as const,

@@ -8,9 +8,6 @@ import * as safetyFoundation from '../src/doc-schemas/safety/foundation.js';
 import { DecideTakeItDownValidityInputSchema } from '../src/schemas/ncii.js';
 import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../src/constants/safety-confirmation-phrases.js';
 
-// TTT has no lawyer approving anything, so no Take It Down ruling and no removal outcome may rest
-// on one.
-
 describe('Take It Down invalid-ruling reasons', () => {
   it('offers no reason that rests on a lawyer approval', () => {
     expect(TakeItDownInvalidReasonCodeSchema.options).not.toContain('otherCounselApproved');

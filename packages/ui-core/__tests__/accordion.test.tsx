@@ -7,8 +7,6 @@ import {
   AccordionTrigger,
 } from '../src/react/components/accordion.js';
 
-// The open content box clips its animation without ever being a scroll container: a hidden-overflow
-// box can be scrolled by a focus or scroll-into-view mid-animation, then snaps back when it ends.
 describe('AccordionContent — clips, never scrolls', () => {
   it('the content region clips its overflow and is not a scroll container', () => {
     render(

@@ -73,14 +73,10 @@ TableHead.displayName = 'TableHead';
 export type SortDirection = 'asc' | 'desc';
 
 export interface SortableTableHeadProps {
-  /** The column's full name; always spoken, and shown on a wide table. */
   label: string;
-  /** A short form shown while the table is narrow; the spoken name then gives it before `label`. */
   shortLabel?: string;
-  /** The column's current sort, or `null` when the table is not sorted by it. */
   direction: SortDirection | null;
   onSort: () => void;
-  /** Classes for the header cell. */
   className?: string;
 }
 
@@ -89,12 +85,6 @@ const ARIA_SORT: Record<SortDirection, 'ascending' | 'descending'> = {
   desc: 'descending',
 };
 
-/**
- * A column header that sorts its table. The visible labels are hidden from assistive technology
- * beside one spoken label, so the header and its button carry the same name ("G, Goals") rather
- * than the two visible labels run together. The short label gives way to the full one once the
- * nearest size container is 56rem wide.
- */
 const SortableTableHead = React.forwardRef<HTMLTableCellElement, SortableTableHeadProps>(
   ({ label, shortLabel, direction, onSort, className }, ref) => {
     const Icon = direction === 'asc' ? ArrowUp : direction === 'desc' ? ArrowDown : ArrowUpDown;

@@ -1,30 +1,11 @@
-// Shared audio-visualizer render engine — the ONE waveform implementation for
-// both live-mic recording (file-input's record dialog) and playback (the
-// custom AudioPlayer chrome in this package). Consumers own the Web Audio
-// graph (mic stream source vs media-element source) and hand this engine an
-// AnalyserNode + canvas; the engine owns only the draw loop.
-//
-// No React, no top-level browser API access — server-safe to import; browser
-// APIs are touched only when `startWaveformLoop` is called.
-
-/** How the analyser data is drawn. `line` = oscilloscope (time domain, the
- *  recording dialog's original visual); `bars` = frequency bars (EQ dance). */
 export type AudioVisualizerMode = 'line' | 'bars';
 
 export type StartWaveformLoopOptions = {
   analyser: AnalyserNode;
-  /** Resolved every frame so the canvas may mount/unmount freely. */
   getCanvas: () => HTMLCanvasElement | null;
-  /** Fixed mode, or a getter resolved every frame (live mode toggling). */
   mode?: AudioVisualizerMode | (() => AudioVisualizerMode);
 };
 
-/**
- * Start the requestAnimationFrame draw loop. Returns a `stop()` that cancels
- * the loop; stopping is idempotent. The loop also self-terminates when the
- * canvas 2D context is unavailable. All strokes/fills use `currentColor`, so
- * the canvas inherits its color from CSS.
- */
 export function startWaveformLoop(options: StartWaveformLoopOptions): () => void {
   const { analyser, getCanvas } = options;
   const resolveMode: () => AudioVisualizerMode =
@@ -42,8 +23,6 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
     if (stopped) return;
     const canvas = getCanvas();
     if (!canvas) {
-      // Canvas not mounted this frame (e.g. visualizer minimized) — keep the
-      // loop alive so drawing resumes the moment it re-mounts.
       rafId = requestAnimationFrame(draw);
       return;
     }
@@ -59,14 +38,12 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
     if (resolveMode() === 'bars') {
       analyser.getByteFrequencyData(freqData);
       const binCount = freqData.length;
-      // Cap the bar count so narrow canvases stay readable.
       const barCount = Math.max(16, Math.min(64, Math.floor(width / 6)));
       const step = binCount / barCount;
       const gap = 1;
       const barWidth = Math.max(1, width / barCount - gap);
       ctx.fillStyle = 'currentColor';
       for (let i = 0; i < barCount; i++) {
-        // Sample the bin range for this bar (peak keeps it lively).
         let peak = 0;
         const from = Math.floor(i * step);
         const to = Math.min(binCount, Math.ceil((i + 1) * step));
@@ -86,7 +63,7 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
       const sliceWidth = width / bufferLength;
       let x = 0;
       for (let i = 0; i < bufferLength; i++) {
-        const v = timeData[i] / 128.0; // 0..2 centered on 1.0
+        const v = timeData[i] / 128.0;
         const y = (v * height) / 2;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -110,11 +87,6 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
   };
 }
 
-/**
- * Draw the idle (not-playing) state once: a flat centerline for `line` mode,
- * a clear for `bars`. Gives the visualizer panel a "ready" look without a
- * running analyser.
- */
 export function drawIdleFrame(canvas: HTMLCanvasElement, mode: AudioVisualizerMode): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;

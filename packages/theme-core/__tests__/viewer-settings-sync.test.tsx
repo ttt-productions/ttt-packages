@@ -15,7 +15,6 @@ function storedDismissals(): unknown {
   return stored === null ? null : JSON.parse(stored);
 }
 
-/** Another tab's save of a setting: storage changes and only the native `storage` event arrives here. */
 function saveInAnotherTab(key: string, value: string) {
   window.localStorage.setItem(key, value);
   window.dispatchEvent(new StorageEvent('storage', { key, newValue: value }));
@@ -27,7 +26,6 @@ describe('ViewerSettingsSyncProvider', () => {
     document.documentElement.className = '';
     document.documentElement.removeAttribute(REDUCED_MOTION_ATTRIBUTE);
     installMatchMedia();
-    // ThemeProvider's missing-brand-token warning is not under test here.
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => {
@@ -128,11 +126,9 @@ describe('ViewerSettingsSyncProvider', () => {
       act(() => {
         saving = sync().setTheme('dark');
       });
-      // The account's first read arrives before the save: it still holds the old theme.
       act(() => account.setSettings({ theme: 'light', reducedMotion: false }));
       expect(promptText()).toBe('none');
 
-      // The save lands before the account's values show it.
       await act(async () => {
         account.held[0].resolve();
         await saving;
@@ -153,7 +149,6 @@ describe('ViewerSettingsSyncProvider', () => {
       act(() => {
         saving = sync().setTheme('dark');
       });
-      // The account's read fails, then recovers before the save lands: it still holds the old theme.
       act(() => account.setSettings(undefined));
       expect(promptText()).toBe('none');
       act(() => account.setSettings({ theme: 'light', reducedMotion: false }));
@@ -175,8 +170,6 @@ describe('ViewerSettingsSyncProvider', () => {
         <Harness account={account} initial={undefined} accountId="viewer-a" />,
       );
 
-      // Signed in, the viewer picks a theme before the account's settings are read, then signs out
-      // before the read; a second account signs in and its settings load.
       act(() => {
         void sync().setTheme('dark');
       });
@@ -197,7 +190,6 @@ describe('ViewerSettingsSyncProvider', () => {
       act(() => saveInAnotherTab(keys.motion, 'true'));
       expect(promptText()).toBe('none');
 
-      // This tab's theme save lands; the other tab's motion save has not.
       await act(async () => {
         await sync().setTheme('dark');
       });
@@ -256,7 +248,6 @@ describe('ViewerSettingsSyncProvider', () => {
     });
 
     it('saves the theme already on screen when it is the one the account holds', () => {
-      // next-themes shows its default "light" with nothing saved; adopting "light" must still save it.
       render(<Harness account={fakeAccount()} initial={{ theme: 'light', reducedMotion: null }} />);
       expect(window.localStorage.getItem(keys.theme)).toBe('light');
       expect(promptText()).toBe('none');
@@ -315,8 +306,6 @@ describe('ViewerSettingsSyncProvider', () => {
       );
       expect(account.save).toHaveBeenCalledTimes(1);
 
-      // The first account signs out with its save still in flight; a second one signs in and its
-      // empty settings load.
       rerender(<Harness account={account} initial={NOTHING} accountId={null} />);
       act(() => account.setSettings(undefined));
       rerender(<Harness account={account} initial={NOTHING} accountId="viewer-b" />);
@@ -415,7 +404,6 @@ describe('ViewerSettingsSyncProvider', () => {
         ['reducedMotion', false, true],
       ]);
 
-      // The next page load finds the same differences and stays quiet.
       unmount();
       render(<Harness account={account} initial={{ theme: 'dark', reducedMotion: true }} />);
       expect(promptText()).toBe('none');
@@ -465,7 +453,6 @@ describe('ViewerSettingsSyncProvider', () => {
       act(() => saveInAnotherTab(keys.theme, 'dark'));
       expect(promptText()).toBe('none');
 
-      // The other tab's save reaches the account.
       act(() => account.apply({ theme: 'dark' }));
       expect(promptText()).toBe('none');
     });

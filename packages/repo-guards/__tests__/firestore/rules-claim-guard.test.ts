@@ -1,6 +1,3 @@
-// Every rules file the layout lists reads only the core's claim names, and every role helper checks
-// its claim AND the live roster document, reading no other document.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   rulesClaimGuard,
@@ -80,7 +77,6 @@ async function run(
   return guard.run(contextOf(reader));
 }
 
-/** A firestore.rules file holding just these functions. */
 const rules = (...lines: string[]) =>
   [
     'service cloud.firestore {',

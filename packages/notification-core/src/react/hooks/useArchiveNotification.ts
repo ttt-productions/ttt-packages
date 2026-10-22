@@ -7,14 +7,6 @@ import type {
   UseArchiveNotificationOptions,
 } from '../../types.js';
 
-/**
- * Archive a single rendered notification through an app-supplied callable adapter.
- *
- * The notification system is Cloud-Functions-only: clients never write notification
- * docs. This hook performs no Firestore writes — it delegates to `archiveFn` with the
- * row as rendered, resolves the adapter's `{ archived }` answer, and invalidates the
- * read keys on success.
- */
 export function useArchiveNotification({
   userId,
   category,

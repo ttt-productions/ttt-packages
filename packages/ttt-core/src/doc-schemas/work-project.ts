@@ -1,13 +1,3 @@
-// WorkProject / Realm / Guild Firestore document SCHEMAS — single source of truth.
-// Covers allWorkProjects/{workProjectId}, its guildmateUsers/publicGuildmateUsers/
-// workAssets subcollections, publicWorkProjects/{workProjectId}, workRealms/{workRealmId},
-// and the guildInviteConversations invite shell. Types are inferred via z.infer so a
-// document's shape and its TypeScript type cannot drift apart.
-//
-// Terminology: the current-owner field is `workStewardUid` (locked rename from the old
-// `ownerUid`; see ttt-prod docs/design/terminology-naming-convention.md — Steward row). The original
-// creator is `foundingArtisanUid` (locked rename from the old `createdByUid`; Founding Artisan).
-
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { isGuildStandingId } from '../permissions/work-project-permissions.js';
@@ -21,21 +11,9 @@ const userRefSchema = z.object({ uid: z.string() });
 export const GuildmateStatusSchema = z.enum(['active', 'departed']);
 export type GuildmateStatus = z.infer<typeof GuildmateStatusSchema>;
 
-/**
- * The ONE canonical standing of a Work INSIDE its Realm — whether the Work counts as part of
- * the Realm's canon. Carried on the Work shell and its public projection, and used as a query
- * filter by the Realm page. Distinct from `RealmFileCanonStatus` (media-assets.ts), which is the
- * approval gate of a FILE shared into a Realm and carries two further unshared/awaiting states.
- * Consumers derive from this instead of re-quoting the members.
- */
 export const RealmCanonStatusSchema = z.enum(['canon', 'nonCanon']);
 export type RealmCanonStatus = z.infer<typeof RealmCanonStatusSchema>;
 
-/**
- * The realm founding-Work stake holder — a non-person ledger entry keyed by the founding
- * workProjectId, never a user uid. It must never reach the public collaborator roster.
- * Consumers branch on this rather than re-quoting the member.
- */
 export const FOUNDING_WORK_HOLDER_TYPE = 'foundingWork' as const;
 
 export const GuildmateUserSchema = z.object({
@@ -45,38 +23,8 @@ export const GuildmateUserSchema = z.object({
   stakeShareCount: z.number().int().nonnegative(),
   joinedAt: z.number(),
   status: GuildmateStatusSchema,
-  /**
-   * Holder kind for this stake entry. Absent/`'user'` = a real guildmate person.
-   * `'foundingWork'` = the realm founding-Work holder (keyed by the founding
-   * workProjectId, NOT a user uid).
-   */
   holderType: z.enum(['user', FOUNDING_WORK_HOLDER_TYPE]).optional(),
-  /**
-   * Per-(user, workProject) monotonic INPUT-trigger version for the chat
-   * channel-auth projection (chat-edge-rebuild Contract B / P3). Absent ⇒ 0.
-   * Bumped atomically in the authoritative mutation on member create/reactivate,
-   * departure/removal, standing change, AND trade-profession change; the
-   * `workChannelsForUser` fanout keys on the POST-increment value. It NEVER
-   * increments or replaces the per-pair OUTPUT `channelAuthVersion`.
-   */
   guildAuthInputVersion: z.number().optional(),
-  /**
-   * N3 data-deletion / account-end forfeiture tombstone. Set together with
-   * `status: 'departed'` when a member leaves involuntarily-of-record: their
-   * stake shares STAY in the immutable 1000-split (never removed) but are
-   * forfeited — the future payout engine routes a tombstone's slice to the
-   * community fund and excludes it from active distribution. `departedReason`
-   * distinguishes the cause; `'bannedForCause'` is reserved for the future
-   * ban-forfeiture path (included now so it needs no second package publish).
-   *
-   * `'selfLeave'` is DIFFERENT share semantics: a PRE-PUBLISH voluntary guild
-   * exit (leaveWorkProject). There the 1000-split is still fluid, so the
-   * member's `stakeShareCount` is ZEROED and returned to the pool for the
-   * steward to re-allocate — NOT retained as a community-fund tombstone. A
-   * self-leave is impossible once `status: 'published'` (the stake-share freeze
-   * blocks it), so the tombstone and the pool-return dispositions never overlap
-   * in a single Work's lifecycle.
-   */
   departedReason: z.enum(['voluntaryDeletion', 'bannedForCause', 'selfLeave']).optional(),
   departedAt: z.number().optional(),
 });
@@ -104,33 +52,20 @@ export const FullWorkProjectSchema = z.object({
   workingTitle: z.string(),
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),
   createdBy: userRefSchema,
-  // `open` from creation; `published` once its first Hall item publishes.
   status: z.enum(['open', 'published']),
   guildmateUserIds: z.record(z.string(), z.boolean()).optional(),
   invitedUserIds: z.record(z.string(), z.boolean()).optional(),
   workRealmId: z.string(),
   realmCanonStatus: RealmCanonStatusSchema,
   pendingStakeShares: PendingStakeSharesSchema.optional(),
-  // Moderation "require retitle" remedy (work/realm report path). When an admin
-  // upholds a report on an abusive public title/description, they may replace the
-  // text with a generic placeholder and set this flag; the steward is prompted to
-  // re-enter compliant text the next time they open the work (unpublished = direct
-  // self-edit clears it; published = via the post-launch change-request flow).
-  // Distinct from the `publicWorkHidden` hide (DMCA/copyright) — this keeps the
-  // work visible under the placeholder. Backend-only-writable.
   moderationRetitleRequired: z.boolean().optional(),
   moderationRetitleReason: z.string().optional(),
-  // Per-field extension of the retitle remedy (uniform with the Tale/Tune/Television content family):
-  // which text fields ('title', 'description', …) an admin cleared to a placeholder — "all or any",
-  // instead of the always-both retitle — and the operator's reason surfaced on the steward's edit
-  // surface. Empty/absent when nothing was cleared. Backend-only-writable.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
 });
 export type FullWorkProject = z.infer<typeof FullWorkProjectSchema>;
 
-// Top-level safe signed-in-user Work shell / search projection. Server/callable-written only.
 export const PublicWorkProjectSchema = z.object({
   workProjectId: z.string(),
   publicWorkStatus: z.enum(['draft', 'released']),
@@ -151,32 +86,15 @@ export const PublicWorkProjectSchema = z.object({
 });
 export type PublicWorkProject = z.infer<typeof PublicWorkProjectSchema>;
 
-// ===========================================================================
-// Work-project FILE FOLDER system (S7) — supersedes the flat workAssets model.
-// A default folder (every active guildmate views/uploads) + custom folders whose
-// audience is controlled by TRADE PROFESSIONS, while file-system ADMINISTRATION is
-// controlled by guild standings (StewardOwner / WorkProjectManager / WorkAssetAdmin).
-// See ttt-prod docs/design/work-project-file-folders.md. Realm sharing of a file is the
-// `realmFileCanonStatus` seam on the file's mediaAssets doc (media-assets.ts).
-// ===========================================================================
-
-/** `allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}`. */
 export const WorkFileFolderSchema = z.object({
   workFileFolderId: z.string(),
   workProjectId: z.string(),
   name: z.string(),
-  // The auto-created "All Guildmates" folder (view/upload open to every active
-  // guildmate; delete/manage needs file-admin). Exactly one per work project.
   isDefault: z.boolean(),
-  // Custom-folder access — trade-profession ids (TRADE_PROFESSION_OPTIONS). Empty
-  // on the default folder; file admins always see/manage every folder regardless.
   canViewTradeProfessions: z.array(z.string()),
   canUploadTradeProfessions: z.array(z.string()),
   canDeleteTradeProfessions: z.array(z.string()),
   fileCount: z.number(),
-  /** Sum of this folder's files' `sizeBytes`. Maintained alongside `fileCount`
-   *  (increment on upload, decrement on delete); the project-wide storage usage +
-   *  `MAX_WORK_FILE_STORAGE_BYTES` cap are computed by summing this across folders. */
   storageBytes: z.number(),
   createdBy: userRefSchema,
   createdAt: z.number(),
@@ -184,7 +102,6 @@ export const WorkFileFolderSchema = z.object({
 });
 export type WorkFileFolder = z.infer<typeof WorkFileFolderSchema>;
 
-/** `allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}`. */
 export const WorkFileSchema = z.object({
   workFileId: z.string(),
   workProjectId: z.string(),
@@ -192,8 +109,6 @@ export const WorkFileSchema = z.object({
   name: z.string(),
   mediaAssetId: z.string(),
   contentType: z.string(),
-  // The kind the server inspected from the bytes — what a preview renders by. `contentType` is the
-  // client-declared MIME, which may be the neutral type, so it never decides how a file renders.
   mediaKind: ContentMediaKindSchema,
   sizeBytes: z.number(),
   uploadedBy: userRefSchema,
@@ -201,7 +116,6 @@ export const WorkFileSchema = z.object({
 });
 export type WorkFile = z.infer<typeof WorkFileSchema>;
 
-// Realm source of truth and Realm search/tag surface. Server/callable-written only.
 export const WorkRealmSchema = z.object({
   workRealmId: z.string(),
   realmType: z.enum(['public', 'standalone']),
@@ -211,70 +125,25 @@ export const WorkRealmSchema = z.object({
   workingTitle: z.string(),
   workingTitle_lowercase: z.string(),
   workingDescription: z.string(),
-  // Square realm cover art (the 'realm-cover' upload origin; processor-written).
-  // Optional while the realm is a DRAFT. A public realm is released by its first published Hall
-  // item, so the founding Work's first submit for library review requires the cover while the
-  // realm is still a draft; it is never required at founding, so creating a Work is never
-  // blocked on realm art.
   realmCoverAssetId: z.string().optional(),
   workStewardUid: z.string(),
   foundingArtisanUid: z.string(),
   foundingWorkProjectId: z.string(),
   createdOn: z.number(),
   updatedOn: z.number(),
-  // MONOTONIC publish lock (R1 ruling, 2026-07-12): set true by the hall publish
-  // core the first time any work in this realm publishes, and never unset — even
-  // if that work later unpublishes (the realm name already went public). While
-  // absent/false, realm info is direct-edit; once true, realm text changes route
-  // exclusively through the change-request pipeline (surface 'workRealm').
-  // Backend-only-writable.
   hasEverPublishedWork: z.boolean().optional(),
-  // Moderation "require retitle" remedy (see FullWorkProject above) — admin
-  // replaces an abusive realm title/description with a placeholder + sets this so
-  // the steward must re-enter compliant text. Distinct from `realmHidden` (the
-  // DMCA/copyright takedown). Backend-only-writable.
   moderationRetitleRequired: z.boolean().optional(),
   moderationRetitleReason: z.string().optional(),
-  // Per-field extension of the retitle remedy (see FullWorkProject) — which realm text fields an
-  // admin cleared to a placeholder ("all or any"), plus the operator's reason. Backend-only-writable.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
 });
 export type WorkRealm = z.infer<typeof WorkRealmSchema>;
 
-// ===========================================================================
-// Realm FILE FOLDERS — the steward's organization of the realm's shared-file pool.
-// `workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}`.
-//
-// A shared file is NOT a document under the Realm: it stays a `workFile` under its owning
-// Work, and "shared" is the `realmFileCanonStatus` + `realmId` + `realmFileFolderId` seam on
-// the file's ONE `mediaAssets` doc (media-assets.ts). These folder docs are pure containers.
-//
-// Deliberately ABSENT, and each absence is load-bearing:
-//  - no `isDefault` — there is no default realm folder. Approval IS folder assignment, so
-//    every approved file is in a steward-chosen folder by construction.
-//  - no access lists — Realm-level visibility is the whole access model at launch (contrast
-//    the Work-side folder, whose trade-profession lists gate a private workspace). Folder
-//    management becomes standing-gated when Realm standings exist; that is a capability-check
-//    swap, not a field on this doc.
-//  - no stored counts — file counts are derived from the gallery projection, so a count can
-//    never disagree with the files actually served.
-//
-// Client reads are DENIED: `mediaAssets` is client-unreadable and the artisan/admin/hidden-
-// Realm access decision lives in ONE backend projection owner, so folders are returned
-// through that same projection rather than opened to direct client reads.
-// See ttt-prod docs/design/work-project-file-folders.md (Realm promotion).
-// ===========================================================================
-
-/** `workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}`. Callable-written only. */
 export const RealmFileFolderSchema = z.object({
   realmFileFolderId: z.string(),
   workRealmId: z.string(),
   name: z.string(),
-  /** SERVER-DERIVED normalized name, following the Realm `*_lowercase` convention
-   *  (`WorkRealmSchema.workingTitle_lowercase`). Backs case-insensitive uniqueness within
-   *  the bounded folder collection; never client-supplied. */
   name_lowercase: z.string(),
   createdBy: userRefSchema,
   createdAt: z.number(),

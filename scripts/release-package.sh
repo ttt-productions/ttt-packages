@@ -1,32 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# NOTE: This script bumps the version, commits, tags, and pushes. The actual
-# pack/publish happens in tag-triggered CI (.github/workflows/publish.yml).
-# Internal "@ttt-productions/*": "*" ranges are rewritten to caret ranges (^x.y.z)
-# at pack time there (scripts/pin-internal-deps.mjs), so committed source keeps "*"
-# for workspace dev while published tarballs never ship a "*" internal range.
-# Do not pin internal deps here — that would commit the pins into source.
+# Never pin internal deps here: publish CI pins them at pack time, and a pin here would commit it.
 
 PKG="${1:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 PKGDIR="${2:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 BUMP="${3:-patch}"
 
-# Safety: always preflight before a release to avoid stale nested node_modules
-# or cached dist shadowing workspace symlinks. release-multiple.sh preflights
-# once for its whole batch and sets SKIP_PREFLIGHT=1.
+# Stale nested node_modules or a cached dist can shadow the workspace symlinks.
 if [[ "${SKIP_PREFLIGHT:-0}" != "1" ]]; then
   npm run preflight
 fi
 
 git fetch --tags origin
 
-# Guard: ensure PKGDIR points to the correct workspace package
 [[ -f "$PKGDIR/package.json" ]] || { echo "Bad PKGDIR: $PKGDIR (missing package.json)"; exit 1; }
 NAME=$(node -p "require('./$PKGDIR/package.json').name")
 [[ "$NAME" == "$PKG" ]] || { echo "PKG mismatch: PKGDIR has $NAME but you passed $PKG"; exit 1; }
 
-# Use packages/<folder> as the tag namespace, e.g. chat-core-v1.2.3
 PKGSLUG="$(basename "$PKGDIR")"
 
 tag_exists_remote () {
@@ -37,7 +28,6 @@ tag_exists_remote () {
 version_exists_npm () {
   local pkg="$1"
   local ver="$2"
-  # returns 0 if that exact version exists on npm
   npm view "${pkg}@${ver}" version >/dev/null 2>&1
 }
 
@@ -55,10 +45,8 @@ done
 git add "$PKGDIR/package.json" package-lock.json
 git commit -m "Release $PKGSLUG v$VER"
 
-# Fetch tags again right before creating to catch any race conditions
 git fetch --tags origin
 
-# Check one more time before tagging
 if tag_exists_remote "$TAG"; then
   echo "⚠️  Tag $TAG was just created remotely. Skipping push."
   git reset --soft HEAD~1
@@ -67,7 +55,6 @@ fi
 
 git tag "$TAG"
 
-# Push just what we changed, plus the single new tag
 git push origin main
 git push origin "$TAG"
 

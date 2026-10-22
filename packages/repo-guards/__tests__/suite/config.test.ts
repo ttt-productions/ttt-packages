@@ -17,7 +17,6 @@ beforeAll(() => {
 });
 afterAll(() => repo.remove());
 
-/** Two stand-in generic guards: one every app runs, one an app may declare absent. */
 const always: GenericGuardDefinition<{ owner: string }> = {
   id: 'always',
   absentWhen: false,
@@ -85,7 +84,6 @@ describe('a guard config', () => {
 });
 
 describe('a declared absence of a guard over one tree', () => {
-  /** A stand-in guard over the Functions tree, and one over the Worker trees. */
   const overFunctions: GenericGuardDefinition<never> = {
     id: 'overFunctions',
     absentWhen: 'the app has no Functions tree',

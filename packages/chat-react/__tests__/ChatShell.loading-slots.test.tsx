@@ -3,14 +3,6 @@ import { render } from '@testing-library/react';
 import type { ChatCoreConfig } from '../src/types.js';
 import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
 
-// Drive the realtime data hook's result directly so we exercise the ChatShell
-// `isInitialLoading` branch deterministically. Two contracts are under test:
-//   The consumer's header + the three render-slots (renderAboveMessages /
-//     renderBelowMessages / renderFooter) still render while the message list region is
-//     replaced; whether a slot's actions may run is `onReadinessChange`'s answer
-//     (ChatShell.readiness.test.tsx).
-//   Initial-load — that region shows an honest "Opening chat…" indicator in a
-//     polite live region, and the reconnect banner must NOT compete with it.
 // `mock`-prefixed so vitest allows referencing it inside the hoisted factory.
 const mockRealtimeResult: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
 vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
@@ -74,13 +66,10 @@ describe('ChatShell — initial-loading state', () => {
     expect(getByText('BINDING NOTICE')).toBeTruthy();
     expect(getByRole('button', { name: 'Agree to Terms' })).toBeTruthy();
     expect(getByText('FINAL FOOTER')).toBeTruthy();
-    // The honest working state is shown in place of the message list.
     expect(getByText(/Opening chat/i)).toBeTruthy();
   });
 
   it('paints NO above-messages wrapper (no bordered strip) when the slot renders null', () => {
-    // A collapsed conversation-files section returns null from the slot; the
-    // wrapper's border must not paint an empty 1px strip under the header.
     const { container, rerender } = render(
       <ChatShell
         config={realtimeConfig()}
@@ -89,7 +78,6 @@ describe('ChatShell — initial-loading state', () => {
       />,
     );
     expect(container.querySelector('.border-b')).toBeNull();
-    // The wrapper appears the moment the slot produces content.
     rerender(
       <ChatShell
         config={realtimeConfig()}
@@ -103,8 +91,6 @@ describe('ChatShell — initial-loading state', () => {
   });
 
   it('shows an "Opening chat…" indicator in a polite live region and NOT a reconnect banner', () => {
-    // Even while the transport is 'reconnecting' during INITIAL loading, the opening
-    // indicator wins — the reconnect/disconnected banner must not compete with it.
     mockRealtimeResult.current = loadingResult('reconnecting');
     const { getByText, getByRole, queryByText } = render(
       <ChatShell config={realtimeConfig()} renderLoadError={() => null} />,
@@ -115,7 +101,6 @@ describe('ChatShell — initial-loading state', () => {
     expect(status).toHaveAttribute('aria-live', 'polite');
     expect(getByText(/Opening chat/i)).toBeTruthy();
 
-    // The reconnect/disconnected banner copy must be absent during initial opening.
     expect(queryByText(/Reconnecting/i)).toBeNull();
     expect(queryByText(/Disconnected/i)).toBeNull();
   });

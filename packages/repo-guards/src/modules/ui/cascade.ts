@@ -1,7 +1,3 @@
-// The UI guards over the stylesheet cascade: one entry stylesheet in a pinned order, every
-// class-rendering package scanned by Tailwind, a semantic text class that survives the
-// same-named Tailwind utility, and the theme token blocks.
-
 import { dirnameOf, normalizePath } from '../../support/paths.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
@@ -28,9 +24,6 @@ function entryProblems(facts: unknown): string[] {
   return problems;
 }
 
-// ---- one stylesheet entry, pinned order -------------------------------------------------------
-
-/** The entry's top-level statements as the pin compares them; a run of `@source` lines is one entry. */
 export function pinnedStatements(code: string): string[] {
   const out: string[] = [];
   for (const statement of topLevelStatements(code)) {
@@ -45,16 +38,12 @@ export function pinnedStatements(code: string): string[] {
   return out;
 }
 
-/** Whether a module specifier names a stylesheet: a `.css` file or a scoped package's style subpath. */
 export const namesStylesheet = (spec: string): boolean =>
   /\.css$/.test(spec) || /^@[\w-]+\/[\w.-]+\/styles$/.test(spec);
 
 export interface StylesheetEntryFacts {
-  /** The one module that imports the entry stylesheet (the root layout). */
   layoutModule: string;
-  /** The entry stylesheet. */
   entryStylesheet: string;
-  /** The entry's top-level statements, in order, as `pinnedStatements` reads them. */
   pinnedOrder: readonly string[];
 }
 
@@ -139,14 +128,9 @@ export const stylesheetEntryGuard: GenericGuardDefinition<StylesheetEntryFacts> 
   },
 };
 
-// ---- Tailwind @source covers every class-rendering package ------------------------------------
-
 export interface TailwindSourceFacts {
-  /** The entry stylesheet that carries the `@source` lines. */
   entryStylesheet: string;
-  /** The app's package manifest, whose dependencies start the installed-package walk. */
   manifest: string;
-  /** Package-name prefixes whose installed builds Tailwind must scan (`@scope/`). */
   packageScopes: readonly string[];
 }
 
@@ -157,7 +141,6 @@ const DEPENDENCY_FIELDS = [
   'peerDependencies',
 ];
 
-/** Every installed package in the scopes the manifest reaches, directly or through another one. */
 function installedScopedPackages(
   context: GuardContext,
   manifest: Record<string, unknown>,
@@ -195,7 +178,6 @@ function installedScopedPackages(
   return { installed: installed.sort(), missing };
 }
 
-/** The build files of an installed package that render a class (`className:` in compiled JSX). */
 function classRenderingFiles(
   context: GuardContext,
   name: string,
@@ -205,7 +187,6 @@ function classRenderingFiles(
   return { files, readable: code.length > 0 };
 }
 
-/** The repo-relative folder each `@source` glob scans, from the folder of the sheet that names it. */
 export function sourceRoots(sheet: FileView): string[] {
   const out: string[] = [];
   for (const statement of topLevelStatements(sheet.code)) {
@@ -287,9 +268,6 @@ export const tailwindSourcesGuard: GenericGuardDefinition<TailwindSourceFacts> =
   },
 };
 
-// ---- a semantic text class survives the same-named Tailwind utility --------------------------
-
-/** The Tailwind text-color utilities the loaded `@theme` blocks mint, with the color each paints. */
 function textColorUtilities(sheets: readonly LoadedSheet[]): Map<string, string> {
   const out = new Map<string, string>();
   for (const { file } of sheets) {
@@ -306,7 +284,6 @@ function textColorUtilities(sheets: readonly LoadedSheet[]): Map<string, string>
 
 const sameColor = (a: string, b: string) => a.replace(/\s+/g, '') === b.replace(/\s+/g, '');
 
-/** The class a selector's subject compound names from the utility set, if any. */
 function utilityClassIn(selector: string, utilities: ReadonlyMap<string, string>): string | null {
   for (const m of subjectCompound(selector).matchAll(/\.([\w-]+)(?![\w-])/g))
     if (utilities.has(m[1])) return m[1];
@@ -393,12 +370,8 @@ export const utilityCollisionGuard: GenericGuardDefinition<EntryStylesheetFacts>
   },
 };
 
-// ---- theme tokens declared in every theme block ---------------------------------------------
-
 export interface ThemeTokenFacts {
-  /** The entry stylesheet: the token cascade is read in the order it loads its sheets. */
   entryStylesheet: string;
-  /** The app's token sheet that declares the `:root`, `.dark` and `.high-contrast` blocks. */
   tokenSheet: string;
 }
 
@@ -406,7 +379,6 @@ const LITERAL_COLOUR = /\b(?:oklch|oklab|lab|lch|rgba?|hsla?)\(\s*[\d.]|#[0-9a-f
 const COMPLETE_COLOUR = /\b(hsla?|rgba?|oklch|color-mix)\(|#[0-9a-fA-F]{3,8}\b/;
 const THEME_BLOCKS = [':root', '.dark', '.high-contrast'] as const;
 
-/** The declarations of the first top-level rule whose selector is exactly `selector`. */
 function exactBlock(
   file: FileView,
   selector: string,
@@ -425,7 +397,6 @@ function exactBlock(
   };
 }
 
-/** The effective token map of one theme: every rule whose selector list names `:root` or the theme's class, in cascade order. */
 function themeCascade(
   sheets: readonly LoadedSheet[],
   themeSelector: string | null,

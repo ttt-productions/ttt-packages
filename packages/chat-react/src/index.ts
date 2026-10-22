@@ -1,12 +1,5 @@
 'use client';
 
-// @ttt-productions/chat-react — chat React UI, hooks, the Firebase-client
-// adapter config types, and React render types. Depends on the pure
-// @ttt-productions/chat-core for contracts, parser, and grouping.
-//
-// Apps import chat CSS via "@ttt-productions/chat-react/styles".
-
-// React-coupled config + render types (previously on chat-core root).
 export type {
   ChatCoreConfig,
   ChatTransportMode,
@@ -15,7 +8,6 @@ export type {
   MessageRendererRegistry,
 } from './types.js';
 
-// Name-resolver context.
 export type {
   ChatNameResolverProviderProps,
   UnresolvedChatName,
@@ -31,9 +23,6 @@ export { SenderName } from './ui/SenderName.js';
 export type { UseChatMessagesResult } from './hooks/useChatMessages.js';
 export { useChatMessages } from './hooks/useChatMessages.js';
 
-// Realtime (Cloudflare Durable Object) transport — the client half of the chat
-// worker wire protocol. Opt-in via `ChatCoreConfig.transport === 'realtime'`; the
-// firestore transport stays the unchanged default. See docs/packages/chat-react.md.
 export { createRealtimeChatClient, createInboxClient } from './realtime/transport.js';
 export { ChannelClient } from './realtime/channel-client.js';
 export { InboxClient } from './realtime/inbox-client.js';
@@ -67,14 +56,6 @@ export type {
   WireRegistryEntry,
   ServerFrame,
 } from './realtime/wire.js';
-
-// TODO (re-export when a consumer needs them): the moderation-overlay helpers
-// `RevisionKind`, `ModerationOverlay`, `applyModerationOverlay`, `overlayFromRow`,
-// and `MODERATION_REDACTED_TEXT` live in `./realtime` but are intentionally NOT
-// re-exported from this package root yet — the consuming app's renderer reads moderation
-// state off `message.meta` (the realtime client applies the overlay internally), so
-// nothing imports them from here today. Add them to the block above when a consumer
-// genuinely needs to apply the overlay directly. (Comment-only; rides the next publish.)
 
 export type { ChatShellProps, ChatLoadFailure } from './ui/ChatShell.js';
 export { ChatShell } from './ui/ChatShell.js';

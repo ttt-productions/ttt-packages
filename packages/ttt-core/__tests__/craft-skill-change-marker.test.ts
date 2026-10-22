@@ -2,10 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import { UserPrivateDataSchema } from '../src/doc-schemas/user.js';
 
-// Every Craft publish and every Craft delete writes the owner's Craft change marker inside its
-// transaction, so two publishes that both counted a free slot write the same document and
-// conflict instead of both landing (BACKEND-116). The field lives on the owner's server-written
-// private doc, which the registry already binds.
 describe('Craft change marker on the private user doc', () => {
   const base = {
     email: 'artisan@example.com',

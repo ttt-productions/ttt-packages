@@ -152,7 +152,6 @@ describe('useChatMessages', () => {
     expect(result.current.error).toBe(listenerError);
     expect(result.current.olderError).toBe(olderError);
     expect(result.current.sourceState).toBe('error');
-    // The rows already loaded stay beside the failure.
     expect(result.current.messages.map((m) => m.messageId)).toEqual(['a']);
     result.current.retry();
     expect(retry).toHaveBeenCalledTimes(1);

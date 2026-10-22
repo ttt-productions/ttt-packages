@@ -5,8 +5,9 @@ Generic report-filing UI and admin-task queue package.
 ## Owns
 
 - The `submitReport` wire contract (`createSubmitReportRequestSchema` / `SubmitReportResult`) consumed by the
-  app's `submitReport` callable. Report data itself has no canonical stored shape here; the app owns the
-  Firestore report document and report-group shape.
+  app's `submitReport` callable. `SubmitReportResult<TProtectedFork>` takes the app's own union of
+  protected case kinds (default `string`); the package never names one. Report data itself has no
+  canonical stored shape here; the app owns the Firestore report document and report-group shape.
 - The report-filing dialog (`ReportDialog`, `ReportButton`, `useReportButton`) and its contract types.
 - Generic admin task, checkout, activity, status, and priority shapes, the queue answers
   (`CheckoutTaskResult`, `CheckoutNextImportantTaskResult` — each carrying a `ClaimedTask` — and
@@ -29,7 +30,7 @@ Generic report-filing UI and admin-task queue package.
 - `./schemas` — wire-format Zod schemas. A free-text field in them is never bounded here: `createCheckinTaskRequestSchema({ resolution })`
   and `createSubmitReportRequestSchema({ comment })` take the consuming app's own field schema
   (`ReportTextFieldSchema`, `z.ZodType<string | undefined>` — built by the app over its declaration, so its
-  format, bounds, trim, and optionality are the app's; ARCH-201, ARCH-102). The opaque ids, item type, and
+  format, bounds, trim, and optionality are the app's; RULE-STD-ARCH-201, RULE-STD-ARCH-102). The opaque ids, item type, and
   reason keep their structural bounds. `CheckinTaskRequest` and `SubmitReportRequest` are the shapes with
   that text optional, which the check-in handler and the dialog's submit hook read and send.
 - `./styles` — admin/report CSS. It reads theme-core's semantic tokens (`hsl(var(--card))`,
@@ -65,7 +66,7 @@ package carries no product copy and no product routing:
   `aria-describedby`.
 - **Unsent comment.** Closing the form or upgrade view — Cancel, Escape, an outside click — while
   the draft holds a non-blank comment asks first through ui-core's `ConsequenceDialog`
-  (FRONTEND-207), worded by `copy.discardTitle` / `discardDescription` / `discardConfirmLabel` /
+  (RULE-STD-FRONTEND-207), worded by `copy.discardTitle` / `discardDescription` / `discardConfirmLabel` /
   `discardKeepLabel`: confirming drops the draft and closes, keeping leaves the dialog open with the
   comment. A picked reason alone is not unsaved input, and the already-reported view (the callable
   has answered) closes without asking.
@@ -75,7 +76,7 @@ package carries no product copy and no product routing:
   surface. Nothing is submitted without a `reporterUserId`.
 - **Bound to the reporter.** The dialog's draft (reason, comment, view) and `useReportButton`'s open
   state belong to the reporter who created them: a different signed-in reporter reads them empty and
-  closed (FRONTEND-108). With no reporter, `openReport` calls `onSignInRequired` and opens nothing.
+  closed (RULE-STD-FRONTEND-108). With no reporter, `openReport` calls `onSignInRequired` and opens nothing.
 
 ## The checked-out tasks read (`./react`)
 

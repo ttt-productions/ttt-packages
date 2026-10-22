@@ -30,8 +30,6 @@ export function ImageViewer(props: ImageViewerProps) {
   const [zoomed, setZoomed] = React.useState(false);
   const imgRef = React.useRef<HTMLImageElement>(null);
 
-  // The viewer's one observer (MEDIA-102): lazy-load gating, and — while an owner listens —
-  // the visibility it reports, which is why it keeps observing after the first sighting then.
   const { ref: inViewRef, inView } = useInView({
     triggerOnce: !unloadOnExit && !onVisibilityChange,
     threshold: 0.01,
@@ -44,7 +42,6 @@ export function ImageViewer(props: ImageViewerProps) {
     if (inView && !shouldLoad) {
       setShouldLoad(true);
     }
-    // Unload when leaving viewport (if enabled)
     if (!inView && unloadOnExit && shouldLoad && !priority) {
       setShouldLoad(false);
       setIsLoaded(false);
@@ -66,8 +63,6 @@ export function ImageViewer(props: ImageViewerProps) {
     onError?.();
   }, [onError]);
 
-  // Bounded load: a visible image that fires neither load nor error within the
-  // budget is treated as errored so it resolves instead of skeleton-ing forever.
   useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
 
   // iOS: prevent multi-touch zoom gestures on the image
@@ -105,8 +100,6 @@ export function ImageViewer(props: ImageViewerProps) {
     ? { borderRadius: '50%', overflow: 'hidden' }
     : {};
 
-  // The error state stays inside the observed wrapper, so the viewer keeps reporting
-  // its visibility while its owner recovers it.
   if (hasError) {
     return fallback ? (
       <div

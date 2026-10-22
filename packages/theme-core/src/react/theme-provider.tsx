@@ -12,7 +12,6 @@ const NEXT_THEMES_DEFAULT_STORAGE_KEY = 'theme';
 
 const ThemeStorageKeyContext = React.createContext<string | null>(null);
 
-/** The localStorage key the enclosing ThemeProvider stores the theme under; `null` outside one. */
 export function useThemeStorageKey(): string | null {
   return React.useContext(ThemeStorageKeyContext);
 }

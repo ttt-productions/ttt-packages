@@ -1,0 +1,18 @@
+{
+  // A relative path in an extended config resolves against this file, inside node_modules, so the
+  // Functions tree's `outDir`, `rootDir`, `include`, and `exclude` stay in its own tsconfig.json.
+  "compilerOptions": {
+    "module": "NodeNext",
+    "esModuleInterop": true,
+    "moduleResolution": "nodenext",
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2023",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true
+  },
+  "compileOnSave": true
+}

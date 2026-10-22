@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TTT_TELEMETRY_CONTENT_POLICY } from '../src/constants/telemetry-content-policy.js';
 
-// One telemetry content policy on every backend runtime: the Functions tree and the Next server and
-// edge inits all build the same allowlist from this one declaration.
 describe('TTT_TELEMETRY_CONTENT_POLICY', () => {
   it('admits as text the identifier, code, and enum keys capture sites use, matched exactly', () => {
     expect([...TTT_TELEMETRY_CONTENT_POLICY.diagnosticKeys].sort()).toEqual(

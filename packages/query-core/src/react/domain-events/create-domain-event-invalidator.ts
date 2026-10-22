@@ -7,10 +7,6 @@ import {
   type CacheInvalidation,
 } from './cache-invalidation.js';
 
-/**
- * Registry shape: each event type maps to a function from the event's `ids`
- * payload to the list of cache invalidations that event should trigger.
- */
 export type DomainEventInvalidationRegistry<TEvent extends { type: string; ids: unknown }> = {
   [K in TEvent['type']]: (
     ids: Extract<TEvent, { type: K }>['ids'],
@@ -18,30 +14,16 @@ export type DomainEventInvalidationRegistry<TEvent extends { type: string; ids: 
 };
 
 export interface DomainEventInvalidator<TEvent extends { type: string; ids: unknown }> {
-  /**
-   * Dispatch the event's invalidations. The returned promise resolves once
-   * every refetch they triggered has settled, and never rejects — return or
-   * await it from a mutation's `onSuccess` to keep the mutation pending until
-   * the refreshed data lands; ignore it for fire-and-forget dispatch.
-   */
   notify(queryClient: QueryClient, event: TEvent): Promise<void>;
-  /** `notify` for several events, deduplicating their invalidations as one batch. */
   notifyAll(queryClient: QueryClient, events: ReadonlyArray<TEvent>): Promise<void>;
-  /** Test/debug helpers. */
   readonly helpers: {
     exact: typeof exact;
     prefix: typeof prefix;
     predicate: typeof predicate;
   };
-  /** Direct access to the registry, mainly for tests. */
   readonly registry: DomainEventInvalidationRegistry<TEvent>;
 }
 
-/**
- * Build a domain-event → cache-invalidation notifier from a typed registry.
- * The registry's keys are statically tied to `TEvent["type"]`, so missing or
- * extra entries are compile errors.
- */
 export function createDomainEventInvalidator<TEvent extends { type: string; ids: unknown }>(
   registry: DomainEventInvalidationRegistry<TEvent>,
 ): DomainEventInvalidator<TEvent> {

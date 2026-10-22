@@ -1,48 +1,20 @@
-// Bounded transient-retry policy for the R2 object store.
-//
-// PRIVATE to the server folder. The server entry (`server/index.ts`) forwards
-// only the `R2StorageError` type, so callers can recognize an exhausted storage
-// operation; the retry helper itself is never public.
-//
-// The policy applies to the idempotent-against-a-deterministic-key requests
-// only (putFile, copy, readToFile, and deleteCopy's read of the destination).
-// Every DELETE request is intentionally one-shot and never routes through here.
-// Signing/config failures, local filesystem errors, and deterministic HTTP 4xx
-// responses are never retried.
-
-// ---------------------------------------------------------------------------
-// Fixed internal policy — never exposed as tunables on the public factory.
-// ---------------------------------------------------------------------------
-
-/** TOTAL attempts (initial + retries) — three totals means at most TWO delays. */
 export const R2_REQUEST_MAX_ATTEMPTS = 3;
-/** Base delay for full-jitter exponential backoff. */
 export const R2_RETRY_BASE_DELAY_MS = 250;
-/** Ceiling on the exponential backoff (before jitter). */
 export const R2_RETRY_MAX_BACKOFF_MS = 5_000;
-/** Hard cap on an honored server `Retry-After` so one response can't eat the
- *  caller's whole timeout budget. */
 export const R2_RETRY_AFTER_CAP_MS = 30_000;
 
-/** HTTP statuses treated as transient and safe to retry. */
 export const R2_RETRYABLE_STATUSES: ReadonlySet<number> = new Set([408, 429, 500, 502, 503, 504]);
 
 export type R2RetryableOperation = 'putFile' | 'copy' | 'readToFile' | 'deleteCopy';
 
-/** Every R2 store operation an `R2StorageError` can name; `delete` never retries. */
 export type R2Operation = R2RetryableOperation | 'delete';
 
-/** Deterministic seams for tests; production defaults are internal (see below). */
 export interface R2RetrySeams {
-  /** Resolve after `ms` milliseconds. */
   sleep: (ms: number) => Promise<void>;
-  /** Uniform random in [0, 1). */
   random: () => number;
-  /** Epoch-millisecond clock — keeps HTTP-date `Retry-After` tests off wall-clock. */
   now: () => number;
 }
 
-/** Production seam defaults. */
 export function defaultR2RetrySeams(): R2RetrySeams {
   return {
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -51,12 +23,7 @@ export function defaultR2RetrySeams(): R2RetrySeams {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Transient-error classification
-// ---------------------------------------------------------------------------
-
-// Recognized transient transport failure codes (undici/fetch surface these on
-// the error or its `.cause`). A broken connection to R2 lands here.
+// undici/fetch surface these codes on the error or its `.cause`.
 const RETRYABLE_NETWORK_ERROR_CODES: ReadonlySet<string> = new Set([
   'ECONNRESET',
   'ECONNREFUSED',
@@ -75,9 +42,6 @@ const RETRYABLE_NETWORK_ERROR_CODES: ReadonlySet<string> = new Set([
   'UND_ERR_SOCKET',
 ]);
 
-// Deterministic local filesystem errors are NEVER retried (disk full, perms,
-// missing dir, etc.). This guard wins over any transport classification so a
-// local write failure during readToFile piping can't be mistaken for transient.
 const LOCAL_FS_ERROR_CODES: ReadonlySet<string> = new Set([
   'ENOSPC',
   'EACCES',
@@ -103,47 +67,27 @@ function codeOf(err: unknown): string | undefined {
   return undefined;
 }
 
-/**
- * True only for recognized transient transport failures. An explicit
- * `AbortError` and deterministic local-filesystem errors always return false —
- * an abort must never become another attempt.
- */
 export function isRetryableTransportError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { name?: unknown; cause?: unknown };
 
-  // NEVER convert an explicit abort into another attempt.
   if (e.name === 'AbortError') return false;
 
   const selfCode = codeOf(err);
   const causeCode = codeOf(e.cause);
 
-  // Deterministic local filesystem errors are not transient — decided first so a
-  // local write error can never be reclassified as a transport failure.
   if (selfCode && LOCAL_FS_ERROR_CODES.has(selfCode)) return false;
   if (causeCode && LOCAL_FS_ERROR_CODES.has(causeCode)) return false;
 
-  // Recognized transient network codes on the error or its cause.
   if (selfCode && RETRYABLE_NETWORK_ERROR_CODES.has(selfCode)) return true;
   if (causeCode && RETRYABLE_NETWORK_ERROR_CODES.has(causeCode)) return true;
 
-  // fetch()/undici surface transport failures as `TypeError: fetch failed`
-  // (often with an unrecognized or absent cause) — treat those as transient.
+  // fetch()/undici surface transport failures as `TypeError: fetch failed`, often with no recognizable cause.
   if (err instanceof TypeError || e.name === 'TypeError') return true;
 
   return false;
 }
 
-// ---------------------------------------------------------------------------
-// Retry-After parsing + delay computation
-// ---------------------------------------------------------------------------
-
-/**
- * Parse a `Retry-After` header value into a non-negative millisecond delay.
- * Supports both the delta-seconds form (`"120"`) and the HTTP-date form
- * (`"Wed, 21 Oct 2015 07:28:00 GMT"`). Returns null when absent/unparseable.
- * An HTTP-date in the past clamps to 0.
- */
 export function parseRetryAfterMs(
   headerValue: string | null | undefined,
   nowMs: number,
@@ -152,28 +96,20 @@ export function parseRetryAfterMs(
   const trimmed = headerValue.trim();
   if (trimmed === '') return null;
 
-  // delta-seconds form
   if (/^\d+$/.test(trimmed)) {
     const seconds = Number(trimmed);
     if (!Number.isFinite(seconds) || seconds < 0) return null;
     return seconds * 1000;
   }
 
-  // HTTP-date form
   const dateMs = Date.parse(trimmed);
   if (Number.isNaN(dateMs)) return null;
   const delta = dateMs - nowMs;
   return delta > 0 ? delta : 0;
 }
 
-/**
- * Compute the pre-next-attempt delay. If the failed response carries a valid
- * `Retry-After`, honor it (capped, no backoff added on top). Otherwise use
- * full-jitter exponential backoff: `random(0, min(maxBackoff, base * 2^retryIndex))`.
- */
 export function computeR2DelayMs(params: {
   response: Response | null;
-  /** 0-based index of the retry about to happen (0 for the first retry). */
   retryIndex: number;
   seams: R2RetrySeams;
 }): number {
@@ -190,29 +126,12 @@ export function computeR2DelayMs(params: {
   return Math.floor(seams.random() * ceiling);
 }
 
-// ---------------------------------------------------------------------------
-// Exhaustion error
-// ---------------------------------------------------------------------------
-
-/**
- * Thrown when an R2 operation fails: a retried operation exhausts its attempts or
- * hits a non-retryable response, or a one-shot delete fails. Carries
- * operation/bucket/key/attempt/status context, the S3 error code parsed from the
- * response body, and the bounded body itself as properties — never credentials,
- * authorization headers, or full signed URLs. Callers classify it from those
- * properties, never from the message.
- *
- * The message names only the operation, the attempts, the status, and the S3 error
- * code. The bucket, the key, and the raw body — which can echo either — stay out of
- * it, so an escaping error never carries an object key to monitoring.
- */
 export class R2StorageError extends Error {
   readonly operation: R2Operation;
   readonly bucket: string;
   readonly key: string;
   readonly attempts: number;
   readonly status?: number;
-  /** The S3 `<Code>` of the response body (`NoSuchKey`, `PreconditionFailed`, …), when it had one. */
   readonly s3ErrorCode?: string;
   readonly responseText?: string;
 
@@ -244,21 +163,14 @@ export class R2StorageError extends Error {
   }
 }
 
-/** The `<Code>` of an S3 XML error body; only a plain alphanumeric token is taken. */
 function parseS3ErrorCode(responseText: string | undefined): string | undefined {
   return responseText ? /<Code>([A-Za-z0-9]{1,64})<\/Code>/.exec(responseText)?.[1] : undefined;
 }
 
-// ---------------------------------------------------------------------------
-// Retry driver
-// ---------------------------------------------------------------------------
-
 export type R2AttemptResult<T> =
   { kind: 'success'; value: T } | { kind: 'response'; response: Response };
 
-// Strip ASCII control characters (0x00-0x1F, 0x7F) and bound length. Done with a
-// code-point filter rather than a control-character regex (which `no-control-regex`
-// forbids and which would embed literal control bytes in source).
+// A code-point filter, not a control-character regex, which `no-control-regex` forbids.
 function sanitizeBodyText(text: string): string {
   let out = '';
   for (const ch of text.slice(0, 1000)) {
@@ -268,9 +180,7 @@ function sanitizeBodyText(text: string): string {
   return out.trim().slice(0, 500);
 }
 
-// Bounded, sanitized read of a failed response body. Also drains the body so
-// the underlying socket can be reused before the next attempt. R2 error bodies
-// are short XML and never contain our credentials; sanitize defensively regardless.
+// Draining the body lets the socket be reused before the next attempt.
 async function safeReadBoundedBody(res: Response): Promise<string> {
   try {
     return sanitizeBodyText(await res.text());
@@ -279,12 +189,6 @@ async function safeReadBoundedBody(res: Response): Promise<string> {
   }
 }
 
-/**
- * Drive up to `R2_REQUEST_MAX_ATTEMPTS` attempts of a single storage operation.
- * `runAttempt` builds a FRESH signed request each call and returns either a
- * success value or the raw `Response` for the driver to classify. Thrown errors
- * are classified: only recognized transient transport failures are retried.
- */
 export async function fetchWithR2Retry<T>(params: {
   operation: R2RetryableOperation;
   bucket: string;
@@ -299,8 +203,6 @@ export async function fetchWithR2Retry<T>(params: {
     try {
       result = await runAttempt(attempt);
     } catch (err) {
-      // Signing failures, explicit aborts, and deterministic local-fs errors are
-      // never retried; only recognized transient transport failures are.
       if (!isRetryableTransportError(err)) throw err;
       if (attempt >= R2_REQUEST_MAX_ATTEMPTS) {
         throw new R2StorageError({ operation, bucket, key, attempts: attempt, cause: err });
@@ -313,7 +215,6 @@ export async function fetchWithR2Retry<T>(params: {
 
     const response = result.response;
     const status = response.status;
-    // Consume the failed body before the next attempt.
     const responseText = await safeReadBoundedBody(response);
 
     if (R2_RETRYABLE_STATUSES.has(status) && attempt < R2_REQUEST_MAX_ATTEMPTS) {
@@ -321,10 +222,8 @@ export async function fetchWithR2Retry<T>(params: {
       continue;
     }
 
-    // Non-retryable status, or a retryable status with attempts exhausted.
     throw new R2StorageError({ operation, bucket, key, attempts: attempt, status, responseText });
   }
 
-  // Unreachable: the loop always returns or throws.
   throw new R2StorageError({ operation, bucket, key, attempts: R2_REQUEST_MAX_ATTEMPTS });
 }

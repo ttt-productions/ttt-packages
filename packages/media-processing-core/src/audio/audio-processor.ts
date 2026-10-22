@@ -28,7 +28,7 @@ function acceptAllowsAudio(spec: MediaProcessingSpec): boolean {
 
 function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boolean {
   const mimes = spec.accept?.mimes?.filter(Boolean) ?? [];
-  if (mimes.length === 0) return true; // empty => accept anything
+  if (mimes.length === 0) return true;
   if (!actualMime) return false;
   return mimes.some((a) => matchMime(a, actualMime));
 }
@@ -121,7 +121,6 @@ export async function processAudio(
       };
     }
 
-    // Normalize to AAC in m4a (small + widely supported)
     const outPath = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, 'm4a');
 
     tempFiles.push(outPath);

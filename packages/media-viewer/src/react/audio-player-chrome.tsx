@@ -1,20 +1,8 @@
 'use client';
 
-// Custom audio player chrome — the one owned control surface used by every
-// AudioViewer. Owns: play/pause, seek, time readout, mute/volume, and
-// the visualizer panel (shared engine in ../visualizer.ts) with minimize and
-// line/bars mode toggles. The media ELEMENT (loading, errors, playback API)
-// stays owned by AudioViewer — this component only reads/drives it.
-//
-// Web Audio wiring is created lazily on the first `play` event (autoplay
-// policies suspend fresh AudioContexts; a user-gesture play resumes them) and
-// is best-effort throughout: if anything throws, the player still plays and
-// only the visualizer goes dark. `createMediaElementSource` is once-per-
-// element, so the graph is keyed to the element instance and rebuilt only if
-// the element itself changes. The graph is built only for audio Web Audio can
-// hear (`graphCanHear`): a cross-origin file fetched without CORS reaches the
-// graph as silence, and once routed the element's own output is that silence,
-// so such a file plays straight to the speakers with the visualizer idle.
+// Autoplay policies suspend a fresh AudioContext until a user-gesture play resumes it.
+// `createMediaElementSource` is once per element, so the graph is keyed to the element instance.
+// A cross-origin file fetched without CORS reaches the graph, and once routed the speakers, as silence.
 
 import * as React from 'react';
 import {
@@ -47,15 +35,9 @@ function writePref(persistKey: string | null, suffix: string, value: string): vo
   if (!persistKey) return;
   try {
     window.localStorage.setItem(`${persistKey}:${suffix}`, value);
-  } catch {
-    /* storage unavailable (private mode, SSR) — session-only prefs */
-  }
+  } catch {}
 }
 
-/**
- * Whether Web Audio can hear the element's current file: one read with CORS (`crossOrigin` set),
- * a local `blob:` / `data:` URL, or a same-origin file.
- */
 function graphCanHear(el: HTMLAudioElement): boolean {
   if (el.crossOrigin) return true;
   const src = el.currentSrc || el.src;
@@ -78,11 +60,8 @@ function formatTime(seconds: number): string {
 
 export type AudioPlayerChromeProps = {
   audioRef: React.RefObject<HTMLAudioElement | null>;
-  /** Initial visualizer mode; a persisted user choice wins over this. */
   visualizerMode?: AudioVisualizerMode;
-  /** localStorage key base for minimize/mode prefs; `null` disables persistence. */
   persistKey?: string | null;
-  /** App-injected action buttons, rendered at the end of the control row. */
   extraActions?: React.ReactNode;
 };
 
@@ -93,7 +72,6 @@ export function AudioPlayerChrome({
   extraActions,
 }: AudioPlayerChromeProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
-  // Playback is waiting on data (initial buffer, a stall, or a seek landing).
   const [buffering, setBuffering] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
@@ -107,14 +85,12 @@ export function AudioPlayerChrome({
     return stored === 'line' || stored === 'bars' ? stored : visualizerMode;
   });
 
-  // While the user drags the seek slider, timeupdate must not fight the thumb.
   const [scrubTime, setScrubTime] = React.useState<number | null>(null);
 
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const modeRef = React.useRef(mode);
   modeRef.current = mode;
 
-  // Web Audio graph (lazy, keyed to the element instance).
   const audioCtxRef = React.useRef<AudioContext | null>(null);
   const sourceElRef = React.useRef<HTMLAudioElement | null>(null);
   const analyserRef = React.useRef<AnalyserNode | null>(null);
@@ -155,8 +131,7 @@ export function AudioPlayerChrome({
         const source = ctx.createMediaElementSource(el);
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 256;
-        // Element audio now routes through the graph — destination connection
-        // is REQUIRED or playback goes silent.
+        // Once routed through the graph, the element is silent unless the graph reaches the destination.
         source.connect(analyser);
         analyser.connect(ctx.destination);
         audioCtxRef.current = ctx;
@@ -166,7 +141,6 @@ export function AudioPlayerChrome({
           ctx.resume().catch(() => {});
         }
       } catch {
-        // Best-effort: playback works without the visualizer.
         analyserRef.current = null;
       }
     },
@@ -184,18 +158,11 @@ export function AudioPlayerChrome({
     });
   }, []);
 
-  // Element event subscriptions. The element mounts in the same commit as this
-  // chrome (AudioViewer renders both once loading starts), so the ref is set
-  // by the time this effect runs.
+  // The element mounts in the same commit as this chrome, so the ref is set by the time this effect runs.
   React.useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
 
-    // MediaRecorder blobs report duration Infinity until seeked (Chromium webm
-    // quirk) — without this the readout sticks at "0:01 / 0:00". Learn the real
-    // duration via the shared seek workaround; paused-only so an actively
-    // playing element is never seek-jumped, and one attempt per element so a
-    // workaround-triggered durationchange can never re-enter it.
     let durationReconcileAttempted = false;
     const reconcileInfiniteDuration = () => {
       if (durationReconcileAttempted || Number.isFinite(el.duration) || !el.paused) return;
@@ -274,10 +241,8 @@ export function AudioPlayerChrome({
     };
   }, [audioRef, ensureGraph, startLoop, stopLoop]);
 
-  // Full teardown when the chrome unmounts.
   React.useEffect(() => teardownGraph, [teardownGraph]);
 
-  // Idle frame whenever the visualizer is visible but not animating.
   React.useEffect(() => {
     if (minimized || isPlaying) return;
     const canvas = canvasRef.current;
@@ -314,9 +279,7 @@ export function AudioPlayerChrome({
     if (el && scrubTime !== null) {
       try {
         el.currentTime = scrubTime;
-      } catch {
-        /* not seekable yet */
-      }
+      } catch {}
     }
     setScrubTime(null);
   };

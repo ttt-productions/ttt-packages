@@ -1,6 +1,3 @@
-// The Company dock stores + same-tab events are device-local and MUST keep their
-// byte-stable historical values (the 'bill' naming predates the Company rename).
-
 import { describe, it, expect } from 'vitest';
 import {
   COMPANION_STORAGE_KEY,
@@ -18,7 +15,7 @@ import {
 } from '../src/constants/storage-keys.js';
 
 describe('Company dock storage keys + events are byte-stable', () => {
-  it('holds the exact historical literal values', () => {
+  it("holds the exact literal values members' browsers already hold", () => {
     expect(COMPANION_STORAGE_KEY).toBe('ttt-company-companion');
     expect(MASCOT_HIDDEN_STORAGE_KEY).toBe('ttt-bill-hidden');
     expect(MASCOT_LINE_INDEX_STORAGE_KEY).toBe('ttt-bill-line-index');
@@ -32,7 +29,6 @@ describe('Manual reduced-motion House control storage key + event (device-local)
   it('holds the exact literal values and is distinct from the companion store', () => {
     expect(REDUCED_MOTION_STORAGE_KEY).toBe('ttt-reduced-motion');
     expect(REDUCED_MOTION_CHANGE_EVENT).toBe('ttt-reduced-motion-change');
-    // Independent control: must not reuse the companion visibility key/event.
     expect(REDUCED_MOTION_STORAGE_KEY).not.toBe(MASCOT_HIDDEN_STORAGE_KEY);
     expect(REDUCED_MOTION_CHANGE_EVENT).not.toBe(MASCOT_HIDDEN_CHANGE_EVENT);
   });
@@ -40,9 +36,8 @@ describe('Manual reduced-motion House control storage key + event (device-local)
 
 describe('Large-text House control storage key + event (device-local)', () => {
   it('holds the exact literal values the app store already persists', () => {
-    // Byte-identical to the pre-canonicalization app literals in
-    // src/components/shared/text-size.tsx — changing either would orphan every
-    // member's saved preference.
+    // Byte-identical to the values members' browsers already hold — changing either would orphan
+    // every member's saved preference.
     expect(TEXT_SIZE_STORAGE_KEY).toBe('ttt-text-size');
     expect(TEXT_SIZE_CHANGE_EVENT).toBe('ttt-text-size-change');
   });
@@ -56,17 +51,14 @@ describe('Large-text House control storage key + event (device-local)', () => {
     ];
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(events).size).toBe(events.length);
-    // The key and its change event are distinct strings (a shared value would make the
-    // same-tab broadcast collide with the storage key).
     expect(TEXT_SIZE_CHANGE_EVENT).not.toBe(TEXT_SIZE_STORAGE_KEY);
   });
 });
 
 describe('Cookie/analytics consent storage key (device-local)', () => {
   it('holds the exact literal the app store already persists', () => {
-    // Byte-identical to the pre-canonicalization app literal in src/hooks/use-consent.tsx
-    // (STORAGE_KEY *and* COOKIE_NAME) — changing it would silently re-prompt every visitor
-    // who has already made a GDPR consent choice.
+    // Byte-identical to the storage key and cookie name visitors' browsers already hold —
+    // changing it would re-prompt every visitor who already made a consent choice.
     expect(COOKIE_CONSENT_STORAGE_KEY).toBe('ttt_cookie_consent');
   });
 

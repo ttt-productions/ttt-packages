@@ -25,7 +25,6 @@ function ApplyProbe() {
   return null;
 }
 
-/** Another tab's save: storage changes and only the native `storage` event reaches this tab. */
 function saveInAnotherTab(value: string) {
   window.localStorage.setItem(STORAGE_KEY, value);
   window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: value }));

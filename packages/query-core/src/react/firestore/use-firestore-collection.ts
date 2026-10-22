@@ -9,26 +9,6 @@ import { useSubscribedResult, useSubscriptionStatus } from './subscription-statu
 import type { WithId, WithSourceState } from '../../firestore/types.js';
 import type { FirestoreCollectionOptions } from './types.js';
 
-/**
- * Fetch all documents from a Firestore collection with optional realtime updates.
- * Use this for small collections where you need all documents at once.
- * For large collections, use useFirestoreInfinite or useFirestorePaginated.
- * * @example
- * ```tsx
- * // Fetch all channels in an entity
- * const { data: channels } = useFirestoreCollection<Channel>({
- * collectionPath: `entities/${entityId}/channels`,
- * queryKey: ['channels', entityId],
- * constraints: [orderBy('createdAt', 'asc')],
- * });
- * * // With realtime updates
- * const { data: members } = useFirestoreCollection<Member>({
- * collectionPath: `entities/${entityId}/members`,
- * queryKey: ['members', entityId],
- * subscribe: true,
- * });
- * ```
- */
 export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   collectionPath,
   queryKey,
@@ -42,13 +22,9 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  // STABILIZE DEPENDENCIES:
-  // We stringify these because [where('a', '==', 'b')] !== [where('a', '==', 'b')] in JS.
   const constraintsMemo = JSON.stringify(constraints);
   const queryKeyMemo = JSON.stringify(queryKey);
 
-  // Listener errors can't surface through useQuery (the queryFn is disabled while
-  // subscribed), so they're tracked per subscription identity and merged into the result.
   const subscription = useSubscriptionStatus(
     JSON.stringify([collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe]),
   );
@@ -59,10 +35,6 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
 
     resetStatus();
 
-    // Bounded resubscribe: a transient `permission-denied` (e.g. a failed mid-session
-    // App Check token refresh) is retried on the RESUBSCRIBE_DELAYS_MS ladder before the
-    // error is surfaced. `attempt` resets on any healthy snapshot; `disposed`/timers are
-    // cleaned up on unmount so a pending retry never fires after teardown.
     let currentUnsubscribe: (() => void) | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let attempt = 0;
@@ -96,9 +68,6 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
           }));
         },
         (error) => {
-          // Heal a transient permission-denied by resubscribing on the backoff ladder,
-          // keeping the last-known data visible. Only surface the error once the ladder
-          // is exhausted; any other error surfaces immediately, as before.
           if (isPermissionDeniedError(error) && attempt < RESUBSCRIBE_DELAYS_MS.length) {
             currentUnsubscribe?.();
             currentUnsubscribe = null;
@@ -122,9 +91,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       if (retryTimer) clearTimeout(retryTimer);
       currentUnsubscribe?.();
     };
-    // queryKey & constraints are tracked via their stringified forms above; select is intentionally
-    // excluded so an inline caller function doesn't force a re-subscribe on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryKey and constraints are tracked by their serialized forms; an inline select must not re-subscribe every render
   }, [
     db,
     collectionPath,
@@ -147,7 +114,6 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       const snapshot = await getDocs(q);
       return snapshot.docs.map((docSnap) => {
         const rawData = docSnap.data();
-        // Include id in data passed to select, so it can be renamed/transformed
         const dataWithId = { id: docSnap.id, ...rawData };
         const data = select ? select(dataWithId) : dataWithId;
         return data as WithId<T>;

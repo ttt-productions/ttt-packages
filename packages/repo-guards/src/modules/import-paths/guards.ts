@@ -1,5 +1,3 @@
-// The import-path guard: every definition has exactly one import path.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { applicationDataImportsGuard, type ApplicationDataFacts } from './application-data.js';
 import { entryPurityGuard, type EntryPurityFacts } from './entry-purity.js';
@@ -20,7 +18,6 @@ import {
   type PackageImportFacts,
 } from './package-imports.js';
 
-/** The facts each guard in this area needs, by its id. */
 export interface ImportPathGuardFacts {
   importPaths: ImportPathFacts;
   packageEntries: PackageEntryFacts;

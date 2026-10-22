@@ -1,5 +1,3 @@
-// The notice with its switch OFF: nothing renders, nothing is required, nothing is recorded.
-// The switch module is mocked so the real copy/helper module runs against `false`.
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../src/constants/legal-review-notice-state.js', () => ({

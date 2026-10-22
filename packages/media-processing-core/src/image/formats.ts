@@ -1,13 +1,7 @@
-// shared image format / quality presets
 import type { Sharp } from 'sharp';
 
-/** Output image formats the processor can emit. */
 export type ImageOutputFormat = 'jpeg' | 'png' | 'webp' | 'avif';
 
-/**
- * Map a requested format string (case-insensitive) to its sharp format id and
- * file extension. Unknown or missing formats fall back to jpeg.
- */
 export function pickFormat(fmt?: string): { ext: string; format: ImageOutputFormat } {
   switch ((fmt ?? 'jpeg').toLowerCase()) {
     case 'png':
@@ -23,7 +17,6 @@ export function pickFormat(fmt?: string): { ext: string; format: ImageOutputForm
   }
 }
 
-/** Map an image format string to its MIME type. */
 export function mimeForImageFormat(fmt?: string): string | undefined {
   if (!fmt) return undefined;
   const f = fmt.toLowerCase();
@@ -35,11 +28,6 @@ export function mimeForImageFormat(fmt?: string): string | undefined {
   return `image/${f}`;
 }
 
-/**
- * Apply the chosen output format (and optional quality) to a sharp pipeline.
- * png is lossless so quality is ignored; jpeg/webp/avif honor quality when set,
- * otherwise sharp's per-format defaults apply.
- */
 export function applyImageFormat(
   pipeline: Sharp,
   format: ImageOutputFormat,

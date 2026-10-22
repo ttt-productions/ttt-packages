@@ -1,7 +1,3 @@
-// Typed ids for relationship arrays that mix entity kinds (a Square post's `relatedIds`): each id
-// carries its kind's prefix, so ids of different kinds never collide (BACKEND-206). Every
-// MentionType is a kind here, so a post can relate every entity it mentions.
-
 import type { MentionType } from '../media/atoms.js';
 
 export const RELATED_ID_PREFIXES = {

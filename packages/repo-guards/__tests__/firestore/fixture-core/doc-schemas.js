@@ -1,6 +1,3 @@
-// GENERATED fixture core schemas — the STRUCTURE of an illustrative application's registry
-// (keys, closedness, unions and their discriminants, literal members, wrappers). Test data only.
-
 import { z } from 'zod';
 
 export const PendingMediaCompletedSchema = z
@@ -3865,8 +3862,6 @@ export const COLLECTION_SCHEMAS = Object.freeze({
   }),
 });
 
-// Each public page document beside its schema: a core map whose entries carry a path builder and
-// the document's schema, read by one lookup.
 export const CONFIG_PAGE_DOCUMENTS = Object.freeze({
   landingPage: Object.freeze({
     path: () => ['_appConfig', 'landingPage'],
@@ -3875,7 +3870,6 @@ export const CONFIG_PAGE_DOCUMENTS = Object.freeze({
   rulesPage: Object.freeze({ path: () => ['_appConfig', 'rulesPage'], schema: RulesPageSchema }),
 });
 
-// The same shape with one entry holding a schema no core export names.
 export const UNNAMED_SCHEMA_PAGE_DOCUMENTS = Object.freeze({
   landingPage: Object.freeze({
     path: () => ['_appConfig', 'landingPage'],

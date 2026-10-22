@@ -18,10 +18,6 @@ interface HeldSave {
   reject: (error: unknown) => void;
 }
 
-/**
- * The app's account half. A save lands in the account's values at once, as a refetch would show
- * them; with `holding` set, each save waits in `held` until the test settles it.
- */
 export function fakeAccount() {
   const account = {
     apply: (_values: Partial<ViewerSettings>) => {},
@@ -46,7 +42,6 @@ export function fakeAccount() {
 
 export type FakeAccount = ReturnType<typeof fakeAccount>;
 
-/** A mounted sync under its own storage keys, so tests never read another test's values. */
 export function createSyncFixture(prefix: string) {
   const keys = {
     theme: `${prefix}-theme`,
@@ -76,7 +71,6 @@ export function createSyncFixture(prefix: string) {
   }: {
     account: FakeAccount;
     initial: SavedViewerSettings | undefined;
-    /** The signed-in account; `null` while signed out. */
     accountId?: string | null;
     children?: ReactNode;
   }) {

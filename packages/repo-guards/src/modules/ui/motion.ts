@@ -1,6 +1,3 @@
-// The motion guard: transitions ride the motion tokens and name the property they animate, and
-// motion a script asks for by name reads the one effective reduced-motion preference.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import {
@@ -16,14 +13,8 @@ import { objectProblem, pathProblem } from '../../support/facts.js';
 import { APP_CODE, APP_STYLES } from './styling.js';
 
 export interface MotionFacts {
-  /** The entry stylesheet whose `@theme` binds Tailwind's default transition timing. */
   entryStylesheet: string;
-  /** The one module that turns the effective reduced-motion preference into a scroll behavior. */
   motionHelper: string;
-  /**
-   * The one module that calls the mobile package's `useKeepFocusedInputVisible` with the effective
-   * motion, or null when the app never calls it.
-   */
   focusedInputKeeperAdapter: string | null;
 }
 
@@ -34,7 +25,6 @@ export const motionUtilities = matchPattern(/\btransition-all\b|\bduration-\d+\b
 export const smoothScrollRequests = matchPattern(/['"]smooth['"]/);
 export const focusedInputKeeperCalls = matchPattern(/\buseKeepFocusedInputVisible\b/);
 
-/** A transition value judged outside every var(): `all` or a raw duration. */
 export const untokenedTransition = (value: string): boolean => {
   const outsideVars = value.replace(/var\((?:[^()]|\([^()]*\))*\)/g, 'TOKEN');
   return /\ball\b/.test(outsideVars) || /\d(?:\.\d+)?m?s\b/.test(outsideVars);

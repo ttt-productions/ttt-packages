@@ -1,14 +1,3 @@
-// Download-filename contract + normalizer tests.
-//
-// Covers the CONTRACT half of the download-verification list in ttt-prod
-// docs/code_changes_needed/CODE_CHANGE_invite_finalization_conversation_files_and_downloads.md
-// §3: the optional `downloadFilename` on the canonical variant contract (present
-// AND absent), the pure normalizer's sanitization rules, and the two RFC 6266 /
-// RFC 8187 string forms the media Worker assembles its header from.
-//
-// The header ASSEMBLY, the ranged/HEAD parity, and the Playwright
-// `suggestedFilename` checks are worker/app-side and live with those changes.
-
 import { describe, it, expect } from 'vitest';
 import { hashPayload } from '@ttt-productions/edge-protocol-core';
 import {
@@ -28,10 +17,6 @@ import {
 } from '../src/constants/media-download.js';
 
 const utf8Len = (s: string) => new TextEncoder().encode(s).length;
-
-// ===========================================================================
-// The canonical variant contract
-// ===========================================================================
 
 describe('MediaAssetVariantSchema.downloadFilename', () => {
   const base = { contentType: 'image/jpeg', sizeBytes: 1234 };
@@ -164,10 +149,6 @@ describe('authority payload hashing is unchanged for records that do not set it'
     expect(set).not.toBe(absent);
   });
 });
-
-// ===========================================================================
-// The normalizer
-// ===========================================================================
 
 describe('normalizeDownloadFilename', () => {
   it('passes a plain ASCII name through', () => {
@@ -307,7 +288,6 @@ describe('normalizeDownloadFilename', () => {
     const out = normalizeDownloadFilename(`${'🎬'.repeat(100)}.mp4`, { contentType: 'video/mp4' });
     expect(utf8Len(out)).toBeLessThanOrEqual(MAX_DOWNLOAD_FILENAME_BYTES);
     expect(out).toBe(`${'🎬'.repeat(49)}.mp4`);
-    // Every code point survived whole — no lone surrogate left behind.
     expect([...out].every((cp) => !/[\uD800-\uDFFF]/.test(cp) || cp.length === 2)).toBe(true);
   });
 
@@ -348,10 +328,6 @@ describe('normalizeDownloadFilename', () => {
     }
   });
 });
-
-// ===========================================================================
-// RFC 6266 / RFC 8187 forms
-// ===========================================================================
 
 describe('buildContentDispositionFilenameForms', () => {
   it('leaves a plain ASCII name identical in both forms', () => {

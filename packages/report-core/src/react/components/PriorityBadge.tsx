@@ -4,16 +4,6 @@ import { Badge } from '@ttt-productions/ui-core/react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { PriorityBadgeProps } from '../types-ui-props.js';
 
-/**
- * Displays a priority badge based on the numeric priority score.
- * Uses thresholds from ReportCoreProvider config (or defaults).
- *
- * Score thresholds (defaults):
- *  >= 800 → CRITICAL (red, pulsing)
- *  >= 300 → HIGH (yellow)
- *  >= 100 → NORMAL (blue)
- *  < 100  → LOW (gray)
- */
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
   const { priorityThresholds } = useReportCoreContext();
 

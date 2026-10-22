@@ -1,13 +1,3 @@
-/**
- * Tests for the bounded load watchdog + bounded processing/finalizing phases.
- *
- * The terminal-state guarantee: a visible, loading media element that fires
- * NEITHER a load/metadata NOR an error event within the watchdog budget
- * synthesizes an error (entering the bounded recovery path / error fallback),
- * and the hint-driven processing/finalizing overlay phases resolve to
- * max-wait-fallback after PHASE_MAX_WAIT_MS — nothing spins forever.
- */
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ImageViewer } from '../src/react/image-viewer.js';
@@ -94,7 +84,6 @@ describe('ImageViewer load watchdog', () => {
     act(() => {
       vi.advanceTimersByTime(LOAD_WATCHDOG_MS + 1);
     });
-    // Hidden tab: the deadline re-arms instead of failing the asset.
     expect(onError).not.toHaveBeenCalled();
 
     visibilitySpy.mockReturnValue('visible');
@@ -154,10 +143,6 @@ describe('AudioViewer load watchdog', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Bounded processing/finalizing phases
-// ---------------------------------------------------------------------------
 
 function HintedHookComp({ statusHint }: { statusHint: 'processing' | 'finalizing' }) {
   const { recoveryState, onMediaError } = useMediaRecovery({

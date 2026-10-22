@@ -5,15 +5,10 @@ import type { CheckinTaskRequest } from '../../schemas/requests.js';
 import type { TaskLifecycleResult } from '../../contracts/types-admin-task.js';
 
 interface UseCheckinTaskOptions {
-  /** The app's call to its callable, typed and bound once by the app. */
   checkinTaskFn: (input: CheckinTaskRequest) => Promise<TaskLifecycleResult>;
-  /** Current admin user ID — used to invalidate the checked-out tasks query. */
   userId?: string;
 }
 
-/**
- * Mutation to check in (complete or unresolved-return) a task.
- */
 export function useCheckinTask({ checkinTaskFn, userId }: UseCheckinTaskOptions) {
   const queryClient = useQueryClient();
 

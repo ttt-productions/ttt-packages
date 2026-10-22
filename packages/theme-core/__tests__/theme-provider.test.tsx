@@ -4,8 +4,6 @@ import { ThemeProvider, useThemeStorageKey } from '../src/react/theme-provider.j
 import { REQUIRED_TOKENS } from '../src/required-tokens.js';
 import { THEME_NAMES } from '../src/themes.js';
 
-// `theme-provider.tsx` wraps `next-themes`. Mock it so the test does not
-// depend on next-themes runtime behavior — only on the props theme-core hands it.
 const nextThemes = vi.hoisted(() => ({ props: null as Record<string, unknown> | null }));
 vi.mock('next-themes', () => ({
   ThemeProvider: (props: { children: React.ReactNode }) => {
@@ -78,7 +76,6 @@ describe('ThemeProvider dev-mode token warner', () => {
 
   beforeEach(() => {
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    // Default to development so the warner runs.
     vi.stubEnv('NODE_ENV', 'development');
     clearTokens();
   });
@@ -90,7 +87,6 @@ describe('ThemeProvider dev-mode token warner', () => {
   });
 
   it('warns when a required token has no value defined on :root', async () => {
-    // Only --brand-primary is set; --brand-secondary and --brand-accent are missing.
     setTokens({ '--brand-primary': 'hsl(220 50% 50%)' });
 
     render(<ThemeProvider>child</ThemeProvider>);
@@ -99,9 +95,6 @@ describe('ThemeProvider dev-mode token warner', () => {
     const message = String(warnSpy.mock.calls[0][0]);
     expect(message).toContain('--brand-secondary');
     expect(message).toContain('--brand-accent');
-    // The token that IS defined should not appear in the Missing list.
-    // (It may appear elsewhere in the message; what matters is it is not
-    //  named in a "Missing:" line.)
     const missingSection = message.match(/Missing: ([^\n]+)/)?.[1] ?? '';
     expect(missingSection).not.toContain('--brand-primary');
   });
@@ -130,14 +123,12 @@ describe('ThemeProvider dev-mode token warner', () => {
 
     render(<ThemeProvider>child</ThemeProvider>);
 
-    // Wait one tick to let the useEffect run; then assert no warn happened.
     await new Promise((r) => setTimeout(r, 0));
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('does NOT warn when NODE_ENV is production, even if tokens are missing', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    // Everything missing; warner would normally fire.
     clearTokens();
 
     render(<ThemeProvider>child</ThemeProvider>);

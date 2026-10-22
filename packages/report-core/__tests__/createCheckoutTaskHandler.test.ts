@@ -5,8 +5,8 @@ import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   taskQueues: {
@@ -32,20 +32,10 @@ function getByPath(data: DocData, dotted: string): unknown {
 
 interface MockDbOptions {
   docs?: Record<string, DocData>;
-  /** Runs before a query computes its results — lets a test restore state each round. */
   beforeQuery?: (store: Store) => void;
-  /** Runs AFTER a query computed its results but before they are returned — lets a test
-   *  simulate another admin claiming the candidate in the query→claim race window. */
   afterQuery?: (store: Store) => void;
 }
 
-/**
- * Live-store mock: queries filter/sort the CURRENT store (outside any transaction),
- * transactions read/write specific docs. Two invariants are enforced structurally:
- *   - a range query inside the transaction THROWS (it would range-lock the whole queue —
- *     candidate discovery runs outside; doc-level claims only), and
- *   - all transactional reads must precede writes (real Firestore throws otherwise).
- */
 function createMockDb(opts: MockDbOptions = {}) {
   let autoId = 0;
   const store: Store = new Map(Object.entries(opts.docs ?? {}));
@@ -187,7 +177,7 @@ function createMockDb(opts: MockDbOptions = {}) {
 const baseTask = {
   taskType: 'userReport',
   taskId: 'group1',
-  originalPath: 'activeReportGroups/group1',
+  originalPath: 'testReportGroups/group1',
   summary: 'a report',
   priority: 5,
   createdAt: 1,
@@ -200,7 +190,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     const { db, updates } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -221,7 +211,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     const { db } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending', createdAt: 111, lastUpdatedAt: 222 },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -239,7 +229,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     const { db, updates } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'completed' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -258,7 +248,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() + 60_000 },
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -276,7 +266,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -300,7 +290,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -338,7 +328,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -371,7 +361,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     const { db, updates, sets } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'checkedOut', checkoutDetails: heldCheckout },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -409,7 +399,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
           status: 'workLater',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 1 },
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -440,11 +430,11 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
         'adminTasks/high': { ...baseTask, taskId: 'groupHigh', priority: 9, status: 'pending' },
         'adminTasks/otherType': {
           ...baseTask,
-          taskType: 'thresholdLibraryReview',
+          taskType: 'exampleReviewTask',
           priority: 99,
           status: 'pending',
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
@@ -469,7 +459,7 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
         },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -518,13 +508,11 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
     const { db, transaction } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
 
-    // The mock throws on a transactional range read, so success here proves the claim
-    // transaction touched only specific docs.
     const result = (await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} })) as {
       success: boolean;
     };
@@ -540,10 +528,9 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
       docs: {
         'adminTasks/first': { ...baseTask, taskId: 'groupFirst', priority: 9, status: 'pending' },
         'adminTasks/second': { ...baseTask, taskId: 'groupSecond', priority: 1, status: 'pending' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
       afterQuery: (store) => {
-        // Another admin wins `first` in the race window — exactly once.
         if (!stolen) {
           stolen = true;
           store.set('adminTasks/first', {
@@ -563,7 +550,6 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
 
     expect(result.success).toBe(true);
     expect(result.task.id).toBe('second');
-    // `first` was never written by THIS handler — only `second`.
     expect(updates).toHaveLength(1);
     expect(updates[0].path).toBe('adminTasks/second');
   });
@@ -572,9 +558,8 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
     const { db } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
-      // Every round: the query sees task1 pending, but by claim time it is locked.
       beforeQuery: (store) => {
         store.set('adminTasks/task1', {
           ...store.get('adminTasks/task1')!,
@@ -610,7 +595,7 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
     const { db, updates, sets } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
-        'activeReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
+        'testReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -643,7 +628,7 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
         },
-        'activeReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
+        'testReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -665,12 +650,11 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
     const { db, transaction } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
         'caseLocks/group1': { open: false },
       },
     });
     const guard = vi.fn<TaskClaimGuard>(async (args) => {
-      // A guard may read more through the transaction; the mock throws on a read after a write.
       const lock = await args.transaction.get(db.doc('caseLocks/group1'));
       return lock.data()?.open ? { claimable: false, message: 'locked' } : { claimable: true };
     });
@@ -726,7 +710,7 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'admin1', checkedOutAt: 1, expiresAt: Date.now() + 60_000 },
         },
-        'activeReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
+        'testReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
       },
     });
     const guard = vi.fn(refuseInFlight);
@@ -750,7 +734,7 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
     const { db, updates } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
-        'activeReportGroups/group1': GROUP_DOC,
+        'testReportGroups/group1': GROUP_DOC,
       },
     });
     const readFailure = new Error('read failed');
@@ -775,19 +759,19 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
         'adminTasks/busy': {
           ...baseTask,
           taskId: 'groupBusy',
-          originalPath: 'activeReportGroups/groupBusy',
+          originalPath: 'testReportGroups/groupBusy',
           priority: 9,
           status: 'pending',
         },
         'adminTasks/free': {
           ...baseTask,
           taskId: 'groupFree',
-          originalPath: 'activeReportGroups/groupFree',
+          originalPath: 'testReportGroups/groupFree',
           priority: 1,
           status: 'pending',
         },
-        'activeReportGroups/groupBusy': { status: 'processing' },
-        'activeReportGroups/groupFree': { status: 'pending' },
+        'testReportGroups/groupBusy': { status: 'processing' },
+        'testReportGroups/groupFree': { status: 'pending' },
       },
     });
     const handler = createCheckoutTaskHandler({
@@ -811,21 +795,21 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       'adminTasks/free': {
         ...baseTask,
         taskId: 'groupFree',
-        originalPath: 'activeReportGroups/groupFree',
+        originalPath: 'testReportGroups/groupFree',
         priority: 1,
         status: 'pending',
       },
-      'activeReportGroups/groupFree': { status: 'pending' },
+      'testReportGroups/groupFree': { status: 'pending' },
     };
     for (let i = 0; i < 7; i++) {
       docs[`adminTasks/busy${i}`] = {
         ...baseTask,
         taskId: `groupBusy${i}`,
-        originalPath: `activeReportGroups/groupBusy${i}`,
+        originalPath: `testReportGroups/groupBusy${i}`,
         priority: 20 - i,
         status: 'pending',
       };
-      docs[`activeReportGroups/groupBusy${i}`] = { status: 'processing' };
+      docs[`testReportGroups/groupBusy${i}`] = { status: 'processing' };
     }
     const { db } = createMockDb({ docs });
     const handler = createCheckoutTaskHandler({
@@ -847,21 +831,21 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       'adminTasks/free': {
         ...baseTask,
         taskId: 'groupFree',
-        originalPath: 'activeReportGroups/groupFree',
+        originalPath: 'testReportGroups/groupFree',
         priority: 1,
         status: 'pending',
       },
-      'activeReportGroups/groupFree': { status: 'pending' },
+      'testReportGroups/groupFree': { status: 'pending' },
     };
     for (let i = 0; i < 7; i++) {
       docs[`adminTasks/busy${i}`] = {
         ...baseTask,
         taskId: `groupBusy${i}`,
-        originalPath: `activeReportGroups/groupBusy${i}`,
+        originalPath: `testReportGroups/groupBusy${i}`,
         priority: 20 - i,
         status: 'pending',
       };
-      docs[`activeReportGroups/groupBusy${i}`] = { status: 'processing' };
+      docs[`testReportGroups/groupBusy${i}`] = { status: 'processing' };
     }
     const { db, docsRead, queryCount } = createMockDb({ docs });
     const handler = createCheckoutTaskHandler({
@@ -873,7 +857,6 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
 
     await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} });
 
-    // Seven refusals and one claim: eight one-document reads in total.
     expect(queryCount()).toBe(8);
     expect(docsRead()).toBe(8);
   });
@@ -887,7 +870,7 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
           status: 'checkedOut',
           checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
         },
-        'activeReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
+        'testReportGroups/group1': { ...GROUP_DOC, status: 'processing' },
       },
     });
     const guard = vi.fn(refuseInFlight);

@@ -1,7 +1,3 @@
-/**
- * Extract the filename from a Firebase Storage download URL.
- * Returns "" if the URL is not in the expected Storage format.
- */
 export function getFileNameFromUrl(url: string): string {
   try {
     const pathStartIndex = url.indexOf('/o/');

@@ -1,5 +1,3 @@
-// Reports run by hand, never in the gate: what they list is a judgment call, not a boundary.
-
 import fs from 'node:fs';
 import { createRepoReader } from '../reader.js';
 import type { RepoLayout } from '../layout.js';
@@ -19,7 +17,6 @@ import {
   type TestTimeoutFacts,
 } from '../../modules/repo/test-timeouts.js';
 
-/** Folder index members nothing outside the folder imports — candidates to drop from the index. */
 export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFacts): string {
   const report = unusedIndexMembers(createRepoReader(layout), facts);
   if (!report.length)
@@ -30,10 +27,6 @@ export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFac
   ].join('\n');
 }
 
-/**
- * Modules faked, and helpers declared, in several test files of one tree with no shared owner there —
- * candidates for a shared fake or helper. Never a gate failure.
- */
 export function sharedFakeReport(layout: RepoLayout, facts: SharedFakeFacts): string {
   const { modules, helpers } = runSharedFakeReport(createRepoReader(layout), facts);
   if (!modules.length && !helpers.length)
@@ -50,11 +43,6 @@ export function sharedFakeReport(layout: RepoLayout, facts: SharedFakeFacts): st
   return lines.join('\n');
 }
 
-/**
- * Test cases at or over `thresholdMs` in files that name no timeout budget — the ones a busier
- * machine pushes past the default limit — read from the test runner's JSON results files
- * (`--reporter=json --outputFile=…`, absolute paths). Never a gate failure.
- */
 export function slowTestReport(
   layout: RepoLayout,
   facts: TestTimeoutFacts,
@@ -71,10 +59,6 @@ export function slowTestReport(
   ].join('\n');
 }
 
-/**
- * The write guard's full coverage table — writes seen, targets resolved, payloads parsed and
- * verified, exceptions applied, violations — per writer root. `failed` is what the gate would say.
- */
 export async function writeGuardCoverageReport(
   layout: RepoLayout,
   facts: WriteGuardFacts,
@@ -86,11 +70,6 @@ export async function writeGuardCoverageReport(
   };
 }
 
-/**
- * Exported names declared in more than one module, outside the reviewed legitimate ones. Whether two
- * exports are one concept is a judgment, so this never fails a gate: each listed name is either
- * consolidated onto its owner or added to the reviewed list with its why.
- */
 export function duplicateExportsReport(
   layout: RepoLayout,
   facts: DuplicateExportFacts,

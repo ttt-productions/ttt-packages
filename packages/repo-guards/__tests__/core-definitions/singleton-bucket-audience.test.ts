@@ -1,6 +1,3 @@
-// A singleton the core places in a client-readable collection names the reader that needs that
-// audience; one no client reads belongs in a server-only collection.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   singletonBucketAudienceGuard,

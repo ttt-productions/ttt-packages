@@ -25,8 +25,6 @@ function schemaReason(
   return parsed.success ? undefined : parsed.error.issues[0]?.message;
 }
 
-// One wording family for every field: "<Field> cannot be empty." / "<Field> can be at most N
-// characters." / the format's own character sentence.
 describe('the refusal sentences', () => {
   it('an empty or whitespace-only text cannot be empty', () => {
     expect(checkTextField(WORK_TITLE_INPUT, '   ')).toEqual({

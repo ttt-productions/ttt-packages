@@ -1,6 +1,3 @@
-// A definition the core owns is written once: a guarded member only in its owner (and reviewed
-// uses), no app module re-declaring a core constant, no app module restating a core union.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   codeLiterals,
@@ -16,7 +13,6 @@ const CORE_FILES: Record<string, string> = {
   [`${CORE}/kinds.d.ts`]:
     'export declare const KIND_VALUES: readonly ["alphaKind", "betaKind"];\nexport type Kind = \'alphaKind\' | \'betaKind\';\nexport declare const LIMIT_MAX: 5;',
   [`${CORE}/order.js`]: "export const KIND_ORDER = ['alphaKind', 'betaKind'];",
-  // A derived schema: its declaration file spells the members only inside the inferred type.
   [`${CORE}/derived.js`]:
     "// 'alphaKind' named in prose\nexport const DerivedSchema = z.object({ kind: KindSchema });",
   [`${CORE}/derived.d.ts`]:

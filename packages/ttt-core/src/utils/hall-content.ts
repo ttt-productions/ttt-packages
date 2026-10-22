@@ -1,6 +1,3 @@
-// Pure hall-content rules shared by the member surfaces and the backend cores that own the
-// writes. Server-safe: constants, canonical schemas, and plain functions only.
-
 import { checkTextField, type TextFieldDeclaration } from './text-field.js';
 import {
   HALL_CONTENT_TEXT_FIELDS,
@@ -19,11 +16,6 @@ import {
 } from '../doc-schemas/content.js';
 import { HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../paths/collections.js';
 
-/**
- * Each work type's published Hall sub-item: the subcollection it is stored in and the schema it is
- * stored as, declared together. A writer looks its work type up once and takes both from the one
- * entry, so one kind's shape can never be stored in another kind's subcollection.
- */
 export const PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE = {
   Tales: {
     subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales,
@@ -39,11 +31,8 @@ export const PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE = {
   },
 } as const satisfies Record<WorkProjectType, { subcollection: string; schema: unknown }>;
 
-/** A published hall-content surface whose text a change request or the moderation
- *  text-clear remedy can target. */
 export type HallContentTextFieldSurface = keyof typeof HALL_CONTENT_TEXT_FIELDS;
 
-/** The proposed-text map a given surface accepts: only that surface's own field names. */
 export type HallContentTextFieldsFor<S extends HallContentTextFieldSurface> = Partial<
   Record<(typeof HALL_CONTENT_TEXT_FIELDS)[S][number], string>
 >;
@@ -52,19 +41,6 @@ export type HallContentTextFieldsValidation<S extends HallContentTextFieldSurfac
   | { readonly ok: true; readonly fields: HallContentTextFieldsFor<S> }
   | { readonly ok: false; readonly reason: string };
 
-/**
- * The ONE strict per-surface check for a proposed hall-content text map: every key must be a
- * field that surface owns, and every value must meet that field's change-request declaration
- * (`HALL_CONTENT_CHANGE_REQUEST_INPUTS` — never empty once trimmed, within its max, in its format). The
- * stored `hallContentChangeRequests` shape is a flat field map with the request's own `surface`
- * as the single authoritative discriminator, so this is where the allowlist is enforced — at the
- * backend boundary, before the map is persisted or written onto a published doc.
- *
- * The allowlist comes from the canonical Hall text-field map and each rule from the field's
- * declaration; there is no second allowlist anywhere.
- *
- * @returns the field map holding each field's kept value, or the user-facing reason it was rejected.
- */
 export function validateHallContentTextFields<S extends HallContentTextFieldSurface>(
   surface: S,
   proposedFields: Readonly<Record<string, unknown>>,
@@ -90,14 +66,6 @@ export function validateHallContentTextFields<S extends HallContentTextFieldSurf
   return { ok: true, fields: normalized as HallContentTextFieldsFor<S> };
 }
 
-/**
- * The requirements a Tale chapter / Tune track / Television episode has not met yet, as the
- * wording a surface can show, in the canonical field order. Empty means the sub-item may be
- * submitted, approved, and published.
- *
- * ONE owner for the member-side eligibility filter and all three backend cores — none of them
- * restates the per-type branch.
- */
 export function unmetHallSubItemRequirements(
   workProjectType: WorkProjectType,
   subItem: Readonly<Record<string, unknown>>,
@@ -111,7 +79,6 @@ export function unmetHallSubItemRequirements(
     .map((field) => HALL_SUB_ITEM_REQUIREMENT_LABELS[field]);
 }
 
-/** True when the sub-item meets every requirement its work type imposes. */
 export function isHallSubItemPublishable(
   workProjectType: WorkProjectType,
   subItem: Readonly<Record<string, unknown>>,
@@ -119,25 +86,17 @@ export function isHallSubItemPublishable(
   return unmetHallSubItemRequirements(workProjectType, subItem).length === 0;
 }
 
-/** The review status every chapter / track / episode carries (one set for the three kinds). */
 export type HallSubItemStatus = (FullChapter | FullTuneTrack | FullTelevisionEpisode)['status'];
 
-/** The statuses that lock a sub-item against edits and media attaches: submitted for library
- *  review, or published to the Hall. Text changes to a published item go through a change
- *  request instead. */
 export const HALL_SUB_ITEM_LOCKED_STATUSES = [
   'pending_approval',
   'published',
 ] as const satisfies readonly HallSubItemStatus[];
 
-/** True when a sub-item in this status is locked; any other value, a missing status included, is
- *  not a lock. */
 export function isHallSubItemLocked(status: unknown): boolean {
   return (HALL_SUB_ITEM_LOCKED_STATUSES as readonly unknown[]).includes(status);
 }
 
-/** The `targetKey` a Hall-grain change request is stored and queried under: one open request per
- *  Hall item's detail or per sub-item. */
 export function hallContentChangeRequestTargetKey(
   hallItemId: string,
   subItemId?: string | null,
@@ -145,8 +104,6 @@ export function hallContentChangeRequestTargetKey(
   return `${hallItemId}_${subItemId ?? 'detail'}`;
 }
 
-/** The `targetKey` a Realm-grain change request is stored and queried under: one open request per
- *  Realm. */
 export function workRealmChangeRequestTargetKey(workRealmId: string): string {
   return `realm_${workRealmId}`;
 }

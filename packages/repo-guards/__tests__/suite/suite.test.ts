@@ -1,6 +1,3 @@
-// The suite over a clean repository with a stand-in generic guard and a business guard: every
-// registered test passes. Each check's must-fail side is proven where the check lives.
-
 import { afterAll } from 'vitest';
 import type { GenericGuardDefinition } from '../../src/node/suite/config.js';
 import { matchPattern, ownerOnly } from '../../src/shapes/shapes.js';

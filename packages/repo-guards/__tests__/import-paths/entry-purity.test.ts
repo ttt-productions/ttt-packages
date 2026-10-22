@@ -1,6 +1,3 @@
-// Entry purity: an entry not declared runtime-specific reaches no Node, React, or browser runtime in
-// its built JavaScript or declaration files, and every universal and Node entry loads under Node.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   entryPurityGuard,
@@ -36,7 +33,6 @@ const manifest = (name: string, entries: Record<string, string>) =>
     ),
   });
 
-/** A clean built package: a universal root, a React entry, and a Node entry. */
 const CLEAN_BUILD: Record<string, string> = {
   'dist/index.js': "export { version } from './version.js';",
   'dist/index.d.ts': "export { version } from './version.js';",
@@ -51,7 +47,6 @@ const CLEAN_BUILD: Record<string, string> = {
   'dist/server/index.d.ts': 'export declare const read: (p: string) => unknown;',
 };
 
-/** A repository of packages: `kit` (its built files given), plus any other packages given whole. */
 function packageRepo(
   build: Record<string, string>,
   others: Record<string, string> = {},

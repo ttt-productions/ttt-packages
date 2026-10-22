@@ -1,11 +1,8 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// React DOM picks its animation event names by feature detection when it loads. jsdom has the
-// `animation` style properties but no AnimationEvent, so React listens for the prefixed
-// `webkitAnimationEnd` — a path no current browser takes — and an `onAnimationEnd` handler never
-// fires under test. A spec-shaped AnimationEvent restores the browser's `animationend` wiring. It
-// is defined here because this file runs before any test file loads react-dom.
+// jsdom lacks AnimationEvent, so React DOM, detecting at load, wires `webkitAnimationEnd` and
+// `onAnimationEnd` never fires; this must run before any test file loads react-dom.
 if (typeof window !== 'undefined' && !('AnimationEvent' in window)) {
   class AnimationEvent extends Event {
     readonly animationName: string;
@@ -19,17 +16,20 @@ if (typeof window !== 'undefined' && !('AnimationEvent' in window)) {
       this.pseudoElement = init.pseudoElement ?? '';
     }
   }
-  Object.defineProperty(window, 'AnimationEvent', { value: AnimationEvent, writable: true, configurable: true });
+  Object.defineProperty(window, 'AnimationEvent', {
+    value: AnimationEvent,
+    writable: true,
+    configurable: true,
+  });
 }
 
-// jsdom does not implement canvas drawing. Media visualizers are best-effort
-// and no-op when a 2D context is unavailable, so mirror that browser-safe path
-// without emitting jsdom's noisy "not implemented" errors in every audio test.
+// jsdom logs a "not implemented" error for every canvas getContext call.
 if (typeof HTMLCanvasElement !== 'undefined') {
-  HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = vi.fn(
+    () => null,
+  ) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 }
 
-// Mock firebase modules for all packages
 vi.mock('firebase/app', () => ({
   initializeApp: vi.fn(() => ({})),
   getApps: vi.fn(() => []),

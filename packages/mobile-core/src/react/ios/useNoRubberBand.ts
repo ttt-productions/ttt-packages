@@ -1,10 +1,6 @@
 import { useEffect } from 'react';
 import { isBrowser, isIOS } from '../../env.js';
 
-/**
- * Prevents iOS rubber-band scroll on the document by limiting overscroll chaining.
- * Use sparingly (e.g., full-screen experiences).
- */
 export function useNoRubberBand(enabled: boolean) {
   useEffect(() => {
     if (!isBrowser || !isIOS || !enabled) return;

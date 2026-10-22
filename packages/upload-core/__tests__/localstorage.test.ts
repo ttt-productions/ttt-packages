@@ -23,7 +23,6 @@ describe('createLocalStorageUploadSessionPersistence', () => {
   beforeEach(() => {
     mockStorage = new Map();
 
-    // Mock window.localStorage
     const localStorageMock = {
       getItem: (key: string) => mockStorage.get(key) ?? null,
       setItem: (key: string, value: string) => {
@@ -121,7 +120,6 @@ describe('createLocalStorageUploadSessionPersistence', () => {
 
   describe('graceful fallback when localStorage unavailable', () => {
     beforeEach(() => {
-      // Remove window entirely to simulate no localStorage
       Object.defineProperty(global, 'window', {
         value: undefined,
         writable: true,

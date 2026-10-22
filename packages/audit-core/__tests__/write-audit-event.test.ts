@@ -29,7 +29,7 @@ describe('createAuditWriter', () => {
     );
   });
 
-  it('applies default fields correctly', async () => {
+  it('fills every field the caller omits with its default', async () => {
     const { db, set } = makeMockDb();
     const { writeAuditEvent } = createAuditWriter({
       db,
@@ -98,7 +98,7 @@ describe('createAuditWriter', () => {
     );
   });
 
-  it('TEventType generic constraint — @ts-expect-error for invalid type', async () => {
+  it('rejects an event type outside the TEventType union at compile time', async () => {
     const { db } = makeMockDb();
     const { writeAuditEvent } = createAuditWriter<'a' | 'b'>({
       db,

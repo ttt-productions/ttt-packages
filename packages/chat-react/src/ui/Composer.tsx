@@ -15,21 +15,8 @@ function genId(): string {
 }
 
 export type ComposerProps = {
-  /**
-   * Text send — the composer's ONE argument. The composer is PLAIN-TEXT-ONLY:
-   * files are shared through the conversation's Conversation Files surface,
-   * never through the message timeline, so there is no attachment path here;
-   * message text carries no inline token grammar, so what the user typed is what
-   * is sent; and there is no reply-target picker, so a send never names another
-   * message (DJ ruling 2026-07-29).
-   */
   onSend: (text: string) => Promise<void>;
 
-  /**
-   * Signal the local user is typing (R14). Called as the user edits the textarea; the
-   * realtime transport coalesces to ≤1 frame per ~2s, so calling per keystroke is safe.
-   * Optional — absent on the firestore transport (no typing broadcast).
-   */
   onTyping?: () => void;
 
   disabled?: boolean;
@@ -50,22 +37,14 @@ export function Composer(props: ComposerProps) {
   const [isSending, setIsSending] = React.useState(false);
   const [sendError, setSendError] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
-  // Navigation guard for the in-flight send: a send that has left the composer
-  // but not yet committed is killable by navigation/sign-out with zero warning
-  // (observed live: the callable aborted, the message silently never delivered).
-  // Registering with the app's one guarded-navigation system makes beforeunload
-  // fire on hard navs and lets GuardedLink-style navigation confirm first.
-  // Optional accessor — consumers without the provider degrade to old behavior.
   const navigationGuard = useOptionalLocalUploadGuard();
   const counterId = React.useId();
 
-  // focus stability: never steal focus unless explicitly enabled
   React.useEffect(() => {
     if (!autoFocus) return;
     ref.current?.focus();
   }, [autoFocus]);
 
-  // The same judgement the Worker applies: a blank text is never sent, and what is sent is trimmed.
   const judged = judgeChatMessageText(text);
 
   const send = async () => {
@@ -80,10 +59,6 @@ export function Composer(props: ComposerProps) {
       await onSend(judged.text);
       setText('');
     } catch (err) {
-      // C-B8: a failed send (e.g. the realtime socket was closed) must NOT clear the
-      // user's text — `setText("")` only runs on the success path above — and must NOT
-      // re-throw into the click handler (an unhandled rejection). Surface it so the
-      // user can retry with their text intact.
       console.error('[Composer] Send failed:', err);
       setSendError("Couldn't send. Check your connection and try again.");
     } finally {
@@ -111,7 +86,6 @@ export function Composer(props: ComposerProps) {
           onChange={(e) => {
             setText(e.target.value);
             if (sendError) setSendError(null);
-            // R14: broadcast a typing signal (transport-coalesced) while there is content.
             if (onTyping && e.target.value.trim().length > 0) onTyping();
           }}
           placeholder={placeholder}

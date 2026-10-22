@@ -1,8 +1,3 @@
-// The post-deploy checks' judgments: the bucket CORS policy is applied exactly and never with a
-// wildcard origin; every public service is invocable by allUsers and a check that found nothing
-// fails; the functions the CLI has live are exactly the expected ones, each ACTIVE; and a tool
-// reaches only a project its `.firebaserc` declares.
-
 import { describe, it, expect } from 'vitest';
 import {
   assessInvokers,

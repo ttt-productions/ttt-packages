@@ -6,7 +6,6 @@ import { createMockSocketHarness, createFakeClock, type FakeClock } from './mock
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-/** Let every due timer fire and every grant promise settle. */
 async function advance(clock: FakeClock, ms: number) {
   const step = 250;
   for (let t = 0; t < ms; t += step) {

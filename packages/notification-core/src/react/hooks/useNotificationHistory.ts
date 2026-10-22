@@ -15,20 +15,6 @@ import type {
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_STALE_TIME = 60_000;
 
-/**
- * Paginated read of ARCHIVED notification history (the two-tier system's history
- * tier). Personal history lives under a per-user path
- * (`userProfiles/{uid}/notificationHistory`) and shared/admin history under a
- * top-level collection (`adminNotificationHistory`) — both resolved from the
- * category's `historyPath`, so no `where` clause is needed either way. Rows are
- * immutable and ordered newest-first by `archivedAt`.
- *
- * Each history doc is a wrapper (`archivedSnapshot` + archive metadata + a
- * native-TTL `expireAt`); the `select` mapper flattens it into a
- * {@link NotificationHistoryItem} so the read surface renders like the active
- * list. Owner-only (user) / admin-only (admin) reads are enforced by Firestore
- * rules — this hook performs no writes.
- */
 export function useNotificationHistory({
   config,
   userId,
@@ -58,14 +44,12 @@ export function useNotificationHistory({
       const snapshot = (data.archivedSnapshot ?? {}) as NotificationDoc;
       return {
         ...snapshot,
-        // The archive occurrence id is the stable history-doc key; expose
-        // archivedAt for ordering/display.
         archiveOccurrenceId: data.id,
         archivedAt: (data.archivedAt as number | undefined) ?? snapshot.updatedAt ?? 0,
       };
     },
   });
-  // The displayed page's failure held through its retry: a refetch of a never-succeeded page clears
-  // `error` while it runs, so the list would drop its failure under the retry the person pressed.
+  // A refetch of a never-succeeded page clears `error` while it runs, so the failure is held
+  // through the retry.
   return { ...read, retryState: useReadRetryState(read, paginatedPageKey(queryKey, read.page)) };
 }

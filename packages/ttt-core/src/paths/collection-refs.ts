@@ -1,8 +1,3 @@
-// Collection reference builders — for collection-level operations.
-//
-// Frontend: collection(db, ...COLLECTION_REFS.userProfiles())
-// Backend:  db.collection(toPath(COLLECTION_REFS.userProfiles()))
-
 import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
@@ -13,7 +8,6 @@ import {
 import type { PublicDocumentId } from '../constants/public-documents.js';
 
 export const COLLECTION_REFS = {
-  // Top-level collections
   userProfiles: (): [string] => [COLLECTIONS.USER_PROFILES],
   allWorkProjects: (): [string] => [COLLECTIONS.ALL_WORK_PROJECTS],
   publicWorkProjects: (): [string] => [COLLECTIONS.PUBLIC_WORK_PROJECTS],
@@ -24,19 +18,15 @@ export const COLLECTION_REFS = {
   followEdges: (): [string] => [COLLECTIONS.FOLLOW_EDGES],
   followCounters: (): [string] => [COLLECTIONS.FOLLOW_COUNTERS],
 
-  // Active notification lanes. Both collections are top-level and are selected by
-  // notification category; callers never hand-roll their collection names.
   activeUserNotifications: (): [string] => [COLLECTIONS.ACTIVE_USER_NOTIFICATIONS],
   activeAdminNotifications: (): [string] => [COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS],
 
-  // User subcollections
   userCraftSkills: (userId: string): [string, string, string] => [
     COLLECTIONS.USER_PROFILES,
     userId,
     USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS,
   ],
 
-  // WorkProject subcollections
   workProjectTales: (workProjectId: string): [string, string, string] => [
     COLLECTIONS.ALL_WORK_PROJECTS,
     workProjectId,
@@ -67,30 +57,24 @@ export const COLLECTION_REFS = {
     WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS,
   ],
 
-  // WorkRealm subcollections — the steward's realm shared-file folders. The projection owner
-  // lists this collection (bounded by MAX_REALM_FILE_FOLDERS) and the folder-cap /
-  // name-uniqueness checks query it; clients never read it directly.
   realmFileFolders: (workRealmId: string): [string, string, string] => [
     COLLECTIONS.WORK_REALMS,
     workRealmId,
     WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS,
   ],
 
-  // SquareStreetz collections
   activePosts: (): [string, string, string] => [
     COLLECTIONS.SQUARE_STREETZ_FEED,
     NESTED_SUBCOLLECTIONS.ACTIVE_POSTS,
     NESTED_SUBCOLLECTIONS.SOCIAL_POSTS,
   ],
 
-  // HallLibrary collections
   thresholdItems: (): [string] => [COLLECTIONS.THRESHOLD_ITEMS],
 
   hallItems: (): [string] => [COLLECTIONS.HALL_ITEMS],
 
   hallContentChangeRequests: (): [string] => [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS],
 
-  // Commission/Audition collections
   commissionProposals: (commissionListingId: string): [string, string, string] => [
     COLLECTIONS.COMMISSION_LISTINGS,
     commissionListingId,
@@ -121,8 +105,6 @@ export const COLLECTION_REFS = {
     NESTED_SUBCOLLECTIONS.CHANGED_DOCS,
   ],
 
-  // Conversation Files list for each supported ConversationFileRef scope (the panel
-  // subscribes to the collection; the backend writes the docs).
   guildInviteConversationFiles: (guildInviteId: string): [string, string, string] => [
     COLLECTIONS.GUILD_INVITE_CONVERSATIONS,
     guildInviteId,
@@ -141,38 +123,24 @@ export const COLLECTION_REFS = {
     NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS,
   ],
 
-  // The admin-support thread's message subcollection. Backend writers mint a new message
-  // document with `db.collection(toPath(...)).doc()` so the id is a Firestore auto-id; the
-  // admin-dispatch panel subscribes to the same collection. The per-document counterpart is
-  // PATH_BUILDERS.adminConversationMessage.
   adminDispatchConversationMessages: (adminDispatchId: string): [string, string, string] => [
     COLLECTIONS.PENDING_ADMIN_DISPATCHES,
     adminDispatchId,
     NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES,
   ],
 
-  // One feedback type's suggestions, which account erasure queries for the departing user's
-  // entries; the per-document counterpart is PATH_BUILDERS.userSuggestion.
   userSuggestions: (feedbackType: string): [string, string, string] => [
     COLLECTIONS.FEEDBACK_SUBMISSIONS,
     feedbackType,
     NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS,
   ],
 
-  // The upload pipeline's pending-row collection and the archive it sweeps terminal rows
-  // into. The sweep addresses both as COLLECTIONS (query the live one, write a row per
-  // archived doc); the per-document counterparts are PATH_BUILDERS.pendingMedia /
-  // PATH_BUILDERS.pendingMediaArchive.
   pendingMedia: (): [string] => [COLLECTIONS.PENDING_MEDIA],
 
   pendingMediaArchive: (): [string] => [COLLECTIONS.PENDING_MEDIA_ARCHIVE],
 
-  // The media copy intents, which the orphaned-copy sweep queries for expired ones; the
-  // per-document counterpart is PATH_BUILDERS.mediaCopyIntent.
   mediaCopyIntents: (): [string] => [COLLECTIONS.MEDIA_COPY_INTENTS],
 
-  // One public document's immutable version history (queried newest-first by `version` for
-  // the admin history read). The per-document counterpart is PATH_BUILDERS.publicDocumentVersion.
   publicDocumentVersions: (documentId: PublicDocumentId): [string, string, string] => [
     COLLECTIONS.PUBLIC_DOCUMENTS,
     documentId,

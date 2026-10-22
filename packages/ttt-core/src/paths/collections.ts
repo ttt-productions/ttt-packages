@@ -1,21 +1,15 @@
-// Firestore collection name constants — canonical source of truth
-// Changes to these values require database migration.
+// Changing any of these values requires a database migration.
 
 import type { WorkProjectType } from '../types/content.js';
 import type { HallSubItemType } from '../doc-schemas/content.js';
 
-/**
- * TOP-LEVEL COLLECTIONS
- */
 export const COLLECTIONS = {
-  // Core entities
   USER_PROFILES: 'userProfiles',
   PUBLIC_USERS: 'publicUsers',
   ALL_WORK_PROJECTS: 'allWorkProjects',
   PUBLIC_WORK_PROJECTS: 'publicWorkProjects',
   WORK_REALMS: 'workRealms',
 
-  // Content & Social
   SQUARE_STREETZ_FEED: 'squareStreetzFeed',
   THRESHOLD_ITEMS: 'thresholdItems',
   HALL_ITEMS: 'hallItems',
@@ -25,7 +19,6 @@ export const COLLECTIONS = {
   FOLLOW_EDGES: 'followEdges',
   FOLLOW_COUNTERS: 'followCounters',
 
-  // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
   RESERVED_REALM_NAMES: 'reservedRealmNames',
   ACCOUNT_DELETION_REQUESTS: 'accountDeletionRequests',
@@ -43,23 +36,17 @@ export const COLLECTIONS = {
   GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
   STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',
   MODERATION_CASCADE_MANIFESTS: 'moderationCascadeManifests',
-  // Backend-only append-only audit ledger (audit-core shape; auditEvents/{eventId}).
   AUDIT_EVENTS: 'auditEvents',
 
-  // Notification system
   ACTIVE_USER_NOTIFICATIONS: 'activeUserNotifications',
   ACTIVE_ADMIN_NOTIFICATIONS: 'activeAdminNotifications',
   ADMIN_NOTIFICATION_HISTORY: 'adminNotificationHistory',
   PENDING_NOTIFICATIONS: 'pendingNotifications',
 
-  // Notification redesign — delivery ledger + unified fanout engine (Admin-SDK-only).
   NOTIFICATION_DELIVERIES: 'notificationDeliveries',
   NOTIFICATION_FANOUT_JOBS: 'notificationFanoutJobs',
-  // Server-owned "archive all" jobs (one per user+category+requestId; CF-only, never
-  // client-readable — the client learns state through getArchiveAllStatus).
   NOTIFICATION_ARCHIVE_ALL_JOBS: 'notificationArchiveAllJobs',
 
-  // Chat realtime sync / projection / command collections (Admin-SDK-only).
   CHAT_CHANNEL_AUTH_PROJECTIONS: 'chatChannelAuthProjections',
   CHAT_SCOPE_DEGRADED: 'chatScopeDegraded',
   CHAT_SYNC_EVENTS: 'chatSyncEvents',
@@ -69,124 +56,73 @@ export const COLLECTIONS = {
   CHAT_HISTORY_ANONYMIZATION_JOBS: 'chatHistoryAnonymizationJobs',
   CHAT_PARKED_DELIVERIES: 'chatParkedDeliveries',
 
-  // Square Streetz announcement outbox (Admin-SDK-only): durable jobs enqueued in the
-  // announcing domain's transaction and drained by the outbox trigger worker. Job ids
-  // are deterministic so a replayed transaction collides instead of duplicating —
-  // ALWAYS derive them via buildSquareAnnouncementJobId (doc-schemas/square-announcement-jobs.ts).
   SQUARE_ANNOUNCEMENT_JOBS: 'squareAnnouncementJobs',
 
-  // Feedback & Metadata
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
   CRAFT_SKILLS_BY_TAG: 'craftSkillsByTag',
   SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_appConfig',
-  // Server-only singleton bucket (BACKEND-108 — least-privileged reader). Docs whose ONLY
-  // readers are Cloud Functions (Admin SDK) live here, never in the public `_appConfig` or
-  // the signed-in `_systemData` bucket. Firestore rules deny all client reads/writes on
-  // `_serverData`. Its docs are the `_serverData/…` entries of COLLECTION_SCHEMAS.
   SERVER_DATA: '_serverData',
 
-  // Payments & pledge ledger
   PLEDGE_PAYMENTS: 'pledgePayments',
   PLEDGE_PAYMENT_PROVIDER_REFS: 'pledgePaymentProviderRefs',
   PROCESSED_STRIPE_EVENTS: 'processedStripeEvents',
   PLEDGE_PAYMENT_LEDGER_EVENTS: 'pledgePaymentLedgerEvents',
   PAYMENT_WEBHOOK_QUARANTINE: 'paymentWebhookQuarantine',
-  // Running-totals singleton (pledgePaymentTotals/current) — auth-readable, server-only writes.
   PLEDGE_PAYMENT_TOTALS: 'pledgePaymentTotals',
-  // User-initiated pledge refund requests (post-launch handler; keyed by requestId). No Stripe ids
-  // here — those stay on pledgePaymentProviderRefs. Server-only writes.
   PLEDGE_REFUND_REQUESTS: 'pledgeRefundRequests',
 
-  // Trust & Safety — child-safety case spine (§A1b, §A2)
   CHILD_SAFETY_CASE_LIST: 'childSafetyCaseList',
   CHILD_SAFETY_CASES: 'childSafetyCases',
   CHILD_SAFETY_OWNING_ALIASES: 'childSafetyOwningAliases',
 
-  // Trust & Safety — time-sensitive admin-tray "case needs work" pins (admin-readable
-  // projection; the 5th notification-tray tab reads it, the Safety Case Console owns detail).
   ACTIVE_SAFETY_CASE_ALERTS: 'activeSafetyCaseAlerts',
 
-  // Trust & Safety — holds + resource commands (§A3)
   SAFETY_HOLD_REFS: 'safetyHoldRefs',
   SAFETY_HOLD_RESOURCES: 'safetyHoldResources',
   SAFETY_RESOURCE_COMMANDS: 'safetyResourceCommands',
 
-  // Trust & Safety — evidence + provenance (§A4, §A6)
   SAFETY_EVIDENCE_MANIFESTS: 'safetyEvidenceManifests',
   SAFETY_EVIDENCE_JOBS: 'safetyEvidenceJobs',
   EVENT_PROVENANCE: 'eventProvenance',
 
-  // Trust & Safety — sagas + closure (§A5)
   QUARANTINE_SAGA_JOBS: 'quarantineSagaJobs',
   NCMEC_SUBMISSION_JOBS: 'ncmecSubmissionJobs',
   ACCOUNT_ACTION_COMMANDS: 'accountActionCommands',
 
-  // Trust & Safety — SLA monitors + heartbeat (§A8)
   SAFETY_SLA_MONITORS: 'safetySlaMonitors',
   SAFETY_MONITOR_HEARTBEAT: 'safetyMonitorHeartbeat',
 
-  // Trust & Safety — age attestation nonces (§A7)
   AGE_ATTESTATION_NONCES: 'ageAttestationNonces',
 
-  // Trust & Safety — NCII / TAKE IT DOWN (§A11)
   NCII_ALLEGATIONS: 'nciiAllegations',
   TAKE_IT_DOWN_REQUESTS: 'takeItDownRequests',
   NCII_CASES: 'nciiCases',
   NCII_TEMPORARY_HOLDS: 'nciiTemporaryHolds',
   NCII_REMOVAL_JOBS: 'nciiRemovalJobs',
-  // [H-01] durable operator-visible inventory of NCII-evidence objects RETAINED but never recorded
-  // as evidence (orphan / oversized / spoof / unknown-reference). Never auto-deleted.
   NCII_RETAINED_EVIDENCE_INVENTORY: 'nciiRetainedEvidenceInventory',
-  // [H-01] app-only dead-letter sink for NCII retained-evidence inventory rows that could not be
-  // written to the primary nciiRetainedEvidenceInventory collection (e.g. write failure during
-  // the onNciiEvidenceUploaded trigger). Never auto-deleted; operator-visible for manual triage.
   NCII_INVENTORY_DEAD_LETTER: 'nciiInventoryDeadLetter',
 
-  // Backend-only retry queue for post-commit auth-effect reconciliation: when an account-status
-  // change committed to Firestore but the follow-on Auth effect (custom-claim / disable) failed,
-  // a queue entry keyed by uid drives a retry loop toward the target status. Admin-SDK-only.
   STATUS_RECONCILE_QUEUE: 'statusReconcileQueue',
 
-  // Trust & Safety — [H-08] per-operator TOTP step-up state (secret + active grant window),
-  // keyed by uid. Cloud-Functions-only: the secret is returned to the client exactly once by
-  // the enroll callable and is NEVER readable through Firestore.
   OPERATOR_STEP_UP: 'operatorStepUp',
 
-  // Durable per-sweep cadence/cursor state for the scheduled user sweeps, keyed by the sweep
-  // name (orphanRegistrationCleanup, reconcileAccountStatus). Wall-clock stamps that survive a
-  // container recycle, so a "~once/day" or "~once/week" pass fires on real elapsed time instead
-  // of an in-memory counter. Admin-SDK-only.
   SWEEP_STATE: 'sweepState',
 
-  // Versioned public documents (Terms, Privacy, Rules & Agreements, Future Plans, DMCA,
-  // Take It Down copy). `publicDocuments/{documentId}` is a field-less container whose
-  // `publicDocumentVersions` subcollection holds the immutable published versions; the one
-  // private working copy per document and the release records are top-level. All three are
-  // backend-written; the public reads the `_appConfig/{documentId}` current projection.
   PUBLIC_DOCUMENTS: 'publicDocuments',
   PUBLIC_DOCUMENT_DRAFTS: 'publicDocumentDrafts',
   PUBLIC_DOCUMENT_RELEASES: 'publicDocumentReleases',
 } as const;
 
-/**
- * USER PROFILE SUBCOLLECTIONS
- * Nested under userProfiles/{userId}/
- */
 export const USER_SUBCOLLECTIONS = {
   PROFILE_CRAFT_SKILLS: 'profileCraftSkills',
   PRIVATE_DATA: 'privateData',
   USER_LIKES: 'userLikes',
   MENTION_HISTORY: 'mentionHistory',
   AUDITION_VOTES: 'auditionVotes',
-  // Archived personal notification history (userProfiles/{uid}/notificationHistory/{id}).
   NOTIFICATION_HISTORY: 'notificationHistory',
 } as const;
 
-/**
- * WORKPROJECT SUBCOLLECTIONS
- * Nested under allWorkProjects/{workProjectId}/
- */
 export const WORK_PROJECT_SUBCOLLECTIONS = {
   WORK_PROJECT_TALES: 'workProjectTales',
   WORK_PROJECT_TUNES: 'workProjectTunes',
@@ -195,35 +131,15 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
   PUBLIC_GUILDMATE_USERS: 'publicGuildmateUsers',
   WORK_FILE_FOLDERS: 'workFileFolders',
   GUILD_CHAT_CHANNELS: 'guildChatChannels',
-  // The Work's single hall-entry reservation (allWorkProjects/{id}/hallSubmissionReservation/
-  // reservation): claimed create-only inside the first threshold submit's transaction so a
-  // project can only ever own ONE hall item.
   HALL_SUBMISSION_RESERVATION: 'hallSubmissionReservation',
 } as const;
 
-/**
- * WORKREALM SUBCOLLECTIONS
- * Nested under workRealms/{workRealmId}/
- */
 export const WORK_REALM_SUBCOLLECTIONS = {
-  // The Realm steward's folders for the realm shared-file pool. The FILES themselves are
-  // never docs here — a shared file stays a `workFile` under its owning Work and carries
-  // `realmFileFolderId` on its mediaAssets doc.
   REALM_FILE_FOLDERS: 'realmFileFolders',
 } as const;
 
-/**
- * HALL ITEM SUBCOLLECTIONS
- * Nested under hallItems/{hallItemId}/ — the PUBLISHED sub-item projections
- * (chapters/tracks/episodes copied out of the Work at publish time by
- * runPublishApprovedHallLibraryItem).
- *
- * The segment is an INDEPENDENT compound-camelCase collection name (ARCH-104) — it is
- * NOT any transformation of `WorkProjectType`. Map a work type to its segment through
- * HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE; `workProjectType.toLowerCase()` is not merely
- * discouraged, it produces a segment that DOES NOT EXIST ('tales', 'tunes',
- * 'television'), so the resulting path silently reads/writes an empty collection.
- */
+// Map a work type through HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: `workProjectType.toLowerCase()`
+// names a collection that does not exist.
 export const HALL_ITEM_SUBCOLLECTIONS = {
   TALES: 'hallItemTales',
   TUNES: 'hallItemTunes',
@@ -233,7 +149,6 @@ export const HALL_ITEM_SUBCOLLECTIONS = {
 export type HallItemSubcollection =
   (typeof HALL_ITEM_SUBCOLLECTIONS)[keyof typeof HALL_ITEM_SUBCOLLECTIONS];
 
-/** WorkProjectType → published hall sub-item subcollection segment. */
 export const HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: Record<WorkProjectType, HallItemSubcollection> =
   {
     Tales: HALL_ITEM_SUBCOLLECTIONS.TALES,
@@ -241,223 +156,124 @@ export const HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: Record<WorkProjectType, HallI
     Television: HALL_ITEM_SUBCOLLECTIONS.TELEVISION,
   };
 
-/**
- * WorkProjectType → the Hall sub-item kind a notification or Streetz payload carries for it.
- * The values are typed against the canonical HallSubItemType rather than read off its schema, so
- * this dependency-free paths module never pulls zod in at runtime.
- */
+// Typed against HallSubItemType, not read off its schema, so this paths module never loads zod at
+// runtime.
 export const HALL_SUB_ITEM_TYPE_BY_WORK_TYPE: Record<WorkProjectType, HallSubItemType> = {
   Tales: 'chapter',
   Tunes: 'track',
   Television: 'episode',
 };
 
-/**
- * DEEPLY NESTED SUBCOLLECTIONS
- * Third level and beyond
- */
 export const NESTED_SUBCOLLECTIONS = {
-  // Content subcollections
   TALE_CHAPTERS: 'taleChapters',
   TUNE_TRACKS: 'tuneTracks',
   TELEVISION_EPISODES: 'televisionEpisodes',
 
-  // Work-project file folders (S7): files nested under each folder.
   WORK_FILES: 'workFiles',
 
-  // Communication — guild channel + invite messages are REALTIME-ONLY (chat Worker
-  // Durable Object, never Firestore); only admin-support conversationMessages persist here.
   CONVERSATION_MESSAGES: 'conversationMessages',
 
-  // Conversation Files — the flat per-conversation file list. Nested under the
-  // conversation's NATURAL Firestore parent, so the same subcollection segment serves
-  // both supported scopes:
-  //   guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}
-  //   pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}
-  // Guild chat channels deliberately have NO conversationFiles subcollection.
   CONVERSATION_FILES: 'conversationFiles',
 
-  // Per-person read markers of an admin-support thread, one per member-side reader:
-  //   pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}
   DISPATCH_READ_MARKERS: 'dispatchReadMarkers',
 
-  // SquareStreetz & Social
   SOCIAL_POSTS: 'socialPosts',
   ACTIVE_POSTS: 'activePosts',
   TRENDING_POSTS: 'trendingPosts',
 
-  // Commissions & Auditions
   COMMISSION_PROPOSALS: 'commissionProposals',
   AUDITION_ENTRIES: 'auditionEntries',
 
-  // User history
   LIKE_HISTORY: 'likeHistory',
   SQUARE_STREETZ_LIKES: 'squareStreetzLikes',
 
-  // Craft Skills & Feedback
   TAGGED_CRAFT_SKILLS: 'taggedCraftSkills',
   USER_SUGGESTIONS: 'userSuggestions',
 
-  // Moderation
   CHANGED_DOCS: 'changedDocs',
 
-  // Trust & Safety — report spine (§A1): the public, reporter-identity-free projection
-  // is a deterministic child of the protected report root
-  // (contentReports/{reportId}/publicProjection/{reportId}).
   REPORT_PUBLIC_PROJECTION: 'publicProjection',
-  // Per-report idempotency markers under a report group
-  // (activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}): the group's
-  // totalReports increment is gated on the marker's ABSENCE, so a redelivered create event
-  // never double-counts. Backend-only.
   REPORT_GROUP_COUNTED_REPORTS: 'reportGroupCountedReports',
-  // Restricted reporter/requester PII subcollection, shared by the report spine
-  // (contentReports/{reportId}/privateDetails/{snapshot,narrative}) and TAKE IT DOWN
-  // (takeItDownRequests/{requestId}/privateDetails/requester). ONE shared compound value
-  // serves both parents — never split per parent. Admin-read-only / server-only.
   PRIVATE: 'privateDetails',
 
-  // Chat degraded-scope causes
-  // (chatScopeDegraded/{scopeKey}/chatScopeDegradedCauses/{causeId}).
   CHAT_SCOPE_DEGRADED_CAUSES: 'chatScopeDegradedCauses',
-  // Anonymization affected-chunk set (chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}).
   CHAT_ANONYMIZATION_AFFECTED_CHUNKS: 'affectedChunks',
 
-  // Trust & Safety — child-safety case append-only detail (NEVER arrays).
   CHILD_SAFETY_SOURCE_SIGNALS: 'sourceSignals',
   CHILD_SAFETY_DECISIONS: 'childSafetyDecisions',
   CHILD_SAFETY_DECISION_VIEWS: 'childSafetyDecisionViews',
   CHILD_SAFETY_CASE_ACCOUNTS: 'childSafetyCaseAccounts',
   CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'childSafetyCaseAccountHistory',
-  // Per-asset leg state of the possible-minor crossover (childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}).
   CHILD_SAFETY_CASE_CROSSOVER_ITEMS: 'childSafetyCaseCrossoverItems',
   CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
   CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'ncmecSubmissionFiles',
   CHILD_SAFETY_LEGAL_PROCESS: 'legalProcess',
-  // Immutable portal-filed NCMEC artifacts recorded on the case by the two step-up-gated
-  // operator callables — the receipt artifact that gates `markNcmecPortalComplete`
-  // (childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}) and the correction record
-  // that gates the corrected-no-apparent-violation disposition
-  // (childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}). Admin-SDK-only; both
-  // segments were app-local literals until now.
   NCMEC_PORTAL_RECEIPT_ARTIFACTS: 'portalReceiptArtifacts',
   NCMEC_PORTAL_CORRECTIONS: 'ncmecPortalCorrections',
-  // The single immutable completion-proof record bound to one NCMEC submission
-  // (childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record).
-  // A submission can never reach `completed` without this record existing — it is written
-  // create-if-absent in the SAME transaction as the state transition.
   NCMEC_COMPLETION_PROOF: 'ncmecCompletionProof',
 
-  // Trust & Safety — resource-command subcollections (§A3).
   SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS: 'authorizedRequests',
   SAFETY_RESOURCE_COMMAND_BYPASS_REFS: 'bypassRefs',
 
-  // Trust & Safety — evidence-job subcollections (§A4).
   SAFETY_EVIDENCE_JOB_ITEMS: 'safetyEvidenceJobItems',
   SAFETY_EVIDENCE_JOB_DISPOSITION: 'safetyEvidenceJobDisposition',
 
-  // Trust & Safety — quarantine-saga subcollection (§A5).
   QUARANTINE_SAGA_RELATED_ASSETS: 'relatedAssets',
 
-  // Trust & Safety — TAKE IT DOWN request subcollections (§A11). The restricted
-  // requester-PII subcollection uses the shared `PRIVATE` constant above.
   TAKE_IT_DOWN_SUBMISSIONS: 'takeItDownSubmissions',
   TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
   TAKE_IT_DOWN_ACTIONS: 'takeItDownActions',
   TAKE_IT_DOWN_EVIDENCE: 'takeItDownEvidence',
-  // The deletion-verification record the retention sweep keeps for each evidence object it removes
-  // (…/takeItDownEvidenceDisposition/{evidenceId}). Its own subcollection, mirroring
-  // `safetyEvidenceJobDisposition`, so `takeItDownActions` holds action rows only. Backend-only.
   TAKE_IT_DOWN_EVIDENCE_DISPOSITION: 'takeItDownEvidenceDisposition',
-  // The RESTRICTED operator rationale row bound to one validity decision
-  // (…/validityDecisions/{decisionId}/takeItDownValidityRationale/record) — the row the
-  // decision's rationaleRef and the action's detailRef point at. Backend-only.
   TAKE_IT_DOWN_VALIDITY_RATIONALE: 'takeItDownValidityRationale',
 
-  // Trust & Safety — NCII case subcollections (§A11).
   NCII_CASE_ALLEGATION_LINKS: 'allegationLinks',
   NCII_CASE_REQUEST_LINKS: 'requestLinks',
   NCII_CASE_REMOVAL_ACTIONS: 'removalActions',
   NCII_CASE_BLOCKED_HASHES: 'blockedHashes',
-  // Append-only NCII case closure/reopen events (nciiCases/{caseId}/closureEvents/{eventId}).
   NCII_CASE_CLOSURE_EVENTS: 'closureEvents',
 
-  // Trust & Safety — NCII removal-job targets (§A11).
   NCII_REMOVAL_TARGETS: 'nciiRemovalTargets',
 
-  // Feedback lists under the server-only `_serverData/feedbackLists` container doc
-  // (BACKEND-108): the alias map and the denylist submitFeedback consults via the Admin
-  // SDK. Moved out of the top-level `feedbackAliases` / `feedbackDenylist` collections,
-  // which were anonymously readable with no client reader.
   FEEDBACK_ALIASES: 'feedbackAliases',
   FEEDBACK_DENYLIST: 'feedbackDenylist',
 
-  // Immutable published versions of one public document
-  // (publicDocuments/{documentId}/publicDocumentVersions/{versionId}).
   PUBLIC_DOCUMENT_VERSIONS: 'publicDocumentVersions',
 } as const;
 
-/**
- * SPECIAL DOCUMENT PATHS
- * Static document IDs for singleton documents
- */
 export const SPECIAL_DOCS = {
   ADMIN_LIST: 'adminList',
   APP_CONFIG: 'app',
-  // Charter→full app-mode marker doc (_systemData/appMode) that recordAppModeFlip writes.
   APP_MODE: 'appMode',
-  // The admin-managed system slots: video slots (_systemData/systemVideoSlots, signed-in) and
-  // account slots (_appConfig/systemUidSlots, public).
   SYSTEM_VIDEO_SLOTS: 'systemVideoSlots',
   SYSTEM_UID_SLOTS: 'systemUidSlots',
   FUTURE_PLANS: 'futurePlans',
-  // The Hall viewing-state doc id under userProfiles/{uid}/privateData/.
   HALL_LIBRARY_PREFERENCES: 'hallLibraryPreferences',
   PROFANITY_LIST: 'profanityList',
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
-  // Editable content-page singletons under _appConfig (content-pages Firestore
-  // migration, DJ ruling 2026-07-06): the ONLY source for /terms, /privacy, and
-  // the /take-it-down page copy — no hardcoded fallbacks anywhere.
   TERMS_PAGE: 'termsOfService',
   PRIVACY_PAGE: 'privacyPolicy',
   TAKE_IT_DOWN_PAGE_COPY: 'takeItDownPageCopy',
-  // The /dmca page's current projection (_appConfig/dmcaPolicy). Each of these page ids is
-  // also that document's PublicDocumentId (constants/public-documents.ts).
   DMCA_POLICY: 'dmcaPolicy',
-  // Also the doc id of the pledge running-totals singleton (pledgePaymentTotals/summary).
   SUMMARY: 'summary',
 
-  // Trust & Safety — singleton global SLA-monitor heartbeat (safetyMonitorHeartbeat/global).
   SAFETY_MONITOR_HEARTBEAT_GLOBAL: 'global',
 
-  // Trust & Safety — _serverData (server-only) singletons (§A7, §A11). Moved out of the
-  // public _appConfig bucket: their only readers are Cloud Functions (BACKEND-108).
   AGE_POLICY: 'agePolicy',
   NCII_POLICY: 'nciiPolicy',
   PRIVILEGED_REVIEWER_SECURITY: 'privilegedReviewerSecurity',
 
-  // _serverData container doc for the two submitFeedback lists. It holds no fields — it
-  // exists only as the parent of the feedbackAliases / feedbackDenylist subcollections,
-  // which moved out of the anonymously-readable top-level collections (BACKEND-108).
   FEEDBACK_LISTS: 'feedbackLists',
 
-  // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
-  TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/privateDetails/requester
+  TAKE_IT_DOWN_REQUESTER: 'requester',
 
-  // The fixed doc id of a one-per-parent singleton row: the NCMEC completion proof
-  // (…/ncmecCompletionProof/record) and the TAKE IT DOWN validity rationale
-  // (…/takeItDownValidityRationale/record). ONE shared value serves both — never split.
   RECORD: 'record',
 
-  // The Work's single hall-entry reservation doc (…/hallSubmissionReservation/reservation).
   HALL_SUBMISSION_RESERVATION: 'reservation',
 
-  // Trust & Safety — fixed-id report-spine private subdocs (§A1).
-  REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/privateDetails/snapshot
-  REPORT_NARRATIVE: 'narrative', // contentReports/{reportId}/privateDetails/narrative
-  // contentReports/{reportId}/privateDetails/narrativeEscalation — the NEW narrative typed
-  // when an EXISTING ordinary report is escalated into a protected case (the original
-  // narrative doc already exists, so a re-create would collide).
+  REPORT_SNAPSHOT: 'snapshot',
+  REPORT_NARRATIVE: 'narrative',
   REPORT_NARRATIVE_ESCALATION: 'narrativeEscalation',
 } as const;

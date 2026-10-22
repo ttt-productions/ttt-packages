@@ -98,9 +98,6 @@ const MAP: Record<string, { code: AuthErrorCode; message: string }> = {
     code: 'AUTH_CREDENTIAL_ALREADY_IN_USE',
     message: 'Those credentials are already associated with another account.',
   },
-  // Email-action (oobCode) links — password reset, email verification, email recovery.
-  // The copy is deliberately generic: it never reveals whether an account exists, and it
-  // always points at the one recovery affordance (request a fresh link).
   'auth/expired-action-code': {
     code: 'AUTH_EXPIRED_ACTION_CODE',
     message: 'This email action link has expired. Request a new link and try again.',
@@ -112,7 +109,6 @@ const MAP: Record<string, { code: AuthErrorCode; message: string }> = {
   },
 };
 
-/** The copy for every auth failure no mapped code covers. */
 export const UNKNOWN_AUTH_ERROR_MESSAGE = 'Authentication error. Please try again.';
 
 export function normalizeAuthError(
@@ -131,9 +127,7 @@ export function normalizeAuthError(
     };
   }
 
-  // Never the error's own message: for an unclassified failure it is the SDK's internal diagnostic
-  // ("Firebase: Cloud function deadline exceeded. (auth/internal-error)."), not an answer the person
-  // can act on. The consumer reports the error itself to its monitoring.
+  // Never the error's own message: for an unclassified failure it is the SDK's internal diagnostic.
   return {
     code: 'AUTH_UNKNOWN',
     message: UNKNOWN_AUTH_ERROR_MESSAGE,
@@ -142,7 +136,6 @@ export function normalizeAuthError(
   };
 }
 
-/** Convenience: returns just the user-facing message string */
 export function getErrorMessage(error: unknown): string {
   return normalizeAuthError(error).message;
 }

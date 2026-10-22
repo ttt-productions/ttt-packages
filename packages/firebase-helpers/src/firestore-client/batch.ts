@@ -2,11 +2,6 @@ import type { Firestore, DocumentData, DocumentReference } from 'firebase/firest
 import { writeBatch } from 'firebase/firestore';
 import { chunk } from '../utils/chunk.js';
 
-/**
- * Firestore writeBatch has an operation limit (commonly 500).
- * We keep this generic: caller provides the "apply" function for each item.
- */
-
 export type BatchApplyFn<T> = (
   batch: ReturnType<typeof writeBatch>,
   item: T,
@@ -29,7 +24,7 @@ export async function commitInBatches<T>(
     apply: BatchApplyFn<T>;
   },
 ): Promise<CommitInBatchesResult> {
-  const batchSize = opts.batchSize ?? 450; // leave headroom
+  const batchSize = opts.batchSize ?? 450; // Firestore caps a writeBatch at 500 operations.
   const groups = chunk(items, batchSize);
 
   let committedBatches = 0;
@@ -56,7 +51,6 @@ export async function commitInBatches<T>(
       success: true,
     };
   } catch (error) {
-    // Return partial success info so caller can handle cleanup
     return {
       committedBatches,
       committedOps,
@@ -68,10 +62,6 @@ export async function commitInBatches<T>(
   }
 }
 
-/**
- * Helper to write many docs to the same collection-like set of refs.
- * You pass refs + data; we batch set() calls.
- */
 export async function batchSet<T extends DocumentData>(
   db: Firestore,
   items: Array<{ ref: DocumentReference<T>; data: T; merge?: boolean }>,

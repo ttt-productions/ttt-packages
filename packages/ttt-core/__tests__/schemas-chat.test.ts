@@ -1,8 +1,3 @@
-// Guild chat channel LIFECYCLE callable inputs. One named schema per callable (archive /
-// unarchive / delete) rather than a shared alias, so a lane can diverge without touching its
-// siblings — while these tests pin the fact that today the three shapes are identical and all
-// three are `.strict()`.
-
 import { describe, it, expect } from 'vitest';
 import {
   ArchiveGuildChatChannelInputSchema,
@@ -51,7 +46,6 @@ describe('UnarchiveGuildChatChannelInputSchema', () => {
       isArchived: false,
     });
     expect(result.success).toBe(false);
-    // A caller must not be able to smuggle the state it is asking the server to derive.
     expect(
       UnarchiveGuildChatChannelInputSchema.safeParse({ ...validInput, force: true }).success,
     ).toBe(false);

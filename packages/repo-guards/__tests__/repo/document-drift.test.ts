@@ -10,10 +10,6 @@ const DOC = 'docs/preferences.md';
 let workspace: TempRepo | undefined;
 afterEach(() => workspace?.remove());
 
-/**
- * A workspace holding this repository (`app/`) and its sibling (`sibling/`): the sibling's copy of the
- * document, a sibling checkout that holds no copy (`'no copy'`), or no sibling checkout at all.
- */
 function setUp(ours: string, theirs: string | 'no copy' | 'no checkout') {
   workspace = tempRepo({ 'app/src/index.ts': 'export {};', [`app/${DOC}`]: ours });
   if (theirs !== 'no checkout')

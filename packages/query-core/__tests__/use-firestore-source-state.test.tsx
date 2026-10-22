@@ -3,8 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// Controllable firebase/firestore mock (4-arg onSnapshot: ref, options, next, error)
-// so tests can emit server/cache snapshots + listener errors and drive sourceState.
 const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
@@ -76,7 +74,6 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
       { wrapper: Wrapper },
     );
     expect(result.current.sourceState).toBe('connecting');
-    // 2nd arg is the options object.
     expect(onSnapshotMock.mock.calls[0][1]).toEqual({ includeMetadataChanges: true });
   });
 
@@ -136,7 +133,6 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
 
     rerender({ key: 'u2' });
     expect(result.current.sourceState).toBe('connecting');
-    // a fresh subscription was opened for the new identity
     act(() => colCaps[colCaps.length - 1].next(colSnap(false)));
     expect(result.current.sourceState).toBe('live');
   });

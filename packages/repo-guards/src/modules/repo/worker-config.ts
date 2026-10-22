@@ -1,11 +1,3 @@
-// Each Worker's wrangler.toml keeps its environments apart. Named environments do not inherit
-// top-level bindings, so a config carries a top-level binding set only the local runtime reads plus
-// one real set per environment, and two silent failures follow from that shape: a top-level binding
-// naming a real environment's storage (a bare `wrangler deploy` then publishes a Worker wired to it),
-// and two environments naming the same storage. Migrations ARE inherited, so a destructive migration
-// at the top level reaches production, and an environment with its own list stops receiving
-// top-level migrations it does not repeat.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import {
@@ -25,14 +17,8 @@ import {
 } from '../../support/facts.js';
 
 export interface WorkerConfigFacts {
-  /** Every Worker's wrangler.toml, repo-relative. */
   configFiles: readonly string[];
-  /** The environment name production deploys with. */
   productionEnvironment: string;
-  /**
-   * Destructive migrations allowed in the production list, keyed to the exact contents so editing
-   * the tag's class list voids the approval. Each carries its why; an entry nothing matches is stale.
-   */
   productionDestructiveMigrations: ReadonlyArray<{
     configFile: string;
     tag: string;
@@ -42,7 +28,6 @@ export interface WorkerConfigFacts {
   }>;
 }
 
-/** Every finding the checks make over one parsed config. */
 export function workerConfigFindings(
   configFile: string,
   tables: readonly Table[],

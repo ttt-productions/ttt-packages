@@ -9,30 +9,16 @@ import { Alert, AlertDescription } from './alert.js';
 import { Button } from './button.js';
 
 export interface ReloadRecoveryNoticeProps {
-  /** The watch the app's client entry started. */
   watch: ReloadRecoveryWatch;
-  /** The app's sentence for each failure. */
   messages: Readonly<Record<ReloadRecoveryKind, React.ReactNode>>;
-  /** The app's label for the refresh control. */
   refreshLabel: React.ReactNode;
-  /**
-   * The app's own reload, which runs its unsaved-work guard first. Refresh is pending until it
-   * settles: a reload that proceeds keeps it pending until the page unloads, and a cancelled guard
-   * settles it with the page, its input, and the notice as they were.
-   */
   onRefresh: () => Promise<unknown>;
-  /** Receives anything `onRefresh` throws. */
   onRefreshError: (error: unknown) => void;
   className?: string;
 }
 
 const noFailureOnServer = () => null;
 
-/**
- * One notice pinned to the top of the screen once the page hits a failure only a reload repairs.
- * It cannot be dismissed and never reloads by itself: the page and every editor beneath it stay
- * mounted and usable until the person presses Refresh. A repeat of the failure changes nothing.
- */
 export function ReloadRecoveryNotice({
   watch,
   messages,

@@ -1,8 +1,3 @@
-// The two failures only a reload repairs are recognised narrowly: WebKit's lost IndexedDB connection
-// by its `UnknownError` name and message together, and a stale code chunk by `ChunkLoadError` or
-// "Failed to load chunk". Every other failure — another `UnknownError`, a quota or blocked-storage
-// failure, a network failure — is neither.
-
 import { describe, it, expect } from 'vitest';
 import {
   isStaleChunkError,

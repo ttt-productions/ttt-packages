@@ -1,7 +1,3 @@
-// A Functions test locates source from its own module URL, never from `process.cwd()`. The working
-// folder is wherever the runner was started, so a cwd-rooted test reads a different tree depending
-// on how it was launched, and can pass while checking nothing.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
@@ -9,7 +5,6 @@ import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { takesNoFacts } from '../../support/facts.js';
 
-/** Every `process.cwd()` call in a file — a mention in a comment or a string is not one. */
 export function cwdCalls(file: FileView): number[] {
   const sourceFile = file.sourceFile;
   const hits: number[] = [];
@@ -31,7 +26,6 @@ export function cwdCalls(file: FileView): number[] {
 
 const SCOPE: Scope = { roots: ['functions'], kinds: ['code'], tests: 'only' };
 
-/** Takes no facts: it reads the test code of the Functions root the layout declares. */
 export type TestSourceRootFacts = Readonly<Record<string, never>>;
 
 export const testSourceRootGuard: GenericGuardDefinition<TestSourceRootFacts> = {

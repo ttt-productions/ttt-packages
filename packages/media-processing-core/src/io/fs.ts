@@ -22,7 +22,6 @@ export function createFsIO(args: {
         const safeKey = sanitizeKey(key);
         const out = path.join(args.outputDir, `${safeKey}${ext}`);
 
-        // Ensure final path stays within outputDir.
         const resolvedDir = path.resolve(args.outputDir);
         const resolvedOut = path.resolve(out);
         if (!resolvedOut.startsWith(resolvedDir + path.sep) && resolvedOut !== resolvedDir) {

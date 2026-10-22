@@ -1,10 +1,3 @@
-// Realm shared-file folders + the promotion approval-gate contracts.
-//
-// Covers the folder document, its path/registry wiring, the bounded caps, every callable
-// input shape, and the two projections. The load-bearing property throughout: a pending
-// request and an approved file are structurally different things, so neither projection can
-// ever be handed a row from the other lane.
-
 import { describe, it, expect } from 'vitest';
 import {
   RealmFileFolderSchema,
@@ -78,14 +71,12 @@ describe('RealmFileFolderSchema', () => {
       ...folderDoc,
       createdBy: { uid: 'steward-1', displayName: 'Steward' },
     });
-    // Same shape the sibling Work folder uses: the uid is the reference, nothing else is kept.
     expect(parsed.createdBy).toEqual({ uid: 'steward-1' });
     expect(WorkFileFolderSchema.safeParse({ ...folderDoc, createdBy: 'x' }).success).toBe(false);
   });
 
   it('follows the Realm *_lowercase normalized-name convention', () => {
     expect(Object.keys(RealmFileFolderSchema.shape)).toContain('name_lowercase');
-    // Same convention as the Realm document's own searchable normalized title.
     expect(Object.keys(WorkRealmSchema.shape)).toContain('workingTitle_lowercase');
   });
 
@@ -101,8 +92,6 @@ describe('RealmFileFolderSchema', () => {
     ]) {
       expect(fields).not.toContain(absent);
     }
-    // Those fields exist on the WORK-side folder — the omission here is deliberate, not an
-    // oversight: Realm folders are organizational only.
     expect(Object.keys(WorkFileFolderSchema.shape)).toContain('isDefault');
   });
 });
@@ -167,7 +156,6 @@ describe('promotion approval-gate callable inputs', () => {
         requestId: 'req-1',
       }).success,
     ).toBe(true);
-    // Without it, approval/decline could not compare against the request they observed.
     expect(
       UpdateWorkFileRealmShareInputSchema.safeParse({
         workProjectId: 'work-1',
@@ -241,9 +229,6 @@ describe('promotion approval-gate callable inputs', () => {
         workFileId: 'file-1',
       }).success,
     ).toBe(true);
-    // The whole point of the separate schema: an APPROVED file has no pending request, so a
-    // required requestId would make the callable unusable against the state it exists to
-    // unwind. Passing one is a caller error, not a tolerated extra.
     expect(
       AdminUpdateWorkFileRealmUnshareInputSchema.safeParse({
         workProjectId: 'work-1',
@@ -282,8 +267,6 @@ describe('promotion approval-gate callable inputs', () => {
   });
 
   it('ADMIN un-share uses the SAME Work-coordinate atoms as the share request', () => {
-    // Same two fields, same bounds — only the requestId differs between the request lane and
-    // the post-approval admin lane.
     const coords = { workProjectId: 'work-1', workFileId: 'file-1' };
     expect(AdminUpdateWorkFileRealmUnshareInputSchema.safeParse(coords).success).toBe(true);
     expect(
@@ -340,7 +323,6 @@ describe('promotion approval-gate callable inputs', () => {
         realmFileFolderId: 'folder-2',
       }).success,
     ).toBe(true);
-    // Without the precondition a stale tab would silently undo another tab's move.
     expect(
       UpdateRealmFileFolderAssignmentInputSchema.safeParse({
         workRealmId: 'realm-1',
@@ -486,7 +468,6 @@ describe('gallery projection (APPROVED files only)', () => {
       GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', cursor: 'opaque-token' })
         .success,
     ).toBe(true);
-    // A caller must not be able to ask the artisan gallery for pending rows.
     expect(
       GetRealmSharedFilesInputSchema.safeParse({ realmId: 'realm-1', includePending: true })
         .success,
@@ -510,7 +491,6 @@ describe('gallery projection (APPROVED files only)', () => {
       GetRealmSharedFilesResponseSchema.safeParse({ files: [], folders: [], nextCursor: null })
         .success,
     ).toBe(true);
-    // An empty Realm still returns both arrays, so "no folders yet" is representable.
     expect(GetRealmSharedFilesResponseSchema.safeParse({ files: [] }).success).toBe(false);
   });
 });
@@ -603,7 +583,6 @@ describe('promotion-queue projection (PENDING rows only)', () => {
         folders: [{ realmFileFolderId: 'folder-1', name: 'Concept Art', fileCount: 0 }],
       }).success,
     ).toBe(true);
-    // "No folders yet" is explicitly representable so the UI can disable approval and say why.
     expect(
       GetRealmFilePromotionQueueResponseSchema.safeParse({ requests: [row], folders: [] }).success,
     ).toBe(true);
@@ -689,7 +668,6 @@ describe('work-side share-state projection', () => {
       GetWorkFileRealmShareStatesResponseSchema.safeParse({ states: [pendingRow, approvedRow] })
         .success,
     ).toBe(true);
-    // No shared or requested files at all — the honest empty case.
     expect(GetWorkFileRealmShareStatesResponseSchema.safeParse({ states: [] }).success).toBe(true);
     expect(GetWorkFileRealmShareStatesResponseSchema.safeParse({}).success).toBe(false);
     expect(
@@ -699,7 +677,7 @@ describe('work-side share-state projection', () => {
 });
 
 describe('realm-file requestId is bounded at the atom', () => {
-  const uuid = '123e4567-e89b-42d3-a456-426614174000'; // crypto.randomUUID() shape, 36 chars
+  const uuid = '123e4567-e89b-42d3-a456-426614174000';
 
   it('caps the id with a named constant that fits a generated UUID', () => {
     expect(uuid).toHaveLength(36);
@@ -716,8 +694,6 @@ describe('realm-file requestId is bounded at the atom', () => {
       }).success;
     expect(share(uuid)).toBe(true);
     expect(share('x'.repeat(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH))).toBe(true);
-    // The write-amplification case: a client-chosen id that lands on the asset doc, the audit
-    // payload, the notification metadata, and the aggregation key.
     expect(share('x'.repeat(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH + 1))).toBe(false);
     expect(share('x'.repeat(100_000))).toBe(false);
     expect(share('')).toBe(false);

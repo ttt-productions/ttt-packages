@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event';
 
 import { DateTimePicker } from '../src/react/components/date-time-picker.js';
 
-// Local-time construction, so the tests hold in any time zone.
 const at = (y: number, m1: number, day: number, h = 0, min = 0) =>
   new Date(y, m1 - 1, day, h, min, 0, 0);
 
@@ -75,7 +74,6 @@ describe('DateTimePicker', () => {
     render(<DateTimePicker value={at(2030, 3, 10, 18, 0)} min={min} />);
     expect(button('March 9, 2030')).toBeDisabled();
     expect(button('March 10, 2030')).toBeEnabled();
-    // 6 PM is chosen: every PM hour from 2 on is allowed, 1 PM is not.
     expect(button("1 o'clock")).toBeDisabled();
     expect(button("2 o'clock")).toBeEnabled();
     expect(button('AM')).toBeDisabled();

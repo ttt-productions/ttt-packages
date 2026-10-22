@@ -80,7 +80,6 @@ describe('OpsStatus snapshot shape (Mission Control landing)', () => {
     expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatLastRunAt']>().toEqualTypeOf<
       number | undefined
     >();
-    // Staleness is SERVER-derived (ARCH-102) — the client must never re-declare the threshold.
     expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatStale']>().toEqualTypeOf<
       boolean | undefined
     >();

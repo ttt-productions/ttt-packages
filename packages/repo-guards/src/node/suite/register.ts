@@ -1,7 +1,3 @@
-// The suite registration. An app's one guard test file calls `registerGuardSuite(config)`; the call
-// checks the whole config first (a problem throws, so the file fails before any guard runs), then
-// registers the reader's reach check, every generic guard, and every business guard as tests.
-
 import { describe, it, beforeAll } from 'vitest';
 import { buildGenericGuards, configProblems, type GenericGuardDefinition } from './config.js';
 import type { Guard } from '../../guard.js';
@@ -18,7 +14,6 @@ export interface GuardSuiteConfig {
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 
-/** Registers the whole guard suite for one app. Call it once, at the top level of one test file. */
 export function registerGuardSuite(config: GuardSuiteConfig): void {
   registerSuiteOf(
     {
@@ -30,7 +25,6 @@ export function registerGuardSuite(config: GuardSuiteConfig): void {
   );
 }
 
-/** The suite over a given set of generic guard definitions — the package's own, or a test's. */
 export function registerSuiteOf(
   config: {
     layout: RepoLayout;

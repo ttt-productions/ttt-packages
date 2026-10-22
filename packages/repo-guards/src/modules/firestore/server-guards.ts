@@ -1,9 +1,3 @@
-// The guards over server-side Firestore writes and ids:
-//   - inside a transaction callback, every read goes through the callback's transaction;
-//   - no stored count is lowered by a blind negative increment;
-//   - randomUUID appears only at reviewed sites that mint no document id;
-//   - no Firestore Timestamp is minted with Timestamp.now().
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
@@ -14,7 +8,6 @@ import { calleeName, forEachNode } from '../../support/ast.js';
 import { reviewedProblems, takesNoFacts } from '../../support/facts.js';
 import { bannedGuard, type NoFacts, type NodeHit } from './support.js';
 
-/** Every non-transactional read inside an inline `runTransaction` callback in one file. */
 export function strayTransactionReads(file: FileView): NodeHit[] {
   const source = file.sourceFile;
   const hits: NodeHit[] = [];
@@ -71,7 +64,6 @@ function isNegative(arg: ts.Expression): boolean {
   return ts.isParenthesizedExpression(arg) ? isNegative(arg.expression) : false;
 }
 
-/** Every `….increment(<negative amount>)` in one file. */
 export function negativeIncrements(file: FileView): NodeHit[] {
   const hits: NodeHit[] = [];
   forEachNode(file.sourceFile, (node) => {
@@ -117,7 +109,6 @@ export const counterDecrementGuard: GenericGuardDefinition<NoFacts> = {
 };
 
 export interface RandomUuidFacts {
-  /** Server files reviewed to use randomUUID for something that is not a document id, each with its why. */
   reviewedSites: readonly Reviewed[];
 }
 
@@ -161,7 +152,6 @@ const TIMESTAMP_NOW_SCOPE: Scope = {
   tests: false,
 };
 
-/** Every `Timestamp.now(…)` (any receiver chain ending in `Timestamp`) in one file. */
 export function timestampNowCalls(file: FileView): NodeHit[] {
   const hits: NodeHit[] = [];
   forEachNode(file.sourceFile, (node) => {

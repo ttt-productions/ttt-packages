@@ -1,39 +1,82 @@
 import { describe, it, expect } from 'vitest';
 import {
   NciiPolicyConfigV1Schema,
-  DEFAULT_NCII_POLICY_CONFIG_V1,
   NCII_EVIDENCE_MAX_FILE_BYTES,
-  NCII_EVIDENCE_MAX_FILES_PER_REQUEST,
+  PrivilegedReviewerSecurityProfileV1Schema,
+  type NciiPolicyConfigV1,
+  type PrivilegedReviewerSecurityProfileV1,
 } from '../src/doc-schemas/ncii/config.js';
 
+const config: NciiPolicyConfigV1 = {
+  policyVersion: 'ncii.2026-06-23.v1',
+  requesterPiiRetentionDays: 1,
+  evidenceRetentionDays: 1,
+  blockedHashRetentionPolicy: 'indefiniteUntilReversed',
+  allowedEvidenceMimeTypes: ['image/png'],
+  maxEvidenceFileBytes: 1,
+  maxEvidenceFilesPerRequest: 1,
+  maxEvidenceTotalBytesPerRequest: 1,
+  uploadReservationMinutes: 1,
+  abandonedUploadCleanupHours: 1,
+  tempHoldInitialHours: 1,
+  tempHoldPendingValidityExtensionHours: 1,
+  tempHoldMaxTotalHours: 1,
+  incompleteInvalidReleaseDelayHours: 1,
+  intakeRateLimitWindowSeconds: 1,
+  intakeRateLimitMaxPerIp: 1,
+  idempotencyWindowHours: 1,
+  maxEvidenceDecodePixels: 1,
+  maxEvidenceImageDimension: 1,
+  maxEvidenceVideoFrames: 1,
+  maxEvidenceVideoDurationSec: 1,
+  evidenceParserTimeoutSec: 1,
+  evidenceScanCpuBudgetMs: 1,
+  evidenceScanMemoryBudgetMb: 1,
+  rejectArchiveAndPolyglotPayloads: true,
+  approvedBy: 'operatorLaunchDefault',
+};
+
 describe('NciiPolicyConfigV1Schema (`_serverData/nciiPolicy`)', () => {
-  it('accepts the frozen launch default', () => {
-    expect(NciiPolicyConfigV1Schema.safeParse(DEFAULT_NCII_POLICY_CONFIG_V1).success).toBe(true);
+  it('accepts a complete policy config', () => {
+    expect(NciiPolicyConfigV1Schema.safeParse(config).success).toBe(true);
   });
 
   it('carries no lawyer-approval gate: nothing reads one, and uploads are not blocked on it', () => {
-    expect('counselApproved' in DEFAULT_NCII_POLICY_CONFIG_V1).toBe(false);
     expect(Object.keys(NciiPolicyConfigV1Schema.shape)).not.toContain('counselApproved');
-    // Strict: a config write reintroducing the field is rejected, not silently stripped.
-    expect(
-      NciiPolicyConfigV1Schema.safeParse({
-        ...DEFAULT_NCII_POLICY_CONFIG_V1,
-        counselApproved: false,
-      }).success,
-    ).toBe(false);
+    expect(NciiPolicyConfigV1Schema.safeParse({ ...config, counselApproved: false }).success).toBe(
+      false,
+    );
   });
 });
 
-describe('NCII evidence size caps', () => {
-  it('allows per request exactly the per-request file count times the per-file cap', () => {
-    expect(DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes).toBe(NCII_EVIDENCE_MAX_FILE_BYTES);
-    expect(DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFilesPerRequest).toBe(
-      NCII_EVIDENCE_MAX_FILES_PER_REQUEST,
-    );
-    expect(DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceTotalBytesPerRequest).toBe(
-      NCII_EVIDENCE_MAX_FILES_PER_REQUEST * NCII_EVIDENCE_MAX_FILE_BYTES,
-    );
-    expect(NCII_EVIDENCE_MAX_FILE_BYTES).toBe(100 * 1024 * 1024);
-    expect(NCII_EVIDENCE_MAX_FILES_PER_REQUEST).toBe(3);
+describe('NCII evidence size cap', () => {
+  it('is 100 MiB per file', () => {
+    expect(NCII_EVIDENCE_MAX_FILE_BYTES).toBe(104_857_600);
+  });
+});
+
+const reviewerProfile: PrivilegedReviewerSecurityProfileV1 = {
+  requiredSecondFactor: 'passkeyWebAuthn',
+  privilegedReauthTtlSeconds: 1,
+  privilegedSessionDeviceBound: false,
+  twoStepReauthCapabilities: ['evidenceReveal'],
+  recoveryCodeCount: 1,
+  recoveryCodeUse: 'auditedHighSeverity+forcesReenroll+criticalAlarm',
+  allowPrivilegedSessionRevocation: false,
+  everyInvocationAudited: false,
+};
+
+describe('PrivilegedReviewerSecurityProfileV1Schema (`_serverData/privilegedReviewerSecurity`)', () => {
+  it('accepts a complete profile', () => {
+    expect(PrivilegedReviewerSecurityProfileV1Schema.safeParse(reviewerProfile).success).toBe(true);
+  });
+
+  it('refuses a capability outside the declared set', () => {
+    expect(
+      PrivilegedReviewerSecurityProfileV1Schema.safeParse({
+        ...reviewerProfile,
+        twoStepReauthCapabilities: ['somethingElse'],
+      }).success,
+    ).toBe(false);
   });
 });

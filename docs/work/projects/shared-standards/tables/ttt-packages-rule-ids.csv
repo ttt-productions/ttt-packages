@@ -1,0 +1,57 @@
+old_id,old_file,new_id,new_file,kind,note,title
+(new),,RULE-STD-ARCH-209,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,new,everything in ttt-packages is public: no app security internals,
+ARCH-001,docs/engineering-rules/architecture.md,RULE-STD-ARCH-001,@ttt-productions/dev-standards/rules/architecture/core-rules.md,shared,,One authoritative owner per responsibility or state transition
+ARCH-004,docs/engineering-rules/architecture.md,RULE-STD-ARCH-004,@ttt-productions/dev-standards/rules/architecture/core-rules.md,shared,,Consolidate duplicates found in touched code; never add another variant
+ARCH-005,docs/engineering-rules/architecture.md,RULE-STD-ARCH-005,@ttt-productions/dev-standards/rules/architecture/core-rules.md,shared,,"Cross-tree trust contracts: one definition, one proof"
+ARCH-102,docs/engineering-rules/architecture.md,RULE-STD-ARCH-102,@ttt-productions/dev-standards/rules/architecture/data-and-contracts.md,shared,,One named declaration; enforcement points derive
+ARCH-201,docs/engineering-rules/architecture.md,RULE-STD-ARCH-201,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,shared,,Generic packages stay application-agnostic; supply policy via factory/adapter
+ARCH-202,docs/engineering-rules/architecture.md,RULE-STD-ARCH-202,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,shared,merged with app ARCH-202,Package entry points preserve the safety boundary
+ARCH-203,docs/engineering-rules/architecture.md,RULE-STD-ARCH-203,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,shared,merged with app ARCH-203,No compatibility barrels or laundering re-exports
+ARCH-206,docs/engineering-rules/architecture.md,RULE-STD-ARCH-206,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,shared,,Package Firestore access goes through query-core
+ARCH-207,docs/engineering-rules/architecture.md,RULE-STD-ARCH-207,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,shared,,Application-data packages are not generic packages
+ARCH-208,docs/engineering-rules/architecture.md,RULE-STD-ARCH-208,@ttt-productions/dev-standards/rules/architecture/packages-and-boundaries.md,shared,,"Releases go through the batch release command, patch-only until v1"
+BACKEND-101,docs/engineering-rules/firestore.md,RULE-STD-BACKEND-101,@ttt-productions/dev-standards/rules/backend/firestore-storage-and-transactions.md,shared,,All transaction reads before all transaction writes
+BACKEND-104,docs/engineering-rules/firestore.md,RULE-STD-BACKEND-104,@ttt-productions/dev-standards/rules/backend/firestore-storage-and-transactions.md,shared,,Dotted paths only in update(); nested objects in merge-sets
+BACKEND-116,docs/engineering-rules/firestore.md,RULE-STD-BACKEND-116,@ttt-productions/dev-standards/rules/backend/firestore-storage-and-transactions.md,shared,,Every write precondition is decided inside the write's transaction
+COMMENT-001,docs/engineering-rules/comments.md,RULE-STD-COMMENT-001,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,A comment says only what the code cannot
+COMMENT-002,docs/engineering-rules/comments.md,RULE-STD-COMMENT-002,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,No dates
+COMMENT-003,docs/engineering-rules/comments.md,RULE-STD-COMMENT-003,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,No line numbers
+COMMENT-004,docs/engineering-rules/comments.md,RULE-STD-COMMENT-004,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,No ticket names or work labels
+COMMENT-005,docs/engineering-rules/comments.md,RULE-STD-COMMENT-005,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,No history
+COMMENT-006,docs/engineering-rules/comments.md,RULE-STD-COMMENT-006,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,No people or review sources
+COMMENT-007,docs/engineering-rules/comments.md,RULE-STD-COMMENT-007,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,"No narrating the obvious, no change notes"
+COMMENT-008,docs/engineering-rules/comments.md,RULE-STD-COMMENT-008,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,"No commented-out code, no TODO"
+COMMENT-009,docs/engineering-rules/comments.md,RULE-STD-COMMENT-009,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,"Test names state behavior, with no tags"
+COMMENT-010,docs/engineering-rules/comments.md,RULE-STD-COMMENT-010,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,Only point at things that cannot drift
+COMMENT-011,docs/engineering-rules/comments.md,RULE-STD-COMMENT-011,@ttt-productions/dev-standards/rules/comments/core-rules.md,shared,,No links to outside sources
+ENG-001,docs/engineering-rules/core-rules.md,RULE-STD-ENG-001,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Read the governing context
+ENG-002,docs/engineering-rules/core-rules.md,RULE-STD-ENG-002,@ttt-productions/dev-standards/rules/core-rules.md,shared,,One change point
+ENG-003,docs/engineering-rules/core-rules.md,RULE-STD-ENG-003,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Extend existing owners; no parallel systems
+ENG-004,docs/engineering-rules/core-rules.md,RULE-STD-ENG-004,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Behavior lives where its concept is owned
+ENG-005,docs/engineering-rules/core-rules.md,RULE-STD-ENG-005,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Derive from canonical definitions
+ENG-006,docs/engineering-rules/core-rules.md,RULE-STD-ENG-006,@ttt-productions/dev-standards/rules/core-rules.md,shared,,The backend is the security boundary
+ENG-007,docs/engineering-rules/core-rules.md,RULE-STD-ENG-007,@ttt-productions/dev-standards/rules/core-rules.md,shared,,"Behavior, tests, and documentation move together"
+ENG-008,docs/engineering-rules/core-rules.md,RULE-STD-ENG-008,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Surface discovered problems
+ENG-009,docs/engineering-rules/core-rules.md,RULE-STD-ENG-009,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Fail truthfully and visibly
+ENG-010,docs/engineering-rules/core-rules.md,RULE-STD-ENG-010,@ttt-productions/dev-standards/rules/core-rules.md,shared,,Spawned agents inherit the rules
+FRONTEND-001,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-001,@ttt-productions/dev-standards/rules/frontend/core-rules.md,shared,,One canonical component/variant/class per repeated UI pattern
+FRONTEND-010,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-010,@ttt-productions/dev-standards/rules/frontend/core-rules.md,shared,,"Browser storage holds device-local state only, through guarded access"
+FRONTEND-108,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-108,@ttt-productions/dev-standards/rules/frontend/data-and-callable-access.md,shared,,Auth-scoped subscribers reset on identity change
+FRONTEND-201,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-201,@ttt-productions/dev-standards/rules/frontend/interaction-accessibility-and-motion.md,shared,,Every async control shows its own pending state through the shared primitives
+FRONTEND-203,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-203,@ttt-productions/dev-standards/rules/frontend/interaction-accessibility-and-motion.md,shared,,Accessibility baseline
+FRONTEND-204,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-204,@ttt-productions/dev-standards/rules/frontend/interaction-accessibility-and-motion.md,shared,,"Motion uses tokens, opacity/transform only, one reduced-motion preference"
+FRONTEND-206,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-206,@ttt-productions/dev-standards/rules/frontend/interaction-accessibility-and-motion.md,shared,,"Pending, failed, and answered reads never stand in for one another"
+FRONTEND-207,docs/engineering-rules/frontend.md,RULE-STD-FRONTEND-207,@ttt-productions/dev-standards/rules/frontend/interaction-accessibility-and-motion.md,shared,,Unsaved input is never discarded silently
+MEDIA-102,docs/engineering-rules/media.md,RULE-STD-MEDIA-102,@ttt-productions/dev-standards/rules/media/serving-and-rendering.md,shared,,One IntersectionObserver per viewer
+QUALITY-001,docs/engineering-rules/quality.md,RULE-STD-QUALITY-001,@ttt-productions/dev-standards/rules/quality/core-rules.md,shared,,Behavior changes ship with their tests
+QUALITY-002,docs/engineering-rules/quality.md,RULE-STD-QUALITY-002,@ttt-productions/dev-standards/rules/quality/core-rules.md,shared,,Verify at the cost of the fix; one full gate
+QUALITY-006,docs/engineering-rules/quality.md,RULE-STD-QUALITY-006,@ttt-productions/dev-standards/rules/quality/core-rules.md,shared,,Lint: justified disables only; one enforced format
+QUALITY-007,docs/engineering-rules/quality.md,RULE-STD-QUALITY-007,@ttt-productions/dev-standards/rules/quality/core-rules.md,shared,,"Guard tests enforce ownership and boundaries, never inventories"
+QUALITY-008,docs/engineering-rules/quality.md,RULE-STD-QUALITY-009,@ttt-productions/dev-standards/rules/quality/core-rules.md,shared,,A test loads the code it tests when its file loads
+QUALITY-009,docs/engineering-rules/quality.md,RULE-STD-QUALITY-010,@ttt-productions/dev-standards/rules/quality/core-rules.md,shared,,A test's time limit names a budget
+QUALITY-102,docs/engineering-rules/quality.md,RULE-STD-QUALITY-102,@ttt-productions/dev-standards/rules/quality/reliability-and-observability.md,shared,merged with app QUALITY-102,Generic packages stay monitoring-agnostic
+QUALITY-103,docs/engineering-rules/quality.md,RULE-STD-QUALITY-103,@ttt-productions/dev-standards/rules/quality/reliability-and-observability.md,shared,,No duplicate captures or error surfaces where a wrapper owns them
+QUALITY-106,docs/engineering-rules/quality.md,RULE-STD-QUALITY-106,@ttt-productions/dev-standards/rules/quality/reliability-and-observability.md,shared,,"Telemetry carries diagnostics, never request content"
+QUALITY-201,docs/engineering-rules/quality.md,RULE-STD-QUALITY-201,@ttt-productions/dev-standards/rules/quality/documentation-and-drift.md,shared,,Docs match the current implementation
+QUALITY-202,docs/engineering-rules/quality.md,RULE-STD-QUALITY-202,@ttt-productions/dev-standards/rules/quality/documentation-and-drift.md,shared,,No drift-prone inventories in permanent docs
+QUALITY-203,docs/engineering-rules/quality.md,RULE-STD-QUALITY-203,@ttt-productions/dev-standards/rules/quality/documentation-and-drift.md,shared,,New or changed patterns update the owning playbook step

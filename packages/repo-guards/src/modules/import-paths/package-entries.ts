@@ -1,10 +1,3 @@
-// One package entry per definition. Every definition a package exports is exported by exactly one of
-// its entries — the entry of the folder that holds it — and every consumer imports it from there. A
-// file-level entry owns only its own file, and only when no folder entry below the root covers that
-// file; the root owns every other file. The ownership is read from a TypeScript program over the
-// package's entry modules: its source for the package's own check, its installed build for a
-// consumer's.
-
 import ts from 'typescript';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -15,30 +8,22 @@ import { textProblem } from '../../support/facts.js';
 
 const slash = (path: string) => path.replace(/\\/g, '/');
 
-/** One entry of a package's `exports`: its key (`.`, `./react`), its import specifier, and its module. */
 export interface PackageEntry {
   key: string;
   spec: string;
-  /** Absolute path of the entry's module (source or declaration file). */
   file: string;
-  /** The folder the entry owns when its module is a folder index; null for a file-level entry. */
   folder: string | null;
 }
 
-/** A package's entries and, for each entry, the names it exports and the declaration each resolves to. */
 export interface EntryOwnership {
   packageName: string;
   packageDir: string;
   entries: PackageEntry[];
-  /** entry key → exported name → the declaration it resolves to (`<absolute file>#<declared name>`). */
   exportsByEntry: Map<string, Map<string, string>>;
-  /** The entry that owns a declaration file, or null when no entry covers it. */
   ownerOf(file: string): PackageEntry | null;
-  /** Entry keys `exports` names that could not be read (no types, a module missing), each with why. */
   unreadable: Array<{ key: string; why: string }>;
 }
 
-/** The `types` path of one `exports` value, wherever its conditions nest it. */
 function typesPathOf(value: unknown): string | null {
   if (typeof value === 'string') return /\.d\.[cm]?ts$/.test(value) ? value : null;
   if (!value || typeof value !== 'object') return null;
@@ -51,7 +36,6 @@ function typesPathOf(value: unknown): string | null {
   return null;
 }
 
-/** The source module a declaration path is built from (`dist/x/index.d.ts` → `src/x/index.ts(x)`). */
 function sourceOf(packageDir: string, typesPath: string): string | null {
   const stem = slash(typesPath)
     .replace(/^\.\//, '')
@@ -64,7 +48,6 @@ function sourceOf(packageDir: string, typesPath: string): string | null {
   return null;
 }
 
-/** The source module each of a package's `exports` entries is built from, absolute; entries with no source left out. */
 export function sourceEntryModules(packageDir: string): string[] {
   const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
     exports?: Record<string, unknown>;
@@ -82,10 +65,6 @@ export function sourceEntryModules(packageDir: string): string[] {
 const isIndexModule = (file: string) =>
   /^index\.(d\.[cm]?ts|[cm]?[jt]sx?)$/.test(file.slice(slash(file).lastIndexOf('/') + 1));
 
-/**
- * Reads a package's entries and what each exports. `from: 'source'` maps every entry to the source
- * module it is built from; `from: 'build'` reads the installed declaration files.
- */
 export function readEntryOwnership(packageDir: string, from: 'source' | 'build'): EntryOwnership {
   const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
     name: string;
@@ -167,13 +146,11 @@ export function readEntryOwnership(packageDir: string, from: 'source' | 'build')
   return { packageName: manifest.name, packageDir, entries, exportsByEntry, ownerOf, unreadable };
 }
 
-/** A module's path without its extension, so a declaration file and its source compare equal. */
 const moduleStem = (file: string) =>
   slash(file)
     .replace(/\.d\.([cm]?)ts$/, '')
     .replace(/\.[cm]?[jt]sx?$/, '');
 
-/** Every definition of a package exported by more than one entry, or by an entry that does not own it. */
 export function entryOwnershipFindings(ownership: EntryOwnership, repoRoot: string): Finding[] {
   const findings: Finding[] = [];
   const rel = (file: string) => slash(relative(repoRoot, file));
@@ -211,10 +188,7 @@ export function entryOwnershipFindings(ownership: EntryOwnership, repoRoot: stri
   return findings;
 }
 
-// --- the package's own check -------------------------------------------------------------------
-
 export interface PackageEntryFacts {
-  /** The repo-relative folder that holds the repository's packages, one per subfolder. */
   packagesFolder: string;
 }
 
@@ -262,10 +236,7 @@ export const packageEntriesGuard: GenericGuardDefinition<PackageEntryFacts> = {
   },
 };
 
-// --- a consumer's check ------------------------------------------------------------------------
-
 export interface PackageEntryImportFacts {
-  /** The npm scope whose packages the rule holds (`@ttt-productions`). */
   scope: string;
 }
 
@@ -276,7 +247,6 @@ const CONSUMER_SCOPE: Scope = {
   optionalRoots: ['functions', 'e2e', 'hostedE2e', 'scripts', 'workers'],
 };
 
-/** The installed package a file resolves `packageName` to: the nearest `node_modules` above it. */
 function installedPackageDir(
   fromFile: string,
   repoRoot: string,

@@ -8,7 +8,6 @@ export interface MediaPipelineProgress {
     | 'persist_outputs'
     | 'moderation_output'
     | 'done';
-  /** 0..1 when known */
   percent?: number;
   detail?: Record<string, unknown>;
 }
@@ -16,7 +15,6 @@ export interface MediaPipelineProgress {
 export interface ProcessMediaContext {
   inputPath: string;
   outputBasePath: string;
-  /** optional mime hint from caller */
   inputMime?: string;
 }
 

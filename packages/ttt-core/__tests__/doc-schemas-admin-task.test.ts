@@ -1,16 +1,9 @@
-// Contract tests for the STORED userReport `adminTasks/{taskId}` doc shape — the three
-// lifecycle shapes the report pipeline writes (fresh create, in-place reopen, recreate after
-// a guided close-out). These pin the cross-boundary contract: Functions (report-core's task
-// creator + the app's report-group trigger) writes these docs and the admin queue UI reads
-// them, so a shape the schema strips or rejects is drift, not an "app-side" detail.
-
 import { describe, it, expect } from 'vitest';
 import {
   AdminTaskDocSchema,
   AdminTaskClosureHistoryEntrySchema,
 } from '../src/doc-schemas/report-docs.js';
 
-/** A fresh userReport task exactly as report-core's buildUserReportAdminTaskDoc writes it. */
 const freshUserReportTask = () => ({
   taskType: 'userReport',
   taskId: 'group-1',
@@ -53,7 +46,6 @@ describe('AdminTaskDocSchema — userReport lifecycle shapes', () => {
       ...freshUserReportTask(),
       summary: '2 reports for squarePost',
       priority: 12,
-      // Reopen resets to the pending pool; completedAt is FieldValue.delete()d, never null.
       closureHistory: [{ completedAt: 1_700_000_100_000, reopenedAt: 1_700_000_200_000 }],
     });
     expect(parsed.completedAt).toBeUndefined();

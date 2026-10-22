@@ -19,11 +19,8 @@ export interface EmulatorPorts {
 }
 
 export interface InitFirebaseClientOptions {
-  /** Connect to local emulators when true. */
   useEmulators?: boolean;
-  /** Override emulator host/ports. Defaults: localhost / 9099 / 8080 / 5001 / 9199. */
   emulatorPorts?: EmulatorPorts;
-  /** Set browser local persistence for auth (useful for emulator-mode test capture). */
   useBrowserLocalPersistence?: boolean;
 }
 
@@ -38,12 +35,6 @@ export interface FirebaseClientHandles {
 let cached: FirebaseClientHandles | undefined;
 const EMULATOR_FLAG = '__FIREBASE_EMULATORS_CONNECTED__';
 
-/**
- * Idempotent client Firebase initializer.
- * Takes the consumer's FirebaseOptions config; does NOT read env vars.
- * App Check, Analytics, and Performance are NOT initialized here —
- * those are app-policy decisions and stay in the consumer.
- */
 export function initFirebaseClient(
   config: FirebaseOptions,
   options: InitFirebaseClientOptions = {},
@@ -76,7 +67,6 @@ export function initFirebaseClient(
   return cached;
 }
 
-/** Test-only reset hook. Do not call in production code. */
 export function __resetFirebaseClientCache() {
   cached = undefined;
   (globalThis as Record<string, unknown>)[EMULATOR_FLAG] = undefined;

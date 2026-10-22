@@ -1,7 +1,4 @@
-// The post-login redirect path lives in localStorage. A browser that blocks site data throws
-// on the storage access itself (FRONTEND-010), so every access here is guarded: a blocked read
-// is "nothing saved", and a blocked write keeps the value in memory for the page's life so a
-// same-page sign-in still lands on it. Outside a browser every call is a no-op.
+// A browser that blocks site data throws on the storage access itself (RULE-STD-FRONTEND-010).
 
 const memory = new Map<string, string>();
 
@@ -22,9 +19,7 @@ export function readRedirectPath(key: string): string | null {
   try {
     const saved = storage()?.getItem(key) ?? null;
     if (saved !== null) return saved;
-  } catch {
-    // Blocked store: fall through to the page-life copy.
-  }
+  } catch {}
   return memory.get(key) ?? null;
 }
 
@@ -36,9 +31,7 @@ export function saveRedirectPath(key: string, path: string): void {
       store.setItem(key, path);
       memory.delete(key);
       return;
-    } catch {
-      // Blocked store: keep the page-life copy below.
-    }
+    } catch {}
   }
   memory.set(key, path);
 }
@@ -48,7 +41,5 @@ export function clearRedirectPath(key: string): void {
   memory.delete(key);
   try {
     storage()?.removeItem(key);
-  } catch {
-    // Blocked store: nothing was persisted there.
-  }
+  } catch {}
 }

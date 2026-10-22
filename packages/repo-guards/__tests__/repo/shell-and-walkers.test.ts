@@ -1,6 +1,3 @@
-// The shell-safety, directory-walker, and test-source-root guards over temp repositories: a clean
-// tree passes, and each shape the guards exist to catch produces its exact finding.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import { shellSafeGuard, shellWithArgsArray } from '../../src/modules/repo/shell-safe.js';
 import { testSourceRootGuard } from '../../src/modules/repo/test-source-root.js';

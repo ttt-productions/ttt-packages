@@ -1,7 +1,3 @@
-// What the client-data-layer guards share: the scope they read, fact checks, syntax helpers, and the
-// app's query-key module read two ways — statically for its declarations, and loaded at run time
-// for the keys its builders build.
-
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
@@ -16,27 +12,19 @@ import {
 } from '../../support/facts.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 
-/** The app's production code: every guard in this area reads the client tree, tests left out. */
 export const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
-/** The app's query-key module: where it is, and a loader of its exports. */
 export interface KeyModuleFacts {
   path: string;
   load: Loader<Record<string, unknown>>;
 }
 
-/** A reviewed call: the file, the call's whitespace-collapsed text, and why it is allowed. */
 export interface ReviewedCall {
   path: string;
   call: string;
   why: string;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Fact checks. Each pushes its problems, in words; none pushed means the fact is usable.
-// ---------------------------------------------------------------------------------------------
-
-/** A list of identifiers: a list of names whose every entry is an identifier. */
 export function identifierListProblem(
   value: unknown,
   what: string,
@@ -51,7 +39,6 @@ export function identifierListProblem(
     );
 }
 
-/** A required list of repo-relative paths. */
 export function pathListProblem(value: unknown, what: string, problems: string[]): void {
   namesProblem(value, what, problems);
   if (Array.isArray(value))
@@ -70,7 +57,6 @@ export function keyModuleProblem(value: unknown, problems: string[], what = 'key
   loaderProblem(facts.load, `${what}.load`, problems);
 }
 
-/** Reviewed calls: each names its file and the call's whitespace-collapsed text, with its why. */
 export function reviewedCallProblem(value: unknown, what: string, problems: string[]): void {
   reviewedProblems(value, what, problems, {
     id: (e) => (typeof e.call === 'string' && e.call.trim() ? `${e.path} ${e.call}` : undefined),
@@ -83,11 +69,6 @@ export function reviewedCallProblem(value: unknown, what: string, problems: stri
   });
 }
 
-// ---------------------------------------------------------------------------------------------
-// Reading.
-// ---------------------------------------------------------------------------------------------
-
-/** The app's production files under one of the trees, and a finding for each tree that holds none. */
 export function filesUnder(
   context: GuardContext,
   trees: readonly string[],
@@ -105,7 +86,6 @@ export function filesUnder(
   return { files: all.filter((f) => trees.some((tree) => isUnder(f.path, tree))), findings };
 }
 
-/** One named file, or a finding saying it is gone. */
 export function requiredFile(
   context: GuardContext,
   path: string,
@@ -116,10 +96,8 @@ export function requiredFile(
   return { file: context.file(path), findings: [] };
 }
 
-/** `use` followed by an uppercase letter — the name rules-of-hooks treats as a hook. */
 export const isHookName = (name: string) => /^use[A-Z][\w$]*$/.test(name);
 
-/** The text of the call whose `(` is at `open`, from `start` through its matching `)`. */
 export function callSpan(code: string, start: number, open: number): string {
   let depth = 0;
   for (let i = open; i < code.length; i += 1) {
@@ -129,7 +107,6 @@ export function callSpan(code: string, start: number, open: number): string {
   return code.slice(start);
 }
 
-/** A call's text with its whitespace and trailing commas collapsed — the form a reviewed call is written in. */
 export const collapse = (text: string) =>
   text
     .replace(/\s+/g, ' ')
@@ -137,22 +114,13 @@ export const collapse = (text: string) =>
     .replace(/\(\s/g, '(')
     .replace(/\s\)/g, ')');
 
-/** An alternation of names for a regular expression, or a pattern that matches nothing. */
 export const alternation = (names: readonly string[]) =>
   names.length ? names.map(escapeRegExp).join('|') : '(?!)';
-
-// ---------------------------------------------------------------------------------------------
-// The query-key module.
-// ---------------------------------------------------------------------------------------------
 
 export type KeyBuilders = Record<string, Record<string, unknown>>;
 
 const placeholders = (n: number) => Array.from({ length: n }, (_, i) => `$${i + 1}`);
 
-/**
- * The key objects a loaded key module exports: an exported plain object with at least one member
- * that is a key (an array) or builds one. An exported helper whose members build strings is not one.
- */
 export function keyObjectsOf(exports: Record<string, unknown>): KeyBuilders {
   const out: KeyBuilders = {};
   for (const [name, value] of Object.entries(exports)) {
@@ -174,7 +142,6 @@ export function keyObjectsOf(exports: Record<string, unknown>): KeyBuilders {
   return out;
 }
 
-/** Loads the app's key module and keeps its key objects; a module that exports none is a problem. */
 export async function loadKeyObjects(facts: KeyModuleFacts): Promise<KeyBuilders> {
   const exports = await facts.load();
   const objects = keyObjectsOf(exports ?? {});
@@ -183,10 +150,6 @@ export async function loadKeyObjects(facts: KeyModuleFacts): Promise<KeyBuilders
   return objects;
 }
 
-/**
- * The key a reference builds, every argument a placeholder: a key method is called, a key value
- * (a scope's `all`) is taken as it is. A family read whole (`x.*`) stands for its `all`.
- */
 export function sampleKey(ref: string, builders: KeyBuilders): unknown[] | null {
   const [object, method] = ref.split('.');
   const value = builders[object]?.[method === '*' ? 'all' : method];
@@ -209,16 +172,13 @@ export function isPrefix(prefixKey: readonly unknown[], key: readonly unknown[])
   );
 }
 
-/** A family helper (named with the app's family suffix) addresses the family of the method it names. */
 export const familyOf = (ref: string, familySuffix: string) =>
   ref.endsWith(familySuffix) && ref.length > familySuffix.length
     ? ref.slice(0, -familySuffix.length)
     : ref;
 
-/** The TanStack Query and query-core hooks that read an infinite list. */
 const INFINITE_READ = /\buse(?:InfiniteQuery|FirestoreInfinite|FirestoreLiveInfinite)\s*(?:<|\()/;
 
-/** The key families read by an infinite query, as `object.method` refs. */
 export function infiniteKeyFamilies(
   files: ReadonlyArray<{ code: string }>,
   keyObjects: readonly string[],
@@ -230,7 +190,6 @@ export function infiniteKeyFamilies(
     const lines = code.split('\n');
     lines.forEach((line, i) => {
       if (!INFINITE_READ.test(line)) return;
-      // The call's own header: from the hook name through its `queryKey`.
       const header = lines.slice(i, i + 25);
       const keyLine = header.findIndex((l) => /\bqueryKey\b/.test(l));
       const window = header.slice(0, keyLine === -1 ? header.length : keyLine + 1).join('\n');
@@ -248,7 +207,6 @@ export function infiniteKeyFamilies(
   return infinite;
 }
 
-/** Whether a key ref reaches an infinite list: named, through its family helper, or through a scope. */
 export function reachesInfinite(
   ref: string,
   infinite: ReadonlySet<string>,
@@ -263,7 +221,6 @@ export function reachesInfinite(
     .some((infiniteKey) => infiniteKey !== null && isPrefix(key, infiniteKey));
 }
 
-/** Every exported object literal in a module, as the key objects its source declares. */
 export function declaredObjects(
   sf: ts.SourceFile,
 ): Array<{ name: string; object: ts.ObjectLiteralExpression }> {

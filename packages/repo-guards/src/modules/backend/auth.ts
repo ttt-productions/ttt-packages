@@ -1,7 +1,3 @@
-// The authority guards over server code: the admin claim is read only by its resolver, a request's
-// origin is read in one place, no sign-in waits on a blocking function, every callable declares
-// its App Check posture, and the client presents a limited-use token exactly where it is consumed.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
@@ -27,22 +23,14 @@ import {
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
-// ---------------------------------------------------------------------------------------------
-// The admin claim is read only by its resolver.
-
 export interface AdminClaimFacts {
-  /** The token claims that say a caller is an admin (`isAdmin`). */
   claimKeys: readonly string[];
-  /** The modules that may read the claim — the resolver, and metadata-only copies — each with its why. */
   readers: readonly Reviewed[];
-  /** Server code in the app root, held to the same rule as the Functions tree. */
   appServerZone: ServerZone;
 }
 
-/** A claim-shaped receiver: the raw token or claims payload, never a role resolved upstream. */
 const CLAIM_RECEIVER = String.raw`(?:[\w$]*[Tt]oken|[\w$]*[Cc]laims|decoded[\w$]*)`;
 
-/** Every read of an admin claim off a token: member access, bracket access, or destructuring. */
 export function adminClaimMatcher(claimKeys: readonly string[]): Matcher {
   const keys = claimKeys.map(escapeRegExp).join('|');
   const patterns = [
@@ -116,15 +104,10 @@ export const adminClaimGuard: GenericGuardDefinition<AdminClaimFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// One request-origin reader.
-
 export interface RequestOriginFacts {
-  /** The one module that derives where a request came from. */
   reader: string;
 }
 
-/** The raw request, its forwarded-address header, and the framework's own address. */
 const ORIGIN_READ = /\brawRequest\b|x-forwarded-for|\breq\s*\.\s*ip\b/gi;
 
 export const requestOriginGuard: GenericGuardDefinition<RequestOriginFacts> = {
@@ -139,11 +122,7 @@ export const requestOriginGuard: GenericGuardDefinition<RequestOriginFacts> = {
     return [
       ownerOnly({
         title: "a request's origin is read in one place",
-        description:
-          `Where a request came from is read only in ${facts.reader}: nothing else in the Functions tree reads the raw ` +
-          "request, its X-Forwarded-For header, or the framework's own `req.ip`. The one reader takes the last forwarded " +
-          'entry, never a caller-set one; everything else takes the origin the auth step derived. The reader must still ' +
-          'hold the read.',
+        description: `A request's origin is read only in ${facts.reader}, which must still hold the read.`,
         scope: FUNCTIONS_CODE,
         match: (file) => {
           const re = new RegExp(ORIGIN_READ.source, ORIGIN_READ.flags);
@@ -167,15 +146,11 @@ export const requestOriginGuard: GenericGuardDefinition<RequestOriginFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// No Identity Platform blocking function.
-
 export type NoBlockingFunctionFacts = Record<string, never>;
 
 const BLOCKING_MODULE = /^firebase-functions\/(?:v2\/)?identity$/;
 const BLOCKING_BUILDERS = new Set(['beforeCreate', 'beforeSignIn', 'beforeEmail', 'beforeSms']);
 
-/** Every registration of a sign-up, sign-in, email, or SMS blocking function. */
 export function blockingFunctionSites(file: FileView): Array<{ node: ts.Node; detail: string }> {
   const out: Array<{ node: ts.Node; detail: string }> = [];
   for (const { spec, node } of moduleImports(file.sourceFile, MODULE_LOADS))
@@ -219,19 +194,11 @@ export const noBlockingFunctionGuard: GenericGuardDefinition<NoBlockingFunctionF
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// App Check posture.
-
 export interface AppCheckFacts {
-  /** Functions folders whose every callable spends its App Check token (money, safety, operator commands). */
   consumingFolders: readonly string[];
-  /** The auth call whose option marks an admin callable (`{ call: 'assertAuth', option: 'admin' }`). */
   adminAuth: { call: string; option: string };
-  /** Callables that keep the cached token although they would consume, by exported name, each with its why. */
   consumptionExempt: ReadonlyArray<{ callable: string; why: string }>;
-  /** The app's callable declarations, which present the token the server consumes. */
   clientDeclarations: CallableDeclarationFacts;
-  /** Consuming callables no client declaration names (no client calls them), each with its why. */
   noClientDeclaration: ReadonlyArray<{ callable: string; why: string }>;
 }
 
@@ -246,7 +213,6 @@ const isOnCall = (node: ts.Node): node is ts.CallExpression =>
   ts.isIdentifier(node.expression) &&
   node.expression.text === 'onCall';
 
-/** A literal options object's boolean property, or false when it is absent or not literally `true`. */
 const declaresTrue = (options: ts.ObjectLiteralExpression | null, key: string) =>
   !!options?.properties.some(
     (p) =>
@@ -255,7 +221,6 @@ const declaresTrue = (options: ts.ObjectLiteralExpression | null, key: string) =
       p.initializer.kind === ts.SyntaxKind.TrueKeyword,
   );
 
-/** Every callable a file defines: exported directly, or made by a module function that returns an `onCall`. */
 export function callablesOf(file: FileView): Callable[] {
   const sf = file.sourceFile;
   const optionsOf = (call: ts.CallExpression) =>
@@ -300,7 +265,6 @@ export function callablesOf(file: FileView): Callable[] {
   return out;
 }
 
-/** True when a file asks its auth call for the admin option. */
 export function asksForAdmin(file: FileView, adminAuth: AppCheckFacts['adminAuth']): boolean {
   let found = false;
   forEachNode(file.sourceFile, (node) => {

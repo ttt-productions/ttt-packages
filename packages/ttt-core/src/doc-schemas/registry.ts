@@ -1,12 +1,3 @@
-// Firestore collection registry — the single, authoritative binding from each Firestore
-// collection/subcollection path template to its document Zod schema. This is the input to
-// the schema-doc generator and the drift-check, and its completeness is CI-enforced
-// (registry.test.ts) against the COLLECTIONS / *_SUBCOLLECTIONS name constants, so a new
-// collection cannot be added without either a schema or an explicit PENDING entry.
-//
-// Path templates reuse the segment names from ../paths/collections.ts (and the shapes the
-// path-builders produce). `{placeholder}` segments are document/parent IDs.
-
 import type { z } from 'zod';
 import {
   FullUserSchema,
@@ -129,7 +120,6 @@ import {
   UserSuggestionSchema,
   StatusReconcileQueueEntrySchema,
 } from './operational.js';
-// ===== Trust & Safety — report spine =====
 import {
   ProtectedReportRootV1Schema,
   ReportPublicProjectionV1Schema,
@@ -139,7 +129,6 @@ import {
   NarrativeRecordV1Schema,
 } from './safety/report.js';
 import { SafetyCaseAlertV1Schema } from './safety/case-alert.js';
-// ===== Trust & Safety — child-safety case spine =====
 import {
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
@@ -176,7 +165,6 @@ import {
 } from './safety/sagas.js';
 import { SafetySlaMonitorV1Schema, SafetyMonitorHeartbeatV1Schema } from './safety/monitors.js';
 import { AgeAttestationNonceV1Schema, AgePolicyConfigV1Schema } from './safety/age.js';
-// ===== Trust & Safety — NCII / TAKE IT DOWN =====
 import { NciiAllegationV1Schema } from './ncii/allegations.js';
 import {
   TakeItDownRequestRootV1Schema,
@@ -211,7 +199,6 @@ import {
 } from './backend-state.js';
 
 export const COLLECTION_SCHEMAS = {
-  // ===== Users =====
   'userProfiles/{userId}': FullUserSchema,
   'userProfiles/{userId}/privateData/{userId}': UserPrivateDataSchema,
   'userProfiles/{userId}/privateData/hallLibraryPreferences': HallLibraryPreferencesSchema,
@@ -223,7 +210,6 @@ export const COLLECTION_SCHEMAS = {
     SquareStreetzLikeSchema,
   'publicUsers/{uid}': PublicUserSchema,
 
-  // ===== Work / Realm / Guild =====
   'allWorkProjects/{workProjectId}': FullWorkProjectSchema,
   'allWorkProjects/{workProjectId}/guildmateUsers/{uid}': GuildmateUserSchema,
   'allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}': PublicGuildmateUserSchema,
@@ -242,31 +228,21 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}':
     FullTelevisionEpisodeSchema,
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': GuildChatChannelSchema,
-  // Guild channel + invite messages are REALTIME-ONLY (chat Worker DO) — no Firestore schema.
   'publicWorkProjects/{workProjectId}': PublicWorkProjectSchema,
   'workRealms/{workRealmId}': WorkRealmSchema,
-  // Realm shared-file folders — steward-owned containers; callable-written, client-read denied
-  // (the gallery projection returns them alongside the files).
   'workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}': RealmFileFolderSchema,
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
-  // Conversation Files — the flat per-conversation file list. Backend-only writes;
-  // client-readable only while the caller holds conversation read access.
   'guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}':
     ConversationFileSchema,
 
-  // ===== Square / Social =====
-  // SquareStreetzPostSchema is a refined ZodObject (superRefine for the MEDIA-101
-  // mediaAssetId↔mediaType pair invariant); the schema-doc generator and the
-  // drift-check both unwrap the effect to introspect its shape, so binding the
-  // refined schema here is correct.
+  // A refined schema binds here as is: the schema-doc generator and the drift-check unwrap the
+  // effect.
   'squareStreetzFeed/activePosts/socialPosts/{postId}': SquareStreetzPostSchema,
   'squareStreetzFeed/trendingPosts': TrendingPostsSchema,
   'followEdges/{followEdgeId}': FollowEdgeSchema,
   'followCounters/{followCounterId}': FollowCounterSchema,
-  // Durable Square announcement outbox (Admin-SDK-only; deterministic job ids).
   'squareAnnouncementJobs/{jobId}': SquareAnnouncementJobSchema,
 
-  // ===== Payments / pledge ledger =====
   'pledgePayments/{pledgePaymentId}': PledgePaymentSchema,
   'pledgePaymentProviderRefs/{pledgePaymentId}': PledgePaymentProviderRefSchema,
   'processedStripeEvents/{stripeEventId}': ProcessedStripeEventSchema,
@@ -275,35 +251,23 @@ export const COLLECTION_SCHEMAS = {
   'pledgePaymentTotals/summary': PledgePaymentTotalsDocSchema,
   'pledgeRefundRequests/{requestId}': PledgeRefundRequestSchema,
 
-  // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,
   'hallItems/{hallItemId}': PublishedHallItemSchema,
-  // Published hall sub-item projections — the chapter/track/episode docs copied out of
-  // the Work at publish time (runPublishApprovedHallLibraryItem). Segment names are the
-  // HALL_ITEM_SUBCOLLECTIONS constants — fixed compound names, NOT derived from
-  // WorkProjectType.
   'hallItems/{hallItemId}/hallItemTales/{itemId}': PublishedChapterSchema,
   'hallItems/{hallItemId}/hallItemTunes/{itemId}': PublishedTuneTrackSchema,
   'hallItems/{hallItemId}/hallItemTelevision/{itemId}': PublishedTelevisionEpisodeSchema,
   'hallContentChangeRequests/{changeRequestId}': HallContentChangeRequestSchema,
 
-  // ===== Commission / Audition =====
   'commissionListings/{commissionListingId}': FullCommissionListingSchema,
   'commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}':
     CommissionProposalSchema,
   'auditionBoard/{auditionId}': AuditionSchema,
   'auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}': AuditionEntrySchema,
 
-  // ===== Moderation / Reports / Admin =====
-  // The report spine: the restricted root, its public projection subdoc, and the
-  // dedup/count group. The root + projection are written by the app's submitReport
-  // callable; the group is maintained by an app-side trigger.
   'contentReports/{reportId}': ProtectedReportRootV1Schema,
   'contentReports/{reportId}/publicProjection/{reportId}': ReportPublicProjectionV1Schema,
   'contentReports/{reportId}/privateDetails/snapshot': ReportTargetSnapshotV1Schema,
   'contentReports/{reportId}/privateDetails/narrative': NarrativeRecordV1Schema,
-  // The escalation narrative is byte-identical to the original — ONE shape, ONE definition
-  // (ENG-002): the same NarrativeRecordV1Schema binds both docs, never a duplicate schema.
   'contentReports/{reportId}/privateDetails/narrativeEscalation': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
   'activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}':
@@ -323,25 +287,21 @@ export const COLLECTION_SCHEMAS = {
   'pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}':
     AdminDispatchReadMarkerSchema,
 
-  // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
   'pendingMediaArchive/{pendingMediaId}': ArchivedPendingMediaDocSchema,
   'mediaAssets/{mediaAssetId}': MediaAssetSchema,
   'mediaActivationJobs/{jobId}': MediaActivationJobSchema,
   'mediaCopyIntents/{newAssetId}': MediaCopyIntentSchema,
 
-  // ===== Notifications =====
   'activeUserNotifications/{notificationId}': NotificationDocSchema,
   'activeAdminNotifications/{notificationId}': NotificationDocSchema,
   'adminNotificationHistory/{notificationId}': NotificationHistoryDocSchema,
   'pendingNotifications/{notificationId}': PendingNotificationSchema,
 
-  // ===== Notification redesign — delivery ledger + fanout engine =====
   'notificationDeliveries/{deliveryId}': NotificationDeliverySchema,
   'notificationFanoutJobs/{jobId}': NotificationFanoutJobSchema,
   'notificationArchiveAllJobs/{jobId}': NotificationArchiveAllJobSchema,
 
-  // ===== Chat realtime sync / projection / commands =====
   'chatChannelAuthProjections/{authPairKey}': ChatChannelAuthProjectionSchema,
   'chatScopeDegraded/{scopeKey}': ChatScopeDegradedSchema,
   'chatScopeDegraded/{scopeKey}/chatScopeDegradedCauses/{causeId}': ChatScopeDegradedCauseSchema,
@@ -354,10 +314,8 @@ export const COLLECTION_SCHEMAS = {
     ChatHistoryAnonymizationAffectedChunkSchema,
   'chatParkedDeliveries/{deliveryId}': ChatParkedDeliverySchema,
 
-  // ===== Craft skills index =====
   'craftSkillsByTag/{tag}/taggedCraftSkills/{compositeId}': CraftSkillReferenceSchema,
 
-  // ===== Operational / utility =====
   'reservedDisplayNames/{displayNameUppercase}': ReservedDisplayNameSchema,
   'reservedRealmNames/{workingTitleUppercase}': ReservedRealmNameSchema,
   'accountDeletionRequests/{uid}': AccountDeletionRequestV1Schema,
@@ -365,12 +323,10 @@ export const COLLECTION_SCHEMAS = {
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
   'statusReconcileQueue/{uid}': StatusReconcileQueueEntrySchema,
 
-  // ===== Versioned public documents (backend-written; never public — the public reads the _appConfig projections) =====
   'publicDocuments/{documentId}/publicDocumentVersions/{versionId}': PublicDocumentVersionSchema,
   'publicDocumentDrafts/{documentId}': PublicDocumentDraftSchema,
   'publicDocumentReleases/{releaseId}': PublicDocumentReleaseSchema,
 
-  // ===== Trust & Safety — child-safety case spine =====
   'childSafetyCaseList/{caseId}': ChildSafetyCaseListV1Schema,
   'activeSafetyCaseAlerts/{caseId}': SafetyCaseAlertV1Schema,
   'childSafetyCases/{caseId}': ChildSafetyCaseV1Schema,
@@ -386,20 +342,15 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}':
     ChildSafetyNcmecSubmissionFileV1Schema,
-  // The submission's single immutable completion-proof record (fixed doc id). Backend-only,
-  // so its shape lives in doc-schemas/backend-state.ts alongside the portal artifacts.
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record':
     NcmecCompletionProofRecordV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
-  // Portal-filed NCMEC artifacts recorded by the two step-up-gated operator callables. Both
-  // are backend-only (no client reader), so their shapes live in doc-schemas/backend-state.ts.
   'childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}':
     NcmecPortalReceiptArtifactV1Schema,
   'childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}':
     NcmecPortalCorrectionRecordV1Schema,
   'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
 
-  // ===== Trust & Safety — holds + resource commands =====
   'safetyHoldRefs/{holdRefId}': SafetyHoldRefV1Schema,
   'safetyHoldResources/{resourceKeyHash}': SafetyHoldResourceV1Schema,
   'safetyResourceCommands/{commandDocId}': SafetyResourceCommandV1Schema,
@@ -408,10 +359,6 @@ export const COLLECTION_SCHEMAS = {
   'safetyResourceCommands/{commandDocId}/bypassRefs/{refId}':
     SafetyResourceCommandBypassRefV1Schema,
 
-  // ===== Trust & Safety — evidence + provenance =====
-  // SafetyEvidenceManifestV1Schema is a refined ZodObject (superRefine for the
-  // sourceKind invariant); the schema-doc generator unwraps the effect to introspect
-  // its shape, so binding the refined schema here is correct.
   'safetyEvidenceManifests/{manifestId}': SafetyEvidenceManifestV1Schema,
   'safetyEvidenceJobs/{jobId}': SafetyEvidenceJobV1Schema,
   'safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}': SafetyEvidenceJobItemDocV1Schema,
@@ -419,27 +366,20 @@ export const COLLECTION_SCHEMAS = {
     SafetyEvidenceDispositionV1Schema,
   'eventProvenance/{eventId}': EventProvenanceV1Schema,
 
-  // ===== Trust & Safety — sagas + closure =====
   'quarantineSagaJobs/{caseId}': QuarantineSagaJobV1Schema,
   'quarantineSagaJobs/{caseId}/relatedAssets/{assetId}': QuarantineSagaRelatedAssetV1Schema,
   'ncmecSubmissionJobs/{ncmecJobId}': NcmecSubmissionJobV1Schema,
   'accountActionCommands/{accountActionCommandId}': AccountActionCommandV1Schema,
 
-  // ===== Trust & Safety — SLA monitors + heartbeat =====
   'safetySlaMonitors/{monitorId}': SafetySlaMonitorV1Schema,
   'safetyMonitorHeartbeat/global': SafetyMonitorHeartbeatV1Schema,
 
-  // ===== Trust & Safety — age attestation nonces =====
   'ageAttestationNonces/{nonceHash}': AgeAttestationNonceV1Schema,
 
-  // ===== Trust & Safety — operator step-up + reconciler cursors (backend-only) =====
-  // Cloud-Functions-only readers/writers; client access denied in firestore.rules.
   'operatorStepUp/{uid}': OperatorStepUpSchema,
 
-  // ===== Scheduled user sweeps — durable cadence/cursor state (backend-only) =====
   'sweepState/{sweepName}': SweepStateSchema,
 
-  // ===== Trust & Safety — NCII / TAKE IT DOWN =====
   'nciiAllegations/{allegationId}': NciiAllegationV1Schema,
   'takeItDownRequests/{requestId}': TakeItDownRequestRootV1Schema,
   'takeItDownRequests/{requestId}/privateDetails/requester': TakeItDownRequesterPrivateV1Schema,
@@ -450,8 +390,6 @@ export const COLLECTION_SCHEMAS = {
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record':
     TakeItDownValidityRationaleV1Schema,
   'takeItDownRequests/{requestId}/takeItDownActions/{actionId}': TakeItDownRequestActionV1Schema,
-  // Deletion-verification record per evidence object — see SafetyEvidenceDispositionV1Schema for what
-  // `result: 'gone'` means in THIS bucket (absent from the live bucket, not permanent destruction).
   'takeItDownRequests/{requestId}/takeItDownEvidenceDisposition/{evidenceId}':
     SafetyEvidenceDispositionV1Schema,
   'takeItDownRequests/{requestId}/takeItDownEvidence/{evidenceId}': TakeItDownEvidenceV1Schema,
@@ -462,17 +400,12 @@ export const COLLECTION_SCHEMAS = {
   'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
   'nciiCases/{caseId}/closureEvents/{eventId}': NciiCaseClosureEventV1Schema,
   'nciiRetainedEvidenceInventory/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
-  // The dead-letter sink for inventory rows that could not be written to the primary
-  // nciiRetainedEvidenceInventory collection. Stores the same document shape.
   'nciiInventoryDeadLetter/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
   'nciiRemovalJobs/{jobId}/nciiRemovalTargets/{targetKeyHash}': NciiRemovalTargetV1Schema,
 
-  // ===== _appConfig singletons (public) =====
   '_appConfig/app': AppConfigSchema,
-  // The public documents' current projections. Every one is a public page; take-it-down is a
-  // NO-LOGIN page, so its copy doc must be publicly readable.
   '_appConfig/futurePlans': PUBLIC_DOCUMENT_PROJECTIONS.futurePlans.schema,
   '_appConfig/rulesAndAgreements': PUBLIC_DOCUMENT_PROJECTIONS.rulesAndAgreements.schema,
   '_appConfig/termsOfService': PUBLIC_DOCUMENT_PROJECTIONS.termsOfService.schema,
@@ -481,17 +414,11 @@ export const COLLECTION_SCHEMAS = {
   '_appConfig/dmcaPolicy': PUBLIC_DOCUMENT_PROJECTIONS.dmcaPolicy.schema,
   '_appConfig/systemUidSlots': SystemUidSlotsDocumentSchema,
 
-  // ===== _serverData singletons (server-only — Cloud-Functions-only readers, BACKEND-108) =====
   '_serverData/agePolicy': AgePolicyConfigV1Schema,
   '_serverData/nciiPolicy': NciiPolicyConfigV1Schema,
   '_serverData/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
-  // The submitFeedback alias map, in the server-only bucket so no client can read it
-  // (BACKEND-108). The sibling `feedbackDenylist` subcollection has no field contract
-  // (`.exists`-only) — see PENDING_COLLECTION_PATHS.
   '_serverData/feedbackLists/feedbackAliases/{aliasId}': FeedbackAliasSchema,
-  // The scheduled sweeps' scan cursors — each read only by the function that owns it.
 
-  // ===== _systemData singletons (signed-in readers, BACKEND-108) =====
   '_systemData/adminList': AdminListSchema,
   '_systemData/profanityList': ProfanityListSchema,
   '_systemData/reservedUsernames': ReservedUsernamesSchema,
@@ -502,16 +429,6 @@ export const COLLECTION_SCHEMAS = {
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
 
-/**
- * Doc-id field annotation: for the listed bindings, the named body field equals the
- * Firestore document id and is injected at READ time (`{ ...doc.data(), <field>: doc.id }`),
- * never persisted — the write callables store the body via `Omit<…, '<field>'>`. The bound
- * schema models the (correct) consumer/read shape, where the field is required, so a raw
- * stored doc is "missing" it. The drift-check injects `{ [field]: doc.id, ...data }` before
- * validating, one mechanism for every doc-id collection, so a drift-check of real data does not
- * flag every such document as missing its id field.
- * The schema-doc generator ignores this map. Keys are compiler-checked against the registry.
- */
 export const COLLECTION_DOC_ID_FIELDS = {
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': 'uid',
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}': 'uid',
@@ -521,8 +438,6 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}':
     'uid',
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': 'guildChatChannelId',
-  // Published hall sub-items: the doc id IS the live sub-item's id; `uid` is injected at
-  // read (the publish writer spreads the live doc's stored body, which has no `uid`).
   'hallItems/{hallItemId}/hallItemTales/{itemId}': 'uid',
   'hallItems/{hallItemId}/hallItemTunes/{itemId}': 'uid',
   'hallItems/{hallItemId}/hallItemTelevision/{itemId}': 'uid',
@@ -534,18 +449,8 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'statusReconcileQueue/{uid}': 'uid',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
 
-/**
- * Collections that exist (in COLLECTIONS / *_SUBCOLLECTIONS or firestore.rules) but are
- * intentionally NOT bound to a schema, each by name with its path and the reason beside it. Listed
- * EXPLICITLY so completeness is enforced and nothing is silently uncovered; the registry test fails
- * if a NEW unlisted collection appears.
- */
 export const PENDING_COLLECTION_PATHS = {
-  // Console-managed (no callable writes it), and submitFeedback reads it with `.exists` only, so
-  // there is no field contract to author a schema from: the doc id is the denied word and the body
-  // is unused.
   feedbackDenylist: '_serverData/feedbackLists/feedbackDenylist/{deniedWord}',
 } as const;
 
-/** The pending collections' names, derived from their paths. */
 export const PENDING_COLLECTIONS: readonly string[] = Object.keys(PENDING_COLLECTION_PATHS);

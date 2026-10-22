@@ -1,26 +1,12 @@
-// Every generic package of the scope an app installs stays application-agnostic as it ships: its
-// manifest never depends on the app's core package, and its shipped code never imports that core
-// package or names the product. Read from what is installed, so a published build is checked, not
-// its source.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { isText, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 
 export interface InstalledPackagesAgnosticFacts {
-  /** The package scope the generic packages share (`@acme/`). */
   packageScope: string;
-  /** The app's own core package, the one generic packages must never reach. */
   corePackage: string;
-  /** Folders whose `package.json` declares the generic packages ('' for the repository root). */
   manifestFolders: readonly string[];
-  /** Product names, written as regular-expression sources, that a generic package must never contain. */
   productNames: readonly string[];
-  /**
-   * Wire-protocol tokens a generic package owns that carry a product-branded string by design (a
-   * header name two deployed runtimes agree on), each with why; their text is exempt from the
-   * product-name check, nothing else in the file is.
-   */
   wireTokens: ReadonlyArray<{ token: string; why: string }>;
 }
 

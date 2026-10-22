@@ -40,61 +40,31 @@ import { noteStoredValue, readStoredValue, writeStoredValue } from '../device-st
 import type { ReducedMotionStore } from './reduced-motion-store.js';
 import { useThemeStorageKey } from './theme-provider.js';
 
-/** The account half of the sync, built by the app from its auth state, account read, and settings write. */
 export interface ViewerSettingsAccount {
-  /**
-   * The signed-in account's id, `null` while signed out; signed out, settings live on the device
-   * alone. The sync's record of this account (its saves in flight, each setting's baseline, its
-   * silent-save attempt) starts over whenever this id changes, a sign-out or sign-in included.
-   */
   accountId: string | null;
-  /**
-   * The account's saved settings, `null` for a setting the account has not saved. `undefined`
-   * while the read is loading or failing, never all-`null` in their place: all-`null` means an
-   * account with nothing saved, which the sync fills with the device's values. `undefined` pauses
-   * the comparison and keeps the sync's record of the account, so a read that fails and recovers
-   * picks up where it left off.
-   */
   settings: SavedViewerSettings | undefined;
-  /** Writes settings to the account; rejects when the write fails. */
   save: (settings: Partial<ViewerSettings>) => Promise<void>;
-  /**
-   * Receives a failed save the viewer did not start: the device's values saved to an account that
-   * has none. It is not retried until the account's values change, `accountId` changes, or the app
-   * loads again.
-   */
   onSilentSaveError: (error: unknown) => void;
 }
 
 export interface ViewerSettingsSyncProviderProps {
-  /** The app's reduced-motion store. */
   motion: ReducedMotionStore;
   account: ViewerSettingsAccount;
-  /** localStorage key under which this device remembers the differences a viewer dismissed. */
   dismissalStorageKey: string;
   children: ReactNode;
 }
 
-/** The non-blocking question asked when the account's saved values differ from the device's. */
 export interface ViewerSettingsPrompt {
-  /** Every setting whose device and account values differ, except differences already dismissed. */
   differences: ViewerSettingDifference[];
-  /** Applies the account's values for these differences to this device. */
   adoptAccountSettings: () => void;
-  /** Saves this device's values for these differences to the account; the prompt stays until the account's values reflect them. */
   saveDeviceSettings: () => Promise<void>;
-  /** Keeps this device's values; each of these differences is not asked about again while it holds. */
   dismiss: () => void;
 }
 
 export interface ViewerSettingsSync {
-  /** The theme this device shows; `undefined` on the server and until hydration completes. */
   theme: ThemeName | undefined;
-  /** Sets the theme on this device at once and, signed in, on the account; rejects when the account write fails. */
   setTheme: (theme: ThemeName) => Promise<void>;
-  /** Sets the saved motion preference on this device at once and, signed in, on the account; rejects when the account write fails. */
   setReducedMotion: (reduced: boolean) => Promise<void>;
-  /** The compare prompt, or `null` when there is nothing to ask. */
   prompt: ViewerSettingsPrompt | null;
 }
 
@@ -103,13 +73,10 @@ const ViewerSettingsSyncContext = createContext<ViewerSettingsSync | null>(null)
 interface StoredValue {
   read: () => string | null;
   write: (value: string | null) => void;
-  /** Records a value another library stored, and tells this tab's subscribers. */
   noteWritten: (value: string) => void;
   subscribe: (onChange: () => void) => () => void;
 }
 
-// One localStorage entry, observed in this tab through the writes made here and in other tabs
-// through the native `storage` event.
 function storedValue(key: string): StoredValue {
   const listeners = new Set<() => void>();
   const notify = () => listeners.forEach((listener) => listener());
@@ -150,10 +117,6 @@ function useRequiredThemeStorageKey(): string {
   return key;
 }
 
-/**
- * Keeps the viewer's theme and motion settings on the device and, signed in, on the account. Mount
- * it once, inside `ThemeProvider` and below whatever supplies the account adapter.
- */
 export function ViewerSettingsSyncProvider({
   motion,
   account,
@@ -185,8 +148,8 @@ export function ViewerSettingsSyncProvider({
   const signedIn = accountId !== null;
   const accountTheme = settings?.theme ?? null;
   const accountMotion = settings?.reducedMotion ?? null;
-  // Until hydration completes the device reads as the server's "nothing saved", and comparing that
-  // would hand the device the account's values over its own.
+  // Until hydration completes the device reads as the server's "nothing saved"; comparing that would
+  // hand the device the account's values over its own.
   const accountReady = hydrated && signedIn && settings !== undefined;
 
   const device = useMemo<SavedViewerSettings>(
@@ -198,12 +161,6 @@ export function ViewerSettingsSyncProvider({
     [accountReady, accountTheme, accountMotion],
   );
 
-  // The sync's record of the account: each setting's baseline and this tab's saves in flight, with a
-  // generation that keys the silent-save attempt. It is adjusted during render, React's pattern for
-  // state that follows a changing input, so no comparison runs against a record older than the
-  // values it is compared with. A new accountId (sign-out, sign-in, another account) starts it over:
-  // a save belongs to the account that made it, and a late settle finds nothing to update. Values
-  // going absent (a read loading or failing, or hydration pending) only pause the comparison.
   const [owner, setOwner] = useState(() => ({ accountId, generation: 0 }));
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [saves, setSaves] = useState<SaveTracks>({});
@@ -244,8 +201,7 @@ export function ViewerSettingsSyncProvider({
     (values: Partial<ViewerSettings>) => {
       if (values.theme !== undefined) {
         setDeviceTheme(values.theme);
-        // next-themes re-renders only when the theme it shows changes; noting the write re-reads
-        // the stored theme either way, and holds it for the page when storage is blocked.
+        // next-themes re-renders only when the theme it shows changes, so the write is noted either way.
         themeStore.noteWritten(values.theme);
       }
       if (values.reducedMotion !== undefined) motion.setSavedReducedMotion(values.reducedMotion);
@@ -291,8 +247,6 @@ export function ViewerSettingsSyncProvider({
     }
   }, [adoptTheme, adoptMotion, writeDevice]);
 
-  // One attempt per account state, so a save that keeps failing is reported once instead of looping.
-  // The record's generation is part of the state: a new accountId gets its own attempt.
   const attemptedSilentSave = useRef<string | null>(null);
   const generation = owner.generation;
   const silentTheme = comparison?.saveToAccount.theme;
@@ -367,7 +321,6 @@ export function useViewerSettingsSync(): ViewerSettingsSync {
   return sync;
 }
 
-/** The enclosing sync, or `null` when none is mounted. */
 export function useOptionalViewerSettingsSync(): ViewerSettingsSync | null {
   return useContext(ViewerSettingsSyncContext);
 }

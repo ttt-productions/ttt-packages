@@ -111,7 +111,7 @@ describe('createPendingMediaSchemas', () => {
       updatedAt: 1,
     };
 
-    it('parses a legacy pending row with neither new field', () => {
+    it('parses a pending row with neither an attempt count nor a lease', () => {
       const parsed = schemas.PendingMediaSchema.parse({ ...baseLive, status: 'pending' });
       expect(parsed.processingAttemptCount).toBeUndefined();
       expect(parsed.processingLeaseExpiresAt).toBeUndefined();

@@ -8,29 +8,27 @@ import {
   type ScrubbableEvent,
 } from '../src/scrubber.js';
 
-// --- Synthetic FORBIDDEN canary values (all fake — never real) ---------------
-const FAKE_EVIDENCE_URL = 'https://storage.googleapis.com/app-ncii-evidence/case_9f/abcd1234';
-const FAKE_EVIDENCE_PREFIX = 'https://storage.googleapis.com/app-ncii-evidence/';
+const FAKE_PRIVATE_URL = 'https://storage.example.test/private-bucket/item_9f/abcd1234';
+const FAKE_PRIVATE_PREFIX = 'https://storage.example.test/private-bucket/';
 const FAKE_IPV4 = '203.0.113.42';
 const FAKE_IPV6 = '2001:0db8:85a3:0000:0000:8a2e:0370:7334';
-const FAKE_DETECTOR_HASH = 'a'.repeat(64); // 64 hex chars — detector-hash shape
-const FAKE_NCMEC_CRED = 'ncmec-key-abcdef0123456789';
+const FAKE_DIGEST = '0123456789abcdef'.repeat(4);
+const FAKE_VENDOR_KEY = 'vendorx-key-abcdef0123456789';
 const FAKE_BEARER = 'Bearer sk_live_abcdef0123456789ABCDEF';
 
-// App-injected product-specific patterns (the shape the app supplies at init).
-const TTT_PATTERNS = [
-  FAKE_EVIDENCE_PREFIX, // literal string prefix
-  /\bncmec-[a-z]+-[a-z0-9]{16,}\b/gi, // NCMEC credential marker
-  /\b[a-f0-9]{64}\b/gi, // detector-hash shape (64 hex)
+const APP_PATTERNS = [
+  FAKE_PRIVATE_PREFIX,
+  /\bvendorx-[a-z]+-[a-z0-9]{16,}\b/gi,
+  /\b[a-f0-9]{64}\b/gi,
 ];
 
 const ALL_CANARIES = [
-  FAKE_EVIDENCE_URL,
-  FAKE_EVIDENCE_PREFIX,
+  FAKE_PRIVATE_URL,
+  FAKE_PRIVATE_PREFIX,
   FAKE_IPV4,
   FAKE_IPV6,
-  FAKE_DETECTOR_HASH,
-  FAKE_NCMEC_CRED,
+  FAKE_DIGEST,
+  FAKE_VENDOR_KEY,
 ];
 
 function assertNoCanariesSurvive(event: unknown) {
@@ -65,7 +63,7 @@ describe('redactString (generic defaults)', () => {
   });
 
   it('leaves ordinary text untouched', () => {
-    const ok = 'processing case case_123 phase quarantine';
+    const ok = 'processing case case_123 phase review';
     expect(redactString(ok)).toBe(ok);
   });
 
@@ -73,7 +71,6 @@ describe('redactString (generic defaults)', () => {
     const re = DEFAULT_FORBIDDEN_PATTERNS[0];
     redactString(`${FAKE_IPV4} and ${FAKE_IPV4}`);
     redactString(`${FAKE_IPV4} and ${FAKE_IPV4}`);
-    // Second call must redact both occurrences (no stale lastIndex leak).
     expect(re.lastIndex).toBeTypeOf('number');
     expect(redactString(`${FAKE_IPV4} and ${FAKE_IPV4}`)).toBe(
       `${REDACTION_PLACEHOLDER} and ${REDACTION_PLACEHOLDER}`,
@@ -82,21 +79,21 @@ describe('redactString (generic defaults)', () => {
 });
 
 describe('createTelemetryScrubber — CANARY test', () => {
-  const scrub = createTelemetryScrubber({ patterns: TTT_PATTERNS });
+  const scrub = createTelemetryScrubber({ patterns: APP_PATTERNS });
 
   it('strips every forbidden canary from message, extra, breadcrumbs, and nested contexts', () => {
     const event: ScrubbableEvent = {
-      message: `error handling ${FAKE_EVIDENCE_URL} from ${FAKE_IPV4}`,
+      message: `error handling ${FAKE_PRIVATE_URL} from ${FAKE_IPV4}`,
       exception: {
         values: [
           {
             type: 'Error',
-            value: `NCMEC cred leaked: ${FAKE_NCMEC_CRED}`,
+            value: `vendor key leaked: ${FAKE_VENDOR_KEY}`,
             stacktrace: {
               frames: [
                 {
-                  filename: 'safety.ts',
-                  vars: { hash: FAKE_DETECTOR_HASH, ip: FAKE_IPV6 },
+                  filename: 'handler.ts',
+                  vars: { hash: FAKE_DIGEST, ip: FAKE_IPV6 },
                 },
               ],
             },
@@ -105,27 +102,27 @@ describe('createTelemetryScrubber — CANARY test', () => {
       },
       breadcrumbs: [
         {
-          category: 'safety',
-          message: `uploaded to ${FAKE_EVIDENCE_URL}`,
-          data: { reporterIp: FAKE_IPV4, ncmec: FAKE_NCMEC_CRED },
+          category: 'app',
+          message: `uploaded to ${FAKE_PRIVATE_URL}`,
+          data: { clientIp: FAKE_IPV4, vendorKey: FAKE_VENDOR_KEY },
         },
       ],
       extra: {
-        detectorHash: FAKE_DETECTOR_HASH,
-        nested: { deep: { evidence: FAKE_EVIDENCE_URL, list: [FAKE_IPV6, 'fine'] } },
+        digest: FAKE_DIGEST,
+        nested: { deep: { fileUrl: FAKE_PRIVATE_URL, list: [FAKE_IPV6, 'fine'] } },
       },
       contexts: {
-        safety: {
-          case: {
-            evidenceUrl: FAKE_EVIDENCE_URL,
-            reporterIp: FAKE_IPV4,
-            detectorHash: FAKE_DETECTOR_HASH,
+        app: {
+          record: {
+            fileUrl: FAKE_PRIVATE_URL,
+            clientIp: FAKE_IPV4,
+            digest: FAKE_DIGEST,
           },
         },
       },
       tags: { peer: FAKE_IPV4 },
       request: {
-        url: FAKE_EVIDENCE_URL,
+        url: FAKE_PRIVATE_URL,
         headers: { authorization: FAKE_BEARER, 'x-forwarded-for': FAKE_IPV4 },
       },
       user: { ip_address: FAKE_IPV4, id: 'uid-123' },
@@ -136,11 +133,10 @@ describe('createTelemetryScrubber — CANARY test', () => {
     expect(scrubbed).not.toBeNull();
     assertNoCanariesSurvive(scrubbed);
 
-    // Sanity: the placeholder actually landed and safe fields survived.
     const serialized = JSON.stringify(scrubbed);
     expect(serialized).toContain(REDACTION_PLACEHOLDER);
     expect(serialized).toContain('uid-123');
-    expect(serialized).toContain('safety');
+    expect(serialized).toContain('"record"');
   });
 
   it('mutates in place and returns the same event object', () => {
@@ -171,19 +167,15 @@ describe('createTelemetryScrubber — CANARY test', () => {
   });
 });
 
-// --- Firebase email-action one-time code (oobCode) ---------------------------
-// A live bearer credential: whoever reads it can complete a password reset.
-// Shape is Firebase's base64url output ([A-Za-z0-9_-], unpadded).
 const FAKE_OOB = 'Xk9_aB-cD3efGHijkLMnop2qRsTuv';
-const ACTION_ORIGIN = 'https://ttt.productions/auth/action';
+const ACTION_ORIGIN = 'https://example.test/auth/action';
 
 describe('oobCode redaction (Firebase email-action one-time code)', () => {
   it('redacts oobCode while leaving origin, path, and mode readable', () => {
     const out = redactString(`${ACTION_ORIGIN}?mode=resetPassword&oobCode=${FAKE_OOB}`);
     expect(out).not.toContain(FAKE_OOB);
     expect(out).toContain(REDACTION_PLACEHOLDER);
-    // The diagnostic value of the event must survive the redaction.
-    expect(out).toContain('https://ttt.productions/auth/action');
+    expect(out).toContain('https://example.test/auth/action');
     expect(out).toContain('mode=resetPassword');
   });
 
@@ -220,12 +212,11 @@ describe('oobCode redaction (Firebase email-action one-time code)', () => {
       extra: { replayUrl: url },
     };
 
-    const out = createTelemetryScrubber({ patterns: TTT_PATTERNS })(event);
+    const out = createTelemetryScrubber({ patterns: APP_PATTERNS })(event);
 
     const serialized = JSON.stringify(out);
     expect(serialized).not.toContain(FAKE_OOB);
     expect(serialized).toContain(REDACTION_PLACEHOLDER);
-    // Route diagnostics survive.
     expect(serialized).toContain('/auth/action');
     expect(serialized).toContain('mode=resetPassword');
     expect(serialized).toContain('/account');
@@ -239,54 +230,46 @@ describe('oobCode redaction (Firebase email-action one-time code)', () => {
   it('rides in the generic defaults, not the app-injected set', () => {
     const url = `${ACTION_ORIGIN}?mode=resetPassword&oobCode=${FAKE_OOB}`;
 
-    // Defaults on (the app's real config) → redacted even alongside app patterns.
     const withDefaults: ScrubbableEvent = { message: url };
-    redactEvent(withDefaults, { patterns: TTT_PATTERNS });
+    redactEvent(withDefaults, { patterns: APP_PATTERNS });
     expect(withDefaults.message).not.toContain(FAKE_OOB);
 
-    // Defaults off → the app's own patterns do not cover it, proving ownership.
     const withoutDefaults: ScrubbableEvent = { message: url };
-    redactEvent(withoutDefaults, { patterns: TTT_PATTERNS, includeDefaults: false });
+    redactEvent(withoutDefaults, { patterns: APP_PATTERNS, includeDefaults: false });
     expect(withoutDefaults.message).toContain(FAKE_OOB);
   });
 });
 
-// --- OIDC / Firebase ID token carried as a URL parameter ---------------------
-// Same defect class as oobCode: a credential-bearing query parameter the shared
-// credential alternation cannot reach, because `\btoken\b` needs a word boundary
-// that `idToken` (preceded by `d`) and `id_token` (preceded by `_`) both deny.
 const FAKE_JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1aWQtMTIzIn0.Xk9_aB-cD3efGH';
 
 describe('id_token redaction (OIDC / Firebase ID token in a URL)', () => {
   it('redacts every spelling while leaving following params readable', () => {
     for (const key of ['id_token', 'idToken', 'id-token', 'ID_TOKEN']) {
-      const out = redactString(`https://ttt.productions/cb?${key}=${FAKE_JWT}&state=abc`);
+      const out = redactString(`https://example.test/cb?${key}=${FAKE_JWT}&state=abc`);
       expect(out, `key: ${key}`).not.toContain(FAKE_JWT);
       expect(out, `key: ${key}`).toContain(REDACTION_PLACEHOLDER);
-      // The & terminator must hold for the hyphen spelling too — the shared
-      // alternation reaches `id-token` and would swallow the rest of the query.
       expect(out, `key: ${key}`).toContain('state=abc');
     }
   });
 
   it('consumes a whole JWT (dots, hyphens, underscores) and stops at &', () => {
-    const out = redactString(`https://ttt.productions/cb?id_token=${FAKE_JWT}&next=/account`);
-    expect(out).toBe(`https://ttt.productions/cb?${REDACTION_PLACEHOLDER}&next=/account`);
+    const out = redactString(`https://example.test/cb?id_token=${FAKE_JWT}&next=/account`);
+    expect(out).toBe(`https://example.test/cb?${REDACTION_PLACEHOLDER}&next=/account`);
   });
 
   it('redacts an id_token at end-of-string', () => {
-    const out = redactString(`https://ttt.productions/cb?state=abc&id_token=${FAKE_JWT}`);
+    const out = redactString(`https://example.test/cb?state=abc&id_token=${FAKE_JWT}`);
     expect(out).not.toContain(FAKE_JWT);
     expect(out).toContain('state=abc');
   });
 
   it('strips id_token from request.url and navigation breadcrumbs', () => {
-    const url = `https://ttt.productions/cb?id_token=${FAKE_JWT}&state=abc`;
+    const url = `https://example.test/cb?id_token=${FAKE_JWT}&state=abc`;
     const event: ScrubbableEvent = {
       request: { url },
       breadcrumbs: [{ category: 'navigation', data: { from: '/login', to: url } }],
     };
-    const serialized = JSON.stringify(createTelemetryScrubber({ patterns: TTT_PATTERNS })(event));
+    const serialized = JSON.stringify(createTelemetryScrubber({ patterns: APP_PATTERNS })(event));
     expect(serialized).not.toContain(FAKE_JWT);
     expect(serialized).toContain('state=abc');
   });
@@ -297,12 +280,7 @@ describe('id_token redaction (OIDC / Firebase ID token in a URL)', () => {
   });
 });
 
-// --- The compound-token class ------------------------------------------------
-// `\btoken\b` in the shared alternation cannot reach ANY compound spelling —
-// `authToken` (preceded by `d`/`h`) and `auth_token` (preceded by `_`) both deny
-// the word boundary. Enumerating `access_token` / `refresh_token` / `id_token`
-// one at a time is instance-patching; the dedicated pattern kills the class.
-describe('compound token parameters (class kill)', () => {
+describe('compound token parameters', () => {
   const COMPOUND_KEYS = [
     'authToken',
     'auth_token',
@@ -319,7 +297,7 @@ describe('compound token parameters (class kill)', () => {
 
   it('redacts every <prefix>token spelling while leaving following params readable', () => {
     for (const key of COMPOUND_KEYS) {
-      const out = redactString(`https://ttt.productions/cb?${key}=${FAKE_JWT}&state=abc`);
+      const out = redactString(`https://example.test/cb?${key}=${FAKE_JWT}&state=abc`);
       expect(out, `key: ${key}`).not.toContain(FAKE_JWT);
       expect(out, `key: ${key}`).toContain(REDACTION_PLACEHOLDER);
       expect(out, `key: ${key}`).toContain('state=abc');
@@ -327,12 +305,12 @@ describe('compound token parameters (class kill)', () => {
   });
 
   it('strips a compound token from request.url and navigation breadcrumbs', () => {
-    const url = `https://ttt.productions/cb?sessionToken=${FAKE_JWT}&state=abc`;
+    const url = `https://example.test/cb?sessionToken=${FAKE_JWT}&state=abc`;
     const event: ScrubbableEvent = {
       request: { url },
       breadcrumbs: [{ category: 'navigation', data: { from: '/login', to: url } }],
     };
-    const serialized = JSON.stringify(createTelemetryScrubber({ patterns: TTT_PATTERNS })(event));
+    const serialized = JSON.stringify(createTelemetryScrubber({ patterns: APP_PATTERNS })(event));
     expect(serialized).not.toContain(FAKE_JWT);
     expect(serialized).toContain('state=abc');
   });
@@ -348,10 +326,6 @@ describe('compound token parameters (class kill)', () => {
     }
   });
 
-  // Pins WHY the shared alternation keeps its own token branches: the dedicated
-  // pattern needs 4+ non-`&` chars, so a token whose value carries an early `&`
-  // falls through to the greedy shared entry. Removing those entries as
-  // "redundant" would silently reopen this hole.
   it('falls back to the greedy shared pattern when a token value contains an early &', () => {
     for (const probe of ['token=ab&cdef', 'access_token=xy&zzzz', 'refresh_token=a&bcdefgh']) {
       expect(redactString(probe), `probe: ${probe}`).toBe(REDACTION_PLACEHOLDER);
@@ -362,19 +336,18 @@ describe('compound token parameters (class kill)', () => {
 describe('redactEvent — direct backend use', () => {
   it('scrubs an event object for the withScope / manual-capture path', () => {
     const event: ScrubbableEvent = {
-      message: `denied serving for ${FAKE_EVIDENCE_URL}`,
-      extra: { hash: FAKE_DETECTOR_HASH },
+      message: `denied serving for ${FAKE_PRIVATE_URL}`,
+      extra: { hash: FAKE_DIGEST },
     };
-    redactEvent(event, { patterns: TTT_PATTERNS });
+    redactEvent(event, { patterns: APP_PATTERNS });
     assertNoCanariesSurvive(event);
   });
 
   it('can exclude generic defaults when includeDefaults is false', () => {
-    const event: ScrubbableEvent = { message: `ip ${FAKE_IPV4} hash ${FAKE_DETECTOR_HASH}` };
-    redactEvent(event, { patterns: TTT_PATTERNS, includeDefaults: false });
-    // Default IPv4 pattern is off → the IP survives, but the app hash pattern still fires.
+    const event: ScrubbableEvent = { message: `ip ${FAKE_IPV4} hash ${FAKE_DIGEST}` };
+    redactEvent(event, { patterns: APP_PATTERNS, includeDefaults: false });
     expect(event.message).toContain(FAKE_IPV4);
-    expect(event.message).not.toContain(FAKE_DETECTOR_HASH);
+    expect(event.message).not.toContain(FAKE_DIGEST);
   });
 });
 
@@ -443,12 +416,12 @@ describe('transaction and replay events — every place a page URL rides', () =>
 
   it('applies the app-injected patterns to spans and replay URLs too', () => {
     const event: ScrubbableEvent = {
-      transaction: `/evidence/${FAKE_DETECTOR_HASH}`,
-      spans: [{ description: `GET ${FAKE_EVIDENCE_URL}` }],
-      urls: [`https://example.test/case/${FAKE_DETECTOR_HASH}`],
+      transaction: `/items/${FAKE_DIGEST}`,
+      spans: [{ description: `GET ${FAKE_PRIVATE_URL}` }],
+      urls: [`https://example.test/items/${FAKE_DIGEST}`],
     };
-    const out = createTelemetryScrubber({ patterns: TTT_PATTERNS })(event)!;
-    expect(JSON.stringify(out)).not.toContain(FAKE_DETECTOR_HASH);
-    expect(JSON.stringify(out)).not.toContain(FAKE_EVIDENCE_PREFIX);
+    const out = createTelemetryScrubber({ patterns: APP_PATTERNS })(event)!;
+    expect(JSON.stringify(out)).not.toContain(FAKE_DIGEST);
+    expect(JSON.stringify(out)).not.toContain(FAKE_PRIVATE_PREFIX);
   });
 });

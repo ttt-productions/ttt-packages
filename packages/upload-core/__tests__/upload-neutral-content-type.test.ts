@@ -2,8 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { uploadFileResumable } from '../src/browser/upload.js';
 import { UploadError } from '../src/storage/upload-error.js';
 
-// The byte transfer itself is not under test — reject at the ref step so each
-// call exits immediately after the contentType gate (the subject).
 vi.mock('firebase/storage', () => ({
   ref: () => {
     throw new Error('gate-passed');
@@ -27,12 +25,12 @@ async function outcome(metadata: { contentType: string }, allowNeutralContentTyp
     return 'resolved';
   } catch (e) {
     if (e instanceof UploadError) return `upload-error:${e.code}`;
-    return (e as Error).message; // 'gate-passed' = the contentType gate accepted it
+    return (e as Error).message;
   }
 }
 
-describe('uploadFileResumable neutral content-type opt-in (canonical-upload-content-classification)', () => {
-  it('DEFAULT is unchanged: octet-stream rejects without the opt-in', async () => {
+describe('uploadFileResumable neutral content-type opt-in', () => {
+  it('rejects octet-stream without the opt-in', async () => {
     expect(await outcome({ contentType: 'application/octet-stream' })).toBe(
       'upload-error:invalid_content_type',
     );

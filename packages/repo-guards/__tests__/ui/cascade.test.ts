@@ -1,7 +1,3 @@
-// The cascade guards: one entry stylesheet in its pinned order, Tailwind scanning every
-// class-rendering package, a semantic text class surviving its same-named utility, and the theme
-// token blocks.
-
 import { describe, expect, it } from 'vitest';
 import {
   pinnedStatements,

@@ -1,6 +1,3 @@
-// The guards over the client's auth boundary: one place that answers "who is this", auth failures
-// that reach monitoring, sign-out liveness through its owner, and editors no permission read can drop.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
@@ -15,34 +12,18 @@ import { memberOrBareCalls, throughNamespace } from './text.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
-/** The keywords that declare a name a module can export: a function, a binding, or a class. */
 const DECLARATION_KEYWORDS = '(?:function|const|let|class)';
 const declares = (code: string, name: string) =>
   new RegExp(`\\b${DECLARATION_KEYWORDS}\\s+${escapeRegExp(name)}\\b`).test(code);
 
-// ---------------------------------------------------------------------------------------------
-// Client auth boundary: one derivation of identity and claims, and one auth context and accessor.
-// Where a signed-out visitor is sent is business: an app browsable signed out shows a sign-in gate in
-// place, an app that requires sign-in sends the visitor to its sign-in route. It is not checked here.
-
 export interface ClientAuthBoundaryFacts {
-  /** The modules that ARE the boundary — the provider mount, its configuration, the accessor — each with why. */
   boundaryModules: readonly Reviewed[];
-  /** The one accessor every other module reads auth through. */
   accessor: { file: string; name: string };
-  /** Symbols that derive identity, claims, or auth loading state. */
   derivationSymbols: readonly string[];
-  /** Modules those symbols can be reached through as a namespace (a module covers its subpaths). */
   authSourceModules: readonly string[];
-  /** Names only an auth context holds; a `createContext` beside one is a second auth context. */
   authContextVocabulary: readonly string[];
 }
 
-/**
- * Each place outside the boundary that derives identity, claims, or auth loading itself. A call is
- * matched bare or as a member (`auth.onAuthStateChanged(cb)`, `getAuth().onIdTokenChanged(cb)`),
- * since the SDK hands out the same derivations as instance methods.
- */
 export function boundaryDerivations(
   file: FileView,
   facts: Pick<ClientAuthBoundaryFacts, 'derivationSymbols' | 'authSourceModules'>,
@@ -78,7 +59,6 @@ export function boundaryDerivations(
   return out;
 }
 
-/** A second export of the accessor's name, or a context holding auth vocabulary, in one file. */
 export function secondAuthAccessors(
   path: string,
   code: string,
@@ -108,7 +88,6 @@ export function secondAuthAccessors(
   return out;
 }
 
-/** Every `createContext(…)` call in a file, bare or through a namespace. */
 function contextCreations(sourceFile: ts.SourceFile): ts.CallExpression[] {
   const calls: ts.CallExpression[] = [];
   forEachNode(sourceFile, (node) => {
@@ -117,11 +96,6 @@ function contextCreations(sourceFile: ts.SourceFile): ts.CallExpression[] {
   return calls;
 }
 
-/**
- * The comment-free text of what a context holds: its type argument, the same-file interface or type
- * alias that argument names, its default value, and the same-file constant that value names. Only
- * these say whether the context carries auth state; the rest of the file does not.
- */
 function contextShapeTexts(
   call: ts.CallExpression,
   sourceFile: ts.SourceFile,
@@ -230,15 +204,9 @@ export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryF
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Banned auth calls: a call the auth surfaces must never make.
-
 export interface BannedAuthCallFacts {
-  /** The folders and files that make up the auth surfaces. */
   surfaces: readonly string[];
-  /** Each banned call and why it is banned. */
   banned: ReadonlyArray<{ name: string; why: string }>;
-  /** A long-lived auth surface the scan must reach. */
   anchor: string;
 }
 
@@ -302,21 +270,14 @@ export const bannedAuthCallGuard: GenericGuardDefinition<BannedAuthCallFacts> = 
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Auth failure capture: every source calling a Firebase Auth operation that can fail reports it.
-
 export interface AuthFailureCaptureFacts {
-  /** The function every auth failure is reported through. */
   reporter: string;
-  /** Sources that leave the report to the code that catches their failure, each with why and the file that reports it. */
   reportedElsewhere: ReadonlyArray<{ path: string; why: string; reportedBy: string }>;
 }
 
-/** The Firebase Auth operations that reach the service and can fail. */
 const FAILING_AUTH_OPERATION =
   /^(?:createUserWithEmailAndPassword|signInWith\w+|signOut|sendPasswordResetEmail|confirmPasswordReset|verifyPasswordResetCode|checkActionCode|applyActionCode|sendEmailVerification|reauthenticateWith\w+|updatePassword|updateEmail|verifyBeforeUpdateEmail|linkWith\w+|deleteUser)$/;
 
-/** The failing operations a source imports as values from the Firebase Auth SDK. */
 export function failingAuthImports(file: FileView): string[] {
   const names: string[] = [];
   for (const site of moduleImports(file.sourceFile, ['import'])) {
@@ -403,15 +364,9 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Sign-out liveness: the "still signed in" check has one owner.
-
 export interface SignOutLivenessFacts {
-  /** The module that owns the liveness check. */
   owner: string;
-  /** The names the owner exports for it. */
   ownerExports: readonly string[];
-  /** The function that returns the client auth instance. */
   authAccessor: string;
 }
 
@@ -477,21 +432,13 @@ export const signOutLivenessGuard: GenericGuardDefinition<SignOutLivenessFacts> 
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Editor permission gate: an editor holding typed input is never mounted under a permission read.
-
 export interface EditorPermissionGateFacts {
-  /** The hook an editor calls to guard its unsaved input: a file calling it holds an editor. */
   editorMarker: string;
-  /** The element the editor mounts in. */
   editorElement: string;
-  /** Permission reads: identifiers starting with this prefix and a capital letter. */
   permissionNamePrefix: string;
-  /** Permission reads: calls to these functions (declare [] when none). */
   permissionCalls: readonly string[];
 }
 
-/** Each editor element with an ancestor `{<permission read> && …}`. */
 export function permissionGatedEditors(
   sf: ts.SourceFile,
   facts: Omit<EditorPermissionGateFacts, 'editorMarker'>,

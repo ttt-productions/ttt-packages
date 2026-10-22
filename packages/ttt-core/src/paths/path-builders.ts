@@ -1,8 +1,3 @@
-// Document path builders — returns tuples of path segments.
-//
-// Frontend (Web SDK):  doc(db, ...PATH_BUILDERS.userProfile(userId))
-// Backend (Admin SDK): db.doc(toPath(PATH_BUILDERS.userProfile(userId)))
-
 import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
@@ -13,12 +8,31 @@ import {
   HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
   type HallItemSubcollection,
 } from './collections.js';
+import {
+  accountActionCommandDocId,
+  adminTaskForItemDocId,
+  childSafetyCaseAccountHistoryDocId,
+  childSafetyDecisionDocId,
+  followCounterDocId,
+  followEdgeDocId,
+  ncmecSubmissionJobDocId,
+  nciiCaseClosureEventDocId,
+  notificationFanoutJobDocId,
+  safetyHoldRefDocId,
+  safetySlaMonitorDocId,
+  taggedCraftSkillDocId,
+  thresholdItemDocId,
+  type CaseLifecycleTransition,
+  type ChildSafetyDecisionIdParts,
+} from './compound-ids.js';
+import type { AccountActionSource } from '../doc-schemas/safety/sagas.js';
+import type { SafetySlaMonitorKind } from '../doc-schemas/safety/monitors.js';
+import type { NotificationType } from '../schemas/notification.js';
 import type { FollowableTargetType } from '../schemas/social.js';
 import type { WorkProjectType } from '../types/content.js';
 import type { PublicDocumentId } from '../constants/public-documents.js';
 import type { SweepStateName } from '../constants/scheduled-jobs.js';
 
-/** The doc id of a published public-document version: `v1`, `v2`, … (whole numbers from 1). */
 export const publicDocumentVersionDocId = (version: number): string => {
   if (!Number.isInteger(version) || version < 1) {
     throw new Error(`public document versions are whole numbers from 1 (got ${version})`);
@@ -27,13 +41,10 @@ export const publicDocumentVersionDocId = (version: number): string => {
 };
 
 export const PATH_BUILDERS = {
-  // ===== USER PATHS =====
   userProfile: (userId: string): [string, string] => [COLLECTIONS.USER_PROFILES, userId],
 
-  // Backend-mirrored public identity projection (publicUsers/{uid}).
   publicUser: (uid: string): [string, string] => [COLLECTIONS.PUBLIC_USERS, uid],
 
-  // Per-user account-deletion / erasure request, keyed by uid.
   accountDeletionRequest: (uid: string): [string, string] => [
     COLLECTIONS.ACCOUNT_DELETION_REQUESTS,
     uid,
@@ -60,8 +71,6 @@ export const PATH_BUILDERS = {
     userId,
   ],
 
-  // Per-user Hall viewing-state doc: userProfiles/{uid}/privateData/hallLibraryPreferences, a
-  // fixed-id privateData subdoc.
   hallLibraryPreferences: (userId: string): [string, string, string, string] => [
     COLLECTIONS.USER_PROFILES,
     userId,
@@ -69,20 +78,18 @@ export const PATH_BUILDERS = {
     SPECIAL_DOCS.HALL_LIBRARY_PREFERENCES,
   ],
 
-  // Generic follow edge: top-level `followEdges/{followerUid__targetType__targetId}`.
-  // Deterministic ID = O(1) follow-status check + dedupe; a composite index on
-  // (targetType, targetId) makes the same collection the reverse follower index.
   followEdge: (
     followerUid: string,
     targetType: FollowableTargetType,
     targetId: string,
-  ): [string, string] => [COLLECTIONS.FOLLOW_EDGES, `${followerUid}__${targetType}__${targetId}`],
+  ): [string, string] => [
+    COLLECTIONS.FOLLOW_EDGES,
+    followEdgeDocId(followerUid, targetType, targetId),
+  ],
 
-  // Denormalized follower-count doc for a followable target: `followCounters/{targetType__targetId}`.
-  // Backend-maintained (incremented in the follow/unfollow transaction); never written by clients.
   followCounter: (targetType: FollowableTargetType, targetId: string): [string, string] => [
     COLLECTIONS.FOLLOW_COUNTERS,
-    `${targetType}__${targetId}`,
+    followCounterDocId(targetType, targetId),
   ],
 
   userLike: (userId: string, postId: string): [string, string, string, string, string, string] => [
@@ -101,7 +108,6 @@ export const PATH_BUILDERS = {
     auditionId,
   ],
 
-  // Archived personal notification history (userProfiles/{uid}/notificationHistory/{id}).
   userNotificationHistoryEntry: (
     userId: string,
     notificationId: string,
@@ -112,15 +118,12 @@ export const PATH_BUILDERS = {
     notificationId,
   ],
 
-  // Collection of archived personal notifications (parent of userNotificationHistoryEntry).
   userNotificationHistory: (userId: string): [string, string, string] => [
     COLLECTIONS.USER_PROFILES,
     userId,
     USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY,
   ],
 
-  // Active notification cards. Category chooses the lane; these builders keep the
-  // category config, direct-card writers, and archive flow on the same collection names.
   activeUserNotification: (notificationId: string): [string, string] => [
     COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,
     notificationId,
@@ -131,7 +134,6 @@ export const PATH_BUILDERS = {
     notificationId,
   ],
 
-  // ===== WORK PATHS =====
   workProject: (workProjectId: string): [string, string] => [
     COLLECTIONS.ALL_WORK_PROJECTS,
     workProjectId,
@@ -142,8 +144,6 @@ export const PATH_BUILDERS = {
     workProjectId,
   ],
 
-  // The Work's single hall-entry reservation (fixed doc id — one reservation per Work),
-  // claimed create-only inside the first threshold submit's transaction.
   hallSubmissionReservation: (workProjectId: string): [string, string, string, string] => [
     COLLECTIONS.ALL_WORK_PROJECTS,
     workProjectId,
@@ -171,7 +171,6 @@ export const PATH_BUILDERS = {
     chapterId,
   ],
 
-  // Collection of chapters under a tale (parent of taleChapter).
   taleChapters: (
     workProjectId: string,
     taleId: string,
@@ -226,7 +225,6 @@ export const PATH_BUILDERS = {
     episodeId,
   ],
 
-  // Collection of episodes under a television item (parent of televisionEpisode).
   televisionEpisodes: (
     workProjectId: string,
     televisionId: string,
@@ -296,7 +294,6 @@ export const PATH_BUILDERS = {
     guildChatChannelId,
   ],
 
-  // ===== SQUARE PATHS =====
   activePost: (postId: string): [string, string, string, string] => [
     COLLECTIONS.SQUARE_STREETZ_FEED,
     NESTED_SUBCOLLECTIONS.ACTIVE_POSTS,
@@ -309,27 +306,18 @@ export const PATH_BUILDERS = {
     NESTED_SUBCOLLECTIONS.TRENDING_POSTS,
   ],
 
-  // Server-only durable Square announcement outbox job. jobId is DETERMINISTIC —
-  // ALWAYS derive it via buildSquareAnnouncementJobId (doc-schemas/square-announcement-jobs.ts).
   squareAnnouncementJob: (jobId: string): [string, string] => [
     COLLECTIONS.SQUARE_ANNOUNCEMENT_JOBS,
     jobId,
   ],
 
-  // ===== HALL PATHS =====
-  thresholdItem: (thresholdItemId: string): [string, string] => [
+  thresholdItem: (workProjectId: string, itemId: string): [string, string] => [
     COLLECTIONS.THRESHOLD_ITEMS,
-    thresholdItemId,
+    thresholdItemDocId(workProjectId, itemId),
   ],
 
   hallItem: (hallItemId: string): [string, string] => [COLLECTIONS.HALL_ITEMS, hallItemId],
 
-  // Published hall sub-item projection (chapter/track/episode). The subcollection segment
-  // is constrained to the canonical HALL_ITEM_SUBCOLLECTIONS values (hallItemTales /
-  // hallItemTunes / hallItemTelevision) — derive it from
-  // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE. `workProjectType.toLowerCase()` is NOT a valid
-  // derivation: it yields a segment that does not exist, silently addressing an empty
-  // collection instead of failing.
   hallItemType: (
     hallItemId: string,
     subcollection: HallItemSubcollection,
@@ -341,9 +329,6 @@ export const PATH_BUILDERS = {
     itemId,
   ],
 
-  // A published Hall sub-item's path is determined by its canonical identity, never a
-  // caller-provided collection segment. This is the path used by typed administrative replay
-  // targets as well as ordinary Hall moderation operations.
   hallItemSubItem: (
     hallItemId: string,
     workProjectType: WorkProjectType,
@@ -355,11 +340,6 @@ export const PATH_BUILDERS = {
     itemId,
   ],
 
-  // Collection of published hall sub-items for one type (parent of hallItemType). The
-  // subcollection segment is the canonical HallItemSubcollection — derive it from
-  // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE. `workProjectType.toLowerCase()` is NOT a valid
-  // derivation: it yields a segment that does not exist, silently addressing an empty
-  // collection instead of failing.
   hallItemSubItems: (
     hallItemId: string,
     subcollection: HallItemSubcollection,
@@ -370,7 +350,6 @@ export const PATH_BUILDERS = {
     changeRequestId,
   ],
 
-  // ===== COMMISSION PATHS =====
   commissionListing: (commissionListingId: string): [string, string] => [
     COLLECTIONS.COMMISSION_LISTINGS,
     commissionListingId,
@@ -386,7 +365,6 @@ export const PATH_BUILDERS = {
     commissionProposalId,
   ],
 
-  // ===== AUDITION PATHS =====
   audition: (auditionId: string): [string, string] => [COLLECTIONS.AUDITION_BOARD, auditionId],
 
   auditionEntry: (
@@ -399,11 +377,8 @@ export const PATH_BUILDERS = {
     auditionEntryId,
   ],
 
-  // ===== REALM PATHS =====
   workRealm: (workRealmId: string): [string, string] => [COLLECTIONS.WORK_REALMS, workRealmId],
 
-  // Realm shared-file FOLDER (a container only — shared files stay workFiles under their
-  // owning Work and carry `realmFileFolderId` on their mediaAssets doc).
   realmFileFolder: (
     workRealmId: string,
     realmFileFolderId: string,
@@ -414,7 +389,6 @@ export const PATH_BUILDERS = {
     realmFileFolderId,
   ],
 
-  // ===== ADMIN & SYSTEM PATHS =====
   adminDispatch: (adminDispatchId: string): [string, string] => [
     COLLECTIONS.PENDING_ADMIN_DISPATCHES,
     adminDispatchId,
@@ -435,9 +409,6 @@ export const PATH_BUILDERS = {
     guildInviteId,
   ],
 
-  // ===== CONVERSATION FILES (the two supported ConversationFileRef scopes) =====
-  // Application and backend code must NOT assemble these paths independently.
-  // `conversationFileId` is deterministic — it IS the pendingMedia id.
   guildInviteConversationFile: (
     guildInviteId: string,
     conversationFileId: string,
@@ -470,8 +441,6 @@ export const PATH_BUILDERS = {
 
   contentReport: (reportId: string): [string, string] => [COLLECTIONS.CONTENT_REPORTS, reportId],
 
-  // The report's public, reporter-identity-free projection. The projection doc id IS the
-  // report id (contentReports/{reportId}/publicProjection/{reportId}).
   reportPublicProjection: (reportId: string): [string, string, string, string] => [
     COLLECTIONS.CONTENT_REPORTS,
     reportId,
@@ -479,7 +448,6 @@ export const PATH_BUILDERS = {
     reportId,
   ],
 
-  // Fixed-id restricted report-PII subdocs (contentReports/{reportId}/privateDetails/{snapshot,narrative}).
   reportPrivateSnapshot: (reportId: string): [string, string, string, string] => [
     COLLECTIONS.CONTENT_REPORTS,
     reportId,
@@ -494,9 +462,6 @@ export const PATH_BUILDERS = {
     SPECIAL_DOCS.REPORT_NARRATIVE,
   ],
 
-  // The SECOND narrative doc, typed when an existing ordinary report is escalated into a
-  // protected case — a sibling of `privateDetails/narrative` in the same restricted
-  // subcollection, so the original narrative is never overwritten and the read gate is identical.
   reportPrivateEscalationNarrative: (reportId: string): [string, string, string, string] => [
     COLLECTIONS.CONTENT_REPORTS,
     reportId,
@@ -509,7 +474,6 @@ export const PATH_BUILDERS = {
     groupKey,
   ],
 
-  // Per-report idempotency marker under a group (its ABSENCE gates the totalReports increment).
   reportGroupCountedReport: (
     groupKey: string,
     reportId: string,
@@ -520,7 +484,6 @@ export const PATH_BUILDERS = {
     reportId,
   ],
 
-  // Time-sensitive admin-tray "case needs work" pin (activeSafetyCaseAlerts/{caseId}).
   safetyCaseAlert: (caseId: string): [string, string] => [
     COLLECTIONS.ACTIVE_SAFETY_CASE_ALERTS,
     caseId,
@@ -535,7 +498,7 @@ export const PATH_BUILDERS = {
 
   adminTaskForItem: (taskType: string, itemId: string): [string, string] => [
     COLLECTIONS.ADMIN_TASKS,
-    `${taskType}-${itemId}`,
+    adminTaskForItemDocId(taskType, itemId),
   ],
 
   moderationCascadeManifest: (cascadeId: string): [string, string] => [
@@ -553,7 +516,6 @@ export const PATH_BUILDERS = {
     changedDocId,
   ],
 
-  // ===== UTILITY PATHS =====
   reservedDisplayName: (displayNameUppercase: string): [string, string] => [
     COLLECTIONS.RESERVED_DISPLAY_NAMES,
     displayNameUppercase,
@@ -575,30 +537,29 @@ export const PATH_BUILDERS = {
 
   mediaAsset: (mediaAssetId: string): [string, string] => [COLLECTIONS.MEDIA_ASSETS, mediaAssetId],
 
-  // Server-only durable activation job (prepare → activate → publish + recovery).
   mediaActivationJob: (jobId: string): [string, string] => [
     COLLECTIONS.MEDIA_ACTIVATION_JOBS,
     jobId,
   ],
 
-  // Server-only intent of one cross-owner media copy, keyed by the copy's new asset id.
   mediaCopyIntent: (newAssetId: string): [string, string] => [
     COLLECTIONS.MEDIA_COPY_INTENTS,
     newAssetId,
   ],
 
-  // ===== NOTIFICATION REDESIGN (ledger + fanout engine) PATHS =====
   notificationDelivery: (deliveryId: string): [string, string] => [
     COLLECTIONS.NOTIFICATION_DELIVERIES,
     deliveryId,
   ],
 
-  notificationFanoutJob: (jobId: string): [string, string] => [
+  notificationFanoutJob: (
+    eventId: string,
+    notificationType: NotificationType,
+  ): [string, string] => [
     COLLECTIONS.NOTIFICATION_FANOUT_JOBS,
-    jobId,
+    notificationFanoutJobDocId(eventId, notificationType),
   ],
 
-  // ===== CHAT REALTIME SYNC / PROJECTION / COMMAND PATHS =====
   chatChannelAuthProjection: (authPairKey: string): [string, string] => [
     COLLECTIONS.CHAT_CHANNEL_AUTH_PROJECTIONS,
     authPairKey,
@@ -653,52 +614,41 @@ export const PATH_BUILDERS = {
     chunkOrdinal,
   ],
 
-  // ===== PAYMENT & PLEDGE PATHS =====
-  // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).
   pledgePayment: (pledgePaymentId: string): [string, string] => [
     COLLECTIONS.PLEDGE_PAYMENTS,
     pledgePaymentId,
   ],
 
-  // Server-only Stripe references (session/PI/charge/dispute IDs). One doc per pledge — singular.
   pledgePaymentProviderRef: (pledgePaymentId: string): [string, string] => [
     COLLECTIONS.PLEDGE_PAYMENT_PROVIDER_REFS,
     pledgePaymentId,
   ],
 
-  // Running-totals singleton — incremented in the Stripe webhook's pledge-record transaction;
-  // read (ONE doc) by the public raised-total surfaces instead of a collection-wide aggregation.
   pledgePaymentTotals: (): [string, string] => [
     COLLECTIONS.PLEDGE_PAYMENT_TOTALS,
     SPECIAL_DOCS.SUMMARY,
   ],
 
-  // Idempotency sentinel, keyed by the Stripe event.id.
   processedStripeEvent: (stripeEventId: string): [string, string] => [
     COLLECTIONS.PROCESSED_STRIPE_EVENTS,
     stripeEventId,
   ],
 
-  // Independent integrity record from the ledger verification trigger.
   pledgePaymentLedgerEvent: (ledgerId: string): [string, string] => [
     COLLECTIONS.PLEDGE_PAYMENT_LEDGER_EVENTS,
     ledgerId,
   ],
 
-  // Unrecoverable paid-event repair queue, keyed by the Stripe event.id.
   paymentWebhookQuarantine: (stripeEventId: string): [string, string] => [
     COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE,
     stripeEventId,
   ],
 
-  // User-initiated pledge refund request (post-launch), keyed by requestId. No Stripe ids on this
-  // doc — those live on pledgePaymentProviderRefs.
   pledgeRefundRequest: (requestId: string): [string, string] => [
     COLLECTIONS.PLEDGE_REFUND_REQUESTS,
     requestId,
   ],
 
-  // ===== FEEDBACK & CRAFT PATHS =====
   feedbackSubmission: (feedbackType: string): [string, string] => [
     COLLECTIONS.FEEDBACK_SUBMISSIONS,
     feedbackType,
@@ -714,9 +664,6 @@ export const PATH_BUILDERS = {
     suggestionId,
   ],
 
-  // The two submitFeedback lists live under the server-only `_serverData/feedbackLists`
-  // container doc (BACKEND-108) — Cloud Functions read them via the Admin SDK and no
-  // client reads either one. Doc ids are the normalized suggestion text.
   feedbackAlias: (aliasId: string): [string, string, string, string] => [
     COLLECTIONS.SERVER_DATA,
     SPECIAL_DOCS.FEEDBACK_LISTS,
@@ -731,14 +678,17 @@ export const PATH_BUILDERS = {
     deniedWord,
   ],
 
-  taggedCraftSkill: (tag: string, compositeId: string): [string, string, string, string] => [
+  taggedCraftSkill: (
+    tag: string,
+    craftSkillId: string,
+    ownerUid: string,
+  ): [string, string, string, string] => [
     COLLECTIONS.CRAFT_SKILLS_BY_TAG,
     tag,
     NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS,
-    compositeId,
+    taggedCraftSkillDocId(craftSkillId, ownerUid),
   ],
 
-  // ===== SYSTEM DATA PATHS =====
   adminList: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.ADMIN_LIST],
 
   futurePlans: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.FUTURE_PLANS],
@@ -771,15 +721,11 @@ export const PATH_BUILDERS = {
 
   dmcaPolicy: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.DMCA_POLICY],
 
-  // ===== PUBLIC DOCUMENTS (versioned releases) =====
-  // The public current projection of any public document. The id IS the `_appConfig` doc id,
-  // so this and the per-page builders above (termsPage(), dmcaPolicy(), …) name the same docs.
   publicDocumentProjection: (documentId: PublicDocumentId): [string, string] => [
     COLLECTIONS.APP_CONFIG,
     documentId,
   ],
 
-  // One immutable published version (doc id `v{version}`).
   publicDocumentVersion: (
     documentId: PublicDocumentId,
     version: number,
@@ -790,7 +736,6 @@ export const PATH_BUILDERS = {
     publicDocumentVersionDocId(version),
   ],
 
-  // The one private working copy of a document.
   publicDocumentDraft: (documentId: PublicDocumentId): [string, string] => [
     COLLECTIONS.PUBLIC_DOCUMENT_DRAFTS,
     documentId,
@@ -812,13 +757,11 @@ export const PATH_BUILDERS = {
 
   systemUidSlots: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.SYSTEM_UID_SLOTS],
 
-  // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
   statusReconcileQueueEntry: (uid: string): [string, string] => [
     COLLECTIONS.STATUS_RECONCILE_QUEUE,
     uid,
   ],
 
-  // ===== TRUST & SAFETY — child-safety case spine (§A1b, §A2) =====
   childSafetyCaseListEntry: (caseId: string): [string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASE_LIST,
     caseId,
@@ -833,21 +776,22 @@ export const PATH_BUILDERS = {
     signalId,
   ],
 
-  // Collection of source-signal rows for a case (parent of childSafetySourceSignal).
   childSafetySourceSignals: (caseId: string): [string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS,
   ],
 
-  childSafetyDecision: (caseId: string, decisionId: string): [string, string, string, string] => [
+  childSafetyDecision: (
+    caseId: string,
+    decision: ChildSafetyDecisionIdParts,
+  ): [string, string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS,
-    decisionId,
+    childSafetyDecisionDocId(caseId, decision),
   ],
 
-  // Collection of decision rows for a case (parent of childSafetyDecision).
   childSafetyDecisions: (caseId: string): [string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
@@ -874,14 +818,12 @@ export const PATH_BUILDERS = {
     uid,
   ],
 
-  // Collection of per-account rows for a case (parent of childSafetyCaseAccount).
   childSafetyCaseAccounts: (caseId: string): [string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS,
   ],
 
-  // One asset's crossover leg row, and the collection of a case's rows (its parent).
   childSafetyCaseCrossoverItem: (
     caseId: string,
     mediaAssetId: string,
@@ -901,14 +843,15 @@ export const PATH_BUILDERS = {
   childSafetyCaseAccountHistory: (
     caseId: string,
     uid: string,
-    historyId: string,
+    at: number,
+    source: AccountActionSource,
   ): [string, string, string, string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS,
     uid,
     NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNT_HISTORY,
-    historyId,
+    childSafetyCaseAccountHistoryDocId(at, source),
   ],
 
   childSafetyNcmecSubmission: (
@@ -934,9 +877,6 @@ export const PATH_BUILDERS = {
     fileId,
   ],
 
-  // The submission's single immutable completion-proof record. Fixed doc id — one proof per
-  // submission, written create-if-absent in the same transaction that marks the submission
-  // `completed`, so `completed` and its bound proof can never diverge.
   childSafetyNcmecCompletionProof: (
     caseId: string,
     submissionId: string,
@@ -959,8 +899,6 @@ export const PATH_BUILDERS = {
     eventId,
   ],
 
-  // Immutable portal-receipt artifact record bound to a case + NCMEC submission — the proof
-  // `markNcmecPortalComplete` requires. Written create-only by recordNcmecPortalReceiptArtifact.
   childSafetyPortalReceiptArtifact: (
     caseId: string,
     artifactId: string,
@@ -971,16 +909,12 @@ export const PATH_BUILDERS = {
     artifactId,
   ],
 
-  // Collection of portal-receipt artifact rows for a case (parent of the builder above) — the
-  // auto-id mint site.
   childSafetyPortalReceiptArtifacts: (caseId: string): [string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS,
   ],
 
-  // Immutable record that the operator filed a CORRECTION on the NCMEC manual portal. Its
-  // existence is what unlocks the corrected-no-apparent-violation disposition.
   childSafetyNcmecPortalCorrection: (
     caseId: string,
     correctionId: string,
@@ -991,8 +925,6 @@ export const PATH_BUILDERS = {
     correctionId,
   ],
 
-  // Collection of portal-correction rows for a case (parent of the builder above) — the auto-id
-  // mint site and the existence query behind the disposition gate.
   childSafetyNcmecPortalCorrections: (caseId: string): [string, string, string] => [
     COLLECTIONS.CHILD_SAFETY_CASES,
     caseId,
@@ -1004,16 +936,16 @@ export const PATH_BUILDERS = {
     aliasId,
   ],
 
-  // ===== TRUST & SAFETY — holds + resource commands (§A3) =====
-  // Composite doc id caseId__resourceKeyHash — a single {holdRefId} segment.
-  safetyHoldRef: (holdRefId: string): [string, string] => [COLLECTIONS.SAFETY_HOLD_REFS, holdRefId],
+  safetyHoldRef: (caseId: string, resourceKeyHash: string): [string, string] => [
+    COLLECTIONS.SAFETY_HOLD_REFS,
+    safetyHoldRefDocId(caseId, resourceKeyHash),
+  ],
 
   safetyHoldResource: (resourceKeyHash: string): [string, string] => [
     COLLECTIONS.SAFETY_HOLD_RESOURCES,
     resourceKeyHash,
   ],
 
-  // Composite doc id resourceKeyHash__commandId — a single {commandDocId} segment.
   safetyResourceCommand: (commandDocId: string): [string, string] => [
     COLLECTIONS.SAFETY_RESOURCE_COMMANDS,
     commandDocId,
@@ -1039,7 +971,6 @@ export const PATH_BUILDERS = {
     refId,
   ],
 
-  // ===== TRUST & SAFETY — evidence + provenance (§A4, §A6) =====
   safetyEvidenceManifest: (manifestId: string): [string, string] => [
     COLLECTIONS.SAFETY_EVIDENCE_MANIFESTS,
     manifestId,
@@ -1066,7 +997,6 @@ export const PATH_BUILDERS = {
 
   eventProvenance: (eventId: string): [string, string] => [COLLECTIONS.EVENT_PROVENANCE, eventId],
 
-  // ===== TRUST & SAFETY — sagas + closure (§A5) =====
   quarantineSagaJob: (caseId: string): [string, string] => [
     COLLECTIONS.QUARANTINE_SAGA_JOBS,
     caseId,
@@ -1082,46 +1012,39 @@ export const PATH_BUILDERS = {
     assetId,
   ],
 
-  // Composite doc id caseId__submissionId — a single {ncmecJobId} segment.
-  ncmecSubmissionJob: (ncmecJobId: string): [string, string] => [
+  ncmecSubmissionJob: (caseId: string, submissionId: string): [string, string] => [
     COLLECTIONS.NCMEC_SUBMISSION_JOBS,
-    ncmecJobId,
+    ncmecSubmissionJobDocId(caseId, submissionId),
   ],
 
-  // Composite doc id caseId__uid — a single {accountActionCommandId} segment.
-  accountActionCommand: (accountActionCommandId: string): [string, string] => [
+  accountActionCommand: (
+    caseId: string,
+    targetUid: string,
+    source: AccountActionSource,
+  ): [string, string] => [
     COLLECTIONS.ACCOUNT_ACTION_COMMANDS,
-    accountActionCommandId,
+    accountActionCommandDocId(caseId, targetUid, source),
   ],
 
-  // ===== TRUST & SAFETY — SLA monitors + heartbeat (§A8) =====
-  // Composite doc id {caseId|requestId}__{monitorKind} — a single {monitorId} segment.
-  safetySlaMonitor: (monitorId: string): [string, string] => [
+  safetySlaMonitor: (scopeId: string, monitorKind: SafetySlaMonitorKind): [string, string] => [
     COLLECTIONS.SAFETY_SLA_MONITORS,
-    monitorId,
+    safetySlaMonitorDocId(scopeId, monitorKind),
   ],
 
-  // Singleton: safetyMonitorHeartbeat/global.
   safetyMonitorHeartbeat: (): [string, string] => [
     COLLECTIONS.SAFETY_MONITOR_HEARTBEAT,
     SPECIAL_DOCS.SAFETY_MONITOR_HEARTBEAT_GLOBAL,
   ],
 
-  // ===== TRUST & SAFETY — age attestation nonces (§A7) =====
   ageAttestationNonce: (nonceHash: string): [string, string] => [
     COLLECTIONS.AGE_ATTESTATION_NONCES,
     nonceHash,
   ],
 
-  // ===== TRUST & SAFETY — operator step-up (backend-only) =====
-  // [H-08] per-operator TOTP step-up state, keyed by uid. Cloud-Functions-only.
   operatorStepUp: (uid: string): [string, string] => [COLLECTIONS.OPERATOR_STEP_UP, uid],
 
-  // Durable cadence/cursor state for one scheduled pass, keyed by its SWEEP_STATE_NAMES name.
-  // Backend-only.
   sweepState: (sweepName: SweepStateName): [string, string] => [COLLECTIONS.SWEEP_STATE, sweepName],
 
-  // ===== TRUST & SAFETY — NCII / TAKE IT DOWN (§A11) =====
   nciiAllegation: (allegationId: string): [string, string] => [
     COLLECTIONS.NCII_ALLEGATIONS,
     allegationId,
@@ -1132,7 +1055,6 @@ export const PATH_BUILDERS = {
     requestId,
   ],
 
-  // Fixed-id requester PII subdoc (takeItDownRequests/{requestId}/privateDetails/requester).
   takeItDownRequesterPrivate: (requestId: string): [string, string, string, string] => [
     COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
     requestId,
@@ -1150,14 +1072,12 @@ export const PATH_BUILDERS = {
     submissionId,
   ],
 
-  // Collection of submissions under a request (parent of takeItDownSubmission).
   takeItDownSubmissions: (requestId: string): [string, string, string] => [
     COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
     requestId,
     NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS,
   ],
 
-  // Collection of validity decisions under a request (parent of takeItDownValidityDecision).
   takeItDownValidityDecisions: (requestId: string): [string, string, string] => [
     COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
     requestId,
@@ -1174,8 +1094,6 @@ export const PATH_BUILDERS = {
     decisionId,
   ],
 
-  // The decision's RESTRICTED rationale row (fixed doc id — one rationale per decision), written
-  // create-only in the same transaction as the decision; rationaleRef / detailRef point here.
   takeItDownValidityRationale: (
     requestId: string,
     decisionId: string,
@@ -1205,8 +1123,6 @@ export const PATH_BUILDERS = {
     evidenceId,
   ],
 
-  // ONE deletion-verification record per evidence object, keyed by the evidence id so a retried or
-  // redelivered sweep overwrites it: the record is the CURRENT deletion status, not an attempt log.
   takeItDownEvidenceDisposition: (
     requestId: string,
     evidenceId: string,
@@ -1217,15 +1133,11 @@ export const PATH_BUILDERS = {
     evidenceId,
   ],
 
-  // [H-01] a retained-but-unrecorded NCII-evidence inventory row (top-level; id is deterministic on
-  // bucket+key+generation so a re-fire is idempotent).
   nciiRetainedEvidenceInventory: (inventoryId: string): [string, string] => [
     COLLECTIONS.NCII_RETAINED_EVIDENCE_INVENTORY,
     inventoryId,
   ],
 
-  // [H-01] dead-letter entry for an inventory row that could not be written to the primary
-  // nciiRetainedEvidenceInventory collection (id mirrors the primary row id for traceability).
   nciiInventoryDeadLetter: (inventoryId: string): [string, string] => [
     COLLECTIONS.NCII_INVENTORY_DEAD_LETTER,
     inventoryId,
@@ -1243,7 +1155,6 @@ export const PATH_BUILDERS = {
     allegationId,
   ],
 
-  // Collection of allegation links for a case (parent of nciiCaseAllegationLink).
   nciiCaseAllegationLinks: (caseId: string): [string, string, string] => [
     COLLECTIONS.NCII_CASES,
     caseId,
@@ -1257,22 +1168,23 @@ export const PATH_BUILDERS = {
     requestId,
   ],
 
-  // Collection of request links for a case (parent of nciiCaseRequestLink).
   nciiCaseRequestLinks: (caseId: string): [string, string, string] => [
     COLLECTIONS.NCII_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS,
   ],
 
-  // Append-only NCII case closure/reopen events.
-  nciiCaseClosureEvent: (caseId: string, eventId: string): [string, string, string, string] => [
+  nciiCaseClosureEvent: (
+    caseId: string,
+    transition: CaseLifecycleTransition,
+    revision: number,
+  ): [string, string, string, string] => [
     COLLECTIONS.NCII_CASES,
     caseId,
     NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS,
-    eventId,
+    nciiCaseClosureEventDocId(transition, revision),
   ],
 
-  // Collection of closure/reopen events for a case (parent of nciiCaseClosureEvent).
   nciiCaseClosureEvents: (caseId: string): [string, string, string] => [
     COLLECTIONS.NCII_CASES,
     caseId,
@@ -1307,21 +1219,15 @@ export const PATH_BUILDERS = {
     targetKeyHash,
   ],
 
-  // ===== BACKEND-ONLY LEDGERS =====
-  // Append-only audit ledger row (auditEvents/{eventId}).
   auditEvent: (eventId: string): [string, string] => [COLLECTIONS.AUDIT_EVENTS, eventId],
 
-  // The audit ledger collection (parent of auditEvent — the writer mints ids against it).
   auditEvents: (): [string] => [COLLECTIONS.AUDIT_EVENTS],
 
-  // Server-owned "archive all" job (notificationArchiveAllJobs/{jobId}; CF-only).
   notificationArchiveAllJob: (jobId: string): [string, string] => [
     COLLECTIONS.NOTIFICATION_ARCHIVE_ALL_JOBS,
     jobId,
   ],
 
-  // ===== TRUST & SAFETY — _serverData (server-only) singletons (§A7, §A11) =====
-  // Moved from _appConfig (public) to _serverData (BACKEND-108 — Cloud-Functions-only readers).
   agePolicyConfig: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
 
   nciiPolicyConfig: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.NCII_POLICY],

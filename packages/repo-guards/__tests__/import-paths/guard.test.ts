@@ -1,6 +1,3 @@
-// The import-path guard read through the one reader: tests are held to the rules too, and a
-// test's own module mocks are not.
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
 import { contextOf } from '../helpers/context.js';

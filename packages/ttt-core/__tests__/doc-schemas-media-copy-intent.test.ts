@@ -1,7 +1,3 @@
-// mediaCopyIntents/{newAssetId} — the intent of one media write in flight (a cross-owner copy or
-// a first ingest), recorded before the first variant object is written and read back by the
-// sweep that removes the objects of a write that never finished.
-
 import { describe, it, expect } from 'vitest';
 import {
   MediaCopyIntentKindSchema,
@@ -15,7 +11,6 @@ import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
 import { toPath } from '../src/paths/utils.js';
 
-/** A structural Firestore Timestamp (ttt-core validates the shape, never firebase-admin). */
 function ts(ms: number) {
   return {
     seconds: Math.floor(ms / 1000),
@@ -107,7 +102,7 @@ describe('MediaCopyIntentSchema', () => {
     }
   });
 
-  it('stores its times as epoch milliseconds, never a Firestore Timestamp (ARCH-105)', () => {
+  it('stores its times as epoch milliseconds, never a Firestore Timestamp (RULE-STD-ARCH-105)', () => {
     expect(
       MediaCopyIntentSchema.safeParse({ ...copying, createdAt: ts(1_700_000_000_000) }).success,
     ).toBe(false);

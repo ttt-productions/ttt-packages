@@ -1,33 +1,11 @@
-/**
- * Deterministic active-notification document IDs.
- *
- * The active doc for a given dedup scope always lives at the same ID, so
- * concurrent writers (real-time sends racing each other or the batch
- * materializer) converge on one document inside a transaction instead of
- * racing a query-then-write. The ID hashes the same fields the dedup lookup
- * used to filter on: category, audience scope, and dedupKey.
- */
-
 import { createHash } from 'node:crypto';
 
-/**
- * Build the deterministic doc ID for an active notification.
- *
- * Personal notifications scope per recipient (a fan-out to many users must
- * never collapse into one recipient's doc); shared notifications are
- * intentionally a single doc for the whole audience.
- */
 export function buildActiveNotificationDocId(params: {
   category: string;
   audienceType: 'personal' | 'shared';
   targetUserId: string | null | undefined;
   dedupKey: string;
-  /**
-   * When provided, the id becomes **type-scoped** so two notification types that
-   * share an aggregation key never collapse onto one active doc (the delivery
-   * ledger materializer always passes it). Omitted => the legacy non-type-scoped
-   * id, kept byte-identical for the pre-cutover composer path.
-   */
+  /** Omit for processBatchHelper's id, which must stay byte-identical: existing active docs live at it. */
   notificationType?: string;
 }): string {
   const scope =

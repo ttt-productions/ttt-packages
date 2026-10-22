@@ -10,12 +10,6 @@ export const StartUploadRequestSchema = z
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),
     clientContext: ClientContextSchema,
-    // What the user actually DID (canonical-upload-content-classification):
-    // strong for recorder/camera actions, advisory for the picker. OPTIONAL for
-    // rolling-client compatibility; the server treats absence as "inspect-only"
-    // (bounded claim_missing reason) and NEVER falls back to MIME authority.
-    // Untrusted context — the server byte inspection is the one classification
-    // authority either way.
     clientMediaClaim: ClientMediaClaimSchema.optional(),
   })
   .strict();

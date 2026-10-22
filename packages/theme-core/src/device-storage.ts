@@ -1,9 +1,6 @@
-// Guarded Web Storage access. A browser that blocks site data throws on every Storage call, even on
-// reading `window.localStorage` / `window.sessionStorage`. A blocked read is "nothing saved", and a
-// blocked write is held here for the life of the page, so a viewer's choice still takes effect.
-// Blocked storage is the viewer's browser setting, not a defect, so it is not reported.
+// A browser that blocks site data throws on every Storage call, even on reading
+// `window.localStorage`. Blocked storage is the viewer's setting, not a defect, so it is not reported.
 
-/** Which Web Storage area a value lives in: `local` outlives the tab, `session` ends with it. */
 export type DeviceStorageArea = 'local' | 'session';
 
 const heldValues: Record<DeviceStorageArea, Map<string, string | null>> = {
@@ -23,7 +20,6 @@ function readStorage(key: string, area: DeviceStorageArea): string | null {
   }
 }
 
-/** The stored value, or `null` when nothing is saved, storage is blocked, or there is no window. */
 export function readStoredValue(key: string, area: DeviceStorageArea = 'local'): string | null {
   if (typeof window === 'undefined') return null;
   const held = heldValues[area];
@@ -31,10 +27,6 @@ export function readStoredValue(key: string, area: DeviceStorageArea = 'local'):
   return readStorage(key, area);
 }
 
-/**
- * Stores `value` (`null` removes it), holding it for the page when storage refuses the write. Never
- * throws; a call with no window does nothing.
- */
 export function writeStoredValue(
   key: string,
   value: string | null,
@@ -52,7 +44,6 @@ export function writeStoredValue(
   }
 }
 
-/** Records a value another library was asked to store, holding it for the page if storage did not take it. */
 export function noteStoredValue(key: string, value: string): void {
   const held = heldValues.local;
   if (readStorage(key, 'local') === value) held.delete(key);

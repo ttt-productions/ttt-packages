@@ -1,8 +1,3 @@
-// The guards over how the Functions tree is built and loaded: limiter charges name their preset and
-// their surface, every dynamic import is a module-level lazy loader (in Functions and any other tree
-// the app names), light functions never reach heavy modules, and a split-codebase manifest covers
-// every export exactly once.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, GuardContext } from '../../guard.js';
@@ -19,7 +14,6 @@ const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: fa
 
 const CODE_EXTENSION = /\.(?:[cm]?[jt]sx?)$/;
 
-/** The functions root's path; every module id in this file is relative to it, extension dropped. */
 function functionsRoot(context: GuardContext): string {
   const root = context.reader.layout.roots.functions;
   if (!root)
@@ -32,21 +26,12 @@ function functionsRoot(context: GuardContext): string {
 const moduleIdOf = (root: string, path: string) =>
   path.slice(root.length + 1).replace(CODE_EXTENSION, '');
 
-// ---------------------------------------------------------------------------------------------
-// Rate-limit charges name a preset, and each preset is charged only by its own surface.
-
 export interface RateLimitFacts {
-  /** The module that declares the presets and the surface map. */
   owner: string;
-  /** The preset map's name (`RATE_LIMITS`). */
   presetMap: string;
-  /** The map from a dedicated preset to the modules (Functions-root-relative, no extension) that charge it. */
   surfaceMap: string;
-  /** The list of presets any module the surface map does not name may charge. */
   sharedPresets: string;
-  /** The limiter call a module charges through (`checkRateLimit`). */
   chargeCall: string;
-  /** The field each preset carries its store key prefix in (`prefix`). */
   prefixField: string;
 }
 
@@ -55,7 +40,6 @@ const isMapAccess = (node: ts.Node, map: string): node is ts.PropertyAccessExpre
   ts.isIdentifier(node.expression) &&
   node.expression.text === map;
 
-/** Every place a module builds a limiter config itself instead of passing a named preset. */
 export function inlineLimiterConfigs(
   file: FileView,
   facts: Pick<RateLimitFacts, 'presetMap' | 'chargeCall'>,
@@ -77,7 +61,6 @@ export function inlineLimiterConfigs(
   return out;
 }
 
-/** The presets a module charges: every `PRESET_MAP.X` its code names. */
 export function presetsNamed(file: FileView, presetMap: string): string[] {
   const out = new Set<string>();
   forEachNode(file.sourceFile, (node) => {
@@ -86,7 +69,6 @@ export function presetsNamed(file: FileView, presetMap: string): string[] {
   return [...out];
 }
 
-/** The owner's declarations: each preset's prefix, the surface map, and the shared presets. */
 export function limiterDeclarations(owner: FileView, facts: RateLimitFacts) {
   const prefixes: string[] = [];
   const surfaces = new Map<string, string[]>();
@@ -136,7 +118,6 @@ export function limiterDeclarations(owner: FileView, facts: RateLimitFacts) {
   return { prefixes, surfaces, shared, presetMapFound, surfaceMapFound, sharedFound };
 }
 
-/** Each charge that breaks the declared map: a dedicated preset from another module, or a listed module charging another preset. */
 export function offendingCharges(
   charges: ReadonlyArray<{ module: string; presets: readonly string[] }>,
   surfaces: ReadonlyMap<string, readonly string[]>,
@@ -237,37 +218,17 @@ export const rateLimitGuard: GenericGuardDefinition<RateLimitFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Every dynamic import is a module-level lazy loader.
-
 export interface LazyLoaderFacts {
-  /** The memoizing loader every lazy import goes through (`lazyModule`). */
   loader: string;
-  /** The roots whose code and tests the guard reads; `functions` alone when absent. */
   roots?: readonly RootRole[];
-  /**
-   * Other module-level loaders whose `const x = name(() => import('…'), …options)` is accepted — the
-   * import may be projected with one `.then(…)` — each with its why (a framework's own memoized
-   * component loader); one used nowhere is stale.
-   */
   otherLoaders?: ReadonlyArray<{ name: string; why: string }>;
-  /** The test runner configs, which never make every test concurrent. */
   testRunnerConfigs: readonly string[];
-  /** Test files that overlap imports on purpose (the loader's own premise test), each with its why. */
   testExceptions: readonly Reviewed[];
 }
 
 const isDynamicImport = (node: ts.Node): node is ts.CallExpression =>
   ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword;
 
-/**
- * Every dynamic import in production code that is not a module-level `const x = name(() => import('…'))`
- * for one of `names`. `names[0]` is the main loader and takes exactly that one-argument shape; every
- * other name is a framework's memoized loader, which may take further arguments after the loader
- * function (its options) and may project the module with one `.then(…)` (`import('x').then((m) =>
- * m.X)`) — the framework still memoizes that one import. `loaders` counts the uses of `names[0]`;
- * `used` holds every name that wrapped an import.
- */
 export function strayDynamicImports(
   file: FileView,
   names: string | readonly string[],
@@ -288,13 +249,11 @@ export function strayDynamicImports(
   return { loaders, used, stray };
 }
 
-/** The loader wrapping `node` when it is an accepted module-level loader, else null. */
 function moduleLevelLoaderName(
   node: ts.CallExpression,
   accepted: readonly string[],
 ): string | null {
   if (node.arguments.length !== 1 || !ts.isStringLiteralLike(node.arguments[0]!)) return null;
-  // The arrow's body is the import itself, or — for an other loader only — `import(…).then(cb)`.
   let body: ts.Node = node;
   const access = node.parent;
   const projected =
@@ -333,7 +292,6 @@ function moduleLevelLoaderName(
 
 const COMBINATORS = new Set(['Promise.all', 'Promise.allSettled', 'Promise.race', 'Promise.any']);
 
-/** Every place a test overlaps its own imports: a concurrent test, or `import()` inside a Promise combinator. */
 export function overlappingTestImports(file: FileView): Array<{ node: ts.Node; detail: string }> {
   const sf = file.sourceFile;
   const out: Array<{ node: ts.Node; detail: string }> = [];
@@ -455,32 +413,23 @@ export const lazyLoaderGuard: GenericGuardDefinition<LazyLoaderFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Light functions never reach heavy modules.
-
 export interface LightFunctionFacts {
-  /** The Functions entry module that exports every deployed function. */
   entryIndex: string;
-  /** Exported functions whose static import closure is kept small. */
   lightFunctions: readonly string[];
-  /** Packages a light closure never imports statically, with any subpath that is light, each with its why. */
   heavyPackages: ReadonlyArray<{
     specifier: string;
     lightSubpaths: readonly string[];
     why: string;
   }>;
-  /** Functions modules a light closure never reaches statically, each with its why. */
   heavyFiles: readonly Reviewed[];
 }
 
-/** A file's static runtime import edges: no `import()` (the lazy path), no `import type` / `export type`. */
 export function staticEdges(file: FileView): string[] {
   return moduleImports(file.sourceFile, ['import', 'export'])
     .filter((site) => site.topLevel && !site.typeOnly)
     .map((site) => site.spec);
 }
 
-/** The repo-relative file a relative specifier names among `known`, or null. */
 export function resolveModule(
   fromPath: string,
   spec: string,
@@ -503,7 +452,6 @@ export function resolveModule(
   return candidates.find((c) => known.has(c)) ?? null;
 }
 
-/** Each exported name of a module, with the specifier it is re-exported from (when it is). */
 export function exportsOf(file: FileView): {
   names: Map<string, string | null>;
   unreadable: ts.Node[];
@@ -652,19 +600,11 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// The split-codebase manifest.
-
 export interface CodebaseManifestFacts {
-  /** The JSON manifest mapping each codebase name to the exports it deploys (`{ codebases: { name: [exports] } }`). */
   manifest: string;
-  /** The Functions entry module that exports every deployed function. */
   entryIndex: string;
-  /** The deploy config whose `functions` entries declare each codebase. */
   deployConfig: string;
-  /** Each codebase entry's source folder, with `{codebase}` for its name. */
   sourceTemplate: string;
-  /** Each codebase entry's predeploy commands, with `{codebase}` for its name. */
   predeployTemplate: readonly string[];
 }
 

@@ -1,10 +1,3 @@
-// The second fixture core: a neutral library reproducing only what the write guard observes — its
-// path-constant maps, path builders, and owner maps. Its shelves route one family of items through
-// per-kind subcollections: a builder taking the subcollection as an argument, a builder mapping a
-// kind to its subcollection, a map of path builders per kind, a field map whose values are lists of
-// keys, and one canonical schema per kind. Test data for this package's own tests; nothing here is a
-// definition any app imports.
-
 import { PublishedAlbumSchema, PublishedBookSchema, PublishedFilmSchema } from './doc-schemas.js';
 
 export const COLLECTIONS = Object.freeze({

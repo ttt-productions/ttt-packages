@@ -1,14 +1,7 @@
-// First-visit site-tour state on `privateData/{uid}` (account-durable, server-written).
-// Covers the standalone UserSiteTourStateSchema, its acceptance inside the canonical
-// UserPrivateDataSchema, the strict YYYY-MM-DD notTodayDate validation, and the
-// SITE_TOUR_CURRENT_VERSION cross-boundary constant.
-
 import { describe, it, expect } from 'vitest';
 import { UserSiteTourStateSchema, UserPrivateDataSchema } from '../src/doc-schemas/user.js';
 import { SITE_TOUR_CURRENT_VERSION } from '../src/constants/business-user.js';
 
-// A minimal-but-valid privateData body (the age cluster fields are required on the
-// canonical schema); siteTour is layered on top per-case.
 const baseAgeFields = {
   accountType: 'adult' as const,
   is18Plus: true,

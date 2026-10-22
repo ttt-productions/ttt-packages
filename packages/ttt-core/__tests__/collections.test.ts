@@ -68,12 +68,11 @@ describe('WORK_REALM_SUBCOLLECTIONS', () => {
     expect(hasDuplicates(allValues(WORK_REALM_SUBCOLLECTIONS))).toBe(false);
   });
 
-  it('carries the compound-camelCase context prefix (ARCH-104), never a bare "fileFolders"', () => {
+  it('carries the compound-camelCase context prefix (RULE-STD-ARCH-104), never a bare "fileFolders"', () => {
     for (const value of allValues(WORK_REALM_SUBCOLLECTIONS)) {
       expect(value).toMatch(/^[a-z]+[A-Z]/);
     }
     expect(WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS).toBe('realmFileFolders');
-    // Distinct from the WORK-side folder segment — two different file systems.
     expect(WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS).not.toBe(
       WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS,
     );
@@ -106,12 +105,7 @@ describe('SPECIAL_DOCS', () => {
   });
 });
 
-describe('ARCH-104 — compound camelCase collection names', () => {
-  // Every collection / subcollection segment is compound camelCase, never a single bare
-  // word: `hallItemTales` not `tales`, `takeItDownActions` not `actions`. The leading
-  // underscore on the three reserved buckets (_systemData / _appConfig / _serverData) is
-  // the deliberate bucket convention and is stripped before the check. This is a RULE
-  // guard, not an inventory — a new single-word name fails it.
+describe('RULE-STD-ARCH-104 — compound camelCase collection names', () => {
   const COMPOUND_CAMEL_CASE = /^[a-z][a-z0-9]*[A-Z][A-Za-z0-9]*$/;
 
   const maps: Array<[string, Record<string, string>]> = [

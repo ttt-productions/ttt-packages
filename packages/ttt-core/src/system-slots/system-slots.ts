@@ -1,9 +1,4 @@
-// System slots: the admin-managed places the app shows a founder-recorded video or names a special
-// account. Each surface is one registry entry; its value lives in Firestore and is set from the
-// admin System Slots view, never in code.
-//
-// Every `uid` / `uidList` slot is PUBLIC data: its values are stored in the public `_appConfig`
-// bucket, so a slot that names accounts is readable by anyone, signed in or not.
+// Every `uid` / `uidList` slot is public: its values live in `_appConfig`, readable signed out.
 
 import { z } from 'zod';
 import { GUIDE_VIDEO_DEFINITIONS, guideVideoSlotId } from './guide-videos.js';
@@ -11,14 +6,9 @@ import { HELP_VIDEO_DEFINITIONS, helpVideoSlotId } from './help-videos.js';
 import { RULE_GROUP_KEYS, type RuleGroup } from '../types/content.js';
 import { ARTISAN_AGREEMENTS_TITLE, RULE_GROUP_TITLES } from '../constants/admin-labels.js';
 
-/** `video` holds one processed video; `uid` names one account; `uidList` names an ordered list. */
 export const SystemSlotKindSchema = z.enum(['video', 'uid', 'uidList']);
 export type SystemSlotKind = z.infer<typeof SystemSlotKindSchema>;
 
-/**
- * Where a slot appears — the admin System Slots view groups slots by it, in this order, under these
- * names. A group is declared only once a slot belongs to it.
- */
 export const SYSTEM_SLOT_GROUPS = [
   { id: 'landingPage', label: 'Landing page' },
   { id: 'acknowledgmentsPage', label: 'Acknowledgments page' },
@@ -31,18 +21,11 @@ export type SystemSlotGroupId = (typeof SYSTEM_SLOT_GROUPS)[number]['id'];
 
 interface SystemSlotDefinitionBase {
   readonly id: string;
-  /** The admin view's row title. */
   readonly label: string;
-  /** Where the slot appears, in one sentence. */
   readonly description: string;
   readonly group: SystemSlotGroupId;
 }
 
-/**
- * A video slot declares whether its place always shows a video. `requiredVideo: true` reserves the
- * 16:9 box everywhere it is shown and holds the coming-soon placard until a video is uploaded;
- * `false` takes no space and shows nothing until a video is uploaded.
- */
 export type SystemSlotDefinition =
   | (SystemSlotDefinitionBase & { readonly kind: 'video'; readonly requiredVideo: boolean })
   | (SystemSlotDefinitionBase & { readonly kind: 'uid' | 'uidList' });
@@ -65,7 +48,6 @@ const HELP_VIDEO_SLOTS = HELP_VIDEO_DEFINITIONS.map((help) => ({
   requiredVideo: false,
 }));
 
-/** The optional video under a fixed Rules & Agreements rule group's heading. */
 const RULE_GROUP_SLOT_SUFFIXES = {
   generic: 'general',
   merchandising: 'merchandising',
@@ -160,25 +142,21 @@ export const SystemSlotIdSchema = z.enum(
 export const SystemVideoSlotIdSchema = z.enum(slotIdsOfKind('video'));
 export const SystemUidSlotIdSchema = z.enum(slotIdsOfKind('uid'));
 export const SystemUidListSlotIdSchema = z.enum(slotIdsOfKind('uidList'));
-/** A slot that names accounts: a `uid` or a `uidList` slot. */
 export const SystemAccountSlotIdSchema = z.enum([
   ...SystemUidSlotIdSchema.options,
   ...SystemUidListSlotIdSchema.options,
 ]);
 export type SystemAccountSlotId = z.infer<typeof SystemAccountSlotIdSchema>;
 
-/** The registry entry for `id`, or undefined for an id the registry does not hold. */
 export function getSystemSlot(id: string): SystemSlotDefinition | undefined {
   return SYSTEM_SLOTS.find((slot) => slot.id === id);
 }
 
-/** Whether a video slot's place always shows a video (its box and placard) — read from the registry. */
 export function isRequiredVideoSlot(slotId: SystemVideoSlotId): boolean {
   const slot = SYSTEM_SLOTS.find((entry) => entry.id === slotId);
   return slot?.kind === 'video' && slot.requiredVideo;
 }
 
-/** The registry's slots under each group, in the groups' order; a group no slot belongs to is left out. */
 export function systemSlotsByGroup(): Array<{
   group: (typeof SYSTEM_SLOT_GROUPS)[number];
   slots: SystemSlot[];

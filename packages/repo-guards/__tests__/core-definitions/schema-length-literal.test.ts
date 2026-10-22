@@ -1,6 +1,3 @@
-// A core schema bound derives from a named constant: only reviewed structural .max() literals stay
-// literal, each file's exact values reviewed, and no literal minimum sits above 1.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   schemaLengthLiteralGuard,

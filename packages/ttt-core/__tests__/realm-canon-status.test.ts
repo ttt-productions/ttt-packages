@@ -1,7 +1,3 @@
-// RealmCanonStatus — the ONE declaration of a Work's standing inside its Realm (ARCH-102).
-// Both Work document shapes carry the same schema object, and it stays distinct from the
-// realm FILE approval gate, which is a different concept with two extra states.
-
 import { describe, it, expect } from 'vitest';
 import {
   RealmCanonStatusSchema,

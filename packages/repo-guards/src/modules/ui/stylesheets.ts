@@ -1,7 +1,3 @@
-// The stylesheets an app actually loads: its one entry stylesheet and everything it imports, in
-// cascade order, each with the cascade layer it joins. A class only some unloaded sheet declares
-// renders nothing, so the guards that ask "is this defined" or "which rule wins" read this set.
-
 import type { Finding, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { parseImport, topLevelStatements } from './css.js';
@@ -9,13 +5,10 @@ import { dirnameOf, normalizePath } from '../../support/paths.js';
 
 export interface LoadedSheet {
   file: FileView;
-  /** The outermost cascade layer the sheet joins, or null when it is unlayered. */
   layer: string | null;
-  /** True for a sheet from an installed package rather than the app's own tree. */
   fromPackage: boolean;
 }
 
-/** Reads an installed package's manifest, or null when it is not installed. */
 export function installedManifest(
   context: GuardContext,
   name: string,
@@ -25,7 +18,6 @@ export function installedManifest(
   return JSON.parse(context.file(manifest).text) as Record<string, unknown>;
 }
 
-/** A bare specifier split into its package name and subpath (`@a/b/x.css` → `@a/b`, `./x.css`). */
 export function splitBareSpecifier(spec: string): { name: string; subpath: string } {
   const parts = spec.split('/');
   const nameParts = spec.startsWith('@') ? parts.slice(0, 2) : parts.slice(0, 1);
@@ -45,7 +37,6 @@ function pickStyleTarget(entry: unknown): string | null {
   return null;
 }
 
-/** Where a stylesheet `@import` lands, repo-relative, or null when it cannot be resolved. */
 export function resolveStylesheetImport(
   context: GuardContext,
   fromSheet: string,
@@ -76,11 +67,6 @@ export function resolveStylesheetImport(
   return target ? normalizePath(`${base}/${target}`).path : null;
 }
 
-/**
- * Every sheet the entry stylesheet loads, in cascade order (an imported sheet's rules sit where it
- * is imported, before the importing sheet's own rules). An import that cannot be resolved is a
- * finding: a sheet the guard cannot read is a sheet it cannot vouch for.
- */
 export function loadedStylesheets(
   context: GuardContext,
   entry: string,

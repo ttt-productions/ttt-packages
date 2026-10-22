@@ -3,14 +3,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from './leak-utils';
 
-// The suite runs on vitest's `threads` pool. The `forks` pool hands each worker its transformed
-// modules as files written then renamed into the run's temp folder, and on Windows that rename fails
-// (`EPERM`) whenever another process — a worker still reading the file, or a virus scanner — holds it,
-// failing a random test and with it the release preflight. A root config `pool` does not reach the
-// projects, so the pool is chosen on the command line, once, in the root scripts; the quiet gate runs
-// vitest only through the `test` script.
+// On Windows the `forks` pool's temp-file rename fails (`EPERM`) while another process holds
+// the file, and a root config `pool` does not reach the projects, so scripts pass --pool=threads.
 
-const scripts: Record<string, string> = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')).scripts;
+const scripts: Record<string, string> = JSON.parse(
+  readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'),
+).scripts;
 const quietGate = readFileSync(join(REPO_ROOT, 'scripts', 'test-quiet.mjs'), 'utf8');
 
 describe('the suite runs on the threads pool', () => {

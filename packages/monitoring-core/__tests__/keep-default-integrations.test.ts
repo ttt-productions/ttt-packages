@@ -34,7 +34,6 @@ const dedupe: Integration = { name: 'Dedupe' };
 const consoleIntegration: Integration = { name: 'Console' };
 const sdkDefaults = [http, linkedErrors, dedupe, consoleIntegration];
 
-/** What the SDK runs: it calls a function-form `integrations` with its own default list. */
 function integrationsTheSdkRuns(sdkOptions: Record<string, unknown>): Integration[] {
   const integrations = sdkOptions.integrations;
   expect(typeof integrations).toBe('function');

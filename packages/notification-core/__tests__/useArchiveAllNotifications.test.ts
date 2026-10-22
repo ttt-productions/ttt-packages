@@ -16,7 +16,6 @@ function makeWrapper() {
   return Wrapper;
 }
 
-// Fast polls so the guard-bound test doesn't sleep for real.
 const FAST = { pollIntervalMs: 1, maxPolls: 5 } as const;
 
 describe('useArchiveAllNotifications (server-owned job status poller)', () => {
@@ -42,9 +41,7 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
 
     const out = await result.current.mutateAsync();
 
-    // Per-tab scoping: the enqueue carries the category the tray was invoked on.
     expect(enqueueArchiveAllFn).toHaveBeenCalledWith('user');
-    // Polls the returned jobId until terminal.
     expect(getArchiveAllStatusFn).toHaveBeenCalledTimes(3);
     expect(getArchiveAllStatusFn).toHaveBeenLastCalledWith('job-1');
     expect(out).toEqual({

@@ -3,10 +3,6 @@ import { defaultQueryClientConfig } from './defaults.js';
 
 export type CreateQueryClientOptions = QueryClientConfig;
 
-/**
- * Factory so every app uses the same baseline behavior.
- * Pass overrides to adjust defaults without forking.
- */
 export function createQueryClient(overrides: CreateQueryClientOptions = {}) {
   return new QueryClient({
     ...defaultQueryClientConfig,

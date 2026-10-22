@@ -1,67 +1,30 @@
-// ============================================================================
-// THE COMPANY — canonical Green Room mascot contract + content (ARCH-102).
-//
-// The ONE home for the pure, server-safe Company business truths (id unions,
-// billing kinds, performance intents, selectability, roster order) AND the
-// VERBATIM character content (studies, click lines, footers, companion-switch
-// exchanges, Yorick block lines, signed-out dock lines, onboarding cameos, the
-// first-visit site tour).
-//
-// This module is pure data: NO React, NO JSX, NO Next links, NO CSS, NO SVG,
-// NO functions inside the data. Rich copy is modelled as discriminated
-// `CompanyCopySegment`s so a web renderer, a phone app, or an AI voice can each
-// present the exact approved words without importing a UI framework. The app
-// owns the puppets, rig, choreography, and the adapter that turns these
-// segments into `<p>`, `<em>`, and route-aware links.
-//
-// Canonical dialogue stays a versioned code constant here (never Firestore):
-// it is the personality source, the safe AI-unavailable fallback, and the
-// voice-regression fixture. Never reword — curly quotes/apostrophes are
-// authored exactly as they render.
-// ============================================================================
+// Copy is verbatim: curly quotes and apostrophes are authored exactly as they render.
 
-// ── Contract: id unions, billing, intents, selectability ─────────────────────
-
-/** Every member of the Company, in roster order. */
 export type CompanyCharacterId = 'bill' | 'kit' | 'yorick';
 
-/** The roster, in billing order (Bill → Kit → Yorick). */
 export const COMPANY_CHARACTER_IDS: readonly CompanyCharacterId[] = ['bill', 'kit', 'yorick'];
 
-/** Billing tiers: the founding Player, permanent Players, and Stand-Ins
- *  (Limited Engagement — never selectable as the companion). */
 export type CompanyBillingKind = 'foundingPlayer' | 'player' | 'standIn';
 
-/** Demoable move intents — keyed by intent from day one so future event
- *  performances (page-grabs, standing ovations) land as content, not code. */
 export type CompanyPerformanceIntent = 'bow' | 'hop' | 'wave';
 
-/** The performance intents, in demo-button order; consumers derive from this array. */
 export const COMPANY_PERFORMANCE_INTENTS: readonly CompanyPerformanceIntent[] = [
   'bow',
   'hop',
   'wave',
 ];
 
-/** The characters a user may cast as their dock companion (never a Stand-In). */
 export type SelectableCompanionId = 'bill' | 'kit';
 
-/** The castable dock companions, in order. */
 export const SELECTABLE_COMPANION_IDS: readonly SelectableCompanionId[] = ['bill', 'kit'];
 
-// ── Rich-copy pure-data model ────────────────────────────────────────────────
-
-/** Semantic destinations the copy can link to. Each client maps these to its
- *  own route/navigation — the package never carries an href in mascot copy. */
 export type CompanyNavigationTarget = 'greenRoom' | 'futurePlans';
 
-/** A single run of copy. `link` carries a semantic target, not a URL. */
 export type CompanyCopySegment =
   | { readonly kind: 'text'; readonly text: string }
   | { readonly kind: 'emphasis'; readonly text: string }
   | { readonly kind: 'link'; readonly label: string; readonly target: CompanyNavigationTarget };
 
-/** A block of copy — a paragraph or a set-aside aside. */
 export type CompanyCopyBlockKind = 'paragraph' | 'aside';
 
 export interface CompanyCopyBlock {
@@ -69,76 +32,44 @@ export interface CompanyCopyBlock {
   readonly segments: readonly CompanyCopySegment[];
 }
 
-// ── Registry shapes ──────────────────────────────────────────────────────────
-
 export interface CompanyPerformance {
   readonly id: string;
   readonly label: string;
   readonly intent: CompanyPerformanceIntent;
-  /** Community "Choreography by" credit — null until an audition stages it. */
   readonly creditUid: string | null;
 }
 
 export interface CompanyMascot {
   readonly id: CompanyCharacterId;
-  /** Full stage name shown on nameplates + the playbill ("Bill the Understudy"). */
   readonly name: string;
-  /** The ironic-understatement epithet (the Company tradition). */
   readonly title: string;
   readonly billingKind: CompanyBillingKind;
-  /** Billing line rendered beside the name ("Founding Player"). */
   readonly billingLabel: string;
-  /** One-line structural descriptor (not character voice). */
   readonly shortBio: string;
-  /** Playbill character study (human-written; the future AI personality source). */
   readonly characterStudy: readonly CompanyCopyBlock[];
-  /** "Role originated by" — resolves live via the app when set. */
   readonly originatedByUid: string | null;
-  /** Text shown after "Role originated by — " when originatedByUid is null. */
   readonly originatedByFallback: string;
-  /** Whether the origination frame invites the reader ("→ your name here?"). */
   readonly invitesOrigination: boolean;
-  /** The performances credit caption under the demo buttons. */
   readonly choreographyCaption: string;
   readonly performances: readonly CompanyPerformance[];
-  /** Rotating click lines (dock companion bubble + on-stage line pop). Each
-   *  line is a segment run — most are a single text segment. */
   readonly lines: readonly (readonly CompanyCopySegment[])[];
-  /** Dock speech-bubble footer segments. The character's short name is a
-   *  `greenRoom` link segment; the app renders it as a link when signed in and
-   *  as plain text when signed out. "one day" always links to `futurePlans`.
-   *  Absent for Stand-Ins (Yorick — never the dock companion). */
   readonly footer?: readonly CompanyCopySegment[];
-  /** False for Stand-Ins (Yorick) — never storable as the dock companion. */
   readonly selectable: boolean;
 }
 
-/** Companion-switch snark exchange, keyed (in COMPANION_SWITCH_EXCHANGES) by the
- *  character switched TO. Outgoing line first (the departing companion), then the
- *  incoming retort. Plain strings. */
 export interface CompanionSwitchExchange {
   readonly outgoing: { readonly id: SelectableCompanionId; readonly line: string };
   readonly incoming: { readonly id: SelectableCompanionId; readonly line: string };
 }
 
-/** Onboarding cameo lines — Company members crashing the registration tour. */
 export interface OnboardingCameos {
-  /** Kit crashes The Audition Stage step. */
   readonly kitAuditionStage: string;
-  /** Yorick cameos on The Hall step. */
   readonly yorickHall: string;
-  /** The send-off curtain call — all three bow. */
   readonly curtainCall: Readonly<Record<CompanyCharacterId, string>>;
 }
 
-// ── Segment construction helpers (module-private; output is pure data) ────────
-
-/** A line/footer that is a single plain-text run. */
 const textRun = (text: string): readonly CompanyCopySegment[] => [{ kind: 'text', text }];
 
-/** A character's dock footer, built from the one verbatim sentence. The name is
- *  a `greenRoom` link segment (the app renders it plain when signed out); "one
- *  day" always links to `futurePlans`; `tail` is the character-specific close. */
 const dockFooter = (name: string, tail: string): readonly CompanyCopySegment[] => [
   { kind: 'link', label: name, target: 'greenRoom' },
   { kind: 'text', text: ' is a basic version for now — ' },
@@ -152,15 +83,11 @@ const SHARED_PERFORMANCES: readonly CompanyPerformance[] = [
   { id: 'wave', label: 'Wave', intent: 'wave', creditUid: null },
 ];
 
-// The dock-footer close sentences, VERBATIM (the pre-Company Bill wording; Kit's
-// from the settled spec). Curly apostrophes authored exactly as rendered.
 const BILL_FOOTER_TAIL =
   'we hope to make him an AI-powered guide who helps you navigate the site. He’ll never make content, just help.';
 const KIT_FOOTER_TAIL =
   'we hope to make him an AI-powered guide with this exact attitude. He’ll never make content. He does have opinions about yours.';
 
-// ── Bill the Understudy — Founding Player ────────────────────────────────────
-// The 14 approved lines are VERBATIM (incl. the italic emphasis in line 11).
 const BILL: CompanyMascot = {
   id: 'bill',
   name: 'Bill the Understudy',
@@ -214,7 +141,6 @@ const BILL: CompanyMascot = {
   selectable: true,
 };
 
-// ── Kit the Stand-In — permanent Player #2, Bill's rival ─────────────────────
 const KIT: CompanyMascot = {
   id: 'kit',
   name: 'Kit the Stand-In',
@@ -273,8 +199,6 @@ const KIT: CompanyMascot = {
   selectable: true,
 };
 
-// ── Yorick the Forgettable — Stand-In · Limited Engagement ───────────────────
-// Never selectable, never the dock companion; his lines are on-stage only.
 const YORICK: CompanyMascot = {
   id: 'yorick',
   name: 'Yorick the Forgettable',
@@ -316,34 +240,23 @@ export const COMPANY_MASCOTS: Readonly<Record<CompanyCharacterId, CompanyMascot>
   yorick: YORICK,
 };
 
-/** Registry order (Bill → Kit → Yorick), reused from the roster. */
 export const COMPANY_MASCOT_ORDER: readonly CompanyCharacterId[] = COMPANY_CHARACTER_IDS;
 
-// ── Pure helpers ─────────────────────────────────────────────────────────────
-
-/** True when `x` is a canonical Company character id. */
 export function isCompanyCharacterId(x: unknown): x is CompanyCharacterId {
   return typeof x === 'string' && (COMPANY_CHARACTER_IDS as readonly string[]).includes(x);
 }
 
-/** True when `id` may be cast as the dock companion — driven by the mascot
- *  data's `selectable` field (Yorick is false). */
 export function isSelectableCompanion(id: CompanyCharacterId): id is SelectableCompanionId {
   return COMPANY_MASCOTS[id].selectable;
 }
 
-/** The mascot record for a character id. */
 export function getCompanyMascot(id: CompanyCharacterId): CompanyMascot {
   return COMPANY_MASCOTS[id];
 }
 
-// ── Companion-switch snark exchanges (VERBATIM) ──────────────────────────────
-// Keyed by the character being switched TO. Outgoing line first (the departing
-// companion), then the incoming retort.
 export const COMPANION_SWITCH_EXCHANGES: Readonly<
   Record<SelectableCompanionId, readonly CompanionSwitchExchange[]>
 > = {
-  // Switching TO Kit — Bill exits, Kit enters.
   kit: [
     {
       outgoing: {
@@ -369,7 +282,6 @@ export const COMPANION_SWITCH_EXCHANGES: Readonly<
       incoming: { id: 'kit', line: 'I never break anything but hearts and attendance records.' },
     },
   ],
-  // Switching TO Bill — Kit exits, Bill enters.
   bill: [
     {
       outgoing: { id: 'kit', line: 'Unbelievable. UNBELIEVABLE.' },
@@ -397,8 +309,6 @@ export const COMPANION_SWITCH_EXCHANGES: Readonly<
   ],
 };
 
-// ── Yorick block lines (VERBATIM) ────────────────────────────────────────────
-// Spoken by the ACTIVE companion when the user presses Yorick's cast button.
 export const YORICK_BLOCK_LINES: Readonly<Record<SelectableCompanionId, readonly string[]>> = {
   bill: [
     "Soft you now — he's a Stand-In! He's only keeping the light warm. Thou art stuck with me. Nay — blessed with me.",
@@ -414,16 +324,12 @@ export const YORICK_BLOCK_LINES: Readonly<Record<SelectableCompanionId, readonly
   ],
 };
 
-// ── Signed-out dock lines (VERBATIM) ─────────────────────────────────────────
-// Spoken by whichever Player is on the dock when NO user is signed in — the
-// pre-login pitch.
 export const SIGNED_OUT_DOCK_LINES: readonly string[] = [
   "The show's inside — and it's free. No ads, just an email.",
   "I'd introduce you to the whole Company, but you'll need a ticket. Tickets are free.",
   'Everything in this town is made by real people. Come see.',
 ];
 
-// ── Onboarding cameo lines (VERBATIM) ────────────────────────────────────────
 export const ONBOARDING_CAMEOS: OnboardingCameos = {
   kitAuditionStage:
     "The Audition Stage. Where stars are born. I was robbed here once — anyway, you'll love it.",
@@ -436,11 +342,6 @@ export const ONBOARDING_CAMEOS: OnboardingCameos = {
   },
 };
 
-// ── First-visit site tour ─────────────────────────────────────────────────────
-// The tour layer reads these records and never inlines its own strings. A `speaker` names the
-// mascot whose headshot sits beside the line.
-
-/** The permanent shell controls a tour step can highlight. */
 export const SITE_TOUR_ANCHORS = ['homeAndHelp', 'accountArea', 'dock', 'pageActions'] as const;
 export type SiteTourAnchor = (typeof SITE_TOUR_ANCHORS)[number];
 
@@ -450,19 +351,13 @@ export interface SiteTourLine {
 }
 
 export interface SiteTourStepCopy {
-  /** Which permanent shell control this step highlights. */
   anchor: SiteTourAnchor;
-  /** The mascot who leads this step. */
   speaker: CompanyCharacterId;
-  /** Bold lead-in headline. */
   heading: string;
-  /** Body paragraphs (verbatim), each its own paragraph. */
   body: readonly string[];
-  /** Non-Artisan replacement for the FINAL body paragraph, when present. */
   bodyNonArtisanFinal?: string;
 }
 
-/** The three-mascot greeting + invitation lines. */
 export const SITE_TOUR_INVITATION_LINES: readonly SiteTourLine[] = [
   {
     speaker: 'bill',
@@ -472,7 +367,6 @@ export const SITE_TOUR_INVITATION_LINES: readonly SiteTourLine[] = [
   { speaker: 'yorick', text: 'I was told there would be snacks.' },
 ];
 
-/** The four-step tour copy. */
 export const SITE_TOUR_STEPS: readonly SiteTourStepCopy[] = [
   {
     anchor: 'homeAndHelp',
@@ -513,7 +407,6 @@ export const SITE_TOUR_STEPS: readonly SiteTourStepCopy[] = [
   },
 ];
 
-/** The three-mascot curtain-call lines. */
 export const SITE_TOUR_CURTAIN_CALL_LINES: readonly SiteTourLine[] = [
   {
     speaker: 'bill',

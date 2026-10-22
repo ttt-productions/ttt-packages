@@ -1,7 +1,6 @@
 'use client';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SANCTIONED EXCEPTION to ARCH-206 (packages read and write Firestore only
+// SANCTIONED EXCEPTION to RULE-STD-ARCH-206 (packages read and write Firestore only
 // through @ttt-productions/query-core).
 //
 // WHY this provider reads Firestore directly instead of via a query-core hook:
@@ -17,39 +16,7 @@
 //      Turbopack module identity (see defaultFirestoreSubscribe's comment).
 //
 // Do NOT "migrate" this onto query-core without preserving docChanges() semantics.
-// ─────────────────────────────────────────────────────────────────────────────
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-
-/**
- * Generic in-flight uploads provider.
- *
- * Provides a global Map of in-flight upload state by `pendingMediaId`, derived
- * from a Firestore listener over the consumer-supplied collection. On terminal
- * status transitions observed THIS SESSION, fires consumer-supplied success /
- * failure / rejection callbacks. Records monitoring breadcrumbs and parse
- * errors through the injected monitoring callback.
- *
- * EVERY app-specific value is supplied by the consumer:
- *  - userId resolution
- *  - Firestore `db` reference
- *  - collection path
- *  - listener time window (ms)
- *  - parser/schema for raw Firestore doc → typed PendingMedia
- *  - success copy per origin
- *  - notification callback (cache invalidation, etc.)
- *  - toast callback
- *  - rejection callback (for the media-rejection dialog or equivalent)
- *  - monitoring callback (breadcrumbs + captured errors)
- *
- * Read APIs:
- *  - `useInFlightUploadsState()` — full Map.
- *  - `useInFlightUpload(id)` — single doc, narrowable on status.
- *  - `useUploadActivityState()` — tray-visible items, sorted newest-first.
- *
- * The package owns the deduplication, initial-snapshot suppression, and
- * non-terminal → terminal transition tracking. It does NOT own anything about
- * what a file-origin is or what message text appears in toasts.
- */
 
 import {
   createContext,
@@ -69,24 +36,10 @@ import {
   type PendingMediaStatus,
 } from '@ttt-productions/media-schemas';
 
-// Status values derive from media-schemas' one declaration.
 const STATUS = PendingMediaStatusSchema.enum;
 
-// =============================================================================
-// Generic shape of the data the provider tracks
-// =============================================================================
-
-/** Generic pending-media status — media-schemas' one declaration. */
 export type InFlightUploadStatus = PendingMediaStatus;
 
-/**
- * Generic in-flight upload record. The provider keeps a Map<id, InFlightUpload>
- * built from each parsed PendingMedia. Consumers parameterize the `fileOrigin`
- * type via the parser's return type (the provider treats it as opaque).
- *
- * `TFileOrigin` defaults to `string` so unannotated consumers get a permissive
- * shape; consuming apps bind it to their own `FileOrigin` union at the call site.
- */
 export type InFlightUploadBase<TFileOrigin extends string = string> = {
   id: string;
   fileOrigin: TFileOrigin;
@@ -143,18 +96,6 @@ export type InFlightUpload<TFileOrigin extends string = string> =
   | InFlightUploadFailed<TFileOrigin>
   | InFlightUploadRejected<TFileOrigin>;
 
-// =============================================================================
-// Adapter contract — every app-specific behavior is injected here
-// =============================================================================
-
-/**
- * Result of the consumer-supplied parser. The provider keeps the raw parsed
- * record for callbacks (so consumers can read domain events, target IDs, etc.)
- * AND derives the generic InFlightUpload from it for the public Map.
- *
- * The parser MUST throw if validation fails; the provider catches and routes
- * the error to the monitoring callback.
- */
 export type ParsedPendingMedia<TFileOrigin extends string = string> = {
   id: string;
   userId: string;
@@ -165,7 +106,6 @@ export type ParsedPendingMedia<TFileOrigin extends string = string> = {
   targetIds?: string[];
   originalContentType?: string;
   originalSize?: number;
-  // Terminal-status fields (only meaningful for the matching status)
   completedAt?: number;
   failedAt?: number;
   rejectedAt?: number;
@@ -177,52 +117,26 @@ export type ParsedPendingMedia<TFileOrigin extends string = string> = {
   uploadTrayClearedBy?: string;
   uploadTraySeenAt?: number;
   uploadTraySeenBy?: string;
-  /**
-   * Opaque consumer-controlled domain-event payload, surfaced to the
-   * `onUploadCompleted` and `onUploadRejected` callbacks for cache
-   * invalidation. The provider does not interpret it.
-   */
   domainEvents?: unknown;
 };
 
 export type InFlightUploadsAdapter<TFileOrigin extends string = string> = {
-  /** Returns the current user's uid, or null if not signed in. */
   getCurrentUserId: () => string | null;
 
-  /** Firestore database adapter (loose typing — `unknown` keeps zero firebase coupling at the type level). */
   db: unknown;
 
-  /** Collection path holding pending-media docs (e.g. "pendingMedia"). */
   collectionPath: string;
 
-  /** Listener window in milliseconds — only docs with `createdAt >= now - window` are tracked. */
   listenerWindowMs: number;
 
-  /**
-   * Parse a raw Firestore doc snapshot's `.data()` into the generic shape the
-   * provider tracks. Throws on validation failure; the provider routes thrown
-   * errors to `onMonitoringEvent`.
-   */
   parsePendingMedia: (raw: unknown) => ParsedPendingMedia<TFileOrigin>;
 
-  /** Called once per observed non-terminal → terminal completed transition. */
   onUploadCompleted: (parsed: ParsedPendingMedia<TFileOrigin>) => void;
 
-  /** Called once per observed non-terminal → terminal failed transition. */
   onUploadFailed: (parsed: ParsedPendingMedia<TFileOrigin>) => void;
 
-  /** Called once per observed non-terminal → terminal rejected transition. */
   onUploadRejected: (parsed: ParsedPendingMedia<TFileOrigin>) => void;
 
-  /**
-   * Monitoring callback. Receives:
-   *  - `breadcrumb`: informational, fired on every observed terminal transition.
-   *  - `parse-error`: when `parsePendingMedia` throws.
-   *  - `listener-error`: when the Firestore listener's error callback fires.
-   *
-   * Consumers wire this to Sentry, OpenTelemetry, or any other observability
-   * provider. The provider does NOT import any monitoring SDK directly.
-   */
   onMonitoringEvent: (event: InFlightUploadsMonitoringEvent<TFileOrigin>) => void;
 };
 
@@ -250,17 +164,6 @@ export type InFlightUploadsMonitoringEvent<TFileOrigin extends string = string> 
       error: unknown;
     };
 
-// =============================================================================
-// Firestore subscription contract — abstracted to avoid firebase coupling
-// =============================================================================
-
-/**
- * Minimal subscription contract used by the provider. The default
- * implementation lives in `firestore-subscribe.ts` and uses the standard
- * `firebase/firestore` `onSnapshot` + `query` + `where` builders.
- *
- * Tests inject a fake to drive the listener without spinning up Firestore.
- */
 export type FirestoreSubscribeFn = (args: {
   db: unknown;
   collectionPath: string;
@@ -272,25 +175,10 @@ export type FirestoreSubscribeFn = (args: {
 
 export type FirestoreLikeSnapshot = {
   docChanges: () => FirestoreLikeDocChange[];
-  /**
-   * Snapshot metadata. Present when the subscription is opened with
-   * `{ includeMetadataChanges: true }` (the default firebase implementation does).
-   * `fromCache === false` means a server-confirmed snapshot. Optional so injected
-   * test fakes need not supply it (absent ⇒ treated as server-confirmed).
-   */
   metadata?: { fromCache: boolean };
 };
 
-/**
- * Metadata-derived liveness of the uploads listener, mirroring query-core's
- * `FirestoreSourceState`. Firestore serves cached snapshots offline WITHOUT
- * firing the error callback, so the Files tray source needs this to show a
- * degraded indicator instead of a false "all caught up":
- * - `connecting` — no server-confirmed snapshot yet.
- * - `live` — at least one server-confirmed snapshot (`fromCache === false`).
- * - `offline` — only cached data after having been live.
- * - `error` — the listener error callback fired.
- */
+/** Firestore serves cached snapshots offline without firing the error callback, so liveness comes from metadata. */
 export type UploadsSourceState = 'connecting' | 'live' | 'offline' | 'error';
 
 export type FirestoreLikeDocChange = {
@@ -301,10 +189,6 @@ export type FirestoreLikeDocChange = {
   };
 };
 
-// =============================================================================
-// Provider
-// =============================================================================
-
 interface InFlightUploadsContextValue<TFileOrigin extends string = string> {
   uploads: Map<string, InFlightUpload<TFileOrigin>>;
   sourceState: UploadsSourceState;
@@ -312,15 +196,8 @@ interface InFlightUploadsContextValue<TFileOrigin extends string = string> {
   retrying: boolean;
 }
 
-/** Restarting the uploads listener after it failed, and whether that restart is running. */
 export interface UploadsSourceRetry {
-  /**
-   * Tear the listener down and subscribe again on a fresh retry ladder. While the restart runs the
-   * source state stays as it was (an `error` stays `error`), so a failure shown on it stays on
-   * screen with its control pending.
-   */
   retry: () => void;
-  /** A `retry` is running: true until the restarted listener answers or its ladder fails again. */
   retrying: boolean;
 }
 
@@ -328,7 +205,6 @@ const InFlightUploadsContext = createContext<InFlightUploadsContextValue | undef
 
 export interface InFlightUploadsProviderProps<TFileOrigin extends string = string> {
   adapter: InFlightUploadsAdapter<TFileOrigin>;
-  /** Firestore subscription function. Defaults to the firebase/firestore implementation. */
   subscribe?: FirestoreSubscribeFn;
   children: ReactNode;
 }
@@ -372,7 +248,6 @@ function fromParsed<TFileOrigin extends string>(
       uploadTraySeenBy: parsed.uploadTraySeenBy,
     };
   }
-  // rejected
   return {
     ...base,
     status: STATUS.rejected,
@@ -382,10 +257,7 @@ function fromParsed<TFileOrigin extends string>(
     violationId: parsed.violationId,
     uploadTrayClearedAt: parsed.uploadTrayClearedAt,
     uploadTrayClearedBy: parsed.uploadTrayClearedBy,
-    // Carry the seen fields through on the `rejected` branch as `completed` /
-    // `failed` do: without them a seen rejected upload relights the Files dot
-    // forever, because the tray's unseen-terminal check never sees
-    // `uploadTraySeenAt`.
+    // Without the seen fields a seen rejected upload relights the Files dot forever.
     uploadTraySeenAt: parsed.uploadTraySeenAt,
     uploadTraySeenBy: parsed.uploadTraySeenBy,
   };
@@ -400,17 +272,12 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   const [sourceState, setSourceState] = useState<UploadsSourceState>('connecting');
   const [restarts, setRestarts] = useState(0);
   const [retrying, setRetrying] = useState(false);
-  /** Set by `retry` for the subscription the restart opens; that run keeps the source state. */
   const restartRequestedRef = useRef(false);
   const seenTerminalIdsRef = useRef<Set<string>>(new Set());
   const statusByIdRef = useRef<Map<string, InFlightUploadStatus>>(new Map());
   const hasProcessedInitialSnapshotRef = useRef(false);
-  /** The identity the dedup/tracking refs belong to — they outlive resubscribes
-   *  for the SAME user (auth-settling flaps) and reset only on a real identity
-   *  change. See the reset block in the subscription effect. */
   const trackedUserIdRef = useRef<string | null>(null);
 
-  // Stable refs for adapter callbacks — read from latest adapter inside effect.
   const adapterRef = useRef(adapter);
   useEffect(() => {
     adapterRef.current = adapter;
@@ -419,20 +286,8 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   const userId = adapter.getCurrentUserId();
 
   useEffect(() => {
-    // The uploads map and source state rebuild from every subscription's initial
-    // snapshot, so they reset on every effect run. The terminal-dedup and
-    // status-tracking refs are IDENTITY-scoped, not subscription-scoped: an
-    // auth-settling flap (uid → null → same uid re-subscribes) must neither
-    // re-fire terminals the previous subscription already fired (seen set
-    // persists) nor lose the observed non-terminal statuses that let the new
-    // subscription's initial listing detect a transition that completed during
-    // the gap. A real identity change — including UID-A → UID-B with no
-    // intermediate null user — starts clean; never rely on an intermediate
-    // sign-out to clear refs between two authenticated UIDs.
-    // A restart the person asked for keeps the source state it had (a failure stays a failure
-    // until the restarted listener answers); every other run starts over as `connecting`.
-    // A restart belongs to the identity it was asked for: one that lands with a sign-out or a switch
-    // of account is an ordinary new subscription, which starts over.
+    // The dedup and tracking refs are identity-scoped: they survive a same-user resubscribe and reset
+    // on any identity change, UID-A to UID-B with no sign-out between included.
     let restarting =
       restartRequestedRef.current && userId !== null && userId === trackedUserIdRef.current;
     restartRequestedRef.current = false;
@@ -490,12 +345,8 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
         const previousWasNonTerminal = isPendingMediaNonTerminalStatus(previousStatus);
 
         if (isInitialSnapshot) {
-          // A subscription's first snapshot is a (re-)listing of current state,
-          // not a live event: already-terminal docs stay suppressed so a page
-          // refresh never re-toasts. ONE exception — this provider instance
-          // tracked the doc as non-terminal before (same-identity resubscribe
-          // gap; the tracking refs survive those), so the terminal listing IS
-          // the transition, observed across the gap, and must fire.
+          // A first snapshot re-lists current state: its terminal docs fire only when this instance tracked
+          // them as non-terminal before.
           if (currentIsTerminal) {
             if (previousWasNonTerminal && !seenTerminalIdsRef.current.has(parsed.id)) {
               newlyTerminal.push(parsed);
@@ -503,11 +354,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
             seenTerminalIdsRef.current.add(parsed.id);
           }
         } else if (currentIsTerminal && !seenTerminalIdsRef.current.has(parsed.id)) {
-          // Any unseen terminal in a LIVE snapshot fires — including a doc whose
-          // FIRST client-visible state is already terminal. A fast backend
-          // outcome (moderation rejection in ~2s) can coalesce created→terminal
-          // into one delivery, and the uploader is actively waiting on exactly
-          // this callback; swallowing it silently loses a rejection dialog.
+          // A fast outcome can coalesce created and terminal into one delivery, so any unseen terminal fires.
           seenTerminalIdsRef.current.add(parsed.id);
           newlyTerminal.push(parsed);
         }
@@ -517,12 +364,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
 
       hasProcessedInitialSnapshotRef.current = true;
 
-      // Metadata-derived source state: stay `connecting` until a server-confirmed
-      // snapshot, `offline` if only cached data arrives after being live.
       const fromCache = snapshot.metadata?.fromCache ?? false;
-      // A restart ends on the server's answer: a cached snapshot during it keeps the failure on screen
-      // (the server may refuse again). Otherwise a snapshot after a failed listener comes from a new
-      // subscription: not yet live, never offline.
       if (!(restarting && fromCache)) {
         setSourceState((prev) =>
           fromCache
@@ -574,13 +416,6 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       }
     }
 
-    // Bounded RESUBSCRIBE on listener error: a cold-session race (e.g. Firestore
-    // App Check enforcement rejecting the first attach before the token is
-    // minted) must not kill the listener for the whole session — observed live:
-    // one permission-denied at first login → sourceState 'error' forever, every
-    // tray file status dead until reload. Retry on a short ladder; a snapshot
-    // resets the ladder (healthy again); exhausting it goes terminal 'error'
-    // (a real rules denial stays denied — retries are cheap and bounded).
     const RESUBSCRIBE_DELAYS_MS = [1_000, 3_000, 10_000, 30_000];
     let attempt = 0;
     let disposed = false;
@@ -594,7 +429,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
         userId,
         windowStartMs,
         onSnapshot: (snapshot) => {
-          attempt = 0; // healthy — future errors get a fresh ladder
+          attempt = 0;
           handleSnapshot(snapshot);
         },
         onError: (error) => {
@@ -622,8 +457,6 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       if (retryTimer) clearTimeout(retryTimer);
       unsubscribe?.();
     };
-    // adapter is intentionally NOT in the deps array — adapter is read via
-    // adapterRef on every snapshot, so identity changes don't re-subscribe.
   }, [userId, subscribe, restarts]);
 
   const retry = useCallback(() => {
@@ -643,10 +476,6 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     </InFlightUploadsContext.Provider>
   );
 }
-
-// =============================================================================
-// Read APIs
-// =============================================================================
 
 export function useInFlightUploadsState<TFileOrigin extends string = string>(): Map<
   string,
@@ -670,12 +499,6 @@ export function useInFlightUpload<TFileOrigin extends string = string>(
   return ctx.uploads.get(id) as InFlightUpload<TFileOrigin> | undefined;
 }
 
-/**
- * Metadata-derived source state of the uploads listener
- * (`connecting | live | offline | error`). The Files tray uses this to show a
- * degraded indicator and never display "all caught up" while the source is
- * `offline`/`error`/`connecting`.
- */
 export function useUploadsSourceState(): UploadsSourceState {
   const ctx = useContext(InFlightUploadsContext);
   if (ctx === undefined) {
@@ -684,10 +507,6 @@ export function useUploadsSourceState(): UploadsSourceState {
   return ctx.sourceState;
 }
 
-/**
- * The uploads listener's restart — the Try again of a failure shown on `useUploadsSourceState` —
- * and whether it is running.
- */
 export function useUploadsSourceRetry(): UploadsSourceRetry {
   const ctx = useContext(InFlightUploadsContext);
   if (ctx === undefined) {
@@ -696,28 +515,12 @@ export function useUploadsSourceRetry(): UploadsSourceRetry {
   return { retry: ctx.retry, retrying: ctx.retrying };
 }
 
-// =============================================================================
-// Tray helpers
-// =============================================================================
-
-/**
- * `true` for `completed` / `failed` / `rejected`. Used by tray UI to decide
- * whether a Clear action is available for an item.
- */
 export function isTerminalUpload<TFileOrigin extends string = string>(
   item: InFlightUpload<TFileOrigin>,
 ): item is Exclude<InFlightUpload<TFileOrigin>, { status: PendingMediaNonTerminalStatus }> {
   return isPendingMediaTerminalStatus(item.status);
 }
 
-/**
- * Tray-visible items. Includes every pending/processing upload, plus terminal
- * uploads that have NOT been cleared from the tray. Sorted newest-first by
- * createdAt.
- *
- * The public selector name in upload-ui is `useUploadActivityState`. The
- * mutation hook is `useClearUploadActivity` (in a separate file).
- */
 export function useUploadActivityState<
   TFileOrigin extends string = string,
 >(): InFlightUpload<TFileOrigin>[] {
@@ -732,34 +535,14 @@ export function useUploadActivityState<
   }, [uploads]);
 }
 
-// =============================================================================
-// Default Firestore subscription implementation
-// =============================================================================
-
-/**
- * Default Firestore subscription using the consumer's `firebase/firestore`
- * module instance (via static ESM import at the top of this file).
- *
- * Using static ESM import — NOT `require()` — is load-bearing. CommonJS
- * `require('firebase/firestore')` and ESM `import 'firebase/firestore'` resolve
- * to different module instances under Next.js + Turbopack. If the consumer
- * constructs `db` via ESM and we receive it here, but we then call
- * `collection()` from a CJS-loaded copy of firebase, the firebase runtime
- * does not recognize the db as a Firestore instance and throws
- * "Expected first argument to collection() to be a CollectionReference,
- *  a DocumentReference or FirebaseFirestore".
- *
- * Consumers who want to skip the firebase code path entirely (tests, alt
- * backends) supply their own `subscribe` prop to `InFlightUploadsProvider`.
- */
+// A static ESM import, never require(): under Next.js + Turbopack a CJS-loaded firebase/firestore
+// is another module instance and rejects a db built through ESM.
 const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
   const q = query(
     collection(args.db as any, args.collectionPath),
     where('userId', '==', args.userId),
     where('createdAt', '>=', args.windowStartMs),
   );
-  // includeMetadataChanges so the provider can derive a `connecting|live|offline|error`
-  // source state from `snapshot.metadata.fromCache` (the Files tray degraded indicator).
   return onSnapshot(
     q,
     { includeMetadataChanges: true },

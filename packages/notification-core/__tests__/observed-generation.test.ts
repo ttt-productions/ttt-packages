@@ -145,7 +145,7 @@ describe('archiveNotificationWithGeneration', () => {
     getCol('active').set('c1', { activityGeneration: 'gen1' });
     const outcome = await archiveNotificationWithGeneration(db, baseParams(makeDocRef));
     expect(outcome).toBe('replayed');
-    expect(getCol('active').has('c1')).toBe(true); // untouched
+    expect(getCol('active').has('c1')).toBe(true);
   });
 
   it('conflicts when the same history id carries a different payloadHash', async () => {
@@ -157,7 +157,7 @@ describe('archiveNotificationWithGeneration', () => {
 
   it('leaves the active card when its generation no longer matches', async () => {
     const { db, getCol, makeDocRef } = createMockFirestore();
-    getCol('active').set('c1', { activityGeneration: 'gen2' }); // rotated since render
+    getCol('active').set('c1', { activityGeneration: 'gen2' });
     const outcome = await archiveNotificationWithGeneration(db, baseParams(makeDocRef));
     expect(outcome).toBe('generation-mismatch');
     expect(getCol('active').has('c1')).toBe(true);
@@ -176,7 +176,6 @@ describe('archiveNotificationWithGeneration', () => {
     let txSeenByHook: ServerTransaction | undefined;
     const auditWrite = vi.fn((txn: ServerTransaction) => {
       txSeenByHook = txn;
-      // The hook composes its own write into the SAME transaction.
       txn.set(makeDocRef('audit', 'a1'), {
         type: 'notification.adminArchived',
         handledBy: 'admin1',
@@ -190,8 +189,6 @@ describe('archiveNotificationWithGeneration', () => {
 
     expect(outcome).toBe('archived');
     expect(auditWrite).toHaveBeenCalledTimes(1);
-    // The hook received a real transaction handle, and its write landed alongside
-    // the active→history move — proving same-transaction composition.
     expect(txSeenByHook).toBeDefined();
     expect(typeof txSeenByHook!.set).toBe('function');
     expect(getCol('active').has('c1')).toBe(false);

@@ -1,8 +1,4 @@
-// lazyModule: one import per loader, shared by every concurrent caller, and retried after a failure.
-// The last two tests pin the vitest behaviour the loader exists for: overlapping bare imports of a
-// mocked module hand the second caller the REAL module, while a loader's callers all get the mock.
-// Both run the fixture's import inside the case because that in-case import is what they prove, so
-// this file is a reviewed exception to the load-at-the-top rule (QUALITY-008).
+// Exception to RULE-STD-QUALITY-009: the in-case fixture imports are what the last two tests prove.
 
 import { describe, it, expect, vi } from 'vitest';
 import { lazyModule } from '../src/lazy-module.js';
@@ -44,8 +40,6 @@ describe('lazyModule', () => {
   });
 
   it('premise: two overlapping bare imports of a mocked module hand the second the REAL module', async () => {
-    // If this starts failing, vitest serves the mock to overlapping imports now: the loader stays
-    // harmless, but the reason it exists is gone and its comment should say so.
     const [first, second] = await Promise.all([
       import('./fixtures/loaded-module.js'),
       import('./fixtures/loaded-module.js'),

@@ -29,7 +29,6 @@ const spec = (d: { format: string; min: number; max: number }) => ({
   max: d.max,
 });
 
-// The approved field table: each field's format, min, and max.
 describe('the field declarations', () => {
   it('titles of Works, Realms, chapters, tracks, episodes, commissions, and auditions are English letters, digits, and spaces', () => {
     for (const d of [

@@ -1,8 +1,3 @@
-// Server-side helpers (for Cloud Functions).
-// NOTE: report WRITE + grouping is no longer owned here — the consuming app's
-// `submitReport` callable writes the protected report root + public projection, and a
-// separate app trigger maintains the report group. report-core keeps only the generic
-// admin-task QUEUE machinery below.
 export { createAdminTaskHandler } from './createAdminTaskHandler.js';
 export type { AdminTaskHandlerConfig } from './createAdminTaskHandler.js';
 export { buildUserReportAdminTaskDoc } from './buildUserReportAdminTaskDoc.js';
@@ -25,12 +20,9 @@ export type { CheckoutNextImportantHandlerConfig } from './createCheckoutNextImp
 
 export { calculatePriorityScore, getHighestScoringReason } from './calculatePriorityScore.js';
 
-// Typed failure channel: expected queue outcomes carry an HttpsError-shaped code
-// for the consuming callable to map 1:1 (see taskError.ts).
 export { ReportCoreTaskError } from './taskError.js';
 export type { ReportCoreTaskErrorCode } from './taskError.js';
 
-// Server types
 export type {
   AdminAuthConfig,
   OnAuditEvent,

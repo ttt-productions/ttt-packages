@@ -1,5 +1,4 @@
-// jsdom has no matchMedia. This double answers every query, lets a test flip the device's
-// reduced-motion request, and fires the listeners both APIs register: the store's
+// jsdom has no matchMedia; this double fires the listeners both APIs register: the store's
 // addEventListener and next-themes' addListener.
 
 type Listener = () => void;

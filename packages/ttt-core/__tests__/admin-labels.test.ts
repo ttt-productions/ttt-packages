@@ -1,7 +1,3 @@
-// Canonical user-facing reason picklist + label helper (ARCH-102): the ONE home for the guided
-// resolution flow's user-facing reason options, moved out of the app so every client renders the
-// same codes + labels.
-
 import { describe, it, expect } from 'vitest';
 import {
   USER_FACING_REASON_OPTIONS,
@@ -97,8 +93,6 @@ describe('FEEDBACK_TYPE_LABELS', () => {
   });
 
   it('leaks no retired vocabulary into user-facing copy', () => {
-    // "Trade Professions" / "Craft Skills" / "Work Genres" are CODE identifiers; user-facing
-    // copy uses Trade / Craft / Genre (terminology-naming-convention.md, ARCH-107).
     const retired = ['profession', 'skill', 'category', 'work genre'];
     for (const label of Object.values(FEEDBACK_TYPE_LABELS)) {
       for (const word of retired) {
@@ -120,7 +114,6 @@ describe('CLEARABLE_TEXT_FIELD_LABELS', () => {
     expect(CLEARABLE_TEXT_FIELD_LABELS.title).toBe('Title');
     expect(CLEARABLE_TEXT_FIELD_LABELS.description).toBe('Description');
     expect(CLEARABLE_TEXT_FIELD_LABELS.content).toBe('Content');
-    // The Work-shell / Realm pair: the `working` prefix is a CODE identifier only (ARCH-107).
     expect(CLEARABLE_TEXT_FIELD_LABELS.workingTitle).toBe('Title');
     expect(CLEARABLE_TEXT_FIELD_LABELS.workingDescription).toBe('Description');
   });
@@ -151,23 +144,18 @@ describe('CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES', () => {
   });
 
   it('keeps the override surface key space identical to HallContentTextSurface', () => {
-    // The override TYPE is a mapped type over HallContentTextSurface indexed into
-    // HALL_CONTENT_TEXT_FIELDS, so the two key sets diverging is a compile error at the type's
-    // declaration. This pins the runtime side of that invariant.
     expect(Object.keys(HALL_CONTENT_TEXT_FIELDS).sort()).toEqual(
       [...HallContentTextSurfaceSchema.options].sort(),
     );
   });
 
-  it('carries the settled Realm term (DJ ruling: a Realm has a Name, not a Title)', () => {
+  it('labels a Realm by its Name, not a Title', () => {
     expect(CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES.workRealm.workingTitle).toBe('Name');
   });
 
   it('compile assertions: a valid surface/field pair types, the map is assignable to its type', () => {
     const valid: ClearableTextFieldLabelOverrides = { workRealm: { workingDescription: 'About' } };
     expect(valid.workRealm?.workingDescription).toBe('About');
-    // `chapter` exposes title/content only — `{ chapter: { workingTitle: … } }` and any surface
-    // outside HallContentTextSurface both fail to compile against this type.
     const chapterOverride: ClearableTextFieldLabelOverrides = { chapter: { content: 'Body' } };
     expect(chapterOverride.chapter?.content).toBe('Body');
     const asType: ClearableTextFieldLabelOverrides = CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES;
@@ -206,8 +194,6 @@ describe('clearableTextFieldLabel', () => {
   });
 
   it('falls back to the base label for the workProject shell (a clearable, non-hall surface)', () => {
-    // `workProject` is a MODERATION_CLEARABLE_TEXT_FIELDS surface but not a
-    // HallContentTextSurface, so it has no overrides — a Work's workingTitle is still a Title.
     for (const field of MODERATION_CLEARABLE_TEXT_FIELDS.workProject) {
       expect(clearableTextFieldLabel(field, 'workProject')).toBe(
         CLEARABLE_TEXT_FIELD_LABELS[field],
@@ -221,8 +207,6 @@ describe('clearableTextFieldLabel', () => {
   });
 
   it('falls back to the raw name for an unknown field, with or without a surface', () => {
-    // Callers pass field names read off stored docs (`moderationClearedFields`), so an
-    // unrecognized legacy name must render as itself rather than blank.
     expect(clearableTextFieldLabel('someLegacyField')).toBe('someLegacyField');
     expect(clearableTextFieldLabel('someLegacyField', 'workRealm')).toBe('someLegacyField');
   });
@@ -260,9 +244,6 @@ describe('appliesToTypeLabel', () => {
   });
 });
 
-// Each map's values are the text its screens render today: the stored value as each site shows
-// it (CSS `capitalize` uppercases the first letter of each word; a site with no transform shows
-// the raw value). A map keyed by its canonical union has exactly the union's members.
 describe('stored-enum display labels', () => {
   it('guild invite statuses read as the invite screens show them', () => {
     expect(GUILD_INVITE_STATUS_LABELS).toEqual({

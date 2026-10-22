@@ -8,10 +8,6 @@ import {
   type InspectMediaDeps,
 } from '../src/inspection/inspect-media.js';
 
-// Unit layer: the classification TABLE with injected probe/decoder deps —
-// no external tools. The real-tool integration matrix lives in
-// inspect-media.fixtures.test.ts.
-
 async function tempFileWith(bytes: Uint8Array | Buffer): Promise<string> {
   const dir = await mkdtemp(path.join(tmpdir(), 'mpc-inspect-'));
   const p = path.join(dir, 'input');
@@ -19,7 +15,6 @@ async function tempFileWith(bytes: Uint8Array | Buffer): Promise<string> {
   return p;
 }
 
-// signature prefixes
 const EBML = Buffer.from([
   0x1a, 0x45, 0xdf, 0xa3, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
 ]);
@@ -41,7 +36,6 @@ const decodeFails: NonNullable<InspectMediaDeps['decodeImage']> = async () => nu
 const decodeStill: NonNullable<InspectMediaDeps['decodeImage']> = async () => ({ frames: 1 });
 const decodeAnimated: NonNullable<InspectMediaDeps['decodeImage']> = async () => ({ frames: 2 });
 
-// No length is measurable unless a test injects one, so no test reaches the real ffmpeg.
 const V = { ffprobeVersion: 'ffprobe version test', measureDuration: async () => undefined };
 
 describe('detectSignatureFamily', () => {
@@ -82,7 +76,7 @@ describe('inspectMedia classification table (injected deps)', () => {
     expect(r.codecs.audio).toEqual(['opus']);
   });
 
-  it('ANY timed video stream wins, even with audio present (Ogg/Theora — the bypass regression)', async () => {
+  it('ANY timed video stream wins, even with audio present (Ogg/Theora)', async () => {
     const p = await tempFileWith(OGG);
     const r = await inspectMedia({
       localPath: p,
@@ -101,7 +95,7 @@ describe('inspectMedia classification table (injected deps)', () => {
     expect(r.codecs.video).toEqual(['theora']);
   });
 
-  it('mp42-brand ISO-BMFF with one AAC stream → audio (brand NEVER decides — the Safari regression)', async () => {
+  it('mp42-brand ISO-BMFF with one AAC stream → audio (brand NEVER decides)', async () => {
     const p = await tempFileWith(ftyp('mp42'));
     const r = await inspectMedia({
       localPath: p,
@@ -239,7 +233,7 @@ describe('inspectMedia classification table (injected deps)', () => {
     expect(r.reasonCode).toBe('image_brand_with_audio');
   });
 
-  it('HEIC the runtime cannot decode → explicit unsupported, NEVER video (launch policy)', async () => {
+  it('HEIC the runtime cannot decode → explicit unsupported, NEVER video', async () => {
     const p = await tempFileWith(ftyp('heic'));
     const r = await inspectMedia({
       localPath: p,

@@ -5,8 +5,8 @@ import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   taskQueues: {
@@ -30,20 +30,10 @@ function getByPath(data: DocData, dotted: string): unknown {
 
 interface MockDbOptions {
   docs?: Record<string, DocData>;
-  /** Runs before a query computes its results — lets a test restore state each round. */
   beforeQuery?: (store: Store) => void;
-  /** Runs AFTER a query computed its results but before they are returned — lets a test
-   *  simulate another admin claiming the candidate in the query→claim race window. */
   afterQuery?: (store: Store) => void;
 }
 
-/**
- * Live-store mock: queries filter/sort the CURRENT store (outside any transaction),
- * transactions read/write specific docs. Two invariants are enforced structurally:
- *   - a range query inside the transaction THROWS (it would range-lock the whole queue —
- *     candidate discovery runs outside; doc-level claims only), and
- *   - all transactional reads must precede writes (real Firestore throws otherwise).
- */
 function createMockDb(opts: MockDbOptions = {}) {
   let autoId = 0;
   const store: Store = new Map(Object.entries(opts.docs ?? {}));
@@ -185,7 +175,7 @@ function createMockDb(opts: MockDbOptions = {}) {
 const pendingTask = (taskId: string, priority: number, createdAt = 1): DocData => ({
   taskType: 'userReport',
   taskId,
-  originalPath: `activeReportGroups/${taskId}`,
+  originalPath: `testReportGroups/${taskId}`,
   summary: 'test',
   priority,
   createdAt,
@@ -217,10 +207,6 @@ describe('createCheckoutNextImportantHandler', () => {
   });
 
   it('throws a TYPED not-found ReportCoreTaskError when the queue is empty', async () => {
-    // An empty queue is a routine ANSWER, not a fault: it must carry the 'not-found'
-    // code (taskError.ts) so the consuming callable maps it to HttpsError('not-found')
-    // instead of surfacing a 500 'internal' + a misleading generic toast. A message-only
-    // assertion would still pass if this were downgraded to a plain Error.
     const { db } = createMockDb();
     const handler = createCheckoutNextImportantHandler({
       config: TEST_CONFIG,
@@ -238,7 +224,7 @@ describe('createCheckoutNextImportantHandler', () => {
     const { db } = createMockDb({
       docs: {
         'adminTasks/task1': { ...pendingTask('group1', 10), summary: '1 report for post' },
-        'activeReportGroups/group1': { reportedItemType: 'post' },
+        'testReportGroups/group1': { reportedItemType: 'post' },
       },
     });
     const handler = createCheckoutNextImportantHandler({
@@ -260,7 +246,7 @@ describe('createCheckoutNextImportantHandler', () => {
     const { db } = createMockDb({
       docs: {
         'adminTasks/task1': { ...pendingTask('group1', 10, 111), lastUpdatedAt: 222 },
-        'activeReportGroups/group1': { reportedItemType: 'post' },
+        'testReportGroups/group1': { reportedItemType: 'post' },
       },
     });
     const handler = createCheckoutNextImportantHandler({
@@ -355,7 +341,6 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { requireAdmin },
     });
 
-    // Should call requireAdmin and proceed (throw because no tasks)
     await expect(handler({}, { uid: 'anyone', token: 'tok' })).rejects.toThrow(
       'No pending tasks available',
     );
@@ -377,7 +362,7 @@ describe('createCheckoutNextImportantHandler', () => {
     const after = Date.now();
 
     const checkoutDetails = updates[0].data.checkoutDetails as any;
-    const expectedMinExpiry = before + 60 * 60_000; // 60 minutes
+    const expectedMinExpiry = before + 60 * 60_000;
     const expectedMaxExpiry = after + 60 * 60_000;
     expect(checkoutDetails.expiresAt).toBeGreaterThanOrEqual(expectedMinExpiry);
     expect(checkoutDetails.expiresAt).toBeLessThanOrEqual(expectedMaxExpiry);
@@ -415,9 +400,9 @@ describe('createCheckoutNextImportantHandler', () => {
       docs: {
         'adminTasks/task-1': {
           ...pendingTask('report-group-1', 5),
-          originalPath: 'activeReportGroups/report-group-1',
+          originalPath: 'testReportGroups/report-group-1',
         },
-        'activeReportGroups/report-group-1': { groupId: 'report-group-1' },
+        'testReportGroups/report-group-1': { groupId: 'report-group-1' },
       },
     });
 
@@ -427,9 +412,6 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { requireAdmin: async () => {} },
     });
 
-    // If reads happen after writes, the strengthened mock throws the same
-    // error the real Firestore emulator throws. This test passes only when
-    // every transaction.get() runs before any transaction.update() or set().
     const result = await handler({}, { uid: 'admin-1', token: {} });
 
     expect(result.success).toBe(true);
@@ -437,8 +419,6 @@ describe('createCheckoutNextImportantHandler', () => {
       groupId: 'report-group-1',
     });
   });
-
-  // ── The candidate query runs OUTSIDE the transaction ──
 
   it('never issues a range query inside the transaction (doc-level claim only)', async () => {
     const { db, transaction } = createMockDb({
@@ -450,8 +430,6 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { adminUserIds: ['admin1'] },
     });
 
-    // The mock throws on a transactional range read, so success here proves the claim
-    // transaction touched only specific docs.
     const result = await handler({}, { uid: 'admin1', token: null });
     expect(result.success).toBe(true);
     for (const call of transaction.get.mock.calls) {
@@ -467,7 +445,6 @@ describe('createCheckoutNextImportantHandler', () => {
         'adminTasks/task2': pendingTask('group2', 5),
       },
       afterQuery: (store) => {
-        // Another admin wins task1 in the race window — exactly once.
         if (!stolen) {
           stolen = true;
           store.set('adminTasks/task1', {
@@ -488,7 +465,6 @@ describe('createCheckoutNextImportantHandler', () => {
 
     expect(result.success).toBe(true);
     expect((result.task as any).id).toBe('task2');
-    // task1 was never written by THIS handler — only task2.
     expect(updates).toHaveLength(1);
     expect(updates[0].path).toBe('adminTasks/task2');
   });
@@ -496,7 +472,6 @@ describe('createCheckoutNextImportantHandler', () => {
   it('gives up with a busy error after exhausting claim rounds under perpetual contention', async () => {
     const { db, queryCount } = createMockDb({
       docs: { 'adminTasks/task1': pendingTask('group1', 10) },
-      // Every round: the query sees task1 pending, but by claim time it is locked.
       beforeQuery: (store) => {
         store.set('adminTasks/task1', { ...store.get('adminTasks/task1')!, status: 'pending' });
       },
@@ -531,8 +506,8 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
       docs: {
         'adminTasks/busy': pendingTask('groupBusy', 9),
         'adminTasks/free': pendingTask('groupFree', 1),
-        'activeReportGroups/groupBusy': { status: 'processing' },
-        'activeReportGroups/groupFree': { status: 'pending' },
+        'testReportGroups/groupBusy': { status: 'processing' },
+        'testReportGroups/groupFree': { status: 'pending' },
       },
     });
     const handler = createCheckoutNextImportantHandler({
@@ -559,7 +534,7 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
     const { db, transaction } = createMockDb({
       docs: {
         'adminTasks/task1': pendingTask('group1', 5),
-        'activeReportGroups/group1': { status: 'pending' },
+        'testReportGroups/group1': { status: 'pending' },
       },
     });
     const guard = vi.fn<TaskClaimGuard>(async () => ({ claimable: true }));
@@ -585,11 +560,11 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
   it('reads past refused candidates one document per refusal, never re-reading the queue head', async () => {
     const docs: Record<string, DocData> = {
       'adminTasks/free': pendingTask('groupFree', 1),
-      'activeReportGroups/groupFree': { status: 'pending' },
+      'testReportGroups/groupFree': { status: 'pending' },
     };
     for (let i = 0; i < 6; i++) {
       docs[`adminTasks/busy${i}`] = pendingTask(`groupBusy${i}`, 20 - i);
-      docs[`activeReportGroups/groupBusy${i}`] = { status: 'processing' };
+      docs[`testReportGroups/groupBusy${i}`] = { status: 'processing' };
     }
     const { db, docsRead, queryCount } = createMockDb({ docs });
     const handler = createCheckoutNextImportantHandler({
@@ -602,7 +577,6 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
     const result = await handler({}, { uid: 'admin1', token: null });
 
     expect((result.task as { id: string }).id).toBe('free');
-    // Six refusals and one claim: seven one-document reads in total.
     expect(queryCount()).toBe(7);
     expect(docsRead()).toBe(7);
   });
@@ -612,8 +586,8 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
       docs: {
         'adminTasks/a': pendingTask('groupA', 9),
         'adminTasks/b': pendingTask('groupB', 5),
-        'activeReportGroups/groupA': { status: 'processing' },
-        'activeReportGroups/groupB': { status: 'processing' },
+        'testReportGroups/groupA': { status: 'processing' },
+        'testReportGroups/groupB': { status: 'processing' },
       },
     });
     const handler = createCheckoutNextImportantHandler({

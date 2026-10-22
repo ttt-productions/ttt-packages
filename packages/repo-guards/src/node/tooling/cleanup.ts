@@ -1,7 +1,3 @@
-// Cross-platform deletion of an app's disposable build and cache output. The targets are a fixed,
-// repository-relative list — never arguments, never globs — so this can only ever delete known
-// output, and a target that resolves outside the repository stops the command.
-
 import { existsSync, rmSync } from 'node:fs';
 import path from 'node:path';
 

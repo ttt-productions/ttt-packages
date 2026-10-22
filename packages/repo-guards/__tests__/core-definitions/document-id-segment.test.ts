@@ -1,7 +1,3 @@
-// Every id a client sends is one document-id segment: each id atom, and each id-named field of a wire
-// contract, refuses an empty id, a "/", "." / "..", and the reserved __name__ form; and every
-// id-named field a client sends, reviewed or not, refuses a space-only or space-padded value.
-
 import { afterAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {

@@ -1,6 +1,3 @@
-// The client Firestore guards: a live subscription outside the reviewed list fails in every spelling,
-// and a Firestore runtime import in a component or route fails outside the sanctioned providers.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   firestoreRuntimeInUiGuard,

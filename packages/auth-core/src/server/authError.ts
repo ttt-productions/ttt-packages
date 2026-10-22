@@ -1,57 +1,11 @@
 import type { AcceptanceRequiredDetails } from '../acceptance.js';
 import type { EmailVerificationRequiredDetails } from '../email-verification.js';
 
-/**
- * Typed failure channel for `createAssertAuth`.
- *
- * Every EXPECTED auth outcome (not signed in, email unverified, missing profile,
- * account not in good standing) throws an `AuthAssertionError` whose `code` is
- * deliberately the matching `HttpsError` code string, so a consuming Cloud
- * Function maps it 1:1 at the app boundary:
- *
- *   catch (err) {
- *     if (err instanceof AuthAssertionError) throw new HttpsError(err.code, err.message);
- *     throw err;
- *   }
- *
- * WHY THE PACKAGE MUST NOT BUILD THE HttpsError ITSELF: firebase-functions 7.2.5
- * ships TWO distinct `HttpsError` classes — the one
- * exported from the ESM entry `firebase-functions/v2/https`, and the one the CJS
- * callable runtime closes over and `instanceof`-checks at
- * `lib/common/providers/https.js`. An `HttpsError` constructed by this package's
- * ESM `dist` fails that identity check, so `onCall` logged "Unhandled error" and
- * replaced a correct 400 with `500 INTERNAL`. Measured:
- *
- *   ESM class === CJS class ?              false
- *   esm-built error instanceof CJS class ? false
- *   httpErrorCode.status:                  400   (the error itself was correct)
- *
- * Because `assertAuth` is the first line of every callable, that turned EVERY auth
- * rejection — unauthenticated, unverified email, suspended, banned — into a generic
- * 500: users saw a generic error instead of the verify-email dialog, and monitoring
- * filled with 500s that were really expected answers. Constructing the HttpsError in
- * APP module space fixes the identity permanently and cannot regress when
- * firebase-functions repackages.
- *
- * This also brings auth-core in line with engineering-rules QUALITY-102 (generic
- * packages stay framework-agnostic; the consuming app's adapter binds the framework) and
- * mirrors `report-core`'s `ReportCoreTaskError`, which already works this way.
- */
+// firebase-functions' callable runtime instanceof-checks its own HttpsError class, which one built
+// in this package's ESM dist fails (a 500 INTERNAL), so the consuming app builds the HttpsError.
 export type AuthAssertionErrorCode =
   'unauthenticated' | 'failed-precondition' | 'not-found' | 'permission-denied';
 
-/**
- * Structured details an `AuthAssertionError` may carry — one per refusal the client answers
- * with a surface of its own, each told apart by `reason`: the email-verification refusal
- * (`reason: 'email-verification-required'`, recognized by `isEmailVerificationRequiredError`)
- * and the acceptance refusal (`reason: 'acceptance-required'`, recognized by
- * `isAcceptanceRequiredError`). The app forwards `details` as the `HttpsError` details so the
- * client can recognize them:
- *
- *   throw new HttpsError(err.code, err.message, err.details);
- *
- * Every other rejection leaves `details` undefined.
- */
 export type AuthAssertionErrorDetails =
   AcceptanceRequiredDetails | EmailVerificationRequiredDetails;
 

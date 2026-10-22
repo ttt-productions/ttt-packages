@@ -1,17 +1,5 @@
 'use client';
 
-// Authoritative pending for interactive mutations. A mutation registers in React Query's shared
-// MutationCache under a stable `mutationKey` the app declares (one key per action), and its target
-// travels in the mutation's variables. Pending is read from that cache, never from one mounted
-// control's `isPending`, which gives three guarantees:
-//
-//   1. an in-flight request survives its originating control unmounting;
-//   2. a remounted control still renders pending for that target;
-//   3. a second submission for the same target is refused while the first is pending.
-//
-// The app owns its keys, its variable shapes and what counts as the same target; this module owns
-// only the mechanics.
-
 import { useCallback } from 'react';
 import {
   useMutationState,
@@ -22,7 +10,6 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query';
 
-/** The variables of every pending mutation under `mutationKey` (prefix-matched), live. */
 export function usePendingMutationVariables<V>(
   mutationKey: MutationKey,
 ): ReadonlyArray<V | undefined> {
@@ -32,7 +19,6 @@ export function usePendingMutationVariables<V>(
   });
 }
 
-/** The variables of every pending mutation under `mutationKey`, read once — for a duplicate guard. */
 export function pendingMutationVariables<V>(
   queryClient: QueryClient,
   mutationKey: MutationKey,
@@ -43,11 +29,6 @@ export function pendingMutationVariables<V>(
     .map((mutation) => mutation.state.variables as V | undefined);
 }
 
-/**
- * The targets of every pending mutation under `mutationKey`, live — for a list whose rows each
- * ask "is mine pending?" through one hook call. `targetOf` names a variables' target, or returns
- * nothing for variables without one.
- */
 export function usePendingMutationTargets<V>(
   mutationKey: MutationKey,
   targetOf: (variables: V) => string | null | undefined,
@@ -61,10 +42,6 @@ export function usePendingMutationTargets<V>(
   return targets;
 }
 
-/**
- * True when a mutation under `mutationKey` is pending — any one, or with `matches`, one whose
- * variables are for the same target.
- */
 export function hasPendingMutation<V>(
   queryClient: QueryClient,
   mutationKey: MutationKey,
@@ -75,22 +52,13 @@ export function hasPendingMutation<V>(
   return pending.some((variables) => variables !== undefined && matches(variables));
 }
 
-/**
- * The rejection a guarded `mutateAsync` throws for a duplicate submission: an `AbortError`, the
- * shape a caller already treats as "nothing happened" rather than a failure to report.
- */
 export function duplicateSubmissionError(what: string): Error {
   const duplicate = new Error(`${what} is already in flight.`);
   duplicate.name = 'AbortError';
   return duplicate;
 }
 
-/**
- * Wrap a keyed mutation's `mutate` / `mutateAsync` in the cache-consulting duplicate guard:
- * `mutate` drops a duplicate silently, and `mutateAsync` rejects it with
- * {@link duplicateSubmissionError}. `isDuplicate` must have a stable identity (declare it at module
- * level) so the guarded callbacks keep theirs.
- */
+/** `isDuplicate` must have a stable identity (declare it at module level) so the guarded callbacks keep theirs. */
 export function useDuplicateGuardedMutation<TData, TError, TVariables, TContext>(
   mutation: UseMutationResult<TData, TError, TVariables, TContext>,
   isDuplicate: (queryClient: QueryClient, variables: TVariables) => boolean,

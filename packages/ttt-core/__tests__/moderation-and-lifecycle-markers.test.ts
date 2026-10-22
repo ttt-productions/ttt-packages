@@ -1,0 +1,332 @@
+import { describe, it, expect, expectTypeOf } from 'vitest';
+import {
+  PublishedHallItemSchema,
+  PublishedTuneTrackSchema,
+  PublishedChapterSchema,
+  PublishedTelevisionEpisodeSchema,
+  FullChapterSchema,
+} from '../src/doc-schemas/content.js';
+import { GuildChatChannelSchema } from '../src/doc-schemas/messaging.js';
+import { AuditionSchema } from '../src/doc-schemas/commissions.js';
+import { ModerationCascadeChangedEntityTypeSchema } from '../src/doc-schemas/moderation.js';
+import {
+  STATUS_RECONCILE_QUEUE_AUTH_EFFECTS,
+  StatusReconcileQueueEntrySchema,
+  StatusReconcileQueueAccountStatusEntrySchema,
+  type StatusReconcileQueueEntry,
+  type StatusReconcileQueueAuthEffect,
+  type StatusReconcileQueueAccountStatusEntry,
+  type StatusReconcileQueuePublicDocumentsAcceptedClaimEntry,
+} from '../src/doc-schemas/operational.js';
+import type { UserAccountStatus } from '../src/doc-schemas/user.js';
+import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs.js';
+import { FullWorkProjectSchema, WorkRealmSchema } from '../src/doc-schemas/work-project.js';
+
+describe('hiddenBy marker on published projections', () => {
+  const bases = {
+    PublishedTuneTrack: {
+      schema: PublishedTuneTrackSchema,
+      valid: {
+        uid: 't1',
+        title: 'T',
+        order: 0,
+        audioAssetId: 'a1',
+        photoAssetId: 'p1',
+        hidden: true,
+      },
+    },
+    PublishedChapter: {
+      schema: PublishedChapterSchema,
+      valid: { uid: 'c1', title: 'C', order: 0, content: 'body', photoAssetId: 'p1', hidden: true },
+    },
+    PublishedTelevisionEpisode: {
+      schema: PublishedTelevisionEpisodeSchema,
+      valid: {
+        uid: 'e1',
+        title: 'E',
+        order: 0,
+        videoAssetId: 'v1',
+        photoAssetId: 'p1',
+        hidden: true,
+      },
+    },
+  };
+
+  for (const [name, { schema, valid }] of Object.entries(bases)) {
+    it(`${name} accepts hiddenBy 'direct' and 'cascade' and is optional`, () => {
+      expect(schema.safeParse(valid).success).toBe(true);
+      expect(schema.safeParse({ ...valid, hiddenBy: 'direct' }).success).toBe(true);
+      expect(schema.safeParse({ ...valid, hiddenBy: 'cascade' }).success).toBe(true);
+      expect(schema.safeParse({ ...valid, hiddenBy: 'parent' }).success).toBe(false);
+    });
+  }
+
+  it('PublishedHallItem accepts hiddenBy + moderationClearedFields', () => {
+    const valid = {
+      hallItemId: 'h1',
+      workProjectId: 'wp1',
+      workProjectType: 'Tales',
+      status: 'published',
+      createdOn: 1,
+      hallWingType: 'entertainment',
+      hidden: true,
+      coverSquareAssetId: 'a1',
+      coverPosterAssetId: 'a2',
+      coverCinematicAssetId: 'a3',
+    };
+    expect(
+      PublishedHallItemSchema.safeParse({
+        ...valid,
+        hiddenBy: 'cascade',
+        moderationClearedFields: ['title', 'description'],
+        moderationClearedReason: 'abusive title',
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('per-field moderation text-clear flags (uniform shape across the family)', () => {
+  it('are optional on the live sub-item schemas', () => {
+    const chapter = {
+      uid: 'c1',
+      title: 'C',
+      content: 'b',
+      description: 'D',
+      order: 0,
+      status: 'published',
+      createdOn: 1,
+    };
+    expect(FullChapterSchema.safeParse(chapter).success).toBe(true);
+    expect(FullChapterSchema.safeParse({ ...chapter, moderationClearedFields: [] }).success).toBe(
+      true,
+    );
+  });
+
+  it('coexist with the existing retitle flags on workProject + workRealm', () => {
+    const wp = {
+      workProjectId: 'wp1',
+      createdOn: 1,
+      type: 'Tales',
+      workingDescription: 'D',
+      workingTitle: 'T',
+      hallWingType: 'entertainment',
+      createdBy: { uid: 'u1' },
+      status: 'open',
+      workRealmId: 'wr1',
+      realmCanonStatus: 'canon',
+      moderationRetitleRequired: true,
+      moderationRetitleReason: 'r',
+      moderationClearedFields: ['workingTitle'],
+      moderationClearedReason: 'r',
+    };
+    expect(FullWorkProjectSchema.safeParse(wp).success).toBe(true);
+
+    const wr = {
+      workRealmId: 'wr1',
+      realmType: 'public',
+      realmStatus: 'draft',
+      realmHidden: false,
+      workingTitle: 'T',
+      workingTitle_lowercase: 't',
+      workingDescription: 'D',
+      workStewardUid: 'u1',
+      foundingArtisanUid: 'u1',
+      foundingWorkProjectId: 'wp1',
+      createdOn: 1,
+      updatedOn: 1,
+      moderationClearedFields: ['workingTitle', 'workingDescription'],
+      moderationClearedReason: 'r',
+    };
+    expect(WorkRealmSchema.safeParse(wr).success).toBe(true);
+  });
+});
+
+describe('GuildChatChannel delete marker', () => {
+  const valid = {
+    guildChatChannelId: 'ch1',
+    workProjectId: 'wp1',
+    channelName: 'general',
+    requiredGuildStandings: [],
+    createdAt: 1,
+    createdBy: 'u1',
+    messageCount: 0,
+    isArchived: false,
+  };
+
+  it('isDeleted is an optional boolean, coherent alongside isArchived', () => {
+    expect(GuildChatChannelSchema.safeParse(valid).success).toBe(true);
+    expect(GuildChatChannelSchema.safeParse({ ...valid, isDeleted: true }).success).toBe(true);
+  });
+
+  it('stores canonical standings and trade professions only', () => {
+    expect(
+      GuildChatChannelSchema.safeParse({
+        ...valid,
+        requiredGuildStandings: ['HallLibraryEditor', 'Actor'],
+      }).success,
+    ).toBe(true);
+    expect(
+      GuildChatChannelSchema.safeParse({ ...valid, requiredGuildStandings: ['Wizard'] }).success,
+    ).toBe(false);
+    expect(GuildChatChannelSchema.safeParse({ ...valid, isDeleted: 'yes' }).success).toBe(false);
+  });
+});
+
+describe('curated audition assembly status', () => {
+  it("includes the 'closed' terminal state", () => {
+    const audition = {
+      auditionId: 'a1',
+      type: 'workAudition',
+      title: 'T',
+      description: 'D',
+      videoAssetId: 'v1',
+      mediaType: 'video',
+      entriesCloseAt: 2,
+      auditionCloseAt: 3,
+      createdOn: 1,
+      createdBy: { uid: 'u1' },
+      status: 'closed',
+      hidden: false,
+      curatedAssemblyStatus: 'closed',
+    };
+    expect(AuditionSchema.safeParse(audition).success).toBe(true);
+    expect(AuditionSchema.safeParse({ ...audition, curatedAssemblyStatus: 'bogus' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('ModerationCascadeChangedEntityType', () => {
+  it("includes 'mediaAsset'", () => {
+    expect(ModerationCascadeChangedEntityTypeSchema.safeParse('mediaAsset').success).toBe(true);
+  });
+});
+
+describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
+  const valid = {
+    uid: 'u1',
+    enqueuedAt: 1,
+    attemptCount: 0,
+    targetStatus: 'suspended' as const,
+    reason: 'statusChangePending' as const,
+    writeId: 'w1',
+  };
+
+  it('accepts a minimal entry and an entry with lastAttemptAt', () => {
+    expect(StatusReconcileQueueEntrySchema.safeParse(valid).success).toBe(true);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, lastAttemptAt: 5 }).success).toBe(
+      true,
+    );
+  });
+
+  it('pins reason to the literal and constrains targetStatus', () => {
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'other' }).success).toBe(
+      false,
+    );
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'postCommitAuthEffectFailed' })
+        .success,
+    ).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, targetStatus: 'deleted' }).success,
+    ).toBe(false);
+  });
+
+  it('an entry without authEffect (written before the field) is an accountStatus entry', () => {
+    const parsed = StatusReconcileQueueEntrySchema.parse(valid);
+    expect(parsed.authEffect).toBeUndefined();
+    expect(StatusReconcileQueueAccountStatusEntrySchema.safeParse(valid).success).toBe(true);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'accountStatus' }).success,
+    ).toBe(true);
+  });
+
+  it('an accountStatus entry requires the writeId that fences its removal', () => {
+    const { writeId: _omit, ...withoutWriteId } = valid;
+    expect(StatusReconcileQueueEntrySchema.safeParse(withoutWriteId).success).toBe(false);
+  });
+
+  it('an accountStatus entry still requires its targetStatus', () => {
+    const { targetStatus: _omit, ...withoutTarget } = valid;
+    expect(StatusReconcileQueueEntrySchema.safeParse(withoutTarget).success).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...withoutTarget, authEffect: 'accountStatus' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('a publicDocumentsAcceptedClaim entry carries no targetStatus', () => {
+    const acceptance = {
+      uid: 'u1',
+      enqueuedAt: 1,
+      attemptCount: 0,
+      authEffect: 'publicDocumentsAcceptedClaim' as const,
+      reason: 'postCommitAuthEffectFailed' as const,
+    };
+    expect(StatusReconcileQueueEntrySchema.safeParse(acceptance).success).toBe(true);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, lastAttemptAt: 5 }).success,
+    ).toBe(true);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, targetStatus: 'active' }).success,
+    ).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, reason: 'other' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an unknown authEffect', () => {
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'status' }).success,
+    ).toBe(false);
+  });
+
+  it('queues a failed admin-role claim write and a failed registered-member claim write, neither with a status', () => {
+    for (const authEffect of ['adminClaims', 'registeredMemberClaim'] as const) {
+      const entry = {
+        uid: 'u1',
+        enqueuedAt: 1,
+        attemptCount: 0,
+        authEffect,
+        reason: 'postCommitAuthEffectFailed' as const,
+      };
+      expect(StatusReconcileQueueEntrySchema.safeParse(entry).success, authEffect).toBe(true);
+      expect(
+        StatusReconcileQueueEntrySchema.safeParse({ ...entry, lastAttemptAt: 5 }).success,
+        authEffect,
+      ).toBe(true);
+      expect(
+        StatusReconcileQueueEntrySchema.safeParse({ ...entry, targetStatus: 'active' }).success,
+        authEffect,
+      ).toBe(false);
+    }
+  });
+
+  it('names the four effects once, and the entry type narrows on authEffect', () => {
+    expect(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS).toEqual([
+      'accountStatus',
+      'publicDocumentsAcceptedClaim',
+      'adminClaims',
+      'registeredMemberClaim',
+    ]);
+    expectTypeOf<StatusReconcileQueueEntry['authEffect']>().toEqualTypeOf<
+      StatusReconcileQueueAuthEffect | undefined
+    >();
+    expectTypeOf<
+      Extract<StatusReconcileQueueEntry, { authEffect: 'publicDocumentsAcceptedClaim' }>
+    >().toEqualTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>();
+    expectTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>().not.toHaveProperty(
+      'targetStatus',
+    );
+    expectTypeOf<
+      StatusReconcileQueueAccountStatusEntry['targetStatus']
+    >().toEqualTypeOf<UserAccountStatus>();
+  });
+});
+
+describe('AdminTaskType pledge members', () => {
+  it('includes pledgeDisputeOpened and pledgeRefundRequested', () => {
+    expect(AdminTaskTypeSchema.safeParse('pledgeDisputeOpened').success).toBe(true);
+    expect(AdminTaskTypeSchema.safeParse('pledgeRefundRequested').success).toBe(true);
+  });
+});

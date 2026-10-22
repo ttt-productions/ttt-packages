@@ -1,7 +1,3 @@
-// The guards over how the client reaches a callable and surfaces its failure: one transport, one
-// copy owner, callable names written only in their declarations, one toast and one capture per
-// failure, and reads that live in hooks and go through readers.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
@@ -38,7 +34,6 @@ import { forEachNode, isPlainString } from '../../support/ast.js';
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 const REACT_HOOK = 'use[A-Z]\\w*';
 
-/** Runs a shape-built guard and adds the findings of an extra check to it. */
 const withExtraCheck = (guard: Guard, extra: (context: GuardContext) => Finding[]): Guard => ({
   ...guard,
   async run(context) {
@@ -46,7 +41,6 @@ const withExtraCheck = (guard: Guard, extra: (context: GuardContext) => Finding[
   },
 });
 
-/** Each line of a file's code that one of `shapes` matches, at the line's index. */
 const lineHits = (file: FileView, test: (line: string) => string | null): Hit[] => {
   const hits: Hit[] = [];
   let index = 0;
@@ -63,17 +57,11 @@ const declaresExport = (code: string, name: string) =>
     `\\bexport\\s+(?:async\\s+)?(?:function\\s*\\*?|const|let)\\s+${escapeRegExp(name)}\\b`,
   ).test(code) || new RegExp(`\\bexport\\s*\\{[^}]*\\b${escapeRegExp(name)}\\b[^}]*\\}`).test(code);
 
-// ---------------------------------------------------------------------------------------------
-// Callable error copy: a failure surface never shows a raw error message.
-
 export interface CallableErrorCopyFacts {
-  /** The one module that turns a callable failure into user-facing copy, and the function it exports. */
   owner: { file: string; exportName: string };
-  /** Surfaces whose error is not a callable rejection, each with why. */
   allowlist: readonly AllowlistEntry[];
 }
 
-/** An error-ish receiver followed immediately by `.message`, so `errors.title.message` never matches. */
 const ERRISH = String.raw`(?:\w*[Ee]rror\w*|err|e)`;
 const RAW_MESSAGE_SHAPES = [
   new RegExp(String.raw`description:\s*${ERRISH}\s*\??\.\s*message\b`),
@@ -141,19 +129,10 @@ export const callableErrorCopyGuard: GenericGuardDefinition<CallableErrorCopyFac
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Callable transport: the callable SDK and its transport helpers are named only by their owner, or
-// by no app file at all.
-
 export interface CallableTransportFacts {
-  /**
-   * Each module that reaches a callable, the symbols that do, and the one file that may name them.
-   * A transport with no owner is named by no app file: the app reaches it only through a package.
-   */
   transports: ReadonlyArray<{ module: string; symbols: readonly string[]; owner?: string }>;
 }
 
-/** Each reach of a transport symbol: imported, through a namespace, or called bare or as a member (`sdk.f(`). */
 function transportHits(
   file: FileView,
   transport: { module: string; symbols: readonly string[] },
@@ -259,28 +238,18 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// The declared hooks a component holds, shared by the name, read, and double-surface guards.
-
-/** The call-site option that turns a declared hook's error toast off. */
 const TOAST_OPTION = 'showErrorToast';
-/** The call-site option naming the answers a caller surfaces itself. */
 const ANSWER_OPTION = 'isAnswerSurfacedByCaller';
-/** The members of an action's result that start it. */
 const ACTION_MEMBERS = ['mutate', 'mutateAsync'];
 
-/** One place a file binds a hook's result: the local name, how it is invoked, and the hook's arguments. */
 interface HookBinding {
-  /** The local name, as a finding shows it. */
   name: string;
-  /** The names a call through this binding is written as (`b.mutate`, `b.mutateAsync`, `b`). */
   calls: readonly string[];
   hook: string;
   args: string;
   index: number;
 }
 
-/** Every binding of one of `hooks` in `code`: a whole result, or an action's start members destructured. */
 function hookBindings(code: string, hooks: ReadonlySet<string>): HookBinding[] {
   const out: HookBinding[] = [];
   const whole = new RegExp(
@@ -316,7 +285,6 @@ function hookBindings(code: string, hooks: ReadonlySet<string>): HookBinding[] {
   return out;
 }
 
-/** A hook's options text for its argument, a same-file constant resolved; null when it cannot be seen. */
 function resolveOptions(args: string, code: string): string | null {
   const trimmed = args.trim();
   if (trimmed === '' || trimmed.startsWith('{')) return trimmed;
@@ -327,22 +295,16 @@ function resolveOptions(args: string, code: string): string | null {
   return decl ? decl[1] : null;
 }
 
-/** True unless the call site visibly turns the declared hook's error toast off. */
 const toastIsOn = (args: string, code: string) => {
   const options = resolveOptions(args, code);
   return options === null || !new RegExp(`\\b${TOAST_OPTION}\\s*:\\s*false\\b`).test(options);
 };
 
-// ---------------------------------------------------------------------------------------------
-// Callable names: a callable's name is written only in its declaration.
-
 export interface CallableNameFacts {
   declarations: CallableDeclarationFacts;
-  /** Files that hold a string equal to a callable's name for another reason, each with why. */
   allowlist: readonly AllowlistEntry[];
 }
 
-/** Each string literal in a file whose text is one of `names`. */
 export function callableNameHits(file: FileView, names: ReadonlyMap<string, string>): Hit[] {
   const hits: Hit[] = [];
   const sf = file.sourceFile;
@@ -419,23 +381,15 @@ export const callableNameGuard: GenericGuardDefinition<CallableNameFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Callable-backed reads: live in the hooks folder, go through a reader, and hand their failure to
-// the read-failure surface.
-
 export interface CallableReadFacts {
   declarations: CallableDeclarationFacts;
-  /** The folder every read hook lives in. */
   hooksRoot: string;
-  /** The component that renders a read failure, and the prop it takes the read's error through. */
   readFailureSurface: { component: string; errorProp: string };
-  /** Hooks the detector must find a callable-backed read in — proof it still recognizes the reads. */
   anchorReads: readonly string[];
 }
 
 interface CallableRead {
   path: string;
-  /** The exported hook or component the read is in. */
   where: string;
   binding: string;
   hook: string;
@@ -443,7 +397,6 @@ interface CallableRead {
   index: number;
 }
 
-/** Each React Query read call's argument text, with where the call starts. */
 function readQueryCalls(block: string): Array<{ args: string; index: number }> {
   const out: Array<{ args: string; index: number }> = [];
   const re =
@@ -469,7 +422,6 @@ function readQueryCalls(block: string): Array<{ args: string; index: number }> {
   return out;
 }
 
-/** Every React Query read that reaches a declared hook, directly or through a block-local helper. */
 export function callableReadsIn(
   file: { path: string; code: string },
   kinds: ReadonlyMap<string, CallableKind>,
@@ -511,7 +463,6 @@ export function callableReadsIn(
   return reads;
 }
 
-/** Every finding about one read: where it lives, and the kind it reads through. */
 export function callableReadFindings(read: CallableRead, hooksRoot: string): string[] {
   const where = `${read.where} (${read.binding})`;
   return [
@@ -524,7 +475,6 @@ export function callableReadFindings(read: CallableRead, hooksRoot: string): str
   ];
 }
 
-/** Each read-failure element rendering a read hook's failure without being handed the read's error. */
 export function unhandedReadFailures(
   code: string,
   readHooks: readonly string[],
@@ -640,23 +590,15 @@ export const callableReadGuard: GenericGuardDefinition<CallableReadFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Double surface: a declared action's rejection is surfaced once — by its toast, or by the caller.
-
 export interface DoubleSurfaceFacts {
   declarations: CallableDeclarationFacts;
-  /** The function that raises a toast. */
   toastCall: string;
-  /** Predicates that gate a local toast to a leg the declared hook's toast cannot see. */
   nonCallableLegGuards: readonly string[];
-  /** Import specifier prefixes that reach app source (relative imports always do). */
   appImportPrefixes: readonly string[];
 }
 
-/** Where a declared hook or an app hook over one comes from, for a finding. */
 type ToastingHooks = ReadonlyMap<string, string>;
 
-/** Exported app hooks that hold a toasting declared hook with its toast on, so each toasts every rejection. */
 export function wrappingHooks(
   files: ReadonlyArray<{ path: string; code: string }>,
   declared: ToastingHooks,
@@ -676,7 +618,6 @@ export function wrappingHooks(
   return hooks;
 }
 
-/** Every place a file surfaces a rejection a toasting hook it holds has already toasted. */
 export function doubleSurfaces(
   file: FileView,
   toasting: ToastingHooks,
@@ -781,13 +722,8 @@ export const doubleSurfaceGuard: GenericGuardDefinition<DoubleSurfaceFacts> = {
   },
 };
 
-// ---------------------------------------------------------------------------------------------
-// Error internals: a rendered element never shows a thrown error's message or stringification.
-
 export interface ErrorInternalsFacts {
-  /** The folders whose files render to the user. */
   renderRoots: readonly string[];
-  /** Monitoring calls where error internals belong (besides `console.*` and `logger.*`). */
   captureCalls: readonly string[];
   allowlist: readonly AllowlistEntry[];
 }
@@ -796,7 +732,6 @@ const LEAK =
   /(?:\b(?:\w*[Ee]rror|err|e)\s*\??\.\s*message\b|as\s+Error\s*\)\s*\.\s*message\b|\bString\s*\(\s*(?:\w*[Ee]rror|err|e)\s*\))/;
 const BRACE_GROUP = /\{[^{}]*\}/g;
 
-/** The render of error internals on one line, or null: a brace group holding one that is not an object property value. */
 export function errorInternalsOnLine(line: string, captureCalls: readonly string[]): string | null {
   const logging = new RegExp(
     `\\b(?:console\\s*\\.\\s*\\w+|logger\\s*\\.\\s*\\w+${captureCalls.map((c) => `|${escapeRegExp(c)}`).join('')})\\s*\\(`,

@@ -1,28 +1,19 @@
-// Checks on the facts an app supplies, shared by every guard area: one wording and one rule set.
-// Every check pushes its problems, in words, onto `problems`; none pushes means the fact is usable.
-// Internal to the package: no public entry exports them.
-
-/** A value an app reads from its own code at run time (often its core package), loaded inside the guard. */
 export type Loader<T> = () => T | Promise<T>;
 
-/** A string with something in it. */
 export const isText = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
-/** A required text fact: a string with something in it. */
 export function textProblem(value: unknown, what: string, problems: string[]): void {
   if (!isText(value)) problems.push(`${what} is missing`);
 }
 
-/** A name code declares or reads: an identifier. */
 export function identifierProblem(value: unknown, what: string, problems: string[]): void {
   if (typeof value !== 'string' || !IDENTIFIER.test(value))
     problems.push(`${what} must be an identifier`);
 }
 
-/** A required object fact. True when it is one, so its fields can be checked next. */
 export function objectProblem(
   value: unknown,
   what: string,
@@ -35,15 +26,10 @@ export function objectProblem(
   return true;
 }
 
-/** A loader the app writes (`() => import(...)`), so the package never imports app code itself. */
 export function loaderProblem(value: unknown, what: string, problems: string[]): void {
   if (typeof value !== 'function') problems.push(`${what} needs a loader function`);
 }
 
-/**
- * Entries each named under `key` (none twice) whose `loaders` fields are each a loader: what a rules
- * mirror reads from the core for each name.
- */
 export function loaderListProblem(
   value: unknown,
   what: string,
@@ -70,13 +56,11 @@ export function loaderListProblem(
   }
 }
 
-/** The fact check of a guard that takes no facts: it is declared with `{}`. */
 export const takesNoFacts = (value: unknown): string[] =>
   value && typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length
     ? []
     : ['this guard takes no facts: declare it with {}'];
 
-/** A list fact whose entries another check reads: present, and non-empty unless `nonEmpty` is false. */
 export function listProblem(
   value: unknown,
   what: string,
@@ -87,11 +71,9 @@ export function listProblem(
   else if (nonEmpty && !value.length) problems.push(`${what} is empty`);
 }
 
-/** A missing list: a required one is just missing; one an app may have none of is declared `[]`. */
 const missing = (what: string, nonEmpty: boolean) =>
   `${what} is missing${nonEmpty ? '' : ' (declare [] when there is none)'}`;
 
-/** A repo-relative, forward-slashed path with no trailing slash. */
 export function pathProblem(value: unknown, what: string, problems: string[]): void {
   if (!isText(value)) problems.push(`${what} is missing`);
   else if (value.startsWith('/') || value.includes('\\') || /^[A-Za-z]:/.test(value))
@@ -99,7 +81,6 @@ export function pathProblem(value: unknown, what: string, problems: string[]): v
   else if (value.endsWith('/')) problems.push(`${what} (${value}) must not end with a slash`);
 }
 
-/** A list of names: present, non-empty unless `nonEmpty` is false, every entry text, none twice. */
 export function namesProblem(
   value: unknown,
   what: string,
@@ -120,22 +101,13 @@ export function namesProblem(
 }
 
 export interface ReviewedListOptions {
-  /** The field that names what an entry is about (`path` by default); a `path` is checked as a path. */
   key?: string;
-  /** What an entry is told apart by, when that is more than its key (a file and the site in it). */
   id?: (entry: Record<string, unknown>) => string | undefined;
-  /** What `id` needs beyond the key, as a problem names it when it is missing (`function`). */
   idNames?: string;
-  /** The list may not be empty. */
   nonEmpty?: boolean;
-  /** Checks an entry's other fields; `label` is `<what> entry <id>`. */
   extra?: (entry: Record<string, unknown>, label: string) => void;
 }
 
-/**
- * Reviewed entries: each names its subject under `key` and carries a why, and none is listed twice —
- * two entries for one subject would let one of them go stale unseen.
- */
 export function reviewedProblems(
   value: unknown,
   what: string,
@@ -166,7 +138,6 @@ export function reviewedProblems(
   }
 }
 
-/** Reviewed files a shape's allowlist takes: each with its why and, when given or required, a positive whole count. */
 export function allowlistProblems(
   value: unknown,
   what: string,

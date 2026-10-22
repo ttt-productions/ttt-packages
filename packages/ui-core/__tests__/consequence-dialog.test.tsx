@@ -26,7 +26,6 @@ describe('ConsequenceDialog', () => {
       expect(screen.getByText('does X right now')).toBeInTheDocument();
       expect(screen.getByText('settles once the webhook lands')).toBeInTheDocument();
       expect(screen.getByText('cannot be undone')).toBeInTheDocument();
-      // Consistent slot labels.
       expect(screen.getByText('Immediately')).toBeInTheDocument();
       expect(screen.getByText('Afterward')).toBeInTheDocument();
       expect(screen.getByText('Reversibility')).toBeInTheDocument();
@@ -47,8 +46,6 @@ describe('ConsequenceDialog', () => {
       );
       const isBlock = (el: Element) => getComputedStyle(el).display === 'block';
 
-      // The description the dialog announces holds the rows. Rows are blocks, which neither an
-      // inline element nor a <p> can hold.
       const describedBy = screen.getByRole('alertdialog').getAttribute('aria-describedby');
       const description = describedBy ? document.getElementById(describedBy) : null;
       expect(description).not.toBeNull();
@@ -314,7 +311,6 @@ describe('ConsequenceDialog', () => {
       await user.click(screen.getByRole('button', { name: 'Do it' }));
       expect(onConfirm).toHaveBeenCalledTimes(1);
 
-      // Visible spinner, the pressed confirm inert but still focused, cancel disabled, dialog NOT closed yet.
       expect(document.querySelector('.spinner-xs')).toBeInTheDocument();
       const confirm = screen.getByRole('button', { name: 'Do it' });
       expect(confirm).toHaveAttribute('aria-disabled', 'true');
@@ -325,7 +321,6 @@ describe('ConsequenceDialog', () => {
       expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
       expect(onOpenChange).not.toHaveBeenCalled();
 
-      // Resolving closes the dialog (controlled → onOpenChange(false)).
       resolveConfirm?.();
       await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     });
@@ -348,7 +343,6 @@ describe('ConsequenceDialog', () => {
 
       await user.click(screen.getByRole('button', { name: 'Do it' }));
       await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
-      // The dialog did not close — the operator can retry or cancel.
       expect(onOpenChange).not.toHaveBeenCalled();
       expect(screen.getByRole('button', { name: 'Do it' })).toBeEnabled();
     });

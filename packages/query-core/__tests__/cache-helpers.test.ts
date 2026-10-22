@@ -59,14 +59,12 @@ describe('invalidateByPrefix', () => {
     await invalidateByPrefix(client, ['users', 'list']);
 
     expect(isInvalidated(client, ['users', 'list'])).toBe(true);
-    // `['users', 'list']` is NOT a prefix of `['users', 'detail', 'uid-1']`
     expect(isInvalidated(client, ['users', 'detail', 'uid-1'])).toBe(false);
   });
 
-  it('does NOT remove the cached data â€” only marks it invalidated', async () => {
+  it('does NOT remove the cached data — only marks it invalidated', async () => {
     client.setQueryData(['users', 'list'], ['a', 'b']);
     await invalidateByPrefix(client, ['users']);
-    // Data remains accessible; only the staleness flag changed.
     expect(client.getQueryData(['users', 'list'])).toEqual(['a', 'b']);
   });
 });
@@ -161,7 +159,6 @@ describe('placeRowInPages', () => {
     rowsOf: (page) => page.rows,
     withRows: (page, rows) => ({ ...page, rows }),
     isRow: (candidate) => candidate.id === id,
-    // The list's order: rank ascending, then id.
     sortsBefore: (a, b) => a.rank < b.rank || (a.rank === b.rank && a.id < b.id),
     hasMoreAfter: (page) => page.next !== null,
   });

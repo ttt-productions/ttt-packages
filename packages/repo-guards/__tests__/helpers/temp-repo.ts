@@ -1,5 +1,3 @@
-// A throwaway repository on disk for the reader and suite tests.
-
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

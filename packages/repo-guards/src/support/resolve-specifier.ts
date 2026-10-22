@@ -1,6 +1,3 @@
-// What a module specifier names, read through the reader's disk: the one resolver the guards that
-// match an import against a named file share. Internal to the package: no public entry exports it.
-
 import { kindOfFile } from '../node/layout.js';
 import type { RepoReader } from '../node/reader.js';
 import { normalizePath, resolveRelative } from './paths.js';
@@ -21,19 +18,14 @@ const extensionOf = (p: string) => {
   return dot <= 0 ? '' : name.slice(dot);
 };
 
-/** A path names a local module file when its last segment carries a code extension. */
 export const isLocalModule = (path: string): boolean => CODE_EXTENSIONS.includes(extensionOf(path));
 
-/** An app's import aliases, longest prefix first, so `@/a/` wins over `@/`. */
+// Longest prefix first, so `@/a/` wins over `@/`.
 export const aliasList = (
   importAliases: Readonly<Record<string, string>>,
 ): Array<[string, string]> =>
   Object.entries(importAliases).sort((a, b) => b[0].length - a[0].length);
 
-/**
- * What a specifier names, read from `fromPath`: a local module's repo-relative file (or, when no file
- * answers, the path it reached), or the package specifier itself.
- */
 export function resolveSpecifier(
   reader: RepoReader,
   fromPath: string,

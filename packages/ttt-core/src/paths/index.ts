@@ -3,6 +3,8 @@ export * from './path-builders.js';
 export * from './collection-refs.js';
 export * from './work-section-paths.js';
 export * from './related-ids.js';
+export * from './compound-ids.js';
 export * from './collection-groups.js';
 export * from './utils.js';
 export * from './storage-paths.js';
+export * from './notification-fanout-job-ids.js';

@@ -1,13 +1,3 @@
-// The realm-file legal-combination invariant on MediaAssetSchema.
-//
-// The realm-file fields are ONE state machine, not five independently-optional fields. If
-// the schema merely accepted them, every reader would have to defend against half-written
-// states: an approved file with no folder (ungroupable in the gallery), a pending file
-// already flipped into the realm (served before the steward decided), or a decline that left
-// request metadata behind (a stale tab could then "approve" a request that no longer exists).
-//
-// Each invalid case below is one of those failures.
-
 import { describe, it, expect } from 'vitest';
 import {
   MediaAssetSchema,
@@ -24,7 +14,6 @@ import {
   REALM_FILE_CANON_STATUS,
 } from '../src/doc-schemas/media-assets.js';
 
-/** A work file's asset, unshared. The realm fields are layered on per-case. */
 const baseWorkFileAsset = {
   mediaAssetId: 'asset-1',
   mediaKind: 'image' as const,
@@ -58,7 +47,7 @@ const issuePaths = (patch: Record<string, unknown>) => {
   return result.success ? [] : result.error.issues.map((i) => i.path.join('.'));
 };
 
-describe('RealmFileCanonStatus — the one seam, now carrying the approval gate', () => {
+describe('RealmFileCanonStatus — the one seam, carrying the approval gate', () => {
   it('accepts the four canonical standings and nothing else', () => {
     expect([...REALM_FILE_CANON_STATUS_VALUES]).toEqual([
       'none',
@@ -74,14 +63,11 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
   });
 
   it('names every member once and assembles the sets from those names', () => {
-    // Each standing has a named constant, so no consumer has to re-quote a member.
     expect(REALM_FILE_NONE_STATUS).toBe('none');
     expect(REALM_FILE_PENDING_APPROVAL_STATUS).toBe('pendingApproval');
     expect(REALM_FILE_NON_CANON_STATUS).toBe('nonCanon');
     expect(REALM_FILE_CANON_STATUS).toBe('canon');
 
-    // Member and set are ONE declaration — the sets are literally built from the constants, so a
-    // renamed member cannot leave a stale value behind in a set.
     expect([...REALM_FILE_CANON_STATUS_VALUES]).toEqual([
       REALM_FILE_NONE_STATUS,
       REALM_FILE_PENDING_APPROVAL_STATUS,
@@ -93,7 +79,6 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
       REALM_FILE_CANON_STATUS,
     ]);
 
-    // Every named member is a real union member, and the four together are the whole union.
     for (const member of [
       REALM_FILE_NONE_STATUS,
       REALM_FILE_PENDING_APPROVAL_STATUS,
@@ -109,7 +94,6 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
     expect([...REALM_FILE_APPROVED_STATUS_VALUES]).toEqual(['nonCanon', 'canon']);
     expect(RealmFileApprovedStatusSchema.safeParse('nonCanon').success).toBe(true);
     expect(RealmFileApprovedStatusSchema.safeParse('canon').success).toBe(true);
-    // The gallery projection can never be handed a pending or unshared row.
     expect(RealmFileApprovedStatusSchema.safeParse('pendingApproval').success).toBe(false);
     expect(RealmFileApprovedStatusSchema.safeParse('none').success).toBe(false);
   });
@@ -119,8 +103,6 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
     for (const value of ['none', 'nonCanon', 'canon']) {
       expect(RealmFilePendingApprovalStatusSchema.safeParse(value).success).toBe(false);
     }
-    // Exported as a VALUE too, so a consumer can branch on it without re-quoting the member
-    // (the redeclaration guard pins this literal to the owner file).
     expect(REALM_FILE_PENDING_APPROVAL_STATUS).toBe('pendingApproval');
   });
 
@@ -129,8 +111,6 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
       REALM_FILE_PENDING_APPROVAL_STATUS,
       ...REALM_FILE_APPROVED_STATUS_VALUES,
     ]);
-    // It is exactly the full union minus the unshared standing — so a future standing added
-    // to either subset reaches this set automatically.
     expect([...REALM_FILE_ACTIVE_STATUS_VALUES].sort()).toEqual(
       REALM_FILE_CANON_STATUS_VALUES.filter((v) => v !== 'none').sort(),
     );
@@ -261,9 +241,6 @@ describe("MediaAssetSchema — legal states 'nonCanon' / 'canon' (approved into 
 
 describe('MediaAssetSchema — what the realm-file invariant deliberately does NOT constrain', () => {
   it('leaves accessTier alone: tier is origin-dependent and callable-enforced, not schema-enforced', () => {
-    // This one schema covers EVERY media origin, so binding tier to a realm-file standing
-    // would misjudge assets that have nothing to do with realms. Both of these parse; the
-    // callable transactions (and their tests) own tier correctness.
     expect(
       ok({
         realmFileCanonStatus: 'pendingApproval',
@@ -283,8 +260,6 @@ describe('MediaAssetSchema — what the realm-file invariant deliberately does N
   });
 
   it('leaves servingStatus orthogonal — a HIDDEN approved file keeps its folder through hide/restore', () => {
-    // Hide is reversible and changes serving state only. Clearing the folder on hide would
-    // restore an approved file with no folder and lose the steward's organization.
     expect(
       ok({
         realmFileCanonStatus: 'canon',
@@ -304,9 +279,8 @@ describe('MediaAssetSchema — what the realm-file invariant deliberately does N
     ).toBe(true);
   });
 
-  it('still strips nothing and rejects unknown keys — the refinement did not loosen strictness', () => {
+  it('rejects unknown keys rather than stripping them — the refinement keeps the schema strict', () => {
     expect(MediaAssetSchema.safeParse(asset({ realmFolderId: 'folder-1' })).success).toBe(false);
-    // The pre-rename spelling in particular must not sneak through.
     expect(
       MediaAssetSchema.safeParse(
         asset({ realmFileCanonStatus: 'canon', realmId: 'r-1', realmFolderId: 'folder-1' }),

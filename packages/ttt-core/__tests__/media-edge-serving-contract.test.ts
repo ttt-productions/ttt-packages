@@ -1,7 +1,3 @@
-// The media edge-serving contract shared by the Functions signer / authority client and the media
-// Worker: the authority envelope's byte budget, the one grant-scope definition, and the one
-// browser-cache policy.
-
 import { describe, it, expect } from 'vitest';
 import {
   MEDIA_AUTHORITY_APPLY_MAX_BODY_BYTES,
@@ -41,8 +37,6 @@ describe('MEDIA_AUTHORITY_APPLY_MAX_BODY_BYTES', () => {
     const variant = {
       contentType: 'c'.repeat(MAX_CONTENT_TYPE_LENGTH),
       sizeBytes: Number.MAX_SAFE_INTEGER,
-      // A two-byte character fills the filename's byte cap with the fewest characters, so the
-      // JSON form is at its longest.
       downloadFilename: 'é'.repeat(MAX_DOWNLOAD_FILENAME_BYTES / 2),
     };
     const record: MediaServingAuthorityRecord = {

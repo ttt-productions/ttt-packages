@@ -8,9 +8,7 @@ vi.mock('react-intersection-observer', () => ({
   useInView: () => ({ ref: () => {}, inView: true }),
 }));
 
-// jsdom canvas has no 2d context by default — the visualizer no-ops cleanly,
-// which is exactly the production best-effort posture. rAF is stubbed so the
-// loop never spins during tests.
+// jsdom's canvas has no 2d context, so the visualizer no-ops; rAF is stubbed so the loop never spins.
 function installAudioContextMock() {
   const analyser = {
     fftSize: 0,
@@ -40,8 +38,7 @@ function installAudioContextMock() {
 
 let audioCtxMock: ReturnType<typeof installAudioContextMock>;
 
-// jsdom never flips `paused`, so the play/pause mocks track it themselves —
-// togglePlay branches on it.
+// jsdom never flips `paused`, so the play/pause mocks track it themselves.
 const pausedState = new WeakMap<HTMLMediaElement, boolean>();
 const originalPausedDescriptor = Object.getOwnPropertyDescriptor(
   HTMLMediaElement.prototype,
@@ -94,7 +91,6 @@ describe('AudioViewer canonical player', () => {
     const audio = container.querySelector('audio')!;
     expect(audio).toBeInTheDocument();
     expect(audio).not.toHaveAttribute('controls');
-    // No tap-to-toggle container semantics with real buttons present.
     expect(
       container.querySelector('[role="button"][aria-label="Toggle audio playback"]'),
     ).toBeNull();
@@ -130,9 +126,8 @@ describe('AudioViewer canonical player', () => {
     expect(audioCtxMock.ctor).not.toHaveBeenCalled();
     fireEvent.click(getByLabelText('Play'));
     expect(audioCtxMock.ctor).toHaveBeenCalledTimes(1);
-    expect(audioCtxMock.source.connect).toHaveBeenCalled(); // → analyser
-    expect(audioCtxMock.analyser.connect).toHaveBeenCalled(); // → destination
-    // Second play does not rebuild the graph for the same element.
+    expect(audioCtxMock.source.connect).toHaveBeenCalled();
+    expect(audioCtxMock.analyser.connect).toHaveBeenCalled();
     fireEvent.click(getByLabelText('Pause'));
     fireEvent.click(getByLabelText('Play'));
     expect(audioCtxMock.ctor).toHaveBeenCalledTimes(1);

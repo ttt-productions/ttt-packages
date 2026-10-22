@@ -2,12 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { MediaAcceptSchema } from '@ttt-productions/media-schemas';
 import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
 
-// LAUNCH FORMAT POLICY PIN (canonical-upload-content-classification, DJ
-// 2026-07-31): what every origin's picker advertises and the server accepts.
-// A change here is a deliberate policy edit plus that format's
-// processing/safety proof — never a drive-by.
-
-describe('TTT media format policy (launch)', () => {
+describe('TTT media format policy', () => {
   const origins = Object.entries(TTT_MEDIA_SPECS);
 
   it('every origin with an accept block declares an explicit formats selection that parses', () => {
@@ -19,7 +14,7 @@ describe('TTT media format policy (launch)', () => {
     }
   });
 
-  it('svg, heic, and avif are DISABLED everywhere (scriptable / unproven decode+scan paths)', () => {
+  it('svg, heic, and avif are disabled on every origin', () => {
     for (const [origin, spec] of origins) {
       const formats: string[] = (spec as { accept?: { formats?: string[] } }).accept?.formats ?? [];
       for (const banned of ['svg', 'heic', 'avif']) {

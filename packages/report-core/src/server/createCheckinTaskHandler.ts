@@ -11,21 +11,10 @@ export interface CheckinTaskHandlerConfig {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
   };
   onAuditEvent?: OnAuditEvent;
-  /**
-   * Whether a resolved check-in may complete a task of this stored `taskType`. A type whose
-   * resolution belongs to a domain resolver (a guided decision that writes its own outcome and
-   * deletes the task) answers false, and a resolved check-in of it is refused — completing it
-   * here would drop the decision its resolver owns. An unknown type should answer false.
-   */
   isResolvedByCheckin: (taskType: string) => boolean;
-  /** The refusal message a resolved check-in of such a task answers with (app copy). */
   domainResolutionRefusalMessage: string;
 }
 
-/**
- * Factory that returns the handler for the checkinTask callable function.
- * Marks a task as completed (resolved) or returns it to pending (unresolved).
- */
 export function createCheckinTaskHandler({
   config,
   db,
@@ -42,7 +31,6 @@ export function createCheckinTaskHandler({
     const userId = authContext.uid;
     const now = Date.now();
 
-    // Defense-in-depth: admin check if provided by the consumer
     if (auth?.requireAdmin) {
       await auth.requireAdmin(userId, authContext.token);
     }
@@ -52,12 +40,6 @@ export function createCheckinTaskHandler({
       const taskDoc = await transaction.get(taskRef);
 
       if (!taskDoc.exists) {
-        // Idempotent path: another writer (e.g. a backend trigger that
-        // atomically resolves the task as part of its own transaction)
-        // already deleted this task. Treat as success — there is no
-        // activity log or audit event to write, since the task data
-        // is gone. Return alreadyResolved so callers that care can
-        // tell the difference.
         return { success: true, alreadyResolved: true };
       }
 

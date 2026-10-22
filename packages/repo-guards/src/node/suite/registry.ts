@@ -1,6 +1,3 @@
-// Every generic guard the package carries. The suite runs each one against every app; an app's
-// config supplies each guard's facts by its id.
-
 import type { GenericGuardDefinition } from './config.js';
 import { BACKEND_GUARDS, type BackendGuardFacts } from '../../modules/backend/guards.js';
 import {
@@ -34,7 +31,6 @@ export const GENERIC_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Obje
   ...CORE_DEFINITIONS_GUARDS,
 ]);
 
-/** The facts each generic guard needs, by its id. */
 export type GenericGuardFacts = ImportPathGuardFacts &
   RepoGuardFacts &
   FirestoreGuardFacts &

@@ -44,12 +44,10 @@ the correct tradeoff against running the caller twice.
 ## Telemetry scrubber
 
 `createTelemetryScrubber` builds a Sentry `beforeSend` hook (and `redactEvent` exposes the same pass
-for the backend `withScope` / manual-capture path) that walks an entire outgoing event — message,
-exception values and stacktrace frame vars, breadcrumbs, `extra`, `contexts`, `tags`, `request`,
-`user`, a transaction's `transaction` name and each of its `spans`' `description` and `data`, and a
-replay event's top-level `urls` — and overwrites every substring matching a forbidden pattern with a
-fixed placeholder. A span's ids, op, and timestamps are left alone so the trace still assembles. It
-is defense in depth, not the primary control: the real fix for a leak is never emitting the value,
+for the backend `withScope` / manual-capture path) that walks the text fields of an outgoing event —
+error, transaction, and replay events alike — and overwrites every substring matching a forbidden
+pattern with a fixed placeholder (`REDACTION_PLACEHOLDER`), leaving the ids and timings a trace needs to
+assemble. It is defense in depth, not the primary control: the real fix for a leak is never emitting the value,
 and the scrubber exists to catch what third-party error text and SDK-recorded URLs drag in anyway.
 
 One hook covers one event type. The SDK runs `beforeSend` on error events and
@@ -60,42 +58,19 @@ recording payload itself is not an event and never passes through any of them.
 
 Ownership of the pattern set is split, and both halves are always in play:
 
-- **This package owns the generic, domain-neutral defaults** — the shapes that must never reach
-  telemetry regardless of which app is running, including credentials that ride in a URL query
-  string, where the browser SDK captures the full page URL into `request.url`, navigation
-  breadcrumbs, and session replay. Values are deliberately over-redacted rather than shaped to a
-  specific encoding, so an unexpected value loses too much instead of leaking a tail.
+- **This package owns the generic, domain-neutral defaults** (`DEFAULT_FORBIDDEN_PATTERNS`) — the
+  shapes that must never reach telemetry regardless of which app is running.
 - **The consuming app injects its product-specific patterns** through the `patterns` option
-  (ARCH-201 / QUALITY-102 — no app data package import here); each app keeps that set
-  in its own data package.
+  (RULE-STD-ARCH-201 / RULE-STD-QUALITY-102 — no app data package import here); each app keeps that set
+  in its own private code.
 
 The two sets **merge**: app patterns are added to the defaults, never substituted for them.
-`includeDefaults: false` is the only way to drop the generic half, and no production init uses it —
-so a default added here protects every consumer with no app-side wiring change.
-
-Object **keys** are never rewritten, only values — a credential reachable solely as an object key
-is outside what this layer can catch.
-
-### Array order is load-bearing
+`includeDefaults: false` is the only way to drop the generic half, so a default added here protects
+every consumer that keeps it with no app-side wiring change.
 
 Patterns apply in array order against the progressively redacted string, so the first pattern to
-match a region wins and later ones never see it. The URL-borne credential-parameter entry therefore
-sits **before** the generic credential assignment on purpose: its value class stops at `&`, the
-generic one runs to end-of-string, and any parameter name the generic pattern can also reach (a
-hyphenated spelling — `-` is a word boundary where `_` is not) would otherwise be swallowed together
-with every following query parameter, destroying the route diagnostics the event exists to provide.
-Do not reorder these two, and do not "consolidate" them: they cover each other's blind spots. The
-`&`-terminated entry needs several non-`&` characters to fire, so a token value carrying an early
-`&` deliberately falls through to the greedy entry.
-
-### Deliberately NOT redacted
-
-Parameter names that are generic English words are excluded by decision, not by oversight:
-`code`, `state`, `key`, `nonce`, `session`, `sig`. Redacting `code=` would turn ordinary
-`code=permission-denied` / `status code=500` diagnostics into placeholders — gutting the error text
-the scrubber exists to keep readable — and `state` / `nonce` are not secrets. A genuinely
-credential-bearing parameter under one of these names gets a **path-scoped** pattern naming the
-route that carries it, never a bare parameter-name rule.
+match a region wins. Only values are rewritten, never object keys. The default set is a contract of
+this package: a change to it is a reviewed change to every consumer's telemetry, with its tests.
 
 ## Telemetry content policy
 
@@ -114,7 +89,7 @@ rewrites an event in place and returns it (so it composes with the scrubber as o
   its `name` (the code name of what ran) as a token;
 - the error itself — message and exception — is left for the scrubber.
 
-The package owns the mechanism only (ARCH-201): which keys are diagnostic is the caller's — `diagnosticKeys`, matched
+The package owns the mechanism only (RULE-STD-ARCH-201): which keys are diagnostic is the caller's — `diagnosticKeys`, matched
 exactly, and `diagnosticKeySuffixes`, matched at the end of a key that starts with a lowercase letter (`Id` admits
 `caseId`, never `Id` alone; an empty list admits nothing). Each app keeps those lists in its own data package. The module imports no SDK and no Node API, so any runtime — Node, browser, or edge — can apply it.
 
@@ -157,4 +132,4 @@ maps to an empty module, so a browser bundle never pulls `@sentry/node` in.
 
 App code owns initialization values, environment naming, and fallback UI. The React error boundary accepts app-owned context/fallback values.
 
-`initMonitoring` auto-forces the Noop adapter (skipping the SDK import entirely) whenever `NEXT_PUBLIC_USE_EMULATORS`, `FUNCTIONS_EMULATOR`, or `FIREBASE_EMULATOR_HUB` is set — local dev and emulator runs never load or initialize Sentry. There is no other off switch: the DSN is the switch, and an adapter initialized without one initializes no SDK.
+The package reads no environment variable. Whether a run is local or an emulator run is the app's decision: the app passes `enabled: false` for it, and `initMonitoring` then installs the Noop adapter without importing the SDK. Otherwise the DSN is the switch — an adapter initialized without one initializes no SDK — and no environment flag turns a configured provider off.

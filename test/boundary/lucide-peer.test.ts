@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { MODULE_LOADS } from '@ttt-productions/repo-guards';
 import { packageOf, packageSource, workspacePackages } from './workspace';
 
-// lucide-react is a client-only React library (ARCH-202). A package that renders lucide
-// icons never bundles its own copy: it declares lucide as an OPTIONAL peer, so the
-// consuming app supplies the one copy every package renders from. One range across the workspace keeps that true — a
-// package whose range drifts to another major reintroduces a second lucide install.
-
 const LUCIDE = 'lucide-react';
 
 interface Manifest {
@@ -19,11 +14,17 @@ interface Manifest {
 
 const lucideImporters = new Set(
   packageSource(['code'])
-    .filter((file) => file.imports.some(({ kind, spec }) => MODULE_LOADS.includes(kind) && spec === LUCIDE))
+    .filter((file) =>
+      file.imports.some(({ kind, spec }) => MODULE_LOADS.includes(kind) && spec === LUCIDE),
+    )
     .map((file) => packageOf(file.path)),
 );
 
-const packages = workspacePackages<Manifest>().map(({ dir, manifest }) => ({ dir, manifest, importsLucide: lucideImporters.has(dir) }));
+const packages = workspacePackages<Manifest>().map(({ dir, manifest }) => ({
+  dir,
+  manifest,
+  importsLucide: lucideImporters.has(dir),
+}));
 
 const importers = packages.filter((p) => p.importsLucide);
 const peerDeclarers = packages.filter((p) => p.manifest.peerDependencies?.[LUCIDE] !== undefined);
@@ -34,15 +35,24 @@ describe('boundary: lucide-react is one optional peer', () => {
   });
 
   it('no package takes lucide-react as a hard dependency', () => {
-    const hard = packages.filter((p) => p.manifest.dependencies?.[LUCIDE] !== undefined).map((p) => p.dir);
-    expect(hard, `lucide-react in "dependencies" — make it an optional peer:\n  ${hard.join('\n  ')}`).toEqual([]);
+    const hard = packages
+      .filter((p) => p.manifest.dependencies?.[LUCIDE] !== undefined)
+      .map((p) => p.dir);
+    expect(
+      hard,
+      `lucide-react in "dependencies" — make it an optional peer:\n  ${hard.join('\n  ')}`,
+    ).toEqual([]);
   });
 
   it('every package that imports lucide-react declares it as an optional peer, with a devDependency to build and test alone', () => {
     const missing = importers.flatMap(({ dir, manifest }) => [
       ...(manifest.peerDependencies?.[LUCIDE] === undefined ? [`${dir}: no ${LUCIDE} peer`] : []),
-      ...(manifest.peerDependenciesMeta?.[LUCIDE]?.optional !== true ? [`${dir}: ${LUCIDE} peer is not optional`] : []),
-      ...(manifest.devDependencies?.[LUCIDE] === undefined ? [`${dir}: no ${LUCIDE} devDependency`] : []),
+      ...(manifest.peerDependenciesMeta?.[LUCIDE]?.optional !== true
+        ? [`${dir}: ${LUCIDE} peer is not optional`]
+        : []),
+      ...(manifest.devDependencies?.[LUCIDE] === undefined
+        ? [`${dir}: no ${LUCIDE} devDependency`]
+        : []),
     ]);
     expect(missing).toEqual([]);
   });
@@ -55,7 +65,10 @@ describe('boundary: lucide-react is one optional peer', () => {
           .filter((field) => manifest[field]?.[LUCIDE] !== undefined)
           .map((field) => `${dir} (${field})`),
       );
-    expect(dead, `lucide-react declared by a package whose source never imports it:\n  ${dead.join('\n  ')}`).toEqual([]);
+    expect(
+      dead,
+      `lucide-react declared by a package whose source never imports it:\n  ${dead.join('\n  ')}`,
+    ).toEqual([]);
   });
 
   it('every lucide-react range in the workspace is the same range', () => {

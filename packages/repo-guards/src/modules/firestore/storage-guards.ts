@@ -1,8 +1,3 @@
-// The Storage guards:
-//   - the Storage rules file restates the core's upload-origin registry exactly — every cap, every
-//     origin list, every content-type lane — and keeps the staging block create-only;
-//   - a stored object's generation and size are read only through the package helpers.
-
 import { matchBlocks, rulesFunctions } from './rules-syntax.js';
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -17,21 +12,14 @@ import {
   type Loader,
 } from '../../support/facts.js';
 
-/** Every Storage rules file the layout lists is read; the facts name no file of their own. */
 export interface StorageUploadOriginFacts {
-  /** The rules function answering an origin's raw upload cap (`function <name>(origin)`). */
   capFunction: string;
-  /** Every declared origin and its raw upload cap in bytes, from the core. */
   originCaps: Loader<Readonly<Record<string, number>>>;
-  /** Rules functions that return a quoted origin list, each with the origins the core puts on it. */
   originLists: ReadonlyArray<{ function: string; origins: Loader<readonly string[]> }>;
-  /** Content-type conditions a rules function must state, each as its exact expression. */
   contentTypeLanes: ReadonlyArray<{ function: string; expression: string }>;
-  /** The staging `match` path, as written after `match /` (`uploads/{origin}/{userId}/{fileId}`). */
   stagingPath: string;
 }
 
-/** Each `origin == '<o>' ? a * b …` branch of the cap function, as origin → bytes. */
 function statedCaps(body: string): Record<string, number> {
   const caps: Record<string, number> = {};
   for (const m of body.matchAll(/origin\s*==\s*'([^']+)'\s*\?\s*([\d\s*]+?)\s*(?=:|$)/g)) {
@@ -45,10 +33,6 @@ function statedCaps(body: string): Record<string, number> {
 
 const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-/**
- * Every way a Storage rules file drifts from the declared registry, one line each. `rulesCode` is the
- * file's comment-blanked code (the reader's `file.code`).
- */
 export async function uploadOriginProblems(
   rulesCode: string,
   facts: StorageUploadOriginFacts,
@@ -171,15 +155,10 @@ export const storageUploadOriginGuard: GenericGuardDefinition<StorageUploadOrigi
 };
 
 export interface StorageObjectMetadataFacts {
-  /** Package helpers that read a stored object's generation; each takes the whole metadata object. */
   generationReaders: readonly string[];
-  /** Package helpers that read a stored object's size; each is handed `<metadata>.size`. */
   sizeReaders: readonly string[];
-  /** Package-owned names (the error class, the require helper) no app file may declare again. */
   packageContracts: readonly string[];
-  /** Files that read stored-object metadata; each must still read it through a helper. */
   readerAnchors: readonly string[];
-  /** Reviewed (file, shape) pairs that are not a stored object's metadata, each with its why. */
   exceptions: ReadonlyArray<{ path: string; shape: string; why: string }>;
 }
 
@@ -196,7 +175,6 @@ const METADATA_DESTRUCTURE =
 const alternationOf = (names: readonly string[]) =>
   names.map((n) => n.replace(/[$]/g, '\\$')).join('|');
 
-/** Every hand-rolled generation or size read in one file's comment-stripped code, as `{ index, shape }`. */
 export function inlineMetadataReads(
   code: string,
   facts: Pick<StorageObjectMetadataFacts, 'sizeReaders'>,
@@ -217,7 +195,6 @@ export function inlineMetadataReads(
   return [...hits].map(([shape, index]) => ({ index, shape })).sort((a, b) => a.index - b.index);
 }
 
-/** Every local declaration of a package-owned contract name in one file's code. */
 export function packageContractCopies(
   code: string,
   contracts: readonly string[],

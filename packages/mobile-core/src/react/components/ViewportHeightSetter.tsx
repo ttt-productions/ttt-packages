@@ -5,9 +5,6 @@ import { useKeepFocusedInputVisible } from '../keyboard/useKeepFocusedInputVisib
 import type { CssPrefixOptions } from '../css-prefix.js';
 
 export interface ViewportHeightSetterProps extends CssPrefixOptions {
-  /**
-   * When true (default), also enables global keyboard-aware input scrolling on mobile.
-   */
   enableKeyboardAvoidance?: boolean;
 }
 
@@ -16,10 +13,6 @@ function KeyboardAvoidance({ cssPrefix }: CssPrefixOptions) {
   return null;
 }
 
-/**
- * Sets the `--<prefix>-vh` and `--<prefix>-dvh` CSS custom properties.
- * Defaults to `--app-vh` / `--app-dvh`.
- */
 export function ViewportHeightSetter({
   cssPrefix,
   enableKeyboardAvoidance = true,

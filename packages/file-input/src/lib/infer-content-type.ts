@@ -1,28 +1,11 @@
-// Defense-in-depth: guarantee every File we emit has a NORMALIZED, honest
-// content type. If file.type is missing or unusable, infer from the extension;
-// with a caller-declared kind (recorder/capture — the caller KNOWS what it
-// produced) fall back to that kind's default container.
-//
-// MediaRecorder (and some pickers) report parameterized types such as
-// "audio/webm;codecs=opus". Downstream storage rules validate a
-// parameter-less base type, so we always emit the base ("audio/webm"),
-// never the parameterized form.
-//
-// UNKNOWN PICKER METADATA IS NOT FABRICATED (canonical-upload-content-
-// classification, 2026-07-31): when there is no declared kind, no usable MIME,
-// and no known extension, the file passes through as the NEUTRAL
-// `application/octet-stream` so the server's canonical byte inspector — the
-// only classification authority — sees "unknown" as unknown. The previous
-// behavior defaulted such files to `image/jpeg`, which invented a false media
-// fact the whole pipeline then trusted. upload-core accepts the neutral type
-// only via its explicit opt-in (`allowNeutralContentType`).
+// MediaRecorder and some pickers report parameterized types ("audio/webm;codecs=opus"), and
+// downstream checks validate the parameter-less base, so only the base is ever emitted.
 
 import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
 
 export type InferKind = 'image' | 'video' | 'audio';
 
 const EXT_TO_MIME: Record<string, string> = {
-  // image
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   png: 'image/png',
@@ -31,13 +14,11 @@ const EXT_TO_MIME: Record<string, string> = {
   avif: 'image/avif',
   heic: 'image/heic',
   heif: 'image/heif',
-  // video
   mp4: 'video/mp4',
   m4v: 'video/mp4',
   mov: 'video/quicktime',
   webm: 'video/webm',
   mkv: 'video/x-matroska',
-  // audio
   mp3: 'audio/mpeg',
   m4a: 'audio/mp4',
   aac: 'audio/aac',
@@ -47,10 +28,6 @@ const EXT_TO_MIME: Record<string, string> = {
   flac: 'audio/flac',
 };
 
-// Containers that legitimately hold either audio or video. When the caller
-// declares a kind (e.g. the record dialog's chosen recording kind), that kind
-// picks the matching side; without a kind we keep the historical single-kind
-// guess in EXT_TO_MIME (webm → video, ogg → audio).
 const AMBIGUOUS_EXT_TO_MIME: Record<string, Partial<Record<InferKind, string>>> = {
   webm: { audio: 'audio/webm', video: 'video/webm' },
   ogg: { audio: 'audio/ogg', video: 'video/ogg' },
@@ -64,12 +41,6 @@ const KIND_DEFAULT: Record<InferKind, string> = {
 
 const BASE_MEDIA_MIME_RE = /^(image|video|audio)\/[a-z0-9.+-]+$/;
 
-/**
- * Extracts the parameter-less base MIME ("audio/webm" from
- * "audio/webm;codecs=opus"), lowercased, when it is a usable media type.
- * Returns null for empty values, application/octet-stream, and anything
- * whose base is not image/*, video/*, or audio/*.
- */
 function parseBaseMime(mime: string | undefined | null): string | null {
   if (!mime) return null;
   const base = mime.split(';')[0].trim().toLowerCase();
@@ -87,22 +58,6 @@ function extOf(name: string): string | null {
   return name.slice(dot + 1).toLowerCase();
 }
 
-/**
- * Returns a valid, parameter-less media MIME for the given File.
- *
- * Precedence:
- * 1. The base of file.type (parameters stripped, lowercased) when valid —
- *    unless `fallbackKind` is supplied and disagrees with the declared
- *    top-level kind. A caller-declared kind (e.g. the record dialog's chosen
- *    recording kind) is authoritative context, so a conflicting declared type
- *    is treated as untrustworthy and resolution falls through to the
- *    extension.
- * 2. Extension lookup. For ambiguous containers (webm/ogg exist as both audio
- *    and video) a supplied `fallbackKind` picks the matching side; unambiguous
- *    extensions keep their single mapping.
- * 3. The kind default for `fallbackKind`; without one, the NEUTRAL type — an
- *    unknown picker file is never rewritten into a false media fact.
- */
 export function inferContentType(file: File, fallbackKind?: InferKind): string {
   const base = parseBaseMime(file.type);
   if (base && (!fallbackKind || kindOfMime(base) === fallbackKind)) return base;
@@ -116,18 +71,9 @@ export function inferContentType(file: File, fallbackKind?: InferKind): string {
 
   if (fallbackKind) return KIND_DEFAULT[fallbackKind];
 
-  // No declared kind, no usable MIME, no known extension: NEUTRAL, never a
-  // fabricated media type. The server inspector owns classification.
   return NEUTRAL_CONTENT_TYPE;
 }
 
-/**
- * Returns a File whose .type is exactly the valid, parameter-less media MIME
- * from inferContentType. If the original file already carries that exact
- * type, it is returned unchanged; otherwise (missing type, parameterized
- * type, wrong case, or a type overridden by fallbackKind precedence) the
- * bytes are wrapped in a new File with the normalized type.
- */
 export function ensureFileWithContentType(file: File, fallbackKind?: InferKind): File {
   const type = inferContentType(file, fallbackKind);
   if (file.type === type) return file;

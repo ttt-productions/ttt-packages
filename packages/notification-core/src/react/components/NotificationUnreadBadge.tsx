@@ -3,11 +3,6 @@
 import { useUnreadCount } from '../hooks/useUnreadCount.js';
 import type { NotificationUnreadBadgeProps } from '../../types.js';
 
-/**
- * Unread count badge (red circle with number).
- * Renders nothing when count is 0.
- * Apps wrap this around whatever trigger element they want.
- */
 export function NotificationUnreadBadge({
   config,
   userId,

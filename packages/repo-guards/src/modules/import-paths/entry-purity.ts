@@ -1,10 +1,3 @@
-// Entry purity. Every package entry not declared runtime-specific is universal: neither its built
-// JavaScript nor its declaration files reach a Node, React, or browser runtime — a `node:*` module
-// included — through any module of its own package or an entry of a sibling package that is
-// runtime-specific. A runtime-specific entry is declared by its subpath's first segment (`./react`,
-// `./server`), or, outside that convention, as a reviewed exception. Every universal and Node entry
-// must also load under plain Node.
-
 import ts from 'typescript';
 import { execFileSync } from 'node:child_process';
 import { builtinModules } from 'node:module';
@@ -16,16 +9,12 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { reviewedProblems, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
 
-/** What an entry runs on. A universal entry runs anywhere; every other is runtime-specific. */
 export type EntryRuntime = 'universal' | 'node' | 'react' | 'browser' | 'style';
 const RUNTIMES: readonly EntryRuntime[] = ['node', 'react', 'browser', 'style'];
 
 export interface EntryPurityFacts {
-  /** The repo-relative folder that holds the repository's packages, one per subfolder. */
   packagesFolder: string;
-  /** Each subpath first segment that names a runtime (`{ subpath: 'react', runtime: 'react' }`). */
   runtimeSubpaths: ReadonlyArray<{ subpath: string; runtime: Exclude<EntryRuntime, 'universal'> }>;
-  /** An entry whose specifier the subpath convention does not mark, declared runtime-specific with its why. */
   exceptions: ReadonlyArray<{
     entry: string;
     runtime: Exclude<EntryRuntime, 'universal'>;
@@ -37,7 +26,6 @@ interface Entry {
   spec: string;
   packageDir: string;
   runtime: EntryRuntime;
-  /** Absolute paths of the built JavaScript and declaration file, when the manifest names them. */
   js: string | null;
   types: string | null;
 }
@@ -47,7 +35,6 @@ const slash = (path: string) => path.replace(/\\/g, '/');
 const NODE_MODULES = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
 const REACT = /^(react|react-dom|next|next-themes|lucide-react|@tanstack\/react-query)(\/|$)/;
 
-/** The runtime a bare specifier belongs to, or null when it is runtime-neutral. */
 function runtimeOfSpecifier(spec: string): Exclude<EntryRuntime, 'universal'> | null {
   if (spec.endsWith('.css')) return 'browser';
   if (spec.startsWith('node:') || NODE_MODULES.has(spec) || NODE_MODULES.has(spec.split('/')[0]))
@@ -58,7 +45,6 @@ function runtimeOfSpecifier(spec: string): Exclude<EntryRuntime, 'universal'> | 
   return null;
 }
 
-/** The path of one condition of an `exports` value, wherever its conditions nest it. */
 function conditionPath(
   value: unknown,
   test: (path: string) => boolean,
@@ -80,7 +66,6 @@ function conditionPath(
 const isDeclaration = (path: string) => /\.d\.[cm]?ts$/.test(path);
 const isScript = (path: string) => /\.[cm]?js$/.test(path) && !isDeclaration(path);
 
-/** Every entry of every package, each with the runtime its declaration gives it. */
 function readEntries(
   repoRoot: string,
   facts: EntryPurityFacts,
@@ -109,7 +94,7 @@ function readEntries(
       if (key.includes('*') || key === './package.json') continue;
       const js = conditionPath(value, isScript, ['import', 'default']);
       const types = conditionPath(value, isDeclaration, ['types']);
-      if (!js && !types) continue; // a stylesheet or data file, not a module entry
+      if (!js && !types) continue;
       const spec = key === '.' ? manifest.name : `${manifest.name}/${key.replace(/^\.\//, '')}`;
       const segment = key === '.' ? null : key.replace(/^\.\//, '').split('/')[0];
       const runtime =
@@ -126,7 +111,6 @@ function readEntries(
   return { entries, findings: [] };
 }
 
-/** The module a relative specifier names among built files: `./x.js` is `x.js`, or `x.d.ts` for a declaration. */
 function resolveBuilt(from: string, spec: string, declaration: boolean): string | null {
   const base = resolve(dirname(from), spec);
   const stem = base.replace(/\.[cm]?js$/, '');
@@ -138,7 +122,6 @@ function resolveBuilt(from: string, spec: string, declaration: boolean): string 
   );
 }
 
-/** Each runtime a built module tree reaches, with the specifier and the file that reaches it. */
 function runtimeReaches(
   start: string,
   declaration: boolean,

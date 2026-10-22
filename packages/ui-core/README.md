@@ -1,6 +1,6 @@
 # @ttt-productions/ui-core
 
-Shared UI package for TTT Productions projects.
+Shared UI package for consuming apps.
 
 ## Installation
 

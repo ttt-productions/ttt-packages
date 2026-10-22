@@ -20,7 +20,6 @@ import { ConsequenceDialog } from '../src/react/components/consequence-dialog.js
 
 type CloseFocus = (event: Event) => void;
 
-/** A dialog opened from state: its opener is an ordinary button, never a `DialogTrigger`. */
 function StateDialog({
   onCloseAutoFocus,
   removeOpenerOnClose = false,

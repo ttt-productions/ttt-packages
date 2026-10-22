@@ -5,11 +5,6 @@ import { Clock } from 'lucide-react';
 import { Progress } from '@ttt-productions/ui-core/react';
 import type { CountdownTimerProps } from '../types-ui-props.js';
 
-/**
- * Countdown timer showing time remaining on a checked-out task.
- * Updates every 30 seconds. Shows a progress bar with color coding:
- * green > 50%, yellow > 25%, red < 25%.
- */
 export function CountdownTimer({ expiresAtMillis, checkedOutAtMillis }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState('');
   const [percentLeft, setPercentLeft] = useState(100);

@@ -1,29 +1,16 @@
-// Factory that produces an assertAuth function bound to a consuming app's
-// Firestore paths, user shape, and admin check.
-//
-// Every Cloud Functions callable in the consuming app should invoke the
-// returned assertAuth as its first executable line. The check order is:
-//   1. Authentication
-//   2. Email verification
-//   3. User doc Firestore read (when status check is needed)
-//   4. Status check (suspended / banned)
-//   5. Acceptance-level gate (only when config.acceptance is set)
-//   6. Admin check (delegated to config.requireAdmin)
-
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from '../acceptance.js';
 import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../email-verification.js';
 import { AuthAssertionError } from './authError.js';
 import type { AssertAuthConfig, AssertAuthFn, AuthContext, AuthRequirements } from './types.js';
 
-export function createAssertAuth<TUser, TAdmin = void>(
-  config: AssertAuthConfig<TUser, TAdmin>,
-): AssertAuthFn<TUser, TAdmin> {
+export function createAssertAuth<TUser, TAdmin = void, TAdminOptions = never>(
+  config: AssertAuthConfig<TUser, TAdmin, TAdminOptions>,
+): AssertAuthFn<TUser, TAdmin, TAdminOptions> {
   return async function assertAuth(
     request: CallableRequest,
-    requirements: AuthRequirements = {},
+    requirements: AuthRequirements<TAdminOptions> = {},
   ): Promise<AuthContext<TUser, TAdmin>> {
-    // 1. Authentication check (always first)
     if (!request.auth) {
       throw new AuthAssertionError('unauthenticated', 'You must be authenticated');
     }
@@ -31,8 +18,6 @@ export function createAssertAuth<TUser, TAdmin = void>(
     const uid = request.auth.uid;
     const token = request.auth.token;
 
-    // 2. Email verification check. The refusal carries its reason in `details`, so the client
-    // recognizes it structurally (`isEmailVerificationRequiredError`), never by the message.
     if (requirements.emailVerified === true && requirements.allowUnverified !== true) {
       if (token.email_verified !== true) {
         throw new AuthAssertionError('failed-precondition', 'Email must be verified', {
@@ -41,14 +26,12 @@ export function createAssertAuth<TUser, TAdmin = void>(
       }
     }
 
-    // 3. User doc Firestore read (skipped when allowAnyStatus is set)
     const db = config.firestore();
     const userSnap =
       requirements.allowAnyStatus !== true ? await db.doc(config.userProfilePath(uid)).get() : null;
 
     let userDoc: TUser | undefined;
 
-    // 4. Status check (default: block suspended + banned; skipped if allowAnyStatus)
     if (requirements.allowAnyStatus !== true) {
       if (!userSnap || !userSnap.exists) {
         throw new AuthAssertionError('not-found', 'User profile not found');
@@ -64,10 +47,6 @@ export function createAssertAuth<TUser, TAdmin = void>(
       userDoc = userData;
     }
 
-    // 5. Acceptance-level gate. Runs only when the app configured one and the callable did
-    // not opt out. The required level comes from the app's cheap (cached) reader and the
-    // accepted level from the verified token, so the gate adds no per-call Firestore read.
-    // It sits after the status check so a banned caller still gets the standing refusal.
     if (config.acceptance !== undefined && requirements.allowUnaccepted !== true) {
       const requiredLevel = normalizeAcceptanceLevel(await config.acceptance.requiredLevel());
       if (requiredLevel > 0) {
@@ -84,13 +63,11 @@ export function createAssertAuth<TUser, TAdmin = void>(
       }
     }
 
-    // 6. Admin check (delegates to config.requireAdmin)
     let adminResult: TAdmin | undefined;
     if (requirements.admin !== undefined) {
       adminResult = await config.requireAdmin(uid, token, requirements.admin);
     }
 
-    // 7. Return context with whatever docs were fetched
     const ctx: AuthContext<TUser, TAdmin> = { uid, token };
     if (userDoc !== undefined) {
       ctx.userDoc = userDoc;

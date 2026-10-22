@@ -8,7 +8,6 @@ describe('isAppCheckThrottleError', () => {
   it('accepts every code in the canonical set', () => {
     for (const code of APP_CHECK_THROTTLE_CODES) {
       expect(isAppCheckThrottleError(Object.assign(new Error(code), { code }))).toBe(true);
-      // A plain carrier object counts too — consumers classify on `code`.
       expect(isAppCheckThrottleError({ code })).toBe(true);
     }
   });

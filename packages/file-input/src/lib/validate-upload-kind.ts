@@ -4,19 +4,9 @@ import { ensureFileWithContentType } from './infer-content-type.js';
 type SingleKind = 'image' | 'video' | 'audio';
 export type ExpectedKind = SingleKind | 'any' | readonly SingleKind[];
 
-/**
- * Diagnostic codes emitted by validateAndNormalizeUploadFile when validation
- * fails. Consumers can route these to monitoring/Sentry via the onError option.
- */
 export type ValidateUploadFileErrorCode = 'upload_kind_indeterminate' | 'upload_kind_mismatch';
 
 export interface ValidateUploadFileOptions {
-  /**
-   * Optional diagnostic callback fired before the function throws.
-   * Useful for routing to Sentry / monitoring-core. The thrown Error
-   * carries the user-facing message; this callback gets the machine
-   * code + structured extras.
-   */
   onError?: (
     code: ValidateUploadFileErrorCode,
     extra: {
@@ -28,15 +18,6 @@ export interface ValidateUploadFileOptions {
       fileType: string;
     },
   ) => void;
-  /**
-   * FAIL-OPEN for indeterminate picker metadata: when the file's kind cannot
-   * be determined from browser MIME/extension, pass it through with the
-   * NEUTRAL `application/octet-stream` type (never a fabricated media type)
-   * instead of throwing, so the server's canonical byte inspector — the only
-   * classification authority — decides. The kind-mismatch check still throws
-   * when the client metadata IS determinate. Requires the upload path to opt
-   * into `allowNeutralContentType`.
-   */
   allowIndeterminate?: boolean;
 }
 
@@ -52,21 +33,6 @@ function matchesExpected(detected: SingleKind, expected: ExpectedKind): boolean 
   return detected === expected;
 }
 
-/**
- * Validates and normalizes a file for upload.
- *
- * - Throws a user-friendly Error if the file's kind cannot be determined
- *   (unless `allowIndeterminate` fails open to the neutral content type).
- * - Throws a user-friendly Error if `expectedKind` is not 'any' and doesn't
- *   match the detected kind.
- * - Otherwise returns a File with a guaranteed valid media contentType.
- *
- * Optional `onError` callback fires with a machine-readable code + structured
- * extras before the throw, so consumers can route to monitoring without this
- * package depending on any monitoring library.
- *
- * Use this at the top of every upload mutation, before uploadFileResumable.
- */
 export function validateAndNormalizeUploadFile(
   file: File,
   fileOrigin: string,
@@ -77,8 +43,6 @@ export function validateAndNormalizeUploadFile(
 
   if (detected === 'other') {
     if (options?.allowIndeterminate === true) {
-      // No fallback kind: inferContentType resolves an unknown file to the
-      // NEUTRAL type, never a fabricated media fact.
       return ensureFileWithContentType(file);
     }
     options?.onError?.('upload_kind_indeterminate', {

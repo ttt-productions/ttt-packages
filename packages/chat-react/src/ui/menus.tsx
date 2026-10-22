@@ -3,9 +3,7 @@
 import type { ModerationHandlers } from '@ttt-productions/chat-core';
 import { Button, useAsyncAction } from '@ttt-productions/ui-core/react';
 
-// The consumer's handler owns its failure UX. The action only keeps a rejection
-// from vanishing: it re-raises it on the global error channel, where monitoring
-// sees it — exactly where an unawaited rejection would have gone.
+// Rethrown on a timer so the rejection reaches the global error channel, as an unawaited one would.
 function reraise(error: unknown) {
   setTimeout(() => {
     throw error;

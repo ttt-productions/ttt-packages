@@ -1,7 +1,3 @@
-// The release's post-deploy steps against a real project, each failing CLOSED: a list or policy it
-// cannot read blocks the job rather than passing a check that read nothing. Every one refuses a
-// project its repository's `.firebaserc` does not declare.
-
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -54,10 +50,6 @@ function knownProject(repoRoot: string, projectId: string | undefined, tag: stri
   return projectId;
 }
 
-/**
- * Apply the checked-in `cors.json` to the project's default Storage bucket, read the bucket's
- * policy back, and throw unless it is exactly that policy.
- */
 export function applyStorageCors(repoRoot: string, projectId: string): void {
   const projects = readFirebaseProjects(repoRoot);
   if (projectId !== projects.dev && projectId !== projects.prod) {
@@ -86,10 +78,6 @@ export function applyStorageCors(repoRoot: string, projectId: string): void {
   console.log(`Storage CORS applied and verified for ${bucketUri}`);
 }
 
-/**
- * Every labelled callable service, plus the app's public webhook services, must bind `allUsers`
- * to `roles/run.invoker`.
- */
 export function checkCallableInvokers({
   repoRoot,
   region,
@@ -99,7 +87,6 @@ export function checkCallableInvokers({
   repoRoot: string;
   region: string;
   projectId: string | undefined;
-  /** Public `onRequest` services the callable label does not mark, named as Cloud Run names them. */
   extraPublicServices?: readonly string[];
 }): void {
   const projectId = knownProject(repoRoot, requested, 'invoker-guard');
@@ -175,11 +162,6 @@ export function checkCallableInvokers({
   );
 }
 
-/**
- * The live functions must be exactly the expected ones, each ACTIVE.
- * `expected` answers the codebases this deploy targeted; an empty answer means the deploy
- * targeted no functions. It throws on input it cannot read, which fails the job.
- */
 export function checkDeployedFunctions({
   repoRoot,
   region,

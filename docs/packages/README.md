@@ -22,4 +22,4 @@ per-package docs each cover a single package.
   documented subpath is not an actual export, so keep these honest.
 
 Generic packages stay app-agnostic. An application-data package belongs to one
-app, follows that app's rulebook (ARCH-207), and its doc is correspondingly larger.
+app, follows that app's rulebook (RULE-STD-ARCH-207), and its doc is correspondingly larger.

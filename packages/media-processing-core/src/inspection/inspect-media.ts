@@ -1,31 +1,3 @@
-// =============================================================================
-// Canonical media content inspection
-// =============================================================================
-//
-// The ONE server-side classification authority. Consumes a LOCAL file (the
-// pipeline's generation-pinned temp download), establishes what the bytes
-// actually contain, and returns the bounded `MediaInspectionResult` contract
-// from @ttt-productions/media-schemas. Everything downstream — origin/kind
-// validation, processing-spec selection, the persisted asset kind, and the
-// safety (PhotoDNA) routing — derives from this one result. Client MIME,
-// filename, extension, container brand, and payload-byte heuristics are never
-// consulted.
-//
-// Design:
-//   - family selection by a bounded 64 KiB SIGNATURE read (header only —
-//     semantic elements are NEVER searched for in arbitrary payload: payload
-//     bytes can mimic container elements, so a flat scan misclassifies WebM
-//     audio as video);
-//   - shared A/V containers (EBML/ISO-BMFF/Ogg/AVI) classified by a hardened
-//     `ffprobe` stream table (libavformat's structural parsers), with timeout,
-//     kill-on-abort, output cap, and strict schema validation;
-//   - image-family proof by DECODER (sharp) — a signature or `ftyp` brand is a
-//     candidate, not proof, and image-family ISO-BMFF (AVIF/HEIC) is resolved
-//     BEFORE the ordinary "any timed video stream wins" rule (a valid AVIF
-//     probes as a one-frame AV1 `video` stream);
-//   - FAIL-CLOSED: anything unproven is `indeterminate` with the
-//     `strict-video-fallback` safety plan — never audio, never publishable.
-
 import { open } from 'node:fs/promises';
 import { z } from 'zod';
 import {
@@ -38,14 +10,11 @@ import {
 import { DEFAULT_PROBE_TIMEOUT_MS, runCmd } from '../video/ffmpeg.js';
 import { measureDurationSec, type MeasureDurationFn } from '../duration/media-duration.js';
 
-/** Bump on any classification-rule change (rides every decision event). */
 export const INSPECTOR_VERSION = 'mpc-inspect-2';
 
 const SIGNATURE_READ_BYTES = 64 * 1024;
-const PROBE_SIZE_BYTES = 4 * 1024 * 1024; // -probesize: metadata, not playback
+const PROBE_SIZE_BYTES = 4 * 1024 * 1024;
 const ANALYZE_DURATION_US = 10 * 1000 * 1000;
-
-// ---- ffprobe JSON boundary (strict; anything else is malformed) ----
 
 const ProbeStreamSchema = z
   .object({
@@ -67,8 +36,6 @@ const ProbeJsonSchema = z
     streams: z.array(ProbeStreamSchema).max(256).optional(),
   })
   .loose();
-
-// ---- codec normalization (bounded — raw strings never escape) ----
 
 const CODEC_MAP: Record<string, NormalizedCodecId> = {
   h264: 'h264',
@@ -96,8 +63,6 @@ function normalizeCodec(name: string | undefined): NormalizedCodecId {
   return 'other';
 }
 
-// ---- signature families ----
-
 type SignatureFamily =
   | { family: 'image'; formatId: MediaFormatId; container: string }
   | { family: 'svg' }
@@ -110,8 +75,6 @@ type SignatureFamily =
   | { family: 'flac' }
   | { family: 'unknown' };
 
-/** ISO-BMFF brands that declare an IMAGE-item file (HEIF family). Resolved via
- *  decoder proof BEFORE the timed-video rule — see the AVIF note above. */
 const ISOBMFF_IMAGE_BRANDS = new Set([
   'avif',
   'avis',
@@ -133,7 +96,6 @@ function ascii(b: Uint8Array, off: number, s: string): boolean {
 
 export function detectSignatureFamily(b: Uint8Array): SignatureFamily {
   if (b.length < 12) return { family: 'unknown' };
-  // images (single-format signatures)
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff)
     return { family: 'image', formatId: 'jpeg', container: 'jpeg' };
   if (b[0] === 0x89 && ascii(b, 1, 'PNG'))
@@ -148,7 +110,6 @@ export function detectSignatureFamily(b: Uint8Array): SignatureFamily {
   ) {
     return { family: 'image', formatId: 'tiff', container: 'tiff' };
   }
-  // SVG: XML text — scan a short prefix for '<svg' (bounded; case-insensitive).
   {
     const prefix = Buffer.from(b.slice(0, Math.min(b.length, 4096)))
       .toString('latin1')
@@ -162,7 +123,6 @@ export function detectSignatureFamily(b: Uint8Array): SignatureFamily {
       return { family: 'svg' };
     }
   }
-  // containers
   if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return { family: 'ebml' };
   if (ascii(b, 4, 'ftyp')) {
     const brand = String.fromCharCode(b[8], b[9], b[10], b[11]).trim().toLowerCase();
@@ -177,10 +137,7 @@ export function detectSignatureFamily(b: Uint8Array): SignatureFamily {
   return { family: 'unknown' };
 }
 
-// ---- dependency seams (tests inject; production uses the real tools) ----
-
 export interface InspectMediaDeps {
-  /** Probe the local file; default shells to the hardened `ffprobe`. */
   probe?: (
     localPath: string,
     opts: { timeoutMs: number; signal?: AbortSignal },
@@ -188,13 +145,8 @@ export interface InspectMediaDeps {
     | { ok: true; json: unknown }
     | { ok: false; reason: 'timeout' | 'truncated' | 'failed' | 'bad_json' }
   >;
-  /** Decode-prove an image; default uses sharp metadata. Returns frame count
-   *  (pages) on success, null on decode failure. */
   decodeImage?: (localPath: string) => Promise<{ frames: number } | null>;
-  /** Measure the file's length; default reads its packet timestamps
-   *  (`measureDurationSec`). */
   measureDuration?: MeasureDurationFn;
-  /** Injected ffprobe version (default: cached `ffprobe -version` first line). */
   ffprobeVersion?: string;
 }
 
@@ -239,7 +191,7 @@ async function defaultProbe(
       { timeoutMs: opts.timeoutMs, signal: opts.signal },
     );
   } catch {
-    return { ok: false, reason: 'failed' }; // spawn failure (ffprobe missing) — fail closed
+    return { ok: false, reason: 'failed' };
   }
   if (r.timedOut) return { ok: false, reason: 'timeout' };
   if (r.truncated) return { ok: false, reason: 'truncated' };
@@ -255,7 +207,7 @@ async function defaultDecodeImage(localPath: string): Promise<{ frames: number }
   try {
     const sharp = (await import('sharp')).default;
     const meta = await sharp(localPath, {
-      limitInputPixels: 268402689 /* sharp default ~16k x 16k */,
+      limitInputPixels: 268402689,
     }).metadata();
     if (!meta.width || !meta.height) return null;
     return { frames: Math.max(1, meta.pages ?? 1) };
@@ -263,8 +215,6 @@ async function defaultDecodeImage(localPath: string): Promise<{ frames: number }
     return null;
   }
 }
-
-// ---- result builders ----
 
 function baseResult(
   partial: Omit<MediaInspectionResult, 'inspectorVersion' | 'streams' | 'codecs'> &
@@ -311,8 +261,6 @@ function indeterminate(
   );
 }
 
-// ---- the inspector ----
-
 export interface InspectMediaArgs {
   localPath: string;
   timeoutMs?: number;
@@ -326,7 +274,6 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
   const decodeImage = args.deps?.decodeImage ?? defaultDecodeImage;
   const ffprobeVersion = args.deps?.ffprobeVersion ?? (await getFfprobeVersion());
 
-  // 1) bounded signature read (header only)
   let head: Uint8Array;
   try {
     const fh = await open(args.localPath, 'r');
@@ -343,15 +290,11 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
 
   const sig = detectSignatureFamily(head);
 
-  // 2) family routing
   switch (sig.family) {
     case 'unknown':
       return indeterminate('unknown', 'unrecognized_signature', ffprobeVersion);
 
     case 'svg':
-      // Scriptable XML "image" — structurally recognized, deliberately NOT a
-      // processable format: it can carry script and no sanitize/rasterize step
-      // exists. Never classified by decoder capability alone.
       return baseResult(
         {
           status: 'unsupported',
@@ -364,8 +307,6 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
       );
 
     case 'image': {
-      // Single-format image signature: decoder proof required — a signature is
-      // a candidate, not a classification.
       const decoded = await decodeImage(args.localPath);
       if (!decoded)
         return baseResult(
@@ -401,19 +342,14 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
 
     case 'isobmff':
       if (ISOBMFF_IMAGE_BRANDS.has(sig.brand)) {
-        // IMAGE-FAMILY ISO-BMFF resolves BEFORE the timed-video rule: a valid
-        // AVIF probes as a one-frame AV1 `video` stream. Proof = image brand +
-        // successful bounded decode + no ordinary timed A/V presentation.
         const probed = await probe(args.localPath, { timeoutMs, signal: args.signal });
         const parsed = probed.ok ? ProbeJsonSchema.safeParse(probed.json) : null;
         const streams = parsed?.success ? (parsed.data.streams ?? []) : null;
-        const hasAudio = streams ? streams.some((s) => s.codec_type === 'audio') : true; // unknown ⇒ assume worst
+        const hasAudio = streams ? streams.some((s) => s.codec_type === 'audio') : true;
         const formatId: MediaFormatId | undefined = sig.brand.startsWith('avi') ? 'avif' : 'heic';
         const decoded = await decodeImage(args.localPath);
         if (!decoded || hasAudio) {
           if (formatId === 'heic' && !decoded && !hasAudio) {
-            // Recognized HEIC-family that the runtime cannot decode: explicit
-            // unsupported-image (launch policy) — NEVER relabeled video.
             return baseResult(
               {
                 status: 'unsupported',
@@ -425,9 +361,6 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
               ffprobeVersion,
             );
           }
-          // Undecodable/ambiguous image-brand file, or one carrying audio (a
-          // real timed presentation wearing an image brand): fail toward the
-          // stricter visual path.
           return indeterminate(
             'heif',
             decoded ? 'image_brand_with_audio' : 'image_decode_failed',
@@ -462,8 +395,6 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
     case 'ogg':
       return classifyAvContainer(args, 'ogg', 'ogg', probe, timeoutMs, ffprobeVersion);
     case 'avi':
-      // Real container ffprobe parses; no registry entry (no origin enables it
-      // today) — the stream truth still classifies it, policy rejects by format.
       return classifyAvContainer(args, 'avi', undefined, probe, timeoutMs, ffprobeVersion);
     case 'wav':
       return classifyAvContainer(args, 'wav', 'wav', probe, timeoutMs, ffprobeVersion);
@@ -511,10 +442,6 @@ async function classifyAvContainer(
       counts.audio++;
       audioCodecs.add(normalizeCodec(s.codec_name));
     } else if (type === 'video') {
-      // An attached picture (cover art) is NOT a timed presentation — but the
-      // disposition flag is untrusted container data, so it is COUNTED and the
-      // safety plan forces every such picture through the image hash path
-      // before the audio guard may return clean.
       if (s.disposition?.attached_pic === 1) {
         counts.attachedPictures++;
       } else {
@@ -534,7 +461,6 @@ async function classifyAvContainer(
   const durationSec = await measure(args.localPath, { signal: args.signal });
   const duration = durationSec !== undefined ? { durationSec } : {};
 
-  // classification table (fail-closed)
   if (counts.timedVideo > 0) {
     return baseResult(
       {
@@ -567,8 +493,6 @@ async function classifyAvContainer(
       ffprobeVersion,
     );
   }
-  // auxiliary-only, unknown stream types alongside audio, or nothing usable:
-  // never audio — the strict visual fallback owns it.
   return baseResult(
     {
       status: 'indeterminate',

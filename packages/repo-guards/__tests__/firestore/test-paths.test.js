@@ -1,6 +1,3 @@
-// The test-code path checker. Probe content is assembled from the fixture core's collection
-// constants, so this file never spells the shape it forbids.
-
 import { describe, it, expect } from 'vitest';
 import { findHandTypedFirestorePaths } from '../../src/modules/firestore/test-paths.js';
 import { COLLECTIONS } from './fixture-core/index.js';

@@ -1,7 +1,3 @@
-// The test-timeout guard: a test sets a time limit only by naming a budget from a timeout file. Each
-// place a limit is set is found, a number there fails, an imported budget passes, and a limit-like
-// option handed to the code under test is no limit at all.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   limitSites,

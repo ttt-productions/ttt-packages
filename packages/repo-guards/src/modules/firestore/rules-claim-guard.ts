@@ -1,8 +1,3 @@
-// Every rules file the layout lists — Firestore and Storage alike — reads only the custom claims the
-// core declares, and every role helper checks its claim AND the live roster document: the token
-// answers fast, the roster makes a removed role lose access at once instead of when the stale token
-// expires.
-
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import {
@@ -17,25 +12,15 @@ import { loaderListProblem, loaderProblem, type Loader } from '../../support/fac
 import { escapeRegExp } from '../../support/text.js';
 
 export interface RulesClaimFacts {
-  /** Every custom claim name the core declares. */
   claims: Loader<readonly string[]>;
-  /**
-   * Each role helper: the one claim it checks, and the roster list its caller's uid must be on. Every
-   * rules file that declares a function of the helper's name is held to it; at least one must.
-   */
   roleHelpers: ReadonlyArray<{
     function: string;
     claim: Loader<string>;
     rosterField: Loader<string>;
   }>;
-  /** The live roster document's path, as the core builds it (`collection/docId`). */
   rosterPath: Loader<string>;
 }
 
-/**
- * The token fields Firebase Auth itself sets. They are the platform's, not a custom claim, so no
- * core declares them.
- */
 const PLATFORM_TOKEN_FIELDS: ReadonlySet<string> = new Set([
   'aud',
   'auth_time',
@@ -52,7 +37,6 @@ const PLATFORM_TOKEN_FIELDS: ReadonlySet<string> = new Set([
   'uid',
 ]);
 
-/** Every custom-claim read in a text, in both accessor spellings, with its index. */
 export function claimReads(text: string): Array<{ index: number; claim: string }> {
   const reads: Array<{ index: number; claim: string }> = [];
   for (const m of text.matchAll(
@@ -71,11 +55,9 @@ export function claimReads(text: string): Array<{ index: number; claim: string }
   return reads.sort((a, b) => a.index - b.index);
 }
 
-/** Every document read call in a text: `get(…)` / `exists(…)` (and their `After` forms), either service. */
 const DOCUMENT_READ =
   /(?:\bfirestore\s*\.\s*|(?<![.\w$]))(?:get|getAfter|exists|existsAfter)\s*\(/g;
 
-/** Every way one role helper's expanded body breaks the claim-and-roster pairing, one line each. */
 export function roleHelperProblems(
   body: string,
   helper: { function: string; claim: string; rosterField: string },

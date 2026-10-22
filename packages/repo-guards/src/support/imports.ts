@@ -1,17 +1,8 @@
-// The one import reader. Every guard that asks which modules a file loads, and under which names,
-// reads it here, from the parse the reader made once — so a specifier wrapped across lines is seen,
-// and one inside a string or a comment never is. Internal to the package: no public entry exports it.
-
 import ts from 'typescript';
 
-/**
- * How a file names a module: a static import, an `export … from`, an `import x = require()`, a
- * dynamic `import()`, a `require()`, a test runner's module mock, or a type-position `import()`.
- */
 export type ImportKind =
   'import' | 'export' | 'importEquals' | 'dynamic' | 'require' | 'mock' | 'importType';
 
-/** The kinds that load a module at run time or bind its names: every kind but a mock and a type position. */
 export const MODULE_LOADS: readonly ImportKind[] = Object.freeze([
   'import',
   'export',
@@ -20,7 +11,6 @@ export const MODULE_LOADS: readonly ImportKind[] = Object.freeze([
   'require',
 ]);
 
-/** The test runner calls whose first argument names a module. */
 const MOCK_CALLEES: ReadonlySet<string> = new Set([
   'vi.mock',
   'vi.doMock',
@@ -35,36 +25,24 @@ const MOCK_CALLEES: ReadonlySet<string> = new Set([
   'jest.requireMock',
 ]);
 
-/** One named binding: `{ a as b }` imports or exports `a` under `b`. */
 export interface ImportedName {
   imported: string;
-  /** The name it is bound to: the local name of an import, the exported name of an `export … from`. */
   local: string;
   typeOnly: boolean;
 }
 
-/** One place a file names a module. */
 export interface ModuleImport {
   spec: string;
   kind: ImportKind;
-  /** The statement, call, or type node that names the module. */
   node: ts.Node;
-  /** The string literal that holds the specifier. */
   specifier: ts.StringLiteralLike;
-  /** A statement directly in the file, not inside a module or namespace block. */
   topLevel: boolean;
-  /** `import type`, `export type … from`, `import type x = require()`, or a type-position `import()`. */
   typeOnly: boolean;
-  /** An `import '…'` that binds nothing. */
   sideEffect: boolean;
-  /** The default import's local name. */
   defaultName: string | null;
-  /** The name of `import * as X` or `export * as X from`. */
   namespace: string | null;
-  /** `import * as X`, `export * from`, or `export * as X from`: the whole module. */
   star: boolean;
   named: readonly ImportedName[];
-  /** A mock's callee (`vi.mock`); null for every other kind. */
   callee: string | null;
 }
 
@@ -166,7 +144,6 @@ function readImports(sourceFile: ts.SourceFile): ModuleImport[] {
   return out;
 }
 
-/** Every place a parsed file names a module, in source order; `kinds` narrows it. Read once per parse. */
 export function moduleImports(
   sourceFile: ts.SourceFile,
   kinds?: readonly ImportKind[],
@@ -179,10 +156,8 @@ export function moduleImports(
   return kinds ? all.filter((site) => kinds.includes(site.kind)) : all;
 }
 
-/** Every `import … from '…'` and `export … from '…'` statement: a side-effect import names no binding and is left out. */
 export const fromStatements = (sourceFile: ts.SourceFile): readonly ModuleImport[] =>
   moduleImports(sourceFile, ['import', 'export']).filter((site) => !site.sideEffect);
 
-/** True when `spec` is `name` itself or one of its subpaths. */
 export const namesModule = (spec: string, name: string): boolean =>
   spec === name || spec.startsWith(`${name}/`);

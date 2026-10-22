@@ -14,12 +14,10 @@ import { SPECIAL_DOCS } from '../src/paths/collections.js';
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
 const RULES = SPECIAL_DOCS.RULES_AND_AGREEMENTS;
 
-// Terms released twice requiring acceptance, then Rules once without: level 2.
 const firstRelease = planPublicDocumentRelease(undefined, [TERMS], true).block;
 const secondRelease = planPublicDocumentRelease(firstRelease, [TERMS], true).block;
 const block = planPublicDocumentRelease(secondRelease, [RULES], false).block;
 
-// Every shape AppConfigSchema's field refuses for a PRESENT block.
 const REFUSED_BLOCKS: ReadonlyArray<readonly [string, unknown]> = [
   ['null', null],
   ['a number', 3],

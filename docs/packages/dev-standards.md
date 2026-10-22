@@ -1,0 +1,59 @@
+# @ttt-productions/dev-standards
+
+Everything every product shares about how its software is built and how an AI works on it: the
+engineering rules, the AI docs, the development workflows, the shared playbooks, the `docs/work/`
+rules, and the lint, TypeScript, and test config bases.
+
+## Owns
+
+- **The shared rulebook** (`rules/`) — every `RULE-STD-*` rule, product-neutral, each stating its
+  scope (apps, packages, or both). An app's own rulebook holds only its `RULE-<PRODUCT>-*-9xx` rules
+  and its additions and overrides on shared rules.
+- **The AI docs** — `development-preferences.md` (how an AI works with DJ), `model-tiers.md` (the one
+  tier table), `AGENTS.base.md`, and `claude/CLAUDE.base.md` (mandatory reading, the Normal Test and
+  Dev Flows, the adoption workflow, and the first-publish procedure).
+- **The development workflows** (`workflows/`), written in skill format.
+- **The shared playbooks** (`playbooks/`) — each step cites the rule IDs it audits;
+  `playbooks/crosswalk.md` maps every shared rule to the step or guard that audits it.
+- **The `docs/work/` rules** (`work/`) and the runbooks README and postmortem template
+  (`runbooks/`).
+- **The config bases** (`config/`, `src/node/`) and the config copies each repo keeps
+  (`config/copies/`).
+
+## Boundary
+
+- Depends on no `@ttt-productions/*` package; a Tier 0 foundation.
+- Product-neutral: an app's values reach the shared text only through the placeholders its
+  `CLAUDE.md` values block declares (`<APP_NAME>`, `<APP_DATA_PACKAGE>`, …). Nothing is rewritten at
+  install time.
+- Public, like every package: nothing here names an app's security internals
+  (RULE-STD-ARCH-209). That detail lives in the app's private rulebook and playbook additions.
+- An app adds to a shared doc in its own same-named file under a "`<App> additions`" heading, and
+  overrides shared text only explicitly ("Overrides shared `<doc>` § X: …").
+
+## How an app consumes it
+
+- The app's `CLAUDE.md` holds its values block, its own facts, and one `@import` of
+  the installed package's `claude/CLAUDE.base.md` (in `node_modules`); its `AGENTS.md` points Codex
+  at the same files. ttt-packages imports the base from its own source,
+  `packages/dev-standards/claude/CLAUDE.base.md`.
+- The docs ship as plain files; the app reads them from `node_modules`.
+- The config bases are extended or imported by the app's own config files, which keep their scoped
+  exceptions. Each repo keeps its own copy of the files in `config/copies/`, and a copy-drift test in
+  the repo fails when its copy differs from the package's.
+
+## Entry points
+
+The package has no root entry: `exports` names only the subpaths below, so a consumer imports a
+config base by its subpath and reads the docs as files.
+
+- `@ttt-productions/dev-standards/node/eslint` — the ESLint bases (Node).
+- `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node).
+- `@ttt-productions/dev-standards/node/playwright` — the Playwright base (Node).
+- `@ttt-productions/dev-standards/node/postcss` — the PostCSS base (Node).
+- `@ttt-productions/dev-standards/node/a11y` — the axe accessibility check for Playwright e2e:
+  one page in the default theme, the high-contrast theme, and reduced motion (Node).
+- `@ttt-productions/dev-standards/config/tsconfig.app.json` — the app TypeScript base, for `extends`.
+- `@ttt-productions/dev-standards/config/tsconfig.functions.json` — the Functions TypeScript base,
+  for `extends`.
+- `@ttt-productions/dev-standards/config/prettier.json` — the shared Prettier config.

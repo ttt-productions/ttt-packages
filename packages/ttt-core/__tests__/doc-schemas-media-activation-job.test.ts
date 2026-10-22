@@ -1,10 +1,4 @@
-// mediaActivationJobs/{jobId} — the parent-publication dependency fields.
-//
-// Some publications legitimately arrive before the parent document they attach to exists
-// (the curated-audition lane: an option's publish can beat the prompt's publish, which is
-// what CREATES the audition doc). `parentKey` marks a job as riding that lane and
-// `parentWaitStartedAt` bounds the wait. Both are optional so rows written before the pair
-// existed still parse — that backward compatibility is the point of these tests.
+// Both fields are optional so job rows stored without them still parse.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -12,7 +6,6 @@ import {
   MediaActivationJobStatusSchema,
 } from '../src/doc-schemas/media-activation-jobs.js';
 
-/** A structural Firestore Timestamp (ttt-core validates the shape, never firebase-admin). */
 function ts(ms: number) {
   return {
     seconds: Math.floor(ms / 1000),
@@ -37,7 +30,6 @@ const authorityPayload = {
   updatedAtMs: 1,
 };
 
-/** A job row exactly as it existed BEFORE the dependency fields were added. */
 const legacyJob = {
   jobId: 'job-1',
   schemaVersion: 1,
@@ -82,7 +74,7 @@ describe('MediaActivationJobSchema — parent-publication dependency fields', ()
     expect(MediaActivationJobSchema.safeParse({ ...legacyJob, parentKey: '' }).success).toBe(false);
   });
 
-  it('rejects a Firestore Timestamp for parentWaitStartedAt — only the TTL field is one (ARCH-105)', () => {
+  it('rejects a Firestore Timestamp for parentWaitStartedAt — only the TTL field is one (RULE-STD-ARCH-105)', () => {
     expect(
       MediaActivationJobSchema.safeParse({
         ...legacyJob,

@@ -5,11 +5,6 @@ import {
   MediaPublicationStateSchema,
 } from '../schemas.js';
 
-/**
- * The pending-media lifecycle statuses, `pending → processing → completed | failed |
- * rejected` — the ONE declaration. The status branches below, the lifecycle decisions
- * (`pending-media-lifecycle.ts`), and upload-ui's tray all derive from it.
- */
 export const PendingMediaStatusSchema = z.enum([
   'pending',
   'processing',
@@ -62,31 +57,13 @@ export function createPendingMediaSchemas<
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),
     clientContext: ClientContextSchema,
-    // The untrusted client action claim carried from startUpload (optional —
-    // pre-existing/archive docs never carried it; canonical-upload-content-
-    // classification). Diagnostics + mismatch-policy input, never authority.
     clientMediaClaim: ClientMediaClaimSchema.optional(),
-    // Publication/serving readiness — orthogonal to `status` (the processing
-    // outcome). Optional/additive: absent ⇒ treat as `notStarted`. Rides on
-    // every status branch + the archive branches via this shared base.
     publicationState: MediaPublicationStateSchema.optional(),
-    // Server-set moderation-override marker: a human moderator's decision that
-    // supersedes the automated input-moderation check (e.g. an admin approving a
-    // rejection appeal re-queues the media with this set so the classifier the
-    // human overruled is not re-run). NEVER client-suppliable — consumers must
-    // set it only from trusted backend paths and honor only values they minted.
     moderationOverride: z.string().min(1).optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
     processingStartedAt: z.number().optional(),
-    // Crash-recovery lifecycle fields (optional/additive on every status +
-    // archive branch via this shared base). `processingStartedAt` remains the
-    // timestamp for the current attempt; a reclaimed attempt updates it.
-    // Bounded processing attempts so far — non-negative integer. Absent on
-    // legacy/live docs written before crash-aware claiming.
     processingAttemptCount: z.number().int().min(0).optional(),
-    // Epoch milliseconds after which the current processing claim's lease is
-    // considered expired and the row may be reclaimed. Absent ⇒ no active lease.
     processingLeaseExpiresAt: z.number().optional(),
     terminalAt: z.number().optional(),
   } as const;
@@ -208,11 +185,6 @@ export function createPendingMediaSchemas<
     ArchivedPendingMediaRejectedSchema,
   ]);
 
-  // Quarantined archive row for a source doc the live PendingMediaSchema could NOT
-  // parse at archive time (schema drift or legacy data). The archive sweep moves the
-  // raw doc here AS-IS so the scheduled pass converges — one report at move time —
-  // instead of re-parsing and re-reporting the same doc on every tick forever. The
-  // original fields are preserved verbatim under `raw` for inspection/repair.
   const ArchivedPendingMediaQuarantinedSchema = z
     .object({
       parseFailed: z.literal(true),
@@ -221,8 +193,6 @@ export function createPendingMediaSchemas<
     })
     .strict();
 
-  // Every shape a pendingMediaArchive doc can hold: a validly-archived terminal row,
-  // or a quarantined unparseable one. Readers of the archive collection parse with this.
   const ArchivedPendingMediaDocSchema = z.union([
     ArchivedPendingMediaSchema,
     ArchivedPendingMediaQuarantinedSchema,

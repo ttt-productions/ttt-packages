@@ -3,8 +3,6 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// Controllable firebase/firestore mock: capture per-id snapshot callbacks so tests can
-// emit snapshots, and provide inert stubs for the one-shot path's imports.
 const { caps, onSnapshotMock, oneShotDocs, batchCalls, getDocsMock, getDocMock, setAutoResolve } =
   vi.hoisted(() => {
     const caps = new Map<
@@ -19,7 +17,6 @@ const { caps, onSnapshotMock, oneShotDocs, batchCalls, getDocsMock, getDocMock, 
       },
     );
 
-    // One-shot leg, so the mode-switch tests can drive a real read.
     const oneShotDocs = new Map<string, Record<string, unknown>>();
     const batchCalls: { ids: string[]; release: () => void }[] = [];
     let autoResolve = true;
@@ -142,7 +139,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.data).toEqual({});
-    // Resolved-missing is cached as null (not undefined) so it won't stay blank.
     expect(queryClient.getQueryData(['publicUser', 'ghost'])).toBeNull();
   });
 
@@ -168,7 +164,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
       wrapper: Wrapper,
     });
 
-    // Two consumers of the same id → exactly one underlying Firestore listener.
     expect(__activeListenerCount(queryClient)).toBe(1);
     expect(onSnapshotMock).toHaveBeenCalledTimes(1);
 
@@ -176,12 +171,10 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     expect(a.result.current.data.u1).toMatchObject({ displayName: 'Alice' });
     expect(b.result.current.data.u1).toMatchObject({ displayName: 'Alice' });
 
-    // Unmounting one keeps the listener alive for the other.
     a.unmount();
     expect(__activeListenerCount(queryClient)).toBe(1);
     expect(caps.get('u1')!.unsub).not.toHaveBeenCalled();
 
-    // Unmounting the last detaches the shared listener.
     b.unmount();
     expect(__activeListenerCount(queryClient)).toBe(0);
     expect(caps.get('u1')!.unsub).toHaveBeenCalledTimes(1);
@@ -203,8 +196,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
     expect(result.current.isLoading).toBe(true);
 
-    // A rules-denied doc (hidden, or non-existent when the rule references
-    // resource.data) errors instead of landing a snapshot.
     emitError('hidden', new Error('permission-denied'));
 
     expect(result.current.isLoading).toBe(false);
@@ -222,7 +213,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     );
 
     emitError('hidden', new Error('permission-denied'));
-    // u1 has no snapshot yet — the batch is still loading on its account.
     expect(result.current.isLoading).toBe(true);
 
     emit('u1', { displayName: 'Alice' });
@@ -294,7 +284,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
       rerender({ subscribe: false });
     });
     expect(caps.get('u1')!.unsub).toHaveBeenCalledTimes(1);
-    // The listener's value is fresh, so returning to one-shot reads nothing new.
     await waitFor(() =>
       expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' }),
     );
@@ -325,7 +314,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     emit('u1', { displayName: 'FromListener' });
     expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
 
-    // The abandoned read lands late with the value it captured before the switch.
     oneShotDocs.set('u1', { displayName: 'Stale' });
     await act(async () => {
       batchCalls[0].release();
@@ -344,8 +332,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     oneShotDocs.set('u1', { displayName: 'InFlight' });
 
     const { Wrapper, queryClient } = makeWrapper();
-    // A stays in one-shot mode throughout, so its ENABLED observer keeps the read alive —
-    // the guard has to be value-based, not a cancel.
     const oneShot = renderHook(
       () =>
         useBatchFirestoreDocs({
@@ -373,8 +359,6 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     expect(queryClient.getQueryData(['publicUser', 'u1'])).toMatchObject({
       displayName: 'FromListener',
     });
-    // The sibling's read still settled — it was never cancelled — and it sees the listener's
-    // value rather than its own stale one.
     await waitFor(() => expect(oneShot.result.current.isLoading).toBe(false));
     expect(oneShot.result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
     expect(subscribed.result.current.data.u1).toMatchObject({ displayName: 'FromListener' });

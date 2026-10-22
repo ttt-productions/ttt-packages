@@ -16,8 +16,6 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 const lifecycle = { success: true as const };
 
-// Each queue hook hands its input to the app's own typed call and answers with what that call
-// answered: no callable name and no transport live in the package.
 describe('the admin queue hooks', () => {
   it("check out through the app's checkout call", async () => {
     const claim = { success: true, alreadyHeld: true } as CheckoutTaskResult;

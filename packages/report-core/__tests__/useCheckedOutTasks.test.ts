@@ -26,8 +26,8 @@ import type { ReportCoreConfig } from '../src/contracts/config.js';
 
 const config = {
   collections: {
-    reports: 'contentReports',
-    reportGroups: 'activeReportGroups',
+    reports: 'testReports',
+    reportGroups: 'testReportGroups',
     adminTasks: 'adminTasks',
   },
   reportableItems: {},
@@ -52,7 +52,6 @@ beforeEach(() => {
 
 describe('useCheckedOutTasks — the failure held through its restart', () => {
   it('is loading before the first snapshot', () => {
-    // query-core's subscribed result before its first snapshot: loading and fetching, no data.
     mocks.useFirestoreCollection.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -81,7 +80,6 @@ describe('useCheckedOutTasks — the failure held through its restart', () => {
     });
     expect(result.current.refetch).toBe(refetch);
 
-    // The restart clears `error` and reports the listener fetching while it reconnects.
     mocks.useFirestoreCollection.mockReturnValue({
       data: undefined,
       isLoading: true,

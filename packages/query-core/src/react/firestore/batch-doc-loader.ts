@@ -13,37 +13,8 @@ import {
 import type { QueryClient } from '@tanstack/react-query';
 import { chunk, FIRESTORE_IN_FILTER_LIMIT } from '@ttt-productions/firebase-helpers';
 
-/**
- * Coalescing document loader behind {@link useBatchFirestoreDocs}'s one-shot mode.
- *
- * Every id is its own observed React Query query, so without coalescing N ids would issue
- * N Firestore round-trips. The loader collects the ids enqueued in a single microtask and
- * dispatches them as `where(documentId(), 'in', chunk)` queries of at most `FIRESTORE_IN_FILTER_LIMIT` ids each
- * (`'batch'` transport), or as concurrent per-document gets (`'get'` transport — required
- * for collections whose rules gate reads on `resource.data`, where an unconstrained list
- * query is denied wholesale but per-document gets are evaluated per doc).
- *
- * Two properties are load-bearing:
- *
- * - **The loader resolves promises only — it NEVER writes the query cache.** TanStack's
- *   per-query fetch identity is therefore the sole guard against a late batch response
- *   overwriting a newer per-id result.
- * - **A dispatched batch is closed.** A later enqueue of the same id (a refetch after a
- *   cancellation, say) always joins a NEW batch, never the in-flight one — so a cancelled
- *   read can never be served by the request it was cancelled out of.
- *
- * Cancelling one per-id query detaches only that waiter; the shared request still completes
- * for its batch-mates.
- *
- * Loaders are scoped per `(QueryClient, Firestore instance, collectionPath)`. The Firestore
- * instance is part of the scope on purpose: two `db` instances sharing a collection path
- * must never share a request.
- */
-
-/** Maximum `in`-query requests in flight at once, per loader scope. */
 export const MAX_CONCURRENT_BATCH_REQUESTS = 4;
 
-/** Maximum per-document gets in flight at once, per loader scope. */
 export const MAX_CONCURRENT_DOC_GETS = 12;
 
 export type LoadedDoc = Record<string, unknown> & { id: string };
@@ -54,13 +25,10 @@ type Waiter = {
 };
 
 export type DocLoader = {
-  /** Resolve one id through the coalescing `in`-query batcher. */
   loadBatched(id: string, signal?: AbortSignal): Promise<LoadedDoc | null>;
-  /** Resolve one id through its own `getDoc`, bounded by the get concurrency limit. */
   loadOne(id: string, signal?: AbortSignal): Promise<LoadedDoc | null>;
 };
 
-/** Runs at most `max` tasks concurrently; a slot is released when its task settles. */
 function createConcurrencyLimiter(max: number) {
   let active = 0;
   const waiting: (() => void)[] = [];
@@ -104,8 +72,6 @@ function createDocLoader(db: Firestore, collectionPath: string): DocLoader {
   const runBatchRequest = createConcurrencyLimiter(MAX_CONCURRENT_BATCH_REQUESTS);
   const runDocGet = createConcurrencyLimiter(MAX_CONCURRENT_DOC_GETS);
 
-  // Ids enqueued in the CURRENT microtask. Nulled out at dispatch so the dispatched batch
-  // is closed and a later enqueue opens a fresh one.
   let openBatch: Map<string, Waiter[]> | null = null;
 
   const runChunk = (chunk: string[], batch: Map<string, Waiter[]>) =>
@@ -172,7 +138,6 @@ function createDocLoader(db: Firestore, collectionPath: string): DocLoader {
         settled = true;
         const index = waiters.indexOf(waiter);
         if (index >= 0) waiters.splice(index, 1);
-        // An id nobody is waiting on any more must not ride into a billed `in` query.
         if (waiters.length === 0 && batch.get(id) === waiters) batch.delete(id);
         if (onAbort) signal?.removeEventListener('abort', onAbort);
         run();
@@ -201,8 +166,6 @@ function createDocLoader(db: Firestore, collectionPath: string): DocLoader {
   return { loadBatched, loadOne };
 }
 
-// Per-QueryClient → per-Firestore-instance → per-collectionPath. WeakMaps so a discarded
-// client or db instance takes its loaders with it.
 const loaderScopes = new WeakMap<QueryClient, WeakMap<Firestore, Map<string, DocLoader>>>();
 
 export function getDocLoader(

@@ -24,7 +24,6 @@ function inferType(props: {
   url?: string;
 }): MediaViewerType {
   if (props.type) {
-    // Handle MIME strings like "image/png" -> "image"
     const primary = typeof props.type === 'string' ? props.type.split('/')[0] : props.type;
     if (primary === 'image' || primary === 'video' || primary === 'audio') return primary;
     if (primary === 'other') return 'other';
@@ -35,10 +34,6 @@ function inferType(props: {
   const simplified: SimplifiedMediaType = getSimplifiedMediaType(hint);
   return simplified;
 }
-
-// ---------------------------------------------------------------------------
-// Recovery-phase UI helpers
-// ---------------------------------------------------------------------------
 
 function RecoveryOverlay({
   state,
@@ -119,11 +114,7 @@ function RecoveryOverlay({
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
-export function MediaViewer(props: MediaPreviewProps) {
+export function MediaPreview(props: MediaPreviewProps) {
   const {
     url,
     alt,
@@ -168,8 +159,6 @@ export function MediaViewer(props: MediaPreviewProps) {
   const [hasError, setHasError] = React.useState(false);
   const [sourceUrl, setSourceUrl] = React.useState<string | null>(null);
 
-  // Remount key: incrementing this causes child media elements to unmount and
-  // re-mount from scratch, re-issuing the HTTP request.
   const [remountKey, setRemountKey] = React.useState(0);
 
   const handleRemount = React.useCallback(() => {
@@ -177,11 +166,6 @@ export function MediaViewer(props: MediaPreviewProps) {
     setRemountKey((k) => k + 1);
   }, []);
 
-  // The viewer's visibility as its own observer reports it (MEDIA-102 — this router adds
-  // none). Only a recovering viewer listens — one whose element failed, the only time a
-  // retry is scheduled — and retries wait while it is off screen. A healthy viewer does
-  // not listen, so its observer keeps its own lazy-load lifetime. Each failure starts from
-  // "visible", so a report from an earlier failure never outlives it.
   const listensForVisibility = recoveryAdapter !== undefined && hasError;
   const [elementVisible, setElementVisible] = React.useState(true);
   const [listenedLastRender, setListenedLastRender] = React.useState(listensForVisibility);
@@ -190,7 +174,6 @@ export function MediaViewer(props: MediaPreviewProps) {
     setElementVisible(true);
   }
 
-  // Recovery hook (no-op when recoveryAdapter is omitted)
   const { recoveryState, onMediaError, onMediaLoad, manualRetry } = useMediaRecovery({
     url: typeof url === 'string' ? url : null,
     adapter: recoveryAdapter,
@@ -221,7 +204,6 @@ export function MediaViewer(props: MediaPreviewProps) {
   const handleError = React.useCallback(() => {
     setHasError(true);
     onError?.();
-    // If a recovery adapter is provided, delegate to the recovery hook.
     if (recoveryAdapter) {
       onMediaError();
     }
@@ -230,7 +212,6 @@ export function MediaViewer(props: MediaPreviewProps) {
   const handleLoad = React.useCallback(() => {
     setHasError(false);
     onLoad?.();
-    // Signal successful load to the recovery state machine.
     if (recoveryAdapter) {
       onMediaLoad();
     }
@@ -247,14 +228,12 @@ export function MediaViewer(props: MediaPreviewProps) {
     ...circularStyle,
   };
 
-  // When recovery is active and in a terminal/blocking state, show the overlay.
   const isInRecovery =
     recoveryAdapter !== undefined &&
     recoveryState.phase !== 'idle' &&
     recoveryState.phase !== 'loaded' &&
     recoveryState.phase !== 'loading';
 
-  // No URL -> empty fallback
   if (!sourceUrl) {
     return (
       <div className={className} style={wrapperStyle}>
@@ -267,15 +246,11 @@ export function MediaViewer(props: MediaPreviewProps) {
     );
   }
 
-  // Recovery overlay (for all non-idle/non-loaded recovery states). It renders as the
-  // failed viewer's fallback, inside that viewer's observed wrapper, so the viewer keeps
-  // reporting its visibility while it recovers.
   const recoveryOverlay =
     isInRecovery && hasError ? (
       <RecoveryOverlay state={recoveryState} onManualRetry={manualRetry} isCircular={isCircular} />
     ) : null;
 
-  // Vanilla error (no recovery adapter) -> error fallback
   if (hasError && !recoveryAdapter) {
     return (
       <div className={className} style={wrapperStyle}>
@@ -373,13 +348,9 @@ export function MediaViewer(props: MediaPreviewProps) {
     );
   }
 
-  // Unknown type -> fallback link
   return shouldShowFallback(fallbackMode as FallbackMode) ? (
     <div className={className} style={wrapperStyle}>
       <MediaFallbackLink url={sourceUrl} filename={filename} label={fallbackLabel ?? 'Download'} />
     </div>
   ) : null;
 }
-
-/** Back-compat alias */
-export const MediaPreview = MediaViewer;

@@ -5,20 +5,26 @@ import { join } from 'node:path';
 import { REPO_ROOT } from './leak-utils';
 import { workspacePackages } from './workspace';
 
-// scripts/package-order.mjs prints the one dependency-safe package order — the root package.json
-// build chain — and every build and release walks it. A package built before an internal package it
-// declares compiles against a missing dist; one released first publishes a caret range to a version
-// npm does not have yet.
-
 const INTERNAL = '@ttt-productions/';
-const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const;
+const DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+] as const;
 
-type Manifest = { name: string } & Partial<Record<(typeof DEPENDENCY_FIELDS)[number], Record<string, string>>>;
+type Manifest = { name: string } & Partial<
+  Record<(typeof DEPENDENCY_FIELDS)[number], Record<string, string>>
+>;
 
-const manifests = new Map(workspacePackages<Manifest>().map(({ dir, manifest }) => [dir, manifest]));
+const manifests = new Map(
+  workspacePackages<Manifest>().map(({ dir, manifest }) => [dir, manifest]),
+);
 const folders = [...manifests.keys()];
 const manifest = (dir: string) => manifests.get(dir) as Manifest;
-const order = execFileSync(process.execPath, [join(REPO_ROOT, 'scripts', 'package-order.mjs')], { encoding: 'utf8' })
+const order = execFileSync(process.execPath, [join(REPO_ROOT, 'scripts', 'package-order.mjs')], {
+  encoding: 'utf8',
+})
   .split(/\r?\n/)
   .filter((line) => line.length > 0);
 
@@ -41,7 +47,9 @@ describe('boundary: one dependency-safe package order', () => {
         .filter((dep) => !order.includes(dep) || order.indexOf(dep) > order.indexOf(dir))
         .map((dep) => `${dir} before its dependency ${dep}`);
     });
-    expect(early, `reorder the root package.json build chain:\n  ${early.join('\n  ')}`).toEqual([]);
+    expect(early, `reorder the root package.json build chain:\n  ${early.join('\n  ')}`).toEqual(
+      [],
+    );
   });
 
   it('release-multiple.sh reads that order and release-all.sh releases through release-multiple.sh', () => {

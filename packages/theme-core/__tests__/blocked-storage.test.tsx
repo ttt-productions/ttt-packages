@@ -5,8 +5,7 @@ import { REDUCED_MOTION_ATTRIBUTE } from '../src/reduced-motion.js';
 import { installMatchMedia, removeMatchMedia } from './support/match-media.js';
 import { createSyncFixture, fakeAccount } from './support/viewer-settings-fixture.js';
 
-// A browser that blocks site data throws on localStorage. Values held for the page live for the
-// module's life, so every test takes its own keys.
+// Values held for a blocked page live for the module's life, so every test takes its own keys.
 let nextPrefix = 0;
 function uniquePrefix() {
   nextPrefix += 1;

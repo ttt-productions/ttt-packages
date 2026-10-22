@@ -32,7 +32,7 @@ function acceptAllowsVideo(spec: MediaProcessingSpec): boolean {
 
 function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boolean {
   const mimes = spec.accept?.mimes?.filter(Boolean) ?? [];
-  if (mimes.length === 0) return true; // empty => accept anything
+  if (mimes.length === 0) return true;
   if (!actualMime) return false;
   return mimes.some((a) => matchMime(a, actualMime));
 }
@@ -57,7 +57,7 @@ function orientationOk(
   actual: VideoOrientation | undefined,
 ): boolean {
   if (!required || required === 'any') return true;
-  if (!actual || actual === 'any') return true; // treat square/unknown as ok
+  if (!actual || actual === 'any') return true;
   return required === actual;
 }
 
@@ -140,7 +140,6 @@ export async function processVideo(
       };
     }
 
-    // duration enforcement
     const maxDur = spec.maxDurationSec ?? spec.video?.maxDurationSec;
     if (maxDur && probe.durationSec === undefined) {
       return { ok: false, mediaType: 'video', error: unreadableLengthError('video', maxDur) };
@@ -157,7 +156,6 @@ export async function processVideo(
       };
     }
 
-    // uniform enforcement
     const requiredOri = spec.videoOrientation;
     const requiredAspect = spec.requiredAspectRatio;
     const requiredW = spec.requiredWidth;
@@ -229,25 +227,18 @@ export async function processVideo(
 
     tempFiles.push(videoOut, posterOut);
 
-    // Build a basic filter graph to enforce size/aspect when auto-format is enabled.
-    // - If exact WxH required: scale+crop to WxH
-    // - Else if aspect required: crop to aspect then scale to original (or keep)
-    // - Else: keep original
     const scaleMode = spec.video?.scaleMode ?? 'fit';
     let vf = '';
 
     if (spec.allowAutoFormat) {
       if (requiredW && requiredH) {
         if (scaleMode === 'fit') {
-          // letterbox: scale to fit inside, pad with black bars
           vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=decrease,pad=${requiredW}:${requiredH}:(ow-iw)/2:(oh-ih)/2`;
         } else {
-          // crop: scale to cover then crop exactly
           vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=increase,crop=${requiredW}:${requiredH}`;
         }
       } else if (requiredAspect) {
         if (scaleMode === 'fit') {
-          // fit to aspect ratio without forced dimensions — no padding possible without target size, just crop
           vf = `crop='if(gt(iw/ih,${requiredAspect}),ih*${requiredAspect},iw)':'if(gt(iw/ih,${requiredAspect}),ih,iw/${requiredAspect})'`;
         } else {
           vf = `crop='if(gt(iw/ih,${requiredAspect}),ih*${requiredAspect},iw)':'if(gt(iw/ih,${requiredAspect}),ih,iw/${requiredAspect})'`;
@@ -301,7 +292,6 @@ export async function processVideo(
       };
     }
 
-    // Poster (frame at 1s; fallback to 0 if needed)
     const posterArgs = ['-y', '-ss', '1', '-i', videoOut, '-frames:v', '1', '-q:v', '2', posterOut];
     const r2 = await runFfmpeg(posterArgs, {
       signal: opts?.signal,
@@ -314,10 +304,6 @@ export async function processVideo(
       },
       phase: 'poster',
     });
-    if (r2.code !== 0) {
-      // non-fatal; still succeed with video
-    }
-
     const vs = await stat(videoOut);
     let psSize = 0;
     try {

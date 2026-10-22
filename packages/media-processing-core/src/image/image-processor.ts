@@ -36,7 +36,7 @@ function acceptAllowsImage(spec: MediaProcessingSpec): boolean {
 
 function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boolean {
   const mimes = spec.accept?.mimes?.filter(Boolean) ?? [];
-  if (mimes.length === 0) return true; // empty => accept anything
+  if (mimes.length === 0) return true;
   if (!actualMime) return false;
   return mimes.some((a) => matchMime(a, actualMime));
 }
@@ -54,14 +54,6 @@ function aspectClose(a: number, b: number, tolerance: number): boolean {
   return Math.abs(a - b) <= tolerance;
 }
 
-/**
- * Build a "normalized base" pipeline that enforces spec-level uniformity:
- * - if imageCrop exists -> always crop to outputWidth/outputHeight
- * - else if requiredWidth/requiredHeight exist -> crop/resize to those
- * - else if requiredAspectRatio exists -> center-crop to that aspect (no scaling unless needed later)
- *
- * If the source violates constraints and we cannot/should not auto-fix, returns a rejection error.
- */
 async function buildBase(
   spec: MediaProcessingSpec,
   inputPath: string,
@@ -120,8 +112,6 @@ async function buildBase(
   const h = meta.height ?? undefined;
 
   if (!w || !h) {
-    // Can't validate/crop reliably without dimensions.
-    // We'll still proceed unless strict dims/aspect are required without crop/auto.
     if (spec.requiredWidth || spec.requiredHeight || spec.requiredAspectRatio) {
       if (!spec.allowAutoFormat && !spec.imageCrop) {
         return {
@@ -136,27 +126,22 @@ async function buildBase(
     }
   }
 
-  // Start from raw input each time; callers can clone as needed.
   let base = sharp(inputPath);
 
-  // Keep metadata only if explicitly requested.
   if (spec.image?.stripMetadata === false) {
     base = base.withMetadata({ orientation: meta.orientation });
   }
 
-  // 1) Explicit crop spec (most strict)
   const crop = spec.imageCrop;
   if (crop) {
     base = resizeCover(base, crop.outputWidth, crop.outputHeight);
     return { ok: true, base, inputMeta: meta };
   }
 
-  // 2) Exact required size -> auto crop/resize only if allowAutoFormat OR the request is inherently "uniform"
   const reqW = spec.requiredWidth;
   const reqH = spec.requiredHeight;
   if (reqW && reqH) {
     const canFix = spec.allowAutoFormat === true;
-    // If not allowed to auto-fix, require exact match
     if (!canFix && w && h && (w !== reqW || h !== reqH)) {
       return {
         ok: false,
@@ -168,13 +153,11 @@ async function buildBase(
       };
     }
 
-    // Auto-fix path (or exact already): enforce normalized base
     base = resizeCover(base, reqW, reqH);
 
     return { ok: true, base, inputMeta: meta };
   }
 
-  // 3) Aspect ratio requirement (no exact size)
   const reqAspect = spec.requiredAspectRatio;
   if (reqAspect && w && h) {
     const a = aspect(w, h);
@@ -191,7 +174,6 @@ async function buildBase(
         };
       }
 
-      // Auto center-crop to required aspect ratio (no forced scale yet).
       base = base.extract(computeAspectCropBox(w, h, reqAspect));
     }
   }
@@ -285,7 +267,6 @@ export async function processImage(
       });
     }
 
-    // success: keep outputs
     tempFiles.length = 0;
 
     return {

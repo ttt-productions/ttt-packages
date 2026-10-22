@@ -31,7 +31,6 @@ describe('auth-user switch — tear down every socket before connecting as the n
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
 
-    // --- user A: a channel client + an inbox client are live ---
     const channelA = createRealtimeChatClient({
       endpoint: 'wss://chat.example',
       channelRef: CHANNEL_REF,
@@ -57,13 +56,11 @@ describe('auth-user switch — tear down every socket before connecting as the n
     expect(aChannelSock.grantToken).toBe('grant-A-channel');
     expect(aInboxSock.grantToken).toBe('grant-A-inbox');
 
-    // --- auth switches to user B: tear down EVERY socket first ---
     channelA.close();
     inboxA.close();
     expect(aChannelSock.closed).toBe(true);
     expect(aInboxSock.closed).toBe(true);
 
-    // --- user B connects fresh (new clients, new grants, new sockets) ---
     const channelB = createRealtimeChatClient({
       endpoint: 'wss://chat.example',
       channelRef: CHANNEL_REF,
@@ -79,10 +76,8 @@ describe('auth-user switch — tear down every socket before connecting as the n
     expect(bChannelSock.grantToken).toBe('grant-B-channel');
     expect(channelB.currentUserId).toBe('u-B');
 
-    // The torn-down user-A sockets never receive user-B traffic.
     expect(aChannelSock.closed).toBe(true);
     expect(aInboxSock.closed).toBe(true);
-    // 4 sockets created total: A-channel, A-inbox, B-channel (+ none for B-inbox in this test).
     expect(harness.sockets).toHaveLength(3);
   });
 

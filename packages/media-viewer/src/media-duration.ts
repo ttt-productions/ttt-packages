@@ -1,17 +1,4 @@
-/**
- * Chromium MediaRecorder blobs (webm/opus audio, webm video) report
- * `duration: Infinity` (or NaN) at `loadedmetadata` — the webm header carries
- * no duration until the engine has scanned the stream. The standard workaround:
- * seek far past the end; the engine then computes the real duration and fires
- * `durationchange` with a finite value.
- *
- * Resolves the element's REAL finite duration in seconds, or `null` when it
- * cannot be determined within `timeoutMs` — callers decide their own fallback
- * (the file-input duration validator fails OPEN on null; the audio player
- * chrome keeps its placeholder). When the workaround seek actually ran,
- * `currentTime` is restored to 0 before resolving, so a paused just-mounted
- * preview is left visually untouched.
- */
+/** Chromium MediaRecorder blobs report `duration: Infinity` (or NaN) at `loadedmetadata`; seeking far past the end makes the engine compute the real duration. */
 export function resolveInfiniteDuration(
   el: HTMLMediaElement,
   timeoutMs = 3000,
@@ -25,10 +12,8 @@ export function resolveInfiniteDuration(
       el.removeEventListener('durationchange', onDurationChange);
       clearTimeout(timer);
       try {
-        el.currentTime = 0; // undo the workaround seek
-      } catch {
-        // detached/errored element — the resolved value still stands
-      }
+        el.currentTime = 0;
+      } catch {}
       resolve(value);
     };
     const onDurationChange = () => {

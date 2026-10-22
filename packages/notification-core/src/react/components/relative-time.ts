@@ -1,6 +1,3 @@
-/**
- * Format epoch ms to a relative time string (e.g. "2m ago", "3h ago", "1d ago").
- */
 export function formatRelativeTime(epochMs: number): string {
   const now = Date.now();
   const diffMs = now - epochMs;

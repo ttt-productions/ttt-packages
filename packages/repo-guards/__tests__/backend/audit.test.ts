@@ -1,7 +1,3 @@
-// The audit guards: one writer of the audit collection, one builder of person-actors, no member text
-// in a payload, no handler on a failure-audit entry point, a refusal recorded through the failure
-// entry points as the caller, and no fire-and-forget work.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   auditPayloadGuard,

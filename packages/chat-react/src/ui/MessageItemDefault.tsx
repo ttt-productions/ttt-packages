@@ -10,19 +10,6 @@ import { MessageActions } from './menus.js';
 import { SenderName } from './SenderName.js';
 import { useSenderNameResolution } from '../context/ChatNameResolverContext.js';
 
-// A chat message renders TEXT (plus its send-state rows). Files live in the
-// conversation's Conversation Files surface, never in the timeline — there is no
-// attachment body here. There is no reply-quote body either: no chat surface has
-// an authoring affordance for replying to a specific message, so a quote
-// renderer would be unreachable machinery.
-
-// ============================================
-// Correlated send-rejection copy + retry policy
-// ============================================
-
-// User-facing copy per correlated `send-rejected` code (stamped on meta.sendFailureCode
-// by the realtime channel client). A failed send with no code (a transport/exhausted
-// reconnect failure) falls back to the neutral "Couldn't send".
 const SEND_FAILURE_COPY: Record<string, string> = {
   'blocked-word': 'Message contains blocked language',
   archived: 'This channel is read-only',
@@ -37,23 +24,10 @@ function sendFailureCopy(code: string | null): string {
   return (code && SEND_FAILURE_COPY[code]) || "Couldn't send";
 }
 
-// Retry policy comes from meta.sendRetryable, stamped by the channel client from
-// the wire contract's canonical retryability table (chat-schemas enforces the
-// frame's `retryable` matches the table, so this is the ONE source of truth —
-// never a second hardcoded code list here, which would have to move in lockstep
-// with the contract). `false` = terminal (an unchanged resend is guaranteed to
-// fail — no Retry action); `true` or ABSENT (a code-less transport/exhausted
-// reconnect failure) keeps Retry, reusing the ORIGINAL clientMessageId.
 function isRetryableFailure(meta: Record<string, unknown> | undefined): boolean {
   return meta?.sendRetryable !== false;
 }
 
-// ============================================
-// System message
-// ============================================
-
-// System lines are the conversation's action record (agreed / retracted / offer updated /
-// finalized…), so each carries its time — same hour:minute format as the message bubbles.
 function SystemMessage({ m }: { m: ChatMessageV1 }) {
   return (
     <div className="chat-system-message">
@@ -65,27 +39,17 @@ function SystemMessage({ m }: { m: ChatMessageV1 }) {
   );
 }
 
-// ============================================
-// Default message item
-// ============================================
-
 export type MessageItemDefaultProps = {
   m: ChatMessageV1;
   currentUserId: string;
   isAdmin: boolean;
   handlers?: ModerationHandlers;
 
-  // Grouping
   isContinuation?: boolean;
 
-  // Sender interaction — the app resolves anything it needs about the sender from the id.
   onSenderClick?: (senderId: string) => void;
-  /** The app's adornment beside the sender name; shown with the sender line, never on a continuation. */
   senderAdornment?: ReactNode;
 
-  /** Retry a failed realtime send by its original clientMessageId (wired by
-   *  ChatShell on the realtime transport; absent on firestore). Enables the
-   *  retry affordance on a `meta.sendFailed` bubble. */
   onRetrySend?: (clientMessageId: string) => void;
 };
 
@@ -100,28 +64,19 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
     senderAdornment,
     onRetrySend,
   } = props;
-  // Only a resolved name is a click target: the app's unresolved state (a Retry included) is never
-  // nested inside a button.
   const nameResolved = useSenderNameResolution(m.senderId).status === 'resolved';
   const onSenderClick = nameResolved ? senderClick : undefined;
 
-  // System messages render differently
   if (m.isSystemMessage) {
     return <SystemMessage m={m} />;
   }
 
   const mine = m.senderId === currentUserId;
 
-  // Realtime optimistic-send lifecycle (meta is stamped by the channel client):
-  // an un-acked echo renders subtly pending; one past the retry/age cap renders a
-  // visibly failed bubble with a retry affordance (same clientMessageId — the DO
-  // dedups, so a retry can never double-send).
   const sendFailed = m.meta?.sendFailed === true;
   const sendPending = m.meta?.optimistic === true && !sendFailed;
   const clientMessageId =
     typeof m.meta?.clientMessageId === 'string' ? m.meta.clientMessageId : null;
-  // Correlated rejection reason (from the `send-rejected` frame), if any — drives
-  // both the failure copy and whether a Retry affordance is offered.
   const sendFailureCode =
     typeof m.meta?.sendFailureCode === 'string' ? m.meta.sendFailureCode : null;
   const showRetry = sendFailed && isRetryableFailure(m.meta);
@@ -174,8 +129,6 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
         )}
       </div>
 
-      {/* Send-state status rows render regardless of grouping — a pending/failed
-          send must never be indistinguishable from a delivered one. */}
       {sendPending && (
         <div className="chat-send-status mt-0.5" role="status" aria-live="polite">
           <Spinner size="xs" className="shrink-0" />

@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-// DomainEvent schemas for the social domain — Square Streetz posts.
-// Assembled into the discriminated union in ./domain-events.ts.
-
 export const SquareStreetzPostCreatedEventSchema = z
   .object({
     type: z.literal('squareStreetz.postCreated'),

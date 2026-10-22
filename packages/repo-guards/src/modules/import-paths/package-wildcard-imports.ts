@@ -1,15 +1,9 @@
-// No wildcard import of a scoped package. A consumer that takes a package's whole module (`import *
-// as X`, `export * as X from`, `export * from`) names no definition, so nothing traces a name it uses
-// to the entry that owns it, and a test's mock of one name stands in for every other name the
-// wildcard reaches. Each name is imported by name instead.
-
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { textProblem } from '../../support/facts.js';
 
 export interface PackageWildcardImportFacts {
-  /** The npm scope whose packages the rule holds (`@ttt-productions`). */
   scope: string;
 }
 

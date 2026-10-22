@@ -1,6 +1,3 @@
-// The guards over how the Functions tree is built and loaded: rate-limit surfaces, lazy loaders,
-// light-function closures, and the split-codebase manifest.
-
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   codebaseManifestGuard,

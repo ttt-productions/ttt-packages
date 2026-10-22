@@ -11,7 +11,6 @@ export function mergeModeration(
   if (!a) return b ?? undefined;
   if (!b) return a ?? undefined;
 
-  // worst status wins: rejected > flagged > error > passed
   const rank = (s: string) => (s === 'rejected' ? 4 : s === 'flagged' ? 3 : s === 'error' ? 2 : 1);
 
   const status = rank(a.status) >= rank(b.status) ? a.status : b.status;

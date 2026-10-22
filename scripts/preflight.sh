@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Releases tag the COMMITTED tree; CI builds from the tag. If tracked files are
-# dirty, the published package won't match the working copy. package-lock.json
-# is exempt: the npm install below may legitimately refresh it, and
-# release-package.sh commits it with the release.
+# package-lock.json is exempt: the npm install below may refresh it, and release-package.sh commits it.
 echo "preflight: checking for uncommitted tracked changes..."
 DIRTY=$(git status --porcelain --untracked-files=no | grep -v 'package-lock\.json' || true)
 if [[ -n "$DIRTY" ]]; then
@@ -26,12 +23,8 @@ find packages -name "*.tsbuildinfo" -not -path "*/node_modules/*" -delete 2>/dev
 echo "preflight: npm install (sync package-lock.json with the manifests)..."
 npm install
 
-# npm install makes node_modules work but does NOT prove the lockfile is in
-# sync with the manifests — publish CI runs `npm ci`, which hard-fails on any
-# package.json/package-lock.json desync (this exact failure shipped a broken
-# release batch on 2026-06-10; npm install had silently left a stale graph in
-# the lock). `npm ci --dry-run` runs the same validation phase CI fails on,
-# in seconds, without touching node_modules.
+# npm install can leave a lockfile desync that publish CI's `npm ci` hard-fails on;
+# `npm ci --dry-run` runs that same validation without touching node_modules.
 echo "preflight: npm ci --dry-run (validates package-lock.json sync exactly like publish CI)..."
 if ! npm ci --dry-run >/dev/null 2>&1; then
   echo ""
@@ -43,20 +36,10 @@ if ! npm ci --dry-run >/dev/null 2>&1; then
 fi
 
 echo "preflight: npm run test:quiet (the full quiet gate; concise output)..."
-# test:quiet runs the same gate as test:all but with one-line-per-stage output, plus a final schema
-# stage that checks docs/generated/firestore-schema.{md,mmd} and AUTO-REGENERATES them if stale (it
-# prints "regenerated" and still exits 0 — commit the regenerated docs). That replaces the old
-# separate `generate-schema-docs.mjs --check` step here. --format-check-only keeps the format stage to
-# a check: the tree here is the commit being released, and a write would publish formatting it lacks.
+# Check-only: this tree is the commit being released, and a write would publish formatting it lacks.
 npm run test:quiet -- --format-check-only
 
-# License sweep over third-party production deps — informational (never blocks a release; `|| true`).
-# Surfaces any incoming copyleft/unknown license before it lands silently. --excludePrivatePackages
-# drops our own private monorepo root (license-checker reports any `private: true` package as
-# UNLICENSED regardless of its license field), so the summary stays focused on redistributed deps.
-# Accepted licenses for published @ttt-productions/* deps: MIT, ISC, Apache-2.0, BSD-2-Clause,
-# BSD-3-Clause, 0BSD, CC0-1.0, Unlicense, Python-2.0, BlueOak-1.0.0. Anything outside that set warrants
-# a look. To make this enforcing later, swap to: --onlyAllow '<semicolon-list>'.
+# license-checker reports any `private: true` package as UNLICENSED, hence --excludePrivatePackages.
 echo "preflight: license sweep (npx license-checker --production --excludePrivatePackages --summary; informational)..."
 npx license-checker --production --excludePrivatePackages --summary || true
 

@@ -25,8 +25,7 @@
       "noEmit": false
     },
     "exclude": ["node_modules", "dist", "build"],
-    // `tsc -b` from here type-checks the two projects below and compiles nothing of its own; each
-    // package's config extends this file for its compiler options and names its own files.
+    // Each package extends this file and names its own files, so only the references build here.
     "files": [],
     "references": [{ "path": "./tsconfig.workspace.json" }, { "path": "./packages/repo-guards/tsconfig.test.json" }]
   }

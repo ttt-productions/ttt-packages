@@ -1,8 +1,3 @@
-// The guards over client Firestore access:
-//   - a live subscription is a reviewed exception;
-//   - no component or route imports the Firestore runtime; reads go through hooks, writes through
-//     callables, apart from reviewed root providers.
-
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
@@ -17,12 +12,6 @@ import { isUnder } from '../../support/text.js';
 const FIRESTORE_SDK = /^firebase\/firestore(?:\/|$)/;
 const APP_SOURCE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
-/**
- * Every live-subscription declaration in one file: a `subscribe` option whose value is anything but a
- * literal `false` (a variable is still live mode), the shorthand `{ subscribe }`, and a call of
- * `onSnapshot` under any name the file bound the Firestore SDK's to — a renamed import or a namespace
- * import included.
- */
 export function liveSubscriptionHits(file: FileView): Hit[] {
   const source = file.sourceFile;
   const snapshotNames = new Set(['onSnapshot']);
@@ -54,7 +43,6 @@ export function liveSubscriptionHits(file: FileView): Hit[] {
 }
 
 export interface LiveSubscriptionFacts {
-  /** App files reviewed to open a live Firestore subscription, each with why it needs real-time delivery. */
   allowlist: readonly Reviewed[];
 }
 
@@ -101,13 +89,10 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
 };
 
 export interface FirestoreRuntimeInUiFacts {
-  /** Repo-relative folders that hold components and routes (`src/components`, `src/app`). */
   uiFolders: readonly string[];
-  /** Root providers reviewed to read Firestore directly, each with its why. */
   sanctioned: readonly Reviewed[];
 }
 
-/** Every runtime (not type-only) import of the Firestore SDK in one file. */
 export function firestoreRuntimeImports(file: FileView): Hit[] {
   const source = file.sourceFile;
   const hits: Hit[] = [];

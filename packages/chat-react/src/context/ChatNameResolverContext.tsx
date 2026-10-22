@@ -7,7 +7,6 @@ import type {
   ChatPrewarmSenders,
 } from '@ttt-productions/chat-core';
 
-/** A sender name the app could not resolve: pending, unavailable, or failed. */
 export type UnresolvedChatName = Exclude<ChatNameResolution, { status: 'resolved' }>;
 
 type ChatNameResolverContextValue = {
@@ -21,21 +20,10 @@ const ChatNameResolverContext = React.createContext<ChatNameResolverContextValue
 export type ChatNameResolverProviderProps = {
   resolveName: ChatNameResolver;
   prewarm?: ChatPrewarmSenders;
-  /**
-   * Renders a sender whose name is not resolved — the app's own placeholder while the
-   * read is pending, its unavailable state when there is no person to name, and its
-   * load-error state (with `retry`) when the read failed. The chat UI never writes a
-   * stand-in name of its own; without this slot an unresolved sender renders nothing.
-   */
   renderUnresolvedName?: (resolution: UnresolvedChatName) => React.ReactNode;
   children: React.ReactNode;
 };
 
-/**
- * Wraps any chat-react consumer (typically the whole app shell) and provides the name
- * resolver. Required for any tree that renders <ChatShell>, <MessageList>, or
- * <MessageItemDefault>.
- */
 export function ChatNameResolverProvider(props: ChatNameResolverProviderProps) {
   const { resolveName, prewarm, renderUnresolvedName, children } = props;
   const value = React.useMemo(
@@ -47,11 +35,6 @@ export function ChatNameResolverProvider(props: ChatNameResolverProviderProps) {
   );
 }
 
-/**
- * Strict hook — throws if no provider is wrapped. Used inside this package's own
- * renderers so a missing setup surfaces on first render instead of rendering a sender
- * with no name.
- */
 export function useChatNameResolver(): ChatNameResolverContextValue {
   const ctx = React.useContext(ChatNameResolverContext);
   if (!ctx) {
@@ -62,16 +45,10 @@ export function useChatNameResolver(): ChatNameResolverContextValue {
   return ctx;
 }
 
-/**
- * Optional variant — returns null instead of throwing when no provider is wrapped.
- * Used internally by the message hooks so headless callers (tests, data-only consumers
- * that render no UI) can still use them.
- */
 export function useOptionalChatNameResolver(): ChatNameResolverContextValue | null {
   return React.useContext(ChatNameResolverContext);
 }
 
-/** What the app knows about a sender's name right now. Re-renders as the app's cache settles. */
 export function useSenderNameResolution(senderId: string): ChatNameResolution {
   const { resolveName } = useChatNameResolver();
   return resolveName(senderId);

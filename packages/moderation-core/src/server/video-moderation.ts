@@ -3,18 +3,13 @@ import type { Likelihood, MediaModerationResult, ModerationLogger } from '../typ
 
 import type { VideoIntelligenceServiceClient } from '@google-cloud/video-intelligence';
 
-/** Poll cadence for the annotateVideo long-running operation. */
 export interface VideoPollBackoff {
   initialDelayMillis: number;
   delayMultiplier: number;
   maxDelayMillis: number;
 }
 
-/**
- * Without an explicit `longrunning` backoff, gax polls the operation starting at
- * 100ms (×1.3), which burns ~20 'Requests per minute' of Video Intelligence quota
- * per video. Scans take tens of seconds, so the first poll waits 10s.
- */
+// gax's default long-running poll (100ms, x1.3) spends Video Intelligence per-minute quota.
 export const DEFAULT_VIDEO_POLL_BACKOFF: VideoPollBackoff = {
   initialDelayMillis: 10_000,
   delayMultiplier: 1.5,
@@ -36,10 +31,7 @@ async function defaultGetVideoClient(): Promise<VideoIntelligenceServiceClient> 
   return _defaultClient;
 }
 
-/**
- * Moderate a video via Google Cloud Video Intelligence.
- * @param gcsUri - MUST be a GCS URI ("gs://bucket/path"); HTTPS URLs are not supported by the API.
- */
+// Video Intelligence accepts only gs:// URIs, never HTTPS URLs.
 export async function moderateVideo(
   gcsUri: string,
   options: VideoModerationOptions,

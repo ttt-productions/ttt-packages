@@ -1,6 +1,3 @@
-// The system-content upload limits are fixed across app modes at full-mode Hall Television's
-// ceiling: a 30-minute video, with Hall Television's full-mode raw and processed byte caps. Each
-// mode's registry is the one tttMediaSpecsFor builds for that mode.
 import { describe, it, expect } from 'vitest';
 import { APP_MODE } from '../src/constants/app-mode.js';
 import { TTT_MEDIA_SPECS, tttMediaSpecsFor } from '../src/media/ttt-media-specs.js';

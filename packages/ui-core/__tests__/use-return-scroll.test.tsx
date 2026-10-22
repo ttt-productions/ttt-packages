@@ -8,8 +8,6 @@ import {
   readReturnScroll,
 } from '../src/react/hooks/use-return-scroll.js';
 
-// A controllable animation-frame queue: the hook schedules its restore in a frame, so the
-// tests decide exactly when (and whether) that frame runs.
 const frames = new Map<number, FrameRequestCallback>();
 let nextFrame = 1;
 function flushFrames() {
@@ -96,7 +94,6 @@ describe('useReturnScroll — the restore contract', () => {
     expect(scrollTo).toHaveBeenCalledTimes(1);
     expect(scrollTo).toHaveBeenCalledWith({ top: 900, left: 0, behavior: 'instant' });
     expect(readReturnScroll(KEY)).toBeNull();
-    // A later ready flip cannot restore again — the entry is consumed and the decision done.
     rerender({ ready: false });
     rerender({ ready: true });
     flushFrames();
@@ -111,7 +108,6 @@ describe('useReturnScroll — the restore contract', () => {
       { initialProps: { eligible: false, ready: false } },
     );
     expect(readReturnScroll(KEY)).toBeNull();
-    // Even if the caller wrongly flips eligible later, the decision is latched.
     rerender({ eligible: true, ready: true });
     flushFrames();
     expect(scrollTo).not.toHaveBeenCalled();
@@ -122,7 +118,6 @@ describe('useReturnScroll — the restore contract', () => {
     renderHook(() => useReturnScroll({ key: KEY, eligible: true, ready: false }));
     flushFrames();
     expect(scrollTo).not.toHaveBeenCalled();
-    // The entry stays until the list is really displayed.
     expect(readReturnScroll(KEY)?.y).toBe(900);
   });
 
@@ -143,7 +138,6 @@ describe('useReturnScroll — the restore contract', () => {
     renderHook(() => useReturnScroll({ key: KEY, eligible: true, ready: true }), {
       wrapper: ({ children }) => React.createElement(React.StrictMode, null, children),
     });
-    // Strict Mode ran the effect, cleaned it up (cancelling the frame), and ran it again.
     expect(frames.size).toBe(1);
     flushFrames();
     expect(scrollTo).toHaveBeenCalledTimes(1);
@@ -158,7 +152,6 @@ describe('useReturnScroll — the restore contract', () => {
       ({ key }) => useReturnScroll({ key, eligible: true, ready: true }),
       { initialProps: { key: OTHER } },
     );
-    // OTHER has no entry: nothing scheduled.
     expect(frames.size).toBe(0);
     rerender({ key: KEY });
     expect(frames.size).toBe(1);

@@ -21,12 +21,6 @@ import {
 } from '@ttt-productions/input-format-core';
 import { Zap, Clock, RotateCcw } from 'lucide-react';
 
-/**
- * The inline reason field. The caller OWNS the reason value/onChange (draft state lives at the call
- * site) and the field's declaration — this component declares no business numbers and no copy.
- * Confirm stays disabled until the value passes the declaration's check; `min: 0` makes the reason
- * optional.
- */
 export interface ConsequenceDialogReason {
   inputFormat: DeclaredInputFormat;
   placeholder?: string;
@@ -34,75 +28,40 @@ export interface ConsequenceDialogReason {
   value: string;
   onChange: (value: string) => void;
   rows?: number;
-  /**
-   * A line rendered directly under the reason box, such as why its current text is refused. It is
-   * called with the id the box names in its `aria-describedby`, and the element it renders carries
-   * that id. The caller owns the words; this component adds none.
-   */
   hint?: (id: string) => React.ReactNode;
 }
 
-/**
- * The exact-match typed-confirmation gate. `phrase` is business copy owned by the CALLER; the
- * component only compares the typed value against it.
- */
 export interface ConsequenceDialogTypedConfirmation {
   phrase: string;
   label?: React.ReactNode;
 }
 
 export interface ConsequenceDialogProps {
-  /** Uncontrolled open model: the element that opens the dialog (rendered `asChild`). */
   trigger?: React.ReactNode;
-  /** Controlled open model. Provide with `onOpenChange`. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 
-  /** Heading — a string or node so callers can interpolate amounts / names. */
   title: React.ReactNode;
 
-  /** SLOT 1 — what happens right now (e.g. "initiates a Stripe refund of $X now"). */
   immediateEffect?: React.ReactNode;
-  /** SLOT 2 — what settles later, out of band (webhook / worker / async confirmation). */
   delayedEffect?: React.ReactNode;
-  /** SLOT 3 — whether/how this can be undone or superseded. */
   reversibility?: React.ReactNode;
 
-  /** Inline reason field. Optional. */
   reason?: ConsequenceDialogReason;
-  /** Exact-phrase typed-confirmation gate. Optional. */
   typedConfirmation?: ConsequenceDialogTypedConfirmation;
 
   confirmLabel: React.ReactNode;
   cancelLabel?: React.ReactNode;
-  /** `true` styles the confirm button with `bg-destructive`. */
   destructive?: boolean;
 
-  /**
-   * Runs on confirm. May be async — while it is pending the dialog STAYS OPEN: the confirm button
-   * is `aria-disabled`, keeps focus, ignores further presses, and shows its pending spinner, and
-   * only Cancel is natively disabled. Closes on resolve. If it rejects the dialog
-   * stays open so the caller's own surface (error toast, TOTP step-up) can show and the operator can
-   * retry or cancel. This component takes no Sentry/monitoring dependency — every error path
-   * belongs to the caller's `onConfirm`.
-   */
   onConfirm: () => void | Promise<void>;
 
-  /**
-   * Runs as the dialog closes, before Radix returns focus to the control that opened it. A confirmed
-   * action that removes that control moves focus to its own destination here and calls
-   * `event.preventDefault()`, so the restore does not pull focus back onto a control about to go.
-   */
   onCloseAutoFocus?: (event: Event) => void;
 }
 
 const SLOT_ICON_CLASS = 'icon-xs mt-0.5 shrink-0 text-muted-foreground';
 
-/**
- * One consequence slot: the icon beside a block column whose label sits on its own line above
- * the slot text. Every element is a block: the `stack-*` spacing is a vertical margin, which an
- * inline element ignores.
- */
+/** Every element is a block: the `stack-*` spacing is a vertical margin, which an inline element ignores. */
 function ConsequenceRow({
   icon: Icon,
   label,
@@ -125,17 +84,7 @@ function ConsequenceRow({
   );
 }
 
-/**
- * A reusable confirm-before-a-consequential-action dialog. Three optional, consistently-styled
- * consequence slots (immediate / afterward / reversibility), an optional inline reason field,
- * and an optional exact-phrase typed-confirmation gate. Composes the ui-core AlertDialog primitives
- * (Radix) — it never re-implements them. Supports BOTH a `trigger` (uncontrolled) and `open` /
- * `onOpenChange` (controlled).
- *
- * Pending model: the confirm button is a plain `Button` (NOT `AlertDialogAction`), so Radix does not
- * auto-close on click; open state is managed here so the dialog stays open with a visible spinner
- * until `onConfirm` resolves.
- */
+/** The confirm is a plain `Button`, not `AlertDialogAction`, so Radix does not close the dialog on click. */
 export function ConsequenceDialog({
   trigger,
   open,
@@ -171,11 +120,10 @@ export function ConsequenceDialog({
     [isControlled, onOpenChange],
   );
 
-  // Never allow an open-state change (Escape, cancel, controlled parent) to fight the pending action.
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (pending) return;
-      setTypedValue(''); // reset the typed gate on every open/close
+      setTypedValue('');
       setOpenState(next);
     },
     [pending, setOpenState],
@@ -189,8 +137,6 @@ export function ConsequenceDialog({
       setTypedValue('');
       setOpenState(false);
     } catch {
-      // Keep the dialog open — the caller's onConfirm surfaced the error (toast / step-up). The
-      // operator can retry or cancel. Never rethrow, never monitor here.
     } finally {
       setPending(false);
     }
@@ -199,7 +145,6 @@ export function ConsequenceDialog({
   const reasonOk = !reason || checkInputFormat(reason.value, reason.inputFormat).ok;
 
   const typedOk = !typedConfirmation ? true : typedValue === typedConfirmation.phrase;
-  // The phrase is one line, and nothing longer than it can ever match it.
   const phrase = typedConfirmation?.phrase ?? '';
   const typedFormat = useMemo(
     () =>
@@ -220,9 +165,7 @@ export function ConsequenceDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          {/* A div, not the primitive's default <p>: the rows are blocks, which a <p> cannot hold.
-              Left-aligned at every width — the header centres its text on narrow screens, and a
-              wrapped consequence line reads as a list, not a caption. */}
+          {/* A div, not the primitive's default <p>: the rows are blocks, which a <p> cannot hold. */}
           <AlertDialogDescription asChild>
             <div className="stack-3 text-left">
               {immediateEffect ? (

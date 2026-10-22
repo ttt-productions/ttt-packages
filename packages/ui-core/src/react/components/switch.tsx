@@ -6,8 +6,6 @@ import * as SwitchPrimitives from '@radix-ui/react-switch';
 import { cn } from '../../lib/utils.js';
 import { Spinner } from './spinner.js';
 
-// Stopped in the capture phase so neither the caller's click handler nor the switch's own
-// toggle runs while a change is in flight.
 function blockToggle(event: React.MouseEvent<HTMLButtonElement>) {
   event.preventDefault();
   event.stopPropagation();
@@ -16,13 +14,6 @@ function blockToggle(event: React.MouseEvent<HTMLButtonElement>) {
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
-    /**
-     * The change this switch started is in flight: the switch ignores toggling, sets
-     * `aria-disabled` and `aria-busy`, and spins inside its thumb. It keeps showing the
-     * COMMITTED state — the caller flips `checked` only once the write lands. It is never
-     * natively disabled while pending (a `disabled` passed alongside applies once pending
-     * ends), so the switch the user just pressed keeps focus (FRONTEND-203).
-     */
     pending?: boolean;
   }
 >(({ className, pending = false, disabled, ...props }, ref) => (

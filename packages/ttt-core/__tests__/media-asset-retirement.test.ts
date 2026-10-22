@@ -1,6 +1,3 @@
-// The retirement obligation on MediaAssetSchema: co-written with the delete that leaves an asset
-// unowned, drained until every variant's object delete has succeeded, and only then retired.
-
 import { describe, it, expect } from 'vitest';
 import {
   MediaAssetRetirementDeferralSchema,
@@ -42,7 +39,6 @@ const owed = {
   nextAttemptAt: 1_700_000_000_000,
 };
 
-/** The asset as the delete transaction leaves it: the authority deny and the obligation, together. */
 const retiring = { ...liveAsset, servingStatus: 'hidden' as const, retirement: owed };
 
 describe('MediaAssetSchema — the retirement obligation', () => {

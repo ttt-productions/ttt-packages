@@ -18,7 +18,6 @@ export const CloseCommissionInputSchema = z
   .strict();
 export type CloseCommissionInput = z.infer<typeof CloseCommissionInputSchema>;
 
-// ONE result for the member close and its admin-review twin.
 export const CloseCommissionResultSchema = z.object({
   success: z.literal(true),
   commissionListingId: commissionListingIdSchema,
@@ -71,19 +70,10 @@ export type CreateCommissionProposalTextInput = z.infer<
   typeof CreateCommissionProposalTextInputSchema
 >;
 
-// Acceptance result of the commission-proposal MEDIA path (startUpload with fileOrigin
-// 'commission-proposal'). Creation itself is asynchronous via the media pipeline; the
-// proposal doc id is the CALLER's uid (one proposal per user per commission —
-// runCreateCommissionProposal: commissionProposalId = callerUid), so it is knowable at
-// accept time without any read.
-// (The TEXT path's created-item result, CreateCommissionProposalTextResultSchema, lives
-// in ../doc-schemas/commissions.ts — it composes CommissionProposalSchema, and that
-// module imports THIS one, so declaring it here would be a module cycle.)
 export const ApplyToCommissionAcceptedResultSchema = z.object({
   success: z.literal(true),
   commissionListingId: commissionListingIdSchema,
   pendingMediaId: z.string().min(1),
-  /** The eventual proposal doc id — the caller's uid (one proposal per user). */
   commissionProposalId: commissionProposalIdSchema,
 });
 export type ApplyToCommissionAcceptedResult = z.infer<typeof ApplyToCommissionAcceptedResultSchema>;

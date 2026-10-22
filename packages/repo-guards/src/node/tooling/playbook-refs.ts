@@ -1,19 +1,15 @@
-// Every concrete repository file a playbook cites must still exist: a dead path sends the next
-// audit down a dead end. Glob patterns and lines marked `<!-- no-check -->` are audit inputs, not
-// file references, and are skipped. A trailing line anchor (`:12`, `:12:4`, `:4-9`, `#L12`,
-// `#L4-L9`) is stripped.
-
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 export interface PlaybookRefsConfig {
   repoRoot: string;
-  /** The playbooks folder, relative to the repository root. */
-  playbooksDir: string;
-  /** Top-level folders whose paths count as file references. */
-  pathPrefixes: readonly string[];
-  /** Root-level files whose bare names count as file references. */
-  rootFiles: readonly string[];
+  folders: readonly {
+    dir: string;
+    refsRoot: string;
+    pathPrefixes: readonly string[];
+    rootFiles: readonly string[];
+    minChecked: number;
+  }[];
 }
 
 export interface PlaybookMiss {
@@ -24,24 +20,32 @@ export interface PlaybookMiss {
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const PLACEHOLDER = /<[A-Z][A-Z0-9_]*>/;
+
+const SIBLING_MD = /^[^\s/\\*?{}<>|[\]()]+\.md$/;
+const SIBLING_LINK = /^[^\s/\\*?{}<>|[\]()]+\.[A-Za-z0-9]+$/;
+
 function normalize(token: string): string {
   return token
     .trim()
     .replace(/[.,;:)\]]+$/, '')
-    .replace(/#L\d+(?:-L?\d+)?$/, '')
+    .replace(/#[^\s/]*$/, '')
     .replace(/:\d+(?::\d+|-\d+)?$/, '');
 }
 
-/** Scan every playbook for file references and check each exists. Never throws on a miss. */
-export function checkPlaybookRefs(config: PlaybookRefsConfig): {
-  checked: number;
-  misses: PlaybookMiss[];
-} {
-  const prefixes = config.pathPrefixes.map(escapeRe).join('|');
-  const pathRef = new RegExp(`^(?:${prefixes})\\/[^\\s*?{}]+\\.[A-Za-z0-9]+$`);
-  const bare = new RegExp(`(?:^|\\s)((?:${prefixes})\\/[^\\s)\`,]+)`, 'g');
-  const rootFiles = new Set(config.rootFiles);
-  const dir = path.join(config.repoRoot, config.playbooksDir);
+function checkFolder(
+  repoRoot: string,
+  folder: PlaybookRefsConfig['folders'][number],
+): { checked: number; misses: PlaybookMiss[] } {
+  // No prefix means no prefixed path counts: an empty alternation would match every path that
+  // starts with `/`.
+  const prefixes = folder.pathPrefixes.map(escapeRe).join('|');
+  const pathRef =
+    prefixes === '' ? null : new RegExp(`^(?:${prefixes})\\/[^\\s*?{}]+\\.[A-Za-z0-9]+$`);
+  const bare = prefixes === '' ? null : new RegExp(`(?:^|\\s)((?:${prefixes})\\/[^\\s)\`,]+)`, 'g');
+  const rootFiles = new Set(folder.rootFiles);
+  const dir = path.join(repoRoot, folder.dir);
+  const refsRoot = path.join(repoRoot, folder.refsRoot);
   const misses: PlaybookMiss[] = [];
   let checked = 0;
 
@@ -51,20 +55,29 @@ export function checkPlaybookRefs(config: PlaybookRefsConfig): {
       .split(/\r?\n/)
       .forEach((line, index) => {
         if (line.includes('<!-- no-check -->')) return;
-        const candidates = [
-          ...[...line.matchAll(/`([^`]+)`/g)].map((m) => m[1]!),
-          ...[...line.matchAll(bare)].map((m) => m[1]!),
+        const prose = line.replace(/`[^`]*`/g, '');
+        const candidates: { token: string; link: boolean }[] = [
+          ...[...line.matchAll(/`([^`]+)`/g)].map((m) => ({ token: m[1]!, link: false })),
+          ...(bare ? [...line.matchAll(bare)].map((m) => ({ token: m[1]!, link: false })) : []),
+          ...[...prose.matchAll(/\]\(([^)\s]+)\)/g)].map((m) => ({ token: m[1]!, link: true })),
         ];
-        for (const raw of candidates) {
-          const token = normalize(raw);
-          if (/[*?{}]/.test(token)) continue;
-          if (!pathRef.test(token) && !rootFiles.has(token)) continue;
-          if (seen.has(token)) continue;
-          seen.add(token);
+        for (const candidate of candidates) {
+          const token = normalize(candidate.token);
+          if (/[*?{}]/.test(token) || PLACEHOLDER.test(token)) continue;
+          let root: string;
+          if (candidate.link) {
+            if (!SIBLING_LINK.test(token)) continue;
+            root = dir;
+          } else if (rootFiles.has(token) || pathRef?.test(token)) root = refsRoot;
+          else if (SIBLING_MD.test(token)) root = dir;
+          else continue;
+          const key = `${root === dir ? 'sibling' : 'root'}:${token}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
           checked += 1;
-          const target = path.join(config.repoRoot, ...token.split('/'));
+          const target = path.join(root, ...token.split('/'));
           if (!existsSync(target) || !statSync(target).isFile()) {
-            misses.push({ file: `${config.playbooksDir}/${name}`, line: index + 1, token });
+            misses.push({ file: `${folder.dir}/${name}`, line: index + 1, token });
           }
         }
       });
@@ -72,22 +85,52 @@ export function checkPlaybookRefs(config: PlaybookRefsConfig): {
   return { checked, misses };
 }
 
-/** Run the check and exit non-zero on a miss. */
+export function checkPlaybookRefs(config: PlaybookRefsConfig): {
+  folders: { dir: string; checked: number; minChecked: number }[];
+  misses: PlaybookMiss[];
+  shortfalls: { dir: string; checked: number; minChecked: number }[];
+} {
+  if (config.folders.length === 0)
+    throw new Error('playbook-refs: no playbook folder is configured.');
+  const folders: { dir: string; checked: number; minChecked: number }[] = [];
+  const misses: PlaybookMiss[] = [];
+  for (const folder of config.folders) {
+    if (!Number.isInteger(folder.minChecked) || folder.minChecked < 1) {
+      throw new Error(`playbook-refs: ${folder.dir} needs a minChecked of at least 1.`);
+    }
+    let result;
+    try {
+      result = checkFolder(config.repoRoot, folder);
+    } catch (error) {
+      throw new Error(
+        `playbook-refs: cannot read the playbook folder ${folder.dir}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
+    folders.push({ dir: folder.dir, checked: result.checked, minChecked: folder.minChecked });
+    misses.push(...result.misses);
+  }
+  return {
+    folders,
+    misses,
+    shortfalls: folders.filter((folder) => folder.checked < folder.minChecked),
+  };
+}
+
 export function runPlaybookRefsCli(config: PlaybookRefsConfig): void {
   let result;
   try {
     result = checkPlaybookRefs(config);
   } catch (error) {
-    console.error(
-      `No playbook folder at ${config.playbooksDir}: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(2);
   }
-  const { checked, misses } = result;
-  // Zero references checked means the scan read nothing, which would otherwise print as a pass.
-  if (checked === 0) {
-    console.error('playbook-refs: no concrete file references were checked.');
-    process.exit(1);
+  const { folders, misses, shortfalls } = result;
+  const checked = folders.reduce((sum, folder) => sum + folder.checked, 0);
+  for (const folder of shortfalls) {
+    console.error(
+      `✖ ${folder.dir}: ${folder.checked} file reference(s) checked, fewer than its floor of ${folder.minChecked}; the scan read too little, or the floor is set above the folder.`,
+    );
   }
   if (misses.length > 0) {
     console.error(`✖ ${misses.length} stale playbook path reference(s) (of ${checked} checked):\n`);
@@ -95,7 +138,7 @@ export function runPlaybookRefsCli(config: PlaybookRefsConfig): void {
     console.error(
       '\nFix the path, delete the reference, or add `<!-- no-check -->` to the line if it is intentionally hypothetical.',
     );
-    process.exit(1);
   }
+  if (shortfalls.length > 0 || misses.length > 0) process.exit(1);
   console.log(`✓ All ${checked} playbook file references exist on disk.`);
 }

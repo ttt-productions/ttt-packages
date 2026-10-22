@@ -1,9 +1,3 @@
-// mediaAssets/{mediaAssetId} — the canonical media registry. One doc per
-// logical uploaded media item; all variants inside. Content docs reference
-// media ONLY by `*AssetId` fields — never URLs. Serving authority is the
-// gateway Worker (cookie/grant + KV blocklist); this doc is the server-side
-// truth the edge records derive from. NO client reads, NO client writes.
-
 import { z } from 'zod';
 import { StructuredErrorSchema } from '@ttt-productions/edge-protocol-core';
 import {
@@ -12,63 +6,33 @@ import {
 } from '@ttt-productions/media-schemas';
 import { FileOriginSchema } from '../media/file-origin.js';
 
-/** Who may be served the bytes (the Worker's tier check). */
 export const MediaAccessTierSchema = z.enum(['broad', 'scoped', 'artisan', 'adminOnly']);
 export type MediaAccessTier = z.infer<typeof MediaAccessTierSchema>;
 
-/** Canonical serving state. The edge record derives from this; hide/restore/
- * quarantine flows write it together with the blocklist. */
 export const MediaServingStatusSchema = z.enum(['servable', 'hidden', 'quarantined', 'deleted']);
 export type MediaServingStatus = z.infer<typeof MediaServingStatusSchema>;
 
-/** The surface that owns this asset. One asset never serves two scopes —
- * publishing to the Hall (or future realm promotion) creates a NEW asset
- * owned by the destination surface. */
 export const MediaAssetOwnerTypeSchema = z.enum([
   'userProfile',
   'craftSkill',
   'squareStreetzPost',
   'workProject',
-  'workContent', // tale chapter / tune track / television episode media (pre-publish)
+  'workContent',
   'hallItem',
   'commissionListing',
   'commissionProposal',
   'audition',
   'auditionEntry',
-  // A file in a conversation's flat Conversation Files list (guild-invite or
-  // admin-support). Chat messages own no media.
   'conversationFile',
-  // Realm shared files are the deliberate MUTATE-IN-PLACE exception: a promoted work file
-  // keeps its ONE `workFile`-owned asset doc and flips tier in place, so no asset is ever
-  // owned by `realmFile` today. The owner type stays declared for a future realm-owned
-  // media surface; it is NOT the seam realm sharing rides (that is `realmFileCanonStatus`
-  // + `realmId` + `realmFileFolderId` on the work file's own asset).
   'realmFile',
-  'safetyEvidence', // inert system sentinel — synthetic NCII-evidence assets (never an account surface)
-  // An admin video held by a system video slot; the owner id is the slot id.
+  'safetyEvidence',
   'systemContent',
 ]);
 export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
 
-// ===== Media origin lineage =====
-// One canonical lineage used by media, CSAM, and safety. Embedded on every
-// media asset + every copy.
-
-/** The ONE canonical stored content media kind (what the pipeline produces and the
- * asset doc records). Distinct from the 4-value display/transport MediaTypeSchema
- * (doc-schemas/social.ts, adds 'other') and media-schemas' generic MediaKindSchema. */
 export const ContentMediaKindSchema = z.enum(['image', 'video', 'audio']);
 export type ContentMediaKind = z.infer<typeof ContentMediaKindSchema>;
 
-/**
- * Every variant key the media pipeline writes under an asset id — never an open `string`: the image
- * variants `TTT_MEDIA_SPECS` declares, plus the video and audio outputs, which derive from the
- * pipeline's own output-key declarations (media-schemas) — the transcoded `main` and the video's
- * `poster` frame. A copy or an ingest intent names its objects with these, so a key outside the set
- * could be written but never reclaimed. `__tests__/media-origin-lineage.test.ts` fails when a spec
- * declares a key outside the set, a pipeline output falls outside it, or a member is produced by
- * nothing.
- */
 export const MEDIA_VARIANT_KEYS = [
   'full',
   'medium',
@@ -79,7 +43,6 @@ export const MEDIA_VARIANT_KEYS = [
 export const MediaVariantKeySchema = z.enum(MEDIA_VARIANT_KEYS);
 export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
 
-/** The sizes a profile picture is produced in (`TTT_MEDIA_SPECS['profile-picture']`), largest first. */
 export const PROFILE_PICTURE_VARIANT_KEYS = [
   'full',
   'medium',
@@ -87,17 +50,11 @@ export const PROFILE_PICTURE_VARIANT_KEYS = [
 ] as const satisfies readonly MediaVariantKey[];
 export type ProfilePictureVariantKey = (typeof PROFILE_PICTURE_VARIANT_KEYS)[number];
 
-/** Which variant renders a stored image as a single display: the largest servable one. An image
- * origin carries exactly one of `main` / `full`; a profile picture adds the smaller sizes. */
 export const MEDIA_DISPLAY_VARIANT_PRECEDENCE = [
   TIMED_MEDIA_MAIN_OUTPUT_KEY,
   ...PROFILE_PICTURE_VARIANT_KEYS,
 ] as const satisfies readonly MediaVariantKey[];
 
-/** Why this asset was created from its source.
- *
- * Chat is text-only and owns no media, so no copy is ever made for a chat message. A
- * Conversation File is an ORIGINAL (`original`), never a derivative. */
 export const MediaCopyReasonSchema = z.enum([
   'original',
   'variant',
@@ -109,42 +66,25 @@ export const MediaCopyReasonSchema = z.enum([
 ]);
 export type MediaCopyReason = z.infer<typeof MediaCopyReasonSchema>;
 
-/**
- * Canonical media origin lineage. A copy INHERITS
- * rootIngestId/rootAssetId/originatingUploaderUid/originatingUploadEventId/
- * originalUploadCreatedAt/rootSha256/originalSha256 unchanged; it sets its own
- * sourceAssetId/variantSha256s/copyReason/copyActorUid/currentOwner*. Client
- * requests can NEVER set or override any lineage field. Automatic account
- * action targets ONLY `originatingUploaderUid`; incident-wide blocking
- * enumerates by `rootIngestId`. Missing/corrupt lineage → safetyLocked +
- * manual decision, never a guessed ban.
- */
 export const MediaOriginLineageV1Schema = z
   .object({
     lineageVersion: z.literal(1),
-    rootIngestId: z.string().min(1), // first-accepted ingest event id; stable across all copies
-    rootAssetId: z.string().min(1), // first asset created from that ingest
-    sourceAssetId: z.string().min(1).optional(), // immediate parent copied from (absent on the root)
-    originatingUploaderUid: z.string().min(1), // set server-side at first accepted ingest; IMMUTABLE; inherited
-    // May be '' for a copy synthesized from a source with no known upload event.
+    rootIngestId: z.string().min(1),
+    rootAssetId: z.string().min(1),
+    sourceAssetId: z.string().min(1).optional(),
+    originatingUploaderUid: z.string().min(1),
     originatingUploadEventId: z.string(),
     originalUploadCreatedAt: z.number(),
-    // '' until content hashing fills in the real sha256.
-    // NOT z.string().min(1): the media pipeline does not compute a content hash at finalize yet,
-    // so a freshly-ingested asset legitimately carries an empty rootSha256 until it is hashed.
+    // Not `.min(1)`: no hash is computed at finalize, so a fresh asset carries ''.
     rootSha256: z.string(),
     originalSha256: z.string().min(1).optional(),
-    // PARTIAL map: one hash per PRODUCED variant (an asset produces only the variants its
-    // origin declares — e.g. full/medium/small for a profile picture, 'main' for others —
-    // never all four). Typed keys, never an open string. `z.partialRecord` (NOT `z.record`):
-    // in Zod 4 `z.record(enum,…)` is EXHAUSTIVE (demands every enum key), which would reject
-    // every real asset's partial variant set; `partialRecord` makes the keys optional.
+    // `z.partialRecord`, not `z.record`: in Zod 4 a record over an enum demands every key.
     variantSha256s: z.partialRecord(MediaVariantKeySchema, z.string().min(1)),
     copyReason: MediaCopyReasonSchema,
-    createdFromOwnerType: MediaAssetOwnerTypeSchema.optional(), // never a bare string
+    createdFromOwnerType: MediaAssetOwnerTypeSchema.optional(),
     createdFromOwnerId: z.string().min(1).optional(),
-    copyActorUid: z.string().min(1).optional(), // who triggered the copy (distinct from the original uploader)
-    currentOwnerType: MediaAssetOwnerTypeSchema, // mutable; the asset's present owner
+    copyActorUid: z.string().min(1).optional(),
+    currentOwnerType: MediaAssetOwnerTypeSchema,
     currentOwnerId: z.string().min(1),
   })
   .strict();
@@ -157,61 +97,21 @@ export const MediaAssetVariantSchema = z
     width: z.number().int().positive().optional(),
     height: z.number().int().positive().optional(),
     durationSec: z.number().positive().optional(),
-    /**
-     * Server-owned filename the gateway puts in `Content-Disposition` for a
-     * `?download=1` request. VARIANT-specific on purpose: the downloadable bytes are
-     * a PROCESSED variant, so the extension must match THIS variant's actual
-     * `contentType` — a transcoded JPEG/WebP/MP4 is never labelled with the original
-     * upload's incompatible extension.
-     *
-     * Written ONLY by backend publishers, and ONLY for surfaces that intentionally
-     * offer a Download action — Work Files (including the same asset shared to a
-     * Realm), Conversation Files, and downloadable Hall media. Profiles, posts,
-     * covers, and every other surface leave it ABSENT so no private original filename
-     * is ever exposed; an absent value serves the safe bare `attachment` disposition.
-     *
-     * Always produced by `normalizeDownloadFilename` (media/download-filename.ts) —
-     * that helper owns the sanitization rules and the UTF-8 byte cap, so no bound is
-     * restated here. A client query parameter is NEVER the filename authority.
-     * Filenames are user content: never log this value.
-     */
     downloadFilename: z.string().min(1).optional(),
   })
   .strict();
 export type MediaAssetVariant = z.infer<typeof MediaAssetVariantSchema>;
 
 export const MediaRetentionPolicySchema = z.enum([
-  'standard', // staging original deleted ~24h after verified mirror
+  'standard',
   'preserveForTrustAndSafety',
   'legalHold',
 ]);
 export type MediaRetentionPolicy = z.infer<typeof MediaRetentionPolicySchema>;
 
-// Realm shared-files: a work file's standing in its realm's shared pool. ONE seam — the
-// approval gate is a value in this union, never a parallel status field.
-//   none            — not shared to the realm (default)
-//   pendingApproval — a Work file admin has REQUESTED promotion; the Realm steward has not
-//                     decided yet. The file is NOT served to the Realm (tier stays `scoped`)
-//                     and is invisible to the member gallery, whose query selects only
-//                     nonCanon|canon — so pending rows are excluded structurally, not by a
-//                     filter someone can forget.
-//   nonCanon        — approved into the realm's pool (in a steward-chosen folder), non-canon
-//   canon           — approved and marked canon (realm steward toggles canon ↔ nonCanon)
-// Moderation/takedown is NOT a value here — a hidden file is hidden via the shared
-// media path (`servingStatus: 'hidden'`), so the gallery filters on servingStatus.
-//
-// Each member is declared ONCE as a named constant below and every set is assembled from
-// those names, so a member constant and the sets that contain it cannot drift apart.
-
-/** Not shared to the realm — the default standing for every work file. */
 export const REALM_FILE_NONE_STATUS = 'none' as const;
-/** The single AWAITING-DECISION standing. Exported as a VALUE as well as a schema so a
- *  consumer can branch on it (`status === REALM_FILE_PENDING_APPROVAL_STATUS`) without
- *  re-quoting the member — the redeclaration guard pins this literal to this file. */
 export const REALM_FILE_PENDING_APPROVAL_STATUS = 'pendingApproval' as const;
-/** Approved into the realm's shared pool, not marked canon. */
 export const REALM_FILE_NON_CANON_STATUS = 'nonCanon' as const;
-/** Approved into the realm's shared pool AND marked canon by the Realm steward. */
 export const REALM_FILE_CANON_STATUS = 'canon' as const;
 
 export const REALM_FILE_CANON_STATUS_VALUES = [
@@ -223,10 +123,6 @@ export const REALM_FILE_CANON_STATUS_VALUES = [
 export const RealmFileCanonStatusSchema = z.enum(REALM_FILE_CANON_STATUS_VALUES);
 export type RealmFileCanonStatus = z.infer<typeof RealmFileCanonStatusSchema>;
 
-/** The two APPROVED (steward-accepted, realm-served) standings. The member gallery query
- *  and its projection accept exactly these — never the full status union, so a pending or
- *  unshared row can never be typed into an approved-files response. Derived from the one
- *  union above; consumers import this instead of re-quoting the members (ARCH-102). */
 export const REALM_FILE_APPROVED_STATUS_VALUES = [
   REALM_FILE_NON_CANON_STATUS,
   REALM_FILE_CANON_STATUS,
@@ -234,15 +130,9 @@ export const REALM_FILE_APPROVED_STATUS_VALUES = [
 export const RealmFileApprovedStatusSchema = z.enum(REALM_FILE_APPROVED_STATUS_VALUES);
 export type RealmFileApprovedStatus = z.infer<typeof RealmFileApprovedStatusSchema>;
 
-/** The steward promotion-queue projection accepts only this, so an approved or unshared row
- *  can never be typed into the queue. */
 export const RealmFilePendingApprovalStatusSchema = z.literal(REALM_FILE_PENDING_APPROVAL_STATUS);
 export type RealmFilePendingApprovalStatus = z.infer<typeof RealmFilePendingApprovalStatusSchema>;
 
-/** Every standing EXCEPT `none` — a file that has entered the request/approval lifecycle at
- *  all. Derived from the two subsets above, so adding a future standing to one of them
- *  reaches this set automatically. Used by the Work-side share-state projection, whose rows
- *  exist only for files that are actually requested or shared. */
 export const REALM_FILE_ACTIVE_STATUS_VALUES = [
   REALM_FILE_PENDING_APPROVAL_STATUS,
   ...REALM_FILE_APPROVED_STATUS_VALUES,
@@ -250,41 +140,12 @@ export const REALM_FILE_ACTIVE_STATUS_VALUES = [
 export const RealmFileActiveStatusSchema = z.enum(REALM_FILE_ACTIVE_STATUS_VALUES);
 export type RealmFileActiveStatus = z.infer<typeof RealmFileActiveStatusSchema>;
 
-// ===== Serving authority (Durable Object) + publication gating =====
-
-/** Whether the canonical serving record has been applied to the DO authority. */
 export const MediaAuthoritySyncStateSchema = z.enum(['pending', 'applied', 'deadLetter']);
 export type MediaAuthoritySyncState = z.infer<typeof MediaAuthoritySyncStateSchema>;
 
-/** Whether the asset is referenced by a visible owner doc. Orthogonal to the
- * upload's processing outcome (`pendingMedia.status`) and to `servingStatus`. */
 export const MediaAssetPublicationStateSchema = z.enum(['unpublished', 'published', 'retired']);
 export type MediaAssetPublicationState = z.infer<typeof MediaAssetPublicationStateSchema>;
 
-/**
- * Typed immutable serving scope for scoped-tier assets. The gateway Worker matches
- * a grant against the scope by `kind` — so a whole-Work `{w}` grant matches ONLY a
- * `workProject` scope, never a conversation scope, and a conversation grant is never
- * reachable by a Work asset.
- *
- * - `workProject` — pre-publish content media (hall covers / sub-item media during
- *   authoring), scoped to project read membership. Carries the matchable
- *   `workProjectId`. This is the typed home for work scope on the strongly-consistent
- *   serving record so the DO-fallback path can authorize it (the DO persists scope
- *   only as `scopeJson`, no separate column).
- * - `workFileFolder` — a work-project FILE living in a folder. The EXACT folder scope,
- *   NOT the whole-Work `{w}` grant: a custom folder's bytes must be unreachable by a
- *   guildmate outside that folder's view trade-professions, so the grant callable runs
- *   the per-folder view check and the Worker EXACT-matches `{workProjectId,
- *   workFileFolderId}` — a plain Work `{w}` grant NEVER matches a folder file, and a
- *   folder grant NEVER matches a `workProject`-scoped content asset.
- * - `guildInvite` / `adminSupport` — the two Conversation Files scopes; an EXACT
- *   conversation scope, matching the `ConversationFileRef` that owns the file. There is
- *   NO guildChannel scope: guild chat channels have no Conversation Files (guildmates
- *   share files through Work Files, which keeps its own workFileFolder scope).
- *
- * `null` scope = no scope match required beyond the access tier (e.g. broad).
- */
 export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
   z
     .object({
@@ -314,44 +175,22 @@ export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
 ]);
 export type MediaServingScope = z.infer<typeof MediaServingScopeSchema>;
 
-/**
- * The typed owner adapter a publication goes through. The activation job
- * carries this kind; a server-side registry validates per-kind `publicationArgs`
- * and performs the idempotent owner write. Every kind is a Firestore-owner adapter.
- */
 export const MediaPublicationKindSchema = z.enum([
   'profilePicture',
   'squarePostMedia',
   'workAsset',
   'hallCover',
-  // Realm cover — Firestore-owner adapter writes `realmCoverAssetId` onto
-  // workRealms/{workRealmId} (the 'realm-cover' upload origin).
   'realmCover',
-  'workContentMedia', // sub-item media (tale chapter / tune track / television episode) — attaches the *AssetId field on the workContent doc; scoped to the work project
+  'workContentMedia',
   'auditionMedia',
   'commissionListingMedia',
   'commissionProposalMedia',
   'craftSkillMedia',
-  // Conversation File: the ONE adapter that creates a visible Conversation File owner
-  // record ({conversationParent}/conversationFiles/{conversationFileId}) and transfers
-  // the quota reservation to published counters in the same transaction. Replaces the
-  // removed `chatAttachment` (Channel-DO flip) and `adminSupportAttachment` (message
-  // placeholder flip) kinds. Carries the typed `guildInvite` / `adminSupport`
-  // MediaServingScope of the owning conversation.
   'conversationFile',
-  // Points a system video slot at its new video and retires the video it replaces, in one
-  // transaction.
   'systemVideoSlot',
 ]);
 export type MediaPublicationKind = z.infer<typeof MediaPublicationKindSchema>;
 
-/**
- * The normalized serving record — the SAME contract used to generate both
- * the DO authority row and the KV cache payload (one function, so they can't
- * drift). The R2 object key stays deterministic (`mediaAssets/{assetId}/{key}`)
- * and is NOT persisted here. `payloadHash` is computed over the canonical
- * payload EXCLUDING the hash itself (see edge-protocol-core `hashPayload`).
- */
 export const MediaServingAuthorityRecordSchema = z
   .object({
     schemaVersion: z.number().int().positive(),
@@ -374,34 +213,14 @@ export const MediaServingAuthorityRecordSchema = z
   .strict();
 export type MediaServingAuthorityRecord = z.infer<typeof MediaServingAuthorityRecordSchema>;
 
-/**
- * Why the retirement drain last deferred an owed retirement: `held` — a legal or safety hold
- * blocks the byte removal; `failed` — an edge step or an object delete failed.
- */
 export const MediaAssetRetirementDeferralSchema = z.enum(['held', 'failed']);
 export type MediaAssetRetirementDeferral = z.infer<typeof MediaAssetRetirementDeferralSchema>;
 
-/**
- * The retirement obligation of an asset whose owner record is gone — written onto the asset doc in
- * the SAME transaction or batch as the delete (or refusal) that leaves it unowned, together with the
- * durable authority deny when the asset is still servable (servingStatusOnRetirementRequest), so no
- * path deletes a record and then retires its media best-effort. One
- * scheduled drain owns the byte removal: it takes up due obligations in `nextAttemptAt` order, and
- * the asset becomes `retired` only when every variant's object delete has succeeded. A hold or a
- * failure defers the obligation (`attemptCount`, `nextAttemptAt`, `lastDeferral`); it is never
- * dropped. The drain deletes the obligation in the transaction that marks the asset retired.
- */
 export const MediaAssetRetirementSchema = z
   .object({
-    /** Epoch ms the obligation was co-written with the delete. */
     requestedAt: z.number().int().nonnegative(),
-    /** Variant keys whose object delete has not yet succeeded (an already-absent object counts as
-     *  deleted). Starts as every key of `variants`; the drain removes a key only after its delete
-     *  succeeds. */
     pendingVariantKeys: z.array(z.string().min(1)),
     attemptCount: z.number().int().nonnegative(),
-    /** Epoch ms from which the drain may take the obligation up; the drain lists due ones in this
-     *  order, so a deferred one rotates behind the ones that can finish. */
     nextAttemptAt: z.number().int().nonnegative(),
     lastDeferral: MediaAssetRetirementDeferralSchema.optional(),
     lastError: StructuredErrorSchema.optional(),
@@ -431,62 +250,32 @@ export const MediaAssetSchema = z
     mediaKind: ContentMediaKindSchema,
     fileOrigin: FileOriginSchema,
 
-    // Ownership / scope. ownerId is the owning doc's id within ownerType's
-    // surface; scope ids let the Worker/grant layer match scoped access.
     ownerType: MediaAssetOwnerTypeSchema,
     ownerId: z.string().min(1),
     workProjectId: z.string().optional(),
     realmId: z.string().optional(),
     createdByUid: z.string().min(1),
 
-    // Access + serving (canonical; edge records derive from these).
     accessTier: MediaAccessTierSchema,
     servingStatus: MediaServingStatusSchema,
 
-    // Variants by key. The object key in R2 (and the Storage emulator) is
-    // deterministic — mediaAssets/{mediaAssetId}/{variantKey} — never stored.
     variants: z.record(z.string(), MediaAssetVariantSchema),
 
-    // Lifecycle / trust-and-safety.
     moderationStatus: z.enum(['approved', 'quarantined']),
     retentionPolicy: MediaRetentionPolicySchema,
     legalHold: z.boolean(),
     originalDeletedAt: z.number().optional(),
 
-    // T&S provenance lineage. Optional so an asset that carries no lineage still parses; set server-side at first accepted
-    // ingest, inherited unchanged by every copy/variant. Never client-supplied.
     originLineage: MediaOriginLineageV1Schema.optional(),
 
-    // ===== Realm shared-files seam (request → steward approval → foldered pool) =====
-    // A file's standing in its realm's shared pool; set at creation to 'none' and moved
-    // ONLY by the realm shared-files callables. The legal combinations of this field with
-    // `realmId`, `realmFileFolderId`, and the three request fields are ENFORCED by the
-    // refinement below — the fields are not independently optional.
     realmFileCanonStatus: RealmFileCanonStatusSchema,
 
-    // The steward-chosen folder under `workRealms/{realmId}/realmFileFolders/{id}`. There is
-    // no default folder: approval IS the folder assignment, so every approved file is in a
-    // folder by construction. Cleared on decline, withdrawal, and admin un-share — but
-    // PRESERVED through moderation hide/restore (hide is reversible and changes serving state
-    // only; clearing it would restore an approved file with no folder and lose the steward's
-    // organization).
     realmFileFolderId: z.string().min(1).optional(),
 
-    // Pending-request metadata, present ONLY while `realmFileCanonStatus === 'pendingApproval'`.
-    // `realmFileShareRequestId` is the CLIENT-GENERATED stable request id carried by the
-    // request input; approval, decline, and withdrawal all compare against it, so a stale tab
-    // can never decide a newer re-request. `realmFileShareRequestedByUid` is the recorded
-    // requester — the resolution notification is addressed from THIS field, never guessed from
-    // `createdByUid` (the uploader and the promoting file admin are frequently different
-    // people). `realmFileShareRequestedAt` is epoch ms (ARCH-105).
     realmFileShareRequestId: z.string().min(1).optional(),
     realmFileShareRequestedByUid: z.string().min(1).optional(),
     realmFileShareRequestedAt: z.number().optional(),
 
-    // Serving authority + publication gating. Optional so an asset with no
-    // authority state still parses: absent authorityVersion ⇒
-    // 0/never-applied, absent publicationState ⇒ 'unpublished'. Every
-    // serving-record mutation increments authorityVersion in an authoritative txn.
     authorityVersion: z.number().int().nonnegative().optional(),
     authorityPayloadHash: z.string().optional(),
     authoritySyncState: MediaAuthoritySyncStateSchema.optional(),
@@ -495,13 +284,9 @@ export const MediaAssetSchema = z
     authorityAppliedAt: z.number().optional(),
     publishedAt: z.number().optional(),
     lastAuthorityError: StructuredErrorSchema.optional(),
-    // Authority-sync retry ledger: the scheduled worker bumps attemptCount + sets a backoff
-    // nextAttemptAt on a transient apply failure, and dead-letters (authoritySyncState='deadLetter')
-    // past a threshold. Absent ⇒ 0 attempts / immediately due.
     authoritySyncAttemptCount: z.number().int().nonnegative().optional(),
     authoritySyncNextAttemptAt: z.number().optional(),
 
-    // Present exactly while a retirement is owed (MediaAssetRetirementSchema).
     retirement: MediaAssetRetirementSchema.optional(),
 
     createdAt: z.number(),
@@ -509,10 +294,6 @@ export const MediaAssetSchema = z
   })
   .strict()
   .superRefine((val, ctx) => {
-    // ===== Retirement invariant =====
-    // An owed retirement already denies serving (the delete co-wrote the authority deny) and is not
-    // yet retired (the drain clears it when it marks the asset retired). It owes only the asset's
-    // own variants.
     if (val.retirement !== undefined) {
       if (val.servingStatus === 'servable') {
         ctx.addIssue({
@@ -539,24 +320,6 @@ export const MediaAssetSchema = z
       }
     }
 
-    // ===== Realm-file legal-combination invariant =====
-    // The realm-file field GROUP is one state machine, not five independently-optional
-    // fields. Declared HERE, on the canonical doc schema (ARCH-102), so every writer inherits
-    // it from one parse instead of each transition re-deciding — and so no reader ever has to
-    // defend against a half-written state (an approved file with no folder, a pending file
-    // already flipped into the realm, a decline that left request metadata behind).
-    //
-    //   none            → no realmId, no folder, no request fields
-    //   pendingApproval → realmId + ALL THREE request fields; NO folder (approval assigns it)
-    //   nonCanon|canon  → realmId + folder; NO request fields (the request is resolved)
-    //
-    // DELIBERATELY NOT CONSTRAINED HERE: `accessTier`. Tier is origin-dependent across the
-    // whole asset universe (this one schema covers every media origin, not just work files),
-    // so binding tier to a realm-file status would misjudge assets that have nothing to do
-    // with realms. Tier correctness on these transitions (`scoped` while pending, `artisan`
-    // once approved) is enforced by the callable transactions and their tests.
-    // `servingStatus` stays orthogonal too — moderation hide/quarantine is independent of a
-    // file's realm standing.
     const requestFields = [
       ['realmFileShareRequestId', val.realmFileShareRequestId],
       ['realmFileShareRequestedByUid', val.realmFileShareRequestedByUid],
@@ -613,7 +376,6 @@ export const MediaAssetSchema = z
       return;
     }
 
-    // 'nonCanon' | 'canon' — approved into the pool.
     require_(
       'realmFileFolderId',
       val.realmFileFolderId,
@@ -629,11 +391,6 @@ export const MediaAssetSchema = z
   });
 export type MediaAsset = z.infer<typeof MediaAssetSchema>;
 
-// Field projections of an asset doc for readers that need only a few of its fields. Each composes
-// the canonical field schemas and strips every other key, and none runs MediaAssetSchema's
-// whole-doc refinement, so a doc with unrelated stored fields still yields the fields read.
-
-/** What the Hall-media orphan reaper's asset phase reads of a candidate asset. */
 export const MediaAssetReapCandidateSchema = z.object({
   mediaAssetId: MediaAssetSchema.shape.mediaAssetId,
   ownerId: MediaAssetSchema.shape.ownerId,
@@ -643,7 +400,6 @@ export const MediaAssetReapCandidateSchema = z.object({
 });
 export type MediaAssetReapCandidate = z.infer<typeof MediaAssetReapCandidateSchema>;
 
-/** What a copy's safety-hold check reads of its source asset. */
 export const MediaAssetCopySourceHoldFieldsSchema = z.object({
   mediaAssetId: MediaAssetSchema.shape.mediaAssetId,
   originLineage: MediaAssetSchema.shape.originLineage,
@@ -651,11 +407,6 @@ export const MediaAssetCopySourceHoldFieldsSchema = z.object({
 });
 export type MediaAssetCopySourceHoldFields = z.infer<typeof MediaAssetCopySourceHoldFieldsSchema>;
 
-/**
- * Where an asset stands on retirement — the one reading a caller that must not delete a record
- * naming media before its media is gone (account erasure) decides from: `absent` (no asset doc),
- * `retired` (every byte removed), `owed` (an obligation is still draining), `none` (not retiring).
- */
 export type MediaAssetRetirementStanding = 'absent' | 'retired' | 'owed' | 'none';
 
 export function mediaAssetRetirementStanding(
@@ -667,19 +418,10 @@ export function mediaAssetRetirementStanding(
   return 'none';
 }
 
-/**
- * The serving status a retirement co-write leaves on an asset: a `servable` asset is denied
- * (`hidden`) at once, and an asset already `hidden`, `quarantined`, or `deleted` keeps its status —
- * retiring an asset never downgrades a quarantine or reopens a deleted one (MEDIA-103).
- */
 export function servingStatusOnRetirementRequest(current: MediaServingStatus): MediaServingStatus {
   return current === 'servable' ? 'hidden' : current;
 }
 
-/**
- * The serving status the drain writes when it marks an asset `retired`: `deleted`, except that a
- * `quarantined` asset stays quarantined — only the safety flows move a quarantine.
- */
 export function servingStatusOnRetirementComplete(current: MediaServingStatus): MediaServingStatus {
   return current === 'quarantined' ? 'quarantined' : 'deleted';
 }

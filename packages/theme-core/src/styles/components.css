@@ -1,6 +1,6 @@
 
 /* =========================================================
-    FOUNDATIONS (icon + layout bundles) — replaces inline utils
+    FOUNDATIONS (icon + layout bundles)
     ========================================================= */
 
 /* Icons */
@@ -45,12 +45,7 @@
 }
 .spinner-with-gap { margin-right: 0.5rem; }
 
-/* Spinners rendered INSIDE a button inherit the button's text color. The
-   standalone default above is brand --primary — which on a bg-primary button
-   is primary-on-primary and therefore INVISIBLE while it spins (found live:
-   a bg-primary submit button showed no working indicator). currentColor makes
-   the spinner text-primary-foreground on default buttons, and correct on any
-   other button variant automatically. */
+/* Inside a button a spinner takes the button's text colour: brand --primary on bg-primary is invisible. */
 button .spinner-xs,
 button .spinner-sm,
 button .spinner-md,
@@ -122,21 +117,15 @@ button .spinner-xl {
   padding-bottom: 1rem;
 }
 
-/* Every shadow here also sets --tw-shadow to the same token: a Tailwind ring utility (a
-   focus ring) writes the whole box-shadow as a composite ending in var(--tw-shadow), so
-   the elevation survives under the ring instead of vanishing while focused. */
+/* A Tailwind ring utility writes the whole box-shadow, ending in var(--tw-shadow), so every shadow
+   here sets --tw-shadow too. */
 
-/* ui-core Card's hook class. Card carries no Tailwind shadow utility: a utility
-   out-ranks every layered recipe, so its shadow lives here, where .page-card below
-   and an app's own card rules (imported after this sheet) can take over. */
+/* A Tailwind shadow utility out-ranks every layered recipe, so ui-core Card carries none. */
 .card-border {
   --tw-shadow: var(--card-shadow-subtle);
   box-shadow: var(--card-shadow-subtle);
 }
 
-/* ui-core's other elevation hooks, for the same reason: popover-family surfaces
-   (menus, select lists, tooltips) and raised surfaces (dialogs, sheets, toasts,
-   sub-menus, search results, floating buttons, the switch thumb). */
 .elevation-popover {
   --tw-shadow: var(--popover-shadow);
   box-shadow: var(--popover-shadow);
@@ -147,7 +136,6 @@ button .spinner-xl {
   box-shadow: var(--raised-shadow);
 }
 
-/* ui-core TabsTrigger: only the selected tab is raised. */
 .tabs-trigger[data-state="active"] {
   --tw-shadow: var(--control-shadow);
   box-shadow: var(--control-shadow);
@@ -356,41 +344,17 @@ button .spinner-xl {
 .screen-max-w-none { max-width: none; }
 .screen-max-w-full { max-width: 100%; }
 
-.screen-max-w-sm  { max-width: 24rem; }  /* 384px */
-.screen-max-w-md  { max-width: 28rem; }  /* 448px */
-.screen-max-w-lg  { max-width: 32rem; }  /* 512px */
-.screen-max-w-xl  { max-width: 36rem; }  /* 576px */
+.screen-max-w-sm  { max-width: 24rem; }
+.screen-max-w-md  { max-width: 28rem; }
+.screen-max-w-lg  { max-width: 32rem; }
+.screen-max-w-xl  { max-width: 36rem; }
 
-.screen-max-w-2xl { max-width: 42rem; }  /* 672px */
-.screen-max-w-3xl { max-width: 48rem; }  /* 768px */
-.screen-max-w-4xl { max-width: 56rem; }  /* 896px */
-.screen-max-w-5xl { max-width: 64rem; }  /* 1024px */
-.screen-max-w-6xl { max-width: 72rem; }  /* 1152px */
-.screen-max-w-7xl { max-width: 80rem; }  /* 1280px */
-
-/* =========================================================
-    RULE CARDS
-    ========================================================= */
-.rule-card {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border-width: 2px;
-  border-color: hsl(var(--border));
-  background-color: hsl(var(--card));
-}
-
-.rule-card-title {
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: hsl(var(--foreground));
-}
-
-.rule-card-description {
-  font-size: 0.875rem;
-  line-height: 1.625;
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
+.screen-max-w-2xl { max-width: 42rem; }
+.screen-max-w-3xl { max-width: 48rem; }
+.screen-max-w-4xl { max-width: 56rem; }
+.screen-max-w-5xl { max-width: 64rem; }
+.screen-max-w-6xl { max-width: 72rem; }
+.screen-max-w-7xl { max-width: 80rem; }
 
 /* =========================================================
     ACCORDION
@@ -459,41 +423,10 @@ button .spinner-xl {
 }
 
 /* =========================================================
-    AGREEMENT LIST ITEMS
+    MEDIA
     ========================================================= */
-.agreement-list-item {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
 
-/* =========================================================
-    FUTURE PLANS / MEDIA
-    ========================================================= */
-.future-plan-description {
-  font-size: 1rem;
-  line-height: 1.5rem;
-  white-space: pre-wrap;
-  line-height: 1.625;
-  max-width: 65ch;
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
-
-.future-plan-media {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border-width: 1px;
-  border-color: hsl(var(--border));
-  background-color: hsl(var(--muted));
-}
-
-/* Media helpers (replaces repeated w/full/max-w/aspect) */
+/* Media helpers */
 .media-image-sm-centered {
   width: 100%;
   height: auto;
@@ -565,116 +498,6 @@ button .spinner-xl {
 }
 
 /* =========================================================
-    ATTRIBUTION SECTIONS
-    ========================================================= */
-.attribution-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.attribution-icon {
-  margin-top: 0.25rem;
-  color: hsl(var(--primary));
-}
-
-.attribution-title {
-  font-weight: 600;
-  color: hsl(var(--foreground));
-}
-
-.attribution-cost {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 600;
-  color: hsl(var(--primary));
-}
-
-.attribution-description {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  margin-top: 0.25rem;
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
-
-/* =========================================================
-    DEDICATION SECTIONS
-    ========================================================= */
-.dedication-section {
-  text-align: center;
-}
-.dedication-section > * + * {
-  margin-top: 0.5rem;
-}
-
-.dedication-header {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.dedication-title {
-  font-weight: 600;
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  color: hsl(var(--foreground));
-}
-
-.dedication-content {
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
-
-/* =========================================================
-    DMCA INFO
-    ========================================================= */
-.dmca-section-title {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  font-weight: 600;
-  color: hsl(var(--foreground));
-}
-
-.dmca-info-container {
-  padding-left: 1rem;
-  border-left-width: 2px;
-  border-color: hsl(var(--border));
-}
-.dmca-info-container > * + * {
-  margin-top: 0.5rem;
-}
-
-.dmca-info-row {
-  display: flex;
-  flex-direction: column;
-}
-@media (min-width: 640px) {
-  .dmca-info-row {
-    flex-direction: row;
-    align-items: center;
-  }
-}
-
-.dmca-label {
-  width: 100%;
-  font-weight: 600;
-  flex-shrink: 0;
-  color: hsl(var(--foreground));
-}
-@media (min-width: 640px) {
-  .dmca-label {
-    width: 10rem;
-  }
-}
-
-.dmca-value {
-  word-break: break-all;
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
-
-/* =========================================================
     BUTTONS
     ========================================================= */
 .primary-action-button {
@@ -727,47 +550,6 @@ button .spinner-xl {
   background-color: hsl(var(--background));
   border-color: hsl(var(--border)) !important;
   color: hsl(var(--foreground));
-}
-
-/* =========================================================
-    LANDING PAGE
-    ========================================================= */
-.landing-tabs-list {
-  display: grid;
-  width: 100%;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  background-color: transparent;
-  padding: 0;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.landing-tab-trigger {
-  flex: 1 1 0%;
-}
-
-.landing-section-title {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-  font-weight: 600;
-  text-align: center;
-  color: hsl(var(--foreground));
-}
-
-.landing-section-description {
-  text-align: center;
-  font-weight: 700;
-  color: hsl(var(--muted-foreground));
-}
-
-.landing-video-container {
-  aspect-ratio: 16 / 9;
-  width: 100%;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border-width: 1px;
-  border-color: hsl(var(--border));
-  background-color: hsl(var(--muted));
 }
 
 /* =========================================================
@@ -858,7 +640,6 @@ button .spinner-xl {
   color: hsl(var(--muted-foreground)) !important;
 }
 
-/* Asked for more contrast: full-strength text instead of muted, in every theme. */
 @media (prefers-contrast: more) {
   .help-dialog-body {
     color: hsl(var(--foreground)) !important;

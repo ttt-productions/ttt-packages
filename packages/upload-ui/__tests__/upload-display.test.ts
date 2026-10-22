@@ -94,8 +94,6 @@ describe('formatUploadTimestamp', () => {
   });
 
   it('across the spring-forward night, yesterday is the previous calendar day, not 24 hours back', () => {
-    // 8 March 2026 is 23 hours long in New York. Just after midnight on the 9th, 24 hours back is
-    // still the 7th — but the 7th is two calendar days back, never yesterday.
     const reading = local(2026, 3, 9, 0, 30);
     const onThe7th = local(2026, 3, 7, 23, 45);
     expect(formatUploadTimestamp(onThe7th, reading)).toBe(`Mar 7, ${time(onThe7th)}`);
@@ -104,7 +102,6 @@ describe('formatUploadTimestamp', () => {
   });
 
   it('across the fall-back night, the whole 25-hour previous day is yesterday', () => {
-    // 1 November 2026 is 25 hours long in New York.
     const reading = local(2026, 11, 2, 23, 30);
     const earlyOnThe1st = local(2026, 11, 1, 0, 15);
     expect(formatUploadTimestamp(earlyOnThe1st, reading)).toBe(`Yesterday ${time(earlyOnThe1st)}`);

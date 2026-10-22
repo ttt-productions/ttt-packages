@@ -18,10 +18,6 @@ import type { FirestorePaginatedOptions, PaginatedPage } from './types.js';
 
 const DEFAULT_PAGE_SIZE = 10;
 
-/**
- * Return type for useFirestorePaginated hook. `data` is the displayed page's rows; the
- * page's cache entry (rows, cursor, has-more) lives at `paginatedPageKey(queryKey, page)`.
- */
 export type UseFirestorePaginatedResult<T> = Omit<
   UseQueryResult<PaginatedPage<WithId<T>>, Error>,
   'data'
@@ -36,32 +32,6 @@ export type UseFirestorePaginatedResult<T> = Omit<
   prevPage: () => void;
 };
 
-/**
- * Page-based pagination for Firestore collections (Previous / Next, one page at a time).
- *
- * Each page is ONE cache entry at `[...queryKey, 'page', n]` holding its rows, its last
- * row as the next page's cursor, and whether a further page exists — read with a one-row
- * look-ahead, so `hasNextPage` is false exactly when nothing follows the displayed page.
- * Page n reads page n-1's cursor from the cache (loading the chain first if it is
- * missing) and records it as `after`. A displayed page whose `after` no longer matches
- * page n-1's cached cursor (page n-1 was re-read and its last row moved) is re-read before
- * it is shown, so every instance, remount, and refetch of a key agrees on where a page
- * starts. The page number belongs to the query identity (path, key, constraints, page
- * size): a new identity renders `initialPage` in its first render.
- *
- * `queryKey` must encode everything that changes the read — path, filters, ordering, and
- * page size — because the cache entries are shared by key.
- *
- * @example
- * ```tsx
- * const { data, page, nextPage, prevPage, hasNextPage, hasPrevPage } = useFirestorePaginated<Task>({
- *   collectionPath: 'tasks',
- *   queryKey: ['tasks', 'active', { pageSize: 10 }],
- *   constraints: [where('status', '==', 'active'), orderBy('createdAt', 'desc')],
- *   pageSize: 10,
- * });
- * ```
- */
 export function useFirestorePaginated<T extends DocumentData = DocumentData>({
   collectionPath,
   queryKey,
@@ -120,8 +90,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
         after: cursor?.id ?? null,
       };
     },
-    // queryKey and constraints are captured through their serialized identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryKey and constraints are captured through their serialized identity
     [db, queryClient, identity, selectRef],
   );
 
@@ -134,9 +103,6 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
     refetchInterval,
   });
 
-  // The page before the displayed one, observed from the cache only (never fetched here).
-  // When it is re-read and its last row moves, the displayed entry no longer starts where the
-  // chain says it must: it is re-read before it is shown as current.
   const previousPage = useQuery({
     queryKey: paginatedPageKey(queryKey, Math.max(1, page - 1)),
     queryFn: () => fetchPage(Math.max(1, page - 1)),
@@ -169,8 +135,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
       if (next === page + 1 && !hasNextPage) return;
       setPageState({ identity, page: next });
     },
-    // queryKey is captured through its serialized identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryKey is captured through its serialized identity
     [page, hasNextPage, identity, queryClient],
   );
 

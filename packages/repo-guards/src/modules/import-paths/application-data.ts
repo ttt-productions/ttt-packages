@@ -1,7 +1,3 @@
-// Generic packages hold mechanisms; each application-data package holds its app's business, and a
-// foundation never depends on its adapters. No package outside the declared application-data
-// packages declares one as a dependency of any kind, or imports one from its code.
-
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Finding, GuardContext } from '../../guard.js';
@@ -10,9 +6,7 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { textProblem } from '../../support/facts.js';
 
 export interface ApplicationDataFacts {
-  /** The repo-relative folder that holds the repository's packages, one per subfolder. */
   packagesFolder: string;
-  /** The folders (under `packagesFolder`) of the application-data packages. */
   applicationDataPackages: readonly string[];
 }
 

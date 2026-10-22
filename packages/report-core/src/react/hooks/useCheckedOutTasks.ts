@@ -5,18 +5,7 @@ import { useFirestoreCollection, useReadRetryState } from '@ttt-productions/quer
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { CheckedOutTask } from '../../contracts/types-admin-task.js';
 
-/**
- * Fetches the tasks checked out by the given admin user, live.
- *
- * Realtime via query-core's `useFirestoreCollection({ subscribe: true })` — the
- * list updates instantly on any change (including a backend lease-expiry status
- * flip) with no polling. The countdown UI ticks client-side over the cached
- * `expiresAt`, so it does not need the data layer to refetch.
- *
- * `retryState` holds the listener's failure through its `refetch` (which restarts the listener):
- * the restart clears `error` while it reconnects, so a failure seat built from it would vanish under
- * the Try again that started it.
- */
+/** `refetch` restarts the listener and clears `error` while it reconnects; `retryState` keeps the failure through it. */
 export function useCheckedOutTasks(userId: string | undefined) {
   const { config } = useReportCoreContext();
 

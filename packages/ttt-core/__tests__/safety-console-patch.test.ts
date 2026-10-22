@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as safety from '../src/schemas/safety.js';
 
-// The safety case console is an endless list a console action must patch in place, never reload
-// (FRONTEND-103). Its rows come from Functions-only collections the client cannot read, so every
-// console action answers with what it changed: each changed, entering, or leaving row, plus the
-// console's per-source totals and complete urgent set after it.
-
 const tidRow = {
   requestId: 'tid1',
   requesterRole: 'depictedPerson' as const,
@@ -111,7 +106,6 @@ describe('every console action answers with its console patch when it could read
     ];
     for (const [schema, answer] of answers) {
       expect(schema.safeParse({ ...answer, console }).success).toBe(true);
-      // A failed patch read after the commit never fails the action: it answers without the patch.
       expect(schema.safeParse(answer).success).toBe(true);
       expect(schema.safeParse({ ...answer, console: { changes: [] } }).success).toBe(false);
     }

@@ -18,13 +18,11 @@ packages treat the origin id as opaque: they may validate a file against a `Medi
 they never know an app's origin enum or its concrete registry.
 
 Upload target info is never authoritative for identity. The app's backend derives identity-bearing
-fields (creator, owner, actor, notification recipients) from the authenticated caller, the pending
-upload record, or an explicitly checked admin/system context. A client-supplied target-info field may
-carry domain copy and typed ids, never the source of truth for who performed or owns the write.
+fields (creator, owner, actor, notification recipients) itself. A client-supplied target-info field
+may carry domain copy and typed ids, never the source of truth for who performed or owns the write.
 
 Each app keeps its allowed origin ids aligned across its own origin registry, its upload processor
-dispatch, its storage rules, its server-side path-equality check (an exact `storagePath` match, never
-a prefix), and its upload form wiring — that alignment is the app's rule, not the packages'.
+dispatch, its storage access rules, its server-side path check, and its upload form wiring — that alignment is the app's rule, not the packages'.
 
 ## Package rule
 

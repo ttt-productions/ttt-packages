@@ -3,9 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-// Controllable firebase/firestore mock: capture the snapshot/error callbacks per
-// opened listener so tests can emit listener errors and recovery snapshots, and count
-// how many times a fresh listener was opened (resubscribes).
 const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
@@ -37,8 +34,6 @@ import { useFirestoreCollection } from '../src/react/firestore/use-firestore-col
 import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
 
-// A Firestore permission-denied error carries `.code` — the discriminator the
-// hooks retry on (never the message).
 const permissionDenied = () =>
   Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' });
 
@@ -80,7 +75,6 @@ describe('useFirestoreDoc — bounded resubscribe on permission-denied', () => {
     expect(onSnapshotMock).toHaveBeenCalledTimes(1);
 
     act(() => docCaps[0].error(permissionDenied()));
-    // Silent heal in progress: no error surfaced, no new listener yet, reconnecting.
     expect(result.current.isError).toBe(false);
     expect(result.current.sourceState).toBe('connecting');
     expect(onSnapshotMock).toHaveBeenCalledTimes(1);
@@ -114,11 +108,9 @@ describe('useFirestoreDoc — bounded resubscribe on permission-denied', () => {
     act(() => vi.advanceTimersByTime(D1));
     act(() => docCaps[docCaps.length - 1].error(permissionDenied()));
     act(() => vi.advanceTimersByTime(D2));
-    // 1 initial + 3 resubscribes.
     expect(onSnapshotMock).toHaveBeenCalledTimes(4);
     expect(result.current.isError).toBe(false);
 
-    // Fourth error has no ladder left → surfaces as before.
     act(() => docCaps[docCaps.length - 1].error(boom));
     expect(result.current.isError).toBe(true);
     expect(result.current.error).toBe(boom);
@@ -161,7 +153,6 @@ describe('useFirestoreDoc — bounded resubscribe on permission-denied', () => {
       }),
     );
 
-    // A fresh blip resubscribes again after the FIRST delay (ladder was reset).
     act(() => docCaps[docCaps.length - 1].error(permissionDenied()));
     act(() => vi.advanceTimersByTime(D0));
     expect(onSnapshotMock).toHaveBeenCalledTimes(3);

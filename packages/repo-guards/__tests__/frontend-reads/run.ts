@@ -1,6 +1,3 @@
-// Runs one of this area's guard definitions over a throwaway repository: the app root is `src`, a
-// Functions root `functions/src` is declared when the files hold one, and `src/test` is test code.
-
 import type { GenericGuardDefinition } from '../../src/node/suite/config.js';
 import type { Finding } from '../../src/guard.js';
 import { createRepoReader } from '../../src/node/reader.js';
@@ -10,7 +7,6 @@ import { tempRepo } from '../helpers/temp-repo.js';
 const ANCHOR = 'src/anchor.ts';
 const FUNCTIONS_ANCHOR = 'functions/src/anchor.ts';
 
-/** The findings of each guard the definition builds from `facts`, in build order. */
 export async function runDefinition<F>(
   definition: GenericGuardDefinition<F>,
   facts: F,
@@ -48,7 +44,6 @@ export async function runDefinition<F>(
   }
 }
 
-/** The findings of a definition that builds one guard. */
 export async function runOne<F>(
   definition: GenericGuardDefinition<F>,
   facts: F,
