@@ -36,6 +36,26 @@ DJ has decided. The run starts only when DJ says all three repos are free.
   nested imports included. The package's `files` list must ship its docs; the run checks this with
   `npm pack --dry-run` before the first release.
 
+### Layering — how every shared doc is built
+
+- Shared text is product-neutral. It says "the product" or "the app's Normal Test Flow", and each
+  app's `CLAUDE.md` names its product and its flows.
+- An app adds to a shared doc in its own short file that imports the shared base, under a
+  "`<App> additions`" heading.
+- An app overrides a shared doc only by saying so explicitly: "Overrides shared `<doc>` § X: …". An
+  unstated difference is drift.
+
+### What is shared
+
+- **`development-preferences.md`:** one copy in the package, imported by all three repos. Both drift
+  tests are deleted (ttt-prod's repo-guards `documentDrift` entry, Q-Sports'
+  `development-preferences-drift.test.ts`).
+- **`AGENTS.md`:** one shared base telling Codex to read `CLAUDE.md` and everything it names. The
+  hosted-E2E pointer ("operating the hosted E2E suite is the product's `e2e-hosted-dev/RUNNING.md`")
+  is part of the base, since both apps get hosted E2E.
+- **`model-tiers.md`:** one shared table for every product. An app may override a cell explicitly.
+- **`docs/work/` README and `do-later/` README:** one copy for every product, ttt-packages included.
+
 ### Comment rules
 
 - The comment cleanup is a deliberate sweep. "Fixed as files are touched, never in a separate sweep"
