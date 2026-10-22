@@ -305,7 +305,13 @@ const EXCLUDE = {
     /^docs\/work\/projects\/shared-standards\//,
     /^docs\/generated\//,
   ],
-  'ttt-prod': [/^next-env\.d\.ts$/, /^\.next\//, /^functions\/(lib|build)\//, /^test-results\//],
+  'ttt-prod': [
+    /^next-env\.d\.ts$/,
+    /^\.next\//,
+    /^functions\/(lib|build)\//,
+    /^test-results\//,
+    /^docs\/work\/projects\/shared-standards-run\//,
+  ],
 };
 const ALWAYS_EXCLUDE = [/(^|\/)node_modules\//, /(^|\/)dist\//, /package-lock\.json$/, /\.(png|jpe?g|gif|webp|ico|svg|pdf|mp4|mp3|wav|woff2?|ttf|zip|gz|tgz)$/i];
 
