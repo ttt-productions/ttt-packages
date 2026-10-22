@@ -451,7 +451,8 @@ TTT Productions application-data package.
   value the update input would refuse. `appVersion` still accepts the unpublished `''` at rest;
   only the update input requires a non-empty version.
 - **Member agreement wording** (`constants/member-agreements`, `constants/publish-attestations`):
-  the verbatim words of every agreement a member ticks — registration's clean-content box, the
+  the verbatim words of every agreement a member ticks — registration's clean-content box and the
+  notice above it, the
   become-an-Artisan intro, location question, and boxes, the Realm Creation Agreement (its stake
   numbers built from the stake constants), the Square first-post notice and boxes, the pledge
   attestation, the Hall download acknowledgment, and the Hall publish attestations — each surface

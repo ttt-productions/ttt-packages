@@ -7,6 +7,7 @@ import {
   PLEDGE_ATTESTATION,
   REGISTRATION_AGREEMENTS_VERSION,
   REGISTRATION_CLEAN_CONTENT_AGREEMENT,
+  REGISTRATION_CONTENT_STANDARD_NOTICE,
   SQUARE_STREETZ_AGREEMENT_IDS,
   SQUARE_STREETZ_AGREEMENTS,
   SQUARE_STREETZ_AGREEMENTS_VERSION,
@@ -42,6 +43,13 @@ describe('member agreement wording — each box reads exactly as ruled', () => {
     expect(text(REGISTRATION_CLEAN_CONTENT_AGREEMENT)).toBe(
       "I'll keep what I share clean: no nudity, sexual, or explicit content.",
     );
+  });
+
+  it('the notice above the registration boxes states the same standard, never a stricter one', () => {
+    expect(REGISTRATION_CONTENT_STANDARD_NOTICE).toBe(
+      'At launch, TTT Productions keeps everything clean: no nudity, sexual, or explicit content. Profanity and mature themes are allowed. Down the road we aspire to support clearly labeled mature content — think R-rated film, never pornographic.',
+    );
+    expect(REGISTRATION_CONTENT_STANDARD_NOTICE).not.toMatch(/every audience|for everyone/);
   });
 
   it('become an Artisan: one location question, the merged 18+ box, AI, rights, Rules, and online-only', () => {

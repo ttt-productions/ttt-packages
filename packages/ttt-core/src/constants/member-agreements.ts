@@ -39,6 +39,10 @@ const RULES_AND_AGREEMENTS_LINK: LegalReviewNoticeSegment = {
 /** Names the registration wording: the clean-content box and the Terms box. */
 export const REGISTRATION_AGREEMENTS_VERSION = 1;
 
+/** Shown above the registration boxes. A notice, not an agreement — nothing is ticked for it. */
+export const REGISTRATION_CONTENT_STANDARD_NOTICE =
+  'At launch, TTT Productions keeps everything clean: no nudity, sexual, or explicit content. Profanity and mature themes are allowed. Down the road we aspire to support clearly labeled mature content — think R-rated film, never pornographic.';
+
 /** The content box. Profanity and mature themes are allowed; nudity and sexual content are not. */
 export const REGISTRATION_CLEAN_CONTENT_AGREEMENT: MemberAgreementWording = plain(
   "I'll keep what I share clean: no nudity, sexual, or explicit content.",

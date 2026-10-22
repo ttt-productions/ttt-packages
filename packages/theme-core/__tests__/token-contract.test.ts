@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 import { viewOfText, type FileView } from '@ttt-productions/repo-guards';
 import { createRepoReader } from '@ttt-productions/repo-guards/node';
+import { SLOW_TEST_TIMEOUT_MS } from '../../../test/timeouts.js';
 
 // theme-core's token layer is the contract every shared recipe and ui-core
 // component reads. These guards pin the PROPERTIES, not today's token list:
@@ -392,6 +393,8 @@ const TEXTLESS_STATUS_FILLS: ReadonlyArray<{ file: string; selector: string; why
 
 // --- guards --------------------------------------------------------------------------
 
+// The cases that read every package's files are real heavy work: under load they run past the
+// runner's default limit, so each names the slow budget.
 describe('theme-core token contract', () => {
   it('reads every package through the one reader walk', () => {
     expect(packageSources.length).toBeGreaterThan(100);
@@ -437,12 +440,16 @@ describe('theme-core token contract', () => {
     expect(renderedTexts(viewOfText('k.ts', named))).toEqual([]);
   });
 
-  it('every variable read without a fallback, in any package source or stylesheet, resolves in every theme', () => {
-    const unresolved = packageFiles.flatMap((file) =>
-      unresolvedVariables(file).map((name) => `${where(file)}: ${name}`),
-    );
-    expect(unresolved).toEqual([]);
-  });
+  it(
+    'every variable read without a fallback, in any package source or stylesheet, resolves in every theme',
+    () => {
+      const unresolved = packageFiles.flatMap((file) =>
+        unresolvedVariables(file).map((name) => `${where(file)}: ${name}`),
+      );
+      expect(unresolved).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('flags a rendered variable no theme declares, and passes a declared, fallback-carrying, or runtime-set one', () => {
     expect(
@@ -466,78 +473,90 @@ describe('theme-core token contract', () => {
   // Semantic colour tokens are HSL TRIPLETS ("240 5% 88%"): only hsl(var(--x)) makes a
   // colour of one. Read bare — color: var(--foreground) — the value is invalid and the
   // property silently falls back (inherited colour, transparent background).
-  it('an HSL-triplet token is only ever read inside hsl(), never as a complete colour', () => {
-    const TRIPLET = /^-?\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/;
-    const root = blockDeclarations(':root');
-    const isTriplet = (name: string, seen: ReadonlySet<string> = new Set()): boolean => {
-      const value = root.get(name);
-      if (value === undefined || seen.has(name)) return false;
-      if (TRIPLET.test(value)) return true;
-      const derived = /^var\((--[\w-]+)\)$/.exec(value);
-      return derived ? isTriplet(derived[1], new Set([...seen, name])) : false;
-    };
-    const triplets = new Set([...rootTokens].filter((name) => isTriplet(name)));
-    expect(triplets.has('--foreground') && triplets.has('--input')).toBe(true);
+  it(
+    'an HSL-triplet token is only ever read inside hsl(), never as a complete colour',
+    () => {
+      const TRIPLET = /^-?\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/;
+      const root = blockDeclarations(':root');
+      const isTriplet = (name: string, seen: ReadonlySet<string> = new Set()): boolean => {
+        const value = root.get(name);
+        if (value === undefined || seen.has(name)) return false;
+        if (TRIPLET.test(value)) return true;
+        const derived = /^var\((--[\w-]+)\)$/.exec(value);
+        return derived ? isTriplet(derived[1], new Set([...seen, name])) : false;
+      };
+      const triplets = new Set([...rootTokens].filter((name) => isTriplet(name)));
+      expect(triplets.has('--foreground') && triplets.has('--input')).toBe(true);
 
-    /** The function whose argument list encloses `index` (skipping var() fallbacks), or undefined. */
-    const enclosingColourFunction = (text: string, index: number): string | undefined => {
-      let depth = 0;
-      for (let i = index - 1; i >= 0; i--) {
-        const c = text[i];
-        if (c === ')') depth++;
-        else if (c === '(') {
-          if (depth > 0) {
-            depth--;
-            continue;
-          }
-          const name = /([\w-]+)\s*$/.exec(text.slice(Math.max(0, i - 40), i))?.[1];
-          return name === 'var' ? enclosingColourFunction(text, i - 3) : name;
-        } else if (depth === 0 && ';{}\n"\'`'.includes(c)) return undefined;
-      }
-      return undefined;
-    };
-    /** `--x: var(--triplet)` — one token derived from another, not a colour read. */
-    const isTokenDerivation = (text: string, index: number): boolean => {
-      const lineStart = Math.max(
-        text.lastIndexOf(';', index),
-        text.lastIndexOf('{', index),
-        text.lastIndexOf('\n', index),
+      /** The function whose argument list encloses `index` (skipping var() fallbacks), or undefined. */
+      const enclosingColourFunction = (text: string, index: number): string | undefined => {
+        let depth = 0;
+        for (let i = index - 1; i >= 0; i--) {
+          const c = text[i];
+          if (c === ')') depth++;
+          else if (c === '(') {
+            if (depth > 0) {
+              depth--;
+              continue;
+            }
+            const name = /([\w-]+)\s*$/.exec(text.slice(Math.max(0, i - 40), i))?.[1];
+            return name === 'var' ? enclosingColourFunction(text, i - 3) : name;
+          } else if (depth === 0 && ';{}\n"\'`'.includes(c)) return undefined;
+        }
+        return undefined;
+      };
+      /** `--x: var(--triplet)` — one token derived from another, not a colour read. */
+      const isTokenDerivation = (text: string, index: number): boolean => {
+        const lineStart = Math.max(
+          text.lastIndexOf(';', index),
+          text.lastIndexOf('{', index),
+          text.lastIndexOf('\n', index),
+        );
+        return /^\s*--[\w-]+\s*:\s*$/.test(text.slice(lineStart + 1, index));
+      };
+
+      const bareReads = packageFiles.flatMap((file) =>
+        renderedTexts(file).flatMap((text) =>
+          [...text.matchAll(/var\(\s*(--[\w-]+)/g)]
+            .filter((m) => triplets.has(m[1]))
+            .filter((m) => {
+              const fn = enclosingColourFunction(text, m.index!);
+              return fn === undefined
+                ? !isTokenDerivation(text, m.index!)
+                : fn !== 'hsl' && fn !== 'hsla';
+            })
+            .map((m) => `${where(file)}: ${m[1]} read outside hsl()`),
+        ),
       );
-      return /^\s*--[\w-]+\s*:\s*$/.test(text.slice(lineStart + 1, index));
-    };
+      expect(bareReads).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
-    const bareReads = packageFiles.flatMap((file) =>
-      renderedTexts(file).flatMap((text) =>
-        [...text.matchAll(/var\(\s*(--[\w-]+)/g)]
-          .filter((m) => triplets.has(m[1]))
-          .filter((m) => {
-            const fn = enclosingColourFunction(text, m.index!);
-            return fn === undefined
-              ? !isTokenDerivation(text, m.index!)
-              : fn !== 'hsl' && fn !== 'hsla';
-          })
-          .map((m) => `${where(file)}: ${m[1]} read outside hsl()`),
-      ),
-    );
-    expect(bareReads).toEqual([]);
-  });
+  it(
+    'every semantic Tailwind colour utility any package renders maps to a declared token',
+    () => {
+      const unmapped = packageSources.flatMap((file) =>
+        classListColourUtilities(file)
+          .filter(({ name }) => !NOT_A_RAW_COLOUR.test(name) && !PALETTE.test(name))
+          .filter(({ name }) => !rootTokens.has(`--${name}`))
+          .map(({ utility, name }) => `${where(file)}: ${utility} (--${name})`),
+      );
+      expect(unmapped).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
-  it('every semantic Tailwind colour utility any package renders maps to a declared token', () => {
-    const unmapped = packageSources.flatMap((file) =>
-      classListColourUtilities(file)
-        .filter(({ name }) => !NOT_A_RAW_COLOUR.test(name) && !PALETTE.test(name))
-        .filter(({ name }) => !rootTokens.has(`--${name}`))
-        .map(({ utility, name }) => `${where(file)}: ${utility} (--${name})`),
-    );
-    expect(unmapped).toEqual([]);
-  });
-
-  it('no package renders a raw colour: no palette/black/white utility and no colour literal', () => {
-    const raw = packageSources.flatMap((file) =>
-      rawColours(file).map((colour) => `${where(file)}: ${colour}`),
-    );
-    expect(raw).toEqual([]);
-  });
+  it(
+    'no package renders a raw colour: no palette/black/white utility and no colour literal',
+    () => {
+      const raw = packageSources.flatMap((file) =>
+        rawColours(file).map((colour) => `${where(file)}: ${colour}`),
+      );
+      expect(raw).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('flags every raw colour a file renders, and none it only names', () => {
     const flagged = [
@@ -590,12 +609,16 @@ describe('theme-core token contract', () => {
     expect(sourceFallbackColours('bg-[hsl(var(--muted))]')).toEqual([]);
   });
 
-  it('no package carries a Tailwind shadow utility, and every elevation hook rendered is a theme-core recipe', () => {
-    const offRecipe = packageSources.flatMap((file) =>
-      shadowClasses(file).map((name) => `${where(file)}: ${name}`),
-    );
-    expect(offRecipe).toEqual([]);
-  });
+  it(
+    'no package carries a Tailwind shadow utility, and every elevation hook rendered is a theme-core recipe',
+    () => {
+      const offRecipe = packageSources.flatMap((file) =>
+        shadowClasses(file).map((name) => `${where(file)}: ${name}`),
+      );
+      expect(offRecipe).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('flags a shadow utility or undeclared elevation hook in a class list, and passes a declared hook or a named one', () => {
     expect(
@@ -626,22 +649,26 @@ describe('theme-core token contract', () => {
     ).toEqual([]);
   });
 
-  it('every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is declared by theme-core', () => {
-    const scaleClasses = (list: string) => [...list.matchAll(SCALE_CLASS)].map((m) => m[1]);
-    expect(scaleClasses('flex stack-3 sm:stack-4 icon-xs text-left')).toEqual([
-      'stack-3',
-      'stack-4',
-      'icon-xs',
-    ]);
+  it(
+    'every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is declared by theme-core',
+    () => {
+      const scaleClasses = (list: string) => [...list.matchAll(SCALE_CLASS)].map((m) => m[1]);
+      expect(scaleClasses('flex stack-3 sm:stack-4 icon-xs text-left')).toEqual([
+        'stack-3',
+        'stack-4',
+        'icon-xs',
+      ]);
 
-    const undeclared = packageSources.flatMap((file) =>
-      classStrings(file)
-        .flatMap(scaleClasses)
-        .filter((name) => !themeClasses.has(name))
-        .map((name) => `${where(file)}: .${name}`),
-    );
-    expect(undeclared).toEqual([]);
-  });
+      const undeclared = packageSources.flatMap((file) =>
+        classStrings(file)
+          .flatMap(scaleClasses)
+          .filter((name) => !themeClasses.has(name))
+          .map((name) => `${where(file)}: .${name}`),
+      );
+      expect(undeclared).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('every theme-core recipe takes its shadow from a shadow token', () => {
     const offToken = themeRules.flatMap((rule) =>
@@ -760,14 +787,18 @@ describe('status fills carry their own status foreground', () => {
     );
   });
 
-  it('every solid status fill in a package class list carries its own status foreground', () => {
-    const violations = packageSources.flatMap((file) =>
-      classStrings(file).flatMap((list) =>
-        classListPairingViolations(list).map((v) => `${where(file)}: ${v}`),
-      ),
-    );
-    expect(violations).toEqual([]);
-  });
+  it(
+    'every solid status fill in a package class list carries its own status foreground',
+    () => {
+      const violations = packageSources.flatMap((file) =>
+        classStrings(file).flatMap((list) =>
+          classListPairingViolations(list).map((v) => `${where(file)}: ${v}`),
+        ),
+      );
+      expect(violations).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('every solid status fill in a theme-core or package stylesheet carries its own status foreground', () => {
     const exempt = (rule: CssRule) =>
