@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/auth-core",
-    "version": "1.6.16",
+    "version": "1.6.17",
     "description": "Shared Firebase authentication utilities and React hooks for TTT Productions apps",
     "repository": {
         "type": "git",
