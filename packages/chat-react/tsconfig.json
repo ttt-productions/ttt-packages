@@ -7,7 +7,5 @@
     "moduleResolution": "node16",
     "module": "node16"
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

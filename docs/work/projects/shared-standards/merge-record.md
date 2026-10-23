@@ -9,7 +9,7 @@ for packages-only rules, the ttt-packages) text made product-neutral.
 **How a difference is settled** (DJ's decisions, PLAN.md § Decided):
 
 - **Stricter wins.** Where one rulebook demands more, the shared rule carries the stricter clause, and
-  any repo that does not meet it gets catch-up work in the plan (PLAN.md § ttt-prod compliance work).
+  any repo that does not meet it gets catch-up work.
 - **Business relaxations are explicit app overrides.** "Overrides shared `<rule>`: …" in that app's
   addition, never a silent difference.
 - **App names are additions**, through the placeholders in the app's values block.

@@ -55,7 +55,7 @@ Chat **React UI** package — the React half of the chat split.
 - **Sender names.** `ChatNameResolverProvider` takes the app's `resolveName`
   (`chat-core`'s `ChatNameResolver`, answering a `ChatNameResolution`) and an optional
   `renderUnresolvedName(resolution)` for `pending` / `unavailable` / `failed` (the
-  last with `retry`), and an optional `renderHeldNameFailure(failure)` for a resolved name whose
+  last with its `error` and `retry`), and an optional `renderHeldNameFailure(failure)` for a resolved name whose
   later read failed. `<SenderName senderId>` (used by `MessageItemDefault`) renders the
   resolved name (with the app's failure seat beside it when the name is held through a failure)
   or the app's slot — never a stand-in name; `useSenderNameResolution`

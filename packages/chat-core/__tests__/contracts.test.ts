@@ -1,5 +1,10 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type { ChatNameResolution, ChatNameResolver, ChatThreadV1 } from '../src/types.js';
+import type {
+  ChatNameReadFailure,
+  ChatNameResolution,
+  ChatNameResolver,
+  ChatThreadV1,
+} from '../src/types.js';
 
 describe('chat-core contracts', () => {
   it("a thread carries no access list — access is the app's decision, never a stored list", () => {
@@ -17,5 +22,13 @@ describe('chat-core contracts', () => {
     expectTypeOf<
       Extract<ChatNameResolution, { status: 'resolved' }>['name']
     >().toEqualTypeOf<string>();
+  });
+
+  it("every failed name read carries the read's own error, so the app's failure seat can classify it", () => {
+    expectTypeOf<Extract<ChatNameResolution, { status: 'failed' }>>().toHaveProperty('error');
+    expectTypeOf<ChatNameReadFailure>().toHaveProperty('error');
+    expectTypeOf<
+      NonNullable<Extract<ChatNameResolution, { status: 'resolved' }>['failure']>
+    >().toEqualTypeOf<ChatNameReadFailure>();
   });
 });

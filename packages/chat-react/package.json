@@ -1,81 +1,81 @@
 {
-    "name": "@ttt-productions/chat-react",
-    "version": "0.13.19",
-    "description": "Chat React UI, hooks, and Firebase-client adapter for TTT Productions apps (realtime newest window + infinite older pagination)",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-        "directory": "packages/chat-react"
+  "name": "@ttt-productions/chat-react",
+  "version": "0.13.19",
+  "description": "Chat React UI, hooks, and Firebase-client adapter for TTT Productions apps (realtime newest window + infinite older pagination)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/chat-react"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": [
+    "src/styles/*.css"
+  ],
+  "files": [
+    "dist",
+    "src/styles"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "type": "module",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "sideEffects": [
-        "src/styles/*.css"
-    ],
-    "files": [
-        "dist",
-        "src/styles"
-    ],
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-        },
-        "./styles": "./src/styles/chat.css"
+    "./styles": "./src/styles/chat.css"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.0.0",
+    "@ttt-productions/query-core": "*",
+    "firebase": ">=12.0.0",
+    "lucide-react": "^1.30.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
     },
-    "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist *.tsbuildinfo",
-        "typecheck": "tsc --noEmit",
-        "prepublishOnly": "npm run clean && npm run build"
+    "@ttt-productions/query-core": {
+      "optional": true
     },
-    "peerDependencies": {
-        "@tanstack/react-query": ">=5.0.0",
-        "@ttt-productions/query-core": "*",
-        "firebase": ">=12.0.0",
-        "lucide-react": "^1.30.0",
-        "react": ">=19.0.0",
-        "react-dom": ">=19.0.0"
+    "firebase": {
+      "optional": true
     },
-    "peerDependenciesMeta": {
-        "@tanstack/react-query": {
-            "optional": true
-        },
-        "@ttt-productions/query-core": {
-            "optional": true
-        },
-        "firebase": {
-            "optional": true
-        },
-        "lucide-react": {
-            "optional": true
-        },
-        "react": {
-            "optional": true
-        },
-        "react-dom": {
-            "optional": true
-        }
+    "lucide-react": {
+      "optional": true
     },
-    "dependencies": {
-        "@ttt-productions/chat-core": "*",
-        "@ttt-productions/chat-schemas": "*",
-        "@ttt-productions/realtime-core": "*",
-        "@ttt-productions/ui-core": "*",
-        "@ttt-productions/upload-ui": "*",
-        "@ttt-productions/mobile-core": "*",
-        "@ttt-productions/firebase-helpers": "*"
+    "react": {
+      "optional": true
     },
-    "devDependencies": {
-        "@ttt-productions/query-core": "*",
-        "@types/react": "^19.0.0",
-        "@types/react-dom": "^19.0.0",
-        "lucide-react": "^1.30.0",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0"
-    },
-    "author": "DJ (TTT Productions)",
-    "license": "MIT"
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@ttt-productions/chat-core": "*",
+    "@ttt-productions/chat-schemas": "*",
+    "@ttt-productions/realtime-core": "*",
+    "@ttt-productions/ui-core": "*",
+    "@ttt-productions/upload-ui": "*",
+    "@ttt-productions/mobile-core": "*",
+    "@ttt-productions/firebase-helpers": "*"
+  },
+  "devDependencies": {
+    "@ttt-productions/query-core": "*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "lucide-react": "^1.30.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
 }

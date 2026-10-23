@@ -44,7 +44,7 @@ describe("a sender's name is the resolved name, or the app's own state — never
       unmount();
     }
     const { getByText, queryByText } = renderWith(
-      { status: 'failed', retry: () => undefined },
+      { status: 'failed', error: new Error('read failed'), retry: () => undefined },
       slot,
     );
     expect(getByText('app:failed')).toBeTruthy();
@@ -59,9 +59,23 @@ describe("a sender's name is the resolved name, or the app's own state — never
           Retry name
         </button>
       ) : null;
-    const { getByRole } = renderWith({ status: 'failed', retry }, slot);
+    const { getByRole } = renderWith(
+      { status: 'failed', error: new Error('read failed'), retry },
+      slot,
+    );
     fireEvent.click(getByRole('button', { name: 'Retry name' }));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failed name read hands the app's slot the read's own error", () => {
+    const error = new Error('permission-denied');
+    const seen = vi.fn();
+    const slot = (r: UnresolvedChatName) => {
+      if (r.status === 'failed') seen(r.error);
+      return null;
+    };
+    renderWith({ status: 'failed', error, retry: () => undefined }, slot);
+    expect(seen).toHaveBeenCalledWith(error);
   });
 
   it('with no slot, an unresolved sender renders no name at all', () => {
@@ -88,7 +102,7 @@ describe("the app's unresolved state is never nested inside the sender click tar
     const retry = vi.fn();
     const { getByRole, queryByRole } = render(
       <ChatNameResolverProvider
-        resolveName={() => ({ status: 'failed', retry })}
+        resolveName={() => ({ status: 'failed', error: new Error('read failed'), retry })}
         renderUnresolvedName={(r) =>
           r.status === 'failed' ? (
             <button type="button" onClick={r.retry}>
@@ -112,7 +126,11 @@ describe('a held name whose later read failed', () => {
     const retry = vi.fn();
     const { getByText, getByRole } = render(
       <ChatNameResolverProvider
-        resolveName={() => ({ status: 'resolved', name: 'Ada', failure: { retry } })}
+        resolveName={() => ({
+          status: 'resolved',
+          name: 'Ada',
+          failure: { error: new Error('read failed'), retry },
+        })}
         renderHeldNameFailure={(failure) => (
           <button type="button" onClick={failure.retry}>
             Retry name
@@ -125,6 +143,27 @@ describe('a held name whose later read failed', () => {
     expect(getByText('Ada')).toBeTruthy();
     fireEvent.click(getByRole('button', { name: 'Retry name' }));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the app's failure seat the later read's own error", () => {
+    const error = new Error('unavailable');
+    const seen = vi.fn();
+    render(
+      <ChatNameResolverProvider
+        resolveName={() => ({
+          status: 'resolved',
+          name: 'Ada',
+          failure: { error, retry: () => undefined },
+        })}
+        renderHeldNameFailure={(failure) => {
+          seen(failure.error);
+          return null;
+        }}
+      >
+        <MessageItemDefault m={message} currentUserId="u-me" />
+      </ChatNameResolverProvider>,
+    );
+    expect(seen).toHaveBeenCalledWith(error);
   });
 
   it('shows no failure seat for a name that read cleanly', () => {

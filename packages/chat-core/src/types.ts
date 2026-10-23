@@ -30,13 +30,13 @@ export const GROUP_GAP_SEC = 120;
 
 export type ChatMessageGroupKey = (m: ChatMessageV1) => string | undefined;
 
-export type ChatNameReadFailure = { retry: () => void };
+export type ChatNameReadFailure = { error: unknown; retry: () => void };
 
 export type ChatNameResolution =
   | { status: 'resolved'; name: string; failure?: ChatNameReadFailure }
   | { status: 'pending' }
   | { status: 'unavailable' }
-  | { status: 'failed'; retry: () => void };
+  | ({ status: 'failed' } & ChatNameReadFailure);
 
 export type ChatNameResolver = (senderId: string) => ChatNameResolution;
 

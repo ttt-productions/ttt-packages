@@ -16,9 +16,10 @@ Pure chat contracts and logic package. **No React, no Firebase.**
   (`chat-react`'s `ChatCoreConfig.allowed`).
 - **Sender-name resolution.** `ChatNameResolver = (senderId) => ChatNameResolution`,
   where `ChatNameResolution` is `{ status: 'resolved'; name; failure? }` (a held name whose later
-  read failed carries `failure: { retry }`),
+  read failed carries `failure: { error, retry }`),
   `{ status: 'pending' }`, `{ status: 'unavailable' }`, or
-  `{ status: 'failed'; retry }`. The resolver reads the app's own cache during
+  `{ status: 'failed'; error; retry }` — each failure carries the read's own error, so the app's
+  failure seat can classify it. The resolver reads the app's own cache during
   render; only `resolved` carries a name, and the UI renders the other three
   through the app's slot rather than inventing a name.
 - Message grouping helper (`isContinuation`) and `GROUP_GAP_SEC`. An app that shows its own
