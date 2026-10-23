@@ -1372,7 +1372,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `number` |  |
 | `assetId` | `string` |  |
 | `pendingMediaId` | `string` |  |
-| `fileOrigin` | `'profile-picture' \| 'craft-skill-media' \| 'squareStreetz' \| 'commission-posting' \| 'commission-proposal' \| 'audition-prompt' \| 'audition-entry' \| 'admin-audition-prompt' \| 'hallLibrary-cover-square' \| 'hallLibrary-cover-poster' \| 'hallLibrary-cover-cinematic' \| 'realm-cover' \| 'chapter-photo' \| 'tune-track-photo' \| 'tune-track-audio' \| 'television-episode-photo' \| 'television-episode-video' \| 'conversation-file' \| 'work-asset' \| 'system-content' \| 'ncii-evidence'` |  |
+| `fileOrigin` | `'profile-picture' \| 'craft-skill-media' \| 'squareStreetz' \| 'commission-posting' \| 'commission-proposal' \| 'audition-prompt' \| 'audition-entry' \| 'audition-curated-option' \| 'admin-audition-prompt' \| 'hallLibrary-cover-square' \| 'hallLibrary-cover-poster' \| 'hallLibrary-cover-cinematic' \| 'realm-cover' \| 'chapter-photo' \| 'tune-track-photo' \| 'tune-track-audio' \| 'television-episode-photo' \| 'television-episode-video' \| 'conversation-file' \| 'work-asset' \| 'system-content' \| 'ncii-evidence'` |  |
 | `authorityVersion` | `number` |  |
 | `payloadHash` | `string` |  |
 | `authorityPayload` | `{ schemaVersion, assetId, authorityVersion, operationId, payloadHash, servingStatus, accessTier, ownerType, ownerId, scope, variants, updatedAtMs }` |  |
@@ -1396,7 +1396,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `mediaAssetId` | `string` |  |
 | `mediaKind` | `'image' \| 'video' \| 'audio'` |  |
-| `fileOrigin` | `'profile-picture' \| 'craft-skill-media' \| 'squareStreetz' \| 'commission-posting' \| 'commission-proposal' \| 'audition-prompt' \| 'audition-entry' \| 'admin-audition-prompt' \| 'hallLibrary-cover-square' \| 'hallLibrary-cover-poster' \| 'hallLibrary-cover-cinematic' \| 'realm-cover' \| 'chapter-photo' \| 'tune-track-photo' \| 'tune-track-audio' \| 'television-episode-photo' \| 'television-episode-video' \| 'conversation-file' \| 'work-asset' \| 'system-content' \| 'ncii-evidence'` |  |
+| `fileOrigin` | `'profile-picture' \| 'craft-skill-media' \| 'squareStreetz' \| 'commission-posting' \| 'commission-proposal' \| 'audition-prompt' \| 'audition-entry' \| 'audition-curated-option' \| 'admin-audition-prompt' \| 'hallLibrary-cover-square' \| 'hallLibrary-cover-poster' \| 'hallLibrary-cover-cinematic' \| 'realm-cover' \| 'chapter-photo' \| 'tune-track-photo' \| 'tune-track-audio' \| 'television-episode-photo' \| 'television-episode-video' \| 'conversation-file' \| 'work-asset' \| 'system-content' \| 'ncii-evidence'` |  |
 | `ownerType` | `'userProfile' \| 'craftSkill' \| 'squareStreetzPost' \| 'workProject' \| 'workContent' \| 'hallItem' \| 'commissionListing' \| 'commissionProposal' \| 'audition' \| 'auditionEntry' \| 'conversationFile' \| 'realmFile' \| 'safetyEvidence' \| 'systemContent'` |  |
 | `ownerId` | `string` |  |
 | `workProjectId` | `string` | yes |

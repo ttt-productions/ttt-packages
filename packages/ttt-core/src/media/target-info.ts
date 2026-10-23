@@ -214,6 +214,12 @@ export const AuditionEntryTargetInfoSchema = z
   })
   .strict();
 
+export const AuditionCuratedOptionTargetInfoSchema = z
+  .object({
+    auditionId: auditionIdSchema,
+  })
+  .strict();
+
 const HallLibraryCoverTargetInfoSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -285,6 +291,7 @@ export type CommissionProposalTargetInfo = z.infer<typeof CommissionProposalTarg
 export type AuditionPromptTargetInfo = z.infer<typeof AuditionPromptTargetInfoSchema>;
 export type AdminAuditionPromptTargetInfo = z.infer<typeof AdminAuditionPromptTargetInfoSchema>;
 export type AuditionEntryTargetInfo = z.infer<typeof AuditionEntryTargetInfoSchema>;
+export type AuditionCuratedOptionTargetInfo = z.infer<typeof AuditionCuratedOptionTargetInfoSchema>;
 export type HallLibraryCoverSquareTargetInfo = z.infer<
   typeof HallLibraryCoverSquareTargetInfoSchema
 >;
@@ -331,33 +338,35 @@ export type TargetInfoFor<O extends FileOrigin> = O extends 'profile-picture'
               ? AdminAuditionPromptTargetInfo
               : O extends 'audition-entry'
                 ? AuditionEntryTargetInfo
-                : O extends 'hallLibrary-cover-square'
-                  ? HallLibraryCoverSquareTargetInfo
-                  : O extends 'hallLibrary-cover-poster'
-                    ? HallLibraryCoverPosterTargetInfo
-                    : O extends 'hallLibrary-cover-cinematic'
-                      ? HallLibraryCoverCinematicTargetInfo
-                      : O extends 'realm-cover'
-                        ? RealmCoverTargetInfo
-                        : O extends 'chapter-photo'
-                          ? ChapterPhotoTargetInfo
-                          : O extends 'tune-track-photo'
-                            ? TuneTrackPhotoTargetInfo
-                            : O extends 'tune-track-audio'
-                              ? TuneTrackAudioTargetInfo
-                              : O extends 'television-episode-photo'
-                                ? TelevisionEpisodePhotoTargetInfo
-                                : O extends 'television-episode-video'
-                                  ? TelevisionEpisodeVideoTargetInfo
-                                  : O extends 'conversation-file'
-                                    ? ConversationFileTargetInfo
-                                    : O extends 'work-asset'
-                                      ? WorkAssetTargetInfo
-                                      : O extends 'system-content'
-                                        ? SystemContentTargetInfo
-                                        : O extends 'ncii-evidence'
-                                          ? NciiEvidenceTargetInfo
-                                          : never;
+                : O extends 'audition-curated-option'
+                  ? AuditionCuratedOptionTargetInfo
+                  : O extends 'hallLibrary-cover-square'
+                    ? HallLibraryCoverSquareTargetInfo
+                    : O extends 'hallLibrary-cover-poster'
+                      ? HallLibraryCoverPosterTargetInfo
+                      : O extends 'hallLibrary-cover-cinematic'
+                        ? HallLibraryCoverCinematicTargetInfo
+                        : O extends 'realm-cover'
+                          ? RealmCoverTargetInfo
+                          : O extends 'chapter-photo'
+                            ? ChapterPhotoTargetInfo
+                            : O extends 'tune-track-photo'
+                              ? TuneTrackPhotoTargetInfo
+                              : O extends 'tune-track-audio'
+                                ? TuneTrackAudioTargetInfo
+                                : O extends 'television-episode-photo'
+                                  ? TelevisionEpisodePhotoTargetInfo
+                                  : O extends 'television-episode-video'
+                                    ? TelevisionEpisodeVideoTargetInfo
+                                    : O extends 'conversation-file'
+                                      ? ConversationFileTargetInfo
+                                      : O extends 'work-asset'
+                                        ? WorkAssetTargetInfo
+                                        : O extends 'system-content'
+                                          ? SystemContentTargetInfo
+                                          : O extends 'ncii-evidence'
+                                            ? NciiEvidenceTargetInfo
+                                            : never;
 
 function assertNever(x: never): never {
   throw new Error(`Unexpected fileOrigin: ${String(x)}`);
@@ -384,6 +393,8 @@ export function parseTargetInfo<O extends FileOrigin>(
       return AdminAuditionPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'audition-entry':
       return AuditionEntryTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'audition-curated-option':
+      return AuditionCuratedOptionTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-square':
       return HallLibraryCoverSquareTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-poster':

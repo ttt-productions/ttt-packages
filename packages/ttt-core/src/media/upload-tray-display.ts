@@ -9,6 +9,7 @@ export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'audition-prompt': 'Audition',
   'admin-audition-prompt': 'Admin audition',
   'audition-entry': 'Audition entry',
+  'audition-curated-option': 'Audition option',
   'hallLibrary-cover-square': 'Work cover',
   'hallLibrary-cover-poster': 'Work cover',
   'hallLibrary-cover-cinematic': 'Work cover',

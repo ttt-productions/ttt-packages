@@ -8,6 +8,7 @@ export const FileOriginSchema = z.enum([
   'commission-proposal',
   'audition-prompt',
   'audition-entry',
+  'audition-curated-option',
   'admin-audition-prompt',
   'hallLibrary-cover-square',
   'hallLibrary-cover-poster',

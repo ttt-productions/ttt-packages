@@ -106,6 +106,13 @@ const entry = {
   submittedAt: NOW,
   agreementVersion: 1,
 };
+const curatedOption = {
+  mode: 'curatedOption',
+  userId: 'u4',
+  auditionId: 'aud-2',
+  auditionEntryId: 'pm-1',
+  submittedAt: NOW,
+};
 
 const videoSlotId = SYSTEM_SLOTS.find((slot) => slot.kind === 'video')!.id;
 const nonVideoSlotId = SYSTEM_SLOTS.find((slot) => slot.kind !== 'video')!.id;
@@ -210,6 +217,12 @@ describe('media publication args', () => {
         ['userId', 'auditionId', 'auditionEntryId'],
       ],
       [
+        'auditionMedia curatedOption',
+        AuditionMediaPublicationArgsSchema,
+        curatedOption,
+        ['userId', 'auditionId', 'auditionEntryId'],
+      ],
+      [
         'commissionListingMedia',
         CommissionListingMediaPublicationArgsSchema,
         commissionListing,
@@ -306,10 +319,11 @@ describe('hall publication args address a surface by name', () => {
 });
 
 describe('audition publication args', () => {
-  it('a job is a work prompt, an admin prompt, or an entry — nothing else', () => {
+  it('a job is a work prompt, an admin prompt, an entry, or a curated option — nothing else', () => {
     expect(AuditionMediaPublicationArgsSchema.safeParse(workPrompt).success).toBe(true);
     expect(AuditionMediaPublicationArgsSchema.safeParse(adminPrompt).success).toBe(true);
     expect(AuditionMediaPublicationArgsSchema.safeParse(entry).success).toBe(true);
+    expect(AuditionMediaPublicationArgsSchema.safeParse(curatedOption).success).toBe(true);
     expect(
       AuditionMediaPublicationArgsSchema.safeParse({ mode: 'bogus', userId: 'u1' }).success,
     ).toBe(false);
@@ -546,5 +560,12 @@ describe('the agreement a member ticked travels with their upload', () => {
     const { agreementVersion: _omitted, ...unagreed } = entry;
     expect(AuditionMediaPublicationArgsSchema.safeParse(unagreed).success).toBe(false);
     expect(AuditionMediaPublicationArgsSchema.safeParse(entry).success).toBe(true);
+  });
+
+  it('a curated creator option carries no agreement version', () => {
+    expect(
+      AuditionMediaPublicationArgsSchema.safeParse({ ...curatedOption, agreementVersion: 1 })
+        .success,
+    ).toBe(false);
   });
 });

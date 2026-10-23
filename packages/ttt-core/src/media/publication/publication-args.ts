@@ -194,14 +194,25 @@ const AdminPromptPublicationArgsSchema = z
   })
   .strict();
 
+const auditionEntryPublicationFields = {
+  userId: userIdSchema,
+  auditionId: auditionIdSchema,
+  auditionEntryId: auditionEntryIdSchema,
+  submittedAt: z.number(),
+};
+
 const EntryPublicationArgsSchema = z
   .object({
     mode: z.literal('entry'),
-    userId: userIdSchema,
-    auditionId: auditionIdSchema,
-    auditionEntryId: auditionEntryIdSchema,
-    submittedAt: z.number(),
+    ...auditionEntryPublicationFields,
     agreementVersion: storedAgreementVersionSchema,
+  })
+  .strict();
+
+const CuratedOptionPublicationArgsSchema = z
+  .object({
+    mode: z.literal('curatedOption'),
+    ...auditionEntryPublicationFields,
   })
   .strict();
 
@@ -209,6 +220,7 @@ export const AuditionMediaPublicationArgsSchema = z.discriminatedUnion('mode', [
   WorkPromptPublicationArgsSchema,
   AdminPromptPublicationArgsSchema,
   EntryPublicationArgsSchema,
+  CuratedOptionPublicationArgsSchema,
 ]);
 export type AuditionMediaPublicationArgs = z.infer<typeof AuditionMediaPublicationArgsSchema>;
 

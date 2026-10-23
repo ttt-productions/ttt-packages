@@ -10,6 +10,7 @@ import {
   AuditionPromptTargetInfoSchema,
   AdminAuditionPromptTargetInfoSchema,
   AuditionEntryTargetInfoSchema,
+  AuditionCuratedOptionTargetInfoSchema,
   HallLibraryCoverSquareTargetInfoSchema,
   ChapterPhotoTargetInfoSchema,
   TuneTrackPhotoTargetInfoSchema,
@@ -506,6 +507,28 @@ describe('AuditionEntryTargetInfoSchema', () => {
         agreementVersion: AUDITION_ENTRY_AGREEMENT_VERSION + 1,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('AuditionCuratedOptionTargetInfoSchema', () => {
+  it('names only the audition the option belongs to', () => {
+    expect(AuditionCuratedOptionTargetInfoSchema.parse({ auditionId: 'op_1' })).toEqual({
+      auditionId: 'op_1',
+    });
+  });
+  it('carries no entry agreement, because the creator enters nothing', () => {
+    expect(
+      AuditionCuratedOptionTargetInfoSchema.safeParse({
+        auditionId: 'op_1',
+        agreementVersion: AUDITION_ENTRY_AGREEMENT_VERSION,
+      }).success,
+    ).toBe(false);
+  });
+  it('is the target info of the curated option origin, while a community entry still needs the agreement', () => {
+    expect(parseTargetInfo('audition-curated-option', { auditionId: 'op_1' })).toEqual({
+      auditionId: 'op_1',
+    });
+    expect(() => parseTargetInfo('audition-entry', { auditionId: 'op_1' })).toThrow();
   });
 });
 

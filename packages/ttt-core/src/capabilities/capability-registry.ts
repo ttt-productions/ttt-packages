@@ -29,6 +29,7 @@ export const ADULT_ONLY_UPLOAD_ORIGINS = [
   'commission-proposal',
   'audition-prompt',
   'audition-entry',
+  'audition-curated-option',
   'hallLibrary-cover-square',
   'hallLibrary-cover-poster',
   'hallLibrary-cover-cinematic',

@@ -104,22 +104,40 @@ export const AuditionSchema = z.object({
 });
 export type Audition = z.infer<typeof AuditionSchema>;
 
-export const AuditionEntrySchema = z.object({
-  auditionEntryId: z.string(),
-  auditionId: z.string(),
-  workProjectId: z.string().optional(),
-  videoAssetId: z.string(),
-  mediaType: ContentMediaKindSchema.extract(['video']),
-  createdBy: userRefSchema,
-  createdAt: z.number(),
-  votes: z.number(),
-  shortId: z.string().optional(),
-  shortUrl: z.string().optional(),
-  isCreatorOption: z.boolean().optional(),
-  agreementVersion: storedAgreementVersionSchema.optional(),
-  hidden: z.boolean(),
-  hiddenBy: ModerationHiddenBySchema.optional(),
-});
+export const AuditionEntrySchema = z
+  .object({
+    auditionEntryId: z.string(),
+    auditionId: z.string(),
+    workProjectId: z.string().optional(),
+    videoAssetId: z.string(),
+    mediaType: ContentMediaKindSchema.extract(['video']),
+    createdBy: userRefSchema,
+    createdAt: z.number(),
+    votes: z.number(),
+    shortId: z.string().optional(),
+    shortUrl: z.string().optional(),
+    isCreatorOption: z.boolean().optional(),
+    agreementVersion: storedAgreementVersionSchema.optional(),
+    hidden: z.boolean(),
+    hiddenBy: ModerationHiddenBySchema.optional(),
+  })
+  .superRefine((entry, ctx) => {
+    const isCreatorOption = entry.isCreatorOption === true;
+    if (isCreatorOption && entry.agreementVersion !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['agreementVersion'],
+        message: 'A curated creator option carries no agreement version',
+      });
+    }
+    if (!isCreatorOption && entry.agreementVersion === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['agreementVersion'],
+        message: 'A community entry carries the agreement version its entrant ticked',
+      });
+    }
+  });
 export type AuditionEntry = z.infer<typeof AuditionEntrySchema>;
 
 export const UserAuditionVoteSchema = z.object({

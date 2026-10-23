@@ -57,6 +57,34 @@ export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginS
 
   const RECORD_DURATION_SEC = SHORT_VIDEO_DURATION_SEC;
 
+  const AUDITION_ENTRY_VIDEO_SPEC: MediaOriginSpec = {
+    kind: 'video',
+    accept: ACCEPT_VIDEO_ONLY,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+    requiredAspectRatio: 9 / 16,
+    videoOrientation: 'vertical' as const,
+    client: {
+      allowPick: true,
+      allowCapturePhoto: false,
+      allowRecordVideo: true,
+      allowRecordAudio: false,
+      cameraFacingMode: 'user' as const,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
+    },
+    processing: {
+      video: {
+        kind: 'video',
+        requiredWidth: ENTRY_VIDEO_WIDTH,
+        requiredHeight: ENTRY_VIDEO_HEIGHT,
+        allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+    },
+  };
+
   return {
     'profile-picture': {
       kind: 'image',
@@ -397,33 +425,8 @@ export function tttMediaSpecsFor(mode: AppMode): Record<FileOrigin, MediaOriginS
       },
     },
 
-    'audition-entry': {
-      kind: 'video',
-      accept: ACCEPT_VIDEO_ONLY,
-      maxBytes: VIDEO_RAW_BYTES,
-      maxDurationSec: SHORT_VIDEO_DURATION_SEC,
-      requiredAspectRatio: 9 / 16,
-      videoOrientation: 'vertical' as const,
-      client: {
-        allowPick: true,
-        allowCapturePhoto: false,
-        allowRecordVideo: true,
-        allowRecordAudio: false,
-        cameraFacingMode: 'user' as const,
-        maxRecordDurationSec: RECORD_DURATION_SEC,
-      },
-      processing: {
-        video: {
-          kind: 'video',
-          requiredWidth: ENTRY_VIDEO_WIDTH,
-          requiredHeight: ENTRY_VIDEO_HEIGHT,
-          allowAutoFormat: true,
-          maxDurationSec: SHORT_VIDEO_DURATION_SEC,
-          maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
-          video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
-        },
-      },
-    },
+    'audition-entry': AUDITION_ENTRY_VIDEO_SPEC,
+    'audition-curated-option': AUDITION_ENTRY_VIDEO_SPEC,
 
     'commission-posting': {
       kind: 'image',

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AuditionEntrySchema,
   CommissionProposalSchema,
   FullCommissionListingSchema,
 } from '../src/doc-schemas/commissions.js';
@@ -92,5 +93,43 @@ describe('CommissionProposalSchema — the attached file kind', () => {
 
   it('carries no kind on a text-only proposal', () => {
     expect(CommissionProposalSchema.parse(proposal).proposalFileType).toBeUndefined();
+  });
+});
+
+describe('AuditionEntrySchema — who agreed to what', () => {
+  const communityEntry = {
+    auditionEntryId: 'u1',
+    auditionId: 'a1',
+    videoAssetId: 'v1',
+    mediaType: 'video' as const,
+    createdBy: { uid: 'u1' },
+    createdAt: 1,
+    votes: 1,
+    agreementVersion: 1,
+    hidden: false,
+  };
+  const creatorOption = {
+    auditionEntryId: 'pm1',
+    auditionId: 'a1',
+    videoAssetId: 'v2',
+    mediaType: 'video' as const,
+    createdBy: { uid: 'creator' },
+    createdAt: 1,
+    votes: 0,
+    isCreatorOption: true,
+    hidden: false,
+  };
+
+  it('a community entry records the entry agreement version its entrant ticked', () => {
+    expect(AuditionEntrySchema.safeParse(communityEntry).success).toBe(true);
+    const { agreementVersion: _omitted, ...unagreed } = communityEntry;
+    expect(AuditionEntrySchema.safeParse(unagreed).success).toBe(false);
+  });
+
+  it('a curated creator option records no agreement version', () => {
+    expect(AuditionEntrySchema.safeParse(creatorOption).success).toBe(true);
+    expect(AuditionEntrySchema.safeParse({ ...creatorOption, agreementVersion: 1 }).success).toBe(
+      false,
+    );
   });
 });

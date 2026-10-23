@@ -49,3 +49,9 @@ describe('the NCII evidence upload cap', () => {
     expect(TTT_MEDIA_SPECS['ncii-evidence'].maxBytes).toBe(NCII_EVIDENCE_MAX_FILE_BYTES);
   });
 });
+
+describe('a curated creator option video', () => {
+  it('is held to the audition entry video spec', () => {
+    expect(TTT_MEDIA_SPECS['audition-curated-option']).toBe(TTT_MEDIA_SPECS['audition-entry']);
+  });
+});
