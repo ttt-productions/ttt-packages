@@ -178,8 +178,14 @@ export function readRefs(file: FileView, fields: Fields): ReadRef[] {
         ts.isShorthandPropertyAssignment(parent) ||
         ts.isJsxAttribute(parent);
       const binding = isName ? undefined : bindingOf(node);
+      const passedWhole =
+        ts.isJsxExpression(parent) &&
+        ts.isJsxAttribute(parent.parent) &&
+        parent.expression === node;
       if (binding?.kind === 'field' && !(binding.category === 'carrier' && isReceiver(node)))
         refs.push({ read: binding.read, category: binding.category, node });
+      else if (binding?.kind === 'hook' && passedWhole)
+        refs.push({ read: binding.read, category: 'carrier', node });
       else if (binding?.kind === 'retry' && !isReceiver(node))
         refs.push({ read: ownerOf(node), category: 'carrier', node });
     }

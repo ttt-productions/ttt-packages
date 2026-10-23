@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ADMIN_VIEWS } from '../src/constants/admin-views.js';
+import { ADMIN_VIEWS, FULL_ADMIN_ONLY_VIEWS } from '../src/constants/admin-views.js';
 import { BACKSTAGE_GUIDE_TOPIC_IDS } from '../src/constants/backstage-guide-topics.js';
 import { APP_ROUTES } from '../src/paths/app-routes.js';
 
@@ -14,6 +14,12 @@ describe('admin views', () => {
       expect(encodeURIComponent(view)).toBe(view);
     }
     expect(APP_ROUTES.admin('safetyCaseConsole')).toBe('/admin?view=safetyCaseConsole');
+  });
+  it('only the safety console, public documents, and system slots need full admin; the dashboard never does', () => {
+    expect([...FULL_ADMIN_ONLY_VIEWS].sort()).toEqual(
+      ['publicDocuments', 'safetyCaseConsole', 'systemSlots'].sort(),
+    );
+    expect(FULL_ADMIN_ONLY_VIEWS).not.toContain('dashboard');
   });
 });
 

@@ -252,6 +252,28 @@ describe("a surface that renders a read's loading state also renders its failure
     ]);
   });
 
+  it('passes a loading state whose read is handed whole to the component that renders its failure', async () => {
+    const { loading } = await run({
+      'src/components/whole.tsx': lines(
+        'export function Whole() {',
+        '  const read = useRows();',
+        '  if (read.isLoading) return <Spinner />;',
+        '  return <ReadState read={read}>{(rows) => <Rows rows={rows} />}</ReadState>;',
+        '}',
+      ),
+      'src/components/elsewhere.tsx': lines(
+        'export function Elsewhere() {',
+        '  const read = useRows();',
+        '  if (read.isLoading) return <Spinner />;',
+        '  return <Rows rows={read.data} />;',
+        '}',
+      ),
+    });
+    expect(loading).toEqual([
+      "src/components/elsewhere.tsx:3 not on the reviewed list: read.isLoading is used, but read's failure never is",
+    ]);
+  });
+
   it("passes a loading state paired with its own read's failure or its failure carrier", async () => {
     const { loading } = await run({
       'src/components/list.tsx': lines(

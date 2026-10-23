@@ -21,3 +21,9 @@ export const ADMIN_VIEWS = [
 ] as const;
 
 export type AdminView = (typeof ADMIN_VIEWS)[number];
+
+export const FULL_ADMIN_ONLY_VIEWS = [
+  'safetyCaseConsole',
+  'publicDocuments',
+  'systemSlots',
+] as const satisfies readonly AdminView[];

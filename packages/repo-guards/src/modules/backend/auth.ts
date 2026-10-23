@@ -478,6 +478,7 @@ export interface AdminActionSurfaceFacts {
   adminCheckers: readonly string[];
   checkerReaders: readonly Reviewed[];
   adminDeclarations: CallableDeclarationFacts;
+  clientDeclarations: CallableDeclarationFacts;
   claimKeys: readonly string[];
   adminHooks: readonly string[];
   adminAreaRoots: readonly string[];
@@ -537,6 +538,7 @@ export function clientAdminUses(
   file: FileView,
   facts: Pick<AdminActionSurfaceFacts, 'claimKeys' | 'adminHooks'>,
   declarationModuleOf: (spec: string) => string | null,
+  areaModuleOf: (spec: string) => string | null = () => null,
 ): ClientAdminUse[] {
   const out: ClientAdminUse[] = [];
   const keys = new RegExp(`\\b(${facts.claimKeys.map(escapeRegExp).join('|')})\\b`);
@@ -557,6 +559,17 @@ export function clientAdminUses(
           index,
           symbol,
           detail: `imports ${symbol} from the admin declarations ${module}`,
+        });
+      continue;
+    }
+    const area = site.typeOnly ? null : areaModuleOf(site.spec);
+    if (area) {
+      const names = site.named.filter((n) => !n.typeOnly).map((n) => n.imported);
+      for (const symbol of site.named.length ? names : ['*'])
+        out.push({
+          index,
+          symbol,
+          detail: `imports ${symbol} from the admin area ${area}`,
         });
       continue;
     }
@@ -598,6 +611,7 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
     namesProblem(facts?.adminCheckers, 'adminCheckers', problems);
     reviewedProblems(facts?.checkerReaders, 'checkerReaders', problems);
     declarationFactProblems(facts?.adminDeclarations, 'adminDeclarations', problems);
+    declarationFactProblems(facts?.clientDeclarations, 'clientDeclarations', problems);
     namesProblem(facts?.claimKeys, 'claimKeys', problems);
     namesProblem(facts?.adminHooks, 'adminHooks', problems, { nonEmpty: false });
     adminAreaProblems(facts, problems);
@@ -615,10 +629,12 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
           `The admin-only callables are every callable whose ${facts.adminAuth.call} calls all carry ` +
           `${facts.adminAuth.option}, read from the Functions source each run. Inside a callable module, admin standing ` +
           `is checked only through that auth call: ${facts.adminCheckers.join(', ')} is called only by the reviewed ` +
-          `readers. ${facts.adminDeclarations.modules.join(', ')} declares exactly the admin-only callables, no more and ` +
-          `no fewer. Outside the admin area (${facts.adminAreaRoots.join(', ')}) and the admin-actions affordance ` +
-          `(${facts.affordanceOwner}), client code never reads the admin claim, imports an admin declaration, or imports ` +
-          'an admin hook: an admin action there goes through the affordance, and any other admin-standing read is a ' +
+          `readers. ${facts.adminDeclarations.modules.join(', ')} declares only admin-only callables, and every admin-only ` +
+          `callable the client declares (${facts.clientDeclarations.modules.join(', ')}) is declared there; one with no ` +
+          `client declaration has no client caller. Outside the admin area (${facts.adminAreaRoots.join(', ')}) and the ` +
+          `admin-actions affordance (${facts.affordanceOwner}), client code never reads the admin claim, imports an admin ` +
+          'declaration, imports a module of the admin area, or imports an admin hook: an admin action there goes through ' +
+          'the affordance, and any other admin-standing read is a ' +
           'reviewed entry ({ path, symbol?, why }). A reviewed reader or entry that no longer matches is stale.',
         samples: {
           flags: [
@@ -675,6 +691,16 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
             facts.adminDeclarations,
           );
           findings.push(...declarationFindings);
+          const clientRead = readDeclarations(context, {
+            ...facts.clientDeclarations,
+            modules: facts.clientDeclarations.modules.filter((m) => !declarationModules.has(m)),
+          });
+          findings.push(...clientRead.findings);
+          const clientDeclared = new Set(
+            [...declared, ...clientRead.declared]
+              .map((d) => d.callable)
+              .filter((c): c is string => c !== null),
+          );
           const declaredNames = new Set<string>();
           for (const d of declared) {
             if (d.callable === null) continue;
@@ -687,10 +713,10 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
               });
           }
           for (const [name, where] of adminCallables)
-            if (!declaredNames.has(name))
+            if (clientDeclared.has(name) && !declaredNames.has(name))
               findings.push({
                 ...where,
-                detail: `${name} is admin-only, but ${facts.adminDeclarations.modules.join(', ')} does not declare it`,
+                detail: `${name} is admin-only, but the client declares it outside ${facts.adminDeclarations.modules.join(', ')}`,
               });
 
           for (const root of facts.adminAreaRoots)
@@ -710,10 +736,22 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
           for (const file of context.files(APP_CLIENT_CODE)) {
             if (inServerZone(file, facts.appServerZone)) continue;
             if (facts.adminAreaRoots.some((root) => isUnder(file.path, root))) continue;
-            const uses = clientAdminUses(file, facts, (spec) => {
-              const resolved = resolveSpecifier(context.reader, file.path, spec, aliases);
-              return declarationModules.has(resolved) ? resolved : null;
-            });
+            const resolve = (spec: string) =>
+              resolveSpecifier(context.reader, file.path, spec, aliases);
+            const uses = clientAdminUses(
+              file,
+              facts,
+              (spec) => {
+                const resolved = resolve(spec);
+                return declarationModules.has(resolved) ? resolved : null;
+              },
+              (spec) => {
+                const resolved = resolve(spec);
+                return facts.adminAreaRoots.some((root) => isUnder(resolved, root))
+                  ? resolved
+                  : null;
+              },
+            );
             if (file.path === facts.affordanceOwner) {
               ownerHolds ||= uses.length > 0;
               continue;

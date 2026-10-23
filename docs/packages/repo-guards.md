@@ -142,8 +142,9 @@ this section says what the facts mean, area by area, and never lists them guard 
   index and deploy manifest, and the module that owns each server boundary the app declares), the
   folders and modules that make up the app's server zone, and the reviewed exceptions to each. The
   admin action surface adds the auth call and the option that marks a callable admin-only, the
-  app's admin-checker names with their reviewed readers, the admin declarations module, the admin
-  claim keys and hooks, the admin-area roots, the admin-actions affordance, and the reviewed
+  app's admin-checker names with their reviewed readers, the admin declarations module and the
+  client's full declarations, the admin claim keys and hooks, the admin-area roots (a module under one
+  counts as an admin hook when imported from outside), the admin-actions affordance, and the reviewed
   admin-standing reads outside them, each a path with an optional symbol.
 - **Frontend reads** — the read-state module and its failure seat, the hooks tree, the query-key
   module (with a loader for its builders), the domain-event registry, the session-retirement

@@ -13,7 +13,7 @@ import { toClaimedTask } from './claimedTask.js';
 export interface CheckoutNextImportantHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
-  auth: AdminAuthConfig;
+  auth?: AdminAuthConfig;
   onAuditEvent?: OnAuditEvent;
   assertTaskClaimable?: TaskClaimGuard;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
@@ -32,6 +32,7 @@ export function createCheckoutNextImportantHandler({
   assertTaskClaimable,
 }: CheckoutNextImportantHandlerConfig) {
   const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
+    if (!auth) return;
     if (auth.requireAdmin) {
       try {
         await auth.requireAdmin(uid, authToken);

@@ -461,6 +461,15 @@ describe('admin actions outside the admin area go through the admin-actions affo
         resumable: 'defineResumable',
       },
     },
+    clientDeclarations: {
+      modules: ['src/lib/remote.ts', 'src/lib/admin-remote.ts'],
+      factories: {
+        action: 'defineAction',
+        reader: 'defineReader',
+        invoker: 'defineInvoker',
+        resumable: 'defineResumable',
+      },
+    },
     claimKeys: ['isAdmin'],
     adminHooks: ['useIsAdmin'],
     adminAreaRoots: ['src/app/admin'],
@@ -492,7 +501,9 @@ describe('admin actions outside the admin area go through the admin-actions affo
       "export const useAdminHide = defineAction('adminHide');",
       "export const useAdminCopy = defineAction('adminCopy');",
     ].join('\n'),
+    'src/lib/remote.ts': "export const useJoin = defineAction('join');",
     'src/hooks/use-is-admin.ts': 'export {};',
+    'src/app/admin/use-admin-rows.ts': 'export const useAdminRows = () => [];',
     'src/app/admin/page.tsx': [
       "import { useAdminHide } from '@/lib/admin-remote';",
       "import { useIsAdmin } from '@/hooks/use-is-admin';",
@@ -559,7 +570,7 @@ describe('admin actions outside the admin area go through the admin-actions affo
     ]);
   });
 
-  it('FLAGS a declarations module that misses an admin-only callable or declares one that is not', async () => {
+  it('FLAGS an admin declarations module that declares a member callable, and an admin-only callable the client declares elsewhere', async () => {
     expect(
       await run({
         ...clean,
@@ -567,11 +578,41 @@ describe('admin actions outside the admin area go through the admin-actions affo
           "export const useAdminHide = defineAction('adminHide');",
           "export const useJoin = defineAction('join');",
         ].join('\n'),
+        'src/lib/remote.ts': "export const useAdminCopy = defineAction('adminCopy');",
         'src/components/admin-actions.tsx': "import { useAdminHide } from '../lib/admin-remote';",
       }),
     ).toEqual([
       'src/lib/admin-remote.ts:2 useJoin declares join, which is not an admin-only callable',
-      'functions/src/factory.ts:4 adminCopy is admin-only, but src/lib/admin-remote.ts does not declare it',
+      'functions/src/factory.ts:4 adminCopy is admin-only, but the client declares it outside src/lib/admin-remote.ts',
+    ]);
+  });
+
+  it('leaves an admin-only callable with no client declaration alone: it has no client caller', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/lib/admin-remote.ts': "export const useAdminHide = defineAction('adminHide');",
+        'src/components/admin-actions.tsx': "import { useAdminHide } from '../lib/admin-remote';",
+      }),
+    ).toEqual([]);
+  });
+
+  it('FLAGS a module of the admin area imported outside it; PASSES a type-only import and the affordance', async () => {
+    expect(
+      await run({
+        ...clean,
+        'src/components/admin-actions.tsx': [
+          "import { useAdminHide, useAdminCopy } from '../lib/admin-remote';",
+          "import { useAdminRows } from '@/app/admin/use-admin-rows';",
+        ].join('\n'),
+        'src/components/feed.tsx': [
+          "import { useAdminRows } from '@/app/admin/use-admin-rows';",
+          "import type { AdminRow } from '@/app/admin/use-admin-rows';",
+          "import { type AdminCell } from '../app/admin/use-admin-rows';",
+        ].join('\n'),
+      }),
+    ).toEqual([
+      'src/components/feed.tsx:1 outside the admin area: imports useAdminRows from the admin area src/app/admin/use-admin-rows.ts',
     ]);
   });
 

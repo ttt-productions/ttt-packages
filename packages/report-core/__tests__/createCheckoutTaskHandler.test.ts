@@ -207,6 +207,38 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     ).toBe(true);
   });
 
+  it('without auth makes no admin check of its own, leaving the caller authorized upstream', async () => {
+    const { db } = createMockDb({
+      docs: {
+        'adminTasks/task1': { ...baseTask, status: 'pending' },
+        'testReportGroups/group1': GROUP_DOC,
+      },
+    });
+    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db });
+
+    const result = (await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'not-on-any-list', token: {} },
+    )) as { success: boolean };
+
+    expect(result.success).toBe(true);
+  });
+
+  it('with auth still refuses a caller it does not admit', async () => {
+    const { db, updates } = createMockDb({
+      docs: {
+        'adminTasks/task1': { ...baseTask, status: 'pending' },
+        'testReportGroups/group1': GROUP_DOC,
+      },
+    });
+    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
+
+    await expect(
+      handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'intruder', token: {} }),
+    ).rejects.toThrow('Administrator access required');
+    expect(updates).toHaveLength(0);
+  });
+
   it("answers with the task's own createdAt and lastUpdatedAt, so the claim is a full checked-out task", async () => {
     const { db } = createMockDb({
       docs: {

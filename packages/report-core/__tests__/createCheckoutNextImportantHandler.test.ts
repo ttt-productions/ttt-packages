@@ -318,6 +318,16 @@ describe('createCheckoutNextImportantHandler', () => {
     );
   });
 
+  it('without auth makes no admin check of its own, leaving the caller authorized upstream', async () => {
+    const { db } = createMockDb({
+      docs: { 'adminTasks/task1': pendingTask('group1', 10) },
+    });
+    const handler = createCheckoutNextImportantHandler({ config: TEST_CONFIG, db });
+
+    const result = await handler({}, { uid: 'not-on-any-list', token: null });
+    expect(result.success).toBe(true);
+  });
+
   it('uses adminUserIds fallback for admin verification', async () => {
     const { db } = createMockDb({
       docs: { 'adminTasks/task1': pendingTask('group1', 10) },
