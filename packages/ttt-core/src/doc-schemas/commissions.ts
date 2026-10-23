@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
-import { stakeSharesOfferedSchema } from '../schemas/atoms.js';
+import { stakeSharesOfferedSchema, storedAgreementVersionSchema } from '../schemas/atoms.js';
 import { AuditionDeadlineSchema } from '../constants/audition-deadlines.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
@@ -46,7 +46,7 @@ export const CommissionProposalSchema = z.object({
   proposalText: z.string(),
   proposalFileAssetId: z.string().optional(),
   proposalFileType: ContentMediaKindSchema.optional(),
-  agreementVersion: z.number().int().positive(),
+  agreementVersion: storedAgreementVersionSchema,
   createdBy: userRefSchema,
   createdOn: z.number(),
   status: CommissionProposalStatusSchema,
@@ -116,7 +116,7 @@ export const AuditionEntrySchema = z.object({
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),
   isCreatorOption: z.boolean().optional(),
-  agreementVersion: z.number().int().positive().optional(),
+  agreementVersion: storedAgreementVersionSchema.optional(),
   hidden: z.boolean(),
   hiddenBy: ModerationHiddenBySchema.optional(),
 });

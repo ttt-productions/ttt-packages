@@ -74,6 +74,7 @@ const commissionProposal = {
   userId: 'u1',
   coverLetterText: 'please pick me',
   replyFileType: 'image',
+  agreementVersion: 1,
 };
 const workPrompt = {
   mode: 'workPrompt',
@@ -103,6 +104,7 @@ const entry = {
   auditionId: 'aud-1',
   auditionEntryId: 'u3',
   submittedAt: NOW,
+  agreementVersion: 1,
 };
 
 const videoSlotId = SYSTEM_SLOTS.find((slot) => slot.kind === 'video')!.id;
@@ -525,5 +527,24 @@ describe('system video slot publication args', () => {
     expect(SystemVideoSlotPublicationArgsSchema.safeParse({ slotId: nonVideoSlotId }).success).toBe(
       false,
     );
+  });
+});
+
+describe('the agreement a member ticked travels with their upload', () => {
+  it('a proposal file carries the proposal agreement version it was sent under', () => {
+    const { agreementVersion: _omitted, ...unagreed } = commissionProposal;
+    expect(CommissionProposalMediaPublicationArgsSchema.safeParse(unagreed).success).toBe(false);
+    expect(
+      CommissionProposalMediaPublicationArgsSchema.safeParse({
+        ...commissionProposal,
+        agreementVersion: 0,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('an audition entry carries the entry agreement version it was sent under', () => {
+    const { agreementVersion: _omitted, ...unagreed } = entry;
+    expect(AuditionMediaPublicationArgsSchema.safeParse(unagreed).success).toBe(false);
+    expect(AuditionMediaPublicationArgsSchema.safeParse(entry).success).toBe(true);
   });
 });

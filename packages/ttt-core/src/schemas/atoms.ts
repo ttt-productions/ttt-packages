@@ -134,6 +134,8 @@ export const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const storedTitleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH);
 
+export const storedAgreementVersionSchema = z.number().int().positive();
+
 // Nullish: the Firebase callable client sends an `undefined` field as null.
 export const LegalReviewNoticeAcknowledgedInputSchema = z.literal(true).nullish();
 

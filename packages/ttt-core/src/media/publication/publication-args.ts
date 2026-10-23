@@ -30,6 +30,7 @@ import {
   hallSubItemIdSchema,
   itemIdSchema,
   squareStreetzPostIdSchema,
+  storedAgreementVersionSchema,
   userIdSchema,
   workFileFolderIdSchema,
   workFileIdSchema,
@@ -149,6 +150,7 @@ export const CommissionProposalMediaPublicationArgsSchema = z
     userId: userIdSchema,
     coverLetterText: z.string(),
     replyFileType: ContentMediaKindSchema,
+    agreementVersion: storedAgreementVersionSchema,
   })
   .strict();
 export type CommissionProposalMediaPublicationArgs = z.infer<
@@ -199,6 +201,7 @@ const EntryPublicationArgsSchema = z
     auditionId: auditionIdSchema,
     auditionEntryId: auditionEntryIdSchema,
     submittedAt: z.number(),
+    agreementVersion: storedAgreementVersionSchema,
   })
   .strict();
 
