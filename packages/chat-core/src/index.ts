@@ -7,6 +7,7 @@ export type {
   ChatMessageGroupKey,
   ModerationHandlers,
   ChatNameResolver,
+  ChatNameReadFailure,
   ChatNameResolution,
   ChatPrewarmSenders,
 } from './types.js';

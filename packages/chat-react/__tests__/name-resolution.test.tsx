@@ -106,3 +106,37 @@ describe("the app's unresolved state is never nested inside the sender click tar
     expect(queryByRole('button', { name: /retry name/i })?.closest('[role="button"]')).toBeNull();
   });
 });
+
+describe('a held name whose later read failed', () => {
+  it("keeps the name and shows the app's failure seat beside it, with its retry", () => {
+    const retry = vi.fn();
+    const { getByText, getByRole } = render(
+      <ChatNameResolverProvider
+        resolveName={() => ({ status: 'resolved', name: 'Ada', failure: { retry } })}
+        renderHeldNameFailure={(failure) => (
+          <button type="button" onClick={failure.retry}>
+            Retry name
+          </button>
+        )}
+      >
+        <MessageItemDefault m={message} currentUserId="u-me" />
+      </ChatNameResolverProvider>,
+    );
+    expect(getByText('Ada')).toBeTruthy();
+    fireEvent.click(getByRole('button', { name: 'Retry name' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no failure seat for a name that read cleanly', () => {
+    const { getByText, queryByRole } = render(
+      <ChatNameResolverProvider
+        resolveName={() => ({ status: 'resolved', name: 'Ada' })}
+        renderHeldNameFailure={() => <button type="button">Retry name</button>}
+      >
+        <MessageItemDefault m={message} currentUserId="u-me" />
+      </ChatNameResolverProvider>,
+    );
+    expect(getByText('Ada')).toBeTruthy();
+    expect(queryByRole('button', { name: 'Retry name' })).toBeNull();
+  });
+});

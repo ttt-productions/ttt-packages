@@ -90,8 +90,10 @@ export {
 export type {
   MutationSession,
   MutationSessionProviderProps,
+  SessionMutateOptions,
   SessionMutationFunctionContext,
   SessionMutationOptions,
+  SessionMutationResult,
 } from './session-mutation.js';
 
 export { createCallables, MAX_RESUMABLE_CALLS } from './callables/create-callables.js';

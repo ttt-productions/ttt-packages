@@ -12,6 +12,11 @@ import {
   type ChatInternalPath,
 } from '../src/internal-calls.js';
 import { CHAT_INTERNAL_BODY_MAX_BYTES } from '../src/internal-contract.js';
+import {
+  CHAT_INTERNAL_OPERATION_LABEL_MAX_LENGTH,
+  CHAT_ROOM_TARGET_MAX_LENGTH,
+} from '../src/internal-atoms.js';
+import { CHAT_ACCOUNT_ID_MAX_LENGTH } from '../src/realtime-wire.js';
 
 const room = 'app:dev:channel:group:g1';
 const digest = 'a'.repeat(64);
@@ -251,5 +256,29 @@ describe('the anonymization bodies', () => {
         sourceManifestKey: 'k'.repeat(CHAT_ARCHIVE_KEY_MAX_LENGTH + 1),
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('the operation id bound', () => {
+  const longestOperationId = [
+    'l'.repeat(CHAT_INTERNAL_OPERATION_LABEL_MAX_LENGTH),
+    'r'.repeat(CHAT_ROOM_TARGET_MAX_LENGTH),
+    'u'.repeat(CHAT_ACCOUNT_ID_MAX_LENGTH),
+  ].join(':');
+
+  it('admits an operation id naming the longest room and account under the longest label', () => {
+    const parsed = parseChatInternalRequest(CHAT_INTERNAL_PATHS.anonymizableEpochs, {
+      targetDo: 'r',
+      operationId: longestOperationId,
+    });
+    expect(parsed.ok).toBe(true);
+  });
+
+  it('refuses an operation id one character longer', () => {
+    const parsed = parseChatInternalRequest(CHAT_INTERNAL_PATHS.anonymizableEpochs, {
+      targetDo: 'r',
+      operationId: `${longestOperationId}x`,
+    });
+    expect(parsed).toEqual({ ok: false, reason: 'bad-body' });
   });
 });

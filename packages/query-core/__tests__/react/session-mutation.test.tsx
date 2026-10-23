@@ -296,6 +296,111 @@ describe('useSessionMutation — a late success', () => {
   });
 });
 
+describe('useSessionMutation — callbacks that await', () => {
+  it('hands every callback the session that started the action', async () => {
+    const seen: string[] = [];
+    const record = (name: string) => (context: SessionMutationFunctionContext) =>
+      seen.push(`${name}:${context.session.uid}:${context.session.isCurrent()}`);
+    const onMutate = record('onMutate');
+    const onSuccess = record('onSuccess');
+    const onSettled = record('onSettled');
+    const perCall = record('perCall');
+    const session = { uid: 'member-a' as string | null };
+    const { result } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async () => 'done',
+          onMutate: (_variables: void, context) => {
+            onMutate(context);
+          },
+          onSuccess: (_data, _variables, _result, context) => {
+            onSuccess(context);
+          },
+          onSettled: (_data, _error, _variables, _result, context) => {
+            onSettled(context);
+          },
+        }),
+      { wrapper: sessionWrapper(makeClient(), session) },
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync(undefined, {
+        onSuccess: (_data, _variables, _result, context) => {
+          perCall(context);
+        },
+      });
+    });
+
+    expect(seen).toEqual([
+      'onMutate:member-a:true',
+      'onSuccess:member-a:true',
+      'onSettled:member-a:true',
+      'perCall:member-a:true',
+    ]);
+  });
+
+  it('lets an onSuccess see its session end across its own await, and rejects mutateAsync as ended', async () => {
+    const refresh = deferred<void>();
+    const toast = vi.fn();
+    const after = vi.fn();
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async () => 'done',
+          onSuccess: async (_data, _variables, _result, context) => {
+            await refresh.promise;
+            if (context.session.isCurrent()) toast();
+          },
+        }),
+      { wrapper: sessionWrapper(makeClient(), session) },
+    );
+
+    let request!: Promise<void>;
+    act(() => {
+      request = result.current.mutateAsync().then(after);
+    });
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+    session.uid = null;
+    rerender();
+
+    let rejection: unknown;
+    await act(async () => {
+      refresh.resolve();
+      rejection = await request.catch((error: unknown) => error);
+    });
+
+    expect(toast).not.toHaveBeenCalled();
+    expect(after).not.toHaveBeenCalled();
+    expect(rejection).toBeInstanceOf(MutationSessionEndedError);
+    expect((rejection as Error).cause).toBeUndefined();
+  });
+
+  it('resolves mutateAsync when the session lasts through the awaited onSuccess', async () => {
+    const refresh = deferred<void>();
+    const session = { uid: 'member-a' as string | null };
+    const { result } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async () => 'done',
+          onSuccess: async () => {
+            await refresh.promise;
+          },
+        }),
+      { wrapper: sessionWrapper(makeClient(), session) },
+    );
+
+    let request!: Promise<string>;
+    act(() => {
+      request = result.current.mutateAsync();
+    });
+    await act(async () => {
+      refresh.resolve();
+      await expect(request).resolves.toBe('done');
+    });
+  });
+});
+
 describe('useSessionMutation — when a uid change ends the session', () => {
   it('ends the earlier session once the new uid commits, before a later answer is handled', async () => {
     const answer = deferred<string>();

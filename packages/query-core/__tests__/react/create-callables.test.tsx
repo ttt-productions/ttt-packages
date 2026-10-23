@@ -656,3 +656,41 @@ describe('createCallables — an answer that lands after the session ended', () 
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('createCallables — callbacks receive the session that started the action', () => {
+  beforeEach(() => vi.mocked(httpsCallable).mockReset());
+
+  it("hands an action's and a resumable's callbacks the session that started them", async () => {
+    mockCallable({ ok: true }, { complete: true });
+    const seen: string[] = [];
+    const callables = createCallables(makePolicy());
+    const useAction = callables.createCallableHook<void, { ok: boolean }>('doThing');
+    const useResumable = callables.createResumableCallableHook<void, { complete: boolean }>(
+      'doMany',
+      (_earlier, later) => later,
+    );
+    const session = { uid: 'member-a' as string | null };
+    const { result } = renderHook(
+      () => ({
+        action: useAction({
+          onSuccess: (_data, _input, _result, context) => {
+            seen.push(`action:${context.session.uid}:${context.session.isCurrent()}`);
+          },
+        }),
+        resumable: useResumable({
+          onSettled: (_data, _error, _input, _result, context) => {
+            seen.push(`resumable:${context.session.uid}:${context.session.isCurrent()}`);
+          },
+        }),
+      }),
+      { wrapper: sessionWrapper(retryingClient(), session) },
+    );
+
+    await act(async () => {
+      await result.current.action.mutateAsync();
+      await result.current.resumable.mutateAsync();
+    });
+
+    expect(seen).toEqual(['action:member-a:true', 'resumable:member-a:true']);
+  });
+});

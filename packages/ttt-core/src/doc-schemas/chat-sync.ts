@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  CHAT_MODERATION_ACTIONS,
   CHAT_OUTBOX_COMMAND_KINDS,
   CHAT_SYNC_APPLY_KINDS,
   ChatParkedDeliveryReportSchema,
@@ -162,7 +163,7 @@ export const ChatAdminActionCommandSchema = z.object({
   systemRole: systemRoleSchema,
   channelRef: z.record(z.string(), z.unknown()),
   messageSeq: z.number(),
-  action: z.enum(['hide', 'delete']),
+  action: z.enum(CHAT_MODERATION_ACTIONS),
   caseId: z.string(),
   reason: z.string(),
   expectedMessageRevision: z.number(),

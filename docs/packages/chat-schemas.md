@@ -92,8 +92,9 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     `systemMsg`, the room `threadRef`, `payload` as `ChatServerMessagePayloadSchema`);
     `ChatWordListSnapshotSchema` — the global word list (`wordListVersion`, `words`, and `hash`,
     which edge-protocol-core's `hashStringSet` computes and every reader recomputes). Ids are bounded
-    by `CHAT_INTERNAL_OPERATION_ID_MAX_LENGTH`, digests by `CHAT_DIGEST_MAX_LENGTH`, rooms by
-    `CHAT_ROOM_TARGET_MAX_LENGTH`.
+    by `CHAT_INTERNAL_OPERATION_ID_MAX_LENGTH` — room enough for a lane label of up to
+    `CHAT_INTERNAL_OPERATION_LABEL_MAX_LENGTH`, a room target, and an account id, each joined by one
+    separator — digests by `CHAT_DIGEST_MAX_LENGTH`, rooms by `CHAT_ROOM_TARGET_MAX_LENGTH`.
   - **A server-written message.** `ChatServerMessagePayloadSchema` (`senderId`, `text` within
     `CHAT_MESSAGE_TEXT_MAX_LENGTH`, optional `referencedUids`; strict) is the message part of a
     server-originated outbox command; the room stores `referencedUids` on the row beside

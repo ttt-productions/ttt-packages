@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { ChatMessageRevisionKindSchema } from '@ttt-productions/chat-schemas';
+import {
+  CHAT_MODERATION_ACTIONS,
+  ChatMessageRevisionKindSchema,
+} from '@ttt-productions/chat-schemas';
 import type { GuildChatConversation } from '../ids/guild-chat-conversation.js';
 import {
   workProjectIdSchema,
@@ -183,7 +186,7 @@ export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelI
 export const AdminModerateChatMessageInputSchema = z
   .object({
     requestId: documentIdSegmentSchema.max(200),
-    action: z.enum(['hide', 'delete']),
+    action: z.enum(CHAT_MODERATION_ACTIONS),
     messageSeq: z.number().int().nonnegative(),
     expectedMessageRevision: z.number().int().nonnegative(),
     caseId: reportGroupIdSchema.max(200),

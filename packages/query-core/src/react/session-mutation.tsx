@@ -33,8 +33,77 @@ export type SessionMutationOptions<
   TError = DefaultError,
   TVariables = void,
   TOnMutateResult = unknown,
-> = Omit<UseMutationOptions<TData, TError, TVariables, TOnMutateResult>, 'mutationFn'> & {
+> = Omit<
+  UseMutationOptions<TData, TError, TVariables, TOnMutateResult>,
+  'mutationFn' | 'onMutate' | 'onSuccess' | 'onError' | 'onSettled'
+> & {
   mutationFn: (variables: TVariables, context: SessionMutationFunctionContext) => Promise<TData>;
+  onMutate?: (
+    variables: TVariables,
+    context: SessionMutationFunctionContext,
+  ) => Promise<TOnMutateResult> | TOnMutateResult;
+  onSuccess?: (
+    data: TData,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult,
+    context: SessionMutationFunctionContext,
+  ) => Promise<unknown> | unknown;
+  onError?: (
+    error: TError,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: SessionMutationFunctionContext,
+  ) => Promise<unknown> | unknown;
+  onSettled?: (
+    data: TData | undefined,
+    error: TError | null,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: SessionMutationFunctionContext,
+  ) => Promise<unknown> | unknown;
+};
+
+export interface SessionMutateOptions<TData, TError, TVariables, TOnMutateResult> {
+  onSuccess?: (
+    data: TData,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: SessionMutationFunctionContext,
+  ) => void;
+  onError?: (
+    error: TError,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: SessionMutationFunctionContext,
+  ) => void;
+  onSettled?: (
+    data: TData | undefined,
+    error: TError | null,
+    variables: TVariables,
+    onMutateResult: TOnMutateResult | undefined,
+    context: SessionMutationFunctionContext,
+  ) => void;
+}
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+export type SessionMutationResult<
+  TData = unknown,
+  TError = DefaultError,
+  TVariables = void,
+  TOnMutateResult = unknown,
+> = DistributiveOmit<
+  UseMutationResult<TData, TError, TVariables, TOnMutateResult>,
+  'mutate' | 'mutateAsync'
+> & {
+  mutate: (
+    variables: TVariables,
+    options?: SessionMutateOptions<TData, TError, TVariables, TOnMutateResult>,
+  ) => void;
+  mutateAsync: (
+    variables: TVariables,
+    options?: SessionMutateOptions<TData, TError, TVariables, TOnMutateResult>,
+  ) => Promise<TData>;
 };
 
 export class MutationSessionEndedError extends Error {
@@ -119,33 +188,59 @@ function throwsToBoundary<TError>(throwOnError: ThrowOnError<TError>, error: TEr
   return throwOnError === true;
 }
 
+function withSession(
+  context: MutationFunctionContext,
+  session: MutationSession,
+): SessionMutationFunctionContext {
+  return { ...context, session };
+}
+
 function fenceCallOptions<TData, TError, TVariables, TOnMutateResult>(
   session: MutationSession,
-  options: MutateOptions<TData, TError, TVariables, TOnMutateResult> | undefined,
+  options: SessionMutateOptions<TData, TError, TVariables, TOnMutateResult> | undefined,
 ): MutateOptions<TData, TError, TVariables, TOnMutateResult> | undefined {
   if (!options) return undefined;
   const { onSuccess, onError, onSettled } = options;
   return {
     onSuccess: onSuccess
-      ? (...args) => {
-          if (session.isCurrent()) onSuccess(...args);
+      ? (data, variables, onMutateResult, context) => {
+          if (session.isCurrent()) {
+            onSuccess(data, variables, onMutateResult, withSession(context, session));
+          }
         }
       : undefined,
     onError: onError
-      ? (error, ...rest) => {
+      ? (error, variables, onMutateResult, context) => {
           if (!(error instanceof MutationSessionEndedError) && session.isCurrent()) {
-            onError(error, ...rest);
+            onError(error, variables, onMutateResult, withSession(context, session));
           }
         }
       : undefined,
     onSettled: onSettled
-      ? (data, error, ...rest) => {
+      ? (data, error, variables, onMutateResult, context) => {
           if (!(error instanceof MutationSessionEndedError) && session.isCurrent()) {
-            onSettled(data, error, ...rest);
+            onSettled(data, error, variables, onMutateResult, withSession(context, session));
           }
         }
       : undefined,
   };
+}
+
+async function settleInSession<TData>(
+  session: MutationSession,
+  settled: Promise<TData>,
+): Promise<TData> {
+  let data: TData;
+  try {
+    data = await settled;
+  } catch (error) {
+    if (!(error instanceof MutationSessionEndedError) && !session.isCurrent()) {
+      throw new MutationSessionEndedError({ cause: error });
+    }
+    throw error;
+  }
+  session.assertCurrent();
+  return data;
 }
 
 export function useSessionMutation<
@@ -155,7 +250,7 @@ export function useSessionMutation<
   TOnMutateResult = unknown,
 >(
   options: SessionMutationOptions<TData, TError, TVariables, TOnMutateResult>,
-): UseMutationResult<TData, TError, TVariables, TOnMutateResult> {
+): SessionMutationResult<TData, TError, TVariables, TOnMutateResult> {
   const store = useContext(MutationSessionContext);
   const queryClient = useQueryClient();
   const { mutationFn, onMutate, onSuccess, onError, onSettled, retry, throwOnError, ...rest } =
@@ -171,8 +266,10 @@ export function useSessionMutation<
     retry: (failureCount, error) => retriesAfter(baseRetry, failureCount, error),
     throwOnError: (error) => throwsToBoundary(baseThrowOnError, error),
     onMutate: (variables, context) => {
-      if (store) runSessions.set(context, captureSession(store));
-      return onMutate?.(variables, context) as TOnMutateResult | Promise<TOnMutateResult>;
+      const session = store ? captureSession(store) : ALWAYS_CURRENT;
+      if (store) runSessions.set(context, session);
+      return onMutate?.(variables, withSession(context, session)) as
+        TOnMutateResult | Promise<TOnMutateResult>;
     },
     mutationFn: async (variables, context) => {
       const session = store ? runSessions.get(context) : ALWAYS_CURRENT;
@@ -189,34 +286,55 @@ export function useSessionMutation<
     },
     onSuccess: (data, variables, onMutateResult, context) => {
       if (runHasEnded(store, context)) return;
-      return onSuccess?.(data, variables, onMutateResult, context);
+      return onSuccess?.(
+        data,
+        variables,
+        onMutateResult,
+        withSession(context, runSession(context)),
+      );
     },
     onError: (error, variables, onMutateResult, context) => {
       if (error instanceof MutationSessionEndedError || runHasEnded(store, context)) return;
-      return onError?.(error, variables, onMutateResult, context);
+      return onError?.(error, variables, onMutateResult, withSession(context, runSession(context)));
     },
     onSettled: (data, error, variables, onMutateResult, context) => {
       if (error instanceof MutationSessionEndedError || runHasEnded(store, context)) return;
-      return onSettled?.(data, error, variables, onMutateResult, context);
+      return onSettled?.(
+        data,
+        error,
+        variables,
+        onMutateResult,
+        withSession(context, runSession(context)),
+      );
     },
   });
+
+  function runSession(context: MutationFunctionContext): MutationSession {
+    return (store && runSessions.get(context)) || ALWAYS_CURRENT;
+  }
 
   const { mutate: rawMutate, mutateAsync: rawMutateAsync } = mutation;
   const mutate = useCallback(
     (
       variables: TVariables,
-      callOptions?: MutateOptions<TData, TError, TVariables, TOnMutateResult>,
+      callOptions?: SessionMutateOptions<TData, TError, TVariables, TOnMutateResult>,
     ) => rawMutate(variables, fenceCallOptions(captureSession(store), callOptions)),
     [rawMutate, store],
   );
   const mutateAsync = useCallback(
     (
       variables: TVariables,
-      callOptions?: MutateOptions<TData, TError, TVariables, TOnMutateResult>,
-    ) => rawMutateAsync(variables, fenceCallOptions(captureSession(store), callOptions)),
+      callOptions?: SessionMutateOptions<TData, TError, TVariables, TOnMutateResult>,
+    ) => {
+      const session = captureSession(store);
+      return settleInSession(
+        session,
+        rawMutateAsync(variables, fenceCallOptions(session, callOptions)),
+      );
+    },
     [rawMutateAsync, store],
   );
-  return { ...mutation, mutate, mutateAsync } as UseMutationResult<
+  return { ...mutation, mutate, mutateAsync } as SessionMutationResult<
     TData,
     TError,
     TVariables,

@@ -15,7 +15,8 @@ Pure chat contracts and logic package. **No React, no Firebase.**
   the consuming app's decision, handed to the UI as one `allowed` fact
   (`chat-react`'s `ChatCoreConfig.allowed`).
 - **Sender-name resolution.** `ChatNameResolver = (senderId) => ChatNameResolution`,
-  where `ChatNameResolution` is `{ status: 'resolved'; name }`,
+  where `ChatNameResolution` is `{ status: 'resolved'; name; failure? }` (a held name whose later
+  read failed carries `failure: { retry }`),
   `{ status: 'pending' }`, `{ status: 'unavailable' }`, or
   `{ status: 'failed'; retry }`. The resolver reads the app's own cache during
   render; only `resolved` carries a name, and the UI renders the other three

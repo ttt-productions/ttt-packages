@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useMemo, useRef } from 'react';
-import type { UseMutationResult } from '@tanstack/react-query';
 import type { ExpectedCallableAnswerCode } from '@ttt-productions/firebase-helpers';
 import {
   callCallable,
@@ -13,6 +12,7 @@ import {
   useSessionMutation,
   type MutationSession,
   type SessionMutationOptions,
+  type SessionMutationResult,
 } from '../session-mutation.js';
 
 export interface CallableErrorRouting {
@@ -59,14 +59,14 @@ export interface Callables {
     declaration?: CallableDeclaration,
   ): <TOnMutateResult = unknown>(
     options?: CallableMutationOptions<TInput, TResult, TOnMutateResult>,
-  ) => UseMutationResult<TResult, Error, TInput, TOnMutateResult>;
+  ) => SessionMutationResult<TResult, Error, TInput, TOnMutateResult>;
   createResumableCallableHook<TInput, TResult extends { complete: boolean }>(
     functionName: string,
     merge: (earlier: TResult, later: TResult) => TResult,
     declaration?: CallableDeclaration,
   ): <TOnMutateResult = unknown>(
     options?: CallableMutationOptions<TInput, ResumableOutcome<TResult>, TOnMutateResult>,
-  ) => UseMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult>;
+  ) => SessionMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult>;
   createCallableReader<TInput, TResult>(
     functionName: string,
     declaration?: CallableDeclaration,
@@ -143,7 +143,7 @@ export function createCallables(policy: CallablePolicy): Callables {
     ) {
       return function useNamedCallable<TOnMutateResult = unknown>(
         options: CallableMutationOptions<TInput, TResult, TOnMutateResult> = {},
-      ): UseMutationResult<TResult, Error, TInput, TOnMutateResult> {
+      ): SessionMutationResult<TResult, Error, TInput, TOnMutateResult> {
         const {
           showErrorToast,
           answeredRefusals,
@@ -174,7 +174,7 @@ export function createCallables(policy: CallablePolicy): Callables {
     ) {
       return function useNamedResumableCallable<TOnMutateResult = unknown>(
         options: CallableMutationOptions<TInput, ResumableOutcome<TResult>, TOnMutateResult> = {},
-      ): UseMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult> {
+      ): SessionMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult> {
         const {
           showErrorToast,
           answeredRefusals,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useQueryClient, type QueryKey, type UseMutationResult } from '@tanstack/react-query';
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   doc,
   setDoc,
@@ -10,7 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import { useSessionMutation } from '../session-mutation.js';
+import { useSessionMutation, type SessionMutationResult } from '../session-mutation.js';
 import type { FirestoreMutationOptions, FirestoreBatchOptions } from '../../firestore/types.js';
 import type { MutationOperation } from './types.js';
 
@@ -23,7 +23,7 @@ interface SetResult<T> {
 
 export function useFirestoreSet<T extends DocumentData>({
   invalidateKeys = [],
-}: Pick<FirestoreMutationOptions<T>, 'invalidateKeys'> = {}): UseMutationResult<
+}: Pick<FirestoreMutationOptions<T>, 'invalidateKeys'> = {}): SessionMutationResult<
   SetResult<T>,
   Error,
   { docPath: string; data: T; merge?: boolean }
@@ -56,7 +56,7 @@ export function useFirestoreSet<T extends DocumentData>({
 export function useFirestoreUpdate<T extends DocumentData>({
   invalidateKeys = [],
   optimistic,
-}: FirestoreMutationOptions<T> = {}): UseMutationResult<
+}: FirestoreMutationOptions<T> = {}): SessionMutationResult<
   Partial<T>,
   Error,
   { docPath: string; data: Partial<T> },
@@ -108,7 +108,7 @@ export function useFirestoreDelete<T = unknown>({
     queryKey: QueryKey;
     updater: (oldData: T | undefined, docPath: string) => T;
   };
-} = {}): UseMutationResult<
+} = {}): SessionMutationResult<
   string,
   Error,
   { docPath: string },
@@ -157,7 +157,7 @@ interface BatchResult {
 export function useFirestoreBatch({
   invalidateKeys = [],
   batchSize = DEFAULT_BATCH_SIZE,
-}: FirestoreBatchOptions = {}): UseMutationResult<
+}: FirestoreBatchOptions = {}): SessionMutationResult<
   BatchResult,
   Error,
   { operations: MutationOperation[] }

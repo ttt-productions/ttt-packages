@@ -69,7 +69,8 @@ Generic TanStack Query package.
 ## `useSessionMutation` — an action belongs to the session that started it
 
 Every mutation in an app and in a package goes through `useSessionMutation(options)` (`./react`), the
-one session-aware mutation owner. It returns TanStack's own `useMutation` result.
+one session-aware mutation owner. It returns TanStack's own `useMutation` result, typed as
+`SessionMutationResult` so per-call callbacks see the session too.
 
 - **The session.** `MutationSessionProvider({ currentUid })` is mounted by the app inside its
   `QueryClientProvider`. Every committed change of `currentUid` starts a new session — a sign-out
@@ -80,14 +81,19 @@ one session-aware mutation owner. It returns TanStack's own `useMutation` result
 - **Captured when the action starts.** An always-installed `onMutate` captures the session before the
   caller's own `onMutate` runs. `mutationFn(variables, context)` receives TanStack's context plus
   `context.session = { uid, isCurrent(), assertCurrent() }`, so a multi-step chain re-checks between
-  its own awaits; `assertCurrent()` throws `MutationSessionEndedError`.
+  its own awaits; `assertCurrent()` throws `MutationSessionEndedError`. Every callback — the
+  hook-level `onMutate` / `onSuccess` / `onError` / `onSettled` and the per-call ones — receives the
+  same `context.session`, so a callback that awaits re-checks it before its later toast or cache
+  write. The callable kinds of `createCallables` hand their callbacks the same session.
 - **An answer for an ended session does nothing.** When the session has changed by the time the
   answer comes back, every callback is skipped — the hook-level `onSuccess` / `onError` /
   `onSettled` and the per-call ones passed to `mutate` / `mutateAsync` — so its toasts and cache
   writes never run. `mutateAsync` rejects with `MutationSessionEndedError` (`name: 'AbortError'`);
   it is never retried and never thrown to an error boundary under `throwOnError`. When the answer
   was a failure, that failure is the ended error's `cause`. When the answer was a success, the
-  ended error has no `cause`, and the write may have committed.
+  ended error has no `cause`, and the write may have committed. `mutateAsync` also rejects as ended
+  when the session ends while the hook's awaited `onSuccess` / `onSettled` runs, so
+  `await mutateAsync(); next()` never continues into another session.
 - **Work that has not started never starts.** A queued (`scope`) or paused (offline) `mutationFn`
   whose session ended before it ran never runs, and neither does a mutation restored without a
   captured session.

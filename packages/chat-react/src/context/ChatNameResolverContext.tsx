@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import type {
+  ChatNameReadFailure,
   ChatNameResolution,
   ChatNameResolver,
   ChatPrewarmSenders,
@@ -13,6 +14,7 @@ type ChatNameResolverContextValue = {
   resolveName: ChatNameResolver;
   prewarm?: ChatPrewarmSenders;
   renderUnresolvedName?: (resolution: UnresolvedChatName) => React.ReactNode;
+  renderHeldNameFailure?: (failure: ChatNameReadFailure) => React.ReactNode;
 };
 
 const ChatNameResolverContext = React.createContext<ChatNameResolverContextValue | null>(null);
@@ -21,14 +23,15 @@ export type ChatNameResolverProviderProps = {
   resolveName: ChatNameResolver;
   prewarm?: ChatPrewarmSenders;
   renderUnresolvedName?: (resolution: UnresolvedChatName) => React.ReactNode;
+  renderHeldNameFailure?: (failure: ChatNameReadFailure) => React.ReactNode;
   children: React.ReactNode;
 };
 
 export function ChatNameResolverProvider(props: ChatNameResolverProviderProps) {
-  const { resolveName, prewarm, renderUnresolvedName, children } = props;
+  const { resolveName, prewarm, renderUnresolvedName, renderHeldNameFailure, children } = props;
   const value = React.useMemo(
-    () => ({ resolveName, prewarm, renderUnresolvedName }),
-    [resolveName, prewarm, renderUnresolvedName],
+    () => ({ resolveName, prewarm, renderUnresolvedName, renderHeldNameFailure }),
+    [resolveName, prewarm, renderUnresolvedName, renderHeldNameFailure],
   );
   return (
     <ChatNameResolverContext.Provider value={value}>{children}</ChatNameResolverContext.Provider>
