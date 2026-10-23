@@ -230,8 +230,31 @@ function noDataCheck(node: ts.Expression): ts.Node | null {
   return null;
 }
 
+const isNullish = (node: ts.Expression): boolean =>
+  node.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(node) && node.text === 'undefined');
+
+function failureTest(node: ts.Expression): { at: ts.Expression; present: boolean } {
+  let at = outerParens(node) as ts.Expression;
+  let present = true;
+  const parent = at.parent;
+  if (ts.isBinaryExpression(parent)) {
+    const other = unwrapped(parent.left === at ? parent.right : parent.left);
+    const op = parent.operatorToken.kind;
+    const absentWhenEqual =
+      op === ts.SyntaxKind.EqualsEqualsEqualsToken || op === ts.SyntaxKind.EqualsEqualsToken;
+    const presentWhenUnequal =
+      op === ts.SyntaxKind.ExclamationEqualsEqualsToken ||
+      op === ts.SyntaxKind.ExclamationEqualsToken;
+    if (isNullish(other) && (absentWhenEqual || presentWhenUnequal)) {
+      at = parent;
+      present = presentWhenUnequal;
+    }
+  }
+  return { at, present: isNegated(at) ? !present : present };
+}
+
 function conjoinedNoData(failure: ReadRef, inside: readonly ReadRef[]): boolean {
-  const top = chainTop(failure.node);
+  const top = chainTop(failureTest(failure.node).at);
   return inside.some((r) => {
     if (r.category !== 'data' || r.read !== failure.read) return false;
     const check = noDataCheck(r.node);
@@ -274,7 +297,7 @@ export function failureBranchesWithoutNoData(file: FileView, fields: Fields): Hi
   const hits: Hit[] = [];
   for (const condition of replacingConditions(file)) {
     const inside = refs.filter((r) => within(r.node, condition));
-    const failures = inside.filter((r) => r.category === 'failure' && !isNegated(r.node));
+    const failures = inside.filter((r) => r.category === 'failure' && failureTest(r.node).present);
     const reported = new Set<string>();
     for (const failure of failures) {
       if (reported.has(failure.read)) continue;

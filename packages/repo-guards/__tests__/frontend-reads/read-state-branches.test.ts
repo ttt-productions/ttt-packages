@@ -139,6 +139,47 @@ describe('a failure branch that replaces a read also checks that nothing answere
     ]);
   });
 
+  it("reads a failure compared with null as one test: present when unequal, conjoined through the comparison with the read's no-data check", async () => {
+    const { branches } = await run({
+      'src/components/held.tsx': lines(
+        'export function Held() {',
+        '  const read = useThing();',
+        '  if (read.data === undefined && read.retryState.error !== null) return <Failed />;',
+        '  return <Body thing={read.data} />;',
+        '}',
+      ),
+      'src/components/alone.tsx': lines(
+        'export function Alone() {',
+        '  const read = useThing();',
+        '  return read.retryState.error !== null ? <Failed /> : <Body thing={read.data} />;',
+        '}',
+      ),
+    });
+    expect(branches).toEqual([
+      'src/components/alone.tsx:3 not on the reviewed list: read.retryState.error branches without checking that read holds no answer',
+    ]);
+  });
+
+  it('never counts a test that the failure is absent as a failure branch', async () => {
+    const { branches } = await run({
+      'src/components/pending.tsx': lines(
+        'export function Pending() {',
+        '  const read = useThing();',
+        '  if (read.retryState.error === null) return <Spinner />;',
+        '  if (read.data === undefined && read.retryState.error != null) return <Failed />;',
+        '  return <Body thing={read.data} />;',
+        '}',
+      ),
+      'src/components/negated.tsx': lines(
+        'export function Negated() {',
+        '  const read = useThing();',
+        '  return !(read.retryState.error !== null) ? <Body thing={read.data} /> : <Failed />;',
+        '}',
+      ),
+    });
+    expect(branches).toEqual([]);
+  });
+
   it('keeps two reads that share a name in different components apart', async () => {
     const { branches, loading } = await run({
       'src/components/two.tsx': lines(
