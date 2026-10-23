@@ -145,7 +145,7 @@ function runCmd(cmd, args, opts = {}) {
     child.stderr?.on('data', (d) => {
       stderr += d.toString();
     });
-    child.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }));
+    child.on('close', (code, signal) => resolve({ code: code ?? 1, signal, stdout, stderr }));
     child.on('error', (err) => resolve({ code: 1, stdout, stderr: stderr + '\n' + err.message }));
   });
 }
@@ -286,7 +286,7 @@ async function stageVitest(name, extraArgs, cwd) {
   printStart(name);
   const t0 = performance.now();
   // Only through the root `test` script: it alone chooses the threads pool.
-  const { code, stdout, stderr } = await runCmd(
+  const { code, signal, stdout, stderr } = await runCmd(
     'npm',
     ['run', '--silent', 'test', '--', '--reporter=json', ...extraArgs],
     { cwd },
@@ -297,7 +297,9 @@ async function stageVitest(name, extraArgs, cwd) {
 
   if (!totals) {
     printFail(name, fmtTime(elapsed));
-    process.stdout.write(`${DIM}Could not parse vitest JSON output.${RESET}\n`);
+    process.stdout.write(
+      `${DIM}Could not parse vitest JSON output (exit code ${code}${signal ? `, signal ${signal}` : ''}, ${stdout.length} bytes on stdout).${RESET}\n`,
+    );
     const blob = (stdout + '\n' + stderr).trim();
     process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
     record({ name, ok: false, elapsed, errorBlob: blob, totals: null });
