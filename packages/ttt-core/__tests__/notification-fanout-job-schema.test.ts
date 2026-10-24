@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND,
   NotificationFanoutJobSchema,
   NotificationFanoutPhaseSchema,
   NotificationFanoutPhaseSelectorSchema,
@@ -144,6 +145,15 @@ describe("a fanout phase stores its cursor in its selector kind's shape", () => 
       expect(
         NotificationFanoutPhaseSchema.safeParse({ selector, cursor: null, done: false }).success,
       ).toBe(true);
+    });
+
+    it(`parses a stored ${kind} cursor with its kind's exported schema`, () => {
+      const schema =
+        NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND[
+          kind as keyof typeof NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND
+        ];
+      expect(schema.safeParse(validCursorByKind[kind]).success).toBe(true);
+      expect(schema.safeParse(wrongCursorByKind[kind]).success).toBe(false);
     });
 
     it(`refuses a ${kind} phase whose cursor has another kind's shape`, () => {

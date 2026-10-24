@@ -96,7 +96,7 @@ const allArtisansCursorSchema = z
     { message: 'allArtisans cursor must be null or JSON {artisanCreator:number, uid:string}' },
   );
 
-const NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND = {
+export const NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND = {
   workFollowers: docIdCursorSchema,
   realmFollowers: docIdCursorSchema,
   userFollowers: docIdCursorSchema,
@@ -119,6 +119,9 @@ const NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND = {
   ),
   allArtisans: allArtisansCursorSchema,
 } as const satisfies Record<NotificationFanoutPhaseSelectorKind, z.ZodType>;
+export type NotificationFanoutCursor<K extends NotificationFanoutPhaseSelectorKind> = z.infer<
+  (typeof NOTIFICATION_FANOUT_CURSOR_SCHEMA_BY_KIND)[K]
+>;
 
 export const NotificationFanoutPhaseSchema = z
   .object({

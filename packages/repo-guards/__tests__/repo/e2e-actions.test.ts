@@ -44,6 +44,37 @@ describe('no end-to-end retry loop repeats a user action', () => {
     for (const loop of loops) expect(retriedActions(loop), loop).toHaveLength(1);
   });
 
+  it('flags a for (;;), while, or do loop that repeats an action, condition included', () => {
+    const loops = [
+      'for (let attempt = 0; attempt < 5; attempt++) { await retry.click(); if (await done()) break; }',
+      'for (;;) { await page.reload(); if (await row.count()) break; }',
+      'while (!(await row.count())) await page.goto(url);',
+      'do { await box.fill("a"); } while ((await box.inputValue()) !== "a");',
+      'while (!(await clickWhenSettled(btn))) await settle();',
+    ];
+    expect(retriedActions(loops[0])).toEqual([
+      { start: 0, end: loops[0].length, detail: 'a for / while / do loop repeats click()' },
+    ]);
+    for (const loop of loops.slice(1, 4)) expect(retriedActions(loop), loop).toHaveLength(1);
+    expect(retriedActions(loops[4], ['clickWhenSettled'])).toHaveLength(1);
+  });
+
+  it('passes a for…of walk over a list, and a loop that only re-reads state', () => {
+    expect(retriedActions('for (const box of boxes) await box.check();')).toEqual([]);
+    expect(retriedActions('for (const key in fields) await page.fill(key, fields[key]);')).toEqual(
+      [],
+    );
+    expect(retriedActions('while (!(await row.count())) await settle();')).toEqual([]);
+  });
+
+  it('reports a repeat nested inside another repeat once, at the outer loop', () => {
+    const nested =
+      'for (let i = 0; i < 3; i++) { await expect(async () => { await retry.click(); }).toPass(); }';
+    expect(retriedActions(nested)).toEqual([
+      { start: 0, end: nested.length, detail: 'a for / while / do loop repeats click()' },
+    ]);
+  });
+
   it("flags the app's own action helpers it is told about", () => {
     const loop = 'await expect(async () => { await clickWhenSettled(btn); }).toPass();';
     expect(retriedActions(loop)).toEqual([]);
@@ -59,6 +90,40 @@ describe('no end-to-end retry loop repeats a user action', () => {
     expect(
       retriedActions('await expect.poll(async () => (await getDoc(path)) !== null).toBe(true);'),
     ).toEqual([]);
+  });
+
+  it('flags a loop that acts through a function declared in the same file, naming the path', () => {
+    const spec = [
+      'async function openWork(page) { await page.goto("/work"); }',
+      'const refresh = async (page) => { await openWork(page); };',
+      'await expect(async () => { await refresh(page); await expect(row).toBeVisible(); }).toPass();',
+    ].join('\n');
+    expect(retriedActions(spec).map((hit) => hit.detail)).toEqual([
+      'a retry loop repeats goto() through refresh → openWork until it passes',
+    ]);
+  });
+
+  it('passes a loop whose same-file helper only reads, a recursive helper, and a method call it cannot follow', () => {
+    const spec = [
+      'async function readRows(page) { return page.getByRole("row").count(); }',
+      'async function settle(n) { if (n > 0) await settle(n - 1); }',
+      'await expect.poll(async () => { await settle(3); return readRows(page); }).toBe(2);',
+      'while (!(await done())) await journey.openWork(page);',
+    ].join('\n');
+    expect(retriedActions(spec)).toEqual([]);
+  });
+
+  it('follows a helper imported from another file of the suite', async () => {
+    const files = {
+      'e2e/helpers/work.ts': 'export async function openWork(page) { await page.goto("/work"); }',
+      'e2e/a.spec.ts': [
+        "import { openWork as visit } from './helpers/work.js';",
+        'await expect(async () => { await visit(page); await expect(row).toBeVisible(); }).toPass();',
+      ].join('\n'),
+    };
+    expect(await findingsOf(retryLoopActionGuard, files)).toEqual([
+      'e2e/a.spec.ts:2 a retry loop repeats goto() through visit until it passes',
+    ]);
   });
 
   it('excuses the one reviewed loop its anchor names, and fails a second loop in the same file', async () => {
@@ -117,6 +182,23 @@ describe('no end-to-end action or state read swallows its failure', () => {
       'if (await sheet.isVisible()) return;',
     ];
     for (const code of fine) expect(swallowedActions(code), code).toEqual([]);
+  });
+
+  it('flags a .catch() or a try/catch around a call to a suite function that acts', async () => {
+    const files = {
+      'e2e/helpers/console.ts':
+        'export async function refreshConsole(page) { await page.getByRole("button").click(); }',
+      'e2e/a.spec.ts': [
+        "import { refreshConsole } from './helpers/console.js';",
+        'await refreshConsole(page).catch(() => {});',
+        'try { await refreshConsole(page); } catch { /* moved on */ }',
+        'await readConsole(page).catch(() => {});',
+      ].join('\n'),
+    };
+    expect(await findingsOf(swallowedActionGuard, files)).toEqual([
+      'e2e/a.spec.ts:2 a .catch() swallows a failed click() through refreshConsole',
+      'e2e/a.spec.ts:3 a try/catch swallows a failed click() through refreshConsole',
+    ]);
   });
 
   it('excuses only the reviewed occurrence its anchor names', async () => {

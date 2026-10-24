@@ -1,0 +1,15 @@
+# Adopt @ttt-productions/repo-guards 0.1.23
+
+**What:** The two end-to-end action guards also catch counting or open loops and actions made through the suite's own helper functions; the one-import-path guard reads the end-to-end, script, and Worker trees; a timed-out test reports as a timeout.
+**Severity:** high
+**Came from:** the ttt-prod shared-standards Phase 3 repair session (fourth package release)
+
+- **Package and version:** `@ttt-productions/repo-guards` 0.1.23.
+- **Release:** `./scripts/release-multiple.sh file-input repo-guards ttt-core patch`.
+- **What changed:**
+  - `retryLoopActions` ("no end-to-end retry loop repeats a user action") also flags a `for (;;)` / counting `for`, `while`, or `do` loop whose body or condition clicks, types, navigates, or calls a declared action helper. Walking a list written `for…of` (or `for…in`) is not a repeat and is not flagged. A repeat nested inside another acting repeat is reported once, at the outer one, so one reviewed anchor covers it.
+  - Both `retryLoopActions` and `swallowedE2eActions` now follow plain function calls: an action counts when it is made directly or through a call to a function declared in the same file or imported by name from another file of the end-to-end trees (followed through any depth, each function once). A finding names the path, e.g. "a retry loop repeats goto() through openWork until it passes" or "a try/catch swallows a failed click() through refreshConsole". A method call on an object (`journey.openWork()`) is not followed.
+  - `importPaths` ("every definition has exactly one import path") now reads every declared root but `coreDist`: the app, Functions, the shared source folder, the end-to-end and hosted end-to-end trees, `scripts/`, and each Worker tree. A non-index module that re-exports anything (a fixture forwarding Playwright's `expect`, a helper forwarding a constant, a Worker module forwarding a package's names) is now a finding there, and a Worker's `src/index.ts` that forwards names is a folder index, so a test that imports past it is a finding unless that index is a listed exception.
+  - The vitest JSON report names a test that hit its time limit as "Timed out after N ms" instead of `STACK_TRACE_ERROR`.
+- **What the app must change:** Install. Run the guard suite and fix each new finding at its root — loops and catches that act through a helper surface for the first time: a counting loop that walks a fixed set becomes a `for…of` walk; an acting loop is rewritten to act once and assert, or — where it must act (an outcome-verified helper, a poll of a background result) — becomes an anchored `retryLoopActions` reviewed entry with its why, on DJ's yes. Each new import-path finding is fixed by importing the owner (delete the forward; consumers import the owning module or package entry). A Worker entry that must export what the platform deploys (a Durable Object class) is an `importPaths` exception with that reason, on DJ's yes, as the Functions deploy manifest is.
+- **Done when:** The lockfiles name 0.1.23 or later and the guard suite passes `retryLoopActions`, `swallowedE2eActions`, and `importPaths`.

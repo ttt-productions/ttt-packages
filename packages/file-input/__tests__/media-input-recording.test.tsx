@@ -229,6 +229,77 @@ describe('RecordDialog', () => {
     expect(gumMock.gum).toHaveBeenCalledTimes(1);
   });
 
+  it('Start is never painted enabled before the device is ready, on first open or on reopen', async () => {
+    const insertedEnabled: string[] = [];
+    const observer = new MutationObserver(() => {});
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['disabled'],
+      attributeOldValue: true,
+    });
+    const takeStartPaints = (phase: string) => {
+      const records = observer.takeRecords();
+      const start = screen.getByRole('button', { name: /^start$/i });
+      const firstChange = records.find((r) => r.type === 'attributes' && r.target === start);
+      const disabledWhenInserted = firstChange
+        ? firstChange.oldValue !== null
+        : start.hasAttribute('disabled');
+      if (!disabledWhenInserted) insertedEnabled.push(phase);
+    };
+    gumMock.gum.mockImplementation(() => new Promise<MediaStream>(() => {}));
+    const props = {
+      onOpenChange,
+      initialKind: 'audio' as const,
+      canPhoto: false,
+      canRecVideo: true,
+      canRecAudio: true,
+      onRecorded,
+    };
+    const { rerender } = render(<RecordDialog open {...props} />);
+    takeStartPaints('first open');
+    rerender(<RecordDialog open={false} {...props} />);
+    observer.takeRecords();
+    rerender(<RecordDialog open {...props} />);
+    takeStartPaints('reopen');
+    observer.disconnect();
+    expect(insertedEnabled).toEqual([]);
+  });
+
+  it('a device that fails to start shows its error and leaves Start enabled to retry it', async () => {
+    const user = userEvent.setup();
+    gumMock.gum.mockRejectedValueOnce(new Error('Permission denied'));
+    renderDialog();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Permission denied');
+    const start = screen.getByRole('button', { name: /^start$/i });
+    expect(start).toBeEnabled();
+
+    await user.click(start);
+    expect(gumMock.gum).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('writes a record_dialog diagnostic line for each recording decision while the Firefox failure is diagnosed', async () => {
+    const user = userEvent.setup();
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    renderDialog();
+    await user.click(await screen.findByRole('button', { name: /^start$/i }));
+    const events = debug.mock.calls.map(([line]) => String(line).split(' ')[0]);
+    expect(events).toEqual([
+      'record_dialog_open',
+      'record_dialog_stream_request',
+      'record_dialog_stream_ready',
+      'record_dialog_start_click',
+      'record_dialog_start_branch',
+      'record_dialog_recorder_created',
+      'record_dialog_recorder_started',
+    ]);
+    expect(debug.mock.calls[4][0]).toContain('"branch":"reuse"');
+  });
+
   it('a device that finishes starting AFTER the dialog closed is stopped, never attached', async () => {
     let resolveGum!: (s: MediaStream) => void;
     gumMock.gum.mockImplementation(

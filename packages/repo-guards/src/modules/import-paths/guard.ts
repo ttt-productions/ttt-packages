@@ -1,6 +1,6 @@
 import type { Finding, GuardContext } from '../../guard.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
-import { isTestPath, isUnderRoot, kindOfFile } from '../../node/layout.js';
+import { declaredRoots, isTestPath, isUnderRoot, kindOfFile } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { importAliasesProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
@@ -12,10 +12,10 @@ export interface ImportPathFacts {
 }
 
 const SCOPE: Scope = {
-  roots: ['app', 'functions'],
+  roots: ['app', 'functions', 'e2e', 'hostedE2e', 'scripts', 'workers'],
   kinds: ['code'],
   tests: true,
-  optionalRoots: ['functions'],
+  optionalRoots: ['functions', 'e2e', 'hostedE2e', 'scripts', 'workers'],
 };
 
 function readModules(files: ReturnType<RepoReader['files']>) {
@@ -26,8 +26,9 @@ function readModules(files: ReturnType<RepoReader['files']>) {
 }
 
 function analyzedRoots(reader: RepoReader) {
-  const { app, functions, sharedSource } = reader.layout.roots;
-  return [app.path, ...[functions, sharedSource].flatMap((root) => (root ? [root.path] : []))];
+  return declaredRoots(reader.layout)
+    .filter(({ role }) => role !== 'coreDist')
+    .map(({ root }) => root.path);
 }
 
 function excludedModuleExists(reader: RepoReader, p: string): boolean {

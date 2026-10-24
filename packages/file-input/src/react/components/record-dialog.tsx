@@ -28,12 +28,26 @@ import { releaseObjectUrl } from '../../lib/validate-media-duration.js';
 
 type RecorderState = 'idle' | 'recording' | 'preview';
 
+type StreamStatus = 'acquiring' | 'ready' | 'failed';
+
 // An explicit supported container keeps mr.mimeType deterministic; Safari has no webm and falls
 // through to mp4.
 const RECORDER_MIME_CANDIDATES: Record<'audio' | 'video', readonly string[]> = {
   audio: ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'],
   video: ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'],
 };
+
+// TEMPORARY: the record_dialog_* console lines diagnose the Firefox recording failure, and come out
+// as soon as it is diagnosed and fixed.
+function logRecordDialog(event: string, data: Record<string, unknown> = {}): void {
+  if (typeof console === 'undefined' || typeof console.debug !== 'function') return;
+  console.debug(`record_dialog_${event} ${JSON.stringify(data)}`);
+}
+
+// TEMPORARY: part of the record_dialog_* diagnostics.
+function errorFields(e: unknown): Record<string, unknown> {
+  return e instanceof Error ? { name: e.name, message: e.message } : { thrown: String(e) };
+}
 
 function stopIfRecording(recorder: MediaRecorder | null): void {
   if (!recorder || recorder.state !== 'recording') return;
@@ -129,7 +143,7 @@ export function RecordDialog({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [acquiring, setAcquiring] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('acquiring');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordStreamRef = useRef<MediaStream | null>(null);
@@ -273,24 +287,37 @@ export function RecordDialog({
       const wantVideo = kind === 'video';
       const facingMode = cameraFacingMode ?? 'user';
       const gen = acquireGenRef.current;
+      // TEMPORARY diagnostic
+      logRecordDialog('stream_request', { kind, gen });
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: wantVideo ? { facingMode } : false,
       });
       if (gen !== acquireGenRef.current) {
+        // TEMPORARY diagnostic
+        logRecordDialog('stream_discarded', { kind, gen, currentGen: acquireGenRef.current });
         stream.getTracks().forEach((t) => t.stop());
         return null;
       }
+      // TEMPORARY diagnostic
+      logRecordDialog('stream_ready', {
+        kind,
+        gen,
+        tracks: stream.getTracks().map((t) => ({ kind: t.kind, readyState: t.readyState })),
+      });
       recordStreamRef.current = stream;
       liveStreamKindRef.current = kind;
       setError(null);
+      setStreamStatus('ready');
       if (wantVideo && livePreviewRef.current) {
         livePreviewRef.current.srcObject = stream;
         livePreviewRef.current.muted = true;
         try {
           await livePreviewRef.current.play();
-        } catch {
+        } catch (e) {
           // A browser that blocks preview playback rejects; recording does not depend on it.
+          // TEMPORARY diagnostic
+          logRecordDialog('preview_play_failed', errorFields(e));
         }
       } else if (!wantVideo) {
         startWaveform(stream);
@@ -304,13 +331,20 @@ export function RecordDialog({
     async (kind: 'audio' | 'video') => {
       teardownCapture();
       const req = ++previewReqRef.current;
-      setAcquiring(true);
+      setStreamStatus('acquiring');
       try {
         await acquireStream(kind);
       } catch (e) {
+        // TEMPORARY diagnostic
+        logRecordDialog('stream_failed', {
+          kind,
+          req,
+          currentReq: previewReqRef.current,
+          ...errorFields(e),
+        });
+        if (req !== previewReqRef.current) return;
         setError(e instanceof Error ? e.message : 'Camera/microphone access denied.');
-      } finally {
-        if (req === previewReqRef.current) setAcquiring(false);
+        setStreamStatus('failed');
       }
     },
     [teardownCapture, acquireStream],
@@ -318,11 +352,14 @@ export function RecordDialog({
 
   useEffect(() => {
     if (open) {
+      // TEMPORARY diagnostic
+      logRecordDialog('open', { initialKind });
       void startLivePreview(initialKind);
     }
     return () => {
       teardownCapture();
       revokeLastRecordUrl();
+      setStreamStatus('acquiring');
     };
   }, [open, initialKind, startLivePreview, teardownCapture, revokeLastRecordUrl]);
 
@@ -336,15 +373,28 @@ export function RecordDialog({
       const wantVideo = kind === 'video';
 
       let stream = recordStreamRef.current;
+      // TEMPORARY diagnostic
+      logRecordDialog('start_branch', {
+        kind,
+        branch: !stream || liveStreamKindRef.current !== kind ? 'reacquire' : 'reuse',
+        liveKind: liveStreamKindRef.current,
+        trackStates: stream?.getTracks().map((t) => t.readyState) ?? [],
+      });
       if (!stream || liveStreamKindRef.current !== kind) {
         try {
           stream = await acquireStream(kind);
         } catch (e) {
+          // TEMPORARY diagnostic
+          logRecordDialog('start_stream_failed', { kind, ...errorFields(e) });
           setError(e instanceof Error ? e.message : 'Camera/microphone access denied.');
           return;
         }
       }
-      if (!stream) return;
+      if (!stream) {
+        // TEMPORARY diagnostic
+        logRecordDialog('start_no_stream', { kind });
+        return;
+      }
 
       const preferredMimeType = pickRecorderMimeType(kind);
       let mr: MediaRecorder;
@@ -352,9 +402,13 @@ export function RecordDialog({
         mr = preferredMimeType
           ? new MediaRecorder(stream, { mimeType: preferredMimeType })
           : new MediaRecorder(stream);
-      } catch {
+      } catch (e) {
+        // TEMPORARY diagnostic
+        logRecordDialog('recorder_create_fallback', { preferredMimeType, ...errorFields(e) });
         mr = new MediaRecorder(stream);
       }
+      // TEMPORARY diagnostic
+      logRecordDialog('recorder_created', { preferredMimeType, mimeType: mr.mimeType });
       mediaRecorderRef.current = mr;
       recordChunksRef.current = [];
 
@@ -362,7 +416,14 @@ export function RecordDialog({
         if (e.data && e.data.size > 0) recordChunksRef.current.push(e.data);
       };
 
+      mr.onerror = (e) => {
+        // TEMPORARY diagnostic
+        logRecordDialog('recorder_error', { type: e.type });
+      };
+
       mr.onstop = () => {
+        // TEMPORARY diagnostic
+        logRecordDialog('recorder_stopped', { chunks: recordChunksRef.current.length });
         const blob = new Blob(recordChunksRef.current, {
           type: mr.mimeType || preferredMimeType || (wantVideo ? 'video/webm' : 'audio/webm'),
         });
@@ -378,7 +439,15 @@ export function RecordDialog({
         teardownCapture();
       };
 
-      mr.start();
+      try {
+        mr.start();
+      } catch (e) {
+        // TEMPORARY diagnostic
+        logRecordDialog('recorder_start_failed', errorFields(e));
+        throw e;
+      }
+      // TEMPORARY diagnostic
+      logRecordDialog('recorder_started', { state: mr.state });
       setRecorderState('recording');
       startElapsedTimer();
 
@@ -478,6 +547,7 @@ export function RecordDialog({
   const isRecording = recorderState === 'recording';
   const isPreview = recorderState === 'preview';
   const isIdle = recorderState === 'idle';
+  const acquiring = streamStatus === 'acquiring';
 
   const elapsedLabel = maxRecordDurationSec
     ? `${formatDuration(elapsedMs)} / ${formatDuration(maxRecordDurationSec * 1000)}`
@@ -613,7 +683,11 @@ export function RecordDialog({
               <Button
                 type="button"
                 variant="default"
-                onClick={() => void start.run(recordKind)}
+                onClick={() => {
+                  // TEMPORARY diagnostic
+                  logRecordDialog('start_click', { kind: recordKind, streamStatus });
+                  void start.run(recordKind);
+                }}
                 disabled={disabled || isLoading || acquiring}
                 pending={start.pending}
                 icon={

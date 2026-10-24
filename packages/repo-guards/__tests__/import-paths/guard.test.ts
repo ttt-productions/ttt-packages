@@ -103,6 +103,47 @@ describe('the import-path guard over the reader', () => {
     }
   });
 
+  it('analyzes the end-to-end, script, and Worker trees: a re-export there is flagged, an import of the app resolves', async () => {
+    const treesRepo = tempRepo({
+      'src/app/page.tsx': 'export const page = 1;',
+      'src/test/matchers.ts': 'export const anything = 1;',
+      'e2e/fixtures/auth.fixture.ts': [
+        "export { expect } from '@playwright/test';",
+        'export const test = 1;',
+      ].join('\n'),
+      'e2e/fixtures/test-base.ts': "export { test } from './auth.fixture';",
+      'e2e/home.spec.ts': "import { anything } from '../src/test/matchers';",
+      'e2e-hosted-dev/helpers/journey.ts': "export { BUDGET } from './budget.mjs';",
+      'e2e-hosted-dev/helpers/budget.mjs': 'export const BUDGET = 1;',
+      'scripts/run.mjs': "export { page } from '../src/app/page';",
+      'edge-worker/src/handler.ts': "export { route } from './route';",
+      'edge-worker/src/route.ts': 'export const route = 1;',
+    });
+    try {
+      const treesReader = createRepoReader({
+        repoRoot: treesRepo.root,
+        roots: {
+          app: { path: 'src', anchor: 'src/app/page.tsx' },
+          e2e: { path: 'e2e', anchor: 'e2e/home.spec.ts' },
+          hostedE2e: { path: 'e2e-hosted-dev', anchor: 'e2e-hosted-dev/helpers/budget.mjs' },
+          scripts: { path: 'scripts', anchor: 'scripts/run.mjs' },
+          workers: { edge: { path: 'edge-worker/src', anchor: 'edge-worker/src/route.ts' } },
+        },
+      });
+      const [guard] = importPathGuard.build(facts);
+      const findings = await guard.run(contextOf(treesReader));
+      expect(findings.map((f) => `${f.file} ${f.detail.split(':')[0]}`)).toEqual([
+        'e2e-hosted-dev/helpers/journey.ts reexport outside index',
+        'e2e/fixtures/auth.fixture.ts reexport outside index',
+        'e2e/fixtures/test-base.ts reexport outside index',
+        'edge-worker/src/handler.ts reexport outside index',
+        'scripts/run.mjs reexport outside index',
+      ]);
+    } finally {
+      treesRepo.remove();
+    }
+  });
+
   it('refuses facts with an exception that carries no why', () => {
     expect(
       importPathGuard.factProblems({

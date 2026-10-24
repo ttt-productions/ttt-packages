@@ -52,7 +52,8 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   (`ttt-media-specs`, built for an app mode), the start-upload request, upload target info (typed ids,
   never a client-supplied path or field map), the Hall-library target-field mappings, the pending-media
   schemas composed from `media-schemas`, the domain-event catalog, the media edge-serving contract,
-  and publication arguments. `upload-variables/` owns each upload hook's variables schema.
+  the fields every media-authority write sets with its version bump (`media-authority-co-write`), and
+  publication arguments. `upload-variables/` owns each upload hook's variables schema.
 - **Notifications.** `schemas/notification` owns the notification type catalog and the broadcast
   and archive inputs; `notifications/` owns `TTT_NOTIFICATION_CONFIG`, the one configuration TTT
   hands `notification-core`, derived from that catalog. Notification metadata carries ids, never a
@@ -66,7 +67,8 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   the TTT configuration values `report-core` is given. Runtime helpers over this model that need
   Node live in `safety/`, off the universal entries; the hashed ids of a take-it-down request's
   documents (its submissions, actions, case, validity decisions, and holds) are built only by
-  `safety/ncii-intake-derivations`.
+  `safety/ncii-intake-derivations`, and a report's canonical target key, id, and group key only by
+  `safety/report-keys`.
 - **Public documents and the legal-review notice.** The versioned public pages, their working
   copies, releases, and acceptance records live in `doc-schemas/public-documents`, with their
   version and acceptance rules in `utils/public-documents`; the notice's copy lives in
@@ -76,7 +78,9 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   app reads by id).
 - **Business rules over this data.** Pure functions that state one TTT rule — eligibility,
   readiness, totals, access, reservation keys, age derivation — live in `utils/`, by concern, and
-  both sides call them instead of re-deriving the answer.
+  both sides call them instead of re-deriving the answer. `utils/admin-tasks` builds the admin
+  tasks a producer writes (content appeal, threshold review, admin dispatch) with the priority
+  each task type gets, so the producer and every test fixture write the same document.
 - **Shared types.** `types/` holds TypeScript types with no schema of their own.
 
 ## Boundary
