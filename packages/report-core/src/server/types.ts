@@ -118,7 +118,13 @@ export interface AdminAuthConfig {
   adminUserIds?: string[];
 }
 
+export interface UserReportTaskSummaryInput {
+  totalReports: number;
+  reportedItemType: string;
+}
+
 export interface ServerReportCoreConfig {
+  describeUserReportTask: (task: UserReportTaskSummaryInput) => string;
   collections: {
     reports: string;
     reportGroups: string;

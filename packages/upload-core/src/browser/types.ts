@@ -30,7 +30,7 @@ export interface DeleteFileArgs {
 
 export interface UploadController {
   id: string;
-  task: UploadTask;
+  task: UploadTask | null;
 
   pause: () => boolean;
   resume: () => boolean;

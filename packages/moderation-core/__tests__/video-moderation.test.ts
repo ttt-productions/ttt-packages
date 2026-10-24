@@ -53,12 +53,13 @@ describe('moderateVideo', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(true);
     expect(result.safe).toBe(false);
-    expect(result.reason).toBeDefined();
+    expect(result.reason).toBe('Adult or sexually explicit content is not allowed');
     expect(result.scores.adult).toBe('VERY_LIKELY');
   });
 
-  it('rejects when the analysis returns no frames, since nothing was checked', async () => {
+  it('reports a video the analysis returned no frames for as not checked, never as flagged', async () => {
     const mockClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
@@ -79,11 +80,12 @@ describe('moderateVideo', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
-    expect(result.reason).toBe('Content moderation check failed');
+    expect(result.reason).toBe('Content moderation check did not complete');
   });
 
-  it('rejects when no explicit annotation is present', async () => {
+  it('reports a video with no explicit annotation as not checked', async () => {
     const mockClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
@@ -100,10 +102,11 @@ describe('moderateVideo', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
   });
 
-  it('rejects when the result carries an analysis error, even with frames', async () => {
+  it('reports a video whose analysis carries an error as not checked, even with frames', async () => {
     const mockClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
@@ -125,6 +128,7 @@ describe('moderateVideo', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
   });
 

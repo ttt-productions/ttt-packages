@@ -107,6 +107,14 @@ transaction)` inside it; `createAdminTaskHandler` is the standalone task-creatio
 `buildUserReportAdminTaskDoc`. Expected refusals throw `ReportCoreTaskError`, whose `code` is the
 matching `HttpsError` code.
 
+- **The task's summary is the app's.** `ServerReportCoreConfig.describeUserReportTask({ totalReports,
+  reportedItemType })` writes a user-report task's `summary`; the package supplies the group's report
+  count (one when the group stores none) and its item-type id, and never words the row itself.
+- **The admin check.** The two checkout factories take an optional `auth: AdminAuthConfig`. The
+  app's `requireAdmin` admits the caller; only a refusal whose `code` is `permission-denied` falls
+  through to `adminUserIds`, and a caller neither admits is refused `permission-denied`. Any other
+  failure of `requireAdmin` — an admin lookup that could not run — fails the call as itself, so an
+  outage is never answered as "not an admin".
 - **Check-in honours the resolution owner.** `createCheckinTaskHandler` requires
   `isResolvedByCheckin(taskType)` and `domainResolutionRefusalMessage`. A `resolved: true` check-in
   of a held task whose stored type answers `false` — its resolution belongs to a domain resolver that
@@ -139,6 +147,6 @@ matching `HttpsError` code.
 ## Boundary
 
 The consuming app owns the concrete `AdminTaskType` union, which task types a domain resolver owns,
-every string the dialog shows, the report comment's declaration, and any app-specific report routing
+every string the dialog shows, the admin task's summary wording, the report comment's declaration, and any app-specific report routing
 (e.g. a protected-category hand-off). `report-core` does not import an application-data package; its one internal
 runtime dependency is `input-format-core`, whose check judges the comment.

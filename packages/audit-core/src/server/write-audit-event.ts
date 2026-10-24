@@ -60,7 +60,7 @@ export function createAuditWriter<
       ip: args.ip ?? null,
       userAgent: args.userAgent ?? null,
       region: args.region ?? null,
-      metadata: (args.metadata ?? ({} as TMetadata)) as TMetadata,
+      metadata: args.metadata ?? ({} as TMetadata),
       result: args.result ?? 'success',
       failureReason: args.failureReason ?? null,
       correlationId: args.correlationId ?? null,
@@ -68,11 +68,11 @@ export function createAuditWriter<
 
     const ref = db.collection(collectionPath).doc(id);
     if (args.transaction) {
-      args.transaction.set(ref, event as unknown as Record<string, unknown>);
+      args.transaction.set(ref, event);
     } else if (args.batch) {
-      args.batch.set(ref, event as unknown as Record<string, unknown>);
+      args.batch.set(ref, event);
     } else {
-      await ref.set(event as unknown as Record<string, unknown>);
+      await ref.set(event);
     }
     return id;
   }

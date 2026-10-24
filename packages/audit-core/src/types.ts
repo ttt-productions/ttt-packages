@@ -1,9 +1,9 @@
-export interface AuditEvent<
+export type AuditEvent<
   TEventType extends string = string,
   TActor = string,
   TTarget = string,
   TMetadata = Record<string, unknown>,
-> {
+> = {
   id: string;
   type: TEventType;
   schemaVersion: number;
@@ -22,4 +22,4 @@ export interface AuditEvent<
   failureReason: string | null;
 
   correlationId: string | null;
-}
+};

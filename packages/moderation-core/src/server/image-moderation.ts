@@ -31,10 +31,11 @@ export async function moderateImage(
   const safeSearch = result.safeSearchAnnotation;
 
   if (!safeSearch) {
-    logger?.warn?.('[moderation-core] SafeSearch returned no annotation; rejecting as precaution');
+    logger?.warn?.('[moderation-core] SafeSearch returned no annotation; the image was not checked');
     return {
+      checked: false,
       safe: false,
-      reason: 'Content moderation check failed',
+      reason: 'Content moderation check did not complete',
       scores: { adult: 'UNKNOWN', violence: 'UNKNOWN', racy: 'UNKNOWN' },
     };
   }
@@ -53,7 +54,7 @@ export async function moderateImage(
   if (isAdult) reason = 'Adult or sexually explicit content is not allowed';
   else if (isViolent) reason = 'Violent or graphic content is not allowed';
 
-  return { safe, reason, scores };
+  return { checked: true, safe, reason, scores };
 }
 
 export function __resetDefaultVisionClient() {

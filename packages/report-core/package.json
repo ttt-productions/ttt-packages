@@ -40,7 +40,7 @@
     },
     "dependencies": {
         "@ttt-productions/input-format-core": "*",
-        "zod": "^4.4.3"
+        "zod": "^4.6.7"
     },
     "peerDependencies": {
         "@tanstack/react-query": ">=5.90.0",

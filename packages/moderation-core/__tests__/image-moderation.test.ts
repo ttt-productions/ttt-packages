@@ -29,6 +29,7 @@ describe('moderateImage', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(true);
     expect(result.safe).toBe(true);
   });
 
@@ -44,6 +45,7 @@ describe('moderateImage', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(true);
     expect(result.safe).toBe(false);
     expect(result.reason).toContain('Adult');
     expect(result.scores.adult).toBe('LIKELY');
@@ -65,7 +67,7 @@ describe('moderateImage', () => {
     expect(result.reason).toContain('Violent');
   });
 
-  it('returns safe=false when safeSearchAnnotation is null', async () => {
+  it('reports an image SafeSearch returned no annotation for as not checked, never as flagged', async () => {
     const mockClient = {
       safeSearchDetection: vi.fn().mockResolvedValue([{ safeSearchAnnotation: null }]),
     };
@@ -73,8 +75,9 @@ describe('moderateImage', () => {
       rejectionLikelihoods,
       getClient: async () => mockClient as never,
     });
+    expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
-    expect(result.reason).toContain('failed');
+    expect(result.reason).toBe('Content moderation check did not complete');
     expect(result.scores.adult).toBe('UNKNOWN');
   });
 });

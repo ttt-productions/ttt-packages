@@ -53,7 +53,7 @@ export function buildUserReportAdminTaskDoc({
       originalPath: `${config.collections.reportGroups}/${groupId}`,
       status: 'pending',
       checkoutDetails: null,
-      summary: `${totalReports} report${totalReports > 1 ? 's' : ''} for ${itemType}`,
+      summary: config.describeUserReportTask({ totalReports, reportedItemType: itemType }),
       priority,
       // The Admin SDK rejects `undefined`, so an absent field is stored as null.
       reportedUserId: (groupData.reportedUserId as string | undefined) ?? null,

@@ -81,6 +81,29 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
     expect(PendingMediaProcessingSchema.safeParse(processing).success).toBe(true);
   });
 
+  it('the claimed row type is the claim write over the non-terminal row shapes only', () => {
+    const { outcome } = decidePendingMediaClaim(
+      parseRow({ ...rawBase, status: 'pending' }),
+      NOW,
+      POLICY,
+    );
+    if (outcome.kind !== 'claimed') throw new Error('unreachable');
+    type Claimed = typeof outcome.pendingFile;
+    expectTypeOf<Claimed['status']>().toEqualTypeOf<'processing'>();
+    expectTypeOf<Claimed['processingAttemptCount']>().toEqualTypeOf<number>();
+    expectTypeOf<Claimed['processingStartedAt']>().toEqualTypeOf<number>();
+    expectTypeOf<Claimed['processingLeaseExpiresAt']>().toEqualTypeOf<number>();
+    expectTypeOf<Claimed['updatedAt']>().toEqualTypeOf<number>();
+    expectTypeOf<Claimed['userId']>().toEqualTypeOf<Row['userId']>();
+    expectTypeOf<
+      Extract<keyof Claimed, 'terminalAt' | 'errorMessage' | 'completedAt'>
+    >().toBeNever();
+    expect(outcome.pendingFile).toEqual({
+      ...parseRow({ ...rawBase, status: 'pending' }),
+      ...expectedClaimWrite(1),
+    });
+  });
+
   it('claims a pending row carrying a prior attempt count as the next attempt', () => {
     const current = parseRow({ ...rawBase, status: 'pending', processingAttemptCount: 1 });
     const { outcome, write } = decidePendingMediaClaim(current, NOW, POLICY);

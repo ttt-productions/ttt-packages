@@ -25,12 +25,10 @@ describe('boundary: published sourcemaps', () => {
     const packageName = manifest.name ?? dir;
 
     it(`${packageName} embeds every JavaScript sourcemap source`, () => {
-      if (!packagesTree.exists(`packages/${dir}/dist`)) {
-        console.warn(
-          `[boundary] ${packageName}: dist not built; skipping sourcemap audit. Build the package first.`,
-        );
-        return;
-      }
+      expect(
+        packagesTree.exists(`packages/${dir}/dist`),
+        `${packageName}: dist is not built, so its sourcemaps cannot be audited — run the build first`,
+      ).toBe(true);
 
       const maps = (sourcesByPackage.get(dir) ?? []).map(mapOf);
       expect(maps, `${packageName} compiles no JavaScript module`).not.toHaveLength(0);

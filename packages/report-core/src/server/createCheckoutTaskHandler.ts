@@ -7,6 +7,7 @@ import type {
   TaskClaimGuard,
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
+import { verifyAdminAccess } from './verifyAdminAccess.js';
 import { createCandidateCursor, MAX_CLAIM_ROUNDS } from './claimCandidates.js';
 import type { CheckoutTaskRequest } from '../schemas/requests.js';
 import type {
@@ -35,20 +36,6 @@ export function createCheckoutTaskHandler({
   onAuditEvent,
   assertTaskClaimable,
 }: CheckoutTaskHandlerConfig) {
-  const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
-    if (!auth) return;
-    if (auth.requireAdmin) {
-      try {
-        await auth.requireAdmin(uid, authToken);
-        return;
-      } catch {}
-    }
-
-    if (auth.adminUserIds?.includes(uid)) return;
-
-    throw new ReportCoreTaskError('permission-denied', 'Administrator access required');
-  };
-
   return async (
     data: CheckoutTaskRequest,
     authContext: { uid: string; token: unknown },
@@ -56,7 +43,7 @@ export function createCheckoutTaskHandler({
     const { taskType, specificTaskId } = data;
     const userId = authContext.uid;
 
-    await verifyAdmin(userId, authContext.token);
+    await verifyAdminAccess(auth, userId, authContext.token);
 
     const queueConfig = config.taskQueues[taskType];
     if (!queueConfig) {

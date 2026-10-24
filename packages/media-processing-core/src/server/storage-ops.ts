@@ -140,8 +140,10 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
     url: string,
     init: RequestInit & { headers?: Record<string, string> },
   ) {
-    const signed = await client.sign(url, { ...init, aws: { allHeaders: true } } as any);
-    return doFetch(signed, { ...(init.body ? { duplex: 'half' } : {}) } as any);
+    const signed = await client.sign(url, { ...init, aws: { allHeaders: true } });
+    // Node's fetch rejects a streamed body without `duplex: 'half'`, which the RequestInit type omits.
+    const streaming: RequestInit & { duplex?: 'half' } = init.body ? { duplex: 'half' } : {};
+    return doFetch(signed, streaming);
   }
 
   // A GET, not a HEAD: a HEAD's error response has no body, so the S3 error code would be lost.
@@ -193,6 +195,7 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
               'content-length': String(size),
               'cache-control': DEFAULT_CACHE_CONTROL,
             },
+            // Node's fetch streams a Node ReadStream body, which the DOM BodyInit type does not name.
             body: createReadStream(localPath) as unknown as BodyInit,
           });
           if (res.ok) {

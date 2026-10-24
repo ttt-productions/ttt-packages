@@ -39,4 +39,5 @@ export type {
   ServerWriteBatch,
   TaskClaimGuard,
   TaskClaimVerdict,
+  UserReportTaskSummaryInput,
 } from './types.js';

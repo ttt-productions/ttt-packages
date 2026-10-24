@@ -4,6 +4,8 @@ import { ReportCoreTaskError } from '../src/server/taskError.js';
 import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
+  describeUserReportTask: ({ totalReports, reportedItemType }) =>
+    `${reportedItemType} reported ${totalReports} times`,
   collections: {
     reports: 'testReports',
     reportGroups: 'testReportGroups',
@@ -355,6 +357,20 @@ describe('createCheckoutNextImportantHandler', () => {
       'No pending tasks available',
     );
     expect(requireAdmin).toHaveBeenCalledWith('anyone', 'tok');
+  });
+
+  it('a failed admin lookup fails the checkout as itself, never as a permission refusal', async () => {
+    const { db } = createMockDb();
+    const outage = Object.assign(new Error('Admin system configuration error'), {
+      code: 'internal',
+    });
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { requireAdmin: vi.fn().mockRejectedValue(outage), adminUserIds: ['admin1'] },
+    });
+
+    await expect(handler({}, { uid: 'admin1', token: null })).rejects.toBe(outage);
   });
 
   it('calculates expiresAt from checkout duration config', async () => {

@@ -95,6 +95,7 @@ export function decidePendingMediaClaim<TRow extends ClaimablePendingMedia>(
 ): PendingMediaClaimDecision<TRow> {
   const claim = (attempt: number): PendingMediaClaimDecision<TRow> => {
     const write = buildClaimWrite(attempt, now, policy);
+    // TypeScript cannot check a value against a per-variant type over a generic row; the claim tests pin both.
     const pendingFile = { ...current, ...write } as unknown as ClaimedPendingMedia<TRow>;
     return { outcome: { kind: 'claimed', pendingFile, attempt }, write };
   };

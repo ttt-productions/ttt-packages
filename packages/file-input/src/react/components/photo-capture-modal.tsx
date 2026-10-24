@@ -29,6 +29,8 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
   // A camera that finishes starting after a teardown is stopped, never attached, or it stays on.
   const acquireGenRef = useRef(0);
   const [activeFacing, setActiveFacing] = useState(facingMode);
+  const activeFacingRef = useRef(activeFacing);
+  activeFacingRef.current = activeFacing;
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,13 +75,12 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
 
   useEffect(() => {
     if (open) {
-      startStream(activeFacing);
+      startStream(activeFacingRef.current);
     } else {
       stopStream();
     }
     return () => stopStream();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- (re)acquire only when the dialog opens; Flip restarts the stream itself
-  }, [open]);
+  }, [open, startStream, stopStream]);
 
   const reportError = useCallback((e: unknown) => {
     setError(e instanceof Error ? e.message : 'Camera access denied.');

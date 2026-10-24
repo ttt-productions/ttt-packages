@@ -66,11 +66,12 @@ export async function moderateVideo(
   // An error or an empty frame list means nothing was checked.
   if (annotation?.error || !explicitAnnotation?.frames?.length) {
     logger?.warn?.(
-      '[moderation-core] Video analysis returned no checked frames; rejecting as precaution',
+      '[moderation-core] Video analysis returned no checked frames; the video was not checked',
     );
     return {
+      checked: false,
       safe: false,
-      reason: 'Content moderation check failed',
+      reason: 'Content moderation check did not complete',
       scores: { adult: 'UNKNOWN', violence: 'UNKNOWN', racy: 'UNKNOWN' },
     };
   }
@@ -94,6 +95,7 @@ export async function moderateVideo(
   const reason = safe ? undefined : 'Adult or sexually explicit content is not allowed';
 
   return {
+    checked: true,
     safe,
     reason,
     scores: { adult: maxAdult, violence: 'NOT_CHECKED', racy: 'NOT_CHECKED' },

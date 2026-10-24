@@ -119,3 +119,34 @@ describe('PhotoCaptureModal — a camera that starts after the dialog let it go'
     expect(screen.getByRole('button', { name: 'Capture' })).toBeEnabled();
   });
 });
+
+describe('PhotoCaptureModal — the camera is acquired when the dialog opens', () => {
+  it('a re-render of the open dialog with new handlers keeps the one camera it started', () => {
+    const { rerender } = render(<PhotoCaptureModal open onCapture={vi.fn()} onClose={vi.fn()} />);
+    rerender(<PhotoCaptureModal open onCapture={vi.fn()} onClose={vi.fn()} />);
+    rerender(<PhotoCaptureModal open onCapture={vi.fn()} onClose={vi.fn()} />);
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
+  it('reopening acquires a new camera with the facing it was last given', () => {
+    const { rerender } = render(
+      <PhotoCaptureModal open facingMode="environment" onCapture={vi.fn()} onClose={vi.fn()} />,
+    );
+    rerender(
+      <PhotoCaptureModal
+        open={false}
+        facingMode="environment"
+        onCapture={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    rerender(
+      <PhotoCaptureModal open facingMode="environment" onCapture={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenLastCalledWith({
+      video: { facingMode: 'environment' },
+      audio: false,
+    });
+  });
+});

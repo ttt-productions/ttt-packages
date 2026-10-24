@@ -57,8 +57,18 @@ function acceptedExtensions(contentType: string | null | undefined): readonly st
   return CONTENT_TYPE_EXTENSIONS[contentTypeEssence(contentType)] ?? [];
 }
 
-// eslint-disable-next-line no-control-regex -- matching control characters IS the point here: this class is exactly what must be stripped (CR/LF header injection).
-const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F]/g;
+function isControlCharacter(codePoint: number): boolean {
+  return codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+}
+
+function stripControlCharacters(value: string): string {
+  let kept = '';
+  for (const char of value) {
+    if (!isControlCharacter(char.codePointAt(0) ?? 0)) kept += char;
+  }
+  return kept;
+}
+
 const BIDI_CONTROLS = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 const UNSAFE_FILENAME_CHARS = /[/\\<>:"|?*'\u2018\u2019\u201C\u201D\u0060]/g;
 
@@ -93,8 +103,7 @@ function takeBasename(value: string): string {
 }
 
 function sanitizeSegment(value: string): string {
-  return value
-    .replace(CONTROL_CHARS, '')
+  return stripControlCharacters(value)
     .replace(BIDI_CONTROLS, '')
     .replace(UNSAFE_FILENAME_CHARS, '')
     .replace(/\s+/g, ' ')

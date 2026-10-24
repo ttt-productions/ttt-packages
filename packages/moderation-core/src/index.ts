@@ -2,6 +2,8 @@ export type {
   Likelihood,
   MediaModerationScores,
   MediaModerationResult,
+  CheckedMediaModerationResult,
+  UncheckedMediaModerationResult,
   TextModerationResult,
   ModerationLogger,
 } from './types.js';

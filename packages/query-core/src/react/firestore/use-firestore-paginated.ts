@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { paginatedPageKey } from '../cache-helpers.js';
+import { useSerializedIdentity } from './stable-inputs.js';
 import type { WithId } from '../../firestore/types.js';
 import type { FirestorePaginatedOptions, PaginatedPage } from './types.js';
 
@@ -50,6 +51,8 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
   const queryKeyMemo = JSON.stringify(queryKey);
   const constraintsMemo = JSON.stringify(constraints);
   const identity = JSON.stringify([collectionPath, queryKeyMemo, constraintsMemo, pageSize]);
+  const stableQueryKey = useSerializedIdentity(queryKey, queryKeyMemo);
+  const stableConstraints = useSerializedIdentity(constraints, constraintsMemo);
   const firstPage = Math.max(1, Math.floor(initialPage));
 
   const [pageState, setPageState] = useState(() => ({ identity, page: firstPage }));
@@ -63,7 +66,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
       let cursor: DocumentSnapshot | null = null;
       if (n > 1) {
         const previous = await queryClient.ensureQueryData<PaginatedPage<WithId<T>>>({
-          queryKey: paginatedPageKey(queryKey, n - 1),
+          queryKey: paginatedPageKey(stableQueryKey, n - 1),
           queryFn: () => fetchPage(n - 1),
         });
         if (!previous.hasMore || !previous.cursor) {
@@ -73,7 +76,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
       }
       const q = query(
         collection(db, collectionPath),
-        ...constraints,
+        ...stableConstraints,
         ...(cursor ? [startAfter(cursor)] : []),
         limit(pageSize + 1),
       );
@@ -90,8 +93,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
         after: cursor?.id ?? null,
       };
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryKey and constraints are captured through their serialized identity
-    [db, queryClient, identity, selectRef],
+    [db, queryClient, collectionPath, stableQueryKey, stableConstraints, pageSize],
   );
 
   const queryResult = useQuery({
@@ -128,15 +130,14 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
       if (next < 1 || next === page) return;
       if (next > page + 1) {
         const before = queryClient.getQueryData<PaginatedPage<unknown>>(
-          paginatedPageKey(queryKey, next - 1),
+          paginatedPageKey(stableQueryKey, next - 1),
         );
         if (!before?.hasMore) return;
       }
       if (next === page + 1 && !hasNextPage) return;
       setPageState({ identity, page: next });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryKey is captured through its serialized identity
-    [page, hasNextPage, identity, queryClient],
+    [page, hasNextPage, identity, queryClient, stableQueryKey],
   );
 
   const nextPage = useCallback(() => setPage(page + 1), [page, setPage]);

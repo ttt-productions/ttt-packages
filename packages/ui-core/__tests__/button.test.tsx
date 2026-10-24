@@ -36,7 +36,7 @@ describe('buttonVariants — variant class contract', () => {
     { variant: 'outline', signatureClasses: ['border-2', 'border-border', 'bg-background'] },
     { variant: 'secondary', signatureClasses: ['bg-secondary', 'text-secondary-foreground'] },
     { variant: 'ghost', signatureClasses: ['hover:bg-accent', 'hover:text-accent-foreground'] },
-    { variant: 'link', signatureClasses: ['text-primary', 'underline-offset-4'] },
+    { variant: 'link', signatureClasses: ['ui-button-link', 'text-primary', 'underline-offset-4'] },
     { variant: 'inverted', signatureClasses: ['bg-[hsl(var(--inverted-background))]'] },
   ];
 
@@ -48,6 +48,35 @@ describe('buttonVariants — variant class contract', () => {
       }
     });
   }
+});
+
+describe('buttonVariants — the link variant hook class', () => {
+  it('only the link variant carries ui-button-link', () => {
+    const variants = [
+      'default',
+      'destructive',
+      'success',
+      'outline',
+      'secondary',
+      'ghost',
+      'inverted',
+    ] as const;
+    for (const variant of variants) {
+      expect(buttonVariants({ variant }).split(/\s+/)).not.toContain('ui-button-link');
+    }
+    expect(buttonVariants({ variant: 'link' }).split(/\s+/)).toContain('ui-button-link');
+  });
+
+  it('an asChild link-variant button passes ui-button-link to its element', () => {
+    render(
+      <Button asChild variant="link">
+        <a href="/x">Go</a>
+      </Button>,
+    );
+    expect(screen.getByRole('link', { name: 'Go' }).className.split(/\s+/)).toContain(
+      'ui-button-link',
+    );
+  });
 });
 
 const TEXT_NOT_A_COLOUR =

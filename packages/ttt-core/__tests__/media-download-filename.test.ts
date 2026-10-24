@@ -195,6 +195,13 @@ describe('normalizeDownloadFilename', () => {
     expect(out.endsWith('.jpg')).toBe(true);
   });
 
+  it('removes DEL and C1 control characters but keeps the letters around them', () => {
+    const out = normalizeDownloadFilename('ab\u007fc\u0085d\u009fe.jpg', {
+      contentType: 'image/jpeg',
+    });
+    expect(out).toBe('abcde.jpg');
+  });
+
   it('removes bidi override characters used to disguise an extension', () => {
     const out = normalizeDownloadFilename('invoice\u202Egnp.exe', { contentType: 'image/png' });
     expect(out).not.toMatch(/[\u202A-\u202E]/);

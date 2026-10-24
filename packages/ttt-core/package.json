@@ -80,7 +80,7 @@
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/notification-core": "*",
         "@ttt-productions/report-core": "*",
-        "zod": "^4.4.3"
+        "zod": "^4.6.7"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

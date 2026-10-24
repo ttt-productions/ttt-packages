@@ -4,6 +4,8 @@ import { createAdminTaskHandler } from '../src/server/createAdminTaskHandler.js'
 import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
+  describeUserReportTask: ({ totalReports, reportedItemType }) =>
+    `${reportedItemType} reported ${totalReports} times`,
   collections: {
     reports: 'testReports',
     reportGroups: 'testReportGroups',

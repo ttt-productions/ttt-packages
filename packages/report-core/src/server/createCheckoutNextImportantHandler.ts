@@ -6,6 +6,7 @@ import type {
   TaskClaimGuard,
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
+import { verifyAdminAccess } from './verifyAdminAccess.js';
 import { createCandidateCursor, MAX_CLAIM_ROUNDS } from './claimCandidates.js';
 import type { CheckoutNextImportantTaskResult } from '../contracts/types-admin-task.js';
 import { toClaimedTask } from './claimedTask.js';
@@ -31,24 +32,12 @@ export function createCheckoutNextImportantHandler({
   onAuditEvent,
   assertTaskClaimable,
 }: CheckoutNextImportantHandlerConfig) {
-  const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
-    if (!auth) return;
-    if (auth.requireAdmin) {
-      try {
-        await auth.requireAdmin(uid, authToken);
-        return;
-      } catch {}
-    }
-    if (auth.adminUserIds?.includes(uid)) return;
-    throw new ReportCoreTaskError('permission-denied', 'Administrator access required');
-  };
-
   return async (
     _data: unknown,
     authContext: { uid: string; token: unknown },
   ): Promise<CheckoutNextImportantTaskResult> => {
     const userId = authContext.uid;
-    await verifyAdmin(userId, authContext.token);
+    await verifyAdminAccess(auth, userId, authContext.token);
 
     const pending = createCandidateCursor(() =>
       db

@@ -3,6 +3,8 @@ import { createAdminTaskHandler } from '../src/server/createAdminTaskHandler.js'
 import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
+  describeUserReportTask: ({ totalReports, reportedItemType }) =>
+    `${reportedItemType} reported ${totalReports} times`,
   collections: {
     reports: 'testReports',
     reportGroups: 'testReportGroups',
@@ -84,28 +86,28 @@ describe('createAdminTaskHandler', () => {
     expect(setFn.mock.calls[0][0].priority).toBe(3);
   });
 
-  it('generates summary with "1 report" (singular) for single report', async () => {
+  it('writes the summary the app describes from the group report count and item type', async () => {
     const { db, setFn } = makeMockDb();
-    const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
-
-    await handler({ reportedItemType: 'post', totalReports: 1, highestReasonScore: 5 }, 'g5');
-    expect(setFn.mock.calls[0][0].summary).toBe('1 report for post');
-  });
-
-  it('generates summary with "reports" (plural) for count > 1', async () => {
-    const { db, setFn } = makeMockDb();
-    const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
+    const describeUserReportTask = vi.fn(() => 'app wording');
+    const handler = createAdminTaskHandler({
+      config: { ...TEST_CONFIG, describeUserReportTask },
+      db,
+    });
 
     await handler({ reportedItemType: 'post', totalReports: 3, highestReasonScore: 5 }, 'g6');
-    expect(setFn.mock.calls[0][0].summary).toBe('3 reports for post');
+    expect(describeUserReportTask).toHaveBeenCalledWith({
+      totalReports: 3,
+      reportedItemType: 'post',
+    });
+    expect(setFn.mock.calls[0][0].summary).toBe('app wording');
   });
 
-  it('uses item type in summary when no username', async () => {
+  it('describes a group with no stored count as one report', async () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    await handler({ reportedItemType: 'post', totalReports: 2, highestReasonScore: 5 }, 'g7');
-    expect(setFn.mock.calls[0][0].summary).toBe('2 reports for post');
+    await handler({ reportedItemType: 'post' }, 'g7');
+    expect(setFn.mock.calls[0][0].summary).toBe('post reported 1 times');
   });
 
   it('uses correct adminTask doc ID: "userReport-{groupId}"', async () => {

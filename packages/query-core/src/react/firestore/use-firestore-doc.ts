@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
+import { useSerializedIdentity } from './stable-inputs.js';
 import type { WithId, WithSourceState } from '../../firestore/types.js';
 import type { FirestoreDocOptions } from './types.js';
 
@@ -21,6 +22,9 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
   const queryKeyMemo = JSON.stringify(queryKey);
+  const stableQueryKey = useSerializedIdentity(queryKey, queryKeyMemo);
+  const selectRef = useRef(select);
+  selectRef.current = select;
 
   const subscription = useSubscriptionStatus(
     JSON.stringify([docPath, queryKeyMemo, enabled, subscribe]),
@@ -49,10 +53,10 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
           if (snapshot.exists()) {
             const rawData = snapshot.data();
             const dataWithId = { id: snapshot.id, ...rawData };
-            const data = select ? select(dataWithId) : dataWithId;
-            queryClient.setQueryData(queryKey, data as WithId<T>);
+            const data = selectRef.current ? selectRef.current(dataWithId) : dataWithId;
+            queryClient.setQueryData(stableQueryKey, data as WithId<T>);
           } else {
-            queryClient.setQueryData(queryKey, null);
+            queryClient.setQueryData(stableQueryKey, null);
           }
           const fromCache = snapshot.metadata?.fromCache ?? false;
           updateStatus((prev) => ({
@@ -75,7 +79,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
           }
           console.error('[useFirestoreDoc] Subscription error:', error);
           updateStatus({ error, sourceState: 'error', restart: null });
-          queryClient.setQueryData(queryKey, undefined);
+          queryClient.setQueryData(stableQueryKey, undefined);
         },
       );
     };
@@ -87,11 +91,10 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
       if (retryTimer) clearTimeout(retryTimer);
       currentUnsubscribe?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- queryKey is tracked by queryKeyMemo; an inline select must not re-subscribe every render
   }, [
     db,
     docPath,
-    queryKeyMemo,
+    stableQueryKey,
     enabled,
     subscribe,
     restarts,

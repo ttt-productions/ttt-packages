@@ -71,7 +71,7 @@ export class UploadQueue {
 
     const controller: UploadController = {
       id,
-      task: null as any,
+      task: null,
       pause: () => (real ? real.pause() : noopBool()),
       resume: () => (real ? real.resume() : noopBool()),
       cancel: () => {
@@ -115,10 +115,7 @@ export class UploadQueue {
 
       try {
         const { priority: _p, ...rest } = job.args;
-        const c = startResumableUpload({
-          ...(rest as any),
-          id: job.id,
-        });
+        const c = startResumableUpload({ ...rest, id: job.id });
 
         job.resolveController(c);
 

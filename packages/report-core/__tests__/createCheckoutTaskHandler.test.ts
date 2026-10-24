@@ -4,6 +4,8 @@ import { ReportCoreTaskError } from '../src/server/taskError.js';
 import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
+  describeUserReportTask: ({ totalReports, reportedItemType }) =>
+    `${reportedItemType} reported ${totalReports} times`,
   collections: {
     reports: 'testReports',
     reportGroups: 'testReportGroups',
@@ -236,6 +238,28 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     await expect(
       handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'intruder', token: {} }),
     ).rejects.toThrow('Administrator access required');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('a failed admin lookup fails the checkout as itself, never as a permission refusal', async () => {
+    const { db, updates } = createMockDb({
+      docs: {
+        'adminTasks/task1': { ...baseTask, status: 'pending' },
+        'testReportGroups/group1': GROUP_DOC,
+      },
+    });
+    const outage = Object.assign(new Error('Admin system configuration error'), {
+      code: 'internal',
+    });
+    const handler = createCheckoutTaskHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { requireAdmin: vi.fn().mockRejectedValue(outage), adminUserIds: ['admin1'] },
+    });
+
+    await expect(
+      handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} }),
+    ).rejects.toBe(outage);
     expect(updates).toHaveLength(0);
   });
 

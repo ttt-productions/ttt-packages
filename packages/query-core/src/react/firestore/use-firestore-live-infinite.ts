@@ -18,6 +18,7 @@ import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import type { FirestoreSourceState } from '../../firestore/types.js';
 import type { FirestoreLiveInfiniteOptions } from './types.js';
+import { useSerializedIdentity } from './stable-inputs.js';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -91,6 +92,8 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
     pageSize,
     enabled,
   ]);
+  const stableQueryKey = useSerializedIdentity(queryKey, queryKeyMemo);
+  const stableConstraints = useSerializedIdentity(constraints, constraintsMemo);
 
   const [windowState, setWindowState] = React.useState<WindowState<T>>(() => freshWindow(identity));
   const windowRef = React.useRef(windowState);
@@ -130,8 +133,8 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
       currentAnchor = anchor;
       const colRef = collection(db, collectionPath);
       const q = anchor
-        ? query(colRef, ...constraints, orderBy(orderByField, 'desc'), endAt(anchor))
-        : query(colRef, ...constraints, orderBy(orderByField, 'desc'), limit(pageSize + 1));
+        ? query(colRef, ...stableConstraints, orderBy(orderByField, 'desc'), endAt(anchor))
+        : query(colRef, ...stableConstraints, orderBy(orderByField, 'desc'), limit(pageSize + 1));
       let serverConfirmed = false;
 
       unsubscribe = onSnapshot(
@@ -200,7 +203,7 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
           console.error('[useFirestoreLiveInfinite] Subscription error:', error);
           if (isPermissionDeniedError(error)) {
             currentAnchor = null;
-            queryClient.removeQueries({ queryKey: [...queryKey, 'older', identity] });
+            queryClient.removeQueries({ queryKey: [...stableQueryKey, 'older', identity] });
             update(() => ({ ...freshWindow<T>(identity), sourceState: 'error', error }));
             return;
           }
@@ -216,8 +219,19 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
       if (retryTimer) clearTimeout(retryTimer);
       unsubscribe?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- identity carries every read input; constraints are read from the render that produced it
-  }, [db, identity, retryNonce, toEntry, queryClient]);
+  }, [
+    db,
+    identity,
+    retryNonce,
+    toEntry,
+    queryClient,
+    enabled,
+    collectionPath,
+    stableConstraints,
+    orderByField,
+    pageSize,
+    stableQueryKey,
+  ]);
 
   const anchor = enabled ? current.anchor : null;
   const olderEnabled = anchor !== null && current.olderExists;
