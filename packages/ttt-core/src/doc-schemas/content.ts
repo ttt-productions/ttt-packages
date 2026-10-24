@@ -8,6 +8,7 @@ import {
 } from './moderation.js';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../constants/business-admin.js';
 import { FIRESTORE_INDEXED_VALUE_MAX_BYTES } from '../constants/business-platform.js';
+import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
 import {
   HALL_CONTENT_DETAIL_SURFACES,
   HALL_CONTENT_SUB_ITEM_SURFACES,
@@ -30,7 +31,7 @@ export const FullTaleSchema = z.object({
   coverSquareAssetId: z.string().optional(),
   coverPosterAssetId: z.string().optional(),
   coverCinematicAssetId: z.string().optional(),
-  workGenres: z.array(z.string()).optional(),
+  workGenres: z.array(z.enum(WORK_PROJECT_SPECIFIC_GENRES.Tales)).optional(),
 });
 export type FullTale = z.infer<typeof FullTaleSchema>;
 
@@ -53,7 +54,7 @@ export const FullTuneSchema = z.object({
   coverSquareAssetId: z.string().optional(),
   coverPosterAssetId: z.string().optional(),
   coverCinematicAssetId: z.string().optional(),
-  workGenres: z.array(z.string()),
+  workGenres: z.array(z.enum(WORK_PROJECT_SPECIFIC_GENRES.Tunes)),
   createdOn: z.number(),
 });
 export type FullTune = z.infer<typeof FullTuneSchema>;
@@ -79,7 +80,7 @@ export const FullTelevisionSchema = z.object({
   coverSquareAssetId: z.string().optional(),
   coverPosterAssetId: z.string().optional(),
   coverCinematicAssetId: z.string().optional(),
-  workGenres: z.array(z.string()),
+  workGenres: z.array(z.enum(WORK_PROJECT_SPECIFIC_GENRES.Television)),
 });
 export type FullTelevision = z.infer<typeof FullTelevisionSchema>;
 

@@ -135,15 +135,12 @@ function nonEmpty<T>(values: readonly T[], what: string): [T, ...T[]] {
   return [first, ...rest];
 }
 
-function slotIdsOfKind<K extends SystemSlotKind>(kind: K) {
-  const ofKind = SYSTEM_SLOTS.filter(
-    (slot): slot is Extract<SystemSlot, { kind: K }> => slot.kind === kind,
-  );
-  return nonEmpty(
-    ofKind.map((slot) => slot.id),
-    `${kind} slot`,
-  );
-}
+const isVideoSlot = (slot: SystemSlot): slot is Extract<SystemSlot, { kind: 'video' }> =>
+  slot.kind === 'video';
+const isUidSlot = (slot: SystemSlot): slot is Extract<SystemSlot, { kind: 'uid' }> =>
+  slot.kind === 'uid';
+const isUidListSlot = (slot: SystemSlot): slot is Extract<SystemSlot, { kind: 'uidList' }> =>
+  slot.kind === 'uidList';
 
 export const SystemSlotIdSchema = z.enum(
   nonEmpty(
@@ -151,9 +148,24 @@ export const SystemSlotIdSchema = z.enum(
     'slot',
   ),
 );
-export const SystemVideoSlotIdSchema = z.enum(slotIdsOfKind('video'));
-export const SystemUidSlotIdSchema = z.enum(slotIdsOfKind('uid'));
-export const SystemUidListSlotIdSchema = z.enum(slotIdsOfKind('uidList'));
+export const SystemVideoSlotIdSchema = z.enum(
+  nonEmpty(
+    SYSTEM_SLOTS.filter(isVideoSlot).map((slot) => slot.id),
+    'video slot',
+  ),
+);
+export const SystemUidSlotIdSchema = z.enum(
+  nonEmpty(
+    SYSTEM_SLOTS.filter(isUidSlot).map((slot) => slot.id),
+    'uid slot',
+  ),
+);
+export const SystemUidListSlotIdSchema = z.enum(
+  nonEmpty(
+    SYSTEM_SLOTS.filter(isUidListSlot).map((slot) => slot.id),
+    'uidList slot',
+  ),
+);
 export const SystemAccountSlotIdSchema = z.enum([
   ...SystemUidSlotIdSchema.options,
   ...SystemUidListSlotIdSchema.options,

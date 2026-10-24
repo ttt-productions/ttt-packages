@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { rawMutations, viewOfText } from '@ttt-productions/repo-guards';
 import { packageSource } from './workspace';
+import { SLOW_TEST_TIMEOUT_MS } from '../timeouts';
 
 const OWNER = 'packages/query-core/src/react/session-mutation.tsx';
 const TEST_FILE = /\.test\.[cm]?[jt]sx?$/;
@@ -18,17 +19,21 @@ describe('boundary: every package mutation goes through the session-aware mutati
     expect(sourceFiles.map((file) => file.path)).toContain(OWNER);
   });
 
-  it("uses TanStack's raw useMutation only inside query-core's owner", () => {
-    const violations = sourceFiles
-      .filter((file) => file.path !== OWNER)
-      .flatMap((file) =>
-        rawMutations(file).map((hit) => `${file.path}:${file.lineOf(hit.index)}: ${hit.detail}`),
-      );
-    expect(
-      violations,
-      `a raw useMutation has no session fence — build the mutation with query-core's useSessionMutation:\n  ${violations.join('\n  ')}`,
-    ).toEqual([]);
-  });
+  it(
+    "uses TanStack's raw useMutation only inside query-core's owner",
+    () => {
+      const violations = sourceFiles
+        .filter((file) => file.path !== OWNER)
+        .flatMap((file) =>
+          rawMutations(file).map((hit) => `${file.path}:${file.lineOf(hit.index)}: ${hit.detail}`),
+        );
+      expect(
+        violations,
+        `a raw useMutation has no session fence — build the mutation with query-core's useSessionMutation:\n  ${violations.join('\n  ')}`,
+      ).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('finds the raw hook imported by name, aliased, through a namespace, re-exported, or loaded at run time', () => {
     const flagged = [

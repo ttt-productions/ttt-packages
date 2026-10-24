@@ -512,7 +512,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `coverSquareAssetId` | `string` | yes |
 | `coverPosterAssetId` | `string` | yes |
 | `coverCinematicAssetId` | `string` | yes |
-| `workGenres` | `string[]` | yes |
+| `workGenres` | `'Adventure' \| 'Comedy' \| 'Drama' \| 'Fantasy' \| 'Fairy Tale & Fable' \| 'Historical' \| 'Mystery' \| 'Romance' \| 'Sci-Fi' \| 'Slice of Life' \| 'Spooky' \| 'Thriller'[]` | yes |
 
 ## `allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}`
 
@@ -539,7 +539,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `coverSquareAssetId` | `string` | yes |
 | `coverPosterAssetId` | `string` | yes |
 | `coverCinematicAssetId` | `string` | yes |
-| `workGenres` | `string[]` |  |
+| `workGenres` | `'Action' \| 'Animation' \| 'Comedy' \| 'Documentary' \| 'Drama' \| 'Fantasy' \| 'Kids & Family' \| 'Music Video' \| 'Mystery' \| 'Reality' \| 'Sci-Fi' \| 'Sketch & Variety' \| 'Spooky' \| 'Talk Show' \| 'Thriller'[]` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}`
 
@@ -566,7 +566,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `coverSquareAssetId` | `string` | yes |
 | `coverPosterAssetId` | `string` | yes |
 | `coverCinematicAssetId` | `string` | yes |
-| `workGenres` | `string[]` |  |
+| `workGenres` | `'Audiobook & Spoken Word' \| 'Blues' \| 'Classical' \| 'Country' \| 'Electronic' \| 'Folk' \| 'Hip Hop & Rap' \| 'Jazz' \| 'Metal' \| 'Podcast' \| 'Pop' \| 'R&B & Soul' \| 'Reggae' \| 'Rock' \| 'Soundtrack & Score'[]` |  |
 | `createdOn` | `number` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}`

@@ -1,4 +1,5 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
+import type { z } from 'zod';
 import { GUIDE_VIDEO_DEFINITIONS, guideVideoSlotId } from '../src/system-slots/guide-videos.js';
 import {
   SYSTEM_SLOTS,
@@ -7,6 +8,9 @@ import {
   SystemUidSlotIdSchema,
   SystemUidListSlotIdSchema,
   getSystemSlot,
+  type SystemUidListSlotId,
+  type SystemUidSlotId,
+  type SystemVideoSlotId,
   SYSTEM_SLOT_GROUPS,
   isRequiredVideoSlot,
   systemSlotsByGroup,
@@ -99,6 +103,24 @@ describe('the system-slot registry', () => {
     expect([...SystemVideoSlotIdSchema.options]).toEqual(idsOf('video'));
     expect([...SystemUidSlotIdSchema.options]).toEqual(idsOf('uid'));
     expect([...SystemUidListSlotIdSchema.options]).toEqual(idsOf('uidList'));
+  });
+});
+
+describe('each slot-kind schema types only its own kind', () => {
+  it('a video slot id, as every video-slot schema types it, never names an account slot', () => {
+    expectTypeOf<z.infer<typeof SystemVideoSlotIdSchema>>().toEqualTypeOf<SystemVideoSlotId>();
+    expectTypeOf<
+      z.infer<typeof ClearSystemVideoSlotInputSchema>['slotId']
+    >().toEqualTypeOf<SystemVideoSlotId>();
+    expectTypeOf<
+      z.infer<typeof SystemContentTargetInfoSchema>['slotId']
+    >().toEqualTypeOf<SystemVideoSlotId>();
+    expectTypeOf<'founder'>().not.toMatchTypeOf<SystemVideoSlotId>();
+  });
+
+  it('a uid and a uid-list slot id type only their own kind', () => {
+    expectTypeOf<z.infer<typeof SystemUidSlotIdSchema>>().toEqualTypeOf<SystemUidSlotId>();
+    expectTypeOf<z.infer<typeof SystemUidListSlotIdSchema>>().toEqualTypeOf<SystemUidListSlotId>();
   });
 });
 
