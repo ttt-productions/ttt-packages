@@ -244,6 +244,16 @@ function parseVitestJson(stdout) {
   }
 }
 
+const TIMEOUT_PLACEHOLDER = 'Error: STACK_TRACE_ERROR';
+
+// Vitest reports a test that passed its time limit with the stack of a placeholder error, so the
+// report carries `STACK_TRACE_ERROR` where the "timed out" message should be.
+function readableFailureMessage(message, durationMs) {
+  if (!message.startsWith(TIMEOUT_PLACEHOLDER)) return message;
+  const ran = typeof durationMs === 'number' ? ` after ${Math.round(durationMs)} ms` : '';
+  return `Timed out${ran}: the test passed its time limit.${message.slice(TIMEOUT_PLACEHOLDER.length)}`;
+}
+
 function collectVitestFailures(report) {
   if (!report) return { failures: [], totals: null };
   const totals = {
@@ -259,7 +269,7 @@ function collectVitestFailures(report) {
         failures.push({
           file: file.name,
           title: a.fullName || a.title,
-          messages: a.failureMessages ?? [],
+          messages: (a.failureMessages ?? []).map((m) => readableFailureMessage(m, a.duration)),
         });
       }
     }

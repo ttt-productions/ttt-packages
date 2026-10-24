@@ -6,6 +6,7 @@ import {
 } from '@ttt-productions/dev-standards/node/vitest';
 import { REPO_ROOT } from './leak-utils';
 import { packageSource } from './workspace';
+import { SLOW_TEST_TIMEOUT_MS } from '../timeouts';
 
 const STANDARDS_SOURCE = /^packages\/dev-standards\/src\//;
 const CONCURRENT = /\bconcurrent\b/;
@@ -34,13 +35,17 @@ describe('no dev-standards Vitest base runs the tests of a file concurrently', (
     expect(found).toEqual([]);
   });
 
-  it('no dev-standards config source names concurrent, so a base added later cannot set it', () => {
-    const offenders = packageSource(['code'])
-      .filter((file) => STANDARDS_SOURCE.test(file.path))
-      .filter((file) => CONCURRENT.test(file.code))
-      .map((file) => file.path);
-    expect(offenders).toEqual([]);
-  });
+  it(
+    'no dev-standards config source names concurrent, so a base added later cannot set it',
+    () => {
+      const offenders = packageSource(['code'])
+        .filter((file) => STANDARDS_SOURCE.test(file.path))
+        .filter((file) => CONCURRENT.test(file.code))
+        .map((file) => file.path);
+      expect(offenders).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('the settings check finds concurrent wherever a base could set it', () => {
     expect(concurrentKeys({ sequence: { concurrent: true } })).toEqual([

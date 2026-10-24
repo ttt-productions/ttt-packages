@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { viewOfText, type FileView } from '@ttt-productions/repo-guards';
 import { packageSource } from './workspace';
+import { SLOW_TEST_TIMEOUT_MS } from '../timeouts';
 
 const sourceFiles = packageSource(['code', 'stylesheet']);
 
@@ -85,30 +86,38 @@ describe('boundary: canonical spinner', () => {
     expect(sourceFiles.length).toBeGreaterThan(100);
   });
 
-  it('allows the spinner icon only inside ui-core Spinner, imported or re-exported under any of its names', () => {
-    const allowed = 'packages/ui-core/src/react/components/spinner.tsx';
-    const violations = sourceFiles
-      .filter((file) => file.kind === 'code')
-      .filter(namesSpinnerIcon)
-      .map((file) => file.path)
-      .filter((file) => file !== allowed);
+  it(
+    'allows the spinner icon only inside ui-core Spinner, imported or re-exported under any of its names',
+    () => {
+      const allowed = 'packages/ui-core/src/react/components/spinner.tsx';
+      const violations = sourceFiles
+        .filter((file) => file.kind === 'code')
+        .filter(namesSpinnerIcon)
+        .map((file) => file.path)
+        .filter((file) => file !== allowed);
 
-    expect(
-      violations,
-      `lucide's spinner icon imported outside ui-core Spinner — render <Spinner> or pass \`pending\`:\n  ${violations.join('\n  ')}`,
-    ).toEqual([]);
-  });
+      expect(
+        violations,
+        `lucide's spinner icon imported outside ui-core Spinner — render <Spinner> or pass \`pending\`:\n  ${violations.join('\n  ')}`,
+      ).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
-  it('applies the animate-spin utility nowhere (theme-core spinner classes own the animation)', () => {
-    const violations = sourceFiles.flatMap((file) =>
-      appliedSpinClass(file).map((line) => `${file.path}:${line}`),
-    );
+  it(
+    'applies the animate-spin utility nowhere (theme-core spinner classes own the animation)',
+    () => {
+      const violations = sourceFiles.flatMap((file) =>
+        appliedSpinClass(file).map((line) => `${file.path}:${line}`),
+      );
 
-    expect(
-      violations,
-      `animate-spin applied as a class — render <Spinner> instead:\n  ${violations.join('\n  ')}`,
-    ).toEqual([]);
-  });
+      expect(
+        violations,
+        `animate-spin applied as a class — render <Spinner> instead:\n  ${violations.join('\n  ')}`,
+      ).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('finds the spinner icon imported, aliased, or re-exported, and nothing else lucide exports', () => {
     expect(

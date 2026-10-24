@@ -2,6 +2,7 @@ export interface VitestAssertion {
   status?: string;
   title?: string;
   fullName?: string;
+  duration?: number | null;
   failureMessages?: string[];
 }
 
@@ -63,6 +64,16 @@ export function parseVitestJson(stdout: string): VitestJsonReport | null {
   }
 }
 
+const TIMEOUT_PLACEHOLDER = 'Error: STACK_TRACE_ERROR';
+
+// Vitest reports a test that passed its time limit with the stack of a placeholder error, so the
+// report carries `STACK_TRACE_ERROR` where the "timed out" message should be.
+function readableFailureMessage(message: string, durationMs?: number | null): string {
+  if (!message.startsWith(TIMEOUT_PLACEHOLDER)) return message;
+  const ran = typeof durationMs === 'number' ? ` after ${Math.round(durationMs)} ms` : '';
+  return `Timed out${ran}: the test passed its time limit.${message.slice(TIMEOUT_PLACEHOLDER.length)}`;
+}
+
 // A test file that failed to load carries its error as the file's own `message` and adds nothing
 // to `numFailedTests`.
 export function collectVitestFailures(report: VitestJsonReport | null): {
@@ -81,7 +92,11 @@ export function collectVitestFailures(report: VitestJsonReport | null): {
       const title = a.fullName || a.title || '';
       if (a.status === 'failed') {
         failedTests += 1;
-        failures.push({ file: file.name, title, messages: a.failureMessages ?? [] });
+        failures.push({
+          file: file.name,
+          title,
+          messages: (a.failureMessages ?? []).map((m) => readableFailureMessage(m, a.duration)),
+        });
       } else if (a.status === 'skipped' || a.status === 'pending' || a.status === 'todo') {
         skippedTests.push({ file: file.name, title, status: a.status });
       }

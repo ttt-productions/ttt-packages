@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { packageSource, packagesTree } from './workspace';
+import { SLOW_TEST_TIMEOUT_MS } from '../timeouts';
 
 const DECLARATION = 'packages/media-schemas/src/helpers.ts';
 const LITERAL = /(["'])application\/octet-stream\1/;
@@ -22,16 +23,20 @@ describe('boundary: one neutral content type', () => {
     expect(LITERAL.test(packagesTree.file(DECLARATION).code)).toBe(true);
   });
 
-  it('re-types the literal nowhere else in package source', () => {
-    const copies = sourceFiles
-      .map((file) => file.path)
-      .filter((file) => file !== DECLARATION)
-      .filter((file) => countLiterals(file) > (file in OTHER_CONCEPTS ? 1 : 0));
-    expect(
-      copies,
-      `import NEUTRAL_CONTENT_TYPE from @ttt-productions/media-schemas instead:\n  ${copies.join('\n  ')}`,
-    ).toEqual([]);
-  });
+  it(
+    're-types the literal nowhere else in package source',
+    () => {
+      const copies = sourceFiles
+        .map((file) => file.path)
+        .filter((file) => file !== DECLARATION)
+        .filter((file) => countLiterals(file) > (file in OTHER_CONCEPTS ? 1 : 0));
+      expect(
+        copies,
+        `import NEUTRAL_CONTENT_TYPE from @ttt-productions/media-schemas instead:\n  ${copies.join('\n  ')}`,
+      ).toEqual([]);
+    },
+    SLOW_TEST_TIMEOUT_MS,
+  );
 
   it('keeps no stale entry for another concept: each still declares the value it is listed for, exactly once', () => {
     const stale = Object.keys(OTHER_CONCEPTS).filter(

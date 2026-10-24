@@ -194,3 +194,32 @@ describe('vitestStageVerdict — a skipped test proves nothing, so the stage is 
     expect(verdictOf([passingFile], { numPassedTests: 1, numTotalTests: 1 }, 1).ok).toBe(false);
   });
 });
+
+describe('a test that passed its time limit', () => {
+  const timedOutFile: VitestFileResult = {
+    name: 'C:/repo/test/boundary/scan.test.ts',
+    status: 'failed',
+    message: '',
+    assertionResults: [
+      {
+        status: 'failed',
+        title: 'scans the sources',
+        fullName: 'boundary scans the sources',
+        duration: 5012.4,
+        failureMessages: ['Error: STACK_TRACE_ERROR\n    at task (chunk-artifact.js:1784:27)'],
+      },
+    ],
+  };
+
+  it('is reported as a timeout with how long it ran, never as the placeholder error', () => {
+    const { failures } = collectVitestFailures({ testResults: [timedOutFile] });
+    expect(failures[0]!.messages).toEqual([
+      'Timed out after 5012 ms: the test passed its time limit.\n    at task (chunk-artifact.js:1784:27)',
+    ]);
+  });
+
+  it('leaves every other failure message as vitest wrote it', () => {
+    const { failures } = collectVitestFailures({ testResults: [failedAssertionFile] });
+    expect(failures[0]!.messages).toEqual(['expected 3 to be 4']);
+  });
+});
