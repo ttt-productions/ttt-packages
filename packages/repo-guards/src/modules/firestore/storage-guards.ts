@@ -11,6 +11,7 @@ import {
   textProblem,
   type Loader,
 } from '../../support/facts.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface StorageUploadOriginFacts {
   capFunction: string;
@@ -246,7 +247,7 @@ export const storageObjectMetadataGuard: GenericGuardDefinition<StorageObjectMet
           'object (meta, metadata) except handing .size to a size helper, the same read by destructuring, and a local ' +
           'declaration of a package-owned contract name. A reviewed exception is a (file, shape) pair with its why; one ' +
           'that matches nothing is stale. Each reader anchor must still call a helper.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const used = new Set<number>();

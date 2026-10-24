@@ -5,10 +5,12 @@ import React from 'react';
 
 const { caps, onSnapshotMock } = vi.hoisted(() => {
   const caps: Array<{ next: (snap: unknown) => void }> = [];
-  const onSnapshotMock = vi.fn((_target: unknown, _options: unknown, next: (s: unknown) => void) => {
-    caps.push({ next });
-    return vi.fn();
-  });
+  const onSnapshotMock = vi.fn(
+    (_target: unknown, _options: unknown, next: (s: unknown) => void) => {
+      caps.push({ next });
+      return vi.fn();
+    },
+  );
   return { caps, onSnapshotMock };
 });
 
@@ -61,7 +63,7 @@ describe('useFirestoreCollection — inputs rebuilt each render', () => {
           queryKey: ['items', 'open'],
           constraints: [where('status', '==', 'open')],
           subscribe: true,
-          select: (row) => ({ ...row, tag }),
+          select: (row) => ({ id: row.id, value: Number(row.value), tag }),
         }),
       { wrapper: makeWrapper(), initialProps: { tag: 'first' } },
     );
@@ -99,7 +101,7 @@ describe('useFirestoreDoc — inputs rebuilt each render', () => {
           docPath: 'items/a',
           queryKey: ['item', 'a'],
           subscribe: true,
-          select: (row) => ({ ...row, tag }),
+          select: (row) => ({ id: row.id, value: Number(row.value), tag }),
         }),
       { wrapper: makeWrapper(), initialProps: { tag: 'first' } },
     );

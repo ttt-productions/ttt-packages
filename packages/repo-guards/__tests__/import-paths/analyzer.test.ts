@@ -5,12 +5,20 @@ import {
   createImportPathProfile,
   findUnusedIndexMembers,
   formatImportPathReport,
+  type ImportPathProfile,
+  type ImportPathViolation,
 } from '../../src/modules/import-paths/analyzer.js';
 
 const PROFILE = createImportPathProfile({ importAliases: { '@/': 'src/' } });
-const run = (files, { profile = PROFILE, roots = ['src', 'functions/src'] } = {}) =>
-  analyzeImportPaths({ files: new Map(Object.entries(files)), roots, profile }).violations;
-const kinds = (violations) => violations.map((v) => `${v.kind} ${v.file}`);
+const run = (
+  files: Record<string, string>,
+  {
+    profile = PROFILE,
+    roots = ['src', 'functions/src'],
+  }: { profile?: ImportPathProfile; roots?: string[] } = {},
+) => analyzeImportPaths({ files: new Map(Object.entries(files)), roots, profile }).violations;
+const kinds = (violations: readonly ImportPathViolation[]) =>
+  violations.map((v) => `${v.kind} ${v.file}`);
 
 const KIT = {
   'src/kit/index.ts': `export { Button } from './button';\nexport type { ButtonProps } from './button';`,
@@ -30,6 +38,7 @@ describe('createImportPathProfile', () => {
   });
 
   it('refuses an alias with no target folder', () => {
+    // @ts-expect-error the alias has no target folder to prove the runtime refusal
     expect(() => createImportPathProfile({ importAliases: { '@/': undefined } })).toThrow(/target/);
   });
 });
@@ -314,7 +323,7 @@ describe('unresolved imports fail closed', () => {
 });
 
 describe('findUnusedIndexMembers (report-only)', () => {
-  const unused = (files) =>
+  const unused = (files: Record<string, string>) =>
     findUnusedIndexMembers({
       files: new Map(Object.entries(files)),
       roots: ['src'],

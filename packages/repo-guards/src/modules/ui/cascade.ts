@@ -16,6 +16,7 @@ import { isText, namesProblem, objectProblem, pathProblem } from '../../support/
 import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
 import { APP_CODE, type EntryStylesheetFacts } from './styling.js';
 import { installedManifest, loadedStylesheets, type LoadedSheet } from './stylesheets.js';
+import { GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 function entryProblems(facts: unknown): string[] {
   const problems: string[] = [];
@@ -218,7 +219,7 @@ export const tailwindSourcesGuard: GenericGuardDefinition<TailwindSourceFacts> =
           'the entry stylesheet that covers its build folder, or the classes it renders never generate. The packages are ' +
           'found from the app manifest and what each installed package depends on, never listed. Add ' +
           "`@source '<path to node_modules>/<package>/dist/**/*.{js,ts,jsx,tsx}';` to the entry stylesheet's run of @source lines.",
-        timeoutMs: 60_000,
+        timeoutMs: GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           if (!context.reader.exists(facts.manifest))
@@ -363,7 +364,7 @@ export const utilityCollisionGuard: GenericGuardDefinition<EntryStylesheetFacts>
           'color than the utility loses to it, so its text takes the utility color. Pin the semantic color in a sheet ' +
           'imported into a layer above utilities; an app rule below that layer that re-colors .text-X never applies — ' +
           'move it above utilities too.',
-        timeoutMs: 60_000,
+        timeoutMs: GUARD_TIMEOUT_MS,
         run: (context) => semanticTextFindings(context, facts.entryStylesheet),
       },
     ];
@@ -529,7 +530,7 @@ export const themeTokensGuard: GenericGuardDefinition<ThemeTokenFacts> = {
           'all three, or another theme’s value leaks in. A literal color only in :root never changes with the theme. Every ' +
           'literal color the theme package defaults in :root is set from the app’s tokens. In the effective high-contrast ' +
           'cascade every triplet has saturation 0, with --background pure black and --foreground pure white.',
-        timeoutMs: 60_000,
+        timeoutMs: GUARD_TIMEOUT_MS,
         run: (context) => themeTokenFindings(context, facts),
       },
     ];

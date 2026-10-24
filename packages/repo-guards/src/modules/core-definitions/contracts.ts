@@ -8,6 +8,7 @@ import { namesProblem, textProblem } from '../../support/facts.js';
 import { moduleImports } from '../../support/imports.js';
 import { escapeRegExp } from '../../support/text.js';
 import { APP_SOURCE } from './shared.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface CoreContractFacts {
   corePackage: string;
@@ -151,7 +152,7 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
           'imported by name. Using zod for types (z.infer, z.ZodType), for an instanceof z.ZodError check, to format ' +
           'an error (z.prettifyError), or to parse with a core schema builds nothing and is allowed. Move the schema ' +
           'into the core, released first.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return context
             .files({ roots: facts.backendRoots, kinds: ['code'], tests: false })
@@ -163,7 +164,7 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
         description:
           '"To avoid a publish" is never a reason for where a definition lives, in code or in a comment. Put the ' +
           'definition in the package that owns it, released packages-first, and delete the local copy and its reason.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const pattern = publishAvoidancePattern(facts.corePackage);
           return context.files(APP_SOURCE).flatMap((file) => publishAvoidance(file, pattern));

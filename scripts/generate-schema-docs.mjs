@@ -154,7 +154,9 @@ function shapeOf(schema) {
   try {
     const raw = typeof def.shape === 'function' ? def.shape() : def.shape;
     if (raw && typeof raw === 'object') return raw;
-  } catch {}
+  } catch {
+    // A shape getter that throws falls through to `schema.shape` below.
+  }
   try {
     return schema.shape;
   } catch {

@@ -11,31 +11,39 @@ vi.mock(
   async () => import('../../media-viewer/src/react/index.js'),
 );
 
-type MRCtor = new (stream: MediaStream, opts?: MediaRecorderOptions) => MediaRecorder;
+type FakeRecorder = {
+  state: RecordingState;
+  mimeType: string;
+  ondataavailable: ((event: { data: Blob; size: number }) => void) | null;
+  onstop: (() => void) | null;
+  start: Mock<(this: FakeRecorder) => void>;
+  stop: Mock<(this: FakeRecorder) => void>;
+  stream: MediaStream;
+};
 
 function installMediaRecorderMock(opts?: {
   mimeType?: string;
   isTypeSupported?: (type: string) => boolean;
 }) {
   const reportedMimeType = opts?.mimeType ?? 'audio/webm';
-  const instances: any[] = [];
+  const instances: FakeRecorder[] = [];
   // A function expression, not an arrow: a Vitest mock is constructible only when its impl is.
-  const ctor = vi.fn(function (stream: MediaStream, _opts?: any) {
-    const inst: any = {
+  const ctor = vi.fn(function (stream: MediaStream, _opts?: MediaRecorderOptions) {
+    const inst: FakeRecorder = {
       state: 'inactive',
       mimeType: reportedMimeType,
       ondataavailable: null,
       onstop: null,
-      start: vi.fn(function (this: any) {
+      start: vi.fn(function (this: FakeRecorder) {
         this.state = 'recording';
       }),
-      stop: vi.fn(function (this: any) {
+      stop: vi.fn(function (this: FakeRecorder) {
         this.state = 'inactive';
         act(() => {
           this.ondataavailable?.({
             data: new Blob(['chunk'], { type: reportedMimeType }),
             size: 5,
-          } as any);
+          });
           this.onstop?.();
         });
       }),
@@ -44,11 +52,10 @@ function installMediaRecorderMock(opts?: {
     instances.push(inst);
     return inst;
   });
-  if (opts?.isTypeSupported) {
-    (ctor as any).isTypeSupported = vi.fn(opts.isTypeSupported);
-  }
-  (globalThis as any).MediaRecorder = ctor as unknown as MRCtor;
-  return { ctor, instances };
+  const isTypeSupported = opts?.isTypeSupported ? vi.fn(opts.isTypeSupported) : undefined;
+  if (isTypeSupported) Object.assign(ctor, { isTypeSupported });
+  Object.assign(globalThis, { MediaRecorder: ctor });
+  return { ctor, instances, isTypeSupported };
 }
 
 function installGetUserMediaMock() {
@@ -75,15 +82,15 @@ function installAudioContextMock() {
       createAnalyser: vi.fn().mockReturnValue(analyser),
     };
   });
-  (globalThis as any).AudioContext = ctor;
+  Object.assign(globalThis, { AudioContext: ctor });
   return { ctor };
 }
 
 function installObjectUrlMock() {
   const create = vi.fn().mockReturnValue('blob:mock-url');
   const revoke = vi.fn();
-  (globalThis as any).URL.createObjectURL = create;
-  (globalThis as any).URL.revokeObjectURL = revoke;
+  URL.createObjectURL = create;
+  URL.revokeObjectURL = revoke;
   return { create, revoke };
 }
 
@@ -295,8 +302,7 @@ describe('RecordDialog', () => {
     const { unmount } = renderDialog();
     await user.click(screen.getByRole('button', { name: /^start$/i }));
     unmount();
-    const tracks = (gumMock.stream.getTracks as any)();
-    tracks.forEach((t: any) => {
+    gumMock.tracks.forEach((t) => {
       expect(t.stop).toHaveBeenCalled();
     });
   });
@@ -338,12 +344,12 @@ describe('RecordDialog', () => {
   }
 
   it('requests an explicit supported container and normalizes a Chrome-style parameterized audio recording to audio/webm', async () => {
-    const { ctor } = installMediaRecorderMock({
+    const { ctor, isTypeSupported } = installMediaRecorderMock({
       mimeType: 'audio/webm;codecs=opus',
       isTypeSupported: (t) => t === 'audio/webm;codecs=opus',
     });
     const file = await recordStopSave();
-    expect((ctor as any).isTypeSupported).toHaveBeenCalledWith('audio/webm;codecs=opus');
+    expect(isTypeSupported).toHaveBeenCalledWith('audio/webm;codecs=opus');
     expect(ctor).toHaveBeenCalledWith(expect.anything(), { mimeType: 'audio/webm;codecs=opus' });
     expect(file.type).toBe('audio/webm');
     expect(file.name).toBe('recording.webm');

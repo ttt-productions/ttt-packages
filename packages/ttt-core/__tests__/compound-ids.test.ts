@@ -121,6 +121,7 @@ describe('admin task ids', () => {
 
   it("report-core's userReport task id is the item task id of its report group", () => {
     const config: ServerReportCoreConfig = {
+      describeUserReportTask: () => 'summary',
       collections: {
         reports: 'reports',
         reportGroups: 'reportGroups',

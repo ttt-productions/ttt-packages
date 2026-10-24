@@ -29,7 +29,7 @@ import { walkerReadFailureGuard, type WalkerReadFailureFacts } from './walker-re
 import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from './worker-bounded-body.js';
 import { workerConfigGuard, type WorkerConfigFacts } from './worker-config.js';
 
-export interface RepoGuardFacts {
+export type RepoGuardFacts = {
   shellSafeChildProcesses: ShellSafeFacts;
   walkerReadFailure: WalkerReadFailureFacts;
   testSourceRoot: TestSourceRootFacts | Absent;
@@ -50,7 +50,7 @@ export interface RepoGuardFacts {
   installedPackagesAgnostic: InstalledPackagesAgnosticFacts;
   ciParity: CiParityFacts | Absent;
   dependencyOverrides: DependencyOverrideFacts | Absent;
-}
+};
 
 export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   shellSafeGuard,

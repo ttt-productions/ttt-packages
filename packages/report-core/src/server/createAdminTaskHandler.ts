@@ -8,7 +8,10 @@ export interface AdminTaskHandlerConfig {
 }
 
 export function createAdminTaskHandler({ config, db, logger = console }: AdminTaskHandlerConfig) {
-  return async (groupData: Record<string, unknown>, groupId: string): Promise<void> => {
+  return async (
+    groupData: Record<string, unknown> | null | undefined,
+    groupId: string,
+  ): Promise<void> => {
     if (!groupData) return;
 
     const { adminTaskId, doc } = buildUserReportAdminTaskDoc({

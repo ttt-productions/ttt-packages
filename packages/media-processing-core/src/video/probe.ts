@@ -8,6 +8,8 @@ export interface VideoProbe {
   hasAudio?: boolean;
 }
 
+type ProbeStream = { codec_type?: unknown; width?: unknown; height?: unknown };
+
 export async function probeVideo(
   inputPath: string,
   opts?: MeasureDurationOptions,
@@ -25,7 +27,7 @@ export async function probeVideo(
 
   const json = JSON.parse(r.stdout || '{}');
 
-  const streams: any[] = Array.isArray(json.streams) ? json.streams : [];
+  const streams: ProbeStream[] = Array.isArray(json.streams) ? json.streams : [];
 
   const v = streams.find((s) => s.codec_type === 'video');
   const a = streams.find((s) => s.codec_type === 'audio');

@@ -13,7 +13,7 @@ export type SentrySdkLike = {
   captureMessage: (m: string, level?: MonitoringLevel) => void;
   setUser: (u: MonitoringUser | null) => void;
   setTag: (k: string, v: string) => void;
-  withScope?: (fn: (scope: any) => void) => void;
+  withScope?: (fn: (scope: ScopeLike) => void) => void;
   addBreadcrumb?: (breadcrumb: Record<string, unknown>) => void;
 };
 

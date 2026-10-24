@@ -14,6 +14,7 @@ import {
   takesNoFacts,
   textProblem,
 } from '../../support/facts.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const CODE_ROLES: readonly RootRole[] = [
   'app',
@@ -356,7 +357,7 @@ export const noOutsideCheckoutGuard: GenericGuardDefinition<NoOutsideCheckoutFac
           'No relative import climbs above the repository root (a checkout beside the repository is source nobody else ' +
           'has), and no manifest dependency names a path (file:, link:, a relative or absolute path, a .tgz) instead of a ' +
           'published version. Change the package where it lives, publish it, and depend on the published version.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           for (const file of context.files(OUTSIDE_SCOPE)) {

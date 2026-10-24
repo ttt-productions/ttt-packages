@@ -18,7 +18,7 @@ import {
 import { Spinner } from '@ttt-productions/ui-core/react';
 import { startWaveformLoop, drawIdleFrame } from '../visualizer.js';
 import type { AudioVisualizerMode } from '../visualizer.js';
-import { resolveInfiniteDuration } from '../media-duration.js';
+import { resolveInfiniteDuration, seekMedia } from '../media-duration.js';
 
 const DEFAULT_PERSIST_KEY = 'mv-audio-player';
 
@@ -35,7 +35,9 @@ function writePref(persistKey: string | null, suffix: string, value: string): vo
   if (!persistKey) return;
   try {
     window.localStorage.setItem(`${persistKey}:${suffix}`, value);
-  } catch {}
+  } catch {
+    // A blocked or full store throws on write; the preference then lasts this page only.
+  }
 }
 
 function graphCanHear(el: HTMLAudioElement): boolean {
@@ -277,9 +279,7 @@ export function AudioPlayerChrome({
   const commitSeek = () => {
     const el = audioRef.current;
     if (el && scrubTime !== null) {
-      try {
-        el.currentTime = scrubTime;
-      } catch {}
+      seekMedia(el, scrubTime);
     }
     setScrubTime(null);
   };

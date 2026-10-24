@@ -1306,7 +1306,7 @@ precedes any cap, gate, or counter.
 **Rules:** RULE-STD-FRONTEND-203, RULE-STD-FRONTEND-204. **Scope:** `src`. Deep accessibility →
 `ux-audit-playbook.md`.
 ```bash
-<GUARD_SUITE> -t "an icon-only button carries an accessible name|a button inside a form states its type|a display-only component is never a trigger or a control"
+<GUARD_SUITE> -t "an icon-only button carries an accessible name|a button inside a form states its type|a display-only component is never a trigger or a control|every dropdown carries an accessible name"
 <GUARD_SUITE> -t "app code uses no transition-all and no Tailwind duration-\* utility|a smooth scroll is requested only by the effective-motion helper|every app stylesheet transition names its property and rides the motion tokens|one store reads the reduced-motion request"
 rg -n "onClick=\{\(\)\s*=>\s*(void\s+)?(navigate|appNavigate)\(" src -g '*.tsx' -g '!**/__tests__/**'
 rg -n "aria-label=\"(More actions|Show [Dd]etails|View [Dd]etails|Remove|Delete|Edit|Open)\"" src -g '*.tsx' -g '!**/__tests__/**'

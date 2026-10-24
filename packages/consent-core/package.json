@@ -1,0 +1,64 @@
+{
+  "name": "@ttt-productions/consent-core",
+  "version": "0.0.1",
+  "description": "Generic analytics/cookie consent: one choice per browser, applied in every tab, off until accepted",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/consent-core"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "@ttt-productions/theme-core": "*",
+    "@ttt-productions/ui-core": "*",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ttt-productions/theme-core": {
+      "optional": true
+    },
+    "@ttt-productions/ui-core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ttt-productions/theme-core": "*",
+    "@ttt-productions/ui-core": "*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
+}

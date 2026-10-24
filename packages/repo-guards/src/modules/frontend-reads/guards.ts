@@ -12,7 +12,7 @@ import {
 } from './read-failures.js';
 import { readStateBranchesGuard, type ReadStateBranchFacts } from './read-state-branches.js';
 
-export interface FrontendReadsGuardFacts {
+export type FrontendReadsGuardFacts = {
   readStateOwner: ReadStateOwnerFacts;
   readRetryState: ReadRetryStateFacts;
   hookReadDefault: HookReadDefaultFacts;
@@ -24,7 +24,7 @@ export interface FrontendReadsGuardFacts {
   queryCache: QueryCacheFacts;
   domainEventRegistry: DomainEventRegistryFacts;
   readStateBranches: ReadStateBranchFacts;
-}
+};
 
 export const FRONTEND_READS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   ...READ_FAILURE_GUARDS,

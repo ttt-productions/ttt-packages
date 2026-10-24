@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import type { FirebaseStorage } from 'firebase/storage';
 
 // Mocks must precede the component imports.
 
@@ -9,18 +10,44 @@ vi.mock('../src/utils/upload-store.js', () => ({
 
 const getDownloadURLMock = vi.hoisted(() => vi.fn(async () => 'https://example.com/test.jpg'));
 
-let lastTask: any = null;
-let lastObservers: {
-  progress?: (snap: any) => void;
-  error?: (err: any) => void;
+type UploadObservers = {
+  progress?: (snap: unknown) => void;
+  error?: (err: unknown) => void;
   complete?: () => void;
-} = {};
+};
+
+type FakeUploadTask = {
+  cancel: Mock<() => void>;
+  pause: Mock<() => boolean>;
+  resume: Mock<() => boolean>;
+  snapshot: {
+    ref: { fullPath: string };
+    metadata: { contentType: string };
+    totalBytes: number;
+  };
+  on: Mock<
+    (
+      event: string,
+      onProgress: UploadObservers['progress'],
+      onError: UploadObservers['error'],
+      onComplete: UploadObservers['complete'],
+    ) => () => void
+  >;
+};
+
+let lastTask: FakeUploadTask | null = null;
+let lastObservers: UploadObservers = {};
+
+function startedTask(): FakeUploadTask {
+  if (!lastTask) throw new Error('no upload task was started');
+  return lastTask;
+}
 
 vi.mock('firebase/storage', () => ({
   ref: vi.fn((_storage: unknown, path: string) => ({ fullPath: path })),
   uploadBytesResumable: vi.fn((_ref: unknown, _file: unknown, _meta: unknown) => {
-    const task = {
-      cancel: vi.fn(),
+    const task: FakeUploadTask = {
+      cancel: vi.fn<() => void>(),
       pause: vi.fn(() => true),
       resume: vi.fn(() => true),
       snapshot: {
@@ -28,7 +55,7 @@ vi.mock('firebase/storage', () => ({
         metadata: { contentType: 'image/jpeg' },
         totalBytes: 1,
       },
-      on: vi.fn((_event: string, onProgress: any, onError: any, onComplete: any) => {
+      on: vi.fn((_event, onProgress, onError, onComplete) => {
         lastObservers = { progress: onProgress, error: onError, complete: onComplete };
         return () => {};
       }),
@@ -65,7 +92,7 @@ function makeFile() {
 function makeArgs(overrides: Record<string, unknown> = {}) {
   return {
     id: 'upl_test',
-    storage: {} as any,
+    storage: {} as FirebaseStorage,
     path: 'tmp/test.jpg',
     file: makeFile(),
     metadata: { contentType: 'image/jpeg' },
@@ -80,7 +107,7 @@ describe('startResumableUpload — abort behavior', () => {
 
     startResumableUpload({ ...makeArgs(), signal: controller.signal });
 
-    expect(lastTask.cancel).toHaveBeenCalledOnce();
+    expect(startedTask().cancel).toHaveBeenCalledOnce();
   });
 
   it('calls task.cancel() when signal aborts mid-upload', () => {
@@ -88,11 +115,11 @@ describe('startResumableUpload — abort behavior', () => {
 
     startResumableUpload({ ...makeArgs(), signal: controller.signal });
 
-    expect(lastTask.cancel).not.toHaveBeenCalled();
+    expect(startedTask().cancel).not.toHaveBeenCalled();
 
     controller.abort();
 
-    expect(lastTask.cancel).toHaveBeenCalledOnce();
+    expect(startedTask().cancel).toHaveBeenCalledOnce();
   });
 
   it('classifies AbortError as canceled in the upload-store', async () => {
@@ -126,11 +153,11 @@ describe('startResumableUpload — abort behavior', () => {
     await lastObservers.complete!();
     await c.done;
 
-    const callsBefore = (lastTask.cancel as ReturnType<typeof vi.fn>).mock.calls.length;
+    const callsBefore = startedTask().cancel.mock.calls.length;
 
     controller.abort();
 
-    expect((lastTask.cancel as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
+    expect(startedTask().cancel.mock.calls.length).toBe(callsBefore);
   });
 
   it('rejects with the canonical AbortError when the SDK reports storage/canceled after the signal aborted', async () => {
@@ -201,10 +228,10 @@ describe('startResumableUpload — abort behavior', () => {
   it('uploadFileResumable rejects when contentType metadata is missing', async () => {
     await expect(
       uploadFileResumable({
-        storage: {} as any,
+        storage: {} as FirebaseStorage,
         path: 'x',
         file: makeFile(),
-        metadata: { contentType: '' as any },
+        metadata: { contentType: '' },
       }),
     ).rejects.toThrow(/contentType/i);
   });

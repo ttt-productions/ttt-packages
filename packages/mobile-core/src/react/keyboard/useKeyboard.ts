@@ -46,8 +46,8 @@ export function useKeyboard(): KeyboardState {
       onVV();
     }
 
-    window.addEventListener('focusin', onFocusIn, { passive: true } as any);
-    window.addEventListener('focusout', onFocusOut, { passive: true } as any);
+    window.addEventListener('focusin', onFocusIn, { passive: true });
+    window.addEventListener('focusout', onFocusOut, { passive: true });
     window.addEventListener('orientationchange', setBaseIfNeeded, { passive: true });
 
     setBaseIfNeeded();
@@ -57,8 +57,8 @@ export function useKeyboard(): KeyboardState {
         window.visualViewport!.removeEventListener('resize', onVV);
         window.visualViewport!.removeEventListener('scroll', onVV);
       }
-      window.removeEventListener('focusin', onFocusIn as any);
-      window.removeEventListener('focusout', onFocusOut as any);
+      window.removeEventListener('focusin', onFocusIn);
+      window.removeEventListener('focusout', onFocusOut);
       window.removeEventListener('orientationchange', setBaseIfNeeded);
     };
   }, [baseline]);

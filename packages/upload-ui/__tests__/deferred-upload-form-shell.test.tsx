@@ -2,12 +2,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createRef } from 'react';
-import type { DeferredUploadFormShellHandle } from '../src/react/upload/deferred-upload-form-shell.js';
+import type {
+  DeferredUploadFormShellHandle,
+  DeferredUploadFormShellProps,
+} from '../src/react/upload/deferred-upload-form-shell.js';
+import type { MediaInputProps } from '@ttt-productions/file-input';
+import type { MediaOriginSpec, UploadState } from '@ttt-productions/media-schemas';
 
 // Mocks must precede the component imports.
 
 vi.mock('@ttt-productions/file-input/react', () => ({
-  MediaInput: ({ onChange, onClear, onCancel, selectedFile, uploadState }: any) =>
+  MediaInput: ({
+    spec,
+    onChange,
+    onClear,
+    onCancel,
+    selectedFile,
+    uploadState,
+  }: Pick<
+    MediaInputProps,
+    'spec' | 'onChange' | 'onClear' | 'onCancel' | 'selectedFile' | 'uploadState'
+  >) =>
     React.createElement(
       'div',
       { 'data-testid': 'media-input' },
@@ -18,6 +33,7 @@ vi.mock('@ttt-productions/file-input/react', () => ({
           'data-testid': 'select-file-btn',
           onClick: () =>
             onChange({
+              spec,
               file: new File(['x'], 'test.jpg', { type: 'image/jpeg' }),
               claim: { kind: 'image', source: 'file-picker' },
             }),
@@ -51,25 +67,48 @@ vi.mock('@ttt-productions/file-input', () => ({}));
 
 import { DeferredUploadFormShell } from '../src/react/upload/deferred-upload-form-shell.js';
 
-function makeMutation(opts?: { mutateAsync?: (vars: any) => Promise<any>; isPending?: boolean }) {
+type TestVariables = {
+  file: File | null;
+  onProgress?: (s: UploadState | null) => void;
+  signal?: AbortSignal;
+};
+type TestShellProps = DeferredUploadFormShellProps<TestVariables>;
+
+const spec: MediaOriginSpec = {
+  kind: 'image',
+  accept: { mimes: ['image/jpeg'], kinds: ['image'] },
+  maxBytes: 10 * 1024 * 1024,
+};
+
+function makeMutation(opts?: {
+  mutateAsync?: TestShellProps['mutation']['mutateAsync'];
+  isPending?: boolean;
+}): TestShellProps['mutation'] {
   return {
-    mutateAsync: opts?.mutateAsync ?? vi.fn().mockResolvedValue({ ok: true }),
+    mutateAsync:
+      opts?.mutateAsync ??
+      vi.fn<TestShellProps['mutation']['mutateAsync']>().mockResolvedValue({ ok: true }),
     isPending: opts?.isPending ?? false,
   };
 }
 
-function renderShellWithRef(props?: Partial<React.ComponentProps<typeof DeferredUploadFormShell>>) {
+function renderShellWithRef(props?: Partial<TestShellProps>) {
   const mutation = props?.mutation ?? makeMutation();
   const buildVariables =
-    props?.buildVariables ?? vi.fn((file, onProgress, signal) => ({ file, onProgress, signal }));
+    props?.buildVariables ??
+    vi.fn<TestShellProps['buildVariables']>((file, onProgress, signal) => ({
+      file,
+      onProgress,
+      signal,
+    }));
   const ref = createRef<DeferredUploadFormShellHandle>();
   const result = render(
     <DeferredUploadFormShell
-      spec={{ accept: 'image/*', label: 'Image', maxBytes: 10 * 1024 * 1024 } as any}
+      spec={spec}
       mutation={mutation}
       buildVariables={buildVariables}
       ref={ref}
-      {...(props as any)}
+      {...props}
     />,
   );
   return { ...result, ref };
@@ -259,7 +298,7 @@ describe('DeferredUploadFormShell', () => {
     const onFileChange = vi.fn();
 
     let capturedSignal: AbortSignal | undefined;
-    const mutateAsync = vi.fn((vars: any) => {
+    const mutateAsync = vi.fn((vars: TestVariables) => {
       capturedSignal = vars.signal;
       return new Promise((_resolve, reject) => {
         vars.signal?.addEventListener('abort', () => {

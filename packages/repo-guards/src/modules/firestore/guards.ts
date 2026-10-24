@@ -31,7 +31,7 @@ import {
 } from './storage-guards.js';
 import type { NoFacts } from './support.js';
 
-export interface FirestoreGuardFacts {
+export type FirestoreGuardFacts = {
   firestoreWrites: WriteGuardFacts | Absent;
   firestoreTestPaths: TestPathFacts | Absent;
   firestoreLiteralSegments: NoFacts | Absent;
@@ -48,7 +48,7 @@ export interface FirestoreGuardFacts {
   firestoreTimestampNow: NoFacts | Absent;
   rulesClaimNames: RulesClaimFacts;
   rulesMirrorCore: RulesMirrorFacts;
-}
+};
 
 export const FIRESTORE_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   writeGuard,

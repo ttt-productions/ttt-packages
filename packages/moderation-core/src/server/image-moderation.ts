@@ -31,7 +31,9 @@ export async function moderateImage(
   const safeSearch = result.safeSearchAnnotation;
 
   if (!safeSearch) {
-    logger?.warn?.('[moderation-core] SafeSearch returned no annotation; the image was not checked');
+    logger?.warn?.(
+      '[moderation-core] SafeSearch returned no annotation; the image was not checked',
+    );
     return {
       checked: false,
       safe: false,

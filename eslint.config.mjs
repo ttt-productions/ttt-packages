@@ -1,17 +1,14 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
+import globals from 'globals';
 import prettierCompat from 'eslint-config-prettier';
+
+const nodeGlobals = { ...globals.node, ...globals.es2021 };
 
 export default [
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/coverage/**',
-      '**/*.d.ts',
-      '**/scripts/**', // CommonJS package build helpers, not library source
-    ],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/*.d.ts'],
   },
 
   js.configs.recommended,
@@ -31,11 +28,20 @@ export default [
           ignoreRestSiblings: true,
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-empty': ['error', { allowEmptyCatch: true }],
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
     },
+  },
+
+  {
+    files: ['**/*.js', '**/*.mjs'],
+    languageOptions: { globals: nodeGlobals, sourceType: 'module' },
+  },
+
+  {
+    files: ['**/*.cjs'],
+    languageOptions: { globals: nodeGlobals, sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
 
   // Last, so it turns off every ESLint rule that would fight Prettier.

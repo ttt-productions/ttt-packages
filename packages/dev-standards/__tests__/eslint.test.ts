@@ -53,12 +53,7 @@ describe('createAppEslintConfig', () => {
           'out/**',
           'dist/**',
           'build/**',
-          '*.config.js',
-          '*.config.ts',
           'next-env.d.ts',
-          'instrumentation.ts',
-          'instrumentation-client.ts',
-          'sentry.*.config.ts',
           '.next/types/**',
           '.next/dev/**',
           'docs/**',
@@ -91,7 +86,6 @@ describe('createAppEslintConfig', () => {
               destructuredArrayIgnorePattern: '^_',
             },
           ],
-          '@typescript-eslint/no-explicit-any': 'off',
           'react-hooks/rules-of-hooks': 'error',
           'react-hooks/exhaustive-deps': 'error',
           'react-hooks/set-state-in-effect': 'error',
@@ -110,6 +104,41 @@ describe('createAppEslintConfig', () => {
     const config = await createAppEslintConfig();
     expect(config.at(-1)).toBe(prettierCompat);
     expect(config.at(-2)?.rules?.['react-hooks/purity']).toBe('error');
+  });
+});
+
+describe('presets reject an explicit any', () => {
+  const source = 'export const value: any = 1;\n';
+
+  it('the app preset fails an explicit any', async () => {
+    const eslint = new ESLint({
+      cwd: import.meta.dirname,
+      overrideConfigFile: true,
+      overrideConfig: await createAppEslintConfig(),
+    });
+    const [result] = await eslint.lintText(source, { filePath: 'src/value.ts' });
+    expect(result?.messages.map((m) => m.ruleId)).toContain('@typescript-eslint/no-explicit-any');
+  });
+
+  it('the Functions preset fails an explicit any', async () => {
+    const eslint = new ESLint({
+      cwd: import.meta.dirname,
+      overrideConfigFile: true,
+      overrideConfig: await createFunctionsEslintConfig(),
+    });
+    const [result] = await eslint.lintText(source, { filePath: 'src/value.ts' });
+    expect(result?.messages.map((m) => m.ruleId)).toContain('@typescript-eslint/no-explicit-any');
+  });
+
+  it('the app preset lints config and instrumentation files', async () => {
+    const eslint = new ESLint({
+      cwd: import.meta.dirname,
+      overrideConfigFile: true,
+      overrideConfig: await createAppEslintConfig(),
+    });
+    for (const filePath of ['next.config.ts', 'vitest.config.js', 'instrumentation.ts']) {
+      expect(await eslint.isPathIgnored(filePath)).toBe(false);
+    }
   });
 });
 
@@ -180,7 +209,6 @@ describe('createFunctionsEslintConfig', () => {
         languageOptions: { globals: nodeGlobals },
         rules: {
           '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
-          '@typescript-eslint/no-explicit-any': 'off',
           '@typescript-eslint/no-unused-vars': unused,
           'no-undef': 'off',
         },

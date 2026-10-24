@@ -3,7 +3,8 @@ import { findHandTypedFirestorePaths } from '../../src/modules/firestore/test-pa
 import { COLLECTIONS } from './fixture-core/index.js';
 
 const collectionNames = Object.values(COLLECTIONS);
-const offenders = (files) => findHandTypedFirestorePaths(files, { collectionNames });
+const offenders = (files: Array<{ path: string; content: string }>) =>
+  findHandTypedFirestorePaths(files, { collectionNames });
 
 const PROFILES = COLLECTIONS.USER_PROFILES;
 const RESERVED = COLLECTIONS.RESERVED_DISPLAY_NAMES;

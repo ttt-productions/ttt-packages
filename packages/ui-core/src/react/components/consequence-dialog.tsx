@@ -137,6 +137,7 @@ export function ConsequenceDialog({
       setTypedValue('');
       setOpenState(false);
     } catch {
+      // The caller's onConfirm owns its failure's surface; a rejection only keeps the dialog open.
     } finally {
       setPending(false);
     }

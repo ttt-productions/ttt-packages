@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { uploadFileResumable } from '../src/browser/upload.js';
 import { UploadError } from '../src/storage/upload-error.js';
+import type { FirebaseStorage } from 'firebase/storage';
 
 vi.mock('firebase/storage', () => ({
   ref: () => {
@@ -10,7 +11,7 @@ vi.mock('firebase/storage', () => ({
 }));
 
 const base = {
-  storage: {} as any,
+  storage: {} as FirebaseStorage,
   path: 'uploads/x/u/p',
   file: new File(['x'], 'f'),
 };
@@ -21,7 +22,7 @@ async function outcome(metadata: { contentType: string }, allowNeutralContentTyp
       ...base,
       metadata,
       ...(allowNeutralContentType ? { allowNeutralContentType } : {}),
-    } as any);
+    });
     return 'resolved';
   } catch (e) {
     if (e instanceof UploadError) return `upload-error:${e.code}`;

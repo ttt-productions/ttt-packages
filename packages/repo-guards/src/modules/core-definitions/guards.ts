@@ -19,7 +19,7 @@ import {
   type TextFieldDeclarationFacts,
 } from './text-field-declarations.js';
 
-export interface CoreDefinitionsGuardFacts {
+export type CoreDefinitionsGuardFacts = {
   definitionRedeclaration: DefinitionRedeclarationFacts;
   coreContracts: CoreContractFacts;
   documentIdSegments: DocumentIdSegmentFacts | Absent;
@@ -27,7 +27,7 @@ export interface CoreDefinitionsGuardFacts {
   singletonBucketAudience: SingletonBucketAudienceFacts | Absent;
   textFieldDeclarations: TextFieldDeclarationFacts | Absent;
   appRouteOwner: AppRouteOwnerFacts;
-}
+};
 
 export const CORE_DEFINITIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   definitionRedeclarationGuard,

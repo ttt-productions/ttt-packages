@@ -33,7 +33,7 @@ describe('zod-shape', () => {
   });
 
   it('reads an object shape and an array element, and nothing for other kinds', () => {
-    expect(Object.keys(objectShape(Inner))).toEqual(['a', 'b']);
+    expect(Object.keys(objectShape(Inner) ?? {})).toEqual(['a', 'b']);
     expect(objectShape(z.string())).toBeNull();
     expect(kindOf(arrayElement(z.array(Inner)))).toBe('object');
     expect(arrayElement(Inner)).toBeNull();

@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 
 export interface RunCmdResult {
   code: number;
@@ -25,6 +25,14 @@ export const DEFAULT_PROBE_TIMEOUT_MS = 20_000;
 let ffmpegChecked: boolean | null = null;
 let ffmpegVersion: string | null = null;
 
+function forceKill(p: ChildProcess): void {
+  try {
+    p.kill('SIGKILL');
+  } catch {
+    // A process that already exited throws on kill, and there is nothing left to stop.
+  }
+}
+
 export function runCmd(
   cmd: string,
   args: string[],
@@ -43,11 +51,7 @@ export function runCmd(
     let timedOut = false;
     let truncated = false;
 
-    const kill = () => {
-      try {
-        p.kill('SIGKILL');
-      } catch {}
-    };
+    const kill = () => forceKill(p);
     const timer =
       opts?.timeoutMs && opts.timeoutMs > 0
         ? setTimeout(() => {
@@ -168,11 +172,7 @@ export function runFfmpeg(args: string[], opts?: RunFfmpegOptions): Promise<RunC
 
     let lastOutTimeMs: number | undefined;
 
-    const onAbort = () => {
-      try {
-        p.kill('SIGKILL');
-      } catch {}
-    };
+    const onAbort = () => forceKill(p);
     opts?.signal?.addEventListener('abort', onAbort, { once: true });
 
     p.stdout.on('data', (d) => {

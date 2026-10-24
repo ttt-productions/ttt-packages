@@ -4,6 +4,7 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { textProblem } from '../../support/facts.js';
+import { PACKAGE_GRAPH_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface ApplicationDataFacts {
   packagesFolder: string;
@@ -45,7 +46,7 @@ export const applicationDataImportsGuard: GenericGuardDefinition<ApplicationData
           'A generic package holds a mechanism and never knows an app: it declares no application-data package as a ' +
           'dependency of any kind and imports none. The app supplies its values through a factory, adapter, callback, or ' +
           'configuration instead.',
-        timeoutMs: 300_000,
+        timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const findings: Finding[] = [];
           const folder = join(context.reader.layout.repoRoot, facts.packagesFolder);

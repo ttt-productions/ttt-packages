@@ -4,6 +4,9 @@ import {
   loadRegistry,
   runGuardOnSources,
   VIOLATION_KINDS,
+  type GuardProfile,
+  type WriteRegistry,
+  type WriteViolation,
 } from '../../src/modules/firestore/analyzer.js';
 import * as fixtureCore from './fixture-core/index.js';
 import * as fixtureDocSchemas from './fixture-core/doc-schemas.js';
@@ -21,15 +24,17 @@ const MAPS = [
   'SPECIAL_DOCS',
 ];
 
-let registry;
+let registry: WriteRegistry;
 beforeAll(async () => {
   registry = await loadRegistry({ sources: SOURCES, constantMapNames: MAPS });
 });
 
-const analyze = (profile, source) =>
+const analyze = (profile: GuardProfile, source: string) =>
   runGuardOnSources({ sources: { 'fixture/writer.ts': source }, registry, profile });
-const detailsOf = (result) => result.violations.map((violation) => violation.detail).join('\n');
-const kindsOf = (result) => result.violations.map((violation) => violation.kind);
+const detailsOf = (result: { violations: readonly WriteViolation[] }) =>
+  result.violations.map((violation) => violation.detail).join('\n');
+const kindsOf = (result: { violations: readonly WriteViolation[] }) =>
+  result.violations.map((violation) => violation.kind);
 
 const PREAMBLE = `
 import { PATH_BUILDERS, toPath } from '@fixture/core';
@@ -38,6 +43,7 @@ const db = getFirestore();
 
 describe('createGuardProfile', () => {
   it('refuses a profile with no core package', () => {
+    // @ts-expect-error the profile omits its corePackage to prove the runtime refusal
     expect(() => createGuardProfile({})).toThrow(/corePackage/);
     expect(() => createGuardProfile({ corePackage: '' })).toThrow(/corePackage/);
   });
@@ -49,7 +55,7 @@ describe('createGuardProfile', () => {
   });
 
   it("reads the core's own specifier as canonical, and no other package's", () => {
-    const write = (specifier) => `
+    const write = (specifier: string) => `
       import { PATH_BUILDERS, toPath } from '${specifier}';
       const db = getFirestore();
       export async function writeIt(uid: string) {

@@ -81,7 +81,7 @@ describe('parseClaims', () => {
   });
 
   it('wraps single string role in array', () => {
-    const result = parseClaims({ roles: 'admin' } as any);
+    const result = parseClaims({ roles: 'admin' });
     expect(result.roles).toEqual(['admin']);
   });
 
@@ -91,7 +91,7 @@ describe('parseClaims', () => {
   });
 
   it('filters out non-string items from roles array', () => {
-    const result = parseClaims({ roles: ['admin', 42, null, 'editor', true] } as any);
+    const result = parseClaims({ roles: ['admin', 42, null, 'editor', true] });
     expect(result.roles).toEqual(['admin', 'editor']);
   });
 
@@ -105,21 +105,21 @@ describe('parseClaims', () => {
     const result = parseClaims(claims);
     expect(result.raw).toEqual(claims);
     expect(result.raw.sub).toBe('user123');
-    expect((result.raw as any).customField).toBe('value');
+    expect(result.raw.customField).toBe('value');
   });
 
   it('returns empty array when roles is a number', () => {
-    const result = parseClaims({ roles: 123 } as any);
+    const result = parseClaims({ roles: 123 });
     expect(result.roles).toEqual([]);
   });
 
   it('returns empty array when roles is an object', () => {
-    const result = parseClaims({ roles: { key: 'value' } } as any);
+    const result = parseClaims({ roles: { key: 'value' } });
     expect(result.roles).toEqual([]);
   });
 
   it('handles claims with only non-string values in roles', () => {
-    const result = parseClaims({ roles: [1, 2, 3] } as any);
+    const result = parseClaims({ roles: [1, 2, 3] });
     expect(result.roles).toEqual([]);
   });
 });

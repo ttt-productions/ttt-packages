@@ -7,6 +7,7 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { textProblem } from '../../support/facts.js';
 import { analyzePackageImports, createImportPathProfile, findImportCycles } from './analyzer.js';
 import { sourceEntryModules } from './package-entries.js';
+import { PACKAGE_GRAPH_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface PackageImportFacts {
   packagesFolder: string;
@@ -80,7 +81,7 @@ export const packageImportsGuard: GenericGuardDefinition<PackageImportFacts> = {
           'package entry is deleted and its importers import the defining files. Every relative import, in source and tests ' +
           "alike — a static import or `export … from`, an `import()`, and a test runner's module mock — names its file with " +
           "the file's built extension: `./x.js` for `x.ts` or `x.tsx`, `./folder/index.js` for a folder.",
-        timeoutMs: 300_000,
+        timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const { packages, missing } = packagesOf(context, facts.packagesFolder);
           if (missing.length) return missing;
@@ -97,7 +98,7 @@ export const packageImportsGuard: GenericGuardDefinition<PackageImportFacts> = {
               ),
               profile,
             });
-            for (const v of violations as Array<{ kind: string; file: string; detail: string }>) {
+            for (const v of violations) {
               findings.push({ file: v.file, detail: `${v.kind.replace(/-/g, ' ')}: ${v.detail}` });
             }
           }
@@ -120,7 +121,7 @@ export const packageImportCyclesGuard: GenericGuardDefinition<PackageImportFacts
           "No module of a package reaches itself through the package's runtime imports and forwards (type-only imports and lazy " +
           'import() excluded): a cycle evaluates one of its modules before the names it needs exist. Import the file that ' +
           'defines each name; a cycle that remains is broken by moving the shared definition into its own file.',
-        timeoutMs: 300_000,
+        timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const { packages, missing } = packagesOf(context, facts.packagesFolder);
           if (missing.length) return missing;
@@ -135,7 +136,7 @@ export const packageImportCyclesGuard: GenericGuardDefinition<PackageImportFacts
               files: source,
               roots: [pkg.root],
               profile,
-            }) as Array<{ file: string; path: string[] }>) {
+            })) {
               findings.push({
                 file: cycle.file,
                 detail: `runtime import cycle: ${cycle.path.join(' → ')}`,

@@ -231,7 +231,9 @@ function parseVitestJson(stdout) {
   const trimmed = stdout.trim();
   try {
     return JSON.parse(trimmed);
-  } catch {}
+  } catch {
+    // Output with log lines around the report falls through to its outermost braces below.
+  }
   const first = trimmed.indexOf('{');
   const last = trimmed.lastIndexOf('}');
   if (first === -1 || last === -1 || last < first) return null;

@@ -30,7 +30,7 @@ export async function refreshClaimsFromAuth(auth: Auth): Promise<IdTokenClaims |
 export function parseClaims(claims: IdTokenClaims | null | undefined): ParsedClaims {
   const raw = (claims ?? {}) as IdTokenClaims;
 
-  const rolesValue = (raw as any).roles;
+  const rolesValue = raw.roles;
   const roles = Array.isArray(rolesValue)
     ? rolesValue.filter((x) => typeof x === 'string')
     : typeof rolesValue === 'string'

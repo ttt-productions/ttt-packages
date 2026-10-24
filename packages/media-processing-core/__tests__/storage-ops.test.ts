@@ -108,14 +108,28 @@ describe('createR2ObjectStore', () => {
   });
 });
 
+type UploadCallOptions = {
+  destination: string;
+  metadata: { contentType?: string; cacheControl?: string; metadata?: Record<string, string> };
+};
+
+type CopyCallOptions = {
+  preconditionOpts?: { ifGenerationMatch?: string | number };
+  metadata?: Record<string, string>;
+  contentType?: string;
+  cacheControl?: string;
+  contentDisposition?: string;
+  contentEncoding?: string;
+};
+
 function makeFirebaseBucketMock(
   opts: {
     storedContentType?: string;
     deleteError?: Error;
   } = {},
 ) {
-  const events: Array<{ op: string; key: string; arg?: any; options?: any }> = [];
-  const upload = vi.fn(async (_localPath: string, uploadOpts: any) => {
+  const events: Array<{ op: string; key: string; arg?: unknown }> = [];
+  const upload = vi.fn(async (_localPath: string, uploadOpts: UploadCallOptions) => {
     events.push({ op: 'upload', key: uploadOpts.destination, arg: uploadOpts });
   });
   const file = vi.fn((key: string) => ({
@@ -206,7 +220,7 @@ function makeGcsFake() {
       const { bytes: _bytes, ...metadata } = live;
       return [structuredClone(metadata)];
     },
-    async copy(dest: { name: string }, options: Record<string, any> = {}) {
+    async copy(dest: { name: string }, options: CopyCallOptions = {}) {
       const pinned =
         fileOptions.generation === undefined ? undefined : String(fileOptions.generation);
       calls.push({ op: 'copy', key, generation: pinned, options: structuredClone(options) });
@@ -645,7 +659,7 @@ describe('Firebase Storage deleteCopy: deletes only a copy of the named source',
 describe('createFirebaseEmulatorObjectStore', () => {
   function makeBucketMock() {
     const del = vi.fn(async () => undefined);
-    const upload = vi.fn(async () => undefined);
+    const upload = vi.fn(async (_localPath: string, _options: UploadCallOptions) => undefined);
     const file = vi.fn(() => ({ delete: del }));
     return { bucket: { upload, file } as unknown as Bucket, upload, file, del };
   }
@@ -699,9 +713,9 @@ describe('createFirebaseEmulatorObjectStore', () => {
 
     const result = await store.putFile({ localPath, key: 'mediaAssets/asset1/full' });
     expect(result.key).toBe('mediaAssets/asset1/full');
-    const [, opts] = upload.mock.calls[0] as unknown as [string, any];
+    const [, opts] = upload.mock.calls[0];
     expect(opts.destination).toBe('mediaAssets/asset1/full');
-    expect(opts.metadata.metadata.firebaseStorageDownloadTokens).toBe('app-emulator-media-token');
+    expect(opts.metadata.metadata?.firebaseStorageDownloadTokens).toBe('app-emulator-media-token');
   });
 
   it('delete swallows not-found errors', async () => {

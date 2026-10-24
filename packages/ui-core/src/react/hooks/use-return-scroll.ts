@@ -55,7 +55,9 @@ export function saveReturnScroll(key: string, y?: number): void {
     const offset = typeof y === 'number' ? y : window.scrollY;
     const entry: ReturnScrollEntry = { y: offset, savedAt: Date.now() };
     storage.setItem(storageKey(key), JSON.stringify(entry));
-  } catch {}
+  } catch {
+    // A blocked or full store throws on write; the position is best-effort (RULE-STD-FRONTEND-010).
+  }
 }
 
 export function clearReturnScroll(key: string): void {
@@ -63,7 +65,9 @@ export function clearReturnScroll(key: string): void {
   if (!storage) return;
   try {
     storage.removeItem(storageKey(key));
-  } catch {}
+  } catch {
+    // A blocked store throws here, and then it holds nothing to clear.
+  }
 }
 
 interface Decision {

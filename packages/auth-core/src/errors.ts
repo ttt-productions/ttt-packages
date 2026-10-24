@@ -28,8 +28,7 @@ export type NormalizedAuthError = {
 
 function pickFirebaseCode(err: unknown): string | undefined {
   if (!err || typeof err !== 'object') return undefined;
-  const anyErr = err as any;
-  const c = anyErr.code;
+  const c = (err as { code?: unknown }).code;
   return typeof c === 'string' ? c : undefined;
 }
 

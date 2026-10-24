@@ -1,7 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, type Mock } from 'vitest';
 import { createCheckoutTaskHandler } from '../src/server/createCheckoutTaskHandler.js';
 import { ReportCoreTaskError } from '../src/server/taskError.js';
-import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types.js';
+import type {
+  ServerReportCoreConfig,
+  TaskClaimGuard,
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerFirestore,
+  ServerCollectionRef,
+  ServerQuery,
+  ServerQuerySnapshot,
+  ServerTransaction,
+} from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   describeUserReportTask: ({ totalReports, reportedItemType }) =>
@@ -47,7 +57,24 @@ function createMockDb(opts: MockDbOptions = {}) {
   let docsRead = 0;
   let hasWritten = false;
 
-  const makeRef = (path: string) => ({ id: path.split('/').pop()!, _path: path });
+  type FakeRef = ServerDocRef & { _path: string };
+  type FakeQuery = ServerQuery & { _isQuery: true };
+
+  const outsideTransaction = (op: string) =>
+    Promise.reject(new Error(`${op} outside the transaction is not part of this fake`));
+
+  const makeRef = (path: string): FakeRef => ({
+    id: path.split('/').pop()!,
+    _path: path,
+    set: () => outsideTransaction('set'),
+    update: () => outsideTransaction('update'),
+    get: () => outsideTransaction('get'),
+  });
+
+  const snapshotOf = (ref: FakeRef): ServerDocSnapshot => {
+    const data = store.get(ref._path);
+    return { exists: !!data, data: () => data, id: ref.id, ref };
+  };
 
   interface Clause {
     field: string;
@@ -65,16 +92,16 @@ function createMockDb(opts: MockDbOptions = {}) {
     orders: Order[],
     lim?: number,
     afterPath?: string,
-  ) => {
-    const query = {
+  ): FakeQuery => {
+    const query: FakeQuery = {
       _isQuery: true,
       where: (field: string, op: string, value: unknown) =>
         makeQuery(colPath, [...clauses, { field, op, value }], orders, lim, afterPath),
       orderBy: (field: string, direction: 'asc' | 'desc' = 'asc') =>
         makeQuery(colPath, clauses, [...orders, { field, dir: direction }], lim, afterPath),
       limit: (n: number) => makeQuery(colPath, clauses, orders, n, afterPath),
-      startAfter: (snapshot: { ref: { _path: string } }) =>
-        makeQuery(colPath, clauses, orders, lim, snapshot.ref._path),
+      startAfter: (snapshot: ServerDocSnapshot) =>
+        makeQuery(colPath, clauses, orders, lim, (snapshot.ref as FakeRef)._path),
       get: async () => {
         opts.beforeQuery?.(store);
         queryCount++;
@@ -106,7 +133,7 @@ function createMockDb(opts: MockDbOptions = {}) {
         }
         if (lim !== undefined) rows = rows.slice(0, lim);
         docsRead += rows.length;
-        const docs = rows.map((r) => ({
+        const docs = rows.map((r): ServerDocSnapshot => ({
           id: r.path.split('/').pop()!,
           exists: true,
           data: () => store.get(r.path),
@@ -119,9 +146,11 @@ function createMockDb(opts: MockDbOptions = {}) {
     return query;
   };
 
-  const transaction = {
-    get: vi.fn(async (refOrQuery: any) => {
-      if (refOrQuery._isQuery) {
+  const txGet = vi.fn(
+    async (
+      target: ServerDocRef | ServerQuery,
+    ): Promise<ServerDocSnapshot | ServerQuerySnapshot> => {
+      if ('_isQuery' in target) {
         throw new Error(
           'Range query inside a transaction — candidate discovery must run OUTSIDE the transaction (doc-level claims only).',
         );
@@ -131,39 +160,46 @@ function createMockDb(opts: MockDbOptions = {}) {
           'Firestore transactions require all reads to be executed before all writes.',
         );
       }
-      const data = store.get(refOrQuery._path);
-      return {
-        exists: !!data,
-        data: () => data,
-        id: refOrQuery.id,
-        ref: refOrQuery,
-      };
-    }),
-    set: vi.fn((ref: any, data: DocData) => {
+      return snapshotOf(target as FakeRef);
+    },
+  );
+  type FakeTransaction = ServerTransaction & {
+    get: typeof txGet;
+    set: Mock<(ref: ServerDocRef, data: DocData) => ServerTransaction>;
+    update: Mock<(ref: ServerDocRef, data: DocData) => ServerTransaction>;
+  };
+  const transaction: FakeTransaction = {
+    get: txGet as FakeTransaction['get'],
+    set: vi.fn((ref: ServerDocRef, data: DocData) => {
+      const { _path } = ref as FakeRef;
       hasWritten = true;
-      sets.push({ path: ref._path, data });
-      store.set(ref._path, data);
+      sets.push({ path: _path, data });
+      store.set(_path, data);
       return transaction;
     }),
-    update: vi.fn((ref: any, data: DocData) => {
+    update: vi.fn((ref: ServerDocRef, data: DocData) => {
+      const { _path } = ref as FakeRef;
       hasWritten = true;
-      updates.push({ path: ref._path, data });
-      store.set(ref._path, { ...(store.get(ref._path) ?? {}), ...data });
+      updates.push({ path: _path, data });
+      store.set(_path, { ...(store.get(_path) ?? {}), ...data });
       return transaction;
     }),
   };
 
-  const db = {
-    collection: vi.fn((colPath: string) => ({
+  const db: ServerFirestore = {
+    collection: vi.fn((colPath: string): ServerCollectionRef => ({
       ...makeQuery(colPath, [], []),
       doc: vi.fn((id?: string) => makeRef(`${colPath}/${id ?? `auto_${++autoId}`}`)),
     })),
     doc: vi.fn((path: string) => makeRef(path)),
-    runTransaction: vi.fn(async (fn: any) => {
+    batch: () => {
+      throw new Error('batch writes are not part of this fake');
+    },
+    runTransaction: async (fn) => {
       hasWritten = false;
       return fn(transaction);
-    }),
-  } as any;
+    },
+  };
 
   return {
     db,
@@ -574,7 +610,7 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
     };
     expect(result.success).toBe(true);
     for (const call of transaction.get.mock.calls) {
-      expect((call[0] as any)._isQuery).toBeUndefined();
+      expect('_isQuery' in call[0]).toBe(false);
     }
   });
 

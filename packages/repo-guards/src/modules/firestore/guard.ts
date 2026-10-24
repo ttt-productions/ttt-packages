@@ -20,8 +20,10 @@ import {
   formatReport,
   loadRegistry,
   parseFile,
+  type WriteGuardException,
 } from './analyzer.js';
 import { findHandTypedFirestorePaths } from './test-paths.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS, WRITE_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface WriteGuardFacts {
   corePackage: string;
@@ -37,7 +39,7 @@ export interface WriteGuardFacts {
   constantMapNames: readonly string[];
   writerRoots: readonly RootRole[];
   writerAnchors: readonly string[];
-  exceptions: readonly Record<string, unknown>[];
+  exceptions: readonly WriteGuardException[];
 }
 
 export interface TestPathFacts {
@@ -152,7 +154,7 @@ export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
           'core package. A write whose target or payload cannot be read fails; the only way past it is a reviewed exception ' +
           'bound to its structural write site, and an exception that matches nothing is stale. Each writer anchor is a ' +
           'long-lived writer the guard must see writes in — one it no longer sees means a write form it stopped recognizing.',
-        timeoutMs: 180_000,
+        timeoutMs: WRITE_GUARD_TIMEOUT_MS,
         async run(context) {
           const r = await runWriteGuard(context.reader, facts, context.files.bind(context));
           // stderr: a JSON test reporter owns stdout.
@@ -160,15 +162,13 @@ export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
 ${formatReport(r)}
 
 `);
-          const findings: Finding[] = r.violations.map(
-            (v: { kind: string; at: string; detail: string }) => ({
-              file: v.at,
-              detail: `${v.kind.replace(/-/g, ' ')}: ${v.detail}`,
-            }),
-          );
+          const findings: Finding[] = r.violations.map((v) => ({
+            file: v.at,
+            detail: `${v.kind.replace(/-/g, ' ')}: ${v.detail}`,
+          }));
           for (const stale of r.staleExceptions)
             findings.push({ file: '(exceptions)', detail: `stale exception: ${stale}` });
-          const seen = new Set(r.writes.map((w: { file: string }) => w.file));
+          const seen = new Set(r.writes.map((w) => w.file));
           for (const anchor of facts.writerAnchors) {
             if (!seen.has(anchor))
               findings.push({ file: anchor, detail: 'writer anchor: no write seen in it' });
@@ -196,7 +196,7 @@ export const testPathGuard: GenericGuardDefinition<TestPathFacts> = {
           'Test code builds a Firestore path through the core package: its path builders for a document, its collection ' +
           'constants for a collection. No literal begins with a declared collection name and a slash, and no declared ' +
           'collection name is passed to doc / collection / collectionGroup.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         async run(context) {
           const names = await facts.collectionNames();
           const files = context
@@ -207,16 +207,14 @@ export const testPathGuard: GenericGuardDefinition<TestPathFacts> = {
               tests: 'only',
             })
             .map((f) => ({ path: f.path, content: f.text, sourceFile: f.sourceFile }));
-          return findHandTypedFirestorePaths(files, { collectionNames: [...names] }).map(
-            (at: string) => {
-              const i = at.lastIndexOf(':');
-              return {
-                file: at.slice(0, i),
-                line: Number(at.slice(i + 1)),
-                detail: 'hand-typed Firestore path',
-              };
-            },
-          );
+          return findHandTypedFirestorePaths(files, { collectionNames: [...names] }).map((at) => {
+            const i = at.lastIndexOf(':');
+            return {
+              file: at.slice(0, i),
+              line: Number(at.slice(i + 1)),
+              detail: 'hand-typed Firestore path',
+            };
+          });
         },
       },
     ];

@@ -1,5 +1,13 @@
 import { resolveInfiniteDuration } from '@ttt-productions/media-viewer';
 
+export function releaseObjectUrl(url: string): void {
+  try {
+    URL.revokeObjectURL(url);
+  } catch {
+    // A runtime without object-URL support throws here; revoking is cleanup, so nothing is lost.
+  }
+}
+
 export async function validateMediaDuration(file: File, maxDurationSec: number): Promise<boolean> {
   return new Promise((resolve) => {
     const el = document.createElement(file.type.startsWith('video/') ? 'video' : 'audio');
@@ -9,9 +17,7 @@ export async function validateMediaDuration(file: File, maxDurationSec: number):
     const finish = (ok: boolean) => {
       if (settled) return;
       settled = true;
-      try {
-        URL.revokeObjectURL(el.src);
-      } catch {}
+      releaseObjectUrl(el.src);
       resolve(ok);
     };
 

@@ -67,11 +67,12 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   verified and a recommendation, and stays open for DJ. When DJ has said he is away, no question
   blocks: it goes in chat, the session finishes every part that does not depend on it, and moves to
   the next item.
-- **No Normal Test Flow while any question is open.** An answer can change code, and a test run
-  before it is worthless. The open questions are asked first, any code they change is done, and then
-  the Test Flow runs once.
+- **No full gate while any question is open** — the Normal Test Flow, or a repo's own `test:quiet`
+  gate, ttt-packages' included. An answer can change code, and a gate run before it is worthless.
+  The open questions are asked first, any code they change is done, and then the gate runs once.
 - Open questions are asked one at a time, as questions, never buried in a status message. The
-  session never answers, files, or drops one itself.
+  session never answers, files, or drops one itself, and never labels one "FYI" or "not blocking" —
+  whether it matters is DJ's call.
 - When DJ asks whether the conversation is good to end, or says to start a new one, the session first
   says how many questions are open and asks whether to answer them here or move them into the new
   conversation's prompt.
@@ -145,6 +146,13 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - Verify at the cost of the fix: a one-file fix runs its single file first; the broad gate only
   when the blast radius warrants it. Never run multiple full repository gates concurrently.
 - A flaky test is a real bug — root-cause it; more than one flake is structural.
+- **The quickest, easiest fix is never the goal; the right one is.** A fix is ready to propose only
+  once the session has worked out the real problem rather than its symptom; whether it is a class
+  of problem and where else it lives; whether an owner already solves it and whether the fix sits
+  in the right home; whether the fix is a hack around a larger design change; what else it changes
+  — data, the other product, docs, tests, guards; what would let the class back in; and whether the
+  problem as stated is even true in the code. A fix that contradicts a rule or a design is a
+  question for DJ.
 
 ## Engineering judgment
 
@@ -157,13 +165,14 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - No half-working, dead, or known-bad code — build it or remove it. On a second sighting of a defect
   class, tell DJ and propose killing the CLASS system-wide plus a regression guard; do it only on
   DJ's command.
-- **Never make yourself an exception.** Code that breaks a rule, guard, or lint check is fixed. An
-  exception is asked for only when there is genuinely no other way, and it goes to DJ with that
-  reason, why no fix works. Nothing is exempted without his yes. Every exception he approves carries
+- **Never make yourself an exception.** Code that breaks a rule, guard, lint check, or type check is
+  fixed. An exception is asked for only when there is genuinely no other way, and it goes to DJ with
+  that reason, why no fix works. Nothing is exempted without his yes. Every exception he approves carries
   its reason at the exception itself, so anyone reading it years later knows at once why it exists:
-  the guard entry's reason field, the comment on the `eslint-disable` / `prettier-ignore` line, or,
-  for a design-level exception, the design doc it belongs to. The reason states why the exception
-  exists, never who approved it.
+  the guard entry's reason field, the comment on the `eslint-disable` / `prettier-ignore` /
+  `@ts-expect-error` / `@ts-ignore` line, or, for a design-level exception, the design doc it
+  belongs to. The reason states why the exception exists, never who approved it. Keeping an
+  exception an agent added is the same decision, and goes to DJ the same way.
 - Reviewing an external plan (ChatGPT/Codex/etc.) means answering "is this the BEST code to solve
   my problem" — never just verifying its claims. Evaluate the design space (alternatives, root cause,
   structure) and fold an optimality verdict into the reviewed doc.
@@ -191,8 +200,8 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   No doc, plan, ledger, or prompt makes a conversation an orchestrator.
 - **Inline:** the session does the research and the work itself. When a piece of the work would be
   done better by agents — LOW for mechanical work applied from written examples, HIGH for thinking
-  work or review — it proposes them to DJ with each agent's exact task and files, and launches them
-  only on his yes. Launching agents, a predefined wave included, never makes it an orchestrator; it
+  work or review — it proposes them to DJ — how many, each one's tier, its exact task, and its
+  files — and launches them only on his yes. Launching agents, a predefined wave included, never makes it an orchestrator; it
   still runs its own Normal Test Flow.
 - **Orchestrator:** the session saves its context for managing agents and does not read or edit code
   itself. It first launches read-only agents to understand the system, then gives each building
@@ -203,8 +212,8 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - The main session owns edits unless DJ explicitly approves parallel implementers with disjoint file
   ownership. Nothing spawns without DJ's yes.
 - Every prompt that spawns an agent names that agent's mandatory reading as explicit
-  read-before-acting paths (RULE-STD-ENG-010), hard-bans spawning further agents, and carries a stop
-  clause: anything unexpected, or a needed package change, stops the agent and comes back to the
+  read-before-acting paths (RULE-STD-ENG-010), hard-bans spawning further agents and running any
+  git or `gh` command, and carries a stop clause: anything unexpected, or a needed package change, stops the agent and comes back to the
   session.
 - How a given kind of conversation runs its agents is its development workflow's procedure
   (the shared `<DEV_STANDARDS>/workflows/`, plus any app-only one in `<APP_WORKFLOWS>`); this file

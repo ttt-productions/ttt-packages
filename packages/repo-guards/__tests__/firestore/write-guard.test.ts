@@ -12,6 +12,10 @@ import {
   evaluate,
   VIOLATION_KINDS,
   numericSentinelSegments,
+  type WriteGuardException,
+  type WriteRecord,
+  type WriteRegistry,
+  type WriteViolation,
 } from '../../src/modules/firestore/analyzer.js';
 import { COLLECTION_DOC_ID_FIELDS } from './fixture-core/doc-schemas.js';
 import { fixturePackageDeclarations } from './fixture-declarations.js';
@@ -42,7 +46,7 @@ const PROFILE = createGuardProfile({
   removalOnlyTables: [{ exportName: 'V1_SOURCES', module: V1_MODULE, label: 'V1 source document' }],
 });
 
-let registry;
+let registry: WriteRegistry;
 beforeAll(async () => {
   registry = await loadRegistry({
     sources: FIXTURE_SOURCES,
@@ -50,7 +54,7 @@ beforeAll(async () => {
   });
 });
 
-function analyze(source, { exceptions = [] } = {}) {
+function analyze(source: string, { exceptions = [] }: { exceptions?: WriteGuardException[] } = {}) {
   return runGuardOnSources({
     sources: { 'fixture/writer.ts': source },
     registry,
@@ -60,7 +64,10 @@ function analyze(source, { exceptions = [] } = {}) {
   });
 }
 
-function analyzeSources(sources, { exceptions = [] } = {}) {
+function analyzeSources(
+  sources: Record<string, string>,
+  { exceptions = [] }: { exceptions?: WriteGuardException[] } = {},
+) {
   return runGuardOnSources({
     sources,
     registry,
@@ -70,8 +77,10 @@ function analyzeSources(sources, { exceptions = [] } = {}) {
   });
 }
 
-const kindsOf = (result) => result.violations.map((violation) => violation.kind);
-const detailsOf = (result) => result.violations.map((violation) => violation.detail).join('\n');
+const kindsOf = (result: { violations: readonly WriteViolation[] }) =>
+  result.violations.map((violation) => violation.kind);
+const detailsOf = (result: { violations: readonly WriteViolation[] }) =>
+  result.violations.map((violation) => violation.detail).join('\n');
 
 const PREAMBLE = `
 import { PATH_BUILDERS, COLLECTIONS, toPath } from '@fixture/core';
@@ -653,8 +662,9 @@ describe('MUST FAIL — fail-closed on what the guard cannot read', () => {
 
 describe('a canonical builder that validates a numeric argument', () => {
   it('reads its shape from two whole-number sentinels: differing slots are argument-derived', () => {
-    const builder = (waiverTemplateId, version) => {
-      if (!Number.isInteger(version) || version < 1) throw new Error('whole numbers only');
+    const builder = (waiverTemplateId: unknown, version: unknown) => {
+      if (typeof version !== 'number' || !Number.isInteger(version) || version < 1)
+        throw new Error('whole numbers only');
       return ['waiverTemplates', waiverTemplateId, 'waiverTemplateVersions', `v${version}`];
     };
     expect(numericSentinelSegments(builder)).toEqual([
@@ -1174,7 +1184,7 @@ describe('the exception list', () => {
 describe('declaredKeys over the schema shapes the registry actually holds', () => {
   it('a UNION declares a key when ANY member declares it', () => {
     const schema = z.union([z.object({ a: z.string() }), z.object({ b: z.string() })]);
-    expect([...declaredKeys(schema).keys].sort()).toEqual(['a', 'b']);
+    expect([...(declaredKeys(schema)?.keys ?? [])].sort()).toEqual(['a', 'b']);
   });
 
   it('a DISCRIMINATED union declares every member key', () => {
@@ -1182,16 +1192,16 @@ describe('declaredKeys over the schema shapes the registry actually holds', () =
       z.object({ kind: z.literal('one'), a: z.string() }),
       z.object({ kind: z.literal('two'), b: z.string() }),
     ]);
-    expect([...declaredKeys(schema).keys].sort()).toEqual(['a', 'b', 'kind']);
+    expect([...(declaredKeys(schema)?.keys ?? [])].sort()).toEqual(['a', 'b', 'kind']);
   });
 
   it('an INTERSECTION declares both sides', () => {
     const schema = z.intersection(z.object({ a: z.string() }), z.object({ b: z.string() }));
-    expect([...declaredKeys(schema).keys].sort()).toEqual(['a', 'b']);
+    expect([...(declaredKeys(schema)?.keys ?? [])].sort()).toEqual(['a', 'b']);
   });
 
   it('a wrapped object is unwrapped', () => {
-    expect([...declaredKeys(z.object({ a: z.string() }).optional()).keys]).toEqual(['a']);
+    expect([...(declaredKeys(z.object({ a: z.string() }).optional())?.keys ?? [])]).toEqual(['a']);
   });
 
   it('a record schema is OPEN — there is nothing to diff, and the guard says so', () => {
@@ -1206,7 +1216,8 @@ describe('declaredKeys over the schema shapes the registry actually holds', () =
 
   it('allows a closed document schema whose nested value is open', () => {
     expect([
-      ...closedCanonicalKeys(z.object({ metadata: z.record(z.string(), z.unknown()) })).keys,
+      ...(closedCanonicalKeys(z.object({ metadata: z.record(z.string(), z.unknown()) }))?.keys ??
+        []),
     ]).toEqual(['metadata']);
   });
 });
@@ -1292,7 +1303,7 @@ describe('the independent structural cross-check', () => {
 
   it('FAILS when a call site the classifier never saw is present', () => {
     const registryStub = {
-      declaredFor: () => ({ keys: new Set(), open: false }),
+      declaredFor: () => ({ keys: new Set<string>(), open: false }),
       schemaFor: () => null,
     };
     const result = evaluate({
@@ -1317,12 +1328,12 @@ describe('the independent structural cross-check', () => {
 });
 
 describe('MUST FAIL — a registered template whose declared keys cannot be read', () => {
-  const stubRegistry = (schema) => ({
+  const stubRegistry = (schema: unknown) => ({
     declaredFor: () => declaredKeys(schema),
     schemaFor: () => schema,
   });
 
-  const oneWrite = (keys) => [
+  const oneWrite = (keys: string[]): WriteRecord[] => [
     {
       file: 'fixture/writer.ts',
       line: 3,
@@ -1384,9 +1395,9 @@ describe('MUST FAIL — a registered template whose declared keys cannot be read
     const result = evaluate({
       writes: [write],
       registry: {
-        declaredFor: (template) =>
+        declaredFor: (template: string) =>
           declaredKeys(template === 'undiffable/{id}' ? wrapped : readable),
-        schemaFor: (template) => (template === 'undiffable/{id}' ? wrapped : readable),
+        schemaFor: (template: string) => (template === 'undiffable/{id}' ? wrapped : readable),
       },
       trees: ['fixture'],
       exceptions: [
@@ -1473,7 +1484,7 @@ describe('union narrowing on a readable discriminant', () => {
     ]);
     expect(narrowedDeclaredKeys(schema, new Map())).toBeNull();
     expect(
-      [...narrowedDeclaredKeys(schema, new Map([['kind', new Set(['one'])]])).keys].sort(),
+      [...(narrowedDeclaredKeys(schema, new Map([['kind', new Set(['one'])]]))?.keys ?? [])].sort(),
     ).toEqual(['a', 'kind']);
   });
 });
@@ -1870,7 +1881,7 @@ describe('a payload built by a PACKAGE function', () => {
   });
 
   describe('an OVERLOADED builder, bound to one exact call by `args`', () => {
-    const terminal = (args) => `${PREAMBLE}
+    const terminal = (args: string) => `${PREAMBLE}
       import { buildPendingMediaTerminalFields } from '@fixture/media';
       export async function writeIt(id: string, nowMs: number) {
         const ref = db.doc(toPath(PATH_BUILDERS.pendingMedia(id)));
@@ -1938,7 +1949,7 @@ describe('a payload built by a PACKAGE function', () => {
 });
 
 describe('a generic pending-write sink', () => {
-  const queue = (patch) => `${PREAMBLE}
+  const queue = (patch: string) => `${PREAMBLE}
     type PendingWrite = { op: 'set' | 'update'; ref: FirebaseFirestore.DocumentReference; data: unknown };
     async function commitWrites(writes: PendingWrite[]) {
       for (let i = 0; i < writes.length; i += 400) {
@@ -1986,7 +1997,7 @@ describe('conditional-spread patches that omit a key', () => {
 });
 
 describe('a canonical collection owned by one helper', () => {
-  const source = (payload) => `${PREAMBLE}
+  const source = (payload: string) => `${PREAMBLE}
     import { COLLECTION_REFS } from '@fixture/core';
     function galleryPicturesCollection() {
       return db.collection(toPath(COLLECTION_REFS.galleryPictures()));
@@ -2012,7 +2023,7 @@ describe('a canonical collection owned by one helper', () => {
 });
 
 describe('a shared patch builder whose field NAME its callers supply', () => {
-  const source = (field) => `${PREAMBLE}
+  const source = (field: string) => `${PREAMBLE}
     function genericResetPatch(statusField: string, activeValue: string) {
       return { [statusField]: activeValue };
     }
@@ -2034,7 +2045,7 @@ describe('a shared patch builder whose field NAME its callers supply', () => {
 });
 
 describe('a generic pending-write sink built across files', () => {
-  const sources = (payload) => ({
+  const sources = (payload: string) => ({
     'fixture/helpers.ts': `${PREAMBLE}
       export type PendingWrite = { op: 'update'; ref: FirebaseFirestore.DocumentReference; data: unknown };
       export async function commitWrites(writes: PendingWrite[]) {
@@ -2117,7 +2128,7 @@ describe('a query a helper merely runs and hands back', () => {
 });
 
 describe('a carrier built in one array, spread into a second, read back in a later loop', () => {
-  const source = (payload) => `${PREAMBLE}
+  const source = (payload: string) => `${PREAMBLE}
     export async function writeIt(tx: FirebaseFirestore.Transaction, uid: string, ids: string[]) {
       const col = db.collection(COLLECTIONS.PUBLIC_USERS);
       const docs = await Promise.all(ids.map((id) => col.doc(id).get()));
@@ -2153,7 +2164,7 @@ describe('a carrier built in one array, spread into a second, read back in a lat
 });
 
 describe('a lane registry whose entries hold their own path builder', () => {
-  const source = (payload) => `${PREAMBLE}
+  const source = (payload: string) => `${PREAMBLE}
     const laneBuild = (id: string) => PATH_BUILDERS.publicUser(id);
     const SUPPORTED = {
       one: { build: PATH_BUILDERS.sportGame, statusField: 'status' },
@@ -2197,7 +2208,7 @@ describe('a lane registry whose entries hold their own path builder', () => {
 });
 
 describe('a lane factory handed a canonical builder or a local function that parses, then builds', () => {
-  const source = (payload, parsedBuild = 'PATH_BUILDERS.publicUser(uid)') => `${PREAMBLE}
+  const source = (payload: string, parsedBuild = 'PATH_BUILDERS.publicUser(uid)') => `${PREAMBLE}
     function lane(build: (docId: string) => [string, string], statusField: string) {
       return { build, statusField };
     }
@@ -2235,7 +2246,7 @@ describe('a lane factory handed a canonical builder or a local function that par
 });
 
 describe('MUST FAIL — spellings and shapes a plain-spelling reader misses', () => {
-  const undeclaredThrough = (body) => `${PREAMBLE}
+  const undeclaredThrough = (body: string) => `${PREAMBLE}
     export async function writeIt(uid: string) {
       const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
       ${body}
@@ -2525,7 +2536,7 @@ describe('reviewed exception field binding', () => {
 });
 
 describe('MUST FAIL — a computed write-method selector that does not resolve', () => {
-  const throughRef = (body) => `${PREAMBLE}
+  const throughRef = (body: string) => `${PREAMBLE}
     export async function writeIt(uid: string, m: 'set' | 'create') {
       const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
       void m;
@@ -2648,7 +2659,7 @@ describe('MUST FAIL — a computed write-method selector that does not resolve',
 });
 
 describe('MUST PASS — ordinary dispatch whose own members supply the method', () => {
-  const clean = (source) => {
+  const clean = (source: string) => {
     const result = analyze(source);
     expect(result.violations).toEqual([]);
     return result;
@@ -2721,7 +2732,7 @@ describe('MUST PASS — ordinary dispatch whose own members supply the method', 
 });
 
 describe('MUST FAIL — every candidate of a multi-candidate selector is checked', () => {
-  const dotted = (selector) => `${PREAMBLE}
+  const dotted = (selector: string) => `${PREAMBLE}
     export async function writeIt(uid: string, c: boolean, m: 'update' | 'set') {
       const ref = db.doc(toPath(PATH_BUILDERS.publicUser(uid)));
       void c; void m;
@@ -2753,7 +2764,10 @@ describe('the exception list binds to a structural write site', () => {
     }
   `;
 
-  const entryFor = (fn, extra = {}) => [
+  const entryFor = (
+    fn: string,
+    extra: Partial<WriteGuardException> = {},
+  ): WriteGuardException[] => [
     {
       kind: VIOLATION_KINDS.UNDECLARED_FIELD,
       file: 'fixture/writer.ts',
@@ -2770,7 +2784,7 @@ describe('the exception list binds to a structural write site', () => {
     expect(result.applied).toHaveLength(1);
     expect(result.violations).toHaveLength(1);
     expect(result.violations[0].at).toBe(
-      result.writes.find((write) => write.fn === 'unrelated').at,
+      result.writes.find((write) => write.fn === 'unrelated')?.at,
     );
   });
 
@@ -2816,7 +2830,7 @@ describe('the exception list binds to a structural write site', () => {
 
 describe('the registry the guard resolves against', () => {
   it('has no registered template whose declared keys cannot be read', () => {
-    const JUSTIFIED_UNDIFFABLE = [];
+    const JUSTIFIED_UNDIFFABLE: string[] = [];
     const undiffable = registry.templates.filter((template) => {
       const declared = registry.declaredFor(template);
       return !declared || declared.open;
@@ -2858,7 +2872,7 @@ describe('MUST FAIL — the registry cannot be built from an incomplete core', (
       const sources = {
         ...FIXTURE_SOURCES,
         core: async () => {
-          const core = { ...(await FIXTURE_SOURCES.core()) };
+          const core: Record<string, unknown> = { ...(await FIXTURE_SOURCES.core()) };
           delete core[name];
           return core;
         },
@@ -3068,7 +3082,7 @@ describe('a Map carrier', () => {
 });
 
 describe('a queue of paths beside their payloads', () => {
-  const queue = (rosterData) => `${PREAMBLE}
+  const queue = (rosterData: string) => `${PREAMBLE}
     declare const stalePaths: string[];
     function buildWrites(gameId: string, events: { eventId: string; stat: string }[]) {
       return [
@@ -3196,7 +3210,7 @@ describe('positive evidence that a receiver is not Firestore', () => {
   });
 
   it('reads a table of plain values handed to a helper as no Firestore handle, and a table holding a call as unproven', () => {
-    const handedTo = (table) => `
+    const handedTo = (table: string) => `
       declare function makeUpdater(): (value: string) => unknown;
       function send(store: { update: (value: string) => unknown }, value: string) {
         return store.update(value);
@@ -3237,7 +3251,7 @@ describe('positive evidence that a receiver is not Firestore', () => {
 });
 
 describe("the core's own code, read as library code", () => {
-  const library = (returned) => ({
+  const library = (returned: string) => ({
     'packages/core/src/index.ts': "export * from './utils/index.js';\n",
     'packages/core/src/utils/index.ts': "export * from './app-config.js';\n",
     'packages/core/src/utils/app-config.ts': `
@@ -3256,7 +3270,7 @@ describe("the core's own code, read as library code", () => {
       tx.set(db.doc(toPath(PATH_BUILDERS.appConfig())), mergeUpdate(existing, update));
     }
   `;
-  const analyzeWithLibrary = (returned) =>
+  const analyzeWithLibrary = (returned: string) =>
     runGuardOnSources({
       sources: { 'fixture/writer.ts': writer },
       librarySources: library(returned),
@@ -3284,7 +3298,7 @@ describe("the core's own code, read as library code", () => {
 });
 
 describe('a converter read through its call sites', () => {
-  const converter = (extra) => `${PREAMBLE}
+  const converter = (extra: string) => `${PREAMBLE}
     import { LeagueFreeAgentSchema } from '@fixture/core/doc-schemas';
     type Conversion = { ok: false; skipped: string } | { ok: true; signup: { leagueId: string; userId: string; createdAt: number } };
     export function toDocument(id: string, data: Record<string, unknown>): Conversion {
@@ -3586,7 +3600,7 @@ describe('a V1 source document accepts only a removal', () => {
     };
   `;
   const WRITER = 'functions/src/migration-console/actions/fixtureWriter.ts';
-  const analyzeV1 = (body, declaration = { [V1_MODULE]: V1_DECLARATION }) =>
+  const analyzeV1 = (body: string, declaration = { [V1_MODULE]: V1_DECLARATION }) =>
     analyzeSources({
       ...declaration,
       [WRITER]: `

@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
+import type { FirebaseStorage } from 'firebase/storage';
 
 // Mocks must precede the component imports.
 
 const uploadFileResumableMock = vi.fn();
 vi.mock('@ttt-productions/upload-core/browser', () => ({
-  uploadFileResumable: (args: any) => uploadFileResumableMock(args),
+  uploadFileResumable: (args: unknown) => uploadFileResumableMock(args),
 }));
 
 import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
@@ -27,7 +28,7 @@ function useGuardedUploadAndCount() {
 
 function makeArgs(overrides: Record<string, unknown> = {}) {
   return {
-    storage: {} as any,
+    storage: {} as FirebaseStorage,
     path: 'tmp/test.jpg',
     file: new File(['x'], 'test.jpg', { type: 'image/jpeg' }),
     metadata: { contentType: 'image/jpeg' },

@@ -4,7 +4,7 @@ import { escapeRegExp } from '../../support/text.js';
 
 const SEGMENT_CALLS = new Set(['doc', 'collection', 'collectionGroup']);
 
-const scriptKindOf = (file) =>
+const scriptKindOf = (file: string): ts.ScriptKind =>
   file.endsWith('.tsx')
     ? ts.ScriptKind.TSX
     : file.endsWith('.jsx')
@@ -13,27 +13,25 @@ const scriptKindOf = (file) =>
         ? ts.ScriptKind.JS
         : ts.ScriptKind.TS;
 
-/**
- * @param {Array<{ path: string, content: string, sourceFile?: import('typescript').SourceFile }>} files
- * @param {{ collectionNames: readonly string[] }} options
- * @returns {string[]}
- */
-export function findHandTypedFirestorePaths(files, { collectionNames }) {
+export function findHandTypedFirestorePaths(
+  files: ReadonlyArray<{ path: string; content: string; sourceFile?: ts.SourceFile }>,
+  { collectionNames }: { collectionNames: readonly string[] },
+): string[] {
   const names = [...new Set(collectionNames)].filter((name) => typeof name === 'string' && name);
   if (!names.length)
     throw new Error('repo-guards: findHandTypedFirestorePaths needs the core collection names');
   const declared = new Set(names);
   const handTypedPath = new RegExp(`^(?:${names.map(escapeRegExp).join('|')})/`);
-  const offenders = [];
+  const offenders: string[] = [];
   for (const { path, content, sourceFile } of files) {
     const source =
       sourceFile ??
       ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true, scriptKindOf(path));
-    const report = (node) =>
+    const report = (node: ts.Node) =>
       offenders.push(
         `${path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`,
       );
-    const visit = (node) => {
+    const visit = (node: ts.Node): void => {
       const plain = isPlainString(node);
       const opening = plain ? node.text : ts.isTemplateExpression(node) ? node.head.text : null;
       if (opening !== null && handTypedPath.test(opening)) {

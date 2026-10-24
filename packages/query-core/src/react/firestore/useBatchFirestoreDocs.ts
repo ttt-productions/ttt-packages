@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
-import type { Firestore } from 'firebase/firestore';
+import type { DocumentData, Firestore } from 'firebase/firestore';
 import { isListenerOwned, listenerErrorOf, subscribeDoc } from './doc-subscription-registry.js';
 import { getDocLoader } from './batch-doc-loader.js';
 import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
@@ -94,7 +94,7 @@ function shallowRecordEqual<T>(a: Record<string, T>, b: Record<string, T>): bool
   return true;
 }
 
-export function useBatchFirestoreDocs<T extends Record<string, any>>({
+export function useBatchFirestoreDocs<T extends DocumentData>({
   db,
   collectionPath,
   ids,

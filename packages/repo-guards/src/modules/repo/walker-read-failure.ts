@@ -4,6 +4,7 @@ import type { Finding } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { takesNoFacts } from '../../support/facts.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const DIRECTORY_READS = new Set(['readdirSync', 'readdir', 'opendirSync', 'opendir']);
 
@@ -89,7 +90,7 @@ export const walkerReadFailureGuard: GenericGuardDefinition<WalkerReadFailureFac
           'returns, continues, or carries on without rethrowing, and its promise must not be given a .catch that does the ' +
           'same: an unreadable folder then reads as an empty one and every check over it passes. Let the failure throw, ' +
           'or rethrow it naming the folder.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           for (const file of context.files(SCOPE)) {

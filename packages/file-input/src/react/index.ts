@@ -1,6 +1,7 @@
 'use client';
 
 export { FileInput } from './components/file-input.js';
+export type { FileInputProps } from './components/file-input.js';
 export { ImageInput } from './components/image-input.js';
 export { VideoInput } from './components/video-input.js';
 export { AudioInput } from './components/audio-input.js';

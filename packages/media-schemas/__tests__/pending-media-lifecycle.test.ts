@@ -96,7 +96,7 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
     expectTypeOf<Claimed['updatedAt']>().toEqualTypeOf<number>();
     expectTypeOf<Claimed['userId']>().toEqualTypeOf<Row['userId']>();
     expectTypeOf<
-      Extract<keyof Claimed, 'terminalAt' | 'errorMessage' | 'completedAt'>
+      Extract<keyof Claimed, 'completedAt' | 'failedAt' | 'rejectedAt' | 'errorMessage' | 'result'>
     >().toBeNever();
     expect(outcome.pendingFile).toEqual({
       ...parseRow({ ...rawBase, status: 'pending' }),

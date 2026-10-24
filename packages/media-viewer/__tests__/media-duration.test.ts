@@ -1,9 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { resolveInfiniteDuration } from '../src/media-duration.js';
 
+type FakeMediaElement = {
+  duration: number;
+  addEventListener: (type: string, fn: () => void) => void;
+  removeEventListener: (type: string, fn: () => void) => void;
+};
+
 function makeEl(duration: number, opts: { seekRevealsDuration?: number } = {}) {
   const listeners = new Set<() => void>();
-  const el: any = {
+  const el: FakeMediaElement = {
     duration,
     addEventListener: (type: string, fn: () => void) => {
       if (type === 'durationchange') listeners.add(fn);

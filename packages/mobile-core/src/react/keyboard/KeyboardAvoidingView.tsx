@@ -10,5 +10,5 @@ export function KeyboardAvoidingView({ padding = true, offset = 0, style, ...res
   const k = useKeyboard();
   const pb = padding && k.isOpen ? k.height + offset : 0;
 
-  return <div {...rest} style={{ ...style, paddingBottom: (style as any)?.paddingBottom ?? pb }} />;
+  return <div {...rest} style={{ ...style, paddingBottom: style?.paddingBottom ?? pb }} />;
 }

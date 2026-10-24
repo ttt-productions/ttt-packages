@@ -3,6 +3,7 @@
 import * as React from 'react';
 import type { MediaPlaybackControls, MediaProgressSampleReason } from '../types.js';
 import type { MediaPlaybackProps } from './types.js';
+import { seekMedia } from '../media-duration.js';
 
 export const PROGRESS_SAMPLE_INTERVAL_MS = 5000;
 
@@ -233,9 +234,7 @@ export function useMediaPlayback(
       restart() {
         const el = elementRef.current;
         if (!el) return;
-        try {
-          el.currentTime = 0;
-        } catch {}
+        seekMedia(el, 0);
         lastPositionRef.current = 0;
         setHasEnded(false);
         void el.play().catch(() => {});
@@ -248,9 +247,7 @@ export function useMediaPlayback(
           Number.isFinite(dur) && dur > 0
             ? Math.min(Math.max(seconds, 0), dur)
             : Math.max(seconds, 0);
-        try {
-          el.currentTime = clamped;
-        } catch {}
+        seekMedia(el, clamped);
         hasStartedRef.current = true;
         lastPositionRef.current = clamped;
       },

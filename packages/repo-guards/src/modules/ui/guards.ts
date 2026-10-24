@@ -48,7 +48,7 @@ import {
 } from './styling.js';
 import { sharedTruncationGuard, type SharedTruncationFacts } from './truncation.js';
 
-export interface UiGuardFacts {
+export type UiGuardFacts = {
   colorLiterals: ColorLiteralFacts;
   themeScaleClasses: EntryStylesheetFacts;
   tailwindSources: TailwindSourceFacts;
@@ -72,7 +72,7 @@ export interface UiGuardFacts {
   wholeInputNumbers: WholeInputNumberFacts;
   selfHostedFonts: Record<string, never>;
   sharedTruncation: SharedTruncationFacts;
-}
+};
 
 export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   colorLiteralsGuard,

@@ -64,7 +64,7 @@ export async function processAudio(
         error: {
           code: 'processing_failed',
           message: 'ffmpeg is not available.',
-          details: { error: String((ff as any).error ?? 'unknown') },
+          details: { error: String(ff.error ?? 'unknown') },
         },
       };
     }
@@ -175,7 +175,8 @@ export async function processAudio(
         durationSec: probe.durationSec,
       },
     };
-  } catch (e: any) {
+  } catch (e) {
+    const fault = e as { message?: unknown; name?: unknown } | null | undefined;
     if (opts?.signal?.aborted) {
       return {
         ok: false,
@@ -188,8 +189,8 @@ export async function processAudio(
       mediaType: 'audio',
       error: {
         code: 'processing_failed',
-        message: e?.message ? String(e.message) : 'Audio processing failed',
-        details: { name: e?.name },
+        message: fault?.message ? String(fault.message) : 'Audio processing failed',
+        details: { name: fault?.name },
       },
     };
   } finally {

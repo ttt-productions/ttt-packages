@@ -46,32 +46,6 @@ export interface FileInputChangePayload {
   error?: FileInputError;
 }
 
-export interface FileInputProps {
-  acceptTypes: SimplifiedMediaType[];
-  maxSizeMB: Partial<Record<SimplifiedMediaType, number>>;
-  selectedFile?: File | null;
-
-  onChange: (payload: FileInputChangePayload) => void;
-  onError?: (error: FileInputError) => void;
-
-  disabled?: boolean;
-  isLoading?: boolean;
-  buttonLabel?: string;
-  clearLabel?: string;
-  className?: string;
-
-  variant?: any;
-  size?: any;
-
-  uploadProgress?: number | null;
-
-  videoMaxDurationSec?: number;
-  audioMaxDurationSec?: number;
-
-  cropConfig?: CropConfig;
-  defaultShowDetails?: boolean;
-}
-
 export interface SelectedMediaMeta {
   kind: MediaKind;
   mime?: string;

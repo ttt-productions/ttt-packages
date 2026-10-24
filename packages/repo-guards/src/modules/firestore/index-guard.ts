@@ -6,6 +6,7 @@ import type { FileView } from '../../reader/view.js';
 import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
 import { loaderProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { literalBindings } from './support.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface CollectionGroupIndexFacts {
   indexesFile: string;
@@ -157,7 +158,7 @@ export const collectionGroupIndexGuard: GenericGuardDefinition<CollectionGroupIn
           'or composite index (led by the field when there is one). Its group id must resolve to a static value — a ' +
           "literal, a same-file literal binding, or a core constant member — or be a reviewed site naming the call's " +
           'argument with its why. Fix: add the index entry the finding names.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         async run(context) {
           const core = await facts.coreExports();
           const indexes = JSON.parse(context.file(facts.indexesFile).text) as IndexesFile;

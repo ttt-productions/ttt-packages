@@ -1,7 +1,15 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, type Mock } from 'vitest';
 import { createReleaseTaskHandler } from '../src/server/createReleaseTaskHandler.js';
 import { ReportCoreTaskError } from '../src/server/taskError.js';
-import type { ServerReportCoreConfig } from '../src/server/types.js';
+import type {
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerFirestore,
+  ServerQuery,
+  ServerQuerySnapshot,
+  ServerReportCoreConfig,
+  ServerTransaction,
+} from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   describeUserReportTask: ({ totalReports, reportedItemType }) =>
@@ -28,46 +36,79 @@ function createMockDb(taskData: Record<string, unknown> | null) {
   const store = new Map<string, Record<string, unknown>>();
   if (taskData) store.set('adminTasks/task1', taskData);
 
-  const makeRef = (path: string) => ({
+  type FakeRef = ServerDocRef & { _path: string };
+
+  const outsideTransaction = (op: string) =>
+    Promise.reject(new Error(`${op} outside the transaction is not part of this fake`));
+
+  const makeRef = (path: string): FakeRef => ({
     id: path.split('/').pop()!,
     _path: path,
+    set: () => outsideTransaction('set'),
+    update: () => outsideTransaction('update'),
+    get: () => outsideTransaction('get'),
   });
 
   const sets: Array<{ path: string; data: Record<string, unknown> }> = [];
   const updates: Array<{ path: string; data: Record<string, unknown> }> = [];
 
-  const transaction = {
-    get: vi.fn(async (ref: any) => {
-      const path = ref._path;
+  const txGet = vi.fn(
+    async (
+      target: ServerDocRef | ServerQuery,
+    ): Promise<ServerDocSnapshot | ServerQuerySnapshot> => {
+      const path = (target as FakeRef)._path;
       const data = store.get(path);
       return { exists: !!data, data: () => data, ref: makeRef(path), id: path.split('/').pop()! };
-    }),
-    set: vi.fn((ref: any, data: Record<string, unknown>) => {
-      sets.push({ path: ref._path, data });
+    },
+  );
+  type FakeTransaction = ServerTransaction & {
+    get: typeof txGet;
+    set: Mock<(ref: ServerDocRef, data: Record<string, unknown>) => ServerTransaction>;
+    update: Mock<(ref: ServerDocRef, data: Record<string, unknown>) => ServerTransaction>;
+  };
+  const transaction: FakeTransaction = {
+    get: txGet as FakeTransaction['get'],
+    set: vi.fn((ref: ServerDocRef, data: Record<string, unknown>) => {
+      sets.push({ path: (ref as FakeRef)._path, data });
       return transaction;
     }),
-    update: vi.fn((ref: any, data: Record<string, unknown>) => {
-      updates.push({ path: ref._path, data });
+    update: vi.fn((ref: ServerDocRef, data: Record<string, unknown>) => {
+      updates.push({ path: (ref as FakeRef)._path, data });
       return transaction;
     }),
   };
 
-  const db = {
+  const db: ServerFirestore = {
     collection: vi.fn((colPath: string) => ({
       doc: vi.fn((id?: string) => {
         const docId = id ?? `auto_${++autoId}`;
         return makeRef(`${colPath}/${docId}`);
       }),
+      where: () => {
+        throw new Error('queries are not part of this fake');
+      },
+      orderBy: () => {
+        throw new Error('queries are not part of this fake');
+      },
+      limit: () => {
+        throw new Error('queries are not part of this fake');
+      },
     })),
-    runTransaction: vi.fn(async (fn: any) => fn(transaction)),
-  } as any;
+    doc: () => {
+      throw new Error('top-level doc refs are not part of this fake');
+    },
+    batch: () => {
+      throw new Error('batch writes are not part of this fake');
+    },
+    runTransaction: async (fn) => fn(transaction),
+  };
 
   return { db, transaction, sets, updates };
 }
 
 describe('createReleaseTaskHandler', () => {
   it('factory returns a function', () => {
-    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db: {} as any });
+    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db: {} as ServerFirestore });
     expect(typeof handler).toBe('function');
   });
 

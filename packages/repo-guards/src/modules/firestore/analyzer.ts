@@ -3,18 +3,285 @@ import { unwrap as unwrapNode } from '../../support/ast.js';
 import { moduleImports } from '../../support/imports.js';
 import { dirnameOf, normalizePath } from '../../support/paths.js';
 import { escapeRegExp } from '../../support/text.js';
+import type { Loader } from '../../support/facts.js';
+import { defOf, objectShape, unwrap, kindOf } from '../../zod-shape/zod-shape.js';
 
-const joinPosix = (...parts) => normalizePath(parts.filter(Boolean).join('/')).path || '.';
+const joinPosix = (...parts: Array<string | null | undefined>): string =>
+  normalizePath(parts.filter(Boolean).join('/')).path || '.';
 
-/**
- * @param {object} config
- * @param {string} config.corePackage
- * @param {string} [config.coreLibraryRoot]
- * @param {Record<string, string>} [config.importAliases]
- * @param {string[]} [config.transactionTypeNames]
- * @param {string[]} [config.handleModulePrefixes]
- * @param {Array<{ exportName: string, module: string, label: string }>} [config.removalOnlyTables]
- */
+export interface RemovalOnlyTable {
+  exportName: string;
+  module: string;
+  label: string;
+}
+
+export interface GuardProfile {
+  readonly corePackage: string;
+  readonly coreLibraryRoot: string | null;
+  readonly importAliases: Readonly<Record<string, string>>;
+  readonly transactionType: RegExp;
+  readonly removalOnlyTables: ReadonlyArray<Readonly<RemovalOnlyTable>>;
+  readonly handleModule: RegExp;
+}
+
+export interface WriteGuardException {
+  kind: string;
+  file: string;
+  why: string;
+  fn?: string;
+  nth?: number;
+  marker?: string;
+  field?: string;
+  detail?: string;
+  count?: number;
+  callee?: string;
+  module?: string;
+  property?: string | null;
+  args?: readonly string[];
+  schema?: string;
+}
+
+export type PathBuilder = (...args: unknown[]) => unknown;
+
+export type PackageDeclarations = (
+  packageName: string,
+) => ReadonlyArray<{ file: string; text: string; sourceFile?: ts.SourceFile }> | null | undefined;
+
+export interface DeclaredKeys {
+  keys: Set<string>;
+  open: boolean;
+}
+
+type LitSegment = { t: 'lit'; v: string };
+export type Segment = LitSegment | { t: 'any' };
+type PatternSegment = Segment | { t: 'arg'; index: number };
+
+interface CollectionCandidate {
+  segments: Segment[];
+  canonical: boolean;
+}
+
+interface Resolved {
+  segments?: Segment[];
+  templates?: Set<string>;
+  collections?: CollectionCandidate[];
+  group?: Segment;
+  document?: boolean;
+  reason?: string;
+}
+
+interface ResolveState {
+  usedBuilder?: boolean;
+  autoId?: boolean;
+  literalPath?: boolean;
+  manualDocId?: boolean;
+}
+
+interface TargetResolution {
+  templates: Set<string> | null;
+  handBuilt: boolean;
+  capped?: boolean;
+  reason: string | null;
+}
+
+type BoundDecl = VarDecl &
+  (
+    | { bindingOf: ts.Expression; bindingProperty: string }
+    | { elementOf: ts.Expression; elementProperty: string }
+    | { entryOf: ts.Expression }
+  );
+
+interface VarDecl {
+  pos: number;
+  scope: ts.Node | null;
+  initializer?: ts.Expression;
+  assigned?: boolean;
+  iterOf?: ts.Expression;
+  indexOf?: ts.Expression;
+  bindingIndex?: number;
+  entryOf?: ts.Expression;
+  bindingOf?: ts.Expression;
+  bindingProperty?: string;
+  elementOf?: ts.Expression;
+  elementProperty?: string;
+}
+
+type FunctionNode =
+  ts.FunctionDeclaration | ts.MethodDeclaration | ts.FunctionExpression | ts.ArrowFunction;
+
+interface FunctionInfo {
+  node: FunctionNode;
+  params: Array<{ name: string | null; typeText: string }>;
+  returns: ts.Expression[];
+}
+
+interface ImportBinding {
+  module: string;
+  imported: string;
+}
+
+export interface FileFacts {
+  relPath: string;
+  source: ts.SourceFile;
+  text: string;
+  varDecls: Map<string, VarDecl[]>;
+  moduleConsts: Map<string, ts.Expression>;
+  stringConsts: Map<string, string>;
+  propAssigns: Map<string, Array<{ pos: number; key: string }>>;
+  pushCalls: Map<string, Array<{ pos: number; argument: ts.Expression; call: ts.CallExpression }>>;
+  mapSetCalls: Map<string, Array<{ pos: number; call: ts.CallExpression; value: ts.Expression }>>;
+  classFields: Map<string, ts.Expression>;
+  typeMembers: Map<string, Map<string, string>>;
+  typeMethodParams: Map<string, Map<string, string>>;
+  ambiguousTypeMethods: Set<string>;
+  imports: Map<string, ImportBinding>;
+  reExports: Map<string, string>;
+  starExports: string[];
+  library: boolean;
+  functions: Map<string, FunctionInfo>;
+  triggerEvents: Array<{ name: string; scope: ts.Node; documentExpression: ts.Expression }>;
+  calls: ts.CallExpression[];
+  writes: never[];
+}
+
+interface Value {
+  facts: FileFacts;
+  node: ts.Node;
+}
+
+interface CallbackValue {
+  facts: FileFacts;
+  node: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration;
+}
+
+interface CarrierPair {
+  left: Value;
+  right: Value;
+}
+
+interface PayloadReading {
+  keys: Set<string>;
+  opaque: string | null;
+}
+
+interface PayloadRead extends PayloadReading {
+  casts: string[];
+  literals: Map<string, Set<string>>;
+}
+
+interface PayloadBranch {
+  templates: string[] | null;
+  unresolvedReason: string | null;
+  handBuilt: boolean;
+  keys: string[];
+  casts: string[];
+  opaque: string | null;
+  literals: Map<string, Set<string>>;
+}
+
+interface WriteBranch extends PayloadBranch {
+  method: string;
+}
+
+export interface WriteRecord extends PayloadBranch {
+  file: string;
+  line: number;
+  pos: number;
+  method: string;
+  fn: string;
+  at: string;
+  snippet: string;
+  correlatedBranches: WriteBranch[] | null;
+  snippetOrdinal?: number;
+}
+
+export interface NotFirestoreSite {
+  file: string;
+  pos: number;
+  at: string;
+  method: string;
+  reason: string;
+}
+
+export interface UnclassifiedCall extends NotFirestoreSite {
+  snippet: string;
+}
+
+export interface WriteCallSite {
+  file: string;
+  pos: number;
+  method: string;
+  at: string;
+  snippet: string;
+}
+
+interface WriteForm {
+  refExpr: ts.Expression;
+  dataExpr: ts.Expression | null;
+  extraArgs?: readonly ts.Expression[];
+  fieldPathArgs?: readonly ts.Expression[];
+}
+
+type Classified = WriteForm | { notFirestore: string };
+
+interface WriteAccess {
+  methods: string[];
+  receiver: ts.Expression;
+  resolved: boolean;
+}
+
+interface IndirectWrite extends WriteAccess {
+  form?: WriteForm;
+}
+
+interface MethodNames {
+  names: string[];
+  resolved: boolean;
+}
+
+type PackageReturnShape =
+  | { keys: Set<string>; via: string; inferOf?: undefined }
+  | { inferOf: string; via: string; keys?: undefined };
+
+export interface WriteViolation {
+  kind: string;
+  at: string;
+  detail: string;
+  snippet: string;
+  field?: string;
+  templates?: string[];
+}
+
+export interface AppliedException {
+  kind: string;
+  at: string;
+  why: string;
+}
+
+export interface CoverageRow {
+  writes: number;
+  resolved: number;
+  payloadsParsed: number;
+  payloadsRead: number;
+  exceptions: number;
+  violations: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object';
+
+const isList = (value: unknown): value is unknown[] => Array.isArray(value);
+
+const isBuilder = (value: unknown): value is PathBuilder => typeof value === 'function';
+
+// Zod 4 keeps a union's options in an array and Zod 3 in a Map, both outside its typed API.
+const optionsOf = (raw: unknown): unknown[] =>
+  raw instanceof Map ? [...raw.values()] : (raw as unknown[]);
+
+// The value is a candidate list this analysis serialized itself.
+const parseCollection = (json: string): CollectionCandidate =>
+  JSON.parse(json) as CollectionCandidate;
+
 export function createGuardProfile({
   corePackage,
   coreLibraryRoot = null,
@@ -22,7 +289,14 @@ export function createGuardProfile({
   transactionTypeNames = [],
   removalOnlyTables = [],
   handleModulePrefixes = [],
-}) {
+}: {
+  corePackage: string;
+  coreLibraryRoot?: string | null;
+  importAliases?: Readonly<Record<string, string>>;
+  transactionTypeNames?: readonly string[];
+  removalOnlyTables?: ReadonlyArray<RemovalOnlyTable>;
+  handleModulePrefixes?: readonly string[];
+}): GuardProfile {
   if (typeof corePackage !== 'string' || !corePackage)
     throw new Error('repo-guards: a profile needs its corePackage');
   const typeNames = ['Transaction', 'WriteBatch', 'BulkWriter', ...transactionTypeNames];
@@ -47,8 +321,6 @@ export function createGuardProfile({
   });
 }
 
-import { objectShape, unwrap, kindOf } from '../../zod-shape/zod-shape.js';
-
 export const VIOLATION_KINDS = Object.freeze({
   UNDECLARED_FIELD: 'undeclared-field',
   UNRESOLVED_TARGET: 'unresolved-target',
@@ -66,13 +338,15 @@ const INDIRECTION_METHODS = new Set(['bind', 'call', 'apply']);
 
 const SELECTOR_DEPTH = 12;
 
-const RESOLVED = (names) => ({ names: [...new Set(names)], resolved: true });
-const UNRESOLVED = { names: [], resolved: false };
+const RESOLVED = (names: string[]): MethodNames => ({ names: [...new Set(names)], resolved: true });
+const UNRESOLVED: MethodNames = { names: [], resolved: false };
 
-/**
- * @returns {{ names: string[], resolved: boolean }}
- */
-function writeMethodCandidates(node, facts, seen = new Set(), depth = 0) {
+function writeMethodCandidates(
+  node: ts.Expression | undefined,
+  facts: FileFacts,
+  seen = new Set<string>(),
+  depth = 0,
+): MethodNames {
   if (!node) return UNRESOLVED;
   if (depth > SELECTOR_DEPTH) return UNRESOLVED;
   const candidate = stripWrappers(node);
@@ -100,7 +374,7 @@ function writeMethodCandidates(node, facts, seen = new Set(), depth = 0) {
     const declarations = facts?.varDecls.get(candidate.text) ?? [];
     const initialized = declarations.filter((decl) => decl.initializer);
     if (initialized.length) {
-      const names = [];
+      const names: string[] = [];
       for (const decl of initialized) {
         const inner = writeMethodCandidates(decl.initializer, facts, nextSeen, depth + 1);
         if (!inner.resolved) return UNRESOLVED;
@@ -130,8 +404,8 @@ function writeMethodCandidates(node, facts, seen = new Set(), depth = 0) {
       if (!declaration?.initializer) return UNRESOLVED;
       initializer = stripWrappers(declaration.initializer);
     }
-    const readAll = (nodes) => {
-      const names = [];
+    const readAll = (nodes: readonly ts.Expression[]): MethodNames => {
+      const names: string[] = [];
       for (const entry of nodes) {
         const inner = writeMethodCandidates(entry, facts, nextSeen, depth + 1);
         if (!inner.resolved) return UNRESOLVED;
@@ -142,17 +416,18 @@ function writeMethodCandidates(node, facts, seen = new Set(), depth = 0) {
     if (ts.isObjectLiteralExpression(initializer)) {
       if (!initializer.properties.every((property) => ts.isPropertyAssignment(property)))
         return UNRESOLVED;
-      return readAll(initializer.properties.map((property) => property.initializer));
+      return readAll(
+        initializer.properties
+          .filter(ts.isPropertyAssignment)
+          .map((property) => property.initializer),
+      );
     }
     if (ts.isArrayLiteralExpression(initializer)) return readAll([...initializer.elements]);
   }
   return UNRESOLVED;
 }
 
-/**
- * @returns {{ methods: string[], receiver: ts.Expression, resolved: boolean } | null}
- */
-function writeMethodAccess(node, facts) {
+function writeMethodAccess(node: ts.Expression, facts: FileFacts): WriteAccess | null {
   if (ts.isPropertyAccessExpression(node) && WRITE_METHODS.has(node.name.text)) {
     return { methods: [node.name.text], receiver: node.expression, resolved: true };
   }
@@ -225,8 +500,8 @@ const NOT_FIRESTORE_FACTORIES = new Set([
   'createDevicePreferenceStore',
 ]);
 
-function distinctReturnShapes(returns) {
-  const seen = new Set();
+function distinctReturnShapes(returns: readonly ts.Expression[]): ts.Expression[] {
+  const seen = new Set<string>();
   return returns.filter((returnExpr) => {
     const returned = stripWrappers(returnExpr);
     if (!ts.isCallExpression(returned) || !ts.isIdentifier(returned.expression)) return true;
@@ -236,7 +511,7 @@ function distinctReturnShapes(returns) {
   });
 }
 
-function entriesSource(expr) {
+function entriesSource(expr: ts.Expression): ts.Expression | null {
   let node = stripWrappers(expr);
   if (
     ts.isArrayLiteralExpression(node) &&
@@ -256,7 +531,7 @@ function entriesSource(expr) {
   return null;
 }
 
-function isPlainValueTable(node, depth = 0) {
+function isPlainValueTable(node: ts.ObjectLiteralExpression, depth = 0): boolean {
   if (depth > 8) return false;
   return node.properties.every((property) => {
     if (ts.isMethodDeclaration(property)) return true;
@@ -265,7 +540,7 @@ function isPlainValueTable(node, depth = 0) {
   });
 }
 
-function isPlainValue(expr, depth) {
+function isPlainValue(expr: ts.Expression, depth: number): boolean {
   const value = stripWrappers(expr);
   if (
     ts.isStringLiteralLike(value) ||
@@ -285,7 +560,7 @@ function isPlainValue(expr, depth) {
   return false;
 }
 
-function isFieldValueDelete(expr) {
+function isFieldValueDelete(expr: ts.Expression): boolean {
   const node = stripWrappers(expr);
   return (
     ts.isCallExpression(node) &&
@@ -297,7 +572,7 @@ function isFieldValueDelete(expr) {
   );
 }
 
-function isRemovalPayload(expr) {
+function isRemovalPayload(expr: ts.Expression): boolean {
   const node = stripWrappers(expr);
   if (ts.isObjectLiteralExpression(node)) {
     return (
@@ -344,7 +619,7 @@ function isRemovalPayload(expr) {
 
 const HASH_FACTORIES = new Set(['createHash', 'createHmac']);
 
-function isHashChain(expr) {
+function isHashChain(expr: ts.Expression): boolean {
   const node = stripWrappers(expr);
   if (!ts.isCallExpression(node)) return false;
   if (ts.isIdentifier(node.expression)) return HASH_FACTORIES.has(node.expression.text);
@@ -375,10 +650,7 @@ const MAX_CALLBACK_RETURNS = 8;
 
 const MARKER = String.fromCharCode(0);
 
-/**
- * @returns {{ keys: Set<string>, open: boolean } | null}
- */
-export function declaredKeys(schema) {
+export function declaredKeys(schema: unknown): DeclaredKeys | null {
   const s = unwrap(schema);
   const kind = kindOf(s);
   if (kind === 'object') {
@@ -387,9 +659,8 @@ export function declaredKeys(schema) {
     return { keys: new Set(Object.keys(shape)), open: false };
   }
   if (kind === 'union' || kind === 'discriminatedunion' || kind === 'discriminated_union') {
-    const raw = s._def.options ?? [];
-    const options = raw instanceof Map ? [...raw.values()] : raw;
-    const keys = new Set();
+    const options = optionsOf(defOf(s)!.options ?? []);
+    const keys = new Set<string>();
     let open = false;
     for (const option of options) {
       const inner = declaredKeys(option);
@@ -403,16 +674,20 @@ export function declaredKeys(schema) {
     return { keys, open };
   }
   if (kind === 'intersection') {
-    const left = declaredKeys(s._def.left);
-    const right = declaredKeys(s._def.right);
+    const left = declaredKeys(defOf(s)!.left);
+    const right = declaredKeys(defOf(s)!.right);
     if (!left || !right) return null;
     return { keys: new Set([...left.keys, ...right.keys]), open: left.open || right.open };
   }
   return null;
 }
 
-export function closedCanonicalKeys(schema, seen = new Set()) {
-  if (!schema || typeof schema !== 'object' || !schema._def || seen.has(schema)) return null;
+export function closedCanonicalKeys(
+  schema: unknown,
+  seen = new Set<unknown>(),
+): DeclaredKeys | null {
+  const def = defOf(schema);
+  if (!schema || typeof schema !== 'object' || !def || seen.has(schema)) return null;
   const branchSeen = new Set(seen);
   branchSeen.add(schema);
   const kind = kindOf(schema);
@@ -434,102 +709,92 @@ export function closedCanonicalKeys(schema, seen = new Set()) {
     kind === 'readonly' ||
     kind === 'catch'
   ) {
-    return closedCanonicalKeys(schema._def.innerType, branchSeen);
+    return closedCanonicalKeys(def.innerType, branchSeen);
   }
   if (kind === 'object') {
     const shape = objectShape(schema);
-    const catchall = schema._def.catchall;
-    if (
-      !shape ||
-      schema._def.unknownKeys === 'passthrough' ||
-      (catchall && kindOf(catchall) !== 'never')
-    )
+    const catchall = def.catchall;
+    if (!shape || def.unknownKeys === 'passthrough' || (catchall && kindOf(catchall) !== 'never'))
       return null;
     const keys = declaredKeys(schema);
     return keys && !keys.open ? keys : null;
   }
   if (kind === 'union' || kind === 'discriminatedunion' || kind === 'discriminated_union') {
-    const options =
-      schema._def.options instanceof Map
-        ? [...schema._def.options.values()]
-        : (schema._def.options ?? []);
+    const options = optionsOf(def.options ?? []);
     if (!options.length) return null;
     for (const option of options) if (!closedCanonicalKeys(option, branchSeen)) return null;
     const keys = declaredKeys(schema);
     return keys && !keys.open ? keys : null;
   }
   if (kind === 'intersection') {
-    if (
-      !closedCanonicalKeys(schema._def.left, branchSeen) ||
-      !closedCanonicalKeys(schema._def.right, branchSeen)
-    )
+    if (!closedCanonicalKeys(def.left, branchSeen) || !closedCanonicalKeys(def.right, branchSeen))
       return null;
     const keys = declaredKeys(schema);
     return keys && !keys.open ? keys : null;
   }
   if (kind === 'array') {
-    const element =
-      schema._def.element ?? (typeof schema._def.type === 'object' ? schema._def.type : null);
-    return closedCanonicalKeys(element, branchSeen) ? { keys: new Set(), open: false } : null;
+    const element = def.element ?? (typeof def.type === 'object' ? def.type : null);
+    return closedCanonicalKeys(element, branchSeen)
+      ? { keys: new Set<string>(), open: false }
+      : null;
   }
   if (kind === 'tuple') {
-    const items = schema._def.items ?? [];
+    const items = def.items ?? [];
     if (
       !Array.isArray(items) ||
       !items.length ||
       items.some((item) => !closedCanonicalKeys(item, branchSeen))
     )
       return null;
-    return { keys: new Set(), open: false };
+    return { keys: new Set<string>(), open: false };
   }
-  return new Set([
-    'string',
-    'number',
-    'boolean',
-    'bigint',
-    'date',
-    'literal',
-    'enum',
-    'nativeenum',
-    'null',
-    'undefined',
-    'void',
-    'never',
-    'nan',
-    'symbol',
-  ]).has(kind)
-    ? { keys: new Set(), open: false }
+  return kind !== null &&
+    new Set([
+      'string',
+      'number',
+      'boolean',
+      'bigint',
+      'date',
+      'literal',
+      'enum',
+      'nativeenum',
+      'null',
+      'undefined',
+      'void',
+      'never',
+      'nan',
+      'symbol',
+    ]).has(kind)
+    ? { keys: new Set<string>(), open: false }
     : null;
 }
 
-const LIT = (value) => ({ t: 'lit', v: value });
-const ANY = { t: 'any' };
+const LIT = (value: string): LitSegment => ({ t: 'lit', v: value });
+const ANY: Segment = { t: 'any' };
 
-const builderSegments = new Map();
+const builderSegments = new Map<string, Segment[]>();
 
-const collectionRefSegments = new Map();
+const collectionRefSegments = new Map<string, Segment[]>();
 
-/**
- * @param {unknown} schema
- * @param {Map<string, Set<string>>} literals
- * @returns {{ keys: Set<string>, open: boolean } | null}
- */
-export function narrowedDeclaredKeys(schema, literals) {
+export function narrowedDeclaredKeys(
+  schema: unknown,
+  literals: ReadonlyMap<string, ReadonlySet<string>> | null | undefined,
+): DeclaredKeys | null {
   if (!literals || !literals.size) return null;
   const s = unwrap(schema);
   const kind = kindOf(s);
   if (kind !== 'union' && kind !== 'discriminatedunion' && kind !== 'discriminated_union')
     return null;
-  const raw = s._def.options ?? [];
-  const options = raw instanceof Map ? [...raw.values()] : raw;
+  const options = optionsOf(defOf(s)!.options ?? []);
   if (options.length < 2) return null;
 
-  const literalValue = (field) => {
+  const literalValue = (field: unknown): unknown[] | null => {
     const inner = unwrap(field);
     if (kindOf(inner) !== 'literal') return null;
-    const value = inner._def.values ?? inner._def.value;
-    if (value instanceof Set) return [...value];
-    return Array.isArray(value) ? value : [value];
+    const def = defOf(inner)!;
+    const value = def.values ?? def.value;
+    if (value instanceof Set) return [...(value as Set<unknown>)];
+    return isList(value) ? value : [value];
   };
 
   const kept = options.filter((option) => {
@@ -547,7 +812,7 @@ export function narrowedDeclaredKeys(schema, literals) {
   });
   if (!kept.length || kept.length === options.length) return null;
 
-  const keys = new Set();
+  const keys = new Set<string>();
   let open = false;
   for (const option of kept) {
     const inner = declaredKeys(option);
@@ -561,13 +826,12 @@ export function narrowedDeclaredKeys(schema, literals) {
   return { keys, open };
 }
 
-export function numericSentinelSegments(fn) {
+export function numericSentinelSegments(fn: PathBuilder): unknown[] | null {
   const arity = Math.max(fn.length, 6);
   try {
     const first = fn(...Array.from({ length: arity }, () => 1));
     const second = fn(...Array.from({ length: arity }, () => 2));
-    if (!Array.isArray(first) || !Array.isArray(second) || first.length !== second.length)
-      return null;
+    if (!isList(first) || !isList(second) || first.length !== second.length) return null;
     return first.map((segment, index) =>
       String(segment) === String(second[index]) ? segment : 'ID',
     );
@@ -576,12 +840,6 @@ export function numericSentinelSegments(fn) {
   }
 }
 
-/**
- * @param {object} deps
- * @param {Record<string, Function>} deps.PATH_BUILDERS
- * @param {Record<string, unknown>} deps.COLLECTION_SCHEMAS
- * @param {Record<string, Record<string, string>>} deps.constantMaps
- */
 export function buildRegistry({
   PATH_BUILDERS,
   COLLECTION_SCHEMAS,
@@ -589,16 +847,26 @@ export function buildRegistry({
   canonicalSchemas = {},
   COLLECTION_REFS = {},
   coreExports = null,
+}: {
+  PATH_BUILDERS: Readonly<Record<string, unknown>>;
+  COLLECTION_SCHEMAS: Readonly<Record<string, unknown>>;
+  constantMaps?: Readonly<Record<string, unknown>> | null;
+  canonicalSchemas?: Readonly<Record<string, unknown>>;
+  COLLECTION_REFS?: Readonly<Record<string, unknown>> | null;
+  coreExports?: Readonly<Record<string, unknown>> | null;
 }) {
   const templates = Object.keys(COLLECTION_SCHEMAS);
   const templateSegments = new Map(templates.map((template) => [template, template.split('/')]));
 
-  function matchSegments(segments, { allowUnknownCollectionName = false } = {}) {
-    if (!Array.isArray(segments) || segments.length === 0) return [];
-    let best = [];
+  function matchSegments(
+    segments: readonly Segment[],
+    { allowUnknownCollectionName = false }: { allowUnknownCollectionName?: boolean } = {},
+  ): string[] {
+    if (!isList(segments) || segments.length === 0) return [];
+    let best: string[] = [];
     let bestScore = -1;
     for (const template of templates) {
-      const parts = templateSegments.get(template);
+      const parts = templateSegments.get(template)!;
       if (parts.length !== segments.length) continue;
       let score = 0;
       let ok = true;
@@ -606,11 +874,12 @@ export function buildRegistry({
         const part = parts[i];
         const isPlaceholder = part.startsWith('{') && part.endsWith('}');
         if (isPlaceholder) continue;
-        if (segments[i].t === 'lit' && segments[i].v === part) {
+        const segment = segments[i];
+        if (segment.t === 'lit' && segment.v === part) {
           score += 1;
           continue;
         }
-        if (allowUnknownCollectionName && segments[i].t === 'any') continue;
+        if (allowUnknownCollectionName && segment.t === 'any') continue;
         ok = false;
         break;
       }
@@ -630,19 +899,21 @@ export function buildRegistry({
     return best;
   }
 
-  const builderTemplate = new Map();
-  const builderPatterns = new Map();
+  const builderTemplate = new Map<string, string>();
+  const builderPatterns = new Map<string, PatternSegment[]>();
   for (const [name, fn] of Object.entries(PATH_BUILDERS)) {
-    if (typeof fn !== 'function') continue;
-    let segments;
+    if (!isBuilder(fn)) continue;
+    let segments: unknown;
     try {
       segments = fn(...Array.from({ length: Math.max(fn.length, 6) }, () => 'ID'));
     } catch {
       segments = numericSentinelSegments(fn);
       if (!segments) continue;
     }
-    if (!Array.isArray(segments)) continue;
-    const built = segments.map((segment) => (segment === 'ID' ? ANY : LIT(String(segment))));
+    if (!isList(segments)) continue;
+    const built = segments.map((segment): Segment =>
+      segment === 'ID' ? ANY : LIT(String(segment)),
+    );
     const matched = matchSegments(built);
     if (matched.length === 1) builderTemplate.set(name, matched[0]);
     builderSegments.set(name, built);
@@ -652,11 +923,11 @@ export function buildRegistry({
         (_, index) => `__GUARD_ARG_${index}__`,
       );
       const patterned = fn(...sentinels);
-      if (Array.isArray(patterned)) {
+      if (isList(patterned)) {
         builderPatterns.set(
           name,
-          patterned.map((segment) => {
-            const index = sentinels.indexOf(segment);
+          patterned.map((segment): PatternSegment => {
+            const index = typeof segment === 'string' ? sentinels.indexOf(segment) : -1;
             if (index >= 0) return { t: 'arg', index };
             return typeof segment === 'string' && segment ? LIT(segment) : ANY;
           }),
@@ -667,15 +938,15 @@ export function buildRegistry({
     }
   }
 
-  const collectionRefPatterns = new Map();
+  const collectionRefPatterns = new Map<string, PatternSegment[]>();
   for (const [name, fn] of Object.entries(COLLECTION_REFS ?? {})) {
-    if (typeof fn !== 'function') continue;
+    if (!isBuilder(fn)) continue;
     try {
       const segments = fn(...Array.from({ length: Math.max(fn.length, 6) }, () => 'ID'));
-      if (!Array.isArray(segments)) continue;
+      if (!isList(segments)) continue;
       collectionRefSegments.set(
         name,
-        segments.map((segment) =>
+        segments.map((segment): Segment =>
           segment === 'ID' || typeof segment !== 'string' || !segment ? ANY : LIT(segment),
         ),
       );
@@ -688,11 +959,11 @@ export function buildRegistry({
         (_, index) => `__GUARD_ARG_${index}__`,
       );
       const patterned = fn(...sentinels);
-      if (Array.isArray(patterned)) {
+      if (isList(patterned)) {
         collectionRefPatterns.set(
           name,
-          patterned.map((segment) => {
-            const index = sentinels.indexOf(segment);
+          patterned.map((segment): PatternSegment => {
+            const index = typeof segment === 'string' ? sentinels.indexOf(segment) : -1;
             if (index >= 0) return { t: 'arg', index };
             return typeof segment === 'string' && segment ? LIT(segment) : ANY;
           }),
@@ -703,25 +974,25 @@ export function buildRegistry({
     }
   }
 
-  const constantValue = new Map();
+  const constantValue = new Map<string, string>();
   for (const [mapName, map] of Object.entries(constantMaps ?? {})) {
-    if (!map || typeof map !== 'object') continue;
+    if (!isRecord(map)) continue;
     for (const [key, value] of Object.entries(map)) {
       if (typeof value === 'string') constantValue.set(`${mapName}.${key}`, value);
     }
   }
 
-  const declaredCache = new Map();
-  function declaredFor(template) {
+  const declaredCache = new Map<string, DeclaredKeys | null>();
+  function declaredFor(template: string): DeclaredKeys | null {
     if (!declaredCache.has(template)) {
       declaredCache.set(template, declaredKeys(COLLECTION_SCHEMAS[template]) ?? null);
     }
-    return declaredCache.get(template);
+    return declaredCache.get(template) ?? null;
   }
 
-  const canonicalParseKeys = new Map();
-  const canonicalParseSchema = new Map();
-  const canonicalParseName = new Map();
+  const canonicalParseKeys = new Map<string, DeclaredKeys>();
+  const canonicalParseSchema = new Map<string, unknown>();
+  const canonicalParseName = new Map<unknown, string>();
   for (const [name, schema] of Object.entries(canonicalSchemas)) {
     const keys = closedCanonicalKeys(schema);
     if (keys && keys.keys.size) {
@@ -731,18 +1002,18 @@ export function buildRegistry({
     }
   }
 
-  function templatesForGroup(segment) {
+  function templatesForGroup(segment: Segment | null | undefined): string[] {
     if (!segment || segment.t !== 'lit') return [];
     return templates.filter((template) => {
-      const parts = templateSegments.get(template);
+      const parts = templateSegments.get(template)!;
       return parts.length >= 2 && parts[parts.length - 2] === segment.v;
     });
   }
 
   const exportedValues = coreExports ?? canonicalSchemas;
-  function coreConstMap(name) {
+  function coreConstMap(name: string): Record<string, unknown> | null {
     const value = exportedValues?.[name];
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (!isRecord(value) || Array.isArray(value)) return null;
     if (value._def) return null;
     return value;
   }
@@ -758,7 +1029,7 @@ export function buildRegistry({
     collectionRefPatterns,
     constantValue,
     declaredFor,
-    schemaFor: (template) => COLLECTION_SCHEMAS[template],
+    schemaFor: (template: string): unknown => COLLECTION_SCHEMAS[template],
     coreConstMap,
     canonicalParseKeys,
     canonicalParseSchema,
@@ -766,12 +1037,24 @@ export function buildRegistry({
   };
 }
 
-const declarationCache = new WeakMap();
-function packageDeclarationFiles(packageName, packageDeclarations) {
+export type WriteRegistry = ReturnType<typeof buildRegistry>;
+
+interface DeclarationFile {
+  file: string;
+  source: ts.SourceFile;
+}
+
+const declarationCache = new WeakMap<PackageDeclarations, Map<string, DeclarationFile[]>>();
+function packageDeclarationFiles(
+  packageName: string,
+  packageDeclarations: PackageDeclarations | null | undefined,
+): DeclarationFile[] {
   if (typeof packageDeclarations !== 'function') return [];
   let cache = declarationCache.get(packageDeclarations);
-  if (!cache) declarationCache.set(packageDeclarations, (cache = new Map()));
-  if (cache.has(packageName)) return cache.get(packageName);
+  if (!cache)
+    declarationCache.set(packageDeclarations, (cache = new Map<string, DeclarationFile[]>()));
+  const cached = cache.get(packageName);
+  if (cached) return cached;
   const files = (packageDeclarations(packageName) ?? []).map(({ file, text, sourceFile }) => ({
     file,
     source: sourceFile ?? ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true),
@@ -780,50 +1063,64 @@ function packageDeclarationFiles(packageName, packageDeclarations) {
   return files;
 }
 
-export function normalizedArgText(text) {
+export function normalizedArgText(text: string): string {
   return String(text).replace(/\s+/g, ' ').trim();
 }
 
-export function packageBuilderArgsMatch(entryArgs, callArgs) {
+export function packageBuilderArgsMatch(
+  entryArgs: readonly string[] | undefined,
+  callArgs: readonly string[],
+): boolean {
   if (entryArgs === undefined) return true;
-  if (!Array.isArray(entryArgs) || !Array.isArray(callArgs)) return false;
+  if (!isList(entryArgs) || !isList(callArgs)) return false;
   return (
     entryArgs.length === callArgs.length &&
     entryArgs.every((arg, i) => normalizedArgText(arg) === normalizedArgText(callArgs[i]))
   );
 }
 
-export function packageNameOf(specifier) {
+export function packageNameOf(specifier: string | null | undefined): string | null {
   if (!specifier || specifier.startsWith('.') || specifier.startsWith('@/')) return null;
   const parts = specifier.split('/');
   return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
 }
 
-export function packageBuilderReturnKeys({ packageName, callee, property, packageDeclarations }) {
+export function packageBuilderReturnKeys({
+  packageName,
+  callee,
+  property,
+  packageDeclarations,
+}: {
+  packageName: string;
+  callee: string;
+  property?: string | null;
+  packageDeclarations?: PackageDeclarations | null;
+}): PackageReturnShape | null {
   const files = packageDeclarationFiles(packageName, packageDeclarations);
   if (!files.length) return null;
 
-  const findTypeDeclaration = (name) => {
+  const findTypeDeclaration = (
+    name: string,
+  ): {
+    declaration: ts.InterfaceDeclaration | ts.TypeAliasDeclaration;
+    source: ts.SourceFile;
+  } | null => {
     for (const candidate of files) {
-      let found = null;
-      const visit = (node) => {
-        if (found) return;
-        if (
-          (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) &&
-          node.name?.text === name
-        ) {
-          found = node;
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(candidate.source);
+      const visit = (
+        node: ts.Node,
+      ): ts.InterfaceDeclaration | ts.TypeAliasDeclaration | undefined =>
+        (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) &&
+        node.name?.text === name
+          ? node
+          : ts.forEachChild(node, visit);
+      const found = visit(candidate.source);
       if (found) return { declaration: found, source: candidate.source };
     }
     return null;
   };
 
-  const memberNames = (members) => {
-    const keys = new Set();
+  const memberNames = (members: readonly ts.TypeElement[] | undefined): Set<string> | null => {
+    const keys = new Set<string>();
     for (const member of members ?? []) {
       if (!ts.isPropertySignature(member) || !member.name) return null;
       if (!ts.isIdentifier(member.name) && !ts.isStringLiteralLike(member.name)) return null;
@@ -834,19 +1131,22 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
 
   // In a type position `null` is a LiteralTypeNode wrapping NullKeyword, not a bare
   // NullKeyword — reading only the bare form would leave every `X | null` return type unreadable.
-  const isNullishType = (type) =>
+  const isNullishType = (type: ts.TypeNode): boolean =>
     type.kind === ts.SyntaxKind.NullKeyword ||
     type.kind === ts.SyntaxKind.UndefinedKeyword ||
     type.kind === ts.SyntaxKind.VoidKeyword ||
     (ts.isLiteralTypeNode(type) && type.literal.kind === ts.SyntaxKind.NullKeyword);
 
-  const unwrapNullable = (typeNode) => {
+  const unwrapNullable = (typeNode: ts.TypeNode | undefined): ts.TypeNode | null | undefined => {
     if (!typeNode || !ts.isUnionTypeNode(typeNode)) return typeNode;
     const live = typeNode.types.filter((type) => !isNullishType(type));
     return live.length === 1 ? live[0] : null;
   };
 
-  const readShape = (typeNode, depth) => {
+  const readShape = (
+    typeNode: ts.TypeNode | undefined,
+    depth: number,
+  ): PackageReturnShape | null => {
     const node = unwrapNullable(typeNode);
     if (!node || depth > 6) return null;
     if (ts.isTypeLiteralNode(node)) {
@@ -869,19 +1169,17 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
   };
 
   for (const candidate of files) {
-    let declaration = null;
-    const visit = (node) => {
-      if (declaration) return;
-      if (ts.isFunctionDeclaration(node) && node.name?.text === callee) declaration = node;
-      ts.forEachChild(node, visit);
-    };
-    visit(candidate.source);
+    const visit = (node: ts.Node): ts.FunctionDeclaration | undefined =>
+      ts.isFunctionDeclaration(node) && node.name?.text === callee
+        ? node
+        : ts.forEachChild(node, visit);
+    const declaration = visit(candidate.source);
     if (!declaration?.type) continue;
 
     let target = declaration.type;
     if (property) {
       const container = unwrapNullable(target);
-      let members = null;
+      let members: readonly ts.TypeElement[] | null | undefined = null;
       if (container && ts.isTypeLiteralNode(container)) members = container.members;
       else if (
         container &&
@@ -890,13 +1188,22 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
       ) {
         const found = findTypeDeclaration(container.typeName.text);
         if (found) {
+          const aliased = ts.isInterfaceDeclaration(found.declaration)
+            ? undefined
+            : found.declaration.type;
           members = ts.isInterfaceDeclaration(found.declaration)
             ? found.declaration.members
-            : found.declaration.type?.members;
+            : aliased && ts.isTypeLiteralNode(aliased)
+              ? aliased.members
+              : undefined;
         }
       }
       const member = (members ?? []).find(
-        (entry) => ts.isPropertySignature(entry) && entry.name && entry.name.text === property,
+        (entry): entry is ts.PropertySignature =>
+          ts.isPropertySignature(entry) &&
+          !!entry.name &&
+          !ts.isComputedPropertyName(entry.name) &&
+          entry.name.text === property,
       );
       if (!member?.type) continue;
       target = member.type;
@@ -907,7 +1214,9 @@ export function packageBuilderReturnKeys({ packageName, callee, property, packag
   return null;
 }
 
-function stripWrappers(node) {
+function stripWrappers(node: ts.Expression): ts.Expression;
+function stripWrappers(node: ts.Node): ts.Node;
+function stripWrappers(node: ts.Node): ts.Node {
   let current = node;
   for (let i = 0; i < 12 && current; i++) {
     if (
@@ -928,7 +1237,7 @@ function stripWrappers(node) {
   return current;
 }
 
-function tupleEntry(initializer, index) {
+function tupleEntry(initializer: ts.Expression, index: number): ts.Expression | null {
   let tuple = stripWrappers(initializer);
   if (
     ts.isCallExpression(tuple) &&
@@ -944,8 +1253,8 @@ function tupleEntry(initializer, index) {
   return entries[index];
 }
 
-function scopeOf(node) {
-  let current = node.parent;
+function scopeOf(node: ts.Node): ts.Node | null {
+  let current: ts.Node | undefined = node.parent;
   while (
     current &&
     !(
@@ -962,24 +1271,25 @@ function scopeOf(node) {
   return current ?? null;
 }
 
-function functionScopeOf(node) {
-  for (let current = node.parent; current; current = current.parent) {
+function functionScopeOf(node: ts.Node): ts.Node | null {
+  for (let current: ts.Node | undefined = node.parent; current; current = current.parent) {
     if (ts.isFunctionLike(current) || ts.isSourceFile(current)) return current;
   }
   return null;
 }
 
-function encloses(scope, node) {
-  for (let current = node; current; current = current.parent) if (current === scope) return true;
+function encloses(scope: ts.Node, node: ts.Node | undefined): boolean {
+  for (let current: ts.Node | undefined = node; current; current = current.parent)
+    if (current === scope) return true;
   return false;
 }
 
-function callbackReturns(node) {
-  const returns = [];
+function callbackReturns(node: ts.FunctionLikeDeclaration | null | undefined): ts.Expression[] {
+  const returns: ts.Expression[] = [];
   if (!node) return returns;
   if (ts.isArrowFunction(node) && node.body && !ts.isBlock(node.body)) return [node.body];
   if (!node.body) return returns;
-  const collect = (inner) => {
+  const collect = (inner: ts.Node): void => {
     if (inner !== node.body && ts.isFunctionLike(inner)) return;
     if (ts.isReturnStatement(inner) && inner.expression) returns.push(inner.expression);
     ts.forEachChild(inner, collect);
@@ -988,7 +1298,7 @@ function callbackReturns(node) {
   return returns.length <= MAX_CALLBACK_RETURNS ? returns : [];
 }
 
-function functionName(node) {
+function functionName(node: ts.Node): string | null {
   if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
     return node.name && ts.isIdentifier(node.name) ? node.name.text : null;
   }
@@ -1002,8 +1312,8 @@ function functionName(node) {
   return null;
 }
 
-function enclosingWriteFunction(node) {
-  for (let current = node.parent; current; current = current.parent) {
+function enclosingWriteFunction(node: ts.Node): string {
+  for (let current: ts.Node | undefined = node.parent; current; current = current.parent) {
     if (!ts.isFunctionLike(current)) continue;
     const name = functionName(current);
     if (!name) continue;
@@ -1017,7 +1327,7 @@ function enclosingWriteFunction(node) {
     }
     return name;
   }
-  for (let current = node.parent; current; current = current.parent) {
+  for (let current: ts.Node | undefined = node.parent; current; current = current.parent) {
     if (!ts.isFunctionLike(current)) continue;
     const owned = declaredOwnerName(current);
     if (owned) return owned;
@@ -1025,8 +1335,8 @@ function enclosingWriteFunction(node) {
   return '(module)';
 }
 
-function declaredOwnerName(fn) {
-  for (let current = fn.parent; current; current = current.parent) {
+function declaredOwnerName(fn: ts.Node): string | null {
+  for (let current: ts.Node | undefined = fn.parent; current; current = current.parent) {
     if (ts.isFunctionLike(current)) return null;
     if (ts.isVariableDeclaration(current) && ts.isIdentifier(current.name))
       return current.name.text;
@@ -1035,14 +1345,16 @@ function declaredOwnerName(fn) {
   return null;
 }
 
-/**
- * @param {string} relPath
- * @param {string} text
- * @param {{ library?: boolean, sourceFile?: import('typescript').SourceFile | null }} [options]
- */
-export function parseFile(relPath, text, { library = false, sourceFile = null } = {}) {
+export function parseFile(
+  relPath: string,
+  text: string,
+  {
+    library = false,
+    sourceFile = null,
+  }: { library?: boolean; sourceFile?: ts.SourceFile | null } = {},
+): FileFacts {
   const source = sourceFile ?? ts.createSourceFile(relPath, text, ts.ScriptTarget.Latest, true);
-  const facts = {
+  const facts: FileFacts = {
     relPath,
     source,
     text,
@@ -1066,12 +1378,18 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
     writes: [],
   };
 
-  const push = (map, key, value) => {
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(value);
+  const push = <T>(map: Map<string, T[]>, key: string, value: T): void => {
+    let list = map.get(key);
+    if (!list) map.set(key, (list = []));
+    list.push(value);
   };
 
-  const indexObjectBinding = (pattern, source, pos, scope) => {
+  const indexObjectBinding = (
+    pattern: ts.ObjectBindingPattern,
+    source: { bindingOf?: ts.Expression; elementOf?: ts.Expression },
+    pos: number,
+    scope: ts.Node | null,
+  ): void => {
     for (const element of pattern.elements) {
       if (!ts.isBindingElement(element) || !ts.isIdentifier(element.name) || element.dotDotDotToken)
         continue;
@@ -1081,7 +1399,7 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
           : null
         : element.name.text;
       if (!propertyName) continue;
-      push(
+      push<VarDecl>(
         facts.varDecls,
         element.name.text,
         source.bindingOf
@@ -1091,15 +1409,15 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
     }
   };
 
-  const indexFunction = (node) => {
+  const indexFunction = (node: FunctionNode): void => {
     const name = functionName(node);
     if (!name) return;
     const params = node.parameters.map((parameter) => ({
       name: ts.isIdentifier(parameter.name) ? parameter.name.text : null,
       typeText: parameter.type ? parameter.type.getText(source) : '',
     }));
-    const returns = [];
-    const collectReturns = (inner) => {
+    const returns: ts.Expression[] = [];
+    const collectReturns = (inner: ts.Node): void => {
       if (inner !== node && ts.isFunctionLike(inner)) return;
       if (ts.isReturnStatement(inner) && inner.expression) returns.push(inner.expression);
       ts.forEachChild(inner, collectReturns);
@@ -1109,7 +1427,7 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
     facts.functions.set(name, { node, params, returns });
   };
 
-  const index = (node) => {
+  const index = (node: ts.Node): void => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
       if (node.initializer) {
         push(facts.varDecls, node.name.text, {
@@ -1144,18 +1462,19 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
       }
     }
     if (ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name) && node.initializer) {
+      const initializer = node.initializer;
       node.name.elements.forEach((element, index) => {
         if (!ts.isBindingElement(element)) return;
         if (ts.isIdentifier(element.name)) {
           push(facts.varDecls, element.name.text, {
             pos: node.pos,
-            indexOf: node.initializer,
+            indexOf: initializer,
             bindingIndex: index,
             scope: scopeOf(node),
           });
           return;
         }
-        const entry = tupleEntry(node.initializer, index);
+        const entry = tupleEntry(initializer, index);
         if (entry && ts.isObjectBindingPattern(element.name)) {
           indexObjectBinding(element.name, { bindingOf: entry }, node.pos, scopeOf(node));
         }
@@ -1284,9 +1603,10 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
         callback.parameters.length &&
         ts.isIdentifier(callback.parameters[0].name)
       ) {
-        let documentExpression = null;
-        if (ts.isObjectLiteralExpression(stripWrappers(config))) {
-          const documentProperty = stripWrappers(config).properties.find(
+        let documentExpression: ts.Expression | null = null;
+        const configNode = stripWrappers(config);
+        if (ts.isObjectLiteralExpression(configNode)) {
+          const documentProperty = configNode.properties.find(
             (property) =>
               ts.isPropertyAssignment(property) &&
               (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
@@ -1294,10 +1614,7 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
           );
           if (documentProperty && ts.isPropertyAssignment(documentProperty))
             documentExpression = documentProperty.initializer;
-        } else if (
-          ts.isStringLiteralLike(stripWrappers(config)) ||
-          ts.isTemplateExpression(stripWrappers(config))
-        ) {
+        } else if (ts.isStringLiteralLike(configNode) || ts.isTemplateExpression(configNode)) {
           documentExpression = config;
         }
         if (documentExpression) {
@@ -1334,18 +1651,22 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
       indexFunction(node);
     }
     if ((ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) && node.name) {
-      const members = new Map();
-      const collectMembers = (type) => {
-        if (!type || !type.members) return;
-        for (const member of type.members) {
+      const members = new Map<string, string>();
+      const collectMembers = (type: ts.InterfaceDeclaration | ts.TypeNode | undefined): void => {
+        const declared =
+          type && (ts.isInterfaceDeclaration(type) || ts.isTypeLiteralNode(type))
+            ? type.members
+            : undefined;
+        if (!declared) return;
+        for (const member of declared) {
           if (!ts.isPropertySignature(member) || !member.name || !member.type) continue;
           if (!ts.isIdentifier(member.name) && !ts.isStringLiteralLike(member.name)) continue;
           members.set(member.name.text, member.type.getText(source));
         }
-        for (const member of type.members) {
+        for (const member of declared) {
           if (!ts.isMethodSignature(member) || !member.name || !ts.isIdentifier(member.name))
             continue;
-          const byParam = new Map();
+          const byParam = new Map<string, string>();
           for (const parameter of member.parameters) {
             if (ts.isIdentifier(parameter.name) && parameter.type) {
               byParam.set(parameter.name.text, parameter.type.getText(source));
@@ -1387,10 +1708,6 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
   return facts;
 }
 
-/**
- * @param {{ files: any[], libraryFiles?: any[], registry: any, profile: any, maxRounds?: number,
- *   exceptions?: any[], packageDeclarations?: ((packageName: string) => Array<{ file: string, text: string, sourceFile?: import('typescript').SourceFile }>) | null }} input
- */
 export function analyzeFiles({
   files: writerFiles,
   libraryFiles = [],
@@ -1399,6 +1716,14 @@ export function analyzeFiles({
   maxRounds = 6,
   exceptions = [],
   packageDeclarations = null,
+}: {
+  files: readonly FileFacts[];
+  libraryFiles?: readonly FileFacts[];
+  registry: WriteRegistry;
+  profile: GuardProfile;
+  maxRounds?: number;
+  exceptions?: readonly WriteGuardException[];
+  packageDeclarations?: PackageDeclarations | null;
 }) {
   if (!profile?.corePackage)
     throw new Error('repo-guards: analyzeFiles needs a guard profile (createGuardProfile)');
@@ -1408,31 +1733,32 @@ export function analyzeFiles({
   const packageBuilderEntries = exceptions.filter(
     (entry) => entry.kind === VIOLATION_KINDS.PACKAGE_BUILDER,
   );
-  const packageBuilderUses = [];
+  const packageBuilderUses: WriteGuardException[] = [];
   const byPath = new Map(files.map((facts) => [facts.relPath, facts]));
 
-  let returnTargets = new Map();
-  let paramTargets = new Map();
-  const paramPayloads = new Map();
-  const paramCarrierProperties = new Map();
-  const paramCollections = new Map();
-  const paramCallbackPayloads = new Map();
-  const paramArrayEntries = new Map();
-  const paramNotFirestore = new Map();
-  const paramValues = new Map();
-  let returnCollections = new Map();
-  let returnGroups = new Map();
-  const paramGroups = new Map();
-  let returnNonFirestore = new Map();
-  let returnPassThrough = new Map();
-  let returnCarrierProperties = new Map();
-  let returnArrayProperties = new Map();
+  const returnTargets = new Map<string, Set<string>>();
+  const paramTargets = new Map<string, Set<string>>();
+  const paramPayloads = new Map<string, PayloadReading>();
+  const paramCarrierProperties = new Map<string, Value[]>();
+  const paramCollections = new Map<string, Set<string>>();
+  const paramCallbackPayloads = new Map<string, PayloadReading>();
+  const paramArrayEntries = new Map<string, Value[]>();
+  const paramNotFirestore = new Map<string, string>();
+  const paramValues = new Map<string, Value[]>();
+  const returnCollections = new Map<string, Set<string>>();
+  const returnGroups = new Map<string, Set<string>>();
+  const paramGroups = new Map<string, Set<string>>();
+  const returnNonFirestore = new Map<string, string>();
+  const returnPassThrough = new Map<string, number>();
+  const returnCarrierProperties = new Map<string, Map<string, Value[]>>();
+  const returnArrayProperties = new Map<string, Map<string, Value[]>>();
 
-  const fnKey = (relPath, name) => `${relPath}#${name}`;
-  const paramKey = (relPath, name, index) => `${relPath}#${name}@${index}`;
+  const fnKey = (relPath: string, name: string): string => `${relPath}#${name}`;
+  const paramKey = (relPath: string, name: string, index: number): string =>
+    `${relPath}#${name}@${index}`;
 
-  function resolveImport(fromPath, specifier) {
-    let base;
+  function resolveImport(fromPath: string, specifier: string): string | null {
+    let base: string;
     if (specifier.startsWith('.')) {
       base = joinPosix(dirnameOf(fromPath), specifier);
     } else if (
@@ -1465,12 +1791,16 @@ export function analyzeFiles({
     return null;
   }
 
-  function computedKeyName(inner, facts, source) {
+  function computedKeyName(
+    inner: ts.Expression,
+    facts: FileFacts,
+    source: ts.SourceFile,
+  ): string | null {
     const names = computedKeyNames(inner, facts, source);
     return names?.length === 1 ? names[0] : null;
   }
 
-  function constLookup(node, facts) {
+  function constLookup(node: ts.Expression, facts: FileFacts): ts.Expression {
     let current = node;
     for (let hop = 0; hop < 8 && ts.isIdentifier(current); hop++) {
       const decls = resolverFor(facts).visibleDecls(current.text, current.pos, current);
@@ -1483,15 +1813,21 @@ export function analyzeFiles({
       ) {
         return current;
       }
-      current = stripParens(stripWrappers(declaration.initializer));
+      current = stripParens(stripWrappers(declaration.initializer!));
     }
     return current;
   }
 
-  function computedKeyNames(inner, facts, source, isUpdate = false) {
+  function computedKeyNames(
+    inner: ts.Node,
+    facts: FileFacts,
+    source: ts.SourceFile,
+    isUpdate = false,
+  ): string[] | null {
     if (ts.isStringLiteralLike(inner)) return [inner.text];
     if (ts.isIdentifier(inner)) {
-      if (facts.stringConsts.has(inner.text)) return [facts.stringConsts.get(inner.text)];
+      const constant = facts.stringConsts.get(inner.text);
+      if (constant !== undefined) return [constant];
       const declarations = resolverFor(facts).visibleDecls(inner.text, inner.pos, inner);
       const initializer = declarations.length === 1 ? declarations[0].initializer : null;
       const declaration = initializer?.parent;
@@ -1520,9 +1856,9 @@ export function analyzeFiles({
       if (ts.isElementAccessExpression(base)) {
         const entries = coreMapEntries(base, facts, source);
         if (!entries) return null;
-        const names = new Set();
+        const names = new Set<string>();
         for (const entry of entries) {
-          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+          if (!isRecord(entry) || Array.isArray(entry)) return null;
           const value = entry[inner.name.text];
           if (typeof value !== 'string') return null;
           names.add(value);
@@ -1534,10 +1870,13 @@ export function analyzeFiles({
     if (ts.isElementAccessExpression(inner)) {
       const entries = coreMapEntries(inner, facts, source);
       if (!entries) return null;
-      const names = new Set();
+      const names = new Set<string>();
       for (const entry of entries) {
         if (typeof entry === 'string') names.add(entry);
-        else if (Array.isArray(entry) && entry.every((value) => typeof value === 'string')) {
+        else if (
+          isList(entry) &&
+          entry.every((value): value is string => typeof value === 'string')
+        ) {
           for (const value of entry) names.add(value);
         } else return null;
       }
@@ -1552,16 +1891,21 @@ export function analyzeFiles({
     return null;
   }
 
-  const narrowedEntries = new Map();
+  const narrowedEntries = new Map<ts.Node, string>();
 
-  function coreMapEntries(node, facts, source) {
+  function coreMapEntries(
+    node: ts.ElementAccessExpression,
+    facts: FileFacts,
+    source: ts.SourceFile,
+  ): unknown[] | null {
     const base = stripParens(node.expression);
     if (!ts.isIdentifier(base)) return null;
     const imported = facts.imports.get(base.text);
     if (!isCoreImport(facts, imported)) return null;
     const map = registry.coreConstMap(imported.imported);
     if (!map) return null;
-    if (narrowedEntries.has(node)) return [map[narrowedEntries.get(node)]];
+    const narrowed = narrowedEntries.get(node);
+    if (narrowed !== undefined) return [map[narrowed]];
     const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
     const selector = index ? computedKeyName(index, facts, source) : null;
     if (selector !== null && Object.prototype.hasOwnProperty.call(map, selector))
@@ -1570,7 +1914,11 @@ export function analyzeFiles({
     return values.length && values.length <= MAX_CANDIDATES ? values : null;
   }
 
-  function packageBuilderKeys(facts, callNode, property) {
+  function packageBuilderKeys(
+    facts: FileFacts,
+    callNode: ts.CallExpression,
+    property: string | null | undefined,
+  ): { keys: Set<string>; open: boolean } | null {
     const callee = stripWrappers(callNode.expression);
     if (!ts.isIdentifier(callee)) return null;
     const imported = facts.imports.get(callee.text);
@@ -1585,7 +1933,8 @@ export function analyzeFiles({
         packageBuilderArgsMatch(candidate.args, callArgs),
     );
     if (!entry) return null;
-    const bound = registry.canonicalParseKeys.get(entry.schema);
+    const bound =
+      entry.schema === undefined ? undefined : registry.canonicalParseKeys.get(entry.schema);
     if (!bound) return null;
 
     let specifier = imported.module;
@@ -1599,17 +1948,17 @@ export function analyzeFiles({
     if (!packageName) return null;
     const declared = packageBuilderReturnKeys({
       packageName,
-      callee: entry.callee,
+      callee: callee.text,
       property: entry.property ?? null,
       packageDeclarations,
     });
     if (!declared) return null;
     packageBuilderUses.push(entry);
-    if (declared.inferOf) return declared.inferOf === entry.schema ? bound : null;
+    if (declared.inferOf !== undefined) return declared.inferOf === entry.schema ? bound : null;
     return { keys: declared.keys, open: false };
   }
 
-  function stripParens(node) {
+  function stripParens(node: ts.Expression): ts.Expression {
     let current = node;
     while (current && (ts.isParenthesizedExpression(current) || ts.isNonNullExpression(current))) {
       current = current.expression;
@@ -1617,18 +1966,26 @@ export function analyzeFiles({
     return current;
   }
 
-  function importedValue(facts, name) {
-    if (facts.moduleConsts.has(name)) return { facts, node: facts.moduleConsts.get(name) };
+  function importedValue(
+    facts: FileFacts,
+    name: string,
+  ): { facts: FileFacts; node: ts.Expression } | null {
+    const local = facts.moduleConsts.get(name);
+    if (local) return { facts, node: local };
     const imported = facts.imports.get(name);
     if (!imported) return null;
     const file = declaringFile(resolveImport(facts.relPath, imported.module), imported.imported);
     if (!file) return null;
     const target = byPath.get(file);
     const node = target?.moduleConsts.get(imported.imported);
-    return node ? { facts: target, node } : null;
+    return node && target ? { facts: target, node } : null;
   }
 
-  function declaringFile(file, name, seen = new Set()) {
+  function declaringFile(
+    file: string | null,
+    name: string,
+    seen = new Set<string>(),
+  ): string | null {
     if (!file || seen.has(file)) return null;
     seen.add(file);
     const target = byPath.get(file);
@@ -1643,7 +2000,10 @@ export function analyzeFiles({
     return null;
   }
 
-  function isCoreImport(facts, imported) {
+  function isCoreImport(
+    facts: FileFacts,
+    imported: ImportBinding | undefined,
+  ): imported is ImportBinding {
     if (!imported) return false;
     if (imported.module === CORE_PACKAGE || imported.module.startsWith(`${CORE_PACKAGE}/`))
       return true;
@@ -1654,28 +2014,35 @@ export function analyzeFiles({
     );
   }
 
-  function isCoreBuilders(facts, identifier) {
+  function isCoreBuilders(facts: FileFacts, identifier: ts.Identifier): boolean {
     const imported = facts.imports.get(identifier.text);
     return imported?.imported === 'PATH_BUILDERS' && isCoreImport(facts, imported);
   }
 
-  let resolverCache = new Map();
-  function resolverFor(facts) {
-    if (!resolverCache.has(facts.relPath)) resolverCache.set(facts.relPath, makeResolver(facts));
-    return resolverCache.get(facts.relPath);
+  type Resolver = ReturnType<typeof makeResolver>;
+
+  let resolverCache = new Map<string, Resolver>();
+  function resolverFor(facts: FileFacts): Resolver {
+    let resolver = resolverCache.get(facts.relPath);
+    if (!resolver) resolverCache.set(facts.relPath, (resolver = makeResolver(facts)));
+    return resolver;
   }
 
-  function makeResolver(facts) {
+  function makeResolver(facts: FileFacts) {
     const { source } = facts;
 
     let hitCeiling = false;
-    const ceiling = () => {
+    const ceiling = (): null => {
       hitCeiling = true;
       return null;
     };
 
-    function isTransactionCallbackParam(identifier) {
-      for (let current = identifier.parent; current; current = current.parent) {
+    function isTransactionCallbackParam(identifier: ts.Identifier): boolean {
+      for (
+        let current: ts.Node | undefined = identifier.parent;
+        current;
+        current = current.parent
+      ) {
         if (!ts.isFunctionLike(current)) continue;
         const first = current.parameters?.[0];
         if (!first || !ts.isIdentifier(first.name) || first.name.text !== identifier.text) continue;
@@ -1691,21 +2058,22 @@ export function analyzeFiles({
       return false;
     }
 
-    const visibleDecls = (name, pos, node) =>
+    const visibleDecls = (name: string, pos: number, node: ts.Node): VarDecl[] =>
       (facts.varDecls.get(name) ?? [])
         .filter((decl) => decl.pos < pos && (!decl.scope || encloses(decl.scope, node)))
         .sort((a, b) => b.pos - a.pos);
 
-    const nearestDecl = (name, pos, node) => visibleDecls(name, pos, node)[0] ?? null;
+    const nearestDecl = (name: string, pos: number, node: ts.Node): VarDecl | null =>
+      visibleDecls(name, pos, node)[0] ?? null;
 
-    const isPropertyBinding = (decl) =>
+    const isPropertyBinding = (decl: VarDecl | null | undefined): decl is BoundDecl =>
       Boolean(
         (decl?.bindingOf && decl.bindingProperty) ||
         (decl?.elementOf && decl.elementProperty) ||
         decl?.entryOf,
       );
 
-    function boundValues(decl, depth = 0) {
+    function boundValues(decl: VarDecl, depth = 0): Value[] | null {
       if (decl.bindingOf && decl.bindingProperty)
         return staticPropertyCandidates(decl.bindingOf, decl.bindingProperty, depth);
       if (decl.elementOf && decl.elementProperty)
@@ -1715,8 +2083,11 @@ export function analyzeFiles({
       return null;
     }
 
-    const enclosingFunction = (node, paramName = null) => {
-      for (let current = node; current; current = current.parent) {
+    const enclosingFunction = (
+      node: ts.Node,
+      paramName: string | null = null,
+    ): { node: ts.SignatureDeclaration; name: string } | null => {
+      for (let current: ts.Node | undefined = node; current; current = current.parent) {
         if (!ts.isFunctionLike(current)) continue;
         const name = functionName(current);
         if (!name) continue;
@@ -1728,7 +2099,7 @@ export function analyzeFiles({
       return null;
     };
 
-    function parameterValues(identifier) {
+    function parameterValues(identifier: ts.Identifier): Value[] | null {
       const owner = enclosingFunction(identifier, identifier.text);
       if (!owner) return null;
       const params = facts.functions.get(owner.name)?.params ?? [];
@@ -1738,7 +2109,7 @@ export function analyzeFiles({
       return values?.length && values.length <= MAX_CANDIDATES ? values : null;
     }
 
-    function literalStringCandidates(expr, depth = 0) {
+    function literalStringCandidates(expr: ts.Node | null | undefined, depth = 0): string[] | null {
       if (depth > CARRIER_DEPTH || !expr) return null;
       const node = stripWrappers(expr);
       if (ts.isStringLiteralLike(node)) return [node.text];
@@ -1748,7 +2119,7 @@ export function analyzeFiles({
         if (constant) return [constant];
         const candidates = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
-        const found = new Set();
+        const found = new Set<string>();
         for (const candidate of candidates) {
           const inner = resolverFor(candidate.facts).literalStringCandidates(
             candidate.node,
@@ -1768,7 +2139,8 @@ export function analyzeFiles({
       }
       if (ts.isElementAccessExpression(node)) {
         const entries = coreMapEntries(node, facts, source);
-        if (entries?.every((value) => typeof value === 'string')) return [...new Set(entries)];
+        if (entries?.every((value): value is string => typeof value === 'string'))
+          return [...new Set(entries)];
         const properties = objectProperties(node.expression, depth + 1);
         if (!properties) return null;
         const index = node.argumentExpression ? stripWrappers(node.argumentExpression) : null;
@@ -1776,7 +2148,7 @@ export function analyzeFiles({
         const values =
           selector !== null ? (properties.get(selector) ?? null) : [...properties.values()].flat();
         if (!values?.length || values.length > MAX_CANDIDATES) return null;
-        const found = new Set();
+        const found = new Set<string>();
         for (const value of values) {
           const inner = resolverFor(value.facts).literalStringCandidates(value.node, depth + 1);
           if (!inner) return null;
@@ -1785,12 +2157,13 @@ export function analyzeFiles({
         return found.size && found.size <= MAX_CANDIDATES ? [...found] : null;
       }
       if (ts.isIdentifier(node)) {
-        if (facts.stringConsts.has(node.text)) return [facts.stringConsts.get(node.text)];
+        const constant = facts.stringConsts.get(node.text);
+        if (constant !== undefined) return [constant];
         const decls = visibleDecls(node.text, node.pos, node);
         if (decls.length) {
-          const found = new Set();
+          const found = new Set<string>();
           for (const decl of decls) {
-            let inner = null;
+            let inner: string[] | null = null;
             if (decl.initializer) inner = literalStringCandidates(decl.initializer, depth + 1);
             else if (decl.iterOf) inner = literalStringArrayCandidates(decl.iterOf, depth + 1);
             else if (isPropertyBinding(decl)) {
@@ -1820,7 +2193,7 @@ export function analyzeFiles({
           return resolverFor(external.facts).literalStringCandidates(external.node, depth + 1);
         const supplied = parameterValues(node);
         if (!supplied) return null;
-        const found = new Set();
+        const found = new Set<string>();
         for (const value of supplied) {
           const inner = resolverFor(value.facts).literalStringCandidates(value.node, depth + 1);
           if (!inner) return null;
@@ -1831,12 +2204,12 @@ export function analyzeFiles({
       return null;
     }
 
-    function literalStringArrayCandidates(expr, depth = 0) {
+    function literalStringArrayCandidates(expr: ts.Node, depth = 0): string[] | null {
       if (depth > CARRIER_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
         if (!node.elements.length || node.elements.length > MAX_CANDIDATES) return null;
-        const found = new Set();
+        const found = new Set<string>();
         for (const element of node.elements) {
           if (ts.isSpreadElement(element)) return null;
           const inner = literalStringCandidates(element, depth + 1);
@@ -1852,11 +2225,11 @@ export function analyzeFiles({
       return null;
     }
 
-    function literalStringList(expr, depth = 0) {
+    function literalStringList(expr: ts.Node, depth = 0): string[] | null {
       if (depth > CARRIER_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
-        const found = new Set();
+        const found = new Set<string>();
         for (const element of node.elements) {
           const inner = ts.isSpreadElement(element)
             ? literalStringList(element.expression, depth + 1)
@@ -1884,7 +2257,7 @@ export function analyzeFiles({
       return null;
     }
 
-    function segmentOf(expr) {
+    function segmentOf(expr: ts.Node): Segment {
       const node = stripWrappers(expr);
       if (ts.isStringLiteralLike(node)) return LIT(node.text);
       if (ts.isPropertyAccessExpression(node)) {
@@ -1895,19 +2268,22 @@ export function analyzeFiles({
         if (ts.isElementAccessExpression(base)) {
           const entries = coreMapEntries(base, facts, source);
           const entry = entries?.length === 1 ? entries[0] : null;
-          const segment =
-            entry && typeof entry === 'object' && !Array.isArray(entry)
-              ? entry[node.name.text]
-              : null;
+          const segment = isRecord(entry) && !Array.isArray(entry) ? entry[node.name.text] : null;
           if (typeof segment === 'string' && segment) return LIT(segment);
         }
       }
-      if (ts.isIdentifier(node) && facts.stringConsts.has(node.text))
-        return LIT(facts.stringConsts.get(node.text));
+      if (ts.isIdentifier(node)) {
+        const constant = facts.stringConsts.get(node.text);
+        if (constant !== undefined) return LIT(constant);
+      }
       return ANY;
     }
 
-    function staticPropertyCandidates(baseExpr, propertyName, depth = 0) {
+    function staticPropertyCandidates(
+      baseExpr: ts.Node | null | undefined,
+      propertyName: string | null | undefined,
+      depth = 0,
+    ): Value[] | null {
       if (!baseExpr || !propertyName) return null;
       if (depth > CARRIER_DEPTH) return ceiling();
       const node = stripWrappers(baseExpr);
@@ -1917,7 +2293,7 @@ export function analyzeFiles({
           const values = properties?.get(propertyName);
           return values?.length && values.length <= MAX_CANDIDATES ? values : null;
         }
-        const found = [];
+        const found: Value[] = [];
         for (const property of node.properties) {
           if (
             ts.isPropertyAssignment(property) &&
@@ -1940,7 +2316,7 @@ export function analyzeFiles({
       ) {
         const entries = mapEntryValues(node.expression.expression, depth + 1);
         if (entries) {
-          const found = [];
+          const found: Value[] = [];
           for (const entry of entries) {
             const values = resolverFor(entry.facts).staticPropertyCandidates(
               entry.node,
@@ -1954,7 +2330,7 @@ export function analyzeFiles({
         }
       }
       if (ts.isConditionalExpression(node)) {
-        const isNullish = (value) => {
+        const isNullish = (value: ts.Node): boolean => {
           const branch = stripWrappers(value);
           return (
             branch.kind === ts.SyntaxKind.NullKeyword ||
@@ -1984,7 +2360,7 @@ export function analyzeFiles({
         if (isPropertyBinding(decl)) {
           const outer = boundValues(decl, depth + 1);
           if (!outer) return null;
-          const nested = [];
+          const nested: Value[] = [];
           for (const value of outer) {
             const values = resolverFor(value.facts).staticPropertyCandidates(
               value.node,
@@ -1998,7 +2374,7 @@ export function analyzeFiles({
         }
         if (decl?.iterOf) return propertyValuesFromArray(decl.iterOf, propertyName, depth + 1);
         if (decl?.indexOf !== undefined) {
-          const entry = tupleEntry(decl.indexOf, decl.bindingIndex);
+          const entry = tupleEntry(decl.indexOf, decl.bindingIndex!);
           return entry ? staticPropertyCandidates(entry, propertyName, depth + 1) : null;
         }
         const external = importedValue(facts, node.text);
@@ -2021,7 +2397,7 @@ export function analyzeFiles({
         if (values?.length && values.length <= MAX_CANDIDATES) return values;
         const supplied = parameterValues(node);
         if (!supplied) return null;
-        const found = [];
+        const found: Value[] = [];
         for (const value of supplied) {
           const inner = resolverFor(value.facts).staticPropertyCandidates(
             value.node,
@@ -2036,7 +2412,7 @@ export function analyzeFiles({
       if (ts.isPropertyAccessExpression(node)) {
         const outer = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
         if (!outer) return null;
-        const nested = [];
+        const nested: Value[] = [];
         for (const value of outer) {
           const owner = resolverFor(value.facts);
           const values = owner.staticPropertyCandidates(value.node, propertyName, depth + 1);
@@ -2057,7 +2433,7 @@ export function analyzeFiles({
           ? (properties.get(literal) ?? null)
           : [...properties.values()].flat();
         if (!entries?.length || entries.length > MAX_CANDIDATES) return null;
-        const nested = [];
+        const nested: Value[] = [];
         for (const value of entries) {
           const owner = resolverFor(value.facts);
           const values = owner.staticPropertyCandidates(value.node, propertyName, depth + 1);
@@ -2075,7 +2451,7 @@ export function analyzeFiles({
         if (values?.length && values.length <= MAX_CANDIDATES) return values;
         const callbacks = callbackFunctions(node, depth + 1);
         if (!callbacks?.length) return null;
-        const found = [];
+        const found: Value[] = [];
         for (const callback of callbacks) {
           const resolver = resolverFor(callback.facts);
           for (const returned of callbackReturns(callback.node)) {
@@ -2088,13 +2464,13 @@ export function analyzeFiles({
       return null;
     }
 
-    function callbackFunctions(callExpr, depth = 0) {
+    function callbackFunctions(callExpr: ts.CallExpression, depth = 0): CallbackValue[] | null {
       if (depth > CARRIER_DEPTH) return null;
       const callee = stripWrappers(callExpr.expression);
       if (!ts.isPropertyAccessExpression(callee)) return null;
       const candidates = staticPropertyCandidates(callee.expression, callee.name.text, depth + 1);
       if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
-      const functions = [];
+      const functions: CallbackValue[] = [];
       for (const candidate of candidates) {
         const node = stripWrappers(candidate.node);
         if (
@@ -2108,12 +2484,12 @@ export function analyzeFiles({
       return functions.length ? functions : null;
     }
 
-    function mapEntryValues(expr, depth = 0) {
+    function mapEntryValues(expr: ts.Node, depth = 0): Value[] | null {
       if (depth > CARRIER_DEPTH) return ceiling();
       const node = stripWrappers(expr);
-      const merged = (candidates) => {
+      const merged = (candidates: Value[] | null): Value[] | null => {
         if (!candidates?.length) return null;
-        const values = [];
+        const values: Value[] = [];
         for (const candidate of candidates) {
           const inner = resolverFor(candidate.facts).mapEntryValues(candidate.node, depth + 1);
           if (!inner) return null;
@@ -2144,12 +2520,16 @@ export function analyzeFiles({
         .map((entry) => ({ facts, node: entry.value }));
     }
 
-    function propertyValuesFromArray(expr, propertyName, depth = 0) {
+    function propertyValuesFromArray(
+      expr: ts.Node,
+      propertyName: string,
+      depth = 0,
+    ): Value[] | null {
       if (depth > CARRIER_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
         if (node.elements.length > MAX_CANDIDATES) return null;
-        const values = [];
+        const values: Value[] = [];
         for (const element of node.elements) {
           const found = ts.isSpreadElement(element)
             ? propertyValuesFromArray(element.expression, propertyName, depth + 1)
@@ -2167,7 +2547,7 @@ export function analyzeFiles({
         if (method === 'values' && node.arguments.length === 0) {
           const entries = mapEntryValues(node.expression.expression, depth + 1);
           if (entries) {
-            const values = [];
+            const values: Value[] = [];
             for (const entry of entries) {
               const found = resolverFor(entry.facts).staticPropertyCandidates(
                 entry.node,
@@ -2184,10 +2564,10 @@ export function analyzeFiles({
           const callback = node.arguments[0];
           if (!callback || !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)))
             return null;
-          const returns = [];
+          const returns: ts.Expression[] = [];
           if (!ts.isBlock(callback.body)) returns.push(callback.body);
           else {
-            const collect = (inner) => {
+            const collect = (inner: ts.Node): void => {
               if (inner !== callback && ts.isFunctionLike(inner)) return;
               if (ts.isReturnStatement(inner) && inner.expression) returns.push(inner.expression);
               ts.forEachChild(inner, collect);
@@ -2195,7 +2575,7 @@ export function analyzeFiles({
             ts.forEachChild(callback.body, collect);
           }
           if (!returns.length || returns.length > MAX_CALLBACK_RETURNS) return null;
-          const values = [];
+          const values: Value[] = [];
           for (const returned of returns) {
             const found =
               method === 'flatMap'
@@ -2210,7 +2590,7 @@ export function analyzeFiles({
           return propertyValuesFromArray(node.expression.expression, propertyName, depth + 1);
       }
       if (ts.isConditionalExpression(node)) {
-        const isEmpty = (value) => {
+        const isEmpty = (value: ts.Node): boolean => {
           const branch = stripWrappers(value);
           return ts.isArrayLiteralExpression(branch) && branch.elements.length === 0;
         };
@@ -2227,7 +2607,7 @@ export function analyzeFiles({
       if (ts.isPropertyAccessExpression(node)) {
         const arrays = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
         if (!arrays?.length) return null;
-        const values = [];
+        const values: Value[] = [];
         for (const array of arrays) {
           const found = resolverFor(array.facts).propertyValuesFromArray(
             array.node,
@@ -2247,7 +2627,7 @@ export function analyzeFiles({
       if (ts.isIdentifier(node)) {
         const entries = arrayEntryExpressions(node, depth + 1);
         if (entries?.length) {
-          const values = [];
+          const values: Value[] = [];
           for (const entry of entries) {
             const found = resolverFor(entry.facts).staticPropertyCandidates(
               entry.node,
@@ -2263,12 +2643,12 @@ export function analyzeFiles({
         if (decl?.initializer)
           return propertyValuesFromArray(decl.initializer, propertyName, depth + 1);
         if (decl?.indexOf !== undefined) {
-          const entry = tupleEntry(decl.indexOf, decl.bindingIndex);
+          const entry = tupleEntry(decl.indexOf, decl.bindingIndex!);
           return entry ? propertyValuesFromArray(entry, propertyName, depth + 1) : null;
         }
         const supplied = parameterValues(node);
         if (!supplied?.length) return null;
-        const values = [];
+        const values: Value[] = [];
         for (const value of supplied) {
           const inner = resolverFor(value.facts).propertyValuesFromArray(
             value.node,
@@ -2283,11 +2663,14 @@ export function analyzeFiles({
       return null;
     }
 
-    function objectProperties(baseExpr, depth = 0) {
+    function objectProperties(
+      baseExpr: ts.Node | null | undefined,
+      depth = 0,
+    ): Map<string, Value[]> | null {
       if (depth > CARRIER_DEPTH || !baseExpr) return null;
       const node = stripWrappers(baseExpr);
       if (ts.isObjectLiteralExpression(node)) {
-        const properties = new Map();
+        const properties = new Map<string, Value[]>();
         for (const property of node.properties) {
           if (
             ts.isPropertyAssignment(property) &&
@@ -2314,7 +2697,7 @@ export function analyzeFiles({
         return properties;
       }
       if (ts.isConditionalExpression(node)) {
-        const isNullish = (value) => {
+        const isNullish = (value: ts.Node): boolean => {
           const branch = stripWrappers(value);
           return (
             branch.kind === ts.SyntaxKind.NullKeyword ||
@@ -2323,13 +2706,13 @@ export function analyzeFiles({
           );
         };
         const left = isNullish(node.whenTrue)
-          ? new Map()
+          ? new Map<string, Value[]>()
           : objectProperties(node.whenTrue, depth + 1);
         const right = isNullish(node.whenFalse)
-          ? new Map()
+          ? new Map<string, Value[]>()
           : objectProperties(node.whenFalse, depth + 1);
         if (!left || !right || (!left.size && !right.size)) return null;
-        const merged = new Map();
+        const merged = new Map<string, Value[]>();
         for (const sourceProperties of [left, right]) {
           for (const [property, values] of sourceProperties) {
             const existing = merged.get(property) ?? [];
@@ -2346,7 +2729,7 @@ export function analyzeFiles({
         if (decl?.iterOf) {
           const entries = arrayEntryExpressions(decl.iterOf, depth + 1);
           if (!entries?.length) return null;
-          const merged = new Map();
+          const merged = new Map<string, Value[]>();
           for (const entry of entries) {
             const inner = resolverFor(entry.facts).objectProperties(entry.node, depth + 1);
             if (!inner) return null;
@@ -2363,7 +2746,7 @@ export function analyzeFiles({
         if (external) return resolverFor(external.facts).objectProperties(external.node, depth + 1);
         const supplied = parameterValues(node);
         if (!supplied?.length) return null;
-        const merged = new Map();
+        const merged = new Map<string, Value[]>();
         for (const value of supplied) {
           const inner = resolverFor(value.facts).objectProperties(value.node, depth + 1);
           if (!inner) return null;
@@ -2383,7 +2766,12 @@ export function analyzeFiles({
       return null;
     }
 
-    function correlatedCarrierPairs(baseExpr, leftName, rightName, depth = 0) {
+    function correlatedCarrierPairs(
+      baseExpr: ts.Node | null | undefined,
+      leftName: string,
+      rightName: string,
+      depth = 0,
+    ): CarrierPair[] | null {
       if (depth > CARRIER_DEPTH || !baseExpr || !leftName || !rightName) return null;
       const node = stripWrappers(baseExpr);
       if (ts.isObjectLiteralExpression(node)) {
@@ -2417,7 +2805,7 @@ export function analyzeFiles({
         if (facts.varDecls.get(node.text)?.length) return null;
         const supplied = parameterValues(node);
         if (!supplied?.length || supplied.length > MAX_CANDIDATES) return null;
-        const pairs = [];
+        const pairs: CarrierPair[] = [];
         for (const value of supplied) {
           const found = resolverFor(value.facts).correlatedCarrierPairs(
             value.node,
@@ -2435,12 +2823,17 @@ export function analyzeFiles({
       return null;
     }
 
-    function correlatedPairsFromArray(expr, leftName, rightName, depth = 0) {
+    function correlatedPairsFromArray(
+      expr: ts.Node,
+      leftName: string,
+      rightName: string,
+      depth = 0,
+    ): CarrierPair[] | null {
       if (depth > CARRIER_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
         if (node.elements.length > MAX_CANDIDATES) return null;
-        const pairs = [];
+        const pairs: CarrierPair[] = [];
         for (const element of node.elements) {
           if (ts.isSpreadElement(element)) return null;
           const found = correlatedCarrierPairs(element, leftName, rightName, depth + 1);
@@ -2463,7 +2856,7 @@ export function analyzeFiles({
       if (ts.isIdentifier(node)) {
         const entries = arrayEntryExpressions(node, depth + 1);
         if (!entries) return null;
-        const pairs = [];
+        const pairs: CarrierPair[] = [];
         for (const entry of entries) {
           const found = resolverFor(entry.facts).correlatedCarrierPairs(
             entry.node,
@@ -2479,11 +2872,11 @@ export function analyzeFiles({
       return null;
     }
 
-    function arrayEntryExpressions(expr, depth = 0) {
+    function arrayEntryExpressions(expr: ts.Node | null | undefined, depth = 0): Value[] | null {
       if (depth > CARRIER_DEPTH || !expr) return null;
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
-        const entries = [];
+        const entries: Value[] = [];
         for (const element of node.elements) {
           if (ts.isSpreadElement(element)) {
             const inner = arrayEntryExpressions(element.expression, depth + 1);
@@ -2496,7 +2889,7 @@ export function analyzeFiles({
         return entries.length && entries.length <= MAX_QUEUE_ENTRIES ? entries : null;
       }
       if (ts.isConditionalExpression(node)) {
-        const entries = [];
+        const entries: Value[] = [];
         for (const branch of [node.whenTrue, node.whenFalse]) {
           const inner = stripWrappers(branch);
           if (ts.isArrayLiteralExpression(inner) && inner.elements.length === 0) continue;
@@ -2520,7 +2913,7 @@ export function analyzeFiles({
             return null;
           const returns = callbackReturns(callback);
           if (!returns.length) return null;
-          const entries = [];
+          const entries: Value[] = [];
           for (const returned of returns) {
             if (method === 'map') {
               entries.push({ facts, node: returned });
@@ -2538,10 +2931,11 @@ export function analyzeFiles({
       if (ts.isCallExpression(node) && ts.isIdentifier(stripWrappers(node.expression))) {
         const key = calleeKey(node);
         const at = key ? key.lastIndexOf('#') : -1;
-        const owner = at > 0 ? byPath.get(key.slice(0, at)) : null;
-        const returns = owner?.functions.get(key.slice(at + 1))?.returns ?? [];
-        if (!returns.length || returns.length > MAX_CALLBACK_RETURNS) return null;
-        const entries = [];
+        const owner = key && at > 0 ? byPath.get(key.slice(0, at)) : undefined;
+        const returns =
+          (owner && key ? owner.functions.get(key.slice(at + 1))?.returns : undefined) ?? [];
+        if (!owner || !returns.length || returns.length > MAX_CALLBACK_RETURNS) return null;
+        const entries: Value[] = [];
         for (const returned of returns) {
           const found = resolverFor(owner).arrayEntryExpressions(returned, depth + 1);
           if (!found) return null;
@@ -2554,7 +2948,7 @@ export function analyzeFiles({
           ? staticPropertyCandidates(node.expression, node.name.text, depth + 1)
           : null;
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
-        const entries = [];
+        const entries: Value[] = [];
         for (const candidate of candidates) {
           const inner = resolverFor(candidate.facts).arrayEntryExpressions(
             candidate.node,
@@ -2567,7 +2961,7 @@ export function analyzeFiles({
       }
       if (!ts.isIdentifier(node)) return null;
       const decl = nearestDecl(node.text, node.pos, node);
-      const entries = [];
+      const entries: Value[] = [];
       if (decl?.initializer) {
         const initializer = stripWrappers(decl.initializer);
         if (!(ts.isArrayLiteralExpression(initializer) && initializer.elements.length === 0)) {
@@ -2603,7 +2997,7 @@ export function analyzeFiles({
       return entries.length && entries.length <= MAX_QUEUE_ENTRIES ? entries : null;
     }
 
-    function parameterArrayEntries(identifier) {
+    function parameterArrayEntries(identifier: ts.Identifier): Value[] | null {
       const owner = enclosingFunction(identifier, identifier.text);
       if (!owner) return null;
       const params = facts.functions.get(owner.name)?.params ?? [];
@@ -2612,20 +3006,28 @@ export function analyzeFiles({
       return paramArrayEntries.get(paramKey(facts.relPath, owner.name, index)) ?? null;
     }
 
-    function staticProperty(baseExpr, propertyName, depth = 0) {
+    function staticProperty(baseExpr: ts.Node, propertyName: string, depth = 0): Value | null {
       const candidates = staticPropertyCandidates(baseExpr, propertyName, depth);
       return candidates?.length === 1 ? candidates[0] : null;
     }
 
-    function resolveForeign(value, state, depth) {
+    function resolveForeign(
+      value: Value | null | undefined,
+      state: ResolveState,
+      depth: number,
+    ): Resolved | null {
       return value ? resolverFor(value.facts).resolve(value.node, state, depth + 1) : null;
     }
 
-    function resolveForeignCandidates(values, state, depth) {
+    function resolveForeignCandidates(
+      values: Value[] | null | undefined,
+      state: ResolveState,
+      depth: number,
+    ): Resolved | null {
       if (!values?.length) return null;
       if (values.length > MAX_CANDIDATES) return ceiling();
-      const templates = new Set();
-      const segments = [];
+      const templates = new Set<string>();
+      const segments: Segment[][] = [];
       for (const value of values) {
         const resolved = resolveForeign(value, state, depth + 1);
         if (!resolved) return null;
@@ -2655,7 +3057,7 @@ export function analyzeFiles({
       return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
     }
 
-    function builderNames(expr, depth = 0) {
+    function builderNames(expr: ts.Node | null | undefined, depth = 0): Set<string> | null {
       if (depth > CARRIER_DEPTH || !expr) return null;
       const node = stripWrappers(expr);
       if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
@@ -2665,7 +3067,7 @@ export function analyzeFiles({
       if (ts.isPropertyAccessExpression(node)) {
         const candidates = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
-        const names = new Set();
+        const names = new Set<string>();
         for (const candidate of candidates) {
           const resolved = resolverFor(candidate.facts).builderNames(candidate.node, depth + 1);
           const candidateNode = stripWrappers(candidate.node);
@@ -2696,7 +3098,7 @@ export function analyzeFiles({
         if (external) return resolverFor(external.facts).builderNames(external.node, depth + 1);
         const supplied = parameterValues(node);
         if (!supplied) return null;
-        const names = new Set();
+        const names = new Set<string>();
         for (const value of supplied) {
           const resolved = resolverFor(value.facts).builderNames(value.node, depth + 1);
           if (!resolved) return null;
@@ -2713,7 +3115,7 @@ export function analyzeFiles({
           ? (properties.get(literal) ?? null)
           : [...properties.values()].flat();
         if (!candidates?.length || candidates.length > MAX_CANDIDATES) return null;
-        const names = new Set();
+        const names = new Set<string>();
         for (const candidate of candidates) {
           const resolved = resolverFor(candidate.facts).builderNames(candidate.node, depth + 1);
           const candidateNode = stripWrappers(candidate.node);
@@ -2733,10 +3135,13 @@ export function analyzeFiles({
       return null;
     }
 
-    function segmentsForBuilderCall(name, args) {
+    function segmentsForBuilderCall(
+      name: string,
+      args: readonly ts.Expression[],
+    ): Segment[] | null {
       const pattern = registry.builderPatterns.get(name);
       if (!pattern) return builderSegments.get(name) ?? null;
-      return pattern.map((segment) =>
+      return pattern.map((segment): Segment =>
         segment.t === 'arg'
           ? args[segment.index]
             ? segmentOf(args[segment.index])
@@ -2745,7 +3150,7 @@ export function analyzeFiles({
       );
     }
 
-    function coreMapBuilderCall(node, state) {
+    function coreMapBuilderCall(node: ts.CallExpression, state: ResolveState): Resolved | null {
       const callee = stripWrappers(node.expression);
       if (!ts.isPropertyAccessExpression(callee)) return null;
       let base = stripParens(callee.expression);
@@ -2758,24 +3163,24 @@ export function analyzeFiles({
       const entries = coreMapEntries(base, facts, source);
       if (!entries?.length || entries.length > MAX_CANDIDATES) return null;
 
-      const built = [];
+      const built: Segment[][] = [];
       for (const entry of entries) {
-        const builder = entry && typeof entry === 'object' ? entry[callee.name.text] : null;
-        if (typeof builder !== 'function') return null;
+        const builder = isRecord(entry) ? entry[callee.name.text] : null;
+        if (!isBuilder(builder)) return null;
         const sentinels = Array.from(
           { length: Math.max(builder.length, node.arguments.length, 4) },
           (_, index) => `__GUARD_ARG_${index}__`,
         );
-        let produced;
+        let produced: unknown;
         try {
           produced = builder(...sentinels);
         } catch {
           return null;
         }
-        if (!Array.isArray(produced)) return null;
+        if (!isList(produced)) return null;
         built.push(
-          produced.map((segment) => {
-            const index = sentinels.indexOf(segment);
+          produced.map((segment): Segment => {
+            const index = typeof segment === 'string' ? sentinels.indexOf(segment) : -1;
             if (index >= 0) return node.arguments[index] ? segmentOf(node.arguments[index]) : ANY;
             return typeof segment === 'string' && segment ? LIT(segment) : ANY;
           }),
@@ -2787,7 +3192,7 @@ export function analyzeFiles({
       if (built.every((segments) => segments.length % 2 === 1)) {
         return { collections: built.map((segments) => ({ segments, canonical: true })) };
       }
-      const templates = new Set();
+      const templates = new Set<string>();
       for (const segments of built) {
         const matched = registry.matchSegments(segments);
         if (!matched.length) return null;
@@ -2796,17 +3201,20 @@ export function analyzeFiles({
       return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
     }
 
-    function isCollectionRefsBase(expr) {
+    function isCollectionRefsBase(expr: ts.Node): boolean {
       const node = stripWrappers(expr);
       if (!ts.isIdentifier(node)) return false;
       const imported = facts.imports.get(node.text);
       return Boolean(imported?.imported === 'COLLECTION_REFS' && isCoreImport(facts, imported));
     }
 
-    function segmentsForCollectionRefCall(name, args) {
+    function segmentsForCollectionRefCall(
+      name: string,
+      args: readonly ts.Expression[],
+    ): Segment[] | null {
       const pattern = registry.collectionRefPatterns.get(name);
       if (!pattern) return registry.collectionRefSegments.get(name) ?? null;
-      return pattern.map((segment) =>
+      return pattern.map((segment): Segment =>
         segment.t === 'arg'
           ? args[segment.index]
             ? segmentOf(args[segment.index])
@@ -2815,7 +3223,11 @@ export function analyzeFiles({
       );
     }
 
-    function collectionArgumentSegments(expr, state, depth) {
+    function collectionArgumentSegments(
+      expr: ts.Node,
+      state: ResolveState,
+      depth: number,
+    ): Segment[] | null {
       const node = stripWrappers(expr);
       if (
         ts.isCallExpression(node) &&
@@ -2855,10 +3267,14 @@ export function analyzeFiles({
       return null;
     }
 
-    function segmentsFromArray(expr, state, depth) {
+    function segmentsFromArray(
+      expr: ts.Node,
+      state: ResolveState,
+      depth: number,
+    ): Segment[] | null {
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
-        const segments = [];
+        const segments: Segment[] = [];
         for (const element of node.elements) {
           if (ts.isSpreadElement(element)) {
             const inner = resolve(element.expression, state, depth + 1);
@@ -2878,9 +3294,9 @@ export function analyzeFiles({
       return resolved && resolved.segments ? resolved.segments : null;
     }
 
-    function segmentsFromLiteralPath(node) {
-      let pattern;
-      const expressions = [];
+    function segmentsFromLiteralPath(node: ts.Node): Segment[] | null {
+      let pattern: string;
+      const expressions: ts.Expression[] = [];
       if (ts.isStringLiteralLike(node)) {
         pattern = node.text;
       } else if (ts.isTemplateExpression(node)) {
@@ -2894,7 +3310,7 @@ export function analyzeFiles({
       }
       if (!pattern.includes('/') && expressions.length === 0) return null;
       let consumed = 0;
-      return pattern.split('/').map((part) => {
+      return pattern.split('/').map((part): Segment => {
         const markers = part.split(MARKER).length - 1;
         const owned = expressions.slice(consumed, consumed + markers);
         consumed += markers;
@@ -2904,7 +3320,7 @@ export function analyzeFiles({
       });
     }
 
-    function resolveTriggerRef(node) {
+    function resolveTriggerRef(node: ts.Node): Resolved | null {
       const candidate = stripWrappers(node);
       if (
         !ts.isPropertyAccessExpression(candidate) ||
@@ -2912,17 +3328,18 @@ export function analyzeFiles({
         !ts.isIdentifier(candidate.expression)
       )
         return null;
+      const eventName = candidate.expression.text;
       const trigger = facts.triggerEvents.find(
-        (entry) => entry.name === candidate.expression.text && encloses(entry.scope, candidate),
+        (entry) => entry.name === eventName && encloses(entry.scope, candidate),
       );
       if (!trigger) return null;
       const segments = segmentsFromLiteralPath(stripWrappers(trigger.documentExpression));
       return segments ? { segments } : null;
     }
 
-    function suppliedCandidates(candidates) {
+    function suppliedCandidates(candidates: Value[] | null): Value[] | null {
       if (!candidates?.length) return candidates;
-      const out = [];
+      const out: Value[] = [];
       for (const candidate of candidates) {
         const node = stripWrappers(candidate.node);
         const owner = resolverFor(candidate.facts);
@@ -2936,7 +3353,11 @@ export function analyzeFiles({
       return out;
     }
 
-    function moduleFunctionDeclaration(ownerFacts, owner, identifier) {
+    function moduleFunctionDeclaration(
+      ownerFacts: FileFacts,
+      owner: Resolver,
+      identifier: ts.Identifier,
+    ): ts.FunctionDeclaration | null {
       if (owner.nearestDecl(identifier.text, identifier.pos, identifier)) return null;
       const declared = ownerFacts.functions.get(identifier.text)?.node;
       return declared && ts.isFunctionDeclaration(declared) && ts.isSourceFile(declared.parent)
@@ -2944,11 +3365,11 @@ export function analyzeFiles({
         : null;
     }
 
-    /**
-     * @returns {{ segments?: Array, templates?: Set<string>, handBuilt?: boolean,
-     *            usedBuilder?: boolean, reason?: string } | null}
-     */
-    function resolve(expr, state, depth = 0) {
+    function resolve(
+      expr: ts.Node | null | undefined,
+      state: ResolveState,
+      depth = 0,
+    ): Resolved | null {
       if (!expr) return null;
       if (depth > RESOLVE_DEPTH) return ceiling();
       const node = stripWrappers(expr);
@@ -2997,7 +3418,7 @@ export function analyzeFiles({
       if (ts.isCallExpression(node)) {
         const names = builderNames(node.expression);
         if (names) {
-          const templates = new Set();
+          const templates = new Set<string>();
           for (const name of names) {
             const segments = builderSegments.get(name);
             const matched = segments && registry.matchSegments(segments);
@@ -3014,7 +3435,7 @@ export function analyzeFiles({
         const method = node.expression.name.text;
         if (method === 'doc' || method === 'collection') {
           const base = node.expression.expression;
-          let baseSegments = null;
+          let baseSegments: Segment[] | null = null;
           const resolvedBase = resolve(base, state, depth + 1);
           if (resolvedBase && resolvedBase.segments) baseSegments = resolvedBase.segments;
           else if (resolvedBase && resolvedBase.collections) {
@@ -3024,7 +3445,7 @@ export function analyzeFiles({
               node.arguments.length === 0 ? ANY : segmentOf(stripWrappers(node.arguments[0]));
             if (resolvedBase.collections.every((candidate) => candidate.canonical))
               state.usedBuilder = true;
-            const templates = new Set();
+            const templates = new Set<string>();
             for (const collection of resolvedBase.collections) {
               for (const template of registry.matchSegments([...collection.segments, tail]))
                 templates.add(template);
@@ -3085,13 +3506,16 @@ export function analyzeFiles({
         }
       }
 
+      const grandparent =
+        ts.isPropertyAccessExpression(node) && node.name.text === 'parent'
+          ? stripWrappers(node.expression)
+          : null;
       if (
-        ts.isPropertyAccessExpression(node) &&
-        node.name.text === 'parent' &&
-        ts.isPropertyAccessExpression(stripWrappers(node.expression)) &&
-        stripWrappers(node.expression).name.text === 'parent'
+        grandparent &&
+        ts.isPropertyAccessExpression(grandparent) &&
+        grandparent.name.text === 'parent'
       ) {
-        const child = resolve(stripWrappers(node.expression).expression, state, depth + 1);
+        const child = resolve(grandparent.expression, state, depth + 1);
         const childTemplates = !child
           ? null
           : child.templates
@@ -3102,7 +3526,7 @@ export function analyzeFiles({
                 ? registry.templatesForGroup(child.group)
                 : null;
         if (!childTemplates?.length) return null;
-        const parents = new Set();
+        const parents = new Set<string>();
         for (const template of childTemplates) {
           const parent = template.split('/').slice(0, -2).join('/');
           if (!registry.templates.includes(parent)) return null;
@@ -3137,7 +3561,7 @@ export function analyzeFiles({
       }
 
       if (ts.isConditionalExpression(node)) {
-        const isNullish = (value) => {
+        const isNullish = (value: ts.Node): boolean => {
           const branch = stripWrappers(value);
           return (
             branch.kind === ts.SyntaxKind.NullKeyword ||
@@ -3149,8 +3573,8 @@ export function analyzeFiles({
         if (!live.length) return null;
         const branches = live.map((branch) => resolve(branch, state, depth + 1));
         if (branches.some((branch) => !branch)) return null;
-        const templates = new Set();
-        for (const branch of branches) {
+        const templates = new Set<string>();
+        for (const branch of branches.filter((entry): entry is Resolved => entry !== null)) {
           if (branch.templates) for (const template of branch.templates) templates.add(template);
           else if (branch.segments) {
             const matched = registry.matchSegments(branch.segments);
@@ -3167,7 +3591,7 @@ export function analyzeFiles({
 
       if (ts.isObjectLiteralExpression(node)) {
         const property = node.properties.find(
-          (candidate) =>
+          (candidate): candidate is ts.PropertyAssignment | ts.ShorthandPropertyAssignment =>
             (ts.isPropertyAssignment(candidate) || ts.isShorthandPropertyAssignment(candidate)) &&
             candidate.name &&
             ts.isIdentifier(candidate.name) &&
@@ -3197,16 +3621,14 @@ export function analyzeFiles({
         return { group: segmentOf(node.arguments[0]) };
       }
 
-      if (
-        ts.isCallExpression(node) &&
-        ts.isPropertyAccessExpression(stripWrappers(node.expression))
-      ) {
-        const callee = stripWrappers(node.expression);
+      const methodCallee = ts.isCallExpression(node) ? stripWrappers(node.expression) : null;
+      if (methodCallee && ts.isPropertyAccessExpression(methodCallee)) {
+        const callee = methodCallee;
         const candidates = suppliedCandidates(
           staticPropertyCandidates(callee.expression, callee.name.text, depth + 1),
         );
         if (candidates?.length && candidates.length <= MAX_CANDIDATES) {
-          const templates = new Set();
+          const templates = new Set<string>();
           let ok = true;
           for (const candidate of candidates) {
             const owner = resolverFor(candidate.facts);
@@ -3274,19 +3696,21 @@ export function analyzeFiles({
         if (passThrough !== undefined && node.arguments[passThrough]) {
           return resolve(node.arguments[passThrough], state, depth + 1);
         }
-        if (target && returnTargets.has(target)) {
-          const templates = returnTargets.get(target);
-          if (templates?.size && templates.size <= MAX_CANDIDATES)
-            return { templates: new Set(templates) };
+        const returned = target ? returnTargets.get(target) : undefined;
+        if (returned) {
+          if (returned.size && returned.size <= MAX_CANDIDATES)
+            return { templates: new Set(returned) };
         }
-        if (target && returnCollections.has(target)) {
-          const collections = [...returnCollections.get(target)].map((value) => JSON.parse(value));
+        const returnedCollections = target ? returnCollections.get(target) : undefined;
+        if (returnedCollections) {
+          const collections = [...returnedCollections].map(parseCollection);
           if (collections.every((candidate) => candidate.canonical)) state.usedBuilder = true;
           if (collections.length === 1) return { segments: collections[0].segments };
           if (collections.length && collections.length <= MAX_CANDIDATES) return { collections };
         }
-        if (target && returnGroups.has(target)) {
-          const groups = [...returnGroups.get(target)];
+        const returnedGroups = target ? returnGroups.get(target) : undefined;
+        if (returnedGroups) {
+          const groups = [...returnedGroups];
           if (groups.length === 1) return { group: LIT(groups[0]) };
         }
         return null;
@@ -3295,8 +3719,8 @@ export function analyzeFiles({
       if (ts.isIdentifier(node)) {
         const candidates = visibleDecls(node.text, node.pos, node);
         if (candidates.length) {
-          const segments = [];
-          const templates = new Set();
+          const segments: Segment[][] = [];
+          const templates = new Set<string>();
           for (const decl of candidates) {
             const inner = decl.initializer
               ? resolve(decl.initializer, state, depth + 1)
@@ -3332,7 +3756,7 @@ export function analyzeFiles({
             if (known && known.size) return { templates: new Set(known) };
             const collections = paramCollections.get(key);
             if (collections && collections.size && collections.size <= MAX_CANDIDATES) {
-              const parsed = [...collections].map((value) => JSON.parse(value));
+              const parsed = [...collections].map(parseCollection);
               if (parsed.every((candidate) => candidate.canonical)) state.usedBuilder = true;
               return { collections: parsed };
             }
@@ -3349,7 +3773,12 @@ export function analyzeFiles({
       return null;
     }
 
-    function resolveIndexedElement(expr, index, state, depth) {
+    function resolveIndexedElement(
+      expr: ts.Node,
+      index: number | undefined,
+      state: ResolveState,
+      depth: number,
+    ): Resolved | null {
       if (depth > RESOLVE_DEPTH || index === undefined) return null;
       const node = stripWrappers(expr);
       if (
@@ -3372,7 +3801,7 @@ export function analyzeFiles({
       return null;
     }
 
-    function resolveSnapshot(expr, state, depth) {
+    function resolveSnapshot(expr: ts.Node, state: ResolveState, depth: number): Resolved | null {
       if (depth > RESOLVE_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
@@ -3392,7 +3821,7 @@ export function analyzeFiles({
         if (decl && decl.initializer) return resolveSnapshot(decl.initializer, state, depth + 1);
         if (decl && decl.iterOf) return resolveDocElement(decl.iterOf, state, depth + 1);
         if (decl && decl.indexOf !== undefined) {
-          const entry = tupleEntry(decl.indexOf, decl.bindingIndex);
+          const entry = tupleEntry(decl.indexOf, decl.bindingIndex!);
           return entry ? resolveSnapshot(entry, state, depth + 1) : null;
         }
         if (isPropertyBinding(decl)) {
@@ -3405,7 +3834,7 @@ export function analyzeFiles({
         if (!decl) {
           const supplied = parameterValues(node);
           if (supplied?.length) {
-            const templates = new Set();
+            const templates = new Set<string>();
             for (const value of supplied) {
               const inner = resolverFor(value.facts).resolveSnapshot(value.node, state, depth + 1);
               if (!inner) return null;
@@ -3429,11 +3858,15 @@ export function analyzeFiles({
       return null;
     }
 
-    function resolveArrayElement(expr, state, depth) {
+    function resolveArrayElement(
+      expr: ts.Node,
+      state: ResolveState,
+      depth: number,
+    ): Resolved | null {
       if (depth > RESOLVE_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isArrayLiteralExpression(node)) {
-        const templates = new Set();
+        const templates = new Set<string>();
         for (const element of node.elements) {
           const inner = resolve(element, state, depth + 1);
           if (!inner) return null;
@@ -3452,8 +3885,8 @@ export function analyzeFiles({
           const callback = node.arguments[0];
           if (callback && (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) {
             if (!ts.isBlock(callback.body)) return resolve(callback.body, state, depth + 1);
-            const returns = [];
-            const collect = (inner) => {
+            const returns: ts.Expression[] = [];
+            const collect = (inner: ts.Node): void => {
               if (inner !== callback && ts.isFunctionLike(inner)) return;
               if (ts.isReturnStatement(inner) && inner.expression) returns.push(inner.expression);
               ts.forEachChild(inner, collect);
@@ -3477,7 +3910,7 @@ export function analyzeFiles({
       return resolveDocElement(node, state, depth + 1);
     }
 
-    function resolveDocElement(expr, state, depth) {
+    function resolveDocElement(expr: ts.Node, state: ResolveState, depth: number): Resolved | null {
       if (depth > RESOLVE_DEPTH) return null;
       const node = stripWrappers(expr);
       if (ts.isPropertyAccessExpression(node) && node.name.text === 'docs') {
@@ -3499,7 +3932,7 @@ export function analyzeFiles({
         ts.isPropertyAccessExpression(node.expression) &&
         node.expression.name.text === 'getAll'
       ) {
-        const templates = new Set();
+        const templates = new Set<string>();
         for (const argument of node.arguments) {
           const resolved = ts.isSpreadElement(argument)
             ? resolveArrayElement(argument.expression, state, depth + 1)
@@ -3586,7 +4019,7 @@ export function analyzeFiles({
         if (!decl) {
           const supplied = parameterValues(node);
           if (supplied?.length) {
-            const templates = new Set();
+            const templates = new Set<string>();
             for (const value of supplied) {
               const inner = resolverFor(value.facts).resolveDocElement(
                 value.node,
@@ -3616,8 +4049,11 @@ export function analyzeFiles({
       return null;
     }
 
-    function mergeDocCandidates(values, resolveOne) {
-      const templates = new Set();
+    function mergeDocCandidates(
+      values: readonly Value[],
+      resolveOne: (value: Value) => Resolved | null,
+    ): Resolved | null {
+      const templates = new Set<string>();
       for (const value of values) {
         const node = stripWrappers(value.node);
         if (ts.isArrayLiteralExpression(node) && node.elements.length === 0) continue;
@@ -3640,8 +4076,10 @@ export function analyzeFiles({
       return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
     }
 
-    function templatesFromCollections(collections) {
-      const templates = new Set();
+    function templatesFromCollections(
+      collections: readonly CollectionCandidate[],
+    ): { templates: Set<string> } | null {
+      const templates = new Set<string>();
       for (const collection of collections) {
         for (const template of registry.matchSegments([...collection.segments, ANY]))
           templates.add(template);
@@ -3649,7 +4087,7 @@ export function analyzeFiles({
       return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
     }
 
-    function isFirestoreRoot(expr) {
+    function isFirestoreRoot(expr: ts.Node): boolean {
       const node = stripWrappers(expr);
       if (ts.isIdentifier(node)) return ROOT_NAME.test(node.text);
       if (ts.isPropertyAccessExpression(node)) return ROOT_NAME.test(node.name.text);
@@ -3658,7 +4096,7 @@ export function analyzeFiles({
       return false;
     }
 
-    function calleeKey(call) {
+    function calleeKey(call: ts.CallExpression): string | null {
       const callee = stripWrappers(call.expression);
       if (!ts.isIdentifier(callee)) return null;
       const name = callee.text;
@@ -3669,11 +4107,14 @@ export function analyzeFiles({
       return file ? fnKey(file, imported.imported) : null;
     }
 
-    function resolveTarget(expr, { collectionAdd = false } = {}) {
-      const state = {};
+    function resolveTarget(
+      expr: ts.Node,
+      { collectionAdd = false }: { collectionAdd?: boolean } = {},
+    ): TargetResolution {
+      const state: ResolveState = {};
       hitCeiling = false;
       let result = resolve(expr, state, 0);
-      const capped = hitCeiling;
+      const capped: boolean = hitCeiling;
       if (collectionAdd && result && result.segments) {
         result = { ...result, segments: [...result.segments, ANY] };
       }
@@ -3726,7 +4167,7 @@ export function analyzeFiles({
       };
     }
 
-    function nonFirestoreValue(expr, depth = 0) {
+    function nonFirestoreValue(expr: ts.Node | null | undefined, depth = 0): string | null {
       if (depth > 8 || !expr) return null;
       const node = stripWrappers(expr);
       if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
@@ -3747,11 +4188,12 @@ export function analyzeFiles({
           }
         }
       }
-      if (ts.isCallExpression(node) && ts.isIdentifier(stripWrappers(node.expression))) {
+      const plainCallee = ts.isCallExpression(node) ? stripWrappers(node.expression) : null;
+      if (ts.isCallExpression(node) && plainCallee && ts.isIdentifier(plainCallee)) {
         const key = calleeKey(node);
         const known = key ? returnNonFirestore.get(key) : null;
         if (known) return known;
-        const callee = stripWrappers(node.expression);
+        const callee = plainCallee;
         const imported = facts.imports.get(callee.text);
         if (
           imported &&
@@ -3816,7 +4258,7 @@ export function analyzeFiles({
       if (ts.isPropertyAccessExpression(node)) {
         const values = staticPropertyCandidates(node.expression, node.name.text, depth + 1);
         if (values?.length && values.length <= MAX_CANDIDATES) {
-          let reason = null;
+          let reason: string | null = null;
           for (const value of values) {
             const inner = resolverFor(value.facts).nonFirestoreValue(value.node, depth + 1);
             if (!inner) return null;
@@ -3861,8 +4303,8 @@ export function analyzeFiles({
       return null;
     }
 
-    function resolveCollectionSegments(expr) {
-      const state = {};
+    function resolveCollectionSegments(expr: ts.Node): CollectionCandidate | null {
+      const state: ResolveState = {};
       const result = resolve(expr, state, 0);
       if (!result?.segments || !result.segments.length) return null;
       if (result.segments.length % 2 === 0) return null;
@@ -3871,8 +4313,8 @@ export function analyzeFiles({
       return { segments: result.segments, canonical: Boolean(state.usedBuilder) };
     }
 
-    function resolveReadBack(expr) {
-      const state = {};
+    function resolveReadBack(expr: ts.Node): { templates: Set<string> } | null {
+      const state: ResolveState = {};
       const snapshot = resolveSnapshot(expr, state, 0) ?? resolve(expr, state, 0);
       if (!snapshot) return null;
       if (snapshot.templates) return { templates: snapshot.templates };
@@ -3883,7 +4325,7 @@ export function analyzeFiles({
       return null;
     }
 
-    function resolveCollectionGroup(expr) {
+    function resolveCollectionGroup(expr: ts.Node): string | null {
       const result = resolve(expr, {}, 0);
       return result?.group?.t === 'lit' ? result.group.v : null;
     }
@@ -3920,20 +4362,31 @@ export function analyzeFiles({
     };
   }
 
-  function payloadKeys(hostFacts, hostResolver, expr, isUpdate) {
-    const keys = new Set();
-    const casts = [];
-    const literals = new Map();
-    let opaque = null;
+  function payloadKeys(
+    hostFacts: FileFacts,
+    hostResolver: Resolver,
+    expr: ts.Node | null | undefined,
+    isUpdate: boolean,
+  ): PayloadRead {
+    const keys = new Set<string>();
+    const casts: string[] = [];
+    const literals = new Map<string, Set<string>>();
+    let opaque: string | null = null;
 
-    const noteLiteral = (key, valueNode) => {
+    const noteLiteral = (key: string, valueNode: ts.Node | undefined): void => {
       const value = valueNode ? stripWrappers(valueNode) : null;
       if (!value || !ts.isStringLiteralLike(value)) return;
-      if (!literals.has(key)) literals.set(key, new Set());
-      literals.get(key).add(value.text);
+      let seen = literals.get(key);
+      if (!seen) literals.set(key, (seen = new Set()));
+      seen.add(value.text);
     };
 
-    const readObject = (node, depth, facts, resolver) => {
+    const readObject = (
+      node: ts.ObjectLiteralExpression,
+      depth: number,
+      facts: FileFacts,
+      resolver: Resolver,
+    ): void => {
       const { source } = facts;
       for (const property of node.properties) {
         if (ts.isSpreadAssignment(property)) {
@@ -3974,7 +4427,12 @@ export function analyzeFiles({
       }
     };
 
-    const readSpread = (expr_, depth, facts, resolver) => {
+    const readSpread = (
+      expr_: ts.Node,
+      depth: number,
+      facts: FileFacts,
+      resolver: Resolver,
+    ): void => {
       if (depth > PAYLOAD_DEPTH) {
         opaque ??= 'spread nested too deep';
         return;
@@ -4009,7 +4467,12 @@ export function analyzeFiles({
       readValue(node, depth + 1, facts, resolver);
     };
 
-    const readArrayElement = (expr_, depth, facts, resolver) => {
+    const readArrayElement = (
+      expr_: ts.Node,
+      depth: number,
+      facts: FileFacts,
+      resolver: Resolver,
+    ): void => {
       if (depth > PAYLOAD_DEPTH) {
         opaque ??= 'payload callback nested too deep';
         return;
@@ -4037,10 +4500,10 @@ export function analyzeFiles({
             opaque ??= 'payload callback is not an inline function';
             return;
           }
-          const returns = [];
+          const returns: ts.Expression[] = [];
           if (!ts.isBlock(callback.body)) returns.push(callback.body);
           else {
-            const collect = (inner) => {
+            const collect = (inner: ts.Node): void => {
               if (inner !== callback && ts.isFunctionLike(inner)) return;
               if (ts.isReturnStatement(inner) && inner.expression) returns.push(inner.expression);
               ts.forEachChild(inner, collect);
@@ -4075,7 +4538,12 @@ export function analyzeFiles({
       opaque ??= 'payload array element is not statically readable';
     };
 
-    const fromEntriesKeys = (argument, facts, resolver, isUpdate) => {
+    const fromEntriesKeys = (
+      argument: ts.Node,
+      facts: FileFacts,
+      resolver: Resolver,
+      isUpdate: boolean,
+    ): string[] | null => {
       const mapped = stripWrappers(argument);
       if (
         !ts.isCallExpression(mapped) ||
@@ -4091,18 +4559,20 @@ export function analyzeFiles({
       const list = mapped.expression.expression;
       const returns = callbackReturns(callback);
       if (!returns.length) return null;
-      const names = new Set();
+      const names = new Set<string>();
       for (const returned of returns) {
         const entry = stripWrappers(returned);
         if (!ts.isArrayLiteralExpression(entry) || entry.elements.length !== 2) return null;
         const key = stripWrappers(entry.elements[0]);
-        let found;
+        const keyBase = ts.isPropertyAccessExpression(key) ? stripWrappers(key.expression) : null;
+        let found: string[] | null;
         if (ts.isIdentifier(key) && key.text === element.text) {
           found = resolver.literalStringList(list);
         } else if (
           ts.isPropertyAccessExpression(key) &&
-          ts.isIdentifier(stripWrappers(key.expression)) &&
-          stripWrappers(key.expression).text === element.text
+          keyBase &&
+          ts.isIdentifier(keyBase) &&
+          keyBase.text === element.text
         ) {
           const values = resolver.propertyValuesFromArray(list, key.name.text);
           if (!values?.length) return null;
@@ -4126,7 +4596,12 @@ export function analyzeFiles({
       return names.size ? [...names] : null;
     };
 
-    const readValue = (expr_, depth, facts, resolver) => {
+    const readValue = (
+      expr_: ts.Node | null | undefined,
+      depth: number,
+      facts: FileFacts,
+      resolver: Resolver,
+    ): void => {
       if (depth > PAYLOAD_DEPTH) {
         opaque ??= 'payload nested too deep';
         return;
@@ -4208,7 +4683,9 @@ export function analyzeFiles({
         return;
       }
       if (ts.isPropertyAccessExpression(node)) {
-        const canonicalSafeParseKeys = (property) => {
+        const canonicalSafeParseKeys = (
+          property: ts.PropertyAccessExpression,
+        ): { keys: Set<string> } | null => {
           if (property.name.text !== 'data') return null;
           let result = stripWrappers(property.expression);
           if (ts.isIdentifier(result)) {
@@ -4221,7 +4698,7 @@ export function analyzeFiles({
           if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'safeParse')
             return null;
           let schema = stripWrappers(callee.expression);
-          let picked = null;
+          let picked: string[] | null = null;
           if (
             ts.isCallExpression(schema) &&
             ts.isPropertyAccessExpression(schema.expression) &&
@@ -4247,15 +4724,17 @@ export function analyzeFiles({
             const entries = ts.isElementAccessExpression(base)
               ? coreMapEntries(base, facts, source)
               : null;
+            const schemaName = schema.name.text;
             const names = entries?.map((entry) =>
-              entry && typeof entry === 'object' && !Array.isArray(entry)
-                ? registry.canonicalParseName.get(entry[schema.name.text])
+              isRecord(entry) && !Array.isArray(entry)
+                ? registry.canonicalParseName.get(entry[schemaName])
                 : undefined,
             );
-            if (!names?.length || !names.every(Boolean)) return null;
-            const keys = new Set();
+            if (!names?.length || !names.every((name): name is string => Boolean(name)))
+              return null;
+            const keys = new Set<string>();
             for (const name of names)
-              for (const key of registry.canonicalParseKeys.get(name).keys) keys.add(key);
+              for (const key of registry.canonicalParseKeys.get(name)!.keys) keys.add(key);
             return { keys };
           }
           if (!ts.isIdentifier(schema)) return null;
@@ -4267,7 +4746,9 @@ export function analyzeFiles({
           if (!picked.length || picked.some((key) => !found.keys.has(key))) return null;
           return { keys: new Set(picked) };
         };
-        const canonicalNestedKeys = (property) => {
+        const canonicalNestedKeys = (
+          property: ts.PropertyAccessExpression,
+        ): DeclaredKeys | null => {
           const container = stripWrappers(property.expression);
           let parseCall = container;
           if (ts.isIdentifier(container)) {
@@ -4285,13 +4766,10 @@ export function analyzeFiles({
           }
           if (!ts.isCallExpression(parseCall) || parseCall.arguments.length !== 1) return null;
           const parseCallee = stripWrappers(parseCall.expression);
-          if (
-            !ts.isPropertyAccessExpression(parseCallee) ||
-            parseCallee.name.text !== 'parse' ||
-            !ts.isIdentifier(stripWrappers(parseCallee.expression))
-          )
+          if (!ts.isPropertyAccessExpression(parseCallee) || parseCallee.name.text !== 'parse')
             return null;
           const schemaIdentifier = stripWrappers(parseCallee.expression);
+          if (!ts.isIdentifier(schemaIdentifier)) return null;
           const imported = facts.imports.get(schemaIdentifier.text);
           if (!isCoreImport(facts, imported)) return null;
           const schema = registry.canonicalParseSchema.get(imported.imported);
@@ -4410,14 +4888,15 @@ export function analyzeFiles({
             const entries = ts.isElementAccessExpression(base)
               ? coreMapEntries(base, facts, source)
               : null;
+            const schemaName = schema.name.text;
             const names = entries?.map((entry) =>
-              entry && typeof entry === 'object' && !Array.isArray(entry)
-                ? registry.canonicalParseName.get(entry[schema.name.text])
+              isRecord(entry) && !Array.isArray(entry)
+                ? registry.canonicalParseName.get(entry[schemaName])
                 : undefined,
             );
-            if (names?.length && names.every(Boolean)) {
+            if (names?.length && names.every((name): name is string => Boolean(name))) {
               for (const name of names) {
-                for (const key of registry.canonicalParseKeys.get(name).keys) {
+                for (const key of registry.canonicalParseKeys.get(name)!.keys) {
                   keys.add(isUpdate ? key.split('.')[0] : key);
                 }
               }
@@ -4435,7 +4914,7 @@ export function analyzeFiles({
           const readBack = resolver.resolveReadBack(callee.expression);
           if (readBack?.templates?.size) {
             let readable = true;
-            const found = new Set();
+            const found = new Set<string>();
             for (const template of readBack.templates) {
               const declared = registry.declaredFor(template);
               if (!declared || declared.open) {
@@ -4544,7 +5023,7 @@ export function analyzeFiles({
     };
   }
 
-  function payloadKeysOfCallback(value, isUpdate) {
+  function payloadKeysOfCallback(value: Value, isUpdate: boolean): PayloadRead | null {
     const node = stripWrappers(value.node);
     if (
       !ts.isArrowFunction(node) &&
@@ -4555,56 +5034,58 @@ export function analyzeFiles({
     const returns = callbackReturns(node);
     if (!returns.length) return null;
     const resolver = resolverFor(value.facts);
-    const keys = new Set();
-    const casts = [];
-    const literals = new Map();
-    let opaque = null;
+    const keys = new Set<string>();
+    const casts: string[] = [];
+    const literals = new Map<string, Set<string>>();
+    let opaque: string | null = null;
     for (const returned of returns) {
       const read = payloadKeys(value.facts, resolver, returned, isUpdate);
       for (const key of read.keys) keys.add(key);
       casts.push(...read.casts);
       opaque ??= read.opaque;
       for (const [key, values] of read.literals) {
-        if (!literals.has(key)) literals.set(key, new Set());
-        for (const literal of values) literals.get(key).add(literal);
+        let seen = literals.get(key);
+        if (!seen) literals.set(key, (seen = new Set()));
+        for (const literal of values) seen.add(literal);
       }
     }
     return { keys, casts, opaque, literals };
   }
 
-  const payloadBuilders = new Map();
+  const payloadBuilders = new Map<string, { set: PayloadReading; update: PayloadReading }>();
 
-  function sweep({ collectKnowledge }) {
-    const writes = [];
-    const notFirestore = [];
-    const unclassified = [];
-    const pendingParamArgs = new Map();
-    const pendingReturns = new Map();
-    const pendingParamPayloads = new Map();
-    const pendingParamCarrierProperties = new Map();
-    const pendingReturnCarrierProperties = new Map();
-    const pendingParamCollections = new Map();
-    const pendingParamCallbackPayloads = new Map();
-    const pendingParamArrayEntries = new Map();
-    const pendingParamNotFirestore = new Map();
-    const pendingParamValues = new Map();
-    const pendingParamGroups = new Map();
-    const pendingReturnCollections = new Map();
-    const pendingReturnGroups = new Map();
-    const pendingReturnArrayProperties = new Map();
-    const pendingPassThrough = new Map();
-    const pendingNonFirestoreReturns = new Map();
+  function sweep({ collectKnowledge }: { collectKnowledge: boolean }) {
+    const writes: WriteRecord[] = [];
+    const notFirestore: NotFirestoreSite[] = [];
+    const unclassified: UnclassifiedCall[] = [];
+    const pendingParamArgs = new Map<string, Set<string>>();
+    const pendingReturns = new Map<string, Set<string>>();
+    const pendingParamPayloads = new Map<string, PayloadReading>();
+    const pendingParamCarrierProperties = new Map<string, Value[]>();
+    const pendingReturnCarrierProperties = new Map<string, Map<string, Value[]>>();
+    const pendingParamCollections = new Map<string, Set<string>>();
+    const pendingParamCallbackPayloads = new Map<string, PayloadReading>();
+    const pendingParamArrayEntries = new Map<string, Value[]>();
+    const pendingParamNotFirestore = new Map<string, { reason: string | null; unknown: boolean }>();
+    const pendingParamValues = new Map<string, Value[]>();
+    const pendingParamGroups = new Map<string, Set<string>>();
+    const pendingReturnCollections = new Map<string, Set<string>>();
+    const pendingReturnGroups = new Map<string, Set<string>>();
+    const pendingReturnArrayProperties = new Map<string, Map<string, Value[]>>();
+    const pendingPassThrough = new Map<string, number>();
+    const pendingNonFirestoreReturns = new Map<string, string>();
     resolverCache = new Map();
 
     for (const facts of files) {
       const resolver = resolverFor(facts);
       const { source } = facts;
-      const lineOf = (node) => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      const lineOf = (node: ts.Node): number =>
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
       if (collectKnowledge) {
         for (const [name, fn] of facts.functions) {
           if (!fn.returns.length) continue;
-          const found = new Set();
+          const found = new Set<string>();
           let ok = true;
           for (const returnExpr of fn.returns) {
             const returned = stripWrappers(returnExpr);
@@ -4627,8 +5108,8 @@ export function analyzeFiles({
         for (const [name, fn] of facts.functions) {
           if (!fn.returns.length || fn.returns.length > MAX_CALLBACK_RETURNS) continue;
           const params = fn.params ?? [];
-          const passThroughIndex = (() => {
-            let found = null;
+          const passThroughIndex = ((): number | null => {
+            let found: number | null = null;
             for (const returnExpr of fn.returns) {
               let current = stripWrappers(returnExpr);
               if (
@@ -4660,7 +5141,7 @@ export function analyzeFiles({
           if (passThroughIndex !== null)
             pendingPassThrough.set(fnKey(facts.relPath, name), passThroughIndex);
           {
-            let reason = null;
+            let reason: string | null = null;
             let allNonFirestore = fn.returns.length > 0;
             for (const returnExpr of fn.returns) {
               const found = resolver.nonFirestoreValue(returnExpr);
@@ -4673,8 +5154,8 @@ export function analyzeFiles({
             if (allNonFirestore && reason)
               pendingNonFirestoreReturns.set(fnKey(facts.relPath, name), reason);
           }
-          const collections = new Set();
-          const groups = new Set();
+          const collections = new Set<string>();
+          const groups = new Set<string>();
           let ok = true;
           for (const returnExpr of fn.returns) {
             const returned = stripWrappers(returnExpr);
@@ -4730,8 +5211,9 @@ export function analyzeFiles({
             const target = paramKey(calleePath, calleeName, index);
             const resolved = resolver.resolveTarget(argument);
             if (resolved.templates) {
-              if (!pendingParamArgs.has(target)) pendingParamArgs.set(target, new Set());
-              for (const template of resolved.templates) pendingParamArgs.get(target).add(template);
+              let supplied = pendingParamArgs.get(target);
+              if (!supplied) pendingParamArgs.set(target, (supplied = new Set()));
+              for (const template of resolved.templates) supplied.add(template);
             }
             const shape = stripWrappers(argument);
             if (
@@ -4743,7 +5225,7 @@ export function analyzeFiles({
             ) {
               const read = payloadKeys(facts, resolver, argument, false);
               if (read.keys.size || !read.opaque) {
-                const existing = pendingParamPayloads.get(target) ?? {
+                const existing: PayloadReading = pendingParamPayloads.get(target) ?? {
                   keys: new Set(),
                   opaque: null,
                 };
@@ -4754,14 +5236,15 @@ export function analyzeFiles({
             }
             const collection = resolver.resolveCollectionSegments(argument);
             if (collection) {
-              if (!pendingParamCollections.has(target))
-                pendingParamCollections.set(target, new Set());
-              pendingParamCollections.get(target).add(JSON.stringify(collection));
+              let collections = pendingParamCollections.get(target);
+              if (!collections) pendingParamCollections.set(target, (collections = new Set()));
+              collections.add(JSON.stringify(collection));
             }
             const group = resolver.resolveCollectionGroup(argument);
             if (group) {
-              if (!pendingParamGroups.has(target)) pendingParamGroups.set(target, new Set());
-              pendingParamGroups.get(target).add(group);
+              let groups = pendingParamGroups.get(target);
+              if (!groups) pendingParamGroups.set(target, (groups = new Set()));
+              groups.add(group);
             }
             const suppliedValues = pendingParamValues.get(target) ?? [];
             if (
@@ -4774,10 +5257,10 @@ export function analyzeFiles({
             if (suppliedValues.length <= MAX_CANDIDATES)
               pendingParamValues.set(target, suppliedValues);
             if (ts.isArrowFunction(shape) || ts.isFunctionExpression(shape)) {
-              const returns = [];
+              const returns: ts.Expression[] = [];
               if (!ts.isBlock(shape.body)) returns.push(shape.body);
               else {
-                const collect = (inner) => {
+                const collect = (inner: ts.Node): void => {
                   if (inner !== shape && ts.isFunctionLike(inner)) return;
                   if (ts.isReturnStatement(inner) && inner.expression)
                     returns.push(inner.expression);
@@ -4786,7 +5269,7 @@ export function analyzeFiles({
                 ts.forEachChild(shape.body, collect);
               }
               if (returns.length && returns.length <= MAX_CALLBACK_RETURNS) {
-                const existing = pendingParamCallbackPayloads.get(target) ?? {
+                const existing: PayloadReading = pendingParamCallbackPayloads.get(target) ?? {
                   keys: new Set(),
                   opaque: null,
                 };
@@ -4840,7 +5323,7 @@ export function analyzeFiles({
         }
         for (const [name, fn] of facts.functions) {
           if (!fn.returns.length || fn.returns.length > 8) continue;
-          const readings = {
+          const readings: { set: PayloadReading; update: PayloadReading } = {
             set: { keys: new Set(), opaque: null },
             update: { keys: new Set(), opaque: null },
           };
@@ -4868,7 +5351,7 @@ export function analyzeFiles({
         for (const [name, fn] of facts.functions) {
           const shapes = distinctReturnShapes(fn.returns);
           if (!shapes.length || shapes.length > MAX_CALLBACK_RETURNS) continue;
-          const collected = new Map();
+          const collected = new Map<string, Value[]>();
           let carrierShaped = false;
           let ok = true;
           for (const returnExpr of shapes) {
@@ -4902,9 +5385,9 @@ export function analyzeFiles({
         }
         for (const [name, fn] of facts.functions) {
           if (!fn.returns.length || fn.returns.length > MAX_CALLBACK_RETURNS) continue;
-          const collected = new Map();
+          const collected = new Map<string, Value[]>();
           for (const property of ARRAY_CARRIER_PROPERTIES) {
-            const values = [];
+            const values: Value[] = [];
             let ok = true;
             for (const returnExpr of fn.returns) {
               const found = resolver.propertyValuesFromArray(returnExpr, property);
@@ -4924,8 +5407,8 @@ export function analyzeFiles({
       }
 
       if (facts.library) continue;
-      const record = (node, methods, classified) => {
-        if (classified.notFirestore) {
+      const record = (node: ts.CallExpression, methods: string[], classified: Classified): void => {
+        if ('notFirestore' in classified) {
           notFirestore.push({
             file: facts.relPath,
             pos: node.getStart(source),
@@ -4938,7 +5421,7 @@ export function analyzeFiles({
         }
       };
 
-      const recordUnresolvedSelector = (node, receiver) => {
+      const recordUnresolvedSelector = (node: ts.CallExpression, receiver: ts.Expression): void => {
         const evidence = notFirestoreEvidence(
           facts,
           resolver,
@@ -4972,7 +5455,7 @@ export function analyzeFiles({
         });
       };
 
-      const visit = (node) => {
+      const visit = (node: ts.Node): void => {
         if (ts.isCallExpression(node)) {
           const callee = stripWrappers(node.expression);
           const direct = writeMethodAccess(callee, facts);
@@ -5051,7 +5534,12 @@ export function analyzeFiles({
     };
   }
 
-  function resolveIndirectWrite(facts, resolver, callee, call) {
+  function resolveIndirectWrite(
+    facts: FileFacts,
+    resolver: Resolver,
+    callee: ts.Expression,
+    call: ts.CallExpression,
+  ): IndirectWrite | null {
     if (!ts.isPropertyAccessExpression(callee) || !INDIRECTION_METHODS.has(callee.name.text))
       return null;
     const bound = stripWrappers(callee.expression);
@@ -5104,9 +5592,10 @@ export function analyzeFiles({
     }
     if (kind === 'apply') {
       const list = args[1] ? stripWrappers(args[1]) : null;
+      const head = list && ts.isArrayLiteralExpression(list) ? list.elements[0] : undefined;
       const first =
-        list && ts.isArrayLiteralExpression(list) && !ts.isSpreadElement(list.elements[0] ?? {})
-          ? list.elements[0]
+        list && ts.isArrayLiteralExpression(list) && (!head || !ts.isSpreadElement(head))
+          ? head
           : null;
       return {
         methods: access.methods,
@@ -5123,7 +5612,12 @@ export function analyzeFiles({
     };
   }
 
-  function reflectiveMethodSource(facts, resolver, node, depth = 0) {
+  function reflectiveMethodSource(
+    facts: FileFacts,
+    resolver: Resolver,
+    node: ts.Node | null | undefined,
+    depth = 0,
+  ): boolean {
     if (!node || depth > 4) return false;
     const current = stripWrappers(node);
     if (ts.isCallExpression(current) && ts.isPropertyAccessExpression(current.expression)) {
@@ -5148,10 +5642,14 @@ export function analyzeFiles({
     return false;
   }
 
-  /**
-   * @returns {{ refExpr, dataExpr, extraArgs? , fieldPathArgs? } | { notFirestore: string }}
-   */
-  function classifyWrite(facts, resolver, receiver, methods, call, options = {}) {
+  function classifyWrite(
+    facts: FileFacts,
+    resolver: Resolver,
+    receiver: ts.Expression,
+    methods: string[],
+    call: ts.CallExpression,
+    options: { indirect?: WriteForm } = {},
+  ): Classified {
     const receiverNode = stripWrappers(receiver);
     const args = call.arguments;
 
@@ -5216,7 +5714,13 @@ export function analyzeFiles({
     return { refExpr: receiver, dataExpr: args[0], extraArgs: args.slice(1) };
   }
 
-  function notFirestoreEvidence(facts, resolver, receiverNode, methods, args) {
+  function notFirestoreEvidence(
+    facts: FileFacts,
+    resolver: Resolver,
+    receiverNode: ts.Expression,
+    methods: readonly string[],
+    args: readonly ts.Expression[],
+  ): string | null {
     const value = resolver.nonFirestoreValue(receiverNode);
     if (value) return `receiver is ${value}`;
 
@@ -5283,16 +5787,19 @@ export function analyzeFiles({
     return null;
   }
 
-  /**
-   * @returns {string | null}
-   */
-  function ownMemberDispatch(facts, resolver, receiverNode, methods) {
-    const declares = (names) => !methods.length || methods.every((method) => names.has(method));
+  function ownMemberDispatch(
+    _facts: FileFacts,
+    resolver: Resolver,
+    receiverNode: ts.Expression,
+    methods: readonly string[],
+  ): string | null {
+    const declares = (names: Set<string>): boolean =>
+      !methods.length || methods.every((method) => names.has(method));
 
     if (receiverNode.kind === ts.SyntaxKind.ThisKeyword) {
       for (let parent = receiverNode.parent; parent; parent = parent.parent) {
         if (!ts.isClassDeclaration(parent) && !ts.isClassExpression(parent)) continue;
-        const names = new Set();
+        const names = new Set<string>();
         for (const member of parent.members) {
           if (
             member.name &&
@@ -5309,14 +5816,14 @@ export function analyzeFiles({
       return null;
     }
 
-    let literal = receiverNode;
+    let literal: ts.Expression = receiverNode;
     if (ts.isIdentifier(literal)) {
       const decl = resolver.nearestDecl(literal.text, literal.pos, literal);
       if (!decl?.initializer) return null;
       literal = stripWrappers(decl.initializer);
     }
     if (!ts.isObjectLiteralExpression(literal)) return null;
-    const names = new Set();
+    const names = new Set<string>();
     for (const property of literal.properties) {
       if (
         property.name &&
@@ -5330,12 +5837,17 @@ export function analyzeFiles({
       : null;
   }
 
-  function sharedMapEntryBinding(facts, resolver, refNode, dataNode) {
+  function sharedMapEntryBinding(
+    facts: FileFacts,
+    resolver: Resolver,
+    refNode: ts.Node,
+    dataNode: ts.Node | null,
+  ): { access: ts.ElementAccessExpression; keys: string[] } | null {
     if (!refNode || !dataNode) return null;
-    const bindingsOf = (root) => {
-      const found = new Set();
-      const seen = new Set();
-      const visit = (node, depth) => {
+    const bindingsOf = (root: ts.Node): Set<ts.ElementAccessExpression> => {
+      const found = new Set<ts.ElementAccessExpression>();
+      const seen = new Set<ts.Node>();
+      const visit = (node: ts.Node, depth: number): void => {
         if (depth > PAYLOAD_DEPTH * 4 || seen.has(node)) return;
         seen.add(node);
         if (ts.isIdentifier(node)) {
@@ -5350,7 +5862,7 @@ export function analyzeFiles({
           ) {
             return;
           }
-          const initializer = stripParens(stripWrappers(declaration.initializer));
+          const initializer = stripParens(stripWrappers(declaration.initializer!));
           if (
             ts.isElementAccessExpression(initializer) &&
             coreMapEntries(initializer, facts, facts.source)
@@ -5375,12 +5887,26 @@ export function analyzeFiles({
     const shared = [...bindingsOf(dataNode)].filter((access) => fromRef.has(access));
     if (shared.length !== 1) return null;
     const access = shared[0];
-    const imported = facts.imports.get(stripParens(access.expression).text);
-    const keys = Object.keys(registry.coreConstMap(imported.imported));
+    const base = stripParens(access.expression);
+    const imported = ts.isIdentifier(base) ? facts.imports.get(base.text) : undefined;
+    const map = imported ? registry.coreConstMap(imported.imported) : null;
+    if (!map) return null;
+    const keys = Object.keys(map);
     return keys.length > 1 && keys.length <= MAX_CANDIDATES ? { access, keys } : null;
   }
 
-  function carrierPairing(facts, resolver, refNode, dataNode) {
+  function carrierPairing(
+    facts: FileFacts,
+    resolver: Resolver,
+    refNode: ts.Node,
+    dataNode: ts.Node | null,
+  ): {
+    carrier: ts.Expression;
+    refProperty: string;
+    dataProperty: string;
+    invoke: boolean;
+    refIsPath?: boolean;
+  } | null {
     if (!dataNode || !refNode) return null;
     if (
       ts.isCallExpression(refNode) &&
@@ -5425,14 +5951,18 @@ export function analyzeFiles({
     };
   }
 
-  function v1SourceEntry(facts, resolver, expr, depth = 0) {
+  function v1SourceEntry(
+    facts: FileFacts,
+    resolver: Resolver,
+    expr: ts.Node,
+    depth = 0,
+  ): { table: Readonly<RemovalOnlyTable>; entry: string } | null {
     if (depth > CARRIER_DEPTH) return null;
     const node = stripWrappers(expr);
     if (ts.isIdentifier(node)) {
       const declarations = resolver.visibleDecls(node.text, node.pos, node);
-      return declarations.length === 1 && declarations[0].initializer
-        ? v1SourceEntry(facts, resolver, declarations[0].initializer, depth + 1)
-        : null;
+      const initializer = declarations.length === 1 ? declarations[0].initializer : undefined;
+      return initializer ? v1SourceEntry(facts, resolver, initializer, depth + 1) : null;
     }
     if (!ts.isPropertyAccessExpression(node) || !ts.isIdentifier(node.expression)) return null;
     const name = node.expression.text;
@@ -5445,14 +5975,18 @@ export function analyzeFiles({
     return declaredIn === table.module ? { table, entry: node.name.text } : null;
   }
 
-  function v1SourceDocument(facts, resolver, expr, depth = 0) {
+  function v1SourceDocument(
+    facts: FileFacts,
+    resolver: Resolver,
+    expr: ts.Node,
+    depth = 0,
+  ): { table: Readonly<RemovalOnlyTable>; entry: string } | null {
     if (depth > CARRIER_DEPTH) return null;
     const node = stripWrappers(expr);
     if (ts.isIdentifier(node)) {
       const declarations = resolver.visibleDecls(node.text, node.pos, node);
-      return declarations.length === 1 && declarations[0].initializer
-        ? v1SourceDocument(facts, resolver, declarations[0].initializer, depth + 1)
-        : null;
+      const initializer = declarations.length === 1 ? declarations[0].initializer : undefined;
+      return initializer ? v1SourceDocument(facts, resolver, initializer, depth + 1) : null;
     }
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return null;
     if (node.expression.name.text !== 'doc' || node.arguments.length !== 1) return null;
@@ -5480,10 +6014,21 @@ export function analyzeFiles({
       : null;
   }
 
-  function buildWrite(facts, resolver, call, methods, classified, line) {
+  function buildWrite(
+    facts: FileFacts,
+    resolver: Resolver,
+    call: ts.CallExpression,
+    methods: string[],
+    classified: WriteForm,
+    line: number,
+  ): WriteRecord {
     const { source } = facts;
 
-    const readAs = (method) => {
+    const readAs = (
+      method: string,
+    ):
+      | { single: WriteBranch; correlated?: undefined }
+      | { correlated: WriteBranch[]; single?: undefined } => {
       const isUpdate = method === 'update';
       const collectionAdd = method === 'add';
 
@@ -5513,7 +6058,7 @@ export function analyzeFiles({
         ? null
         : sharedMapEntryBinding(facts, resolver, refNode, dataNode);
       if (entryBinding) {
-        const perEntry = [];
+        const perEntry: WriteBranch[] = [];
         for (const key of entryBinding.keys) {
           narrowedEntries.set(entryBinding.access, key);
           try {
@@ -5545,9 +6090,9 @@ export function analyzeFiles({
           pairing.refProperty,
           pairing.dataProperty,
         );
-        const correlated = [];
-        let readable = Boolean(pairs?.length) && pairs.length <= MAX_CANDIDATES;
-        for (const pair of readable ? pairs : []) {
+        const correlated: WriteBranch[] = [];
+        let readable = !!pairs && pairs.length > 0 && pairs.length <= MAX_CANDIDATES;
+        for (const pair of readable && pairs ? pairs : []) {
           if (!pairing.invoke && stripWrappers(pair.right.node).kind === ts.SyntaxKind.NullKeyword)
             continue;
           // Resolve each pair in its own file: a foreign node's offset read against this file's source
@@ -5582,10 +6127,10 @@ export function analyzeFiles({
       }
 
       const target = resolver.resolveTarget(classified.refExpr, { collectionAdd });
-      let keys = new Set();
-      let casts = [];
-      let opaque = null;
-      let literals = new Map();
+      let keys = new Set<string>();
+      let casts: string[] = [];
+      let opaque: string | null = null;
+      let literals = new Map<string, Set<string>>();
       if (classified.fieldPathArgs) {
         for (let i = 0; i < classified.fieldPathArgs.length; i += 2) {
           const argument = stripWrappers(classified.fieldPathArgs[i]);
@@ -5619,7 +6164,9 @@ export function analyzeFiles({
     const correlatedBranches =
       readings.length === 1 && first.single
         ? null
-        : readings.flatMap((reading) => reading.correlated ?? [reading.single]);
+        : readings.flatMap((reading) =>
+            reading.correlated ? reading.correlated : [reading.single],
+          );
 
     const snippet = facts.text
       .slice(call.getStart(source), call.getEnd())
@@ -5665,7 +6212,10 @@ export function analyzeFiles({
       pendingNonFirestoreReturns,
     } = sweep({ collectKnowledge: true });
     let changed = false;
-    const mergeStringSets = (pending, into) => {
+    const mergeStringSets = (
+      pending: Map<string, Set<string>>,
+      into: Map<string, Set<string>>,
+    ): void => {
       for (const [key, values] of pending) {
         const existing = into.get(key) ?? new Set();
         for (const value of values) {
@@ -5724,7 +6274,10 @@ export function analyzeFiles({
       if (existing.size <= MAX_CANDIDATES) paramCollections.set(key, existing);
     }
     for (const [key, read] of pendingParamCallbackPayloads) {
-      const existing = paramCallbackPayloads.get(key) ?? { keys: new Set(), opaque: null };
+      const existing: PayloadReading = paramCallbackPayloads.get(key) ?? {
+        keys: new Set(),
+        opaque: null,
+      };
       for (const field of read.keys) {
         if (!existing.keys.has(field)) {
           existing.keys.add(field);
@@ -5816,7 +6369,7 @@ export function analyzeFiles({
       }
     }
     for (const [key, properties] of pendingReturnArrayProperties) {
-      const existing = returnArrayProperties.get(key) ?? new Map();
+      const existing = returnArrayProperties.get(key) ?? new Map<string, Value[]>();
       for (const [property, values] of properties) {
         const known = existing.get(property) ?? [];
         for (const value of values) {
@@ -5834,7 +6387,7 @@ export function analyzeFiles({
       if (existing.size) returnArrayProperties.set(key, existing);
     }
     for (const [key, properties] of pendingReturnCarrierProperties) {
-      const existing = returnCarrierProperties.get(key) ?? new Map();
+      const existing = returnCarrierProperties.get(key) ?? new Map<string, Value[]>();
       let added = false;
       for (const [property, values] of properties) {
         const known = existing.get(property) ?? [];
@@ -5868,7 +6421,7 @@ export function analyzeFiles({
   return { writes, notFirestore, unclassified, packageBuilderUses, returnTargets, paramTargets };
 }
 
-export function enumerateWriteCallSites(files) {
+export function enumerateWriteCallSites(files: readonly FileFacts[]): WriteCallSite[] {
   const WRITE_NAMES = ['set', 'update', 'create', 'add'];
   const INDIRECTION_NAMES = ['call', 'apply', 'bind'];
   const PLAIN_CONTAINERS = [
@@ -5884,22 +6437,24 @@ export function enumerateWriteCallSites(files) {
   ];
   const PLAIN_CONTAINER_TYPE =
     /^(readonly\s+)?(Map|Set|WeakMap|WeakSet|ReadonlyMap|ReadonlySet|URLSearchParams|Headers|FormData|URL|Record|Array|Partial)\s*(<|\[|\||$)/;
-  const REFLECTIVE = {
+  const REFLECTIVE: Readonly<Record<string, readonly string[]>> = {
     Object: ['getOwnPropertyDescriptor', 'getOwnPropertyDescriptors'],
     Reflect: ['get', 'getOwnPropertyDescriptor'],
   };
   const STRUCTURAL_DEPTH = 8;
 
-  const sites = [];
+  type Invoked = { method: string | null; receiver: ts.Expression | null };
+
+  const sites: WriteCallSite[] = [];
   for (const facts of files) {
     const { source } = facts;
 
-    const soleInitializer = (name) => {
+    const soleInitializer = (name: string): ts.Expression | null => {
       const declared = (facts.varDecls.get(name) ?? []).filter((entry) => entry.initializer);
-      return declared.length === 1 ? declared[0].initializer : null;
+      return declared.length === 1 ? (declared[0].initializer ?? null) : null;
     };
 
-    const reflective = (expr, depth = 0) => {
+    const reflective = (expr: ts.Expression | null | undefined, depth = 0): boolean => {
       if (!expr || depth > STRUCTURAL_DEPTH) return false;
       const node = unwrapNode(expr);
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
@@ -5918,7 +6473,7 @@ export function enumerateWriteCallSites(files) {
       return false;
     };
 
-    const plainReceiver = (expr, depth = 0) => {
+    const plainReceiver = (expr: ts.Expression | null | undefined, depth = 0): string | null => {
       if (!expr || depth > STRUCTURAL_DEPTH) return null;
       const node = unwrapNode(expr);
       if (ts.isObjectLiteralExpression(node)) return 'an object literal';
@@ -5931,7 +6486,7 @@ export function enumerateWriteCallSites(files) {
         return `new ${node.expression.text}()`;
       }
       if (node.kind === ts.SyntaxKind.ThisKeyword) {
-        for (let parent = node.parent; parent; parent = parent.parent) {
+        for (let parent: ts.Node | undefined = node.parent; parent; parent = parent.parent) {
           if (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) {
             return `\`this\` in a class declared in this file`;
           }
@@ -5941,7 +6496,7 @@ export function enumerateWriteCallSites(files) {
       if (ts.isIdentifier(node)) {
         const initializer = soleInitializer(node.text);
         if (initializer) return plainReceiver(initializer, depth + 1);
-        for (let parent = node.parent; parent; parent = parent.parent) {
+        for (let parent: ts.Node | undefined = node.parent; parent; parent = parent.parent) {
           if (!ts.isFunctionLike(parent)) continue;
           const parameter = parent.parameters.find(
             (entry) => ts.isIdentifier(entry.name) && entry.name.text === node.text,
@@ -5956,7 +6511,11 @@ export function enumerateWriteCallSites(files) {
       return null;
     };
 
-    const invoked = (expr, args, depth = 0) => {
+    const invoked = (
+      expr: ts.Expression | null | undefined,
+      args: readonly ts.Expression[],
+      depth = 0,
+    ): Invoked | null => {
       if (!expr) return null;
       if (depth > STRUCTURAL_DEPTH) return { method: null, receiver: null };
       const node = unwrapNode(expr);
@@ -5991,15 +6550,19 @@ export function enumerateWriteCallSites(files) {
       return null;
     };
 
-    const walk = (node) => {
+    const walk = (node: ts.Node): void => {
       if (ts.isCallExpression(node)) {
         const callee = unwrapNode(node.expression);
         const args = [...node.arguments];
-        let found = null;
+        let found: Invoked | null = null;
+        const calleeOwner = ts.isPropertyAccessExpression(callee)
+          ? unwrapNode(callee.expression)
+          : null;
         if (
           ts.isPropertyAccessExpression(callee) &&
-          ts.isIdentifier(unwrapNode(callee.expression)) &&
-          unwrapNode(callee.expression).text === 'Reflect' &&
+          calleeOwner &&
+          ts.isIdentifier(calleeOwner) &&
+          calleeOwner.text === 'Reflect' &&
           callee.name.text === 'apply' &&
           args.length
         ) {
@@ -6029,15 +6592,11 @@ export function enumerateWriteCallSites(files) {
   return sites;
 }
 
-function treeOf(relPath, trees) {
+function treeOf(relPath: string, trees: readonly string[]): string {
   for (const tree of trees) if (relPath === tree || relPath.startsWith(`${tree}/`)) return tree;
   return 'other';
 }
 
-/**
- * @param {{ writes: any[], registry: any, exceptions?: any[], trees: string[], notFirestore?: any[],
- *   unclassified?: any[], callSites?: any[] | null, packageBuilderUses?: any[] }} input
- */
 export function evaluate({
   writes,
   registry,
@@ -6047,12 +6606,26 @@ export function evaluate({
   unclassified = [],
   callSites = null,
   packageBuilderUses = [],
-}) {
+}: {
+  writes: WriteRecord[];
+  registry: Pick<WriteRegistry, 'declaredFor' | 'schemaFor'>;
+  exceptions?: readonly WriteGuardException[];
+  trees: readonly string[];
+  notFirestore?: readonly NotFirestoreSite[];
+  unclassified?: readonly UnclassifiedCall[];
+  callSites?: readonly WriteCallSite[] | null;
+  packageBuilderUses?: readonly WriteGuardException[];
+}): {
+  violations: WriteViolation[];
+  applied: AppliedException[];
+  coverage: Map<string, CoverageRow>;
+  staleExceptions: string[];
+} {
   const remaining = exceptions.map((entry) => ({ ...entry, used: 0 }));
-  const applied = [];
-  const violations = [];
+  const applied: AppliedException[] = [];
+  const violations: WriteViolation[] = [];
 
-  const ordinals = new Map();
+  const ordinals = new Map<string, number>();
   for (const write of writes) {
     const key = `${write.file} :: ${write.fn ?? '(module)'} :: ${write.snippet}`;
     const next = (ordinals.get(key) ?? 0) + 1;
@@ -6077,7 +6650,7 @@ export function evaluate({
     }
   }
 
-  const excuse = (kind, write, detail) => {
+  const excuse = (kind: string, write: WriteRecord, detail?: string | null): boolean => {
     const entry = remaining.find(
       (candidate) =>
         candidate.kind === kind &&
@@ -6098,19 +6671,23 @@ export function evaluate({
     return true;
   };
 
-  const coverage = new Map();
-  const bump = (tree, field) => {
-    if (!coverage.has(tree)) {
-      coverage.set(tree, {
-        writes: 0,
-        resolved: 0,
-        payloadsParsed: 0,
-        payloadsRead: 0,
-        exceptions: 0,
-        violations: 0,
-      });
+  const coverage = new Map<string, CoverageRow>();
+  const bump = (tree: string, field: keyof CoverageRow): void => {
+    let row = coverage.get(tree);
+    if (!row) {
+      coverage.set(
+        tree,
+        (row = {
+          writes: 0,
+          resolved: 0,
+          payloadsParsed: 0,
+          payloadsRead: 0,
+          exceptions: 0,
+          violations: 0,
+        }),
+      );
     }
-    coverage.get(tree)[field] += 1;
+    row[field] += 1;
   };
 
   for (const write of writes) {
@@ -6119,7 +6696,7 @@ export function evaluate({
     const before = violations.length;
     const appliedBefore = applied.length;
 
-    const branches = write.correlatedBranches ?? [
+    const branches: PayloadBranch[] = write.correlatedBranches ?? [
       {
         templates: write.templates,
         unresolvedReason: write.unresolvedReason,
@@ -6173,7 +6750,7 @@ export function evaluate({
             });
           }
         }
-        const diffable = new Map();
+        const diffable = new Map<string, DeclaredKeys>();
         for (const template of branch.templates) {
           const narrowed = narrowedDeclaredKeys(registry.schemaFor(template), branch.literals);
           const declared = narrowed ?? registry.declaredFor(template);
@@ -6201,7 +6778,7 @@ export function evaluate({
         branchDiffable = branchDiffable && diffable.size === branch.templates.length;
 
         for (const key of branch.keys) {
-          const undeclaredIn = [];
+          const undeclaredIn: string[] = [];
           for (const [template, declared] of diffable) {
             if (!declared.keys.has(key)) undeclaredIn.push(template);
           }
@@ -6281,6 +6858,14 @@ export function runGuardOnSources({
   exceptions = [],
   packageDeclarations = null,
   trees = ['fixture'],
+}: {
+  sources: Readonly<Record<string, string>>;
+  librarySources?: Readonly<Record<string, string>>;
+  registry: WriteRegistry;
+  profile: GuardProfile;
+  exceptions?: readonly WriteGuardException[];
+  packageDeclarations?: PackageDeclarations | null;
+  trees?: readonly string[];
 }) {
   const files = Object.entries(sources).map(([rel, text]) => parseFile(rel, text));
   const libraryFiles = Object.entries(librarySources).map(([rel, text]) =>
@@ -6308,21 +6893,24 @@ export function runGuardOnSources({
     writes,
     notFirestore,
     unclassified,
-    staleExclusions: [],
+    staleExclusions: [] as string[],
   };
 }
 
-/**
- * @param {{ coverage: Map<string, any>, violations: any[], applied: any[], staleExceptions: string[], staleExclusions?: string[] }} result
- */
 export function formatReport({
   coverage,
   violations,
   applied,
   staleExceptions,
   staleExclusions = [],
-}) {
-  const lines = [];
+}: {
+  coverage: ReadonlyMap<string, CoverageRow>;
+  violations: readonly WriteViolation[];
+  applied: readonly AppliedException[];
+  staleExceptions: readonly string[];
+  staleExclusions?: readonly string[];
+}): string {
+  const lines: string[] = [];
   lines.push('Firestore write guard — coverage');
   lines.push(
     '  tree                       writes  target resolved  payload parsed  payload VERIFIED  exceptions  violations',
@@ -6336,10 +6924,11 @@ export function formatReport({
     '  (payload VERIFIED = read AND diffed against a readable schema; parsed is syntax only)',
   );
   lines.push('');
-  const byKind = new Map();
+  const byKind = new Map<string, WriteViolation[]>();
   for (const violation of violations) {
-    if (!byKind.has(violation.kind)) byKind.set(violation.kind, []);
-    byKind.get(violation.kind).push(violation);
+    let rows = byKind.get(violation.kind);
+    if (!rows) byKind.set(violation.kind, (rows = []));
+    rows.push(violation);
   }
   lines.push(`VIOLATIONS: ${violations.length}`);
   for (const [kind, rows] of [...byKind.entries()].sort()) {
@@ -6363,13 +6952,27 @@ export function formatReport({
   return lines.join('\n');
 }
 
-export async function loadRegistry({ sources, constantMapNames }) {
+export interface RegistrySources {
+  core: Loader<Record<string, unknown>>;
+  docSchemas: Loader<Record<string, unknown>>;
+  subpaths?: Readonly<Record<string, Loader<Record<string, unknown>>>>;
+}
+
+export async function loadRegistry({
+  sources,
+  constantMapNames,
+}: {
+  sources: RegistrySources;
+  constantMapNames: readonly string[];
+}): Promise<WriteRegistry> {
   const core = await sources.core();
   const docSchemas = await sources.docSchemas();
   const { COLLECTION_SCHEMAS } = docSchemas;
-  if (!COLLECTION_SCHEMAS)
+  if (!isRecord(COLLECTION_SCHEMAS))
     throw new Error("repo-guards: the core's docSchemas entry exports no COLLECTION_SCHEMAS");
-  const subpaths = {};
+  const { PATH_BUILDERS } = core;
+  if (!isRecord(PATH_BUILDERS)) throw new Error('repo-guards: the core exports no PATH_BUILDERS');
+  const subpaths: Record<string, unknown> = {};
   for (const [specifier, load] of Object.entries(sources.subpaths ?? {})) {
     try {
       Object.assign(subpaths, await load());
@@ -6377,17 +6980,17 @@ export async function loadRegistry({ sources, constantMapNames }) {
       throw new Error(`repo-guards: core entry point ${specifier} did not load`, { cause });
     }
   }
-  const constantMaps = {};
+  const constantMaps: Record<string, unknown> = {};
   for (const name of constantMapNames) {
     if (!core[name])
       throw new Error(`repo-guards: the core no longer exports the constant map ${name}`);
     constantMaps[name] = core[name];
   }
   return buildRegistry({
-    PATH_BUILDERS: core.PATH_BUILDERS,
+    PATH_BUILDERS,
     COLLECTION_SCHEMAS,
     constantMaps,
-    COLLECTION_REFS: core.COLLECTION_REFS ?? {},
+    COLLECTION_REFS: isRecord(core.COLLECTION_REFS) ? core.COLLECTION_REFS : {},
     canonicalSchemas: { ...core, ...subpaths, ...docSchemas },
     coreExports: { ...core, ...subpaths, ...docSchemas },
   });

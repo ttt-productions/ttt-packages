@@ -43,19 +43,25 @@ function makeFakeCtx(): FakeCtx {
 
 function stubCanvas(opts: { contextReturns?: Array<FakeCtx | null>; blob?: Blob | null }) {
   let callIndex = 0;
-  const canvases: any[] = [];
+  const pool = Array.from({ length: 8 }, () => document.createElement('canvas'));
+  const nextCanvas = () => {
+    const canvas = pool[callIndex];
+    if (!canvas) throw new Error('stubCanvas pool exhausted');
+    return canvas;
+  };
+  const makeCanvas = (ctx: FakeCtx | null) =>
+    Object.assign(nextCanvas(), {
+      getContext: vi.fn(() => ctx),
+      toBlob: vi.fn((cb: BlobCallback, _type?: string, _quality?: number) => {
+        cb(opts.blob === undefined ? new Blob(['x'], { type: 'image/jpeg' }) : opts.blob);
+      }),
+    });
+  const canvases: Array<ReturnType<typeof makeCanvas>> = [];
   const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
     if (tag !== 'canvas') throw new Error(`unexpected createElement(${tag})`);
     const hasExplicit = opts.contextReturns !== undefined && callIndex < opts.contextReturns.length;
     const ctx = hasExplicit ? opts.contextReturns![callIndex] : makeFakeCtx();
-    const canvas: any = {
-      width: 0,
-      height: 0,
-      getContext: vi.fn(() => ctx),
-      toBlob: vi.fn((cb: (b: Blob | null) => void) => {
-        cb(opts.blob === undefined ? new Blob(['x'], { type: 'image/jpeg' }) : opts.blob);
-      }),
-    };
+    const canvas = makeCanvas(ctx);
     canvases.push(canvas);
     callIndex++;
     return canvas;

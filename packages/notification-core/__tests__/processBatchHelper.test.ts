@@ -2,7 +2,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { processBatchHelper } from '../src/server/processBatchHelper.js';
 import { buildActiveNotificationDocId } from '../src/server/activeNotificationId.js';
 import type { NotificationSystemConfig, PendingNotification } from '../src/types.js';
-import type { ServerFirestore, ServerTransaction } from '../src/server/types.js';
+import type {
+  ServerCollectionRef,
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerFirestore,
+  ServerQuery,
+  ServerQuerySnapshot,
+  ServerTransaction,
+  ServerWriteBatch,
+} from '../src/server/types.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -76,15 +85,7 @@ function createMockDb({
     });
   }
 
-  const pendingSnapDocs = pendingDocs.map((pd) => ({
-    id: pd.id,
-    data: () => pd.data,
-    ref: { id: pd.id },
-  }));
-
-  let pendingCallCount = 0;
-
-  const makeDocRef = (colPath: string, id: string) => ({
+  const makeDocRef = (colPath: string, id: string): ServerDocRef => ({
     id,
     set: vi.fn(async (data: Record<string, unknown>) => {
       createdIds.push(id);
@@ -95,23 +96,37 @@ function createMockDb({
       updatedDocs.push({ id, data });
       col.set(id, { ...(col.get(id) ?? {}), ...data });
     }),
+    create: vi.fn(async (data: Record<string, unknown>) => {
+      if (getCol(colPath).has(id)) throw new Error(`document ${colPath}/${id} already exists`);
+      createdIds.push(id);
+      getCol(colPath).set(id, { ...data });
+    }),
     delete: vi.fn(async () => {
       getCol(colPath).delete(id);
     }),
-    get: vi.fn(async () => {
+    get: vi.fn(async (): Promise<ServerDocSnapshot> => {
       const data = getCol(colPath).get(id);
       return { id, exists: !!data, data: () => data ?? undefined, ref: makeDocRef(colPath, id) };
     }),
   });
 
+  const pendingSnapDocs: ServerDocSnapshot[] = pendingDocs.map((pd) => ({
+    id: pd.id,
+    exists: true,
+    data: () => ({ ...pd.data }),
+    ref: makeDocRef('pendingNotifications', pd.id),
+  }));
+
+  let pendingCallCount = 0;
+
   const db: ServerFirestore = {
-    collection: vi.fn((colPath: string) => {
+    collection: vi.fn((colPath: string): ServerCollectionRef => {
       if (colPath === 'pendingNotifications') {
-        return {
-          where: vi.fn().mockReturnThis(),
-          orderBy: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          get: vi.fn(async () => {
+        const pendingQuery: ServerCollectionRef & ServerQuery = {
+          where: () => pendingQuery,
+          orderBy: () => pendingQuery,
+          limit: () => pendingQuery,
+          get: vi.fn(async (): Promise<ServerQuerySnapshot> => {
             if (pendingCallCount === 0) {
               pendingCallCount++;
               return {
@@ -122,28 +137,39 @@ function createMockDb({
             }
             return { empty: true, size: 0, docs: [] };
           }),
-          add: vi.fn(),
-          doc: vi.fn(),
-        } as any;
+          add: vi.fn<ServerCollectionRef['add']>(),
+          doc: vi.fn<ServerCollectionRef['doc']>(),
+        };
+        return pendingQuery;
       }
 
       return {
         doc: (id?: string) => makeDocRef(colPath, id ?? 'auto'),
-        add: vi.fn(),
-        where: vi.fn(),
-      } as any;
+        add: vi.fn<ServerCollectionRef['add']>(),
+        where: vi.fn<ServerCollectionRef['where']>(),
+        orderBy: vi.fn<ServerCollectionRef['orderBy']>(),
+        limit: vi.fn<ServerCollectionRef['limit']>(),
+      };
     }),
     batch: vi.fn(() => {
-      const batch = {
-        delete: vi.fn((ref: any) => {
+      const batch: ServerWriteBatch = {
+        set: (ref, data, options) => {
+          void ref.set(data, options);
+          return batch;
+        },
+        update: (ref, data) => {
+          void ref.update(data);
+          return batch;
+        },
+        delete: vi.fn((ref: ServerDocRef) => {
           batchDeletedIds.push(ref.id);
           return batch;
         }),
-        commit: vi.fn().mockResolvedValue(undefined),
+        commit: vi.fn<ServerWriteBatch['commit']>().mockResolvedValue(undefined),
       };
-      return batch as any;
+      return batch;
     }),
-    doc: vi.fn(),
+    doc: vi.fn<ServerFirestore['doc']>(),
     runTransaction: async <T>(fn: (tx: ServerTransaction) => Promise<T>): Promise<T> => {
       const tx: ServerTransaction = {
         get: async (ref) => ref.get(),

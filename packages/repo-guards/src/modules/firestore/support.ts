@@ -3,6 +3,7 @@ import type { Finding, Guard } from '../../guard.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export type NoFacts = Readonly<Record<string, never>>;
 
@@ -26,7 +27,7 @@ export function bannedGuard(input: {
   return {
     title: input.title,
     description: input.description,
-    timeoutMs: input.timeoutMs ?? 120_000,
+    timeoutMs: input.timeoutMs ?? REPOSITORY_GUARD_TIMEOUT_MS,
     run(context) {
       return context.files(input.scope).flatMap((file) => findingsOf(file, input.match(file)));
     },

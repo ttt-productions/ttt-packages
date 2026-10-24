@@ -239,7 +239,9 @@ export function useMediaRecovery({
               await currentAdapter?.refreshSession?.();
               await currentAdapter?.refreshGrant?.(stableUrl);
             }
-          } catch {}
+          } catch {
+            // A failed refresh still remounts once; a second auth failure settles hard-unavailable.
+          }
 
           onRemountRef.current?.();
           return;

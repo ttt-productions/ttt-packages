@@ -27,12 +27,7 @@ const APP_IGNORES = [
   'out/**',
   'dist/**',
   'build/**',
-  '*.config.js',
-  '*.config.ts',
   'next-env.d.ts',
-  'instrumentation.ts',
-  'instrumentation-client.ts',
-  'sentry.*.config.ts',
   '.next/types/**',
   '.next/dev/**',
   'docs/**',
@@ -54,6 +49,7 @@ const APP_RULES: Linter.Config = {
     },
   },
   rules: {
+    // RULE-STD-MEDIA-101 bans next/image, the replacement this rule demands; served files render through the media renderer.
     '@next/next/no-img-element': 'off',
     '@typescript-eslint/no-unused-vars': [
       'error',
@@ -63,7 +59,6 @@ const APP_RULES: Linter.Config = {
         destructuredArrayIgnorePattern: '^_',
       },
     ],
-    '@typescript-eslint/no-explicit-any': 'off',
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'error',
     'react-hooks/set-state-in-effect': 'error',
@@ -137,7 +132,6 @@ export async function createFunctionsEslintConfig(
       languageOptions: { globals: nodeGlobals },
       rules: {
         '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
-        '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-unused-vars': ['error', UNUSED_VARS_ALLOW_UNDERSCORE],
         'no-undef': 'off',
       },

@@ -35,7 +35,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete (HTMLElement.prototype as any).requestFullscreen;
+  Reflect.deleteProperty(HTMLElement.prototype, 'requestFullscreen');
 });
 
 describe('VideoViewer', () => {

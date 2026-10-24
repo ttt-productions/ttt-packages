@@ -1,70 +1,70 @@
 {
-    "name": "@ttt-productions/firebase-helpers",
-    "version": "0.12.16",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-        "directory": "packages/firebase-helpers"
+  "name": "@ttt-productions/firebase-helpers",
+  "version": "0.12.16",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/firebase-helpers"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "type": "module",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "sideEffects": false,
-    "files": [
-        "dist"
-    ],
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-        },
-        "./server": {
-            "types": "./dist/server/index.d.ts",
-            "default": "./dist/server/index.js"
-        },
-        "./react": {
-            "types": "./dist/react/index.d.ts",
-            "default": "./dist/react/index.js"
-        },
-        "./client": {
-            "types": "./dist/client/index.d.ts",
-            "default": "./dist/client/index.js"
-        },
-        "./firestore-client": {
-            "types": "./dist/firestore-client/index.d.ts",
-            "default": "./dist/firestore-client/index.js"
-        }
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
     },
-    "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist *.tsbuildinfo",
-        "typecheck": "tsc --noEmit",
-        "prepublishOnly": "npm run clean && npm run build"
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
     },
-    "peerDependencies": {
-        "firebase": ">=12.0.0",
-        "firebase-admin": ">=10.0.0",
-        "date-fns": ">=3.0.0",
-        "react": ">=19.0.0"
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
     },
-    "peerDependenciesMeta": {
-        "firebase": {
-            "optional": true
-        },
-        "firebase-admin": {
-            "optional": true
-        },
-        "react": {
-            "optional": true
-        }
+    "./firestore-client": {
+      "types": "./dist/firestore-client/index.d.ts",
+      "default": "./dist/firestore-client/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "firebase": ">=12.0.0",
+    "firebase-admin": ">=10.0.0",
+    "date-fns": ">=3.0.0",
+    "react": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "firebase": {
+      "optional": true
     },
-    "devDependencies": {
-        "date-fns": "^4.1.0",
-        "firebase-admin": "^14.0.0",
-        "react": "^19.2.0",
-        "@types/react": "^19.0.0"
+    "firebase-admin": {
+      "optional": true
     },
-    "author": "DJ (TTT Productions)",
-    "license": "MIT"
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "date-fns": "^4.1.0",
+    "firebase-admin": "^14.0.0",
+    "react": "^19.2.0",
+    "@types/react": "^19.0.0"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
 }

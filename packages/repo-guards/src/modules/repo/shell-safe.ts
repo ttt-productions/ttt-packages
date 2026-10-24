@@ -5,6 +5,7 @@ import type { Scope } from '../../node/reader.js';
 import { viewOfText, type FileView } from '../../reader/view.js';
 import { calleeName, forEachNode, unwrap } from '../../support/ast.js';
 import { takesNoFacts } from '../../support/facts.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const CALLEES: ReadonlySet<string> = new Set(['spawn', 'spawnSync', 'execFile', 'execFileSync']);
 
@@ -66,7 +67,7 @@ export const shellSafeGuard: GenericGuardDefinition<ShellSafeFacts> = {
       {
         title: SHELL_SAFE_TITLE,
         description: SHELL_SAFE_DESCRIPTION,
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run: (context) => context.files(SHELL_SAFE_SCOPE).flatMap(shellArgsFindings),
       },
     ];

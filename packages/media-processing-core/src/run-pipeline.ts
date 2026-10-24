@@ -71,14 +71,15 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
 
   try {
     spec = parseMediaProcessingSpec(spec);
-  } catch (e: any) {
+  } catch (e) {
+    const fault = e as { issues?: unknown; message?: unknown } | null | undefined;
     return {
       ok: false,
       mediaType: mediaTypeFromSpecKind(spec.kind),
       error: {
         code: 'invalid_spec',
         message: 'Invalid MediaProcessingSpec.',
-        details: { issues: e?.issues ?? e?.message ?? String(e) },
+        details: { issues: fault?.issues ?? fault?.message ?? String(e) },
       },
     };
   }
@@ -116,14 +117,15 @@ export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProc
       }
       try {
         spec = parseMediaProcessingSpec(resolution.spec);
-      } catch (e: any) {
+      } catch (e) {
+        const fault = e as { issues?: unknown; message?: unknown } | null | undefined;
         return withInspection({
           ok: false,
           mediaType: mediaTypeFromSpecKind(spec.kind),
           error: {
             code: 'invalid_spec',
             message: 'Invalid MediaProcessingSpec from resolveAfterInspection.',
-            details: { issues: e?.issues ?? e?.message ?? String(e) },
+            details: { issues: fault?.issues ?? fault?.message ?? String(e) },
           },
         });
       }

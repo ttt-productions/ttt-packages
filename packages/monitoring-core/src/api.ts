@@ -1,4 +1,4 @@
-import type { MonitoringUser } from './types.js';
+import type { MonitoringUser, ScopeLike } from './types.js';
 import { getMonitoringAdapter } from './init.js';
 
 export function captureException(error: unknown, context?: Record<string, unknown>) {
@@ -21,10 +21,10 @@ export function setTag(key: string, value: string) {
   return getMonitoringAdapter().setTag(key, value);
 }
 
-export function withScope(fn: (scope: any) => any) {
+export function withScope<T>(fn: (scope: ScopeLike) => T): T {
   const a = getMonitoringAdapter();
   return a.withScope
-    ? a.withScope(fn as any)
+    ? a.withScope(fn)
     : fn({
         setTag: () => {},
         setUser: () => {},

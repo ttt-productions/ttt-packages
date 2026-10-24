@@ -6,32 +6,34 @@ function inBrowser(): boolean {
   return typeof window !== 'undefined';
 }
 
-function storage(): Storage | null {
+function attempt<T>(access: () => T): T | undefined {
   try {
-    return window.localStorage;
+    return access();
   } catch {
-    return null;
+    return undefined;
   }
+}
+
+function storage(): Storage | undefined {
+  return attempt(() => window.localStorage);
 }
 
 export function readRedirectPath(key: string): string | null {
   if (!inBrowser()) return null;
-  try {
-    const saved = storage()?.getItem(key) ?? null;
-    if (saved !== null) return saved;
-  } catch {}
-  return memory.get(key) ?? null;
+  return attempt(() => storage()?.getItem(key)) ?? memory.get(key) ?? null;
 }
 
 export function saveRedirectPath(key: string, path: string): void {
   if (!inBrowser()) return;
-  const store = storage();
-  if (store) {
-    try {
-      store.setItem(key, path);
-      memory.delete(key);
-      return;
-    } catch {}
+  const stored = attempt(() => {
+    const store = storage();
+    if (!store) return false;
+    store.setItem(key, path);
+    return true;
+  });
+  if (stored) {
+    memory.delete(key);
+    return;
   }
   memory.set(key, path);
 }
@@ -39,7 +41,5 @@ export function saveRedirectPath(key: string, path: string): void {
 export function clearRedirectPath(key: string): void {
   if (!inBrowser()) return;
   memory.delete(key);
-  try {
-    storage()?.removeItem(key);
-  } catch {}
+  attempt(() => storage()?.removeItem(key));
 }

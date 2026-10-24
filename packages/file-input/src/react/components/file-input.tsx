@@ -10,13 +10,15 @@ import {
   Input,
   Progress,
   Spinner,
+  type ButtonProps,
 } from '@ttt-productions/ui-core/react';
 import { cn } from '@ttt-productions/ui-core';
 import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle } from 'lucide-react';
 
-import type { FileInputError, FileInputProps } from '../../types.js';
+import type { CropConfig, FileInputChangePayload, FileInputError } from '../../types.js';
 import { validateMediaDuration } from '../../lib/validate-media-duration.js';
 import { ImageCropperModal } from './image-cropper-modal.js';
+import { releaseObjectUrl } from '../../lib/validate-media-duration.js';
 
 const MIME_MAP: Record<SimplifiedMediaType, string> = {
   image: 'image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp, image/avif',
@@ -46,6 +48,32 @@ function getSelectedFileLabel(file: File): string {
   }
 }
 
+export interface FileInputProps {
+  acceptTypes: SimplifiedMediaType[];
+  maxSizeMB: Partial<Record<SimplifiedMediaType, number>>;
+  selectedFile?: File | null;
+
+  onChange: (payload: FileInputChangePayload) => void;
+  onError?: (error: FileInputError) => void;
+
+  disabled?: boolean;
+  isLoading?: boolean;
+  buttonLabel?: string;
+  clearLabel?: string;
+  className?: string;
+
+  variant?: ButtonProps['variant'];
+  size?: ButtonProps['size'];
+
+  uploadProgress?: number | null;
+
+  videoMaxDurationSec?: number;
+  audioMaxDurationSec?: number;
+
+  cropConfig?: CropConfig;
+  defaultShowDetails?: boolean;
+}
+
 export function FileInput(props: FileInputProps) {
   const {
     acceptTypes,
@@ -72,9 +100,7 @@ export function FileInput(props: FileInputProps) {
 
   const revokeLastPreviewUrl = useCallback(() => {
     if (!lastPreviewUrlRef.current) return;
-    try {
-      URL.revokeObjectURL(lastPreviewUrlRef.current);
-    } catch {}
+    releaseObjectUrl(lastPreviewUrlRef.current);
     lastPreviewUrlRef.current = null;
   }, []);
 

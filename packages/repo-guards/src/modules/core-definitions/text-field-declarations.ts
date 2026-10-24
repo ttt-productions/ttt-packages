@@ -11,6 +11,7 @@ import {
   textProblem,
 } from '../../support/facts.js';
 import { CORE_CODE, coreBuild, filesIn, isCount, topLevelDeclaration } from './shared.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 type ReviewedCounts = ReadonlyArray<{
   file: string;
@@ -208,7 +209,7 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
           'A wire input property that names free text (reason, message, title, …) reads its declared text field through ' +
           "the core's field-schema builder, or carries a built-in format (.regex / .url / .email / .uuid). Wire text no " +
           'person types is a reviewed module#declaration count with why; a count that no longer matches fails.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const sites = wireFiles(context, findings).flatMap((f) =>
@@ -230,7 +231,7 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
           'A wire z.string() chain never trims itself or bounds itself by a text-length constant: that is a second ' +
           "declaration of the field. Read the field's declaration through the core's field-schema builder. Wire text no " +
           'person types (stored values, fixed strings, ids, addresses) is a reviewed module#declaration count with why.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const sites = wireFiles(context, findings).flatMap(selfBoundedChains);
@@ -245,7 +246,7 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
         description:
           'defineInputFormat is called, and keepAsTyped is set, only in the one module that declares every text field, ' +
           'so each field has one declaration. Move the declaration there and import it.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const files = context.files(CORE_CODE);

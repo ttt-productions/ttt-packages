@@ -3,6 +3,7 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { namesProblem, reviewedProblems } from '../../support/facts.js';
 import { CORE_CODE, filesIn } from './shared.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface SchemaLengthLiteralFacts {
   schemaFolders: readonly string[];
@@ -57,7 +58,7 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
           'it derives from that constant. Only reviewed structural bounds stay literal; each file lists its exact literal ' +
           'values with why. A new literal fails — declare the limit and derive from it, or review it as structural — and ' +
           'a reviewed value no longer present is stale.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const files = schemaFiles(context.files(CORE_CODE), findings);
@@ -98,7 +99,7 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
         description:
           "A text minimum comes from the field's declaration, never a bare number: a zod .min() above 1 in a core schema " +
           'is a second declaration of the field. Derive it from the named declaration.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           for (const file of schemaFiles(context.files(CORE_CODE), findings)) {

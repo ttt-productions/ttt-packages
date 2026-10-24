@@ -1,15 +1,18 @@
-/**
- * @typedef {{ safeParse: (value: unknown) => { success: true, data: unknown } | { success: false, error: { issues: Array<{ path: PropertyKey[], message: string }> } }, shape?: unknown }} RegistrySchema
- */
+export type RegistrySchema = {
+  safeParse: (
+    value: unknown,
+  ) =>
+    | { success: true; data: unknown }
+    | { success: false; error: { issues: Array<{ path: PropertyKey[]; message: string }> } };
+  shape?: unknown;
+};
 
-/**
- * @param {Readonly<Record<string, RegistrySchema>>} schemas
- * @param {string} docPath
- * @returns {{ template: string, schema: RegistrySchema } | null}
- */
-export function registeredSchemaForPath(schemas, docPath) {
+export function registeredSchemaForPath(
+  schemas: Readonly<Record<string, RegistrySchema>>,
+  docPath: string,
+): { template: string; schema: RegistrySchema } | null {
   const segments = docPath.split('/');
-  let best = null;
+  let best: { score: number; template: string; schema: RegistrySchema } | null = null;
   for (const [template, schema] of Object.entries(schemas)) {
     const parts = template.split('/');
     if (parts.length !== segments.length) continue;
@@ -28,18 +31,19 @@ export function registeredSchemaForPath(schemas, docPath) {
   return best ? { template: best.template, schema: best.schema } : null;
 }
 
-/**
- * @param {object} options
- * @param {Readonly<Record<string, RegistrySchema>>} options.schemas
- * @param {(docPath: string, data: Record<string, unknown>, merge: boolean) => Promise<void>} options.write
- * @param {string} options.registryName
- * @returns {{
- *   setSeededDoc: (docPath: string, doc: Record<string, unknown>) => Promise<void>,
- *   mergeSeededDoc: (docPath: string, patch: Record<string, unknown>) => Promise<void>,
- * }}
- */
-export function createRegistrySeedWriter({ schemas, write, registryName }) {
-  const registered = (docPath, verb) => {
+export function createRegistrySeedWriter({
+  schemas,
+  write,
+  registryName,
+}: {
+  schemas: Readonly<Record<string, RegistrySchema>>;
+  write: (docPath: string, data: Record<string, unknown>, merge: boolean) => Promise<void>;
+  registryName: string;
+}): {
+  setSeededDoc: (docPath: string, doc: Record<string, unknown>) => Promise<void>;
+  mergeSeededDoc: (docPath: string, patch: Record<string, unknown>) => Promise<void>;
+} {
+  const registered = (docPath: string, verb: string): RegistrySchema => {
     const found = registeredSchemaForPath(schemas, docPath);
     if (!found) {
       throw new Error(
@@ -50,7 +54,7 @@ export function createRegistrySeedWriter({ schemas, write, registryName }) {
     return found.schema;
   };
 
-  const setSeededDoc = async (docPath, doc) => {
+  const setSeededDoc = async (docPath: string, doc: Record<string, unknown>): Promise<void> => {
     const parsed = registered(docPath, 'seed').safeParse(doc);
     if (!parsed.success) {
       throw new Error(
@@ -62,10 +66,11 @@ export function createRegistrySeedWriter({ schemas, write, registryName }) {
           `document schema in ${registryName} first.`,
       );
     }
-    await write(docPath, /** @type {Record<string, unknown>} */ (parsed.data), false);
+    // A document schema that parsed a document returns that document's object shape.
+    await write(docPath, parsed.data as Record<string, unknown>, false);
   };
 
-  const mergeSeededDoc = async (docPath, patch) => {
+  const mergeSeededDoc = async (docPath: string, patch: Record<string, unknown>): Promise<void> => {
     const schema = registered(docPath, 'patch');
     const shape =
       schema && typeof schema === 'object' && 'shape' in schema ? schema.shape : undefined;

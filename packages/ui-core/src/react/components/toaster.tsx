@@ -39,11 +39,11 @@ export function Toaster() {
             key={id}
             open={open}
             onOpenChange={onOpenChange}
-            variant={v as any}
+            variant={v}
             duration={duration}
             dismissible={dismissible ?? true}
             persistent={persistent ?? false}
-            {...(props as any)}
+            {...props}
           >
             <div className="grid gap-1 pr-10">
               {title ? <ToastTitle className="font-bold">{title}</ToastTitle> : null}

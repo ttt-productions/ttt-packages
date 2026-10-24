@@ -20,7 +20,7 @@ interface ResolvedClaims<TClaims> {
   claims: TClaims;
 }
 
-export const AuthContext = createContext<AuthContextValue<any> | null>(null);
+export const AuthContext = createContext<AuthContextValue<unknown> | null>(null);
 
 interface AuthProviderProps<TClaims> {
   config: AuthProviderConfig<TClaims>;

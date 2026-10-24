@@ -86,10 +86,10 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
     ref,
   ) => {
     const effectiveDuration = persistent ? Infinity : (duration ?? 5000);
-    const mergedStyle: React.CSSProperties = {
-      ...(style as React.CSSProperties),
-      ['--toast-duration' as any]: `${effectiveDuration}ms`,
-    };
+    const mergedStyle = {
+      ...style,
+      '--toast-duration': `${effectiveDuration}ms`,
+    } as React.CSSProperties;
 
     return (
       <ToastPrimitives.Root

@@ -39,7 +39,7 @@ export type ChatShellProps = {
 
   onSend?: (text: string) => Promise<void>;
 
-  renderMessage?: (m: any) => React.ReactNode;
+  renderMessage?: (m: ChatMessageV1) => React.ReactNode;
   messageRenderers?: MessageRendererRegistry;
   handlers?: ModerationHandlers;
 

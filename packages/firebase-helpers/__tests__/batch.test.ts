@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { commitInBatches } from '../src/firestore-client/batch.js';
-import { writeBatch } from 'firebase/firestore';
+import { writeBatch, type Firestore } from 'firebase/firestore';
 
 // writeBatch is mocked in test/setup.ts globally
 
@@ -23,7 +23,7 @@ describe('commitInBatches', () => {
   });
 
   it('returns success for empty items array', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     const apply = vi.fn();
     const result = await commitInBatches(db, [], { apply });
     expect(result.success).toBe(true);
@@ -35,7 +35,7 @@ describe('commitInBatches', () => {
   });
 
   it('commits a single batch for small item sets', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     const items = [1, 2, 3];
     const apply = vi.fn();
     const result = await commitInBatches(db, items, { apply });
@@ -49,7 +49,7 @@ describe('commitInBatches', () => {
   });
 
   it('calls commit for each batch group', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     const items = Array.from({ length: 5 }, (_, i) => i);
     const apply = vi.fn();
     const result = await commitInBatches(db, items, { batchSize: 2, apply });
@@ -61,7 +61,7 @@ describe('commitInBatches', () => {
   });
 
   it('applies all items with the apply function', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     const items = ['a', 'b', 'c'];
     const applied: string[] = [];
     await commitInBatches(db, items, {
@@ -73,7 +73,7 @@ describe('commitInBatches', () => {
   });
 
   it('returns success:false and partial counts when commit fails', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     let callCount = 0;
     (writeBatch as ReturnType<typeof vi.fn>).mockImplementation(() => ({
       set: vi.fn(),
@@ -96,7 +96,7 @@ describe('commitInBatches', () => {
   });
 
   it('uses default batchSize of 450', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     const items = Array.from({ length: 450 }, (_, i) => i);
     const apply = vi.fn();
     const result = await commitInBatches(db, items, { apply });
@@ -106,7 +106,7 @@ describe('commitInBatches', () => {
   });
 
   it('supports async apply function', async () => {
-    const db = {} as any;
+    const db = {} as Firestore;
     const items = [1, 2];
     const apply = vi.fn(async () => {});
     const result = await commitInBatches(db, items, { apply });

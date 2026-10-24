@@ -11,11 +11,13 @@ const CONTROLS: AccessibleControlFacts = {
   surfaceTrees: ['src/components', 'src/app'],
   button: { component: 'Button', iconSizes: ['icon'] },
   displayComponents: ['Badge'],
+  dropdownTriggers: ['SelectTrigger'],
 };
 
 const ICON = 'an icon-only button carries an accessible name';
 const FORM = 'a button inside a form states its type';
 const DISPLAY = 'a display-only component is never a trigger or a control';
+const DROPDOWN = 'every dropdown carries an accessible name';
 
 describe('an icon-only button carries an accessible name', () => {
   it('flags an unnamed and a title-only icon button, and passes every naming shape', async () => {
@@ -87,15 +89,45 @@ describe('a display-only component is never a trigger or a control', () => {
   });
 });
 
+describe('every dropdown carries an accessible name', () => {
+  it('flags an unnamed dropdown and one whose label points elsewhere, and passes every naming shape', async () => {
+    const found = await runDefinition(accessibleControlsGuard, CONTROLS, {
+      'src/components/bad.tsx': [
+        'const a = <SelectTrigger><SelectValue /></SelectTrigger>;',
+        'const b = <><Label>Sort by</Label><SelectTrigger id="sort" /></>;',
+        'const c = <><Label htmlFor="other">Sort by</Label><SelectTrigger id="sort-b" /></>;',
+      ].join('\n'),
+      'src/components/good.tsx': [
+        'const a = <SelectTrigger aria-label="Filter by trade"><SelectValue /></SelectTrigger>;',
+        'const b = <SelectTrigger aria-labelledby="sort-label" />;',
+        'const c = <><Label htmlFor="sort">Sort by</Label><SelectTrigger id="sort" /></>;',
+        'const d = <><Label htmlFor={sortId}>Sort by</Label><SelectTrigger id={sortId} /></>;',
+        'const e = <SelectTrigger {...triggerProps} />;',
+      ].join('\n'),
+    });
+    expect(found[DROPDOWN]).toEqual([
+      'src/components/bad.tsx:1 not on the reviewed list: an unnamed SelectTrigger',
+      'src/components/bad.tsx:2 not on the reviewed list: an unnamed SelectTrigger',
+      'src/components/bad.tsx:3 not on the reviewed list: an unnamed SelectTrigger',
+    ]);
+  });
+});
+
 describe('the facts the control guards take', () => {
-  it('refuses missing trees, a button with no icon sizes, and no display components', () => {
+  it('refuses missing trees, a button with no icon sizes, and no display or dropdown components', () => {
     expect(
       accessibleControlsGuard.factProblems({
         surfaceTrees: [],
         button: { component: 'Button', iconSizes: [] },
         displayComponents: [],
+        dropdownTriggers: [],
       }),
-    ).toEqual(['surfaceTrees is empty', 'button.iconSizes is empty', 'displayComponents is empty']);
+    ).toEqual([
+      'surfaceTrees is empty',
+      'button.iconSizes is empty',
+      'displayComponents is empty',
+      'dropdownTriggers is empty',
+    ]);
     expect(accessibleControlsGuard.factProblems(CONTROLS)).toEqual([]);
   });
 });

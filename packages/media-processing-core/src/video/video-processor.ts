@@ -122,7 +122,7 @@ export async function processVideo(
         error: {
           code: 'processing_failed',
           message: 'ffmpeg is not available.',
-          details: { error: String((ff as any).error ?? 'unknown') },
+          details: { error: String(ff.error ?? 'unknown') },
         },
       };
     }
@@ -309,7 +309,9 @@ export async function processVideo(
     try {
       const ps = await stat(posterOut);
       psSize = ps.size;
-    } catch {}
+    } catch {
+      // No poster file means no poster output; a failed poster run is reported as `poster_failed`.
+    }
 
     const outputs: MediaOutput[] = [
       {
@@ -353,7 +355,8 @@ export async function processVideo(
       },
       warnings: warnings.length ? warnings : undefined,
     };
-  } catch (e: any) {
+  } catch (e) {
+    const fault = e as { message?: unknown; name?: unknown } | null | undefined;
     if (opts?.signal?.aborted) {
       return {
         ok: false,
@@ -366,8 +369,8 @@ export async function processVideo(
       mediaType: 'video',
       error: {
         code: 'processing_failed',
-        message: e?.message ? String(e.message) : 'Video processing failed',
-        details: { name: e?.name },
+        message: fault?.message ? String(fault.message) : 'Video processing failed',
+        details: { name: fault?.name },
       },
     };
   } finally {

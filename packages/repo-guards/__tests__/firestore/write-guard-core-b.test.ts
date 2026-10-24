@@ -4,6 +4,9 @@ import {
   loadRegistry,
   runGuardOnSources,
   VIOLATION_KINDS,
+  type WriteGuardException,
+  type WriteRegistry,
+  type WriteViolation,
 } from '../../src/modules/firestore/analyzer.js';
 import * as fixtureCore from './fixture-core-b/index.js';
 import * as fixtureDocSchemas from './fixture-core-b/doc-schemas.js';
@@ -26,7 +29,7 @@ const PROFILE = createGuardProfile({
   importAliases: { '@/': 'src/' },
 });
 
-let registry;
+let registry: WriteRegistry;
 beforeAll(async () => {
   registry = await loadRegistry({
     sources: FIXTURE_SOURCES,
@@ -34,7 +37,7 @@ beforeAll(async () => {
   });
 });
 
-function analyze(source, { exceptions = [] } = {}) {
+function analyze(source: string, { exceptions = [] }: { exceptions?: WriteGuardException[] } = {}) {
   return runGuardOnSources({
     sources: { 'fixture/writer.ts': source },
     registry,
@@ -43,8 +46,10 @@ function analyze(source, { exceptions = [] } = {}) {
   });
 }
 
-const kindsOf = (result) => result.violations.map((violation) => violation.kind);
-const detailsOf = (result) => result.violations.map((violation) => violation.detail).join('\n');
+const kindsOf = (result: { violations: readonly WriteViolation[] }) =>
+  result.violations.map((violation) => violation.kind);
+const detailsOf = (result: { violations: readonly WriteViolation[] }) =>
+  result.violations.map((violation) => violation.detail).join('\n');
 
 const PREAMBLE = `
 import { PATH_BUILDERS, COLLECTIONS, toPath } from '@fixture/core-b';
@@ -115,7 +120,7 @@ describe('computed keys drawn from a canonical core const map', () => {
 });
 
 describe('a discriminated path written with a discriminated payload', () => {
-  const throughOneEntry = (payload) => `${PREAMBLE}
+  const throughOneEntry = (payload: string) => `${PREAMBLE}
     import { PUBLISHED_SHELF_ITEM_BY_KIND } from '@fixture/core-b';
     export function writeIt(
       tx: FirebaseFirestore.Transaction,
@@ -133,7 +138,7 @@ describe('a discriminated path written with a discriminated payload', () => {
   it("pairs each kind's document with its own entry's schema through one map entry", () => {
     const result = analyze(throughOneEntry('tx.set(ref, published.schema.parse(carried));'));
     expect(result.violations).toEqual([]);
-    expect(result.writes[0].correlatedBranches.map((branch) => branch.templates)).toEqual([
+    expect(result.writes[0].correlatedBranches?.map((branch) => branch.templates)).toEqual([
       ['shelves/{shelfId}/shelfBooks/{itemId}'],
       ['shelves/{shelfId}/shelfAlbums/{itemId}'],
       ['shelves/{shelfId}/shelfFilms/{itemId}'],
@@ -171,7 +176,7 @@ describe('a discriminated path written with a discriminated payload', () => {
     );
   });
 
-  const twoPlaces = (cases) => `${PREAMBLE}
+  const twoPlaces = (cases: string) => `${PREAMBLE}
     import {
       SHELF_SUBCOLLECTION_BY_KIND,
       PublishedBookSchema,
@@ -255,7 +260,7 @@ describe('a canonical builder that MAPS one of its arguments', () => {
 });
 
 describe('a canonical core map of PATH BUILDERS', () => {
-  const source = (payload) => `${PREAMBLE}
+  const source = (payload: string) => `${PREAMBLE}
     import { PROJECT_SECTION_PATHS_BY_KIND } from '@fixture/core-b';
     export async function writeIt(kind: string, projectId: string, subItemId: string) {
       const paths = PROJECT_SECTION_PATHS_BY_KIND[kind];

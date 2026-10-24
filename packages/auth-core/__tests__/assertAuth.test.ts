@@ -8,6 +8,9 @@ import {
   isEmailVerificationRequiredError,
 } from '../src/email-verification.js';
 import type { AssertAuthConfig, AssertAuthFn, UserStatus } from '../src/server/types.js';
+import type { CallableRequest } from 'firebase-functions/v2/https';
+import type { Firestore } from 'firebase-admin/firestore';
+import type { Mock } from 'vitest';
 
 type TestUser = {
   uid: string;
@@ -17,20 +20,46 @@ type TestUser = {
 
 type TestAdminOptions = { level: 'basic' | 'elevated' };
 
-function makeRequest(opts?: { uid?: string; emailVerified?: boolean }): any {
+type FakeCallableRequest = {
+  data: object;
+  rawRequest: object;
+  auth?: { uid: string; token: Record<string, unknown> };
+};
+
+type UserDocSnapshot = {
+  exists: boolean;
+  data: () => Record<string, unknown> | null | undefined;
+};
+type UserDocRef = { get: () => Promise<UserDocSnapshot> };
+type FirestoreFake = { doc: (path: string) => UserDocRef };
+type RequireAdmin = AssertAuthConfig<TestUser, void, TestAdminOptions>['requireAdmin'];
+
+function asCallableRequest(request: FakeCallableRequest): CallableRequest {
+  return request as CallableRequest;
+}
+
+function asFirestore(fake: FirestoreFake): Firestore {
+  return fake as Firestore;
+}
+
+function makeRequest(opts?: {
+  uid?: string;
+  emailVerified?: boolean;
+  claims?: Record<string, unknown>;
+}): CallableRequest {
   const uid = opts?.uid ?? 'uid-123';
-  return {
+  return asCallableRequest({
     data: {},
     rawRequest: {},
     auth: {
       uid,
-      token: { uid, email_verified: opts?.emailVerified ?? true },
+      token: { uid, email_verified: opts?.emailVerified ?? true, ...opts?.claims },
     },
-  };
+  });
 }
 
-function makeUnauthRequest(): any {
-  return { data: {}, rawRequest: {}, auth: undefined };
+function makeUnauthRequest(): CallableRequest {
+  return asCallableRequest({ data: {}, rawRequest: {}, auth: undefined });
 }
 
 const activeUserDoc: TestUser = {
@@ -39,27 +68,29 @@ const activeUserDoc: TestUser = {
   status: 'active',
 };
 
-function fakeDbWithUser(): any {
-  const userDocRef = {
-    get: vi.fn().mockResolvedValue({ exists: true, data: () => activeUserDoc }),
+function fakeDbWithUser(): Firestore {
+  const userDocRef: UserDocRef = {
+    get: vi.fn<UserDocRef['get']>().mockResolvedValue({ exists: true, data: () => activeUserDoc }),
   };
-  return { doc: vi.fn(() => userDocRef) };
+  return asFirestore({ doc: vi.fn<FirestoreFake['doc']>(() => userDocRef) });
 }
 
-let mockUserGet: ReturnType<typeof vi.fn>;
-let mockRequireAdmin: ReturnType<typeof vi.fn>;
-let mockDbDoc: ReturnType<typeof vi.fn>;
+let mockUserGet: Mock<UserDocRef['get']>;
+let mockRequireAdmin: Mock<RequireAdmin>;
+let mockDbDoc: Mock<FirestoreFake['doc']>;
 let assertAuth: AssertAuthFn<TestUser, void, TestAdminOptions>;
 
 beforeEach(() => {
-  mockUserGet = vi.fn().mockResolvedValue({ exists: true, data: () => activeUserDoc });
-  mockRequireAdmin = vi.fn().mockResolvedValue(undefined);
+  mockUserGet = vi
+    .fn<UserDocRef['get']>()
+    .mockResolvedValue({ exists: true, data: () => activeUserDoc });
+  mockRequireAdmin = vi.fn<RequireAdmin>().mockResolvedValue(undefined);
 
-  const userDocRef = { get: mockUserGet };
+  const userDocRef: UserDocRef = { get: mockUserGet };
 
-  mockDbDoc = vi.fn(() => userDocRef);
+  mockDbDoc = vi.fn<FirestoreFake['doc']>(() => userDocRef);
 
-  const fakeDb = { doc: mockDbDoc } as any;
+  const fakeDb = asFirestore({ doc: mockDbDoc });
 
   const config: AssertAuthConfig<TestUser, void, TestAdminOptions> = {
     firestore: () => fakeDb,
@@ -69,7 +100,7 @@ beforeEach(() => {
       if (user.status === 'suspended') return 'suspended';
       return 'active';
     },
-    requireAdmin: mockRequireAdmin as any,
+    requireAdmin: mockRequireAdmin,
   };
 
   assertAuth = createAssertAuth<TestUser, void, TestAdminOptions>(config);
@@ -269,7 +300,9 @@ describe('Admin check', () => {
 
   it('populates ctx.admin with the requireAdmin result when an admin check runs', async () => {
     type AdminResult = { role: string };
-    const adminMock = vi.fn().mockResolvedValue({ role: 'superadmin' });
+    const adminMock = vi
+      .fn<AssertAuthConfig<TestUser, AdminResult, TestAdminOptions>['requireAdmin']>()
+      .mockResolvedValue({ role: 'superadmin' });
     const config: AssertAuthConfig<TestUser, AdminResult, TestAdminOptions> = {
       firestore: () => fakeDbWithUser(),
       userProfilePath: (uid) => `profiles/${uid}`,
@@ -278,7 +311,7 @@ describe('Admin check', () => {
         if (user.status === 'suspended') return 'suspended';
         return 'active';
       },
-      requireAdmin: adminMock as any,
+      requireAdmin: adminMock,
     };
     const typedAssertAuth = createAssertAuth<TestUser, AdminResult, TestAdminOptions>(config);
 
@@ -294,7 +327,7 @@ describe('Admin check', () => {
       firestore: () => fakeDbWithUser(),
       userProfilePath: (uid) => `profiles/${uid}`,
       getUserStatus: (): UserStatus => 'active',
-      requireAdmin: mockRequireAdmin as any,
+      requireAdmin: mockRequireAdmin,
     };
     const untyped = createAssertAuth<TestUser>(config);
     await expect(
@@ -330,21 +363,21 @@ describe('Acceptance-level gate', () => {
   const CLAIM = 'acceptedLevelClaim';
 
   function gatedAssertAuth(requiredLevel: () => number | Promise<number>) {
-    const requireAdmin = vi.fn().mockResolvedValue('admin');
+    const requireAdmin = vi
+      .fn<AssertAuthConfig<TestUser, string, TestAdminOptions>['requireAdmin']>()
+      .mockResolvedValue('admin');
     const config: AssertAuthConfig<TestUser, string, TestAdminOptions> = {
       firestore: () => fakeDbWithUser(),
       userProfilePath: (uid) => `profiles/${uid}`,
       getUserStatus: (user): UserStatus => (user.status === 'banned' ? 'banned' : 'active'),
-      requireAdmin: requireAdmin as any,
+      requireAdmin,
       acceptance: { claimKey: CLAIM, requiredLevel },
     };
     return { assert: createAssertAuth<TestUser, string, TestAdminOptions>(config), requireAdmin };
   }
 
-  function requestWithClaim(claim: unknown): any {
-    const req = makeRequest();
-    if (claim !== undefined) req.auth.token[CLAIM] = claim;
-    return req;
+  function requestWithClaim(claim: unknown): CallableRequest {
+    return makeRequest(claim === undefined ? undefined : { claims: { [CLAIM]: claim } });
   }
 
   it('refuses a caller below the required level with a structured failed-precondition', async () => {

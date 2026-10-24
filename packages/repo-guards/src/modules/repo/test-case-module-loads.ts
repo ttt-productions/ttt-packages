@@ -5,6 +5,7 @@ import type { Scope } from '../../node/reader.js';
 import { viewOfText, type FileView } from '../../reader/view.js';
 import { forEachNode } from '../../support/ast.js';
 import { namesProblem, objectProblem, reviewedProblems } from '../../support/facts.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const REGISTRY_RESETS: ReadonlySet<string> = new Set(['vi.resetModules', 'jest.resetModules']);
 
@@ -98,7 +99,7 @@ export const testCaseModuleLoadGuard: GenericGuardDefinition<TestCaseModuleLoadF
           'work of its own, and under a full parallel run it times out. Import the code at the top of the file (set any ' +
           'environment it reads at load in vi.hoisted first). A file that must load a module fresh per case is a reviewed ' +
           'entry with its why; an entry whose file no longer does is stale.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const seen = new Set<string>();

@@ -28,31 +28,24 @@ function stubMediaElement(opts: {
   videoHeight?: number;
   shouldError?: boolean;
 }) {
-  const createSpy = vi.spyOn(document, 'createElement').mockImplementation((_tag: string) => {
-    const el: any = {
-      preload: '',
-      onloadedmetadata: null,
-      onerror: null,
-      duration: opts.duration ?? NaN,
-      videoWidth: opts.videoWidth,
-      videoHeight: opts.videoHeight,
-      _src: '',
-    };
-    Object.defineProperty(el, 'src', {
+  const el = document.createElement('video');
+  let src = '';
+  Object.defineProperties(el, {
+    duration: { configurable: true, get: () => opts.duration ?? NaN },
+    videoWidth: { configurable: true, get: () => opts.videoWidth },
+    videoHeight: { configurable: true, get: () => opts.videoHeight },
+    src: {
+      configurable: true,
+      get: () => src,
       set(v: string) {
-        el._src = v;
+        src = v;
         queueMicrotask(() => {
-          if (opts.shouldError) el.onerror?.();
-          else el.onloadedmetadata?.();
+          el.dispatchEvent(new Event(opts.shouldError ? 'error' : 'loadedmetadata'));
         });
       },
-      get() {
-        return el._src;
-      },
-    });
-    return el;
+    },
   });
-  return createSpy;
+  return vi.spyOn(document, 'createElement').mockImplementation(() => el);
 }
 
 describe('readMediaMeta', () => {

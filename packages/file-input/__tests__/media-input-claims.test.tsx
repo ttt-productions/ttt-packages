@@ -40,8 +40,8 @@ describe('MediaInput picker claims', () => {
 
   beforeEach(() => {
     onChange = vi.fn();
-    (globalThis as any).URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
-    (globalThis as any).URL.revokeObjectURL = vi.fn();
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+    URL.revokeObjectURL = vi.fn();
     vi.stubGlobal(
       'IntersectionObserver',
       class {

@@ -51,6 +51,7 @@ import { MediaConstraintsHint } from './media-constraints-hint.js';
 import { PhotoCaptureModal } from './photo-capture-modal.js';
 import { readMediaMeta } from '../../lib/read-media-meta.js';
 import { validateMediaDuration } from '../../lib/validate-media-duration.js';
+import { releaseObjectUrl } from '../../lib/validate-media-duration.js';
 
 const DEFAULT_BACKUP_NOTE =
   "Keep your own copy of files you upload — this isn't a backup or storage service.";
@@ -209,9 +210,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(
 
     const revokeLastObjectUrl = useCallback(() => {
       if (!lastObjectUrlRef.current) return;
-      try {
-        URL.revokeObjectURL(lastObjectUrlRef.current);
-      } catch {}
+      releaseObjectUrl(lastObjectUrlRef.current);
       lastObjectUrlRef.current = null;
     }, []);
 

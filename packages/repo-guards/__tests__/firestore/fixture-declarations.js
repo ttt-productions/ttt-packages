@@ -38,7 +38,7 @@ export {};
 
 export const FIXTURE_MEDIA_PACKAGE = '@fixture/media';
 
-export const fixturePackageDeclarations = (packageName) =>
+export const fixturePackageDeclarations = (/** @type {string} */ packageName) =>
   packageName === FIXTURE_MEDIA_PACKAGE
     ? [
         {

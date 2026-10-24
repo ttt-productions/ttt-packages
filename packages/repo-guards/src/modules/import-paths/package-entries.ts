@@ -5,6 +5,7 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Scope } from '../../node/reader.js';
 import { textProblem } from '../../support/facts.js';
+import { PACKAGE_GRAPH_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const slash = (path: string) => path.replace(/\\/g, '/');
 
@@ -208,7 +209,7 @@ export const packageEntriesGuard: GenericGuardDefinition<PackageEntryFacts> = {
           "Each definition a package exports is exported by exactly one of the package's entries — the entry of the folder " +
           'that holds it; a file-level entry owns only its own file, and the root owns the rest. A definition the root, a ' +
           "parent folder's entry, or a second entry also exports fails. Export it from its folder's entry alone.",
-        timeoutMs: 300_000,
+        timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const findings: Finding[] = [];
           const repoRoot = context.reader.layout.repoRoot;
@@ -282,7 +283,7 @@ export const packageEntryImportsGuard: GenericGuardDefinition<PackageEntryImport
           'A consumer imports each definition of a scoped package from the entry that owns it — the entry of the folder that ' +
           "holds it — never from the root, a parent folder's entry, or another entry that also carries it. The failure names " +
           'the owning entry; import from there.',
-        timeoutMs: 300_000,
+        timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const findings: Finding[] = [];
           const repoRoot = context.reader.layout.repoRoot;

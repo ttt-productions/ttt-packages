@@ -61,10 +61,11 @@ export function createDiagnosticsEmitter(
   if (option == null || option === false) return null;
   const sink = option === true ? consoleDebugSink : option;
   return (event, data) => {
-    // RULE-STD-ENG-009 exception: diagnostics must never fail the client, so a throwing sink is
-    // swallowed.
     try {
       sink(event, data);
-    } catch {}
+    } catch {
+      // RULE-STD-ENG-009 exception: diagnostics must never fail the client, so a throwing sink is
+      // swallowed.
+    }
   };
 }

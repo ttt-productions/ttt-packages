@@ -1,4 +1,4 @@
-import type { FileInputProps } from '../../types.js';
+import type { FileInputProps } from './file-input.js';
 import { FileInput } from './file-input.js';
 
 export function ImageInput(props: Omit<FileInputProps, 'acceptTypes'>) {

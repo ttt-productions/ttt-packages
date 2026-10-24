@@ -45,7 +45,7 @@ import {
 } from './client.js';
 import { mutationOwnerGuard, type MutationOwnerFacts } from './mutations.js';
 
-export interface FrontendActionsGuardFacts {
+export type FrontendActionsGuardFacts = {
   callableErrorCopy: CallableErrorCopyFacts;
   callableNames: CallableNameFacts;
   callableReads: CallableReadFacts;
@@ -66,7 +66,7 @@ export interface FrontendActionsGuardFacts {
   effectiveMotion: EffectiveMotionFacts;
   dateOfBirthDerivation: DateOfBirthFacts | Absent;
   mutationOwner: MutationOwnerFacts;
-}
+};
 
 export const FRONTEND_ACTIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   callableErrorCopyGuard,

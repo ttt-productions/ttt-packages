@@ -33,12 +33,30 @@ export const CLEARABLE_TEXT_FIELDS = Object.freeze({
   film: Object.freeze(['title', 'description']),
 });
 
-const sectionPaths = (section, subItems) =>
+const sectionPaths = (/** @type {string} */ section, /** @type {string} */ subItems) =>
   Object.freeze({
-    section: (a0) => ['projects', a0, section],
-    sectionDoc: (a0, a1) => ['projects', a0, section, a1],
-    subItems: (a0, a1) => ['projects', a0, section, a1, subItems],
-    subItem: (a0, a1, a2) => ['projects', a0, section, a1, subItems, a2],
+    section: (/** @type {string} */ a0) => ['projects', a0, section],
+    sectionDoc: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+      'projects',
+      a0,
+      section,
+      a1,
+    ],
+    subItems: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+      'projects',
+      a0,
+      section,
+      a1,
+      subItems,
+    ],
+    subItem: (/** @type {string} */ a0, /** @type {string} */ a1, /** @type {string} */ a2) => [
+      'projects',
+      a0,
+      section,
+      a1,
+      subItems,
+      a2,
+    ],
   });
 
 export const PROJECT_SECTION_PATHS_BY_KIND = Object.freeze({
@@ -48,15 +66,29 @@ export const PROJECT_SECTION_PATHS_BY_KIND = Object.freeze({
 });
 
 export const PATH_BUILDERS = Object.freeze({
-  accessRequest: (a0) => ['accessRequests', a0],
-  accessRequesterPrivate: (a0) => ['accessRequests', a0, 'privateDetails', 'requester'],
-  shelf: (a0) => ['shelves', a0],
-  shelfItemType: (a0, a1, a2) => ['shelves', a0, a1, a2],
-  shelfSubItem: (a0, a1, a2) => ['shelves', a0, SHELF_SUBCOLLECTION_BY_KIND[a1], a2],
-  project: (a0) => ['projects', a0],
+  accessRequest: (/** @type {string} */ a0) => ['accessRequests', a0],
+  accessRequesterPrivate: (/** @type {string} */ a0) => [
+    'accessRequests',
+    a0,
+    'privateDetails',
+    'requester',
+  ],
+  shelf: (/** @type {string} */ a0) => ['shelves', a0],
+  shelfItemType: (/** @type {string} */ a0, /** @type {string} */ a1, /** @type {string} */ a2) => [
+    'shelves',
+    a0,
+    a1,
+    a2,
+  ],
+  shelfSubItem: (
+    /** @type {string} */ a0,
+    /** @type {keyof typeof SHELF_SUBCOLLECTION_BY_KIND} */ a1,
+    /** @type {string} */ a2,
+  ) => ['shelves', a0, SHELF_SUBCOLLECTION_BY_KIND[a1], a2],
+  project: (/** @type {string} */ a0) => ['projects', a0],
 });
 
-export const toPath = (segments) => segments.join('/');
+export const toPath = (/** @type {readonly string[]} */ segments) => segments.join('/');
 
 export const PUBLISHED_SHELF_ITEM_BY_KIND = Object.freeze({
   Books: Object.freeze({ subcollection: 'shelfBooks', schema: PublishedBookSchema }),

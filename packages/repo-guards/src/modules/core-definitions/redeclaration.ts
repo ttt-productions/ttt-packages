@@ -5,6 +5,7 @@ import type { FileView } from '../../reader/view.js';
 import { isPlainString, lineOfNode } from '../../support/ast.js';
 import { isText, namesProblem, reviewedProblems } from '../../support/facts.js';
 import { APP_SOURCE, CORE_CODE_AND_DECLARATIONS, declarationNameOf, moduleOf } from './shared.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface GuardedLiteral {
   literal: string;
@@ -273,7 +274,7 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
           'core module imports the union (its schema, type, or array) instead of quoting the member. A compiler-checked use ' +
           'elsewhere is a reviewed allowance naming its module and top-level declaration with why; an allowance whose use ' +
           'is gone, and an owner that no longer declares the member, are stale and fail.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run: guardedMembersRun(facts),
       },
       {
@@ -282,7 +283,7 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
           "No module in the app's source declares, at module scope, a constant under a name the installed core package " +
           'exports — that is a second copy of a cross-boundary definition. Import it from the core and delete the local ' +
           'declaration; a definition the core lacks is added to the core first.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const { constants } = coreVocabulary(coreDeclarations(context));
           const findings: Finding[] = constants.size
@@ -306,7 +307,7 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
           'a string-literal union type, a z.enum of quoted members, or an array literal of them. Derive from the core ' +
           "declaration instead: the union's type, its array, Extract over a named member constant, or a subset the core " +
           'declares beside the union.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const { unions } = coreVocabulary(coreDeclarations(context));
           const findings: Finding[] = unions.length

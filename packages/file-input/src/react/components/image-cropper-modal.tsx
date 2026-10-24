@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
-
-const CropperComponent = Cropper as unknown as React.ComponentType<any>;
 import {
   Button,
   Dialog,
@@ -81,7 +79,7 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
         </DialogHeader>
 
         <div className="relative h-64 w-full bg-muted">
-          <CropperComponent
+          <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}

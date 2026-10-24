@@ -7,6 +7,7 @@ import { viewOfText, type FileView } from '../../reader/view.js';
 import { forEachNode, lineOfNode, unwrap } from '../../support/ast.js';
 import { isText, objectProblem, pathProblem } from '../../support/facts.js';
 import { aliasList, resolveSpecifier } from '../../support/resolve-specifier.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const SCOPE: Scope = {
   roots: ['app', 'functions', 'scripts', 'workers'],
@@ -251,7 +252,7 @@ export const testTimeoutGuard: GenericGuardDefinition<TestTimeoutFacts> = {
           "constant exported by one of the app's timeout files, imported from it — never a number written in place, and " +
           'never a name that is no such constant. A timeout file that no longer exists, is not test code, or exports no ' +
           'budget fails too.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return check(context.reader, facts, context.files(SCOPE));
         },

@@ -75,7 +75,7 @@ reachable through its accessible name or title.
 **Rules:** RULE-STD-FRONTEND-203, RULE-STD-FRONTEND-204, RULE-STD-FRONTEND-003. **Scope:** the major
 routes. **Method (axe and Lighthouse on the local dev server, plus a keyboard walkthrough).**
 **Expected:** beyond the component-level lint rules — one `main` landmark and skip link owned by the
-shell, with no page rendering its own `<main>`; icon-only buttons carry an accessible name, and a
+shell, with no page rendering its own `<main>`; icon-only buttons and every dropdown carry an accessible name, and a
 control repeated per item is named for its item; a custom choice button announces its selected state;
 a search dropdown is a labeled combobox whose highlighted result is announced as it moves, with Enter
 to pick and Escape to close, and two searches on one page never share an id; form fields associate

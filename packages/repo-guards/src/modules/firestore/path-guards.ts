@@ -15,6 +15,7 @@ import {
   type NoFacts,
   type NodeHit,
 } from './support.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const ACCESSORS = new Set(['collection', 'collectionGroup', 'doc']);
 
@@ -206,7 +207,7 @@ export const pathAssemblyGuard: GenericGuardDefinition<PathAssemblyFacts> = {
           'to a hole by a `/` in any template, or concatenated with a slash-bearing literal anywhere; a segment array ' +
           "holding an owner constant handed to a path joiner. Fix: call the core's path builder. A reviewed site is a file " +
           'with its why; an entry whose file no longer assembles a path is stale.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const held = new Set<string>();
@@ -316,7 +317,7 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
           'retired name in path position in any string or template (`/name/`, or `/name` closing it), and a retired name ' +
           "as a collectionGroup id. Fix: build the path through the core. A reviewed match names a literal's text that " +
           'is not a Firestore path, with its why; one that matches nothing is stale.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const used = new Set<number>();

@@ -279,14 +279,15 @@ export async function processImage(
         height: inputMeta.height,
       },
     };
-  } catch (e: any) {
+  } catch (e) {
+    const fault = e as { message?: unknown; name?: unknown } | null | undefined;
     return {
       ok: false,
       mediaType: 'image',
       error: {
         code: 'processing_failed',
-        message: e?.message ? String(e.message) : 'Image processing failed',
-        details: { name: e?.name },
+        message: fault?.message ? String(fault.message) : 'Image processing failed',
+        details: { name: fault?.name },
       },
     };
   } finally {

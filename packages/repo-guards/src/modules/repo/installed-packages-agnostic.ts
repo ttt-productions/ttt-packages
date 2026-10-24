@@ -1,6 +1,7 @@
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
 import { isText, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface InstalledPackagesAgnosticFacts {
   packageScope: string;
@@ -49,7 +50,7 @@ export const installedPackagesAgnosticGuard: GenericGuardDefinition<InstalledPac
             `Every installed ${facts.packageScope}* package but ${facts.corePackage} is generic: its manifest never depends on ` +
             `${facts.corePackage}, and its shipped code never imports it or names the product. A generic package takes the app's ` +
             'values through a factory, adapter, or configuration object instead.',
-          timeoutMs: 120_000,
+          timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
           run(context) {
             const findings: Finding[] = [];
             const products = facts.productNames.map((source) => new RegExp(source, 'i'));

@@ -27,7 +27,9 @@ export function createRateLimiterFactory(options: RateLimiterFactoryOptions) {
   function report(info: RateLimiterDegradation): void {
     try {
       options.onDegraded?.(info);
-    } catch {}
+    } catch {
+      // RULE-STD-ENG-009 exception: a throwing onDegraded must never fail the request it reports.
+    }
   }
 
   function getRateLimiter(config: RateLimitConfig): Ratelimit | null {

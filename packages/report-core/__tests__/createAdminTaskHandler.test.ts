@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createAdminTaskHandler } from '../src/server/createAdminTaskHandler.js';
-import type { ServerReportCoreConfig } from '../src/server/types.js';
+import type {
+  ServerCollectionRef,
+  ServerDocRef,
+  ServerFirestore,
+  ServerReportCoreConfig,
+} from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   describeUserReportTask: ({ totalReports, reportedItemType }) =>
@@ -23,16 +28,34 @@ const TEST_CONFIG: ServerReportCoreConfig = {
 };
 
 function makeMockDb() {
-  const setFn = vi.fn().mockResolvedValue(undefined);
-  const docFn = vi.fn().mockReturnValue({ set: setFn });
-  const collectionFn = vi.fn().mockReturnValue({ doc: docFn });
-  const db = { collection: collectionFn } as any;
+  const notInFake = (): never => {
+    throw new Error('only collection(...).doc(...).set(...) is part of this fake');
+  };
+  const setFn = vi.fn<ServerDocRef['set']>().mockResolvedValue(undefined);
+  const docFn = vi.fn((id?: string): ServerDocRef => ({
+    id: id ?? 'auto',
+    set: setFn,
+    update: notInFake,
+    get: notInFake,
+  }));
+  const collectionFn = vi.fn((_path: string): ServerCollectionRef => ({
+    doc: docFn,
+    where: notInFake,
+    orderBy: notInFake,
+    limit: notInFake,
+  }));
+  const db: ServerFirestore = {
+    collection: collectionFn,
+    doc: notInFake,
+    batch: notInFake,
+    runTransaction: notInFake,
+  };
   return { db, setFn, docFn, collectionFn };
 }
 
 describe('createAdminTaskHandler', () => {
   it('factory returns a function', () => {
-    const handler = createAdminTaskHandler({ config: TEST_CONFIG, db: {} as any });
+    const handler = createAdminTaskHandler({ config: TEST_CONFIG, db: {} as ServerFirestore });
     expect(typeof handler).toBe('function');
   });
 
@@ -125,7 +148,7 @@ describe('createAdminTaskHandler', () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
-    await handler(null as any, 'g8');
+    await handler(null, 'g8');
     expect(setFn).not.toHaveBeenCalled();
   });
 

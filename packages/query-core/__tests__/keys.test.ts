@@ -56,11 +56,11 @@ describe('keys scopes', () => {
 
   for (const scope of scopes) {
     it(`keys.${scope}.all starts with ["${scope}"]`, () => {
-      expect((keys as any)[scope].all[0]).toBe(scope);
+      expect(keys[scope].all[0]).toBe(scope);
     });
 
     it(`keys.${scope}.detail("id") includes scope and id`, () => {
-      const result = (keys as any)[scope].detail('test-id');
+      const result = keys[scope].detail('test-id');
       expect(result[0]).toBe(scope);
       expect(result).toContain('test-id');
     });

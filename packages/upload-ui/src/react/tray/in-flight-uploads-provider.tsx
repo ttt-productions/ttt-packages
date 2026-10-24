@@ -16,7 +16,7 @@
 //      Turbopack module identity (see defaultFirestoreSubscribe's comment).
 //
 // Do NOT "migrate" this onto query-core without preserving docChanges() semantics.
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, type Firestore } from 'firebase/firestore';
 
 import {
   createContext,
@@ -539,7 +539,7 @@ export function useUploadActivityState<
 // is another module instance and rejects a db built through ESM.
 const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
   const q = query(
-    collection(args.db as any, args.collectionPath),
+    collection(args.db as Firestore, args.collectionPath),
     where('userId', '==', args.userId),
     where('createdAt', '>=', args.windowStartMs),
   );

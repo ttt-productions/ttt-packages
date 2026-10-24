@@ -1,5 +1,6 @@
 import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
 import type { MediaKind, VideoOrientation } from '@ttt-productions/media-schemas';
+import { releaseObjectUrl } from './validate-media-duration.js';
 
 export interface ReadMediaMetaResult {
   kind: MediaKind;
@@ -39,9 +40,7 @@ async function readImage(
       }
     };
     img.onerror = () => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch {}
+      releaseObjectUrl(url);
       resolve({});
     };
     img.src = url;
@@ -60,9 +59,7 @@ async function readAV(
 
     el.onloadedmetadata = () => {
       try {
-        const durationSec = Number.isFinite((el as any).duration)
-          ? (el as any).duration
-          : undefined;
+        const durationSec = Number.isFinite(el.duration) ? el.duration : undefined;
         if (isVideo) {
           const v = el as HTMLVideoElement;
           const width = v.videoWidth || undefined;
@@ -77,16 +74,12 @@ async function readAV(
           resolve({ durationSec });
         }
       } finally {
-        try {
-          URL.revokeObjectURL(url);
-        } catch {}
+        releaseObjectUrl(url);
       }
     };
 
     el.onerror = () => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch {}
+      releaseObjectUrl(url);
       resolve({});
     };
 

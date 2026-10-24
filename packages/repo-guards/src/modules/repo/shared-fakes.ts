@@ -7,6 +7,7 @@ import type { FileView } from '../../reader/view.js';
 import { forEachNode, lineOfNode, unwrap } from '../../support/ast.js';
 import { isText, objectProblem, pathProblem } from '../../support/facts.js';
 import { aliasList, isLocalModule, resolveSpecifier } from '../../support/resolve-specifier.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const MOCK_CALLS: ReadonlySet<string> = new Set([
   'vi.mock',
@@ -264,7 +265,7 @@ export const sharedFakeGuard: GenericGuardDefinition<SharedFakeFacts> = {
           'factory loads the shared fake with import() and passes its overrides. A test that writes the fake out again, or ' +
           'mocks the module with no factory, is a second copy that drifts. A shared fake whose owner or module no longer ' +
           'exists, or that is not test code, fails too.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return checkFakes(context.reader, facts, context.files(SCOPE));
         },
@@ -274,7 +275,7 @@ export const sharedFakeGuard: GenericGuardDefinition<SharedFakeFacts> = {
         description:
           'A helper the shared test-helper files export is imported from there, never declared again in a test file of the ' +
           'same tree. A shared helper file that no longer exists, or that is not test code, fails too.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return checkHelpers(context.reader, facts, context.files(SCOPE));
         },

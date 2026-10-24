@@ -48,7 +48,8 @@ package may consume either.
   primitives), `notification-core` (no internal runtime deps; its UI/query needs are
   optional peers).
 - **Tier 2:** `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
-  (→ `ui-core`, `media-schemas`, `media-viewer`).
+  (→ `ui-core`, `media-schemas`, `media-viewer`), `consent-core` (no internal runtime deps; its
+  `./react` entry builds on the optional peers `theme-core` and `ui-core`).
 - **Tier 3:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
   `upload-core`).
 - **Tier 4:** `chat-react` (→ `chat-core`, `chat-schemas`, `realtime-core`,
@@ -92,8 +93,8 @@ order) already places `media-viewer` before `file-input`, so dependencies still
 build and release before their dependents.
 
 Every other package has zero internal runtime dependencies. `ui-core`,
-`report-core`, `notification-core`, `upload-ui`, and `chat-react` declare some
-`@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`) —
+`report-core`, `notification-core`, `consent-core`, `upload-ui`, and `chat-react` declare some
+`@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`, `theme-core`) —
 a peer is not a runtime edge, but a package whose source imports one compiles
 against its `dist`, so the peer still builds and releases first.
 

@@ -50,7 +50,7 @@ import {
   type UnusedServiceFacts,
 } from './monitoring.js';
 
-export interface BackendGuardFacts {
+export type BackendGuardFacts = {
   auditWriter: AuditWriterFacts | Absent;
   auditPayload: AuditPayloadFacts | Absent;
   failureAuditChain: FailureAuditFacts | Absent;
@@ -71,7 +71,7 @@ export interface BackendGuardFacts {
   lightFunctions: LightFunctionFacts | Absent;
   codebaseManifest: CodebaseManifestFacts | Absent;
   adminActionSurface: AdminActionSurfaceFacts | Absent;
-}
+};
 
 export const BACKEND_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   auditWriterGuard,

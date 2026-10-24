@@ -13,6 +13,7 @@ import {
 } from '../../support/facts.js';
 import { moduleImports } from '../../support/imports.js';
 import { resolveRelative } from '../../support/paths.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface SecretBindingFacts {
   entryFactories: Readonly<Record<string, number>>;
@@ -544,7 +545,7 @@ export const secretBindingGuard: GenericGuardDefinition<SecretBindingFacts> = {
           'nothing in its import closure consumes unless reviewed; an entry importing a registered helper export binds that ' +
           "helper's secrets, and a helper importing one registers an export of its own; each secret is declared by one " +
           'module. Bind the secret in the entry, pin a reviewed binder, drop an unused binding, or register the helper.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const files = context.files(SOURCE_SCOPE);
           const result = analyzeSecretBindings(files, facts);

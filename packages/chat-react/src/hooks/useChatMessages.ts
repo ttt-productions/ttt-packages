@@ -30,12 +30,10 @@ function mapMsg(
   threadId: string,
   messageMeta: ChatCoreConfig['messageMeta'],
 ): ChatMessageV1 {
-  const d = data as any;
-
-  const createdAt = toMillis(d.createdAt);
+  const createdAt = toMillis(data.createdAt);
 
   if (!createdAt) {
-    console.error('[useChatMessages] Message missing valid createdAt:', data.id, d.createdAt);
+    console.error('[useChatMessages] Message missing valid createdAt:', data.id, data.createdAt);
   }
 
   const appMeta = messageMeta?.(data);
@@ -43,13 +41,13 @@ function mapMsg(
     messageId: data.id,
     threadId,
     createdAt: createdAt || 0,
-    senderId: d.senderId,
-    text: d.text ?? '',
-    type: d.type,
-    isSystemMessage: d.isSystemMessage ?? undefined,
-    referencedUids: Array.isArray(d.referencedUids) ? d.referencedUids : undefined,
-    hidden: d.hidden ?? undefined,
-    meta: appMeta ? { ...d.meta, ...appMeta } : d.meta,
+    senderId: data.senderId,
+    text: data.text ?? '',
+    type: data.type,
+    isSystemMessage: data.isSystemMessage ?? undefined,
+    referencedUids: Array.isArray(data.referencedUids) ? data.referencedUids : undefined,
+    hidden: data.hidden ?? undefined,
+    meta: appMeta ? { ...data.meta, ...appMeta } : data.meta,
   };
 }
 

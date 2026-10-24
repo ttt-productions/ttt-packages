@@ -18,7 +18,7 @@ description: Claude Code workflow (Build or fix). Use when the work is big enoug
 2. Launch read-only agents to read the routed rules, the `docs/design/*.md` for every area involved,
    and the current code, and report the system back; the design each building agent gets comes from
    their reports.
-3. Propose to DJ: the number of agents and each one's exact scope and owned files. Nothing spawns
+3. Propose to DJ: the number of agents, each one's tier, and each one's exact scope and owned files. Nothing spawns
    without DJ's yes.
 4. App-side work: confirm every shared package it depends on is at `@latest` first. Package work and
    app work never run at the same time — all package work, its gate, and DJ's publish come first.

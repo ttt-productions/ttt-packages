@@ -6,11 +6,11 @@ export function useNoRubberBand(enabled: boolean) {
     if (!isBrowser || !isIOS || !enabled) return;
 
     const el = document.documentElement;
-    const prev = el.style.overscrollBehaviorY as any;
-    (el.style as any).overscrollBehaviorY = 'none';
+    const prev = el.style.overscrollBehaviorY;
+    el.style.overscrollBehaviorY = 'none';
 
     return () => {
-      (el.style as any).overscrollBehaviorY = prev;
+      el.style.overscrollBehaviorY = prev;
     };
   }, [enabled]);
 }

@@ -1,3 +1,4 @@
+import type { Timestamp } from 'firebase/firestore';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { formatDateDisplay } from '../src/firestore-client/date-formatting.js';
 
@@ -40,7 +41,7 @@ describe('formatDateDisplay', () => {
       seconds: 1704067200,
       nanoseconds: 0,
     };
-    const result = formatDateDisplay(ts as any, 'PPP');
+    const result = formatDateDisplay(ts as Timestamp, 'PPP');
     expect(result).toBe('Jan 1, 2024');
   });
 

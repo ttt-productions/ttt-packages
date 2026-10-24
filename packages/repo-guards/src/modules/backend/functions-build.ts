@@ -10,6 +10,7 @@ import { namesProblem, reviewedProblems, textProblem } from '../../support/facts
 import { moduleImports, namesModule } from '../../support/imports.js';
 import { resolveRelative } from '../../support/paths.js';
 import { calleePath } from './shared.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
@@ -516,7 +517,7 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
           'cold start. Cut the edge — load the heavy module through the module-level lazy loader at its true usage site — ' +
           'instead of relaxing the list. Every relative import must resolve, every light function must be exported by ' +
           'the entry module, and every heavy file must exist.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const files = context.files(FUNCTIONS_CODE);

@@ -1,5 +1,10 @@
 import type { MonitoringAdapter } from '../adapter.js';
-import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from '../types.js';
+import type {
+  MonitoringInitOptions,
+  MonitoringLevel,
+  MonitoringUser,
+  ScopeLike,
+} from '../types.js';
 
 const noopScope: ScopeLike = {
   setTag: () => {},
@@ -12,7 +17,11 @@ export const NoopAdapter: MonitoringAdapter = {
   init: (_options: MonitoringInitOptions) => {},
 
   captureException: (_error: unknown, _context?: Record<string, unknown>) => {},
-  captureMessage: (_message: string, _level?: any, _context?: Record<string, unknown>) => {},
+  captureMessage: (
+    _message: string,
+    _level?: MonitoringLevel,
+    _context?: Record<string, unknown>,
+  ) => {},
 
   setUser: (_user: MonitoringUser | null) => {},
   setTag: (_key: string, _value: string) => {},

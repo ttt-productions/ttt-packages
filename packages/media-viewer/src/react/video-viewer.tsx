@@ -154,7 +154,9 @@ export function VideoViewer(props: VideoViewerProps) {
     if (typeof fn === 'function') {
       try {
         fn.call(el);
-      } catch {}
+      } catch {
+        // A browser that refuses fullscreen throws, and the control then does nothing.
+      }
     }
   }, [enableFullscreen]);
 

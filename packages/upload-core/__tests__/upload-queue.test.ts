@@ -11,18 +11,23 @@ vi.mock('../src/utils/upload-store.js', () => ({
 
 import { UploadQueue } from '../src/browser/upload-queue.js';
 import { startResumableUpload } from '../src/browser/upload.js';
-import type { StartUploadArgs } from '../src/browser/types.js';
+import type { StartUploadArgs, UploadController } from '../src/browser/types.js';
+import type { UploadFileResumableResult } from '../src/types.js';
+import type { FirebaseStorage } from 'firebase/storage';
 
-function makeMockController(id = 'ctrl') {
-  let resolveDone!: (r: any) => void;
-  let rejectDone!: (e: any) => void;
-  const done = new Promise<any>((res, rej) => {
+function makeMockController(id = 'ctrl'): UploadController & {
+  resolveDone: (r: UploadFileResumableResult) => void;
+  rejectDone: (e: unknown) => void;
+} {
+  let resolveDone!: (r: UploadFileResumableResult) => void;
+  let rejectDone!: (e: unknown) => void;
+  const done = new Promise<UploadFileResumableResult>((res, rej) => {
     resolveDone = res;
     rejectDone = rej;
   });
   return {
     id,
-    task: {} as any,
+    task: null,
     pause: vi.fn(() => false),
     resume: vi.fn(() => false),
     cancel: vi.fn(() => true),
@@ -33,7 +38,7 @@ function makeMockController(id = 'ctrl') {
 }
 
 const baseArgs: StartUploadArgs = {
-  storage: {} as any,
+  storage: {} as FirebaseStorage,
   path: 'test/file.jpg',
   file: new Blob(['data']),
 };
@@ -54,9 +59,7 @@ describe('UploadQueue', () => {
 
     const ctrl1 = makeMockController('c1');
     const ctrl2 = makeMockController('c2');
-    vi.mocked(startResumableUpload)
-      .mockReturnValueOnce(ctrl1 as any)
-      .mockReturnValueOnce(ctrl2 as any);
+    vi.mocked(startResumableUpload).mockReturnValueOnce(ctrl1).mockReturnValueOnce(ctrl2);
 
     queue.enqueue({ ...baseArgs, id: 'job1' });
     queue.enqueue({ ...baseArgs, id: 'job2' });
@@ -68,7 +71,7 @@ describe('UploadQueue', () => {
   it('setConcurrency updates the limit', () => {
     const queue = new UploadQueue({ concurrency: 1 });
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     queue.enqueue({ ...baseArgs, id: 'job1' });
     queue.enqueue({ ...baseArgs, id: 'job2' });
@@ -83,7 +86,7 @@ describe('UploadQueue', () => {
     const queue = new UploadQueue({ concurrency: 0 });
 
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     queue.enqueue({ ...baseArgs, id: 'job1' });
     queue.enqueue({ ...baseArgs, id: 'job2' });
@@ -96,7 +99,7 @@ describe('UploadQueue', () => {
   it('getRunningCount returns correct value', () => {
     const queue = new UploadQueue({ concurrency: 2 });
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     expect(queue.getRunningCount()).toBe(0);
     queue.enqueue({ ...baseArgs, id: 'job1' });
@@ -108,7 +111,7 @@ describe('UploadQueue', () => {
   it('enqueue returns an UploadController', () => {
     const queue = new UploadQueue();
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     const controller = queue.enqueue({ ...baseArgs });
     expect(controller).toBeDefined();
@@ -121,7 +124,7 @@ describe('UploadQueue', () => {
   it('cancel before start removes from pending queue', () => {
     const queue = new UploadQueue({ concurrency: 1 });
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     queue.enqueue({ ...baseArgs, id: 'job1' });
     const job2 = queue.enqueue({ ...baseArgs, id: 'job2' });
@@ -143,9 +146,9 @@ describe('UploadQueue', () => {
     const ctrl3 = makeMockController('c3');
 
     vi.mocked(startResumableUpload)
-      .mockReturnValueOnce(ctrl1 as any)
-      .mockReturnValueOnce(ctrl3 as any)
-      .mockReturnValueOnce(ctrl2 as any);
+      .mockReturnValueOnce(ctrl1)
+      .mockReturnValueOnce(ctrl3)
+      .mockReturnValueOnce(ctrl2);
 
     queue.enqueue({ ...baseArgs, id: 'job1', priority: 0 });
 
@@ -166,7 +169,7 @@ describe('UploadQueue', () => {
   it('FIFO within same priority (lower seq runs first)', () => {
     const queue = new UploadQueue({ concurrency: 1 });
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     queue.enqueue({ ...baseArgs, id: 'job1', priority: 5 });
     queue.enqueue({ ...baseArgs, id: 'job2', priority: 5 });
@@ -178,7 +181,7 @@ describe('UploadQueue', () => {
   it('concurrency limit is respected', () => {
     const queue = new UploadQueue({ concurrency: 2 });
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     queue.enqueue({ ...baseArgs, id: 'job1' });
     queue.enqueue({ ...baseArgs, id: 'job2' });
@@ -191,7 +194,7 @@ describe('UploadQueue', () => {
   it('running count decrements after job completes', async () => {
     const queue = new UploadQueue({ concurrency: 1 });
     const ctrl = makeMockController();
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     queue.enqueue({ ...baseArgs, id: 'job1' });
     expect(queue.getRunningCount()).toBe(1);
@@ -207,7 +210,7 @@ describe('UploadQueue', () => {
   it('enqueue uses provided id', () => {
     const queue = new UploadQueue();
     const ctrl = makeMockController('my-id');
-    vi.mocked(startResumableUpload).mockReturnValue(ctrl as any);
+    vi.mocked(startResumableUpload).mockReturnValue(ctrl);
 
     const controller = queue.enqueue({ ...baseArgs, id: 'my-upload-id' });
     expect(controller.id).toBe('my-upload-id');

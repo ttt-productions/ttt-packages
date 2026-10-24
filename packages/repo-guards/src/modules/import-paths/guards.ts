@@ -18,7 +18,7 @@ import {
   type PackageImportFacts,
 } from './package-imports.js';
 
-export interface ImportPathGuardFacts {
+export type ImportPathGuardFacts = {
   importPaths: ImportPathFacts;
   packageEntries: PackageEntryFacts;
   packageEntryImports: PackageEntryImportFacts;
@@ -27,7 +27,7 @@ export interface ImportPathGuardFacts {
   packageImportCycles: PackageImportFacts;
   entryPurity: EntryPurityFacts;
   applicationDataImports: ApplicationDataFacts;
-}
+};
 
 export const IMPORT_PATH_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   importPathGuard,

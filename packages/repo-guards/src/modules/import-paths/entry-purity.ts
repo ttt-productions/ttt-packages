@@ -8,6 +8,11 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { reviewedProblems, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
+import {
+  ENTRY_IMPORT_TIMEOUT_MS,
+  ENTRY_LOAD_TIMEOUT_MS,
+  PACKAGE_GRAPH_TIMEOUT_MS,
+} from '../../support/timeouts.js';
 
 export type EntryRuntime = 'universal' | 'node' | 'react' | 'browser' | 'style';
 const RUNTIMES: readonly EntryRuntime[] = ['node', 'react', 'browser', 'style'];
@@ -238,7 +243,7 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
           'is universal: neither its built JavaScript nor its declaration files may import a Node module (`node:*` included), ' +
           'React, or a browser runtime, or reference their types, directly or through any module or runtime-specific sibling ' +
           'entry they reach. Move what needs the runtime behind the runtime-specific entry.',
-        timeoutMs: 300_000,
+        timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const { repoRoot, entries, findings } = read(context);
           if (findings.length) return findings;
@@ -294,7 +299,7 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
         description:
           'Each entry that is universal or declared for Node is imported, built, in a fresh Node process; it must evaluate ' +
           'without error. A failure names the error the import threw.',
-        timeoutMs: 600_000,
+        timeoutMs: ENTRY_LOAD_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const { repoRoot, entries, findings } = read(context);
           if (findings.length) return findings;
@@ -318,7 +323,7 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
                 {
                   cwd: repoRoot,
                   stdio: 'pipe',
-                  timeout: 60_000,
+                  timeout: ENTRY_IMPORT_TIMEOUT_MS,
                   shell: false,
                 },
               );

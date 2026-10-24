@@ -31,6 +31,7 @@ import {
   type KeyModuleFacts,
   type ReviewedCall,
 } from './shared.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 const REGISTRY_FACTORY = 'createDomainEventInvalidator';
 const EXACT = 'exact';
@@ -277,7 +278,7 @@ const cacheInvalidationGuards = (facts: CacheInvalidationFacts, owned: OwnedElse
       `with the same arguments, never a family (all, or a …${facts.familySuffix} helper); and no target reaches an infinite list — named, ` +
       'through its family helper, or through its scope. A write aimed at a key nothing reads is a silent no-op, and invalidating an ' +
       'infinite list re-runs every loaded page.',
-    timeoutMs: 120_000,
+    timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
     async run(context: GuardContext): Promise<Finding[]> {
       const { file: registry, findings } = requiredFile(
         context,
@@ -439,7 +440,7 @@ const listResetGuards = (facts: ListResetFacts, sessionOwner: string): Guard[] =
       `be resolved unless its predicate excludes every query holding loaded pages (!${facts.loadedPagesPredicate}(query)), and no cache ` +
       "write that trims a list to its first page. A person's own refresh is declared with its why, and a refresh hook's result is only " +
       'ever handed to its refresh control.',
-    timeoutMs: 120_000,
+    timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
     async run(context) {
       const builders = await loadKeyObjects(facts.keyModule);
       const files = context.files(APP_CODE);
@@ -542,14 +543,15 @@ export interface DomainEventRegistryFacts {
   notifiers: readonly string[];
 }
 
+type ZodDef = { type?: unknown; innerType?: ZodLike };
 type ZodLike = {
-  def?: any;
-  _def?: any;
+  def?: ZodDef;
+  _def?: ZodDef;
   shape?: Record<string, ZodLike>;
   options?: unknown[];
   value?: unknown;
 };
-const defOf = (field: ZodLike) => field?.def ?? field?._def ?? {};
+const defOf = (field: ZodLike): ZodDef => field?.def ?? field?._def ?? {};
 const kindOf = (field: ZodLike): 'optional' | 'nullable' | 'enum' | 'required' => {
   const type = defOf(field).type;
   return type === 'optional' || type === 'nullable' || type === 'enum' ? type : 'required';

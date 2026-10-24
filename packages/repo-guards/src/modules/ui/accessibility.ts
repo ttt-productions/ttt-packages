@@ -97,6 +97,29 @@ export function untypedFormButtons(file: FileView, buttonComponents: readonly st
   return hits;
 }
 
+export function unnamedDropdownTriggers(file: FileView, triggers: readonly string[]): Hit[] {
+  const sf = file.sourceFile;
+  const components = new Set(triggers);
+  const labelTargets = new Set<string>();
+  forEachNode(sf, (node) => {
+    const open = openingOf(node);
+    const target = open && writtenValue(open, 'htmlFor', sf);
+    if (target) labelTargets.add(target);
+  });
+  const hits: Hit[] = [];
+  forEachNode(sf, (node) => {
+    const open = openingOf(node);
+    if (!open) return;
+    const tag = open.tagName.getText(sf);
+    if (!components.has(tag)) return;
+    if (attr(open, 'aria-label') || attr(open, 'aria-labelledby') || hasSpread(open)) return;
+    const id = writtenValue(open, 'id', sf);
+    if (id !== undefined && labelTargets.has(id)) return;
+    hits.push({ index: node.getStart(sf), detail: `an unnamed ${tag}` });
+  });
+  return hits;
+}
+
 const CONTROL_HANDLERS = ['onClick', 'onKeyDown', 'onKeyUp', 'onPointerDown'];
 
 export function interactiveDisplayElements(
@@ -138,6 +161,7 @@ export interface AccessibleControlFacts {
   surfaceTrees: readonly string[];
   button: { component: string; iconSizes: readonly string[] };
   displayComponents: readonly string[];
+  dropdownTriggers: readonly string[];
 }
 
 export const accessibleControlsGuard: GenericGuardDefinition<AccessibleControlFacts> = {
@@ -156,6 +180,9 @@ export const accessibleControlsGuard: GenericGuardDefinition<AccessibleControlFa
     identifierListProblem(facts.displayComponents, 'displayComponents', problems, {
       nonEmpty: true,
     });
+    identifierListProblem(facts.dropdownTriggers, 'dropdownTriggers', problems, {
+      nonEmpty: true,
+    });
     return problems;
   },
   build(facts) {
@@ -164,6 +191,7 @@ export const accessibleControlsGuard: GenericGuardDefinition<AccessibleControlFa
     const sample = (text: string) => ({ path: surface, text });
     const icon = iconSizes[0];
     const display = facts.displayComponents[0];
+    const trigger = facts.dropdownTriggers[0];
     return [
       reviewedAllowlist({
         title: 'an icon-only button carries an accessible name',
@@ -216,6 +244,39 @@ export const accessibleControlsGuard: GenericGuardDefinition<AccessibleControlFa
               `const f = <form><PopoverTrigger asChild><${component}>Pick a date</${component}></PopoverTrigger></form>;`,
             ),
             sample(`const f = <div><${component} onClick={go}>Go</${component}></div>;`),
+          ],
+        },
+      }),
+      reviewedAllowlist({
+        title: 'every dropdown carries an accessible name',
+        description:
+          `A dropdown (${facts.dropdownTriggers.join(', ')}) is named by an aria-label, an aria-labelledby, or an id the ` +
+          'htmlFor of a label in the same file points at. A dropdown with no name is announced only by its current value, ' +
+          'so a screen reader cannot say what it chooses.',
+        scope: APP_CODE,
+        match: inSurfaces(facts.surfaceTrees, (file) =>
+          unnamedDropdownTriggers(file, facts.dropdownTriggers),
+        ),
+        allowlist: [],
+        samples: {
+          flags: [
+            sample(`const a = <${trigger}><SelectValue /></${trigger}>;`),
+            sample(
+              `const a = <><Label>Sort by</Label><${trigger} id="sort"><SelectValue /></${trigger}></>;`,
+            ),
+            sample(
+              `const a = <><Label htmlFor="other">Sort by</Label><${trigger} id="sort" /></>;`,
+            ),
+          ],
+          passes: [
+            sample(
+              `const a = <${trigger} aria-label="Filter by trade"><SelectValue /></${trigger}>;`,
+            ),
+            sample(`const a = <><Label htmlFor="sort">Sort by</Label><${trigger} id="sort" /></>;`),
+            sample(
+              `const a = <><Label htmlFor={sortId}>Sort by</Label><${trigger} id={sortId} /></>;`,
+            ),
+            sample(`const a = <${trigger} aria-labelledby="sort-label" />;`),
           ],
         },
       }),

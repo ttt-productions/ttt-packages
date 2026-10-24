@@ -11,15 +11,15 @@ class FakeIO {
   disconnect = vi.fn();
   unobserve = vi.fn();
   takeRecords = vi.fn(() => []);
-  constructor(_cb: any, _opts?: any) {}
+  constructor(_cb: IntersectionObserverCallback, _opts?: IntersectionObserverInit) {}
 }
 
 // jsdom has no URL.createObjectURL, and React may flush a prior test's deferred cleanups inside
 // the next test's act(), so these stubs stay installed for the whole module.
-const createObjectURLMock = vi.fn(() => 'blob:fake-url');
-const revokeObjectURLMock = vi.fn();
-(URL as any).createObjectURL = createObjectURLMock;
-(URL as any).revokeObjectURL = revokeObjectURLMock;
+const createObjectURLMock = vi.fn<typeof URL.createObjectURL>(() => 'blob:fake-url');
+const revokeObjectURLMock = vi.fn<typeof URL.revokeObjectURL>();
+URL.createObjectURL = createObjectURLMock;
+URL.revokeObjectURL = revokeObjectURLMock;
 
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', FakeIO);
@@ -39,19 +39,19 @@ afterEach(() => {
 describe('MediaPreview', () => {
   describe('empty / null url', () => {
     it('renders EmptyFallback when url is null', () => {
-      const { container } = render(<MediaPreview url={null as any} />);
+      const { container } = render(<MediaPreview url={null} />);
       expect(container.querySelector('.mv-empty-fallback')).toBeInTheDocument();
     });
 
     it('renders the pending state (a labeled spinner), never the empty fallback, while urlPending', () => {
-      const { container, getByRole } = render(<MediaPreview url={null as any} urlPending />);
+      const { container, getByRole } = render(<MediaPreview url={null} urlPending />);
       expect(container.querySelector('.mv-pending-fallback')).toBeInTheDocument();
       expect(container.querySelector('.mv-empty-fallback')).toBeNull();
       expect(getByRole('status')).toHaveTextContent('Loading media');
     });
 
     it('renders avatar-shaped empty fallback when isCircular and url is null', () => {
-      const { container } = render(<MediaPreview url={null as any} isCircular />);
+      const { container } = render(<MediaPreview url={null} isCircular />);
       expect(container.querySelector('.mv-avatar-fallback')).toBeInTheDocument();
       expect(container.querySelector('.mv-avatar-fallback')?.textContent).toBe('?');
     });
@@ -97,23 +97,17 @@ describe('MediaPreview', () => {
     });
 
     it('accepts MIME-form type and takes the primary segment: "image/png" -> image', () => {
-      const { container } = render(
-        <MediaPreview url="https://example.com/x" type={'image/png' as any} />,
-      );
+      const { container } = render(<MediaPreview url="https://example.com/x" type="image/png" />);
       expect(container.querySelector('img')).toBeInTheDocument();
     });
 
     it('accepts MIME-form type "video/mp4" -> video', () => {
-      const { container } = render(
-        <MediaPreview url="https://example.com/x" type={'video/mp4' as any} />,
-      );
+      const { container } = render(<MediaPreview url="https://example.com/x" type="video/mp4" />);
       expect(container.querySelector('video')).toBeInTheDocument();
     });
 
     it('accepts MIME-form type "audio/mpeg" -> audio', () => {
-      const { container } = render(
-        <MediaPreview url="https://example.com/x" type={'audio/mpeg' as any} />,
-      );
+      const { container } = render(<MediaPreview url="https://example.com/x" type="audio/mpeg" />);
       expect(container.querySelector('audio')).toBeInTheDocument();
     });
   });

@@ -5,6 +5,7 @@ import { createRepoReader } from '../reader.js';
 import type { RepoLayout } from '../layout.js';
 import { GENERIC_GUARDS, type GenericGuardFacts } from './registry.js';
 import { checkSamples, runGuard } from './run.js';
+import { GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface GuardSuiteConfig {
   layout: RepoLayout;
@@ -12,13 +13,11 @@ export interface GuardSuiteConfig {
   business: readonly Guard[];
 }
 
-const DEFAULT_TIMEOUT_MS = 60_000;
-
 export function registerGuardSuite(config: GuardSuiteConfig): void {
   registerSuiteOf(
     {
       layout: config.layout,
-      generic: config.generic as unknown as Readonly<Record<string, unknown>>,
+      generic: config.generic,
       business: config.business,
     },
     GENERIC_GUARDS,
@@ -50,7 +49,7 @@ export function registerSuiteOf(
     });
     for (const guard of guards) {
       describe(guard.title, () => {
-        if (guard.prepare) beforeAll(() => guard.prepare!(), guard.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        if (guard.prepare) beforeAll(() => guard.prepare!(), guard.timeoutMs ?? GUARD_TIMEOUT_MS);
         if (guard.samples)
           it('flags every must-fail sample and passes every must-pass sample', () =>
             checkSamples(guard));
@@ -60,7 +59,7 @@ export function registerSuiteOf(
           it(
             'holds across the repository',
             () => runGuard(guard, reader),
-            guard.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+            guard.timeoutMs ?? GUARD_TIMEOUT_MS,
           );
       });
     }

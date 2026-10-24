@@ -24,6 +24,7 @@ import {
   Spinner,
   useAsyncAction,
 } from '@ttt-productions/ui-core/react';
+import { releaseObjectUrl } from '../../lib/validate-media-duration.js';
 
 type RecorderState = 'idle' | 'recording' | 'preview';
 
@@ -34,6 +35,15 @@ const RECORDER_MIME_CANDIDATES: Record<'audio' | 'video', readonly string[]> = {
   video: ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'],
 };
 
+function stopIfRecording(recorder: MediaRecorder | null): void {
+  if (!recorder || recorder.state !== 'recording') return;
+  try {
+    recorder.stop();
+  } catch {
+    // A recorder that stopped between the state check and this call throws; it has stopped.
+  }
+}
+
 function pickRecorderMimeType(kind: 'audio' | 'video'): string | undefined {
   if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
     return undefined;
@@ -41,7 +51,9 @@ function pickRecorderMimeType(kind: 'audio' | 'video'): string | undefined {
   for (const candidate of RECORDER_MIME_CANDIDATES[kind]) {
     try {
       if (MediaRecorder.isTypeSupported(candidate)) return candidate;
-    } catch {}
+    } catch {
+      // A browser that cannot parse a candidate throws; it counts as unsupported.
+    }
   }
   return undefined;
 }
@@ -153,9 +165,7 @@ export function RecordDialog({
 
   const revokeLastRecordUrl = useCallback(() => {
     if (!lastRecordUrlRef.current) return;
-    try {
-      URL.revokeObjectURL(lastRecordUrlRef.current);
-    } catch {}
+    releaseObjectUrl(lastRecordUrlRef.current);
     lastRecordUrlRef.current = null;
   }, []);
 
@@ -190,7 +200,9 @@ export function RecordDialog({
     waveformStopRef.current = null;
     try {
       audioSourceRef.current?.disconnect();
-    } catch {}
+    } catch {
+      // A node that is already disconnected throws, and there is nothing left to tear down.
+    }
     audioSourceRef.current = null;
     audioAnalyserRef.current = null;
     const ctx = audioContextRef.current;
@@ -204,8 +216,10 @@ export function RecordDialog({
     (stream: MediaStream) => {
       stopWaveform();
       try {
-        const AudioCtx: typeof AudioContext =
-          (window as any).AudioContext || (window as any).webkitAudioContext;
+        // lib.dom does not declare Safari's prefixed webkitAudioContext.
+        const prefixed = window as Window & { webkitAudioContext?: typeof AudioContext };
+        const AudioCtx: typeof AudioContext | undefined =
+          window.AudioContext || prefixed.webkitAudioContext;
         if (!AudioCtx) return;
 
         const ctx = new AudioCtx();
@@ -223,7 +237,9 @@ export function RecordDialog({
           getCanvas: () => waveformCanvasRef.current,
           mode: 'line',
         });
-      } catch {}
+      } catch {
+        // The waveform is decoration: a browser that refuses an audio graph records without one.
+      }
     },
     [stopWaveform],
   );
@@ -272,7 +288,9 @@ export function RecordDialog({
         livePreviewRef.current.muted = true;
         try {
           await livePreviewRef.current.play();
-        } catch {}
+        } catch {
+          // A browser that blocks preview playback rejects; recording does not depend on it.
+        }
       } else if (!wantVideo) {
         startWaveform(stream);
       }
@@ -364,13 +382,10 @@ export function RecordDialog({
       startElapsedTimer();
 
       if (maxRecordDurationSec && maxRecordDurationSec > 0) {
-        autoStopTimeoutRef.current = setTimeout(() => {
-          try {
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-              mediaRecorderRef.current.stop();
-            }
-          } catch {}
-        }, autoStopDelayMs(maxRecordDurationSec));
+        autoStopTimeoutRef.current = setTimeout(
+          () => stopIfRecording(mediaRecorderRef.current),
+          autoStopDelayMs(maxRecordDurationSec),
+        );
       }
     },
     [
@@ -435,12 +450,7 @@ export function RecordDialog({
   );
 
   const closeDialogImmediately = useCallback(() => {
-    const mr = mediaRecorderRef.current;
-    if (mr && mr.state === 'recording') {
-      try {
-        mr.stop();
-      } catch {}
-    }
+    stopIfRecording(mediaRecorderRef.current);
     teardownCapture();
     revokeLastRecordUrl();
     setRecordedFile(null);

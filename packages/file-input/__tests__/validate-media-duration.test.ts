@@ -6,49 +6,34 @@ function makeFakeMediaEl(
   shouldError = false,
   opts: { seekRevealsDuration?: number } = {},
 ) {
-  const listeners = new Map<string, Set<() => void>>();
-  const el: any = {
-    preload: '',
-    src: '',
-    duration,
-    currentTime: 0,
-    onloadedmetadata: null,
-    onerror: null,
-    addEventListener: (type: string, fn: () => void) => {
-      if (!listeners.has(type)) listeners.set(type, new Set());
-      listeners.get(type)!.add(fn);
-    },
-    removeEventListener: (type: string, fn: () => void) => {
-      listeners.get(type)?.delete(fn);
-    },
-  };
-  Object.defineProperty(el, 'currentTime', {
-    set(v: number) {
-      el._currentTime = v;
-      if (v > 0 && opts.seekRevealsDuration !== undefined) {
-        el.duration = opts.seekRevealsDuration;
-        queueMicrotask(() => {
-          for (const fn of listeners.get('durationchange') ?? []) fn();
-        });
-      }
-    },
-    get() {
-      return el._currentTime ?? 0;
-    },
-  });
-  Object.defineProperty(el, 'src', {
-    set(v: string) {
-      Object.defineProperty(el, '_src', { value: v, writable: true, configurable: true });
-      queueMicrotask(() => {
-        if (shouldError) {
-          el.onerror?.();
-        } else {
-          el.onloadedmetadata?.();
+  const el = document.createElement('video');
+  let currentDuration = duration;
+  let currentTime = 0;
+  let src = '';
+  Object.defineProperties(el, {
+    duration: { configurable: true, get: () => currentDuration },
+    currentTime: {
+      configurable: true,
+      get: () => currentTime,
+      set(v: number) {
+        currentTime = v;
+        if (v > 0 && opts.seekRevealsDuration !== undefined) {
+          currentDuration = opts.seekRevealsDuration;
+          queueMicrotask(() => {
+            el.dispatchEvent(new Event('durationchange'));
+          });
         }
-      });
+      },
     },
-    get() {
-      return el._src;
+    src: {
+      configurable: true,
+      get: () => src,
+      set(v: string) {
+        src = v;
+        queueMicrotask(() => {
+          el.dispatchEvent(new Event(shouldError ? 'error' : 'loadedmetadata'));
+        });
+      },
     },
   });
   return el;
@@ -56,7 +41,7 @@ function makeFakeMediaEl(
 
 describe('validateMediaDuration', () => {
   let createElementSpy: MockInstance;
-  let lastCreatedEl: any;
+  let lastCreatedEl: HTMLVideoElement;
 
   beforeEach(() => {
     vi.stubGlobal('URL', {
@@ -121,7 +106,7 @@ describe('validateMediaDuration', () => {
     stubCreateElement(20);
     const file = new File([''], 'v.mp4', { type: 'video/mp4' });
     await validateMediaDuration(file, 60);
-    expect((globalThis as any).URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake');
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake');
   });
 
   it('accepts a recording whose Infinity metadata resolves to a short real duration', async () => {

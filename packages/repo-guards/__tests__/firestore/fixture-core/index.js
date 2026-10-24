@@ -65,77 +65,123 @@ export const SPECIAL_DOCS = Object.freeze({
 });
 
 export const PICTURE_SLOT_OWNERS = Object.freeze({
-  gameLocation: Object.freeze({ ownerDoc: (a0) => ['gameLocations', a0], slotField: 'pictureId' }),
+  gameLocation: Object.freeze({
+    ownerDoc: (/** @type {string} */ a0) => ['gameLocations', a0],
+    slotField: 'pictureId',
+  }),
   awardDefinition: Object.freeze({
-    ownerDoc: (a0) => ['awardDefinitions', a0],
+    ownerDoc: (/** @type {string} */ a0) => ['awardDefinitions', a0],
     slotField: 'badgePictureId',
   }),
 });
 
 export const PICTURE_OWNER_PATHS = Object.freeze({
-  sportLeague: Object.freeze({ ownerDoc: (a0) => ['sportLeagues', a0] }),
-  leagueTeam: Object.freeze({ ownerDoc: (a0) => ['leagueTeams', a0] }),
+  sportLeague: Object.freeze({ ownerDoc: (/** @type {string} */ a0) => ['sportLeagues', a0] }),
+  leagueTeam: Object.freeze({ ownerDoc: (/** @type {string} */ a0) => ['leagueTeams', a0] }),
   landingPage: Object.freeze({ ownerDoc: () => ['_appConfig', 'landingPage'] }),
-  gameLocation: Object.freeze({ ownerDoc: (a0) => ['gameLocations', a0], slotField: 'pictureId' }),
+  gameLocation: Object.freeze({
+    ownerDoc: (/** @type {string} */ a0) => ['gameLocations', a0],
+    slotField: 'pictureId',
+  }),
   awardDefinition: Object.freeze({
-    ownerDoc: (a0) => ['awardDefinitions', a0],
+    ownerDoc: (/** @type {string} */ a0) => ['awardDefinitions', a0],
     slotField: 'badgePictureId',
   }),
 });
 
 export const GALLERY_OWNER_PATHS = Object.freeze({
-  sportLeague: Object.freeze({ ownerDoc: (a0) => ['sportLeagues', a0] }),
-  leagueTeam: Object.freeze({ ownerDoc: (a0) => ['leagueTeams', a0] }),
+  sportLeague: Object.freeze({ ownerDoc: (/** @type {string} */ a0) => ['sportLeagues', a0] }),
+  leagueTeam: Object.freeze({ ownerDoc: (/** @type {string} */ a0) => ['leagueTeams', a0] }),
   landingPage: Object.freeze({ ownerDoc: () => ['_appConfig', 'landingPage'] }),
 });
 
 export const PATH_BUILDERS = Object.freeze({
-  userProfile: (a0) => ['userProfiles', a0],
-  userPrivateData: (a0) => ['userProfiles', a0, 'privateData', a0],
-  historicalStat: (a0, a1) => ['userProfiles', a0, 'historicalStats', a1],
-  historicalStats: (a0) => ['userProfiles', a0, 'historicalStats'],
-  publicUser: (a0) => ['publicUsers', a0],
-  statusReconcileQueueEntry: (a0) => ['statusReconcileQueue', a0],
-  registrationStart: (a0) => ['registrationStarts', a0],
-  sweepState: (a0) => ['sweepState', a0],
-  reservedDisplayName: (a0) => ['reservedDisplayNames', `name_${String(a0).toLowerCase()}`],
-  sportLeague: (a0) => ['sportLeagues', a0],
-  leagueTeam: (a0) => ['leagueTeams', a0],
-  leagueTeamContact: (a0) => ['leagueTeamContacts', a0],
-  teamMembership: (a0, a1, a2) => ['teamMemberships', `${a0}_${a1}_${a2}`],
-  membershipRosterSync: (a0, a1, a2) => ['membershipRosterSyncs', `${a0}_${a1}_${a2}`],
-  teamInvitation: (a0) => ['teamInvitations', a0],
-  teamJoinRequest: (a0) => ['teamJoinRequests', a0],
-  leagueFreeAgent: (a0, a1) => ['leagueFreeAgents', `${a0}_${a1}`],
-  sportGame: (a0) => ['sportGames', a0],
-  gameRosterPlayer: (a0, a1, a2) => ['sportGames', a0, 'gameRosterPlayers', `${a1}_${a2}`],
-  gameRosterPlayers: (a0) => ['sportGames', a0, 'gameRosterPlayers'],
-  gameStatEvent: (a0, a1) => ['sportGames', a0, 'gameStatEvents', a1],
-  gameStatEvents: (a0) => ['sportGames', a0, 'gameStatEvents'],
-  gameStatHistoryPage: (a0, a1) => ['sportGames', a0, 'gameStatHistory', a1],
-  gameStatHistory: (a0) => ['sportGames', a0, 'gameStatHistory'],
-  gameLocation: (a0) => ['gameLocations', a0],
-  waiverTemplate: (a0) => ['waiverTemplates', a0],
-  waiverTemplateVersion: (a0, a1) => {
+  userProfile: (/** @type {string} */ a0) => ['userProfiles', a0],
+  userPrivateData: (/** @type {string} */ a0) => ['userProfiles', a0, 'privateData', a0],
+  historicalStat: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+    'userProfiles',
+    a0,
+    'historicalStats',
+    a1,
+  ],
+  historicalStats: (/** @type {string} */ a0) => ['userProfiles', a0, 'historicalStats'],
+  publicUser: (/** @type {string} */ a0) => ['publicUsers', a0],
+  statusReconcileQueueEntry: (/** @type {string} */ a0) => ['statusReconcileQueue', a0],
+  registrationStart: (/** @type {string} */ a0) => ['registrationStarts', a0],
+  sweepState: (/** @type {string} */ a0) => ['sweepState', a0],
+  reservedDisplayName: (/** @type {string} */ a0) => [
+    'reservedDisplayNames',
+    `name_${String(a0).toLowerCase()}`,
+  ],
+  sportLeague: (/** @type {string} */ a0) => ['sportLeagues', a0],
+  leagueTeam: (/** @type {string} */ a0) => ['leagueTeams', a0],
+  leagueTeamContact: (/** @type {string} */ a0) => ['leagueTeamContacts', a0],
+  teamMembership: (
+    /** @type {string} */ a0,
+    /** @type {string} */ a1,
+    /** @type {string} */ a2,
+  ) => ['teamMemberships', `${a0}_${a1}_${a2}`],
+  membershipRosterSync: (
+    /** @type {string} */ a0,
+    /** @type {string} */ a1,
+    /** @type {string} */ a2,
+  ) => ['membershipRosterSyncs', `${a0}_${a1}_${a2}`],
+  teamInvitation: (/** @type {string} */ a0) => ['teamInvitations', a0],
+  teamJoinRequest: (/** @type {string} */ a0) => ['teamJoinRequests', a0],
+  leagueFreeAgent: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+    'leagueFreeAgents',
+    `${a0}_${a1}`,
+  ],
+  sportGame: (/** @type {string} */ a0) => ['sportGames', a0],
+  gameRosterPlayer: (
+    /** @type {string} */ a0,
+    /** @type {string} */ a1,
+    /** @type {string} */ a2,
+  ) => ['sportGames', a0, 'gameRosterPlayers', `${a1}_${a2}`],
+  gameRosterPlayers: (/** @type {string} */ a0) => ['sportGames', a0, 'gameRosterPlayers'],
+  gameStatEvent: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+    'sportGames',
+    a0,
+    'gameStatEvents',
+    a1,
+  ],
+  gameStatEvents: (/** @type {string} */ a0) => ['sportGames', a0, 'gameStatEvents'],
+  gameStatHistoryPage: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+    'sportGames',
+    a0,
+    'gameStatHistory',
+    a1,
+  ],
+  gameStatHistory: (/** @type {string} */ a0) => ['sportGames', a0, 'gameStatHistory'],
+  gameLocation: (/** @type {string} */ a0) => ['gameLocations', a0],
+  waiverTemplate: (/** @type {string} */ a0) => ['waiverTemplates', a0],
+  waiverTemplateVersion: (/** @type {string} */ a0, /** @type {number} */ a1) => {
     if (!Number.isInteger(a1) || a1 < 1) throw new Error('whole numbers only');
     return ['waiverTemplates', a0, 'waiverTemplateVersions', `v${a1}`];
   },
-  waiverTemplateVersions: (a0) => ['waiverTemplates', a0, 'waiverTemplateVersions'],
-  signedWaiver: (a0, a1) => ['signedWaivers', `${a0}_${a1}`],
-  hardwareLoanContract: (a0) => ['hardwareLoanContracts', a0],
-  awardDefinition: (a0) => ['awardDefinitions', a0],
-  sportHallOfFame: (a0) => ['sportHallOfFame', a0],
-  statsValidationReport: (a0) => ['statsValidationReports', a0],
-  statsOperation: (a0) => ['statsOperations', a0],
-  migrationActionRun: (a0) => ['migrationActionRuns', a0],
-  galleryPicture: (a0) => ['galleryPictures', a0],
-  pendingMedia: (a0) => ['pendingMedia', a0],
-  pictureRetirement: (a0) => ['pictureRetirements', a0],
-  auditEvent: (a0) => ['auditEvents', a0],
-  activeAdminNotification: (a0) => ['activeAdminNotifications', a0],
-  adminNotificationHistoryEntry: (a0) => ['adminNotificationHistory', a0],
-  notificationDelivery: (a0) => ['notificationDeliveries', a0],
-  notificationArchiveAllJob: (a0) => ['notificationArchiveAllJobs', a0],
+  waiverTemplateVersions: (/** @type {string} */ a0) => [
+    'waiverTemplates',
+    a0,
+    'waiverTemplateVersions',
+  ],
+  signedWaiver: (/** @type {string} */ a0, /** @type {string} */ a1) => [
+    'signedWaivers',
+    `${a0}_${a1}`,
+  ],
+  hardwareLoanContract: (/** @type {string} */ a0) => ['hardwareLoanContracts', a0],
+  awardDefinition: (/** @type {string} */ a0) => ['awardDefinitions', a0],
+  sportHallOfFame: (/** @type {string} */ a0) => ['sportHallOfFame', a0],
+  statsValidationReport: (/** @type {string} */ a0) => ['statsValidationReports', a0],
+  statsOperation: (/** @type {string} */ a0) => ['statsOperations', a0],
+  migrationActionRun: (/** @type {string} */ a0) => ['migrationActionRuns', a0],
+  galleryPicture: (/** @type {string} */ a0) => ['galleryPictures', a0],
+  pendingMedia: (/** @type {string} */ a0) => ['pendingMedia', a0],
+  pictureRetirement: (/** @type {string} */ a0) => ['pictureRetirements', a0],
+  auditEvent: (/** @type {string} */ a0) => ['auditEvents', a0],
+  activeAdminNotification: (/** @type {string} */ a0) => ['activeAdminNotifications', a0],
+  adminNotificationHistoryEntry: (/** @type {string} */ a0) => ['adminNotificationHistory', a0],
+  notificationDelivery: (/** @type {string} */ a0) => ['notificationDeliveries', a0],
+  notificationArchiveAllJob: (/** @type {string} */ a0) => ['notificationArchiveAllJobs', a0],
   landingPageConfig: () => ['_appConfig', 'landingPage'],
   appConfig: () => ['_appConfig', 'app'],
   statsBeacon: () => ['_appConfig', 'statsBeacon'],
@@ -176,4 +222,4 @@ export const COLLECTION_REFS = Object.freeze({
   notificationArchiveAllJobs: () => ['notificationArchiveAllJobs'],
 });
 
-export const toPath = (segments) => segments.join('/');
+export const toPath = (/** @type {readonly string[]} */ segments) => segments.join('/');

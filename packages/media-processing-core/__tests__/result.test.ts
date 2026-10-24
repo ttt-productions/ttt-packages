@@ -10,10 +10,10 @@ describe('success', () => {
   it('spreads the rest of the result fields', () => {
     const result = success({
       mediaType: 'video',
-      outputs: [{ url: 'https://example.com/video.mp4' }] as any,
+      outputs: [{ key: 'main', url: 'https://example.com/video.mp4' }],
     });
     expect(result.mediaType).toBe('video');
-    expect(result.outputs).toEqual([{ url: 'https://example.com/video.mp4' }]);
+    expect(result.outputs).toEqual([{ key: 'main', url: 'https://example.com/video.mp4' }]);
   });
 
   it('preserves moderation field', () => {

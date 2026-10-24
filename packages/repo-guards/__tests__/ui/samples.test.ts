@@ -48,6 +48,7 @@ const FACTS: UiGuardFacts = {
     surfaceTrees: ['src/components'],
     button: { component: 'Button', iconSizes: ['icon'] },
     displayComponents: ['Badge'],
+    dropdownTriggers: ['SelectTrigger'],
   },
   wholeInputNumbers: { surfaceTrees: ['src/components'], allowlist: [] },
   selfHostedFonts: {},

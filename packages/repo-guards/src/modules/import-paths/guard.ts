@@ -4,6 +4,7 @@ import { isTestPath, isUnderRoot, kindOfFile } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { objectProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
+import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface ImportPathFacts {
   importAliases: Readonly<Record<string, string>>;
@@ -63,7 +64,7 @@ export const importPathGuard: GenericGuardDefinition<ImportPathFacts> = {
           'A module that is not a folder index never re-exports; a folder index forwards only files inside its folder; ' +
           'code outside a folder that has an index imports through it, never past it; code inside a folder imports its ' +
           'siblings directly, never through an index of a folder that contains it. Import the owner — the sibling file or the package.',
-        timeoutMs: 120_000,
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const files = context.files(SCOPE);
           const result = analyzeImportPaths({
@@ -71,7 +72,7 @@ export const importPathGuard: GenericGuardDefinition<ImportPathFacts> = {
             roots: analyzedRoots(context.reader),
             profile: profileFor(context.reader, facts),
           });
-          return result.violations.map((v: { kind: string; file: string; detail: string }) => ({
+          return result.violations.map((v) => ({
             file: v.file,
             detail: `${v.kind.replace(/-/g, ' ')}: ${v.detail}`,
           }));
