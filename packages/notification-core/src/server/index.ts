@@ -25,14 +25,3 @@ export {
   archiveNotificationWithGeneration,
 } from './observed-generation.js';
 export type { MarkSeenOutcome, ArchiveOutcome } from './observed-generation.js';
-
-export type {
-  ServerFirestore,
-  ServerCollectionRef,
-  ServerQuery,
-  ServerQuerySnapshot,
-  ServerDocSnapshot,
-  ServerDocRef,
-  ServerWriteBatch,
-  ServerTransaction,
-} from './types.js';

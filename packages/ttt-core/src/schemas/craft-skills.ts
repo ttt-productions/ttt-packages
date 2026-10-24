@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { craftSkillIdSchema, addRemoveActionSchema } from './atoms.js';
-import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
+import { CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
 
 export const DeleteCraftSkillInputSchema = z
   .object({
@@ -12,7 +12,7 @@ export type DeleteCraftSkillInput = z.infer<typeof DeleteCraftSkillInputSchema>;
 export const UpdateCraftSkillTagsInputSchema = z
   .object({
     craftSkillId: craftSkillIdSchema,
-    tag: z.enum(CRAFT_SKILL_TAG_VALUES),
+    tag: z.enum(CRAFT_SKILL_TAG_OPTIONS),
     action: addRemoveActionSchema,
   })
   .strict();
@@ -34,7 +34,7 @@ export type DeleteCraftSkillResult = z.infer<typeof DeleteCraftSkillResultSchema
 export const UpdateCraftSkillTagsResultSchema = z.object({
   success: z.literal(true),
   craftSkillId: craftSkillIdSchema,
-  newTags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
+  newTags: z.array(z.enum(CRAFT_SKILL_TAG_OPTIONS)),
   changed: z.boolean(),
   action: addRemoveActionSchema,
 });

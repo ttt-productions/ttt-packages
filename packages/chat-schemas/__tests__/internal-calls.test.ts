@@ -146,8 +146,7 @@ describe('parseChatInternalRequest', () => {
       const { body, operationId } = bodies[path];
       const parsed = parseChatInternalRequest(path, body);
       expect(parsed, path).toMatchObject({ ok: true, path, operationId });
-      if (parsed.ok)
-        expect(chatInternalOperationId(parsed.path, parsed.body as never)).toBe(operationId);
+      if (parsed.ok) expect(chatInternalOperationId(parsed.path, parsed.body)).toBe(operationId);
     }
   });
 

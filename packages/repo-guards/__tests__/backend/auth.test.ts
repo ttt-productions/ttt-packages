@@ -10,6 +10,7 @@ import {
   type AppCheckFacts,
 } from '../../src/modules/backend/auth.js';
 import { backendRepo, samplesHold, type BackendRepo } from './repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: BackendRepo | undefined;
 afterEach(() => repo?.remove());
@@ -171,7 +172,7 @@ describe('no sign-in waits on a blocking function', () => {
 
   it('takes no facts', () => {
     expect(noBlockingFunctionGuard.factProblems({})).toEqual([]);
-    expect(noBlockingFunctionGuard.factProblems({ extra: 1 } as never)).toEqual([
+    expect(factProblemsOf(noBlockingFunctionGuard, { extra: 1 })).toEqual([
       'this guard takes no facts: declare it with {}',
     ]);
   });
@@ -432,9 +433,9 @@ describe('every callable declares its App Check posture', () => {
 
     it('refuses missing declarations and an undeclared entry with no why', () => {
       expect(
-        appCheckGuard.factProblems({
+        factProblemsOf(appCheckGuard, {
           ...facts,
-          clientDeclarations: undefined as never,
+          clientDeclarations: undefined,
           noClientDeclaration: [{ callable: 'a', why: '' }],
         }),
       ).toEqual(['clientDeclarations is missing', 'noClientDeclaration entry a carries no why']);

@@ -11,7 +11,7 @@ import type {
   ServerQuerySnapshot,
   ServerTransaction,
   ServerWriteBatch,
-} from '../src/server/types.js';
+} from '@ttt-productions/firebase-helpers/server';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -126,6 +126,7 @@ function createMockDb({
           where: () => pendingQuery,
           orderBy: () => pendingQuery,
           limit: () => pendingQuery,
+          startAfter: () => pendingQuery,
           get: vi.fn(async (): Promise<ServerQuerySnapshot> => {
             if (pendingCallCount === 0) {
               pendingCallCount++;
@@ -171,8 +172,13 @@ function createMockDb({
     }),
     doc: vi.fn<ServerFirestore['doc']>(),
     runTransaction: async <T>(fn: (tx: ServerTransaction) => Promise<T>): Promise<T> => {
+      function get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
+      function get(query: ServerQuery): Promise<ServerQuerySnapshot>;
+      function get(target: ServerDocRef | ServerQuery) {
+        return target.get();
+      }
       const tx: ServerTransaction = {
-        get: async (ref) => ref.get(),
+        get,
         set: (ref, data, options) => {
           void ref.set(data, options);
           return tx;

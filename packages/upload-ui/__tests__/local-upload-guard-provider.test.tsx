@@ -94,15 +94,13 @@ describe('LocalUploadGuardProvider', () => {
     act(() => result.current.registerUpload('a'));
 
     const addedCall = addSpy.mock.calls.find((c) => c[0] === 'beforeunload');
-    const handler = addedCall![1] as (e: BeforeUnloadEvent) => void;
+    const handler = addedCall![1] as (e: BeforeUnloadEvent) => string | undefined;
 
-    const event = { preventDefault: vi.fn(), returnValue: '' };
-    handler(event as unknown as BeforeUnloadEvent);
+    const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    const message = handler(event);
 
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(typeof event.returnValue).toBe('string');
-    expect(event.returnValue.length).toBeGreaterThan(0);
-    expect(event.returnValue.toLowerCase()).toContain('upload');
+    expect(event.defaultPrevented).toBe(true);
+    expect(message?.toLowerCase()).toContain('upload');
   });
 
   it('useLocalUploadGuard throws outside a provider', () => {
@@ -152,11 +150,10 @@ describe('LocalUploadGuardProvider', () => {
 describe('confirmNavigation({ fullPageNavigation }) — one-shot beforeunload bypass', () => {
   function fireBeforeUnload() {
     const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
-    const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;
-    const preventDefault = vi.fn();
-    const event = { preventDefault, returnValue: '' };
-    handler(event as unknown as BeforeUnloadEvent);
-    return { prevented: preventDefault.mock.calls.length > 0, returnValue: event.returnValue };
+    const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => string | undefined;
+    const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    const message = handler(event);
+    return { prevented: event.defaultPrevented, returnValue: message ?? '' };
   }
 
   function renderWithActiveUpload() {

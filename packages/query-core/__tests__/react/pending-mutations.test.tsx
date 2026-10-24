@@ -152,16 +152,16 @@ describe('pending mutations', () => {
       () =>
         useMutation({
           mutationKey: SAVE_KEY,
-          mutationFn: async () => {
+          mutationFn: async (_variables: SaveVariables) => {
             throw new Error('refused');
           },
         }),
       { wrapper: wrapperFor(queryClient) },
     );
     await act(async () => {
-      await expect(
-        result.current.mutateAsync({ userId: 'u1', itemId: 'a' } as never),
-      ).rejects.toThrow('refused');
+      await expect(result.current.mutateAsync({ userId: 'u1', itemId: 'a' })).rejects.toThrow(
+        'refused',
+      );
     });
     expect(hasPendingMutation(queryClient, SAVE_KEY)).toBe(false);
   });

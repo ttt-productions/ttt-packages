@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { buildUserReportAdminTaskDoc } from '../src/server/buildUserReportAdminTaskDoc.js';
 import { createAdminTaskHandler } from '../src/server/createAdminTaskHandler.js';
+import type { ServerDocRef, ServerFirestore } from '@ttt-productions/firebase-helpers/server';
 import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
@@ -76,8 +77,30 @@ describe('buildUserReportAdminTaskDoc (pure builder)', () => {
     const setFn = vi
       .fn<(data: { createdAt: number }) => Promise<void>>()
       .mockResolvedValue(undefined);
-    const docFn = vi.fn().mockReturnValue({ set: setFn });
-    const db = { collection: vi.fn().mockReturnValue({ doc: docFn }) } as never;
+    const notInFake = (what: string): never => {
+      throw new Error(`${what} is not part of this fake`);
+    };
+    const docRef: ServerDocRef = {
+      id: 'userReport-g-equiv',
+      set: setFn,
+      update: () => notInFake('update'),
+      create: () => notInFake('create'),
+      delete: () => notInFake('delete'),
+      get: () => notInFake('get'),
+    };
+    const docFn = vi.fn((_id?: string) => docRef);
+    const db: ServerFirestore = {
+      collection: vi.fn(() => ({
+        doc: docFn,
+        where: () => notInFake('where'),
+        orderBy: () => notInFake('orderBy'),
+        limit: () => notInFake('limit'),
+        add: () => notInFake('add'),
+      })),
+      doc: () => notInFake('doc'),
+      batch: () => notInFake('batch'),
+      runTransaction: () => notInFake('runTransaction'),
+    };
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
     const groupData = {

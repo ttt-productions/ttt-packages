@@ -10,6 +10,7 @@ import type { Guard } from '../../src/guard.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -103,7 +104,7 @@ describe('no stored count is lowered by a blind decrement', () => {
   });
 
   it('refuses facts: it takes none', () => {
-    expect(counterDecrementGuard.factProblems([] as never)).toEqual([
+    expect(factProblemsOf(counterDecrementGuard, [])).toEqual([
       'this guard takes no facts: declare it with {}',
     ]);
   });
@@ -138,7 +139,7 @@ describe('randomUUID appears only at reviewed sites that mint no document id', (
   });
 
   it('refuses a missing site list and a site with no why', () => {
-    expect(randomUuidGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(randomUuidGuard, {})).toEqual([
       'reviewedSites is missing (declare [] when there is none)',
     ]);
     expect(randomUuidGuard.factProblems({ reviewedSites: [{ path: 'a.ts', why: '' }] })).toEqual([

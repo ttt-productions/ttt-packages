@@ -8,6 +8,7 @@ import {
 import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const what = (source: string) => limitSites(source).map((s) => s.what);
 
@@ -126,9 +127,9 @@ describe('a limit names a budget from a timeout file', () => {
   });
 
   it('refuses a missing timeoutFiles list and accepts an app that declares none yet', () => {
-    expect(
-      testTimeoutGuard.factProblems({ importAliases: {} } as unknown as TestTimeoutFacts),
-    ).toEqual(['timeoutFiles is missing (declare [] when there is none)']);
+    expect(factProblemsOf(testTimeoutGuard, { importAliases: {} })).toEqual([
+      'timeoutFiles is missing (declare [] when there is none)',
+    ]);
     expect(testTimeoutGuard.factProblems({ importAliases: {}, timeoutFiles: [] })).toEqual([]);
   });
 });

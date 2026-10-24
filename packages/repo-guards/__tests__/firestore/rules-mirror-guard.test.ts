@@ -8,6 +8,7 @@ import { createRepoReader } from '../../src/node/reader.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -411,7 +412,7 @@ describe('the Firestore rules mirror the core exactly', () => {
   });
 
   it('refuses missing loaders and lists, an entry with no loader, and an entry listed twice', () => {
-    expect(rulesMirrorGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(rulesMirrorGuard, {})).toEqual([
       'collections needs a loader function',
       'collectionGroups needs a loader function',
       'fixedDocuments needs a loader function',
@@ -419,15 +420,14 @@ describe('the Firestore rules mirror the core exactly', () => {
       'valueLists is missing (declare [] when there is none)',
     ]);
     expect(
-      rulesMirrorGuard.factProblems(
-        facts({
-          comparedFields: [
-            { field: 'status', values: () => [] },
-            { field: 'status', values: () => [] },
-          ],
-          valueLists: [{ function: 'isLeader', values: ['captain'] as never }],
-        }),
-      ),
+      factProblemsOf(rulesMirrorGuard, {
+        ...facts(),
+        comparedFields: [
+          { field: 'status', values: () => [] },
+          { field: 'status', values: () => [] },
+        ],
+        valueLists: [{ function: 'isLeader', values: ['captain'] }],
+      }),
     ).toEqual([
       'comparedFields lists status twice',
       "valueLists entry isLeader's values needs a loader function",

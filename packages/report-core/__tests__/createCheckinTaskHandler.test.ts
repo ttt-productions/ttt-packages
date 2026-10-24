@@ -6,9 +6,9 @@ import type {
   ServerFirestore,
   ServerQuery,
   ServerQuerySnapshot,
-  ServerReportCoreConfig,
   ServerTransaction,
-} from '../src/server/types.js';
+} from '@ttt-productions/firebase-helpers/server';
+import type { ServerReportCoreConfig } from '../src/server/types.js';
 import { anyInstanceOf } from '../../../test/matchers.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
@@ -52,6 +52,8 @@ function createMockDb(taskData: Record<string, unknown> | null) {
     set: () => outsideTransaction('set'),
     update: () => outsideTransaction('update'),
     get: () => outsideTransaction('get'),
+    create: () => outsideTransaction('create'),
+    delete: () => outsideTransaction('delete'),
   });
 
   const sets: Array<{ path: string; data: Record<string, unknown> }> = [];
@@ -81,6 +83,9 @@ function createMockDb(taskData: Record<string, unknown> | null) {
       updates.push({ path: (ref as FakeRef)._path, data });
       return transaction;
     }),
+    delete: () => {
+      throw new Error('deletes are not part of this fake');
+    },
   };
 
   const db: ServerFirestore = {
@@ -89,6 +94,7 @@ function createMockDb(taskData: Record<string, unknown> | null) {
         const docId = id ?? `auto_${++autoId}`;
         return makeRef(`${colPath}/${docId}`);
       }),
+      add: () => outsideTransaction('add'),
       where: () => {
         throw new Error('queries are not part of this fake');
       },

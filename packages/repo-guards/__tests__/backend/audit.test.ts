@@ -9,6 +9,7 @@ import {
   type RefusalAuditFacts,
 } from '../../src/modules/backend/audit.js';
 import { backendRepo, samplesHold, type BackendRepo } from './repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: BackendRepo | undefined;
 afterEach(() => repo?.remove());
@@ -135,9 +136,9 @@ describe('one audit writer', () => {
       readers: [{ path: 'functions/src/audit/write.ts', why: ' ' }],
       collectionHandles: ['AUDIT_EVENTS'],
       personActor: { constructors: 'functions/src/shared/actor.ts', modeField: 'mode', modes: [] },
-      appServerZone: undefined as never,
+      appServerZone: undefined,
     });
-    expect(auditWriterGuard.factProblems(facts)).toEqual([
+    expect(factProblemsOf(auditWriterGuard, facts)).toEqual([
       'collection handle AUDIT_EVENTS is not OWNER.member',
       'readers entry functions/src/audit/write.ts carries no why',
       'the writer is listed as a reader',

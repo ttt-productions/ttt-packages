@@ -88,6 +88,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 beforeEach(() => {
   docs.clear();
@@ -112,7 +113,7 @@ function makeWrapper() {
 }
 
 const baseOpts = {
-  db: { name: 'primary' } as never,
+  db: testFirestore(),
   collectionPath: 'publicWorks',
   queryKeyPrefix: 'publicWork',
   staleTime: 30 * 60 * 1000,

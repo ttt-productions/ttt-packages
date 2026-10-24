@@ -140,5 +140,5 @@ The root is server-safe. React UI lives behind `./react`.
 
 - `.` — types and the config contract (server-safe).
 - `./react` — hooks and components (no provider/context), and the list props that carry React types (`NotificationListProps`, `NotificationHistoryListProps`).
-- `./server` — the delivery ledger, observed-generation seen/archive protocol, the `processBatchHelper` batch path, `buildActiveNotificationDocId`, and `NotificationPermissionError` (thrown on permission-denied archive attempts).
+- `./server` — the delivery ledger, observed-generation seen/archive protocol, the `processBatchHelper` batch path, `buildActiveNotificationDocId`, and `NotificationPermissionError` (thrown on permission-denied archive attempts). Each takes the `firebase-helpers/server` Firestore contract, so an app passes its Admin SDK `db` and transaction as they are.
 - `./styles` — notification CSS.

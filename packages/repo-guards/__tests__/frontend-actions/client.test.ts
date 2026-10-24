@@ -11,6 +11,7 @@ import {
   type MediaRendererFacts,
 } from '../../src/modules/frontend-actions/client.js';
 import { findingsOf, samplesProve } from './run.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const lines = (...l: string[]) => l.join('\n');
 
@@ -263,7 +264,7 @@ describe('no MIME-prefix media classification', () => {
   it('proves its samples', () => samplesProve(mimePrefixGuard, {}));
 
   it('refuses facts it does not take', () => {
-    expect(mimePrefixGuard.factProblems({ owner: 'x' } as never)).toEqual(['unknown facts: owner']);
+    expect(factProblemsOf(mimePrefixGuard, { owner: 'x' })).toEqual(['unknown facts: owner']);
   });
 });
 
@@ -493,9 +494,9 @@ describe('partial mocks keep a pure root', () => {
 
     it('refuses shared fakes with no aliases or no list', () => {
       expect(
-        partialMockGuard.factProblems({
+        factProblemsOf(partialMockGuard, {
           ...facts,
-          sharedFakes: {} as unknown as typeof withFakes.sharedFakes,
+          sharedFakes: {},
         }),
       ).toEqual(['sharedFakes.importAliases is missing', 'sharedFakes.fakes is missing']);
     });

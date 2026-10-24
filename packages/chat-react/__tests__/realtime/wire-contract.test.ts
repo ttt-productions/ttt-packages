@@ -1,21 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { type WireMessageRow } from '../../src/realtime/wire.js';
 import { wireRowToMessage, optimisticMessage } from '../../src/realtime/map.js';
 
 describe('reply-to is absent from the realtime message mapping', () => {
   it('ignores a legacy stringified replyTo column on a DO row', () => {
-    const mapped = wireRowToMessage(
-      {
-        seq: 7,
-        senderUid: 'u-a',
-        clientMessageId: 'srv-7',
-        text: 'hello',
-        createdAt: 1007,
-        epoch: 1,
-        replyTo: JSON.stringify({ messageSeq: 3, preview: 'earlier' }),
-      } as unknown as WireMessageRow,
-      't-1',
-    );
+    const legacyRow = {
+      seq: 7,
+      senderUid: 'u-a',
+      clientMessageId: 'srv-7',
+      text: 'hello',
+      createdAt: 1007,
+      epoch: 1,
+      replyTo: JSON.stringify({ messageSeq: 3, preview: 'earlier' }),
+    };
+    const mapped = wireRowToMessage(legacyRow, 't-1');
     expect(mapped).not.toHaveProperty('replyTo');
     expect(mapped.text).toBe('hello');
   });

@@ -17,10 +17,14 @@ vi.mock('react-intersection-observer', () => ({
 
 const createObjectURLMock = vi.fn(() => 'blob:fake-url');
 const revokeObjectURLMock = vi.fn();
-(URL as unknown as Record<string, unknown>).createObjectURL = createObjectURLMock;
-(URL as unknown as Record<string, unknown>).revokeObjectURL = revokeObjectURLMock;
+URL.createObjectURL = createObjectURLMock;
+URL.revokeObjectURL = revokeObjectURLMock;
 
-class FakeIO {
+class FakeIO implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = '';
+  readonly scrollMargin = '';
+  readonly thresholds: readonly number[] = [];
   private cb: IntersectionObserverCallback;
   observe = vi.fn();
   unobserve = vi.fn();
@@ -30,10 +34,7 @@ class FakeIO {
     this.cb = cb;
   }
   trigger(isIntersecting: boolean) {
-    this.cb(
-      [{ isIntersecting } as IntersectionObserverEntry],
-      this as unknown as IntersectionObserver,
-    );
+    this.cb([{ isIntersecting } as IntersectionObserverEntry], this);
   }
 }
 

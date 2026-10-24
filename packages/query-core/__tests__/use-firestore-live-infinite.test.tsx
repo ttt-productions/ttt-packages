@@ -38,6 +38,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { useFirestoreLiveInfinite } from '../src/react/firestore/use-firestore-live-infinite.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 function doc(id: string, createdAt: number) {
   return { id, data: () => ({ createdAt }) };
@@ -66,7 +67,7 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: qc },
-      React.createElement(FirestoreProvider, { db: {} as never, children }),
+      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
@@ -290,7 +291,7 @@ describe('useFirestoreLiveInfinite — order', () => {
       }),
     );
     expect(ids(result.current.items)).toEqual(['b', 'c', 'a']);
-    expect((result.current.items[2] as unknown as { v: string }).v).toBe('new');
+    expect(result.current.items[2]?.v).toBe('new');
   });
 });
 

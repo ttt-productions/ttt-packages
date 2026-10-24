@@ -28,12 +28,12 @@ describe('getFileSize', () => {
   });
 
   it('returns 0 when size is NaN', () => {
-    const blob = { size: NaN } as unknown as Blob;
+    const blob = { size: NaN } as Blob;
     expect(getFileSize(blob)).toBe(0);
   });
 
   it('returns 0 when size is a string', () => {
-    const blob = { size: '1024' } as unknown as Blob;
+    const blob = Object.defineProperty(new Blob([]), 'size', { value: '1024' });
     expect(getFileSize(blob)).toBe(0);
   });
 

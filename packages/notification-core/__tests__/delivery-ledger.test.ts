@@ -5,7 +5,15 @@ import {
   type DeliveryRowInput,
 } from '../src/server/delivery-ledger.js';
 import type { NotificationSystemConfig } from '../src/types.js';
-import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types.js';
+import type {
+  ServerFirestore,
+  ServerCollectionRef,
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerQuery,
+  ServerQuerySnapshot,
+  ServerTransaction,
+} from '@ttt-productions/firebase-helpers/server';
 import { anyInstanceOf } from '../../../test/matchers.js';
 
 function createMockFirestore() {
@@ -43,7 +51,7 @@ function createMockFirestore() {
       };
     },
   });
-  const makeColRef = (colPath: string) => ({
+  const makeColRef = (colPath: string): ServerCollectionRef => ({
     doc: (id?: string) => makeDocRef(colPath, id ?? `auto_${getCol(colPath).size}`),
     where: () => {
       throw new Error('not used');
@@ -62,7 +70,7 @@ function createMockFirestore() {
   });
   const failingReads = new Set<string>();
   const db: ServerFirestore = {
-    collection: (p) => makeColRef(p) as never,
+    collection: makeColRef,
     doc: (path) => {
       const { colPath, id } = splitDoc(path);
       return makeDocRef(colPath, id);
@@ -72,11 +80,18 @@ function createMockFirestore() {
     },
     runTransaction: async (fn) => {
       const writes: Array<() => Promise<unknown>> = [];
-      const tx = {
-        get: (ref: ServerDocRef) =>
-          failingReads.has(ref.id)
-            ? Promise.reject(new Error(`read of ${ref.id} failed`))
-            : ref.get(),
+      function get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
+      function get(query: ServerQuery): Promise<ServerQuerySnapshot>;
+      function get(
+        target: ServerDocRef | ServerQuery,
+      ): Promise<ServerDocSnapshot | ServerQuerySnapshot> {
+        if (!('id' in target)) throw new Error('the ledger never reads a query in a transaction');
+        return failingReads.has(target.id)
+          ? Promise.reject(new Error(`read of ${target.id} failed`))
+          : target.get();
+      }
+      const tx: ServerTransaction = {
+        get,
         set: (ref: ServerDocRef, data: Record<string, unknown>) => {
           writes.push(() => ref.set(data));
           return tx;
@@ -279,7 +294,7 @@ describe('createDeliveryLedger.enqueue', () => {
             throw Object.assign(new Error('boom'), { code: 13 });
           },
         }),
-      } as never;
+      };
     };
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     const res = await ledger.enqueue([row({ deliveryId: 'x' })]);

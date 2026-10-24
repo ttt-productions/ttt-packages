@@ -155,13 +155,21 @@ export type ChatAnonymizeCleanupRequest = z.infer<typeof ChatAnonymizeCleanupReq
 interface ChatInternalCall<S extends z.ZodType> {
   readonly body: S;
   readonly operationId: (body: z.infer<S>) => string;
+  readonly read: (body: unknown) => { body: z.infer<S>; operationId: string } | null;
 }
 
 function internalCall<S extends z.ZodType>(
   body: S,
   operationId: (body: z.infer<S>) => string,
 ): ChatInternalCall<S> {
-  return { body, operationId };
+  return {
+    body,
+    operationId,
+    read(value) {
+      const parsed = body.safeParse(value);
+      return parsed.success ? { body: parsed.data, operationId: operationId(parsed.data) } : null;
+    },
+  };
 }
 
 const byOperationId = (body: { operationId: string }): string => body.operationId;
@@ -219,8 +227,9 @@ export function chatInternalOperationId<P extends ChatInternalPath>(
   path: P,
   body: ChatInternalBody<P>,
 ): string {
-  const call = CHAT_INTERNAL_CALLS[path] as unknown as ChatInternalCall<z.ZodType>;
-  return call.operationId(body);
+  const read = CHAT_INTERNAL_CALLS[path].read(body);
+  if (!read) throw new Error(`chatInternalOperationId: the body does not match ${path}`);
+  return read.operationId;
 }
 
 export type ChatInternalCallRequest = {
@@ -232,13 +241,7 @@ export type ParsedChatInternalRequest =
 
 export function parseChatInternalRequest(path: string, body: unknown): ParsedChatInternalRequest {
   if (!isChatInternalPath(path)) return { ok: false, reason: 'unknown-path' };
-  const call = CHAT_INTERNAL_CALLS[path] as unknown as ChatInternalCall<z.ZodType>;
-  const parsed = call.body.safeParse(body);
-  if (!parsed.success) return { ok: false, reason: 'bad-body' };
-  return {
-    ok: true,
-    path,
-    body: parsed.data,
-    operationId: call.operationId(parsed.data),
-  } as ParsedChatInternalRequest;
+  const read = CHAT_INTERNAL_CALLS[path].read(body);
+  if (!read) return { ok: false, reason: 'bad-body' };
+  return { ok: true, path, ...read } as ParsedChatInternalRequest;
 }

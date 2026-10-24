@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { UI_GUARDS, type UiGuardFacts } from '../../src/modules/ui/guards.js';
 import { checkSamples } from '../../src/node/suite/run.js';
+import { factProblemsOf, buildOf } from '../helpers/configured.js';
 
 const entryStylesheet = 'src/app/styles/globals.css';
 const FACTS: UiGuardFacts = {
@@ -65,7 +66,7 @@ describe('the ui area', () => {
     expect(UI_GUARDS.map((d) => d.id).sort()).toEqual(Object.keys(FACTS).sort());
     for (const definition of UI_GUARDS)
       expect(
-        definition.factProblems(FACTS[definition.id as keyof UiGuardFacts] as never),
+        factProblemsOf(definition, FACTS[definition.id as keyof UiGuardFacts]),
         definition.id,
       ).toEqual([]);
   });
@@ -76,7 +77,7 @@ describe('the ui area', () => {
 
   it('proves every sampled matcher: each must-fail sample hits and each must-pass sample does not', () => {
     for (const definition of UI_GUARDS) {
-      for (const guard of definition.build(FACTS[definition.id as keyof UiGuardFacts] as never))
+      for (const guard of buildOf(definition, FACTS[definition.id as keyof UiGuardFacts]))
         checkSamples(guard);
     }
   });

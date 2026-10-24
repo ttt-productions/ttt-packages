@@ -22,6 +22,12 @@ export type {
 } from './recovery.js';
 
 export { startWaveformLoop, drawIdleFrame } from './visualizer.js';
-export type { StartWaveformLoopOptions, AudioVisualizerMode } from './visualizer.js';
+export type {
+  StartWaveformLoopOptions,
+  AudioVisualizerMode,
+  VisualizerAnalyser,
+  VisualizerCanvas,
+  VisualizerContext,
+} from './visualizer.js';
 
 export { resolveInfiniteDuration } from './media-duration.js';

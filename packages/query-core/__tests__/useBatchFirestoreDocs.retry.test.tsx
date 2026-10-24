@@ -24,6 +24,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 const present = (id: string) => ({ id, exists: () => true, data: () => ({ name: id }) });
 const missing = (id: string) => ({ id, exists: () => false, data: () => undefined });
@@ -46,7 +47,7 @@ function renderLookup(ids: string[]) {
   return renderHook(
     () =>
       useBatchFirestoreDocs({
-        db: {} as never,
+        db: testFirestore(),
         collectionPath: 'teams',
         ids,
         queryKeyPrefix: 'team',

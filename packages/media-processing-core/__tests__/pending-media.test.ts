@@ -6,7 +6,16 @@ import {
   finalizePendingMedia,
   finalizePendingMediaInTransaction,
   finalizeUnparsablePendingMedia,
+  type PendingMediaExtraWrites,
 } from '../src/server/pending-media.js';
+import type {
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerFirestore,
+  ServerQuery,
+  ServerQuerySnapshot,
+  ServerTransaction,
+} from '@ttt-productions/firebase-helpers/server';
 
 const NOW = 1_700_000_000_000;
 const POLICY = { leaseMs: 12 * 60 * 1000, maxAttempts: 2 };
@@ -27,22 +36,58 @@ const rawBase = {
   updatedAt: NOW - 1_000,
 };
 
-const ref = { id: 'doc-1' } as never;
+const notInFake = (what: string) => (): never => {
+  throw new Error(`${what} is not part of this fake`);
+};
 
-function makeTxn(row: unknown | null) {
+const ref: ServerDocRef = {
+  id: 'doc-1',
+  set: notInFake('set'),
+  update: notInFake('update'),
+  create: notInFake('create'),
+  delete: notInFake('delete'),
+  get: notInFake('get'),
+};
+
+type Row = Record<string, unknown> | null;
+
+function makeTxn(row: Row) {
   const calls: string[] = [];
-  const get = vi.fn(async () => {
+  function read(target: ServerDocRef): Promise<ServerDocSnapshot>;
+  function read(target: ServerQuery): Promise<ServerQuerySnapshot>;
+  function read(): Promise<ServerDocSnapshot | ServerQuerySnapshot> {
     calls.push('get');
-    return { exists: row != null, data: () => row ?? undefined };
-  });
-  const update = vi.fn(() => {
+    return Promise.resolve({ id: ref.id, exists: row != null, data: () => row ?? undefined, ref });
+  }
+  const update = vi.fn((_ref: ServerDocRef, _data: Record<string, unknown>) => {
     calls.push('update');
+    return transaction;
   });
-  return { transaction: { get, update } as never, get, update, calls };
+  const transaction: ServerTransaction = {
+    get: read,
+    set: notInFake('set'),
+    update,
+    delete: notInFake('delete'),
+  };
+  return { transaction, update, calls };
+}
+
+function dbRunning(transaction: ServerTransaction) {
+  const runs = { count: 0 };
+  const db: ServerFirestore = {
+    collection: notInFake('collection'),
+    doc: notInFake('doc'),
+    batch: notInFake('batch'),
+    runTransaction: (fn) => {
+      runs.count += 1;
+      return fn(transaction);
+    },
+  };
+  return { db, runs };
 }
 
 describe('claimPendingMediaForProcessing (transactional wrapper)', () => {
-  const claim = (row: unknown | null) => {
+  const claim = (row: Row) => {
     const t = makeTxn(row);
     return {
       ...t,
@@ -136,19 +181,17 @@ describe('finalizePendingMediaInTransaction', () => {
   describe('caller-supplied extra writes', () => {
     it('prepare in the READ phase, apply after the terminal write, and surface the result', async () => {
       const { transaction, calls } = makeTxn({ status: 'processing' });
-      const extraWrites = vi.fn(
-        async (tx: { get: () => Promise<unknown> }, _snapshot: unknown, _context: unknown) => {
-          await tx.get();
-          calls.push('prepare');
-          return () => {
-            calls.push('apply');
-            return { releasedBytes: 42 };
-          };
-        },
-      );
+      const extraWrites = vi.fn<PendingMediaExtraWrites<{ releasedBytes: number }>>(async (tx) => {
+        await tx.get(ref);
+        calls.push('prepare');
+        return () => {
+          calls.push('apply');
+          return { releasedBytes: 42 };
+        };
+      });
 
       const res = await finalizePendingMediaInTransaction(transaction, ref, 'failed', {
-        extraWrites: extraWrites as never,
+        extraWrites,
         now: 5,
       });
 
@@ -181,14 +224,12 @@ describe('finalizePendingMediaInTransaction', () => {
 describe('finalizePendingMedia (standalone)', () => {
   it('runs its own transaction and applies the terminal write', async () => {
     const { transaction, update } = makeTxn({ status: 'pending' });
-    const db = {
-      runTransaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) => fn(transaction)),
-    };
-    const res = await finalizePendingMedia(db as never, ref, 'failed', {
+    const { db, runs } = dbRunning(transaction);
+    const res = await finalizePendingMedia(db, ref, 'failed', {
       extraFields: { errorCategory: 'system' },
     });
     expect(res).toEqual({ decision: 'applied' });
-    expect(db.runTransaction).toHaveBeenCalledTimes(1);
+    expect(runs.count).toBe(1);
     expect(update).toHaveBeenCalledWith(
       ref,
       expect.objectContaining({ status: 'failed', errorCategory: 'system' }),
@@ -197,14 +238,12 @@ describe('finalizePendingMedia (standalone)', () => {
 });
 
 describe('finalizeUnparsablePendingMedia', () => {
-  const runWith = (row: unknown | null, extraWrites?: never) => {
+  const runWith = (row: Row, extraWrites?: PendingMediaExtraWrites<unknown>) => {
     const t = makeTxn(row);
-    const db = {
-      runTransaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(t.transaction)),
-    };
+    const { db } = dbRunning(t.transaction);
     return {
       ...t,
-      done: finalizeUnparsablePendingMedia(db as never, ref, {
+      done: finalizeUnparsablePendingMedia(db, ref, {
         extraFields: { errorCategory: 'validation' },
         extraWrites,
         now: 3,
@@ -235,8 +274,8 @@ describe('finalizeUnparsablePendingMedia', () => {
 
   it('runs the extra writes flagged as unparsable', async () => {
     const apply = vi.fn();
-    const extraWrites = vi.fn(async (_tx: unknown, _snapshot: unknown, _context: unknown) => apply);
-    const { done } = runWith({ status: 'pending' }, extraWrites as never);
+    const extraWrites = vi.fn<PendingMediaExtraWrites<unknown>>(async () => apply);
+    const { done } = runWith({ status: 'pending' }, extraWrites);
     await done;
     expect(extraWrites.mock.calls[0][2]).toEqual({ targetStatus: 'failed', unparsable: true });
     expect(apply).toHaveBeenCalledTimes(1);

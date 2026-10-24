@@ -21,6 +21,12 @@ type ReviewedCounts = ReadonlyArray<{
 }>;
 type FieldSchema = { safeParse: (value: unknown) => { success: boolean; data?: unknown } };
 
+// A method, so the app's own reader — typed on its declaration type — fits it as declared, and the
+// guard hands it the declarations it loaded from that same module.
+interface FieldSchemaOf {
+  schemaOf(declaration: unknown): FieldSchema;
+}
+
 export interface TextFieldDeclarationFacts {
   wireFolders: readonly string[];
   declarationsFile: string;
@@ -29,7 +35,7 @@ export interface TextFieldDeclarationFacts {
   undeclaredFreeText: ReviewedCounts;
   keepAsTyped: ReadonlyArray<{ declaration: string; why: string }>;
   declarations: Loader<Readonly<Record<string, unknown>>>;
-  fieldSchema: Loader<(declaration: never) => FieldSchema>;
+  fieldSchema: Loader<FieldSchemaOf['schemaOf']>;
 }
 
 const isZString = (node: ts.Node): node is ts.CallExpression =>
@@ -319,7 +325,7 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
               detail: 'no text-field declaration was loaded',
             });
           for (const [name, declaration] of declarations) {
-            const schema = schemaOf(declaration as never);
+            const schema = schemaOf(declaration);
             const min = typeof declaration.min === 'number' ? declaration.min : 0;
             if (min >= 1 && schema.safeParse(' \n\t ').success)
               findings.push({

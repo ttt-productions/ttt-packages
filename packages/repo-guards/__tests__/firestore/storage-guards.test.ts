@@ -9,6 +9,7 @@ import {
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -138,7 +139,7 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
   });
 
   it('refuses missing names and loaders, and lists that are not declared', () => {
-    expect(storageUploadOriginGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(storageUploadOriginGuard, {})).toEqual([
       'capFunction is missing',
       'originCaps needs a loader function',
       'stagingPath is missing',
@@ -146,12 +147,11 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
       'contentTypeLanes is missing (declare [] when there is none)',
     ]);
     expect(
-      storageUploadOriginGuard.factProblems(
-        uploadFacts({
-          originLists: [{ function: 'x', origins: [] as never }],
-          contentTypeLanes: [{ function: 'y', expression: '' }],
-        }),
-      ),
+      factProblemsOf(storageUploadOriginGuard, {
+        ...uploadFacts(),
+        originLists: [{ function: 'x', origins: [] }],
+        contentTypeLanes: [{ function: 'y', expression: '' }],
+      }),
     ).toEqual([
       'originLists x needs a loader function',
       "contentTypeLanes y's expression is missing",
@@ -294,10 +294,10 @@ describe("a stored object's generation and size are read only through the packag
 
   it('refuses missing helper names, a missing anchor list, and an exception with no shape or why', () => {
     expect(
-      storageObjectMetadataGuard.factProblems({
+      factProblemsOf(storageObjectMetadataGuard, {
         packageContracts: [],
         exceptions: [{ path: 'a.ts', shape: '', why: '' }],
-      } as never),
+      }),
     ).toEqual([
       'generationReaders is missing',
       'sizeReaders is missing',

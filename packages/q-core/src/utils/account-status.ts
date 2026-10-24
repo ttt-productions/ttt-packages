@@ -3,8 +3,8 @@
 // The callable auth assertion refuses every other account before a member callable runs, and a door
 // is offered only to an account this answers true for (ENG-006, FRONTEND-110).
 
-import { ACTIVE_USER_STATUS, type UserStatus } from '../types/unions.js';
+import { ACTIVE_USER_STATUS } from '../types/unions.js';
 
-export function isActiveAccount(profile: { userStatus: UserStatus } | null | undefined): boolean {
+export function isActiveAccount(profile: { userStatus: unknown } | null | undefined): boolean {
   return profile?.userStatus === ACTIVE_USER_STATUS;
 }

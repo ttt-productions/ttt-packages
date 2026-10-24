@@ -52,7 +52,7 @@ describe('useNotificationHistory', () => {
       isLoading: false,
       hasNextPage: false,
       nextPage: vi.fn(),
-    } as never);
+    });
   });
 
   it('throws for an unknown category', () => {

@@ -3,10 +3,13 @@ import type { MediaModerationResult, ModerationLogger } from '../types.js';
 
 import type * as vision from '@google-cloud/vision';
 
+// The one Vision call image moderation makes; an ImageAnnotatorClient is one.
+export type SafeSearchClient = Pick<vision.ImageAnnotatorClient, 'safeSearchDetection'>;
+
 export interface ImageModerationOptions {
   rejectionLikelihoods: ReadonlySet<string>;
   logger?: ModerationLogger;
-  getClient?: () => Promise<vision.ImageAnnotatorClient>;
+  getClient?: () => Promise<SafeSearchClient>;
 }
 
 let _defaultClient: vision.ImageAnnotatorClient | null = null;

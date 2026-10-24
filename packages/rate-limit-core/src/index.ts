@@ -6,6 +6,7 @@ export type {
   RateLimitConfig,
   RateLimiterFactoryOptions,
   RateLimiterDegradation,
+  RateLimitRedis,
 } from './rate-limiter.js';
 
 export { getRateLimitErrorMessage } from './error-message.js';

@@ -105,7 +105,8 @@ Factories for the consuming app's queue callables. `createCheckoutTaskHandler`,
 read and write the task in one transaction and call the app's optional `onAuditEvent(event,
 transaction)` inside it; `createAdminTaskHandler` is the standalone task-creation write over
 `buildUserReportAdminTaskDoc`. Expected refusals throw `ReportCoreTaskError`, whose `code` is the
-matching `HttpsError` code.
+matching `HttpsError` code. Each takes the `firebase-helpers/server` Firestore contract, so an app
+passes its Admin SDK `db` and transaction as they are.
 
 - **The task's summary is the app's.** `ServerReportCoreConfig.describeUserReportTask({ totalReports,
   reportedItemType })` writes a user-report task's `summary`; the package supplies the group's report
@@ -139,8 +140,8 @@ matching `HttpsError` code.
   `message`; a refused queue candidate (pending or expired) is skipped and the queue's cursor moves
   past it (`startAfter` the refused task, one one-document read per refusal — never a re-read from
   the head), a refusal does not use one of the contention rounds, and a queue with no unrefused
-  candidate left answers the ordinary empty-queue `not-found`. `ServerQuery` therefore includes
-  `startAfter(snapshot)`, which the Admin SDK's `Query` provides. The guard is never asked
+  candidate left answers the ordinary empty-queue `not-found`, through the contract's
+  `ServerQuery.startAfter(snapshot)`. The guard is never asked
   for the already-held answer, and a guard that throws aborts the claim (a failed check is never
   "claimable").
 

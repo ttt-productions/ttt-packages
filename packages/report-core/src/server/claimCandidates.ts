@@ -1,4 +1,4 @@
-import type { ServerDocSnapshot, ServerQuery } from './types.js';
+import type { ServerDocSnapshot, ServerQuery } from '@ttt-productions/firebase-helpers/server';
 
 // A range query inside a transaction range-locks the whole queue, so candidates are found outside it and claimed one document at a time.
 export const MAX_CLAIM_ROUNDS = 5;

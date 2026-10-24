@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { startWaveformLoop, drawIdleFrame } from '../src/visualizer.js';
-import type { AudioVisualizerMode } from '../src/visualizer.js';
+import type {
+  AudioVisualizerMode,
+  VisualizerAnalyser,
+  VisualizerCanvas,
+  VisualizerContext,
+} from '../src/visualizer.js';
 
 type RafCallback = (t: number) => void;
 
@@ -14,7 +19,7 @@ function pumpFrame() {
 }
 
 function makeCanvasMock() {
-  const ctx = {
+  const ctx: VisualizerContext = {
     clearRect: vi.fn(),
     beginPath: vi.fn(),
     moveTo: vi.fn(),
@@ -25,20 +30,20 @@ function makeCanvasMock() {
     strokeStyle: '',
     fillStyle: '',
   };
-  const canvas = {
-    width: 300,
-    height: 100,
-    getContext: vi.fn().mockReturnValue(ctx),
-  } as unknown as HTMLCanvasElement;
+  const canvas: VisualizerCanvas = { width: 300, height: 100, getContext: () => ctx };
   return { canvas, ctx };
 }
 
-function makeAnalyserMock() {
+function makeAnalyserMock(): VisualizerAnalyser {
   return {
     frequencyBinCount: 128,
-    getByteTimeDomainData: vi.fn((arr: Uint8Array) => arr.fill(128)),
-    getByteFrequencyData: vi.fn((arr: Uint8Array) => arr.fill(200)),
-  } as unknown as AnalyserNode;
+    getByteTimeDomainData: vi.fn((arr: Uint8Array<ArrayBuffer>) => {
+      arr.fill(128);
+    }),
+    getByteFrequencyData: vi.fn((arr: Uint8Array<ArrayBuffer>) => {
+      arr.fill(200);
+    }),
+  };
 }
 
 beforeEach(() => {
@@ -134,11 +139,7 @@ describe('startWaveformLoop', () => {
   });
 
   it('self-terminates when the canvas has no 2d context', () => {
-    const canvas = {
-      width: 300,
-      height: 100,
-      getContext: vi.fn().mockReturnValue(null),
-    } as unknown as HTMLCanvasElement;
+    const canvas: VisualizerCanvas = { width: 300, height: 100, getContext: () => null };
     const analyser = makeAnalyserMock();
     const stop = startWaveformLoop({ analyser, getCanvas: () => canvas, mode: 'line' });
 

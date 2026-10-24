@@ -10,6 +10,7 @@ import { runDefinition } from './run.js';
 import { runGuard } from '../../src/node/suite/run.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { tempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const KEYS = 'src/lib/query-keys.ts';
 const REGISTRY = 'src/lib/registry.ts';
@@ -427,17 +428,16 @@ describe('an unscoped cancel or a whole-cache clear runs only in the session-ret
 describe('the query-cache facts', () => {
   it('refuses a missing key-module loader, a family suffix, a loaded-pages predicate, a hand-off control, a session owner, a retirement why, and a stray-whitespace refresh', () => {
     expect(
-      queryCacheGuard.factProblems(
-        facts({
-          keyModule: { path: KEYS } as never,
-          familySuffix: '',
-          loadedPagesPredicate: '',
-          refreshHandoffs: [{ hook: 'useR', control: '', prop: 'onRefetch' }],
-          sessionOwner: '',
-          predicateRetirements: [{ trigger: 'leave', why: '' }],
-          memberRefreshes: [{ path: 'src/a.ts', call: 'resetQueries( { queryKey } )', why: 'x' }],
-        }),
-      ),
+      factProblemsOf(queryCacheGuard, {
+        ...facts(),
+        keyModule: { path: KEYS },
+        familySuffix: '',
+        loadedPagesPredicate: '',
+        refreshHandoffs: [{ hook: 'useR', control: '', prop: 'onRefetch' }],
+        sessionOwner: '',
+        predicateRetirements: [{ trigger: 'leave', why: '' }],
+        memberRefreshes: [{ path: 'src/a.ts', call: 'resetQueries( { queryKey } )', why: 'x' }],
+      }),
     ).toEqual(
       expect.arrayContaining([
         'keyModule.load needs a loader function',
@@ -502,15 +502,15 @@ describe('the domain-event registry: produced, registered, well formed, and awai
   });
 
   it('flags a registered event with no producer, with no way to park it — the registry and test code are no evidence', async () => {
-    const [produced] = await runDefinition(
-      domainEventRegistryGuard,
-      facts({ noProducerYet: [{ event: 'thing.gone', why: 'producer lands later' }] } as never),
-      {
-        [REGISTRY]: producers[REGISTRY],
-        'src/hooks/use-thing.ts': producers['src/hooks/use-thing.ts'],
-        'src/hooks/use-thing.test.ts': "emit('thing.gone');",
-      },
-    );
+    const parkedProducer = {
+      ...facts(),
+      noProducerYet: [{ event: 'thing.gone', why: 'producer lands later' }],
+    };
+    const [produced] = await runDefinition(domainEventRegistryGuard, parkedProducer, {
+      [REGISTRY]: producers[REGISTRY],
+      'src/hooks/use-thing.ts': producers['src/hooks/use-thing.ts'],
+      'src/hooks/use-thing.test.ts': "emit('thing.gone');",
+    });
     expect(produced).toEqual([{ file: REGISTRY, detail: 'thing.gone: no producer in the app' }]);
   });
 
@@ -624,9 +624,9 @@ describe('the domain-event registry: produced, registered, well formed, and awai
 
   it('refuses facts with no registry loader, no schema loader, or no notifier', () => {
     expect(
-      domainEventRegistryGuard.factProblems({
-        registry: { path: REGISTRY } as never,
-        eventSchema: undefined as never,
+      factProblemsOf(domainEventRegistryGuard, {
+        registry: { path: REGISTRY },
+        eventSchema: undefined,
         notifiers: [],
       }),
     ).toEqual([

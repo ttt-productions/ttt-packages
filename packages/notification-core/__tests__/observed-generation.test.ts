@@ -7,8 +7,10 @@ import type {
   ServerFirestore,
   ServerDocRef,
   ServerDocSnapshot,
+  ServerQuery,
+  ServerQuerySnapshot,
   ServerTransaction,
-} from '../src/server/types.js';
+} from '@ttt-productions/firebase-helpers/server';
 
 function createMockFirestore() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -52,8 +54,16 @@ function createMockFirestore() {
       throw new Error('not used');
     },
     runTransaction: async (fn) => {
-      const tx = {
-        get: (ref: ServerDocRef) => ref.get(),
+      function get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
+      function get(query: ServerQuery): Promise<ServerQuerySnapshot>;
+      function get(
+        target: ServerDocRef | ServerQuery,
+      ): Promise<ServerDocSnapshot | ServerQuerySnapshot> {
+        if (!('id' in target)) throw new Error('the generation writes never read a query');
+        return target.get();
+      }
+      const tx: ServerTransaction = {
+        get,
         set: (ref: ServerDocRef, data: Record<string, unknown>) => {
           void ref.set(data);
           return tx;

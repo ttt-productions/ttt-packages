@@ -17,6 +17,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { useFirestoreSearch } from '../../../src/react/search/use-firestore-search.js';
 import { FirestoreProvider } from '../../../src/react/firestore/context.js';
+import { testFirestore } from '../../helpers/test-firestore.js';
 
 const DEBOUNCE_MS = 300;
 
@@ -26,7 +27,7 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: {} as never, children }),
+      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;

@@ -67,14 +67,20 @@ describe('ReportButton', () => {
     get: (_t, key) =>
       key === 'formDescription' || key === 'upgradeDescription' ? () => String(key) : String(key),
   });
-  const config = {
-    collections: {},
+  const config: ReportCoreConfig = {
+    collections: { reports: 'r', reportGroups: 'g', adminTasks: 't' },
     reportableItems: {},
     reportReasons: ['Spam'],
-    priorityConfig: {},
+    priorityConfig: {
+      reasonScores: {},
+      itemTypeMultipliers: {},
+      additionalReportBonus: 0,
+      defaultReasonScore: 0,
+      defaultItemTypeMultiplier: 1,
+    },
     taskQueues: {},
     reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 20 }),
-  } as unknown as ReportCoreConfig;
+  };
 
   function renderButton(reporterUserId: string | undefined, onSignInRequired = vi.fn()) {
     render(

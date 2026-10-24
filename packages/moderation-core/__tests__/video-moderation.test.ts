@@ -17,6 +17,7 @@ vi.mock('@google-cloud/video-intelligence', () => ({
   },
 }));
 
+import type { AnnotateVideoClient } from '../src/server/video-moderation.js';
 import {
   moderateVideo,
   DEFAULT_VIDEO_POLL_BACKOFF,
@@ -31,7 +32,7 @@ const rejectionLikelihoods = new Set(['LIKELY', 'VERY_LIKELY']);
 
 describe('moderateVideo', () => {
   it('returns safe=false when a frame has pornographyLikelihood=5 (VERY_LIKELY)', async () => {
-    const mockClient = {
+    const mockClient: AnnotateVideoClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
           promise: () =>
@@ -51,7 +52,7 @@ describe('moderateVideo', () => {
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(true);
     expect(result.safe).toBe(false);
@@ -60,7 +61,7 @@ describe('moderateVideo', () => {
   });
 
   it('reports a video the analysis returned no frames for as not checked, never as flagged', async () => {
-    const mockClient = {
+    const mockClient: AnnotateVideoClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
           promise: () =>
@@ -78,7 +79,7 @@ describe('moderateVideo', () => {
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
@@ -86,7 +87,7 @@ describe('moderateVideo', () => {
   });
 
   it('reports a video with no explicit annotation as not checked', async () => {
-    const mockClient = {
+    const mockClient: AnnotateVideoClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
           promise: () =>
@@ -100,14 +101,14 @@ describe('moderateVideo', () => {
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
   });
 
   it('reports a video whose analysis carries an error as not checked, even with frames', async () => {
-    const mockClient = {
+    const mockClient: AnnotateVideoClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
           promise: () =>
@@ -126,14 +127,14 @@ describe('moderateVideo', () => {
     };
     const result = await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);
   });
 
   it('passes the default longrunning poll backoff to annotateVideo', async () => {
-    const mockClient = {
+    const mockClient: AnnotateVideoClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
           promise: () =>
@@ -147,7 +148,7 @@ describe('moderateVideo', () => {
     };
     await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(mockClient.annotateVideo).toHaveBeenCalledWith(
       expect.objectContaining({ inputUri: 'gs://bucket/video.mp4' }),
@@ -162,7 +163,7 @@ describe('moderateVideo', () => {
   });
 
   it('honors a pollBackoff override', async () => {
-    const mockClient = {
+    const mockClient: AnnotateVideoClient = {
       annotateVideo: vi.fn().mockResolvedValue([
         {
           promise: () =>
@@ -176,7 +177,7 @@ describe('moderateVideo', () => {
     };
     await moderateVideo('gs://bucket/video.mp4', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
       pollBackoff: { initialDelayMillis: 5000, delayMultiplier: 2, maxDelayMillis: 30000 },
     });
     expect(mockClient.annotateVideo).toHaveBeenCalledWith(expect.anything(), {

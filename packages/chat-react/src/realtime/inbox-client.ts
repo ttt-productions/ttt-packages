@@ -288,7 +288,7 @@ export class InboxClient {
       });
       return;
     }
-    const payload = frame.payload as unknown as WireInboxSnapshot | { hasUnread: boolean };
+    const payload = frame.payload as WireInboxSnapshot | { hasUnread: boolean };
     if (isInboxSnapshot(payload as WireInboxSnapshot)) {
       this.applySnapshot(payload as WireInboxSnapshot, frame.type);
     } else if (

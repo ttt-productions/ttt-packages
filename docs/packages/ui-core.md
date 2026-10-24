@@ -53,6 +53,10 @@ Every free-text input carries its field's declaration (a `DeclaredInputFormat` f
 - **Tidy on blur.** When focus leaves a free-text `Input` or `Textarea`, the box shows the check's kept value and delivers it through the parent's own `onChange` (the native value setter plus an input event, so a controlled box and a react-hook-form `register` box both receive it). The caller's own `onBlur` runs after it, never replaced. Nothing changes while typing, and a read-only or disabled box is never tidied. A `Textarea` is `none` or `keepAsTyped`, so it only ever trims on blur.
 - Types: `InputProps` (`FreeTextInputProps | NonFreeTextInputProps | BuiltInFormatInputProps`), `NonFreeTextEntry`, `BuiltInFormatInputType`, `TextareaProps` (`FreeTextTextareaProps | NonFreeTextTextareaProps`), `NonFreeTextareaEntry`.
 
+## Progress
+
+`Progress` reports what it draws: its `value`, clamped to 0–`max` (default 100), is the bar's fill and the `progressbar`'s `aria-valuenow`, with `data-state` `loading` below `max` and `complete` at it. With no value it is indeterminate — no `aria-valuenow`, never a made-up 0. A caller's own `aria-valuetext` replaces the spoken percentage.
+
 ## SearchDropdown
 
 A search box with a results dropdown (`./react` → `SearchDropdown<T>`). Its input is a built-in-format `type="search"` input. Durable contract:

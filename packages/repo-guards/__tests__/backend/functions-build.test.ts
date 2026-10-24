@@ -9,6 +9,7 @@ import {
   type RateLimitFacts,
 } from '../../src/modules/backend/functions-build.js';
 import { backendRepo, type BackendRepo } from './repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: BackendRepo | undefined;
 
@@ -363,7 +364,7 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
 
   it('refuses a root that is not a root role, an empty root list, and an other loader with no why', () => {
     expect(lazyLoaderGuard.factProblems({ ...facts, roots: [] })).toEqual(['roots is empty']);
-    expect(lazyLoaderGuard.factProblems({ ...facts, roots: ['web' as never] })).toEqual([
+    expect(factProblemsOf(lazyLoaderGuard, { ...facts, roots: ['web'] })).toEqual([
       'roots names web, which is not a root role',
     ]);
     expect(

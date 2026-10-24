@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
 import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
-import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
+import { CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
@@ -48,7 +48,7 @@ const craftSkillBaseShape = {
   id: z.string(),
   name: z.string(),
   mediaAssetId: z.string(),
-  tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
+  tags: z.array(z.enum(CRAFT_SKILL_TAG_OPTIONS)),
   createdAt: z.number(),
   type: mediaKindSchema,
   hidden: z.boolean(),
@@ -79,7 +79,7 @@ export const CraftSkillReferenceSchema = z.object({
   userId: z.string(),
   craftSkillAssetId: z.string(),
   craftSkillType: mediaKindSchema,
-  tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
+  tags: z.array(z.enum(CRAFT_SKILL_TAG_OPTIONS)),
   createdAt: z.number(),
   hidden: z.boolean(),
   hiddenBy: ModerationHiddenBySchema.optional(),

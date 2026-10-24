@@ -6,6 +6,7 @@ import {
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const repos: TempRepo[] = [];
 afterAll(() => repos.forEach((r) => r.remove()));
@@ -198,9 +199,9 @@ describe('entry purity', () => {
 
   it('require every fact, each subpath and exception naming a runtime', () => {
     expect(
-      entryPurityGuard.factProblems({
+      factProblemsOf(entryPurityGuard, {
         packagesFolder: '',
-        runtimeSubpaths: [{ subpath: 'react/x', runtime: 'gui' as never }],
+        runtimeSubpaths: [{ subpath: 'react/x', runtime: 'gui' }],
         exceptions: [{ entry: '@acme/kit', runtime: 'node', why: '' }],
       }),
     ).toEqual([

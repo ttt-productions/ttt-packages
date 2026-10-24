@@ -99,8 +99,7 @@ function initAppCheck(
   if (useEmulators && !debugToken) return undefined;
 
   // Set before initializeAppCheck, which reads it.
-  if (debugToken)
-    (self as unknown as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
+  if (debugToken) globalFlags().FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
 
   if (!siteKey) {
     console.warn(

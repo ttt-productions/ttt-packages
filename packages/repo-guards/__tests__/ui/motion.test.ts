@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { motionGuard, type MotionFacts } from '../../src/modules/ui/motion.js';
 import { allFindings } from './helpers.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const ENTRY = 'src/app/styles/globals.css';
 const HELPER = 'src/motion/reduced-motion.ts';
@@ -101,8 +102,8 @@ describe('motion rides the tokens and the effective reduced-motion preference', 
   });
 
   it('refuses facts that leave the keeper adapter undeclared', () => {
-    expect(
-      motionGuard.factProblems({ entryStylesheet: ENTRY, motionHelper: HELPER } as never),
-    ).toEqual(['focusedInputKeeperAdapter is missing (declare null when the app has none)']);
+    expect(factProblemsOf(motionGuard, { entryStylesheet: ENTRY, motionHelper: HELPER })).toEqual([
+      'focusedInputKeeperAdapter is missing (declare null when the app has none)',
+    ]);
   });
 });

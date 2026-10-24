@@ -2,8 +2,6 @@ import { describe, it, expect, vi, type Mock } from 'vitest';
 import { createCheckoutNextImportantHandler } from '../src/server/createCheckoutNextImportantHandler.js';
 import { ReportCoreTaskError } from '../src/server/taskError.js';
 import type {
-  ServerReportCoreConfig,
-  TaskClaimGuard,
   ServerDocRef,
   ServerDocSnapshot,
   ServerFirestore,
@@ -11,7 +9,8 @@ import type {
   ServerQuery,
   ServerQuerySnapshot,
   ServerTransaction,
-} from '../src/server/types.js';
+} from '@ttt-productions/firebase-helpers/server';
+import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   describeUserReportTask: ({ totalReports, reportedItemType }) =>
@@ -67,6 +66,8 @@ function createMockDb(opts: MockDbOptions = {}) {
     set: () => outsideTransaction('set'),
     update: () => outsideTransaction('update'),
     get: () => outsideTransaction('get'),
+    create: () => outsideTransaction('create'),
+    delete: () => outsideTransaction('delete'),
   });
 
   const snapshotOf = (ref: FakeRef): ServerDocSnapshot => {
@@ -182,11 +183,15 @@ function createMockDb(opts: MockDbOptions = {}) {
       store.set(_path, { ...(store.get(_path) ?? {}), ...data });
       return transaction;
     }),
+    delete: () => {
+      throw new Error('deletes are not part of this fake');
+    },
   };
 
   const db: ServerFirestore = {
     collection: vi.fn((colPath: string): ServerCollectionRef => ({
       ...makeQuery(colPath, [], []),
+      add: () => outsideTransaction('add'),
       doc: vi.fn((id?: string) => makeRef(`${colPath}/${id ?? `auto_${++autoId}`}`)),
     })),
     doc: vi.fn((path: string) => makeRef(path)),

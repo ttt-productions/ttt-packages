@@ -546,7 +546,7 @@ const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
   return onSnapshot(
     q,
     { includeMetadataChanges: true },
-    args.onSnapshot as never,
-    args.onError as never,
+    (snapshot) => args.onSnapshot(snapshot),
+    (error) => args.onError(error),
   );
 };

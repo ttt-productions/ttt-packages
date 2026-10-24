@@ -28,6 +28,7 @@ import { where } from 'firebase/firestore';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 beforeEach(() => {
   caps.length = 0;
@@ -35,7 +36,7 @@ beforeEach(() => {
 });
 
 function makeWrapper() {
-  const db = {} as never;
+  const db = testFirestore();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity } },
   });

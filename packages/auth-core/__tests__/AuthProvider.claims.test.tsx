@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { User } from 'firebase/auth';
+import type { IdTokenResult, User } from 'firebase/auth';
 
 type Claims = { owner: string };
 
@@ -24,18 +24,19 @@ vi.mock('../src/client/claims.js', () => ({
 
 import { AuthProvider } from '../src/react/AuthProvider.js';
 import { useAuth } from '../src/react/useAuth.js';
+import { testAuth } from './helpers/test-auth.js';
+import { idTokenResult, testUser } from './helpers/test-user.js';
 
 function makeUser(uid: string) {
   const refreshes: Array<(claims: Record<string, unknown>) => void> = [];
-  const user = {
-    uid,
+  const user = testUser(uid, {
     getIdTokenResult: vi.fn(
       () =>
-        new Promise((resolve) => {
-          refreshes.push((claims) => resolve({ claims }));
+        new Promise<IdTokenResult>((resolve) => {
+          refreshes.push((claims) => resolve(idTokenResult(claims)));
         }),
     ),
-  } as unknown as User;
+  });
   return { user, refreshes };
 }
 
@@ -45,11 +46,7 @@ function resolveInitialRead(uid: string, owner: string) {
   next({ owner });
 }
 
-const liveAuth = {
-  get currentUser() {
-    return currentUser;
-  },
-} as never;
+const liveAuth = testAuth(() => currentUser);
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider<Claims>

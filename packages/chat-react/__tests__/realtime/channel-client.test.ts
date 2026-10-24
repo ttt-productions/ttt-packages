@@ -275,7 +275,14 @@ describe('ChannelClient — reconnect + resume (snapshot: delta / resync)', () =
     });
     expect(s2.sent.some((f) => f.type === 'history')).toBe(false);
     expect(client.getState().messages.map((m) => m.messageId)).toEqual(['3', '4', '5']);
-    expect((client as unknown as { resumeSeq: number }).resumeSeq).toBe(5);
+
+    s2.serverClose(1006, 'abnormal');
+    clock.tick(2000);
+    await Promise.resolve();
+    const s3 = harness.sockets[2];
+    expect(s3).toBeTruthy();
+    s3.serverOpen();
+    expect(s3.sent.find((f) => f.type === 'resume')?.payload).toEqual({ afterSeq: 5 });
   });
 
   it('applies a >50-message backlog delta with no permanent hole', async () => {
@@ -318,7 +325,7 @@ describe('ChannelClient — reconnect + resume (snapshot: delta / resync)', () =
   });
 
   it('on resync=true drops the local tail and re-pages history from the top', async () => {
-    const { client, harness } = makeClient();
+    const { client, harness, clock } = makeClient();
     await client.connect();
     const s1 = harness.last();
     s1.serverOpen();
@@ -328,11 +335,18 @@ describe('ChannelClient — reconnect + resume (snapshot: delta / resync)', () =
 
     s1.serverFrame('snapshot', { lastMessageSeq: 900, readSeq: 0, resync: true, delta: [] });
     expect(client.getState().messages).toHaveLength(0);
-    expect((client as unknown as { resumeSeq: number }).resumeSeq).toBe(0);
     expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({
       beforeSeq: null,
       limit: 50,
     });
+
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(2000);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    expect(s2).toBeTruthy();
+    s2.serverOpen();
+    expect(s2.sent.find((f) => f.type === 'resume')?.payload).toEqual({ afterSeq: 0 });
   });
 
   it('treats a legacy snapshot (no resync/delta) as a resync re-page', async () => {

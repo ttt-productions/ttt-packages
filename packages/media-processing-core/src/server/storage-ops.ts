@@ -3,7 +3,6 @@ import { stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { AwsClient } from 'aws4fetch';
-import type { getStorage } from 'firebase-admin/storage';
 import { NEUTRAL_CONTENT_TYPE } from '@ttt-productions/media-schemas';
 import { isObjectNotFoundError } from './gcs-errors.js';
 import {
@@ -25,7 +24,43 @@ export class ObjectAlreadyExistsError extends Error {
 }
 
 /** Inferred from usage so the package takes no @google-cloud/storage dependency. */
-export type Bucket = ReturnType<ReturnType<typeof getStorage>['bucket']>;
+// The slice of a Cloud Storage bucket the media store reads and writes; a firebase-admin bucket is
+// one, and a test fake implements only this.
+export interface StorageObjectMetadata {
+  generation?: string | number | null;
+  contentType?: string;
+  cacheControl?: string;
+  contentDisposition?: string;
+  contentEncoding?: string;
+  metadata?: Record<string, unknown> | null;
+  [field: string]: unknown;
+}
+
+export interface StorageCopyOptions {
+  contentType?: string;
+  cacheControl?: string;
+  contentDisposition?: string;
+  contentEncoding?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+  preconditionOpts?: { ifGenerationMatch?: number | string };
+}
+
+export interface StorageObject {
+  getMetadata(): Promise<[StorageObjectMetadata, ...unknown[]]>;
+  download(options: { destination: string }): Promise<unknown>;
+  // A string destination is an object of that name in the same bucket.
+  copy(destinationKey: string, options: StorageCopyOptions): Promise<unknown>;
+  delete(options?: { ifGenerationMatch?: number | string }): Promise<unknown>;
+}
+
+export interface Bucket {
+  readonly name: string;
+  file(name: string, options?: { generation?: string | number }): StorageObject;
+  upload(
+    localPath: string,
+    options: { destination: string; metadata: Record<string, unknown> },
+  ): Promise<unknown>;
+}
 
 export interface ObjectWriteResult {
   key: string;
@@ -391,7 +426,7 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
       }
       try {
         // A rewrite's resource replaces the destination's metadata rather than merging with the source's.
-        await bucket.file(fromKey, { generation }).copy(bucket.file(toKey), {
+        await bucket.file(fromKey, { generation }).copy(toKey, {
           ...contentHeaders,
           metadata:
             downloadToken === null

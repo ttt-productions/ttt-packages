@@ -1,83 +1,84 @@
 {
-    "name": "@ttt-productions/notification-core",
-    "version": "0.15.20",
-    "description": "Shared notification system for TTT Productions apps — active/history two-tier architecture with dedup, batch processing, and themed UI components",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-        "directory": "packages/notification-core"
+  "name": "@ttt-productions/notification-core",
+  "version": "0.15.20",
+  "description": "Shared notification system for TTT Productions apps — active/history two-tier architecture with dedup, batch processing, and themed UI components",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/notification-core"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src/styles"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "type": "module",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "sideEffects": false,
-    "files": [
-        "dist",
-        "src/styles"
-    ],
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-        },
-        "./react": {
-            "types": "./dist/react/index.d.ts",
-            "default": "./dist/react/index.js"
-        },
-        "./server": {
-            "types": "./dist/server/index.d.ts",
-            "default": "./dist/server/index.js"
-        },
-        "./styles": "./src/styles/notifications.css"
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
     },
-    "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist *.tsbuildinfo",
-        "typecheck": "tsc --noEmit",
-        "prepublishOnly": "npm run clean && npm run build"
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
     },
-    "dependencies": {
-        "zod": "^4.6.7"
+    "./styles": "./src/styles/notifications.css"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@ttt-productions/firebase-helpers": "*",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.90.0",
+    "@ttt-productions/query-core": "*",
+    "@ttt-productions/ui-core": "*",
+    "firebase": ">=12.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
     },
-    "peerDependencies": {
-        "@tanstack/react-query": ">=5.90.0",
-        "@ttt-productions/query-core": "*",
-        "@ttt-productions/ui-core": "*",
-        "firebase": ">=12.0.0",
-        "react": ">=19.0.0",
-        "react-dom": ">=19.0.0"
+    "@ttt-productions/query-core": {
+      "optional": true
     },
-    "peerDependenciesMeta": {
-        "@tanstack/react-query": {
-            "optional": true
-        },
-        "@ttt-productions/query-core": {
-            "optional": true
-        },
-        "@ttt-productions/ui-core": {
-            "optional": true
-        },
-        "firebase": {
-            "optional": true
-        },
-        "react": {
-            "optional": true
-        },
-        "react-dom": {
-            "optional": true
-        }
+    "@ttt-productions/ui-core": {
+      "optional": true
     },
-    "devDependencies": {
-        "@tanstack/react-query": "^5.0.0",
-        "@ttt-productions/query-core": "*",
-        "@ttt-productions/ui-core": "*",
-        "@types/react": "^19.0.0",
-        "@types/react-dom": "^19.0.0",
-        "firebase": "^12.14.0",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0"
+    "firebase": {
+      "optional": true
     },
-    "author": "DJ (TTT Productions)",
-    "license": "MIT"
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "@ttt-productions/query-core": "*",
+    "@ttt-productions/ui-core": "*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "firebase": "^12.14.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
 }

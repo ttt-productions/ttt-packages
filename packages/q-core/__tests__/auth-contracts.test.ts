@@ -608,7 +608,7 @@ describe('whether an account may act as a member', () => {
   });
 
   it('fails closed on a status outside the declared set', () => {
-    expect(isActiveAccount({ userStatus: 'suspended' } as never)).toBe(false);
+    expect(isActiveAccount({ userStatus: 'suspended' })).toBe(false);
   });
 });
 

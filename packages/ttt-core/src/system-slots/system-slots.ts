@@ -128,16 +128,28 @@ export type SystemVideoSlotId = Extract<SystemSlot, { kind: 'video' }>['id'];
 export type SystemUidSlotId = Extract<SystemSlot, { kind: 'uid' }>['id'];
 export type SystemUidListSlotId = Extract<SystemSlot, { kind: 'uidList' }>['id'];
 
+// z.enum takes at least one value; a slot list with none fails at load, never as an empty enum.
+function nonEmpty<T>(values: readonly T[], what: string): [T, ...T[]] {
+  const [first, ...rest] = values;
+  if (first === undefined) throw new Error(`SYSTEM_SLOTS declares no ${what}`);
+  return [first, ...rest];
+}
+
 function slotIdsOfKind<K extends SystemSlotKind>(kind: K) {
-  const ids = SYSTEM_SLOTS.filter((slot) => slot.kind === kind).map((slot) => slot.id);
-  return ids as unknown as [
-    Extract<SystemSlot, { kind: K }>['id'],
-    ...Extract<SystemSlot, { kind: K }>['id'][],
-  ];
+  const ofKind = SYSTEM_SLOTS.filter(
+    (slot): slot is Extract<SystemSlot, { kind: K }> => slot.kind === kind,
+  );
+  return nonEmpty(
+    ofKind.map((slot) => slot.id),
+    `${kind} slot`,
+  );
 }
 
 export const SystemSlotIdSchema = z.enum(
-  SYSTEM_SLOTS.map((slot) => slot.id) as unknown as [SystemSlotId, ...SystemSlotId[]],
+  nonEmpty(
+    SYSTEM_SLOTS.map((slot) => slot.id),
+    'slot',
+  ),
 );
 export const SystemVideoSlotIdSchema = z.enum(slotIdsOfKind('video'));
 export const SystemUidSlotIdSchema = z.enum(slotIdsOfKind('uid'));

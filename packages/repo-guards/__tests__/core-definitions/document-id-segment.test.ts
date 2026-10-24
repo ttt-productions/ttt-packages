@@ -8,6 +8,7 @@ import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 import { CORE, fixture, lines } from './fixture.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const unpadded = z
   .string()
@@ -209,9 +210,9 @@ describe('an admin-list field named for the uids it holds', () => {
 describe('the facts', () => {
   it('refuses a missing loader, empty name lists, and a reviewed entry with no why', () => {
     expect(
-      documentIdSegmentGuard.factProblems({
+      factProblemsOf(documentIdSegmentGuard, {
         ...facts(cleanModules),
-        wireModules: undefined as never,
+        wireModules: undefined,
         wireInputNameSuffixes: [],
         idAtomNameSuffix: '',
         requiredIdAtoms: [],

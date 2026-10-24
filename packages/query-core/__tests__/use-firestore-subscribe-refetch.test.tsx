@@ -36,6 +36,7 @@ import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -45,7 +46,7 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: {} as never, children }),
+      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;

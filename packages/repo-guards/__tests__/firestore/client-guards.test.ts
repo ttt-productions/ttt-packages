@@ -8,6 +8,7 @@ import type { Guard } from '../../src/guard.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -81,7 +82,7 @@ describe('every live Firestore subscription is on the reviewed list', () => {
   });
 
   it('refuses a missing list and an entry with no why', () => {
-    expect(liveSubscriptionGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(liveSubscriptionGuard, {})).toEqual([
       'allowlist is missing (declare [] when there is none)',
     ]);
     expect(liveSubscriptionGuard.factProblems({ allowlist: [{ path: 'a.ts', why: ' ' }] })).toEqual(
@@ -135,7 +136,7 @@ describe('no component or route imports the Firestore runtime', () => {
 
   it('refuses missing UI folders and a sanctioned entry with no why', () => {
     expect(
-      firestoreRuntimeInUiGuard.factProblems({ sanctioned: [{ path: 'a.tsx', why: '' }] } as never),
+      factProblemsOf(firestoreRuntimeInUiGuard, { sanctioned: [{ path: 'a.tsx', why: '' }] }),
     ).toEqual(['uiFolders is missing', 'sanctioned entry a.tsx carries no why']);
   });
 });

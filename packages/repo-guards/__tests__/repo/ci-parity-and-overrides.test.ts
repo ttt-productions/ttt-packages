@@ -7,6 +7,7 @@ import {
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -76,11 +77,11 @@ describe('the local gate mirrors every check the release workflow runs', () => {
 
   it('refuses a pattern that is no regular expression, and a missing map loader', () => {
     expect(
-      ciParityGuard.factProblems({
+      factProblemsOf(ciParityGuard, {
         workflow: 'w.yml',
         verifyJobPattern: '(',
         selfMirrored: 'x',
-        parity: undefined as never,
+        parity: undefined,
       }),
     ).toEqual(['verifyJobPattern is not a regular expression', 'parity needs a loader function']);
   });

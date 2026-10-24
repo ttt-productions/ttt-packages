@@ -3,6 +3,8 @@ import { shellSafeGuard, shellWithArgsArray } from '../../src/modules/repo/shell
 import { testSourceRootGuard } from '../../src/modules/repo/test-source-root.js';
 import { walkerReadFailureGuard } from '../../src/modules/repo/walker-read-failure.js';
 import { createRepoReader } from '../../src/node/reader.js';
+import type { ConfiguredGuardDefinition } from '../../src/node/suite/config.js';
+import { buildOf, factProblemsOf } from '../helpers/configured.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
@@ -18,20 +20,15 @@ const layoutOf = (root: string) => ({
   },
 });
 
-async function findingsOf(
-  definition: { build(facts: never): Array<{ run: (c: never) => unknown }> },
-  files: Record<string, string>,
-) {
+async function findingsOf(definition: ConfiguredGuardDefinition, files: Record<string, string>) {
   repo = tempRepo({
     'src/index.ts': 'export {};',
     'functions/src/index.ts': 'export {};',
     'scripts/run.mjs': 'export {};',
     ...files,
   });
-  const [guard] = definition.build({} as never);
-  const findings = (await guard.run(
-    contextOf(createRepoReader(layoutOf(repo.root))) as never,
-  )) as Array<{ file: string; line?: number; detail: string }>;
+  const [guard] = buildOf(definition, {});
+  const findings = await guard.run(contextOf(createRepoReader(layoutOf(repo.root))));
   return findings.map((f) => `${f.file}:${f.line} ${f.detail}`);
 }
 
@@ -90,7 +87,7 @@ describe('no child process gets an args array together with a shell', () => {
   });
 
   it('takes no facts', () => {
-    expect(shellSafeGuard.factProblems({ roots: [] } as never)).toEqual([
+    expect(factProblemsOf(shellSafeGuard, { roots: [] })).toEqual([
       'this guard takes no facts: declare it with {}',
     ]);
   });

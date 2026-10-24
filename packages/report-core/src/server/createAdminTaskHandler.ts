@@ -1,4 +1,5 @@
-import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
+import type { ServerFirestore } from '@ttt-productions/firebase-helpers/server';
+import type { ServerReportCoreConfig } from './types.js';
 import { buildUserReportAdminTaskDoc } from './buildUserReportAdminTaskDoc.js';
 
 export interface AdminTaskHandlerConfig {

@@ -6,6 +6,7 @@ import {
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -151,9 +152,9 @@ describe('every filtered collection-group query is index-backed', () => {
 
   it('refuses a missing index file, a missing core loader, and an unresolvable site with no argument or why', () => {
     expect(
-      collectionGroupIndexGuard.factProblems({
+      factProblemsOf(collectionGroupIndexGuard, {
         unresolvable: [{ file: 'a.ts', argument: '', why: '' }],
-      } as never),
+      }),
     ).toEqual([
       'indexesFile is missing',
       'coreExports needs a loader function',

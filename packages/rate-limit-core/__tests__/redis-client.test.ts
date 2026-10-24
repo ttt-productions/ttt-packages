@@ -7,6 +7,11 @@ vi.mock('@upstash/redis', () => ({
 import { createRedisClientFactory } from '../src/redis-client.js';
 import { Redis } from '@upstash/redis';
 
+// Real clients, though the module is mocked: constructing one opens no connection.
+const { Redis: RealRedis } =
+  await vi.importActual<typeof import('@upstash/redis')>('@upstash/redis');
+const realClient = () => new RealRedis({ url: 'https://redis.example', token: 'token' });
+
 const MockedRedis = vi.mocked(Redis);
 
 describe('createRedisClientFactory', () => {
@@ -40,9 +45,9 @@ describe('createRedisClientFactory', () => {
   it('creates Redis instance with valid credentials and second call returns same instance', () => {
     const url = 'https://redis-url';
     const token = 'my-token';
-    const mockInstance = {};
+    const mockInstance = realClient();
     MockedRedis.mockImplementation(function () {
-      return mockInstance as unknown as Redis;
+      return mockInstance;
     });
 
     const factory = createRedisClientFactory({
@@ -60,12 +65,12 @@ describe('createRedisClientFactory', () => {
   it('__reset clears cache and allows re-resolution', () => {
     const url = 'https://redis-url';
     const token = 'my-token';
-    const instance1 = { id: 1 };
-    const instance2 = { id: 2 };
+    const instance1 = realClient();
+    const instance2 = realClient();
     MockedRedis.mockImplementationOnce(function () {
-      return instance1 as unknown as Redis;
+      return instance1;
     }).mockImplementationOnce(function () {
-      return instance2 as unknown as Redis;
+      return instance2;
     });
 
     const factory = createRedisClientFactory({

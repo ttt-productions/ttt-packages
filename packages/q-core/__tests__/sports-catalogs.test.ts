@@ -7,6 +7,7 @@ import {
   type PerGameColumn,
 } from '../src/sports/column-catalog.js';
 import { COLUMN_CATALOG_LINE_KINDS, type AnySportAdapter } from '../src/sports/sport-adapter.js';
+import type { LifetimeSummary } from '../src/sports/lifetime-summary.js';
 import {
   GAMES_PLAYED_COLUMN,
   TEAM_SEASON_BASE_COLUMN,
@@ -156,27 +157,56 @@ describe.each([...LEAGUE_TYPE_KEYS])('the %s catalogs', (leagueType) => {
       TEAM_SEASON_BASE_COLUMNS,
     );
   });
+});
 
-  it('show a lifetime summary whose figures read a stored lifetime line', () => {
-    const line = fixtureLine(leagueType, 'lifetime') as { gamesPlayed: number };
-    expect(adapter.lineSchemas.lifetime.safeParse(line).success).toBe(true);
-    const { totals, averages } = adapter.display.lifetimeSummary as unknown as {
-      totals: { id: string; value: (line: object) => number }[];
-      averages: { id: string; value: (line: object) => number | null }[];
-    };
-    expect(totals[0].id).toBe(GAMES_PLAYED_COLUMN.id);
-    for (const total of totals) expect(Number.isFinite(total.value(line))).toBe(true);
-    for (const average of averages) {
-      const column = (adapter.columns.playerTotals as ColumnCatalog<never>).columns.find(
-        (candidate) => perGameOf(candidate)?.id === average.id,
-      );
-      expect(column, average.id).toBeDefined();
-      const total = totals.find((candidate) => candidate.id === column?.id);
-      expect(average.value(line)).toBe(
-        perGameAverage(total?.value(line) ?? Number.NaN, line.gamesPlayed),
-      );
-      expect(average.value({ ...line, gamesPlayed: 0 })).toBeNull();
-    }
+// Each sport's summary reads its own lifetime line, so it is checked with that sport's own types.
+function expectSummaryReadsLine<Line extends { gamesPlayed: number }>(
+  summary: LifetimeSummary<Line>,
+  line: Line,
+  playerTotals: ColumnCatalog<never>,
+) {
+  const { totals, averages } = summary;
+  expect(totals[0].id).toBe(GAMES_PLAYED_COLUMN.id);
+  for (const total of totals) expect(Number.isFinite(total.value(line))).toBe(true);
+  for (const average of averages) {
+    const column = playerTotals.columns.find(
+      (candidate) => perGameOf(candidate)?.id === average.id,
+    );
+    expect(column, average.id).toBeDefined();
+    const total = totals.find((candidate) => candidate.id === column?.id);
+    expect(average.value(line)).toBe(
+      perGameAverage(total?.value(line) ?? Number.NaN, line.gamesPlayed),
+    );
+    expect(average.value({ ...line, gamesPlayed: 0 })).toBeNull();
+  }
+}
+
+describe("each sport's lifetime summary reads a stored lifetime line", () => {
+  it('basketball', () => {
+    const adapter = SPORT_ADAPTERS[BASKETBALL];
+    expectSummaryReadsLine(
+      adapter.display.lifetimeSummary,
+      adapter.lineSchemas.lifetime.parse(FIXTURE_LINES.Basketball.lifetime),
+      adapter.columns.playerTotals as ColumnCatalog<never>,
+    );
+  });
+
+  it('curling', () => {
+    const adapter = SPORT_ADAPTERS[CURLING];
+    expectSummaryReadsLine(
+      adapter.display.lifetimeSummary,
+      adapter.lineSchemas.lifetime.parse(FIXTURE_LINES.Curling.lifetime),
+      adapter.columns.playerTotals as ColumnCatalog<never>,
+    );
+  });
+
+  it('football', () => {
+    const adapter = SPORT_ADAPTERS[FOOTBALL];
+    expectSummaryReadsLine(
+      adapter.display.lifetimeSummary,
+      adapter.lineSchemas.lifetime.parse(FIXTURE_LINES.Football.lifetime),
+      adapter.columns.playerTotals as ColumnCatalog<never>,
+    );
   });
 });
 

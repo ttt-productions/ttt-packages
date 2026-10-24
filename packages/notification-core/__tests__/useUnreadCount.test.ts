@@ -42,7 +42,7 @@ function setCount(n: number) {
     isLoading: false,
     isError: false,
     error: null,
-  } as never);
+  });
 }
 
 describe('useUnreadCount', () => {

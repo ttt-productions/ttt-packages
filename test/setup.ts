@@ -25,9 +25,7 @@ if (typeof window !== 'undefined' && !('AnimationEvent' in window)) {
 
 // jsdom logs a "not implemented" error for every canvas getContext call.
 if (typeof HTMLCanvasElement !== 'undefined') {
-  HTMLCanvasElement.prototype.getContext = vi.fn(
-    () => null,
-  ) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
 }
 
 vi.mock('firebase/app', () => ({

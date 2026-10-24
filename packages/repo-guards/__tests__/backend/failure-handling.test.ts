@@ -7,6 +7,7 @@ import {
   type SwallowedReadWriteFacts,
 } from '../../src/modules/backend/failure-handling.js';
 import { backendRepo, type BackendRepo } from './repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: BackendRepo | undefined;
 afterEach(() => repo?.remove());
@@ -135,10 +136,10 @@ describe('no swallowed read or write', () => {
 
   it('refuses a try/catch site with no function, a shape that is not a pattern, and a shape bound to no file', () => {
     expect(
-      swallowedReadWriteGuard.factProblems({
+      factProblemsOf(swallowedReadWriteGuard, {
         ...facts,
         notReadOrWrite: [
-          { pattern: '^rm' as never, why: 'x' } as never,
+          { pattern: '^rm', why: 'x' },
           { file: '', pattern: /^rm/, why: 'x' },
         ],
         tryCatchSites: [{ file: 'functions/src/lease.ts', function: '', why: 'x' }],

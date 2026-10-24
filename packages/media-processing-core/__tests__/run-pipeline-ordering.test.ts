@@ -18,10 +18,10 @@ vi.mock('../src/process-media.js', async (importOriginal) => {
 
 const { runMediaPipeline } = await import('../src/run-pipeline.js');
 
-const spec = {
+const spec: MediaProcessingSpec = {
   kind: 'image',
   image: { variants: [{ key: 'main' }] },
-} as unknown as MediaProcessingSpec;
+};
 
 async function makeLocalOutput(): Promise<string> {
   const dir = await mkdtemp(path.join(tmpdir(), 'pipeline-'));

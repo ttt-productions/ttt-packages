@@ -14,6 +14,13 @@ export interface GenericGuardDefinition<Facts> {
   build(facts: Facts): Guard[];
 }
 
+// The suite holds guards of every facts type in one list, so it hands each the config value as it
+// arrived; factProblems checks that value before build runs.
+export interface ConfiguredGuardDefinition {
+  factProblems(facts: unknown): string[];
+  build(facts: unknown): Guard[];
+}
+
 export const isAbsent = (value: unknown): value is Absent =>
   !!value &&
   typeof value === 'object' &&
@@ -59,7 +66,8 @@ export function configProblems(
       }
       continue;
     }
-    for (const problem of definition.factProblems(value as never))
+    const configured: ConfiguredGuardDefinition = definition;
+    for (const problem of configured.factProblems(value))
       problems.push(`generic.${definition.id}: ${problem}`);
   }
   const titles = new Set<string>();
@@ -80,7 +88,8 @@ export function buildGenericGuards(
   generic: Readonly<Record<string, unknown>>,
   definitions: ReadonlyArray<GenericGuardDefinition<never>>,
 ): Guard[] {
-  return definitions.flatMap((d) =>
-    isAbsent(generic[d.id]) ? [] : d.build(generic[d.id] as never),
-  );
+  return definitions.flatMap((definition) => {
+    const configured: ConfiguredGuardDefinition = definition;
+    return isAbsent(generic[definition.id]) ? [] : configured.build(generic[definition.id]);
+  });
 }

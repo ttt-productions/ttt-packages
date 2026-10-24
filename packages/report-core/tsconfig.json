@@ -9,9 +9,6 @@
     "module": "node16",
     "noEmitOnError": true
   },
-  "references": [
-    { "path": "../ui-core" },
-    { "path": "../query-core" }
-  ],
+  "references": [{ "path": "../ui-core" }, { "path": "../query-core" }],
   "include": ["src"]
 }

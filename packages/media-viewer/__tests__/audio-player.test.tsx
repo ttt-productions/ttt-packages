@@ -29,7 +29,7 @@ function installAudioContextMock() {
       createMediaElementSource: vi.fn().mockReturnValue(source),
       createAnalyser: vi.fn().mockReturnValue(analyser),
     };
-    instances.push(inst as never);
+    instances.push(inst);
     Object.assign(this, inst);
   });
   (globalThis as { AudioContext?: unknown }).AudioContext = ctor;

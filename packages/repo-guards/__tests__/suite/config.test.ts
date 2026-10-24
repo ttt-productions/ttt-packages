@@ -129,7 +129,7 @@ describe('a declared absence of a guard over one tree', () => {
     ]);
   });
 
-  it("binds each of the package's Functions-tree and Worker guards to its tree", () => {
+  it("binds each of the package's per-tree guards to its tree", () => {
     const bound = Object.fromEntries(
       GENERIC_GUARDS.filter((d) => d.absentOnlyWithoutRoot).map((d) => [
         d.id,
@@ -137,7 +137,9 @@ describe('a declared absence of a guard over one tree', () => {
       ]),
     );
     expect(bound).toEqual({
+      retryLoopActions: 'e2e',
       secretBindings: 'functions',
+      swallowedE2eActions: 'e2e',
       testSourceRoot: 'functions',
       workerBoundedBody: 'workers',
       workerConfigIsolation: 'workers',

@@ -15,7 +15,7 @@ import {
   SystemVideoSlotPublicationArgsSchema,
 } from '../src/media/publication/publication-args.js';
 import { MediaPublicationKindSchema } from '../src/doc-schemas/media-assets.js';
-import { CRAFT_SKILL_TAG_VALUES } from '../src/constants/options.js';
+import { CRAFT_SKILL_TAG_OPTIONS } from '../src/constants/options.js';
 import { MAX_CRAFT_SKILL_TAGS } from '../src/constants/business-user.js';
 import { SYSTEM_SLOTS } from '../src/system-slots/system-slots.js';
 
@@ -29,7 +29,7 @@ const craftSkill = {
   skillType: 'image',
   kind: 'original',
   attestation: { statementKind: 'original', statementVersion: 1, agreedAt: NOW },
-  tags: [CRAFT_SKILL_TAG_VALUES[0]],
+  tags: [CRAFT_SKILL_TAG_OPTIONS[0]],
 };
 const workAsset = {
   workProjectId: 'wp1',
@@ -405,11 +405,11 @@ describe('craft skill publication args', () => {
     expect(
       CraftSkillMediaPublicationArgsSchema.safeParse({ ...craftSkill, tags: [] }).success,
     ).toBe(false);
-    const max = CRAFT_SKILL_TAG_VALUES.slice(0, MAX_CRAFT_SKILL_TAGS);
+    const max = CRAFT_SKILL_TAG_OPTIONS.slice(0, MAX_CRAFT_SKILL_TAGS);
     expect(
       CraftSkillMediaPublicationArgsSchema.safeParse({ ...craftSkill, tags: max }).success,
     ).toBe(true);
-    const over = CRAFT_SKILL_TAG_VALUES.slice(0, MAX_CRAFT_SKILL_TAGS + 1);
+    const over = CRAFT_SKILL_TAG_OPTIONS.slice(0, MAX_CRAFT_SKILL_TAGS + 1);
     expect(
       CraftSkillMediaPublicationArgsSchema.safeParse({ ...craftSkill, tags: over }).success,
     ).toBe(false);

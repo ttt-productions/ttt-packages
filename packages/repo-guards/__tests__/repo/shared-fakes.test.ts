@@ -7,6 +7,7 @@ import {
 import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const UI_FAKE = 'src/test/fakes/ui-kit.ts';
 const AUTH_FAKE = 'src/test/fakes/use-auth.ts';
@@ -168,9 +169,7 @@ describe('the facts', () => {
   });
 
   it('refuses missing lists, a fake listed twice, and paths that are not repo-relative', () => {
-    expect(
-      sharedFakeGuard.factProblems({ importAliases: {} } as unknown as SharedFakeFacts),
-    ).toEqual([
+    expect(factProblemsOf(sharedFakeGuard, { importAliases: {} })).toEqual([
       'fakes is missing (declare [] when there is none)',
       'helperOwners is missing (declare [] when there is none)',
     ]);

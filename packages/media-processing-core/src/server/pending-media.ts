@@ -1,9 +1,9 @@
 import type {
-  DocumentReference,
-  DocumentSnapshot,
-  Firestore,
-  Transaction,
-} from 'firebase-admin/firestore';
+  ServerDocRef,
+  ServerDocSnapshot,
+  ServerFirestore,
+  ServerTransaction,
+} from '@ttt-productions/firebase-helpers/server';
 import {
   buildPendingMediaTerminalFields,
   decidePendingMediaClaim,
@@ -28,8 +28,8 @@ export interface ClaimPendingMediaOptions<TRow> {
 }
 
 export async function claimPendingMediaForProcessing<TRow extends ClaimablePendingMedia>(
-  transaction: Transaction,
-  pendingMediaRef: DocumentReference,
+  transaction: ServerTransaction,
+  pendingMediaRef: ServerDocRef,
   options: ClaimPendingMediaOptions<TRow>,
 ): Promise<PendingMediaClaimOutcome<TRow>> {
   const snap = await transaction.get(pendingMediaRef);
@@ -54,8 +54,8 @@ export interface PendingMediaFinalizeContext {
 }
 
 export type PendingMediaExtraWrites<TExtra> = (
-  transaction: Transaction,
-  snapshot: DocumentSnapshot,
+  transaction: ServerTransaction,
+  snapshot: ServerDocSnapshot,
   context: PendingMediaFinalizeContext,
 ) => Promise<(() => TExtra) | undefined>;
 
@@ -71,8 +71,8 @@ export interface PendingMediaFinalizeOutcome<TExtra> extends PendingMediaFinaliz
 
 /** The caller must not have written on `transaction` yet: a Firestore transaction reads before its first write. */
 export async function finalizePendingMediaInTransaction<TExtra = never>(
-  transaction: Transaction,
-  ref: DocumentReference,
+  transaction: ServerTransaction,
+  ref: ServerDocRef,
   targetStatus: PendingMediaTerminalStatus,
   options: FinalizePendingMediaOptions<TExtra> = {},
 ): Promise<PendingMediaFinalizeOutcome<TExtra>> {
@@ -99,8 +99,8 @@ export async function finalizePendingMediaInTransaction<TExtra = never>(
 }
 
 export function finalizePendingMedia<TExtra = never>(
-  db: Firestore,
-  ref: DocumentReference,
+  db: ServerFirestore,
+  ref: ServerDocRef,
   targetStatus: PendingMediaTerminalStatus,
   options: FinalizePendingMediaOptions<TExtra> = {},
 ): Promise<PendingMediaFinalizeOutcome<TExtra>> {
@@ -110,8 +110,8 @@ export function finalizePendingMedia<TExtra = never>(
 }
 
 export async function finalizeUnparsablePendingMedia<TExtra = never>(
-  db: Firestore,
-  ref: DocumentReference,
+  db: ServerFirestore,
+  ref: ServerDocRef,
   options: FinalizePendingMediaOptions<TExtra> = {},
 ): Promise<void> {
   await db.runTransaction(async (transaction) => {

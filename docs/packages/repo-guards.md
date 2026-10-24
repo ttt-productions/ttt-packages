@@ -115,6 +115,11 @@ this section says what the facts mean, area by area, and never lists them guard 
 - **A reviewed exception** — an entry naming the site it excuses (a `path`, a `file`, or a name)
   and its `why`; an allowlist entry may also carry the reviewed `count` of matches. An entry with no
   `why` or a duplicate fails the config, and one that no longer matches anything fails as stale.
+- **An anchored exception** — a reviewed exception for one occurrence, not a whole file: its
+  `path`, an `anchor` (source text that appears in exactly that occurrence), and its `why`. It
+  excuses only the occurrence holding its anchor, so a second one beside it still fails; an anchor
+  matching two occurrences fails, and one matching none is stale. The cast and end-to-end action
+  guards take these.
 - **A loader** — a function that returns, or resolves to, a value read from the app's own code or
   installed build (its application-data package's registry, path builders, schemas, declarations,
   or policy), so the guard checks the code against what the app ships rather than a copy kept in
@@ -132,8 +137,10 @@ this section says what the facts mean, area by area, and never lists them guard 
   root, the package scope and which roots are server or client, the shared fakes and their owners,
   the files that may set a test timeout, each Worker tree's config files and production
   environment, the dependency overrides, the env files and the values in them that are public, the
-  project ids, the product names no installed generic package may carry, and the reviewed files
-  that discard a promise rejection with no reason.
+  project ids, the product names no installed generic package may carry, the reviewed files
+  that discard a promise rejection with no reason, the anchored casts that may switch type
+  checking off, and, for the end-to-end suites, the app's own action helpers and the anchored
+  retry loops and caught actions that are exceptions.
 - **Firestore and Storage** — the app's data package and import aliases, the constants and
   builders that own path assembly, retired segments with their replacements, the indexes file,
   the server-side metadata readers, and loaders for the registry, collection names, and the values

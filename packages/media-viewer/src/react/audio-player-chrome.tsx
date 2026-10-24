@@ -127,9 +127,12 @@ export function AudioPlayerChrome({
         }
         if (!graphCanHear(el)) return;
         teardownGraph();
-        const AudioCtx: typeof AudioContext =
-          (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext ||
-          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext!;
+        // Safari before 14.1 names the constructor webkitAudioContext.
+        const legacyWindow: Window & {
+          AudioContext?: typeof AudioContext;
+          webkitAudioContext?: typeof AudioContext;
+        } = window;
+        const AudioCtx = legacyWindow.AudioContext ?? legacyWindow.webkitAudioContext;
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
         const source = ctx.createMediaElementSource(el);

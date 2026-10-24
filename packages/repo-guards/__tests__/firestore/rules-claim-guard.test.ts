@@ -6,6 +6,7 @@ import {
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -345,22 +346,21 @@ describe("the rules read the core's claim names, and every role helper checks it
   });
 
   it('refuses missing facts, a helper with no claim loader, and a helper bound twice', () => {
-    expect(rulesClaimGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(rulesClaimGuard, {})).toEqual([
       'claims needs a loader function',
       'rosterPath needs a loader function',
       'roleHelpers is missing (declare [] when there is none)',
     ]);
     const op = facts().roleHelpers[0];
     expect(
-      rulesClaimGuard.factProblems(
-        facts({
-          roleHelpers: [
-            op,
-            op,
-            { function: 'isReviewer', claim: 'reviewer' as never, rosterField: () => 'reviewers' },
-          ],
-        }),
-      ),
+      factProblemsOf(rulesClaimGuard, {
+        ...facts(),
+        roleHelpers: [
+          op,
+          op,
+          { function: 'isReviewer', claim: 'reviewer', rosterField: () => 'reviewers' },
+        ],
+      }),
     ).toEqual([
       'roleHelpers lists isOperator twice',
       "roleHelpers entry isReviewer's claim needs a loader function",

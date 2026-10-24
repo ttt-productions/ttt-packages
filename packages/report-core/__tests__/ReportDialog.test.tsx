@@ -47,14 +47,20 @@ import type {
 } from '../src/react/types-ui-props.js';
 import type { SubmitReportRequest, SubmitReportResult } from '../src/schemas/requests.js';
 
-const config = {
+const config: ReportCoreConfig = {
   collections: { reports: 'r', reportGroups: 'g', adminTasks: 't' },
   reportableItems: { post: { displayName: 'Post' } },
   reportReasons: ['Spam', 'Protected Reason'],
-  priorityConfig: {},
+  priorityConfig: {
+    reasonScores: {},
+    itemTypeMultipliers: {},
+    additionalReportBonus: 0,
+    defaultReasonScore: 0,
+    defaultItemTypeMultiplier: 1,
+  },
   taskQueues: {},
   reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 20 }),
-} as unknown as ReportCoreConfig;
+};
 
 const copy: ReportDialogCopy = {
   formTitle: 'copy:formTitle',

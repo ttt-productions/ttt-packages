@@ -68,6 +68,16 @@ import { createDeliveryLedger } from '@ttt-productions/notification-core/server'
 
 const ledger = createDeliveryLedger(db, NOTIFICATION_CONFIG, options);
 await ledger.enqueue([
-  { deliveryId, notificationType, eventId, recipientUid, aggregationKey, strategy, payload, payloadVersion, materializationClass },
+  {
+    deliveryId,
+    notificationType,
+    eventId,
+    recipientUid,
+    aggregationKey,
+    strategy,
+    payload,
+    payloadVersion,
+    materializationClass,
+  },
 ]);
 ```

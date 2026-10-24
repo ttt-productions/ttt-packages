@@ -1,17 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { getIdTokenClaims, parseClaims } from '../src/client/claims.js';
-import type { User } from 'firebase/auth';
+import { idTokenResult, testUser } from './helpers/test-user.js';
 
 function makeUser(opts: {
   emailVerified: boolean;
   cachedClaims: Record<string, unknown>;
   freshClaims?: Record<string, unknown>;
 }) {
-  const getIdTokenResult = vi.fn(async (force?: boolean) => ({
-    claims: force ? (opts.freshClaims ?? opts.cachedClaims) : opts.cachedClaims,
-  }));
+  const getIdTokenResult = vi.fn(async (force?: boolean) =>
+    idTokenResult(force ? (opts.freshClaims ?? opts.cachedClaims) : opts.cachedClaims),
+  );
   return {
-    user: { emailVerified: opts.emailVerified, getIdTokenResult } as unknown as User,
+    user: testUser('user-1', { emailVerified: opts.emailVerified, getIdTokenResult }),
     getIdTokenResult,
   };
 }

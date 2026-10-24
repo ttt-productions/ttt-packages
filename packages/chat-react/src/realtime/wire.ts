@@ -22,7 +22,7 @@ export interface WireMessageRow {
 
 export interface WireChannelSnapshot {
   lastMessageSeq: number;
-  readSeq: number;
+  readSeq?: number;
   resync?: boolean;
   delta?: WireMessageRow[];
 }
@@ -73,6 +73,20 @@ export function parseFrame(
   } catch {
     return null;
   }
+}
+
+// A snapshot frame arrives unchecked; it is a channel snapshot only when it names its last seq.
+export function readChannelSnapshot(
+  payload: Record<string, unknown>,
+): WireChannelSnapshot | 'inbox' | null {
+  if (Array.isArray(payload.registry)) return 'inbox';
+  if (typeof payload.lastMessageSeq !== 'number') return null;
+  return {
+    lastMessageSeq: payload.lastMessageSeq,
+    readSeq: typeof payload.readSeq === 'number' ? payload.readSeq : undefined,
+    resync: typeof payload.resync === 'boolean' ? payload.resync : undefined,
+    delta: Array.isArray(payload.delta) ? (payload.delta as WireMessageRow[]) : undefined,
+  };
 }
 
 export function isInboxSnapshot(

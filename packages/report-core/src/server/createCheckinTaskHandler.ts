@@ -1,4 +1,5 @@
-import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
+import type { ServerFirestore } from '@ttt-productions/firebase-helpers/server';
+import type { ServerReportCoreConfig, OnAuditEvent } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
 import type { CheckinTaskRequest } from '../schemas/requests.js';
 import type { TaskLifecycleResult } from '../contracts/types-admin-task.js';

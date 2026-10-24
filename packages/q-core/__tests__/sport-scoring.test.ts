@@ -20,7 +20,11 @@ import { gameScoreMirror } from '../src/sports/score-mirror.js';
 import { replayGameStats } from '../src/sports/replay.js';
 import { VOID_PLAY_DESCRIPTION } from '../src/sports/scoring-display.js';
 import { type AnySportAdapter } from '../src/sports/sport-adapter.js';
-import { type StatEventBody, type StatEventRoster } from '../src/sports/scoring.js';
+import {
+  type StatCorrectionBody,
+  type StatEventBody,
+  type StatEventRoster,
+} from '../src/sports/scoring.js';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_ASSIST_EVENT_TYPE,
@@ -77,14 +81,22 @@ const ROSTER: StatEventRoster = {
   ]),
 };
 
-const event = (body: Record<string, unknown>): StatEventBody =>
-  ({ recordedAt: NOW, ...body }) as unknown as StatEventBody;
-const player = (type: string, userId: string, extra: Record<string, unknown> = {}) =>
-  event({ type, teamId: HOME, playerUserId: userId, ...extra });
+const event = (body: StatEventBody): StatEventBody => body;
+type PlayerEventBody = Extract<StatEventBody, { playerUserId: string }>;
+const player = (
+  type: PlayerEventBody['type'],
+  userId: string,
+  extra: Partial<Record<string, unknown>> = {},
+): StatEventBody => ({ type, teamId: HOME, playerUserId: userId, ...extra }) as PlayerEventBody;
 const round = (roundNumber: number, teamId?: string, points?: number) =>
-  teamId === undefined
+  teamId === undefined || points === undefined
     ? event({ type: CURLING_ROUND_BLANK_EVENT_TYPE, roundNumber })
     : event({ type: CURLING_ROUND_SCORE_EVENT_TYPE, teamId, roundNumber, points });
+
+// A typed caller may hand an event a field its type does not declare; the scoring refuses it.
+const unexpectedPlayer = { playerUserId: SHOOTER };
+
+type CorrectionStat = StatCorrectionBody['stat'];
 
 /** A stored event: the body with its id and its place in the replay, in the order stored. */
 let sequence = 0;
@@ -94,7 +106,8 @@ function stored(body: StatEventBody, eventId?: string): GameStatEvent {
     ...body,
     eventId: eventId ?? buildStatEventId(NOW, `e${sequence}`),
     sequence,
-  } as unknown as GameStatEvent;
+    recordedAt: NOW,
+  };
 }
 
 function applyAll(
@@ -189,7 +202,7 @@ describe('basketball — player-scored, with FP on every player line', () => {
   });
 
   it("creates a team's first line from its empty line, and drops a player line whose counters return to zero — never a team line", () => {
-    const noLines: GameStats = { teamStats: {}, playerStats: {} } as unknown as GameStats;
+    const noLines = basketball.emptyStats({ teamIds: [] });
     const scored = basketball.apply(noLines, player(BASKETBALL_ONE_POINT_EVENT_TYPE, SHOOTER));
     expect(scored.teamStats[HOME]).toEqual({ score: 1, timeouts: 0 });
 
@@ -239,7 +252,7 @@ describe('basketball — player-scored, with FP on every player line', () => {
 
   it('applies a correction to exactly its own field, and throws on a field no correction may change', () => {
     const base = basketball.apply(basketball.emptyStats(GAME), player(TWO_POINTER, SHOOTER));
-    const correction = (fields: Record<string, unknown>) =>
+    const correction = (fields: { playerUserId?: string; stat: CorrectionStat }) =>
       event({
         type: STAT_CORRECTION_EVENT_TYPE,
         teamId: HOME,
@@ -267,7 +280,7 @@ describe('basketball — player-scored, with FP on every player line', () => {
       expect(() => basketball.apply(base, correction({ stat: field }))).not.toThrow();
     }
     expect(() =>
-      basketball.apply(base, correction({ playerUserId: SHOOTER, stat: 'fantasyPoints' })),
+      basketball.apply(base, correction({ playerUserId: SHOOTER, stat: 'timeouts' })),
     ).toThrow();
     expect(() => basketball.apply(base, correction({ stat: POINTS }))).toThrow();
   });
@@ -295,7 +308,7 @@ describe('basketball — player-scored, with FP on every player line', () => {
       ],
       [player(TWO_POINTER, SHOOTER, { assistedByUserId: SHOOTER }), 'assistNotAllowed'],
       [
-        event({ type: BASKETBALL_TIMEOUT_EVENT_TYPE, teamId: HOME, playerUserId: SHOOTER }),
+        event({ type: BASKETBALL_TIMEOUT_EVENT_TYPE, teamId: HOME, ...unexpectedPlayer }),
         'playerNotAllowed',
       ],
       [
@@ -410,7 +423,7 @@ describe('curling — rounds recorded once, in order', () => {
     expect(
       curling.validate(
         state,
-        event({ type: CURLING_ROUND_BLANK_EVENT_TYPE, roundNumber: 3, playerUserId: SHOOTER }),
+        event({ type: CURLING_ROUND_BLANK_EVENT_TYPE, roundNumber: 3, ...unexpectedPlayer }),
         ROSTER,
       ),
     ).toEqual({
@@ -468,7 +481,7 @@ describe('football — team-scored, finalized by hand', () => {
     expect(gameScoreMirror(state)).toEqual({ [HOME]: 7, [AWAY]: 0 });
 
     expect(
-      football.validate(state, event({ type: SIX, teamId: HOME, playerUserId: SHOOTER }), ROSTER),
+      football.validate(state, event({ type: SIX, teamId: HOME, ...unexpectedPlayer }), ROSTER),
     ).toEqual({
       ok: false,
       code: 'playerNotAllowed',
@@ -633,12 +646,14 @@ describe('display — every play has a line, and every refusal has copy', () => 
 
   it('declares a label for every event type and every counter of each sport', () => {
     for (const adapter of SPORT_ADAPTER_LIST) {
-      for (const type of adapter.eventTypes)
-        expect(adapter.display.eventLabels[type as never]).toBeDefined();
-      for (const key of adapter.teamStatKeys)
-        expect(adapter.display.fieldLabels.team[key as never]).toBeDefined();
-      for (const key of adapter.playerStatKeys)
-        expect(adapter.display.fieldLabels.player[key as never]).toBeDefined();
+      const eventLabels: Readonly<Partial<Record<string, unknown>>> = adapter.display.eventLabels;
+      const teamLabels: Readonly<Partial<Record<string, string>>> =
+        adapter.display.fieldLabels.team;
+      const playerLabels: Readonly<Partial<Record<string, string>>> =
+        adapter.display.fieldLabels.player;
+      for (const type of adapter.eventTypes) expect(eventLabels[type]).toBeDefined();
+      for (const key of adapter.teamStatKeys) expect(teamLabels[key]).toBeDefined();
+      for (const key of adapter.playerStatKeys) expect(playerLabels[key]).toBeDefined();
     }
   });
 
@@ -749,7 +764,7 @@ describe('basketball corrections — each correctable field moves exactly itself
     player(TWO_POINTER, SHOOTER, { assistedByUserId: PASSER }),
     player(BASKETBALL_REBOUND_EVENT_TYPE, SHOOTER),
   ]);
-  const correction = (stat: string, value: number, playerUserId?: string) =>
+  const correction = (stat: CorrectionStat, value: number, playerUserId?: string) =>
     event({
       type: STAT_CORRECTION_EVENT_TYPE,
       teamId: HOME,

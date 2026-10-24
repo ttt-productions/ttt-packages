@@ -11,6 +11,7 @@ import {
 } from '../../src/modules/frontend-actions/callables.js';
 import type { CallableDeclarationFacts } from '../../src/modules/frontend-actions/declarations.js';
 import { findingsOf, samplesProve } from './run.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const lines = (...l: string[]) => l.join('\n');
 
@@ -81,9 +82,7 @@ describe('callable error copy owner', () => {
   it('proves its samples', () => samplesProve(callableErrorCopyGuard, facts));
 
   it('refuses a missing owner, an empty export name, and an entry with no why', () => {
-    expect(callableErrorCopyGuard.factProblems({ allowlist: [] } as never)).toEqual([
-      'owner is missing',
-    ]);
+    expect(factProblemsOf(callableErrorCopyGuard, { allowlist: [] })).toEqual(['owner is missing']);
     expect(
       callableErrorCopyGuard.factProblems({
         owner: { file: 'a.ts', exportName: '' },
@@ -323,7 +322,7 @@ describe("a callable's name is written only in its declaration", () => {
       'declarations.factories names one factory for two kinds',
       'allowlist entry x.ts carries no why',
     ]);
-    expect(callableNameGuard.factProblems({ allowlist: [] } as never)).toEqual([
+    expect(factProblemsOf(callableNameGuard, { allowlist: [] })).toEqual([
       'declarations is missing',
     ]);
   });
@@ -500,9 +499,9 @@ describe('callable-backed reads', () => {
 
   it('refuses missing declarations, a missing surface prop, and no anchors', () => {
     expect(
-      callableReadGuard.factProblems({
+      factProblemsOf(callableReadGuard, {
         ...facts,
-        declarations: undefined as never,
+        declarations: undefined,
         readFailureSurface: { component: 'L', errorProp: '' },
         anchorReads: [],
       }),
@@ -665,9 +664,9 @@ describe('one surface per callable rejection', () => {
       'src/lib/remote.ts the callable declarations module no longer exists',
     ]);
     expect(
-      doubleSurfaceGuard.factProblems({
+      factProblemsOf(doubleSurfaceGuard, {
         ...facts,
-        declarations: undefined as never,
+        declarations: undefined,
         nonCallableLegGuards: [],
       }),
     ).toEqual(['declarations is missing', 'nonCallableLegGuards is empty']);

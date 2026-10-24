@@ -83,25 +83,25 @@ export interface FakeClock extends TransportTimers {
 
 export function createFakeClock(start = 0): FakeClock {
   let nowMs = start;
-  let nextId = 1;
-  const timers = new Map<number, { dueAt: number; fn: () => void }>();
+  const timers = new Map<ReturnType<typeof setTimeout>, { dueAt: number; fn: () => void }>();
 
   const clock: FakeClock = {
     now: () => nowMs,
     current: () => nowMs,
     setTimeout: (fn: () => void, ms: number) => {
-      const id = nextId++;
-      timers.set(id, { dueAt: nowMs + ms, fn });
-      return id as unknown as ReturnType<typeof setTimeout>;
+      const handle = setTimeout(() => {}, 0);
+      clearTimeout(handle);
+      timers.set(handle, { dueAt: nowMs + ms, fn });
+      return handle;
     },
     clearTimeout: (h: ReturnType<typeof setTimeout>) => {
-      timers.delete(h as unknown as number);
+      timers.delete(h);
     },
     tick(ms: number) {
       const target = nowMs + ms;
       for (;;) {
         let nextDue: number | null = null;
-        let nextKey: number | null = null;
+        let nextKey: ReturnType<typeof setTimeout> | null = null;
         for (const [id, t] of timers) {
           if (t.dueAt <= target && (nextDue == null || t.dueAt < nextDue)) {
             nextDue = t.dueAt;

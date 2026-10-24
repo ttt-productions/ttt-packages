@@ -85,7 +85,9 @@ describe('Selectable-companion subset', () => {
   it('isSelectableCompanion is internally consistent with the selectable field for the whole roster', () => {
     for (const id of COMPANY_CHARACTER_IDS) {
       expect(isSelectableCompanion(id)).toBe(COMPANY_MASCOTS[id].selectable);
-      expect(isSelectableCompanion(id)).toBe(SELECTABLE_COMPANION_IDS.includes(id as never));
+      expect(isSelectableCompanion(id)).toBe(
+        SELECTABLE_COMPANION_IDS.some((selectable) => selectable === id),
+      );
     }
   });
 });

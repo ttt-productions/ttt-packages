@@ -154,10 +154,6 @@ describe('createTelemetryScrubber — CANARY test', () => {
     expect((event.extra as Record<string, unknown>).ip).toBe(REDACTION_PLACEHOLDER);
   });
 
-  it('returns null-ish input unchanged (never throws)', () => {
-    expect(scrub(null as unknown as ScrubbableEvent)).toBeNull();
-  });
-
   it('works with only default patterns (no app patterns supplied)', () => {
     const defaultScrub = createTelemetryScrubber();
     const event: ScrubbableEvent = { message: `peer ${FAKE_IPV4}`, extra: { ip6: FAKE_IPV6 } };

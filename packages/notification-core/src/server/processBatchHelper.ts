@@ -1,5 +1,5 @@
 import type { NotificationSystemConfig, PendingNotification } from '../types.js';
-import type { ServerFirestore } from './types.js';
+import type { ServerFirestore } from '@ttt-productions/firebase-helpers/server';
 import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 const DEFAULT_COUNT_CAP = 5000;

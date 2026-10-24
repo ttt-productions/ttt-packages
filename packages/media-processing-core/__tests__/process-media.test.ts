@@ -62,7 +62,7 @@ function makeFakeProcessors(): {
 describe('processMedia — routing with injected processors', () => {
   it('routes kind="image" to the injected image processor and returns its result', async () => {
     const { processors, calls } = makeFakeProcessors();
-    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'image' };
     const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toBe(imageResult);
     expect(calls.image).toHaveLength(1);
@@ -75,7 +75,7 @@ describe('processMedia — routing with injected processors', () => {
 
   it('routes kind="video" to the injected video processor and returns its result', async () => {
     const { processors, calls } = makeFakeProcessors();
-    const spec = { kind: 'video' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'video' };
     const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toBe(videoResult);
     expect(calls.video).toHaveLength(1);
@@ -86,7 +86,7 @@ describe('processMedia — routing with injected processors', () => {
 
   it('routes kind="audio" to the injected audio processor and returns its result', async () => {
     const { processors, calls } = makeFakeProcessors();
-    const spec = { kind: 'audio' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'audio' };
     const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toBe(audioResult);
     expect(calls.audio).toHaveLength(1);
@@ -97,7 +97,7 @@ describe('processMedia — routing with injected processors', () => {
   it('forwards opts to the chosen processor unchanged', async () => {
     const { processors, calls } = makeFakeProcessors();
     const opts: ProcessMediaOptions = { onProgress: vi.fn() };
-    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'image' };
     await processMedia(spec, ctx, opts, processors);
     expect(calls.image[0].opts).toBe(opts);
   });
@@ -109,7 +109,7 @@ describe('processMedia — routing with injected processors', () => {
       outputBasePath: '/y',
       inputMime: 'image/png',
     };
-    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'image' };
     await processMedia(spec, localCtx, undefined, processors);
     expect(calls.image[0].ctx).toBe(localCtx);
   });
@@ -123,7 +123,7 @@ describe('processMedia — routing with injected processors', () => {
       video: async () => videoResult,
       audio: async () => audioResult,
     };
-    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'image' };
     await expect(processMedia(spec, ctx, undefined, processors)).rejects.toBe(boom);
   });
 });
@@ -131,7 +131,7 @@ describe('processMedia — routing with injected processors', () => {
 describe('processMedia — generic branch', () => {
   it('returns a fully-shaped processing_failed error for kind="generic"', async () => {
     const { processors, calls } = makeFakeProcessors();
-    const spec = { kind: 'generic' as const } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'generic' };
     const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toEqual({
       ok: false,
@@ -144,7 +144,7 @@ describe('processMedia — generic branch', () => {
   });
 
   it('returns the generic-branch error even when processors arg is omitted', async () => {
-    const spec = { kind: 'generic' as const } as unknown as MediaProcessingSpec;
+    const spec: MediaProcessingSpec = { kind: 'generic' };
     const result = await processMedia(spec, ctx);
     expect(result.ok).toBe(false);
     if (!result.ok) {

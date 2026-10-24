@@ -42,11 +42,11 @@ describe('a document kept identical across sibling repositories', () => {
       generic,
       business: [],
     };
-    expect(configProblems(config, [documentDriftGuard as never])).toEqual([]);
-    expect(buildGenericGuards(generic, [documentDriftGuard as never])).toEqual([]);
+    expect(configProblems(config, [documentDriftGuard])).toEqual([]);
+    expect(buildGenericGuards(generic, [documentDriftGuard])).toEqual([]);
     expect(
       configProblems({ ...config, generic: { documentDrift: { absent: ' ' } } }, [
-        documentDriftGuard as never,
+        documentDriftGuard,
       ]),
     ).toEqual(['generic.documentDrift is declared absent with no why']);
   });

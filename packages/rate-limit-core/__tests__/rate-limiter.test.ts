@@ -8,14 +8,18 @@ vi.mock('@upstash/ratelimit', () => {
   const Ratelimit = vi.fn(function () {
     return { limit: mockLimit };
   });
-  (Ratelimit as unknown as { slidingWindow: unknown }).slidingWindow = vi
-    .fn()
-    .mockReturnValue('sliding-window-algo');
-  return { Ratelimit };
+  return {
+    Ratelimit: Object.assign(Ratelimit, {
+      slidingWindow: vi.fn().mockReturnValue('sliding-window-algo'),
+    }),
+  };
 });
 
-import { createRateLimiterFactory } from '../src/rate-limiter.js';
+import { createRateLimiterFactory, type RateLimitRedis } from '../src/rate-limiter.js';
 import { Ratelimit } from '@upstash/ratelimit';
+
+// Ratelimit is mocked, so the client only has to be the slice it is typed to take.
+const redis: RateLimitRedis = { evalsha: vi.fn(), get: vi.fn(), set: vi.fn() };
 
 const MockedRatelimit = vi.mocked(Ratelimit);
 
@@ -33,7 +37,7 @@ describe('createRateLimiterFactory', () => {
 
   it('memoizes limiter by prefix — same config returns same instance', async () => {
     mockLimit.mockResolvedValue({ success: true, reset: 0 });
-    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => ({}) as never });
+    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => redis });
     const config = { prefix: 'test:prefix', maxRequests: 10, window: '1 h' };
 
     const a = getRateLimiter(config);
@@ -43,11 +47,9 @@ describe('createRateLimiterFactory', () => {
   });
 
   it('builds a new limiter when the same prefix arrives with a different max or window', () => {
-    const slidingWindow = vi.mocked(
-      (Ratelimit as unknown as { slidingWindow: (...a: unknown[]) => unknown }).slidingWindow,
-    );
+    const slidingWindow = vi.mocked(Ratelimit.slidingWindow);
     slidingWindow.mockClear();
-    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => ({}) as never });
+    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => redis });
 
     const original = getRateLimiter({ prefix: 'ratelimit:write', maxRequests: 10, window: '1 m' });
     const tightened = getRateLimiter({ prefix: 'ratelimit:write', maxRequests: 5, window: '1 m' });
@@ -66,7 +68,7 @@ describe('createRateLimiterFactory', () => {
   });
 
   it('keeps one limiter per prefix: returning to an earlier config after a change builds it again', () => {
-    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => ({}) as never });
+    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => redis });
     const relaxed = { prefix: 'ratelimit:write', maxRequests: 10, window: '1 m' };
 
     getRateLimiter(relaxed);
@@ -80,7 +82,7 @@ describe('createRateLimiterFactory', () => {
   it('returns { allowed: false, reset } when success=false', async () => {
     const reset = Date.now() + 60_000;
     mockLimit.mockResolvedValueOnce({ success: false, reset });
-    const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => ({}) as never });
+    const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => redis });
     const result = await checkRateLimit('u1', {
       prefix: 'ratelimit:test',
       maxRequests: 5,
@@ -91,7 +93,7 @@ describe('createRateLimiterFactory', () => {
 
   it('returns { allowed: true } when success=true', async () => {
     mockLimit.mockResolvedValueOnce({ success: true, reset: 0 });
-    const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => ({}) as never });
+    const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => redis });
     const result = await checkRateLimit('u1', {
       prefix: 'ratelimit:test',
       maxRequests: 5,
@@ -129,7 +131,7 @@ describe('createRateLimiterFactory', () => {
       mockLimit.mockRejectedValueOnce(boom);
       const onDegraded = vi.fn();
       const { checkRateLimit } = createRateLimiterFactory({
-        getRedis: () => ({}) as never,
+        getRedis: () => redis,
         onDegraded,
       });
 
@@ -152,7 +154,7 @@ describe('createRateLimiterFactory', () => {
       mockLimit.mockRejectedValue(new Error('down'));
       const onDegraded = vi.fn();
       const { checkRateLimit } = createRateLimiterFactory({
-        getRedis: () => ({}) as never,
+        getRedis: () => redis,
         onDegraded,
       });
       const config = { prefix: 'ratelimit:test', maxRequests: 5, window: '1 m' };
@@ -169,7 +171,7 @@ describe('createRateLimiterFactory', () => {
         throw new Error('hook blew up');
       });
       const { checkRateLimit } = createRateLimiterFactory({
-        getRedis: () => ({}) as never,
+        getRedis: () => redis,
         onDegraded,
       });
 

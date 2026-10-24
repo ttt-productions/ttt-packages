@@ -1,8 +1,12 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import type { User } from 'firebase/auth';
 
-const mockUseAuthState = vi.fn(() => ({ user: null, loading: false }));
+const mockUseAuthState = vi.fn((): { user: User | null; loading: boolean } => ({
+  user: null,
+  loading: false,
+}));
 vi.mock('../src/react/useAuthState.js', () => ({
   useAuthState: (...args: unknown[]) => mockUseAuthState(...(args as [])),
 }));
@@ -13,6 +17,8 @@ vi.mock('../src/client/claims.js', () => ({
 import { AuthProvider } from '../src/react/AuthProvider.js';
 import { useAuth } from '../src/react/useAuth.js';
 import type { AuthProviderConfig } from '../src/react/types.js';
+import { testAuth } from './helpers/test-auth.js';
+import { testUser } from './helpers/test-user.js';
 
 type Claims = Record<string, unknown>;
 
@@ -20,7 +26,7 @@ function makeConfig(
   overrides: Partial<AuthProviderConfig<Claims>> = {},
 ): AuthProviderConfig<Claims> {
   return {
-    auth: {} as never,
+    auth: testAuth(() => null),
     parseClaims: (raw) => raw,
     defaultClaims: {},
     ...overrides,
@@ -73,7 +79,7 @@ describe('AuthProvider readyGate', () => {
   });
 
   describe('a restored session while the gate is closed', () => {
-    const restoredUser = { uid: 'restored-uid' } as never;
+    const restoredUser = testUser('restored-uid');
 
     afterEach(() => {
       mockUseAuthState.mockReturnValue({ user: null, loading: false });
@@ -136,13 +142,11 @@ describe('AuthProvider readyGate', () => {
 
   it('a synchronously-throwing gate also fails open', async () => {
     const onError = vi.fn();
-    const gate = () => {
+    const gate = (): Promise<void> => {
       throw new Error('sync boom');
     };
     const { result } = renderHook(() => useAuth(), {
-      wrapper: makeWrapper(
-        makeConfig({ readyGate: gate as unknown as () => Promise<unknown>, onError }),
-      ),
+      wrapper: makeWrapper(makeConfig({ readyGate: gate, onError })),
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));

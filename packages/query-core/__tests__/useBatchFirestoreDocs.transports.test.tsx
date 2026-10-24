@@ -101,6 +101,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
+import { testFirestore } from './helpers/test-firestore.js';
 import {
   getDocLoader,
   MAX_CONCURRENT_BATCH_REQUESTS,
@@ -129,7 +130,7 @@ function makeWrapper() {
 }
 
 const baseOpts = {
-  db: { name: 'primary' } as never,
+  db: testFirestore(),
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
@@ -206,8 +207,8 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
 
   it('never shares a request between two db instances on the same collection path', async () => {
     docs.set('u1', { v: 1 });
-    const dbA = { name: 'a' } as never;
-    const dbB = { name: 'b' } as never;
+    const dbA = testFirestore();
+    const dbB = testFirestore();
 
     const { Wrapper } = makeWrapper();
     const a = renderHook(

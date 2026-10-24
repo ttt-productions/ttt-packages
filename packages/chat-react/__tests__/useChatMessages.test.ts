@@ -126,7 +126,7 @@ describe('useChatMessages', () => {
       error: null,
       olderError: null,
       retry: vi.fn(),
-    } as never);
+    });
     const { result } = renderHook(() => useChatMessages(baseConfig()));
     expect(result.current.messages.map((m) => m.messageId)).toEqual(['a', 'b']);
     expect(result.current.hasOlder).toBe(true);
@@ -146,7 +146,7 @@ describe('useChatMessages', () => {
       error: listenerError,
       olderError,
       retry,
-    } as never);
+    });
     const { result } = renderHook(() => useChatMessages(baseConfig()));
     expect(result.current.error).toBe(listenerError);
     expect(result.current.olderError).toBe(olderError);
@@ -183,7 +183,7 @@ describe('useChatMessages prewarms every account a message names', () => {
       error: null,
       olderError: null,
       retry: vi.fn(),
-    } as never);
+    });
     const prewarm = vi.fn();
     renderHook(() => useChatMessages(baseConfig()), {
       wrapper: ({ children }) =>

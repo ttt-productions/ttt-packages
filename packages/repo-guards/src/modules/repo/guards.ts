@@ -9,9 +9,11 @@ import {
   type NoOutsideCheckoutFacts,
   type TsconfigAliasFacts,
 } from './cross-root.js';
+import { blanketCastGuard, type BlanketCastFacts } from './blanket-casts.js';
 import { ciParityGuard, type CiParityFacts } from './ci-parity.js';
 import { dependencyOverrideGuard, type DependencyOverrideFacts } from './dependency-overrides.js';
 import { documentDriftGuard, type DocumentDriftFacts } from './document-drift.js';
+import { retryLoopActionGuard, swallowedActionGuard, type E2eActionFacts } from './e2e-actions.js';
 import { envPublicValuesGuard, type EnvPublicValuesFacts } from './env-public-values.js';
 import {
   installedPackagesAgnosticGuard,
@@ -34,6 +36,9 @@ import { workerConfigGuard, type WorkerConfigFacts } from './worker-config.js';
 export type RepoGuardFacts = {
   shellSafeChildProcesses: ShellSafeFacts;
   lineEndings: LineEndingFacts;
+  blanketCasts: BlanketCastFacts;
+  retryLoopActions: E2eActionFacts | Absent;
+  swallowedE2eActions: E2eActionFacts | Absent;
   walkerReadFailure: WalkerReadFailureFacts;
   testSourceRoot: TestSourceRootFacts | Absent;
   testCaseModuleLoads: TestCaseModuleLoadFacts;
@@ -59,6 +64,9 @@ export type RepoGuardFacts = {
 export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   shellSafeGuard,
   lineEndingGuard,
+  blanketCastGuard,
+  retryLoopActionGuard,
+  swallowedActionGuard,
   walkerReadFailureGuard,
   testSourceRootGuard,
   testCaseModuleLoadGuard,

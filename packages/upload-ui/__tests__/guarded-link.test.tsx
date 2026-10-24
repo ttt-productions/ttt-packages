@@ -145,9 +145,9 @@ describe('useGuardedNavigation — full-page navigation', () => {
   function nextUnloadWarns(): boolean {
     const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
     const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;
-    const preventDefault = vi.fn();
-    handler({ preventDefault, returnValue: '' } as unknown as BeforeUnloadEvent);
-    return preventDefault.mock.calls.length > 0;
+    const event = new Event('beforeunload', { cancelable: true });
+    handler(event as BeforeUnloadEvent);
+    return event.defaultPrevented;
   }
 
   it('a confirmed full-page navigation runs and its unload is not prompted a second time', () => {

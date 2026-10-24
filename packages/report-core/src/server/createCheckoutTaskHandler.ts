@@ -1,9 +1,8 @@
+import type { ServerFirestore, ServerDocRef } from '@ttt-productions/firebase-helpers/server';
 import type {
-  ServerFirestore,
   ServerReportCoreConfig,
   AdminAuthConfig,
   OnAuditEvent,
-  ServerDocRef,
   TaskClaimGuard,
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';

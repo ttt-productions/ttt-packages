@@ -24,7 +24,7 @@ import { useCheckedOutTasks } from '../src/react/hooks/useCheckedOutTasks.js';
 import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
 import type { ReportCoreConfig } from '../src/contracts/config.js';
 
-const config = {
+const config: ReportCoreConfig = {
   collections: {
     reports: 'testReports',
     reportGroups: 'testReportGroups',
@@ -32,10 +32,16 @@ const config = {
   },
   reportableItems: {},
   reportReasons: [],
-  priorityConfig: {},
+  priorityConfig: {
+    reasonScores: {},
+    itemTypeMultipliers: {},
+    additionalReportBonus: 0,
+    defaultReasonScore: 0,
+    defaultItemTypeMultiplier: 1,
+  },
   taskQueues: {},
   reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 4000 }),
-} as unknown as ReportCoreConfig;
+};
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(ReportCoreProvider, { config, submitReportFn: vi.fn(), children });
@@ -47,7 +53,7 @@ beforeEach(() => {
     data: [],
     isLoading: false,
     error: null,
-  } as never);
+  });
 });
 
 describe('useCheckedOutTasks — the failure held through its restart', () => {
@@ -57,7 +63,7 @@ describe('useCheckedOutTasks — the failure held through its restart', () => {
       isLoading: true,
       isFetching: true,
       error: null,
-    } as never);
+    });
     const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: true });
   });
@@ -71,7 +77,7 @@ describe('useCheckedOutTasks — the failure held through its restart', () => {
       isFetching: false,
       error: failure,
       refetch,
-    } as never);
+    });
     const { result, rerender } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
     expect(result.current.retryState).toEqual({
       error: failure,
@@ -86,7 +92,7 @@ describe('useCheckedOutTasks — the failure held through its restart', () => {
       isFetching: true,
       error: null,
       refetch,
-    } as never);
+    });
     rerender();
     expect(result.current.retryState).toEqual({
       error: failure,
@@ -100,7 +106,7 @@ describe('useCheckedOutTasks — the failure held through its restart', () => {
       isFetching: false,
       error: null,
       refetch,
-    } as never);
+    });
     rerender();
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: false });
   });

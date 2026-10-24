@@ -38,15 +38,16 @@ package may consume either.
 - **Tier 1 — depend on Tier 0 only:**
   `ui-core` (→ `input-format-core`; its free-text inputs take a field
   declaration), `chat-schemas` (→ `input-format-core`; the chat message text's
-  declaration and judgement), `report-core` (→ `input-format-core`; the report
+  declaration and judgement), `report-core` (→ `firebase-helpers`, `input-format-core`;
+  its queue handlers take the `firebase-helpers/server` Firestore contract, and the report
   comment's check — its UI/query needs are optional peers), `media-processing-core`
   (→ `media-schemas`), `upload-core` (→ `firebase-helpers`, `media-schemas`),
   `query-core` (→ `firebase-helpers`; its id-list batch loader splits by
   `FIRESTORE_IN_FILTER_LIMIT`, and its `./react` callable factories call `callCallable` from
   `firebase-helpers/client`),
   `realtime-core` (→ `edge-protocol-core`; generic runtime-neutral realtime
-  primitives), `notification-core` (no internal runtime deps; its UI/query needs are
-  optional peers).
+  primitives), `notification-core` (→ `firebase-helpers`; its server helpers take the
+  `firebase-helpers/server` Firestore contract — its UI/query needs are optional peers).
 - **Tier 2:** `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
   (→ `ui-core`, `media-schemas`, `media-viewer`), `consent-core` (no internal runtime deps; its
   `./react` entry builds on the optional peers `theme-core` and `ui-core`).
@@ -70,13 +71,14 @@ build and release order still honors them):
 
     ui-core                -> input-format-core
     chat-schemas           -> input-format-core
-    report-core            -> input-format-core
+    report-core            -> firebase-helpers, input-format-core
     realtime-core          -> edge-protocol-core
     file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
     media-processing-core  -> media-schemas
     upload-core            -> firebase-helpers, media-schemas
     query-core             -> firebase-helpers
+    notification-core      -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,

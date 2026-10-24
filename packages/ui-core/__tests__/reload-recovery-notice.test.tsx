@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import {
-  createReloadRecoveryWatch,
-  type ReloadRecoveryTarget,
-} from '../src/browser/reload-recovery-watch.js';
+import { createReloadRecoveryWatch } from '../src/browser/reload-recovery-watch.js';
 import { ReloadRecoveryNotice } from '../src/react/components/reload-recovery-notice.js';
 
 const DISCONNECT = new DOMException(
@@ -18,7 +15,7 @@ const MESSAGES = {
 
 function page() {
   const target = new EventTarget();
-  const watch = createReloadRecoveryWatch(target as unknown as ReloadRecoveryTarget);
+  const watch = createReloadRecoveryWatch(target);
   const fail = (reason: unknown) =>
     act(() => {
       target.dispatchEvent(Object.assign(new Event('unhandledrejection'), { reason }));

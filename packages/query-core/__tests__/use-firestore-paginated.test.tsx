@@ -21,6 +21,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { useFirestorePaginated } from '../src/react/firestore/use-firestore-paginated.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
+import { testFirestore } from './helpers/test-firestore.js';
 import {
   mapPaginatedItems,
   paginatedPageKey,
@@ -49,7 +50,7 @@ function wrapperFor(client: QueryClient) {
     React.createElement(
       QueryClientProvider,
       { client },
-      React.createElement(FirestoreProvider, { db: {} as never, children }),
+      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;

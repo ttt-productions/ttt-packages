@@ -28,6 +28,7 @@ vi.mock('firebase/firestore', () => {
 });
 
 import { FirestoreProvider } from '../../src/react/firestore/context.js';
+import { testFirestore } from '../helpers/test-firestore.js';
 import {
   useFirestoreBatch,
   useFirestoreDelete,
@@ -55,7 +56,7 @@ function setup<T>(useHook: () => T) {
     return (
       <QueryClientProvider client={client}>
         <MutationSessionProvider currentUid={session.uid}>
-          <FirestoreProvider db={{} as never}>{children}</FirestoreProvider>
+          <FirestoreProvider db={testFirestore()}>{children}</FirestoreProvider>
         </MutationSessionProvider>
       </QueryClientProvider>
     );

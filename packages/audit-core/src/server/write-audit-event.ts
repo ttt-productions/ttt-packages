@@ -1,10 +1,10 @@
 import type { AuditEvent } from '../types.js';
 
-import type { Firestore, WriteBatch, Transaction } from 'firebase-admin/firestore';
-
-type FirestoreLike = Firestore;
-type BatchLike = WriteBatch;
-type TransactionLike = Transaction;
+import type {
+  ServerFirestore,
+  ServerTransaction,
+  ServerWriteBatch,
+} from '@ttt-productions/firebase-helpers/server';
 
 export interface WriteAuditEventArgs<TEventType extends string, TActor, TTarget, TMetadata> {
   type: TEventType;
@@ -18,12 +18,12 @@ export interface WriteAuditEventArgs<TEventType extends string, TActor, TTarget,
   userAgent?: string | null;
   region?: string | null;
   schemaVersion?: number;
-  batch?: BatchLike;
-  transaction?: TransactionLike;
+  batch?: ServerWriteBatch;
+  transaction?: ServerTransaction;
 }
 
 export interface AuditWriterConfig {
-  db: FirestoreLike;
+  db: ServerFirestore;
   collectionPath: string;
   defaultSchemaVersion?: number;
   idGenerator?: () => string;
@@ -67,12 +67,13 @@ export function createAuditWriter<
     };
 
     const ref = db.collection(collectionPath).doc(id);
+    const doc = { ...event };
     if (args.transaction) {
-      args.transaction.set(ref, event);
+      args.transaction.set(ref, doc);
     } else if (args.batch) {
-      args.batch.set(ref, event);
+      args.batch.set(ref, doc);
     } else {
-      await ref.set(event);
+      await ref.set(doc);
     }
     return id;
   }

@@ -8,24 +8,22 @@ import type { MediaInputHandle } from '../src/types.js';
 // jsdom lacks the browser APIs Radix's controlled dropdown calls when its portal opens.
 function installDomStubs() {
   if (typeof globalThis.ResizeObserver === 'undefined') {
-    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+    globalThis.ResizeObserver = class implements ResizeObserver {
       observe() {}
       unobserve() {}
       disconnect() {}
     };
   }
   Element.prototype.scrollIntoView = vi.fn();
-  if (!('hasPointerCapture' in Element.prototype)) {
-    (Element.prototype as unknown as { hasPointerCapture: () => boolean }).hasPointerCapture = () =>
-      false;
-  }
-  if (!('setPointerCapture' in Element.prototype)) {
-    (Element.prototype as unknown as { setPointerCapture: () => void }).setPointerCapture =
-      () => {};
-  }
-  if (!('releasePointerCapture' in Element.prototype)) {
-    (Element.prototype as unknown as { releasePointerCapture: () => void }).releasePointerCapture =
-      () => {};
+  const pointerCaptureStubs = {
+    hasPointerCapture: () => false,
+    setPointerCapture: () => {},
+    releasePointerCapture: () => {},
+  };
+  for (const [name, value] of Object.entries(pointerCaptureStubs)) {
+    if (!(name in Element.prototype)) {
+      Object.defineProperty(Element.prototype, name, { configurable: true, writable: true, value });
+    }
   }
 }
 

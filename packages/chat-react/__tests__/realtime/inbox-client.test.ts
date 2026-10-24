@@ -123,7 +123,7 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
         { channelRef: 'c2', kind: 'channel', state: 'active', registryVersion: 1, unread: false },
       ],
       hasUnread: true,
-    } as unknown as Record<string, unknown>);
+    });
     expect(client.channelHasUnread('c1')).toBe(true);
     expect(client.channelHasUnread('c2')).toBe(false);
   });
@@ -140,7 +140,7 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
         { channelRef: 'c3', kind: 'channel', state: 'tombstoned', registryVersion: 1 },
       ],
       hasUnread: false,
-    } as unknown as Record<string, unknown>);
+    });
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1', 'c2']);
     expect(client.getState().registry.find((e) => e.channelRef === 'c2')?.archived).toBe(true);
   });
@@ -163,7 +163,7 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
         },
       ],
       hasUnread: true,
-    } as unknown as Record<string, unknown>);
+    });
     expect(client.channelHasUnread('c1')).toBe(true);
     expect(client.channelHasUnread('c2')).toBe(false);
   });
@@ -177,10 +177,7 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
       'snapshot',
       snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true),
     );
-    sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 } as unknown as Record<
-      string,
-      unknown
-    >);
+    sock.serverFrame('snapshot', { lastMessageSeq: 9, readSeq: 2 });
     expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
     expect(client.getState().hasUnread).toBe(true);
   });

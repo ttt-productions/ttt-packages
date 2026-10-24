@@ -87,8 +87,7 @@ describe('MessageList — a failed older page', () => {
       observe() {}
       disconnect() {}
     }
-    const original = globalThis.IntersectionObserver;
-    globalThis.IntersectionObserver = FakeObserver as unknown as typeof IntersectionObserver;
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
     try {
       const onLoadOlder = vi.fn();
       const { getByText, rerender } = render(
@@ -111,7 +110,7 @@ describe('MessageList — a failed older page', () => {
       fire!([{ isIntersecting: true }]);
       expect(onLoadOlder).toHaveBeenCalledTimes(1);
     } finally {
-      globalThis.IntersectionObserver = original;
+      vi.unstubAllGlobals();
     }
   });
 });

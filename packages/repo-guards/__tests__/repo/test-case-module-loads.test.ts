@@ -6,6 +6,7 @@ import {
 import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const ALIASES = ['@/'];
 const loadsIn = (source: string) => testCaseModuleLoads(source, ALIASES).map((l) => l.detail);
@@ -79,7 +80,7 @@ async function findingsOf(
         repoRoot: repo.root,
         roots: { app: { path: 'src', anchor: 'src/index.ts' } },
       }),
-    ) as never,
+    ),
   )) as Array<{ file: string; line?: number; detail: string }>;
   return findings.map((f) => `${f.file}${f.line ? `:${f.line}` : ''} ${f.detail}`);
 }
@@ -130,7 +131,7 @@ describe('a test loads the code it tests when its file loads', () => {
 describe('the facts the guard takes', () => {
   it('requires the aliases list and reviewed entries that each carry a why', () => {
     expect(testCaseModuleLoadGuard.factProblems({ localAliases: [], reviewed: [] })).toEqual([]);
-    expect(testCaseModuleLoadGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(testCaseModuleLoadGuard, {})).toEqual([
       'localAliases is missing (declare [] when there is none)',
       'reviewed is missing (declare [] when there is none)',
     ]);

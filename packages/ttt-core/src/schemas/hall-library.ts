@@ -33,13 +33,6 @@ import {
 import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
 import { textFieldSchema } from './text-field.js';
 
-const TALE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tales as unknown as [string, ...string[]];
-const TUNE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tunes as unknown as [string, ...string[]];
-const TELEVISION_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Television as unknown as [
-  string,
-  ...string[],
-];
-
 export const CreateChapterInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
@@ -314,7 +307,7 @@ export const UpdateTaleWorkGenresInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
     taleId: taleIdSchema,
-    workGenre: z.enum(TALE_GENRE_VALUES),
+    workGenre: z.enum(WORK_PROJECT_SPECIFIC_GENRES.Tales),
     action: addRemoveActionSchema,
   })
   .strict();
@@ -330,7 +323,7 @@ export const UpdateTelevisionWorkGenresInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
     televisionId: televisionIdSchema,
-    workGenre: z.enum(TELEVISION_GENRE_VALUES),
+    workGenre: z.enum(WORK_PROJECT_SPECIFIC_GENRES.Television),
     action: addRemoveActionSchema,
   })
   .strict();
@@ -348,7 +341,7 @@ export const UpdateTuneWorkGenresInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
     tuneId: tuneIdSchema,
-    workGenre: z.enum(TUNE_GENRE_VALUES),
+    workGenre: z.enum(WORK_PROJECT_SPECIFIC_GENRES.Tunes),
     action: addRemoveActionSchema,
   })
   .strict();

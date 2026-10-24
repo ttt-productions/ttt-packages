@@ -389,6 +389,10 @@ changes) declares serial mode. `waitForTimeout` is a build-failing guard (step 6
 **Review clauses:** no assertion whose only evidence is a toast — assert the resulting state; fixtures
 over inline UI logins; specs never reseed or clear emulator data; and monitoring is a no-op under the
 emulator (the app's inits gate it).
+**Retries and caught failures:** `<GUARD_SUITE> -t "no end-to-end retry loop repeats a user action"`
+and `-t "no end-to-end action or state read swallows its failure"` pass. Every reviewed entry of
+either is an outcome-verified helper's own loop or the polling of a background result, with a why
+that says so — a loop or catch kept only because it made a run pass is the finding.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 29. Local config alignment
@@ -985,6 +989,10 @@ never suppressed, and turning a rule off or widening `ignores` to pass failing c
 is permitted only for a narrow intentional case, with its reason on the line. **Both:** the format check
 passes (a listed file means a change set skipped the gate); the Prettier-compatibility config is the
 last entry of every lint config; every `prettier-ignore` carries its reason.
+**Types and line endings:** `<GUARD_SUITE> -t "no cast switches type checking off"` and
+`-t "every text file is LF"` pass. Every reviewed cast entry is the only way or clearly the best way,
+with that reason in its why; a cast a typed fake, the owner's type, or a typed mapping could replace is
+the finding.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 75. No vacuous commands — every playbook path resolves and every command is honestly scoped

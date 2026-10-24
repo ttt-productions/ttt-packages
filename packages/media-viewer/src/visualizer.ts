@@ -1,8 +1,34 @@
 export type AudioVisualizerMode = 'line' | 'bars';
 
+// The slices of an AnalyserNode, a canvas, and its 2d context the visualizer reads and draws with;
+// the real Web Audio and DOM objects are each one.
+export type VisualizerAnalyser = Pick<
+  AnalyserNode,
+  'frequencyBinCount' | 'getByteFrequencyData' | 'getByteTimeDomainData'
+>;
+
+export type VisualizerContext = Pick<
+  CanvasRenderingContext2D,
+  | 'clearRect'
+  | 'fillRect'
+  | 'beginPath'
+  | 'moveTo'
+  | 'lineTo'
+  | 'stroke'
+  | 'fillStyle'
+  | 'strokeStyle'
+  | 'lineWidth'
+>;
+
+export interface VisualizerCanvas {
+  readonly width: number;
+  readonly height: number;
+  getContext(contextId: '2d'): VisualizerContext | null;
+}
+
 export type StartWaveformLoopOptions = {
-  analyser: AnalyserNode;
-  getCanvas: () => HTMLCanvasElement | null;
+  analyser: VisualizerAnalyser;
+  getCanvas: () => VisualizerCanvas | null;
   mode?: AudioVisualizerMode | (() => AudioVisualizerMode);
 };
 
@@ -87,7 +113,7 @@ export function startWaveformLoop(options: StartWaveformLoopOptions): () => void
   };
 }
 
-export function drawIdleFrame(canvas: HTMLCanvasElement, mode: AudioVisualizerMode): void {
+export function drawIdleFrame(canvas: VisualizerCanvas, mode: AudioVisualizerMode): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const { width, height } = canvas;

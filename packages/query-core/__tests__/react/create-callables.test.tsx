@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpsCallable, type Functions } from 'firebase/functions';
+import { httpsCallable, type Functions, type HttpsCallableResult } from 'firebase/functions';
 import {
   createCallables,
   MAX_RESUMABLE_CALLS,
@@ -38,9 +38,7 @@ function mockCallable(...answers: Array<unknown | (() => never)>) {
       return { data: answer };
     });
   }
-  vi.mocked(httpsCallable).mockReturnValue(
-    Object.assign(invoke, { stream: vi.fn() }) as unknown as ReturnType<typeof httpsCallable>,
-  );
+  vi.mocked(httpsCallable).mockReturnValue(Object.assign(invoke, { stream: vi.fn() }));
   return invoke;
 }
 
@@ -480,9 +478,7 @@ function deferredCallable() {
     if (outcome.error) throw outcome.error;
     return { data: outcome.data };
   });
-  vi.mocked(httpsCallable).mockReturnValue(
-    Object.assign(invoke, { stream: vi.fn() }) as unknown as ReturnType<typeof httpsCallable>,
-  );
+  vi.mocked(httpsCallable).mockReturnValue(Object.assign(invoke, { stream: vi.fn() }));
   return { invoke, settle };
 }
 
@@ -622,16 +618,14 @@ describe('createCallables — an answer that lands after the session ended', () 
   });
 
   it('a resumable request makes no further call once the session ended', async () => {
-    const answers: Array<(value: unknown) => void> = [];
+    const answers: Array<(value: HttpsCallableResult) => void> = [];
     const invoke = vi.fn(
       () =>
-        new Promise((resolve) => {
+        new Promise<HttpsCallableResult>((resolve) => {
           answers.push(resolve);
         }),
     );
-    vi.mocked(httpsCallable).mockReturnValue(
-      Object.assign(invoke, { stream: vi.fn() }) as unknown as ReturnType<typeof httpsCallable>,
-    );
+    vi.mocked(httpsCallable).mockReturnValue(Object.assign(invoke, { stream: vi.fn() }));
     const useResumable = createCallables(makePolicy()).createResumableCallableHook<
       void,
       { complete: boolean; done: number }

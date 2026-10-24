@@ -7,13 +7,23 @@ import {
   stagedObjectGenerationFromMetadata,
   UnreadableStorageObjectMetadataError,
 } from '../src/server/staged-object.js';
-import { type Bucket } from '../src/server/storage-ops.js';
+import { type Bucket, type StorageObjectMetadata } from '../src/server/storage-ops.js';
 
-type AdminFileMetadata = ReturnType<Bucket['file']>['metadata'];
+type AdminFileMetadata = StorageObjectMetadata;
 
-function bucketWith(getMetadata: () => Promise<unknown>) {
-  const file = vi.fn(() => ({ getMetadata }));
-  return { bucket: { file } as unknown as Bucket, file };
+const notInFake = (what: string) => (): never => {
+  throw new Error(`${what} is not part of this fake`);
+};
+
+function bucketWith(getMetadata: () => Promise<[StorageObjectMetadata]>) {
+  const file = vi.fn(() => ({
+    getMetadata,
+    download: notInFake('download'),
+    copy: notInFake('copy'),
+    delete: notInFake('delete'),
+  }));
+  const bucket: Bucket = { name: 'staged-bucket', file, upload: notInFake('upload') };
+  return { bucket, file };
 }
 
 describe('readStagedUploadMetadata', () => {

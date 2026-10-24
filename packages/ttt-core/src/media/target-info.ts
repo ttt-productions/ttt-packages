@@ -29,11 +29,7 @@ import { textFieldSchema } from '../schemas/text-field.js';
 import type { FileOrigin } from './file-origin.js';
 import { ConversationFileRefSchema } from './conversation-file-ref.js';
 import { SquareStreetzPostMentionsSchema } from './atoms.js';
-import {
-  TRADE_PROFESSION_OPTIONS,
-  TRADE_PROFESSION_VALUES,
-  CRAFT_SKILL_TAG_VALUES,
-} from '../constants/options.js';
+import { TRADE_PROFESSION_OPTIONS, CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
 import { CRAFT_SKILL_STATEMENT_VERSION } from '../constants/craft-skill-statements.js';
 import {
   AUDITION_ENTRY_AGREEMENT_VERSION,
@@ -66,7 +62,7 @@ const craftSkillUploadAttestationShape = {
   attestation: CraftSkillAttestationSchema,
   source: CraftSkillSourceReferenceSchema.optional(),
   tags: z
-    .array(z.enum(CRAFT_SKILL_TAG_VALUES))
+    .array(z.enum(CRAFT_SKILL_TAG_OPTIONS))
     .min(1, 'Select at least one tag for your craft.')
     .max(MAX_CRAFT_SKILL_TAGS)
     .refine((t) => new Set(t).size === t.length, 'Duplicate tags are not allowed.'),
@@ -137,7 +133,7 @@ export const CommissionPostingTargetInfoSchema = z
     title: textFieldSchema(COMMISSION_TITLE_INPUT),
     description: textFieldSchema(COMMISSION_DESCRIPTION_INPUT),
     requiredTradeProfessions: z
-      .array(z.enum(TRADE_PROFESSION_VALUES))
+      .array(z.enum(TRADE_PROFESSION_OPTIONS))
       .max(TRADE_PROFESSION_OPTIONS.length),
     stakeSharesOffered: stakeSharesOfferedSchema,
     workProjectId: workProjectIdSchema,

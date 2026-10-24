@@ -5,6 +5,7 @@ import {
   type TextFieldDeclarationFacts,
 } from '../../src/modules/core-definitions/text-field-declarations.js';
 import { CORE, fixture, lines, type Fixture } from './fixture.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const CLEAN: Record<string, string> = {
   [`${CORE}/schemas/admin.js`]: [
@@ -71,7 +72,7 @@ const facts = (overrides: Partial<TextFieldDeclarationFacts> = {}): TextFieldDec
   ],
   keepAsTyped: [{ declaration: 'LEGAL_INPUT', why: 'a legal text whose exact characters matter' }],
   declarations: () => DECLARATIONS,
-  fieldSchema: () => fieldSchema as never,
+  fieldSchema: () => fieldSchema,
   ...overrides,
 });
 
@@ -176,7 +177,7 @@ describe('declared fields at run time', () => {
       d.keepAsTyped || d.format === 'noSpaces'
         ? fieldSchema(d)
         : z.string().trim().min(d.min).max(d.max);
-    const [, , , , behave] = guards({ fieldSchema: () => keepsRuns as never });
+    const [, , , , behave] = guards({ fieldSchema: () => keepsRuns });
     expect(lines(await open({}).run(behave))).toEqual([
       '(core) TITLE_INPUT — keeps a run of spaces instead of one space',
       '(core) NOTE_INPUT — keeps a run of spaces instead of one space',
@@ -191,7 +192,7 @@ describe('declared fields at run time', () => {
             .string()
             .max(d.max)
             .transform((s) => s.replace(/ {2,}/g, ' '));
-    const [, , , , behave] = guards({ fieldSchema: () => untrimmed as never });
+    const [, , , , behave] = guards({ fieldSchema: () => untrimmed });
     expect(lines(await open({}).run(behave))).toEqual([
       '(core) TITLE_INPUT — accepts whitespace-only text although the field requires text',
       '(core) TITLE_INPUT — does not trim its text',
@@ -205,12 +206,12 @@ describe('declared fields at run time', () => {
 describe('the facts', () => {
   it('refuses missing folders, a reviewed count that is not a positive whole number, and missing loaders', () => {
     expect(
-      textFieldDeclarationsGuard.factProblems({
+      factProblemsOf(textFieldDeclarationsGuard, {
         ...facts(),
         wireFolders: [],
         declarationsFile: '',
         selfBounded: [{ file: 'a.js', declaration: 'A', count: 0, why: 'x' }],
-        declarations: undefined as never,
+        declarations: undefined,
       }),
     ).toEqual([
       'wireFolders is empty',

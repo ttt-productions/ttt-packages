@@ -427,17 +427,17 @@ describe('single-field writer shapes', () => {
 
   it('declares the remaining fields the writers store', () => {
     expect(Object.keys(ChatChannelAuthProjectionSchema.shape)).toContain('lastReconciledAt');
-    const has = (template: keyof typeof COLLECTION_SCHEMAS, key: string) =>
-      Object.keys(
-        (COLLECTION_SCHEMAS[template] as unknown as { shape: Record<string, unknown> }).shape,
-      ).includes(key);
+    const has = (
+      template:
+        | 'userProfiles/{userId}'
+        | 'userProfiles/{userId}/privateData/{userId}'
+        | 'auditionBoard/{auditionId}'
+        | 'commissionListings/{commissionListingId}',
+      key: string,
+    ) => Object.keys(COLLECTION_SCHEMAS[template].shape).includes(key);
     expect(has('userProfiles/{userId}', 'statusUpdatedAt')).toBe(true);
     expect(has('userProfiles/{userId}', 'statusUpdatedBy')).toBe(true);
-    const statusUpdatedBy = (
-      COLLECTION_SCHEMAS['userProfiles/{userId}'] as unknown as {
-        shape: Record<string, { safeParse(value: unknown): { success: boolean } }>;
-      }
-    ).shape.statusUpdatedBy;
+    const statusUpdatedBy = COLLECTION_SCHEMAS['userProfiles/{userId}'].shape.statusUpdatedBy;
     expect(statusUpdatedBy.safeParse('system:autoHashLock').success).toBe(true);
     expect(statusUpdatedBy.safeParse('admin-uid').success).toBe(true);
     expect(statusUpdatedBy.safeParse('').success).toBe(false);
@@ -792,7 +792,7 @@ describe('writer fields on the safety, report, Hall, and listing documents', () 
       'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}',
       'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}',
     ] as const) {
-      const schema = COLLECTION_SCHEMAS[template] as unknown as { shape: Record<string, unknown> };
+      const schema = COLLECTION_SCHEMAS[template];
       expect(Object.keys(schema.shape)).toContain('moderatedAt');
     }
   });

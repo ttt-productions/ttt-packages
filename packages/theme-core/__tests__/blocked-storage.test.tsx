@@ -50,7 +50,7 @@ describe.each(BLOCKING_MODES)('with blocked storage (%s)', (_mode, block) => {
   afterEach(() => {
     vi.restoreAllMocks();
     if (ownLocalStorage) Object.defineProperty(window, 'localStorage', ownLocalStorage);
-    else delete (window as unknown as { localStorage?: unknown }).localStorage;
+    else Reflect.deleteProperty(window, 'localStorage');
     removeMatchMedia();
   });
 

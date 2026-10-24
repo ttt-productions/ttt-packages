@@ -9,10 +9,14 @@ import {
   getMimeFromExt,
   ObjectAlreadyExistsError,
   type Bucket,
+  type StorageCopyOptions,
+  type StorageObject,
+  type StorageObjectMetadata,
 } from '../src/server/storage-ops.js';
 import { R2StorageError } from '../src/server/r2-retry.js';
 import { UnreadableStorageObjectMetadataError } from '../src/server/staged-object.js';
 import { isObjectNotFoundError } from '../src/server/gcs-errors.js';
+import { requestOf } from './helpers/fetch-request.js';
 
 const fsHoisted = vi.hoisted(() => ({ readStreamCalls: [] as unknown[] }));
 vi.mock('node:fs', async (importOriginal) => {
@@ -47,8 +51,8 @@ function makeR2(fetchImpl: typeof fetch) {
 describe('createR2ObjectStore', () => {
   it('putFile PUTs to the bucket/key URL with content headers and returns { key } — never a URL', async () => {
     const localPath = await makeLocalFile('clip.mp4', 'vid');
-    const fetchMock = vi.fn(async (_input: Request) => new Response(null, { status: 200 }));
-    const store = makeR2(fetchMock as unknown as typeof fetch);
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 200 }));
+    const store = makeR2(fetchMock);
 
     const result = await store.putFile({ localPath, key: 'mediaAssets/asset1/main' });
 
@@ -58,7 +62,7 @@ describe('createR2ObjectStore', () => {
     expect(result).not.toHaveProperty('url');
     expect(result).not.toHaveProperty('token');
 
-    const req = fetchMock.mock.calls[0][0];
+    const req = requestOf(fetchMock.mock.calls[0][0]);
     expect(req.method).toBe('PUT');
     expect(req.url).toBe(
       'https://acct.r2.cloudflarestorage.com/app-media-test/mediaAssets/asset1/main',
@@ -69,28 +73,28 @@ describe('createR2ObjectStore', () => {
 
   it('putFile throws on a non-ok response', async () => {
     const localPath = await makeLocalFile('a.jpg');
-    const fetchMock = vi.fn(async () => new Response('denied', { status: 403 }));
-    const store = makeR2(fetchMock as unknown as typeof fetch);
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('denied', { status: 403 }));
+    const store = makeR2(fetchMock);
     await expect(store.putFile({ localPath, key: 'k' })).rejects.toThrow(/403/);
   });
 
   it('delete tolerates 404 (missing object is a no-op)', async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 404 }));
-    const store = makeR2(fetchMock as unknown as typeof fetch);
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 404 }));
+    const store = makeR2(fetchMock);
     await expect(store.delete('mediaAssets/gone/main')).resolves.toBeUndefined();
   });
 
   it('delete throws on a real failure', async () => {
-    const fetchMock = vi.fn(async () => new Response('boom', { status: 500 }));
-    const store = makeR2(fetchMock as unknown as typeof fetch);
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('boom', { status: 500 }));
+    const store = makeR2(fetchMock);
     await expect(store.delete('k')).rejects.toThrow(/500/);
   });
 
   it('a failed delete is an R2StorageError carrying the bucket and key as properties, never in its message', async () => {
     const body = '<Error><Code>InternalError</Code><Key>mediaAssets/asset9/main</Key></Error>';
-    const fetchMock = vi.fn(async () => new Response(body, { status: 500 }));
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(body, { status: 500 }));
 
-    const error = await makeR2(fetchMock as unknown as typeof fetch)
+    const error = await makeR2(fetchMock)
       .delete('mediaAssets/asset9/main')
       .catch((e: unknown) => e);
 
@@ -113,13 +117,8 @@ type UploadCallOptions = {
   metadata: { contentType?: string; cacheControl?: string; metadata?: Record<string, string> };
 };
 
-type CopyCallOptions = {
-  preconditionOpts?: { ifGenerationMatch?: string | number };
-  metadata?: Record<string, string>;
-  contentType?: string;
-  cacheControl?: string;
-  contentDisposition?: string;
-  contentEncoding?: string;
+const notInFake = (what: string) => (): never => {
+  throw new Error(`${what} is not part of this fake`);
 };
 
 function makeFirebaseBucketMock(
@@ -132,19 +131,22 @@ function makeFirebaseBucketMock(
   const upload = vi.fn(async (_localPath: string, uploadOpts: UploadCallOptions) => {
     events.push({ op: 'upload', key: uploadOpts.destination, arg: uploadOpts });
   });
-  const file = vi.fn((key: string) => ({
-    name: key,
+  const file = vi.fn((key: string): StorageObject => ({
     download: vi.fn(async ({ destination }: { destination: string }) => {
       await writeFile(destination, 'stored-bytes');
       events.push({ op: 'download', key, arg: destination });
     }),
-    getMetadata: vi.fn(async () => [{ contentType: opts.storedContentType }]),
+    getMetadata: vi.fn(async (): Promise<[StorageObjectMetadata]> => [
+      { contentType: opts.storedContentType },
+    ]),
+    copy: notInFake('copy'),
     delete: vi.fn(async () => {
       if (opts.deleteError) throw opts.deleteError;
       events.push({ op: 'delete', key });
     }),
   }));
-  return { bucket: { name: 'test-bucket', upload, file } as unknown as Bucket, upload, events };
+  const bucket: Bucket = { name: 'test-bucket', upload, file };
+  return { bucket, upload, events };
 }
 
 describe('createFirebaseStorageObjectStore (deployed, token-free)', () => {
@@ -186,7 +188,7 @@ function makeGcsFake() {
     cacheControl?: string;
     contentDisposition?: string;
     contentEncoding?: string;
-    metadata: Record<string, string>;
+    metadata: Record<string, string | number | boolean | null>;
   }
   const objects = new Map<string, StoredObject>();
   const calls: Array<{
@@ -210,9 +212,12 @@ function makeGcsFake() {
     return stored;
   }
 
-  const file = (key: string, fileOptions: { generation?: string | number } = {}) => ({
-    name: key,
-    async getMetadata() {
+  const file = (
+    key: string,
+    fileOptions: { generation?: string | number } = {},
+  ): StorageObject => ({
+    download: notInFake('download'),
+    async getMetadata(): Promise<[StorageObjectMetadata]> {
       hooks.beforeGetMetadata?.(key);
       calls.push({ op: 'getMetadata', key });
       const live = objects.get(key);
@@ -220,24 +225,27 @@ function makeGcsFake() {
       const { bytes: _bytes, ...metadata } = live;
       return [structuredClone(metadata)];
     },
-    async copy(dest: { name: string }, options: CopyCallOptions = {}) {
+    async copy(destinationKey: string, options: StorageCopyOptions) {
       const pinned =
         fileOptions.generation === undefined ? undefined : String(fileOptions.generation);
-      calls.push({ op: 'copy', key, generation: pinned, options: structuredClone(options) });
+      calls.push({ op: 'copy', key, generation: pinned, options: structuredClone({ ...options }) });
       await hooks.beforeCopyCommit?.();
       const source = objects.get(key);
       if (!source || (pinned !== undefined && source.generation !== pinned))
         throw failure(404, 'No such object');
       const wanted = options.preconditionOpts?.ifGenerationMatch;
       if (wanted !== undefined) {
-        const live = objects.get(dest.name);
+        const live = objects.get(destinationKey);
         if (String(wanted) === '0' ? live !== undefined : live?.generation !== String(wanted)) {
           throw failure(412, 'Precondition Failed');
         }
       }
       const { preconditionOpts: _preconditions, metadata = {}, ...resource } = options;
-      const written = write(dest.name, { bytes: source.bytes, ...resource, metadata });
-      return [dest, { done: true, resource: { name: dest.name, generation: written.generation } }];
+      const written = write(destinationKey, { bytes: source.bytes, ...resource, metadata });
+      return [
+        destinationKey,
+        { done: true, resource: { name: destinationKey, generation: written.generation } },
+      ];
     },
     async delete(options: { ifGenerationMatch?: string | number } = {}) {
       calls.push({ op: 'delete', key, options: structuredClone(options) });
@@ -255,8 +263,9 @@ function makeGcsFake() {
     },
   });
 
+  const bucket: Bucket = { name: 'fake-bucket', file, upload: notInFake('upload') };
   return {
-    bucket: { name: 'fake-bucket', file } as unknown as Bucket,
+    bucket,
     objects,
     calls,
     hooks,
@@ -471,13 +480,21 @@ describe('Firebase Storage copy: never overwrites, idempotent, one call', () => 
   it('a source whose metadata names no generation fails the copy before anything is written', async () => {
     const gcs = makeGcsFake();
     gcs.write(SOURCE, STAGED);
-    const bucket = {
+    const bucket: Bucket = {
       name: 'fake-bucket',
-      file: (key: string, options?: { generation?: string }) =>
+      file: (key, options) =>
         key === SOURCE && options === undefined
-          ? { getMetadata: async () => [{ contentType: 'image/png' }] }
-          : (gcs.bucket.file as (k: string, o?: unknown) => unknown)(key, options),
-    } as unknown as Bucket;
+          ? {
+              getMetadata: async (): Promise<[StorageObjectMetadata]> => [
+                { contentType: 'image/png' },
+              ],
+              download: notInFake('download'),
+              copy: notInFake('copy'),
+              delete: notInFake('delete'),
+            }
+          : gcs.bucket.file(key, options),
+      upload: notInFake('upload'),
+    };
 
     const error = await createFirebaseStorageObjectStore({ bucket })
       .copy({ fromKey: SOURCE, toKey: KEPT })
@@ -641,10 +658,16 @@ describe('Firebase Storage deleteCopy: deletes only a copy of the named source',
   it('a copy whose metadata names no generation fails before anything is deleted', async () => {
     const { copied } = await withCopy();
     const del = vi.fn(async () => [{}]);
-    const bucket = {
+    const bucket: Bucket = {
       name: 'fake-bucket',
-      file: () => ({ getMetadata: async () => [{ metadata: copied.metadata }], delete: del }),
-    } as unknown as Bucket;
+      file: () => ({
+        getMetadata: async (): Promise<[StorageObjectMetadata]> => [{ metadata: copied.metadata }],
+        download: notInFake('download'),
+        copy: notInFake('copy'),
+        delete: del,
+      }),
+      upload: notInFake('upload'),
+    };
 
     const error = await createFirebaseStorageObjectStore({ bucket })
       .deleteCopy({ fromKey: SOURCE, toKey: KEPT })
@@ -660,8 +683,14 @@ describe('createFirebaseEmulatorObjectStore', () => {
   function makeBucketMock() {
     const del = vi.fn(async () => undefined);
     const upload = vi.fn(async (_localPath: string, _options: UploadCallOptions) => undefined);
-    const file = vi.fn(() => ({ delete: del }));
-    return { bucket: { upload, file } as unknown as Bucket, upload, file, del };
+    const file = vi.fn((): StorageObject => ({
+      getMetadata: notInFake('getMetadata'),
+      download: notInFake('download'),
+      copy: notInFake('copy'),
+      delete: del,
+    }));
+    const bucket: Bucket = { name: 'emulator-bucket', upload, file };
+    return { bucket, upload, file, del };
   }
 
   it('copy writes the FIXED download token beside the provenance in its one rewrite', async () => {
@@ -810,11 +839,11 @@ function makeR2WithSeams(fetchImpl: typeof fetch, seams: SeamOverrides = {}) {
 /** Each factory returns a fresh Response: a body is single-use. */
 function fetchSequence(steps: Array<() => Response | Promise<Response>>) {
   let i = 0;
-  return vi.fn(async () => {
+  return vi.fn<typeof fetch>(async () => {
     const step = steps[Math.min(i, steps.length - 1)];
     i += 1;
     return step();
-  }) as unknown as typeof fetch & { mock: { calls: unknown[][] } };
+  });
 }
 
 const noSleep = async () => {};
@@ -1235,7 +1264,8 @@ function makeR2Fake() {
     return stored;
   }
 
-  const fetchImpl = (async (req: Request) => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const req = requestOf(input);
     const key = keyOf(new URL(req.url).pathname);
     const headers = Object.fromEntries(req.headers);
     requests.push({ method: req.method, key, headers });
@@ -1295,7 +1325,7 @@ function makeR2Fake() {
       return new Response(null, { status: 204 });
     }
     return new Response('unexpected request', { status: 501 });
-  }) as unknown as typeof fetch;
+  };
 
   return { fetchImpl, objects, requests, hooks, write };
 }
@@ -1493,7 +1523,7 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
   });
 
   it('a source read without an ETag fails the copy before anything is written', async () => {
-    const fetchImpl = vi.fn(
+    const fetchImpl = vi.fn<typeof fetch>(
       async () =>
         new Response('bytes', {
           status: 200,
@@ -1501,7 +1531,7 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
         }),
     );
 
-    const error = await store(fetchImpl as unknown as typeof fetch)
+    const error = await store(fetchImpl)
       .copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
       .catch((e: unknown) => e);
 

@@ -9,7 +9,7 @@ vi.mock('react-intersection-observer', () => ({
   useInView: () => ({
     ref: () => {},
     inView: mockInView,
-    entry: { intersectionRatio: mockRatio } as unknown as IntersectionObserverEntry,
+    entry: { intersectionRatio: mockRatio },
   }),
 }));
 

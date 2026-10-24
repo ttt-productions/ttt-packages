@@ -11,7 +11,7 @@ import {
 const axe = vi.hoisted(() => ({
   events: [] as string[],
   disabled: [] as string[][],
-  scans: [] as { violations: unknown[] }[],
+  scans: [] as Array<{ violations: unknown[] } | Promise<{ violations: unknown[] }>>,
 }));
 
 vi.mock('@axe-core/playwright', () => ({
@@ -172,7 +172,7 @@ describe('checkAccessibility', () => {
     const analyze = Promise.reject(new Error('axe crashed'));
     // The scan rejects with this promise later; marking it handled now keeps it from surfacing as unhandled.
     analyze.catch(() => {});
-    axe.scans.push(analyze as never);
+    axe.scans.push(analyze);
 
     await expect(checkAccessibility(fakePage(), themes)).rejects.toThrow('axe crashed');
     expect(axe.events.at(-1)).toBe('reducedMotion:null');

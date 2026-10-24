@@ -8,6 +8,7 @@ import {
   unavailableAffordanceGuard,
 } from '../../src/modules/ui/styling.js';
 import { allFindings, installed } from './helpers.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 describe('every color resolves through a theme token', () => {
   const clean = {
@@ -89,7 +90,7 @@ describe('every color resolves through a theme token', () => {
     expect(
       colorLiteralsGuard.factProblems({ exceptions: [{ path: 'src/a.tsx', why: ' ' }] }),
     ).toEqual(['exceptions entry src/a.tsx carries no why']);
-    expect(colorLiteralsGuard.factProblems({} as never)).toEqual([
+    expect(factProblemsOf(colorLiteralsGuard, {})).toEqual([
       'exceptions is missing (declare [] when there is none)',
     ]);
   });
@@ -149,7 +150,7 @@ describe('every scale class app code uses is declared by a loaded stylesheet', (
   });
 
   it('refuses facts with no entry stylesheet', () => {
-    expect(scaleClassesGuard.factProblems({} as never)).toEqual(['entryStylesheet is missing']);
+    expect(factProblemsOf(scaleClassesGuard, {})).toEqual(['entryStylesheet is missing']);
   });
 });
 

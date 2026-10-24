@@ -2,6 +2,7 @@
 // digest is hardcoded rather than computed in-test.
 
 import { describe, it, expect } from 'vitest';
+import type { MediaOriginLineageV1 } from '../src/doc-schemas/media-assets.js';
 import {
   resourceKeyHash,
   contentDocResourceKey,
@@ -15,6 +16,20 @@ import {
 
 const SEP = '\x1f';
 const KEY = 'safetyHoldKey/v1';
+
+const ROOT_9_LINEAGE: MediaOriginLineageV1 = {
+  lineageVersion: 1,
+  rootIngestId: 'root_9',
+  rootAssetId: 'asset_1',
+  originatingUploaderUid: 'u1',
+  originatingUploadEventId: 'event_1',
+  originalUploadCreatedAt: 1,
+  rootSha256: '',
+  variantSha256s: {},
+  copyReason: 'original',
+  currentOwnerType: 'workProject',
+  currentOwnerId: 'p1',
+};
 
 describe('contentDocResourceKey', () => {
   const docPath = 'allWorkProjects/p1/workProjectTales/t1';
@@ -72,9 +87,7 @@ describe('mediaAssetResourceKeys', () => {
   it('adds a SEPARATE rootIngest key (index 1) when originLineage.rootIngestId is present', () => {
     const keys = mediaAssetResourceKeys({
       mediaAssetId: 'asset_1',
-      originLineage: {
-        rootIngestId: 'root_9',
-      } as never,
+      originLineage: ROOT_9_LINEAGE,
     });
     expect(keys).toHaveLength(2);
     expect(keys[1].resourceId).toBe('root_9');
@@ -87,7 +100,7 @@ describe('mediaAssetResourceKeys', () => {
   it('the rootIngest key hashes IDENTICALLY to rootIngestResourceKey(sameId)', () => {
     const fromAsset = mediaAssetResourceKeys({
       mediaAssetId: 'asset_1',
-      originLineage: { rootIngestId: 'root_9' } as never,
+      originLineage: ROOT_9_LINEAGE,
     })[1];
     const bare = rootIngestResourceKey('root_9');
     expect(bare.canonicalResourceKey).toBe(fromAsset.canonicalResourceKey);

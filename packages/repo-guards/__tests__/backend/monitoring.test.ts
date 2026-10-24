@@ -7,6 +7,7 @@ import {
   type UnusedServiceFacts,
 } from '../../src/modules/backend/monitoring.js';
 import { backendRepo, type BackendRepo } from './repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: BackendRepo | undefined;
 afterEach(() => repo?.remove());
@@ -297,7 +298,7 @@ describe('telemetry tag keys', () => {
   });
 
   it('refuses a policy that is not a loader', () => {
-    expect(telemetryTagGuard.factProblems({ ...tagFacts, policy: undefined as never })).toEqual([
+    expect(factProblemsOf(telemetryTagGuard, { ...tagFacts, policy: undefined })).toEqual([
       'policy needs a loader function',
     ]);
   });

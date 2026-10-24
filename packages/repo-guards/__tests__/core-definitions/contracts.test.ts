@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { coreContractsGuard } from '../../src/modules/core-definitions/contracts.js';
 import { fixture, lines } from './fixture.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const [zodBuilds, publishReasons] = coreContractsGuard.build({
   corePackage: '@fx/core',
@@ -89,9 +90,9 @@ describe('the facts', () => {
       'backendRoots is empty',
     ]);
     expect(
-      coreContractsGuard.factProblems({
+      factProblemsOf(coreContractsGuard, {
         corePackage: '@fx/core',
-        backendRoots: ['coreDist', 'server' as never],
+        backendRoots: ['coreDist', 'server'],
       }),
     ).toEqual([
       'backendRoots names coreDist, which is no source root role',

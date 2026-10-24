@@ -3,7 +3,7 @@ import { workProjectIdSchema, stakeSharesOfferedSchema } from '../schemas/atoms.
 import { textFieldSchema } from '../schemas/text-field.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
-import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
+import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import { COMMISSION_DESCRIPTION_INPUT, COMMISSION_TITLE_INPUT } from '../constants/text-fields.js';
 
 export const CreateCommissionVariablesSchema = z
@@ -14,7 +14,7 @@ export const CreateCommissionVariablesSchema = z
         title: textFieldSchema(COMMISSION_TITLE_INPUT),
         description: textFieldSchema(COMMISSION_DESCRIPTION_INPUT),
         requiredTradeProfessions: z
-          .array(z.enum(TRADE_PROFESSION_VALUES))
+          .array(z.enum(TRADE_PROFESSION_OPTIONS))
           .max(TRADE_PROFESSION_OPTIONS.length),
         stakeSharesOffered: stakeSharesOfferedSchema,
       })

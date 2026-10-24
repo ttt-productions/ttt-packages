@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports.js';
 import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
-import type { GameStats } from '../src/doc-schemas/sport-game.js';
+import type { BasketballGameStats } from '../src/doc-schemas/sport-game.js';
 import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import {
   applyStatLineDelta,
@@ -23,7 +23,6 @@ import { gameScoreMirror } from '../src/sports/score-mirror.js';
 import { getSportAdapter } from '../src/sports/registry.js';
 import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings.js';
 import { rollupDifferences } from '../src/sports/rollup-check.js';
-import { type StatEventBody } from '../src/sports/scoring.js';
 import {
   CURLING_ROUND_SCORE_EVENT_TYPE,
   FOOTBALL_SCORE_EVENT_TYPE_KEYS,
@@ -42,7 +41,7 @@ const football = getSportAdapter('Football');
 // A 10 – B 8. p1 scores 6 with 2 rebounds and an assist; p2 is present and records nothing; p3 is
 // marked absent yet scored 4; `both` is rostered on both teams, a rebound for A and two assists for
 // B; a ghost scores B's 8.
-const basketballStats = {
+const basketballStats: BasketballGameStats = {
   teamStats: { [A]: { score: 10, timeouts: 1 }, [B]: { score: 8, timeouts: 0 } },
   playerStats: {
     [entry(A, 'p1')]: { points: 6, rebounds: 2, assists: 1, fantasyPoints: 11 },
@@ -51,7 +50,7 @@ const basketballStats = {
     [entry(B, GHOST)]: { points: 8, rebounds: 0, assists: 0, fantasyPoints: 8 },
     [entry(B, 'both')]: { points: 0, rebounds: 0, assists: 2, fantasyPoints: 4 },
   },
-} as unknown as GameStats;
+};
 const basketballRoster = [
   entry(A, 'both'),
   entry(A, 'p1'),
@@ -207,7 +206,7 @@ describe('contribution — curling and football', () => {
       const game: FinalizedGame = {
         leagueType,
         teamIds: [A, B],
-        stats: { teamStats, playerStats: {} } as unknown as GameStats,
+        stats: { teamStats, playerStats: {} },
         rosterPlayerIds: [entry(A, 'x'), entry(A, 'y'), entry(B, 'z')],
         absentRosterPlayerIds: [entry(A, 'y')],
         nonScoringRosterPlayerIds: [],
@@ -294,13 +293,16 @@ describe('applying a contribution to a stored line', () => {
 });
 
 describe('the finalized record', () => {
-  const events = Array.from({ length: STAT_HISTORY_PAGE_SIZE * 2 + 1 }, (_, index) => ({
-    eventId: `1712345678901_${String(index).padStart(5, '0')}`,
-    sequence: index + 1,
-    type: 'TIMEOUT',
-    teamId: A,
-    recordedAt: 1712345678901,
-  })) as unknown as GameStatEvent[];
+  const events = Array.from(
+    { length: STAT_HISTORY_PAGE_SIZE * 2 + 1 },
+    (_, index): GameStatEvent => ({
+      eventId: `1712345678901_${String(index).padStart(5, '0')}`,
+      sequence: index + 1,
+      type: 'TIMEOUT',
+      teamId: A,
+      recordedAt: 1712345678901,
+    }),
+  );
   const snapshot = {
     leagueType: 'Basketball' as const,
     teamIds: [A, B],
@@ -353,13 +355,11 @@ describe('a stored rollup against its replay', () => {
   });
 
   it('finds a hand-edited player counter and a hand-edited score mirror', () => {
-    const edited = structuredClone(basketballStats) as unknown as {
-      playerStats: Record<string, { points: number }>;
-    };
+    const edited = structuredClone(basketballStats);
     edited.playerStats[entry(A, 'p1')]!.points = 9;
     const differences = rollupDifferences(
       basketball,
-      { teamIds: [A, B], stats: edited as unknown as GameStats, score: { ...score, [B]: 7 } },
+      { teamIds: [A, B], stats: edited, score: { ...score, [B]: 7 } },
       basketballStats,
     );
     expect(differences).toEqual([
@@ -369,16 +369,10 @@ describe('a stored rollup against its replay', () => {
   });
 
   it('does not count a stale stored FP as a difference — FP is derived, not recorded', () => {
-    const stale = structuredClone(basketballStats) as unknown as {
-      playerStats: Record<string, { fantasyPoints: number }>;
-    };
+    const stale = structuredClone(basketballStats);
     stale.playerStats[entry(A, 'p1')]!.fantasyPoints = 1;
     expect(
-      rollupDifferences(
-        basketball,
-        { teamIds: [A, B], stats: stale as unknown as GameStats, score },
-        basketballStats,
-      ),
+      rollupDifferences(basketball, { teamIds: [A, B], stats: stale, score }, basketballStats),
     ).toEqual([]);
   });
 });
@@ -433,13 +427,13 @@ describe('the league rankings', () => {
   it("gives rows that, over every week, add up to the season's stored rows", () => {
     // Week 1 is the fixture game; week 2 a game where p1 sits out and p2 scores a basket.
     const weekOne = [basketballGame()];
-    const secondStats = {
+    const secondStats: BasketballGameStats = {
       teamStats: { [A]: { score: 2, timeouts: 0 }, [B]: { score: 8, timeouts: 0 } },
       playerStats: {
         [entry(A, 'p2')]: { points: 2, rebounds: 0, assists: 0, fantasyPoints: 2 },
         [entry(B, GHOST)]: { points: 8, rebounds: 1, assists: 0, fantasyPoints: 9.5 },
       },
-    } as unknown as GameStats;
+    };
     const secondAbsent = [entry(A, 'p1')];
     const weekTwo: FinalizedGame[] = [
       {
@@ -516,11 +510,11 @@ describe('contribution — a scoreless team in the team-scored sports', () => {
     teamId: A,
     roundNumber: 1,
     points: MAX_CURLING_ROUND_POINTS,
-  } as unknown as StatEventBody);
+  });
   const footballShutout = football.apply(football.emptyStats({ teamIds: [A, B] }), {
     type: TOUCHDOWN,
     teamId: A,
-  } as unknown as StatEventBody);
+  });
 
   it.each([
     ['Curling', curling, curlingShutout],

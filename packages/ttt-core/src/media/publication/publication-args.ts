@@ -2,7 +2,7 @@
 // the job instead of failing every retry.
 
 import { z } from 'zod';
-import { CRAFT_SKILL_TAG_VALUES } from '../../constants/options.js';
+import { CRAFT_SKILL_TAG_OPTIONS } from '../../constants/options.js';
 import { MAX_CRAFT_SKILL_TAGS } from '../../constants/business-user.js';
 import {
   HALL_CONTENT_DETAIL_SURFACES,
@@ -54,7 +54,7 @@ export const CraftSkillMediaPublicationArgsSchema = z
     kind: CraftSkillKindSchema,
     attestation: CraftSkillAttestationSchema,
     source: CraftSkillSourceReferenceSchema.optional(),
-    tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)).min(1).max(MAX_CRAFT_SKILL_TAGS),
+    tags: z.array(z.enum(CRAFT_SKILL_TAG_OPTIONS)).min(1).max(MAX_CRAFT_SKILL_TAGS),
   })
   .strict();
 export type CraftSkillMediaPublicationArgs = z.infer<typeof CraftSkillMediaPublicationArgsSchema>;

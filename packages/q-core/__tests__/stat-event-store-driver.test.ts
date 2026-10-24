@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../src/constants/sports.js';
-import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
+import { GameStatEventSchema, type GameStatEvent } from '../src/doc-schemas/game-stats.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import {
   MAX_SPORT_STAT_EVENT_ID_LENGTH,
@@ -16,6 +16,7 @@ import {
 import {
   RecordGameStatEventsInputSchema,
   StatEventRefusalDetailsSchema,
+  StatEventSubmissionSchema,
   type StatEventSubmission,
 } from '../src/schemas/scoring.js';
 import {
@@ -49,20 +50,19 @@ const adapter = getSportAdapter(BASKETBALL);
 
 let minted = 0;
 const tap = (type: string, extra: Record<string, unknown> = {}): StatEventSubmission =>
-  ({
+  StatEventSubmissionSchema.parse({
     eventId: buildStatEventId(NOW, `t${(minted += 1)}`),
     recordedAt: NOW,
     type,
     teamId: HOME,
     playerUserId: SHOOTER,
     ...extra,
-  }) as unknown as StatEventSubmission;
-const undo = (targetEventId: string): StatEventSubmission =>
-  ({
-    type: STAT_VOID_EVENT_TYPE,
-    targetEventId,
-    recordedAt: NOW,
-  }) as unknown as StatEventSubmission;
+  });
+const undo = (targetEventId: string): StatEventSubmission => ({
+  type: STAT_VOID_EVENT_TYPE,
+  targetEventId,
+  recordedAt: NOW,
+});
 
 const GAME = { teamIds: [HOME, AWAY] };
 
@@ -88,7 +88,7 @@ function batchOf(
 /** What the driver accepted, as the store would hold it. */
 function asStored(decision: StatEventBatchDecision): GameStatEvent[] {
   if (!decision.ok) throw new Error('refused');
-  return decision.accepted.map((event) => event.fields as unknown as GameStatEvent);
+  return decision.accepted.map((event) => GameStatEventSchema.parse(event.fields));
 }
 
 /**
@@ -203,7 +203,7 @@ describe('decideStatEventBatch — each event id applies exactly once (SPORT-102
     const stored = asStored(
       decideStatEventBatch(batchOf([shot, undo((shot as { eventId: string }).eventId)])),
     );
-    const correction = {
+    const correction = GameStatEventSchema.parse({
       eventId: buildStatCorrectionId('op-1', HOME, 'score'),
       sequence: 3,
       recordedAt: NOW,
@@ -214,7 +214,7 @@ describe('decideStatEventBatch — each event id applies exactly once (SPORT-102
       correctionSource: 'admin',
       operationId: 'op-1',
       reason: 'a missed basket',
-    } as unknown as GameStatEvent;
+    });
 
     for (const target of [
       'never-stored',
@@ -229,7 +229,7 @@ describe('decideStatEventBatch — each event id applies exactly once (SPORT-102
   });
 
   it('refuses a correction sent to a scoring entry, and never reads the id it names', () => {
-    const correction = {
+    const correction = StatEventSubmissionSchema.parse({
       eventId: buildStatCorrectionId('op-1', HOME, 'score'),
       recordedAt: NOW,
       type: STAT_CORRECTION_EVENT_TYPE,
@@ -239,7 +239,7 @@ describe('decideStatEventBatch — each event id applies exactly once (SPORT-102
       correctionSource: 'admin',
       operationId: 'op-1',
       reason: 'a missed basket',
-    } as unknown as StatEventSubmission;
+    });
 
     expect(decideStatEventBatch(batchOf([correction]))).toMatchObject({
       ok: false,
@@ -279,7 +279,7 @@ describe('decideStatEventBatch — each event id applies exactly once (SPORT-102
       ...batchOf([tap(BASKETBALL_ONE_POINT_EVENT_TYPE)]),
       game: {
         teamIds: [HOME, AWAY],
-        stats: { teamStats: {}, playerStats: {} } as never,
+        stats: { teamStats: {}, playerStats: {} },
         statEventSequence: 0,
       },
     });

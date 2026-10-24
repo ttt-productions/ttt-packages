@@ -13,6 +13,7 @@ import { createRepoReader } from '../../src/node/reader.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -108,15 +109,15 @@ describe('roots that are separate projects never import one another', () => {
 
   it('refuses facts with one root to keep apart or a role that is not a code root', () => {
     expect(
-      isolatedRootsGuard.factProblems({
-        isolatedRoots: ['app', 'coreDist' as never],
+      factProblemsOf(isolatedRootsGuard, {
+        isolatedRoots: ['app', 'coreDist'],
         importAliases: {},
       }),
     ).toEqual(['isolatedRoots names coreDist, which is not a code root role']);
     expect(
-      isolatedRootsGuard.factProblems({
+      factProblemsOf(isolatedRootsGuard, {
         isolatedRoots: ['app'],
-        importAliases: undefined as never,
+        importAliases: undefined,
       }),
     ).toEqual(['isolatedRoots needs at least two roots to keep apart', 'importAliases is missing']);
   });

@@ -103,8 +103,6 @@ export function redactEvent<T extends ScrubbableEvent>(
   event: T,
   options: TelemetryScrubberOptions = {},
 ): T {
-  if (event === null || typeof event !== 'object') return event;
-
   const includeDefaults = options.includeDefaults ?? true;
   const patterns: ForbiddenPattern[] = [
     ...(includeDefaults ? DEFAULT_FORBIDDEN_PATTERNS : []),
@@ -163,8 +161,5 @@ export type BeforeSendHook = (
 ) => ScrubbableEvent | null;
 
 export function createTelemetryScrubber(options: TelemetryScrubberOptions = {}): BeforeSendHook {
-  return (event, _hint) => {
-    if (event === null || typeof event !== 'object') return event;
-    return redactEvent(event, options);
-  };
+  return (event, _hint) => redactEvent(event, options);
 }

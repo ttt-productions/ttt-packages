@@ -8,6 +8,7 @@ import {
   type ClientAuthBoundaryFacts,
 } from '../../src/modules/frontend-actions/auth.js';
 import { findingsOf } from './run.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const lines = (...l: string[]) => l.join('\n');
 
@@ -290,11 +291,11 @@ describe('auth failure capture', () => {
 
   it('refuses a missing reporter and an entry that names no reporting file', () => {
     expect(
-      authFailureCaptureGuard.factProblems({
+      factProblemsOf(authFailureCaptureGuard, {
         reporter: '',
         reportedElsewhere: [
           { path: 'a.ts', why: 'w', reportedBy: '' },
-          { path: 'b.ts', why: 'w', reportedBy: null as never },
+          { path: 'b.ts', why: 'w', reportedBy: null },
         ],
       }),
     ).toEqual([

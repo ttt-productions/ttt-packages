@@ -1,8 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  createReloadRecoveryWatch,
-  type ReloadRecoveryTarget,
-} from '../src/browser/reload-recovery-watch.js';
+import { createReloadRecoveryWatch } from '../src/browser/reload-recovery-watch.js';
 
 const DISCONNECT = new DOMException(
   'Connection to Indexed Database server lost. Refresh the page to try again',
@@ -11,7 +8,7 @@ const DISCONNECT = new DOMException(
 
 function page() {
   const target = new EventTarget();
-  return { target, watchTarget: target as unknown as ReloadRecoveryTarget };
+  return { target, watchTarget: target };
 }
 
 function rejection(reason: unknown): Event {

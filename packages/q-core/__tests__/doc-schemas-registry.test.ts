@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import {
   COLLECTIONS,
   SPORT_GAME_SUBCOLLECTIONS,
@@ -59,14 +60,17 @@ describe('Firestore collection schema registry', () => {
   });
 
   it('annotates doc-id fields only on registered paths, each a field its schema declares', () => {
-    type ShapedSchema = { shape?: Record<string, unknown>; options?: ShapedSchema[] };
+    const declaresField = (schema: unknown, field: string) =>
+      schema instanceof z.ZodObject && schema.shape[field] !== undefined;
     for (const [path, field] of Object.entries(COLLECTION_DOC_ID_FIELDS)) {
-      const schema = (COLLECTION_SCHEMAS as unknown as Record<string, ShapedSchema>)[path];
+      const schema = Object.entries(COLLECTION_SCHEMAS).find(
+        ([registered]) => registered === path,
+      )?.[1];
       expect(schema, `${path} must be a registered collection`).toBeDefined();
       // A union schema declares the field only when every one of its document shapes does.
-      const shapes = schema.options ?? [schema];
+      const shapes = schema instanceof z.ZodUnion ? schema.options : [schema];
       expect(
-        shapes.every((shape) => shape.shape?.[field] !== undefined),
+        shapes.every((shape) => declaresField(shape, field)),
         `${path} must declare '${field}'`,
       ).toBe(true);
     }

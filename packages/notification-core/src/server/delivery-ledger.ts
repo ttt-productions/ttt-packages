@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { NotificationSystemConfig, NotificationDoc } from '../types.js';
-import type { ServerFirestore, ServerDocRef, ServerTransaction } from './types.js';
+import type {
+  ServerFirestore,
+  ServerDocRef,
+  ServerTransaction,
+} from '@ttt-productions/firebase-helpers/server';
 import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 const DEFAULT_DELIVERIES_PATH = 'notificationDeliveries';

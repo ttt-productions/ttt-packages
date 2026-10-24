@@ -21,7 +21,7 @@ import {
   workFileIdSchema,
   stakeSharesOfferedSchema,
 } from './atoms.js';
-import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
+import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import { WORK_REALM_FOUNDING_AGREEMENT_VERSION } from '../constants/member-agreements.js';
 import {
   GUILD_INVITE_MESSAGE_INPUT,
@@ -350,7 +350,7 @@ export const UpdateGuildmateTradeProfessionsInputSchema = z
   .object({
     workProjectId: workProjectIdSchema,
     userId: userIdSchema,
-    tradeProfession: z.enum(TRADE_PROFESSION_VALUES),
+    tradeProfession: z.enum(TRADE_PROFESSION_OPTIONS),
     action: addRemoveActionSchema,
   })
   .strict();
@@ -446,7 +446,7 @@ export const CheckRealmNameAvailableResultSchema = z.object({
 export type CheckRealmNameAvailableResult = z.infer<typeof CheckRealmNameAvailableResultSchema>;
 
 const tradeProfessionListSchema = z
-  .array(z.enum(TRADE_PROFESSION_VALUES))
+  .array(z.enum(TRADE_PROFESSION_OPTIONS))
   .max(TRADE_PROFESSION_OPTIONS.length);
 
 export const CreateFileFolderInputSchema = z

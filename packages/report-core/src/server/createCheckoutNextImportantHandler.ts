@@ -1,5 +1,5 @@
+import type { ServerFirestore } from '@ttt-productions/firebase-helpers/server';
 import type {
-  ServerFirestore,
   ServerReportCoreConfig,
   AdminAuthConfig,
   OnAuditEvent,

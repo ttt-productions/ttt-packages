@@ -73,6 +73,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
 import { __activeListenerCount } from '../src/react/firestore/doc-subscription-registry.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 function emit(id: string, data: Record<string, unknown> | null) {
   act(() => {
@@ -107,7 +108,7 @@ function makeWrapper() {
 }
 
 const baseOpts = {
-  db: {} as never,
+  db: testFirestore(),
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   subscribe: true,

@@ -10,6 +10,7 @@ import { createRepoReader } from '../../src/node/reader.js';
 import type { RepoLayout } from '../../src/node/layout.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
@@ -161,7 +162,7 @@ describe('no typed path segment reaches a Firestore accessor', () => {
   });
 
   it('refuses facts: it takes none', () => {
-    expect(literalSegmentGuard.factProblems({ x: 1 } as never)).toEqual([
+    expect(factProblemsOf(literalSegmentGuard, { x: 1 })).toEqual([
       'this guard takes no facts: declare it with {}',
     ]);
     expect(literalSegmentGuard.factProblems({})).toEqual([]);
@@ -253,14 +254,12 @@ describe('no Firestore path is assembled by hand', () => {
 
   it('refuses missing owner constants, a missing joiner list, and a reviewed site with no why', () => {
     expect(
-      pathAssemblyGuard.factProblems({
+      factProblemsOf(pathAssemblyGuard, {
         segmentArrayJoiners: [],
         reviewedSites: [{ path: 'a.ts', why: ' ' }],
-      } as never),
+      }),
     ).toEqual(['ownerConstants is missing', 'reviewedSites entry a.ts carries no why']);
-    expect(
-      pathAssemblyGuard.factProblems({ ownerConstants: [], reviewedSites: [] } as never),
-    ).toEqual([
+    expect(factProblemsOf(pathAssemblyGuard, { ownerConstants: [], reviewedSites: [] })).toEqual([
       'ownerConstants is empty',
       'segmentArrayJoiners is missing (declare [] when there is none)',
     ]);

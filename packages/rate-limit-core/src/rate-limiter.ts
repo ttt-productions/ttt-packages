@@ -1,5 +1,7 @@
 import { Ratelimit } from '@upstash/ratelimit';
-import type { Redis } from '@upstash/redis';
+
+// The slice of a Redis client Ratelimit itself requires; an @upstash/redis client is one.
+export type RateLimitRedis = ConstructorParameters<typeof Ratelimit>[0]['redis'];
 
 export interface RateLimitConfig {
   prefix: string;
@@ -14,7 +16,7 @@ export interface RateLimiterDegradation {
 }
 
 export interface RateLimiterFactoryOptions {
-  getRedis: () => Redis | null;
+  getRedis: () => RateLimitRedis | null;
   analytics?: boolean;
   onDegraded?: (info: RateLimiterDegradation) => void;
 }

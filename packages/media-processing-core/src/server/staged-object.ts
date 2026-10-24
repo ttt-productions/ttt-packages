@@ -4,7 +4,7 @@ import type { Bucket } from './storage-ops.js';
 export interface StagedObjectMetadata {
   contentType?: string;
   size?: string | number;
-  generation?: string | number;
+  generation?: string | number | null;
   [field: string]: unknown;
 }
 

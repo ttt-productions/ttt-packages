@@ -12,6 +12,7 @@ import {
 } from '../../src/modules/frontend-reads/read-failures.js';
 import { checkSamples } from '../../src/node/suite/run.js';
 import { runOne } from './run.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const MODULE = 'src/components/shared/read-state.tsx';
 
@@ -223,11 +224,11 @@ describe("a read's retry state comes from its one owner, never the live fetching
 
   it('refuses a seat with a missing prop name', () => {
     expect(
-      readRetryStateGuard.factProblems({
-        seat: { component: 'Seat', retryProp: 'onRetry' } as never,
+      factProblemsOf(readRetryStateGuard, {
+        seat: { component: 'Seat', retryProp: 'onRetry' },
       }),
     ).toEqual(['seat.pendingProp must be an identifier']);
-    expect(readRetryStateGuard.factProblems({} as never)).toEqual(['seat is missing']);
+    expect(factProblemsOf(readRetryStateGuard, {})).toEqual(['seat is missing']);
   });
 });
 
@@ -297,9 +298,9 @@ describe('a hook never returns a default its consumers cannot tell from data', (
 
   it('refuses facts with no hooks tree, an absolute tree, or no collapser list', () => {
     expect(
-      hookReadDefaultGuard.factProblems({
+      factProblemsOf(hookReadDefaultGuard, {
         hooksTree: '/src/hooks',
-        readCollapsers: undefined as never,
+        readCollapsers: undefined,
       }),
     ).toEqual([
       'hooksTree (/src/hooks) must be repo-relative and forward-slashed',
@@ -408,7 +409,7 @@ describe('a render surface that defaults a read binds its failure', () => {
 
   it('refuses facts with no surface tree, an entry with no why, and an entry with no gate or an incomplete one', () => {
     expect(
-      defaultedReadBindingGuard.factProblems({
+      factProblemsOf(defaultedReadBindingGuard, {
         surfaceTrees: [],
         heldFailureFields: [],
         allowlist: [
@@ -417,7 +418,7 @@ describe('a render surface that defaults a read binds its failure', () => {
             why: ' ',
             gate: { file: 'src/page.tsx', code: 'if (!read.data) return null;' },
           },
-          { path: 'src/b.tsx', why: 'mounted after its read answered' } as never,
+          { path: 'src/b.tsx', why: 'mounted after its read answered' },
           {
             path: 'src/c.tsx',
             why: 'mounted after its read answered',

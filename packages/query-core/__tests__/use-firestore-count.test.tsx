@@ -22,6 +22,7 @@ vi.mock('firebase/firestore', () => ({
 import { where } from 'firebase/firestore';
 import { useFirestoreCount } from '../src/react/firestore/use-firestore-count.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
+import { testFirestore } from './helpers/test-firestore.js';
 
 function makeWrapper() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -29,7 +30,7 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: {} as never, children }),
+      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;

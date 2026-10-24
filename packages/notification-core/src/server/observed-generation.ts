@@ -1,4 +1,8 @@
-import type { ServerFirestore, ServerDocRef, ServerTransaction } from './types.js';
+import type {
+  ServerFirestore,
+  ServerDocRef,
+  ServerTransaction,
+} from '@ttt-productions/firebase-helpers/server';
 
 export type MarkSeenOutcome = 'seen' | 'generation-mismatch' | 'missing';
 

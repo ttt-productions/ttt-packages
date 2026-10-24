@@ -4,6 +4,7 @@ import {
   type SingletonBucketAudienceFacts,
 } from '../../src/modules/core-definitions/singleton-bucket-audience.js';
 import { CORE, fixture, lines } from './fixture.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const facts = (
   overrides: Partial<SingletonBucketAudienceFacts> = {},
@@ -62,9 +63,9 @@ describe('singleton bucket audience', () => {
 
   it('refuses missing loaders and a reviewed entry with no why', () => {
     expect(
-      singletonBucketAudienceGuard.factProblems({
+      factProblemsOf(singletonBucketAudienceGuard, {
         ...facts(),
-        pathBuilders: undefined as never,
+        pathBuilders: undefined,
         reviewed: [{ path: '_open/app', why: '' }],
       }),
     ).toEqual(['pathBuilders needs a loader function', 'reviewed entry _open/app carries no why']);

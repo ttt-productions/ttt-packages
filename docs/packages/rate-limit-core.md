@@ -13,7 +13,7 @@ Generic server-side rate-limit infrastructure.
 Single entry point (`.`), server-safe.
 
 - `createRedisClientFactory({ credentials, disabledWhen?, logger? }) → { get(): Redis | null, __reset() }` — lazy singleton; returns `null` when the `disabledWhen` hook says so or credentials are missing. Callers must treat `null` as "limiting unavailable" with an explicit fail-open/closed decision.
-- `createRateLimiterFactory({ getRedis, analytics?, onDegraded? }) → { getRateLimiter(config), checkRateLimit(key, config) }` — memoized sliding-window limiters, one per `prefix`, reused only while `maxRequests` and `window` still match: a caller that changes a bucket's capacity at runtime gets a limiter built for the new values, counting in the same Redis prefix, never the one built first. `checkRateLimit` resolves `{ allowed: true } | { allowed: false, reset }` (reset = epoch ms).
+- `createRateLimiterFactory({ getRedis, analytics?, onDegraded? }) → { getRateLimiter(config), checkRateLimit(key, config) }` — memoized sliding-window limiters, one per `prefix`, reused only while `maxRequests` and `window` still match: a caller that changes a bucket's capacity at runtime gets a limiter built for the new values, counting in the same Redis prefix, never the one built first. `checkRateLimit` resolves `{ allowed: true } | { allowed: false, reset }` (reset = epoch ms). `getRedis` returns a `RateLimitRedis` — the slice of a client Upstash's `Ratelimit` itself requires — so an `@upstash/redis` client is passed as it is and a test fake implements only that slice.
 - `RateLimitConfig` = `{ prefix, maxRequests, window }` (window strings like `"1 h"`, `"1 m"`).
 - `getRateLimitErrorMessage({ reset, context?, copy? }) → string` — relative-time message; all copy injectable.
 

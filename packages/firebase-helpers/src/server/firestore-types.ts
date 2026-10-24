@@ -7,6 +7,7 @@ export interface ServerFirestore {
 
 export interface ServerTransaction {
   get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
+  get(query: ServerQuery): Promise<ServerQuerySnapshot>;
   set(
     ref: ServerDocRef,
     data: Record<string, unknown>,
@@ -28,6 +29,7 @@ export interface ServerQuery {
   where(field: string, op: string, value: unknown): ServerQuery;
   orderBy(field: string, direction?: 'asc' | 'desc'): ServerQuery;
   limit(n: number): ServerQuery;
+  startAfter(snapshot: ServerDocSnapshot): ServerQuery;
   get(): Promise<ServerQuerySnapshot>;
 }
 

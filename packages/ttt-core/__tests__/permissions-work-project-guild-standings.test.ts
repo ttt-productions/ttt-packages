@@ -84,7 +84,7 @@ describe('WORK_PROJECT_ACTIONS', () => {
 
   it('carries no commission-delete action (a commission is closed, never deleted)', () => {
     expect(isWorkProjectActionId('commission.delete')).toBe(false);
-    expect(WORK_PROJECT_ACTION_IDS).not.toContain('commission.delete' as never);
+    expect<readonly string[]>(WORK_PROJECT_ACTION_IDS).not.toContain('commission.delete');
     expect(isWorkProjectActionId('commission.close')).toBe(true);
   });
 

@@ -58,16 +58,6 @@ export type CraftSkillTagId = (typeof CRAFT_SKILL_TAG_OPTIONS)[number];
 
 export type TradeProfessionId = (typeof TRADE_PROFESSION_OPTIONS)[number];
 
-export const TRADE_PROFESSION_VALUES = TRADE_PROFESSION_OPTIONS as unknown as [
-  TradeProfessionId,
-  ...TradeProfessionId[],
-];
-
-export const CRAFT_SKILL_TAG_VALUES = CRAFT_SKILL_TAG_OPTIONS as unknown as [
-  CraftSkillTagId,
-  ...CraftSkillTagId[],
-];
-
 export const CRAFT_SKILL_TAG_LABELS: Record<(typeof CRAFT_SKILL_TAG_OPTIONS)[number], string> = {
   acting: 'Acting',
   'voice-over': 'Voice Over',

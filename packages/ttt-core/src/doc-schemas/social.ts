@@ -9,7 +9,7 @@ import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
 import { CraftSkillKindSchema, CraftSkillSourceReferenceSchema } from './user.js';
 import { HallSubItemTypeSchema } from './content.js';
-import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
+import { CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
 import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 
 export const MediaTypeSchema = z.enum(['image', 'video', 'audio', 'other']);
@@ -89,7 +89,7 @@ export const SquareStreetzPostPayloadSchema = z.object({
       id: z.string(),
       mediaAssetId: z.string(),
       type: ContentMediaKindSchema,
-      tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)).optional(),
+      tags: z.array(z.enum(CRAFT_SKILL_TAG_OPTIONS)).optional(),
       kind: CraftSkillKindSchema.optional(),
       source: CraftSkillSourceReferenceSchema.optional(),
     })

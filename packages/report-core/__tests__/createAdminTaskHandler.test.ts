@@ -4,8 +4,8 @@ import type {
   ServerCollectionRef,
   ServerDocRef,
   ServerFirestore,
-  ServerReportCoreConfig,
-} from '../src/server/types.js';
+} from '@ttt-productions/firebase-helpers/server';
+import type { ServerReportCoreConfig } from '../src/server/types.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   describeUserReportTask: ({ totalReports, reportedItemType }) =>
@@ -36,10 +36,13 @@ function makeMockDb() {
     id: id ?? 'auto',
     set: setFn,
     update: notInFake,
+    create: notInFake,
+    delete: notInFake,
     get: notInFake,
   }));
   const collectionFn = vi.fn((_path: string): ServerCollectionRef => ({
     doc: docFn,
+    add: notInFake,
     where: notInFake,
     orderBy: notInFake,
     limit: notInFake,

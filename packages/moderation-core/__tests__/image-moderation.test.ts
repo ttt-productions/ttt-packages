@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { SafeSearchClient } from '../src/server/image-moderation.js';
 import { moderateImage, __resetDefaultVisionClient } from '../src/server/image-moderation.js';
 
 beforeEach(() => {
@@ -18,7 +19,7 @@ function makeSafeAnnotation(overrides: Record<string, unknown> = {}) {
 
 describe('moderateImage', () => {
   it('returns safe=true for all-safe content', async () => {
-    const mockClient = {
+    const mockClient: SafeSearchClient = {
       safeSearchDetection: vi.fn().mockResolvedValue([
         {
           safeSearchAnnotation: makeSafeAnnotation(),
@@ -27,14 +28,14 @@ describe('moderateImage', () => {
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(true);
     expect(result.safe).toBe(true);
   });
 
   it('returns safe=false with adult reason when adult is LIKELY', async () => {
-    const mockClient = {
+    const mockClient: SafeSearchClient = {
       safeSearchDetection: vi.fn().mockResolvedValue([
         {
           safeSearchAnnotation: makeSafeAnnotation({ adult: 'LIKELY' }),
@@ -43,7 +44,7 @@ describe('moderateImage', () => {
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(true);
     expect(result.safe).toBe(false);
@@ -52,7 +53,7 @@ describe('moderateImage', () => {
   });
 
   it('returns safe=false with violence reason when violence is VERY_LIKELY', async () => {
-    const mockClient = {
+    const mockClient: SafeSearchClient = {
       safeSearchDetection: vi.fn().mockResolvedValue([
         {
           safeSearchAnnotation: makeSafeAnnotation({ violence: 'VERY_LIKELY' }),
@@ -61,19 +62,19 @@ describe('moderateImage', () => {
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.safe).toBe(false);
     expect(result.reason).toContain('Violent');
   });
 
   it('reports an image SafeSearch returned no annotation for as not checked, never as flagged', async () => {
-    const mockClient = {
+    const mockClient: SafeSearchClient = {
       safeSearchDetection: vi.fn().mockResolvedValue([{ safeSearchAnnotation: null }]),
     };
     const result = await moderateImage('gs://bucket/image.jpg', {
       rejectionLikelihoods,
-      getClient: async () => mockClient as never,
+      getClient: async () => mockClient,
     });
     expect(result.checked).toBe(false);
     expect(result.safe).toBe(false);

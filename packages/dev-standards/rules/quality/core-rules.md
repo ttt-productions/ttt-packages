@@ -61,7 +61,7 @@ A test proves the business rule, never the code's current output: its expected v
 ### RULE-STD-QUALITY-004 — E2E tests use the established fixtures and web-first assertions
 **Scope.** apps
 
-**Rule.** Tests use the established role fixtures, seed model, and query-cache helpers; assertions are web-first (`getByRole` over CSS selectors, `expect(locator)` which auto-retries) with no `page.waitForTimeout()`. URLs come from the config `baseURL` — zero hardcoded URLs in specs — and each test covers one behavior (multiple related `expect()` calls are fine). A spec runs on the data the seed model provides: it never reseeds or clears emulator data. The UI-login helper is called only in the auth-setup project and the auth specs that exercise login/logout themselves — never in a regular spec. Admin specs, and any lifecycle or build-on-each-other specs, declare `test.describe.configure({ mode: 'serial' })`.
+**Rule.** Tests use the established role fixtures, seed model, and query-cache helpers; assertions are web-first (`getByRole` over CSS selectors, `expect(locator)` which auto-retries) with no `page.waitForTimeout()`. URLs come from the config `baseURL` — zero hardcoded URLs in specs — and each test covers one behavior (multiple related `expect()` calls are fine). A spec runs on the data the seed model provides: it never reseeds or clears emulator data. The UI-login helper is called only in the auth-setup project and the auth specs that exercise login/logout themselves — never in a regular spec. Admin specs, and any lifecycle or build-on-each-other specs, declare `test.describe.configure({ mode: 'serial' })`. A spec acts once and then asserts: a retry loop (`toPass()`, `expect.poll()`) re-reads state but never repeats a click, an input, or a navigation, except the suite's named outcome-verified helpers and the polling of a background result, each a reviewed entry; and no action or state read (`isVisible()`, `isEnabled()`, `isChecked()`) has its failure caught — a strict locator that matches twice must fail, never read as "no". The repo-guards `retryLoopActions` and `swallowedE2eActions` guards enforce it.
 
 **Why.** Role fixtures and web-first assertions survive markup and timing changes; a non-web-first assertion (`expect(await locator.textContent())`) does not retry, and parallel admin sessions hang the Auth emulator on concurrent same-admin token validation.
 
@@ -71,15 +71,19 @@ A test proves the business rule, never the code's current output: its expected v
 - A hardcoded URL in a spec where `baseURL` covers it.
 - A spec that reseeds or clears emulator data.
 - Parallel admin specs (missing serial mode).
+- A click, input, reload, or navigation inside a retry loop outside a reviewed entry.
+- A `.catch()` or try/catch that swallows a failed action or state read.
 
-**References.** RULE-STD-QUALITY-003, RULE-STD-QUALITY-008.
+**References.** RULE-STD-QUALITY-001, RULE-STD-QUALITY-003, RULE-STD-QUALITY-007, RULE-STD-QUALITY-008.
 
 ### RULE-STD-QUALITY-006 — Lint and format: zero suppression in apps, reasoned disables in packages; one enforced format
 **Scope.** both
 
 **Rule.** The lint half is split by scope; the format half is the same for both. **Apps** are zero suppression: no `eslint-disable` comment anywhere in the linted trees — source, Functions, E2E, scripts, and config. When a rule fires, fix the root cause, and solve a genuine false positive structurally — rename, refactor, or scope the rule — never by suppressing the line; external-authority state pruning uses the sanctioned render-phase adjustment, not a suppressed effect. A `warn`-level finding is a finding to fix, and a rule is never turned off, nor `ignores` widened, to pass failing code. New app code also follows the conventions the lint config forces, listed below. **Packages** permit an `eslint-disable-next-line` only for a narrow intentional case where no fix works, on DJ's yes, carrying its reason on the line; it is preferred over weakening the rule, and a real violation is fixed at its source.
 
-Every code file — source, tests, scripts, and config — is in the one format Prettier writes from the shared Prettier config (this package's `config/prettier.json`); `test:quiet`'s format stage writes that format and then checks it, a check-only run (a package release preflight, `test:all`) only checks, so a release never publishes formatting nobody committed, and the check fails a file that is not formatted; `eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier, never reflowed by hand.
+Every code file — source, tests, scripts, and config — is in the one format Prettier writes from the shared Prettier config (this package's `config/prettier.json`); `test:quiet`'s format stage writes that format and then checks it, a check-only run (a package release preflight, `test:all`) only checks, so a release never publishes formatting nobody committed, and the check fails a file that is not formatted; `eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier, never reflowed by hand. Every text file is LF: `.gitattributes` pins `* text=auto eol=lf`, so no checkout writes CRLF, and the repo-guards `lineEndings` guard fails a CRLF or mixed file.
+
+A type is never switched off: no `as never` and no `as unknown as X` in any code, tests included — the value gets its real type (a typed fake or builder, the owner's type, a typed mapping between two unions). The one exception is a cast that is the only way or clearly the best way, as a reviewed entry naming that one cast with its why, on DJ's yes; the repo-guards `blanketCasts` guard enforces it.
 
 **Why.** A suppression silences the next real violation of that rule on that line: apps chose zero suppression, and a package's reasonless disable does the same damage. A rule switched off or an ignore widened to get past failing code is the same suppression at file scale. Without one enforced format, every edit carries layout churn and line lengths drift with whoever wrote the file.
 
@@ -93,8 +97,10 @@ Every code file — source, tests, scripts, and config — is in the one format 
 - Straight `'`/`"` in JSX text content (use `&apos;`/`&quot;`).
 - Suppressing `exhaustive-deps` instead of fixing at the source (destructure the stable `mutate`; memoize a derived dep; destructure the specific prop fields used).
 - An unformatted code file; a `prettier-ignore` without its reason, or added when a fix works or without DJ's yes; an ESLint formatting rule that fights Prettier.
+- A CRLF or mixed-ending text file; a `.gitattributes` without `eol=lf`.
+- An `as never` or `as unknown as` cast outside a reviewed entry.
 
-**References.** RULE-STD-ENG-008; this package's `node/eslint` bases and `config/prettier.json`; each repo's ESLint config and `.prettierignore`.
+**References.** RULE-STD-ENG-008; RULE-STD-QUALITY-007; this package's `node/eslint` bases and `config/prettier.json`; each repo's ESLint config and `.prettierignore`.
 
 ### RULE-STD-QUALITY-007 — Guard tests enforce ownership and boundaries, never inventories
 **Scope.** both

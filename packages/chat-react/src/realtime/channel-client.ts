@@ -14,9 +14,8 @@ import {
 import {
   buildFrame,
   parseFrame,
-  isInboxSnapshot,
+  readChannelSnapshot,
   type WireMessageRow,
-  type WireChannelSnapshot,
   type RevisionKind,
 } from './wire.js';
 import type {
@@ -660,7 +659,7 @@ export class ChannelClient {
       case 'typing':
         return this.applyTyping((payload as { uid: string }).uid);
       case 'snapshot':
-        return this.applyChannelSnapshot(payload as unknown as WireChannelSnapshot);
+        return this.applyChannelSnapshot(payload);
       case 'send-rejected':
         return this.applySendRejected(payload);
       case 'error': {
@@ -758,12 +757,13 @@ export class ChannelClient {
     return applyModerationOverlay(mapped, this.effectiveOverlay(row.seq, overlayFromRow(row)));
   }
 
-  private applyChannelSnapshot(snap: WireChannelSnapshot): void {
-    if (isInboxSnapshot(snap as never)) {
+  private applyChannelSnapshot(payload: Record<string, unknown>): void {
+    const snap = readChannelSnapshot(payload);
+    if (snap === 'inbox') {
       this.diag?.(DIAG.FRAME_DROPPED, { kind: 'snapshot', reason: 'inbox-snapshot-on-channel' });
       return;
     }
-    if (typeof snap.lastMessageSeq !== 'number') {
+    if (!snap) {
       this.diag?.(DIAG.FRAME_DROPPED, { kind: 'snapshot', reason: 'missing-last-message-seq' });
       return;
     }

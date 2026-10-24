@@ -8,6 +8,7 @@ import {
 } from '../../src/modules/ui/cascade.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { allFindings, installed, runDefinition } from './helpers.js';
+import { factProblemsOf } from '../helpers/configured.js';
 
 const ENTRY = 'src/app/styles/globals.css';
 const LAYOUT = 'src/app/layout.tsx';
@@ -389,7 +390,7 @@ describe('every theme token is declared in each theme block, and high contrast i
   });
 
   it('refuses facts with no token sheet', () => {
-    expect(themeTokensGuard.factProblems({ entryStylesheet: ENTRY } as never)).toEqual([
+    expect(factProblemsOf(themeTokensGuard, { entryStylesheet: ENTRY })).toEqual([
       'tokenSheet is missing',
     ]);
   });

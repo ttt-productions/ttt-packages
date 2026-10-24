@@ -3,6 +3,9 @@ import type { Likelihood, MediaModerationResult, ModerationLogger } from '../typ
 
 import type { VideoIntelligenceServiceClient } from '@google-cloud/video-intelligence';
 
+// The one Video Intelligence call video moderation makes; a VideoIntelligenceServiceClient is one.
+export type AnnotateVideoClient = Pick<VideoIntelligenceServiceClient, 'annotateVideo'>;
+
 export interface VideoPollBackoff {
   initialDelayMillis: number;
   delayMultiplier: number;
@@ -19,7 +22,7 @@ export const DEFAULT_VIDEO_POLL_BACKOFF: VideoPollBackoff = {
 export interface VideoModerationOptions {
   rejectionLikelihoods: ReadonlySet<string>;
   logger?: ModerationLogger;
-  getClient?: () => Promise<VideoIntelligenceServiceClient>;
+  getClient?: () => Promise<AnnotateVideoClient>;
   pollBackoff?: VideoPollBackoff;
 }
 
