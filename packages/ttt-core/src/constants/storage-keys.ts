@@ -33,6 +33,7 @@ export const TEXT_SIZE_CHANGE_EVENT = 'ttt-text-size-change';
 
 // Byte-stable with already-stored values: the underscore spelling must not change.
 export const COOKIE_CONSENT_STORAGE_KEY = 'ttt_cookie_consent';
+export const COOKIE_CONSENT_CHANGE_EVENT = 'ttt-cookie-consent-change';
 
 export function siteTourPendingStorageKey(uid: string): string {
   return `ttt-site-tour-pending:${uid}`;

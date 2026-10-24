@@ -17,6 +17,7 @@ import {
   installedPackagesAgnosticGuard,
   type InstalledPackagesAgnosticFacts,
 } from './installed-packages-agnostic.js';
+import { lineEndingGuard, type LineEndingFacts } from './line-endings.js';
 import { localOnlyVariablesGuard, type LocalOnlyVariablesFacts } from './local-only-variables.js';
 import { projectScriptGuard, type ProjectScriptFacts } from './project-scripts.js';
 import { secretBindingGuard, type SecretBindingFacts } from './secret-bindings.js';
@@ -32,6 +33,7 @@ import { workerConfigGuard, type WorkerConfigFacts } from './worker-config.js';
 
 export type RepoGuardFacts = {
   shellSafeChildProcesses: ShellSafeFacts;
+  lineEndings: LineEndingFacts;
   walkerReadFailure: WalkerReadFailureFacts;
   testSourceRoot: TestSourceRootFacts | Absent;
   testCaseModuleLoads: TestCaseModuleLoadFacts;
@@ -56,6 +58,7 @@ export type RepoGuardFacts = {
 
 export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   shellSafeGuard,
+  lineEndingGuard,
   walkerReadFailureGuard,
   testSourceRootGuard,
   testCaseModuleLoadGuard,

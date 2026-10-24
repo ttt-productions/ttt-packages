@@ -6,7 +6,7 @@ import { REPO_ROOT } from './leak-utils';
 const COPIES_DIR = join(REPO_ROOT, 'packages', 'dev-standards', 'config', 'copies');
 const COPIES = ['.nvmrc', '.gitattributes'] as const;
 
-// Git checks text out with the machine's own line endings.
+// A checkout without `eol=lf` writes the machine's own line endings, so the comparison ignores them.
 const normalized = (text: string): string => text.replace(/\r\n/g, '\n');
 const differs = (repoText: string, sharedText: string): boolean =>
   normalized(repoText) !== normalized(sharedText);

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  MAX_REPORT_NARRATIVE_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   OPERATOR_STEP_UP_CODE_LENGTH,
   MAX_NCMEC_REPORT_NUMBER_LENGTH,
@@ -12,6 +11,7 @@ import {
   NCMEC_CORRECTION_REASON_INPUT,
   NCMEC_PORTAL_PROOF_TEXT_INPUT,
   REPORT_COMMENT_INPUT,
+  REPORT_NARRATIVE_INPUT,
   SAFETY_INTERNAL_REASON_INPUT,
 } from '../constants/text-fields.js';
 import {
@@ -706,7 +706,7 @@ export const SubmitReportInputSchema = z
     reportedUserId: reportTargetUserIdSchema.optional(),
     reason: ReportReasonSchema,
     comment: reportCommentFieldSchema,
-    narrative: z.string().max(MAX_REPORT_NARRATIVE_LENGTH).optional(),
+    narrative: textFieldSchema(REPORT_NARRATIVE_INPUT).optional(),
     confirmUpgrade: z.boolean().optional(),
   })
   .strict();

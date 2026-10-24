@@ -1,4 +1,4 @@
-import type { GenericGuardDefinition } from '../../node/suite/config.js';
+import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import { applicationDataImportsGuard, type ApplicationDataFacts } from './application-data.js';
 import { entryPurityGuard, type EntryPurityFacts } from './entry-purity.js';
 import { importPathGuard, type ImportPathFacts } from './guard.js';
@@ -20,13 +20,13 @@ import {
 
 export type ImportPathGuardFacts = {
   importPaths: ImportPathFacts;
-  packageEntries: PackageEntryFacts;
+  packageEntries: PackageEntryFacts | Absent;
   packageEntryImports: PackageEntryImportFacts;
   packageWildcardImports: PackageWildcardImportFacts;
-  packageImports: PackageImportFacts;
-  packageImportCycles: PackageImportFacts;
-  entryPurity: EntryPurityFacts;
-  applicationDataImports: ApplicationDataFacts;
+  packageImports: PackageImportFacts | Absent;
+  packageImportCycles: PackageImportFacts | Absent;
+  entryPurity: EntryPurityFacts | Absent;
+  applicationDataImports: ApplicationDataFacts | Absent;
 };
 
 export const IMPORT_PATH_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([

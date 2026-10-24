@@ -58,6 +58,7 @@ import {
   MAX_PLATFORM_RULE_DESCRIPTION_LENGTH,
   MAX_PLATFORM_RULE_TITLE_LENGTH,
   MAX_REPORT_COMMENT_LENGTH,
+  MAX_REPORT_NARRATIVE_LENGTH,
   MAX_REQUIRE_RETITLE_REASON_LENGTH,
   MAX_SAFETY_ADMIN_NOTE_LENGTH,
   MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
@@ -307,6 +308,12 @@ export const REPORT_COMMENT_INPUT = defineInputFormat({
   format: 'none',
   min: 1,
   max: MAX_REPORT_COMMENT_LENGTH,
+});
+export const REPORT_NARRATIVE_INPUT = defineInputFormat({
+  label: 'Report narrative',
+  format: 'none',
+  min: 1,
+  max: MAX_REPORT_NARRATIVE_LENGTH,
 });
 export const THEME_NAME_INPUT = defineInputFormat({
   label: 'Theme name',
