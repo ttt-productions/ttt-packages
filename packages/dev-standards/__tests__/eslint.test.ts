@@ -1,4 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import js from '@eslint/js';
 import { ESLint, type Linter } from 'eslint';
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
@@ -6,10 +9,41 @@ import nextTypescript from 'eslint-config-next/typescript';
 import prettierCompat from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { createAppEslintConfig, createFunctionsEslintConfig } from '../src/node/eslint.js';
 
 const zeroSuppression = { linterOptions: { noInlineConfig: true } };
+
+const typeAwareNoAny = (files: string[]): Linter.Config => ({
+  files,
+  languageOptions: { parserOptions: { projectService: true } },
+  rules: {
+    '@typescript-eslint/no-unsafe-argument': 'error',
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
+  },
+});
+
+// The type-aware rules read each file through a tsconfig.json, so every lint runs in a folder that has one.
+const lintRoot = mkdtempSync(join(tmpdir(), 'dev-standards-eslint-'));
+writeFileSync(
+  join(lintRoot, 'tsconfig.json'),
+  JSON.stringify({
+    compilerOptions: { strict: true, jsx: 'react-jsx', noEmit: true, skipLibCheck: true },
+    include: ['**/*'],
+  }),
+);
+afterAll(() => rmSync(lintRoot, { recursive: true, force: true }));
+
+async function lintIn(config: Linter.Config[], filePath: string, text: string) {
+  mkdirSync(dirname(join(lintRoot, filePath)), { recursive: true });
+  writeFileSync(join(lintRoot, filePath), text);
+  const eslint = new ESLint({ cwd: lintRoot, overrideConfigFile: true, overrideConfig: config });
+  const [result] = await eslint.lintText(text, { filePath: join(lintRoot, filePath) });
+  return result;
+}
 
 // jsx-a11y is installed by eslint-config-next, not a direct dependency, so it is read from there.
 const fromNext = createRequire(createRequire(import.meta.url).resolve('eslint-config-next'));
@@ -20,8 +54,9 @@ const jsxA11y = fromNext('eslint-plugin-jsx-a11y') as {
 const a11yBlock = (severity: 'error' | 'warn'): Linter.Config => {
   const rules: Record<string, Linter.RuleEntry> = {};
   for (const [name, entry] of Object.entries(jsxA11y.configs.recommended.rules)) {
-    const [level, ...ruleOptions] = Array.isArray(entry) ? entry : [entry];
+    const level = Array.isArray(entry) ? entry[0] : entry;
     if (level === 'off') continue;
+    const ruleOptions: unknown[] = Array.isArray(entry) ? entry.slice(1) : [];
     rules[name] = ruleOptions.length > 0 ? [severity, ...ruleOptions] : severity;
   }
   return { files: ['**/*.tsx', '**/*.jsx'], rules };
@@ -95,6 +130,7 @@ describe('createAppEslintConfig', () => {
           'react-hooks/purity': 'error',
         },
       },
+      typeAwareNoAny(['**/*.ts', '**/*.tsx']),
       appScoped,
       prettierCompat,
     ]);
@@ -103,7 +139,7 @@ describe('createAppEslintConfig', () => {
   it('keeps eslint-config-prettier last when the app adds nothing', async () => {
     const config = await createAppEslintConfig();
     expect(config.at(-1)).toBe(prettierCompat);
-    expect(config.at(-2)?.rules?.['react-hooks/purity']).toBe('error');
+    expect(config.at(-2)).toEqual(typeAwareNoAny(['**/*.ts', '**/*.tsx']));
   });
 });
 
@@ -111,22 +147,12 @@ describe('presets reject an explicit any', () => {
   const source = 'export const value: any = 1;\n';
 
   it('the app preset fails an explicit any', async () => {
-    const eslint = new ESLint({
-      cwd: import.meta.dirname,
-      overrideConfigFile: true,
-      overrideConfig: await createAppEslintConfig(),
-    });
-    const [result] = await eslint.lintText(source, { filePath: 'src/value.ts' });
+    const result = await lintIn(await createAppEslintConfig(), 'app/src/value.ts', source);
     expect(result?.messages.map((m) => m.ruleId)).toContain('@typescript-eslint/no-explicit-any');
   });
 
   it('the Functions preset fails an explicit any', async () => {
-    const eslint = new ESLint({
-      cwd: import.meta.dirname,
-      overrideConfigFile: true,
-      overrideConfig: await createFunctionsEslintConfig(),
-    });
-    const [result] = await eslint.lintText(source, { filePath: 'src/value.ts' });
+    const result = await lintIn(await createFunctionsEslintConfig(), 'fns/src/value.ts', source);
     expect(result?.messages.map((m) => m.ruleId)).toContain('@typescript-eslint/no-explicit-any');
   });
 
@@ -138,6 +164,44 @@ describe('presets reject an explicit any', () => {
     });
     for (const filePath of ['next.config.ts', 'vitest.config.js', 'instrumentation.ts']) {
       expect(await eslint.isPathIgnored(filePath)).toBe(false);
+    }
+  });
+});
+
+describe('presets reject an implicit any', () => {
+  const source = [
+    "const parsed = JSON.parse('{}');",
+    'export const count: number = parsed.count;',
+    'export const read = () => parsed.read();',
+    'export const first = (): number => parsed.first;',
+    'Math.max(parsed.value);',
+    '',
+  ].join('\n');
+  const unsafeRules = [
+    '@typescript-eslint/no-unsafe-argument',
+    '@typescript-eslint/no-unsafe-assignment',
+    '@typescript-eslint/no-unsafe-call',
+    '@typescript-eslint/no-unsafe-member-access',
+    '@typescript-eslint/no-unsafe-return',
+  ];
+  const errorsOf = (result: ESLint.LintResult | undefined) =>
+    new Set(result?.messages.filter((m) => m.severity === 2).map((m) => m.ruleId));
+
+  it('the app preset fails every unsafe use of an any value, in source and in a test', async () => {
+    const config = await createAppEslintConfig();
+    for (const filePath of ['app/src/parsed.ts', 'app/src/__tests__/parsed.test.ts']) {
+      const result = await lintIn(config, filePath, source);
+      expect(result?.messages.filter((m) => m.fatal)).toEqual([]);
+      expect([...errorsOf(result)]).toEqual(expect.arrayContaining(unsafeRules));
+    }
+  });
+
+  it('the Functions preset fails every unsafe use of an any value, in source and in a test', async () => {
+    const config = await createFunctionsEslintConfig();
+    for (const filePath of ['fns/src/parsed.ts', 'fns/src/parsed.test.ts']) {
+      const result = await lintIn(config, filePath, source);
+      expect(result?.messages.filter((m) => m.fatal)).toEqual([]);
+      expect([...errorsOf(result)]).toEqual(expect.arrayContaining(unsafeRules));
     }
   });
 });
@@ -162,12 +226,11 @@ describe('createAppEslintConfig accessibility rules', () => {
   ].join('\n');
 
   const lintComponent = async (a11y?: 'error' | 'warn') => {
-    const eslint = new ESLint({
-      cwd: import.meta.dirname,
-      overrideConfigFile: true,
-      overrideConfig: await createAppEslintConfig(a11y ? { a11y } : {}),
-    });
-    const [result] = await eslint.lintText(component, { filePath: 'src/card.tsx' });
+    const result = await lintIn(
+      await createAppEslintConfig(a11y ? { a11y } : {}),
+      'app/src/card.tsx',
+      component,
+    );
     const severityOf = (ruleId: string) =>
       result?.messages.find((message) => message.ruleId === ruleId)?.severity;
     return { result, severityOf };
@@ -223,6 +286,7 @@ describe('createFunctionsEslintConfig', () => {
         languageOptions: { globals: nodeGlobals, sourceType: 'commonjs' },
         rules: { 'no-undef': 'error', 'no-unused-vars': unused },
       },
+      typeAwareNoAny(['**/*.ts']),
       appScoped,
       prettierCompat,
     ]);

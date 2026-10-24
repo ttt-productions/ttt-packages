@@ -132,7 +132,8 @@ this section says what the facts mean, area by area, and never lists them guard 
   root, the package scope and which roots are server or client, the shared fakes and their owners,
   the files that may set a test timeout, each Worker tree's config files and production
   environment, the dependency overrides, the env files and the values in them that are public, the
-  project ids, and the product names no installed generic package may carry.
+  project ids, the product names no installed generic package may carry, and the reviewed files
+  that discard a promise rejection with no reason.
 - **Firestore and Storage** — the app's data package and import aliases, the constants and
   builders that own path assembly, retired segments with their replacements, the indexes file,
   the server-side metadata readers, and loaders for the registry, collection names, and the values

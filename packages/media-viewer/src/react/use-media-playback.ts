@@ -237,6 +237,7 @@ export function useMediaPlayback(
         seekMedia(el, 0);
         lastPositionRef.current = 0;
         setHasEnded(false);
+        // play() rejects when a pause interrupts it or the browser blocks playback; the media then stays paused.
         void el.play().catch(() => {});
       },
       seekTo(seconds: number) {

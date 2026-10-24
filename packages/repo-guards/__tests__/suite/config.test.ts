@@ -161,6 +161,36 @@ describe("the package's own generic guards", () => {
     expect(wrong).toEqual([]);
   });
 
+  it('MUST FAIL — an import alias with no target folder, in every guard that takes import aliases', () => {
+    const aliasFacts = {
+      importPaths: { importAliases: { '@/': undefined } },
+      firestoreWrites: { importAliases: { '@/': undefined } },
+      adminActionSurface: { importAliases: { '@/': undefined } },
+      isolatedRoots: { importAliases: { '@/': undefined } },
+      sharedFakes: { importAliases: { '@/': undefined } },
+      testTimeouts: { importAliases: { '@/': undefined } },
+      partialMocks: {
+        packageRoots: [{ module: 'zod', why: 'w' }],
+        sharedFakes: { importAliases: { '@/': undefined } },
+      },
+    };
+    for (const [id, facts] of Object.entries(aliasFacts)) {
+      const definition = GENERIC_GUARDS.filter((d) => d.id === id);
+      const alias = id === 'partialMocks' ? 'sharedFakes.importAliases' : 'importAliases';
+      expect(
+        configProblems({ layout, generic: { [id]: facts }, business: [] }, definition),
+        id,
+      ).toContain(`generic.${id}: ${alias} @/ needs a target folder`);
+    }
+  });
+
+  it('MUST FAIL — a Firestore write guard with no core package', () => {
+    const definition = GENERIC_GUARDS.filter((d) => d.id === 'firestoreWrites');
+    expect(
+      configProblems({ layout, generic: { firestoreWrites: {} }, business: [] }, definition),
+    ).toContain('generic.firestoreWrites: corePackage is missing');
+  });
+
   it('an empty config names every generic guard as missing', () => {
     const problems = configProblems({ layout, generic: {}, business: [] }, GENERIC_GUARDS);
     for (const { id } of GENERIC_GUARDS)

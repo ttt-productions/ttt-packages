@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi, type Mock } from 'vitest';
 import { getCroppedImg } from '../src/lib/image-utils.js';
 
 function stubImage(width: number, height: number, shouldError = false) {
@@ -27,7 +27,7 @@ function stubImage(width: number, height: number, shouldError = false) {
 
 type FakeCtx = {
   translate: ReturnType<typeof vi.fn>;
-  rotate: ReturnType<typeof vi.fn>;
+  rotate: Mock<(angle: number) => void>;
   scale: ReturnType<typeof vi.fn>;
   drawImage: ReturnType<typeof vi.fn>;
 };
@@ -35,7 +35,7 @@ type FakeCtx = {
 function makeFakeCtx(): FakeCtx {
   return {
     translate: vi.fn(),
-    rotate: vi.fn(),
+    rotate: vi.fn<(angle: number) => void>(),
     scale: vi.fn(),
     drawImage: vi.fn(),
   };

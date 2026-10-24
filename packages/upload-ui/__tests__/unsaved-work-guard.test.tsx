@@ -29,8 +29,8 @@ function fireBeforeUnload() {
   const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
   const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;
   const preventDefault = vi.fn();
-  const event = { preventDefault, returnValue: '' } as unknown as BeforeUnloadEvent;
-  handler(event);
+  const event = { preventDefault, returnValue: '' };
+  handler(event as unknown as BeforeUnloadEvent);
   return { prevented: preventDefault.mock.calls.length > 0, returnValue: event.returnValue };
 }
 

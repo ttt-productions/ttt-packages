@@ -17,6 +17,8 @@ import {
   type TestTimeoutFacts,
 } from '../../modules/repo/test-timeouts.js';
 
+type SlowTestResults = Parameters<typeof runSlowTestReport>[2];
+
 export function unusedIndexMemberReport(layout: RepoLayout, facts: ImportPathFacts): string {
   const report = unusedIndexMembers(createRepoReader(layout), facts);
   if (!report.length)
@@ -49,7 +51,10 @@ export function slowTestReport(
   resultFiles: readonly string[],
   thresholdMs = 1000,
 ): string {
-  const results = resultFiles.map((file) => JSON.parse(fs.readFileSync(file, 'utf8')));
+  const results = resultFiles.map(
+    // Each file is the test runner's JSON reporter output, which carries this shape.
+    (file) => JSON.parse(fs.readFileSync(file, 'utf8')) as SlowTestResults[number],
+  );
   const slow = runSlowTestReport(createRepoReader(layout), facts, results, thresholdMs);
   if (!slow.length)
     return `slow tests: none — every case at or over ${thresholdMs} ms names a timeout budget.`;

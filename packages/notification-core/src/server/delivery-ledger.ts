@@ -191,7 +191,8 @@ export function createDeliveryLedger(
       const deliveryId = rows[i].deliveryId;
       if (s.status === 'fulfilled') return s.value;
       if (isAlreadyExists(s.reason)) return { deliveryId, outcome: 'duplicate' };
-      return { deliveryId, outcome: 'failed', error: s.reason };
+      const error: unknown = s.reason;
+      return { deliveryId, outcome: 'failed', error };
     });
     return { results, allResolved: results.every((r) => r.outcome !== 'failed') };
   }

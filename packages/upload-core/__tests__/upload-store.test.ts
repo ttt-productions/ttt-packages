@@ -112,7 +112,7 @@ describe('upload-store', () => {
 
   it('subscribeUploadSession fires callback immediately with current state', async () => {
     store.upsertUploadSession({ id: 'sub', status: 'idle', path: '' });
-    const cb = vi.fn();
+    const cb = vi.fn<Parameters<typeof store.subscribeUploadSession>[1]>();
     const unsub = store.subscribeUploadSession('sub', cb);
     expect(cb).toHaveBeenCalledTimes(1);
     expect(cb.mock.calls[0][0].id).toBe('sub');

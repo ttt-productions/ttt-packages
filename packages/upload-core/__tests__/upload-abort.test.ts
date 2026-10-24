@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import type { FirebaseStorage } from 'firebase/storage';
+import type { upsertUploadSession } from '../src/utils/upload-store.js';
 
 // Mocks must precede the component imports.
 
-const upsertUploadSessionMock = vi.fn();
+const upsertUploadSessionMock = vi.fn<typeof upsertUploadSession>();
 vi.mock('../src/utils/upload-store.js', () => ({
-  upsertUploadSession: (s: unknown) => upsertUploadSessionMock(s),
+  upsertUploadSession: (...args: Parameters<typeof upsertUploadSession>) =>
+    upsertUploadSessionMock(...args),
 }));
 
 const getDownloadURLMock = vi.hoisted(() => vi.fn(async () => 'https://example.com/test.jpg'));
@@ -125,6 +127,7 @@ describe('startResumableUpload — abort behavior', () => {
   it('classifies AbortError as canceled in the upload-store', async () => {
     const controller = new AbortController();
     const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
+    // done rejects with the failure; the case reads the upload-store instead.
     c.done.catch(() => {});
 
     await lastObservers.error!(new DOMException('aborted', 'AbortError'));
@@ -137,6 +140,7 @@ describe('startResumableUpload — abort behavior', () => {
   it('classifies non-Abort errors as error in the upload-store', async () => {
     const controller = new AbortController();
     const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
+    // done rejects with the failure; the case reads the upload-store instead.
     c.done.catch(() => {});
 
     await lastObservers.error!(new Error('network failure'));

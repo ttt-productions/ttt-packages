@@ -51,7 +51,7 @@ describe('getSportAdapter', () => {
     ['an empty string', ''],
     ['a number', 42],
     ['an object', { leagueType: 'Basketball' }],
-    ['an object with no prototype', Object.create(null)],
+    ['an object with no prototype', Object.create(null) as object],
   ])('throws UnknownSportError for %s, with no default sport', (_case, value) => {
     expect(() => getSportAdapter(value)).toThrow(UnknownSportError);
     try {

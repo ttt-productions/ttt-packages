@@ -110,6 +110,7 @@ export function AudioPlayerChrome({
     const ctx = audioCtxRef.current;
     audioCtxRef.current = null;
     if (ctx && ctx.state !== 'closed') {
+      // Closing a context the browser is already closing rejects; the context is released either way.
       ctx.close().catch(() => {});
     }
   }, [stopLoop]);
@@ -119,6 +120,7 @@ export function AudioPlayerChrome({
       try {
         if (sourceElRef.current === el && audioCtxRef.current) {
           if (audioCtxRef.current.state === 'suspended') {
+            // resume() rejects once the context is closed; the visualizer then stays idle and playback is unaffected.
             audioCtxRef.current.resume().catch(() => {});
           }
           return;
@@ -140,6 +142,7 @@ export function AudioPlayerChrome({
         sourceElRef.current = el;
         analyserRef.current = analyser;
         if (ctx.state === 'suspended') {
+          // resume() rejects once the context is closed; the visualizer then stays idle and playback is unaffected.
           ctx.resume().catch(() => {});
         }
       } catch {
@@ -254,6 +257,7 @@ export function AudioPlayerChrome({
   const togglePlay = () => {
     const el = audioRef.current;
     if (!el) return;
+    // play() rejects when a pause interrupts it or the browser blocks playback; the media then stays paused.
     if (el.paused) void el.play().catch(() => {});
     else el.pause();
   };

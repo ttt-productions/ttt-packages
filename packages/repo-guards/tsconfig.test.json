@@ -8,6 +8,6 @@
     "outDir": "node_modules/.cache/tsc-test",
     "tsBuildInfoFile": "node_modules/.cache/tsc-test/tsconfig.test.tsbuildinfo"
   },
-  "include": ["src", "__tests__", "../../test/timeouts.ts"],
+  "include": ["src", "__tests__", "vitest.config.ts", "../../test/timeouts.ts"],
   "exclude": ["node_modules", "dist"]
 }

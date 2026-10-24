@@ -47,6 +47,7 @@ import {
   STAT_VOID_EVENT_TYPE,
   TEAM_STAT_LINE_KIND_KEYS,
 } from '../src/types/stats.js';
+import { anyInstanceOf } from '../../../test/matchers.js';
 
 const NOW = 1712345678901;
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;
@@ -661,7 +662,7 @@ describe('display — every play has a line, and every refusal has copy', () => 
     ).toEqual([curling]);
     expect(curling.display.rounds).toEqual({
       count: CURLING_ROUND_COUNT,
-      label: expect.any(String),
+      label: anyInstanceOf(String),
     });
   });
 

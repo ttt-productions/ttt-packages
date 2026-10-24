@@ -21,7 +21,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-ENG-006 | The backend is the security boundary | codebase-hygiene 23, 53, 77, 99, 101, 107; auth-boundary 8, 9, 12, 13; callable-functions 11, 12, 13; client-write-security-audit 2, 11; firestore-storage-rules 4, 5, 11; migration 7; testing-coverage 3 | `localOnlyVariables`, `envPublicValues` |
 | RULE-STD-ENG-007 | Behavior, tests, and documentation move together | testing-coverage 2, 7 | — |
 | RULE-STD-ENG-008 | Surface discovered problems | codebase-hygiene 25, 27, 73 | — |
-| RULE-STD-ENG-009 | Fail truthfully and visibly | codebase-hygiene 60, 75, 83, 87, 88, 90; async-workflow 7; auth-boundary 14; callable-functions 9; data-integrity 13; migration 9; observability 3, 4, 6, 7, 8, 10; performance-audit 3; testing-coverage 11; ux-audit 11 | — |
+| RULE-STD-ENG-009 | Fail truthfully and visibly | codebase-hygiene 60, 75, 83, 87, 88, 90, 122; async-workflow 7; auth-boundary 14; callable-functions 9; data-integrity 13; migration 9; observability 3, 4, 6, 7, 8, 10; performance-audit 3; testing-coverage 11; ux-audit 11 | `swallowedRejections` |
 | RULE-STD-ENG-010 | Spawned agents inherit the rules | codebase-hygiene 69 — Designated manual review (step 69): verified on the spawning prompt, never by a search of the repo. | — |
 | RULE-STD-ENG-011 | Once data is live, persisted shapes change with a migration path | client-write-security-audit 8; data-integrity 7; migration 3, 5 | — |
 
@@ -159,7 +159,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-QUALITY-003 | E2E is green only at zero failures AND zero retry-passes | testing-coverage 1, 6 | — |
 | RULE-STD-QUALITY-004 | E2E tests use the established fixtures and web-first assertions | codebase-hygiene 28; migration 10; testing-coverage 6, 8, 10 | — |
 | RULE-STD-QUALITY-006 | Lint and format: zero suppression in apps, reasoned disables in packages; one enforced format | codebase-hygiene 73; package-boundaries 7 | — |
-| RULE-STD-QUALITY-007 | Guard tests enforce ownership and boundaries, never inventories | codebase-hygiene 35, 42, 63, 80, 83, 87, 88, 90, 91, 95, 96, 117, 118, 119, 120 | — |
+| RULE-STD-QUALITY-007 | Guard tests enforce ownership and boundaries, never inventories | codebase-hygiene 35, 42, 63, 80, 83, 87, 88, 90, 91, 95, 96, 117, 118, 119, 120, 122 | — |
 | RULE-STD-QUALITY-008 | Rules and E2E run against a fresh dev:e2e | codebase-hygiene 29; dependency-audit 3; firestore-storage-rules 10; testing-coverage 1, 9 | — |
 | RULE-STD-QUALITY-009 | A test loads the code it tests when its file loads | codebase-hygiene 42, 118; package-boundaries 8 | `testCaseModuleLoads` |
 | RULE-STD-QUALITY-010 | A test's time limit names a budget | codebase-hygiene 119; package-boundaries 10 | `testTimeouts` |
@@ -180,7 +180,7 @@ rule's coverage in its additions; they are not listed here.
 
 | Rule | Title | Audited by (shared steps) | Guards |
 |---|---|---|---|
-| RULE-STD-COMMENT-001 | No comment unless the code cannot say it | codebase-hygiene 89 | — |
+| RULE-STD-COMMENT-001 | No comment unless the code cannot say it | codebase-hygiene 89, 122 | `swallowedRejections` |
 | RULE-STD-COMMENT-002 | No dates | codebase-hygiene 89 | — |
 | RULE-STD-COMMENT-003 | No line numbers | codebase-hygiene 89 | — |
 | RULE-STD-COMMENT-004 | No ticket names or work labels | codebase-hygiene 89 | — |

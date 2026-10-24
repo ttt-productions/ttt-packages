@@ -2,13 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import type { FirebaseStorage } from 'firebase/storage';
+import type { uploadFileResumable } from '@ttt-productions/upload-core/browser';
+import type { UploadFileResumableResult } from '@ttt-productions/upload-core';
+import type { UploadState } from '@ttt-productions/media-schemas';
 
 // Mocks must precede the component imports.
 
-const uploadFileResumableMock = vi.fn();
+const uploadFileResumableMock = vi.fn<typeof uploadFileResumable>();
+const UPLOADED: UploadFileResumableResult = {
+  fullPath: 'uploads/a',
+  contentType: 'image/jpeg',
+  size: 1,
+};
 
 vi.mock('@ttt-productions/upload-core/browser', () => ({
-  uploadFileResumable: (args: unknown) => uploadFileResumableMock(args),
+  uploadFileResumable: (...args: Parameters<typeof uploadFileResumable>) =>
+    uploadFileResumableMock(...args),
 }));
 
 import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
@@ -35,7 +44,7 @@ describe('useGuardedUpload — AbortSignal threading', () => {
   });
 
   it('passes signal through to uploadFileResumable', async () => {
-    uploadFileResumableMock.mockResolvedValueOnce(undefined);
+    uploadFileResumableMock.mockResolvedValueOnce(UPLOADED);
     const controller = new AbortController();
     const { result } = renderHook(() => useGuardedUpload(), { wrapper });
 
@@ -64,7 +73,7 @@ describe('useGuardedUpload — AbortSignal threading', () => {
   it('reports preparing phase before uploadFileResumable is called, never reports finalizing on abort', async () => {
     const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' });
     uploadFileResumableMock.mockRejectedValueOnce(abortErr);
-    const onProgress = vi.fn();
+    const onProgress = vi.fn<(state: UploadState | null) => void>();
     const controller = new AbortController();
     const { result } = renderHook(() => useGuardedUpload(), { wrapper });
 
@@ -80,8 +89,8 @@ describe('useGuardedUpload — AbortSignal threading', () => {
   });
 
   it('still reports finalizing on successful upload (signal present but never aborted)', async () => {
-    uploadFileResumableMock.mockResolvedValueOnce(undefined);
-    const onProgress = vi.fn();
+    uploadFileResumableMock.mockResolvedValueOnce(UPLOADED);
+    const onProgress = vi.fn<(state: UploadState | null) => void>();
     const controller = new AbortController();
     const { result } = renderHook(() => useGuardedUpload(), { wrapper });
 
@@ -95,7 +104,7 @@ describe('useGuardedUpload — AbortSignal threading', () => {
   });
 
   it('works without a signal', async () => {
-    uploadFileResumableMock.mockResolvedValueOnce(undefined);
+    uploadFileResumableMock.mockResolvedValueOnce(UPLOADED);
     const { result } = renderHook(() => useGuardedUpload(), { wrapper });
 
     await act(async () => {

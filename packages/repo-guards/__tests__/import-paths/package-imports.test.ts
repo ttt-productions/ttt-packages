@@ -351,6 +351,22 @@ describe('runtime import cycles inside a package', () => {
     expect(await runCycles(files)).toEqual([]);
   });
 
+  it.each([
+    ['a statement label', 'a: for (const x of [1]) void x;'],
+    ['a break label', 'a: for (const x of [1]) { if (x) break a; }'],
+    ['a continue label', 'a: for (const x of [1]) { if (x) continue a; }'],
+  ])(
+    'pass a cycle closed by an import whose name appears only as %s, which reads no value',
+    async (_form, labelled) => {
+      const files = {
+        ...CLEAN,
+        'src/a.ts': "import { b } from './b.js';\nexport const a = () => b;",
+        'src/b.ts': `import { a } from './a.js';\nexport type UsesA = typeof a;\nexport const b = () => {\n  ${labelled}\n};`,
+      };
+      expect(await runCycles(files)).toEqual([]);
+    },
+  );
+
   it('pass a cycle closed only by a lazy import(), which never runs while a module evaluates', async () => {
     const files = {
       ...CLEAN,

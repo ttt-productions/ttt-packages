@@ -196,6 +196,7 @@ export async function processAudio(
   } finally {
     if (tempFiles.length) {
       const { rm } = await import('node:fs/promises');
+      // A temp file that cannot be removed stays in the OS temp folder; the result does not depend on it.
       await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
     }
   }

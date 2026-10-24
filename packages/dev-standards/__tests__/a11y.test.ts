@@ -170,6 +170,7 @@ describe('checkAccessibility', () => {
   it('clears the reduced-motion emulation when the reduced-motion scan throws', async () => {
     axe.scans = [{ violations: [] }, { violations: [] }];
     const analyze = Promise.reject(new Error('axe crashed'));
+    // The scan rejects with this promise later; marking it handled now keeps it from surfacing as unhandled.
     analyze.catch(() => {});
     axe.scans.push(analyze as never);
 

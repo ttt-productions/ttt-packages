@@ -1,5 +1,11 @@
 export type Loader<T> = () => T | Promise<T>;
 
+// Array.isArray narrows to any[], which drops the element type a facts list declares.
+export const isList = <T>(
+  value: T,
+): value is unknown extends T ? T & readonly unknown[] : Extract<T, readonly unknown[]> =>
+  Array.isArray(value);
+
 export const isText = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
 
@@ -24,6 +30,12 @@ export function objectProblem(
     return false;
   }
   return true;
+}
+
+export function importAliasesProblem(value: unknown, what: string, problems: string[]): void {
+  if (!objectProblem(value, what, problems)) return;
+  for (const [prefix, folder] of Object.entries(value))
+    if (!prefix || !isText(folder)) problems.push(`${what} ${prefix} needs a target folder`);
 }
 
 export function loaderProblem(value: unknown, what: string, problems: string[]): void {

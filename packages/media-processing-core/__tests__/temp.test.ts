@@ -8,6 +8,7 @@ const workspaces: Array<{ cleanup: () => Promise<void> }> = [];
 
 afterEach(async () => {
   for (const ws of workspaces) {
+    // A workspace a case already removed rejects its cleanup; no case reads it again.
     await ws.cleanup().catch(() => {});
   }
   workspaces.length = 0;

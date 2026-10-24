@@ -23,24 +23,27 @@ export function useCheckedOutTasks(userId: string | undefined) {
       : [],
     enabled: !!userId,
     subscribe: true,
-    select: (data) =>
-      ({
-        id: data.id,
-        taskType: data.taskType,
-        taskId: data.taskId,
-        originalPath: data.originalPath,
-        status: data.status,
+    select: (data): CheckedOutTask => {
+      // Firestore types every document field as any; a checked-out task document has this shape.
+      const task = data as CheckedOutTask;
+      return {
+        id: task.id,
+        taskType: task.taskType,
+        taskId: task.taskId,
+        originalPath: task.originalPath,
+        status: task.status,
         checkoutDetails: {
-          userId: data.checkoutDetails.userId,
-          checkedOutAt: data.checkoutDetails.checkedOutAt,
-          expiresAt: data.checkoutDetails.expiresAt,
-          workLaterUntil: data.checkoutDetails.workLaterUntil ?? null,
+          userId: task.checkoutDetails.userId,
+          checkedOutAt: task.checkoutDetails.checkedOutAt,
+          expiresAt: task.checkoutDetails.expiresAt,
+          workLaterUntil: task.checkoutDetails.workLaterUntil ?? null,
         },
-        summary: data.summary,
-        priority: data.priority,
-        createdAt: data.createdAt,
-        lastUpdatedAt: data.lastUpdatedAt,
-      }) as CheckedOutTask,
+        summary: task.summary,
+        priority: task.priority,
+        createdAt: task.createdAt,
+        lastUpdatedAt: task.lastUpdatedAt,
+      };
+    },
   });
   return { ...live, retryState: useReadRetryState(live, queryKey) };
 }

@@ -4,13 +4,14 @@ import type { RepoReader } from '../../node/reader.js';
 import { withSharedSource, type RootRole } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import {
+  importAliasesProblem,
   listProblem,
+  type Loader,
   loaderProblem,
   namesProblem,
   objectProblem,
   reviewedProblems,
   textProblem,
-  type Loader,
 } from '../../support/facts.js';
 import {
   analyzeFiles,
@@ -123,7 +124,7 @@ export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     textProblem(facts?.corePackage, 'corePackage', problems);
-    objectProblem(facts?.importAliases, 'importAliases', problems);
+    importAliasesProblem(facts?.importAliases, 'importAliases', problems);
     namesProblem(facts?.transactionTypeNames, 'transactionTypeNames', problems, {
       nonEmpty: false,
     });

@@ -37,17 +37,21 @@ function mapMsg(
   }
 
   const appMeta = messageMeta?.(data);
+  // Firestore types every document field as any; a stored message carries these message fields.
+  const stored = data as Omit<ChatMessageV1, 'messageId' | 'threadId' | 'createdAt'> & {
+    id: string;
+  };
   return {
     messageId: data.id,
     threadId,
     createdAt: createdAt || 0,
-    senderId: data.senderId,
-    text: data.text ?? '',
-    type: data.type,
-    isSystemMessage: data.isSystemMessage ?? undefined,
-    referencedUids: Array.isArray(data.referencedUids) ? data.referencedUids : undefined,
-    hidden: data.hidden ?? undefined,
-    meta: appMeta ? { ...data.meta, ...appMeta } : data.meta,
+    senderId: stored.senderId,
+    text: stored.text ?? '',
+    type: stored.type,
+    isSystemMessage: stored.isSystemMessage ?? undefined,
+    referencedUids: Array.isArray(stored.referencedUids) ? stored.referencedUids : undefined,
+    hidden: stored.hidden ?? undefined,
+    meta: appMeta ? { ...stored.meta, ...appMeta } : stored.meta,
   };
 }
 

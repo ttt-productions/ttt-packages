@@ -112,7 +112,8 @@ export function useBatchFirestoreDocs<T extends DocumentData>({
   const idsKey = JSON.stringify(ids);
 
   const uniqueIds = useMemo(() => {
-    const parsed: string[] = JSON.parse(idsKey);
+    // idsKey is this hook's own serialization of the ids list.
+    const parsed = JSON.parse(idsKey) as string[];
     return Array.from(new Set(parsed.filter(Boolean)));
   }, [idsKey]);
 

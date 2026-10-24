@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   classifyBootLookupFailure,
   runGuardedBootLookup,
+  type BootLookupFailureClass,
   type BootLookupResponse,
 } from '../src/client/auth-boot-lookup-guard.js';
 
@@ -64,7 +65,7 @@ describe('runGuardedBootLookup', () => {
   it('IDENTITY failure: returns the response untouched so the SDK purges — no retry', async () => {
     const response = errorResponse(400, INVALID_ID_TOKEN);
     const attempt = vi.fn(async () => response);
-    const onFailure = vi.fn();
+    const onFailure = vi.fn<(failureClass: BootLookupFailureClass) => void>();
 
     await expect(
       runGuardedBootLookup({ attempt, sleep: instantSleep, onFailure, delaysMs: [1, 2] }),
@@ -114,7 +115,7 @@ describe('runGuardedBootLookup', () => {
       .fn<() => Promise<BootLookupResponse>>()
       .mockResolvedValueOnce(errorResponse(401, APP_CHECK_401))
       .mockResolvedValueOnce(identity);
-    const onFailure = vi.fn();
+    const onFailure = vi.fn<(failureClass: BootLookupFailureClass) => void>();
 
     await expect(
       runGuardedBootLookup({ attempt, sleep: instantSleep, onFailure, delaysMs: [10, 20] }),
@@ -130,7 +131,7 @@ describe('runGuardedBootLookup', () => {
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValueOnce(okResponse);
     const refreshAttestation = vi.fn(async () => undefined);
-    const onFailure = vi.fn();
+    const onFailure = vi.fn<(failureClass: BootLookupFailureClass) => void>();
 
     await expect(
       runGuardedBootLookup({
@@ -175,7 +176,7 @@ describe('runGuardedBootLookup', () => {
 
   it('a successful lookup returns immediately with no classification', async () => {
     const attempt = vi.fn(async () => okResponse);
-    const onFailure = vi.fn();
+    const onFailure = vi.fn<(failureClass: BootLookupFailureClass) => void>();
 
     await expect(runGuardedBootLookup({ attempt, sleep: instantSleep, onFailure })).resolves.toBe(
       okResponse,

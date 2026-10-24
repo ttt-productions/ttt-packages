@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
 import { SentryAdapter } from '../src/adapters/sentry.js';
 import { initMonitoring, __resetMonitoring } from '../src/init.js';
@@ -12,7 +12,7 @@ vi.mock('@sentry/nextjs', () => {
 });
 
 describe('a Sentry SDK that fails to load', () => {
-  let consoleError: ReturnType<typeof vi.spyOn>;
+  let consoleError: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     __resetMonitoring();
@@ -36,7 +36,7 @@ describe('a Sentry SDK that fails to load', () => {
       adapter.addBreadcrumb!({ message: 'crumb' });
       await vi.waitFor(() => expect(consoleError).toHaveBeenCalledTimes(5));
 
-      const reported = consoleError.mock.calls.map((call: unknown[]) => String(call[0]));
+      const reported = consoleError.mock.calls.map((call) => String(call[0]));
       for (const operation of [
         'captureException',
         'captureMessage',

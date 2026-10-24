@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { ThemeProvider, useThemeStorageKey } from '../src/react/theme-provider.js';
 import { REQUIRED_TOKENS } from '../src/required-tokens.js';
@@ -72,7 +72,7 @@ function clearTokens() {
 }
 
 describe('ThemeProvider dev-mode token warner', () => {
-  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: MockInstance<typeof console.warn>;
 
   beforeEach(() => {
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

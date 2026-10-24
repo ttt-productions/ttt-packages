@@ -5,7 +5,7 @@ import type { Scope } from '../../node/reader.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
-import { namesProblem, reviewedProblems, takesNoFacts } from '../../support/facts.js';
+import { namesProblem, reviewedProblems, takesNoFacts, isList } from '../../support/facts.js';
 import { escapeRegExp } from '../../support/text.js';
 import {
   bannedGuard,
@@ -287,7 +287,7 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
         typeof e.contains === 'string' && e.contains ? `${e.file} ${e.contains}` : undefined,
       idNames: 'text it contains',
     });
-    if (!Array.isArray(facts?.segments) || !facts.segments.length)
+    if (!isList(facts?.segments) || !facts.segments.length)
       return [...problems, 'segments is empty (declare the guard absent instead)'];
     const names = facts.segments.map((s) => s?.name);
     for (const s of facts.segments) {

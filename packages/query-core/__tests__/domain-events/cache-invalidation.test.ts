@@ -264,6 +264,7 @@ describe('applyInvalidations — pending initial read (stale-response protection
       const nextRead = deferred<string>();
       const queryFn = sequencedQueryFn([staleRead, nextRead]);
 
+      // The invalidation supersedes this fetch; its own outcome is not what the case proves.
       void client.fetchQuery({ queryKey: key, queryFn, retry: false }).catch(() => {});
       expect(queryFn).toHaveBeenCalledTimes(1);
       expect(client.getQueryState(key)?.fetchStatus).toBe('fetching');

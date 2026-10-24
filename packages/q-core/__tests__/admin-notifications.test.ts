@@ -58,6 +58,7 @@ import {
   leagueTeamHref,
   LEAGUE_FREE_AGENTS_SECTION,
 } from '../src/utils/app-routes.js';
+import { anyInstanceOf } from '../../../test/matchers.js';
 
 const NOW = 1_760_000_000_000;
 const REQUEST_ID = '2f1c0a3e-8b1d-4c6f-9a2e-5d7b3c1e9f00';
@@ -160,7 +161,7 @@ describe('where the admin notification documents live', () => {
     const category = NOTIFICATION_SYSTEM_CONFIG.categories[ADMIN_NOTIFICATION_CATEGORY];
     expect(category).toEqual({
       activePath: COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS,
-      historyPath: expect.any(Function),
+      historyPath: anyInstanceOf(Function),
       audienceType: 'shared',
     });
     expect(category?.historyPath()).toBe(COLLECTIONS.ADMIN_NOTIFICATION_HISTORY);

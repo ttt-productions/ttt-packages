@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render } from '@testing-library/react';
 import type { ChatCoreConfig } from '../src/types.js';
 import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
@@ -44,7 +44,7 @@ const config = (allowed = true): ChatCoreConfig => ({
   },
 });
 
-const lastReadiness = (spy: ReturnType<typeof vi.fn>) => spy.mock.calls.at(-1)?.[0];
+const lastReadiness = (spy: Mock<(ready: boolean) => void>) => spy.mock.calls.at(-1)?.[0];
 
 beforeEach(() => {
   mockRealtimeResult.current = result({});
@@ -59,7 +59,7 @@ describe('ChatShell — onReadinessChange', () => {
     ['denied by the grant', { allowed: false, isSynced: false }],
   ])('is not ready while %s', (_case, overrides) => {
     mockRealtimeResult.current = result(overrides);
-    const onReadinessChange = vi.fn();
+    const onReadinessChange = vi.fn<(ready: boolean) => void>();
     render(
       <ChatShell
         config={config()}
@@ -71,7 +71,7 @@ describe('ChatShell — onReadinessChange', () => {
   });
 
   it('is not ready when the app has not allowed the conversation', () => {
-    const onReadinessChange = vi.fn();
+    const onReadinessChange = vi.fn<(ready: boolean) => void>();
     render(
       <ChatShell
         config={config(false)}
@@ -83,7 +83,7 @@ describe('ChatShell — onReadinessChange', () => {
   });
 
   it('is ready once loaded and current — an empty conversation included — and not ready again after a drop', () => {
-    const onReadinessChange = vi.fn();
+    const onReadinessChange = vi.fn<(ready: boolean) => void>();
     const view = render(
       <ChatShell
         config={config()}
@@ -105,7 +105,7 @@ describe('ChatShell — onReadinessChange', () => {
   });
 
   it('reports not ready when the shell goes away', () => {
-    const onReadinessChange = vi.fn();
+    const onReadinessChange = vi.fn<(ready: boolean) => void>();
     const view = render(
       <ChatShell
         config={config()}

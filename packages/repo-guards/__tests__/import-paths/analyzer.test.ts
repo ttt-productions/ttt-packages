@@ -37,9 +37,8 @@ describe('createImportPathProfile', () => {
     expect(() => createImportPathProfile({ exceptions: [e, e] })).toThrow(/twice/);
   });
 
-  it('refuses an alias with no target folder', () => {
-    // @ts-expect-error the alias has no target folder to prove the runtime refusal
-    expect(() => createImportPathProfile({ importAliases: { '@/': undefined } })).toThrow(/target/);
+  it('refuses an alias with an empty prefix', () => {
+    expect(() => createImportPathProfile({ importAliases: { '': 'src' } })).toThrow(/prefix/);
   });
 });
 

@@ -22,7 +22,9 @@ const ids = (count: number) => Array.from({ length: count }, (_, i) => `upload-$
 
 describe('useMarkUploadActivitySeen', () => {
   it('marks every id in calls no larger than the app cap, in order', async () => {
-    const markFn = vi.fn().mockResolvedValue(undefined);
+    const markFn = vi
+      .fn<(pendingMediaIds: string[]) => Promise<void>>()
+      .mockResolvedValue(undefined);
     const { result } = renderHook(() => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 200 }), {
       wrapper: makeWrapper(),
     });
@@ -33,7 +35,9 @@ describe('useMarkUploadActivitySeen', () => {
   });
 
   it('sends a set within the cap as one call', async () => {
-    const markFn = vi.fn().mockResolvedValue(undefined);
+    const markFn = vi
+      .fn<(pendingMediaIds: string[]) => Promise<void>>()
+      .mockResolvedValue(undefined);
     const { result } = renderHook(() => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 200 }), {
       wrapper: makeWrapper(),
     });
@@ -42,7 +46,9 @@ describe('useMarkUploadActivitySeen', () => {
   });
 
   it('makes no call for an empty set', async () => {
-    const markFn = vi.fn().mockResolvedValue(undefined);
+    const markFn = vi
+      .fn<(pendingMediaIds: string[]) => Promise<void>>()
+      .mockResolvedValue(undefined);
     const { result } = renderHook(() => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 200 }), {
       wrapper: makeWrapper(),
     });
@@ -52,7 +58,7 @@ describe('useMarkUploadActivitySeen', () => {
 
   it('a failed call leaves only its own ids unmarked: the rest are still sent, and the mutation fails naming them', async () => {
     const refused = new Error('refused');
-    const markFn = vi.fn().mockImplementation(async (batch: string[]) => {
+    const markFn = vi.fn(async (batch: string[]) => {
       if (batch[0] === 'upload-3') throw refused;
     });
     const onError = vi.fn();
@@ -64,7 +70,7 @@ describe('useMarkUploadActivitySeen', () => {
     );
     let failure: unknown;
     await act(async () => {
-      failure = await result.current.mutateAsync(ids(5)).catch((err) => err);
+      failure = await result.current.mutateAsync(ids(5)).catch((err: unknown) => err);
     });
     expect(markFn.mock.calls.map(([batch]) => batch)).toEqual([
       ['upload-1', 'upload-2'],
@@ -78,7 +84,9 @@ describe('useMarkUploadActivitySeen', () => {
   });
 
   it('refuses a cap that is not a positive whole number, sending nothing', async () => {
-    const markFn = vi.fn().mockResolvedValue(undefined);
+    const markFn = vi
+      .fn<(pendingMediaIds: string[]) => Promise<void>>()
+      .mockResolvedValue(undefined);
     const { result } = renderHook(() => useMarkUploadActivitySeen({ markFn, maxIdsPerCall: 0 }), {
       wrapper: makeWrapper(),
     });

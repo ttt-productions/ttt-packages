@@ -7,6 +7,7 @@ import type { FileView } from '../../reader/view.js';
 import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import {
+  importAliasesProblem,
   isText,
   namesProblem,
   objectProblem,
@@ -615,7 +616,7 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
     namesProblem(facts?.claimKeys, 'claimKeys', problems);
     namesProblem(facts?.adminHooks, 'adminHooks', problems, { nonEmpty: false });
     adminAreaProblems(facts, problems);
-    objectProblem(facts?.importAliases, 'importAliases', problems);
+    importAliasesProblem(facts?.importAliases, 'importAliases', problems);
     serverZoneProblems(facts?.appServerZone, 'appServerZone', problems);
     return problems;
   },

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { withRetryState } from './read-retry-state.js';
+import { withRetryState, type MockedRead } from './read-retry-state.js';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
-  useNotificationHistory: vi.fn(),
+  useNotificationHistory: vi.fn<(...args: unknown[]) => MockedRead>(),
 }));
 
 vi.mock('../src/react/hooks/useNotificationHistory.js', () => ({

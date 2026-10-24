@@ -252,10 +252,10 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { adminUserIds: ['admin1'] },
     });
 
-    const error = await handler({}, { uid: 'admin1', token: null }).catch((e) => e);
-    expect(error).toBeInstanceOf(ReportCoreTaskError);
-    expect(error.code).toBe('not-found');
-    expect(error.message).toContain('No pending tasks available');
+    const refusal = handler({}, { uid: 'admin1', token: null });
+    await expect(refusal).rejects.toBeInstanceOf(ReportCoreTaskError);
+    await expect(refusal).rejects.toHaveProperty('code', 'not-found');
+    await expect(refusal).rejects.toThrow('No pending tasks available');
   });
 
   it('returns task data on success', async () => {
@@ -659,10 +659,10 @@ describe('createCheckoutNextImportantHandler — the app claim guard', () => {
       assertTaskClaimable: refuseInFlight,
     });
 
-    const error = await handler({}, { uid: 'admin1', token: null }).catch((e) => e);
+    const refusal = handler({}, { uid: 'admin1', token: null });
 
-    expect(error).toBeInstanceOf(ReportCoreTaskError);
-    expect(error.code).toBe('not-found');
+    await expect(refusal).rejects.toBeInstanceOf(ReportCoreTaskError);
+    await expect(refusal).rejects.toHaveProperty('code', 'not-found');
     expect(updates).toHaveLength(0);
   });
 });

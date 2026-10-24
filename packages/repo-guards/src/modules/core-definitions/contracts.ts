@@ -4,7 +4,7 @@ import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { ROOT_ROLES, type RootRole } from '../../node/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { lineOfNode } from '../../support/ast.js';
-import { namesProblem, textProblem } from '../../support/facts.js';
+import { namesProblem, textProblem, isList } from '../../support/facts.js';
 import { moduleImports } from '../../support/imports.js';
 import { escapeRegExp } from '../../support/text.js';
 import { APP_SOURCE } from './shared.js';
@@ -136,7 +136,7 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
     const problems: string[] = [];
     textProblem(facts?.corePackage, 'corePackage', problems);
     namesProblem(facts?.backendRoots, 'backendRoots', problems);
-    for (const role of Array.isArray(facts?.backendRoots) ? facts.backendRoots : []) {
+    for (const role of isList(facts?.backendRoots) ? facts.backendRoots : []) {
       if (!ROOT_ROLES.includes(role) || role === 'coreDist')
         problems.push(`backendRoots names ${String(role)}, which is no source root role`);
     }

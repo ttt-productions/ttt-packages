@@ -11,6 +11,7 @@ import {
   pathProblem,
   reviewedProblems,
   textProblem,
+  isList,
 } from '../../support/facts.js';
 import { isUnder } from '../../support/text.js';
 import { cssBlocks, selectorsOf, splitTopLevel } from './css.js';
@@ -124,7 +125,7 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.trees) || !facts.trees.length) problems.push('trees is missing');
+    if (!isList(facts?.trees) || !facts.trees.length) problems.push('trees is missing');
     else facts.trees.forEach((t, i) => pathProblem(t, `trees[${i}]`, problems));
     textProblem(facts?.sharedClass, 'sharedClass', problems);
     if (isText(facts?.sharedClass) && isTruncationToken(facts.sharedClass))
@@ -134,7 +135,7 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
       nonEmpty: true,
     });
     if (
-      Array.isArray(facts?.clampOwners) &&
+      isList(facts?.clampOwners) &&
       isText(facts?.sharedClass) &&
       !facts.clampOwners.some((o) => squash(String(o?.selector)) === `.${facts.sharedClass}`)
     )

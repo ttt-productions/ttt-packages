@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
 import { SentryAdapter } from '../src/adapters/sentry.js';
 import { __resetSentryAdapter } from '../src/adapters/create-sentry-adapter.js';
@@ -30,7 +30,7 @@ vi.mock('@sentry/nextjs', () => ({
 const DSN = 'https://test@example.com/1';
 
 describe('a Sentry SDK that loads but cannot take the call', () => {
-  let consoleError: ReturnType<typeof vi.spyOn>;
+  let consoleError: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     __resetSentryAdapter(SentryNodeAdapter);
@@ -60,7 +60,7 @@ describe('a Sentry SDK that loads but cannot take the call', () => {
     SentryNodeAdapter.setTag('k', 'v');
 
     await vi.waitFor(() => expect(consoleError).toHaveBeenCalledTimes(2));
-    const reported = consoleError.mock.calls.map((call: unknown[]) => String(call[0]));
+    const reported = consoleError.mock.calls.map((call) => String(call[0]));
     expect(reported).toEqual([
       '[monitoring-core] captureMessage was not delivered: the monitoring SDK failed to initialize',
       '[monitoring-core] setTag was not delivered: the monitoring SDK failed to initialize',

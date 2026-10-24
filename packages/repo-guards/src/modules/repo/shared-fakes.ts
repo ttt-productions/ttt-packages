@@ -5,7 +5,7 @@ import type { RepoReader, Scope } from '../../node/reader.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, lineOfNode, unwrap } from '../../support/ast.js';
-import { isText, objectProblem, pathProblem } from '../../support/facts.js';
+import { importAliasesProblem, isText, objectProblem, pathProblem } from '../../support/facts.js';
 import { aliasList, isLocalModule, resolveSpecifier } from '../../support/resolve-specifier.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
@@ -216,10 +216,7 @@ function checkHelpers(reader: RepoReader, facts: SharedFakeFacts, files: FileVie
 function factProblems(facts: SharedFakeFacts): string[] {
   const problems: string[] = [];
   if (!objectProblem(facts, 'the facts', problems)) return problems;
-  if (objectProblem(facts.importAliases, 'importAliases', problems))
-    for (const [prefix, folder] of Object.entries(facts.importAliases))
-      if (!prefix || !isText(folder))
-        problems.push(`importAliases ${prefix} needs a target folder`);
+  importAliasesProblem(facts.importAliases, 'importAliases', problems);
   if (!Array.isArray(facts.fakes))
     problems.push('fakes is missing (declare [] when there is none)');
   else {

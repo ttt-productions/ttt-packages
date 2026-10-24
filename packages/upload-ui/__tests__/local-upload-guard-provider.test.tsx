@@ -96,8 +96,8 @@ describe('LocalUploadGuardProvider', () => {
     const addedCall = addSpy.mock.calls.find((c) => c[0] === 'beforeunload');
     const handler = addedCall![1] as (e: BeforeUnloadEvent) => void;
 
-    const event = { preventDefault: vi.fn(), returnValue: '' } as unknown as BeforeUnloadEvent;
-    handler(event);
+    const event = { preventDefault: vi.fn(), returnValue: '' };
+    handler(event as unknown as BeforeUnloadEvent);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(typeof event.returnValue).toBe('string');
@@ -154,8 +154,8 @@ describe('confirmNavigation({ fullPageNavigation }) — one-shot beforeunload by
     const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
     const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;
     const preventDefault = vi.fn();
-    const event = { preventDefault, returnValue: '' } as unknown as BeforeUnloadEvent;
-    handler(event);
+    const event = { preventDefault, returnValue: '' };
+    handler(event as unknown as BeforeUnloadEvent);
     return { prevented: preventDefault.mock.calls.length > 0, returnValue: event.returnValue };
   }
 

@@ -2,12 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import type { FirebaseStorage } from 'firebase/storage';
+import type { uploadFileResumable } from '@ttt-productions/upload-core/browser';
+import type { UploadFileResumableResult } from '@ttt-productions/upload-core';
 
 // Mocks must precede the component imports.
 
-const uploadFileResumableMock = vi.fn();
+const uploadFileResumableMock = vi.fn<typeof uploadFileResumable>();
+const UPLOADED: UploadFileResumableResult = {
+  fullPath: 'uploads/a',
+  contentType: 'image/jpeg',
+  size: 1,
+};
 vi.mock('@ttt-productions/upload-core/browser', () => ({
-  uploadFileResumable: (args: unknown) => uploadFileResumableMock(args),
+  uploadFileResumable: (...args: Parameters<typeof uploadFileResumable>) =>
+    uploadFileResumableMock(...args),
 }));
 
 import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
@@ -46,8 +54,8 @@ describe('useGuardedUpload — guard provider integration', () => {
     let resolveUpload!: () => void;
     uploadFileResumableMock.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          resolveUpload = resolve;
+        new Promise<UploadFileResumableResult>((resolve) => {
+          resolveUpload = () => resolve(UPLOADED);
         }),
     );
 
@@ -76,7 +84,7 @@ describe('useGuardedUpload — guard provider integration', () => {
     const { result } = renderHook(() => useGuardedUploadAndCount(), { wrapper });
 
     await act(async () => {
-      await result.current.guarded(makeArgs()).catch(() => {});
+      await expect(result.current.guarded(makeArgs())).rejects.toThrow('boom');
     });
 
     expect(result.current.activeUploadCount).toBe(0);
@@ -90,7 +98,9 @@ describe('useGuardedUpload — guard provider integration', () => {
     const { result } = renderHook(() => useGuardedUploadAndCount(), { wrapper });
 
     await act(async () => {
-      await result.current.guarded(makeArgs({ signal: controller.signal })).catch(() => {});
+      await expect(result.current.guarded(makeArgs({ signal: controller.signal }))).rejects.toBe(
+        abortErr,
+      );
     });
 
     expect(result.current.activeUploadCount).toBe(0);
@@ -103,14 +113,14 @@ describe('useGuardedUpload — guard provider integration', () => {
     uploadFileResumableMock
       .mockImplementationOnce(
         () =>
-          new Promise<void>((resolve) => {
-            resolveA = resolve;
+          new Promise<UploadFileResumableResult>((resolve) => {
+            resolveA = () => resolve(UPLOADED);
           }),
       )
       .mockImplementationOnce(
         () =>
-          new Promise<void>((resolve) => {
-            resolveB = resolve;
+          new Promise<UploadFileResumableResult>((resolve) => {
+            resolveB = () => resolve(UPLOADED);
           }),
       );
 

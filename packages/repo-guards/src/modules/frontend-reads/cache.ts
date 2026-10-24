@@ -8,6 +8,7 @@ import {
   pathProblem,
   reviewedProblems,
   type Loader,
+  isList,
 } from '../../support/facts.js';
 import { escapeRegExp } from '../../support/text.js';
 import {
@@ -420,7 +421,7 @@ const listResetProblems = (facts: ListResetFacts) => {
   identifierProblem(facts?.familySuffix, 'familySuffix', problems);
   identifierProblem(facts?.loadedPagesPredicate, 'loadedPagesPredicate', problems);
   reviewedCallProblem(facts?.memberRefreshes, 'memberRefreshes', problems);
-  if (!Array.isArray(facts?.refreshHandoffs))
+  if (!isList(facts?.refreshHandoffs))
     problems.push('refreshHandoffs is missing (declare [] when there is none)');
   else
     facts.refreshHandoffs.forEach((h, i) => {
@@ -581,10 +582,10 @@ const CACHE_ACTIONS: ReadonlySet<unknown> = new Set([undefined, 'refresh', 'remo
 const REFETCH_TYPES: ReadonlySet<unknown> = new Set([undefined, 'active', 'all', 'none']);
 
 export function malformedInvalidations(answer: unknown): string | null {
-  if (!Array.isArray(answer)) return 'does not answer a list of invalidations';
+  if (!isList(answer)) return 'does not answer a list of invalidations';
   for (const inv of answer as Array<Record<string, unknown>>) {
     if (inv?.kind === 'exact' || inv?.kind === 'prefix') {
-      if (!Array.isArray(inv.queryKey) || !inv.queryKey.length)
+      if (!isList(inv.queryKey) || !inv.queryKey.length)
         return `a ${inv.kind} invalidation with no key`;
     } else if (inv?.kind === 'predicate') {
       if (

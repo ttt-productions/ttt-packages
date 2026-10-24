@@ -6,6 +6,9 @@
 
 - **Package and version:** `@ttt-productions/media-viewer` 0.10.20.
 - **Release:** `./scripts/release-multiple.sh audit-core auth-core chat-react chat-schemas consent-core dev-standards edge-protocol-core file-input firebase-helpers media-processing-core media-schemas media-viewer mobile-core moderation-core monitoring-core notification-core query-core rate-limit-core realtime-core repo-guards report-core ttt-core ui-core upload-core upload-ui patch`.
-- **What changed:** Internal typing, a shared internal seek helper, and constraint comments on deliberate catches; no API or behaviour change.
+- **What changed:**
+  - Internal typing, a shared internal seek helper, and constraint comments on deliberate catches; no API change.
+  - `VideoViewer`'s fullscreen request handles a refusal the same way whether the browser's method throws or its promise rejects: the control does nothing, and a refusal is never an unhandled rejection.
+  - Every discarded `play()`, `resume()` and `close()` rejection carries its reason.
 - **What the app must change:** Install only.
 - **Done when:** The lockfiles name `@ttt-productions/media-viewer` 0.10.20 or later, and the gate is green.

@@ -152,11 +152,10 @@ describe('UploadQueue', () => {
 
     queue.enqueue({ ...baseArgs, id: 'job1', priority: 0 });
 
-    // These both go to pending; suppress unhandled rejections from leaked promises
     const lowPriCtrl = queue.enqueue({ ...baseArgs, id: 'job2', priority: 0 });
     const highPriCtrl = queue.enqueue({ ...baseArgs, id: 'job3', priority: 10 });
-    lowPriCtrl.done.catch(() => {});
-    highPriCtrl.done.catch(() => {});
+    // Both stay pending, and the queue rejects them when the case ends; neither outcome is under test.
+    for (const pending of [lowPriCtrl, highPriCtrl]) pending.done.catch(() => {});
 
     ctrl1.resolveDone({ fullPath: '', contentType: null, size: 0 });
 

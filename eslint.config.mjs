@@ -34,6 +34,24 @@ export default [
   },
 
   {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parserOptions: {
+        // Package tests are in these two projects, not in any package's own tsconfig.json.
+        project: ['./tsconfig.workspace.json', './packages/repo-guards/tsconfig.test.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+    },
+  },
+
+  {
     files: ['**/*.js', '**/*.mjs'],
     languageOptions: { globals: nodeGlobals, sourceType: 'module' },
   },

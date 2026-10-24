@@ -208,6 +208,7 @@ export function RecordDialog({
     const ctx = audioContextRef.current;
     audioContextRef.current = null;
     if (ctx && ctx.state !== 'closed') {
+      // Closing a context the browser is already closing rejects; the context is released either way.
       ctx.close().catch(() => {});
     }
   }, []);

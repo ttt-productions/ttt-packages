@@ -1,5 +1,7 @@
 type RetryState = { error: unknown; isRetrying: boolean; isLoading: boolean };
 
+export type MockedRead = { isError?: boolean; retryState?: RetryState; [field: string]: unknown };
+
 export const withRetryState = <
   T extends {
     error?: unknown;

@@ -57,7 +57,9 @@ async function headerDurationOf(file: string): Promise<string | undefined> {
     ['-v', 'error', '-print_format', 'json', '-show_format', file],
     { timeoutMs: 30_000 },
   );
-  return JSON.parse(r.stdout || '{}').format?.duration;
+  // ffprobe's -show_format JSON carries the container duration as a string.
+  const probed = JSON.parse(r.stdout || '{}') as { format?: { duration?: string } };
+  return probed.format?.duration;
 }
 
 const f: Record<string, string> = {};

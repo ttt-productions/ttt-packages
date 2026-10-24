@@ -198,7 +198,8 @@ export function checkDeployedFunctions({
           `--regions=${region}`,
           '--format=json',
         ]) || '[]',
-      ),
+        // gcloud's JSON listing of functions is an array of these rows.
+      ) as Parameters<typeof parseLiveFunctions>[0],
     );
   } catch (error) {
     console.error(

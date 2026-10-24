@@ -3,7 +3,7 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { isPlainString, lineOfNode } from '../../support/ast.js';
-import { isText, namesProblem, reviewedProblems } from '../../support/facts.js';
+import { isText, namesProblem, reviewedProblems, isList } from '../../support/facts.js';
 import { APP_SOURCE, CORE_CODE_AND_DECLARATIONS, declarationNameOf, moduleOf } from './shared.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
@@ -247,11 +247,11 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
     const problems: string[] = [];
     const guarded = facts?.guardedLiterals;
     namesProblem(
-      Array.isArray(guarded) ? guarded.map((g) => g?.literal) : guarded,
+      isList(guarded) ? guarded.map((g) => g?.literal) : guarded,
       'guardedLiterals',
       problems,
     );
-    for (const g of Array.isArray(guarded) ? guarded : []) {
+    for (const g of isList(guarded) ? guarded : []) {
       if (!isText(g?.literal)) continue;
       namesProblem(g.owners, `the owners of '${g.literal}'`, problems);
       reviewedProblems(g.allowed, `the allowed uses of '${g.literal}'`, problems, {

@@ -23,7 +23,8 @@ export interface CallCallableTransport {
 // nullable) zod field rejects. Class instances pass through to the SDK's own encoding.
 export function stripUndefinedDeep<T>(value: T): T {
   if (Array.isArray(value)) {
-    return value.map((entry) => stripUndefinedDeep(entry)) as unknown as T;
+    const entries: readonly unknown[] = value;
+    return entries.map((entry) => stripUndefinedDeep(entry)) as T;
   }
   if (value !== null && typeof value === 'object' && (value as object).constructor === Object) {
     return Object.fromEntries(

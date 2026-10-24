@@ -6,7 +6,7 @@ import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { ROOT_ROLES, type Reviewed, type RootRole } from '../../node/layout.js';
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
-import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { namesProblem, reviewedProblems, textProblem, isList } from '../../support/facts.js';
 import { moduleImports, namesModule } from '../../support/imports.js';
 import { resolveRelative } from '../../support/paths.js';
 import { calleePath } from './shared.js';
@@ -327,7 +327,7 @@ export const lazyLoaderGuard: GenericGuardDefinition<LazyLoaderFacts> = {
     textProblem(facts?.loader, 'loader', problems);
     if (facts?.roots !== undefined) {
       namesProblem(facts.roots, 'roots', problems);
-      if (Array.isArray(facts.roots)) {
+      if (isList(facts.roots)) {
         for (const root of facts.roots)
           if (!ROOT_ROLES.includes(root))
             problems.push(`roots names ${String(root)}, which is not a root role`);
@@ -495,7 +495,7 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
     namesProblem(facts?.lightFunctions, 'lightFunctions', problems);
     reviewedProblems(facts?.heavyPackages, 'heavyPackages', problems, { key: 'specifier' });
     for (const p of facts?.heavyPackages ?? [])
-      if (!Array.isArray(p?.lightSubpaths))
+      if (!isList(p?.lightSubpaths))
         problems.push(
           `heavy package ${String(p?.specifier)} needs lightSubpaths (declare [] when none)`,
         );
@@ -674,7 +674,7 @@ export const codebaseManifestGuard: GenericGuardDefinition<CodebaseManifestFacts
           }
           const seen = new Map<string, string>();
           for (const [codebase, list] of Object.entries(manifest.codebases)) {
-            if (!Array.isArray(list)) {
+            if (!isList(list)) {
               findings.push({
                 file: facts.manifest,
                 detail: `codebase ${codebase} is not a list of exports`,
@@ -704,7 +704,7 @@ export const codebaseManifestGuard: GenericGuardDefinition<CodebaseManifestFacts
                 detail: `stale entry ${name}: the entry module does not export it`,
               });
           if (!deploy) return findings;
-          const entries = Array.isArray(deploy.functions)
+          const entries = isList(deploy.functions)
             ? (deploy.functions as Array<Record<string, unknown>>)
             : null;
           if (!entries)

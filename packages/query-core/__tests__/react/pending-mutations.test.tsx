@@ -159,9 +159,9 @@ describe('pending mutations', () => {
       { wrapper: wrapperFor(queryClient) },
     );
     await act(async () => {
-      await result.current
-        .mutateAsync({ userId: 'u1', itemId: 'a' } as never)
-        .catch(() => undefined);
+      await expect(
+        result.current.mutateAsync({ userId: 'u1', itemId: 'a' } as never),
+      ).rejects.toThrow('refused');
     });
     expect(hasPendingMutation(queryClient, SAVE_KEY)).toBe(false);
   });

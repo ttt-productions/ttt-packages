@@ -5,7 +5,13 @@ import type { Reviewed } from '../../node/layout.js';
 import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { calleeName, forEachNode } from '../../support/ast.js';
-import { namesProblem, objectProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import {
+  namesProblem,
+  objectProblem,
+  reviewedProblems,
+  textProblem,
+  isList,
+} from '../../support/facts.js';
 import { fromStatements, moduleImports, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 import { memberOrBareCalls, throughNamespace } from './text.js';
@@ -146,7 +152,7 @@ export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryF
       textProblem(facts.accessor.file, 'accessor.file', problems);
       textProblem(facts.accessor.name, 'accessor.name', problems);
       if (
-        Array.isArray(facts.boundaryModules) &&
+        isList(facts.boundaryModules) &&
         !facts.boundaryModules.some((m) => m?.path === facts.accessor.file)
       ) {
         problems.push(`the accessor ${facts.accessor.file} is not one of the boundaryModules`);
@@ -216,8 +222,7 @@ export const bannedAuthCallGuard: GenericGuardDefinition<BannedAuthCallFacts> = 
   factProblems(facts) {
     const problems: string[] = [];
     namesProblem(facts?.surfaces, 'surfaces', problems);
-    if (!Array.isArray(facts?.banned) || !facts.banned.length)
-      problems.push('banned is missing or empty');
+    if (!isList(facts?.banned) || !facts.banned.length) problems.push('banned is missing or empty');
     else
       for (const b of facts.banned) {
         textProblem(b?.name, 'a banned call', problems);
@@ -226,7 +231,7 @@ export const bannedAuthCallGuard: GenericGuardDefinition<BannedAuthCallFacts> = 
     textProblem(facts?.anchor, 'anchor', problems);
     if (
       typeof facts?.anchor === 'string' &&
-      Array.isArray(facts?.surfaces) &&
+      isList(facts?.surfaces) &&
       !facts.surfaces.some((s) => isUnder(facts.anchor, s))
     ) {
       problems.push(`the anchor ${facts.anchor} is not inside any surface`);
@@ -295,7 +300,7 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
     const problems: string[] = [];
     textProblem(facts?.reporter, 'reporter', problems);
     reviewedProblems(facts?.reportedElsewhere, 'reportedElsewhere', problems);
-    for (const e of Array.isArray(facts?.reportedElsewhere) ? facts.reportedElsewhere : []) {
+    for (const e of isList(facts?.reportedElsewhere) ? facts.reportedElsewhere : []) {
       if (e && (typeof e.reportedBy !== 'string' || !e.reportedBy.trim())) {
         problems.push(
           `reportedElsewhere entry ${e.path} names no reportedBy file (the file that reports its failures)`,

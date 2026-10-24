@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { withRetryState } from './read-retry-state.js';
+import { withRetryState, type MockedRead } from './read-retry-state.js';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
-  useActiveNotifications: vi.fn(),
+  useActiveNotifications: vi.fn<(...args: unknown[]) => MockedRead>(),
   useArchiveNotification: vi.fn(),
   useArchiveAllNotifications: vi.fn(),
 }));
@@ -25,6 +25,7 @@ import type {
   NotificationRowActions,
   NotificationSystemConfig,
 } from '../src/types.js';
+import { anyInstanceOf } from '../../../test/matchers.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -169,7 +170,7 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     expect(screen.getByLabelText('go-to-n2')).toBeInTheDocument();
     expect(renderRowAction).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'n1' }),
-      expect.objectContaining({ archive: expect.any(Function) }),
+      expect.objectContaining({ archive: anyInstanceOf(Function) }),
     );
   });
 
@@ -416,6 +417,7 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
       <button
         aria-label={`${actions.isArchivePending ? 'pending' : 'clear'}-${notification.id}`}
         onClick={() => {
+          // The list owns the failed archive's surface; this row only starts it.
           void actions.archive?.().catch(() => {});
         }}
       >

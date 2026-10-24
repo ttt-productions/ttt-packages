@@ -43,8 +43,6 @@ const db = getFirestore();
 
 describe('createGuardProfile', () => {
   it('refuses a profile with no core package', () => {
-    // @ts-expect-error the profile omits its corePackage to prove the runtime refusal
-    expect(() => createGuardProfile({})).toThrow(/corePackage/);
     expect(() => createGuardProfile({ corePackage: '' })).toThrow(/corePackage/);
   });
 

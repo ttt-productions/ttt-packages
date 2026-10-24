@@ -2,7 +2,7 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
 import { isTestPath, isUnderRoot, kindOfFile } from '../../node/layout.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
-import { objectProblem, reviewedProblems } from '../../support/facts.js';
+import { importAliasesProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
@@ -52,7 +52,7 @@ export const importPathGuard: GenericGuardDefinition<ImportPathFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    objectProblem(facts?.importAliases, 'importAliases', problems);
+    importAliasesProblem(facts?.importAliases, 'importAliases', problems);
     reviewedProblems(facts?.exceptions, 'exceptions', problems, { key: 'file' });
     return problems;
   },

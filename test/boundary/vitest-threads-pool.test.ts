@@ -6,9 +6,10 @@ import { REPO_ROOT } from './leak-utils';
 // On Windows the `forks` pool's temp-file rename fails (`EPERM`) while another process holds
 // the file, and a root config `pool` does not reach the projects, so scripts pass --pool=threads.
 
-const scripts: Record<string, string> = JSON.parse(
-  readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'),
-).scripts;
+// The root package.json maps each script name to its command.
+const { scripts } = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')) as {
+  scripts: Record<string, string>;
+};
 const quietGate = readFileSync(join(REPO_ROOT, 'scripts', 'test-quiet.mjs'), 'utf8');
 
 describe('the suite runs on the threads pool', () => {

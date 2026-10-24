@@ -5,7 +5,7 @@ import type { FileView } from '../../reader/view.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type Hit } from '../../shapes/shapes.js';
 import type { Reviewed } from '../../node/layout.js';
 import { forEachNode, lineOfNode } from '../../support/ast.js';
-import { identifierProblem, pathProblem, reviewedProblems } from '../../support/facts.js';
+import { identifierProblem, pathProblem, reviewedProblems, isList } from '../../support/facts.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 import {
   APP_CODE,
@@ -521,7 +521,7 @@ export interface ReadGate {
 const squashed = (text: string) => text.replace(/\s+/g, ' ').trim();
 
 function gateProblems(allowlist: unknown): string[] {
-  if (!Array.isArray(allowlist)) return [];
+  if (!isList(allowlist)) return [];
   const problems: string[] = [];
   for (const entry of allowlist as Array<{ path?: string; gate?: Partial<ReadGate> }>) {
     const what = `allowlist entry ${String(entry?.path)}`;
@@ -688,7 +688,7 @@ export const laterPageFailureGuard: GenericGuardDefinition<LaterPageFailureFacts
     pathProblem(facts?.hooksTree, 'hooksTree', problems);
     pathProblem(facts?.readStateModule, 'readStateModule', problems);
     identifierProblem(facts?.handOffProp, 'handOffProp', problems);
-    if (!Array.isArray(facts?.listRoutes) || !facts.listRoutes.length)
+    if (!isList(facts?.listRoutes) || !facts.listRoutes.length)
       problems.push('listRoutes names no component');
     else
       facts.listRoutes.forEach((r, i) => {
@@ -743,7 +743,7 @@ export const readFailureCopyGuard: GenericGuardDefinition<ReadFailureCopyFacts> 
     const problems: string[] = [];
     pathProblem(facts?.owner, 'owner', problems);
     reviewedProblems(facts?.allowlist, 'allowlist', problems);
-    if (Array.isArray(facts?.allowlist) && facts.allowlist.some((e) => e?.path === facts.owner))
+    if (isList(facts?.allowlist) && facts.allowlist.some((e) => e?.path === facts.owner))
       problems.push('the owner is listed in the allowlist');
     return problems;
   },

@@ -13,7 +13,8 @@ describe('the upload-variables entry', () => {
     const entry: Record<string, unknown> = uploadVariables;
     let found = 0;
     for (const file of variablesModules) {
-      const mod: Record<string, unknown> = await import(new URL(file, VARIABLES_DIR).href);
+      // An import of a computed URL is typed any; a module namespace maps export names to values.
+      const mod = (await import(new URL(file, VARIABLES_DIR).href)) as Record<string, unknown>;
       for (const [name, value] of Object.entries(mod)) {
         if (!name.endsWith('VariablesSchema')) continue;
         found += 1;

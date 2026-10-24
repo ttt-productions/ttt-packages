@@ -35,7 +35,7 @@ export function fakeAccount() {
         account.held.push({ values, resolve, reject });
       });
     }),
-    onSilentSaveError: vi.fn(),
+    onSilentSaveError: vi.fn<(error: unknown) => void>(),
   };
   return account;
 }

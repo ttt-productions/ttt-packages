@@ -9,9 +9,10 @@ import {
 } from '../src/init.js';
 import { captureException, captureMessage } from '../src/api.js';
 import { NoopAdapter } from '../src/adapters/noop.js';
+import type { ScrubbableEvent } from '../src/scrubber.js';
 
 const browserSdk = vi.hoisted(() => ({
-  init: vi.fn(),
+  init: vi.fn<(options: Record<string, unknown>) => void>(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
   setUser: vi.fn(),
@@ -20,7 +21,7 @@ const browserSdk = vi.hoisted(() => ({
   addBreadcrumb: vi.fn(),
 }));
 const nodeSdk = vi.hoisted(() => ({
-  init: vi.fn(),
+  init: vi.fn<(options: Record<string, unknown>) => void>(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
   setUser: vi.fn(),
@@ -82,7 +83,7 @@ describe('initMonitoring', () => {
 
   it('setMonitoringAdapter installs the given adapter and getMonitoringAdapter returns it', async () => {
     const fake = {
-      init: vi.fn(),
+      init: vi.fn<(options: Record<string, unknown>) => void>(),
       captureException: vi.fn(),
       captureMessage: vi.fn(),
       setUser: vi.fn(),
@@ -94,7 +95,7 @@ describe('initMonitoring', () => {
 
   it('resetMonitoringAdapter restores the NoopAdapter singleton', async () => {
     const fake = {
-      init: vi.fn(),
+      init: vi.fn<(options: Record<string, unknown>) => void>(),
       captureException: vi.fn(),
       captureMessage: vi.fn(),
       setUser: vi.fn(),
@@ -108,7 +109,7 @@ describe('initMonitoring', () => {
 
   it('initMonitoring after setMonitoringAdapter re-installs the configured adapter (no stale-options short circuit)', async () => {
     const fake = {
-      init: vi.fn(),
+      init: vi.fn<(options: Record<string, unknown>) => void>(),
       captureException: vi.fn(),
       captureMessage: vi.fn(),
       setUser: vi.fn(),
@@ -153,7 +154,8 @@ describe('initMonitoring — the app decides when monitoring is off', () => {
     process.env = new Proxy(realEnv, {
       get(target, key, receiver) {
         readKeys.push(key);
-        return Reflect.get(target, key, receiver);
+        const value: unknown = Reflect.get(target, key, receiver);
+        return value;
       },
       has(target, key) {
         readKeys.push(key);
@@ -207,8 +209,8 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
   ])(
     'passes beforeSend, beforeSendTransaction, and the integration options into the %s SDK init',
     async (provider, sdk) => {
-      const beforeSend = vi.fn((event) => event);
-      const beforeSendTransaction = vi.fn((event) => event);
+      const beforeSend = vi.fn((event: ScrubbableEvent) => event);
+      const beforeSendTransaction = vi.fn((event: ScrubbableEvent) => event);
       const integrations = [{ name: 'Dedupe' }];
       await initMonitoring({
         provider,
@@ -267,7 +269,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
   );
 
   it('re-initializes when only a function-valued option changes', async () => {
-    const first = vi.fn((event) => event);
+    const first = vi.fn((event: ScrubbableEvent) => event);
     const second = vi.fn(() => null);
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend: first });
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend: second });
@@ -277,7 +279,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
   });
 
   it('does not re-initialize for the same options, hook references included', async () => {
-    const beforeSend = vi.fn((event) => event);
+    const beforeSend = vi.fn((event: ScrubbableEvent) => event);
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend, integrations: [] });
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend, integrations: [] });
 

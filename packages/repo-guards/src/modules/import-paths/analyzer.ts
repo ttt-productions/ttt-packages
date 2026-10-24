@@ -112,11 +112,8 @@ export function createImportPathProfile({
     throw new Error(
       `repo-guards: the import-path exceptions are malformed: ${problems.join('; ')}`,
     );
-  for (const [prefix, target] of Object.entries(importAliases)) {
-    if (!prefix || typeof target !== 'string') {
-      throw new Error(`repo-guards: alias ${JSON.stringify(prefix)} needs a target folder`);
-    }
-  }
+  if (Object.keys(importAliases).some((prefix) => !prefix))
+    throw new Error('repo-guards: an import alias needs a prefix');
   return Object.freeze({
     importAliases: Object.freeze({ ...importAliases }),
     exceptions: Object.freeze(exceptions.map((e) => Object.freeze({ file: e.file, why: e.why }))),
@@ -175,6 +172,8 @@ function isNameNotReference(node: ts.Identifier): boolean {
   if (!p) return false;
   if (ts.isPropertyAccessExpression(p)) return p.name === node;
   if (ts.isQualifiedName(p)) return p.right === node;
+  if (ts.isLabeledStatement(p) || ts.isBreakStatement(p) || ts.isContinueStatement(p))
+    return p.label === node;
   return (
     (ts.isPropertyAssignment(p) ||
       ts.isPropertyDeclaration(p) ||

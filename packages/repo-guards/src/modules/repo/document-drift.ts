@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Guard } from '../../guard.js';
-import { isText, pathProblem, textProblem } from '../../support/facts.js';
+import { isText, pathProblem, textProblem, isList } from '../../support/facts.js';
 
 export interface DocumentDriftFacts {
   file: string;
@@ -22,8 +22,8 @@ export const documentDriftGuard: GenericGuardDefinition<DocumentDriftFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     pathProblem(facts?.file, 'file', problems);
-    if (!Array.isArray(facts?.copies) || !facts.copies.length)
-      problems.push(Array.isArray(facts?.copies) ? 'copies is empty' : 'copies is missing');
+    if (!isList(facts?.copies) || !facts.copies.length)
+      problems.push(isList(facts?.copies) ? 'copies is empty' : 'copies is missing');
     else {
       const names = new Set<string>();
       for (const copy of facts.copies) {

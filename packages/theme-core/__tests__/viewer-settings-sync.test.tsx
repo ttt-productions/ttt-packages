@@ -287,7 +287,7 @@ describe('ViewerSettingsSyncProvider', () => {
       const { rerender } = render(<Harness account={account} initial={NOTHING} />);
 
       await act(async () => {
-        await account.save.mock.results[0].value.catch(() => {});
+        await expect(account.save.mock.results[0].value).rejects.toBe(failure);
       });
       expect(account.onSilentSaveError).toHaveBeenCalledWith(failure);
 
@@ -321,7 +321,7 @@ describe('ViewerSettingsSyncProvider', () => {
       account.failure = new Error('offline');
       render(<Harness account={account} initial={NOTHING} />);
       await act(async () => {
-        await account.save.mock.results[0].value.catch(() => {});
+        await expect(account.save.mock.results[0].value).rejects.toThrow('offline');
       });
 
       act(() => account.setSettings(undefined));

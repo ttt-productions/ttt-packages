@@ -9,6 +9,7 @@ import {
   pathProblem,
   reviewedProblems,
   type Loader,
+  isList,
 } from '../../support/facts.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 
@@ -32,7 +33,7 @@ export function identifierListProblem(
   { nonEmpty }: { nonEmpty: boolean },
 ): void {
   namesProblem(value, what, problems, { nonEmpty });
-  if (Array.isArray(value))
+  if (isList(value))
     value.forEach(
       (v, i) =>
         typeof v === 'string' && v.trim() && identifierProblem(v, `${what}[${i}]`, problems),
@@ -41,7 +42,7 @@ export function identifierListProblem(
 
 export function pathListProblem(value: unknown, what: string, problems: string[]): void {
   namesProblem(value, what, problems);
-  if (Array.isArray(value))
+  if (isList(value))
     value.forEach(
       (v, i) => typeof v === 'string' && v.trim() && pathProblem(v, `${what}[${i}]`, problems),
     );
@@ -124,15 +125,13 @@ const placeholders = (n: number) => Array.from({ length: n }, (_, i) => `$${i + 
 export function keyObjectsOf(exports: Record<string, unknown>): KeyBuilders {
   const out: KeyBuilders = {};
   for (const [name, value] of Object.entries(exports)) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    if (!value || typeof value !== 'object' || isList(value)) continue;
     const members = Object.values(value as Record<string, unknown>);
     const buildsKeys = members.some((member) => {
-      if (Array.isArray(member)) return true;
+      if (isList(member)) return true;
       if (typeof member !== 'function') return false;
       try {
-        return Array.isArray(
-          (member as (...a: string[]) => unknown)(...placeholders(member.length)),
-        );
+        return isList((member as (...a: string[]) => unknown)(...placeholders(member.length)));
       } catch {
         return false;
       }
@@ -150,16 +149,16 @@ export async function loadKeyObjects(facts: KeyModuleFacts): Promise<KeyBuilders
   return objects;
 }
 
-export function sampleKey(ref: string, builders: KeyBuilders): unknown[] | null {
+export function sampleKey(ref: string, builders: KeyBuilders): readonly unknown[] | null {
   const [object, method] = ref.split('.');
   const value = builders[object]?.[method === '*' ? 'all' : method];
-  if (Array.isArray(value)) return value;
+  if (isList(value)) return value;
   if (typeof value !== 'function') return null;
   try {
     const key = (value as (...args: string[]) => unknown)(
       ...Array.from({ length: value.length }, () => 'p'),
     );
-    return Array.isArray(key) ? key : null;
+    return isList(key) ? key : null;
   } catch {
     return null;
   }

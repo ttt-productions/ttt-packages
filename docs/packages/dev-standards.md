@@ -47,7 +47,10 @@ rules, and the lint, TypeScript, and test config bases.
 The package has no root entry: `exports` names only the subpaths below, so a consumer imports a
 config base by its subpath and reads the docs as files.
 
-- `@ttt-productions/dev-standards/node/eslint` — the ESLint bases (Node).
+- `@ttt-productions/dev-standards/node/eslint` — the ESLint bases (Node). The app and Functions
+  bases fail an explicit `any` and every unsafe use of an `any` value (the type-aware `no-unsafe-*`
+  rules) in every TypeScript file, source and tests alike, so each linted `.ts` / `.tsx` file must be
+  included by the nearest `tsconfig.json`.
 - `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node). No base runs the tests
   of a file concurrently, and `test/boundary/dev-standards-vitest-bases.test.ts` fails if one sets
   `concurrent`.

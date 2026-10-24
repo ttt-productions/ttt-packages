@@ -5,6 +5,14 @@ import type { VideoViewerProps } from './types.js';
 import { useMediaPlayback } from './use-media-playback.js';
 import { useLoadWatchdog } from './use-load-watchdog.js';
 
+function settled(request: () => unknown): Promise<unknown> {
+  try {
+    return Promise.resolve(request());
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
 export function VideoViewer(props: VideoViewerProps) {
   const {
     url,
@@ -131,6 +139,7 @@ export function VideoViewer(props: VideoViewerProps) {
     if (!video || !shouldLoad) return;
     if (isFullyVisible) {
       if (video.paused) {
+        // A browser that blocks autoplay rejects play(); the video then stays paused.
         video.play().catch(() => {});
       }
     } else if (!video.paused) {
@@ -151,13 +160,9 @@ export function VideoViewer(props: VideoViewerProps) {
       el.webkitRequestFullscreen ||
       el.mozRequestFullScreen ||
       el.msRequestFullscreen;
-    if (typeof fn === 'function') {
-      try {
-        fn.call(el);
-      } catch {
-        // A browser that refuses fullscreen throws, and the control then does nothing.
-      }
-    }
+    if (typeof fn !== 'function') return;
+    // A browser that refuses fullscreen throws or rejects, and the control then does nothing.
+    settled(() => fn.call(el)).catch(() => {});
   }, [enableFullscreen]);
 
   const onKeyDown = React.useCallback(

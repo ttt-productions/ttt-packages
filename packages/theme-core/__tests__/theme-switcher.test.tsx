@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { ThemeSwitcher, type ThemeOption } from '../src/react/theme-switcher.js';
+import { anything } from '../../../test/matchers.js';
 
 const mockSetTheme = vi.fn();
 const mockUseTheme = vi.hoisted(() => vi.fn());
@@ -134,8 +135,8 @@ describe('ThemeSwitcher', () => {
     render(<ThemeSwitcher {...makeProps()} renderMenu={renderMenu} />);
     expect(renderMenu).toHaveBeenCalledWith(
       expect.objectContaining({
-        trigger: expect.anything(),
-        children: expect.anything(),
+        trigger: anything(),
+        children: anything(),
       }),
     );
     const slot = screen.getByTestId('trigger-slot');

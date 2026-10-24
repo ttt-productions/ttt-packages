@@ -115,12 +115,13 @@ export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
       }
       event.preventDefault();
       // Modern browsers may ignore the custom string and show their own generic confirmation.
-      event.returnValue =
+      const message =
         beforeUnloadMessage ??
         (uploadIdsRef.current.size > 0
           ? DEFAULT_UPLOAD_BEFORE_UNLOAD_MESSAGE
           : DEFAULT_UNSAVED_WORK_BEFORE_UNLOAD_MESSAGE);
-      return event.returnValue;
+      event.returnValue = message;
+      return message;
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);

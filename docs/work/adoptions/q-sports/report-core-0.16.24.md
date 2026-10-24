@@ -10,5 +10,6 @@
   - `ServerReportCoreConfig` takes a required `describeUserReportTask({ totalReports, reportedItemType })`, which writes a user-report task's `summary`. The package no longer writes `"N report(s) for <item-type id>"` itself.
   - `createCheckoutTaskHandler` / `createCheckoutNextImportantHandler`: only a `requireAdmin` refusal whose `code` is `permission-denied` falls through to `adminUserIds`; any other failure of the admin lookup fails the call as itself (before, every failure was swallowed and the caller read as "not an admin").
   - `createAdminTaskHandler`'s handler accepts `null` / `undefined` group data (it already returned on it).
+  - Internal typing: `useCheckedOutTasks` reads the stored task through its type; no behaviour change.
 - **What the app must change:** Install. Give the app's server report config a `describeUserReportTask` worded from its own item labels, and assert the admin row's wording in its admin tests. Make sure the app's `requireAdmin` refuses with a `permission-denied` code.
 - **Done when:** The lockfiles name `@ttt-productions/report-core` 0.16.24 or later, and the gate is green.

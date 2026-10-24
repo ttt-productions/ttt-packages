@@ -252,9 +252,10 @@ describe('InFlightUploadsProvider', () => {
       );
     });
 
-    const breadcrumbs = (adapter.onMonitoringEvent as ReturnType<typeof vi.fn>).mock.calls
-      .map((c) => c[0])
-      .filter((e: { type: string }) => e.type === 'breadcrumb');
+    const breadcrumbs = vi
+      .mocked(adapter.onMonitoringEvent)
+      .mock.calls.map((c) => c[0])
+      .filter((e) => e.type === 'breadcrumb');
     expect(breadcrumbs).toHaveLength(1);
   });
 

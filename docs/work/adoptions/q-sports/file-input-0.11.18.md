@@ -9,6 +9,6 @@
 - **What changed:**
   - `FileInputProps` is exported from `@ttt-productions/file-input/react` (beside `FileInput`), no longer from the root. Its `variant` and `size` are ui-core's `ButtonProps['variant']` / `ButtonProps['size']` instead of `any`.
   - `PhotoCaptureModal` acquires the camera when it opens with no suppressed `exhaustive-deps`; a re-render while open keeps the one camera.
-  - Internal typing and empty-catch cleanups.
+  - Internal typing and empty-catch cleanups; the recorder's discarded `AudioContext.close()` rejection carries its reason.
 - **What the app must change:** Install. Import `FileInputProps` from `@ttt-productions/file-input/react` if the app imports it from the root.
 - **Done when:** The lockfiles name `@ttt-productions/file-input` 0.11.18 or later, and the gate is green.

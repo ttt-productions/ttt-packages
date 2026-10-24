@@ -342,7 +342,7 @@ describe('useSessionMutation — callbacks that await', () => {
   it('lets an onSuccess see its session end across its own await, and rejects mutateAsync as ended', async () => {
     const refresh = deferred<void>();
     const toast = vi.fn();
-    const after = vi.fn();
+    const after = vi.fn<() => void>();
     const session = { uid: 'member-a' as string | null };
     const { result, rerender } = renderHook(
       () =>
@@ -578,6 +578,7 @@ describe('useSessionMutation — work that has not started when the session ends
 
     await act(async () => {
       onlineManager.setOnline(true);
+      // The restored mutation's own state carries its failure, which the case reads below.
       await client.resumePausedMutations().catch(() => undefined);
     });
 

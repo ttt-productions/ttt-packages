@@ -119,14 +119,18 @@ describe('useMediaRecovery — transient retry + backoff', () => {
 
   it('stays idle until onMediaError is called', async () => {
     const adapter: MediaDiagnosticAdapter = {
-      probe: vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult),
+      probe: vi
+        .fn<(url: string) => Promise<DiagnosisResult>>()
+        .mockResolvedValue({ kind: 'transient' }),
     };
     render(<TestHookComp url="https://cdn.example.com/a.jpg" adapter={adapter} />);
     expect(screen.getByTestId('phase').textContent).toBe('idle');
   });
 
   it('enters transient-retry after error with transient probe result', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     render(<TestHookComp url="https://cdn.example.com/a.jpg" adapter={adapter} />);
@@ -192,7 +196,9 @@ describe('useMediaRecovery — transient retry + backoff', () => {
   });
 
   it('transitions to max-wait-fallback after ~120 s total', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     let onRemountFn: (() => void) | undefined;
 
     function BudgetComp() {
@@ -471,7 +477,9 @@ describe('useMediaRecovery — visibility pause', () => {
 
   it('pauses retry timer while document is hidden', async () => {
     const remount = vi.fn();
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     Object.defineProperty(document, 'visibilityState', {
@@ -531,7 +539,9 @@ describe('useMediaRecovery — per-asset dedup', () => {
   });
 
   it('only fires probe once when two instances share the same URL', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     function TwoInstances() {
@@ -581,7 +591,9 @@ describe('useMediaRecovery — manual retry', () => {
 
   it('resets to loading state and calls onRemount when manualRetry is invoked', async () => {
     const remount = vi.fn();
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     function ManualComp() {
@@ -621,7 +633,9 @@ describe('useMediaRecovery — manual retry', () => {
   });
 
   it('manual retry resets firstFailureAt so budget restarts', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     render(<TestHookComp url="https://cdn.example.com/reset.jpg" adapter={adapter} />);
@@ -653,7 +667,9 @@ describe('useMediaRecovery — successful load', () => {
   });
 
   it('transitions to loaded state when onMediaLoad is called', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     render(<TestHookComp url="https://cdn.example.com/ok.jpg" adapter={adapter} />);
@@ -691,7 +707,9 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
   });
 
   it('image: onLoad triggers via img load event', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     const { container } = render(
@@ -720,7 +738,9 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
   });
 
   it('video: onLoad triggers via loadeddata event, not load event', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     const { container } = render(
@@ -754,7 +774,9 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
   });
 
   it('audio: onLoad triggers via loadeddata or canplay event', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     const { container } = render(
@@ -778,7 +800,9 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
   });
 
   it('max-wait-fallback shows Retry button', async () => {
-    const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
+    const probe = vi
+      .fn<(url: string) => Promise<DiagnosisResult>>()
+      .mockResolvedValue({ kind: 'transient' });
     const adapter: MediaDiagnosticAdapter = { probe };
 
     function MaxWaitComp() {

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, renderHook } from '@testing-library/react';
+import type { setUserId } from 'firebase/analytics';
 
 const h = vi.hoisted(() => ({
   logEvent: vi.fn(),
-  setUserId: vi.fn(),
+  setUserId: vi.fn<typeof setUserId>(),
   setUserProperties: vi.fn(),
 }));
 

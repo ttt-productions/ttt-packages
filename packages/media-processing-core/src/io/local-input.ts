@@ -37,6 +37,7 @@ export async function streamToTempFile(
   const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
   const localPath = path.join(dir, 'input');
   const cleanup = async () => {
+    // A temp folder that cannot be removed stays in the OS temp folder; the result does not depend on it.
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   };
 

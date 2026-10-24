@@ -1495,6 +1495,20 @@ stays reachable on the admin standing alone (step 70). No installed React packag
 gated on admin standing.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
+### 122. No promise rejection is discarded without a reason
+**Rules:** RULE-STD-ENG-009, RULE-STD-COMMENT-001, RULE-STD-QUALITY-007. **Scope:** every code tree,
+source and tests.
+```bash
+<GUARD_SUITE> -t "no promise rejection is discarded without a reason"
+```
+**Expected:** the guard is green: every `.catch()` whose handler does nothing — an empty body, or one
+that returns `undefined`, `void 0`, or `null` — carries a one-line comment saying why discarding the
+rejection is right (a constraint, or an exception naming its rule). Read each comment against its code:
+a discard of a failure a person or monitoring needs to see is the finding, whatever the comment says —
+it gets real handling. Each reviewed entry is a file whose discards genuinely cannot carry a comment;
+one whose file no longer discards is stale.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
 ## Pass / Fail
 
 Per [README.md](README.md) § Verdict.

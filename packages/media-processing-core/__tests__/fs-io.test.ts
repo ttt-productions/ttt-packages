@@ -14,6 +14,7 @@ async function makeTmpDir(): Promise<string> {
 
 afterEach(async () => {
   for (const d of tmpDirs) {
+    // A temp folder that cannot be removed stays in the OS temp folder; no case reads it again.
     await rm(d, { recursive: true, force: true }).catch(() => {});
   }
   tmpDirs.length = 0;

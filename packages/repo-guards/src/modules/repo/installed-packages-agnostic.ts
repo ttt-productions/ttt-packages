@@ -1,6 +1,12 @@
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import type { Finding } from '../../guard.js';
-import { isText, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import {
+  isText,
+  namesProblem,
+  reviewedProblems,
+  textProblem,
+  isList,
+} from '../../support/facts.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
 export interface InstalledPackagesAgnosticFacts {
@@ -27,12 +33,12 @@ export const installedPackagesAgnosticGuard: GenericGuardDefinition<InstalledPac
       if (!isText(facts?.packageScope) || !facts.packageScope.endsWith('/'))
         problems.push('packageScope must end in / (`@acme/`)');
       textProblem(facts?.corePackage, 'corePackage', problems);
-      if (!Array.isArray(facts?.manifestFolders) || !facts.manifestFolders.length)
+      if (!isList(facts?.manifestFolders) || !facts.manifestFolders.length)
         problems.push('manifestFolders is empty');
       else if (facts.manifestFolders.some((f) => typeof f !== 'string'))
         problems.push('manifestFolders holds an entry that is not a folder');
       namesProblem(facts?.productNames, 'productNames', problems);
-      for (const source of Array.isArray(facts?.productNames) ? facts.productNames : []) {
+      for (const source of isList(facts?.productNames) ? facts.productNames : []) {
         try {
           new RegExp(source);
         } catch {

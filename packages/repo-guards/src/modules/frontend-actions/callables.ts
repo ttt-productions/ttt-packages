@@ -8,6 +8,7 @@ import {
   namesProblem,
   objectProblem,
   textProblem,
+  isList,
 } from '../../support/facts.js';
 import { fromStatements, moduleImports, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
@@ -176,7 +177,7 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.transports) || !facts.transports.length)
+    if (!isList(facts?.transports) || !facts.transports.length)
       return ['transports is missing or empty'];
     for (const t of facts.transports) {
       textProblem(t?.module, 'a transport module', problems);

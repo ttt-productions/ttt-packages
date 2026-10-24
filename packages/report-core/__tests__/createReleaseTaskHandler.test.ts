@@ -165,20 +165,19 @@ describe('createReleaseTaskHandler', () => {
       status: 'checkedOut',
       checkoutDetails: { userId: 'other-admin', checkedOutAt: Date.now() - 1000 },
     });
-    const foreign = await createReleaseTaskHandler({ config: TEST_CONFIG, db: foreignDb })(
+    const foreign = createReleaseTaskHandler({ config: TEST_CONFIG, db: foreignDb })(
       { taskId: 'task1' },
       { uid: 'admin1' },
-    ).catch((e) => e);
-    expect(foreign).toBeInstanceOf(ReportCoreTaskError);
-    expect(foreign.code).toBe('failed-precondition');
+    );
+    await expect(foreign).rejects.toBeInstanceOf(ReportCoreTaskError);
+    await expect(foreign).rejects.toHaveProperty('code', 'failed-precondition');
 
     const { db: emptyDb } = createMockDb(null);
-    const gone = await createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
+    const gone = createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
       { taskId: 'task1' },
       { uid: 'admin1' },
-    ).catch((e) => e);
-    expect(gone).not.toBeInstanceOf(ReportCoreTaskError);
-    expect(gone).toEqual({ success: true, alreadyResolved: true });
+    );
+    await expect(gone).resolves.toEqual({ success: true, alreadyResolved: true });
   });
 
   it('the admin gate still rejects before any read, missing task or not', async () => {

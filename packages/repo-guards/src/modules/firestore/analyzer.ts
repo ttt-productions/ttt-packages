@@ -297,8 +297,7 @@ export function createGuardProfile({
   removalOnlyTables?: ReadonlyArray<RemovalOnlyTable>;
   handleModulePrefixes?: readonly string[];
 }): GuardProfile {
-  if (typeof corePackage !== 'string' || !corePackage)
-    throw new Error('repo-guards: a profile needs its corePackage');
+  if (!corePackage) throw new Error('repo-guards: a profile needs its corePackage');
   const typeNames = ['Transaction', 'WriteBatch', 'BulkWriter', ...transactionTypeNames];
   for (const name of typeNames) {
     if (!/^[A-Za-z_$][\w$]*$/.test(name))

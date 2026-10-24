@@ -25,7 +25,8 @@ export async function probeVideo(
     throw new Error(`ffprobe failed (${r.code}): ${r.stderr || r.stdout}`);
   }
 
-  const json = JSON.parse(r.stdout || '{}');
+  // ffprobe's JSON output lists the file's streams in this shape.
+  const json = JSON.parse(r.stdout || '{}') as { streams?: ProbeStream[] };
 
   const streams: ProbeStream[] = Array.isArray(json.streams) ? json.streams : [];
 

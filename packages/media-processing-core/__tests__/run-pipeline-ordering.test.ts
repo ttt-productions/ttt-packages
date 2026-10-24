@@ -5,11 +5,15 @@ import path from 'node:path';
 import type { MediaProcessingSpec } from '@ttt-productions/media-schemas';
 import type { MediaIO } from '../src/io/types.js';
 import type { ModerationAdapter } from '../src/moderation/types.js';
+import type { processMedia } from '../src/process-media.js';
 
-const processMediaMock = vi.fn();
+const processMediaMock = vi.fn<typeof processMedia>();
 vi.mock('../src/process-media.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/process-media.js')>();
-  return { ...actual, processMedia: (...args: unknown[]) => processMediaMock(...args) };
+  return {
+    ...actual,
+    processMedia: (...args: Parameters<typeof processMedia>) => processMediaMock(...args),
+  };
 });
 
 const { runMediaPipeline } = await import('../src/run-pipeline.js');

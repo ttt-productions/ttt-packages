@@ -7,12 +7,14 @@ import { escapeRegExp, isUnder } from '../../support/text.js';
 import { parseJsonc } from './jsonc.js';
 import { moduleSpecifiers } from './specifiers.js';
 import {
+  importAliasesProblem,
   namesProblem,
   objectProblem,
   pathProblem,
   reviewedProblems,
   takesNoFacts,
   textProblem,
+  isList,
 } from '../../support/facts.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
@@ -52,14 +54,14 @@ export const isolatedRootsGuard: GenericGuardDefinition<IsolatedRootsFacts> = {
     const problems: string[] = [];
     if (!objectProblem(facts, 'facts', problems)) return problems;
     namesProblem(facts.isolatedRoots, 'isolatedRoots', problems);
-    if (Array.isArray(facts.isolatedRoots)) {
+    if (isList(facts.isolatedRoots)) {
       for (const role of facts.isolatedRoots)
         if (!isRole(role))
           problems.push(`isolatedRoots names ${String(role)}, which is not a code root role`);
       if (facts.isolatedRoots.length === 1 && !facts.isolatedRoots.includes('workers'))
         problems.push('isolatedRoots needs at least two roots to keep apart');
     }
-    objectProblem(facts.importAliases, 'importAliases', problems);
+    importAliasesProblem(facts.importAliases, 'importAliases', problems);
     return problems;
   },
   build(facts) {
@@ -120,7 +122,7 @@ export function aliasesOutsideRoot(tsconfigFile: string, text: string, rootPath:
   const base = config.compilerOptions?.baseUrl ?? '.';
   const out: string[] = [];
   for (const [alias, targets] of Object.entries(paths)) {
-    for (const target of Array.isArray(targets) ? targets : [targets]) {
+    for (const target of isList(targets) ? targets : [targets]) {
       const normalized =
         typeof target === 'string'
           ? normalizePath(`${dir}/${base}/${target.replace(/\*.*$/, '')}`)
@@ -139,7 +141,7 @@ export const tsconfigAliasGuard: GenericGuardDefinition<TsconfigAliasFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     if (!objectProblem(facts, 'facts', problems)) return problems;
-    if (!Array.isArray(facts.tsconfigs)) problems.push('tsconfigs is missing');
+    if (!isList(facts.tsconfigs)) problems.push('tsconfigs is missing');
     else if (!facts.tsconfigs.length) problems.push('tsconfigs is empty');
     else
       for (const t of facts.tsconfigs) {
@@ -227,11 +229,11 @@ export const entryPointGuard: GenericGuardDefinition<EntryPointFacts> = {
       problems.push('packageScope is not an npm scope (@name)');
     for (const key of ['serverRoots', 'clientRoots'] as const) {
       namesProblem(facts[key], key, problems, { nonEmpty: false });
-      for (const role of Array.isArray(facts[key]) ? facts[key] : [])
+      for (const role of isList(facts[key]) ? facts[key] : [])
         if (!isRole(role))
           problems.push(`${key} names ${String(role)}, which is not a code root role`);
     }
-    if (Array.isArray(facts.serverRoots) && Array.isArray(facts.clientRoots)) {
+    if (isList(facts.serverRoots) && isList(facts.clientRoots)) {
       if (!facts.serverRoots.length && !facts.clientRoots.length)
         problems.push('neither serverRoots nor clientRoots names a root');
       for (const role of facts.serverRoots)

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, type Mock } from 'vitest';
 import { createCheckoutTaskHandler } from '../src/server/createCheckoutTaskHandler.js';
 import { ReportCoreTaskError } from '../src/server/taskError.js';
 import type {
+  OnAuditEvent,
   ServerReportCoreConfig,
   TaskClaimGuard,
   ServerDocRef,
@@ -374,7 +375,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
   });
 
   it('emits an auto_released audit event when stealing an expired checkout', async () => {
-    const onAuditEvent = vi.fn();
+    const onAuditEvent = vi.fn<OnAuditEvent>();
     const { db } = createMockDb({
       docs: {
         'adminTasks/task1': {
@@ -412,7 +413,7 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
   });
 
   it('names the caller who took over as the actor of the auto-release, never the prior holder', async () => {
-    const onAuditEvent = vi.fn();
+    const onAuditEvent = vi.fn<OnAuditEvent>();
     const { db } = createMockDb({
       docs: {
         'adminTasks/task1': {
@@ -438,12 +439,12 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     const release = onAuditEvent.mock.calls
       .map(([event]) => event)
       .find((e) => e.action === 'auto_released');
-    expect(release.adminUserId).toBe('admin1');
-    expect(release.priorAdminUserId).toBe('other');
+    expect(release?.adminUserId).toBe('admin1');
+    expect(release?.priorAdminUserId).toBe('other');
   });
 
   it('answers a re-checkout of the caller own active lock with the task as held and writes nothing', async () => {
-    const onAuditEvent = vi.fn();
+    const onAuditEvent = vi.fn<OnAuditEvent>();
     const heldCheckout = {
       userId: 'admin1',
       checkedOutAt: 1_000,
@@ -543,7 +544,7 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
   });
 
   it('falls back to an expired checkedOut task and audits the auto-release', async () => {
-    const onAuditEvent = vi.fn();
+    const onAuditEvent = vi.fn<OnAuditEvent>();
     const { db, updates } = createMockDb({
       docs: {
         'adminTasks/expired': {
@@ -683,7 +684,7 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       : { claimable: true };
 
   it('refuses a specific task the guard refuses, with the app message and no write or audit', async () => {
-    const onAuditEvent = vi.fn();
+    const onAuditEvent = vi.fn<OnAuditEvent>();
     const { db, updates, sets } = createMockDb({
       docs: {
         'adminTasks/task1': { ...baseTask, status: 'pending' },
@@ -698,21 +699,21 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       assertTaskClaimable: refuseInFlight,
     });
 
-    const error = await handler(
+    const refusal = handler(
       { taskType: 'userReport', specificTaskId: 'task1' },
       { uid: 'admin1', token: {} },
-    ).catch((e) => e);
+    );
 
-    expect(error).toBeInstanceOf(ReportCoreTaskError);
-    expect(error.code).toBe('failed-precondition');
-    expect(error.message).toBe(IN_FLIGHT);
+    await expect(refusal).rejects.toBeInstanceOf(ReportCoreTaskError);
+    await expect(refusal).rejects.toHaveProperty('code', 'failed-precondition');
+    await expect(refusal).rejects.toHaveProperty('message', IN_FLIGHT);
     expect(updates).toHaveLength(0);
     expect(sets).toHaveLength(0);
     expect(onAuditEvent).not.toHaveBeenCalled();
   });
 
   it('refuses the takeover of an expired lock without auditing an auto-release', async () => {
-    const onAuditEvent = vi.fn();
+    const onAuditEvent = vi.fn<OnAuditEvent>();
     const { db, updates } = createMockDb({
       docs: {
         'adminTasks/task1': {
@@ -973,12 +974,10 @@ describe('createCheckoutTaskHandler — the app claim guard', () => {
       assertTaskClaimable: guard,
     });
 
-    const error = await handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} }).catch(
-      (e) => e,
-    );
+    const refusal = handler({ taskType: 'userReport' }, { uid: 'admin1', token: {} });
 
-    expect(error).toBeInstanceOf(ReportCoreTaskError);
-    expect(error.code).toBe('not-found');
+    await expect(refusal).rejects.toBeInstanceOf(ReportCoreTaskError);
+    await expect(refusal).rejects.toHaveProperty('code', 'not-found');
     expect(guard).toHaveBeenCalledTimes(2);
     expect(updates).toHaveLength(0);
   });

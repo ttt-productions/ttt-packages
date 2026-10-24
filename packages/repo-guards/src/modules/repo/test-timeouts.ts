@@ -5,7 +5,7 @@ import type { RepoReader, Scope } from '../../node/reader.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import { viewOfText, type FileView } from '../../reader/view.js';
 import { forEachNode, lineOfNode, unwrap } from '../../support/ast.js';
-import { isText, objectProblem, pathProblem } from '../../support/facts.js';
+import { importAliasesProblem, isText, objectProblem, pathProblem } from '../../support/facts.js';
 import { aliasList, resolveSpecifier } from '../../support/resolve-specifier.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 
@@ -222,10 +222,7 @@ function check(reader: RepoReader, facts: TestTimeoutFacts, files: FileView[]): 
 function factProblems(facts: TestTimeoutFacts): string[] {
   const problems: string[] = [];
   if (!objectProblem(facts, 'the facts', problems)) return problems;
-  if (objectProblem(facts.importAliases, 'importAliases', problems))
-    for (const [prefix, folder] of Object.entries(facts.importAliases))
-      if (!prefix || !isText(folder))
-        problems.push(`importAliases ${prefix} needs a target folder`);
+  importAliasesProblem(facts.importAliases, 'importAliases', problems);
   if (!Array.isArray(facts.timeoutFiles))
     problems.push('timeoutFiles is missing (declare [] when there is none)');
   else {

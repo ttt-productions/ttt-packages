@@ -73,7 +73,9 @@ describe('buildUserReportAdminTaskDoc (pure builder)', () => {
   });
 
   it('createAdminTaskHandler writes EXACTLY the built doc — the builder is the one owner of the shape', async () => {
-    const setFn = vi.fn().mockResolvedValue(undefined);
+    const setFn = vi
+      .fn<(data: { createdAt: number }) => Promise<void>>()
+      .mockResolvedValue(undefined);
     const docFn = vi.fn().mockReturnValue({ set: setFn });
     const db = { collection: vi.fn().mockReturnValue({ doc: docFn }) } as never;
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });

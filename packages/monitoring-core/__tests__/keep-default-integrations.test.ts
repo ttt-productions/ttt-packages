@@ -4,7 +4,7 @@ import { initMonitoring, getMonitoringAdapter, __resetMonitoring } from '../src/
 import { NoopAdapter } from '../src/adapters/noop.js';
 
 const browserSdk = vi.hoisted(() => ({
-  init: vi.fn(),
+  init: vi.fn<(options: Record<string, unknown>) => void>(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
   setUser: vi.fn(),
@@ -13,7 +13,7 @@ const browserSdk = vi.hoisted(() => ({
   addBreadcrumb: vi.fn(),
 }));
 const nodeSdk = vi.hoisted(() => ({
-  init: vi.fn(),
+  init: vi.fn<(options: Record<string, unknown>) => void>(),
   captureException: vi.fn(),
   captureMessage: vi.fn(),
   setUser: vi.fn(),

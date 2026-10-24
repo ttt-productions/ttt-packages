@@ -369,14 +369,13 @@ describe('MUST FAIL — a symbolic link in a walked tree', () => {
     vi.spyOn(fs, 'readdirSync').mockImplementation(((dir: fs.PathLike, ...rest: unknown[]) => {
       const entries = (real as (...a: unknown[]) => fs.Dirent[]).call(fs, dir, ...rest);
       if (String(dir) !== folder) return entries;
-      const link = Object.assign(Object.create(fs.Dirent.prototype), {
+      const link: fs.Dirent = Object.assign(Object.create(fs.Dirent.prototype) as fs.Dirent, {
         name,
         parentPath: folder,
-        path: folder,
+        isSymbolicLink: () => true,
+        isDirectory: () => false,
+        isFile: () => false,
       });
-      link.isSymbolicLink = () => true;
-      link.isDirectory = () => false;
-      link.isFile = () => false;
       return [...entries, link];
     }) as typeof fs.readdirSync);
   };

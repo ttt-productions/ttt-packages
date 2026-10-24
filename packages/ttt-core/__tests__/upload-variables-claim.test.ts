@@ -19,7 +19,8 @@ function shapesOf(schema: unknown): z.ZodRawShape[] {
 async function variablesSchemas(): Promise<Array<[string, z.ZodRawShape[]]>> {
   const schemas: Array<[string, z.ZodRawShape[]]> = [];
   for (const file of variablesModules) {
-    const mod: Record<string, unknown> = await import(new URL(file, VARIABLES_DIR).href);
+    // An import of a computed URL is typed any; a module namespace maps export names to values.
+    const mod = (await import(new URL(file, VARIABLES_DIR).href)) as Record<string, unknown>;
     for (const [name, value] of Object.entries(mod)) {
       if (name.endsWith('VariablesSchema')) schemas.push([name, shapesOf(value)]);
     }

@@ -6,6 +6,7 @@ import {
 } from '../src/server/delivery-ledger.js';
 import type { NotificationSystemConfig } from '../src/types.js';
 import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types.js';
+import { anyInstanceOf } from '../../../test/matchers.js';
 
 function createMockFirestore() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -305,7 +306,7 @@ describe('createDeliveryLedger.materialize', () => {
     const delivery = getCol('notificationDeliveries').get('d1')!;
     expect(delivery.state).toBe('materialized');
     expect(delivery.materializedAt).toBeTypeOf('number');
-    expect(delivery.expireAt).toEqual({ __ts: expect.any(Number) });
+    expect(delivery.expireAt).toEqual({ __ts: anyInstanceOf(Number) });
 
     const active = [...getCol('activeUserNotifications').values()][0];
     expect(active.count).toBe(1);
@@ -542,7 +543,8 @@ describe('materializeMany isolates each row', () => {
       }),
     ]);
     failingReads.add('bad');
-    const onUnrecordedFailure = vi.fn();
+    const onUnrecordedFailure =
+      vi.fn<(deliveryId: string, error: unknown, details: { cause: unknown }) => void>();
 
     const tally = await ledger.materializeMany(['a', 'bad', 'b'], {
       concurrency: 1,

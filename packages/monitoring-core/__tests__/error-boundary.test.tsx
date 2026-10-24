@@ -13,6 +13,7 @@ vi.mock('../src/api.js', () => ({
 }));
 
 import { ErrorBoundary } from '../src/react/error-boundary.js';
+import { anything } from '../../../test/matchers.js';
 
 function ThrowingChild({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) throw new Error('test render error');
@@ -54,7 +55,7 @@ describe('ErrorBoundary', () => {
     );
     expect(mockCaptureException).toHaveBeenCalledWith(
       expect.any(Error),
-      expect.objectContaining({ context: 'my-context', componentStack: expect.anything() }),
+      expect.objectContaining({ context: 'my-context', componentStack: anything() }),
     );
   });
 

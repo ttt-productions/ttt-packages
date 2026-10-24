@@ -48,7 +48,8 @@ function makeMockSocket(url: string, grantToken: string, handlers: SocketHandler
     },
     send(data: string) {
       if (!open || closed) return;
-      sent.push(JSON.parse(data));
+      // The client sends every frame as the JSON of this envelope.
+      sent.push(JSON.parse(data) as (typeof sent)[number]);
     },
     close(code = 1000, reason = '') {
       if (closed) return;

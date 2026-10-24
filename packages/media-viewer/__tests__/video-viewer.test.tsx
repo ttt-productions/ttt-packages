@@ -264,6 +264,53 @@ describe('VideoViewer', () => {
       expect(() => fireEvent.keyDown(getByRole('button'), { key: 'Enter' })).not.toThrow();
     });
 
+    it('a refusal from a prefixed fullscreen method that throws does nothing', async () => {
+      Reflect.deleteProperty(HTMLElement.prototype, 'requestFullscreen');
+      const webkit = vi.fn(() => {
+        throw new Error('fullscreen refused');
+      });
+      Object.defineProperty(HTMLElement.prototype, 'webkitRequestFullscreen', {
+        configurable: true,
+        value: webkit,
+      });
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+      try {
+        const { getByRole } = render(<VideoViewer url="https://example.com/v.mp4" priority />);
+        expect(() => fireEvent.keyDown(getByRole('button'), { key: 'Enter' })).not.toThrow();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(webkit).toHaveBeenCalled();
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.off('unhandledRejection', unhandled);
+        Reflect.deleteProperty(HTMLElement.prototype, 'webkitRequestFullscreen');
+      }
+    });
+
+    it('a refusal from the standard fullscreen request, whose promise rejects, does nothing', async () => {
+      // A vi.fn() handles the promise it returns to record how it settled, so a plain function stands in.
+      let requested = 0;
+      Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+        configurable: true,
+        writable: true,
+        value: () => {
+          requested += 1;
+          return Promise.reject(new TypeError('fullscreen refused'));
+        },
+      });
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+      try {
+        const { getByRole } = render(<VideoViewer url="https://example.com/v.mp4" priority />);
+        expect(() => fireEvent.keyDown(getByRole('button'), { key: 'Enter' })).not.toThrow();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(requested).toBe(1);
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.off('unhandledRejection', unhandled);
+      }
+    });
+
     it('non-toggle keys do not trigger fullscreen', () => {
       const fsSpy = vi.fn();
       vi.spyOn(HTMLElement.prototype, 'requestFullscreen').mockImplementation(function (

@@ -15,9 +15,11 @@ import {
 } from '../../shapes/shapes.js';
 import {
   allowlistProblems,
+  importAliasesProblem,
   namesProblem,
   reviewedProblems,
   textProblem,
+  isList,
 } from '../../support/facts.js';
 import { fromStatements, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
@@ -217,7 +219,7 @@ export const mediaRendererGuard: GenericGuardDefinition<MediaRendererFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.renderers) || !facts.renderers.length)
+    if (!isList(facts?.renderers) || !facts.renderers.length)
       problems.push('renderers is missing or empty');
     else {
       for (const r of facts.renderers) {
@@ -524,19 +526,15 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.packageRoots) || !facts.packageRoots.length)
+    if (!isList(facts?.packageRoots) || !facts.packageRoots.length)
       return ['packageRoots is missing or empty'];
     for (const r of facts.packageRoots) {
       textProblem(r?.module, 'a package root', problems);
       textProblem(r?.why, `package root ${String(r?.module)}'s why`, problems);
     }
     if (facts.sharedFakes !== undefined) {
-      if (
-        typeof facts.sharedFakes?.importAliases !== 'object' ||
-        facts.sharedFakes.importAliases === null
-      )
-        problems.push('sharedFakes.importAliases is missing');
-      if (!Array.isArray(facts.sharedFakes?.fakes)) problems.push('sharedFakes.fakes is missing');
+      importAliasesProblem(facts.sharedFakes?.importAliases, 'sharedFakes.importAliases', problems);
+      if (!isList(facts.sharedFakes?.fakes)) problems.push('sharedFakes.fakes is missing');
     }
     return problems;
   },

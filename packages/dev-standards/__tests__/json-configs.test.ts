@@ -161,13 +161,17 @@ describe('the JSON bases', () => {
   it.each(['tsconfig.app.json', 'tsconfig.functions.json'])(
     '%s parses and holds no path, which would resolve inside node_modules',
     (file) => {
-      const { config, error } = ts.readConfigFile(join(configDir, file), ts.sys.readFile);
+      // The TypeScript API types a parsed config as any.
+      const { config, error } = ts.readConfigFile(join(configDir, file), ts.sys.readFile) as {
+        config?: { compilerOptions?: unknown };
+        error?: ts.Diagnostic;
+      };
       expect(error).toBeUndefined();
-      expect(Object.keys(config).filter((key) => key !== 'compileOnSave')).toEqual([
+      expect(Object.keys(config ?? {}).filter((key) => key !== 'compileOnSave')).toEqual([
         'compilerOptions',
       ]);
       for (const option of RELATIVE_PATH_OPTIONS) {
-        expect(config.compilerOptions).not.toHaveProperty(option);
+        expect(config?.compilerOptions).not.toHaveProperty(option);
       }
     },
   );
@@ -180,7 +184,7 @@ describe('the JSON bases', () => {
   });
 
   it('copies/components.json parses as JSON', () => {
-    expect(() =>
+    expect((): unknown =>
       JSON.parse(readFileSync(join(configDir, 'copies', 'components.json'), 'utf8')),
     ).not.toThrow();
   });

@@ -69,6 +69,19 @@ const APP_RULES: Linter.Config = {
   },
 };
 
+// Type-aware: each TypeScript file is read through the nearest tsconfig.json that includes it.
+const typeAwareNoAny = (files: string[]): Linter.Config => ({
+  files,
+  languageOptions: { parserOptions: { projectService: true } },
+  rules: {
+    '@typescript-eslint/no-unsafe-argument': 'error',
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
+  },
+});
+
 type RuleEntry = NonNullable<Linter.Config['rules']>[string];
 
 // eslint-config-next registers jsx-a11y and flat config errors on a second registration, so this
@@ -111,6 +124,7 @@ export async function createAppEslintConfig(
     ...(nextTypescript as Linter.Config[]),
     jsxA11yRecommended(nextCoreWebVitals as Linter.Config[], options.a11y ?? 'error'),
     APP_RULES,
+    typeAwareNoAny(['**/*.ts', '**/*.tsx']),
     ...(options.configs ?? []),
     prettierCompat,
   ];
@@ -150,6 +164,7 @@ export async function createFunctionsEslintConfig(
         'no-unused-vars': ['error', UNUSED_VARS_ALLOW_UNDERSCORE],
       },
     },
+    typeAwareNoAny(['**/*.ts']),
     ...(options.configs ?? []),
     prettierCompat,
   ];

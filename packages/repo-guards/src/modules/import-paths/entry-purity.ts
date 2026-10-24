@@ -6,7 +6,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
-import { reviewedProblems, textProblem } from '../../support/facts.js';
+import { reviewedProblems, textProblem, isList } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
 import {
   ENTRY_IMPORT_TIMEOUT_MS,
@@ -191,7 +191,7 @@ function runtimeReaches(
 const factProblems = (facts: EntryPurityFacts) => {
   const problems: string[] = [];
   textProblem(facts?.packagesFolder, 'packagesFolder', problems);
-  if (!Array.isArray(facts?.runtimeSubpaths)) problems.push('runtimeSubpaths is missing');
+  if (!isList(facts?.runtimeSubpaths)) problems.push('runtimeSubpaths is missing');
   else {
     const seen = new Set<string>();
     for (const entry of facts.runtimeSubpaths) {

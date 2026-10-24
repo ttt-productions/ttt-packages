@@ -381,7 +381,7 @@ describe('the game rollup', () => {
   it('keeps a curling end unrecorded as null and a blank end as 0, in exactly one slot per end', () => {
     const ends = (recordedEnds: (number | null)[]) => [
       ...recordedEnds,
-      ...Array(CURLING_ROUND_COUNT - recordedEnds.length).fill(null),
+      ...new Array<number | null>(CURLING_ROUND_COUNT - recordedEnds.length).fill(null),
     ];
     const curling = (t1: (number | null)[], t2: (number | null)[]) => ({
       ...game,

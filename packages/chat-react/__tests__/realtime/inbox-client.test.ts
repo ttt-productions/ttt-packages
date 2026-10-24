@@ -514,7 +514,7 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
 function allInboxFrames(harness: { sockets: Array<{ sent: unknown[] }> }): string {
   return JSON.stringify(
     harness.sockets.map((s) => s.sent),
-    (key, value) => (key === 'requestId' ? '<id>' : value),
+    (key: string, value: unknown) => (key === 'requestId' ? '<id>' : value),
   );
 }
 

@@ -28,7 +28,7 @@ function makeFakeDb(): { db: SafetyAlertDbLike; deletes: string[]; docPaths: str
 describe('writeActiveSafetyCaseAlert', () => {
   it('creates the PII-free SafetyCaseAlertV1 at activeSafetyCaseAlerts/{caseId}', () => {
     const { db, docPaths } = makeFakeDb();
-    const create = vi.fn();
+    const create = vi.fn<SafetyAlertTransactionLike['create']>();
     const tx: SafetyAlertTransactionLike = { create };
 
     writeActiveSafetyCaseAlert(tx, {
@@ -41,7 +41,7 @@ describe('writeActiveSafetyCaseAlert', () => {
     expect(docPaths).toEqual(['activeSafetyCaseAlerts/case_1']);
     expect(create).toHaveBeenCalledTimes(1);
     const [ref, data] = create.mock.calls[0];
-    expect((ref as { __path: string }).__path).toBe('activeSafetyCaseAlerts/case_1');
+    expect(ref).toMatchObject({ __path: 'activeSafetyCaseAlerts/case_1' });
     expect(data).toEqual({
       schemaVersion: 1,
       caseId: 'case_1',

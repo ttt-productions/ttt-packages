@@ -9,6 +9,7 @@ import type {
   ServerReportCoreConfig,
   ServerTransaction,
 } from '../src/server/types.js';
+import { anyInstanceOf } from '../../../test/matchers.js';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   describeUserReportTask: ({ totalReports, reportedItemType }) =>
@@ -273,7 +274,7 @@ describe('createCheckinTaskHandler', () => {
         taskType: 'userReport',
         taskId: 'group1',
         resolution: 'looks fine',
-        timeSpentMinutes: expect.any(Number),
+        timeSpentMinutes: anyInstanceOf(Number),
       }),
       transaction,
     );
