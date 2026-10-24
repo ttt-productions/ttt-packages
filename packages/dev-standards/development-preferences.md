@@ -23,6 +23,16 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   it goes. Nothing is filed, parked, or written up without DJ's word.
 - A doc's "staged / later / deferred" label is never DJ's decision; only DJ's own explicit deferral
   parks an item.
+- **DJ's rules live only in his rule docs** — the rulebooks, this file, `CLAUDE.md` / `AGENTS.md`,
+  and the workflows. An instruction DJ gives in a conversation lasts for that conversation only; it
+  becomes a standing rule only when he says to write it into the rules. No plan, work item, ledger,
+  or prompt ever holds a rule, an instruction, or reasoning, and a session never takes a rule from
+  one.
+- **There are no handoff docs.** When DJ asks to get ready for a new conversation, the session gives
+  a small copy-paste prompt in chat that points at the items being worked; the items hold only what
+  is left. The prompt carries nothing else except open questions DJ chose to move. An item whose
+  only remaining work is the Normal Test Flow or a hosted E2E run is deleted; if a conversation
+  switches at that point, the prompt says to run it.
 - "Finish everything" / "do it all" means every single thing DJ has decided, with nothing left
   undone or parked. It never means deciding anything for DJ: when finishing needs a decision he has
   not made, ask that one question and keep doing the rest. Never stop for complexity, size, time of
@@ -51,22 +61,39 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - An answer that REDIRECTS is not approval to build the revision — show the revised artifact in
   chat and get a clean confirm before implementing.
 - No new-conversation or handoff proposals unless DJ asks.
+- **Every question is tracked until DJ answers it.** A question about the item being worked is asked
+  when it is found; the parts of that item that depend on the answer wait, and everything else keeps
+  going. A problem found outside the item never stops work: it is reported in chat with what was
+  verified and a recommendation, and stays open for DJ. When DJ has said he is away, no question
+  blocks: it goes in chat, the session finishes every part that does not depend on it, and moves to
+  the next item.
+- **No Normal Test Flow while any question is open.** An answer can change code, and a test run
+  before it is worthless. The open questions are asked first, any code they change is done, and then
+  the Test Flow runs once.
+- Open questions are asked one at a time, as questions, never buried in a status message. The
+  session never answers, files, or drops one itself.
+- When DJ asks whether the conversation is good to end, or says to start a new one, the session first
+  says how many questions are open and asks whether to answer them here or move them into the new
+  conversation's prompt.
 
 ## Git, publish, deploy, and the dev stacks
 
-- DJ does ALL git: staging, commits, pushes, publishing, installs he has not handed over, and
-  deployments. Hand him exact commands; never run them. Never commit or push. DJ stages files
-  continuously while work is running so he can see what is changing; never treat a staged/unstaged
-  change as a sign of someone else's work, and never bring up staging, the index, or other git state
-  with DJ.
+- DJ does ALL git — staging, commits, pushes, branches, publishing, installs he has not handed over,
+  and deployments. An AI runs none of it unless DJ commands that exact action in the conversation;
+  otherwise it hands him the exact command. DJ stages files continuously while work is running so he
+  can see what is changing; never treat a staged/unstaged change as a sign of someone else's work,
+  and never bring up staging, the index, or other git state with DJ.
+- Git and GitHub (`git log`, `git status`, diffs, `gh`, Actions runs) are read only when DJ says it is
+  needed. A problem DJ brings is fixed from the current code; when and why it changed is not looked
+  up unless he asks.
 - Never instruct DJ to push or deploy — deploy IS `git push`. Never nag about deploys, indexes, or
   seed buttons.
 - Never discard, overwrite, reset, clean, or revert existing work unless DJ explicitly asks.
   Preserve unrelated uncommitted work; DJ or another tool may be working concurrently.
 - `dev:local` (DJ's manual dev stack) is DJ-only, always — never start or stop it.
 - `dev:e2e` (the verification stack) is session-operated only inside the repo's Normal Test Flow or
-  on DJ's explicit command. DJ's in-conversation instruction overrides any flow step ("wait for my go
-  before starting dev:e2e") and governs exactly what it names.
+  on DJ's explicit command. DJ's in-conversation instruction overrides any flow step and governs
+  exactly what it names, for that conversation only.
 - Never kill a running dev stack on your own judgment ("ports look wrong" = say what you see and
   WAIT). Never run e2e against a stale build.
 - Hosted-dev E2E runs happen only when DJ commands one, and follow the repo's hosted-E2E run doc
@@ -130,15 +157,25 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - No half-working, dead, or known-bad code — build it or remove it. On a second sighting of a defect
   class, tell DJ and propose killing the CLASS system-wide plus a regression guard; do it only on
   DJ's command.
+- **Never make yourself an exception.** Code that breaks a rule, guard, or lint check is fixed. An
+  exception is asked for only when there is genuinely no other way, and it goes to DJ with that
+  reason, why no fix works. Nothing is exempted without his yes. Every exception he approves carries
+  its reason at the exception itself, so anyone reading it years later knows at once why it exists:
+  the guard entry's reason field, the comment on the `eslint-disable` / `prettier-ignore` line, or,
+  for a design-level exception, the design doc it belongs to. The reason states why the exception
+  exists, never who approved it.
 - Reviewing an external plan (ChatGPT/Codex/etc.) means answering "is this the BEST code to solve
   my problem" — never just verifying its claims. Evaluate the design space (alternatives, root cause,
   structure) and fold an optimality verdict into the reviewed doc.
 - V1-scope discipline: confirm the trigger exists in V1 before asking DJ to design.
 - Docs stay lean — never a "done" log. Tracking docs hold only remaining work; finished work is
   DELETED.
+- **Working files** a session needs — extracted text, a one-off script, intermediate output — go in
+  `C:\DjDev\claude-scratchpad\<YYYY-MM-DD>-<topic>\`, never in a temp folder, loose in `C:\DjDev`,
+  or inside a repo. A session writes there only when the work needs a file, never for a conversation
+  that is only talking, and deletes its folder when that work is done.
 - Working state that must outlive the session — orchestration ledgers, agent change logs, file
-  claims, handoff notes — is never kept in a temp or scratchpad folder. It lives in the repo beside
-  the work it tracks and is deleted when the work finishes.
+  claims — lives in the repo beside the work it tracks and is deleted when the work finishes.
 - Help with EVERY step, including non-code and operational ones — real artifacts (policies,
   runbooks, click-by-click), never a "your job" checklist. Walk-throughs go one step at a time, dev
   AND prod. A non-code or console step becomes a self-contained Claude web prompt (full context,
@@ -150,6 +187,19 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 
 ## Agents
 
+- **Every conversation is inline unless DJ says, in that conversation, that it is an orchestrator.**
+  No doc, plan, ledger, or prompt makes a conversation an orchestrator.
+- **Inline:** the session does the research and the work itself. When a piece of the work would be
+  done better by agents — LOW for mechanical work applied from written examples, HIGH for thinking
+  work or review — it proposes them to DJ with each agent's exact task and files, and launches them
+  only on his yes. Launching agents, a predefined wave included, never makes it an orchestrator; it
+  still runs its own Normal Test Flow.
+- **Orchestrator:** the session saves its context for managing agents and does not read or edit code
+  itself. It first launches read-only agents to understand the system, then gives each building
+  agent the high-level picture and the design: build this, this way. An agent that finds a better or
+  different way stops and comes back instead of building it. Agents run in waves of a few at a time,
+  each owning its files, no file owned twice. LOW agents never decide; they apply the examples the
+  HIGH session gives them.
 - The main session owns edits unless DJ explicitly approves parallel implementers with disjoint file
   ownership. Nothing spawns without DJ's yes.
 - Every prompt that spawns an agent names that agent's mandatory reading as explicit

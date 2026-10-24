@@ -21,8 +21,9 @@ description: Claude Code workflow (Build or fix). Use when DJ names a step of a 
 3. Work the step, or one focused slice of it. A step with a publish stop: ALL its package work first,
    then the release command, per the Normal `<APP_NAME>` Dev Flow
    (`<DEV_STANDARDS>/claude/CLAUDE.base.md`).
-4. Large mechanical parts → `mechanical-fan-out.md`; big parallel work → propose
-   `fan-out-implementation.md` to DJ.
+4. A piece of the work agents would do better → propose LOW or HIGH agents for it to DJ, staying
+   inline (`<DEV_STANDARDS>/development-preferences.md` § Agents); large mechanical parts use
+   `mechanical-fan-out.md`.
 5. The Normal `<APP_NAME>` Test Flow, once, on the change set.
 6. Delete each finished item from the step's work doc. When the step is done, delete its folder and
    its section in `PLAN.md` — never renumber.

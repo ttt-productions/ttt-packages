@@ -25,7 +25,9 @@ description: Claude Code workflow (Build or fix). Use when DJ wants known, decid
   Normal `<APP_NAME>` Dev Flow (`<DEV_STANDARDS>/claude/CLAUDE.base.md`).
 - Every fix ships a regression test that fails before the fix and proves the business rule
   (RULE-STD-QUALITY-001). Design docs the fix changes are updated in the same change.
-- A large mechanical change found along the way → `mechanical-fan-out.md`, which asks DJ first.
+- A piece of the work agents would do better → propose LOW or HIGH agents for it to DJ, staying
+  inline (`<DEV_STANDARDS>/development-preferences.md` § Agents); a large mechanical change uses
+  `mechanical-fan-out.md`.
 
 ## Finishing
 

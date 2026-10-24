@@ -23,8 +23,9 @@ description: Claude Code workflow (Build or fix). Use when a multi-task plan DJ 
 
 - Packages-first: every package-side task in the plan lands, gates, and is released before any
   app-side task (Normal `<APP_NAME>` Dev Flow, `<DEV_STANDARDS>/claude/CLAUDE.base.md`).
-- Build inline. Large mechanical parts → `mechanical-fan-out.md`; big parallel thinking work →
-  propose `fan-out-implementation.md` to DJ.
+- Build inline. A piece of the work agents would do better → propose LOW or HIGH agents for it to
+  DJ, staying inline (`<DEV_STANDARDS>/development-preferences.md` § Agents); large mechanical parts
+  use `mechanical-fan-out.md`.
 - Approval covers exactly the approved tasks — no adjacent refactors.
 - Every task ships its regression test (RULE-STD-QUALITY-001) and its doc updates.
 

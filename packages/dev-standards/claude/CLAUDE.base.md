@@ -144,10 +144,12 @@ Before starting a project's work:
 Every release of an `@ttt-productions/*` package hands its adoption to each app through a file in
 `<PACKAGES_REPO>/docs/work/adoptions/<app>/`.
 
-- **The package session writes them.** In the same change as the package edit, before the release
-  command, it writes one adoption file per released package for each app — except an app-data
-  package, whose file goes only to its own app. A package session cannot see which packages the
-  other product installs, so every other released package gets a file for every app.
+- **The package session writes them only for the apps that aren't in the conversation.** In the same
+  change as the package edit, before the release command, it writes one adoption file per released
+  package for each app outside the conversation — an app-data package's file goes only to its own
+  app. A package session cannot see which packages another product installs, so every other released
+  package gets a file for each of those apps. The app the conversation is working in adopts the
+  release itself, right after the install.
 - **The version it names** is the version the release will publish: one patch above the package's
   `package.json` version before the release.
 - **The file** is one item in the `docs/work/` item format (`<DEV_STANDARDS>/work/README.md`) —
@@ -198,9 +200,8 @@ step 5.
 ## The Normal `<APP_NAME>` Flows (named workflows — "do the normal dev/test flow" resolves HERE)
 
 These two named flows are the standing default for how work in these repos is verified and
-sequenced. They are DEFAULTS, not cages: DJ may override any step with explicit in-conversation
-instructions (e.g. "do the normal test flow, but WAIT for my go before starting dev:e2e — I'm
-using the machine"), and an override governs exactly what it names, nothing more. A repo changes a
+sequenced. They are DEFAULTS, not cages: DJ may override any step with an explicit instruction; the
+override governs exactly what it names, for that conversation only. A repo changes a
 flow only under its `<APP_NAME>` additions heading. In a repo whose `<APP_NAME>` is none
 (ttt-packages) the Test Flow does not apply — its gate is its own `CLAUDE.md` § Verification — and
 the Dev Flow's steps 1–4 are its whole share.
@@ -221,9 +222,10 @@ the Dev Flow's steps 1–4 are its whole share.
    (RULE-STD-QUALITY-008 — Claude operates the restart).
 5. Kill `dev:e2e` when done and STOP — wait for DJ's push.
 
-**When the session is orchestrating agents, stages 2–5 belong to ONE agent, never the orchestrator.**
-That agent starts `dev:e2e`, runs the live stages, fixes root causes (restarting the stack per stage
-4), and kills it; the orchestrator only takes its report. "Claude-operated" here means that agent.
+**In a conversation DJ has called an orchestrator, the Normal Test Flow is run by one test agent,
+never the orchestrator.** A failure goes back to the orchestrator, which sends it to the agent that
+built the failing code; that agent fixes it and reports. The same test agent then reruns the flow,
+restarting `dev:e2e` per stage 4. In an inline conversation, the session runs the Test Flow itself.
 
 Not part of this flow: hosted-dev E2E runs (always separately commanded — `<HOSTED_E2E_DOC>`) and
 `npm run dev:local` (DJ's manual dev surface).
@@ -235,29 +237,23 @@ Not part of this flow: hosted-dev E2E runs (always separately commanded — `<HO
    change as the package edit.
 3. ttt-packages `npm run test:quiet` green.
 4. Hand DJ ONLY the release command (`./scripts/release-multiple.sh <folders…> patch`, its own fenced
-   block) — then STOP. No install commands: Claude does the installs.
-5. DJ runs the publish and says so. Claude then starts a 20-minute clock and checks npm every 30
-   seconds until every released package's new version is the `@latest` on npm; then Claude runs the
-   installs itself (`@latest --prefer-online`, at the root and in every consuming folder that declares
-   the package — `<INSTALL_FOLDERS>`), confirms each lockfile names the new version, adopts the
-   adoption files (§ Adoption files), and continues straight into the app work with no further go.
-   While it polls, the session works on whatever does not depend on the release — the publish-wait
-   overlap in `<DEV_STANDARDS>/development-preferences.md` § Shared-package publish.
-   A version still missing from npm after 20 minutes = stop and tell DJ which package; never install
-   anything but the published version.
-   **What "published" means, and what to poll for.** When DJ says "published" (or "publish is
-   running"), he has just RUN the release command: the script is still running and the packages are
-   still building, so nothing may be on npm yet, and the version numbers in the checkout may not be
-   bumped yet. `release-multiple.sh` first runs its `test:quiet` preflight (minutes); then, per package,
-   `release-package.sh` bumps the version, commits `Release <pkg> vX.Y.Z`, tags it, and pushes; the
-   tag triggers ttt-packages' `publish.yml` GitHub Actions job, which builds and publishes to npm. So
-   the version to wait for is the NEW one — one patch above the package's `package.json` version
-   before the release, or the version its `Release <pkg> v…` commit names once that lands — never the
-   `package.json` version in the checkout at the moment DJ speaks, which can still be the old one
-   (compared against npm `@latest`, it reads a stale match as "live"). A version is available only
-   when npm `@latest` names it AND its tarball
-   (`https://registry.npmjs.org/@ttt-productions/<pkg>/-/<pkg>-<version>.tgz`) answers 200: the
-   registry can report the new `@latest` minutes before it serves the tarball, and an install in that
-   gap fails `E404`.
+   block), with one line under it naming the versions it will publish — the same versions its
+   adoption files name, one patch above each package's `package.json` version before the release
+   (e.g. "Publishes chat-core 0.11.8 and chat-react 0.13.20.") — then STOP. No install commands:
+   Claude does the installs.
+5. DJ runs the publish and says so, at any point: the script just started, its preflight still
+   running, or the packages already published and GitHub Actions running. Claude then starts a
+   20-minute clock and checks npm every 30 seconds for exactly the versions named in step 4 — it never
+   re-reads `package.json` or git to find them. A version is available only when npm `@latest` names
+   it AND its tarball (`https://registry.npmjs.org/@ttt-productions/<pkg>/-/<pkg>-<version>.tgz`)
+   answers 200: the registry can report the new `@latest` minutes before it serves the tarball, and
+   an install in that gap fails `E404`. Then Claude runs the installs itself (`@latest
+   --prefer-online`, at the root and in every consuming folder that declares the package —
+   `<INSTALL_FOLDERS>`), confirms each lockfile names the new version, adopts the release in its own
+   app (§ Adoption files), and continues straight into the app work with no further go. While it
+   polls, the session works on whatever does not depend on the release — the publish-wait overlap in
+   `<DEV_STANDARDS>/development-preferences.md` § Shared-package publish. A version still missing from
+   npm after 20 minutes = stop and tell DJ which package; never install anything but the published
+   version.
 6. All `<APP_NAME>` work; when the entire change set is done, run the Normal `<APP_NAME>` Test Flow.
 7. Stop and wait for DJ's push.

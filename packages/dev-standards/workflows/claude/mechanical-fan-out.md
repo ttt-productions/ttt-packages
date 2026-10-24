@@ -34,5 +34,5 @@ through this; it stays inline or goes to `fan-out-implementation.md`.
 5. **One HIGH reviewer** checks all the agents' changes together once every agent is done: each
    change matches a listed pattern, nothing outside the patterns slipped in, and every new or changed
    test proves the business rule it claims, not the code's current output (RULE-STD-QUALITY-001).
-6. **One final gate.** Back in the calling workflow: the Normal Test Flow once, for the whole change
-   set. Its live stage belongs to ONE agent, never the orchestrating session.
+6. **One final gate.** Back in the calling workflow: the inline session runs the Normal Test Flow
+   once, for the whole change set.

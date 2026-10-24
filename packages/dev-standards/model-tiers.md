@@ -22,5 +22,5 @@ follows the session unless a doc names one.
   task applies a fixed set of written patterns to many files; its prompt names every pattern and
   makes anything outside them a stop that returns to the HIGH session that spawned it. That session
   and its reviewer stay HIGH.
-- **The orchestrator is the session itself** — DJ picks its model when he starts it. Every SPAWNED
+- **The session runs on the model DJ picks when he starts it.** Every SPAWNED
   agent's tier is binding.

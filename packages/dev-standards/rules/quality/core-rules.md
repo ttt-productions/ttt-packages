@@ -77,7 +77,7 @@ A test proves the business rule, never the code's current output: its expected v
 ### RULE-STD-QUALITY-006 — Lint and format: zero suppression in apps, reasoned disables in packages; one enforced format
 **Scope.** both
 
-**Rule.** The lint half is split by scope; the format half is the same for both. **Apps** are zero suppression: no `eslint-disable` comment anywhere in the linted trees — source, Functions, E2E, scripts, and config. When a rule fires, fix the root cause, and solve a genuine false positive structurally — rename, refactor, or scope the rule — never by suppressing the line; external-authority state pruning uses the sanctioned render-phase adjustment, not a suppressed effect. A `warn`-level finding is a finding to fix, and a rule is never turned off, nor `ignores` widened, to pass failing code. New app code also follows the conventions the lint config forces, listed below. **Packages** permit an `eslint-disable-next-line` only for a narrow intentional case, carrying its reason on the line; it is preferred over weakening the rule, and a real violation is fixed at its source.
+**Rule.** The lint half is split by scope; the format half is the same for both. **Apps** are zero suppression: no `eslint-disable` comment anywhere in the linted trees — source, Functions, E2E, scripts, and config. When a rule fires, fix the root cause, and solve a genuine false positive structurally — rename, refactor, or scope the rule — never by suppressing the line; external-authority state pruning uses the sanctioned render-phase adjustment, not a suppressed effect. A `warn`-level finding is a finding to fix, and a rule is never turned off, nor `ignores` widened, to pass failing code. New app code also follows the conventions the lint config forces, listed below. **Packages** permit an `eslint-disable-next-line` only for a narrow intentional case where no fix works, on DJ's yes, carrying its reason on the line; it is preferred over weakening the rule, and a real violation is fixed at its source.
 
 Every code file — source, tests, scripts, and config — is in the one format Prettier writes from the shared Prettier config (this package's `config/prettier.json`); `test:quiet`'s format stage writes that format and then checks it, a check-only run (a package release preflight, `test:all`) only checks, so a release never publishes formatting nobody committed, and the check fails a file that is not formatted; `eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier, never reflowed by hand.
 
@@ -92,14 +92,14 @@ Every code file — source, tests, scripts, and config — is in the one format 
 - An anonymous React wrapper component returned from a test helper (assign `displayName`).
 - Straight `'`/`"` in JSX text content (use `&apos;`/`&quot;`).
 - Suppressing `exhaustive-deps` instead of fixing at the source (destructure the stable `mutate`; memoize a derived dep; destructure the specific prop fields used).
-- An unformatted code file; a `prettier-ignore` without its reason; an ESLint formatting rule that fights Prettier.
+- An unformatted code file; a `prettier-ignore` without its reason, or added when a fix works or without DJ's yes; an ESLint formatting rule that fights Prettier.
 
 **References.** RULE-STD-ENG-008; this package's `node/eslint` bases and `config/prettier.json`; each repo's ESLint config and `.prettierignore`.
 
 ### RULE-STD-QUALITY-007 — Guard tests enforce ownership and boundaries, never inventories
 **Scope.** both
 
-**Rule.** Structural guard tests (the repo-guards suite each repo runs in its gate — an app's guard suite, ttt-packages' boundary suite) enforce a forbidden boundary or single-owner rule against the current clean baseline — every allowlist entry carrying a one-line justification — so that a NEW regression fails the build. A guard must not mirror an exhaustive list of today's files, exports, packages, or domains: an inventory-mirror breaks on every legitimate addition and audits nothing.
+**Rule.** Structural guard tests (the repo-guards suite each repo runs in its gate — an app's guard suite, ttt-packages' boundary suite) enforce a forbidden boundary or single-owner rule against the current clean baseline — every allowlist entry carrying a one-line justification — so that a NEW regression fails the build. An entry is added only when no fix works, on DJ's yes, with its reason in the entry. A guard must not mirror an exhaustive list of today's files, exports, packages, or domains: an inventory-mirror breaks on every legitimate addition and audits nothing.
 
 **Why.** A brittle inventory-mirror is churn, not enforcement; the value is catching the next violation, not counting the current files.
 
@@ -127,7 +127,7 @@ Every code file — source, tests, scripts, and config — is in the one format 
 ### RULE-STD-QUALITY-009 — A test loads the code it tests when its file loads
 **Scope.** both
 
-**Rule.** A test imports the code it tests at the top of its file — a static import, or a top-level `await import()` — never inside a case, a hook, or a helper they call, and never resets the module registry. A case that needs other state gets it without a reload: an environment the code reads at load is set in `vi.hoisted` before the import, per-instance state is cleared through the module's test-only `__reset…()` seam, and a flag the code reads once is read when it is called instead. A file whose fresh module per case is itself what it proves is a reviewed entry with its why, and an entry whose file no longer does is stale. The repo-guards `testCaseModuleLoads` guard enforces it.
+**Rule.** A test imports the code it tests at the top of its file — a static import, or a top-level `await import()` — never inside a case, a hook, or a helper they call, and never resets the module registry. A case that needs other state gets it without a reload: an environment the code reads at load is set in `vi.hoisted` before the import, per-instance state is cleared through the module's test-only `__reset…()` seam, and a flag the code reads once is read when it is called instead. A file whose fresh module per case is itself what it proves is a reviewed entry with its why — an entry is added only when no fix works, on DJ's yes, with its reason in the entry — and an entry whose file no longer does is stale. The repo-guards `testCaseModuleLoads` guard enforces it.
 
 **Why.** A module's first load pulls its whole graph; inside a case that cold load is timed as the case's own work, so a file's first case was slow for nothing it did and, under the full parallel run, crossed its timeout.
 
