@@ -20,7 +20,7 @@
         "test:watch": "vitest --pool=threads",
         "test:coverage": "vitest run --coverage --pool=threads",
         "audit:prod": "npm audit --omit=dev --audit-level=high",
-        "test:all": "npm run audit:prod && npm run lint && npm run format:check && npm run build && npm run typecheck && npx tsc -b --noEmit && npm run test",
+        "test:all": "npm run audit:prod && npm run build && npm run lint && npm run format:check && npm run typecheck && npx tsc -b --noEmit && npm run test",
         "schema:docs": "npm run build -w @ttt-productions/ttt-core && node scripts/generate-schema-docs.mjs",
         "schema:check": "node scripts/generate-schema-docs.mjs --check",
         "test:quiet": "node scripts/test-quiet.mjs",

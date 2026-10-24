@@ -35,7 +35,7 @@ Quiet pre-commit / pre-publish gate. Runs the test:all stages, then a final sche
 
 Options:
   --only <stages>   Comma-separated list of stages to run.
-                    Stages: audit, lint, format, typecheck, tscb, build, test, schema
+                    Stages: audit, build, lint, format, typecheck, tscb, test, schema
   --test            Shortcut for --only test
   --build           Shortcut for --only build
   --audit           Shortcut for --only audit (mirrors the publish CI security gate)
@@ -75,11 +75,11 @@ if (!onlyRaw) {
 
 const KNOWN_STAGES = new Set([
   'audit',
+  'build',
   'lint',
   'format',
   'typecheck',
   'tscb',
-  'build',
   'test',
   'schema',
 ]);
@@ -393,6 +393,11 @@ async function stageSchema(name, root) {
     )
       return finish(overallStart);
   }
+  // Before lint and the type checks, which resolve @ttt-productions/* through dist (preflight wipes it).
+  if (shouldRun('build')) {
+    if (!(await stagePlain('build (all packages)', 'npm', ['run', 'build'], root)))
+      return finish(overallStart);
+  }
   if (shouldRun('lint')) {
     if (!(await stagePlain('lint', 'npm', ['run', 'lint'], root))) return finish(overallStart);
   }
@@ -406,11 +411,6 @@ async function stageSchema(name, root) {
       if (!(await stagePlain('format (prettier --check)', 'npm', ['run', 'format:check'], root)))
         return finish(overallStart);
     }
-  }
-  // Before the type checks, which resolve @ttt-productions/* through dist (preflight wipes it).
-  if (shouldRun('build')) {
-    if (!(await stagePlain('build (all packages)', 'npm', ['run', 'build'], root)))
-      return finish(overallStart);
   }
   if (shouldRun('typecheck')) {
     if (!(await stagePlain('typecheck', 'npm', ['run', 'typecheck'], root)))
