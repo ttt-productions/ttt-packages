@@ -83,7 +83,7 @@ A test proves the business rule, never the code's current output: its expected v
 
 Every code file — source, tests, scripts, and config — is in the one format Prettier writes from the shared Prettier config (this package's `config/prettier.json`); `test:quiet`'s format stage writes that format and then checks it, a check-only run (a package release preflight, `test:all`) only checks, so a release never publishes formatting nobody committed, and the check fails a file that is not formatted; `eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier, never reflowed by hand. Every text file is LF: `.gitattributes` pins `* text=auto eol=lf`, so no checkout writes CRLF, and the repo-guards `lineEndings` guard fails a CRLF or mixed file.
 
-A type is never switched off: no `as never` and no `as unknown as X` in any code, tests included — the value gets its real type (a typed fake or builder, the owner's type, a typed mapping between two unions). The one exception is a cast that is the only way or clearly the best way, as a reviewed entry naming that one cast with its why, on DJ's yes; the repo-guards `blanketCasts` guard enforces it.
+A type is never switched off: no `as never`, no `as unknown as X`, and no cast over a value another cast reshaped (`'x' as string as T`, `{ type: 'x' as string } as T`) in any code, tests included — the value gets its real type (a typed fake or builder, the owner's type, a typed mapping between two unions). The one exception is a cast that is the only way or clearly the best way, as a reviewed entry naming that one cast with its why, on DJ's yes; the repo-guards `blanketCasts` guard enforces it.
 
 **Why.** A suppression silences the next real violation of that rule on that line: apps chose zero suppression, and a package's reasonless disable does the same damage. A rule switched off or an ignore widened to get past failing code is the same suppression at file scale. Without one enforced format, every edit carries layout churn and line lengths drift with whoever wrote the file.
 
@@ -98,7 +98,7 @@ A type is never switched off: no `as never` and no `as unknown as X` in any code
 - Suppressing `exhaustive-deps` instead of fixing at the source (destructure the stable `mutate`; memoize a derived dep; destructure the specific prop fields used).
 - An unformatted code file; a `prettier-ignore` without its reason, or added when a fix works or without DJ's yes; an ESLint formatting rule that fights Prettier.
 - A CRLF or mixed-ending text file; a `.gitattributes` without `eol=lf`.
-- An `as never` or `as unknown as` cast outside a reviewed entry.
+- An `as never` or `as unknown as` cast, or a cast over a value another cast reshaped, outside a reviewed entry.
 
 **References.** RULE-STD-ENG-008; RULE-STD-QUALITY-007; this package's `node/eslint` bases and `config/prettier.json`; each repo's ESLint config and `.prettierignore`.
 

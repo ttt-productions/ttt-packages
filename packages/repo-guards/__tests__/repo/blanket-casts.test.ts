@@ -28,12 +28,28 @@ describe('no cast switches type checking off', () => {
     expect(blanketCasts('const r = (ref as unknown) as DocRef;')).toHaveLength(1);
   });
 
+  it('flags a cast over a value another cast reshaped, directly or inside a literal', () => {
+    for (const code of [
+      "const t = 'UNKNOWN' as string as PostType;",
+      "const t = <PostType>(<string>'UNKNOWN');",
+      "run({ type: 'bad-type' as string } as Operation);",
+      "run([{ type: 'bad' as string }] as Operation[]);",
+      'run({ ...(override as Record<string, unknown>) } as Input);',
+      "run([...(['x'] as string[])] as Kind[]);",
+    ])
+      expect(blanketCasts(code), code).toHaveLength(1);
+  });
+
   it('passes a narrowing cast, `as unknown` alone, `as const`, and a never-typed parameter', () => {
     for (const code of [
       'const s = value as string;',
       'const u = value as unknown;',
       "const k = ['a'] as const;",
+      "const k = [{ kind: 'a' as const }] as const;",
+      "const o = { kind: 'a' as const } as Shape;",
       'function fail(x: never): never { throw new Error(String(x)); }',
+      'const body = JSON.parse(init.body as string) as Body;',
+      "const t = { type: 'add' as string };",
     ])
       expect(blanketCasts(code), code).toEqual([]);
   });

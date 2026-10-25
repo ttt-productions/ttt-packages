@@ -24,28 +24,48 @@ const isCast = (node: ts.Node): node is ts.AsExpression | ts.TypeAssertion =>
 
 const isKeyword = (type: ts.TypeNode, kind: ts.SyntaxKind) => type.kind === kind;
 
+const isConstCast = (node: ts.AsExpression | ts.TypeAssertion) =>
+  ts.isTypeReferenceNode(node.type) &&
+  ts.isIdentifier(node.type.typeName) &&
+  node.type.typeName.text === 'const';
+
+const unwrap = (node: ts.Expression): ts.Expression => {
+  let inner = node;
+  while (ts.isParenthesizedExpression(inner)) inner = inner.expression;
+  return inner;
+};
+
+function holdsReshapingCast(node: ts.Expression): boolean {
+  const inner = unwrap(node);
+  if (isCast(inner)) return !isConstCast(inner);
+  if (ts.isArrayLiteralExpression(inner))
+    return inner.elements.some((element) =>
+      holdsReshapingCast(ts.isSpreadElement(element) ? element.expression : element),
+    );
+  if (ts.isObjectLiteralExpression(inner))
+    return inner.properties.some(
+      (property) =>
+        (ts.isPropertyAssignment(property) && holdsReshapingCast(property.initializer)) ||
+        (ts.isSpreadAssignment(property) && holdsReshapingCast(property.expression)),
+    );
+  return false;
+}
+
 export function blanketCasts(source: FileView | string): Occurrence[] {
   const file = typeof source === 'string' ? viewOfText('sample.ts', source) : source;
   const sf = file.sourceFile;
   const hits: Occurrence[] = [];
   forEachNode(sf, (node) => {
-    if (!isCast(node)) return;
+    if (!isCast(node) || isConstCast(node)) return;
+    const hit = (detail: string) =>
+      hits.push({ start: node.getStart(sf), end: node.getEnd(), detail });
+    const inner = unwrap(node.expression);
     if (isKeyword(node.type, ts.SyntaxKind.NeverKeyword))
-      hits.push({
-        start: node.getStart(sf),
-        end: node.getEnd(),
-        detail: 'an `as never` cast switches type checking off for the value',
-      });
-    else {
-      let inner = node.expression;
-      while (ts.isParenthesizedExpression(inner)) inner = inner.expression;
-      if (isCast(inner) && isKeyword(inner.type, ts.SyntaxKind.UnknownKeyword))
-        hits.push({
-          start: node.getStart(sf),
-          end: node.getEnd(),
-          detail: 'an `as unknown as` cast forces one type onto a value of another',
-        });
-    }
+      hit('an `as never` cast switches type checking off for the value');
+    else if (isCast(inner) && isKeyword(inner.type, ts.SyntaxKind.UnknownKeyword))
+      hit('an `as unknown as` cast forces one type onto a value of another');
+    else if (holdsReshapingCast(inner))
+      hit('a cast over a value another cast reshaped forces one type onto a value of another');
   });
   return hits;
 }
@@ -69,7 +89,9 @@ export const blanketCastGuard: GenericGuardDefinition<BlanketCastFacts> = {
         title: 'no cast switches type checking off',
         description:
           'An `as never` or `as unknown as X` cast tells the compiler to stop checking a value, so a wrong shape ' +
-          'compiles and fails only at run time; the no-unsafe lint rules cannot see it. Give the value its real ' +
+          'compiles and fails only at run time; the no-unsafe lint rules cannot see it. A cast over a value ' +
+          "another cast reshaped (`'x' as string as T`, `{ type: 'x' as string } as T`) does the same in two " +
+          'steps. Give the value its real ' +
           'type: a typed fake or builder in a test, the owner type at a call site, a typed mapping between two ' +
           'unions. A cast that is the only way, or clearly the best way, is a reviewed entry whose anchor names ' +
           'that one cast, with its why; an entry that no longer matches a cast is stale.',
