@@ -35,7 +35,7 @@ export interface TextFieldDeclarationFacts {
   undeclaredFreeText: ReviewedCounts;
   keepAsTyped: ReadonlyArray<{ declaration: string; why: string }>;
   declarations: Loader<Readonly<Record<string, unknown>>>;
-  fieldSchema: Loader<FieldSchemaOf['schemaOf']>;
+  fieldSchema: Loader<FieldSchemaOf>;
 }
 
 const isZString = (node: ts.Node): node is ts.CallExpression =>
@@ -318,14 +318,14 @@ export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclara
           const findings: Finding[] = [];
           coreBuild(context, findings);
           const declarations = textDeclarations(await facts.declarations());
-          const schemaOf = await facts.fieldSchema();
+          const reader = await facts.fieldSchema();
           if (!declarations.length)
             findings.push({
               file: facts.declarationsFile,
               detail: 'no text-field declaration was loaded',
             });
           for (const [name, declaration] of declarations) {
-            const schema = schemaOf(declaration);
+            const schema = reader.schemaOf(declaration);
             const min = typeof declaration.min === 'number' ? declaration.min : 0;
             if (min >= 1 && schema.safeParse(' \n\t ').success)
               findings.push({

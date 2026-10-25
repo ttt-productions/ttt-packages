@@ -30,8 +30,12 @@ export const AUDITION_DEADLINE_PROBLEM_MESSAGES: Record<AuditionDeadlineProblem,
 };
 
 export function refineAuditionDeadlineOrder(value: AuditionDeadlines, ctx: z.RefinementCtx): void {
-  if (value.auditionCloseAt < value.entriesCloseAt + AUDITION_MIN_VOTING_AFTER_ENTRIES_MS) {
-    ctx.addIssue({ code: 'custom', path: ['auditionCloseAt'] });
+  if (value.auditionCloseAt < earliestAuditionCloseAt(value.entriesCloseAt)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['auditionCloseAt'],
+      message: AUDITION_DEADLINE_PROBLEM_MESSAGES.auditionCloseTooSoon,
+    });
   }
 }
 

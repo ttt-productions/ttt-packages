@@ -400,12 +400,12 @@ export const MediaAssetReapCandidateSchema = z.object({
 });
 export type MediaAssetReapCandidate = z.infer<typeof MediaAssetReapCandidateSchema>;
 
-export const MediaAssetCopySourceHoldFieldsSchema = z.object({
+export const MediaAssetHoldFieldsSchema = z.object({
   mediaAssetId: MediaAssetSchema.shape.mediaAssetId,
   originLineage: MediaAssetSchema.shape.originLineage,
   legalHold: MediaAssetSchema.shape.legalHold,
 });
-export type MediaAssetCopySourceHoldFields = z.infer<typeof MediaAssetCopySourceHoldFieldsSchema>;
+export type MediaAssetHoldFields = z.infer<typeof MediaAssetHoldFieldsSchema>;
 
 export type MediaAssetRetirementStanding = 'absent' | 'retired' | 'owed' | 'none';
 

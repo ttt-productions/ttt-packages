@@ -90,7 +90,6 @@ export type ScrubbableEvent = {
   transaction?: unknown;
   spans?: unknown;
   urls?: unknown;
-  [key: string]: unknown;
 };
 
 export type TelemetryScrubberOptions = {
@@ -155,11 +154,15 @@ export function redactEvent<T extends ScrubbableEvent>(
   return event;
 }
 
-export type BeforeSendHook = (
-  event: ScrubbableEvent,
-  hint?: { originalException?: unknown } & Record<string, unknown>,
-) => ScrubbableEvent | null;
+export type BeforeSendHint = { originalException?: unknown } & Record<string, unknown>;
 
-export function createTelemetryScrubber(options: TelemetryScrubberOptions = {}): BeforeSendHook {
+export type BeforeSendHook = <T extends ScrubbableEvent>(
+  event: T,
+  hint?: BeforeSendHint,
+) => T | null;
+
+export type TelemetryScrubber = <T extends ScrubbableEvent>(event: T, hint?: BeforeSendHint) => T;
+
+export function createTelemetryScrubber(options: TelemetryScrubberOptions = {}): TelemetryScrubber {
   return (event, _hint) => redactEvent(event, options);
 }

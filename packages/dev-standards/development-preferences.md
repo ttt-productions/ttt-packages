@@ -18,9 +18,10 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   conversation toward what he wants: each one is read together with every earlier decision, rule,
   and correction, which all stay in force unless DJ changes them.
 - A problem inside the scope DJ commanded is fixed now (told to fix the payment flow → an error found
-  in the payment flow is fixed). A problem outside it is reported to DJ in chat: what was verified,
-  and a recommendation. DJ decides what happens to it — fix now, write it up, or drop it — and where
-  it goes. Nothing is filed, parked, or written up without DJ's word.
+  in the payment flow is fixed). A problem outside it is an open question for DJ: fully
+  investigated, then asked like any other question, with what was verified and a recommendation. DJ
+  decides what happens to it — fix now, write it up, or drop it — and where it goes. Nothing is
+  filed, parked, or written up without DJ's word.
 - A doc's "staged / later / deferred" label is never DJ's decision; only DJ's own explicit deferral
   parks an item.
 - **DJ's rules live only in his rule docs** — the rulebooks, this file, `CLAUDE.md` / `AGENTS.md`,
@@ -63,8 +64,8 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - No new-conversation or handoff proposals unless DJ asks.
 - **Every question is tracked until DJ answers it.** A question about the item being worked is asked
   when it is found; the parts of that item that depend on the answer wait, and everything else keeps
-  going. A problem found outside the item never stops work: it is reported in chat with what was
-  verified and a recommendation, and stays open for DJ. When DJ has said he is away, no question
+  going. A problem found outside the item never stops work: it is an open question for DJ, asked
+  like any other, with what was verified and a recommendation. When DJ has said he is away, no question
   blocks: it goes in chat, the session finishes every part that does not depend on it, and moves to
   the next item.
 - **No full gate while any question is open** — the Normal Test Flow, or a repo's own `test:quiet`

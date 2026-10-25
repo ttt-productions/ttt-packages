@@ -1,6 +1,7 @@
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from '../acceptance.js';
 import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../email-verification.js';
+import { SIGN_IN_REQUIRED_REASON } from '../sign-in.js';
 import { AuthAssertionError } from './authError.js';
 import type { AssertAuthConfig, AssertAuthFn, AuthContext, AuthRequirements } from './types.js';
 
@@ -12,7 +13,9 @@ export function createAssertAuth<TUser, TAdmin = void, TAdminOptions = never>(
     requirements: AuthRequirements<TAdminOptions> = {},
   ): Promise<AuthContext<TUser, TAdmin>> {
     if (!request.auth) {
-      throw new AuthAssertionError('unauthenticated', 'You must be authenticated');
+      throw new AuthAssertionError('unauthenticated', 'You must be authenticated', {
+        reason: SIGN_IN_REQUIRED_REASON,
+      });
     }
 
     const uid = request.auth.uid;

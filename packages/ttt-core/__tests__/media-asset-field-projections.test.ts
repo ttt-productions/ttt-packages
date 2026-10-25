@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   MediaAssetReapCandidateSchema,
-  MediaAssetCopySourceHoldFieldsSchema,
+  MediaAssetHoldFieldsSchema,
 } from '../src/doc-schemas/media-assets.js';
 
 const retirement = {
@@ -67,12 +67,12 @@ describe('the reaper candidate read of an asset doc', () => {
   });
 });
 
-describe('the copy-source hold read of an asset doc', () => {
+describe('the hold read of an asset doc', () => {
   const source = { mediaAssetId: 'asset-root', legalHold: false };
 
   it('yields the hold fields and drops every other stored field', () => {
     expect(
-      MediaAssetCopySourceHoldFieldsSchema.parse({
+      MediaAssetHoldFieldsSchema.parse({
         ...source,
         originLineage: lineage,
         ownerId: 'hall-1',
@@ -81,20 +81,20 @@ describe('the copy-source hold read of an asset doc', () => {
     ).toEqual({ ...source, originLineage: lineage });
   });
 
-  it('reads a source with no lineage', () => {
-    expect(MediaAssetCopySourceHoldFieldsSchema.parse(source)).toEqual(source);
+  it('reads an asset with no lineage', () => {
+    expect(MediaAssetHoldFieldsSchema.parse(source)).toEqual(source);
   });
 
-  it('refuses a source whose legal hold is not recorded, so the copy is kept rather than judged unheld', () => {
-    expect(
-      MediaAssetCopySourceHoldFieldsSchema.safeParse({ mediaAssetId: 'asset-root' }).success,
-    ).toBe(false);
-    expect(MediaAssetCopySourceHoldFieldsSchema.safeParse(undefined).success).toBe(false);
+  it('refuses an asset whose legal hold is not recorded, so it is never judged unheld', () => {
+    expect(MediaAssetHoldFieldsSchema.safeParse({ mediaAssetId: 'asset-root' }).success).toBe(
+      false,
+    );
+    expect(MediaAssetHoldFieldsSchema.safeParse(undefined).success).toBe(false);
   });
 
   it('refuses a lineage the asset schema refuses', () => {
     expect(
-      MediaAssetCopySourceHoldFieldsSchema.safeParse({
+      MediaAssetHoldFieldsSchema.safeParse({
         ...source,
         originLineage: { ...lineage, lineageVersion: 2 },
       }).success,

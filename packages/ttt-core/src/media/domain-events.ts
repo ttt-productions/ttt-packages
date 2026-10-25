@@ -37,6 +37,8 @@ import {
   WorkRealmDetailsUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
   ThresholdLibrarySubmittedEventSchema,
+  GuildChatChannelArchivedEventSchema,
+  GuildChatChannelUnarchivedEventSchema,
 } from './domain-events-work.js';
 import {
   SquareStreetzPostCreatedEventSchema,
@@ -55,6 +57,17 @@ import {
   AdminDisplayNameResetForcedEventSchema,
   HallContentChangeRequestApprovedEventSchema,
   SystemSlotUidUpdatedEventSchema,
+  WorkRealmHiddenEventSchema,
+  WorkRealmRestoredEventSchema,
+  WorkRealmRetitleRequiredEventSchema,
+  WorkRealmTextClearedEventSchema,
+  WorkProjectHiddenEventSchema,
+  WorkProjectRestoredEventSchema,
+  WorkProjectRetitleRequiredEventSchema,
+  WorkProjectTextClearedEventSchema,
+  HallSubItemHiddenEventSchema,
+  HallSubItemRestoredEventSchema,
+  HallSubItemTextClearedEventSchema,
 } from './domain-events-admin.js';
 
 // A new variant ships in order: publish this package, add its ttt-prod registry entry, then emit
@@ -110,6 +123,19 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   AuthRegistrationCompletedEventSchema,
   PublicDocumentsAcceptanceLandedEventSchema,
   ViolationDecisionAcceptedEventSchema,
+  WorkRealmHiddenEventSchema,
+  WorkRealmRestoredEventSchema,
+  WorkRealmRetitleRequiredEventSchema,
+  WorkRealmTextClearedEventSchema,
+  WorkProjectHiddenEventSchema,
+  WorkProjectRestoredEventSchema,
+  WorkProjectRetitleRequiredEventSchema,
+  WorkProjectTextClearedEventSchema,
+  HallSubItemHiddenEventSchema,
+  HallSubItemRestoredEventSchema,
+  HallSubItemTextClearedEventSchema,
+  GuildChatChannelArchivedEventSchema,
+  GuildChatChannelUnarchivedEventSchema,
 ]);
 
 export type DomainEvent = z.infer<typeof DomainEventSchema>;

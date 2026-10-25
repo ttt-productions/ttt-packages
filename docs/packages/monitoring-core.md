@@ -47,7 +47,8 @@ the correct tradeoff against running the caller twice.
 for the backend `withScope` / manual-capture path) that walks the text fields of an outgoing event —
 error, transaction, and replay events alike — and overwrites every substring matching a forbidden
 pattern with a fixed placeholder (`REDACTION_PLACEHOLDER`), leaving the ids and timings a trace needs to
-assemble. It is defense in depth, not the primary control: the real fix for a leak is never emitting the value,
+assemble. The scrubber and the content policy are generic over the event they are handed and return
+that same type, so an SDK's own event type passes through them with no bridge. It is defense in depth, not the primary control: the real fix for a leak is never emitting the value,
 and the scrubber exists to catch what third-party error text and SDK-recorded URLs drag in anyway.
 
 One hook covers one event type. The SDK runs `beforeSend` on error events and

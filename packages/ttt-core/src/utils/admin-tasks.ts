@@ -134,6 +134,7 @@ export interface ThresholdLibraryReviewTaskInput {
     'thresholdItemId' | 'workProjectId' | 'itemId' | 'hallWingType'
   >;
   readonly workProjectType: WorkProjectType;
+  readonly itemTitle: string;
   readonly foundingArtisanUid: string | null;
   readonly now: number;
 }
@@ -151,7 +152,7 @@ export function buildThresholdLibraryReviewTask(
     ),
     status: AdminTaskStatusSchema.enum.pending,
     checkoutDetails: null,
-    summary: `Review ${input.workProjectType}`,
+    summary: `Review ${input.workProjectType}: ${input.itemTitle}`,
     priority: calculateTaskPriority('thresholdLibraryReview', thresholdItem),
     createdAt: now,
     lastUpdatedAt: now,

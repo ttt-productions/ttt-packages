@@ -107,7 +107,7 @@ describe('buildContentAppealTask', () => {
 });
 
 describe('buildThresholdLibraryReviewTask', () => {
-  it('builds a pending task pointing at its threshold item, ranked by the wing', () => {
+  it('builds a pending task pointing at its threshold item, ranked by the wing, named by its Work type and title', () => {
     const task = buildThresholdLibraryReviewTask({
       thresholdItem: {
         thresholdItemId: 'wp-1__tale-1',
@@ -116,6 +116,7 @@ describe('buildThresholdLibraryReviewTask', () => {
         hallWingType: 'newsPolitical',
       },
       workProjectType: 'Tales',
+      itemTitle: 'The Lantern Road',
       foundingArtisanUid: 'founder-1',
       now: 7,
     });
@@ -126,7 +127,7 @@ describe('buildThresholdLibraryReviewTask', () => {
       originalPath: toPath(PATH_BUILDERS.thresholdItem('wp-1', 'tale-1')),
       status: 'pending',
       checkoutDetails: null,
-      summary: 'Review Tales',
+      summary: 'Review Tales: The Lantern Road',
       priority: TASK_PRIORITY_SCORE.HIGH,
       createdAt: 7,
       lastUpdatedAt: 7,

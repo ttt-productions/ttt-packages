@@ -271,6 +271,9 @@ export const PublishedTelevisionEpisodeSchema = z.object({
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;
 
+export type PublishedHallSubItem =
+  PublishedChapter | PublishedTuneTrack | PublishedTelevisionEpisode;
+
 export const HallLibraryInProgressEntrySchema = z.object({
   itemId: z.string(),
   positionSeconds: z.number(),

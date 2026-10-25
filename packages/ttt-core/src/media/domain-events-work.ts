@@ -289,3 +289,27 @@ export const ThresholdLibrarySubmittedEventSchema = z
       .strict(),
   })
   .strict();
+
+export const GuildChatChannelArchivedEventSchema = z
+  .object({
+    type: z.literal('guildChat.channelArchived'),
+    ids: z
+      .object({
+        workProjectId: z.string().min(1),
+        guildChatChannelId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const GuildChatChannelUnarchivedEventSchema = z
+  .object({
+    type: z.literal('guildChat.channelUnarchived'),
+    ids: z
+      .object({
+        workProjectId: z.string().min(1),
+        guildChatChannelId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();

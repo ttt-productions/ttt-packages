@@ -129,3 +129,95 @@ export const SystemSlotUidUpdatedEventSchema = z
       .strict(),
   })
   .strict();
+
+export const WorkRealmHiddenEventSchema = z
+  .object({
+    type: z.literal('workRealm.hidden'),
+    ids: z.object({ workRealmId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkRealmRestoredEventSchema = z
+  .object({
+    type: z.literal('workRealm.restored'),
+    ids: z.object({ workRealmId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkRealmRetitleRequiredEventSchema = z
+  .object({
+    type: z.literal('workRealm.retitleRequired'),
+    ids: z.object({ workRealmId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkRealmTextClearedEventSchema = z
+  .object({
+    type: z.literal('workRealm.textCleared'),
+    ids: z.object({ workRealmId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkProjectHiddenEventSchema = z
+  .object({
+    type: z.literal('workProject.hidden'),
+    ids: z.object({ workProjectId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkProjectRestoredEventSchema = z
+  .object({
+    type: z.literal('workProject.restored'),
+    ids: z.object({ workProjectId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkProjectRetitleRequiredEventSchema = z
+  .object({
+    type: z.literal('workProject.retitleRequired'),
+    ids: z.object({ workProjectId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const WorkProjectTextClearedEventSchema = z
+  .object({
+    type: z.literal('workProject.textCleared'),
+    ids: z.object({ workProjectId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const HallSubItemHiddenEventSchema = z
+  .object({
+    type: z.literal('hallLibrary.subItemHidden'),
+    ids: z
+      .object({
+        hallItemId: z.string().min(1),
+        subItemId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const HallSubItemRestoredEventSchema = z
+  .object({
+    type: z.literal('hallLibrary.subItemRestored'),
+    ids: z
+      .object({
+        hallItemId: z.string().min(1),
+        subItemId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const HallSubItemTextClearedEventSchema = z
+  .object({
+    type: z.literal('hallLibrary.subItemTextCleared'),
+    ids: z
+      .object({
+        hallItemId: z.string().min(1),
+        subItemId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();

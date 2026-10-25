@@ -405,7 +405,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `workProjectId` | `string` |  |
 | `createdOn` | `number` |  |
-| `type` | `string` |  |
+| `type` | `'Tales' \| 'Tunes' \| 'Television'` |  |
 | `workingDescription` | `string` |  |
 | `workingTitle` | `string` |  |
 | `hallWingType` | `'entertainment' \| 'educational' \| 'newsPolitical'` |  |

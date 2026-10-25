@@ -7,6 +7,11 @@ import {
   EMAIL_VERIFICATION_REQUIRED_REASON,
   isEmailVerificationRequiredError,
 } from '../src/email-verification.js';
+import {
+  SIGN_IN_REQUIRED_REASON,
+  isPlatformTokenRefusal,
+  isSignInRequiredError,
+} from '../src/sign-in.js';
 import type { AssertAuthConfig, AssertAuthFn, UserStatus } from '../src/server/types.js';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -480,12 +485,17 @@ describe('Acceptance-level gate', () => {
     });
   });
 
-  it('leaves `details` undefined on every other rejection', async () => {
+  it('marks the signed-out refusal with the sign-in-required reason', async () => {
     const unauthenticated = (await assertAuth(makeUnauthRequest()).catch(
       (e: unknown) => e,
     )) as AuthAssertionError;
-    expect(unauthenticated.details).toBeUndefined();
+    expect(unauthenticated.code).toBe('unauthenticated');
+    expect(unauthenticated.details).toEqual({ reason: SIGN_IN_REQUIRED_REASON });
+    expect(isSignInRequiredError(unauthenticated)).toBe(true);
+    expect(isPlatformTokenRefusal(unauthenticated)).toBe(false);
+  });
 
+  it('leaves `details` undefined on every other rejection', async () => {
     mockUserGet.mockResolvedValue({ exists: false, data: () => null });
     const missingProfile = (await assertAuth(makeRequest()).catch(
       (e: unknown) => e,

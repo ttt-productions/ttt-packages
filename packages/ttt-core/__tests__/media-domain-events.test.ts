@@ -448,3 +448,44 @@ describe('AuditionEntrySubmittedEventSchema', () => {
     ).toBe(false);
   });
 });
+
+describe('admin-tool outcomes name the entity they changed', () => {
+  const cases = [
+    { type: 'workRealm.hidden', ids: { workRealmId: 'r_1' } },
+    { type: 'workRealm.restored', ids: { workRealmId: 'r_1' } },
+    { type: 'workRealm.retitleRequired', ids: { workRealmId: 'r_1' } },
+    { type: 'workRealm.textCleared', ids: { workRealmId: 'r_1' } },
+    { type: 'workProject.hidden', ids: { workProjectId: 'wp_1' } },
+    { type: 'workProject.restored', ids: { workProjectId: 'wp_1' } },
+    { type: 'workProject.retitleRequired', ids: { workProjectId: 'wp_1' } },
+    { type: 'workProject.textCleared', ids: { workProjectId: 'wp_1' } },
+    { type: 'hallLibrary.subItemHidden', ids: { hallItemId: 'h_1', subItemId: 's_1' } },
+    { type: 'hallLibrary.subItemRestored', ids: { hallItemId: 'h_1', subItemId: 's_1' } },
+    { type: 'hallLibrary.subItemTextCleared', ids: { hallItemId: 'h_1', subItemId: 's_1' } },
+  ] as const;
+
+  it.each(cases)('the union accepts $type with its entity ids', (event) => {
+    expect(DomainEventSchema.parse(event)).toEqual(event);
+  });
+
+  it.each(cases)('the union rejects $type without its entity ids', ({ type }) => {
+    expect(() => DomainEventSchema.parse({ type, ids: {} })).toThrow();
+  });
+
+  it('a Hall sub-item outcome names the Hall item as well as the sub-item', () => {
+    expect(() =>
+      DomainEventSchema.parse({ type: 'hallLibrary.subItemHidden', ids: { subItemId: 's_1' } }),
+    ).toThrow();
+  });
+});
+
+describe('a guild-chat channel archive or unarchive names its Work and channel', () => {
+  it.each(['guildChat.channelArchived', 'guildChat.channelUnarchived'] as const)(
+    '%s parses with both ids and rejects a missing channel',
+    (type) => {
+      const ids = { workProjectId: 'wp_1', guildChatChannelId: 'ch_1' };
+      expect(DomainEventSchema.parse({ type, ids })).toEqual({ type, ids });
+      expect(() => DomainEventSchema.parse({ type, ids: { workProjectId: 'wp_1' } })).toThrow();
+    },
+  );
+});

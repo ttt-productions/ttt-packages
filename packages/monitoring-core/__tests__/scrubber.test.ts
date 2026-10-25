@@ -143,7 +143,24 @@ describe('createTelemetryScrubber — CANARY test', () => {
     const event: ScrubbableEvent = { message: `ip ${FAKE_IPV4}` };
     const out = scrub(event);
     expect(out).toBe(event);
-    expect((out as ScrubbableEvent).message).toBe(`ip ${REDACTION_PLACEHOLDER}`);
+    expect(out.message).toBe(`ip ${REDACTION_PLACEHOLDER}`);
+  });
+
+  it("hands back an SDK's own event type, which declares no index signature", () => {
+    interface SdkErrorEvent {
+      type: undefined;
+      message?: string;
+      exception?: { values?: Array<{ value?: string }> };
+    }
+    const event: SdkErrorEvent = {
+      type: undefined,
+      message: `ip ${FAKE_IPV4}`,
+      exception: { values: [{ value: `peer ${FAKE_IPV4}` }] },
+    };
+    const out: SdkErrorEvent = scrub(event);
+    expect(out).toBe(event);
+    expect(out.message).toBe(`ip ${REDACTION_PLACEHOLDER}`);
+    expect(out.exception?.values?.[0]?.value).toBe(`peer ${REDACTION_PLACEHOLDER}`);
   });
 
   it('handles cyclic references without infinite recursion', () => {
@@ -157,7 +174,7 @@ describe('createTelemetryScrubber — CANARY test', () => {
   it('works with only default patterns (no app patterns supplied)', () => {
     const defaultScrub = createTelemetryScrubber();
     const event: ScrubbableEvent = { message: `peer ${FAKE_IPV4}`, extra: { ip6: FAKE_IPV6 } };
-    const out = defaultScrub(event) as ScrubbableEvent;
+    const out = defaultScrub(event);
     expect(JSON.stringify(out)).not.toContain(FAKE_IPV4);
     expect(JSON.stringify(out)).not.toContain(FAKE_IPV6);
   });
@@ -352,14 +369,14 @@ describe('transaction and replay events — every place a page URL rides', () =>
     'https://example.test/auth/action?mode=resetPassword&oobCode=AbCdEfGh123456&lang=en';
 
   it('redacts the reset code from a page-load transaction name', () => {
-    const event: ScrubbableEvent = { type: 'transaction', transaction: RESET_URL };
-    const out = createTelemetryScrubber()(event)!;
+    const event = { type: 'transaction', transaction: RESET_URL };
+    const out = createTelemetryScrubber()(event);
     expect(out.transaction).not.toContain('AbCdEfGh123456');
     expect(out.transaction).toContain('mode=resetPassword');
   });
 
   it('redacts the reset code from span descriptions and span data', () => {
-    const event: ScrubbableEvent = {
+    const event = {
       type: 'transaction',
       spans: [
         {
@@ -371,7 +388,7 @@ describe('transaction and replay events — every place a page URL rides', () =>
         { op: 'navigation', description: 'GET /home', span_id: 'cccc3333dddd4444' },
       ],
     };
-    const out = createTelemetryScrubber()(event)!;
+    const out = createTelemetryScrubber()(event);
     const spans = out.spans as Array<Record<string, unknown>>;
     expect(JSON.stringify(spans)).not.toContain('AbCdEfGh123456');
     expect(spans[0].description).toContain(REDACTION_PLACEHOLDER);
@@ -380,7 +397,7 @@ describe('transaction and replay events — every place a page URL rides', () =>
   });
 
   it("leaves a span's ids and op intact so the trace still assembles", () => {
-    const event: ScrubbableEvent = {
+    const event = {
       type: 'transaction',
       spans: [
         {
@@ -391,7 +408,7 @@ describe('transaction and replay events — every place a page URL rides', () =>
         },
       ],
     };
-    const out = createTelemetryScrubber()(event)!;
+    const out = createTelemetryScrubber()(event);
     const span = (out.spans as Array<Record<string, unknown>>)[0];
     expect(span.span_id).toBe('aaaa1111bbbb2222');
     expect(span.trace_id).toBe('f'.repeat(32));
@@ -399,11 +416,11 @@ describe('transaction and replay events — every place a page URL rides', () =>
   });
 
   it("redacts the reset code from a replay event's visited URLs", () => {
-    const event: ScrubbableEvent = {
+    const event = {
       type: 'replay_event',
       urls: ['https://example.test/home', RESET_URL],
     };
-    const out = createTelemetryScrubber()(event)!;
+    const out = createTelemetryScrubber()(event);
     const urls = out.urls as string[];
     expect(urls[0]).toBe('https://example.test/home');
     expect(urls[1]).not.toContain('AbCdEfGh123456');

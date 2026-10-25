@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import {
   AUDITION_DEADLINE_PROBLEM_MESSAGES,
   AUDITION_MIN_ENTRY_WINDOW_MS,
@@ -10,6 +11,7 @@ import {
   defaultAuditionCloseAt,
   earliestAuditionEntriesCloseAt,
   earliestAuditionCloseAt,
+  refineAuditionDeadlineOrder,
 } from '../src/constants/audition-deadlines.js';
 import { AuditionSchema } from '../src/doc-schemas/commissions.js';
 
@@ -143,5 +145,32 @@ describe('the deadline refusal copy', () => {
     );
     expect(AUDITION_DEADLINE_PROBLEM_MESSAGES[tooSoonEntries!]).toContain('7 days');
     expect(AUDITION_DEADLINE_PROBLEM_MESSAGES[tooSoonClose!]).toContain('24 hours');
+  });
+});
+
+describe('the deadline-order refinement', () => {
+  const Deadlines = z
+    .object({ entriesCloseAt: z.number(), auditionCloseAt: z.number() })
+    .superRefine(refineAuditionDeadlineOrder);
+
+  it('refuses a too-short voting window on auditionCloseAt with the member-facing sentence', () => {
+    const result = Deadlines.safeParse({
+      entriesCloseAt: posted + 10 * DAY,
+      auditionCloseAt: posted + 11 * DAY - 1,
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toEqual([
+      expect.objectContaining({
+        path: ['auditionCloseAt'],
+        message: 'The audition must close at least 24 hours after entries close.',
+      }),
+    ]);
+  });
+
+  it('accepts an audition closing exactly 24 hours after entries close', () => {
+    expect(
+      Deadlines.safeParse({ entriesCloseAt: posted + 10 * DAY, auditionCloseAt: posted + 11 * DAY })
+        .success,
+    ).toBe(true);
   });
 });

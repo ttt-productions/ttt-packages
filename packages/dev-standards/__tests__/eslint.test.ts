@@ -14,7 +14,7 @@ import { createAppEslintConfig, createFunctionsEslintConfig } from '../src/node/
 
 const zeroSuppression = { linterOptions: { noInlineConfig: true } };
 
-const typeAwareNoAny = (files: string[]): Linter.Config => ({
+const typeAwareRules = (files: string[]): Linter.Config => ({
   files,
   languageOptions: { parserOptions: { projectService: true } },
   rules: {
@@ -23,6 +23,7 @@ const typeAwareNoAny = (files: string[]): Linter.Config => ({
     '@typescript-eslint/no-unsafe-call': 'error',
     '@typescript-eslint/no-unsafe-member-access': 'error',
     '@typescript-eslint/no-unsafe-return': 'error',
+    '@typescript-eslint/return-await': ['error', 'in-try-catch'],
   },
 });
 
@@ -130,7 +131,7 @@ describe('createAppEslintConfig', () => {
           'react-hooks/purity': 'error',
         },
       },
-      typeAwareNoAny(['**/*.ts', '**/*.tsx']),
+      typeAwareRules(['**/*.ts', '**/*.tsx']),
       appScoped,
       prettierCompat,
     ]);
@@ -139,7 +140,7 @@ describe('createAppEslintConfig', () => {
   it('keeps eslint-config-prettier last when the app adds nothing', async () => {
     const config = await createAppEslintConfig();
     expect(config.at(-1)).toBe(prettierCompat);
-    expect(config.at(-2)).toEqual(typeAwareNoAny(['**/*.ts', '**/*.tsx']));
+    expect(config.at(-2)).toEqual(typeAwareRules(['**/*.ts', '**/*.tsx']));
   });
 });
 
@@ -203,6 +204,40 @@ describe('presets reject an implicit any', () => {
       expect(result?.messages.filter((m) => m.fatal)).toEqual([]);
       expect([...errorsOf(result)]).toEqual(expect.arrayContaining(unsafeRules));
     }
+  });
+});
+
+describe('presets fail a promise returned from inside a try without await', () => {
+  const source = [
+    'declare function load(): Promise<number>;',
+    'export async function read(): Promise<number> {',
+    '  try {',
+    '    return load();',
+    '  } catch {',
+    '    return 0;',
+    '  }',
+    '}',
+    '',
+  ].join('\n');
+  const returnAwaitErrors = (result: ESLint.LintResult | undefined) =>
+    result?.messages.filter(
+      (m) => m.ruleId === '@typescript-eslint/return-await' && m.severity === 2,
+    ) ?? [];
+
+  it('the app preset fails it, so a rejection cannot skip the catch', async () => {
+    const result = await lintIn(await createAppEslintConfig(), 'app/src/read.ts', source);
+    expect(returnAwaitErrors(result)).toHaveLength(1);
+  });
+
+  it('the Functions preset fails it, so a rejection cannot skip the catch', async () => {
+    const result = await lintIn(await createFunctionsEslintConfig(), 'fns/src/read.ts', source);
+    expect(returnAwaitErrors(result)).toHaveLength(1);
+  });
+
+  it('passes the same return once it awaits', async () => {
+    const awaited = source.replace('return load();', 'return await load();');
+    const result = await lintIn(await createFunctionsEslintConfig(), 'fns/src/awaited.ts', awaited);
+    expect(returnAwaitErrors(result)).toEqual([]);
   });
 });
 
@@ -286,7 +321,7 @@ describe('createFunctionsEslintConfig', () => {
         languageOptions: { globals: nodeGlobals, sourceType: 'commonjs' },
         rules: { 'no-undef': 'error', 'no-unused-vars': unused },
       },
-      typeAwareNoAny(['**/*.ts']),
+      typeAwareRules(['**/*.ts']),
       appScoped,
       prettierCompat,
     ]);

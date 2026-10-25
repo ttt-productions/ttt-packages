@@ -28,6 +28,8 @@ export type {
   ScrubbableEvent,
   TelemetryScrubberOptions,
   BeforeSendHook,
+  BeforeSendHint,
+  TelemetryScrubber,
 } from './scrubber.js';
 export {
   REDACTION_PLACEHOLDER,

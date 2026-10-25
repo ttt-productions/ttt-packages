@@ -9,7 +9,7 @@ import {
 } from '../src/init.js';
 import { captureException, captureMessage } from '../src/api.js';
 import { NoopAdapter } from '../src/adapters/noop.js';
-import type { ScrubbableEvent } from '../src/scrubber.js';
+import type { BeforeSendHook } from '../src/scrubber.js';
 
 const browserSdk = vi.hoisted(() => ({
   init: vi.fn<(options: Record<string, unknown>) => void>(),
@@ -209,8 +209,8 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
   ])(
     'passes beforeSend, beforeSendTransaction, and the integration options into the %s SDK init',
     async (provider, sdk) => {
-      const beforeSend = vi.fn((event: ScrubbableEvent) => event);
-      const beforeSendTransaction = vi.fn((event: ScrubbableEvent) => event);
+      const beforeSend: BeforeSendHook = (event) => event;
+      const beforeSendTransaction: BeforeSendHook = (event) => event;
       const integrations = [{ name: 'Dedupe' }];
       await initMonitoring({
         provider,
@@ -269,8 +269,8 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
   );
 
   it('re-initializes when only a function-valued option changes', async () => {
-    const first = vi.fn((event: ScrubbableEvent) => event);
-    const second = vi.fn(() => null);
+    const first: BeforeSendHook = (event) => event;
+    const second: BeforeSendHook = () => null;
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend: first });
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend: second });
 
@@ -279,7 +279,7 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
   });
 
   it('does not re-initialize for the same options, hook references included', async () => {
-    const beforeSend = vi.fn((event: ScrubbableEvent) => event);
+    const beforeSend: BeforeSendHook = (event) => event;
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend, integrations: [] });
     await initMonitoring({ provider: 'sentry-node', dsn: DSN, beforeSend, integrations: [] });
 
