@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/dev-standards",
-    "version": "0.0.11",
+    "version": "0.0.12",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
