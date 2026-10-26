@@ -380,6 +380,7 @@ describe('partial mocks keep a pure root', () => {
       { module: '@kit/helpers', why: 'the error path imports its classifiers' },
       { module: 'icons', why: 'package components render from it' },
     ],
+    passThroughHelpers: [{ owner: '@kit/standards/testing', names: ['passThroughModule'] }],
   };
   const spread = lines(
     "vi.mock('@kit/helpers', async (importOriginal) => ({ ...(await importOriginal()), toMillis: vi.fn() }));",
@@ -422,9 +423,71 @@ describe('partial mocks keep a pure root', () => {
   });
 
   it('refuses a root with no why', () => {
-    expect(partialMockGuard.factProblems({ packageRoots: [{ module: 'icons', why: '' }] })).toEqual(
-      ["package root icons's why is missing"],
-    );
+    expect(
+      partialMockGuard.factProblems({
+        packageRoots: [{ module: 'icons', why: '' }],
+        passThroughHelpers: [],
+      }),
+    ).toEqual(["package root icons's why is missing"]);
+  });
+
+  it('refuses facts with no pass-through helper list', () => {
+    expect(factProblemsOf(partialMockGuard, { packageRoots: facts.packageRoots })).toEqual([
+      'passThroughHelpers is missing (declare [] when there is none)',
+    ]);
+  });
+
+  describe('a mock named through import()', () => {
+    it('passes a spread of its own importOriginal under any name, and a listed pass-through helper', async () => {
+      expect(
+        await findingsOf(partialMockGuard, facts, {
+          'src/__tests__/a.test.ts': lines(
+            "vi.mock(import('@kit/helpers'), async (io) => ({ ...(await io()), toMillis: vi.fn() }));",
+            "vi.mock(import('icons'), async (importOriginal) =>",
+            "  (await import('@kit/standards/testing')).passThroughModule(importOriginal, { Info: () => null }));",
+          ),
+          'src/__tests__/b.test.ts': lines(
+            "vi.mock(import('icons'), async (io) => {",
+            "  const { passThroughModule } = await import('@kit/standards/testing');",
+            '  return passThroughModule(io, {});',
+            '});',
+          ),
+        }),
+      ).toEqual([]);
+    });
+
+    it('flags a stub helper, a pass-through handed another value, and a factory with a stub path', async () => {
+      expect(
+        await findingsOf(partialMockGuard, facts, {
+          'src/__tests__/a.test.ts': lines(
+            "vi.mock(import('icons'), async (io) =>",
+            "  (await import('@kit/standards/testing')).stubModule(io, { Info: () => null }));",
+            "vi.mock(import('@kit/helpers'), async (io) =>",
+            "  (await import('@kit/standards/testing')).passThroughModule(() => io(), {}));",
+          ),
+          'src/__tests__/b.test.ts': lines(
+            "vi.doMock(import('icons'), async (io) => {",
+            "  const { passThroughModule } = await import('@kit/standards/testing');",
+            '  if (flag) return { Info: () => null };',
+            '  return passThroughModule(io, {});',
+            '});',
+          ),
+        }),
+      ).toEqual([
+        'src/__tests__/a.test.ts:1 a full-module mock of icons',
+        'src/__tests__/a.test.ts:3 a full-module mock of @kit/helpers',
+        'src/__tests__/b.test.ts:1 a full-module mock of icons',
+      ]);
+    });
+
+    it('counts an import() mock of a listed root as mocking it', async () => {
+      expect(
+        await findingsOf(partialMockGuard, facts, {
+          'src/__tests__/a.test.ts':
+            "vi.mock(import('@kit/helpers'), async (importOriginal) => ({ ...(await importOriginal()) }));",
+        }),
+      ).toEqual(['(packageRoots) stale entry: nothing mocks icons']);
+    });
   });
 
   describe('a mock that loads the root’s shared fake', () => {
@@ -476,6 +539,25 @@ describe('partial mocks keep a pure root', () => {
         'src/__tests__/a.test.ts:1 a full-module mock of @kit/helpers',
         'src/__tests__/a.test.ts:2 a full-module mock of icons',
       ]);
+    });
+
+    it('passes a fake built on a listed pass-through helper, and flags one built on a stub helper', async () => {
+      expect(
+        await findingsOf(partialMockGuard, withFakes, {
+          'src/__tests__/a.test.ts': lines(
+            "vi.mock(import('@kit/helpers'), async (io) => (await import('@/test/fakes/helpers')).helpersFake(io, {}));",
+            "vi.mock(import('icons'), async (io) => (await import('@/test/fakes/icons')).iconsFake(io, {}));",
+          ),
+          'src/test/fakes/helpers.ts': lines(
+            "import { passThroughModule } from '@kit/standards/testing';",
+            'export const helpersFake = (importOriginal, overrides) => passThroughModule(importOriginal, overrides);',
+          ),
+          'src/test/fakes/icons.ts': lines(
+            "import { stubModule } from '@kit/standards/testing';",
+            'export const iconsFake = (importOriginal, overrides) => stubModule(importOriginal, overrides);',
+          ),
+        }),
+      ).toEqual(['src/__tests__/a.test.ts:2 a full-module mock of icons']);
     });
 
     it('flags a factory that loads a file that is not the module’s registered fake', async () => {

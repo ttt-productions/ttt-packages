@@ -173,6 +173,7 @@ describe("the package's own generic guards", () => {
       testTimeouts: { importAliases: { '@/': undefined } },
       partialMocks: {
         packageRoots: [{ module: 'zod', why: 'w' }],
+        passThroughHelpers: [],
         sharedFakes: { importAliases: { '@/': undefined } },
       },
     };

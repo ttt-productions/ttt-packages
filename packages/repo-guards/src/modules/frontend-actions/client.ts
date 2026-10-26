@@ -18,12 +18,22 @@ import {
   importAliasesProblem,
   namesProblem,
   reviewedProblems,
+  pathProblem,
   textProblem,
   isList,
 } from '../../support/facts.js';
 import { fromStatements, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
-import { isPlainString } from '../../support/ast.js';
+import { isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
+import {
+  awaited,
+  bindingsOf,
+  calledExport,
+  factoryFunction,
+  parameterName,
+  returnedExpressions,
+  type Factory,
+} from '../../support/mock-factories.js';
 import { aliasList, resolveSpecifier } from '../../support/resolve-specifier.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
@@ -452,32 +462,17 @@ export const dateOfBirthGuard: GenericGuardDefinition<DateOfBirthFacts> = {
 
 export interface PartialMockFacts {
   packageRoots: ReadonlyArray<{ module: string; why: string }>;
+  passThroughHelpers: ReadonlyArray<{ owner: string; names: readonly string[] }>;
   sharedFakes?: Pick<SharedFakeFacts, 'importAliases' | 'fakes'>;
 }
 
-export function moduleMockCalls(
-  code: string,
-  module: string,
-): Array<{ call: string; index: number }> {
-  const opener = new RegExp(`vi\\.(?:mock|doMock)\\(\\s*(['"\`])${escapeRegExp(module)}\\1`, 'g');
-  const calls: Array<{ call: string; index: number }> = [];
-  for (let m = opener.exec(code); m; m = opener.exec(code)) {
-    const open = code.indexOf('(', m.index);
-    let depth = 0;
-    let end = open;
-    for (; end < code.length; end++) {
-      if (code[end] === '(') depth++;
-      else if (code[end] === ')' && --depth === 0) break;
-    }
-    calls.push({ call: code.slice(m.index, end + 1), index: m.index });
-  }
-  return calls;
-}
+const MOCK_CALLS: ReadonlySet<string> = new Set(['vi.mock', 'vi.doMock']);
 
-export function spreadsImportOriginal(call: string): boolean {
-  if (/\.\.\.\s*\(\s*await\s+importOriginal\b/.test(call)) return true;
-  const binding = /const\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+importOriginal\b/.exec(call);
-  return binding !== null && new RegExp(`\\.\\.\\.\\s*${escapeRegExp(binding[1])}\\b`).test(call);
+function spreadsImportOriginal(code: string, original = 'importOriginal'): boolean {
+  const name = escapeRegExp(original);
+  if (new RegExp(`\\.\\.\\.\\s*\\(\\s*await\\s+${name}\\b`).test(code)) return true;
+  const binding = new RegExp(`const\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*await\\s+${name}\\b`).exec(code);
+  return binding !== null && new RegExp(`\\.\\.\\.\\s*${escapeRegExp(binding[1])}\\b`).test(code);
 }
 
 function factoryLoads(call: string): string[] {
@@ -499,26 +494,58 @@ function functionText(file: FileView, name: string): string | null {
   return null;
 }
 
+type KeepsReal = (path: string, name: string) => boolean;
+
 function ownerKeepsRealExports(
   context: GuardContext,
   owner: string,
   aliases: ReadonlyArray<[string, string]>,
+  passesThrough: KeepsReal,
 ): boolean {
   if (!context.reader.exists(owner)) return false;
   const file = context.file(owner);
   if (spreadsImportOriginal(file.code)) return true;
+  const calls = (local: string) => new RegExp(`\\b${escapeRegExp(local)}\\s*[<(]`).test(file.code);
   for (const site of file.imports) {
     if (site.typeOnly) continue;
     const target = resolveSpecifier(context.reader, owner, site.spec, aliases);
+    for (const name of site.named)
+      if (!name.typeOnly && passesThrough(target, name.imported) && calls(name.local)) return true;
     if (target === site.spec || !context.reader.exists(target)) continue;
     for (const name of site.named) {
-      if (name.typeOnly || !new RegExp(`\\b${escapeRegExp(name.local)}\\s*[<(]`).test(file.code))
-        continue;
+      if (name.typeOnly || !calls(name.local)) continue;
       const helper = functionText(context.file(target), name.imported);
       if (helper !== null && spreadsImportOriginal(helper)) return true;
     }
   }
   return false;
+}
+
+function returnsThroughPassThrough(
+  fn: Factory,
+  resolve: (spec: string) => string,
+  passesThrough: KeepsReal,
+): boolean {
+  const original = parameterName(fn);
+  const bindings = bindingsOf(fn, resolve);
+  const returns = returnedExpressions(fn);
+  return (
+    returns.length > 0 &&
+    returns.every((returned) => {
+      const call = returned ? awaited(returned) : null;
+      if (!call || !ts.isCallExpression(call)) return false;
+      const target = calledExport(call, bindings, resolve);
+      const [first] = call.arguments;
+      const passed = first ? unwrap(first) : null;
+      return (
+        target !== null &&
+        passesThrough(target.path, target.name) &&
+        passed !== null &&
+        ts.isIdentifier(passed) &&
+        passed.text === original
+      );
+    })
+  );
 }
 
 export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
@@ -532,6 +559,17 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
       textProblem(r?.module, 'a package root', problems);
       textProblem(r?.why, `package root ${String(r?.module)}'s why`, problems);
     }
+    if (!isList(facts.passThroughHelpers))
+      problems.push('passThroughHelpers is missing (declare [] when there is none)');
+    else
+      for (const helper of facts.passThroughHelpers) {
+        pathProblem(helper?.owner, "a passThroughHelpers entry's owner", problems);
+        namesProblem(
+          helper?.names,
+          `passThroughHelpers entry ${String(helper?.owner)}'s names`,
+          problems,
+        );
+      }
     if (facts.sharedFakes !== undefined) {
       importAliasesProblem(facts.sharedFakes?.importAliases, 'sharedFakes.importAliases', problems);
       if (!isList(facts.sharedFakes?.fakes)) problems.push('sharedFakes.fakes is missing');
@@ -543,15 +581,21 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
       {
         title: "a mock of a listed package root keeps the root's real exports",
         description:
-          'A `vi.mock` of a listed package root spreads the real module: ' +
-          "`vi.mock(import('<root>'), async (importOriginal) => ({ ...(await importOriginal()), <override> }))`. A factory that " +
-          'returns only the exports one test steers deletes the rest, and code that needs them fails away from the ' +
-          "assertion. A mock whose factory loads the root's shared fake passes when that fake spreads the real module. " +
+          'A `vi.mock` of a listed package root, named by a string or through `import()`, keeps the real ' +
+          'module: its factory spreads its own `importOriginal` ' +
+          '(`({ ...(await importOriginal()), <override> })`), returns on every path through a listed ' +
+          'pass-through helper handed that `importOriginal` (`passThroughModule(importOriginal, { <override> })`), ' +
+          "or loads the root's shared fake that keeps the real module. A factory that returns only the " +
+          'exports one test steers — through a stub helper too — deletes the rest, and code that needs them ' +
+          'fails away from the assertion. ' +
           facts.packageRoots.map((r) => `${r.module}: ${r.why}.`).join(' '),
         run(context) {
           const findings: Finding[] = [];
+          const roots = new Set(facts.packageRoots.map((r) => r.module));
           const mocked = new Set<string>();
           const aliases = aliasList(facts.sharedFakes?.importAliases ?? {});
+          const passesThrough: KeepsReal = (path, name) =>
+            facts.passThroughHelpers.some((h) => h.owner === path && h.names.includes(name));
           const ownerOf = (module: string, rootName: string): string | undefined =>
             facts.sharedFakes?.fakes.find(
               (f) =>
@@ -566,7 +610,7 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
               factoryLoads(call).some(
                 (spec) => resolveSpecifier(context.reader, file.path, spec, aliases) === owner,
               ) &&
-              ownerKeepsRealExports(context, owner, aliases)
+              ownerKeepsRealExports(context, owner, aliases, passesThrough)
             );
           };
           const files = context.files({
@@ -576,16 +620,26 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
             optionalRoots: ['functions'],
           });
           for (const file of files) {
-            for (const { module } of facts.packageRoots) {
-              for (const { call, index } of moduleMockCalls(file.code, module)) {
-                mocked.add(module);
-                if (!spreadsImportOriginal(call) && !loadsKeepingOwner(file, module, call))
-                  findings.push({
-                    file: file.path,
-                    line: file.lineOf(index),
-                    detail: `a full-module mock of ${module}`,
-                  });
-              }
+            const resolve = (spec: string) =>
+              resolveSpecifier(context.reader, file.path, spec, aliases);
+            for (const site of file.imports) {
+              if (site.kind !== 'mock' || !MOCK_CALLS.has(site.callee ?? '')) continue;
+              if (!roots.has(site.spec) || !ts.isCallExpression(site.node)) continue;
+              mocked.add(site.spec);
+              const call = site.node.getText(file.sourceFile);
+              const factory = site.node.arguments[1];
+              const fn = factory ? factoryFunction(factory) : null;
+              if (
+                spreadsImportOriginal(call, (fn && parameterName(fn)) ?? 'importOriginal') ||
+                (fn !== null && returnsThroughPassThrough(fn, resolve, passesThrough)) ||
+                loadsKeepingOwner(file, site.spec, call)
+              )
+                continue;
+              findings.push({
+                file: file.path,
+                line: lineOfNode(file, site.node),
+                detail: `a full-module mock of ${site.spec}`,
+              });
             }
           }
           for (const { module } of facts.packageRoots) {
