@@ -1,32 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { RatelimitConfig } from '@upstash/ratelimit';
 
-const mockLimit = vi.hoisted(() => vi.fn());
-
-vi.mock('@upstash/ratelimit', () => {
-  // Function expression, not an arrow: the source does `new Ratelimit(...)` and
-  // Vitest 4 mock implementations are only constructible when the impl is.
-  const Ratelimit = vi.fn(function () {
-    return { limit: mockLimit };
-  });
+const ratelimit = vi.hoisted(() => {
+  const configs: RatelimitConfig[] = [];
   return {
-    Ratelimit: Object.assign(Ratelimit, {
-      slidingWindow: vi.fn().mockReturnValue('sliding-window-algo'),
-    }),
+    configs,
+    limit: vi.fn<import('@upstash/ratelimit').Ratelimit['limit']>(),
   };
+});
+
+vi.mock('@upstash/ratelimit', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  type RatelimitModule = typeof import('@upstash/ratelimit');
+  const actual = await importOriginal<RatelimitModule>();
+  class RecordingRatelimit extends actual.Ratelimit {
+    static override slidingWindow = vi.fn(actual.Ratelimit.slidingWindow);
+    override limit = ratelimit.limit;
+    constructor(config: RatelimitConfig) {
+      super(config);
+      ratelimit.configs.push(config);
+    }
+  }
+  return passThroughModule<RatelimitModule>(importOriginal, { Ratelimit: RecordingRatelimit });
 });
 
 import { createRateLimiterFactory, type RateLimitRedis } from '../src/rate-limiter.js';
 import { Ratelimit } from '@upstash/ratelimit';
 
-// Ratelimit is mocked, so the client only has to be the slice it is typed to take.
+// The limiter's own calls are stubbed, so the client only has to be the slice it is typed to take.
 const redis: RateLimitRedis = { evalsha: vi.fn(), get: vi.fn(), set: vi.fn() };
 
-const MockedRatelimit = vi.mocked(Ratelimit);
+const mockLimit = ratelimit.limit;
+const limitResponse = (
+  success: boolean,
+  reset: number,
+): Awaited<ReturnType<Ratelimit['limit']>> => ({
+  success,
+  limit: 5,
+  remaining: success ? 4 : 0,
+  reset,
+  pending: Promise.resolve(),
+});
 
 describe('createRateLimiterFactory', () => {
   beforeEach(() => {
     mockLimit.mockReset();
-    MockedRatelimit.mockClear();
+    ratelimit.configs.length = 0;
   });
 
   it('returns { allowed: true } when getRedis returns null (disabled)', async () => {
@@ -36,14 +55,14 @@ describe('createRateLimiterFactory', () => {
   });
 
   it('memoizes limiter by prefix — same config returns same instance', async () => {
-    mockLimit.mockResolvedValue({ success: true, reset: 0 });
+    mockLimit.mockResolvedValue(limitResponse(true, 0));
     const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => redis });
     const config = { prefix: 'test:prefix', maxRequests: 10, window: '1 h' };
 
     const a = getRateLimiter(config);
     const b = getRateLimiter(config);
     expect(a).toBe(b);
-    expect(MockedRatelimit).toHaveBeenCalledTimes(1);
+    expect(ratelimit.configs).toHaveLength(1);
   });
 
   it('builds a new limiter when the same prefix arrives with a different max or window', () => {
@@ -62,9 +81,11 @@ describe('createRateLimiterFactory', () => {
       [5, '1 m'],
       [5, '1 h'],
     ]);
-    expect(MockedRatelimit.mock.calls.map(([opts]) => (opts as { prefix: string }).prefix)).toEqual(
-      ['ratelimit:write', 'ratelimit:write', 'ratelimit:write'],
-    );
+    expect(ratelimit.configs.map((config) => config.prefix)).toEqual([
+      'ratelimit:write',
+      'ratelimit:write',
+      'ratelimit:write',
+    ]);
   });
 
   it('keeps one limiter per prefix: returning to an earlier config after a change builds it again', () => {
@@ -75,13 +96,13 @@ describe('createRateLimiterFactory', () => {
     getRateLimiter({ ...relaxed, maxRequests: 5 });
     const current = getRateLimiter(relaxed);
 
-    expect(MockedRatelimit).toHaveBeenCalledTimes(3);
+    expect(ratelimit.configs).toHaveLength(3);
     expect(getRateLimiter(relaxed)).toBe(current);
   });
 
   it('returns { allowed: false, reset } when success=false', async () => {
     const reset = Date.now() + 60_000;
-    mockLimit.mockResolvedValueOnce({ success: false, reset });
+    mockLimit.mockResolvedValueOnce(limitResponse(false, reset));
     const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => redis });
     const result = await checkRateLimit('u1', {
       prefix: 'ratelimit:test',
@@ -92,7 +113,7 @@ describe('createRateLimiterFactory', () => {
   });
 
   it('returns { allowed: true } when success=true', async () => {
-    mockLimit.mockResolvedValueOnce({ success: true, reset: 0 });
+    mockLimit.mockResolvedValueOnce(limitResponse(true, 0));
     const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => redis });
     const result = await checkRateLimit('u1', {
       prefix: 'ratelimit:test',

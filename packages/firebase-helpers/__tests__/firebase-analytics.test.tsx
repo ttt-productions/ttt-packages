@@ -1,29 +1,41 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, renderHook } from '@testing-library/react';
-import type { setUserId } from 'firebase/analytics';
+import type { Analytics, AnalyticsCallOptions } from 'firebase/analytics';
 
 const h = vi.hoisted(() => ({
-  logEvent: vi.fn(),
-  setUserId: vi.fn<typeof setUserId>(),
-  setUserProperties: vi.fn(),
+  logEvent:
+    vi.fn<
+      (
+        analytics: Analytics,
+        eventName: string,
+        eventParams?: object,
+        options?: AnalyticsCallOptions,
+      ) => void
+    >(),
+  setUserId: vi.fn<typeof import('firebase/analytics').setUserId>(),
+  setUserProperties: vi.fn<typeof import('firebase/analytics').setUserProperties>(),
 }));
 
-vi.mock('firebase/analytics', () => ({
-  logEvent: h.logEvent,
-  setUserId: h.setUserId,
-  setUserProperties: h.setUserProperties,
-}));
+vi.mock('firebase/analytics', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('firebase/analytics')>(importOriginal, {
+    logEvent: h.logEvent,
+    setUserId: h.setUserId,
+    setUserProperties: h.setUserProperties,
+  });
+});
 
 import {
   FirebaseAnalyticsIdentity,
   FirebaseAnalyticsPageViews,
   useFirebaseAnalyticsEvents,
 } from '../src/react/firebase-analytics.js';
-import type { Analytics } from 'firebase/analytics';
 import type { FirebaseAnalyticsHandle } from '../src/client/firebase-init.js';
 
-const instance = { app: { name: 'test' } } as Analytics;
+const instance: Analytics = {
+  app: { name: 'test', options: {}, automaticDataCollectionEnabled: false },
+};
 
 function fakeHandle(created = true) {
   let current: Analytics | undefined = created ? instance : undefined;

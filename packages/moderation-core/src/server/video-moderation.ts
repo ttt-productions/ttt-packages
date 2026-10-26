@@ -1,10 +1,28 @@
 import { isRejectionLikelihood, likelihoodToString, LIKELIHOOD_ORDER } from '../likelihood.js';
 import type { Likelihood, MediaModerationResult, ModerationLogger } from '../types.js';
 
-import type { VideoIntelligenceServiceClient } from '@google-cloud/video-intelligence';
+import type { VideoIntelligenceServiceClient, protos } from '@google-cloud/video-intelligence';
 
-// The one Video Intelligence call video moderation makes; a VideoIntelligenceServiceClient is one.
-export type AnnotateVideoClient = Pick<VideoIntelligenceServiceClient, 'annotateVideo'>;
+export interface AnnotateVideoOperation {
+  promise(): Promise<
+    [protos.google.cloud.videointelligence.v1.IAnnotateVideoResponse, ...unknown[]]
+  >;
+}
+
+// The one Video Intelligence call video moderation makes, in the one form it calls it; a
+// VideoIntelligenceServiceClient is one.
+export interface AnnotateVideoClient {
+  annotateVideo(
+    request: protos.google.cloud.videointelligence.v1.IAnnotateVideoRequest,
+    options: { longrunning: VideoAnnotateBackoff },
+  ): Promise<[AnnotateVideoOperation, ...unknown[]]>;
+}
+
+interface VideoAnnotateBackoff {
+  initialRetryDelayMillis: number;
+  retryDelayMultiplier: number;
+  maxRetryDelayMillis: number;
+}
 
 export interface VideoPollBackoff {
   initialDelayMillis: number;
@@ -27,7 +45,7 @@ export interface VideoModerationOptions {
 }
 
 let _defaultClient: VideoIntelligenceServiceClient | null = null;
-async function defaultGetVideoClient(): Promise<VideoIntelligenceServiceClient> {
+async function defaultGetVideoClient(): Promise<AnnotateVideoClient> {
   if (_defaultClient) return _defaultClient;
   const mod = await import('@google-cloud/video-intelligence');
   _defaultClient = new mod.VideoIntelligenceServiceClient();

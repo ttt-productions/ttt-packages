@@ -7,36 +7,15 @@ import {
   BACKOFF_SCHEDULE_MS,
   MAX_RECOVERY_DURATION_MS,
 } from '../src/recovery.js';
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 import { useMediaRecovery } from '../src/react/use-media-recovery.js';
 import type { MediaDiagnosticAdapter, DiagnosisResult } from '../src/recovery.js';
 import { MediaPreview } from '../src/react/media-viewer.js';
-
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({ ref: () => {}, inView: true }),
-}));
 
 const createObjectURLMock = vi.fn(() => 'blob:fake-url');
 const revokeObjectURLMock = vi.fn();
 URL.createObjectURL = createObjectURLMock;
 URL.revokeObjectURL = revokeObjectURLMock;
-
-class FakeIO implements IntersectionObserver {
-  readonly root = null;
-  readonly rootMargin = '';
-  readonly scrollMargin = '';
-  readonly thresholds: readonly number[] = [];
-  private cb: IntersectionObserverCallback;
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-  takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
-  constructor(cb: IntersectionObserverCallback) {
-    this.cb = cb;
-  }
-  trigger(isIntersecting: boolean) {
-    this.cb([{ isIntersecting } as IntersectionObserverEntry], this);
-  }
-}
 
 interface TestHookCompProps {
   url: string | null;
@@ -109,13 +88,11 @@ describe('withinBudget', () => {
 describe('useMediaRecovery — transient retry + backoff', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('stays idle until onMediaError is called', async () => {
@@ -125,6 +102,7 @@ describe('useMediaRecovery — transient retry + backoff', () => {
         .mockResolvedValue({ kind: 'transient' }),
     };
     render(<TestHookComp url="https://cdn.example.com/a.jpg" adapter={adapter} />);
+    mockAllIsIntersecting(0.01);
     expect(screen.getByTestId('phase').textContent).toBe('idle');
   });
 
@@ -135,6 +113,7 @@ describe('useMediaRecovery — transient retry + backoff', () => {
     const adapter: MediaDiagnosticAdapter = { probe };
 
     render(<TestHookComp url="https://cdn.example.com/a.jpg" adapter={adapter} />);
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -179,6 +158,7 @@ describe('useMediaRecovery — transient retry + backoff', () => {
     }
 
     render(<ControlledComp />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('err2'));
@@ -196,27 +176,17 @@ describe('useMediaRecovery — transient retry + backoff', () => {
     expect(callCount).toBeGreaterThanOrEqual(2);
   });
 
-  it('transitions to max-wait-fallback after ~120 s total', async () => {
+  it('settles on max-wait-fallback once a media that keeps failing outlasts the 120 s budget', async () => {
     const probe = vi
       .fn<(url: string) => Promise<DiagnosisResult>>()
       .mockResolvedValue({ kind: 'transient' });
-    let onRemountFn: (() => void) | undefined;
 
     function BudgetComp() {
       const { onMediaError, recoveryState } = useMediaRecovery({
         url: 'https://cdn.example.com/c.jpg',
         adapter: { probe },
-        onRemount: () => {
-          onRemountFn?.();
-        },
+        onRemount: () => {},
       });
-
-      React.useEffect(() => {
-        onRemountFn = () => {
-          void probe('https://cdn.example.com/c.jpg').then(() => {});
-        };
-      });
-
       return (
         <div>
           <span data-testid="phase3">{recoveryState.phase}</span>
@@ -228,32 +198,28 @@ describe('useMediaRecovery — transient retry + backoff', () => {
     }
 
     render(<BudgetComp />);
+    mockAllIsIntersecting(0.01);
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('err3'));
-      await Promise.resolve();
-    });
+    const longestBackoff = Math.max(...BACKOFF_SCHEDULE_MS) * 1.2;
+    for (let elapsed = 0; elapsed <= MAX_RECOVERY_DURATION_MS; elapsed += longestBackoff) {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('err3'));
+        await vi.advanceTimersByTimeAsync(longestBackoff);
+      });
+    }
 
-    await act(async () => {
-      vi.advanceTimersByTime(MAX_RECOVERY_DURATION_MS + 60_000);
-      await Promise.resolve();
-    });
-
-    const phase = screen.getByTestId('phase3').textContent;
-    expect(['transient-retry', 'max-wait-fallback', 'idle']).toContain(phase);
+    expect(screen.getByTestId('phase3').textContent).toBe('max-wait-fallback');
   });
 });
 
 describe('useMediaRecovery — auth', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('enters auth-retry state on auth probe result and calls refreshSession + refreshGrant', async () => {
@@ -264,6 +230,7 @@ describe('useMediaRecovery — auth', () => {
     const adapter: MediaDiagnosticAdapter = { probe, refreshSession, refreshGrant };
 
     render(<TestHookComp url="https://cdn.example.com/auth.jpg" adapter={adapter} />);
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -278,6 +245,7 @@ describe('useMediaRecovery — auth', () => {
     const adapter: MediaDiagnosticAdapter = { probe, refreshSession };
 
     render(<TestHookComp url="https://cdn.example.com/auth2.jpg" adapter={adapter} />);
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -314,6 +282,7 @@ describe('useMediaRecovery — auth', () => {
     }
 
     render(<AuthComp />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('aerr'));
@@ -335,13 +304,11 @@ describe('useMediaRecovery — auth', () => {
 describe('useMediaRecovery — hard', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('goes immediately to hard-unavailable on hard probe result, no retry timer', async () => {
@@ -366,6 +333,7 @@ describe('useMediaRecovery — hard', () => {
     }
 
     render(<HardComp />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('herr'));
@@ -385,6 +353,7 @@ describe('useMediaRecovery — hard', () => {
     render(
       <TestHookComp url="https://cdn.example.com/fail.jpg" adapter={adapter} statusHint="failed" />,
     );
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -405,6 +374,7 @@ describe('useMediaRecovery — hard', () => {
         statusHint="rejected"
       />,
     );
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -416,13 +386,9 @@ describe('useMediaRecovery — hard', () => {
 });
 
 describe('useMediaRecovery — status hints', () => {
-  beforeEach(() => {
-    vi.stubGlobal('IntersectionObserver', FakeIO);
-  });
+  beforeEach(() => {});
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+  afterEach(() => {});
 
   it('shows processing state (not recovery) when hint=processing', async () => {
     const probe = vi.fn();
@@ -435,6 +401,7 @@ describe('useMediaRecovery — status hints', () => {
         statusHint="processing"
       />,
     );
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -455,6 +422,7 @@ describe('useMediaRecovery — status hints', () => {
         statusHint="finalizing"
       />,
     );
+    mockAllIsIntersecting(0.01);
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
       await Promise.resolve();
@@ -473,7 +441,6 @@ describe('useMediaRecovery — visibility pause', () => {
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('pauses retry timer while document is hidden', async () => {
@@ -488,8 +455,6 @@ describe('useMediaRecovery — visibility pause', () => {
       writable: true,
       configurable: true,
     });
-
-    vi.stubGlobal('IntersectionObserver', FakeIO);
 
     function VisComp() {
       const { onMediaError, recoveryState } = useMediaRecovery({
@@ -508,6 +473,7 @@ describe('useMediaRecovery — visibility pause', () => {
     }
 
     render(<VisComp />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('verr'));
@@ -530,13 +496,11 @@ describe('useMediaRecovery — visibility pause', () => {
 describe('useMediaRecovery — per-asset dedup', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('only fires probe once when two instances share the same URL', async () => {
@@ -563,6 +527,7 @@ describe('useMediaRecovery — per-asset dedup', () => {
     }
 
     render(<TwoInstances />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('aerr'));
@@ -581,13 +546,11 @@ describe('useMediaRecovery — per-asset dedup', () => {
 describe('useMediaRecovery — manual retry', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('resets to loading state and calls onRemount when manualRetry is invoked', async () => {
@@ -617,6 +580,7 @@ describe('useMediaRecovery — manual retry', () => {
     }
 
     render(<ManualComp />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('merr'));
@@ -640,6 +604,7 @@ describe('useMediaRecovery — manual retry', () => {
     const adapter: MediaDiagnosticAdapter = { probe };
 
     render(<TestHookComp url="https://cdn.example.com/reset.jpg" adapter={adapter} />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
@@ -658,13 +623,11 @@ describe('useMediaRecovery — manual retry', () => {
 describe('useMediaRecovery — successful load', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('transitions to loaded state when onMediaLoad is called', async () => {
@@ -674,6 +637,7 @@ describe('useMediaRecovery — successful load', () => {
     const adapter: MediaDiagnosticAdapter = { probe };
 
     render(<TestHookComp url="https://cdn.example.com/ok.jpg" adapter={adapter} />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-error'));
@@ -691,7 +655,6 @@ describe('useMediaRecovery — successful load', () => {
 describe('MediaPreview with recovery adapter — image vs video events', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
     vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
@@ -703,7 +666,6 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -716,6 +678,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
     const { container } = render(
       <MediaPreview url="https://cdn.example.com/x.jpg" type="image" recoveryAdapter={adapter} />,
     );
+    mockAllIsIntersecting(0.01);
 
     const img = container.querySelector('img');
     expect(img).toBeInTheDocument();
@@ -752,6 +715,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
         recoveryAdapter={adapter}
       />,
     );
+    mockAllIsIntersecting(0.01);
 
     const video = container.querySelector('video');
     expect(video).toBeInTheDocument();
@@ -788,6 +752,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
         recoveryAdapter={adapter}
       />,
     );
+    mockAllIsIntersecting(0.01);
 
     const audio = container.querySelector('audio');
     expect(audio).toBeInTheDocument();
@@ -800,49 +765,32 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
     expect(container.querySelector('.mv-recovery-retrying')).toBeInTheDocument();
   });
 
-  it('max-wait-fallback shows Retry button', async () => {
+  it('shows the max-wait Retry once a media that keeps failing outlasts the 120 s budget', async () => {
     const probe = vi
       .fn<(url: string) => Promise<DiagnosisResult>>()
       .mockResolvedValue({ kind: 'transient' });
-    const adapter: MediaDiagnosticAdapter = { probe };
-
-    function MaxWaitComp() {
-      const { recoveryState, manualRetry, onMediaError } = useMediaRecovery({
-        url: 'https://cdn.example.com/max.jpg',
-        adapter,
-      });
-
-      return (
-        <div>
-          <span data-testid="mwphase">{recoveryState.phase}</span>
-          {recoveryState.phase === 'max-wait-fallback' && (
-            <button type="button" data-testid="mwretry" onClick={manualRetry}>
-              Retry
-            </button>
-          )}
-          <button type="button" data-testid="mwerr" onClick={onMediaError}>
-            E
-          </button>
-        </div>
-      );
-    }
-
-    render(<MaxWaitComp />);
-
     const { container } = render(
       <MediaPreview
         url="https://cdn.example.com/max2.jpg"
         type="image"
-        recoveryAdapter={adapter}
+        recoveryAdapter={{ probe }}
       />,
     );
+    mockAllIsIntersecting(0.01);
 
-    await act(async () => {
-      fireEvent.error(container.querySelector('img')!);
-      await Promise.resolve();
-    });
+    const longestBackoff = Math.max(...BACKOFF_SCHEDULE_MS) * 1.2;
+    for (let elapsed = 0; elapsed <= MAX_RECOVERY_DURATION_MS; elapsed += longestBackoff) {
+      const img = container.querySelector('img');
+      if (!img) break;
+      await act(async () => {
+        fireEvent.error(img);
+        await vi.advanceTimersByTimeAsync(longestBackoff);
+      });
+      mockAllIsIntersecting(0.01);
+    }
 
-    expect(probe).toHaveBeenCalled();
+    expect(screen.getByText('This media is taking longer than expected.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('hard-unavailable shows no Retry affordance', async () => {
@@ -856,6 +804,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
         recoveryAdapter={adapter}
       />,
     );
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.error(container.querySelector('img')!);
@@ -870,6 +819,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
 
   it('with no adapter, a load error shows the plain error fallback', async () => {
     const { container } = render(<MediaPreview url="https://cdn.example.com/x.jpg" type="image" />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.error(container.querySelector('img')!);
@@ -891,6 +841,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
         assetStatusHint="processing"
       />,
     );
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.error(container.querySelector('img')!);
@@ -913,6 +864,7 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
         assetStatusHint="finalizing"
       />,
     );
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.error(container.querySelector('img')!);
@@ -927,17 +879,16 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
 describe('useMediaRecovery — no adapter (no-op path)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.stubGlobal('IntersectionObserver', FakeIO);
   });
 
   afterEach(() => {
     vi.runAllTimers();
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('stays idle on load success with no adapter', async () => {
     render(<TestHookComp url="https://cdn.example.com/ok2.jpg" />);
+    mockAllIsIntersecting(0.01);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('trigger-load'));

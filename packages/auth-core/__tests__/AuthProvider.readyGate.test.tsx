@@ -1,18 +1,26 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type { User } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
+import type { AuthState } from '../src/react/useAuthState.js';
 
-const mockUseAuthState = vi.fn((): { user: User | null; loading: boolean } => ({
+const mockUseAuthState = vi.fn((_auth: Auth): AuthState => ({
   user: null,
   loading: false,
+  error: null,
 }));
-vi.mock('../src/react/useAuthState.js', () => ({
-  useAuthState: (...args: unknown[]) => mockUseAuthState(...(args as [])),
-}));
-vi.mock('../src/client/claims.js', () => ({
-  getIdTokenClaims: vi.fn(async () => ({})),
-}));
+vi.mock('../src/react/useAuthState.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/react/useAuthState.js')>({
+    useAuthState: (auth) => mockUseAuthState(auth),
+  });
+});
+vi.mock('../src/client/claims.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/client/claims.js')>({
+    getIdTokenClaims: vi.fn(async () => ({})),
+  });
+});
 
 import { AuthProvider } from '../src/react/AuthProvider.js';
 import { useAuth } from '../src/react/useAuth.js';
@@ -82,7 +90,7 @@ describe('AuthProvider readyGate', () => {
     const restoredUser = testUser('restored-uid');
 
     afterEach(() => {
-      mockUseAuthState.mockReturnValue({ user: null, loading: false });
+      mockUseAuthState.mockReturnValue({ user: null, loading: false, error: null });
     });
 
     function deferredGate() {
@@ -95,7 +103,7 @@ describe('AuthProvider readyGate', () => {
     }
 
     it('exposes no user, no authentication and the default claims until the gate opens', async () => {
-      mockUseAuthState.mockReturnValue({ user: restoredUser, loading: false });
+      mockUseAuthState.mockReturnValue({ user: restoredUser, loading: false, error: null });
       const { gate, settle } = deferredGate();
       const { result } = renderHook(() => useAuth(), {
         wrapper: makeWrapper(
@@ -123,7 +131,7 @@ describe('AuthProvider readyGate', () => {
     });
 
     it('exposes the user once a rejected gate fails open, never before', async () => {
-      mockUseAuthState.mockReturnValue({ user: restoredUser, loading: false });
+      mockUseAuthState.mockReturnValue({ user: restoredUser, loading: false, error: null });
       const { gate, settle } = deferredGate();
       const { result } = renderHook(() => useAuth(), {
         wrapper: makeWrapper(makeConfig({ readyGate: gate, onError: vi.fn() })),

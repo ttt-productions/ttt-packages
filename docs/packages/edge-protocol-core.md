@@ -13,13 +13,13 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
   the rejects that need no body and no secret (RULE-STD-ARCH-005's "cheap pre-body rejects"). It
   reads `names.version` and `names.timestamp` (decimal seconds, digits only) and answers
   `{ ok: true, version, timestampSec }` or `{ ok: false, reason: 'bad-version' | 'bad-timestamp' |
-  'expired' | 'future' }` (`InternalPrecheckResult`). It applies the same version + window rule
+'expired' | 'future' }` (`InternalPrecheckResult`). It applies the same version + window rule
   `verifyInternalRequest` applies — one rule, not a copy — so an endpoint runs it before
   `readBoundedBody`, answers a refusal at once, and hands the returned `version` and `timestampSec`
   to `verifyInternalRequest` after the bounded read. `headers` is structural, so a Workers or Node
   `Headers` passes as is; `names` is any `defineInternalAuthHeaders` result.
 - **Internal-auth header names** — `defineInternalAuthHeaders({ signature, timestamp, version,
-  operationId? })` returns the consumer's names for one transport profile, frozen, with the
+operationId? })` returns the consumer's names for one transport profile, frozen, with the
   literal types of what it was given (`InternalAuthHeaders<T>`). Every name must be a lowercase
   `[a-z0-9-]` header name and the names must be distinct, or it throws a `TypeError`. The package
   holds no header name of its own: the consumer defines each profile once, in the one place every
@@ -39,7 +39,7 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 - **Signed opaque tokens** — `signToken` / `verifyToken`: the `v1.{payload}.{sig}`
   signed-token format used for short-lived, verifiable capability tokens.
 - **Edge→origin provenance header names** — `defineProvenanceHeaders({ originMarker: { name,
-  value }, edgeMarker: { name, value }, edgeSecret, canonicalHost, clientIp, verifiedClientIp })`
+value }, edgeMarker: { name, value }, edgeSecret, canonicalHost, clientIp, verifiedClientIp })`
   returns those names and marker values, frozen, plus `internalHeaders`: the derived set of
   `edgeSecret`, `canonicalHost`, `clientIp`, `verifiedClientIp`, and `originMarker.name` (every name
   but `edgeMarker.name`). Names follow the same lowercase, distinct check as the internal-auth names;

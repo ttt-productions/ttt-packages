@@ -4,20 +4,21 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const { getDocsMock } = vi.hoisted(() => ({ getDocsMock: vi.fn() }));
+import type { ExecutedClientRead } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 
-vi.mock('firebase/firestore', () => ({
-  collection: (_db: unknown, path: string) => ({ __path: path }),
-  query: (ref: unknown, ...constraints: unknown[]) => ({ __ref: ref, __constraints: constraints }),
-  where: (field: string, op: string, value: unknown) => ({ field, op, value }),
-  orderBy: (field: string, dir: string) => ({ orderBy: field, dir }),
-  limit: (n: number) => ({ limit: n }),
-  getDocs: getDocsMock,
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
+
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
 import { useFirestoreSearch } from '../../../src/react/search/use-firestore-search.js';
 import { FirestoreProvider } from '../../../src/react/firestore/context.js';
-import { testFirestore } from '../../helpers/test-firestore.js';
 
 const DEBOUNCE_MS = 300;
 
@@ -27,19 +28,15 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 }
 
-function answerWithSearchedText() {
-  getDocsMock.mockImplementation(
-    async (q: { __constraints: Array<{ op?: string; value?: unknown }> }) => {
-      const prefix = q.__constraints.find((c) => c.op === '>=')?.value as string;
-      return { docs: [{ id: prefix, data: () => ({ name: prefix }) }] };
-    },
-  );
+function searchedPrefix(read: ExecutedClientRead): string | undefined {
+  const from = read.filters.find((filter) => filter.op === '>=')?.value;
+  return from?.t === 'str' ? from.v : undefined;
 }
 
 function renderSearch(initialText: string, enabled = true) {
@@ -66,9 +63,9 @@ async function settle() {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers();
-  getDocsMock.mockReset();
-  answerWithSearchedText();
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  store.reset();
+  store.seed('people/ada', { name: 'ada' });
 });
 
 afterEach(() => {
@@ -93,6 +90,7 @@ describe('useFirestoreSearch reports no answer until the debounce catches up', (
     await settle();
     expect(result.current.data).toEqual([{ id: 'ada', name: 'ada' }]);
 
+    store.seed('people/adam', { name: 'adam' });
     rerender({ text: 'adam', on: true });
     expect(result.current.data).toBeUndefined();
     expect(result.current.isLoading).toBe(true);
@@ -116,7 +114,7 @@ describe('useFirestoreSearch reports no answer until the debounce catches up', (
     expect(result.current.isLoading).toBe(false);
     await settle();
     expect(result.current.isLoading).toBe(false);
-    expect(getDocsMock).not.toHaveBeenCalled();
+    expect(store.queries()).toEqual([]);
   });
 
   it('treats a change of case or surrounding spaces as the same search, keeping its answer', async () => {
@@ -129,7 +127,7 @@ describe('useFirestoreSearch reports no answer until the debounce catches up', (
   });
 
   it("never reports the previous text's failure as the answer for a changed text", async () => {
-    getDocsMock.mockRejectedValueOnce(new Error('denied'));
+    store.failReads((read) => searchedPrefix(read) === 'ada');
     const { result, rerender } = renderSearch('ada');
     await settle();
     expect(result.current.isError).toBe(true);

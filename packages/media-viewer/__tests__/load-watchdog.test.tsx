@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ImageViewer } from '../src/react/image-viewer.js';
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 import { VideoViewer } from '../src/react/video-viewer.js';
 import { AudioViewer } from '../src/react/audio-viewer.js';
 import { useMediaRecovery } from '../src/react/use-media-recovery.js';
 import { LOAD_WATCHDOG_MS, PHASE_MAX_WAIT_MS } from '../src/recovery.js';
-
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({ ref: () => {}, inView: true, entry: undefined }),
-}));
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -23,6 +20,7 @@ describe('ImageViewer load watchdog', () => {
   it('synthesizes an error when neither load nor error fires within the budget', () => {
     const onError = vi.fn();
     render(<ImageViewer url="https://example.com/a.jpg" priority onError={onError} />);
+    mockAllIsIntersecting(0.01);
 
     act(() => {
       vi.advanceTimersByTime(LOAD_WATCHDOG_MS + 1);
@@ -35,6 +33,7 @@ describe('ImageViewer load watchdog', () => {
     const { container } = render(
       <ImageViewer url="https://example.com/a.jpg" priority onError={onError} />,
     );
+    mockAllIsIntersecting(0.01);
 
     fireEvent.load(container.querySelector('img')!);
     act(() => {
@@ -53,6 +52,7 @@ describe('ImageViewer load watchdog', () => {
         loadTimeoutMs={5000}
       />,
     );
+    mockAllIsIntersecting(0.01);
 
     act(() => {
       vi.advanceTimersByTime(4999);
@@ -69,6 +69,7 @@ describe('ImageViewer load watchdog', () => {
     render(
       <ImageViewer url="https://example.com/a.jpg" priority onError={onError} loadTimeoutMs={0} />,
     );
+    mockAllIsIntersecting(0.01);
 
     act(() => {
       vi.advanceTimersByTime(LOAD_WATCHDOG_MS * 3);
@@ -80,6 +81,7 @@ describe('ImageViewer load watchdog', () => {
     const onError = vi.fn();
     const visibilitySpy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     render(<ImageViewer url="https://example.com/a.jpg" priority onError={onError} />);
+    mockAllIsIntersecting(0.01);
 
     act(() => {
       vi.advanceTimersByTime(LOAD_WATCHDOG_MS + 1);
@@ -98,6 +100,7 @@ describe('VideoViewer load watchdog', () => {
   it('fires when no metadata arrives within the budget', () => {
     const onError = vi.fn();
     render(<VideoViewer url="https://example.com/v.mp4" priority onError={onError} />);
+    mockAllIsIntersecting(0.01);
 
     act(() => {
       vi.advanceTimersByTime(LOAD_WATCHDOG_MS + 1);
@@ -110,6 +113,7 @@ describe('VideoViewer load watchdog', () => {
     const { container } = render(
       <VideoViewer url="https://example.com/v.mp4" priority onError={onError} />,
     );
+    mockAllIsIntersecting(0.01);
 
     fireEvent.loadedMetadata(container.querySelector('video')!);
     act(() => {
@@ -123,6 +127,7 @@ describe('AudioViewer load watchdog', () => {
   it('fires when no metadata arrives within the budget', () => {
     const onError = vi.fn();
     render(<AudioViewer url="https://example.com/a.mp3" priority onError={onError} />);
+    mockAllIsIntersecting(0.01);
 
     act(() => {
       vi.advanceTimersByTime(LOAD_WATCHDOG_MS + 1);
@@ -135,6 +140,7 @@ describe('AudioViewer load watchdog', () => {
     const { container } = render(
       <AudioViewer url="https://example.com/a.mp3" priority onError={onError} />,
     );
+    mockAllIsIntersecting(0.01);
 
     fireEvent.loadedMetadata(container.querySelector('audio')!);
     act(() => {
@@ -165,6 +171,7 @@ describe('bounded processing/finalizing phases', () => {
     '%s resolves to max-wait-fallback after PHASE_MAX_WAIT_MS',
     (hint) => {
       render(<HintedHookComp statusHint={hint} />);
+      mockAllIsIntersecting(0.01);
 
       fireEvent.click(screen.getByTestId('trigger-error'));
       expect(screen.getByTestId('phase').textContent).toBe(hint);

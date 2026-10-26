@@ -6,11 +6,6 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input.js';
 import { RecordDialog, autoStopDelayMs } from '../src/react/components/record-dialog.js';
 
-vi.mock(
-  '@ttt-productions/media-viewer/react',
-  async () => import('../../media-viewer/src/react/index.js'),
-);
-
 type FakeRecorder = {
   state: RecordingState;
   mimeType: string;

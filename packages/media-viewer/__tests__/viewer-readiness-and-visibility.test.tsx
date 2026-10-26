@@ -6,29 +6,21 @@ import { AudioViewer } from '../src/react/audio-viewer.js';
 import { ImageViewer } from '../src/react/image-viewer.js';
 import { MediaPreview } from '../src/react/media-viewer.js';
 import type { MediaDiagnosticAdapter, DiagnosisResult } from '../src/recovery.js';
+import {
+  intersectionMockInstance,
+  mockAllIsIntersecting,
+} from 'react-intersection-observer/test-utils';
 
-const observers: Array<{
-  onChange?: (inView: boolean) => void;
-  triggerOnce?: boolean;
-  skip?: boolean;
-}> = [];
-vi.mock('react-intersection-observer', () => ({
-  useInView: (options: {
-    onChange?: (inView: boolean) => void;
-    triggerOnce?: boolean;
-    skip?: boolean;
-  }) => {
-    observers.push(options);
-    return { ref: () => {}, inView: true, entry: { intersectionRatio: 1 } };
-  },
-}));
-
-function latestObserver() {
-  return observers[observers.length - 1];
-}
+const isObserved = (element: Element): boolean => {
+  try {
+    intersectionMockInstance(element);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 beforeEach(() => {
-  observers.length = 0;
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
@@ -102,17 +94,22 @@ describe('a viewer reports its own visibility', () => {
     const onVisibilityChange = vi.fn();
     render(<ImageViewer url="https://example.com/i.jpg" onVisibilityChange={onVisibilityChange} />);
 
-    const observer = latestObserver();
-    expect(observer.triggerOnce).toBe(false);
-    act(() => observer.onChange?.(false));
-    act(() => observer.onChange?.(true));
+    mockAllIsIntersecting(true);
+    mockAllIsIntersecting(false);
+    mockAllIsIntersecting(true);
 
-    expect(onVisibilityChange.mock.calls).toEqual([[false], [true]]);
+    expect(onVisibilityChange.mock.calls).toEqual([[true], [false], [true]]);
   });
 
   it('without a listener an image stops observing once it is first seen', () => {
-    render(<ImageViewer url="https://example.com/i.jpg" />);
-    expect(latestObserver().triggerOnce).toBe(true);
+    const { container } = render(<ImageViewer url="https://example.com/i.jpg" />);
+    const observed = container.firstElementChild!;
+    expect(isObserved(observed)).toBe(true);
+
+    mockAllIsIntersecting(true);
+
+    expect(container.querySelector('img')).toBeInTheDocument();
+    expect(isObserved(observed)).toBe(false);
   });
 });
 
@@ -128,6 +125,7 @@ describe("MediaPreview recovery follows the viewer's visibility", () => {
         recoveryAdapter={adapter}
       />,
     );
+    mockAllIsIntersecting(true);
 
     await act(async () => {
       fireEvent.error(container.querySelector('img')!);
@@ -135,13 +133,14 @@ describe("MediaPreview recovery follows the viewer's visibility", () => {
     });
     expect(container.querySelector('.mv-recovery-retrying')).toBeInTheDocument();
 
-    act(() => latestObserver().onChange?.(false));
+    mockAllIsIntersecting(false);
     act(() => vi.advanceTimersByTime(40_000));
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('.mv-recovery-retrying')).toBeInTheDocument();
 
-    act(() => latestObserver().onChange?.(true));
+    mockAllIsIntersecting(true);
     act(() => vi.advanceTimersByTime(40_000));
+    mockAllIsIntersecting(true);
     expect(container.querySelector('img')).toBeInTheDocument();
   });
 });
@@ -150,7 +149,7 @@ describe('MediaPreview listens for visibility only while its media has failed', 
   it('a healthy recovering preview leaves its image observer to stop once seen and never re-renders on a crossing', () => {
     const adapter: MediaDiagnosticAdapter = { probe: vi.fn() };
     let renders = 0;
-    render(
+    const { container } = render(
       <Profiler
         id="preview"
         onRender={() => {
@@ -164,16 +163,16 @@ describe('MediaPreview listens for visibility only while its media has failed', 
         />
       </Profiler>,
     );
-    const observer = latestObserver();
-    expect(observer.triggerOnce).toBe(true);
+    mockAllIsIntersecting(true);
+    expect(container.querySelector('img')).toBeInTheDocument();
 
     const before = renders;
-    act(() => observer.onChange?.(false));
-    act(() => observer.onChange?.(true));
+    mockAllIsIntersecting(false);
+    mockAllIsIntersecting(true);
     expect(renders).toBe(before);
   });
 
-  it('starts listening when its image fails', async () => {
+  it('starts listening when its image fails: an off-screen crossing then holds the retry', async () => {
     vi.useFakeTimers();
     const probe = vi.fn().mockResolvedValue({ kind: 'transient' } satisfies DiagnosisResult);
     const { container } = render(
@@ -183,12 +182,16 @@ describe('MediaPreview listens for visibility only while its media has failed', 
         recoveryAdapter={{ probe }}
       />,
     );
+    mockAllIsIntersecting(true);
 
     await act(async () => {
       fireEvent.error(container.querySelector('img')!);
       await Promise.resolve();
     });
+    mockAllIsIntersecting(false);
+    act(() => vi.advanceTimersByTime(40_000));
 
-    expect(latestObserver().triggerOnce).toBe(false);
+    expect(container.querySelector('img')).toBeNull();
+    expect(probe).toHaveBeenCalledTimes(1);
   });
 });

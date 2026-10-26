@@ -25,12 +25,14 @@ export interface EntryPurityFacts {
     runtime: Exclude<EntryRuntime, 'universal'>;
     why: string;
   }>;
+  testRunnerSegment: string;
 }
 
 interface Entry {
   spec: string;
   packageDir: string;
   runtime: EntryRuntime;
+  testRunner: boolean;
   js: string | null;
   types: string | null;
 }
@@ -101,13 +103,15 @@ function readEntries(
       const types = conditionPath(value, isDeclaration, ['types']);
       if (!js && !types) continue;
       const spec = key === '.' ? manifest.name : `${manifest.name}/${key.replace(/^\.\//, '')}`;
-      const segment = key === '.' ? null : key.replace(/^\.\//, '').split('/')[0];
+      const segments = key === '.' ? [] : key.replace(/^\.\//, '').split('/');
+      const segment = segments[0];
       const runtime =
         byException.get(spec) ?? (segment ? bySubpath.get(segment) : undefined) ?? 'universal';
       entries.push({
         spec,
         packageDir,
         runtime,
+        testRunner: segments.length > 1 && segments.at(-1) === facts.testRunnerSegment,
         js: js ? resolve(packageDir, js) : null,
         types: types ? resolve(packageDir, types) : null,
       });
@@ -191,6 +195,12 @@ function runtimeReaches(
 const factProblems = (facts: EntryPurityFacts) => {
   const problems: string[] = [];
   textProblem(facts?.packagesFolder, 'packagesFolder', problems);
+  if (
+    typeof facts?.testRunnerSegment !== 'string' ||
+    !facts.testRunnerSegment.trim() ||
+    facts.testRunnerSegment.includes('/')
+  )
+    problems.push('testRunnerSegment names no single subpath segment');
   if (!isList(facts?.runtimeSubpaths)) problems.push('runtimeSubpaths is missing');
   else {
     const seen = new Set<string>();
@@ -298,13 +308,15 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
         title: 'every universal and Node entry loads under plain Node',
         description:
           'Each entry that is universal or declared for Node is imported, built, in a fresh Node process; it must evaluate ' +
-          'without error. A failure names the error the import threw.',
+          'without error. A failure names the error the import threw. A test-runner entry (`./<runtime>/testing`) runs ' +
+          'only inside the test runner, so it is never loaded here; its runtime segment still binds its purity.',
         timeoutMs: ENTRY_LOAD_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const { repoRoot, entries, findings } = read(context);
           if (findings.length) return findings;
           for (const entry of entries) {
             if ((entry.runtime !== 'universal' && entry.runtime !== 'node') || !entry.js) continue;
+            if (entry.testRunner) continue;
             if (!existsSync(entry.js)) {
               findings.push({
                 file: rel(repoRoot, entry.js),

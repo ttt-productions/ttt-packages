@@ -109,7 +109,7 @@ matching `HttpsError` code. Each takes the `firebase-helpers/server` Firestore c
 passes its Admin SDK `db` and transaction as they are.
 
 - **The task's summary is the app's.** `ServerReportCoreConfig.describeUserReportTask({ totalReports,
-  reportedItemType })` writes a user-report task's `summary`; the package supplies the group's report
+reportedItemType })` writes a user-report task's `summary`; the package supplies the group's report
   count (one when the group stores none) and its item-type id, and never words the row itself.
 - **The admin check.** The two checkout factories take an optional `auth: AdminAuthConfig`. The
   app's `requireAdmin` admits the caller; only a refusal whose `code` is `permission-denied` falls
@@ -134,9 +134,9 @@ passes its Admin SDK `db` and transaction as they are.
   claimed right now (for example, that its report group is not owned by an automated action or
   already resolved). It runs inside the claim transaction, after the status guard and the reads of the task
   and its `originalPath` document, and before any write or audit: it receives `{ taskDocId,
-  taskData, originalData, transaction }` (`originalData` is `null` when that document is gone), may
+taskData, originalData, transaction }` (`originalData` is `null` when that document is gone), may
   read more through `transaction`, and answers `{ claimable: true }` or `{ claimable: false,
-  message }`. A refused specific-task checkout throws `failed-precondition` with the app's
+message }`. A refused specific-task checkout throws `failed-precondition` with the app's
   `message`; a refused queue candidate (pending or expired) is skipped and the queue's cursor moves
   past it (`startAfter` the refused task, one one-document read per refusal — never a re-read from
   the head), a refusal does not use one of the contention rounds, and a queue with no unrefused

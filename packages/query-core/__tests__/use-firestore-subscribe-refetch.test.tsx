@@ -1,42 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const h = vi.hoisted(() => ({
-  listeners: [] as Array<{
-    kind: 'doc' | 'col';
-    next: (snap: unknown) => void;
-    error: (e: Error) => void;
-    unsubscribe: ReturnType<typeof vi.fn>;
-  }>,
-  getDoc: vi.fn(),
-  getDocs: vi.fn(),
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-vi.mock('firebase/firestore', () => ({
-  doc: () => ({ __kind: 'doc' }),
-  collection: () => ({ __kind: 'col' }),
-  query: (ref: unknown) => ref,
-  onSnapshot: (
-    target: { __kind: 'doc' | 'col' },
-    _options: unknown,
-    next: (s: unknown) => void,
-    error: (e: Error) => void,
-  ) => {
-    const unsubscribe = vi.fn();
-    h.listeners.push({ kind: target.__kind, next, error, unsubscribe });
-    return unsubscribe;
-  },
-  getDoc: h.getDoc,
-  getDocs: h.getDocs,
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
-import { testFirestore } from './helpers/test-firestore.js';
+import {
+  anyListener,
+  anyOneShotRead,
+  failNext,
+  failUntilStopped,
+  holdNext,
+  listensTo,
+  opened,
+} from './helpers/listener-controls.js';
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -46,18 +37,19 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 }
 
-const unavailable = () => Object.assign(new Error('unavailable'), { code: 'unavailable' });
-const permissionDenied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
+const unavailable = () => firestoreError('unavailable', 'unavailable');
+const permissionDenied = () => firestoreError('permission-denied', 'denied');
 
 const hooks = [
   {
     name: 'useFirestoreDoc',
+    path: (id = 'g1') => `games/${id}`,
     render: (enabled = true) =>
       renderHook(
         ({ on, id }: { on: boolean; id: string }) =>
@@ -69,17 +61,12 @@ const hooks = [
           }),
         { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
       ),
-    oneShotReads: () => h.getDoc.mock.calls.length,
-    snapshot: (value: number) => ({
-      exists: () => true,
-      id: 'g1',
-      data: () => ({ score: value }),
-      metadata: { fromCache: false },
-    }),
+    seed: (value: number, id = 'g1') => store.seed(`games/${id}`, { score: value }),
     read: (data: unknown) => (data as { score: number } | undefined)?.score,
   },
   {
     name: 'useFirestoreCollection',
+    path: (id = 'g1') => `leagues/${id}/games`,
     render: (enabled = true) =>
       renderHook(
         ({ on, id }: { on: boolean; id: string }) =>
@@ -91,22 +78,21 @@ const hooks = [
           }),
         { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
       ),
-    oneShotReads: () => h.getDocs.mock.calls.length,
-    snapshot: (value: number) => ({
-      docs: [{ id: 'g1', data: () => ({ score: value }) }],
-      metadata: { fromCache: false },
-    }),
+    seed: (value: number, id = 'g1') => store.seed(`leagues/${id}/games/g1`, { score: value }),
     read: (data: unknown) => (data as Array<{ score: number }> | undefined)?.[0]?.score,
   },
 ] as const;
 
-const last = () => h.listeners[h.listeners.length - 1];
+const listens = () => opened(store, anyListener);
+const oneShotReads = () => opened(store, anyOneShotRead);
+
+const advance = (ms: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
 
 beforeEach(() => {
-  h.listeners.length = 0;
-  h.getDoc.mockReset();
-  h.getDocs.mockReset();
-  h.getDocs.mockResolvedValue({ docs: [] });
+  store.reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -116,21 +102,22 @@ afterEach(() => {
 });
 
 for (const hook of hooks) {
+  const listener = listensTo(hook.path());
+
   describe(`${hook.name} — refetch() in subscribe mode re-opens the listener`, () => {
     it('re-opens a listener that failed before it answered, reporting pending with no data until its first snapshot', async () => {
+      failNext(store, listener, unavailable());
       const { result } = hook.render();
-      const failed = last();
-      act(() => failed.error(unavailable()));
-      expect(result.current.isError).toBe(true);
+      await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.data).toBeUndefined();
 
+      const release = holdNext(store, listener);
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
         settled = result.current.refetch();
       });
 
-      expect(h.listeners).toHaveLength(2);
-      expect(last()).not.toBe(failed);
+      expect(opened(store, listener)).toBe(2);
       expect(result.current.isError).toBe(false);
       expect(result.current.error).toBeNull();
       expect(result.current.isFetching).toBe(true);
@@ -139,8 +126,9 @@ for (const hook of hooks) {
       expect(result.current.data).toBeUndefined();
       expect(result.current.sourceState).toBe('connecting');
 
-      act(() => last().next(hook.snapshot(2)));
-      expect(result.current.isFetching).toBe(false);
+      hook.seed(2);
+      act(release);
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
       expect(result.current.isSuccess).toBe(true);
       expect(hook.read(result.current.data)).toBe(2);
 
@@ -150,11 +138,11 @@ for (const hook of hooks) {
     });
 
     it('holds the last snapshot beside the failure of a listener that had answered, and through its restart', async () => {
+      hook.seed(1);
       const { result } = hook.render();
-      act(() => last().next(hook.snapshot(1)));
-      const failed = last();
+      await waitFor(() => expect(hook.read(result.current.data)).toBe(1));
       const failure = unavailable();
-      act(() => failed.error(failure));
+      act(() => store.failListeners(listener, failure));
 
       expect(hook.read(result.current.data)).toBe(1);
       expect(result.current.isError).toBe(true);
@@ -163,13 +151,13 @@ for (const hook of hooks) {
       expect(result.current.isRefetchError).toBe(true);
       expect(result.current.isLoadingError).toBe(false);
 
+      const release = holdNext(store, listener);
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
         settled = result.current.refetch();
       });
 
-      expect(h.listeners).toHaveLength(2);
-      expect(last()).not.toBe(failed);
+      expect(opened(store, listener)).toBe(2);
       expect(hook.read(result.current.data)).toBe(1);
       expect(result.current.error).toBe(failure);
       expect(result.current.isFetching).toBe(true);
@@ -177,8 +165,9 @@ for (const hook of hooks) {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.sourceState).toBe('connecting');
 
-      act(() => last().next(hook.snapshot(2)));
-      expect(result.current.isFetching).toBe(false);
+      hook.seed(2);
+      act(release);
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
       expect(result.current.isSuccess).toBe(true);
       expect(result.current.error).toBeNull();
       expect(hook.read(result.current.data)).toBe(2);
@@ -190,24 +179,23 @@ for (const hook of hooks) {
     });
 
     it('holds nothing after a denial of a listener that had answered, nor through its restart', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      hook.seed(1);
       const { result } = hook.render();
-      act(() => last().next(hook.snapshot(1)));
-      for (const delay of RESUBSCRIBE_DELAYS_MS) {
-        act(() => last().error(permissionDenied()));
-        act(() => {
-          vi.advanceTimersByTime(delay);
-        });
-      }
+      await vi.waitFor(() => expect(hook.read(result.current.data)).toBe(1));
       const denial = permissionDenied();
-      act(() => last().error(denial));
+      const stopDenying = failUntilStopped(store, listener, denial);
+      act(() => store.failListeners(listener, denial));
+      for (const delay of RESUBSCRIBE_DELAYS_MS) await advance(delay);
 
+      await vi.waitFor(() => expect(result.current.status).toBe('error'));
       expect(result.current.data).toBeUndefined();
       expect(result.current.error).toBe(denial);
-      expect(result.current.status).toBe('error');
       expect(result.current.isLoadingError).toBe(true);
       expect(result.current.isRefetchError).toBe(false);
 
+      stopDenying();
+      const release = holdNext(store, listener);
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
         settled = result.current.refetch();
@@ -217,27 +205,31 @@ for (const hook of hooks) {
       expect(result.current.isPending).toBe(true);
       expect(result.current.isFetching).toBe(true);
 
-      act(() => last().next(hook.snapshot(2)));
-      expect(result.current.isSuccess).toBe(true);
+      hook.seed(2);
+      act(release);
+      await vi.waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(hook.read(result.current.data)).toBe(2);
       const resolved = (await settled) as { isSuccess: boolean };
       expect(resolved.isSuccess).toBe(true);
     });
 
     it('reports the next error when the re-opened listener fails too, and settles the refetch', async () => {
+      failNext(store, listener, unavailable());
       const { result } = hook.render();
-      act(() => last().error(unavailable()));
+      await waitFor(() => expect(result.current.isError).toBe(true));
 
+      const again = unavailable();
+      const release = holdNext(store, listener);
+      failNext(store, listener, again);
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
         settled = result.current.refetch();
       });
       expect(result.current.isFetching).toBe(true);
 
-      const again = unavailable();
-      act(() => last().error(again));
+      act(release);
+      await waitFor(() => expect(result.current.error).toBe(again));
       expect(result.current.isError).toBe(true);
-      expect(result.current.error).toBe(again);
       expect(result.current.isFetching).toBe(false);
       expect(result.current.sourceState).toBe('error');
 
@@ -247,60 +239,57 @@ for (const hook of hooks) {
     });
 
     it('rejects with the next error when asked to throw on error', async () => {
+      failNext(store, listener, unavailable());
       const { result } = hook.render();
-      act(() => last().error(unavailable()));
+      await waitFor(() => expect(result.current.isError).toBe(true));
 
+      const again = unavailable();
+      failNext(store, listener, again);
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
         settled = result.current.refetch({ throwOnError: true });
       });
-      const again = unavailable();
-      act(() => last().error(again));
       await expect(settled).rejects.toBe(again);
     });
 
-    it('gives the re-opened listener a fresh resubscribe ladder after the last one was spent', () => {
-      vi.useFakeTimers();
+    it('gives the re-opened listener a fresh resubscribe ladder after the last one was spent', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      failUntilStopped(store, listener, permissionDenied());
       const { result } = hook.render();
-      for (const delay of RESUBSCRIBE_DELAYS_MS) {
-        act(() => last().error(permissionDenied()));
-        act(() => {
-          vi.advanceTimersByTime(delay);
-        });
-      }
-      act(() => last().error(permissionDenied()));
-      expect(result.current.isError).toBe(true);
-      const opened = h.listeners.length;
+      await advance(0);
+      for (const delay of RESUBSCRIBE_DELAYS_MS) await advance(delay);
+      await vi.waitFor(() => expect(result.current.isError).toBe(true));
+      const openedBefore = opened(store, listener);
 
       act(() => {
         void result.current.refetch();
       });
-      expect(h.listeners).toHaveLength(opened + 1);
+      expect(opened(store, listener)).toBe(openedBefore + 1);
 
-      act(() => last().error(permissionDenied()));
+      await advance(0);
       expect(result.current.isError).toBe(false);
       expect(result.current.isFetching).toBe(true);
-      act(() => {
-        vi.advanceTimersByTime(RESUBSCRIBE_DELAYS_MS[0]);
-      });
-      expect(h.listeners).toHaveLength(opened + 2);
+      await advance(RESUBSCRIBE_DELAYS_MS[0]);
+      expect(opened(store, listener)).toBe(openedBefore + 2);
     });
 
-    it('keeps a healthy listener’s data on screen while it re-opens', () => {
+    it('keeps a healthy listener’s data on screen while it re-opens', async () => {
+      hook.seed(1);
       const { result } = hook.render();
-      act(() => last().next(hook.snapshot(1)));
-      const healthy = last();
+      await waitFor(() => expect(hook.read(result.current.data)).toBe(1));
 
+      const release = holdNext(store, listener);
       act(() => {
         void result.current.refetch();
       });
-      expect(healthy.unsubscribe).toHaveBeenCalled();
-      expect(h.listeners).toHaveLength(2);
+      expect(store.liveListeners()).toBe(0);
+      expect(opened(store, listener)).toBe(2);
       expect(hook.read(result.current.data)).toBe(1);
       expect(result.current.isRefetching).toBe(true);
 
-      act(() => last().next(hook.snapshot(3)));
-      expect(result.current.isFetching).toBe(false);
+      hook.seed(3);
+      act(release);
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
       expect(hook.read(result.current.data)).toBe(3);
     });
 
@@ -309,49 +298,53 @@ for (const hook of hooks) {
       await act(async () => {
         await result.current.refetch();
       });
-      expect(h.listeners).toHaveLength(0);
-      expect(hook.oneShotReads()).toBe(0);
+      expect(listens()).toBe(0);
+      expect(oneShotReads()).toBe(0);
       expect(result.current.isFetching).toBe(false);
     });
 
     it('a refetch kept from an earlier read never stalls the current one', async () => {
+      failNext(store, listener, unavailable());
       const { result, rerender } = hook.render();
-      act(() => last().error(unavailable()));
+      await waitFor(() => expect(result.current.isError).toBe(true));
       const staleRefetch = result.current.refetch;
 
       rerender({ on: true, id: 'g2' });
-      const current = last();
-      expect(h.listeners).toHaveLength(2);
+      const current = listensTo(hook.path('g2'));
+      expect(listens()).toBe(2);
 
       await act(async () => {
         await staleRefetch();
       });
-      expect(h.listeners).toHaveLength(2);
-      act(() => current.next(hook.snapshot(5)));
+      expect(listens()).toBe(2);
+      hook.seed(5, 'g2');
+      await waitFor(() => expect(hook.read(result.current.data)).toBe(5));
       expect(result.current.sourceState).toBe('live');
-      expect(hook.read(result.current.data)).toBe(5);
 
       const failure = unavailable();
-      act(() => current.error(failure));
+      act(() => store.failListeners(current, failure));
       expect(result.current.isError).toBe(true);
       expect(result.current.error).toBe(failure);
     });
 
     it('a refetch after unmount settles at once and opens nothing', async () => {
+      hook.seed(1);
       const { result, unmount } = hook.render();
-      act(() => last().next(hook.snapshot(1)));
+      await waitFor(() => expect(hook.read(result.current.data)).toBe(1));
       const refetch = result.current.refetch;
       unmount();
 
-      const opened = h.listeners.length;
+      const openedBefore = listens();
       const settled = (await refetch()) as { data: unknown };
-      expect(h.listeners).toHaveLength(opened);
+      expect(listens()).toBe(openedBefore);
       expect(hook.read(settled.data)).toBe(1);
     });
 
     it('a refetch open when the hook unmounts settles instead of hanging', async () => {
+      failNext(store, listener, unavailable());
       const { result, unmount } = hook.render();
-      act(() => last().error(unavailable()));
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      holdNext(store, listener);
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
         settled = result.current.refetch();
@@ -364,20 +357,18 @@ for (const hook of hooks) {
 
 describe('useFirestoreDoc — refetch() without subscribe', () => {
   it('re-reads the document once and opens no listener', async () => {
-    h.getDoc.mockResolvedValue({ exists: () => true, id: 'g1', data: () => ({ score: 1 }) });
+    store.seed('games/g1', { score: 1 });
     const { result } = renderHook(
       () => useFirestoreDoc({ docPath: 'games/g1', queryKey: ['game', 'g1'] }),
       { wrapper: makeWrapper() },
     );
-    await act(async () => {
-      await Promise.resolve();
-    });
-    const reads = h.getDoc.mock.calls.length;
+    await waitFor(() => expect(result.current.data).toEqual({ id: 'g1', score: 1 }));
+    const reads = oneShotReads();
 
     await act(async () => {
       await result.current.refetch();
     });
-    expect(h.getDoc.mock.calls.length).toBe(reads + 1);
-    expect(h.listeners).toHaveLength(0);
+    expect(oneShotReads()).toBe(reads + 1);
+    expect(listens()).toBe(0);
   });
 });

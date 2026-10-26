@@ -1,28 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import {
   createPacketLengthFold,
   measureDurationSec,
   unreadableLengthError,
 } from '../src/duration/media-duration.js';
+import { exitingChild } from './helpers/piped-child.js';
 
-const spawnMock = vi.hoisted(() => vi.fn());
-vi.mock('node:child_process', () => ({ spawn: spawnMock }));
-
-function fakeChild(stdoutText: string, exitCode: number | null, signal: NodeJS.Signals | null) {
-  const child = Object.assign(new EventEmitter(), {
-    stdout: new PassThrough(),
-    stderr: new PassThrough(),
-    kill: () => true,
-  });
-  setImmediate(() => {
-    child.stdout.end(stdoutText);
-    child.stderr.end();
-    setImmediate(() => child.emit('close', exitCode, signal));
-  });
-  return child;
-}
+const spawnMock = vi.hoisted(() =>
+  vi.fn<typeof import('../src/video/spawn-piped.js').spawnPiped>(),
+);
+vi.mock('../src/video/spawn-piped.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/video/spawn-piped.js')>({ spawnPiped: spawnMock });
+});
 
 function lengthOf(lines: string[]): number | undefined {
   const fold = createPacketLengthFold();
@@ -139,12 +129,12 @@ describe('measureDurationSec', () => {
   ].join('\n');
 
   it('measures the listing of an ffprobe that exits cleanly', async () => {
-    spawnMock.mockImplementationOnce(() => fakeChild(listing, 0, null));
+    spawnMock.mockImplementationOnce(() => exitingChild(listing, 0, null));
     expect(await measureDurationSec('in.webm')).toBe(2);
   });
 
   it('is no length when ffprobe dies by a signal partway through the listing', async () => {
-    spawnMock.mockImplementationOnce(() => fakeChild(listing, null, 'SIGSEGV'));
+    spawnMock.mockImplementationOnce(() => exitingChild(listing, null, 'SIGSEGV'));
     expect(await measureDurationSec('in.webm')).toBeUndefined();
   });
 });

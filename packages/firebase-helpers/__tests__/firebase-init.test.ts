@@ -1,52 +1,95 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+// Real SDK instances the stubs hand out; building them opens no connection.
+const sdk = await vi.hoisted(async () => {
+  const { initializeApp } = await vi.importActual<typeof import('firebase/app')>('firebase/app');
+  const firestore =
+    await vi.importActual<typeof import('firebase/firestore')>('firebase/firestore');
+  const auth = await vi.importActual<typeof import('firebase/auth')>('firebase/auth');
+  const storage = await vi.importActual<typeof import('firebase/storage')>('firebase/storage');
+  const app = initializeApp({ apiKey: 'k', projectId: 'p', appId: 'a' }, 'firebase-init-fixtures');
+  return {
+    db: firestore.getFirestore(app),
+    persistentDb: firestore.getFirestore(app, 'persistent'),
+    auth: auth.getAuth(app),
+    storage: storage.getStorage(app),
+    appCheck: { app },
+    analytics: { app },
+  };
+});
+
 const h = vi.hoisted(() => ({
   order: [] as string[],
-  initializeAppCheck: vi.fn(() => ({ kind: 'appCheck' })),
-  getToken: vi.fn(async () => ({ token: 't' })),
-  ReCaptchaEnterpriseProvider: vi.fn(),
-  initializeAnalytics: vi.fn(() => ({ kind: 'analytics' })),
-  setAnalyticsCollectionEnabled: vi.fn(),
-  installAuthBootLookupGuard: vi.fn(),
-  initializeFirestore: vi.fn(() => ({ kind: 'persistent-db' })),
-  getFirestore: vi.fn(() => ({ kind: 'db' })),
+  providerSiteKeys: [] as string[],
+  initializeAppCheck: vi.fn<typeof import('firebase/app-check').initializeAppCheck>(),
+  getToken: vi.fn<typeof import('firebase/app-check').getToken>(async () => ({ token: 't' })),
+  initializeAnalytics: vi.fn<typeof import('firebase/analytics').initializeAnalytics>(),
+  setAnalyticsCollectionEnabled:
+    vi.fn<typeof import('firebase/analytics').setAnalyticsCollectionEnabled>(),
+  installAuthBootLookupGuard:
+    vi.fn<typeof import('../src/client/auth-boot-lookup-guard.js').installAuthBootLookupGuard>(),
+  initializeFirestore: vi.fn<typeof import('firebase/firestore').initializeFirestore>(),
+  getFirestore: vi.fn<() => import('firebase/firestore').Firestore>(),
 }));
 
-vi.mock('firebase/app-check', () => ({
-  initializeAppCheck: h.initializeAppCheck,
-  getToken: h.getToken,
-  ReCaptchaEnterpriseProvider: h.ReCaptchaEnterpriseProvider,
-}));
-vi.mock('firebase/analytics', () => ({
-  initializeAnalytics: h.initializeAnalytics,
-  setAnalyticsCollectionEnabled: h.setAnalyticsCollectionEnabled,
-}));
-vi.mock('firebase/firestore', () => ({
-  getFirestore: h.getFirestore,
-  initializeFirestore: h.initializeFirestore,
-  persistentLocalCache: vi.fn(() => ({ kind: 'cache' })),
-  persistentMultipleTabManager: vi.fn(),
-  connectFirestoreEmulator: vi.fn(),
-}));
-vi.mock('firebase/auth', () => ({
-  getAuth: vi.fn(() => {
-    h.order.push('getAuth');
-    return { kind: 'auth' };
-  }),
-  connectAuthEmulator: vi.fn(),
-  setPersistence: vi.fn(() => Promise.resolve()),
-  browserLocalPersistence: {},
-}));
-vi.mock('firebase/storage', () => ({
-  getStorage: vi.fn(() => ({ kind: 'storage' })),
-  connectStorageEmulator: vi.fn(),
-}));
-vi.mock('../src/client/auth-boot-lookup-guard.js', () => ({
-  installAuthBootLookupGuard: (...args: unknown[]) => {
-    h.order.push('guard');
-    h.installAuthBootLookupGuard(...args);
-  },
-}));
+vi.mock('firebase/app-check', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  type AppCheckModule = typeof import('firebase/app-check');
+  const actual = await importOriginal<AppCheckModule>();
+  class RecordingProvider extends actual.ReCaptchaEnterpriseProvider {
+    constructor(siteKey: string) {
+      super(siteKey);
+      h.providerSiteKeys.push(siteKey);
+    }
+  }
+  return passThroughModule<AppCheckModule>(importOriginal, {
+    initializeAppCheck: h.initializeAppCheck,
+    getToken: h.getToken,
+    ReCaptchaEnterpriseProvider: RecordingProvider,
+  });
+});
+vi.mock('firebase/analytics', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('firebase/analytics')>(importOriginal, {
+    initializeAnalytics: h.initializeAnalytics,
+    setAnalyticsCollectionEnabled: h.setAnalyticsCollectionEnabled,
+  });
+});
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('firebase/firestore')>(importOriginal, {
+    getFirestore: () => h.getFirestore(),
+    initializeFirestore: h.initializeFirestore,
+    connectFirestoreEmulator: vi.fn(),
+  });
+});
+vi.mock('firebase/auth', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('firebase/auth')>(importOriginal, {
+    getAuth: () => {
+      h.order.push('getAuth');
+      return sdk.auth;
+    },
+    connectAuthEmulator: vi.fn(),
+    setPersistence: vi.fn(async () => undefined),
+  });
+});
+vi.mock('firebase/storage', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('firebase/storage')>(importOriginal, {
+    getStorage: () => sdk.storage,
+    connectStorageEmulator: vi.fn(),
+  });
+});
+vi.mock('../src/client/auth-boot-lookup-guard.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/client/auth-boot-lookup-guard.js')>({
+    installAuthBootLookupGuard: (...args) => {
+      h.order.push('guard');
+      h.installAuthBootLookupGuard(...args);
+    },
+  });
+});
 
 import { connectAuthEmulator } from 'firebase/auth';
 import { connectStorageEmulator } from 'firebase/storage';
@@ -78,7 +121,12 @@ function withWindow(run: () => void) {
 beforeEach(() => {
   __resetFirebaseClientCache();
   h.order.length = 0;
+  h.providerSiteKeys.length = 0;
   vi.clearAllMocks();
+  h.initializeAppCheck.mockImplementation(() => sdk.appCheck);
+  h.initializeAnalytics.mockImplementation(() => sdk.analytics);
+  h.initializeFirestore.mockImplementation(() => sdk.persistentDb);
+  h.getFirestore.mockImplementation(() => sdk.db);
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -136,7 +184,7 @@ describe('initFirebaseClient', () => {
     expect(connectAuthEmulator).toHaveBeenCalledWith(expect.anything(), 'http://127.0.0.1:1', {
       disableWarnings: true,
     });
-    expect(connectStorageEmulator).toHaveBeenCalledWith({ kind: 'storage' }, 'localhost', 4);
+    expect(connectStorageEmulator).toHaveBeenCalledWith(sdk.storage, 'localhost', 4);
   });
 });
 
@@ -146,7 +194,7 @@ describe('initFirebaseClient — Firestore cache', () => {
     withWindow(() => {
       db = initFirebaseClient(CONFIG, { persistentFirestoreCache: true }).db;
     });
-    expect(db).toEqual({ kind: 'persistent-db' });
+    expect(db).toBe(sdk.persistentDb);
   });
 
   it('never uses the persistent cache under the emulators', () => {
@@ -164,14 +212,14 @@ describe('initFirebaseClient — Firestore cache', () => {
     withWindow(() => {
       db = initFirebaseClient(CONFIG, { persistentFirestoreCache: true }).db;
     });
-    expect(db).toEqual({ kind: 'db' });
+    expect(db).toBe(sdk.db);
   });
 });
 
 describe('initFirebaseClient — App Check', () => {
   it('initializes App Check with the reCAPTCHA Enterprise provider and auto-refresh', () => {
     withWindow(() => initFirebaseClient(CONFIG, { appCheck: { siteKey: 'site' } }));
-    expect(h.ReCaptchaEnterpriseProvider).toHaveBeenCalledWith('site');
+    expect(h.providerSiteKeys).toEqual(['site']);
     expect(h.initializeAppCheck).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ isTokenAutoRefreshEnabled: true }),
@@ -189,7 +237,7 @@ describe('initFirebaseClient — App Check', () => {
     let tokenAtInit: unknown;
     h.initializeAppCheck.mockImplementationOnce(() => {
       tokenAtInit = (globalThis as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN;
-      return { kind: 'appCheck' };
+      return sdk.appCheck;
     });
     withWindow(() =>
       initFirebaseClient(CONFIG, {
@@ -222,7 +270,7 @@ describe('initFirebaseClient — App Check', () => {
     });
     await Promise.all([client!.whenAppCheckReady(), client!.whenAppCheckReady()]);
     expect(h.getToken).toHaveBeenCalledTimes(1);
-    expect(h.getToken).toHaveBeenCalledWith({ kind: 'appCheck' }, false);
+    expect(h.getToken).toHaveBeenCalledWith(sdk.appCheck, false);
   });
 
   it('resolves the App Check wait at once when App Check is off', async () => {
@@ -242,12 +290,11 @@ describe('initFirebaseClient — Auth boot lookup guard', () => {
     withWindow(() =>
       initFirebaseClient(CONFIG, { authBootLookupGuard: true, appCheck: { siteKey: 'site' } }),
     );
-    const [{ refreshAttestation }] = h.installAuthBootLookupGuard.mock.calls[0] as [
-      { refreshAttestation: () => Promise<void> },
-    ];
+    const refreshAttestation = h.installAuthBootLookupGuard.mock.calls[0]?.[0]?.refreshAttestation;
+    if (!refreshAttestation) throw new Error('the guard was installed with no attestation refresh');
     h.getToken.mockRejectedValueOnce(new Error('throttled'));
     await expect(refreshAttestation()).resolves.toBeUndefined();
-    expect(h.getToken).toHaveBeenCalledWith({ kind: 'appCheck' }, true);
+    expect(h.getToken).toHaveBeenCalledWith(sdk.appCheck, true);
   });
 
   it('installs no guard unless asked', () => {
@@ -269,8 +316,8 @@ describe('initFirebaseClient — Analytics handle', () => {
     expect(h.initializeAnalytics).toHaveBeenCalledWith(expect.anything(), {
       config: { send_page_view: false },
     });
-    expect(h.setAnalyticsCollectionEnabled).toHaveBeenLastCalledWith({ kind: 'analytics' }, true);
-    expect(client!.analytics.get()).toEqual({ kind: 'analytics' });
+    expect(h.setAnalyticsCollectionEnabled).toHaveBeenLastCalledWith(sdk.analytics, true);
+    expect(client!.analytics.get()).toBe(sdk.analytics);
   });
 
   it('tells subscribers once, when the handle is first created', () => {
@@ -296,7 +343,7 @@ describe('initFirebaseClient — Analytics handle', () => {
       analytics.enable();
       analytics.setCollectionEnabled(false);
     });
-    expect(h.setAnalyticsCollectionEnabled).toHaveBeenLastCalledWith({ kind: 'analytics' }, false);
+    expect(h.setAnalyticsCollectionEnabled).toHaveBeenLastCalledWith(sdk.analytics, false);
   });
 
   it('creates no Analytics on the server', () => {

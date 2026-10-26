@@ -4,61 +4,46 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-type Listener = {
-  q: { __path: string; __c: unknown[] };
-  next: (snap: unknown) => void;
-  error: (e: Error) => void;
-  unsubscribe: ReturnType<typeof vi.fn>;
-};
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-const h = vi.hoisted(() => ({
-  listeners: [] as Listener[],
-  getDocs: vi.fn(),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
-vi.mock('firebase/firestore', () => ({
-  collection: (_db: unknown, path: string) => ({ __path: path }),
-  query: (ref: { __path: string }, ...c: unknown[]) => ({ __path: ref.__path, __c: c }),
-  orderBy: (f: string, d: string) => ({ __orderBy: [f, d] }),
-  limit: (n: number) => ({ __limit: n }),
-  startAfter: (c: { id: string }) => ({ __startAfter: c.id }),
-  endAt: (c: { id: string }) => ({ __endAt: c.id }),
-  onSnapshot: (
-    q: Listener['q'],
-    _opts: unknown,
-    next: Listener['next'],
-    error: Listener['error'],
-  ) => {
-    const unsubscribe = vi.fn();
-    h.listeners.push({ q, next, error, unsubscribe });
-    return unsubscribe;
-  },
-  getDocs: h.getDocs,
-}));
-
+import { Timestamp } from 'firebase/firestore';
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreLiveInfinite } from '../src/react/firestore/use-firestore-live-infinite.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
-import { testFirestore } from './helpers/test-firestore.js';
+import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
+import {
+  failNext,
+  failUntilStopped,
+  holdNext,
+  lastOpened,
+  listensTo,
+  opened,
+  readsOnce,
+} from './helpers/listener-controls.js';
 
-function doc(id: string, createdAt: number) {
-  return { id, data: () => ({ createdAt }) };
-}
-function lastListener(): Listener {
-  return h.listeners[h.listeners.length - 1];
-}
-function emit(
-  listener: Listener,
-  docs: Array<{ id: string; data: () => Record<string, unknown> }>,
-  fromCache = false,
-) {
-  act(() => listener.next({ docs, metadata: { fromCache } }));
-}
-function constraintOf(listener: Listener, key: string): unknown {
-  const found = listener.q.__c.find((c) => typeof c === 'object' && c !== null && key in c);
-  return found ? (found as Record<string, unknown>)[key] : undefined;
+const T1 = 'chats/t1/messages';
+const T2 = 'chats/t2/messages';
+const live = listensTo(T1);
+const older = readsOnce(T1);
+
+function seed(thread: string, rows: Array<[string, unknown]>) {
+  for (const [id, createdAt] of rows) store.seed(`${thread}/${id}`, { createdAt });
 }
 function ids(items: unknown[]): string[] {
   return items.map((m) => (m as { id: string }).id);
+}
+async function anchored(path = T1) {
+  await waitFor(() => expect(opened(store, listensTo(path))).toBe(2));
+  await waitFor(() => expect(store.liveListeners()).toBe(1));
 }
 
 function makeWrapper() {
@@ -67,23 +52,28 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: qc },
-      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 }
 
 const baseOpts = {
-  collectionPath: 'chats/t1/messages',
+  collectionPath: T1,
   queryKey: ['chat', 't1'],
   orderByField: 'createdAt',
   pageSize: 2,
 };
 
+const unavailable = (message = 'unavailable') => firestoreError('unavailable', message);
+const denied = () => firestoreError('permission-denied', 'denied');
+const advance = (ms: number) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
+
 beforeEach(() => {
-  h.listeners.length = 0;
-  h.getDocs.mockReset();
-  h.getDocs.mockResolvedValue({ docs: [] });
+  store.reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -93,78 +83,106 @@ afterEach(() => {
 });
 
 describe('useFirestoreLiveInfinite — reading', () => {
-  it('is loading until the first snapshot, then returns items oldest first', () => {
+  it('is loading until the first snapshot, then returns items oldest first', async () => {
+    seed(T1, [
+      ['b', 20],
+      ['a', 10],
+    ]);
+    const release = holdNext(store, live);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
     expect(result.current.isInitialLoading).toBe(true);
     expect(result.current.sourceState).toBe('connecting');
 
-    emit(lastListener(), [doc('b', 20), doc('a', 10)]);
+    act(release);
 
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b']));
     expect(result.current.isInitialLoading).toBe(false);
     expect(result.current.sourceState).toBe('live');
-    expect(ids(result.current.items)).toEqual(['a', 'b']);
   });
 
-  it('reports no older rows for a thread that exactly fills one page, and reads no older page', () => {
+  it('reports no older rows for a thread that exactly fills one page, and reads no older page', async () => {
+    seed(T1, [
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    expect(constraintOf(h.listeners[0], '__limit')).toBe(3);
-    emit(h.listeners[0], [doc('b', 20), doc('a', 10)]);
+    expect(lastOpened(store, live)?.limit).toBe(3);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b']));
 
     expect(result.current.hasOlder).toBe(false);
-    expect(h.getDocs).not.toHaveBeenCalled();
+    expect(opened(store, older)).toBe(0);
   });
 
   it('keeps every row reachable as new messages arrive while the list is open', async () => {
-    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    seed(T1, [
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
 
-    const anchored = lastListener();
-    expect(h.listeners).toHaveLength(2);
-    expect(constraintOf(anchored, '__endAt')).toBe('b');
-    expect(constraintOf(anchored, '__limit')).toBeUndefined();
+    await anchored();
+    expect(lastOpened(store, live)?.limit).toBe(Infinity);
+    expect(ids(result.current.items)).toEqual(['b', 'c']);
     await act(async () => {
       await result.current.fetchOlder();
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
 
-    emit(anchored, [doc('e', 50), doc('d', 40), doc('c', 30), doc('b', 20)]);
+    act(() =>
+      seed(T1, [
+        ['e', 50],
+        ['d', 40],
+      ]),
+    );
     expect(ids(result.current.items)).toEqual(['a', 'b', 'c', 'd', 'e']);
     expect(result.current.hasOlder).toBe(false);
   });
 
-  it('anchors on the first rows of an empty thread so a burst of new messages is never lost', () => {
+  it('anchors on the first rows of an empty thread so a burst of new messages is never lost', async () => {
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], []);
-    expect(result.current.isInitialLoading).toBe(false);
-    expect(h.listeners).toHaveLength(1);
+    await waitFor(() => expect(result.current.isInitialLoading).toBe(false));
+    expect(opened(store, live)).toBe(1);
 
-    emit(h.listeners[0], [doc('a', 10)]);
-    const anchored = lastListener();
-    expect(constraintOf(anchored, '__endAt')).toBe('a');
-    emit(anchored, [doc('d', 40), doc('c', 30), doc('b', 20), doc('a', 10)]);
+    act(() => seed(T1, [['a', 10]]));
+    await anchored();
+    expect(lastOpened(store, live)?.limit).toBe(Infinity);
+    act(() =>
+      seed(T1, [
+        ['d', 40],
+        ['c', 30],
+        ['b', 20],
+        ['z', 5],
+      ]),
+    );
     expect(ids(result.current.items)).toEqual(['a', 'b', 'c', 'd']);
   });
 
-  it('does not fix an anchor from cached data', () => {
+  it('does not fix an anchor from cached data', async () => {
+    seed(T1, [
+      ['b', 20],
+      ['a', 10],
+    ]);
+    store.answerFromCache(live);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('b', 20), doc('a', 10)], true);
-    expect(h.listeners).toHaveLength(1);
+    await waitFor(() => expect(result.current.isInitialLoading).toBe(false));
+    expect(opened(store, live)).toBe(1);
     expect(result.current.sourceState).toBe('connecting');
     expect(ids(result.current.items)).toEqual(['a', 'b']);
   });
 
-  it('applies select to map items', () => {
+  it('applies select to map items', async () => {
+    seed(T1, [['a', 10]]);
     const { result } = renderHook(
       () =>
         useFirestoreLiveInfinite<{ key: string }>({
@@ -173,15 +191,14 @@ describe('useFirestoreLiveInfinite — reading', () => {
         }),
       { wrapper: makeWrapper() },
     );
-    emit(lastListener(), [doc('a', 10)]);
-    expect(result.current.items).toEqual([{ key: 'k:a' }]);
+    await waitFor(() => expect(result.current.items).toEqual([{ key: 'k:a' }]));
   });
 
   it('opens no listener and stays empty when disabled', () => {
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts, enabled: false }), {
       wrapper: makeWrapper(),
     });
-    expect(h.listeners).toHaveLength(0);
+    expect(store.queries()).toEqual([]);
     expect(result.current.items).toEqual([]);
     expect(result.current.isInitialLoading).toBe(false);
   });
@@ -189,16 +206,17 @@ describe('useFirestoreLiveInfinite — reading', () => {
 
 describe('useFirestoreLiveInfinite — older rows only on request', () => {
   it('reads no older page until fetchOlder asks, though older rows exist', async () => {
-    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    seed(T1, [
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await anchored();
 
-    expect(h.getDocs).not.toHaveBeenCalled();
+    expect(opened(store, older)).toBe(0);
     expect(result.current.hasOlder).toBe(true);
     expect(result.current.isFetchingOlder).toBe(false);
     expect(ids(result.current.items)).toEqual(['b', 'c']);
@@ -206,30 +224,35 @@ describe('useFirestoreLiveInfinite — older rows only on request', () => {
     await act(async () => {
       await result.current.fetchOlder();
     });
-    expect(h.getDocs).toHaveBeenCalledTimes(1);
+    expect(opened(store, older)).toBe(1);
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
     expect(result.current.hasOlder).toBe(false);
   });
 
   it('reads each further older page after the last one loaded, on request', async () => {
-    h.getDocs
-      .mockResolvedValueOnce({ docs: [doc('d', 40), doc('c', 30), doc('b', 20)] })
-      .mockResolvedValueOnce({ docs: [doc('b', 20), doc('a', 10)] });
+    seed(T1, [
+      ['f', 60],
+      ['e', 50],
+      ['d', 40],
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('f', 60), doc('e', 50), doc('d', 40)]);
+    await anchored();
 
     await act(async () => {
       await result.current.fetchOlder();
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['c', 'd', 'e', 'f']));
-    expect(h.getDocs).toHaveBeenCalledTimes(1);
+    expect(opened(store, older)).toBe(1);
 
     await act(async () => {
       await result.current.fetchOlder();
     });
-    expect(h.getDocs).toHaveBeenCalledTimes(2);
+    expect(opened(store, older)).toBe(2);
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']));
     expect(result.current.hasOlder).toBe(false);
   });
@@ -237,11 +260,15 @@ describe('useFirestoreLiveInfinite — older rows only on request', () => {
 
 describe('useFirestoreLiveInfinite — order', () => {
   it('lists rows in the order the reads deliver them, oldest first by default', async () => {
-    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 999)] });
+    seed(T1, [
+      ['c', 'a string orders after every timestamp'],
+      ['b', Timestamp.fromMillis(500_000)],
+      ['a', 999],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 1), doc('b', 500), doc('a', 999)]);
+    await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
@@ -249,54 +276,57 @@ describe('useFirestoreLiveInfinite — order', () => {
   });
 
   it('lists rows newest first for sort desc', async () => {
-    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    seed(T1, [
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts, sort: 'desc' }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
-    emit(lastListener(), [doc('d', 40), doc('c', 30), doc('b', 20)]);
-    expect(ids(result.current.items)).toEqual(['d', 'c', 'b', 'a']);
+    act(() => seed(T1, [['d', 40]]));
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['d', 'c', 'b', 'a']));
   });
 
-  it('orders rows whose ordering field is not a number, such as a timestamp', () => {
-    const stamped = (id: string, seconds: number) => ({
-      id,
-      data: () => ({ createdAt: { seconds } }),
-    });
+  it('orders rows whose ordering field is not a number, such as a timestamp', async () => {
+    seed(T1, [
+      ['b', Timestamp.fromMillis(20_000)],
+      ['a', Timestamp.fromMillis(10_000)],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [stamped('b', 20), stamped('a', 10)]);
-    expect(ids(result.current.items)).toEqual(['a', 'b']);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b']));
   });
 
   it('shows a row that is in both reads once, as its live copy', async () => {
-    h.getDocs.mockResolvedValueOnce({
-      docs: [{ id: 'a', data: () => ({ createdAt: 10, v: 'old' }) }],
-    });
+    seed(T1, [
+      ['c', 30],
+      ['b', 20],
+    ]);
+    store.seed(`${T1}/a`, { createdAt: 10, v: 'old' });
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
-    act(() =>
-      lastListener().next({
-        docs: [{ id: 'a', data: () => ({ createdAt: 40, v: 'new' }) }, doc('c', 30), doc('b', 20)],
-        metadata: { fromCache: false },
-      }),
-    );
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
+
+    act(() => store.seed(`${T1}/a`, { createdAt: 40, v: 'new' }));
     expect(ids(result.current.items)).toEqual(['b', 'c', 'a']);
     expect(result.current.items[2]?.v).toBe('new');
   });
 });
 
 describe('useFirestoreLiveInfinite — subscription identity', () => {
-  it('shows nothing of the previous thread after a switch, and ignores its late rows', () => {
+  it('shows nothing of the previous thread after a switch, and closes its listener', async () => {
+    seed(T1, [['a1', 10]]);
     const { result, rerender } = renderHook(
       ({ thread }: { thread: string }) =>
         useFirestoreLiveInfinite({
@@ -306,26 +336,22 @@ describe('useFirestoreLiveInfinite — subscription identity', () => {
         }),
       { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
     );
-    const first = lastListener();
-    emit(first, [doc('a1', 10)]);
+    await anchored();
     expect(ids(result.current.items)).toEqual(['a1']);
-    const firstAnchored = lastListener();
 
     rerender({ thread: 't2' });
     expect(result.current.items).toEqual([]);
     expect(result.current.isInitialLoading).toBe(true);
     expect(result.current.sourceState).toBe('connecting');
 
-    emit(firstAnchored, [doc('a2', 20), doc('a1', 10)]);
-    expect(result.current.items).toEqual([]);
-
-    const second = lastListener();
-    expect(second.q.__path).toBe('chats/t2/messages');
-    emit(second, [doc('b1', 5)]);
-    expect(ids(result.current.items)).toEqual(['b1']);
+    expect(opened(store, listensTo(T2))).toBe(1);
+    act(() => seed(T2, [['b1', 5]]));
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['b1']));
+    expect(store.liveListeners()).toBe(1);
   });
 
-  it('never reports the previous thread’s failure under the new thread', () => {
+  it('never reports the previous thread’s failure under the new thread', async () => {
+    failNext(store, live, unavailable('boom'));
     const { result, rerender } = renderHook(
       ({ thread }: { thread: string }) =>
         useFirestoreLiveInfinite({
@@ -335,8 +361,7 @@ describe('useFirestoreLiveInfinite — subscription identity', () => {
         }),
       { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
     );
-    act(() => lastListener().error(Object.assign(new Error('boom'), { code: 'unavailable' })));
-    expect(result.current.error).not.toBeNull();
+    await waitFor(() => expect(result.current.error).not.toBeNull());
 
     rerender({ thread: 't2' });
     expect(result.current.error).toBeNull();
@@ -345,115 +370,120 @@ describe('useFirestoreLiveInfinite — subscription identity', () => {
 });
 
 describe('useFirestoreLiveInfinite — failures', () => {
-  it('ends the loading state with an error when the first listen fails', () => {
+  it('ends the loading state with an error when the first listen fails', async () => {
+    const failure = unavailable();
+    failNext(store, live, failure);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    const failure = Object.assign(new Error('unavailable'), { code: 'unavailable' });
-    act(() => lastListener().error(failure));
 
+    await waitFor(() => expect(result.current.error).toBe(failure));
     expect(result.current.isInitialLoading).toBe(false);
-    expect(result.current.error).toBe(failure);
     expect(result.current.sourceState).toBe('error');
     expect(result.current.items).toEqual([]);
   });
 
-  it('retries a failed listener and recovers on its next snapshot', () => {
+  it('retries a failed listener and recovers on its next snapshot', async () => {
+    failNext(store, live, unavailable('x'));
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    act(() => lastListener().error(Object.assign(new Error('x'), { code: 'unavailable' })));
-    const before = h.listeners.length;
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    const before = opened(store, live);
 
+    const release = holdNext(store, live);
     act(() => result.current.retry());
     expect(result.current.error).toBeNull();
     expect(result.current.sourceState).toBe('connecting');
-    expect(h.listeners.length).toBe(before + 1);
+    expect(opened(store, live)).toBe(before + 1);
 
-    emit(lastListener(), [doc('a', 10)]);
-    expect(ids(result.current.items)).toEqual(['a']);
+    seed(T1, [['a', 10]]);
+    act(release);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a']));
     expect(result.current.sourceState).toBe('live');
   });
 
-  it('keeps the rows on screen when the listener fails after loading them', () => {
+  it('keeps the rows on screen when the listener fails after loading them', async () => {
+    seed(T1, [['a', 10]]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(lastListener(), [doc('a', 10)]);
-    act(() => lastListener().error(Object.assign(new Error('x'), { code: 'unavailable' })));
+    await anchored();
+    act(() => store.failListeners(live, unavailable('x')));
 
     expect(result.current.error).not.toBeNull();
     expect(ids(result.current.items)).toEqual(['a']);
   });
 
-  it('resubscribes a permission-denied listener on the backoff ladder before surfacing it', () => {
-    vi.useFakeTimers();
+  it('resubscribes a permission-denied listener on the backoff ladder before surfacing it', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    failUntilStopped(store, live, denied());
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    const denied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
+    await advance(0);
 
-    for (const delay of [5_000, 15_000, 45_000]) {
-      const count = h.listeners.length;
-      act(() => lastListener().error(denied()));
+    for (const delay of RESUBSCRIBE_DELAYS_MS) {
+      const count = opened(store, live);
       expect(result.current.error).toBeNull();
       expect(result.current.sourceState).toBe('connecting');
-      act(() => {
-        vi.advanceTimersByTime(delay);
-      });
-      expect(h.listeners.length).toBe(count + 1);
+      await advance(delay);
+      expect(opened(store, live)).toBe(count + 1);
     }
-    act(() => lastListener().error(denied()));
-    expect(result.current.error).not.toBeNull();
+    await vi.waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.sourceState).toBe('error');
   });
 
   it('drops every loaded row when a denial surfaces, and a retry reads the list afresh', async () => {
-    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    seed(T1, [
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
 
-    vi.useFakeTimers();
-    const denied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
-    for (const delay of [5_000, 15_000, 45_000]) {
-      act(() => lastListener().error(denied()));
-      act(() => {
-        vi.advanceTimersByTime(delay);
-      });
-    }
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const denial = denied();
-    act(() => lastListener().error(denial));
+    const stopDenying = failUntilStopped(store, live, denial);
+    act(() => store.failListeners(live, denial));
+    for (const delay of RESUBSCRIBE_DELAYS_MS) await advance(delay);
 
-    expect(result.current.error).toBe(denial);
+    await vi.waitFor(() => expect(result.current.error).toBe(denial));
     expect(result.current.sourceState).toBe('error');
     expect(result.current.items).toEqual([]);
     expect(result.current.hasOlder).toBe(false);
     expect(result.current.isInitialLoading).toBe(false);
 
+    stopDenying();
+    const release = holdNext(store, live);
     act(() => result.current.retry());
-    const fresh = lastListener();
-    expect(constraintOf(fresh, '__endAt')).toBeUndefined();
-    expect(constraintOf(fresh, '__limit')).toBe(3);
+    expect(lastOpened(store, live)?.limit).toBe(3);
     expect(result.current.items).toEqual([]);
     expect(result.current.isInitialLoading).toBe(true);
 
-    emit(fresh, [doc('c', 30), doc('b', 20), doc('a', 10)]);
-    expect(ids(result.current.items)).toEqual(['b', 'c']);
+    act(release);
+    await vi.waitFor(() => expect(ids(result.current.items)).toEqual(['b', 'c']));
     expect(result.current.hasOlder).toBe(true);
   });
 
   it('reports a failed older page beside the loaded rows, and retry re-reads it', async () => {
-    h.getDocs.mockRejectedValueOnce(new Error('older failed'));
+    seed(T1, [
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
+    failNext(store, older, unavailable('older failed'));
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
@@ -462,27 +492,32 @@ describe('useFirestoreLiveInfinite — failures', () => {
     expect(result.current.hasOlder).toBe(true);
     expect(ids(result.current.items)).toEqual(['b', 'c']);
 
-    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.olderError).toBeNull());
-    expect(ids(result.current.items)).toEqual(['a', 'b', 'c']);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
     expect(result.current.hasOlder).toBe(false);
   });
 
   it('reports a failed later older page without dropping the pages already loaded', async () => {
-    h.getDocs
-      .mockResolvedValueOnce({ docs: [doc('d', 40), doc('c', 30), doc('b', 20)] })
-      .mockRejectedValueOnce(new Error('page 2 failed'));
+    seed(T1, [
+      ['f', 60],
+      ['e', 50],
+      ['d', 40],
+      ['c', 30],
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('f', 60), doc('e', 50), doc('d', 40)]);
+    await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['c', 'd', 'e', 'f']));
     expect(result.current.hasOlder).toBe(true);
 
+    failNext(store, older, unavailable('page 2 failed'));
     await act(async () => {
       await result.current.fetchOlder();
     });
@@ -493,31 +528,38 @@ describe('useFirestoreLiveInfinite — failures', () => {
 });
 
 describe('useFirestoreLiveInfinite — retries and switches keep to one read', () => {
-  it('a retry after an anchored window fails keeps its rows and resumes from the anchor', () => {
+  it('a retry after an anchored window fails keeps its rows and resumes from the anchor', async () => {
+    seed(T1, [
+      ['b', 20],
+      ['a', 10],
+    ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
       wrapper: makeWrapper(),
     });
-    emit(h.listeners[0], [doc('b', 20), doc('a', 10)]);
-    const anchored = lastListener();
-    expect(constraintOf(anchored, '__endAt')).toBe('a');
-    act(() => anchored.error(Object.assign(new Error('x'), { code: 'unavailable' })));
+    await anchored();
+    expect(lastOpened(store, live)?.limit).toBe(Infinity);
+    act(() => store.failListeners(live, unavailable('x')));
+    seed(T1, [['z', 5]]);
 
     act(() => result.current.retry());
     expect(ids(result.current.items)).toEqual(['a', 'b']);
-    const resumed = lastListener();
-    expect(resumed).not.toBe(anchored);
-    expect(constraintOf(resumed, '__endAt')).toBe('a');
-    expect(constraintOf(resumed, '__limit')).toBeUndefined();
+    expect(opened(store, live)).toBe(3);
+    expect(lastOpened(store, live)?.limit).toBe(Infinity);
+    await waitFor(() => expect(store.liveListeners()).toBe(1));
+    expect(ids(result.current.items)).toEqual(['a', 'b']);
   });
 
   it('an older page of the previous thread that resolves after a switch never appears', async () => {
-    let resolveOlder: (value: unknown) => void = () => {};
-    h.getDocs.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveOlder = resolve;
-        }),
-    );
+    seed(T1, [
+      ['c1', 30],
+      ['b1', 20],
+      ['a1', 10],
+    ]);
+    const release = holdNext(store, older);
+    let landed = false;
+    store.afterRead(older, () => {
+      landed = true;
+    });
     const { result, rerender } = renderHook(
       ({ thread }: { thread: string }) =>
         useFirestoreLiveInfinite({
@@ -527,28 +569,28 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
         }),
       { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
     );
-    emit(lastListener(), [doc('c1', 30), doc('b1', 20), doc('a1', 10)]);
+    await anchored();
     act(() => {
       void result.current.fetchOlder();
     });
-    await waitFor(() => expect(h.getDocs).toHaveBeenCalled());
+    await waitFor(() => expect(opened(store, older)).toBe(1));
 
     rerender({ thread: 't2' });
-    const second = lastListener();
-    await act(async () => {
-      resolveOlder({ docs: [doc('a1', 10)] });
-    });
-    emit(second, [doc('x2', 5)]);
+    seed(T2, [['x2', 5]]);
+    act(release);
+    await waitFor(() => expect(landed).toBe(true));
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['x2']));
+    await act(async () => {});
     expect(ids(result.current.items)).toEqual(['x2']);
   });
 
-  it('disabling and re-enabling starts the list afresh instead of showing the earlier rows', () => {
+  it('disabling and re-enabling starts the list afresh instead of showing the earlier rows', async () => {
+    seed(T1, [['a', 10]]);
     const { result, rerender } = renderHook(
       ({ enabled }: { enabled: boolean }) => useFirestoreLiveInfinite({ ...baseOpts, enabled }),
       { wrapper: makeWrapper(), initialProps: { enabled: true } },
     );
-    emit(lastListener(), [doc('a', 10)]);
-    expect(ids(result.current.items)).toEqual(['a']);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a']));
 
     rerender({ enabled: false });
     expect(result.current.items).toEqual([]);

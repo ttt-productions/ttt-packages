@@ -4,18 +4,20 @@ import * as React from 'react';
 import { ThemeSwitcher, type ThemeOption } from '../src/react/theme-switcher.js';
 import { anything } from '../../../test/matchers.js';
 
-const mockSetTheme = vi.fn();
-const mockUseTheme = vi.hoisted(() => vi.fn());
+const mockSetTheme = vi.fn<ReturnType<typeof import('next-themes').useTheme>['setTheme']>();
+const mockUseTheme = vi.hoisted(() => vi.fn<typeof import('next-themes').useTheme>());
 
-vi.mock('next-themes', () => ({
-  useTheme: mockUseTheme,
-}));
+vi.mock('next-themes', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('next-themes')>({ useTheme: mockUseTheme });
+});
 
 const themes: ThemeOption[] = [
   { value: 'light', label: 'Light', icon: <span>☀️</span> },
   { value: 'dark', label: 'Dark', icon: <span>🌙</span> },
   { value: 'high-contrast', label: 'High Contrast' },
 ];
+const THEME_VALUES = themes.map((theme) => theme.value);
 
 function makeProps() {
   return {
@@ -64,7 +66,7 @@ function makeProps() {
 
 beforeEach(() => {
   mockSetTheme.mockClear();
-  mockUseTheme.mockReturnValue({ theme: 'light', setTheme: mockSetTheme });
+  mockUseTheme.mockReturnValue({ themes: THEME_VALUES, theme: 'light', setTheme: mockSetTheme });
 });
 
 describe('ThemeSwitcher', () => {
@@ -103,7 +105,7 @@ describe('ThemeSwitcher', () => {
   });
 
   it('marks the active theme item', () => {
-    mockUseTheme.mockReturnValue({ theme: 'dark', setTheme: mockSetTheme });
+    mockUseTheme.mockReturnValue({ themes: THEME_VALUES, theme: 'dark', setTheme: mockSetTheme });
     render(<ThemeSwitcher {...makeProps()} />);
     const darkBtn = screen.getByText('Dark').closest('button');
     expect(darkBtn).toHaveAttribute('data-active', 'true');

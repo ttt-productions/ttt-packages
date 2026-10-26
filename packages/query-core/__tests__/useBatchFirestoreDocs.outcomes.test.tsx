@@ -1,105 +1,39 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-type DocData = Record<string, unknown>;
-
-const {
-  docs,
-  denials,
-  batchFailure,
-  pendingGets,
-  setAutoResolve,
-  caps,
-  getDocsMock,
-  getDocMock,
-  onSnapshotMock,
-} = vi.hoisted(() => {
-  const docs = new Map<string, DocData>();
-  const denials = new Map<string, Error>();
-  const batchFailure: { error: Error | null } = { error: null };
-  const pendingGets: Array<() => void> = [];
-  let autoResolve = true;
-  const caps = new Map<string, { next: (snap: unknown) => void; error: (e: Error) => void }>();
-
-  const getDocsMock = vi.fn((q: { __ids: string[] }) => {
-    if (batchFailure.error) return Promise.reject(batchFailure.error);
-    return Promise.resolve({
-      forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
-        for (const id of q.__ids) {
-          const data = docs.get(id);
-          if (data !== undefined) cb({ id, data: () => data });
-        }
-      },
-    });
-  });
-
-  const getDocMock = vi.fn((ref: { __id: string }) => {
-    const answer = () => {
-      const denial = denials.get(ref.__id);
-      if (denial) return Promise.reject(denial);
-      const data = docs.get(ref.__id);
-      return Promise.resolve({ exists: () => data !== undefined, id: ref.__id, data: () => data });
-    };
-    if (autoResolve) return answer();
-    return new Promise((resolve, reject) => {
-      pendingGets.push(() => {
-        answer().then(resolve, reject);
-      });
-    });
-  });
-
-  const onSnapshotMock = vi.fn(
-    (ref: { __id: string }, next: (s: unknown) => void, error: (e: Error) => void) => {
-      caps.set(ref.__id, { next, error });
-      return vi.fn();
-    },
-  );
-
-  return {
-    docs,
-    denials,
-    batchFailure,
-    pendingGets,
-    setAutoResolve: (value: boolean) => {
-      autoResolve = value;
-    },
-    caps,
-    getDocsMock,
-    getDocMock,
-    onSnapshotMock,
-  };
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', () => ({
-  collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
-  where: (_field: unknown, _op: unknown, ids: string[]) => ({ __ids: ids }),
-  query: (source: { __db: unknown; __path: string }, constraint: { __ids: string[] }) => ({
-    __db: source.__db,
-    __path: source.__path,
-    __ids: constraint.__ids,
-  }),
-  documentId: () => '__name__',
-  getDocs: getDocsMock,
-  doc: (_db: unknown, _path: string, id: string) => ({ __id: id }),
-  getDoc: getDocMock,
-  onSnapshot: onSnapshotMock,
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
+import type { FirestoreError } from 'firebase/firestore';
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
-import { testFirestore } from './helpers/test-firestore.js';
+import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
+import {
+  batchReadIn,
+  docGetIn,
+  docGetOf,
+  holdReads,
+  listenerOf,
+  type ReadHold,
+} from './helpers/batch-docs-reads.js';
+import { failNext } from './helpers/listener-controls.js';
 
 beforeEach(() => {
-  docs.clear();
-  denials.clear();
-  batchFailure.error = null;
-  pendingGets.length = 0;
-  setAutoResolve(true);
-  caps.clear();
-  getDocsMock.mockClear();
-  getDocMock.mockClear();
-  onSnapshotMock.mockClear();
+  store.reset();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function makeWrapper() {
@@ -113,36 +47,34 @@ function makeWrapper() {
 }
 
 const baseOpts = {
-  db: testFirestore(),
+  db: store.db,
   collectionPath: 'publicWorks',
   queryKeyPrefix: 'publicWork',
   staleTime: 30 * 60 * 1000,
   absentRetryDelaysMs: [] as readonly number[],
 };
 
-function emit(id: string, data: DocData | null) {
-  act(() => {
-    caps.get(id)!.next({ exists: () => data != null, id, data: () => data });
-  });
+const seed = (id: string, data: Record<string, unknown>) => store.seed(`publicWorks/${id}`, data);
+const permissionDenied = () => firestoreError('permission-denied', 'permission-denied');
+const unavailable = () => firestoreError('unavailable', 'unavailable');
+
+function failListenerOnOpen(id: string, error: FirestoreError) {
+  store.failReads(listenerOf('publicWorks', id), error);
 }
 
-function permissionDenied(): Error {
-  return Object.assign(new Error('permission-denied'), { code: 'permission-denied' });
-}
-
-function emitError(id: string, error: Error) {
-  act(() => {
-    caps.get(id)!.error(error);
-  });
+function heldFor(hold: ReadHold, id: string) {
+  const entry = hold.waiting.find((held) => held.ids.includes(id));
+  if (!entry) throw new Error(`no read waiting for ${id}`);
+  return entry;
 }
 
 describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   it('reports present, absent, and failed per id, each failure with its own error', async () => {
-    docs.set('w1', { title: 'One' });
-    const deniedA = new Error('permission-denied: a');
-    const deniedB = new Error('permission-denied: b');
-    denials.set('hiddenA', deniedA);
-    denials.set('hiddenB', deniedB);
+    seed('w1', { title: 'One' });
+    const deniedA = firestoreError('permission-denied', 'permission-denied: a');
+    const deniedB = firestoreError('permission-denied', 'permission-denied: b');
+    store.failReads(docGetOf('publicWorks', 'hiddenA'), deniedA);
+    store.failReads(docGetOf('publicWorks', 'hiddenB'), deniedB);
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -174,27 +106,27 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   });
 
   it('keeps an id loading until its own read answers', async () => {
-    setAutoResolve(false);
-    docs.set('w1', { title: 'One' });
+    const hold = holdReads(store, docGetIn('publicWorks'));
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1', 'ghost'] }),
       { wrapper: Wrapper },
     );
 
-    await waitFor(() => expect(pendingGets).toHaveLength(2));
+    await waitFor(() => expect(hold.waiting).toHaveLength(2));
     expect(result.current.outcomes).toEqual({
       w1: { status: 'loading' },
       ghost: { status: 'loading' },
     });
 
-    act(() => pendingGets[0]());
+    act(() => heldFor(hold, 'w1').release());
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
     expect(result.current.outcomes.ghost).toEqual({ status: 'loading' });
   });
 
   it('keeps an answered document present beside a later failure of its refetch', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1'] }),
@@ -202,8 +134,8 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
     );
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
-    const unavailable = Object.assign(new Error('unavailable'), { code: 'unavailable' });
-    denials.set('w1', unavailable);
+    const failure = unavailable();
+    failNext(store, docGetOf('publicWorks', 'w1'), failure);
     await act(async () => {
       await result.current.refetch();
     });
@@ -212,7 +144,7 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
       expect(result.current.outcomes.w1).toEqual({
         status: 'present',
         data: { id: 'w1', title: 'One' },
-        failure: { error: unavailable, retrying: false },
+        failure: { error: failure, retrying: false },
       }),
     );
     expect(result.current.data).toEqual({ w1: { id: 'w1', title: 'One' } });
@@ -220,36 +152,35 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   });
 
   it('holds the answer through a retry of its failure and drops the failure once the retry answers', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1'] }),
       { wrapper: Wrapper },
     );
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
-    const unavailable = Object.assign(new Error('unavailable'), { code: 'unavailable' });
-    denials.set('w1', unavailable);
+    const failure = unavailable();
+    failNext(store, docGetOf('publicWorks', 'w1'), failure);
     await act(async () => {
       await result.current.refetch();
     });
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    denials.clear();
-    docs.set('w1', { title: 'One, again' });
-    setAutoResolve(false);
+    seed('w1', { title: 'One, again' });
+    const hold = holdReads(store, docGetIn('publicWorks'));
     let retry!: Promise<void>;
     act(() => {
       retry = result.current.refetch();
     });
-    await waitFor(() => expect(pendingGets).toHaveLength(1));
+    await waitFor(() => expect(hold.waiting).toHaveLength(1));
     expect(result.current.outcomes.w1).toEqual({
       status: 'present',
       data: { id: 'w1', title: 'One' },
-      failure: { error: unavailable, retrying: true },
+      failure: { error: failure, retrying: true },
     });
 
     await act(async () => {
-      pendingGets[0]();
+      hold.waiting[0].release();
       await retry;
     });
     await waitFor(() =>
@@ -261,7 +192,7 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   });
 
   it('drops an answered document once a refetch of it is denied permission', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, transport: 'get', ids: ['w1'] }),
@@ -270,7 +201,7 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
     const denied = permissionDenied();
-    denials.set('w1', denied);
+    failNext(store, docGetOf('publicWorks', 'w1'), denied);
     await act(async () => {
       await result.current.refetch();
     });
@@ -286,8 +217,8 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   });
 
   it('marks every id of a failed batch query failed, with that query error', async () => {
-    const unavailable = new Error('unavailable');
-    batchFailure.error = unavailable;
+    const failure = unavailable();
+    store.failReads(batchReadIn('publicWorks'), failure);
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1', 'w2'] }), {
       wrapper: Wrapper,
@@ -295,13 +226,13 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.outcomes).toEqual({
-      w1: { status: 'failed', error: unavailable, retrying: false },
-      w2: { status: 'failed', error: unavailable, retrying: false },
+      w1: { status: 'failed', error: failure, retrying: false },
+      w2: { status: 'failed', error: failure, retrying: false },
     });
   });
 
   it('has one entry per requested id, empty ids and duplicates dropped', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1', 'w1', ''] }),
@@ -315,7 +246,7 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
   });
 
   it('keeps the outcomes map and each unchanged entry identical across renders', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result, rerender } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1', 'ghost'] }),
@@ -333,56 +264,57 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
 });
 
 describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
-  it('records a listener error on its own id while the other ids keep their answers', () => {
+  it('records a listener error on its own id while the other ids keep their answers', async () => {
+    const denied = permissionDenied();
+    failListenerOnOpen('hidden', denied);
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['hidden', 'w1', 'ghost'] }),
       { wrapper: Wrapper },
     );
 
-    const denied = new Error('permission-denied');
-    emitError('hidden', denied);
-    emit('w1', { title: 'One' });
-    emit('ghost', null);
-
-    expect(result.current.outcomes).toEqual({
-      hidden: { status: 'failed', error: denied, retrying: false },
-      w1: { status: 'present', data: { id: 'w1', title: 'One' } },
-      ghost: { status: 'absent' },
-    });
+    await waitFor(() =>
+      expect(result.current.outcomes).toEqual({
+        hidden: { status: 'failed', error: denied, retrying: false },
+        w1: { status: 'present', data: { id: 'w1', title: 'One' } },
+        ghost: { status: 'absent' },
+      }),
+    );
     expect(result.current.isError).toBe(true);
     expect(result.current.error).toBe(denied);
   });
 
-  it('keeps two listener errors with their own ids', () => {
+  it('keeps two listener errors with their own ids', async () => {
+    const errorA = firestoreError('permission-denied', 'permission-denied: a');
+    const errorB = firestoreError('unavailable', 'unavailable: b');
+    failListenerOnOpen('a', errorA);
+    failListenerOnOpen('b', errorB);
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['a', 'b'] }),
       { wrapper: Wrapper },
     );
 
-    const errorA = new Error('permission-denied: a');
-    const errorB = new Error('unavailable: b');
-    emitError('a', errorA);
-    emitError('b', errorB);
-
-    expect((result.current.outcomes.a as { error: Error }).error).toBe(errorA);
-    expect((result.current.outcomes.b as { error: Error }).error).toBe(errorB);
+    await waitFor(() => {
+      expect((result.current.outcomes.a as { error: Error }).error).toBe(errorA);
+      expect((result.current.outcomes.b as { error: Error }).error).toBe(errorB);
+    });
   });
 
-  it('gives a consumer that joins an already-failed listener the failure, not an absence', () => {
+  it('gives a consumer that joins an already-failed listener the failure, not an absence', async () => {
+    const denied = permissionDenied();
+    failListenerOnOpen('hidden', denied);
     const { Wrapper } = makeWrapper();
-    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['hidden'] }), {
-      wrapper: Wrapper,
-    });
-    const denied = new Error('permission-denied');
-    emitError('hidden', denied);
+    const first = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['hidden'] }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(first.result.current.outcomes.hidden.status).toBe('failed'));
 
     const late = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['hidden'] }),
-      {
-        wrapper: Wrapper,
-      },
+      { wrapper: Wrapper },
     );
 
     expect(late.result.current.outcomes.hidden).toEqual({
@@ -393,36 +325,38 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     expect(late.result.current.isError).toBe(true);
   });
 
-  it('keeps an answered id present beside a later listener failure', () => {
+  it('keeps an answered id present beside a later listener failure', async () => {
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
       { wrapper: Wrapper },
     );
-    emit('w1', { title: 'One' });
+    await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
-    const unavailable = Object.assign(new Error('unavailable'), { code: 'unavailable' });
-    emitError('w1', unavailable);
+    const failure = unavailable();
+    act(() => store.failListeners(listenerOf('publicWorks', 'w1'), failure));
 
     expect(result.current.outcomes.w1).toEqual({
       status: 'present',
       data: { id: 'w1', title: 'One' },
-      failure: { error: unavailable, retrying: false },
+      failure: { error: failure, retrying: false },
     });
     expect(result.current.data).toEqual({ w1: { id: 'w1', title: 'One' } });
     expect(result.current.isError).toBe(true);
   });
 
-  it('drops an answered id once its listener is denied permission', () => {
+  it('drops an answered id once its listener is denied permission', async () => {
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
       { wrapper: Wrapper },
     );
-    emit('w1', { title: 'One' });
+    await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
     const denied = permissionDenied();
-    emitError('w1', denied);
+    act(() => store.failListeners(listenerOf('publicWorks', 'w1'), denied));
 
     expect(result.current.outcomes.w1).toEqual({
       status: 'failed',
@@ -432,34 +366,43 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     expect(result.current.data).toEqual({});
   });
 
-  it("clears an id's failure when a later snapshot lands", () => {
+  it("clears an id's failure when its re-listen after a denial answers", async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let hidden = true;
+    store.failReads((read) => hidden && listenerOf('publicWorks', 'w1')(read), permissionDenied());
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
-      {
-        wrapper: Wrapper,
-      },
+      { wrapper: Wrapper },
     );
+    await vi.waitFor(() => expect(result.current.outcomes.w1.status).toBe('failed'));
 
-    emitError('w1', new Error('permission-denied'));
-    emit('w1', { title: 'One' });
-
-    expect(result.current.outcomes.w1).toEqual({
-      status: 'present',
-      data: { id: 'w1', title: 'One' },
+    hidden = false;
+    seed('w1', { title: 'One' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RESUBSCRIBE_DELAYS_MS[0]);
     });
+
+    await vi.waitFor(() =>
+      expect(result.current.outcomes.w1).toEqual({
+        status: 'present',
+        data: { id: 'w1', title: 'One' },
+      }),
+    );
     expect(result.current.isError).toBe(false);
   });
 });
 
 describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed listener', () => {
-  it('reads failed, not absent, for a key whose shared listener has errored', () => {
+  it('reads failed, not absent, for a key whose shared listener has errored', async () => {
+    const denied = permissionDenied();
+    failListenerOnOpen('w1', denied);
     const { Wrapper } = makeWrapper();
-    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
-      wrapper: Wrapper,
-    });
-    const denied = new Error('permission-denied');
-    emitError('w1', denied);
+    const live = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(live.result.current.outcomes.w1.status).toBe('failed'));
 
     const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), {
       wrapper: Wrapper,
@@ -474,18 +417,20 @@ describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed l
   });
 
   it('answers a refetch with the listener error, never with its null placeholder', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
     const { Wrapper } = makeWrapper();
     const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(oneShot.result.current.outcomes.w1.status).toBe('present'));
 
-    renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }), {
-      wrapper: Wrapper,
-    });
     const denied = permissionDenied();
-    emitError('w1', denied);
+    failListenerOnOpen('w1', denied);
+    const live = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(live.result.current.outcomes.w1.status).toBe('failed'));
     await act(async () => {
       await oneShot.result.current.refetch();
     });
@@ -500,15 +445,14 @@ describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed l
   });
 
   it('reads the document for itself once the failed listener has no subscriber left', async () => {
-    docs.set('w1', { title: 'One' });
+    seed('w1', { title: 'One' });
+    failListenerOnOpen('w1', permissionDenied());
     const { Wrapper } = makeWrapper();
     const live = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, subscribe: true, ids: ['w1'] }),
-      {
-        wrapper: Wrapper,
-      },
+      { wrapper: Wrapper },
     );
-    emitError('w1', new Error('permission-denied'));
+    await waitFor(() => expect(live.result.current.outcomes.w1.status).toBe('failed'));
     const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), {
       wrapper: Wrapper,
     });

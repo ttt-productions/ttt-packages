@@ -1,24 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { VideoViewer } from '../src/react/video-viewer.js';
-
-let mockInView = false;
-let mockRatio = 0;
-
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({
-    ref: () => {},
-    inView: mockInView,
-    entry: { intersectionRatio: mockRatio },
-  }),
-}));
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 
 let playSpy: ReturnType<typeof vi.spyOn>;
 let pauseSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
-  mockInView = false;
-  mockRatio = 0;
   // jsdom stubs these as "not implemented".
   playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   pauseSpy = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
@@ -56,8 +44,8 @@ describe('VideoViewer', () => {
     });
 
     it('renders <video> after inView becomes true', () => {
-      mockInView = true;
       const { container } = render(<VideoViewer url="https://example.com/v.mp4" />);
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('video')).not.toBeNull();
     });
 
@@ -67,35 +55,35 @@ describe('VideoViewer', () => {
     });
 
     it('passes explicit preload prop through when not priority', () => {
-      mockInView = true;
       const { container } = render(<VideoViewer url="https://example.com/v.mp4" preload="auto" />);
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('video')?.getAttribute('preload')).toBe('auto');
     });
 
     it('defaults preload to "metadata"', () => {
-      mockInView = true;
       const { container } = render(<VideoViewer url="https://example.com/v.mp4" />);
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('video')?.getAttribute('preload')).toBe('metadata');
     });
   });
 
   describe('unloadOnExit', () => {
     it('unmounts <video> when exiting view (unloadOnExit=true is the default)', () => {
-      mockInView = true;
       const { container, rerender } = render(<VideoViewer url="https://example.com/v.mp4" />);
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('video')).not.toBeNull();
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" />);
       expect(container.querySelector('video')).toBeNull();
     });
 
     it('keeps <video> mounted when unloadOnExit=false', () => {
-      mockInView = true;
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" unloadOnExit={false} />,
       );
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('video')).not.toBeNull();
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" unloadOnExit={false} />);
       expect(container.querySelector('video')).not.toBeNull();
     });
@@ -105,7 +93,7 @@ describe('VideoViewer', () => {
         <VideoViewer url="https://example.com/v.mp4" priority />,
       );
       expect(container.querySelector('video')).not.toBeNull();
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" priority />);
       expect(container.querySelector('video')).not.toBeNull();
     });
@@ -327,49 +315,44 @@ describe('VideoViewer', () => {
 
   describe('unified observer / autoplay-on-visible', () => {
     it('does not call play when neither autoPlay nor autoPlayOnVisible is set, even if ratio >= 0.5', async () => {
-      mockInView = true;
-      mockRatio = 0.9;
       render(<VideoViewer url="https://example.com/v.mp4" priority />);
+      mockAllIsIntersecting(0.9);
       await Promise.resolve();
       expect(playSpy).not.toHaveBeenCalled();
     });
 
     it('calls video.play() when autoPlayOnVisible and ratio >= 0.5', async () => {
-      mockInView = true;
-      mockRatio = 0.6;
       render(<VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />);
+      mockAllIsIntersecting(0.6);
       await Promise.resolve();
       expect(playSpy).toHaveBeenCalled();
     });
 
     it('calls video.play() when autoPlay and ratio >= 0.5', async () => {
-      mockInView = true;
-      mockRatio = 0.5;
       render(<VideoViewer url="https://example.com/v.mp4" priority autoPlay />);
+      mockAllIsIntersecting(0.5);
       await Promise.resolve();
       expect(playSpy).toHaveBeenCalled();
     });
 
     it('does not call play when ratio < 0.5 even with autoPlayOnVisible', async () => {
-      mockInView = true;
-      mockRatio = 0.3;
       render(<VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />);
+      mockAllIsIntersecting(0.3);
       await Promise.resolve();
       expect(playSpy).not.toHaveBeenCalled();
     });
 
     it('calls pause when ratio drops below 0.5 after being above', async () => {
-      mockInView = true;
-      mockRatio = 0.8;
       const { rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />,
       );
+      mockAllIsIntersecting(0.8);
       await Promise.resolve();
       Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
         configurable: true,
         get: () => false,
       });
-      mockRatio = 0.2;
+      mockAllIsIntersecting(0.2);
       rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlayOnVisible />);
       await Promise.resolve();
       expect(pauseSpy).toHaveBeenCalled();
@@ -379,15 +362,18 @@ describe('VideoViewer', () => {
       });
     });
 
-    it('does not play before shouldLoad becomes true (lazy + autoplay path)', async () => {
-      mockInView = false;
-      mockRatio = 0.6;
+    it('does not load or play a lazy autoplay video until it is seen, then plays it', async () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" autoPlayOnVisible />,
       );
       await Promise.resolve();
       expect(container.querySelector('video')).toBeNull();
       expect(playSpy).not.toHaveBeenCalled();
+
+      mockAllIsIntersecting(0.6);
+      await Promise.resolve();
+      expect(container.querySelector('video')).not.toBeNull();
+      expect(playSpy).toHaveBeenCalled();
     });
   });
 

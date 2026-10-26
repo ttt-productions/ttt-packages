@@ -6,64 +6,65 @@ import type {
   DeferredUploadFormShellHandle,
   DeferredUploadFormShellProps,
 } from '../src/react/upload/deferred-upload-form-shell.js';
-import type { MediaInputProps } from '@ttt-productions/file-input';
+import type { MediaInputHandle, MediaInputProps } from '@ttt-productions/file-input';
 import type { MediaOriginSpec, UploadState } from '@ttt-productions/media-schemas';
 
 // Mocks must precede the component imports.
 
-vi.mock('@ttt-productions/file-input/react', () => ({
-  MediaInput: ({
-    spec,
-    onChange,
-    onClear,
-    onCancel,
-    selectedFile,
-    uploadState,
-  }: Pick<
-    MediaInputProps,
-    'spec' | 'onChange' | 'onClear' | 'onCancel' | 'selectedFile' | 'uploadState'
-  >) =>
-    React.createElement(
-      'div',
-      { 'data-testid': 'media-input' },
-      React.createElement(
-        'button',
-        {
-          type: 'button',
-          'data-testid': 'select-file-btn',
-          onClick: () =>
-            onChange({
-              spec,
-              file: new File(['x'], 'test.jpg', { type: 'image/jpeg' }),
-              claim: { kind: 'image', source: 'file-picker' },
-            }),
-        },
-        'Select File',
-      ),
-      selectedFile
-        ? React.createElement('span', { 'data-testid': 'selected-file-name' }, selectedFile.name)
-        : null,
-      onClear
-        ? React.createElement(
+vi.mock('@ttt-productions/file-input/react', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('@ttt-productions/file-input/react')>({
+    MediaInput: React.forwardRef<MediaInputHandle, MediaInputProps>(
+      ({ spec, onChange, onClear, onCancel, selectedFile, uploadState }, _ref) =>
+        React.createElement(
+          'div',
+          { 'data-testid': 'media-input' },
+          React.createElement(
             'button',
-            { type: 'button', onClick: onClear, 'data-testid': 'clear-file-btn' },
-            'Clear',
-          )
-        : null,
-      onCancel
-        ? React.createElement(
-            'button',
-            { type: 'button', onClick: onCancel, 'data-testid': 'cancel-upload-btn' },
-            'Cancel',
-          )
-        : null,
-      uploadState
-        ? React.createElement('span', { 'data-testid': 'upload-state-phase' }, uploadState.phase)
-        : null,
+            {
+              type: 'button',
+              'data-testid': 'select-file-btn',
+              onClick: () =>
+                onChange({
+                  spec,
+                  file: new File(['x'], 'test.jpg', { type: 'image/jpeg' }),
+                  claim: { kind: 'image', source: 'file-picker' },
+                }),
+            },
+            'Select File',
+          ),
+          selectedFile
+            ? React.createElement(
+                'span',
+                { 'data-testid': 'selected-file-name' },
+                selectedFile.name,
+              )
+            : null,
+          onClear
+            ? React.createElement(
+                'button',
+                { type: 'button', onClick: onClear, 'data-testid': 'clear-file-btn' },
+                'Clear',
+              )
+            : null,
+          onCancel
+            ? React.createElement(
+                'button',
+                { type: 'button', onClick: onCancel, 'data-testid': 'cancel-upload-btn' },
+                'Cancel',
+              )
+            : null,
+          uploadState
+            ? React.createElement(
+                'span',
+                { 'data-testid': 'upload-state-phase' },
+                uploadState.phase,
+              )
+            : null,
+        ),
     ),
-}));
-
-vi.mock('@ttt-productions/file-input', () => ({}));
+  });
+});
 
 import { DeferredUploadFormShell } from '../src/react/upload/deferred-upload-form-shell.js';
 

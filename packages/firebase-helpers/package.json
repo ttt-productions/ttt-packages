@@ -23,6 +23,10 @@
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.js"
     },
+    "./server/testing": {
+      "types": "./dist/server/testing/index.d.ts",
+      "default": "./dist/server/testing/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
@@ -34,6 +38,10 @@
     "./firestore-client": {
       "types": "./dist/firestore-client/index.d.ts",
       "default": "./dist/firestore-client/index.js"
+    },
+    "./firestore-client/testing": {
+      "types": "./dist/firestore-client/testing/index.d.ts",
+      "default": "./dist/firestore-client/testing/index.js"
     }
   },
   "scripts": {
@@ -46,7 +54,8 @@
     "firebase": ">=12.0.0",
     "firebase-admin": ">=10.0.0",
     "date-fns": ">=3.0.0",
-    "react": ">=19.0.0"
+    "react": ">=19.0.0",
+    "vitest": ">=4.0.0"
   },
   "peerDependenciesMeta": {
     "firebase": {
@@ -56,6 +65,9 @@
       "optional": true
     },
     "react": {
+      "optional": true
+    },
+    "vitest": {
       "optional": true
     }
   },

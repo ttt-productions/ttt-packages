@@ -2,25 +2,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type { IdTokenResult, User } from 'firebase/auth';
+import type { IdTokenClaims } from '../src/client/claims.js';
 
 type Claims = { owner: string };
 
 let currentUser: User | null = null;
-vi.mock('../src/react/useAuthState.js', () => ({
-  useAuthState: () => ({ user: currentUser, loading: false, error: null }),
-}));
+vi.mock('../src/react/useAuthState.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/react/useAuthState.js')>({
+    useAuthState: () => ({ user: currentUser, loading: false, error: null }),
+  });
+});
 
-const pendingInitialReads = new Map<string, Array<(claims: Record<string, unknown>) => void>>();
-vi.mock('../src/client/claims.js', () => ({
-  getIdTokenClaims: vi.fn(
-    (user: User) =>
-      new Promise((resolve) => {
+const pendingInitialReads = new Map<string, Array<(claims: IdTokenClaims) => void>>();
+vi.mock('../src/client/claims.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/client/claims.js')>({
+    getIdTokenClaims: vi.fn(async (user: User | null) => {
+      if (!user) return null;
+      return new Promise<IdTokenClaims>((resolve) => {
         const list = pendingInitialReads.get(user.uid) ?? [];
-        list.push(resolve as (claims: Record<string, unknown>) => void);
+        list.push(resolve);
         pendingInitialReads.set(user.uid, list);
-      }),
-  ),
-}));
+      });
+    }),
+  });
+});
 
 import { AuthProvider } from '../src/react/AuthProvider.js';
 import { useAuth } from '../src/react/useAuth.js';

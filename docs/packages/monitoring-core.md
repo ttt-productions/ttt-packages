@@ -126,8 +126,10 @@ that failed: `[monitoring-core] <op> was not delivered: the monitoring SDK did n
 to initialize`, or — when the SDK itself throws on the call — `… threw`. Never a silent loss and
 never an unhandled rejection.
 
-The Node SDK is named in one module (`adapters/sentry-node-sdk`) that the package's `browser` field
-maps to an empty module, so a browser bundle never pulls `@sentry/node` in.
+Each SDK is named in one module that hands the adapter its `SentrySdkLike` slice:
+`adapters/sentry-browser-sdk` (`@sentry/nextjs`) and `adapters/sentry-node-sdk` (`@sentry/node`),
+which the package's `browser` field maps to an empty module, so a browser bundle never pulls
+`@sentry/node` in.
 
 ## Boundary
 

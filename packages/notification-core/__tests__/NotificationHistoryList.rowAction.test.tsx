@@ -1,15 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { withRetryState, type MockedRead } from './read-retry-state.js';
 import { render, screen, fireEvent } from '@testing-library/react';
+import {
+  answeredPaginatedRead,
+  failedPaginatedRead,
+  retryingPaginatedRead,
+} from '@ttt-productions/query-core/react/testing';
+
+type HistoryModule = typeof import('../src/react/hooks/useNotificationHistory.js');
 
 const mocks = vi.hoisted(() => ({
-  useNotificationHistory: vi.fn<(...args: unknown[]) => MockedRead>(),
+  useNotificationHistory: vi.fn<HistoryModule['useNotificationHistory']>(),
 }));
 
-vi.mock('../src/react/hooks/useNotificationHistory.js', () => ({
-  useNotificationHistory: (...args: unknown[]) =>
-    withRetryState(mocks.useNotificationHistory(...args)),
-}));
+vi.mock('../src/react/hooks/useNotificationHistory.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<HistoryModule>({ useNotificationHistory: mocks.useNotificationHistory });
+});
 
 import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList.js';
 import type {
@@ -58,15 +64,12 @@ function makeHistoryItem(
 describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.useNotificationHistory.mockReturnValue({
-      data: [
+    mocks.useNotificationHistory.mockReturnValue(
+      answeredPaginatedRead([
         makeHistoryItem({ id: 'n1', archiveOccurrenceId: 'occ-1' }),
         makeHistoryItem({ id: 'n2', archiveOccurrenceId: 'occ-2' }),
-      ],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+      ]),
+    );
   });
 
   const baseProps = {
@@ -151,17 +154,7 @@ describe('NotificationHistoryList — failed and empty pages', () => {
   };
 
   it('renders the error slot, never the empty state, when the first read fails', () => {
-    mocks.useNotificationHistory.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-      error: new Error('denied'),
-      page: 1,
-      hasNextPage: false,
-      hasPrevPage: false,
-      nextPage: vi.fn(),
-      prevPage: vi.fn(),
-    });
+    mocks.useNotificationHistory.mockReturnValue(failedPaginatedRead(new Error('denied')));
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByRole('alert')).toHaveTextContent('read failed');
     expect(screen.queryByText('No archived notifications')).toBeNull();
@@ -169,20 +162,7 @@ describe('NotificationHistoryList — failed and empty pages', () => {
 
   it('keeps the error slot, retrying, while a failed first page retries — never the spinner', () => {
     const renderError = vi.fn(() => <div role="alert">read failed</div>);
-    mocks.useNotificationHistory.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isFetching: true,
-      isError: false,
-      error: null,
-      page: 1,
-      hasNextPage: false,
-      hasPrevPage: false,
-      nextPage: vi.fn(),
-      prevPage: vi.fn(),
-      refetch: vi.fn(),
-      retryState: { error: new Error('denied'), isRetrying: true, isLoading: false },
-    });
+    mocks.useNotificationHistory.mockReturnValue(retryingPaginatedRead(new Error('denied')));
     render(<NotificationHistoryList {...props} renderError={renderError} />);
     expect(screen.getByRole('alert')).toHaveTextContent('read failed');
     expect(screen.queryByRole('status')).toBeNull();
@@ -192,32 +172,14 @@ describe('NotificationHistoryList — failed and empty pages', () => {
   });
 
   it('keeps Previous on an empty later page and shows no empty state there', () => {
-    mocks.useNotificationHistory.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      page: 2,
-      hasNextPage: false,
-      hasPrevPage: true,
-      nextPage: vi.fn(),
-      prevPage: vi.fn(),
-    });
+    mocks.useNotificationHistory.mockReturnValue(answeredPaginatedRead([], { page: 2 }));
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
     expect(screen.queryByText('No archived notifications')).toBeNull();
   });
 
   it('shows the empty state for an answered, empty first page', () => {
-    mocks.useNotificationHistory.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      page: 1,
-      hasNextPage: false,
-      hasPrevPage: false,
-      nextPage: vi.fn(),
-      prevPage: vi.fn(),
-    });
+    mocks.useNotificationHistory.mockReturnValue(answeredPaginatedRead([]));
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByText('No archived notifications')).toBeInTheDocument();
   });

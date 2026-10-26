@@ -7,35 +7,27 @@ import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal.j
 import { getCroppedImg } from '../src/lib/image-utils.js';
 import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from '../src/progress-bar.js';
 
-vi.mock(
-  '@ttt-productions/media-viewer/react',
-  async () => import('../../media-viewer/src/react/index.js'),
-);
-
 let metaGate: Promise<void> | null = null;
-vi.mock('../src/lib/read-media-meta.js', () => ({
-  readMediaMeta: async (file: File) => {
-    if (metaGate) await metaGate;
-    return { kind: 'audio', mime: file.type, sizeBytes: file.size };
-  },
-}));
-
-vi.mock('../src/lib/image-utils.js', () => ({ getCroppedImg: vi.fn() }));
-
-// jsdom cannot run the real cropper; report one crop area once, like the library does.
-vi.mock('react-easy-crop', async () => {
-  const ReactMod = await import('react');
-  return {
-    default: function MockCropper(props: { onCropComplete: (a: unknown, p: unknown) => void }) {
-      const reported = ReactMod.useRef(false);
-      ReactMod.useEffect(() => {
-        if (reported.current) return;
-        reported.current = true;
-        props.onCropComplete({}, { x: 0, y: 0, width: 10, height: 10 });
-      }, [props]);
-      return null;
+vi.mock('../src/lib/read-media-meta.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/lib/read-media-meta.js')>({
+    readMediaMeta: async (file: File) => {
+      if (metaGate) await metaGate;
+      return { kind: 'audio', mime: file.type, sizeBytes: file.size };
     },
-  };
+  });
+});
+
+vi.mock('../src/lib/image-utils.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/lib/image-utils.js')>({
+    getCroppedImg: vi.fn<typeof import('../src/lib/image-utils.js').getCroppedImg>(),
+  });
+});
+
+vi.mock('react-easy-crop', async (importOriginal) => {
+  const { reactEasyCropFake } = await import('./helpers/react-easy-crop-fake.js');
+  return reactEasyCropFake(importOriginal);
 });
 
 function deferred<T = void>() {

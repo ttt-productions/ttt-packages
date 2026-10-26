@@ -1,1 +1,1 @@
-export const realModule = true;
+export const realModule: boolean = true;

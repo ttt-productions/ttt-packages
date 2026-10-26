@@ -1,26 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { withRetryState, type MockedRead } from './read-retry-state.js';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import type { UseFirestorePaginatedResult } from '@ttt-productions/query-core/react';
+import {
+  answeredPaginatedRead,
+  answeredThenFailedPaginatedRead,
+  failedPaginatedRead,
+  idleSessionMutation,
+  loadingPaginatedRead,
+  retryingPaginatedRead,
+} from '@ttt-productions/query-core/react/testing';
+
+type ActiveModule = typeof import('../src/react/hooks/useActiveNotifications.js');
+type ArchiveModule = typeof import('../src/react/hooks/useArchiveNotification.js');
+type ArchiveAllModule = typeof import('../src/react/hooks/useArchiveAllNotifications.js');
 
 const mocks = vi.hoisted(() => ({
-  useActiveNotifications: vi.fn<(...args: unknown[]) => MockedRead>(),
-  useArchiveNotification: vi.fn(),
-  useArchiveAllNotifications: vi.fn(),
+  useActiveNotifications: vi.fn<ActiveModule['useActiveNotifications']>(),
+  useArchiveNotification: vi.fn<ArchiveModule['useArchiveNotification']>(),
+  useArchiveAllNotifications: vi.fn<ArchiveAllModule['useArchiveAllNotifications']>(),
 }));
 
-vi.mock('../src/react/hooks/useActiveNotifications.js', () => ({
-  useActiveNotifications: (...args: unknown[]) =>
-    withRetryState(mocks.useActiveNotifications(...args)),
-}));
-vi.mock('../src/react/hooks/useArchiveNotification.js', () => ({
-  useArchiveNotification: mocks.useArchiveNotification,
-}));
-vi.mock('../src/react/hooks/useArchiveAllNotifications.js', () => ({
-  useArchiveAllNotifications: mocks.useArchiveAllNotifications,
-}));
+vi.mock('../src/react/hooks/useActiveNotifications.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<ActiveModule>({ useActiveNotifications: mocks.useActiveNotifications });
+});
+vi.mock('../src/react/hooks/useArchiveNotification.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<ArchiveModule>({ useArchiveNotification: mocks.useArchiveNotification });
+});
+vi.mock('../src/react/hooks/useArchiveAllNotifications.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<ArchiveAllModule>({
+    useArchiveAllNotifications: mocks.useArchiveAllNotifications,
+  });
+});
 
 import { NotificationList } from '../src/react/components/NotificationList.js';
 import type {
+  ArchiveAllPollResult,
+  NotificationArchiveResult,
   NotificationDoc,
   NotificationRowActions,
   NotificationSystemConfig,
@@ -60,24 +78,38 @@ function makeNotification(overrides: Partial<NotificationDoc> = {}): Notificatio
   };
 }
 
+type ArchiveMutateAsync = (notification: NotificationDoc) => Promise<NotificationArchiveResult>;
+type ArchiveAllMutateAsync = () => Promise<ArchiveAllPollResult>;
+type Refetch = UseFirestorePaginatedResult<NotificationDoc>['refetch'];
+
+function pollResult(complete: boolean): ArchiveAllPollResult {
+  return {
+    status: complete ? 'complete' : 'incomplete',
+    category: 'user',
+    archived: 0,
+    notArchived: 0,
+    complete,
+  };
+}
+
+const archiveMutation = (mutateAsync: ArchiveMutateAsync) =>
+  idleSessionMutation<NotificationArchiveResult, NotificationDoc>({ mutateAsync });
+
+const archiveAllMutation = (mutateAsync: ArchiveAllMutateAsync) =>
+  idleSessionMutation<ArchiveAllPollResult, void>({ mutateAsync });
+
 describe('NotificationList — renderRowAction (inert row + exposed archive)', () => {
-  const archiveMutateAsync = vi.fn().mockResolvedValue({ archived: true });
+  const archiveMutateAsync = vi.fn<ArchiveMutateAsync>();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [makeNotification({ id: 'n1' }), makeNotification({ id: 'n2' })],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
-    mocks.useArchiveNotification.mockReturnValue({
-      mutateAsync: archiveMutateAsync,
-    });
-    mocks.useArchiveAllNotifications.mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    });
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([makeNotification({ id: 'n1' }), makeNotification({ id: 'n2' })]),
+    );
+    mocks.useArchiveNotification.mockReturnValue(archiveMutation(archiveMutateAsync));
+    mocks.useArchiveAllNotifications.mockReturnValue(
+      archiveAllMutation(vi.fn<ArchiveAllMutateAsync>()),
+    );
     archiveMutateAsync.mockResolvedValue({ archived: true });
   });
 
@@ -92,12 +124,7 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
   };
 
   it('while loading, renders an announced spinner — never the empty state', () => {
-    mocks.useActiveNotifications.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+    mocks.useActiveNotifications.mockReturnValue(loadingPaginatedRead());
     const { container } = render(<NotificationList {...baseProps} emptyText="No notifications" />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading notifications');
     expect(container.querySelector('.ntf-loading .spinner-md')).toBeInTheDocument();
@@ -105,26 +132,23 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
   });
 
   it('pages with the canonical Previous / Next row — Next replaces the list, so there is no "Load more"', () => {
-    const prevPage = vi.fn();
-    const nextPage = vi.fn();
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [makeNotification({ id: 'n1' })],
-      isLoading: false,
-      isFetching: false,
-      page: 2,
-      hasNextPage: true,
-      hasPrevPage: true,
-      nextPage,
-      prevPage,
-    });
+    const setPage = vi.fn<(page: number) => void>();
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([makeNotification({ id: 'n1' })], {
+        page: 2,
+        hasNextPage: true,
+        setPage,
+      }),
+    );
     render(<NotificationList {...baseProps} />);
 
     expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
     expect(screen.getByText('Page 2')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-    expect(prevPage).toHaveBeenCalledTimes(1);
+    expect(setPage).toHaveBeenCalledExactlyOnceWith(1);
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(nextPage).toHaveBeenCalledTimes(1);
+    expect(setPage).toHaveBeenCalledTimes(2);
+    expect(setPage).toHaveBeenLastCalledWith(3);
   });
 
   it("shows each row's stored title and message when no content slot is given", () => {
@@ -205,16 +229,15 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
   });
 
   it('marks every targeted row pending while Clear All is running', async () => {
-    let resolveClearAll: (value: { complete: boolean }) => void = () => {};
-    mocks.useArchiveAllNotifications.mockReturnValue({
-      mutateAsync: vi.fn(
+    let resolveClearAll: (value: ArchiveAllPollResult) => void = () => {};
+    mocks.useArchiveAllNotifications.mockReturnValue(
+      archiveAllMutation(
         () =>
-          new Promise<{ complete: boolean }>((resolve) => {
+          new Promise<ArchiveAllPollResult>((resolve) => {
             resolveClearAll = resolve;
           }),
       ),
-      isPending: false,
-    });
+    );
     const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
       <span data-testid={`pending-${notification.id}`}>{String(actions.isArchivePending)}</span>
     );
@@ -228,15 +251,15 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
       screen.getByRole('button', { name: 'Clearing...' }).querySelector('.spinner-xs'),
     ).not.toBeNull();
     await act(async () => {
-      resolveClearAll({ complete: false });
+      resolveClearAll(pollResult(false));
     });
   });
 
   it('marks only the targeted row pending during a single archive', async () => {
-    let resolveArchive: (value: { archived: boolean }) => void = () => {};
+    let resolveArchive: (value: NotificationArchiveResult) => void = () => {};
     archiveMutateAsync.mockImplementationOnce(
       () =>
-        new Promise<{ archived: boolean }>((resolve) => {
+        new Promise<NotificationArchiveResult>((resolve) => {
           resolveArchive = resolve;
         }),
     );
@@ -261,26 +284,20 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     });
     expect(screen.getByLabelText('pending-n1')).toBeInTheDocument();
 
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [makeNotification({ id: 'n2' })],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([makeNotification({ id: 'n2' })]),
+    );
     view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
     await waitFor(() => expect(screen.queryByLabelText('pending-n1')).toBeNull());
   });
 
   it('releases an archived card relit at a new generation before the read caught up', async () => {
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([
         makeNotification({ id: 'n1', activityGeneration: 'g1' }),
         makeNotification({ id: 'n2' }),
-      ],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+      ]),
+    );
     const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
       <button
         aria-label={`${actions.isArchivePending ? 'pending' : 'clear'}-${notification.id}`}
@@ -299,39 +316,32 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
     expect(screen.getByLabelText('pending-n1')).toBeInTheDocument();
 
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([
         makeNotification({ id: 'n1', activityGeneration: 'g2' }),
         makeNotification({ id: 'n2' }),
-      ],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+      ]),
+    );
     view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
     expect(screen.getByLabelText('clear-n1')).toBeInTheDocument();
   });
 
   it('releases a Clear All row relit at a new generation and keeps the rest pending', async () => {
-    let resolveClearAll: (value: { complete: boolean }) => void = () => {};
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [
+    let resolveClearAll: (value: ArchiveAllPollResult) => void = () => {};
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([
         makeNotification({ id: 'n1', activityGeneration: 'g1' }),
         makeNotification({ id: 'n2', activityGeneration: 'g1' }),
-      ],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
-    mocks.useArchiveAllNotifications.mockReturnValue({
-      mutateAsync: vi.fn(
+      ]),
+    );
+    mocks.useArchiveAllNotifications.mockReturnValue(
+      archiveAllMutation(
         () =>
-          new Promise<{ complete: boolean }>((resolve) => {
+          new Promise<ArchiveAllPollResult>((resolve) => {
             resolveClearAll = resolve;
           }),
       ),
-      isPending: false,
-    });
+    );
     const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
       <span data-testid={`pending-${notification.id}`}>{String(actions.isArchivePending)}</span>
     );
@@ -339,28 +349,22 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     fireEvent.click(screen.getByText('Clear All'));
     await waitFor(() => expect(screen.getByTestId('pending-n1')).toHaveTextContent('true'));
     await act(async () => {
-      resolveClearAll({ complete: true });
+      resolveClearAll(pollResult(true));
     });
 
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([
         makeNotification({ id: 'n1', activityGeneration: 'g2' }),
         makeNotification({ id: 'n2', activityGeneration: 'g1' }),
-      ],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+      ]),
+    );
     view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
     expect(screen.getByTestId('pending-n1')).toHaveTextContent('false');
     expect(screen.getByTestId('pending-n2')).toHaveTextContent('true');
 
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [makeNotification({ id: 'n1', activityGeneration: 'g2' })],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([makeNotification({ id: 'n1', activityGeneration: 'g2' })]),
+    );
     view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Clear All' })).toBeInTheDocument(),
@@ -369,17 +373,14 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
   });
 
   it('hands a complete result to onClearAll and stops Clearing when cards were left in the list', async () => {
-    const result = {
-      status: 'complete' as const,
+    const result: ArchiveAllPollResult = {
+      status: 'complete',
       category: 'user',
       archived: 1,
       notArchived: 1,
       complete: true,
     };
-    mocks.useArchiveAllNotifications.mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(result),
-      isPending: false,
-    });
+    mocks.useArchiveAllNotifications.mockReturnValue(archiveAllMutation(async () => result));
     const onClearAll = vi.fn();
     const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
       <span data-testid={`pending-${notification.id}`}>{String(actions.isArchivePending)}</span>
@@ -392,12 +393,9 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     });
     expect(onClearAll).toHaveBeenCalledWith(result);
 
-    mocks.useActiveNotifications.mockReturnValue({
-      data: [makeNotification({ id: 'n1' })],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([makeNotification({ id: 'n1' })]),
+    );
     view.rerender(
       <NotificationList {...baseProps} onClearAll={onClearAll} renderRowAction={renderRowAction} />,
     );
@@ -409,7 +407,7 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     let rejectArchive: (error: Error) => void = () => {};
     archiveMutateAsync.mockImplementationOnce(
       () =>
-        new Promise<void>((_resolve, reject) => {
+        new Promise<NotificationArchiveResult>((_resolve, reject) => {
           rejectArchive = reject;
         }),
     );
@@ -437,7 +435,7 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
 });
 
 describe('NotificationList — archive answers, failed pages, and rendered rows', () => {
-  const archiveMutateAsync = vi.fn();
+  const archiveMutateAsync = vi.fn<ArchiveMutateAsync>();
   const props = {
     config: makeConfig(),
     userId: 'u1',
@@ -452,29 +450,18 @@ describe('NotificationList — archive answers, failed pages, and rendered rows'
       </button>
     ),
   };
-  const page = (over: Record<string, unknown>) => ({
-    data: [makeNotification({ id: 'n1' })],
-    isLoading: false,
-    isFetching: false,
-    isError: false,
-    error: null,
-    refetch: vi.fn(),
-    page: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-    nextPage: vi.fn(),
-    prevPage: vi.fn(),
-    ...over,
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.useArchiveNotification.mockReturnValue({ mutateAsync: archiveMutateAsync });
-    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+    mocks.useArchiveNotification.mockReturnValue(archiveMutation(archiveMutateAsync));
+    mocks.useArchiveAllNotifications.mockReturnValue(
+      archiveAllMutation(vi.fn<ArchiveAllMutateAsync>()),
+    );
   });
 
   it('clears the row pending state at once when the server archived nothing', async () => {
-    mocks.useActiveNotifications.mockReturnValue(page({}));
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredPaginatedRead([makeNotification({ id: 'n1' })]),
+    );
     archiveMutateAsync.mockResolvedValueOnce({ archived: false });
     const renderRowAction = (n: NotificationDoc, actions: NotificationRowActions) => (
       <button
@@ -493,63 +480,62 @@ describe('NotificationList — archive answers, failed pages, and rendered rows'
   });
 
   it('renders the error slot, never the empty state, when the first read fails', () => {
-    mocks.useActiveNotifications.mockReturnValue(
-      page({ data: undefined, isError: true, error: new Error('denied') }),
-    );
+    mocks.useActiveNotifications.mockReturnValue(failedPaginatedRead(new Error('denied')));
     render(<NotificationList {...props} />);
     expect(screen.getByRole('alert')).toHaveAttribute('data-has-rows', 'false');
     expect(screen.queryByText('No notifications')).toBeNull();
   });
 
   it('retries the displayed page from the error slot', () => {
-    const refetch = vi.fn();
-    mocks.useActiveNotifications.mockReturnValue(
-      page({ data: undefined, isError: true, error: new Error('x'), refetch }),
-    );
+    const refetch = vi.fn<Refetch>();
+    mocks.useActiveNotifications.mockReturnValue({
+      ...failedPaginatedRead<NotificationDoc>(new Error('x')),
+      refetch,
+    });
     render(<NotificationList {...props} />);
     fireEvent.click(screen.getByRole('alert'));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the rows on screen beside the error slot when a refresh fails', () => {
-    mocks.useActiveNotifications.mockReturnValue(page({ isError: true, error: new Error('x') }));
+    mocks.useActiveNotifications.mockReturnValue(
+      answeredThenFailedPaginatedRead([makeNotification({ id: 'n1' })], new Error('x')),
+    );
     const { container } = render(<NotificationList {...props} />);
     expect(container.querySelectorAll('.ntf-item')).toHaveLength(1);
     expect(screen.getByRole('alert')).toHaveAttribute('data-has-rows', 'true');
   });
 
   it('keeps Previous when a later page fails', () => {
-    mocks.useActiveNotifications.mockReturnValue(
-      page({ data: undefined, isError: true, error: new Error('x'), page: 2, hasPrevPage: true }),
-    );
+    mocks.useActiveNotifications.mockReturnValue(failedPaginatedRead(new Error('x'), { page: 2 }));
     render(<NotificationList {...props} />);
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
   });
 
   it('keeps Previous on an empty later page and shows no empty state there', () => {
-    mocks.useActiveNotifications.mockReturnValue(page({ data: [], page: 2, hasPrevPage: true }));
+    mocks.useActiveNotifications.mockReturnValue(answeredPaginatedRead([], { page: 2 }));
     render(<NotificationList {...props} />);
     expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
     expect(screen.queryByText('No notifications')).toBeNull();
   });
 
   it('shows the empty state for an answered, empty first page', () => {
-    mocks.useActiveNotifications.mockReturnValue(page({ data: [] }));
+    mocks.useActiveNotifications.mockReturnValue(answeredPaginatedRead([]));
     render(<NotificationList {...props} />);
     expect(screen.getByText('No notifications')).toBeInTheDocument();
   });
 
   it('reports the rows on screen, whichever page is displayed', () => {
     const rows = [makeNotification({ id: 'p2a' }), makeNotification({ id: 'p2b' })];
-    mocks.useActiveNotifications.mockReturnValue(page({ data: rows, page: 2, hasPrevPage: true }));
+    mocks.useActiveNotifications.mockReturnValue(answeredPaginatedRead(rows, { page: 2 }));
     const onRenderedRowsChange = vi.fn();
     render(<NotificationList {...props} onRenderedRowsChange={onRenderedRowsChange} />);
     expect(onRenderedRowsChange).toHaveBeenLastCalledWith(rows);
   });
 
   it('reports nothing while the page is still loading', () => {
-    mocks.useActiveNotifications.mockReturnValue(page({ data: undefined, isLoading: true }));
+    mocks.useActiveNotifications.mockReturnValue(loadingPaginatedRead());
     const onRenderedRowsChange = vi.fn();
     render(<NotificationList {...props} onRenderedRowsChange={onRenderedRowsChange} />);
     expect(onRenderedRowsChange).not.toHaveBeenCalled();
@@ -557,7 +543,7 @@ describe('NotificationList — archive answers, failed pages, and rendered rows'
 });
 
 describe('NotificationList — focus keeps a destination', () => {
-  const archiveMutateAsync = vi.fn();
+  const archiveMutateAsync = vi.fn<ArchiveMutateAsync>();
   const props = {
     config: makeConfig(),
     userId: 'u1',
@@ -568,20 +554,7 @@ describe('NotificationList — focus keeps a destination', () => {
     title: 'Notifications',
     renderError: () => <div role="alert">read failed</div>,
   };
-  const page = (rows: NotificationDoc[], over: Record<string, unknown> = {}) => ({
-    data: rows,
-    isLoading: false,
-    isFetching: false,
-    isError: false,
-    error: null,
-    refetch: vi.fn(),
-    page: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-    nextPage: vi.fn(),
-    prevPage: vi.fn(),
-    ...over,
-  });
+  const page = (rows: NotificationDoc[]) => answeredPaginatedRead(rows);
   const clearControl = (n: NotificationDoc, actions: NotificationRowActions) => (
     <button
       aria-label={`clear-${n.id}`}
@@ -595,26 +568,15 @@ describe('NotificationList — focus keeps a destination', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.useArchiveNotification.mockReturnValue({ mutateAsync: archiveMutateAsync });
-    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+    mocks.useArchiveNotification.mockReturnValue(archiveMutation(archiveMutateAsync));
+    mocks.useArchiveAllNotifications.mockReturnValue(
+      archiveAllMutation(vi.fn<ArchiveAllMutateAsync>()),
+    );
   });
 
   it('keeps the error slot, retrying, while a failed first page retries — never the spinner', () => {
     const renderError = vi.fn(() => <div role="alert">read failed</div>);
-    mocks.useActiveNotifications.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isFetching: true,
-      isError: false,
-      error: null,
-      page: 1,
-      hasNextPage: false,
-      hasPrevPage: false,
-      nextPage: vi.fn(),
-      prevPage: vi.fn(),
-      refetch: vi.fn(),
-      retryState: { error: new Error('denied'), isRetrying: true, isLoading: false },
-    });
+    mocks.useActiveNotifications.mockReturnValue(retryingPaginatedRead(new Error('denied')));
     render(<NotificationList {...props} renderError={renderError} />);
     expect(screen.getByRole('alert')).toHaveTextContent('read failed');
     expect(screen.queryByRole('status')).toBeNull();
@@ -675,8 +637,8 @@ describe('NotificationList — focus keeps a destination', () => {
   });
 
   it('Clear All keeps focus when the list empties under it, and then clears nothing', () => {
-    const mutateAsync = vi.fn().mockResolvedValue({ complete: true });
-    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync, isPending: false });
+    const mutateAsync = vi.fn<ArchiveAllMutateAsync>(async () => pollResult(true));
+    mocks.useArchiveAllNotifications.mockReturnValue(archiveAllMutation(mutateAsync));
     mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })]));
     const view = render(<NotificationList {...props} />);
     const clearAll = screen.getByRole('button', { name: 'Clear All' });

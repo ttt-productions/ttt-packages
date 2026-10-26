@@ -3,64 +3,31 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-type DocData = Record<string, unknown>;
-
-const { existingDocs, getDocsMock, onSnapshotMock, failNextWith } = vi.hoisted(() => {
-  const existingDocs = new Map<string, DocData>();
-  let pendingFailure: Error | null = null;
-
-  const getDocsMock = vi.fn((q: { __ids: string[] }) => {
-    if (pendingFailure) {
-      const error = pendingFailure;
-      pendingFailure = null;
-      return Promise.reject(error);
-    }
-    return Promise.resolve({
-      forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
-        for (const id of q.__ids) {
-          const data = existingDocs.get(id);
-          if (data !== undefined) cb({ id, data: () => data });
-        }
-      },
-    });
-  });
-
-  const onSnapshotMock = vi.fn(() => vi.fn());
-
-  const failNextWith = (error: Error) => {
-    pendingFailure = error;
-  };
-
-  return { existingDocs, getDocsMock, onSnapshotMock, failNextWith };
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', () => ({
-  collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
-  query: (source: { __db: unknown; __path: string }, constraint: { __ids: string[] }) => ({
-    __db: source.__db,
-    __path: source.__path,
-    __ids: constraint.__ids,
-  }),
-  where: (_field: unknown, _op: unknown, ids: string[]) => ({ __ids: ids }),
-  documentId: () => '__name__',
-  getDocs: getDocsMock,
-  doc: (_db: unknown, _path: string, id: string) => ({ __id: id }),
-  getDoc: async () => ({ exists: () => false }),
-  onSnapshot: onSnapshotMock,
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
-import { testFirestore } from './helpers/test-firestore.js';
 import {
   __absenceAttempt,
   __absenceEpisodeCount,
 } from '../src/react/firestore/absence-scheduler.js';
+import { batchReadIn, readsMatching } from './helpers/batch-docs-reads.js';
+import { failNext } from './helpers/listener-controls.js';
+
+const batchReads = () => readsMatching(store, batchReadIn('publicUsers'));
 
 beforeEach(() => {
-  vi.useFakeTimers();
-  existingDocs.clear();
-  getDocsMock.mockClear();
-  onSnapshotMock.mockClear();
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  store.reset();
 });
 
 afterEach(() => {
@@ -92,7 +59,7 @@ async function tick(ms: number) {
 }
 
 const baseOpts = {
-  db: testFirestore(),
+  db: store.db,
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
@@ -111,18 +78,18 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     );
 
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(0);
 
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(2);
 
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
   });
 
   it('shares ONE budget across staggered overlapping consumers', async () => {
@@ -131,20 +98,20 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
 
     const first = renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
 
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     const second = renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
 
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
 
     first.unmount();
     second.unmount();
@@ -157,14 +124,14 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     const first = renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     first.unmount();
 
     renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     await tick(60_000);
 
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(1);
   });
 
@@ -175,23 +142,23 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     const first = renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     first.unmount();
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(1);
 
     renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
     await tick(4000);
-    expect(getDocsMock).toHaveBeenCalledTimes(4);
+    expect(batchReads()).toHaveLength(4);
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(4);
+    expect(batchReads()).toHaveLength(4);
   });
 
   it('stops polling when an absent id turns into an error', async () => {
@@ -207,17 +174,21 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     );
 
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
 
-    failNextWith(new Error('permission-denied'));
+    failNext(
+      store,
+      batchReadIn('publicUsers'),
+      firestoreError('permission-denied', 'permission-denied'),
+    );
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     // React Query batches observer notifications on a 0ms timer; let it flush.
     await tick(10);
     expect(result.current.isError).toBe(true);
 
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
   });
 
   it('opens a NEW episode when a present doc goes absent again', async () => {
@@ -227,28 +198,28 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
-    existingDocs.set('ghost', { displayName: 'Arrived' });
+    store.seed('publicUsers/ghost', { displayName: 'Arrived' });
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: GHOST_KEY, exact: true });
     });
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBeNull();
 
-    existingDocs.delete('ghost');
+    store.remove('publicUsers/ghost');
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: GHOST_KEY, exact: true });
     });
-    expect(getDocsMock).toHaveBeenCalledTimes(4);
+    expect(batchReads()).toHaveLength(4);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(0);
 
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(5);
+    expect(batchReads()).toHaveLength(5);
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(5);
+    expect(batchReads()).toHaveLength(5);
   });
 
   it('is never kept alive by a disabled or subscribe-mode consumer', async () => {
@@ -281,13 +252,13 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     );
 
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     enabledConsumer.unmount();
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
   });
 
   it('keeps polling for a still-enabled consumer when another one is disabled', async () => {
@@ -311,14 +282,14 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
 
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     act(() => {
       toggled.rerender({ on: false });
     });
 
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
   });
 
   it('polls if ANY registrant wants it, whichever mounts first', async () => {
@@ -329,7 +300,7 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
       [NONE, LADDER],
       [LADDER, NONE],
     ] as const) {
-      getDocsMock.mockClear();
+      store.reset();
       const { Wrapper } = makeWrapper();
       const a = renderHook(
         () => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'], absentRetryDelaysMs: order[0] }),
@@ -341,13 +312,13 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
       );
 
       await tick(0);
-      expect(getDocsMock).toHaveBeenCalledTimes(1);
+      expect(batchReads()).toHaveLength(1);
       await tick(1000);
-      expect(getDocsMock).toHaveBeenCalledTimes(2);
+      expect(batchReads()).toHaveLength(2);
       await tick(2000);
-      expect(getDocsMock).toHaveBeenCalledTimes(3);
+      expect(batchReads()).toHaveLength(3);
       await tick(60_000);
-      expect(getDocsMock).toHaveBeenCalledTimes(3);
+      expect(batchReads()).toHaveLength(3);
 
       a.unmount();
       b.unmount();
@@ -372,13 +343,13 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
 
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
     await tick(4000);
-    expect(getDocsMock).toHaveBeenCalledTimes(4);
+    expect(batchReads()).toHaveLength(4);
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(4);
+    expect(batchReads()).toHaveLength(4);
   });
 
   it('shrinks the effective ladder when the last polling registrant releases', async () => {
@@ -400,11 +371,11 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
 
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
 
     poller.unmount();
     await tick(60_000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
   });
 
   it('works under a custom queryKeyHashFn', async () => {
@@ -431,11 +402,11 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     );
 
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(2);
   });
 
@@ -451,7 +422,7 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
     const first = renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(1);
 
     first.unmount();
@@ -461,12 +432,12 @@ describe('useBatchFirestoreDocs — absence scheduler', () => {
 
     renderHook(() => useBatchFirestoreDocs(opts), { wrapper: Wrapper });
     await tick(0);
-    expect(getDocsMock).toHaveBeenCalledTimes(3);
+    expect(batchReads()).toHaveLength(3);
     expect(__absenceAttempt(queryClient, GHOST_KEY)).toBe(0);
 
     await tick(1000);
-    expect(getDocsMock).toHaveBeenCalledTimes(4);
+    expect(batchReads()).toHaveLength(4);
     await tick(2000);
-    expect(getDocsMock).toHaveBeenCalledTimes(5);
+    expect(batchReads()).toHaveLength(5);
   });
 });

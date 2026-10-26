@@ -5,16 +5,25 @@ import type { ChatLoadFailure } from '../src/ui/ChatShell.js';
 import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
 import type { UseChatMessagesResult } from '../src/hooks/useChatMessages.js';
 import { ChatNameResolverProvider } from '../src/context/ChatNameResolverContext.js';
+import { chatMessagesResult, realtimeMessagesResult } from './helpers/hook-results.js';
 
 // `mock`-prefixed so vitest allows referencing them inside the hoisted factories.
-const mockRealtime: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
-const mockFirestore: { current: Partial<UseChatMessagesResult> } = { current: {} };
-vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
-  useRealtimeChatMessages: () => mockRealtime.current,
-}));
-vi.mock('../src/hooks/useChatMessages.js', () => ({
-  useChatMessages: () => mockFirestore.current,
-}));
+const mockRealtime: { current: UseRealtimeChatMessagesResult } = {
+  current: realtimeMessagesResult(),
+};
+const mockFirestore: { current: UseChatMessagesResult } = { current: chatMessagesResult() };
+vi.mock('../src/realtime/useRealtimeChatMessages.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/realtime/useRealtimeChatMessages.js')>({
+    useRealtimeChatMessages: () => mockRealtime.current,
+  });
+});
+vi.mock('../src/hooks/useChatMessages.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/hooks/useChatMessages.js')>({
+    useChatMessages: () => mockFirestore.current,
+  });
+});
 
 import { ChatShell } from '../src/ui/ChatShell.js';
 
@@ -48,39 +57,17 @@ function firestoreConfig(): ChatCoreConfig {
 
 function realtimeResult(
   over: Partial<UseRealtimeChatMessagesResult>,
-): Partial<UseRealtimeChatMessagesResult> {
-  return {
-    allowed: true,
+): UseRealtimeChatMessagesResult {
+  return realtimeMessagesResult({
     isInitialLoading: true,
-    initialLoadFailed: false,
-    retry: vi.fn(),
-    messages: [],
-    fetchOlder: async () => {},
-    hasOlder: false,
-    isFetchingOlder: false,
-    send: () => true,
-    readAck: () => true,
+    isSynced: false,
     status: 'reconnecting',
-    typing: [],
-    signalTyping: () => {},
     ...over,
-  };
+  });
 }
 
-function firestoreResult(over: Partial<UseChatMessagesResult>): Partial<UseChatMessagesResult> {
-  return {
-    allowed: true,
-    isInitialLoading: false,
-    messages: [],
-    fetchOlder: async () => {},
-    hasOlder: false,
-    isFetchingOlder: false,
-    sourceState: 'live',
-    error: null,
-    olderError: null,
-    retry: vi.fn(),
-    ...over,
-  };
+function firestoreResult(over: Partial<UseChatMessagesResult>): UseChatMessagesResult {
+  return chatMessagesResult(over);
 }
 
 function seat() {

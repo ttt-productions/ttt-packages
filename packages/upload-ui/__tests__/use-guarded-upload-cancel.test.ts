@@ -15,10 +15,12 @@ const UPLOADED: UploadFileResumableResult = {
   size: 1,
 };
 
-vi.mock('@ttt-productions/upload-core/browser', () => ({
-  uploadFileResumable: (...args: Parameters<typeof uploadFileResumable>) =>
-    uploadFileResumableMock(...args),
-}));
+vi.mock('@ttt-productions/upload-core/browser', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('@ttt-productions/upload-core/browser')>(importOriginal, {
+    uploadFileResumable: (...args) => uploadFileResumableMock(...args),
+  });
+});
 
 import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
 import { LocalUploadGuardProvider } from '../src/react/guard/local-upload-guard-provider.js';

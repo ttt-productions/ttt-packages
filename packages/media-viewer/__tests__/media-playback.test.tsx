@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as React from 'react';
 import { render, fireEvent, act } from '@testing-library/react';
 import { VideoViewer } from '../src/react/video-viewer.js';
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 import { AudioViewer } from '../src/react/audio-viewer.js';
 import {
   PROGRESS_SAMPLE_INTERVAL_MS,
@@ -9,19 +10,7 @@ import {
 } from '../src/react/use-media-playback.js';
 import type { MediaPlaybackControls } from '../src/types.js';
 
-let mockInView = true;
-let mockRatio = 0;
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({
-    ref: () => {},
-    inView: mockInView,
-    entry: { intersectionRatio: mockRatio },
-  }),
-}));
-
 beforeEach(() => {
-  mockInView = true;
-  mockRatio = 0;
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
@@ -95,6 +84,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onEnded={onEnded} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       installMediaState(video, { currentTime: 100, duration: 100, ended: true });
       fireEvent.ended(video);
@@ -106,6 +96,7 @@ describe('media playback API', () => {
       const { container } = render(
         <AudioViewer url="https://example.com/a.mp3" priority onEnded={onEnded} />,
       );
+      mockAllIsIntersecting(0.01);
       const audio = container.querySelector('audio')!;
       installMediaState(audio, { currentTime: 30, duration: 30, ended: true });
       fireEvent.ended(audio);
@@ -119,6 +110,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
@@ -147,6 +139,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: true, duration: 100 });
       state.setTime(5);
@@ -159,6 +152,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: true, duration: 100 });
       state.setTime(12);
@@ -177,6 +171,7 @@ describe('media playback API', () => {
           onProgressSample={onSample}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
@@ -195,6 +190,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: true, duration: 100 });
       state.setTime(42);
@@ -208,6 +204,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       installMediaState(video, { currentTime: 100, duration: 100, ended: true });
       fireEvent.ended(video);
@@ -220,6 +217,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: NaN });
       state.setTime(10);
@@ -232,6 +230,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/a.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
@@ -261,6 +260,7 @@ describe('media playback API', () => {
           onProgressSample={onSample}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -282,6 +282,7 @@ describe('media playback API', () => {
           onProgressSample={onSample}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -308,6 +309,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={twoArg} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { duration: 100, paused: true });
       state.setTime(12);
@@ -325,6 +327,7 @@ describe('media playback API', () => {
           onProgressSample={onSample}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -354,6 +357,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={30} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100 });
       fireEvent.loadedMetadata(video);
@@ -362,6 +366,7 @@ describe('media playback API', () => {
 
     it('does not seek when startAtSeconds is absent', () => {
       const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority />);
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100 });
       fireEvent.loadedMetadata(video);
@@ -372,6 +377,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={9999} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 60 });
       fireEvent.loadedMetadata(video);
@@ -381,10 +387,10 @@ describe('media playback API', () => {
 
   describe('startAtSeconds + unloadOnExit remount resume', () => {
     it('resumes from the last known position after unload/remount, not startAtSeconds and not 0', () => {
-      mockInView = true;
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" startAtSeconds={10} />,
       );
+      mockAllIsIntersecting(0.01);
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
 
@@ -394,11 +400,11 @@ describe('media playback API', () => {
       s1.setTime(55);
       fireEvent.timeUpdate(video1);
 
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={10} />);
       expect(container.querySelector('video')).toBeNull();
 
-      mockInView = true;
+      mockAllIsIntersecting(0.01);
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={10} />);
       const video2 = container.querySelector('video')!;
       expect(video2).not.toBe(video1);
@@ -409,10 +415,10 @@ describe('media playback API', () => {
     });
 
     it('does NOT carry a stale position onto a different media source (url change)', () => {
-      mockInView = true;
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/a.mp4" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
 
@@ -428,10 +434,10 @@ describe('media playback API', () => {
     });
 
     it('applies the CURRENT startAtSeconds after a url change, not the previous one', () => {
-      mockInView = true;
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/a.mp4" priority startAtSeconds={10} />,
       );
+      mockAllIsIntersecting(0.01);
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video1);
@@ -452,6 +458,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100 });
 
@@ -466,6 +473,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <AudioViewer url="https://example.com/a.mp3" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const audio = container.querySelector('audio')!;
       const state = installMediaState(audio, { currentTime: 0, duration: 50 });
       fireEvent.loadedMetadata(audio);
@@ -479,6 +487,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 60 });
       fireEvent.loadedMetadata(video);
@@ -491,6 +500,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video);
@@ -506,6 +516,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -523,6 +534,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -543,8 +555,8 @@ describe('media playback API', () => {
     });
 
     it('keeps the tracked position truthful after an ignored late startAtSeconds', () => {
-      mockInView = true;
       const { container, rerender } = render(<VideoViewer url="https://example.com/v.mp4" />);
+      mockAllIsIntersecting(0.01);
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video1);
@@ -554,10 +566,10 @@ describe('media playback API', () => {
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
       expect(s1.currentTime).toBe(55);
 
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
       expect(container.querySelector('video')).toBeNull();
-      mockInView = true;
+      mockAllIsIntersecting(0.01);
       rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
       const video2 = container.querySelector('video')!;
       const s2 = installMediaState(video2, { currentTime: 0, duration: 100 });
@@ -569,6 +581,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100 });
       fireEvent.loadedMetadata(video);
@@ -582,6 +595,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/a.mp4" priority />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const s1 = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video);
@@ -607,6 +621,7 @@ describe('media playback API', () => {
           endOverlay={<div data-testid="end-ov">done</div>}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       installMediaState(video, { currentTime: 100, duration: 100 });
       expect(queryByTestId('end-ov')).not.toBeInTheDocument();
@@ -620,6 +635,7 @@ describe('media playback API', () => {
 
     it('does not render the overlay container when endOverlay is absent', () => {
       const { container } = render(<VideoViewer url="https://example.com/v.mp4" priority />);
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       installMediaState(video, { currentTime: 100, duration: 100 });
       fireEvent.ended(video);
@@ -634,6 +650,7 @@ describe('media playback API', () => {
           endOverlay={<div data-testid="a-end">done</div>}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const audio = container.querySelector('audio')!;
       installMediaState(audio, { currentTime: 20, duration: 20 });
       fireEvent.ended(audio);
@@ -653,6 +670,7 @@ describe('media playback API', () => {
           endOverlay={<div data-testid="end-ov">done</div>}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 100, duration: 100 });
       fireEvent.ended(video);
@@ -671,6 +689,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority playbackControlsRef={ref} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100 });
 
@@ -695,6 +714,7 @@ describe('media playback API', () => {
       const { container } = render(
         <AudioViewer url="https://example.com/a.mp3" priority playbackControlsRef={ref} />,
       );
+      mockAllIsIntersecting(0.01);
       const audio = container.querySelector('audio')!;
       const state = installMediaState(audio, { currentTime: 0, duration: 50 });
       act(() => {
@@ -723,11 +743,11 @@ describe('media playback API', () => {
     }
 
     it('ignores the unload teardown burst after a scrub — only the scrubbed position is ever emitted', () => {
-      mockInView = true;
       const onSample = vi.fn();
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -740,7 +760,7 @@ describe('media playback API', () => {
       const callsAfterScrub = onSample.mock.calls.length;
 
       installTeardownBurst(state);
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
       expect(container.querySelector('video')).toBeNull();
 
@@ -749,11 +769,11 @@ describe('media playback API', () => {
     });
 
     it('retires BEFORE its explicit source reset — commits the live cursor once and remounts there', () => {
-      mockInView = true;
       const onSample = vi.fn();
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video1 = container.querySelector('video')!;
       const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video1);
@@ -762,14 +782,14 @@ describe('media playback API', () => {
       fireEvent.timeUpdate(video1);
 
       installTeardownBurst(s1);
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
       expect(onSample).toHaveBeenLastCalledWith(55, 100, 'pause');
       expect(onSample.mock.calls.some(([t]) => t === 0)).toBe(false);
 
       vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
       vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
-      mockInView = true;
+      mockAllIsIntersecting(0.01);
       rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
       const video2 = container.querySelector('video')!;
       expect(video2).not.toBe(video1);
@@ -783,6 +803,7 @@ describe('media playback API', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/a.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video);
@@ -810,6 +831,7 @@ describe('media playback API', () => {
       const { container, unmount } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       installMediaState(video, { currentTime: 100, duration: 100, ended: true, paused: true });
       fireEvent.ended(video);
@@ -825,6 +847,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 100, paused: true });
       fireEvent.loadedMetadata(video);
@@ -842,6 +865,7 @@ describe('media playback API', () => {
       const { container, unmount } = render(
         <AudioViewer url="https://example.com/a.mp3" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const audio = container.querySelector('audio')!;
       const state = installMediaState(audio, { currentTime: 0, duration: 60, paused: false });
       fireEvent.loadedMetadata(audio);
@@ -857,6 +881,7 @@ describe('media playback API', () => {
       const { container, unmount } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       installMediaState(video, { currentTime: 0, duration: 100, paused: true });
       fireEvent.loadedMetadata(video);
@@ -874,6 +899,7 @@ describe('media playback API', () => {
           onProgressSample={onSample}
         />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
       fireEvent.loadedMetadata(video);
@@ -891,6 +917,7 @@ describe('media playback API', () => {
       const { container } = render(
         <VideoViewer url="https://example.com/v.mp4" priority onLoad={onLoad} />,
       );
+      mockAllIsIntersecting(0.01);
       const video = container.querySelector('video')!;
       expect(video).not.toBeNull();
       installMediaState(video, { currentTime: 5, duration: 100, paused: false });
@@ -907,6 +934,7 @@ describe('media playback API', () => {
 
     it('renders and behaves normally with no playback props (audio)', () => {
       const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
+      mockAllIsIntersecting(0.01);
       const audio = container.querySelector('audio')!;
       installMediaState(audio, { currentTime: 5, duration: 50, paused: false });
       expect(() => {

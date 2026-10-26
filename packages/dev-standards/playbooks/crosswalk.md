@@ -158,12 +158,13 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-QUALITY-002 | Verify at the cost of the fix; one full gate | testing-coverage 1, 9 | — |
 | RULE-STD-QUALITY-003 | E2E is green only at zero failures AND zero retry-passes | testing-coverage 1, 6 | — |
 | RULE-STD-QUALITY-004 | E2E tests use the established fixtures and web-first assertions | codebase-hygiene 28; migration 10; testing-coverage 6, 8, 10 | `retryLoopActions`, `swallowedE2eActions` |
-| RULE-STD-QUALITY-006 | Lint and format: zero suppression in apps, reasoned disables in packages; one enforced format | codebase-hygiene 73; package-boundaries 7 | `blanketCasts`, `lineEndings` |
+| RULE-STD-QUALITY-006 | Lint and format: zero suppression in apps, reasoned disables in packages; one enforced format | codebase-hygiene 73; package-boundaries 7 | `blanketCasts`, `lineEndings`, `typedMocks` |
 | RULE-STD-QUALITY-007 | Guard tests enforce ownership and boundaries, never inventories | codebase-hygiene 35, 42, 63, 80, 83, 87, 88, 90, 91, 95, 96, 117, 118, 119, 120, 122 | — |
 | RULE-STD-QUALITY-008 | Rules and E2E run against a fresh dev:e2e | codebase-hygiene 29; dependency-audit 3; firestore-storage-rules 10; testing-coverage 1, 9 | — |
 | RULE-STD-QUALITY-009 | A test loads the code it tests when its file loads | codebase-hygiene 42, 118; package-boundaries 8 | `testCaseModuleLoads` |
 | RULE-STD-QUALITY-010 | A test's time limit names a budget | codebase-hygiene 119; package-boundaries 10 | `testTimeouts` |
 | RULE-STD-QUALITY-011 | `test:quiet` is the canonical gate; a stage named by hand never skips | testing-coverage 1, 9 | `ciParity` |
+| RULE-STD-QUALITY-012 | A test double reproduces the real dependency's states | testing-coverage 12 | — |
 | RULE-STD-QUALITY-101 | Every Cloud Function is monitored through monitoring-core withScope | codebase-hygiene 40, 87; callable-functions 9; observability 1, 2, 3, 4, 9 | `monitoring` |
 | RULE-STD-QUALITY-102 | Generic packages stay monitoring-agnostic; each app binds monitoring once | codebase-hygiene 31, 40; callable-functions 9; observability 1, 9; package-boundaries 2 | `monitoring` |
 | RULE-STD-QUALITY-103 | No duplicate captures or error surfaces where a wrapper owns them | codebase-hygiene 60, 114; observability 6; ux-audit 8, 11 | — |

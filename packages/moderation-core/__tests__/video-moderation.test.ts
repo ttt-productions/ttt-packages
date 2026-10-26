@@ -1,21 +1,5 @@
+import { protos } from '@google-cloud/video-intelligence';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-vi.mock('@google-cloud/video-intelligence', () => ({
-  VideoIntelligenceServiceClient: vi.fn(),
-  protos: {
-    google: {
-      cloud: {
-        videointelligence: {
-          v1: {
-            Feature: {
-              EXPLICIT_CONTENT_DETECTION: 1,
-            },
-          },
-        },
-      },
-    },
-  },
-}));
 
 import type { AnnotateVideoClient } from '../src/server/video-moderation.js';
 import {
@@ -33,7 +17,7 @@ const rejectionLikelihoods = new Set(['LIKELY', 'VERY_LIKELY']);
 describe('moderateVideo', () => {
   it('returns safe=false when a frame has pornographyLikelihood=5 (VERY_LIKELY)', async () => {
     const mockClient: AnnotateVideoClient = {
-      annotateVideo: vi.fn().mockResolvedValue([
+      annotateVideo: vi.fn<AnnotateVideoClient['annotateVideo']>().mockResolvedValue([
         {
           promise: () =>
             Promise.resolve([
@@ -62,7 +46,7 @@ describe('moderateVideo', () => {
 
   it('reports a video the analysis returned no frames for as not checked, never as flagged', async () => {
     const mockClient: AnnotateVideoClient = {
-      annotateVideo: vi.fn().mockResolvedValue([
+      annotateVideo: vi.fn<AnnotateVideoClient['annotateVideo']>().mockResolvedValue([
         {
           promise: () =>
             Promise.resolve([
@@ -88,7 +72,7 @@ describe('moderateVideo', () => {
 
   it('reports a video with no explicit annotation as not checked', async () => {
     const mockClient: AnnotateVideoClient = {
-      annotateVideo: vi.fn().mockResolvedValue([
+      annotateVideo: vi.fn<AnnotateVideoClient['annotateVideo']>().mockResolvedValue([
         {
           promise: () =>
             Promise.resolve([
@@ -109,7 +93,7 @@ describe('moderateVideo', () => {
 
   it('reports a video whose analysis carries an error as not checked, even with frames', async () => {
     const mockClient: AnnotateVideoClient = {
-      annotateVideo: vi.fn().mockResolvedValue([
+      annotateVideo: vi.fn<AnnotateVideoClient['annotateVideo']>().mockResolvedValue([
         {
           promise: () =>
             Promise.resolve([
@@ -135,7 +119,7 @@ describe('moderateVideo', () => {
 
   it('passes the default longrunning poll backoff to annotateVideo', async () => {
     const mockClient: AnnotateVideoClient = {
-      annotateVideo: vi.fn().mockResolvedValue([
+      annotateVideo: vi.fn<AnnotateVideoClient['annotateVideo']>().mockResolvedValue([
         {
           promise: () =>
             Promise.resolve([
@@ -151,7 +135,10 @@ describe('moderateVideo', () => {
       getClient: async () => mockClient,
     });
     expect(mockClient.annotateVideo).toHaveBeenCalledWith(
-      expect.objectContaining({ inputUri: 'gs://bucket/video.mp4' }),
+      {
+        inputUri: 'gs://bucket/video.mp4',
+        features: [protos.google.cloud.videointelligence.v1.Feature.EXPLICIT_CONTENT_DETECTION],
+      },
       {
         longrunning: {
           initialRetryDelayMillis: DEFAULT_VIDEO_POLL_BACKOFF.initialDelayMillis,
@@ -164,7 +151,7 @@ describe('moderateVideo', () => {
 
   it('honors a pollBackoff override', async () => {
     const mockClient: AnnotateVideoClient = {
-      annotateVideo: vi.fn().mockResolvedValue([
+      annotateVideo: vi.fn<AnnotateVideoClient['annotateVideo']>().mockResolvedValue([
         {
           promise: () =>
             Promise.resolve([

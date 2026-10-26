@@ -3,27 +3,29 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { initMonitoring, getMonitoringAdapter, __resetMonitoring } from '../src/init.js';
 import { NoopAdapter } from '../src/adapters/noop.js';
 
-const browserSdk = vi.hoisted(() => ({
-  init: vi.fn<(options: Record<string, unknown>) => void>(),
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
-  setUser: vi.fn(),
-  setTag: vi.fn(),
-  withScope: vi.fn(),
-  addBreadcrumb: vi.fn(),
-}));
-const nodeSdk = vi.hoisted(() => ({
-  init: vi.fn<(options: Record<string, unknown>) => void>(),
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
-  setUser: vi.fn(),
-  setTag: vi.fn(),
-  withScope: vi.fn(),
-  addBreadcrumb: vi.fn(),
-}));
+const browser = await vi.hoisted(async () => {
+  const { sentrySdkFake } = await import('./helpers/sentry-sdk-fake.js');
+  return sentrySdkFake();
+});
+const node = await vi.hoisted(async () => {
+  const { sentrySdkFake } = await import('./helpers/sentry-sdk-fake.js');
+  return sentrySdkFake();
+});
+const browserSdk = browser.sdk;
+const nodeSdk = node.sdk;
 
-vi.mock('@sentry/nextjs', () => browserSdk);
-vi.mock('@sentry/node', () => nodeSdk);
+vi.mock('../src/adapters/sentry-browser-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-browser-sdk.js')>({
+    importSentryBrowser: async () => browser.sdk,
+  });
+});
+vi.mock('../src/adapters/sentry-node-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-node-sdk.js')>({
+    importSentryNode: async () => node.sdk,
+  });
+});
 
 const DSN = 'https://test@example.com/1';
 

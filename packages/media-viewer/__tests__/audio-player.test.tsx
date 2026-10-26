@@ -2,11 +2,8 @@ import * as React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { AudioViewer } from '../src/react/audio-viewer.js';
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 import { AudioPlayer } from '../src/react/audio-player.js';
-
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({ ref: () => {}, inView: true }),
-}));
 
 // jsdom's canvas has no 2d context, so the visualizer no-ops; rAF is stubbed so the loop never spins.
 function installAudioContextMock() {
@@ -218,6 +215,7 @@ describe('AudioViewer canonical player', () => {
 
   it('uses the owned player by default with no native controls', () => {
     const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
+    mockAllIsIntersecting(0.01);
     expect(container.querySelector('audio')).not.toHaveAttribute('controls');
     expect(container.querySelector('[data-mv-player]')).toBeInTheDocument();
   });
@@ -226,6 +224,7 @@ describe('AudioViewer canonical player', () => {
 describe('AudioPlayer named export', () => {
   it('renders AudioViewer with player chrome', () => {
     const { container } = render(<AudioPlayer url="https://example.com/a.mp3" priority />);
+    mockAllIsIntersecting(0.01);
     expect(container.querySelector('[data-mv-player]')).toBeInTheDocument();
     expect(container.querySelector('audio')).not.toHaveAttribute('controls');
   });

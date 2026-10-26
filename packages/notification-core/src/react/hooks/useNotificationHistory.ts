@@ -45,7 +45,7 @@ export function useNotificationHistory({
       return {
         ...snapshot,
         archiveOccurrenceId: data.id,
-        archivedAt: (data.archivedAt as number | undefined) ?? snapshot.updatedAt ?? 0,
+        archivedAt: data.archivedAt as number,
       };
     },
   });

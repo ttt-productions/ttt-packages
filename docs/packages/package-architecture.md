@@ -110,7 +110,7 @@ UI, Admin SDK, Node-only, or app-specific lives behind a runtime-specific
 subpath or a separate package (RULE-STD-ARCH-202, RULE-STD-ARCH-203).
 
 Three intentional exceptions exist, each declared in the boundary suite:
-`media-processing-core` (server-only root), `chat-react` (its root *is* the
+`media-processing-core` (server-only root), `chat-react` (its root _is_ the
 React surface), and `ttt-core`'s `./safety` (Node-only). Every other entry must
 stay clean. The native-load check runs over exactly the entries this rule calls
 universal or server.
@@ -150,6 +150,12 @@ safety:
 - `./browser` — browser runtime with no React: the upload runtime (`upload-core/browser`) and the
   reload-recovery watch (`ui-core/browser`).
 - `./styles` (or `*.css`) — CSS assets.
+- `./<runtime>/testing` — a package's test doubles and builders for that runtime
+  (`firebase-helpers/server/testing`, `…/firestore-client/testing`, `query-core/react/testing`). Its
+  first segment declares its runtime, and an entry that needs a test runner declares `vitest` an
+  optional peer. The boundary suite's `entryPurity` names `testing` its test-runner segment: such an
+  entry is held to its runtime's purity but never loaded in a plain Node process, since it evaluates
+  only inside the runner.
 - `./node/<tool>` — a Node-only config base named for the tool it configures
   (`dev-standards/node/eslint`, `…/node/vitest`, `…/node/playwright`, `…/node/postcss`, `…/node/a11y`).
 - `./config/<file>.json` — a JSON config file exported by its own path for `extends`
@@ -198,7 +204,7 @@ mutations — rather than calling `firebase/firestore` operations (`getDoc(s)`,
 `onSnapshot`, `getCountFromServer`, `setDoc`/`updateDoc`/`writeBatch`, …) directly.
 `db` comes from one shared `<FirestoreProvider>`, so a package never takes its own
 `db`. Building constraints with `where`/`orderBy`/`limit` and importing Firestore
-*types* is fine — only the runtime operations route through query-core.
+_types_ is fine — only the runtime operations route through query-core.
 
 A package that needs those hooks declares `@ttt-productions/query-core` as an
 **optional peer** so the consuming app supplies the single instance (preserving
@@ -212,7 +218,7 @@ do not "migrate" them onto query-core without preserving the behavior the commen
 describes:
 
 - `upload-ui` → `react/tray` in-flight-uploads-provider: needs `onSnapshot`
-  *transition events* (`docChanges()` added/modified/removed) for one-shot
+  _transition events_ (`docChanges()` added/modified/removed) for one-shot
   terminal callbacks and initial-snapshot suppression, which a "current list"
   hook cannot express. The subscription is already abstracted behind an injectable
   `FirestoreSubscribeFn`, so the direct firebase path is confined to

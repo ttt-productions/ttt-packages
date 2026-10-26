@@ -3,7 +3,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { lazyModule } from '../src/lazy-module.js';
 
-vi.mock('./fixtures/loaded-module.js', () => ({ mockedModule: true }));
+vi.mock('./fixtures/loaded-module.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('./fixtures/loaded-module.js')>({ realModule: false });
+});
 
 describe('lazyModule', () => {
   it('imports once, on first use, and every later or concurrent caller shares that import', async () => {
@@ -36,7 +39,7 @@ describe('lazyModule', () => {
   it('every concurrent caller of a loader gets the MOCK of a mocked module', async () => {
     const loadFixture = lazyModule(() => import('./fixtures/loaded-module.js'));
     const modules = await Promise.all([loadFixture(), loadFixture(), loadFixture()]);
-    for (const module of modules) expect(module).toHaveProperty('mockedModule', true);
+    for (const module of modules) expect(module.realModule).toBe(false);
   });
 
   it('premise: two overlapping bare imports of a mocked module hand the second the REAL module', async () => {
@@ -44,7 +47,7 @@ describe('lazyModule', () => {
       import('./fixtures/loaded-module.js'),
       import('./fixtures/loaded-module.js'),
     ]);
-    expect(first).toHaveProperty('mockedModule', true);
-    expect(second).toHaveProperty('realModule', true);
+    expect(first.realModule).toBe(false);
+    expect(second.realModule).toBe(true);
   });
 });

@@ -1,16 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import type { ThemeProviderProps } from 'next-themes';
 import { ThemeProvider, useThemeStorageKey } from '../src/react/theme-provider.js';
 import { REQUIRED_TOKENS } from '../src/required-tokens.js';
 import { THEME_NAMES } from '../src/themes.js';
 
-const nextThemes = vi.hoisted(() => ({ props: null as Record<string, unknown> | null }));
-vi.mock('next-themes', () => ({
-  ThemeProvider: (props: { children: React.ReactNode }) => {
-    nextThemes.props = props;
-    return <>{props.children}</>;
-  },
-}));
+const nextThemes = vi.hoisted(() => {
+  const captured: { props: ThemeProviderProps | null } = { props: null };
+  return captured;
+});
+vi.mock('next-themes', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('next-themes')>({
+    ThemeProvider: (props) => {
+      nextThemes.props = props;
+      return <>{props.children}</>;
+    },
+  });
+});
 
 function StorageKeyProbe() {
   return <span data-testid="storage-key">{String(useThemeStorageKey())}</span>;

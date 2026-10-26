@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-const mockCaptureException = vi.hoisted(() => vi.fn());
+const mockCaptureException = vi.hoisted(() =>
+  vi.fn<typeof import('../src/api.js').captureException>(),
+);
 
-vi.mock('../src/api.js', () => ({
-  captureException: mockCaptureException,
-  captureMessage: vi.fn(),
-  setUser: vi.fn(),
-  setTag: vi.fn(),
-  withScope: vi.fn(),
-  addBreadcrumb: vi.fn(),
-}));
+vi.mock('../src/api.js', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('../src/api.js')>(importOriginal, {
+    captureException: mockCaptureException,
+  });
+});
 
 import { ErrorBoundary } from '../src/react/error-boundary.js';
 import { anything } from '../../../test/matchers.js';

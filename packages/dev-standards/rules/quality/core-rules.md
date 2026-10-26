@@ -83,9 +83,9 @@ A test proves the business rule, never the code's current output: its expected v
 
 Every code file — source, tests, scripts, and config — is in the one format Prettier writes from the shared Prettier config (this package's `config/prettier.json`); `test:quiet`'s format stage writes that format and then checks it, a check-only run (a package release preflight, `test:all`) only checks, so a release never publishes formatting nobody committed, and the check fails a file that is not formatted; `eslint-config-prettier` keeps ESLint out of formatting. A file is formatted by running Prettier, never reflowed by hand. Every text file is LF: `.gitattributes` pins `* text=auto eol=lf`, so no checkout writes CRLF, and the repo-guards `lineEndings` guard fails a CRLF or mixed file.
 
-A type is never switched off: no `as never`, no `as unknown as X`, and no cast over a value another cast reshaped (`'x' as string as T`, `{ type: 'x' as string } as T`) in any code, tests included — the value gets its real type (a typed fake or builder, the owner's type, a typed mapping between two unions). The one exception is a cast that is the only way or clearly the best way, as a reviewed entry naming that one cast with its why, on DJ's yes; the repo-guards `blanketCasts` guard enforces it.
+A type is never switched off: no `as never`, no `as unknown as X`, and no cast over a value another cast reshaped (`'x' as string as T`, `{ type: 'x' as string } as T`) in any code, tests included — the value gets its real type (a typed fake or builder, the owner's type, a typed mapping between two unions). The one exception is a cast that is the only way or clearly the best way, as a reviewed entry naming that one cast with its why, on DJ's yes; the repo-guards `blanketCasts` guard enforces it. A module mock is typed the same way: every `vi.mock` / `vi.doMock` names its module through `import('…')` and returns through that module's shared fake or a typed mock helper that takes its type from `importOriginal`, so every override's name and signature is checked against the module it replaces; the repo-guards `typedMocks` guard enforces it.
 
-**Why.** A suppression silences the next real violation of that rule on that line: apps chose zero suppression, and a package's reasonless disable does the same damage. A rule switched off or an ignore widened to get past failing code is the same suppression at file scale. Without one enforced format, every edit carries layout churn and line lengths drift with whoever wrote the file.
+**Why.** A suppression silences the next real violation of that rule on that line: apps chose zero suppression, and a package's reasonless disable does the same damage. A rule switched off or an ignore widened to get past failing code is the same suppression at file scale. Without one enforced format, every edit carries layout churn and line lengths drift with whoever wrote the file. A module mock the type checker never compares to its module keeps passing after the module changes under it.
 
 **Prohibits.**
 - Any `eslint-disable` comment in an app; a reasonless `eslint-disable-next-line` in a package, or one used to dodge a real fix.
@@ -99,6 +99,7 @@ A type is never switched off: no `as never`, no `as unknown as X`, and no cast o
 - An unformatted code file; a `prettier-ignore` without its reason, or added when a fix works or without DJ's yes; an ESLint formatting rule that fights Prettier.
 - A CRLF or mixed-ending text file; a `.gitattributes` without `eol=lf`.
 - An `as never` or `as unknown as` cast, or a cast over a value another cast reshaped, outside a reviewed entry.
+- A module mock named by a string path, a mock factory that returns a hand-written object, or a mock helper whose type the test writes or the overrides infer.
 
 **References.** RULE-STD-ENG-008; RULE-STD-QUALITY-007; this package's `node/eslint` bases and `config/prettier.json`; each repo's ESLint config and `.prettierignore`.
 
@@ -170,3 +171,18 @@ A type is never switched off: no `as never`, no `as unknown as X`, and no cast o
 - A second parallel gate command instead of a new stage in this one.
 
 **References.** `scripts/test-quiet.mjs`; RULE-STD-QUALITY-002, RULE-STD-QUALITY-003, RULE-STD-QUALITY-008.
+
+### RULE-STD-QUALITY-012 — A test double reproduces the real dependency's states
+**Scope.** both
+
+**Rule.** A test double — a fake, a kit, a builder, a stubbed module, a fixture — reproduces the states the real dependency reaches, and only those. A shared double or builder covers every state the real dependency reaches that the product handles differently, so a test can put the product in each one; it offers no state the real one cannot reach. A case's trigger is one the real dependency and a real user can produce, its fixture holds only values the real writers and the schema allow, and its name states the trigger it uses.
+
+**Why.** A double that cannot build a real state leaves the product unproven in it; one that builds an impossible state proves behavior the product never has and hides the real behavior behind a green case.
+
+**Prohibits.**
+- A builder or double added because a test wanted it, with no state of the real dependency behind it.
+- A state the real dependency reaches, and the product renders or handles apart, that the shared builders cannot build.
+- A case driven by something production cannot do — an answer pushed to a listener the SDK has ended, a cache entry removed by hand to reach a state no user action reaches, a fixture value the schema or its only writer rules out.
+- A case whose name claims a trigger it no longer uses.
+
+**References.** RULE-STD-QUALITY-001; RULE-STD-ENG-002; ttt-packages' `docs/packages/firebase-helpers.md` § The test kits and `docs/packages/query-core.md`.

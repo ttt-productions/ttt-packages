@@ -80,7 +80,8 @@ export { flattenInfiniteData, getInfiniteDataCount } from './firestore/infinite-
 export type { FirestoreSearchOptions } from './search/types.js';
 
 export { useReadRetryState, useReadRetryStates } from './use-read-retry-state.js';
-export type { ReadRetryEntry, ReadRetrySource, ReadRetryState } from './use-read-retry-state.js';
+export type { ReadRetryEntry } from './use-read-retry-state.js';
+export type { ReadRetrySource, ReadRetryState } from './read-retry-derivation.js';
 
 export {
   MutationSessionProvider,

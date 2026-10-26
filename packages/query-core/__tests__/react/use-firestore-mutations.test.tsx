@@ -3,32 +3,40 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { WriteBatch } from 'firebase/firestore';
 
-const { writes } = vi.hoisted(() => ({
-  writes: [] as Array<{ resolve: () => void; reject: (error: Error) => void }>,
-}));
-
-vi.mock('firebase/firestore', () => {
+const { writes, pendingWrite } = vi.hoisted(() => {
+  const writes: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
   const pendingWrite = () =>
     new Promise<void>((resolve, reject) => {
       writes.push({ resolve, reject });
     });
-  return {
-    doc: (_db: unknown, path: string) => ({ id: path.split('/').pop(), path }),
-    setDoc: vi.fn(pendingWrite),
-    updateDoc: vi.fn(pendingWrite),
-    deleteDoc: vi.fn(pendingWrite),
-    writeBatch: vi.fn(() => ({
-      set: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      commit: pendingWrite,
-    })),
+  return { writes, pendingWrite };
+});
+
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
+
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../../test/client-firestore-fake.js');
+  const batch: WriteBatch = {
+    set: () => batch,
+    update: () => batch,
+    delete: () => batch,
+    commit: pendingWrite,
   };
+  return clientFirestoreFake(importOriginal, store, {
+    setDoc: pendingWrite,
+    updateDoc: pendingWrite,
+    deleteDoc: pendingWrite,
+    writeBatch: () => batch,
+  });
 });
 
 import { FirestoreProvider } from '../../src/react/firestore/context.js';
-import { testFirestore } from '../helpers/test-firestore.js';
 import {
   useFirestoreBatch,
   useFirestoreDelete,
@@ -56,7 +64,7 @@ function setup<T>(useHook: () => T) {
     return (
       <QueryClientProvider client={client}>
         <MutationSessionProvider currentUid={session.uid}>
-          <FirestoreProvider db={testFirestore()}>{children}</FirestoreProvider>
+          <FirestoreProvider db={store.db}>{children}</FirestoreProvider>
         </MutationSessionProvider>
       </QueryClientProvider>
     );

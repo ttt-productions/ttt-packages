@@ -4,7 +4,7 @@
 
 One AI-run audit of whether the app has enough automated coverage to protect its launch-critical
 security, data, payment, media, async, and UI flows — verifying the testing and verification rules
-(RULE-STD-QUALITY-001–011) and the security-boundary rules the tests must exercise
+(RULE-STD-QUALITY-001–012) and the security-boundary rules the tests must exercise
 (RULE-STD-ENG-006, RULE-STD-BACKEND-001, RULE-STD-BACKEND-003, RULE-STD-BACKEND-005). Methodology only;
 the per-step contract, boundary, and verdict are [README.md](README.md)'s.
 
@@ -161,6 +161,22 @@ expectation is correct.
 pass. **The findings:** an expected value copied from the code's output; a test that cannot fail; an
 assertion weakened to turn red green; a mock that hides the behavior under test; a review that passed a
 test without checking it against its rule.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 12. Test doubles reproduce the real dependency's states
+**Rules:** RULE-STD-QUALITY-012, RULE-STD-QUALITY-001. **Scope:** every shared fake, kit, and builder
+the repo's tests use, and every new or changed test under review. **Method (semantic review,
+read-only).** (a) For each shared double or builder, list from the real dependency's source and docs
+the states it reaches that the product renders or handles apart — a read's first load, failure,
+retry, background refresh over kept data, failure over kept data, a list's next page and its failure —
+and confirm each one is buildable; (b) for each case, confirm its trigger is one production can
+produce and its fixture values are ones the schema and the real writers allow; (c) confirm each case's
+name states the trigger it uses.
+**Expected:** every reachable state the product renders apart is buildable, no double offers an
+unreachable one, and every case is driven the way production drives it. **The findings:** a reachable
+state no builder builds; a builder with no real state behind it; an answer pushed to a listener the SDK
+has ended; a cache entry removed by hand to reach a state no user action reaches; a fixture value the
+schema or its only writer rules out; a case named for a trigger it no longer uses.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Pass / Fail

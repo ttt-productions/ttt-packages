@@ -1,26 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
-const mocks = vi.hoisted(() => ({
-  useFirestorePaginated: vi.fn(),
-  orderByFn: vi.fn((field: string, dir: string) => ({ field, dir })),
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-vi.mock('firebase/firestore', () => ({
-  orderBy: mocks.orderByFn,
-}));
-
-vi.mock('@ttt-productions/query-core/react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@ttt-productions/query-core/react')>();
-  return {
-    useFirestorePaginated: mocks.useFirestorePaginated,
-    useReadRetryState: actual.useReadRetryState,
-    paginatedPageKey: actual.paginatedPageKey,
-  };
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
 });
 
 import { useNotificationHistory } from '../src/react/hooks/useNotificationHistory.js';
 import type { NotificationSystemConfig } from '../src/types.js';
+import { kitFirestoreWrapper } from './helpers/kit-firestore-wrapper.js';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -40,60 +34,51 @@ function makeConfig(): NotificationSystemConfig {
   };
 }
 
-function lastOpts(): Record<string, unknown> {
-  return mocks.useFirestorePaginated.mock.calls.at(-1)![0] as Record<string, unknown>;
+function renderHistory(userId: string, category: string) {
+  return renderHook(() => useNotificationHistory({ config: makeConfig(), userId, category }), {
+    wrapper: kitFirestoreWrapper(store.db),
+  });
 }
 
 describe('useNotificationHistory', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.useFirestorePaginated.mockReturnValue({
-      data: [],
-      isLoading: false,
-      hasNextPage: false,
-      nextPage: vi.fn(),
-    });
+    store.reset();
   });
 
   it('throws for an unknown category', () => {
-    expect(() =>
-      renderHook(() =>
-        useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'nope' }),
-      ),
-    ).toThrow('Unknown category: nope');
+    expect(() => renderHistory('u1', 'nope')).toThrow('Unknown category: nope');
   });
 
-  it('reads the per-user history path for a personal category, ordered by archivedAt desc', () => {
-    renderHook(() =>
-      useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }),
-    );
-    const opts = lastOpts();
-    expect(opts.collectionPath).toBe('userProfiles/u1/notificationHistory');
-    expect(mocks.orderByFn).toHaveBeenCalledWith('archivedAt', 'desc');
-    expect(opts.constraints).toHaveLength(1);
+  it('reads the per-user history path for a personal category, ordered by archivedAt desc', async () => {
+    const { result } = renderHistory('u1', 'user');
+    await waitFor(() => expect(result.current.data).toEqual([]));
+    expect(store.queries()).toEqual([
+      expect.objectContaining({
+        kind: 'query',
+        path: 'userProfiles/u1/notificationHistory',
+        filters: [],
+        orders: [{ field: 'archivedAt', direction: 'desc' }],
+      }),
+    ]);
   });
 
-  it('reads the top-level history path for a shared category', () => {
-    renderHook(() =>
-      useNotificationHistory({ config: makeConfig(), userId: 'admin1', category: 'admin' }),
-    );
-    expect(lastOpts().collectionPath).toBe('adminNotificationHistory');
+  it('reads the top-level history path for a shared category', async () => {
+    const { result } = renderHistory('admin1', 'admin');
+    await waitFor(() => expect(result.current.data).toEqual([]));
+    expect(store.queries()).toEqual([
+      expect.objectContaining({ path: 'adminNotificationHistory' }),
+    ]);
   });
 
-  it('disables the query when userId is empty', () => {
-    renderHook(() =>
-      useNotificationHistory({ config: makeConfig(), userId: '', category: 'user' }),
-    );
-    expect(lastOpts().enabled).toBe(false);
+  it('disables the query when userId is empty', async () => {
+    const { result } = renderHistory('', 'user');
+    await act(async () => {});
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(store.queries()).toEqual([]);
   });
 
-  it('flattens the archivedSnapshot wrapper into a history item via select', () => {
-    renderHook(() =>
-      useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }),
-    );
-    const select = lastOpts().select as (d: Record<string, unknown>) => Record<string, unknown>;
-    const mapped = select({
-      id: 'occ-1',
+  it('flattens the archivedSnapshot wrapper into a history item via select', async () => {
+    store.seed('userProfiles/u1/notificationHistory/occ-1', {
       archivedAt: 111,
       archivedSnapshot: {
         id: 'active-1',
@@ -104,21 +89,14 @@ describe('useNotificationHistory', () => {
         updatedAt: 99,
       },
     });
-    expect(mapped).toMatchObject({
+    const { result } = renderHistory('u1', 'user');
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    expect(result.current.data?.[0]).toMatchObject({
       title: 'Hi',
       message: 'body',
       count: 2,
       archiveOccurrenceId: 'occ-1',
       archivedAt: 111,
     });
-  });
-
-  it('falls back to snapshot.updatedAt when archivedAt is absent', () => {
-    renderHook(() =>
-      useNotificationHistory({ config: makeConfig(), userId: 'u1', category: 'user' }),
-    );
-    const select = lastOpts().select as (d: Record<string, unknown>) => Record<string, unknown>;
-    const mapped = select({ id: 'occ-2', archivedSnapshot: { updatedAt: 77 } });
-    expect(mapped.archivedAt).toBe(77);
   });
 });

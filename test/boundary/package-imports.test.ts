@@ -25,6 +25,7 @@ registerSuiteOf(
           { subpath: 'browser', runtime: 'browser' },
           { subpath: 'styles', runtime: 'style' },
         ],
+        testRunnerSegment: 'testing',
         exceptions: [
           {
             entry: '@ttt-productions/media-processing-core',

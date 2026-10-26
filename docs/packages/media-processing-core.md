@@ -65,6 +65,8 @@ the timed-video rule — AVIF probes as an AV1 video stream), bounded codec norm
 the fail-closed table (anything unproven ⇒ indeterminate + strict-video-fallback; never
 audio). Every probed A/V classification carries `durationSec`, read by the one length
 rule below (never present on image results). `runCmd` gained `timeoutMs`/`signal` (SIGKILL) + `timedOut`/`truncated` flags.
+Every `ffmpeg` / `ffprobe` process starts through one function, `spawnPiped` (`src/video/spawn-piped.ts`):
+stdin ignored, stdout and stderr piped.
 `runMediaPipeline` gained the `resolveAfterInspection` seam: inspect the generation-pinned
 temp input BEFORE moderation/processing, let the caller's policy adapter pick the spec (or
 reject typed), and carry the SAME inspection object on every result path so the finalizer

@@ -3,103 +3,25 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-type DocData = Record<string, unknown>;
+const { store, readDbs } = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  const readDbs: Firestore[] = [];
+  return { store: makeInMemoryClientFirestore(), readDbs };
+});
 
-type BatchCall = {
-  ids: string[];
-  db: unknown;
-  path: string;
-  release: () => void;
-  fail: (error: unknown) => void;
-};
-
-type DocGetCall = {
-  id: string;
-  release: () => void;
-};
-
-const { docs, denied, batchCalls, getCalls, docGetCalls, getDocsMock, getDocMock, setAutoResolve } =
-  vi.hoisted(() => {
-    const docs = new Map<string, DocData>();
-    const denied = new Set<string>();
-    const batchCalls: BatchCall[] = [];
-    const getCalls: string[] = [];
-    const docGetCalls: DocGetCall[] = [];
-    let autoResolve = true;
-
-    const snapshotFor = (ids: string[]) => ({
-      forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
-        for (const id of ids) {
-          const data = docs.get(id);
-          if (data !== undefined) cb({ id, data: () => data });
-        }
-      },
-    });
-
-    const getDocsMock = vi.fn((q: { __ids: string[]; __db: unknown; __path: string }) => {
-      const call: BatchCall = {
-        ids: q.__ids,
-        db: q.__db,
-        path: q.__path,
-        release: () => {},
-        fail: () => {},
-      };
-      batchCalls.push(call);
-      if (autoResolve) return Promise.resolve(snapshotFor(q.__ids));
-      return new Promise((resolve, reject) => {
-        call.release = () => resolve(snapshotFor(q.__ids));
-        call.fail = (error: unknown) => reject(error);
-      });
-    });
-
-    const getDocMock = vi.fn((ref: { __id: string }) => {
-      getCalls.push(ref.__id);
-      const call: DocGetCall = { id: ref.__id, release: () => {} };
-      docGetCalls.push(call);
-      if (denied.has(ref.__id)) return Promise.reject(new Error('permission-denied'));
-      const data = docs.get(ref.__id);
-      const snapshot = {
-        exists: () => data !== undefined,
-        id: ref.__id,
-        data: () => data,
-      };
-      if (autoResolve) return Promise.resolve(snapshot);
-      return new Promise((resolve) => {
-        call.release = () => resolve(snapshot);
-      });
-    });
-
-    const setAutoResolve = (value: boolean) => {
-      autoResolve = value;
-    };
-
-    return {
-      docs,
-      denied,
-      batchCalls,
-      getCalls,
-      docGetCalls,
-      getDocsMock,
-      getDocMock,
-      setAutoResolve,
-    };
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store, {
+    getDocs: (query) => {
+      readDbs.push(query.firestore);
+      return store.reads.getDocs(query);
+    },
   });
+});
 
-vi.mock('firebase/firestore', () => ({
-  collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
-  where: (_field: unknown, _op: unknown, ids: string[]) => ({ __ids: ids }),
-  query: (source: { __db: unknown; __path: string }, constraint: { __ids: string[] }) => ({
-    __db: source.__db,
-    __path: source.__path,
-    __ids: constraint.__ids,
-  }),
-  documentId: () => '__name__',
-  getDocs: getDocsMock,
-  doc: (_db: unknown, _path: string, id: string) => ({ __id: id }),
-  getDoc: getDocMock,
-  onSnapshot: vi.fn(),
-}));
-
+import type { Firestore } from 'firebase/firestore';
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
 import { testFirestore } from './helpers/test-firestore.js';
 import {
@@ -107,16 +29,22 @@ import {
   MAX_CONCURRENT_BATCH_REQUESTS,
   MAX_CONCURRENT_DOC_GETS,
 } from '../src/react/firestore/batch-doc-loader.js';
+import {
+  batchReadIn,
+  docGetIn,
+  docGetOf,
+  holdReads,
+  idsOf,
+  readsMatching,
+} from './helpers/batch-docs-reads.js';
+
+const batchCalls = () => readsMatching(store, batchReadIn('publicUsers')).map(idsOf);
+const getCalls = () => readsMatching(store, docGetIn('publicUsers')).flatMap(idsOf);
+const seed = (id: string, data: Record<string, unknown>) => store.seed(`publicUsers/${id}`, data);
 
 beforeEach(() => {
-  docs.clear();
-  denied.clear();
-  batchCalls.length = 0;
-  getCalls.length = 0;
-  docGetCalls.length = 0;
-  getDocsMock.mockClear();
-  getDocMock.mockClear();
-  setAutoResolve(true);
+  store.reset();
+  readDbs.length = 0;
 });
 
 function makeWrapper() {
@@ -130,7 +58,7 @@ function makeWrapper() {
 }
 
 const baseOpts = {
-  db: testFirestore(),
+  db: store.db,
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
@@ -140,7 +68,7 @@ const baseOpts = {
 describe("useBatchFirestoreDocs — 'batch' transport", () => {
   it('coalesces ids enqueued in one microtask and chunks them at 30', async () => {
     const ids = Array.from({ length: 60 }, (_, i) => `u${i}`);
-    for (const id of ids) docs.set(id, { v: id });
+    for (const id of ids) seed(id, { v: id });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids }), {
@@ -148,36 +76,37 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
-    expect(batchCalls.map((c) => c.ids.length).sort()).toEqual([30, 30]);
+    expect(batchCalls()).toHaveLength(2);
+    expect(batchCalls().map((ids) => ids.length)).toEqual([30, 30]);
     expect(Object.keys(result.current.data)).toHaveLength(60);
   });
 
   it('sends one request at exactly 30 ids and two at 31', async () => {
     const ids30 = Array.from({ length: 30 }, (_, i) => `a${i}`);
-    for (const id of ids30) docs.set(id, { v: id });
+    for (const id of ids30) seed(id, { v: id });
 
     const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ids30 }), {
       wrapper: makeWrapper().Wrapper,
     });
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
-    expect(batchCalls).toHaveLength(1);
-    expect(batchCalls[0].ids).toHaveLength(30);
+    expect(batchCalls()).toHaveLength(1);
+    expect(batchCalls()[0]).toHaveLength(30);
 
-    batchCalls.length = 0;
+    const sentBefore = batchCalls().length;
     const ids31 = Array.from({ length: 31 }, (_, i) => `b${i}`);
-    for (const id of ids31) docs.set(id, { v: id });
+    for (const id of ids31) seed(id, { v: id });
 
     const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ids31 }), {
       wrapper: makeWrapper().Wrapper,
     });
     await waitFor(() => expect(second.result.current.isLoading).toBe(false));
-    expect(batchCalls).toHaveLength(2);
-    expect(batchCalls.map((c) => c.ids.length).sort((a, b) => a - b)).toEqual([1, 30]);
+    const sent = batchCalls().slice(sentBefore);
+    expect(sent).toHaveLength(2);
+    expect(sent.map((ids) => ids.length).sort((a, b) => a - b)).toEqual([1, 30]);
   });
 
   it('drops an id nobody is waiting on before the request goes out', async () => {
-    docs.set('u2', { v: 2 });
+    seed('u2', { v: 2 });
     const loader = getDocLoader(new QueryClient(), baseOpts.db, 'publicUsers');
 
     const controller = new AbortController();
@@ -187,13 +116,12 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
 
     expect(await cancelled).toBe('aborted');
     expect(await kept).toMatchObject({ v: 2 });
-    expect(batchCalls).toHaveLength(1);
-    expect(batchCalls[0].ids).toEqual(['u2']);
+    expect(batchCalls()).toEqual([['u2']]);
   });
 
   it('issues ceil(N/30) requests for a non-multiple id count', async () => {
     const ids = Array.from({ length: 45 }, (_, i) => `u${i}`);
-    for (const id of ids) docs.set(id, { v: id });
+    for (const id of ids) seed(id, { v: id });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids }), {
@@ -201,12 +129,16 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
-    expect(batchCalls.map((c) => c.ids.length).sort((a, b) => a - b)).toEqual([15, 30]);
+    expect(batchCalls()).toHaveLength(2);
+    expect(
+      batchCalls()
+        .map((ids) => ids.length)
+        .sort((a, b) => a - b),
+    ).toEqual([15, 30]);
   });
 
   it('never shares a request between two db instances on the same collection path', async () => {
-    docs.set('u1', { v: 1 });
+    seed('u1', { v: 1 });
     const dbA = testFirestore();
     const dbB = testFirestore();
 
@@ -223,47 +155,47 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
     await waitFor(() => expect(a.result.current.isLoading).toBe(false));
     await waitFor(() => expect(b.result.current.isLoading).toBe(false));
 
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
-    expect(batchCalls.map((c) => c.db)).toEqual([dbA, dbB]);
+    expect(batchCalls()).toHaveLength(2);
+    expect(readDbs).toEqual([dbA, dbB]);
   });
 
   it('cancelling one id leaves its batch-mates intact', async () => {
-    setAutoResolve(false);
-    docs.set('u1', { v: 1 });
-    docs.set('u2', { v: 2 });
+    const hold = holdReads(store, batchReadIn('publicUsers'));
+    seed('u1', { v: 1 });
+    seed('u2', { v: 2 });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
       wrapper: Wrapper,
     });
 
-    await waitFor(() => expect(batchCalls).toHaveLength(1));
+    await waitFor(() => expect(hold.waiting).toHaveLength(1));
 
     await act(async () => {
       await queryClient.cancelQueries({ queryKey: ['publicUser', 'u1'], exact: true });
     });
 
     await act(async () => {
-      batchCalls[0].release();
+      hold.waiting[0].release();
       await Promise.resolve();
     });
 
     await waitFor(() => expect(result.current.data.u2).toMatchObject({ v: 2 }));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchCalls()).toHaveLength(1);
   });
 
   it('a post-cancellation refetch joins a NEW batch, never the dispatched one', async () => {
-    setAutoResolve(false);
-    docs.set('u1', { v: 1 });
-    docs.set('u2', { v: 2 });
+    holdReads(store, batchReadIn('publicUsers'));
+    seed('u1', { v: 1 });
+    seed('u2', { v: 2 });
 
     const { Wrapper, queryClient } = makeWrapper();
     renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
       wrapper: Wrapper,
     });
 
-    await waitFor(() => expect(batchCalls).toHaveLength(1));
-    expect(batchCalls[0].ids.sort()).toEqual(['u1', 'u2']);
+    await waitFor(() => expect(batchCalls()).toHaveLength(1));
+    expect(batchCalls()[0].sort()).toEqual(['u1', 'u2']);
 
     await act(async () => {
       await queryClient.cancelQueries({ queryKey: ['publicUser', 'u1'], exact: true });
@@ -275,12 +207,12 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(batchCalls).toHaveLength(2));
-    expect(batchCalls[1].ids).toEqual(['u1']);
+    await waitFor(() => expect(batchCalls()).toHaveLength(2));
+    expect(batchCalls()[1]).toEqual(['u1']);
   });
 
   it('a late batch result cannot overwrite a newer per-id result', async () => {
-    docs.set('u1', { v: 'old' });
+    seed('u1', { v: 'old' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
@@ -289,7 +221,7 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
 
     await waitFor(() => expect(result.current.data.u1).toMatchObject({ v: 'old' }));
 
-    setAutoResolve(false);
+    const hold = holdReads(store, batchReadIn('publicUsers'));
 
     // TanStack cancels the first refetch when a second starts because the query already holds data.
     await act(async () => {
@@ -297,25 +229,26 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    await waitFor(() => expect(batchCalls).toHaveLength(2));
+    await waitFor(() => expect(batchCalls()).toHaveLength(2));
 
     await act(async () => {
       void queryClient.refetchQueries({ queryKey: ['publicUser', 'u1'], exact: true });
       await Promise.resolve();
       await Promise.resolve();
     });
-    await waitFor(() => expect(batchCalls).toHaveLength(3));
+    await waitFor(() => expect(batchCalls()).toHaveLength(3));
+    const [cancelled, latest] = hold.waiting;
 
-    docs.set('u1', { v: 'new' });
+    seed('u1', { v: 'new' });
     await act(async () => {
-      batchCalls[2].release();
+      latest.release();
       await Promise.resolve();
     });
     await waitFor(() => expect(result.current.data.u1).toMatchObject({ v: 'new' }));
 
-    docs.set('u1', { v: 'stale' });
+    seed('u1', { v: 'stale' });
     await act(async () => {
-      batchCalls[1].release();
+      cancelled.release();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -325,24 +258,24 @@ describe("useBatchFirestoreDocs — 'batch' transport", () => {
   });
 
   it('bounds the number of in-flight batch requests', async () => {
-    setAutoResolve(false);
+    const hold = holdReads(store, batchReadIn('publicUsers'));
     const ids = Array.from({ length: 30 * (MAX_CONCURRENT_BATCH_REQUESTS + 1) }, (_, i) => `u${i}`);
-    for (const id of ids) docs.set(id, { v: id });
+    for (const id of ids) seed(id, { v: id });
 
     const { Wrapper } = makeWrapper();
     renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids }), { wrapper: Wrapper });
 
-    await waitFor(() => expect(batchCalls).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS));
+    await waitFor(() => expect(batchCalls()).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS));
     await act(async () => {
       await Promise.resolve();
     });
-    expect(batchCalls).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS);
+    expect(batchCalls()).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS);
 
     await act(async () => {
-      batchCalls[0].release();
+      hold.waiting[0].release();
       await Promise.resolve();
     });
-    await waitFor(() => expect(batchCalls).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS + 1));
+    await waitFor(() => expect(batchCalls()).toHaveLength(MAX_CONCURRENT_BATCH_REQUESTS + 1));
   });
 });
 
@@ -350,8 +283,11 @@ describe("useBatchFirestoreDocs — 'get' transport", () => {
   const getOpts = { ...baseOpts, transport: 'get' as const };
 
   it('isolates a denied id: it errors alone and is excluded from data', async () => {
-    docs.set('readable', { v: 1 });
-    denied.add('hidden');
+    seed('readable', { v: 1 });
+    store.failReads(
+      docGetOf('publicUsers', 'hidden'),
+      firestoreError('permission-denied', 'permission-denied'),
+    );
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -364,29 +300,29 @@ describe("useBatchFirestoreDocs — 'get' transport", () => {
 
     expect(result.current.data).toEqual({ readable: { id: 'readable', v: 1 } });
     expect(result.current.error?.message).toBe('permission-denied');
-    expect(getCalls.sort()).toEqual(['hidden', 'missing', 'readable']);
-    expect(getDocsMock).not.toHaveBeenCalled();
+    expect(getCalls().sort()).toEqual(['hidden', 'missing', 'readable']);
+    expect(batchCalls()).toEqual([]);
   });
 
   it('bounds the number of in-flight document gets', async () => {
-    setAutoResolve(false);
+    const hold = holdReads(store, docGetIn('publicUsers'));
     const ids = Array.from({ length: MAX_CONCURRENT_DOC_GETS + 3 }, (_, i) => `u${i}`);
-    for (const id of ids) docs.set(id, { v: id });
+    for (const id of ids) seed(id, { v: id });
 
     const { Wrapper } = makeWrapper();
     renderHook(() => useBatchFirestoreDocs({ ...getOpts, ids }), { wrapper: Wrapper });
 
-    await waitFor(() => expect(docGetCalls).toHaveLength(MAX_CONCURRENT_DOC_GETS));
+    await waitFor(() => expect(getCalls()).toHaveLength(MAX_CONCURRENT_DOC_GETS));
     await act(async () => {
       await Promise.resolve();
     });
-    expect(docGetCalls).toHaveLength(MAX_CONCURRENT_DOC_GETS);
+    expect(getCalls()).toHaveLength(MAX_CONCURRENT_DOC_GETS);
 
     await act(async () => {
-      docGetCalls[0].release();
+      hold.waiting[0].release();
       await Promise.resolve();
     });
-    await waitFor(() => expect(docGetCalls).toHaveLength(MAX_CONCURRENT_DOC_GETS + 1));
+    await waitFor(() => expect(getCalls()).toHaveLength(MAX_CONCURRENT_DOC_GETS + 1));
   });
 
   it('negative-caches a missing id as null', async () => {

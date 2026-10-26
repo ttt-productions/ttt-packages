@@ -4,25 +4,23 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import type { MediaInputChangePayload } from '../src/types.js';
 import { MediaInput } from '../src/react/components/media-input.js';
 
-vi.mock(
-  '@ttt-productions/media-viewer/react',
-  async () => import('../../media-viewer/src/react/index.js'),
-);
-
 // jsdom cannot decode media, so the meta read never settles: return the fast path's kind inference.
-vi.mock('../src/lib/read-media-meta.js', () => ({
-  readMediaMeta: async (file: File) => {
-    const t = file.type;
-    const kind = t.startsWith('image/')
-      ? 'image'
-      : t.startsWith('video/')
-        ? 'video'
-        : t.startsWith('audio/')
-          ? 'audio'
-          : 'file';
-    return { kind, mime: t || undefined, sizeBytes: file.size };
-  },
-}));
+vi.mock('../src/lib/read-media-meta.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/lib/read-media-meta.js')>({
+    readMediaMeta: async (file: File) => {
+      const t = file.type;
+      const kind = t.startsWith('image/')
+        ? 'image'
+        : t.startsWith('video/')
+          ? 'video'
+          : t.startsWith('audio/')
+            ? 'audio'
+            : 'file';
+      return { kind, mime: t || undefined, sizeBytes: file.size };
+    },
+  });
+});
 
 const SPEC_MULTI_KIND: MediaOriginSpec = {
   kind: 'generic',

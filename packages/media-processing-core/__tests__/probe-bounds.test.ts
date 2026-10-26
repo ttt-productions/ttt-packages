@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { EventEmitter } from 'node:events';
-import { PassThrough } from 'node:stream';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { probeVideo } from '../src/video/probe.js';
@@ -8,39 +6,21 @@ import { probeAudio } from '../src/audio/probe.js';
 import { processVideo } from '../src/video/video-processor.js';
 import { processAudio } from '../src/audio/audio-processor.js';
 import { DEFAULT_PROBE_TIMEOUT_MS } from '../src/video/ffmpeg.js';
+import { exitingChild, hangingChild } from './helpers/piped-child.js';
 
-const spawnMock = vi.hoisted(() => vi.fn());
-vi.mock('node:child_process', () => ({ spawn: spawnMock }));
-
-function hangingChild() {
-  const child = Object.assign(new EventEmitter(), {
-    stdout: new PassThrough(),
-    stderr: new PassThrough(),
-    kill: vi.fn(() => {
-      setImmediate(() => child.emit('close', null, 'SIGKILL'));
-      return true;
-    }),
-  });
-  return child;
-}
-
-function versionChild() {
-  const child = Object.assign(new EventEmitter(), {
-    stdout: new PassThrough(),
-    stderr: new PassThrough(),
-    kill: () => true,
-  });
-  setImmediate(() => {
-    child.stdout.end('ffmpeg version test\n');
-    child.stderr.end();
-    setImmediate(() => child.emit('close', 0, null));
-  });
-  return child;
-}
+const spawnMock = vi.hoisted(() =>
+  vi.fn<typeof import('../src/video/spawn-piped.js').spawnPiped>(),
+);
+vi.mock('../src/video/spawn-piped.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/video/spawn-piped.js')>({ spawnPiped: spawnMock });
+});
 
 function routeSpawn(probe: ReturnType<typeof hangingChild>) {
-  spawnMock.mockImplementation((cmd: string, args: string[]) =>
-    cmd === 'ffmpeg' && args[0] === '-version' ? versionChild() : probe,
+  spawnMock.mockImplementation((cmd, args) =>
+    cmd === 'ffmpeg' && args[0] === '-version'
+      ? exitingChild('ffmpeg version test\n', 0, null)
+      : probe,
   );
 }
 
@@ -104,7 +84,7 @@ describe("the processors' ffprobe calls are bounded and fail closed", () => {
       const controller = new AbortController();
       const pending = run(controller.signal);
       await vi.waitFor(() =>
-        expect(spawnMock).toHaveBeenCalledWith('ffprobe', expect.anything(), expect.anything()),
+        expect(spawnMock).toHaveBeenCalledWith('ffprobe', expect.anything(), undefined),
       );
       controller.abort();
       const r = await pending;

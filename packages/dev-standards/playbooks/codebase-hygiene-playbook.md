@@ -990,9 +990,10 @@ is permitted only for a narrow intentional case, with its reason on the line. **
 passes (a listed file means a change set skipped the gate); the Prettier-compatibility config is the
 last entry of every lint config; every `prettier-ignore` carries its reason.
 **Types and line endings:** `<GUARD_SUITE> -t "no cast switches type checking off"` and
-`-t "every text file is LF"` pass. Every reviewed cast entry is the only way or clearly the best way,
+`-t "every text file is LF"`, and `-t "every module mock is typed against the module it replaces"` pass. Every reviewed cast entry is the only way or clearly the best way,
 with that reason in its why; a cast a typed fake, the owner's type, or a typed mapping could replace is
-the finding.
+the finding. Every module mock names its module through `import('…')`, so a misspelled or mistyped override fails
+to compile.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 75. No vacuous commands — every playbook path resolves and every command is honestly scoped

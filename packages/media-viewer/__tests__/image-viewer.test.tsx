@@ -1,15 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ImageViewer } from '../src/react/image-viewer.js';
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 
-let mockInView = false;
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({ ref: () => {}, inView: mockInView }),
-}));
-
-beforeEach(() => {
-  mockInView = false;
-});
+beforeEach(() => {});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -36,7 +30,7 @@ describe('ImageViewer', () => {
       const { container, rerender } = render(<ImageViewer url="https://example.com/a.jpg" />);
       expect(container.querySelector('img')).not.toBeInTheDocument();
 
-      mockInView = true;
+      mockAllIsIntersecting(0.01);
       rerender(<ImageViewer url="https://example.com/a.jpg" />);
       expect(container.querySelector('img')).toBeInTheDocument();
     });
@@ -54,35 +48,35 @@ describe('ImageViewer', () => {
 
   describe('unloadOnExit', () => {
     it('keeps img mounted after exiting view when unloadOnExit=false (default)', () => {
-      mockInView = true;
       const { container, rerender } = render(<ImageViewer url="https://example.com/a.jpg" />);
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('img')).toBeInTheDocument();
 
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<ImageViewer url="https://example.com/a.jpg" />);
       expect(container.querySelector('img')).toBeInTheDocument();
     });
 
     it('unmounts img when exiting view and unloadOnExit=true', () => {
-      mockInView = true;
       const { container, rerender } = render(
         <ImageViewer url="https://example.com/a.jpg" unloadOnExit />,
       );
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('img')).toBeInTheDocument();
 
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<ImageViewer url="https://example.com/a.jpg" unloadOnExit />);
       expect(container.querySelector('img')).not.toBeInTheDocument();
     });
 
     it('does not unmount img when unloadOnExit=true but priority=true', () => {
-      mockInView = true;
       const { container, rerender } = render(
         <ImageViewer url="https://example.com/a.jpg" unloadOnExit priority />,
       );
+      mockAllIsIntersecting(0.01);
       expect(container.querySelector('img')).toBeInTheDocument();
 
-      mockInView = false;
+      mockAllIsIntersecting(false);
       rerender(<ImageViewer url="https://example.com/a.jpg" unloadOnExit priority />);
       expect(container.querySelector('img')).toBeInTheDocument();
     });

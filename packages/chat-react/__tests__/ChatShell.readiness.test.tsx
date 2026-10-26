@@ -2,35 +2,19 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render } from '@testing-library/react';
 import type { ChatCoreConfig } from '../src/types.js';
 import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
+import { realtimeMessagesResult } from './helpers/hook-results.js';
 
-const mockRealtimeResult: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
-vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
-  useRealtimeChatMessages: () => mockRealtimeResult.current,
-}));
+const mockRealtimeResult: { current: UseRealtimeChatMessagesResult } = {
+  current: realtimeMessagesResult(),
+};
+vi.mock('../src/realtime/useRealtimeChatMessages.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/realtime/useRealtimeChatMessages.js')>({
+    useRealtimeChatMessages: () => mockRealtimeResult.current,
+  });
+});
 
 import { ChatShell } from '../src/ui/ChatShell.js';
-
-function result(
-  overrides: Partial<UseRealtimeChatMessagesResult>,
-): Partial<UseRealtimeChatMessagesResult> {
-  return {
-    allowed: true,
-    isInitialLoading: false,
-    initialLoadFailed: false,
-    isSynced: true,
-    retry: () => {},
-    messages: [],
-    fetchOlder: async () => {},
-    hasOlder: false,
-    isFetchingOlder: false,
-    send: () => true,
-    readAck: () => true,
-    status: 'open',
-    typing: [],
-    signalTyping: () => {},
-    ...overrides,
-  };
-}
 
 const config = (allowed = true): ChatCoreConfig => ({
   transport: 'realtime',
@@ -47,7 +31,7 @@ const config = (allowed = true): ChatCoreConfig => ({
 const lastReadiness = (spy: Mock<(ready: boolean) => void>) => spy.mock.calls.at(-1)?.[0];
 
 beforeEach(() => {
-  mockRealtimeResult.current = result({});
+  mockRealtimeResult.current = realtimeMessagesResult({});
 });
 
 describe('ChatShell — onReadinessChange', () => {
@@ -58,7 +42,7 @@ describe('ChatShell — onReadinessChange', () => {
     ['loaded before a disconnect', { isSynced: false, status: 'reconnecting' as const }],
     ['denied by the grant', { allowed: false, isSynced: false }],
   ])('is not ready while %s', (_case, overrides) => {
-    mockRealtimeResult.current = result(overrides);
+    mockRealtimeResult.current = realtimeMessagesResult(overrides);
     const onReadinessChange = vi.fn<(ready: boolean) => void>();
     render(
       <ChatShell
@@ -93,7 +77,7 @@ describe('ChatShell — onReadinessChange', () => {
     );
     expect(lastReadiness(onReadinessChange)).toBe(true);
 
-    mockRealtimeResult.current = result({ isSynced: false, status: 'reconnecting' });
+    mockRealtimeResult.current = realtimeMessagesResult({ isSynced: false, status: 'reconnecting' });
     view.rerender(
       <ChatShell
         config={config()}

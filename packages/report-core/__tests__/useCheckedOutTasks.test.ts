@@ -1,24 +1,25 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { FirestoreProvider } from '@ttt-productions/query-core/react';
+import {
+  firestoreError,
+  type ClientReadPredicate,
+} from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import React from 'react';
 
-const mocks = vi.hoisted(() => ({
-  useFirestoreCollection: vi.fn(),
-  whereFn: vi.fn((field: string, op: string, value: unknown) => ({ field, op, value })),
-  orderByFn: vi.fn((field: string, dir: string) => ({ field, dir })),
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-vi.mock('@ttt-productions/query-core/react', async (importOriginal) => ({
-  useFirestoreCollection: mocks.useFirestoreCollection,
-  useReadRetryState: (await importOriginal<typeof import('@ttt-productions/query-core/react')>())
-    .useReadRetryState,
-}));
-vi.mock('firebase/firestore', () => ({
-  where: mocks.whereFn,
-  orderBy: mocks.orderByFn,
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
 import { useCheckedOutTasks } from '../src/react/hooks/useCheckedOutTasks.js';
 import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
@@ -43,102 +44,134 @@ const config: ReportCoreConfig = {
   reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 4000 }),
 };
 
+let client: QueryClient;
+
 function wrapper({ children }: { children: React.ReactNode }) {
-  return React.createElement(ReportCoreProvider, { config, submitReportFn: vi.fn(), children });
+  return React.createElement(
+    QueryClientProvider,
+    { client },
+    React.createElement(FirestoreProvider, {
+      db: store.db,
+      children: React.createElement(ReportCoreProvider, {
+        config,
+        submitReportFn: vi.fn(),
+        children,
+      }),
+    }),
+  );
 }
 
+const listensToTasks: ClientReadPredicate = (read) => read.listen && read.path === 'adminTasks';
+
 beforeEach(() => {
-  vi.clearAllMocks();
-  mocks.useFirestoreCollection.mockReturnValue({
-    data: [],
-    isLoading: false,
-    error: null,
-  });
+  store.reset();
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 });
 
 describe('useCheckedOutTasks — the failure held through its restart', () => {
-  it('is loading before the first snapshot', () => {
-    mocks.useFirestoreCollection.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isFetching: true,
-      error: null,
-    });
+  it('is loading before the first snapshot', async () => {
+    store.beforeRead(listensToTasks, () => new Promise<void>(() => {}));
     const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
+    await waitFor(() => expect(store.queries()).toHaveLength(1));
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: true });
   });
 
-  it('keeps a failed listener failed, with its retry pending, while the restart reconnects', () => {
-    const failure = new Error('denied');
-    const refetch = vi.fn();
-    mocks.useFirestoreCollection.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isFetching: false,
-      error: failure,
-      refetch,
-    });
-    const { result, rerender } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
-    expect(result.current.retryState).toEqual({
-      error: failure,
-      isRetrying: false,
-      isLoading: false,
-    });
-    expect(result.current.refetch).toBe(refetch);
+  it('keeps a failed listener failed, with its retry pending, while the restart reconnects', async () => {
+    const failure = firestoreError('unavailable', 'The service is currently unavailable.');
+    store.failReads(listensToTasks, failure);
+    const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
+    await waitFor(() =>
+      expect(result.current.retryState).toEqual({
+        error: failure,
+        isRetrying: false,
+        isLoading: false,
+      }),
+    );
 
-    mocks.useFirestoreCollection.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isFetching: true,
-      error: null,
-      refetch,
+    store.reset();
+    let reconnect: () => void = () => {};
+    store.beforeRead(
+      listensToTasks,
+      () =>
+        new Promise<void>((resolve) => {
+          reconnect = resolve;
+        }),
+    );
+    act(() => {
+      void result.current.refetch();
     });
-    rerender();
-    expect(result.current.retryState).toEqual({
-      error: failure,
-      isRetrying: true,
-      isLoading: false,
-    });
+    await waitFor(() =>
+      expect(result.current.retryState).toEqual({
+        error: failure,
+        isRetrying: true,
+        isLoading: false,
+      }),
+    );
+    expect(store.queries()).toEqual([
+      expect.objectContaining({ listen: true, path: 'adminTasks' }),
+    ]);
 
-    mocks.useFirestoreCollection.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      error: null,
-      refetch,
-    });
-    rerender();
-    expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: false });
+    act(() => reconnect());
+    await waitFor(() =>
+      expect(result.current.retryState).toEqual({
+        error: null,
+        isRetrying: false,
+        isLoading: false,
+      }),
+    );
+    expect(result.current.data).toEqual([]);
   });
 });
 
 describe('useCheckedOutTasks', () => {
-  it('subscribes (realtime, no poll) to the admin tasks scoped to the user', () => {
-    renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
-    const opts = mocks.useFirestoreCollection.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.collectionPath).toBe('adminTasks');
-    expect(opts.subscribe).toBe(true);
-    expect(opts.enabled).toBe(true);
-    expect(opts.queryKey).toEqual(['report-core', 'checkedOutTasks', 'admin-1']);
-    expect(opts.constraints).toHaveLength(4);
-    expect(mocks.whereFn).toHaveBeenCalledWith('checkoutDetails.userId', '==', 'admin-1');
-    expect(mocks.whereFn).toHaveBeenCalledWith('status', 'in', ['checkedOut', 'workLater']);
+  it('subscribes (realtime, no poll) to the admin tasks scoped to the user', async () => {
+    const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
+    await waitFor(() => expect(result.current.data).toEqual([]));
+    expect(store.queries()).toEqual([
+      {
+        kind: 'query',
+        listen: true,
+        path: 'adminTasks',
+        group: false,
+        filters: [
+          { field: 'checkoutDetails.userId', op: '==', value: { t: 'str', v: 'admin-1' } },
+          {
+            field: 'status',
+            op: 'in',
+            value: {
+              t: 'arr',
+              v: [
+                { t: 'str', v: 'checkedOut' },
+                { t: 'str', v: 'workLater' },
+              ],
+            },
+          },
+        ],
+        orders: [
+          { field: 'priority', direction: 'desc' },
+          { field: 'createdAt', direction: 'asc' },
+        ],
+        limit: Infinity,
+        limitToLast: false,
+        includeMetadataChanges: true,
+      },
+    ]);
+    expect(
+      client
+        .getQueryCache()
+        .find({ queryKey: ['report-core', 'checkedOutTasks', 'admin-1'], exact: true }),
+    ).toBeDefined();
   });
 
-  it('is disabled with no constraints when there is no user', () => {
-    renderHook(() => useCheckedOutTasks(undefined), { wrapper });
-    const opts = mocks.useFirestoreCollection.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.enabled).toBe(false);
-    expect(opts.constraints).toHaveLength(0);
+  it('reads nothing when there is no user', async () => {
+    const { result } = renderHook(() => useCheckedOutTasks(undefined), { wrapper });
+    await act(async () => {});
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(store.queries()).toEqual([]);
   });
 
-  it('maps a raw task doc to CheckedOutTask (defaults workLaterUntil to null)', () => {
-    renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
-    const opts = mocks.useFirestoreCollection.mock.calls.at(-1)![0] as {
-      select: (d: Record<string, unknown>) => Record<string, unknown>;
-    };
-    const mapped = opts.select({
-      id: 't1',
+  it('maps a raw task doc to CheckedOutTask (defaults workLaterUntil to null)', async () => {
+    store.seed('adminTasks/t1', {
       taskType: 'userReport',
       taskId: 'r1',
       originalPath: 'p/1',
@@ -149,7 +182,9 @@ describe('useCheckedOutTasks', () => {
       createdAt: 1,
       lastUpdatedAt: 1,
     });
-    expect(mapped).toMatchObject({
+    const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    expect(result.current.data?.[0]).toMatchObject({
       id: 't1',
       taskType: 'userReport',
       checkoutDetails: { workLaterUntil: null },

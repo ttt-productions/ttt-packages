@@ -18,6 +18,7 @@ const FACTS: EntryPurityFacts = {
     { subpath: 'server', runtime: 'node' },
   ],
   exceptions: [],
+  testRunnerSegment: 'testing',
 };
 
 const ENTRIES = { '.': 'index', './react': 'react/index', './server': 'server/index' };
@@ -203,9 +204,11 @@ describe('entry purity', () => {
         packagesFolder: '',
         runtimeSubpaths: [{ subpath: 'react/x', runtime: 'gui' }],
         exceptions: [{ entry: '@acme/kit', runtime: 'node', why: '' }],
+        testRunnerSegment: 'server/testing',
       }),
     ).toEqual([
       'packagesFolder is missing',
+      'testRunnerSegment names no single subpath segment',
       'a runtimeSubpaths entry names no single subpath segment',
       'runtimeSubpaths entry react/x names no runtime (node, react, browser, style)',
       'exceptions entry @acme/kit carries no why',
@@ -225,6 +228,29 @@ describe('entries load under Node', () => {
     };
     expect(await loads(packageRepo(build))).toEqual([
       'packages/kit/dist/index.js — @acme/kit does not load under Node: TypeError: version table missing',
+    ]);
+  });
+
+  it('never load a test-runner entry, which evaluates only inside the test runner', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/server/testing/index.js':
+        "throw new Error('Vitest mocker was not initialized in this environment.');",
+      'dist/server/testing/index.d.ts': 'export {};',
+    };
+    const entries = { ...ENTRIES, './server/testing': 'server/testing/index' };
+    expect(await loads(packageRepo(build, {}, entries))).toEqual([]);
+  });
+
+  it('load a Node entry whose last segment only resembles the test-runner segment', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/testing/index.js': "throw new TypeError('not a test-runner entry');",
+      'dist/testing/index.d.ts': 'export {};',
+    };
+    const entries = { ...ENTRIES, './testing': 'testing/index' };
+    expect(await loads(packageRepo(build, {}, entries))).toEqual([
+      'packages/kit/dist/testing/index.js — @acme/kit/testing does not load under Node: TypeError: not a test-runner entry',
     ]);
   });
 

@@ -34,7 +34,11 @@ When a media element (image/video/audio) fails to load for an asset that the app
 ### Diagnostic adapter interface
 
 ```ts
-import type { MediaDiagnosticAdapter, DiagnosisResult, AssetStatusHint } from "@ttt-productions/media-viewer";
+import type {
+  MediaDiagnosticAdapter,
+  DiagnosisResult,
+  AssetStatusHint,
+} from '@ttt-productions/media-viewer';
 
 interface MediaDiagnosticAdapter {
   /**
@@ -51,9 +55,9 @@ interface MediaDiagnosticAdapter {
 }
 
 type DiagnosisResult =
-  | { kind: "transient" }   // may load on a later try — back off and retry
-  | { kind: "auth" }        // refresh session/grant once, then retry
-  | { kind: "hard" };       // will not load — no retry
+  | { kind: 'transient' } // may load on a later try — back off and retry
+  | { kind: 'auth' } // refresh session/grant once, then retry
+  | { kind: 'hard' }; // will not load — no retry
 ```
 
 ### Asset status hint
@@ -62,26 +66,26 @@ An optional `AssetStatusHint` lets the app communicate the server-side lifecycle
 
 ```ts
 type AssetStatusHint =
-  | "processing"   // moderation/transcode running — show skeleton, no probe
-  | "finalizing"   // activating/publishing — show spinner, no probe
-  | "live"         // published and expected to be servable — recovery applies
-  | "failed"       // terminal processing failure — immediate hard error
-  | "rejected";    // moderation rejection — immediate hard error
+  | 'processing' // moderation/transcode running — show skeleton, no probe
+  | 'finalizing' // activating/publishing — show spinner, no probe
+  | 'live' // published and expected to be servable — recovery applies
+  | 'failed' // terminal processing failure — immediate hard error
+  | 'rejected'; // moderation rejection — immediate hard error
 ```
 
 ### Recovery states
 
-| Phase | Description |
-|---|---|
-| `idle` | No error yet |
-| `loading` | Remount in progress (after manual retry) |
-| `processing` | App hint: still processing — show skeleton |
-| `finalizing` | App hint: activating/publishing — show spinner |
-| `loaded` | Element load/decode event fired successfully |
-| `transient-retry` | Waiting for next backoff step (includes `attempt` + `nextRetryMs`) |
-| `auth-retry` | Refreshing session/grant (happens at most once) |
-| `hard-unavailable` | No retry — blocked, rejected, auth exhausted (includes optional `reason`) |
-| `max-wait-fallback` | ~120 s budget exhausted — show manual Retry button |
+| Phase               | Description                                                               |
+| ------------------- | ------------------------------------------------------------------------- |
+| `idle`              | No error yet                                                              |
+| `loading`           | Remount in progress (after manual retry)                                  |
+| `processing`        | App hint: still processing — show skeleton                                |
+| `finalizing`        | App hint: activating/publishing — show spinner                            |
+| `loaded`            | Element load/decode event fired successfully                              |
+| `transient-retry`   | Waiting for next backoff step (includes `attempt` + `nextRetryMs`)        |
+| `auth-retry`        | Refreshing session/grant (happens at most once)                           |
+| `hard-unavailable`  | No retry — blocked, rejected, auth exhausted (includes optional `reason`) |
+| `max-wait-fallback` | ~120 s budget exhausted — show manual Retry button                        |
 
 ### Backoff schedule
 
@@ -102,31 +106,35 @@ Multiple instances of the same asset URL share one recovery cycle. Each instance
 ### MediaPreview with recovery (additive props)
 
 ```tsx
-import { MediaPreview } from "@ttt-productions/media-viewer/react";
-import type { MediaDiagnosticAdapter } from "@ttt-productions/media-viewer";
+import { MediaPreview } from '@ttt-productions/media-viewer/react';
+import type { MediaDiagnosticAdapter } from '@ttt-productions/media-viewer';
 
 // App implements the adapter; package remains generic.
 const appAdapter: MediaDiagnosticAdapter = {
   probe: async (url) => {
     try {
-      const res = await fetch(url, { method: "HEAD", credentials: "include", cache: "no-store" });
-      if (res.status === 401 || res.status === 403) return { kind: "auth" };
-      if (res.status === 410) return { kind: "hard" };
-      return { kind: "transient" };
+      const res = await fetch(url, { method: 'HEAD', credentials: 'include', cache: 'no-store' });
+      if (res.status === 401 || res.status === 403) return { kind: 'auth' };
+      if (res.status === 410) return { kind: 'hard' };
+      return { kind: 'transient' };
     } catch {
-      return { kind: "transient" };
+      return { kind: 'transient' };
     }
   },
-  refreshSession: async () => { /* the app refreshes its session */ },
-  refreshGrant: async (url) => { /* the app refreshes its grant for url */ },
+  refreshSession: async () => {
+    /* the app refreshes its session */
+  },
+  refreshGrant: async (url) => {
+    /* the app refreshes its grant for url */
+  },
 };
 
 <MediaPreview
   url={thumbnailUrl}
   type="image"
   recoveryAdapter={appAdapter}
-  assetStatusHint={publicationState === "live" ? "live" : "finalizing"}
-/>
+  assetStatusHint={publicationState === 'live' ? 'live' : 'finalizing'}
+/>;
 ```
 
 The `recoveryAdapter` and `assetStatusHint` props are **additive and optional**. When omitted, `MediaPreview` behaves exactly as before (load error → static `ErrorFallback`).
@@ -136,14 +144,14 @@ The `recoveryAdapter` and `assetStatusHint` props are **additive and optional**.
 For custom media rendering outside `MediaPreview`:
 
 ```tsx
-import { useMediaRecovery } from "@ttt-productions/media-viewer/react";
+import { useMediaRecovery } from '@ttt-productions/media-viewer/react';
 
 const { recoveryState, onMediaError, onMediaLoad, manualRetry } = useMediaRecovery({
   url: mediaUrl,
   adapter: appAdapter,
   isElementVisible: visible, // from the element's own observer; omitted = visible
-  statusHint: "live",
-  onRemount: () => setRemountKey(k => k + 1),
+  statusHint: 'live',
+  onRemount: () => setRemountKey((k) => k + 1),
 });
 ```
 
@@ -156,14 +164,14 @@ Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (for v
 The package owns the single audio control surface used by every audio render: play/pause, seek, time readout, mute/volume, and a visualizer panel (oscilloscope `line` or frequency `bars`) with minimize and mode toggles — both persisted to localStorage. Browser-native audio controls are not exposed, so callers cannot accidentally render a different player.
 
 ```tsx
-import { AudioPlayer } from "@ttt-productions/media-viewer/react";
+import { AudioPlayer } from '@ttt-productions/media-viewer/react';
 
 <AudioPlayer
   url={audioUrl}
-  visualizerMode="bars"            // initial mode; a persisted user choice wins
-  persistKey="mv-audio-player"     // localStorage key base; null disables persistence
-  extraActions={<ShareButton />}   // app-injected buttons at the end of the control row
-/>
+  visualizerMode="bars" // initial mode; a persisted user choice wins
+  persistKey="mv-audio-player" // localStorage key base; null disables persistence
+  extraActions={<ShareButton />} // app-injected buttons at the end of the control row
+/>;
 ```
 
 Equivalent forms: `<AudioViewer …/>`, or through the router as `<MediaPreview type="audio" audioVisualizerMode=… audioPersistKey=… audioExtraActions=… />`. All the Playback API props (below) work unchanged.
@@ -184,8 +192,8 @@ type), so a consumer can render plain, non-zooming image surfaces app-wide from 
 Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (RULE-STD-MEDIA-102). `MediaPlaybackControls` is exported from the package root; `MediaPlaybackProps`, like every props type that carries a React type, is exported from `./react`.
 
 ```tsx
-import type { MediaPlaybackControls } from "@ttt-productions/media-viewer";
-import { MediaPreview } from "@ttt-productions/media-viewer/react";
+import type { MediaPlaybackControls } from '@ttt-productions/media-viewer';
+import { MediaPreview } from '@ttt-productions/media-viewer/react';
 
 const controls = React.useRef<MediaPlaybackControls>(null);
 
@@ -197,16 +205,16 @@ const controls = React.useRef<MediaPlaybackControls>(null);
   onProgressSample={(t, dur) => persistPosition(t, dur)}
   endOverlay={<NextUpCard onReplay={() => controls.current?.restart()} />}
   playbackControlsRef={controls}
-/>
+/>;
 ```
 
-| Prop | Contract |
-|---|---|
-| `onEnded?: () => void` | Fires on the native `ended` event (cursor at duration). With `loop` set, the browser restarts natively and emits **no** `ended` event, so `onEnded` never fires in loop mode. |
-| `onProgressSample?: (currentTimeSeconds, durationSeconds, reason) => void` | Position reporting; every sample carries the `MediaProgressSampleReason` it was emitted for. See the sample protocol below. `durationSeconds` is `0` until duration is known. |
-| `startAtSeconds?: number` | Initial position, applied once the element has metadata (clamped to duration). **May arrive late:** apps commonly source it from an async prefs read that resolves after the viewer mounted, so a value that appears while playback has not yet begun is adopted and applied to the already-loaded element. Once real playback has begun (or a position is already tracked) a later value is ignored — a late prefs value never yanks playing media. **Survives the `unloadOnExit` unload/remount cycle:** once playback has started the viewer tracks the live position internally and resumes the remounted element from the LAST KNOWN position — it does not re-apply `startAtSeconds` and does not restart at 0. |
-| `endOverlay?: React.ReactNode` | Rendered as an overlay covering the media area when the media has ended; removed when playback restarts (native replay or imperative `restart()`). Only mounted (and only intercepts pointer events) while shown, and layered above the element (`z-index: 2`). It is part of normal document flow, so on native-fullscreen **exit** it reappears over the inline element (it is not injected into the browser's fullscreen layer). |
-| `playbackControlsRef?: React.Ref<MediaPlaybackControls>` | Imperative handle: `restart()` seeks to 0, clears the overlay, and plays; `seekTo(seconds)` seeks (clamped to `[0, duration]`). |
+| Prop                                                                       | Contract                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onEnded?: () => void`                                                     | Fires on the native `ended` event (cursor at duration). With `loop` set, the browser restarts natively and emits **no** `ended` event, so `onEnded` never fires in loop mode.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `onProgressSample?: (currentTimeSeconds, durationSeconds, reason) => void` | Position reporting; every sample carries the `MediaProgressSampleReason` it was emitted for. See the sample protocol below. `durationSeconds` is `0` until duration is known.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `startAtSeconds?: number`                                                  | Initial position, applied once the element has metadata (clamped to duration). **May arrive late:** apps commonly source it from an async prefs read that resolves after the viewer mounted, so a value that appears while playback has not yet begun is adopted and applied to the already-loaded element. Once real playback has begun (or a position is already tracked) a later value is ignored — a late prefs value never yanks playing media. **Survives the `unloadOnExit` unload/remount cycle:** once playback has started the viewer tracks the live position internally and resumes the remounted element from the LAST KNOWN position — it does not re-apply `startAtSeconds` and does not restart at 0. |
+| `endOverlay?: React.ReactNode`                                             | Rendered as an overlay covering the media area when the media has ended; removed when playback restarts (native replay or imperative `restart()`). Only mounted (and only intercepts pointer events) while shown, and layered above the element (`z-index: 2`). It is part of normal document flow, so on native-fullscreen **exit** it reappears over the inline element (it is not injected into the browser's fullscreen layer).                                                                                                                                                                                                                                                                                   |
+| `playbackControlsRef?: React.Ref<MediaPlaybackControls>`                   | Imperative handle: `restart()` seeks to 0, clears the overlay, and plays; `seekTo(seconds)` seeks (clamped to `[0, duration]`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 The `PROGRESS_SAMPLE_INTERVAL_MS` and `LATE_RESUME_ADOPT_WINDOW_SEC` constants and a low-level `useMediaPlayback` hook (for custom video/audio rendering) are exported from `@ttt-productions/media-viewer/react`. Consumers reasoning about the resume window import the constant rather than restating `3`.
 
@@ -240,12 +248,12 @@ that never attaches keeps the previous ungated behavior.
 argument of every `onProgressSample` call. The reason is what tells a consumer whether a sample may
 be coalesced or must be committed:
 
-| Reason | Emitted by | Consumer contract |
-|---|---|---|
-| `periodic` | throttled `timeupdate` while playing | A rolling position report — safe to throttle, coalesce, or drop. |
-| `pause` | native `pause` | Exact moment; commit it. |
-| `seeked` | native `seeked` — user seeks AND the programmatic initial-resume seek | Exact moment; commit it. |
-| `ended` | native `ended` | Final position; commit it. |
+| Reason     | Emitted by                                                            | Consumer contract                                                |
+| ---------- | --------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `periodic` | throttled `timeupdate` while playing                                  | A rolling position report — safe to throttle, coalesce, or drop. |
+| `pause`    | native `pause`                                                        | Exact moment; commit it.                                         |
+| `seeked`   | native `seeked` — user seeks AND the programmatic initial-resume seek | Exact moment; commit it.                                         |
+| `ended`    | native `ended`                                                        | Final position; commit it.                                       |
 
 **Pre-seed periodic suppression.** While no `startAtSeconds` seed has been adopted and the element
 is still within `LATE_RESUME_ADOPT_WINDOW_SEC` of the start, `periodic` samples are not emitted at
@@ -262,13 +270,13 @@ The third argument is additive: an existing two-argument callback stays source-c
 
 The built-in `MediaPreview` recovery overlay uses these CSS classes (all optional to style):
 
-| Class | Phase |
-|---|---|
-| `.mv-recovery-processing` | processing |
-| `.mv-recovery-finalizing` | finalizing |
-| `.mv-recovery-retrying` | transient-retry |
-| `.mv-recovery-auth` | auth-retry |
-| `.mv-recovery-hard` | hard-unavailable |
-| `.mv-recovery-max-wait` | max-wait-fallback |
-| `.mv-recovery-retry-btn` | Manual Retry button |
-| `.mv-recovery-label` | Text label inside any overlay |
+| Class                     | Phase                         |
+| ------------------------- | ----------------------------- |
+| `.mv-recovery-processing` | processing                    |
+| `.mv-recovery-finalizing` | finalizing                    |
+| `.mv-recovery-retrying`   | transient-retry               |
+| `.mv-recovery-auth`       | auth-retry                    |
+| `.mv-recovery-hard`       | hard-unavailable              |
+| `.mv-recovery-max-wait`   | max-wait-fallback             |
+| `.mv-recovery-retry-btn`  | Manual Retry button           |
+| `.mv-recovery-label`      | Text label inside any overlay |

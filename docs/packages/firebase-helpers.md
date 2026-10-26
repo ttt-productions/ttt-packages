@@ -14,6 +14,7 @@ Generic Firebase helper package.
 - Generic file-url helper `getFileNameFromUrl`
 - Firestore's `in`-filter cap, `FIRESTORE_IN_FILTER_LIMIT` (30 values in one `in`, `not-in`, or `array-contains-any` filter), beside `chunk`, which splits an id list into one read per chunk of that size. It is a Firestore platform limit, so every chunked `in` read in either app or a package splits by this one constant, never its own `30`.
 - Generic callable hook/client helpers on `./react` (`useCallableMutation`, `createCallableClient`)
+- The Firebase test kits every app's tests run on, one per runtime (below)
 - The designed-refusal readers on the root, beside `isExpectedCallableAnswerCode`: `callableRefusalCode` (the bare expected-answer code of a refusal, either wire form, or null) and `callableRefusalReason` (a `failed-precondition` refusal's `details.reason` when it is one of the caller's reasons, or null) — a refusal is told apart by its code and `details.reason`, never its message
 
 ## Boundary
@@ -68,6 +69,40 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   account's `user_id` and the app's user properties under consent, and clears both when the session
   ends, the account changes (before it attaches the next), or consent is withdrawn.
 
+## The test kits (`./server/testing`, `./firestore-client/testing`)
+
+Both run under Vitest (an optional peer) and load the real SDK through `vi.importActual`, so a
+suite's own `vi.mock` of the SDK can hand the kit's functions out.
+
+- **`./server/testing`** — the Admin SDK side. `makeInMemoryFirestore()` is a real `Firestore`
+  over an in-memory store: queries with every filter, order, cursor, and `count()` / `select()` /
+  aggregates, batches, and transactions with read-before-write and contention retry; it keeps
+  stored `Timestamp`s, logs each query's filters and orders, carries per-document update times, and
+  refuses a stale `delete({ lastUpdateTime })`, with test hooks to fail or hold reads, queries, and
+  commits. `FieldValueSentinel` is the `FieldValue` it applies (its statics are spies, and the
+  values it does not apply throw). `testAdminApp()` is one Admin app whose Auth and Storage reach a
+  closed local port with no credential, so a case spies the call it needs and an unspied one fails
+  at once instead of calling Google.
+- **`./firestore-client/testing`** — the client SDK side. `makeInMemoryClientFirestore()` answers
+  `getDoc`, `getDocFromServer`, `getDocs`, `getDocsFromServer`, `getCountFromServer`, and
+  `onSnapshot` (every overload) from seeded documents, typed exactly as `firebase/firestore`'s, so
+  a suite mocks only those reads and builds every reference and query with the real SDK — an
+  invalid query fails as in production. It evaluates the real query (each filter operator,
+  composite filters, the normalized order with documents missing an order field left out,
+  `limit` / `limitToLast`, and cursors), and answers real SDK snapshots built from Firestore's
+  bundle format, with the reference's converter, `fromCache` false, and real `Timestamp`s, so a
+  snapshot it answers works as a `startAfter` cursor. A live listener answers after the call
+  returns and again on every change to its result. Hooks fail a read (`FirestoreError`
+  `unavailable` by default), break a live listener the way the SDK ends one (`failListeners`: its
+  error callback once, nothing after), answer matching listeners from cache until switched back
+  (`answerFromCache` / `answerFromServer` — a listener that asked for metadata changes hears each
+  switch, as in the SDK), hold a read's answer, or run after it — `firestoreError(code,
+  message)` builds the SDK's own error for them — and `queries()` logs every read's path, filters,
+  orders, limit, and whether a listener asked for metadata changes, for a case whose rule is the
+  query's shape. The SDK's built query, its missing-document and count snapshots, and a cached
+  answer's metadata have no public reader or constructor, so one module reads them, and its test
+  fails the moment an SDK upgrade changes them.
+
 ## Callable invocation contract
 
 `callCallable(getFunctions, functionName, data?, callbacks?, transport?)` is the ONE invocation primitive (`useCallableMutation` delegates to it). `useCallableMutation().isLoading` is true while ANY call from that hook instance is in flight — overlapping calls keep it true until the last one settles, and every call, a failed one included, settles it. It is instance-wide, not per action: a control that needs its own in-progress state takes it from its own action. The primitive owns:
@@ -87,7 +122,7 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   timer BEFORE the SDK is invoked (the SDK's own `timeout` starts only after its token phase, so
   a stalled token mint is otherwise unbounded) and also forwards the value to the
   SDK's `timeout` option. Expiry rejects with a Firebase-shaped error, `code:
-  "functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
+"functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
   commit, so callers treat the outcome as UNKNOWN, never as a definite failure, and never
   auto-retry a mutation on it. The package ships NO default; the consuming app owns the policy
   value and threads it via `useCallableMutation({ timeoutMs })` / `createCallableClient`
@@ -105,7 +140,7 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   normal `captureException` + `onError` + rethrow tail exactly once. No other error class
   retries, and a call that did not request limited-use never does. The fallback itself is
   reported through `captureException` with `{ functionName, timeoutMs, limitedUseAppCheckFallback:
-  true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
+true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
   the app's decision, made through its policy's `resolveLimitedUseAppCheck`.
 - **The App Check throttle predicate** — `isAppCheckThrottleError(error)` is exported from the
   server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error
@@ -126,7 +161,9 @@ Backend code should prefer `@ttt-productions/firebase-helpers/server` when it ne
 The root is pure/server-safe — pure path, timestamp, and chunking helpers that never load a browser Firebase runtime. Client-only and Admin-only runtimes live behind explicit subpaths.
 
 - `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer and App Check throttle classifiers, the designed-refusal readers); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import. The names typed on `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`, `formatDateDisplay`) live on `./firestore-client` too, so the root's declaration files reach no Firebase type.
+- `./server/testing` — the Admin SDK test kit (above); Node and Vitest only.
 - `./server` — Admin SDK init helper, server-only handles, the Admin-SDK batch and Timestamp helpers, and the server Firestore contract (types only). The universal helpers (`chunk`, the Firestore types, `toMillis` / `toDate`, `getFileNameFromUrl`) are root-only; backend code imports them from `.`.
 - `./react` — generic callable hook/client primitives (`useCallableMutation`, `createCallableClient`) and the Firebase Analytics React pieces; no react-query.
 - `./client` — the Firebase **client** setup, `callCallable`, and `isRecoveredFallbackReport` (browser runtime).
 - `./firestore-client` — client Firestore helpers (browser runtime) and the Firestore-typed names above.
+- `./firestore-client/testing` — the client Firestore test kit (above); Vitest only.

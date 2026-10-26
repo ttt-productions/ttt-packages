@@ -2,33 +2,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import type { ChatCoreConfig } from '../src/types.js';
 import type { UseRealtimeChatMessagesResult } from '../src/realtime/useRealtimeChatMessages.js';
+import { realtimeMessagesResult } from './helpers/hook-results.js';
 
 // `mock`-prefixed so vitest allows referencing it inside the hoisted factory.
-const mockRealtimeResult: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
-vi.mock('../src/realtime/useRealtimeChatMessages.js', () => ({
-  useRealtimeChatMessages: () => mockRealtimeResult.current,
-}));
+const mockRealtimeResult: { current: UseRealtimeChatMessagesResult } = {
+  current: realtimeMessagesResult(),
+};
+vi.mock('../src/realtime/useRealtimeChatMessages.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/realtime/useRealtimeChatMessages.js')>({
+    useRealtimeChatMessages: () => mockRealtimeResult.current,
+  });
+});
 
 import { ChatShell } from '../src/ui/ChatShell.js';
 
 function loadingResult(
   status: UseRealtimeChatMessagesResult['status'],
-): Partial<UseRealtimeChatMessagesResult> {
-  return {
-    allowed: true,
-    isInitialLoading: true,
-    initialLoadFailed: false,
-    retry: () => {},
-    messages: [],
-    fetchOlder: async () => {},
-    hasOlder: false,
-    isFetchingOlder: false,
-    send: () => true,
-    readAck: () => true,
-    status,
-    typing: [],
-    signalTyping: () => {},
-  };
+): UseRealtimeChatMessagesResult {
+  return realtimeMessagesResult({ isInitialLoading: true, isSynced: false, status });
 }
 
 function realtimeConfig(): ChatCoreConfig {

@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { spawnPiped } from './spawn-piped.js';
 
 export interface RunCmdResult {
   code: number;
@@ -44,7 +45,7 @@ export function runCmd(
   },
 ): Promise<RunCmdResult> {
   return new Promise((resolve, reject) => {
-    const p = spawn(cmd, args, { cwd: opts?.cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const p = spawnPiped(cmd, args, opts?.cwd);
 
     let stdout = '';
     let stderr = '';
@@ -164,7 +165,7 @@ export function runFfmpeg(args: string[], opts?: RunFfmpegOptions): Promise<RunC
   return new Promise((resolve, reject) => {
     if (opts?.signal?.aborted) return reject(abortError());
 
-    const p = spawn('ffmpeg', ffArgs, { cwd: opts?.cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const p = spawnPiped('ffmpeg', ffArgs, opts?.cwd);
 
     let stdout = '';
     let stderr = '';

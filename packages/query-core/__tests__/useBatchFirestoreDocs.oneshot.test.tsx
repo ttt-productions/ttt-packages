@@ -3,59 +3,28 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-type DocData = Record<string, unknown>;
-
-const { existingDocs, batchCalls, getDocsMock, failNextWith } = vi.hoisted(() => {
-  const existingDocs = new Map<string, DocData>();
-  const batchCalls: string[][] = [];
-  let pendingFailure: Error | null = null;
-
-  const getDocsMock = vi.fn((q: { __ids: string[] }) => {
-    batchCalls.push(q.__ids);
-    if (pendingFailure) {
-      const error = pendingFailure;
-      pendingFailure = null;
-      return Promise.reject(error);
-    }
-    return Promise.resolve({
-      forEach: (cb: (d: { id: string; data: () => DocData }) => void) => {
-        for (const id of q.__ids) {
-          const data = existingDocs.get(id);
-          if (data !== undefined) cb({ id, data: () => data });
-        }
-      },
-    });
-  });
-
-  const failNextWith = (error: Error) => {
-    pendingFailure = error;
-  };
-
-  return { existingDocs, batchCalls, getDocsMock, failNextWith };
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', () => ({
-  collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
-  query: (source: { __db: unknown; __path: string }, constraint: { __ids: string[] }) => ({
-    __db: source.__db,
-    __path: source.__path,
-    __ids: constraint.__ids,
-  }),
-  where: (_field: unknown, _op: unknown, ids: string[]) => ({ __ids: ids }),
-  documentId: () => '__name__',
-  getDocs: getDocsMock,
-  doc: () => ({}),
-  getDoc: async () => ({ exists: () => false }),
-  onSnapshot: vi.fn(),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
-import { testFirestore } from './helpers/test-firestore.js';
+import { batchReadIn, idsOf, readsMatching } from './helpers/batch-docs-reads.js';
+import { failNext } from './helpers/listener-controls.js';
+
+const batchReads = () => readsMatching(store, batchReadIn('publicUsers'));
+const batchCalls = () => batchReads().map(idsOf);
+const seed = (id: string, data: Record<string, unknown>) => store.seed(`publicUsers/${id}`, data);
 
 beforeEach(() => {
-  existingDocs.clear();
-  batchCalls.length = 0;
-  getDocsMock.mockClear();
+  store.reset();
 });
 
 function makeWrapper() {
@@ -88,7 +57,7 @@ function makeAppDefaultsWrapper() {
 }
 
 const baseOpts = {
-  db: testFirestore(),
+  db: store.db,
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   staleTime: 30 * 60 * 1000,
@@ -97,7 +66,7 @@ const baseOpts = {
 
 describe('useBatchFirestoreDocs — one-shot mode', () => {
   it('returns existing docs and excludes missing ones', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -110,7 +79,7 @@ describe('useBatchFirestoreDocs — one-shot mode', () => {
   });
 
   it('negative-caches missing ids as null', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(
@@ -130,7 +99,7 @@ describe('useBatchFirestoreDocs — one-shot mode', () => {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     first.unmount();
 
     const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'] }), {
@@ -138,12 +107,12 @@ describe('useBatchFirestoreDocs — one-shot mode', () => {
     });
     await waitFor(() => expect(second.result.current.isLoading).toBe(false));
     expect(second.result.current.data).toEqual({});
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
   });
 
   it('does not mutate the caller-supplied id array', async () => {
-    existingDocs.set('a', { v: 1 });
-    existingDocs.set('b', { v: 2 });
+    seed('a', { v: 1 });
+    seed('b', { v: 2 });
 
     const ids = ['b', 'a'];
     const { Wrapper } = makeWrapper();
@@ -159,8 +128,8 @@ describe('useBatchFirestoreDocs — one-shot mode', () => {
 
 describe('useBatchFirestoreDocs — per-id cache participation', () => {
   it('refetches on exact per-id invalidation while mounted', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
-    existingDocs.set('u2', { displayName: 'Bob' });
+    seed('u1', { displayName: 'Alice' });
+    seed('u2', { displayName: 'Bob' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
@@ -168,9 +137,9 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
 
-    existingDocs.set('u1', { displayName: 'Alice Smith' });
+    seed('u1', { displayName: 'Alice Smith' });
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ['publicUser', 'u1'], exact: true });
     });
@@ -178,13 +147,13 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     await waitFor(() =>
       expect(result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' }),
     );
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
-    expect(batchCalls[1]).toEqual(['u1']);
+    expect(batchReads()).toHaveLength(2);
+    expect(batchCalls()[1]).toEqual(['u1']);
     expect(result.current.data.u2).toMatchObject({ displayName: 'Bob' });
   });
 
   it('refetches on exact per-id invalidation even on an all-cache-hit mount', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
@@ -197,9 +166,9 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(second.result.current.data.u1).toBeTruthy());
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
 
-    existingDocs.set('u1', { displayName: 'Alice Smith' });
+    seed('u1', { displayName: 'Alice Smith' });
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ['publicUser', 'u1'], exact: true });
     });
@@ -207,11 +176,11 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
     await waitFor(() =>
       expect(second.result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' }),
     );
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
   });
 
   it('delivers one cache update to every consumer of that id', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const a = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
@@ -233,8 +202,8 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
   });
 
   it('refetch() re-reads every id on an all-cache-hit mount', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
-    existingDocs.set('u2', { displayName: 'Bob' });
+    seed('u1', { displayName: 'Alice' });
+    seed('u2', { displayName: 'Bob' });
 
     const { Wrapper } = makeWrapper();
     const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
@@ -247,16 +216,16 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(Object.keys(second.result.current.data)).toHaveLength(2));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
 
-    existingDocs.set('u1', { displayName: 'Alice Smith' });
-    existingDocs.set('u2', { displayName: 'Bobby' });
+    seed('u1', { displayName: 'Alice Smith' });
+    seed('u2', { displayName: 'Bobby' });
     await act(async () => {
       await second.result.current.refetch();
     });
 
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
-    expect(batchCalls[1].sort()).toEqual(['u1', 'u2']);
+    expect(batchReads()).toHaveLength(2);
+    expect(batchCalls()[1].sort()).toEqual(['u1', 'u2']);
     await waitFor(() =>
       expect(second.result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' }),
     );
@@ -264,21 +233,21 @@ describe('useBatchFirestoreDocs — per-id cache participation', () => {
   });
 
   it('is covered by an active-type refetchQueries', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
 
-    existingDocs.set('u1', { displayName: 'Alice Smith' });
+    seed('u1', { displayName: 'Alice Smith' });
     await act(async () => {
       await queryClient.refetchQueries({ type: 'active' });
     });
 
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
     await waitFor(() =>
       expect(result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' }),
     );
@@ -299,21 +268,21 @@ describe('useBatchFirestoreDocs — freshness on remount (app defaults)', () => 
   };
 
   it('a fresh remount fetches nothing', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper } = makeAppDefaultsWrapper();
     const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     first.unmount();
 
     const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(second.result.current.data.u1).toBeTruthy());
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
   });
 
   it('a stale ABSENT remount fetches (absentStaleTime is short)', async () => {
@@ -322,21 +291,21 @@ describe('useBatchFirestoreDocs — freshness on remount (app defaults)', () => 
       wrapper: Wrapper,
     });
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     first.unmount();
 
     advance(31_000);
 
-    existingDocs.set('ghost', { displayName: 'Arrived' });
+    seed('ghost', { displayName: 'Arrived' });
     const second = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'] }), {
       wrapper: Wrapper,
     });
     await waitFor(() => expect(second.result.current.data.ghost).toBeTruthy());
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
   });
 
   it('a stale PRESENT remount fetches', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper } = makeAppDefaultsWrapper();
     const first = renderHook(
@@ -344,12 +313,12 @@ describe('useBatchFirestoreDocs — freshness on remount (app defaults)', () => 
       { wrapper: Wrapper },
     );
     await waitFor(() => expect(first.result.current.isLoading).toBe(false));
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toHaveLength(1);
     first.unmount();
 
     advance(61_000);
 
-    existingDocs.set('u1', { displayName: 'Alice Smith' });
+    seed('u1', { displayName: 'Alice Smith' });
     const second = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, staleTime: 60_000, ids: ['u1'] }),
       { wrapper: Wrapper },
@@ -357,14 +326,18 @@ describe('useBatchFirestoreDocs — freshness on remount (app defaults)', () => 
     await waitFor(() =>
       expect(second.result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' }),
     );
-    expect(getDocsMock).toHaveBeenCalledTimes(2);
+    expect(batchReads()).toHaveLength(2);
   });
 });
 
 describe('useBatchFirestoreDocs — error semantics', () => {
   it('excludes an errored id from data while reporting isError', async () => {
     const { Wrapper } = makeWrapper();
-    failNextWith(new Error('permission-denied'));
+    failNext(
+      store,
+      batchReadIn('publicUsers'),
+      firestoreError('permission-denied', 'permission-denied'),
+    );
 
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
@@ -376,7 +349,7 @@ describe('useBatchFirestoreDocs — error semantics', () => {
   });
 
   it('stops exposing a previously readable doc once access to it fails', async () => {
-    existingDocs.set('u1', { displayName: 'Alice' });
+    seed('u1', { displayName: 'Alice' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
@@ -384,7 +357,11 @@ describe('useBatchFirestoreDocs — error semantics', () => {
     });
     await waitFor(() => expect(result.current.data.u1).toBeTruthy());
 
-    failNextWith(Object.assign(new Error('permission-denied'), { code: 'permission-denied' }));
+    failNext(
+      store,
+      batchReadIn('publicUsers'),
+      firestoreError('permission-denied', 'permission-denied'),
+    );
     await act(async () => {
       await queryClient.refetchQueries({ queryKey: ['publicUser', 'u1'], exact: true });
     });

@@ -2,7 +2,7 @@
 
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { QueryClient } from '@tanstack/react-query';
-import { isPermissionDeniedError } from './resubscribe.js';
+import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 
 type Subscriber = {
   onUpdate: () => void;
@@ -13,6 +13,7 @@ type Entry = {
   unsubscribe: () => void;
   subscribers: Set<Subscriber>;
   error: Error | null;
+  retryTimer: ReturnType<typeof setTimeout> | null;
 };
 
 const registries = new WeakMap<QueryClient, Map<string, Entry>>();
@@ -67,30 +68,43 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
       unsubscribe: () => {},
       subscribers: new Set<Subscriber>(),
       error: null,
+      retryTimer: null,
     };
     const subscribers = created.subscribers;
     const ref = doc(db, collectionPath, id);
-    created.unsubscribe = onSnapshot(
-      ref,
-      (snapshot) => {
-        created.error = null;
-        queryClient.setQueryData(
-          [queryKeyPrefix, id],
-          snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null,
-          { updatedAt: Date.now() },
-        );
-        // Copy before iterating: an onUpdate could (re-entrantly) unsubscribe.
-        for (const sub of [...subscribers]) sub.onUpdate();
-      },
-      (error) => {
-        created.error = error;
-        const held = queryClient.getQueryData([queryKeyPrefix, id]);
-        if (held === undefined || held === null || isPermissionDeniedError(error)) {
-          queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
-        }
-        for (const sub of [...subscribers]) sub.onError?.(error);
-      },
-    );
+    let attempt = 0;
+    // The SDK ends a listener on its first error, so a denied one is re-opened on the backoff
+    // `useFirestoreDoc` uses; its failure shows meanwhile, since a denied id reads as failed.
+    const listen = () => {
+      created.retryTimer = null;
+      created.unsubscribe = onSnapshot(
+        ref,
+        (snapshot) => {
+          attempt = 0;
+          created.error = null;
+          queryClient.setQueryData(
+            [queryKeyPrefix, id],
+            snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null,
+            { updatedAt: Date.now() },
+          );
+          // Copy before iterating: an onUpdate could (re-entrantly) unsubscribe.
+          for (const sub of [...subscribers]) sub.onUpdate();
+        },
+        (error) => {
+          created.error = error;
+          const held = queryClient.getQueryData([queryKeyPrefix, id]);
+          if (held === undefined || held === null || isPermissionDeniedError(error)) {
+            queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
+          }
+          if (isPermissionDeniedError(error) && attempt < RESUBSCRIBE_DELAYS_MS.length) {
+            created.retryTimer = setTimeout(listen, RESUBSCRIBE_DELAYS_MS[attempt]);
+            attempt += 1;
+          }
+          for (const sub of [...subscribers]) sub.onError?.(error);
+        },
+      );
+    };
+    listen();
     entry = created;
     registry.set(key, entry);
   }
@@ -107,6 +121,7 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
     if (!current) return;
     current.subscribers.delete(subscriber);
     if (current.subscribers.size === 0) {
+      if (current.retryTimer) clearTimeout(current.retryTimer);
       current.unsubscribe();
       registry.delete(key);
       if (current.error) {

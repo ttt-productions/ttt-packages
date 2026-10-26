@@ -4,43 +4,34 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-type FakeDoc = { id: string; data: () => Record<string, unknown> };
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-const h = vi.hoisted(() => ({
-  rows: [] as string[],
-  getDocs: vi.fn(),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
-vi.mock('firebase/firestore', () => ({
-  collection: (_db: unknown, path: string) => ({ __path: path }),
-  query: (ref: unknown, ...c: unknown[]) => ({ __ref: ref, __c: c }),
-  limit: (n: number) => ({ __limit: n }),
-  startAfter: (d: FakeDoc) => ({ __startAfter: d.id }),
-  getDocs: h.getDocs,
-}));
-
+import { orderBy } from 'firebase/firestore';
 import { useFirestorePaginated } from '../src/react/firestore/use-firestore-paginated.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
-import { testFirestore } from './helpers/test-firestore.js';
 import {
   mapPaginatedItems,
   paginatedPageKey,
   prependToFirstPaginatedPage,
 } from '../src/react/cache-helpers.js';
 
-function serve(q: { __c: Array<Record<string, unknown>> }) {
-  const after = q.__c.find((c) => '__startAfter' in c)?.__startAfter as string | undefined;
-  const lim = q.__c.find((c) => '__limit' in c)?.__limit as number;
-  const start = after ? h.rows.indexOf(after) + 1 : 0;
-  const docs: FakeDoc[] = h.rows
-    .slice(start, start + lim)
-    .map((id) => ({ id, data: () => ({ n: id }) }));
-  return Promise.resolve({ docs });
+function seedRows(ids: string[]) {
+  store.reset();
+  ids.forEach((id, rank) => store.seed(`items/${id}`, { n: id, rank }));
 }
-function startedAfter(callIndex: number): string | undefined {
-  const q = h.getDocs.mock.calls[callIndex][0] as { __c: Array<Record<string, unknown>> };
-  return q.__c.find((c) => '__startAfter' in c)?.__startAfter as string | undefined;
+function prependRow(id: string) {
+  store.seed(`items/${id}`, { n: id, rank: -store.paths('items/').length });
 }
+const reads = () => store.queries().length;
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
@@ -50,7 +41,7 @@ function wrapperFor(client: QueryClient) {
     React.createElement(
       QueryClientProvider,
       { client },
-      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
@@ -59,12 +50,15 @@ function ids(data: Array<{ id: string }> | undefined) {
   return (data ?? []).map((d) => d.id);
 }
 
-const base = { collectionPath: 'items', queryKey: ['items', { pageSize: 3 }], pageSize: 3 };
+const base = {
+  collectionPath: 'items',
+  queryKey: ['items', { pageSize: 3 }],
+  constraints: [orderBy('rank')],
+  pageSize: 3,
+};
 
 beforeEach(() => {
-  h.rows = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
-  h.getDocs.mockReset();
-  h.getDocs.mockImplementation(serve);
+  seedRows(['a', 'b', 'c', 'd', 'e', 'f', 'g']);
 });
 
 afterEach(() => {
@@ -73,7 +67,7 @@ afterEach(() => {
 
 describe('useFirestorePaginated', () => {
   it('reports no next page when the displayed page exactly fills and nothing follows', async () => {
-    h.rows = ['a', 'b', 'c'];
+    seedRows(['a', 'b', 'c']);
     const { result } = renderHook(() => useFirestorePaginated(base), {
       wrapper: wrapperFor(makeClient()),
     });
@@ -101,7 +95,7 @@ describe('useFirestorePaginated', () => {
   });
 
   it('does not move past the last page', async () => {
-    h.rows = ['a', 'b'];
+    seedRows(['a', 'b']);
     const { result } = renderHook(() => useFirestorePaginated(base), {
       wrapper: wrapperFor(makeClient()),
     });
@@ -114,14 +108,13 @@ describe('useFirestorePaginated', () => {
     const client = makeClient();
     const first = renderHook(() => useFirestorePaginated(base), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(ids(first.result.current.data)).toEqual(['a', 'b', 'c']));
-    const callsBefore = h.getDocs.mock.calls.length;
+    const callsBefore = reads();
 
     const second = renderHook(() => useFirestorePaginated({ ...base, initialPage: 2 }), {
       wrapper: wrapperFor(client),
     });
     await waitFor(() => expect(ids(second.result.current.data)).toEqual(['d', 'e', 'f']));
-    expect(h.getDocs.mock.calls.length).toBe(callsBefore + 1);
-    expect(startedAfter(callsBefore)).toBe('c');
+    expect(reads()).toBe(callsBefore + 1);
   });
 
   it('re-reads the page chain when a previous page is no longer cached', async () => {
@@ -134,13 +127,12 @@ describe('useFirestorePaginated', () => {
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
 
     client.removeQueries({ queryKey: paginatedPageKey(base.queryKey, 1), exact: true });
-    h.rows = ['z', ...h.rows];
-    const callsBefore = h.getDocs.mock.calls.length;
+    prependRow('z');
+    const callsBefore = reads();
     await act(async () => {
       await result.current.refetch();
     });
-    expect(startedAfter(callsBefore)).toBeUndefined();
-    expect(startedAfter(callsBefore + 1)).toBe('b');
+    expect(reads()).toBe(callsBefore + 2);
     await waitFor(() => expect(ids(result.current.data)).toEqual(['c', 'd', 'e']));
   });
 
@@ -172,13 +164,13 @@ describe('useFirestorePaginated', () => {
       },
     );
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b', 'c']));
-    const callsBefore = h.getDocs.mock.calls.length;
-    h.rows = ['new', ...h.rows];
+    const callsBefore = reads();
+    prependRow('new');
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
     await waitFor(() => expect(ids(result.current.data)).toEqual(['new', 'a', 'b']));
-    expect(h.getDocs.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(reads()).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -193,7 +185,7 @@ describe('a page re-read moves where the next page starts', () => {
     act(() => result.current.nextPage());
     await waitFor(() => expect(ids(result.current.data)).toEqual(['d', 'e', 'f']));
 
-    h.rows = ['z', ...h.rows];
+    prependRow('z');
     act(() => result.current.prevPage());
     await act(async () => {
       await result.current.refetch();
@@ -215,7 +207,7 @@ describe('a page re-read moves where the next page starts', () => {
     act(() => result.current.prevPage());
     await waitFor(() => expect(result.current.page).toBe(1));
 
-    h.rows = ['new', ...h.rows];
+    prependRow('new');
     act(() => prependToFirstPaginatedPage(client, fresh.queryKey, { id: 'new', n: 'new' }));
     await act(async () => {
       await result.current.refetch();

@@ -24,7 +24,6 @@ The deferred form shell receives a neutral `MediaOriginSpec`. The consuming app 
 - An app's pending-media schema
 - An app's toast/rejection copy
 
-
 ## Entry points
 
 The package main entry (`@ttt-productions/upload-ui`) is server-safe — no React — and holds only the upload row display formatters (below). React runtime exports are deliberately split by concern:

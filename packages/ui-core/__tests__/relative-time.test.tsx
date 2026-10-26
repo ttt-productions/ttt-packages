@@ -3,11 +3,10 @@ import { render, screen, act } from '@testing-library/react';
 import { RelativeTime } from '../src/react/components/relative-time.js';
 
 vi.mock('date-fns', async (importOriginal) => {
-  const real = await importOriginal<typeof import('date-fns')>();
-  return {
-    ...real,
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('date-fns')>(importOriginal, {
     formatDistanceToNowStrict: vi.fn(() => '5 minutes ago'),
-  };
+  });
 });
 
 beforeEach(() => {

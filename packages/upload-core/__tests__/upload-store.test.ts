@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
-vi.mock('@ttt-productions/firebase-helpers', () => ({
-  now: vi.fn(() => Date.now()),
-}));
+const nowMock = vi.hoisted(() =>
+  vi.fn<typeof import('@ttt-productions/firebase-helpers').now>(() => Date.now()),
+);
+vi.mock('@ttt-productions/firebase-helpers', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('@ttt-productions/firebase-helpers')>(importOriginal, {
+    now: nowMock,
+  });
+});
 
 import * as store from '../src/utils/upload-store.js';
 
@@ -29,9 +35,6 @@ describe('upload-store', () => {
   });
 
   it('listUploadSessions returns all sessions sorted by updatedAt descending', async () => {
-    const { now } = await import('@ttt-productions/firebase-helpers');
-    const nowMock = now as ReturnType<typeof vi.fn>;
-
     nowMock.mockReturnValue(1000);
     store.upsertUploadSession({ id: 'a', status: 'idle', path: 'a', updatedAt: 1000 });
     nowMock.mockReturnValue(3000);
@@ -167,9 +170,6 @@ describe('upload-store', () => {
 
   describe('pruneOldUploadSessions', () => {
     it('prunes expired success sessions (>24h)', async () => {
-      const { now } = await import('@ttt-productions/firebase-helpers');
-      const nowMock = now as ReturnType<typeof vi.fn>;
-
       const pastTime = Date.now() - 25 * 60 * 60 * 1000;
       store.upsertUploadSession({
         id: 'old-success',
@@ -184,8 +184,6 @@ describe('upload-store', () => {
     });
 
     it('keeps fresh success sessions (<24h)', async () => {
-      const { now } = await import('@ttt-productions/firebase-helpers');
-      const nowMock = now as ReturnType<typeof vi.fn>;
       const recentTime = Date.now() - 1 * 60 * 60 * 1000;
       store.upsertUploadSession({
         id: 'fresh-success',
@@ -199,8 +197,6 @@ describe('upload-store', () => {
     });
 
     it('prunes expired error sessions (>7d)', async () => {
-      const { now } = await import('@ttt-productions/firebase-helpers');
-      const nowMock = now as ReturnType<typeof vi.fn>;
       const pastTime = Date.now() - 8 * 24 * 60 * 60 * 1000;
       store.upsertUploadSession({
         id: 'old-error',
@@ -215,8 +211,6 @@ describe('upload-store', () => {
     });
 
     it('returns count of pruned sessions', async () => {
-      const { now } = await import('@ttt-productions/firebase-helpers');
-      const nowMock = now as ReturnType<typeof vi.fn>;
       const pastTime = Date.now() - 25 * 60 * 60 * 1000;
       store.upsertUploadSession({ id: 'p1', status: 'success', path: '', updatedAt: pastTime });
       store.upsertUploadSession({ id: 'p2', status: 'success', path: '', updatedAt: pastTime });

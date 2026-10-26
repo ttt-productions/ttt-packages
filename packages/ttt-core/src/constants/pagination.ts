@@ -1,40 +1,40 @@
 import { ACTIVE_LIMITS } from './app-mode.js';
 
-export const ITEMS_PER_PAGE_GENERAL = 5;
+export const ITEMS_PER_PAGE_GENERAL: number = 5;
 
-export const ITEMS_PER_PAGE_MESSAGES = 5;
-export const ITEMS_PER_PAGE_ADMIN_DISPATCH_MESSAGES = 6;
-export const ITEMS_PER_PAGE_COMMISSION_BOARD = 5;
-export const ITEMS_PER_PAGE_GUILDMATE_USERS = 3;
-export const ITEMS_PER_PAGE_GUILD_INVITES = 10;
-export const ITEMS_PER_PAGE_OWNED_WORK_PROJECTS = 3;
-export const ITEMS_PER_PAGE_ASSOCIATED_WORK_PROJECTS = 3;
-export const ITEMS_PER_PAGE_CHAPTERS = 5;
-export const ITEMS_PER_PAGE_TUNE_TRACKS = 3;
-export const ITEMS_PER_PAGE_TELEVISION_EPISODES = 3;
-export const ITEMS_PER_PAGE_PROPOSAL_ARTISANS = 5;
-export const ITEMS_PER_PAGE_FOLLOWED_USERS = 10;
-export const ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS = 10;
-export const ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE = 12;
-export const ITEMS_PER_PAGE_ADMIN_TASK_BROWSE = 12;
+export const ITEMS_PER_PAGE_MESSAGES: number = 5;
+export const ITEMS_PER_PAGE_ADMIN_DISPATCH_MESSAGES: number = 6;
+export const ITEMS_PER_PAGE_COMMISSION_BOARD: number = 5;
+export const ITEMS_PER_PAGE_GUILDMATE_USERS: number = 3;
+export const ITEMS_PER_PAGE_GUILD_INVITES: number = 10;
+export const ITEMS_PER_PAGE_OWNED_WORK_PROJECTS: number = 3;
+export const ITEMS_PER_PAGE_ASSOCIATED_WORK_PROJECTS: number = 3;
+export const ITEMS_PER_PAGE_CHAPTERS: number = 5;
+export const ITEMS_PER_PAGE_TUNE_TRACKS: number = 3;
+export const ITEMS_PER_PAGE_TELEVISION_EPISODES: number = 3;
+export const ITEMS_PER_PAGE_PROPOSAL_ARTISANS: number = 5;
+export const ITEMS_PER_PAGE_FOLLOWED_USERS: number = 10;
+export const ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS: number = 10;
+export const ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE: number = 12;
+export const ITEMS_PER_PAGE_ADMIN_TASK_BROWSE: number = 12;
 
-export const PLEDGE_PAYMENTS_PER_PAGE = 20;
+export const PLEDGE_PAYMENTS_PER_PAGE: number = 20;
 
-export const ARCHIVE_PER_PAGE = 10;
+export const ARCHIVE_PER_PAGE: number = 10;
 
-export const CHANNELS_PER_PAGE = 10;
+export const CHANNELS_PER_PAGE: number = 10;
 
-export const POSTS_PER_PAGE = 20;
+export const POSTS_PER_PAGE: number = 20;
 
-export const VIOLATIONS_PER_PAGE = 5;
+export const VIOLATIONS_PER_PAGE: number = 5;
 
-export const CRAFT_SKILL_MEDIA_PER_PAGE = 12;
+export const CRAFT_SKILL_MEDIA_PER_PAGE: number = 12;
 
-export const ITEMS_PER_PAGE_REALM_WORKS = 12;
+export const ITEMS_PER_PAGE_REALM_WORKS: number = 12;
 
-export const REALM_SHARED_FILES_PAGE_LIMIT = 24;
+export const REALM_SHARED_FILES_PAGE_LIMIT: number = 24;
 
-export const REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT = 20;
+export const REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT: number = 20;
 
 export const TRENDING_FEED_PROCESS_LIMIT = ACTIVE_LIMITS.batches.trendingFeedProcessLimit;
 
@@ -45,7 +45,7 @@ export const HALL_LIBRARY_PAGE_CONSTANTS = {
   SEARCH_DEBOUNCE_MS: 300,
 } as const;
 
-export const SAFETY_CASE_TRAY_COUNT_CAP = 100;
+export const SAFETY_CASE_TRAY_COUNT_CAP: number = 100;
 
 export const SAFETY_CASE_TRAY_READ_LIMIT = SAFETY_CASE_TRAY_COUNT_CAP + 1;
 

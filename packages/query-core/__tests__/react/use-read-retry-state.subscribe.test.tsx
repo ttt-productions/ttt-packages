@@ -1,31 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const h = vi.hoisted(() => ({
-  listeners: [] as Array<{ next: (snap: unknown) => void; error: (e: Error) => void }>,
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-vi.mock('firebase/firestore', () => ({
-  collection: () => ({}),
-  query: (ref: unknown) => ref,
-  onSnapshot: (
-    _target: unknown,
-    _options: unknown,
-    next: (s: unknown) => void,
-    error: (e: Error) => void,
-  ) => {
-    h.listeners.push({ next, error });
-    return vi.fn();
-  },
-  getDocs: vi.fn(async () => ({ docs: [] })),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreCollection } from '../../src/react/firestore/use-firestore-collection.js';
 import { FirestoreProvider } from '../../src/react/firestore/context.js';
 import { useReadRetryState } from '../../src/react/use-read-retry-state.js';
-import { testFirestore } from '../helpers/test-firestore.js';
+import { failNext, holdNext, listensTo } from '../helpers/listener-controls.js';
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -35,25 +28,21 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 }
 
-const unavailable = () => Object.assign(new Error('unavailable'), { code: 'unavailable' });
-const snapshot = () => ({
-  docs: [{ id: 'g1', data: () => ({ score: 1 }) }],
-  metadata: { fromCache: false },
-});
-const last = () => h.listeners[h.listeners.length - 1];
+const GAMES = 'leagues/l1/games';
+const unavailable = () => firestoreError('unavailable', 'unavailable');
 
 function renderSubscribed() {
   return renderHook(
     () => {
       const queryKey = ['games', 'l1'];
       const query = useFirestoreCollection({
-        collectionPath: 'leagues/l1/games',
+        collectionPath: GAMES,
         queryKey,
         subscribe: true,
       });
@@ -64,7 +53,7 @@ function renderSubscribed() {
 }
 
 beforeEach(() => {
-  h.listeners.length = 0;
+  store.reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -73,27 +62,36 @@ afterEach(() => {
 });
 
 describe('useReadRetryState over a subscribed read', () => {
-  it('keeps a failed listener’s error on screen while its re-opened listener connects, and clears it on the first snapshot', () => {
-    const { result } = renderSubscribed();
+  it('keeps a failed listener’s error on screen while its re-opened listener connects, and clears it on the first snapshot', async () => {
     const failure = unavailable();
-    act(() => last().error(failure));
-    expect(result.current.state).toEqual({ error: failure, isRetrying: false, isLoading: false });
+    failNext(store, listensTo(GAMES), failure);
+    const { result } = renderSubscribed();
+    await waitFor(() =>
+      expect(result.current.state).toEqual({ error: failure, isRetrying: false, isLoading: false }),
+    );
 
+    const release = holdNext(store, listensTo(GAMES));
     act(() => void result.current.query.refetch());
     expect(result.current.query.error).toBeNull();
     expect(result.current.state).toEqual({ error: failure, isRetrying: true, isLoading: false });
 
-    act(() => last().next(snapshot()));
-    expect(result.current.state).toEqual({ error: null, isRetrying: false, isLoading: false });
+    store.seed(`${GAMES}/g1`, { score: 1 });
+    act(release);
+    await waitFor(() =>
+      expect(result.current.state).toEqual({ error: null, isRetrying: false, isLoading: false }),
+    );
   });
 
-  it('shows the re-opened listener’s own failure when it fails too', () => {
+  it('shows the re-opened listener’s own failure when it fails too', async () => {
+    failNext(store, listensTo(GAMES), unavailable());
     const { result } = renderSubscribed();
-    act(() => last().error(unavailable()));
-    act(() => void result.current.query.refetch());
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
 
     const second = unavailable();
-    act(() => last().error(second));
-    expect(result.current.state).toEqual({ error: second, isRetrying: false, isLoading: false });
+    failNext(store, listensTo(GAMES), second);
+    act(() => void result.current.query.refetch());
+    await waitFor(() =>
+      expect(result.current.state).toEqual({ error: second, isRetrying: false, isLoading: false }),
+    );
   });
 });

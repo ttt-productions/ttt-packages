@@ -1,14 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { AudioViewer } from '../src/react/audio-viewer.js';
-
-let mockInView = false;
-vi.mock('react-intersection-observer', () => ({
-  useInView: () => ({ ref: () => {}, inView: mockInView }),
-}));
+import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 
 beforeEach(() => {
-  mockInView = false;
   vi.useFakeTimers();
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
@@ -41,7 +36,7 @@ describe('AudioViewer', () => {
       const { container, rerender } = render(<AudioViewer url="https://example.com/a.mp3" />);
       expect(container.querySelector('audio')).not.toBeInTheDocument();
 
-      mockInView = true;
+      mockAllIsIntersecting(0.01);
       rerender(<AudioViewer url="https://example.com/a.mp3" />);
       expect(container.querySelector('audio')).toBeInTheDocument();
     });

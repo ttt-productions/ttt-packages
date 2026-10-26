@@ -1,17 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
 import { uploadFileResumable } from '../src/browser/upload.js';
 import { UploadError } from '../src/storage/upload-error.js';
-import type { FirebaseStorage } from 'firebase/storage';
+import { testStorage } from './helpers/storage-fakes.js';
 
-vi.mock('firebase/storage', () => ({
-  ref: () => {
-    throw new Error('gate-passed');
-  },
-  uploadBytesResumable: vi.fn(),
-}));
+vi.mock('firebase/storage', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('firebase/storage')>(importOriginal, {
+    ref: () => {
+      throw new Error('gate-passed');
+    },
+  });
+});
 
 const base = {
-  storage: {} as FirebaseStorage,
+  storage: testStorage(),
   path: 'uploads/x/u/p',
   file: new File(['x'], 'f'),
 };

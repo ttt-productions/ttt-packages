@@ -1,100 +1,43 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const { caps, onSnapshotMock, oneShotDocs, batchCalls, getDocsMock, getDocMock, setAutoResolve } =
-  vi.hoisted(() => {
-    const caps = new Map<
-      string,
-      { next: (snap: unknown) => void; error?: (e: Error) => void; unsub: () => void }
-    >();
-    const onSnapshotMock = vi.fn(
-      (ref: { __id: string }, next: (s: unknown) => void, error: (e: Error) => void) => {
-        const unsub = vi.fn();
-        caps.set(ref.__id, { next, error, unsub });
-        return unsub;
-      },
-    );
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-    const oneShotDocs = new Map<string, Record<string, unknown>>();
-    const batchCalls: { ids: string[]; release: () => void }[] = [];
-    let autoResolve = true;
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
-    const snapshotFor = (ids: string[]) => ({
-      forEach: (cb: (d: { id: string; data: () => Record<string, unknown> }) => void) => {
-        for (const id of ids) {
-          const data = oneShotDocs.get(id);
-          if (data !== undefined) cb({ id, data: () => data });
-        }
-      },
-    });
-
-    const getDocsMock = vi.fn((q: { __ids: string[] }) => {
-      const call = { ids: q.__ids, release: () => {} };
-      batchCalls.push(call);
-      if (autoResolve) return Promise.resolve(snapshotFor(q.__ids));
-      return new Promise((resolve) => {
-        call.release = () => resolve(snapshotFor(q.__ids));
-      });
-    });
-
-    const getDocMock = vi.fn(async () => ({ exists: () => false }));
-
-    const setAutoResolve = (value: boolean) => {
-      autoResolve = value;
-    };
-
-    return {
-      caps,
-      onSnapshotMock,
-      oneShotDocs,
-      batchCalls,
-      getDocsMock,
-      getDocMock,
-      setAutoResolve,
-    };
-  });
-
-vi.mock('firebase/firestore', () => ({
-  doc: (_db: unknown, _path: unknown, id: string) => ({ __id: id }),
-  onSnapshot: onSnapshotMock,
-  collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
-  query: (source: { __db: unknown; __path: string }, constraint: { __ids: string[] }) => ({
-    __db: source.__db,
-    __path: source.__path,
-    __ids: constraint.__ids,
-  }),
-  where: (_field: unknown, _op: unknown, ids: string[]) => ({ __ids: ids }),
-  documentId: () => '__name__',
-  getDocs: getDocsMock,
-  getDoc: getDocMock,
-}));
-
+import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
 import { __activeListenerCount } from '../src/react/firestore/doc-subscription-registry.js';
-import { testFirestore } from './helpers/test-firestore.js';
+import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
+import {
+  batchReadIn,
+  holdReads,
+  listenerOf,
+  listenersIn,
+  oneShotReadIn,
+  readsMatching,
+} from './helpers/batch-docs-reads.js';
 
-function emit(id: string, data: Record<string, unknown> | null) {
-  act(() => {
-    caps.get(id)!.next({ exists: () => data != null, id, data: () => data });
-  });
-}
-
-function emitError(id: string, error: Error) {
-  act(() => {
-    caps.get(id)!.error!(error);
-  });
-}
+const seed = (id: string, data: Record<string, unknown>) => store.seed(`publicUsers/${id}`, data);
+const listenersOpened = () => readsMatching(store, listenersIn('publicUsers')).length;
+const batchReads = () => readsMatching(store, batchReadIn('publicUsers')).length;
+const permissionDenied = () => firestoreError('permission-denied', 'permission-denied');
 
 beforeEach(() => {
-  caps.clear();
-  onSnapshotMock.mockClear();
-  oneShotDocs.clear();
-  batchCalls.length = 0;
-  getDocsMock.mockClear();
-  getDocMock.mockClear();
-  setAutoResolve(true);
+  store.reset();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 function makeWrapper() {
@@ -108,14 +51,15 @@ function makeWrapper() {
 }
 
 const baseOpts = {
-  db: testFirestore(),
+  db: store.db,
   collectionPath: 'publicUsers',
   queryKeyPrefix: 'publicUser',
   subscribe: true,
 };
 
 describe('useBatchFirestoreDocs — subscribe mode', () => {
-  it('starts loading, then populates data from a snapshot', () => {
+  it('starts loading, then populates data from a snapshot', async () => {
+    seed('u1', { displayName: 'Alice' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
@@ -124,39 +68,36 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toEqual({});
 
-    emit('u1', { displayName: 'Alice' });
-
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data).toEqual({ u1: { id: 'u1', displayName: 'Alice' } });
   });
 
-  it('caches a missing doc as resolved (negative caching) and excludes it from data', () => {
+  it('caches a missing doc as resolved (negative caching) and excludes it from data', async () => {
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['ghost'] }), {
       wrapper: Wrapper,
     });
 
-    emit('ghost', null);
-
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data).toEqual({});
     expect(queryClient.getQueryData(['publicUser', 'ghost'])).toBeNull();
   });
 
-  it('pushes live updates when the doc changes', () => {
+  it('pushes live updates when the doc changes', async () => {
+    seed('u1', { displayName: 'Alice' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
 
-    emit('u1', { displayName: 'Alice' });
-    expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' });
+    await waitFor(() => expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' }));
 
-    emit('u1', { displayName: 'Alice Smith' });
+    act(() => seed('u1', { displayName: 'Alice Smith' }));
     expect(result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' });
   });
 
-  it('shares ONE listener per id across hook instances (reference-counted)', () => {
+  it('shares ONE listener per id across hook instances (reference-counted)', async () => {
+    seed('u1', { displayName: 'Alice' });
     const { Wrapper, queryClient } = makeWrapper();
     const a = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
@@ -166,19 +107,18 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     });
 
     expect(__activeListenerCount(queryClient)).toBe(1);
-    expect(onSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(listenersOpened()).toBe(1);
 
-    emit('u1', { displayName: 'Alice' });
-    expect(a.result.current.data.u1).toMatchObject({ displayName: 'Alice' });
+    await waitFor(() => expect(a.result.current.data.u1).toMatchObject({ displayName: 'Alice' }));
     expect(b.result.current.data.u1).toMatchObject({ displayName: 'Alice' });
 
     a.unmount();
     expect(__activeListenerCount(queryClient)).toBe(1);
-    expect(caps.get('u1')!.unsub).not.toHaveBeenCalled();
+    expect(store.liveListeners()).toBe(1);
 
     b.unmount();
     expect(__activeListenerCount(queryClient)).toBe(0);
-    expect(caps.get('u1')!.unsub).toHaveBeenCalledTimes(1);
+    expect(store.liveListeners()).toBe(0);
   });
 
   it('does not open listeners in the default (one-shot) mode', () => {
@@ -186,10 +126,11 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: false, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
-    expect(onSnapshotMock).not.toHaveBeenCalled();
+    expect(listenersOpened()).toBe(0);
   });
 
-  it('a listener error resolves the id with its error, never forever-loading', () => {
+  it('a listener error resolves the id with its error, never forever-loading', async () => {
+    store.failReads(listenerOf('publicUsers', 'hidden'), permissionDenied());
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden'] }), {
       wrapper: Wrapper,
@@ -197,64 +138,119 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
     expect(result.current.isLoading).toBe(true);
 
-    emitError('hidden', new Error('permission-denied'));
-
-    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data).toEqual({});
     expect(result.current.isError).toBe(true);
     expect(result.current.error?.message).toBe('permission-denied');
     expect(queryClient.getQueryData(['publicUser', 'hidden'])).toBeNull();
   });
 
-  it('an errored id resolves while other ids in the batch still load and land', () => {
+  it('an errored id resolves while other ids in the batch still load and land', async () => {
+    const hold = holdReads(store, listenerOf('publicUsers', 'u1'));
+    store.failReads(listenerOf('publicUsers', 'hidden'), permissionDenied());
+    seed('u1', { displayName: 'Alice' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden', 'u1'] }),
       { wrapper: Wrapper },
     );
 
-    emitError('hidden', new Error('permission-denied'));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(hold.waiting).toHaveLength(1);
     expect(result.current.isLoading).toBe(true);
 
-    emit('u1', { displayName: 'Alice' });
-    expect(result.current.isLoading).toBe(false);
+    act(() => hold.waiting[0].release());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data).toEqual({ u1: { id: 'u1', displayName: 'Alice' } });
     expect(result.current.isError).toBe(true);
   });
 
-  it('a later snapshot replaces the error negative-cache (e.g. doc un-hidden)', () => {
+  it('re-listens on the backoff after a denial and shows the doc once it is readable again', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let hidden = true;
+    store.failReads((read) => hidden && listenerOf('publicUsers', 'u1')(read), permissionDenied());
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
 
-    emitError('u1', new Error('permission-denied'));
+    await vi.waitFor(() => expect(result.current.isError).toBe(true));
     expect(queryClient.getQueryData(['publicUser', 'u1'])).toBeNull();
 
-    emit('u1', { displayName: 'Alice' });
-    expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' });
+    hidden = false;
+    seed('u1', { displayName: 'Alice' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RESUBSCRIBE_DELAYS_MS[0]);
+    });
+
+    await vi.waitFor(() => expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' }));
+    expect(result.current.isError).toBe(false);
+  });
+
+  it('stays failed once every re-listen on the backoff has been denied', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const denial = permissionDenied();
+    store.failReads(listenerOf('publicUsers', 'u1'), denial);
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
+      wrapper: Wrapper,
+    });
+    await vi.waitFor(() => expect(result.current.isError).toBe(true));
+
+    for (const delay of RESUBSCRIBE_DELAYS_MS) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+      });
+    }
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RESUBSCRIBE_DELAYS_MS.at(-1) ?? 0);
+    });
+
+    expect(listenersOpened()).toBe(1 + RESUBSCRIBE_DELAYS_MS.length);
+    expect(result.current.outcomes.u1).toEqual({
+      status: 'failed',
+      error: denial,
+      retrying: false,
+    });
+  });
+
+  it('cancels a pending re-listen when the last subscriber unmounts', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    store.failReads(listenerOf('publicUsers', 'u1'), permissionDenied());
+    const { Wrapper } = makeWrapper();
+    const { result, unmount } = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }),
+      { wrapper: Wrapper },
+    );
+    await vi.waitFor(() => expect(result.current.isError).toBe(true));
+
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RESUBSCRIBE_DELAYS_MS[0]);
+    });
+
+    expect(listenersOpened()).toBe(1);
   });
 
   it('refetch() is a no-op — it never issues reads against the disabled queries', async () => {
+    seed('u1', { displayName: 'Alice' });
     const { Wrapper } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
       wrapper: Wrapper,
     });
 
-    emit('u1', { displayName: 'Alice' });
-    emit('u2', null);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
       await result.current.refetch();
     });
 
-    expect(getDocsMock).not.toHaveBeenCalled();
-    expect(getDocMock).not.toHaveBeenCalled();
+    expect(readsMatching(store, oneShotReadIn('publicUsers'))).toEqual([]);
     expect(result.current.data).toEqual({ u1: { id: 'u1', displayName: 'Alice' } });
   });
 
   it('switches one-shot → subscribe → one-shot without losing the entry', async () => {
-    oneShotDocs.set('u1', { displayName: 'FromRead' });
+    seed('u1', { displayName: 'FromRead' });
 
     const { Wrapper } = makeWrapper();
     const { result, rerender } = renderHook(
@@ -270,30 +266,31 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     );
 
     await waitFor(() => expect(result.current.data.u1).toMatchObject({ displayName: 'FromRead' }));
-    expect(onSnapshotMock).not.toHaveBeenCalled();
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(listenersOpened()).toBe(0);
+    expect(batchReads()).toBe(1);
 
     act(() => {
       rerender({ subscribe: true });
     });
-    expect(onSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(listenersOpened()).toBe(1);
 
-    emit('u1', { displayName: 'FromListener' });
+    await waitFor(() => expect(store.liveListeners()).toBe(1));
+    act(() => seed('u1', { displayName: 'FromListener' }));
     expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
 
     act(() => {
       rerender({ subscribe: false });
     });
-    expect(caps.get('u1')!.unsub).toHaveBeenCalledTimes(1);
+    expect(store.liveListeners()).toBe(0);
     await waitFor(() =>
       expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' }),
     );
-    expect(getDocsMock).toHaveBeenCalledTimes(1);
+    expect(batchReads()).toBe(1);
   });
 
   it('a one-shot read still in flight cannot clobber the listener value', async () => {
-    setAutoResolve(false);
-    oneShotDocs.set('u1', { displayName: 'InFlight' });
+    const hold = holdReads(store, batchReadIn('publicUsers'), 'after-answer');
+    seed('u1', { displayName: 'InFlight' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const { result, rerender } = renderHook(
@@ -307,20 +304,24 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
       { wrapper: Wrapper, initialProps: { subscribe: false } },
     );
 
-    await waitFor(() => expect(batchCalls).toHaveLength(1));
+    await waitFor(() => expect(hold.waiting).toHaveLength(1));
 
     act(() => {
       rerender({ subscribe: true });
     });
-    emit('u1', { displayName: 'FromListener' });
-    expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
+    seed('u1', { displayName: 'FromListener' });
+    await waitFor(() =>
+      expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' }),
+    );
 
-    oneShotDocs.set('u1', { displayName: 'Stale' });
     await act(async () => {
-      batchCalls[0].release();
+      hold.waiting[0].release();
       await Promise.resolve();
       await Promise.resolve();
     });
+    await waitFor(() =>
+      expect(queryClient.getQueryState(['publicUser', 'u1'])?.fetchStatus).toBe('idle'),
+    );
 
     expect(queryClient.getQueryData(['publicUser', 'u1'])).toMatchObject({
       displayName: 'FromListener',
@@ -329,8 +330,8 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
   });
 
   it("a sibling consumer's in-flight one-shot read resolves without clobbering the listener", async () => {
-    setAutoResolve(false);
-    oneShotDocs.set('u1', { displayName: 'InFlight' });
+    const hold = holdReads(store, batchReadIn('publicUsers'), 'after-answer');
+    seed('u1', { displayName: 'InFlight' });
 
     const { Wrapper, queryClient } = makeWrapper();
     const oneShot = renderHook(
@@ -343,16 +344,18 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
         }),
       { wrapper: Wrapper },
     );
-    await waitFor(() => expect(batchCalls).toHaveLength(1));
+    await waitFor(() => expect(hold.waiting).toHaveLength(1));
 
+    seed('u1', { displayName: 'FromListener' });
     const subscribed = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), {
       wrapper: Wrapper,
     });
-    emit('u1', { displayName: 'FromListener' });
+    await waitFor(() =>
+      expect(subscribed.result.current.data.u1).toMatchObject({ displayName: 'FromListener' }),
+    );
 
-    oneShotDocs.set('u1', { displayName: 'FromRead' });
     await act(async () => {
-      batchCalls[0].release();
+      hold.waiting[0].release();
       await Promise.resolve();
       await Promise.resolve();
     });

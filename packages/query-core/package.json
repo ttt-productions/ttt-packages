@@ -1,75 +1,79 @@
 {
-    "name": "@ttt-productions/query-core",
-    "version": "0.14.26",
-    "description": "Shared TanStack Query (React Query) client defaults, query key helpers, and Firestore integration hooks for TTT Productions apps",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-        "directory": "packages/query-core"
+  "name": "@ttt-productions/query-core",
+  "version": "0.14.26",
+  "description": "Shared TanStack Query (React Query) client defaults, query key helpers, and Firestore integration hooks for TTT Productions apps",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+    "directory": "packages/query-core"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
-    "type": "module",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "sideEffects": false,
-    "files": [
-        "dist"
-    ],
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-        },
-        "./keys": {
-            "types": "./dist/keys.d.ts",
-            "default": "./dist/keys.js"
-        },
-        "./react": {
-            "types": "./dist/react/index.d.ts",
-            "default": "./dist/react/index.js"
-        },
-        "./types": {
-            "types": "./dist/firestore/types.d.ts",
-            "default": "./dist/firestore/types.js"
-        }
+    "./keys": {
+      "types": "./dist/keys.d.ts",
+      "default": "./dist/keys.js"
     },
-    "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist *.tsbuildinfo",
-        "typecheck": "tsc --noEmit",
-        "prepublishOnly": "npm run clean && npm run build"
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
     },
-    "peerDependencies": {
-        "@tanstack/react-query": ">=5.90.0",
-        "firebase": ">=12.0.0",
-        "react": ">=19.0.0",
-        "react-dom": ">=19.0.0"
+    "./react/testing": {
+      "types": "./dist/react/testing/index.d.ts",
+      "default": "./dist/react/testing/index.js"
     },
-    "peerDependenciesMeta": {
-        "@tanstack/react-query": {
-            "optional": true
-        },
-        "firebase": {
-            "optional": true
-        },
-        "react": {
-            "optional": true
-        },
-        "react-dom": {
-            "optional": true
-        }
+    "./types": {
+      "types": "./dist/firestore/types.d.ts",
+      "default": "./dist/firestore/types.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.90.0",
+    "firebase": ">=12.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
     },
-    "dependencies": {
-        "@ttt-productions/firebase-helpers": "*"
+    "firebase": {
+      "optional": true
     },
-    "devDependencies": {
-        "@tanstack/react-query": "^5.90.0",
-        "@types/react": "^19.0.0",
-        "@types/react-dom": "^19.0.0",
-        "firebase": "^12.14.0",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0"
+    "react": {
+      "optional": true
     },
-    "author": "DJ (TTT Productions)",
-    "license": "MIT"
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@ttt-productions/firebase-helpers": "*"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.90.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "firebase": "^12.14.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
 }

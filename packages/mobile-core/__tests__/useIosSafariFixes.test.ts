@@ -2,17 +2,20 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 const env = vi.hoisted(() => ({ isBrowser: true, isIOS: false, isSafari: false }));
-vi.mock('../src/env.js', () => ({
-  get isBrowser() {
-    return env.isBrowser;
-  },
-  get isIOS() {
-    return env.isIOS;
-  },
-  get isSafari() {
-    return env.isSafari;
-  },
-}));
+vi.mock('../src/env.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/env.js')>({
+    get isBrowser() {
+      return env.isBrowser;
+    },
+    get isIOS() {
+      return env.isIOS;
+    },
+    get isSafari() {
+      return env.isSafari;
+    },
+  });
+});
 
 import { useIosSafariFixes } from '../src/react/ios/useIosSafariFixes.js';
 

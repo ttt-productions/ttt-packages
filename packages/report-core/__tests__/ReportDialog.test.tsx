@@ -3,38 +3,37 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { render, screen, cleanup, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ElementRef } from 'react';
 
 // Radix Select does not run in jsdom; a native select stands in for the picker.
 vi.mock('@ttt-productions/ui-core/react', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return {
-    ...actual,
-    Select: ({
-      value,
-      onValueChange,
-      children,
-    }: {
-      value: string;
-      onValueChange: (v: string) => void;
-      children: ReactNode;
-    }) => (
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  const { forwardRef } = await import('react');
+  type UiCore = typeof import('@ttt-productions/ui-core/react');
+  type Part<K extends 'SelectTrigger' | 'SelectValue' | 'SelectContent' | 'SelectItem'> =
+    ComponentPropsWithoutRef<UiCore[K]>;
+  return passThroughModule<UiCore>(importOriginal, {
+    Select: ({ value, onValueChange, children }) => (
       <select
         aria-label="reason picker"
-        value={value}
-        onChange={(e) => onValueChange(e.target.value)}
+        value={value ?? ''}
+        onChange={(e) => onValueChange?.(e.target.value)}
       >
         <option value="" />
         {children}
       </select>
     ),
-    SelectTrigger: () => null,
-    SelectValue: () => null,
-    SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-    SelectItem: ({ value, children }: { value: string; children: ReactNode }) => (
-      <option value={value}>{children}</option>
+    SelectTrigger: forwardRef<ElementRef<UiCore['SelectTrigger']>, Part<'SelectTrigger'>>(
+      () => null,
     ),
-  };
+    SelectValue: forwardRef<ElementRef<UiCore['SelectValue']>, Part<'SelectValue'>>(() => null),
+    SelectContent: forwardRef<ElementRef<UiCore['SelectContent']>, Part<'SelectContent'>>(
+      ({ children }, _ref) => <>{children}</>,
+    ),
+    SelectItem: forwardRef<ElementRef<UiCore['SelectItem']>, Part<'SelectItem'>>(
+      ({ value, children }, _ref) => <option value={value}>{children}</option>,
+    ),
+  });
 });
 
 import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';

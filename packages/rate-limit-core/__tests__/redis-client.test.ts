@@ -1,22 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Redis, RedisConfigNodejs, Requester } from '@upstash/redis';
 
-vi.mock('@upstash/redis', () => ({
-  Redis: vi.fn(),
-}));
+const constructed = vi.hoisted(() => {
+  const clients: Array<{ config: RedisConfigNodejs | Requester; client: Redis }> = [];
+  return clients;
+});
+
+vi.mock('@upstash/redis', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  type RedisModule = typeof import('@upstash/redis');
+  const actual = await importOriginal<RedisModule>();
+  // Constructing a real client opens no connection.
+  class RecordingRedis extends actual.Redis {
+    constructor(config: RedisConfigNodejs);
+    constructor(requester: Requester);
+    constructor(config: RedisConfigNodejs | Requester) {
+      if ('request' in config) super(config);
+      else super(config);
+      constructed.push({ config, client: this });
+    }
+  }
+  return passThroughModule<RedisModule>(importOriginal, { Redis: RecordingRedis });
+});
 
 import { createRedisClientFactory } from '../src/redis-client.js';
-import { Redis } from '@upstash/redis';
-
-// Real clients, though the module is mocked: constructing one opens no connection.
-const { Redis: RealRedis } =
-  await vi.importActual<typeof import('@upstash/redis')>('@upstash/redis');
-const realClient = () => new RealRedis({ url: 'https://redis.example', token: 'token' });
-
-const MockedRedis = vi.mocked(Redis);
 
 describe('createRedisClientFactory', () => {
   beforeEach(() => {
-    MockedRedis.mockClear();
+    constructed.length = 0;
   });
 
   it('returns null and logs warn when credentials return undefined', () => {
@@ -45,40 +56,31 @@ describe('createRedisClientFactory', () => {
   it('creates Redis instance with valid credentials and second call returns same instance', () => {
     const url = 'https://redis-url';
     const token = 'my-token';
-    const mockInstance = realClient();
-    MockedRedis.mockImplementation(function () {
-      return mockInstance;
-    });
-
     const factory = createRedisClientFactory({
       credentials: { url: () => url, token: () => token },
     });
 
     const first = factory.get();
     const second = factory.get();
-    expect(first).toBe(mockInstance);
-    expect(second).toBe(mockInstance);
-    expect(MockedRedis).toHaveBeenCalledTimes(1);
-    expect(MockedRedis).toHaveBeenCalledWith({ url, token });
+    expect(constructed).toHaveLength(1);
+    expect(constructed[0].config).toEqual({ url, token });
+    expect(first).toBe(constructed[0].client);
+    expect(second).toBe(first);
   });
 
   it('__reset clears cache and allows re-resolution', () => {
     const url = 'https://redis-url';
     const token = 'my-token';
-    const instance1 = realClient();
-    const instance2 = realClient();
-    MockedRedis.mockImplementationOnce(function () {
-      return instance1;
-    }).mockImplementationOnce(function () {
-      return instance2;
-    });
-
     const factory = createRedisClientFactory({
       credentials: { url: () => url, token: () => token },
     });
 
-    expect(factory.get()).toBe(instance1);
+    const first = factory.get();
     factory.__reset();
-    expect(factory.get()).toBe(instance2);
+    const second = factory.get();
+    expect(constructed).toHaveLength(2);
+    expect(constructed[0].client).toBe(first);
+    expect(constructed[1].client).toBe(second);
+    expect(second).not.toBe(first);
   });
 });

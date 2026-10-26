@@ -1,42 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const { caps, onSnapshotMock } = vi.hoisted(() => {
-  const caps: Array<{ next: (snap: unknown) => void }> = [];
-  const onSnapshotMock = vi.fn(
-    (_target: unknown, _options: unknown, next: (s: unknown) => void) => {
-      caps.push({ next });
-      return vi.fn();
-    },
-  );
-  return { caps, onSnapshotMock };
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', () => ({
-  doc: () => ({ __kind: 'doc' }),
-  collection: () => ({ __kind: 'col' }),
-  query: (ref: unknown) => ref,
-  where: (field: string, op: string, value: unknown) => ({ field, op, value }),
-  onSnapshot: onSnapshotMock,
-  getDoc: vi.fn(async () => ({ exists: () => false })),
-  getDocs: vi.fn(async () => ({ docs: [] })),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
 import { where } from 'firebase/firestore';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
-import { testFirestore } from './helpers/test-firestore.js';
+import { anyListener, holdNext, listensTo, opened } from './helpers/listener-controls.js';
 
 beforeEach(() => {
-  caps.length = 0;
-  onSnapshotMock.mockClear();
+  store.reset();
 });
 
 function makeWrapper() {
-  const db = testFirestore();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity } },
   });
@@ -44,19 +32,18 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db, children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 }
 
-const collectionSnapshot = (value: number) => ({
-  docs: [{ id: 'a', data: () => ({ value }) }],
-  metadata: { fromCache: false },
-});
+const listens = () => opened(store, anyListener);
 
 describe('useFirestoreCollection — inputs rebuilt each render', () => {
-  it('keeps one subscription across renders that pass equal keys, constraints, and a new select', () => {
+  it('keeps one subscription across renders that pass equal keys, constraints, and a new select', async () => {
+    store.seed('items/a', { status: 'open', value: 1 });
+    const release = holdNext(store, listensTo('items'));
     const { rerender, result } = renderHook(
       ({ tag }: { tag: string }) =>
         useFirestoreCollection<{ value: number; tag?: string }>({
@@ -71,10 +58,11 @@ describe('useFirestoreCollection — inputs rebuilt each render', () => {
 
     rerender({ tag: 'second' });
     rerender({ tag: 'third' });
-    expect(onSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(opened(store, listensTo('items'))).toBe(1);
 
-    act(() => caps[0].next(collectionSnapshot(1)));
-    expect(result.current.data).toEqual([{ id: 'a', value: 1, tag: 'third' }]);
+    act(release);
+    await waitFor(() => expect(result.current.data).toEqual([{ id: 'a', value: 1, tag: 'third' }]));
+    expect(listens()).toBe(1);
   });
 
   it('re-subscribes when the constraints change', () => {
@@ -90,12 +78,23 @@ describe('useFirestoreCollection — inputs rebuilt each render', () => {
     );
 
     rerender({ status: 'closed' });
-    expect(onSnapshotMock).toHaveBeenCalledTimes(2);
+    expect(store.queries().filter((read) => read.listen)).toEqual([
+      expect.objectContaining({
+        path: 'items',
+        filters: [{ field: 'status', op: '==', value: { t: 'str', v: 'open' } }],
+      }),
+      expect.objectContaining({
+        path: 'items',
+        filters: [{ field: 'status', op: '==', value: { t: 'str', v: 'closed' } }],
+      }),
+    ]);
   });
 });
 
 describe('useFirestoreDoc — inputs rebuilt each render', () => {
-  it('keeps one subscription across renders that pass an equal key and a new select', () => {
+  it('keeps one subscription across renders that pass an equal key and a new select', async () => {
+    store.seed('items/a', { value: 2 });
+    const release = holdNext(store, listensTo('items/a'));
     const { rerender, result } = renderHook(
       ({ tag }: { tag: string }) =>
         useFirestoreDoc<{ value: number; tag?: string }>({
@@ -108,17 +107,11 @@ describe('useFirestoreDoc — inputs rebuilt each render', () => {
     );
 
     rerender({ tag: 'second' });
-    expect(onSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(opened(store, listensTo('items/a'))).toBe(1);
 
-    act(() =>
-      caps[0].next({
-        id: 'a',
-        exists: () => true,
-        data: () => ({ value: 2 }),
-        metadata: { fromCache: false },
-      }),
-    );
-    expect(result.current.data).toEqual({ id: 'a', value: 2, tag: 'second' });
+    act(release);
+    await waitFor(() => expect(result.current.data).toEqual({ id: 'a', value: 2, tag: 'second' }));
+    expect(listens()).toBe(1);
   });
 
   it('re-subscribes when the key changes', () => {
@@ -129,6 +122,9 @@ describe('useFirestoreDoc — inputs rebuilt each render', () => {
     );
 
     rerender({ id: 'b' });
-    expect(onSnapshotMock).toHaveBeenCalledTimes(2);
+    expect(store.queries().filter((read) => read.listen)).toEqual([
+      expect.objectContaining({ kind: 'doc', path: 'items/a' }),
+      expect.objectContaining({ kind: 'doc', path: 'items/b' }),
+    ]);
   });
 });

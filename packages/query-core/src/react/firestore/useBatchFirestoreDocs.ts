@@ -7,7 +7,8 @@ import { isListenerOwned, listenerErrorOf, subscribeDoc } from './doc-subscripti
 import { getDocLoader } from './batch-doc-loader.js';
 import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
 import type { BatchFirestoreDocOutcome } from '../../firestore/types.js';
-import { useReadRetryStates, type ReadRetrySource } from '../use-read-retry-state.js';
+import { useReadRetryStates } from '../use-read-retry-state.js';
+import type { ReadRetrySource } from '../read-retry-derivation.js';
 import { isPermissionDeniedError } from './resubscribe.js';
 
 export type BatchFirestoreDocsTransport = 'batch' | 'get';

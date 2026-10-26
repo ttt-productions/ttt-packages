@@ -1,24 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const scopeMock = {
-  setTag: vi.fn(),
-  setUser: vi.fn(),
-  setExtra: vi.fn(),
-  setContext: vi.fn(),
-  setLevel: vi.fn(),
-};
+const sentry = await vi.hoisted(async () => {
+  const { sentrySdkFake } = await import('./helpers/sentry-sdk-fake.js');
+  return sentrySdkFake();
+});
+const sentryMock = sentry.sdk;
+const scopeMock = sentry.scope;
 
-const sentryMock = {
-  init: vi.fn(),
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
-  setUser: vi.fn(),
-  setTag: vi.fn(),
-  withScope: vi.fn((fn: (scope: unknown) => unknown) => fn(scopeMock)),
-  addBreadcrumb: vi.fn(),
-};
-
-vi.mock('@sentry/node', () => sentryMock);
+vi.mock('../src/adapters/sentry-node-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-node-sdk.js')>({
+    importSentryNode: async () => sentry.sdk,
+  });
+});
 
 import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
 import { __resetSentryAdapter } from '../src/adapters/create-sentry-adapter.js';

@@ -13,10 +13,6 @@ import {
   type UploadTaskSnapshot,
 } from 'firebase/storage';
 
-function isAbortError(e: unknown) {
-  return e instanceof DOMException && e.name === 'AbortError';
-}
-
 function isStorageCanceledError(e: unknown) {
   return (
     typeof e === 'object' && e !== null && (e as { code?: unknown }).code === 'storage/canceled'
@@ -104,9 +100,8 @@ export function startResumableUpload(args: {
       if (signal) signal.removeEventListener('abort', onAbort);
       if (unsub) unsub();
 
-      const cancelError = isAbortError(err)
-        ? err
-        : canceledLocally && isStorageCanceledError(err)
+      const cancelError =
+        canceledLocally && isStorageCanceledError(err)
           ? new DOMException('Aborted', 'AbortError')
           : null;
       if (cancelError) {

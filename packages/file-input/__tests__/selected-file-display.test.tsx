@@ -4,11 +4,14 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { FileInput } from '../src/react/components/file-input.js';
 import { MediaInput } from '../src/react/components/media-input.js';
 
-vi.mock('@ttt-productions/media-viewer/react', () => ({
-  MediaPreview: (props: { type?: string; className?: string }) => (
-    <div data-testid="media-preview" data-type={props.type} className={props.className} />
-  ),
-}));
+vi.mock('@ttt-productions/media-viewer/react', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('@ttt-productions/media-viewer/react')>({
+    MediaPreview: (props) => (
+      <div data-testid="media-preview" data-type={props.type} className={props.className} />
+    ),
+  });
+});
 
 describe('selected file display', () => {
   it('uses a semantic audio label and gives the canonical player natural height', () => {

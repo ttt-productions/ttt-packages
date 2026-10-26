@@ -4,25 +4,20 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-const { getCountFromServerMock, queryMock } = vi.hoisted(() => ({
-  getCountFromServerMock: vi.fn(),
-  queryMock: vi.fn((ref: unknown, ...constraints: unknown[]) => ({
-    __ref: ref,
-    __constraints: constraints,
-  })),
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-vi.mock('firebase/firestore', () => ({
-  collection: (_db: unknown, path: string) => ({ __path: path }),
-  query: queryMock,
-  where: (field: string, op: string, value: unknown) => ({ field, op, value }),
-  getCountFromServer: getCountFromServerMock,
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
 import { where } from 'firebase/firestore';
 import { useFirestoreCount } from '../src/react/firestore/use-firestore-count.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
-import { testFirestore } from './helpers/test-firestore.js';
 
 function makeWrapper() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -30,20 +25,20 @@ function makeWrapper() {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FirestoreProvider, { db: testFirestore(), children }),
+      React.createElement(FirestoreProvider, { db: store.db, children }),
     );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 }
 
 beforeEach(() => {
-  getCountFromServerMock.mockReset();
-  queryMock.mockClear();
+  store.reset();
+  for (const id of ['a', 'b', 'c']) store.seed(`items/${id}`, { seenAt: 0 });
+  for (const id of ['d', 'e', 'f', 'g']) store.seed(`items/${id}`, { seenAt: 1 });
 });
 
 describe('useFirestoreCount', () => {
   it('returns the server-side count', async () => {
-    getCountFromServerMock.mockResolvedValue({ data: () => ({ count: 7 }) });
     const { result } = renderHook(
       () => useFirestoreCount({ collectionPath: 'items', queryKey: ['items', 'count'] }),
       { wrapper: makeWrapper() },
@@ -62,12 +57,11 @@ describe('useFirestoreCount', () => {
       { wrapper: makeWrapper() },
     );
     await Promise.resolve();
-    expect(getCountFromServerMock).not.toHaveBeenCalled();
+    expect(store.queries()).toEqual([]);
     expect(result.current.data).toBeUndefined();
   });
 
   it('applies constraints before counting', async () => {
-    getCountFromServerMock.mockResolvedValue({ data: () => ({ count: 3 }) });
     const { result } = renderHook(
       () =>
         useFirestoreCount({
@@ -78,6 +72,12 @@ describe('useFirestoreCount', () => {
       { wrapper: makeWrapper() },
     );
     await waitFor(() => expect(result.current.data).toBe(3));
-    expect(queryMock).toHaveBeenCalled();
+    expect(store.queries()).toEqual([
+      expect.objectContaining({
+        kind: 'count',
+        path: 'items',
+        filters: [{ field: 'seenAt', op: '==', value: { t: 'num', v: 0 } }],
+      }),
+    ]);
   });
 });

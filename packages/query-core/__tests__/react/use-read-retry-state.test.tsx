@@ -2,7 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, onlineManager, useQuery } from '@tanstack/react-query';
 import React from 'react';
-import { useReadRetryState, type ReadRetryState } from '../../src/react/use-read-retry-state.js';
+import { useReadRetryState } from '../../src/react/use-read-retry-state.js';
+import type { ReadRetryState } from '../../src/react/read-retry-derivation.js';
 
 interface Pending {
   resolve: (value: string) => void;

@@ -1,19 +1,9 @@
-import type { Timestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { formatDateDisplay } from '../src/firestore-client/date-formatting.js';
 
-// Mock date-fns format so we don't depend on locale/timezone behavior
-vi.mock('date-fns', () => ({
-  format: vi.fn((date: Date, fmt: string) => {
-    if (fmt === 'PPP') return 'Jan 1, 2024';
-    if (fmt === 'yyyy-MM-dd') return '2024-01-01';
-    if (fmt === 'HH:mm') return '12:00';
-    return `formatted(${date.getTime()},${fmt})`;
-  }),
-}));
-
 afterEach(() => {
-  vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('formatDateDisplay', () => {
@@ -32,17 +22,12 @@ describe('formatDateDisplay', () => {
   it('formats a Date object', () => {
     const date = new Date(2024, 0, 1);
     const result = formatDateDisplay(date, 'PPP');
-    expect(result).toBe('Jan 1, 2024');
+    expect(result).toBe('January 1st, 2024');
   });
 
-  it('formats a Firestore Timestamp-like object', () => {
-    const ts = {
-      toDate: () => new Date(2024, 0, 1),
-      seconds: 1704067200,
-      nanoseconds: 0,
-    };
-    const result = formatDateDisplay(ts as Timestamp, 'PPP');
-    expect(result).toBe('Jan 1, 2024');
+  it('formats a Firestore Timestamp', () => {
+    const result = formatDateDisplay(Timestamp.fromDate(new Date(2024, 0, 1)), 'PPP');
+    expect(result).toBe('January 1st, 2024');
   });
 
   it('formats a number (epoch ms)', () => {
@@ -52,7 +37,7 @@ describe('formatDateDisplay', () => {
   });
 
   it('formats an ISO date string', () => {
-    const result = formatDateDisplay('2024-01-01', 'HH:mm');
+    const result = formatDateDisplay('2024-01-01T12:00:00', 'HH:mm');
     expect(result).toBe('12:00');
   });
 
@@ -63,16 +48,12 @@ describe('formatDateDisplay', () => {
   it('uses default format "PPP" when not specified', () => {
     const date = new Date(2024, 0, 1);
     const result = formatDateDisplay(date);
-    expect(result).toBe('Jan 1, 2024');
+    expect(result).toBe('January 1st, 2024');
   });
 
-  it('returns fallback when format throws', async () => {
-    const { format } = await import('date-fns');
-    (format as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
-      throw new Error('format error');
-    });
-    const date = new Date(2024, 0, 1);
-    const result = formatDateDisplay(date, 'PPP', 'Error');
+  it('returns fallback when format throws', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = formatDateDisplay(new Date(Number.NaN), 'PPP', 'Error');
     expect(result).toBe('Error');
   });
 });

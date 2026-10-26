@@ -4,11 +4,17 @@ import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
 import { SentryAdapter } from '../src/adapters/sentry.js';
 import { initMonitoring, __resetMonitoring } from '../src/init.js';
 
-vi.mock('@sentry/node', () => {
-  throw new Error('sdk failed to load');
+vi.mock('../src/adapters/sentry-browser-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-browser-sdk.js')>({
+    importSentryBrowser: () => Promise.reject(new Error('sdk failed to load')),
+  });
 });
-vi.mock('@sentry/nextjs', () => {
-  throw new Error('sdk failed to load');
+vi.mock('../src/adapters/sentry-node-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-node-sdk.js')>({
+    importSentryNode: () => Promise.reject(new Error('sdk failed to load')),
+  });
 });
 
 describe('a Sentry SDK that fails to load', () => {

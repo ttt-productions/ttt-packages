@@ -1,5 +1,6 @@
 import { AssertionError } from 'node:assert';
 import type { Page } from '@playwright/test';
+import type { AxeResults, CrossTreeSelector } from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkAccessibility,
@@ -11,21 +12,25 @@ import {
 const axe = vi.hoisted(() => ({
   events: [] as string[],
   disabled: [] as string[][],
-  scans: [] as Array<{ violations: unknown[] } | Promise<{ violations: unknown[] }>>,
+  scans: [] as Array<AxeResults | Promise<AxeResults>>,
 }));
 
-vi.mock('@axe-core/playwright', () => ({
-  default: class {
-    disableRules(rules: string[]) {
-      axe.disabled.push(rules);
+vi.mock('@axe-core/playwright', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  type AxeModule = typeof import('@axe-core/playwright');
+  const actual = await importOriginal<AxeModule>();
+  class RecordingAxeBuilder extends actual.default {
+    override disableRules(rules: string | string[]) {
+      axe.disabled.push([rules].flat());
       return this;
     }
-    async analyze() {
+    override async analyze() {
       axe.events.push('scan');
-      return axe.scans.shift() ?? { violations: [] };
+      return axe.scans.shift() ?? scanResult([]);
     }
-  },
-}));
+  }
+  return passThroughModule<AxeModule>(importOriginal, { default: RecordingAxeBuilder });
+});
 
 const violation = (
   id: string,
@@ -38,6 +43,42 @@ const violation = (
   helpUrl: `https://axe.example/${id}`,
   nodes: [{ target }],
 });
+
+function crossTreeSelector(selector: string | readonly string[]): CrossTreeSelector {
+  if (typeof selector === 'string') return selector;
+  const [host, inner, ...rest] = selector;
+  if (host === undefined) throw new Error('a shadow-DOM selector names no host');
+  return inner === undefined ? host : [host, inner, ...rest];
+}
+
+function scanResult(violations: readonly A11yViolation[]): AxeResults {
+  return {
+    toolOptions: {},
+    testEngine: { name: 'axe-core', version: '4.11.0' },
+    testRunner: { name: 'axe' },
+    testEnvironment: { userAgent: 'vitest', windowWidth: 1280, windowHeight: 720 },
+    url: 'http://localhost/',
+    timestamp: '2000-01-01T00:00:00.000Z',
+    passes: [],
+    incomplete: [],
+    inapplicable: [],
+    violations: violations.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      description: v.help,
+      help: v.help,
+      helpUrl: v.helpUrl,
+      tags: [],
+      nodes: v.nodes.map((node) => ({
+        html: '<div></div>',
+        target: node.target.map(crossTreeSelector),
+        any: [],
+        all: [],
+        none: [],
+      })),
+    })),
+  };
+}
 
 const fakePage = () =>
   ({
@@ -131,18 +172,18 @@ describe('checkAccessibility', () => {
 
   it('passes when every violation is below the failing impacts', async () => {
     axe.scans = [
-      { violations: [violation('region', 'moderate')] },
-      { violations: [violation('list', 'minor')] },
-      { violations: [] },
+      scanResult([violation('region', 'moderate')]),
+      scanResult([violation('list', 'minor')]),
+      scanResult([]),
     ];
     await expect(checkAccessibility(fakePage(), themes)).resolves.toBeUndefined();
   });
 
   it('throws an assertion error naming the failing violation of every mode after all scans run', async () => {
     axe.scans = [
-      { violations: [violation('button-name', 'critical'), violation('region', 'moderate')] },
-      { violations: [] },
-      { violations: [violation('color-contrast', 'serious')] },
+      scanResult([violation('button-name', 'critical'), violation('region', 'moderate')]),
+      scanResult([]),
+      scanResult([violation('color-contrast', 'serious')]),
     ];
 
     const error = await checkAccessibility(fakePage(), themes).catch((e: unknown) => e);
@@ -156,7 +197,7 @@ describe('checkAccessibility', () => {
   });
 
   it('fails on the caller-chosen impacts instead of the defaults', async () => {
-    axe.scans = [{ violations: [violation('region', 'moderate')] }];
+    axe.scans = [scanResult([violation('region', 'moderate')])];
     await expect(
       checkAccessibility(fakePage(), { ...themes, failOn: ['moderate'] }),
     ).rejects.toThrow('[default] region (moderate)');
@@ -168,7 +209,7 @@ describe('checkAccessibility', () => {
   });
 
   it('clears the reduced-motion emulation when the reduced-motion scan throws', async () => {
-    axe.scans = [{ violations: [] }, { violations: [] }];
+    axe.scans = [scanResult([]), scanResult([])];
     const analyze = Promise.reject(new Error('axe crashed'));
     // The scan rejects with this promise later; marking it handled now keeps it from surfacing as unhandled.
     analyze.catch(() => {});

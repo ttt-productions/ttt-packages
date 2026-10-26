@@ -1,17 +1,25 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import type { DocumentData } from 'firebase/firestore';
+import { FirestoreProvider } from '@ttt-productions/query-core/react';
+import {
+  firestoreError,
+  type ClientReadPredicate,
+} from '@ttt-productions/firebase-helpers/firestore-client/testing';
 
-const mocks = vi.hoisted(() => ({
-  useFirestoreLiveInfinite: vi.fn(),
-}));
+const store = await vi.hoisted(async () => {
+  const { makeInMemoryClientFirestore } =
+    await import('@ttt-productions/firebase-helpers/firestore-client/testing');
+  return makeInMemoryClientFirestore();
+});
 
-vi.mock('@ttt-productions/query-core/react', () => ({
-  useFirestoreLiveInfinite: mocks.useFirestoreLiveInfinite,
-}));
-vi.mock('@ttt-productions/firebase-helpers', () => ({
-  toMillis: (v: unknown) => (typeof v === 'number' ? v : 0),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
+  return clientFirestoreFake(importOriginal, store);
+});
 
 import { useChatMessages } from '../src/hooks/useChatMessages.js';
 import type { ChatCoreConfig } from '../src/types.js';
@@ -27,42 +35,44 @@ function baseConfig(over: Partial<ChatCoreConfig> = {}): ChatCoreConfig {
   } as ChatCoreConfig;
 }
 
+let client: QueryClient;
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  return React.createElement(
+    QueryClientProvider,
+    { client },
+    React.createElement(FirestoreProvider, { db: store.db, children }),
+  );
+}
+
+const seedMessage = (id: string, data: DocumentData) => store.seed(`chats/t1/messages/${id}`, data);
+const listens: ClientReadPredicate = (read) => read.listen;
+const readsOlder: ClientReadPredicate = (read) => !read.listen;
+const ids = (messages: Array<{ messageId: string }>) => messages.map((m) => m.messageId);
+
 beforeEach(() => {
-  vi.clearAllMocks();
-  mocks.useFirestoreLiveInfinite.mockReturnValue({
-    items: [],
-    isInitialLoading: true,
-    fetchOlder: vi.fn(),
-    hasOlder: false,
-    isFetchingOlder: false,
-    sourceState: 'connecting',
-    error: null,
-    olderError: null,
-    retry: vi.fn(),
-  });
+  store.reset();
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 });
 
 describe('useChatMessages', () => {
-  it('drives the generic live-infinite hook with the messages collection path + ascending order', () => {
-    renderHook(() => useChatMessages(baseConfig()));
-    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.collectionPath).toBe('chats/t1/messages');
-    expect(opts.orderByField).toBe('createdAt');
-    expect(opts.sort).toBe('asc');
-    expect(opts.enabled).toBe(true);
+  it('drives the generic live-infinite hook with the messages collection path + ascending order', async () => {
+    seedMessage('m2', { createdAt: 2, senderId: 's1', text: 'later' });
+    seedMessage('m1', { createdAt: 1, senderId: 's1', text: 'earlier' });
+    const { result } = renderHook(() => useChatMessages(baseConfig()), { wrapper });
+    await waitFor(() => expect(ids(result.current.messages)).toEqual(['m1', 'm2']));
+    expect(store.queries()[0]).toMatchObject({
+      listen: true,
+      path: 'chats/t1/messages',
+      orders: [{ field: 'createdAt', direction: 'desc' }],
+    });
   });
 
-  it('maps raw docs to ChatMessageV1 via select', () => {
-    renderHook(() => useChatMessages(baseConfig()));
-    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
-      select: (d: Record<string, unknown>) => {
-        messageId: string;
-        threadId: string;
-        createdAt: number;
-      };
-    };
-    const msg = opts.select({ id: 'm1', createdAt: 123, senderId: 's1', text: 'hi', type: 'text' });
-    expect(msg).toMatchObject({
+  it('maps raw docs to ChatMessageV1 via select', async () => {
+    seedMessage('m1', { createdAt: 123, senderId: 's1', text: 'hi', type: 'text' });
+    const { result } = renderHook(() => useChatMessages(baseConfig()), { wrapper });
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(result.current.messages[0]).toMatchObject({
       messageId: 'm1',
       threadId: 't1',
       createdAt: 123,
@@ -71,128 +81,116 @@ describe('useChatMessages', () => {
     });
   });
 
-  it("merges the app's own facts from the stored doc onto the message meta", () => {
-    const messageMeta = (doc: Record<string, unknown>) =>
-      doc.sentAs === 'admin' ? { official: true } : undefined;
-    renderHook(() => useChatMessages(baseConfig({ messageMeta })));
-    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
-      select: (d: Record<string, unknown>) => { meta?: Record<string, unknown> };
-    };
-    expect(
-      opts.select({
-        id: 'm1',
-        createdAt: 1,
-        senderId: 's1',
-        text: 'a',
-        sentAs: 'admin',
-        meta: { kept: 1 },
-      }).meta,
-    ).toEqual({ kept: 1, official: true });
-    expect(opts.select({ id: 'm2', createdAt: 2, senderId: 's1', text: 'b' }).meta).toBeUndefined();
-  });
-
-  it('never carries an app field it was not told to read', () => {
-    renderHook(() => useChatMessages(baseConfig()));
-    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
-      select: (d: Record<string, unknown>) => Record<string, unknown>;
-    };
-    const mapped = opts.select({
-      id: 'm1',
+  it("merges the app's own facts from the stored doc onto the message meta", async () => {
+    seedMessage('m1', {
       createdAt: 1,
       senderId: 's1',
       text: 'a',
       sentAs: 'admin',
+      meta: { kept: 1 },
     });
+    seedMessage('m2', { createdAt: 2, senderId: 's1', text: 'b' });
+    const messageMeta = (doc: Record<string, unknown>) =>
+      doc.sentAs === 'admin' ? { official: true } : undefined;
+    const { result } = renderHook(() => useChatMessages(baseConfig({ messageMeta })), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.messages).toHaveLength(2));
+    expect(result.current.messages[0].meta).toEqual({ kept: 1, official: true });
+    expect(result.current.messages[1].meta).toBeUndefined();
+  });
+
+  it('never carries an app field it was not told to read', async () => {
+    seedMessage('m1', { createdAt: 1, senderId: 's1', text: 'a', sentAs: 'admin' });
+    const { result } = renderHook(() => useChatMessages(baseConfig()), { wrapper });
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    const [mapped] = result.current.messages;
     expect(mapped).not.toHaveProperty('sentAs');
     expect(mapped.meta).toBeUndefined();
   });
 
-  it('reads nothing when the app says the user may not read the conversation', () => {
-    const { result } = renderHook(() => useChatMessages(baseConfig({ allowed: false })));
+  it('reads nothing when the app says the user may not read the conversation', async () => {
+    seedMessage('m1', { createdAt: 1, senderId: 's1', text: 'a' });
+    const { result } = renderHook(() => useChatMessages(baseConfig({ allowed: false })), {
+      wrapper,
+    });
+    await act(async () => {});
     expect(result.current.allowed).toBe(false);
-    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.enabled).toBe(false);
+    expect(store.queries()).toEqual([]);
     expect(result.current.messages).toEqual([]);
   });
 
-  it('exposes the generic hook items as messages', () => {
-    mocks.useFirestoreLiveInfinite.mockReturnValue({
-      items: [{ messageId: 'a' }, { messageId: 'b' }],
-      isInitialLoading: false,
-      fetchOlder: vi.fn(),
-      hasOlder: true,
-      isFetchingOlder: false,
-      sourceState: 'live',
-      error: null,
-      olderError: null,
-      retry: vi.fn(),
+  it('exposes the generic hook items as messages', async () => {
+    seedMessage('z', { createdAt: 1, senderId: 's1', text: 'oldest' });
+    seedMessage('a', { createdAt: 2, senderId: 's1', text: 'a' });
+    seedMessage('b', { createdAt: 3, senderId: 's1', text: 'b' });
+    const { result } = renderHook(() => useChatMessages(baseConfig({ pageSize: 2 })), {
+      wrapper,
     });
-    const { result } = renderHook(() => useChatMessages(baseConfig()));
-    expect(result.current.messages.map((m) => m.messageId)).toEqual(['a', 'b']);
+    await waitFor(() => expect(ids(result.current.messages)).toEqual(['a', 'b']));
     expect(result.current.hasOlder).toBe(true);
   });
 
-  it('passes the listener failure, the older-page failure, and the retry through to the shell', () => {
-    const listenerError = new Error('listen failed');
-    const olderError = new Error('older failed');
-    const retry = vi.fn();
-    mocks.useFirestoreLiveInfinite.mockReturnValue({
-      items: [{ messageId: 'a' }],
-      isInitialLoading: false,
-      fetchOlder: vi.fn(),
-      hasOlder: true,
-      isFetchingOlder: false,
-      sourceState: 'error',
-      error: listenerError,
-      olderError,
-      retry,
+  it('passes the listener failure and the older-page failure to the shell, and its retry recovers both', async () => {
+    seedMessage('z', { createdAt: 1, senderId: 's1', text: 'oldest' });
+    seedMessage('a', { createdAt: 2, senderId: 's1', text: 'a' });
+    const listenerError = firestoreError('unavailable', 'listen failed');
+    const olderError = firestoreError('unavailable', 'older failed');
+    const { result } = renderHook(() => useChatMessages(baseConfig({ pageSize: 1 })), {
+      wrapper,
     });
-    const { result } = renderHook(() => useChatMessages(baseConfig()));
+    await waitFor(() => expect(result.current.hasOlder).toBe(true));
+
+    let olderFailing = true;
+    store.failReads((read) => olderFailing && readsOlder(read), olderError);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    act(() => store.failListeners(listens, listenerError));
+
+    await waitFor(() => expect(result.current.olderError).toBe(olderError));
     expect(result.current.error).toBe(listenerError);
-    expect(result.current.olderError).toBe(olderError);
     expect(result.current.sourceState).toBe('error');
-    expect(result.current.messages.map((m) => m.messageId)).toEqual(['a']);
-    result.current.retry();
-    expect(retry).toHaveBeenCalledTimes(1);
+    expect(ids(result.current.messages)).toEqual(['a']);
+
+    olderFailing = false;
+    act(() => result.current.retry());
+    await waitFor(() => expect(ids(result.current.messages)).toEqual(['z', 'a']));
+    expect(result.current.error).toBeNull();
+    expect(result.current.olderError).toBeNull();
+    expect(result.current.sourceState).toBe('live');
   });
 
-  it('keys the read to the signed-in user, so another account never reuses this window', () => {
-    renderHook(() => useChatMessages(baseConfig({ currentUserId: 'u1' })));
-    const first = (mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as { queryKey: unknown[] })
-      .queryKey;
-    renderHook(() => useChatMessages(baseConfig({ currentUserId: 'u2' })));
-    const second = (mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as { queryKey: unknown[] })
-      .queryKey;
-    expect(first).not.toEqual(second);
+  it('keys the read to the signed-in user, so another account never reuses this window', async () => {
+    const keysNaming = (uid: string) =>
+      client
+        .getQueryCache()
+        .getAll()
+        .map((query) => query.queryKey)
+        .filter((key) => key.includes(uid));
+    renderHook(() => useChatMessages(baseConfig({ currentUserId: 'u1' })), { wrapper });
+    await waitFor(() => expect(keysNaming('u1')).not.toEqual([]));
+    renderHook(() => useChatMessages(baseConfig({ currentUserId: 'u2' })), { wrapper });
+    await waitFor(() => expect(keysNaming('u2')).not.toEqual([]));
+    for (const key of keysNaming('u2')) expect(keysNaming('u1')).not.toContainEqual(key);
   });
 });
 
 describe('useChatMessages prewarms every account a message names', () => {
   it('asks the app for the senders and the referenced accounts of server-written lines', async () => {
-    const React = await import('react');
-    mocks.useFirestoreLiveInfinite.mockReturnValue({
-      items: [
-        { messageId: 'a', senderId: 'u1' },
-        { messageId: 'b', senderId: 'system', referencedUids: ['u2'] },
-      ],
-      isInitialLoading: false,
-      fetchOlder: vi.fn(),
-      hasOlder: false,
-      isFetchingOlder: false,
-      sourceState: 'live',
-      error: null,
-      olderError: null,
-      retry: vi.fn(),
-    });
+    seedMessage('a', { createdAt: 1, senderId: 'u1', text: 'hello' });
+    seedMessage('b', { createdAt: 2, senderId: 'system', text: 'joined', referencedUids: ['u2'] });
     const prewarm = vi.fn();
     renderHook(() => useChatMessages(baseConfig()), {
       wrapper: ({ children }) =>
-        React.createElement(ChatNameResolverProvider, {
-          resolveName: () => ({ status: 'pending' as const }),
-          prewarm,
-          children,
+        wrapper({
+          children: React.createElement(ChatNameResolverProvider, {
+            resolveName: () => ({ status: 'pending' as const }),
+            prewarm,
+            children,
+          }),
         }),
     });
-    expect(prewarm).toHaveBeenCalledWith(expect.arrayContaining(['u1', 'u2']));
+    await waitFor(() => expect(prewarm).toHaveBeenCalledWith(expect.arrayContaining(['u1', 'u2'])));
   });
 });

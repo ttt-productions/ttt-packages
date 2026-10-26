@@ -9,11 +9,10 @@ import type { processMedia } from '../src/process-media.js';
 
 const processMediaMock = vi.fn<typeof processMedia>();
 vi.mock('../src/process-media.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../src/process-media.js')>();
-  return {
-    ...actual,
-    processMedia: (...args: Parameters<typeof processMedia>) => processMediaMock(...args),
-  };
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('../src/process-media.js')>(importOriginal, {
+    processMedia: (...args) => processMediaMock(...args),
+  });
 });
 
 const { runMediaPipeline } = await import('../src/run-pipeline.js');

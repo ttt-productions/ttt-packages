@@ -1,3 +1,4 @@
+import type { ReadStream } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { mkdtemp, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -18,17 +19,21 @@ import { UnreadableStorageObjectMetadataError } from '../src/server/staged-objec
 import { isObjectNotFoundError } from '../src/server/gcs-errors.js';
 import { requestOf } from './helpers/fetch-request.js';
 
-const fsHoisted = vi.hoisted(() => ({ readStreamCalls: [] as unknown[] }));
+const fsHoisted = vi.hoisted(() => {
+  const readStreamCalls: ReadStream[] = [];
+  return { readStreamCalls };
+});
 vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    createReadStream: (...streamArgs: Parameters<typeof actual.createReadStream>) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  type Fs = typeof import('node:fs');
+  const actual = await importOriginal<Fs>();
+  return passThroughModule<Fs>(importOriginal, {
+    createReadStream: (...streamArgs) => {
       const stream = actual.createReadStream(...streamArgs);
       fsHoisted.readStreamCalls.push(stream);
       return stream;
     },
-  };
+  });
 });
 
 async function makeLocalFile(name: string, content = 'bytes'): Promise<string> {

@@ -1,12 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('@ttt-productions/firebase-helpers', () => ({
-  joinPath: (...args: (string | number | null | undefined)[]) =>
-    args
-      .filter((a) => a !== null && a !== undefined)
-      .map((a) => String(a).replace(/^\/+|\/+$/g, ''))
-      .join('/'),
-}));
+import { describe, it, expect } from 'vitest';
 
 import { buildUploadPath } from '../src/utils/path.js';
 

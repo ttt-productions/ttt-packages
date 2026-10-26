@@ -1,9 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../src/constants/legal-review-notice-state.js', () => ({
-  LEGAL_REVIEW_NOTICE_ACTIVE: false,
-  LEGAL_REVIEW_NOTICE_REVISION: 'founder-note-v2',
-}));
+vi.mock('../src/constants/legal-review-notice-state.js', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  return passThroughModule<typeof import('../src/constants/legal-review-notice-state.js')>(
+    importOriginal,
+    { LEGAL_REVIEW_NOTICE_ACTIVE: false },
+  );
+});
 
 import {
   LEGAL_REVIEW_NOTICE_CONTEXTS,

@@ -1,63 +1,53 @@
+import admin from 'firebase-admin';
+import type { App, AppOptions } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mocks = vi.hoisted(() => {
-  const mockApp = { name: '[DEFAULT]', options: {} };
-  const mockDb = { _type: 'firestore' };
-  const mockAuth = { _type: 'auth' };
-  const mockStorage = { _type: 'storage' };
-  const mockAdminRoot = { _type: 'firebase-admin-root' };
-  const apps: unknown[] = [];
+const registry = vi.hoisted(() => ({ apps: [] as App[], created: 0 }));
 
-  return {
-    mockApp,
-    mockDb,
-    mockAuth,
-    mockStorage,
-    mockAdminRoot,
-    apps,
-    initializeApp: vi.fn(() => {
-      apps.push(mockApp);
-      return mockApp;
+vi.mock('firebase-admin/app', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  type AdminApp = typeof import('firebase-admin/app');
+  const actual = await importOriginal<AdminApp>();
+  return passThroughModule<AdminApp>(importOriginal, {
+    initializeApp: vi.fn((options?: AppOptions) => {
+      registry.created += 1;
+      const app = actual.initializeApp(
+        { projectId: 'demo-admin-init', ...options },
+        `admin-init-${registry.created}`,
+      );
+      registry.apps.push(app);
+      return app;
     }),
-    getApps: vi.fn(() => apps),
-    // Real SDK semantics: `getApp()` throws `app/no-app` until a default app is initialized.
+    getApps: vi.fn(() => registry.apps),
     getApp: vi.fn(() => {
-      if (apps.length === 0) {
-        const err = new Error(
-          'The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.',
-        ) as Error & { code: string };
-        err.code = 'app/no-app';
-        throw err;
-      }
-      return mockApp;
+      const [app] = registry.apps;
+      if (!app)
+        throw Object.assign(
+          new Error(
+            'The default Firebase app does not exist. Make sure you call initializeApp() before using any of the Firebase services.',
+          ),
+          { code: 'app/no-app' },
+        );
+      return app;
     }),
-    getFirestore: vi.fn(() => mockDb),
-    getAuth: vi.fn(() => mockAuth),
-    getStorage: vi.fn(() => mockStorage),
-  };
+  });
 });
 
-vi.mock('firebase-admin', () => ({ default: mocks.mockAdminRoot }));
-vi.mock('firebase-admin/app', () => ({
-  initializeApp: mocks.initializeApp,
-  getApps: mocks.getApps,
-  getApp: mocks.getApp,
-}));
-vi.mock('firebase-admin/firestore', () => ({ getFirestore: mocks.getFirestore }));
-vi.mock('firebase-admin/auth', () => ({ getAuth: mocks.getAuth }));
-vi.mock('firebase-admin/storage', () => ({ getStorage: mocks.getStorage }));
-
+import { getApp, getApps, initializeApp } from 'firebase-admin/app';
 import { getAdminApp, __resetAdminAppCache } from '../src/server/admin-init.js';
+
+const initializeAppMock = vi.mocked(initializeApp);
+const getAppMock = vi.mocked(getApp);
 
 describe('getAdminApp', () => {
   beforeEach(() => {
     __resetAdminAppCache();
-    mocks.apps.length = 0;
-    mocks.initializeApp.mockClear();
-    mocks.getApp.mockClear();
-    mocks.getFirestore.mockClear();
-    mocks.getAuth.mockClear();
-    mocks.getStorage.mockClear();
+    registry.apps.length = 0;
+    initializeAppMock.mockClear();
+    getAppMock.mockClear();
   });
 
   it('returns app, db, auth, storage, and admin handles', () => {
@@ -71,16 +61,15 @@ describe('getAdminApp', () => {
 
   it('derives db/auth/storage from the modular getters bound to the initialized app', () => {
     const result = getAdminApp();
-    expect(mocks.getFirestore).toHaveBeenCalledWith(mocks.mockApp);
-    expect(mocks.getAuth).toHaveBeenCalledWith(mocks.mockApp);
-    expect(mocks.getStorage).toHaveBeenCalledWith(mocks.mockApp);
-    expect(result.db).toBe(mocks.mockDb);
-    expect(result.auth).toBe(mocks.mockAuth);
-    expect(result.storage).toBe(mocks.mockStorage);
+    const [initialized] = registry.apps;
+    expect(result.app).toBe(initialized);
+    expect(result.db).toBe(getFirestore(initialized));
+    expect(result.auth).toBe(getAuth(initialized));
+    expect(result.storage).toBe(getStorage(initialized));
   });
 
   it('exposes the firebase-admin package root as the admin handle', () => {
-    expect(getAdminApp().admin).toBe(mocks.mockAdminRoot);
+    expect(getAdminApp().admin).toBe(admin);
   });
 
   it('is idempotent — returns same handle on second call', () => {
@@ -91,41 +80,36 @@ describe('getAdminApp', () => {
 
   it('calls initializeApp with no argument when no options are provided', () => {
     getAdminApp();
-    expect(mocks.initializeApp).toHaveBeenCalledWith();
+    expect(initializeAppMock).toHaveBeenCalledWith();
   });
 
   it('calls initializeApp when apps list is empty', () => {
     getAdminApp({ projectId: 'test-project' });
-    expect(mocks.initializeApp).toHaveBeenCalledWith(
+    expect(initializeAppMock).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: 'test-project' }),
     );
   });
 
-  it('the getApp mock models the real SDK failure on an empty app store', () => {
-    expect(mocks.apps).toHaveLength(0);
-    let caught: unknown;
-    try {
-      mocks.getApp();
-    } catch (error) {
-      caught = error;
-    }
-    expect((caught as { code?: string } | undefined)?.code).toBe('app/no-app');
+  it('the getApp stand-in models the real SDK failure on an empty app store', () => {
+    expect(getApps()).toHaveLength(0);
+    expect(() => getApp()).toThrow(expect.objectContaining({ code: 'app/no-app' }));
   });
 
   it('initializes before resolving the default app — never calls getApp against an empty store', () => {
-    expect(mocks.apps).toHaveLength(0);
+    expect(getApps()).toHaveLength(0);
     expect(() => getAdminApp()).not.toThrow();
-    expect(mocks.initializeApp.mock.invocationCallOrder).toHaveLength(1);
-    expect(mocks.getApp.mock.invocationCallOrder).toHaveLength(1);
-    expect(mocks.initializeApp.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.getApp.mock.invocationCallOrder[0],
+    expect(initializeAppMock.mock.invocationCallOrder).toHaveLength(1);
+    expect(getAppMock.mock.invocationCallOrder).toHaveLength(1);
+    expect(initializeAppMock.mock.invocationCallOrder[0]).toBeLessThan(
+      getAppMock.mock.invocationCallOrder[0],
     );
   });
 
   it('skips initializeApp when apps list is non-empty', () => {
-    mocks.apps.push({});
+    initializeApp({ projectId: 'demo-admin-init' });
+    initializeAppMock.mockClear();
     getAdminApp();
-    expect(mocks.initializeApp).not.toHaveBeenCalled();
-    expect(mocks.getApp).toHaveBeenCalled();
+    expect(initializeAppMock).not.toHaveBeenCalled();
+    expect(getAppMock).toHaveBeenCalled();
   });
 });

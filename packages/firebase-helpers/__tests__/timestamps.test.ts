@@ -1,54 +1,28 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { serverNow, dateToTs, msToTs, tsToDate } from '../src/firestore-client/timestamps.js';
 import { serverTimestamp, Timestamp } from 'firebase/firestore';
 
-// Extend the Timestamp mock with fromMillis (not in global setup)
-const fromMillis = vi.fn((ms: number) => ({
-  seconds: Math.floor(ms / 1000),
-  nanoseconds: (ms % 1000) * 1_000_000,
-  toDate: () => new Date(ms),
-}));
-Object.assign(vi.mocked(Timestamp), { fromMillis });
-
 describe('serverNow()', () => {
-  it('calls serverTimestamp from firebase/firestore', () => {
-    serverNow();
-    expect(serverTimestamp).toHaveBeenCalled();
-  });
-
-  it('returns the value from serverTimestamp', () => {
-    const result = serverNow();
-    expect(result).toBe(vi.mocked(serverTimestamp).mock.results.at(-1)?.value);
+  it('returns the server-timestamp sentinel', () => {
+    expect(serverNow().isEqual(serverTimestamp())).toBe(true);
   });
 });
 
 describe('dateToTs()', () => {
-  it('calls Timestamp.fromDate with the provided date', () => {
-    const date = new Date('2024-01-01T00:00:00.000Z');
-    dateToTs(date);
-    expect(Timestamp.fromDate).toHaveBeenCalledWith(date);
-  });
-
-  it('returns the value from Timestamp.fromDate', () => {
-    const date = new Date('2024-06-15T00:00:00.000Z');
+  it('returns the Timestamp of the provided date', () => {
+    const date = new Date('2024-06-15T00:00:00.123Z');
     const result = dateToTs(date);
-    expect(result).toBeDefined();
-    expect(result.seconds).toBe(Math.floor(date.getTime() / 1000));
+    expect(result).toBeInstanceOf(Timestamp);
+    expect(result.toDate()).toEqual(date);
   });
 });
 
 describe('msToTs()', () => {
-  it('calls Timestamp.fromMillis with the provided ms value', () => {
-    const ms = 1700000000000;
-    msToTs(ms);
-    expect(fromMillis).toHaveBeenCalledWith(ms);
-  });
-
-  it('returns the value from Timestamp.fromMillis', () => {
-    const ms = 1700000000000;
+  it('returns the Timestamp of the provided milliseconds', () => {
+    const ms = 1700000000123;
     const result = msToTs(ms);
-    expect(result).toBeDefined();
-    expect(result.seconds).toBe(Math.floor(ms / 1000));
+    expect(result).toBeInstanceOf(Timestamp);
+    expect(result.toMillis()).toBe(ms);
   });
 });
 
@@ -61,18 +35,10 @@ describe('tsToDate()', () => {
     expect(tsToDate(undefined)).toBeNull();
   });
 
-  it('calls .toDate() on a Timestamp and returns the result', () => {
-    const mockDate = new Date('2024-03-01');
-    const toDate = vi.fn(() => mockDate);
-    const mockTs: Pick<Timestamp, 'toDate'> = { toDate };
-    const result = tsToDate(mockTs as Timestamp);
-    expect(toDate).toHaveBeenCalled();
-    expect(result).toBe(mockDate);
-  });
-
-  it('returns a Date instance', () => {
-    const mockDate = new Date('2024-01-01');
-    const mockTs: Pick<Timestamp, 'toDate'> = { toDate: () => mockDate };
-    expect(tsToDate(mockTs as Timestamp)).toBeInstanceOf(Date);
+  it('returns the Date a Timestamp holds', () => {
+    const date = new Date('2024-03-01T12:30:00.000Z');
+    const result = tsToDate(Timestamp.fromDate(date));
+    expect(result).toBeInstanceOf(Date);
+    expect(result).toEqual(date);
   });
 });

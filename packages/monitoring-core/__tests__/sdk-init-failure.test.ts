@@ -4,28 +4,31 @@ import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
 import { SentryAdapter } from '../src/adapters/sentry.js';
 import { __resetSentryAdapter } from '../src/adapters/create-sentry-adapter.js';
 
-vi.mock('@sentry/node', () => ({
-  init: () => {
+const sdks = await vi.hoisted(async () => {
+  const { sentrySdkFake } = await import('./helpers/sentry-sdk-fake.js');
+  const node = sentrySdkFake().sdk;
+  node.init.mockImplementation(() => {
     throw new Error('invalid option');
-  },
-  captureException: vi.fn(),
-  captureMessage: vi.fn(),
-  setUser: vi.fn(),
-  setTag: vi.fn(),
-  withScope: vi.fn(),
-  addBreadcrumb: vi.fn(),
-}));
-vi.mock('@sentry/nextjs', () => ({
-  init: vi.fn(),
-  captureException: () => {
+  });
+  const browser = sentrySdkFake().sdk;
+  browser.captureException.mockImplementation(() => {
     throw new Error('transport fault');
-  },
-  captureMessage: vi.fn(),
-  setUser: vi.fn(),
-  setTag: vi.fn(),
-  withScope: vi.fn(),
-  addBreadcrumb: vi.fn(),
-}));
+  });
+  return { node, browser };
+});
+
+vi.mock('../src/adapters/sentry-browser-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-browser-sdk.js')>({
+    importSentryBrowser: async () => sdks.browser,
+  });
+});
+vi.mock('../src/adapters/sentry-node-sdk.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/adapters/sentry-node-sdk.js')>({
+    importSentryNode: async () => sdks.node,
+  });
+});
 
 const DSN = 'https://test@example.com/1';
 

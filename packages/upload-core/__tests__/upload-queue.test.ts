@@ -1,19 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../src/browser/upload.js', () => ({
-  startResumableUpload: vi.fn(),
-}));
+vi.mock('../src/browser/upload.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/browser/upload.js')>({
+    startResumableUpload: vi.fn(),
+  });
+});
 
-vi.mock('../src/utils/upload-store.js', () => ({
-  upsertUploadSession: vi.fn(),
-  removeUploadSession: vi.fn(),
-}));
+vi.mock('../src/utils/upload-store.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/utils/upload-store.js')>({
+    upsertUploadSession: vi.fn(),
+    removeUploadSession: vi.fn(),
+  });
+});
 
 import { UploadQueue } from '../src/browser/upload-queue.js';
 import { startResumableUpload } from '../src/browser/upload.js';
 import type { StartUploadArgs, UploadController } from '../src/browser/types.js';
 import type { UploadFileResumableResult } from '../src/types.js';
-import type { FirebaseStorage } from 'firebase/storage';
+import { testStorage } from './helpers/storage-fakes.js';
 
 function makeMockController(id = 'ctrl'): UploadController & {
   resolveDone: (r: UploadFileResumableResult) => void;
@@ -38,7 +44,7 @@ function makeMockController(id = 'ctrl'): UploadController & {
 }
 
 const baseArgs: StartUploadArgs = {
-  storage: {} as FirebaseStorage,
+  storage: testStorage(),
   path: 'test/file.jpg',
   file: new Blob(['data']),
 };

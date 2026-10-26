@@ -1,88 +1,58 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import type { FirebaseStorage } from 'firebase/storage';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { StorageError, StorageErrorCode } from 'firebase/storage';
 import type { upsertUploadSession } from '../src/utils/upload-store.js';
-
-// Mocks must precede the component imports.
+import type { FakeUploadTask } from './helpers/storage-fakes.js';
+import { testStorage } from './helpers/storage-fakes.js';
 
 const upsertUploadSessionMock = vi.fn<typeof upsertUploadSession>();
-vi.mock('../src/utils/upload-store.js', () => ({
-  upsertUploadSession: (...args: Parameters<typeof upsertUploadSession>) =>
-    upsertUploadSessionMock(...args),
-}));
+vi.mock('../src/utils/upload-store.js', async () => {
+  const { stubModule } = await import('../../../test/typed-mock.js');
+  return stubModule<typeof import('../src/utils/upload-store.js')>({
+    upsertUploadSession: (...args) => upsertUploadSessionMock(...args),
+  });
+});
 
-const getDownloadURLMock = vi.hoisted(() => vi.fn(async () => 'https://example.com/test.jpg'));
-
-type UploadObservers = {
-  progress?: (snap: unknown) => void;
-  error?: (err: unknown) => void;
-  complete?: () => void;
-};
-
-type FakeUploadTask = {
-  cancel: Mock<() => void>;
-  pause: Mock<() => boolean>;
-  resume: Mock<() => boolean>;
-  snapshot: {
-    ref: { fullPath: string };
-    metadata: { contentType: string };
-    totalBytes: number;
+const storageFakes = vi.hoisted(() => {
+  const uploads: FakeUploadTask[] = [];
+  return {
+    uploads,
+    getDownloadURL: vi.fn<typeof import('firebase/storage').getDownloadURL>(
+      async () => 'https://example.com/test.jpg',
+    ),
   };
-  on: Mock<
-    (
-      event: string,
-      onProgress: UploadObservers['progress'],
-      onError: UploadObservers['error'],
-      onComplete: UploadObservers['complete'],
-    ) => () => void
-  >;
-};
+});
 
-let lastTask: FakeUploadTask | null = null;
-let lastObservers: UploadObservers = {};
+vi.mock('firebase/storage', async (importOriginal) => {
+  const { passThroughModule } = await import('../../../test/typed-mock.js');
+  const { fakeUploadTask } = await import('./helpers/storage-fakes.js');
+  return passThroughModule<typeof import('firebase/storage')>(importOriginal, {
+    uploadBytesResumable: (ref, data, metadata) => {
+      const upload = fakeUploadTask(ref, data, metadata);
+      storageFakes.uploads.push(upload);
+      return upload.task;
+    },
+    getDownloadURL: storageFakes.getDownloadURL,
+  });
+});
 
-function startedTask(): FakeUploadTask {
-  if (!lastTask) throw new Error('no upload task was started');
-  return lastTask;
+function startedUpload(): FakeUploadTask {
+  const upload = storageFakes.uploads.at(-1);
+  if (!upload) throw new Error('no upload task was started');
+  return upload;
 }
 
-vi.mock('firebase/storage', () => ({
-  ref: vi.fn((_storage: unknown, path: string) => ({ fullPath: path })),
-  uploadBytesResumable: vi.fn((_ref: unknown, _file: unknown, _meta: unknown) => {
-    const task: FakeUploadTask = {
-      cancel: vi.fn<() => void>(),
-      pause: vi.fn(() => true),
-      resume: vi.fn(() => true),
-      snapshot: {
-        ref: { fullPath: 'tmp/test.jpg' },
-        metadata: { contentType: 'image/jpeg' },
-        totalBytes: 1,
-      },
-      on: vi.fn((_event, onProgress, onError, onComplete) => {
-        lastObservers = { progress: onProgress, error: onError, complete: onComplete };
-        return () => {};
-      }),
-    };
-    lastTask = task;
-    return task;
-  }),
-  getDownloadURL: getDownloadURLMock,
-}));
+const startedTask = () => startedUpload().task;
+const observers = () => startedUpload().observers;
 
 import { startResumableUpload, uploadFileResumable } from '../src/browser/upload.js';
 
 beforeEach(() => {
   upsertUploadSessionMock.mockReset();
-  lastTask = null;
-  lastObservers = {};
+  storageFakes.uploads.length = 0;
 });
 
 function storageCanceledError() {
-  return Object.assign(
-    new Error('Firebase Storage: User canceled the upload/download. (storage/canceled)'),
-    {
-      code: 'storage/canceled',
-    },
-  );
+  return new StorageError(StorageErrorCode.CANCELED, 'User canceled the upload/download.');
 }
 
 function makeFile() {
@@ -94,7 +64,7 @@ function makeFile() {
 function makeArgs(overrides: Record<string, unknown> = {}) {
   return {
     id: 'upl_test',
-    storage: {} as FirebaseStorage,
+    storage: testStorage(),
     path: 'tmp/test.jpg',
     file: makeFile(),
     metadata: { contentType: 'image/jpeg' },
@@ -124,26 +94,13 @@ describe('startResumableUpload — abort behavior', () => {
     expect(startedTask().cancel).toHaveBeenCalledOnce();
   });
 
-  it('classifies AbortError as canceled in the upload-store', async () => {
-    const controller = new AbortController();
-    const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
-    // done rejects with the failure; the case reads the upload-store instead.
-    c.done.catch(() => {});
-
-    await lastObservers.error!(new DOMException('aborted', 'AbortError'));
-
-    expect(upsertUploadSessionMock).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'canceled' }),
-    );
-  });
-
   it('classifies non-Abort errors as error in the upload-store', async () => {
     const controller = new AbortController();
     const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
     // done rejects with the failure; the case reads the upload-store instead.
     c.done.catch(() => {});
 
-    await lastObservers.error!(new Error('network failure'));
+    await observers().error!(new StorageError(StorageErrorCode.UNKNOWN, 'network failure'));
 
     expect(upsertUploadSessionMock).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'error' }),
@@ -154,7 +111,7 @@ describe('startResumableUpload — abort behavior', () => {
     const controller = new AbortController();
     const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
 
-    await lastObservers.complete!();
+    await observers().complete!();
     await c.done;
 
     const callsBefore = startedTask().cancel.mock.calls.length;
@@ -173,7 +130,7 @@ describe('startResumableUpload — abort behavior', () => {
     );
 
     controller.abort();
-    await lastObservers.error!(storageCanceledError());
+    await observers().error!(storageCanceledError());
 
     const err = await outcome;
     expect(err).toBeInstanceOf(DOMException);
@@ -191,7 +148,7 @@ describe('startResumableUpload — abort behavior', () => {
     );
 
     c.cancel();
-    await lastObservers.error!(storageCanceledError());
+    await observers().error!(storageCanceledError());
 
     expect(((await outcome) as DOMException).name).toBe('AbortError');
     expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(
@@ -208,7 +165,7 @@ describe('startResumableUpload — abort behavior', () => {
     );
     const remote = storageCanceledError();
 
-    await lastObservers.error!(remote);
+    await observers().error!(remote);
 
     expect(await outcome).toBe(remote);
     expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(
@@ -219,20 +176,20 @@ describe('startResumableUpload — abort behavior', () => {
   it('resolves the path, content type, and size without minting a download URL', async () => {
     const c = startResumableUpload(makeArgs());
 
-    await lastObservers.complete!();
+    await observers().complete!();
 
     await expect(c.done).resolves.toEqual({
       fullPath: 'tmp/test.jpg',
       contentType: 'image/jpeg',
       size: 1,
     });
-    expect(getDownloadURLMock).not.toHaveBeenCalled();
+    expect(storageFakes.getDownloadURL).not.toHaveBeenCalled();
   });
 
   it('uploadFileResumable rejects when contentType metadata is missing', async () => {
     await expect(
       uploadFileResumable({
-        storage: {} as FirebaseStorage,
+        storage: testStorage(),
         path: 'x',
         file: makeFile(),
         metadata: { contentType: '' },
