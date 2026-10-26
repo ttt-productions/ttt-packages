@@ -21,14 +21,15 @@ function browserEntryProject(include: string[]): TestProjectConfiguration {
   return {
     extends: true,
     // Node's loader cannot run a browser build's extensionless imports, so every dependency goes
-    // through Vite here.
+    // through Vite here. A pattern, not `true`: `extends` concatenates this list onto the root's, and
+    // Vitest calls `.test` on every entry of a list.
     resolve: { conditions: ['browser'] },
     test: {
       name: 'app-browser',
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       include,
-      server: { deps: { inline: true } },
+      server: { deps: { inline: [/.*/] } },
     },
   };
 }

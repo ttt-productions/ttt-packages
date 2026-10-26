@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import { describe, expect, it } from 'vitest';
+import { mergeConfig, type ViteUserConfig } from 'vitest/config';
 import {
   createAppVitestConfig,
   createFunctionsVitestConfig,
@@ -85,9 +86,32 @@ describe('createAppVitestConfig — browser-entry tests', () => {
         environment: 'jsdom',
         setupFiles: ['./src/test/setup.ts'],
         include: ['src/__tests__/entry-client*.test.ts'],
-        server: { deps: { inline: true } },
+        server: { deps: { inline: [/.*/] } },
       },
     });
+  });
+
+  it('puts every dependency through Vite once the project extends the root config', async () => {
+    const { test, ...rest } = await createAppVitestConfig({
+      root,
+      browserEntryTests: ['src/__tests__/entry-client*.test.ts'],
+    });
+    const { projects, ...rootTest } = test ?? {};
+    const browserProject = (projects as Array<{ test: { name: string } }>).find(
+      (p) => p.test.name === 'app-browser',
+    );
+    const merged: ViteUserConfig = mergeConfig({ ...rest, test: rootTest }, browserProject ?? {});
+    const inline = merged.test?.server?.deps?.inline;
+
+    expect(Array.isArray(inline)).toBe(true);
+    const patterns = Array.isArray(inline) ? inline : [];
+    expect(patterns.every((p) => typeof p === 'string' || p instanceof RegExp)).toBe(true);
+    expect(
+      patterns.some(
+        (p) =>
+          p instanceof RegExp && p.test('/repo/app/node_modules/@sentry/browser/build/index.js'),
+      ),
+    ).toBe(true);
   });
 });
 
