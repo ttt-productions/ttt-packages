@@ -22,13 +22,14 @@ const notFetchedInTest = (): Promise<never> =>
   Promise.reject(new Error('this read is not fetched in the test; pass the case its own refetch'));
 
 function retryStateOf(
-  result: { error: Error | null; isFetching: boolean; isLoading: boolean },
+  result: { error: Error | null; isFetching: boolean; isLoading: boolean; isPaused: boolean },
   held: Error | null,
 ): ReadRetryState<Error> {
   const source = {
     error: result.error,
     isFetching: result.isFetching,
     isLoading: result.isLoading,
+    isPaused: result.isPaused,
   };
   return toRetryState(source, nextHeldFailure(held ? { error: held } : undefined, source));
 }
@@ -86,7 +87,12 @@ export interface InfiniteReadSpec<TPage, TParam, TData = InfiniteData<TPage, TPa
   pages?: TPage[];
   pageParams?: TParam[];
   initialPageParam: TParam;
-  getNextPageParam: (lastPage: TPage, allPages: TPage[]) => TParam | undefined | null;
+  getNextPageParam: (
+    lastPage: TPage,
+    allPages: TPage[],
+    lastPageParam: TParam,
+    allPageParams: TParam[],
+  ) => TParam | undefined | null;
   select?: (data: InfiniteData<TPage, TParam>) => TData;
 }
 
@@ -96,7 +102,7 @@ function pageParamsOf<TPage, TParam, TData>(
 ): TParam[] {
   const params = [spec.initialPageParam];
   for (let i = 1; i < pages.length; i++) {
-    const next = spec.getNextPageParam(pages[i - 1], pages.slice(0, i));
+    const next = spec.getNextPageParam(pages[i - 1], pages.slice(0, i), params[i - 1], [...params]);
     if (next === undefined || next === null)
       throw new Error(`page ${i} has no page param: getNextPageParam ends the list before it`);
     params.push(next);
@@ -177,6 +183,15 @@ export const retryingAnsweredInfiniteRead = <TPage, TParam, TData = InfiniteData
   error: Error,
 ): BuiltInfiniteRead<TData> =>
   observedInfinite(spec, { ...failure(error), fetchStatus: 'fetching' });
+
+export const pausedRetryingAnsweredInfiniteRead = <
+  TPage,
+  TParam,
+  TData = InfiniteData<TPage, TParam>,
+>(
+  spec: InfiniteReadSpec<TPage, TParam, TData> & { pages: TPage[] },
+  error: Error,
+): BuiltInfiniteRead<TData> => observedInfinite(spec, { ...failure(error), fetchStatus: 'paused' });
 
 export const fetchingNextPageRead = <TPage, TParam, TData = InfiniteData<TPage, TParam>>(
   spec: InfiniteReadSpec<TPage, TParam, TData> & { pages: TPage[] },

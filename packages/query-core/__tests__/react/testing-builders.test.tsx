@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import {
@@ -7,6 +7,8 @@ import {
   QueryClient,
   QueryClientProvider,
   QueryObserver,
+  onlineManager,
+  useInfiniteQuery,
   useQuery,
   type InfiniteData,
   type QueryKey,
@@ -29,6 +31,7 @@ import {
   loadingInfiniteRead,
   loadingRead,
   nextPageFailedRead,
+  pausedRetryingAnsweredInfiniteRead,
   retryingAnsweredInfiniteRead,
   retryingAnsweredRead,
   retryingInfiniteRead,
@@ -44,6 +47,8 @@ import {
   pendingSessionMutation,
   sessionMutationContext,
 } from '../../src/react/testing/mutation-builders.js';
+
+afterEach(() => onlineManager.setOnline(true));
 
 const FLAGS = [
   'status',
@@ -189,6 +194,38 @@ describe('every read builder carries the retry state the real hook derives', () 
     void result.current.query.refetch();
     await waitFor(() => expect(result.current.query.isFetching).toBe(true));
     expect(result.current.retryState).toEqual(retryingRead(boom).retryState);
+  });
+
+  it('counts a refresh retry paused offline as retrying, as useReadRetryState does', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    let calls = 0;
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(
+      () => {
+        const query = useInfiniteQuery<Page, Error>({
+          queryKey: ['paused-hook'],
+          initialPageParam: 0,
+          getNextPageParam: (last) => last.next,
+          queryFn: () => {
+            calls += 1;
+            return calls === 1 ? Promise.resolve(first) : Promise.reject(boom);
+          },
+        });
+        return { query, retryState: useReadRetryState(query, ['paused-hook']) };
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    void result.current.query.refetch();
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+    act(() => onlineManager.setOnline(false));
+    void result.current.query.refetch();
+    await waitFor(() => expect(result.current.query.isPaused).toBe(true));
+    expect(result.current.retryState).toEqual(
+      pausedRetryingAnsweredInfiniteRead(loaded, boom).retryState,
+    );
   });
 
   it('states each built retry state', () => {
@@ -357,6 +394,16 @@ describe('every infinite read builder matches a real infinite query in that stat
     );
   });
 
+  it('retrying that refresh while offline — paused, the loaded pages and the failure kept', async () => {
+    const real = await refreshFailed();
+    onlineManager.setOnline(false);
+    void real.observer.refetch();
+    const built = pausedRetryingAnsweredInfiniteRead(loaded, boom);
+    const current = real.observer.getCurrentResult();
+    expect(infiniteFlagsOf(built)).toEqual(infiniteFlagsOf(current));
+    expect(built.isPaused).toBe(current.isPaused);
+  });
+
   it('the next page in flight', async () => {
     const real = await answeredInfinite();
     void real.observer.fetchNextPage();
@@ -393,6 +440,7 @@ describe('every infinite read builder matches a real infinite query in that stat
     });
     expect(retryingAnsweredInfiniteRead(loaded, boom).retryState).toEqual(retrying);
     expect(retryingNextPageRead(loaded, boom).retryState).toEqual(retrying);
+    expect(pausedRetryingAnsweredInfiniteRead(loaded, boom).retryState).toEqual(retrying);
   });
 
   it('derives page params from the case’s getNextPageParam and applies its select', () => {
@@ -405,6 +453,24 @@ describe('every infinite read builder matches a real infinite query in that stat
       select: (data) => data.pages.flatMap((page) => page.rows),
     });
     expect(read.data).toEqual(['a', 'b']);
+  });
+
+  it('hands the case’s getNextPageParam the previous page param and every param so far, as TanStack does', () => {
+    const calls: Array<{ lastPageParam: number; allPageParams: number[] }> = [];
+    const read = infiniteRead<Page, number>({
+      initialPageParam: 5,
+      getNextPageParam: (last, _pages, lastPageParam, allPageParams) => {
+        calls.push({ lastPageParam, allPageParams: [...allPageParams] });
+        return last.next === null ? null : lastPageParam + 10;
+      },
+      pages: [{ next: 1 }, { next: 1 }, { next: null }],
+    });
+    expect(read.data?.pageParams).toEqual([5, 15, 25]);
+    expect(calls.slice(0, 2)).toEqual([
+      { lastPageParam: 5, allPageParams: [5] },
+      { lastPageParam: 15, allPageParams: [5, 15] },
+    ]);
+    expect(read.hasNextPage).toBe(false);
   });
 });
 

@@ -164,7 +164,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-QUALITY-009 | A test loads the code it tests when its file loads | codebase-hygiene 42, 118; package-boundaries 8 | `testCaseModuleLoads` |
 | RULE-STD-QUALITY-010 | A test's time limit names a budget | codebase-hygiene 119; package-boundaries 10 | `testTimeouts` |
 | RULE-STD-QUALITY-011 | `test:quiet` is the canonical gate; a stage named by hand never skips | testing-coverage 1, 9 | `ciParity` |
-| RULE-STD-QUALITY-012 | A test double reproduces the real dependency's states | testing-coverage 12 | — |
+| RULE-STD-QUALITY-012 | A test double reproduces the real dependency's states | testing-coverage 12 | `handBuiltReads` |
 | RULE-STD-QUALITY-101 | Every Cloud Function is monitored through monitoring-core withScope | codebase-hygiene 40, 87; callable-functions 9; observability 1, 2, 3, 4, 9 | `monitoring` |
 | RULE-STD-QUALITY-102 | Generic packages stay monitoring-agnostic; each app binds monitoring once | codebase-hygiene 31, 40; callable-functions 9; observability 1, 9; package-boundaries 2 | `monitoring` |
 | RULE-STD-QUALITY-103 | No duplicate captures or error surfaces where a wrapper owns them | codebase-hygiene 60, 114; observability 6; ux-audit 8, 11 | — |

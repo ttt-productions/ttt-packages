@@ -175,7 +175,7 @@ A type is never switched off: no `as never`, no `as unknown as X`, and no cast o
 ### RULE-STD-QUALITY-012 — A test double reproduces the real dependency's states
 **Scope.** both
 
-**Rule.** A test double — a fake, a kit, a builder, a stubbed module, a fixture — reproduces the states the real dependency reaches, and only those. A shared double or builder covers every state the real dependency reaches that the product handles differently, so a test can put the product in each one; it offers no state the real one cannot reach. A case's trigger is one the real dependency and a real user can produce, its fixture holds only values the real writers and the schema allow, and its name states the trigger it uses.
+**Rule.** A test double — a fake, a kit, a builder, a stubbed module, a fixture — reproduces the states the real dependency reaches, and only those. A shared double or builder covers every state the real dependency reaches that the product handles differently, so a test can put the product in each one; it offers no state the real one cannot reach. A case's trigger is one the real dependency and a real user can produce, its fixture holds only values the real writers and the schema allow, and its name states the trigger it uses. A read's state comes from the read builders or the real hook, never from a hand-written retry state, a result read off an observer the test built itself, or a hand-seeded query cache; the repo-guards `handBuiltReads` guard enforces it.
 
 **Why.** A double that cannot build a real state leaves the product unproven in it; one that builds an impossible state proves behavior the product never has and hides the real behavior behind a green case.
 

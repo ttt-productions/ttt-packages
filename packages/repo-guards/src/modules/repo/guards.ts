@@ -15,6 +15,7 @@ import { dependencyOverrideGuard, type DependencyOverrideFacts } from './depende
 import { documentDriftGuard, type DocumentDriftFacts } from './document-drift.js';
 import { retryLoopActionGuard, swallowedActionGuard, type E2eActionFacts } from './e2e-actions.js';
 import { envPublicValuesGuard, type EnvPublicValuesFacts } from './env-public-values.js';
+import { handBuiltReadGuard, type HandBuiltReadFacts } from './hand-built-reads.js';
 import {
   installedPackagesAgnosticGuard,
   type InstalledPackagesAgnosticFacts,
@@ -46,6 +47,7 @@ export type RepoGuardFacts = {
   swallowedRejections: SwallowedRejectionFacts;
   sharedFakes: SharedFakeFacts;
   typedMocks: TypedMockFacts;
+  handBuiltReads: HandBuiltReadFacts;
   testTimeouts: TestTimeoutFacts;
   localOnlyVariables: LocalOnlyVariablesFacts;
   workerConfigIsolation: WorkerConfigFacts | Absent;
@@ -75,6 +77,7 @@ export const REPO_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.
   swallowedRejectionGuard,
   sharedFakeGuard,
   typedMockGuard,
+  handBuiltReadGuard,
   testTimeoutGuard,
   localOnlyVariablesGuard,
   workerConfigGuard,
