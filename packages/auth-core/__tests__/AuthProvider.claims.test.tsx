@@ -7,17 +7,17 @@ import type { IdTokenClaims } from '../src/client/claims.js';
 type Claims = { owner: string };
 
 let currentUser: User | null = null;
-vi.mock('../src/react/useAuthState.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/react/useAuthState.js')>({
+vi.mock(import('../src/react/useAuthState.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     useAuthState: () => ({ user: currentUser, loading: false, error: null }),
   });
 });
 
 const pendingInitialReads = new Map<string, Array<(claims: IdTokenClaims) => void>>();
-vi.mock('../src/client/claims.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/client/claims.js')>({
+vi.mock(import('../src/client/claims.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     getIdTokenClaims: vi.fn(async (user: User | null) => {
       if (!user) return null;
       return new Promise<IdTokenClaims>((resolve) => {

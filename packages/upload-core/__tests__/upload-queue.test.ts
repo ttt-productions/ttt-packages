@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../src/browser/upload.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/browser/upload.js')>({
+vi.mock(import('../src/browser/upload.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     startResumableUpload: vi.fn(),
   });
 });
 
-vi.mock('../src/utils/upload-store.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/utils/upload-store.js')>({
+vi.mock(import('../src/utils/upload-store.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     upsertUploadSession: vi.fn(),
     removeUploadSession: vi.fn(),
   });

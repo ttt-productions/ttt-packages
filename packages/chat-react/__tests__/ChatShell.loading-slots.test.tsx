@@ -8,9 +8,9 @@ import { realtimeMessagesResult } from './helpers/hook-results.js';
 const mockRealtimeResult: { current: UseRealtimeChatMessagesResult } = {
   current: realtimeMessagesResult(),
 };
-vi.mock('../src/realtime/useRealtimeChatMessages.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/realtime/useRealtimeChatMessages.js')>({
+vi.mock(import('../src/realtime/useRealtimeChatMessages.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     useRealtimeChatMessages: () => mockRealtimeResult.current,
   });
 });

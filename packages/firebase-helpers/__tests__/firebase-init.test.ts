@@ -30,42 +30,48 @@ const h = vi.hoisted(() => ({
     vi.fn<typeof import('../src/client/auth-boot-lookup-guard.js').installAuthBootLookupGuard>(),
   initializeFirestore: vi.fn<typeof import('firebase/firestore').initializeFirestore>(),
   getFirestore: vi.fn<() => import('firebase/firestore').Firestore>(),
+  multipleTabManagers: [] as unknown[],
 }));
 
-vi.mock('firebase/app-check', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type AppCheckModule = typeof import('firebase/app-check');
-  const actual = await importOriginal<AppCheckModule>();
+vi.mock(import('firebase/app-check'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
   class RecordingProvider extends actual.ReCaptchaEnterpriseProvider {
     constructor(siteKey: string) {
       super(siteKey);
       h.providerSiteKeys.push(siteKey);
     }
   }
-  return passThroughModule<AppCheckModule>(importOriginal, {
+  return passThroughModule(importOriginal, {
     initializeAppCheck: h.initializeAppCheck,
     getToken: h.getToken,
     ReCaptchaEnterpriseProvider: RecordingProvider,
   });
 });
-vi.mock('firebase/analytics', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('firebase/analytics')>(importOriginal, {
+vi.mock(import('firebase/analytics'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     initializeAnalytics: h.initializeAnalytics,
     setAnalyticsCollectionEnabled: h.setAnalyticsCollectionEnabled,
   });
 });
-vi.mock('firebase/firestore', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('firebase/firestore')>(importOriginal, {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
+  return passThroughModule(importOriginal, {
+    persistentMultipleTabManager: () => {
+      const manager = actual.persistentMultipleTabManager();
+      h.multipleTabManagers.push(manager);
+      return manager;
+    },
     getFirestore: () => h.getFirestore(),
     initializeFirestore: h.initializeFirestore,
     connectFirestoreEmulator: vi.fn(),
   });
 });
-vi.mock('firebase/auth', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('firebase/auth')>(importOriginal, {
+vi.mock(import('firebase/auth'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     getAuth: () => {
       h.order.push('getAuth');
       return sdk.auth;
@@ -74,16 +80,16 @@ vi.mock('firebase/auth', async (importOriginal) => {
     setPersistence: vi.fn(async () => undefined),
   });
 });
-vi.mock('firebase/storage', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('firebase/storage')>(importOriginal, {
+vi.mock(import('firebase/storage'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     getStorage: () => sdk.storage,
     connectStorageEmulator: vi.fn(),
   });
 });
-vi.mock('../src/client/auth-boot-lookup-guard.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/client/auth-boot-lookup-guard.js')>({
+vi.mock(import('../src/client/auth-boot-lookup-guard.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     installAuthBootLookupGuard: (...args) => {
       h.order.push('guard');
       h.installAuthBootLookupGuard(...args);
@@ -122,6 +128,7 @@ beforeEach(() => {
   __resetFirebaseClientCache();
   h.order.length = 0;
   h.providerSiteKeys.length = 0;
+  h.multipleTabManagers.length = 0;
   vi.clearAllMocks();
   h.initializeAppCheck.mockImplementation(() => sdk.appCheck);
   h.initializeAnalytics.mockImplementation(() => sdk.analytics);
@@ -195,6 +202,10 @@ describe('initFirebaseClient — Firestore cache', () => {
       db = initFirebaseClient(CONFIG, { persistentFirestoreCache: true }).db;
     });
     expect(db).toBe(sdk.persistentDb);
+    expect(h.multipleTabManagers).toHaveLength(1);
+    expect(h.initializeFirestore).toHaveBeenCalledTimes(1);
+    const [, settings] = h.initializeFirestore.mock.calls[0];
+    expect(settings.localCache?.kind).toBe('persistent');
   });
 
   it('never uses the persistent cache under the emulators', () => {

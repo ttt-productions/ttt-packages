@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { firestoreTestWrapper } from '../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -9,7 +8,7 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
@@ -17,7 +16,6 @@ vi.mock('firebase/firestore', async (importOriginal) => {
 import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
-import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
 import {
   anyListener,
@@ -28,20 +26,6 @@ import {
   listensTo,
   opened,
 } from './helpers/listener-controls.js';
-
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } },
-  });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-}
 
 const unavailable = () => firestoreError('unavailable', 'unavailable');
 const permissionDenied = () => firestoreError('permission-denied', 'denied');
@@ -59,7 +43,10 @@ const hooks = [
             subscribe: true,
             enabled: on,
           }),
-        { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
+        {
+          wrapper: firestoreTestWrapper(store.db).Wrapper,
+          initialProps: { on: enabled, id: 'g1' },
+        },
       ),
     seed: (value: number, id = 'g1') => store.seed(`games/${id}`, { score: value }),
     read: (data: unknown) => (data as { score: number } | undefined)?.score,
@@ -76,7 +63,10 @@ const hooks = [
             subscribe: true,
             enabled: on,
           }),
-        { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
+        {
+          wrapper: firestoreTestWrapper(store.db).Wrapper,
+          initialProps: { on: enabled, id: 'g1' },
+        },
       ),
     seed: (value: number, id = 'g1') => store.seed(`leagues/${id}/games/g1`, { score: value }),
     read: (data: unknown) => (data as Array<{ score: number }> | undefined)?.[0]?.score,
@@ -142,7 +132,7 @@ for (const hook of hooks) {
       const { result } = hook.render();
       await waitFor(() => expect(hook.read(result.current.data)).toBe(1));
       const failure = unavailable();
-      act(() => store.failListeners(listener, failure));
+      await act(async () => store.failListeners(listener, failure));
 
       expect(hook.read(result.current.data)).toBe(1);
       expect(result.current.isError).toBe(true);
@@ -185,7 +175,7 @@ for (const hook of hooks) {
       await vi.waitFor(() => expect(hook.read(result.current.data)).toBe(1));
       const denial = permissionDenied();
       const stopDenying = failUntilStopped(store, listener, denial);
-      act(() => store.failListeners(listener, denial));
+      await act(async () => store.failListeners(listener, denial));
       for (const delay of RESUBSCRIBE_DELAYS_MS) await advance(delay);
 
       await vi.waitFor(() => expect(result.current.status).toBe('error'));
@@ -322,7 +312,7 @@ for (const hook of hooks) {
       expect(result.current.sourceState).toBe('live');
 
       const failure = unavailable();
-      act(() => store.failListeners(current, failure));
+      await act(async () => store.failListeners(current, failure));
       expect(result.current.isError).toBe(true);
       expect(result.current.error).toBe(failure);
     });
@@ -360,7 +350,7 @@ describe('useFirestoreDoc — refetch() without subscribe', () => {
     store.seed('games/g1', { score: 1 });
     const { result } = renderHook(
       () => useFirestoreDoc({ docPath: 'games/g1', queryKey: ['game', 'g1'] }),
-      { wrapper: makeWrapper() },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
     await waitFor(() => expect(result.current.data).toEqual({ id: 'g1', score: 1 }));
     const reads = oneShotReads();

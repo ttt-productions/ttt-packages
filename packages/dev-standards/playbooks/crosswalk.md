@@ -154,7 +154,7 @@ rule's coverage in its additions; they are not listed here.
 
 | Rule | Title | Audited by (shared steps) | Guards |
 |---|---|---|---|
-| RULE-STD-QUALITY-001 | Behavior changes ship with their tests | codebase-hygiene 46, 117, 118, 119; async-workflow 10; auth-boundary 10; callable-functions 10; client-write-security-audit 9; firestore-storage-rules 10; media-pipeline 10; migration 10; testing-coverage 2, 3, 4, 7, 10, 11 | `partialMocks`, `sharedFakes` |
+| RULE-STD-QUALITY-001 | Behavior changes ship with their tests | codebase-hygiene 46, 117, 118, 119; async-workflow 10; auth-boundary 10; callable-functions 10; client-write-security-audit 9; firestore-storage-rules 10; media-pipeline 10; migration 10; testing-coverage 2, 3, 4, 7, 10, 11, 12 | `partialMocks`, `sharedFakes` |
 | RULE-STD-QUALITY-002 | Verify at the cost of the fix; one full gate | testing-coverage 1, 9 | — |
 | RULE-STD-QUALITY-003 | E2E is green only at zero failures AND zero retry-passes | testing-coverage 1, 6 | — |
 | RULE-STD-QUALITY-004 | E2E tests use the established fixtures and web-first assertions | codebase-hygiene 28; migration 10; testing-coverage 6, 8, 10 | `retryLoopActions`, `swallowedE2eActions` |

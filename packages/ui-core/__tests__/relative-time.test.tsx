@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { RelativeTime } from '../src/react/components/relative-time.js';
 
-vi.mock('date-fns', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('date-fns')>(importOriginal, {
+vi.mock(import('date-fns'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     formatDistanceToNowStrict: vi.fn(() => '5 minutes ago'),
   });
 });

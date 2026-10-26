@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { firestoreTestWrapper } from '../../../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 import type { ExecutedClientRead } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 
@@ -12,27 +11,14 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { useFirestoreSearch } from '../../../src/react/search/use-firestore-search.js';
-import { FirestoreProvider } from '../../../src/react/firestore/context.js';
 
 const DEBOUNCE_MS = 300;
-
-function makeWrapper() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-}
 
 function searchedPrefix(read: ExecutedClientRead): string | undefined {
   const from = read.filters.find((filter) => filter.op === '>=')?.value;
@@ -49,7 +35,10 @@ function renderSearch(initialText: string, enabled = true) {
         enabled: on,
         debounceMs: DEBOUNCE_MS,
       }),
-    { wrapper: makeWrapper(), initialProps: { text: initialText, on: enabled } },
+    {
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
+      initialProps: { text: initialText, on: enabled },
+    },
   );
 }
 

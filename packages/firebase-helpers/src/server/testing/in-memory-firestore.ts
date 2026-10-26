@@ -28,6 +28,20 @@ import type {
   WriteResult,
 } from 'firebase-admin/firestore';
 import { vi } from 'vitest';
+import {
+  DOCUMENT_ID_FIELD,
+  compareTuples,
+  fromStoredValue,
+  isInequality,
+  matchesField,
+  normalizedOrders,
+  sameValue,
+  valueAt,
+  withinBound,
+  type ComparableBound,
+  type ComparableOrder,
+  type ComparableValue,
+} from '../../firestore-client/testing/stored-values.js';
 
 const { Timestamp } = await vi.importActual<typeof import('firebase-admin/firestore')>(
   'firebase-admin/firestore',
@@ -42,7 +56,7 @@ interface Sentinel {
   items?: unknown[];
 }
 
-const DOCUMENT_ID = '__name__';
+const DOCUMENT_ID = DOCUMENT_ID_FIELD;
 
 function isSentinel(value: unknown): value is Sentinel {
   return (
@@ -68,62 +82,63 @@ function cloneStoredValue<T>(value: T): T {
   return out as T;
 }
 
-function hasMillis(value: unknown): value is { toMillis(): number } {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { toMillis?: unknown }).toMillis === 'function'
-  );
-}
+const sameStoredValue = (a: unknown, b: unknown): boolean =>
+  sameValue(fromStoredValue(a), fromStoredValue(b));
 
-function applySentinel(current: unknown, sentinel: Sentinel): unknown {
+// `serverTimestamp()` resolves to the commit's time, the update time of every document it writes.
+function applySentinel(current: unknown, sentinel: Sentinel, commitTime: Timestamp): unknown {
   switch (sentinel._type) {
     case 'increment':
       return (typeof current === 'number' ? current : 0) + (sentinel.value ?? 0);
     case 'arrayUnion': {
       const base: unknown[] = Array.isArray(current) ? [...(current as unknown[])] : [];
       for (const item of sentinel.items ?? []) {
-        if (!base.some((existing) => JSON.stringify(existing) === JSON.stringify(item)))
-          base.push(item);
+        if (!base.some((existing) => sameStoredValue(existing, item))) base.push(item);
       }
       return base;
     }
     case 'arrayRemove': {
-      const base = Array.isArray(current) ? current : [];
-      const removed = (sentinel.items ?? []).map((item) => JSON.stringify(item));
-      return base.filter((existing) => !removed.includes(JSON.stringify(existing)));
+      const base: unknown[] = Array.isArray(current) ? current : [];
+      const removed = sentinel.items ?? [];
+      return base.filter((existing) => !removed.some((item) => sameStoredValue(existing, item)));
     }
     case 'serverTimestamp':
-      return Date.now();
+      return commitTime;
     default:
       return current;
   }
 }
 
-function writeField(target: Doc, key: string, value: unknown, mergeMaps: boolean): void {
+function writeField(
+  target: Doc,
+  key: string,
+  value: unknown,
+  mergeMaps: boolean,
+  commitTime: Timestamp,
+): void {
   if (isSentinel(value)) {
     if (value._type === 'deleteField') delete target[key];
-    else target[key] = applySentinel(target[key], value);
+    else target[key] = applySentinel(target[key], value, commitTime);
     return;
   }
   if (mergeMaps && isPlainObject(value)) {
     const existing = isPlainObject(target[key]) ? (target[key] as Doc) : {};
     const next: Doc = { ...existing };
-    for (const [k, v] of Object.entries(value)) writeField(next, k, v, true);
+    for (const [k, v] of Object.entries(value)) writeField(next, k, v, true, commitTime);
     target[key] = next;
     return;
   }
-  target[key] = stripSentinels(value);
+  target[key] = stripSentinels(value, commitTime);
 }
 
-function stripSentinels(value: unknown): unknown {
+function stripSentinels(value: unknown, commitTime: Timestamp): unknown {
   if (isPlainObject(value)) {
     const out: Doc = {};
     for (const [k, v] of Object.entries(value)) {
       if (isSentinel(v)) {
-        if (v._type !== 'deleteField') out[k] = applySentinel(undefined, v);
+        if (v._type !== 'deleteField') out[k] = applySentinel(undefined, v, commitTime);
       } else {
-        out[k] = stripSentinels(v);
+        out[k] = stripSentinels(v, commitTime);
       }
     }
     return out;
@@ -139,18 +154,6 @@ function readFieldPath(data: Doc | undefined, path: string, docPath: string): un
     cursor = cursor[part];
   }
   return cursor;
-}
-
-function compareValues(a: unknown, b: unknown): number {
-  if (a === b) return 0;
-  if (typeof a === 'number' && typeof b === 'number') return a - b;
-  if (hasMillis(a) && hasMillis(b)) return a.toMillis() - b.toMillis();
-  if (typeof a === 'boolean' && typeof b === 'boolean') return Number(a) - Number(b);
-  return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
-}
-
-function sameValue(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 interface FieldFilter {
@@ -170,40 +173,29 @@ interface QueryShape {
   filters: FieldFilter[];
   orders: Order[];
   limit: number;
-  startAfter?: unknown[];
+  startAfter?: ComparableBound;
   fields?: string[];
 }
 
-function filterMatchesDoc(filter: FieldFilter, data: Doc | undefined, docPath: string): boolean {
-  const value = readFieldPath(data, filter.field, docPath);
-  if (value === undefined) return false;
-  switch (filter.op) {
-    case '==':
-      return sameValue(value, filter.value);
-    case '!=':
-      return !sameValue(value, filter.value);
-    case '<':
-      return compareValues(value, filter.value) < 0;
-    case '<=':
-      return compareValues(value, filter.value) <= 0;
-    case '>':
-      return compareValues(value, filter.value) > 0;
-    case '>=':
-      return compareValues(value, filter.value) >= 0;
-    case 'in':
-      return (filter.value as unknown[]).some((v) => sameValue(v, value));
-    case 'not-in':
-      return !(filter.value as unknown[]).some((v) => sameValue(v, value));
-    case 'array-contains':
-      return Array.isArray(value) && value.some((v) => sameValue(v, filter.value));
-    case 'array-contains-any':
-      return (
-        Array.isArray(value) &&
-        value.some((v) => (filter.value as unknown[]).some((w) => sameValue(v, w)))
-      );
-    default:
-      throw new Error(`in-memory-firestore: unsupported operator ${filter.op}`);
-  }
+// A document-id operand is compared as the reference it names.
+function operandOf(filter: FieldFilter): ComparableValue {
+  if (filter.field !== DOCUMENT_ID) return fromStoredValue(filter.value);
+  const asRef = (v: unknown): ComparableValue =>
+    typeof v === 'string' ? { t: 'ref', v } : fromStoredValue(v);
+  return Array.isArray(filter.value)
+    ? { t: 'arr', v: filter.value.map(asRef) }
+    : asRef(filter.value);
+}
+
+function filterMatchesDoc(filter: FieldFilter, data: Doc, docPath: string): boolean {
+  return matchesField(valueAt(docPath, data, filter.field), filter.op, operandOf(filter));
+}
+
+function queryOrders(shape: QueryShape): ComparableOrder[] {
+  return normalizedOrders(
+    shape.orders,
+    shape.filters.filter((f) => isInequality(f.op)).map((f) => f.field),
+  );
 }
 
 export interface InMemoryFirestore {
@@ -329,11 +321,22 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
   let autoId = 0;
 
   const updateTimes = new Map<string, Timestamp>();
-  let updateClock = 0;
+  let lastCommitTime = Timestamp.fromMillis(0);
+  // Commit times follow the clock and never repeat, as Firestore's do.
+  const nextCommitTime = (): Timestamp => {
+    const now = Timestamp.now();
+    lastCommitTime =
+      now.valueOf() > lastCommitTime.valueOf()
+        ? now
+        : lastCommitTime.nanoseconds < 999_999_000
+          ? new Timestamp(lastCommitTime.seconds, lastCommitTime.nanoseconds + 1_000)
+          : new Timestamp(lastCommitTime.seconds + 1, 0);
+    return lastCommitTime;
+  };
   const storedVersionOf = (path: string): number => versions.get(path) ?? 0;
-  const bumpStoredVersion = (path: string): void => {
+  const bumpStoredVersion = (path: string, commitTime: Timestamp): void => {
     versions.set(path, storedVersionOf(path) + 1);
-    updateTimes.set(path, Timestamp.fromMillis(++updateClock));
+    updateTimes.set(path, commitTime);
   };
 
   function assertReadable(path: string): void {
@@ -383,22 +386,22 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
   const runAfterRead = (path: string) => runReadHook(afterReadHooks, path);
   const runBeforeRead = (path: string) => runReadHook(beforeReadHooks, path);
 
-  function applyOp(op: WriteOp): void {
+  function applyOp(op: WriteOp, commitTime: Timestamp): void {
     const existing = docsByPath.get(op.path);
     switch (op.kind) {
       case 'delete':
         docsByPath.delete(op.path);
         break;
       case 'create':
-        docsByPath.set(op.path, docOf(stripSentinels(op.data), 'create'));
+        docsByPath.set(op.path, docOf(stripSentinels(op.data, commitTime), 'create'));
         break;
       case 'set': {
         if (op.merge) {
           const next: Doc = { ...(existing ?? {}) };
-          for (const [k, v] of Object.entries(op.data)) writeField(next, k, v, true);
+          for (const [k, v] of Object.entries(op.data)) writeField(next, k, v, true, commitTime);
           docsByPath.set(op.path, next);
         } else {
-          docsByPath.set(op.path, docOf(stripSentinels(op.data), 'set'));
+          docsByPath.set(op.path, docOf(stripSentinels(op.data, commitTime), 'set'));
         }
         break;
       }
@@ -413,13 +416,13 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
             cursor[part] = nested;
             cursor = nested;
           }
-          writeField(cursor, parts[parts.length - 1], value, false);
+          writeField(cursor, parts[parts.length - 1], value, false, commitTime);
         }
         docsByPath.set(op.path, next);
         break;
       }
     }
-    bumpStoredVersion(op.path);
+    bumpStoredVersion(op.path, commitTime);
   }
 
   function commitOps(ops: readonly WriteOp[]): void {
@@ -435,52 +438,30 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
       if (op.kind === 'update' && !present(op.path)) throw grpcError(5, 'NOT_FOUND', op.path);
       exists.set(op.path, op.kind !== 'delete');
     }
-    for (const op of ops) applyOp(op);
+    const commitTime = nextCommitTime();
+    for (const op of ops) applyOp(op, commitTime);
     committedWrites.push(...ops.map((op) => cloneStoredValue(op)));
   }
 
   function runQuery(shape: QueryShape): string[] {
-    let paths = [...docsByPath.keys()].filter((path) => {
-      const segments = path.split('/');
-      if (shape.group)
-        return segments.length >= 2 && segments[segments.length - 2] === shape.source;
-      return (
-        path.startsWith(`${shape.source}/`) && !path.slice(shape.source.length + 1).includes('/')
-      );
-    });
-    paths = paths.filter((path) =>
-      shape.filters.every((f) => filterMatchesDoc(f, docsByPath.get(path), path)),
-    );
-    const orders = [...shape.orders];
-    for (const order of orders) {
-      paths = paths.filter(
-        (path) => readFieldPath(docsByPath.get(path), order.field, path) !== undefined,
-      );
-    }
-    const sortKey = (path: string): unknown[] =>
-      orders.map((o) => readFieldPath(docsByPath.get(path), o.field, path));
-    const compareByQueryOrder = (a: string, b: string): number => {
-      const ka = sortKey(a);
-      const kb = sortKey(b);
-      for (let i = 0; i < orders.length; i++) {
-        const c = compareValues(ka[i], kb[i]);
-        if (c !== 0) return orders[i].direction === 'desc' ? -c : c;
-      }
-      return compareValues(a, b);
-    };
-    paths.sort(compareByQueryOrder);
-    if (shape.startAfter) {
-      const cursor = shape.startAfter;
-      paths = paths.filter((path) => {
-        const key = [...sortKey(path), path];
-        for (let i = 0; i < cursor.length; i++) {
-          const c = compareValues(key[i], cursor[i]);
-          if (c !== 0) return i < orders.length && orders[i].direction === 'desc' ? c < 0 : c > 0;
-        }
-        return false;
-      });
-    }
-    return paths.slice(0, shape.limit);
+    const orders = queryOrders(shape);
+    const rows = [...docsByPath.entries()]
+      .filter(([path]) => {
+        const segments = path.split('/');
+        if (shape.group)
+          return segments.length >= 2 && segments[segments.length - 2] === shape.source;
+        return (
+          path.startsWith(`${shape.source}/`) && !path.slice(shape.source.length + 1).includes('/')
+        );
+      })
+      .filter(([path, data]) => shape.filters.every((f) => filterMatchesDoc(f, data, path)))
+      .map(([path, data]) => ({ path, tuple: orders.map((o) => valueAt(path, data, o.field)) }))
+      .filter((row): row is { path: string; tuple: ComparableValue[] } =>
+        row.tuple.every((value) => value !== undefined),
+      )
+      .filter((row) => withinBound(row.tuple, shape.startAfter ?? null, orders, 'start'))
+      .sort((a, b) => compareTuples(a.tuple, b.tuple, orders));
+    return rows.slice(0, shape.limit).map((row) => row.path);
   }
 
   class StoredDocumentSnapshot implements DocumentSnapshot {
@@ -603,23 +584,29 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
     startAfter(...fieldValues: unknown[]): StoredQuery;
     startAfter(...args: unknown[]): StoredQuery {
       const [first] = args;
-      const cursor =
+      const orders = queryOrders(this.shape);
+      const position: ComparableValue[] =
         first instanceof StoredDocumentSnapshot
-          ? [
-              ...this.shape.orders.map((o) =>
-                readFieldPath(docsByPath.get(first.path), o.field, first.path),
-              ),
-              first.path,
-            ]
+          ? orders.map((o) => {
+              const value = valueAt(first.path, docsByPath.get(first.path) ?? {}, o.field);
+              if (value === undefined)
+                throw new Error(
+                  `in-memory-firestore: the cursor document ${first.path} has no ${o.field}`,
+                );
+              return value;
+            })
           : args.map((value, i) =>
-              this.shape.orders[i]?.field === DOCUMENT_ID &&
-              !this.shape.group &&
-              typeof value === 'string' &&
-              !value.includes('/')
-                ? `${this.shape.source}/${value}`
-                : value,
+              orders[i]?.field === DOCUMENT_ID && typeof value === 'string'
+                ? {
+                    t: 'ref',
+                    v:
+                      !this.shape.group && !value.includes('/')
+                        ? `${this.shape.source}/${value}`
+                        : value,
+                  }
+                : fromStoredValue(value),
             );
-      return new StoredQuery({ ...this.shape, startAfter: cursor });
+      return new StoredQuery({ ...this.shape, startAfter: { position, inclusive: false } });
     }
     select(...fields: Array<string | FieldPath>): StoredQuery {
       return new StoredQuery({ ...this.shape, fields: fields.map(String) });
@@ -1073,8 +1060,9 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
   return {
     db,
     seed: (path, data) => {
-      docsByPath.set(path, docOf(stripSentinels(data), 'seed'));
-      bumpStoredVersion(path);
+      const commitTime = nextCommitTime();
+      docsByPath.set(path, docOf(stripSentinels(data, commitTime), 'seed'));
+      bumpStoredVersion(path, commitTime);
     },
     reset: () => {
       docsByPath.clear();
@@ -1093,7 +1081,7 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
     },
     remove: (path) => {
       docsByPath.delete(path);
-      bumpStoredVersion(path);
+      bumpStoredVersion(path, nextCommitTime());
     },
     read: (path) => cloneStoredValue(docsByPath.get(path)),
     paths: (prefix = '') => [...docsByPath.keys()].filter((path) => path.startsWith(prefix)).sort(),

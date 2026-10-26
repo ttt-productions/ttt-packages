@@ -1,30 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { commitInBatches } from '../src/firestore-client/batch.js';
-import { writeBatch, type Firestore } from 'firebase/firestore';
 
-// writeBatch is mocked in test/setup.ts globally
+const h = vi.hoisted(() => ({
+  commit: vi.fn<() => Promise<void>>(async () => undefined),
+}));
+
+// A real write batch records its writes locally; only its commit would reach a server.
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
+  return passThroughModule(importOriginal, {
+    writeBatch: (firestore) => {
+      const batch = actual.writeBatch(firestore);
+      batch.commit = h.commit;
+      return batch;
+    },
+  });
+});
+
+import { doc, getFirestore } from 'firebase/firestore';
+import { commitInBatches } from '../src/firestore-client/batch.js';
+
+// The real app SDK, though the shared test setup mocks 'firebase/app'.
+const { initializeApp } = await vi.importActual<typeof import('firebase/app')>('firebase/app');
+const db = getFirestore(initializeApp({ projectId: 'demo-batch' }, 'commit-in-batches'));
+const write = (batch: import('firebase/firestore').WriteBatch, item: number | string) => {
+  batch.set(doc(db, 'items', String(item)), { item });
+};
+
+beforeEach(() => {
+  h.commit.mockReset();
+  h.commit.mockResolvedValue(undefined);
+});
 
 describe('commitInBatches', () => {
-  let mockBatch: {
-    set: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-    delete: ReturnType<typeof vi.fn>;
-    commit: ReturnType<typeof vi.fn>;
-  };
-
-  beforeEach(() => {
-    mockBatch = {
-      set: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      commit: vi.fn().mockResolvedValue(undefined),
-    };
-    (writeBatch as ReturnType<typeof vi.fn>).mockReturnValue(mockBatch);
-  });
-
   it('returns success for empty items array', async () => {
-    const db = {} as Firestore;
-    const apply = vi.fn();
+    const apply = vi.fn(write);
     const result = await commitInBatches(db, [], { apply });
     expect(result.success).toBe(true);
     expect(result.totalOps).toBe(0);
@@ -35,37 +45,32 @@ describe('commitInBatches', () => {
   });
 
   it('commits a single batch for small item sets', async () => {
-    const db = {} as Firestore;
-    const items = [1, 2, 3];
-    const apply = vi.fn();
-    const result = await commitInBatches(db, items, { apply });
+    const apply = vi.fn(write);
+    const result = await commitInBatches(db, [1, 2, 3], { apply });
     expect(result.success).toBe(true);
     expect(result.totalOps).toBe(3);
     expect(result.committedOps).toBe(3);
     expect(result.totalBatches).toBe(1);
     expect(result.committedBatches).toBe(1);
     expect(apply).toHaveBeenCalledTimes(3);
-    expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+    expect(h.commit).toHaveBeenCalledTimes(1);
   });
 
   it('calls commit for each batch group', async () => {
-    const db = {} as Firestore;
     const items = Array.from({ length: 5 }, (_, i) => i);
-    const apply = vi.fn();
-    const result = await commitInBatches(db, items, { batchSize: 2, apply });
+    const result = await commitInBatches(db, items, { batchSize: 2, apply: write });
     expect(result.totalBatches).toBe(3);
     expect(result.committedBatches).toBe(3);
     expect(result.totalOps).toBe(5);
     expect(result.committedOps).toBe(5);
-    expect(mockBatch.commit).toHaveBeenCalledTimes(3);
+    expect(h.commit).toHaveBeenCalledTimes(3);
   });
 
   it('applies all items with the apply function', async () => {
-    const db = {} as Firestore;
-    const items = ['a', 'b', 'c'];
     const applied: string[] = [];
-    await commitInBatches(db, items, {
-      apply: (_, item) => {
+    await commitInBatches(db, ['a', 'b', 'c'], {
+      apply: (batch, item) => {
+        write(batch, item);
         applied.push(item);
       },
     });
@@ -73,21 +78,9 @@ describe('commitInBatches', () => {
   });
 
   it('returns success:false and partial counts when commit fails', async () => {
-    const db = {} as Firestore;
-    let callCount = 0;
-    (writeBatch as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-      set: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      commit: vi.fn(async () => {
-        callCount++;
-        if (callCount >= 2) throw new Error('Firestore error');
-      }),
-    }));
-
+    h.commit.mockResolvedValueOnce(undefined).mockRejectedValue(new Error('Firestore error'));
     const items = Array.from({ length: 6 }, (_, i) => i);
-    const apply = vi.fn();
-    const result = await commitInBatches(db, items, { batchSize: 2, apply });
+    const result = await commitInBatches(db, items, { batchSize: 2, apply: write });
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
     expect(result.committedBatches).toBe(1);
@@ -96,20 +89,19 @@ describe('commitInBatches', () => {
   });
 
   it('uses default batchSize of 450', async () => {
-    const db = {} as Firestore;
     const items = Array.from({ length: 450 }, (_, i) => i);
-    const apply = vi.fn();
-    const result = await commitInBatches(db, items, { apply });
+    const result = await commitInBatches(db, items, { apply: write });
     expect(result.totalBatches).toBe(1);
     expect(result.committedBatches).toBe(1);
-    expect(mockBatch.commit).toHaveBeenCalledTimes(1);
+    expect(h.commit).toHaveBeenCalledTimes(1);
   });
 
   it('supports async apply function', async () => {
-    const db = {} as Firestore;
-    const items = [1, 2];
-    const apply = vi.fn(async () => {});
-    const result = await commitInBatches(db, items, { apply });
+    const apply = vi.fn(async (batch: import('firebase/firestore').WriteBatch, item: number) => {
+      await Promise.resolve();
+      write(batch, item);
+    });
+    const result = await commitInBatches(db, [1, 2], { apply });
     expect(result.success).toBe(true);
     expect(apply).toHaveBeenCalledTimes(2);
   });

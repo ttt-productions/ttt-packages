@@ -109,8 +109,13 @@ contract pulled in at runtime. Anything that is browser/client-Firebase, React
 UI, Admin SDK, Node-only, or app-specific lives behind a runtime-specific
 subpath or a separate package (RULE-STD-ARCH-202, RULE-STD-ARCH-203).
 
+A runtime-specific entry is held to its own runtime the same way: a Node entry
+reaches no React or browser runtime, a browser entry no Node or React, and a
+React entry no Node — a `./<runtime>/testing` entry and a declared exception
+included.
+
 Three intentional exceptions exist, each declared in the boundary suite:
-`media-processing-core` (server-only root), `chat-react` (its root _is_ the
+`media-processing-core` (server-only root), `chat-react` (its root *is* the
 React surface), and `ttt-core`'s `./safety` (Node-only). Every other entry must
 stay clean. The native-load check runs over exactly the entries this rule calls
 universal or server.
@@ -204,7 +209,7 @@ mutations — rather than calling `firebase/firestore` operations (`getDoc(s)`,
 `onSnapshot`, `getCountFromServer`, `setDoc`/`updateDoc`/`writeBatch`, …) directly.
 `db` comes from one shared `<FirestoreProvider>`, so a package never takes its own
 `db`. Building constraints with `where`/`orderBy`/`limit` and importing Firestore
-_types_ is fine — only the runtime operations route through query-core.
+*types* is fine — only the runtime operations route through query-core.
 
 A package that needs those hooks declares `@ttt-productions/query-core` as an
 **optional peer** so the consuming app supplies the single instance (preserving
@@ -218,7 +223,7 @@ do not "migrate" them onto query-core without preserving the behavior the commen
 describes:
 
 - `upload-ui` → `react/tray` in-flight-uploads-provider: needs `onSnapshot`
-  _transition events_ (`docChanges()` added/modified/removed) for one-shot
+  *transition events* (`docChanges()` added/modified/removed) for one-shot
   terminal callbacks and initial-snapshot suppression, which a "current list"
   hook cannot express. The subscription is already abstracted behind an injectable
   `FirestoreSubscribeFn`, so the direct firebase path is confined to

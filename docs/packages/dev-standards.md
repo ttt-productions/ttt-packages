@@ -19,6 +19,8 @@ rules, and the lint, TypeScript, and test config bases.
   (`runbooks/`).
 - **The config bases** (`config/`, `src/node/`) and the config copies each repo keeps
   (`config/copies/`).
+- **The typed module-mock helpers** (`src/testing.ts`) every repo's tests return their module
+  mocks through.
 
 ## Boundary
 
@@ -58,6 +60,12 @@ config base by its subpath and reads the docs as files.
 - `@ttt-productions/dev-standards/node/postcss` — the PostCSS base (Node).
 - `@ttt-productions/dev-standards/node/a11y` — the axe accessibility check for Playwright e2e:
   one page in the default theme, the high-contrast theme, and reduced motion (Node).
+- `@ttt-productions/dev-standards/testing` — the typed module-mock helpers every repo's tests share
+  (universal; no runtime import). `passThroughModule(importOriginal, overrides)` keeps the real module
+  and replaces the named exports; `stubModule(importOriginal, stubs)` answers only the stubs and never
+  loads the real module. Both take the module's type from the mock factory's own `importOriginal`, so
+  in a `vi.mock(import('…'), …)` a wrong module, a misspelled export, or a wrong signature fails to
+  compile (RULE-STD-QUALITY-006; repo-guards' `typedMocks`).
 - `@ttt-productions/dev-standards/config/tsconfig.app.json` — the app TypeScript base, for `extends`.
 - `@ttt-productions/dev-standards/config/tsconfig.functions.json` — the Functions TypeScript base,
   for `extends`.

@@ -6,22 +6,22 @@ import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 import { factProblemsOf } from '../helpers/configured.js';
 
 const UI_FAKE = 'src/test/fakes/ui-kit.ts';
-const OVERRIDES = 'src/test/fakes/with-overrides.ts';
+const HELPERS = 'src/test/typed-mock.ts';
 
 const BASE: Record<string, string> = {
   'src/app/page.tsx': 'export const page = 1;',
   'src/hooks/use-thing.ts': 'export const useThing = () => null;',
   [UI_FAKE]: 'export const uiFake = (io: unknown, overrides = {}) => ({ ...overrides });',
-  [OVERRIDES]:
-    'export const passThroughFake = () => async (io: unknown, o = {}) => o;\n' +
-    'export const moduleStub = (o: unknown) => o;\nexport const loose = (o: unknown) => o;',
+  [HELPERS]:
+    'export const passThroughModule = async (io: unknown, o = {}) => o;\n' +
+    'export const stubModule = (io: unknown, o: unknown) => o;\nexport const loose = (o: unknown) => o;',
   'functions/src/run.ts': 'export const run = 1;',
 };
 
 const FACTS: TypedMockFacts = {
   importAliases: { '@/': 'src/' },
   fakes: [{ module: '@scope/ui-kit/react', owner: UI_FAKE }],
-  typedHelpers: [{ owner: OVERRIDES, names: ['passThroughFake', 'moduleStub'] }],
+  typedHelpers: [{ owner: HELPERS, names: ['passThroughModule', 'stubModule'] }],
   forbiddenOverrides: [
     {
       module: '@scope/ui-kit/react',
@@ -50,64 +50,195 @@ async function findingsOf(files: Record<string, string>, facts: TypedMockFacts =
   const reader = readerOf(files);
   const [typed, forbidden] = typedMockGuard.build(facts);
   const context = contextOf(reader);
+  const shape = (f: { file: string; line?: number; detail: string }) => ({
+    file: f.file,
+    line: f.line,
+    detail: f.detail,
+  });
   return {
-    typed: (await typed.run(context)).map((f) => `${f.file}:${f.line} ${f.detail}`),
-    forbidden: (await forbidden.run(context)).map((f) => `${f.file}:${f.line} ${f.detail}`),
+    typed: (await typed.run(context)).map(shape),
+    forbidden: (await forbidden.run(context)).map(shape),
   };
 }
 
+const TEST = 'src/__tests__/a.test.ts';
+
+interface Expected {
+  file: string;
+  line: number | undefined;
+  detail: RegExp;
+}
+
+function expectFindings(
+  actual: ReadonlyArray<{ file: string; line: number | undefined; detail: string }>,
+  expected: readonly Expected[],
+) {
+  expect(actual.map(({ file, line }) => ({ file, line }))).toEqual(
+    expected.map(({ file, line }) => ({ file, line })),
+  );
+  actual.forEach((finding, i) => expect(finding.detail).toMatch(expected[i].detail));
+}
+
 describe('every module mock is typed against the module it replaces', () => {
-  it('passes a factory that returns through a shared fake or a typed helper, in each form', async () => {
+  it('passes a mock named through import() that returns through a shared fake or a typed helper, in each form', async () => {
     const { typed } = await findingsOf({
-      'src/__tests__/a.test.ts': [
-        "vi.mock('@scope/ui-kit/react', async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io));",
-        "vi.mock('@/hooks/use-thing', async (io) =>",
-        "  (await import('../test/fakes/with-overrides')).passThroughFake<typeof import('@/hooks/use-thing')>()(io, {}));",
-        "vi.mock('@/hooks/use-thing', async () => {",
-        "  const { moduleStub } = await import('@/test/fakes/with-overrides');",
-        '  return moduleStub({ useThing: () => null });',
+      [TEST]: [
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io));",
+        "vi.mock(import('@/hooks/use-thing'), async (importOriginal) =>",
+        "  (await import('../test/typed-mock')).passThroughModule(importOriginal, {}));",
+        "vi.mock(import('@/hooks/use-thing'), async (importOriginal) => {",
+        "  const { stubModule } = await import('@/test/typed-mock');",
+        '  return stubModule(importOriginal, { useThing: () => null });',
         '});',
-        "vi.doMock('@/hooks/use-thing', async () => {",
-        "  const helpers = await import('@/test/fakes/with-overrides');",
-        '  return helpers.moduleStub({});',
+        "vi.doMock(import('@/hooks/use-thing'), async (original) => {",
+        "  const helpers = await import('@/test/typed-mock');",
+        '  return helpers.stubModule(original, {});',
         '});',
-        "vi.mock('@/hooks/use-thing');",
+        "vi.mock(import('@/hooks/use-thing'));",
+        "vi.mock(import('@/hooks/use-thing'), { spy: true });",
       ].join('\n'),
     });
     expect(typed).toEqual([]);
   });
 
-  it('FLAGS a hand-written factory, a spread of the real module, and a helper the facts do not list', async () => {
+  it('FLAGS a mock that names its module by a string path, even through a typed helper', async () => {
     const { typed } = await findingsOf({
-      'src/__tests__/a.test.ts': [
-        "vi.mock('@/hooks/use-thing', () => ({ useThing: () => null }));",
-        "vi.mock('@scope/ui-kit/react', async (io) => ({ ...(await io()), toast: vi.fn() }));",
-        "vi.mock('@/hooks/use-thing', async () => (await import('@/test/fakes/with-overrides')).loose({}));",
+      [TEST]: [
+        "vi.mock('@/hooks/use-thing', async (importOriginal) =>",
+        "  (await import('@/test/typed-mock')).passThroughModule(importOriginal, {}));",
+        "vi.mock('@/hooks/use-thing', { spy: true });",
       ].join('\n'),
     });
-    expect(typed.map((line) => line.split(' mocks ')[0])).toEqual([
-      'src/__tests__/a.test.ts:1',
-      'src/__tests__/a.test.ts:2',
-      'src/__tests__/a.test.ts:3',
+    const detail = /^mocks src\/hooks\/use-thing\.ts by a string path/;
+    expectFindings(typed, [
+      { file: TEST, line: 1, detail },
+      { file: TEST, line: 3, detail },
     ]);
-    expect(typed[0]).toMatch(/never compares to the module/);
+  });
+
+  it('FLAGS a hand-written factory, a spread of the real module, and a helper the facts do not list', async () => {
+    const { typed } = await findingsOf({
+      [TEST]: [
+        "vi.mock(import('@/hooks/use-thing'), () => ({ useThing: () => null }));",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => ({ ...(await io()), toast: vi.fn() }));",
+        "vi.mock(import('@/hooks/use-thing'), async () => (await import('@/test/typed-mock')).loose({}));",
+      ].join('\n'),
+    });
+    expect(typed.map(({ file, line }) => ({ file, line }))).toEqual([
+      { file: TEST, line: 1 },
+      { file: TEST, line: 2 },
+      { file: TEST, line: 3 },
+    ]);
+    expect(typed[0].detail).toMatch(
+      /returns something other than a shared fake or a typed mock helper/,
+    );
+    expect(typed[2].detail).toMatch(/no listed shared fake or typed mock helper/);
+  });
+
+  it('FLAGS a helper whose type the test writes, and one handed anything but the factory’s importOriginal', async () => {
+    const { typed } = await findingsOf({
+      [TEST]: [
+        "vi.mock(import('@/hooks/use-thing'), async (importOriginal) =>",
+        "  (await import('@/test/typed-mock')).stubModule<typeof import('@/app/page')>(importOriginal, {}));",
+        "vi.mock(import('@/hooks/use-thing'), async () =>",
+        "  (await import('@/test/typed-mock')).passThroughModule(() => import('@/app/page'), {}));",
+        "vi.mock(import('@/hooks/use-thing'), async () =>",
+        "  (await import('@/test/typed-mock')).stubModule({}, {}));",
+      ].join('\n'),
+    });
+    expectFindings(typed, [
+      {
+        file: TEST,
+        line: 2,
+        detail: /writes the type of its typed mock helper/,
+      },
+      {
+        file: TEST,
+        line: 4,
+        detail: /something other than the factory's own importOriginal/,
+      },
+      {
+        file: TEST,
+        line: 6,
+        detail: /something other than the factory's own importOriginal/,
+      },
+    ]);
+  });
+
+  it('FLAGS every return path that is not typed, even when the last one is', async () => {
+    const { typed } = await findingsOf({
+      [TEST]: [
+        "vi.mock(import('@/hooks/use-thing'), async (importOriginal) => {",
+        "  const { stubModule } = await import('@/test/typed-mock');",
+        '  if (process.env.X) return { useThing: () => 1 };',
+        '  return stubModule(importOriginal, {});',
+        '});',
+        "vi.mock(import('@/hooks/use-thing'), async () => {",
+        "  await import('@/test/typed-mock');",
+        '});',
+      ].join('\n'),
+    });
+    expectFindings(typed, [
+      { file: TEST, line: 3, detail: /returns something other than/ },
+      { file: TEST, line: 6, detail: /returns nothing$/ },
+    ]);
   });
 
   it('reads Functions tests too, and never the typed owners themselves', async () => {
     const { typed } = await findingsOf({
-      'functions/src/run.test.ts': "vi.mock('./run.js', () => ({ run: 2 }));",
-      'src/test/fakes/ui-kit.ts': "vi.mock('x', () => ({}));\nexport const uiFake = () => ({});",
+      'functions/src/run.test.ts': "vi.mock(import('./run.js'), () => ({ run: 2 }));",
+      [UI_FAKE]: "vi.mock('x', () => ({}));\nexport const uiFake = () => ({});",
     });
-    expect(typed).toEqual([expect.stringMatching(/^functions\/src\/run\.test\.ts:1 /)]);
+    expect(typed.map(({ file, line }) => ({ file, line }))).toEqual([
+      { file: 'functions/src/run.test.ts', line: 1 },
+    ]);
+  });
+
+  it('passes a helper an installed package exports by entry, and fails an entry it does not export or a package not installed', async () => {
+    const facts: TypedMockFacts = {
+      ...FACTS,
+      typedHelpers: [
+        { owner: '@scope/standards/testing', names: ['passThroughModule'] },
+        { owner: '@scope/standards/gone', names: ['passThroughModule'] },
+        { owner: '@scope/absent/testing', names: ['passThroughModule'] },
+      ],
+    };
+    const { typed } = await findingsOf(
+      {
+        'node_modules/@scope/standards/package.json': JSON.stringify({
+          name: '@scope/standards',
+          exports: { './testing': './dist/testing.js' },
+        }),
+        [TEST]:
+          "vi.mock(import('@/hooks/use-thing'), async (importOriginal) => (await import('@scope/standards/testing')).passThroughModule(importOriginal, {}));",
+      },
+      facts,
+    );
+    expect(typed).toEqual([
+      {
+        file: '@scope/standards/gone',
+        line: undefined,
+        detail: '@scope/standards exports no ./gone entry for this typed helper',
+      },
+      {
+        file: '@scope/absent/testing',
+        line: undefined,
+        detail: 'no installed package @scope/absent holds this typed helper entry',
+      },
+    ]);
   });
 
   it('fails a typed owner that no longer exists', async () => {
     const { typed } = await findingsOf(
       {},
-      { ...FACTS, typedHelpers: [{ owner: 'src/test/gone.ts', names: ['moduleStub'] }] },
+      { ...FACTS, typedHelpers: [{ owner: 'src/test/gone.ts', names: ['stubModule'] }] },
     );
     expect(typed).toEqual([
-      'src/test/gone.ts:undefined this typed fake or helper file no longer exists',
+      {
+        file: 'src/test/gone.ts',
+        line: undefined,
+        detail: 'this typed fake or helper file no longer exists',
+      },
     ]);
   });
 });
@@ -116,26 +247,53 @@ describe('no test overrides an export whose real behavior every test needs', () 
   it('FLAGS a listed export overridden through the shared fake or a factory of its own', async () => {
     const { forbidden } = await findingsOf({
       'src/__tests__/a.test.tsx': [
-        "vi.mock('@scope/ui-kit/react', async (io) =>",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) =>",
         "  (await import('@/test/fakes/ui-kit')).uiFake(io, { Button: () => null, Spinner: () => null }));",
-        "vi.mock('@scope/ui-kit/react', async (io) => ({ ...(await io()), AccordionContent }));",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => ({ ...(await io()), AccordionContent }));",
       ].join('\n'),
     });
-    expect(forbidden).toEqual([
-      expect.stringMatching(
-        /^src\/__tests__\/a\.test\.tsx:2 overrides @scope\/ui-kit\/react's Button/,
-      ),
-      expect.stringMatching(
-        /:3 overrides @scope\/ui-kit\/react's AccordionContent — the real one runs/,
-      ),
+    expectFindings(forbidden, [
+      {
+        file: 'src/__tests__/a.test.tsx',
+        line: 2,
+        detail: /^overrides @scope\/ui-kit\/react's Button — the real one runs/,
+      },
+      {
+        file: 'src/__tests__/a.test.tsx',
+        line: 3,
+        detail: /^overrides @scope\/ui-kit\/react's AccordionContent/,
+      },
     ]);
   });
 
-  it('passes overrides of exports the facts do not list, and other modules', async () => {
+  it('reads only the top level of an override object, so a nested prop of that name passes', async () => {
+    const { forbidden } = await findingsOf({
+      'src/__tests__/a.test.tsx':
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io, { Dialog: { props: { Button: 1 } } }));",
+    });
+    expect(forbidden).toEqual([]);
+  });
+
+  it('FLAGS an override spread from a variable, a computed name, and an override object it cannot see', async () => {
     const { forbidden } = await findingsOf({
       'src/__tests__/a.test.tsx': [
-        "vi.mock('@scope/ui-kit/react', async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io, { Spinner }));",
-        "vi.mock('@/hooks/use-thing', async () => (await import('@/test/fakes/with-overrides')).moduleStub({ Button: 1 }));",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io, { ...stand }));",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io, { [name]: 1 }));",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io, overrides));",
+      ].join('\n'),
+    });
+    expect(forbidden.map(({ line }) => line)).toEqual([1, 2, 3]);
+    expect(forbidden[0].detail).toMatch(
+      /^overrides @scope\/ui-kit\/react through names the guard cannot read — .*Button, AccordionContent must stay real/,
+    );
+  });
+
+  it('passes overrides of exports the facts do not list, a spread of the real module, and other modules', async () => {
+    const { forbidden } = await findingsOf({
+      'src/__tests__/a.test.tsx': [
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => (await import('@/test/fakes/ui-kit')).uiFake(io, { Spinner }));",
+        "vi.mock(import('@scope/ui-kit/react'), async (io) => ({ ...(await io()), Spinner }));",
+        "vi.mock(import('@/hooks/use-thing'), async (io) => (await import('@/test/typed-mock')).stubModule(io, { Button: 1 }));",
       ].join('\n'),
     });
     expect(forbidden).toEqual([]);

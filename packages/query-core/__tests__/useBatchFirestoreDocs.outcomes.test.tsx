@@ -9,7 +9,7 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
@@ -335,7 +335,7 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
     const failure = unavailable();
-    act(() => store.failListeners(listenerOf('publicWorks', 'w1'), failure));
+    await act(async () => store.failListeners(listenerOf('publicWorks', 'w1'), failure));
 
     expect(result.current.outcomes.w1).toEqual({
       status: 'present',
@@ -356,7 +356,7 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     await waitFor(() => expect(result.current.outcomes.w1.status).toBe('present'));
 
     const denied = permissionDenied();
-    act(() => store.failListeners(listenerOf('publicWorks', 'w1'), denied));
+    await act(async () => store.failListeners(listenerOf('publicWorks', 'w1'), denied));
 
     expect(result.current.outcomes.w1).toEqual({
       status: 'failed',

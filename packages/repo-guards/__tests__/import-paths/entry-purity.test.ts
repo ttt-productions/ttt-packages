@@ -216,6 +216,51 @@ describe('entry purity', () => {
   });
 });
 
+describe('test-runner entries keep their runtime purity', () => {
+  it('FLAG a server test-runner entry that reaches React', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/server/testing/index.js':
+        "import { useState } from 'react';\nexport const useKit = () => useState(1);",
+      'dist/server/testing/index.d.ts': 'export {};',
+    };
+    const entries = { ...ENTRIES, './server/testing': 'server/testing/index' };
+    expect(await purity(packageRepo(build, {}, entries))).toEqual([
+      'packages/kit/dist/server/testing/index.js — @acme/kit/server/testing reaches react (react)',
+    ]);
+  });
+
+  it('FLAG a React entry and a browser entry that each reach a Node module', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/react/index.js':
+        "import { readFileSync } from 'node:fs';\nexport const useVersion = () => readFileSync;",
+      'dist/client/index.js': "export { useVersion } from '../react/index.js';",
+      'dist/client/index.d.ts': 'export {};',
+    };
+    const entries = { ...ENTRIES, './client': 'client/index' };
+    const facts: EntryPurityFacts = {
+      ...FACTS,
+      runtimeSubpaths: [...FACTS.runtimeSubpaths, { subpath: 'client', runtime: 'browser' }],
+    };
+    expect(await purity(packageRepo(build, {}, entries), facts)).toEqual([
+      'packages/kit/dist/react/index.js — @acme/kit/react reaches node:fs (node)',
+      'packages/kit/dist/react/index.js — @acme/kit/client reaches node:fs (node)',
+    ]);
+  });
+
+  it('pass a server test-runner entry that reaches only Node modules', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/server/testing/index.js':
+        "import { readFileSync } from 'node:fs';\nexport const kit = readFileSync;",
+      'dist/server/testing/index.d.ts': 'export {};',
+    };
+    const entries = { ...ENTRIES, './server/testing': 'server/testing/index' };
+    expect(await purity(packageRepo(build, {}, entries))).toEqual([]);
+  });
+});
+
 describe('entries load under Node', () => {
   it('pass when every universal and Node entry evaluates; a React entry is never loaded', async () => {
     expect(await loads(packageRepo(CLEAN_BUILD))).toEqual([]);
@@ -242,7 +287,17 @@ describe('entries load under Node', () => {
     expect(await loads(packageRepo(build, {}, entries))).toEqual([]);
   });
 
-  it('load a Node entry whose last segment only resembles the test-runner segment', async () => {
+  it('never load a React test-runner entry either', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/react/testing/index.js': "throw new Error('loaded outside the runner');",
+      'dist/react/testing/index.d.ts': 'export {};',
+    };
+    const entries = { ...ENTRIES, './react/testing': 'react/testing/index' };
+    expect(await loads(packageRepo(build, {}, entries))).toEqual([]);
+  });
+
+  it('load a ./testing entry that names no runtime segment before it', async () => {
     const build = {
       ...CLEAN_BUILD,
       'dist/testing/index.js': "throw new TypeError('not a test-runner entry');",

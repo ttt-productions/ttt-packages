@@ -7,9 +7,9 @@ const sentry = await vi.hoisted(async () => {
 const sentryMock = sentry.sdk;
 const scopeMock = sentry.scope;
 
-vi.mock('../src/adapters/sentry-browser-sdk.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/adapters/sentry-browser-sdk.js')>({
+vi.mock(import('../src/adapters/sentry-browser-sdk.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     importSentryBrowser: async () => sentry.sdk,
   });
 });

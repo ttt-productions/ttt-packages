@@ -7,9 +7,9 @@ import { anything } from '../../../test/matchers.js';
 const mockSetTheme = vi.fn<ReturnType<typeof import('next-themes').useTheme>['setTheme']>();
 const mockUseTheme = vi.hoisted(() => vi.fn<typeof import('next-themes').useTheme>());
 
-vi.mock('next-themes', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('next-themes')>({ useTheme: mockUseTheme });
+vi.mock(import('next-themes'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { useTheme: mockUseTheme });
 });
 
 const themes: ThemeOption[] = [

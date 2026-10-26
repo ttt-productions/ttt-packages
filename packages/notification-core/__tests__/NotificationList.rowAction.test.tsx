@@ -20,17 +20,17 @@ const mocks = vi.hoisted(() => ({
   useArchiveAllNotifications: vi.fn<ArchiveAllModule['useArchiveAllNotifications']>(),
 }));
 
-vi.mock('../src/react/hooks/useActiveNotifications.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<ActiveModule>({ useActiveNotifications: mocks.useActiveNotifications });
+vi.mock(import('../src/react/hooks/useActiveNotifications.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { useActiveNotifications: mocks.useActiveNotifications });
 });
-vi.mock('../src/react/hooks/useArchiveNotification.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<ArchiveModule>({ useArchiveNotification: mocks.useArchiveNotification });
+vi.mock(import('../src/react/hooks/useArchiveNotification.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { useArchiveNotification: mocks.useArchiveNotification });
 });
-vi.mock('../src/react/hooks/useArchiveAllNotifications.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<ArchiveAllModule>({
+vi.mock(import('../src/react/hooks/useArchiveAllNotifications.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     useArchiveAllNotifications: mocks.useArchiveAllNotifications,
   });
 });

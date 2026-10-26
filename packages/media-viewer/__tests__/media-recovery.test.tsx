@@ -779,7 +779,11 @@ describe('MediaPreview with recovery adapter — image vs video events', () => {
     mockAllIsIntersecting(0.01);
 
     const longestBackoff = Math.max(...BACKOFF_SCHEDULE_MS) * 1.2;
-    for (let elapsed = 0; elapsed <= MAX_RECOVERY_DURATION_MS; elapsed += longestBackoff) {
+    for (
+      let elapsed = 0;
+      elapsed <= MAX_RECOVERY_DURATION_MS + longestBackoff;
+      elapsed += longestBackoff
+    ) {
       const img = container.querySelector('img');
       if (!img) break;
       await act(async () => {

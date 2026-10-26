@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { firestoreTestWrapper } from '../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -9,7 +8,7 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
@@ -17,7 +16,6 @@ vi.mock('firebase/firestore', async (importOriginal) => {
 import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
-import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
 import { failNext, lastOpened, listensTo } from './helpers/listener-controls.js';
 
@@ -30,25 +28,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } },
-  });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return { queryClient, Wrapper };
-}
-
 const unavailable = () => firestoreError('unavailable', 'unavailable');
 
 describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('subscribes with includeMetadataChanges and starts connecting', () => {
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () =>
         useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
@@ -61,7 +45,7 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('cache-first snapshot stays connecting until a server-confirmed snapshot makes it live', async () => {
     store.seed('items/i1', { name: 'x' });
     store.answerFromCache(listensTo('items'));
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () =>
         useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
@@ -69,35 +53,35 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
     );
     await waitFor(() => expect(result.current.data).toEqual([{ id: 'i1', name: 'x' }]));
     expect(result.current.sourceState).toBe('connecting');
-    act(() => store.answerFromServer(listensTo('items')));
+    await act(async () => store.answerFromServer(listensTo('items')));
     expect(result.current.sourceState).toBe('live');
   });
 
   it('goes offline after being live, then back to live on reconnect', async () => {
     store.seed('items/i1', { name: 'x' });
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () =>
         useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     await waitFor(() => expect(result.current.sourceState).toBe('live'));
-    act(() => store.answerFromCache(listensTo('items')));
+    await act(async () => store.answerFromCache(listensTo('items')));
     expect(result.current.sourceState).toBe('offline');
-    act(() => store.answerFromServer(listensTo('items')));
+    await act(async () => store.answerFromServer(listensTo('items')));
     expect(result.current.sourceState).toBe('live');
   });
 
   it('goes error when the listener fails for a reason it does not retry', async () => {
     store.seed('items/i1', { name: 'x' });
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () =>
         useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
       { wrapper: Wrapper },
     );
     await waitFor(() => expect(result.current.sourceState).toBe('live'));
-    act(() =>
+    await act(async () =>
       store.failListeners(
         listensTo('items'),
         firestoreError('failed-precondition', 'The query requires an index.'),
@@ -109,7 +93,7 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
   it('reads connecting through the re-listen backoff after a permission loss, then error', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     store.seed('items/i1', { name: 'x' });
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () =>
         useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
@@ -119,7 +103,7 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
 
     const denial = firestoreError('permission-denied', 'Missing or insufficient permissions.');
     store.failReads(listensTo('items'), denial);
-    act(() => store.failListeners(listensTo('items'), denial));
+    await act(async () => store.failListeners(listensTo('items'), denial));
     for (const delay of RESUBSCRIBE_DELAYS_MS) {
       expect(result.current.sourceState).toBe('connecting');
       await act(async () => {
@@ -132,7 +116,7 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
 
   it('reads connecting for a new subscription identity (uid / admin-claim change)', async () => {
     store.seed('items/i1', { name: 'x' });
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result, rerender } = renderHook(
       ({ key }: { key: string }) =>
         useFirestoreCollection({
@@ -153,22 +137,22 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
 describe('useFirestoreDoc — sourceState (metadata-derived)', () => {
   it('connecting → live → offline → live', async () => {
     store.seed('users/u1', { n: 1 });
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['user', 'u1'], subscribe: true }),
       { wrapper: Wrapper },
     );
     expect(result.current.sourceState).toBe('connecting');
     await waitFor(() => expect(result.current.sourceState).toBe('live'));
-    act(() => store.answerFromCache(listensTo('users/u1')));
+    await act(async () => store.answerFromCache(listensTo('users/u1')));
     expect(result.current.sourceState).toBe('offline');
-    act(() => store.answerFromServer(listensTo('users/u1')));
+    await act(async () => store.answerFromServer(listensTo('users/u1')));
     expect(result.current.sourceState).toBe('live');
   });
 
   it('error callback sets error', async () => {
     failNext(store, listensTo('users/u1'), unavailable());
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const { result } = renderHook(
       () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['user', 'u1'], subscribe: true }),
       { wrapper: Wrapper },
@@ -180,7 +164,7 @@ describe('useFirestoreDoc — sourceState (metadata-derived)', () => {
 describe('source state and error belong to the subscription identity that produced them', () => {
   it('a collection never renders the previous identity as live, not even for one render', async () => {
     store.seed('items/i1', { name: 'x' });
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const seen: Array<{ key: string; state: string }> = [];
     const { result, rerender } = renderHook(
       ({ key }: { key: string }) => {
@@ -204,7 +188,7 @@ describe('source state and error belong to the subscription identity that produc
 
   it('a doc never renders the previous identity’s error under the new path', async () => {
     failNext(store, listensTo('users/u1'), firestoreError('unknown', 'boom'));
-    const { Wrapper } = makeWrapper();
+    const { Wrapper } = firestoreTestWrapper(store.db);
     const seen: Array<{ path: string; error: unknown; state: string }> = [];
     const { result, rerender } = renderHook(
       ({ path }: { path: string }) => {

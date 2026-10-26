@@ -9,9 +9,9 @@ const nextThemes = vi.hoisted(() => {
   const captured: { props: ThemeProviderProps | null } = { props: null };
   return captured;
 });
-vi.mock('next-themes', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('next-themes')>({
+vi.mock(import('next-themes'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     ThemeProvider: (props) => {
       nextThemes.props = props;
       return <>{props.children}</>;

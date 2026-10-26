@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { firestoreTestWrapper } from '../../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -9,30 +8,15 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreCollection } from '../../src/react/firestore/use-firestore-collection.js';
-import { FirestoreProvider } from '../../src/react/firestore/context.js';
 import { useReadRetryState } from '../../src/react/use-read-retry-state.js';
 import { failNext, holdNext, listensTo } from '../helpers/listener-controls.js';
-
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } },
-  });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-}
 
 const GAMES = 'leagues/l1/games';
 const unavailable = () => firestoreError('unavailable', 'unavailable');
@@ -48,7 +32,7 @@ function renderSubscribed() {
       });
       return { query, state: useReadRetryState(query, queryKey) };
     },
-    { wrapper: makeWrapper() },
+    { wrapper: firestoreTestWrapper(store.db).Wrapper },
   );
 }
 

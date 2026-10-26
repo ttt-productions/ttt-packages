@@ -10,24 +10,26 @@ import type {
   QueryDocumentSnapshot,
   QuerySnapshot,
 } from 'firebase/firestore';
+import { toBundleValue } from './client-values.js';
 import {
-  compareValues,
-  fieldOf,
-  fromStoredValue,
-  sameValue,
-  toBundleValue,
+  compareTuples,
+  isInequality,
+  matchesField,
+  normalizedOrders as normalizedOrdersOf,
+  valueAt,
+  withinBound,
   type ComparableValue,
-} from './client-values.js';
+} from './stored-values.js';
 import {
   answeredFromCache,
   countSnapshot,
   describeQuery,
   isDocumentSnapshotOf,
   missingDocumentSnapshot,
-  type DescribedBound,
   type DescribedOrder,
   type DescribedPredicate,
   type DescribedQuery,
+  withChangesSince,
 } from './sdk-internals.js';
 
 // The real SDK, though suites mock 'firebase/firestore': a mock's factory loads this module.
@@ -170,63 +172,14 @@ const parentOf = (path: string): string => path.split('/').slice(0, -1).join('/'
 const collectionIdOf = (path: string): string => path.split('/').slice(-2, -1)[0] ?? '';
 
 function normalizedOrders(query: DescribedQuery): DescribedOrder[] {
-  const orders = [...query.orders];
-  const ordered = new Set(orders.map((order) => order.field));
-  const inequality = new Set<string>();
+  const inequality: string[] = [];
   const collect = (filter: DescribedPredicate) => {
     if (filter.kind === 'field') {
-      if (['<', '<=', '>', '>=', '!=', 'not-in'].includes(filter.op)) inequality.add(filter.field);
+      if (isInequality(filter.op)) inequality.push(filter.field);
     } else filter.filters.forEach(collect);
   };
   query.filters.forEach(collect);
-  const last = orders.at(-1)?.direction ?? 'asc';
-  for (const field of [...inequality].sort())
-    if (!ordered.has(field) && field !== '__name__') orders.push({ field, direction: last });
-  if (!orders.some((order) => order.field === '__name__'))
-    orders.push({ field: '__name__', direction: last });
-  return orders;
-}
-
-function valueAt(path: string, data: DocumentData, field: string): ComparableValue | undefined {
-  if (field === '__name__') return { t: 'ref', v: path };
-  const raw = fieldOf(data, field);
-  return raw === undefined ? undefined : fromStoredValue(raw);
-}
-
-function matchesField(
-  value: ComparableValue | undefined,
-  op: string,
-  operand: ComparableValue,
-): boolean {
-  if (value === undefined) return false;
-  const operands = operand.t === 'arr' ? operand.v : [];
-  switch (op) {
-    case '==':
-      return sameValue(value, operand);
-    case '!=':
-      return value.t !== 'null' && !sameValue(value, operand);
-    case '<':
-    case '<=':
-    case '>':
-    case '>=': {
-      if (value.t !== operand.t && !(value.t === 'num' && operand.t === 'num')) return false;
-      const c = compareValues(value, operand);
-      return op === '<' ? c < 0 : op === '<=' ? c <= 0 : op === '>' ? c > 0 : c >= 0;
-    }
-    case 'in':
-      return operands.some((candidate) => sameValue(value, candidate));
-    case 'not-in':
-      return value.t !== 'null' && !operands.some((candidate) => sameValue(value, candidate));
-    case 'array-contains':
-      return value.t === 'arr' && value.v.some((item) => sameValue(item, operand));
-    case 'array-contains-any':
-      return (
-        value.t === 'arr' &&
-        value.v.some((item) => operands.some((candidate) => sameValue(item, candidate)))
-      );
-    default:
-      throw new Error(`in-memory client Firestore: the operator ${op} is not part of this double`);
-  }
+  return normalizedOrdersOf(query.orders, inequality);
 }
 
 function matches(path: string, data: DocumentData, filter: DescribedPredicate): boolean {
@@ -235,30 +188,6 @@ function matches(path: string, data: DocumentData, filter: DescribedPredicate): 
   return filter.kind === 'and'
     ? filter.filters.every((inner) => matches(path, data, inner))
     : filter.filters.some((inner) => matches(path, data, inner));
-}
-
-function compareTuples(
-  left: ComparableValue[],
-  right: ComparableValue[],
-  orders: DescribedOrder[],
-): number {
-  for (let i = 0; i < Math.min(left.length, right.length); i++) {
-    const c = compareValues(left[i], right[i]);
-    if (c !== 0) return orders[i]?.direction === 'desc' ? -c : c;
-  }
-  return 0;
-}
-
-function withinBound(
-  tuple: ComparableValue[],
-  bound: DescribedBound | null,
-  orders: DescribedOrder[],
-  side: 'start' | 'end',
-): boolean {
-  if (!bound) return true;
-  const c = compareTuples(tuple, bound.position, orders);
-  if (side === 'start') return bound.inclusive ? c >= 0 : c > 0;
-  return bound.inclusive ? c <= 0 : c < 0;
 }
 
 function inScope(path: string, query: DescribedQuery): boolean {
@@ -447,7 +376,8 @@ export function makeInMemoryClientFirestore(
     return isQuerySnapshotOf(snapshot, converter) ? snapshot : unexpected('a query snapshot');
   }
 
-  const notify = () => listeners.forEach((listener) => listener.emit());
+  // The SDK hands a listener each change on a later turn, never inside the write that caused it.
+  const notify = () => queueMicrotask(() => [...listeners].forEach((listener) => listener.emit()));
 
   const getDoc: Sdk['getDoc'] = async (reference) => {
     const read = docRead(reference.path, false);
@@ -519,6 +449,7 @@ export function makeInMemoryClientFirestore(
     const source = listenSourceOf(target, options?.includeMetadataChanges === true);
     let active = true;
     let last: string | null = null;
+    let previous: QuerySnapshot | null = null;
 
     const listener: Listener = {
       read: source.read,
@@ -526,7 +457,9 @@ export function makeInMemoryClientFirestore(
         if (!active) return;
         active = false;
         listeners.delete(listener);
-        if (typeof fail === 'function') Reflect.apply(fail, undefined, [error]);
+        queueMicrotask(() => {
+          if (typeof fail === 'function') Reflect.apply(fail, undefined, [error]);
+        });
       },
       emit() {
         if (!active) return;
@@ -535,7 +468,12 @@ export function makeInMemoryClientFirestore(
         const now = `${metadata}${source.signature()}`;
         if (now === last) return;
         last = now;
-        const snapshot = source.snapshot();
+        const built = source.snapshot();
+        const snapshot =
+          built instanceof sdk.QuerySnapshot && previous
+            ? withChangesSince(built, previous, fromCache)
+            : built;
+        if (snapshot instanceof sdk.QuerySnapshot) previous = snapshot;
         const answer =
           fromCache && isAnswerSnapshot(snapshot) ? answeredFromCache(snapshot) : snapshot;
         if (typeof next === 'function') Reflect.apply(next, undefined, [answer]);

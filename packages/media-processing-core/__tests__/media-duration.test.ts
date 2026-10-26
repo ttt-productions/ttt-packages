@@ -9,9 +9,9 @@ import { exitingChild } from './helpers/piped-child.js';
 const spawnMock = vi.hoisted(() =>
   vi.fn<typeof import('../src/video/spawn-piped.js').spawnPiped>(),
 );
-vi.mock('../src/video/spawn-piped.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/video/spawn-piped.js')>({ spawnPiped: spawnMock });
+vi.mock(import('../src/video/spawn-piped.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { spawnPiped: spawnMock });
 });
 
 function lengthOf(lines: string[]): number | undefined {

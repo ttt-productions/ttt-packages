@@ -9,7 +9,7 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
@@ -92,7 +92,7 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
     await waitFor(() => expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' }));
 
-    act(() => seed('u1', { displayName: 'Alice Smith' }));
+    await act(async () => seed('u1', { displayName: 'Alice Smith' }));
     expect(result.current.data.u1).toMatchObject({ displayName: 'Alice Smith' });
   });
 
@@ -275,7 +275,7 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     expect(listenersOpened()).toBe(1);
 
     await waitFor(() => expect(store.liveListeners()).toBe(1));
-    act(() => seed('u1', { displayName: 'FromListener' }));
+    await act(async () => seed('u1', { displayName: 'FromListener' }));
     expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
 
     act(() => {

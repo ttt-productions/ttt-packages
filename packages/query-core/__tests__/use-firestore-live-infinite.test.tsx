@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { firestoreTestWrapper } from '../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -10,7 +9,7 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
@@ -18,7 +17,6 @@ vi.mock('firebase/firestore', async (importOriginal) => {
 import { Timestamp } from 'firebase/firestore';
 import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 import { useFirestoreLiveInfinite } from '../src/react/firestore/use-firestore-live-infinite.js';
-import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
 import {
   failNext,
@@ -44,18 +42,6 @@ function ids(items: unknown[]): string[] {
 async function anchored(path = T1) {
   await waitFor(() => expect(opened(store, listensTo(path))).toBe(2));
   await waitFor(() => expect(store.liveListeners()).toBe(1));
-}
-
-function makeWrapper() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: qc },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
 }
 
 const baseOpts = {
@@ -90,7 +76,7 @@ describe('useFirestoreLiveInfinite — reading', () => {
     ]);
     const release = holdNext(store, live);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     expect(result.current.isInitialLoading).toBe(true);
     expect(result.current.sourceState).toBe('connecting');
@@ -108,7 +94,7 @@ describe('useFirestoreLiveInfinite — reading', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     expect(lastOpened(store, live)?.limit).toBe(3);
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b']));
@@ -124,7 +110,7 @@ describe('useFirestoreLiveInfinite — reading', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
 
     await anchored();
@@ -135,7 +121,7 @@ describe('useFirestoreLiveInfinite — reading', () => {
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
 
-    act(() =>
+    await act(async () =>
       seed(T1, [
         ['e', 50],
         ['d', 40],
@@ -147,15 +133,15 @@ describe('useFirestoreLiveInfinite — reading', () => {
 
   it('anchors on the first rows of an empty thread so a burst of new messages is never lost', async () => {
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await waitFor(() => expect(result.current.isInitialLoading).toBe(false));
     expect(opened(store, live)).toBe(1);
 
-    act(() => seed(T1, [['a', 10]]));
+    await act(async () => seed(T1, [['a', 10]]));
     await anchored();
     expect(lastOpened(store, live)?.limit).toBe(Infinity);
-    act(() =>
+    await act(async () =>
       seed(T1, [
         ['d', 40],
         ['c', 30],
@@ -173,7 +159,7 @@ describe('useFirestoreLiveInfinite — reading', () => {
     ]);
     store.answerFromCache(live);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await waitFor(() => expect(result.current.isInitialLoading).toBe(false));
     expect(opened(store, live)).toBe(1);
@@ -189,14 +175,14 @@ describe('useFirestoreLiveInfinite — reading', () => {
           ...baseOpts,
           select: (d) => ({ key: `k:${d.id}` }),
         }),
-      { wrapper: makeWrapper() },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
     await waitFor(() => expect(result.current.items).toEqual([{ key: 'k:a' }]));
   });
 
   it('opens no listener and stays empty when disabled', () => {
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts, enabled: false }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     expect(store.queries()).toEqual([]);
     expect(result.current.items).toEqual([]);
@@ -212,7 +198,7 @@ describe('useFirestoreLiveInfinite — older rows only on request', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
 
@@ -239,7 +225,7 @@ describe('useFirestoreLiveInfinite — older rows only on request', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
 
@@ -266,7 +252,7 @@ describe('useFirestoreLiveInfinite — order', () => {
       ['a', 999],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     await act(async () => {
@@ -282,13 +268,13 @@ describe('useFirestoreLiveInfinite — order', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts, sort: 'desc' }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     await act(async () => {
       await result.current.fetchOlder();
     });
-    act(() => seed(T1, [['d', 40]]));
+    await act(async () => seed(T1, [['d', 40]]));
     await waitFor(() => expect(ids(result.current.items)).toEqual(['d', 'c', 'b', 'a']));
   });
 
@@ -298,7 +284,7 @@ describe('useFirestoreLiveInfinite — order', () => {
       ['a', Timestamp.fromMillis(10_000)],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b']));
   });
@@ -310,7 +296,7 @@ describe('useFirestoreLiveInfinite — order', () => {
     ]);
     store.seed(`${T1}/a`, { createdAt: 10, v: 'old' });
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     await act(async () => {
@@ -318,7 +304,7 @@ describe('useFirestoreLiveInfinite — order', () => {
     });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
 
-    act(() => store.seed(`${T1}/a`, { createdAt: 40, v: 'new' }));
+    await act(async () => store.seed(`${T1}/a`, { createdAt: 40, v: 'new' }));
     expect(ids(result.current.items)).toEqual(['b', 'c', 'a']);
     expect(result.current.items[2]?.v).toBe('new');
   });
@@ -334,7 +320,7 @@ describe('useFirestoreLiveInfinite — subscription identity', () => {
           collectionPath: `chats/${thread}/messages`,
           queryKey: ['chat', thread],
         }),
-      { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { thread: 't1' } },
     );
     await anchored();
     expect(ids(result.current.items)).toEqual(['a1']);
@@ -345,7 +331,7 @@ describe('useFirestoreLiveInfinite — subscription identity', () => {
     expect(result.current.sourceState).toBe('connecting');
 
     expect(opened(store, listensTo(T2))).toBe(1);
-    act(() => seed(T2, [['b1', 5]]));
+    await act(async () => seed(T2, [['b1', 5]]));
     await waitFor(() => expect(ids(result.current.items)).toEqual(['b1']));
     expect(store.liveListeners()).toBe(1);
   });
@@ -359,7 +345,7 @@ describe('useFirestoreLiveInfinite — subscription identity', () => {
           collectionPath: `chats/${thread}/messages`,
           queryKey: ['chat', thread],
         }),
-      { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { thread: 't1' } },
     );
     await waitFor(() => expect(result.current.error).not.toBeNull());
 
@@ -374,7 +360,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
     const failure = unavailable();
     failNext(store, live, failure);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
 
     await waitFor(() => expect(result.current.error).toBe(failure));
@@ -386,7 +372,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
   it('retries a failed listener and recovers on its next snapshot', async () => {
     failNext(store, live, unavailable('x'));
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await waitFor(() => expect(result.current.error).not.toBeNull());
     const before = opened(store, live);
@@ -406,10 +392,10 @@ describe('useFirestoreLiveInfinite — failures', () => {
   it('keeps the rows on screen when the listener fails after loading them', async () => {
     seed(T1, [['a', 10]]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
-    act(() => store.failListeners(live, unavailable('x')));
+    await act(async () => store.failListeners(live, unavailable('x')));
 
     expect(result.current.error).not.toBeNull();
     expect(ids(result.current.items)).toEqual(['a']);
@@ -419,7 +405,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     failUntilStopped(store, live, denied());
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await advance(0);
 
@@ -441,7 +427,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     await act(async () => {
@@ -452,7 +438,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const denial = denied();
     const stopDenying = failUntilStopped(store, live, denial);
-    act(() => store.failListeners(live, denial));
+    await act(async () => store.failListeners(live, denial));
     for (const delay of RESUBSCRIBE_DELAYS_MS) await advance(delay);
 
     await vi.waitFor(() => expect(result.current.error).toBe(denial));
@@ -481,7 +467,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
     ]);
     failNext(store, older, unavailable('older failed'));
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     await act(async () => {
@@ -508,7 +494,7 @@ describe('useFirestoreLiveInfinite — failures', () => {
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     await act(async () => {
@@ -534,11 +520,11 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
       ['a', 10],
     ]);
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
-      wrapper: makeWrapper(),
+      wrapper: firestoreTestWrapper(store.db).Wrapper,
     });
     await anchored();
     expect(lastOpened(store, live)?.limit).toBe(Infinity);
-    act(() => store.failListeners(live, unavailable('x')));
+    await act(async () => store.failListeners(live, unavailable('x')));
     seed(T1, [['z', 5]]);
 
     act(() => result.current.retry());
@@ -567,7 +553,7 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
           collectionPath: `chats/${thread}/messages`,
           queryKey: ['chat', thread],
         }),
-      { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { thread: 't1' } },
     );
     await anchored();
     act(() => {
@@ -588,7 +574,7 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
     seed(T1, [['a', 10]]);
     const { result, rerender } = renderHook(
       ({ enabled }: { enabled: boolean }) => useFirestoreLiveInfinite({ ...baseOpts, enabled }),
-      { wrapper: makeWrapper(), initialProps: { enabled: true } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { enabled: true } },
     );
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a']));
 

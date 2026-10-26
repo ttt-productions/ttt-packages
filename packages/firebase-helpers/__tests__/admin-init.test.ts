@@ -5,13 +5,17 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const registry = vi.hoisted(() => ({ apps: [] as App[], created: 0 }));
+const registry = vi.hoisted(() => ({
+  apps: [] as App[],
+  created: 0,
+  realGetApp: null as null | (() => App),
+}));
 
-vi.mock('firebase-admin/app', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type AdminApp = typeof import('firebase-admin/app');
-  const actual = await importOriginal<AdminApp>();
-  return passThroughModule<AdminApp>(importOriginal, {
+vi.mock(import('firebase-admin/app'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
+  registry.realGetApp = () => actual.getApp();
+  return passThroughModule(importOriginal, {
     initializeApp: vi.fn((options?: AppOptions) => {
       registry.created += 1;
       const app = actual.initializeApp(
@@ -90,9 +94,18 @@ describe('getAdminApp', () => {
     );
   });
 
-  it('the getApp stand-in models the real SDK failure on an empty app store', () => {
+  it('the getApp stand-in fails on an empty app store with the code the real SDK throws', () => {
+    const codeOf = (read: () => App): unknown => {
+      try {
+        read();
+      } catch (error) {
+        return Reflect.get(Object(error), 'code');
+      }
+      return 'no failure';
+    };
     expect(getApps()).toHaveLength(0);
-    expect(() => getApp()).toThrow(expect.objectContaining({ code: 'app/no-app' }));
+    expect(codeOf(registry.realGetApp!)).toBe('app/no-app');
+    expect(codeOf(getApp)).toBe(codeOf(registry.realGetApp!));
   });
 
   it('initializes before resolving the default app — never calls getApp against an empty store', () => {

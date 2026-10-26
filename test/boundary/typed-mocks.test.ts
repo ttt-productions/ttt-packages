@@ -19,7 +19,14 @@ registerSuiteOf(
           },
         ],
         typedHelpers: [
-          { owner: 'test/typed-mock.ts', names: ['stubModule', 'passThroughModule'] },
+          {
+            owner: '@ttt-productions/dev-standards/testing',
+            names: ['stubModule', 'passThroughModule'],
+          },
+          {
+            owner: 'packages/dev-standards/src/testing.ts',
+            names: ['stubModule', 'passThroughModule'],
+          },
           { owner: 'test/client-firestore-fake.ts', names: ['clientFirestoreFake'] },
         ],
         forbiddenOverrides: [],

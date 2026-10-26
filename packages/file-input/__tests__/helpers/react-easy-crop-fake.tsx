@@ -1,4 +1,4 @@
-import { passThroughModule } from '../../../../test/typed-mock.js';
+import { passThroughModule } from '@ttt-productions/dev-standards/testing';
 
 type ReactEasyCrop = typeof import('react-easy-crop');
 

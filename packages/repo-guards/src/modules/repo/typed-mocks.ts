@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { join } from 'node:path';
 import type { Finding } from '../../guard.js';
 import type { RepoReader, Scope } from '../../node/reader.js';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -12,7 +13,7 @@ import {
   pathProblem,
   textProblem,
 } from '../../support/facts.js';
-import { aliasList, resolveSpecifier } from '../../support/resolve-specifier.js';
+import { aliasList, isLocalModule, resolveSpecifier } from '../../support/resolve-specifier.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
 import type { SharedFake } from './shared-fakes.js';
 
@@ -43,9 +44,12 @@ export interface TypedMockFacts {
   forbiddenOverrides: readonly ForbiddenOverride[];
 }
 
+type Factory = ts.ArrowFunction | ts.FunctionExpression;
+
 interface Site {
   node: ts.CallExpression;
   module: string;
+  byImport: boolean;
   factory: ts.Expression | undefined;
 }
 
@@ -57,24 +61,32 @@ function sitesOf(reader: RepoReader, file: FileView, aliases: Array<[string, str
     out.push({
       node: site.node,
       module: resolveSpecifier(reader, file.path, site.spec, aliases),
+      byImport: site.byImport,
       factory: site.node.arguments[1],
     });
   }
   return out;
 }
 
-function factoryFunction(factory: ts.Expression): ts.ArrowFunction | ts.FunctionExpression | null {
+function factoryFunction(factory: ts.Expression): Factory | null {
   const value = unwrap(factory);
   return ts.isArrowFunction(value) || ts.isFunctionExpression(value) ? value : null;
 }
 
-function returnedExpression(fn: ts.ArrowFunction | ts.FunctionExpression): ts.Expression | null {
-  if (!ts.isBlock(fn.body)) return fn.body;
-  for (let i = fn.body.statements.length - 1; i >= 0; i--) {
-    const statement = fn.body.statements[i];
-    if (ts.isReturnStatement(statement)) return statement.expression ?? null;
-  }
-  return null;
+// The runner's options object (`{ spy: true }`) in the factory's place mocks the module itself.
+const isRunnerOptions = (factory: ts.Expression): boolean =>
+  ts.isObjectLiteralExpression(unwrap(factory));
+
+function returnedExpressions(fn: Factory): Array<ts.Expression | null> {
+  if (!ts.isBlock(fn.body)) return [fn.body];
+  const out: Array<ts.Expression | null> = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isFunctionLike(node)) return;
+    if (ts.isReturnStatement(node)) out.push(node.expression ?? null);
+    ts.forEachChild(node, visit);
+  };
+  fn.body.statements.forEach(visit);
+  return out;
 }
 
 const awaited = (expression: ts.Expression): ts.Expression => {
@@ -90,17 +102,18 @@ function importedSpecifier(expression: ts.Expression): string | null {
   return spec && ts.isStringLiteralLike(spec) ? spec.text : null;
 }
 
-type Owners = ReadonlyMap<string, ReadonlySet<string> | 'any'>;
+type OwnerKind = 'fake' | 'helper';
+type Owners = ReadonlyMap<
+  string,
+  { kind: 'fake' } | { kind: 'helper'; names: ReadonlySet<string> }
+>;
 
 interface Binding {
   path: string;
   name: string | null;
 }
 
-function bindingsOf(
-  fn: ts.ArrowFunction | ts.FunctionExpression,
-  resolve: (spec: string) => string,
-): Map<string, Binding> {
+function bindingsOf(fn: Factory, resolve: (spec: string) => string): Map<string, Binding> {
   const bindings = new Map<string, Binding>();
   if (!ts.isBlock(fn.body)) return bindings;
   forEachNode(fn.body, (node) => {
@@ -120,47 +133,76 @@ function bindingsOf(
   return bindings;
 }
 
-const allows = (owners: Owners, path: string, name: string) => {
-  const names = owners.get(path);
-  return names === 'any' || (names !== undefined && names.has(name));
-};
+function ownerKind(owners: Owners, path: string, name: string): OwnerKind | null {
+  const owner = owners.get(path);
+  if (!owner) return null;
+  if (owner.kind === 'fake') return 'fake';
+  return owner.names.has(name) ? 'helper' : null;
+}
 
-function isTypedCall(
-  expression: ts.Expression,
+function calleeKind(
+  call: ts.CallExpression,
   owners: Owners,
   bindings: Map<string, Binding>,
   resolve: (spec: string) => string,
-): boolean {
-  const call = awaited(expression);
-  if (!ts.isCallExpression(call)) return false;
+): OwnerKind | null {
   const callee = unwrap(call.expression);
-  if (ts.isCallExpression(callee)) return isTypedCall(callee, owners, bindings, resolve);
   if (ts.isPropertyAccessExpression(callee)) {
     const spec = importedSpecifier(callee.expression);
-    if (spec !== null) return allows(owners, resolve(spec), callee.name.text);
+    if (spec !== null) return ownerKind(owners, resolve(spec), callee.name.text);
     const base = unwrap(callee.expression);
-    if (ts.isIdentifier(base)) {
-      const bound = bindings.get(base.text);
-      return (
-        bound !== undefined && bound.name === null && allows(owners, bound.path, callee.name.text)
-      );
-    }
-    return false;
+    if (!ts.isIdentifier(base)) return null;
+    const bound = bindings.get(base.text);
+    return bound && bound.name === null ? ownerKind(owners, bound.path, callee.name.text) : null;
   }
   if (ts.isIdentifier(callee)) {
     const bound = bindings.get(callee.text);
-    return bound !== undefined && bound.name !== null && allows(owners, bound.path, bound.name);
+    return bound && bound.name !== null ? ownerKind(owners, bound.path, bound.name) : null;
   }
-  return false;
+  return null;
 }
 
-function ownersOf(facts: TypedMockFacts): Map<string, ReadonlySet<string> | 'any'> {
-  const owners = new Map<string, ReadonlySet<string> | 'any'>();
-  for (const fake of facts.fakes) owners.set(fake.owner, 'any');
+const parameterName = (fn: Factory): string | null => {
+  const [first] = fn.parameters;
+  return first && ts.isIdentifier(first.name) ? first.name.text : null;
+};
+
+function untypedReason(
+  expression: ts.Expression | null,
+  fn: Factory,
+  owners: Owners,
+  bindings: Map<string, Binding>,
+  resolve: (spec: string) => string,
+): string | null {
+  const call = expression ? awaited(expression) : null;
+  if (!call || !ts.isCallExpression(call))
+    return 'returns something other than a shared fake or a typed mock helper';
+  const kind = calleeKind(call, owners, bindings, resolve);
+  if (!kind) return 'returns through a function that is no listed shared fake or typed mock helper';
+  if (kind === 'fake') return null;
+  if (call.typeArguments?.length)
+    return 'writes the type of its typed mock helper instead of taking it from importOriginal';
+  const original = parameterName(fn);
+  const [first] = call.arguments;
+  const passed = first ? unwrap(first) : null;
+  if (!original || !passed || !ts.isIdentifier(passed) || passed.text !== original)
+    return "hands its typed mock helper something other than the factory's own importOriginal";
+  return null;
+}
+
+function ownersOf(facts: TypedMockFacts): Owners {
+  const owners = new Map<
+    string,
+    { kind: 'fake' } | { kind: 'helper'; names: ReadonlySet<string> }
+  >();
+  for (const fake of facts.fakes) owners.set(fake.owner, { kind: 'fake' });
   for (const helper of facts.typedHelpers) {
     const already = owners.get(helper.owner);
-    if (already === 'any') continue;
-    owners.set(helper.owner, new Set([...(already ?? []), ...helper.names]));
+    if (already?.kind === 'fake') continue;
+    owners.set(helper.owner, {
+      kind: 'helper',
+      names: new Set([...(already?.names ?? []), ...helper.names]),
+    });
   }
   return owners;
 }
@@ -172,47 +214,106 @@ function ownerFiles(facts: TypedMockFacts): Set<string> {
   ]);
 }
 
+// A package-owned helper is named by its package entry (`@scope/pkg/testing`), not a repo file.
+function missingOwner(reader: RepoReader, owner: string): string | null {
+  if (isLocalModule(owner) || owner.startsWith('.'))
+    return reader.exists(owner) ? null : 'this typed fake or helper file no longer exists';
+  const segments = owner.split('/');
+  const name = segments.slice(0, owner.startsWith('@') ? 2 : 1).join('/');
+  const subpath = segments.slice(name.split('/').length).join('/');
+  const manifest = reader.readOutside(
+    join(reader.layout.repoRoot, 'node_modules', ...name.split('/'), 'package.json'),
+  );
+  if (manifest === null) return `no installed package ${name} holds this typed helper entry`;
+  const exports: unknown = (JSON.parse(manifest) as { exports?: unknown }).exports;
+  const key = subpath ? `./${subpath}` : '.';
+  return exports && typeof exports === 'object' && key in exports
+    ? null
+    : `${name} exports no ${key} entry for this typed helper`;
+}
+
 function checkTyped(reader: RepoReader, facts: TypedMockFacts, files: FileView[]): Finding[] {
   const findings: Finding[] = [];
   const aliases = aliasList(facts.importAliases);
   const owners = ownersOf(facts);
   const skip = ownerFiles(facts);
-  for (const owner of skip)
-    if (!reader.exists(owner))
-      findings.push({ file: owner, detail: 'this typed fake or helper file no longer exists' });
+  for (const owner of skip) {
+    const missing = missingOwner(reader, owner);
+    if (missing) findings.push({ file: owner, detail: missing });
+  }
   for (const file of files) {
     if (skip.has(file.path)) continue;
     const resolve = (spec: string) => resolveSpecifier(reader, file.path, spec, aliases);
     for (const site of sitesOf(reader, file, aliases)) {
-      if (!site.factory) continue;
+      const report = (node: ts.Node, why: string) =>
+        findings.push({
+          file: file.path,
+          line: lineOfNode(file, node),
+          detail: `mocks ${site.module} with a factory that ${why}`,
+        });
+      if (!site.byImport)
+        findings.push({
+          file: file.path,
+          line: lineOfNode(file, site.node),
+          detail:
+            `mocks ${site.module} by a string path — name it through import('…'), so the factory's ` +
+            "importOriginal carries the module's own type",
+        });
+      if (!site.factory || isRunnerOptions(site.factory)) continue;
       const fn = factoryFunction(site.factory);
-      const returned = fn ? returnedExpression(fn) : null;
-      if (fn && returned && isTypedCall(returned, owners, bindingsOf(fn, resolve), resolve))
+      if (!fn) {
+        report(site.node, 'the guard cannot read, since it is not written at the mock');
         continue;
-      findings.push({
-        file: file.path,
-        line: lineOfNode(file, site.node),
-        detail:
-          `mocks ${site.module} with a factory the type checker never compares to the module — return it through ` +
-          "the module's shared fake or a typed mock helper, so every override has the module's own type",
-      });
+      }
+      const returns = returnedExpressions(fn);
+      if (!returns.length) report(site.node, 'returns nothing');
+      const bindings = bindingsOf(fn, resolve);
+      for (const returned of returns) {
+        const why = untypedReason(returned, fn, owners, bindings, resolve);
+        if (why) report(returned ?? site.node, why);
+      }
     }
   }
   return findings;
 }
 
-function overriddenNames(factory: ts.Expression): Array<{ name: string; node: ts.Node }> {
-  const out: Array<{ name: string; node: ts.Node }> = [];
-  forEachNode(factory, (node) => {
-    if (
-      (ts.isPropertyAssignment(node) ||
-        ts.isShorthandPropertyAssignment(node) ||
-        ts.isMethodDeclaration(node) ||
-        ts.isGetAccessorDeclaration(node)) &&
-      (ts.isIdentifier(node.name) || ts.isStringLiteralLike(node.name))
-    )
-      out.push({ name: node.name.text, node });
-  });
+const isOriginalSpread = (expression: ts.Expression, original: string | null): boolean => {
+  const value = awaited(expression);
+  if (!ts.isCallExpression(value)) return false;
+  const callee = unwrap(value.expression);
+  return (
+    (ts.isIdentifier(callee) && callee.text === original) ||
+    (ts.isPropertyAccessExpression(callee) &&
+      ts.isIdentifier(callee.expression) &&
+      callee.expression.text === 'vi' &&
+      callee.name.text === 'importActual')
+  );
+};
+
+type OverrideRead = { name: string; node: ts.Node } | { unread: ts.Node };
+
+function overridesOf(returned: ts.Expression, original: string | null): OverrideRead[] {
+  const value = awaited(returned);
+  const objects: ts.ObjectLiteralExpression[] = [];
+  const out: OverrideRead[] = [];
+  if (ts.isObjectLiteralExpression(value)) objects.push(value);
+  else if (ts.isCallExpression(value))
+    for (const argument of value.arguments) {
+      const arg = unwrap(argument);
+      if (ts.isObjectLiteralExpression(arg)) objects.push(arg);
+      else if (!(ts.isIdentifier(arg) && arg.text === original)) out.push({ unread: arg });
+    }
+  for (const object of objects)
+    for (const property of object.properties) {
+      if (ts.isSpreadAssignment(property)) {
+        if (!isOriginalSpread(property.expression, original)) out.push({ unread: property });
+        continue;
+      }
+      const name = property.name;
+      if (name && (ts.isIdentifier(name) || ts.isStringLiteralLike(name)))
+        out.push({ name: name.text, node: property });
+      else out.push({ unread: property });
+    }
   return out;
 }
 
@@ -223,15 +324,28 @@ function checkForbidden(reader: RepoReader, facts: TypedMockFacts, files: FileVi
   for (const file of files) {
     for (const site of sitesOf(reader, file, aliases)) {
       const entry = byModule.get(site.module);
-      if (!entry || !site.factory) continue;
+      if (!entry || !site.factory || isRunnerOptions(site.factory)) continue;
+      const fn = factoryFunction(site.factory);
+      if (!fn) continue;
       const forbidden = new Set(entry.names);
-      for (const { name, node } of overriddenNames(site.factory)) {
-        if (!forbidden.has(name)) continue;
-        findings.push({
-          file: file.path,
-          line: lineOfNode(file, node),
-          detail: `overrides ${site.module}'s ${name} — the real one runs in every test: ${entry.why}`,
-        });
+      for (const returned of returnedExpressions(fn)) {
+        if (!returned) continue;
+        for (const read of overridesOf(returned, parameterName(fn))) {
+          if ('unread' in read) {
+            findings.push({
+              file: file.path,
+              line: lineOfNode(file, read.unread),
+              detail: `overrides ${site.module} through names the guard cannot read — write each override by name, since ${entry.names.join(', ')} must stay real: ${entry.why}`,
+            });
+            continue;
+          }
+          if (!forbidden.has(read.name)) continue;
+          findings.push({
+            file: file.path,
+            line: lineOfNode(file, read.node),
+            detail: `overrides ${site.module}'s ${read.name} — the real one runs in every test: ${entry.why}`,
+          });
+        }
       }
     }
   }
@@ -286,10 +400,12 @@ export const typedMockGuard: GenericGuardDefinition<TypedMockFacts> = {
       {
         title: 'every module mock is typed against the module it replaces',
         description:
-          "A test's module mock returns its module through the module's shared fake or a typed mock helper, so every " +
-          "override is checked against the module's own type. A factory that returns a hand-written object is never " +
-          'compared to the module, so a double that no longer matches it still passes. A mock with no factory is ' +
-          'the runner’s own automock and passes.',
+          "A test's module mock names its module through `import('…')` and returns, on every path, through the " +
+          "module's shared fake or a typed mock helper. A helper takes its module type from the factory's own " +
+          '`importOriginal`, never from a type argument the test writes, so a wrong module, a misspelled export, ' +
+          'and a wrong signature fail to compile. A factory that returns a hand-written object is never compared to ' +
+          'the module, so a double that no longer matches it still passes. A mock with no factory, or with the ' +
+          'runner’s options object (`{ spy: true }`) in its place, is the runner’s own and passes.',
         timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return checkTyped(context.reader, facts, context.files(SCOPE));
@@ -300,7 +416,9 @@ export const typedMockGuard: GenericGuardDefinition<TypedMockFacts> = {
         description:
           'A listed export is never replaced in a test, by its shared fake’s overrides or by a factory of its own: ' +
           'a stand-in that behaves differently on the path a case proves lets the case pass on behavior the app ' +
-          'never has. Each entry names its module, the exports, and why the real one runs.',
+          'never has. The guard reads the names each override object sets at its top level; a spread of anything ' +
+          'but the real module, a computed name, or an override object it cannot see fails, since it could hide a ' +
+          'listed one. Each entry names its module, the exports, and why the real one runs.',
         timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return checkForbidden(context.reader, facts, context.files(SCOPE));

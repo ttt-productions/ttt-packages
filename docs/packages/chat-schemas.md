@@ -20,7 +20,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     ids. The chat runtimes never interpret either: the consuming app maps its own
     conversations onto the reference and decides who may take part.
   - **The grant scope.** `ChatGrantScope` = `{ kind: 'channel'; channelRef:
-ChatConversationRef } | { kind: 'inbox'; uid }`, its parse boundary
+    ChatConversationRef } | { kind: 'inbox'; uid }`, its parse boundary
     `ChatGrantScopeSchema`, and `CHAT_GRANT_AUDIENCE` (`'ttt-chat'`). `ChatGrantClaimsSchema` /
     `ChatGrantClaims` is the whole grant payload (`v`, `typ: 'grant'`, `aud`, `env`, `uid`, `scope`,
     `iat`, `exp`; strict, `exp` after `iat`): the signer types its claims with it and the verifier
@@ -53,7 +53,7 @@ ChatConversationRef } | { kind: 'inbox'; uid }`, its parse boundary
     `ChatRequestIdSchema`). The inbox runtime answers each one whose `requestId` parsed
     with exactly one `SERVER_KINDS.MARK_READ_RESULT` frame
     (`ChatMarkReadResultPayloadSchema`: `{ requestId, ok: true }` or `{ requestId, ok:
-false, code }`, `code` from `CHAT_MARK_READ_FAILURE_CODES`).
+    false, code }`, `code` from `CHAT_MARK_READ_FAILURE_CODES`).
   - `CHAT_CLOSE_CODES` + the `ChatCloseCode` type
   - `MODERATION_REDACTED_TEXT`
   - the client-agreed limits `HEARTBEAT_MS`, `TYPING_COALESCE_MS`, `HISTORY_PAGE_MAX`
@@ -80,7 +80,7 @@ false, code }`, `code` from `CHAT_MARK_READ_FAILURE_CODES`).
   - **Who a signed call is for.** Internal calls are signed with edge-protocol-core's internal
     auth. `CHAT_INTERNAL_CALL_DIRECTIONS` names the two directions — `to-room` (the server's calls
     to the chat rooms) and `to-server` (a room's report) — and `chatInternalAudience(direction,
-env)` gives each direction and environment its own audience, `ttt-chat:{direction}:{env}`
+    env)` gives each direction and environment its own audience, `ttt-chat:{direction}:{env}`
     (rooted in `CHAT_GRANT_AUDIENCE`). The signer and the verifier of each direction call the same
     builder.
   - **The server's call bodies** (strict, so an unknown or coerced field is refused rather than
@@ -140,7 +140,7 @@ env)` gives each direction and environment its own audience, `ttt-chat:{directio
   inbox uid that is empty, holds `:`, or is longer than `CHAT_ACCOUNT_ID_MAX_LENGTH`. So every
   address it returns fits `CHAT_ROOM_TARGET_MAX_LENGTH` (which derives from the conversation
   reference's own bounds plus the prefix bound) and can be reported. `parseChatRoomAddress(address,
-namespace)` returns the room, or null for another product or environment, an unknown room kind, or
+  namespace)` returns the room, or null for another product or environment, an unknown room kind, or
   an invalid uid or conversation; a conversation's id is everything after the fourth `:`, since its
   kind never holds one.
 

@@ -6,10 +6,9 @@ const constructed = vi.hoisted(() => {
   return clients;
 });
 
-vi.mock('@upstash/redis', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type RedisModule = typeof import('@upstash/redis');
-  const actual = await importOriginal<RedisModule>();
+vi.mock(import('@upstash/redis'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
   // Constructing a real client opens no connection.
   class RecordingRedis extends actual.Redis {
     constructor(config: RedisConfigNodejs);
@@ -20,7 +19,7 @@ vi.mock('@upstash/redis', async (importOriginal) => {
       constructed.push({ config, client: this });
     }
   }
-  return passThroughModule<RedisModule>(importOriginal, { Redis: RecordingRedis });
+  return passThroughModule(importOriginal, { Redis: RecordingRedis });
 });
 
 import { createRedisClientFactory } from '../src/redis-client.js';

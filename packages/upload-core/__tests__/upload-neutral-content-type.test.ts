@@ -3,9 +3,9 @@ import { uploadFileResumable } from '../src/browser/upload.js';
 import { UploadError } from '../src/storage/upload-error.js';
 import { testStorage } from './helpers/storage-fakes.js';
 
-vi.mock('firebase/storage', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('firebase/storage')>(importOriginal, {
+vi.mock(import('firebase/storage'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     ref: () => {
       throw new Error('gate-passed');
     },

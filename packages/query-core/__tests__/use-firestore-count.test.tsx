@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { firestoreTestWrapper } from '../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -10,26 +9,13 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { where } from 'firebase/firestore';
 import { useFirestoreCount } from '../src/react/firestore/use-firestore-count.js';
-import { FirestoreProvider } from '../src/react/firestore/context.js';
-
-function makeWrapper() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-}
 
 beforeEach(() => {
   store.reset();
@@ -41,7 +27,7 @@ describe('useFirestoreCount', () => {
   it('returns the server-side count', async () => {
     const { result } = renderHook(
       () => useFirestoreCount({ collectionPath: 'items', queryKey: ['items', 'count'] }),
-      { wrapper: makeWrapper() },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
     await waitFor(() => expect(result.current.data).toBe(7));
   });
@@ -54,7 +40,7 @@ describe('useFirestoreCount', () => {
           queryKey: ['items', 'count', 'off'],
           enabled: false,
         }),
-      { wrapper: makeWrapper() },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
     await Promise.resolve();
     expect(store.queries()).toEqual([]);
@@ -69,7 +55,7 @@ describe('useFirestoreCount', () => {
           queryKey: ['items', 'count', 'filtered'],
           constraints: [where('seenAt', '==', 0)],
         }),
-      { wrapper: makeWrapper() },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
     await waitFor(() => expect(result.current.data).toBe(3));
     expect(store.queries()).toEqual([

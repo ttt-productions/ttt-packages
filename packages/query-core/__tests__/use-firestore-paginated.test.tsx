@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { firestoreTestWrapper } from '../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { QueryClient } from '@tanstack/react-query';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -10,14 +10,13 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { orderBy } from 'firebase/firestore';
 import { useFirestorePaginated } from '../src/react/firestore/use-firestore-paginated.js';
-import { FirestoreProvider } from '../src/react/firestore/context.js';
 import {
   mapPaginatedItems,
   paginatedPageKey,
@@ -35,16 +34,6 @@ const reads = () => store.queries().length;
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
-}
-function wrapperFor(client: QueryClient) {
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
 }
 function ids(data: Array<{ id: string }> | undefined) {
   return (data ?? []).map((d) => d.id);
@@ -69,7 +58,7 @@ describe('useFirestorePaginated', () => {
   it('reports no next page when the displayed page exactly fills and nothing follows', async () => {
     seedRows(['a', 'b', 'c']);
     const { result } = renderHook(() => useFirestorePaginated(base), {
-      wrapper: wrapperFor(makeClient()),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: makeClient() }).Wrapper,
     });
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b', 'c']));
     expect(result.current.hasNextPage).toBe(false);
@@ -77,7 +66,7 @@ describe('useFirestorePaginated', () => {
 
   it('keeps Next available on an earlier page after visiting a short last page', async () => {
     const { result } = renderHook(() => useFirestorePaginated(base), {
-      wrapper: wrapperFor(makeClient()),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: makeClient() }).Wrapper,
     });
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b', 'c']));
     expect(result.current.hasNextPage).toBe(true);
@@ -97,7 +86,7 @@ describe('useFirestorePaginated', () => {
   it('does not move past the last page', async () => {
     seedRows(['a', 'b']);
     const { result } = renderHook(() => useFirestorePaginated(base), {
-      wrapper: wrapperFor(makeClient()),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: makeClient() }).Wrapper,
     });
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b']));
     act(() => result.current.nextPage());
@@ -106,12 +95,14 @@ describe('useFirestorePaginated', () => {
 
   it('starts a page after the previous page cached under the same key, shared by every instance', async () => {
     const client = makeClient();
-    const first = renderHook(() => useFirestorePaginated(base), { wrapper: wrapperFor(client) });
+    const first = renderHook(() => useFirestorePaginated(base), {
+      wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper,
+    });
     await waitFor(() => expect(ids(first.result.current.data)).toEqual(['a', 'b', 'c']));
     const callsBefore = reads();
 
     const second = renderHook(() => useFirestorePaginated({ ...base, initialPage: 2 }), {
-      wrapper: wrapperFor(client),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper,
     });
     await waitFor(() => expect(ids(second.result.current.data)).toEqual(['d', 'e', 'f']));
     expect(reads()).toBe(callsBefore + 1);
@@ -120,7 +111,7 @@ describe('useFirestorePaginated', () => {
   it('re-reads the page chain when a previous page is no longer cached', async () => {
     const client = makeClient();
     const { result } = renderHook(() => useFirestorePaginated(base), {
-      wrapper: wrapperFor(client),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper,
     });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
@@ -144,7 +135,10 @@ describe('useFirestorePaginated', () => {
         seen.push({ owner, page: r.page });
         return r;
       },
-      { wrapper: wrapperFor(makeClient()), initialProps: { owner: 'u1' } },
+      {
+        wrapper: firestoreTestWrapper(store.db, { queryClient: makeClient() }).Wrapper,
+        initialProps: { owner: 'u1' },
+      },
     );
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
@@ -160,7 +154,7 @@ describe('useFirestorePaginated', () => {
     const { result } = renderHook(
       () => useFirestorePaginated({ ...base, refetchInterval: 30_000 }),
       {
-        wrapper: wrapperFor(makeClient()),
+        wrapper: firestoreTestWrapper(store.db, { queryClient: makeClient() }).Wrapper,
       },
     );
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b', 'c']));
@@ -179,7 +173,7 @@ describe('a page re-read moves where the next page starts', () => {
 
   it('re-reads a cached later page whose start no longer follows the re-read earlier page', async () => {
     const { result } = renderHook(() => useFirestorePaginated(fresh), {
-      wrapper: wrapperFor(makeClient()),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: makeClient() }).Wrapper,
     });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
@@ -199,7 +193,7 @@ describe('a page re-read moves where the next page starts', () => {
   it('keeps the chain after a prepend once page 1 is read again', async () => {
     const client = makeClient();
     const { result } = renderHook(() => useFirestorePaginated(fresh), {
-      wrapper: wrapperFor(client),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper,
     });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
@@ -224,7 +218,7 @@ describe('paginated cache updaters', () => {
     const client = makeClient();
     const { result } = renderHook(
       () => useFirestorePaginated<{ n: string; liked?: boolean }>(base),
-      { wrapper: wrapperFor(client) },
+      { wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper },
     );
     await waitFor(() => expect(ids(result.current.data)).toEqual(['a', 'b', 'c']));
 
@@ -240,7 +234,7 @@ describe('paginated cache updaters', () => {
   it('prepends a new row onto page 1 only, keeping page 2 aligned', async () => {
     const client = makeClient();
     const { result } = renderHook(() => useFirestorePaginated(base), {
-      wrapper: wrapperFor(client),
+      wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper,
     });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());

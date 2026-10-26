@@ -113,7 +113,7 @@ conversation as a `ChatConversationRef` — the client never interprets its kind
 **Pieces** (all under `src/realtime/`, re-exported from the package root):
 
 - `createRealtimeChatClient({ endpoint, channelRef, threadId, currentUserId,
-grantProvider, socketFactory?, timers?, reconnect?, diagnostics? })` → a `RealtimeChatClient`
+  grantProvider, socketFactory?, timers?, reconnect?, diagnostics? })` → a `RealtimeChatClient`
   (one per thread). Put it on `config.realtime.client`. Drives ONE channel socket:
   subprotocol auth, optimistic send keyed by `clientMessageId` reconciled on the
   server `seq`, explicit read acks, ≥2 s-coalesced typing, presence
@@ -155,13 +155,13 @@ records whether the FIRST authoritative chat data has been applied, so the UI sh
 an honest working state instead of inferring an empty chat from `messages.length`.
 Transitions (once true it stays true):
 
-| Event                                                      | `hasLoadedInitialData`               |
-| ---------------------------------------------------------- | ------------------------------------ |
-| New client / grant retry / socket open before any snapshot | `false`                              |
-| Non-resync resume snapshot applied (even an empty delta)   | `true`                               |
-| Resync snapshot (re-page requested)                        | stays `false` until the history page |
-| First history page (INCLUDING an empty page)               | `true`                               |
-| Later disconnect/reconnect after initial load              | stays `true`                         |
+| Event | `hasLoadedInitialData` |
+| --- | --- |
+| New client / grant retry / socket open before any snapshot | `false` |
+| Non-resync resume snapshot applied (even an empty delta) | `true` |
+| Resync snapshot (re-page requested) | stays `false` until the history page |
+| First history page (INCLUDING an empty page) | `true` |
+| Later disconnect/reconnect after initial load | stays `true` |
 
 `useRealtimeChatMessages.isInitialLoading` derives from `!hasLoadedInitialData`
 (NOT from `idle`/`connecting` status — a socket can be `open` with no snapshot yet,
@@ -332,7 +332,6 @@ the runtime's heartbeat answer (`tickAlive`) — a bare clock advance is inbound
 silence, which the watchdog correctly treats as a dead socket.
 
 **Wire details:**
-
 - Outbound payloads are typed by the contract: `ChannelClient` sends each `send`,
   `read-ack`, `history`, and `resume` payload as chat-schemas' `ChatSendPayload` /
   `ChatReadAckPayload` / `ChatHistoryPayload` / `ChatResumePayload` — the shapes the

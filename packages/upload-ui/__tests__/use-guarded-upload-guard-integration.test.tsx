@@ -13,9 +13,9 @@ const UPLOADED: UploadFileResumableResult = {
   contentType: 'image/jpeg',
   size: 1,
 };
-vi.mock('@ttt-productions/upload-core/browser', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('@ttt-productions/upload-core/browser')>(importOriginal, {
+vi.mock(import('@ttt-productions/upload-core/browser'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     uploadFileResumable: (...args) => uploadFileResumableMock(...args),
   });
 });

@@ -12,9 +12,9 @@ const mocks = vi.hoisted(() => ({
   useNotificationHistory: vi.fn<HistoryModule['useNotificationHistory']>(),
 }));
 
-vi.mock('../src/react/hooks/useNotificationHistory.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<HistoryModule>({ useNotificationHistory: mocks.useNotificationHistory });
+vi.mock(import('../src/react/hooks/useNotificationHistory.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { useNotificationHistory: mocks.useNotificationHistory });
 });
 
 import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList.js';

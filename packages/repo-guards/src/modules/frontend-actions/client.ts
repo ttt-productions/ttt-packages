@@ -544,7 +544,7 @@ export const partialMockGuard: GenericGuardDefinition<PartialMockFacts> = {
         title: "a mock of a listed package root keeps the root's real exports",
         description:
           'A `vi.mock` of a listed package root spreads the real module: ' +
-          "`vi.mock('<root>', async (importOriginal) => ({ ...(await importOriginal()), <override> }))`. A factory that " +
+          "`vi.mock(import('<root>'), async (importOriginal) => ({ ...(await importOriginal()), <override> }))`. A factory that " +
           'returns only the exports one test steers deletes the rest, and code that needs them fails away from the ' +
           "assertion. A mock whose factory loads the root's shared fake passes when that fake spreads the real module. " +
           facts.packageRoots.map((r) => `${r.module}: ${r.why}.`).join(' '),

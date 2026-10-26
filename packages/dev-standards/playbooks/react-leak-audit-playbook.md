@@ -28,7 +28,7 @@ drift control.
 **Rules:** RULE-STD-ARCH-202, RULE-STD-ARCH-203. **Scope:** each package's main entry
 (`packages/<pkg>/src/index.ts`).
 ```bash
-<GUARD_SUITE> -t "every entry not declared runtime-specific reaches no Node, React, or browser runtime|every universal and Node entry loads under plain Node"
+<GUARD_SUITE> -t "every entry reaches only the runtimes its own runtime allows|every universal and Node entry loads under plain Node"
 ```
 **Expected:** the guards are green. Then read each main entry's `export … from` and `import` lines and
 classify the package: **COMPLIANT** — exports only server-safe primitives, with no React import, no

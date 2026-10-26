@@ -4,9 +4,9 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input.js';
 import { getCroppedImg } from '../src/lib/image-utils.js';
 
-vi.mock('../src/lib/read-media-meta.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/lib/read-media-meta.js')>({
+vi.mock(import('../src/lib/read-media-meta.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     readMediaMeta: async (file: File) => ({
       kind: 'image',
       mime: file.type,
@@ -17,14 +17,14 @@ vi.mock('../src/lib/read-media-meta.js', async () => {
   });
 });
 
-vi.mock('../src/lib/image-utils.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/lib/image-utils.js')>({
+vi.mock(import('../src/lib/image-utils.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     getCroppedImg: vi.fn<typeof import('../src/lib/image-utils.js').getCroppedImg>(),
   });
 });
 
-vi.mock('react-easy-crop', async (importOriginal) => {
+vi.mock(import('react-easy-crop'), async (importOriginal) => {
   const { reactEasyCropFake } = await import('./helpers/react-easy-crop-fake.js');
   return reactEasyCropFake(importOriginal);
 });

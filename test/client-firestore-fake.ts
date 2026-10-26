@@ -1,5 +1,5 @@
 import type { InMemoryClientFirestore } from '@ttt-productions/firebase-helpers/firestore-client/testing';
-import { passThroughModule } from './typed-mock.js';
+import { passThroughModule } from '@ttt-productions/dev-standards/testing';
 
 type FirestoreModule = typeof import('firebase/firestore');
 

@@ -567,3 +567,20 @@ describe('MUST FAIL — a rules file the deploy config deploys that the layout d
     }
   });
 });
+
+describe('module mocks named through import()', () => {
+  it('reads one mock site for the named module, marked as named through import(), and no dynamic import', () => {
+    const view = viewOfText(
+      'src/a.test.ts',
+      [
+        "vi.mock(import('./owner.js'), async (importOriginal) => importOriginal());",
+        "vi.mock('./types.js');",
+      ].join('\n'),
+      { isTest: true },
+    );
+    expect(view.imports.map(({ kind, spec, byImport }) => ({ kind, spec, byImport }))).toEqual([
+      { kind: 'mock', spec: './owner.js', byImport: true },
+      { kind: 'mock', spec: './types.js', byImport: false },
+    ]);
+  });
+});

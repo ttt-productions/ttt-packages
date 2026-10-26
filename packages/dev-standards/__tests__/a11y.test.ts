@@ -15,10 +15,9 @@ const axe = vi.hoisted(() => ({
   scans: [] as Array<AxeResults | Promise<AxeResults>>,
 }));
 
-vi.mock('@axe-core/playwright', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type AxeModule = typeof import('@axe-core/playwright');
-  const actual = await importOriginal<AxeModule>();
+vi.mock(import('@axe-core/playwright'), async (importOriginal) => {
+  const { passThroughModule } = await import('../src/testing.js');
+  const actual = await importOriginal();
   class RecordingAxeBuilder extends actual.default {
     override disableRules(rules: string | string[]) {
       axe.disabled.push([rules].flat());
@@ -29,7 +28,7 @@ vi.mock('@axe-core/playwright', async (importOriginal) => {
       return axe.scans.shift() ?? scanResult([]);
     }
   }
-  return passThroughModule<AxeModule>(importOriginal, { default: RecordingAxeBuilder });
+  return passThroughModule(importOriginal, { default: RecordingAxeBuilder });
 });
 
 const violation = (

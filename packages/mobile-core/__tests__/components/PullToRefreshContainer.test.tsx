@@ -5,9 +5,9 @@ const pull = vi.hoisted(() => ({
   state: { isRefreshing: false, pullProgress: 0, pullDistance: 0 },
 }));
 
-vi.mock('../../src/react/pull-to-refresh/usePullToRefresh.js', async () => {
-  const { stubModule } = await import('../../../../test/typed-mock.js');
-  return stubModule<typeof import('../../src/react/pull-to-refresh/usePullToRefresh.js')>({
+vi.mock(import('../../src/react/pull-to-refresh/usePullToRefresh.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     usePullToRefresh: () => ({
       ...pull.state,
       handlers: { onTouchStart: () => {}, onTouchMove: () => {}, onTouchEnd: () => {} },

@@ -12,15 +12,15 @@ const mockRealtime: { current: UseRealtimeChatMessagesResult } = {
   current: realtimeMessagesResult(),
 };
 const mockFirestore: { current: UseChatMessagesResult } = { current: chatMessagesResult() };
-vi.mock('../src/realtime/useRealtimeChatMessages.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/realtime/useRealtimeChatMessages.js')>({
+vi.mock(import('../src/realtime/useRealtimeChatMessages.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     useRealtimeChatMessages: () => mockRealtime.current,
   });
 });
-vi.mock('../src/hooks/useChatMessages.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/hooks/useChatMessages.js')>({
+vi.mock(import('../src/hooks/useChatMessages.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     useChatMessages: () => mockFirestore.current,
   });
 });

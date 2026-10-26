@@ -9,14 +9,14 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { useActiveNotifications } from '../src/react/hooks/useActiveNotifications.js';
 import type { NotificationSystemConfig } from '../src/types.js';
-import { kitFirestoreWrapper } from './helpers/kit-firestore-wrapper.js';
+import { firestoreTestWrapper } from '@ttt-productions/query-core/react/testing';
 
 const config: NotificationSystemConfig = {
   categories: {
@@ -64,7 +64,7 @@ describe('useActiveNotifications', () => {
     });
     const { result } = renderHook(
       () => useActiveNotifications({ config, userId: 'u1', category: 'user' }),
-      { wrapper: kitFirestoreWrapper(store.db) },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
     await flush();
     expect(result.current.data).toHaveLength(3);
@@ -80,7 +80,7 @@ describe('useActiveNotifications', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { result } = renderHook(
       () => useActiveNotifications({ config, userId: 'u1', category: 'user', pageSize: 1 }),
-      { wrapper: kitFirestoreWrapper(store.db, client) },
+      { wrapper: firestoreTestWrapper(store.db, { queryClient: client }).Wrapper },
     );
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
     act(() => result.current.nextPage());
@@ -125,7 +125,7 @@ describe('useActiveNotifications', () => {
     vi.useFakeTimers({
       toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
     });
-    const wrapper = kitFirestoreWrapper(store.db);
+    const wrapper = firestoreTestWrapper(store.db).Wrapper;
     const render = () =>
       renderHook(
         () =>

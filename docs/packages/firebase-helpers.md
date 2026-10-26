@@ -75,14 +75,22 @@ Both run under Vitest (an optional peer) and load the real SDK through `vi.impor
 suite's own `vi.mock` of the SDK can hand the kit's functions out.
 
 - **`./server/testing`** — the Admin SDK side. `makeInMemoryFirestore()` is a real `Firestore`
-  over an in-memory store: queries with every filter, order, cursor, and `count()` / `select()` /
-  aggregates, batches, and transactions with read-before-write and contention retry; it keeps
-  stored `Timestamp`s, logs each query's filters and orders, carries per-document update times, and
-  refuses a stale `delete({ lastUpdateTime })`, with test hooks to fail or hold reads, queries, and
-  commits. `FieldValueSentinel` is the `FieldValue` it applies (its statics are spies, and the
-  values it does not apply throw). `testAdminApp()` is one Admin app whose Auth and Storage reach a
-  closed local port with no credential, so a case spies the call it needs and an unspied one fails
-  at once instead of calling Google.
+  over an in-memory store. Its queries take every field filter operator, `orderBy` in either
+  direction, `startAfter` (a snapshot or field values), `limit`, `select()`, `count()` and
+  `aggregate()`, on a collection or a collection group, and answer as Firestore does: the client
+  kit's value model compares every value (a range filter matches only its operand's type, `!=` and
+  `not-in` leave out a null or missing field, an Admin `Buffer` is bytes and a reference a
+  reference), an inequality field and then the document name order the result after the explicit
+  orders, ties break in the last order's direction, and a document missing an order field is left
+  out. `startAt`, `endAt`, `endBefore`, `limitToLast`, `offset`, and a composite `Filter` throw.
+  Batches and transactions commit atomically, transactions with read-before-write and contention
+  retry; a commit's `serverTimestamp()` is stored as the commit's `Timestamp`, every document keeps
+  its update time, and a stale `delete({ lastUpdateTime })` is refused. Test hooks fail or hold
+  reads, queries, and commits and log each query's filters and orders. `FieldValueSentinel` is the
+  `FieldValue` it applies (its statics are spies, and the values it does not apply throw).
+  `testAdminApp()` is one Admin app whose Auth and Storage reach a closed local port with no
+  credential and with Storage's retries off, so a case spies the call it needs and an unspied one
+  fails at once instead of calling Google; asked again with other options, it throws.
 - **`./firestore-client/testing`** — the client SDK side. `makeInMemoryClientFirestore()` answers
   `getDoc`, `getDocFromServer`, `getDocs`, `getDocsFromServer`, `getCountFromServer`, and
   `onSnapshot` (every overload) from seeded documents, typed exactly as `firebase/firestore`'s, so
@@ -92,16 +100,17 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   `limit` / `limitToLast`, and cursors), and answers real SDK snapshots built from Firestore's
   bundle format, with the reference's converter, `fromCache` false, and real `Timestamp`s, so a
   snapshot it answers works as a `startAfter` cursor. A live listener answers after the call
-  returns and again on every change to its result. Hooks fail a read (`FirestoreError`
-  `unavailable` by default), break a live listener the way the SDK ends one (`failListeners`: its
+  returns and again, on a later turn, after each change to its result, as the SDK delivers one;
+  each later query answer's `docChanges()` holds its removals, additions, and modifications since
+  the answer before it. Hooks fail a read (`FirestoreError` `unavailable` by default), break a live listener the way the SDK ends one (`failListeners`: its
   error callback once, nothing after), answer matching listeners from cache until switched back
   (`answerFromCache` / `answerFromServer` — a listener that asked for metadata changes hears each
   switch, as in the SDK), hold a read's answer, or run after it — `firestoreError(code,
   message)` builds the SDK's own error for them — and `queries()` logs every read's path, filters,
   orders, limit, and whether a listener asked for metadata changes, for a case whose rule is the
-  query's shape. The SDK's built query, its missing-document and count snapshots, and a cached
-  answer's metadata have no public reader or constructor, so one module reads them, and its test
-  fails the moment an SDK upgrade changes them.
+  query's shape. The SDK's built query, its missing-document and count snapshots, a cached
+  answer's metadata, and a later answer's changes have no public reader or constructor, so one
+  module reads them, and its test fails the moment an SDK upgrade changes them.
 
 ## Callable invocation contract
 
@@ -122,7 +131,7 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   timer BEFORE the SDK is invoked (the SDK's own `timeout` starts only after its token phase, so
   a stalled token mint is otherwise unbounded) and also forwards the value to the
   SDK's `timeout` option. Expiry rejects with a Firebase-shaped error, `code:
-"functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
+  "functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
   commit, so callers treat the outcome as UNKNOWN, never as a definite failure, and never
   auto-retry a mutation on it. The package ships NO default; the consuming app owns the policy
   value and threads it via `useCallableMutation({ timeoutMs })` / `createCallableClient`
@@ -140,7 +149,7 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   normal `captureException` + `onError` + rethrow tail exactly once. No other error class
   retries, and a call that did not request limited-use never does. The fallback itself is
   reported through `captureException` with `{ functionName, timeoutMs, limitedUseAppCheckFallback:
-true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
+  true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
   the app's decision, made through its policy's `resolveLimitedUseAppCheck`.
 - **The App Check throttle predicate** — `isAppCheckThrottleError(error)` is exported from the
   server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error

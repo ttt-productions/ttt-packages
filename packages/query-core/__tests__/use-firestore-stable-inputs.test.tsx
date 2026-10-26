@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { firestoreTestWrapper } from '../src/react/testing/firestore-test-wrapper.js';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 const store = await vi.hoisted(async () => {
   const { makeInMemoryClientFirestore } =
@@ -9,7 +8,7 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
@@ -17,26 +16,11 @@ vi.mock('firebase/firestore', async (importOriginal) => {
 import { where } from 'firebase/firestore';
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
-import { FirestoreProvider } from '../src/react/firestore/context.js';
 import { anyListener, holdNext, listensTo, opened } from './helpers/listener-controls.js';
 
 beforeEach(() => {
   store.reset();
 });
-
-function makeWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
-  });
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(FirestoreProvider, { db: store.db, children }),
-    );
-  Wrapper.displayName = 'TestWrapper';
-  return Wrapper;
-}
 
 const listens = () => opened(store, anyListener);
 
@@ -53,7 +37,7 @@ describe('useFirestoreCollection — inputs rebuilt each render', () => {
           subscribe: true,
           select: (row) => ({ id: row.id, value: Number(row.value), tag }),
         }),
-      { wrapper: makeWrapper(), initialProps: { tag: 'first' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { tag: 'first' } },
     );
 
     rerender({ tag: 'second' });
@@ -74,7 +58,7 @@ describe('useFirestoreCollection — inputs rebuilt each render', () => {
           constraints: [where('status', '==', status)],
           subscribe: true,
         }),
-      { wrapper: makeWrapper(), initialProps: { status: 'open' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { status: 'open' } },
     );
 
     rerender({ status: 'closed' });
@@ -103,7 +87,7 @@ describe('useFirestoreDoc — inputs rebuilt each render', () => {
           subscribe: true,
           select: (row) => ({ id: row.id, value: Number(row.value), tag }),
         }),
-      { wrapper: makeWrapper(), initialProps: { tag: 'first' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { tag: 'first' } },
     );
 
     rerender({ tag: 'second' });
@@ -118,7 +102,7 @@ describe('useFirestoreDoc — inputs rebuilt each render', () => {
     const { rerender } = renderHook(
       ({ id }: { id: string }) =>
         useFirestoreDoc({ docPath: `items/${id}`, queryKey: ['item', id], subscribe: true }),
-      { wrapper: makeWrapper(), initialProps: { id: 'a' } },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper, initialProps: { id: 'a' } },
     );
 
     rerender({ id: 'b' });

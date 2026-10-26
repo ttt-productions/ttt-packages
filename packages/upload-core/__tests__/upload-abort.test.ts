@@ -5,9 +5,9 @@ import type { FakeUploadTask } from './helpers/storage-fakes.js';
 import { testStorage } from './helpers/storage-fakes.js';
 
 const upsertUploadSessionMock = vi.fn<typeof upsertUploadSession>();
-vi.mock('../src/utils/upload-store.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/utils/upload-store.js')>({
+vi.mock(import('../src/utils/upload-store.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     upsertUploadSession: (...args) => upsertUploadSessionMock(...args),
   });
 });
@@ -22,10 +22,10 @@ const storageFakes = vi.hoisted(() => {
   };
 });
 
-vi.mock('firebase/storage', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
+vi.mock(import('firebase/storage'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
   const { fakeUploadTask } = await import('./helpers/storage-fakes.js');
-  return passThroughModule<typeof import('firebase/storage')>(importOriginal, {
+  return passThroughModule(importOriginal, {
     uploadBytesResumable: (ref, data, metadata) => {
       const upload = fakeUploadTask(ref, data, metadata);
       storageFakes.uploads.push(upload);

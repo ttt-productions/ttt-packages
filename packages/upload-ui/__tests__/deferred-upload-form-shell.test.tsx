@@ -11,9 +11,9 @@ import type { MediaOriginSpec, UploadState } from '@ttt-productions/media-schema
 
 // Mocks must precede the component imports.
 
-vi.mock('@ttt-productions/file-input/react', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('@ttt-productions/file-input/react')>({
+vi.mock(import('@ttt-productions/file-input/react'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     MediaInput: React.forwardRef<MediaInputHandle, MediaInputProps>(
       ({ spec, onChange, onClear, onCancel, selectedFile, uploadState }, _ref) =>
         React.createElement(

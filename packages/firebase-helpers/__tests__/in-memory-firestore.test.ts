@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AggregateField, FieldPath, Timestamp } from 'firebase-admin/firestore';
+import { AggregateField, FieldPath, Filter, Timestamp } from 'firebase-admin/firestore';
 import { makeInMemoryFirestore } from '../src/server/testing/in-memory-firestore.js';
 
 const fs = makeInMemoryFirestore();
@@ -131,11 +131,18 @@ describe('failure and observation hooks', () => {
     ]);
   });
 
-  it('a before-read hook changes the document the read then returns, and a transaction does not contend on it', async () => {
+  it('each before-read hook runs before one read of its path, in the order they were added', async () => {
     fs.seed('probe/doc', { n: 1 });
-    fs.beforeRead('probe/doc', () => {});
     fs.beforeRead('probe/doc', () => fs.seed('probe/doc', { n: 2 }));
-    await expect(fs.db.doc('probe/doc').get()).resolves.toMatchObject({ exists: true });
+    fs.beforeRead('probe/doc', () => fs.seed('probe/doc', { n: 3 }));
+    expect((await fs.db.doc('probe/doc').get()).get('n')).toBe(2);
+    expect((await fs.db.doc('probe/doc').get()).get('n')).toBe(3);
+    expect((await fs.db.doc('probe/doc').get()).get('n')).toBe(3);
+  });
+
+  it('a before-read hook changes the document a transaction then reads, and the transaction does not contend on it', async () => {
+    fs.seed('probe/doc', { n: 1 });
+    fs.beforeRead('probe/doc', () => fs.seed('probe/doc', { n: 2 }));
     const seen = await fs.db.runTransaction(async (txn) => {
       const n: unknown = (await txn.get(fs.db.doc('probe/doc'))).get('n');
       txn.set(fs.db.doc('probe/doc'), { n: Number(n) + 1 });
@@ -294,5 +301,205 @@ describe('update times and delete preconditions follow real Firestore semantics'
       code: 9,
     });
     expect(fs.read('queue/a')).toEqual({ n: 2 });
+  });
+});
+
+const ids = (snap: { docs: Array<{ id: string }> }) => snap.docs.map((d) => d.id);
+
+describe('filters follow real Firestore semantics', () => {
+  beforeEach(() => {
+    fs.seed('items/num1', { n: 1, tags: ['a', 'b'] });
+    fs.seed('items/num5', { n: 5, tags: ['c'] });
+    fs.seed('items/text', { n: 'x', tags: 'a' });
+    fs.seed('items/nil', { n: null });
+    fs.seed('items/none', { other: true });
+  });
+
+  it('an equality filter matches only a value of the same type', async () => {
+    expect(ids(await fs.db.collection('items').where('n', '==', 1).get())).toEqual(['num1']);
+    expect(ids(await fs.db.collection('items').where('n', '==', '1').get())).toEqual([]);
+    expect(ids(await fs.db.collection('items').where('n', '==', null).get())).toEqual(['nil']);
+  });
+
+  it('!= and not-in leave out a document whose field is null or missing', async () => {
+    expect(ids(await fs.db.collection('items').where('n', '!=', 1).get())).toEqual([
+      'num5',
+      'text',
+    ]);
+    expect(ids(await fs.db.collection('items').where('n', 'not-in', [5]).get())).toEqual([
+      'num1',
+      'text',
+    ]);
+  });
+
+  it('a range filter matches only values of its operand type', async () => {
+    expect(ids(await fs.db.collection('items').where('n', '<', 5).get())).toEqual(['num1']);
+    expect(ids(await fs.db.collection('items').where('n', '<=', 5).get())).toEqual([
+      'num1',
+      'num5',
+    ]);
+    expect(ids(await fs.db.collection('items').where('n', '>', 1).get())).toEqual(['num5']);
+    expect(ids(await fs.db.collection('items').where('n', '>=', 'a').get())).toEqual(['text']);
+  });
+
+  it('in, array-contains, and array-contains-any match as in Firestore', async () => {
+    expect(ids(await fs.db.collection('items').where('n', 'in', [5, 'x']).get())).toEqual([
+      'num5',
+      'text',
+    ]);
+    expect(ids(await fs.db.collection('items').where('tags', 'array-contains', 'a').get())).toEqual(
+      ['num1'],
+    );
+    expect(
+      ids(await fs.db.collection('items').where('tags', 'array-contains-any', ['b', 'c']).get()),
+    ).toEqual(['num1', 'num5']);
+  });
+
+  it('an inequality filter with no order orders by the inequality field, then by document id', async () => {
+    fs.seed('scores/a', { n: 3 });
+    fs.seed('scores/b', { n: 1 });
+    fs.seed('scores/c', { n: 2 });
+    fs.seed('scores/d', { n: 1 });
+    expect(ids(await fs.db.collection('scores').where('n', '>', 0).get())).toEqual([
+      'b',
+      'd',
+      'c',
+      'a',
+    ]);
+  });
+
+  it('an Admin Buffer is compared as bytes and a reference as a reference, never as a map', async () => {
+    fs.seed('vals/bytes', { v: Buffer.from([1, 2]) });
+    fs.seed('vals/map', { v: { 0: 1, 1: 2 } });
+    fs.seed('vals/ref', { v: fs.db.doc('users/a') });
+    fs.seed('vals/refmap', { v: { id: 'a', path: 'users/a' } });
+    expect(
+      ids(
+        await fs.db
+          .collection('vals')
+          .where('v', '==', Buffer.from([1, 2]))
+          .get(),
+      ),
+    ).toEqual(['bytes']);
+    expect(
+      ids(await fs.db.collection('vals').where('v', '==', fs.db.doc('users/a')).get()),
+    ).toEqual(['ref']);
+    expect(ids(await fs.db.collection('vals').orderBy('v').get())).toEqual([
+      'bytes',
+      'ref',
+      'map',
+      'refmap',
+    ]);
+  });
+});
+
+describe('orders and cursors follow real Firestore semantics', () => {
+  beforeEach(() => {
+    fs.seed('posts/a', { at: 2 });
+    fs.seed('posts/b', { at: 3 });
+    fs.seed('posts/c', { at: 2 });
+    fs.seed('posts/d', { at: 1 });
+    fs.seed('posts/unordered', { title: 'no at' });
+  });
+
+  it('a descending order breaks ties on document id descending, and leaves out a document missing the field', async () => {
+    expect(ids(await fs.db.collection('posts').orderBy('at', 'desc').get())).toEqual([
+      'b',
+      'c',
+      'a',
+      'd',
+    ]);
+  });
+
+  it('startAfter a snapshot continues after it across a tie under a descending order', async () => {
+    const first = await fs.db.collection('posts').orderBy('at', 'desc').limit(2).get();
+    expect(ids(first)).toEqual(['b', 'c']);
+    const next = await fs.db
+      .collection('posts')
+      .orderBy('at', 'desc')
+      .startAfter(first.docs[1])
+      .get();
+    expect(ids(next)).toEqual(['a', 'd']);
+  });
+
+  it('startAfter field values skips every row at or before them', async () => {
+    expect(ids(await fs.db.collection('posts').orderBy('at').startAfter(2).get())).toEqual(['b']);
+    expect(ids(await fs.db.collection('posts').orderBy('at').startAfter(2, 'a').get())).toEqual([
+      'c',
+      'b',
+    ]);
+  });
+
+  it('select returns only the named fields', async () => {
+    fs.seed('wide/a', { keep: 1, drop: 2 });
+    const snap = await fs.db.collection('wide').select('keep').get();
+    expect(snap.docs[0].data()).toEqual({ keep: 1 });
+  });
+
+  it('count answers the number of matches, bounded by the limit', async () => {
+    const counted = await fs.db.collection('posts').where('at', '>=', 2).count().get();
+    expect(counted.data().count).toBe(3);
+    const limited = await fs.db.collection('posts').orderBy('at').limit(2).count().get();
+    expect(limited.data().count).toBe(2);
+  });
+
+  it('a collection-group query reads every collection of that id at any depth', async () => {
+    fs.seed('users/u1/notes/n1', { n: 1 });
+    fs.seed('users/u2/notes/n2', { n: 2 });
+    fs.seed('notes/top', { n: 3 });
+    fs.seed('users/u1/other/n3', { n: 4 });
+    const snap = await fs.db.collectionGroup('notes').orderBy('n').get();
+    expect(snap.docs.map((d) => d.ref.path)).toEqual([
+      'users/u1/notes/n1',
+      'users/u2/notes/n2',
+      'notes/top',
+    ]);
+  });
+
+  it('the query forms the kit does not model throw instead of answering', () => {
+    const posts = fs.db.collection('posts').orderBy('at');
+    expect(() => posts.startAt(1)).toThrow(/not part of this fake/);
+    expect(() => posts.endAt(1)).toThrow(/not part of this fake/);
+    expect(() => posts.endBefore(1)).toThrow(/not part of this fake/);
+    expect(() => posts.limitToLast(1)).toThrow(/not part of this fake/);
+    expect(() => posts.offset(1)).toThrow(/not part of this fake/);
+    expect(() => posts.where(Filter.or(Filter.where('at', '==', 1)))).toThrow(
+      /not part of this fake/,
+    );
+  });
+});
+
+describe('batches and commit failures follow real Firestore semantics', () => {
+  it('a batch commits all of its writes together', async () => {
+    fs.seed('acct/a', { n: 1 });
+    await fs.db
+      .batch()
+      .set(fs.db.doc('acct/b'), { n: 2 })
+      .update(fs.db.doc('acct/a'), { n: 3 })
+      .delete(fs.db.doc('acct/gone'))
+      .commit();
+    expect(fs.read('acct/a')).toEqual({ n: 3 });
+    expect(fs.read('acct/b')).toEqual({ n: 2 });
+  });
+
+  it('a batch with one failing write lands none of them', async () => {
+    await expect(
+      fs.db
+        .batch()
+        .set(fs.db.doc('acct/b'), { n: 2 })
+        .update(fs.db.doc('acct/missing'), { n: 1 })
+        .commit(),
+    ).rejects.toThrow('NOT_FOUND');
+    expect(fs.read('acct/b')).toBeUndefined();
+  });
+
+  it('failCommits fails the given number of commits that touch a matching path, then they land', async () => {
+    fs.failCommits((path) => path === 'acct/a', 2);
+    await fs.db.doc('acct/other').set({ n: 0 });
+    await expect(fs.db.doc('acct/a').set({ n: 1 })).rejects.toMatchObject({ code: 14 });
+    await expect(fs.db.doc('acct/a').set({ n: 2 })).rejects.toMatchObject({ code: 14 });
+    await fs.db.doc('acct/a').set({ n: 3 });
+    expect(fs.read('acct/a')).toEqual({ n: 3 });
+    expect(fs.read('acct/other')).toEqual({ n: 0 });
   });
 });

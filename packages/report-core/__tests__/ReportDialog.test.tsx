@@ -6,13 +6,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ComponentPropsWithoutRef, ElementRef } from 'react';
 
 // Radix Select does not run in jsdom; a native select stands in for the picker.
-vi.mock('@ttt-productions/ui-core/react', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
+vi.mock(import('@ttt-productions/ui-core/react'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
   const { forwardRef } = await import('react');
   type UiCore = typeof import('@ttt-productions/ui-core/react');
   type Part<K extends 'SelectTrigger' | 'SelectValue' | 'SelectContent' | 'SelectItem'> =
     ComponentPropsWithoutRef<UiCore[K]>;
-  return passThroughModule<UiCore>(importOriginal, {
+  return passThroughModule(importOriginal, {
     Select: ({ value, onValueChange, children }) => (
       <select
         aria-label="reason picker"

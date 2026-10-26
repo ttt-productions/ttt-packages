@@ -3,9 +3,9 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 const nowMock = vi.hoisted(() =>
   vi.fn<typeof import('@ttt-productions/firebase-helpers').now>(() => Date.now()),
 );
-vi.mock('@ttt-productions/firebase-helpers', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('@ttt-productions/firebase-helpers')>(importOriginal, {
+vi.mock(import('@ttt-productions/firebase-helpers'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     now: nowMock,
   });
 });

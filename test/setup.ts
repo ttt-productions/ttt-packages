@@ -1,10 +1,8 @@
 import '@testing-library/jest-dom';
 import type { FirebaseApp } from 'firebase/app';
-import type { WriteBatch } from 'firebase/firestore';
 import { vi } from 'vitest';
 
 type AppModule = typeof import('firebase/app');
-type FirestoreModule = typeof import('firebase/firestore');
 type AuthModule = typeof import('firebase/auth');
 type StorageModule = typeof import('firebase/storage');
 type FunctionsModule = typeof import('firebase/functions');
@@ -36,91 +34,84 @@ if (typeof HTMLCanvasElement !== 'undefined') {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
 }
 
-vi.mock('firebase/app', async () => {
-  const { stubModule } = await import('./typed-mock.js');
+vi.mock(import('firebase/app'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
   const app: FirebaseApp = {
     name: '[DEFAULT]',
     options: {},
     automaticDataCollectionEnabled: false,
   };
-  return stubModule<AppModule>({
+  return stubModule(importOriginal, {
     initializeApp: vi.fn(() => app),
-    getApps: vi.fn(() => []),
-    getApp: vi.fn(() => app),
+    getApps: vi.fn<AppModule['getApps']>(() => []),
+    getApp: vi.fn<AppModule['getApp']>(() => app),
   });
 });
 
-vi.mock('firebase/firestore', async () => {
-  const { stubModule } = await import('./typed-mock.js');
-  const actual = await vi.importActual<FirestoreModule>('firebase/firestore');
-  const batch: WriteBatch = {
-    set: vi.fn(() => batch),
-    update: vi.fn(() => batch),
-    delete: vi.fn(() => batch),
-    commit: vi.fn(async () => undefined),
+// Every reference, query, and value is the real SDK's; a read or write reaches no server, so it fails
+// unless the suite installs the in-memory client Firestore.
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const unserved = (name: string) => (): never => {
+    throw new Error(
+      `firebase/firestore ${name} reached no server: install the in-memory client Firestore for this suite`,
+    );
   };
-  return stubModule<FirestoreModule>({
-    getFirestore: vi.fn(),
-    doc: vi.fn(),
-    collection: vi.fn(),
-    getDoc: vi.fn(),
-    setDoc: vi.fn(),
-    updateDoc: vi.fn(),
-    deleteDoc: vi.fn(),
-    addDoc: vi.fn(),
-    query: vi.fn(),
-    where: vi.fn(),
-    orderBy: vi.fn(),
-    limit: vi.fn(),
-    getDocs: vi.fn(),
-    onSnapshot: vi.fn(() => vi.fn()),
-    runTransaction: vi.fn(),
-    writeBatch: vi.fn(() => batch),
-    serverTimestamp: actual.serverTimestamp,
-    Timestamp: actual.Timestamp,
-    connectFirestoreEmulator: vi.fn(),
-    arrayUnion: actual.arrayUnion,
-    arrayRemove: actual.arrayRemove,
-    increment: actual.increment,
-    documentId: actual.documentId,
-    startAfter: vi.fn(),
-    endBefore: vi.fn(),
+  return passThroughModule(importOriginal, {
+    getDoc: unserved('getDoc'),
+    getDocFromCache: unserved('getDocFromCache'),
+    getDocFromServer: unserved('getDocFromServer'),
+    getDocs: unserved('getDocs'),
+    getDocsFromCache: unserved('getDocsFromCache'),
+    getDocsFromServer: unserved('getDocsFromServer'),
+    getCountFromServer: unserved('getCountFromServer'),
+    getAggregateFromServer: unserved('getAggregateFromServer'),
+    onSnapshot: unserved('onSnapshot'),
+    onSnapshotsInSync: unserved('onSnapshotsInSync'),
+    setDoc: unserved('setDoc'),
+    updateDoc: unserved('updateDoc'),
+    deleteDoc: unserved('deleteDoc'),
+    addDoc: unserved('addDoc'),
+    runTransaction: unserved('runTransaction'),
+    writeBatch: unserved('writeBatch'),
   });
 });
 
-vi.mock('firebase/auth', async () => {
-  const { stubModule } = await import('./typed-mock.js');
+vi.mock(import('firebase/auth'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
   const actual = await vi.importActual<AuthModule>('firebase/auth');
-  return stubModule<AuthModule>({
-    getAuth: vi.fn(),
-    connectAuthEmulator: vi.fn(),
-    onAuthStateChanged: vi.fn(() => vi.fn()),
-    signInWithEmailAndPassword: vi.fn(),
-    createUserWithEmailAndPassword: vi.fn(),
-    signOut: vi.fn(async () => undefined),
+  return stubModule(importOriginal, {
+    getAuth: vi.fn<AuthModule['getAuth']>(),
+    connectAuthEmulator: vi.fn<AuthModule['connectAuthEmulator']>(),
+    onAuthStateChanged: vi.fn<AuthModule['onAuthStateChanged']>(() => vi.fn()),
+    signInWithEmailAndPassword: vi.fn<AuthModule['signInWithEmailAndPassword']>(),
+    createUserWithEmailAndPassword: vi.fn<AuthModule['createUserWithEmailAndPassword']>(),
+    signOut: vi.fn<AuthModule['signOut']>(async () => undefined),
     GoogleAuthProvider: actual.GoogleAuthProvider,
-    signInWithPopup: vi.fn(),
+    signInWithPopup: vi.fn<AuthModule['signInWithPopup']>(),
   });
 });
 
-vi.mock('firebase/storage', async () => {
-  const { stubModule } = await import('./typed-mock.js');
-  return stubModule<StorageModule>({
-    getStorage: vi.fn(),
-    connectStorageEmulator: vi.fn(),
+vi.mock(import('firebase/storage'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
+    getStorage: vi.fn<StorageModule['getStorage']>(),
+    connectStorageEmulator: vi.fn<StorageModule['connectStorageEmulator']>(),
     ref: vi.fn(),
-    uploadBytes: vi.fn(),
-    uploadBytesResumable: vi.fn(),
-    getDownloadURL: vi.fn(async () => 'https://mock-storage.example.com/file.jpg'),
-    deleteObject: vi.fn(async () => undefined),
+    uploadBytes: vi.fn<StorageModule['uploadBytes']>(),
+    uploadBytesResumable: vi.fn<StorageModule['uploadBytesResumable']>(),
+    getDownloadURL: vi.fn<StorageModule['getDownloadURL']>(
+      async () => 'https://mock-storage.example.com/file.jpg',
+    ),
+    deleteObject: vi.fn<StorageModule['deleteObject']>(async () => undefined),
   });
 });
 
-vi.mock('firebase/functions', async () => {
-  const { stubModule } = await import('./typed-mock.js');
-  return stubModule<FunctionsModule>({
-    getFunctions: vi.fn(),
-    connectFunctionsEmulator: vi.fn(),
+vi.mock(import('firebase/functions'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
+    getFunctions: vi.fn<FunctionsModule['getFunctions']>(),
+    connectFunctionsEmulator: vi.fn<FunctionsModule['connectFunctionsEmulator']>(),
     httpsCallable: vi.fn(),
   });
 });

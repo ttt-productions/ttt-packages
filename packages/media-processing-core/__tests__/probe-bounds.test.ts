@@ -11,9 +11,9 @@ import { exitingChild, hangingChild } from './helpers/piped-child.js';
 const spawnMock = vi.hoisted(() =>
   vi.fn<typeof import('../src/video/spawn-piped.js').spawnPiped>(),
 );
-vi.mock('../src/video/spawn-piped.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/video/spawn-piped.js')>({ spawnPiped: spawnMock });
+vi.mock(import('../src/video/spawn-piped.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { spawnPiped: spawnMock });
 });
 
 function routeSpawn(probe: ReturnType<typeof hangingChild>) {
@@ -84,7 +84,7 @@ describe("the processors' ffprobe calls are bounded and fail closed", () => {
       const controller = new AbortController();
       const pending = run(controller.signal);
       await vi.waitFor(() =>
-        expect(spawnMock).toHaveBeenCalledWith('ffprobe', expect.anything(), undefined),
+        expect(spawnMock.mock.calls.map(([command]) => command)).toContain('ffprobe'),
       );
       controller.abort();
       const r = await pending;

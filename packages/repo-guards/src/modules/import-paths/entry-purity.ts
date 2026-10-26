@@ -17,6 +17,14 @@ import {
 export type EntryRuntime = 'universal' | 'node' | 'react' | 'browser' | 'style';
 const RUNTIMES: readonly EntryRuntime[] = ['node', 'react', 'browser', 'style'];
 
+const FORBIDDEN_REACHES: Record<EntryRuntime, readonly EntryRuntime[]> = {
+  universal: ['node', 'react', 'browser', 'style'],
+  node: ['react', 'browser'],
+  browser: ['node', 'react'],
+  react: ['node'],
+  style: [],
+};
+
 export interface EntryPurityFacts {
   packagesFolder: string;
   runtimeSubpaths: ReadonlyArray<{ subpath: string; runtime: Exclude<EntryRuntime, 'universal'> }>;
@@ -246,13 +254,14 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
     const rel = (repoRoot: string, file: string) => slash(relative(repoRoot, file));
     return [
       {
-        title:
-          'every entry not declared runtime-specific reaches no Node, React, or browser runtime',
+        title: 'every entry reaches only the runtimes its own runtime allows',
         description:
           'An entry whose subpath is not declared runtime-specific (`./react`, `./server`, …) and is not a reviewed exception ' +
           'is universal: neither its built JavaScript nor its declaration files may import a Node module (`node:*` included), ' +
           'React, or a browser runtime, or reference their types, directly or through any module or runtime-specific sibling ' +
-          'entry they reach. Move what needs the runtime behind the runtime-specific entry.',
+          'entry they reach. A runtime-specific entry, a test-runner entry and a reviewed exception included, is held the same ' +
+          'way to its runtime: a Node entry reaches no React or browser runtime, a browser entry no Node or React, and a React ' +
+          'entry no Node. Move what needs the runtime behind the entry for that runtime.',
         timeoutMs: PACKAGE_GRAPH_TIMEOUT_MS,
         run(context: GuardContext): Finding[] {
           const { repoRoot, entries, findings } = read(context);
@@ -267,9 +276,7 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
               });
           }
           for (const entry of entries) {
-            const universal = entry.runtime === 'universal';
             const exception = facts.exceptions.find((e) => e.entry === entry.spec);
-            if (!universal && !exception) continue;
             const reaches: Array<{ spec: string; runtime: string; file: string }> = [];
             for (const [file, declaration] of [
               [entry.js, false],
@@ -285,15 +292,17 @@ export const entryPurityGuard: GenericGuardDefinition<EntryPurityFacts> = {
               }
               reaches.push(...runtimeReaches(file, declaration, (spec) => bySpec.get(spec)));
             }
-            if (exception) {
-              if (!reaches.length)
-                findings.push({
-                  file: exception.entry,
-                  detail: 'the exception is stale: the entry reaches no runtime-specific module',
-                });
-              continue;
-            }
-            const unique = new Map(reaches.map((r) => [`${r.spec}\0${r.file}`, r]));
+            if (exception && !reaches.length)
+              findings.push({
+                file: exception.entry,
+                detail: 'the exception is stale: the entry reaches no runtime-specific module',
+              });
+            const forbidden: readonly string[] = FORBIDDEN_REACHES[entry.runtime];
+            const unique = new Map(
+              reaches
+                .filter((r) => forbidden.includes(r.runtime.replace(/ entry$/, '')))
+                .map((r) => [`${r.spec}\0${r.file}`, r]),
+            );
             for (const r of unique.values()) {
               findings.push({
                 file: rel(repoRoot, r.file),

@@ -23,11 +23,10 @@ const fsHoisted = vi.hoisted(() => {
   const readStreamCalls: ReadStream[] = [];
   return { readStreamCalls };
 });
-vi.mock('node:fs', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type Fs = typeof import('node:fs');
-  const actual = await importOriginal<Fs>();
-  return passThroughModule<Fs>(importOriginal, {
+vi.mock(import('node:fs'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
+  return passThroughModule(importOriginal, {
     createReadStream: (...streamArgs) => {
       const stream = actual.createReadStream(...streamArgs);
       fsHoisted.readStreamCalls.push(stream);

@@ -7,14 +7,14 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { useUnreadCount } from '../src/react/hooks/useUnreadCount.js';
 import type { NotificationSystemConfig } from '../src/types.js';
-import { kitFirestoreWrapper } from './helpers/kit-firestore-wrapper.js';
+import { firestoreTestWrapper } from '@ttt-productions/query-core/react/testing';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -46,7 +46,7 @@ describe('useUnreadCount', () => {
   it('throws for an unknown category', () => {
     expect(() =>
       renderHook(() => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'nope' }), {
-        wrapper: kitFirestoreWrapper(store.db),
+        wrapper: firestoreTestWrapper(store.db).Wrapper,
       }),
     ).toThrow('Unknown category: nope');
   });
@@ -57,7 +57,7 @@ describe('useUnreadCount', () => {
     seedPersonal('other', 'u2', 0);
     const { result } = renderHook(
       () => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user' }),
-      { wrapper: kitFirestoreWrapper(store.db) },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
 
     await waitFor(() => expect(result.current.count).toBe(3));
@@ -79,7 +79,7 @@ describe('useUnreadCount', () => {
     store.seed('activeAdminNotifications/b', { seenAt: 1_700_000_000_000 });
     const { result } = renderHook(
       () => useUnreadCount({ config: makeConfig(), userId: 'admin1', category: 'admin' }),
-      { wrapper: kitFirestoreWrapper(store.db) },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
 
     await waitFor(() => expect(result.current.count).toBe(2));
@@ -92,7 +92,7 @@ describe('useUnreadCount', () => {
     for (let i = 0; i < 150; i++) seedPersonal(`n${i}`, 'u1', 0);
     const { result } = renderHook(
       () => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user' }),
-      { wrapper: kitFirestoreWrapper(store.db) },
+      { wrapper: firestoreTestWrapper(store.db).Wrapper },
     );
 
     await waitFor(() => expect(result.current.count).toBe(150));

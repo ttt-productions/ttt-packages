@@ -7,14 +7,14 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
 import { useNotificationHistory } from '../src/react/hooks/useNotificationHistory.js';
 import type { NotificationSystemConfig } from '../src/types.js';
-import { kitFirestoreWrapper } from './helpers/kit-firestore-wrapper.js';
+import { firestoreTestWrapper } from '@ttt-productions/query-core/react/testing';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -36,7 +36,7 @@ function makeConfig(): NotificationSystemConfig {
 
 function renderHistory(userId: string, category: string) {
   return renderHook(() => useNotificationHistory({ config: makeConfig(), userId, category }), {
-    wrapper: kitFirestoreWrapper(store.db),
+    wrapper: firestoreTestWrapper(store.db).Wrapper,
   });
 }
 

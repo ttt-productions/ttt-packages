@@ -9,10 +9,9 @@ const ratelimit = vi.hoisted(() => {
   };
 });
 
-vi.mock('@upstash/ratelimit', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type RatelimitModule = typeof import('@upstash/ratelimit');
-  const actual = await importOriginal<RatelimitModule>();
+vi.mock(import('@upstash/ratelimit'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
   class RecordingRatelimit extends actual.Ratelimit {
     static override slidingWindow = vi.fn(actual.Ratelimit.slidingWindow);
     override limit = ratelimit.limit;
@@ -21,7 +20,7 @@ vi.mock('@upstash/ratelimit', async (importOriginal) => {
       ratelimit.configs.push(config);
     }
   }
-  return passThroughModule<RatelimitModule>(importOriginal, { Ratelimit: RecordingRatelimit });
+  return passThroughModule(importOriginal, { Ratelimit: RecordingRatelimit });
 });
 
 import { createRateLimiterFactory, type RateLimitRedis } from '../src/rate-limiter.js';

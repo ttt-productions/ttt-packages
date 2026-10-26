@@ -1,7 +1,7 @@
 // SANCTIONED EXCEPTION: the one module that reads the client SDK's internal query and snapshot
 // shapes. The SDK publishes no reader of a built query's path, filters, order, limit, or cursors,
-// and no constructor of a missing-document or count snapshot; the double reads both here, and its
-// own test fails the moment an SDK upgrade changes them.
+// and no constructor of a missing-document or count snapshot or of a listener answer's changes; the
+// double reads them here, and its own test fails the moment an SDK upgrade changes them.
 import { vi } from 'vitest';
 import type {
   AggregateField,
@@ -10,9 +10,11 @@ import type {
   DocumentSnapshot,
   FirestoreDataConverter,
   Query,
+  QuerySnapshot,
   SnapshotMetadata,
 } from 'firebase/firestore';
-import { fromSdkValue, type ComparableValue } from './client-values.js';
+import { fromSdkValue } from './client-values.js';
+import type { ComparableValue } from './stored-values.js';
 
 // The real SDK, though suites mock 'firebase/firestore': a mock's factory loads this module.
 const sdk = await vi.importActual<typeof import('firebase/firestore')>('firebase/firestore');
@@ -159,6 +161,95 @@ export function answeredFromCache<S extends { metadata: SnapshotMetadata }>(snap
     return unreadable('the snapshot metadata constructor');
   Object.defineProperty(snapshot, 'metadata', { value: metadata, enumerable: true });
   return snapshot;
+}
+
+const ADDED = 0;
+const REMOVED = 1;
+const MODIFIED = 2;
+const CHANGE_ORDER: Record<number, number> = { [REMOVED]: 0, [ADDED]: 1, [MODIFIED]: 2 };
+
+interface InternalDocumentSet {
+  comparator(a: unknown, b: unknown): number;
+  forEach(fn: (doc: unknown) => void): void;
+}
+
+function viewOf(snapshot: QuerySnapshot): Record<string, unknown> {
+  const view: unknown = Reflect.get(snapshot, '_snapshot');
+  return isRecord(view) ? view : unreadable("a query snapshot's view");
+}
+
+function documentSetOf(view: Record<string, unknown>): InternalDocumentSet {
+  const docs = view.docs;
+  if (
+    isRecord(docs) &&
+    typeof docs.comparator === 'function' &&
+    typeof docs.forEach === 'function'
+  ) {
+    const set = docs;
+    return {
+      comparator: (a, b) => Number(Reflect.apply(docs.comparator as () => unknown, set, [a, b])),
+      forEach: (fn) => {
+        Reflect.apply(docs.forEach as () => unknown, set, [fn]);
+      },
+    };
+  }
+  return unreadable("a view's document set");
+}
+
+function documentsByPath(set: InternalDocumentSet): Map<string, Record<string, unknown>> {
+  const byPath = new Map<string, Record<string, unknown>>();
+  set.forEach((doc) => {
+    if (!isRecord(doc)) return unreadable('a view document');
+    const key = doc.key;
+    if (!isRecord(key)) return unreadable("a view document's key");
+    byPath.set(canonical(key.path, "a view document's key"), doc);
+  });
+  return byPath;
+}
+
+function sameDocumentData(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const data = a.data;
+  if (!isRecord(data) || typeof data.isEqual !== 'function') return unreadable("a document's data");
+  return Reflect.apply(data.isEqual, data, [b.data]) === true;
+}
+
+// The SDK's next listener answer: its changes against the answer before it, removals first, then
+// additions, then modifications, each in query order.
+export function withChangesSince<S extends QuerySnapshot>(
+  next: S,
+  previous: QuerySnapshot,
+  fromCache: boolean,
+): S {
+  const view = viewOf(next);
+  const oldView = viewOf(previous);
+  const nextSet = documentSetOf(view);
+  const nextDocs = documentsByPath(nextSet);
+  const oldDocs = documentsByPath(documentSetOf(oldView));
+  const changes: Array<{ type: number; doc: Record<string, unknown> }> = [];
+  for (const [path, doc] of oldDocs) if (!nextDocs.has(path)) changes.push({ type: REMOVED, doc });
+  for (const [path, doc] of nextDocs) {
+    const before = oldDocs.get(path);
+    if (!before) changes.push({ type: ADDED, doc });
+    else if (!sameDocumentData(doc, before)) changes.push({ type: MODIFIED, doc });
+  }
+  changes.sort(
+    (a, b) => CHANGE_ORDER[a.type] - CHANGE_ORDER[b.type] || nextSet.comparator(a.doc, b.doc),
+  );
+  const viewClass: unknown = Reflect.get(view, 'constructor');
+  if (typeof viewClass !== 'function') return unreadable('the view snapshot class');
+  const diffed: unknown = Reflect.construct(viewClass, [
+    view.query,
+    view.docs,
+    oldView.docs,
+    changes,
+    view.mutatedKeys,
+    fromCache,
+    false,
+    false,
+    view.hasCachedResults,
+  ]);
+  Object.defineProperty(next, '_snapshot', { value: diffed, enumerable: true });
+  return next;
 }
 
 export function countSnapshot<A, D extends DocumentData>(

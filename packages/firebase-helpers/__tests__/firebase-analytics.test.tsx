@@ -17,9 +17,9 @@ const h = vi.hoisted(() => ({
   setUserProperties: vi.fn<typeof import('firebase/analytics').setUserProperties>(),
 }));
 
-vi.mock('firebase/analytics', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('firebase/analytics')>(importOriginal, {
+vi.mock(import('firebase/analytics'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     logEvent: h.logEvent,
     setUserId: h.setUserId,
     setUserProperties: h.setUserProperties,

@@ -3,9 +3,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { lazyModule } from '../src/lazy-module.js';
 
-vi.mock('./fixtures/loaded-module.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('./fixtures/loaded-module.js')>({ realModule: false });
+vi.mock(import('./fixtures/loaded-module.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, { realModule: false });
 });
 
 describe('lazyModule', () => {

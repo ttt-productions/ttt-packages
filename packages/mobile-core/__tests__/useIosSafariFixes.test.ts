@@ -2,9 +2,9 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 const env = vi.hoisted(() => ({ isBrowser: true, isIOS: false, isSafari: false }));
-vi.mock('../src/env.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/env.js')>({
+vi.mock(import('../src/env.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     get isBrowser() {
       return env.isBrowser;
     },

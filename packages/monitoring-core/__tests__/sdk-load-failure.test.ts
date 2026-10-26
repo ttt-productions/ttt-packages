@@ -4,15 +4,15 @@ import { SentryNodeAdapter } from '../src/adapters/sentry-node.js';
 import { SentryAdapter } from '../src/adapters/sentry.js';
 import { initMonitoring, __resetMonitoring } from '../src/init.js';
 
-vi.mock('../src/adapters/sentry-browser-sdk.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/adapters/sentry-browser-sdk.js')>({
+vi.mock(import('../src/adapters/sentry-browser-sdk.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     importSentryBrowser: () => Promise.reject(new Error('sdk failed to load')),
   });
 });
-vi.mock('../src/adapters/sentry-node-sdk.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/adapters/sentry-node-sdk.js')>({
+vi.mock(import('../src/adapters/sentry-node-sdk.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     importSentryNode: () => Promise.reject(new Error('sdk failed to load')),
   });
 });
@@ -60,6 +60,6 @@ describe('a Sentry SDK that fails to load', () => {
   it('initMonitoring rejects so its caller can report the failed init', async () => {
     await expect(
       initMonitoring({ provider: 'sentry-node', dsn: 'https://test@example.com/1' }),
-    ).rejects.toThrow();
+    ).rejects.toThrow('sdk failed to load');
   });
 });

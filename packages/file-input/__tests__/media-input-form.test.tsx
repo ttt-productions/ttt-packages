@@ -6,9 +6,9 @@ import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input.js';
 import { FileInput } from '../src/react/components/file-input.js';
 
-vi.mock('@ttt-productions/media-viewer/react', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('@ttt-productions/media-viewer/react')>({
+vi.mock(import('@ttt-productions/media-viewer/react'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     MediaPreview: () => <div data-testid="media-preview" />,
   });
 });

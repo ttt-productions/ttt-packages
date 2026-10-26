@@ -5,9 +5,9 @@ const mockCaptureException = vi.hoisted(() =>
   vi.fn<typeof import('../src/api.js').captureException>(),
 );
 
-vi.mock('../src/api.js', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('../src/api.js')>(importOriginal, {
+vi.mock(import('../src/api.js'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     captureException: mockCaptureException,
   });
 });

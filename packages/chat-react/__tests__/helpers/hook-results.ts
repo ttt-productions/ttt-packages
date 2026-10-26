@@ -29,7 +29,9 @@ export function realtimeMessagesResult(
   };
 }
 
-export function chatMessagesResult(over: Partial<UseChatMessagesResult> = {}): UseChatMessagesResult {
+export function chatMessagesResult(
+  over: Partial<UseChatMessagesResult> = {},
+): UseChatMessagesResult {
   return {
     allowed: true,
     isInitialLoading: false,

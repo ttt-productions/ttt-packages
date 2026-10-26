@@ -5,9 +5,9 @@ import type { MediaInputChangePayload } from '../src/types.js';
 import { MediaInput } from '../src/react/components/media-input.js';
 
 // jsdom cannot decode media, so the meta read never settles: return the fast path's kind inference.
-vi.mock('../src/lib/read-media-meta.js', async () => {
-  const { stubModule } = await import('../../../test/typed-mock.js');
-  return stubModule<typeof import('../src/lib/read-media-meta.js')>({
+vi.mock(import('../src/lib/read-media-meta.js'), async (importOriginal) => {
+  const { stubModule } = await import('@ttt-productions/dev-standards/testing');
+  return stubModule(importOriginal, {
     readMediaMeta: async (file: File) => {
       const t = file.type;
       const kind = t.startsWith('image/')

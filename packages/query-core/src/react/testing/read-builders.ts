@@ -163,11 +163,7 @@ export const fetchingInfiniteRead = <TPage, TParam, TData = InfiniteData<TPage, 
   spec: InfiniteReadSpec<TPage, TParam, TData> & { pages: TPage[] },
 ): BuiltInfiniteRead<TData> => observedInfinite(spec, { fetchStatus: 'fetching' });
 
-export const answeredThenFailedInfiniteRead = <
-  TPage,
-  TParam,
-  TData = InfiniteData<TPage, TParam>,
->(
+export const answeredThenFailedInfiniteRead = <TPage, TParam, TData = InfiniteData<TPage, TParam>>(
   spec: InfiniteReadSpec<TPage, TParam, TData> & { pages: TPage[] },
   error: Error,
 ): BuiltInfiniteRead<TData> => observedInfinite(spec, failure(error));

@@ -44,6 +44,15 @@ export interface ModuleImport {
   star: boolean;
   named: readonly ImportedName[];
   callee: string | null;
+  byImport: boolean;
+}
+
+// `vi.mock(import('x'), …)` names its module through an import() the runner never evaluates.
+function importedModuleOf(argument: ts.Expression | undefined): ts.StringLiteralLike | null {
+  if (!argument || !ts.isCallExpression(argument)) return null;
+  if (argument.expression.kind !== ts.SyntaxKind.ImportKeyword) return null;
+  const [spec] = argument.arguments;
+  return spec && ts.isStringLiteralLike(spec) ? spec : null;
 }
 
 const read = new WeakMap<ts.SourceFile, readonly ModuleImport[]>();
@@ -74,9 +83,19 @@ function readImports(sourceFile: ts.SourceFile): ModuleImport[] {
       star: false,
       named: [],
       callee: null,
+      byImport: false,
       ...rest,
     });
   const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const callee = dottedCallee(node.expression);
+      const imported = importedModuleOf(node.arguments[0]);
+      if (callee && MOCK_CALLEES.has(callee) && imported) {
+        add('mock', node, imported, { callee, byImport: true });
+        node.arguments.slice(1).forEach(visit);
+        return;
+      }
+    }
     if (ts.isImportDeclaration(node) && ts.isStringLiteralLike(node.moduleSpecifier)) {
       const clause = node.importClause;
       const bindings = clause?.namedBindings;

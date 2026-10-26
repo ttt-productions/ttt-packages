@@ -9,11 +9,10 @@ const calls = vi.hoisted(() => {
   return { created, invoked };
 });
 
-vi.mock('firebase/functions', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  type FunctionsModule = typeof import('firebase/functions');
-  const actual = await importOriginal<FunctionsModule>();
-  return passThroughModule<FunctionsModule>(importOriginal, {
+vi.mock(import('firebase/functions'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  const actual = await importOriginal();
+  return passThroughModule(importOriginal, {
     httpsCallable: <RequestData, ResponseData, StreamData>(
       functions: Functions,
       name: string,
@@ -37,7 +36,14 @@ vi.mock('firebase/functions', async (importOriginal) => {
 });
 
 import { getFunctions } from 'firebase/functions';
-import { callCallable, stripUndefinedDeep } from '../src/client/call-callable.js';
+import {
+  callCallable,
+  stripUndefinedDeep,
+  type CallCallableCallbacks,
+} from '../src/client/call-callable.js';
+
+type OnError = NonNullable<CallCallableCallbacks['onError']>;
+type CaptureException = NonNullable<CallCallableCallbacks['captureException']>;
 
 // The real app SDK, though the shared test setup mocks 'firebase/app'.
 const { initializeApp, FirebaseError } =
@@ -60,9 +66,27 @@ initializeAppCheck(app, {
 });
 const functions = getFunctions(app);
 const getFunctionsInstance = () => functions;
-const server = callableServer();
 
 const throttleError = (code: string) => new FirebaseError(code, `AppCheck: ${code}`);
+
+// App Check caches a token it has answered, so a throttled exchange needs an app that never got one.
+const throttledApp = initializeApp(
+  { apiKey: 'k', projectId: 'demo-call-callable', appId: '1:1:web:1' },
+  'call-callable-throttled',
+);
+const throttledExchanges = { count: 0 };
+initializeAppCheck(throttledApp, {
+  provider: new CustomProvider({
+    getToken: async () => {
+      throttledExchanges.count += 1;
+      throw throttleError('appCheck/throttled');
+    },
+  }),
+  isTokenAutoRefreshEnabled: false,
+});
+const throttledFunctions = getFunctions(throttledApp);
+const server = callableServer();
+
 const serverError = (status: string, message: string) => ({
   error: { status, message, httpStatus: status === 'FAILED_PRECONDITION' ? 400 : 500 },
 });
@@ -71,6 +95,7 @@ beforeEach(() => {
   calls.created.length = 0;
   calls.invoked.length = 0;
   appCheckFailures.length = 0;
+  throttledExchanges.count = 0;
   server.reset();
   vi.stubGlobal('fetch', server.fetch);
 });
@@ -121,8 +146,8 @@ describe('callCallable', () => {
   });
 
   it('returns result.data and fires no callbacks on success', async () => {
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
     const out = await callCallable(
       getFunctionsInstance,
       'fn',
@@ -136,8 +161,8 @@ describe('callCallable', () => {
 
   it('fires captureException (payload-free) + onError (with payload) and re-throws on failure', async () => {
     server.answer(serverError('INTERNAL', 'nope'));
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
     const failure: unknown = await callCallable(
       getFunctionsInstance,
       'fn',
@@ -196,8 +221,8 @@ describe('callCallable deadline', () => {
 
   it('deadline expiry fires captureException once (payload-free) and onError once (with payload)', async () => {
     server.answer('hang');
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
     const call = callCallable(
       getFunctionsInstance,
       'hangs',
@@ -312,8 +337,8 @@ describe('callCallable limited-use App Check throttle fallback', () => {
   it('reports the fallback through captureException with the flag and no payload', async () => {
     const thrown = throttleError('appCheck/throttled');
     appCheckFailures.push(thrown);
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
 
     await callCallable(
       getFunctionsInstance,
@@ -329,7 +354,7 @@ describe('callCallable limited-use App Check throttle fallback', () => {
       timeoutMs: 30_000,
       limitedUseAppCheckFallback: true,
     });
-    const ctx = captureException.mock.calls[0][1] as Record<string, unknown>;
+    const ctx = captureException.mock.calls[0][1];
     expect('requestData' in ctx).toBe(false);
     expect(JSON.stringify(ctx)).not.toContain('secret');
     expect(onError).not.toHaveBeenCalled();
@@ -368,11 +393,47 @@ describe('callCallable limited-use App Check throttle fallback', () => {
     }
   });
 
+  it('a call that did not ask for limited-use sends once without App Check when its token exchange is throttled, and never reports a fallback', async () => {
+    server.answer({ data: { ok: 'plain' } });
+    const captureException = vi.fn<CaptureException>();
+
+    const out = await callCallable(() => throttledFunctions, 'fn', { a: 1 }, { captureException });
+
+    expect(out).toEqual({ ok: 'plain' });
+    expect(throttledExchanges.count).toBe(1);
+    expect(calls.invoked).toHaveLength(1);
+    expect(server.requests).toHaveLength(1);
+    expect(server.requests[0].appCheckToken).toBeNull();
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it('retries at most once: the fallback whose own token exchange is throttled is sent without App Check', async () => {
+    server.answer({ data: { ok: 'fallback' } });
+    const captureException = vi.fn<CaptureException>();
+
+    const out = await callCallable(
+      () => throttledFunctions,
+      'fn',
+      { a: 1 },
+      { captureException },
+      { limitedUseAppCheck: true },
+    );
+
+    expect(out).toEqual({ ok: 'fallback' });
+    expect(throttledExchanges.count).toBe(2);
+    expect(calls.invoked).toHaveLength(2);
+    expect(server.requests).toHaveLength(1);
+    expect(server.requests[0].appCheckToken).toBeNull();
+    expect(
+      captureException.mock.calls.filter(([, ctx]) => ctx.limitedUseAppCheckFallback === true),
+    ).toHaveLength(1);
+  });
+
   it("surfaces the RETRY's error with the failure callbacks fired once for it", async () => {
     appCheckFailures.push(throttleError('appCheck/throttled'));
     server.answer(serverError('INTERNAL', 'retry blew up'));
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
 
     const retryFailure: unknown = await callCallable(
       getFunctionsInstance,
@@ -390,7 +451,7 @@ describe('callCallable limited-use App Check throttle fallback', () => {
       requestData: { a: 1 },
     });
     const failureReports = captureException.mock.calls.filter(
-      ([, ctx]) => (ctx as Record<string, unknown>).limitedUseAppCheckFallback !== true,
+      ([, ctx]) => ctx.limitedUseAppCheckFallback !== true,
     );
     expect(failureReports).toHaveLength(1);
     expect(failureReports[0][0]).toBe(retryFailure);
@@ -445,8 +506,8 @@ describe('callCallable — acquiring Functions from the provider', () => {
   });
 
   it('reports a provider with no instance once to capture and once to onError, then rejects', async () => {
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
     await expect(
       callCallable(() => null, 'fn', { secret: 'x' }, { onError, captureException }),
     ).rejects.toThrow('Firebase Functions is not available');
@@ -459,8 +520,8 @@ describe('callCallable — acquiring Functions from the provider', () => {
 
   it('reports a throwing provider once to capture and once to onError, rethrowing its error', async () => {
     const thrown = new Error('init failed');
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
     await expect(
       callCallable(
         () => {
@@ -486,8 +547,8 @@ describe('callCallable — the provider and the deadline', () => {
 
   it('rejects a provider that never answers once the deadline passes, reporting it once', async () => {
     vi.useFakeTimers();
-    const onError = vi.fn();
-    const captureException = vi.fn();
+    const onError = vi.fn<OnError>();
+    const captureException = vi.fn<CaptureException>();
     const call = callCallable(
       () => new Promise<never>(() => {}),
       'fn',

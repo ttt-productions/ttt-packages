@@ -8,9 +8,9 @@ import type { ModerationAdapter } from '../src/moderation/types.js';
 import type { processMedia } from '../src/process-media.js';
 
 const processMediaMock = vi.fn<typeof processMedia>();
-vi.mock('../src/process-media.js', async (importOriginal) => {
-  const { passThroughModule } = await import('../../../test/typed-mock.js');
-  return passThroughModule<typeof import('../src/process-media.js')>(importOriginal, {
+vi.mock(import('../src/process-media.js'), async (importOriginal) => {
+  const { passThroughModule } = await import('@ttt-productions/dev-standards/testing');
+  return passThroughModule(importOriginal, {
     processMedia: (...args) => processMediaMock(...args),
   });
 });

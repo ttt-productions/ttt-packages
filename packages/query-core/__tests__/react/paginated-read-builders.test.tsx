@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { firestoreError } from '@ttt-productions/firebase-helpers/firestore-client/testing';
 
 const store = await vi.hoisted(async () => {
@@ -11,12 +9,12 @@ const store = await vi.hoisted(async () => {
   return makeInMemoryClientFirestore();
 });
 
-vi.mock('firebase/firestore', async (importOriginal) => {
+vi.mock(import('firebase/firestore'), async (importOriginal) => {
   const { clientFirestoreFake } = await import('../../../../test/client-firestore-fake.js');
   return clientFirestoreFake(importOriginal, store);
 });
 
-import { FirestoreProvider } from '../../src/react/firestore/context.js';
+import { firestoreTestWrapper } from '../../src/react/testing/firestore-test-wrapper.js';
 import { useFirestorePaginated } from '../../src/react/firestore/use-firestore-paginated.js';
 import {
   answeredPaginatedRead,
@@ -62,12 +60,7 @@ const FIRST_PAGE = [
 ];
 
 function renderPaginated() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>
-      <FirestoreProvider db={store.db}>{children}</FirestoreProvider>
-    </QueryClientProvider>
-  );
+  const { Wrapper: wrapper } = firestoreTestWrapper(store.db);
   return renderHook(
     () =>
       useFirestorePaginated<Item>({
