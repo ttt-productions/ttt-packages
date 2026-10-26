@@ -144,6 +144,10 @@ export const infiniteRead = <TPage, TParam, TData = InfiniteData<TPage, TParam>>
   spec: InfiniteReadSpec<TPage, TParam, TData> & { pages: TPage[] },
 ): BuiltInfiniteRead<TData> => observedInfinite(spec, {});
 
+export const idleInfiniteRead = <TPage, TParam, TData = InfiniteData<TPage, TParam>>(
+  spec: Omit<InfiniteReadSpec<TPage, TParam, TData>, 'pages'>,
+): BuiltInfiniteRead<TData> => observedInfinite(spec, {});
+
 export const loadingInfiniteRead = <TPage, TParam, TData = InfiniteData<TPage, TParam>>(
   spec: Omit<InfiniteReadSpec<TPage, TParam, TData>, 'pages'>,
 ): BuiltInfiniteRead<TData> => observedInfinite(spec, { fetchStatus: 'fetching' });

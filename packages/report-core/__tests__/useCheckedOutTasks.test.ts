@@ -153,6 +153,8 @@ describe('useCheckedOutTasks', () => {
         ],
         limit: Infinity,
         limitToLast: false,
+        startAt: null,
+        endAt: null,
         includeMetadataChanges: true,
       },
     ]);

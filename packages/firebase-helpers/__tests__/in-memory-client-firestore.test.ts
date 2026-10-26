@@ -250,7 +250,24 @@ describe('getDocs evaluates the real query', () => {
         orders: [{ field: 'n', direction: 'desc' }],
         limit: 1,
         limitToLast: false,
+        startAt: null,
+        endAt: null,
         includeMetadataChanges: false,
+      },
+    ]);
+  });
+
+  it("logs a query's cursors, so a case whose rule is the page bound can assert it", async () => {
+    await run(fs.orderBy('n'), fs.startAfter(2), fs.endBefore(9));
+    await run(fs.orderBy('n'), fs.startAt(4), fs.endAt(6));
+    expect(store.queries()).toMatchObject([
+      {
+        startAt: { position: [{ t: 'num', v: 2 }], inclusive: false },
+        endAt: { position: [{ t: 'num', v: 9 }], inclusive: false },
+      },
+      {
+        startAt: { position: [{ t: 'num', v: 4 }], inclusive: true },
+        endAt: { position: [{ t: 'num', v: 6 }], inclusive: true },
       },
     ]);
   });
@@ -274,6 +291,37 @@ describe('getDocs evaluates the real query', () => {
       },
       { kind: 'query', path: 'works', limit: 1, limitToLast: true },
     ]);
+  });
+});
+
+describe('a field path whose segment is not a plain identifier', () => {
+  beforeEach(() => {
+    store.seed('works/w1', { members: { 'user-a': 1, 'odd`key\\x': 'q' } });
+    store.seed('works/w2', { members: { 'user-b': 2 } });
+  });
+
+  it('matches a filter on a dashed map key, as the SDK quotes it', async () => {
+    const snapshot = await store.reads.getDocs(
+      fs.query(fs.collection(store.db, 'works'), fs.where('members.user-a', '==', 1)),
+    );
+    expect(ids(snapshot)).toEqual(['w1']);
+  });
+
+  it('reads a segment holding a backtick and a backslash', async () => {
+    const snapshot = await store.reads.getDocs(
+      fs.query(
+        fs.collection(store.db, 'works'),
+        fs.where(new fs.FieldPath('members', 'odd`key\\x'), '==', 'q'),
+      ),
+    );
+    expect(ids(snapshot)).toEqual(['w1']);
+  });
+
+  it('orders on a quoted segment, leaving out a document that lacks it', async () => {
+    const snapshot = await store.reads.getDocs(
+      fs.query(fs.collection(store.db, 'works'), fs.orderBy('members.user-b')),
+    );
+    expect(ids(snapshot)).toEqual(['w2']);
   });
 });
 

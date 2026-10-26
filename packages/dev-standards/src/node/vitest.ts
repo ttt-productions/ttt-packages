@@ -1,9 +1,10 @@
 import { resolve } from 'node:path';
-import type { ViteUserConfig } from 'vitest/config';
+import type { TestProjectConfiguration, ViteUserConfig } from 'vitest/config';
 
 export interface AppVitestOptions {
   root: string;
   exclude?: readonly string[];
+  browserEntryTests?: readonly string[];
 }
 
 export interface FunctionsVitestOptions {
@@ -16,9 +17,26 @@ export interface RulesVitestOptions {
 
 const srcAlias = (root: string) => ({ '@': resolve(root, './src') });
 
+function browserEntryProject(include: string[]): TestProjectConfiguration {
+  return {
+    extends: true,
+    // Node's loader cannot run a browser build's extensionless imports, so every dependency goes
+    // through Vite here.
+    resolve: { conditions: ['browser'] },
+    test: {
+      name: 'app-browser',
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
+      include,
+      server: { deps: { inline: true } },
+    },
+  };
+}
+
 export async function createAppVitestConfig(options: AppVitestOptions): Promise<ViteUserConfig> {
   // Imported here: the Functions tree loads this module without @vitejs/plugin-react installed.
   const { default: react } = await import('@vitejs/plugin-react');
+  const browserEntryTests = [...(options.browserEntryTests ?? [])];
   return {
     plugins: [react()],
     test: {
@@ -43,9 +61,10 @@ export async function createAppVitestConfig(options: AppVitestOptions): Promise<
             name: 'app',
             environment: 'jsdom',
             setupFiles: ['./src/test/setup.ts'],
-            exclude: ['**/src/__tests__/guards/**'],
+            exclude: ['**/src/__tests__/guards/**', ...browserEntryTests],
           },
         },
+        ...(browserEntryTests.length ? [browserEntryProject(browserEntryTests)] : []),
         {
           extends: true,
           test: {

@@ -65,6 +65,32 @@ describe('createAppVitestConfig', () => {
   });
 });
 
+describe('createAppVitestConfig — browser-entry tests', () => {
+  it('runs the named tests on the browser build in their own project, and no longer in app', async () => {
+    const { test } = await createAppVitestConfig({
+      root,
+      browserEntryTests: ['src/__tests__/entry-client*.test.ts'],
+    });
+    const projects = test?.projects as Array<{ test: { name: string; exclude?: string[] } }>;
+    expect(projects.map((p) => p.test.name)).toEqual(['app', 'app-browser', 'guards']);
+    expect(projects[0].test.exclude).toEqual([
+      '**/src/__tests__/guards/**',
+      'src/__tests__/entry-client*.test.ts',
+    ]);
+    expect(projects[1]).toEqual({
+      extends: true,
+      resolve: { conditions: ['browser'] },
+      test: {
+        name: 'app-browser',
+        environment: 'jsdom',
+        setupFiles: ['./src/test/setup.ts'],
+        include: ['src/__tests__/entry-client*.test.ts'],
+        server: { deps: { inline: true } },
+      },
+    });
+  });
+});
+
 describe('createFunctionsVitestConfig', () => {
   it('builds the Functions config with the app inline packages', () => {
     expect(createFunctionsVitestConfig({ inline: ['@scope/a', '@scope/b'] })).toEqual({

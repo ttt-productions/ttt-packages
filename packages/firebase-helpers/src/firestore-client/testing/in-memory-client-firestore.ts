@@ -26,6 +26,7 @@ import {
   describeQuery,
   isDocumentSnapshotOf,
   missingDocumentSnapshot,
+  type DescribedBound,
   type DescribedOrder,
   type DescribedPredicate,
   type DescribedQuery,
@@ -62,6 +63,8 @@ export interface ExecutedClientRead {
   orders: readonly DescribedOrder[];
   limit: number;
   limitToLast: boolean;
+  startAt: DescribedBound | null;
+  endAt: DescribedBound | null;
   includeMetadataChanges: boolean;
 }
 
@@ -217,6 +220,8 @@ function readOf(kind: ExecutedClientRead['kind'], listen: boolean, query: Descri
     orders: query.orders,
     limit: query.limit ?? Infinity,
     limitToLast: query.limitToLast,
+    startAt: query.startAt,
+    endAt: query.endAt,
     includeMetadataChanges: false,
   } satisfies ExecutedClientRead;
 }
@@ -230,6 +235,8 @@ const docRead = (path: string, listen: boolean): ExecutedClientRead => ({
   orders: [],
   limit: 1,
   limitToLast: false,
+  startAt: null,
+  endAt: null,
   includeMetadataChanges: false,
 });
 

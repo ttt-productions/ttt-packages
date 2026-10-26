@@ -163,3 +163,80 @@ export const firestoreRuntimeInUiGuard: GenericGuardDefinition<FirestoreRuntimeI
     ];
   },
 };
+
+const CLIENT_WRITES = new Set([
+  'setDoc',
+  'updateDoc',
+  'deleteDoc',
+  'addDoc',
+  'writeBatch',
+  'runTransaction',
+]);
+
+export interface FirestoreClientWritesFacts {
+  sanctioned: readonly Reviewed[];
+}
+
+export function firestoreClientWriteHits(file: FileView): Hit[] {
+  const source = file.sourceFile;
+  const hits: Hit[] = [];
+  const namespaces = new Set<string>();
+  for (const site of moduleImports(source, ['import', 'export'])) {
+    if (!FIRESTORE_SDK.test(site.spec) || site.typeOnly) continue;
+    if (site.namespace) namespaces.add(site.namespace);
+    for (const name of site.named)
+      if (!name.typeOnly && CLIENT_WRITES.has(name.imported))
+        hits.push({
+          index: site.node.getStart(source),
+          detail: `${name.imported} from '${site.spec}'`,
+        });
+  }
+  forEachNode(source, (node) => {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      namespaces.has(node.expression.text) &&
+      CLIENT_WRITES.has(node.name.text)
+    )
+      hits.push({ index: node.getStart(source), detail: node.getText(source) });
+  });
+  return hits;
+}
+
+export const firestoreClientWritesGuard: GenericGuardDefinition<FirestoreClientWritesFacts> = {
+  id: 'firestoreClientWrites',
+  absentWhen: 'the app stores nothing in Firestore',
+  factProblems(facts) {
+    const problems: string[] = [];
+    reviewedProblems(facts?.sanctioned, 'sanctioned', problems);
+    return problems;
+  },
+  build(facts) {
+    return [
+      reviewedAllowlist({
+        title: 'the client never writes Firestore',
+        description:
+          'Every write goes through a callable that checks it on the server; a client SDK write skips that check and ' +
+          'every rule the callable enforces. Flagged: a runtime import of a Firestore write function (' +
+          `${[...CLIENT_WRITES].join(', ')}) from the Firestore SDK, or a call to one through a namespace import, in ` +
+          "the app's client source. Fix: call the callable that owns the write. A sanctioned site is a reviewed entry " +
+          'with its why; one that no longer writes is stale.',
+        scope: APP_SOURCE,
+        match: firestoreClientWriteHits,
+        allowlist: facts.sanctioned,
+        samples: {
+          flags: [
+            "import { doc, setDoc } from 'firebase/firestore';",
+            "import { writeBatch as batchOf } from 'firebase/firestore';",
+            "import * as fs from 'firebase/firestore';\nawait fs.updateDoc(ref, patch);",
+          ],
+          passes: [
+            "import { doc, getDoc, onSnapshot } from 'firebase/firestore';",
+            "import { type WriteBatch } from 'firebase/firestore';",
+            'await callable({ id });',
+          ],
+        },
+      }),
+    ];
+  },
+};

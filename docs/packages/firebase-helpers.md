@@ -95,7 +95,8 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   `getDoc`, `getDocFromServer`, `getDocs`, `getDocsFromServer`, `getCountFromServer`, and
   `onSnapshot` (every overload) from seeded documents, typed exactly as `firebase/firestore`'s, so
   a suite mocks only those reads and builds every reference and query with the real SDK — an
-  invalid query fails as in production. It evaluates the real query (each filter operator,
+  invalid query fails as in production. It evaluates the real query (each filter operator on any field path, a segment the SDK
+  backtick-quotes — a map key with a dash — included,
   composite filters, the normalized order with documents missing an order field left out,
   `limit` / `limitToLast`, and cursors), and answers real SDK snapshots built from Firestore's
   bundle format, with the reference's converter, `fromCache` false, and real `Timestamp`s, so a
@@ -107,7 +108,9 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   (`answerFromCache` / `answerFromServer` — a listener that asked for metadata changes hears each
   switch, as in the SDK), hold a read's answer, or run after it — `firestoreError(code,
   message)` builds the SDK's own error for them — and `queries()` logs every read's path, filters,
-  orders, limit, and whether a listener asked for metadata changes, for a case whose rule is the
+  orders, limit, start and end cursors (each bound's position and whether it is inclusive —
+  `startAt` / `endAt` are, `startAfter` / `endBefore` are not), and whether a listener asked for
+  metadata changes, for a case whose rule is the
   query's shape. The SDK's built query, its missing-document and count snapshots, a cached
   answer's metadata, and a later answer's changes have no public reader or constructor, so one
   module reads them, and its test fails the moment an SDK upgrade changes them.

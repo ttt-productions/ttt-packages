@@ -81,6 +81,7 @@ export const readStateOwnerGuard: GenericGuardDefinition<ReadStateOwnerFacts> = 
 
 export interface ReadRetryStateFacts {
   seat: FailureSeat;
+  controlPendingProp: string;
 }
 
 const FAILURE_FLAG = String.raw`[\w$.?]*\b(?:isError|error)\b`;
@@ -119,16 +120,23 @@ function retryStateExpressions(
   return found;
 }
 
-function readsFetchingFlag(
+const FAILURE_NAME = /^(?:isError|error)$/;
+
+function readsFetchingFlag(expression: ts.Node, file: FileView): boolean {
+  return readsFlag(expression, file, FETCHING_FLAG);
+}
+
+function readsFlag(
   expression: ts.Node,
   file: FileView,
+  flag: RegExp,
   seen: Set<string> = new Set(),
 ): boolean {
   let reads = false;
   const bound: string[] = [];
   forEachNode(expression, (node) => {
     if (!ts.isIdentifier(node) || reads) return;
-    if (FETCHING_FLAG.test(node.text)) reads = true;
+    if (flag.test(node.text)) reads = true;
     const parent = node.parent;
     const receiverOrCallee =
       (ts.isPropertyAccessExpression(parent) &&
@@ -148,7 +156,7 @@ function readsFetchingFlag(
         ts.isIdentifier(node.name) &&
         node.name.text === name &&
         node.propertyName &&
-        FETCHING_FLAG.test(fieldName(node.propertyName) ?? '')
+        flag.test(fieldName(node.propertyName) ?? '')
       ) {
         renamed = true;
       } else if (
@@ -168,8 +176,187 @@ function readsFetchingFlag(
       ts.isCallExpression(value) &&
       ts.isIdentifier(value.expression) &&
       (RETRY_STATE_HELPERS as readonly string[]).includes(value.expression.text);
-    return !fromHelper && readsFetchingFlag(value, file, seen);
+    return !fromHelper && readsFlag(value, file, flag, seen);
   });
+}
+
+function branchConditionsAbove(node: ts.Node): ts.Expression[] {
+  const conditions: ts.Expression[] = [];
+  for (let child = node, parent = node.parent; parent; child = parent, parent = parent.parent) {
+    if (ts.isIfStatement(parent) && parent.thenStatement === child)
+      conditions.push(parent.expression);
+    else if (ts.isConditionalExpression(parent) && parent.whenTrue === child)
+      conditions.push(parent.condition);
+    else if (
+      ts.isBinaryExpression(parent) &&
+      parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+      parent.right === child
+    )
+      conditions.push(parent.left);
+  }
+  return conditions;
+}
+
+export function failureBranchLivePending(file: FileView, controlPendingProp: string): Hit[] {
+  const sf = file.sourceFile;
+  const hits: Hit[] = [];
+  forEachNode(sf, (node) => {
+    if (
+      !ts.isJsxAttribute(node) ||
+      fieldName(node.name) !== controlPendingProp ||
+      !node.initializer ||
+      !ts.isJsxExpression(node.initializer) ||
+      !node.initializer.expression
+    )
+      return;
+    const pending = node.initializer.expression;
+    if (!readsFetchingFlag(pending, file)) return;
+    if (!branchConditionsAbove(node).some((c) => readsFlag(c, file, FAILURE_NAME))) return;
+    hits.push({
+      index: node.getStart(sf),
+      detail: `a failure's retry pending from a fetching flag: ${pending.getText(sf).replace(/\s+/g, ' ').slice(0, 120)}`,
+    });
+  });
+  return hits;
+}
+
+const LOADING_FIELD = 'isLoading';
+const READ_FAILURE_FIELDS = new Set(['error', 'isError', 'retryState']);
+const HELD_RECEIVER = /retry/i;
+
+interface Destructured {
+  field: string;
+  receiver: string;
+  scope: ts.Node;
+}
+
+type Bindings = Map<string, Destructured[]>;
+
+function scopeOf(node: ts.Node): ts.Node {
+  return enclosingFunctionOf(node) ?? node.getSourceFile();
+}
+
+function destructuredBindings(sf: ts.SourceFile): Bindings {
+  const bindings: Bindings = new Map();
+  forEachNode(sf, (node) => {
+    if (
+      !ts.isVariableDeclaration(node) ||
+      !ts.isObjectBindingPattern(node.name) ||
+      !node.initializer ||
+      !ts.isIdentifier(node.initializer)
+    )
+      return;
+    const receiver = node.initializer.text;
+    const scope = scopeOf(node);
+    for (const element of node.name.elements) {
+      if (!ts.isIdentifier(element.name)) continue;
+      const field = element.propertyName ? fieldName(element.propertyName) : element.name.text;
+      if (!field) continue;
+      const named = bindings.get(element.name.text) ?? [];
+      named.push({ field, receiver, scope });
+      bindings.set(element.name.text, named);
+    }
+  });
+  return bindings;
+}
+
+function declaresParameter(fn: ts.SignatureDeclaration, name: string): boolean {
+  let declares = false;
+  for (const parameter of fn.parameters)
+    forEachNode(parameter.name, (node) => {
+      if (ts.isIdentifier(node) && node.text === name) declares = true;
+    });
+  return declares;
+}
+
+function bindingFor(use: ts.Identifier, bindings: Bindings): Destructured | undefined {
+  const named = bindings.get(use.text);
+  if (!named) return undefined;
+  for (let scope: ts.Node | undefined = scopeOf(use); scope;) {
+    const found = named.find((binding) => binding.scope === scope);
+    if (found) return found;
+    if (ts.isFunctionLike(scope) && declaresParameter(scope, use.text)) return undefined;
+    scope = ts.isSourceFile(scope) ? undefined : scopeOf(scope);
+  }
+  return undefined;
+}
+
+function rootIdentifier(node: ts.Expression): string | null {
+  let current: ts.Expression = node;
+  while (ts.isPropertyAccessExpression(current) || ts.isNonNullExpression(current))
+    current = current.expression;
+  return ts.isIdentifier(current) ? current.text : null;
+}
+
+interface ReadField {
+  receiver: string;
+  index: number;
+}
+
+function readFieldsIn(
+  scope: ts.Node,
+  bindings: Bindings,
+  wanted: (field: string) => boolean,
+): ReadField[] {
+  const sf = scope.getSourceFile();
+  const found: ReadField[] = [];
+  forEachNode(scope, (node) => {
+    if (ts.isPropertyAccessExpression(node) && wanted(node.name.text)) {
+      const receiver = rootIdentifier(node.expression);
+      if (receiver && !HELD_RECEIVER.test(node.expression.getText(sf)))
+        found.push({ receiver, index: node.getStart(sf) });
+    } else if (
+      ts.isIdentifier(node) &&
+      !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)
+    ) {
+      const bound = bindingFor(node, bindings);
+      if (bound && wanted(bound.field) && !HELD_RECEIVER.test(bound.receiver))
+        found.push({ receiver: bound.receiver, index: node.getStart(sf) });
+    }
+  });
+  return found;
+}
+
+function enclosingFunctionOf(node: ts.Node): ts.Node | undefined {
+  for (let p = node.parent; p; p = p.parent) if (ts.isFunctionLike(p)) return p;
+  return undefined;
+}
+
+function branchCondition(node: ts.Node): ts.Expression | undefined {
+  if (ts.isIfStatement(node)) return node.expression;
+  if (ts.isConditionalExpression(node)) return node.condition;
+  if (
+    ts.isBinaryExpression(node) &&
+    node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+    ts.isJsxExpression(node.parent)
+  )
+    return node.left;
+  return undefined;
+}
+
+export function liveLoadingBeforeFailure(file: FileView): Hit[] {
+  const sf = file.sourceFile;
+  const bindings = destructuredBindings(sf);
+  const isLoading = (field: string) => field === LOADING_FIELD;
+  const isFailure = (field: string) => READ_FAILURE_FIELDS.has(field);
+  const hits: Hit[] = [];
+  forEachNode(sf, (node) => {
+    const condition = branchCondition(node);
+    const fn = condition && enclosingFunctionOf(node);
+    if (!condition || !fn) return;
+    const tested = new Set(readFieldsIn(condition, bindings, isFailure).map((r) => r.receiver));
+    const end = condition.getEnd();
+    const later = readFieldsIn(fn, bindings, isFailure).filter((r) => r.index >= end);
+    const loading = readFieldsIn(condition, bindings, isLoading).find(
+      (r) => !tested.has(r.receiver) && later.some((f) => f.receiver === r.receiver),
+    );
+    if (loading)
+      hits.push({
+        index: loading.index,
+        detail: `a live loading flag tested before the read's failure: ${condition.getText(sf).replace(/\s+/g, ' ').slice(0, 120)}`,
+      });
+  });
+  return hits;
 }
 
 export function liveFlagRetryStates(file: FileView, seat: FailureSeat): Hit[] {
@@ -269,7 +456,11 @@ export function seatRetriesWithoutPending(file: FileView, seat: FailureSeat): Hi
 export const readRetryStateGuard: GenericGuardDefinition<ReadRetryStateFacts> = {
   id: 'readRetryState',
   absentWhen: false,
-  factProblems: (facts) => seatProblems(facts?.seat),
+  factProblems(facts) {
+    const problems = seatProblems(facts?.seat);
+    identifierProblem(facts?.controlPendingProp, 'controlPendingProp', problems);
+    return problems;
+  },
   build: (facts) => [
     {
       title: "a read's retry state comes from its one owner, never the live fetching flags",
@@ -280,7 +471,9 @@ export const readRetryStateGuard: GenericGuardDefinition<ReadRetryStateFacts> = 
         `(exposed from the read's hook) and pass its ${RETRY_STATE_FIELD}; a lookup hands out its held ${HELD_ANSWER_FIELD}, and a hook ` +
         `that answers with a status gives its failed answer the held ${HELD_ANSWER_FIELD} beside the error, never one built from a ` +
         `fetching flag; and every <${facts.seat.component}> given ${facts.seat.retryProp} also takes ${facts.seat.pendingProp}, so the ` +
-        'pressed retry shows it is running.',
+        `pressed retry shows it is running. The same live flags decide no failure surface: a control's ${facts.controlPendingProp} ` +
+        "inside a failure branch reads the held isRetrying, never a fetching flag, and a branch never tests a read's live isLoading " +
+        "ahead of that read's failure — the held retryState decides the failure first, then its isLoading.",
       run(context: GuardContext): Finding[] {
         const findings: Finding[] = [];
         for (const file of context.files(APP_CODE)) {
@@ -288,6 +481,8 @@ export const readRetryStateGuard: GenericGuardDefinition<ReadRetryStateFacts> = 
             ...liveFlagRetryStates(file, facts.seat),
             ...seatRetriesWithoutPending(file, facts.seat),
             ...failedAnswersWithoutRetrying(file),
+            ...failureBranchLivePending(file, facts.controlPendingProp),
+            ...liveLoadingBeforeFailure(file),
           ];
           for (const hit of hits) {
             findings.push({

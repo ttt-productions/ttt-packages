@@ -117,10 +117,10 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-101 | React Query owns all server state | codebase-hygiene 1; performance-audit 4, 5 | `callableReads` |
 | RULE-STD-FRONTEND-102 | Query keys come from `<QUERY_KEYS_MODULE>`; freshness from `STALE_TIMES` | codebase-hygiene 1, 2, 17; performance-audit 4 | `queryKeys`, `authScopedKeys` |
 | RULE-STD-FRONTEND-103 | Invalidation is registry-owned; infinite feeds are patched, never invalidated | codebase-hygiene 1, 2, 3, 114; performance-audit 4; ux-audit 6 | `domainEventRegistry`, `queryCache` |
-| RULE-STD-FRONTEND-104 | Components never import `firebase/firestore` directly | codebase-hygiene 7, 91; client-write-security-audit 1; performance-audit 5 | `firestoreRuntimeInUi`, `firestoreLiveSubscriptions` |
+| RULE-STD-FRONTEND-104 | Components never import `firebase/firestore` directly | codebase-hygiene 7, 91; client-write-security-audit 1; performance-audit 5 | `firestoreRuntimeInUi`, `firestoreLiveSubscriptions`, `firestoreClientWrites` |
 | RULE-STD-FRONTEND-105 | One callable invocation path; never raw `httpsCallable` | codebase-hygiene 31, 60; observability 6; ux-audit 8, 11; package-boundaries 5 | `callableTransport`, `callableNames`, `callableDoubleSurface` |
 | RULE-STD-FRONTEND-106 | Gated actions go through the canonical auth gate | codebase-hygiene 36, 101; auth-boundary 9 | `clientAuthBoundary`, `bannedAuthCalls` |
-| RULE-STD-FRONTEND-107 | The client never writes sensitive state | codebase-hygiene 21; client-write-security-audit 1, 2, 4; data-integrity 4; firestore-storage-rules 7 | — |
+| RULE-STD-FRONTEND-107 | The client never writes sensitive state | codebase-hygiene 21; client-write-security-audit 1, 2, 4; data-integrity 4; firestore-storage-rules 7 | `firestoreClientWrites` |
 | RULE-STD-FRONTEND-108 | Auth-scoped subscribers reset on identity change | codebase-hygiene 35, 114; auth-boundary 14 | `authScopedKeys`, `signOutLiveness` |
 | RULE-STD-FRONTEND-109 | One owner per data-layer failure's user-facing copy; never a raw SDK string | codebase-hygiene 60; ux-audit 8 | `callableErrorCopy`, `readFailureCopy`, `errorInternalsRender` |
 | RULE-STD-FRONTEND-110 | An offered action mirrors the backend's predicate | codebase-hygiene 101, 108; auth-boundary 9 | — |

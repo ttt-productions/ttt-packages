@@ -55,7 +55,10 @@ config base by its subpath and reads the docs as files.
   included by the nearest `tsconfig.json`.
 - `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node). No base runs the tests
   of a file concurrently, and `test/boundary/dev-standards-vitest-bases.test.ts` fails if one sets
-  `concurrent`.
+  `concurrent`. `createAppVitestConfig`'s `browserEntryTests` names the app tests of a client
+  entry (the browser monitoring init): they run in an `app-browser` jsdom project that resolves
+  each package's `browser` build and puts every dependency through Vite, so the test loads the
+  build the client ships rather than a package's server build.
 - `@ttt-productions/dev-standards/node/playwright` — the Playwright base (Node).
 - `@ttt-productions/dev-standards/node/postcss` — the PostCSS base (Node).
 - `@ttt-productions/dev-standards/node/a11y` — the axe accessibility check for Playwright e2e:

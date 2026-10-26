@@ -72,7 +72,10 @@ describe('read failures render only through the read-state module', () => {
 });
 
 describe("a read's retry state comes from its one owner, never the live fetching flags", () => {
-  const facts = { seat: { component: 'Seat', retryProp: 'onRetry', pendingProp: 'retrying' } };
+  const facts = {
+    seat: { component: 'Seat', retryProp: 'onRetry', pendingProp: 'retrying' },
+    controlPendingProp: 'pending',
+  };
 
   it('passes the held retry state, a load-more pending, a spread, and prose', async () => {
     const findings = await runOne(readRetryStateGuard, facts, {
@@ -222,13 +225,134 @@ describe("a read's retry state comes from its one owner, never the live fetching
     ]);
   });
 
-  it('refuses a seat with a missing prop name', () => {
+  it("passes a failure control pending on the held retry, a refresh control's pending, and a held loading branch", async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/components/follow.tsx': [
+        'function Follow() {',
+        '  const state = useFollowState(id);',
+        '  if (state.data === undefined && state.retryState.error !== null)',
+        '    return <Button onClick={retry} pending={state.retryState.isRetrying} />;',
+        '  return <Button onClick={refresh} pending={state.isFetching} />;',
+        '}',
+      ].join('\n'),
+      'src/components/form.tsx': [
+        'function Form() {',
+        '  const privateData = usePrivateData();',
+        '  if (privateData.data === undefined && privateData.retryState.error !== null)',
+        '    return <ReadFailure read={privateData} />;',
+        '  if (privateData.retryState.isLoading) return <LoadingState />;',
+        '  const { isLoading: sourceLoading } = source;',
+        '  if (sourceLoading && source.retryState.error === null) return <LoadingState />;',
+        '  return <ReadFailure read={source} />;',
+        '}',
+      ].join('\n'),
+      'src/components/pager.tsx':
+        'function Pager() {\n  const { isLoading } = rows;\n  return isLoading ? <LoadingState /> : <Rows rows={rows.data} />;\n}',
+      'src/components/shadowed.tsx': [
+        'function Outer() {',
+        '  const { isLoading } = rows;',
+        '  return <Inner isLoading={isLoading} />;',
+        '}',
+        'function Inner({ isLoading }) {',
+        '  if (isLoading) return <LoadingState />;',
+        '  return <ReadFailure error={rows.error} />;',
+        '}',
+      ].join('\n'),
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('flags a failure control pending on a fetching flag, reached directly or through a binding', async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/components/a.tsx': [
+        'function A() {',
+        '  const failed = state.isError && state.data === undefined;',
+        '  if (failed) {',
+        '    return <Button onClick={retry} pending={state.isRefetching} />;',
+        '  }',
+        '  return null;',
+        '}',
+      ].join('\n'),
+      'src/components/b.tsx':
+        'function B() {\n  return status.error ? <Button pending={status.isFetching} /> : null;\n}',
+      'src/components/c.tsx':
+        'function C() {\n  return <>{q.isError && <Button pending={q.isRefetching} />}</>;\n}',
+    });
+    expect(findings).toEqual([
+      {
+        file: 'src/components/a.tsx',
+        line: 4,
+        detail: "a failure's retry pending from a fetching flag: state.isRefetching",
+      },
+      {
+        file: 'src/components/b.tsx',
+        line: 2,
+        detail: "a failure's retry pending from a fetching flag: status.isFetching",
+      },
+      {
+        file: 'src/components/c.tsx',
+        line: 2,
+        detail: "a failure's retry pending from a fetching flag: q.isRefetching",
+      },
+    ]);
+  });
+
+  it("flags a branch on a read's live isLoading ahead of that read's failure, read or destructured", async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/components/a.tsx': [
+        'function A() {',
+        '  const { data, isLoading: privateLoading } = privateData;',
+        '  if (user === undefined || privateLoading) return <LoadingState />;',
+        '  if (data === undefined && privateData.retryState.error !== null)',
+        '    return <ReadFailure read={privateData} />;',
+        '  return null;',
+        '}',
+      ].join('\n'),
+      'src/components/b.tsx': [
+        'function B() {',
+        '  const { isLoading: loading, error: failure } = read;',
+        '  return loading ? <LoadingState /> : <ReadFailure failure={{ error: failure }} />;',
+        '}',
+      ].join('\n'),
+      'src/components/c.tsx':
+        'function C() {\n  return section.isLoading ? <Skeleton /> : <ReadFailure error={section.error} />;\n}',
+    });
+    expect(findings).toEqual([
+      {
+        file: 'src/components/a.tsx',
+        line: 3,
+        detail:
+          "a live loading flag tested before the read's failure: user === undefined || privateLoading",
+      },
+      {
+        file: 'src/components/b.tsx',
+        line: 3,
+        detail: "a live loading flag tested before the read's failure: loading",
+      },
+      {
+        file: 'src/components/c.tsx',
+        line: 2,
+        detail: "a live loading flag tested before the read's failure: section.isLoading",
+      },
+    ]);
+  });
+
+  it('refuses a seat with a missing prop name, and no control pending prop', () => {
     expect(
       factProblemsOf(readRetryStateGuard, {
         seat: { component: 'Seat', retryProp: 'onRetry' },
+        controlPendingProp: 'pending',
       }),
     ).toEqual(['seat.pendingProp must be an identifier']);
-    expect(factProblemsOf(readRetryStateGuard, {})).toEqual(['seat is missing']);
+    expect(
+      factProblemsOf(readRetryStateGuard, {
+        seat: { component: 'Seat', retryProp: 'onRetry', pendingProp: 'retrying' },
+      }),
+    ).toEqual(['controlPendingProp must be an identifier']);
+    expect(factProblemsOf(readRetryStateGuard, {})).toEqual([
+      'seat is missing',
+      'controlPendingProp must be an identifier',
+    ]);
   });
 });
 

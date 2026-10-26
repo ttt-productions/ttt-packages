@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  firestoreClientWritesGuard,
   firestoreRuntimeInUiGuard,
   liveSubscriptionGuard,
 } from '../../src/modules/firestore/client-guards.js';
@@ -138,5 +139,56 @@ describe('no component or route imports the Firestore runtime', () => {
     expect(
       factProblemsOf(firestoreRuntimeInUiGuard, { sanctioned: [{ path: 'a.tsx', why: '' }] }),
     ).toEqual(['uiFolders is missing', 'sanctioned entry a.tsx carries no why']);
+  });
+});
+
+describe('the client never writes Firestore', () => {
+  const build = (sanctioned: Array<{ path: string; why: string }>) =>
+    firestoreClientWritesGuard.build({ sanctioned })[0];
+
+  it('proves its matcher on its samples', () => {
+    expect(() => checkSamples(build([]))).not.toThrow();
+  });
+
+  it('FLAGS each write function imported at runtime, renamed or not, re-exported, or called through a namespace', async () => {
+    const findings = await run(build([]), {
+      'src/hooks/a.ts': "import { doc, setDoc } from 'firebase/firestore';",
+      'src/hooks/b.ts': 'import {\n  writeBatch as batchOf,\n} from "firebase/firestore";',
+      'src/lib/c.ts':
+        "import * as fs from 'firebase/firestore';\nexport const save = () => fs.addDoc(ref, row);",
+      'src/lib/d.ts': "export { deleteDoc } from 'firebase/firestore';",
+      'src/lib/e.ts': "import { runTransaction, updateDoc } from 'firebase/firestore/lite';",
+    });
+    expect(lines(findings)).toEqual([
+      'src/hooks/a.ts:1',
+      'src/hooks/b.ts:1',
+      'src/lib/c.ts:2',
+      'src/lib/d.ts:1',
+      'src/lib/e.ts:1',
+      'src/lib/e.ts:1',
+    ]);
+  });
+
+  it('PASSES reads, type imports, and a sanctioned writer; FLAGS a stale sanctioned entry', async () => {
+    const findings = await run(
+      build([
+        { path: 'src/lib/offline-queue.ts', why: 'the one sanctioned client writer' },
+        { path: 'src/lib/old-writer.ts', why: 'moved to a callable' },
+      ]),
+      {
+        'src/hooks/reads.ts': "import { doc, getDoc, onSnapshot } from 'firebase/firestore';",
+        'src/hooks/typed.ts': "import { type WriteBatch } from 'firebase/firestore';",
+        'src/hooks/type-only.ts': "import type { Transaction } from 'firebase/firestore';",
+        'src/lib/offline-queue.ts': "import { setDoc } from 'firebase/firestore';",
+        'src/lib/old-writer.ts': 'export {};',
+      },
+    );
+    expect(lines(findings)).toEqual(['src/lib/old-writer.ts:-']);
+  });
+
+  it('refuses a sanctioned entry with no why', () => {
+    expect(
+      factProblemsOf(firestoreClientWritesGuard, { sanctioned: [{ path: 'a.ts', why: '' }] }),
+    ).toEqual(['sanctioned entry a.ts carries no why']);
   });
 });

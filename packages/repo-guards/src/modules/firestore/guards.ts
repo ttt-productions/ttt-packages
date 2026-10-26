@@ -1,7 +1,9 @@
 import type { Absent, GenericGuardDefinition } from '../../node/suite/config.js';
 import {
+  firestoreClientWritesGuard,
   firestoreRuntimeInUiGuard,
   liveSubscriptionGuard,
+  type FirestoreClientWritesFacts,
   type FirestoreRuntimeInUiFacts,
   type LiveSubscriptionFacts,
 } from './client-guards.js';
@@ -44,6 +46,7 @@ export type FirestoreGuardFacts = {
   firestoreCounterDecrements: NoFacts | Absent;
   firestoreLiveSubscriptions: LiveSubscriptionFacts | Absent;
   firestoreRuntimeInUi: FirestoreRuntimeInUiFacts | Absent;
+  firestoreClientWrites: FirestoreClientWritesFacts | Absent;
   firestoreRandomUuidSites: RandomUuidFacts | Absent;
   firestoreTimestampNow: NoFacts | Absent;
   rulesClaimNames: RulesClaimFacts;
@@ -63,6 +66,7 @@ export const FIRESTORE_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Ob
   counterDecrementGuard,
   liveSubscriptionGuard,
   firestoreRuntimeInUiGuard,
+  firestoreClientWritesGuard,
   randomUuidGuard,
   timestampNowGuard,
   rulesClaimGuard,

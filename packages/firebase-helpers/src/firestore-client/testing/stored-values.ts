@@ -170,9 +170,28 @@ export function compareValues(a: ComparableValue, b: ComparableValue): number {
 export const sameValue = (a: ComparableValue, b: ComparableValue): boolean =>
   compareValues(a, b) === 0;
 
+// The SDK's canonical field path backtick-quotes a segment that is not a plain identifier and escapes
+// a backslash or backtick inside it with a backslash.
+export function fieldSegments(field: string): string[] {
+  const segments: string[] = [];
+  let segment = '';
+  let quoted = false;
+  for (let i = 0; i < field.length; i++) {
+    const char = field[i];
+    if (char === '\\' && i + 1 < field.length) segment += field[++i];
+    else if (char === '`') quoted = !quoted;
+    else if (char === '.' && !quoted) {
+      segments.push(segment);
+      segment = '';
+    } else segment += char;
+  }
+  segments.push(segment);
+  return segments;
+}
+
 export function fieldOf(data: Record<string, unknown>, field: string): unknown {
   let current: unknown = data;
-  for (const segment of field.split('.')) {
+  for (const segment of fieldSegments(field)) {
     if (!isRecord(current) || Array.isArray(current)) return undefined;
     current = current[segment];
   }

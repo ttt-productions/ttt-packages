@@ -23,6 +23,7 @@ import {
   fetchingInfiniteRead,
   fetchingNextPageRead,
   fetchingRead,
+  idleInfiniteRead,
   idleRead,
   infiniteRead,
   loadingInfiniteRead,
@@ -35,10 +36,13 @@ import {
   retryingRead,
 } from '../../src/react/testing/read-builders.js';
 import {
+  failedMutation,
+  failedSessionMutation,
   idleMutation,
   idleSessionMutation,
   pendingMutation,
   pendingSessionMutation,
+  sessionMutationContext,
 } from '../../src/react/testing/mutation-builders.js';
 
 const FLAGS = [
@@ -283,6 +287,20 @@ async function nextPageFailed(): Promise<DrivenInfinite> {
 }
 
 describe('every infinite read builder matches a real infinite query in that state', () => {
+  it('a disabled infinite read that never fetched', () => {
+    const client = new QueryClient();
+    const real = new InfiniteQueryObserver<
+      Page,
+      Error,
+      InfiniteData<Page, number>,
+      QueryKey,
+      number
+    >(client, { queryKey: ['off-infinite'], enabled: false, ...spec });
+    expect(infiniteFlagsOf(idleInfiniteRead(spec))).toEqual(
+      infiniteFlagsOf(real.getCurrentResult()),
+    );
+  });
+
   it('the first page in flight', () => {
     const real = drivenInfiniteQuery();
     expect(infiniteFlagsOf(loadingInfiniteRead(spec))).toEqual(
@@ -446,6 +464,57 @@ describe('every mutation builder matches a real mutation in that state', () => {
     expect(mutationFlagsOf(pendingSessionMutation<string, { id: string }>({ id: 'a' }))).toEqual(
       mutationFlagsOf(result.current),
     );
+  });
+
+  it('failed with the variables it ran with', async () => {
+    const real = new MutationObserver<string, Error, { id: string }>(new QueryClient(), {
+      mutationFn: () => Promise.reject(boom),
+    });
+    // The rejection is the failed state the case compares against.
+    await real.mutate({ id: 'a' }).catch(() => undefined);
+    expect(
+      mutationFlagsOf(await failedMutation<string, { id: string }>(boom, { id: 'a' })),
+    ).toEqual(mutationFlagsOf(real.getCurrentResult()));
+  });
+
+  it('a session mutation that failed, as useSessionMutation reports it', async () => {
+    const client = new QueryClient();
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>
+        <MutationSessionProvider currentUid="u1">{children}</MutationSessionProvider>
+      </QueryClientProvider>
+    );
+    const { result } = renderHook(
+      () =>
+        useSessionMutation<string, Error, { id: string }>({
+          mutationFn: () => Promise.reject(boom),
+        }),
+      { wrapper },
+    );
+    act(() => result.current.mutate({ id: 'a' }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(
+      mutationFlagsOf(await failedSessionMutation<string, { id: string }>(boom, { id: 'a' })),
+    ).toEqual(mutationFlagsOf(result.current));
+  });
+
+  it('carries the onMutate result type and the error type of the hook it stands in for', async () => {
+    const onMutateTyped: ReturnType<
+      typeof useSessionMutation<string, unknown, { id: string }, { previous: number }>
+    > = idleSessionMutation<string, { id: string }, { previous: number }, unknown>();
+    expect(onMutateTyped.isIdle).toBe(true);
+    const failed = await failedMutation<string, { id: string }, { previous: number }, unknown>(
+      'refused',
+      { id: 'a' },
+    );
+    expect(failed.error).toBe('refused');
+  });
+
+  it('hands a mutate callback the context of a current session', () => {
+    const context = sessionMutationContext('u1');
+    expect(context.session.uid).toBe('u1');
+    expect(context.session.isCurrent()).toBe(true);
+    expect(() => context.session.assertCurrent()).not.toThrow();
   });
 
   it('runs only the handlers the case gives it', async () => {
