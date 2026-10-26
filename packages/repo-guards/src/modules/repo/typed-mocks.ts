@@ -42,10 +42,16 @@ export interface TypedMockHelper {
   names: readonly string[];
 }
 
+export interface FakeCall {
+  name: string;
+  overridesArgument: number;
+}
+
 export interface ForbiddenOverride {
   module: string;
   names: readonly string[];
   why: string;
+  fakeCalls?: readonly FakeCall[];
 }
 
 export interface TypedMockFacts {
@@ -225,12 +231,32 @@ const isOriginalSpread = (expression: ts.Expression, original: string | null): b
 
 type OverrideRead = { name: string; node: ts.Node } | { unread: ts.Node };
 
-function overridesOf(returned: ts.Expression, original: string | null): OverrideRead[] {
+function calleeName(call: ts.CallExpression): string | null {
+  const callee = unwrap(call.expression);
+  if (ts.isIdentifier(callee)) return callee.text;
+  if (ts.isPropertyAccessExpression(callee)) return callee.name.text;
+  return null;
+}
+
+function overridesOf(
+  returned: ts.Expression,
+  original: string | null,
+  fakeCalls: ReadonlyMap<string, number>,
+): OverrideRead[] {
   const value = awaited(returned);
   const objects: ts.ObjectLiteralExpression[] = [];
   const out: OverrideRead[] = [];
+  const name = ts.isCallExpression(value) ? calleeName(value) : null;
+  const overridesAt = name === null ? undefined : fakeCalls.get(name);
   if (ts.isObjectLiteralExpression(value)) objects.push(value);
-  else if (ts.isCallExpression(value))
+  else if (ts.isCallExpression(value) && overridesAt !== undefined) {
+    const argument = value.arguments[overridesAt];
+    if (argument) {
+      const arg = unwrap(argument);
+      if (ts.isObjectLiteralExpression(arg)) objects.push(arg);
+      else out.push({ unread: arg });
+    }
+  } else if (ts.isCallExpression(value))
     for (const argument of value.arguments) {
       const arg = unwrap(argument);
       if (ts.isObjectLiteralExpression(arg)) objects.push(arg);
@@ -261,9 +287,12 @@ function checkForbidden(reader: RepoReader, facts: TypedMockFacts, files: FileVi
       const fn = factoryFunction(site.factory);
       if (!fn) continue;
       const forbidden = new Set(entry.names);
+      const fakeCalls = new Map(
+        (entry.fakeCalls ?? []).map((call) => [call.name, call.overridesArgument]),
+      );
       for (const returned of returnedExpressions(fn)) {
         if (!returned) continue;
-        for (const read of overridesOf(returned, parameterName(fn))) {
+        for (const read of overridesOf(returned, parameterName(fn), fakeCalls)) {
           if ('unread' in read) {
             findings.push({
               file: file.path,
@@ -319,6 +348,23 @@ function factProblems(facts: TypedMockFacts): string[] {
       seen.add(entry.module);
       namesProblem(entry.names, `forbiddenOverrides entry ${entry.module}'s names`, problems);
       textProblem(entry.why, `forbiddenOverrides entry ${entry.module}'s why`, problems);
+      if (entry.fakeCalls === undefined) continue;
+      if (!Array.isArray(entry.fakeCalls)) {
+        problems.push(`forbiddenOverrides entry ${entry.module}'s fakeCalls is not a list`);
+        continue;
+      }
+      for (const call of entry.fakeCalls as unknown[]) {
+        const fake = (call && typeof call === 'object' ? call : {}) as Record<string, unknown>;
+        if (!isText(fake.name)) problems.push(`a fakeCalls entry of ${entry.module} names no fake`);
+        if (
+          typeof fake.overridesArgument !== 'number' ||
+          !Number.isInteger(fake.overridesArgument) ||
+          fake.overridesArgument < 1
+        )
+          problems.push(
+            `fakeCalls entry ${String(fake.name)} of ${entry.module} needs overridesArgument, the position of its override object after importOriginal`,
+          );
+      }
     }
   }
   return problems;
@@ -351,7 +397,9 @@ export const typedMockGuard: GenericGuardDefinition<TypedMockFacts> = {
           'a stand-in that behaves differently on the path a case proves lets the case pass on behavior the app ' +
           'never has. The guard reads the names each override object sets at its top level; a spread of anything ' +
           'but the real module, a computed name, or an override object it cannot see fails, since it could hide a ' +
-          'listed one. Each entry names its module, the exports, and why the real one runs.',
+          'listed one. Each entry names its module, the exports, and why the real one runs. An entry may name ' +
+          'its shared fake’s calls with the position of their override object: for a call to that fake only that ' +
+          'argument is read, and the arguments before it are the fake’s state.',
         timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return checkForbidden(context.reader, facts, context.files(SCOPE));

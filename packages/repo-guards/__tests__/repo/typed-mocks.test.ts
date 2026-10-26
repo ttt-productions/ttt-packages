@@ -298,6 +298,80 @@ describe('no test overrides an export whose real behavior every test needs', () 
     });
     expect(forbidden).toEqual([]);
   });
+
+  describe('a shared fake whose state arguments come before its override object', () => {
+    const STORE_FAKE = 'src/test/fakes/data-kit.ts';
+    const DATA_FACTS: TypedMockFacts = {
+      ...FACTS,
+      fakes: [...FACTS.fakes, { module: '@scope/data-kit', owner: STORE_FAKE }],
+      forbiddenOverrides: [
+        {
+          module: '@scope/data-kit',
+          names: ['onSnapshot', 'getDoc'],
+          why: 'reads go through the in-memory store',
+          fakeCalls: [{ name: 'dataFake', overridesArgument: 2 }],
+        },
+      ],
+    };
+    const fakeFile = {
+      [STORE_FAKE]:
+        'export const dataFake = (io: unknown, store: unknown, overrides = {}) => ({ ...overrides });',
+    };
+
+    it('passes a call that hands the fake only its state, and one whose override object sets no listed name', async () => {
+      const { forbidden } = await findingsOf(
+        {
+          ...fakeFile,
+          'src/__tests__/a.test.tsx': [
+            "vi.mock(import('@scope/data-kit'), async (io) => (await import('@/test/fakes/data-kit')).dataFake(io, store));",
+            "vi.mock(import('@scope/data-kit'), async (io) => (await import('@/test/fakes/data-kit')).dataFake(io, store, { serverTimestamp }));",
+          ].join('\n'),
+        },
+        DATA_FACTS,
+      );
+      expect(forbidden).toEqual([]);
+    });
+
+    it('FLAGS a listed name in the override argument, and an override argument it cannot see', async () => {
+      const { forbidden } = await findingsOf(
+        {
+          ...fakeFile,
+          'src/__tests__/a.test.tsx': [
+            "vi.mock(import('@scope/data-kit'), async (io) => (await import('@/test/fakes/data-kit')).dataFake(io, store, { onSnapshot }));",
+            "vi.mock(import('@scope/data-kit'), async (io) => (await import('@/test/fakes/data-kit')).dataFake(io, store, overrides));",
+          ].join('\n'),
+        },
+        DATA_FACTS,
+      );
+      expectFindings(forbidden, [
+        {
+          file: 'src/__tests__/a.test.tsx',
+          line: 1,
+          detail: /^overrides @scope\/data-kit's onSnapshot — the real one runs/,
+        },
+        {
+          file: 'src/__tests__/a.test.tsx',
+          line: 2,
+          detail: /^overrides @scope\/data-kit through names the guard cannot read/,
+        },
+      ]);
+    });
+
+    it('still FLAGS a state argument handed to a fake the entry does not name', async () => {
+      const { forbidden } = await findingsOf(
+        {
+          ...fakeFile,
+          'src/__tests__/a.test.tsx':
+            "vi.mock(import('@scope/data-kit'), async (io) => (await import('@/test/fakes/data-kit')).dataFake(io, store));",
+        },
+        {
+          ...DATA_FACTS,
+          forbiddenOverrides: [{ ...DATA_FACTS.forbiddenOverrides[0], fakeCalls: [] }],
+        },
+      );
+      expect(forbidden.map(({ line }) => line)).toEqual([1]);
+    });
+  });
 });
 
 describe('typedMocks facts', () => {
@@ -315,5 +389,27 @@ describe('typedMocks facts', () => {
         forbiddenOverrides: [{ module: 'm', names: ['A'], why: '' }],
       }),
     ).toEqual(["forbiddenOverrides entry m's why is missing"]);
+  });
+
+  it('needs each fake call to name its fake and the position of its override object', () => {
+    expect(
+      factProblemsOf(typedMockGuard, {
+        ...FACTS,
+        forbiddenOverrides: [
+          {
+            module: 'm',
+            names: ['A'],
+            why: 'w',
+            fakeCalls: [
+              { name: '', overridesArgument: 2 },
+              { name: 'fake', overridesArgument: 0 },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([
+      'a fakeCalls entry of m names no fake',
+      'fakeCalls entry fake of m needs overridesArgument, the position of its override object after importOriginal',
+    ]);
   });
 });
