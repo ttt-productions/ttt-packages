@@ -23,7 +23,6 @@ export const NciiCaseV1Schema = z
     nciiRemovalDeadlineAt: z.number().optional(),
     closure: SafetyCaseClosureV1Schema.optional(),
     chatMessageLocator: TargetLocatorV1Schema.optional(),
-    contextResolutionPending: z.boolean().optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
   })

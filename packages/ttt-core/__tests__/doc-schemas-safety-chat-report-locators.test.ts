@@ -7,6 +7,7 @@ import {
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
 } from '../src/doc-schemas/safety/case.js';
+import { NciiCaseV1Schema } from '../src/doc-schemas/ncii/cases.js';
 import { SafetySlaMonitorKindSchema } from '../src/doc-schemas/safety/monitors.js';
 
 describe('TargetLocatorV1 — guildChatMessage', () => {
@@ -88,43 +89,6 @@ const BASE_CASE_LIST_DOC = {
   updatedAt: 1000,
 };
 
-describe('ChildSafetyCaseListV1 — contextResolutionPending', () => {
-  it('parses without contextResolutionPending (absent = false by convention)', () => {
-    const result = ChildSafetyCaseListV1Schema.safeParse(BASE_CASE_LIST_DOC);
-    expect(result.success).toBe(true);
-  });
-
-  it('parses with contextResolutionPending: true', () => {
-    const result = ChildSafetyCaseListV1Schema.safeParse({
-      ...BASE_CASE_LIST_DOC,
-      contextResolutionPending: true,
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.contextResolutionPending).toBe(true);
-    }
-  });
-
-  it('parses with contextResolutionPending: false', () => {
-    const result = ChildSafetyCaseListV1Schema.safeParse({
-      ...BASE_CASE_LIST_DOC,
-      contextResolutionPending: false,
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.contextResolutionPending).toBe(false);
-    }
-  });
-
-  it('rejects non-boolean contextResolutionPending', () => {
-    const result = ChildSafetyCaseListV1Schema.safeParse({
-      ...BASE_CASE_LIST_DOC,
-      contextResolutionPending: 'yes',
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
 const BASE_CASE_ROOT_DOC = {
   schemaVersion: 1 as const,
   caseId: 'case-1',
@@ -132,13 +96,13 @@ const BASE_CASE_ROOT_DOC = {
   currentReasonInternal: 'Child safety concern flagged',
 };
 
-describe('ChildSafetyCaseV1 — chatMessageLocator + contextResolutionPending', () => {
+describe('ChildSafetyCaseV1 — chatMessageLocator', () => {
   it('parses without the optional chat-report fields', () => {
     const result = ChildSafetyCaseV1Schema.safeParse(BASE_CASE_ROOT_DOC);
     expect(result.success).toBe(true);
   });
 
-  it('parses with guildChatMessage chatMessageLocator + contextResolutionPending: true', () => {
+  it('parses with a guildChatMessage chatMessageLocator', () => {
     const result = ChildSafetyCaseV1Schema.safeParse({
       ...BASE_CASE_ROOT_DOC,
       chatMessageLocator: {
@@ -146,12 +110,10 @@ describe('ChildSafetyCaseV1 — chatMessageLocator + contextResolutionPending', 
         channelId: 'wp-1/chan-abc',
         messageId: 'msg-123',
       },
-      contextResolutionPending: true,
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.chatMessageLocator).toMatchObject({ kind: 'guildChatMessage' });
-      expect(result.data.contextResolutionPending).toBe(true);
     }
   });
 
@@ -163,7 +125,6 @@ describe('ChildSafetyCaseV1 — chatMessageLocator + contextResolutionPending', 
         channelId: 'invite-chan',
         messageId: 'msg-123',
       },
-      contextResolutionPending: false,
     });
     expect(result.success).toBe(true);
   });
@@ -185,13 +146,30 @@ describe('ChildSafetyCaseV1 — chatMessageLocator + contextResolutionPending', 
     });
     expect(result.success).toBe(false);
   });
+});
 
-  it('contextResolutionPending: false on a normal (non-pending) media case is valid', () => {
-    const result = ChildSafetyCaseV1Schema.safeParse({
-      ...BASE_CASE_ROOT_DOC,
-      contextResolutionPending: false,
-    });
-    expect(result.success).toBe(true);
+const BASE_NCII_CASE_DOC = {
+  schemaVersion: 1 as const,
+  caseId: 'ncii-1',
+  revision: 0,
+  lane: 'ncii' as const,
+  internalStatus: 'open' as const,
+  childSafetyLinkStatus: 'none' as const,
+  crossover: { minorAssessment: 'unknown' as const, csamAssessment: 'notAssessed' as const },
+  createdAt: 1000,
+  updatedAt: 1000,
+};
+
+describe('a protected chat case opens complete, with no context-pending marker', () => {
+  const cases = [
+    ['case list', ChildSafetyCaseListV1Schema, BASE_CASE_LIST_DOC],
+    ['case root', ChildSafetyCaseV1Schema, BASE_CASE_ROOT_DOC],
+    ['NCII case', NciiCaseV1Schema, BASE_NCII_CASE_DOC],
+  ] as const;
+
+  it.each(cases)('a %s carrying contextResolutionPending does not parse', (_name, schema, doc) => {
+    expect(schema.safeParse(doc).success).toBe(true);
+    expect(schema.safeParse({ ...doc, contextResolutionPending: false }).success).toBe(false);
   });
 });
 

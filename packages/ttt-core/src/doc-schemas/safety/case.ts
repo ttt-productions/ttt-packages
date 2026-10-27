@@ -166,7 +166,6 @@ export const ChildSafetyCaseListV1Schema = z
     preserveUntil: z.number().optional(),
     openHoldCount: z.number(),
     relatedCaseIds: z.array(z.string().min(1)).optional(),
-    contextResolutionPending: z.boolean().optional(),
     testListDrill: z.literal(true).optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
@@ -185,7 +184,6 @@ export const ChildSafetyCaseV1Schema = z
     fencingOwnerToken: z.string().min(1).optional(),
     fencingGeneration: z.number().optional(),
     chatMessageLocator: TargetLocatorV1Schema.optional(),
-    contextResolutionPending: z.boolean().optional(),
     crossoverLegs: z
       .object({
         servingDeny: SafetyCrossoverLegStatusSchema.optional(),

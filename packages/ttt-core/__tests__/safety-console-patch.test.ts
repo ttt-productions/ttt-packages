@@ -80,7 +80,7 @@ describe('the console patch an action answers with', () => {
 describe('every console action answers with its console patch when it could read it', () => {
   const console = patch([]);
 
-  it('the six console actions carry the patch when it was read, and still succeed without it', () => {
+  it('the five console actions carry the patch when it was read, and still succeed without it', () => {
     const answers: [
       { safeParse: (v: unknown) => { success: boolean } },
       Record<string, unknown>,
@@ -93,7 +93,6 @@ describe('every console action answers with its console patch when it could read
         safety.SetNciiMinorAssessmentResultSchema,
         { ok: true, caseId: 'n1', from: 'unknown', to: 'adult', servingDenied: false },
       ],
-      [safety.RefetchProtectedCaseContextResultSchema, { resolved: false, reason: 'no-epoch' }],
       [
         safety.MarkNcmecPortalCompleteResultSchema,
         { success: true, state: 'completed', alreadyCompleted: false },

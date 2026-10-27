@@ -277,16 +277,6 @@ export const SetNciiMinorAssessmentResultSchema = z.object({
 });
 export type SetNciiMinorAssessmentResult = z.infer<typeof SetNciiMinorAssessmentResultSchema>;
 
-export const RefetchProtectedCaseContextResultSchema = z.object({
-  resolved: z.boolean(),
-  senderUid: z.string().min(1).optional(),
-  reason: z.string().min(1).optional(),
-  console: SafetyCaseConsolePatchSchema.optional(),
-});
-export type RefetchProtectedCaseContextResult = z.infer<
-  typeof RefetchProtectedCaseContextResultSchema
->;
-
 export const MarkNcmecPortalCompleteResultSchema = z.object({
   success: z.literal(true),
   state: z.literal('completed'),
@@ -662,16 +652,6 @@ export const RevealCaseEvidenceResultSchema = z.object({
   noStore: z.literal(true),
 });
 export type RevealCaseEvidenceResult = z.infer<typeof RevealCaseEvidenceResultSchema>;
-
-export const RefetchProtectedCaseContextInputSchema = z
-  .object({
-    caseId: safetyCaseIdSchema,
-    lane: SafetyCaseLaneSchema,
-  })
-  .strict();
-export type RefetchProtectedCaseContextInput = z.infer<
-  typeof RefetchProtectedCaseContextInputSchema
->;
 
 export const RecordNcmecPortalCorrectionInputSchema = z
   .object({

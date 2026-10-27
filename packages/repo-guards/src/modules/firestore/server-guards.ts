@@ -4,21 +4,81 @@ import type { Scope } from '../../node/reader.js';
 import type { Reviewed } from '../../node/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, reviewedAllowlist } from '../../shapes/shapes.js';
-import { calleeName, forEachNode } from '../../support/ast.js';
+import { calleeName, forEachNode, unwrap } from '../../support/ast.js';
 import { reviewedProblems, takesNoFacts } from '../../support/facts.js';
 import { bannedGuard, type NoFacts, type NodeHit } from './support.js';
+
+type FunctionNode =
+  ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration;
+
+const isFunctionNode = (node: ts.Node): node is FunctionNode =>
+  ts.isFunctionDeclaration(node) ||
+  ts.isFunctionExpression(node) ||
+  ts.isArrowFunction(node) ||
+  ts.isMethodDeclaration(node);
+
+function isTransactionType(type: ts.TypeNode | undefined): boolean {
+  if (!type || !ts.isTypeReferenceNode(type)) return false;
+  const name = type.typeName;
+  return (ts.isIdentifier(name) ? name : name.right).text === 'Transaction';
+}
+
+function requiredTransactionParameter(fn: FunctionNode): string | undefined {
+  const param = fn.parameters.find(
+    (p) => !p.questionToken && !p.initializer && isTransactionType(p.type),
+  );
+  return param && ts.isIdentifier(param.name) ? param.name.text : undefined;
+}
+
+function namedFunction(source: ts.SourceFile, name: string): FunctionNode | undefined {
+  let found: FunctionNode | undefined;
+  forEachNode(source, (node) => {
+    if (found) return;
+    if (ts.isFunctionDeclaration(node) && node.name?.text === name) found = node;
+    else if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer
+    ) {
+      const init = unwrap(node.initializer);
+      if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) found = init;
+    }
+  });
+  return found;
+}
+
+function transactionFunctions(source: ts.SourceFile): Map<FunctionNode, string | undefined> {
+  const found = new Map<FunctionNode, string | undefined>();
+  forEachNode(source, (node) => {
+    if (ts.isCallExpression(node) && calleeName(node) === 'runTransaction') {
+      const arg = node.arguments[0] ? unwrap(node.arguments[0]) : undefined;
+      const callback =
+        arg && (ts.isArrowFunction(arg) || ts.isFunctionExpression(arg))
+          ? arg
+          : arg && ts.isIdentifier(arg)
+            ? namedFunction(source, arg.text)
+            : undefined;
+      if (callback && !found.has(callback)) {
+        const first = callback.parameters[0]?.name;
+        found.set(callback, first && ts.isIdentifier(first) ? first.text : undefined);
+      }
+    } else if (isFunctionNode(node) && !found.has(node)) {
+      const transaction = requiredTransactionParameter(node);
+      if (transaction) found.set(node, transaction);
+    }
+  });
+  return found;
+}
 
 export function strayTransactionReads(file: FileView): NodeHit[] {
   const source = file.sourceFile;
   const hits: NodeHit[] = [];
-  forEachNode(source, (node) => {
-    if (!ts.isCallExpression(node) || calleeName(node) !== 'runTransaction') return;
-    const callback = node.arguments.find(
-      (arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg),
-    ) as ts.ArrowFunction | ts.FunctionExpression | undefined;
-    if (!callback) return;
-    const transaction = callback.parameters[0]?.name.getText(source);
+  const functions = transactionFunctions(source);
+  for (const [fn, transaction] of functions) {
+    if (!fn.body) continue;
     const inspect = (inner: ts.Node) => {
+      if (functions.has(inner as FunctionNode)) return;
       if (ts.isCallExpression(inner) && ts.isPropertyAccessExpression(inner.expression)) {
         const method = inner.expression.name.text;
         const receiver = inner.expression.expression.getText(source);
@@ -28,15 +88,15 @@ export function strayTransactionReads(file: FileView): NodeHit[] {
         ) {
           hits.push({
             node: inner,
-            detail: `${receiver}.${method}(…) inside a runTransaction callback reads outside the transaction`,
+            detail: `${receiver}.${method}(…) inside a transaction's work reads outside the transaction`,
           });
         }
       }
       ts.forEachChild(inner, inspect);
     };
-    ts.forEachChild(callback.body, inspect);
-  });
-  return hits;
+    ts.forEachChild(fn.body, inspect);
+  }
+  return hits.sort((a, b) => a.node.getStart(source) - b.node.getStart(source));
 }
 
 export const transactionReadGuard: GenericGuardDefinition<NoFacts> = {
@@ -48,10 +108,12 @@ export const transactionReadGuard: GenericGuardDefinition<NoFacts> = {
       bannedGuard({
         title: 'a transaction callback reads only through its transaction',
         description:
-          'Inside an inline runTransaction callback, every Firestore read goes through the callback transaction ' +
-          '(transaction.get(ref | query), transaction.getAll(…)). A plain ref.get() / query.get() / db.getAll(…) there is ' +
-          'outside the read set, so the write it decides can commit after the value changed. Fix: read through the ' +
-          'transaction. A read made before the transaction, and a callback passed by name, are left to review.',
+          'In the work a transaction does, every Firestore read goes through that transaction (transaction.get(ref | query), ' +
+          'transaction.getAll(…)). That work is a runTransaction callback — inline, or passed by name and declared in ' +
+          'the same file — and every function with a required Transaction parameter. A plain ref.get() / query.get() / ' +
+          'db.getAll(…) there is outside the read set, so the write it decides can commit after the value changed. Fix: ' +
+          'read through the transaction. A function whose Transaction parameter is optional reads plainly when called ' +
+          'without one and is left out, as is a read made before the transaction.',
         scope: { roots: ['functions'], kinds: ['code'], tests: false },
         match: strayTransactionReads,
       }),

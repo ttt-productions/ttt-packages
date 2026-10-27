@@ -67,6 +67,62 @@ describe('a transaction callback reads only through its transaction', () => {
       }),
     ).toEqual([]);
   });
+
+  it('FLAGS a stray read in a callback passed to runTransaction by name', async () => {
+    const findings = await run(guard, {
+      'functions/src/named.ts': [
+        'async function work(tx) {',
+        '  const s = await ref.get();',
+        '  tx.set(ref, {});',
+        '}',
+        'const other = async (t) => { await db.getAll(r1); };',
+        'await db.runTransaction(work);',
+        'await db.runTransaction(other);',
+      ].join('\n'),
+    });
+    expect(lines(findings)).toEqual(['functions/src/named.ts:2', 'functions/src/named.ts:5']);
+  });
+
+  it('FLAGS a stray read in any function with a required Transaction parameter', async () => {
+    const findings = await run(guard, {
+      'functions/src/param.ts': [
+        'export async function lockOf(tx: FirebaseFirestore.Transaction, id: string) {',
+        "  return (await col.where('id', '==', id).limit(1).get()).empty;",
+        '}',
+        'const capOf = async (id: string, transaction: Transaction) => {',
+        '  const [a] = await db.getAll(r1);',
+        '};',
+        'class Owner {',
+        '  async read(tx: Transaction) { return ref.get(); }',
+        '}',
+      ].join('\n'),
+    });
+    expect(lines(findings)).toEqual([
+      'functions/src/param.ts:2',
+      'functions/src/param.ts:5',
+      'functions/src/param.ts:8',
+    ]);
+  });
+
+  it('PASSES reads through the parameter, an optional Transaction parameter, and a nested transaction function read through its own parameter', async () => {
+    expect(
+      await run(guard, {
+        'functions/src/ok-param.ts': [
+          'export async function lockOf(tx: Transaction) { return tx.get(ref); }',
+          'export async function isLocked(id: string, tx?: Transaction) {',
+          '  return tx ? tx.get(ref) : ref.get();',
+          '}',
+          'export async function withDefault(tx: Transaction | undefined = undefined) { return ref.get(); }',
+          'async function work(tx) { const s = await tx.get(ref); }',
+          'await db.runTransaction(work);',
+          'await db.runTransaction(async (outer) => {',
+          '  const inner = async (t: Transaction) => t.get(ref);',
+          '  await inner(outer);',
+          '});',
+        ].join('\n'),
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe('no stored count is lowered by a blind decrement', () => {

@@ -854,7 +854,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `preserveUntil` | `number` | yes |
 | `openHoldCount` | `number` |  |
 | `relatedCaseIds` | `string[]` | yes |
-| `contextResolutionPending` | `boolean` | yes |
 | `testListDrill` | `true` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
@@ -872,7 +871,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `fencingOwnerToken` | `string` | yes |
 | `fencingGeneration` | `number` | yes |
 | `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, conversation, conversationFileId, mediaAssetId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
-| `contextResolutionPending` | `boolean` | yes |
 | `crossoverLegs` | `{ servingDeny, photoDna, itemsCursor }` | yes |
 
 ## `childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}`
@@ -1454,7 +1452,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `nciiRemovalDeadlineAt` | `number` | yes |
 | `closure` | `{ outcome, resolutionSummary, adminNote, closedByUid, closedAt }` | yes |
 | `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, conversation, conversationFileId, mediaAssetId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
-| `contextResolutionPending` | `boolean` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 
