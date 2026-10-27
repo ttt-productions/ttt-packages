@@ -302,7 +302,7 @@ class OpRecorder {
   }
 }
 
-function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestore {
+function buildFakeFirestore(): InMemoryFirestore {
   const docsByPath = new Map<string, Doc>();
   const versions = new Map<string, number>();
   const afterReadHooks = new Map<string, Array<() => void | Promise<void>>>();
@@ -1029,15 +1029,9 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
         const docConflict = [...tx.docReads].some(
           ([path, version]) => storedVersionOf(path) !== version,
         );
-        const queryConflict =
-          options.queryResultSetConflicts !== false &&
-          tx.queryReads.some((q) => {
-            const now = runQuery(q.shape);
-            return (
-              now.length !== q.paths.length ||
-              now.some((path, i) => path !== q.paths[i] || storedVersionOf(path) !== q.versions[i])
-            );
-          });
+        const queryConflict = tx.queryReads.some((q) =>
+          q.paths.some((path, i) => storedVersionOf(path) !== q.versions[i]),
+        );
         if (!docConflict && !queryConflict) {
           await commit(tx.recorder.ops);
           return result;
@@ -1116,10 +1110,6 @@ function buildFakeFirestore(options: InMemoryFirestoreOptions): InMemoryFirestor
   };
 }
 
-export interface InMemoryFirestoreOptions {
-  queryResultSetConflicts?: boolean;
-}
-
-export function makeInMemoryFirestore(options: InMemoryFirestoreOptions = {}): InMemoryFirestore {
-  return buildFakeFirestore(options);
+export function makeInMemoryFirestore(): InMemoryFirestore {
+  return buildFakeFirestore();
 }

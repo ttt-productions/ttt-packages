@@ -84,7 +84,10 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   orders, ties break in the last order's direction, and a document missing an order field is left
   out. `startAt`, `endAt`, `endBefore`, `limitToLast`, `offset`, and a composite `Filter` throw.
   Batches and transactions commit atomically, transactions with read-before-write and contention
-  retry; a commit's `serverTimestamp()` is stored as the commit's `Timestamp`, every document keeps
+  retry. A transaction conflicts as Firestore's does: on a change to a document it read, or a change
+  or delete of a document a query it ran returned — never on an insert into that query's result set
+  or a document changed into it, which Firestore does not lock (RULE-STD-BACKEND-116); there is no
+  other mode. A commit's `serverTimestamp()` is stored as the commit's `Timestamp`, every document keeps
   its update time, and a stale `delete({ lastUpdateTime })` is refused. Test hooks fail or hold
   reads, queries, and commits and log each query's filters and orders. `FieldValueSentinel` is the
   `FieldValue` it applies (its statics are spies, and the values it does not apply throw).

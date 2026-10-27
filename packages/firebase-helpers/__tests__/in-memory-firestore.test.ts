@@ -40,6 +40,50 @@ describe('transactions follow real Firestore semantics', () => {
     expect(fs.transactionAttempts()).toBe(2);
   });
 
+  describe('a query read in a transaction locks the documents it returned, not its result set', () => {
+    const OPEN_LOCKS = () => fs.db.collection('locks').where('open', '==', true);
+    const countOpenLocks = () =>
+      fs.db.runTransaction(async (txn) => {
+        const open = await txn.get(OPEN_LOCKS());
+        txn.set(fs.db.doc('probe/result'), { open: open.size });
+      });
+
+    it('a change to a returned document before the commit re-runs the transaction', async () => {
+      fs.seed('locks/a', { open: true });
+      fs.afterRead('locks/a', async () => fs.seed('locks/a', { open: false }));
+      await countOpenLocks();
+      expect(fs.read('probe/result')).toEqual({ open: 0 });
+      expect(fs.transactionAttempts()).toBe(2);
+    });
+
+    it('a delete of a returned document before the commit re-runs the transaction', async () => {
+      fs.seed('locks/a', { open: true });
+      fs.afterRead('locks/a', async () => {
+        await fs.db.doc('locks/a').delete();
+      });
+      await countOpenLocks();
+      expect(fs.read('probe/result')).toEqual({ open: 0 });
+      expect(fs.transactionAttempts()).toBe(2);
+    });
+
+    it('a competing insert into the result set does not conflict, and the commit lands', async () => {
+      fs.seed('locks/a', { open: true });
+      fs.afterRead('locks/a', async () => fs.seed('locks/b', { open: true }));
+      await countOpenLocks();
+      expect(fs.read('probe/result')).toEqual({ open: 1 });
+      expect(fs.transactionAttempts()).toBe(1);
+    });
+
+    it('a document changed into the result set does not conflict, since it was never returned', async () => {
+      fs.seed('locks/a', { open: true });
+      fs.seed('locks/b', { open: false });
+      fs.afterRead('locks/a', async () => fs.seed('locks/b', { open: true }));
+      await countOpenLocks();
+      expect(fs.read('probe/result')).toEqual({ open: 1 });
+      expect(fs.transactionAttempts()).toBe(1);
+    });
+  });
+
   it('a read after a write in a transaction throws', async () => {
     await expect(
       fs.db.runTransaction(async (txn) => {
