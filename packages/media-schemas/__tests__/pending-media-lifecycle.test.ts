@@ -8,7 +8,6 @@ import {
   buildPendingMediaTerminalFields,
   decidePendingMediaClaim,
   decidePendingMediaFinalize,
-  effectivePendingMediaLeaseExpiry,
   isPendingMediaTerminalStatus,
   type PendingMediaClaimPolicy,
   type PendingMediaCompletedTerminalFields,
@@ -191,66 +190,13 @@ describe('decidePendingMediaClaim (pure state machine)', () => {
       ...rawBase,
       status: 'processing',
       processingAttemptCount: 2,
+      processingStartedAt: NOW - 5_001,
       processingLeaseExpiresAt: NOW - 1,
     });
     const { outcome, write } = decidePendingMediaClaim(current, NOW, policy);
     if (outcome.kind !== 'claimed') throw new Error('unreachable');
     expect(outcome.attempt).toBe(3);
     expect(write).toEqual(expectedClaimWrite(3, policy));
-  });
-
-  describe('lease derivation for rows written before leases existed', () => {
-    it('derives an ACTIVE lease from processingStartedAt when the explicit lease is absent (busy)', () => {
-      const current = parseRow({
-        ...rawBase,
-        status: 'processing',
-        processingStartedAt: NOW - 1_000,
-      });
-      const { outcome, write } = decidePendingMediaClaim(current, NOW, POLICY);
-      expect(outcome).toEqual({ kind: 'busy', leaseExpiresAt: NOW - 1_000 + POLICY.leaseMs });
-      expect(write).toBeUndefined();
-    });
-
-    it('derives an EXPIRED lease from processingStartedAt and reclaims (count absent = attempt 1)', () => {
-      const current = parseRow({
-        ...rawBase,
-        status: 'processing',
-        processingStartedAt: NOW - POLICY.leaseMs - 1_000,
-      });
-      const { outcome, write } = decidePendingMediaClaim(current, NOW, POLICY);
-      if (outcome.kind !== 'claimed') throw new Error('unreachable');
-      expect(outcome.attempt).toBe(2);
-      expect(write).toEqual(expectedClaimWrite(2));
-    });
-
-    it('falls back to createdAt when the row lacks processingStartedAt (busy while young)', () => {
-      const current = parseRow({ ...rawBase, createdAt: NOW - 1_000, status: 'processing' });
-      expect(decidePendingMediaClaim(current, NOW, POLICY).outcome).toEqual({
-        kind: 'busy',
-        leaseExpiresAt: NOW - 1_000 + POLICY.leaseMs,
-      });
-    });
-
-    it('falls back to createdAt when the row lacks processingStartedAt (reclaim when old)', () => {
-      const current = parseRow({
-        ...rawBase,
-        createdAt: NOW - POLICY.leaseMs - 1_000,
-        status: 'processing',
-      });
-      const { outcome } = decidePendingMediaClaim(current, NOW, POLICY);
-      if (outcome.kind !== 'claimed') throw new Error('unreachable');
-      expect(outcome.attempt).toBe(2);
-    });
-
-    it('effectivePendingMediaLeaseExpiry prefers the explicit lease', () => {
-      const row = {
-        status: 'processing' as const,
-        createdAt: 1,
-        processingStartedAt: 2,
-        processingLeaseExpiresAt: 99,
-      };
-      expect(effectivePendingMediaLeaseExpiry(row, POLICY)).toBe(99);
-    });
   });
 });
 

@@ -10,6 +10,7 @@ const resolvedGroup = {
   lastReportAt: 1,
   latestReason: 'Spam',
   status: 'resolved',
+  reportedUserId: 'u1',
   resolutionOutcome: 'founded',
   resolvedBy: 'admin-1',
   resolvedAt: 5,

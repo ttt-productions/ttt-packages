@@ -73,7 +73,13 @@ export function createPendingMediaSchemas<
     .strict();
 
   const PendingMediaProcessingSchema = z
-    .object({ ...PendingMediaBaseShape, status: z.literal(STATUS.processing) })
+    .object({
+      ...PendingMediaBaseShape,
+      status: z.literal(STATUS.processing),
+      processingStartedAt: z.number(),
+      processingAttemptCount: z.number().int().min(1),
+      processingLeaseExpiresAt: z.number(),
+    })
     .strict();
 
   const PendingMediaCompletedSchema = z

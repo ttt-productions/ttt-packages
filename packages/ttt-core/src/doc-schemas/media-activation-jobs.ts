@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { StructuredErrorSchema } from '@ttt-productions/edge-protocol-core';
 import { FileOriginSchema } from '../media/file-origin.js';
+import { HALL_LIBRARY_SUB_ITEM_FILE_ORIGINS } from '../media/hall-library-target-fields.js';
 import { FirestoreTimestampSchema } from './firestore-primitives.js';
 import { MediaPublicationKindSchema, MediaServingAuthorityRecordSchema } from './media-assets.js';
 
@@ -12,20 +13,18 @@ export const MediaActivationJobStatusSchema = z.enum([
 ]);
 export type MediaActivationJobStatus = z.infer<typeof MediaActivationJobStatusSchema>;
 
-export const MediaActivationJobSchema = z
+const MediaActivationJobFieldsSchema = z
   .object({
     jobId: z.string().min(1),
     schemaVersion: z.number().int().positive(),
 
     assetId: z.string().min(1),
     pendingMediaId: z.string().min(1),
-    fileOrigin: FileOriginSchema,
 
     authorityVersion: z.number().int().nonnegative(),
     payloadHash: z.string().min(1),
     authorityPayload: MediaServingAuthorityRecordSchema,
 
-    publicationKind: MediaPublicationKindSchema,
     publicationArgs: z.unknown(),
 
     status: MediaActivationJobStatusSchema,
@@ -43,4 +42,15 @@ export const MediaActivationJobSchema = z
     expireAt: FirestoreTimestampSchema.optional(),
   })
   .strict();
+
+export const MediaActivationJobSchema = z.discriminatedUnion('publicationKind', [
+  MediaActivationJobFieldsSchema.extend({
+    publicationKind: z.literal('workContentMedia'),
+    fileOrigin: FileOriginSchema.extract(HALL_LIBRARY_SUB_ITEM_FILE_ORIGINS),
+  }),
+  MediaActivationJobFieldsSchema.extend({
+    publicationKind: MediaPublicationKindSchema.exclude(['workContentMedia']),
+    fileOrigin: FileOriginSchema,
+  }),
+]);
 export type MediaActivationJob = z.infer<typeof MediaActivationJobSchema>;

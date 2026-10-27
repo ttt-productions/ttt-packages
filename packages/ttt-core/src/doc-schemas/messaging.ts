@@ -49,7 +49,7 @@ export const GuildChatChannelSchema = z.object({
 });
 export type GuildChatChannel = z.infer<typeof GuildChatChannelSchema>;
 
-export const GuildInviteConversationSchema = z.object({
+const GuildInviteConversationFieldsSchema = z.object({
   guildInviteId: z.string(),
   workProjectId: z.string(),
   relatedUserIds: z.array(z.string()),
@@ -67,11 +67,23 @@ export const GuildInviteConversationSchema = z.object({
   updatedAt: z.number(),
   lastUpdatedAt: z.number(),
   finalizedAt: z.number().optional(),
-  senderConfirmed: z.boolean(),
-  senderConfirmedBy: userIdSchema.optional(),
   recipientConfirmed: z.boolean(),
   ...conversationFileCounterFields,
 });
+
+export const GuildInviteConversationSchema = z.discriminatedUnion('senderConfirmed', [
+  GuildInviteConversationFieldsSchema.extend({
+    senderConfirmed: z.literal(true),
+    senderConfirmedBy: userIdSchema,
+  }),
+  GuildInviteConversationFieldsSchema.extend({ senderConfirmed: z.literal(false) }),
+]);
+
+export const GUILD_INVITE_CONVERSATION_FIELD_KEYS = [
+  ...Object.keys(GuildInviteConversationFieldsSchema.shape),
+  'senderConfirmed',
+  'senderConfirmedBy',
+] as const;
 export type GuildInviteConversation = z.infer<typeof GuildInviteConversationSchema>;
 
 // Homed here, not in ./schemas: the reverse import would be a module cycle.

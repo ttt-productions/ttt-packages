@@ -12,6 +12,7 @@ import {
 } from '../src/constants/conversation-files.js';
 import { FullWorkProjectSchema } from '../src/doc-schemas/work-project.js';
 import {
+  GUILD_INVITE_CONVERSATION_FIELD_KEYS,
   GuildInviteConversationSchema,
   AdminDispatchSchema,
 } from '../src/doc-schemas/messaging.js';
@@ -95,6 +96,7 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
   const workProject = {
     workProjectId: 'wp1',
     createdOn: 1,
+    updatedOn: 1,
     type: WORK_PROJECT_TYPE_KEYS[0],
     workingDescription: 'd',
     workingTitle: 't',
@@ -162,9 +164,7 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
         false,
       );
     }
-    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain(
-      'chatAttachmentBytesUsed',
-    );
+    expect(GUILD_INVITE_CONVERSATION_FIELD_KEYS).not.toContain('chatAttachmentBytesUsed');
   });
 
   it('AdminDispatch carries the same four counters — one counter contract per conversation parent', () => {
@@ -190,7 +190,7 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
 
 describe('guild invite conversation record', () => {
   it('declares no opening-message copy — the message lives only in the invite channel', () => {
-    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('lastMessage');
-    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('lastMessageAt');
+    expect(GUILD_INVITE_CONVERSATION_FIELD_KEYS).not.toContain('lastMessage');
+    expect(GUILD_INVITE_CONVERSATION_FIELD_KEYS).not.toContain('lastMessageAt');
   });
 });

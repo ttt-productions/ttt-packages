@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GuildInviteConversationSchema } from '../src/doc-schemas/messaging.js';
+import {
+  GUILD_INVITE_CONVERSATION_FIELD_KEYS,
+  GuildInviteConversationSchema,
+} from '../src/doc-schemas/messaging.js';
 import { GuildInviteAcceptedAuditPayloadSchema } from '../src/schemas/admin-dispatch-actions.js';
 
 describe('who agreed for the Work on a guild invite', () => {
@@ -22,11 +25,17 @@ describe('who agreed for the Work on a guild invite', () => {
   };
 
   it('the invite stores the account that agreed for the Work', () => {
-    expect(Object.keys(GuildInviteConversationSchema.shape)).toContain('senderConfirmedBy');
+    expect(GUILD_INVITE_CONVERSATION_FIELD_KEYS).toContain('senderConfirmedBy');
     expect(
-      GuildInviteConversationSchema.parse({ ...invite, senderConfirmedBy: 'handler-uid' })
-        .senderConfirmedBy,
-    ).toBe('handler-uid');
+      GuildInviteConversationSchema.parse({ ...invite, senderConfirmedBy: 'handler-uid' }),
+    ).toMatchObject({ senderConfirmedBy: 'handler-uid' });
+  });
+
+  it('a Work agreement always names the account that gave it', () => {
+    expect(GuildInviteConversationSchema.safeParse(invite).success).toBe(false);
+    expect(
+      GuildInviteConversationSchema.safeParse({ ...invite, senderConfirmed: false }).success,
+    ).toBe(true);
   });
 
   it('stores an account id, never a path or an empty value', () => {

@@ -12,7 +12,7 @@ const timestamp = {
 };
 const epochMillis = 1_700_000_000_000;
 
-const shape = MediaActivationJobSchema.shape;
+const shape = MediaActivationJobSchema.options[1].shape;
 
 const EPOCH_MILLIS_TIME_FIELDS = [
   'nextAttemptAt',

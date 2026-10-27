@@ -319,7 +319,7 @@ export const MarkNotificationsSeenInputSchema = z
   .strict();
 export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInputSchema>;
 
-const MARK_SEEN_MAX_ITEMS = 50;
+export const MARK_SEEN_MAX_ITEMS = 50;
 
 const SeenItemSchema = z
   .object({

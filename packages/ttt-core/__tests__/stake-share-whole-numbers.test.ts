@@ -29,7 +29,7 @@ describe('stored stake-share offers are whole, positive numbers', () => {
   });
 
   it('a guild invite offers a whole, positive number of stake shares', () => {
-    const field = offered(GuildInviteConversationSchema);
+    const field = offered(GuildInviteConversationSchema.options[0]);
     expect(field.safeParse(10).success).toBe(true);
     for (const bad of [1.5, 0, -1]) {
       expect(field.safeParse(bad).success, String(bad)).toBe(false);

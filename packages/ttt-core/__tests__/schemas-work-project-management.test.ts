@@ -364,6 +364,7 @@ describe('CreateWorkProjectResultSchema', () => {
   const createdWork = {
     workProjectId: 'work-1',
     createdOn: 1_700_000_000_000,
+    updatedOn: 1_700_000_000_000,
     type: 'Tales',
     workingDescription: 'A working description',
     workingTitle: 'A Working Title',

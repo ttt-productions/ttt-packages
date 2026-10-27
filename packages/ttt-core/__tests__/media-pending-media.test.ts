@@ -107,6 +107,8 @@ describe('PendingMediaSchema (discriminated union)', () => {
       fileOrigin: 'conversation-file',
       status: 'processing',
       processingStartedAt: 1_700_000_001_500,
+      processingAttemptCount: 1,
+      processingLeaseExpiresAt: 1_700_000_301_500,
     };
     const result = PendingMediaSchema.parse(doc);
     expect(result.status).toBe('processing');
@@ -205,7 +207,13 @@ describe('crash-recovery attempt/lease fields on the composed strict schema', ()
 
   it('rejects a negative attempt count', () => {
     expect(() =>
-      PendingMediaSchema.parse({ ...base, status: 'processing', processingAttemptCount: -1 }),
+      PendingMediaSchema.parse({
+        ...base,
+        status: 'processing',
+        processingStartedAt: 1_700_000_001_500,
+        processingAttemptCount: -1,
+        processingLeaseExpiresAt: 1_700_000_721_500,
+      }),
     ).toThrow();
   });
 });

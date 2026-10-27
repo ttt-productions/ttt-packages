@@ -125,3 +125,6 @@ export const UserSuggestionSchema = z.object({
   lastSubmitted: z.number(),
 });
 export type UserSuggestion = z.infer<typeof UserSuggestionSchema>;
+
+export const ContentionLockSchema = z.object({ touchedAt: z.number() }).strict();
+export type ContentionLock = z.infer<typeof ContentionLockSchema>;

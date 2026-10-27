@@ -76,6 +76,9 @@ erDiagram
     field metadata
     field seenAt
   }
+  adminDispatchAppealLocks {
+    field touchedAt
+  }
   adminList {
     field admins
     field jrAdmins
@@ -139,6 +142,7 @@ erDiagram
   allWorkProjects {
     field workProjectId
     field createdOn
+    field updatedOn
     field type
     field workingDescription
     field workingTitle
@@ -148,7 +152,6 @@ erDiagram
     field guildmateUserIds
     field invitedUserIds
     field workRealmId
-    field realmCanonStatus
   }
   allegationLinks {
     field allegationId
@@ -482,18 +485,6 @@ erDiagram
     field createdAt
   }
   contentViolations {
-    field id
-    field userId
-    field fileType
-    field violationType
-    field reason
-    field timestamp
-    field appealStatus
-    field flaggedWords
-    field originalText
-    field originalFileName
-    field mediaKind
-    field scores
   }
   conversationFiles {
     field conversationFileId
@@ -581,18 +572,6 @@ erDiagram
     field isDeleted
   }
   guildInviteConversations {
-    field guildInviteId
-    field workProjectId
-    field relatedUserIds
-    field workProject
-    field createdBy
-    field sender
-    field recipient
-    field stakeSharesOffered
-    field source
-    field status
-    field createdAt
-    field updatedAt
   }
   guildmateUsers {
     field uid
@@ -605,6 +584,9 @@ erDiagram
     field guildAuthInputVersion
     field departedReason
     field departedAt
+  }
+  hallContentChangeRequestLocks {
+    field touchedAt
   }
   hallContentChangeRequests {
     field changeRequestId
@@ -693,18 +675,6 @@ erDiagram
     field handedOver
   }
   mediaActivationJobs {
-    field jobId
-    field schemaVersion
-    field assetId
-    field pendingMediaId
-    field fileOrigin
-    field authorityVersion
-    field payloadHash
-    field authorityPayload
-    field publicationKind
-    field publicationArgs
-    field status
-    field attemptCount
   }
   mediaAssets {
     field mediaAssetId
@@ -1688,7 +1658,6 @@ erDiagram
   allWorkProjects ||--o{ chatScopeDegraded : "workProjectId"
   allWorkProjects ||--o{ commissionProposals : "workProjectId"
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
-  allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
   allWorkProjects ||--o{ hallContentChangeRequests : "workProjectId"
   allWorkProjects ||--o{ hallItems : "workProjectId"
   allWorkProjects ||--o{ mediaAssets : "workProjectId"
@@ -1730,8 +1699,6 @@ erDiagram
   userProfiles ||--o{ chatChannelAuthProjections : "uid"
   userProfiles ||--o{ chatScopeDegraded : "uid"
   userProfiles ||--o{ childSafetyDecisions : "actorId"
-  userProfiles ||--o{ contentViolations : "reviewedBy"
-  userProfiles ||--o{ contentViolations : "userId"
   userProfiles ||--o{ conversationMessages : "senderId"
   userProfiles ||--o{ dispatchReadMarkers : "uid"
   userProfiles ||--o{ followEdges : "followerUid"

@@ -350,6 +350,11 @@ export const PATH_BUILDERS = {
     changeRequestId,
   ],
 
+  hallContentChangeRequestLock: (targetKey: string): [string, string] => [
+    COLLECTIONS.HALL_CONTENT_CHANGE_REQUEST_LOCKS,
+    targetKey,
+  ],
+
   commissionListing: (commissionListingId: string): [string, string] => [
     COLLECTIONS.COMMISSION_LISTINGS,
     commissionListingId,
@@ -759,6 +764,11 @@ export const PATH_BUILDERS = {
 
   statusReconcileQueueEntry: (uid: string): [string, string] => [
     COLLECTIONS.STATUS_RECONCILE_QUEUE,
+    uid,
+  ],
+
+  adminDispatchAppealLock: (uid: string): [string, string] => [
+    COLLECTIONS.ADMIN_DISPATCH_APPEAL_LOCKS,
     uid,
   ],
 

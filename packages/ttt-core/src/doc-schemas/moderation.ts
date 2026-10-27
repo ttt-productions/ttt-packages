@@ -17,53 +17,50 @@ export type ModerationEdgeSyncOp = z.infer<typeof ModerationEdgeSyncOpSchema>;
 export const ModerationEdgeSyncStateSchema = z.enum(['processing', 'failed']);
 export type ModerationEdgeSyncState = z.infer<typeof ModerationEdgeSyncStateSchema>;
 
-export const ContentViolationSchema = z
-  .object({
-    id: z.string(),
-    userId: z.string(),
-    fileType: z.string(),
-    violationType: z.enum(['text', 'media']).optional(),
-    reason: z.string(),
-    timestamp: z.number(),
-    appealStatus: z.enum(['none', 'pending', 'approved', 'denied']),
-    flaggedWords: z.array(z.string()).optional(),
-    originalText: z.string().optional(),
-    originalFileName: z.string().optional(),
-    mediaKind: ContentMediaKindSchema.optional(),
-    scores: z
-      .object({
-        adult: z.string(),
-        violence: z.string(),
-        racy: z.string(),
-      })
-      .nullable()
-      .optional(),
-    rejectedFilePath: z.string().optional(),
-    pendingFile: PendingMediaProcessingSchema.partial().optional(),
-    appealMessage: z.string().optional(),
-    appealedAt: z.number().optional(),
-    reviewedBy: z.string().optional(),
-    reviewedAt: z.number().optional(),
-    reviewDecision: z.enum(['approved', 'denied']).optional(),
-    reviewNotes: z.string().optional(),
-  })
-  .superRefine((violation, ctx) => {
-    const isMedia = violation.violationType === 'media';
-    if (isMedia && violation.mediaKind === undefined) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['mediaKind'],
-        message: 'mediaKind is required on a media violation',
-      });
-    }
-    if (!isMedia && violation.mediaKind !== undefined) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['mediaKind'],
-        message: 'mediaKind is only allowed on a media violation',
-      });
-    }
-  });
+const ContentViolationBaseShape = {
+  id: z.string(),
+  userId: z.string(),
+  fileType: z.string(),
+  reason: z.string(),
+  timestamp: z.number(),
+  appealStatus: z.enum(['none', 'pending', 'approved', 'denied']),
+  appealMessage: z.string().optional(),
+  appealedAt: z.number().optional(),
+  reviewedBy: z.string().optional(),
+  reviewedAt: z.number().optional(),
+  reviewDecision: z.enum(['approved', 'denied']).optional(),
+  reviewNotes: z.string().optional(),
+} as const;
+
+export const TextContentViolationSchema = z.object({
+  ...ContentViolationBaseShape,
+  violationType: z.literal('text'),
+  mediaKind: z.never().optional(),
+  flaggedWords: z.array(z.string()).optional(),
+  originalText: z.string().optional(),
+});
+
+export const MediaContentViolationSchema = z.object({
+  ...ContentViolationBaseShape,
+  violationType: z.literal('media'),
+  mediaKind: ContentMediaKindSchema,
+  rejectedFilePath: z.string(),
+  originalFileName: z.string().optional(),
+  scores: z
+    .object({
+      adult: z.string(),
+      violence: z.string(),
+      racy: z.string(),
+    })
+    .nullable()
+    .optional(),
+  pendingFile: PendingMediaProcessingSchema.partial().optional(),
+});
+
+export const ContentViolationSchema = z.discriminatedUnion('violationType', [
+  TextContentViolationSchema,
+  MediaContentViolationSchema,
+]);
 export type ContentViolation = z.infer<typeof ContentViolationSchema>;
 
 export interface ContentViolationActions {

@@ -27,6 +27,7 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'reservedDisplayNames/{displayNameUppercase}': DELETE,
   'accountDeletionRequests/{uid}': RETAIN,
   'statusReconcileQueue/{uid}': DELETE,
+  'adminDispatchAppealLocks/{uid}': DELETE,
   'ageAttestationNonces/{nonceHash}': RETAIN,
 
   'allWorkProjects/{workProjectId}': SOLO_DRAFT_WORK,
@@ -60,6 +61,7 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'hallItems/{hallItemId}/hallItemTunes/{itemId}': NONE,
   'hallItems/{hallItemId}/hallItemTelevision/{itemId}': NONE,
   'hallContentChangeRequests/{changeRequestId}': RETAIN,
+  'hallContentChangeRequestLocks/{targetKey}': NONE,
 
   'squareStreetzFeed/activePosts/socialPosts/{postId}': DELETE,
   'squareStreetzFeed/trendingPosts': NONE,

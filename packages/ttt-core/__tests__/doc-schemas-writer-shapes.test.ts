@@ -54,6 +54,7 @@ const group = {
   lastReportAt: 1,
   latestReason: 'Spam',
   status: 'pending',
+  reportedUserId: 'u1',
 } as const;
 
 describe('activeReportGroups — the whole stored document', () => {
@@ -73,6 +74,8 @@ describe('activeReportGroups — the whole stored document', () => {
     expect(
       ReportGroupV1Schema.safeParse({ ...group, reportedItemId: 'p1', reportedUserId: '' }).success,
     ).toBe(false);
+    const { reportedUserId: _omitted, ...withoutUser } = group;
+    expect(ReportGroupV1Schema.safeParse(withoutUser).success).toBe(false);
   });
 
   it('accepts a content action with its open edge-sync obligation (owner-keyed and asset-level)', () => {
@@ -196,6 +199,7 @@ describe('contentViolations.pendingFile — the row AS CLAIMED', () => {
     fileType: 'squareStreetz',
     violationType: 'media',
     mediaKind: 'image',
+    rejectedFilePath: 'rejected/v1',
     reason: 'flagged',
     timestamp: 1,
     appealStatus: 'none',
@@ -225,6 +229,11 @@ describe('contentViolations.pendingFile — the row AS CLAIMED', () => {
       ContentViolationSchema.safeParse({ ...violation, pendingFile: { status: 'rejected' } })
         .success,
     ).toBe(false);
+  });
+
+  it('requires the retained file on a media violation, so every appeal can show it', () => {
+    const { rejectedFilePath: _omitted, ...withoutFile } = violation;
+    expect(ContentViolationSchema.safeParse(withoutFile).success).toBe(false);
   });
 
   it('requires the inspected media kind on a media violation, so no preview classifies by client MIME', () => {

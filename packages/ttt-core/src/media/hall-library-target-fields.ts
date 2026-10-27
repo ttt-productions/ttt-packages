@@ -43,6 +43,10 @@ export const HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS = {
   'television-episode-video': HALL_LIBRARY_TARGET_FIELDS['television-episode-video'],
 } as const satisfies Pick<typeof HALL_LIBRARY_TARGET_FIELDS, HallLibrarySubItemFileOrigin>;
 
+export const HALL_LIBRARY_SUB_ITEM_FILE_ORIGINS = Object.keys(
+  HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS,
+) as [HallLibrarySubItemFileOrigin, ...HallLibrarySubItemFileOrigin[]];
+
 export type HallLibraryCoverTargetField =
   (typeof HALL_LIBRARY_COVER_TARGET_FIELDS)[HallLibraryCoverFileOrigin];
 export type HallLibrarySubItemTargetField =

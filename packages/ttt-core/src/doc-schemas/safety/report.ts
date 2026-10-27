@@ -124,7 +124,7 @@ export const ReportGroupV1Schema = z
 
     reportedItemId: z.string().min(1).optional(),
     parentItemId: z.string().nullable().optional(),
-    reportedUserId: z.string().min(1).optional(),
+    reportedUserId: z.string().min(1),
 
     moderationState: ReportGroupModerationStateSchema.optional(),
     contentHidden: z.boolean().optional(),

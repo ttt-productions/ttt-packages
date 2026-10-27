@@ -29,13 +29,21 @@ export interface PendingMediaClaimPolicy {
   maxAttempts: number;
 }
 
-export interface ClaimablePendingMedia {
-  status: PendingMediaStatus;
-  createdAt: number;
-  processingStartedAt?: number;
-  processingAttemptCount?: number;
-  processingLeaseExpiresAt?: number;
-}
+export type ClaimablePendingMedia =
+  | {
+      status: Exclude<PendingMediaStatus, typeof STATUS.processing>;
+      createdAt: number;
+      processingStartedAt?: number;
+      processingAttemptCount?: number;
+      processingLeaseExpiresAt?: number;
+    }
+  | {
+      status: typeof STATUS.processing;
+      createdAt: number;
+      processingStartedAt: number;
+      processingAttemptCount: number;
+      processingLeaseExpiresAt: number;
+    };
 
 export interface PendingMediaClaimWrite {
   status: typeof STATUS.processing;
@@ -78,16 +86,6 @@ function buildClaimWrite(
   };
 }
 
-export function effectivePendingMediaLeaseExpiry(
-  current: ClaimablePendingMedia,
-  policy: Pick<PendingMediaClaimPolicy, 'leaseMs'>,
-): number {
-  if (typeof current.processingLeaseExpiresAt === 'number') return current.processingLeaseExpiresAt;
-  if (typeof current.processingStartedAt === 'number')
-    return current.processingStartedAt + policy.leaseMs;
-  return current.createdAt + policy.leaseMs;
-}
-
 export function decidePendingMediaClaim<TRow extends ClaimablePendingMedia>(
   current: TRow,
   now: number,
@@ -110,9 +108,9 @@ export function decidePendingMediaClaim<TRow extends ClaimablePendingMedia>(
       return claim((current.processingAttemptCount ?? 0) + 1);
 
     case STATUS.processing: {
-      const leaseExpiresAt = effectivePendingMediaLeaseExpiry(current, policy);
+      const leaseExpiresAt = current.processingLeaseExpiresAt;
       if (leaseExpiresAt > now) return { outcome: { kind: 'busy', leaseExpiresAt } };
-      const attemptsSoFar = current.processingAttemptCount ?? 1;
+      const attemptsSoFar = current.processingAttemptCount;
       if (attemptsSoFar >= policy.maxAttempts) {
         return { outcome: { kind: 'exhausted', pendingFile: current, attempts: attemptsSoFar } };
       }

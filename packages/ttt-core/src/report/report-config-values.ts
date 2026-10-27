@@ -3,6 +3,7 @@ import {
   type ReportReason,
   type ReportableItemType,
 } from '../doc-schemas/safety/foundation.js';
+import type { AdminTaskType } from '../doc-schemas/report-docs.js';
 
 export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
   username: 'Username',
@@ -75,7 +76,7 @@ export interface ReportTaskQueueDefinition {
   maxWorkLaterMinutes: number;
 }
 
-export const REPORT_TASK_QUEUES: Record<string, ReportTaskQueueDefinition> = {
+export const REPORT_TASK_QUEUES: Record<AdminTaskType, ReportTaskQueueDefinition> = {
   userReport: {
     displayName: 'User Reports',
     description: 'Content reports from users',

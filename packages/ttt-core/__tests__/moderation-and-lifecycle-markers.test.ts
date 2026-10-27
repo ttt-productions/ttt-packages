@@ -106,6 +106,7 @@ describe('per-field moderation text-clear flags (uniform shape across the family
     const wp = {
       workProjectId: 'wp1',
       createdOn: 1,
+      updatedOn: 1,
       type: 'Tales',
       workingDescription: 'D',
       workingTitle: 'T',

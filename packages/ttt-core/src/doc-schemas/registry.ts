@@ -119,6 +119,7 @@ import {
   FeedbackAliasSchema,
   UserSuggestionSchema,
   StatusReconcileQueueEntrySchema,
+  ContentionLockSchema,
 } from './operational.js';
 import {
   ProtectedReportRootV1Schema,
@@ -257,6 +258,7 @@ export const COLLECTION_SCHEMAS = {
   'hallItems/{hallItemId}/hallItemTunes/{itemId}': PublishedTuneTrackSchema,
   'hallItems/{hallItemId}/hallItemTelevision/{itemId}': PublishedTelevisionEpisodeSchema,
   'hallContentChangeRequests/{changeRequestId}': HallContentChangeRequestSchema,
+  'hallContentChangeRequestLocks/{targetKey}': ContentionLockSchema,
 
   'commissionListings/{commissionListingId}': FullCommissionListingSchema,
   'commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}':
@@ -322,6 +324,7 @@ export const COLLECTION_SCHEMAS = {
   'shortLinks/{shortId}': ShortLinkSchema,
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
   'statusReconcileQueue/{uid}': StatusReconcileQueueEntrySchema,
+  'adminDispatchAppealLocks/{uid}': ContentionLockSchema,
 
   'publicDocuments/{documentId}/publicDocumentVersions/{versionId}': PublicDocumentVersionSchema,
   'publicDocumentDrafts/{documentId}': PublicDocumentDraftSchema,

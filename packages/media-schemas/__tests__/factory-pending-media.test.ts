@@ -143,6 +143,21 @@ describe('createPendingMediaSchemas', () => {
       expect(parsed.processingAttemptCount).toBe(2);
     });
 
+    it.each(['processingStartedAt', 'processingAttemptCount', 'processingLeaseExpiresAt'] as const)(
+      'refuses a processing row without its %s, which every claim writes',
+      (field) => {
+        const claimed = {
+          ...baseLive,
+          status: 'processing',
+          processingStartedAt: 10,
+          processingAttemptCount: 1,
+          processingLeaseExpiresAt: 10_000,
+        };
+        const { [field]: _omitted, ...withoutField } = claimed;
+        expect(schemas.PendingMediaSchema.safeParse(withoutField).success).toBe(false);
+      },
+    );
+
     it('parses terminal rows carrying historical attempt fields', () => {
       const failed = schemas.PendingMediaSchema.parse({
         ...baseLive,

@@ -104,6 +104,8 @@ export const COLLECTIONS = {
   NCII_INVENTORY_DEAD_LETTER: 'nciiInventoryDeadLetter',
 
   STATUS_RECONCILE_QUEUE: 'statusReconcileQueue',
+  HALL_CONTENT_CHANGE_REQUEST_LOCKS: 'hallContentChangeRequestLocks',
+  ADMIN_DISPATCH_APPEAL_LOCKS: 'adminDispatchAppealLocks',
 
   OPERATOR_STEP_UP: 'operatorStepUp',
 

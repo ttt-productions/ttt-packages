@@ -75,7 +75,7 @@ export const MediaOriginLineageV1Schema = z
     originatingUploaderUid: z.string().min(1),
     originatingUploadEventId: z.string(),
     originalUploadCreatedAt: z.number(),
-    // Not `.min(1)`: no hash is computed at finalize, so a fresh asset carries ''.
+    // Not `.min(1)`: a lineage can be stored before its content is hashed, as ''.
     rootSha256: z.string(),
     originalSha256: z.string().min(1).optional(),
     // `z.partialRecord`, not `z.record`: in Zod 4 a record over an enum demands every key.

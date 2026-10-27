@@ -49,9 +49,6 @@ describe('the actions a violation offers', () => {
         insideWindow,
       ),
     ).toEqual({ appeal: false, accept: true });
-    expect(
-      contentViolationActions({ timestamp: rejectedAt, appealStatus: 'none' }, insideWindow).appeal,
-    ).toBe(false);
   });
 
   it('locks a pending appeal — no Accept, no withdrawal', () => {

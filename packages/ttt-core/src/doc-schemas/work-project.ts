@@ -47,6 +47,7 @@ export type PendingStakeShares = z.infer<typeof PendingStakeSharesSchema>;
 export const FullWorkProjectSchema = z.object({
   workProjectId: z.string(),
   createdOn: z.number(),
+  updatedOn: z.number(),
   type: z.enum(WORK_PROJECT_TYPE_KEYS),
   workingDescription: z.string(),
   workingTitle: z.string(),

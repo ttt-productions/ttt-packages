@@ -494,6 +494,20 @@ describe('PATH_BUILDERS', () => {
       expect(result[0]).toBe(COLLECTIONS.STATUS_RECONCILE_QUEUE);
       expect(result[1]).toBe('uid1');
     });
+
+    it('adminDispatchAppealLock returns 2-segment tuple keyed by uid', () => {
+      expect(PATH_BUILDERS.adminDispatchAppealLock('uid1')).toEqual([
+        COLLECTIONS.ADMIN_DISPATCH_APPEAL_LOCKS,
+        'uid1',
+      ]);
+    });
+
+    it('hallContentChangeRequestLock returns 2-segment tuple keyed by the change-request target', () => {
+      expect(PATH_BUILDERS.hallContentChangeRequestLock('hall-1_detail')).toEqual([
+        COLLECTIONS.HALL_CONTENT_CHANGE_REQUEST_LOCKS,
+        'hall-1_detail',
+      ]);
+    });
   });
 
   describe('Feedback & Craft Paths', () => {
