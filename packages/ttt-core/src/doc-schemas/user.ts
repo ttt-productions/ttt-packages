@@ -18,10 +18,6 @@ export type UserAccountStatus = z.infer<typeof UserAccountStatusSchema>;
 
 export const ABSENT_USER_ACCOUNT_STATUS = 'active' as const satisfies UserAccountStatus;
 
-export function parseUserAccountStatus(value: unknown): UserAccountStatus {
-  return value === undefined ? ABSENT_USER_ACCOUNT_STATUS : UserAccountStatusSchema.parse(value);
-}
-
 export const CraftSkillKindSchema = z.enum(['original', 'mimicOnTtt', 'mimicOffTtt']);
 export type CraftSkillKind = z.infer<typeof CraftSkillKindSchema>;
 
@@ -122,7 +118,7 @@ export const FullUserSchema = z.object({
   profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   hasPledged: z.boolean().optional(),
-  status: UserAccountStatusSchema.optional(),
+  status: UserAccountStatusSchema,
   statusUpdatedAt: z.number().optional(),
   statusUpdatedBy: z.string().min(1).optional(),
   accountAccessVersion: z.number().optional(),

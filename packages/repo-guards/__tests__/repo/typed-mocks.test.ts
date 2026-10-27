@@ -7,6 +7,7 @@ import { factProblemsOf } from '../helpers/configured.js';
 
 const UI_FAKE = 'src/test/fakes/ui-kit.ts';
 const HELPERS = 'src/test/typed-mock.ts';
+const THING_STATES = 'src/test/thing-states.ts';
 
 const BASE: Record<string, string> = {
   'src/app/page.tsx': 'export const page = 1;',
@@ -15,6 +16,9 @@ const BASE: Record<string, string> = {
   [HELPERS]:
     'export const passThroughModule = async (io: unknown, o = {}) => o;\n' +
     'export const stubModule = (io: unknown, o: unknown) => o;\nexport const loose = (o: unknown) => o;',
+  [THING_STATES]:
+    'export const readyThing = () => ({ ready: true });\n' +
+    'export const pendingThing = () => ({ ready: false });\nexport const looseThing = () => ({});',
   'functions/src/run.ts': 'export const run = 1;',
 };
 
@@ -27,6 +31,14 @@ const FACTS: TypedMockFacts = {
       module: '@scope/ui-kit/react',
       names: ['Button', 'AccordionContent'],
       why: 'its pending state and its collapsed content are what the cases prove',
+    },
+  ],
+  builtOverrides: [
+    {
+      module: 'src/hooks/use-thing.ts',
+      names: ['useThing'],
+      builders: { owner: THING_STATES, names: ['readyThing', 'pendingThing'] },
+      why: 'only the builders hold the states the real hook returns',
     },
   ],
 };
@@ -48,7 +60,7 @@ function readerOf(files: Record<string, string>): RepoReader {
 
 async function findingsOf(files: Record<string, string>, facts: TypedMockFacts = FACTS) {
   const reader = readerOf(files);
-  const [typed, forbidden] = typedMockGuard.build(facts);
+  const [typed, forbidden, built] = typedMockGuard.build(facts);
   const context = contextOf(reader);
   const shape = (f: { file: string; line?: number; detail: string }) => ({
     file: f.file,
@@ -58,6 +70,7 @@ async function findingsOf(files: Record<string, string>, facts: TypedMockFacts =
   return {
     typed: (await typed.run(context)).map(shape),
     forbidden: (await forbidden.run(context)).map(shape),
+    built: (await built.run(context)).map(shape),
   };
 }
 
@@ -374,6 +387,141 @@ describe('no test overrides an export whose real behavior every test needs', () 
   });
 });
 
+describe('an override of a listed export returns one of its listed builders', () => {
+  const MOCK = "vi.mock(import('@/hooks/use-thing'), async (io) =>";
+  const HELPER = "  (await import('@/test/typed-mock')).passThroughModule(io, {";
+
+  it('passes a builder call returned directly, through either import, and a holder only builders set', async () => {
+    const { built } = await findingsOf({
+      [TEST]: [
+        "import { pendingThing, readyThing } from '@/test/thing-states';",
+        "vi.mock(import('@/hooks/use-thing'), async (io) => {",
+        "  const { readyThing: ready } = await import('@/test/thing-states');",
+        "  return (await import('@/test/typed-mock')).passThroughModule(io, {",
+        '    useThing: (scope: unknown) => {',
+        '      scopes.push(scope);',
+        '      return ready();',
+        '    },',
+        '  });',
+        '});',
+        MOCK,
+        HELPER,
+        '    useThing: () => holder.state!,',
+        '  }),',
+        ');',
+        'holder.state = readyThing();',
+        "it('pending', () => { holder.state = pendingThing(); });",
+        MOCK,
+        HELPER,
+        '    useOther: () => ({}),',
+        '  }),',
+        ');',
+      ].join('\n'),
+    });
+    expect(built).toEqual([]);
+  });
+
+  it('FLAGS a hand-written state, a builder the entry does not list, and a stand-in that is no function', async () => {
+    const { built } = await findingsOf({
+      [TEST]: [
+        "import { looseThing } from '@/test/thing-states';",
+        MOCK,
+        HELPER,
+        '    useThing: () => ({ ready: true }),',
+        '  }),',
+        ');',
+        MOCK,
+        HELPER,
+        '    useThing: () => looseThing(),',
+        '  }),',
+        ');',
+        MOCK,
+        HELPER,
+        '    useThing: standIn,',
+        '  }),',
+        ');',
+      ].join('\n'),
+    });
+    expectFindings(built, [
+      {
+        file: TEST,
+        line: 4,
+        detail: /useThing with a value that is no readyThing \/ pendingThing call/,
+      },
+      {
+        file: TEST,
+        line: 9,
+        detail: /useThing with a value that is no readyThing \/ pendingThing call/,
+      },
+      {
+        file: TEST,
+        line: 14,
+        detail: /useThing with something other than a function written there/,
+      },
+    ]);
+  });
+
+  it('FLAGS a holder set once to a hand-written state, and a holder nothing sets', async () => {
+    const { built } = await findingsOf({
+      [TEST]: [
+        "import { readyThing } from '@/test/thing-states';",
+        MOCK,
+        HELPER,
+        '    useThing: () => holder.state!,',
+        '  }),',
+        ');',
+        'holder.state = readyThing();',
+        "it('drifts', () => { holder.state = { ready: true }; });",
+        MOCK,
+        HELPER,
+        '    useThing: () => other.state!,',
+        '  }),',
+        ');',
+      ].join('\n'),
+    });
+    expectFindings(built, [
+      { file: TEST, line: 8, detail: /useThing through holder\.state, set to a value that is no/ },
+      {
+        file: TEST,
+        line: 11,
+        detail: /useThing with other\.state, which nothing in the file sets/,
+      },
+    ]);
+  });
+
+  it('FLAGS an override object it cannot read, since it could hide a listed name', async () => {
+    const { built } = await findingsOf({
+      [TEST]: [MOCK, HELPER, '    ...overrides,', '  }),', ');'].join('\n'),
+    });
+    expectFindings(built, [
+      {
+        file: TEST,
+        line: 3,
+        detail: /^overrides src\/hooks\/use-thing\.ts through names the guard cannot read/,
+      },
+    ]);
+  });
+
+  it('FLAGS a builders owner that no longer exists', async () => {
+    const { built } = await findingsOf(
+      {},
+      {
+        ...FACTS,
+        builtOverrides: [
+          { ...FACTS.builtOverrides[0], builders: { owner: 'src/test/gone.ts', names: ['x'] } },
+        ],
+      },
+    );
+    expectFindings(built, [
+      {
+        file: 'src/test/gone.ts',
+        line: undefined,
+        detail: /this typed fake or helper file no longer exists/,
+      },
+    ]);
+  });
+});
+
 describe('typedMocks facts', () => {
   it('needs every list, and a why for each forbidden override', () => {
     expect(factProblemsOf(typedMockGuard, {})).toEqual(
@@ -381,6 +529,7 @@ describe('typedMocks facts', () => {
         'fakes is missing (declare [] when there is none)',
         'typedHelpers is missing (declare [] when there is none)',
         'forbiddenOverrides is missing (declare [] when there is none)',
+        'builtOverrides is missing (declare [] when there is none)',
       ]),
     );
     expect(
@@ -389,6 +538,35 @@ describe('typedMocks facts', () => {
         forbiddenOverrides: [{ module: 'm', names: ['A'], why: '' }],
       }),
     ).toEqual(["forbiddenOverrides entry m's why is missing"]);
+  });
+
+  it('needs each built override to name its builders and say why, once per module', () => {
+    const entry = FACTS.builtOverrides[0];
+    expect(
+      factProblemsOf(typedMockGuard, {
+        ...FACTS,
+        builtOverrides: [
+          { ...entry, why: '' },
+          { ...entry, why: 'w', builders: { owner: '', names: [] } },
+        ],
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        `builtOverrides entry ${entry.module}'s why is missing`,
+        `builtOverrides lists ${entry.module} twice`,
+      ]),
+    );
+    const problems = factProblemsOf(typedMockGuard, {
+      ...FACTS,
+      builtOverrides: [{ ...entry, builders: { owner: '', names: [] } }],
+    });
+    expect(problems).toContain(`builtOverrides entry ${entry.module}'s builders owner is missing`);
+    expect(
+      problems.some(
+        (p) =>
+          p.startsWith(`builtOverrides entry ${entry.module}'s builders`) && !p.includes('owner'),
+      ),
+    ).toBe(true);
   });
 
   it('needs each fake call to name its fake and the position of its override object', () => {

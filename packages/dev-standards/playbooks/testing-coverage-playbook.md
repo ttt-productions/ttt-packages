@@ -171,12 +171,15 @@ the states it reaches that the product renders or handles apart — a read's fir
 retry, background refresh over kept data, failure over kept data, a list's next page and its failure —
 and confirm each one is buildable; (b) for each case, confirm its trigger is one production can
 produce and its fixture values are ones the schema and the real writers allow; (c) confirm each case's
-name states the trigger it uses.
+name states the trigger it uses; (d) confirm every export the repo's tests replace with a stand-in
+that has shared builders is listed in the guard config's `typedMocks` `builtOverrides`, so the
+`typedMocks` guard holds each override to those builders.
 **Expected:** every reachable state the product renders apart is buildable, no double offers an
 unreachable one, and every case is driven the way production drives it. **The findings:** a reachable
 state no builder builds; a builder with no real state behind it; an answer pushed to a listener the SDK
 has ended; a cache entry removed by hand to reach a state no user action reaches; a fixture value the
-schema or its only writer rules out; a case named for a trigger it no longer uses.
+schema or its only writer rules out; a case named for a trigger it no longer uses; an export with
+shared builders whose stand-ins the guard config does not hold to them.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Pass / Fail

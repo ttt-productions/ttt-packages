@@ -135,8 +135,8 @@ this section says what the facts mean, area by area, and never lists them guard 
 - **Repository** — the repository-wide facts: the CI workflow and the gate it must mirror, the
   roots kept isolated from each other and the tsconfig files whose aliases must stay inside their
   root, the package scope and which roots are server or client, the shared fakes and their owners, the
-  typed mock helpers a module mock may return through, and the exports no test may override, each
-  with why,
+  typed mock helpers a module mock may return through, the exports no test may override, and the
+  exports a test may override only with one of their listed builders, each with why,
   the files that may set a test timeout, each Worker tree's config files and production
   environment, the dependency overrides, the env files and the values in them that are public, the
   project ids, the product names no installed generic package may carry, the reviewed files

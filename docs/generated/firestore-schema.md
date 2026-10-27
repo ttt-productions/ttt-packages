@@ -2470,7 +2470,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `profilePictureAssetId` | `string \| null` | yes |
 | `artisanCreator` | `number` | yes |
 | `hasPledged` | `boolean` | yes |
-| `status` | `'active' \| 'suspended' \| 'banned'` | yes |
+| `status` | `'active' \| 'suspended' \| 'banned'` |  |
 | `statusUpdatedAt` | `number` | yes |
 | `statusUpdatedBy` | `string` | yes |
 | `accountAccessVersion` | `number` | yes |

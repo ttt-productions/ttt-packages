@@ -54,11 +54,19 @@ export interface ForbiddenOverride {
   fakeCalls?: readonly FakeCall[];
 }
 
+export interface BuiltOverride {
+  module: string;
+  names: readonly string[];
+  builders: TypedMockHelper;
+  why: string;
+}
+
 export interface TypedMockFacts {
   importAliases: Readonly<Record<string, string>>;
   fakes: readonly SharedFake[];
   typedHelpers: readonly TypedMockHelper[];
   forbiddenOverrides: readonly ForbiddenOverride[];
+  builtOverrides: readonly BuiltOverride[];
 }
 
 interface Site {
@@ -314,6 +322,121 @@ function checkForbidden(reader: RepoReader, facts: TypedMockFacts, files: FileVi
   return findings;
 }
 
+function fileBindings(file: FileView, resolve: (spec: string) => string): Map<string, Binding> {
+  const bindings = new Map<string, Binding>();
+  for (const site of file.imports) {
+    if (site.kind !== 'import' || !site.topLevel || site.typeOnly) continue;
+    const path = resolve(site.spec);
+    if (site.namespace) bindings.set(site.namespace, { path, name: null });
+    for (const named of site.named)
+      if (!named.typeOnly) bindings.set(named.local, { path, name: named.imported });
+  }
+  return bindings;
+}
+
+const overrideFunction = (node: ts.Node): Factory | null =>
+  ts.isPropertyAssignment(node) ? factoryFunction(node.initializer) : null;
+
+function holderValues(file: FileView, holder: string): ts.Expression[] {
+  const values: ts.Expression[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      unwrap(node.left).getText(file.sourceFile) === holder
+    )
+      values.push(node.right);
+    else if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === holder &&
+      node.initializer
+    )
+      values.push(node.initializer);
+    ts.forEachChild(node, visit);
+  };
+  visit(file.sourceFile);
+  return values;
+}
+
+function checkBuilt(reader: RepoReader, facts: TypedMockFacts, files: FileView[]): Finding[] {
+  const findings: Finding[] = [];
+  const aliases = aliasList(facts.importAliases);
+  const byModule = new Map(facts.builtOverrides.map((entry) => [entry.module, entry]));
+  for (const entry of facts.builtOverrides) {
+    const missing = missingOwner(reader, entry.builders.owner);
+    if (missing) findings.push({ file: entry.builders.owner, detail: missing });
+  }
+  for (const file of files) {
+    const resolve = (spec: string) => resolveSpecifier(reader, file.path, spec, aliases);
+    const atFile = fileBindings(file, resolve);
+    for (const site of sitesOf(reader, file, aliases)) {
+      const entry = byModule.get(site.module);
+      if (!entry || !site.factory || isRunnerOptions(site.factory)) continue;
+      const fn = factoryFunction(site.factory);
+      if (!fn) continue;
+      const bindings = new Map([...atFile, ...bindingsOf(fn, resolve)]);
+      const listed = new Set(entry.names);
+      const builders = new Set(entry.builders.names);
+      const builderList = entry.builders.names.join(' / ');
+      const builds = (value: ts.Expression): boolean => {
+        const call = awaited(value);
+        if (!ts.isCallExpression(call)) return false;
+        const target = calledExport(call, bindings, resolve);
+        return target?.path === entry.builders.owner && builders.has(target.name);
+      };
+      const report = (node: ts.Node, why: string) =>
+        findings.push({
+          file: file.path,
+          line: lineOfNode(file, node),
+          detail: `overrides ${site.module}'s ${why} — ${entry.why}`,
+        });
+      for (const returned of returnedExpressions(fn)) {
+        if (!returned) continue;
+        for (const read of overridesOf(returned, parameterName(fn), new Map())) {
+          if ('unread' in read) {
+            findings.push({
+              file: file.path,
+              line: lineOfNode(file, read.unread),
+              detail: `overrides ${site.module} through names the guard cannot read — write each override by name, since ${entry.names.join(', ')} must return a listed builder: ${entry.why}`,
+            });
+            continue;
+          }
+          if (!listed.has(read.name)) continue;
+          const override = overrideFunction(read.node);
+          if (!override) {
+            report(read.node, `${read.name} with something other than a function written there`);
+            continue;
+          }
+          for (const value of returnedExpressions(override)) {
+            if (!value) {
+              report(override, `${read.name} with a function that returns nothing`);
+              continue;
+            }
+            if (builds(value)) continue;
+            const holder = unwrap(value);
+            if (!ts.isIdentifier(holder) && !ts.isPropertyAccessExpression(holder)) {
+              report(value, `${read.name} with a value that is no ${builderList} call`);
+              continue;
+            }
+            const name = holder.getText(file.sourceFile);
+            const assigned = holderValues(file, name);
+            if (!assigned.length)
+              report(value, `${read.name} with ${name}, which nothing in the file sets`);
+            for (const set of assigned)
+              if (!builds(set))
+                report(
+                  set,
+                  `${read.name} through ${name}, set to a value that is no ${builderList} call`,
+                );
+          }
+        }
+      }
+    }
+  }
+  return findings;
+}
+
 function factProblems(facts: TypedMockFacts): string[] {
   const problems: string[] = [];
   if (!objectProblem(facts, 'the facts', problems)) return problems;
@@ -367,6 +490,31 @@ function factProblems(facts: TypedMockFacts): string[] {
       }
     }
   }
+  if (!Array.isArray(facts.builtOverrides))
+    problems.push('builtOverrides is missing (declare [] when there is none)');
+  else {
+    const seen = new Set<string>();
+    for (const raw of facts.builtOverrides as unknown[]) {
+      const entry = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+      if (!isText(entry.module)) {
+        problems.push('an entry of builtOverrides names no module');
+        continue;
+      }
+      if (seen.has(entry.module)) problems.push(`builtOverrides lists ${entry.module} twice`);
+      seen.add(entry.module);
+      namesProblem(entry.names, `builtOverrides entry ${entry.module}'s names`, problems);
+      textProblem(entry.why, `builtOverrides entry ${entry.module}'s why`, problems);
+      const builders = (
+        entry.builders && typeof entry.builders === 'object' ? entry.builders : {}
+      ) as Record<string, unknown>;
+      pathProblem(
+        builders.owner,
+        `builtOverrides entry ${entry.module}'s builders owner`,
+        problems,
+      );
+      namesProblem(builders.names, `builtOverrides entry ${entry.module}'s builders`, problems);
+    }
+  }
   return problems;
 }
 
@@ -403,6 +551,21 @@ export const typedMockGuard: GenericGuardDefinition<TypedMockFacts> = {
         timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           return checkForbidden(context.reader, facts, context.files(SCOPE));
+        },
+      },
+      {
+        title: 'an override of a listed export returns one of its listed builders',
+        description:
+          'A listed export is replaced in a test only by a function written at the override whose every return ' +
+          'is a call to one of its listed builders, or a holder — a name or a property — that every assignment in ' +
+          'the file sets from one of them. A hand-written stand-in can claim a combination the real export never ' +
+          'returns, so a case passes on a state the product never meets. The guard reads the names each override ' +
+          'object sets at its top level; a spread of anything but the real module, a computed name, or an override ' +
+          'object it cannot see fails, since it could hide a listed one. Each entry names its module, the exports, ' +
+          'the builders’ owner and names, and why only the builders may stand in.',
+        timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
+        run(context) {
+          return checkBuilt(context.reader, facts, context.files(SCOPE));
         },
       },
     ];

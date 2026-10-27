@@ -30,6 +30,7 @@ registerSuiteOf(
           { owner: 'test/client-firestore-fake.ts', names: ['clientFirestoreFake'] },
         ],
         forbiddenOverrides: [],
+        builtOverrides: [],
       },
     },
     business: [],
