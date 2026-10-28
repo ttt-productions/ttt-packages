@@ -13,6 +13,7 @@ import {
   MutationSessionProvider,
   useSessionMutation,
   type SessionMutationFunctionContext,
+  type UnknownOutcomePolicy,
 } from '../../src/react/session-mutation.js';
 
 function deferred<T>() {
@@ -617,5 +618,127 @@ describe('useSessionMutation — work that has not started when the session ends
       await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
     });
     expect(secondStep).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSessionMutation — an unknown outcome re-reads the reads the action owns', () => {
+  const UNKNOWN = Object.assign(new Error('deadline'), { code: 'unknown-outcome' });
+
+  function policyWrapper(
+    client: QueryClient,
+    session: { uid: string | null },
+    reread: UnknownOutcomePolicy['reread'],
+  ) {
+    const policy: UnknownOutcomePolicy = {
+      isUnknownOutcome: (error) => (error as { code?: unknown }).code === 'unknown-outcome',
+      rereadAfterMs: [0, 5_000],
+      reread,
+    };
+    return function Wrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <QueryClientProvider client={client}>
+          <MutationSessionProvider currentUid={session.uid} unknownOutcome={policy}>
+            {children}
+          </MutationSessionProvider>
+        </QueryClientProvider>
+      );
+    };
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('re-reads the keys the action declares from its input, at once and at each later delay', async () => {
+    vi.useFakeTimers();
+    const client = makeClient();
+    const reread = vi.fn<UnknownOutcomePolicy['reread']>();
+    const { result } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async (_: { id: string }) => Promise.reject(UNKNOWN),
+          unknownOutcomeReads: ({ id }) => [['item', id]],
+        }),
+      { wrapper: policyWrapper(client, { uid: 'member-a' }, reread) },
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ id: 'x' })).rejects.toBe(UNKNOWN);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(reread).toHaveBeenCalledTimes(1);
+    expect(reread).toHaveBeenLastCalledWith(client, [['item', 'x']]);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(reread).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-reads nothing for a failure that is a definite answer', async () => {
+    vi.useFakeTimers();
+    const reread = vi.fn<UnknownOutcomePolicy['reread']>();
+    const { result } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async () => Promise.reject(new Error('refused')),
+          unknownOutcomeReads: () => [['item']],
+        }),
+      { wrapper: policyWrapper(makeClient(), { uid: 'member-a' }, reread) },
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync()).rejects.toThrow('refused');
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(reread).not.toHaveBeenCalled();
+  });
+
+  it('skips a later re-read once the session that started the action has ended', async () => {
+    vi.useFakeTimers();
+    const reread = vi.fn<UnknownOutcomePolicy['reread']>();
+    const session = { uid: 'member-a' as string | null };
+    const { result, rerender } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async () => Promise.reject(UNKNOWN),
+          unknownOutcomeReads: () => [['item']],
+        }),
+      { wrapper: policyWrapper(makeClient(), session, reread) },
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync()).rejects.toBe(UNKNOWN);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(reread).toHaveBeenCalledTimes(1);
+
+    session.uid = 'member-b';
+    rerender();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(reread).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-reads nothing without the provider’s policy', async () => {
+    vi.useFakeTimers();
+    const reads = vi.fn(() => [['item']] as const);
+    const { result } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async () => Promise.reject(UNKNOWN),
+          unknownOutcomeReads: reads,
+        }),
+      { wrapper: sessionWrapper(makeClient(), { uid: 'member-a' }) },
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync()).rejects.toBe(UNKNOWN);
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(reads).not.toHaveBeenCalled();
   });
 });

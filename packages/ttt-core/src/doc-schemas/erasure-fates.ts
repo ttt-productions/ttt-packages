@@ -206,7 +206,6 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   '_appConfig/systemUidSlots': RETAIN,
   '_serverData/agePolicy': NONE,
   '_serverData/nciiPolicy': RETAIN,
-  '_serverData/privilegedReviewerSecurity': NONE,
   '_serverData/feedbackLists/feedbackAliases/{aliasId}': NONE,
   '_systemData/adminList': ANONYMIZE,
   '_systemData/profanityList': NONE,

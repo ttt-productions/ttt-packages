@@ -101,6 +101,18 @@ one session-aware mutation owner. It returns TanStack's own `useMutation` result
   error — with the original failure as its `cause` when the answer was a failure, and no `cause`
   after a late success.
 
+- **An unknown outcome re-reads what the action owns.** A failure the app classes as an unknown
+  outcome (a client deadline: the server may still commit) carries no answer to patch the cache
+  from. A mutation declares `unknownOutcomeReads(variables)`, the query keys its success path
+  writes, and the app hands `MutationSessionProvider` an `unknownOutcome` policy
+  (`UnknownOutcomePolicy`): `isUnknownOutcome(error)`, `rereadAfterMs` (the delays after the
+  failure at which the keys are read again, so a commit that lands after the deadline still
+  reaches the screen), and `reread(queryClient, keys)`. The app owns `reread`, so its one cache
+  invalidation owner stays the only place reads are refreshed. Each re-read runs only while the
+  session that started the action lasts. The re-reads run before the caller's own `onError`, and
+  the callable actions of `createCallables` take the same option. Without a policy, or for any
+  other failure, nothing is re-read.
+
 `useFirestoreSet/Update/Delete/Batch` are built on it, so an optimistic rollback or a key refresh of
 an ended session never touches the next session's cache.
 

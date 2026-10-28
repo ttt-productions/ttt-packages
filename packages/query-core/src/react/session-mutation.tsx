@@ -14,6 +14,8 @@ import {
   type DefaultError,
   type MutateOptions,
   type MutationFunctionContext,
+  type QueryClient,
+  type QueryKey,
   type UseMutationOptions,
   type UseMutationResult,
 } from '@tanstack/react-query';
@@ -61,7 +63,14 @@ export type SessionMutationOptions<
     onMutateResult: TOnMutateResult | undefined,
     context: SessionMutationFunctionContext,
   ) => Promise<unknown> | unknown;
+  unknownOutcomeReads?: (variables: TVariables) => readonly QueryKey[];
 };
+
+export interface UnknownOutcomePolicy {
+  isUnknownOutcome: (error: unknown) => boolean;
+  rereadAfterMs: readonly number[];
+  reread: (queryClient: QueryClient, keys: readonly QueryKey[]) => unknown;
+}
 
 export interface SessionMutateOptions<TData, TError, TVariables, TOnMutateResult> {
   onSuccess?: (
@@ -116,18 +125,25 @@ export class MutationSessionEndedError extends Error {
 
 interface SessionStore {
   current: { uid: string | null; generation: number };
+  unknownOutcome: UnknownOutcomePolicy | null;
 }
 
 const MutationSessionContext = createContext<SessionStore | null>(null);
 
 export interface MutationSessionProviderProps {
   currentUid: string | null;
+  unknownOutcome?: UnknownOutcomePolicy;
   children?: ReactNode;
 }
 
-export function MutationSessionProvider({ currentUid, children }: MutationSessionProviderProps) {
+export function MutationSessionProvider({
+  currentUid,
+  unknownOutcome,
+  children,
+}: MutationSessionProviderProps) {
   const [store] = useState<SessionStore>(() => ({
     current: { uid: currentUid, generation: 0 },
+    unknownOutcome: unknownOutcome ?? null,
   }));
   // Insertion effects run before any layout effect of the commit, so a child's layout effect
   // never starts a mutation under the uid this commit ends.
@@ -135,7 +151,8 @@ export function MutationSessionProvider({ currentUid, children }: MutationSessio
     if (store.current.uid !== currentUid) {
       store.current = { uid: currentUid, generation: store.current.generation + 1 };
     }
-  }, [store, currentUid]);
+    store.unknownOutcome = unknownOutcome ?? null;
+  }, [store, currentUid, unknownOutcome]);
   return (
     <MutationSessionContext.Provider value={store}>{children}</MutationSessionContext.Provider>
   );
@@ -226,6 +243,25 @@ function fenceCallOptions<TData, TError, TVariables, TOnMutateResult>(
   };
 }
 
+function rereadOnUnknownOutcome<TVariables>(
+  store: SessionStore | null,
+  queryClient: QueryClient,
+  reads: ((variables: TVariables) => readonly QueryKey[]) | undefined,
+  error: unknown,
+  variables: TVariables,
+  session: MutationSession,
+): void {
+  const policy = store?.unknownOutcome;
+  if (!policy || !reads || !policy.isUnknownOutcome(error)) return;
+  const keys = reads(variables);
+  if (keys.length === 0) return;
+  for (const delayMs of policy.rereadAfterMs) {
+    setTimeout(() => {
+      if (session.isCurrent()) void policy.reread(queryClient, keys);
+    }, delayMs);
+  }
+}
+
 async function settleInSession<TData>(
   session: MutationSession,
   settled: Promise<TData>,
@@ -253,8 +289,17 @@ export function useSessionMutation<
 ): SessionMutationResult<TData, TError, TVariables, TOnMutateResult> {
   const store = useContext(MutationSessionContext);
   const queryClient = useQueryClient();
-  const { mutationFn, onMutate, onSuccess, onError, onSettled, retry, throwOnError, ...rest } =
-    options;
+  const {
+    mutationFn,
+    onMutate,
+    onSuccess,
+    onError,
+    onSettled,
+    retry,
+    throwOnError,
+    unknownOutcomeReads,
+    ...rest
+  } = options;
   const defaults = queryClient.defaultMutationOptions<
     UseMutationOptions<unknown, TError, unknown, unknown>
   >({ mutationKey: options.mutationKey });
@@ -295,7 +340,9 @@ export function useSessionMutation<
     },
     onError: (error, variables, onMutateResult, context) => {
       if (error instanceof MutationSessionEndedError || runHasEnded(store, context)) return;
-      return onError?.(error, variables, onMutateResult, withSession(context, runSession(context)));
+      const session = runSession(context);
+      rereadOnUnknownOutcome(store, queryClient, unknownOutcomeReads, error, variables, session);
+      return onError?.(error, variables, onMutateResult, withSession(context, session));
     },
     onSettled: (data, error, variables, onMutateResult, context) => {
       if (error instanceof MutationSessionEndedError || runHasEnded(store, context)) return;

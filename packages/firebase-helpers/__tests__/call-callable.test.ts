@@ -41,6 +41,7 @@ import {
   stripUndefinedDeep,
   type CallCallableCallbacks,
 } from '../src/client/call-callable.js';
+import { isCallableDeadlineError } from '../src/utils/callable-deadline.js';
 
 type OnError = NonNullable<CallCallableCallbacks['onError']>;
 type CaptureException = NonNullable<CallCallableCallbacks['captureException']>;
@@ -217,6 +218,17 @@ describe('callCallable deadline', () => {
     });
     await vi.advanceTimersByTimeAsync(1_000);
     await assertion;
+  });
+
+  it('its deadline expiry is the error the deadline predicate recognises', async () => {
+    server.answer('hang');
+    const call = callCallable(getFunctionsInstance, 'hangs', {}, undefined, { timeoutMs: 1_000 });
+    const settled = call.then(
+      () => null,
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(isCallableDeadlineError(await settled)).toBe(true);
   });
 
   it('deadline expiry fires captureException once (payload-free) and onError once (with payload)', async () => {

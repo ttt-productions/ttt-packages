@@ -7,6 +7,7 @@ import {
 } from 'firebase/functions';
 
 import { isAppCheckThrottleError } from '../utils/app-check-throttle.js';
+import { CALLABLE_DEADLINE_EXCEEDED_CODE } from '../utils/callable-deadline.js';
 import { RECOVERED_FALLBACK_MARKER } from './recovered-fallback.js';
 
 export interface CallCallableCallbacks {
@@ -55,7 +56,7 @@ function deadlineExceededError(functionName: string, timeoutMs: number): Error {
     `deadline-exceeded: ${functionName} did not settle within ${timeoutMs}ms (outcome unknown — the server may still complete the request)`,
   );
   error.name = 'FirebaseError';
-  (error as Error & { code: string }).code = 'functions/deadline-exceeded';
+  (error as Error & { code: string }).code = CALLABLE_DEADLINE_EXCEEDED_CODE;
   return error;
 }
 

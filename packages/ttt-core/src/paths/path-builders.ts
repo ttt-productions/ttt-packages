@@ -1241,9 +1241,4 @@ export const PATH_BUILDERS = {
   agePolicyConfig: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
 
   nciiPolicyConfig: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.NCII_POLICY],
-
-  privilegedReviewerSecurityConfig: (): [string, string] => [
-    COLLECTIONS.SERVER_DATA,
-    SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY,
-  ],
 } as const;

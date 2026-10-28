@@ -161,6 +161,10 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error
   class (`APP_CHECK_THROTTLE_CODES`); `callCallable` classifies with it rather than restating
   the codes.
+- **The deadline predicate** — `isCallableDeadlineError(error)` is exported from the same root as
+  the ONE definition of the unknown-outcome class (`CALLABLE_DEADLINE_EXCEEDED_CODE`). It matches
+  both `callCallable`'s outer-deadline error and the SDK's own timeout, which carry the same code,
+  and `callCallable` builds its deadline error from that constant.
 
 ## Callable factories live in query-core
 

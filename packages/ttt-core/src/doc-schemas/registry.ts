@@ -187,10 +187,7 @@ import {
 } from './ncii/cases.js';
 import { NciiTemporaryHoldV1Schema } from './ncii/holds.js';
 import { NciiRemovalJobV1Schema, NciiRemovalTargetV1Schema } from './ncii/removal.js';
-import {
-  NciiPolicyConfigV1Schema,
-  PrivilegedReviewerSecurityProfileV1Schema,
-} from './ncii/config.js';
+import { NciiPolicyConfigV1Schema } from './ncii/config.js';
 import {
   NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
@@ -419,7 +416,6 @@ export const COLLECTION_SCHEMAS = {
 
   '_serverData/agePolicy': AgePolicyConfigV1Schema,
   '_serverData/nciiPolicy': NciiPolicyConfigV1Schema,
-  '_serverData/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
   '_serverData/feedbackLists/feedbackAliases/{aliasId}': FeedbackAliasSchema,
 
   '_systemData/adminList': AdminListSchema,

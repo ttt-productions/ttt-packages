@@ -106,6 +106,45 @@ describe('createCallables — action', () => {
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 
+  it('re-reads the keys a call site declares when the call ends in a deadline', async () => {
+    mockCallable(throwing(fault('functions/deadline-exceeded')));
+    const reread = vi.fn();
+    const client = retryingClient();
+    const useAction = createCallables(makePolicy()).createCallableHook<{ id: string }, unknown>(
+      'doThing',
+    );
+    const { result } = renderHook(
+      () => useAction({ unknownOutcomeReads: ({ id }) => [['item', id]] }),
+      {
+        wrapper: function Wrapper({ children }: { children: React.ReactNode }) {
+          return (
+            <QueryClientProvider client={client}>
+              <MutationSessionProvider
+                currentUid="member-a"
+                unknownOutcome={{
+                  isUnknownOutcome: (error) =>
+                    (error as { code?: unknown }).code === 'functions/deadline-exceeded',
+                  rereadAfterMs: [0],
+                  reread,
+                }}
+              >
+                {children}
+              </MutationSessionProvider>
+            </QueryClientProvider>
+          );
+        },
+      },
+    );
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ id: 'a' })).rejects.toMatchObject({
+        code: 'functions/deadline-exceeded',
+      });
+    });
+
+    await waitFor(() => expect(reread).toHaveBeenCalledWith(client, [['item', 'a']]));
+  });
+
   it('routes a failure once with the default routing and captures the fault exactly once', async () => {
     const error = fault();
     mockCallable(throwing(error));

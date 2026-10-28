@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   NciiPolicyConfigV1Schema,
   NCII_EVIDENCE_MAX_FILE_BYTES,
-  PrivilegedReviewerSecurityProfileV1Schema,
   type NciiPolicyConfigV1,
-  type PrivilegedReviewerSecurityProfileV1,
 } from '../src/doc-schemas/ncii/config.js';
 
 const config: NciiPolicyConfigV1 = {
@@ -52,31 +50,5 @@ describe('NciiPolicyConfigV1Schema (`_serverData/nciiPolicy`)', () => {
 describe('NCII evidence size cap', () => {
   it('is 100 MiB per file', () => {
     expect(NCII_EVIDENCE_MAX_FILE_BYTES).toBe(104_857_600);
-  });
-});
-
-const reviewerProfile: PrivilegedReviewerSecurityProfileV1 = {
-  requiredSecondFactor: 'passkeyWebAuthn',
-  privilegedReauthTtlSeconds: 1,
-  privilegedSessionDeviceBound: false,
-  twoStepReauthCapabilities: ['evidenceReveal'],
-  recoveryCodeCount: 1,
-  recoveryCodeUse: 'auditedHighSeverity+forcesReenroll+criticalAlarm',
-  allowPrivilegedSessionRevocation: false,
-  everyInvocationAudited: false,
-};
-
-describe('PrivilegedReviewerSecurityProfileV1Schema (`_serverData/privilegedReviewerSecurity`)', () => {
-  it('accepts a complete profile', () => {
-    expect(PrivilegedReviewerSecurityProfileV1Schema.safeParse(reviewerProfile).success).toBe(true);
-  });
-
-  it('refuses a capability outside the declared set', () => {
-    expect(
-      PrivilegedReviewerSecurityProfileV1Schema.safeParse({
-        ...reviewerProfile,
-        twoStepReauthCapabilities: ['somethingElse'],
-      }).success,
-    ).toBe(false);
   });
 });

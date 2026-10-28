@@ -265,7 +265,6 @@ export const SPECIAL_DOCS = {
 
   AGE_POLICY: 'agePolicy',
   NCII_POLICY: 'nciiPolicy',
-  PRIVILEGED_REVIEWER_SECURITY: 'privilegedReviewerSecurity',
 
   FEEDBACK_LISTS: 'feedbackLists',
 

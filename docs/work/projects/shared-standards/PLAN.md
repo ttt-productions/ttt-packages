@@ -248,6 +248,5 @@ Kept until Q-Sports converts. It rewrites rule IDs and doc paths from a table.
 
 ## What is left
 
-- ttt-prod's last Phase 3 items and its Normal TTT Test Flow, tracked privately in ttt-prod.
 - Q-Sports converts in its own parity conversation, with `convert-rule-refs.mjs` and its
   `rules-conversion/` tables. This folder is deleted after that.

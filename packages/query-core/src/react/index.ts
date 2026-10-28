@@ -95,6 +95,7 @@ export type {
   SessionMutationFunctionContext,
   SessionMutationOptions,
   SessionMutationResult,
+  UnknownOutcomePolicy,
 } from './session-mutation.js';
 
 export { createCallables, MAX_RESUMABLE_CALLS } from './callables/create-callables.js';

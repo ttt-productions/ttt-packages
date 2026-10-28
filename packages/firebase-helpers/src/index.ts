@@ -4,5 +4,6 @@ export * from './firestore/timestamps-universal.js';
 export * from './utils/chunk.js';
 export * from './utils/expected-callable-answers.js';
 export * from './utils/app-check-throttle.js';
+export * from './utils/callable-deadline.js';
 export * from './firestore/date-formatting.js';
 export * from './utils/file-url.js';

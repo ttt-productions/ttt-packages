@@ -37,34 +37,3 @@ export const NciiPolicyConfigV1Schema = z
 export type NciiPolicyConfigV1 = z.infer<typeof NciiPolicyConfigV1Schema>;
 
 export const NCII_EVIDENCE_MAX_FILE_BYTES = 100 * MIB;
-
-export const PrivilegedReviewerSecondFactorSchema = z.literal('passkeyWebAuthn');
-export type PrivilegedReviewerSecondFactor = z.infer<typeof PrivilegedReviewerSecondFactorSchema>;
-
-export const PrivilegedTwoStepReauthCapabilitySchema = z.enum([
-  'evidenceReveal',
-  'ncmecCredentialUse',
-  'reverseHashBlock',
-  'legalDisposition',
-  'falsePositiveCorrection',
-  'ncmecManualFallback',
-]);
-export type PrivilegedTwoStepReauthCapability = z.infer<
-  typeof PrivilegedTwoStepReauthCapabilitySchema
->;
-
-export const PrivilegedReviewerSecurityProfileV1Schema = z
-  .object({
-    requiredSecondFactor: PrivilegedReviewerSecondFactorSchema,
-    privilegedReauthTtlSeconds: z.number(),
-    privilegedSessionDeviceBound: z.boolean(),
-    twoStepReauthCapabilities: z.array(PrivilegedTwoStepReauthCapabilitySchema),
-    recoveryCodeCount: z.number(),
-    recoveryCodeUse: z.literal('auditedHighSeverity+forcesReenroll+criticalAlarm'),
-    allowPrivilegedSessionRevocation: z.boolean(),
-    everyInvocationAudited: z.boolean(),
-  })
-  .strict();
-export type PrivilegedReviewerSecurityProfileV1 = z.infer<
-  typeof PrivilegedReviewerSecurityProfileV1Schema
->;
