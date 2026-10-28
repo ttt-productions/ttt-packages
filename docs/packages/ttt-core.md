@@ -42,7 +42,8 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   labels, and product copy, one file per concern. `constants/app-mode` owns the app mode
   (`APP_MODE`), the per-mode limit sets, and `valueInMode` / `byMode`, through which every
   mode-varied value is read. `constants/release-flags` holds the code-level switches for features
-  not yet live.
+  not yet live. `constants/functions-runtime` holds `FUNCTIONS_REQUEST_TIMEOUT_SECONDS`, the request
+  timeout every TTT Cloud Function runs under, which the client's unknown-outcome re-reads also cover.
 - **Permissions and capabilities.** `permissions/` owns the Work guild standings, the Work action
   catalog with each action's grant, and who may assign or remove each standing; consumers never keep
   their own standing maps or action matrices. `capabilities/` owns the capability registry and the
