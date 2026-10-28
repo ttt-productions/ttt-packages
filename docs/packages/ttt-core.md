@@ -52,8 +52,9 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   (`ttt-media-specs`, built for an app mode), the start-upload request, upload target info (typed ids,
   never a client-supplied path or field map), the Hall-library target-field mappings, the pending-media
   schemas composed from `media-schemas`, the domain-event catalog, the media edge-serving contract,
-  the fields every media-authority write sets with its version bump (`media-authority-co-write`), and
-  publication arguments. `upload-variables/` owns each upload hook's variables schema.
+  the fields every media-authority write sets with its version bump (`media-authority-co-write`), the
+  root origin lineage an original upload's asset is stored with (`origin-lineage`), and publication
+  arguments. `upload-variables/` owns each upload hook's variables schema.
 - **Notifications.** `schemas/notification` owns the notification type catalog and the broadcast
   and archive inputs; `notifications/` owns `TTT_NOTIFICATION_CONFIG`, the one configuration TTT
   hands `notification-core`, derived from that catalog. Notification metadata carries ids, never a
