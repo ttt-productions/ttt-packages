@@ -69,7 +69,10 @@ export function statQueueStorageKey(uid: string, gameId: string): string {
 }
 
 /**
- * localStorage key, and the first-party cookie's name, holding this browser's analytics consent:
- * `'granted'` or `'denied'`; absent until the visitor chooses.
+ * localStorage key holding this browser's analytics consent: `'granted'` or `'denied'`; absent until
+ * the visitor chooses.
  */
 export const COOKIE_CONSENT_STORAGE_KEY = 'q-sports-cookie-consent';
+
+/** Same-tab event dispatched when COOKIE_CONSENT_STORAGE_KEY changes. */
+export const COOKIE_CONSENT_CHANGE_EVENT = 'q-sports-cookie-consent-change';
