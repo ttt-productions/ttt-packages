@@ -33,8 +33,6 @@ export type BrowserMonitoringOptions = {
   scrubPatterns?: ForbiddenPattern[];
   dropEvent?: (event: BrowserErrorEvent, hint: BrowserEventHint) => boolean;
   ignoreErrors?: readonly (string | RegExp)[];
-  ignoreInAppBrowserNoise?: boolean;
-  attachIndexedDbNames?: (error: unknown) => boolean;
   sessionReplay: false | BrowserSessionReplayOptions;
   tracesSampleRate: false | number;
   networkCapture: false | BrowserNetworkCaptureOptions;
@@ -56,11 +54,8 @@ export const DEFAULT_BROWSER_IGNORE_ERRORS: readonly (string | RegExp)[] = [
   /^(FirebaseError: )?internal( \[0\])?$/i,
   // Firestore's console line while its channel reconnects on its own.
   /Could not reach Cloud Firestore backend/,
-];
-
-// Scripts in-app browsers inject into every page they show: Snapchat's bridge and Facebook's
-// Android logger.
-export const IN_APP_BROWSER_IGNORE_ERRORS: readonly RegExp[] = [
+  // Scripts in-app browsers inject into every page they show: Snapchat's bridge and Facebook's
+  // Android logger.
   /SCDynimacBridge/,
   /Java object is gone/,
 ];
@@ -97,9 +92,7 @@ export function initBrowserMonitoring(options: BrowserMonitoringOptions): void {
   const beforeSend: BeforeSend = (event, hint) => {
     if (options.dropEvent?.(event, hint)) return null;
     if (isIgnoredNetworkEvent(event, ignoreUrls)) return null;
-    const scrubbed = scrub(event);
-    if (!options.attachIndexedDbNames?.(hint.originalException)) return scrubbed;
-    return withIndexedDbNames(scrubbed);
+    return withIndexedDbNames(scrub(event));
   };
 
   const integrations: SentryIntegration[] = [captureConsoleIntegration({ levels: ['error'] })];
@@ -131,11 +124,7 @@ export function initBrowserMonitoring(options: BrowserMonitoringOptions): void {
     transport: makeBrowserOfflineTransport(makeFetchTransport),
     beforeSend,
     integrations,
-    ignoreErrors: [
-      ...DEFAULT_BROWSER_IGNORE_ERRORS,
-      ...(options.ignoreInAppBrowserNoise ? IN_APP_BROWSER_IGNORE_ERRORS : []),
-      ...(options.ignoreErrors ?? []),
-    ],
+    ignoreErrors: [...DEFAULT_BROWSER_IGNORE_ERRORS, ...(options.ignoreErrors ?? [])],
   };
   if (options.tracesSampleRate !== false) {
     const beforeSendTransaction: BeforeSendTransaction = (event) => scrub(event);

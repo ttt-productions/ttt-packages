@@ -32,7 +32,6 @@ vi.mock(import('@sentry/nextjs'), async (importOriginal) => {
 
 import {
   DEFAULT_BROWSER_IGNORE_ERRORS,
-  IN_APP_BROWSER_IGNORE_ERRORS,
   initBrowserMonitoring,
   type BrowserErrorEvent,
   type BrowserEventHint,
@@ -167,39 +166,37 @@ describe('initBrowserMonitoring', () => {
     expect(await send(options, event)).not.toBe(null);
   });
 
-  it('attaches the page IndexedDB names to an event the app marks', async () => {
+  it('attaches the page IndexedDB database names to every error event', async () => {
     vi.stubGlobal('indexedDB', {
       databases: () => Promise.resolve([{ name: 'firestore/app' }, { name: 'sentry-offline' }]),
     });
-    const options = initWith({
-      ...ERRORS_ONLY,
-      attachIndexedDbNames: (error) => error === 'disconnect',
+    const options = initWith(ERRORS_ONLY);
+    const sent = await send(options, { type: undefined, message: 'lost', extra: { attempt: 2 } });
+    expect(sent?.extra).toEqual({
+      attempt: 2,
+      indexedDbNames: ['firestore/app', 'sentry-offline'],
     });
-    const marked = await send(options, errorEvent('lost'), { originalException: 'disconnect' });
-    expect(marked?.extra).toEqual({ indexedDbNames: ['firestore/app', 'sentry-offline'] });
-    const unmarked = await send(options, errorEvent('other'), { originalException: 'other' });
-    expect(unmarked?.extra).toBeUndefined();
     vi.unstubAllGlobals();
   });
 
-  it('still sends a marked event when the IndexedDB listing fails', async () => {
+  it('still sends the event when the IndexedDB listing fails or the browser offers none', async () => {
     vi.stubGlobal('indexedDB', { databases: () => Promise.reject(new Error('blocked')) });
-    const options = initWith({ ...ERRORS_ONLY, attachIndexedDbNames: () => true });
-    const sent = await send(options, errorEvent('lost'));
-    expect(sent?.message).toBe('lost');
-    expect(sent?.extra).toBeUndefined();
+    const options = initWith(ERRORS_ONLY);
+    const blocked = await send(options, errorEvent('lost'));
+    expect(blocked?.message).toBe('lost');
+    expect(blocked?.extra).toBeUndefined();
+    vi.stubGlobal('indexedDB', undefined);
+    const absent = await send(options, errorEvent('lost'));
+    expect(absent?.extra).toBeUndefined();
     vi.unstubAllGlobals();
   });
 
-  it('ignores the default noise, the app list, and in-app-browser noise only when asked', () => {
-    const off = initWith({ ...ERRORS_ONLY, ignoreErrors: ['App noise'] });
-    expect(off.ignoreErrors).toEqual([...DEFAULT_BROWSER_IGNORE_ERRORS, 'App noise']);
-    sentry.init.mockClear();
-    const on = initWith({ ...ERRORS_ONLY, ignoreInAppBrowserNoise: true });
-    expect(on.ignoreErrors).toEqual([
-      ...DEFAULT_BROWSER_IGNORE_ERRORS,
-      ...IN_APP_BROWSER_IGNORE_ERRORS,
-    ]);
+  it('ignores the shared noise, in-app-browser scripts included, and then the app list', () => {
+    const options = initWith({ ...ERRORS_ONLY, ignoreErrors: ['App noise'] });
+    expect(options.ignoreErrors).toEqual([...DEFAULT_BROWSER_IGNORE_ERRORS, 'App noise']);
+    expect(options.ignoreErrors).toEqual(
+      expect.arrayContaining([/SCDynimacBridge/, /Java object is gone/]),
+    );
   });
 
   it('scrubs sampled transactions', () => {

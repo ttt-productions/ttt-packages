@@ -143,11 +143,12 @@ starts nothing — the app passes that for local and emulator runs.
 Always on: the offline transport (a send that fails at the network is queued in IndexedDB and
 retried), the console-error capture (error level only), and `beforeSend`, which runs in order the
 app's `dropEvent(event, hint)` (a designed answer, say), the network-capture URL filter, the
-telemetry scrubber (`scrubPatterns` on top of the defaults), and, when `attachIndexedDbNames(error)`
-says so, the page's IndexedDB database names as `extra.indexedDbNames` (names only; a failed
-listing sends the event without them). `ignoreErrors` is `DEFAULT_BROWSER_IGNORE_ERRORS` (generic
-browser, network and Firebase SDK noise), then `IN_APP_BROWSER_IGNORE_ERRORS` when
-`ignoreInAppBrowserNoise` is set, then the app's own list.
+telemetry scrubber (`scrubPatterns` on top of the defaults), then adds the page's IndexedDB
+database names to every error event as `extra.indexedDbNames` — names only, never what they hold,
+so an error from a lost or broken storage connection says which store it was; a listing that fails
+or that the browser does not offer sends the event without them. `ignoreErrors` is
+`DEFAULT_BROWSER_IGNORE_ERRORS` (generic browser, network and Firebase SDK noise, and the scripts
+in-app browsers inject into every page), then the app's own list.
 
 Three switches, each `false` or its config:
 

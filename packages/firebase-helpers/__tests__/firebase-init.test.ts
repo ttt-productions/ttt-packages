@@ -99,6 +99,7 @@ vi.mock(import('../src/client/auth-boot-lookup-guard.js'), async (importOriginal
 
 import { connectAuthEmulator } from 'firebase/auth';
 import { connectStorageEmulator } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 import {
   initFirebaseClient,
   getFirebaseClient,
@@ -173,6 +174,16 @@ describe('initFirebaseClient', () => {
   it('does not connect emulators when window is undefined (SSR)', () => {
     initFirebaseClient(CONFIG, { useEmulators: true });
     expect(connectAuthEmulator).not.toHaveBeenCalled();
+  });
+
+  it('creates Functions in the region the app deploys to', () => {
+    initFirebaseClient(CONFIG, { functionsRegion: 'us-east1' });
+    expect(getFunctions).toHaveBeenCalledWith(expect.anything(), 'us-east1');
+  });
+
+  it('creates Functions in the default region when the app names none', () => {
+    initFirebaseClient(CONFIG);
+    expect(getFunctions).toHaveBeenCalledWith(expect.anything(), undefined);
   });
 
   it('refuses a config missing a key the app requires, naming every missing key', () => {

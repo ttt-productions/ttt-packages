@@ -48,6 +48,7 @@ export interface InitFirebaseClientOptions {
   requiredConfigKeys?: readonly (keyof FirebaseOptions)[];
   useEmulators?: boolean;
   emulatorPorts?: EmulatorPorts;
+  functionsRegion?: string;
   useBrowserLocalPersistence?: boolean;
   persistentFirestoreCache?: boolean;
   appCheck?: AppCheckClientOptions;
@@ -232,7 +233,7 @@ export function initFirebaseClient(
   const db = initFirestore(app, Boolean(options.persistentFirestoreCache) && !useEmulators);
   const auth = getAuth(app);
   const storage = getStorage(app);
-  const functions = getFunctions(app);
+  const functions = getFunctions(app, options.functionsRegion);
   if (useEmulators) connectEmulators({ db, auth, storage, functions }, options);
 
   let appCheckReady: Promise<void> | undefined;

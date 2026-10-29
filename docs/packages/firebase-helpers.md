@@ -51,6 +51,8 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   auth `loading` and `signedIn` and calls `onPurged({ persistedUid, failureClass })` once when a
   session that was persisted resolves signed out at the first resolution — the SDK dropped it during
   its boot lookup. The app reports it through its own monitoring.
+- **Functions region.** `functionsRegion` names the region the app's functions deploy to; Functions
+  uses the SDK's default region when it is left out.
 - **Emulators.** `useEmulators` connects Auth, Firestore, Functions, and Storage once per page, in
   the browser only, on `emulatorPorts` (`host`, a separate `storageHost`, and each port);
   `useBrowserLocalPersistence` keeps the Auth session in local storage there.
