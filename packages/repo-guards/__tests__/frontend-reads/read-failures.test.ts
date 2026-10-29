@@ -367,6 +367,8 @@ describe('a hook never returns a default its consumers cannot tell from data', (
         'export function useC() { const q = useQ(); const s = useReadRetryState(q, k); return { rows: q.data ?? [], error: s.error }; }',
         'export function useD(): boolean { return useIsMutating() > 0; }',
         'export function useE(id: string) { const q = useQ(id); return { row: q.data, isError: q.isError }; }',
+        'export function useF() { const q = useQ(); return { rows: q.data ?? [], error: q.retryState.error }; }',
+        'export function useG() { const { data = [], retryState } = useQ(); return { data, retryState }; }',
       ].join('\n'),
       'src/components/rows.tsx':
         'export function useRows() { const q = useQ(); return q.data ?? []; }',
@@ -387,6 +389,8 @@ describe('a hook never returns a default its consumers cannot tell from data', (
         'export function useLiked(id: string) { const q = useLike(id); return !!q.data; }',
       'src/hooks/use-f.ts':
         'export function useRows() { const q = useQ(); const o = useO(); const s = useReadRetryState(o, k); return { rows: q.data ?? [], error: s.error }; }',
+      'src/hooks/use-g.ts':
+        'export function useRows() { const q = useQ(); const o = useO(); return { rows: q.data ?? [], error: o.retryState.error }; }',
     });
     expect(findings).toEqual([
       {
@@ -404,6 +408,11 @@ describe('a hook never returns a default its consumers cannot tell from data', (
       { file: 'src/hooks/use-e.ts', line: 1, detail: 'useLiked returns a boolean from a read' },
       {
         file: 'src/hooks/use-f.ts',
+        line: 1,
+        detail: 'a defaulted read with no failure beside it: q.data ?? []',
+      },
+      {
+        file: 'src/hooks/use-g.ts',
         line: 1,
         detail: 'a defaulted read with no failure beside it: q.data ?? []',
       },
@@ -456,6 +465,7 @@ describe('a render surface that defaults a read binds its failure', () => {
       'src/components/rows.tsx': [
         'const { data: a = [], isError } = useRows();',
         'const { data: b = [], held } = useRows();',
+        'const { data: f = [], retryState } = useRows();',
         'const { data: c = [], ...rest } = useRows();',
         'const { data: d } = useRows();',
         'const { data: e = [] } = buildRows();',

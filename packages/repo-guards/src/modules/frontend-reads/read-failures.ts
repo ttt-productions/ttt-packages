@@ -503,7 +503,7 @@ export interface HookReadDefaultFacts {
   readCollapsers: readonly string[];
 }
 
-const FAILURE_FIELDS = new Set(['error', 'isError', 'status']);
+const FAILURE_FIELDS = new Set(['error', 'isError', 'status', 'retryState']);
 
 function isEmptyAnswer(node: ts.Expression): boolean {
   return (
@@ -688,7 +688,7 @@ export const hookReadDefaultGuard: GenericGuardDefinition<HookReadDefaultFacts> 
       title: 'a hook never returns a default its consumers cannot tell from data',
       description:
         `In ${facts.hooksTree}, a read's data defaulted to an empty answer (q.data ?? [], const { data = [] } = useQ()) is allowed only ` +
-        `where the same function also carries that read's failure (error / isError / status, or the read handed to ${RETRY_STATE_HELPERS[0]}), ` +
+        `where the same function also carries that read's failure (error / isError / status / retryState, or the read handed to ${RETRY_STATE_HELPERS[0]}), ` +
         'and no exported hook collapses a read into a bare boolean, where an unknown read would read as "no". Return the read state ' +
         '(pending / failed / answered) or carry the failure beside the defaulted data.',
       run(context) {
@@ -801,7 +801,7 @@ export const defaultedReadBindingGuard: GenericGuardDefinition<DefaultedReadBind
       title: 'a render surface that defaults a read binds its failure',
       description:
         `A render surface (${facts.surfaceTrees.join(', ')}) that defaults a read's data (const { data: rows = [] } = useRows()) binds ` +
-        `that same read's failure (error / isError / status${held}) in the same destructure, and renders the pending and failed states ` +
+        `that same read's failure (error / isError / status / retryState${held}) in the same destructure, and renders the pending and failed states ` +
         'before the default is used; otherwise a failed read renders as an empty list, a zero, or a negative answer that decides a control. ' +
         'A reviewed default names the gate that holds its surface back until the read answered, and that gate must still be there.',
       scope: APP_CODE,
