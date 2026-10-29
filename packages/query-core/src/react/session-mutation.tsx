@@ -123,36 +123,64 @@ export class MutationSessionEndedError extends Error {
   }
 }
 
+/** The signed-in uid as the auth layer holds it right now, and a subscription to its changes —
+ *  the pair `useSyncExternalStore` takes. */
+export interface LiveSessionSource {
+  read: () => string | null;
+  subscribe: (onChange: () => void) => () => void;
+}
+
 interface SessionStore {
   current: { uid: string | null; generation: number };
+  live: LiveSessionSource | null;
   unknownOutcome: UnknownOutcomePolicy | null;
 }
 
 const MutationSessionContext = createContext<SessionStore | null>(null);
 
-export interface MutationSessionProviderProps {
-  currentUid: string | null;
+export type MutationSessionProviderProps = {
   unknownOutcome?: UnknownOutcomePolicy;
   children?: ReactNode;
+} & (
+  | { currentUid: string | null; liveSession?: never }
+  | { liveSession: LiveSessionSource; currentUid?: never }
+);
+
+function observeUid(store: SessionStore, uid: string | null): void {
+  if (store.current.uid !== uid) {
+    store.current = { uid, generation: store.current.generation + 1 };
+  }
 }
 
-export function MutationSessionProvider({
-  currentUid,
-  unknownOutcome,
-  children,
-}: MutationSessionProviderProps) {
+// A live source is read at every capture and every check, so an action started in the same task
+// as a sign-in belongs to the new uid even before any render has seen it.
+function syncLive(store: SessionStore): void {
+  if (store.live) observeUid(store, store.live.read());
+}
+
+export function MutationSessionProvider(props: MutationSessionProviderProps) {
+  const { unknownOutcome, children } = props;
+  const live = props.liveSession ?? null;
+  const currentUid = props.liveSession ? null : (props.currentUid ?? null);
   const [store] = useState<SessionStore>(() => ({
-    current: { uid: currentUid, generation: 0 },
+    current: { uid: live ? live.read() : currentUid, generation: 0 },
+    live,
     unknownOutcome: unknownOutcome ?? null,
   }));
   // Insertion effects run before any layout effect of the commit, so a child's layout effect
   // never starts a mutation under the uid this commit ends.
   useInsertionEffect(() => {
-    if (store.current.uid !== currentUid) {
-      store.current = { uid: currentUid, generation: store.current.generation + 1 };
-    }
+    store.live = live;
+    if (live) syncLive(store);
+    else observeUid(store, currentUid);
     store.unknownOutcome = unknownOutcome ?? null;
-  }, [store, currentUid, unknownOutcome]);
+  }, [store, live, currentUid, unknownOutcome]);
+  // Every change the source reports is observed as it happens, so a sign-out followed by the same
+  // uid signing back in ends the session even when no check ran in between.
+  useInsertionEffect(() => {
+    if (!live) return;
+    return live.subscribe(() => syncLive(store));
+  }, [store, live]);
   return (
     <MutationSessionContext.Provider value={store}>{children}</MutationSessionContext.Provider>
   );
@@ -166,8 +194,12 @@ const ALWAYS_CURRENT: MutationSession = {
 
 function captureSession(store: SessionStore | null): MutationSession {
   if (!store) return ALWAYS_CURRENT;
+  syncLive(store);
   const { uid, generation } = store.current;
-  const isCurrent = () => store.current.generation === generation;
+  const isCurrent = () => {
+    syncLive(store);
+    return store.current.generation === generation;
+  };
   return {
     uid,
     isCurrent,

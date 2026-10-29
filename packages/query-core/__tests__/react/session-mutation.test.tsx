@@ -742,3 +742,133 @@ describe('useSessionMutation — an unknown outcome re-reads the reads the actio
     expect(reads).not.toHaveBeenCalled();
   });
 });
+
+function liveAuth(initial: string | null) {
+  let uid = initial;
+  const listeners = new Set<() => void>();
+  return {
+    source: {
+      read: () => uid,
+      subscribe: (onChange: () => void) => {
+        listeners.add(onChange);
+        return () => {
+          listeners.delete(onChange);
+        };
+      },
+    },
+    /** The auth layer's uid changes, with no render and no notification. */
+    setSilently(next: string | null) {
+      uid = next;
+    },
+    /** The auth layer's uid changes and it notifies its subscribers. */
+    setAndNotify(next: string | null) {
+      uid = next;
+      for (const listener of [...listeners]) listener();
+    },
+  };
+}
+
+function liveWrapper(client: QueryClient, source: ReturnType<typeof liveAuth>['source']) {
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={client}>
+        <MutationSessionProvider liveSession={source}>{children}</MutationSessionProvider>
+      </QueryClientProvider>
+    );
+  };
+}
+
+describe('useSessionMutation — a live session source', () => {
+  it('runs an action started right after a sign-in, before any render saw it, as the new uid', async () => {
+    const auth = liveAuth(null);
+    const seen: Array<string | null> = [];
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useSessionMutation({
+          mutationFn: async (_: void, context: SessionMutationFunctionContext) => {
+            seen.push(context.session.uid);
+            await Promise.resolve();
+            return 'started';
+          },
+          onSuccess,
+        }),
+      { wrapper: liveWrapper(makeClient(), auth.source) },
+    );
+
+    auth.setSilently('member-a');
+    await act(async () => {
+      await expect(result.current.mutateAsync()).resolves.toBe('started');
+    });
+
+    expect(seen).toEqual(['member-a']);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it('ends the session the moment the source changes, with no render in between', async () => {
+    const auth = liveAuth('member-a');
+    const answer = deferred<string>();
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => useSessionMutation({ mutationFn: () => answer.promise, onSuccess }),
+      { wrapper: liveWrapper(makeClient(), auth.source) },
+    );
+
+    let settled!: Promise<unknown>;
+    act(() => {
+      settled = result.current.mutateAsync(undefined).catch((error: unknown) => error);
+    });
+    auth.setSilently('member-b');
+    await act(async () => {
+      answer.resolve('done');
+    });
+
+    expect(await settled).toBeInstanceOf(MutationSessionEndedError);
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('ends the session on a reported sign-out even when the same uid signs back in before any check', async () => {
+    const auth = liveAuth('member-a');
+    const answer = deferred<string>();
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => useSessionMutation({ mutationFn: () => answer.promise, onSuccess }),
+      { wrapper: liveWrapper(makeClient(), auth.source) },
+    );
+
+    let settled!: Promise<unknown>;
+    act(() => {
+      settled = result.current.mutateAsync(undefined).catch((error: unknown) => error);
+    });
+    auth.setAndNotify(null);
+    auth.setAndNotify('member-a');
+    await act(async () => {
+      answer.resolve('done');
+    });
+
+    expect(await settled).toBeInstanceOf(MutationSessionEndedError);
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('keeps an action current while the source reports the same uid', async () => {
+    const auth = liveAuth('member-a');
+    const answer = deferred<string>();
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => useSessionMutation({ mutationFn: () => answer.promise, onSuccess }),
+      { wrapper: liveWrapper(makeClient(), auth.source) },
+    );
+
+    let settled!: Promise<unknown>;
+    act(() => {
+      settled = result.current.mutateAsync(undefined);
+    });
+    auth.setAndNotify('member-a');
+    await act(async () => {
+      answer.resolve('done');
+    });
+
+    await expect(settled).resolves.toBe('done');
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+});

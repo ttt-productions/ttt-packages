@@ -73,12 +73,17 @@ Every mutation in an app and in a package goes through `useSessionMutation(optio
 one session-aware mutation owner. It returns TanStack's own `useMutation` result, typed as
 `SessionMutationResult` so per-call callbacks see the session too.
 
-- **The session.** `MutationSessionProvider({ currentUid })` is mounted by the app inside its
-  `QueryClientProvider`. Every committed change of `currentUid` starts a new session — a sign-out
-  followed by the same member signing back in included. The session ends when the render with the
-  new uid commits, before any layout effect of that commit runs; a render that is discarded before
-  it commits ends nothing. Without a provider every action runs as current, so a package hook never
-  requires one.
+- **The session.** `MutationSessionProvider` is mounted by the app inside its
+  `QueryClientProvider`, with one of two sources. An app passes `liveSession` (`LiveSessionSource`:
+  `read()`, the uid its auth layer holds now, and `subscribe(onChange)`, as `useSyncExternalStore`
+  takes them; a stable module value). The source is read at every capture and every check, so an
+  action started in the same task as a sign-in belongs to the new uid before any render has seen it,
+  and the session ends the moment the source reads a different uid; every change it reports is
+  observed as it happens, so a sign-out followed by the same member signing back in ends it too. A
+  test may pass `currentUid` instead: every committed change of it starts a new session, ending when
+  the render with the new uid commits, before any layout effect of that commit runs; a render that
+  is discarded before it commits ends nothing. Without a provider every action runs as current, so a
+  package hook never requires one.
 - **Captured when the action starts.** An always-installed `onMutate` captures the session before the
   caller's own `onMutate` runs. `mutationFn(variables, context)` receives TanStack's context plus
   `context.session = { uid, isCurrent(), assertCurrent() }`, so a multi-step chain re-checks between

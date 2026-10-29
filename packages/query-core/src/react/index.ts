@@ -89,6 +89,7 @@ export {
   useSessionMutation,
 } from './session-mutation.js';
 export type {
+  LiveSessionSource,
   MutationSession,
   MutationSessionProviderProps,
   SessionMutateOptions,
