@@ -336,13 +336,6 @@ export const HardwareLoanContractChangedEventSchema = z
   })
   .strict();
 
-export const AdminListChangedEventSchema = z
-  .object({
-    type: z.literal('adminList.changed'),
-    ids: z.object({ userId: userIdSchema }).strict(),
-  })
-  .strict();
-
 // A new account finished registration: its profile and public identity now exist.
 export const UserRegisteredEventSchema = z
   .object({ type: z.literal('user.registered'), ids: z.object({ userId: userIdSchema }).strict() })
@@ -528,7 +521,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   AwardGrantsChangedEventSchema,
   FeaturedAwardsChangedEventSchema,
   HardwareLoanContractChangedEventSchema,
-  AdminListChangedEventSchema,
   UserRegisteredEventSchema,
   DisplayNameChangedEventSchema,
   StatsBeaconChangedEventSchema,

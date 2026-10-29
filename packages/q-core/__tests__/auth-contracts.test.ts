@@ -579,13 +579,14 @@ describe('audit event document', () => {
 });
 
 describe('domain events', () => {
-  it('carries the account and role events, each with exactly its own ids', () => {
+  it('carries the account events, each with exactly its own ids', () => {
     expect(
       DomainEventSchema.safeParse({ type: 'user.registered', ids: { userId: 'u1' } }).success,
     ).toBe(true);
+    // The role rosters are a live subscription, so a role change has no event to refresh them.
     expect(
       DomainEventSchema.safeParse({ type: 'adminList.changed', ids: { userId: 'u1' } }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       DomainEventSchema.safeParse({ type: 'displayName.changed', ids: { userId: 'u1' } }).success,
     ).toBe(true);
