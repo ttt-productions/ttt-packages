@@ -42,6 +42,8 @@ export async function createAppVitestConfig(options: AppVitestOptions): Promise<
     plugins: [react()],
     test: {
       globals: true,
+      // A `.only` left in a test file silently skips the rest of it; every base fails it instead.
+      allowOnly: false,
       // Through Vitest's transformer, a test's vi.mock reaches the package's own imports.
       server: { deps: { inline: [/@ttt-productions\/.*/] } },
       exclude: [
@@ -89,6 +91,7 @@ export function createFunctionsVitestConfig(options: FunctionsVitestOptions = {}
   return {
     test: {
       globals: true,
+      allowOnly: false,
       environment: 'node',
       include: ['src/**/*.test.ts'],
       exclude: ['node_modules/**', 'lib/**'],
@@ -102,6 +105,7 @@ export function createRulesVitestConfig(options: RulesVitestOptions): ViteUserCo
   return {
     test: {
       globals: true,
+      allowOnly: false,
       environment: 'node',
       include: ['src/__tests__/rules/**/*.{test,spec}.ts'],
       testTimeout: 15000,

@@ -53,13 +53,15 @@ config base by its subpath and reads the docs as files.
   bases fail an explicit `any` and every unsafe use of an `any` value (the type-aware `no-unsafe-*`
   rules) in every TypeScript file, source and tests alike, so each linted `.ts` / `.tsx` file must be
   included by the nearest `tsconfig.json`.
-- `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node). No base runs the tests
-  of a file concurrently, and `test/boundary/dev-standards-vitest-bases.test.ts` fails if one sets
+- `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node). Every base fails a `.only`
+  (`allowOnly: false`). No base runs the tests of a file concurrently, and `test/boundary/dev-standards-vitest-bases.test.ts` fails if one sets
   `concurrent`. `createAppVitestConfig`'s `browserEntryTests` names the app tests of a client
   entry (the browser monitoring init): they run in an `app-browser` jsdom project that resolves
   each package's `browser` build and puts every dependency through Vite, so the test loads the
   build the client ships rather than a package's server build.
-- `@ttt-productions/dev-standards/node/playwright` — the Playwright base (Node).
+- `@ttt-productions/dev-standards/node/playwright` — the Playwright base (Node). It fails a `.only`
+  on CI and off it (`forbidOnly: true`), and every project's browser asks for reduced motion
+  (`use.reducedMotion: 'reduce'`), so an app's one motion kill switch stops motion in every suite.
 - `@ttt-productions/dev-standards/node/postcss` — the PostCSS base (Node).
 - `@ttt-productions/dev-standards/node/a11y` — the axe accessibility check for Playwright e2e:
   one page in the default theme, the high-contrast theme, and reduced motion (Node).

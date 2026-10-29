@@ -14,7 +14,8 @@ export function createPlaywrightConfig(options: PlaywrightOptions): PlaywrightTe
     // Chained 10–20s web-first assertions under parallel workers on one emulator overrun the 30s
     // default; each assertion keeps its own timeout.
     timeout: 90_000,
-    forbidOnly: ci,
+    // A `.only` left in a spec silently skips the rest of the suite, locally as much as on CI.
+    forbidOnly: true,
     // test:quiet fails the gate on any retry-pass, so a retry is diagnostic only.
     retries: ci ? 2 : 1,
     // Four local workers fit only because the suite runs against a production build.
@@ -23,6 +24,9 @@ export function createPlaywrightConfig(options: PlaywrightOptions): PlaywrightTe
     ...(options.globalSetup !== undefined ? { globalSetup: options.globalSetup } : {}),
     use: {
       baseURL: options.baseURL,
+      // Every project's browser asks for reduced motion, so the app's one motion kill switch, view
+      // transitions included, stops motion in every suite (RULE-STD-FRONTEND-204).
+      reducedMotion: 'reduce',
       trace: 'on-first-retry',
       screenshot: 'only-on-failure',
       actionTimeout: 15_000,

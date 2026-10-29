@@ -24,6 +24,7 @@ describe('createAppVitestConfig', () => {
     expect(config).toEqual({
       test: {
         globals: true,
+        allowOnly: false,
         server: { deps: { inline: [/@ttt-productions\/.*/] } },
         exclude: [
           '**/node_modules/**',
@@ -120,6 +121,7 @@ describe('createFunctionsVitestConfig', () => {
     expect(createFunctionsVitestConfig({ inline: ['@scope/a', '@scope/b'] })).toEqual({
       test: {
         globals: true,
+        allowOnly: false,
         environment: 'node',
         include: ['src/**/*.test.ts'],
         exclude: ['node_modules/**', 'lib/**'],
@@ -135,6 +137,7 @@ describe('createRulesVitestConfig', () => {
     expect(createRulesVitestConfig({ root })).toEqual({
       test: {
         globals: true,
+        allowOnly: false,
         environment: 'node',
         include: ['src/__tests__/rules/**/*.{test,spec}.ts'],
         testTimeout: 15000,
@@ -142,5 +145,14 @@ describe('createRulesVitestConfig', () => {
       },
       resolve: { alias: { '@': resolve(root, 'src') } },
     });
+  });
+});
+
+describe('every Vitest base fails a .only', () => {
+  it('sets allowOnly false in the app, Functions, and rules bases', async () => {
+    const app = await createAppVitestConfig({ root });
+    expect(app.test?.allowOnly).toBe(false);
+    expect(createFunctionsVitestConfig().test?.allowOnly).toBe(false);
+    expect(createRulesVitestConfig({ root }).test?.allowOnly).toBe(false);
   });
 });
