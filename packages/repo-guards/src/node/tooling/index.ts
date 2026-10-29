@@ -19,7 +19,12 @@ export {
   type IamPolicy,
 } from './callable-invokers.js';
 export { runCleanup } from './cleanup.js';
-export { applyStorageCors, checkCallableInvokers, checkDeployedFunctions } from './cloud-checks.js';
+export {
+  applyStorageCors,
+  checkCallableInvokers,
+  checkDeployedFunctions,
+  deployFunctionsInPasses,
+} from './cloud-checks.js';
 export {
   CODEBASE_LABEL,
   compareDeployedFunctions,
@@ -28,6 +33,15 @@ export {
   type ExpectedCodebase,
   type LiveFunction,
 } from './deployed-functions.js';
+export {
+  DEPLOY_PASS_ATTEMPTS,
+  DEPLOY_PASS_PAUSE_MS,
+  planFunctionsDeployPasses,
+  runFunctionsDeployPasses,
+  type DeployPassEffects,
+  type FunctionsDeployPlan,
+  type FunctionsManifest,
+} from './functions-deploy-passes.js';
 export {
   adcCandidatePaths,
   devLoginPlan,
@@ -65,8 +79,10 @@ export {
   type PlaywrightTotals,
 } from './playwright-report.js';
 export {
+  GATE_PHASES,
   runQuietGate,
   selectStages,
+  type GatePhase,
   type GateSelection,
   type GateStage,
   type GateStep,

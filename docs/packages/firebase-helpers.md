@@ -186,6 +186,10 @@ supplies the primitive and `isRecoveredFallbackReport(context)` (`./client`), th
 marker `callCallable` sets on its recovered limited-use fallback report.
 
 Backend code should prefer `@ttt-productions/firebase-helpers/server` when it needs Admin SDK handles.
+`getAdminApp()` loads Firestore eagerly and `auth`, `storage`, and the `admin` package root on
+their first read, so a caller that uses only `db` never pays for the Auth or Storage modules at
+startup. A caller that wants the same saving reads `.auth` / `.storage` where it uses them, not at
+module scope.
 
 ## Entry points
 

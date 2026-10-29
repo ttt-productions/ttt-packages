@@ -4,7 +4,12 @@ import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { SLOW_TEST_TIMEOUT_MS } from '../../../../test/timeouts.js';
-import { runQuietGate, selectStages, type GateStage } from '../../src/node/tooling/quiet-gate.js';
+import {
+  runQuietGate,
+  selectStages,
+  type GatePhase,
+  type GateStage,
+} from '../../src/node/tooling/quiet-gate.js';
 
 describe('selectStages', () => {
   const ids = ['lint', 'vitest', 'e2e'];
@@ -42,6 +47,45 @@ describe('selectStages', () => {
     });
     expect(selectStages([], ids)).toEqual({ kind: 'run', only: null });
     expect(selectStages(['--help'], ids)).toEqual({ kind: 'help' });
+  });
+});
+
+describe('selectStages by phase', () => {
+  const ids = ['lint', 'vitest', 'rules', 'e2e'];
+  const phases = { vitest: 'live', rules: 'live', e2e: 'live' } as const;
+
+  it('runs every stage of the named phase, in declared order', () => {
+    expect(selectStages(['--phase', 'live'], ids, phases)).toEqual({
+      kind: 'run',
+      only: new Set(['vitest', 'rules', 'e2e']),
+    });
+    expect(selectStages(['--phase=start'], ids, phases)).toEqual({
+      kind: 'run',
+      only: new Set(['lint']),
+    });
+  });
+
+  it('puts a stage that declares no phase in the start phase', () => {
+    expect(selectStages(['--phase', 'start'], ids)).toEqual({
+      kind: 'run',
+      only: new Set(ids),
+    });
+  });
+
+  it('refuses an unknown phase, a phase with no stages, and a phase combined with --only', () => {
+    const message = (argv: string[], given: Readonly<Record<string, GatePhase>> = phases) => {
+      const selection = selectStages(argv, ids, given);
+      return selection.kind === 'usage-error' ? selection.message : selection.kind;
+    };
+    expect(message(['--phase', 'later'])).toMatch(/Unknown phase: later/);
+    expect(message(['--phase'])).toMatch(/Unknown phase: \(none\)/);
+    expect(message(['--phase', 'live'], {})).toMatch(/The live phase declares no stage/);
+    expect(message(['--phase', 'live', '--only', 'lint'])).toMatch(/takes no --only/);
+    expect(message(['--phase', 'live', '--lint'])).toMatch(/takes no --only/);
+  });
+
+  it('keeps running every stage when neither --phase nor --only is given', () => {
+    expect(selectStages([], ids, phases)).toEqual({ kind: 'run', only: null });
   });
 });
 

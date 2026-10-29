@@ -26,6 +26,7 @@ export interface SearchDropdownProps<T> {
   disabled?: boolean;
   icon?: React.ReactNode;
   minChars: number;
+  maxLength: number;
   isSearchable: (value: string) => boolean;
   emptyMessage?: string;
   resultsAnnouncement?: (count: number) => string;
@@ -47,6 +48,7 @@ export function SearchDropdown<T>({
   disabled = false,
   icon = <Search className="h-4 w-4" />,
   minChars,
+  maxLength,
   isSearchable,
   emptyMessage = 'No results found',
   resultsAnnouncement = defaultResultsAnnouncement,
@@ -160,6 +162,7 @@ export function SearchDropdown<T>({
           ref={inputRef}
           id={inputId}
           type="search"
+          maxLength={maxLength}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={isOpen}

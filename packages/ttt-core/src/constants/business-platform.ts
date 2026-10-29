@@ -1,5 +1,7 @@
 export const SHORT_LINK_LENGTH = 6;
 
+export const MAX_SEARCH_QUERY_LENGTH = 100;
+
 export const SHORT_LINK_MAX_ATTEMPTS = 5;
 
 export const SHORT_LINK_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';

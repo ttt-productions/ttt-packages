@@ -160,3 +160,17 @@ Instance counts move only with a measured reason: a `maxInstances` is raised, an
 - Signalling a first event with a later event's type or wording ("An admin has responded" for a thread's opening message).
 
 **References.** RULE-STD-BACKEND-306, RULE-STD-BACKEND-304.
+
+### RULE-STD-BACKEND-311 — A Functions deploy group fits the platform's per-minute budget
+**Scope.** apps
+
+**Rule.** No Functions deploy group (codebase) holds more than 55 functions, and a release deploys its groups one at a time with a pause between, deploying the group a moving function enters before the group it leaves.
+
+**Why.** The platform allows 60 function mutations per minute per project and region, the deploy CLI changes every function of a group it deploys at once, and a create that hits the limit is dropped while the deploy still reports success; a moving function's old group deployed first deletes it until its new group lands.
+
+**Prohibits.**
+- A codebase holding more than 55 functions.
+- One deploy that changes several codebases at once.
+- A move between codebases deployed source-first, or functions moving both ways in one release.
+
+**References.** RULE-STD-BACKEND-303; the app's Functions architecture and release pipeline design docs; repo-guards' `codebaseManifest` guard and `deployFunctionsInPasses`.

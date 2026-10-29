@@ -123,14 +123,20 @@ describe('a multi-line box that is not free text takes no input format', () => {
     expect(box).not.toHaveAttribute('textEntry');
   });
 
-  it('a list box has no format of its own: no cap and no whole-box judgment', () => {
+  it('a list box is capped as a whole and never judged as one text', () => {
     const longList = Array.from({ length: 40 }, (_, i) => `term${i}`).join('\n');
     render(
-      <Textarea textEntry="list" aria-label="Add words" value={longList} onChange={() => {}} />,
+      <Textarea
+        textEntry="list"
+        aria-label="Add words"
+        maxLength={500 * 65}
+        value={longList}
+        onChange={() => {}}
+      />,
     );
     const box = screen.getByRole('textbox', { name: 'Add words' });
     expect(box).toHaveValue(longList);
-    expect(box).not.toHaveAttribute('maxLength');
+    expect(box).toHaveAttribute('maxLength', String(500 * 65));
     expect(box).not.toHaveAttribute('aria-invalid');
   });
 
@@ -138,7 +144,12 @@ describe('a multi-line box that is not free text takes no input format', () => {
     const compileOnly = () => (
       <>
         <Textarea textEntry="identifier" maxLength={500} required />
+        <Textarea textEntry="list" maxLength={1000} />
+        <Textarea textEntry="list" value={'a\nb'} readOnly />
+        {/* @ts-expect-error a list box carries its limit */}
         <Textarea textEntry="list" />
+        {/* @ts-expect-error an identifier box carries its limit */}
+        <Textarea textEntry="identifier" />
         {/* @ts-expect-error a box that is not free text takes no declaration */}
         <Textarea textEntry="list" inputFormat={DESCRIPTION} />
         {/* @ts-expect-error only the named non-free-text entries exist */}

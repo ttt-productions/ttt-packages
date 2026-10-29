@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
-import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
+import { EMAIL_MAX_LENGTH, MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
 import { CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
@@ -148,7 +148,7 @@ export const UserSiteTourStateSchema = z.object({
 export type UserSiteTourState = z.infer<typeof UserSiteTourStateSchema>;
 
 export const UserPrivateDataSchema = z.object({
-  email: z.string(),
+  email: z.string().max(EMAIL_MAX_LENGTH),
   isWaitingForNewsApproval: z.number().optional(),
   usPersonAttestedAt: z.number().optional(),
   nonUsArtisanInterest: z

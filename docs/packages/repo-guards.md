@@ -53,6 +53,20 @@ aliases, its owner files, its reviewed exceptions — never logic.
   and each folder declares its own floor (at least 1): a folder that checks fewer references than
   its floor fails, as does a missing reference or a folder that cannot be read. Each tool has one behavior for every app, with no switch
   that changes it: an app passes only its facts (projects, ports, paths, stages, components).
+- **The quiet gate's two phases.** Each gate stage declares a `phase` — `start` (the default) or
+  `live`. `--phase start` runs every start stage, the checks a dev stack needs to start, run before
+  the stack; `--phase live` runs every live stage, against the running stack. A live-phase stage
+  that declares `services` fails, never skips, when they are down — the same rule a stage named in
+  `--only` follows. `--phase` takes no `--only`; no `--phase` and no `--only` runs every stage.
+- **Functions deploys in passes.** `deployFunctionsInPasses` deploys an app's non-function targets
+  once, then each targeted codebase on its own, checking after each pass that the codebase's live
+  functions are exactly its manifest names and ACTIVE (up to `DEPLOY_PASS_ATTEMPTS` tries,
+  `DEPLOY_PASS_PAUSE_MS` apart), with the same pause between passes; a pass that fails every try
+  stops the run. `planFunctionsDeployPasses` orders the passes so a function moving between
+  codebases deploys into its new codebase before its old one deploys, and refuses before any
+  deploy when functions move both ways in one release, a move's new codebase is not targeted, or a
+  live function sits under a codebase nothing deploys. The `codebaseManifest` guard also fails a
+  codebase holding more than `MAX_FUNCTIONS_PER_CODEBASE` (55) functions (RULE-STD-BACKEND-311).
 
 ## Contract shape
 

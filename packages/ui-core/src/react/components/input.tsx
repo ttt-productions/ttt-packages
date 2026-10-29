@@ -30,6 +30,11 @@ export type BuiltInFormatInputType =
 
 type NativeInputProps = React.ComponentPropsWithoutRef<'input'>;
 
+type LengthBound = { maxLength: number } | { readOnly: true };
+type ValueBound = { max: number | string } | { readOnly: true };
+
+export type LengthBoundInputType = 'email' | 'tel' | 'url' | 'search';
+
 export type FreeTextInputProps = Omit<
   NativeInputProps,
   'type' | 'maxLength' | 'minLength' | 'pattern' | 'required'
@@ -45,15 +50,32 @@ export type NonFreeTextInputProps = Omit<NativeInputProps, 'type'> & {
   type?: 'text';
   textEntry: NonFreeTextEntry;
   inputFormat?: never;
-};
+} & LengthBound;
+
+export type LengthBoundInputProps = Omit<NativeInputProps, 'type'> & {
+  type: LengthBoundInputType;
+  inputFormat?: never;
+  textEntry?: never;
+} & LengthBound;
+
+export type NumberInputProps = Omit<NativeInputProps, 'type'> & {
+  type: 'number';
+  inputFormat?: never;
+  textEntry?: never;
+} & ValueBound;
 
 export type BuiltInFormatInputProps = Omit<NativeInputProps, 'type'> & {
-  type: BuiltInFormatInputType;
+  type: Exclude<BuiltInFormatInputType, LengthBoundInputType | 'number'>;
   inputFormat?: never;
   textEntry?: never;
 };
 
-export type InputProps = FreeTextInputProps | NonFreeTextInputProps | BuiltInFormatInputProps;
+export type InputProps =
+  | FreeTextInputProps
+  | NonFreeTextInputProps
+  | LengthBoundInputProps
+  | NumberInputProps
+  | BuiltInFormatInputProps;
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, inputFormat, textEntry: _textEntry, onBlur, ...props }, ref) => {

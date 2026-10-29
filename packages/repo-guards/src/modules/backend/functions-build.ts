@@ -602,6 +602,10 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
   },
 };
 
+// Google allows 60 Cloud Functions mutations per minute per project and region, and a deploy
+// changes every function of the codebase it targets; 55 leaves room for that pass's deletions.
+export const MAX_FUNCTIONS_PER_CODEBASE = 55;
+
 export interface CodebaseManifestFacts {
   manifest: string;
   entryIndex: string;
@@ -738,6 +742,28 @@ export const codebaseManifestGuard: GenericGuardDefinition<CodebaseManifestFacts
                 detail: `codebase ${cb}'s predeploy is not ${JSON.stringify(predeploy)}`,
               });
             }
+          }
+          return findings;
+        },
+      },
+      {
+        title: `no Functions codebase holds more than ${MAX_FUNCTIONS_PER_CODEBASE} functions`,
+        description:
+          `Each codebase in ${facts.manifest} deploys as one pass that changes every function it holds, ` +
+          `so a codebase over ${MAX_FUNCTIONS_PER_CODEBASE} functions outruns the platform's per-minute ` +
+          'mutation budget and its creates are dropped. A codebase that grows past the cap is split.',
+        run(context) {
+          const findings: Finding[] = [];
+          const manifest = readJson(context, facts.manifest, findings) as
+            { codebases?: Record<string, unknown> } | undefined;
+          if (!manifest || typeof manifest.codebases !== 'object' || !manifest.codebases)
+            return findings;
+          for (const [codebase, list] of Object.entries(manifest.codebases)) {
+            if (!isList(list) || list.length <= MAX_FUNCTIONS_PER_CODEBASE) continue;
+            findings.push({
+              file: facts.manifest,
+              detail: `codebase ${codebase} holds ${list.length} functions; split it so each codebase holds at most ${MAX_FUNCTIONS_PER_CODEBASE}`,
+            });
           }
           return findings;
         },

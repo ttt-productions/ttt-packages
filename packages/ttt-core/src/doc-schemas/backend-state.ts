@@ -8,6 +8,8 @@ import {
 
 export const OperatorStepUpSchema = z.object({
   secret: z.string(),
+  pendingSecret: z.string().optional(),
+  recoveryCodeHashes: z.array(z.string()).optional(),
   status: z.enum(['pending', 'active']),
   grantExpiresAt: z.number().optional(),
   createdAt: z.number(),

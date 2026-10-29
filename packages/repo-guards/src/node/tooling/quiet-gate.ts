@@ -44,9 +44,13 @@ export interface LiveService {
   port: number;
 }
 
+export const GATE_PHASES = ['start', 'live'] as const;
+export type GatePhase = (typeof GATE_PHASES)[number];
+
 export interface GateStage {
   id: string;
   description: string;
+  phase?: GatePhase;
   stopOnFailure: boolean;
   steps: () => readonly GateStep[];
   services?: readonly LiveService[];
@@ -75,8 +79,37 @@ export type GateSelection =
   | { kind: 'usage-error'; message: string }
   | { kind: 'run'; only: ReadonlySet<string> | null };
 
-export function selectStages(argv: readonly string[], stageIds: readonly string[]): GateSelection {
+export function selectStages(
+  argv: readonly string[],
+  stageIds: readonly string[],
+  phases: Readonly<Record<string, GatePhase | undefined>> = {},
+): GateSelection {
   if (argv.includes('--help') || argv.includes('-h')) return { kind: 'help' };
+  const phaseEq = argv.find((a) => a.startsWith('--phase='));
+  const phaseAt = argv.indexOf('--phase');
+  if (phaseEq || phaseAt >= 0) {
+    const phase = phaseEq ? phaseEq.slice('--phase='.length) : (argv[phaseAt + 1] ?? '');
+    if (!(GATE_PHASES as readonly string[]).includes(phase)) {
+      return {
+        kind: 'usage-error',
+        message: `Unknown phase: ${phase || '(none)'}\nValid phases: ${GATE_PHASES.join(', ')}`,
+      };
+    }
+    const namesStages =
+      argv.some((a) => a === '--only' || a.startsWith('--only=')) ||
+      stageIds.some((id) => argv.includes(`--${id}`));
+    if (namesStages) {
+      return {
+        kind: 'usage-error',
+        message: '--phase runs a whole phase and takes no --only or stage flag',
+      };
+    }
+    const only = new Set(stageIds.filter((id) => (phases[id] ?? 'start') === phase));
+    if (only.size === 0) {
+      return { kind: 'usage-error', message: `The ${phase} phase declares no stage` };
+    }
+    return { kind: 'run', only };
+  }
   const eq = argv.find((a) => a.startsWith('--only='));
   const at = argv.indexOf('--only');
   let onlyRaw: string | null = eq
@@ -215,11 +248,16 @@ export async function runQuietGate(
   argv: readonly string[] = process.argv.slice(2),
 ): Promise<never> {
   const stageIds = config.stages.map((s) => s.id);
-  const selection = selectStages(argv, stageIds);
+  const selection = selectStages(
+    argv,
+    stageIds,
+    Object.fromEntries(config.stages.map((s) => [s.id, s.phase])),
+  );
   if (selection.kind === 'help') {
     const width = Math.max(...stageIds.map((id) => id.length)) + 4;
     write(
       `\nUsage: node ${config.script} [options]\n\nOptions:\n` +
+        `  --phase <phase>   Run every stage of one phase: ${GATE_PHASES.join(', ')}.\n` +
         `  --only <stages>   Comma-separated list of stages to run.\n` +
         `                    Stages: ${stageIds.join(', ')}\n` +
         config.stages.map((s) => `  --${s.id.padEnd(width)}${s.description}\n`).join('') +

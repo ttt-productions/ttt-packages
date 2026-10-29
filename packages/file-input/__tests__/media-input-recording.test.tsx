@@ -277,24 +277,6 @@ describe('RecordDialog', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('writes a record_dialog diagnostic line for each recording decision while the Firefox failure is diagnosed', async () => {
-    const user = userEvent.setup();
-    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
-    renderDialog();
-    await user.click(await screen.findByRole('button', { name: /^start$/i }));
-    const events = debug.mock.calls.map(([line]) => String(line).split(' ')[0]);
-    expect(events).toEqual([
-      'record_dialog_open',
-      'record_dialog_stream_request',
-      'record_dialog_stream_ready',
-      'record_dialog_start_click',
-      'record_dialog_start_branch',
-      'record_dialog_recorder_created',
-      'record_dialog_recorder_started',
-    ]);
-    expect(debug.mock.calls[4][0]).toContain('"branch":"reuse"');
-  });
-
   it('a device that finishes starting AFTER the dialog closed is stopped, never attached', async () => {
     let resolveGum!: (s: MediaStream) => void;
     gumMock.gum.mockImplementation(

@@ -23,6 +23,11 @@ export interface CallableErrorRouting {
 
 export type CallableCaptureContext = Record<string, unknown>;
 
+export interface SlowCallNotice {
+  afterMs: number;
+  show: (context: CallableCaptureContext) => () => void;
+}
+
 export interface CallablePolicy {
   getFunctions: FunctionsProvider;
   timeoutMs: number;
@@ -30,6 +35,7 @@ export interface CallablePolicy {
   captureFault: (error: unknown, context: CallableCaptureContext) => void;
   captureRecoveredFallback: (error: unknown, context: CallableCaptureContext) => void;
   onActionError: (error: unknown, routing: CallableErrorRouting) => void;
+  onSlowCall: SlowCallNotice;
 }
 
 export interface CallableDeclaration {
@@ -83,6 +89,23 @@ type CallableTransport = <TInput, TResult>(
 ) => Promise<TResult>;
 
 export function createCallables(policy: CallablePolicy): Callables {
+  function withSlowCallNotice<TResult>(
+    pending: Promise<TResult>,
+    functionName: string,
+    session: MutationSession,
+  ): Promise<TResult> {
+    let dismiss: (() => void) | undefined;
+    const timer = setTimeout(() => {
+      if (session.isCurrent()) dismiss = policy.onSlowCall.show({ functionName });
+    }, policy.onSlowCall.afterMs);
+    const settle = () => {
+      clearTimeout(timer);
+      dismiss?.();
+    };
+    pending.then(settle, settle);
+    return pending;
+  }
+
   function useCallableTransport(
     functionName: string,
     declaration: CallableDeclaration,
@@ -96,31 +119,35 @@ export function createCallables(policy: CallablePolicy): Callables {
 
     return useCallback(
       <TInput, TResult>(input: TInput, session: MutationSession) =>
-        callCallable<TInput, TResult>(
-          policy.getFunctions,
+        withSlowCallNotice(
+          callCallable<TInput, TResult>(
+            policy.getFunctions,
+            functionName,
+            input,
+            {
+              captureException: (error, context) => {
+                if (optionsRef.current.captureFaults !== false) policy.captureFault(error, context);
+                else if (isRecoveredFallbackReport(context))
+                  policy.captureRecoveredFallback(error, context);
+              },
+              onError: (error) => {
+                if (!session.isCurrent()) return;
+                const {
+                  showErrorToast = true,
+                  answeredRefusals = [],
+                  isAnswerSurfacedByCaller,
+                } = optionsRef.current;
+                policy.onActionError(error, {
+                  showErrorToast,
+                  answeredRefusals,
+                  isAnswerSurfacedByCaller,
+                });
+              },
+            },
+            { timeoutMs: policy.timeoutMs, limitedUseAppCheck },
+          ),
           functionName,
-          input,
-          {
-            captureException: (error, context) => {
-              if (optionsRef.current.captureFaults !== false) policy.captureFault(error, context);
-              else if (isRecoveredFallbackReport(context))
-                policy.captureRecoveredFallback(error, context);
-            },
-            onError: (error) => {
-              if (!session.isCurrent()) return;
-              const {
-                showErrorToast = true,
-                answeredRefusals = [],
-                isAnswerSurfacedByCaller,
-              } = optionsRef.current;
-              policy.onActionError(error, {
-                showErrorToast,
-                answeredRefusals,
-                isAnswerSurfacedByCaller,
-              });
-            },
-          },
-          { timeoutMs: policy.timeoutMs, limitedUseAppCheck },
+          session,
         ),
       [functionName, limitedUseAppCheck],
     );

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  MAX_FUNCTIONS_PER_CODEBASE,
   codebaseManifestGuard,
   lazyLoaderGuard,
   lightFunctionGuard,
@@ -580,5 +581,45 @@ describe('the codebase manifest deploys every function exactly once', () => {
     expect(
       codebaseManifestGuard.factProblems({ ...facts, sourceTemplate: 'functions/build' }),
     ).toEqual(['sourceTemplate names no {codebase}']);
+  });
+});
+
+describe('no Functions codebase holds more than the per-pass cap', () => {
+  const facts: CodebaseManifestFacts = {
+    manifest: 'functions/codebases.manifest.json',
+    entryIndex: 'functions/src/index.ts',
+    deployConfig: 'firebase.json',
+    sourceTemplate: 'functions/build/{codebase}',
+    predeployTemplate: [],
+  };
+  const names = (prefix: string, count: number) =>
+    Array.from({ length: count }, (_, i) => `${prefix}${i}`);
+  const capGuard = () => codebaseManifestGuard.build(facts)[1]!;
+
+  it('keeps the cap under the platform budget of 60 mutations a minute', () => {
+    expect(MAX_FUNCTIONS_PER_CODEBASE).toBe(55);
+  });
+
+  it('passes a codebase at the cap', async () => {
+    repo = backendRepo({
+      'functions/codebases.manifest.json': JSON.stringify({
+        codebases: { full: names('a', MAX_FUNCTIONS_PER_CODEBASE), small: ['b'] },
+      }),
+    });
+    expect(await repo.run(capGuard())).toEqual([]);
+  });
+
+  it('FLAGS a codebase one function over the cap, naming it and its count', async () => {
+    repo = backendRepo({
+      'functions/codebases.manifest.json': JSON.stringify({
+        codebases: { big: names('a', MAX_FUNCTIONS_PER_CODEBASE + 1), small: ['b'] },
+      }),
+    });
+    expect(await repo.run(capGuard())).toEqual([
+      {
+        file: 'functions/codebases.manifest.json',
+        detail: `codebase big holds ${MAX_FUNCTIONS_PER_CODEBASE + 1} functions; split it so each codebase holds at most ${MAX_FUNCTIONS_PER_CODEBASE}`,
+      },
+    ]);
   });
 });

@@ -13,6 +13,12 @@ export const PASSWORD_MIN_LENGTH = 7;
 
 export const PASSWORD_MAX_LENGTH = 64;
 
+// The RFC 5321 ceiling on an email address.
+export const EMAIL_MAX_LENGTH = 320;
+
+// Firebase Auth caps a uid at 128 characters.
+export const MAX_ACCOUNT_ID_LENGTH = 128;
+
 export const AGE_TEEN_FLOOR_YEARS = 13;
 
 export const AGE_ADULT_FLOOR_YEARS = 18;

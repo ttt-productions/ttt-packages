@@ -102,6 +102,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-BACKEND-308 | Emulator-only bypasses gate on the sanctioned emulator flag; no development-mode security bypass | codebase-hygiene 23; auth-boundary 12; callable-functions 12; media-pipeline 6 | — |
 | RULE-STD-BACKEND-309 | A scheduled job isolates its passes and its rows | codebase-hygiene 105; async-workflow 9 | `scheduledPassIsolation` |
 | RULE-STD-BACKEND-310 | A user-visible lane's first event has a signal | codebase-hygiene 112 | — |
+| RULE-STD-BACKEND-311 | A Functions deploy group fits the platform's per-minute budget | codebase-hygiene 64 | `codebaseManifest` |
 
 ## FRONTEND
 

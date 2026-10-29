@@ -6,6 +6,7 @@ import {
 } from '../constants/business-work-project.js';
 import { MAX_REPORT_TARGET_ID_LENGTH } from '../constants/business-admin.js';
 import { FIRESTORE_DOCUMENT_ID_MAX_BYTES } from '../constants/business-platform.js';
+import { MAX_ACCOUNT_ID_LENGTH } from '../constants/business-user.js';
 import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
@@ -51,7 +52,7 @@ export const reportTargetParentRefSchema = z
   );
 
 export const workProjectIdSchema = documentIdSegmentSchema;
-export const userIdSchema = documentIdSegmentSchema;
+export const userIdSchema = documentIdSegmentSchema.max(MAX_ACCOUNT_ID_LENGTH);
 export const guildInviteIdSchema = documentIdSegmentSchema;
 export const violationIdSchema = documentIdSegmentSchema;
 export const auditionIdSchema = documentIdSegmentSchema;

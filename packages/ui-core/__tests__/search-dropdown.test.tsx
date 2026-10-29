@@ -43,6 +43,7 @@ function Harness({
       onClear={onClear}
       label={label}
       minChars={SEARCH_MIN}
+      maxLength={SEARCH_MAX}
       isSearchable={isSearchable}
       emptyMessage="Nobody found"
       renderResult={(person) => <span>{person.name}</span>}
@@ -51,6 +52,7 @@ function Harness({
 }
 
 const SEARCH_MIN = 3;
+const SEARCH_MAX = 100;
 const isSearchable = (text: string) => text.trim().length >= SEARCH_MIN;
 
 const PEOPLE: Person[] = [{ name: 'Ada' }, { name: 'Alan' }, { name: 'Grace' }];
@@ -328,5 +330,12 @@ describe('SearchDropdown recovery, clearing, and announcements', () => {
     expect(input).toHaveAttribute('aria-expanded', 'true');
     const panel = document.getElementById(input.getAttribute('aria-controls')!);
     expect(panel).toHaveTextContent('Nobody found');
+  });
+});
+
+describe('SearchDropdown limits its search box', () => {
+  it("puts the caller's maxLength on the box", () => {
+    render(<Harness label="Find a person" />);
+    expect(screen.getByRole('combobox')).toHaveAttribute('maxLength', String(SEARCH_MAX));
   });
 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpsCallable, type Functions, type HttpsCallableResult } from 'firebase/functions';
@@ -16,6 +16,7 @@ import {
 } from '../../src/react/session-mutation.js';
 
 const TIMEOUT_MS = 30_000;
+const SLOW_AFTER_MS = 15_000;
 const functionsInstance = {} as Functions;
 
 function makePolicy(overrides: Partial<CallablePolicy> = {}) {
@@ -26,6 +27,7 @@ function makePolicy(overrides: Partial<CallablePolicy> = {}) {
     captureFault: vi.fn(),
     captureRecoveredFallback: vi.fn(),
     onActionError: vi.fn(),
+    onSlowCall: { afterMs: SLOW_AFTER_MS, show: vi.fn(() => vi.fn()) },
     ...overrides,
   } satisfies CallablePolicy;
 }
@@ -309,6 +311,101 @@ describe('createCallables — reader', () => {
       answeredRefusals: [],
       isAnswerSurfacedByCaller: undefined,
     });
+  });
+});
+
+describe('createCallables — slow-call notice', () => {
+  beforeEach(() => {
+    vi.mocked(httpsCallable).mockReset();
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  function pendingCallable() {
+    let settle!: { resolve: (data: unknown) => void; reject: (error: Error) => void };
+    const answer = new Promise<HttpsCallableResult<unknown>>((resolve, reject) => {
+      settle = { resolve: (data) => resolve({ data }), reject };
+    });
+    vi.mocked(httpsCallable).mockReturnValue(
+      Object.assign(
+        vi.fn(() => answer),
+        { stream: vi.fn() },
+      ),
+    );
+    return settle;
+  }
+
+  function startRead(policy: ReturnType<typeof makePolicy>) {
+    const useRead = createCallables(policy).createCallableReader<void, unknown>('slowRead');
+    const { result } = renderHook(() => useRead());
+    const call = result.current();
+    // A case that never reads the rejection still must not raise it as unhandled.
+    call.catch(() => {});
+    return call;
+  }
+
+  function slowNotice() {
+    const dismiss = vi.fn();
+    const show = vi.fn((_context: Record<string, unknown>) => dismiss);
+    return { dismiss, show, onSlowCall: { afterMs: SLOW_AFTER_MS, show } };
+  }
+
+  it('shows the notice once the call has been pending for afterMs, never before', async () => {
+    pendingCallable();
+    const notice = slowNotice();
+    void startRead(makePolicy({ onSlowCall: notice.onSlowCall }));
+
+    await vi.advanceTimersByTimeAsync(SLOW_AFTER_MS - 1);
+    expect(notice.show).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(notice.show).toHaveBeenCalledTimes(1);
+    expect(notice.show).toHaveBeenCalledWith({ functionName: 'slowRead' });
+  });
+
+  it('dismisses the notice when the slow call answers', async () => {
+    const settle = pendingCallable();
+    const notice = slowNotice();
+    const call = startRead(makePolicy({ onSlowCall: notice.onSlowCall }));
+    await vi.advanceTimersByTimeAsync(SLOW_AFTER_MS);
+    expect(notice.dismiss).not.toHaveBeenCalled();
+
+    settle.resolve({ ok: true });
+    await expect(call).resolves.toEqual({ ok: true });
+    expect(notice.dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('dismisses the notice when the slow call fails', async () => {
+    const settle = pendingCallable();
+    const notice = slowNotice();
+    const call = startRead(makePolicy({ onSlowCall: notice.onSlowCall }));
+    await vi.advanceTimersByTimeAsync(SLOW_AFTER_MS);
+
+    settle.reject(fault());
+    await expect(call).rejects.toMatchObject({ code: 'functions/internal' });
+    expect(notice.dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('dismisses the notice when the call reaches its deadline', async () => {
+    pendingCallable();
+    const notice = slowNotice();
+    const call = startRead(makePolicy({ onSlowCall: notice.onSlowCall }));
+    await vi.advanceTimersByTimeAsync(SLOW_AFTER_MS);
+    expect(notice.show).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS);
+    await expect(call).rejects.toMatchObject({ code: 'functions/deadline-exceeded' });
+    expect(notice.dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('never shows the notice for a call that answers before afterMs', async () => {
+    const settle = pendingCallable();
+    const notice = slowNotice();
+    const call = startRead(makePolicy({ onSlowCall: notice.onSlowCall }));
+    settle.resolve({ ok: true });
+    await expect(call).resolves.toEqual({ ok: true });
+
+    await vi.advanceTimersByTimeAsync(SLOW_AFTER_MS * 2);
+    expect(notice.show).not.toHaveBeenCalled();
   });
 });
 

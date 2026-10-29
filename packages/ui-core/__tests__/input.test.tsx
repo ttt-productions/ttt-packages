@@ -14,9 +14,9 @@ describe('Input', () => {
   });
 
   it('accepts a built-in format type with no input format', () => {
-    const { container } = render(<Input type="email" />);
+    const { container } = render(<Input type="password" />);
     const input = container.querySelector('input');
-    expect(input?.getAttribute('type')).toBe('email');
+    expect(input?.getAttribute('type')).toBe('password');
     expect(input?.hasAttribute('maxLength')).toBe(false);
   });
 
@@ -161,6 +161,7 @@ describe('a text box that is not free text takes no input format', () => {
       <Input
         type="text"
         textEntry="identifier"
+        maxLength={64}
         aria-label="Case id"
         value="case/1"
         onChange={() => {}}
@@ -182,6 +183,44 @@ describe('a text box that is not free text takes no input format', () => {
       </>
     );
     expect(compileOnly).toBeTypeOf('function');
+  });
+});
+
+describe('every typed box outside the declaration system carries its limit', () => {
+  it('types each one so it needs a limit unless nobody types into it', () => {
+    const compileOnly = () => (
+      <>
+        <Input type="email" maxLength={320} />
+        <Input type="tel" maxLength={64} />
+        <Input type="url" maxLength={2048} />
+        <Input type="search" maxLength={100} />
+        <Input textEntry="identifier" maxLength={128} />
+        <Input type="number" max={500} />
+        <Input type="url" value="https://example.com/a" readOnly />
+        <Input textEntry="numeric" value="12" readOnly />
+        <Input type="password" />
+        {/* @ts-expect-error an email box carries its limit */}
+        <Input type="email" />
+        {/* @ts-expect-error a phone box carries its limit */}
+        <Input type="tel" />
+        {/* @ts-expect-error a URL box carries its limit */}
+        <Input type="url" />
+        {/* @ts-expect-error a search box carries its limit */}
+        <Input type="search" />
+        {/* @ts-expect-error an identifier box carries its limit */}
+        <Input textEntry="identifier" />
+        {/* @ts-expect-error a digits box carries its limit */}
+        <Input textEntry="numeric" />
+        {/* @ts-expect-error a number box carries its max */}
+        <Input type="number" />
+      </>
+    );
+    expect(compileOnly).toBeTypeOf('function');
+  });
+
+  it('puts the limit on the box', () => {
+    render(<Input type="email" maxLength={320} aria-label="Email" />);
+    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute('maxLength', '320');
   });
 });
 
@@ -241,7 +280,9 @@ describe('a free-text Input tidies its text when focus leaves it', () => {
   });
 
   it('leaves a box with no input format as typed', () => {
-    render(<Input textEntry="identifier" aria-label="Case id" defaultValue=" a  b " />);
+    render(
+      <Input textEntry="identifier" maxLength={64} aria-label="Case id" defaultValue=" a  b " />,
+    );
     const box = screen.getByRole('textbox', { name: 'Case id' });
     fireEvent.blur(box);
     expect(box).toHaveValue(' a  b ');

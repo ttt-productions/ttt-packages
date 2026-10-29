@@ -10,8 +10,11 @@ import {
 import {
   compareDeployedFunctions,
   parseLiveFunctions,
+  targetedCodebases,
   type ExpectedCodebase,
+  type LiveFunction,
 } from './deployed-functions.js';
+import { runFunctionsDeployPasses, type FunctionsManifest } from './functions-deploy-passes.js';
 import {
   assertSafeCors,
   defaultStorageBucket,
@@ -27,6 +30,21 @@ function gcloud(args: readonly string[], cwd?: string): string {
     stdio: ['ignore', 'pipe', 'pipe'],
     maxBuffer: 64 * 1024 * 1024,
   });
+}
+
+function listLiveFunctions(projectId: string, region: string): LiveFunction[] {
+  return parseLiveFunctions(
+    JSON.parse(
+      gcloud([
+        'functions',
+        'list',
+        `--project=${projectId}`,
+        `--regions=${region}`,
+        '--format=json',
+      ]) || '[]',
+      // gcloud's JSON listing of functions is an array of these rows.
+    ) as Parameters<typeof parseLiveFunctions>[0],
+  );
 }
 
 function firstLine(error: unknown): string {
@@ -189,18 +207,7 @@ export function checkDeployedFunctions({
   }
   let live;
   try {
-    live = parseLiveFunctions(
-      JSON.parse(
-        gcloud([
-          'functions',
-          'list',
-          `--project=${projectId}`,
-          `--regions=${region}`,
-          '--format=json',
-        ]) || '[]',
-        // gcloud's JSON listing of functions is an array of these rows.
-      ) as Parameters<typeof parseLiveFunctions>[0],
-    );
+    live = listLiveFunctions(projectId, region);
   } catch (error) {
     console.error(
       `::error::[deployed-functions] Could not list the functions on ${projectId} (${firstLine(error)}). The guard fails CLOSED.`,
@@ -231,4 +238,58 @@ export function checkDeployedFunctions({
   console.log(
     `[deployed-functions] OK — ${count} functions on ${projectId}: every expected function is live and ACTIVE, and nothing else is.`,
   );
+}
+
+export function deployFunctionsInPasses({
+  repoRoot,
+  region,
+  projectId: requested,
+  targets,
+  manifest,
+  nonFunctionTargets,
+}: {
+  repoRoot: string;
+  region: string;
+  projectId: string | undefined;
+  targets: string | undefined;
+  manifest: () => FunctionsManifest;
+  nonFunctionTargets: readonly string[];
+}): void {
+  const projectId = knownProject(repoRoot, requested, 'deploy-functions');
+  let codebases: FunctionsManifest;
+  let selected: string[];
+  try {
+    codebases = manifest();
+    selected = targetedCodebases(targets ?? '', Object.keys(codebases));
+  } catch (error) {
+    console.error(
+      `::error::[deploy-functions] Could not read the deploy targets (${firstLine(error)}).`,
+    );
+    process.exit(2);
+  }
+  const pauseLock = new Int32Array(new SharedArrayBuffer(4));
+  const ok = runFunctionsDeployPasses(
+    { targets: selected, manifest: codebases, nonFunctionTargets },
+    {
+      listLive: () => listLiveFunctions(projectId, region),
+      deploy: (only) => {
+        try {
+          execFileSync(
+            'firebase',
+            ['deploy', '--only', only, '--project', projectId, '--non-interactive', '--force'],
+            { cwd: repoRoot, stdio: 'inherit' },
+          );
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      pause: (ms) => {
+        Atomics.wait(pauseLock, 0, 0, ms);
+      },
+      log: (line) => console.log(line),
+      error: (line) => console.error(`::error::${line}`),
+    },
+  );
+  if (!ok) process.exit(1);
 }

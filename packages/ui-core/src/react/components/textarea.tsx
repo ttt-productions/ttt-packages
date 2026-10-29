@@ -20,7 +20,7 @@ export type NonFreeTextareaEntry = 'identifier' | 'list';
 export type NonFreeTextTextareaProps = NativeTextareaProps & {
   textEntry: NonFreeTextareaEntry;
   inputFormat?: never;
-};
+} & ({ maxLength: number } | { readOnly: true });
 
 export type TextareaProps = FreeTextTextareaProps | NonFreeTextTextareaProps;
 

@@ -849,13 +849,13 @@ lands, and never loosen a real guard to pass.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 64. Functions codebase manifest + light-closure tripwire
-**Rules:** RULE-STD-BACKEND-303; the app's Functions architecture design doc. **Scope:** `functions`,
+**Rules:** RULE-STD-BACKEND-303, RULE-STD-BACKEND-311; the app's Functions architecture design doc. **Scope:** `functions`,
 local source and generated artifacts only.
 ```bash
-<GUARD_SUITE> -t "the codebase manifest deploys every function exactly once|light functions never statically reach a heavy module|no code can overlap two dynamic imports of one module"
+<GUARD_SUITE> -t "the codebase manifest deploys every function exactly once|no Functions codebase holds more than 55 functions|light functions never statically reach a heavy module|no code can overlap two dynamic imports of one module"
 ```
 **Expected:** green. Every exported function is assigned to exactly one deploy codebase and the deploy
-config mirrors the manifest; light interactive functions never statically reach a heavyweight
+config mirrors the manifest; no codebase holds more than 55 functions; light interactive functions never statically reach a heavyweight
 dependency — a new one in a light function's closure is loaded at its true usage site through a
 module-level lazy loader (step 88), never by loosening the tripwire.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED

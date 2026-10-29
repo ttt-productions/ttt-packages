@@ -211,14 +211,15 @@ the Dev Flow's steps 1–4 are its whole share.
 0. **Precondition gate — do not start ANY test:quiet stage while blocked.** Known-bad code, a
    needed `@ttt-productions/*` package change, or an open question for DJ each mean: surface the
    blocker and STOP. Gates run only on a change set believed complete.
-1. `npm run test:quiet` green (rules/e2e auto-skip without the stack).
+1. `npm run test:quiet` green — the start phase (RULE-STD-QUALITY-011), run before the stack.
 2. Claude starts `npm run dev:e2e` ITSELF (the detached launch in `<DEV_E2E_LAUNCH>` —
    Claude-operated as part of this flow; DJ must be logged into the Firebase CLI, and a login failure
    is a stop-and-ask).
-3. `npm run test:quiet:rules` and `npm run test:quiet:e2e` green (`test:quiet:live` is an
-   acceptable combined form) — zero failures AND zero retry-passes (RULE-STD-QUALITY-003).
+3. `npm run test:quiet:live` green — the live phase, every stage the start phase leaves out — zero
+   failures AND zero retry-passes (RULE-STD-QUALITY-003). `test:quiet:rules` / `test:quiet:e2e`
+   are focused reruns, never a substitute for it.
 4. An app/Functions code change mid-flow invalidates the running build: `npm run dev:kill`,
-   re-green `test:quiet`, then start a FRESH `dev:e2e` and rerun the live stages
+   re-green `test:quiet`, then start a FRESH `dev:e2e` and rerun `test:quiet:live`
    (RULE-STD-QUALITY-008 — Claude operates the restart).
 5. Kill `dev:e2e` when done and STOP — wait for DJ's push.
 

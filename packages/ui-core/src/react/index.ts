@@ -103,6 +103,9 @@ export type {
   NonFreeTextEntry,
   BuiltInFormatInputProps,
   BuiltInFormatInputType,
+  LengthBoundInputProps,
+  LengthBoundInputType,
+  NumberInputProps,
 } from './components/input.js';
 export { Input } from './components/input.js';
 export {

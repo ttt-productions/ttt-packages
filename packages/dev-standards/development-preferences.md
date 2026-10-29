@@ -68,8 +68,8 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   like any other, with what was verified and a recommendation. When DJ has said he is away, no question
   blocks: it goes in chat, the session finishes every part that does not depend on it, and moves to
   the next item.
-- **No full gate while any question is open** — the Normal Test Flow, or a repo's own `test:quiet`
-  gate, ttt-packages' included. An answer can change code, and a gate run before it is worthless.
+- **No full gate while any question is open** — the Normal Test Flow (`test:quiet` then
+  `test:quiet:live`), or a repo's own `test:quiet` gate, ttt-packages' included. An answer can change code, and a gate run before it is worthless.
   The open questions are asked first, any code they change is done, and then the gate runs once.
 - Open questions are asked one at a time, as questions, never buried in a status message. The
   session never answers, files, or drops one itself, and never labels one "FYI" or "not blocking" —

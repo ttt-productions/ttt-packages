@@ -69,7 +69,6 @@ import {
   VerifyOperatorStepUpResultSchema,
   GetSafetyCasePartiesResultSchema,
   RevealCaseEvidenceResultSchema,
-  EnrollOperatorStepUpInputSchema,
 } from '../src/schemas/safety.js';
 import {
   LinkNciiEvidenceToCaseResultSchema,
@@ -214,7 +213,11 @@ const answers: Array<[name: string, schema: ZodTypeAny, answer: Record<string, u
   ['clearSystemVideoSlot', ClearSystemVideoSlotResultSchema, { ...ok, cleared: false }],
   ['updateSystemUidSlot', UpdateSystemUidSlotResultSchema, { ...ok, changed: true }],
   ['closeAudition', CloseAuditionResultSchema, { ...ok, auditionId: 'au1', workProjectId: 'w1' }],
-  ['confirmOperatorStepUp', ConfirmOperatorStepUpResultSchema, ok],
+  [
+    'confirmOperatorStepUp',
+    ConfirmOperatorStepUpResultSchema,
+    { ...ok, recoveryCodes: Array.from({ length: 10 }, (_, i) => `CODE${i}ABCDE`.slice(0, 10)) },
+  ],
   [
     'recordNcmecPortalReceiptArtifact',
     RecordNcmecPortalReceiptArtifactResultSchema,
@@ -569,7 +572,6 @@ describe('inputs of callables that take none', () => {
     ['requestAccountDeletion', RequestAccountDeletionInputSchema],
     ['cancelAccountDeletion', CancelAccountDeletionInputSchema],
     ['getPendingGuildInviteCount', GetPendingGuildInviteCountInputSchema],
-    ['enrollOperatorStepUp', EnrollOperatorStepUpInputSchema],
   ] as const)('%s accepts only an empty object', (_name, schema) => {
     expect(schema.parse({})).toEqual({});
     expect(schema.safeParse({ uid: 'someone-else' }).success).toBe(false);

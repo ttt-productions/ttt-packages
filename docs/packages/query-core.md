@@ -155,6 +155,10 @@ The policy (`CallablePolicy`) is everything app-specific; the package names no a
 imports no toast or monitoring module (RULE-STD-QUALITY-102):
 
 - `getFunctions` and `timeoutMs` — the Functions provider and the total-invocation deadline.
+- `onSlowCall: { afterMs, show }` — every call of every kind that is still pending after `afterMs`
+  calls `show({ functionName })` once, while its session is current; the dismiss function `show`
+  returns runs when that call settles (an answer, a failure, or the deadline). A call that settles
+  first never shows it. The app owns the copy and the surface.
 - `resolveLimitedUseAppCheck(requested)` — the effective limited-use mode for a callable declared
   limited-use or not.
 - `captureFault(error, context)` — receives every `callCallable` report (failures and the

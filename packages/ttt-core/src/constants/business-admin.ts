@@ -1,5 +1,7 @@
 import { ACTIVE_LIMITS } from './app-mode.js';
 import { MAX_WORK_PROJECT_TITLE_LENGTH } from './business-work-project.js';
+import { MAX_SEARCH_QUERY_LENGTH } from './business-platform.js';
+import { EMAIL_MAX_LENGTH } from './business-user.js';
 import type { AdminTaskType } from '../doc-schemas/report-docs.js';
 
 export const TASK_PRIORITY = {
@@ -70,7 +72,14 @@ export const MAX_BROADCAST_EXPLICIT_UIDS = 2000;
 export const STEP_UP_ENROLL_REQUIRED = 'OPERATOR_STEP_UP_ENROLL_REQUIRED';
 export const STEP_UP_REQUIRED = 'OPERATOR_STEP_UP_REQUIRED';
 
+export const STEP_UP_CURRENT_CODE_REQUIRED = 'OPERATOR_STEP_UP_CURRENT_CODE_REQUIRED';
+
 export const OPERATOR_STEP_UP_CODE_LENGTH = 6;
+
+export const OPERATOR_STEP_UP_RECOVERY_CODE_COUNT = 10;
+
+// Crockford base32 characters, shown as two groups of five.
+export const OPERATOR_STEP_UP_RECOVERY_CODE_LENGTH = 10;
 
 export const MAX_REPORT_SNAPSHOT_TEXT_LENGTH = 4000;
 
@@ -110,7 +119,7 @@ export const MAX_NOTIFICATION_MESSAGE_LENGTH = 2000;
 
 export const MAX_BROADCAST_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 
-export const MAX_USER_SEARCH_QUERY_LENGTH = 100;
+export const MAX_USER_SEARCH_QUERY_LENGTH = MAX_SEARCH_QUERY_LENGTH;
 
 export const MAX_NCII_RATIONALE_LENGTH = 4000;
 
@@ -144,8 +153,7 @@ export const MAX_NCII_LOCATOR_URL_LENGTH = 2048;
 export const NCII_IDEMPOTENCY_KEY_MIN_LENGTH = 8;
 export const NCII_IDEMPOTENCY_KEY_MAX_LENGTH = 256;
 
-// The RFC 5321 ceiling on an email address.
-export const MAX_NCII_CONTACT_EMAIL_LENGTH = 320;
+export const MAX_NCII_CONTACT_EMAIL_LENGTH = EMAIL_MAX_LENGTH;
 
 export const NCII_CONTACT_PHONE_MIN_LENGTH = 3;
 export const NCII_CONTACT_PHONE_MAX_LENGTH = 64;

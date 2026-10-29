@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   MAX_USER_FACING_REASON_LENGTH,
   OPERATOR_STEP_UP_CODE_LENGTH,
+  OPERATOR_STEP_UP_RECOVERY_CODE_COUNT,
+  OPERATOR_STEP_UP_RECOVERY_CODE_LENGTH,
   MAX_NCMEC_REPORT_NUMBER_LENGTH,
   MAX_EVIDENCE_VAULT_KEY_LENGTH,
 } from '../constants/business-admin.js';
@@ -603,7 +605,21 @@ export const OperatorStepUpCodeInputSchema = z
   .strict();
 export type OperatorStepUpCodeInput = z.infer<typeof OperatorStepUpCodeInputSchema>;
 
-export const EnrollOperatorStepUpInputSchema = z.object({}).strict();
+const operatorStepUpRecoveryCodeSchema = z
+  .string()
+  .transform((code) => code.toUpperCase().replace(/[\s-]/gu, ''))
+  .pipe(
+    z
+      .string()
+      .length(OPERATOR_STEP_UP_RECOVERY_CODE_LENGTH, 'Enter the whole recovery code.')
+      .regex(/^[0-9A-HJKMNP-TV-Z]+$/u, 'That is not a recovery code.'),
+  );
+
+export const EnrollOperatorStepUpInputSchema = z.union([
+  z.object({}).strict(),
+  z.object({ currentCode: OperatorStepUpCodeInputSchema.shape.code }).strict(),
+  z.object({ recoveryCode: operatorStepUpRecoveryCodeSchema }).strict(),
+]);
 export type EnrollOperatorStepUpInput = z.infer<typeof EnrollOperatorStepUpInputSchema>;
 
 export const EnrollOperatorStepUpResultSchema = z.object({
@@ -614,6 +630,7 @@ export type EnrollOperatorStepUpResult = z.infer<typeof EnrollOperatorStepUpResu
 
 export const ConfirmOperatorStepUpResultSchema = z.object({
   success: z.literal(true),
+  recoveryCodes: z.array(z.string()).length(OPERATOR_STEP_UP_RECOVERY_CODE_COUNT),
 });
 export type ConfirmOperatorStepUpResult = z.infer<typeof ConfirmOperatorStepUpResultSchema>;
 
@@ -621,6 +638,18 @@ export const VerifyOperatorStepUpResultSchema = z.object({
   grantExpiresAt: z.number(),
 });
 export type VerifyOperatorStepUpResult = z.infer<typeof VerifyOperatorStepUpResultSchema>;
+
+export const RegenerateOperatorStepUpRecoveryCodesInputSchema = OperatorStepUpCodeInputSchema;
+export type RegenerateOperatorStepUpRecoveryCodesInput = z.infer<
+  typeof RegenerateOperatorStepUpRecoveryCodesInputSchema
+>;
+
+export const RegenerateOperatorStepUpRecoveryCodesResultSchema = z.object({
+  recoveryCodes: z.array(z.string()).length(OPERATOR_STEP_UP_RECOVERY_CODE_COUNT),
+});
+export type RegenerateOperatorStepUpRecoveryCodesResult = z.infer<
+  typeof RegenerateOperatorStepUpRecoveryCodesResultSchema
+>;
 
 export const RevealCaseEvidenceInputSchema = z
   .object({

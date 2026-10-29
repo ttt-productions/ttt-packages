@@ -108,6 +108,7 @@ export type {
   CallablePolicy,
   Callables,
   ResumableOutcome,
+  SlowCallNotice,
 } from './callables/create-callables.js';
 
 export {

@@ -22,16 +22,17 @@ domain is covered.
 
 ### 1. Run the full gate
 **Rules:** RULE-STD-QUALITY-011, RULE-STD-QUALITY-002, RULE-STD-QUALITY-008, RULE-STD-QUALITY-003.
-**Scope:** the repo's whole suite through `test:quiet`.
+**Scope:** the repo's whole suite through its gate: `test:quiet`, and in an app `test:quiet:live` after it.
 ```bash
 npm run test:quiet
+npm run test:quiet:live   # an app only, against a fresh dev:e2e
 ```
-**Expected:** every stage ✓. `test:quiet` is the one command that verifies a change set; a
-hand-assembled sequence is never a substitute (RULE-STD-QUALITY-011). A test stage is red when any test
+**Expected:** every stage ✓. The gate is the one thing that verifies a change set — in an app both
+phases, in that order; a hand-assembled sequence is never a substitute (RULE-STD-QUALITY-011). A test stage is red when any test
 is skipped or left pending — a skipped test proves nothing, so it is fixed and un-skipped, or deleted
 with the behavior it covered. The rules and E2E stages count only against a fresh `dev:e2e` started
-after the last app-code edit (RULE-STD-QUALITY-008); in a full run without the stack they skip (⊘) and
-are reported `NOT RUN`, never PASS, while a run that names them fails with the stack down. Record
+after the last app-code edit (RULE-STD-QUALITY-008); `test:quiet:live` fails with the stack down, and a
+run selecting no phase skips them (⊘), reported `NOT RUN`, never PASS. Record
 failures separately from retry-passes — a retry-pass is a real bug, logged where the app's flaky log
 lives (RULE-STD-QUALITY-003). Targeted reruns use the gate's `--only` stages.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED

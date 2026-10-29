@@ -1684,6 +1684,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `secret` | `string` |  |
+| `pendingSecret` | `string` | yes |
+| `recoveryCodeHashes` | `string[]` | yes |
 | `status` | `'pending' \| 'active'` |  |
 | `grantExpiresAt` | `number` | yes |
 | `createdAt` | `number` |  |

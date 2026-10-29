@@ -1,6 +1,5 @@
-// firebase-admin 14 removed the root `admin.*` namespace; only the modular entries exist across
-// the whole peer range.
-import admin from 'firebase-admin';
+import { createRequire } from 'node:module';
+import type admin from 'firebase-admin';
 import {
   getApp,
   getApps,
@@ -9,9 +8,13 @@ import {
   type AppOptions,
   type Credential,
 } from 'firebase-admin/app';
-import { getAuth, type Auth } from 'firebase-admin/auth';
+import type { Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { getStorage, type Storage } from 'firebase-admin/storage';
+import type { Storage } from 'firebase-admin/storage';
+
+// Auth, Storage, and the package root load on first read: most callers use only Firestore, and each
+// module loaded at import time is paid on every cold start.
+const loadModule = createRequire(import.meta.url);
 
 let cachedApp: App | undefined;
 
@@ -24,10 +27,10 @@ export interface AdminInitOptions {
 export interface AdminAppHandles {
   app: App;
   db: Firestore;
-  auth: Auth;
-  storage: Storage;
+  readonly auth: Auth;
+  readonly storage: Storage;
   /** firebase-admin <=13 only: the v14 package root has no `firestore` / `auth` / `storage` namespaces. */
-  admin: typeof admin;
+  readonly admin: typeof admin;
 }
 
 export function getAdminApp(options: AdminInitOptions = {}): AdminAppHandles {
@@ -48,12 +51,23 @@ export function getAdminApp(options: AdminInitOptions = {}): AdminAppHandles {
     }
     cachedApp = getApp();
   }
+  const app = cachedApp;
   return {
-    app: cachedApp,
-    db: getFirestore(cachedApp),
-    auth: getAuth(cachedApp),
-    storage: getStorage(cachedApp),
-    admin,
+    app,
+    db: getFirestore(app),
+    get auth() {
+      return (loadModule('firebase-admin/auth') as typeof import('firebase-admin/auth')).getAuth(
+        app,
+      );
+    },
+    get storage() {
+      return (
+        loadModule('firebase-admin/storage') as typeof import('firebase-admin/storage')
+      ).getStorage(app);
+    },
+    get admin() {
+      return loadModule('firebase-admin') as typeof admin;
+    },
   };
 }
 
