@@ -178,6 +178,20 @@ describe('CookieConsentBanner', () => {
     expect(banner.textContent).toContain('We use analytics cookies.');
   });
 
+  it('clears the home indicator and fades in on the motion tokens', () => {
+    renderWithProvider(<CookieConsentBanner copy={BANNER_COPY} />);
+    const classes = screen.getByRole('region', { name: 'Cookie consent' }).className.split(' ');
+    expect(classes).toContain('pb-[max(1rem,env(safe-area-inset-bottom))]');
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        'starting:opacity-0',
+        'duration-[var(--motion-base)]',
+        'ease-[var(--motion-ease)]',
+        'motion-reduce:transition-none',
+      ]),
+    );
+  });
+
   it('accepting hides it and turns analytics on', () => {
     renderWithProvider(<CookieConsentBanner copy={BANNER_COPY} />);
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));

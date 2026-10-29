@@ -36,7 +36,11 @@ analytics off until the visitor accepts.
 - **Fail-safe.** `useConsent()` outside its provider returns `unset`, analytics off, `ready: false`,
   and actions that do nothing. It never throws.
 - **Controls.** `CookieConsentBanner({ copy })` renders the app's `regionLabel`, `message` (any
-  content — the app puts its privacy-page link in it), `acceptLabel`, and `declineLabel`.
+  content — the app puts its privacy-page link in it), `acceptLabel`, and `declineLabel`, in a bar
+  along the bottom of the viewport, never a modal. The bar pads its bottom edge by the safe area, so
+  its buttons clear a phone's home indicator on a page drawn under it (`viewport-fit=cover`), and it
+  fades in on theme-core's motion tokens, which an app's reduced-motion switch and
+  `prefers-reduced-motion` both stop.
   `CookieSettingsButton` is ui-core's `Button` (every `Button` prop but `onClick` and `type`) that
   calls `reopen`, always `type="button"`.
 
