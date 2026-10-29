@@ -9,6 +9,7 @@ Generic monitoring adapter package.
 - Noop adapter
 - Generic `captureException` and related API
 - React `ErrorBoundary` on `./react`
+- The browser SDK's one init on `./browser`
 - The telemetry scrubber — the forbidden-pattern redaction layer for outgoing events
 - The telemetry content policy — the allowlist that cuts an outgoing event to diagnostic fields
 
@@ -126,10 +127,38 @@ that failed: `[monitoring-core] <op> was not delivered: the monitoring SDK did n
 to initialize`, or — when the SDK itself throws on the call — `… threw`. Never a silent loss and
 never an unhandled rejection.
 
-Each SDK is named in one module that hands the adapter its `SentrySdkLike` slice:
+Each adapter's SDK is named in one module that hands the adapter its `SentrySdkLike` slice:
 `adapters/sentry-browser-sdk` (`@sentry/nextjs`) and `adapters/sentry-node-sdk` (`@sentry/node`),
 which the package's `browser` field maps to an empty module, so a browser bundle never pulls
-`@sentry/node` in.
+`@sentry/node` in. The browser init (below) imports `@sentry/nextjs` statically instead: it runs in
+the app's `instrumentation-client.ts`, before React mounts, and must start the SDK synchronously.
+
+## Browser init
+
+`initBrowserMonitoring(options)` (`./browser`) is the one browser Sentry init; each app's
+`instrumentation-client.ts` calls it with its own config, and the app's `initMonitoring` (binding
+`captureException` and the rest to that SDK, with no DSN) runs as before. With `enabled: false` it
+starts nothing — the app passes that for local and emulator runs.
+
+Always on: the offline transport (a send that fails at the network is queued in IndexedDB and
+retried), the console-error capture (error level only), and `beforeSend`, which runs in order the
+app's `dropEvent(event, hint)` (a designed answer, say), the network-capture URL filter, the
+telemetry scrubber (`scrubPatterns` on top of the defaults), and, when `attachIndexedDbNames(error)`
+says so, the page's IndexedDB database names as `extra.indexedDbNames` (names only; a failed
+listing sends the event without them). `ignoreErrors` is `DEFAULT_BROWSER_IGNORE_ERRORS` (generic
+browser, network and Firebase SDK noise), then `IN_APP_BROWSER_IGNORE_ERRORS` when
+`ignoreInAppBrowserNoise` is set, then the app's own list.
+
+Three switches, each `false` or its config:
+
+- `sessionReplay: { onErrorSampleRate, sessionSampleRate }` — Session Replay with all text masked
+  and all media blocked. The scrubber is registered by the init itself on every outbound path a
+  replay adds: an event processor for replay events (which pass through neither hook), and the
+  recording's `beforeAddRecordingEvent`, which redacts every string in each frame in place.
+- `tracesSampleRate` — trace sampling, with the scrubber as `beforeSendTransaction`.
+- `networkCapture: { ignoreUrls }` — failed fetch/XHR capture (the SDK's default 5xx range); a
+  capture of a URL matching `ignoreUrls` is dropped, so an endpoint whose failures another owner
+  already reports is not reported twice.
 
 ## Boundary
 

@@ -117,3 +117,18 @@ export {
   duplicateSubmissionError,
   useDuplicateGuardedMutation,
 } from './pending-mutations.js';
+
+export {
+  APP_CONFIG_BACKGROUND_RETRY_MS,
+  APP_CONFIG_MAX_QUICK_ATTEMPTS,
+  createAppConfig,
+} from './app-config/create-app-config.js';
+export type {
+  AppConfig,
+  AppConfigDefinition,
+  AppConfigLeverOf,
+  AppConfigSnapshotState,
+  AppConfigState,
+  AppConfigStatus,
+  StoredAppConfig,
+} from './app-config/create-app-config.js';

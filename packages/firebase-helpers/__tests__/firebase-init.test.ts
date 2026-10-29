@@ -107,6 +107,7 @@ import {
 } from '../src/client/firebase-init.js';
 
 const CONFIG = { apiKey: 'k', projectId: 'p', appId: 'a' };
+const MEASURED = { ...CONFIG, measurementId: 'G-TEST' };
 
 function withWindow(run: () => void) {
   const scope = globalThis as Record<string, unknown>;
@@ -260,6 +261,19 @@ describe('initFirebaseClient — App Check', () => {
     delete (globalThis as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN;
   });
 
+  it('never honours a debug token outside the emulators', () => {
+    let tokenAtInit: unknown = 'unread';
+    h.initializeAppCheck.mockImplementationOnce(() => {
+      tokenAtInit = (globalThis as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN;
+      return sdk.appCheck;
+    });
+    withWindow(() =>
+      initFirebaseClient(CONFIG, { appCheck: { siteKey: 'site', debugToken: 'debug-uuid' } }),
+    );
+    expect(tokenAtInit).toBeUndefined();
+    expect(h.providerSiteKeys).toEqual(['site']);
+  });
+
   it('warns and skips App Check when the site key is missing', () => {
     withWindow(() => initFirebaseClient(CONFIG, { appCheck: {} }));
     expect(h.initializeAppCheck).not.toHaveBeenCalled();
@@ -318,7 +332,7 @@ describe('initFirebaseClient — Analytics handle', () => {
   it('creates nothing until enabled, then initializes once with the app config', () => {
     let client: ReturnType<typeof initFirebaseClient> | undefined;
     withWindow(() => {
-      client = initFirebaseClient(CONFIG, { analyticsConfig: { send_page_view: false } });
+      client = initFirebaseClient(MEASURED, { analyticsConfig: { send_page_view: false } });
       expect(client.analytics.get()).toBeUndefined();
       client.analytics.enable();
       client.analytics.enable();
@@ -334,7 +348,7 @@ describe('initFirebaseClient — Analytics handle', () => {
   it('tells subscribers once, when the handle is first created', () => {
     const listener = vi.fn();
     withWindow(() => {
-      const { analytics } = initFirebaseClient(CONFIG);
+      const { analytics } = initFirebaseClient(MEASURED);
       analytics.subscribe(listener);
       analytics.enable();
       analytics.enable();
@@ -343,14 +357,14 @@ describe('initFirebaseClient — Analytics handle', () => {
   });
 
   it('stopping collection before Analytics exists creates nothing', () => {
-    withWindow(() => initFirebaseClient(CONFIG).analytics.setCollectionEnabled(false));
+    withWindow(() => initFirebaseClient(MEASURED).analytics.setCollectionEnabled(false));
     expect(h.initializeAnalytics).not.toHaveBeenCalled();
     expect(h.setAnalyticsCollectionEnabled).not.toHaveBeenCalled();
   });
 
   it('stops collection on a created handle', () => {
     withWindow(() => {
-      const { analytics } = initFirebaseClient(CONFIG);
+      const { analytics } = initFirebaseClient(MEASURED);
       analytics.enable();
       analytics.setCollectionEnabled(false);
     });
@@ -358,9 +372,59 @@ describe('initFirebaseClient — Analytics handle', () => {
   });
 
   it('creates no Analytics on the server', () => {
-    const client = initFirebaseClient(CONFIG);
+    const client = initFirebaseClient(MEASURED);
     expect(client.analytics.enable()).toBeUndefined();
     expect(h.initializeAnalytics).not.toHaveBeenCalled();
+  });
+
+  it('never starts without a measurement id', () => {
+    withWindow(() => expect(initFirebaseClient(CONFIG).analytics.enable()).toBeUndefined());
+    expect(h.initializeAnalytics).not.toHaveBeenCalled();
+  });
+
+  it('never starts under the emulators', () => {
+    withWindow(() =>
+      expect(
+        initFirebaseClient(MEASURED, { useEmulators: true }).analytics.enable(),
+      ).toBeUndefined(),
+    );
+    expect(h.initializeAnalytics).not.toHaveBeenCalled();
+  });
+
+  it('never starts when the app switches it off', () => {
+    withWindow(() =>
+      expect(
+        initFirebaseClient(MEASURED, { analyticsEnabled: false }).analytics.enable(),
+      ).toBeUndefined(),
+    );
+    expect(h.initializeAnalytics).not.toHaveBeenCalled();
+  });
+
+  it('hands a failed start to the app error callback and leaves Analytics off', () => {
+    const failure = new Error('gtag blocked');
+    h.initializeAnalytics.mockImplementationOnce(() => {
+      throw failure;
+    });
+    const onAnalyticsError = vi.fn();
+    withWindow(() => {
+      const { analytics } = initFirebaseClient(MEASURED, { onAnalyticsError });
+      expect(analytics.enable()).toBeUndefined();
+    });
+    expect(onAnalyticsError).toHaveBeenCalledWith(failure, 'enable');
+  });
+
+  it('hands a failed collection switch to the app error callback', () => {
+    const failure = new Error('switch failed');
+    const onAnalyticsError = vi.fn();
+    withWindow(() => {
+      const { analytics } = initFirebaseClient(MEASURED, { onAnalyticsError });
+      analytics.enable();
+      h.setAnalyticsCollectionEnabled.mockImplementationOnce(() => {
+        throw failure;
+      });
+      analytics.setCollectionEnabled(false);
+    });
+    expect(onAnalyticsError).toHaveBeenCalledWith(failure, 'collection');
   });
 });
 

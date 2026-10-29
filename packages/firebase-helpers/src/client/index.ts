@@ -35,3 +35,5 @@ export type {
   FunctionsProvider,
 } from './call-callable.js';
 export { isRecoveredFallbackReport } from './recovered-fallback.js';
+export { peekPersistedAuthUser } from './persisted-auth-peek.js';
+export type { PersistedAuthUserPeek } from './persisted-auth-peek.js';

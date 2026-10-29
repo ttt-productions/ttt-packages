@@ -18,3 +18,5 @@ export type {
   FirebaseAnalyticsIdentityProps,
   FirebaseAnalyticsPageViewsProps,
 } from './firebase-analytics.js';
+export { AuthBootPurgeSentinel } from './auth-boot-purge-sentinel.js';
+export type { AuthBootPurge, AuthBootPurgeSentinelProps } from './auth-boot-purge-sentinel.js';

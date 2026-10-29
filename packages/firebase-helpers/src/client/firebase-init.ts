@@ -53,6 +53,8 @@ export interface InitFirebaseClientOptions {
   appCheck?: AppCheckClientOptions;
   authBootLookupGuard?: boolean;
   analyticsConfig?: Record<string, unknown>;
+  analyticsEnabled?: boolean;
+  onAnalyticsError?: (error: unknown, action: 'enable' | 'collection') => void;
 }
 
 export interface FirebaseAnalyticsHandle {
@@ -95,7 +97,8 @@ function initAppCheck(
 ): AppCheck | undefined {
   if (typeof window === 'undefined') return undefined;
   if (globalFlags()[APP_CHECK_FLAG]) return undefined;
-  const { siteKey, debugToken } = options;
+  const { siteKey } = options;
+  const debugToken = useEmulators ? options.debugToken : undefined;
   if (useEmulators && !debugToken) return undefined;
 
   // Set before initializeAppCheck, which reads it.
@@ -156,21 +159,29 @@ function connectEmulators(
 
 function createAnalyticsHandle(
   app: FirebaseApp,
-  config: Record<string, unknown> | undefined,
+  measurementId: string | undefined,
+  options: InitFirebaseClientOptions,
 ): FirebaseAnalyticsHandle {
+  const config = options.analyticsConfig;
+  const available =
+    Boolean(measurementId) && !options.useEmulators && (options.analyticsEnabled ?? true);
+  const reportError = (error: unknown, action: 'enable' | 'collection') => {
+    if (options.onAnalyticsError) options.onAnalyticsError(error, action);
+    else console.warn(`[firebase] Analytics ${action} failed:`, error);
+  };
   let analytics: Analytics | undefined;
   const listeners = new Set<() => void>();
 
   return {
     get: () => analytics,
     enable: () => {
-      if (typeof window === 'undefined') return undefined;
+      if (typeof window === 'undefined' || !available) return undefined;
       const created = !analytics;
       try {
         if (!analytics) analytics = initializeAnalytics(app, config ? { config } : undefined);
         setAnalyticsCollectionEnabled(analytics, true);
       } catch (error) {
-        console.warn('[firebase] Analytics init failed:', error);
+        reportError(error, 'enable');
       }
       if (created && analytics) for (const listener of listeners) listener();
       return analytics;
@@ -181,7 +192,7 @@ function createAnalyticsHandle(
       try {
         setAnalyticsCollectionEnabled(analytics, enabled);
       } catch (error) {
-        console.warn('[firebase] setAnalyticsCollectionEnabled failed:', error);
+        reportError(error, 'collection');
       }
     },
     subscribe: (listener) => {
@@ -249,7 +260,7 @@ export function initFirebaseClient(
     functions,
     appCheck,
     whenAppCheckReady,
-    analytics: createAnalyticsHandle(app, options.analyticsConfig),
+    analytics: createAnalyticsHandle(app, config.measurementId, options),
   };
   return cached;
 }

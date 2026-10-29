@@ -152,8 +152,9 @@ safety:
 - `./react` — React UI, hooks, providers, context.
 - `./contracts` — pure, dependency-light contracts/schemas (e.g.
   `report-core/contracts`, consumed by `ttt-core` and Cloud Functions).
-- `./browser` — browser runtime with no React: the upload runtime (`upload-core/browser`) and the
-  reload-recovery watch (`ui-core/browser`).
+- `./browser` — browser runtime with no React: the upload runtime (`upload-core/browser`), the
+  reload-recovery watch (`ui-core/browser`), and the browser monitoring init
+  (`monitoring-core/browser`).
 - `./styles` (or `*.css`) — CSS assets.
 - `./<runtime>/testing` — a package's test doubles and builders for that runtime
   (`firebase-helpers/server/testing`, `…/firestore-client/testing`, `query-core/react/testing`). Its

@@ -35,8 +35,9 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   initialized (a hot reload).
 - **App Check.** `appCheck: { siteKey, debugToken }` initializes App Check with the reCAPTCHA
   Enterprise provider and token auto-refresh, in the browser only and once per page (a hot reload
-  does not initialize it twice). Under the emulators it is skipped unless a debug token is given; a
-  missing site key logs a warning and skips it. `whenAppCheckReady()` waits for the first token,
+  does not initialize it twice). The debug token is honoured only under the emulators, where App
+  Check is skipped unless one is given; a deployed build attests through reCAPTCHA whatever it is
+  passed. A missing site key logs a warning and skips it. `whenAppCheckReady()` waits for the first token,
   retrying through `awaitFirstToken`'s backoff, and resolves either way (fail-open, with a warning);
   it runs once however often it is awaited, and resolves at once when App Check is off.
 - **The Auth boot lookup guard.** `authBootLookupGuard` installs `installAuthBootLookupGuard` before
@@ -45,10 +46,19 @@ returns `undefined` instead. Every value comes from the app, and every behaviour
   forces a fresh App Check token), and hands the SDK an identity failure untouched so it signs the
   account out — a session is never dropped for an outage. `getLastBootLookupFailureClass()` reads
   the last class.
+- **The boot purge sentinel.** `peekPersistedAuthUser()` reads, without creating anything, whether
+  the Auth SDK held a persisted user at boot; `AuthBootPurgeSentinel` (`./react`) takes the app's
+  auth `loading` and `signedIn` and calls `onPurged({ persistedUid, failureClass })` once when a
+  session that was persisted resolves signed out at the first resolution — the SDK dropped it during
+  its boot lookup. The app reports it through its own monitoring.
 - **Emulators.** `useEmulators` connects Auth, Firestore, Functions, and Storage once per page, in
   the browser only, on `emulatorPorts` (`host`, a separate `storageHost`, and each port);
   `useBrowserLocalPersistence` keeps the Auth session in local storage there.
-- **Analytics.** `analytics` is a consent-gated handle that creates nothing until `enable()`:
+- **Analytics.** `analytics` is a consent-gated handle that creates nothing until `enable()`, and
+  never starts at all without a `measurementId` in the config, under the emulators, or when the app
+  passes `analyticsEnabled: false` (its test runs). A failed start or collection switch goes to
+  `onAnalyticsError(error, 'enable' | 'collection')` (a console warning when the app passes none) and
+  leaves Analytics as it was.
   `enable()` initializes Analytics once (with the app's `analyticsConfig` gtag config) and turns
   collection on, `setCollectionEnabled(false)` stops collection (the SDK cannot be torn down),
   `get()` reads the handle, and `subscribe(listener)` tells a reader once, when the handle is first
@@ -182,7 +192,7 @@ The root is pure/server-safe — pure path, timestamp, and chunking helpers that
 - `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`, the expected-answer and App Check throttle classifiers, the designed-refusal readers); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import. The names typed on `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`, `formatDateDisplay`) live on `./firestore-client` too, so the root's declaration files reach no Firebase type.
 - `./server/testing` — the Admin SDK test kit (above); Node and Vitest only.
 - `./server` — Admin SDK init helper, server-only handles, the Admin-SDK batch and Timestamp helpers, and the server Firestore contract (types only). The universal helpers (`chunk`, the Firestore types, `toMillis` / `toDate`, `getFileNameFromUrl`) are root-only; backend code imports them from `.`.
-- `./react` — generic callable hook/client primitives (`useCallableMutation`, `createCallableClient`) and the Firebase Analytics React pieces; no react-query.
-- `./client` — the Firebase **client** setup, `callCallable`, and `isRecoveredFallbackReport` (browser runtime).
+- `./react` — generic callable hook/client primitives (`useCallableMutation`, `createCallableClient`), the Firebase Analytics React pieces, and `AuthBootPurgeSentinel`; no react-query.
+- `./client` — the Firebase **client** setup, `callCallable`, `isRecoveredFallbackReport`, and `peekPersistedAuthUser` (browser runtime).
 - `./firestore-client` — client Firestore helpers (browser runtime) and the Firestore-typed names above.
 - `./firestore-client/testing` — the client Firestore test kit (above); Vitest only.
