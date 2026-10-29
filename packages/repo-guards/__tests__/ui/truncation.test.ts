@@ -8,6 +8,7 @@ import { allFindings } from './helpers.js';
 const lines = (...l: string[]) => l.join('\n');
 
 const facts = (overrides: Partial<SharedTruncationFacts> = {}): SharedTruncationFacts => ({
+  entryStylesheet: 'src/styles/globals.css',
   trees: ['src/ui', 'src/styles'],
   sharedClass: 'kit-truncate',
   clampOwners: [
@@ -24,6 +25,7 @@ const sheet = lines(
   '.card { text-overflow: clip; }',
 );
 const clean = {
+  'src/styles/globals.css': "@import './components.css' layer(base);",
   'src/styles/components.css': sheet,
   'src/ui/title.tsx': lines(
     '// a truncate or line-clamp-2 class would break the recipe',
@@ -125,6 +127,44 @@ describe('titles and names truncate through the one shared class', () => {
       'src/gone the tree holds no production code or stylesheet the guard can read',
       '(clampOwners) stale clamp owner: no stylesheet rule for .kit-clamp-3 truncates any more',
     ]);
+  });
+
+  it('passes clamp owners declared only by an installed theme package the entry stylesheet loads', async () => {
+    const findings = await allFindings(sharedTruncationGuard, facts(), {
+      ...clean,
+      'node_modules/@kit/theme/package.json': JSON.stringify({
+        name: '@kit/theme',
+        exports: { './components.css': './dist/components.css' },
+      }),
+      'node_modules/@kit/theme/dist/components.css': sheet,
+      'src/styles/globals.css': "@import '@kit/theme/components.css' layer(base);",
+      'src/styles/components.css': '.card { text-overflow: clip; }',
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('flags an owner the installed theme package no longer clamps, and an entry stylesheet that is gone', async () => {
+    const files = {
+      ...clean,
+      'node_modules/@kit/theme/package.json': JSON.stringify({
+        name: '@kit/theme',
+        exports: { './components.css': './dist/components.css' },
+      }),
+      'node_modules/@kit/theme/dist/components.css':
+        '.kit-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+      'src/styles/globals.css': "@import '@kit/theme/components.css' layer(base);",
+      'src/styles/components.css': '.card { text-overflow: clip; }',
+    };
+    expect(await allFindings(sharedTruncationGuard, facts(), files)).toEqual([
+      '(clampOwners) stale clamp owner: no stylesheet rule for .kit-clamp-3 truncates any more',
+    ]);
+    expect(
+      await allFindings(
+        sharedTruncationGuard,
+        facts({ entryStylesheet: 'src/styles/missing.css' }),
+        clean,
+      ),
+    ).toEqual(['src/styles/missing.css the entry stylesheet does not exist']);
   });
 
   it('refuses a shared class that is a utility or that no clamp owner holds', () => {

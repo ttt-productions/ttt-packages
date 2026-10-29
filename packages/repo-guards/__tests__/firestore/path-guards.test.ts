@@ -273,6 +273,7 @@ describe('no retired Firestore segment survives in a path string', () => {
       { name: 'private', replacement: 'privateDetails' },
       { name: 'actions', replacement: 'requestActions' },
     ],
+    routePrefixes: ['/works', '/admin'],
     reviewedMatches: [],
     ...over,
   });
@@ -316,6 +317,48 @@ describe('no retired Firestore segment survives in a path string', () => {
     expect(await run(guard, { 'src/clean.ts': clean })).toEqual([]);
   });
 
+  it('PASSES a module specifier of every kind, an app route, and a source-file path that holds a retired name', async () => {
+    const [guard] = retiredSegmentGuard.build(facts());
+    const clean = [
+      "import { a } from './tales/a.js';",
+      "import type { B } from '@/components/tales/b';",
+      "export { c } from '../private/c.js';",
+      "export * from './actions/index.js';",
+      "const d = await import('./tales/d.js');",
+      "const e = require('../private/e.js');",
+      "vi.mock(import('@/components/tales/f'), async (importOriginal) => ({ ...(await importOriginal()) }));",
+      "vi.mock('../actions/g.js');",
+      "type H = typeof import('./private/h.js');",
+      "const i = '/works/w1/tales';",
+      'const j = `/admin/requests/${id}/actions`;',
+      "const k = '/admin?next=/works/w1/tales/t1';",
+      "const l = 'functions/src/private/probe.ts';",
+      'const m = `src/components/tales/${name}.tsx`;',
+      "const n = 'scripts/actions/run.mjs';",
+    ].join('\n');
+    expect(await run(guard, { 'src/clean.ts': clean })).toEqual([]);
+  });
+
+  it('FLAGS a retired name in a path that only resembles a route, a module, or a source file', async () => {
+    const [guard] = retiredSegmentGuard.build(facts());
+    const findings = await run(guard, {
+      'src/a.ts': [
+        "const a = '/workshop/tales/t1';",
+        "const b = 'works/w1/tales/t1.json';",
+        "const c = db.doc(work.path + '/tales/' + id);",
+        'const d = `${base}/private/${uid}`;',
+        "const e = load('works/w1/tales/t1');",
+      ].join('\n'),
+    });
+    expect(findings.map((f) => `${f.file}:${f.line} ${f.detail.split(' in ')[0]}`)).toEqual([
+      "src/a.ts:1 retired segment 'tales' (now 'hallTales')",
+      "src/a.ts:2 retired segment 'tales' (now 'hallTales')",
+      "src/a.ts:3 retired segment 'tales' (now 'hallTales')",
+      "src/a.ts:4 retired segment 'private' (now 'privateDetails')",
+      "src/a.ts:5 retired segment 'tales' (now 'hallTales')",
+    ]);
+  });
+
   it('PASSES a reviewed match, and FLAGS one that matches nothing', async () => {
     const [guard] = retiredSegmentGuard.build(
       facts({
@@ -341,23 +384,32 @@ describe('no retired Firestore segment survives in a path string', () => {
     ]);
   });
 
-  it('refuses an empty segment list, a segment with no replacement, and a reviewed match with no text or why', () => {
-    expect(retiredSegmentGuard.factProblems({ segments: [], reviewedMatches: [] })).toEqual([
-      'segments is empty (declare the guard absent instead)',
-    ]);
+  it('refuses an empty segment list, a segment with no replacement, a missing or malformed page root, and a reviewed match with no text or why', () => {
+    expect(
+      retiredSegmentGuard.factProblems({ segments: [], routePrefixes: [], reviewedMatches: [] }),
+    ).toEqual(['segments is empty (declare the guard absent instead)']);
     expect(
       retiredSegmentGuard.factProblems({
         segments: [
           { name: 'tales', replacement: '' },
           { name: 'a/b', replacement: 'x' },
         ],
+        routePrefixes: ['works', '/admin/'],
         reviewedMatches: [{ file: 'src/a.ts', contains: '', why: '' }],
       }),
     ).toEqual([
       'reviewedMatches entry src/a.ts names no text it contains',
       'reviewedMatches entry src/a.ts carries no why',
+      'routePrefixes entry works must start with / and name whole segments, with no trailing /',
+      'routePrefixes entry /admin/ must start with / and name whole segments, with no trailing /',
       'segments: tales names no replacement',
       'segments: a/b is not a segment name',
     ]);
+    expect(
+      factProblemsOf(retiredSegmentGuard, {
+        segments: [{ name: 'tales', replacement: 'hallTales' }],
+        reviewedMatches: [],
+      }),
+    ).toEqual(['routePrefixes is missing (declare [] when there is none)']);
   });
 });

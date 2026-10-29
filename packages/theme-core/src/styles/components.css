@@ -297,6 +297,20 @@ button .spinner-xl {
   background-color: hsl(var(--destructive) / 0.10);
 }
 
+.single-line-truncate {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.three-line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* =========================================================
     LINKS
     ========================================================= */

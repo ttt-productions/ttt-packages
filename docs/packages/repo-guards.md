@@ -144,7 +144,9 @@ this section says what the facts mean, area by area, and never lists them guard 
   checking off, and, for the end-to-end suites, the app's own action helpers and the anchored
   retry loops and caught actions that are exceptions.
 - **Firestore and Storage** — the app's data package and import aliases, the constants and
-  builders that own path assembly, retired segments with their replacements, the indexes file,
+  builders that own path assembly, retired segments with their replacements and the app page roots
+  whose route strings their check skips (it also skips module specifiers and source-file paths), the
+  indexes file,
   the server-side metadata readers, and loaders for the registry, collection names, and the values
   the rules files must agree with.
 - **Backend** — the owner of each server concern (the audit writer and its entry points, the
@@ -168,7 +170,8 @@ this section says what the facts mean, area by area, and never lists them guard 
 - **UI** — the entry stylesheet, token sheet, and pinned stylesheet order, the root layout module
   and what it mounts in which order, the navigation, motion, and loading helpers, the accessible
   control and display components, the trees the shared truncation class governs with that class and
-  the clamp-owner selectors, and the reviewed colour, label, text-entry, bound, and truncation
+  the clamp-owner selectors (an owner may be declared by any stylesheet the entry stylesheet loads, an
+  installed theme package's included), and the reviewed colour, label, text-entry, bound, and truncation
   exceptions.
 - **Core definitions** — the app's data package, its schema and wire folders, the wire-input name
   suffixes, loaders for its wire modules, field declarations, and field schema builder, and the

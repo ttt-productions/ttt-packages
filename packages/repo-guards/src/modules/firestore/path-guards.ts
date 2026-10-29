@@ -16,6 +16,7 @@ import {
   type NodeHit,
 } from './support.js';
 import { REPOSITORY_GUARD_TIMEOUT_MS } from '../../support/timeouts.js';
+import { routePrefixPattern, routePrefixProblems } from '../core-definitions/app-routes.js';
 
 const ACCESSORS = new Set(['collection', 'collectionGroup', 'doc']);
 
@@ -233,20 +234,34 @@ export const pathAssemblyGuard: GenericGuardDefinition<PathAssemblyFacts> = {
 
 export interface RetiredSegmentFacts {
   segments: ReadonlyArray<{ name: string; replacement: string }>;
+  routePrefixes: readonly string[];
   reviewedMatches: ReadonlyArray<{ file: string; contains: string; why: string }>;
 }
+
+const SOURCE_FILE = /\.[cm]?[jt]sx?$/;
 
 export function retiredSegmentHits(
   file: FileView,
   names: readonly string[],
+  routePrefixes: readonly string[],
 ): Array<NodeHit & { name: string; text: string }> {
   const source = file.sourceFile;
   const retired = new Set(names);
   const alternation = names.map(escapeRegExp).join('|');
   const inside = new RegExp(`/(${alternation})(?=/)`, 'g');
   const closing = new RegExp(`/(${alternation})$`);
+  const routes = routePrefixes.map(routePrefixPattern);
+  const specifiers = new Set<ts.Node>(file.imports.map((site) => site.specifier));
   const hits: Array<NodeHit & { name: string; text: string }> = [];
   const scan = (node: ts.Node, parts: Array<{ text: string; closes: boolean }>) => {
+    const opening = parts[0].text;
+    const whole = parts.map((p) => p.text).join('');
+    if (
+      specifiers.has(node) ||
+      routes.some((route) => route.test(opening)) ||
+      SOURCE_FILE.test(whole)
+    )
+      return;
     const found: string[] = [];
     for (const { text, closes } of parts) {
       for (const m of text.matchAll(inside)) found.push(m[1]);
@@ -287,6 +302,8 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
         typeof e.contains === 'string' && e.contains ? `${e.file} ${e.contains}` : undefined,
       idNames: 'text it contains',
     });
+    namesProblem(facts?.routePrefixes, 'routePrefixes', problems, { nonEmpty: false });
+    routePrefixProblems(facts?.routePrefixes, 'routePrefixes', problems);
     if (!isList(facts?.segments) || !facts.segments.length)
       return [...problems, 'segments is empty (declare the guard absent instead)'];
     const names = facts.segments.map((s) => s?.name);
@@ -315,14 +332,18 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
           'A segment name inside a string is never type-checked, so a retired name keeps addressing a collection that no ' +
           'longer exists — a trigger that never fires, a read that returns nothing, a fixture nobody reads. Flagged: a ' +
           'retired name in path position in any string or template (`/name/`, or `/name` closing it), and a retired name ' +
-          "as a collectionGroup id. Fix: build the path through the core. A reviewed match names a literal's text that " +
-          'is not a Firestore path, with its why; one that matches nothing is stale.',
+          'as a collectionGroup id. Never flagged: a module specifier (an import, re-export, `import()`, `require()`, ' +
+          'test-runner mock, or type import), a string or template that opens with one of the app page roots ' +
+          `(${facts.routePrefixes.join(', ') || 'none declared'}) as a whole segment, and a string or template that ` +
+          'names a source file (it ends in a .ts, .tsx, .js, .jsx, .mjs, .cjs, .mts, or .cts extension). Fix: build the path ' +
+          "through the core. A reviewed match names a literal's text that is not a Firestore path, with its why; one that " +
+          'matches nothing is stale.',
         timeoutMs: REPOSITORY_GUARD_TIMEOUT_MS,
         run(context) {
           const findings: Finding[] = [];
           const used = new Set<number>();
           for (const file of context.files(scope)) {
-            for (const hit of retiredSegmentHits(file, names)) {
+            for (const hit of retiredSegmentHits(file, names, facts.routePrefixes)) {
               const index = facts.reviewedMatches.findIndex(
                 (r) => r.file === file.path && hit.text.includes(r.contains),
               );

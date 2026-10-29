@@ -54,6 +54,7 @@ const FACTS: UiGuardFacts = {
   wholeInputNumbers: { surfaceTrees: ['src/components'], allowlist: [] },
   selfHostedFonts: {},
   sharedTruncation: {
+    entryStylesheet: 'src/app/globals.css',
     trees: ['src'],
     sharedClass: 'kit-truncate',
     clampOwners: [{ selector: '.kit-truncate', why: 'the shared truncation class' }],

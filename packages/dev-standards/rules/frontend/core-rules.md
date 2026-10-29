@@ -72,14 +72,14 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 ### RULE-STD-FRONTEND-007 — One page column, one card recipe, truncation everywhere
 **Scope.** apps
 
-**Rule.** Every page wraps its content in `ScreenAdaptiveView` (ui-core) with the `page-container` class — a full-width single column that centers to a max-width on desktop; content fills it (no per-component `max-w-*` caps on page-level cards). Every branch of a page — loading, empty, and error included — renders inside that page container. A deliberate full-width exception exists only where the app's addition names it. Page-level content cards use the `.page-card` semantic class — never ad-hoc `bg-card` + `shadow-xl` borderless cards; dark-theme elevation is lightening + faint border, never dark drop shadows. Every user-supplied title and name renders through the app's one shared truncation class so long names never break layout; where the truncated text is the record's only identification, the full value stays reachable through its accessible name or title.
+**Rule.** Every page wraps its content in `ScreenAdaptiveView` (ui-core) with the `page-container` class — a full-width single column that centers to a max-width on desktop; content fills it (no per-component `max-w-*` caps on page-level cards). Every branch of a page — loading, empty, and error included — renders inside that page container. A deliberate full-width exception exists only where the app's addition names it. Page-level content cards use the `.page-card` semantic class — never ad-hoc `bg-card` + `shadow-xl` borderless cards; dark-theme elevation is lightening + faint border, never dark drop shadows. Every user-supplied title and name renders through theme-core's one shared truncation class (`.single-line-truncate`), and a block of user text cut to a few lines through its three-line clamp (`.three-line-clamp`), so long content never breaks layout; where the truncated text is the record's only identification, the full value stays reachable through its accessible name or title.
 
 **Why.** Consistent column, card, and truncation recipes keep every screen visually one system and stop long user content from breaking layout; a loading or error branch rendered outside the container jumps the layout, and a truncated name with no full value leaves the record unidentifiable.
 
 **Prohibits.**
 - A page-level `max-w-*` cap or a bespoke column wrapper instead of `ScreenAdaptiveView` + `page-container`; a loading, empty, or error branch rendered outside the page container.
 - An ad-hoc borderless `bg-card`/`shadow-*` card instead of `.page-card`; a dark drop shadow for elevation.
-- Rendering an untruncated title/name; a per-call-site `truncate` / `line-clamp` / `max-w-[…]` standing in for the shared class; a truncated sole identifier whose full value is in neither its accessible name nor its title.
+- Rendering an untruncated title/name; a per-call-site `truncate` / `line-clamp` / `max-w-[…]` standing in for the shared classes, or an app's own copy of them; a truncated sole identifier whose full value is in neither its accessible name nor its title.
 
 **References.** RULE-STD-FRONTEND-001, RULE-STD-FRONTEND-008, RULE-STD-FRONTEND-203.
 

@@ -15,6 +15,7 @@ import {
 } from '../../support/facts.js';
 import { isUnder } from '../../support/text.js';
 import { cssBlocks, selectorsOf, splitTopLevel } from './css.js';
+import { loadedStylesheets } from './stylesheets.js';
 import { bareToken, codeStrings, tokensOf } from './source.js';
 
 const APP_CODE_AND_STYLES: Scope = { roots: ['app'], kinds: ['code', 'stylesheet'], tests: false };
@@ -24,6 +25,7 @@ const INLINE_STYLE_KEYS = new Set(['textOverflow', 'WebkitLineClamp', 'lineClamp
 const APPLY = /@apply\s+([^;{}]+)/g;
 
 export interface SharedTruncationFacts {
+  entryStylesheet: string;
   trees: readonly string[];
   sharedClass: string;
   clampOwners: ReadonlyArray<{ selector: string; why: string }>;
@@ -125,6 +127,7 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
+    pathProblem(facts?.entryStylesheet, 'entryStylesheet', problems);
     if (!isList(facts?.trees) || !facts.trees.length) problems.push('trees is missing');
     else facts.trees.forEach((t, i) => pathProblem(t, `trees[${i}]`, problems));
     textProblem(facts?.sharedClass, 'sharedClass', problems);
@@ -155,7 +158,9 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
         '`WebkitLineClamp`, or `lineClamp` style. A stylesheet sets `text-overflow: ellipsis`, `-webkit-line-clamp`, or ' +
         '`line-clamp` (or applies one of ' +
         `those utilities) only in a rule whose every selector is a clamp owner (${facts.clampOwners.map((o) => o.selector).join(', ')}). ` +
-        'Use the shared class, or add a clamp owner or a reviewed exception with its why.',
+        `A clamp owner is declared by a stylesheet ${facts.entryStylesheet} loads — the theme package's or the app's — ` +
+        'and one no loaded stylesheet declares as a clamp any more is stale. Use the shared class, or add a clamp owner ' +
+        'or a reviewed exception with its why.',
       scope: APP_CODE_AND_STYLES,
       match: (file) => truncationHits(file, facts),
       allowlist: facts.exceptions,
@@ -199,8 +204,10 @@ export const sharedTruncationGuard: GenericGuardDefinition<SharedTruncationFacts
                 file: t,
                 detail: 'the tree holds no production code or stylesheet the guard can read',
               });
+          const loaded = loadedStylesheets(context, facts.entryStylesheet);
+          findings.push(...loaded.findings);
           const held = new Set<string>();
-          for (const file of files)
+          for (const file of [...loaded.sheets.map((sheet) => sheet.file), ...files])
             if (file.kind === 'stylesheet')
               for (const clamp of stylesheetClamps(file))
                 for (const s of clamp.selectors) held.add(s);

@@ -47,10 +47,20 @@ export function literalTexts(file: FileView): Array<{ text: string; index: numbe
   return out;
 }
 
-const prefixPattern = (prefix: string) => new RegExp(`^${escapeRegExp(prefix)}(?:$|[/?#])`);
+export const routePrefixPattern = (prefix: string): RegExp =>
+  new RegExp(`^${escapeRegExp(prefix)}(?:$|[/?#])`);
+
+export function routePrefixProblems(value: unknown, field: string, problems: string[]): void {
+  if (!Array.isArray(value)) return;
+  for (const prefix of value)
+    if (isText(prefix) && !/^\/[^/?#\s]+(?:\/[^/?#\s]+)*$/.test(prefix))
+      problems.push(
+        `${field} entry ${prefix} must start with / and name whole segments, with no trailing /`,
+      );
+}
 
 export function routeLiterals(file: FileView, routePrefixes: readonly string[]): Hit[] {
-  const patterns = routePrefixes.map(prefixPattern);
+  const patterns = routePrefixes.map(routePrefixPattern);
   return literalTexts(file)
     .filter(({ text }) => patterns.some((p) => p.test(text)))
     .map(({ text, index }) => ({ index, detail: text.slice(0, 80) }));
@@ -196,12 +206,7 @@ export const appRouteOwnerGuard: GenericGuardDefinition<AppRouteOwnerFacts> = {
       identifierProblem(facts.owner.name, 'owner.name', problems);
     }
     namesProblem(facts?.routePrefixes, 'routePrefixes', problems);
-    if (Array.isArray(facts?.routePrefixes))
-      for (const prefix of facts.routePrefixes)
-        if (isText(prefix) && !/^\/[^/?#\s]+(?:\/[^/?#\s]+)*$/.test(prefix))
-          problems.push(
-            `routePrefixes entry ${prefix} must start with / and name whole segments, with no trailing /`,
-          );
+    routePrefixProblems(facts?.routePrefixes, 'routePrefixes', problems);
     if (!Array.isArray(facts?.trees) || !facts.trees.length) problems.push('trees is missing');
     else facts.trees.forEach((t, i) => pathProblem(t, `trees[${i}]`, problems));
     reviewedProblems(facts?.exceptions, 'exceptions', problems);

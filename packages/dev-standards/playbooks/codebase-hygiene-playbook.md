@@ -915,7 +915,7 @@ RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-202, RULE-STD-FRONTEND-203, RULE-STD-FR
 RULE-STD-ARCH-004. **Scope:** `src` (touched UI areas). Deep UX →
 `ux-audit-playbook.md`.
 ```bash
-<GUARD_SUITE> -t "an unavailable control never wears the clickable affordance|a stack-N class is never on a horizontal flex row"
+<GUARD_SUITE> -t "an unavailable control never wears the clickable affordance|a stack-N class is never on a horizontal flex row|titles and names truncate through the one shared class"
 rg -n "<button|<select|<a " src -g '*.tsx' -g '!**/__tests__/**'
 ```
 **Expected:** for every touched area, each repeated pattern family — buttons and action variants,
@@ -925,7 +925,9 @@ raw primitives, local wrapper copies, copied style blocks, and one-off variants 
 RULE-STD-FRONTEND-006 constraints, checked on every touched surface:** a state change swaps the ICON,
 never the color or variant; and destructive red appears only on the confirm action inside a dialog (and
 urgency text) — inline destructive triggers render neutral. Every page wraps its content in the one page
-column and every page card uses the one card recipe (RULE-STD-FRONTEND-007). A duplicate is reported with
+column, every page card uses the one card recipe, and every title and name truncates through theme-core's
+`.single-line-truncate` (a few-line text block through `.three-line-clamp`), with no app copy of either
+(RULE-STD-FRONTEND-007). A duplicate is reported with
 the recommended canonical owner; the audit never recommends adding a variant to match one inconsistent
 screen. The app's additions carry its brand-specific pattern checks.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
