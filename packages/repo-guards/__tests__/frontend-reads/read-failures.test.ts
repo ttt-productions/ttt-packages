@@ -580,10 +580,23 @@ describe("an infinite list's later-page failure routes through the read-state mo
     const findings = await runOne(laterPageFailureGuard, facts, {
       ...base,
       'src/components/a.tsx':
-        'const more = hasNextPage;\nreturn <ReadState\n  list={rows}\n  thing="rows">{r}</ReadState>;',
+        'const more = () => rows.fetchNextPage();\nreturn <ReadState\n  list={rows}\n  thing="rows">{r}</ReadState>;',
       'src/components/b.tsx':
-        'const more = hasNextPage;\nreturn <ListFailure list={rows} thing="rows" />;',
-      'src/components/c.tsx': 'const more = hasNextPage;\nreturn <RowsTable list={rows} />;',
+        'const more = () => rows.fetchNextPage();\nreturn <ListFailure list={rows} thing="rows" />;',
+      'src/components/c.tsx': 'return <RowsTable list={rows} />;',
+      'src/components/d.tsx':
+        'const more = rows.fetchNextPage;\nreturn <RowsTable list={rows} onMore={more} />;',
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('passes a page-by-page list and a count that only reads hasNextPage, since neither loads more', async () => {
+    const findings = await runOne(laterPageFailureGuard, facts, {
+      ...base,
+      'src/components/pager.tsx':
+        'return <ReadState read={reports} thing="reports"><Pager canNextPage={reports.hasNextPage} onNext={reports.nextPage} /></ReadState>;',
+      'src/components/count.tsx':
+        'return <p>{invitations.hasNextPage ? `More than ${n}` : n} places are held</p>;',
     });
     expect(findings).toEqual([]);
   });
@@ -593,10 +606,10 @@ describe("an infinite list's later-page failure routes through the read-state mo
       ...base,
       'src/components/own.tsx': '<Button onClick={list.fetchNextPage}>More</Button>',
       'src/components/read.tsx':
-        'const more = hasNextPage;\nreturn <ReadState read={rows} thing="rows">{r}</ReadState>;',
-      'src/components/loose-user.tsx':
-        'const more = hasNextPage;\nreturn <LooseTable list={rows} />;',
-      'src/components/prose.tsx': '// <ListFailure list={rows} />\nconst more = hasNextPage;',
+        'const more = () => rows.fetchNextPage();\nreturn <ReadState read={rows} thing="rows">{r}</ReadState>;',
+      'src/components/loose-user.tsx': 'return <LooseTable list={rows} />;',
+      'src/components/prose.tsx':
+        '// <ListFailure list={rows} />\nconst more = () => rows.fetchNextPage();',
     });
     const detail =
       'pages an infinite list without routing its later-page failure through the read-state module';

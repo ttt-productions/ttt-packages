@@ -844,7 +844,7 @@ export interface LaterPageFailureFacts {
   handOffProp: string;
 }
 
-const PAGES = /\b(?:fetchNextPage|hasNextPage)\b/;
+const LOADS_MORE = /\bfetchNextPage\b/;
 
 function routedPattern(routes: LaterPageFailureFacts['listRoutes']): RegExp {
   return new RegExp(
@@ -870,8 +870,10 @@ export function unroutedPagingSurfaces(
   );
   const handOff = new RegExp(`<([A-Z]\\w*)\\s[^>]*?\\b${escapeRegExp(facts.handOffProp)}=\\{`, 'g');
   return files.filter((f) => {
-    if (!PAGES.test(f.code) || routed.test(f.code)) return false;
-    return ![...f.code.matchAll(handOff)].some((m) => routing.has(m[1]));
+    if (routed.test(f.code)) return false;
+    const handedTo = [...f.code.matchAll(handOff)].map((m) => m[1]);
+    if (!LOADS_MORE.test(f.code) && !handedTo.length) return false;
+    return !handedTo.some((component) => routing.has(component));
   });
 }
 
@@ -896,10 +898,10 @@ export const laterPageFailureGuard: GenericGuardDefinition<LaterPageFailureFacts
     {
       title: "an infinite list's later-page failure routes through the read-state module",
       description:
-        `Every surface that pages an infinite list (fetchNextPage / hasNextPage) renders it through ` +
+        `Every surface that loads more of an infinite list (fetchNextPage) or hands a list on (${facts.handOffProp}=…) renders it through ` +
         `${facts.listRoutes.map((r) => `<${r.component}${r.prop ? ` ${r.prop}=…` : ''}>`).join(' or ')} from ${facts.readStateModule}, ` +
-        `or hands it (${facts.handOffProp}=…) to a component whose own file does, so a failed load-more retries that page instead of ` +
-        'refetching the whole list.',
+        'or hands it to a component whose own file does, so a failed load-more retries that page instead of ' +
+        'refetching the whole list. A page-by-page list, and a count that only reads hasNextPage, load nothing more and are not counted.',
       run(context) {
         const { findings, file: module } = requiredFile(
           context,
