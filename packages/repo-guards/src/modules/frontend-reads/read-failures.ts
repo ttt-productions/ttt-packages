@@ -522,13 +522,35 @@ function enclosingFunction(node: ts.Node): ts.Node | undefined {
   return current;
 }
 
+// A `retryState` carries the failure only where its `error` is read, or where it travels on whole —
+// passed, returned, spread, or destructured with its `error` — so `q.retryState.isLoading` alone does not.
+function carriesRetryFailure(access: ts.PropertyAccessExpression, sf: ts.SourceFile): boolean {
+  const parent = access.parent;
+  if (
+    (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) &&
+    parent.expression === access
+  )
+    return ts.isPropertyAccessExpression(parent) && parent.name.text === 'error';
+  if (
+    ts.isVariableDeclaration(parent) &&
+    parent.initializer === access &&
+    ts.isObjectBindingPattern(parent.name)
+  )
+    return parent.name.elements.some(
+      (el) =>
+        el.dotDotDotToken !== undefined || (el.propertyName ?? el.name).getText(sf) === 'error',
+    );
+  return true;
+}
+
 function readsFailureOf(scope: ts.Node, receiver: string, sf: ts.SourceFile): boolean {
   let found = false;
   forEachNode(scope, (n) => {
     if (
       ts.isPropertyAccessExpression(n) &&
       FAILURE_FIELDS.has(n.name.text) &&
-      n.expression.getText(sf) === receiver
+      n.expression.getText(sf) === receiver &&
+      (n.name.text !== 'retryState' || carriesRetryFailure(n, sf))
     )
       found = true;
     if (
@@ -688,7 +710,7 @@ export const hookReadDefaultGuard: GenericGuardDefinition<HookReadDefaultFacts> 
       title: 'a hook never returns a default its consumers cannot tell from data',
       description:
         `In ${facts.hooksTree}, a read's data defaulted to an empty answer (q.data ?? [], const { data = [] } = useQ()) is allowed only ` +
-        `where the same function also carries that read's failure (error / isError / status / retryState, or the read handed to ${RETRY_STATE_HELPERS[0]}), ` +
+        `where the same function also carries that read's failure (error / isError / status, its retryState's error or the whole retryState passed on or returned, or the read handed to ${RETRY_STATE_HELPERS[0]}), ` +
         'and no exported hook collapses a read into a bare boolean, where an unknown read would read as "no". Return the read state ' +
         '(pending / failed / answered) or carry the failure beside the defaulted data.',
       run(context) {

@@ -369,6 +369,11 @@ describe('a hook never returns a default its consumers cannot tell from data', (
         'export function useE(id: string) { const q = useQ(id); return { row: q.data, isError: q.isError }; }',
         'export function useF() { const q = useQ(); return { rows: q.data ?? [], error: q.retryState.error }; }',
         'export function useG() { const { data = [], retryState } = useQ(); return { data, retryState }; }',
+        'export function useH() { const q = useQ(); return { rows: q.data ?? [], retryState: q.retryState }; }',
+        'export function useI() { const q = useQ(); return { rows: q.data ?? [], ...q.retryState }; }',
+        'export function useJ() { const q = useQ(); const held = holdFailure(q.retryState); return { rows: q.data ?? [], held }; }',
+        'export function useK() { const q = useQ(); const { error } = q.retryState; return { rows: q.data ?? [], error }; }',
+        'export function useL() { const q = useQ(); return { rows: q.data ?? [], error: q.retryState?.error }; }',
       ].join('\n'),
       'src/components/rows.tsx':
         'export function useRows() { const q = useQ(); return q.data ?? []; }',
@@ -391,6 +396,12 @@ describe('a hook never returns a default its consumers cannot tell from data', (
         'export function useRows() { const q = useQ(); const o = useO(); const s = useReadRetryState(o, k); return { rows: q.data ?? [], error: s.error }; }',
       'src/hooks/use-g.ts':
         'export function useRows() { const q = useQ(); const o = useO(); return { rows: q.data ?? [], error: o.retryState.error }; }',
+      'src/hooks/use-h.ts':
+        'export function useRows() { const q = useQ(); return { rows: q.data ?? [], isLoading: q.retryState.isLoading }; }',
+      'src/hooks/use-i.ts':
+        'export function useRows() { const q = useQ(); return { rows: q.data ?? [], retrying: q.retryState.isRetrying, retry: q.retryState.retry }; }',
+      'src/hooks/use-j.ts':
+        'export function useRows() { const q = useQ(); const { isLoading } = q.retryState; return { rows: q.data ?? [], isLoading }; }',
     });
     expect(findings).toEqual([
       {
@@ -413,6 +424,21 @@ describe('a hook never returns a default its consumers cannot tell from data', (
       },
       {
         file: 'src/hooks/use-g.ts',
+        line: 1,
+        detail: 'a defaulted read with no failure beside it: q.data ?? []',
+      },
+      {
+        file: 'src/hooks/use-h.ts',
+        line: 1,
+        detail: 'a defaulted read with no failure beside it: q.data ?? []',
+      },
+      {
+        file: 'src/hooks/use-i.ts',
+        line: 1,
+        detail: 'a defaulted read with no failure beside it: q.data ?? []',
+      },
+      {
+        file: 'src/hooks/use-j.ts',
         line: 1,
         detail: 'a defaulted read with no failure beside it: q.data ?? []',
       },
