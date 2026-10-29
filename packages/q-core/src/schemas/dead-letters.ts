@@ -1,8 +1,8 @@
 // Callable contracts for the operator's dead letters: the read-only list of the durable rows every
 // supported pipeline stopped retrying, and the replay that puts one back to work after the cause is
-// fixed. The replay is a repair, so it takes the admin's reason (BACKEND-212). The caller names a lane
+// fixed. The replay is a repair, so it takes the admin's reason (RULE-STD-BACKEND-212). The caller names a lane
 // and a row id, never a Firestore path: the backend's lane registry derives the document from them
-// (ARCH-106).
+// (RULE-STD-ARCH-106).
 
 import { z } from 'zod';
 import {

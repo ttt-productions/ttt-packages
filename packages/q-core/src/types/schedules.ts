@@ -1,4 +1,4 @@
-// Canonical unions of a league's schedule: its weeks and the games in them (ARCH-102).
+// Canonical unions of a league's schedule: its weeks and the games in them (RULE-STD-ARCH-102).
 
 // The two kinds of scheduling conflict the week form warns about, never blocks on: two games at one
 // venue court at one start time, and one team booked into two games at one start time.

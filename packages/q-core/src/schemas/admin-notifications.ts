@@ -2,7 +2,7 @@
 // and reading how an archive-all is going. The occurrences the delivery worker gave up on are listed
 // and replayed through the operator's dead letters (./dead-letters.ts). Admin only; a card is never
 // created by a client — the callable that owns each notified action writes its occurrence
-// (BACKEND-306).
+// (RULE-STD-BACKEND-306).
 
 import { z } from 'zod';
 import { parseNotificationArchiveAllJobId } from '../ids/notification-ids.js';

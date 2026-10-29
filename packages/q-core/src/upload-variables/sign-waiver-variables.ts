@@ -15,7 +15,7 @@ export const WaiverSubjectSchema = z.discriminatedUnion('kind', [
 ]);
 export type WaiverSubject = z.infer<typeof WaiverSubjectSchema>;
 
-// Variables for the waiver-signing mutation hook (MEDIA-005). The template id and version are the
+// Variables for the waiver-signing mutation hook (RULE-STD-MEDIA-005). The template id and version are the
 // wording the signing dialog displayed; the signature is the drawing as the canvas exported it.
 export const SignWaiverVariablesSchema = z
   .object({

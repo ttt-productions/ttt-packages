@@ -47,7 +47,7 @@ describe('the roles a member role change moves between', () => {
     expect(MEMBER_ASSIGNABLE_TEAM_ROLES).not.toContain(TEAM_CAPTAIN_ROLE);
   });
 
-  it('name the stored role values exactly, coCaptain camel-cased (BACKEND-014)', () => {
+  it('name the stored role values exactly, coCaptain camel-cased (RULE-QS-BACKEND-902)', () => {
     expect(TEAM_CO_CAPTAIN_ROLE).toBe('coCaptain');
     expect(TEAM_PLAYER_ROLE).toBe('player');
     for (const role of MEMBER_ASSIGNABLE_TEAM_ROLES) expect(TEAM_ROLE_KEYS).toContain(role);
@@ -84,7 +84,7 @@ describe('the team-management inputs', () => {
     ).toBe(false);
   });
 
-  // A never-played ghost or team holds no stat, so removing it is not a repair (BACKEND-212).
+  // A never-played ghost or team holds no stat, so removing it is not a repair (RULE-STD-BACKEND-212).
   it('a ghost removal and a team deletion take no reason, and refuse one', () => {
     expect(
       DeleteTeamGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: GHOST }).success,
@@ -178,7 +178,7 @@ describe("a ghost's one operation", () => {
   });
 
   // A link is chosen and confirmed, and its audit event records what it did; neither action takes a
-  // reason (BACKEND-212).
+  // reason (RULE-STD-BACKEND-212).
   it('takes no reason on a link or a removal, and still reads an operation stored with one', () => {
     const removal = {
       kind: 'ghostPlayerStats',

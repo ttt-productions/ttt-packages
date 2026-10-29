@@ -1,7 +1,7 @@
 // Award group grant ids. Every decision on one award for one group shares that pair's target key,
 // and each decision's record id is the key plus its decision number — deterministic, so two
 // decisions racing for the same number write the same document and conflict instead of both
-// committing (BACKEND-304).
+// committing (RULE-STD-BACKEND-304).
 
 import type { AwardGroupType } from '../types/unions.js';
 

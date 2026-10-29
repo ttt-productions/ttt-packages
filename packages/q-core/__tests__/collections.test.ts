@@ -35,7 +35,7 @@ describe('compound camelCase collection names', () => {
     });
   }
 
-  it('only the three audience buckets carry a leading underscore (BACKEND-108)', () => {
+  it('only the three audience buckets carry a leading underscore (RULE-STD-BACKEND-108)', () => {
     const underscored = Object.values(COLLECTIONS).filter((value) => value.startsWith('_'));
     expect(underscored.sort()).toEqual(['_appConfig', '_serverData', '_systemData']);
   });
@@ -92,7 +92,7 @@ describe('path builders', () => {
     expect(toPath(PATH_BUILDERS.statsBeacon())).toBe('_appConfig/statsBeacon');
     expect(toPath(PATH_BUILDERS.adminList())).toBe('_systemData/adminList');
     // Admin-only documents are server-only: an admin reads them through a callable, never through a
-    // client grant (BACKEND-108).
+    // client grant (RULE-STD-BACKEND-108).
     expect(toPath(PATH_BUILDERS.migrationConsole())).toBe('_serverData/migrationConsole');
   });
 

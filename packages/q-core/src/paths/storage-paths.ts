@@ -58,7 +58,7 @@ export function buildPictureObjectPath(pictureId: string, variantKey: PictureVar
 /**
  * Where a client stages one upload: its origin, the uploader's own uid, and the id it minted. The
  * callable that accepts the upload rebuilds this from the AUTHENTICATED uid and refuses anything
- * not exactly equal (MEDIA-002), so a client can only ever name its own staged object.
+ * not exactly equal (RULE-STD-MEDIA-002), so a client can only ever name its own staged object.
  */
 export function buildStagingUploadPath(
   fileOrigin: FileOrigin,

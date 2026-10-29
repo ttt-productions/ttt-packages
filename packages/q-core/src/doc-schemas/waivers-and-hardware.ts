@@ -35,13 +35,13 @@ export const SignedWaiverSchema = z
     signedAt: epochMsSchema,
     // A ghost player's waiver is signed by a witness for the ghost's team: the witness's account,
     // the authority they signed under, and the ghost's name at signing — a named snapshot, so the
-    // record still says whom it was for after the ghost's public identity is gone (ARCH-103).
+    // record still says whom it was for after the ghost's public identity is gone (RULE-STD-ARCH-103).
     teamId: teamIdSchema.optional(),
     witnessUserId: userIdSchema.optional(),
     witnessAuthority: waiverWitnessAuthoritySchema.optional(),
     subjectDisplayNameSnapshot: z.string().optional(),
     // A V1 witnessed waiver recorded the witness's name as it was at signing, and never the authority
-    // or the ghost's name; the copy keeps that name as a named snapshot (ARCH-103) and guesses neither.
+    // or the ghost's name; the copy keeps that name as a named snapshot (RULE-STD-ARCH-103) and guesses neither.
     witnessDisplayNameSnapshot: z.string().optional(),
   })
   .refine(
@@ -81,7 +81,7 @@ export type HardwareItem = z.infer<typeof HardwareItemSchema>;
 
 // `hardwareLoanContracts/{contractId}` — equipment loaned to a referee: who holds it, what they hold,
 // and their signature on the loan agreement, a legal artifact. Names resolve from `publicUsers` at
-// read time (ARCH-103). `pending` until the referee signs; `loaned` from the signing, which keeps the
+// read time (RULE-STD-ARCH-103). `pending` until the referee signs; `loaned` from the signing, which keeps the
 // signature for good; `returned` once an admin records the equipment back, the signature retained.
 export const HardwareLoanContractSchema = z
   .strictObject({

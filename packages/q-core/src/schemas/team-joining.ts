@@ -1,9 +1,9 @@
 // Callable contracts for the ways onto a team: an invitation the team sends, a join request the
 // player sends, and a free-agent signup an admin answers by placing the player. Every door that
 // makes a membership ends in the membership core. The acting user is always `request.auth.uid` —
-// never an input field (ARCH-106) — and the entry, never a field of the payload, decides the
-// authority (BACKEND-004): each action is its own callable, never a choice made by a payload field
-// (BACKEND-305).
+// never an input field (RULE-STD-ARCH-106) — and the entry, never a field of the payload, decides the
+// authority (RULE-STD-BACKEND-004): each action is its own callable, never a choice made by a payload field
+// (RULE-STD-BACKEND-305).
 
 import { z } from 'zod';
 import {

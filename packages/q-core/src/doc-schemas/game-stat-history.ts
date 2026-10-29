@@ -4,7 +4,7 @@
 //
 // The first page also carries what finalize applied: the sport, the teams, and the participation
 // snapshot, so the record alone reproduces a completed game's contribution without the game
-// document a hand edit can reach (SPORT-204). It exists exactly while the game is `completed`.
+// document a hand edit can reach (RULE-QS-SPORT-924). It exists exactly while the game is `completed`.
 
 import { z } from 'zod';
 import { STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';

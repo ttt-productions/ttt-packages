@@ -1,5 +1,5 @@
-// The sport registry: the only way a sport's adapter is selected, always by `leagueType` (SPORT-002).
-// A `LeagueType` member with no adapter does not compile (SPORT-005), and a value outside the union
+// The sport registry: the only way a sport's adapter is selected, always by `leagueType` (RULE-QS-SPORT-902).
+// A `LeagueType` member with no adapter does not compile (RULE-QS-SPORT-905), and a value outside the union
 // has no adapter — there is no default sport.
 
 import { LEAGUE_TYPE_KEYS } from '../types/sports.js';

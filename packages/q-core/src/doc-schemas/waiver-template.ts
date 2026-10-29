@@ -42,7 +42,7 @@ export type WaiverTemplate = z.infer<typeof WaiverTemplateSchema>;
 // `_serverData/waiverTemplateRegistry` — the fence of the offered-template cap. Template creation counts
 // the templates not retired in its transaction against MAX_OFFERED_WAIVER_TEMPLATES, and a query does
 // not lock against an insert, so each creation advances `templateRevision` here: two creations at the
-// cap conflict instead of both passing (BACKEND-116). Only its changing matters; absent until the first
+// cap conflict instead of both passing (RULE-STD-BACKEND-116). Only its changing matters; absent until the first
 // creation.
 export const WaiverTemplateRegistrySchema = z.strictObject({
   templateRevision: countSchema,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { hardwareLoanContractIdSchema } from '../doc-schemas/atoms.js';
 
-// Variables for the hardware-contract signing mutation hook (MEDIA-005). The signature is the
+// Variables for the hardware-contract signing mutation hook (RULE-STD-MEDIA-005). The signature is the
 // drawing as the canvas exported it.
 export const SignHardwareContractVariablesSchema = z
   .object({

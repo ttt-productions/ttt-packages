@@ -37,11 +37,11 @@ import {
 
 // `finalizeGame` (a captain or co-captain of either team) / `adminFinalizeGame` (an admin or a
 // referee): make a game's numbers permanent. Everything it writes is derived server-side from the
-// game's events; nothing in the input is a number (SPORT-202).
+// game's events; nothing in the input is a number (RULE-QS-SPORT-922).
 export const FinalizeGameInputSchema = z.object({ gameId: gameIdSchema }).strict();
 export type FinalizeGameInput = z.infer<typeof FinalizeGameInputSchema>;
 
-// `alreadyFinalized` when the game was completed before the call: nothing was written (SPORT-203).
+// `alreadyFinalized` when the game was completed before the call: nothing was written (RULE-QS-SPORT-923).
 export const FinalizeGameResultSchema = z
   .object({
     gameId: gameIdSchema,
@@ -53,7 +53,7 @@ export const FinalizeGameResultSchema = z
 export type FinalizeGameResult = z.infer<typeof FinalizeGameResultSchema>;
 
 // `reopenGame` (an admin): take a finalized game's numbers back out so it can be scored again. It
-// changes a completed record, so the admin says why (SPORT-206, BACKEND-212).
+// changes a completed record, so the admin says why (RULE-QS-SPORT-926, RULE-STD-BACKEND-212).
 export const ReopenGameInputSchema = z
   .object({ gameId: gameIdSchema, reason: repairReasonSchema })
   .strict();
@@ -102,8 +102,8 @@ export type AdminResolveUnrosteredStatLineResult = z.infer<
 
 // Every rebuild and every game repair is a repair of a completed record: it takes a reason, runs
 // under an operation id the admin's browser mints when the admin starts it, and offers a dry run that
-// lists each document it would change, with before and after, and writes nothing (BACKEND-212,
-// SPORT-206). A real run resumes from its operation document, so a cursor is taken from the client
+// lists each document it would change, with before and after, and writes nothing (RULE-STD-BACKEND-212,
+// RULE-QS-SPORT-926). A real run resumes from its operation document, so a cursor is taken from the client
 // only to page a dry run, which keeps no operation.
 const statsRepairFields = {
   reason: repairReasonSchema,
@@ -236,7 +236,7 @@ const replacedEntryListSchema = z
   .strict();
 
 // Every value of the game document a repair changed, each with the value the game stored and the
-// value the repair writes — never the whole document (BACKEND-212). `lines` holds each changed field
+// value the repair writes — never the whole document (RULE-STD-BACKEND-212). `lines` holds each changed field
 // of a team or player line (`lineKey` the team id or the roster entry id), `scores` each team whose
 // score mirror changed, and the lists, the event counter and `recordRewritten` appear only when the
 // repair changes them; `recordRewritten` names the finalized record's page counts before and after,

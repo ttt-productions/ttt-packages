@@ -1,6 +1,6 @@
 // `userProfiles/{userId}` — the account's profile, one per Firebase Auth uid. Ghosts have none.
 // It is publicly readable (a profile page renders signed out), so it holds nothing personal:
-// email and contact details live in its owner-only `privateData/{userId}` document (BACKEND-105).
+// email and contact details live in its owner-only `privateData/{userId}` document (RULE-STD-BACKEND-105).
 // Plus its `historicalStats/{sportKey}` subcollection.
 
 import { z } from 'zod';

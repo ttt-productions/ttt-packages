@@ -1,7 +1,7 @@
 // Whether a game's stored numbers are what produced them: the rollup's counters and the score mirror
 // against a replay — of the event documents for a live game, of the finalized record for a completed
 // one. Finalize, reopen, a ghost link, and validation ask this one comparison, so a hand edit to the
-// game document is found the same way everywhere and never adopted or discarded silently (ENG-009).
+// game document is found the same way everywhere and never adopted or discarded silently (RULE-STD-ENG-009).
 //
 // Counters are compared, never a derived field: a stored FP a weight change left stale is not a
 // difference in what was recorded, and the writer re-derives it.

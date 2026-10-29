@@ -49,7 +49,7 @@ const SERVER_DERIVED_FIELDS: ReadonlySet<string> = new Set([
 
 /**
  * A stored event's fields as its caller sends them: without the sequence and recorder facts the
- * writing core derives (ARCH-106), and without a name snapshot, which only a copied event carries.
+ * writing core derives (RULE-STD-ARCH-106), and without a name snapshot, which only a copied event carries.
  * Built from the stored event's own declaration, so the wire and the document cannot drift.
  */
 function callerShape<Shape extends z.ZodRawShape, Omitted extends keyof Shape = never>(

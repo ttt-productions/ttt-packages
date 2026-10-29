@@ -1,4 +1,4 @@
-// Which document owns a picture (ARCH-102). An upload's target, its indexes, and a picture's
+// Which document owns a picture (RULE-STD-ARCH-102). An upload's target, its indexes, and a picture's
 // removal take the full union; a gallery picture document takes the gallery subset, because only
 // those three owners hold a gallery — a location and an award hold one picture in a single slot.
 

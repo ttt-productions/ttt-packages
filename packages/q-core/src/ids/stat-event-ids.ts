@@ -2,7 +2,7 @@
 // completed game's finalized record, `sportGames/{gameId}/gameStatHistory/{pageId}`.
 //
 // A sport event's id is minted once, at the tap, and every retry of that event reuses it — the id is
-// what makes a re-send an acknowledgement rather than a second application (SPORT-102). The two
+// what makes a re-send an acknowledgement rather than a second application (RULE-QS-SPORT-912). The two
 // store-level events take ids derived from what they act on, so a target has at most one void and a
 // correction operation writes at most one correction per line and field.
 
@@ -20,7 +20,7 @@ export const MAX_SPORT_STAT_EVENT_ID_LENGTH = 200;
  * Whether `id` can be a sport event's id — minted at the tap, or kept by a copied event: it begins
  * with a digit and holds no path separator, so it names one document of the game's event
  * subcollection and never a void's or a correction's id. A scoring write accepts no other id from
- * its caller, because the id becomes a document path (ARCH-106).
+ * its caller, because the id becomes a document path (RULE-STD-ARCH-106).
  */
 export function isSportStatEventId(id: string): boolean {
   return id.length <= MAX_SPORT_STAT_EVENT_ID_LENGTH && /^[0-9]/.test(id) && !id.includes('/');

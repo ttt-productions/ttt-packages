@@ -4,7 +4,7 @@
 // icon, the link, and the key its cards aggregate on.
 //
 // The Functions side adds the one field this module cannot carry: `timestampFromMillis`, which needs
-// the Admin SDK (ARCH-202).
+// the Admin SDK (RULE-STD-ARCH-202).
 
 import type {
   NotificationSystemConfig,

@@ -2,7 +2,7 @@
 // round event records one round — one team's points, or a blank round for every team — and nothing
 // names a player. A round is recorded once, in order: `validate` accepts a round event only for the
 // first unrecorded round, and re-scoring a round is a void of its event plus a new one, so no curling
-// event is ever superseded and undoing one always returns its round to unrecorded (SPORT-103).
+// event is ever superseded and undoing one always returns its round to unrecorded (RULE-QS-SPORT-913).
 
 import { z } from 'zod';
 import {
@@ -62,7 +62,7 @@ function isCurlingEvent(event: StatEventBody | undefined): event is CurlingEvent
 }
 
 // The registry chose this adapter by the game's `leagueType`, so the rollup it is handed is a
-// curling game's (SPORT-002).
+// curling game's (RULE-QS-SPORT-902).
 function ownStats(state: GameStats): CurlingGameStats {
   return state as CurlingGameStats;
 }

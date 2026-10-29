@@ -1,4 +1,4 @@
-// The one declaration of every cutover action id (ENG-002). The manifest, the console's callables
+// The one declaration of every cutover action id (RULE-STD-ENG-002). The manifest, the console's callables
 // and screen, and every delete gate name an action by the id declared here — never by a string
 // literal at the call site, where a typo is a gate that silently never matches.
 //

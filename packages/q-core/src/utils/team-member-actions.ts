@@ -1,6 +1,6 @@
 // What a team leader or an admin may do to one member of a team: promote a player to co-captain,
 // demote a co-captain to player, or remove them. The team's management callables refuse what this
-// leaves out, and the team page and the admin Teams tab offer exactly what it allows (FRONTEND-110):
+// leaves out, and the team page and the admin Teams tab offer exactly what it allows (RULE-STD-FRONTEND-110):
 //
 // - the captain is never moved or removed here — an admin changes the team's captain first;
 // - only the captain and an admin promote or demote, and a ghost is never made a co-captain, since no

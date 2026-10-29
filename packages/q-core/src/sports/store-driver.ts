@@ -1,10 +1,10 @@
 // The store driver's decision half: what one scoring write does with the batch of events it was
 // sent, given what the game already holds. It owns ids, the sequence, void resolution, and the fold;
-// everything sport-shaped is the adapter's (SPORT-003). The writing core reads the game, the stored
+// everything sport-shaped is the adapter's (RULE-QS-SPORT-903). The writing core reads the game, the stored
 // events the batch names, and the roster entries it names, hands them here, and writes what comes
 // back — one transaction, all or nothing.
 //
-// An event id is the idempotency key (SPORT-102): an id already stored, or earlier in the batch, is
+// An event id is the idempotency key (RULE-QS-SPORT-912): an id already stored, or earlier in the batch, is
 // acknowledged when its content matches and never applied again, so re-sending a batch whose first
 // send timed out after committing changes nothing. A void's id is derived from its target, so a
 // second undo of one event is the same document and is acknowledged too.
@@ -49,7 +49,7 @@ export function statEventIdsToRead(submissions: readonly StatEventSubmission[]):
 export interface AcceptedStatEvent {
   readonly eventId: string;
   readonly sequence: number;
-  /** The document's fields but the recorder facts, which the writing core stamps (ARCH-106). */
+  /** The document's fields but the recorder facts, which the writing core stamps (RULE-STD-ARCH-106). */
   readonly fields: Readonly<Record<string, unknown>>;
 }
 

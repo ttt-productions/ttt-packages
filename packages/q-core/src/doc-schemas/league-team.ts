@@ -35,20 +35,20 @@ export const LeagueTeamSchema = z.object({
   // Advanced by every membership change on the team after its creation; absent until the first.
   // Only its changing matters: game creation and a game's team replacement read this document in the
   // transaction that seeds a roster from the team's memberships, so a membership change landing at
-  // the same moment conflicts with them instead of missing the new game (BACKEND-116).
+  // the same moment conflicts with them instead of missing the new game (RULE-STD-BACKEND-116).
   membershipRevision: countSchema.optional(),
   // Advanced by every invitation and join request a door creates for the team; absent until the
   // first. Only its changing matters: a pending invitation or request between one team and one
   // person is unique, and a membership on the team closes both, but a transaction does not lock a
   // query against an insert — so each creation writes this document, which every competing
   // creation and every membership door also writes, and two racers conflict instead of both passing
-  // their checks (BACKEND-116).
+  // their checks (RULE-STD-BACKEND-116).
   joinRevision: countSchema.optional(),
   // Advanced by every game creation and every game edit that brings the team in; absent until the
   // first. Only its changing matters: a team's deletion re-reads the team's games in the transaction
   // that deletes the team document, and a query does not lock against an insert — so a game created
   // for the team writes this document, which the deletion also writes, and the two conflict instead of
-  // leaving a game naming a deleted team (BACKEND-116).
+  // leaving a game naming a deleted team (RULE-STD-BACKEND-116).
   scheduleRevision: countSchema.optional(),
   createdAt: epochMsSchema,
   updatedAt: epochMsSchema,
@@ -56,7 +56,7 @@ export const LeagueTeamSchema = z.object({
 export type LeagueTeam = z.infer<typeof LeagueTeamSchema>;
 
 // `leagueTeamContacts/{teamId}` — how the league reaches the team. Admin read only: the team
-// document is public, so the phone lives here, never on it (BACKEND-105). `leagueId` is what lists a
+// document is public, so the phone lives here, never on it (RULE-STD-BACKEND-105). `leagueId` is what lists a
 // league's contacts in one query. Written with the team by team creation.
 export const LeagueTeamContactSchema = z.object({
   leagueId: leagueIdSchema,

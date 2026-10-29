@@ -231,7 +231,7 @@ describe('the maintenance refusal', () => {
     expect(isMaintenanceRefusalError('unavailable')).toBe(false);
   });
 
-  it('has a default line for when the operator leaves the message blank, with no ttt name (ARCH-006)', () => {
+  it('has a default line for when the operator leaves the message blank, with no ttt name (RULE-STD-ARCH-006)', () => {
     expect(DEFAULT_MAINTENANCE_MESSAGE.trim().length).toBeGreaterThan(0);
     expect(DEFAULT_MAINTENANCE_MESSAGE).not.toMatch(/ttt/i);
   });
@@ -256,7 +256,7 @@ describe('UpdateAppConfigInputSchema', () => {
     expect(UpdateAppConfigInputSchema.safeParse({}).success).toBe(false);
   });
 
-  it('refuses an unknown key, a document id, and a data blob (BACKEND-209)', () => {
+  it('refuses an unknown key, a document id, and a data blob (RULE-STD-BACKEND-209)', () => {
     expect(
       UpdateAppConfigInputSchema.safeParse({ appVersion: '2', statsUpdatedAt: 1 }).success,
     ).toBe(false);
@@ -429,7 +429,7 @@ describe('the stats beacon', () => {
     ).toBe(true);
   });
 
-  it('refuses a timestamp that is not epoch milliseconds (ARCH-105) and an unknown action', () => {
+  it('refuses a timestamp that is not epoch milliseconds (RULE-STD-ARCH-105) and an unknown action', () => {
     expect(
       StatsBeaconSchema.safeParse({ updatedAt: '2026-01-01', action: 'finalize' }).success,
     ).toBe(false);

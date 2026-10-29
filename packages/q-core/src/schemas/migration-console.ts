@@ -35,7 +35,7 @@ const MAX_RECORDED_OPERATION_IDS = 10;
 export const RunMigrationActionInputSchema = z
   .object({
     operationId: migrationOperationIdSchema,
-    // Required on every page (BACKEND-212); the run keeps the one its first page gave.
+    // Required on every page (RULE-STD-BACKEND-212); the run keeps the one its first page gave.
     reason: repairReasonSchema,
     // A preview: read, transform, and report, writing nothing. A verification only reads either way.
     dryRun: z.boolean(),

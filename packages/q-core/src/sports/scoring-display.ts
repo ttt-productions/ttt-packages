@@ -1,6 +1,6 @@
 // What the scoring screen, the scoreboard, and the play-by-play render for a sport, declared by its
-// adapter so no shared surface branches on a sport (SPORT-004, SPORT-106). Every label lives here or
-// in the adapter, never in a component (ENG-005).
+// adapter so no shared surface branches on a sport (RULE-QS-SPORT-904, RULE-QS-SPORT-916). Every label lives here or
+// in the adapter, never in a component (RULE-STD-ENG-005).
 
 import type { GameStatEvent, GameStatEventType } from '../doc-schemas/game-stats.js';
 import type { StatCounterKey } from '../types/sports.js';
@@ -9,7 +9,7 @@ import type { GamePlayerLine, GameTeamLine } from './scoring.js';
 import { isStatCorrection, isStatVoid } from './scoring.js';
 
 /**
- * Names read at render time (ARCH-103, SPORT-104): a person by user id — a removed ghost resolving to
+ * Names read at render time (RULE-STD-ARCH-103, RULE-QS-SPORT-914): a person by user id — a removed ghost resolving to
  * "removed player" — and a team by team id. An event's stored name snapshot is never one of them.
  */
 export interface StatEventNameResolver {

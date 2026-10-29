@@ -1,7 +1,7 @@
 // The 2.0 cutover manifest: every step of the coordinated migration, in the order the operator runs
 // them, with what each step needs first. The console's callables enforce it — an action whose
 // dependencies are not satisfied refuses to run — and its screen renders it, so both read this one
-// declaration (ARCH-101, ENG-002).
+// declaration (RULE-STD-ARCH-101, RULE-STD-ENG-002).
 //
 // Four kinds of step:
 //   executable          a console action with its own admin callable: admin-asserted, audited,

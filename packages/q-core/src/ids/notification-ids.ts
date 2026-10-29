@@ -1,5 +1,5 @@
 // Admin notification ids. Each is deterministic from what it names, so a retried write lands on the
-// document the first attempt wrote and never beside it (BACKEND-304, BACKEND-306).
+// document the first attempt wrote and never beside it (RULE-STD-BACKEND-304, RULE-STD-BACKEND-306).
 //
 // A shared card's own id is not here: notification-core derives it from the notification type and
 // the aggregation key.

@@ -1,6 +1,6 @@
 // One builder per notification type, taking the committed action's own record. The occurrence it
 // returns is what the owning callable writes to the delivery ledger in the action's transaction
-// (BACKEND-306): its id is derived from the action, never minted, so a retried write is the same
+// (RULE-STD-BACKEND-306): its id is derived from the action, never minted, so a retried write is the same
 // occurrence; and its aggregation key is declared apart from that id, so a later action of the
 // same kind is never mistaken for a retry of an earlier one.
 

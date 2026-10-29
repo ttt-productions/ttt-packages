@@ -114,7 +114,7 @@ export const UpdateDisplayNameResultSchema = z
 export type UpdateDisplayNameResult = z.infer<typeof UpdateDisplayNameResultSchema>;
 
 // An admin grants or revokes the two global roles on `_systemData/adminList`. Four named lists —
-// never a role/action discriminator (BACKEND-002).
+// never a role/action discriminator (RULE-STD-BACKEND-002).
 const adminListChangeSchema = z.array(userIdSchema).max(MAX_ADMIN_LIST_CHANGES).optional();
 export const UpdateAdminListInputSchema = z
   .object({
@@ -136,7 +136,7 @@ export const UpdateAdminListResultSchema = z
 export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 
 // An admin bans an account or lifts its ban. The reason is internal — recorded on the audit event,
-// never shown to the account (BACKEND-212). Banning or unbanning to the status the account already
+// never shown to the account (RULE-STD-BACKEND-212). Banning or unbanning to the status the account already
 // holds changes nothing.
 export const AdminUpdateUserStatusInputSchema = z
   .object({ userId: userIdSchema, userStatus: userStatusSchema, reason: repairReasonSchema })
@@ -154,7 +154,7 @@ export const AdminUpdateUserStatusResultSchema = z
   .strict();
 export type AdminUpdateUserStatusResult = z.infer<typeof AdminUpdateUserStatusResultSchema>;
 
-// The `details.reason` of the refusal to ban an account that holds admin standing (BACKEND-210), so
+// The `details.reason` of the refusal to ban an account that holds admin standing (RULE-STD-BACKEND-210), so
 // a client can tell it from every other refusal.
 export const ADMIN_STANDING_BAN_REFUSAL_REASON = 'adminStandingTarget';
 

@@ -1,7 +1,7 @@
 // Whether a game's event ledger holds exactly the sequences 1..n. `statEventSequence` is both the
 // number of events and the last sequence given, so a gap or a duplicate is out-of-band damage: the
 // check reports it, and finalize and the restore refuse it. The event documents are the source of
-// truth (SPORT-101), so nothing renumbers them to close a gap.
+// truth (RULE-QS-SPORT-911), so nothing renumbers them to close a gap.
 
 /** The first place a ledger departs from 1..n: a sequence missing, or one held by two events. */
 export type LedgerContinuityBreak =

@@ -1,9 +1,9 @@
-// The canonical sport discriminator (ARCH-108), and each sport's declared vocabulary (SPORT-007).
+// The canonical sport discriminator (RULE-QS-SPORT-902), and each sport's declared vocabulary (RULE-QS-SPORT-907).
 //
 // `leagueType` identifies a sport everywhere. The lowercase sport key is the storage key derived
 // from it — the `sportHallOfFame/{sportKey}` and `historicalStats/{sportKey}` document ids and the
 // `lifetimeStats.{sportKey}` field. Both directions of the mapping live here, never in an inline
-// conditional. What each sport DOES belongs to its sport adapter (SPORT-003), not to this file.
+// conditional. What each sport DOES belongs to its sport adapter (RULE-QS-SPORT-903), not to this file.
 
 export const LEAGUE_TYPE_KEYS = ['Basketball', 'Curling', 'Football'] as const;
 export type LeagueType = (typeof LEAGUE_TYPE_KEYS)[number];

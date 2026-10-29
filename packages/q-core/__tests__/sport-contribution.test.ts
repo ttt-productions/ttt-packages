@@ -1,5 +1,5 @@
 // What a completed game adds to every derived destination, and who it credits a game played
-// (SPORT-201, SPORT-204, SPORT-207, SPORT-208): per team the standings line from the two scores, per
+// (RULE-QS-SPORT-921, RULE-QS-SPORT-924, RULE-QS-SPORT-927, RULE-QS-SPORT-928): per team the standings line from the two scores, per
 // roster entry its row credited to the team in its key, per real person the sum of their rows.
 // Expected values are worked by hand from those rules and the FP weights (points 1, rebounds 1.5,
 // assists 2), never read back from the code.
@@ -147,7 +147,7 @@ describe('contribution — basketball', () => {
     expect(contribution.membershipRows[entry(A, 'p2')]).toBeUndefined();
   });
 
-  it("sums a person's two sides into one career line, two games played, and keeps the ghost out (SPORT-208)", () => {
+  it("sums a person's two sides into one career line, two games played, and keeps the ghost out (RULE-QS-SPORT-928)", () => {
     expect(contribution.personLines.both).toEqual({
       gamesPlayed: 2,
       points: 0,

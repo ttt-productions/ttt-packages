@@ -3,7 +3,7 @@
 // the game is finalized by hand. Bulk entry takes each team's final score.
 //
 // `apply` and `undo` are one function over an event's points with opposite signs, so they are exact
-// inverses by construction (SPORT-103).
+// inverses by construction (RULE-QS-SPORT-913).
 
 import { z } from 'zod';
 import {
@@ -65,7 +65,7 @@ function isFootballEvent(event: StatEventBody | undefined): event is FootballEve
 }
 
 // The registry chose this adapter by the game's `leagueType`, so the rollup it is handed is a
-// football game's (SPORT-002).
+// football game's (RULE-QS-SPORT-902).
 function ownStats(state: GameStats): FootballGameStats {
   return state as FootballGameStats;
 }

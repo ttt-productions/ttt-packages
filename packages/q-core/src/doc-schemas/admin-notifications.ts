@@ -6,10 +6,10 @@
 // `NotificationDocSchema` and narrowed to Q-Sports' one shared category and its notification types.
 // The history, ledger, and job documents are written by notification-core's server helpers and by
 // the functions around them; their schemas are declared here because the package exports no schema
-// for them. A card, a history entry, and a ledger row each hold ids only, never a name (ARCH-103).
+// for them. A card, a history entry, and a ledger row each hold ids only, never a name (RULE-STD-ARCH-103).
 //
 // `expireAt` is the one Firestore `Timestamp` any of them holds: a native-TTL policy honours only a
-// real Timestamp, and nothing reads the field for display or order (ARCH-105).
+// real Timestamp, and nothing reads the field for display or order (RULE-STD-ARCH-105).
 
 import { z } from 'zod';
 import { NotificationDocSchema } from '@ttt-productions/notification-core';
@@ -154,7 +154,7 @@ export type NotificationDelivery = z.infer<typeof NotificationDeliverySchema>;
 export const NotificationArchiveAllJobSchema = z.object({
   jobId: z.string().min(1),
   // The admin who asked. Each card the job archives is recorded as archived by them; the event the
-  // request wrote when the job was created carries the request's origin (BACKEND-211).
+  // request wrote when the job was created carries the request's origin (RULE-STD-BACKEND-211).
   userId: userIdSchema,
   category: z.literal(ADMIN_NOTIFICATION_CATEGORY),
   state: z.enum(NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS),

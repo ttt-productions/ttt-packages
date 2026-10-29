@@ -1,5 +1,5 @@
 // Business limits and policy values both app roots enforce. A form reads these for its
-// `maxLength` / zod bound and the callable's input schema reads the same constant (ENG-005).
+// `maxLength` / zod bound and the callable's input schema reads the same constant (RULE-STD-ENG-005).
 
 // Display names, team names, and ghost player names share one length policy.
 export const MIN_DISPLAY_NAME_LENGTH = 3;
@@ -41,7 +41,7 @@ export const MAX_AWARD_GRANT_TARGETS = 20;
 export const AWARD_GROUP_GRANT_PAGE_SIZE = 100;
 
 // The reason an admin gives for a repair action — a backfill, a recalculation, a reopen — recorded on
-// its audit event (BACKEND-212).
+// its audit event (RULE-STD-BACKEND-212).
 export const MIN_REPAIR_REASON_LENGTH = 3;
 export const MAX_REPAIR_REASON_LENGTH = 500;
 

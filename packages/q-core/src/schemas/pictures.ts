@@ -2,7 +2,7 @@
 // featured picture, and removing a gallery picture or a location's picture. Admin only.
 //
 // Each result carries the one entry it changed, so a client patches that entry into the gallery
-// pages it holds instead of refetching them (FRONTEND-103), and the owner's own update event, which
+// pages it holds instead of refetching them (RULE-STD-FRONTEND-103), and the owner's own update event, which
 // refreshes the owner document that carries the gallery's summary.
 
 import { z } from 'zod';

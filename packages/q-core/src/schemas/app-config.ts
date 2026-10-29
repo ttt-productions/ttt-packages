@@ -1,5 +1,5 @@
 // Callable contracts for the `_appConfig` documents an admin edits: the app-wide operational levers
-// and the landing page copy. Each input is a named field set (BACKEND-209) — never a document id
+// and the landing page copy. Each input is a named field set (RULE-STD-BACKEND-209) — never a document id
 // and a `data` blob.
 
 import { z } from 'zod';

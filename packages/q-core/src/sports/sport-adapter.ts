@@ -1,7 +1,7 @@
 // The sport adapter contract: one adapter per sport owns everything about that sport, and every
-// shared surface asks it rather than branching on a sport (SPORT-003, SPORT-004). Every member is
+// shared surface asks it rather than branching on a sport (RULE-QS-SPORT-903, RULE-QS-SPORT-904). Every member is
 // pure — no Firestore operation, no clock, no minted id, no React — so both app roots run the one
-// copy (ARCH-101, ARCH-202).
+// copy (RULE-STD-ARCH-101, RULE-STD-ARCH-202).
 
 import type { z } from 'zod';
 import type { SPORT_LINE_SCHEMAS } from '../doc-schemas/aggregate-stats.js';
@@ -56,7 +56,7 @@ export interface SportTypeMap {
 /**
  * The schema of each of the sport's stat lines, by kind. A stored line is read as this sport's line
  * through its schema — chosen by the adapter `leagueType` selected, never inferred from the line's
- * shape (SPORT-002).
+ * shape (RULE-QS-SPORT-902).
  */
 export type SportLineSchemas<L extends LeagueType> = (typeof SPORT_LINE_SCHEMAS)[L];
 
@@ -87,7 +87,7 @@ export type SportColumnCatalogs<L extends LeagueType> = {
   readonly [K in ColumnCatalogKey]: ColumnCatalog<ColumnCatalogRow<L, K>>;
 };
 
-/** What shared surfaces render for the sport instead of branching on it (SPORT-004, SPORT-209). */
+/** What shared surfaces render for the sport instead of branching on it (RULE-QS-SPORT-904, RULE-QS-SPORT-929). */
 export interface SportDisplay<L extends LeagueType> {
   readonly label: string;
   readonly iconKey: SportIconKey;
@@ -136,7 +136,7 @@ export interface SportAdapter<L extends LeagueType> extends SportScoring {
   readonly display: SportDisplay<L>;
   readonly columns: SportColumnCatalogs<L>;
   /**
-   * The rollup of a game with no events (SPORT-105): a team line for each of the game's teams, and
+   * The rollup of a game with no events (RULE-QS-SPORT-915): a team line for each of the game's teams, and
    * no player lines. Every call returns new objects.
    */
   readonly emptyStats: (game: GameTeamIds) => SportGameStats<L>;

@@ -6,7 +6,7 @@
 // of the person's standing is the server core behind `getLeagueJoinWarning` /
 // `adminGetLeagueJoinWarning`, because another person's pending requests, invitations, and signup
 // are not readable from the client. What the dialog says is `LEAGUE_JOIN_WARNING_COPY`, through
-// `formatLeagueJoinWarning` (ARCH-102, ENG-005). The acted-on item and a finding cross the wire, so
+// `formatLeagueJoinWarning` (RULE-STD-ARCH-102, RULE-STD-ENG-005). The acted-on item and a finding cross the wire, so
 // each is declared once, as its schema, and its type is inferred from it.
 
 import { z } from 'zod';

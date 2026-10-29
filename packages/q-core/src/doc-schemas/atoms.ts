@@ -37,7 +37,7 @@ import {
   WAIVER_WITNESS_AUTHORITY_KEYS,
 } from '../types/unions.js';
 
-// Every persisted moment is an epoch-millisecond number (ARCH-105).
+// Every persisted moment is an epoch-millisecond number (RULE-STD-ARCH-105).
 export const epochMsSchema = z.number().int().nonnegative();
 
 // A tally: a stat line's counter, a games-played count, a run's page counts.
@@ -65,7 +65,7 @@ export const TEXT_FIELD_ISSUE_MESSAGES: Readonly<
 /**
  * A text field's wire schema, built from the field's one declaration: it runs input-format-core's
  * check — trim, then min, max, and the format's characters — and parses to the text the check keeps.
- * The form's input reads the same declaration, so the two accept exactly the same text (ARCH-102). A
+ * The form's input reads the same declaration, so the two accept exactly the same text (RULE-STD-ARCH-102). A
  * refusal carries the issue and the declaration's bounds, so a form can say which bound was missed.
  */
 /** A text field's declaration, as a form and its wire schema both read it. */
@@ -98,7 +98,7 @@ export function textFieldSchema(declaration: DeclaredInputFormat) {
   });
 }
 
-// Required on every repair action and recorded with the state it replaced (BACKEND-212): the
+// Required on every repair action and recorded with the state it replaced (RULE-STD-BACKEND-212): the
 // callable's input, and the correction event and stats operation that store it.
 export const repairReasonSchema = textFieldSchema(REPAIR_REASON_INPUT_FORMAT);
 
@@ -117,7 +117,7 @@ export const calendarDateSchema = z
     return !Number.isNaN(day.getTime()) && day.toISOString().startsWith(value);
   }, 'Not a real calendar date.');
 
-// Every id a document path is built from is exactly one path segment (ARCH-106): a client-sent id
+// Every id a document path is built from is exactly one path segment (RULE-STD-ARCH-106): a client-sent id
 // holding a `/` or empty would address another document, a subcollection, or the collection itself.
 // Each entity's atom builds on this one; there is no generic idSchema for a field to use instead. An
 // empty id stops at its one length issue — a form's "Required." for a choice left unmade — never a

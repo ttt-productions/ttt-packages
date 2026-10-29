@@ -15,7 +15,7 @@ export const GameLocationSchema = z.object({
   subLocations: z.array(z.string()),
   // Directions for players; absent when there are none.
   memo: z.string().min(1).optional(),
-  // The venue's picture. Only the picture pipeline writes it (ARCH-001); the location callables
+  // The venue's picture. Only the picture pipeline writes it (RULE-STD-ARCH-001); the location callables
   // write the fields above and never this one.
   pictureId: pictureIdSchema.optional(),
   createdAt: epochMsSchema,
@@ -26,7 +26,7 @@ export type GameLocation = z.infer<typeof GameLocationSchema>;
 // `_serverData/gameLocationRegistry` — the fence of the venue cap. Venue creation counts the venues
 // in its transaction against MAX_GAME_LOCATIONS, and a query does not lock against an insert, so each
 // creation advances `locationRevision` here: two creations at the cap conflict instead of both
-// passing (BACKEND-116). Only its changing matters; absent until the first creation.
+// passing (RULE-STD-BACKEND-116). Only its changing matters; absent until the first creation.
 export const GameLocationRegistrySchema = z.strictObject({
   locationRevision: countSchema,
 });

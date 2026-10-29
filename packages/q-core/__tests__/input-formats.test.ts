@@ -1,5 +1,5 @@
 // A form's declared field format and the callable schema that enforces the same field accept exactly
-// the same text (ARCH-102): the repair reason's wire schema is built from its one declaration, so the
+// the same text (RULE-STD-ARCH-102): the repair reason's wire schema is built from its one declaration, so the
 // reason a confirmation takes is the reason the repair callables parse — trimmed, then bounded by the
 // repair-reason limits — with any character and line breaks; a person's and a team's name, and a
 // team's contact phone, are one line, trimmed, within their length limits; a refusal names the bound
@@ -477,7 +477,7 @@ describe("a text field's refusal", () => {
 
 /**
  * The admin forms' text fields. Each field's form declaration and the wire schema its callable parses
- * accept exactly the same texts and keep the same value (ARCH-102), so each wire schema is the one
+ * accept exactly the same texts and keep the same value (RULE-STD-ARCH-102), so each wire schema is the one
  * built from the field's declaration through `textFieldSchema`.
  */
 describe("the admin forms' text fields", () => {

@@ -1,10 +1,10 @@
 // `auditEvents/{auditEventId}` — the append-only record of sensitive actions and their rejected
-// attempts (BACKEND-202..205). Written only by Cloud Functions through the audit writer, in the
+// attempts (RULE-STD-BACKEND-202..205). Written only by Cloud Functions through the audit writer, in the
 // same transaction or batch as the action it records; no client reads or writes it.
 //
 // The envelope is `@ttt-productions/audit-core`'s `AuditEvent`; Q-Sports supplies the event-type
 // union and the actor / target shapes. The admin modes carry the global role they acted with and the
-// others carry none (BACKEND-205).
+// others carry none (RULE-STD-BACKEND-205).
 
 import { z } from 'zod';
 import {

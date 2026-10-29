@@ -1,5 +1,5 @@
 // The declared formats of the free-text fields a form takes, each built from the limits the field
-// enforces (ARCH-102). ui-core's text inputs and `ConsequenceDialog`'s reason field take only a
+// enforces (RULE-STD-ARCH-102). ui-core's text inputs and `ConsequenceDialog`'s reason field take only a
 // declaration, never a bare bound, and a field's wire schema is built from the same declaration
 // through `textFieldSchema`, so the form and the wire run the one check and accept exactly the same
 // text. `input-format-core` is server-safe and has no dependencies, so the declarations sit in the

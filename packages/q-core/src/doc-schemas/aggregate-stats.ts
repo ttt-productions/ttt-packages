@@ -1,5 +1,5 @@
 // The aggregate tier of the stats model: every league-wide and career number, each a derived cache
-// of the completed games' finalized records (SPORT-201). None is ever written by a client.
+// of the completed games' finalized records (RULE-QS-SPORT-921). None is ever written by a client.
 //
 //   leagueTeams/{teamId}.seasonStats                    the team's standings line
 //   leagueTeams/{teamId}.playerSeasonStats.{userId}     one membership's row — the team's league and
@@ -12,7 +12,7 @@
 // holding lines of those kinds is built from it — the game's `stats` (`SPORT_GAME_STATS_SCHEMAS`),
 // the season lines, the membership rows, the lifetime lines, and the hall-of-fame entries. A
 // document on its own does not say which sport it counts, so a stored line is read as one sport's
-// line only through that sport's adapter, never by its shape (SPORT-002). The lines are strict, so a
+// line only through that sport's adapter, never by its shape (RULE-QS-SPORT-902). The lines are strict, so a
 // line from one sport is never mistaken for another's with fields silently dropped.
 
 import { z } from 'zod';
@@ -114,7 +114,7 @@ export const PlayerSeasonStatsSchema = lineOfAnySport('membershipRow');
 export type PlayerSeasonStats = z.infer<typeof PlayerSeasonStatsSchema>;
 
 // Keyed by sport key, each sport's lifetime line. A sport the user never played is absent, not
-// zeroed. Ghosts never hold one (SPORT-208).
+// zeroed. Ghosts never hold one (RULE-QS-SPORT-928).
 type LifetimeLinesShape = {
   [L in LeagueType as (typeof SPORT_KEY_BY_LEAGUE_TYPE)[L]]: z.ZodOptional<
     (typeof SPORT_LINE_SCHEMAS)[L]['lifetime']
@@ -135,7 +135,7 @@ export const UserLifetimeStatsSchema = z.strictObject(
 export type UserLifetimeStats = z.infer<typeof UserLifetimeStatsSchema>;
 
 // `sportHallOfFame/{sportKey}` — kept only for a sport whose adapter keeps a hall of fame. Real users
-// only (SPORT-208); an entry equals that user's lifetime line for the sport.
+// only (RULE-QS-SPORT-928); an entry equals that user's lifetime line for the sport.
 export const SportHallOfFameSchema = z.object({
   playerStats: z.record(userIdSchema, lineOfAnySport('hallOfFame')),
   updatedAt: epochMsSchema,

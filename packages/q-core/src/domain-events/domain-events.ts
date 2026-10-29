@@ -1,7 +1,7 @@
 // The DomainEvent union — the vocabulary of "what happened" that both sides of the boundary share.
 //
 // A callable or trigger names what it changed with one of these; the client alone maps an event to
-// the query-key families it makes stale (the invalidation registry is app-local, FRONTEND-102). The two
+// the query-key families it makes stale (the invalidation registry is app-local, RULE-STD-FRONTEND-102). The two
 // sides share event names, never cache keys.
 
 import { z } from 'zod';
@@ -463,7 +463,7 @@ export const LandingPageUpdatedEventSchema = z
 
 // A picture joined a gallery. It carries the whole new entry, so a client holding that gallery's
 // pages patches the entry in where its position sorts, and no gallery page is ever refetched for it
-// (FRONTEND-103). The owner's summary changed too, and the owner's own update event says so.
+// (RULE-STD-FRONTEND-103). The owner's summary changed too, and the owner's own update event says so.
 export const GalleryPictureAddedEventSchema = z
   .object({
     type: z.literal('galleryPicture.added'),

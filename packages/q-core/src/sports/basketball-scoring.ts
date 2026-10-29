@@ -1,9 +1,9 @@
 // The basketball adapter's scoring, display, and bulk-entry members. Basketball is player-scored: a
 // shot credits its scorer's points and its team's score, and — when it names one — its assister's
-// assists, all on the one event (SPORT-003).
+// assists, all on the one event (RULE-QS-SPORT-903).
 //
 // `apply` and `undo` are one function over an event's effects with opposite signs, so they are exact
-// inverses by construction (SPORT-103).
+// inverses by construction (RULE-QS-SPORT-913).
 
 import { z } from 'zod';
 import {
@@ -87,7 +87,7 @@ function isBasketballEvent(event: StatEventBody | undefined): event is Basketbal
 }
 
 // The registry chose this adapter by the game's `leagueType`, so the rollup it is handed is a
-// basketball game's (SPORT-002).
+// basketball game's (RULE-QS-SPORT-902).
 function ownStats(state: GameStats): BasketballGameStats {
   return state as BasketballGameStats;
 }
@@ -283,7 +283,7 @@ function applyEffects(
 }
 
 // ---------------------------------------------------------------------------------------------
-// Validation — the same rules the bulk form holds, re-checked on the server (SPORT-006)
+// Validation — the same rules the bulk form holds, re-checked on the server (RULE-QS-SPORT-906)
 // ---------------------------------------------------------------------------------------------
 
 function isAssistableShot(type: BasketballStatEventType): boolean {

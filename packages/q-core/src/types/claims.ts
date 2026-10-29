@@ -3,7 +3,7 @@
 // `admin` and `referee` mirror the `_systemData/adminList` rosters; `userStatus` mirrors the
 // profile's account status so rules and an open client can refuse a banned account that still
 // holds a live token. A claim is a fast hint: a state-changing callable re-reads the roster
-// (BACKEND-004). Team roles are never claims — they resolve from `teamMemberships` per request.
+// (RULE-STD-BACKEND-004). Team roles are never claims — they resolve from `teamMemberships` per request.
 
 import type { SystemRole, UserStatus } from './unions.js';
 

@@ -1,5 +1,5 @@
 // The documents that put a user on a team: the membership itself and the three ways to reach one.
-// Every one of them stores user ids only — names resolve from `publicUsers` (ARCH-103).
+// Every one of them stores user ids only — names resolve from `publicUsers` (RULE-STD-ARCH-103).
 
 import { z } from 'zod';
 import {

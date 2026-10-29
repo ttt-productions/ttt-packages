@@ -2,7 +2,7 @@
 //
 // An award is created by its first badge's publication (the `award-badge` upload, ./uploads.ts), so
 // no callable here creates one. Grants and revokes to named accounts share one input — two named
-// lists, never an action discriminator (BACKEND-002) — like the role roster's. A team's or a whole
+// lists, never an action discriminator (RULE-STD-BACKEND-002) — like the role roster's. A team's or a whole
 // league's grant is its own decision, carried out a page of people at a time.
 
 import { z } from 'zod';

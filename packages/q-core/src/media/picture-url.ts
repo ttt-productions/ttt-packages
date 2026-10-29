@@ -1,7 +1,7 @@
 // Render-time picture URLs, pure and configuration-injected: q-core reads no environment, and the
 // app resolves its Storage origin and bucket once and builds one builder. A document stores picture
 // ids and never a URL; every render builds the URL from the id and the size it needs
-// (MEDIA-101, BACKEND-001).
+// (RULE-STD-MEDIA-101, RULE-STD-BACKEND-001).
 
 import { buildPictureObjectPath } from '../paths/storage-paths.js';
 import type { PictureVariantKey } from '../types/unions.js';

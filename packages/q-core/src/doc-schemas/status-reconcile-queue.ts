@@ -1,5 +1,5 @@
 // `statusReconcileQueue/{userId}` — the backend-only retry queue for an account's post-commit
-// Firebase Auth effects (QUALITY-104, BACKEND-302). One entry per account, id = the userId, whichever
+// Firebase Auth effects (RULE-STD-QUALITY-104, RULE-STD-BACKEND-302). One entry per account, id = the userId, whichever
 // effect queued it. A status change writes its entry in the status transaction itself; a role-claim
 // entry is written when a roster change committed but its claim write failed. The drain re-converges
 // every Auth-side mirror of the account from its canonical documents and deletes the entry once it

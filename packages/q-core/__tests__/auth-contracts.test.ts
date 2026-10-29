@@ -142,7 +142,7 @@ describe('callable input schemas', () => {
         acceptedTerms: true,
       }).success,
     ).toBe(false);
-    // A client-supplied identity or email is an unknown key, not an override (ARCH-106).
+    // A client-supplied identity or email is an unknown key, not an override (RULE-STD-ARCH-106).
     expect(
       RegisterUserInputSchema.safeParse({
         displayName: 'Jane Doe',

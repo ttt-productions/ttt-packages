@@ -1,5 +1,5 @@
 // Sport rule values that are persisted or validated on both sides of the boundary. What a sport
-// DOES with them — applying an event, recomputing a score — belongs to its adapter (SPORT-003).
+// DOES with them — applying an event, recomputing a score — belongs to its adapter (RULE-QS-SPORT-903).
 
 import {
   BASKETBALL_ASSIST_EVENT_TYPE,

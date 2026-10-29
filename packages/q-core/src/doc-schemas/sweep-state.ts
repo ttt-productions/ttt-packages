@@ -1,5 +1,5 @@
 // `sweepState/{sweepName}` — where a scheduled pass over a bounded, ordered source keeps its
-// position (BACKEND-112), one document per `SWEEP_STATE_NAMES` name. Backend-only: no client reads
+// position (RULE-STD-BACKEND-112), one document per `SWEEP_STATE_NAMES` name. Backend-only: no client reads
 // or writes it.
 
 import { z } from 'zod';
@@ -45,7 +45,7 @@ export const SweepRollingCursorSchema = z
 export type SweepRollingCursor = z.infer<typeof SweepRollingCursorSchema>;
 
 // A row the cursor moved past without clearing it (a failed read or write). The pass retries it from
-// here once it is due instead of stopping at it, so one failing row never pins the window (BACKEND-309).
+// here once it is due instead of stopping at it, so one failing row never pins the window (RULE-STD-BACKEND-309).
 export const SweepDeferredRowSchema = z
   .object({
     key: z.string().min(1),

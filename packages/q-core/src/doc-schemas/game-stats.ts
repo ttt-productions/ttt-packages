@@ -1,12 +1,12 @@
 // The game tier of the stats model: the stat event documents, and the rollup the game document
-// carries (SPORT-001, SPORT-101, SPORT-102).
+// carries (RULE-QS-SPORT-901, RULE-QS-SPORT-911, RULE-QS-SPORT-912).
 //
 // Each stat event is its own document, `sportGames/{gameId}/gameStatEvents/{eventId}`, and the
 // event documents are the source of truth: at every commit the game's `stats` equals their replay,
 // in `sequence` order, from the sport's empty stats. The store is append-only — an undo appends a
 // `STAT_VOID` and a correction a `STAT_CORRECTION`; no event is ever edited.
 //
-// An event names people by id; names resolve from `publicUsers` at read time (ARCH-103, SPORT-104).
+// An event names people by id; names resolve from `publicUsers` at read time (RULE-STD-ARCH-103, RULE-QS-SPORT-914).
 // `displayNameSnapshot` and `assistedByDisplayNameSnapshot` are carried only by copied events, as
 // the audit record of the name the stat was entered under — never read as identity.
 
@@ -59,7 +59,7 @@ import {
 // Lines — one per team of the game, one per roster entry holding a non-zero player line
 // ---------------------------------------------------------------------------------------------
 
-// A line's counters: one field per key of the sport's declared stat-key set (SPORT-007), so a key
+// A line's counters: one field per key of the sport's declared stat-key set (RULE-QS-SPORT-907), so a key
 // added to the set is a field of every line built from it.
 function counterShape<K extends StatCounterKey>(keys: readonly K[]): Record<K, typeof countSchema> {
   return Object.fromEntries(keys.map((key) => [key, countSchema])) as Record<K, typeof countSchema>;
@@ -92,7 +92,7 @@ export const FootballTeamStatsSchema = z.strictObject(counterShape(FOOTBALL_TEAM
 export type FootballTeamStats = z.infer<typeof FootballTeamStatsSchema>;
 
 // ---------------------------------------------------------------------------------------------
-// The payload — exactly two keys for every sport (SPORT-001)
+// The payload — exactly two keys for every sport (RULE-QS-SPORT-901)
 // ---------------------------------------------------------------------------------------------
 
 // The one declaration of the game `stats` payload. Each sport's is built through it from that
@@ -114,7 +114,7 @@ export function gameStatsSchema<TeamLine extends z.ZodType, PlayerLine extends z
 // ---------------------------------------------------------------------------------------------
 
 // Every event: its id, its place in the replay, and when it was entered. The recorder facts are
-// derived by the writing core, never taken from the payload (ARCH-106); a copied event has none.
+// derived by the writing core, never taken from the payload (RULE-STD-ARCH-106); a copied event has none.
 const statEventBase = {
   eventId: statEventIdSchema,
   sequence: z.number().int().positive(),
@@ -284,7 +284,7 @@ function recorderFactsAgree(event: {
 
 // A name snapshot is the audit record a copied event keeps of the name its stat was entered under.
 // Only the writing core stamps recorder facts, and it writes ids only, so an event carrying both a
-// snapshot and a recorder fact is refused (ARCH-103, SPORT-104).
+// snapshot and a recorder fact is refused (RULE-STD-ARCH-103, RULE-QS-SPORT-914).
 function snapshotsOnlyOnCopiedEvents(event: {
   acceptedAt?: number;
   recordedByUserId?: string;

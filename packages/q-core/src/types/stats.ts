@@ -1,4 +1,4 @@
-// Canonical unions of the stat event store and the stats operations (ARCH-102). What each sport's
+// Canonical unions of the stat event store and the stats operations (RULE-STD-ARCH-102). What each sport's
 // own events and lines are is ./sports.ts; these are the sport-agnostic halves every sport shares.
 
 import { CAPTAIN_TEAM_ROLES, SYSTEM_ROLE_KEYS } from './unions.js';
@@ -14,7 +14,7 @@ export const STAT_STORE_EVENT_TYPE_KEYS = [
 export type StatStoreEventType = (typeof STAT_STORE_EVENT_TYPE_KEYS)[number];
 
 // The fields of a stored stat event the writing core derives — its place in the replay, and who
-// recorded it under which authority — so a caller never sends them (ARCH-106).
+// recorded it under which authority — so a caller never sends them (RULE-STD-ARCH-106).
 export const STAT_EVENT_RECORDER_FIELD_KEYS = [
   'sequence',
   'acceptedAt',
@@ -24,7 +24,7 @@ export const STAT_EVENT_RECORDER_FIELD_KEYS = [
 ] as const;
 export type StatEventRecorderField = (typeof STAT_EVENT_RECORDER_FIELD_KEYS)[number];
 
-// The name snapshots only a copied event carries; nothing writes one on a new event (SPORT-104).
+// The name snapshots only a copied event carries; nothing writes one on a new event (RULE-QS-SPORT-914).
 export const STAT_EVENT_SNAPSHOT_FIELD_KEYS = [
   'displayNameSnapshot',
   'assistedByDisplayNameSnapshot',
@@ -132,7 +132,7 @@ export const RECORDED_STAT_EVENT_OUTCOME_KEYS = ['recorded', 'alreadyRecorded'] 
 export type RecordedStatEventOutcome = (typeof RECORDED_STAT_EVENT_OUTCOME_KEYS)[number];
 
 // What finalize did: made the game's numbers permanent, or found it already finalized and changed
-// nothing (SPORT-203).
+// nothing (RULE-QS-SPORT-923).
 export const GAME_FINALIZE_OUTCOME_KEYS = ['finalized', 'alreadyFinalized'] as const;
 export type GameFinalizeOutcome = (typeof GAME_FINALIZE_OUTCOME_KEYS)[number];
 
@@ -144,7 +144,7 @@ export type GameReopenOutcome = (typeof GAME_REOPEN_OUTCOME_KEYS)[number];
 // Why a path that makes numbers permanent, or takes them back, refused a game whose stored numbers
 // disagree with what produced them — something changed them outside the app, and an admin
 // reconciles the game in Fix stats first. Finalize, reopen, and a ghost link never adopt or discard
-// an unexplained difference (ENG-009):
+// an unexplained difference (RULE-STD-ENG-009):
 //   statsOutOfBand      the rollup or score mirror is not the replay of the game's events or record
 //   finalRecordMissing  a completed game has no finalized record
 //   aggregateBelowZero  a stored derived line holds less than the game put into it

@@ -118,7 +118,7 @@ function applyAll(
   return events.reduce((next, body) => adapter.apply(next, body), state);
 }
 
-describe('every sport — apply and undo are exact inverses (SPORT-103)', () => {
+describe('every sport — apply and undo are exact inverses (RULE-QS-SPORT-913)', () => {
   const cases: [string, AnySportAdapter, GameStats, StatEventBody[]][] = [
     [
       BASKETBALL,
@@ -532,7 +532,7 @@ describe('football — team-scored, finalized by hand', () => {
   });
 });
 
-describe('the replay — one fold from the empty stats, in sequence order (SPORT-101)', () => {
+describe('the replay — one fold from the empty stats, in sequence order (RULE-QS-SPORT-911)', () => {
   it('reproduces the rollup a known history was recorded to, voids and corrections included', () => {
     const shot = stored(player(THREE_POINTER, SHOOTER, { assistedByUserId: PASSER }));
     const mistake = stored(player(BASKETBALL_REBOUND_EVENT_TYPE, PASSER));
@@ -688,7 +688,7 @@ describe('display — every play has a line, and every refusal has copy', () => 
   });
 });
 
-describe('the replay of a known history, per sport (SPORT-101)', () => {
+describe('the replay of a known history, per sport (RULE-QS-SPORT-911)', () => {
   it('reproduces a curling history — a re-scored end voided and recorded blank — from its events alone', () => {
     const first = stored(round(1, HOME, 2));
     const mistaken = stored(round(2, AWAY, 1));

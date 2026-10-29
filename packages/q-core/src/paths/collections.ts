@@ -3,7 +3,7 @@
 // Every collection value is compound camelCase — it says what the documents are, never a single
 // bare word (guarded by __tests__/collections.test.ts). The three underscore buckets hold fixed-ID
 // system documents and are placed by who reads them; every one of them is callable-only for writes
-// (BACKEND-108). An admin-only document is server-only, read by an admin through a callable:
+// (RULE-STD-BACKEND-108). An admin-only document is server-only, read by an admin through a callable:
 //   _appConfig   public read
 //   _systemData  signed-in read
 //   _serverData  no client access
@@ -28,7 +28,7 @@ export const COLLECTIONS = {
   SPORT_LEAGUES: 'sportLeagues',
   LEAGUE_TEAMS: 'leagueTeams',
   // One admin-only document per team, id = the team id: how the league reaches the team. The team
-  // itself is publicly readable, so no contact detail lives on it (BACKEND-105); a league's contacts
+  // itself is publicly readable, so no contact detail lives on it (RULE-STD-BACKEND-105); a league's contacts
   // are one query on `leagueId`.
   LEAGUE_TEAM_CONTACTS: 'leagueTeamContacts',
   TEAM_MEMBERSHIPS: 'teamMemberships',
@@ -98,7 +98,7 @@ export const USER_PROFILE_SUBCOLLECTIONS = {
   // One document per sport key: pre-Q-Sports career totals folded into lifetime recalculation.
   HISTORICAL_STATS: 'historicalStats',
   // One owner-only document, id = the userId: email and contact details. The profile itself is
-  // publicly readable, so nothing personal lives on it (BACKEND-105).
+  // publicly readable, so nothing personal lives on it (RULE-STD-BACKEND-105).
   PRIVATE_DATA: 'privateData',
 } as const;
 

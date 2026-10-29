@@ -1,4 +1,4 @@
-// Canonical unions (ARCH-102): an `as const` key array with the type derived from it. Zod enums,
+// Canonical unions (RULE-STD-ARCH-102): an `as const` key array with the type derived from it. Zod enums,
 // type positions, query filters, and option lists all derive from these arrays — never a quoted
 // member.
 
@@ -60,7 +60,7 @@ export const TEAM_MEMBERSHIP_STATUS_KEYS = ['active'] as const;
 export type TeamMembershipStatus = (typeof TEAM_MEMBERSHIP_STATUS_KEYS)[number];
 
 // The status a membership grants authority in. Every membership-based check reads it with the role
-// (BACKEND-006), so a status added later grants nothing until a check names it.
+// (RULE-QS-BACKEND-901), so a status added later grants nothing until a check names it.
 export const ACTIVE_TEAM_MEMBERSHIP_STATUS = 'active' as const satisfies TeamMembershipStatus;
 
 // How a membership came to exist; absent on a membership whose provenance was never recorded.

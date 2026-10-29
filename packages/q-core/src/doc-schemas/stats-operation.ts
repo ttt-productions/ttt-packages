@@ -132,7 +132,7 @@ export type GhostLinkedGame = z.infer<typeof GhostLinkedGameSchema>;
 // One derived line a stats action moved — a team's standings line, a per-membership row, a lifetime
 // line, or a hall-of-fame entry — with its value before the action's first change to it and after
 // its latest, `null` where there was or is no line. Every repair's audit event records them, and a
-// dry run lists them without writing (BACKEND-212).
+// dry run lists them without writing (RULE-STD-BACKEND-212).
 export const StatsDestinationChangeSchema = z.strictObject({
   ref: z.string().min(1),
   field: z.string().min(1),
@@ -144,7 +144,7 @@ export type StatsDestinationChange = z.infer<typeof StatsDestinationChangeSchema
 // The ghost's one operation records the account a link chose, or the removal, so a call naming a
 // different account — or a removal against a link — is refused, and the same call resumes. Neither
 // takes a reason: a link is chosen and confirmed, and its audit event records who linked which ghost
-// to whom and what moved (BACKEND-212).
+// to whom and what moved (RULE-STD-BACKEND-212).
 export const GhostPlayerStatsOperationSchema = z
   .strictObject({
     ...operationBase,

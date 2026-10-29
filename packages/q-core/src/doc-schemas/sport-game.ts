@@ -1,5 +1,5 @@
 // `sportGames/{gameId}` — one scheduled or played game — and its `gameRosterPlayers` subcollection.
-// The game is discriminated on `leagueType`, which selects its `stats` shape (SPORT-002).
+// The game is discriminated on `leagueType`, which selects its `stats` shape (RULE-QS-SPORT-902).
 
 import { z } from 'zod';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
@@ -20,7 +20,7 @@ import {
 } from './atoms.js';
 import { gameLocationIdSchema } from './game-location.js';
 
-// Each sport's game `stats`: the two-key payload (SPORT-001) over that sport's game lines, taken
+// Each sport's game `stats`: the two-key payload (RULE-QS-SPORT-901) over that sport's game lines, taken
 // from `SPORT_LINE_SCHEMAS` — the one pairing of a sport with its lines. Spelled per sport so each
 // payload keeps its exact type; `satisfies` fails the build when a sport is missing.
 export const SPORT_GAME_STATS_SCHEMAS = {
@@ -43,7 +43,7 @@ export type CurlingGameStats = z.infer<typeof SPORT_GAME_STATS_SCHEMAS.Curling>;
 export type FootballGameStats = z.infer<typeof SPORT_GAME_STATS_SCHEMAS.Football>;
 
 // Which sport's payload a game holds is decided by its `leagueType`, never by the payload's shape
-// (SPORT-002).
+// (RULE-QS-SPORT-902).
 export type GameStats = z.infer<(typeof SPORT_GAME_STATS_SCHEMAS)[LeagueType]>;
 
 // One of a game's two team slots. `teamId` is a leagueTeams id, or BYE_TEAM_ID for a bye week.
@@ -72,7 +72,7 @@ const sportGameBase = {
   // The real (non-bye) team ids, for `array-contains` queries.
   teamIds: z.array(teamIdSchema).min(1).max(2),
   // Each team's score, mirrored from its `stats.teamStats` line by the same write that changes it
-  // (SPORT-107), so a schedule or list reads a score without the stats.
+  // (RULE-QS-SPORT-917), so a schedule or list reads a score without the stats.
   score: z.record(teamIdSchema, countSchema),
   // The number of this game's stat event documents, which is also the last `sequence` assigned.
   statEventSequence: countSchema,
@@ -81,7 +81,7 @@ const sportGameBase = {
   // Absence is per roster entry: a person on both teams can be absent on one side only.
   absentRosterPlayerIds: z.array(gameRosterPlayerIdSchema),
   // The roster entries finalize credited no game played — the adapter's decision, stored so every
-  // later path reverses what was applied rather than deciding again (SPORT-204). Present only while
+  // later path reverses what was applied rather than deciding again (RULE-QS-SPORT-924). Present only while
   // the game is completed.
   nonScoringRosterPlayerIds: z.array(gameRosterPlayerIdSchema).optional(),
   // Set while a multi-page stats operation holds the game; every other writer of its stats, roster,

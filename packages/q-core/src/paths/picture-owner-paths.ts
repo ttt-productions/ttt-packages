@@ -1,4 +1,4 @@
-// The document each kind of picture owner is (ARCH-104), split by what the picture core writes on
+// The document each kind of picture owner is (RULE-STD-ARCH-104), split by what the picture core writes on
 // it: a gallery owner holds a `pictures` summary, and a slot owner holds one picture in its slot
 // field. A writer indexes the map for the owners it writes, so its target is only those documents;
 // the full map, composed from both, serves the reads that take any owner.

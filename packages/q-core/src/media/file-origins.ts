@@ -1,4 +1,4 @@
-// The upload origin registry (MEDIA-001, MEDIA-006). One origin value binds everything an
+// The upload origin registry (RULE-STD-MEDIA-001, RULE-STD-MEDIA-006). One origin value binds everything an
 // upload touches: the picker spec, the staging path and its `storage.rules` cap and content type,
 // the callable that accepts the upload, and — for a picture — the processing spec and the owner the
 // picture is published to. The generic packages treat an origin id as opaque; the policy is here.

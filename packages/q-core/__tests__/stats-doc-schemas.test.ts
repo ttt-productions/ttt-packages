@@ -615,7 +615,7 @@ describe('stats operations', () => {
   it("a repair callable's reason field takes the one reason atom the repair is stored with", () => {
     expect(ReopenGameInputSchema.shape.reason).toBe(repairReasonSchema);
     expect(StatCorrectionEventSchema.shape.reason).toBe(repairReasonSchema);
-    // A ghost removal is not a repair and takes no reason (BACKEND-212), so its operation's reason is
+    // A ghost removal is not a repair and takes no reason (RULE-STD-BACKEND-212), so its operation's reason is
     // optional — and still the one atom when present.
     for (const option of StatsOperationSchema.options) {
       if (!('reason' in option.shape)) continue;

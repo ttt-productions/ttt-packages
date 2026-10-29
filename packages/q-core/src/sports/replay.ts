@@ -1,5 +1,5 @@
 // The replay: a game's rollup rebuilt from its event documents, in `sequence` order, from the
-// sport's empty stats (SPORT-101). It is the one fold every path that derives a game's numbers runs —
+// sport's empty stats (RULE-QS-SPORT-911). It is the one fold every path that derives a game's numbers runs —
 // the Functions, the client's queue, and the browser's week view — and the store driver folds each
 // new event it accepts through the same step, `foldStatEvent`, so the replay and the write can never
 // disagree about what an event does.

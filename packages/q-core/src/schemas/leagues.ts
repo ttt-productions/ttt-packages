@@ -1,6 +1,6 @@
 // Callable contracts for the league: creation, the settings edit, the status move, and the mode
 // switch. Every one is admin authority, and the acting admin is `request.auth.uid` — never an input
-// field (ARCH-106).
+// field (RULE-STD-ARCH-106).
 
 import { z } from 'zod';
 import { MAX_PLAYOFF_CUTOFF } from '../constants/business.js';

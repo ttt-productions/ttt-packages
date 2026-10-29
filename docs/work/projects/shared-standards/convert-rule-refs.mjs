@@ -2,9 +2,12 @@
 // Rewrites old engineering-rule IDs and moved doc paths to the shared-standards forms, from the
 // conversion tables beside this script.
 //
-//   node convert-rule-refs.mjs --repo ttt-packages|ttt-prod --root <repo> [--write]
-//        [--shared-rules <dev-standards rules folder>] [--skip <skip-list.json>] [--report <out.md>]
-//        [--only <path> ...]
+//   node convert-rule-refs.mjs --repo ttt-packages|ttt-prod|q-sports|q-core --root <repo> [--write]
+//        [--qs-tables <folder>] [--shared-rules <dev-standards rules folder>] [--skip <skip-list.json>]
+//        [--report <out.md>] [--only <path> ...]
+//
+// `q-sports` converts the Q-Sports checkout; `q-core` converts q-core inside the ttt-packages
+// checkout (rule IDs only). Both read Q-Sports' tables from --qs-tables, which live in Q-Sports.
 //
 // Without --write it is a dry run: every rewrite is classified by form and printed (or written to
 // --report). --skip names a JSON list of { "file": ..., "line": ..., "text": ... } occurrences that
@@ -17,7 +20,8 @@ import { dirname, join, relative, resolve, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PREFIXES = ['ENG', 'ARCH', 'BACKEND', 'FRONTEND', 'MEDIA', 'QUALITY', 'COMMENT'];
+const PREFIXES = ['ENG', 'ARCH', 'BACKEND', 'FRONTEND', 'MEDIA', 'QUALITY', 'COMMENT', 'SPORT'];
+const Q_REPOS = ['q-sports', 'q-core'];
 const PREFIX_ALT = PREFIXES.join('|');
 
 function parseArgs(argv) {
@@ -28,13 +32,15 @@ function parseArgs(argv) {
     else if (a === '--repo') args.repo = argv[++i];
     else if (a === '--root') args.root = resolve(argv[++i]);
     else if (a === '--shared-rules') args.sharedRules = resolve(argv[++i]);
+    else if (a === '--qs-tables') args.qsTables = resolve(argv[++i]);
     else if (a === '--skip') args.skip = resolve(argv[++i]);
     else if (a === '--report') args.report = resolve(argv[++i]);
     else if (a === '--only') args.only.push(argv[++i]);
     else throw new Error(`unknown argument ${a}`);
   }
-  if (!['ttt-packages', 'ttt-prod'].includes(args.repo)) throw new Error('--repo ttt-packages|ttt-prod');
+  if (!['ttt-packages', 'ttt-prod', ...Q_REPOS].includes(args.repo)) throw new Error('--repo ttt-packages|ttt-prod|q-sports|q-core');
   if (!args.root) throw new Error('--root <repo> is required');
+  if (Q_REPOS.includes(args.repo) && !args.qsTables) throw new Error('--qs-tables <folder> is required for q-sports and q-core');
   return args;
 }
 
@@ -108,13 +114,25 @@ const SHARED = '@ttt-productions/dev-standards/';
 function repoPathOf(repo, tablePath) {
   if (!tablePath.startsWith(SHARED)) return tablePath;
   const rest = tablePath.slice(SHARED.length);
-  return repo === 'ttt-packages' ? `packages/dev-standards/${rest}` : `node_modules/@ttt-productions/dev-standards/${rest}`;
+  return repo === 'ttt-packages' || repo === 'q-core'
+    ? `packages/dev-standards/${rest}`
+    : `node_modules/@ttt-productions/dev-standards/${rest}`;
 }
+
+const PATHS_TABLE = { 'ttt-packages': 'ttt-packages-paths.csv', 'ttt-prod': 'ttt-prod-paths.csv' };
+const CHECKOUT = { 'ttt-packages': 'ttt-packages', 'ttt-prod': 'ttt-master-app', 'q-sports': 'q-sports-league', 'q-core': 'ttt-packages' };
 
 export function buildContext(args) {
   const prodRules = ruleMap(loadTable('ttt-prod-rule-ids.csv'));
   const pkgRules = ruleMap(loadTable('ttt-packages-rule-ids.csv'));
-  const pathsTable = loadTable(args.repo === 'ttt-packages' ? 'ttt-packages-paths.csv' : 'ttt-prod-paths.csv');
+  const qsRules = args.qsTables ? ruleMap(parseCsv(readFileSync(join(args.qsTables, 'q-sports-rule-ids.csv'), 'utf8'))) : new Map();
+  // q-core cites rules only; Q-Sports' doc paths are its own checkout's.
+  const pathsTable =
+    args.repo === 'q-core'
+      ? []
+      : args.repo === 'q-sports'
+        ? parseCsv(readFileSync(join(args.qsTables, 'q-sports-paths.csv'), 'utf8'))
+        : loadTable(PATHS_TABLE[args.repo]);
   const rewritingKinds = new Set(['moved', 'deleted; whole-file references go to the area entry']);
   // ttt-packages' shared playbooks moved whole: no additions file stays at the old path.
   if (args.repo === 'ttt-packages') rewritingKinds.add('shared; app additions stay at the old path');
@@ -126,20 +144,21 @@ export function buildContext(args) {
   // A folder mention follows its files only where the folder is unambiguous: in ttt-packages a
   // `docs/playbooks/` or `docs/engineering-rules/` mention usually names an app's own folder.
   const folderMap =
-    args.repo === 'ttt-packages'
+    args.repo === 'ttt-packages' || args.repo === 'q-core'
       ? new Map()
       : new Map([['docs/development-workflows/', 'node_modules/@ttt-productions/dev-standards/workflows/']]);
   // A drive-qualified path is rewritten only when it points into this repo's own checkout.
-  const checkoutName = args.repo === 'ttt-packages' ? 'ttt-packages' : 'ttt-master-app';
+  const checkoutName = CHECKOUT[args.repo];
   const rulesRoot =
     args.sharedRules ??
-    (args.repo === 'ttt-packages'
+    (args.repo === 'ttt-packages' || args.repo === 'q-core'
       ? join(args.root, 'packages/dev-standards/rules')
       : join(args.root, 'node_modules/@ttt-productions/dev-standards/rules'));
-  return { repo: args.repo, checkoutName, prodRules, pkgRules, pathMap, folderMap, headings: sharedHeadings(rulesRoot) };
+  return { repo: args.repo, checkoutName, prodRules, pkgRules, qsRules, pathMap, folderMap, headings: sharedHeadings(rulesRoot) };
 }
 
 function tableFor(ctx, file) {
+  if (Q_REPOS.includes(ctx.repo)) return ctx.qsRules;
   if (ctx.repo === 'ttt-prod') return ctx.prodRules;
   return file.startsWith('packages/ttt-core/') || file === 'docs/packages/ttt-core.md' ? ctx.prodRules : ctx.pkgRules;
 }
@@ -188,7 +207,16 @@ function convertGroup(ctx, table, m, forms) {
     if (samePrefix && sameNumbers) return `${useTable.get(first).new_id}${members[1].sep}${members[1].id.slice(-3)}`;
     return mapped.join(', ');
   }
-  const mapped = members.map((x) => (useTable.has(x.id) ? useTable.get(x.id).new_id : null));
+  // Q-Sports text cites a packages rule bare ("ARCH-201") and chains an app rule onto a
+  // ttt-packages qualifier ("ttt-packages ARCH-201, ARCH-205"); either resolves through the other
+  // table only where that lands on a shared rule.
+  const otherTable = Q_REPOS.includes(ctx.repo) ? (qualified ? table : ctx.pkgRules) : null;
+  const lookup = (id) => {
+    if (useTable.has(id)) return useTable.get(id).new_id;
+    const other = otherTable?.get(id)?.new_id;
+    return other?.startsWith('RULE-STD-') ? other : null;
+  };
+  const mapped = members.map((x) => lookup(x.id));
   if (mapped.some((x) => x === null)) {
     forms.push('unclassified');
     return null;
@@ -217,7 +245,9 @@ function qualifyChains(line) {
   );
 }
 
-const ANCHOR_RE = new RegExp(`^(${PREFIX_ALT.toLowerCase()})-(\\d{3})(?:-|$)`);
+const TTT_QUALIFIED_RE = new RegExp(`(ttt-prod(?:'s)?\\s+)((?:${PREFIX_ALT})-\\d{3})(?![A-Za-z0-9_])`, 'g');
+
+const ANCHOR_RE =new RegExp(`^(${PREFIX_ALT.toLowerCase()})-(\\d{3})(?:-|$)`);
 
 function convertLinkTarget(ctx, table, file, target, forms) {
   const [pathPart, anchor] = target.split('#');
@@ -280,6 +310,19 @@ export function convertText(ctx, file, text, skip = new Set()) {
       return t ? `](${t})` : all;
     });
     next = qualifyChains(next);
+    // In Q-Sports text, "ttt-prod BACKEND-211" names ttt-prod's rule, so it resolves through
+    // ttt-prod's table, and the qualifier goes once the ID is shared.
+    if (Q_REPOS.includes(ctx.repo)) {
+      next = next.replace(TTT_QUALIFIED_RE, (all, qual, id) => {
+        const row = ctx.prodRules.get(id);
+        if (!row) {
+          unclassified.push({ file, line: i + 1, text: all });
+          return all;
+        }
+        forms.push('ttt-prod-qualified');
+        return row.new_id.startsWith('RULE-STD-') ? row.new_id : qual + row.new_id;
+      });
+    }
     next = next.replace(GROUP_RE, (...a) => {
       const m = { groups: a[a.length - 1], 0: a[0] };
       const out = convertGroup(ctx, table, m, forms);
@@ -312,7 +355,21 @@ const EXCLUDE = {
     /^test-results\//,
     /^docs\/work\/projects\/shared-standards-run\//,
   ],
+  'q-sports': [
+    /^next-env\.d\.ts$/,
+    /^\.next\//,
+    /^\.logs\//,
+    /^functions\/(lib|build)\//,
+    /^test-results\//,
+    /^playwright-report\//,
+    /^e2e\/\.auth\//,
+    // The conversion tables are the old IDs' record, not citations.
+    /^docs\/work\/projects\/migration-2\.0\/ttt-parity\/rules-conversion\//,
+  ],
+  'q-core': [],
 };
+// q-core lives inside ttt-packages; only its own files are converted.
+const INCLUDE = { 'q-core': [/^packages\/q-core\//, /^docs\/packages\/q-core\.md$/] };
 const ALWAYS_EXCLUDE = [/(^|\/)node_modules\//, /(^|\/)dist\//, /package-lock\.json$/, /\.(png|jpe?g|gif|webp|ico|svg|pdf|mp4|mp3|wav|woff2?|ttf|zip|gz|tgz)$/i];
 
 function fileSet(args) {
@@ -324,6 +381,7 @@ function fileSet(args) {
     (f) =>
       !ALWAYS_EXCLUDE.some((re) => re.test(f)) &&
       !EXCLUDE[args.repo].some((re) => re.test(f)) &&
+      (!INCLUDE[args.repo] || INCLUDE[args.repo].some((re) => re.test(f))) &&
       existsSync(join(args.root, f)) &&
       statSync(join(args.root, f)).isFile(),
   );

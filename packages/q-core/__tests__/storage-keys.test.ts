@@ -91,7 +91,7 @@ describe('device storage keys', () => {
     for (const event of CHANGE_EVENTS) expect(STORAGE_KEYS).not.toContain(event);
   });
 
-  it('carry no ttt name (ARCH-006)', () => {
+  it('carry no ttt name (RULE-STD-ARCH-006)', () => {
     for (const value of [...STORAGE_KEYS, ...CHANGE_EVENTS]) expect(value).not.toMatch(/ttt/i);
   });
 });

@@ -1,10 +1,10 @@
 // The scoring half of the sport adapter contract: the pure members the store driver, the replay, the
-// client's optimistic queue, and the aggregate cores call (SPORT-003). None issues a Firestore
+// client's optimistic queue, and the aggregate cores call (RULE-QS-SPORT-903). None issues a Firestore
 // operation or an increment, reads a clock, or mints an id.
 //
 // Every member is typed over every sport's shapes, so any registered adapter is called the same way.
 // The registry chose the adapter by the game's `leagueType`, which is what makes the rollup it is
-// handed that sport's (SPORT-002); an event of another sport is refused by `validate` and thrown on
+// handed that sport's (RULE-QS-SPORT-902); an event of another sport is refused by `validate` and thrown on
 // by `apply` and `undo`, never guessed at.
 
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
@@ -106,30 +106,30 @@ export interface SportScoring {
   ) => StatEventVerdict;
   /**
    * `state` with one sport event or one `STAT_CORRECTION` applied. A missing line is created from
-   * the sport's empty line (SPORT-105); a player line whose counters all return to zero is dropped;
+   * the sport's empty line (RULE-QS-SPORT-915); a player line whose counters all return to zero is dropped;
    * a team line never is. Throws on a void, another sport's event, or a correction to a field not in
    * `correctableFields`.
    */
   readonly apply: (state: GameStats, event: StatEventBody) => GameStats;
-  /** The exact inverse of `apply(target)` for one of the sport's own events (SPORT-103). */
+  /** The exact inverse of `apply(target)` for one of the sport's own events (RULE-QS-SPORT-913). */
   readonly undo: (state: GameStats, target: StatEventBody) => GameStats;
   /** `line` with every derived field of its kind; the only caller of any derivation formula. */
   readonly deriveLine: (kind: StatLineKind, line: StatLineValues) => StatLineValues;
   readonly correctableFields: CorrectableFields;
   /** The next round to record for a sport played in rounds, `null` once all are or for any other sport. */
   readonly nextRound: (state: GameStats) => number | null;
-  /** Whether the game may be finalized (SPORT-202). */
+  /** Whether the game may be finalized (RULE-QS-SPORT-922). */
   readonly finalizationReadiness: (state: GameStats, game: GameTeamIds) => FinalizationReadiness;
   /**
    * The games-played decision finalize stores: the roster entries credited no game played, from
-   * each entry's own line and absence, in roster order (SPORT-204).
+   * each entry's own line and absence, in roster order (RULE-QS-SPORT-924).
    */
   readonly participation: (
     state: GameStats,
     rosterPlayerIds: readonly string[],
     absentRosterPlayerIds: readonly string[],
   ) => string[];
-  /** What a completed game adds to every derived destination (SPORT-207). */
+  /** What a completed game adds to every derived destination (RULE-QS-SPORT-927). */
   readonly contribution: (game: FinalizedGame) => GameContribution;
 }
 

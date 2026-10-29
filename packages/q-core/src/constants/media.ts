@@ -21,7 +21,7 @@ export const STALE_PENDING_MEDIA_AGE_MS = 30 * MINUTE_MS;
 // accepted, consumed by a signing, or left by a finished upload — and the sweep deletes it.
 export const ABANDONED_STAGING_AGE_MS = 24 * HOUR_MS;
 
-// The maintenance sweep's per-run bounds (BACKEND-112). Each pass stops at its bound and the next
+// The maintenance sweep's per-run bounds (RULE-STD-BACKEND-112). Each pass stops at its bound and the next
 // scheduled run continues.
 export const STALE_PENDING_MEDIA_PAGE_SIZE = 100;
 export const MAX_STALE_PENDING_MEDIA_PAGES_PER_RUN = 5;

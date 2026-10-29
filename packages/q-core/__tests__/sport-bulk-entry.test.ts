@@ -1,5 +1,5 @@
 // Each sport's bulk entry is validated twice — by the form and again by the scoring write, which sees
-// events, never form values (SPORT-006). The property: every draft `toEvents` builds from a value the
+// events, never form values (RULE-QS-SPORT-906). The property: every draft `toEvents` builds from a value the
 // form accepts is accepted by the store driver, in order, against the state the form read, and the
 // rollup it leaves reproduces the form's values; and for each rule, the form refuses one value and
 // the store driver refuses the event that value would have become.

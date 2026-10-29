@@ -15,7 +15,7 @@ const RESERVED_DOCUMENT_ID_PATTERN = /^__.*__$/;
  * Whether `id` names exactly one document under its collection: non-empty, no `/`, at most
  * `MAX_DOCUMENT_ID_BYTES` UTF-8 bytes, not `.` or `..`, and not an id Firestore reserves (`__…__`).
  * A `/` would address another document or a subcollection, and an empty id the collection itself,
- * so every id atom a path is built from checks this before any path exists (ARCH-106).
+ * so every id atom a path is built from checks this before any path exists (RULE-STD-ARCH-106).
  */
 export function isDocumentIdSegment(id: string): boolean {
   if (id.length === 0 || id.includes('/')) return false;

@@ -1,7 +1,7 @@
 // A sport's bulk entry: the form the shared bulk-entry dialog renders for the sport's kind, and the
 // events a submission becomes. The form's rules are built from the sport's constants, and every one
 // of them is also an event rule the adapter's `validate` enforces, because the callable sees events,
-// never form values, and captains use it (SPORT-006).
+// never form values, and captains use it (RULE-QS-SPORT-906).
 
 import { z } from 'zod';
 import { countSchema } from '../doc-schemas/atoms.js';

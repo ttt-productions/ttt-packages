@@ -1,8 +1,8 @@
-// The audit vocabulary: the closed event-type union (BACKEND-202) and how an actor was acting
-// (BACKEND-205). The document schema is in ../doc-schemas/audit-event.ts.
+// The audit vocabulary: the closed event-type union (RULE-STD-BACKEND-202) and how an actor was acting
+// (RULE-STD-BACKEND-205). The document schema is in ../doc-schemas/audit-event.ts.
 //
 // The union is closed: a new sensitive action adds its event types here, in the same change
-// (BACKEND-202).
+// (RULE-STD-BACKEND-202).
 
 import type { SystemRole } from './unions.js';
 import { CAPTAIN_TEAM_ROLES } from './unions.js';
@@ -134,7 +134,7 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   'system.manualIntervention',
   // The migration console — one page of a cutover action run, with what it read, wrote, and found;
   // the documents an action core wrote and removed, committed in the same batch or transaction as
-  // those writes (its action id, operation id, and document ids only — BACKEND-203); a product
+  // those writes (its action id, operation id, and document ids only — RULE-STD-BACKEND-203); a product
   // control's run recorded once its evidence checked; an operator checkpoint recorded with its
   // evidence; and the cutover, after which the product owns every destination
   'migrationAction.pageRun',

@@ -1,7 +1,7 @@
 // Callable contracts for signing a league's waiver and reading the result. The signer is always
 // `request.auth.uid`. A signature image arrives only as the staging path the signer uploaded it to;
 // the server rebuilds that path from the signer's own uid and derives where the image is kept from
-// the records, never from the payload (MEDIA-002).
+// the records, never from the payload (RULE-STD-MEDIA-002).
 
 import { z } from 'zod';
 import {

@@ -1,7 +1,7 @@
 // The app addresses a link is built to: a league's pages — the league, one of its teams, one of its
 // games and that game's scoring page — and the admin Leagues workspace. Both roots build these links:
 // the server writes one onto an admin notification card, and the app links to every one of them, so
-// each address shape has one change point (ARCH-101).
+// each address shape has one change point (RULE-STD-ARCH-101).
 
 const LEAGUE_PATH = '/league';
 

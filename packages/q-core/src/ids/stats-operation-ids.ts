@@ -6,7 +6,7 @@ import { COMPOUND_ID_SEPARATOR } from './compound-ids.js';
 const GAME_DELETION_OPERATION_ID_PREFIX = 'gameDeletion';
 
 // A game is deleted at most once, so its id names the one deletion it can have; a client-minted id
-// would let a caller address another action's operation document (BACKEND-102).
+// would let a caller address another action's operation document (RULE-STD-BACKEND-102).
 export function buildGameDeletionOperationId(gameId: string): string {
   return [GAME_DELETION_OPERATION_ID_PREFIX, gameId].join(COMPOUND_ID_SEPARATOR);
 }

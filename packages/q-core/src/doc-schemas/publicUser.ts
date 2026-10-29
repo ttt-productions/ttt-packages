@@ -1,5 +1,5 @@
 // `publicUsers/{uid}` — display identity for real users AND ghosts, resolved at read time by
-// everything that shows a name (ARCH-103). `displayName_lowercase` powers prefix search.
+// everything that shows a name (RULE-STD-ARCH-103). `displayName_lowercase` powers prefix search.
 
 import { z } from 'zod';
 import { epochMsSchema } from './atoms.js';

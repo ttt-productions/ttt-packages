@@ -66,7 +66,7 @@ const undo = (targetEventId: string): StatEventSubmission => ({
 
 const GAME = { teamIds: [HOME, AWAY] };
 
-/** A write against a game whose stored rollup is the replay of its stored events, as SPORT-101 holds. */
+/** A write against a game whose stored rollup is the replay of its stored events, as RULE-QS-SPORT-911 holds. */
 function batchOf(
   submissions: StatEventSubmission[],
   stored: GameStatEvent[] = [],
@@ -92,7 +92,7 @@ function asStored(decision: StatEventBatchDecision): GameStatEvent[] {
 }
 
 /**
- * SPORT-101: the rollup a write leaves is the replay of every event the store then holds — the ones
+ * RULE-QS-SPORT-911: the rollup a write leaves is the replay of every event the store then holds — the ones
  * it held, and the ones the write accepted.
  */
 function expectRollupIsReplay(
@@ -105,7 +105,7 @@ function expectRollupIsReplay(
   );
 }
 
-describe('decideStatEventBatch — each event id applies exactly once (SPORT-102)', () => {
+describe('decideStatEventBatch — each event id applies exactly once (RULE-QS-SPORT-912)', () => {
   it('sequences each new event after the stored ones and folds it through the adapter', () => {
     const first = tap(BASKETBALL_ONE_POINT_EVENT_TYPE);
     const decision = decideStatEventBatch(batchOf([first], [], 4));

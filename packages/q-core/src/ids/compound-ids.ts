@@ -1,4 +1,4 @@
-// Compound document IDs — one builder and one parser per relationship (ARCH-109).
+// Compound document IDs — one builder and one parser per relationship (RULE-STD-ARCH-109).
 //
 // `firestore.rules` restates these formats, because a rules file cannot import them.
 //

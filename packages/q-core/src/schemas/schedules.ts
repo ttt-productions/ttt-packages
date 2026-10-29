@@ -1,7 +1,7 @@
 // Callable contracts for a league's schedule: a week created with its games, a week's shared fields
 // edited, a week deleted with its games; one game added to a week, edited — moved, rescheduled, or
 // its teams replaced — or deleted. Every one is admin authority, and the acting admin is
-// `request.auth.uid`, never an input field (ARCH-106). Venue labels, calendar days, the sport, and
+// `request.auth.uid`, never an input field (RULE-STD-ARCH-106). Venue labels, calendar days, the sport, and
 // every stat field are derived by the server, never sent.
 
 import { z } from 'zod';
@@ -74,7 +74,7 @@ export type AdminCreateScheduleWeekResult = z.infer<typeof AdminCreateScheduleWe
 
 // Only the week's shared fields the admin changed: a field left out keeps what each game holds, so
 // two admins editing different fields of one week never write each other's loaded values back
-// (BACKEND-116). The venue is named by id, and the week shows its name.
+// (RULE-STD-BACKEND-116). The venue is named by id, and the week shows its name.
 export const AdminUpdateScheduleWeekInputSchema = z
   .object({
     leagueId: leagueIdSchema,

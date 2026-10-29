@@ -3,7 +3,7 @@
 // Builders take the clock reading and the random suffix as arguments so they stay pure: the caller
 // supplies `Date.now()` and its own randomness.
 
-// A placeholder player carries a `ghost_`-prefixed id and has a publicUsers document (BACKEND-120).
+// A placeholder player carries a `ghost_`-prefixed id and has a publicUsers document (RULE-QS-BACKEND-903).
 export const GHOST_USER_ID_PREFIX = 'ghost_';
 
 export function isGhostUserId(userId: string): boolean {

@@ -1,4 +1,4 @@
-// Why a picture's files are owed deletion (ARCH-102). A retirement is written in the same
+// Why a picture's files are owed deletion (RULE-STD-ARCH-102). A retirement is written in the same
 // transaction that drops a picture's last reference, fails its upload, or deletes its owner.
 //   removed       an admin removed it from its gallery or its slot
 //   replaced      a newer upload took its slot

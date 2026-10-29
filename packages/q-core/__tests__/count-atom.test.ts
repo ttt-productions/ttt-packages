@@ -1,4 +1,4 @@
-// `countSchema` is the one count atom (ENG-002): a tally a document or a callable result holds is
+// `countSchema` is the one count atom (RULE-STD-ENG-002): a tally a document or a callable result holds is
 // that atom, never a private unbounded whole non-negative number beside it. The pins prove the
 // schemas that hold counts use it; the scan fails the next private copy anywhere in the package.
 
