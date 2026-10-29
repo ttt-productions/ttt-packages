@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/consent-core",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Generic analytics/cookie consent: one choice per browser, applied in every tab, off until accepted",
   "repository": {
     "type": "git",
