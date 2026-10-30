@@ -22,7 +22,7 @@ export type StatEventDraft = SportStatEventBody | StatVoidBody;
 
 export interface BulkEntryForm<K extends BulkEntryKind, Values> {
   readonly kind: K;
-  readonly formSchema: (context: BulkEntryContext) => z.ZodType<Values>;
+  readonly formSchema: (context: BulkEntryContext) => z.ZodType<Values, Values>;
   readonly formDefaults: (context: BulkEntryContext) => Values;
   readonly toEvents: (values: Values, context: BulkEntryContext) => readonly StatEventDraft[];
 }

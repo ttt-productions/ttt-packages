@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
+import type { z } from 'zod';
 import {
   MAX_CURLING_ROUND_POINTS,
   MAX_STAT_EVENTS_PER_WRITE,
@@ -19,9 +20,12 @@ import {
   bulkEntryCountField,
   type BulkEntryContext,
   type PlayerLinesBulkEntry,
+  type PlayerLinesValues,
   type RoundsBulkEntry,
+  type RoundsValues,
   type StatEventDraft,
   type TeamScoresBulkEntry,
+  type TeamScoresValues,
 } from '../src/sports/bulk-entry.js';
 import { decideStatEventBatch } from '../src/sports/store-driver.js';
 import { getSportAdapter } from '../src/sports/registry.js';
@@ -122,6 +126,16 @@ function submit(
   });
   return decision.ok ? { state: decision.stats } : { refused: decision.code };
 }
+
+describe("a bulk entry form's schema", () => {
+  it('reads and answers the one shape the form fills, so a form library takes it typed', () => {
+    type FormSchemaOf<F extends { formSchema: (context: BulkEntryContext) => z.ZodType }> =
+      ReturnType<F['formSchema']>;
+    expectTypeOf<z.input<FormSchemaOf<PlayerLinesBulkEntry>>>().toEqualTypeOf<PlayerLinesValues>();
+    expectTypeOf<z.input<FormSchemaOf<TeamScoresBulkEntry>>>().toEqualTypeOf<TeamScoresValues>();
+    expectTypeOf<z.input<FormSchemaOf<RoundsBulkEntry>>>().toEqualTypeOf<RoundsValues>();
+  });
+});
 
 describe('the bulk-entry count field', () => {
   it("is the count atom's check, answered with the form's one message", () => {
