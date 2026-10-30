@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_Q_SPORTS_CLAIMS, parseQSportsClaims } from '../src/types/claims.js';
+import {
+  DEFAULT_Q_SPORTS_CLAIMS,
+  RETIRED_SYSTEM_ROLE_CLAIM_KEYS,
+  SYSTEM_ROLE_CLAIM_KEYS,
+  USER_STATUS_CLAIM_KEY,
+  parseQSportsClaims,
+} from '../src/types/claims.js';
 import { SYSTEM_ROLE_KEYS, USER_STATUS_KEYS } from '../src/types/unions.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
@@ -39,22 +45,31 @@ describe('custom-claim contract', () => {
   });
 
   it('holds a role only on an exact true', () => {
-    expect(parseQSportsClaims({ admin: true, referee: true })).toEqual({
-      admin: true,
-      referee: true,
+    expect(parseQSportsClaims({ isAdmin: true, isReferee: true })).toEqual({
+      isAdmin: true,
+      isReferee: true,
       userStatus: 'active',
     });
-    expect(parseQSportsClaims({ admin: 'true', referee: 1 })).toEqual(DEFAULT_Q_SPORTS_CLAIMS);
+    expect(parseQSportsClaims({ isAdmin: 'true', isReferee: 1 })).toEqual(DEFAULT_Q_SPORTS_CLAIMS);
     expect(parseQSportsClaims({})).toEqual(DEFAULT_Q_SPORTS_CLAIMS);
   });
 
-  it('grants nothing from an isAdmin or isReferee claim name', () => {
-    expect(parseQSportsClaims({ isAdmin: true, isReferee: true })).toEqual(DEFAULT_Q_SPORTS_CLAIMS);
+  it("grants nothing from V1's retired admin or referee claim name", () => {
+    expect(parseQSportsClaims({ admin: true, referee: true })).toEqual(DEFAULT_Q_SPORTS_CLAIMS);
   });
 
   it('reads a banned status claim and treats anything else as active', () => {
-    expect(parseQSportsClaims({ userStatus: 'banned' }).userStatus).toBe('banned');
-    expect(parseQSportsClaims({ userStatus: 'suspended' }).userStatus).toBe('active');
+    expect(parseQSportsClaims({ status: 'banned' }).userStatus).toBe('banned');
+    expect(parseQSportsClaims({ status: 'suspended' }).userStatus).toBe('active');
+    expect(parseQSportsClaims({ userStatus: 'banned' }).userStatus).toBe('active');
+  });
+
+  it('keeps the live claim names apart from the retired ones the re-stamp removes', () => {
+    const live = new Set<string>(Object.values(SYSTEM_ROLE_CLAIM_KEYS));
+    for (const retired of Object.values(RETIRED_SYSTEM_ROLE_CLAIM_KEYS)) {
+      expect(live.has(retired)).toBe(false);
+    }
+    expect(live.has(USER_STATUS_CLAIM_KEY)).toBe(false);
   });
 });
 

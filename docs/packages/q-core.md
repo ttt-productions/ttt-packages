@@ -8,6 +8,8 @@ system model lives in Q-Sports' `docs/design/`.
 
 - Q-Sports' Firestore paths (`COLLECTIONS`, the subcollection maps, `PATH_BUILDERS`,
   `COLLECTION_REFS`, `toPath`) and compound and minted document ids
+- Every app page address, built through `APP_ROUTES` (`./paths`), and the custom-claim contract both
+  roots parse the ID token against (`./types`)
 - Q-Sports' types, unions, constants, and business copy
 - Callable input schemas and the Firestore document-schema registry (`COLLECTION_SCHEMAS`)
 - The Q-Sports domain-event catalog and the admin-notification configuration

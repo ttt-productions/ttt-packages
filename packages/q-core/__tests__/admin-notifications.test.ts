@@ -53,11 +53,7 @@ import {
   ADMIN_NOTIFICATION_TYPE_KEYS,
   NOTIFICATION_DELIVERY_PAYLOAD_VERSION,
 } from '../src/types/notifications.js';
-import {
-  adminLeagueHref,
-  leagueTeamHref,
-  LEAGUE_FREE_AGENTS_SECTION,
-} from '../src/utils/app-routes.js';
+import { APP_ROUTES, LEAGUE_FREE_AGENTS_SECTION } from '../src/paths/app-routes.js';
 import { anyInstanceOf } from '../../../test/matchers.js';
 
 const NOW = 1_760_000_000_000;
@@ -294,9 +290,9 @@ describe('what each card says and links to', () => {
     const metadata = { leagueId: 'league-1', teamId: 'team 1' };
     expect(config.defaultTargetPath).toBeTypeOf('function');
     expect((config.defaultTargetPath as (m: Record<string, unknown>) => string)(metadata)).toBe(
-      leagueTeamHref('league-1', 'team 1'),
+      APP_ROUTES.leagueTeam('league-1', 'team 1'),
     );
-    expect(leagueTeamHref('league-1', 'team 1')).toBe('/league/league-1/team/team%201');
+    expect(APP_ROUTES.leagueTeam('league-1', 'team 1')).toBe('/league/league-1/team/team%201');
     expect(config.titlePattern(metadata)).toBe('New team');
     expect(config.countCap).toBe(1);
   });
@@ -315,7 +311,7 @@ describe('what each card says and links to', () => {
     expect((config.defaultTargetPath as (m: Record<string, unknown>) => string)(metadata)).toBe(
       '/admin?view=leagues&league=league-1&section=free-agents',
     );
-    expect(adminLeagueHref('league-1', LEAGUE_FREE_AGENTS_SECTION)).toBe(
+    expect(APP_ROUTES.adminLeague('league-1', LEAGUE_FREE_AGENTS_SECTION)).toBe(
       '/admin?view=leagues&league=league-1&section=free-agents',
     );
     expect(config.messagePattern(metadata, 1)).toBe('A player signed up as a free agent.');

@@ -135,6 +135,11 @@ export const UpdateAdminListResultSchema = z
   .strict();
 export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 
+// The one sentence `updateAdminList` refuses an admin's revoke of their own admin role with, and the
+// role screen shows on the control it withholds.
+export const ADMIN_SELF_REVOKE_REFUSAL =
+  "You can't revoke your own admin standing. Ask another admin to do it.";
+
 // An admin bans an account or lifts its ban. The reason is internal — recorded on the audit event,
 // never shown to the account (RULE-STD-BACKEND-212). Banning or unbanning to the status the account already
 // holds changes nothing.

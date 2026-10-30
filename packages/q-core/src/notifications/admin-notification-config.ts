@@ -20,11 +20,7 @@ import {
   ADMIN_NOTIFICATION_TYPE_KEYS,
 } from '../types/notifications.js';
 import type { AdminNotificationType } from '../types/notifications.js';
-import {
-  LEAGUE_FREE_AGENTS_SECTION,
-  adminLeagueHref,
-  leagueTeamHref,
-} from '../utils/app-routes.js';
+import { APP_ROUTES, LEAGUE_FREE_AGENTS_SECTION } from '../paths/app-routes.js';
 
 export interface AdminNotificationDefinition<T extends AdminNotificationType> {
   /**
@@ -57,7 +53,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: {
     title: 'New team',
     icon: '👥',
     message: () => 'A new team joined a league.',
-    targetPath: ({ leagueId, teamId }) => leagueTeamHref(leagueId, teamId),
+    targetPath: ({ leagueId, teamId }) => APP_ROUTES.leagueTeam(leagueId, teamId),
     countCap: 1,
   },
   leagueFreeAgentSignedUp: {
@@ -71,7 +67,7 @@ export const ADMIN_NOTIFICATION_DEFINITIONS: {
       count === 1
         ? 'A player signed up as a free agent.'
         : `A player signed up as a free agent ${count} times.`,
-    targetPath: ({ leagueId }) => adminLeagueHref(leagueId, LEAGUE_FREE_AGENTS_SECTION),
+    targetPath: ({ leagueId }) => APP_ROUTES.adminLeague(leagueId, LEAGUE_FREE_AGENTS_SECTION),
   },
 };
 

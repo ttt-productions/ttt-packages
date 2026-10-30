@@ -13,6 +13,10 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   'user.displayNameChanged',
   // The scheduled sweep deleted a sign-in account that never finished registering (no profile)
   'user.abandonedRegistrationDeleted',
+  // A successful sign-up or sign-in, and a completed password reset, recorded after the fact from
+  // Identity Platform's user-activity log
+  'user.signedIn',
+  'user.passwordResetCompleted',
   // Account status — an admin banned an account or lifted its ban
   'user.accountBanned',
   'user.accountUnbanned',

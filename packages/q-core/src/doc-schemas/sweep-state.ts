@@ -58,10 +58,22 @@ export const SweepDeferredRowSchema = z
   .strict();
 export type SweepDeferredRow = z.infer<typeof SweepDeferredRowSchema>;
 
+// Where a weekly full sign-in account scan stands in its lap. Firebase Auth lists accounts only by
+// page token, with no key to resume after; a token it no longer accepts restarts the lap.
+export const SweepAuthScanLapSchema = z
+  .object({
+    pageToken: z.string().min(1),
+    lapStartedAt: epochMsSchema,
+  })
+  .strict();
+export type SweepAuthScanLap = z.infer<typeof SweepAuthScanLapSchema>;
+
 export const SweepStateSchema = z
   .object({
-    /** Wall-clock ms the last full sign-in account scan ran (absent = never). */
+    /** Wall-clock ms the last full sign-in account scan reached the end of its lap (absent = never). */
     fullScanLastRunAt: epochMsSchema.optional(),
+    /** The full scan's lap in progress; absent between laps. */
+    fullScanLap: SweepAuthScanLapSchema.optional(),
     rollingCursor: SweepRollingCursorSchema.optional(),
     deferred: z.array(SweepDeferredRowSchema).max(SWEEP_STATE_MAX_DEFERRED).optional(),
     updatedAt: epochMsSchema,

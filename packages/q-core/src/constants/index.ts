@@ -5,3 +5,4 @@ export * from './media.js';
 export * from './telemetry.js';
 export * from './scheduled-jobs.js';
 export * from './deployment.js';
+export * from './admin-views.js';

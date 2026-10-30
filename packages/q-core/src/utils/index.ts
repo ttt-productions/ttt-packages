@@ -5,7 +5,6 @@ export * from './team-creation.js';
 export * from './account-status.js';
 export * from './league-join-warning.js';
 export * from './schedules.js';
-export * from './app-routes.js';
 export * from './team-member-actions.js';
 export * from './league-mode.js';
 export * from './league-joining.js';

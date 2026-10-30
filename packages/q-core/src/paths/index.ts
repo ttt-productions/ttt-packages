@@ -5,3 +5,4 @@ export * from './collection-groups.js';
 export * from './utils.js';
 export * from './storage-paths.js';
 export * from './picture-owner-paths.js';
+export * from './app-routes.js';
