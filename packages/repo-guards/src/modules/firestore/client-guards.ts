@@ -12,6 +12,19 @@ import { isUnder } from '../../support/text.js';
 const FIRESTORE_SDK = /^firebase\/firestore(?:\/|$)/;
 const APP_SOURCE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
+function propertyName(node: ts.ObjectLiteralElementLike): string | null {
+  if (ts.isShorthandPropertyAssignment(node)) return node.name.text;
+  if (ts.isPropertyAssignment(node) || ts.isMethodDeclaration(node))
+    return ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : null;
+  return null;
+}
+
+// An object holding `read` beside `subscribe` is an external store source (query-core's
+// `LiveSessionSource`); no Firestore read hook takes a `read` option.
+function isStoreSource(object: ts.ObjectLiteralExpression): boolean {
+  return object.properties.some((property) => propertyName(property) === 'read');
+}
+
 export function liveSubscriptionHits(file: FileView): Hit[] {
   const source = file.sourceFile;
   const snapshotNames = new Set(['onSnapshot']);
@@ -26,11 +39,17 @@ export function liveSubscriptionHits(file: FileView): Hit[] {
   const at = (node: ts.Node, detail: string) => hits.push({ index: node.getStart(source), detail });
   forEachNode(source, (node) => {
     if (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.parent)) {
-      const key =
-        ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : null;
-      if (key === 'subscribe' && node.initializer.kind !== ts.SyntaxKind.FalseKeyword)
+      if (
+        propertyName(node) === 'subscribe' &&
+        node.initializer.kind !== ts.SyntaxKind.FalseKeyword &&
+        !isStoreSource(node.parent)
+      )
         at(node, `subscribe: ${node.initializer.getText(source)}`);
-    } else if (ts.isShorthandPropertyAssignment(node) && node.name.text === 'subscribe') {
+    } else if (
+      ts.isShorthandPropertyAssignment(node) &&
+      node.name.text === 'subscribe' &&
+      !isStoreSource(node.parent)
+    ) {
       at(node, '{ subscribe }');
     } else if (ts.isCallExpression(node)) {
       const callee = node.expression;
@@ -62,7 +81,8 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
           'A live read bills a document read on every change for as long as it is mounted, so it is a reviewed exception: ' +
           'a file that declares live mode — a subscribe option set to anything but a literal false, the { subscribe } ' +
           "shorthand, or an onSnapshot call under any name the file bound the Firestore SDK's to — is on the reviewed " +
-          'list with why it needs real-time delivery. Fix: read once and keep it fresh through the cache, or add the ' +
+          'list with why it needs real-time delivery. An object holding read beside subscribe is a store source (a ' +
+          'session feed), not a read option, and is not live mode. Fix: read once and keep it fresh through the cache, or add the ' +
           'reviewed entry. An entry whose file no longer subscribes is stale.',
         scope: APP_SOURCE,
         match: liveSubscriptionHits,
@@ -80,6 +100,8 @@ export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts
             'useFirestoreDoc({ docPath, queryKey, subscribe: false });',
             'const unsubscribe = cache.subscribe((event) => handle(event));',
             'return useSyncExternalStore(subscribe, readValue, getServerValue);',
+            'const LIVE_SESSION: LiveSessionSource = { read: liveUid, subscribe: subscribeSession };',
+            '<MutationSessionProvider liveSession={{ read, subscribe }} />;',
             '// subscribe: true is a reviewed exception\nconst x = 1;',
           ],
         },

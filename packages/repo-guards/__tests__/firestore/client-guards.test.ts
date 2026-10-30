@@ -76,6 +76,18 @@ describe('every live Firestore subscription is on the reviewed list', () => {
     expect(lines(findings)).toEqual(['src/hooks/was-live.ts:-']);
   });
 
+  it('PASSES a store source holding read beside subscribe, and still FLAGS live mode beside other keys', async () => {
+    const findings = await run(build([]), {
+      'src/app/session.tsx': [
+        'const LIVE_SESSION: LiveSessionSource = { read: liveUid, subscribe: subscribeSession };',
+        'const inline = { read, subscribe };',
+        "const quoted = { 'read': liveUid, 'subscribe': feed };",
+      ].join('\n'),
+      'src/hooks/live.ts': 'useFirestoreDoc({ docPath, readOnly: true, subscribe: true });',
+    });
+    expect(lines(findings)).toEqual(['src/hooks/live.ts:1']);
+  });
+
   it('reads no test code', async () => {
     expect(
       await run(build([]), { 'src/hooks/a.test.ts': 'useFirestoreDoc({ subscribe: true });' }),
