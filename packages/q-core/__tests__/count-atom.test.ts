@@ -228,7 +228,17 @@ describe('countSchema is the one count atom', () => {
     expect(results.refereesGranted).toBe(countSchema);
     expect(results.refereesRevoked).toBe(countSchema);
     expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.retried).toBe(countSchema);
-    expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.reconciled).toBe(countSchema);
+    expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.reconciled.unwrap()).toBe(countSchema);
+  });
+
+  it('a roster retry answers null, not 0, when its immediate attempt did not run', () => {
+    const answer = { teamId: 'team-1', retried: 2, damagedTeamMembershipIds: [] };
+    expect(
+      AdminRetryLeagueTeamRosterSyncResultSchema.safeParse({ ...answer, reconciled: null }).success,
+    ).toBe(true);
+    expect(
+      AdminRetryLeagueTeamRosterSyncResultSchema.safeParse({ ...answer, reconciled: -1 }).success,
+    ).toBe(false);
   });
 });
 

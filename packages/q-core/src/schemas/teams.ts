@@ -106,7 +106,9 @@ export const AdminRetryLeagueTeamRosterSyncResultSchema = z
   .object({
     teamId: teamIdSchema,
     retried: countSchema,
-    reconciled: countSchema,
+    // null when the immediate attempt after the commit did not run; the scheduler still finishes
+    // every obligation the retry re-armed.
+    reconciled: countSchema.nullable(),
     damagedTeamMembershipIds: z.array(z.string().min(1)),
   })
   .strict();
