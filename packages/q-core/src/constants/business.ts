@@ -75,6 +75,8 @@ export const MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
 export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 10;
 export const MAX_ROSTER_ENTRIES_PER_TEAM =
   MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
+export const gameRosterBound = (teamIds: readonly string[]): number =>
+  MAX_ROSTER_ENTRIES_PER_TEAM * teamIds.length;
 export const scheduledGameLabel = (weekTitle: string, dayKey: string): string =>
   `The ${weekTitle} game on ${dayKey}`;
 export const gameSideFullMessage = (gameLabel: string): string =>

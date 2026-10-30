@@ -22,6 +22,7 @@ import {
   SCHEDULE_WEEK_FULL_MESSAGE,
   TEAM_FULL_MESSAGE,
   countCapReachedMessage,
+  gameRosterBound,
   gameSideDepartedFullMessage,
   gameSideFullMessage,
   scheduledGameLabel,
@@ -41,6 +42,11 @@ describe('a team holds at most 30 players, ghost players included', () => {
   it("reads a game side's 30 players plus the 10 departed players who recorded stats in it", () => {
     expect(MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM).toBe(10);
     expect(MAX_ROSTER_ENTRIES_PER_TEAM).toBe(40);
+  });
+
+  it("bounds a game's whole roster by a full side for each of its teams", () => {
+    expect(gameRosterBound(['team-a', 'team-b'])).toBe(80);
+    expect(gameRosterBound(['team-a'])).toBe(MAX_ROSTER_ENTRIES_PER_TEAM);
   });
 
   it('names the game whose side is full, and what frees a departed place', () => {
