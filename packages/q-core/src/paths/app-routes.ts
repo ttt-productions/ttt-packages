@@ -12,7 +12,7 @@ export const HALL_OF_FAME_SPORT_PARAM = 'sport';
 /** The query-string key the admin page's views live under. */
 export const ADMIN_VIEW_PARAM = 'view';
 
-/** The query-string key a view's sections live under. */
+/** The query-string key a league workspace's sections live under. */
 export const ADMIN_SECTION_PARAM = 'section';
 
 /** The query-string key the Leagues view names the league whose workspace is open under. */
@@ -74,12 +74,12 @@ export const APP_ROUTES = {
   /** A game's scoring page, where a scorer records its stats. */
   sportGameScoring: (leagueId: string, gameId: string): string =>
     `/league/${enc(leagueId)}/game/${enc(gameId)}/stats`,
-  /** An admin view, on one of its sections when one is named; the dashboard is the bare page. */
-  admin: (view?: AdminView, section?: string): string =>
-    withQuery('/admin', [
-      ...(view === undefined || view === 'dashboard' ? [] : [[ADMIN_VIEW_PARAM, view] as const]),
-      ...(section === undefined ? [] : [[ADMIN_SECTION_PARAM, section] as const]),
-    ]),
+  /** An admin view; the dashboard is the bare page. */
+  admin: (view?: AdminView): string =>
+    withQuery(
+      '/admin',
+      view === undefined || view === 'dashboard' ? [] : [[ADMIN_VIEW_PARAM, view]],
+    ),
   /** A league's admin workspace, on one of its sections when one is named. */
   adminLeague: (leagueId: string, section?: AdminLeagueWorkspaceSection): string =>
     withQuery('/admin', adminLeagueEntries(leagueId, section)),

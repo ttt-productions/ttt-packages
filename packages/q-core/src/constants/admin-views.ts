@@ -1,12 +1,21 @@
 // The admin area's views. The admin area is one page, and each view is chosen by its `?view=` slug;
-// the dashboard is the bare page. Both roots link into a view, so the slugs are declared here once.
+// the dashboard is the bare page. Every screen is its own view, listed once in the admin sidebar, so
+// both roots link straight to it; the slugs are declared here once.
 
 export const ADMIN_VIEWS = [
   'dashboard',
   'leagues',
-  'people',
-  'stats',
-  'setup',
+  'users',
+  'roles',
+  'hardware',
+  'statsReports',
+  'fixStats',
+  'landingPage',
+  'appConfig',
+  'gameLocations',
+  'waiverTemplates',
+  'awards',
+  'capacityLimits',
   'migration',
 ] as const;
 

@@ -657,6 +657,35 @@ describe('admin actions outside the admin area go through the admin-actions affo
     ]);
   });
 
+  it('does not count an admin option that sets a widening property as admin-only; still counts one that sets it off', async () => {
+    const widened = { ...facts, adminAuth: { ...facts.adminAuth, widenedBy: ['allowStaff'] } };
+    const files = {
+      ...clean,
+      'functions/src/staff.ts': [
+        'export const staffSign = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: { allowStaff: true } }); });',
+        'export const staffOff = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: { allowStaff: false } }); });',
+      ].join('\n'),
+      'src/lib/admin-remote.ts': [
+        "export const useAdminHide = defineAction('adminHide');",
+        "export const useAdminCopy = defineAction('adminCopy');",
+        "export const useStaffSign = defineAction('staffSign');",
+      ].join('\n'),
+      'src/lib/remote.ts': [
+        "export const useJoin = defineAction('join');",
+        "export const useStaffOff = defineAction('staffOff');",
+      ].join('\n'),
+    };
+    expect(await run(files, widened)).toEqual([
+      'src/lib/admin-remote.ts:3 useStaffSign declares staffSign, which is not an admin-only callable',
+      'functions/src/staff.ts:2 staffOff is admin-only, but the client declares it outside src/lib/admin-remote.ts',
+    ]);
+    // Without the fact, the widening property is just another admin option setting, so staffSign is
+    // admin-only and belongs in the admin declarations.
+    expect(await run(files)).toEqual([
+      'functions/src/staff.ts:2 staffOff is admin-only, but the client declares it outside src/lib/admin-remote.ts',
+    ]);
+  });
+
   it('may be declared absent, and refuses a reviewed entry with an empty symbol', () => {
     expect(adminActionSurfaceGuard.absentWhen).toBeTruthy();
     expect(

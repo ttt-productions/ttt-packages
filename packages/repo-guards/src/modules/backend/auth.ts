@@ -475,7 +475,12 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
 };
 
 export interface AdminActionSurfaceFacts {
-  adminAuth: { call: string; option: string };
+  /**
+   * The auth call and the option that marks a callable admin-only. `widenedBy` names the option's own
+   * properties that admit a role beyond the admin (a staff role that is not admin standing): a call
+   * whose option object sets one of them to anything but false, null, or undefined is not admin-only.
+   */
+  adminAuth: { call: string; option: string; widenedBy?: readonly string[] };
   adminCheckers: readonly string[];
   checkerReaders: readonly Reviewed[];
   adminDeclarations: CallableDeclarationFacts;
@@ -491,7 +496,19 @@ export interface AdminActionSurfaceFacts {
 
 const APP_CLIENT_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
+const propertyName = (p: ts.ObjectLiteralElementLike): string | undefined =>
+  p.name?.getText().replace(/^['"]|['"]$/g, '');
+
 function authCallsIn(root: ts.Node, adminAuth: AdminActionSurfaceFacts['adminAuth']) {
+  const widening = new Set(adminAuth.widenedBy ?? []);
+  // An option object that sets a widening property admits a role beyond the admin.
+  const widens = (value: ts.Expression): boolean =>
+    ts.isObjectLiteralExpression(value) &&
+    value.properties.some(
+      (p) =>
+        widening.has(propertyName(p) ?? '') &&
+        !(ts.isPropertyAssignment(p) && isOffLiteral(p.initializer)),
+    );
   const calls: Array<{ admin: boolean }> = [];
   forEachNode(root, (node) => {
     if (!ts.isCallExpression(node) || calleeName(node) !== adminAuth.call) return;
@@ -501,8 +518,11 @@ function authCallsIn(root: ts.Node, adminAuth: AdminActionSurfaceFacts['adminAut
           ts.isObjectLiteralExpression(arg) &&
           arg.properties.some(
             (p) =>
-              p.name?.getText().replace(/^['"]|['"]$/g, '') === adminAuth.option &&
-              !(ts.isPropertyAssignment(p) && isOffLiteral(p.initializer)),
+              propertyName(p) === adminAuth.option &&
+              !(
+                ts.isPropertyAssignment(p) &&
+                (isOffLiteral(p.initializer) || widens(p.initializer))
+              ),
           ),
       ),
     });
@@ -608,6 +628,8 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
     if (objectProblem(facts?.adminAuth, 'adminAuth', problems)) {
       textProblem(facts.adminAuth.call, 'adminAuth.call', problems);
       textProblem(facts.adminAuth.option, 'adminAuth.option', problems);
+      if (facts.adminAuth.widenedBy !== undefined)
+        namesProblem(facts.adminAuth.widenedBy, 'adminAuth.widenedBy', problems);
     }
     namesProblem(facts?.adminCheckers, 'adminCheckers', problems);
     reviewedProblems(facts?.checkerReaders, 'checkerReaders', problems);
@@ -628,7 +650,11 @@ export const adminActionSurfaceGuard: GenericGuardDefinition<AdminActionSurfaceF
         title: 'admin actions outside the admin area go through the admin-actions affordance',
         description:
           `The admin-only callables are every callable whose ${facts.adminAuth.call} calls all carry ` +
-          `${facts.adminAuth.option}, read from the Functions source each run. Inside a callable module, admin standing ` +
+          `${facts.adminAuth.option}` +
+          (facts.adminAuth.widenedBy?.length
+            ? ` without ${facts.adminAuth.widenedBy.join(' or ')}`
+            : '') +
+          ', read from the Functions source each run. Inside a callable module, admin standing ' +
           `is checked only through that auth call: ${facts.adminCheckers.join(', ')} is called only by the reviewed ` +
           `readers. ${facts.adminDeclarations.modules.join(', ')} declares only admin-only callables, and every admin-only ` +
           `callable the client declares (${facts.clientDeclarations.modules.join(', ')}) is declared there; one with no ` +

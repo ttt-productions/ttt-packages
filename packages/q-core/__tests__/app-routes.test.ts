@@ -1,6 +1,6 @@
 // The app addresses both roots link to: each is one path segment per id, every id encoded so an id
-// holding a `/` or a space still addresses its own page, and an admin section always rides in the
-// one query-string key.
+// holding a `/` or a space still addresses its own page, and a league workspace's section always
+// rides in the one query-string key.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -61,13 +61,8 @@ describe('the admin page', () => {
     }
   });
 
-  it('puts any admin section in the one query-string key, after the view when there is one', () => {
-    expect(ADMIN_SECTION_PARAM).toBe('section');
-    expect(APP_ROUTES.admin('setup', 'waivers')).toBe('/admin?view=setup&section=waivers');
-    expect(APP_ROUTES.admin('dashboard', 'a b')).toBe('/admin?section=a%20b');
-  });
-
   it('names a league on the Leagues view, on a section only when one is named', () => {
+    expect(ADMIN_SECTION_PARAM).toBe('section');
     expect(APP_ROUTES.adminLeague('league-1')).toBe('/admin?view=leagues&league=league-1');
     expect(APP_ROUTES.adminLeague('a/b c')).toBe('/admin?view=leagues&league=a%2Fb%20c');
     expect(APP_ROUTES.adminLeague('league-1', 'settings')).toBe(
