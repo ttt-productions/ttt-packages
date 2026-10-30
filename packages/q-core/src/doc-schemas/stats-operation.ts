@@ -136,6 +136,7 @@ export const GhostPlayerStatsOperationSchema = z
     // is kept, so its stored operation still resumes.
     reason: repairReasonSchema.optional(),
     removedFinishedGameEntries: z.array(GhostRemovedFinishedEntrySchema).optional(),
+    removedOpenGameIds: z.array(gameIdSchema).optional(),
     linkedGames: z.array(GhostLinkedGameSchema).optional(),
     destinationChanges: z.array(StatsDestinationChangeSchema).optional(),
     membershipOutcome: z.enum(GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS).optional(),

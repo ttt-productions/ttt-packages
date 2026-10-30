@@ -75,6 +75,12 @@ export const MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
 export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 10;
 export const MAX_ROSTER_ENTRIES_PER_TEAM =
   MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
+export const scheduledGameLabel = (weekTitle: string, dayKey: string): string =>
+  `The ${weekTitle} game on ${dayKey}`;
+export const gameSideFullMessage = (gameLabel: string): string =>
+  countCapReachedMessage(gameLabel, MAX_ROSTER_ENTRIES_PER_TEAM, "people on this team's side");
+export const gameSideDepartedFullMessage = (gameLabel: string): string =>
+  `${gameLabel} already keeps the ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.`;
 
 export const MAX_TEAMS_PER_LEAGUE = 40;
 export const MAX_GAMES_PER_LEAGUE = 250;

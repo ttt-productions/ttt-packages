@@ -22,6 +22,9 @@ import {
   SCHEDULE_WEEK_FULL_MESSAGE,
   TEAM_FULL_MESSAGE,
   countCapReachedMessage,
+  gameSideDepartedFullMessage,
+  gameSideFullMessage,
+  scheduledGameLabel,
 } from '../src/constants/business.js';
 import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location.js';
 import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template.js';
@@ -38,6 +41,17 @@ describe('a team holds at most 30 players, ghost players included', () => {
   it("reads a game side's 30 players plus the 10 departed players who recorded stats in it", () => {
     expect(MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM).toBe(10);
     expect(MAX_ROSTER_ENTRIES_PER_TEAM).toBe(40);
+  });
+
+  it('names the game whose side is full, and what frees a departed place', () => {
+    const game = scheduledGameLabel('Week 3', '2026-03-04');
+    expect(game).toBe('The Week 3 game on 2026-03-04');
+    expect(gameSideFullMessage(game)).toBe(
+      "The Week 3 game on 2026-03-04 already has the maximum of 40 people on this team's side.",
+    );
+    expect(gameSideDepartedFullMessage(game)).toBe(
+      "The Week 3 game on 2026-03-04 already keeps the 10 players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.",
+    );
   });
 
   it('says the team is full, with its limit', () => {

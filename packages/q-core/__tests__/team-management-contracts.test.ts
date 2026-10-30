@@ -171,6 +171,23 @@ describe("a ghost's one operation", () => {
     ).toBe(false);
   });
 
+  it('records the open games a paged removal has taken the ghost off so far', () => {
+    const removal = {
+      kind: 'ghostPlayerStats',
+      scope: { action: 'removal', teamId: 'team-1', ghostUserId: GHOST },
+      startedByUserId: 'captain-1',
+      startedAt: 1,
+      updatedAt: 2,
+      status: 'running',
+      counts: { read: 2, changed: 2, skipped: 0 },
+      removedOpenGameIds: ['g1', 'g2'],
+    };
+    expect(StatsOperationSchema.safeParse(removal).success).toBe(true);
+    expect(
+      GhostPlayerStatsOperationSchema.safeParse({ ...removal, removedOpenGameIds: [''] }).success,
+    ).toBe(false);
+  });
+
   it('takes no reason on a link or a removal, and still reads an operation stored with one', () => {
     const removal = {
       kind: 'ghostPlayerStats',
