@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/input-format-core",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "Every input format: the named text formats and money in whole cents — a field's declaration, the one check every input and every server bound runs, and the one money formatter. Tier 0 — no dependencies, no React, server-safe.",
     "repository": {
         "type": "git",
