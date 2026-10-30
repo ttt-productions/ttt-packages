@@ -19,6 +19,13 @@ import {
   AdminUpdateScheduleWeekInputSchema,
 } from '../src/schemas/schedules.js';
 import { teamInvitationIdSchema, teamJoinRequestIdSchema } from '../src/schemas/atoms.js';
+import { GalleryPictureSchema } from '../src/doc-schemas/gallery.js';
+import { PictureOwnerRefSchema } from '../src/doc-schemas/pending-media.js';
+import { PictureRetirementTargetSchema } from '../src/doc-schemas/picture-retirement.js';
+import { PICTURE_OWNER_PATHS, isPictureOwnerId } from '../src/paths/picture-owner-paths.js';
+import { SPECIAL_DOCS } from '../src/paths/collections.js';
+import { PICTURE_OWNER_KIND_KEYS } from '../src/types/picture-owners.js';
+import type { PictureOwnerKind } from '../src/types/picture-owners.js';
 
 const ID_ATOMS = {
   documentIdSegmentSchema,
@@ -103,6 +110,57 @@ describe('the id atoms a path is built from', () => {
         leagueId: 'leagues/l1',
         weekId: 'week_1767225600000_ab12',
         weekTitle: 'Week 1',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('a picture owner id', () => {
+  const ownerIdOf = (kind: PictureOwnerKind) =>
+    kind === 'landingPage' ? SPECIAL_DOCS.LANDING_PAGE : '1767225600000_ab12';
+
+  for (const kind of PICTURE_OWNER_KIND_KEYS) {
+    it(`names one ${kind} document, refused at the parse before any path is built from it`, () => {
+      expect(PictureOwnerRefSchema.safeParse({ kind, id: ownerIdOf(kind) }).success).toBe(true);
+      expect(isPictureOwnerId(kind, ownerIdOf(kind))).toBe(true);
+      for (const id of NOT_ONE_SEGMENT) {
+        expect(PictureOwnerRefSchema.safeParse({ kind, id }).success).toBe(false);
+        expect(isPictureOwnerId(kind, id)).toBe(false);
+      }
+    });
+  }
+
+  it('builds the owner path of a valid id as one document', () => {
+    for (const kind of PICTURE_OWNER_KIND_KEYS) {
+      expect(PICTURE_OWNER_PATHS[kind].ownerDoc(ownerIdOf(kind))).toHaveLength(2);
+    }
+  });
+
+  it('keys the landing page by its fixed id only', () => {
+    expect(PictureOwnerRefSchema.safeParse({ kind: 'landingPage', id: 'league-1' }).success).toBe(
+      false,
+    );
+    expect(isPictureOwnerId('landingPage', 'league-1')).toBe(false);
+  });
+
+  it('holds a gallery picture and a gallery retirement to the same owner check', () => {
+    const picture = { ownerKind: 'sportLeague', position: 'a0', createdAt: 1_700_000_000_000 };
+    const retirement = { kind: 'gallery', ownerKind: 'sportLeague' };
+    expect(GalleryPictureSchema.safeParse({ ...picture, ownerId: 'league-1' }).success).toBe(true);
+    expect(
+      PictureRetirementTargetSchema.safeParse({ ...retirement, ownerId: 'league-1' }).success,
+    ).toBe(true);
+    for (const ownerId of ['venue/private/x', '__a__', '']) {
+      expect(GalleryPictureSchema.safeParse({ ...picture, ownerId }).success).toBe(false);
+      expect(PictureRetirementTargetSchema.safeParse({ ...retirement, ownerId }).success).toBe(
+        false,
+      );
+    }
+    expect(
+      PictureRetirementTargetSchema.safeParse({
+        kind: 'gallery',
+        ownerKind: 'landingPage',
+        ownerId: 'league-1',
       }).success,
     ).toBe(false);
   });

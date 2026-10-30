@@ -35,6 +35,7 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   'award.deleted',
   'award.granted',
   'award.revoked',
+  'award.groupDecisionOpened',
   'hardwareLoanContract.created',
   'hardwareLoanContract.signed',
   'hardwareLoanContract.returned',

@@ -62,8 +62,8 @@ package may consume either.
   edge.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
-  `report-core`) for ttt-prod, and `q-core` (→ `input-format-core`, `media-schemas`,
-  `notification-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
+  `report-core`) for ttt-prod, and `q-core` (→ `edge-protocol-core`, `input-format-core`,
+  `media-schemas`, `notification-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
   rulebook (RULE-STD-ARCH-207), and neither imports the other.
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
@@ -83,8 +83,8 @@ build and release order still honors them):
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,
                               notification-core, report-core
-    q-core                 -> input-format-core, media-schemas,
-                              notification-core, theme-core
+    q-core                 -> edge-protocol-core, input-format-core,
+                              media-schemas, notification-core, theme-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
 

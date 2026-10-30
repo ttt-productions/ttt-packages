@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   CURLING_ROUND_COUNT,
   MAX_CURLING_ROUND_POINTS,
+  MAX_STAT_HISTORY_PAGES,
   STAT_HISTORY_PAGE_SIZE,
 } from '../src/constants/sports.js';
 import {
@@ -483,10 +484,16 @@ describe('the finalized record', () => {
     expect(page({ ...firstPage, events: [event(2), event(1)] })).toBe(false);
     expect(page({ ...firstPage, events: [event(1), event(1)] })).toBe(false);
     const full = Array.from({ length: STAT_HISTORY_PAGE_SIZE }, (_, index) => event(index + 1));
-    expect(page({ ...firstPage, events: full, pageCount: 2 })).toBe(true);
-    expect(
-      page({ ...firstPage, events: [...full, event(STAT_HISTORY_PAGE_SIZE + 1)], pageCount: 2 }),
-    ).toBe(false);
+    expect(page({ ...firstPage, events: full })).toBe(true);
+    expect(page({ ...firstPage, events: [...full, event(STAT_HISTORY_PAGE_SIZE + 1)] })).toBe(
+      false,
+    );
+  });
+
+  it('counts no more pages than the page cap', () => {
+    expect(page({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES })).toBe(true);
+    expect(page({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES + 1 })).toBe(false);
+    expect(page({ ...firstPage, pageCount: Number.MAX_SAFE_INTEGER })).toBe(false);
   });
 
   it('holds only valid stored events', () => {

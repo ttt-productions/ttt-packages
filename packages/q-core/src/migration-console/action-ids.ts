@@ -86,6 +86,13 @@ export const MIGRATION_ACTION_IDS = {
   deleteV1AdminStats: 'delete.v1AdminStats',
 
   verifyV1CommerceDiscardable: 'verify.v1CommerceDiscardable',
+
+  // Read-only checks of V1 data that should never have been stored; the copies they cover wait on
+  // them, and what they report is fixed in V1.
+  verifyV1DisplayNamesUnique: 'verify.v1DisplayNamesUnique',
+  verifyV1TextFitsLimits: 'verify.v1TextFitsLimits',
+  verifyV1LeagueCapacity: 'verify.v1LeagueCapacity',
+  verifyV1HardwareContractIdsUnique: 'verify.v1HardwareContractIdsUnique',
   deleteV1Commerce: 'delete.v1Commerce',
 
   rebuildLeagueStats: 'rebuild.leagueStats',

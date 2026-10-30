@@ -79,5 +79,10 @@ export function leagueInstantOf(dayKey: string, timeOfDay: string): number {
   // The offset at the wall-clock reading taken as UTC is within a day of the right one; read again at
   // the instant that offset gives, so a reading on the other side of a change settles on its own.
   const firstGuess = wallClock - (leagueWallClockAsUtc(wallClock) - wallClock);
-  return wallClock - (leagueWallClockAsUtc(firstGuess) - firstGuess);
+  const instant = wallClock - (leagueWallClockAsUtc(firstGuess) - firstGuess);
+  // A reading the clocks skip forward over settles on another hour; only a real one reads back.
+  if (toLeagueDayKey(instant) !== dayKey || toLeagueTimeOfDay(instant) !== timeOfDay) {
+    throw new RangeError(`Not a time the league's clocks show: '${dayKey}' '${timeOfDay}'.`);
+  }
+  return instant;
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports.js';
+import {
+  MAX_CURLING_ROUND_POINTS,
+  MAX_STAT_HISTORY_PAGES,
+  STAT_HISTORY_PAGE_SIZE,
+} from '../src/constants/sports.js';
+import { MAX_STAT_EVENTS_PER_GAME } from '../src/constants/business.js';
+import { buildStatHistoryPageId } from '../src/ids/stat-event-ids.js';
 import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
 import type { BasketballGameStats } from '../src/doc-schemas/sport-game.js';
 import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids.js';
@@ -282,16 +288,14 @@ describe('applying a contribution to a stored line', () => {
 });
 
 describe('the finalized record', () => {
-  const events = Array.from(
-    { length: STAT_HISTORY_PAGE_SIZE * 2 + 1 },
-    (_, index): GameStatEvent => ({
-      eventId: `1712345678901_${String(index).padStart(5, '0')}`,
-      sequence: index + 1,
-      type: 'TIMEOUT',
-      teamId: A,
-      recordedAt: 1712345678901,
-    }),
-  );
+  const eventAt = (index: number): GameStatEvent => ({
+    eventId: `1712345678901_${String(index).padStart(5, '0')}`,
+    sequence: index + 1,
+    type: 'TIMEOUT',
+    teamId: A,
+    recordedAt: 1712345678901,
+  });
+  const eventsOf = (count: number) => Array.from({ length: count }, (_, index) => eventAt(index));
   const snapshot = {
     leagueType: 'Basketball' as const,
     teamIds: [A, B],
@@ -299,34 +303,71 @@ describe('the finalized record', () => {
     absentRosterPlayerIds: [],
     nonScoringRosterPlayerIds: [entry(A, 'p1')],
   };
+  const largest = eventsOf(MAX_STAT_EVENTS_PER_GAME);
 
-  it('cuts a record past one page into pages, the first carrying the count and the snapshot', () => {
-    const pages = buildFinalizedRecordPages(events, snapshot);
-    expect(pages.map((page) => page.pageId)).toEqual(['page_0000', 'page_0001', 'page_0002']);
-    expect(pages[0]?.page).toMatchObject({ pageCount: 3, ...snapshot });
-    expect(pages.map((page) => page.page.events.length)).toEqual([
-      STAT_HISTORY_PAGE_SIZE,
-      STAT_HISTORY_PAGE_SIZE,
-      1,
-    ]);
+  it('holds every game the live event cap allows within its page cap', () => {
+    expect(MAX_STAT_HISTORY_PAGES).toBe(
+      Math.ceil(MAX_STAT_EVENTS_PER_GAME / STAT_HISTORY_PAGE_SIZE),
+    );
+    const pages = buildFinalizedRecordPages(largest, snapshot);
+    expect(pages).toHaveLength(MAX_STAT_HISTORY_PAGES);
+    expect(pages[0]).toMatchObject({
+      pageId: buildStatHistoryPageId(0),
+      page: { pageCount: MAX_STAT_HISTORY_PAGES, ...snapshot },
+    });
+  });
+
+  it('refuses to build a record past its page cap', () => {
+    const over = eventsOf(MAX_STAT_HISTORY_PAGES * STAT_HISTORY_PAGE_SIZE + 1);
+    expect(() => buildFinalizedRecordPages(over, snapshot)).toThrow(RangeError);
   });
 
   it('reads back every event in order with its snapshot, and replays it to the game it describes', () => {
-    const pages = buildFinalizedRecordPages(events, snapshot).map(({ page }) => page);
-    expect(readFinalizedRecord(pages).events).toHaveLength(events.length);
+    const pages = buildFinalizedRecordPages(largest, snapshot);
+    expect(readFinalizedRecord(pages).events).toEqual(largest);
     const game = finalizedGameFromRecord(basketball, pages);
-    expect(game.stats.teamStats[A]).toEqual({ score: 0, timeouts: events.length });
+    expect(game.stats.teamStats[A]).toEqual({ score: 0, timeouts: largest.length });
     expect(game.nonScoringRosterPlayerIds).toEqual(snapshot.nonScoringRosterPlayerIds);
   });
 
   it('keeps a first page for a game with no events', () => {
-    expect(buildFinalizedRecordPages([], snapshot)).toHaveLength(1);
+    const pages = buildFinalizedRecordPages([], snapshot);
+    expect(pages).toHaveLength(1);
+    expect(readFinalizedRecord(pages).events).toEqual([]);
   });
 
-  it('refuses pages that are not one whole record', () => {
-    const pages = buildFinalizedRecordPages(events, snapshot).map(({ page }) => page);
-    expect(() => readFinalizedRecord(pages.slice(0, 2))).toThrow();
-    expect(() => readFinalizedRecord(pages.slice(1))).toThrow();
+  describe('accepts only the exact page set', () => {
+    const [first] = buildFinalizedRecordPages(eventsOf(3), snapshot);
+    if (first === undefined) throw new Error('A record has its first page.');
+    const continuation = { pageId: buildStatHistoryPageId(1), page: { events: [eventAt(3)] } };
+
+    it('refuses no pages, and a set that does not start with the first page', () => {
+      expect(() => readFinalizedRecord([])).toThrow();
+      expect(() => readFinalizedRecord([continuation])).toThrow();
+    });
+
+    it('refuses a page beyond the count, even one that continues the events in order', () => {
+      expect(() => readFinalizedRecord([first, continuation])).toThrow();
+    });
+
+    it('refuses more pages than the cap before reading them as a record', () => {
+      const over = Array.from({ length: MAX_STAT_HISTORY_PAGES + 1 }, () => first);
+      expect(() => readFinalizedRecord(over)).toThrow(/at most/);
+    });
+
+    it('refuses the first page under any other id', () => {
+      expect(() =>
+        readFinalizedRecord([{ ...first, pageId: buildStatHistoryPageId(1) }]),
+      ).toThrow();
+    });
+
+    it('refuses a count the pages do not reach, and a second first page', () => {
+      const counted = { ...first, page: { ...first.page, pageCount: 2 } };
+      expect(() => readFinalizedRecord([counted])).toThrow();
+      expect(() =>
+        readFinalizedRecord([counted, { pageId: buildStatHistoryPageId(1), page: first.page }]),
+      ).toThrow();
+    });
   });
 });
 

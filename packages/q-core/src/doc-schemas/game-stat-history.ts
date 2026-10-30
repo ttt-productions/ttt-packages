@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
+import { MAX_STAT_HISTORY_PAGES, STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
 import { gameRosterPlayerIdSchema, leagueTypeSchema, teamIdSchema } from './atoms.js';
 import { GameStatEventSchema } from './game-stats.js';
 
@@ -14,7 +14,7 @@ const pageEventsSchema = z
 
 export const GameStatHistoryFirstPageSchema = z.strictObject({
   events: pageEventsSchema,
-  pageCount: z.number().int().positive(),
+  pageCount: z.number().int().positive().max(MAX_STAT_HISTORY_PAGES),
   leagueType: leagueTypeSchema,
   teamIds: z.array(teamIdSchema).min(1).max(2),
   rosterPlayerIds: z.array(gameRosterPlayerIdSchema),

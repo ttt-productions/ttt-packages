@@ -7,6 +7,7 @@ import type {
 } from '../types/picture-owners.js';
 import { SPECIAL_DOCS } from './collections.js';
 import { PATH_BUILDERS } from './path-builders.js';
+import { isDocumentIdSegment } from './utils.js';
 
 export const GALLERY_OWNER_PATHS = {
   sportLeague: { ownerDoc: (ownerId: string) => PATH_BUILDERS.sportLeague(ownerId) },
@@ -34,6 +35,6 @@ export const PICTURE_OWNER_PATHS = {
 } as const satisfies Record<PictureOwnerKind, { ownerDoc: (ownerId: string) => [string, string] }>;
 
 export function isPictureOwnerId(kind: PictureOwnerKind, ownerId: string): boolean {
-  if (ownerId.length === 0) return false;
+  if (!isDocumentIdSegment(ownerId)) return false;
   return kind !== 'landingPage' || ownerId === SPECIAL_DOCS.LANDING_PAGE;
 }

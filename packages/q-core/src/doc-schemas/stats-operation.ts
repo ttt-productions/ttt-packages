@@ -41,6 +41,10 @@ const rebuildFields = {
 
 const gameScope = z.strictObject({ gameId: gameIdSchema });
 
+// `hashStatsOperationRequest` of the values the operation was opened with. Optional: an operation
+// stored before it existed still resumes.
+const requestHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
+
 export const LeagueStatsRebuildOperationSchema = z.strictObject({
   ...rebuildFields,
   kind: z.literal('leagueStatsRebuild' satisfies StatsOperationKind),
@@ -71,6 +75,7 @@ export const GameStatsCorrectionOperationSchema = z.strictObject({
   kind: z.literal('gameStatsCorrection' satisfies StatsOperationKind),
   scope: gameScope,
   reason: repairReasonSchema,
+  requestHash: requestHashSchema.optional(),
 });
 
 export const GameStatsRecalculationOperationSchema = z.strictObject({
@@ -85,6 +90,7 @@ export const HistoricalStatsUpdateOperationSchema = z.strictObject({
   kind: z.literal('historicalStatsUpdate' satisfies StatsOperationKind),
   scope: z.strictObject({ userId: userIdSchema, sportKey: sportKeySchema }),
   reason: repairReasonSchema,
+  requestHash: requestHashSchema.optional(),
 });
 
 export const GhostRemovedFinishedEntrySchema = z.strictObject({

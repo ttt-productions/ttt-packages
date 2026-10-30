@@ -36,6 +36,29 @@ describe('leagueInstantOf', () => {
     }
   });
 
+  it('refuses a time the clocks skip on the spring change, however it is entered', () => {
+    for (const timeOfDay of ['02:00', '02:30', '02:59']) {
+      expect(() => leagueInstantOf('2026-03-08', timeOfDay)).toThrow(RangeError);
+    }
+    expect(() => leagueInstantOf('2027-03-14', '02:15')).toThrow(RangeError);
+  });
+
+  it('reads the minutes just before and just after the skipped hour', () => {
+    expect(leagueInstantOf('2026-03-08', '01:59')).toBe(Date.UTC(2026, 2, 8, 6, 59));
+    expect(leagueInstantOf('2026-03-08', '03:00')).toBe(Date.UTC(2026, 2, 8, 7, 0));
+  });
+
+  it('reads the change day from its first minute, and the day before to its last', () => {
+    expect(leagueInstantOf('2026-03-08', '00:00')).toBe(Date.UTC(2026, 2, 8, 5, 0));
+    expect(leagueInstantOf('2026-03-07', '23:59')).toBe(Date.UTC(2026, 2, 8, 4, 59));
+  });
+
+  it('still reads a time in the hour the autumn change repeats', () => {
+    const instant = leagueInstantOf('2026-11-01', '01:30');
+    expect(toLeagueDayKey(instant)).toBe('2026-11-01');
+    expect(toLeagueTimeOfDay(instant)).toBe('01:30');
+  });
+
   it('refuses a day or a time that is not one', () => {
     expect(() => leagueInstantOf('2026-02-30', '19:00')).toThrow(RangeError);
     expect(() => leagueInstantOf('2026-1-5', '19:00')).toThrow(RangeError);

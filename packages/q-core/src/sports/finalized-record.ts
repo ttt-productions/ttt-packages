@@ -1,4 +1,4 @@
-import { STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
+import { MAX_STAT_HISTORY_PAGES, STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
 import type {
   GameStatHistoryFirstPage,
@@ -29,6 +29,11 @@ export function buildFinalizedRecordPages(
 ): FinalizedRecordPage[] {
   const ordered = [...events].sort((left, right) => left.sequence - right.sequence);
   const pageCount = Math.max(1, Math.ceil(ordered.length / STAT_HISTORY_PAGE_SIZE));
+  if (pageCount > MAX_STAT_HISTORY_PAGES) {
+    throw new RangeError(
+      `A finalized record holds at most ${MAX_STAT_HISTORY_PAGES} pages; ${ordered.length} events need ${pageCount}.`,
+    );
+  }
   const pages: FinalizedRecordPage[] = [];
   for (let index = 0; index < pageCount; index += 1) {
     const slice = ordered.slice(
@@ -56,16 +61,32 @@ export function isFirstRecordPage(page: GameStatHistoryPage): page is GameStatHi
   return 'pageCount' in page;
 }
 
-export function readFinalizedRecord(pages: readonly GameStatHistoryPage[]): {
+// The pages as the record's collection lists them, in id order. They are one whole record only as
+// the exact set: the first page at `page_0000`, then a continuation page at each next id, as many in
+// all as the first page counts.
+export function readFinalizedRecord(pages: readonly FinalizedRecordPage[]): {
   readonly snapshot: FinalizedRecordSnapshot;
   readonly events: GameStatEvent[];
 } {
-  const [first, ...rest] = pages;
+  if (pages.length > MAX_STAT_HISTORY_PAGES) {
+    throw new Error(`A finalized record holds at most ${MAX_STAT_HISTORY_PAGES} pages.`);
+  }
+  const [firstEntry, ...restEntries] = pages;
+  const first = firstEntry?.page;
   if (first === undefined || !isFirstRecordPage(first))
     throw new Error('A finalized record starts with its first page.');
   if (first.pageCount !== pages.length) {
     throw new Error(`A finalized record of ${first.pageCount} pages was read as ${pages.length}.`);
   }
+  pages.forEach(({ pageId, page }, index) => {
+    if (pageId !== buildStatHistoryPageId(index)) {
+      throw new Error(`A finalized record holds page ${pageId} at position ${index}.`);
+    }
+    if (index > 0 && isFirstRecordPage(page)) {
+      throw new Error(`A finalized record holds a second first page at ${pageId}.`);
+    }
+  });
+  const rest = restEntries.map(({ page }) => page);
   const events = [...first.events, ...rest.flatMap((page) => page.events)];
   events.forEach((event, index) => {
     if (index > 0 && (events[index - 1] as GameStatEvent).sequence >= event.sequence) {
@@ -84,7 +105,7 @@ export function readFinalizedRecord(pages: readonly GameStatHistoryPage[]): {
 
 export function finalizedGameFromRecord(
   adapter: AnySportAdapter,
-  pages: readonly GameStatHistoryPage[],
+  pages: readonly FinalizedRecordPage[],
 ): FinalizedGame {
   const { snapshot, events } = readFinalizedRecord(pages);
   return {

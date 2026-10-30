@@ -15,7 +15,8 @@ system model lives in Q-Sports' `docs/design/`.
 - The Q-Sports domain-event catalog and the admin-notification configuration
 - The media origins and picture contracts, and the sport registry and adapters (stat events, scoring,
   bulk entry, columns)
-- The 2.0 migration console's manifest, action ids, and run state
+- The 2.0 migration console's manifest (each action's page ceiling and the sources its deletes
+  consume), action ids, run state, and its lock and consumed-source predicates
 
 ## Entry points
 

@@ -3,7 +3,8 @@ import { createPendingMediaSchemas } from '@ttt-productions/media-schemas';
 import { DomainEventSchema } from '../domain-events/domain-events.js';
 import { FILE_ORIGIN_KEYS, PICTURE_ORIGIN_KEYS } from '../media/file-origins.js';
 import { AWARD_DEFINITION_OWNER_KIND } from '../types/picture-owners.js';
-import { countSchema } from './atoms.js';
+import { isPictureOwnerId } from '../paths/picture-owner-paths.js';
+import { countSchema, documentIdSegmentSchema } from './atoms.js';
 import { awardNameSchema } from './catalogs.js';
 import { pictureOwnerKindSchema } from './gallery.js';
 
@@ -16,8 +17,12 @@ export const StorageObjectRefSchema = z
 export type StorageObjectRef = z.infer<typeof StorageObjectRefSchema>;
 
 export const PictureOwnerRefSchema = z
-  .object({ kind: pictureOwnerKindSchema, id: z.string().min(1) })
-  .strict();
+  .object({ kind: pictureOwnerKindSchema, id: documentIdSegmentSchema })
+  .strict()
+  .refine((owner) => isPictureOwnerId(owner.kind, owner.id), {
+    message: 'Not an owner of that kind.',
+    path: ['id'],
+  });
 export type PictureOwnerRef = z.infer<typeof PictureOwnerRefSchema>;
 
 export const PendingMediaTargetSchema = z

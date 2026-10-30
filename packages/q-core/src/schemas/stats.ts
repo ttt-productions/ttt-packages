@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { MAX_GAME_STATS_CORRECTION_TARGETS } from '../constants/sports.js';
+import {
+  CURLING_ROUND_COUNT,
+  MAX_CURLING_ROUND_POINTS,
+  MAX_GAME_STATS_CORRECTION_TARGETS,
+} from '../constants/sports.js';
 import {
   countSchema,
   gameIdSchema,
@@ -187,6 +191,11 @@ export const GameStatsCorrectionSchema = z
   .strict();
 export type GameStatsCorrection = z.infer<typeof GameStatsCorrectionSchema>;
 
+const roundSlotValueSchema = z.number().int().min(0).max(MAX_CURLING_ROUND_POINTS).nullable();
+
+// Two team lines of a game, each holding its sport's fixed round slots.
+const MAX_ROUND_SLOT_CHANGES = 2 * CURLING_ROUND_COUNT;
+
 const replacedEntryListSchema = z
   .object({ stored: z.array(gameRosterPlayerIdSchema), rebuilt: z.array(gameRosterPlayerIdSchema) })
   .strict();
@@ -206,6 +215,25 @@ export const GameRepairChangesSchema = z
     scores: z.array(
       z.object({ teamId: teamIdSchema, stored: z.number(), rebuilt: z.number() }).strict(),
     ),
+    // Present when a round slot changed: each changed slot of a line, a null slot unplayed.
+    roundSlots: z
+      .array(
+        z
+          .object({
+            lineKey: z.string().min(1),
+            slotIndex: z
+              .number()
+              .int()
+              .min(0)
+              .max(CURLING_ROUND_COUNT - 1),
+            stored: roundSlotValueSchema,
+            rebuilt: roundSlotValueSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(MAX_ROUND_SLOT_CHANGES)
+      .optional(),
     absentRosterPlayerIds: replacedEntryListSchema.optional(),
     nonScoringRosterPlayerIds: replacedEntryListSchema.optional(),
     statEventSequence: z.object({ stored: countSchema, rebuilt: countSchema }).strict().optional(),

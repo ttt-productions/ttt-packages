@@ -12,6 +12,7 @@ import {
   MAX_MIGRATION_PAGE_SIZE,
   MIGRATION_RECORD_OUTCOME_KEYS,
 } from '../migration-console/run-state.js';
+import type { ExecutableMigrationStep } from '../migration-console/manifest.js';
 import {
   countSchema,
   epochMsSchema,
@@ -32,6 +33,11 @@ export const RunMigrationActionInputSchema = z
   })
   .strict();
 export type RunMigrationActionInput = z.infer<typeof RunMigrationActionInputSchema>;
+
+// Keeps the wire bound of every action and adds the chosen action's own ceiling.
+export function migrationPageSizeSchema(step: Pick<ExecutableMigrationStep, 'maxPageSize'>) {
+  return RunMigrationActionInputSchema.shape.pageSize.max(step.maxPageSize);
+}
 
 export const MigrationActionPageResultSchema = z
   .object({

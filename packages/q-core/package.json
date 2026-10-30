@@ -77,6 +77,7 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@ttt-productions/edge-protocol-core": "*",
         "@ttt-productions/input-format-core": "*",
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/notification-core": "*",

@@ -46,17 +46,14 @@ describe('galleryPictures documents', () => {
     expect(COLLECTION_SCHEMAS['galleryPictures/{pictureId}']).toBe(GalleryPictureSchema);
   });
 
-  it('accept a picture in each gallery owner kind, the landing page keyed by its fixed id', () => {
+  it('accept a picture in each gallery owner kind, the landing page keyed by its fixed id only', () => {
     for (const ownerKind of GALLERY_OWNER_KIND_KEYS) {
-      expect(GalleryPictureSchema.safeParse({ ...PICTURE, ownerKind }).success).toBe(true);
+      const ownerId = ownerKind === 'landingPage' ? SPECIAL_DOCS.LANDING_PAGE : PICTURE.ownerId;
+      expect(GalleryPictureSchema.safeParse({ ...PICTURE, ownerKind, ownerId }).success).toBe(true);
     }
-    expect(
-      GalleryPictureSchema.safeParse({
-        ...PICTURE,
-        ownerKind: 'landingPage',
-        ownerId: SPECIAL_DOCS.LANDING_PAGE,
-      }).success,
-    ).toBe(true);
+    expect(GalleryPictureSchema.safeParse({ ...PICTURE, ownerKind: 'landingPage' }).success).toBe(
+      false,
+    );
   });
 
   it('refuse an owner that holds a single picture slot rather than a gallery', () => {

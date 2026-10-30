@@ -9,6 +9,11 @@ export type MigrationRunStatus = (typeof MIGRATION_RUN_STATUS_KEYS)[number];
 
 export const MAX_MIGRATION_PAGE_SIZE = 500;
 
+export const FIRESTORE_COMMIT_WRITE_LIMIT = 500;
+
+// One write of every commit is the page's audit event.
+export const MIGRATION_COMMIT_WRITE_LIMIT = FIRESTORE_COMMIT_WRITE_LIMIT - 1;
+
 export const MAX_MIGRATION_RUN_FINDINGS = 50;
 
 export const MAX_MIGRATION_FINDING_TEXT_LENGTH = 500;
