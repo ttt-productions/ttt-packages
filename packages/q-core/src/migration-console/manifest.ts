@@ -1,24 +1,3 @@
-// The 2.0 cutover manifest: every step of the coordinated migration, in the order the operator runs
-// them, with what each step needs first. The console's callables enforce it — an action whose
-// dependencies are not satisfied refuses to run — and its screen renders it, so both read this one
-// declaration (RULE-STD-ARCH-101, RULE-STD-ENG-002).
-//
-// Four kinds of step:
-//   executable          a console action with its own admin callable: admin-asserted, audited,
-//                       idempotent, resumable by its operation id, and re-runnable after a partial
-//                       failure. A write action offers a dry run; a verification only reads.
-//   productControl      a product callable the operator runs from its own screen (the Fix stats
-//                       actions and the stats check). The console never runs
-//                       a second copy of it; it records the run, checking the run's own evidence.
-//   operatorCheckpoint  external work the app cannot do safely — an export, a credential
-//                       revocation, a manual re-upload. Recorded with the operator's evidence; it
-//                       never claims the console performed it.
-//   cutoverMarker       the console's own record that the product now owns every destination.
-//
-// `dependsOn` is enforced: each id must be satisfied — an executable action's last real run reached
-// its end (a verification's also passed), and a recorded step recorded — before the step runs.
-// `orderedAfter` is display order only: a sequence that is ordering, not a gate.
-
 import { MIGRATION_ACTION_IDS as A } from './action-ids.js';
 import type { MigrationActionId } from './action-ids.js';
 import type { RegisteredCollectionPath } from '../doc-schemas/registry.js';
@@ -31,21 +10,12 @@ export const MIGRATION_STEP_KIND_KEYS = [
 ] as const;
 export type MigrationStepKind = (typeof MIGRATION_STEP_KIND_KEYS)[number];
 
-/** What an executable action's pages return: documents written, or records compared. */
 export const MIGRATION_RESULT_KIND_KEYS = ['write', 'verification'] as const;
 export type MigrationResultKind = (typeof MIGRATION_RESULT_KIND_KEYS)[number];
 
-/** Where a product control's completion is proven from. */
-export const MIGRATION_CONTROL_EVIDENCE_KEYS = [
-  // The control's `statsOperations` document: a real run, complete, over the whole scope, that
-  // left no game out.
-  'statsOperation',
-  // The validation's report: complete, over everything, with no finding.
-  'statsValidationReport',
-] as const;
+export const MIGRATION_CONTROL_EVIDENCE_KEYS = ['statsOperation', 'statsValidationReport'] as const;
 export type MigrationControlEvidence = (typeof MIGRATION_CONTROL_EVIDENCE_KEYS)[number];
 
-/** The step folder under the migration plan that owns a step's correctness. */
 export const MIGRATION_OWNING_STEP_KEYS = [
   'auth',
   'q-core',
@@ -61,7 +31,6 @@ export type MigrationOwningStep = (typeof MIGRATION_OWNING_STEP_KEYS)[number];
 interface MigrationStepBase {
   readonly id: MigrationActionId;
   readonly title: string;
-  /** What the step changes or proves, in a sentence or two the operator reads before running it. */
   readonly summary: string;
   readonly owningStep: MigrationOwningStep;
   readonly dependsOn: readonly MigrationActionId[];
@@ -70,42 +39,29 @@ interface MigrationStepBase {
 
 export interface ExecutableMigrationStep extends MigrationStepBase {
   readonly kind: 'executable';
-  /** The callable that runs one page of it. */
   readonly callable: string;
   readonly resultKind: MigrationResultKind;
-  /** Whether it removes V1 data or revokes access — run only once its gates have passed. */
   readonly destructive: boolean;
-  /** False for an action that is one bounded call, never paged. */
   readonly paged: boolean;
-  /** The page size the console proposes; each core refuses a page larger than it can commit. */
   readonly defaultPageSize: number;
-  /** A verification that informs the rehearsal and gates nothing. */
   readonly informational: boolean;
-  /** Why replaying a page, or the whole action, cannot duplicate an effect. */
   readonly idempotency: string;
-  /** The deterministic order it pages in, and what its resume key names. */
   readonly resumeKey: string;
-  /** The safe response after a partial run. */
   readonly recovery: string;
 }
 
 export interface ProductControlMigrationStep extends MigrationStepBase {
   readonly kind: 'productControl';
-  /** The product callable the operator runs. */
   readonly callable: string;
-  /** Where in the product the operator runs it, and with what scope. */
   readonly instructions: string;
   readonly evidence: MigrationControlEvidence;
-  /** The documents it rebuilds, as `COLLECTION_SCHEMAS` templates: a destination no copy writes. */
   readonly destinations: readonly RegisteredCollectionPath[];
 }
 
 export interface OperatorCheckpointMigrationStep extends MigrationStepBase {
   readonly kind: 'operatorCheckpoint';
   readonly instructions: string;
-  /** What the operator records as proof before the next step unlocks. */
   readonly evidence: string;
-  /** The point past which the external action cannot be undone, or null when none exists. */
   readonly noReturnBoundary: string | null;
 }
 
@@ -121,16 +77,11 @@ export type MigrationStep =
   | OperatorCheckpointMigrationStep
   | CutoverMarkerMigrationStep;
 
-/** The callable that records a product control's run, checking its evidence. */
 export const RECORD_MIGRATION_CONTROL_RUN_CALLABLE = 'adminRecordMigrationControlRun';
-/** The callable that records an operator checkpoint with its evidence. */
 export const RECORD_MIGRATION_CHECKPOINT_CALLABLE = 'adminRecordMigrationCheckpoint';
-/** The callable that records the cutover. */
 export const RECORD_MIGRATION_CUTOVER_CALLABLE = 'adminRecordMigrationCutover';
-/** The callable that reads the console: the cutover marker, the lock, and every step's state. */
 export const GET_MIGRATION_CONSOLE_CALLABLE = 'adminGetMigrationConsole';
 
-/** The console's callable name for an executable action: `admin` + its verb and its object. */
 export function migrationActionCallableName(id: MigrationActionId): string {
   const [verb = '', object = ''] = id.split('.');
   const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
@@ -227,7 +178,6 @@ function deleteStep(id: MigrationActionId, options: ExecutableOptions): Executab
   };
 }
 
-/** The copies whose verifications must pass before the rebuild reads the games they copied. */
 const SOURCE_VERIFICATIONS_FOR_REBUILD = [
   A.verifySportLeagues,
   A.verifyLeagueTeams,
@@ -237,10 +187,6 @@ const SOURCE_VERIFICATIONS_FOR_REBUILD = [
   A.verifyGameStats,
 ] as const satisfies readonly MigrationActionId[];
 
-/**
- * Every copy's verification. Each must pass before the cutover is recorded: a failed or skipped
- * record keeps the migration from being declared complete.
- */
 const COPY_VERIFICATIONS = [
   A.verifyAdminList,
   A.verifyAppConfig,
@@ -268,7 +214,6 @@ const COPY_VERIFICATIONS = [
 ] as const satisfies readonly MigrationActionId[];
 
 export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
-  // ── Before anything is read ────────────────────────────────────────────────────────────────────
   {
     kind: 'operatorCheckpoint',
     id: A.checkpointV1FirestoreExport,
@@ -284,7 +229,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     noReturnBoundary: null,
   },
 
-  // ── Global roles ───────────────────────────────────────────────────────────────────────────────
   copyStep(A.copyAdminList, {
     title: 'Copy the admin and referee rosters',
     summary:
@@ -300,7 +244,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: SINGLE_DOCUMENT,
   }),
 
-  // ── App configuration ──────────────────────────────────────────────────────────────────────────
   copyStep(A.copyAppConfig, {
     title: 'Copy the app configuration',
     summary:
@@ -345,7 +288,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: SINGLE_DOCUMENT,
   }),
 
-  // ── Setup's catalogs ───────────────────────────────────────────────────────────────────────────
   copyStep(A.copyWaiverTemplates, {
     title: 'Copy the waiver templates',
     summary: 'Each template under its id, its wording as version 1.',
@@ -372,7 +314,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: 'The venues in array order; the resume key is the last venue id.',
   }),
 
-  // ── Accounts and identity ──────────────────────────────────────────────────────────────────────
   copyStep(A.copyUserProfiles, {
     title: 'Copy the profiles',
     summary:
@@ -455,7 +396,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: SINGLE_DOCUMENT,
   }),
 
-  // ── Leagues and teams ──────────────────────────────────────────────────────────────────────────
   copyStep(A.copySportLeagues, {
     title: 'Copy the leagues',
     summary:
@@ -536,7 +476,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     dependsOn: [A.copyLeagueFreeAgents],
   }),
 
-  // ── Signed waivers and hardware contracts ──────────────────────────────────────────────────────
   copyStep(A.copySignedWaivers, {
     title: 'Copy the signed waivers',
     summary:
@@ -575,7 +514,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: 'The signed waivers by id, then the contracts; the resume key is the record path.',
   }),
 
-  // ── Games ──────────────────────────────────────────────────────────────────────────────────────
   copyStep(A.copyGameRosterPlayers, {
     title: 'Copy the game rosters',
     summary:
@@ -657,7 +595,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: 'The V1 games by document id; the resume key is the last game id.',
   }),
 
-  // ── Pictures ───────────────────────────────────────────────────────────────────────────────────
   copyStep(A.carryV1Pictures, {
     title: 'Carry the V1 pictures onto the pipeline',
     summary:
@@ -680,7 +617,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: 'By owner kind, then owner id; the resume key is `{ownerKind}:{ownerId}`.',
   }),
 
-  // ── The ghost names V1 left behind ─────────────────────────────────────────────────────────────
   {
     kind: 'executable',
     id: A.cleanupOrphanGhostPublicUsers,
@@ -707,7 +643,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [],
   },
 
-  // ── The derived statistics ─────────────────────────────────────────────────────────────────────
   {
     kind: 'productControl',
     id: A.rebuildLeagueStats,
@@ -782,7 +717,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     dependsOn: [A.rebuildSportHallOfFame],
   }),
 
-  // ── The cutover ────────────────────────────────────────────────────────────────────────────────
   {
     kind: 'cutoverMarker',
     id: A.recordCutoverLive,
@@ -797,7 +731,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Recording the cutover. It is never undone: every copy refuses a live destination after it.',
   },
 
-  // ── Cleanup: each delete gated on the verifications its core asserts ───────────────────────────
   deleteStep(A.deleteV1AdminRoles, {
     title: 'Remove the V1 role maps',
     summary:
@@ -996,7 +929,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     resumeKey: 'The six store collections in turn, each by document id.',
   }),
 
-  // ── After the cutover ──────────────────────────────────────────────────────────────────────────
   {
     kind: 'operatorCheckpoint',
     id: A.checkpointUnattachedPicturesReuploaded,
@@ -1041,12 +973,10 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   },
 ];
 
-/** Every step by its id. */
 export const MIGRATION_STEP_BY_ID: ReadonlyMap<MigrationActionId, MigrationStep> = new Map(
   MIGRATION_CUTOVER_MANIFEST.map((step) => [step.id, step]),
 );
 
-/** The steps of one kind, in cutover order. */
 export function migrationStepsOfKind<K extends MigrationStepKind>(
   kind: K,
 ): Extract<MigrationStep, { kind: K }>[] {

@@ -21,9 +21,6 @@ const NAME_MAPS: Array<[string, Record<string, string>]> = [
 ];
 
 describe('compound camelCase collection names', () => {
-  // Every collection / subcollection segment says what its documents are — `leagueTeams`, never
-  // `teams`. The leading underscore on the three reserved buckets is the deliberate bucket
-  // convention and is stripped before the check. A rule guard, not an inventory.
   const COMPOUND_CAMEL_CASE = /^[a-z][a-z0-9]*[A-Z][A-Za-z0-9]*$/;
 
   for (const [mapName, map] of NAME_MAPS) {
@@ -65,7 +62,6 @@ describe('path builders', () => {
   it('build segment tuples that toPath joins, with compound ids assembled inside the builder', () => {
     expect(toPath(PATH_BUILDERS.userProfile('u1'))).toBe('userProfiles/u1');
     expect(toPath(PATH_BUILDERS.teamMembership('L', 'T', 'u1'))).toBe('teamMemberships/L_T_u1');
-    // A membership's roster obligation is keyed by the membership's own id — no second format.
     expect(toPath(PATH_BUILDERS.membershipRosterSync('L', 'T', 'ghost_1_x'))).toBe(
       'membershipRosterSyncs/L_T_ghost_1_x',
     );
@@ -91,8 +87,6 @@ describe('path builders', () => {
     expect(toPath(PATH_BUILDERS.appConfig())).toBe('_appConfig/app');
     expect(toPath(PATH_BUILDERS.statsBeacon())).toBe('_appConfig/statsBeacon');
     expect(toPath(PATH_BUILDERS.adminList())).toBe('_systemData/adminList');
-    // Admin-only documents are server-only: an admin reads them through a callable, never through a
-    // client grant (RULE-STD-BACKEND-108).
     expect(toPath(PATH_BUILDERS.migrationConsole())).toBe('_serverData/migrationConsole');
   });
 

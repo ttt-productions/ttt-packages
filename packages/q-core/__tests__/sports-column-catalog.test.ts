@@ -11,7 +11,6 @@ import {
   type StatColumn,
 } from '../src/sports/column-catalog.js';
 
-// A fixture sport, declared only here: no placeholder sport exists in q-core or the app.
 interface FixtureSeasonLine {
   gamesPlayed: number;
   goals: number;
@@ -115,8 +114,6 @@ describe('column catalog keys', () => {
   });
 });
 
-// The type-level cases below are proven by the typecheck, which fails when an expected error stops
-// occurring; at runtime they only construct the values.
 describe('column catalog', () => {
   it('declares its default layout as its first preset, or as a default layout', () => {
     expect(seasonCatalog.presets?.[0]).toBe(totals);

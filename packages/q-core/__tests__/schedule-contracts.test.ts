@@ -1,8 +1,3 @@
-// The schedule's contracts: the week and game callables' inputs and results, the minted week id, the
-// venue label, the conflict warnings the week form shows, the score mirror a new game is written
-// with, and the audit and event vocabulary the schedule cores record. Each test pins a property a
-// schedule core or the admin form relies on.
-
 import { describe, it, expect } from 'vitest';
 import {
   MAX_SCHEDULE_WEEK_GAMES,

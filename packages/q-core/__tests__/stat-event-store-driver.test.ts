@@ -1,7 +1,3 @@
-// The store driver's decision half: each event id applies exactly once, a void's id comes from its
-// target, a refusal refuses the whole batch, and the rollup a write leaves is always the replay of
-// the events the store then holds.
-
 import { describe, it, expect } from 'vitest';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../src/constants/sports.js';
 import { GameStatEventSchema, type GameStatEvent } from '../src/doc-schemas/game-stats.js';
@@ -66,7 +62,6 @@ const undo = (targetEventId: string): StatEventSubmission => ({
 
 const GAME = { teamIds: [HOME, AWAY] };
 
-/** A write against a game whose stored rollup is the replay of its stored events, as RULE-QS-SPORT-911 holds. */
 function batchOf(
   submissions: StatEventSubmission[],
   stored: GameStatEvent[] = [],
@@ -85,16 +80,11 @@ function batchOf(
   };
 }
 
-/** What the driver accepted, as the store would hold it. */
 function asStored(decision: StatEventBatchDecision): GameStatEvent[] {
   if (!decision.ok) throw new Error('refused');
   return decision.accepted.map((event) => GameStatEventSchema.parse(event.fields));
 }
 
-/**
- * RULE-QS-SPORT-911: the rollup a write leaves is the replay of every event the store then holds — the ones
- * it held, and the ones the write accepted.
- */
 function expectRollupIsReplay(
   decision: StatEventBatchDecision,
   stored: GameStatEvent[] = [],

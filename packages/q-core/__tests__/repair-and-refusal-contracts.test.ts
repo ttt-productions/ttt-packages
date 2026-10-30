@@ -1,6 +1,3 @@
-// The contracts a game repair's answer and two designed refusals carry to the client: what a repair
-// changed on the game, value by value, and the details a team-delete and a ghost-removal refusal name.
-
 import { describe, it, expect } from 'vitest';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import { GameRepairChangesSchema, GameStatsRepairResultSchema } from '../src/schemas/stats.js';

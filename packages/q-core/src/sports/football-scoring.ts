@@ -1,10 +1,3 @@
-// The football adapter's scoring, display, and bulk-entry members. Football is team-scored: each
-// event adds its points to one team's score, no event names a player, and there is no finish rule —
-// the game is finalized by hand. Bulk entry takes each team's final score.
-//
-// `apply` and `undo` are one function over an event's points with opposite signs, so they are exact
-// inverses by construction (RULE-QS-SPORT-913).
-
 import { z } from 'zod';
 import {
   FOOTBALL_POINTS_BY_EVENT_TYPE,
@@ -64,8 +57,6 @@ function isFootballEvent(event: StatEventBody | undefined): event is FootballEve
   return isSportStatEventIn(FOOTBALL_STAT_EVENT_TYPE_KEYS, event);
 }
 
-// The registry chose this adapter by the game's `leagueType`, so the rollup it is handed is a
-// football game's (RULE-QS-SPORT-902).
 function ownStats(state: GameStats): FootballGameStats {
   return state as FootballGameStats;
 }
@@ -78,7 +69,6 @@ function teamScoreOf(state: FootballGameStats, teamId: string): number {
   return (state.teamStats[teamId] ?? emptyFootballTeamLine()).score;
 }
 
-/** The points an event adds to its team's score: a scoring event's own, or a bulk edit's `value`. */
 function pointsOf(event: FootballEvent): number {
   return event.type === FOOTBALL_BULK_EDIT_EVENT_TYPE
     ? event.value
@@ -94,7 +84,6 @@ function addToScore(stateIn: GameStats, teamId: string, amount: number): Footbal
   };
 }
 
-// A correction to the team's score; football keeps no player line to correct.
 const CORRECTABLE_FIELDS: CorrectableFields = { team: FOOTBALL_TEAM_STAT_KEYS, player: [] };
 
 function correctionAmount(event: StatCorrectionBody): number {
@@ -126,9 +115,6 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
   return STAT_EVENT_ACCEPTED;
 };
 
-// What a completed football game adds: the standings line from the two scores, and a game played
-// to every present roster entry, whatever its team scored. There are no individual stats, so only
-// absence withholds a game played and no entry is ever non-scoring.
 const FOOTBALL_CONTRIBUTION: ContributionSpec = {
   playerStatKeys: [],
   teamSeasonPlayerSums: [],
@@ -149,20 +135,14 @@ export const FOOTBALL_SCORING: SportScoring = {
       throw new Error(`The football adapter does not undo ${target.type}.`);
     return addToScore(state, target.teamId, -pointsOf(target));
   },
-  // A football line has no derived field.
   deriveLine: FOOTBALL_CONTRIBUTION.deriveLine,
   correctableFields: CORRECTABLE_FIELDS,
-  // No rounds and no finish rule: the game is finalized by hand.
   nextRound: () => null,
   finalizationReadiness: () => FINALIZATION_READY,
   participation: (state, rosterPlayerIds, absentRosterPlayerIds) =>
     decideParticipation(FOOTBALL_CONTRIBUTION, state, rosterPlayerIds, absentRosterPlayerIds),
   contribution: (game) => buildGameContribution(FOOTBALL_CONTRIBUTION, game),
 };
-
-// ---------------------------------------------------------------------------------------------
-// Display
-// ---------------------------------------------------------------------------------------------
 
 export const FOOTBALL_EVENT_LABELS = {
   [FOOTBALL_SIX_POINT_EVENT_TYPE]: { button: '+6', play: '6 points' },
@@ -199,10 +179,6 @@ export const FOOTBALL_SCORING_PANEL: TeamPointsScoringPanel = {
   kind: 'teamPoints',
   eventTypes: FOOTBALL_SCORE_EVENT_TYPE_KEYS,
 };
-
-// ---------------------------------------------------------------------------------------------
-// Bulk entry — each team's final score
-// ---------------------------------------------------------------------------------------------
 
 function scoreDrafts(values: TeamScoresValues, context: BulkEntryContext): StatEventDraft[] {
   const state = ownStats(context.state);

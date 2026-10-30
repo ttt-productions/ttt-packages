@@ -1,9 +1,3 @@
-// The curling adapter's scoring, display, and bulk-entry members. Curling is team-scored by round: a
-// round event records one round — one team's points, or a blank round for every team — and nothing
-// names a player. A round is recorded once, in order: `validate` accepts a round event only for the
-// first unrecorded round, and re-scoring a round is a void of its event plus a new one, so no curling
-// event is ever superseded and undoing one always returns its round to unrecorded (RULE-QS-SPORT-913).
-
 import { z } from 'zod';
 import {
   CURLING_ROUND_COUNT,
@@ -61,8 +55,6 @@ function isCurlingEvent(event: StatEventBody | undefined): event is CurlingEvent
   return isSportStatEventIn(CURLING_STAT_EVENT_TYPE_KEYS, event);
 }
 
-// The registry chose this adapter by the game's `leagueType`, so the rollup it is handed is a
-// curling game's (RULE-QS-SPORT-902).
 function ownStats(state: GameStats): CurlingGameStats {
   return state as CurlingGameStats;
 }
@@ -71,17 +63,12 @@ function ownTeamLine(line: GameTeamLine): CurlingTeamStats {
   return line as CurlingTeamStats;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Lines — a team's `score` is always the sum of its recorded rounds
-// ---------------------------------------------------------------------------------------------
-
 type RoundSlots = CurlingTeamStats['roundScores'];
 
 function sumOfRounds(roundScores: RoundSlots): number {
   return roundScores.reduce<number>((total, slot) => total + (slot ?? 0), 0);
 }
 
-/** Every round unrecorded — `null`, where a blank round is `0`. */
 export function emptyCurlingTeamLine(): CurlingTeamStats {
   const roundScores: RoundSlots = Array.from({ length: CURLING_ROUND_COUNT }, () => null);
   return { score: sumOfRounds(roundScores), roundScores };
@@ -97,10 +84,6 @@ function withRound(
   return { score: sumOfRounds(roundScores), roundScores };
 }
 
-/**
- * Record or clear one round on every team line: a scored round is the scoring team's points and 0
- * for the others, a blank round 0 for all, and a cleared round `null` for all.
- */
 function setRound(stateIn: GameStats, event: CurlingEvent, recorded: boolean): CurlingGameStats {
   const state = ownStats(stateIn);
   const teamStats = { ...state.teamStats };
@@ -125,12 +108,6 @@ function nextCurlingRound(stateIn: GameStats): number | null {
   return null;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Scoring
-// ---------------------------------------------------------------------------------------------
-
-// No curling field is correctable: a curling result changes only by reopening the game and
-// re-scoring the round.
 const CORRECTABLE_FIELDS: CorrectableFields = { team: [], player: [] };
 
 function namesPlayer(event: StatEventBody): boolean {
@@ -154,9 +131,6 @@ function finalizationReadiness(state: GameStats): FinalizationReadiness {
     : { ready: false, reason: 'roundsIncomplete' };
 }
 
-// What a completed curling game adds: the standings line from the two scores, and a game played
-// to every present roster entry, whatever its team scored. There are no individual stats, so only
-// absence withholds a game played and no entry is ever non-scoring.
 const CURLING_CONTRIBUTION: ContributionSpec = {
   playerStatKeys: [],
   teamSeasonPlayerSums: [],
@@ -177,7 +151,6 @@ export const CURLING_SCORING: SportScoring = {
       throw new Error(`The curling adapter does not undo ${target.type}.`);
     return setRound(state, target, false);
   },
-  // A curling line has no derived field.
   deriveLine: CURLING_CONTRIBUTION.deriveLine,
   correctableFields: CORRECTABLE_FIELDS,
   nextRound: nextCurlingRound,
@@ -186,10 +159,6 @@ export const CURLING_SCORING: SportScoring = {
     decideParticipation(CURLING_CONTRIBUTION, state, rosterPlayerIds, absentRosterPlayerIds),
   contribution: (game) => buildGameContribution(CURLING_CONTRIBUTION, game),
 };
-
-// ---------------------------------------------------------------------------------------------
-// Display
-// ---------------------------------------------------------------------------------------------
 
 export const CURLING_ROUNDS: RoundsDisplay = { count: CURLING_ROUND_COUNT, label: 'Round' };
 
@@ -225,10 +194,6 @@ export const CURLING_SCORING_PANEL: RoundsScoringPanel = {
   blankEventType: CURLING_ROUND_BLANK_EVENT_TYPE,
   maxPoints: MAX_CURLING_ROUND_POINTS,
 };
-
-// ---------------------------------------------------------------------------------------------
-// Bulk entry — one row per round, a cell per team
-// ---------------------------------------------------------------------------------------------
 
 export const CURLING_ROUND_POINTS_MESSAGE = `A round is worth 0 to ${MAX_CURLING_ROUND_POINTS} points.`;
 export const CURLING_ONE_SCORING_TEAM_MESSAGE =

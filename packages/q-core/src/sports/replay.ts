@@ -1,15 +1,8 @@
-// The replay: a game's rollup rebuilt from its event documents, in `sequence` order, from the
-// sport's empty stats (RULE-QS-SPORT-911). It is the one fold every path that derives a game's numbers runs —
-// the Functions, the client's queue, and the browser's week view — and the store driver folds each
-// new event it accepts through the same step, `foldStatEvent`, so the replay and the write can never
-// disagree about what an event does.
-
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
 import type { GameStats } from '../doc-schemas/sport-game.js';
 import { isSportStatEventIn, isStatVoid, type StatEventBody } from './scoring.js';
 import type { AnySportAdapter, GameTeamIds } from './sport-adapter.js';
 
-/** A stored event the replay could not fold — damage in the event store, never a designed answer. */
 export class StatReplayError extends Error {
   readonly eventId: string;
 
@@ -23,10 +16,6 @@ export class StatReplayError extends Error {
   }
 }
 
-/**
- * `state` with a team line for each of the game's teams, the missing ones from the sport's empty
- * stats — so a team's first stat is never refused as a team not in the game. No other line is touched.
- */
 export function withGameTeamLines(
   adapter: AnySportAdapter,
   state: GameStats,
@@ -40,11 +29,6 @@ export function withGameTeamLines(
   } as GameStats;
 }
 
-/**
- * `state` with one event folded in: a sport event or a correction applied, or a void's target
- * undone. `targetOf` answers from the events already folded; a void whose target is missing, a void,
- * or a correction throws.
- */
 export function foldStatEvent(
   adapter: AnySportAdapter,
   state: GameStats,
@@ -63,7 +47,6 @@ export function foldStatEvent(
   return adapter.apply(state, event);
 }
 
-/** The rollup a game's events replay to: every line, derived fields included, and each team's score. */
 export function replayGameStats(
   adapter: AnySportAdapter,
   game: GameTeamIds,

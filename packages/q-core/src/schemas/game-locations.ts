@@ -1,6 +1,3 @@
-// Callable contracts for game locations: create, edit, and delete one venue. Admin only. The
-// venue's picture goes through the upload pipeline, never through these.
-
 import { z } from 'zod';
 import { MAX_GAME_LOCATION_SUB_LOCATIONS } from '../constants/business.js';
 import { textFieldSchema } from '../doc-schemas/atoms.js';
@@ -16,7 +13,6 @@ export const gameLocationNameSchema = textFieldSchema(GAME_LOCATION_NAME_INPUT_F
 export const gameLocationStreetAddressSchema = textFieldSchema(
   GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT,
 );
-// One court, sheet, or room within a venue — as the venue lists it, and as a game names it.
 export const gameLocationSubLocationSchema = textFieldSchema(
   GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT,
 );
@@ -26,11 +22,8 @@ export const gameLocationSubLocationsSchema = z
   .refine((subLocations) => new Set(subLocations).size === subLocations.length, {
     message: 'Each sub-location may appear only once.',
   });
-// An empty memo means the venue has none.
 export const gameLocationMemoSchema = textFieldSchema(GAME_LOCATION_MEMO_INPUT_FORMAT);
 
-// The venue's own fields. A create sends all of them; an edit sends only the ones the admin
-// changed, so saving one never rewrites another with what this editor last read.
 const gameLocationFieldsShape = {
   name: gameLocationNameSchema,
   streetAddress: gameLocationStreetAddressSchema,

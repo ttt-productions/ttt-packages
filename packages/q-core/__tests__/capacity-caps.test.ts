@@ -1,7 +1,3 @@
-// The capacity limits that keep a team, a league, a week, and a game complete: creation and admission
-// are refused at them, so every read of the whole set fits its bound and every commit sized from one
-// fits a transaction.
-
 import { describe, it, expect } from 'vitest';
 import {
   AWARD_GROUP_GRANT_PAGE_SIZE,
@@ -31,7 +27,6 @@ import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location.js'
 import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 
-// The most writes one Firestore transaction commits.
 const TRANSACTION_WRITES = 500;
 
 describe('a team holds at most 30 players, ghost players included', () => {

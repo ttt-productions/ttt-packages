@@ -1,9 +1,3 @@
-// The DomainEvent union — the vocabulary of "what happened" that both sides of the boundary share.
-//
-// A callable or trigger names what it changed with one of these; the client alone maps an event to
-// the query-key families it makes stale (the invalidation registry is app-local, RULE-STD-FRONTEND-102). The two
-// sides share event names, never cache keys.
-
 import { z } from 'zod';
 import {
   epochMsSchema,
@@ -34,7 +28,6 @@ export const LeagueUpdatedEventSchema = z
   })
   .strict();
 
-// The league changed mode, and with it the `teamType` of every one of its teams.
 export const LeagueModeSwitchedEventSchema = z
   .object({
     type: z.literal('league.modeSwitched'),
@@ -49,7 +42,6 @@ export const LeagueTeamCreatedEventSchema = z
   })
   .strict();
 
-// A member was added, removed, or changed role on a team — by any path, ghosts included.
 export const TeamRosterChangedEventSchema = z
   .object({
     type: z.literal('teamRoster.changed'),
@@ -59,7 +51,6 @@ export const TeamRosterChangedEventSchema = z
   })
   .strict();
 
-// A waiver was signed for a person in a league — by them, or for a ghost by a witness.
 export const SignedWaiverCreatedEventSchema = z
   .object({
     type: z.literal('signedWaiver.created'),
@@ -90,7 +81,6 @@ export const TeamJoinRequestSubmittedEventSchema = z
   })
   .strict();
 
-// The requester withdrew their join request.
 export const TeamJoinRequestCancelledEventSchema = z
   .object({
     type: z.literal('teamJoinRequest.cancelled'),
@@ -100,7 +90,6 @@ export const TeamJoinRequestCancelledEventSchema = z
   })
   .strict();
 
-// The team accepted or rejected a join request. An acceptance also changed the roster.
 export const TeamJoinRequestAnsweredEventSchema = z
   .object({
     type: z.literal('teamJoinRequest.answered'),
@@ -110,7 +99,6 @@ export const TeamJoinRequestAnsweredEventSchema = z
   })
   .strict();
 
-// The team invited a person. `userId` is the invitee.
 export const TeamInvitationSentEventSchema = z
   .object({
     type: z.literal('teamInvitation.sent'),
@@ -120,7 +108,6 @@ export const TeamInvitationSentEventSchema = z
   })
   .strict();
 
-// The team withdrew an invitation. `userId` is the invitee.
 export const TeamInvitationCancelledEventSchema = z
   .object({
     type: z.literal('teamInvitation.cancelled'),
@@ -130,7 +117,6 @@ export const TeamInvitationCancelledEventSchema = z
   })
   .strict();
 
-// The invitee accepted or declined an invitation. An acceptance also changed the roster.
 export const TeamInvitationAnsweredEventSchema = z
   .object({
     type: z.literal('teamInvitation.answered'),
@@ -140,7 +126,6 @@ export const TeamInvitationAnsweredEventSchema = z
   })
   .strict();
 
-// A player signed up as a free agent in a league.
 export const LeagueFreeAgentSignedUpEventSchema = z
   .object({
     type: z.literal('leagueFreeAgent.signedUp'),
@@ -148,7 +133,6 @@ export const LeagueFreeAgentSignedUpEventSchema = z
   })
   .strict();
 
-// A player's free-agent signup ended: they withdrew it, or an admin placed them on a team.
 export const LeagueFreeAgentRemovedEventSchema = z
   .object({
     type: z.literal('leagueFreeAgent.removed'),
@@ -170,7 +154,6 @@ export const SportGameReopenedEventSchema = z
   })
   .strict();
 
-// A scoring write stored stat events on a live game: its rollup and score moved.
 export const SportGameStatEventsRecordedEventSchema = z
   .object({
     type: z.literal('sportGame.statEventsRecorded'),
@@ -178,7 +161,6 @@ export const SportGameStatEventsRecordedEventSchema = z
   })
   .strict();
 
-// A roster entry of a live game was marked absent or present.
 export const SportGameAbsenceChangedEventSchema = z
   .object({
     type: z.literal('sportGame.absenceChanged'),
@@ -186,7 +168,6 @@ export const SportGameAbsenceChangedEventSchema = z
   })
   .strict();
 
-// A scorer's note on one person in a live game changed.
 export const SportGameMemoUpdatedEventSchema = z
   .object({
     type: z.literal('sportGame.memoUpdated'),
@@ -194,7 +175,6 @@ export const SportGameMemoUpdatedEventSchema = z
   })
   .strict();
 
-// The jump-ball possession arrow of a live basketball game moved.
 export const SportGameJumpBallChangedEventSchema = z
   .object({
     type: z.literal('sportGame.jumpBallChanged'),
@@ -202,9 +182,6 @@ export const SportGameJumpBallChangedEventSchema = z
   })
   .strict();
 
-// A league's schedule changed as a whole: a week was created, its shared fields edited, or it was
-// deleted, or a game was added to a week. Any of the league's games may have been added, changed, or
-// removed.
 export const LeagueScheduleChangedEventSchema = z
   .object({
     type: z.literal('leagueSchedule.changed'),
@@ -212,8 +189,6 @@ export const LeagueScheduleChangedEventSchema = z
   })
   .strict();
 
-// One game's schedule changed — its week, start time, or venue — or its teams were replaced, which
-// replaces their roster entries and stat lines too.
 export const SportGameUpdatedEventSchema = z
   .object({
     type: z.literal('sportGame.updated'),
@@ -221,7 +196,6 @@ export const SportGameUpdatedEventSchema = z
   })
   .strict();
 
-// One game was deleted with its events and roster.
 export const SportGameDeletedEventSchema = z
   .object({
     type: z.literal('sportGame.deleted'),
@@ -229,8 +203,6 @@ export const SportGameDeletedEventSchema = z
   })
   .strict();
 
-// A rebuild ran. Every scope id is optional: a rebuild covers one league, every league, one user,
-// every user, or one sport's hall of fame (for one user or the whole sport).
 export const StatsRecalculatedEventSchema = z
   .object({
     type: z.literal('stats.recalculated'),
@@ -244,8 +216,6 @@ export const StatsRecalculatedEventSchema = z
   })
   .strict();
 
-// A game's numbers were corrected or restored from its events in Fix stats; for a completed game,
-// every destination it feeds moved with them.
 export const SportGameStatsCorrectedEventSchema = z
   .object({
     type: z.literal('sportGame.statsCorrected'),
@@ -253,7 +223,6 @@ export const SportGameStatsCorrectedEventSchema = z
   })
   .strict();
 
-// A stats check wrote or advanced its report.
 export const StatsValidationReportedEventSchema = z
   .object({
     type: z.literal('statsValidation.reported'),
@@ -261,7 +230,6 @@ export const StatsValidationReportedEventSchema = z
   })
   .strict();
 
-// An admin deleted a stats check's report.
 export const StatsValidationReportDeletedEventSchema = z
   .object({
     type: z.literal('statsValidation.reportDeleted'),
@@ -269,7 +237,6 @@ export const StatsValidationReportDeletedEventSchema = z
   })
   .strict();
 
-// A person's pre-Q-Sports baseline was written, and their career line and hall-of-fame entry rebuilt.
 export const HistoricalStatsUpdatedEventSchema = z
   .object({
     type: z.literal('historicalStats.updated'),
@@ -277,7 +244,6 @@ export const HistoricalStatsUpdatedEventSchema = z
   })
   .strict();
 
-// An admin banned an account or lifted its ban.
 export const UserStatusChangedEventSchema = z
   .object({
     type: z.literal('user.statusChanged'),
@@ -285,7 +251,6 @@ export const UserStatusChangedEventSchema = z
   })
   .strict();
 
-// An award joined the catalog — its first badge was published.
 export const AwardDefinitionCreatedEventSchema = z
   .object({
     type: z.literal('awardDefinition.created'),
@@ -293,7 +258,6 @@ export const AwardDefinitionCreatedEventSchema = z
   })
   .strict();
 
-// An award's document changed: its badge was replaced, or its holder count moved.
 export const AwardDefinitionUpdatedEventSchema = z
   .object({
     type: z.literal('awardDefinition.updated'),
@@ -308,9 +272,6 @@ export const AwardDefinitionDeletedEventSchema = z
   })
   .strict();
 
-// An award was granted to or revoked from some accounts, which may have cleared a featured badge.
-// The accounts are many, so the event names the award; a client holding any profile's awards
-// refreshes them.
 export const AwardGrantsChangedEventSchema = z
   .object({
     type: z.literal('awardGrants.changed'),
@@ -318,7 +279,6 @@ export const AwardGrantsChangedEventSchema = z
   })
   .strict();
 
-// An account chose which of its awards to feature beside its name.
 export const FeaturedAwardsChangedEventSchema = z
   .object({
     type: z.literal('featuredAwards.changed'),
@@ -326,7 +286,6 @@ export const FeaturedAwardsChangedEventSchema = z
   })
   .strict();
 
-// A hardware loan contract was created, signed, returned, or deleted.
 export const HardwareLoanContractChangedEventSchema = z
   .object({
     type: z.literal('hardwareLoanContract.changed'),
@@ -336,7 +295,6 @@ export const HardwareLoanContractChangedEventSchema = z
   })
   .strict();
 
-// A new account finished registration: its profile and public identity now exist.
 export const UserRegisteredEventSchema = z
   .object({ type: z.literal('user.registered'), ids: z.object({ userId: userIdSchema }).strict() })
   .strict();
@@ -348,9 +306,6 @@ export const DisplayNameChangedEventSchema = z
   })
   .strict();
 
-// The shared stats beacon moved: stats changed somewhere. The beacon holds only its latest change,
-// not a log of them, so the event names no scope and a watching client refreshes every
-// stats-bearing read.
 export const StatsBeaconChangedEventSchema = z
   .object({ type: z.literal('statsBeacon.changed'), ids: z.object({}).strict() })
   .strict();
@@ -362,7 +317,6 @@ export const WaiverTemplateCreatedEventSchema = z
   })
   .strict();
 
-// A template's wording changed: a new version was published.
 export const WaiverTemplateUpdatedEventSchema = z
   .object({
     type: z.literal('waiverTemplate.updated'),
@@ -370,7 +324,6 @@ export const WaiverTemplateUpdatedEventSchema = z
   })
   .strict();
 
-// A template left the admin's list — deleted, or retired because something still names it.
 export const WaiverTemplateDeletedEventSchema = z
   .object({
     type: z.literal('waiverTemplate.deleted'),
@@ -385,8 +338,6 @@ export const GameLocationCreatedEventSchema = z
   })
   .strict();
 
-// A venue's document changed — its own fields through the location callables, or its picture
-// through the upload pipeline.
 export const GameLocationUpdatedEventSchema = z
   .object({
     type: z.literal('gameLocation.updated'),
@@ -401,8 +352,6 @@ export const GameLocationDeletedEventSchema = z
   })
   .strict();
 
-// A team's document changed: an admin renamed it or changed its type, or the picture core changed its
-// gallery summary.
 export const LeagueTeamUpdatedEventSchema = z
   .object({
     type: z.literal('leagueTeam.updated'),
@@ -410,8 +359,6 @@ export const LeagueTeamUpdatedEventSchema = z
   })
   .strict();
 
-// An admin deleted a team that never played, with its memberships, ghosts, invitations, join
-// requests, contact phone, gallery, and unplayed games.
 export const LeagueTeamDeletedEventSchema = z
   .object({
     type: z.literal('leagueTeam.deleted'),
@@ -419,8 +366,6 @@ export const LeagueTeamDeletedEventSchema = z
   })
   .strict();
 
-// An admin's deletion of a team stopped short: some of the team's games, ghost players, invitations,
-// join requests, or memberships are gone, and the team, with its contact phone, still stands.
 export const LeagueTeamDeletionAdvancedEventSchema = z
   .object({
     type: z.literal('leagueTeam.deletionAdvanced'),
@@ -428,9 +373,6 @@ export const LeagueTeamDeletionAdvancedEventSchema = z
   })
   .strict();
 
-// A ghost player's removal took the ghost's entries off finished games of its team — each one it sat
-// out without a stat, so no result or total changed, but the games' finalized records no longer name
-// it. The event names no game.
 export const GhostPlayerFinishedEntriesRemovedEventSchema = z
   .object({
     type: z.literal('ghostPlayer.finishedEntriesRemoved'),
@@ -440,7 +382,6 @@ export const GhostPlayerFinishedEntriesRemovedEventSchema = z
   })
   .strict();
 
-// An admin set a team's contact phone, which only admins read.
 export const LeagueTeamContactUpdatedEventSchema = z
   .object({
     type: z.literal('leagueTeamContact.updated'),
@@ -448,15 +389,10 @@ export const LeagueTeamContactUpdatedEventSchema = z
   })
   .strict();
 
-// The landing page's document changed — its copy, or its gallery summary. There is one landing page,
-// so the event names none.
 export const LandingPageUpdatedEventSchema = z
   .object({ type: z.literal('landingPage.updated'), ids: z.object({}).strict() })
   .strict();
 
-// A picture joined a gallery. It carries the whole new entry, so a client holding that gallery's
-// pages patches the entry in where its position sorts, and no gallery page is ever refetched for it
-// (RULE-STD-FRONTEND-103). The owner's summary changed too, and the owner's own update event says so.
 export const GalleryPictureAddedEventSchema = z
   .object({
     type: z.literal('galleryPicture.added'),
@@ -472,14 +408,10 @@ export const GalleryPictureAddedEventSchema = z
   })
   .strict();
 
-// A dead-lettered row was replayed back onto its pipeline's queue, so the operator's dead-letter list
-// loses it. The list spans every lane, so the event names none.
 export const DeadLetterReplayedEventSchema = z
   .object({ type: z.literal('deadLetter.replayed'), ids: z.object({}).strict() })
   .strict();
 
-// The migration console's state moved: an action ran a page, a step was recorded, or the cutover
-// was. There is one console, so the event names none.
 export const MigrationConsoleChangedEventSchema = z
   .object({ type: z.literal('migrationConsole.changed'), ids: z.object({}).strict() })
   .strict();

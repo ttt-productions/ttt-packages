@@ -93,12 +93,10 @@ const round = (roundNumber: number, teamId?: string, points?: number) =>
     ? event({ type: CURLING_ROUND_BLANK_EVENT_TYPE, roundNumber })
     : event({ type: CURLING_ROUND_SCORE_EVENT_TYPE, teamId, roundNumber, points });
 
-// A typed caller may hand an event a field its type does not declare; the scoring refuses it.
 const unexpectedPlayer = { playerUserId: SHOOTER };
 
 type CorrectionStat = StatCorrectionBody['stat'];
 
-/** A stored event: the body with its id and its place in the replay, in the order stored. */
 let sequence = 0;
 function stored(body: StatEventBody, eventId?: string): GameStatEvent {
   sequence += 1;
@@ -553,7 +551,6 @@ describe('the replay — one fold from the empty stats, in sequence order (RULE-
       }),
       buildStatCorrectionId('migration', entry(HOME, SHOOTER), REBOUNDS),
     );
-    // Handed out of order: the replay orders by sequence, never by position.
     const replayed = replayGameStats(basketball, GAME, [correction, undo, mistake, shot]);
 
     expect(replayed.playerStats[entry(HOME, SHOOTER)]).toEqual({
@@ -698,10 +695,8 @@ describe('the replay of a known history, per sport (RULE-QS-SPORT-911)', () => {
     );
     const blank = stored(round(2));
     const third = stored(round(3, HOME, 3));
-    // Handed out of order: the replay orders by sequence, never by position.
     const replayed = replayGameStats(curling, GAME, [third, blank, undo, mistaken, first]);
 
-    // End 1 to the home side for 2, end 2 blank for both, end 3 to the home side for 3; the rest unrecorded.
     const unrecorded = Array.from({ length: CURLING_ROUND_COUNT - 3 }, () => null);
     expect(replayed.teamStats[HOME]).toEqual({ score: 5, roundScores: [2, 0, 3, ...unrecorded] });
     expect(replayed.teamStats[AWAY]).toEqual({ score: 0, roundScores: [0, 0, 0, ...unrecorded] });
@@ -717,7 +712,6 @@ describe('the replay of a known history, per sport (RULE-QS-SPORT-911)', () => {
       event({ type: STAT_VOID_EVENT_TYPE, targetEventId: safety.eventId }),
       buildStatVoidId(safety.eventId),
     );
-    // A final-score entry carries the change from the score the form showed: 0 → 3.
     const finalScore = stored(
       event({ type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: AWAY, value: 3, previousValue: 0 }),
     );

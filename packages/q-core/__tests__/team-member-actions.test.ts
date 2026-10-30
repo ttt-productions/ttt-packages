@@ -1,7 +1,3 @@
-// What a team leader or an admin may do to one member: the captain is never moved or removed; only the
-// captain and an admin promote and demote, and never make a ghost a co-captain; a co-captain removes
-// plain players only. The team's management callables refuse what this leaves out.
-
 import { describe, expect, it } from 'vitest';
 import { TEAM_CAPTAIN_ROLE, TEAM_CO_CAPTAIN_ROLE, TEAM_PLAYER_ROLE } from '../src/types/unions.js';
 import { TEAM_MEMBER_ADMIN_ACTOR, teamMemberActions } from '../src/utils/team-member-actions.js';

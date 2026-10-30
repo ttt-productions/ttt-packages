@@ -1,9 +1,3 @@
-// What a completed game adds to every derived destination, and who it credits a game played
-// (RULE-QS-SPORT-921, RULE-QS-SPORT-924, RULE-QS-SPORT-927, RULE-QS-SPORT-928): per team the standings line from the two scores, per
-// roster entry its row credited to the team in its key, per real person the sum of their rows.
-// Expected values are worked by hand from those rules and the FP weights (points 1, rebounds 1.5,
-// assists 2), never read back from the code.
-
 import { describe, expect, it } from 'vitest';
 import { MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports.js';
 import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
@@ -38,9 +32,6 @@ const basketball = getSportAdapter('Basketball');
 const curling = getSportAdapter('Curling');
 const football = getSportAdapter('Football');
 
-// A 10 – B 8. p1 scores 6 with 2 rebounds and an assist; p2 is present and records nothing; p3 is
-// marked absent yet scored 4; `both` is rostered on both teams, a rebound for A and two assists for
-// B; a ghost scores B's 8.
 const basketballStats: BasketballGameStats = {
   teamStats: { [A]: { score: 10, timeouts: 1 }, [B]: { score: 8, timeouts: 0 } },
   playerStats: {
@@ -274,8 +265,6 @@ describe('applying a contribution to a stored line', () => {
   });
 
   it('re-derives FP from the moved counters, so a stale stored FP neither survives nor goes below zero', () => {
-    // A stored FP of 2 against counters worth 23.5 (10 + 5 × 1.5 + 3 × 2) — a weight changed since. Moving it by −11 would
-    // leave −9; the counters move instead and FP is derived from them: 4 + 3 × 1.5 + 2 × 2 = 12.5.
     const stale = { gamesPlayed: 3, points: 10, rebounds: 5, assists: 3, fantasyPoints: 2 };
     expect(applyStatLineDelta(basketball.deriveLine, 'lifetime', stale, row, -1)).toEqual({
       ok: true,
@@ -425,7 +414,6 @@ describe('the league rankings', () => {
   });
 
   it("gives rows that, over every week, add up to the season's stored rows", () => {
-    // Week 1 is the fixture game; week 2 a game where p1 sits out and p2 scores a basket.
     const weekOne = [basketballGame()];
     const secondStats: BasketballGameStats = {
       teamStats: { [A]: { score: 2, timeouts: 0 }, [B]: { score: 8, timeouts: 0 } },
@@ -448,7 +436,6 @@ describe('the league rankings', () => {
       },
     ];
 
-    // The season as finalize stores it: each game's rows applied, one at a time, to the teams' rows.
     const stored: Record<string, Record<string, Record<string, number>>> = { [A]: {}, [B]: {} };
     for (const game of [...weekOne, ...weekTwo]) {
       for (const [entryId, row] of Object.entries(basketball.contribution(game).membershipRows)) {
@@ -488,7 +475,6 @@ describe('the league rankings', () => {
     expect(Object.fromEntries(added)).toEqual(
       Object.fromEntries(season.map((row) => [`${row.teamId}/${row.userId}`, row.line])),
     );
-    // p1 played week 1 only; p2 has a game played only from week 2.
     expect(added.get(`${A}/p1`)).toMatchObject({ gamesPlayed: 1, points: 6 });
     expect(added.get(`${A}/p2`)).toMatchObject({ gamesPlayed: 1, points: 2 });
   });
@@ -503,7 +489,6 @@ describe('the higher of two team roles', () => {
 });
 
 describe('contribution — a scoreless team in the team-scored sports', () => {
-  // A scores and B does not: a curling end worth the most an end is worth, or a football touchdown.
   const [TOUCHDOWN] = FOOTBALL_SCORE_EVENT_TYPE_KEYS;
   const curlingShutout = curling.apply(curling.emptyStats({ teamIds: [A, B] }), {
     type: CURLING_ROUND_SCORE_EVENT_TYPE,
@@ -522,7 +507,6 @@ describe('contribution — a scoreless team in the team-scored sports', () => {
   ] as const)(
     'in %s, credits the present player of a team that scored nothing a game played, and the absent one none',
     (leagueType, adapter, stats) => {
-      // On B, `present` played and `away` was marked absent; neither holds a player line.
       const roster = [entry(A, 'x'), entry(B, 'away'), entry(B, 'present')];
       const absent = [entry(B, 'away')];
       const game: FinalizedGame = {

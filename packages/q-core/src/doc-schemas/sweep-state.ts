@@ -1,20 +1,9 @@
-// `sweepState/{sweepName}` — where a scheduled pass over a bounded, ordered source keeps its
-// position (RULE-STD-BACKEND-112), one document per `SWEEP_STATE_NAMES` name. Backend-only: no client reads
-// or writes it.
-
 import { z } from 'zod';
 import { SWEEP_STATE_MAX_DEFERRED } from '../constants/scheduled-jobs.js';
 import { epochMsSchema } from './atoms.js';
 
-// Where a pass stands in its source.
-//   absent — no lap has run: the next pass starts one at the beginning.
-//   inLap  — the next page starts strictly after the last row the lap moved past. `afterKey` is
-//            that row's document id; `afterValue` is its value of the numeric field the query
-//            orders by first, when it orders by one. The query orders by the field and then by the
-//            key and resumes after both, never `field > value`, which skips every row tied with it.
-//   done   — the last lap reached the end of its source. The pass that exhausted it records that
-//            here rather than starting page one again in the same run; the next pass starts a new
-//            lap, so rows added behind the cursor are reached on the next lap.
+// The query orders by the field and then by the key and resumes after both, never
+// `field > value`, which skips every row tied with it.
 export const SweepRollingCursorSchema = z
   .discriminatedUnion('state', [
     z
@@ -44,22 +33,18 @@ export const SweepRollingCursorSchema = z
   });
 export type SweepRollingCursor = z.infer<typeof SweepRollingCursorSchema>;
 
-// A row the cursor moved past without clearing it (a failed read or write). The pass retries it from
-// here once it is due instead of stopping at it, so one failing row never pins the window (RULE-STD-BACKEND-309).
 export const SweepDeferredRowSchema = z
   .object({
     key: z.string().min(1),
     value: z.number().optional(),
-    /** Epoch ms from which a pass may retry it. */
     nextAttemptAt: epochMsSchema,
-    /** Passes that examined it without clearing it; the pass that deferred it is the first. */
     attemptCount: z.number().int().positive(),
   })
   .strict();
 export type SweepDeferredRow = z.infer<typeof SweepDeferredRowSchema>;
 
-// Where a weekly full sign-in account scan stands in its lap. Firebase Auth lists accounts only by
-// page token, with no key to resume after; a token it no longer accepts restarts the lap.
+// Firebase Auth lists accounts only by page token, with no key to resume after; a token it no
+// longer accepts restarts the lap.
 export const SweepAuthScanLapSchema = z
   .object({
     pageToken: z.string().min(1),
@@ -70,9 +55,7 @@ export type SweepAuthScanLap = z.infer<typeof SweepAuthScanLapSchema>;
 
 export const SweepStateSchema = z
   .object({
-    /** Wall-clock ms the last full sign-in account scan reached the end of its lap (absent = never). */
     fullScanLastRunAt: epochMsSchema.optional(),
-    /** The full scan's lap in progress; absent between laps. */
     fullScanLap: SweepAuthScanLapSchema.optional(),
     rollingCursor: SweepRollingCursorSchema.optional(),
     deferred: z.array(SweepDeferredRowSchema).max(SWEEP_STATE_MAX_DEFERRED).optional(),

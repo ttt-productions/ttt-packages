@@ -1,8 +1,3 @@
-// A game's start is entered and shown as a day and a time of day in the leagues' own time zone,
-// whatever zone the browser entering it is in. The expected instants are written out in UTC from the
-// zone's published offsets: Eastern Standard Time is five hours behind UTC, Eastern Daylight Time
-// four.
-
 import { describe, it, expect } from 'vitest';
 import {
   leagueInstantOf,

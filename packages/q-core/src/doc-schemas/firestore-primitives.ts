@@ -1,9 +1,3 @@
-// Structural model of a Firestore Timestamp, so this package imports neither Firebase SDK.
-//
-// Every persisted moment is an epoch-millisecond number (RULE-STD-ARCH-105), except a field a native-TTL
-// policy reads — the admin notification documents' `expireAt` — which the service honours only on a
-// real Timestamp.
-
 import { z } from 'zod';
 
 export interface FirestoreTimestampLike {

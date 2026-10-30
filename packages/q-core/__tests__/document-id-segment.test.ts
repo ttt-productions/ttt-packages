@@ -1,8 +1,3 @@
-// Every id atom a document path is built from accepts exactly one path segment (RULE-STD-ARCH-106). A client
-// string holding a `/` would address a different document or a subcollection, an empty one the
-// collection itself, and `.`, `..`, `__…__`, or an id past Firestore's byte limit is refused by
-// Firestore at write time — so the wire schema refuses each before any path exists.
-
 import { describe, expect, it } from 'vitest';
 import {
   documentIdSegmentSchema,

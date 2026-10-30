@@ -1,6 +1,3 @@
-// The contracts team creation, ghost add, the membership and roster cores, the join warning, and
-// waiver signing are built on. Each test pins a property a core or a door relies on.
-
 import { describe, it, expect } from 'vitest';
 import {
   MAX_CONTACT_PHONE_LENGTH,
@@ -77,7 +74,6 @@ import type { LeagueJoinWarningFacts } from '../src/utils/league-join-warning.js
 
 const NOW = 1_712_345_678_901;
 const STAGING_PATH = 'uploads/waiver-signature/signer-1/2f1c0a3e-8b1d-4c6f-9a2e-5d7b3c1e9f00';
-// The wording the signing dialog displayed.
 const SHOWN = { waiverTemplateId: 'waiver-1', waiverTemplateVersion: 2 };
 
 const none: LeagueJoinWarningFacts = {
@@ -113,7 +109,6 @@ describe('the team-creation window', () => {
   });
 
   it("reads today in the leagues' own time zone, not UTC", () => {
-    // 03:30 UTC on 2026-03-16 is still the evening of 2026-03-15 in New York.
     expect(toLeagueDayKey(Date.UTC(2026, 2, 16, 3, 30))).toBe('2026-03-15');
     expect(toLeagueDayKey(Date.UTC(2026, 2, 16, 12, 0))).toBe('2026-03-16');
   });
@@ -760,8 +755,6 @@ describe('signed waivers', () => {
     ).toBe(false);
   });
 
-  // A signature records the wording its signer saw, so both entries carry the template id and version
-  // the dialog displayed.
   it('carries the displayed template id and version on both entries', () => {
     for (const schema of [CreateSignedWaiverInputSchema, AdminCreateSignedWaiverInputSchema]) {
       const ghost = { ghostUserId: 'ghost_1_a', teamId: 'T' };

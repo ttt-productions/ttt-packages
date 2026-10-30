@@ -1,9 +1,3 @@
-// Callable contracts for accepting a picture upload.
-//
-// A client stages its bytes at its own staging path and hands that path, the origin, and the origin's
-// target to `adminStartUpload`. Nothing about any path is negotiable: the target names the owner by
-// id, and every path the picture is later written to is derived on the server.
-
 import { z } from 'zod';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import {
@@ -27,16 +21,12 @@ import type { PictureOwnerKind } from '../types/picture-owners.js';
 
 export const stagingUploadPathSchema = z.string().min(1).max(MAX_STAGING_UPLOAD_PATH_LENGTH);
 
-// Each picture origin's target: which owner the picture is for, by id.
 export const LeaguePictureTargetInfoSchema = z.object({ leagueId: leagueIdSchema }).strict();
 export const TeamPictureTargetInfoSchema = z.object({ teamId: teamIdSchema }).strict();
-// There is one landing page, so its target names nothing.
 export const LandingPictureTargetInfoSchema = z.object({}).strict();
 export const LocationPictureTargetInfoSchema = z
   .object({ gameLocationId: gameLocationIdSchema })
   .strict();
-// A badge either replaces an existing award's (`awardId`) or creates the award it is the first badge
-// of (`newAwardName`), whose id is the upload's staging id.
 export const ExistingAwardBadgeTargetInfoSchema = z.object({ awardId: awardIdSchema }).strict();
 export const NewAwardBadgeTargetInfoSchema = z.object({ newAwardName: awardNameSchema }).strict();
 export const AwardBadgeTargetInfoSchema = z.union([
@@ -46,9 +36,7 @@ export const AwardBadgeTargetInfoSchema = z.union([
 
 interface PictureTarget<TSchema extends z.ZodTypeAny> {
   readonly schema: TSchema;
-  /** The kind of document a picture of this origin belongs to. */
   readonly ownerKind: PictureOwnerKind;
-  /** The owner's id. A target naming an owner that does not exist yet takes the upload's staging id. */
   readonly ownerId: (target: z.infer<TSchema>, stagingId: string | undefined) => string;
 }
 
@@ -97,11 +85,6 @@ export type PictureTargetInfo = {
   [O in PictureOrigin]: z.infer<(typeof PICTURE_TARGETS)[O]['schema']>;
 }[PictureOrigin];
 
-/**
- * Parse a picture upload's target with its origin's schema and normalize it to the owner the
- * picture belongs to — the form an upload row stores. A badge creating its award names the award by
- * the upload's `stagingId`. Throws the schema's error on a target that does not fit the origin.
- */
 export function parseTargetInfo(
   fileOrigin: PictureOrigin,
   targetInfo: unknown,
@@ -111,7 +94,6 @@ export function parseTargetInfo(
   return { kind: target.ownerKind, id: target.ownerId(target.schema.parse(targetInfo), stagingId) };
 }
 
-/** The name of the award a badge upload creates, or `undefined` for every other upload. */
 export function newAwardNameOf(fileOrigin: PictureOrigin, targetInfo: unknown): string | undefined {
   if (PICTURE_TARGETS[fileOrigin].ownerKind !== AWARD_DEFINITION_OWNER_KIND) return undefined;
   const target = AwardBadgeTargetInfoSchema.parse(targetInfo);
@@ -121,15 +103,8 @@ export function newAwardNameOf(fileOrigin: PictureOrigin, targetInfo: unknown): 
 export const AdminStartUploadInputSchema = z
   .object({
     fileOrigin: pictureOriginSchema,
-    // The full staging path the client uploaded to. Only its last segment, the staging id, is
-    // taken from it; the server rebuilds the rest and refuses anything not exactly equal.
     storagePath: stagingUploadPathSchema,
-    // Checked against the origin's own target schema below, so a target that does not fit its
-    // origin is refused with the rest of a malformed payload.
     targetInfo: z.unknown(),
-    // What the admin actually did — chose a file in the picker, an advisory claim. Untrusted
-    // context kept on the row for the processing pipeline; the byte inspection alone decides what
-    // the file is, and a request without it is inspected all the same.
     clientMediaClaim: ClientMediaClaimSchema.optional(),
   })
   .strict()
@@ -148,19 +123,12 @@ export type AdminStartUploadInput = z.infer<typeof AdminStartUploadInputSchema>;
 
 export const AdminStartUploadResultSchema = z
   .object({
-    // The upload's row, which the uploading control follows to its end. It is also the picture's id.
     pendingMediaId: stagingIdSchema,
-    // A badge's award: the existing one it replaces, or the one its publication will create.
     awardId: awardIdSchema.optional(),
   })
   .strict();
 export type AdminStartUploadResult = z.infer<typeof AdminStartUploadResultSchema>;
 
-// The admin's upload tray. Each call names only which uploads; the callable decides from the stored
-// rows that each is the caller's own and finished. Tray state, never a sensitive action.
-
-// Marks the caller's finished uploads seen when the tray's Uploads view opens. An id that is not the
-// caller's, not finished, already seen, or gone is skipped, so one stale id never fails the batch.
 export const AdminMarkUploadsSeenInputSchema = z
   .object({
     pendingMediaIds: z.array(stagingIdSchema).min(1).max(MAX_UPLOADS_MARKED_SEEN_PER_CALL),
@@ -170,7 +138,6 @@ export type AdminMarkUploadsSeenInput = z.infer<typeof AdminMarkUploadsSeenInput
 export const AdminMarkUploadsSeenResultSchema = z.object({ marked: countSchema }).strict();
 export type AdminMarkUploadsSeenResult = z.infer<typeof AdminMarkUploadsSeenResultSchema>;
 
-// Clears one of the caller's finished uploads from the tray.
 export const AdminClearUploadActivityInputSchema = z
   .object({ pendingMediaId: stagingIdSchema })
   .strict();

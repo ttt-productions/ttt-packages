@@ -9,8 +9,8 @@ import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/sc
 
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
-// The media maintenance schedule's cadence ("every 15 minutes"), declared in the app's Functions,
-// which this package cannot import.
+// The media maintenance schedule's cadence, declared in the app's Functions, which this package
+// cannot import.
 const MEDIA_SWEEP_CADENCE_MS = 15 * MINUTE_MS;
 
 describe('the media sweep deferral backoff', () => {

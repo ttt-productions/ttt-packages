@@ -1,8 +1,3 @@
-// Collection reference builders — for collection-level operations.
-//
-// Frontend: collection(db, ...COLLECTION_REFS.userProfiles())
-// Backend:  db.collection(toPath(COLLECTION_REFS.userProfiles()))
-
 import { COLLECTIONS } from './collections.js';
 
 export const COLLECTION_REFS = {

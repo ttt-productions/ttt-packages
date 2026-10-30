@@ -1,11 +1,3 @@
-// Collection → schema registry: every Firestore path template bound to the zod schema its
-// documents must satisfy. Every document a migration copy action writes is validated against the
-// schema bound here.
-//
-// A key is the literal path template — `{placeholder}` for an id, the literal segment for a fixed
-// document id. __tests__/doc-schemas-registry.test.ts fails when a collection constant has neither a
-// binding here nor an explicit PENDING_COLLECTIONS entry.
-
 import type { z } from 'zod';
 import { StatusReconcileQueueEntrySchema } from './status-reconcile-queue.js';
 import {
@@ -116,8 +108,6 @@ export const COLLECTION_SCHEMAS = {
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
 
-// The body field that equals the document id, where a schema declares one. A drift check injects
-// `doc.id` under this key before validating, so a doc-id field is never a false mismatch.
 export const COLLECTION_DOC_ID_FIELDS = {
   'publicUsers/{userId}': 'uid',
   'registrationStarts/{userId}': 'userId',
@@ -133,5 +123,4 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'migrationActionRuns/{actionId}': 'actionId',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
 
-// Collections declared in ../paths with no bound schema yet, each with the reason.
 export const PENDING_COLLECTIONS: readonly string[] = [];

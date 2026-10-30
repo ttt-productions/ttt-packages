@@ -1,9 +1,3 @@
-// One builder per notification type, taking the committed action's own record. The occurrence it
-// returns is what the owning callable writes to the delivery ledger in the action's transaction
-// (RULE-STD-BACKEND-306): its id is derived from the action, never minted, so a retried write is the same
-// occurrence; and its aggregation key is declared apart from that id, so a later action of the
-// same kind is never mistaken for a retry of an earlier one.
-
 import type { AdminNotificationMetadataByType } from '../doc-schemas/admin-notifications.js';
 import type { LeagueTeam } from '../doc-schemas/league-team.js';
 import type { LeagueFreeAgent } from '../doc-schemas/team-membership.js';
@@ -17,13 +11,11 @@ export interface AdminNotificationOccurrence<
   type: T;
   eventId: string;
   aggregationKey: string;
-  /** The account whose action this records. */
   actorUserId: string;
   metadata: AdminNotificationMetadataByType[T];
   occurredAt: number;
 }
 
-/** A team joined a league. A team is created once, so the team's id identifies its creation. */
 export function leagueTeamCreatedNotification(
   teamId: string,
   team: Pick<LeagueTeam, 'leagueId' | 'createdByUserId' | 'createdAt'>,
@@ -39,7 +31,6 @@ export function leagueTeamCreatedNotification(
   };
 }
 
-/** A player signed up as a free agent in a league. */
 export function leagueFreeAgentSignedUpNotification(
   signup: LeagueFreeAgent,
 ): AdminNotificationOccurrence<'leagueFreeAgentSignedUp'> {

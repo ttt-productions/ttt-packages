@@ -1,13 +1,3 @@
-// A form's declared field format and the callable schema that enforces the same field accept exactly
-// the same text (RULE-STD-ARCH-102): the repair reason's wire schema is built from its one declaration, so the
-// reason a confirmation takes is the reason the repair callables parse — trimmed, then bounded by the
-// repair-reason limits — with any character and line breaks; a person's and a team's name, and a
-// team's contact phone, are one line, trimmed, within their length limits; a refusal names the bound
-// it missed; a join request's message is the one its callable parses, 10 to 500 characters after trimming; an
-// invitation's note is optional, empty or blank allowed, up to its cap; and every admin form's text field — a
-// venue's, a schedule week's, a waiver template's (kept exactly as typed), the landing copy, and the app
-// settings — is the one its callable parses.
-
 import { describe, expect, it } from 'vitest';
 import { checkInputFormat, defineInputFormat } from '@ttt-productions/input-format-core';
 import {
@@ -153,7 +143,6 @@ describe('a text field built from its declaration', () => {
   });
 });
 
-/** Texts on and around a field's bounds, padded and unpadded, with line breaks and wide characters. */
 function boundarySamples(min: number, max: number): string[] {
   return [
     '',
@@ -475,11 +464,6 @@ describe("a text field's refusal", () => {
   });
 });
 
-/**
- * The admin forms' text fields. Each field's form declaration and the wire schema its callable parses
- * accept exactly the same texts and keep the same value (RULE-STD-ARCH-102), so each wire schema is the one
- * built from the field's declaration through `textFieldSchema`.
- */
 describe("the admin forms' text fields", () => {
   const venueName = (text: string) => gameLocationNameSchema.safeParse(text);
   const streetAddress = (text: string) => gameLocationStreetAddressSchema.safeParse(text);

@@ -1,9 +1,3 @@
-// Each sport's bulk entry is validated twice — by the form and again by the scoring write, which sees
-// events, never form values (RULE-QS-SPORT-906). The property: every draft `toEvents` builds from a value the
-// form accepts is accepted by the store driver, in order, against the state the form read, and the
-// rollup it leaves reproduces the form's values; and for each rule, the form refuses one value and
-// the store driver refuses the event that value would have become.
-
 import { describe, it, expect } from 'vitest';
 import {
   MAX_CURLING_ROUND_POINTS,
@@ -104,12 +98,6 @@ function submissionOf(draft: StatEventDraft, eventId: string): StatEventSubmissi
   return { ...draft, recordedAt: NOW, eventId };
 }
 
-/**
- * What the scoring write does with the drafts: the dialog mints each sport event's id and stamps its
- * `recordedAt`, and the store driver decides the batch against the state the form read — each event
- * validated against the running state and applied, a void undoing the live event it names. Returns
- * the rollup, or the first refusal.
- */
 function submit(
   adapter: AnySportAdapter,
   context: BulkEntryContext,

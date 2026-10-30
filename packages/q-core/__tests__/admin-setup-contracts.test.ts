@@ -1,6 +1,3 @@
-// The admin dashboard counts, waiver templates, and game locations: their document shapes, their
-// callable contracts, and the ids and unions they are built on.
-
 import { describe, it, expect } from 'vitest';
 import {
   buildWaiverTemplateVersionId,
@@ -239,7 +236,6 @@ describe('game locations', () => {
     subLocations: ['Court 1'],
     memo: '',
   };
-  // A picture id is its upload's staging id, a lowercase UUID.
   const PICTURE_ID = '6a1c0f3e-2b4d-4c5e-9f7a-8b0c1d2e3f40';
 
   it('store one venue per document, its picture by id only', () => {

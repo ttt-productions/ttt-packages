@@ -1,7 +1,3 @@
-// Callable contracts for live scoring: recording stat events, marking a roster entry absent, a
-// scorer's memo, and the jump-ball possession arrow. Each action is one callable for everyone who
-// scores the game: a captain or co-captain of one of its two teams, a referee, or an admin.
-
 import { z } from 'zod';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../constants/sports.js';
 import { isSportStatEventId } from '../ids/stat-event-ids.js';
@@ -36,21 +32,12 @@ import {
   userIdSchema,
 } from '../doc-schemas/atoms.js';
 
-// ---------------------------------------------------------------------------------------------
-// Recording stat events
-// ---------------------------------------------------------------------------------------------
-
 type ServerDerivedField = StatEventRecorderField | StatEventSnapshotField;
 const SERVER_DERIVED_FIELDS: ReadonlySet<string> = new Set([
   ...STAT_EVENT_RECORDER_FIELD_KEYS,
   ...STAT_EVENT_SNAPSHOT_FIELD_KEYS,
 ]);
 
-/**
- * A stored event's fields as its caller sends them: without the sequence and recorder facts the
- * writing core derives (RULE-STD-ARCH-106), and without a name snapshot, which only a copied event carries.
- * Built from the stored event's own declaration, so the wire and the document cannot drift.
- */
 function callerShape<Shape extends z.ZodRawShape, Omitted extends keyof Shape = never>(
   shape: Shape,
   omitted: readonly Omitted[] = [],
@@ -62,8 +49,6 @@ function callerShape<Shape extends z.ZodRawShape, Omitted extends keyof Shape = 
   >;
 }
 
-// A sport event's id as its caller sends it — the id minted at the tap, or, as a void's target, one a
-// copied event kept. It becomes a document path, so it is held to the shape a sport event id has.
 export const sportStatEventIdSchema = statEventIdSchema.refine(
   isSportStatEventId,
   'Not a stat event id.',
@@ -71,12 +56,6 @@ export const sportStatEventIdSchema = statEventIdSchema.refine(
 
 const sportEventId = { eventId: sportStatEventIdSchema };
 
-/**
- * One event of a scoring write, as the tap minted it: a sport event with its id and `recordedAt`, or
- * a void naming its target, whose own id the core derives. A bulk edit carries `previousValue`, the
- * value the form showed, so a stale form is refused. A correction parses so the core can answer it
- * with its refusal: only the game-reconcile core appends one.
- */
 export const StatEventSubmissionSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...callerShape(BasketballOnePointEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(BasketballAssistableShotEventSchema.shape), ...sportEventId }),
@@ -99,7 +78,6 @@ export const StatEventSubmissionSchema = z.discriminatedUnion('type', [
 ]);
 export type StatEventSubmission = z.infer<typeof StatEventSubmissionSchema>;
 
-// A queue drain, a bulk-entry submission, or an undo: one ordered batch, applied whole or not at all.
 export const RecordGameStatEventsInputSchema = z
   .object({
     gameId: gameIdSchema,
@@ -108,7 +86,6 @@ export const RecordGameStatEventsInputSchema = z
   .strict();
 export type RecordGameStatEventsInput = z.infer<typeof RecordGameStatEventsInputSchema>;
 
-// Each event sent, in order: stored now, or found already stored by an earlier send.
 export const RecordedStatEventSchema = z
   .object({
     eventId: statEventIdSchema,
@@ -126,9 +103,6 @@ export const RecordGameStatEventsResultSchema = z
   .strict();
 export type RecordGameStatEventsResult = z.infer<typeof RecordGameStatEventsResultSchema>;
 
-// What a refused scoring write names in its error details: why, and the first event it refused. No
-// event of the batch was stored, and the scorekeeper's failed list shows the refusal's copy beside
-// that event.
 export const StatEventRefusalDetailsSchema = z
   .object({
     refusal: z.enum(STAT_EVENT_REFUSAL_KEYS),
@@ -136,10 +110,6 @@ export const StatEventRefusalDetailsSchema = z
   })
   .strict();
 export type StatEventRefusalDetails = z.infer<typeof StatEventRefusalDetailsSchema>;
-
-// ---------------------------------------------------------------------------------------------
-// Absence — per roster entry, so a person on both teams can be absent on one side only
-// ---------------------------------------------------------------------------------------------
 
 export const UpdateGameAbsentPlayersInputSchema = z
   .object({
@@ -150,7 +120,6 @@ export const UpdateGameAbsentPlayersInputSchema = z
   .strict();
 export type UpdateGameAbsentPlayersInput = z.infer<typeof UpdateGameAbsentPlayersInputSchema>;
 
-// `changed` is false when the entry was already marked that way; nothing was written.
 export const UpdateGameAbsentPlayersResultSchema = z
   .object({
     gameId: gameIdSchema,
@@ -161,12 +130,6 @@ export const UpdateGameAbsentPlayersResultSchema = z
   .strict();
 export type UpdateGameAbsentPlayersResult = z.infer<typeof UpdateGameAbsentPlayersResultSchema>;
 
-// ---------------------------------------------------------------------------------------------
-// The memo — a scorer's note on one person in a live game ("red shirt", "#9")
-// ---------------------------------------------------------------------------------------------
-
-// Built from the memo's one declaration, so the memo form and the callable accept exactly the same
-// text: trimmed, one line, empty allowed — an empty memo clears the person's note.
 export const gameMemoSchema = textFieldSchema(GAME_MEMO_INPUT_FORMAT);
 
 export const UpdateGameMemoInputSchema = z
@@ -187,10 +150,6 @@ export const UpdateGameMemoResultSchema = z
   })
   .strict();
 export type UpdateGameMemoResult = z.infer<typeof UpdateGameMemoResultSchema>;
-
-// ---------------------------------------------------------------------------------------------
-// The jump-ball possession arrow — set to a team, so a retried call lands where the first did
-// ---------------------------------------------------------------------------------------------
 
 export const UpdateGameJumpBallInputSchema = z
   .object({

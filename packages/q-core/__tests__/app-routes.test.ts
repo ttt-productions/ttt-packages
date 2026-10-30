@@ -1,7 +1,3 @@
-// The app addresses both roots link to: each is one path segment per id, every id encoded so an id
-// holding a `/` or a space still addresses its own page, and a league workspace's section always
-// rides in the one query-string key.
-
 import { describe, it, expect } from 'vitest';
 import {
   ADMIN_LEAGUE_WORKSPACE_SECTION_KEYS,

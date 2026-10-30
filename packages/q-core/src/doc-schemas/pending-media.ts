@@ -1,12 +1,3 @@
-// `pendingMedia/{pendingMediaId}` — one accepted picture upload: the durable hand-off from the
-// accepting callable to the processing trigger. Its id is the upload's staging id, which is also
-// the picture's id; rows are never deleted, so no two uploads ever share an id.
-//
-// The shape is media-schemas' generic pending-media lifecycle composed with Q-Sports' origins and
-// domain events. Every field is written by the server: `originalFileName` and `clientContext`,
-// which the generic shape requires, hold the staging id and the origin, so no client-authored
-// metadata reaches the row. `targetInfo` is the server-normalized `PendingMediaTarget`.
-
 import { z } from 'zod';
 import { createPendingMediaSchemas } from '@ttt-productions/media-schemas';
 import { DomainEventSchema } from '../domain-events/domain-events.js';
@@ -19,14 +10,11 @@ import { pictureOwnerKindSchema } from './gallery.js';
 export const fileOriginSchema = z.enum(FILE_ORIGIN_KEYS);
 export const pictureOriginSchema = z.enum(PICTURE_ORIGIN_KEYS);
 
-// A stored object, by bucket and path — never a URL. A retained signature is recorded this way, and
-// so is the source a carried picture was read from.
 export const StorageObjectRefSchema = z
   .object({ bucket: z.string().min(1), path: z.string().min(1) })
   .strict();
 export type StorageObjectRef = z.infer<typeof StorageObjectRefSchema>;
 
-// The document a picture belongs to. A landing page picture's owner id is `SPECIAL_DOCS.LANDING_PAGE`.
 export const PictureOwnerRefSchema = z
   .object({ kind: pictureOwnerKindSchema, id: z.string().min(1) })
   .strict();
@@ -35,14 +23,8 @@ export type PictureOwnerRef = z.infer<typeof PictureOwnerRefSchema>;
 export const PendingMediaTargetSchema = z
   .object({
     owner: PictureOwnerRefSchema,
-    // The object a carried picture was read from. Written only by the migration console's picture
-    // carry, never from a callable's input; a carried picture fills only an empty slot.
     carriedFrom: StorageObjectRefSchema.optional(),
-    // A carried picture's position in its V1 source list, so the carried gallery keeps V1's order
-    // and V1's first image stays the featured one. Only beside `carriedFrom`.
     sourceIndex: countSchema.optional(),
-    // A badge upload that creates its award: the award's name, which the publication writes with
-    // the award. The owner's id is then the upload's staging id.
     newAwardName: awardNameSchema.optional(),
   })
   .strict()

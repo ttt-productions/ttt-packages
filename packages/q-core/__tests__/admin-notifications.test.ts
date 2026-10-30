@@ -1,8 +1,3 @@
-// The admin notification contracts: where the documents live, how every id is derived, what each
-// notification type's card says and links to, the shapes the ledger and the callables validate, and
-// the vocabulary the audit log and the client's invalidation share. Each test pins a property the
-// ledger, the worker, or a callable relies on.
-
 import { describe, it, expect } from 'vitest';
 import {
   ActiveAdminNotificationSchema,
@@ -662,14 +657,12 @@ describe('the dead-letter repair contracts', () => {
     expect(AdminReplayDeadLetterInputSchema.safeParse({ ...input, reason: '   ' }).success).toBe(
       false,
     );
-    // A row id is one document segment: never a path, never empty.
     for (const badId of ['', 'notificationDeliveries/x', `${deliveryId}/sub`]) {
       expect(
         AdminReplayDeadLetterInputSchema.safeParse({ ...input, docId: badId }).success,
         badId,
       ).toBe(false);
     }
-    // A lane outside the registry, and a replay of everything, are refused.
     expect(
       AdminReplayDeadLetterInputSchema.safeParse({ ...input, collection: 'auditEvents' }).success,
     ).toBe(false);

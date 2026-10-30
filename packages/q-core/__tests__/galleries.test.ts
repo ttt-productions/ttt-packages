@@ -17,7 +17,6 @@ const PICTURE = {
   position: 'a0',
   createdAt: 1_700_000_000_000,
 };
-// A picture id is its upload's staging id, a lowercase UUID.
 const PICTURE_ID_1 = '6a1c0f3e-2b4d-4c5e-9f7a-8b0c1d2e3f40';
 const PICTURE_ID_2 = '7b2d1e4f-3c5e-4d6f-a08b-9c1d2e3f4051';
 

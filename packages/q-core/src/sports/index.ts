@@ -1,6 +1,3 @@
-// The sport adapters. A sport is selected only through the registry (RULE-QS-SPORT-902), so the individual
-// adapters are not exported.
-
 export * from './column-catalog.js';
 export * from './sport-adapter.js';
 export * from './shared-columns.js';

@@ -51,8 +51,6 @@ import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 const STAGING_ID = '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34';
 const UID = 'aB3dE5gH7jK9mN1pQ3sT5vW7xY9z';
 
-// Every picture is stored as JPEG except the award badge, a square cropped round and stored as PNG so
-// its corners stay transparent.
 const storedFormatOf = (origin: string) => (origin === 'award-badge' ? 'png' : 'jpeg');
 const cropShapeOf = (origin: string) => (origin === 'award-badge' ? 'round' : 'rect');
 

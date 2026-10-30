@@ -1,7 +1,3 @@
-// The basketball adapter: player-scored — a team's score is the sum of its players' points — with
-// a hall of fame and a historical baseline. Its scoring, display, and bulk-entry members are in
-// ./basketball-scoring.ts.
-
 import { SPORT_LINE_SCHEMAS } from '../doc-schemas/aggregate-stats.js';
 import type {
   BasketballPlayerTotals,
@@ -33,7 +29,6 @@ import {
 } from './shared-columns.js';
 import type { SportAdapter } from './sport-adapter.js';
 
-// Each figure's copy, declared once and shared by the player and team columns that show it.
 const POINTS = { id: 'points', label: 'Points', shortLabel: 'PTS' } as const;
 const POINTS_PER_GAME = {
   id: 'pointsPerGame',
@@ -52,7 +47,6 @@ const ASSISTS_PER_GAME = {
   label: 'Assists per game',
   shortLabel: 'APG',
 } as const;
-// FP is stored on every player line, never computed for display (`deriveLine` writes it).
 const FANTASY_POINTS = { id: 'fantasyPoints', label: 'Fantasy points', shortLabel: 'FP' } as const;
 const FANTASY_POINTS_PER_GAME = {
   id: 'fantasyPointsPerGame',

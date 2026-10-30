@@ -1,12 +1,3 @@
-// Document path builders — segment tuples, the one path family.
-//
-// Frontend: doc(db, ...PATH_BUILDERS.userProfile(userId))
-// Backend:  db.doc(toPath(PATH_BUILDERS.userProfile(userId)))
-//
-// A singular name builds a document path; its plural builds the parent collection path where the
-// parent is a subcollection (top-level collections are in COLLECTION_REFS). A compound document ID
-// is assembled here through its one builder in ../ids — never at a call site.
-
 import {
   AWARD_GROUP_GRANT_SUBCOLLECTIONS,
   COLLECTIONS,
@@ -27,7 +18,6 @@ import type { SportKey } from '../types/sports.js';
 import { toReservedDisplayNameKey } from '../utils/display-name.js';
 
 export const PATH_BUILDERS = {
-  // People
   userProfile: (userId: string): [string, string] => [COLLECTIONS.USER_PROFILES, userId],
   userPrivateData: (userId: string): [string, string, string, string] => [
     COLLECTIONS.USER_PROFILES,
@@ -61,7 +51,6 @@ export const PATH_BUILDERS = {
     toReservedDisplayNameKey(displayName),
   ],
 
-  // Leagues, teams, membership
   sportLeague: (leagueId: string): [string, string] => [COLLECTIONS.SPORT_LEAGUES, leagueId],
   leagueTeam: (teamId: string): [string, string] => [COLLECTIONS.LEAGUE_TEAMS, teamId],
   leagueTeamContact: (teamId: string): [string, string] => [
@@ -86,7 +75,6 @@ export const PATH_BUILDERS = {
     buildLeagueFreeAgentId(leagueId, userId),
   ],
 
-  // Games
   sportGame: (gameId: string): [string, string] => [COLLECTIONS.SPORT_GAMES, gameId],
   gameRosterPlayer: (
     gameId: string,
@@ -130,7 +118,6 @@ export const PATH_BUILDERS = {
     gameLocationId,
   ],
 
-  // Waivers and hardware
   waiverTemplate: (waiverTemplateId: string): [string, string] => [
     COLLECTIONS.WAIVER_TEMPLATES,
     waiverTemplateId,
@@ -158,7 +145,6 @@ export const PATH_BUILDERS = {
     contractId,
   ],
 
-  // Awards and derived stats
   awardDefinition: (awardId: string): [string, string] => [COLLECTIONS.AWARD_DEFINITIONS, awardId],
   awardGroupGrant: (grantId: string): [string, string] => [COLLECTIONS.AWARD_GROUP_GRANTS, grantId],
   awardGroupGrantPerson: (grantId: string, userId: string): [string, string, string, string] => [
@@ -197,7 +183,6 @@ export const PATH_BUILDERS = {
     COLLECTIONS.PENDING_MEDIA,
     pendingMediaId,
   ],
-  // A picture's retirement is keyed by the picture id; a whole gallery's by `buildGalleryRetirementId`.
   pictureRetirement: (retirementId: string): [string, string] => [
     COLLECTIONS.PICTURE_RETIREMENTS,
     retirementId,
@@ -205,7 +190,6 @@ export const PATH_BUILDERS = {
 
   auditEvent: (auditEventId: string): [string, string] => [COLLECTIONS.AUDIT_EVENTS, auditEventId],
 
-  // Admin notifications. A card's id is notification-core's; the others come from ../ids.
   activeAdminNotification: (notificationId: string): [string, string] => [
     COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS,
     notificationId,
@@ -223,7 +207,6 @@ export const PATH_BUILDERS = {
     jobId,
   ],
 
-  // Fixed-ID system documents
   landingPageConfig: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.LANDING_PAGE],
   appConfig: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
   statsBeacon: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.STATS_BEACON],

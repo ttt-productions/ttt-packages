@@ -1,5 +1,3 @@
-// Callable contracts for waiver templates: create, save new wording, and delete. Admin only.
-
 import { z } from 'zod';
 import { textFieldSchema } from '../doc-schemas/atoms.js';
 import {
@@ -24,10 +22,6 @@ export const AdminCreateWaiverTemplateResultSchema = z
   .strict();
 export type AdminCreateWaiverTemplateResult = z.infer<typeof AdminCreateWaiverTemplateResultSchema>;
 
-// The template's whole wording as the admin wants it to read. Wording that differs from the current
-// version publishes the next version; the same wording changes nothing. `expectedVersion` is the
-// version the editor loaded: a save whose base is no longer current is refused, so a publication
-// never brings back wording another admin has since replaced.
 export const AdminUpdateWaiverTemplateInputSchema = z
   .object({
     waiverTemplateId: waiverTemplateIdSchema,
@@ -40,9 +34,7 @@ export type AdminUpdateWaiverTemplateInput = z.infer<typeof AdminUpdateWaiverTem
 export const AdminUpdateWaiverTemplateResultSchema = z
   .object({
     waiverTemplateId: waiverTemplateIdSchema,
-    // The template's current version after the save.
     version: waiverTemplateVersionNumberSchema,
-    // False when the wording matched the current version and nothing was written.
     published: z.boolean(),
   })
   .strict();

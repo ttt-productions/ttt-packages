@@ -1,7 +1,3 @@
-// The football adapter: team-scored, with no individual stats — every present roster entry is
-// credited a game played — no finish rule, and no hall of fame. Its scoring, display, and
-// bulk-entry members are in ./football-scoring.ts.
-
 import { SPORT_LINE_SCHEMAS } from '../doc-schemas/aggregate-stats.js';
 import {
   FOOTBALL_PLAYER_STAT_KEYS,
@@ -55,7 +51,6 @@ export const FOOTBALL_ADAPTER: SportAdapter<'Football'> = {
       defaultSort: [{ columnId: GAMES_PLAYED_COLUMN.id, direction: 'desc' }],
       defaultLayout: [GAMES_PLAYED_COLUMN.id],
     },
-    // No player game line, so the game page renders no player table.
     gamePlayer: { columns: [], defaultSort: [], defaultLayout: [] },
     teamSeason: {
       columns: TEAM_SEASON_BASE_COLUMNS,

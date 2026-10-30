@@ -1,11 +1,3 @@
-// Compound document IDs — one builder and one parser per relationship (RULE-STD-ARCH-109).
-//
-// `firestore.rules` restates these formats, because a rules file cannot import them.
-//
-// League and team ids are Firestore auto ids and never contain the separator. A user id can: a
-// ghost id is `ghost_<timestamp>_<suffix>`. So the user id is always the LAST part, and a parser
-// splits only on the leading separators and keeps the remainder whole.
-
 export const COMPOUND_ID_SEPARATOR = '_';
 
 function splitLeading(id: string, leadingParts: number): string[] | null {
@@ -22,7 +14,6 @@ function splitLeading(id: string, leadingParts: number): string[] | null {
   return parts;
 }
 
-// teamMemberships/{leagueId}_{teamId}_{userId}
 export interface TeamMembershipIdParts {
   leagueId: string;
   teamId: string;
@@ -38,7 +29,6 @@ export function parseTeamMembershipId(id: string): TeamMembershipIdParts | null 
   return parts ? { leagueId: parts[0], teamId: parts[1], userId: parts[2] } : null;
 }
 
-// leagueFreeAgents/{leagueId}_{userId}
 export interface LeagueFreeAgentIdParts {
   leagueId: string;
   userId: string;
@@ -53,9 +43,6 @@ export function parseLeagueFreeAgentId(id: string): LeagueFreeAgentIdParts | nul
   return parts ? { leagueId: parts[0], userId: parts[1] } : null;
 }
 
-// sportGames/{gameId}/gameRosterPlayers/{teamId}_{userId} — one roster entry per team per person, so
-// a person rostered on both teams of a game holds two. The same id keys the entry's line in the
-// game's `stats.playerStats` and names it in the game's absence and participation lists.
 export interface GameRosterPlayerIdParts {
   teamId: string;
   userId: string;
@@ -70,7 +57,6 @@ export function parseGameRosterPlayerId(id: string): GameRosterPlayerIdParts | n
   return parts ? { teamId: parts[0], userId: parts[1] } : null;
 }
 
-// signedWaivers/{leagueId}_{userId}
 export interface SignedWaiverIdParts {
   leagueId: string;
   userId: string;

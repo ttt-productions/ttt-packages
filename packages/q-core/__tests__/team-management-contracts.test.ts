@@ -1,8 +1,3 @@
-// The contracts team management is built on: the roles a member's role change may set, the inputs
-// each team-management callable parses, the ghost's one operation id, the removal's record on that
-// operation, the team's schedule revision, and the audit and domain events the cores and the client
-// name.
-
 import { describe, it, expect } from 'vitest';
 import {
   GhostPlayerStatsOperationSchema,
@@ -84,7 +79,6 @@ describe('the team-management inputs', () => {
     ).toBe(false);
   });
 
-  // A never-played ghost or team holds no stat, so removing it is not a repair (RULE-STD-BACKEND-212).
   it('a ghost removal and a team deletion take no reason, and refuse one', () => {
     expect(
       DeleteTeamGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: GHOST }).success,
@@ -177,8 +171,6 @@ describe("a ghost's one operation", () => {
     ).toBe(false);
   });
 
-  // A link is chosen and confirmed, and its audit event records what it did; neither action takes a
-  // reason (RULE-STD-BACKEND-212).
   it('takes no reason on a link or a removal, and still reads an operation stored with one', () => {
     const removal = {
       kind: 'ghostPlayerStats',
@@ -194,11 +186,9 @@ describe("a ghost's one operation", () => {
       scope: { action: 'link', teamId: 'team-1', ghostUserId: GHOST, userId: 'real-1' },
     };
     expect(StatsOperationSchema.safeParse(link).success).toBe(true);
-    // A removal stored while removals still took a reason parses, with the reason dropped on read.
     const storedWithReason = StatsOperationSchema.safeParse({ ...removal, reason: REASON });
     expect(storedWithReason.success).toBe(true);
     expect(storedWithReason.data).not.toHaveProperty('reason');
-    // A link stored while links still took a reason parses, so the link it records still resumes.
     expect(StatsOperationSchema.safeParse({ ...link, reason: REASON }).success).toBe(true);
   });
 

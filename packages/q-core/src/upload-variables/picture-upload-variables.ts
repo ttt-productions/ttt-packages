@@ -5,13 +5,10 @@ import type { PictureOrigin } from '../media/file-origins.js';
 import { PICTURE_TARGETS } from '../schemas/uploads.js';
 import { onProgressSchema } from './on-progress.js';
 
-/** What a picture is uploaded for: its origin, and that origin's target — the owner, by id. */
 export type PictureUploadTarget = {
   [O in PictureOrigin]: { origin: O; targetInfo: z.infer<(typeof PICTURE_TARGETS)[O]['schema']> };
 }[PictureOrigin];
 
-// One member per picture origin, each pairing the origin with its own target schema, built from
-// `PICTURE_TARGETS` so a new origin joins it with no change here.
 const pictureUploadTargetOptions = PICTURE_ORIGIN_KEYS.map((origin) =>
   z.object({ origin: z.literal(origin), targetInfo: PICTURE_TARGETS[origin].schema }).strict(),
 );
@@ -30,8 +27,6 @@ export const PictureUploadVariablesSchema = z
   .object({
     target: PictureUploadTargetSchema,
     file: z.instanceof(File),
-    // Untrusted client claim of what the user's action implies (advisory; the
-    // server byte inspection is the only classification authority).
     claim: ClientMediaClaimSchema.optional(),
     onProgress: onProgressSchema,
     signal: z.instanceof(AbortSignal).optional(),

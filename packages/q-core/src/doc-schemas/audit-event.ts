@@ -1,11 +1,3 @@
-// `auditEvents/{auditEventId}` — the append-only record of sensitive actions and their rejected
-// attempts (RULE-STD-BACKEND-202..205). Written only by Cloud Functions through the audit writer, in the
-// same transaction or batch as the action it records; no client reads or writes it.
-//
-// The envelope is `@ttt-productions/audit-core`'s `AuditEvent`; Q-Sports supplies the event-type
-// union and the actor / target shapes. The admin modes carry the global role they acted with and the
-// others carry none (RULE-STD-BACKEND-205).
-
 import { z } from 'zod';
 import {
   AUDIT_ADMIN_ACTOR_MODE_KEYS,
@@ -50,7 +42,6 @@ export const AuditEventSchema = z.object({
   ip: z.string().nullable(),
   userAgent: z.string().nullable(),
   region: z.string().nullable(),
-  // Event-specific facts: prior and new values, the role changed, a repair's reason.
   metadata: z.record(z.string(), z.unknown()),
   result: z.enum(AUDIT_RESULT_KEYS),
   failureReason: z.string().nullable(),

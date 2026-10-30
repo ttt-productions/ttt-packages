@@ -157,7 +157,6 @@ describe('callable input schemas', () => {
         acceptedTerms: true,
       }).success,
     ).toBe(false);
-    // A client-supplied identity or email is an unknown key, not an override (RULE-STD-ARCH-106).
     expect(
       RegisterUserInputSchema.safeParse({
         displayName: 'Jane Doe',
@@ -557,10 +556,6 @@ describe('audit event document', () => {
     ).toBe(true);
   });
 
-  // ttt-core's audit event grammar: two or more dot-separated lower-camelCase segments, each opening
-  // with a letter and free to carry digits after it. The first names what was acted on
-  // (`landingPage`, `waiverTemplate`), the last the action, and a middle one a sub-record where the
-  // action needs it (`leagueTeam.roster.synced`).
   const AUDIT_EVENT_TYPE_NAME = /^[a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)+$/;
 
   it('names every event type in dot-separated lower-camelCase segments, domain first and action last', () => {
@@ -598,7 +593,6 @@ describe('domain events', () => {
     expect(
       DomainEventSchema.safeParse({ type: 'user.registered', ids: { userId: 'u1' } }).success,
     ).toBe(true);
-    // The role rosters are a live subscription, so a role change has no event to refresh them.
     expect(
       DomainEventSchema.safeParse({ type: 'adminList.changed', ids: { userId: 'u1' } }).success,
     ).toBe(false);

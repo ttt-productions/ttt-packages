@@ -70,7 +70,6 @@ const correction = {
   reason: 'Scorer credited the wrong player.',
 };
 
-// One valid stored event of every declared type.
 const VALID_EVENTS = {
   '1PT': { ...recorded, ...player, type: '1PT' },
   '2PT': { ...recorded, ...player, type: '2PT', assistedByUserId: 'u2' },
@@ -511,7 +510,6 @@ describe('stats operations', () => {
   };
   const reason = 'Rebuild after the standings dispute.';
 
-  // One valid operation of every kind.
   const VALID_OPERATIONS = {
     leagueStatsRebuild: {
       ...run,
@@ -583,7 +581,6 @@ describe('stats operations', () => {
         scope: { action: 'removal', teamId: 'T1', ghostUserId: 'ghost_1_abc' },
       }),
     ).toBe(true);
-    // A removal stored while removals still took a reason is read with the reason dropped.
     const stored = StatsOperationSchema.safeParse({
       ...VALID_OPERATIONS.ghostPlayerStats,
       scope: { action: 'removal', teamId: 'T1', ghostUserId: 'ghost_1_abc' },
@@ -615,8 +612,6 @@ describe('stats operations', () => {
   it("a repair callable's reason field takes the one reason atom the repair is stored with", () => {
     expect(ReopenGameInputSchema.shape.reason).toBe(repairReasonSchema);
     expect(StatCorrectionEventSchema.shape.reason).toBe(repairReasonSchema);
-    // A ghost removal is not a repair and takes no reason (RULE-STD-BACKEND-212), so its operation's reason is
-    // optional — and still the one atom when present.
     for (const option of StatsOperationSchema.options) {
       if (!('reason' in option.shape)) continue;
       const reason = option.shape.reason;

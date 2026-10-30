@@ -1,10 +1,3 @@
-// The basketball adapter's scoring, display, and bulk-entry members. Basketball is player-scored: a
-// shot credits its scorer's points and its team's score, and — when it names one — its assister's
-// assists, all on the one event (RULE-QS-SPORT-903).
-//
-// `apply` and `undo` are one function over an event's effects with opposite signs, so they are exact
-// inverses by construction (RULE-QS-SPORT-913).
-
 import { z } from 'zod';
 import {
   BASKETBALL_FANTASY_POINT_WEIGHTS,
@@ -86,8 +79,6 @@ function isBasketballEvent(event: StatEventBody | undefined): event is Basketbal
   return isSportStatEventIn(BASKETBALL_STAT_EVENT_TYPE_KEYS, event);
 }
 
-// The registry chose this adapter by the game's `leagueType`, so the rollup it is handed is a
-// basketball game's (RULE-QS-SPORT-902).
 function ownStats(state: GameStats): BasketballGameStats {
   return state as BasketballGameStats;
 }
@@ -96,14 +87,6 @@ function ownTeamLine(line: GameTeamLine): BasketballTeamStats {
   return line as BasketballTeamStats;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Lines
-// ---------------------------------------------------------------------------------------------
-
-/**
- * Fantasy points (FP) of a basketball line: each player counter times its weight. Every stored
- * `fantasyPoints` equals this over the counters of its own line; `deriveLine` is what applies it.
- */
 export function basketballFantasyPoints(
   line: Pick<BasketballPlayerStats, BasketballPlayerStatKey>,
 ): number {
@@ -140,7 +123,6 @@ function playerCountersOf(line: StatLineValues | undefined): PlayerCounters {
   return counters;
 }
 
-// FP is an individual stat: it goes on the four player kinds and on no team kind.
 function deriveBasketballLine(kind: StatLineKind, line: StatLineValues): StatLineValues {
   const withoutDerived = Object.fromEntries(
     Object.entries(line).filter(([field]) => field !== FANTASY_POINTS_FIELD),
@@ -151,10 +133,6 @@ function deriveBasketballLine(kind: StatLineKind, line: StatLineValues): StatLin
     [FANTASY_POINTS_FIELD]: basketballFantasyPoints(playerCountersOf(line)),
   };
 }
-
-// ---------------------------------------------------------------------------------------------
-// Events and their effects
-// ---------------------------------------------------------------------------------------------
 
 const CORRECTABLE_FIELDS: CorrectableFields = {
   team: BASKETBALL_TEAM_STAT_KEYS,
@@ -170,7 +148,6 @@ const TALLY_FIELD = {
 >;
 
 interface LineChange<Field extends string> {
-  /** The team id of a team line, or the roster-entry id of a player line. */
   readonly line: string;
   readonly field: Field;
   readonly amount: number;
@@ -197,7 +174,6 @@ function effectsOf(event: BasketballEvent): Effects {
   }
   const scorer = buildGameRosterPlayerId(event.teamId, event.playerUserId);
   if (event.type === BASKETBALL_BULK_EDIT_EVENT_TYPE) {
-    // A scorer's points edit keeps the team's score the sum of its players' points.
     return {
       team:
         event.stat === 'points'
@@ -236,7 +212,6 @@ function correctionEffects(event: StatCorrectionBody): Effects {
       `A basketball correction cannot change ${event.stat} on a ${event.playerUserId === undefined ? 'team' : 'player'} line.`,
     );
   }
-  // A correction moves only its own field: a player-points correction does not move the team score.
   return event.playerUserId === undefined
     ? {
         team: [
@@ -282,10 +257,6 @@ function applyEffects(
   return { teamStats, playerStats };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Validation — the same rules the bulk form holds, re-checked on the server (RULE-QS-SPORT-906)
-// ---------------------------------------------------------------------------------------------
-
 function isAssistableShot(type: BasketballStatEventType): boolean {
   return (BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS as readonly string[]).includes(type);
 }
@@ -325,9 +296,6 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
   return STAT_EVENT_ACCEPTED;
 };
 
-// What a completed basketball game adds: each entry's points, rebounds, assists, and FP to its row,
-// and the team's rebounds and assists to its standings line. A present entry with no points,
-// rebounds, or assists is credited no game played — zero points alone is not exclusion.
 const BASKETBALL_CONTRIBUTION: ContributionSpec = {
   playerStatKeys: BASKETBALL_PLAYER_STAT_KEYS,
   teamSeasonPlayerSums: ['rebounds', 'assists'] satisfies BasketballPlayerStatKey[],
@@ -350,17 +318,12 @@ export const BASKETBALL_SCORING: SportScoring = {
   },
   deriveLine: deriveBasketballLine,
   correctableFields: CORRECTABLE_FIELDS,
-  // Played in no rounds, and finalized by hand whenever the scorer chooses.
   nextRound: () => null,
   finalizationReadiness: () => FINALIZATION_READY,
   participation: (state, rosterPlayerIds, absentRosterPlayerIds) =>
     decideParticipation(BASKETBALL_CONTRIBUTION, state, rosterPlayerIds, absentRosterPlayerIds),
   contribution: (game) => buildGameContribution(BASKETBALL_CONTRIBUTION, game),
 };
-
-// ---------------------------------------------------------------------------------------------
-// Display
-// ---------------------------------------------------------------------------------------------
 
 export const BASKETBALL_EVENT_LABELS = {
   [BASKETBALL_ONE_POINT_EVENT_TYPE]: { button: '+1 PT', play: '1-point basket' },
@@ -441,10 +404,6 @@ export const BASKETBALL_SCORING_PANEL: PlayerEventsScoringPanel = {
   assistableEventTypes: BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   teamEventTypes: [BASKETBALL_TIMEOUT_EVENT_TYPE],
 };
-
-// ---------------------------------------------------------------------------------------------
-// Bulk entry — one row per roster entry, absent entries included
-// ---------------------------------------------------------------------------------------------
 
 export const BASKETBALL_TEAM_SCORE_FLOOR_MESSAGE =
   "These changes would leave a team's score below zero.";

@@ -1,9 +1,3 @@
-// A completed game's finalized record, `sportGames/{gameId}/gameStatHistory/{pageId}`: every event
-// document of the game in `sequence` order, in pages of up to STAT_HISTORY_PAGE_SIZE, the first page
-// carrying the sport, the teams, and the participation snapshot finalize applied. These are the one
-// builder and the one reader of its pages, so finalize, the game copy, a ghost link, and the week
-// view all write and read the same record.
-
 import { STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
 import type {
@@ -15,19 +9,13 @@ import type { FinalizedGame } from './contribution.js';
 import { replayGameStats } from './replay.js';
 import type { AnySportAdapter } from './sport-adapter.js';
 
-/** What a record holds beside its events: the sport, the teams, and the participation snapshot. */
 export type FinalizedRecordSnapshot = Omit<GameStatHistoryFirstPage, 'events' | 'pageCount'>;
 
-/** One page as written, at its id. */
 export interface FinalizedRecordPage {
   readonly pageId: string;
   readonly page: GameStatHistoryPage;
 }
 
-/**
- * The record's pages: the events in `sequence` order, cut into pages, the first carrying the page
- * count and the snapshot. A game with no events still has its first page.
- */
 export function buildFinalizedRecordPages(
   events: readonly GameStatEvent[],
   snapshot: Pick<
@@ -64,16 +52,10 @@ export function buildFinalizedRecordPages(
   return pages;
 }
 
-/** Whether a page is a record's first page, which carries the snapshot. */
 export function isFirstRecordPage(page: GameStatHistoryPage): page is GameStatHistoryFirstPage {
   return 'pageCount' in page;
 }
 
-/**
- * The record read back: the first page's snapshot and every event, in order. Throws when the pages
- * are not one whole record — no first page, a page count they do not match, or events out of order —
- * which is damage to a completed game, never a designed answer.
- */
 export function readFinalizedRecord(pages: readonly GameStatHistoryPage[]): {
   readonly snapshot: FinalizedRecordSnapshot;
   readonly events: GameStatEvent[];
@@ -100,11 +82,6 @@ export function readFinalizedRecord(pages: readonly GameStatHistoryPage[]): {
   return { snapshot, events };
 }
 
-/**
- * The completed game a record describes: its events replayed through the sport's adapter, with the
- * snapshot finalize stored. Every path after finalize derives a game's contribution from this, never
- * from the game document.
- */
 export function finalizedGameFromRecord(
   adapter: AnySportAdapter,
   pages: readonly GameStatHistoryPage[],

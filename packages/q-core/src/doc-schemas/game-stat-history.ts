@@ -1,11 +1,3 @@
-// `sportGames/{gameId}/gameStatHistory/{pageId}` — a completed game's finalized record: every event
-// document of the game, exactly as stored and in `sequence` order, in pages of up to
-// STAT_HISTORY_PAGE_SIZE, the page ids from `buildStatHistoryPageId(index)`.
-//
-// The first page also carries what finalize applied: the sport, the teams, and the participation
-// snapshot, so the record alone reproduces a completed game's contribution without the game
-// document a hand edit can reach (RULE-QS-SPORT-924). It exists exactly while the game is `completed`.
-
 import { z } from 'zod';
 import { STAT_HISTORY_PAGE_SIZE } from '../constants/sports.js';
 import { gameRosterPlayerIdSchema, leagueTypeSchema, teamIdSchema } from './atoms.js';
@@ -20,13 +12,11 @@ const pageEventsSchema = z
     'A page holds its events in sequence order.',
   );
 
-// A game whose replay is its empty stats has a first page and no events.
 export const GameStatHistoryFirstPageSchema = z.strictObject({
   events: pageEventsSchema,
   pageCount: z.number().int().positive(),
   leagueType: leagueTypeSchema,
   teamIds: z.array(teamIdSchema).min(1).max(2),
-  // The participation snapshot, as roster-entry ids.
   rosterPlayerIds: z.array(gameRosterPlayerIdSchema),
   absentRosterPlayerIds: z.array(gameRosterPlayerIdSchema),
   nonScoringRosterPlayerIds: z.array(gameRosterPlayerIdSchema),

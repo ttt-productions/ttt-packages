@@ -1,15 +1,3 @@
-// The game tier of the stats model: the stat event documents, and the rollup the game document
-// carries (RULE-QS-SPORT-901, RULE-QS-SPORT-911, RULE-QS-SPORT-912).
-//
-// Each stat event is its own document, `sportGames/{gameId}/gameStatEvents/{eventId}`, and the
-// event documents are the source of truth: at every commit the game's `stats` equals their replay,
-// in `sequence` order, from the sport's empty stats. The store is append-only — an undo appends a
-// `STAT_VOID` and a correction a `STAT_CORRECTION`; no event is ever edited.
-//
-// An event names people by id; names resolve from `publicUsers` at read time (RULE-STD-ARCH-103, RULE-QS-SPORT-914).
-// `displayNameSnapshot` and `assistedByDisplayNameSnapshot` are carried only by copied events, as
-// the audit record of the name the stat was entered under — never read as identity.
-
 import { z } from 'zod';
 import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../constants/sports.js';
 import { buildGameRosterPlayerId } from '../ids/compound-ids.js';
@@ -55,12 +43,6 @@ import {
   userIdSchema,
 } from './atoms.js';
 
-// ---------------------------------------------------------------------------------------------
-// Lines — one per team of the game, one per roster entry holding a non-zero player line
-// ---------------------------------------------------------------------------------------------
-
-// A line's counters: one field per key of the sport's declared stat-key set (RULE-QS-SPORT-907), so a key
-// added to the set is a field of every line built from it.
 function counterShape<K extends StatCounterKey>(keys: readonly K[]): Record<K, typeof countSchema> {
   return Object.fromEntries(keys.map((key) => [key, countSchema])) as Record<K, typeof countSchema>;
 }
@@ -68,18 +50,12 @@ function counterShape<K extends StatCounterKey>(keys: readonly K[]): Record<K, t
 export const BasketballTeamStatsSchema = z.strictObject(counterShape(BASKETBALL_TEAM_STAT_KEYS));
 export type BasketballTeamStats = z.infer<typeof BasketballTeamStatsSchema>;
 
-// `fantasyPoints` is `basketballFantasyPoints` of the line's own counters, on every basketball
-// player line — this game line and the totals lines built from it — stored so every table and
-// aggregate reads it rather than deriving it. FP is linear in the counters, so a totals line's FP
-// equals the sum of its games' FP.
 export const BasketballPlayerStatsSchema = z.strictObject({
   ...counterShape(BASKETBALL_PLAYER_STAT_KEYS),
   fantasyPoints: z.number().nonnegative(),
 });
 export type BasketballPlayerStats = z.infer<typeof BasketballPlayerStatsSchema>;
 
-// `roundScores[n]` is end n + 1: `null` until the end is recorded, `0` on both teams for a blank end.
-// `score` is the sum of the recorded ends.
 export const CurlingTeamStatsSchema = z.strictObject({
   ...counterShape(CURLING_TEAM_STAT_KEYS),
   roundScores: z
@@ -91,14 +67,6 @@ export type CurlingTeamStats = z.infer<typeof CurlingTeamStatsSchema>;
 export const FootballTeamStatsSchema = z.strictObject(counterShape(FOOTBALL_TEAM_STAT_KEYS));
 export type FootballTeamStats = z.infer<typeof FootballTeamStatsSchema>;
 
-// ---------------------------------------------------------------------------------------------
-// The payload — exactly two keys for every sport (RULE-QS-SPORT-901)
-// ---------------------------------------------------------------------------------------------
-
-// The one declaration of the game `stats` payload. Each sport's is built through it from that
-// sport's game lines in `SPORT_LINE_SCHEMAS`, as `SPORT_GAME_STATS_SCHEMAS`. `playerStats` is keyed
-// by roster entry, never by person, so a person on both teams of a game holds a line on each side. A
-// sport with no player lines passes `z.never()`, so its map stays empty.
 export function gameStatsSchema<TeamLine extends z.ZodType, PlayerLine extends z.ZodType>(
   teamLine: TeamLine,
   playerLine: PlayerLine,
@@ -109,12 +77,6 @@ export function gameStatsSchema<TeamLine extends z.ZodType, PlayerLine extends z
   });
 }
 
-// ---------------------------------------------------------------------------------------------
-// Events
-// ---------------------------------------------------------------------------------------------
-
-// Every event: its id, its place in the replay, and when it was entered. The recorder facts are
-// derived by the writing core, never taken from the payload (RULE-STD-ARCH-106); a copied event has none.
 const statEventBase = {
   eventId: statEventIdSchema,
   sequence: z.number().int().positive(),
@@ -122,18 +84,14 @@ const statEventBase = {
   acceptedAt: epochMsSchema.optional(),
   recordedByUserId: userIdSchema.optional(),
   recordedByAuthority: z.enum(STAT_EVENT_AUTHORITY_KEYS).optional(),
-  // Only for the two team roles: the team whose authority the event was recorded under.
   recordedByTeamId: teamIdSchema.optional(),
 };
 
-// A player-attributed event names the roster entry `{teamId}_{playerUserId}` whose line it changes.
 const playerEventFields = {
   teamId: teamIdSchema,
   playerUserId: userIdSchema,
   displayNameSnapshot: z.string().optional(),
 };
-
-// Basketball
 
 export const BasketballOnePointEventSchema = z.strictObject({
   ...statEventBase,
@@ -141,7 +99,6 @@ export const BasketballOnePointEventSchema = z.strictObject({
   type: z.literal(BASKETBALL_ONE_POINT_EVENT_TYPE),
 });
 
-// An assisted shot names its assister on the same event, which credits both players.
 export const BasketballAssistableShotEventSchema = z
   .strictObject({
     ...statEventBase,
@@ -168,8 +125,6 @@ export const BasketballTimeoutEventSchema = z.strictObject({
   type: z.literal(BASKETBALL_TIMEOUT_EVENT_TYPE),
 });
 
-// A scorer's edit: `value` is the signed change to `stat`, entered against `previousValue`, the
-// value the form showed. A copied bulk edit has no `previousValue`; nothing validates one again.
 export const BasketballBulkEditEventSchema = z.strictObject({
   ...statEventBase,
   ...playerEventFields,
@@ -178,8 +133,6 @@ export const BasketballBulkEditEventSchema = z.strictObject({
   value: z.number().int(),
   previousValue: countSchema.optional(),
 });
-
-// Curling — an event names the end it records; it names no player.
 
 const curlingRoundNumberSchema = z.number().int().min(1).max(CURLING_ROUND_COUNT);
 
@@ -197,8 +150,6 @@ export const CurlingBlankEndEventSchema = z.strictObject({
   roundNumber: curlingRoundNumberSchema,
 });
 
-// Football — team-attributed only.
-
 export const FootballScoreEventSchema = z.strictObject({
   ...statEventBase,
   type: z.enum(FOOTBALL_SCORE_EVENT_TYPE_KEYS),
@@ -213,10 +164,6 @@ export const FootballBulkEditEventSchema = z.strictObject({
   previousValue: countSchema,
 });
 
-// The store-level events, members of every sport's union.
-
-// Undoes exactly the event it targets. Its id is derived from the target, so a target has at most
-// one void and a second undo of the same event is the same document.
 export const StatVoidEventSchema = z
   .strictObject({
     ...statEventBase,
@@ -228,9 +175,6 @@ export const StatVoidEventSchema = z
     path: ['eventId'],
   });
 
-// Adds `value` to one correctable field of one line — the player line `{teamId}_{playerUserId}`
-// when it names a player, the team line of `teamId` when it does not. It never cascades: a player
-// correction does not move the team's score.
 export const StatCorrectionEventSchema = z
   .strictObject({
     ...statEventBase,
@@ -242,8 +186,6 @@ export const StatCorrectionEventSchema = z
     correctionSource: z.enum(STAT_CORRECTION_SOURCE_KEYS),
     operationId: statsOperationIdSchema,
     reason: repairReasonSchema,
-    // The ghost a link re-keyed this correction's player line from. The id was derived from the
-    // ghost's line when the correction was written, and a document id never changes.
     rekeyedFromGhostUserId: userIdSchema.optional(),
   })
   .refine(
@@ -265,8 +207,6 @@ export const StatCorrectionEventSchema = z
     },
   );
 
-// Recorder facts are all present or all absent, and a team is named exactly when the authority is a
-// team role.
 function recorderFactsAgree(event: {
   acceptedAt?: number;
   recordedByUserId?: string;
@@ -282,9 +222,6 @@ function recorderFactsAgree(event: {
   return teamAuthority === (event.recordedByTeamId !== undefined);
 }
 
-// A name snapshot is the audit record a copied event keeps of the name its stat was entered under.
-// Only the writing core stamps recorder facts, and it writes ids only, so an event carrying both a
-// snapshot and a recorder fact is refused (RULE-STD-ARCH-103, RULE-QS-SPORT-914).
 function snapshotsOnlyOnCopiedEvents(event: {
   acceptedAt?: number;
   recordedByUserId?: string;
@@ -304,7 +241,6 @@ function snapshotsOnlyOnCopiedEvents(event: {
   return !(snapshot && recorded);
 }
 
-// Event types are disjoint across sports, so `type` alone discriminates the whole union.
 export const GameStatEventSchema = z
   .discriminatedUnion('type', [
     BasketballOnePointEventSchema,

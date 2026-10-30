@@ -1,7 +1,3 @@
-// The migration console's contracts: the action ids every gate and callable names, the callable name
-// each executable step is reached by, the page input the console's callables take, and the records
-// the console keeps. Each test states the rule the shape carries.
-
 import { describe, it, expect } from 'vitest';
 import {
   GAME_SCOPED_STATS_BEACON_ACTION_KEYS,

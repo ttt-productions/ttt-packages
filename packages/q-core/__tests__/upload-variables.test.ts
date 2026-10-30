@@ -1,7 +1,3 @@
-// The upload mutations' variables: each hook parses them before it stages anything, so a target that
-// does not fit its origin, a file or drawing that is not one, or a malformed signing subject never
-// reaches the staging call.
-
 import { describe, it, expect } from 'vitest';
 import { PICTURE_ORIGIN_KEYS } from '../src/media/file-origins.js';
 import { PictureUploadVariablesSchema } from '../src/upload-variables/picture-upload-variables.js';

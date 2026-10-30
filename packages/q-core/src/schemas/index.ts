@@ -1,6 +1,3 @@
-// Callable wire contracts — inputs and results. Subpath-only: not re-exported from the root barrel.
-// A step that adds or converts a callable adds its `<Verb><Noun>InputSchema` / `ResultSchema` here.
-
 export * from './atoms.js';
 export * from './awards.js';
 export * from './hardware-loan-contracts.js';

@@ -1,7 +1,3 @@
-// `countSchema` is the one count atom (RULE-STD-ENG-002): a tally a document or a callable result holds is
-// that atom, never a private unbounded whole non-negative number beside it. The pins prove the
-// schemas that hold counts use it; the scan fails the next private copy anywhere in the package.
-
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -23,28 +19,15 @@ import { AdminStatsSchema } from '../src/schemas/admin-stats.js';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
 
-// Where the count atom is declared, beside the other atoms built the same way.
 const ATOMS_FILE = 'doc-schemas/atoms.ts';
 
-/**
- * Inline unbounded whole non-negative numbers the atom does not stand for today, keyed
- * `file#binding` so an entry covers that one declaration and no other in its file, each with why,
- * and what would take it off the list.
- */
 const OUTSIDE_THE_ATOM: Readonly<Record<string, string>> = {};
 
-// A number schema's constructor — `z.number(…)` or zod 4's `z.int(…)` — with or without arguments.
 const NUMBER_CONSTRUCTOR = /\bz\s*\.\s*(number|int)\s*\(/g;
-// The next link of a chain: `.name(`, after any whitespace or comments.
 const CHAIN_LINK = /(?:\s|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*\.\s*(\w+)\s*\(/y;
 const LOWER_BOUNDS = new Set(['min', 'gte']);
 const UPPER_BOUNDS = new Set(['max', 'lte', 'lt']);
 
-/**
- * The index just past the parenthesis that closes the one opened at `open`, stepping over string
- * literals and comments, so an argument holding a parenthesis — a message, a callback — is read
- * whole. -1 when it never closes.
- */
 function closingParenthesis(source: string, open: number): number {
   let depth = 0;
   for (let at = open; at < source.length; at += 1) {
@@ -72,11 +55,9 @@ function closingParenthesis(source: string, open: number): number {
 
 interface ChainedCall {
   readonly name: string;
-  /** The call's first argument as written — a bound's value, ahead of any message. */
   readonly firstArgument: string;
 }
 
-/** The calls chained onto the constructor that closes at `from`, in order. */
 function chainedCalls(source: string, from: number): ChainedCall[] {
   const calls: ChainedCall[] = [];
   let at = from;
@@ -96,7 +77,6 @@ function chainedCalls(source: string, from: number): ChainedCall[] {
   }
 }
 
-/** Whole, at or above zero, with no upper bound — in any order the refinements are chained. */
 function isInlineCount(constructor: string, calls: readonly ChainedCall[]): boolean {
   const whole = constructor === 'int' || calls.some((call) => call.name === 'int');
   const nonNegative = calls.some(
@@ -107,7 +87,6 @@ function isInlineCount(constructor: string, calls: readonly ChainedCall[]): bool
   return whole && nonNegative && !bounded;
 }
 
-/** The binding each inline count in `source` is declared under — its field or its constant. */
 function inlineCounts(source: string): string[] {
   const bindings: string[] = [];
   for (const match of source.matchAll(NUMBER_CONSTRUCTOR)) {
@@ -215,7 +194,6 @@ describe('countSchema is the one count atom', () => {
     expect(MembershipRosterSyncSchema.shape.rosterRevision).toBe(revisionSchema);
     expect(MembershipRosterSyncSchema.shape.reconciledRosterRevision).toBe(appliedRevisionSchema);
     expect(MembershipRosterSyncCursorSchema.shape.rosterRevision).toBe(revisionSchema);
-    // The first change writes 1; nothing is applied before it.
     expect(revisionSchema.safeParse(0).success).toBe(false);
     expect(appliedRevisionSchema.safeParse(0).success).toBe(true);
   });

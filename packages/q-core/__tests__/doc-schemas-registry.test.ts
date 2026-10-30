@@ -67,7 +67,6 @@ describe('Firestore collection schema registry', () => {
         ([registered]) => registered === path,
       )?.[1];
       expect(schema, `${path} must be a registered collection`).toBeDefined();
-      // A union schema declares the field only when every one of its document shapes does.
       const shapes = schema instanceof z.ZodUnion ? schema.options : [schema];
       expect(
         shapes.every((shape) => declaresField(shape, field)),

@@ -1,7 +1,3 @@
-// Callable contracts for teams and team membership. The acting user is always `request.auth.uid` —
-// never an input field (RULE-STD-ARCH-106). The server, never a field of the payload, decides the
-// authority (RULE-STD-BACKEND-004); an admin-only action's schema adds only what its authority needs.
-
 import { z } from 'zod';
 import {
   leagueJoinWarningActedOnSchema,
@@ -25,12 +21,6 @@ import { GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS, GHOST_REMOVAL_REFUSAL_KEYS } from '
 import { MEMBER_ASSIGNABLE_TEAM_ROLES } from '../types/unions.js';
 import { contactPhoneSchema, displayNameSchema, teamNameSchema } from './atoms.js';
 
-// ---------------------------------------------------------------------------------------------
-// Team creation — `createLeagueTeam` (the creator becomes captain) and `adminCreateLeagueTeam`
-// (an admin creates the team with a newly minted ghost captain). Both write the team's contact
-// phone; `teamType` is read only in a Competitive/Recreational league, which requires it.
-// ---------------------------------------------------------------------------------------------
-
 const teamCreationFields = {
   leagueId: leagueIdSchema,
   name: teamNameSchema,
@@ -52,15 +42,6 @@ export const CreateLeagueTeamResultSchema = z
   .strict();
 export type CreateLeagueTeamResult = z.infer<typeof CreateLeagueTeamResultSchema>;
 
-// ---------------------------------------------------------------------------------------------
-// Ghost add — one core behind two doors. The team page door (`createTeamGhostPlayer`) needs
-// authority over the team; the game page door (`createGameGhostPlayer`) needs scoring authority over
-// the game and adds to one of its two teams. The ghost id is derived by the server from the add's
-// `requestId`, which the client mints once when the add starts and re-sends on every retry, so a
-// retry after an unknown outcome is recognised as the same add (`buildGhostUserIdForRequest`).
-// ---------------------------------------------------------------------------------------------
-
-// One document-id segment (RULE-STD-ARCH-106), short enough that the ghost id derived from it is one too.
 export const ghostCreateRequestIdSchema = documentIdSegmentSchema.refine(
   (requestId) => isDocumentIdSegment(buildGhostUserIdForRequest(requestId)),
   'Not a ghost add request id.',
@@ -85,8 +66,6 @@ export const CreateGameGhostPlayerInputSchema = z
   .strict();
 export type CreateGameGhostPlayerInput = z.infer<typeof CreateGameGhostPlayerInputSchema>;
 
-// `rosterSyncStatus` is where the new membership's roster work stood when the call returned: the
-// membership is committed either way, and `pending` finishes in the background.
 export const CreateGhostPlayerResultSchema = z
   .object({
     leagueId: leagueIdSchema,
@@ -97,13 +76,6 @@ export const CreateGhostPlayerResultSchema = z
   .strict();
 export type CreateGhostPlayerResult = z.infer<typeof CreateGhostPlayerResultSchema>;
 
-// ---------------------------------------------------------------------------------------------
-// The join warning — `getLeagueJoinWarning` (the person, or a captain or co-captain of the target
-// team) and `adminGetLeagueJoinWarning` (an admin, about anyone).
-// ---------------------------------------------------------------------------------------------
-
-// `targetTeamId` is the team the door acts for; a free-agent signup and a team being created have
-// none. `actedOn` is the item the door answers, which the warning leaves out.
 export const GetLeagueJoinWarningInputSchema = z
   .object({
     leagueId: leagueIdSchema,
@@ -123,10 +95,6 @@ export const GetLeagueJoinWarningResultSchema = z
   .strict();
 export type GetLeagueJoinWarningResult = z.infer<typeof GetLeagueJoinWarningResultSchema>;
 
-// ---------------------------------------------------------------------------------------------
-// Roster reconciliation recovery — an admin puts a team's failed roster obligations back to work.
-// ---------------------------------------------------------------------------------------------
-
 export const AdminRetryLeagueTeamRosterSyncInputSchema = z
   .object({ teamId: teamIdSchema })
   .strict();
@@ -137,28 +105,14 @@ export type AdminRetryLeagueTeamRosterSyncInput = z.infer<
 export const AdminRetryLeagueTeamRosterSyncResultSchema = z
   .object({
     teamId: teamIdSchema,
-    // Failed obligations put back to pending.
     retried: countSchema,
-    // Of those and any already pending, how many the call itself finished.
     reconciled: countSchema,
-    // Failed obligations left as they are because they fail their schema, by document id; a
-    // damaged document's id is reported as stored, so it is not held to the membership id format.
     damagedTeamMembershipIds: z.array(z.string().min(1)),
   })
   .strict();
 export type AdminRetryLeagueTeamRosterSyncResult = z.infer<
   typeof AdminRetryLeagueTeamRosterSyncResultSchema
 >;
-
-// ---------------------------------------------------------------------------------------------
-// Linking a ghost to a real account — `linkGhostPlayerToUser` in a league that is not closed, and
-// `adminLinkClosedLeagueGhostPlayer` in a closed one. Both are admin-only and act on one team. A link
-// takes no reason: the admin chooses the account and confirms, and the link's audit event records
-// who linked which ghost to whom and what moved (RULE-STD-BACKEND-212). The ghost and the account are
-// ids the core checks itself, so a ghost id named as the account, or a real id named as the ghost,
-// is refused with a failure record rather than at the parse. Every name the link records is read
-// server-side, never sent.
-// ---------------------------------------------------------------------------------------------
 
 export const LinkGhostPlayerInputSchema = z
   .object({
@@ -169,9 +123,6 @@ export const LinkGhostPlayerInputSchema = z
   .strict();
 export type LinkGhostPlayerInput = z.infer<typeof LinkGhostPlayerInputSchema>;
 
-// `complete` is false when the call ran out of time part-way: the link stays under way, and the same
-// call by the same account continues it. `membershipOutcome` is present once it is complete.
-// `publicUserDeleted` is false when something else still names the ghost.
 export const LinkGhostPlayerResultSchema = z
   .object({
     leagueId: leagueIdSchema,
@@ -191,18 +142,8 @@ export type AdminLinkClosedLeagueGhostPlayerInput = LinkGhostPlayerInput;
 export const AdminLinkClosedLeagueGhostPlayerResultSchema = LinkGhostPlayerResultSchema;
 export type AdminLinkClosedLeagueGhostPlayerResult = LinkGhostPlayerResult;
 
-// ---------------------------------------------------------------------------------------------
-// Managing a team's members. A role change and a removal are each one callable for the team's
-// captain or a co-captain, read from their membership, and for an admin; changing the captain,
-// renaming the team, changing its type, setting its contact phone, and deleting it are admin-only.
-// Every target is named by id and read server-side; nothing here names who is acting (RULE-STD-ARCH-106).
-// ---------------------------------------------------------------------------------------------
-
-/** A ghost id, refused for any other id, so a removal input cannot name a real account. */
 export const ghostUserIdSchema = userIdSchema.refine(isGhostUserId, 'Not a ghost player.');
 
-// `updateTeamMembershipRole` (the captain or an admin): promote a player to co-captain, or demote a
-// co-captain to player.
 export const UpdateTeamMembershipRoleInputSchema = z
   .object({
     teamId: teamIdSchema,
@@ -212,7 +153,6 @@ export const UpdateTeamMembershipRoleInputSchema = z
   .strict();
 export type UpdateTeamMembershipRoleInput = z.infer<typeof UpdateTeamMembershipRoleInputSchema>;
 
-// `changed` is false when the member already held the role: nothing was written or recorded.
 export const UpdateTeamMembershipRoleResultSchema = z
   .object({
     leagueId: leagueIdSchema,
@@ -224,8 +164,6 @@ export const UpdateTeamMembershipRoleResultSchema = z
   .strict();
 export type UpdateTeamMembershipRoleResult = z.infer<typeof UpdateTeamMembershipRoleResultSchema>;
 
-// `deleteTeamMembership` (the captain, a co-captain, or an admin): remove a real player from the
-// team. A ghost is removed through its own action, below.
 export const DeleteTeamMembershipInputSchema = z
   .object({
     teamId: teamIdSchema,
@@ -237,8 +175,6 @@ export const DeleteTeamMembershipInputSchema = z
   .strict();
 export type DeleteTeamMembershipInput = z.infer<typeof DeleteTeamMembershipInputSchema>;
 
-// `deleted` is false when the person held no membership on the team: nothing was written. The
-// membership is gone either way; `rosterSyncStatus` is where its roster work stood on return.
 export const DeleteTeamMembershipResultSchema = z
   .object({
     leagueId: leagueIdSchema,
@@ -250,18 +186,11 @@ export const DeleteTeamMembershipResultSchema = z
   .strict();
 export type DeleteTeamMembershipResult = z.infer<typeof DeleteTeamMembershipResultSchema>;
 
-// `deleteTeamGhostPlayer` (the captain, a co-captain, or an admin): remove a ghost that has never
-// played, completely. A never-played ghost holds no stat, so its removal is not a
-// repair and takes no reason; its audit event still records who removed what (RULE-STD-BACKEND-212).
 export const DeleteTeamGhostPlayerInputSchema = z
   .object({ teamId: teamIdSchema, ghostUserId: ghostUserIdSchema })
   .strict();
 export type DeleteTeamGhostPlayerInput = z.infer<typeof DeleteTeamGhostPlayerInputSchema>;
 
-// `complete` is false when the call ran out of time part-way: the ghost's games stay held and the
-// same call finishes the removal. `finishedGameEntriesRemoved` is the whole removal's count so far,
-// never one call's share, so a later response replaces an earlier one. `publicUserDeleted` is false
-// when something else still names the ghost, so its name stays until that reference goes.
 export const DeleteTeamGhostPlayerResultSchema = z
   .object({
     leagueId: leagueIdSchema,
@@ -274,9 +203,6 @@ export const DeleteTeamGhostPlayerResultSchema = z
   .strict();
 export type DeleteTeamGhostPlayerResult = z.infer<typeof DeleteTeamGhostPlayerResultSchema>;
 
-// The details of a ghost removal's designed refusal: its reason, and — for a refusal that stops a
-// removal already under way — `finishedGameEntriesRemoved`, the removal's count so far, as the result
-// counts it. Those entries stay removed.
 export const GhostRemovalRefusalDetailsSchema = z
   .object({
     reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS),
@@ -285,8 +211,6 @@ export const GhostRemovalRefusalDetailsSchema = z
   .strict();
 export type GhostRemovalRefusalDetails = z.infer<typeof GhostRemovalRefusalDetailsSchema>;
 
-// `adminUpdateLeagueTeamCaptain`: make a member of the team its captain. Every other captain the team
-// holds becomes a player.
 export const AdminUpdateLeagueTeamCaptainInputSchema = z
   .object({ teamId: teamIdSchema, captainUserId: userIdSchema })
   .strict();
@@ -307,25 +231,21 @@ export type AdminUpdateLeagueTeamCaptainResult = z.infer<
   typeof AdminUpdateLeagueTeamCaptainResultSchema
 >;
 
-// `adminUpdateLeagueTeamName`: rename a team. The name lives on the team alone; nothing copies it.
 export const AdminUpdateLeagueTeamNameInputSchema = z
   .object({ teamId: teamIdSchema, name: teamNameSchema })
   .strict();
 export type AdminUpdateLeagueTeamNameInput = z.infer<typeof AdminUpdateLeagueTeamNameInputSchema>;
 
-// `adminUpdateLeagueTeamType`: change a team's type in a league that sorts its teams by type.
 export const AdminUpdateLeagueTeamTypeInputSchema = z
   .object({ teamId: teamIdSchema, teamType: teamTypeSchema })
   .strict();
 export type AdminUpdateLeagueTeamTypeInput = z.infer<typeof AdminUpdateLeagueTeamTypeInputSchema>;
 
-// The answer to either edit: `changed` is false when the team already held the value.
 export const AdminUpdateLeagueTeamResultSchema = z
   .object({ leagueId: leagueIdSchema, teamId: teamIdSchema, changed: z.boolean() })
   .strict();
 export type AdminUpdateLeagueTeamResult = z.infer<typeof AdminUpdateLeagueTeamResultSchema>;
 
-// `adminUpdateLeagueTeamContact`: set the team's contact phone on its admin-only contact document.
 export const AdminUpdateLeagueTeamContactInputSchema = z
   .object({ teamId: teamIdSchema, contactPhone: contactPhoneSchema })
   .strict();
@@ -336,15 +256,9 @@ export type AdminUpdateLeagueTeamContactInput = z.infer<
 export const AdminUpdateLeagueTeamContactResultSchema = AdminUpdateLeagueTeamResultSchema;
 export type AdminUpdateLeagueTeamContactResult = AdminUpdateLeagueTeamResult;
 
-// `adminDeleteLeagueTeam`: delete a team that has never played, with everything that is only its.
-// A never-played team holds no stat, so its deletion is not a repair and takes no reason; its audit
-// event still records who deleted what (RULE-STD-BACKEND-212).
 export const AdminDeleteLeagueTeamInputSchema = z.object({ teamId: teamIdSchema }).strict();
 export type AdminDeleteLeagueTeamInput = z.infer<typeof AdminDeleteLeagueTeamInputSchema>;
 
-// `complete` is false when the call ran out of time part-way: what is left stays, the team still
-// stands, and the same call finishes the deletion. `remainingGameCount` is the team's games still to
-// delete when it stopped.
 export const AdminDeleteLeagueTeamResultSchema = z
   .object({
     teamId: teamIdSchema,
@@ -354,10 +268,6 @@ export const AdminDeleteLeagueTeamResultSchema = z
   .strict();
 export type AdminDeleteLeagueTeamResult = z.infer<typeof AdminDeleteLeagueTeamResultSchema>;
 
-// Why a team's deletion was refused, in the refusal's details: the team has played — a completed
-// game, or a stat in one of its games — whether that is found before anything is deleted or only as a
-// later game is reached. `deletedGameCount` is the unplayed games this request had already deleted
-// when it found the play, 0 when it found it first; those games stay deleted.
 export const LEAGUE_TEAM_DELETE_REFUSAL_KEYS = ['teamHasPlayed'] as const;
 export type LeagueTeamDeleteRefusal = (typeof LEAGUE_TEAM_DELETE_REFUSAL_KEYS)[number];
 export const LeagueTeamDeleteRefusalDetailsSchema = z

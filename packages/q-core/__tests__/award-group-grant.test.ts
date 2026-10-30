@@ -1,6 +1,3 @@
-// A team's or a whole league's award grant: one numbered decision on one award for one group, carried
-// out a page of people at a time, with every person recorded before their profile changes.
-
 import { describe, it, expect } from 'vitest';
 import {
   buildAwardGroupGrantId,
@@ -60,9 +57,7 @@ describe('a group grant decision', () => {
   it('gives every decision on one award and group one key, and each decision its own id by number', () => {
     expect(buildAwardGroupGrantTargetKey(target)).toBe(targetKey);
     expect(buildAwardGroupGrantId(targetKey, 1)).not.toBe(buildAwardGroupGrantId(targetKey, 2));
-    // The same ids read as a team and as a league are two groups, never one.
     expect(buildAwardGroupGrantTargetKey({ ...target, groupType: 'team' })).not.toBe(targetKey);
-    // Parts are length-prefixed, so ids that run into each other never share a key.
     expect(
       buildAwardGroupGrantTargetKey({ awardId: 'a1', groupType: 'team', groupId: '2' }),
     ).not.toBe(buildAwardGroupGrantTargetKey({ awardId: 'a', groupType: 'team', groupId: '12' }));
@@ -194,7 +189,6 @@ describe('the group grant callables', () => {
         group: asUser,
       }).success,
     ).toBe(false);
-    // A group id is one document-id segment, so it never addresses another document.
     const asPath = { groupType: 'team', groupId: 't/1' };
     expect(
       AdminUpdateAwardGroupGrantInputSchema.safeParse({

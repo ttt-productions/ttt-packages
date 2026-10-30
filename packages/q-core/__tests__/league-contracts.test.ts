@@ -1,6 +1,3 @@
-// The league's contracts: the stored document, the callable inputs and results, the lifecycle, and
-// the one team-type union. Each test pins a property the league core or its callers rely on.
-
 import { describe, it, expect } from 'vitest';
 import {
   MAX_LEAGUE_DESCRIPTION_LENGTH,

@@ -20,7 +20,6 @@ import type { StatLineKind } from '../src/types/stats.js';
 
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;
 
-// A stored line of every kind each sport keeps; a kind the sport does not keep has none.
 const FIXTURE_LINES = {
   Basketball: {
     gamePlayer: { points: 21, rebounds: 7, assists: 4, fantasyPoints: 39.5 },
@@ -58,7 +57,6 @@ const fixtureLine = (leagueType: LeagueType, kind: StatLineKind): object | undef
 
 const perGameOf = (column: { perGame?: unknown }) => column.perGame as PerGameColumn | undefined;
 
-/** Every id a catalog offers: each column's, and each per-game variant's. */
 function layoutIds(catalog: ColumnCatalog<never>): string[] {
   return catalog.columns.flatMap((column) => {
     const perGame = perGameOf(column);
@@ -159,7 +157,6 @@ describe.each([...LEAGUE_TYPE_KEYS])('the %s catalogs', (leagueType) => {
   });
 });
 
-// Each sport's summary reads its own lifetime line, so it is checked with that sport's own types.
 function expectSummaryReadsLine<Line extends { gamesPlayed: number }>(
   summary: LifetimeSummary<Line>,
   line: Line,

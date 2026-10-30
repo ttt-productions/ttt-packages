@@ -1,8 +1,3 @@
-// The admin housekeeping contracts — the award catalog and its grants, hardware loan contracts, the
-// badge and hardware-signature upload origins, and the Fix stats inputs and report. The ban and unban
-// contract is in auth-contracts.test.ts. Each test states the business rule the shape
-// carries, not only that it parses.
-
 import { describe, it, expect } from 'vitest';
 import {
   HARDWARE_CATALOG,
@@ -44,7 +39,6 @@ const NOW = 1712345678901;
 
 describe('the award catalog', () => {
   it('keeps a name within its limit, a holder count, and no field it does not declare', () => {
-    // A badge's picture id is its upload's staging id.
     const award = {
       name: 'MVP',
       badgePictureId: '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34',
@@ -58,7 +52,6 @@ describe('the award catalog', () => {
         .success,
     ).toBe(false);
     expect(AwardDefinitionSchema.safeParse({ ...award, holderCount: -1 }).success).toBe(false);
-    // V1's image URLs are not part of an award: its badge is a picture.
     expect(
       AwardDefinitionSchema.safeParse({ ...award, imageUrl: 'https://example.test/a.png' }).success,
     ).toBe(false);
@@ -71,7 +64,6 @@ describe('the award catalog', () => {
     expect(
       AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', revokeUserIds: ['u1'] }).success,
     ).toBe(true);
-    // A team or a league is granted through its own paged decision, never inside a named-account change.
     expect(
       AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantTeamIds: ['t1'] }).success,
     ).toBe(false);

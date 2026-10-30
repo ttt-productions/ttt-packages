@@ -1,23 +1,12 @@
-// A league's schedule: how a game's venue reads, and the scheduling conflicts the week form warns
-// about. Pure, so the admin form computes the warnings as the week is edited and a test proves them
-// without a component.
-
 import { SHARED_LOCATION_CONFLICT, TEAM_DOUBLE_BOOKED_CONFLICT } from '../types/schedules.js';
 
-/**
- * How a game's venue reads on the schedule: the venue's name, and the court or room within it when
- * one was chosen. The server writes it as the game's `locationLabel`, and the form previews it.
- */
 export function formatGameLocationLabel(venueName: string, subLocation?: string): string {
   return subLocation ? `${venueName} - ${subLocation}` : venueName;
 }
 
-/** A game as the conflict check reads it: a scheduled game, or a draft the form holds. */
 export interface ScheduleConflictGame {
-  /** The game's id, or the form's key for a draft not yet saved. */
   readonly key: string;
   readonly startTime: number;
-  /** The game's real teams. A game with fewer than two is a bye: it books no venue and no team. */
   readonly teamIds: readonly string[];
   readonly gameLocationId?: string;
   readonly subLocation?: string;
@@ -37,10 +26,6 @@ export type ScheduleConflict =
       readonly gameKeys: string[];
     };
 
-/**
- * Where a game is played, for comparing two games: the venue and its court when the game names a
- * venue, else its label, trimmed and case-folded.
- */
 function locationKey(game: ScheduleConflictGame): string {
   if (game.gameLocationId !== undefined)
     return `venue:${game.gameLocationId}:${game.subLocation ?? ''}`;
@@ -64,14 +49,6 @@ function addToGroup(
   else groups.set(key, { startTime: game.startTime, teamId, games: [game] });
 }
 
-/**
- * The conflicts `candidates` — the week being created or edited — cause against each other and
- * against `existing`, the league's saved games: two games at one venue court at one start time, and
- * one team in two games at one start time. An existing game a candidate shares a key with is the
- * game being edited, so the candidate replaces it. A conflict among saved games alone is not
- * reported: the form warns about what the admin is doing now. Warnings only — nothing is refused
- * for one.
- */
 export function findScheduleConflicts(
   candidates: readonly ScheduleConflictGame[],
   existing: readonly ScheduleConflictGame[],

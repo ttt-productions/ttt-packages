@@ -1,6 +1,3 @@
-// The documents that put a user on a team: the membership itself and the three ways to reach one.
-// Every one of them stores user ids only — names resolve from `publicUsers` (RULE-STD-ARCH-103).
-
 import { z } from 'zod';
 import {
   epochMsSchema,
@@ -14,8 +11,6 @@ import {
   userIdSchema,
 } from './atoms.js';
 
-// `teamMemberships/{leagueId}_{teamId}_{userId}` — canonical membership and team role. The id is
-// load-bearing: rules and callables read a membership by id to decide captain authority.
 export const TeamMembershipSchema = z.object({
   leagueId: leagueIdSchema,
   teamId: teamIdSchema,
@@ -24,16 +19,13 @@ export const TeamMembershipSchema = z.object({
   status: teamMembershipStatusSchema,
   isGhost: z.boolean(),
   joinedVia: teamJoinMethodSchema.optional(),
-  // The invite this membership came from, when `joinedVia` is `invite`.
   teamInvitationId: z.string().optional(),
-  // The ghost id this real user's membership replaced, when a ghost was linked to them.
   linkedFromGhostUserId: z.string().optional(),
   joinedAt: epochMsSchema,
   updatedAt: epochMsSchema,
 });
 export type TeamMembership = z.infer<typeof TeamMembershipSchema>;
 
-// `teamInvitations/{inviteId}` — a captain invites a user onto their team.
 export const TeamInvitationSchema = z.object({
   leagueId: leagueIdSchema,
   teamId: teamIdSchema,
@@ -46,7 +38,6 @@ export const TeamInvitationSchema = z.object({
 });
 export type TeamInvitation = z.infer<typeof TeamInvitationSchema>;
 
-// `teamJoinRequests/{requestId}` — a player asks to join a team.
 export const TeamJoinRequestSchema = z.object({
   leagueId: leagueIdSchema,
   teamId: teamIdSchema,
@@ -57,8 +48,6 @@ export const TeamJoinRequestSchema = z.object({
 });
 export type TeamJoinRequest = z.infer<typeof TeamJoinRequestSchema>;
 
-// `leagueFreeAgents/{leagueId}_{userId}` — a player available for assignment in a league. The
-// document exists while the player is available and is deleted when they are placed or withdraw.
 export const LeagueFreeAgentSchema = z.object({
   leagueId: leagueIdSchema,
   userId: userIdSchema,

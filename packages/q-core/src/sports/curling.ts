@@ -1,7 +1,3 @@
-// The curling adapter: team-scored by end, with no individual stats — every present roster entry is
-// credited a game played — and no hall of fame. Its scoring, display, and bulk-entry members are in
-// ./curling-scoring.ts.
-
 import { SPORT_LINE_SCHEMAS } from '../doc-schemas/aggregate-stats.js';
 import {
   CURLING_PLAYER_STAT_KEYS,
@@ -57,7 +53,6 @@ export const CURLING_ADAPTER: SportAdapter<'Curling'> = {
       defaultSort: [{ columnId: GAMES_PLAYED_COLUMN.id, direction: 'desc' }],
       defaultLayout: [GAMES_PLAYED_COLUMN.id],
     },
-    // No player game line, so the game page renders no player table.
     gamePlayer: { columns: [], defaultSort: [], defaultLayout: [] },
     teamSeason: {
       columns: TEAM_SEASON_BASE_COLUMNS,
