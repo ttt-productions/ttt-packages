@@ -6,6 +6,7 @@ export * from './guild-invite-system-message.js';
 export * from './hall-content.js';
 export * from './password.js';
 export * from './text-field.js';
+export * from './money-field.js';
 export * from './public-documents.js';
 export * from './pledge-totals.js';
 export * from './pledge-refund-eligibility.js';

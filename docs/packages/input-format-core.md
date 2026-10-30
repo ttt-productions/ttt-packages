@@ -1,9 +1,10 @@
 # @ttt-productions/input-format-core
 
-The one text-format mechanism: the named input formats, the declaration of a text field's format, min,
-and max, and the one check every text input and every server bound runs.
+The one input-format mechanism: every kind of value a person types into a box — text, money in whole cents,
+and further kinds (numbers, decimals) as they are added — has its declaration of what the box
+accepts, and the one check the box and every server bound both run.
 
-## Owns
+## Owns — text formats
 
 - **The named formats** (`InputFormat`, listed by `INPUT_FORMATS`, recognised by `isInputFormat`). Each
   format's allowed characters are written once, inside the package:
@@ -40,15 +41,44 @@ and max, and the one check every text input and every server bound runs.
 The same function runs in the browser input and in every server parse, so the form, the wire, and the
 writer accept exactly the same texts.
 
+## Owns — money
+
+Money is US dollars held as whole cents everywhere it is stored, sent, or checked; dollars exist only
+in what a person types and what a screen shows.
+
+- **A money declaration** — `MoneyFormatSpec`: `minCents` and `maxCents`. `defineMoneyFormat(spec)`
+  returns it frozen as a `DeclaredMoneyFormat` and throws where it is written when it cannot be
+  satisfied (a `minCents` that is not a whole number ≥ 0, a `maxCents` that is not a whole number ≥ 1
+  and ≥ `minCents`). A money box takes only that type.
+- **The digit limits** — `moneyDigitLimits(spec)` → `{ dollarDigits, centDigits }`, counted from
+  `maxCents`: the dollar digits of the largest amount, plus two cent digits. A `$`, a comma, or the
+  point is never counted, so a $500,000.00 maximum allows 6 dollar digits and 2 cent digits.
+- **Reading typed text** — `readMoneyText(text, spec)` → `MoneyTextResult`. It ignores surrounding
+  space, one leading `$`, and commas; accepts digits with at most one point; and turns the text into
+  whole cents by splitting at the point, never by multiplying a decimal by 100, so `0.29` is exactly
+  29 cents. An empty box, or one holding only `$` or `.`, reads as `cents: null`. It refuses with
+  `invalidCharacters`, `tooManyDollarDigits` (leading zeros are not counted), or
+  `tooManyCentDigits`. It does not judge the amount: text within the digit limits can still be over
+  `maxCents`.
+- **Checking an amount** — `checkMoneyCents(cents, spec)` → `MoneyAmountResult`: `notWholeCents`
+  (a fraction of a cent, `NaN`, or an infinity), `tooSmall`, or `tooLarge`. The box and every server
+  parse run it, so they accept exactly the same amounts.
+- **Box text for a stored amount** — `moneyTextFromCents(cents)` writes `1000.50`: dollars, the point,
+  two cent digits, with no `$` or commas, and `readMoneyText` reads it back to the same cents.
+- **Showing an amount** — `formatMoney(cents, style)`, the one money formatter: `cents` (the default,
+  `$1,000.50`), `wholeDollars` (rounded, `$1,001`), or `compact` (`$2.5K`).
+
 ## Boundary
 
 - No dependencies, no React, no zod; the root is server-safe (the boundary suite holds it `hard`).
-- It declares no field. Which format, min, and max a field uses is the consumer's declaration — an
+- It declares no field. Which format and bounds a field uses is the consumer's declaration — an
   application's field table, or a generic package's own contract (a chat message's bound lives in
   `chat-schemas`). A generic package that renders a text input takes the declaration from its consumer
   wherever the bound is application policy (RULE-STD-ARCH-201).
-- It builds no schema. A consumer that validates with zod wraps `checkInputFormat` in its own schema
-  builder, so there is one zod builder per application rather than one per package.
+- It builds no schema. A consumer that validates with zod wraps `checkInputFormat` and
+  `checkMoneyCents` in its own schema builders, so there is one zod builder per application rather than one per package.
 - It carries no user-facing copy: an `issue` is a code, and the words shown for it belong to the app.
-- Not a profanity or content filter, and not a format for passwords, emails, numbers, phone numbers,
-  web addresses, search queries, files, or colours — those inputs keep the browser's own formats.
+- Not a profanity or content filter, and not a format for passwords, emails, phone numbers, web
+  addresses, search queries, files, or colours — those inputs keep the browser's own formats. A kind
+  of value it does not declare yet (a plain number, a decimal) joins as its own declaration and check
+  here, never as a second mechanism elsewhere.

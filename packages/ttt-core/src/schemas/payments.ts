@@ -1,12 +1,10 @@
 import { z } from 'zod';
 import { PLEDGE_REFUND_DENIAL_REASON_INPUT } from '../constants/text-fields.js';
-import {
-  MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
-  MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
-  MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
-} from '../constants/business-platform.js';
+import { MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH } from '../constants/business-platform.js';
+import { PLEDGE_PAYMENT_AMOUNT_INPUT } from '../constants/money-fields.js';
 import { PLEDGE_ATTESTATION_VERSION } from '../constants/member-agreements.js';
 import { textFieldSchema } from './text-field.js';
+import { moneyFieldSchema } from './money-field.js';
 import { PledgePaymentSchema, PledgeRefundRequestSchema } from '../doc-schemas/payments.js';
 import {
   LegalReviewNoticeAcknowledgedInputSchema,
@@ -17,11 +15,7 @@ import {
 
 export const CreateStripeCheckoutSessionInputSchema = z
   .object({
-    amount: z
-      .number()
-      .int()
-      .min(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS)
-      .max(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS),
+    amount: moneyFieldSchema(PLEDGE_PAYMENT_AMOUNT_INPUT),
     checkoutAttemptId: z.string().uuid(),
     ageAttested: z.literal(true),
     attestationVersion: z.literal(PLEDGE_ATTESTATION_VERSION),

@@ -108,6 +108,8 @@ export type {
   NumberInputProps,
 } from './components/input.js';
 export { Input } from './components/input.js';
+export type { MoneyInputProps } from './components/money-input.js';
+export { MoneyInput } from './components/money-input.js';
 export {
   Select,
   SelectGroup,

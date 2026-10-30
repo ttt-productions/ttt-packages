@@ -334,7 +334,7 @@ describe('audition publication args', () => {
       AuditionMediaPublicationArgsSchema.safeParse({
         ...adminPrompt,
         auditionType: 'sponsoredAudition',
-        sponsoredAuditionAmountUSD: 100,
+        sponsoredAuditionAmountCents: 10_000,
       }).success,
     ).toBe(true);
     expect(

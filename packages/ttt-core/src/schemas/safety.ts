@@ -331,7 +331,7 @@ export type AdminReplayDeadLetterResult = z.infer<typeof AdminReplayDeadLetterRe
 export const GetSafetyCaseByIdInputSchema = z
   .object({
     caseType: SafetyCaseLaneSchema,
-    caseId: safetyCaseIdSchema.max(200),
+    caseId: safetyCaseIdSchema,
   })
   .strict();
 export type GetSafetyCaseByIdInput = z.infer<typeof GetSafetyCaseByIdInputSchema>;

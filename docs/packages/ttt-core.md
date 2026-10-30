@@ -28,6 +28,11 @@ app (RULE-STD-ARCH-205). Each area below has one owner; consumers import it rath
   `input-format-core` declaration; `schemas/text-field` (`textFieldSchema`) is the one zod schema
   for such a field, and `utils/text-field` is the one owner of its refusal and notice sentences. The
   form, the wire, and the writer read the same declaration, so they accept the same texts.
+- **Money fields.** Every money amount is whole cents wherever it is stored or sent. Each amount a
+  person types is declared once in `constants/money-fields` as an `input-format-core` money
+  declaration (`label`, `minCents`, `maxCents`); `schemas/money-field` (`moneyFieldSchema`) is the
+  one zod schema for such a field, and `utils/money-field` is the one owner of its refusal sentences.
+  The box, the wire, and the writer read the same declaration, so they accept the same amounts.
 - **Paths and ids.** `paths/` owns collection and subcollection names, the path builders, collection
   references and groups, Storage paths, the related-id contracts, and the app's page routes
   (`APP_ROUTES` in `paths/app-routes`: one builder per app page a link, redirect, or notification

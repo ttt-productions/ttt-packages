@@ -3,6 +3,8 @@ import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
 import { stakeSharesOfferedSchema, storedAgreementVersionSchema } from '../schemas/atoms.js';
 import { AuditionDeadlineSchema } from '../constants/audition-deadlines.js';
 import { ContentMediaKindSchema } from './media-assets.js';
+import { moneyFieldSchema } from '../schemas/money-field.js';
+import { SPONSORED_AUDITION_AMOUNT_INPUT } from '../constants/money-fields.js';
 import { ModerationHiddenBySchema } from './moderation.js';
 
 const userRefSchema = z.object({ uid: z.string() });
@@ -92,7 +94,7 @@ export const AuditionSchema = z.object({
   curatedAssemblyStatus: z.enum(['assembling', 'ready', 'failed', 'closed']).optional(),
   expectedOptionCount: z.number().int().optional(),
   curatedFailureReason: z.string().optional(),
-  sponsoredAuditionAmountUSD: z.number().optional(),
+  sponsoredAuditionAmountCents: moneyFieldSchema(SPONSORED_AUDITION_AMOUNT_INPUT).optional(),
   stakeSharesOffered: stakeSharesOfferedSchema.optional(),
   status: z.enum(['open', 'closed', 'pendingReview']),
   closedAt: z.number().optional(),

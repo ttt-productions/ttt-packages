@@ -24,7 +24,7 @@ import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-pr
 import {
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
-  MAX_SPONSORED_AUDITION_AMOUNT_USD,
+  MAX_SPONSORED_AUDITION_AMOUNT_CENTS,
   MAX_MENTIONS,
   MAX_POST_LENGTH,
 } from '../src/constants/business-content.js';
@@ -425,12 +425,12 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
   it('accepts platformAudition', () => {
     expect(() => AdminAuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('accepts sponsoredAudition with sponsoredAuditionAmountUSD', () => {
+  it('accepts sponsoredAudition with its prize in whole cents', () => {
     expect(() =>
       AdminAuditionPromptTargetInfoSchema.parse({
         ...valid,
         type: 'sponsoredAudition',
-        sponsoredAuditionAmountUSD: 5000,
+        sponsoredAuditionAmountCents: 500_000,
       }),
     ).not.toThrow();
   });
@@ -444,44 +444,49 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
       AdminAuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } }),
     ).toThrow();
   });
-  it('rejects a sponsoredAuditionAmountUSD above the cap or negative', () => {
+  it('rejects a prize one cent above the maximum, or negative', () => {
     expect(() =>
       AdminAuditionPromptTargetInfoSchema.parse({
         ...valid,
         type: 'sponsoredAudition',
-        sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD + 1,
+        sponsoredAuditionAmountCents: MAX_SPONSORED_AUDITION_AMOUNT_CENTS + 1,
       }),
     ).toThrow();
     expect(() =>
       AdminAuditionPromptTargetInfoSchema.parse({
         ...valid,
         type: 'sponsoredAudition',
-        sponsoredAuditionAmountUSD: -1,
+        sponsoredAuditionAmountCents: -1,
       }),
     ).toThrow();
   });
-  it('requires a sponsored audition to carry a positive prize amount', () => {
+  it('requires a sponsored audition to carry a prize from zero up to the maximum', () => {
     const sponsored = { ...valid, type: 'sponsoredAudition' as const };
     expect(() => AdminAuditionPromptTargetInfoSchema.parse(sponsored)).toThrow();
     expect(() =>
-      AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: 0 }),
-    ).toThrow();
+      AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountCents: 0 }),
+    ).not.toThrow();
     expect(() =>
       AdminAuditionPromptTargetInfoSchema.parse({
         ...sponsored,
-        sponsoredAuditionAmountUSD: Infinity,
-      }),
-    ).toThrow();
-    expect(() =>
-      AdminAuditionPromptTargetInfoSchema.parse({
-        ...sponsored,
-        sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD,
+        sponsoredAuditionAmountCents: MAX_SPONSORED_AUDITION_AMOUNT_CENTS,
       }),
     ).not.toThrow();
   });
+  it('refuses a prize that is a fraction of a cent or not a finite number', () => {
+    const sponsored = { ...valid, type: 'sponsoredAudition' as const };
+    for (const cents of [100.5, Infinity]) {
+      expect(() =>
+        AdminAuditionPromptTargetInfoSchema.parse({
+          ...sponsored,
+          sponsoredAuditionAmountCents: cents,
+        }),
+      ).toThrow();
+    }
+  });
   it('refuses a prize amount on a platform audition', () => {
     expect(() =>
-      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, sponsoredAuditionAmountUSD: 100 }),
+      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, sponsoredAuditionAmountCents: 100 }),
     ).toThrow();
   });
   it('refuses an audition that closes less than 24 hours after entries close', () => {

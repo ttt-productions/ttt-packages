@@ -21,9 +21,9 @@ are the application-data packages: each may consume generic packages, but no gen
 package may consume either.
 
 - **Tier 0 — generic foundations (zero internal runtime deps):**
-  `input-format-core` (the named text-input formats, a field's format/min/max
-  declaration, and the one check every text input and server bound runs; no
-  dependencies at all), `module-core` (`lazyModule`, the one memoized dynamic
+  `input-format-core` (every input format — the named text formats and money in
+  whole cents — a field's declaration, the one check every input and server bound
+  runs, and the one money formatter; no dependencies at all), `module-core` (`lazyModule`, the one memoized dynamic
   import every lazy load goes through; no dependencies at all), `firebase-helpers`, `chat-core`, `media-schemas`,
   `mobile-core`, `monitoring-core`, `theme-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`

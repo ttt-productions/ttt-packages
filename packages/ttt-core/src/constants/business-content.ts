@@ -157,7 +157,7 @@ export const MAX_CURATED_AUDITION_OPTIONS = 8;
 
 export const MAX_AUDITION_DESCRIPTION_LENGTH = 1000;
 
-export const MAX_SPONSORED_AUDITION_AMOUNT_USD = 500_000;
+export const MAX_SPONSORED_AUDITION_AMOUNT_CENTS = 50_000_000;
 
 export const GUILDMATE_AUDITION_ENTRY_REJECTION =
   'You are already a guildmate of this Work — its audition is for recruiting new collaborators.';

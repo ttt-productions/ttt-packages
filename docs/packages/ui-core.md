@@ -13,7 +13,7 @@ Generic UI primitive package.
 
 ## Boundary
 
-Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): text formats and their check live there, never here, so the server can run the same check without installing React.
+Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): input formats — text and money — and their checks live there, never here, so the server can run the same check without installing React.
 
 ## Reload recovery — `ReloadRecoveryNotice`
 
@@ -53,6 +53,27 @@ Every free-text input carries its field's declaration (a `DeclaredInputFormat` f
 - **The cap counts the text as typed; the check counts it trimmed.** Every value the field keeps can still be typed, and surrounding whitespace is dropped by the check (and a run of spaces held to one, for every format but `none`), so the input and the server accept the same stored values.
 - **Tidy on blur.** When focus leaves a free-text `Input` or `Textarea`, the box shows the check's kept value and delivers it through the parent's own `onChange` (the native value setter plus an input event, so a controlled box and a react-hook-form `register` box both receive it). The caller's own `onBlur` runs after it, never replaced. Nothing changes while typing, and a read-only or disabled box is never tidied. A `Textarea` is `none` or `keepAsTyped`, so it only ever trims on blur.
 - Types: `InputProps` (`FreeTextInputProps | NonFreeTextInputProps | BuiltInFormatInputProps`), `NonFreeTextEntry`, `BuiltInFormatInputType`, `TextareaProps` (`FreeTextTextareaProps | NonFreeTextTextareaProps`), `NonFreeTextareaEntry`.
+
+## Money input — `MoneyInput`
+
+A box a person types a money amount into (`./react` → `MoneyInput`, `MoneyInputProps`). It takes the
+field's money declaration (`moneyFormat`, a `DeclaredMoneyFormat` from `input-format-core`'s
+`defineMoneyFormat`) and holds the amount as whole cents. Durable contract:
+
+- **Cents in, cents out.** `cents` (`number | null`) is the amount it shows, written as
+  `moneyTextFromCents` writes it (`1000.50`); `onCentsChange` receives every accepted edit as
+  `readMoneyText` reads it — whole cents, or `null` for an empty box. While the typed text already
+  holds `cents`, a consumer echoing it back never rewrites what the person typed (`12.` stays `12.`).
+- **Digits only count.** An edit that `readMoneyText` refuses — a character other than digits, one
+  leading `$`, commas, and one point; a dollar digit past the declaration's `dollarDigits`; a third
+  cent digit — never reaches the box or the consumer. A `$`, a comma, or the point is never counted.
+  The native `maxLength` is only the length of the formatted maximum (`$500,000.00`), so any text the
+  digit limits allow still fits.
+- **Over the maximum is marked, under the minimum is not.** An amount over `maxCents` sets
+  `aria-invalid`; one under `minCents` does not, since it may still be on its way to a valid amount.
+  The consumer's own `aria-invalid` replaces it, and the words shown for either belong to the app.
+- It renders `Input` (`textEntry: "numeric"`, `inputMode: "decimal"`), so it looks like every other
+  form control, and it forwards its ref.
 
 ## Progress
 

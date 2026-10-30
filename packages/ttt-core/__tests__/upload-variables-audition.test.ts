@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { CreateWorkProjectAuditionVariablesSchema } from '../src/upload-variables/create-work-project-audition-variables.js';
 import { CreateAdminAuditionVariablesSchema } from '../src/upload-variables/create-admin-audition-variables.js';
 import { CreateCommissionVariablesSchema } from '../src/upload-variables/create-commission-variables.js';
-import { MAX_SPONSORED_AUDITION_AMOUNT_USD } from '../src/constants/business-content.js';
+import { MAX_SPONSORED_AUDITION_AMOUNT_CENTS } from '../src/constants/business-content.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const file = new Blob(['x']);
@@ -43,24 +43,27 @@ describe('audition upload variables carry the same deadline contract as the targ
 describe('admin audition upload variables are discriminated by type', () => {
   const admin = { title: 'T', description: 'D', videoFile: file, onProgress, ...deadlines };
 
-  it('requires a sponsored audition to carry a positive prize up to the maximum', () => {
+  it('requires a sponsored audition to carry a prize in whole cents from zero up to the maximum', () => {
     const sponsored = { ...admin, type: 'sponsoredAudition' as const };
     const parse = (amount?: number) =>
       CreateAdminAuditionVariablesSchema.safeParse(
-        amount === undefined ? sponsored : { ...sponsored, sponsoredAuditionAmountUSD: amount },
+        amount === undefined ? sponsored : { ...sponsored, sponsoredAuditionAmountCents: amount },
       ).success;
     expect(parse()).toBe(false);
-    expect(parse(0)).toBe(false);
-    expect(parse(MAX_SPONSORED_AUDITION_AMOUNT_USD + 1)).toBe(false);
-    expect(parse(MAX_SPONSORED_AUDITION_AMOUNT_USD)).toBe(true);
+    expect(parse(0)).toBe(true);
+    expect(parse(100.5)).toBe(false);
+    expect(parse(MAX_SPONSORED_AUDITION_AMOUNT_CENTS + 1)).toBe(false);
+    expect(parse(MAX_SPONSORED_AUDITION_AMOUNT_CENTS)).toBe(true);
   });
 
   it('refuses a prize amount on a platform audition', () => {
     const platform = { ...admin, type: 'platformAudition' as const };
     expect(CreateAdminAuditionVariablesSchema.safeParse(platform).success).toBe(true);
     expect(
-      CreateAdminAuditionVariablesSchema.safeParse({ ...platform, sponsoredAuditionAmountUSD: 10 })
-        .success,
+      CreateAdminAuditionVariablesSchema.safeParse({
+        ...platform,
+        sponsoredAuditionAmountCents: 10,
+      }).success,
     ).toBe(false);
   });
 });

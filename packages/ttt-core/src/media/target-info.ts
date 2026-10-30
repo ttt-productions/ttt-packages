@@ -26,6 +26,8 @@ import {
   stakeSharesOfferedSchema,
 } from '../schemas/atoms.js';
 import { textFieldSchema } from '../schemas/text-field.js';
+import { moneyFieldSchema } from '../schemas/money-field.js';
+import { SPONSORED_AUDITION_AMOUNT_INPUT } from '../constants/money-fields.js';
 import type { FileOrigin } from './file-origin.js';
 import { ConversationFileRefSchema } from './conversation-file-ref.js';
 import { SquareStreetzPostMentionsSchema } from './atoms.js';
@@ -41,7 +43,6 @@ import {
   refineAuditionDeadlineOrder,
 } from '../constants/audition-deadlines.js';
 import {
-  MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
 } from '../constants/business-content.js';
@@ -169,11 +170,7 @@ export const AuditionPromptTargetInfoSchema = z
   .strict()
   .superRefine(refineAuditionDeadlineOrder);
 
-export const SponsoredAuditionAmountUSDSchema = z
-  .number()
-  .positive()
-  .finite()
-  .max(MAX_SPONSORED_AUDITION_AMOUNT_USD);
+export const SponsoredAuditionAmountCentsSchema = moneyFieldSchema(SPONSORED_AUDITION_AMOUNT_INPUT);
 
 const adminAuditionPromptFields = {
   auditionId: auditionIdSchema,
@@ -197,7 +194,7 @@ export const AdminAuditionPromptTargetInfoSchema = z
       .object({
         type: z.literal('sponsoredAudition'),
         ...adminAuditionPromptFields,
-        sponsoredAuditionAmountUSD: SponsoredAuditionAmountUSDSchema,
+        sponsoredAuditionAmountCents: SponsoredAuditionAmountCentsSchema,
       })
       .strict(),
   ])

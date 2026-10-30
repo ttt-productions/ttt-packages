@@ -8,6 +8,7 @@ export * from './business-user.js';
 export * from './business-platform.js';
 export * from './hall-content-routing.js';
 export * from './text-fields.js';
+export * from './money-fields.js';
 export * from './chat.js';
 export * from './conversation-files.js';
 export * from './moderation.js';

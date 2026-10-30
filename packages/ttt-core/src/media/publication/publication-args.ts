@@ -189,7 +189,7 @@ const AdminPromptPublicationArgsSchema = z
     entriesCloseAt: z.number(),
     auditionCloseAt: z.number(),
     submittedAt: z.number(),
-    sponsoredAuditionAmountUSD: z.number().optional(),
+    sponsoredAuditionAmountCents: z.number().optional(),
     ...auditionPromptModeFields,
   })
   .strict();

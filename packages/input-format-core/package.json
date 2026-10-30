@@ -1,7 +1,7 @@
 {
     "name": "@ttt-productions/input-format-core",
     "version": "0.1.3",
-    "description": "The named text-input formats (the characters each allows), the declaration of one text field's format, min and max, and the one check every text input and every server bound runs. Tier 0 — no dependencies, no React, server-safe.",
+    "description": "Every input format: the named text formats and money in whole cents — a field's declaration, the one check every input and every server bound runs, and the one money formatter. Tier 0 — no dependencies, no React, server-safe.",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -31,7 +31,8 @@
     "keywords": [
         "input",
         "validation",
-        "text"
+        "text",
+        "money"
     ],
     "author": "DJ (TTT Productions)",
     "license": "MIT"

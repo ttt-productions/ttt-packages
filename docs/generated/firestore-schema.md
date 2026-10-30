@@ -617,7 +617,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `curatedAssemblyStatus` | `'assembling' \| 'ready' \| 'failed' \| 'closed'` | yes |
 | `expectedOptionCount` | `number` | yes |
 | `curatedFailureReason` | `string` | yes |
-| `sponsoredAuditionAmountUSD` | `number` | yes |
+| `sponsoredAuditionAmountCents` | `number` | yes |
 | `stakeSharesOffered` | `number` | yes |
 | `status` | `'open' \| 'closed' \| 'pendingReview'` |  |
 | `closedAt` | `number` | yes |

@@ -197,10 +197,10 @@ export const AUDITION_SORT_OPTIONS = {
     ...AUDITION_SORT_OPTIONS_BASE,
     highestPrice: {
       label: 'Highest Price',
-      field: 'sponsoredAuditionAmountUSD',
+      field: 'sponsoredAuditionAmountCents',
       direction: 'desc',
     },
-    lowestPrice: { label: 'Lowest Price', field: 'sponsoredAuditionAmountUSD', direction: 'asc' },
+    lowestPrice: { label: 'Lowest Price', field: 'sponsoredAuditionAmountCents', direction: 'asc' },
   },
   workAudition: {
     ...AUDITION_SORT_OPTIONS_BASE,

@@ -12,7 +12,7 @@ import {
   refineAuditionDeadlineOrder,
 } from '../constants/audition-deadlines.js';
 import { textFieldSchema } from '../schemas/text-field.js';
-import { SponsoredAuditionAmountUSDSchema } from '../media/target-info.js';
+import { SponsoredAuditionAmountCentsSchema } from '../media/target-info.js';
 
 const adminAuditionVariableFields = {
   title: textFieldSchema(AUDITION_TITLE_INPUT),
@@ -40,7 +40,7 @@ export const CreateAdminAuditionVariablesSchema = z
       .object({
         type: z.literal('sponsoredAudition'),
         ...adminAuditionVariableFields,
-        sponsoredAuditionAmountUSD: SponsoredAuditionAmountUSDSchema,
+        sponsoredAuditionAmountCents: SponsoredAuditionAmountCentsSchema,
       })
       .strict(),
   ])
