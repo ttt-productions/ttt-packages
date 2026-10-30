@@ -485,7 +485,7 @@ describe('audit event document', () => {
         ).toBe(true);
       }
     }
-    for (const actorMode of ['user', 'teamManager'] as const) {
+    for (const actorMode of ['user', 'teammateUser'] as const) {
       expect(
         AuditEventSchema.safeParse({ ...event, actor: { uid: 'u1', isAdmin: true, actorMode } })
           .success,
@@ -522,7 +522,7 @@ describe('audit event document', () => {
   });
 
   it('rejects a role on a non-admin mode, and any field an actor does not carry', () => {
-    for (const actorMode of ['user', 'teamManager', 'system']) {
+    for (const actorMode of ['user', 'teammateUser', 'system']) {
       expect(
         AuditEventSchema.safeParse({
           ...event,

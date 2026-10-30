@@ -35,8 +35,8 @@ import {
   UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS,
 } from '../types/stats.js';
 
-// `finalizeGame` (a captain or co-captain of either team) / `adminFinalizeGame` (an admin or a
-// referee): make a game's numbers permanent. Everything it writes is derived server-side from the
+// `finalizeGame` (a captain or co-captain of either team, a referee, or an admin): make a game's
+// numbers permanent. Everything it writes is derived server-side from the
 // game's events; nothing in the input is a number (RULE-QS-SPORT-922).
 export const FinalizeGameInputSchema = z.object({ gameId: gameIdSchema }).strict();
 export type FinalizeGameInput = z.infer<typeof FinalizeGameInputSchema>;

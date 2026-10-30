@@ -1,6 +1,6 @@
 // Callable contracts for teams and team membership. The acting user is always `request.auth.uid` —
-// never an input field (RULE-STD-ARCH-106). The entry, never a field of the payload, decides the authority
-// (RULE-STD-BACKEND-004); an admin entry's schema adds only what its authority needs.
+// never an input field (RULE-STD-ARCH-106). The server, never a field of the payload, decides the
+// authority (RULE-STD-BACKEND-004); an admin-only action's schema adds only what its authority needs.
 
 import { z } from 'zod';
 import {
@@ -53,10 +53,9 @@ export const CreateLeagueTeamResultSchema = z
 export type CreateLeagueTeamResult = z.infer<typeof CreateLeagueTeamResultSchema>;
 
 // ---------------------------------------------------------------------------------------------
-// Ghost add — one core behind two doors. The team page door (`createTeamGhostPlayer` /
-// `adminCreateTeamGhostPlayer`) needs authority over the team; the game page door
-// (`createGameGhostPlayer` / `adminCreateGameGhostPlayer`) needs scoring authority over the game
-// and adds to one of its two teams. The ghost id is derived by the server from the add's
+// Ghost add — one core behind two doors. The team page door (`createTeamGhostPlayer`) needs
+// authority over the team; the game page door (`createGameGhostPlayer`) needs scoring authority over
+// the game and adds to one of its two teams. The ghost id is derived by the server from the add's
 // `requestId`, which the client mints once when the add starts and re-sends on every retry, so a
 // retry after an unknown outcome is recognised as the same add (`buildGhostUserIdForRequest`).
 // ---------------------------------------------------------------------------------------------
@@ -193,8 +192,8 @@ export const AdminLinkClosedLeagueGhostPlayerResultSchema = LinkGhostPlayerResul
 export type AdminLinkClosedLeagueGhostPlayerResult = LinkGhostPlayerResult;
 
 // ---------------------------------------------------------------------------------------------
-// Managing a team's members. A role change and a removal each have a member entry — the team's
-// captain or a co-captain, read from their membership — and an admin entry; changing the captain,
+// Managing a team's members. A role change and a removal are each one callable for the team's
+// captain or a co-captain, read from their membership, and for an admin; changing the captain,
 // renaming the team, changing its type, setting its contact phone, and deleting it are admin-only.
 // Every target is named by id and read server-side; nothing here names who is acting (RULE-STD-ARCH-106).
 // ---------------------------------------------------------------------------------------------
@@ -202,8 +201,8 @@ export type AdminLinkClosedLeagueGhostPlayerResult = LinkGhostPlayerResult;
 /** A ghost id, refused for any other id, so a removal input cannot name a real account. */
 export const ghostUserIdSchema = userIdSchema.refine(isGhostUserId, 'Not a ghost player.');
 
-// `updateTeamMembershipRole` (the captain) / `adminUpdateTeamMembershipRole`: promote a player to
-// co-captain, or demote a co-captain to player.
+// `updateTeamMembershipRole` (the captain or an admin): promote a player to co-captain, or demote a
+// co-captain to player.
 export const UpdateTeamMembershipRoleInputSchema = z
   .object({
     teamId: teamIdSchema,
@@ -225,8 +224,8 @@ export const UpdateTeamMembershipRoleResultSchema = z
   .strict();
 export type UpdateTeamMembershipRoleResult = z.infer<typeof UpdateTeamMembershipRoleResultSchema>;
 
-// `deleteTeamMembership` (the captain or a co-captain) / `adminDeleteTeamMembership`: remove a real
-// player from the team. A ghost is removed through its own action, below.
+// `deleteTeamMembership` (the captain, a co-captain, or an admin): remove a real player from the
+// team. A ghost is removed through its own action, below.
 export const DeleteTeamMembershipInputSchema = z
   .object({
     teamId: teamIdSchema,
@@ -251,8 +250,8 @@ export const DeleteTeamMembershipResultSchema = z
   .strict();
 export type DeleteTeamMembershipResult = z.infer<typeof DeleteTeamMembershipResultSchema>;
 
-// `deleteTeamGhostPlayer` (the captain or a co-captain) / `adminDeleteTeamGhostPlayer`: remove a ghost
-// that has never played, completely. A never-played ghost holds no stat, so its removal is not a
+// `deleteTeamGhostPlayer` (the captain, a co-captain, or an admin): remove a ghost that has never
+// played, completely. A never-played ghost holds no stat, so its removal is not a
 // repair and takes no reason; its audit event still records who removed what (RULE-STD-BACKEND-212).
 export const DeleteTeamGhostPlayerInputSchema = z
   .object({ teamId: teamIdSchema, ghostUserId: ghostUserIdSchema })

@@ -161,13 +161,15 @@ export type GhostLinkAuditEventType = (typeof GHOST_LINK_AUDIT_EVENT_TYPE_KEYS)[
 // orthogonal to the event type: one event type is produced under several modes, and the mode is what
 // tells an ordinary action from an admin override.
 //   user          a signed-in account acting on its own behalf
-//   teamManager   a captain or co-captain acting through their team's membership permissions
+//   teammateUser  a member acting inside a team they belong to: a captain or co-captain through
+//                 their membership, or a player on their own record
 //   adminReview   an admin or referee doing admin work that no team permission covers
-//   adminOverride an admin or referee superseding the team permission a normal entry checks
+//   adminOverride an admin or referee acting through their role on a team-scoped action no
+//                 membership of theirs admits
 //   system        backend automation with no human caller
 export const AUDIT_ACTOR_MODE_KEYS = [
   'user',
-  'teamManager',
+  'teammateUser',
   'adminReview',
   'adminOverride',
   'system',
@@ -182,7 +184,7 @@ export type AuditAdminActorMode = (typeof AUDIT_ADMIN_ACTOR_MODE_KEYS)[number];
 
 export const AUDIT_NON_ADMIN_ACTOR_MODE_KEYS = [
   'user',
-  'teamManager',
+  'teammateUser',
   'system',
 ] as const satisfies readonly AuditActorMode[];
 export type AuditNonAdminActorMode = (typeof AUDIT_NON_ADMIN_ACTOR_MODE_KEYS)[number];

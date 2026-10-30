@@ -21,9 +21,9 @@ import {
 } from './atoms.js';
 
 // ---------------------------------------------------------------------------------------------
-// Invitations — sent and withdrawn by the team's captain or a co-captain (`createTeamInvitation`,
-// `cancelTeamInvitation`) or by an admin (`adminCreateTeamInvitation`, `adminCancelTeamInvitation`);
-// accepted or declined by the invitee alone (`acceptTeamInvitation`, `rejectTeamInvitation`).
+// Invitations — sent and withdrawn by the team's captain or a co-captain, or an admin
+// (`createTeamInvitation`, `cancelTeamInvitation`); accepted or declined by the invitee alone
+// (`acceptTeamInvitation`, `rejectTeamInvitation`).
 // ---------------------------------------------------------------------------------------------
 
 export const CreateTeamInvitationInputSchema = z
@@ -62,9 +62,8 @@ export type AcceptTeamInvitationResult = z.infer<typeof AcceptTeamInvitationResu
 
 // ---------------------------------------------------------------------------------------------
 // Join requests — sent and withdrawn by the player (`createTeamJoinRequest`,
-// `cancelTeamJoinRequest`); accepted or rejected by the team's captain or a co-captain
-// (`acceptTeamJoinRequest`, `rejectTeamJoinRequest`) or by an admin (`adminAcceptTeamJoinRequest`,
-// `adminRejectTeamJoinRequest`).
+// `cancelTeamJoinRequest`); accepted or rejected by the team's captain or a co-captain, or an admin
+// (`acceptTeamJoinRequest`, `rejectTeamJoinRequest`).
 // ---------------------------------------------------------------------------------------------
 
 export const CreateTeamJoinRequestInputSchema = z

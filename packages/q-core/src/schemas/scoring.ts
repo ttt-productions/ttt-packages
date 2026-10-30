@@ -1,7 +1,6 @@
 // Callable contracts for live scoring: recording stat events, marking a roster entry absent, a
-// scorer's memo, and the jump-ball possession arrow. Each action is two entries over one core — the
-// member entry for a captain or co-captain of one of the game's two teams, and the admin entry for
-// an admin or referee — which share one input and one result.
+// scorer's memo, and the jump-ball possession arrow. Each action is one callable for everyone who
+// scores the game: a captain or co-captain of one of its two teams, a referee, or an admin.
 
 import { z } from 'zod';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../constants/sports.js';

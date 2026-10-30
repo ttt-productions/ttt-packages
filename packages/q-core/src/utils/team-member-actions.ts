@@ -19,7 +19,7 @@ import {
   type TeamRole,
 } from '../types/unions.js';
 
-/** An action on a member taken through its admin entry, under the admin role. */
+/** An action on a member taken under the admin role, where no captaincy on the team admits the caller. */
 export const TEAM_MEMBER_ADMIN_ACTOR = 'admin' as const satisfies SystemRole;
 
 /** The authority an action on a member is taken under: an admin, or the caller's role on the team. */
