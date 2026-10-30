@@ -54,8 +54,10 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
 - Ask ONE material question at a time, and only when the decision is genuinely DJ's. Small
   mechanical or organizational choices are made with best judgment, not asked. Context goes in prose
   before the question; the recommended option comes first, marked "(Recommended)".
-- A request to talk, review, investigate, or plan is NOT authorization to edit. Settling a plan,
-  including answering a question menu, is not a start signal; wait for DJ's explicit go.
+- A request to talk, review, investigate, or plan is NOT authorization to edit.
+- A question DJ answers by picking an option is his go to do what he picked — never a second
+  "should I start?" question. An answer that is itself a question, "I'm not sure", "explain", or
+  "talk to me" is not a go: answer him in plain words and start nothing.
 - "Talk to me only" / "don't do anything yet" is a HARD GATE that only DJ's explicit "go" lifts.
 - "Talk to me" / "I don't understand" = stop all question menus; plain prose, one topic at a time,
   high-level first.

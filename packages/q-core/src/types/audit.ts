@@ -161,8 +161,8 @@ export type GhostLinkAuditEventType = (typeof GHOST_LINK_AUDIT_EVENT_TYPE_KEYS)[
 // orthogonal to the event type: one event type is produced under several modes, and the mode is what
 // tells an ordinary action from an admin override.
 //   user          a signed-in account acting on its own behalf
-//   teammateUser  a member acting inside a team they belong to: a captain or co-captain through
-//                 their membership, or a player on their own record
+//   teammateUser  a member acting inside a team they belong to: a captain or co-captain acting
+//                 through their membership, for the team or a player on it
 //   adminReview   an admin or referee doing admin work that no team permission covers
 //   adminOverride an admin or referee acting through their role on a team-scoped action no
 //                 membership of theirs admits
