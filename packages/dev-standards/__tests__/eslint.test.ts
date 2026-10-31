@@ -60,6 +60,14 @@ const a11yBlock = (severity: 'error' | 'warn'): Linter.Config => {
     const ruleOptions: unknown[] = Array.isArray(entry) ? entry.slice(1) : [];
     rules[name] = ruleOptions.length > 0 ? [severity, ...ruleOptions] : severity;
   }
+  const [, tabindexOptions] = rules['jsx-a11y/no-noninteractive-tabindex'] as [
+    unknown,
+    { roles: string[] },
+  ];
+  rules['jsx-a11y/no-noninteractive-tabindex'] = [
+    severity,
+    { ...tabindexOptions, roles: [...tabindexOptions.roles, 'region'] },
+  ];
   return { files: ['**/*.tsx', '**/*.jsx'], rules };
 };
 
@@ -281,6 +289,27 @@ describe('createAppEslintConfig accessibility rules', () => {
   it("keeps Next's alt-text options, so a next/image with no alt is an error", async () => {
     const { severityOf } = await lintComponent();
     expect(severityOf('jsx-a11y/alt-text')).toBe(2);
+  });
+
+  const tabindexErrors = async (element: string) => {
+    const result = await lintIn(
+      await createAppEslintConfig(),
+      'app/src/wording.tsx',
+      `export function Wording() {\n  return ${element};\n}\n`,
+    );
+    return (result?.messages ?? []).filter(
+      (message) => message.ruleId === 'jsx-a11y/no-noninteractive-tabindex',
+    );
+  };
+
+  it('lets a labelled region take focus, so a keyboard can scroll its text', async () => {
+    expect(
+      await tabindexErrors('<div role="region" tabIndex={0} aria-label="Waiver text">x</div>'),
+    ).toEqual([]);
+  });
+
+  it('still fails focus on any other non-interactive element', async () => {
+    expect(await tabindexErrors('<p tabIndex={0}>x</p>')).toHaveLength(1);
   });
 
   it('reports the same findings as warnings when the app asks for warn', async () => {

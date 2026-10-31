@@ -20,7 +20,7 @@ import {
   statsOperationIdSchema,
 } from '../doc-schemas/atoms.js';
 
-const MAX_RECORDED_OPERATION_IDS = 10;
+export const MAX_RECORDED_OPERATION_IDS = 10;
 
 export const RunMigrationActionInputSchema = z
   .object({

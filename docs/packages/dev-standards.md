@@ -53,6 +53,9 @@ config base by its subpath and reads the docs as files.
   bases fail an explicit `any` and every unsafe use of an `any` value (the type-aware `no-unsafe-*`
   rules) in every TypeScript file, source and tests alike, so each linted `.ts` / `.tsx` file must be
   included by the nearest `tsconfig.json`.
+  The app base sets every `eslint-plugin-jsx-a11y` recommended rule, and its
+  `no-noninteractive-tabindex` also lets a labelled region take focus, so a keyboard can scroll
+  its text.
 - `@ttt-productions/dev-standards/node/vitest` — the Vitest bases (Node). Every base fails a `.only`
   (`allowOnly: false`). No base runs the tests of a file concurrently, and `test/boundary/dev-standards-vitest-bases.test.ts` fails if one sets
   `concurrent`. `createAppVitestConfig`'s `browserEntryTests` names the app tests of a client

@@ -105,6 +105,15 @@ function jsxA11yRecommended(
     if (level === 'off' || level === 0) continue;
     rules[name] = Array.isArray(entry) ? [severity, ...entry.slice(1)] : severity;
   }
+  const tabindex = rules['jsx-a11y/no-noninteractive-tabindex'];
+  if (Array.isArray(tabindex)) {
+    const [level, options] = tabindex as [RuleEntry, { roles?: string[] } | undefined];
+    // A labelled region whose text scrolls takes focus so a keyboard can scroll it (RULE-STD-FRONTEND-203).
+    rules['jsx-a11y/no-noninteractive-tabindex'] = [
+      level,
+      { ...options, roles: [...(options?.roles ?? []), 'region'] },
+    ] as RuleEntry;
+  }
   return { files: ['**/*.tsx', '**/*.jsx'], rules };
 }
 
