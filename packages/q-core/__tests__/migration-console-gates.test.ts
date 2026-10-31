@@ -156,16 +156,40 @@ describe('the consumed-source fence', () => {
         expect(consumed.destructive, `${step.id} → ${consumer}`).toBe(false);
       }
     }
-    expect(executable(A.deleteV1AdminRoles).consumes).toEqual([A.copyAdminList, A.verifyAdminList]);
+    expect(executable(A.deleteV1LandingAdmin).consumes).toEqual(
+      expect.arrayContaining([
+        A.copyAdminList,
+        A.verifyAdminList,
+        A.copyGameLocations,
+        A.verifyGameLocations,
+        A.copyAwardDefinitions,
+        A.verifyAwardDefinitions,
+      ]),
+    );
     expect(executable(A.deleteV1Users).consumes).toContain(A.migratePublicUsers);
     expect(executable(A.deleteV1GameRosters).consumes).toContain(A.copySportGames);
   });
 
+  it('deletes `landing/admin` in one step that waits on every verification of what it holds', () => {
+    const step = executable(A.deleteV1LandingAdmin);
+    expect(step.destructive).toBe(true);
+    expect(step.dependsOn).toEqual(
+      expect.arrayContaining([
+        A.verifyAdminList,
+        A.verifyGameLocations,
+        A.verifyAwardDefinitions,
+        A.verifyV1Pictures,
+      ]),
+    );
+  });
+
   it('fences a copy once any real run of a delete that removes its source exists', () => {
     expect(sourceConsumedBy(A.copyAdminList, runsOf())).toEqual([]);
-    const deleted = runsOf({ actionId: A.deleteV1AdminRoles, run: run(false) });
-    expect(sourceConsumedBy(A.copyAdminList, deleted)).toEqual([A.deleteV1AdminRoles]);
-    expect(sourceConsumedBy(A.verifyAdminList, deleted)).toEqual([A.deleteV1AdminRoles]);
+    const deleted = runsOf({ actionId: A.deleteV1LandingAdmin, run: run(false) });
+    expect(sourceConsumedBy(A.copyAdminList, deleted)).toEqual([A.deleteV1LandingAdmin]);
+    expect(sourceConsumedBy(A.verifyAdminList, deleted)).toEqual([A.deleteV1LandingAdmin]);
+    expect(sourceConsumedBy(A.copyGameLocations, deleted)).toEqual([A.deleteV1LandingAdmin]);
+    expect(sourceConsumedBy(A.copyAwardDefinitions, deleted)).toEqual([A.deleteV1LandingAdmin]);
     expect(sourceConsumedBy(A.copyAppConfig, deleted)).toEqual([]);
   });
 
@@ -189,9 +213,9 @@ describe('the consumed-source fence', () => {
     expect(
       sourceConsumedBy(
         A.carryV1Pictures,
-        runsOf({ actionId: A.deleteV1GameLocations, run: run(false) }),
+        runsOf({ actionId: A.deleteV1LandingAdmin, run: run(false) }),
       ),
-    ).toEqual([A.deleteV1GameLocations]);
+    ).toEqual([A.deleteV1LandingAdmin]);
   });
 });
 

@@ -11,7 +11,6 @@ export const MIGRATION_ACTION_IDS = {
   verifyAdminList: 'verify.adminList',
   cleanupOrphanGhostPublicUsers: 'cleanup.orphanGhostPublicUsers',
   deleteV1Users: 'delete.v1Users',
-  deleteV1AdminRoles: 'delete.v1AdminRoles',
 
   // Required by the ghost cleanup, whose probes read `teamMemberships` and `gameRosterPlayers`:
   // until those copies are verified complete, every ghost reads as unreferenced.
@@ -70,6 +69,7 @@ export const MIGRATION_ACTION_IDS = {
   verifyLandingPageConfig: 'verify.landingPageConfig',
   verifyStatsBeacon: 'verify.statsBeacon',
   deleteV1LandingBase: 'delete.v1LandingBase',
+  deleteV1LandingAdmin: 'delete.v1LandingAdmin',
 
   copyWaiverTemplates: 'copy.waiverTemplates',
   verifyWaiverTemplates: 'verify.waiverTemplates',
@@ -77,11 +77,9 @@ export const MIGRATION_ACTION_IDS = {
 
   copyAwardDefinitions: 'copy.awardDefinitions',
   verifyAwardDefinitions: 'verify.awardDefinitions',
-  deleteV1AwardCatalog: 'delete.v1AwardCatalog',
 
   copyGameLocations: 'copy.gameLocations',
   verifyGameLocations: 'verify.gameLocations',
-  deleteV1GameLocations: 'delete.v1GameLocations',
 
   deleteV1AdminStats: 'delete.v1AdminStats',
 

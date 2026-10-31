@@ -811,15 +811,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       'Recording the cutover. It is never undone: every copy refuses a live destination after it.',
   },
 
-  deleteStep(A.deleteV1AdminRoles, {
-    title: 'Remove the V1 role maps',
-    summary:
-      'The `isAdmin` and `referees` fields on `landing/admin`; the document goes with its last carried row.',
-    owningStep: 'auth',
-    dependsOn: [A.verifyAdminList],
-    resumeKey: SINGLE_DOCUMENT,
-    consumes: [A.copyAdminList, A.verifyAdminList],
-  }),
   deleteStep(A.deleteV1LandingBase, {
     title: 'Delete `landing/base`',
     summary:
@@ -844,34 +835,14 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       A.verifyV1TextFitsLimits,
     ],
   }),
-  deleteStep(A.deleteV1Waivers, {
-    title: 'Delete the V1 waiver templates',
-    summary: 'The `waivers` collection.',
-    owningStep: 'high-risk-callables',
-    dependsOn: [A.verifyWaiverTemplates],
-    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
-    consumes: [A.copyWaiverTemplates, A.verifyWaiverTemplates, A.verifyV1TextFitsLimits],
-  }),
-  deleteStep(A.deleteV1GameLocations, {
-    title: 'Remove the V1 venues',
+  deleteStep(A.deleteV1LandingAdmin, {
+    title: 'Delete `landing/admin`',
     summary:
-      'The `locations` field on `landing/admin`; the document goes with its last carried row.',
+      'The V1 admin document — its role maps, venues and award catalog — once the rosters, the venues, the awards and their pictures are verified.',
     owningStep: 'q-core',
-    dependsOn: [A.verifyGameLocations, A.verifyV1Pictures],
-    resumeKey: SINGLE_DOCUMENT,
-    consumes: [
-      A.copyGameLocations,
-      A.verifyGameLocations,
-      A.carryV1Pictures,
-      A.verifyV1Pictures,
-      A.verifyV1TextFitsLimits,
-    ],
-  }),
-  deleteStep(A.deleteV1AwardCatalog, {
-    title: 'Remove the V1 award catalog',
-    summary: 'The `awards` field on `landing/admin`; the document goes with its last carried row.',
-    owningStep: 'uploads-and-media',
     dependsOn: [
+      A.verifyAdminList,
+      A.verifyGameLocations,
       A.verifyAwardDefinitions,
       A.verifyUserProfiles,
       A.verifyPublicUsers,
@@ -879,12 +850,24 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     ],
     resumeKey: SINGLE_DOCUMENT,
     consumes: [
+      A.copyAdminList,
+      A.verifyAdminList,
+      A.copyGameLocations,
+      A.verifyGameLocations,
       A.copyAwardDefinitions,
       A.verifyAwardDefinitions,
       A.carryV1Pictures,
       A.verifyV1Pictures,
       A.verifyV1TextFitsLimits,
     ],
+  }),
+  deleteStep(A.deleteV1Waivers, {
+    title: 'Delete the V1 waiver templates',
+    summary: 'The `waivers` collection.',
+    owningStep: 'high-risk-callables',
+    dependsOn: [A.verifyWaiverTemplates],
+    maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
+    consumes: [A.copyWaiverTemplates, A.verifyWaiverTemplates, A.verifyV1TextFitsLimits],
   }),
   deleteStep(A.deleteV1Users, {
     title: 'Delete the V1 user documents',
@@ -1042,7 +1025,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'migration-console',
     dependsOn: [A.checkpointV1FirestoreExport],
     resumeKey:
-      'The V1 leagues by document id; the resume key is the last league id, or `{leagueId}/unfinished` while a league holds more chats than one page deletes.',
+      'The V1 leagues by document id; the resume key is the last league id, or, while a league holds more chat than one page examines or deletes, `{leagueId}/unfinished` inside its own chat and `{leagueId}/unfinished/{teamParentId}` from that team path on.',
     defaultPageSize: 50,
     maxPageSize: 50,
     consumes: [],
