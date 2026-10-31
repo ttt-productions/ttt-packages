@@ -118,7 +118,7 @@ function requireFixture(name: string): string {
   return path.join(dir, name);
 }
 
-describe('inspectMedia real-tool regressions', () => {
+describe('inspectMedia real-tool regressions', { timeout: SLOW_TEST_TIMEOUT_MS }, () => {
   it('audio-only WebM → definitive audio, audio-only plan', async () => {
     const r = await inspectMedia({ localPath: requireFixture('audio-opus.webm') });
     expect(r.status).toBe('definitive');

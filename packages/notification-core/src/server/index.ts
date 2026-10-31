@@ -18,6 +18,7 @@ export type {
   MaterializeManyOptions,
   ReplayOutcome,
   ReplayOptions,
+  ReplacedDelivery,
 } from './delivery-ledger.js';
 
 export {

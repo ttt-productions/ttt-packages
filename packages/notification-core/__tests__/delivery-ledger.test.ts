@@ -507,6 +507,26 @@ describe('createDeliveryLedger lifecycle', () => {
     expect(getCol('auditEvents').get('e1')).toEqual({ type: 'replayed' });
   });
 
+  it('replay hands the audit hook the attempt count and dead-lettered time it replaced', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    await ledger.enqueue([row({ deliveryId: 'd1' })]);
+    await ledger.deadLetter('d1', new Error('infra'));
+    const stored = { ...getCol('notificationDeliveries').get('d1')! };
+    const auditWrite = vi.fn();
+
+    await ledger.replay('d1', { auditWrite });
+
+    expect(auditWrite).toHaveBeenCalledTimes(1);
+    expect(auditWrite).toHaveBeenCalledWith(expect.anything(), {
+      state: 'deadLetter',
+      attemptCount: stored.attemptCount,
+      deadLetteredAt: stored.deadLetteredAt,
+    });
+    expect(stored.attemptCount).toBe(1);
+    expect(stored.deadLetteredAt).toBeTypeOf('number');
+  });
+
   it('a rejecting audit hook fails the replay and the row stays dead-lettered', async () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config, ELIGIBLE);

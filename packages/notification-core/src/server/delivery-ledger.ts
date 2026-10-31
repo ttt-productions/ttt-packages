@@ -68,8 +68,15 @@ export interface MaterializeManyOptions {
 
 export type ReplayOutcome = 'replayed' | 'missing' | 'not-dead-lettered';
 
+/** What a replay replaced: the dead-lettered row's attempt count and dead-lettered time, as stored. */
+export interface ReplacedDelivery {
+  state: 'deadLetter';
+  attemptCount: number | null;
+  deadLetteredAt: number | null;
+}
+
 export interface ReplayOptions {
-  auditWrite?: (txn: ServerTransaction) => void | Promise<void>;
+  auditWrite?: (txn: ServerTransaction, replaced: ReplacedDelivery) => void | Promise<void>;
 }
 
 export interface DeliveryLedger {
@@ -366,6 +373,11 @@ export function createDeliveryLedger(
       if (!dSnap.exists) return 'missing';
       const d = (dSnap.data() ?? {}) as Record<string, unknown>;
       if ((d.state as DeliveryState) !== 'deadLetter') return 'not-dead-lettered';
+      const replaced: ReplacedDelivery = {
+        state: 'deadLetter',
+        attemptCount: typeof d.attemptCount === 'number' ? d.attemptCount : null,
+        deadLetteredAt: typeof d.deadLetteredAt === 'number' ? d.deadLetteredAt : null,
+      };
       tx.update(dRef, {
         state: 'queued' as DeliveryState,
         attemptCount: 0,
@@ -374,7 +386,7 @@ export function createDeliveryLedger(
         deadLetteredAt: null,
         expireAt: null,
       });
-      await options?.auditWrite?.(tx);
+      await options?.auditWrite?.(tx, replaced);
       return 'replayed';
     });
   }
