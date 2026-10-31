@@ -35,6 +35,24 @@ describe('SquareStreetzPostCreatedEventSchema', () => {
   });
 });
 
+describe('a like names the liker and the post, never an author (a Town Crier post has none)', () => {
+  it.each(['squareStreetz.postLiked', 'squareStreetz.postUnliked'] as const)(
+    '%s parses with only the liker and the post',
+    (type) => {
+      const event = { type, ids: { userId: 'u_1', postId: 'p_1' } };
+      expect(DomainEventSchema.parse(event)).toEqual(event);
+    },
+  );
+  it.each(['squareStreetz.postLiked', 'squareStreetz.postUnliked'] as const)(
+    '%s refuses an authorId',
+    (type) => {
+      expect(() =>
+        DomainEventSchema.parse({ type, ids: { userId: 'u_1', postId: 'p_1', authorId: 'a_1' } }),
+      ).toThrow();
+    },
+  );
+});
+
 describe('chat attachments carry no domain event', () => {
   it('the DomainEvent union rejects chat.attachmentFinalized', () => {
     expect(() =>

@@ -19,7 +19,6 @@ export const SquareStreetzPostLikedEventSchema = z
       .object({
         userId: z.string().min(1),
         postId: z.string().min(1),
-        authorId: z.string().min(1),
       })
       .strict(),
   })
@@ -32,7 +31,6 @@ export const SquareStreetzPostUnlikedEventSchema = z
       .object({
         userId: z.string().min(1),
         postId: z.string().min(1),
-        authorId: z.string().min(1),
       })
       .strict(),
   })
