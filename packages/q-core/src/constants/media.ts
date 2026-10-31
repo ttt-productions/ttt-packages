@@ -26,6 +26,12 @@ export const MEDIA_SWEEP_BACKOFF_MAX_MS = 24 * HOUR_MS;
 
 export const MAX_V1_PICTURE_CARRY_ATTEMPTS = 3;
 
+// Longer than any signing callable can run, so a live signing's intent is never reaped.
+export const SIGNATURE_COPY_ORPHAN_GRACE_MS = 24 * HOUR_MS;
+// Longer than a reap's claim-delete-release round, so a live reap is never taken over.
+export const SIGNATURE_COPY_REAP_CLAIM_LEASE_MS = HOUR_MS;
+export const SIGNATURE_COPY_REAP_PAGE_SIZE = 50;
+
 export const MAX_STAGING_UPLOAD_PATH_LENGTH = 300;
 
 export const UPLOAD_TRAY_WINDOW_MS = 24 * HOUR_MS;

@@ -144,6 +144,10 @@ export const PATH_BUILDERS = {
     COLLECTIONS.HARDWARE_LOAN_CONTRACTS,
     contractId,
   ],
+  signatureCopyIntent: (stagingId: string): [string, string] => [
+    COLLECTIONS.SIGNATURE_COPY_INTENTS,
+    stagingId,
+  ],
 
   awardDefinition: (awardId: string): [string, string] => [COLLECTIONS.AWARD_DEFINITIONS, awardId],
   awardGroupGrant: (grantId: string): [string, string] => [COLLECTIONS.AWARD_GROUP_GRANTS, grantId],
