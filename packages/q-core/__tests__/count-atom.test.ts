@@ -11,8 +11,17 @@ import {
   MembershipRosterSyncSchema,
 } from '../src/doc-schemas/membership-roster-sync.js';
 import { SportLeagueSchema, playoffCutoffCountSchema } from '../src/doc-schemas/sport-league.js';
-import { appliedRevisionSchema, countSchema, revisionSchema } from '../src/doc-schemas/atoms.js';
-import { GameStatsCorrectionTargetSchema } from '../src/schemas/stats.js';
+import { MAX_STAT_COUNT } from '../src/constants/sports.js';
+import {
+  appliedRevisionSchema,
+  countSchema,
+  enteredStatCountSchema,
+  revisionSchema,
+} from '../src/doc-schemas/atoms.js';
+import {
+  AdminUpdateHistoricalStatsInputSchema,
+  GameStatsCorrectionTargetSchema,
+} from '../src/schemas/stats.js';
 import { UpdateAdminListResultSchema } from '../src/schemas/users.js';
 import { AdminRetryLeagueTeamRosterSyncResultSchema } from '../src/schemas/teams.js';
 import { AdminStatsSchema } from '../src/schemas/admin-stats.js';
@@ -198,8 +207,8 @@ describe('countSchema is the one count atom', () => {
     expect(appliedRevisionSchema.safeParse(0).success).toBe(true);
   });
 
-  it("a callable input's count field takes the one count atom, not a copy of its own", () => {
-    expect(GameStatsCorrectionTargetSchema.shape.value).toBe(countSchema);
+  it("a callable input's typed stat count takes the one entered-count schema, not a copy of its own", () => {
+    expect(GameStatsCorrectionTargetSchema.shape.value).toBe(enteredStatCountSchema);
   });
 
   it('the dashboard counts, a gallery’s count, and a league’s playoff cutoffs are the atom', () => {
@@ -270,5 +279,53 @@ describe('HistoricalStatsSchema is the basketball totals line without FP', () =>
     expect(HistoricalStatsSchema.safeParse({ ...TOTALS, rebounds: -1 }).success).toBe(false);
     const { assists: _assists, ...withoutAssists } = TOTALS;
     expect(HistoricalStatsSchema.safeParse(withoutAssists).success).toBe(false);
+  });
+});
+
+describe('a stat count a person types', () => {
+  it('is a whole non-negative count no larger than the stat-count limit', () => {
+    expect(enteredStatCountSchema.safeParse(0).success).toBe(true);
+    expect(enteredStatCountSchema.safeParse(MAX_STAT_COUNT).success).toBe(true);
+    expect(enteredStatCountSchema.safeParse(MAX_STAT_COUNT + 1).success).toBe(false);
+    expect(enteredStatCountSchema.safeParse(-1).success).toBe(false);
+    expect(enteredStatCountSchema.safeParse(2.5).success).toBe(false);
+  });
+
+  it('bounds a correction target, so a box capped at the limit and the server accept the same values', () => {
+    const target = { teamId: 'team-1', stat: 'points', value: MAX_STAT_COUNT };
+    expect(GameStatsCorrectionTargetSchema.safeParse(target).success).toBe(true);
+    expect(
+      GameStatsCorrectionTargetSchema.safeParse({ ...target, value: MAX_STAT_COUNT + 1 }).success,
+    ).toBe(false);
+  });
+
+  it('bounds every historical total an admin saves, and still refuses FP and a missing total', () => {
+    const input = {
+      userId: 'user-1',
+      sportKey: 'basketball',
+      stats: { gamesPlayed: 12, points: MAX_STAT_COUNT, rebounds: 60, assists: 25 },
+      reason: 'Restoring the totals from the league sheet.',
+      operationId: 'operation-1',
+      dryRun: true,
+    };
+    expect(AdminUpdateHistoricalStatsInputSchema.safeParse(input).success).toBe(true);
+    for (const key of Object.keys(input.stats) as (keyof typeof input.stats)[]) {
+      expect(
+        AdminUpdateHistoricalStatsInputSchema.safeParse({
+          ...input,
+          stats: { ...input.stats, [key]: MAX_STAT_COUNT + 1 },
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      AdminUpdateHistoricalStatsInputSchema.safeParse({
+        ...input,
+        stats: { ...input.stats, fantasyPoints: 1 },
+      }).success,
+    ).toBe(false);
+    const { assists: _assists, ...withoutAssists } = input.stats;
+    expect(
+      AdminUpdateHistoricalStatsInputSchema.safeParse({ ...input, stats: withoutAssists }).success,
+    ).toBe(false);
   });
 });

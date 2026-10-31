@@ -6,6 +6,7 @@ import {
 } from '../constants/sports.js';
 import {
   countSchema,
+  enteredStatCountSchema,
   gameIdSchema,
   gameRosterPlayerIdSchema,
   leagueIdSchema,
@@ -26,7 +27,11 @@ import {
   StatsValidationScopeSchema,
   StatsValidationSummarySchema,
 } from '../doc-schemas/system.js';
-import { HistoricalStatsSchema } from '../doc-schemas/user-profile.js';
+import {
+  HISTORICAL_STAT_KEYS,
+  HistoricalStatsSchema,
+  type HistoricalStats,
+} from '../doc-schemas/user-profile.js';
 import {
   GAME_FINALIZE_OUTCOME_KEYS,
   GAME_REOPEN_OUTCOME_KEYS,
@@ -151,7 +156,7 @@ export const GameStatsCorrectionTargetSchema = z
     teamId: teamIdSchema,
     playerUserId: userIdSchema.optional(),
     stat: statCounterKeySchema,
-    value: countSchema,
+    value: enteredStatCountSchema,
   })
   .strict();
 export type GameStatsCorrectionTarget = z.infer<typeof GameStatsCorrectionTargetSchema>;
@@ -260,11 +265,20 @@ export const GameStatsRepairResultSchema = z
   .strict();
 export type GameStatsRepairResult = z.infer<typeof GameStatsRepairResultSchema>;
 
+const EnteredHistoricalStatsSchema = z
+  .object(
+    Object.fromEntries(HISTORICAL_STAT_KEYS.map((key) => [key, enteredStatCountSchema])) as Record<
+      keyof HistoricalStats,
+      typeof enteredStatCountSchema
+    >,
+  )
+  .strict();
+
 export const AdminUpdateHistoricalStatsInputSchema = z
   .object({
     userId: userIdSchema,
     sportKey: sportKeySchema,
-    stats: HistoricalStatsSchema,
+    stats: EnteredHistoricalStatsSchema,
     reason: repairReasonSchema,
     operationId: statsOperationIdSchema,
     dryRun: z.boolean(),

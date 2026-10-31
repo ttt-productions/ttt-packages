@@ -46,6 +46,8 @@ export const CURLING_ROUND_COUNT = 14;
 
 export const MAX_CURLING_ROUND_POINTS = 4;
 
+export const MAX_STAT_COUNT = 999_999;
+
 // The most events one scoring write may carry: each event is a document created in the write's one
 // transaction, and a Firestore transaction commits at most 500 writes.
 export const MAX_STAT_EVENTS_PER_WRITE = 200;

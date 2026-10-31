@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { countSchema } from '../doc-schemas/atoms.js';
+import { enteredStatCountSchema } from '../doc-schemas/atoms.js';
 import type { GameStats } from '../doc-schemas/sport-game.js';
 import type { BulkEntryKind } from '../types/stats.js';
 import type { SportStatEventBody, StatVoidBody } from './scoring.js';
@@ -51,6 +51,6 @@ export const BULK_ENTRY_TOO_LARGE_MESSAGE =
 export const BULK_ENTRY_COUNT_MESSAGE = 'Enter a whole number, zero or more.';
 
 export const bulkEntryCountField = z.custom<number>(
-  (value) => countSchema.safeParse(value).success,
+  (value) => enteredStatCountSchema.safeParse(value).success,
   BULK_ENTRY_COUNT_MESSAGE,
 );

@@ -53,6 +53,7 @@ export interface ConsequenceDialogProps {
   confirmLabel: React.ReactNode;
   cancelLabel?: React.ReactNode;
   destructive?: boolean;
+  confirmHeld?: React.ReactNode;
 
   onConfirm: () => void | Promise<void>;
 
@@ -98,6 +99,7 @@ export function ConsequenceDialog({
   confirmLabel,
   cancelLabel = 'Cancel',
   destructive = false,
+  confirmHeld,
   onConfirm,
   onCloseAutoFocus,
 }: ConsequenceDialogProps) {
@@ -111,6 +113,8 @@ export function ConsequenceDialog({
   const reasonId = useId();
   const reasonHintId = useId();
   const typedId = useId();
+  const heldId = useId();
+  const held = confirmHeld !== undefined && confirmHeld !== null && confirmHeld !== false;
 
   const setOpenState = useCallback(
     (next: boolean) => {
@@ -130,7 +134,7 @@ export function ConsequenceDialog({
   );
 
   const handleConfirm = useCallback(async () => {
-    if (pending) return;
+    if (pending || held) return;
     setPending(true);
     try {
       await onConfirm();
@@ -141,7 +145,7 @@ export function ConsequenceDialog({
     } finally {
       setPending(false);
     }
-  }, [pending, onConfirm, setOpenState]);
+  }, [pending, held, onConfirm, setOpenState]);
 
   const reasonOk = !reason || checkInputFormat(reason.value, reason.inputFormat).ok;
 
@@ -226,6 +230,12 @@ export function ConsequenceDialog({
           </div>
         ) : null}
 
+        {held ? (
+          <div id={heldId} role="status" className="text-small text-muted-foreground">
+            {confirmHeld}
+          </div>
+        ) : null}
+
         <AlertDialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={pending}>
             {cancelLabel}
@@ -233,7 +243,8 @@ export function ConsequenceDialog({
           <Button
             variant={destructive ? 'destructive' : 'default'}
             onClick={handleConfirm}
-            disabled={!reasonOk || !typedOk}
+            disabled={!reasonOk || !typedOk || held}
+            aria-describedby={held ? heldId : undefined}
             pending={pending}
           >
             {confirmLabel}

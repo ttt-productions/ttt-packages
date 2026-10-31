@@ -2,10 +2,11 @@ import { describe, it, expect, expectTypeOf } from 'vitest';
 import type { z } from 'zod';
 import {
   MAX_CURLING_ROUND_POINTS,
+  MAX_STAT_COUNT,
   MAX_STAT_EVENTS_PER_WRITE,
   CURLING_ROUND_COUNT,
 } from '../src/constants/sports.js';
-import { countSchema } from '../src/doc-schemas/atoms.js';
+import { enteredStatCountSchema } from '../src/doc-schemas/atoms.js';
 import { type GameStatEvent } from '../src/doc-schemas/game-stats.js';
 import { type GameStats } from '../src/doc-schemas/sport-game.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
@@ -138,15 +139,15 @@ describe("a bulk entry form's schema", () => {
 });
 
 describe('the bulk-entry count field', () => {
-  it("is the count atom's check, answered with the form's one message", () => {
-    for (const value of [0, 1, 12])
+  it("is the entered stat count's check, answered with the form's one message", () => {
+    for (const value of [0, 1, 12, MAX_STAT_COUNT])
       expect(bulkEntryCountField.safeParse(value).success).toBe(
-        countSchema.safeParse(value).success,
+        enteredStatCountSchema.safeParse(value).success,
       );
-    for (const value of [-1, 1.5, '3', null]) {
+    for (const value of [-1, 1.5, '3', null, MAX_STAT_COUNT + 1]) {
       const parsed = bulkEntryCountField.safeParse(value);
       expect(parsed.success).toBe(false);
-      expect(countSchema.safeParse(value).success).toBe(false);
+      expect(enteredStatCountSchema.safeParse(value).success).toBe(false);
       if (!parsed.success)
         expect(parsed.error.issues.map((issue) => issue.message)).toEqual([
           BULK_ENTRY_COUNT_MESSAGE,

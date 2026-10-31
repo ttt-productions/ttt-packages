@@ -2,6 +2,11 @@ export const MIN_DISPLAY_NAME_LENGTH = 3;
 export const MAX_DISPLAY_NAME_LENGTH = 50;
 // The shortest password an account takes: Firebase Auth's own floor.
 export const PASSWORD_MIN_LENGTH = 6;
+
+// The RFC 5321 ceiling on an email address.
+export const EMAIL_MAX_LENGTH = 320;
+
+export const MAX_SEARCH_QUERY_LENGTH = 100;
 export const MIN_TEAM_NAME_LENGTH = 3;
 export const MAX_TEAM_NAME_LENGTH = 50;
 

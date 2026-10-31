@@ -4,6 +4,7 @@ import {
   type DeclaredInputFormat,
   type InputFormatIssue,
 } from '@ttt-productions/input-format-core';
+import { MAX_STAT_COUNT } from '../constants/sports.js';
 import { REPAIR_REASON_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
 import { isStagingId } from '../ids/picture-ids.js';
@@ -37,6 +38,8 @@ import {
 export const epochMsSchema = z.number().int().nonnegative();
 
 export const countSchema = z.number().int().nonnegative();
+
+export const enteredStatCountSchema = countSchema.max(MAX_STAT_COUNT);
 
 export const revisionSchema = z.number().int().positive();
 

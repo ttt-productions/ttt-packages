@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { MAX_ADMIN_LIST_CHANGES } from '../constants/business.js';
+import {
+  EMAIL_MAX_LENGTH,
+  MAX_ADMIN_LIST_CHANGES,
+  MAX_SEARCH_QUERY_LENGTH,
+} from '../constants/business.js';
 import {
   countSchema,
   repairReasonSchema,
@@ -34,7 +38,7 @@ export const CheckDisplayNameAvailableResultSchema = z
   .strict();
 export type CheckDisplayNameAvailableResult = z.infer<typeof CheckDisplayNameAvailableResultSchema>;
 
-export const MAX_USER_SEARCH_QUERY_LENGTH = 100;
+export const MAX_USER_SEARCH_QUERY_LENGTH = MAX_SEARCH_QUERY_LENGTH;
 
 export const USER_LOOKUP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const USER_LOOKUP_UID_PATTERN = /^[A-Za-z0-9]{28}$/;
@@ -54,7 +58,7 @@ export const LookedUpUserSchema = z
   .object({
     uid: userIdSchema,
     displayName: z.string(),
-    email: z.string(),
+    email: z.string().max(EMAIL_MAX_LENGTH),
     userStatus: userStatusSchema,
     isAdmin: z.literal(true).optional(),
   })

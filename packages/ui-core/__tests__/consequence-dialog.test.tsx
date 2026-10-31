@@ -348,6 +348,60 @@ describe('ConsequenceDialog', () => {
     });
   });
 
+  describe('held confirm', () => {
+    it('holds confirm while the caller says it cannot run, names why, and never confirms', async () => {
+      const onConfirm = vi.fn();
+      render(
+        <ConsequenceDialog
+          open
+          onOpenChange={noop}
+          title="Ban them?"
+          confirmLabel="Ban"
+          confirmHeld="Their standing could not be read. Try again first."
+          onConfirm={onConfirm}
+        />,
+      );
+      const confirm = screen.getByRole('button', { name: 'Ban' });
+      expect(confirm).toBeDisabled();
+      const describedBy = confirm.getAttribute('aria-describedby');
+      expect(describedBy ? document.getElementById(describedBy) : null).toHaveTextContent(
+        'Their standing could not be read. Try again first.',
+      );
+      fireEvent.click(confirm);
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+    });
+
+    it('lets confirm run again once the hold lifts, with no note left behind', async () => {
+      const onConfirm = vi.fn();
+      const { rerender } = render(
+        <ConsequenceDialog
+          open
+          onOpenChange={noop}
+          title="Ban them?"
+          confirmLabel="Ban"
+          confirmHeld="Their standing could not be read."
+          onConfirm={onConfirm}
+        />,
+      );
+      rerender(
+        <ConsequenceDialog
+          open
+          onOpenChange={noop}
+          title="Ban them?"
+          confirmLabel="Ban"
+          onConfirm={onConfirm}
+        />,
+      );
+      const confirm = screen.getByRole('button', { name: 'Ban' });
+      expect(confirm).toBeEnabled();
+      expect(confirm).not.toHaveAttribute('aria-describedby');
+      expect(screen.queryByText('Their standing could not be read.')).not.toBeInTheDocument();
+      await userEvent.click(confirm);
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('focus on close', () => {
     function FocusHarness({ onCloseAutoFocus }: { onCloseAutoFocus?: (event: Event) => void }) {
       return (

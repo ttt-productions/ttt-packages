@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
-import { MAX_CONTACT_PHONE_LENGTH } from '../src/constants/business.js';
+import { EMAIL_MAX_LENGTH, MAX_CONTACT_PHONE_LENGTH } from '../src/constants/business.js';
 import { UserPrivateDataSchema, themeNameSchema } from '../src/doc-schemas/user-profile.js';
 import {
   UpdateAccountSettingsInputSchema,
@@ -18,6 +18,17 @@ describe('the saved theme', () => {
 describe('the account settings on privateData', () => {
   it('are optional: a copied or new account has saved none, and absent means use the device', () => {
     expect(UserPrivateDataSchema.safeParse(PRIVATE_DATA).success).toBe(true);
+  });
+
+  it('hold an email no longer than the email limit the sign-in boxes take', () => {
+    const email = (length: number) => `${'a'.repeat(length - '@example.test'.length)}@example.test`;
+    expect(
+      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, email: email(EMAIL_MAX_LENGTH) }).success,
+    ).toBe(true);
+    expect(
+      UserPrivateDataSchema.safeParse({ ...PRIVATE_DATA, email: email(EMAIL_MAX_LENGTH + 1) })
+        .success,
+    ).toBe(false);
   });
 
   it('hold a theme from the theme set and a motion preference', () => {
