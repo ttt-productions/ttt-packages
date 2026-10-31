@@ -99,13 +99,14 @@ the same-named files in its `docs/engineering-rules/backend/`.
 ### RULE-STD-BACKEND-010 — Callables enforce App Check attestation
 **Scope.** apps
 
-**Rule.** Every `onCall` callable sets `enforceAppCheck: true` in its options, so only the genuine first-party app — attested through the platform's attestation provider in deployed environments — can invoke it. App Check attests the CLIENT and is layered beneath `assertAuth` (RULE-STD-BACKEND-001), which attests the USER; both hold independently and neither substitutes for the other. An App Check debug token is a local/CI-only bypass and never reaches a deployed environment's config, secret, or client bundle; deployed environments attest only through the real provider.
+**Rule.** Every `onCall` callable sets `enforceAppCheck: true` in its options, so only the genuine first-party app — attested through the platform's attestation provider in deployed environments — can invoke it. App Check attests the CLIENT and is layered beneath `assertAuth` (RULE-STD-BACKEND-001), which attests the USER; both hold independently and neither substitutes for the other. An App Check debug token is a bypass for local runs, CI, and the app's hosted end-to-end harness, and never reaches a deployed environment's config, secret, or client bundle; a deployed app's own clients attest only through the real provider. The hosted harness may present a debug token registered on the dev project only, held in the harness's own untracked environment and set only in the browser pages the harness drives; at least one harness engine stays on the real provider every run, so real attestation stays proven. No debug token is ever registered on the production project.
 
-**Why.** Without App Check, anyone holding a stolen ID token or a leaked callable name can hit the backend directly, bypassing the app; attestation is what keeps the callable surface first-party-only. A debug token shipped in a deployed bundle disables that protection in the open.
+**Why.** Without App Check, anyone holding a stolen ID token or a leaked callable name can hit the backend directly, bypassing the app; attestation is what keeps the callable surface first-party-only. A debug token shipped in a deployed bundle disables that protection in the open. A hosted harness run for hours gets its browser profiles scored as bots by the attestation provider, which throttles them; a dev-only token in the harness's own pages keeps long runs going, and the engine left on the real provider keeps proving that real attestation still works.
 
 **Prohibits.**
 - A new `onCall` callable omitting `enforceAppCheck: true` without a documented reason.
 - An App Check debug token in any deployed-environment config, secret, or bundle.
+- A debug token registered on the production project, or a hosted-harness token read anywhere but the harness, set anywhere but the pages the harness drives, or used on every harness engine at once.
 - Treating App Check as a substitute for `assertAuth` (or vice-versa) — attestation is not authentication.
 
 **References.** RULE-STD-BACKEND-001; RULE-STD-ENG-006.

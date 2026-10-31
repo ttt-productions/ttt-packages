@@ -401,10 +401,13 @@ config files only — never a deployed config or hosted lookup.
 ```bash
 <GUARD_SUITE> -t "local-only variables never appear in deployed configuration|the env files a deploy delivers carry public values only"
 ```
-**Expected:** the guards are green: a local-only variable (an emulator flag, a debug attestation token)
-never appears in deployed configuration, not even as a secret reference, and every env file a deploy
-delivers carries public values only — a tracked env file is graded by its contents, never excused
-because an ignore rule exists. Every deployed-config entry is an inline value or a secret-manager
+**Expected:** the guards are green: a local-only variable (an emulator flag, a debug attestation token,
+the hosted harness's own debug token) never appears in deployed configuration, not even as a secret
+reference, and every env file a deploy delivers carries public values only — a tracked env file is
+graded by its contents, never excused because an ignore rule exists. A hosted-harness debug token, where
+the app has one, is read only by the harness, set only in the pages it drives, and leaves at least one
+engine on the real attestation provider (the app's additions name the variable, the engines, and the
+check that keeps it out of the deployed trees). Every deployed-config entry is an inline value or a secret-manager
 reference. The project mapping and the declared runtime match the app's stated facts (its additions
 name the files).
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
