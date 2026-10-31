@@ -1,11 +1,11 @@
 import { z } from 'zod';
+import { MAX_APP_VERSION_LENGTH } from '../constants/business.js';
 import {
-  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
-  MAX_APP_VERSION_LENGTH,
-  MAX_LANDING_ABOUT_TEXT_LENGTH,
-  MAX_LANDING_HERO_TITLE_LENGTH,
-  MAX_MAINTENANCE_MESSAGE_LENGTH,
-} from '../constants/business.js';
+  ANNOUNCEMENT_MESSAGE_INPUT_FORMAT,
+  LANDING_ABOUT_TEXT_INPUT_FORMAT,
+  LANDING_HERO_TITLE_INPUT_FORMAT,
+  MAINTENANCE_MESSAGE_INPUT_FORMAT,
+} from '../input-formats/input-formats.js';
 import { MAX_STATS_VALIDATION_DISCREPANCIES } from '../constants/sports.js';
 import { GallerySummarySchema } from './gallery.js';
 import {
@@ -18,6 +18,7 @@ import {
   statsDiscrepancyKindSchema,
   statsOperationIdSchema,
   teamIdSchema,
+  textFieldSchema,
   userIdSchema,
 } from './atoms.js';
 
@@ -25,15 +26,15 @@ export const AppConfigSchema = z.object({
   // `''` is valid here — no version published yet; only the update input requires a value.
   appVersion: z.string().max(MAX_APP_VERSION_LENGTH),
   maintenanceMode: z.boolean(),
-  maintenanceMessage: z.string().max(MAX_MAINTENANCE_MESSAGE_LENGTH).optional(),
+  maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT_FORMAT).optional(),
   registrationEnabled: z.boolean(),
-  announcementMessage: z.string().max(MAX_ANNOUNCEMENT_MESSAGE_LENGTH).optional(),
+  announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT_FORMAT).optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 
 export const LandingPageConfigSchema = z.object({
-  heroTitle: z.string().max(MAX_LANDING_HERO_TITLE_LENGTH),
-  aboutCompany: z.string().max(MAX_LANDING_ABOUT_TEXT_LENGTH),
+  heroTitle: textFieldSchema(LANDING_HERO_TITLE_INPUT_FORMAT),
+  aboutCompany: textFieldSchema(LANDING_ABOUT_TEXT_INPUT_FORMAT),
   pictures: GallerySummarySchema.optional(),
   updatedAt: epochMsSchema,
 });

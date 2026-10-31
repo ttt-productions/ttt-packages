@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { z } from 'zod';
 import { checkInputFormat, defineInputFormat } from '@ttt-productions/input-format-core';
+import type { DeclaredInputFormat } from '@ttt-productions/input-format-core';
 import {
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APP_VERSION_LENGTH,
@@ -53,7 +55,17 @@ import {
   WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
   WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
 } from '../src/input-formats/input-formats.js';
-import { LeagueTeamContactSchema } from '../src/doc-schemas/league-team.js';
+import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
+import { SportLeagueSchema } from '../src/doc-schemas/sport-league.js';
+import { GameLocationSchema } from '../src/doc-schemas/game-location.js';
+import {
+  WaiverTemplateSchema,
+  WaiverTemplateVersionSchema,
+} from '../src/doc-schemas/waiver-template.js';
+import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
+import { TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas/team-membership.js';
+import { LandingPageConfigSchema } from '../src/doc-schemas/system.js';
 import { repairReasonSchema, textFieldSchema } from '../src/doc-schemas/atoms.js';
 import {
   AdminUpdateLandingPageInputSchema,
@@ -76,7 +88,7 @@ import {
   gameLocationNameSchema,
   gameLocationStreetAddressSchema,
   gameLocationSubLocationSchema,
-} from '../src/schemas/game-locations.js';
+} from '../src/doc-schemas/game-location.js';
 import { gameMemoSchema } from '../src/schemas/scoring.js';
 import { leagueDescriptionSchema, leagueTitleSchema } from '../src/schemas/leagues.js';
 import { scheduleWeekTitleSchema } from '../src/schemas/schedules.js';
@@ -603,4 +615,58 @@ describe("the admin forms' text fields", () => {
     });
     expect(checkInputFormat('   ', WAIVER_TEMPLATE_TEXT_INPUT_FORMAT).ok).toBe(false);
   });
+});
+
+describe('a stored text the product edits keeps its edit form’s rule', () => {
+  const STORED: [string, z.ZodType, DeclaredInputFormat][] = [
+    ['profile display name', UserProfileSchema.shape.displayName, DISPLAY_NAME_INPUT_FORMAT],
+    ['team name', LeagueTeamSchema.shape.name, TEAM_NAME_INPUT_FORMAT],
+    ['league title', SportLeagueSchema.shape.leagueTitle, LEAGUE_TITLE_INPUT_FORMAT],
+    ['league description', SportLeagueSchema.shape.description, LEAGUE_DESCRIPTION_INPUT_FORMAT],
+    ['venue name', GameLocationSchema.shape.name, GAME_LOCATION_NAME_INPUT_FORMAT],
+    [
+      'venue address',
+      GameLocationSchema.shape.streetAddress,
+      GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT,
+    ],
+    ['waiver title', WaiverTemplateSchema.shape.title, WAIVER_TEMPLATE_TITLE_INPUT_FORMAT],
+    [
+      'waiver wording',
+      WaiverTemplateVersionSchema.shape.waiverText,
+      WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
+    ],
+    ['week title', SportGameSchema.options[0].shape.weekTitle, SCHEDULE_WEEK_TITLE_INPUT_FORMAT],
+    [
+      'invitation message',
+      TeamInvitationSchema.shape.message,
+      TEAM_INVITATION_MESSAGE_INPUT_FORMAT,
+    ],
+    [
+      'join request message',
+      TeamJoinRequestSchema.shape.message,
+      TEAM_JOIN_REQUEST_MESSAGE_INPUT_FORMAT,
+    ],
+    ['hero title', LandingPageConfigSchema.shape.heroTitle, LANDING_HERO_TITLE_INPUT_FORMAT],
+    [
+      'game court',
+      SportGameSchema.options[0].shape.subLocation,
+      GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT,
+    ],
+  ];
+
+  it.each(STORED)(
+    '%s: refuses one character past its limit and keeps one at it',
+    (_, schema, format) => {
+      expect(schema.safeParse('a'.repeat(format.max)).success).toBe(true);
+      expect(schema.safeParse('a'.repeat(format.max + 1)).success).toBe(false);
+    },
+  );
+
+  it.each(STORED)(
+    '%s: refuses fewer characters than its edit form requires',
+    (_, schema, format) => {
+      if (format.min === 0) return;
+      expect(schema.safeParse('a'.repeat(format.min - 1)).success).toBe(false);
+    },
+  );
 });

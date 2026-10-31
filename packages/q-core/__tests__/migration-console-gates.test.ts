@@ -225,6 +225,9 @@ describe('the pre-copy V1 data checks', () => {
       A.copyGameLocations,
       A.copyWaiverTemplates,
       A.copyUserProfiles,
+      A.copyTeamInvitations,
+      A.copyTeamJoinRequests,
+      A.copySportGames,
     ]) {
       expect(dependsOn(copy), copy).toContain(A.verifyV1TextFitsLimits);
     }

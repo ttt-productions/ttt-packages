@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { MAX_PLAYOFF_CUTOFF } from '../constants/business.js';
 import {
   LEAGUE_DESCRIPTION_INPUT_FORMAT,
   LEAGUE_TITLE_INPUT_FORMAT,
@@ -14,12 +13,11 @@ import {
   leagueStatusSchema,
   leagueTypeSchema,
 } from '../doc-schemas/atoms.js';
-import { playoffCutoffCountSchema, refineLeagueSettings } from '../doc-schemas/sport-league.js';
+import { playoffCutoffSchema, refineLeagueSettings } from '../doc-schemas/sport-league.js';
 import { waiverTemplateIdSchema } from '../doc-schemas/waiver-template.js';
 
 export const leagueTitleSchema = textFieldSchema(LEAGUE_TITLE_INPUT_FORMAT);
 export const leagueDescriptionSchema = textFieldSchema(LEAGUE_DESCRIPTION_INPUT_FORMAT);
-export const playoffCutoffSchema = playoffCutoffCountSchema.max(MAX_PLAYOFF_CUTOFF);
 
 export const LEAGUE_SETTINGS_FIELD_KEYS = [
   'leagueTitle',

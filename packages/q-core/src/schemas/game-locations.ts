@@ -1,28 +1,11 @@
 import { z } from 'zod';
-import { MAX_GAME_LOCATION_SUB_LOCATIONS } from '../constants/business.js';
-import { textFieldSchema } from '../doc-schemas/atoms.js';
-import { gameLocationIdSchema } from '../doc-schemas/game-location.js';
 import {
-  GAME_LOCATION_MEMO_INPUT_FORMAT,
-  GAME_LOCATION_NAME_INPUT_FORMAT,
-  GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT,
-  GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
-
-export const gameLocationNameSchema = textFieldSchema(GAME_LOCATION_NAME_INPUT_FORMAT);
-export const gameLocationStreetAddressSchema = textFieldSchema(
-  GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT,
-);
-export const gameLocationSubLocationSchema = textFieldSchema(
-  GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT,
-);
-export const gameLocationSubLocationsSchema = z
-  .array(gameLocationSubLocationSchema)
-  .max(MAX_GAME_LOCATION_SUB_LOCATIONS)
-  .refine((subLocations) => new Set(subLocations).size === subLocations.length, {
-    message: 'Each sub-location may appear only once.',
-  });
-export const gameLocationMemoSchema = textFieldSchema(GAME_LOCATION_MEMO_INPUT_FORMAT);
+  gameLocationIdSchema,
+  gameLocationMemoSchema,
+  gameLocationNameSchema,
+  gameLocationStreetAddressSchema,
+  gameLocationSubLocationsSchema,
+} from '../doc-schemas/game-location.js';
 
 const gameLocationFieldsShape = {
   name: gameLocationNameSchema,

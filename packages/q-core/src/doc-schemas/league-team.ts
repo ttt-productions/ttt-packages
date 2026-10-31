@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { CONTACT_PHONE_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import {
+  CONTACT_PHONE_INPUT_FORMAT,
+  TEAM_NAME_INPUT_FORMAT,
+} from '../input-formats/input-formats.js';
 import {
   countSchema,
   epochMsSchema,
@@ -13,7 +16,7 @@ import { PlayerSeasonStatsSchema, TeamSeasonStatsSchema } from './aggregate-stat
 import { GallerySummarySchema } from './gallery.js';
 
 export const LeagueTeamSchema = z.object({
-  name: z.string(),
+  name: textFieldSchema(TEAM_NAME_INPUT_FORMAT),
   icon: teamIconSchema,
   leagueId: leagueIdSchema,
   teamType: teamTypeSchema.optional(),

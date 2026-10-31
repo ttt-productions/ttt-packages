@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
 import { EMAIL_MAX_LENGTH } from '../constants/business.js';
-import { CONTACT_PHONE_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import {
+  CONTACT_PHONE_INPUT_FORMAT,
+  DISPLAY_NAME_INPUT_FORMAT,
+} from '../input-formats/input-formats.js';
 import { BasketballPlayerTotalsSchema, UserLifetimeStatsSchema } from './aggregate-stats.js';
 import { epochMsSchema, textFieldSchema, userStatusSchema } from './atoms.js';
 import { awardIdSchema } from './catalogs.js';
@@ -15,7 +18,7 @@ export const GrantedAwardSchema = z.object({
 export type GrantedAward = z.infer<typeof GrantedAwardSchema>;
 
 export const UserProfileSchema = z.object({
-  displayName: z.string(),
+  displayName: textFieldSchema(DISPLAY_NAME_INPUT_FORMAT),
   displayName_lowercase: z.string(),
   userStatus: userStatusSchema,
   lifetimeStats: UserLifetimeStatsSchema.optional(),

@@ -10,8 +10,9 @@ import {
   MembershipRosterSyncCursorSchema,
   MembershipRosterSyncSchema,
 } from '../src/doc-schemas/membership-roster-sync.js';
-import { SportLeagueSchema, playoffCutoffCountSchema } from '../src/doc-schemas/sport-league.js';
+import { SportLeagueSchema, playoffCutoffSchema } from '../src/doc-schemas/sport-league.js';
 import { MAX_STAT_COUNT } from '../src/constants/sports.js';
+import { MAX_PLAYOFF_CUTOFF } from '../src/constants/business.js';
 import {
   appliedRevisionSchema,
   countSchema,
@@ -224,10 +225,12 @@ describe('countSchema is the one count atom', () => {
     expect(AdminStatsSchema.shape.totalGamesPlayed).toBe(countSchema);
     expect(AdminStatsSchema.shape.activeFreeAgents).toBe(countSchema);
     expect(GallerySummarySchema.shape.count).toBe(countSchema);
-    expect(playoffCutoffCountSchema).toBe(countSchema);
     for (const field of ['playoffCutoff', 'playoffCutoffComp', 'playoffCutoffRec'] as const) {
-      expect(SportLeagueSchema.shape[field]).toBe(countSchema);
+      expect(SportLeagueSchema.shape[field]).toBe(playoffCutoffSchema);
     }
+    expect(playoffCutoffSchema.safeParse(MAX_PLAYOFF_CUTOFF).success).toBe(true);
+    expect(playoffCutoffSchema.safeParse(MAX_PLAYOFF_CUTOFF + 1).success).toBe(false);
+    expect(playoffCutoffSchema.safeParse(1.5).success).toBe(false);
   });
 
   it('the counts callables return are the atom', () => {

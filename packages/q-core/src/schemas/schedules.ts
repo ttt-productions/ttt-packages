@@ -14,7 +14,7 @@ import {
 import { gameLocationIdSchema } from '../doc-schemas/game-location.js';
 import { isByeTeamId } from '../ids/minted-ids.js';
 import { SCHEDULE_WEEK_FIELD_KEYS, SPORT_GAME_SCHEDULE_FIELD_KEYS } from '../types/schedules.js';
-import { gameLocationSubLocationSchema } from './game-locations.js';
+import { gameLocationSubLocationSchema } from '../doc-schemas/game-location.js';
 
 export const scheduleWeekTitleSchema = textFieldSchema(SCHEDULE_WEEK_TITLE_INPUT_FORMAT);
 

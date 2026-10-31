@@ -504,7 +504,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary:
       'Each invitation by id; a pending one whose invitee is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
-    dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships],
+    dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships, A.verifyV1TextFitsLimits],
     maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyTeamInvitations, {
@@ -519,7 +519,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary:
       'Each request by id; a pending one whose requester is already on the team is written approved, and a pending one whose team was not copied into its league is left behind and reported.',
     owningStep: 'high-risk-callables',
-    dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships],
+    dependsOn: [A.copyLeagueTeams, A.copyTeamMemberships, A.verifyV1TextFitsLimits],
     maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
   }),
   verifyStep(A.verifyTeamJoinRequests, {
@@ -620,7 +620,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary:
       'Each V1 game with its stats: the event documents, the rollup, the participation lists by roster entry, and a completed game’s finalized record.',
     owningStep: 'stat-data-model',
-    dependsOn: [A.copyGameRosterPlayers, A.verifyV1LeagueCapacity],
+    dependsOn: [A.copyGameRosterPlayers, A.verifyV1LeagueCapacity, A.verifyV1TextFitsLimits],
     orderedAfter: [A.resolveUnrosteredStatLine],
     resumeKey:
       'The V1 games by document id; a game’s documents commit before its id becomes the resume key.',
@@ -909,7 +909,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyTeamInvitations],
     maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
-    consumes: [A.copyTeamInvitations, A.verifyTeamInvitations],
+    consumes: [A.copyTeamInvitations, A.verifyTeamInvitations, A.verifyV1TextFitsLimits],
   }),
   deleteStep(A.deleteV1JoinRequests, {
     title: 'Delete the V1 join requests',
@@ -917,7 +917,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'high-risk-callables',
     dependsOn: [A.verifyTeamJoinRequests],
     maxPageSize: MIGRATION_COMMIT_WRITE_LIMIT,
-    consumes: [A.copyTeamJoinRequests, A.verifyTeamJoinRequests],
+    consumes: [A.copyTeamJoinRequests, A.verifyTeamJoinRequests, A.verifyV1TextFitsLimits],
   }),
   deleteStep(A.deleteV1FreeAgentSignups, {
     title: 'Delete the V1 free-agent signups',
@@ -1032,6 +1032,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
       A.copyGameRosterPlayers,
       A.verifyGameRosterPlayers,
       A.verifyV1LeagueCapacity,
+      A.verifyV1TextFitsLimits,
     ],
   }),
   deleteStep(A.deleteV1LeagueChats, {

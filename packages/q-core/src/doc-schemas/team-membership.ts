@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import {
+  TEAM_INVITATION_MESSAGE_INPUT_FORMAT,
+  TEAM_JOIN_REQUEST_MESSAGE_INPUT_FORMAT,
+} from '../input-formats/input-formats.js';
+import {
   epochMsSchema,
   teamJoinRequestStatusSchema,
   leagueIdSchema,
@@ -8,6 +12,7 @@ import {
   teamJoinMethodSchema,
   teamMembershipStatusSchema,
   teamRoleSchema,
+  textFieldSchema,
   userIdSchema,
 } from './atoms.js';
 
@@ -31,7 +36,7 @@ export const TeamInvitationSchema = z.object({
   teamId: teamIdSchema,
   invitedUserId: userIdSchema,
   invitedByUserId: userIdSchema,
-  message: z.string(),
+  message: textFieldSchema(TEAM_INVITATION_MESSAGE_INPUT_FORMAT),
   status: teamInvitationStatusSchema,
   createdAt: epochMsSchema,
   respondedAt: epochMsSchema.optional(),
@@ -42,7 +47,7 @@ export const TeamJoinRequestSchema = z.object({
   leagueId: leagueIdSchema,
   teamId: teamIdSchema,
   userId: userIdSchema,
-  message: z.string(),
+  message: textFieldSchema(TEAM_JOIN_REQUEST_MESSAGE_INPUT_FORMAT),
   status: teamJoinRequestStatusSchema,
   createdAt: epochMsSchema,
 });

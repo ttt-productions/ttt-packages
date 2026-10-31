@@ -1,13 +1,26 @@
 import { z } from 'zod';
-import { countSchema, documentIdSegmentSchema, epochMsSchema, userIdSchema } from './atoms.js';
+import {
+  WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
+  WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
+} from '../input-formats/input-formats.js';
+import {
+  countSchema,
+  documentIdSegmentSchema,
+  epochMsSchema,
+  textFieldSchema,
+  userIdSchema,
+} from './atoms.js';
+
+const waiverTitleSchema = textFieldSchema(WAIVER_TEMPLATE_TITLE_INPUT_FORMAT);
+const waiverTextSchema = textFieldSchema(WAIVER_TEMPLATE_TEXT_INPUT_FORMAT);
 
 export const waiverTemplateIdSchema = documentIdSegmentSchema;
 export const waiverTemplateVersionNumberSchema = z.number().int().min(1);
 
 export const WaiverTemplateSchema = z
   .object({
-    title: z.string(),
-    waiverText: z.string(),
+    title: waiverTitleSchema,
+    waiverText: waiverTextSchema,
     version: waiverTemplateVersionNumberSchema,
     createdAt: epochMsSchema,
     updatedAt: epochMsSchema,
@@ -32,8 +45,8 @@ export type WaiverTemplateRegistry = z.infer<typeof WaiverTemplateRegistrySchema
 
 export const WaiverTemplateVersionSchema = z.object({
   version: waiverTemplateVersionNumberSchema,
-  title: z.string(),
-  waiverText: z.string(),
+  title: waiverTitleSchema,
+  waiverText: waiverTextSchema,
   publishedByUserId: userIdSchema.optional(),
   publishedAt: epochMsSchema,
 });
