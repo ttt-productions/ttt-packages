@@ -270,6 +270,12 @@ export const WORK_PROJECT_ACTIONS = {
       'Submit workProject content for admin hall review. Also gates withdrawing a still-pending submission.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibrarySubmitter'],
   },
+  'hallLibrary.review.firstSubmit': {
+    label: 'Make the first submit',
+    description:
+      "Submit a Work's first publication for admin hall review. Only the Steward, who signs for the Work.",
+    grantedTo: ['StewardOwner'],
+  },
   'hallLibrary.changeRequest.submit': {
     label: 'Request published changes',
     description:

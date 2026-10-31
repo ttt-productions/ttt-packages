@@ -2,8 +2,15 @@ import { describe, it, expect } from 'vitest';
 import {
   SquareStreetzPostSchema,
   SquareStreetzPostPayloadSchema,
+  SquareStreetzPostTypeSchema,
   MediaTypeSchema,
+  isTownCrierPostType,
 } from '../src/doc-schemas/social.js';
+import {
+  LikeSquareStreetzPostResultSchema,
+  UnlikeSquareStreetzPostResultSchema,
+} from '../src/schemas/social.js';
+import { townCrierPostDestination } from '../src/paths/town-crier-destination.js';
 import { MAX_MENTIONS } from '../src/constants/business-content.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 
@@ -15,6 +22,7 @@ const textOnlyPost = {
   relatedIds: ['user_u1'],
   createdAt: 1,
   likes: 0,
+  postType: 'USER_POST' as const,
   hidden: false,
 };
 
@@ -165,5 +173,94 @@ describe('a Square announcement payload stores no names', () => {
       SquareStreetzPostPayloadSchema.safeParse({ ...payload, workRealmIsPublic: 'A Realm' })
         .success,
     ).toBe(false);
+  });
+});
+
+const TOWN_CRIER_TYPES = SquareStreetzPostTypeSchema.options.filter((type) => type !== 'USER_POST');
+
+const { createdBy: _createdBy, authorId: _authorId, ...authorlessPost } = textOnlyPost;
+
+describe('Town Crier posts are system posts with no author', () => {
+  it('only USER_POST is a member post; every other type is a Town Crier post', () => {
+    expect(isTownCrierPostType('USER_POST')).toBe(false);
+    for (const type of TOWN_CRIER_TYPES) expect(isTownCrierPostType(type)).toBe(true);
+  });
+
+  it.each(TOWN_CRIER_TYPES)('a %s post with no author is valid', (postType) => {
+    expect(SquareStreetzPostSchema.safeParse({ ...authorlessPost, postType }).success).toBe(true);
+  });
+
+  it.each(TOWN_CRIER_TYPES)('a %s post carrying createdBy or authorId is refused', (postType) => {
+    expect(
+      SquareStreetzPostSchema.safeParse({ ...authorlessPost, postType, createdBy: { uid: 'u1' } })
+        .success,
+    ).toBe(false);
+    expect(
+      SquareStreetzPostSchema.safeParse({ ...authorlessPost, postType, authorId: 'u1' }).success,
+    ).toBe(false);
+  });
+
+  it('a USER_POST without its author is refused', () => {
+    expect(SquareStreetzPostSchema.safeParse(authorlessPost).success).toBe(false);
+    expect(
+      SquareStreetzPostSchema.safeParse({ ...authorlessPost, createdBy: { uid: 'u1' } }).success,
+    ).toBe(false);
+    expect(SquareStreetzPostSchema.safeParse({ ...authorlessPost, authorId: 'u1' }).success).toBe(
+      false,
+    );
+  });
+
+  it('a post with no postType is refused', () => {
+    const { postType: _postType, ...untyped } = textOnlyPost;
+    expect(SquareStreetzPostSchema.safeParse(untyped).success).toBe(false);
+  });
+});
+
+describe('townCrierPostDestination links an announcement to the thing it announces', () => {
+  it('an audition announcement opens the audition page', () => {
+    expect(townCrierPostDestination({ postType: 'NEW_AUDITION', relatedAssetId: 'au1' })).toEqual({
+      kind: 'audition',
+      href: '/audition/au1',
+    });
+  });
+
+  it('a commission announcement opens the commission page', () => {
+    expect(townCrierPostDestination({ postType: 'NEW_COMMISSION', relatedAssetId: 'cl1' })).toEqual(
+      { kind: 'commission', href: '/commission/cl1' },
+    );
+  });
+
+  it('a publication announcement opens the Hall item', () => {
+    expect(
+      townCrierPostDestination({ postType: 'LIBRARY_PUBLISHED', relatedAssetId: 'hi1' }),
+    ).toEqual({ kind: 'hallItem', href: '/hall-library/hi1' });
+  });
+
+  it.each(
+    SquareStreetzPostTypeSchema.options.filter(
+      (type) => !['NEW_AUDITION', 'NEW_COMMISSION', 'LIBRARY_PUBLISHED'].includes(type),
+    ),
+  )('a %s post links to nothing of its own', (postType) => {
+    expect(townCrierPostDestination({ postType, relatedAssetId: 'x1' })).toBeNull();
+  });
+
+  it('an announcement without its asset id links to nothing', () => {
+    expect(townCrierPostDestination({ postType: 'NEW_AUDITION' })).toBeNull();
+  });
+});
+
+describe('a like on a Town Crier post answers no author', () => {
+  const liked = { success: true, postId: 'p1', isLiked: true, likeCount: 1 } as const;
+  const unliked = { success: true, postId: 'p1', isLiked: false, likeCount: 0 } as const;
+
+  it('a like or unlike answer may omit authorId', () => {
+    expect(LikeSquareStreetzPostResultSchema.safeParse(liked).success).toBe(true);
+    expect(UnlikeSquareStreetzPostResultSchema.safeParse(unliked).success).toBe(true);
+  });
+
+  it("a member post's like answer still carries its author", () => {
+    expect(LikeSquareStreetzPostResultSchema.parse({ ...liked, authorId: 'u1' }).authorId).toBe(
+      'u1',
+    );
   });
 });

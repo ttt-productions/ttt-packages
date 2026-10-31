@@ -2181,8 +2181,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `postId` | `string` |  |
-| `createdBy` | `{ uid }` |  |
-| `authorId` | `string` |  |
+| `createdBy` | `{ uid }` | yes |
+| `authorId` | `string` | yes |
 | `content` | `string` |  |
 | `mentions` | `{ placeholder, type, id }[]` | yes |
 | `relatedIds` | `string[]` |  |
@@ -2190,7 +2190,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `mediaType` | `'image' \| 'video' \| 'audio' \| 'other'` | yes |
 | `createdAt` | `number` |  |
 | `likes` | `number` |  |
-| `postType` | `'PROFILE_PICTURE_UPDATE' \| 'NEW_CRAFT_SKILL' \| 'NEW_ARTISAN_CREATOR' \| 'COMMISSION_ACCEPTED' \| 'DELETE_CRAFT_SKILL' \| 'USER_POST' \| 'NEW_WORK_PROJECT' \| 'LIBRARY_PUBLISHED' \| 'NEW_AUDITION' \| 'NEW_COMMISSION'` | yes |
+| `postType` | `'PROFILE_PICTURE_UPDATE' \| 'NEW_CRAFT_SKILL' \| 'NEW_ARTISAN_CREATOR' \| 'COMMISSION_ACCEPTED' \| 'DELETE_CRAFT_SKILL' \| 'USER_POST' \| 'NEW_WORK_PROJECT' \| 'LIBRARY_PUBLISHED' \| 'NEW_AUDITION' \| 'NEW_COMMISSION'` |  |
 | `relatedAssetId` | `string` | yes |
 | `hidden` | `boolean` |  |
 | `hiddenBy` | `'direct' \| 'cascade'` | yes |
@@ -2474,6 +2474,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `squareStreetzAgreementsVersion` | `number` | yes |
 | `artisanCreatorAgreementsVersion` | `number` | yes |
 | `artisanCreatorAgreementsWordingVersion` | `number` | yes |
+| `artisanCreatorLegalName` | `string` | yes |
 | `squareStreetzAgreementsWordingVersion` | `number` | yes |
 | `hallDownloadAcknowledgedAt` | `number` | yes |
 | `hallDownloadAcknowledgementVersion` | `number` | yes |

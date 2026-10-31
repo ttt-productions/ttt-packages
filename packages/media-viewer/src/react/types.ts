@@ -45,6 +45,7 @@ export type ImageViewerProps = BaseMediaProps & {
   unloadOnExit?: boolean;
   isCircular?: boolean;
   preventGestures?: boolean;
+  loadingPlaceholder?: React.ReactNode;
 };
 
 export type VideoViewerProps = BaseMediaProps &
@@ -119,4 +120,6 @@ export type MediaPreviewProps = {
   assetStatusHint?: AssetStatusHint;
 
   loadTimeoutMs?: number;
+
+  placeholder?: React.ReactNode;
 };

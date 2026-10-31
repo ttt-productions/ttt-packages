@@ -108,7 +108,7 @@ describe('SetReportDispositionInputV1Schema cross-field refinement', () => {
 });
 
 describe('SetReportDispositionCallableInputSchema cross-field refinement', () => {
-  const callableBase = { ...baseInput, confirmation: 'I confirm this legal reporting disposition' };
+  const callableBase = { ...baseInput, confirmation: 'I confirm legal disposition' };
 
   it('accepts a legal pairing with confirmation', () => {
     expect(
@@ -185,7 +185,7 @@ describe('evidenceRefs cross-field rule (reportRequired ⇒ ≥1; every other di
       SetReportDispositionCallableInputSchema.safeParse({
         ...baseInput,
         evidenceRefs: [],
-        confirmation: 'I confirm this legal reporting disposition',
+        confirmation: 'I confirm legal disposition',
         disposition: 'reportRequired',
         dispositionReasonCode: 'hashMatchValidated',
       }).success,

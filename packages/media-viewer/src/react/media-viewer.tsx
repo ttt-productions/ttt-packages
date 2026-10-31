@@ -154,6 +154,7 @@ export function MediaPreview(props: MediaPreviewProps) {
     recoveryAdapter,
     assetStatusHint,
     loadTimeoutMs,
+    placeholder,
   } = props;
 
   const [hasError, setHasError] = React.useState(false);
@@ -237,7 +238,9 @@ export function MediaPreview(props: MediaPreviewProps) {
   if (!sourceUrl) {
     return (
       <div className={className} style={wrapperStyle}>
-        {urlPending ? (
+        {placeholder !== undefined ? (
+          placeholder
+        ) : urlPending ? (
           <PendingFallback isCircular={isCircular} />
         ) : (
           <EmptyFallback isCircular={isCircular} />
@@ -248,13 +251,22 @@ export function MediaPreview(props: MediaPreviewProps) {
 
   const recoveryOverlay =
     isInRecovery && hasError ? (
-      <RecoveryOverlay state={recoveryState} onManualRetry={manualRetry} isCircular={isCircular} />
+      placeholder !== undefined ? (
+        placeholder
+      ) : (
+        <RecoveryOverlay
+          state={recoveryState}
+          onManualRetry={manualRetry}
+          isCircular={isCircular}
+        />
+      )
     ) : null;
+  const errorFallback = placeholder ?? <ErrorFallback isCircular={isCircular} />;
 
   if (hasError && !recoveryAdapter) {
     return (
       <div className={className} style={wrapperStyle}>
-        <ErrorFallback isCircular={isCircular} />
+        {errorFallback}
       </div>
     );
   }
@@ -278,7 +290,8 @@ export function MediaPreview(props: MediaPreviewProps) {
           onLoad={handleLoad}
           onError={handleError}
           onVisibilityChange={onVisibilityChange}
-          fallback={recoveryOverlay ?? <ErrorFallback isCircular={isCircular} />}
+          fallback={recoveryOverlay ?? errorFallback}
+          loadingPlaceholder={placeholder}
         />
       </div>
     );

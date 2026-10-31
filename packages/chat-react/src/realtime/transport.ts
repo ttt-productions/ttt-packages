@@ -5,7 +5,7 @@ import {
 } from './channel-client.js';
 import { InboxClient, type InboxClientConfig } from './inbox-client.js';
 import { browserSocketFactory, type SocketFactory } from './socket.js';
-import type { GrantProvider, TransportTimers } from './shared.js';
+import type { GrantProvider, InboxGrantProvider, TransportTimers } from './shared.js';
 import type { ChatClientDiagnosticsOption } from './diagnostics.js';
 import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 
@@ -59,7 +59,7 @@ export function createRealtimeChatClient(config: RealtimeTransportConfig): Realt
 export function createInboxClient(config: {
   endpoint: string;
   currentUserId: string;
-  grantProvider: GrantProvider;
+  grantProvider: InboxGrantProvider;
   socketFactory?: SocketFactory;
   timers?: TransportTimers;
   reconnect?: InboxClientConfig['reconnect'];

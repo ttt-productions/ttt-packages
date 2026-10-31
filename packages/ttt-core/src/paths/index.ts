@@ -10,3 +10,4 @@ export * from './storage-paths.js';
 export * from './notification-fanout-job-ids.js';
 export * from './app-routes.js';
 export * from './hall-browse.js';
+export * from './town-crier-destination.js';

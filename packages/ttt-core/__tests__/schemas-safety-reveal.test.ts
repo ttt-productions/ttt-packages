@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RevealCaseEvidenceInputSchema } from '../src/schemas/safety.js';
 
-const CONFIRMATION = 'I confirm I am revealing case evidence under reauth';
+const CONFIRMATION = 'I confirm reveal';
 
 describe('RevealCaseEvidenceInputSchema — warningAcknowledged', () => {
   it('accepts a fully-acknowledged reveal', () => {

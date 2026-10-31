@@ -6,6 +6,7 @@ import {
   type WorkRealm,
 } from '../doc-schemas/work-project.js';
 import type { FullTale, FullTelevision, FullTune } from '../doc-schemas/content.js';
+import type { WorkProjectActionId } from '../permissions/work-project-permissions-data.js';
 
 export const WORK_PUBLISH_REQUIREMENT_LABELS = {
   title: 'Work project title is set',
@@ -61,6 +62,14 @@ export interface WorkPublishReadiness {
 
 export function isWorkFirstPublication(work: Pick<FullWorkProject, 'status'>): boolean {
   return work.status !== 'published';
+}
+
+export function hallReviewSubmitAction(
+  work: Pick<FullWorkProject, 'status'>,
+): Extract<WorkProjectActionId, 'hallLibrary.review.submit' | 'hallLibrary.review.firstSubmit'> {
+  return isWorkFirstPublication(work)
+    ? 'hallLibrary.review.firstSubmit'
+    : 'hallLibrary.review.submit';
 }
 
 export function realmCoverSubmitRule(

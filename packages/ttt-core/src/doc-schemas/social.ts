@@ -33,11 +33,15 @@ export const SquareStreetzPostTypeSchema = z.enum([
 ]);
 export type SquareStreetzPostType = z.infer<typeof SquareStreetzPostTypeSchema>;
 
+export function isTownCrierPostType(postType: SquareStreetzPostType): boolean {
+  return postType !== 'USER_POST';
+}
+
 export const SquareStreetzPostSchema = z
   .object({
     postId: z.string(),
-    createdBy: z.object({ uid: z.string() }),
-    authorId: z.string(),
+    createdBy: z.object({ uid: z.string() }).optional(),
+    authorId: z.string().optional(),
     content: z.string(),
     mentions: SquareStreetzPostMentionsSchema.optional(),
     relatedIds: z.array(z.string()),
@@ -45,13 +49,30 @@ export const SquareStreetzPostSchema = z
     mediaType: mediaTypeSchema.optional(),
     createdAt: z.number(),
     likes: z.number(),
-    postType: SquareStreetzPostTypeSchema.optional(),
+    postType: SquareStreetzPostTypeSchema,
     relatedAssetId: z.string().optional(),
     hidden: z.boolean(),
     hiddenBy: ModerationHiddenBySchema.optional(),
   })
   .superRefine((val, ctx) => {
     refineMentionCorrespondence(val.content, val.mentions, ctx);
+    const townCrier = isTownCrierPostType(val.postType);
+    for (const field of ['createdBy', 'authorId'] as const) {
+      if (townCrier && val[field] !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [field],
+          message: `A Town Crier post is a system post with no author, so it carries no ${field}`,
+        });
+      }
+      if (!townCrier && val[field] === undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [field],
+          message: `A member's own post names its author in ${field}`,
+        });
+      }
+    }
     if (val.mediaAssetId !== undefined && val.mediaType === undefined) {
       ctx.addIssue({
         code: 'custom',

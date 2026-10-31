@@ -1,5 +1,15 @@
 export type GrantProvider = () => Promise<string>;
 
+export interface ExpiringGrant {
+  token: string;
+  expiresAt: number;
+}
+
+export type InboxGrantProvider = () => Promise<string | ExpiringGrant>;
+
+// A reused grant must outlive the upgrade handshake and clock skew between client and Worker.
+export const INBOX_GRANT_REUSE_MARGIN_MS = 60_000;
+
 export class ChatAccessDeniedError extends Error {
   // Duck-typed so detection survives module-realm and re-throw boundaries.
   readonly isChatAccessDenied = true;

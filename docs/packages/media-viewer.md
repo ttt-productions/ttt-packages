@@ -272,3 +272,11 @@ The built-in `MediaPreview` recovery overlay uses these CSS classes (all optiona
 | `.mv-recovery-max-wait` | max-wait-fallback |
 | `.mv-recovery-retry-btn` | Manual Retry button |
 | `.mv-recovery-label` | Text label inside any overlay |
+
+### Placeholder for small surfaces
+
+`MediaPreview` takes an optional `placeholder` node for a surface too small for a text label (an
+avatar). When given, it renders in place of every non-content state: a pending or missing URL, an
+image still loading (instead of the skeleton), every recovery phase (processing, finalizing,
+transient retry, auth retry, hard-unavailable, max-wait), and a failed load with no recovery
+adapter. No recovery label renders while it is set. Without it, behaviour is unchanged.

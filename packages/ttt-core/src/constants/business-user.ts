@@ -4,6 +4,8 @@ export const USERNAME_MAX_LENGTH = 20;
 
 export const MAX_THEME_NAME_LENGTH = 50;
 
+export const MAX_ARTISAN_LEGAL_NAME_LENGTH = 256;
+
 export const FORMER_MEMBER_DISPLAY_NAME = 'Former member';
 
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;

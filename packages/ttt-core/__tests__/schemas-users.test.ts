@@ -6,12 +6,13 @@ import {
   UpdateSiteTourPreferenceInputSchema,
 } from '../src/schemas/users.js';
 import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business-admin.js';
+import { MAX_ARTISAN_LEGAL_NAME_LENGTH } from '../src/constants/business-user.js';
 import {
   ARTISAN_CREATOR_AGREEMENT_IDS,
   ARTISAN_CREATOR_AGREEMENTS_VERSION,
 } from '../src/constants/member-agreements.js';
 
-describe('BecomeArtisanCreatorInputSchema (a U.S. Yes, a DOB, and every box under the shown wording)', () => {
+describe('BecomeArtisanCreatorInputSchema (a U.S. Yes, a DOB, a typed legal name, and every box under the shown wording)', () => {
   const dob = { year: 1990, month: 5, day: 17 };
   const agreements = {
     realDateOfBirth: true,
@@ -24,9 +25,41 @@ describe('BecomeArtisanCreatorInputSchema (a U.S. Yes, a DOB, and every box unde
   const valid = {
     livesInUnitedStates: true,
     dob,
+    fullLegalName: 'Ada Lovelace',
     agreements,
     agreementsVersion: ARTISAN_CREATOR_AGREEMENTS_VERSION,
   };
+
+  it('requires a typed full legal name', () => {
+    const { fullLegalName: _omitted, ...withoutName } = valid;
+    expect(BecomeArtisanCreatorInputSchema.safeParse(withoutName).success).toBe(false);
+  });
+
+  it('refuses a legal name that is blank after trimming', () => {
+    expect(BecomeArtisanCreatorInputSchema.safeParse({ ...valid, fullLegalName: '' }).success).toBe(
+      false,
+    );
+    expect(
+      BecomeArtisanCreatorInputSchema.safeParse({ ...valid, fullLegalName: '   ' }).success,
+    ).toBe(false);
+  });
+
+  it('stores the legal name trimmed', () => {
+    const parsed = BecomeArtisanCreatorInputSchema.parse({
+      ...valid,
+      fullLegalName: '  Ada Lovelace ',
+    });
+    expect(parsed.fullLegalName).toBe('Ada Lovelace');
+  });
+
+  it('refuses a legal name longer than its limit', () => {
+    expect(
+      BecomeArtisanCreatorInputSchema.safeParse({
+        ...valid,
+        fullLegalName: 'a'.repeat(MAX_ARTISAN_LEGAL_NAME_LENGTH + 1),
+      }).success,
+    ).toBe(false);
+  });
 
   it('accepts a Yes, a valid dob, every box ticked, and the current wording version', () => {
     expect(BecomeArtisanCreatorInputSchema.safeParse(valid).success).toBe(true);

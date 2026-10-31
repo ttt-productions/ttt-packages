@@ -32,6 +32,8 @@ export type {
   BatchFirestoreDocsTransport,
 } from './firestore/useBatchFirestoreDocs.js';
 export { ABSENT_RETRY_DELAYS_MS } from './firestore/absence-scheduler.js';
+export { loadFirestoreDocsById } from './firestore/load-docs-by-id.js';
+export type { DocByIdOutcome, LoadFirestoreDocsByIdOptions } from './firestore/load-docs-by-id.js';
 
 export { useFirestoreSearch } from './search/use-firestore-search.js';
 

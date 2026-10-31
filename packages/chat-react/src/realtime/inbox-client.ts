@@ -17,9 +17,15 @@ import {
   type WireRegistryEntry,
 } from './wire.js';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
-import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
+import type {
+  ExpiringGrant,
+  InboxGrantProvider,
+  TransportTimers,
+  RealtimeStatus,
+} from './shared.js';
 import {
   defaultTimers,
+  INBOX_GRANT_REUSE_MARGIN_MS,
   isChatAccessDeniedError,
   isTerminalErrorCode,
   newCorrelationId,
@@ -50,7 +56,7 @@ export type ChatMarkReadOutcome =
 export interface InboxClientConfig {
   endpoint: string;
   currentUserId: string;
-  grantProvider: GrantProvider;
+  grantProvider: InboxGrantProvider;
   socketFactory: SocketFactory;
   timers?: TransportTimers;
   reconnect?: {
@@ -89,6 +95,9 @@ export class InboxClient {
   private reconnectCause:
     'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
   private lastCloseCode: number | null = null;
+  private reusableGrant: ExpiringGrant | null = null;
+  private socketGrant: ExpiringGrant | null = null;
+  private socketOpened = false;
 
   constructor(private readonly config: InboxClientConfig) {
     this.timers = config.timers ?? defaultTimers;
@@ -162,8 +171,16 @@ export class InboxClient {
       registryCount: this.state.registry.length,
     });
     let grantToken: string;
+    let grant: ExpiringGrant | null;
     try {
-      grantToken = await this.config.grantProvider();
+      grant = this.takeReusableGrant();
+      if (grant === null) {
+        const provided = await this.config.grantProvider();
+        grant = typeof provided === 'string' ? null : provided;
+        grantToken = typeof provided === 'string' ? provided : provided.token;
+      } else {
+        grantToken = grant.token;
+      }
     } catch (err) {
       if (lifecycle !== this.lifecycle) return;
       const terminal = isChatAccessDeniedError(err);
@@ -174,6 +191,8 @@ export class InboxClient {
       return this.scheduleReconnect();
     }
     if (lifecycle !== this.lifecycle || this.closedByUs) return;
+    this.socketGrant = grant;
+    this.socketOpened = false;
     const url = `${this.config.endpoint.replace(/\/$/, '')}/inbox`;
     let socket: RealtimeSocket | null = null;
     const isCurrent = () => socket !== null && this.socket === socket;
@@ -196,7 +215,17 @@ export class InboxClient {
     this.socket = socket;
   }
 
+  private takeReusableGrant(): ExpiringGrant | null {
+    const grant = this.reusableGrant;
+    if (grant === null) return null;
+    if (grant.expiresAt - this.timers.now() > INBOX_GRANT_REUSE_MARGIN_MS) return grant;
+    this.reusableGrant = null;
+    return null;
+  }
+
   private onOpen(): void {
+    this.socketOpened = true;
+    this.reusableGrant = this.socketGrant;
     this.controller.onOpen();
     this.reauthAttempted = false;
     this.setState({ status: 'open' });
@@ -217,6 +246,13 @@ export class InboxClient {
   private onClose(code: number, _reason: string): void {
     this.socket = null;
     this.lastCloseCode = code;
+    if (
+      !this.socketOpened ||
+      code === CHAT_CLOSE_CODES.AUTH_EXPIRED ||
+      code === CHAT_CLOSE_CODES.REVOKED
+    ) {
+      this.reusableGrant = null;
+    }
     this.settlePendingMarkReads({ ok: false, code: 'connection-lost' });
     if (this.closedByUs) {
       this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed' });
@@ -396,6 +432,7 @@ export class InboxClient {
   close(): void {
     this.closedByUs = true;
     this.lifecycle += 1;
+    this.reusableGrant = null;
     this.controller.close();
     this.initialLoad.dispose();
     if (this.reconnectTimer != null) {

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
-import { EMAIL_MAX_LENGTH, MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
+import {
+  EMAIL_MAX_LENGTH,
+  MAX_ARTISAN_LEGAL_NAME_LENGTH,
+  MAX_ARTISAN_LOCATION_LENGTH,
+} from '../constants/business-user.js';
 import { CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
@@ -162,6 +166,7 @@ export const UserPrivateDataSchema = z.object({
   squareStreetzAgreementsVersion: PublicDocumentVersionOrNoneSchema.optional(),
   artisanCreatorAgreementsVersion: PublicDocumentVersionOrNoneSchema.optional(),
   artisanCreatorAgreementsWordingVersion: z.number().int().positive().optional(),
+  artisanCreatorLegalName: z.string().min(1).max(MAX_ARTISAN_LEGAL_NAME_LENGTH).optional(),
   squareStreetzAgreementsWordingVersion: z.number().int().positive().optional(),
   hallDownloadAcknowledgedAt: z.number().optional(),
   hallDownloadAcknowledgementVersion: z.number().int().positive().optional(),

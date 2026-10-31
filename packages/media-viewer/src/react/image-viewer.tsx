@@ -22,6 +22,7 @@ export function ImageViewer(props: ImageViewerProps) {
     onVisibilityChange,
     fallback,
     loadTimeoutMs,
+    loadingPlaceholder,
   } = props;
 
   const [isLoaded, setIsLoaded] = React.useState(false);
@@ -130,8 +131,16 @@ export function ImageViewer(props: ImageViewerProps) {
         ...wrapperStyle,
       }}
     >
-      {showSkeleton && !isLoaded && shouldLoad && (
-        <Skeleton style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+      {loadingPlaceholder !== undefined && !isLoaded ? (
+        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+          {loadingPlaceholder}
+        </div>
+      ) : (
+        showSkeleton &&
+        !isLoaded &&
+        shouldLoad && (
+          <Skeleton style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+        )
       )}
       {shouldLoad && (
         <img

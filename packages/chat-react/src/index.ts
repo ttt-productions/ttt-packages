@@ -32,6 +32,7 @@ export {
   ChatAccessDeniedError,
   isChatAccessDeniedError,
   CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS,
+  INBOX_GRANT_REUSE_MARGIN_MS,
 } from './realtime/shared.js';
 export { buildFrame, parseFrame } from './realtime/wire.js';
 export { CHAT_CLIENT_DIAGNOSTIC_EVENTS } from './realtime/diagnostics.js';
@@ -48,7 +49,13 @@ export type {
   ChatMarkReadOutcome,
 } from './realtime/inbox-client.js';
 export type { UseRealtimeChatMessagesResult } from './realtime/useRealtimeChatMessages.js';
-export type { GrantProvider, TransportTimers, RealtimeStatus } from './realtime/shared.js';
+export type {
+  ExpiringGrant,
+  GrantProvider,
+  InboxGrantProvider,
+  TransportTimers,
+  RealtimeStatus,
+} from './realtime/shared.js';
 export type { RealtimeSocket, SocketFactory, SocketHandlers } from './realtime/socket.js';
 export type {
   WireMessageRow,

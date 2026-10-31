@@ -2,7 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { CHAT_CLOSE_CODES } from '@ttt-productions/chat-schemas';
 import { InboxClient } from '../../src/realtime/inbox-client.js';
 import { type WireInboxSnapshot } from '../../src/realtime/wire.js';
-import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
+import {
+  ChatAccessDeniedError,
+  INBOX_GRANT_REUSE_MARGIN_MS,
+  type ExpiringGrant,
+} from '../../src/realtime/shared.js';
 import {
   CHAT_CLIENT_DIAGNOSTIC_EVENTS as DIAG,
   type ChatClientDiagnosticsOption,
@@ -10,7 +14,7 @@ import {
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
 function makeInbox(overrides?: {
-  grantProvider?: () => Promise<string>;
+  grantProvider?: () => Promise<string | ExpiringGrant>;
   diagnostics?: ChatClientDiagnosticsOption;
 }) {
   const harness = createMockSocketHarness();
@@ -693,5 +697,99 @@ describe('InboxClient — diagnostics ON (structured decision log)', () => {
       expect(declared.has(event)).toBe(true);
       expect(() => JSON.parse(rest.join(' ')) as unknown).not.toThrow();
     }
+  });
+});
+
+describe('InboxClient — reusing a still-valid grant across reconnects', () => {
+  const GRANT_TTL_MS = 15 * 60_000;
+
+  function expiringGrants() {
+    let seq = 0;
+    const clockRef: { now: () => number } = { now: () => 0 };
+    const provider = vi.fn(() => {
+      seq += 1;
+      return Promise.resolve({
+        token: `inbox-grant-${seq}`,
+        expiresAt: clockRef.now() + GRANT_TTL_MS,
+      });
+    });
+    return { provider, clockRef };
+  }
+
+  async function openedInbox() {
+    const grants = expiringGrants();
+    const made = makeInbox({ grantProvider: grants.provider });
+    grants.clockRef.now = made.clock.now;
+    await made.client.connect();
+    return { ...made, provider: grants.provider };
+  }
+
+  it('a reconnect after a connect that opened reuses its grant without calling the provider', async () => {
+    const { harness, clock, provider } = await openedInbox();
+    harness.last().serverOpen();
+    harness.last().serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(2);
+    expect(harness.last().grantToken).toBe('inbox-grant-1');
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
+
+  it('a connect that never opened drops its grant, so the next connect asks for a fresh one', async () => {
+    const { harness, clock, provider } = await openedInbox();
+    harness.last().serverOpen();
+    harness.last().serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    harness.last().serverClose(1006, 'refused upgrade');
+    clock.tick(1000);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(harness.last().grantToken).toBe('inbox-grant-2');
+  });
+
+  it('an auth-expired close asks the provider for a fresh grant', async () => {
+    const { harness, provider } = await openedInbox();
+    harness.last().serverOpen();
+    harness.last().serverClose(CHAT_CLOSE_CODES.AUTH_EXPIRED, 'expired');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(harness.last().grantToken).toBe('inbox-grant-2');
+  });
+
+  it('a grant inside the safety margin of its expiry is never reused', async () => {
+    const { harness, clock, provider } = await openedInbox();
+    harness.last().serverOpen();
+    clock.tick(GRANT_TTL_MS - INBOX_GRANT_REUSE_MARGIN_MS);
+    harness.last().serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(harness.last().grantToken).toBe('inbox-grant-2');
+  });
+
+  it('a provider that answers a bare token is called on every connect', async () => {
+    const provider = vi.fn(() => Promise.resolve('bare-grant'));
+    const { client, harness, clock } = makeInbox({ grantProvider: provider });
+    await client.connect();
+    harness.last().serverOpen();
+    harness.last().serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(2);
+    expect(provider).toHaveBeenCalledTimes(2);
+  });
+
+  it('close() forgets the grant, so the next lifecycle asks for a fresh one', async () => {
+    const { client, harness, provider } = await openedInbox();
+    harness.last().serverOpen();
+    client.close();
+    await client.connect();
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(harness.last().grantToken).toBe('inbox-grant-2');
   });
 });

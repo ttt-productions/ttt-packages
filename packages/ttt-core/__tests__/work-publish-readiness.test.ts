@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   WORK_PUBLISH_REQUIREMENT_LABELS,
   checkWorkPublishReadiness,
+  hallReviewSubmitAction,
   isWorkFirstPublication,
   realmCoverSubmitRule,
   type WorkPublishReadinessGuildmate,
@@ -9,6 +10,7 @@ import {
 } from '../src/utils/work-publish-readiness.js';
 import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project.js';
 import { FOUNDING_WORK_HOLDER_TYPE } from '../src/doc-schemas/work-project.js';
+import { WORK_PROJECT_ACTIONS } from '../src/permissions/work-project-permissions-data.js';
 
 const steward: WorkPublishReadinessGuildmate = {
   status: 'active',
@@ -167,6 +169,24 @@ describe('the first-publication phase', () => {
   it('lasts until the Work is published', () => {
     expect(isWorkFirstPublication({ status: 'open' })).toBe(true);
     expect(isWorkFirstPublication({ status: 'published' })).toBe(false);
+  });
+});
+
+describe("a Work's first submit is the Steward's alone", () => {
+  it('a first publication needs the first-submit action, held only by the Steward', () => {
+    expect(hallReviewSubmitAction({ status: 'open' })).toBe('hallLibrary.review.firstSubmit');
+    expect(WORK_PROJECT_ACTIONS['hallLibrary.review.firstSubmit'].grantedTo).toEqual([
+      'StewardOwner',
+    ]);
+  });
+
+  it('a later submit keeps the ordinary submit action and its standings', () => {
+    expect(hallReviewSubmitAction({ status: 'published' })).toBe('hallLibrary.review.submit');
+    expect([...WORK_PROJECT_ACTIONS['hallLibrary.review.submit'].grantedTo].sort()).toEqual([
+      'HallLibrarySubmitter',
+      'StewardOwner',
+      'WorkProjectManager',
+    ]);
   });
 });
 

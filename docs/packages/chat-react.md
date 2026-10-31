@@ -150,6 +150,16 @@ app's: it supplies a grant for the client's scope (channel scope for
 FRESH token when re-invoked (the 4401 re-grant). How a grant is issued and what it
 is checked against is the app's.
 
+**Inbox grant reuse.** The inbox's provider (`InboxGrantProvider`) may answer
+`{ token, expiresAt }` (epoch ms) instead of a bare token. The `InboxClient` then keeps
+the grant its last socket opened with and reuses it on the next connect, without
+calling the provider, while all of these hold: that socket opened (a connect that never
+opened — how a refused upgrade shows in a browser — drops it), it did not close with
+`AUTH_EXPIRED` or `REVOKED`, and more than `INBOX_GRANT_REUSE_MARGIN_MS` is left before
+`expiresAt`. `close()` forgets it. The grant lives in the client's memory only, never
+browser storage. A provider that answers a bare token is called on every connect. The
+channel client always calls its provider: a channel grant carries the member's scope.
+
 **Initial-load tracking.** `ChannelClientState.hasLoadedInitialData` (boolean)
 records whether the FIRST authoritative chat data has been applied, so the UI shows
 an honest working state instead of inferring an empty chat from `messages.length`.

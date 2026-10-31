@@ -651,6 +651,18 @@ export type RegenerateOperatorStepUpRecoveryCodesResult = z.infer<
   typeof RegenerateOperatorStepUpRecoveryCodesResultSchema
 >;
 
+export const GetOperatorStepUpStatusInputSchema = z.object({}).strict();
+export type GetOperatorStepUpStatusInput = z.infer<typeof GetOperatorStepUpStatusInputSchema>;
+
+export const GetOperatorStepUpStatusResultSchema = z
+  .object({
+    enrolled: z.boolean(),
+    windowOpenUntil: z.number().nonnegative().nullable(),
+    lockedUntil: z.number().nonnegative().nullable(),
+  })
+  .strict();
+export type GetOperatorStepUpStatusResult = z.infer<typeof GetOperatorStepUpStatusResultSchema>;
+
 export const RevealCaseEvidenceInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,

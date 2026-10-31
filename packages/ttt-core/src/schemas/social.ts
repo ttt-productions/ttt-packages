@@ -65,7 +65,7 @@ export const LikeSquareStreetzPostResultSchema = z.object({
   postId: z.string().min(1),
   isLiked: z.literal(true),
   likeCount: z.number().int().nonnegative(),
-  authorId: z.string().min(1),
+  authorId: z.string().min(1).optional(),
 });
 export type LikeSquareStreetzPostResult = z.infer<typeof LikeSquareStreetzPostResultSchema>;
 
@@ -74,7 +74,7 @@ export const UnlikeSquareStreetzPostResultSchema = z.object({
   postId: z.string().min(1),
   isLiked: z.literal(false),
   likeCount: z.number().int().nonnegative(),
-  authorId: z.string().min(1),
+  authorId: z.string().min(1).optional(),
 });
 export type UnlikeSquareStreetzPostResult = z.infer<typeof UnlikeSquareStreetzPostResultSchema>;
 

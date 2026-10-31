@@ -4,6 +4,7 @@ import { MAX_USER_SEARCH_QUERY_LENGTH } from '../constants/business-admin.js';
 import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
 import {
   ACCOUNT_ACTION_REASON_INPUT,
+  ARTISAN_LEGAL_NAME_INPUT,
   ARTISAN_REGION_INPUT,
   CLOSE_UNDER_13_REASON_INPUT,
   DISPLAY_NAME_RESET_REASON_INPUT,
@@ -101,6 +102,7 @@ export const BecomeArtisanCreatorInputSchema = z
   .object({
     livesInUnitedStates: z.literal(true),
     dob: DateOfBirthSchema,
+    fullLegalName: textFieldSchema(ARTISAN_LEGAL_NAME_INPUT),
     agreements: everyAgreementTicked(ARTISAN_CREATOR_AGREEMENT_IDS),
     agreementsVersion: z.literal(ARTISAN_CREATOR_AGREEMENTS_VERSION),
   })

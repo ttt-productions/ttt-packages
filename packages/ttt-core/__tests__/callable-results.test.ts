@@ -67,6 +67,7 @@ import {
   RecordNcmecPortalCorrectionResultSchema,
   EnrollOperatorStepUpResultSchema,
   VerifyOperatorStepUpResultSchema,
+  GetOperatorStepUpStatusResultSchema,
   GetSafetyCasePartiesResultSchema,
   RevealCaseEvidenceResultSchema,
 } from '../src/schemas/safety.js';
@@ -480,6 +481,25 @@ describe('callable read answers', () => {
     expect(VerifyOperatorStepUpResultSchema.parse({ grantExpiresAt: 5 })).toEqual({
       grantExpiresAt: 5,
     });
+  });
+
+  it('getOperatorStepUpStatus answers enrolment, the open window, and the lockout, and nothing secret', () => {
+    const answer = { enrolled: true, windowOpenUntil: 10, lockedUntil: null };
+    expect(GetOperatorStepUpStatusResultSchema.parse(answer)).toEqual(answer);
+    expect(
+      GetOperatorStepUpStatusResultSchema.parse({
+        enrolled: false,
+        windowOpenUntil: null,
+        lockedUntil: null,
+      }),
+    ).toEqual({ enrolled: false, windowOpenUntil: null, lockedUntil: null });
+    expect(
+      GetOperatorStepUpStatusResultSchema.safeParse({ ...answer, secret: 'S3CR3T' }).success,
+    ).toBe(false);
+    expect(
+      GetOperatorStepUpStatusResultSchema.safeParse({ ...answer, recoveryCodeHashes: ['h'] })
+        .success,
+    ).toBe(false);
   });
 
   it('getSafetyCaseParties offers each party only a known account-action role', () => {

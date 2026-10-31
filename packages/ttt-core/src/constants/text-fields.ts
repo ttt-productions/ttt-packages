@@ -70,6 +70,7 @@ import {
   MIN_SAFETY_RATIONALE_LENGTH,
 } from './business-admin.js';
 import {
+  MAX_ARTISAN_LEGAL_NAME_LENGTH,
   MAX_ARTISAN_LOCATION_LENGTH,
   MAX_THEME_NAME_LENGTH,
   USERNAME_MAX_LENGTH,
@@ -595,4 +596,10 @@ export const NCII_SUPPORTING_FACTS_INPUT = defineInputFormat({
   min: 0,
   max: MAX_NCII_SUPPORTING_FACTS_LENGTH,
   keepAsTyped: true,
+});
+export const ARTISAN_LEGAL_NAME_INPUT = defineInputFormat({
+  label: 'Full legal name',
+  format: 'singleLine',
+  min: 1,
+  max: MAX_ARTISAN_LEGAL_NAME_LENGTH,
 });
