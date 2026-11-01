@@ -20,12 +20,15 @@ import {
   MAX_STAT_EVENTS_PER_GAME,
   MAX_TEAMS_PER_LEAGUE,
   SCHEDULE_WEEK_FULL_MESSAGE,
+  GAME_HAS_RECORDED_STATS_DELETE_MESSAGE,
   TEAM_FULL_MESSAGE,
+  WEEK_HAS_RECORDED_STATS_DELETE_LEAD,
   countCapReachedMessage,
   gameRosterBound,
   gameSideDepartedFullMessage,
   gameSideFullMessage,
   scheduledGameLabel,
+  weekHasRecordedStatsDeleteMessage,
 } from '../src/constants/business.js';
 import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location.js';
 import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template.js';
@@ -58,6 +61,20 @@ describe('a team holds at most 30 players, ghost players included', () => {
     expect(gameSideDepartedFullMessage(game)).toBe(
       "The Week 3 game on 2026-03-04 already keeps the 10 players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.",
     );
+  });
+
+  it("refuses to delete a game, or a week, holding recorded stats, naming the week's games", () => {
+    expect(GAME_HAS_RECORDED_STATS_DELETE_MESSAGE).toBe(
+      'This game has recorded stats, so it cannot be deleted.',
+    );
+    expect(
+      weekHasRecordedStatsDeleteMessage(['Hoopers vs Dunkers (2026-03-04)', 'A vs B (2026-03-05)']),
+    ).toBe(
+      'This week has games with recorded stats, which cannot be deleted: Hoopers vs Dunkers (2026-03-04); A vs B (2026-03-05).',
+    );
+    expect(
+      weekHasRecordedStatsDeleteMessage(['x']).startsWith(WEEK_HAS_RECORDED_STATS_DELETE_LEAD),
+    ).toBe(true);
   });
 
   it('says the team is full, with its limit', () => {

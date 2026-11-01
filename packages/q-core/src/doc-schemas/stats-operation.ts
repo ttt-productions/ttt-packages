@@ -31,7 +31,6 @@ const operationBase = {
 const rebuildFields = {
   ...operationBase,
   reason: repairReasonSchema,
-  stoppedOnGameIds: z.array(gameIdSchema),
 };
 
 const gameScope = z.strictObject({ gameId: gameIdSchema });

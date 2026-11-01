@@ -143,7 +143,6 @@ export const StatsRebuildResultSchema = z
     complete: z.boolean(),
     nextResumeAfter: z.string().min(1).nullable(),
     counts: StatsOperationCountsSchema,
-    stoppedOnGameIds: z.array(gameIdSchema),
     changes: z.array(StatsDestinationChangeSchema),
     changesTruncated: z.boolean(),
     scopeChanged: z.boolean(),
@@ -294,7 +293,6 @@ export const AdminUpdateHistoricalStatsResultSchema = z
     dryRun: z.boolean(),
     outcome: z.enum(GAME_STATS_REPAIR_OUTCOME_KEYS),
     baselineBefore: HistoricalStatsSchema.nullable(),
-    stoppedOnGameIds: z.array(gameIdSchema),
     changes: z.array(StatsDestinationChangeSchema),
   })
   .strict();

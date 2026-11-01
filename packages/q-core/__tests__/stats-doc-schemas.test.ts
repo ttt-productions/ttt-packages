@@ -524,21 +524,18 @@ describe('stats operations', () => {
       kind: 'leagueStatsRebuild',
       scope: { leagueId: 'L' },
       reason,
-      stoppedOnGameIds: [],
     },
     lifetimeStatsRebuild: {
       ...run,
       kind: 'lifetimeStatsRebuild',
       scope: {},
       reason,
-      stoppedOnGameIds: ['g7'],
     },
     hallOfFameRebuild: {
       ...run,
       kind: 'hallOfFameRebuild',
       scope: { sportKey: 'basketball', userId: 'u1' },
       reason,
-      stoppedOnGameIds: [],
     },
     statsValidation: {
       ...run,
@@ -607,6 +604,7 @@ describe('stats operations', () => {
     expect(operation({ ...rebuild, kind: 'gameDeletion' })).toBe(false);
     expect(operation({ ...rebuild, status: 'paused' })).toBe(false);
     expect(operation({ ...rebuild, counts: { read: -1, changed: 0, skipped: 0 } })).toBe(false);
+    expect(operation({ ...rebuild, stoppedOnGameIds: [] })).toBe(false);
   });
 
   it('is bound in the registry to its path', () => {

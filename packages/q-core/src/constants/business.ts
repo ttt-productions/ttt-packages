@@ -88,6 +88,12 @@ export const gameSideFullMessage = (gameLabel: string): string =>
   countCapReachedMessage(gameLabel, MAX_ROSTER_ENTRIES_PER_TEAM, "people on this team's side");
 export const gameSideDepartedFullMessage = (gameLabel: string): string =>
   `${gameLabel} already keeps the ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.`;
+export const GAME_HAS_RECORDED_STATS_DELETE_MESSAGE =
+  'This game has recorded stats, so it cannot be deleted.';
+export const WEEK_HAS_RECORDED_STATS_DELETE_LEAD =
+  'This week has games with recorded stats, which cannot be deleted:';
+export const weekHasRecordedStatsDeleteMessage = (games: readonly string[]): string =>
+  `${WEEK_HAS_RECORDED_STATS_DELETE_LEAD} ${games.join('; ')}.`;
 
 export const MAX_TEAMS_PER_LEAGUE = 40;
 export const MAX_GAMES_PER_LEAGUE = 250;
