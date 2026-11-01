@@ -547,3 +547,34 @@ describe('batches and commit failures follow real Firestore semantics', () => {
     expect(fs.read('acct/other')).toEqual({ n: 0 });
   });
 });
+
+describe('listings follow real Firestore semantics', () => {
+  it('a collection lists every document under it, and a missing one that holds a subcollection', async () => {
+    fs.seed('leagues/a', { n: 1 });
+    fs.seed('leagues/b/teams/t1', { n: 2 });
+    fs.seed('leagues/a/teams/t2', { n: 3 });
+    fs.seed('other/c', { n: 4 });
+    const refs = await fs.db.collection('leagues').listDocuments();
+    expect(refs.map((ref) => ref.path)).toEqual(['leagues/a', 'leagues/b']);
+    expect((await refs[1].get()).exists).toBe(false);
+  });
+
+  it('a document lists the subcollections that hold documents, and none once they are deleted', async () => {
+    fs.seed('leagues/a', { n: 1 });
+    fs.seed('leagues/a/teams/t1', { n: 2 });
+    fs.seed('leagues/a/games/g1/stats/s1', { n: 3 });
+    fs.seed('leagues/ab/chats/c1', { n: 4 });
+    const collections = await fs.db.doc('leagues/a').listCollections();
+    expect(collections.map((ref) => ref.path)).toEqual(['leagues/a/games', 'leagues/a/teams']);
+    await fs.db.doc('leagues/a/teams/t1').delete();
+    await fs.db.doc('leagues/a/games/g1/stats/s1').delete();
+    expect(await fs.db.doc('leagues/a').listCollections()).toEqual([]);
+  });
+
+  it('a failed query of a path fails its listing too', async () => {
+    fs.seed('leagues/a/teams/t1', { n: 1 });
+    fs.failQueries((source) => source.startsWith('leagues'));
+    await expect(fs.db.collection('leagues').listDocuments()).rejects.toThrow('UNAVAILABLE');
+    await expect(fs.db.doc('leagues/a').listCollections()).rejects.toThrow('UNAVAILABLE');
+  });
+});

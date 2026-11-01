@@ -94,7 +94,10 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   `not-in` leave out a null or missing field, an Admin `Buffer` is bytes and a reference a
   reference), an inequality field and then the document name order the result after the explicit
   orders, ties break in the last order's direction, and a document missing an order field is left
-  out. `startAt`, `endAt`, `endBefore`, `limitToLast`, `offset`, and a composite `Filter` throw.
+  out. A collection's `listDocuments()` names every document under it, a missing one that holds a
+  subcollection included, and a document's `listCollections()` names the subcollections that hold
+  documents; a failed query of a path fails its listing too. `startAt`, `endAt`, `endBefore`,
+  `limitToLast`, `offset`, and a composite `Filter` throw.
   Batches and transactions commit atomically, transactions with read-before-write and contention
   retry. A transaction conflicts as Firestore's does: on a change to a document it read, or a change
   or delete of a document a query it ran returned — never on an insert into that query's result set
@@ -122,7 +125,7 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   error callback once, nothing after), answer matching listeners from cache until switched back
   (`answerFromCache` / `answerFromServer` — a listener that asked for metadata changes hears each
   switch, as in the SDK), hold a read's answer, or run after it — `firestoreError(code,
-  message)` builds the SDK's own error for them — and `queries()` logs every read's path, filters,
+message)` builds the SDK's own error for them — and `queries()` logs every read's path, filters,
   orders, limit, start and end cursors (each bound's position and whether it is inclusive —
   `startAt` / `endAt` are, `startAfter` / `endBefore` are not), and whether a listener asked for
   metadata changes, for a case whose rule is the
@@ -149,7 +152,7 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   timer BEFORE the SDK is invoked (the SDK's own `timeout` starts only after its token phase, so
   a stalled token mint is otherwise unbounded) and also forwards the value to the
   SDK's `timeout` option. Expiry rejects with a Firebase-shaped error, `code:
-  "functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
+"functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
   commit, so callers treat the outcome as UNKNOWN, never as a definite failure, and never
   auto-retry a mutation on it. The package ships NO default; the consuming app owns the policy
   value and threads it via `useCallableMutation({ timeoutMs })` / `createCallableClient`
@@ -167,7 +170,7 @@ suite's own `vi.mock` of the SDK can hand the kit's functions out.
   normal `captureException` + `onError` + rethrow tail exactly once. No other error class
   retries, and a call that did not request limited-use never does. The fallback itself is
   reported through `captureException` with `{ functionName, timeoutMs, limitedUseAppCheckFallback:
-  true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
+true }` — bounded safe metadata, never the payload. Whether the fallback suits a callable is
   the app's decision, made through its policy's `resolveLimitedUseAppCheck`.
 - **The App Check throttle predicate** — `isAppCheckThrottleError(error)` is exported from the
   server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error

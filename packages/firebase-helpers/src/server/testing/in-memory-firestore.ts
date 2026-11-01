@@ -443,6 +443,17 @@ function buildFakeFirestore(): InMemoryFirestore {
     committedWrites.push(...ops.map((op) => cloneStoredValue(op)));
   }
 
+  // The ids directly under a path: a document with data, or a missing one that holds a subcollection,
+  // as Firestore lists both.
+  function childIdsUnder(parent: string): string[] {
+    const prefix = `${parent}/`;
+    const ids = new Set<string>();
+    for (const path of docsByPath.keys()) {
+      if (path.startsWith(prefix)) ids.add(path.slice(prefix.length).split('/')[0]);
+    }
+    return [...ids].sort();
+  }
+
   function runQuery(shape: QueryShape): string[] {
     const orders = queryOrders(shape);
     const rows = [...docsByPath.entries()]
@@ -749,7 +760,13 @@ function buildFakeFirestore(): InMemoryFirestore {
     isEqual(other: Query): boolean {
       return other instanceof StoredCollectionReference && other.path === this.path;
     }
-    listDocuments = notInFake('CollectionReference.listDocuments');
+    async listDocuments(): Promise<StoredDocumentReference[]> {
+      if (queryFailure?.predicate(this.path))
+        throw queryFailure.error ?? grpcError(14, 'UNAVAILABLE', `listing of ${this.path} failed`);
+      return childIdsUnder(this.path).map(
+        (id) => new StoredDocumentReference(`${this.path}/${id}`),
+      );
+    }
   }
 
   class StoredDocumentReference implements DocumentReference {
@@ -807,7 +824,13 @@ function buildFakeFirestore(): InMemoryFirestore {
     isEqual(other: DocumentReference): boolean {
       return other.path === this.path;
     }
-    listCollections = notInFake('DocumentReference.listCollections');
+    async listCollections(): Promise<StoredCollectionReference[]> {
+      if (queryFailure?.predicate(this.path))
+        throw queryFailure.error ?? grpcError(14, 'UNAVAILABLE', `listing of ${this.path} failed`);
+      return childIdsUnder(this.path).map(
+        (id) => new StoredCollectionReference(`${this.path}/${id}`),
+      );
+    }
     onSnapshot = notInFake('DocumentReference.onSnapshot');
     withConverter = notInFake('DocumentReference.withConverter');
   }
