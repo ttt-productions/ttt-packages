@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { MAX_PLAYOFF_CUTOFF } from '../constants/business.js';
-import {
-  LEAGUE_DESCRIPTION_INPUT_FORMAT,
-  LEAGUE_TITLE_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
+import { LEAGUE_DESCRIPTION_INPUT, LEAGUE_TITLE_INPUT } from '../constants/text-fields.js';
 import {
   calendarDateSchema,
   countSchema,
@@ -11,8 +8,8 @@ import {
   leagueModeSchema,
   leagueStatusSchema,
   leagueTypeSchema,
-  textFieldSchema,
 } from './atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { GallerySummarySchema } from './gallery.js';
 import { waiverTemplateIdSchema } from './waiver-template.js';
 
@@ -55,8 +52,8 @@ export const playoffCutoffSchema = countSchema.max(MAX_PLAYOFF_CUTOFF);
 
 export const SportLeagueSchema = z
   .object({
-    leagueTitle: textFieldSchema(LEAGUE_TITLE_INPUT_FORMAT),
-    description: textFieldSchema(LEAGUE_DESCRIPTION_INPUT_FORMAT),
+    leagueTitle: textFieldSchema(LEAGUE_TITLE_INPUT),
+    description: textFieldSchema(LEAGUE_DESCRIPTION_INPUT),
     leagueType: leagueTypeSchema,
     leagueMode: leagueModeSchema,
     leagueStartDate: calendarDateSchema,

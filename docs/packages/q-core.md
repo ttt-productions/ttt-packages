@@ -15,6 +15,9 @@ system model lives in Q-Sports' `docs/design/`.
 - The Q-Sports domain-event catalog and the admin-notification configuration
 - The media origins and picture contracts, and the sport registry and adapters (stat events, scoring,
   bulk entry, columns)
+- Every text a person types, declared once with its label in `constants/text-fields` as an
+  `input-format-core` declaration; `schemas/text-field` (`textFieldSchema`) is the one zod schema for
+  such a field, and `utils/text-field` is the one owner of its refusal and notice sentences
 - The 2.0 migration console's manifest (each action's page ceiling and the sources its deletes
   consume), action ids, run state, and its lock and consumed-source predicates
 
@@ -22,7 +25,7 @@ system model lives in Q-Sports' `docs/design/`.
 
 `exports` in `package.json` is the authoritative list:
 
-- `.` — what no folder entry owns: `input-formats/` and `migration-console/`
+- `.` — what no folder entry owns: `migration-console/`
 - `./types`, `./paths`, `./utils`, `./ids`, `./media`, `./domain-events` — typed surfaces by concern
 - `./constants` — every constant catalog under `constants/`
 - `./schemas` — callable input and wire schemas

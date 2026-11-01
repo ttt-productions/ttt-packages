@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../constants/sports.js';
 import { isSportStatEventId } from '../ids/stat-event-ids.js';
-import { GAME_MEMO_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import { GAME_MEMO_INPUT } from '../constants/text-fields.js';
 import {
   BasketballAssistableShotEventSchema,
   BasketballBulkEditEventSchema,
@@ -28,9 +28,9 @@ import {
   gameRosterPlayerIdSchema,
   statEventIdSchema,
   teamIdSchema,
-  textFieldSchema,
   userIdSchema,
 } from '../doc-schemas/atoms.js';
+import { textFieldSchema } from './text-field.js';
 
 type ServerDerivedField = StatEventRecorderField | StatEventSnapshotField;
 const SERVER_DERIVED_FIELDS: ReadonlySet<string> = new Set([
@@ -130,7 +130,7 @@ export const UpdateGameAbsentPlayersResultSchema = z
   .strict();
 export type UpdateGameAbsentPlayersResult = z.infer<typeof UpdateGameAbsentPlayersResultSchema>;
 
-export const gameMemoSchema = textFieldSchema(GAME_MEMO_INPUT_FORMAT);
+export const gameMemoSchema = textFieldSchema(GAME_MEMO_INPUT);
 
 export const UpdateGameMemoInputSchema = z
   .object({

@@ -8,6 +8,7 @@ import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shap
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import {
   importAliasesProblem,
+  isList,
   isText,
   namesProblem,
   objectProblem,
@@ -209,6 +210,10 @@ export interface AppCheckFacts {
   consumingFolders: readonly string[];
   adminAuth: { call: string; option: string };
   consumptionExempt: ReadonlyArray<{ callable: string; why: string }>;
+  consumingGates: ReadonlyArray<{
+    call: string;
+    exempt: ReadonlyArray<{ callable: string; why: string }>;
+  }>;
   clientDeclarations: CallableDeclarationFacts;
   noClientDeclaration: ReadonlyArray<{ callable: string; why: string }>;
 }
@@ -291,6 +296,14 @@ export function asksForAdmin(file: FileView, adminAuth: AppCheckFacts['adminAuth
   return found;
 }
 
+function callsGate(file: FileView, call: string): boolean {
+  let found = false;
+  forEachNode(file.sourceFile, (node) => {
+    if (!found && ts.isCallExpression(node) && calleeName(node) === call) found = true;
+  });
+  return found;
+}
+
 export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
   id: 'appCheck',
   absentWhen: 'the app has no callable functions',
@@ -300,6 +313,21 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
     textProblem(facts?.adminAuth?.call, 'adminAuth.call', problems);
     textProblem(facts?.adminAuth?.option, 'adminAuth.option', problems);
     reviewedProblems(facts?.consumptionExempt, 'consumptionExempt', problems, { key: 'callable' });
+    if (!isList(facts?.consumingGates)) problems.push('consumingGates is missing');
+    else {
+      const seen = new Set<string>();
+      for (const gate of facts.consumingGates) {
+        if (!isText(gate?.call)) {
+          problems.push('a consumingGates entry names no call');
+          continue;
+        }
+        if (seen.has(gate.call)) problems.push(`consumingGates lists ${gate.call} twice`);
+        seen.add(gate.call);
+        reviewedProblems(gate.exempt, `consumingGates ${gate.call} exempt`, problems, {
+          key: 'callable',
+        });
+      }
+    }
     declarationFactProblems(facts?.clientDeclarations, 'clientDeclarations', problems);
     reviewedProblems(facts?.noClientDeclaration, 'noClientDeclaration', problems, {
       key: 'callable',
@@ -315,11 +343,18 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
         `callable in a consuming folder (${facts.consumingFolders.join(', ') || 'none declared'}), and every callable in a ` +
         `file whose ${facts.adminAuth.call} asks for ${facts.adminAuth.option}, also declares \`consumeAppCheckToken: true\`, ` +
         'so its attestation token is spent instead of reusable for its whole lifetime. A callable that keeps the cached ' +
-        'token is a reviewed exemption with its why; an exemption whose callable is gone or now consumes is stale.',
+        'token is a reviewed exemption with its why; an exemption whose callable is gone or now consumes is stale. A ' +
+        'callable in a file that calls one of the consuming gates ' +
+        `(${facts.consumingGates.map((g) => g.call).join(', ') || 'none declared'}) consumes too, unless that gate's own ` +
+        'exemptions name it; a gate exemption whose callable is gone, calls no such gate, or now consumes is stale.',
       run(context) {
         const findings: Finding[] = [];
         const exempt = new Map(facts.consumptionExempt.map((e) => [e.callable, e]));
         const exemptSeen = new Set<string>();
+        const gateExempt = facts.consumingGates.map(
+          (gate) => new Set(gate.exempt.map((e) => e.callable)),
+        );
+        const gateExemptSeen = facts.consumingGates.map(() => new Set<string>());
         const foldersWithCallables = new Set<string>();
         let callables = 0;
         for (const file of context.files(FUNCTIONS_CODE)) {
@@ -329,6 +364,7 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
           const folder = facts.consumingFolders.find((f) => isUnder(file.path, f));
           if (folder) foldersWithCallables.add(folder);
           const mustConsume = !!folder || asksForAdmin(file, facts.adminAuth);
+          const gatesHit = facts.consumingGates.map((gate) => callsGate(file, gate.call));
           for (const callable of list) {
             const line = lineOfNode(file, callable.node);
             if (!callable.options) {
@@ -346,6 +382,33 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
                 detail: `${callable.name}: no enforceAppCheck: true`,
               });
             const consumes = declaresTrue(callable.options, 'consumeAppCheckToken');
+            let gateRequires = false;
+            facts.consumingGates.forEach((gate, i) => {
+              if (!gateExempt[i]!.has(callable.name)) {
+                if (gatesHit[i]) gateRequires = true;
+                return;
+              }
+              gateExemptSeen[i]!.add(callable.name);
+              if (consumes)
+                findings.push({
+                  file: file.path,
+                  line,
+                  detail: `stale ${gate.call} exemption: ${callable.name} now consumes its token`,
+                });
+              else if (!gatesHit[i])
+                findings.push({
+                  file: file.path,
+                  line,
+                  detail: `stale ${gate.call} exemption: ${callable.name} does not call ${gate.call}`,
+                });
+            });
+            if (gateRequires && !consumes && !(mustConsume && !exempt.has(callable.name))) {
+              findings.push({
+                file: file.path,
+                line,
+                detail: `${callable.name}: no consumeAppCheckToken: true`,
+              });
+            }
             if (exempt.has(callable.name)) {
               exemptSeen.add(callable.name);
               if (consumes)
@@ -383,6 +446,14 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
               file: '(consumptionExempt)',
               detail: `stale exemption: no callable is named ${name}`,
             });
+        facts.consumingGates.forEach((gate, i) => {
+          for (const name of gateExempt[i]!)
+            if (!gateExemptSeen[i]!.has(name))
+              findings.push({
+                file: '(consumingGates)',
+                detail: `stale ${gate.call} exemption: no callable is named ${name}`,
+              });
+        });
         return findings;
       },
     };
@@ -415,7 +486,10 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
         const byName = new Map(
           declared.filter((d) => d.callable !== null).map((d) => [d.callable!, d]),
         );
-        const exempt = new Set(facts.consumptionExempt.map((e) => e.callable));
+        const exempt = new Set([
+          ...facts.consumptionExempt.map((e) => e.callable),
+          ...facts.consumingGates.flatMap((gate) => gate.exempt.map((e) => e.callable)),
+        ]);
         const undeclared = new Set(facts.noClientDeclaration.map((e) => e.callable));
         for (const [name, server] of servers) {
           if (!server.consumes) continue;

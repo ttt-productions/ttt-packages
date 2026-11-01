@@ -1,18 +1,13 @@
 import { z } from 'zod';
 import {
-  WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
-  WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
-import {
-  countSchema,
-  documentIdSegmentSchema,
-  epochMsSchema,
-  textFieldSchema,
-  userIdSchema,
-} from './atoms.js';
+  WAIVER_TEMPLATE_TEXT_INPUT,
+  WAIVER_TEMPLATE_TITLE_INPUT,
+} from '../constants/text-fields.js';
+import { countSchema, documentIdSegmentSchema, epochMsSchema, userIdSchema } from './atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 
-const waiverTitleSchema = textFieldSchema(WAIVER_TEMPLATE_TITLE_INPUT_FORMAT);
-const waiverTextSchema = textFieldSchema(WAIVER_TEMPLATE_TEXT_INPUT_FORMAT);
+const waiverTitleSchema = textFieldSchema(WAIVER_TEMPLATE_TITLE_INPUT);
+const waiverTextSchema = textFieldSchema(WAIVER_TEMPLATE_TEXT_INPUT);
 
 export const waiverTemplateIdSchema = documentIdSegmentSchema;
 export const waiverTemplateVersionNumberSchema = z.number().int().min(1);

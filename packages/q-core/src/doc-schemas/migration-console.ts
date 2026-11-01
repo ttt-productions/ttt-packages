@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MIGRATION_EVIDENCE_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import { MIGRATION_EVIDENCE_INPUT } from '../constants/text-fields.js';
 import { MIGRATION_ACTION_ID_KEYS } from '../migration-console/action-ids.js';
 import {
   MAX_MIGRATION_FINDING_TEXT_LENGTH,
@@ -13,14 +13,14 @@ import {
   epochMsSchema,
   repairReasonSchema,
   statsOperationIdSchema,
-  textFieldSchema,
   userIdSchema,
 } from './atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 
 export const migrationActionIdSchema = z.enum(MIGRATION_ACTION_ID_KEYS);
 export const migrationDestinationStateSchema = z.enum(MIGRATION_DESTINATION_STATE_KEYS);
 export const migrationOperationIdSchema = documentIdSegmentSchema;
-export const migrationEvidenceSchema = textFieldSchema(MIGRATION_EVIDENCE_INPUT_FORMAT);
+export const migrationEvidenceSchema = textFieldSchema(MIGRATION_EVIDENCE_INPUT);
 
 const findingText = z.string().max(MAX_MIGRATION_FINDING_TEXT_LENGTH);
 

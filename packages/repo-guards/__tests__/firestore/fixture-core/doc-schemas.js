@@ -3422,7 +3422,7 @@ export const COLLECTION_SCHEMAS = Object.freeze({
           .object({
             uid: z.string().nullable(),
             isAdmin: z.boolean(),
-            actorMode: z.enum(['user', 'teamManager', 'system']),
+            actorMode: z.enum(['user', 'teammateUser', 'system']),
           })
           .strict(),
         z

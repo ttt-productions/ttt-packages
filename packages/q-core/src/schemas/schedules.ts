@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { MAX_SCHEDULE_WEEK_GAMES } from '../constants/business.js';
-import { textFieldSchema } from '../doc-schemas/atoms.js';
-import { SCHEDULE_WEEK_TITLE_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import { textFieldSchema } from './text-field.js';
+import { SCHEDULE_WEEK_TITLE_INPUT } from '../constants/text-fields.js';
 import {
   countSchema,
   epochMsSchema,
@@ -16,7 +16,7 @@ import { isByeTeamId } from '../ids/minted-ids.js';
 import { SCHEDULE_WEEK_FIELD_KEYS, SPORT_GAME_SCHEDULE_FIELD_KEYS } from '../types/schedules.js';
 import { gameLocationSubLocationSchema } from '../doc-schemas/game-location.js';
 
-export const scheduleWeekTitleSchema = textFieldSchema(SCHEDULE_WEEK_TITLE_INPUT_FORMAT);
+export const scheduleWeekTitleSchema = textFieldSchema(SCHEDULE_WEEK_TITLE_INPUT);
 
 export const scheduleGameTeamsSchema = z
   .tuple([teamIdSchema, teamIdSchema])

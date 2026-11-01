@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
-import {
-  GAME_MEMO_INPUT_FORMAT,
-  SCHEDULE_WEEK_TITLE_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
+import { GAME_MEMO_INPUT, SCHEDULE_WEEK_TITLE_INPUT } from '../constants/text-fields.js';
 import type { LeagueType } from '../types/sports.js';
 import { SPORT_LINE_SCHEMAS } from './aggregate-stats.js';
 import { gameStatsSchema } from './game-stats.js';
@@ -17,9 +14,9 @@ import {
   scheduleWeekIdSchema,
   statsOperationIdSchema,
   teamIdSchema,
-  textFieldSchema,
   userIdSchema,
 } from './atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { gameLocationIdSchema, gameLocationSubLocationSchema } from './game-location.js';
 
 // Spelled per sport so each payload keeps its exact type.
@@ -52,7 +49,7 @@ export type GameTeam = z.infer<typeof GameTeamSchema>;
 const sportGameBase = {
   leagueId: leagueIdSchema,
   weekId: scheduleWeekIdSchema,
-  weekTitle: textFieldSchema(SCHEDULE_WEEK_TITLE_INPUT_FORMAT),
+  weekTitle: textFieldSchema(SCHEDULE_WEEK_TITLE_INPUT),
   weekLocation: z.string(),
   weekStartDate: epochMsSchema,
   startTime: epochMsSchema,
@@ -65,7 +62,7 @@ const sportGameBase = {
   teamIds: z.array(teamIdSchema).min(1).max(2),
   score: z.record(teamIdSchema, countSchema),
   statEventSequence: countSchema,
-  memos: z.record(z.string(), textFieldSchema(GAME_MEMO_INPUT_FORMAT)).optional(),
+  memos: z.record(z.string(), textFieldSchema(GAME_MEMO_INPUT)).optional(),
   absentRosterPlayerIds: z.array(gameRosterPlayerIdSchema),
   nonScoringRosterPlayerIds: z.array(gameRosterPlayerIdSchema).optional(),
   statsOperationId: statsOperationIdSchema.optional(),

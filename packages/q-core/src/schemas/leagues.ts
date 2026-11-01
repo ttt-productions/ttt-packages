@@ -1,11 +1,7 @@
 import { z } from 'zod';
-import {
-  LEAGUE_DESCRIPTION_INPUT_FORMAT,
-  LEAGUE_TITLE_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
+import { LEAGUE_DESCRIPTION_INPUT, LEAGUE_TITLE_INPUT } from '../constants/text-fields.js';
 import {
   calendarDateSchema,
-  textFieldSchema,
   countSchema,
   epochMsSchema,
   leagueIdSchema,
@@ -13,11 +9,12 @@ import {
   leagueStatusSchema,
   leagueTypeSchema,
 } from '../doc-schemas/atoms.js';
+import { textFieldSchema } from './text-field.js';
 import { playoffCutoffSchema, refineLeagueSettings } from '../doc-schemas/sport-league.js';
 import { waiverTemplateIdSchema } from '../doc-schemas/waiver-template.js';
 
-export const leagueTitleSchema = textFieldSchema(LEAGUE_TITLE_INPUT_FORMAT);
-export const leagueDescriptionSchema = textFieldSchema(LEAGUE_DESCRIPTION_INPUT_FORMAT);
+export const leagueTitleSchema = textFieldSchema(LEAGUE_TITLE_INPUT);
+export const leagueDescriptionSchema = textFieldSchema(LEAGUE_DESCRIPTION_INPUT);
 
 export const LEAGUE_SETTINGS_FIELD_KEYS = [
   'leagueTitle',

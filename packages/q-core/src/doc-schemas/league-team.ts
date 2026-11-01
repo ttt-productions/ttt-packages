@@ -1,22 +1,19 @@
 import { z } from 'zod';
-import {
-  CONTACT_PHONE_INPUT_FORMAT,
-  TEAM_NAME_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
+import { CONTACT_PHONE_INPUT, TEAM_NAME_INPUT } from '../constants/text-fields.js';
 import {
   countSchema,
   epochMsSchema,
   leagueIdSchema,
   teamIconSchema,
   teamTypeSchema,
-  textFieldSchema,
   userIdSchema,
 } from './atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { PlayerSeasonStatsSchema, TeamSeasonStatsSchema } from './aggregate-stats.js';
 import { GallerySummarySchema } from './gallery.js';
 
 export const LeagueTeamSchema = z.object({
-  name: textFieldSchema(TEAM_NAME_INPUT_FORMAT),
+  name: textFieldSchema(TEAM_NAME_INPUT),
   icon: teamIconSchema,
   leagueId: leagueIdSchema,
   teamType: teamTypeSchema.optional(),
@@ -40,7 +37,7 @@ export type LeagueTeam = z.infer<typeof LeagueTeamSchema>;
 
 export const LeagueTeamContactSchema = z.object({
   leagueId: leagueIdSchema,
-  contactPhone: textFieldSchema(CONTACT_PHONE_INPUT_FORMAT),
+  contactPhone: textFieldSchema(CONTACT_PHONE_INPUT),
   updatedAt: epochMsSchema,
 });
 export type LeagueTeamContact = z.infer<typeof LeagueTeamContactSchema>;

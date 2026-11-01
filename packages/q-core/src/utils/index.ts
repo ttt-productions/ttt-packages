@@ -9,3 +9,4 @@ export * from './team-member-actions.js';
 export * from './league-mode.js';
 export * from './league-joining.js';
 export * from './stats-operation-request.js';
+export * from './text-field.js';

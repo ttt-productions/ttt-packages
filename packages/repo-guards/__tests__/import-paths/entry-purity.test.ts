@@ -107,6 +107,36 @@ describe('entry purity', () => {
     ]);
   });
 
+  it('FLAG a universal root reaching the Admin SDK or the Functions SDK, in its JavaScript or its declaration files', async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/version.js':
+        "import { getFirestore } from 'firebase-admin/firestore';\nexport const version = getFirestore;",
+      'dist/version.d.ts':
+        "import type { CallableRequest } from 'firebase-functions/v2/https';\nexport declare const version: CallableRequest;",
+    };
+    expect(await purity(packageRepo(build))).toEqual([
+      'packages/kit/dist/version.js — @acme/kit reaches firebase-admin/firestore (node)',
+      'packages/kit/dist/version.d.ts — @acme/kit reaches firebase-functions/v2/https (node)',
+    ]);
+  });
+
+  it("FLAG the Admin SDK at a sibling package's universal entry that a universal root re-exports", async () => {
+    const build = {
+      ...CLEAN_BUILD,
+      'dist/version.js': "export { store as version } from '@acme/store';",
+    };
+    const sibling = {
+      'packages/store/package.json': manifest('@acme/store', { '.': 'index' }),
+      'packages/store/dist/index.js':
+        "import { getFirestore } from 'firebase-admin/firestore';\nexport const store = getFirestore;",
+      'packages/store/dist/index.d.ts': 'export declare const store: unknown;',
+    };
+    expect(await purity(packageRepo(build, sibling))).toEqual([
+      'packages/store/dist/index.js — @acme/store reaches firebase-admin/firestore (node)',
+    ]);
+  });
+
   it('FLAG a universal root whose declaration files import React types though its JavaScript is clean', async () => {
     const build = {
       ...CLEAN_BUILD,

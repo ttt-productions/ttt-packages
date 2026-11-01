@@ -185,6 +185,7 @@ describe('every callable declares its App Check posture', () => {
     consumptionExempt: [
       { callable: 'adminLiveScore', why: 'live scoring is latency-sensitive and high-volume' },
     ],
+    consumingGates: [],
     clientDeclarations: {
       modules: ['src/lib/remote.ts'],
       factories: {
@@ -313,6 +314,154 @@ describe('every callable declares its App Check posture', () => {
     expect(
       appCheckGuard.factProblems({ ...facts, adminAuth: { call: '', option: 'admin' } }),
     ).toEqual(['adminAuth.call is missing']);
+  });
+
+  describe('a consuming gate: a callable behind another gate call consumes its token', () => {
+    const gated: AppCheckFacts = {
+      ...facts,
+      consumingFolders: [],
+      consumptionExempt: [],
+      consumingGates: [
+        {
+          call: 'assertCrewRole',
+          exempt: [{ callable: 'recordTap', why: 'each tap would otherwise mint a token' }],
+        },
+      ],
+    };
+    const crewCallable = (name: string, options: string) =>
+      `export const ${name} = onCall(${options}, async (request) => { await assertCrewRole(request, {}); });`;
+    const runGated = async (files: Record<string, string>, f: AppCheckFacts = gated) => {
+      repo = backendRepo(files);
+      const [guard] = appCheckGuard.build(f);
+      return repo.run(guard!);
+    };
+
+    it('passes a gated callable that consumes, an exempt one that keeps its token, and a callable behind no gate', async () => {
+      expect(
+        await runGated({
+          'functions/src/crew/invite.ts': crewCallable(
+            'inviteCrew',
+            '{ enforceAppCheck: true, consumeAppCheckToken: true }',
+          ),
+          'functions/src/crew/tap.ts': crewCallable('recordTap', '{ enforceAppCheck: true }'),
+          'functions/src/member.ts':
+            'export const member = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request); });',
+        }),
+      ).toEqual([]);
+    });
+
+    it('FLAGS a gated callable that does not consume, made directly or by a factory, once', async () => {
+      expect(
+        await runGated({
+          'functions/src/crew/invite.ts': crewCallable('inviteCrew', '{ enforceAppCheck: true }'),
+          'functions/src/crew/tap.ts': crewCallable('recordTap', '{ enforceAppCheck: true }'),
+          'functions/src/crew/factory.ts': [
+            'function make(id: string) {',
+            '  return onCall({ enforceAppCheck: true }, async (request) => { await assertCrewRole(request, {}); });',
+            '}',
+            "export const crewCopy = make('a');",
+          ].join('\n'),
+          'functions/src/admin/both.ts':
+            'export const adminCrew = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request, { admin: {} }); await assertCrewRole(request, {}); });',
+        }),
+      ).toEqual([
+        {
+          file: 'functions/src/admin/both.ts',
+          line: 1,
+          detail: 'adminCrew: no consumeAppCheckToken: true',
+        },
+        {
+          file: 'functions/src/crew/factory.ts',
+          line: 4,
+          detail: 'crewCopy: no consumeAppCheckToken: true',
+        },
+        {
+          file: 'functions/src/crew/invite.ts',
+          line: 1,
+          detail: 'inviteCrew: no consumeAppCheckToken: true',
+        },
+      ]);
+    });
+
+    it('FLAGS a gate exemption whose callable now consumes, calls no such gate, or is gone', async () => {
+      const f: AppCheckFacts = {
+        ...gated,
+        consumingGates: [
+          {
+            call: 'assertCrewRole',
+            exempt: [
+              ...gated.consumingGates[0]!.exempt,
+              { callable: 'member', why: 'x' },
+              { callable: 'goneThing', why: 'x' },
+            ],
+          },
+        ],
+      };
+      expect(
+        await runGated(
+          {
+            'functions/src/crew/tap.ts': crewCallable(
+              'recordTap',
+              '{ enforceAppCheck: true, consumeAppCheckToken: true }',
+            ),
+            'functions/src/member.ts':
+              'export const member = onCall({ enforceAppCheck: true }, async (request) => { await assertAuth(request); });',
+          },
+          f,
+        ),
+      ).toEqual([
+        {
+          file: 'functions/src/crew/tap.ts',
+          line: 1,
+          detail: 'stale assertCrewRole exemption: recordTap now consumes its token',
+        },
+        {
+          file: 'functions/src/member.ts',
+          line: 1,
+          detail: 'stale assertCrewRole exemption: member does not call assertCrewRole',
+        },
+        {
+          file: '(consumingGates)',
+          detail: 'stale assertCrewRole exemption: no callable is named goneThing',
+        },
+      ]);
+    });
+
+    it('flags a limited-use declaration of a callable its gate exempts', async () => {
+      repo = backendRepo({
+        'functions/src/crew/tap.ts': crewCallable('recordTap', '{ enforceAppCheck: true }'),
+        'src/lib/remote.ts':
+          'export const useRecordTap = defineAction("recordTap", { limitedUseAppCheck: true });',
+      });
+      const [, guard] = appCheckGuard.build({ ...gated, noClientDeclaration: [] });
+      expect(await repo.run(guard!)).toEqual([
+        {
+          file: 'src/lib/remote.ts',
+          line: 1,
+          detail: 'useRecordTap declares recordTap limited-use, but it is exempt from consumption',
+        },
+      ]);
+    });
+
+    it('refuses missing gates, a gate with no call, a gate named twice, and an exemption with no why', () => {
+      expect(factProblemsOf(appCheckGuard, { ...facts, consumingGates: undefined })).toEqual([
+        'consumingGates is missing',
+      ]);
+      expect(
+        factProblemsOf(appCheckGuard, {
+          ...facts,
+          consumingGates: [
+            { call: '', exempt: [] },
+            { call: 'assertCrewRole', exempt: [{ callable: 'a', why: '' }] },
+            { call: 'assertCrewRole', exempt: [] },
+          ],
+        }),
+      ).toEqual([
+        'a consumingGates entry names no call',
+        'consumingGates assertCrewRole exempt entry a carries no why',
+        'consumingGates lists assertCrewRole twice',
+      ]);
+    });
   });
 
   describe("the client half: a consuming callable's declaration presents a limited-use token", () => {

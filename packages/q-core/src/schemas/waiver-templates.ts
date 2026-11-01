@@ -1,17 +1,17 @@
 import { z } from 'zod';
-import { textFieldSchema } from '../doc-schemas/atoms.js';
+import { textFieldSchema } from './text-field.js';
 import {
   waiverTemplateIdSchema,
   waiverTemplateVersionNumberSchema,
 } from '../doc-schemas/waiver-template.js';
 import { WAIVER_TEMPLATE_DELETE_OUTCOME_KEYS } from '../types/unions.js';
 import {
-  WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
-  WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
-} from '../input-formats/input-formats.js';
+  WAIVER_TEMPLATE_TEXT_INPUT,
+  WAIVER_TEMPLATE_TITLE_INPUT,
+} from '../constants/text-fields.js';
 
-export const waiverTemplateTitleSchema = textFieldSchema(WAIVER_TEMPLATE_TITLE_INPUT_FORMAT);
-export const waiverTemplateTextSchema = textFieldSchema(WAIVER_TEMPLATE_TEXT_INPUT_FORMAT);
+export const waiverTemplateTitleSchema = textFieldSchema(WAIVER_TEMPLATE_TITLE_INPUT);
+export const waiverTemplateTextSchema = textFieldSchema(WAIVER_TEMPLATE_TEXT_INPUT);
 
 export const AdminCreateWaiverTemplateInputSchema = z
   .object({ title: waiverTemplateTitleSchema, waiverText: waiverTemplateTextSchema })

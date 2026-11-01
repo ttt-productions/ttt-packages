@@ -1,11 +1,12 @@
 import { z } from 'zod';
-import { AWARD_NAME_INPUT_FORMAT } from '../input-formats/input-formats.js';
-import { countSchema, documentIdSegmentSchema, epochMsSchema, textFieldSchema } from './atoms.js';
+import { AWARD_NAME_INPUT } from '../constants/text-fields.js';
+import { countSchema, documentIdSegmentSchema, epochMsSchema } from './atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { pictureIdSchema } from './gallery.js';
 
 export const awardIdSchema = documentIdSegmentSchema;
 
-export const awardNameSchema = textFieldSchema(AWARD_NAME_INPUT_FORMAT);
+export const awardNameSchema = textFieldSchema(AWARD_NAME_INPUT);
 
 export const AwardDefinitionSchema = z.strictObject({
   name: awardNameSchema,

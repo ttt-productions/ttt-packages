@@ -1,11 +1,7 @@
 import { z } from 'zod';
-import {
-  checkInputFormat,
-  type DeclaredInputFormat,
-  type InputFormatIssue,
-} from '@ttt-productions/input-format-core';
 import { MAX_STAT_COUNT } from '../constants/sports.js';
-import { REPAIR_REASON_INPUT_FORMAT } from '../input-formats/input-formats.js';
+import { REPAIR_REASON_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
 import { isStagingId } from '../ids/picture-ids.js';
 import { isDocumentIdSegment } from '../paths/utils.js';
@@ -45,40 +41,7 @@ export const revisionSchema = z.number().int().positive();
 
 export const appliedRevisionSchema = z.number().int().nonnegative();
 
-export const TEXT_FIELD_ISSUE_MESSAGES: Readonly<
-  Record<InputFormatIssue, (declaration: DeclaredInputFormat) => string>
-> = {
-  tooShort: ({ min }) => (min <= 1 ? 'Required.' : `At least ${min} characters.`),
-  tooLong: ({ max }) => `At most ${max} characters.`,
-  invalidCharacters: () => 'Holds a character this field does not allow.',
-};
-
-export type TextFieldDeclaration = DeclaredInputFormat;
-
-export type TextFieldResult =
-  { readonly ok: true; readonly value: string } | { readonly ok: false; readonly reason: string };
-
-export function checkTextField(declaration: TextFieldDeclaration, text: string): TextFieldResult {
-  const result = checkInputFormat(text, declaration);
-  if (result.ok) return { ok: true, value: result.value };
-  return { ok: false, reason: TEXT_FIELD_ISSUE_MESSAGES[result.issue](declaration) };
-}
-
-export function textFieldSchema(declaration: DeclaredInputFormat) {
-  return z.string().transform((text, ctx) => {
-    const result = checkInputFormat(text, declaration);
-    if (result.ok) return result.value;
-    ctx.addIssue({
-      code: 'custom',
-      message: TEXT_FIELD_ISSUE_MESSAGES[result.issue](declaration),
-      input: text,
-      params: { issue: result.issue, min: declaration.min, max: declaration.max },
-    });
-    return z.NEVER;
-  });
-}
-
-export const repairReasonSchema = textFieldSchema(REPAIR_REASON_INPUT_FORMAT);
+export const repairReasonSchema = textFieldSchema(REPAIR_REASON_INPUT);
 
 export const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 

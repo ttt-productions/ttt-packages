@@ -19,3 +19,4 @@ export * from './uploads.js';
 export * from './users.js';
 export * from './waiver-templates.js';
 export * from './migration-console.js';
+export * from './text-field.js';
