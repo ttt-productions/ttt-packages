@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import { GameRepairChangesSchema, GameStatsRepairResultSchema } from '../src/schemas/stats.js';
+import { GHOST_REMOVAL_REFUSAL_KEYS } from '../src/types/stats.js';
 import {
   GhostRemovalRefusalDetailsSchema,
   LEAGUE_TEAM_DELETE_REFUSAL_KEYS,
@@ -75,38 +76,31 @@ describe('a game repair names what it changed on the game', () => {
 });
 
 describe('the designed refusals’ details', () => {
-  it('a team delete refused for play names how many games the request had already deleted', () => {
+  it('a team delete refused for play names its reason only', () => {
     expect(LEAGUE_TEAM_DELETE_REFUSAL_KEYS).toEqual(['teamHasPlayed']);
-    expect(
-      LeagueTeamDeleteRefusalDetailsSchema.parse({ reason: 'teamHasPlayed', deletedGameCount: 1 }),
-    ).toEqual({
+    expect(LeagueTeamDeleteRefusalDetailsSchema.parse({ reason: 'teamHasPlayed' })).toEqual({
       reason: 'teamHasPlayed',
-      deletedGameCount: 1,
     });
     expect(
-      LeagueTeamDeleteRefusalDetailsSchema.safeParse({ reason: 'teamHasPlayed' }).success,
+      LeagueTeamDeleteRefusalDetailsSchema.safeParse({
+        reason: 'teamHasPlayed',
+        deletedGameCount: 1,
+      }).success,
     ).toBe(false);
-    expect(
-      LeagueTeamDeleteRefusalDetailsSchema.safeParse({ reason: 'other', deletedGameCount: 0 })
-        .success,
-    ).toBe(false);
+    expect(LeagueTeamDeleteRefusalDetailsSchema.safeParse({ reason: 'other' }).success).toBe(false);
   });
 
-  it('a ghost removal refusal names its reason, and the entries already removed when it stops one under way', () => {
-    expect(GhostRemovalRefusalDetailsSchema.safeParse({ reason: 'gameHeld' }).success).toBe(true);
-    expect(
-      GhostRemovalRefusalDetailsSchema.parse({
-        reason: 'captainNotRemovable',
-        finishedGameEntriesRemoved: 2,
-      }).finishedGameEntriesRemoved,
-    ).toBe(2);
-    expect(GhostRemovalRefusalDetailsSchema.safeParse({ reason: 'notAReason' }).success).toBe(
-      false,
+  it('a ghost removal is refused only because the ghost has played or is the captain', () => {
+    expect(GHOST_REMOVAL_REFUSAL_KEYS).toEqual(['ghostHasPlayed', 'captainNotRemovable']);
+    expect(GhostRemovalRefusalDetailsSchema.safeParse({ reason: 'ghostHasPlayed' }).success).toBe(
+      true,
     );
+    for (const reason of ['gameHeld', 'removalStopped', 'ghostBeingLinked', 'notAReason'])
+      expect(GhostRemovalRefusalDetailsSchema.safeParse({ reason }).success).toBe(false);
     expect(
       GhostRemovalRefusalDetailsSchema.safeParse({
-        reason: 'gameHeld',
-        finishedGameEntriesRemoved: -1,
+        reason: 'captainNotRemovable',
+        finishedGameEntriesRemoved: 2,
       }).success,
     ).toBe(false);
   });

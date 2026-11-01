@@ -21,7 +21,6 @@ import type {
   FinalizationNotReadyReason,
   GameRepairRefusal,
   StatEventRefusalCode,
-  StatsIntegrityRefusal,
 } from '../types/stats.js';
 
 export const BASKETBALL_POINTS_BY_EVENT_TYPE = {
@@ -111,17 +110,7 @@ export const GAME_REPAIR_REFUSAL_COPY = {
     'That number cannot be corrected for this sport. Restore the game from its recorded stats, or reopen it and score it again.',
   lineNotRostered: "That player is not on this game's roster.",
   teamNotInGame: 'That team is not playing in this game.',
-  gameTooLarge: 'This repair is too large to save at once.',
 } as const satisfies Record<GameRepairRefusal, string>;
-
-export const STATS_INTEGRITY_REFUSAL_COPY = {
-  statsOutOfBand:
-    "This game's stored numbers no longer match the stats recorded for it. An admin must reconcile the game in Fix stats first.",
-  finalRecordMissing:
-    "This finalized game's record of its stats is missing. An admin must repair the game in Fix stats first.",
-  aggregateBelowZero:
-    'A league, career, or hall-of-fame total holds less than this game added to it. An admin must rebuild the totals in Fix stats first.',
-} as const satisfies Record<StatsIntegrityRefusal, string>;
 
 export const FINALIZATION_NOT_READY_COPY = {
   roundsIncomplete: 'Every round must be recorded before the game can be finalized.',

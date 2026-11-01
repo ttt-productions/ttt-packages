@@ -11,8 +11,6 @@ import {
   buildSportGameId,
   isByeTeamId,
 } from '../src/ids/minted-ids.js';
-import { buildGameDeletionOperationId } from '../src/ids/stats-operation-ids.js';
-import { isDocumentIdSegment } from '../src/paths/utils.js';
 import {
   AdminCreateScheduleWeekInputSchema,
   AdminCreateScheduleWeekResultSchema,
@@ -250,17 +248,12 @@ describe('the week and game callable results', () => {
         leagueId: 'league-1',
         weekId: 'week-1',
         deletedGameIds: ['g1'],
-        remainingGameIds: ['g2'],
-        complete: false,
       }).success,
     ).toBe(true);
+    expect(AdminDeleteSportGameResultSchema.safeParse({ gameId: 'game-1' }).success).toBe(true);
     expect(
-      AdminDeleteSportGameResultSchema.safeParse({
-        gameId: 'game-1',
-        operationId: 'op-1',
-        complete: true,
-      }).success,
-    ).toBe(true);
+      AdminDeleteSportGameResultSchema.safeParse({ gameId: 'game-1', complete: false }).success,
+    ).toBe(false);
   });
 
   it('refuse a changed field the edit does not write', () => {
@@ -283,16 +276,6 @@ describe('minted schedule ids', () => {
 
   it('mints a game id from the clock and a suffix', () => {
     expect(buildSportGameId(NOW, 'abc')).toBe(`${NOW}_abc`);
-  });
-
-  it('derives one deletion operation id per game, distinct across games', () => {
-    const gameId = buildSportGameId(NOW, 'abc');
-    expect(buildGameDeletionOperationId(gameId)).toBe(buildGameDeletionOperationId(gameId));
-    expect(buildGameDeletionOperationId(gameId)).not.toBe(
-      buildGameDeletionOperationId(buildSportGameId(NOW, 'abd')),
-    );
-    expect(buildGameDeletionOperationId(gameId)).not.toBe(gameId);
-    expect(isDocumentIdSegment(buildGameDeletionOperationId(gameId))).toBe(true);
   });
 
   it('recognises the bye slot and no real team id', () => {

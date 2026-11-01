@@ -170,13 +170,9 @@ export function sumGameContributions(
   };
 }
 
-export type StatLineChange =
-  | { readonly ok: true; readonly after: StatLineValues | null }
-  | { readonly ok: false; readonly field: string };
-
 /**
- * A counter that would go below zero is refused, never clamped: it means the stored line no longer
- * holds what the games put there.
+ * A counter a decrease would take below zero is written as zero, so a stored total never goes
+ * below zero (RULE-STD-BACKEND-119).
  */
 export function applyStatLineDelta(
   deriveLine: ContributionSpec['deriveLine'],
@@ -184,11 +180,12 @@ export function applyStatLineDelta(
   before: StatLineValues | undefined,
   delta: StatLineValues,
   sign: 1 | -1,
-): StatLineChange {
-  // A derived field is recomputed from the moved counters, never moved itself, so a stale stored FP
-  // can neither go below zero nor survive.
-  const after = deriveLine(kind, addStatLines(before ?? {}, delta, sign));
-  const below = Object.entries(after).find(([, value]) => typeof value === 'number' && value < 0);
-  if (below) return { ok: false, field: below[0] };
-  return { ok: true, after: isZeroStatLine(after) ? null : after };
+): StatLineValues | null {
+  const moved = addStatLines(before ?? {}, delta, sign);
+  const floored: Record<string, number> = {};
+  for (const [field, value] of Object.entries(moved)) floored[field] = Math.max(0, value);
+  // A derived field is recomputed from the floored counters, never moved itself, so a stale stored
+  // FP can neither go below zero nor survive.
+  const after = deriveLine(kind, floored);
+  return isZeroStatLine(after) ? null : after;
 }

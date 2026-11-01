@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { z } from 'zod';
 import {
   CURLING_ROUND_COUNT,
   MAX_CURLING_ROUND_POINTS,
@@ -372,10 +371,12 @@ describe('the game rollup', () => {
     expect(valid(teamsListOnly)).toBe(false);
   });
 
-  it('counts its events and names the operation holding it', () => {
+  it('counts its events, and reads no operation hold', () => {
     const { statEventSequence: _sequence, ...uncounted } = basketball;
     expect(valid(uncounted)).toBe(false);
-    expect(valid({ ...basketball, statsOperationId: 'op1' })).toBe(true);
+    expect(SportGameSchema.parse({ ...basketball, statsOperationId: 'op1' })).not.toHaveProperty(
+      'statsOperationId',
+    );
   });
 
   it('keeps a curling end unrecorded as null and a blank end as 0, in exactly one slot per end', () => {
@@ -565,47 +566,12 @@ describe('stats operations', () => {
       scope: { userId: 'u1', sportKey: 'basketball' },
       reason,
     },
-    ghostPlayerStats: {
-      ...run,
-      kind: 'ghostPlayerStats',
-      scope: { action: 'link', teamId: 'T1', ghostUserId: 'ghost_1_abc', userId: 'u1' },
-      reason,
-    },
-    gameDeletion: { ...run, kind: 'gameDeletion', scope: { gameId: 'g1' }, status: 'stopped' },
   } satisfies Record<StatsOperationKind, object>;
 
   const operation = (doc: object) => StatsOperationSchema.safeParse(doc).success;
 
   it.each(Object.entries(VALID_OPERATIONS))('accepts a %s operation', (_kind, doc) => {
     expect(operation(doc)).toBe(true);
-  });
-
-  it("records a ghost's removal on the same operation shape as its link, with no reason", () => {
-    const { reason: _linkReason, ...unexplainedLink } = VALID_OPERATIONS.ghostPlayerStats;
-    expect(
-      operation({
-        ...unexplainedLink,
-        scope: { action: 'removal', teamId: 'T1', ghostUserId: 'ghost_1_abc' },
-      }),
-    ).toBe(true);
-    const stored = StatsOperationSchema.safeParse({
-      ...VALID_OPERATIONS.ghostPlayerStats,
-      scope: { action: 'removal', teamId: 'T1', ghostUserId: 'ghost_1_abc' },
-    });
-    expect(stored.success).toBe(true);
-    expect(stored.data).not.toHaveProperty('reason');
-    expect(
-      operation({
-        ...unexplainedLink,
-        scope: { action: 'removal', teamId: 'T1', ghostUserId: 'ghost_1_abc', userId: 'u1' },
-      }),
-    ).toBe(false);
-    expect(
-      operation({
-        ...VALID_OPERATIONS.ghostPlayerStats,
-        scope: { action: 'link', teamId: 'T1', ghostUserId: 'ghost_1_abc' },
-      }),
-    ).toBe(false);
   });
 
   it('takes a reason on every action that writes a stat, and none on a validation', () => {
@@ -621,8 +587,7 @@ describe('stats operations', () => {
     expect(StatCorrectionEventSchema.shape.reason).toBe(repairReasonSchema);
     for (const option of StatsOperationSchema.options) {
       if (!('reason' in option.shape)) continue;
-      const reason = option.shape.reason;
-      expect(reason instanceof z.ZodOptional ? reason.unwrap() : reason).toBe(repairReasonSchema);
+      expect(option.shape.reason).toBe(repairReasonSchema);
     }
   });
 
@@ -636,11 +601,12 @@ describe('stats operations', () => {
   });
 
   it('refuses an unknown kind or status, and a count below zero', () => {
-    expect(operation({ ...VALID_OPERATIONS.gameDeletion, kind: 'gameArchive' })).toBe(false);
-    expect(operation({ ...VALID_OPERATIONS.gameDeletion, status: 'paused' })).toBe(false);
-    expect(
-      operation({ ...VALID_OPERATIONS.gameDeletion, counts: { read: -1, changed: 0, skipped: 0 } }),
-    ).toBe(false);
+    const rebuild = VALID_OPERATIONS.leagueStatsRebuild;
+    expect(operation({ ...rebuild, kind: 'gameArchive' })).toBe(false);
+    expect(operation({ ...rebuild, kind: 'ghostPlayerStats' })).toBe(false);
+    expect(operation({ ...rebuild, kind: 'gameDeletion' })).toBe(false);
+    expect(operation({ ...rebuild, status: 'paused' })).toBe(false);
+    expect(operation({ ...rebuild, counts: { read: -1, changed: 0, skipped: 0 } })).toBe(false);
   });
 
   it('is bound in the registry to its path', () => {

@@ -51,8 +51,6 @@ export const STATS_OPERATION_KIND_KEYS = [
   'gameStatsCorrection',
   'gameStatsRecalculation',
   'historicalStatsUpdate',
-  'ghostPlayerStats',
-  'gameDeletion',
 ] as const;
 export type StatsOperationKind = (typeof STATS_OPERATION_KIND_KEYS)[number];
 
@@ -68,9 +66,6 @@ export type StatsOperationStatus = (typeof STATS_OPERATION_STATUS_KEYS)[number];
 
 export const STATS_VALIDATION_PHASE_KEYS = ['games', 'destinations'] as const;
 export type StatsValidationPhase = (typeof STATS_VALIDATION_PHASE_KEYS)[number];
-
-export const GHOST_STATS_OPERATION_ACTION_KEYS = ['link', 'removal'] as const;
-export type GhostStatsOperationAction = (typeof GHOST_STATS_OPERATION_ACTION_KEYS)[number];
 
 export const STAT_EVENT_REFUSAL_KEYS = [
   'eventTypeNotInSport',
@@ -108,13 +103,6 @@ export type GameFinalizeOutcome = (typeof GAME_FINALIZE_OUTCOME_KEYS)[number];
 export const GAME_REOPEN_OUTCOME_KEYS = ['reopened', 'alreadyOpen'] as const;
 export type GameReopenOutcome = (typeof GAME_REOPEN_OUTCOME_KEYS)[number];
 
-export const STATS_INTEGRITY_REFUSAL_KEYS = [
-  'statsOutOfBand',
-  'finalRecordMissing',
-  'aggregateBelowZero',
-] as const;
-export type StatsIntegrityRefusal = (typeof STATS_INTEGRITY_REFUSAL_KEYS)[number];
-
 export const GAME_STATS_REPAIR_OUTCOME_KEYS = [
   'reconciled',
   'unchanged',
@@ -130,7 +118,6 @@ export const GAME_REPAIR_REFUSAL_KEYS = [
   'fieldNotCorrectable',
   'lineNotRostered',
   'teamNotInGame',
-  'gameTooLarge',
 ] as const;
 export type GameRepairRefusal = (typeof GAME_REPAIR_REFUSAL_KEYS)[number];
 
@@ -149,11 +136,5 @@ export const UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS = [
 export type UnrosteredStatLineResolutionOutcome =
   (typeof UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS)[number];
 
-export const GHOST_REMOVAL_REFUSAL_KEYS = [
-  'ghostHasPlayed',
-  'removalStopped',
-  'gameHeld',
-  'ghostBeingLinked',
-  'captainNotRemovable',
-] as const;
+export const GHOST_REMOVAL_REFUSAL_KEYS = ['ghostHasPlayed', 'captainNotRemovable'] as const;
 export type GhostRemovalRefusal = (typeof GHOST_REMOVAL_REFUSAL_KEYS)[number];

@@ -8,7 +8,6 @@ import {
   gameIdSchema,
   leagueIdSchema,
   scheduleWeekIdSchema,
-  statsOperationIdSchema,
   teamIdSchema,
 } from '../doc-schemas/atoms.js';
 import { gameLocationIdSchema } from '../doc-schemas/game-location.js';
@@ -95,8 +94,6 @@ export const AdminDeleteScheduleWeekResultSchema = z
     leagueId: leagueIdSchema,
     weekId: scheduleWeekIdSchema,
     deletedGameIds: z.array(gameIdSchema),
-    remainingGameIds: z.array(gameIdSchema),
-    complete: z.boolean(),
   })
   .strict();
 export type AdminDeleteScheduleWeekResult = z.infer<typeof AdminDeleteScheduleWeekResultSchema>;
@@ -137,7 +134,5 @@ export type AdminUpdateSportGameResult = z.infer<typeof AdminUpdateSportGameResu
 
 export const AdminDeleteSportGameInputSchema = z.object({ gameId: gameIdSchema }).strict();
 export type AdminDeleteSportGameInput = z.infer<typeof AdminDeleteSportGameInputSchema>;
-export const AdminDeleteSportGameResultSchema = z
-  .object({ gameId: gameIdSchema, operationId: statsOperationIdSchema, complete: z.boolean() })
-  .strict();
+export const AdminDeleteSportGameResultSchema = z.object({ gameId: gameIdSchema }).strict();
 export type AdminDeleteSportGameResult = z.infer<typeof AdminDeleteSportGameResultSchema>;

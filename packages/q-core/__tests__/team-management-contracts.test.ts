@@ -1,14 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  GhostPlayerStatsOperationSchema,
-  StatsOperationSchema,
-} from '../src/doc-schemas/stats-operation.js';
 import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
-import {
-  buildGameDeletionOperationId,
-  buildGhostLinkOperationId,
-} from '../src/ids/stats-operation-ids.js';
 import {
   AdminDeleteLeagueTeamInputSchema,
   AdminLinkClosedLeagueGhostPlayerInputSchema,
@@ -137,78 +129,7 @@ describe('the team-management inputs', () => {
   });
 });
 
-describe("a ghost's one operation", () => {
-  it('has one id per team and ghost, apart from any game deletion', () => {
-    expect(buildGhostLinkOperationId('team-1', GHOST)).toBe(
-      buildGhostLinkOperationId('team-1', GHOST),
-    );
-    expect(buildGhostLinkOperationId('team-1', GHOST)).not.toBe(
-      buildGhostLinkOperationId('team-2', GHOST),
-    );
-    expect(buildGhostLinkOperationId('team-1', GHOST)).not.toBe(
-      buildGameDeletionOperationId('team-1'),
-    );
-  });
-
-  it("records a removal's finished-game entries, and parses as a stats operation", () => {
-    const removal = {
-      kind: 'ghostPlayerStats',
-      scope: { action: 'removal', teamId: 'team-1', ghostUserId: GHOST },
-      startedByUserId: 'captain-1',
-      startedAt: 1,
-      updatedAt: 2,
-      status: 'running',
-      counts: { read: 1, changed: 1, skipped: 0 },
-      removedFinishedGameEntries: [{ gameId: 'g1', wasAbsent: true, wasNonScoring: true }],
-    };
-    expect(GhostPlayerStatsOperationSchema.safeParse(removal).success).toBe(true);
-    expect(StatsOperationSchema.safeParse(removal).success).toBe(true);
-    expect(
-      GhostPlayerStatsOperationSchema.safeParse({
-        ...removal,
-        removedFinishedGameEntries: [{ gameId: 'g1' }],
-      }).success,
-    ).toBe(false);
-  });
-
-  it('records the open games a paged removal has taken the ghost off so far', () => {
-    const removal = {
-      kind: 'ghostPlayerStats',
-      scope: { action: 'removal', teamId: 'team-1', ghostUserId: GHOST },
-      startedByUserId: 'captain-1',
-      startedAt: 1,
-      updatedAt: 2,
-      status: 'running',
-      counts: { read: 2, changed: 2, skipped: 0 },
-      removedOpenGameIds: ['g1', 'g2'],
-    };
-    expect(StatsOperationSchema.safeParse(removal).success).toBe(true);
-    expect(
-      GhostPlayerStatsOperationSchema.safeParse({ ...removal, removedOpenGameIds: [''] }).success,
-    ).toBe(false);
-  });
-
-  it('takes no reason on a link or a removal, and still reads an operation stored with one', () => {
-    const removal = {
-      kind: 'ghostPlayerStats',
-      scope: { action: 'removal', teamId: 'team-1', ghostUserId: GHOST },
-      startedByUserId: 'captain-1',
-      startedAt: 1,
-      updatedAt: 2,
-      status: 'running',
-      counts: { read: 0, changed: 0, skipped: 0 },
-    };
-    const link = {
-      ...removal,
-      scope: { action: 'link', teamId: 'team-1', ghostUserId: GHOST, userId: 'real-1' },
-    };
-    expect(StatsOperationSchema.safeParse(link).success).toBe(true);
-    const storedWithReason = StatsOperationSchema.safeParse({ ...removal, reason: REASON });
-    expect(storedWithReason.success).toBe(true);
-    expect(storedWithReason.data).not.toHaveProperty('reason');
-    expect(StatsOperationSchema.safeParse({ ...link, reason: REASON }).success).toBe(true);
-  });
-
+describe('a ghost link', () => {
   it('a link names the team, the ghost, and the account, and refuses a reason', () => {
     const input = { teamId: 'team-1', ghostUserId: GHOST, userId: 'real-1' };
     expect(LinkGhostPlayerInputSchema.safeParse(input).success).toBe(true);
@@ -242,7 +163,6 @@ describe('the events team management names', () => {
       'teamMembership.roleChanged',
       'teamMembership.removed',
       'ghostPlayer.removed',
-      'ghostPlayer.removalStopped',
       'leagueTeam.captainChanged',
       'leagueTeam.updated',
       'leagueTeamContact.updated',

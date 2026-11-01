@@ -52,7 +52,6 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   'ghostPlayer.linked',
   'ghostPlayer.closedLeagueLinked',
   'leagueTeam.deleted',
-  'ghostPlayer.removalStopped',
   'teamInvitation.created',
   'teamInvitation.cancelled',
   'teamInvitation.accepted',

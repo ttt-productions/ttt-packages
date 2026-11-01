@@ -333,7 +333,6 @@ export const GAME_TIER_DISCREPANCY_KIND_KEYS = [
   'finalRecordMissing',
   'finalRecordMismatch',
   'participationSnapshotMismatch',
-  'gameHeld',
 ] as const;
 export const AGGREGATE_TIER_DISCREPANCY_KIND_KEYS = [
   'aggregateMismatch',

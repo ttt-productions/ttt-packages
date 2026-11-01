@@ -12,7 +12,6 @@ import {
   gameStatusSchema,
   leagueIdSchema,
   scheduleWeekIdSchema,
-  statsOperationIdSchema,
   teamIdSchema,
   userIdSchema,
 } from './atoms.js';
@@ -65,7 +64,6 @@ const sportGameBase = {
   memos: z.record(z.string(), textFieldSchema(GAME_MEMO_INPUT)).optional(),
   absentRosterPlayerIds: z.array(gameRosterPlayerIdSchema),
   nonScoringRosterPlayerIds: z.array(gameRosterPlayerIdSchema).optional(),
-  statsOperationId: statsOperationIdSchema.optional(),
   finalizedAt: epochMsSchema.optional(),
   reopenedAt: epochMsSchema.optional(),
   createdAt: epochMsSchema,

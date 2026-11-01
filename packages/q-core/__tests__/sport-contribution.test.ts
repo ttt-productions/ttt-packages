@@ -259,31 +259,42 @@ describe('applying a contribution to a stored line', () => {
 
   it('adds a game to no line, then takes it back to no line at all', () => {
     const added = applyStatLineDelta(basketball.deriveLine, 'membershipRow', undefined, row, 1);
-    expect(added).toEqual({ ok: true, after: row });
+    expect(added).toEqual(row);
     const removed = applyStatLineDelta(
       basketball.deriveLine,
       'membershipRow',
-      added.ok ? (added.after ?? undefined) : undefined,
+      added ?? undefined,
       row,
       -1,
     );
-    expect(removed).toEqual({ ok: true, after: null });
+    expect(removed).toBeNull();
   });
 
   it('re-derives FP from the moved counters, so a stale stored FP neither survives nor goes below zero', () => {
     const stale = { gamesPlayed: 3, points: 10, rebounds: 5, assists: 3, fantasyPoints: 2 };
     expect(applyStatLineDelta(basketball.deriveLine, 'lifetime', stale, row, -1)).toEqual({
-      ok: true,
-      after: { gamesPlayed: 2, points: 4, rebounds: 3, assists: 2, fantasyPoints: 12.5 },
+      gamesPlayed: 2,
+      points: 4,
+      rebounds: 3,
+      assists: 2,
+      fantasyPoints: 12.5,
     });
   });
 
-  it('refuses, naming the field, a line that would go below zero', () => {
-    const before = { gamesPlayed: 0, points: 6, rebounds: 2, assists: 1, fantasyPoints: 11 };
+  it('writes zero for a counter a decrease would take below zero, and derives FP from the floored line', () => {
+    const before = { gamesPlayed: 0, points: 10, rebounds: 5, assists: 3, fantasyPoints: 2 };
     expect(applyStatLineDelta(basketball.deriveLine, 'membershipRow', before, row, -1)).toEqual({
-      ok: false,
-      field: 'gamesPlayed',
+      gamesPlayed: 0,
+      points: 4,
+      rebounds: 3,
+      assists: 2,
+      fantasyPoints: 12.5,
     });
+  });
+
+  it('takes a line every counter of which a decrease floors at zero to no line at all', () => {
+    const before = { gamesPlayed: 0, points: 2, rebounds: 1, assists: 0, fantasyPoints: 3.2 };
+    expect(applyStatLineDelta(basketball.deriveLine, 'membershipRow', before, row, -1)).toBeNull();
   });
 });
 
@@ -491,11 +502,12 @@ describe('the league rankings', () => {
           row,
           1,
         );
-        if (!moved.ok) throw new Error(`below zero at ${moved.field}`);
-        if (moved.after === null) delete stored[teamId]?.[userId];
+        if (moved === null) delete stored[teamId]?.[userId];
         else
-          (stored[teamId] as Record<string, Record<string, number>>)[userId] =
-            moved.after as Record<string, number>;
+          (stored[teamId] as Record<string, Record<string, number>>)[userId] = moved as Record<
+            string,
+            number
+          >;
       }
     }
     const season = seasonRankingRows(

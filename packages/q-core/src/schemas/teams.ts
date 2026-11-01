@@ -131,9 +131,7 @@ export const LinkGhostPlayerResultSchema = z
     teamId: teamIdSchema,
     ghostUserId: userIdSchema,
     userId: userIdSchema,
-    complete: z.boolean(),
-    gamesMoved: countSchema,
-    membershipOutcome: z.enum(GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS).optional(),
+    membershipOutcome: z.enum(GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS),
     publicUserDeleted: z.boolean(),
   })
   .strict();
@@ -198,7 +196,6 @@ export const DeleteTeamGhostPlayerResultSchema = z
     leagueId: leagueIdSchema,
     teamId: teamIdSchema,
     ghostUserId: userIdSchema,
-    complete: z.boolean(),
     finishedGameEntriesRemoved: countSchema,
     publicUserDeleted: z.boolean(),
   })
@@ -206,10 +203,7 @@ export const DeleteTeamGhostPlayerResultSchema = z
 export type DeleteTeamGhostPlayerResult = z.infer<typeof DeleteTeamGhostPlayerResultSchema>;
 
 export const GhostRemovalRefusalDetailsSchema = z
-  .object({
-    reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS),
-    finishedGameEntriesRemoved: countSchema.optional(),
-  })
+  .object({ reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS) })
   .strict();
 export type GhostRemovalRefusalDetails = z.infer<typeof GhostRemovalRefusalDetailsSchema>;
 
@@ -261,18 +255,12 @@ export type AdminUpdateLeagueTeamContactResult = AdminUpdateLeagueTeamResult;
 export const AdminDeleteLeagueTeamInputSchema = z.object({ teamId: teamIdSchema }).strict();
 export type AdminDeleteLeagueTeamInput = z.infer<typeof AdminDeleteLeagueTeamInputSchema>;
 
-export const AdminDeleteLeagueTeamResultSchema = z
-  .object({
-    teamId: teamIdSchema,
-    complete: z.boolean(),
-    remainingGameCount: countSchema,
-  })
-  .strict();
+export const AdminDeleteLeagueTeamResultSchema = z.object({ teamId: teamIdSchema }).strict();
 export type AdminDeleteLeagueTeamResult = z.infer<typeof AdminDeleteLeagueTeamResultSchema>;
 
 export const LEAGUE_TEAM_DELETE_REFUSAL_KEYS = ['teamHasPlayed'] as const;
 export type LeagueTeamDeleteRefusal = (typeof LEAGUE_TEAM_DELETE_REFUSAL_KEYS)[number];
 export const LeagueTeamDeleteRefusalDetailsSchema = z
-  .object({ reason: z.enum(LEAGUE_TEAM_DELETE_REFUSAL_KEYS), deletedGameCount: countSchema })
+  .object({ reason: z.enum(LEAGUE_TEAM_DELETE_REFUSAL_KEYS) })
   .strict();
 export type LeagueTeamDeleteRefusalDetails = z.infer<typeof LeagueTeamDeleteRefusalDetailsSchema>;
