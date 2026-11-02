@@ -66,7 +66,7 @@ export async function findGuessingStoredUnions(
 }
 
 export const storedDocumentSchemaGuard: GenericGuardDefinition<StoredDocumentSchemaFacts> = {
-  id: 'storedDocumentSchemasPlain',
+  id: 'storedDocumentSchemas',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
     const problems: string[] = [];
@@ -89,9 +89,11 @@ export const storedDocumentSchemaGuard: GenericGuardDefinition<StoredDocumentSch
         title: 'no stored document is read through a union that guesses its shape',
         description:
           'Every union of object shapes a registered document schema reaches is a discriminated union: a value is ' +
-          'read by the shape its discriminator names, never as the first member it happens to parse as, which reads ' +
-          "a damaged value of one shape as another's. A plain union holding two or more object shapes fails, named " +
-          'once at the first document path that reaches it. The registry is read from the installed core build.',
+          'read by the shape its discriminator names, never as the first member it happens to parse as: plain ' +
+          'members drop what they do not name, so a valid value of a larger shape is read as a smaller one listed ' +
+          'before it, and a damaged value as another shape. A plain union holding two or more object shapes ' +
+          'fails, named once at the first document path that reaches it. The registry is read from the ' +
+          'installed core build.',
         timeoutMs: GUARD_TIMEOUT_MS,
         run: (context) => findGuessingStoredUnions(facts, context),
       },

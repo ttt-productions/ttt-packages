@@ -91,7 +91,7 @@ replay that double-increments a total is a finding.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 7. Schema compatibility and local drift
-**Rules:** RULE-STD-ARCH-101, RULE-STD-ARCH-102, RULE-STD-BACKEND-115, RULE-STD-ENG-011. **Scope:**
+**Rules:** RULE-STD-ARCH-101, RULE-STD-ARCH-102, RULE-STD-ARCH-110, RULE-STD-BACKEND-115, RULE-STD-ENG-011. **Scope:**
 `src` + `functions/src`; the local emulator.
 ```bash
 # Local data-vs-schema drift — emulator reachability guard FIRST (Git Bash has no `nc`).
@@ -107,8 +107,8 @@ instead (the app's additions carry its cast locator). Reads survive old document
 a migrated field exists on every old document is a finding, and once `<HOLDS_LIVE_DATA>` is yes a
 shape change ships its migration or a tolerant read (RULE-STD-ENG-011). When the emulators are
 reachable, the drift check reports zero invalid documents and zero unknown fields against the seeded
-emulator, nested fields included. Every stored-document schema is plain (RULE-STD-BACKEND-115): the
-`storedDocumentSchemasPlain` guard is green (no strict, passthrough, or catchall object, and no union
+emulator, nested fields included. Every stored-document schema is plain (RULE-STD-ARCH-110): the
+`storedDocumentSchemas` guard is green (no strict, passthrough, or catchall object, and no union
 of object shapes without a discriminator), and a callable input that carries a stored shape takes a
 strict copy of it. **Hosted half (authorization required):** the hosted drift variant and the dev↔prod
 comparison are `BLOCKED` without DJ's authorization.

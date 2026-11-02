@@ -117,3 +117,18 @@ Every enforcement point of one field enforces the SAME constraint set — the fo
 - A rules-file restatement of a compound id format that no guard pins to its builder.
 
 **References.** RULE-STD-ENG-002, RULE-STD-ENG-011 (an id convention change ships its migration); RULE-STD-ARCH-004, RULE-STD-ARCH-101, RULE-STD-ARCH-104; RULE-STD-BACKEND-102.
+
+### RULE-STD-ARCH-110 — A stored-document schema reads every live document
+**Scope.** apps
+
+**Rule.** Every object schema a registered document's schema in `<APP_DATA_PACKAGE>` reaches is a plain `z.object`: a field it does not name is dropped on read, never refused and never kept. Every union of object shapes it reaches is a discriminated union, so a document is read by the shape its discriminator names; a document whose shape depends on a value it does not hold stores that value as its discriminator. A callable input that carries a stored shape takes a strict copy of the stored schema (RULE-STD-BACKEND-002), never the plain one. The repo-guards `storedDocumentSchemas` guard enforces it.
+
+**Why.** A strict schema refuses a valid document that still holds a removed field, or a field newer code added before every reader loaded it. A plain union keeps the first member that parses, and plain members drop what they do not name, so a valid document of a larger shape is read as a smaller one listed before it, with its extra fields gone, and a damaged value is read as another shape.
+
+**Prohibits.**
+- `.strict()` / `z.strictObject`, `.passthrough()` / `z.looseObject`, or a `catchall` anywhere a stored-document schema reaches.
+- A union of object shapes in a stored schema with no discriminator.
+- A document whose shape depends on a value it does not store.
+- A callable input that takes a stored schema as it is instead of its strict copy.
+
+**References.** RULE-STD-BACKEND-115, RULE-STD-BACKEND-002; RULE-STD-ENG-011.

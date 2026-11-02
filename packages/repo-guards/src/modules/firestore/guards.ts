@@ -40,7 +40,7 @@ import type { NoFacts } from './support.js';
 export type FirestoreGuardFacts = {
   firestoreWrites: WriteGuardFacts | Absent;
   firestoreTestPaths: TestPathFacts | Absent;
-  storedDocumentSchemasPlain: StoredDocumentSchemaFacts | Absent;
+  storedDocumentSchemas: StoredDocumentSchemaFacts | Absent;
   firestoreLiteralSegments: NoFacts | Absent;
   firestorePathAssembly: PathAssemblyFacts | Absent;
   firestoreRetiredSegments: RetiredSegmentFacts | Absent;

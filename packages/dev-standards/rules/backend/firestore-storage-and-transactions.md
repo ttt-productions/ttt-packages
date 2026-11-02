@@ -179,7 +179,7 @@ An audience change is a MOVE of the doc (packages-first — paths live in `<APP_
 
 **Rule.** Every write to a registered document stores only fields that document's schema in `<APP_DATA_PACKAGE>`'s document-schema registry declares. A new stored field lands in `<APP_DATA_PACKAGE>` FIRST (RULE-STD-ARCH-101, RULE-STD-ARCH-205), then the writer uses it. Write payloads are typed against the document's `z.infer` type with an operation-specific named patch — never a broad `Partial<Doc>` on a sensitive mutation (RULE-STD-BACKEND-209) — and never cast to `Record<string, unknown>`, `any`, or through a double cast. Document paths feeding a write come from the canonical path builders (RULE-STD-ARCH-104); minting an auto-id with a canonical collection reference's `.doc()`, addressing a preset id on a canonical collection reference, writing through a query snapshot's own `ref`, and building a collection reference for a query are none of them hand-built paths and none of them are covered. A write whose target document or payload the guard cannot resolve fails the same as a violation; the only way past is a specific reviewed exception with its justification.
 
-**Stored schemas are plain.** Every object schema a registered document's schema reaches is a plain `z.object` — never `.strict()` / `z.strictObject`, `.passthrough()` / `z.looseObject`, or a `catchall`. A field the schema does not name is dropped on read, never refused and never kept, so a field left on live data after its removal, or added by newer code a reader has not loaded yet, never makes a document unreadable; this rule's write guard is what keeps undeclared fields out. Every union of object shapes a stored schema reaches is a discriminated union, so a document is read by the shape its discriminator names — never as the first shape it happens to parse as, which reads a damaged value of one shape as another's; a document whose shape depends on something it does not hold stores that discriminator. A callable input that carries a stored shape takes a strict copy of the stored schema (RULE-STD-BACKEND-002), never the plain one. The repo-guards `storedDocumentSchemasPlain` guard enforces it.
+Undeclared fields are kept out here, at the write; how a stored schema reads a document is RULE-STD-ARCH-110.
 
 **The guard bends to the writer, never the writer to the guard.** A canonical shape the analyzer cannot follow is a gap in the analyzer (resolve it, or carry a justified exception) or in `<APP_DATA_PACKAGE>` (a typed field map, a collection builder) — never a reason to unroll a package-owned map into a hand-written field chain, mint a `randomUUID()` in place of a Firestore auto-id, or narrow a generic helper into a specific writer.
 
@@ -191,7 +191,7 @@ An audience change is a MOVE of the doc (packages-first — paths live in `<APP_
 - A hand-assembled document path feeding a write.
 - Adding a stored field to `functions/src` or `src/` before `<APP_DATA_PACKAGE>`.
 
-**References.** RULE-STD-ARCH-101, RULE-STD-ARCH-104, RULE-STD-ARCH-205; RULE-STD-BACKEND-104, RULE-STD-BACKEND-114, RULE-STD-BACKEND-209; RULE-STD-QUALITY-007.
+**References.** RULE-STD-ARCH-101, RULE-STD-ARCH-104, RULE-STD-ARCH-110, RULE-STD-ARCH-205; RULE-STD-BACKEND-104, RULE-STD-BACKEND-114, RULE-STD-BACKEND-209; RULE-STD-QUALITY-007.
 
 ### RULE-STD-BACKEND-116 — Every write precondition is decided inside the write's transaction
 **Scope.** both

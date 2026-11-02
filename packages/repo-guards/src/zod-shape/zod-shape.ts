@@ -214,8 +214,8 @@ export interface GuessingUnion {
 }
 
 // Every union a schema reaches that holds two or more object shapes and no discriminator: a value
-// is read as the first member it happens to parse as, so a damaged value of one shape can be read
-// as another.
+// is read as the first member it happens to parse as, so a valid value of a larger shape can be read
+// as a smaller one listed before it, and a damaged value as another shape.
 export function guessingUnions(schema: unknown, path = ''): GuessingUnion[] {
   const found: GuessingUnion[] = [];
   walkSchema(schema, path, (s, at) => {

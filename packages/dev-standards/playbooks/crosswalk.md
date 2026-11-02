@@ -42,6 +42,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-ARCH-105 | Timestamps are epoch milliseconds via firebase-helpers | codebase-hygiene 9 | `firestoreTimestampNow` |
 | RULE-STD-ARCH-106 | Client-supplied identity, paths, and targets are never authoritative | codebase-hygiene 77, 99; auth-boundary 12; client-write-security-audit 5, 11; firestore-storage-rules 6; media-pipeline 3 | `documentIdSegments` |
 | RULE-STD-ARCH-109 | Compound document IDs have one builder and one parser | **No audit step yet.** Hygiene step 10 catches hand-assembled paths, not a compound id built or split inline; an app's own data-integrity step is the candidate to promote here. | — |
+| RULE-STD-ARCH-110 | A stored-document schema reads every live document | data-integrity 7 | `storedDocumentSchemas` |
 | RULE-STD-ARCH-201 | Generic packages stay application-agnostic; supply policy via factory/adapter | codebase-hygiene 41; package-boundaries 1, 4 | `applicationDataImports`, `installedPackagesAgnostic` |
 | RULE-STD-ARCH-202 | Package entry points preserve the safety boundary; consumers import from the entry that matches the runtime | codebase-hygiene 17; dependency-audit 10, 13; package-boundaries 9; react-leak-audit 1, 2, 3, 4, 5, 6, 7, 9 | `packageEntryPoints`, `entryPurity`, `packageWildcardImports` |
 | RULE-STD-ARCH-203 | One import path per definition; no compatibility barrels or laundering re-exports | codebase-hygiene 17, 25, 38; dependency-audit 10; package-boundaries 6; react-leak-audit 1, 2 | `importPaths`, `packageEntries`, `packageEntryImports`, `packageImports`, `packageImportCycles` |
@@ -77,7 +78,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-BACKEND-112 | Reads are bounded and index-backed | codebase-hygiene 98, 105; async-workflow 9; data-integrity 13; migration 6; performance-audit 1, 2, 3, 8 | `firestoreCollectionGroupIndexes` |
 | RULE-STD-BACKEND-113 | Batch reads; no per-item read loop | performance-audit 9 | — |
 | RULE-STD-BACKEND-114 | Scripts that write project data follow the backend write rules | codebase-hygiene 10; migration 1, 2, 5, 6, 10; testing-coverage 7 | `projectScripts` |
-| RULE-STD-BACKEND-115 | A write stores only fields the document's `<APP_DATA_PACKAGE>` schema declares | codebase-hygiene 51, 80; data-integrity 7; migration 8 | `firestoreWrites`, `storedDocumentSchemasPlain` |
+| RULE-STD-BACKEND-115 | A write stores only fields the document's `<APP_DATA_PACKAGE>` schema declares | codebase-hygiene 51, 80; data-integrity 7; migration 8 | `firestoreWrites` |
 | RULE-STD-BACKEND-116 | Every write precondition is decided inside the write's transaction | codebase-hygiene 97, 108, 111; callable-functions 4 | `firestoreTransactionReads` |
 | RULE-STD-BACKEND-117 | An existence-probe get proves ownership from the path, never from `resource.data` | codebase-hygiene 107 | — |
 | RULE-STD-BACKEND-119 | A counter decrement reads the counter in its transaction and never writes it below zero | codebase-hygiene 111 | `firestoreCounterDecrements` |
