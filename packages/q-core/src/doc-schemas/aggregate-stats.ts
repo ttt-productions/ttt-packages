@@ -85,21 +85,29 @@ export const UserLifetimeStatsSchema = z.object(
 );
 export type UserLifetimeStats = z.infer<typeof UserLifetimeStatsSchema>;
 
-function sportHallOfFameOf<L extends LeagueType>(leagueType: L) {
+// The sport's hall-of-fame schema comes in as its own type parameter: indexing the line map by a
+// generic sport would type every option's entries as the union of every sport's.
+function sportHallOfFameOf<L extends LeagueType, H extends z.ZodType>(
+  leagueType: L,
+  lines: { hallOfFame: H },
+) {
   return z.object({
     leagueType: z.literal(leagueType),
-    playerStats: z.record(userIdSchema, SPORT_LINE_SCHEMAS[leagueType].hallOfFame),
+    playerStats: z.record(userIdSchema, lines.hallOfFame),
     updatedAt: epochMsSchema,
   });
 }
 
-export const BasketballHallOfFameSchema = sportHallOfFameOf('Basketball');
+export const BasketballHallOfFameSchema = sportHallOfFameOf(
+  'Basketball',
+  SPORT_LINE_SCHEMAS.Basketball,
+);
 export type BasketballHallOfFame = z.infer<typeof BasketballHallOfFameSchema>;
 
-export const CurlingHallOfFameSchema = sportHallOfFameOf('Curling');
+export const CurlingHallOfFameSchema = sportHallOfFameOf('Curling', SPORT_LINE_SCHEMAS.Curling);
 export type CurlingHallOfFame = z.infer<typeof CurlingHallOfFameSchema>;
 
-export const FootballHallOfFameSchema = sportHallOfFameOf('Football');
+export const FootballHallOfFameSchema = sportHallOfFameOf('Football', SPORT_LINE_SCHEMAS.Football);
 export type FootballHallOfFame = z.infer<typeof FootballHallOfFameSchema>;
 
 export const SportHallOfFameSchema = z.discriminatedUnion('leagueType', [

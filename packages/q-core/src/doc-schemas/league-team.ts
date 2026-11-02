@@ -33,24 +33,27 @@ const leagueTeamBaseShape = {
   updatedAt: epochMsSchema,
 } as const;
 
-function leagueTeamOf<L extends LeagueType>(leagueType: L) {
+// The sport's line schemas come in as their own type parameters: indexing the line map by a generic
+// sport would type every option's lines as the union of every sport's.
+function leagueTeamOf<L extends LeagueType, S extends z.ZodType, R extends z.ZodType>(
+  leagueType: L,
+  lines: { teamSeason: S; membershipRow: R },
+) {
   return z.object({
     ...leagueTeamBaseShape,
     leagueType: z.literal(leagueType),
-    seasonStats: SPORT_LINE_SCHEMAS[leagueType].teamSeason.optional(),
-    playerSeasonStats: z
-      .record(userIdSchema, SPORT_LINE_SCHEMAS[leagueType].membershipRow)
-      .optional(),
+    seasonStats: z.optional(lines.teamSeason),
+    playerSeasonStats: z.optional(z.record(userIdSchema, lines.membershipRow)),
   });
 }
 
-export const BasketballLeagueTeamSchema = leagueTeamOf('Basketball');
+export const BasketballLeagueTeamSchema = leagueTeamOf('Basketball', SPORT_LINE_SCHEMAS.Basketball);
 export type BasketballLeagueTeam = z.infer<typeof BasketballLeagueTeamSchema>;
 
-export const CurlingLeagueTeamSchema = leagueTeamOf('Curling');
+export const CurlingLeagueTeamSchema = leagueTeamOf('Curling', SPORT_LINE_SCHEMAS.Curling);
 export type CurlingLeagueTeam = z.infer<typeof CurlingLeagueTeamSchema>;
 
-export const FootballLeagueTeamSchema = leagueTeamOf('Football');
+export const FootballLeagueTeamSchema = leagueTeamOf('Football', SPORT_LINE_SCHEMAS.Football);
 export type FootballLeagueTeam = z.infer<typeof FootballLeagueTeamSchema>;
 
 export const LeagueTeamSchema = z.discriminatedUnion('leagueType', [

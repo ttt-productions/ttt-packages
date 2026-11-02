@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../src/constants/sports.js';
 import { MAX_STAT_EVENTS_PER_GAME } from '../src/constants/business.js';
 import {
@@ -13,9 +13,18 @@ import {
   SportHallOfFameSchema,
   UserLifetimeStatsSchema,
 } from '../src/doc-schemas/aggregate-stats.js';
+import type {
+  BasketballHallOfFame,
+  BasketballPlayerTotals,
+  BasketballTeamSeasonStats,
+  CurlingHallOfFame,
+  GamesPlayedStats,
+  TeamSeasonBaseStats,
+} from '../src/doc-schemas/aggregate-stats.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import { GameStatHistoryRecordSchema } from '../src/doc-schemas/game-stat-history.js';
 import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
+import type { BasketballLeagueTeam, CurlingLeagueTeam } from '../src/doc-schemas/league-team.js';
 import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
 import { StatsOperationSchema } from '../src/doc-schemas/stats-operation.js';
 import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
@@ -776,6 +785,25 @@ describe("each sport's line schemas, declared once", () => {
       expect(option.shape.seasonStats.unwrap()).toBe(lines.teamSeason);
       expect(option.shape.playerSeasonStats.unwrap().valueType).toBe(lines.membershipRow);
     }
+  });
+
+  it("types each sport's team and hall-of-fame option with that sport's own lines", () => {
+    expectTypeOf<BasketballLeagueTeam['seasonStats']>().toEqualTypeOf<
+      BasketballTeamSeasonStats | undefined
+    >();
+    expectTypeOf<BasketballLeagueTeam['playerSeasonStats']>().toEqualTypeOf<
+      Record<string, BasketballPlayerTotals> | undefined
+    >();
+    expectTypeOf<CurlingLeagueTeam['seasonStats']>().toEqualTypeOf<
+      TeamSeasonBaseStats | undefined
+    >();
+    expectTypeOf<CurlingLeagueTeam['playerSeasonStats']>().toEqualTypeOf<
+      Record<string, GamesPlayedStats> | undefined
+    >();
+    expectTypeOf<BasketballHallOfFame['playerStats']>().toEqualTypeOf<
+      Record<string, BasketballPlayerTotals>
+    >();
+    expectTypeOf<CurlingHallOfFame['playerStats']>().toEqualTypeOf<Record<string, never>>();
   });
 
   it("gives every sport one hall-of-fame option, its entries from that sport's own hall-of-fame schema", () => {
