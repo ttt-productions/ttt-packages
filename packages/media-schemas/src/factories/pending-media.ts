@@ -52,9 +52,8 @@ export function createPendingMediaSchemas<
     pendingStoragePath: z.string().min(1),
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),
-    // The client sends these strict (RULE-STD-BACKEND-002); the stored copy reads plain.
-    clientContext: ClientContextSchema.strip(),
-    clientMediaClaim: ClientMediaClaimSchema.strip().optional(),
+    clientContext: ClientContextSchema,
+    clientMediaClaim: ClientMediaClaimSchema.optional(),
     publicationState: MediaPublicationStateSchema.optional(),
     moderationOverride: z.string().min(1).optional(),
     createdAt: z.number(),

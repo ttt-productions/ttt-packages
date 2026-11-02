@@ -14,7 +14,7 @@ import { PendingMediaSchema } from './pending-media.js';
 import { PictureRetirementSchema } from './picture-retirement.js';
 import { GameRosterPlayerSchema, SportGameSchema } from './sport-game.js';
 import { SportHallOfFameSchema } from './aggregate-stats.js';
-import { GameStatHistoryPageSchema } from './game-stat-history.js';
+import { GameStatHistoryRecordSchema } from './game-stat-history.js';
 import { GameStatEventSchema } from './game-stats.js';
 import { StatsOperationSchema } from './stats-operation.js';
 import { LeagueTeamContactSchema, LeagueTeamSchema } from './league-team.js';
@@ -67,7 +67,7 @@ export const COLLECTION_SCHEMAS = {
   'sportGames/{gameId}': SportGameSchema,
   'sportGames/{gameId}/gameRosterPlayers/{gameRosterPlayerId}': GameRosterPlayerSchema,
   'sportGames/{gameId}/gameStatEvents/{eventId}': GameStatEventSchema,
-  'sportGames/{gameId}/gameStatHistory/{pageId}': GameStatHistoryPageSchema,
+  'sportGames/{gameId}/gameStatHistory/record': GameStatHistoryRecordSchema,
   'gameLocations/{gameLocationId}': GameLocationSchema,
 
   'waiverTemplates/{waiverTemplateId}': WaiverTemplateSchema,

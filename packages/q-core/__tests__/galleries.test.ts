@@ -127,7 +127,11 @@ describe('the gallery summary on its owner', () => {
   });
 
   it('is the optional `pictures` field on leagues, teams, and the landing page — absent is an empty gallery', () => {
-    for (const schema of [SportLeagueSchema, LeagueTeamSchema, LandingPageConfigSchema]) {
+    for (const schema of [
+      SportLeagueSchema,
+      ...LeagueTeamSchema.options,
+      LandingPageConfigSchema,
+    ]) {
       const field = schema.shape.pictures;
       expect(field).toBeDefined();
       expect(field.safeParse(undefined).success).toBe(true);

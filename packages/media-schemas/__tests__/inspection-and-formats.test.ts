@@ -22,11 +22,14 @@ describe('ClientMediaClaimSchema', () => {
     expect(ClientMediaClaimSchema.parse({ kind: 'file', source: 'file-picker' }).kind).toBe('file');
   });
 
-  it('is strict — unknown fields and sources reject', () => {
+  it('refuses an unknown source', () => {
     expect(() => ClientMediaClaimSchema.parse({ kind: 'audio', source: 'guess' })).toThrow();
-    expect(() =>
-      ClientMediaClaimSchema.parse({ kind: 'audio', source: 'file-picker', extra: 1 }),
-    ).toThrow();
+  });
+
+  it('drops an undeclared field, and its strict copy refuses one', () => {
+    const claim = { kind: 'audio', source: 'file-picker', extra: 1 };
+    expect(ClientMediaClaimSchema.parse(claim)).toEqual({ kind: 'audio', source: 'file-picker' });
+    expect(() => ClientMediaClaimSchema.strict().parse(claim)).toThrow();
   });
 });
 

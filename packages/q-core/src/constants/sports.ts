@@ -11,7 +11,6 @@ import {
   FOOTBALL_SIX_POINT_EVENT_TYPE,
   FOOTBALL_TWO_POINT_EVENT_TYPE,
 } from '../types/sports.js';
-import { MAX_STAT_EVENTS_PER_GAME } from './business.js';
 import type {
   BasketballPlayerStatKey,
   BasketballStatEventType,
@@ -56,10 +55,6 @@ export const MAX_GAME_STATS_CORRECTION_TARGETS = 200;
 export const MAX_STATS_REPAIR_LISTED_CHANGES = 500;
 
 export const MAX_STATS_VALIDATION_DISCREPANCIES = 500;
-
-export const STAT_HISTORY_PAGE_SIZE = 1000;
-
-export const MAX_STAT_HISTORY_PAGES = Math.ceil(MAX_STAT_EVENTS_PER_GAME / STAT_HISTORY_PAGE_SIZE);
 
 export const FOOTBALL_POINTS_BY_EVENT_TYPE = {
   [FOOTBALL_SIX_POINT_EVENT_TYPE]: 6,

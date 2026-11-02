@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MAX_CURLING_ROUND_POINTS,
-  MAX_STAT_HISTORY_PAGES,
-  STAT_HISTORY_PAGE_SIZE,
-} from '../src/constants/sports.js';
+import { MAX_CURLING_ROUND_POINTS } from '../src/constants/sports.js';
 import { MAX_STAT_EVENTS_PER_GAME } from '../src/constants/business.js';
-import { buildStatHistoryPageId } from '../src/ids/stat-event-ids.js';
+import { GameStatHistoryRecordSchema } from '../src/doc-schemas/game-stat-history.js';
 import type { GameStatEvent } from '../src/doc-schemas/game-stats.js';
 import type { BasketballGameStats } from '../src/doc-schemas/sport-game.js';
 import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids.js';
@@ -14,11 +10,7 @@ import {
   sumGameContributions,
   type FinalizedGame,
 } from '../src/sports/contribution.js';
-import {
-  buildFinalizedRecordPages,
-  finalizedGameFromRecord,
-  readFinalizedRecord,
-} from '../src/sports/finalized-record.js';
+import { buildFinalizedRecord, finalizedGameFromRecord } from '../src/sports/finalized-record.js';
 import { gameScoreMirror } from '../src/sports/score-mirror.js';
 import { getSportAdapter } from '../src/sports/registry.js';
 import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings.js';
@@ -316,69 +308,26 @@ describe('the finalized record', () => {
   };
   const largest = eventsOf(MAX_STAT_EVENTS_PER_GAME);
 
-  it('holds every game the live event cap allows within its page cap', () => {
-    expect(MAX_STAT_HISTORY_PAGES).toBe(
-      Math.ceil(MAX_STAT_EVENTS_PER_GAME / STAT_HISTORY_PAGE_SIZE),
+  it('holds every event the live event cap allows, in sequence order, with its snapshot', () => {
+    const record = buildFinalizedRecord([...largest].reverse(), snapshot);
+    expect(record).toEqual({ events: largest, ...snapshot });
+    expect(GameStatHistoryRecordSchema.safeParse(record).success).toBe(true);
+  });
+
+  it('refuses to build a record past the live event cap', () => {
+    expect(() => buildFinalizedRecord(eventsOf(MAX_STAT_EVENTS_PER_GAME + 1), snapshot)).toThrow(
+      RangeError,
     );
-    const pages = buildFinalizedRecordPages(largest, snapshot);
-    expect(pages).toHaveLength(MAX_STAT_HISTORY_PAGES);
-    expect(pages[0]).toMatchObject({
-      pageId: buildStatHistoryPageId(0),
-      page: { pageCount: MAX_STAT_HISTORY_PAGES, ...snapshot },
-    });
   });
 
-  it('refuses to build a record past its page cap', () => {
-    const over = eventsOf(MAX_STAT_HISTORY_PAGES * STAT_HISTORY_PAGE_SIZE + 1);
-    expect(() => buildFinalizedRecordPages(over, snapshot)).toThrow(RangeError);
-  });
-
-  it('reads back every event in order with its snapshot, and replays it to the game it describes', () => {
-    const pages = buildFinalizedRecordPages(largest, snapshot);
-    expect(readFinalizedRecord(pages).events).toEqual(largest);
-    const game = finalizedGameFromRecord(basketball, pages);
+  it('replays the record to the game it describes', () => {
+    const game = finalizedGameFromRecord(basketball, buildFinalizedRecord(largest, snapshot));
     expect(game.stats.teamStats[A]).toEqual({ score: 0, timeouts: largest.length });
     expect(game.nonScoringRosterPlayerIds).toEqual(snapshot.nonScoringRosterPlayerIds);
   });
 
-  it('keeps a first page for a game with no events', () => {
-    const pages = buildFinalizedRecordPages([], snapshot);
-    expect(pages).toHaveLength(1);
-    expect(readFinalizedRecord(pages).events).toEqual([]);
-  });
-
-  describe('accepts only the exact page set', () => {
-    const [first] = buildFinalizedRecordPages(eventsOf(3), snapshot);
-    if (first === undefined) throw new Error('A record has its first page.');
-    const continuation = { pageId: buildStatHistoryPageId(1), page: { events: [eventAt(3)] } };
-
-    it('refuses no pages, and a set that does not start with the first page', () => {
-      expect(() => readFinalizedRecord([])).toThrow();
-      expect(() => readFinalizedRecord([continuation])).toThrow();
-    });
-
-    it('refuses a page beyond the count, even one that continues the events in order', () => {
-      expect(() => readFinalizedRecord([first, continuation])).toThrow();
-    });
-
-    it('refuses more pages than the cap before reading them as a record', () => {
-      const over = Array.from({ length: MAX_STAT_HISTORY_PAGES + 1 }, () => first);
-      expect(() => readFinalizedRecord(over)).toThrow(/at most/);
-    });
-
-    it('refuses the first page under any other id', () => {
-      expect(() =>
-        readFinalizedRecord([{ ...first, pageId: buildStatHistoryPageId(1) }]),
-      ).toThrow();
-    });
-
-    it('refuses a count the pages do not reach, and a second first page', () => {
-      const counted = { ...first, page: { ...first.page, pageCount: 2 } };
-      expect(() => readFinalizedRecord([counted])).toThrow();
-      expect(() =>
-        readFinalizedRecord([counted, { pageId: buildStatHistoryPageId(1), page: first.page }]),
-      ).toThrow();
-    });
+  it('keeps a record for a game with no events', () => {
+    expect(buildFinalizedRecord([], snapshot)).toEqual({ events: [], ...snapshot });
   });
 });
 

@@ -661,7 +661,7 @@ describe("the admin forms' text fields", () => {
 describe('a stored text the product edits keeps its edit form’s rule', () => {
   const STORED: [string, z.ZodType, DeclaredInputFormat][] = [
     ['profile display name', UserProfileSchema.shape.displayName, DISPLAY_NAME_INPUT],
-    ['team name', LeagueTeamSchema.shape.name, TEAM_NAME_INPUT],
+    ['team name', LeagueTeamSchema.options[0].shape.name, TEAM_NAME_INPUT],
     ['league title', SportLeagueSchema.shape.leagueTitle, LEAGUE_TITLE_INPUT],
     ['league description', SportLeagueSchema.shape.description, LEAGUE_DESCRIPTION_INPUT],
     ['venue name', GameLocationSchema.shape.name, GAME_LOCATION_NAME_INPUT],

@@ -77,4 +77,6 @@ export const SPECIAL_DOCS = {
   MIGRATION_CONSOLE: 'migrationConsole',
   GAME_LOCATION_REGISTRY: 'gameLocationRegistry',
   WAIVER_TEMPLATE_REGISTRY: 'waiverTemplateRegistry',
+
+  GAME_STAT_HISTORY_RECORD: 'record',
 } as const;

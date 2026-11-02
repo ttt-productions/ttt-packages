@@ -36,8 +36,8 @@
      confirms it; `AdminDispatchContextRefSchema` is the only one today).
   3. **The one union with no discriminator,**
      `safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}`: plain options no longer refuse
-     each other's fields, so a damaged item could read as a narrower option. Confirm each option's
-     required fields still keep them apart, or discriminate it.
+     each other's fields, so a damaged item could read as a narrower option. It must be
+     discriminated: `repo-guards-0.1.43.md` fails it.
   4. Tests that expected a stored schema to refuse an extra field now expect it dropped.
   5. `src/__tests__/guards/config/firestore.ts`: add `'storedDocumentSchemasPlain'` to the facts
      `Pick` and `storedDocumentSchemasPlain: { docSchemas }`.

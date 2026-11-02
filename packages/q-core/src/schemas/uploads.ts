@@ -105,7 +105,7 @@ export const AdminStartUploadInputSchema = z
     fileOrigin: pictureOriginSchema,
     storagePath: stagingUploadPathSchema,
     targetInfo: z.unknown(),
-    clientMediaClaim: ClientMediaClaimSchema.optional(),
+    clientMediaClaim: ClientMediaClaimSchema.strict().optional(),
   })
   .strict()
   .superRefine((input, context) => {

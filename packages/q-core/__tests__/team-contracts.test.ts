@@ -282,9 +282,10 @@ describe('team creation input', () => {
     ).toBe(false);
   });
 
-  it('takes no creator, captain id, or team fields the server owns', () => {
+  it('takes no creator, captain id, sport, or team fields the server owns', () => {
     for (const smuggled of [
       { createdByUserId: 'x' },
+      { leagueType: 'Basketball' },
       { captainUserId: 'x' },
       { seasonStats: {} },
       { pictures: {} },
@@ -471,6 +472,7 @@ describe('leagueTeams and its contact document', () => {
   const team = {
     name: 'Hoopers',
     icon: 'Shield',
+    leagueType: 'Basketball',
     leagueId: 'league-1',
     createdByUserId: 'u1',
     createdAt: NOW,
@@ -479,7 +481,9 @@ describe('leagueTeams and its contact document', () => {
 
   it('keeps no contact detail on the public team document', () => {
     expect(LeagueTeamSchema.safeParse(team).success).toBe(true);
-    expect(Object.keys(LeagueTeamSchema.shape)).not.toContain('contactPhone');
+    for (const option of LeagueTeamSchema.options) {
+      expect(Object.keys(option.shape)).not.toContain('contactPhone');
+    }
   });
 
   it('refuses a null team type — "no type" is the absent field', () => {

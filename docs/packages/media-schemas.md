@@ -37,7 +37,9 @@ byte authority), `MediaInspectionResultSchema` + `MediaSafetyPlanSchema` + the b
 inspector; its optional `durationSec` is the measured length in seconds, never the header's), and the generic supported-format registry (`MediaFormatIdSchema` enum in
 schemas.ts, catalog + `projectAcceptTokens` in format-registry.ts). `MediaAcceptSchema`
 gained the optional `formats` selection and `MediaProcessingResult` optionally carries the
-inspection. Policy (which formats an origin enables) lives in the app's registry, never here.
+inspection. `ClientMediaClaimSchema` and `ClientContextSchema` are plain, as every stored pending-media
+shape that carries them is; a callable input that takes one takes its `.strict()` copy. Policy (which
+formats an origin enables) lives in the app's registry, never here.
 
 ## Pending-media lifecycle decisions (pure)
 

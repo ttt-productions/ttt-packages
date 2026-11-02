@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { createPendingMediaSchemas } from '../src/factories/pending-media.js';
-import { ClientContextSchema, ClientMediaClaimSchema } from '../src/schemas.js';
 
 describe('createPendingMediaSchemas', () => {
   const fileOriginSchema = z.enum(['origin-a', 'origin-b']);
@@ -314,7 +313,7 @@ describe('stored client shapes', () => {
     domainEventSchema: z.object({ type: z.literal('test.event') }),
   });
 
-  it('reads the stored client context and media claim plain, while the client shapes stay strict', () => {
+  it('drops an undeclared field from the stored client context and media claim', () => {
     const doc = {
       id: 'm1',
       userId: 'u1',
@@ -330,7 +329,5 @@ describe('stored client shapes', () => {
     const parsed = schemas.PendingMediaPendingSchema.parse(doc);
     expect(parsed.clientContext).toEqual({ surface: 'tray' });
     expect(parsed.clientMediaClaim).toEqual({ kind: 'image', source: 'file-picker' });
-    expect(ClientContextSchema.safeParse(doc.clientContext).success).toBe(false);
-    expect(ClientMediaClaimSchema.safeParse(doc.clientMediaClaim).success).toBe(false);
   });
 });

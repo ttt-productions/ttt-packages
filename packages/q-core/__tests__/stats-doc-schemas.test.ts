@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  CURLING_ROUND_COUNT,
-  MAX_CURLING_ROUND_POINTS,
-  MAX_STAT_HISTORY_PAGES,
-  STAT_HISTORY_PAGE_SIZE,
-} from '../src/constants/sports.js';
+import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../src/constants/sports.js';
+import { MAX_STAT_EVENTS_PER_GAME } from '../src/constants/business.js';
 import {
   BasketballPlayerStatsSchema,
   GameStatEventSchema,
@@ -13,18 +9,12 @@ import {
 } from '../src/doc-schemas/game-stats.js';
 import {
   BasketballPlayerTotalsSchema,
-  PlayerSeasonStatsSchema,
   SPORT_LINE_SCHEMAS,
   SportHallOfFameSchema,
-  TeamSeasonStatsSchema,
   UserLifetimeStatsSchema,
 } from '../src/doc-schemas/aggregate-stats.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
-import {
-  GameStatHistoryFirstPageSchema,
-  GameStatHistoryPageSchema,
-  statHistoryPageSchemaFor,
-} from '../src/doc-schemas/game-stat-history.js';
+import { GameStatHistoryRecordSchema } from '../src/doc-schemas/game-stat-history.js';
 import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
 import { StatsOperationSchema } from '../src/doc-schemas/stats-operation.js';
@@ -32,11 +22,7 @@ import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
 import { repairReasonSchema } from '../src/doc-schemas/atoms.js';
 import { BYE_TEAM_ID } from '../src/ids/minted-ids.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
-import {
-  buildStatCorrectionId,
-  buildStatHistoryPageId,
-  buildStatVoidId,
-} from '../src/ids/stat-event-ids.js';
+import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids.js';
 import { ReopenGameInputSchema } from '../src/schemas/stats.js';
 import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports.js';
 import type { StatsOperationKind } from '../src/types/stats.js';
@@ -467,72 +453,50 @@ describe('the finalized record', () => {
     playerUserId: 'u1',
     type: 'REBOUND',
   });
-  const firstPage = {
+  const record = {
     events: [event(1), event(2)],
-    pageCount: 1,
     leagueType: BASKETBALL,
     teamIds: ['T1', 'T2'],
     rosterPlayerIds: [T1_U1, T2_U1],
     absentRosterPlayerIds: [T2_U1],
     nonScoringRosterPlayerIds: [T2_U1],
   };
-  const page = (doc: object) => GameStatHistoryPageSchema.safeParse(doc).success;
-  const first = (doc: object) =>
-    statHistoryPageSchemaFor(buildStatHistoryPageId(0)).safeParse(doc).success;
-  const later = statHistoryPageSchemaFor(buildStatHistoryPageId(1));
+  const accepts = (doc: object) => GameStatHistoryRecordSchema.safeParse(doc).success;
 
-  it('carries the sport, the teams, and the participation snapshot on its first page', () => {
-    expect(page(firstPage)).toBe(true);
-    expect(GameStatHistoryFirstPageSchema.safeParse(firstPage).success).toBe(true);
-    expect(statHistoryPageSchemaFor(buildStatHistoryPageId(0))).toBe(
-      GameStatHistoryFirstPageSchema,
-    );
-    const { teamIds: _teams, ...withoutTeams } = firstPage;
-    expect(first(withoutTeams)).toBe(false);
-    expect(first({ ...firstPage, rosterPlayerIds: ['u1'] })).toBe(false);
+  it('carries the sport, the teams, and the participation snapshot with its events', () => {
+    expect(accepts(record)).toBe(true);
+    const { teamIds: _teams, ...withoutTeams } = record;
+    expect(accepts(withoutTeams)).toBe(false);
+    const { leagueType: _sport, ...withoutSport } = record;
+    expect(accepts(withoutSport)).toBe(false);
+    expect(accepts({ ...record, rosterPlayerIds: ['u1'] })).toBe(false);
   });
 
-  it('reads a first page missing its snapshot as a continuation page under the union, which only its id refuses', () => {
-    const { teamIds: _teams, ...withoutTeams } = firstPage;
-    expect(GameStatHistoryPageSchema.parse(withoutTeams)).toEqual({ events: firstPage.events });
-    expect(first(withoutTeams)).toBe(false);
+  it('drops a field it does not declare, a page count included', () => {
+    expect(GameStatHistoryRecordSchema.parse({ ...record, pageCount: 1 })).toEqual(record);
   });
 
-  it('records a game with no events as a first page with none', () => {
-    expect(page({ ...firstPage, events: [] })).toBe(true);
+  it('records a game with no events', () => {
+    expect(accepts({ ...record, events: [] })).toBe(true);
   });
 
-  it('continues on later pages that hold events only', () => {
-    expect(page({ events: [event(1001)] })).toBe(true);
-    expect(page({ events: [] })).toBe(false);
-    expect(later.parse({ events: [event(1001)], pageCount: 2 })).toEqual({
-      events: [event(1001)],
-    });
-  });
-
-  it('holds its events in sequence order, at most one page size of them', () => {
-    expect(page({ ...firstPage, events: [event(2), event(1)] })).toBe(false);
-    expect(page({ ...firstPage, events: [event(1), event(1)] })).toBe(false);
-    const full = Array.from({ length: STAT_HISTORY_PAGE_SIZE }, (_, index) => event(index + 1));
-    expect(page({ ...firstPage, events: full })).toBe(true);
-    expect(page({ ...firstPage, events: [...full, event(STAT_HISTORY_PAGE_SIZE + 1)] })).toBe(
+  it('holds its events in sequence order, at most the live event cap of them', () => {
+    expect(accepts({ ...record, events: [event(2), event(1)] })).toBe(false);
+    expect(accepts({ ...record, events: [event(1), event(1)] })).toBe(false);
+    const full = Array.from({ length: MAX_STAT_EVENTS_PER_GAME }, (_, index) => event(index + 1));
+    expect(accepts({ ...record, events: full })).toBe(true);
+    expect(accepts({ ...record, events: [...full, event(MAX_STAT_EVENTS_PER_GAME + 1)] })).toBe(
       false,
     );
   });
 
-  it('counts no more pages than the page cap', () => {
-    expect(page({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES })).toBe(true);
-    expect(first({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES + 1 })).toBe(false);
-    expect(first({ ...firstPage, pageCount: Number.MAX_SAFE_INTEGER })).toBe(false);
-  });
-
   it('holds only valid stored events', () => {
-    expect(page({ ...firstPage, events: [{ ...event(1), type: 'FOUL' }] })).toBe(false);
+    expect(accepts({ ...record, events: [{ ...event(1), type: 'FOUL' }] })).toBe(false);
   });
 
-  it('is bound in the registry to its path', () => {
-    expect(COLLECTION_SCHEMAS['sportGames/{gameId}/gameStatHistory/{pageId}']).toBe(
-      GameStatHistoryPageSchema,
+  it('is bound in the registry to its one document', () => {
+    expect(COLLECTION_SCHEMAS['sportGames/{gameId}/gameStatHistory/record']).toBe(
+      GameStatHistoryRecordSchema,
     );
   });
 });
@@ -662,23 +626,41 @@ describe('aggregate lines', () => {
     fantasyPoints: 153,
   };
 
+  const teamOf = (leagueType: string, lines: object) => ({
+    name: 'Hoopers',
+    icon: 'Shield',
+    leagueType,
+    leagueId: 'league-1',
+    createdByUserId: 'u1',
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...lines,
+  });
+  const hallOf = (leagueType: string, playerStats: object) => ({
+    leagueType,
+    playerStats,
+    updatedAt: NOW,
+  });
+  const team = (leagueType: string, lines: object) =>
+    LeagueTeamSchema.safeParse(teamOf(leagueType, lines)).success;
+  const hall = (leagueType: string, playerStats: object) =>
+    SportHallOfFameSchema.safeParse(hallOf(leagueType, playerStats)).success;
+  const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
+
   it("stores a team season line with the standings base, and basketball's rebounds and assists", () => {
-    expect(TeamSeasonStatsSchema.safeParse(baseSeason).success).toBe(true);
-    expect(
-      TeamSeasonStatsSchema.safeParse({ ...baseSeason, rebounds: 180, assists: 70 }).success,
-    ).toBe(true);
-    expect(
-      SPORT_LINE_SCHEMAS.Basketball.teamSeason.safeParse({ ...baseSeason, rebounds: 180 }).success,
-    ).toBe(false);
+    expect(team(BASKETBALL, { seasonStats: { ...baseSeason, rebounds: 180, assists: 70 } })).toBe(
+      true,
+    );
+    expect(team(CURLING, { seasonStats: baseSeason })).toBe(true);
+    expect(team(BASKETBALL, { seasonStats: baseSeason })).toBe(false);
   });
 
-  it("reads a line as the first sport's line it holds, so its sport's own line schema checks it", () => {
-    expect(TeamSeasonStatsSchema.parse({ ...baseSeason, rebounds: 180 })).toEqual(baseSeason);
-    const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
-    expect(PlayerSeasonStatsSchema.parse(withoutFantasyPoints)).toEqual({ gamesPlayed: 6 });
-    expect(
-      SPORT_LINE_SCHEMAS.Basketball.membershipRow.safeParse(withoutFantasyPoints).success,
-    ).toBe(false);
+  it("reads a team's lines by the sport it stores, so a damaged line is refused, never read as another sport's", () => {
+    expect(team(BASKETBALL, { seasonStats: { ...baseSeason, rebounds: 180 } })).toBe(false);
+    expect(team(BASKETBALL, { playerSeasonStats: { u1: withoutFantasyPoints } })).toBe(false);
+    const { leagueType: _sport, ...withoutSport } = teamOf(BASKETBALL, { seasonStats: baseSeason });
+    expect(LeagueTeamSchema.safeParse(withoutSport).success).toBe(false);
+    expect(team('Hockey', {})).toBe(false);
   });
 
   it('stores no derived or unread field on a season line', () => {
@@ -687,22 +669,37 @@ describe('aggregate lines', () => {
       { lastGameId: 'recalculated' },
       { lastUpdatedAt: NOW },
     ]) {
-      expect(TeamSeasonStatsSchema.parse({ ...baseSeason, ...extra })).toEqual(baseSeason);
+      expect(SPORT_LINE_SCHEMAS.Curling.teamSeason.parse({ ...baseSeason, ...extra })).toEqual(
+        baseSeason,
+      );
     }
     expect(
-      TeamSeasonStatsSchema.parse({ ...baseSeason, rebounds: 180, assists: 70, fantasyPoints: 1 }),
+      SPORT_LINE_SCHEMAS.Basketball.teamSeason.parse({
+        ...baseSeason,
+        rebounds: 180,
+        assists: 70,
+        fantasyPoints: 1,
+      }),
     ).toEqual({ ...baseSeason, rebounds: 180, assists: 70 });
+    expect(
+      LeagueTeamSchema.parse(teamOf(CURLING, { seasonStats: { ...baseSeason, rebounds: 1 } })),
+    ).toMatchObject({ seasonStats: baseSeason });
   });
 
   it('stores a membership row as a basketball line with fantasy points, or games played alone', () => {
-    expect(PlayerSeasonStatsSchema.safeParse(basketballRow).success).toBe(true);
-    expect(PlayerSeasonStatsSchema.safeParse({ gamesPlayed: 5 }).success).toBe(true);
-    expect(PlayerSeasonStatsSchema.parse({ gamesPlayed: 5, displayName: 'Pat', fouls: 2 })).toEqual(
-      {
+    const row = (leagueType: string, line: object) =>
+      team(leagueType, { playerSeasonStats: { u1: line } });
+    expect(row(BASKETBALL, basketballRow)).toBe(true);
+    expect(row(FOOTBALL, { gamesPlayed: 5 })).toBe(true);
+    expect(row(BASKETBALL, { gamesPlayed: 5 })).toBe(false);
+    expect(row(FOOTBALL, { gamesPlayed: -1 })).toBe(false);
+    expect(
+      SPORT_LINE_SCHEMAS.Football.membershipRow.parse({
         gamesPlayed: 5,
-      },
-    );
-    expect(PlayerSeasonStatsSchema.safeParse({ gamesPlayed: -1 }).success).toBe(false);
+        displayName: 'Pat',
+        fouls: 2,
+      }),
+    ).toEqual({ gamesPlayed: 5 });
   });
 
   it('stores a basketball totals line as the game line plus games played, and nothing else', () => {
@@ -719,18 +716,17 @@ describe('aggregate lines', () => {
   });
 
   it('carries both on the team document, the rows keyed by person', () => {
-    const { seasonStats, playerSeasonStats } = LeagueTeamSchema.shape;
-    expect(seasonStats.safeParse({ ...baseSeason, rebounds: 180, assists: 70 }).success).toBe(true);
-    expect(seasonStats.safeParse(undefined).success).toBe(true);
+    expect(team(BASKETBALL, {})).toBe(true);
     expect(
-      playerSeasonStats.safeParse({
-        u1: basketballRow,
-        ghost_1_abc: { ...basketballRow, gamesPlayed: 2 },
-      }).success,
+      team(BASKETBALL, {
+        playerSeasonStats: { u1: basketballRow, ghost_1_abc: { ...basketballRow, gamesPlayed: 2 } },
+      }),
     ).toBe(true);
-    expect(playerSeasonStats.parse({ u1: { gamesPlayed: 1, points: 3 } })).toEqual({
-      u1: { gamesPlayed: 1 },
-    });
+    expect(
+      LeagueTeamSchema.parse(
+        teamOf(CURLING, { playerSeasonStats: { u1: { gamesPlayed: 1, points: 3 } } }),
+      ),
+    ).toMatchObject({ playerSeasonStats: { u1: { gamesPlayed: 1 } } });
   });
 
   it('keeps a lifetime line per sport a real player played, and no career summary beside it', () => {
@@ -744,20 +740,21 @@ describe('aggregate lines', () => {
     expect(lifetimeStats.parse({ curling: { gamesPlayed: 2, points: 4 } })).toEqual({
       curling: { gamesPlayed: 2 },
     });
-    const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
     expect(lifetimeStats.safeParse({ basketball: withoutFantasyPoints }).success).toBe(false);
   });
 
-  it('keeps hall-of-fame entries as basketball lines with fantasy points', () => {
-    expect(
-      SportHallOfFameSchema.safeParse({ playerStats: { u1: basketballRow }, updatedAt: NOW })
-        .success,
-    ).toBe(true);
-    const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
-    expect(
-      SportHallOfFameSchema.safeParse({ playerStats: { u1: withoutFantasyPoints }, updatedAt: NOW })
-        .success,
-    ).toBe(false);
+  it('keeps hall-of-fame entries as basketball lines with fantasy points, under the sport the document stores', () => {
+    expect(hall(BASKETBALL, { u1: basketballRow })).toBe(true);
+    expect(hall(BASKETBALL, { u1: withoutFantasyPoints })).toBe(false);
+    const { leagueType: _sport, ...withoutSport } = hallOf(BASKETBALL, { u1: basketballRow });
+    expect(SportHallOfFameSchema.safeParse(withoutSport).success).toBe(false);
+  });
+
+  it('holds no entry for a sport with no hall-of-fame line', () => {
+    for (const leagueType of [CURLING, FOOTBALL]) {
+      expect(hall(leagueType, {})).toBe(true);
+      expect(hall(leagueType, { u1: { gamesPlayed: 3 } })).toBe(false);
+    }
   });
 });
 
@@ -770,20 +767,25 @@ describe("each sport's line schemas, declared once", () => {
     }
   });
 
-  it("builds the membership row and the season line from each sport's own line schemas", () => {
-    for (const leagueType of LEAGUE_TYPE_KEYS) {
-      expect(PlayerSeasonStatsSchema.options).toContain(
-        SPORT_LINE_SCHEMAS[leagueType].membershipRow,
-      );
-      expect(TeamSeasonStatsSchema.options).toContain(SPORT_LINE_SCHEMAS[leagueType].teamSeason);
+  it("gives every sport one team option, its season line and membership rows from that sport's own line schemas", () => {
+    expect(LeagueTeamSchema.options.map((option) => option.shape.leagueType.value)).toEqual([
+      ...LEAGUE_TYPE_KEYS,
+    ]);
+    for (const option of LeagueTeamSchema.options) {
+      const lines = SPORT_LINE_SCHEMAS[option.shape.leagueType.value];
+      expect(option.shape.seasonStats.unwrap()).toBe(lines.teamSeason);
+      expect(option.shape.playerSeasonStats.unwrap().valueType).toBe(lines.membershipRow);
     }
   });
 
-  it("builds the hall-of-fame entry from each sport's own hall-of-fame schema, which is never for a sport with no hall of fame", () => {
-    const entry = SportHallOfFameSchema.shape.playerStats.valueType;
-    for (const leagueType of LEAGUE_TYPE_KEYS) {
-      expect(entry.options).toContain(SPORT_LINE_SCHEMAS[leagueType].hallOfFame);
+  it("gives every sport one hall-of-fame option, its entries from that sport's own hall-of-fame schema", () => {
+    expect(SportHallOfFameSchema.options.map((option) => option.shape.leagueType.value)).toEqual([
+      ...LEAGUE_TYPE_KEYS,
+    ]);
+    for (const option of SportHallOfFameSchema.options) {
+      expect(option.shape.playerStats.valueType).toBe(
+        SPORT_LINE_SCHEMAS[option.shape.leagueType.value].hallOfFame,
+      );
     }
-    expect(entry.safeParse({ gamesPlayed: 3 }).success).toBe(false);
   });
 });

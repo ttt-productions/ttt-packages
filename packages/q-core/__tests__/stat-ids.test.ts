@@ -4,7 +4,6 @@ import { buildGhostUserId } from '../src/ids/minted-ids.js';
 import {
   buildStatCorrectionId,
   buildStatEventId,
-  buildStatHistoryPageId,
   buildStatVoidId,
 } from '../src/ids/stat-event-ids.js';
 
@@ -64,20 +63,5 @@ describe('stat event ids', () => {
     expect(id).not.toBe(buildStatCorrectionId('migration', playerLine, 'rebounds'));
     expect(id).not.toBe(buildStatCorrectionId('op-2', playerLine, 'points'));
     expect(id).not.toBe(buildStatCorrectionId('migration', TEAM, 'points'));
-  });
-});
-
-describe('finalized-record page ids', () => {
-  it('numbers the pages from zero, padded so they sort in page order', () => {
-    expect(buildStatHistoryPageId(0)).toBe('page_0000');
-    expect(buildStatHistoryPageId(12)).toBe('page_0012');
-    const ids = [10, 2, 0, 1].map(buildStatHistoryPageId);
-    expect([...ids].sort()).toEqual([0, 1, 2, 10].map(buildStatHistoryPageId));
-  });
-
-  it('refuses an index that is not a whole number from zero', () => {
-    expect(() => buildStatHistoryPageId(-1)).toThrow(RangeError);
-    expect(() => buildStatHistoryPageId(1.5)).toThrow(RangeError);
-    expect(() => buildStatHistoryPageId(Number.NaN)).toThrow(RangeError);
   });
 });

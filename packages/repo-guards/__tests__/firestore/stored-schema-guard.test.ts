@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
+  findGuessingStoredUnions,
   findNonPlainStoredSchemas,
   storedDocumentSchemaGuard,
   type StoredDocumentSchemaFacts,
@@ -109,7 +110,7 @@ describe('every stored-document schema is plain', () => {
     ]);
   });
 
-  it('runs as one guard over the loaded registry', async () => {
+  it('runs as the first check of the guard over the loaded registry', async () => {
     const [guard] = buildOf(
       storedDocumentSchemaGuard,
       registry({ 'teams/{teamId}': z.strictObject({ name: z.string() }) }),
@@ -125,5 +126,70 @@ describe('every stored-document schema is plain', () => {
     expect(factProblemsOf(storedDocumentSchemaGuard, {})).toEqual([
       'docSchemas needs a loader function',
     ]);
+  });
+});
+
+describe('no stored document is read through a union that guesses its shape', () => {
+  const findUnions = (facts: StoredDocumentSchemaFacts) =>
+    findGuessingStoredUnions(facts, contextWithCore());
+  const basketball = z.object({ sport: z.literal('basketball'), rebounds: z.number() });
+  const curling = z.object({ sport: z.literal('curling'), ends: z.number() });
+
+  it('PASSES a discriminated union of object shapes, and a union of values that are not object shapes', async () => {
+    expect(
+      await findUnions(
+        registry({
+          'teams/{teamId}': z.object({
+            line: z.discriminatedUnion('sport', [basketball, curling]),
+            value: z.union([z.number(), z.string(), z.record(z.string(), z.number()), z.null()]),
+            maybe: z.union([z.null(), basketball]),
+          }),
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('FAILS a plain union of two object shapes at any depth, named once at the first document path', async () => {
+    const Guess = z.union([z.object({ wins: z.number() }), z.object({ ends: z.number() })]);
+    expect(
+      await findUnions(
+        registry({
+          'teams/{teamId}': z.object({ season: Guess.optional() }),
+          'games/{gameId}': z.object({ rows: z.record(z.string(), Guess) }),
+          'awards/{id}': z.array(z.union([basketball, curling])),
+        }),
+      ),
+    ).toEqual([
+      {
+        file: 'teams/{teamId}',
+        detail: 'teams/{teamId}.season: a union of object shapes with no discriminator',
+      },
+      {
+        file: 'awards/{id}',
+        detail: 'awards/{id}[]: a union of object shapes with no discriminator',
+      },
+    ]);
+  });
+
+  it('FAILS a plain union whose member is a discriminated union beside another object shape', async () => {
+    const findings = await findUnions(
+      registry({
+        'archive/{id}': z.union([
+          z.discriminatedUnion('sport', [basketball, curling]),
+          z.object({ parseFailed: z.literal(true) }),
+        ]),
+      }),
+    );
+    expect(findings.map((finding) => finding.detail)).toEqual([
+      'archive/{id}: a union of object shapes with no discriminator',
+    ]);
+  });
+
+  it('runs as the second check of the guard over the loaded registry', async () => {
+    const [, guard] = buildOf(
+      storedDocumentSchemaGuard,
+      registry({ 'teams/{teamId}': z.union([basketball, curling]) }),
+    );
+    expect(await guard!.run(contextWithCore())).toHaveLength(1);
   });
 });

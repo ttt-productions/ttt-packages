@@ -295,12 +295,10 @@ export const ClientMediaClaimSourceSchema = z.enum([
 ]);
 export type ClientMediaClaimSource = z.infer<typeof ClientMediaClaimSourceSchema>;
 
-export const ClientMediaClaimSchema = z
-  .object({
-    kind: MediaKindSchema,
-    source: ClientMediaClaimSourceSchema,
-  })
-  .strict();
+export const ClientMediaClaimSchema = z.object({
+  kind: MediaKindSchema,
+  source: ClientMediaClaimSourceSchema,
+});
 export type ClientMediaClaim = z.infer<typeof ClientMediaClaimSchema>;
 
 export const MediaInspectionStatusSchema = z.enum([
@@ -421,16 +419,14 @@ export function parseMediaProcessingResult(input: unknown) {
   return MediaProcessingResultSchema.parse(input);
 }
 
-export const ClientContextSchema = z
-  .object({
-    surface: z.string().min(1),
-    targetIds: z
-      .array(
-        z
-          .string()
-          .min(1)
-          .refine((id) => id === id.trim()),
-      )
-      .optional(),
-  })
-  .strict();
+export const ClientContextSchema = z.object({
+  surface: z.string().min(1),
+  targetIds: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .refine((id) => id === id.trim()),
+    )
+    .optional(),
+});

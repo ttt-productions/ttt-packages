@@ -98,16 +98,11 @@ export const PATH_BUILDERS = {
     gameId,
     SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_EVENTS,
   ],
-  gameStatHistoryPage: (gameId: string, pageId: string): [string, string, string, string] => [
+  gameStatHistoryRecord: (gameId: string): [string, string, string, string] => [
     COLLECTIONS.SPORT_GAMES,
     gameId,
     SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_HISTORY,
-    pageId,
-  ],
-  gameStatHistory: (gameId: string): [string, string, string] => [
-    COLLECTIONS.SPORT_GAMES,
-    gameId,
-    SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_HISTORY,
+    SPECIAL_DOCS.GAME_STAT_HISTORY_RECORD,
   ],
   gameLocation: (gameLocationId: string): [string, string] => [
     COLLECTIONS.GAME_LOCATIONS,

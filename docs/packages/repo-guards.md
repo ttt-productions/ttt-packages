@@ -90,8 +90,9 @@ aliases, its owner files, its reviewed exceptions — never logic.
 - `./node/tooling` — the repository tooling; runs under Node.
 - `./seed` — `createRegistrySeedWriter`, `registeredSchemaForPath`.
 - `./zod-shape` — `kindOf`, `unwrap`, `objectShape`, `arrayElement`, `compositeMembers`, `knownKeys`,
-  plus `objectMode` / `reachedObjects` (the walk the `storedDocumentSchemasPlain` guard runs over a
-  document registry) and `unknownFieldPaths` (the undeclared fields a stored value holds at any depth,
+  plus `objectMode` / `reachedObjects` and `guessingUnions` (the walks the `storedDocumentSchemasPlain`
+  guard runs over a document registry: every object's unknown-key mode, and every union of object
+  shapes with no discriminator) and `unknownFieldPaths` (the undeclared fields a stored value holds at any depth,
   for an app's drift check).
 
 ## Guarantees

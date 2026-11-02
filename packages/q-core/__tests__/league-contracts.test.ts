@@ -444,6 +444,7 @@ describe('the one team-type union', () => {
     const team = {
       name: 'Hoopers',
       icon: 'Shield',
+      leagueType: 'Basketball',
       leagueId: 'L1',
       createdByUserId: 'u1',
       createdAt: NOW,

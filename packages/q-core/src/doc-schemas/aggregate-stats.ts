@@ -66,18 +66,6 @@ export const SPORT_LINE_SCHEMAS = {
   },
 } as const satisfies Record<LeagueType, Record<StatLineKind, z.ZodType>>;
 
-// Every sport's line is plain, so a line reads as the first sport's line it holds; the sport's own
-// line in SPORT_LINE_SCHEMAS is what checks a line against its sport.
-function lineOfAnySport<K extends StatLineKind>(kind: K) {
-  return z.union(LEAGUE_TYPE_KEYS.map((leagueType) => SPORT_LINE_SCHEMAS[leagueType][kind]));
-}
-
-export const TeamSeasonStatsSchema = lineOfAnySport('teamSeason');
-export type TeamSeasonStats = z.infer<typeof TeamSeasonStatsSchema>;
-
-export const PlayerSeasonStatsSchema = lineOfAnySport('membershipRow');
-export type PlayerSeasonStats = z.infer<typeof PlayerSeasonStatsSchema>;
-
 type LifetimeLinesShape = {
   [L in LeagueType as (typeof SPORT_KEY_BY_LEAGUE_TYPE)[L]]: z.ZodOptional<
     (typeof SPORT_LINE_SCHEMAS)[L]['lifetime']
@@ -97,8 +85,26 @@ export const UserLifetimeStatsSchema = z.object(
 );
 export type UserLifetimeStats = z.infer<typeof UserLifetimeStatsSchema>;
 
-export const SportHallOfFameSchema = z.object({
-  playerStats: z.record(userIdSchema, lineOfAnySport('hallOfFame')),
-  updatedAt: epochMsSchema,
-});
+function sportHallOfFameOf<L extends LeagueType>(leagueType: L) {
+  return z.object({
+    leagueType: z.literal(leagueType),
+    playerStats: z.record(userIdSchema, SPORT_LINE_SCHEMAS[leagueType].hallOfFame),
+    updatedAt: epochMsSchema,
+  });
+}
+
+export const BasketballHallOfFameSchema = sportHallOfFameOf('Basketball');
+export type BasketballHallOfFame = z.infer<typeof BasketballHallOfFameSchema>;
+
+export const CurlingHallOfFameSchema = sportHallOfFameOf('Curling');
+export type CurlingHallOfFame = z.infer<typeof CurlingHallOfFameSchema>;
+
+export const FootballHallOfFameSchema = sportHallOfFameOf('Football');
+export type FootballHallOfFame = z.infer<typeof FootballHallOfFameSchema>;
+
+export const SportHallOfFameSchema = z.discriminatedUnion('leagueType', [
+  BasketballHallOfFameSchema,
+  CurlingHallOfFameSchema,
+  FootballHallOfFameSchema,
+]);
 export type SportHallOfFame = z.infer<typeof SportHallOfFameSchema>;

@@ -7,7 +7,9 @@ export {
   knownKeys,
   objectMode,
   reachedObjects,
+  guessingUnions,
   unknownFieldPaths,
   type ObjectMode,
   type ReachedObject,
+  type GuessingUnion,
 } from './zod-shape.js';

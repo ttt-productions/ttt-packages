@@ -27,13 +27,3 @@ export function buildStatCorrectionId(
 ): string {
   return [STAT_CORRECTION_ID_PREFIX, operationId, lineKey, field].join(COMPOUND_ID_SEPARATOR);
 }
-
-// Zero-padded so the pages of one record sort in page order by id.
-const STAT_HISTORY_PAGE_INDEX_WIDTH = 4;
-
-export function buildStatHistoryPageId(index: number): string {
-  if (!Number.isSafeInteger(index) || index < 0) {
-    throw new RangeError(`A finalized-record page index is a whole number from 0, not ${index}.`);
-  }
-  return `page${COMPOUND_ID_SEPARATOR}${String(index).padStart(STAT_HISTORY_PAGE_INDEX_WIDTH, '0')}`;
-}

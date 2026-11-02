@@ -131,20 +131,23 @@ export interface ReachedObject {
   readonly mode: ObjectMode;
 }
 
-// Every object schema a schema reaches, each once, at the first path it is reached by: object
-// fields (`.field`), array and set elements (`[]`), record and map values (`.*`), union and
-// intersection members and tuple items (`|n`), both sides of a pipe, and a lazy schema's target.
-export function reachedObjects(schema: unknown, path = ''): ReachedObject[] {
-  const reached: ReachedObject[] = [];
+// Every schema a schema reaches, each once, at the first path it is reached by: object fields
+// (`.field`), array and set elements (`[]`), record and map values (`.*`), union and intersection
+// members and tuple items (`|n`), both sides of a pipe, and a lazy schema's target.
+function walkSchema(
+  schema: unknown,
+  path: string,
+  onSchema: (reached: unknown, at: string) => void,
+): void {
   const seen = new Set<unknown>();
   const visit = (s: unknown, at: string) => {
     if (!defOf(s) || seen.has(s)) return;
     seen.add(s);
+    onSchema(s, at);
     const def = defOf(s)!;
     const kind = kindOf(s);
     const mode = objectMode(s);
     if (mode) {
-      reached.push({ schema: s, path: at, mode });
       for (const [key, field] of Object.entries(objectShape(s) ?? {})) visit(field, `${at}.${key}`);
       if (mode !== 'strict' && mode !== 'plain') visit(def.catchall, `${at}.*`);
       return;
@@ -171,15 +174,56 @@ export function reachedObjects(schema: unknown, path = ''): ReachedObject[] {
       visit(def.schema, at);
       return;
     }
-    const members = compositeMembers(s);
-    if (members) {
-      members.forEach((member, index) => visit(member, `${at}|${index}`));
+    if (def.innerType) {
+      visit(def.innerType, at);
       return;
     }
-    if (def.innerType) visit(def.innerType, at);
+    compositeMembers(s)?.forEach((member, index) => visit(member, `${at}|${index}`));
   };
   visit(schema, path);
+}
+
+export function reachedObjects(schema: unknown, path = ''): ReachedObject[] {
+  const reached: ReachedObject[] = [];
+  walkSchema(schema, path, (s, at) => {
+    const mode = objectMode(s);
+    if (mode) reached.push({ schema: s, path: at, mode });
+  });
   return reached;
+}
+
+// Zod 4 builds a discriminated union as a union that carries its discriminator; Zod 3 gives it a
+// kind of its own.
+function isDiscriminatedUnion(schema: unknown): boolean {
+  const kind = kindOf(schema);
+  if (kind === 'discriminatedunion' || kind === 'discriminated_union') return true;
+  return typeof (defOf(schema) as { discriminator?: unknown } | null)?.discriminator === 'string';
+}
+
+function holdsObjectShape(schema: unknown): boolean {
+  if (objectShape(schema)) return true;
+  const kind = kindOf(unwrap(schema));
+  if (kind !== 'union' && kind !== 'intersection' && !isDiscriminatedUnion(unwrap(schema)))
+    return false;
+  return (compositeMembers(schema) ?? []).some(holdsObjectShape);
+}
+
+export interface GuessingUnion {
+  readonly schema: unknown;
+  readonly path: string;
+}
+
+// Every union a schema reaches that holds two or more object shapes and no discriminator: a value
+// is read as the first member it happens to parse as, so a damaged value of one shape can be read
+// as another.
+export function guessingUnions(schema: unknown, path = ''): GuessingUnion[] {
+  const found: GuessingUnion[] = [];
+  walkSchema(schema, path, (s, at) => {
+    if (kindOf(s) !== 'union' || isDiscriminatedUnion(s)) return;
+    if ((compositeMembers(s) ?? []).filter(holdsObjectShape).length >= 2)
+      found.push({ schema: s, path: at });
+  });
+  return found;
 }
 
 // The fields a stored value holds that its schema does not name, at every depth the schema

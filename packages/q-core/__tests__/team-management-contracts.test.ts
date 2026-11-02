@@ -144,6 +144,7 @@ describe("a team's schedule revision", () => {
   const team = {
     name: 'Hoopers',
     icon: 'Shield',
+    leagueType: 'Basketball',
     leagueId: 'league-1',
     createdByUserId: 'creator-1',
     createdAt: 1,

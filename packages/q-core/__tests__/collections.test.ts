@@ -69,9 +69,6 @@ describe('path builders', () => {
       'sportGames/g1/gameRosterPlayers/T_u1',
     );
     expect(toPath(PATH_BUILDERS.gameStatEvent('g1', 'e1'))).toBe('sportGames/g1/gameStatEvents/e1');
-    expect(toPath(PATH_BUILDERS.gameStatHistoryPage('g1', 'page_0000'))).toBe(
-      'sportGames/g1/gameStatHistory/page_0000',
-    );
     expect(toPath(PATH_BUILDERS.statsOperation('op1'))).toBe('statsOperations/op1');
     expect(toPath(PATH_BUILDERS.historicalStat('u1', 'basketball'))).toBe(
       'userProfiles/u1/historicalStats/basketball',
@@ -85,6 +82,9 @@ describe('path builders', () => {
     expect(toPath(PATH_BUILDERS.statsBeacon())).toBe('_appConfig/statsBeacon');
     expect(toPath(PATH_BUILDERS.adminList())).toBe('_systemData/adminList');
     expect(toPath(PATH_BUILDERS.migrationConsole())).toBe('_serverData/migrationConsole');
+    expect(toPath(PATH_BUILDERS.gameStatHistoryRecord('g1'))).toBe(
+      'sportGames/g1/gameStatHistory/record',
+    );
   });
 
   it('address a waiver template version by the version number, through its one id builder', () => {
@@ -99,9 +99,6 @@ describe('path builders', () => {
     );
     expect(PATH_BUILDERS.gameStatEvents('g1')).toEqual(
       PATH_BUILDERS.gameStatEvent('g1', 'x').slice(0, 3),
-    );
-    expect(PATH_BUILDERS.gameStatHistory('g1')).toEqual(
-      PATH_BUILDERS.gameStatHistoryPage('g1', 'x').slice(0, 3),
     );
     expect(PATH_BUILDERS.historicalStats('u1')).toEqual(
       PATH_BUILDERS.historicalStat('u1', 'curling').slice(0, 3),

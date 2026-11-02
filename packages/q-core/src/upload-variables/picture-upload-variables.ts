@@ -27,7 +27,7 @@ export const PictureUploadVariablesSchema = z
   .object({
     target: PictureUploadTargetSchema,
     file: z.instanceof(File),
-    claim: ClientMediaClaimSchema.optional(),
+    claim: ClientMediaClaimSchema.strict().optional(),
     onProgress: onProgressSchema,
     signal: z.instanceof(AbortSignal).optional(),
   })
