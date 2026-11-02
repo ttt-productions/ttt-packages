@@ -1,17 +1,20 @@
-# Adopt @ttt-productions/repo-guards 0.1.41
+# Adopt @ttt-productions/repo-guards 0.1.42
 
 **What:** A new guard fails any strict, passthrough, or catchall object in a stored-document schema; ttt-core's stored schemas become plain to pass it.
 **Severity:** medium
 **Came from:** the Q-Sports stored-document-schemas-are-plain ttt-packages session
 
-- **Package and version:** `@ttt-productions/repo-guards` 0.1.41.
-- **Release:** `./scripts/release-multiple.sh dev-standards repo-guards media-schemas q-core patch`.
+- **Package and version:** `@ttt-productions/repo-guards` 0.1.42 (0.1.41 first shipped the guard;
+  0.1.42 makes it read the installed core build, so the suite counts it as checking something).
+- **Release:** `./scripts/release-multiple.sh dev-standards repo-guards media-schemas q-core patch`,
+  then `./scripts/release-multiple.sh repo-guards patch`.
 - **What changed:**
   - New generic guard `storedDocumentSchemasPlain` ("every stored-document schema is plain"), facts
     `{ docSchemas }` — the core's `doc-schemas` loader. It walks every schema `COLLECTION_SCHEMAS`
     reaches (fields, arrays, records, unions, intersections, tuples, pipes, lazy schemas) and fails
     each strict, passthrough, or catchall object once, at the first document path that reaches it.
-    `absentWhen`: the app stores nothing in Firestore.
+    It reads the layout's `coreDist` build, and an installed core with no compiled module is a
+    finding. `absentWhen`: the app stores nothing in Firestore.
   - `./zod-shape` adds `objectMode`, `reachedObjects`, and `unknownFieldPaths(schema, value)` — the
     undeclared fields a stored value holds at every depth the schema declares.
 - **What the app must change (packages-first: the ttt-core part is a ttt-packages change and its
@@ -41,5 +44,5 @@
   6. `scripts/firestore-drift-check.mjs`: report nested unknown fields through `unknownFieldPaths`
      (plain reads now drop them silently) in place of the top-level `knownKeys` check.
 - **Done when:** ttt-core holds no strict, passthrough, or catchall stored schema and is released and
-  installed, the lockfiles name `@ttt-productions/repo-guards` 0.1.41 or later, the guard runs green
+  installed, the lockfiles name `@ttt-productions/repo-guards` 0.1.42 or later, the guard runs green
   in ttt-prod's suite, and the drift check reports nested unknown fields.

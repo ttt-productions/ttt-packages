@@ -1,22 +1,48 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   findNonPlainStoredSchemas,
   storedDocumentSchemaGuard,
+  type StoredDocumentSchemaFacts,
 } from '../../src/modules/firestore/stored-schema-guard.js';
 import { createRepoReader } from '../../src/node/reader.js';
 import { buildOf, factProblemsOf } from '../helpers/configured.js';
 import { contextOf } from '../helpers/context.js';
-import { tempRepo } from '../helpers/temp-repo.js';
+import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
-const registry = (COLLECTION_SCHEMAS: Record<string, unknown>) => ({
+const CORE = 'node_modules/@app/core/dist';
+
+let repo: TempRepo | undefined;
+afterEach(() => repo?.remove());
+
+const registry = (COLLECTION_SCHEMAS: Record<string, unknown>): StoredDocumentSchemaFacts => ({
   docSchemas: () => ({ COLLECTION_SCHEMAS }),
 });
+
+function contextWithCore(compiled = true) {
+  repo = tempRepo({
+    'src/app.ts': 'export {};',
+    [`${CORE}/index.d.ts`]: 'export {};',
+    ...(compiled ? { [`${CORE}/index.js`]: 'export {};' } : {}),
+  });
+  return contextOf(
+    createRepoReader({
+      repoRoot: repo.root,
+      roots: {
+        app: { path: 'src', anchor: 'src/app.ts' },
+        coreDist: { path: CORE, anchor: `${CORE}/index.d.ts` },
+      },
+    }),
+  );
+}
+
+const find = (facts: StoredDocumentSchemaFacts) =>
+  findNonPlainStoredSchemas(facts, contextWithCore());
 
 describe('every stored-document schema is plain', () => {
   it('PASSES a registry of plain objects at every depth', async () => {
     expect(
-      await findNonPlainStoredSchemas(
+      await find(
         registry({
           'teams/{teamId}': z.object({
             name: z.string(),
@@ -30,7 +56,7 @@ describe('every stored-document schema is plain', () => {
 
   it('FAILS a strict, a passthrough, and a catchall object, each named at its document path', async () => {
     expect(
-      await findNonPlainStoredSchemas(
+      await find(
         registry({
           'teams/{teamId}': z.strictObject({ name: z.string() }),
           'games/{gameId}': z.object({
@@ -57,7 +83,7 @@ describe('every stored-document schema is plain', () => {
 
   it('FAILS a strict object a union option reaches, and names a shape two documents share once', async () => {
     const Shared = z.strictObject({ bucket: z.string(), path: z.string() });
-    const findings = await findNonPlainStoredSchemas(
+    const findings = await find(
       registry({
         'waivers/{id}': z.object({ file: Shared }),
         'contracts/{id}': z.discriminatedUnion('kind', [
@@ -72,27 +98,27 @@ describe('every stored-document schema is plain', () => {
     ]);
   });
 
+  it('FLAGS a layout whose installed core holds no compiled module', async () => {
+    expect(
+      await findNonPlainStoredSchemas(
+        registry({ 'teams/{teamId}': z.object({ name: z.string() }) }),
+        contextWithCore(false),
+      ),
+    ).toEqual([
+      { file: '(core build)', detail: 'the installed core build holds no compiled module' },
+    ]);
+  });
+
   it('runs as one guard over the loaded registry', async () => {
     const [guard] = buildOf(
       storedDocumentSchemaGuard,
       registry({ 'teams/{teamId}': z.strictObject({ name: z.string() }) }),
     );
-    const repo = tempRepo({ 'src/anchor.ts': 'export {};' });
-    try {
-      const reader = createRepoReader({
-        repoRoot: repo.root,
-        roots: { app: { path: 'src', anchor: 'src/anchor.ts' } },
-      });
-      expect(await guard!.run(contextOf(reader))).toHaveLength(1);
-    } finally {
-      repo.remove();
-    }
+    expect(await guard!.run(contextWithCore())).toHaveLength(1);
   });
 
   it('throws when the docSchemas entry exports no registry', async () => {
-    await expect(findNonPlainStoredSchemas({ docSchemas: () => ({}) })).rejects.toThrow(
-      'exports no COLLECTION_SCHEMAS',
-    );
+    await expect(find({ docSchemas: () => ({}) })).rejects.toThrow('exports no COLLECTION_SCHEMAS');
   });
 
   it('reports a missing docSchemas loader', () => {

@@ -19,5 +19,5 @@
     depth and the new guard green; `playbooks/crosswalk.md` lists `storedDocumentSchemasPlain`
     beside `firestoreWrites` for RULE-STD-BACKEND-115.
 - **What the app must change:** Install. ttt-prod's rulebook keeps no copy of either rule, so no
-  rule text changes; the code change the rule asks for is in `repo-guards-0.1.41.md`.
+  rule text changes; the code change the rule asks for is in `repo-guards-0.1.42.md`.
 - **Done when:** The lockfiles name `@ttt-productions/dev-standards` 0.0.21 or later.
