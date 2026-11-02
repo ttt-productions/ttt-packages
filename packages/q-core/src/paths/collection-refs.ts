@@ -13,7 +13,6 @@ export const COLLECTION_REFS = {
   teamInvitations: (): [string] => [COLLECTIONS.TEAM_INVITATIONS],
   teamJoinRequests: (): [string] => [COLLECTIONS.TEAM_JOIN_REQUESTS],
   leagueFreeAgents: (): [string] => [COLLECTIONS.LEAGUE_FREE_AGENTS],
-  membershipRosterSyncs: (): [string] => [COLLECTIONS.MEMBERSHIP_ROSTER_SYNCS],
   sportGames: (): [string] => [COLLECTIONS.SPORT_GAMES],
   gameLocations: (): [string] => [COLLECTIONS.GAME_LOCATIONS],
   waiverTemplates: (): [string] => [COLLECTIONS.WAIVER_TEMPLATES],

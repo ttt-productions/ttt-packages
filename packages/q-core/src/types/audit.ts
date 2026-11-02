@@ -42,7 +42,6 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   'hardwareLoanContract.deleted',
   'leagueTeam.created',
   'ghostPlayer.created',
-  'teamRoster.syncRetried',
   'teamMembership.roleChanged',
   'leagueTeam.captainChanged',
   'leagueTeam.updated',

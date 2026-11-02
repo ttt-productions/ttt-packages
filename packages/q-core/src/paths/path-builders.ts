@@ -61,10 +61,6 @@ export const PATH_BUILDERS = {
     COLLECTIONS.TEAM_MEMBERSHIPS,
     buildTeamMembershipId(leagueId, teamId, userId),
   ],
-  membershipRosterSync: (leagueId: string, teamId: string, userId: string): [string, string] => [
-    COLLECTIONS.MEMBERSHIP_ROSTER_SYNCS,
-    buildTeamMembershipId(leagueId, teamId, userId),
-  ],
   teamInvitation: (inviteId: string): [string, string] => [COLLECTIONS.TEAM_INVITATIONS, inviteId],
   teamJoinRequest: (requestId: string): [string, string] => [
     COLLECTIONS.TEAM_JOIN_REQUESTS,

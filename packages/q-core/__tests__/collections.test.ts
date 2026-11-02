@@ -62,9 +62,6 @@ describe('path builders', () => {
   it('build segment tuples that toPath joins, with compound ids assembled inside the builder', () => {
     expect(toPath(PATH_BUILDERS.userProfile('u1'))).toBe('userProfiles/u1');
     expect(toPath(PATH_BUILDERS.teamMembership('L', 'T', 'u1'))).toBe('teamMemberships/L_T_u1');
-    expect(toPath(PATH_BUILDERS.membershipRosterSync('L', 'T', 'ghost_1_x'))).toBe(
-      'membershipRosterSyncs/L_T_ghost_1_x',
-    );
     expect(toPath(PATH_BUILDERS.leagueTeamContact('T'))).toBe('leagueTeamContacts/T');
     expect(toPath(PATH_BUILDERS.leagueFreeAgent('L', 'u1'))).toBe('leagueFreeAgents/L_u1');
     expect(toPath(PATH_BUILDERS.signedWaiver('L', 'u1'))).toBe('signedWaivers/L_u1');

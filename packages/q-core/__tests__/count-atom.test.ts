@@ -6,25 +6,15 @@ import { BASKETBALL_PLAYER_STAT_KEYS } from '../src/types/sports.js';
 import { BasketballPlayerTotalsSchema } from '../src/doc-schemas/aggregate-stats.js';
 import { GallerySummarySchema } from '../src/doc-schemas/gallery.js';
 import { HistoricalStatsSchema } from '../src/doc-schemas/user-profile.js';
-import {
-  MembershipRosterSyncCursorSchema,
-  MembershipRosterSyncSchema,
-} from '../src/doc-schemas/membership-roster-sync.js';
 import { SportLeagueSchema, playoffCutoffSchema } from '../src/doc-schemas/sport-league.js';
 import { MAX_STAT_COUNT } from '../src/constants/sports.js';
 import { MAX_PLAYOFF_CUTOFF } from '../src/constants/business.js';
-import {
-  appliedRevisionSchema,
-  countSchema,
-  enteredStatCountSchema,
-  revisionSchema,
-} from '../src/doc-schemas/atoms.js';
+import { countSchema, enteredStatCountSchema, revisionSchema } from '../src/doc-schemas/atoms.js';
 import {
   AdminUpdateHistoricalStatsInputSchema,
   GameStatsCorrectionTargetSchema,
 } from '../src/schemas/stats.js';
 import { UpdateAdminListResultSchema } from '../src/schemas/users.js';
-import { AdminRetryLeagueTeamRosterSyncResultSchema } from '../src/schemas/teams.js';
 import { AdminStatsSchema } from '../src/schemas/admin-stats.js';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
@@ -183,29 +173,24 @@ describe('countSchema is the one count atom', () => {
       '  retryCount: z.int().min(0),',
       '});',
     ].join('\n');
-    const sites = inlineCounts(source).map(
-      (binding) => `doc-schemas/membership-roster-sync.ts#${binding}`,
-    );
+    const sites = inlineCounts(source).map((binding) => `doc-schemas/example.ts#${binding}`);
     expect(sites).toEqual([
-      'doc-schemas/membership-roster-sync.ts#firstSchema',
-      'doc-schemas/membership-roster-sync.ts#reconciledRosterRevision',
-      'doc-schemas/membership-roster-sync.ts#retryCount',
+      'doc-schemas/example.ts#firstSchema',
+      'doc-schemas/example.ts#reconciledRosterRevision',
+      'doc-schemas/example.ts#retryCount',
     ]);
     const allowed: Readonly<Record<string, string>> = {
-      'doc-schemas/membership-roster-sync.ts#reconciledRosterRevision': 'why',
+      'doc-schemas/example.ts#reconciledRosterRevision': 'why',
     };
     expect(sites.filter((site) => !(site in allowed))).toEqual([
-      'doc-schemas/membership-roster-sync.ts#firstSchema',
-      'doc-schemas/membership-roster-sync.ts#retryCount',
+      'doc-schemas/example.ts#firstSchema',
+      'doc-schemas/example.ts#retryCount',
     ]);
   });
 
-  it('a revision and the revision a reconciler applied are their atoms, not counts', () => {
-    expect(MembershipRosterSyncSchema.shape.rosterRevision).toBe(revisionSchema);
-    expect(MembershipRosterSyncSchema.shape.reconciledRosterRevision).toBe(appliedRevisionSchema);
-    expect(MembershipRosterSyncCursorSchema.shape.rosterRevision).toBe(revisionSchema);
+  it('a revision is its atom, not a count', () => {
     expect(revisionSchema.safeParse(0).success).toBe(false);
-    expect(appliedRevisionSchema.safeParse(0).success).toBe(true);
+    expect(revisionSchema.safeParse(1).success).toBe(true);
   });
 
   it("a callable input's typed stat count takes the one entered-count schema, not a copy of its own", () => {
@@ -239,18 +224,6 @@ describe('countSchema is the one count atom', () => {
     expect(results.adminsRevoked).toBe(countSchema);
     expect(results.refereesGranted).toBe(countSchema);
     expect(results.refereesRevoked).toBe(countSchema);
-    expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.retried).toBe(countSchema);
-    expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.reconciled.unwrap()).toBe(countSchema);
-  });
-
-  it('a roster retry answers null, not 0, when its immediate attempt did not run', () => {
-    const answer = { teamId: 'team-1', retried: 2, damagedTeamMembershipIds: [] };
-    expect(
-      AdminRetryLeagueTeamRosterSyncResultSchema.safeParse({ ...answer, reconciled: null }).success,
-    ).toBe(true);
-    expect(
-      AdminRetryLeagueTeamRosterSyncResultSchema.safeParse({ ...answer, reconciled: -1 }).success,
-    ).toBe(false);
   });
 });
 

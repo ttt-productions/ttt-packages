@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  epochMsSchema,
-  leagueIdSchema,
-  membershipRosterSyncStatusSchema,
-  teamIdSchema,
-  userIdSchema,
-} from '../doc-schemas/atoms.js';
+import { epochMsSchema, leagueIdSchema, teamIdSchema, userIdSchema } from '../doc-schemas/atoms.js';
 import {
   teamInvitationIdSchema,
   teamInvitationMessageSchema,
@@ -37,11 +31,6 @@ export const TeamInvitationResultSchema = z
   .strict();
 export type TeamInvitationResult = z.infer<typeof TeamInvitationResultSchema>;
 
-export const AcceptTeamInvitationResultSchema = TeamInvitationResultSchema.extend({
-  rosterSyncStatus: membershipRosterSyncStatusSchema,
-}).strict();
-export type AcceptTeamInvitationResult = z.infer<typeof AcceptTeamInvitationResultSchema>;
-
 // Declining or withdrawing deletes the invitation, so a repeated call finds nothing to name and
 // answers with the id it was given.
 export const TeamInvitationClosedResultSchema = z
@@ -68,11 +57,6 @@ export const TeamJoinRequestResultSchema = z
   })
   .strict();
 export type TeamJoinRequestResult = z.infer<typeof TeamJoinRequestResultSchema>;
-
-export const AcceptTeamJoinRequestResultSchema = TeamJoinRequestResultSchema.extend({
-  rosterSyncStatus: membershipRosterSyncStatusSchema,
-}).strict();
-export type AcceptTeamJoinRequestResult = z.infer<typeof AcceptTeamJoinRequestResultSchema>;
 
 // Declining or withdrawing deletes the join request, so a repeated call finds nothing to name and
 // answers with the id it was given.
@@ -104,7 +88,6 @@ export const AdminAssignLeagueFreeAgentResultSchema = z
     leagueId: leagueIdSchema,
     teamId: teamIdSchema,
     userId: userIdSchema,
-    rosterSyncStatus: membershipRosterSyncStatusSchema,
   })
   .strict();
 export type AdminAssignLeagueFreeAgentResult = z.infer<

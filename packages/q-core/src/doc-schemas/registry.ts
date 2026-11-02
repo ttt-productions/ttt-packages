@@ -18,7 +18,6 @@ import { GameStatHistoryPageSchema } from './game-stat-history.js';
 import { GameStatEventSchema } from './game-stats.js';
 import { StatsOperationSchema } from './stats-operation.js';
 import { LeagueTeamContactSchema, LeagueTeamSchema } from './league-team.js';
-import { MembershipRosterSyncSchema } from './membership-roster-sync.js';
 import { MigrationActionRunSchema, MigrationConsoleSchema } from './migration-console.js';
 import { AuditEventSchema } from './audit-event.js';
 import { PublicUserSchema } from './publicUser.js';
@@ -61,7 +60,6 @@ export const COLLECTION_SCHEMAS = {
   'leagueTeams/{teamId}': LeagueTeamSchema,
   'leagueTeamContacts/{teamId}': LeagueTeamContactSchema,
   'teamMemberships/{teamMembershipId}': TeamMembershipSchema,
-  'membershipRosterSyncs/{teamMembershipId}': MembershipRosterSyncSchema,
   'teamInvitations/{inviteId}': TeamInvitationSchema,
   'teamJoinRequests/{requestId}': TeamJoinRequestSchema,
   'leagueFreeAgents/{leagueFreeAgentId}': LeagueFreeAgentSchema,

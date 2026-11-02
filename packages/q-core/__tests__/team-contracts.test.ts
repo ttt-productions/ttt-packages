@@ -8,7 +8,6 @@ import {
   TEAM_CREATION_CUTOFF_DAYS,
 } from '../src/constants/business.js';
 import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
-import { MembershipRosterSyncSchema } from '../src/doc-schemas/membership-roster-sync.js';
 import { SignedWaiverSchema } from '../src/doc-schemas/waivers-and-hardware.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
@@ -22,7 +21,6 @@ import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { toPath } from '../src/paths/utils.js';
 import {
   AdminCreateLeagueTeamInputSchema,
-  AdminRetryLeagueTeamRosterSyncInputSchema,
   CreateGameGhostPlayerInputSchema,
   CreateGhostPlayerResultSchema,
   CreateLeagueTeamInputSchema,
@@ -40,15 +38,11 @@ import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   ACTIVE_TEAM_MEMBERSHIP_STATUS,
   CAPTAIN_TEAM_ROLES,
-  FAILED_ROSTER_SYNC_STATUS,
-  MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS,
   OPEN_GAME_STATUS_KEYS,
   GAME_STATUS_KEYS,
   COMPLETED_GAME_STATUS,
-  PENDING_ROSTER_SYNC_STATUS,
   PENDING_TEAM_INVITATION_STATUS,
   PENDING_TEAM_JOIN_REQUEST_STATUS,
-  RECONCILED_ROSTER_SYNC_STATUS,
   TEAM_CAPTAIN_ROLE,
   TEAM_INVITATION_STATUS_KEYS,
   TEAM_JOIN_REQUEST_STATUS_KEYS,
@@ -384,17 +378,12 @@ describe('ghost add input', () => {
     expect(CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g' }).success).toBe(false);
   });
 
-  it('answers with the ghost and where its roster work stood', () => {
-    for (const status of MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS) {
-      expect(
-        CreateGhostPlayerResultSchema.safeParse({
-          leagueId: 'l',
-          teamId: 't',
-          ghostUserId: buildGhostUserId(NOW, 'abc'),
-          rosterSyncStatus: status,
-        }).success,
-      ).toBe(true);
-    }
+  it('answers with the ghost alone', () => {
+    const answer = { leagueId: 'l', teamId: 't', ghostUserId: buildGhostUserId(NOW, 'abc') };
+    expect(CreateGhostPlayerResultSchema.safeParse(answer).success).toBe(true);
+    expect(
+      CreateGhostPlayerResultSchema.safeParse({ ...answer, rosterSyncStatus: 'pending' }).success,
+    ).toBe(false);
   });
 });
 
@@ -516,83 +505,6 @@ describe('leagueTeams and its contact document', () => {
   });
 });
 
-describe('membershipRosterSyncs', () => {
-  const pending = {
-    leagueId: 'L',
-    teamId: 'T',
-    userId: 'u1',
-    rosterRevision: 2,
-    reconciledRosterRevision: 1,
-    syncStatus: 'pending',
-    attemptCount: 0,
-    nextAttemptAt: NOW,
-    updatedAt: NOW,
-  };
-
-  it('is keyed by the membership id — no second id format', () => {
-    expect(toPath(PATH_BUILDERS.membershipRosterSync('L', 'T', 'u1'))).toBe(
-      `membershipRosterSyncs/${buildTeamMembershipId('L', 'T', 'u1')}`,
-    );
-  });
-
-  it('accepts a pending obligation and a reconciled one', () => {
-    expect(MembershipRosterSyncSchema.safeParse(pending).success).toBe(true);
-    expect(
-      MembershipRosterSyncSchema.safeParse({
-        ...pending,
-        reconciledRosterRevision: 2,
-        syncStatus: 'reconciled',
-      }).success,
-    ).toBe(true);
-  });
-
-  it('refuses a reconciled revision past its own revision', () => {
-    expect(
-      MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 3 }).success,
-    ).toBe(false);
-  });
-
-  it('is reconciled exactly when the reconciled revision reaches the revision', () => {
-    expect(
-      MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'reconciled' }).success,
-    ).toBe(false);
-    expect(
-      MembershipRosterSyncSchema.safeParse({ ...pending, reconciledRosterRevision: 2 }).success,
-    ).toBe(false);
-  });
-
-  it('carries failedAt exactly while failed', () => {
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, syncStatus: 'failed' }).success).toBe(
-      false,
-    );
-    expect(
-      MembershipRosterSyncSchema.safeParse({
-        ...pending,
-        syncStatus: 'failed',
-        failedAt: NOW,
-        attemptCount: 5,
-      }).success,
-    ).toBe(true);
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, failedAt: NOW }).success).toBe(false);
-  });
-
-  it('refuses a negative or fractional attempt count', () => {
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, attemptCount: -1 }).success).toBe(
-      false,
-    );
-    expect(MembershipRosterSyncSchema.safeParse({ ...pending, attemptCount: 1.5 }).success).toBe(
-      false,
-    );
-  });
-
-  it('asks the admin retry for a team only', () => {
-    expect(AdminRetryLeagueTeamRosterSyncInputSchema.safeParse({ teamId: 'T' }).success).toBe(true);
-    expect(
-      AdminRetryLeagueTeamRosterSyncInputSchema.safeParse({ teamId: 'T', leagueId: 'L' }).success,
-    ).toBe(false);
-  });
-});
-
 describe('open games', () => {
   it('names the open statuses explicitly, and the completed status is not one', () => {
     expect([...OPEN_GAME_STATUS_KEYS]).toEqual(['scheduled', 'inprogress']);
@@ -622,9 +534,6 @@ describe('the status members every query and write names', () => {
     expect(TEAM_JOIN_REQUEST_STATUS_KEYS as readonly string[]).toContain(
       PENDING_TEAM_JOIN_REQUEST_STATUS,
     );
-    expect(
-      [PENDING_ROSTER_SYNC_STATUS, RECONCILED_ROSTER_SYNC_STATUS, FAILED_ROSTER_SYNC_STATUS].sort(),
-    ).toEqual([...MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS].sort());
     expect(CAPTAIN_TEAM_ROLES as readonly string[]).toContain(TEAM_CAPTAIN_ROLE);
   });
 });
@@ -828,12 +737,7 @@ describe('signed waivers', () => {
 
 describe('the audit and domain vocabulary', () => {
   it('declares the event types the team, ghost, roster, and waiver cores record', () => {
-    for (const type of [
-      'leagueTeam.created',
-      'ghostPlayer.created',
-      'teamRoster.syncRetried',
-      'signedWaiver.created',
-    ]) {
+    for (const type of ['leagueTeam.created', 'ghostPlayer.created', 'signedWaiver.created']) {
       expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain(type);
     }
   });

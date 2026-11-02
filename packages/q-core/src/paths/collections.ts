@@ -13,7 +13,6 @@ export const COLLECTIONS = {
   TEAM_INVITATIONS: 'teamInvitations',
   TEAM_JOIN_REQUESTS: 'teamJoinRequests',
   LEAGUE_FREE_AGENTS: 'leagueFreeAgents',
-  MEMBERSHIP_ROSTER_SYNCS: 'membershipRosterSyncs',
 
   SPORT_GAMES: 'sportGames',
   GAME_LOCATIONS: 'gameLocations',

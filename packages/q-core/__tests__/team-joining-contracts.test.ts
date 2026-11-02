@@ -15,8 +15,6 @@ import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas/team-membership.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
-  AcceptTeamInvitationResultSchema,
-  AcceptTeamJoinRequestResultSchema,
   AdminAssignLeagueFreeAgentInputSchema,
   AdminAssignLeagueFreeAgentResultSchema,
   CreateLeagueFreeAgentResultSchema,
@@ -124,13 +122,12 @@ describe('the invitation wire contracts', () => {
     ).toBe(false);
   });
 
-  it('answer with the ids a client names its event by, an acceptance adding where its roster work stands', () => {
+  it('answer with the ids a client names its event by, an acceptance with nothing more', () => {
     const result = { leagueId: 'L1', teamId: 'T1', teamInvitationId: 'inv-1', invitedUserId: 'u1' };
     expect(TeamInvitationResultSchema.parse(result)).toEqual(result);
     expect(
-      AcceptTeamInvitationResultSchema.parse({ ...result, rosterSyncStatus: 'pending' }),
-    ).toMatchObject(result);
-    expect(AcceptTeamInvitationResultSchema.safeParse(result).success).toBe(false);
+      TeamInvitationResultSchema.safeParse({ ...result, rosterSyncStatus: 'pending' }).success,
+    ).toBe(false);
   });
 
   it('answer a decline or a withdrawal with the invitation id alone', () => {
@@ -178,8 +175,8 @@ describe('the join-request wire contracts', () => {
     const result = { leagueId: 'L1', teamId: 'T1', teamJoinRequestId: 'r1', userId: 'u1' };
     expect(TeamJoinRequestResultSchema.parse(result)).toEqual(result);
     expect(
-      AcceptTeamJoinRequestResultSchema.parse({ ...result, rosterSyncStatus: 'reconciled' }),
-    ).toMatchObject(result);
+      TeamJoinRequestResultSchema.safeParse({ ...result, rosterSyncStatus: 'reconciled' }).success,
+    ).toBe(false);
   });
 
   it('answer a decline or a withdrawal with the join request id alone', () => {
@@ -209,15 +206,17 @@ describe('the free-agent wire contracts', () => {
     ).toBe(false);
   });
 
-  it("the admin's assignment names the league, the player, and the team, and answers where the roster work stands", () => {
+  it("the admin's assignment names the league, the player, and the team, and answers with them alone", () => {
     const input = { leagueId: 'L1', userId: 'u1', teamId: 'T1' };
     expect(AdminAssignLeagueFreeAgentInputSchema.parse(input)).toEqual(input);
     expect(
       AdminAssignLeagueFreeAgentInputSchema.safeParse({ ...input, role: 'captain' }).success,
     ).toBe(false);
+    expect(AdminAssignLeagueFreeAgentResultSchema.parse(input)).toEqual(input);
     expect(
-      AdminAssignLeagueFreeAgentResultSchema.parse({ ...input, rosterSyncStatus: 'pending' }),
-    ).toMatchObject(input);
+      AdminAssignLeagueFreeAgentResultSchema.safeParse({ ...input, rosterSyncStatus: 'pending' })
+        .success,
+    ).toBe(false);
   });
 });
 

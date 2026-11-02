@@ -14,7 +14,6 @@ import {
 import {
   GAME_STATUS_KEYS,
   HARDWARE_LOAN_CONTRACT_STATUS_KEYS,
-  MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS,
   TEAM_JOIN_REQUEST_STATUS_KEYS,
   LEAGUE_MODE_KEYS,
   LEAGUE_STATUS_KEYS,
@@ -38,8 +37,6 @@ export const countSchema = z.number().int().nonnegative();
 export const enteredStatCountSchema = countSchema.max(MAX_STAT_COUNT);
 
 export const revisionSchema = z.number().int().positive();
-
-export const appliedRevisionSchema = z.number().int().nonnegative();
 
 export const repairReasonSchema = textFieldSchema(REPAIR_REASON_INPUT);
 
@@ -88,7 +85,6 @@ export const gameStatusSchema = z.enum(GAME_STATUS_KEYS);
 export const teamInvitationStatusSchema = z.enum(TEAM_INVITATION_STATUS_KEYS);
 export const teamJoinRequestStatusSchema = z.enum(TEAM_JOIN_REQUEST_STATUS_KEYS);
 export const hardwareLoanContractStatusSchema = z.enum(HARDWARE_LOAN_CONTRACT_STATUS_KEYS);
-export const membershipRosterSyncStatusSchema = z.enum(MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS);
 export const waiverWitnessAuthoritySchema = z.enum(WAIVER_WITNESS_AUTHORITY_KEYS);
 export const statsBeaconActionSchema = z.enum(STATS_BEACON_ACTION_KEYS);
 export const statsDiscrepancyKindSchema = z.enum(STATS_DISCREPANCY_KIND_KEYS);

@@ -167,13 +167,6 @@ export function isOpenGameStatus(status: GameStatus): status is OpenGameStatus {
   return (OPEN_GAME_STATUS_KEYS as readonly GameStatus[]).includes(status);
 }
 
-export const MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS = ['pending', 'reconciled', 'failed'] as const;
-export type MembershipRosterSyncStatus = (typeof MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS)[number];
-export const PENDING_ROSTER_SYNC_STATUS = 'pending' as const satisfies MembershipRosterSyncStatus;
-export const RECONCILED_ROSTER_SYNC_STATUS =
-  'reconciled' as const satisfies MembershipRosterSyncStatus;
-export const FAILED_ROSTER_SYNC_STATUS = 'failed' as const satisfies MembershipRosterSyncStatus;
-
 export const WAIVER_WITNESS_AUTHORITY_KEYS = ['captain', 'coCaptain', 'admin', 'referee'] as const;
 export type WaiverWitnessAuthority = (typeof WAIVER_WITNESS_AUTHORITY_KEYS)[number];
 

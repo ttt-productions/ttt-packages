@@ -8,7 +8,6 @@ import {
   documentIdSegmentSchema,
   gameIdSchema,
   leagueIdSchema,
-  membershipRosterSyncStatusSchema,
   teamIconSchema,
   teamIdSchema,
   teamRoleSchema,
@@ -71,7 +70,6 @@ export const CreateGhostPlayerResultSchema = z
     leagueId: leagueIdSchema,
     teamId: teamIdSchema,
     ghostUserId: userIdSchema,
-    rosterSyncStatus: membershipRosterSyncStatusSchema,
   })
   .strict();
 export type CreateGhostPlayerResult = z.infer<typeof CreateGhostPlayerResultSchema>;
@@ -94,27 +92,6 @@ export const GetLeagueJoinWarningResultSchema = z
   })
   .strict();
 export type GetLeagueJoinWarningResult = z.infer<typeof GetLeagueJoinWarningResultSchema>;
-
-export const AdminRetryLeagueTeamRosterSyncInputSchema = z
-  .object({ teamId: teamIdSchema })
-  .strict();
-export type AdminRetryLeagueTeamRosterSyncInput = z.infer<
-  typeof AdminRetryLeagueTeamRosterSyncInputSchema
->;
-
-export const AdminRetryLeagueTeamRosterSyncResultSchema = z
-  .object({
-    teamId: teamIdSchema,
-    retried: countSchema,
-    // null when the immediate attempt after the commit did not run; the scheduler still finishes
-    // every obligation the retry re-armed.
-    reconciled: countSchema.nullable(),
-    damagedTeamMembershipIds: z.array(z.string().min(1)),
-  })
-  .strict();
-export type AdminRetryLeagueTeamRosterSyncResult = z.infer<
-  typeof AdminRetryLeagueTeamRosterSyncResultSchema
->;
 
 export const LinkGhostPlayerInputSchema = z
   .object({
@@ -181,7 +158,6 @@ export const DeleteTeamMembershipResultSchema = z
     teamId: teamIdSchema,
     userId: userIdSchema,
     deleted: z.boolean(),
-    rosterSyncStatus: membershipRosterSyncStatusSchema,
   })
   .strict();
 export type DeleteTeamMembershipResult = z.infer<typeof DeleteTeamMembershipResultSchema>;

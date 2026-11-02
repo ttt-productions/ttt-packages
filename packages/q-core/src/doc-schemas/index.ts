@@ -12,7 +12,6 @@ export * from './picture-retirement.js';
 export * from './sport-league.js';
 export * from './league-team.js';
 export * from './team-membership.js';
-export * from './membership-roster-sync.js';
 export * from './game-stats.js';
 export * from './sport-game.js';
 export * from './game-stat-history.js';
