@@ -38,7 +38,7 @@ the same-named files in its `docs/engineering-rules/backend/`.
 ### RULE-STD-BACKEND-002 — Schema-validate untrusted input before use
 **Scope.** apps
 
-**Rule.** Every `onCall` callable parses `request.data` with its Zod schema before the value is used, and the parsed result (never raw `request.data`) flows to the `run*` core. Schemas are `.strict()`, live in `<APP_DATA_PACKAGE>`'s schema entries composed from shared atoms (or a package's `./schemas` subpath), and express every constraint Zod can — presence, type, enum, length, `discriminatedUnion`, `z.literal(true)` for consent fields. Validation order is independent of the auth check (RULE-STD-BACKEND-001): a parse before or alongside auth is fine, but an unauthenticated caller still triggers no business logic.
+**Rule.** Every `onCall` callable parses `request.data` with its Zod schema before the value is used, and the parsed result (never raw `request.data`) flows to the `run*` core. Schemas are `.strict()`, live in `<APP_DATA_PACKAGE>`'s schema entries composed from shared atoms (or a package's `./schemas` subpath), and express every constraint Zod can — presence, type, enum, length, `discriminatedUnion`, `z.literal(true)` for consent fields. A shape a callable takes that is also stored takes a strict copy of the plain stored schema (RULE-STD-BACKEND-115), so its fields are declared once. Validation order is independent of the auth check (RULE-STD-BACKEND-001): a parse before or alongside auth is fine, but an unauthenticated caller still triggers no business logic.
 
 **Why.** Ad-hoc `typeof`/truthy checks drift and miss cases; one strict wire schema is the single boundary check shared by every current and future client.
 

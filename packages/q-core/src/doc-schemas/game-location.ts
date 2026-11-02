@@ -37,7 +37,7 @@ export type GameLocation = z.infer<typeof GameLocationSchema>;
 
 // `_serverData/gameLocationRegistry` — the write fence of the venue cap (RULE-STD-BACKEND-116):
 // only its changing matters.
-export const GameLocationRegistrySchema = z.strictObject({
+export const GameLocationRegistrySchema = z.object({
   locationRevision: countSchema,
 });
 export type GameLocationRegistry = z.infer<typeof GameLocationRegistrySchema>;

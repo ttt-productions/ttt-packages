@@ -16,16 +16,18 @@ import { FirestoreTimestampSchema } from './firestore-primitives.js';
 
 export const adminNotificationTypeSchema = z.enum(ADMIN_NOTIFICATION_TYPE_KEYS);
 
-export const LeagueTeamCreatedNotificationMetadataSchema = z
-  .object({ leagueId: leagueIdSchema, teamId: teamIdSchema })
-  .strict();
+export const LeagueTeamCreatedNotificationMetadataSchema = z.object({
+  leagueId: leagueIdSchema,
+  teamId: teamIdSchema,
+});
 export type LeagueTeamCreatedNotificationMetadata = z.infer<
   typeof LeagueTeamCreatedNotificationMetadataSchema
 >;
 
-export const LeagueFreeAgentSignedUpNotificationMetadataSchema = z
-  .object({ leagueId: leagueIdSchema, userId: userIdSchema })
-  .strict();
+export const LeagueFreeAgentSignedUpNotificationMetadataSchema = z.object({
+  leagueId: leagueIdSchema,
+  userId: userIdSchema,
+});
 export type LeagueFreeAgentSignedUpNotificationMetadata = z.infer<
   typeof LeagueFreeAgentSignedUpNotificationMetadataSchema
 >;

@@ -160,8 +160,8 @@ describe('the record a group grant keeps of one person', () => {
   });
 
   it('holds an id reference and no name (RULE-STD-ARCH-103)', () => {
-    expect(AwardGroupGrantPersonSchema.safeParse({ ...person, displayName: 'Pat' }).success).toBe(
-      false,
+    expect(AwardGroupGrantPersonSchema.parse({ ...person, displayName: 'Pat' })).not.toHaveProperty(
+      'displayName',
     );
   });
 });

@@ -24,7 +24,7 @@ export const migrationEvidenceSchema = textFieldSchema(MIGRATION_EVIDENCE_INPUT)
 
 const findingText = z.string().max(MAX_MIGRATION_FINDING_TEXT_LENGTH);
 
-export const MigrationFindingSchema = z.strictObject({
+export const MigrationFindingSchema = z.object({
   category: z.string().min(1).max(64),
   id: findingText,
   field: findingText,
@@ -32,7 +32,7 @@ export const MigrationFindingSchema = z.strictObject({
 });
 export type MigrationFinding = z.infer<typeof MigrationFindingSchema>;
 
-export const MigrationRunCountsSchema = z.strictObject({
+export const MigrationRunCountsSchema = z.object({
   read: countSchema,
   written: countSchema,
   skipped: countSchema,
@@ -42,7 +42,7 @@ export const MigrationRunCountsSchema = z.strictObject({
 });
 export type MigrationRunCounts = z.infer<typeof MigrationRunCountsSchema>;
 
-export const MigrationRunRecordSchema = z.strictObject({
+export const MigrationRunRecordSchema = z.object({
   operationId: migrationOperationIdSchema,
   dryRun: z.boolean(),
   reason: repairReasonSchema,
@@ -63,7 +63,7 @@ export const MigrationRunRecordSchema = z.strictObject({
 });
 export type MigrationRunRecord = z.infer<typeof MigrationRunRecordSchema>;
 
-export const MigrationStepRecordSchema = z.strictObject({
+export const MigrationStepRecordSchema = z.object({
   recordedAt: epochMsSchema,
   recordedByUserId: userIdSchema,
   operationIds: z.array(statsOperationIdSchema).optional(),
@@ -71,7 +71,7 @@ export const MigrationStepRecordSchema = z.strictObject({
 });
 export type MigrationStepRecord = z.infer<typeof MigrationStepRecordSchema>;
 
-export const MigrationActionRunSchema = z.strictObject({
+export const MigrationActionRunSchema = z.object({
   actionId: migrationActionIdSchema,
   run: MigrationRunRecordSchema.optional(),
   preview: MigrationRunRecordSchema.optional(),
@@ -79,7 +79,7 @@ export const MigrationActionRunSchema = z.strictObject({
 });
 export type MigrationActionRun = z.infer<typeof MigrationActionRunSchema>;
 
-export const MigrationConsoleLockSchema = z.strictObject({
+export const MigrationConsoleLockSchema = z.object({
   actionId: migrationActionIdSchema,
   operationId: migrationOperationIdSchema,
   heldByUserId: userIdSchema,
@@ -88,7 +88,7 @@ export const MigrationConsoleLockSchema = z.strictObject({
 });
 export type MigrationConsoleLock = z.infer<typeof MigrationConsoleLockSchema>;
 
-export const MigrationConsoleSchema = z.strictObject({
+export const MigrationConsoleSchema = z.object({
   destinationState: migrationDestinationStateSchema,
   cutoverRecordedAt: epochMsSchema.optional(),
   cutoverRecordedByUserId: userIdSchema.optional(),

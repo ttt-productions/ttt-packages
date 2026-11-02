@@ -22,7 +22,7 @@ export const awardGroupGrantStatusSchema = z.enum(AWARD_GROUP_GRANT_STATUS_KEYS)
 export const awardGroupGrantDecisionSchema = revisionSchema;
 
 export const AwardGroupGrantSchema = z
-  .strictObject({
+  .object({
     grantId: z.string().min(1),
     action: awardGroupGrantActionSchema,
     awardId: awardIdSchema,
@@ -64,7 +64,7 @@ export function awardGroupGrantOpens(
   return action === 'grant' ? latest?.action !== 'grant' : latest?.action === 'grant';
 }
 
-export const AwardGroupGrantPersonSchema = z.strictObject({
+export const AwardGroupGrantPersonSchema = z.object({
   userId: userIdSchema,
   heldBefore: z.boolean(),
   recordedAt: epochMsSchema,

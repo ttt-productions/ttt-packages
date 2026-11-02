@@ -301,7 +301,7 @@ export type AdminUpdateHistoricalStatsResult = z.infer<
 >;
 
 export const RunStatsValidationInputSchema = z
-  .object({ operationId: statsOperationIdSchema, scope: StatsValidationScopeSchema })
+  .object({ operationId: statsOperationIdSchema, scope: StatsValidationScopeSchema.strict() })
   .strict();
 export type RunStatsValidationInput = z.infer<typeof RunStatsValidationInputSchema>;
 

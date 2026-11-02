@@ -23,6 +23,7 @@ import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import {
   GameStatHistoryFirstPageSchema,
   GameStatHistoryPageSchema,
+  statHistoryPageSchemaFor,
 } from '../src/doc-schemas/game-stat-history.js';
 import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
@@ -31,7 +32,11 @@ import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
 import { repairReasonSchema } from '../src/doc-schemas/atoms.js';
 import { BYE_TEAM_ID } from '../src/ids/minted-ids.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
-import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids.js';
+import {
+  buildStatCorrectionId,
+  buildStatHistoryPageId,
+  buildStatVoidId,
+} from '../src/ids/stat-event-ids.js';
 import { ReopenGameInputSchema } from '../src/schemas/stats.js';
 import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports.js';
 import type { StatsOperationKind } from '../src/types/stats.js';
@@ -170,15 +175,23 @@ describe('stat event documents', () => {
     expect(parses({ ...recorded, ...player, type: 'STEAL' })).toBe(false);
   });
 
-  it('refuses a player on a team-attributed event, with no sentinel standing in for one', () => {
-    expect(parses({ ...VALID_EVENTS.TIMEOUT, playerUserId: 'team_timeout' })).toBe(false);
-    expect(parses({ ...VALID_EVENTS.CURLING_ROUND_SCORE, playerUserId: 'team_score' })).toBe(false);
-    expect(parses({ ...VALID_EVENTS.FOOTBALL_6PT, playerUserId: 'u1' })).toBe(false);
+  it('reads no player on a team-attributed event, with no sentinel standing in for one', () => {
+    for (const event of [
+      VALID_EVENTS.TIMEOUT,
+      VALID_EVENTS.CURLING_ROUND_SCORE,
+      VALID_EVENTS.FOOTBALL_6PT,
+    ]) {
+      expect(GameStatEventSchema.parse({ ...event, playerUserId: 'team_timeout' })).toEqual(event);
+    }
   });
 
-  it('refuses an assister anywhere but a two- or three-point shot, and a snapshot with no assister', () => {
-    expect(parses({ ...VALID_EVENTS['1PT'], assistedByUserId: 'u2' })).toBe(false);
-    expect(parses({ ...VALID_EVENTS.REBOUND, assistedByUserId: 'u2' })).toBe(false);
+  it('reads no assister anywhere but a two- or three-point shot, and refuses a snapshot with no assister', () => {
+    expect(GameStatEventSchema.parse({ ...VALID_EVENTS['1PT'], assistedByUserId: 'u2' })).toEqual(
+      VALID_EVENTS['1PT'],
+    );
+    expect(GameStatEventSchema.parse({ ...VALID_EVENTS.REBOUND, assistedByUserId: 'u2' })).toEqual(
+      VALID_EVENTS.REBOUND,
+    );
     expect(parses({ ...VALID_EVENTS['3PT'], assistedByDisplayNameSnapshot: 'Sam' })).toBe(false);
   });
 
@@ -186,7 +199,9 @@ describe('stat event documents', () => {
     expect(parses({ ...recorded, teamId: 'T1', type: 'REBOUND' })).toBe(false);
     expect(parses({ ...recorded, playerUserId: 'u1', type: '2PT' })).toBe(false);
     expect(parses({ ...recorded, type: 'FOOTBALL_1PT' })).toBe(false);
-    expect(parses({ ...VALID_EVENTS.CURLING_ROUND_BLANK, teamId: 'T1' })).toBe(false);
+    expect(
+      GameStatEventSchema.parse({ ...VALID_EVENTS.CURLING_ROUND_BLANK, teamId: 'T1' }),
+    ).toEqual(VALID_EVENTS.CURLING_ROUND_BLANK);
   });
 
   it('orders by a positive sequence and stamps an epoch-millisecond time', () => {
@@ -223,7 +238,7 @@ describe('stat event documents', () => {
 
   it('stores a void at the id its target derives, so a target has at most one void', () => {
     expect(parses({ ...voidOf('e0'), eventId: 'e9' })).toBe(false);
-    expect(parses({ ...voidOf('e0'), teamId: 'T1' })).toBe(false);
+    expect(GameStatEventSchema.parse({ ...voidOf('e0'), teamId: 'T1' })).toEqual(voidOf('e0'));
   });
 
   it('stores a correction at the id its operation, line, and field derive', () => {
@@ -327,7 +342,7 @@ describe('the game rollup', () => {
   });
 
   it("holds exactly teamStats and playerStats, and a line for each of the game's teams only", () => {
-    expect(valid(withStats({ statHistory: [] }))).toBe(false);
+    expect(SportGameSchema.parse(withStats({ statHistory: [] })).stats).toEqual(basketball.stats);
     expect(valid(withStats({ teamStats: { T1: { score: 5, timeouts: 1 } } }))).toBe(false);
     expect(
       valid(
@@ -416,14 +431,14 @@ describe('the game rollup', () => {
     };
     expect(valid(football)).toBe(true);
     expect(
-      valid({
+      SportGameSchema.parse({
         ...football,
         stats: {
           ...football.stats,
           teamStats: { T1: { score: 6, timeouts: 0 }, T2: { score: 0 } },
         },
-      }),
-    ).toBe(false);
+      }).stats,
+    ).toEqual(football.stats);
     expect(
       valid({ ...football, stats: { ...football.stats, playerStats: { [T1_U1]: { points: 6 } } } }),
     ).toBe(false);
@@ -462,13 +477,25 @@ describe('the finalized record', () => {
     nonScoringRosterPlayerIds: [T2_U1],
   };
   const page = (doc: object) => GameStatHistoryPageSchema.safeParse(doc).success;
+  const first = (doc: object) =>
+    statHistoryPageSchemaFor(buildStatHistoryPageId(0)).safeParse(doc).success;
+  const later = statHistoryPageSchemaFor(buildStatHistoryPageId(1));
 
   it('carries the sport, the teams, and the participation snapshot on its first page', () => {
     expect(page(firstPage)).toBe(true);
     expect(GameStatHistoryFirstPageSchema.safeParse(firstPage).success).toBe(true);
+    expect(statHistoryPageSchemaFor(buildStatHistoryPageId(0))).toBe(
+      GameStatHistoryFirstPageSchema,
+    );
     const { teamIds: _teams, ...withoutTeams } = firstPage;
-    expect(page(withoutTeams)).toBe(false);
-    expect(page({ ...firstPage, rosterPlayerIds: ['u1'] })).toBe(false);
+    expect(first(withoutTeams)).toBe(false);
+    expect(first({ ...firstPage, rosterPlayerIds: ['u1'] })).toBe(false);
+  });
+
+  it('reads a first page missing its snapshot as a continuation page under the union, which only its id refuses', () => {
+    const { teamIds: _teams, ...withoutTeams } = firstPage;
+    expect(GameStatHistoryPageSchema.parse(withoutTeams)).toEqual({ events: firstPage.events });
+    expect(first(withoutTeams)).toBe(false);
   });
 
   it('records a game with no events as a first page with none', () => {
@@ -478,7 +505,9 @@ describe('the finalized record', () => {
   it('continues on later pages that hold events only', () => {
     expect(page({ events: [event(1001)] })).toBe(true);
     expect(page({ events: [] })).toBe(false);
-    expect(page({ events: [event(1001)], pageCount: 2 })).toBe(false);
+    expect(later.parse({ events: [event(1001)], pageCount: 2 })).toEqual({
+      events: [event(1001)],
+    });
   });
 
   it('holds its events in sequence order, at most one page size of them', () => {
@@ -493,8 +522,8 @@ describe('the finalized record', () => {
 
   it('counts no more pages than the page cap', () => {
     expect(page({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES })).toBe(true);
-    expect(page({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES + 1 })).toBe(false);
-    expect(page({ ...firstPage, pageCount: Number.MAX_SAFE_INTEGER })).toBe(false);
+    expect(first({ ...firstPage, pageCount: MAX_STAT_HISTORY_PAGES + 1 })).toBe(false);
+    expect(first({ ...firstPage, pageCount: Number.MAX_SAFE_INTEGER })).toBe(false);
   });
 
   it('holds only valid stored events', () => {
@@ -574,7 +603,9 @@ describe('stats operations', () => {
   it('takes a reason on every action that writes a stat, and none on a validation', () => {
     const { reason: _reason, ...unexplained } = VALID_OPERATIONS.leagueStatsRebuild;
     expect(operation(unexplained)).toBe(false);
-    expect(operation({ ...VALID_OPERATIONS.statsValidation, reason })).toBe(false);
+    expect(
+      StatsOperationSchema.parse({ ...VALID_OPERATIONS.statsValidation, reason }),
+    ).not.toHaveProperty('reason');
     expect(operation({ ...VALID_OPERATIONS.gameStatsCorrection, reason: 'no' })).toBe(false);
     expect(operation({ ...VALID_OPERATIONS.gameStatsCorrection, reason: '   no   ' })).toBe(false);
   });
@@ -604,7 +635,9 @@ describe('stats operations', () => {
     expect(operation({ ...rebuild, kind: 'gameDeletion' })).toBe(false);
     expect(operation({ ...rebuild, status: 'paused' })).toBe(false);
     expect(operation({ ...rebuild, counts: { read: -1, changed: 0, skipped: 0 } })).toBe(false);
-    expect(operation({ ...rebuild, stoppedOnGameIds: [] })).toBe(false);
+    expect(StatsOperationSchema.parse({ ...rebuild, stoppedOnGameIds: [] })).not.toHaveProperty(
+      'stoppedOnGameIds',
+    );
   });
 
   it('is bound in the registry to its path', () => {
@@ -634,37 +667,41 @@ describe('aggregate lines', () => {
     expect(
       TeamSeasonStatsSchema.safeParse({ ...baseSeason, rebounds: 180, assists: 70 }).success,
     ).toBe(true);
-    expect(TeamSeasonStatsSchema.safeParse({ ...baseSeason, rebounds: 180 }).success).toBe(false);
+    expect(
+      SPORT_LINE_SCHEMAS.Basketball.teamSeason.safeParse({ ...baseSeason, rebounds: 180 }).success,
+    ).toBe(false);
+  });
+
+  it("reads a line as the first sport's line it holds, so its sport's own line schema checks it", () => {
+    expect(TeamSeasonStatsSchema.parse({ ...baseSeason, rebounds: 180 })).toEqual(baseSeason);
+    const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
+    expect(PlayerSeasonStatsSchema.parse(withoutFantasyPoints)).toEqual({ gamesPlayed: 6 });
+    expect(
+      SPORT_LINE_SCHEMAS.Basketball.membershipRow.safeParse(withoutFantasyPoints).success,
+    ).toBe(false);
   });
 
   it('stores no derived or unread field on a season line', () => {
-    expect(TeamSeasonStatsSchema.safeParse({ ...baseSeason, pointDifferential: 30 }).success).toBe(
-      false,
-    );
+    for (const extra of [
+      { pointDifferential: 30 },
+      { lastGameId: 'recalculated' },
+      { lastUpdatedAt: NOW },
+    ]) {
+      expect(TeamSeasonStatsSchema.parse({ ...baseSeason, ...extra })).toEqual(baseSeason);
+    }
     expect(
-      TeamSeasonStatsSchema.safeParse({ ...baseSeason, lastGameId: 'recalculated' }).success,
-    ).toBe(false);
-    expect(TeamSeasonStatsSchema.safeParse({ ...baseSeason, lastUpdatedAt: NOW }).success).toBe(
-      false,
-    );
-    expect(
-      TeamSeasonStatsSchema.safeParse({
-        ...baseSeason,
-        rebounds: 180,
-        assists: 70,
-        fantasyPoints: 1,
-      }).success,
-    ).toBe(false);
+      TeamSeasonStatsSchema.parse({ ...baseSeason, rebounds: 180, assists: 70, fantasyPoints: 1 }),
+    ).toEqual({ ...baseSeason, rebounds: 180, assists: 70 });
   });
 
   it('stores a membership row as a basketball line with fantasy points, or games played alone', () => {
     expect(PlayerSeasonStatsSchema.safeParse(basketballRow).success).toBe(true);
     expect(PlayerSeasonStatsSchema.safeParse({ gamesPlayed: 5 }).success).toBe(true);
-    const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
-    expect(PlayerSeasonStatsSchema.safeParse(withoutFantasyPoints).success).toBe(false);
-    expect(
-      PlayerSeasonStatsSchema.safeParse({ gamesPlayed: 5, displayName: 'Pat', fouls: 2 }).success,
-    ).toBe(false);
+    expect(PlayerSeasonStatsSchema.parse({ gamesPlayed: 5, displayName: 'Pat', fouls: 2 })).toEqual(
+      {
+        gamesPlayed: 5,
+      },
+    );
     expect(PlayerSeasonStatsSchema.safeParse({ gamesPlayed: -1 }).success).toBe(false);
   });
 
@@ -673,8 +710,8 @@ describe('aggregate lines', () => {
     expect(BasketballPlayerStatsSchema.safeParse(gameLine).success).toBe(true);
     expect(BasketballPlayerTotalsSchema.safeParse(basketballRow).success).toBe(true);
     expect(BasketballPlayerTotalsSchema.safeParse(gameLine).success).toBe(false);
-    expect(BasketballPlayerTotalsSchema.safeParse({ ...basketballRow, fouls: 2 }).success).toBe(
-      false,
+    expect(BasketballPlayerTotalsSchema.parse({ ...basketballRow, fouls: 2 })).toEqual(
+      basketballRow,
     );
     expect(Object.keys(BasketballPlayerTotalsSchema.shape).sort()).toEqual(
       [...Object.keys(BasketballPlayerStatsSchema.shape), 'gamesPlayed'].sort(),
@@ -691,7 +728,9 @@ describe('aggregate lines', () => {
         ghost_1_abc: { ...basketballRow, gamesPlayed: 2 },
       }).success,
     ).toBe(true);
-    expect(playerSeasonStats.safeParse({ u1: { gamesPlayed: 1, points: 3 } }).success).toBe(false);
+    expect(playerSeasonStats.parse({ u1: { gamesPlayed: 1, points: 3 } })).toEqual({
+      u1: { gamesPlayed: 1 },
+    });
   });
 
   it('keeps a lifetime line per sport a real player played, and no career summary beside it', () => {
@@ -701,8 +740,10 @@ describe('aggregate lines', () => {
     ).toBe(true);
     expect(lifetimeStats.safeParse({ curling: { gamesPlayed: 0 } }).success).toBe(true);
     expect(UserProfileSchema.shape).not.toHaveProperty('stats');
-    expect(lifetimeStats.safeParse({ hockey: { gamesPlayed: 1 } }).success).toBe(false);
-    expect(lifetimeStats.safeParse({ curling: { gamesPlayed: 2, points: 4 } }).success).toBe(false);
+    expect(lifetimeStats.parse({ hockey: { gamesPlayed: 1 } })).toEqual({});
+    expect(lifetimeStats.parse({ curling: { gamesPlayed: 2, points: 4 } })).toEqual({
+      curling: { gamesPlayed: 2 },
+    });
     const { fantasyPoints: _fp, ...withoutFantasyPoints } = basketballRow;
     expect(lifetimeStats.safeParse({ basketball: withoutFantasyPoints }).success).toBe(false);
   });

@@ -246,8 +246,8 @@ describe('HistoricalStatsSchema is the basketball totals line without FP', () =>
     expect(HistoricalStatsSchema.safeParse(TOTALS).success).toBe(true);
   });
 
-  it('refuses FP, which a rebuild derives when it folds the baseline in', () => {
-    expect(HistoricalStatsSchema.safeParse({ ...TOTALS, fantasyPoints: 262 }).success).toBe(false);
+  it('reads no FP, which a rebuild derives when it folds the baseline in', () => {
+    expect(HistoricalStatsSchema.parse({ ...TOTALS, fantasyPoints: 262 })).toEqual(TOTALS);
   });
 
   it('refuses a total that is not a whole non-negative count, and a missing one', () => {

@@ -134,9 +134,9 @@ describe('Q-Sports holds at most 30 game locations', () => {
     expect(GameLocationRegistrySchema.parse({ locationRevision: 3 })).toEqual({
       locationRevision: 3,
     });
-    expect(GameLocationRegistrySchema.safeParse({ locationRevision: 3, count: 3 }).success).toBe(
-      false,
-    );
+    expect(GameLocationRegistrySchema.parse({ locationRevision: 3, count: 3 })).toEqual({
+      locationRevision: 3,
+    });
     expect(GameLocationRegistrySchema.safeParse({ locationRevision: -1 }).success).toBe(false);
   });
 });
@@ -157,9 +157,9 @@ describe('Q-Sports offers leagues at most 30 waiver templates', () => {
     expect(WaiverTemplateRegistrySchema.parse({ templateRevision: 2 })).toEqual({
       templateRevision: 2,
     });
-    expect(WaiverTemplateRegistrySchema.safeParse({ templateRevision: 2, count: 2 }).success).toBe(
-      false,
-    );
+    expect(WaiverTemplateRegistrySchema.parse({ templateRevision: 2, count: 2 })).toEqual({
+      templateRevision: 2,
+    });
   });
 });
 

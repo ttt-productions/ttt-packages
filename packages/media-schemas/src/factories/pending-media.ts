@@ -29,22 +29,18 @@ export function createPendingMediaSchemas<
     'moderation',
   ]);
 
-  const PendingMediaResultSchema = z
-    .object({
-      events: z.array(domainEventSchema),
-      affected: z
-        .array(
-          z
-            .object({
-              collection: z.string().min(1),
-              docId: z.string().min(1),
-              operation: z.enum(['create', 'update']),
-            })
-            .strict(),
-        )
-        .optional(),
-    })
-    .strict();
+  const PendingMediaResultSchema = z.object({
+    events: z.array(domainEventSchema),
+    affected: z
+      .array(
+        z.object({
+          collection: z.string().min(1),
+          docId: z.string().min(1),
+          operation: z.enum(['create', 'update']),
+        }),
+      )
+      .optional(),
+  });
 
   const PendingMediaBaseShape = {
     id: z.string().min(1),
@@ -56,8 +52,9 @@ export function createPendingMediaSchemas<
     pendingStoragePath: z.string().min(1),
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),
-    clientContext: ClientContextSchema,
-    clientMediaClaim: ClientMediaClaimSchema.optional(),
+    // The client sends these strict (RULE-STD-BACKEND-002); the stored copy reads plain.
+    clientContext: ClientContextSchema.strip(),
+    clientMediaClaim: ClientMediaClaimSchema.strip().optional(),
     publicationState: MediaPublicationStateSchema.optional(),
     moderationOverride: z.string().min(1).optional(),
     createdAt: z.number(),
@@ -68,65 +65,58 @@ export function createPendingMediaSchemas<
     terminalAt: z.number().optional(),
   } as const;
 
-  const PendingMediaPendingSchema = z
-    .object({ ...PendingMediaBaseShape, status: z.literal(STATUS.pending) })
-    .strict();
+  const PendingMediaPendingSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.pending),
+  });
 
-  const PendingMediaProcessingSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.processing),
-      processingStartedAt: z.number(),
-      processingAttemptCount: z.number().int().min(1),
-      processingLeaseExpiresAt: z.number(),
-    })
-    .strict();
+  const PendingMediaProcessingSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.processing),
+    processingStartedAt: z.number(),
+    processingAttemptCount: z.number().int().min(1),
+    processingLeaseExpiresAt: z.number(),
+  });
 
-  const PendingMediaCompletedSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.completed),
-      completedAt: z.number(),
-      terminalAt: z.number(),
-      uploadTrayClearedAt: z.number().optional(),
-      uploadTrayClearedBy: z.string().min(1).optional(),
-      uploadTraySeenAt: z.number().optional(),
-      uploadTraySeenBy: z.string().min(1).optional(),
-      result: PendingMediaResultSchema,
-    })
-    .strict();
+  const PendingMediaCompletedSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.completed),
+    completedAt: z.number(),
+    terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
+    uploadTraySeenAt: z.number().optional(),
+    uploadTraySeenBy: z.string().min(1).optional(),
+    result: PendingMediaResultSchema,
+  });
 
-  const PendingMediaFailedSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.failed),
-      failedAt: z.number(),
-      terminalAt: z.number(),
-      uploadTrayClearedAt: z.number().optional(),
-      uploadTrayClearedBy: z.string().min(1).optional(),
-      uploadTraySeenAt: z.number().optional(),
-      uploadTraySeenBy: z.string().min(1).optional(),
-      errorCategory: PendingMediaErrorCategorySchema,
-      errorMessage: z.string().min(1),
-    })
-    .strict();
+  const PendingMediaFailedSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.failed),
+    failedAt: z.number(),
+    terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
+    uploadTraySeenAt: z.number().optional(),
+    uploadTraySeenBy: z.string().min(1).optional(),
+    errorCategory: PendingMediaErrorCategorySchema,
+    errorMessage: z.string().min(1),
+  });
 
-  const PendingMediaRejectedSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.rejected),
-      rejectedAt: z.number(),
-      terminalAt: z.number(),
-      uploadTrayClearedAt: z.number().optional(),
-      uploadTrayClearedBy: z.string().min(1).optional(),
-      uploadTraySeenAt: z.number().optional(),
-      uploadTraySeenBy: z.string().min(1).optional(),
-      rejectionType: z.enum(['text', 'media']),
-      errorMessage: z.string().min(1),
-      violationId: z.string().min(1).optional(),
-      result: PendingMediaResultSchema.optional(),
-    })
-    .strict();
+  const PendingMediaRejectedSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.rejected),
+    rejectedAt: z.number(),
+    terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
+    uploadTraySeenAt: z.number().optional(),
+    uploadTraySeenBy: z.string().min(1).optional(),
+    rejectionType: z.enum(['text', 'media']),
+    errorMessage: z.string().min(1),
+    violationId: z.string().min(1).optional(),
+    result: PendingMediaResultSchema.optional(),
+  });
 
   const PendingMediaSchema = z.discriminatedUnion('status', [
     PendingMediaPendingSchema,
@@ -136,54 +126,48 @@ export function createPendingMediaSchemas<
     PendingMediaRejectedSchema,
   ]);
 
-  const ArchivedPendingMediaCompletedSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.completed),
-      completedAt: z.number(),
-      terminalAt: z.number(),
-      uploadTrayClearedAt: z.number().optional(),
-      uploadTrayClearedBy: z.string().min(1).optional(),
-      uploadTraySeenAt: z.number().optional(),
-      uploadTraySeenBy: z.string().min(1).optional(),
-      result: PendingMediaResultSchema,
-      archivedAt: z.number(),
-    })
-    .strict();
+  const ArchivedPendingMediaCompletedSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.completed),
+    completedAt: z.number(),
+    terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
+    uploadTraySeenAt: z.number().optional(),
+    uploadTraySeenBy: z.string().min(1).optional(),
+    result: PendingMediaResultSchema,
+    archivedAt: z.number(),
+  });
 
-  const ArchivedPendingMediaFailedSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.failed),
-      failedAt: z.number(),
-      terminalAt: z.number(),
-      uploadTrayClearedAt: z.number().optional(),
-      uploadTrayClearedBy: z.string().min(1).optional(),
-      uploadTraySeenAt: z.number().optional(),
-      uploadTraySeenBy: z.string().min(1).optional(),
-      errorCategory: PendingMediaErrorCategorySchema,
-      errorMessage: z.string().min(1),
-      archivedAt: z.number(),
-    })
-    .strict();
+  const ArchivedPendingMediaFailedSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.failed),
+    failedAt: z.number(),
+    terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
+    uploadTraySeenAt: z.number().optional(),
+    uploadTraySeenBy: z.string().min(1).optional(),
+    errorCategory: PendingMediaErrorCategorySchema,
+    errorMessage: z.string().min(1),
+    archivedAt: z.number(),
+  });
 
-  const ArchivedPendingMediaRejectedSchema = z
-    .object({
-      ...PendingMediaBaseShape,
-      status: z.literal(STATUS.rejected),
-      rejectedAt: z.number(),
-      terminalAt: z.number(),
-      uploadTrayClearedAt: z.number().optional(),
-      uploadTrayClearedBy: z.string().min(1).optional(),
-      uploadTraySeenAt: z.number().optional(),
-      uploadTraySeenBy: z.string().min(1).optional(),
-      rejectionType: z.enum(['text', 'media']),
-      errorMessage: z.string().min(1),
-      violationId: z.string().min(1).optional(),
-      result: PendingMediaResultSchema.optional(),
-      archivedAt: z.number(),
-    })
-    .strict();
+  const ArchivedPendingMediaRejectedSchema = z.object({
+    ...PendingMediaBaseShape,
+    status: z.literal(STATUS.rejected),
+    rejectedAt: z.number(),
+    terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
+    uploadTraySeenAt: z.number().optional(),
+    uploadTraySeenBy: z.string().min(1).optional(),
+    rejectionType: z.enum(['text', 'media']),
+    errorMessage: z.string().min(1),
+    violationId: z.string().min(1).optional(),
+    result: PendingMediaResultSchema.optional(),
+    archivedAt: z.number(),
+  });
 
   const ArchivedPendingMediaSchema = z.discriminatedUnion('status', [
     ArchivedPendingMediaCompletedSchema,
@@ -191,13 +175,11 @@ export function createPendingMediaSchemas<
     ArchivedPendingMediaRejectedSchema,
   ]);
 
-  const ArchivedPendingMediaQuarantinedSchema = z
-    .object({
-      parseFailed: z.literal(true),
-      archivedAt: z.number(),
-      raw: z.record(z.string(), z.unknown()),
-    })
-    .strict();
+  const ArchivedPendingMediaQuarantinedSchema = z.object({
+    parseFailed: z.literal(true),
+    archivedAt: z.number(),
+    raw: z.record(z.string(), z.unknown()),
+  });
 
   const ArchivedPendingMediaDocSchema = z.union([
     ArchivedPendingMediaSchema,

@@ -33,7 +33,7 @@ export type AdminUpdateFeaturedPictureResult = z.infer<
 
 export const AdminDeletePictureInputSchema = z
   .object({
-    owner: PictureOwnerRefSchema,
+    owner: PictureOwnerRefSchema.strict(),
     pictureId: pictureIdSchema,
   })
   .strict();

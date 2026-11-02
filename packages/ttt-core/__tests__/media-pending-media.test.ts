@@ -201,8 +201,10 @@ describe('crash-recovery attempt/lease fields on the composed strict schema', ()
     expect(parsed.processingAttemptCount).toBe(2);
   });
 
-  it('still rejects unrelated unknown fields (strict branches preserved)', () => {
-    expect(() => PendingMediaSchema.parse({ ...base, status: 'pending', bogusField: 1 })).toThrow();
+  it('drops an unrelated unknown field on read', () => {
+    expect(
+      PendingMediaSchema.parse({ ...base, status: 'pending', bogusField: 1 }),
+    ).not.toHaveProperty('bogusField');
   });
 
   it('rejects a negative attempt count', () => {

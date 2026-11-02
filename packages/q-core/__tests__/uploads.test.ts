@@ -253,14 +253,13 @@ describe('pendingMedia and pictureRetirements', () => {
     expect(PendingMediaSchema.safeParse({ ...row, fileOrigin: 'products' }).success).toBe(false);
   });
 
-  it('refuse a target that names an unknown owner kind or carries an extra field', () => {
+  it('refuse a target that names an unknown owner kind, and read no extra field', () => {
     expect(
       PendingMediaTargetSchema.safeParse({ owner: { kind: 'userProfile', id: 'u1' } }).success,
     ).toBe(false);
     expect(
-      PendingMediaTargetSchema.safeParse({ owner: { kind: 'sportLeague', id: 'l1' }, path: 'x' })
-        .success,
-    ).toBe(false);
+      PendingMediaTargetSchema.parse({ owner: { kind: 'sportLeague', id: 'l1' }, path: 'x' }),
+    ).toEqual({ owner: { kind: 'sportLeague', id: 'l1' } });
   });
 
   it('record a picture retirement and a whole gallery retirement', () => {

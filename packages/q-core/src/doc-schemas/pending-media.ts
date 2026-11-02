@@ -11,14 +11,14 @@ import { pictureOwnerKindSchema } from './gallery.js';
 export const fileOriginSchema = z.enum(FILE_ORIGIN_KEYS);
 export const pictureOriginSchema = z.enum(PICTURE_ORIGIN_KEYS);
 
-export const StorageObjectRefSchema = z
-  .object({ bucket: z.string().min(1), path: z.string().min(1) })
-  .strict();
+export const StorageObjectRefSchema = z.object({
+  bucket: z.string().min(1),
+  path: z.string().min(1),
+});
 export type StorageObjectRef = z.infer<typeof StorageObjectRefSchema>;
 
 export const PictureOwnerRefSchema = z
   .object({ kind: pictureOwnerKindSchema, id: documentIdSegmentSchema })
-  .strict()
   .refine((owner) => isPictureOwnerId(owner.kind, owner.id), {
     message: 'Not an owner of that kind.',
     path: ['id'],
@@ -32,7 +32,6 @@ export const PendingMediaTargetSchema = z
     sourceIndex: countSchema.optional(),
     newAwardName: awardNameSchema.optional(),
   })
-  .strict()
   .refine(
     (target) =>
       target.newAwardName === undefined || target.owner.kind === AWARD_DEFINITION_OWNER_KIND,

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { createPendingMediaSchemas } from '../src/factories/pending-media.js';
+import { ClientContextSchema, ClientMediaClaimSchema } from '../src/schemas.js';
 
 describe('createPendingMediaSchemas', () => {
   const fileOriginSchema = z.enum(['origin-a', 'origin-b']);
@@ -229,15 +230,15 @@ describe('createPendingMediaSchemas', () => {
       ).toThrow();
     });
 
-    it('retains strict rejection of unrelated unknown fields', () => {
-      expect(() =>
-        schemas.PendingMediaSchema.parse({
-          ...baseLive,
-          status: 'pending',
-          processingAttemptCount: 1,
-          somethingUnknown: true,
-        }),
-      ).toThrow();
+    it('drops an unrelated unknown field on read', () => {
+      const parsed = schemas.PendingMediaSchema.parse({
+        ...baseLive,
+        status: 'pending',
+        processingAttemptCount: 1,
+        somethingUnknown: true,
+      });
+      expect(parsed).not.toHaveProperty('somethingUnknown');
+      expect(parsed.processingAttemptCount).toBe(1);
     });
   });
 
@@ -266,10 +267,13 @@ describe('createPendingMediaSchemas', () => {
       ).toThrow();
     });
 
-    it('rejects unknown fields outside raw (strict)', () => {
-      expect(() =>
-        schemas.ArchivedPendingMediaQuarantinedSchema.parse({ ...quarantined, extra: 1 }),
-      ).toThrow();
+    it('drops an unknown field outside raw and keeps everything inside raw', () => {
+      const parsed = schemas.ArchivedPendingMediaQuarantinedSchema.parse({
+        ...quarantined,
+        extra: 1,
+      });
+      expect(parsed).not.toHaveProperty('extra');
+      expect(parsed.raw).toEqual(quarantined.raw);
     });
 
     it('ArchivedPendingMediaDocSchema accepts both a valid archive row and a quarantined row', () => {
@@ -301,5 +305,32 @@ describe('createPendingMediaSchemas', () => {
         }),
       ).toThrow();
     });
+  });
+});
+
+describe('stored client shapes', () => {
+  const schemas = createPendingMediaSchemas({
+    fileOriginSchema: z.enum(['origin-a']),
+    domainEventSchema: z.object({ type: z.literal('test.event') }),
+  });
+
+  it('reads the stored client context and media claim plain, while the client shapes stay strict', () => {
+    const doc = {
+      id: 'm1',
+      userId: 'u1',
+      fileOrigin: 'origin-a',
+      originalFileName: 'a.png',
+      pendingStoragePath: 'uploads/origin-a/u1/m1',
+      clientContext: { surface: 'tray', stale: true },
+      clientMediaClaim: { kind: 'image', source: 'file-picker', stale: true },
+      createdAt: 1,
+      updatedAt: 1,
+      status: 'pending',
+    };
+    const parsed = schemas.PendingMediaPendingSchema.parse(doc);
+    expect(parsed.clientContext).toEqual({ surface: 'tray' });
+    expect(parsed.clientMediaClaim).toEqual({ kind: 'image', source: 'file-picker' });
+    expect(ClientContextSchema.safeParse(doc.clientContext).success).toBe(false);
+    expect(ClientMediaClaimSchema.safeParse(doc.clientMediaClaim).success).toBe(false);
   });
 });

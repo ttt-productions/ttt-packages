@@ -19,17 +19,17 @@ const teamSeasonBaseShape = {
   pointsAgainst: countSchema,
 };
 
-export const TeamSeasonBaseStatsSchema = z.strictObject(teamSeasonBaseShape);
+export const TeamSeasonBaseStatsSchema = z.object(teamSeasonBaseShape);
 export type TeamSeasonBaseStats = z.infer<typeof TeamSeasonBaseStatsSchema>;
 
-export const BasketballTeamSeasonStatsSchema = z.strictObject({
+export const BasketballTeamSeasonStatsSchema = z.object({
   ...teamSeasonBaseShape,
   rebounds: countSchema,
   assists: countSchema,
 });
 export type BasketballTeamSeasonStats = z.infer<typeof BasketballTeamSeasonStatsSchema>;
 
-export const GamesPlayedStatsSchema = z.strictObject({
+export const GamesPlayedStatsSchema = z.object({
   gamesPlayed: countSchema,
 });
 export type GamesPlayedStats = z.infer<typeof GamesPlayedStatsSchema>;
@@ -66,6 +66,8 @@ export const SPORT_LINE_SCHEMAS = {
   },
 } as const satisfies Record<LeagueType, Record<StatLineKind, z.ZodType>>;
 
+// Every sport's line is plain, so a line reads as the first sport's line it holds; the sport's own
+// line in SPORT_LINE_SCHEMAS is what checks a line against its sport.
 function lineOfAnySport<K extends StatLineKind>(kind: K) {
   return z.union(LEAGUE_TYPE_KEYS.map((leagueType) => SPORT_LINE_SCHEMAS[leagueType][kind]));
 }
@@ -82,7 +84,7 @@ type LifetimeLinesShape = {
   >;
 };
 
-export const UserLifetimeStatsSchema = z.strictObject(
+export const UserLifetimeStatsSchema = z.object(
   Object.fromEntries(
     LEAGUE_TYPE_KEYS.map(
       (leagueType) =>

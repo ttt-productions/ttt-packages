@@ -31,11 +31,16 @@ import {
   type StorageObjectMetadataFacts,
   type StorageUploadOriginFacts,
 } from './storage-guards.js';
+import {
+  storedDocumentSchemaGuard,
+  type StoredDocumentSchemaFacts,
+} from './stored-schema-guard.js';
 import type { NoFacts } from './support.js';
 
 export type FirestoreGuardFacts = {
   firestoreWrites: WriteGuardFacts | Absent;
   firestoreTestPaths: TestPathFacts | Absent;
+  storedDocumentSchemasPlain: StoredDocumentSchemaFacts | Absent;
   firestoreLiteralSegments: NoFacts | Absent;
   firestorePathAssembly: PathAssemblyFacts | Absent;
   firestoreRetiredSegments: RetiredSegmentFacts | Absent;
@@ -56,6 +61,7 @@ export type FirestoreGuardFacts = {
 export const FIRESTORE_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   writeGuard,
   testPathGuard,
+  storedDocumentSchemaGuard,
   literalSegmentGuard,
   pathAssemblyGuard,
   retiredSegmentGuard,

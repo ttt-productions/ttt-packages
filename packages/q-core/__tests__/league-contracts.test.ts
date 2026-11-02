@@ -480,10 +480,10 @@ describe('league audit and domain events', () => {
       DomainEventSchema.safeParse({ type: 'league.modeSwitched', ids: { leagueId: 'L1' } }).success,
     ).toBe(true);
     expect(
-      DomainEventSchema.safeParse({
+      DomainEventSchema.parse({
         type: 'league.modeSwitched',
         ids: { leagueId: 'L1', teamId: 'T1' },
-      }).success,
-    ).toBe(false);
+      }),
+    ).toEqual({ type: 'league.modeSwitched', ids: { leagueId: 'L1' } });
   });
 });

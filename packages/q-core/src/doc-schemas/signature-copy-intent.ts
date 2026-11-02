@@ -15,12 +15,8 @@ export type SignatureCopyIntentState = z.infer<typeof SignatureCopyIntentStateSc
 
 // The record whose `signatureFile` names the kept copy once the signing commits.
 export const SignatureCopyRecordRefSchema = z.discriminatedUnion('kind', [
-  z
-    .object({ kind: z.literal('signedWaiver'), leagueId: leagueIdSchema, userId: userIdSchema })
-    .strict(),
-  z
-    .object({ kind: z.literal('hardwareLoanContract'), contractId: hardwareLoanContractIdSchema })
-    .strict(),
+  z.object({ kind: z.literal('signedWaiver'), leagueId: leagueIdSchema, userId: userIdSchema }),
+  z.object({ kind: z.literal('hardwareLoanContract'), contractId: hardwareLoanContractIdSchema }),
 ]);
 export type SignatureCopyRecordRef = z.infer<typeof SignatureCopyRecordRefSchema>;
 
@@ -37,7 +33,6 @@ export const SignatureCopyIntentSchema = z
     reapAttemptCount: countSchema,
     reapClaimedAt: epochMsSchema.optional(),
   })
-  .strict()
   .superRefine((val, ctx) => {
     if (!val.keptPath.endsWith(`/${val.stagingId}`)) {
       ctx.addIssue({

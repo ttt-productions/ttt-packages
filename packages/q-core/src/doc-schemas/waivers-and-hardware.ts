@@ -57,14 +57,14 @@ export const SignedWaiverSchema = z
   );
 export type SignedWaiver = z.infer<typeof SignedWaiverSchema>;
 
-export const HardwareItemSchema = z.strictObject({
+export const HardwareItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
 });
 export type HardwareItem = z.infer<typeof HardwareItemSchema>;
 
 export const HardwareLoanContractSchema = z
-  .strictObject({
+  .object({
     refereeUserId: userIdSchema,
     createdByUserId: userIdSchema,
     hardware: z.array(HardwareItemSchema).min(1),

@@ -219,10 +219,10 @@ describe('domain events', () => {
       false,
     );
     expect(
-      DomainEventSchema.safeParse({
+      DomainEventSchema.parse({
         type: 'league.created',
         ids: { leagueId: 'L', queryKey: 'leagues' },
-      }).success,
-    ).toBe(false);
+      }),
+    ).toEqual({ type: 'league.created', ids: { leagueId: 'L' } });
   });
 });

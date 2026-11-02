@@ -429,9 +429,8 @@ describe('the status reconcile queue entry', () => {
 
   it('a role-claims entry carries no status, and every entry names a known effect', () => {
     expect(
-      StatusReconcileQueueEntrySchema.safeParse({ ...roleClaimsEntry, targetStatus: 'banned' })
-        .success,
-    ).toBe(false);
+      StatusReconcileQueueEntrySchema.parse({ ...roleClaimsEntry, targetStatus: 'banned' }),
+    ).not.toHaveProperty('targetStatus');
     expect(
       StatusReconcileQueueEntrySchema.safeParse({ ...roleClaimsEntry, authEffect: 'docsAccepted' })
         .success,
@@ -448,8 +447,8 @@ describe('the status reconcile queue entry', () => {
       { nextAttemptAt: NOW },
       { lastFailureMessage: 'x' },
     ]) {
-      expect(StatusReconcileQueueEntrySchema.safeParse({ ...statusEntry, ...field }).success).toBe(
-        false,
+      expect(StatusReconcileQueueEntrySchema.parse({ ...statusEntry, ...field })).toEqual(
+        statusEntry,
       );
     }
   });
@@ -520,18 +519,18 @@ describe('audit event document', () => {
     );
   });
 
-  it('rejects a role on a non-admin mode, and any field an actor does not carry', () => {
+  it('reads no role on a non-admin mode, and no field an actor does not carry', () => {
     for (const actorMode of ['user', 'teammateUser', 'system']) {
       expect(
-        AuditEventSchema.safeParse({
+        AuditEventSchema.parse({
           ...event,
           actor: { uid: 'a', isAdmin: true, actorMode, systemRole: 'admin' },
-        }).success,
+        }).actor,
         actorMode,
-      ).toBe(false);
+      ).toEqual({ uid: 'a', isAdmin: true, actorMode });
     }
     expect(
-      AuditEventSchema.safeParse({
+      AuditEventSchema.parse({
         ...event,
         actor: {
           uid: 'a',
@@ -540,8 +539,8 @@ describe('audit event document', () => {
           systemRole: 'admin',
           origin: {},
         },
-      }).success,
-    ).toBe(false);
+      }).actor,
+    ).toEqual({ uid: 'a', isAdmin: true, actorMode: 'adminReview', systemRole: 'admin' });
   });
 
   it('records a rejected attempt with an unauthenticated actor', () => {
@@ -600,9 +599,8 @@ describe('domain events', () => {
       DomainEventSchema.safeParse({ type: 'displayName.changed', ids: { userId: 'u1' } }).success,
     ).toBe(true);
     expect(
-      DomainEventSchema.safeParse({ type: 'user.registered', ids: { userId: 'u1', extra: 1 } })
-        .success,
-    ).toBe(false);
+      DomainEventSchema.parse({ type: 'user.registered', ids: { userId: 'u1', extra: 1 } }),
+    ).toEqual({ type: 'user.registered', ids: { userId: 'u1' } });
   });
 });
 

@@ -31,14 +31,16 @@ describe('sweepState contract', () => {
     ).toBe(true);
   });
 
-  it('refuses a full-scan lap with no page token to resume from, or with any other field', () => {
-    for (const fullScanLap of [
-      { pageToken: '', lapStartedAt: 5 },
-      { lapStartedAt: 5 },
-      { pageToken: 'next-page', lapStartedAt: 5, examined: 2000 },
-    ]) {
+  it('refuses a full-scan lap with no page token to resume from, and reads no other field', () => {
+    for (const fullScanLap of [{ pageToken: '', lapStartedAt: 5 }, { lapStartedAt: 5 }]) {
       expect(SweepStateSchema.safeParse({ fullScanLap, updatedAt: 6 }).success).toBe(false);
     }
+    expect(
+      SweepStateSchema.parse({
+        fullScanLap: { pageToken: 'next-page', lapStartedAt: 5, examined: 2000 },
+        updatedAt: 6,
+      }).fullScanLap,
+    ).toEqual({ pageToken: 'next-page', lapStartedAt: 5 });
   });
 
   it('a run examines a whole number of Auth pages', () => {

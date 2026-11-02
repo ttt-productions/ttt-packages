@@ -8,7 +8,7 @@ const statusReconcileQueueEntryBase = {
   attemptCount: countSchema,
 };
 
-export const StatusReconcileQueueAccountStatusEntrySchema = z.strictObject({
+export const StatusReconcileQueueAccountStatusEntrySchema = z.object({
   ...statusReconcileQueueEntryBase,
   authEffect: z.literal(ACCOUNT_STATUS_AUTH_EFFECT),
   reason: z.literal('statusChangePending'),
@@ -19,7 +19,7 @@ export type StatusReconcileQueueAccountStatusEntry = z.infer<
   typeof StatusReconcileQueueAccountStatusEntrySchema
 >;
 
-export const StatusReconcileQueueRoleClaimsEntrySchema = z.strictObject({
+export const StatusReconcileQueueRoleClaimsEntrySchema = z.object({
   ...statusReconcileQueueEntryBase,
   authEffect: z.literal(ROLE_CLAIMS_EFFECT),
   reason: z.literal('postCommitAuthEffectFailed'),

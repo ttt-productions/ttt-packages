@@ -5,11 +5,9 @@ import { z } from 'zod';
 import { epochMsSchema, userIdSchema } from './atoms.js';
 import { FirestoreTimestampSchema } from './firestore-primitives.js';
 
-export const RegistrationStartSchema = z
-  .object({
-    userId: userIdSchema,
-    startedAt: epochMsSchema,
-    expireAt: FirestoreTimestampSchema,
-  })
-  .strict();
+export const RegistrationStartSchema = z.object({
+  userId: userIdSchema,
+  startedAt: epochMsSchema,
+  expireAt: FirestoreTimestampSchema,
+});
 export type RegistrationStart = z.infer<typeof RegistrationStartSchema>;

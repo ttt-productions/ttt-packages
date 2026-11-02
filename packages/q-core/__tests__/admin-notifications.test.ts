@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  ADMIN_NOTIFICATION_METADATA_SCHEMAS,
   ActiveAdminNotificationSchema,
   AdminNotificationHistorySchema,
   NotificationArchiveAllJobSchema,
@@ -368,10 +369,12 @@ describe('the document shapes', () => {
 
   it('stores ids only on a card — metadata carries no name', () => {
     expect(
-      ActiveAdminNotificationSchema.safeParse(
-        teamCard({ metadata: { leagueId: 'league-1', teamId: 'team-1', teamName: 'Hoopers' } }),
-      ).success,
-    ).toBe(false);
+      ADMIN_NOTIFICATION_METADATA_SCHEMAS.leagueTeamCreated.parse({
+        leagueId: 'league-1',
+        teamId: 'team-1',
+        teamName: 'Hoopers',
+      }),
+    ).toEqual({ leagueId: 'league-1', teamId: 'team-1' });
     expect(
       isAdminNotificationMetadata('leagueTeamCreated', { leagueId: 'league-1', teamId: 'team-1' }),
     ).toBe(true);
@@ -703,8 +706,7 @@ describe('the shared vocabulary', () => {
       true,
     );
     expect(
-      DomainEventSchema.safeParse({ type: 'deadLetter.replayed', ids: { notificationId: CARD_ID } })
-        .success,
-    ).toBe(false);
+      DomainEventSchema.parse({ type: 'deadLetter.replayed', ids: { notificationId: CARD_ID } }),
+    ).toEqual({ type: 'deadLetter.replayed', ids: {} });
   });
 });

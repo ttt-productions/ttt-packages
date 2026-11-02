@@ -47,16 +47,16 @@ function counterShape<K extends StatCounterKey>(keys: readonly K[]): Record<K, t
   return Object.fromEntries(keys.map((key) => [key, countSchema])) as Record<K, typeof countSchema>;
 }
 
-export const BasketballTeamStatsSchema = z.strictObject(counterShape(BASKETBALL_TEAM_STAT_KEYS));
+export const BasketballTeamStatsSchema = z.object(counterShape(BASKETBALL_TEAM_STAT_KEYS));
 export type BasketballTeamStats = z.infer<typeof BasketballTeamStatsSchema>;
 
-export const BasketballPlayerStatsSchema = z.strictObject({
+export const BasketballPlayerStatsSchema = z.object({
   ...counterShape(BASKETBALL_PLAYER_STAT_KEYS),
   fantasyPoints: z.number().nonnegative(),
 });
 export type BasketballPlayerStats = z.infer<typeof BasketballPlayerStatsSchema>;
 
-export const CurlingTeamStatsSchema = z.strictObject({
+export const CurlingTeamStatsSchema = z.object({
   ...counterShape(CURLING_TEAM_STAT_KEYS),
   roundScores: z
     .array(z.number().int().min(0).max(MAX_CURLING_ROUND_POINTS).nullable())
@@ -64,14 +64,14 @@ export const CurlingTeamStatsSchema = z.strictObject({
 });
 export type CurlingTeamStats = z.infer<typeof CurlingTeamStatsSchema>;
 
-export const FootballTeamStatsSchema = z.strictObject(counterShape(FOOTBALL_TEAM_STAT_KEYS));
+export const FootballTeamStatsSchema = z.object(counterShape(FOOTBALL_TEAM_STAT_KEYS));
 export type FootballTeamStats = z.infer<typeof FootballTeamStatsSchema>;
 
 export function gameStatsSchema<TeamLine extends z.ZodType, PlayerLine extends z.ZodType>(
   teamLine: TeamLine,
   playerLine: PlayerLine,
 ) {
-  return z.strictObject({
+  return z.object({
     teamStats: z.record(teamIdSchema, teamLine),
     playerStats: z.record(gameRosterPlayerIdSchema, playerLine),
   });
@@ -93,14 +93,14 @@ const playerEventFields = {
   displayNameSnapshot: z.string().optional(),
 };
 
-export const BasketballOnePointEventSchema = z.strictObject({
+export const BasketballOnePointEventSchema = z.object({
   ...statEventBase,
   ...playerEventFields,
   type: z.literal(BASKETBALL_ONE_POINT_EVENT_TYPE),
 });
 
 export const BasketballAssistableShotEventSchema = z
-  .strictObject({
+  .object({
     ...statEventBase,
     ...playerEventFields,
     type: z.enum(BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS),
@@ -113,19 +113,19 @@ export const BasketballAssistableShotEventSchema = z
     'An assister snapshot needs the assister.',
   );
 
-export const BasketballPlayerTallyEventSchema = z.strictObject({
+export const BasketballPlayerTallyEventSchema = z.object({
   ...statEventBase,
   ...playerEventFields,
   type: z.enum(BASKETBALL_PLAYER_TALLY_EVENT_TYPE_KEYS),
 });
 
-export const BasketballTimeoutEventSchema = z.strictObject({
+export const BasketballTimeoutEventSchema = z.object({
   ...statEventBase,
   teamId: teamIdSchema,
   type: z.literal(BASKETBALL_TIMEOUT_EVENT_TYPE),
 });
 
-export const BasketballBulkEditEventSchema = z.strictObject({
+export const BasketballBulkEditEventSchema = z.object({
   ...statEventBase,
   ...playerEventFields,
   type: z.literal(BASKETBALL_BULK_EDIT_EVENT_TYPE),
@@ -136,7 +136,7 @@ export const BasketballBulkEditEventSchema = z.strictObject({
 
 const curlingRoundNumberSchema = z.number().int().min(1).max(CURLING_ROUND_COUNT);
 
-export const CurlingRoundScoreEventSchema = z.strictObject({
+export const CurlingRoundScoreEventSchema = z.object({
   ...statEventBase,
   type: z.literal(CURLING_ROUND_SCORE_EVENT_TYPE),
   teamId: teamIdSchema,
@@ -144,19 +144,19 @@ export const CurlingRoundScoreEventSchema = z.strictObject({
   points: z.number().int().min(1).max(MAX_CURLING_ROUND_POINTS),
 });
 
-export const CurlingBlankEndEventSchema = z.strictObject({
+export const CurlingBlankEndEventSchema = z.object({
   ...statEventBase,
   type: z.literal(CURLING_ROUND_BLANK_EVENT_TYPE),
   roundNumber: curlingRoundNumberSchema,
 });
 
-export const FootballScoreEventSchema = z.strictObject({
+export const FootballScoreEventSchema = z.object({
   ...statEventBase,
   type: z.enum(FOOTBALL_SCORE_EVENT_TYPE_KEYS),
   teamId: teamIdSchema,
 });
 
-export const FootballBulkEditEventSchema = z.strictObject({
+export const FootballBulkEditEventSchema = z.object({
   ...statEventBase,
   type: z.literal(FOOTBALL_BULK_EDIT_EVENT_TYPE),
   teamId: teamIdSchema,
@@ -165,7 +165,7 @@ export const FootballBulkEditEventSchema = z.strictObject({
 });
 
 export const StatVoidEventSchema = z
-  .strictObject({
+  .object({
     ...statEventBase,
     type: z.literal(STAT_VOID_EVENT_TYPE),
     targetEventId: statEventIdSchema,
@@ -176,7 +176,7 @@ export const StatVoidEventSchema = z
   });
 
 export const StatCorrectionEventSchema = z
-  .strictObject({
+  .object({
     ...statEventBase,
     type: z.literal(STAT_CORRECTION_EVENT_TYPE),
     teamId: teamIdSchema,

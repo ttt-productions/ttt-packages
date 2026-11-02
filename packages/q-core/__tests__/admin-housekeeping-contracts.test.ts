@@ -53,8 +53,8 @@ describe('the award catalog', () => {
     ).toBe(false);
     expect(AwardDefinitionSchema.safeParse({ ...award, holderCount: -1 }).success).toBe(false);
     expect(
-      AwardDefinitionSchema.safeParse({ ...award, imageUrl: 'https://example.test/a.png' }).success,
-    ).toBe(false);
+      AwardDefinitionSchema.parse({ ...award, imageUrl: 'https://example.test/a.png' }),
+    ).not.toHaveProperty('imageUrl');
   });
 
   it('takes a grant change that names someone, never one account both granted and revoked, and bounded lists', () => {
@@ -222,15 +222,15 @@ describe('hardware loan contracts', () => {
   });
 
   it('keeps no signature URL and no display name — names resolve from public profiles', () => {
-    expect(HardwareLoanContractSchema.safeParse({ ...pending, refereeName: 'Pat' }).success).toBe(
-      false,
+    expect(HardwareLoanContractSchema.parse({ ...pending, refereeName: 'Pat' })).not.toHaveProperty(
+      'refereeName',
     );
     expect(
-      HardwareLoanContractSchema.safeParse({
+      HardwareLoanContractSchema.parse({
         ...pending,
         signatureDataUrl: 'data:image/png;base64,AA',
-      }).success,
-    ).toBe(false);
+      }),
+    ).not.toHaveProperty('signatureDataUrl');
   });
 
   it('is created for catalog items named once, and signed by the caller without naming them', () => {

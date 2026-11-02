@@ -8,7 +8,7 @@ export const awardIdSchema = documentIdSegmentSchema;
 
 export const awardNameSchema = textFieldSchema(AWARD_NAME_INPUT);
 
-export const AwardDefinitionSchema = z.strictObject({
+export const AwardDefinitionSchema = z.object({
   name: awardNameSchema,
   badgePictureId: pictureIdSchema.optional(),
   holderCount: countSchema,

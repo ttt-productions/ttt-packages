@@ -33,7 +33,7 @@ export type WaiverTemplate = z.infer<typeof WaiverTemplateSchema>;
 
 // `_serverData/waiverTemplateRegistry` — the write fence of the offered-template cap
 // (RULE-STD-BACKEND-116): only its changing matters.
-export const WaiverTemplateRegistrySchema = z.strictObject({
+export const WaiverTemplateRegistrySchema = z.object({
   templateRevision: countSchema,
 });
 export type WaiverTemplateRegistry = z.infer<typeof WaiverTemplateRegistrySchema>;

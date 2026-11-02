@@ -77,7 +77,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-BACKEND-112 | Reads are bounded and index-backed | codebase-hygiene 98, 105; async-workflow 9; data-integrity 13; migration 6; performance-audit 1, 2, 3, 8 | `firestoreCollectionGroupIndexes` |
 | RULE-STD-BACKEND-113 | Batch reads; no per-item read loop | performance-audit 9 | — |
 | RULE-STD-BACKEND-114 | Scripts that write project data follow the backend write rules | codebase-hygiene 10; migration 1, 2, 5, 6, 10; testing-coverage 7 | `projectScripts` |
-| RULE-STD-BACKEND-115 | A write stores only fields the document's `<APP_DATA_PACKAGE>` schema declares | codebase-hygiene 51, 80; data-integrity 7; migration 8 | `firestoreWrites` |
+| RULE-STD-BACKEND-115 | A write stores only fields the document's `<APP_DATA_PACKAGE>` schema declares | codebase-hygiene 51, 80; data-integrity 7; migration 8 | `firestoreWrites`, `storedDocumentSchemasPlain` |
 | RULE-STD-BACKEND-116 | Every write precondition is decided inside the write's transaction | codebase-hygiene 97, 108, 111; callable-functions 4 | `firestoreTransactionReads` |
 | RULE-STD-BACKEND-117 | An existence-probe get proves ownership from the path, never from `resource.data` | codebase-hygiene 107 | — |
 | RULE-STD-BACKEND-119 | A counter decrement reads the counter in its transaction and never writes it below zero | codebase-hygiene 111 | `firestoreCounterDecrements` |

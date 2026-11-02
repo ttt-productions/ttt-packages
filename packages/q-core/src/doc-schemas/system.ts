@@ -66,7 +66,7 @@ export const STATS_DISCREPANCY_VALUE_SCHEMA = z.union([
   z.null(),
 ]);
 
-export const StatsDiscrepancySchema = z.strictObject({
+export const StatsDiscrepancySchema = z.object({
   kind: statsDiscrepancyKindSchema,
   gameId: gameIdSchema.optional(),
   path: z.string().min(1),
@@ -78,14 +78,14 @@ export const StatsDiscrepancySchema = z.strictObject({
 export type StatsDiscrepancy = z.infer<typeof StatsDiscrepancySchema>;
 
 export const StatsValidationScopeSchema = z
-  .strictObject({ gameId: gameIdSchema.optional(), leagueId: leagueIdSchema.optional() })
+  .object({ gameId: gameIdSchema.optional(), leagueId: leagueIdSchema.optional() })
   .refine(
     (scope) => scope.gameId === undefined || scope.leagueId === undefined,
     'One game or one league, not both.',
   );
 export type StatsValidationScope = z.infer<typeof StatsValidationScopeSchema>;
 
-export const StatsValidationSummarySchema = z.strictObject({
+export const StatsValidationSummarySchema = z.object({
   totalGamesChecked: countSchema,
   totalUsersChecked: countSchema,
   totalTeamsChecked: countSchema,
@@ -94,7 +94,7 @@ export const StatsValidationSummarySchema = z.strictObject({
 });
 export type StatsValidationSummary = z.infer<typeof StatsValidationSummarySchema>;
 
-export const StatsValidationReportSchema = z.strictObject({
+export const StatsValidationReportSchema = z.object({
   reportId: z.string().min(1),
   operationId: statsOperationIdSchema,
   ranAt: epochMsSchema,
