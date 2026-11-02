@@ -98,34 +98,17 @@ export const GAME_STATUS_ON_CREATE = 'scheduled' as const satisfies GameStatus;
 
 export const GAME_STATUS_ON_REOPEN = 'inprogress' as const satisfies GameStatus;
 
-export const TEAM_INVITATION_STATUS_KEYS = [
-  'pending',
-  'approved',
-  'rejected',
-  'cancelled',
-] as const;
+// Only a pending invitation or join request exists: answering, withdrawing, or the person joining
+// the team deletes it.
+export const TEAM_INVITATION_STATUS_KEYS = ['pending'] as const;
 export type TeamInvitationStatus = (typeof TEAM_INVITATION_STATUS_KEYS)[number];
 
 export const PENDING_TEAM_INVITATION_STATUS = 'pending' as const satisfies TeamInvitationStatus;
-export const APPROVED_TEAM_INVITATION_STATUS = 'approved' as const satisfies TeamInvitationStatus;
-export const REJECTED_TEAM_INVITATION_STATUS = 'rejected' as const satisfies TeamInvitationStatus;
-export const CANCELLED_TEAM_INVITATION_STATUS = 'cancelled' as const satisfies TeamInvitationStatus;
 
-export const TEAM_JOIN_REQUEST_STATUS_KEYS = [
-  'pending',
-  'approved',
-  'rejected',
-  'cancelled',
-] as const;
+export const TEAM_JOIN_REQUEST_STATUS_KEYS = ['pending'] as const;
 export type TeamJoinRequestStatus = (typeof TEAM_JOIN_REQUEST_STATUS_KEYS)[number];
 
 export const PENDING_TEAM_JOIN_REQUEST_STATUS = 'pending' as const satisfies TeamJoinRequestStatus;
-export const APPROVED_TEAM_JOIN_REQUEST_STATUS =
-  'approved' as const satisfies TeamJoinRequestStatus;
-export const REJECTED_TEAM_JOIN_REQUEST_STATUS =
-  'rejected' as const satisfies TeamJoinRequestStatus;
-export const CANCELLED_TEAM_JOIN_REQUEST_STATUS =
-  'cancelled' as const satisfies TeamJoinRequestStatus;
 
 export const HARDWARE_LOAN_CONTRACT_STATUS_KEYS = ['pending', 'loaned', 'returned'] as const;
 export type HardwareLoanContractStatus = (typeof HARDWARE_LOAN_CONTRACT_STATUS_KEYS)[number];

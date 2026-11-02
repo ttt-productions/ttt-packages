@@ -42,6 +42,13 @@ export const AcceptTeamInvitationResultSchema = TeamInvitationResultSchema.exten
 }).strict();
 export type AcceptTeamInvitationResult = z.infer<typeof AcceptTeamInvitationResultSchema>;
 
+// Declining or withdrawing deletes the invitation, so a repeated call finds nothing to name and
+// answers with the id it was given.
+export const TeamInvitationClosedResultSchema = z
+  .object({ teamInvitationId: teamInvitationIdSchema })
+  .strict();
+export type TeamInvitationClosedResult = z.infer<typeof TeamInvitationClosedResultSchema>;
+
 export const CreateTeamJoinRequestInputSchema = z
   .object({ teamId: teamIdSchema, message: teamJoinRequestMessageSchema })
   .strict();
@@ -66,6 +73,13 @@ export const AcceptTeamJoinRequestResultSchema = TeamJoinRequestResultSchema.ext
   rosterSyncStatus: membershipRosterSyncStatusSchema,
 }).strict();
 export type AcceptTeamJoinRequestResult = z.infer<typeof AcceptTeamJoinRequestResultSchema>;
+
+// Declining or withdrawing deletes the join request, so a repeated call finds nothing to name and
+// answers with the id it was given.
+export const TeamJoinRequestClosedResultSchema = z
+  .object({ teamJoinRequestId: teamJoinRequestIdSchema })
+  .strict();
+export type TeamJoinRequestClosedResult = z.infer<typeof TeamJoinRequestClosedResultSchema>;
 
 export const LeagueFreeAgentInputSchema = z.object({ leagueId: leagueIdSchema }).strict();
 export type LeagueFreeAgentInput = z.infer<typeof LeagueFreeAgentInputSchema>;

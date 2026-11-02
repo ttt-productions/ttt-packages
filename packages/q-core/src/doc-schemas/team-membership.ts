@@ -25,6 +25,7 @@ export const TeamMembershipSchema = z.object({
   isGhost: z.boolean(),
   joinedVia: teamJoinMethodSchema.optional(),
   teamInvitationId: z.string().optional(),
+  teamJoinRequestId: z.string().optional(),
   linkedFromGhostUserId: z.string().optional(),
   joinedAt: epochMsSchema,
   updatedAt: epochMsSchema,
@@ -39,7 +40,6 @@ export const TeamInvitationSchema = z.object({
   message: textFieldSchema(TEAM_INVITATION_MESSAGE_INPUT),
   status: teamInvitationStatusSchema,
   createdAt: epochMsSchema,
-  respondedAt: epochMsSchema.optional(),
 });
 export type TeamInvitation = z.infer<typeof TeamInvitationSchema>;
 

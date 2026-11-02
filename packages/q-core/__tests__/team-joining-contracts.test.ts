@@ -6,14 +6,8 @@ import {
 } from '../src/constants/business.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
-  APPROVED_TEAM_INVITATION_STATUS,
-  APPROVED_TEAM_JOIN_REQUEST_STATUS,
-  CANCELLED_TEAM_INVITATION_STATUS,
-  CANCELLED_TEAM_JOIN_REQUEST_STATUS,
   PENDING_TEAM_INVITATION_STATUS,
   PENDING_TEAM_JOIN_REQUEST_STATUS,
-  REJECTED_TEAM_INVITATION_STATUS,
-  REJECTED_TEAM_JOIN_REQUEST_STATUS,
   TEAM_INVITATION_STATUS_KEYS,
   TEAM_JOIN_REQUEST_STATUS_KEYS,
 } from '../src/types/unions.js';
@@ -30,35 +24,23 @@ import {
   CreateTeamJoinRequestInputSchema,
   DeleteLeagueFreeAgentResultSchema,
   LeagueFreeAgentInputSchema,
+  TeamInvitationClosedResultSchema,
   TeamInvitationResultSchema,
   TeamInvitationTargetInputSchema,
+  TeamJoinRequestClosedResultSchema,
   TeamJoinRequestResultSchema,
   TeamJoinRequestTargetInputSchema,
 } from '../src/schemas/team-joining.js';
 
 const NOW = 1_712_345_678_901;
 
-describe('the statuses an invitation and a join request move through', () => {
-  it('an invitation is pending until accepted, declined, or withdrawn — withdrawal kept as a status, never a deletion', () => {
-    expect([...TEAM_INVITATION_STATUS_KEYS].sort()).toEqual(
-      [
-        PENDING_TEAM_INVITATION_STATUS,
-        APPROVED_TEAM_INVITATION_STATUS,
-        REJECTED_TEAM_INVITATION_STATUS,
-        CANCELLED_TEAM_INVITATION_STATUS,
-      ].sort(),
-    );
+describe('the statuses an invitation and a join request hold', () => {
+  it('an invitation is only ever pending — answering or withdrawing it deletes it', () => {
+    expect([...TEAM_INVITATION_STATUS_KEYS]).toEqual([PENDING_TEAM_INVITATION_STATUS]);
   });
 
-  it('a join request is pending until accepted, rejected, or withdrawn', () => {
-    expect([...TEAM_JOIN_REQUEST_STATUS_KEYS].sort()).toEqual(
-      [
-        PENDING_TEAM_JOIN_REQUEST_STATUS,
-        APPROVED_TEAM_JOIN_REQUEST_STATUS,
-        REJECTED_TEAM_JOIN_REQUEST_STATUS,
-        CANCELLED_TEAM_JOIN_REQUEST_STATUS,
-      ].sort(),
-    );
+  it('a join request is only ever pending — answering or withdrawing it deletes it', () => {
+    expect([...TEAM_JOIN_REQUEST_STATUS_KEYS]).toEqual([PENDING_TEAM_JOIN_REQUEST_STATUS]);
   });
 
   it('the stored documents accept every declared status and nothing else', () => {
@@ -74,8 +56,11 @@ describe('the statuses an invitation and a join request move through', () => {
     for (const status of TEAM_INVITATION_STATUS_KEYS) {
       expect(TeamInvitationSchema.safeParse({ ...invitation, status }).success).toBe(true);
     }
-    expect(TeamInvitationSchema.safeParse({ ...invitation, status: 'expired' }).success).toBe(
-      false,
+    for (const status of ['approved', 'rejected', 'cancelled', 'expired']) {
+      expect(TeamInvitationSchema.safeParse({ ...invitation, status }).success).toBe(false);
+    }
+    expect(TeamInvitationSchema.parse({ ...invitation, respondedAt: NOW })).not.toHaveProperty(
+      'respondedAt',
     );
 
     const request = {
@@ -88,6 +73,9 @@ describe('the statuses an invitation and a join request move through', () => {
     };
     for (const status of TEAM_JOIN_REQUEST_STATUS_KEYS) {
       expect(TeamJoinRequestSchema.safeParse({ ...request, status }).success).toBe(true);
+    }
+    for (const status of ['approved', 'rejected', 'cancelled']) {
+      expect(TeamJoinRequestSchema.safeParse({ ...request, status }).success).toBe(false);
     }
   });
 });
@@ -144,6 +132,16 @@ describe('the invitation wire contracts', () => {
     ).toMatchObject(result);
     expect(AcceptTeamInvitationResultSchema.safeParse(result).success).toBe(false);
   });
+
+  it('answer a decline or a withdrawal with the invitation id alone', () => {
+    expect(TeamInvitationClosedResultSchema.parse({ teamInvitationId: 'inv-1' })).toEqual({
+      teamInvitationId: 'inv-1',
+    });
+    expect(
+      TeamInvitationClosedResultSchema.safeParse({ teamInvitationId: 'inv-1', teamId: 'T1' })
+        .success,
+    ).toBe(false);
+  });
 });
 
 describe('the join-request wire contracts', () => {
@@ -182,6 +180,16 @@ describe('the join-request wire contracts', () => {
     expect(
       AcceptTeamJoinRequestResultSchema.parse({ ...result, rosterSyncStatus: 'reconciled' }),
     ).toMatchObject(result);
+  });
+
+  it('answer a decline or a withdrawal with the join request id alone', () => {
+    expect(TeamJoinRequestClosedResultSchema.parse({ teamJoinRequestId: 'r1' })).toEqual({
+      teamJoinRequestId: 'r1',
+    });
+    expect(
+      TeamJoinRequestClosedResultSchema.safeParse({ teamJoinRequestId: 'r1', userId: 'u1' })
+        .success,
+    ).toBe(false);
   });
 });
 

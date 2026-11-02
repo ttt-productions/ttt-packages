@@ -184,10 +184,10 @@ describe('the events team management names', () => {
     ).toBe(false);
   });
 
-  it('declares a deletion that stopped short, and a ghost removal that left finished games, as domain events', () => {
+  it('declares a ghost removal that left finished games as a domain event, and no deletion that stopped short', () => {
     const ids = { leagueId: 'league-1', teamId: 'team-1' };
     expect(DomainEventSchema.safeParse({ type: 'leagueTeam.deletionAdvanced', ids }).success).toBe(
-      true,
+      false,
     );
     expect(
       DomainEventSchema.safeParse({

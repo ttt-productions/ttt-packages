@@ -39,8 +39,6 @@ import { AdminStartUploadInputSchema } from '../src/schemas/uploads.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   ACTIVE_TEAM_MEMBERSHIP_STATUS,
-  APPROVED_TEAM_INVITATION_STATUS,
-  APPROVED_TEAM_JOIN_REQUEST_STATUS,
   CAPTAIN_TEAM_ROLES,
   FAILED_ROSTER_SYNC_STATUS,
   MEMBERSHIP_ROSTER_SYNC_STATUS_KEYS,
@@ -618,11 +616,11 @@ describe('the status members every query and write names', () => {
     expect(TEAM_MEMBERSHIP_STATUS_KEYS as readonly string[]).toContain(
       ACTIVE_TEAM_MEMBERSHIP_STATUS,
     );
-    expect(TEAM_INVITATION_STATUS_KEYS as readonly string[]).toEqual(
-      expect.arrayContaining([PENDING_TEAM_INVITATION_STATUS, APPROVED_TEAM_INVITATION_STATUS]),
+    expect(TEAM_INVITATION_STATUS_KEYS as readonly string[]).toContain(
+      PENDING_TEAM_INVITATION_STATUS,
     );
-    expect(TEAM_JOIN_REQUEST_STATUS_KEYS as readonly string[]).toEqual(
-      expect.arrayContaining([PENDING_TEAM_JOIN_REQUEST_STATUS, APPROVED_TEAM_JOIN_REQUEST_STATUS]),
+    expect(TEAM_JOIN_REQUEST_STATUS_KEYS as readonly string[]).toContain(
+      PENDING_TEAM_JOIN_REQUEST_STATUS,
     );
     expect(
       [PENDING_ROSTER_SYNC_STATUS, RECONCILED_ROSTER_SYNC_STATUS, FAILED_ROSTER_SYNC_STATUS].sort(),

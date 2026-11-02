@@ -366,13 +366,6 @@ export const LeagueTeamDeletedEventSchema = z
   })
   .strict();
 
-export const LeagueTeamDeletionAdvancedEventSchema = z
-  .object({
-    type: z.literal('leagueTeam.deletionAdvanced'),
-    ids: z.object({ leagueId: leagueIdSchema, teamId: teamIdSchema }).strict(),
-  })
-  .strict();
-
 export const GhostPlayerFinishedEntriesRemovedEventSchema = z
   .object({
     type: z.literal('ghostPlayer.finishedEntriesRemoved'),
@@ -464,7 +457,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   GameLocationDeletedEventSchema,
   LeagueTeamUpdatedEventSchema,
   LeagueTeamDeletedEventSchema,
-  LeagueTeamDeletionAdvancedEventSchema,
   GhostPlayerFinishedEntriesRemovedEventSchema,
   LeagueTeamContactUpdatedEventSchema,
   LandingPageUpdatedEventSchema,

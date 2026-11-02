@@ -73,6 +73,27 @@ describe('team roles', () => {
     expect(TeamMembershipSchema.safeParse({ ...member, role: 'member' }).success).toBe(false);
     expect(TeamMembershipSchema.safeParse({ ...member, role: 'cocaptain' }).success).toBe(false);
   });
+
+  it('a membership names the invitation or the join request it was made from', () => {
+    const member = {
+      leagueId: 'L',
+      teamId: 'T',
+      userId: 'u1',
+      role: 'player',
+      status: 'active',
+      isGhost: false,
+      joinedAt: NOW,
+      updatedAt: NOW,
+    };
+    expect(
+      TeamMembershipSchema.parse({ ...member, joinedVia: 'invite', teamInvitationId: 'inv-1' })
+        .teamInvitationId,
+    ).toBe('inv-1');
+    expect(
+      TeamMembershipSchema.parse({ ...member, joinedVia: 'joinRequest', teamJoinRequestId: 'r1' })
+        .teamJoinRequestId,
+    ).toBe('r1');
+  });
 });
 
 describe('timestamps are epoch-millisecond numbers', () => {
