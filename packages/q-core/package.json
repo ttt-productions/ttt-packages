@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/q-core",
-    "version": "0.1.45",
+    "version": "0.1.46",
     "description": "Core types, Firestore path constants, zod schemas, and shared constants for Q-Sports",
     "repository": {
         "type": "git",
