@@ -241,10 +241,7 @@ export const GameRepairChangesSchema = z
     absentRosterPlayerIds: replacedEntryListSchema.optional(),
     nonScoringRosterPlayerIds: replacedEntryListSchema.optional(),
     statEventSequence: z.object({ stored: countSchema, rebuilt: countSchema }).strict().optional(),
-    recordRewritten: z
-      .object({ pagesBefore: countSchema, pagesAfter: countSchema })
-      .strict()
-      .optional(),
+    recordRewritten: z.literal(true).optional(),
   })
   .strict();
 export type GameRepairChanges = z.infer<typeof GameRepairChangesSchema>;

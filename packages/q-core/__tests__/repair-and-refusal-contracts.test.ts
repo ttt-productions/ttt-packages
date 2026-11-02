@@ -30,11 +30,19 @@ describe('a game repair names what it changed on the game', () => {
       absentRosterPlayerIds: { stored: [], rebuilt: [shooter] },
       nonScoringRosterPlayerIds: { stored: [shooter], rebuilt: [] },
       statEventSequence: { stored: 5, rebuilt: 6 },
-      recordRewritten: { pagesBefore: 1, pagesAfter: 1 },
+      recordRewritten: true,
     };
     expect(
       GameStatsRepairResultSchema.parse({ ...RESULT, gameChanges: changes }).gameChanges,
     ).toEqual(changes);
+  });
+
+  it('marks a rewritten finalized record with a flag that counts no pages', () => {
+    const parse = (recordRewritten: unknown) =>
+      GameRepairChangesSchema.safeParse({ ...NO_CHANGES, recordRewritten }).success;
+    expect(parse(true)).toBe(true);
+    expect(parse(false)).toBe(false);
+    expect(parse({ pagesBefore: 1, pagesAfter: 1 })).toBe(false);
   });
 
   it('carries a derived line field such as fantasy points, which is not a counter', () => {
