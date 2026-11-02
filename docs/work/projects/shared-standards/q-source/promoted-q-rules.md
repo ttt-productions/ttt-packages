@@ -28,19 +28,6 @@ Copied from Q-Sports' rulebook so the run can write the shared versions without 
 
 **References.** ENG-002, ENG-011 (an ID convention change ships its migration); ARCH-004, ARCH-101, ARCH-104; [../../design/leagues-teams-and-roles.md](../../design/leagues-teams-and-roles.md); `src/__tests__/lib/hygiene-guards.test.ts` (the compound-id guard); `data-integrity-playbook.md` step 3.
 
-## Q-Sports BACKEND-212 → RULE-STD-BACKEND-212 — Repair actions record a reason and the state they replaced
-
-**Rule.** An admin action that changes a completed record — reopen, any `recalculate*`, backfill, a data migration, a backup restore, a bulk delete — requires a caller-supplied reason and records the prior state alongside the new one: which documents it touched, what the affected aggregates were before, and what they became. Repair actions are audited even when they are idempotent. Removing records that never held a stat — a never-played ghost, a never-played team — is not a repair: it takes no reason, and its audit event still records who removed what. Linking a ghost to its real account takes no reason either — the admin chooses the account and confirms — and its audit event still records who linked which ghost to whom, what moved, and every destination's before and after, even when the link is resumed.
-
-**Why.** A repair that replaces an aggregate destroys the only evidence of what the record used to say, so a wrong one is indistinguishable afterward from a legitimate correction.
-
-**Prohibits.**
-- A repair callable with no required reason argument.
-- Replacing an aggregate without recording the value it replaced.
-- Treating "the numbers can be recalculated" as a substitute for recording the change.
-
-**References.** [../../design/sports-stats-contract.md](../../design/sports-stats-contract.md); BACKEND-202; SPORT-201, SPORT-206; `callable-functions-playbook.md` step 13.
-
 ## Q-Sports ENG-011 → RULE-STD-ENG-011 — Q-Sports is live; persisted shapes change with a migration path
 
 **Rule.** Any change to a persisted shape — Firestore field, document ID convention, custom claim, Storage path — ships with the migration bringing existing documents to the new shape; a change that runs against live documents before its migration completes also ships a read path tolerating both shapes until it does. Migrations are idempotent, safely re-runnable, and belong to the work that forces them.

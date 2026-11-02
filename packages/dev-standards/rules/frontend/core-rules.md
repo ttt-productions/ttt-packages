@@ -56,16 +56,18 @@ Code is the value truth: an app's `brand.css` tokens and `components.css` classe
 
 **References.** RULE-STD-ENG-002; RULE-STD-FRONTEND-008.
 
-### RULE-STD-FRONTEND-006 — State changes swap icons; destructive red lives only inside confirmation dialogs
+### RULE-STD-FRONTEND-006 — State changes swap icons; destructive actions live in the one '…' menu; red lives only inside confirmation dialogs
 **Scope.** apps
 
-**Rule.** A state change swaps the ICON, never the color or variant (the app's addition names its icon pairs). Red/destructive is reserved for the confirm action **inside a dialog** and for urgency text — never an inline destructive button. Report/delete/secondary actions live behind the app's one shared "…" actions menu; where a destructive trigger must sit inline it renders neutral (outline/ghost) and only the dialog's confirm is red.
+**Rule.** A state change swaps the ICON, never the color or variant (the app's addition names its icon pairs). Every destructive action on an item — delete, remove, close, hide, and the like — lives in the app's one shared "…" actions menu and opens its confirmation dialog from there; it never sits inline on the item. The item's secondary actions (a download, a report) sit in the same menu. Red/destructive is reserved for the confirm action **inside that dialog** and for urgency text. Admin actions stay in the app's admin actions.
 
-**Why.** Color-swap state is ambiguous across themes and collides with the app's affordance colors; icon-swap reads the same everywhere.
+**Why.** Color-swap state is ambiguous across themes and collides with the app's affordance colors; icon-swap reads the same everywhere. An inline destructive control is one mis-tap from a consequential action wherever it sits and however it is colored; one menu per item puts every such action in one known place behind one more deliberate step.
 
 **Prohibits.**
 - A color/variant change to signal state (e.g. a green "success" toggle button); one icon used for two different actions.
-- An inline red destructive button outside a dialog confirm.
+- A destructive control rendered inline on an item, in any color, instead of in the shared "…" menu.
+- A red destructive control anywhere but a dialog's confirm.
+- A second "…" menu or a hand-built dropdown for an item's actions.
 
 **References.** RULE-STD-FRONTEND-202.
 

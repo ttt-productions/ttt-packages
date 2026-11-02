@@ -172,7 +172,7 @@ An audience change is a MOVE of the doc (packages-first — paths live in `<APP_
 - A writing script with no dry-run, no explicit target project taken at invocation, or no re-run safety; a project id in source; a credential taken from anywhere but the one owner.
 - A repair whose key set is only the source's keys, so a stored derived doc with no source left is never checked.
 
-**References.** RULE-STD-ARCH-104, RULE-STD-ENG-002, RULE-STD-ENG-003; RULE-STD-BACKEND-206 (server-owned projections); RULE-STD-BACKEND-212 (a repair records its reason and the state it replaced).
+**References.** RULE-STD-ARCH-104, RULE-STD-ENG-002, RULE-STD-ENG-003; RULE-STD-BACKEND-206 (server-owned projections).
 
 ### RULE-STD-BACKEND-115 — A write stores only fields the document's `<APP_DATA_PACKAGE>` schema declares
 **Scope.** apps

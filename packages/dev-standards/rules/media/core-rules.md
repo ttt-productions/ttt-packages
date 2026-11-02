@@ -13,39 +13,44 @@ The app's upload-pipeline design doc holds the system model; ttt-packages `docs/
 ### RULE-STD-MEDIA-001 — One upload pipeline; fileOrigin ties the surface together
 **Scope.** apps
 
-**Rule.** Every media origin rides the one upload pipeline. `fileOrigin` is the single key binding a surface's local media spec (`<MEDIA_SPECS>`), staging path (`<UPLOAD_PATH_BUILDER>`), start-upload request field, target-info schema, and backend processor routing — the same value drives **all** of them, so a surface renders and submits one origin. Variants of one domain that the app registers as separate origins (its addition lists them) are **distinct** origins, never substituted. `<APP_NAME>` origin and domain naming stays in `<APP_DATA_PACKAGE>` and the app — never inside a generic upload package. An origin that does not ride the pipeline exists only as an exception the app's addition names, and the pipeline's entry points explicitly reject it.
+**Rule.** Every media origin rides the one upload pipeline. `fileOrigin` is the single key binding a surface's local media spec (`<MEDIA_SPECS>`), staging path (`<UPLOAD_PATH_BUILDER>`), start-upload request field, target-info schema, and backend routing — the same value drives **all** of them, so a surface renders and submits one origin. Variants of one domain that the app registers as separate origins (its addition lists them) are **distinct** origins, never substituted. `<APP_NAME>` origin and domain naming stays in `<APP_DATA_PACKAGE>` and the app — never inside a generic upload package. What differs between origins is a setting on the origin's spec — processed or kept as given, signed in or signed out allowed (RULE-STD-MEDIA-002) — never a pipeline of its own.
 
 **Why.** Rendering one origin's picker while submitting another desynchronizes UI and backend the moment a spec changes; a bespoke pipeline per "unusual" entry point is the duplication RULE-STD-ENG-003 prevents; an app's naming inside a generic package makes it that app's package.
 
 **Prohibits.**
 - Rendering one origin's picker while submitting another, even when their specs currently match.
-- Substituting one registered variant for another, or building a parallel upload pipeline / helper / `pendingMedia` producer for a new surface.
+- Substituting one registered variant for another, or building a parallel upload pipeline / helper / `pendingMedia` producer for a new surface or a new kind of file.
 - `<APP_NAME>` domain naming — an origin, a path, a spec — inside a generic upload package.
 
 **References.** RULE-STD-ENG-002, RULE-STD-ENG-003; RULE-STD-MEDIA-002, RULE-STD-MEDIA-006; RULE-STD-ARCH-201; ttt-packages `docs/design/upload-path-invariant.md`.
 
-### RULE-STD-MEDIA-002 — Upload path invariant (LAW)
+### RULE-STD-MEDIA-002 — One upload path (LAW)
 **Scope.** apps
 
-**Rule.** Every uploaded file follows the one canonical staging path shape, `uploads/{fileOrigin}/{uid}/{pendingMediaDocId}`, built only by `<UPLOAD_PATH_BUILDER>(fileOrigin, uid, pendingMediaDocId)` in `<APP_DATA_PACKAGE>`.
+**Rule.** Every uploaded file, whatever its origin, goes through the one staging path, the one server check, and the one `pendingMedia` record. The path shape is `uploads/{fileOrigin}/{owner}/{pendingMediaDocId}`, built only by `<UPLOAD_PATH_BUILDER>` in `<APP_DATA_PACKAGE>`. Each origin's spec in `<MEDIA_SPECS>` carries two settings: **processed** or **kept as given** (stored byte for byte and never processed, such as a signature), and **signed in** or **signed out allowed**.
 
+- The owner segment is the signed-in uploader's uid. A signed-out upload, only on an origin whose spec allows it, uses the one fixed signed-out owner segment `<APP_DATA_PACKAGE>` declares in its place; that value can never be a real user id.
 - No extension on the path; the filename segment is the `pendingMedia` Firestore document id. No other segment — filename, entity id, or anything else — comes from the client.
 - `fileOrigin` must **exactly** match a canonical value in `<FILE_ORIGIN_SCHEMA>` / `<MEDIA_SPECS>` — never infer casing or rename by style. Canonical origins may be mixed-style on purpose.
-- `contentType` must be a concrete `image/*`, `video/*`, or `audio/*`, or EXACTLY the neutral `application/octet-stream` (the canonical-classification lane for unknown picker metadata — the server byte inspection decides what the file is; a client never fabricates a media MIME to pass this shape check). Any other type is rejected.
-- The start-upload callable re-derives the pending id from the last path segment, rebuilds the expected path with `<UPLOAD_PATH_BUILDER>`, and rejects with `invalid-argument` unless the submitted path is **exactly equal** (`!==`) — a strict equality check, never a prefix match. Before it records anything, it checks the staged object's real Storage metadata (stored content type and size) against the origin's spec.
+- Each file's content type is tested against its origin's spec in the browser (`@ttt-productions/file-input`) and by the start-upload check. The Storage rules check only the shared outer shape: a concrete `image/*`, `video/*`, or `audio/*`, or EXACTLY the neutral `application/octet-stream` (the lane for unknown picker metadata — the server byte inspection decides what the file is; a client never fabricates a media MIME to pass this shape check). Any other type is rejected.
+- The start-upload check re-derives the pending id from the last path segment, rebuilds the expected path with `<UPLOAD_PATH_BUILDER>`, and rejects with `invalid-argument` unless the submitted path is **exactly equal** (`!==`) — a strict equality check, never a prefix match. Before it records anything, it checks the staged object's real Storage metadata (stored content type and size) against the origin's spec.
+- A signed-out upload is create-only: the Storage rules allow its create only on an origin whose spec allows signed out, under the bucket's App Check, a size cap and the outer content-type shape, and no client reads, overwrites, or deletes it. The uploader's claim to the file is the unguessable pending id it holds, never a user id. The server reads the stored bytes before it uses the file, and a sweep deletes every signed-out upload never used.
 
-**Why.** One canonical staging shape is what lets the client, the rules, the callable, and the processors verify each other; any looseness — an extension, a prefix match, a style-guessed origin, a client-chosen segment, or trusting the declared type and size over the stored object — reopens the client-controlled-path hole this LAW closes.
+**Why.** One canonical staging path and one check are what let the client, the rules, the callable, and the processors verify each other; any looseness — an extension, a prefix match, a style-guessed origin, a client-chosen segment, or trusting the declared type and size over the stored object — reopens the client-controlled-path hole this LAW closes. A side path for one kind of file — kept as given, or uploaded signed out — is a second upload system with its own rules, checks, and cleanup, each drifting from the one that is watched.
 
-**Defense in depth (layers that keep client, rule, and callable from drifting apart).** (1) `@ttt-productions/file-input` guarantees every emitted `File` has a valid contentType; (2) `@ttt-productions/upload-core` throws before any bytes hit Storage on a missing/invalid contentType; (3) the Storage rules enforce the path *shape*, a per-origin size cap (an unknown origin fails closed), and the contentType shape; (4) the start-upload callable enforces strict path **equality** and the stored-metadata check. `pendingMedia` is **callable-only** in the Firestore rules — it carries no path or `fileOrigin` enforcement there.
+**Defense in depth (layers that keep client, rule, and callable from drifting apart).** (1) `@ttt-productions/file-input` guarantees every emitted `File` has a valid contentType and tests it against the origin's spec; (2) `@ttt-productions/upload-core` throws before any bytes hit Storage on a missing/invalid contentType; (3) the Storage rules enforce the path *shape*, a per-origin size cap (an unknown origin fails closed), the outer contentType shape, and create-only on the signed-out owner segment for the origins that allow it; (4) the start-upload check enforces strict path **equality** and the stored-metadata check against the origin's spec. `pendingMedia` is **callable-only** in the Firestore rules — it carries no path or `fileOrigin` enforcement there.
 
 **Prohibits.**
 - Building an upload path by hand, with an extension, with a client-chosen segment, or with a non-canonical/style-guessed origin.
+- A second upload path, check, or record for any origin — a side path for kept-as-given files, a signed-out path outside the staging tree, a copy record of its own.
+- A kept-as-given file sent to a processor, or a processed origin's file kept as given.
+- A signed-out upload on an origin whose spec does not allow it; a signed-out owner segment that could equal a user id; a signed-out object a client can read, overwrite, or delete; one used before the server reads its bytes; one never swept.
 - A prefix or "close enough" path check in place of strict equality; recording an upload without checking the stored object's metadata against the origin's spec.
-- Enforcing the path or the `fileOrigin` allowlist in the Firestore rules (it is callable-only there).
+- Each origin's own content types restated in the Storage rules; enforcing the path or the `fileOrigin` allowlist in the Firestore rules (it is callable-only there).
 
-**Change one part, change ALL of these in lockstep — there is no partial migration:** `<UPLOAD_PATH_BUILDER>` and the temp-path helpers, `<FILE_ORIGIN_SCHEMA>`, and `<MEDIA_SPECS>` (`<APP_DATA_PACKAGE>`); the start-upload path-equality check and per-origin auth switch; the processor routing; the Storage rules' origin allowlist, size caps, contentType shape, and path-shape match; the app's upload-pipeline design doc; and every upload mutation. The origin sync tests stay green.
+**Change one part, change ALL of these in lockstep — there is no partial migration:** `<UPLOAD_PATH_BUILDER>`, the signed-out owner segment, and the temp-path helpers, `<FILE_ORIGIN_SCHEMA>`, and `<MEDIA_SPECS>` with each origin's two settings (`<APP_DATA_PACKAGE>`); the start-upload path-equality check and per-origin auth switch; the routing (a processor for a processed origin, the kept-as-given handling for one kept as given); the Storage rules' origin allowlist, size caps, outer contentType shape, signed-out create rule, and path-shape match; the signed-out sweep; the app's upload-pipeline design doc; and every upload mutation. The origin sync tests stay green.
 
-**References.** RULE-STD-ENG-006; RULE-STD-MEDIA-004, RULE-STD-MEDIA-006; ttt-packages `docs/design/upload-path-invariant.md`.
+**References.** RULE-STD-ENG-003, RULE-STD-ENG-006; RULE-STD-MEDIA-001, RULE-STD-MEDIA-004, RULE-STD-MEDIA-006; ttt-packages `docs/design/upload-path-invariant.md`.
 
 ### RULE-STD-MEDIA-003 — One guarded upload helper
 **Scope.** both
@@ -90,12 +95,12 @@ The app's upload-pipeline design doc holds the system model; ttt-packages `docs/
 ### RULE-STD-MEDIA-006 — A new origin extends the registry, rules, routing, and tests in lockstep
 **Scope.** apps
 
-**Rule.** Adding a `FileOrigin` extends, in one change: `<FILE_ORIGIN_SCHEMA>` **and** `<MEDIA_SPECS>` (`<APP_DATA_PACKAGE>`); the Storage rules' origin allowlist, size cap, and contentType shape; the start-upload auth switch and its per-origin `targetInfo` schema; and the processor routing. The origin sync tests (every origin value maps to a processor kind) stay green; the processor `switch` is compile-time exhaustive, so an origin without a case fails the build via the `never` default.
+**Rule.** Adding a `FileOrigin` extends, in one change: `<FILE_ORIGIN_SCHEMA>` **and** `<MEDIA_SPECS>` (`<APP_DATA_PACKAGE>`); the Storage rules' origin allowlist and size cap (and the signed-out create rule when its spec allows signed out); the start-upload auth switch and its per-origin `targetInfo` schema; and its routing — a processor for a processed origin, the kept-as-given handling for one kept as given. The origin sync tests (every origin value maps to its route) stay green; the routing `switch` is compile-time exhaustive, so an origin without a case fails the build via the `never` default.
 
 **Why.** The origin allowlist, size caps, routing, and specs are one contract split across files; a half-added origin either fails closed silently or opens an unguarded path.
 
 **Prohibits.**
-- Adding an origin to `<FILE_ORIGIN_SCHEMA>` without its spec, rule cap, auth case, targetInfo schema, and processor route.
+- Adding an origin to `<FILE_ORIGIN_SCHEMA>` without its spec and its two settings, rule cap, auth case, targetInfo schema, and route.
 - Weakening/deleting the sync test to pass a partial addition, or adding an `<APP_NAME>` origin to a generic package (it belongs in `<APP_DATA_PACKAGE>`).
 
 **References.** RULE-STD-MEDIA-001, RULE-STD-MEDIA-002; RULE-STD-ARCH-201.

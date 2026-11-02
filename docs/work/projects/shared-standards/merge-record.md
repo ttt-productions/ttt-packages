@@ -136,8 +136,6 @@ Legend: **Fold** = a stricter clause added to the shared text. **TTT+** / **QS+*
 - **BACKEND-211.** Shared: one audit writer, origin from the request, person-actors built only by the
   constructors. TTT+: its documented exceptions and sign-in recording (kept private). Shared: no Identity Platform
   blocking function.
-- **BACKEND-212** (promoted). Product-neutral. Scope note: rebuilding a derived copy from an
-  untouched source is not a repair of a completed record.
 - **BACKEND-301.** ttt-prod's text (no `void` call is sanctioned). Q-Sports' "the one sanctioned
   `void` call" is dropped; Q-Sports complies in its conversion.
 - **BACKEND-302.** Fold: "a comment promising the work 'can be retried' with nothing that retries it".
@@ -187,8 +185,7 @@ Legend: **Fold** = a stricter clause added to the shared text. **TTT+** / **QS+*
 - **FRONTEND-109.** ttt-prod's text (declared readers).
 - **FRONTEND-110.** TTT+ / QS+: each app's predicate examples.
 - **FRONTEND-201.** ttt-prod's text (its primitive list).
-- **FRONTEND-202.** Fold: `window.confirm()` is prohibited as a gate; a reason a repair requires
-  (BACKEND-212) is gathered by the dialog, never re-implemented beside it. TTT+ / QS+: examples.
+- **FRONTEND-202.** Fold: `window.confirm()` is prohibited as a gate. TTT+ / QS+: examples.
 - **FRONTEND-203.** TTT+ / QS+: each app's shell file.
 - **FRONTEND-206.** Fold: "A read that answered and then fails keeps its answer: the hook hands back
   the last answered data with the failure beside it, and the surface keeps that content — and every

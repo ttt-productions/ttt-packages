@@ -39,7 +39,7 @@ The shared rules and playbooks use these too; each has a value in the same block
 | `<CANONICAL_ORIGIN>` | The app's one canonical public origin; every link, callback, and redirect uses it. |
 | `<HOLDS_LIVE_DATA>` | **yes** once the app's database holds data that must survive (no more wipes), **no** before. |
 | `<MEMBER_ACTOR_MODE>` | The audit actor mode for a member acting inside a shared resource they belong to. |
-| `<CALLABLE_DECLARATIONS>` | The one file that declares every callable the client invokes. |
+| `<CALLABLE_DECLARATIONS>` | The modules that declare every callable the client invokes (the app's guard config names the same modules). |
 | `<CALLABLE_POLICY>` | The app's one callable policy: its error taxonomy, describe function, classifier, and predicates. |
 | `<CALLABLE_ERROR_EXIT>` | The app-local catch-block exit every callable's error path goes through. |
 | `<DESIGNED_ANSWER_PREDICATE>` | The one backend predicate that decides a designed callable refusal. |

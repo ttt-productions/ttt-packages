@@ -56,8 +56,9 @@ theme-core values the variants replace are removed.
 6. **RULE-STD-FRONTEND-008** gains its guard sentence in the same release: "The repo-guards
    `<guard id>` guard enforces the ui-core half; a reviewed exception is an entry in the app's guard
    config with its reason." `playbooks/crosswalk.md` names the guard on RULE-STD-FRONTEND-008.
-7. Adoption files for both apps; each app's move is its own item (ttt-prod's and Q-Sports'
-   `docs/work/waiting-to-be-implemented/`).
+7. Adoption files for both apps; each app's move is its own item: ttt-prod's
+   `docs/work/waiting-to-be-implemented/ui-core-parts-onto-variants.md`, Q-Sports'
+   `docs/work/projects/migration-2.0/code-changes/ui-core-parts-onto-variants.md`.
 
 **How to find every site:** a theme-core class that is not a layout class, passed as `className` to
 a ui-core component, in either app; once the guard ships, the guard lists them.

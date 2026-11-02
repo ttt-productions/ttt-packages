@@ -98,12 +98,12 @@ path is a finding.
 ```bash
 rg -n "uploadBytes|uploadString|deleteObject" src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
 ```
-**Expected:** every Storage write enforces the authenticated uid, a concrete media content type, the
-per-origin size cap, and the canonical origin — temp uploads follow the canonical upload path and go
-only there; final and processed paths are backend-write-only. The client never supplies an
-authoritative target path. A direct-upload path outside the pipeline exists only as a documented,
-create-only, attested exception with every read denied (the app's additions name its exceptions); a
-new one, or a read grant on one, is the finding.
+**Expected:** every client Storage write is a temp upload on the one upload path, under the
+uploader's own uid segment — or, on an origin whose spec allows signed out, the fixed signed-out owner
+segment, create-only with every client read, overwrite, and delete denied — with the outer content-type
+shape, the per-origin size cap, and the canonical origin; final and processed paths are
+backend-write-only. The client never supplies an authoritative target path. Any upload path outside
+the staging tree, or a read grant on a signed-out upload, is the finding.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 8. Check migration-sensitive writes

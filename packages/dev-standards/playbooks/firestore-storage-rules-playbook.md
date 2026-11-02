@@ -120,12 +120,14 @@ rg -n "match /|allow (read|write|create)|request.resource" storage.rules
 ```
 **Expected:** temp uploads match the canonical upload path shape (origin, uid, upload id — no
 extension); the final segment is the client-generated id the upload callable adopts. The Storage rules
-enforce the path SHAPE, the per-origin size cap (an unknown origin fails closed to zero), and a
-concrete media content-type pattern plus the neutral lane for unknown picker metadata (the server's
-byte inspector classifies). The origin allowlist and strict path equality are callable-only
+enforce the path SHAPE, the per-origin size cap (an unknown origin fails closed to zero), and only
+the outer content-type shape — a concrete media content-type pattern plus the neutral lane for unknown
+picker metadata (the server's byte inspector classifies); a rule restating an origin's own content
+types is a finding. The origin allowlist and strict path equality are callable-only
 (RULE-STD-MEDIA-002) — rules enforcing the origin allowlist is itself a finding. Final and processed
-paths are backend-write-only. A path outside the upload shape exists only as a documented,
-create-only, attested exception with every read denied (the app's additions name its exceptions).
+paths are backend-write-only. A signed-out upload uses the same path with the fixed signed-out owner
+segment, create-only, only for the origins whose spec allows it, with every client read, overwrite,
+and delete denied; any upload path outside the staging tree is a finding.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 10. Emulator rules tests cover every boundary

@@ -2,19 +2,20 @@
 
 Shared rulebook — format, IDs, scope, placeholders, and app layering: [../README.md](../README.md).
 
-Rules for money-adjacent, privilege, and moderation state, repairs of completed records, and the
+Rules for money-adjacent, privilege, and moderation state, admin and repair actions, and the
 append-only audit log that records them. Read with [core-rules.md](core-rules.md).
 
 ### RULE-STD-BACKEND-201 — Sensitive state is backend-owned
 **Scope.** apps
 
-**Rule.** Sensitive state — privilege flags, role/status claims, money-adjacent fields, moderation decisions, admin-curated fields — is never written from the client. Sensitive writes go through Cloud Function callables that validate preconditions server-side and use the Admin SDK. What counts as sensitive: if a user or admin does it and someone could later ask "who did this, when, and why did we let them?", it's sensitive — privilege changes, money (every payment event, purchase, or refund), moderation decisions, admin actions affecting another user, and content submitted to a reviewed surface. Usually not sensitive: a user's own post/comment/message, follow/unfollow, and profile edits that don't affect privileges or money. When in doubt, treat it as sensitive. The app's addition lists its sensitive state.
+**Rule.** Sensitive state — privilege flags, role/status claims, money-adjacent fields, moderation decisions, admin-curated fields — is never written from the client. Sensitive writes go through Cloud Function callables that validate preconditions server-side and use the Admin SDK. What counts as sensitive: if a user or admin does it and someone could later ask "who did this, when, and why did we let them?", it's sensitive — privilege changes, money (every payment event, purchase, or refund), moderation decisions, admin actions affecting another user, and content submitted to a reviewed surface. Usually not sensitive: a user's own post/comment/message, follow/unfollow, and profile edits that don't affect privileges or money. When in doubt, treat it as sensitive. The app's addition lists its sensitive state. **Derived values are computed by the server:** a total, count, or other value the server derives is computed by the server from its source, and a callable never stores one the client sent. Data an admin enters as source — a historical baseline, for example — is source, not a derived value, and is allowed.
 
-**Why.** Anything the client can write, an attacker can write without the UI; sensitive state must be enforced and recorded server-side.
+**Why.** Anything the client can write, an attacker can write without the UI; sensitive state must be enforced and recorded server-side. A derived value stored as sent is the one no later recompute can tell apart from a true one.
 
 **Prohibits.**
 - `updateDoc(userRef, { role })` / `{ status }` / `{ banned }` — any client write to a role/status/money/moderation field.
 - A Firestore trigger that branches on a client-writable field to perform a sensitive side effect.
+- A callable that stores a total, count, or other derived value taken from the client instead of computing it from its source.
 
 **References.** RULE-STD-ENG-006; RULE-STD-BACKEND-109; RULE-STD-FRONTEND-107.
 
@@ -129,17 +130,3 @@ append-only audit log that records them. Read with [core-rules.md](core-rules.md
 - A person-actor object built outside the actor constructors.
 
 **References.** RULE-STD-BACKEND-202, RULE-STD-BACKEND-203, RULE-STD-BACKEND-204, RULE-STD-BACKEND-205.
-
-### RULE-STD-BACKEND-212 — Repair actions record a reason and the state they replaced
-**Scope.** apps
-
-**Rule.** An admin action that changes a completed record — reopen, any `recalculate*`, backfill, a data migration, a backup restore, a bulk delete — requires a caller-supplied reason and records the prior state alongside the new one: which documents it touched, what the affected aggregates were before, and what they became. Repair actions are audited even when they are idempotent. Rebuilding a derived copy from an untouched source is not a repair of a completed record: the source record does not change, so it takes no reason, and its writer still follows RULE-STD-BACKEND-206. An app that exempts any other action from the reason does so only as an explicit override, and that action's audit event still records who did what.
-
-**Why.** A repair that replaces an aggregate destroys the only evidence of what the record used to say, so a wrong one is indistinguishable afterward from a legitimate correction.
-
-**Prohibits.**
-- A repair callable with no required reason argument.
-- Replacing an aggregate without recording the value it replaced.
-- Treating "the numbers can be recalculated" as a substitute for recording the change.
-
-**References.** RULE-STD-BACKEND-202; RULE-STD-BACKEND-114 (repair scripts); RULE-STD-FRONTEND-202 (the dialog gathers the reason).

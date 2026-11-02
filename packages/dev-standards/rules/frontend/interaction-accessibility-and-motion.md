@@ -24,16 +24,16 @@ Pending/confirmation UX, in-app navigation, loading states, unsaved input, the a
 ### RULE-STD-FRONTEND-202 — ConsequenceDialog for consequential confirmations
 **Scope.** apps
 
-**Rule.** Consequential confirmations use `ConsequenceDialog` from `@ttt-productions/ui-core/react` — the app's SOLE confirmation primitive. It owns the pending spinner (RULE-STD-FRONTEND-201) and stays open while the action is pending or after it fails (stay-open-on-reject). Hand-built `AlertDialog` confirmations are banned in app code: the raw `AlertDialog*` primitives live only inside `ConsequenceDialog` (ui-core), and `window.confirm()` is never a gate. Destructive confirms render their red action only here (RULE-STD-FRONTEND-006). An action is consequential when it takes something away from someone — deletes or hides content, revokes a share or access, moves money — or when its actor cannot undo it from the same surface; it runs only after `ConsequenceDialog` confirms it. A reason a repair requires (RULE-STD-BACKEND-212) is gathered by the dialog itself, never by a prompt re-implemented beside it. A reversible, self-only toggle (like, follow, save) is not consequential and takes no confirmation; the app's addition names its other non-consequential actions.
+**Rule.** Consequential confirmations use `ConsequenceDialog` from `@ttt-productions/ui-core/react` — the app's SOLE confirmation primitive. It owns the pending spinner (RULE-STD-FRONTEND-201) and stays open while the action is pending or after it fails (stay-open-on-reject). Hand-built `AlertDialog` confirmations are banned in app code: the raw `AlertDialog*` primitives live only inside `ConsequenceDialog` (ui-core), and `window.confirm()` is never a gate. Destructive confirms render their red action only here (RULE-STD-FRONTEND-006). An action is consequential when it takes something away from someone — deletes or hides content, revokes a share or access, moves money — or when its actor cannot undo it from the same surface; it runs only after `ConsequenceDialog` confirms it. A reversible, self-only toggle (like, follow, save) is not consequential and takes no confirmation; the app's addition names its other non-consequential actions.
 
 **Why.** A hand-built `AlertDialog` confirm hides its pending spinner behind Radix's auto-close and can't stay open on reject — the user gets no feedback that a failed action failed; `window.confirm()` blocks the page and cannot show pending or failure at all. A consequential action on one click turns a mis-click into lasting harm: an un-share that is the only undo of a permanent share removes a file from every viewer with no step between the click and the call.
 
 **Prohibits.**
 - Importing or re-exporting any `AlertDialog*` from `@ttt-productions/ui-core/react`, or importing `@radix-ui/react-alert-dialog` directly, in app code (ESLint-enforced).
-- A bespoke confirmation dialog for a consequential action; `window.confirm()` as a gate; a repair's reason gathered outside the dialog.
+- A bespoke confirmation dialog for a consequential action; `window.confirm()` as a gate.
 - A one-click trigger for a consequential action (an un-share, a takedown, a revoke, a delete).
 
-**References.** RULE-STD-FRONTEND-006, RULE-STD-FRONTEND-201; RULE-STD-BACKEND-212; ttt-packages `docs/packages/ui-core.md`.
+**References.** RULE-STD-FRONTEND-006, RULE-STD-FRONTEND-201; ttt-packages `docs/packages/ui-core.md`.
 
 ### RULE-STD-FRONTEND-203 — Accessibility baseline: landmarks, labels, focus, Escape
 **Scope.** both

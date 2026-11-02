@@ -21,9 +21,9 @@ public, so nothing here names an app's security internals (RULE-STD-ARCH-209).
 - **React:** the signature pad (canvas drawn to a PNG, clear, empty check), a typed full-name field,
   and a sign control that stays disabled until both are filled. A drawn signature counts as unsaved
   input for the leave guard (upload-ui).
-- **Server:** promote a staged signature to its kept path, release it when the signing is refused
-  after the copy, the copy-intent record and the maintenance reap of a stranded copy, and a
-  server-side check that the signature file is the caller's own upload and that the name and
+- **Server:** the signature file is a "kept as given" upload on the one upload path
+  (`docs/work/waiting-to-be-implemented/one-upload-path.md`), with no copy intent or reap of its own;
+  a server-side check that the signature file is the caller's own upload and that the name and
   signature are both present. The callable refuses an unsigned signing no matter what the client
   sent.
 - **The signed record's shape:** who signed, the typed name, the wording and its version as the

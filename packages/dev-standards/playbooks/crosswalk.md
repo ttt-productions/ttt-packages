@@ -92,7 +92,6 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-BACKEND-209 | No Partial<T> sensitive mutations | codebase-hygiene 21, 80; client-write-security-audit 4 | — |
 | RULE-STD-BACKEND-210 | An account holding admin standing is never restricted | codebase-hygiene 108 | — |
 | RULE-STD-BACKEND-211 | One audit writer; an event's origin comes from the request | codebase-hygiene 20, 49 | `auditWriter`, `requestOrigin`, `noAuthBlockingFunction` |
-| RULE-STD-BACKEND-212 | Repair actions record a reason and the state they replaced | codebase-hygiene 65 — UI half only (the dialog gathers the reason a repair requires). **No audit step yet** for the backend half — the required reason and the recorded prior state; an app's own callable step is the candidate to promote here. | — |
 | RULE-STD-BACKEND-301 | Post-commit side effects are non-blocking | codebase-hygiene 33; async-workflow 2, 7 | `postCommitCapture`, `fireAndForget` |
 | RULE-STD-BACKEND-302 | Required work commits atomically or rides a durable outbox | codebase-hygiene 33, 105; async-workflow 2, 5, 6; callable-functions 8; data-integrity 10; migration 6; observability 5 | `swallowedReadWrite` |
 | RULE-STD-BACKEND-303 | Cloud Functions concurrency is explicit on every heavy function | codebase-hygiene 64, 67; async-workflow 9, 12; callable-functions 1; media-pipeline 11; migration 6; performance-audit 6, 7, 8 | `codebaseManifest`, `lightFunctions` |
@@ -112,7 +111,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-001 | One canonical component/variant/class per repeated UI pattern | codebase-hygiene 60, 68 | `readStateOwner`, `showMoreToggle`, `pendingNameSeat` |
 | RULE-STD-FRONTEND-002 | One stylesheet entry point, pinned layer order, no direct CSS imports | codebase-hygiene 15, 66 | `stylesheetEntry`, `tailwindSources`, `semanticTextCollision` |
 | RULE-STD-FRONTEND-003 | All colors resolve through theme tokens; no hex or raw HSL in app code | codebase-hygiene 15; ux-audit 4 | `colorLiterals`, `themeTokens`, `statusForegroundOnFill` |
-| RULE-STD-FRONTEND-006 | State changes swap icons; destructive red lives only inside confirmation dialogs | codebase-hygiene 65, 68 | — |
+| RULE-STD-FRONTEND-006 | State changes swap icons; destructive actions live in the one '…' menu; red lives only inside confirmation dialogs | codebase-hygiene 65, 68 | — |
 | RULE-STD-FRONTEND-007 | One page column, one card recipe, truncation everywhere | codebase-hygiene 68; testing-coverage 10; ux-audit 3, 12 | — |
 | RULE-STD-FRONTEND-008 | Semantic classes over repeated inline Tailwind; a ui-core part's look is restyled only through its variants | codebase-hygiene 15, 68 | `themeScaleClasses`, `shadowOwnership`, `stackOnRows` |
 | RULE-STD-FRONTEND-010 | Browser storage holds device-local state only, through guarded access | codebase-hygiene 31 | `browserStorage` |
@@ -140,7 +139,7 @@ rule's coverage in its additions; they are not listed here.
 | Rule | Title | Audited by (shared steps) | Guards |
 |---|---|---|---|
 | RULE-STD-MEDIA-001 | One upload pipeline; fileOrigin ties the surface together | codebase-hygiene 31; firestore-storage-rules 9; media-pipeline 1, 7, 9 | — |
-| RULE-STD-MEDIA-002 | Upload path invariant (LAW) | codebase-hygiene 6, 11; auth-boundary 8; client-write-security-audit 7; firestore-storage-rules 9, 12; media-pipeline 2, 4 | `storageUploadOrigins` |
+| RULE-STD-MEDIA-002 | One upload path (LAW) | codebase-hygiene 6, 11; auth-boundary 8; client-write-security-audit 7; firestore-storage-rules 9, 12; media-pipeline 2, 4 | `storageUploadOrigins` |
 | RULE-STD-MEDIA-003 | One guarded upload helper | codebase-hygiene 6 | — |
 | RULE-STD-MEDIA-004 | Server derives targets; never trust client-supplied targets | auth-boundary 8; client-write-security-audit 7; firestore-storage-rules 9; media-pipeline 3 | — |
 | RULE-STD-MEDIA-005 | Upload hooks consume their variables schema | codebase-hygiene 5 | — |
@@ -205,4 +204,3 @@ the gap.
 - RULE-STD-ARCH-006 — Code from another product is adapted, never carried with its identity
 - RULE-STD-ARCH-109 — Compound document IDs have one builder and one parser
 - RULE-STD-ARCH-209 — Everything in ttt-packages is public
-- RULE-STD-BACKEND-212 — Repair actions record a reason and the state they replaced

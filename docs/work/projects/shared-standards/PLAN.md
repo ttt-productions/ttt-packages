@@ -109,7 +109,7 @@ ttt-packages is a public repository. Nothing in this folder restates an app's se
   keep ttt-prod's current number wherever there is no clash. App rules use 900–999 in every area; the
   two apps may reuse the same 9xx numbers. 500–899 stays empty. Promoting an app rule to shared gives
   it a new low number; its 9xx number is retired, never reused.
-- **Promoted to shared:** Q-Sports ENG-011, ARCH-006, ARCH-109, BACKEND-212, QUALITY-009
+- **Promoted to shared:** Q-Sports ENG-011, ARCH-006, ARCH-109, QUALITY-009
   (→ `RULE-STD-QUALITY-011`); ttt-prod BACKEND-012, BACKEND-013, BACKEND-310.
 - **Merged:** ttt-prod ARCH-202 + packages ARCH-202; ARCH-203 in all three; QUALITY-102 in all three;
   ttt-prod BACKEND-120 + Q-Sports QUALITY-010 (`RULE-STD-BACKEND-120`); packages QUALITY-008/009 are
@@ -120,8 +120,6 @@ ttt-packages is a public repository. Nothing in this folder restates an app's se
   the shared rules, workflows, and playbooks never name an app's security internals: emulator bypass
   gating, route-guard or provenance mechanics, secret or key handling, detection thresholds, the shape
   of a privileged path. That detail lives only in the app's private repo.
-- **BACKEND-212's scope.** Rebuilding a derived copy from an untouched source is not a repair of a
-  completed record.
 - **Comment rules.** The paragraph "existing code still carries comments that break these rules; they
   are fixed as files are touched, never in a separate sweep" is deleted: the run's sweep leaves no old
   comments behind. The paragraph sending a comment the rules do not settle to DJ stays.

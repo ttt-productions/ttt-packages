@@ -864,7 +864,7 @@ module-level lazy loader (step 88), never by loosening the tripwire.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 65. ConsequenceDialog is the sole confirmation primitive
-**Rules:** RULE-STD-FRONTEND-202, RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-006, RULE-STD-BACKEND-212.
+**Rules:** RULE-STD-FRONTEND-202, RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-006.
 **Scope:** `src`.
 ```bash
 # The comment filter is required — a prose mention is not a usage.
@@ -878,8 +878,7 @@ rg -n "onClick=\{\(\)\s*=>\s*(void\s+)?\w+\.(mutate|mutateAsync)\(" src -g '*.ts
 alert-dialog primitives live only inside it, and the app's lint config bans them and a `.mutate(` inside
 an `onConfirm`. **Which actions confirm:** each click-fired mutation the third command prints is a
 reversible, self-only toggle — no confirmation — or it takes something away from someone or cannot be
-undone from that surface, and then it runs only from a dialog confirm that returns its promise. A reason
-a repair requires (RULE-STD-BACKEND-212) is gathered by the dialog, never re-implemented beside it. A
+undone from that surface, and then it runs only from a dialog confirm that returns its promise. A
 sent confirmation phrase is typed by the operator.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 

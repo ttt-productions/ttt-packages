@@ -28,8 +28,8 @@ rg -l "pendingMedia|fileOrigin|<UPLOAD_PATH_BUILDER>|<PROCESSOR_ROUTER>|startUpl
 surface riding the one pipeline through its origin (the origin's spec → the temp path builder → the
 upload callable → the target-info parse → the processor route), the pipeline's own helpers, or the
 Storage uploads block. A bespoke upload path, a second pending-upload producer, or a hand-rolled
-processor route is a RULE-STD-MEDIA-001 violation for the per-surface review (step 9). A sanctioned
-non-pipeline origin is named in the app's additions.
+processor route is a RULE-STD-MEDIA-001 violation for the per-surface review (step 9). No origin
+rides a path of its own: a kept-as-given or signed-out origin is a setting on its spec.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 2. Verify the upload path invariant
@@ -41,8 +41,8 @@ rg -n 'uploads/\$\{' src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
 rg -n "<UPLOAD_PATH_BUILDER>" src functions/src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
 ```
 **Expected:** the first command prints nothing — temp upload paths come only from the
-`<APP_DATA_PACKAGE>` temp-path builder, never hand-assembled. The canonical shape is origin, uid, and
-upload id, with no extension; the final segment is the client-generated id the upload callable adopts
+`<APP_DATA_PACKAGE>` temp-path builder, never hand-assembled. The canonical shape is origin, owner (the uid, or
+the fixed signed-out owner segment), and upload id, with no extension; the final segment is the client-generated id the upload callable adopts
 as the pending document id. The callable re-derives the id from the last segment, rebuilds the path,
 and rejects unless the submitted path is **strictly equal** — never a prefix match. Rules, client
 helpers, and processors all agree on the shape. Deep cross-check → `codebase-hygiene-playbook.md`
@@ -72,10 +72,13 @@ step 9.
 rg -n "uploads|uploadMaxBytes|request.auth.uid|contentType|image|video|audio" storage.rules
 ```
 **Expected:** semantic review of the uploads block: temp uploads require the uploader to own the uid
-segment, the per-origin size cap (an unknown origin fails closed to zero), a concrete media
-content-type pattern plus the neutral lane for unknown picker metadata (a client never fabricates a
-media type to pass the shape check), and the four-segment path shape. No rule in this block grants a
-final-path write. The origin allowlist is callable-only.
+segment — or, for an origin whose spec allows signed out, the fixed signed-out owner segment,
+create-only with no client read, overwrite, or delete — the per-origin size cap (an unknown origin
+fails closed to zero), only the outer content-type shape (a concrete media content-type pattern plus
+the neutral lane for unknown picker metadata; a client never fabricates a media type to pass the shape
+check, and no origin's own types are restated here), and the four-segment path shape. No rule in this
+block grants a final-path write, and no upload path sits outside the staging tree. The origin
+allowlist is callable-only.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 5. Final-path rules and protected serving
