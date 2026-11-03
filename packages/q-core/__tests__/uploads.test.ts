@@ -7,6 +7,7 @@ import {
   STAGING_UPLOAD_PREFIX,
   buildPictureObjectPath,
   buildPictureObjectPrefix,
+  SIGNED_OUT_UPLOAD_OWNER,
   buildStagingUploadPath,
   parseStagingUploadPath,
 } from '../src/paths/storage-paths.js';
@@ -31,7 +32,11 @@ import {
 } from '../src/constants/media.js';
 import { buildGalleryRetirementId, isStagingId } from '../src/ids/picture-ids.js';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
-import { PendingMediaSchema, PendingMediaTargetSchema } from '../src/doc-schemas/pending-media.js';
+import {
+  PendingMediaSchema,
+  PendingMediaTargetSchema,
+  SignatureTargetSchema,
+} from '../src/doc-schemas/pending-media.js';
 import { PictureRetirementSchema } from '../src/doc-schemas/picture-retirement.js';
 import {
   AdminUpdatePendingMediaClearInputSchema,
@@ -75,6 +80,18 @@ describe('the origin registry', () => {
       expect(isPictureOrigin(origin)).toBe(true);
       expect(isSignatureOrigin(origin)).toBe(false);
       expect(specs[origin]?.processing?.image, `${origin} has a processing spec`).toBeDefined();
+    }
+  });
+
+  it('gives every origin both settings, and no origin allows a signed-out upload yet', () => {
+    for (const [origin, spec] of Object.entries(MEDIA_ORIGIN_SPECS)) {
+      expect(typeof spec.preserveOriginal, `${origin} says processed or kept as given`).toBe(
+        'boolean',
+      );
+      expect(spec.allowSignedOut, `${origin} is signed in only`).toBe(false);
+    }
+    for (const origin of SIGNATURE_ORIGIN_KEYS) {
+      expect(MEDIA_ORIGIN_SPECS[origin].processing, `${origin} is never processed`).toBeUndefined();
     }
   });
 
@@ -187,9 +204,22 @@ describe('the staging path', () => {
       parseStagingUploadPath(buildStagingUploadPath('landing-picture', UID, STAGING_ID)),
     ).toEqual({
       fileOrigin: 'landing-picture',
-      userId: UID,
+      owner: UID,
       stagingId: STAGING_ID,
     });
+  });
+
+  it('puts the signed-out owner segment where a uid goes, and it can never be a uid', () => {
+    expect(
+      parseStagingUploadPath(
+        buildStagingUploadPath('waiver-signature', SIGNED_OUT_UPLOAD_OWNER, STAGING_ID),
+      ),
+    ).toEqual({
+      fileOrigin: 'waiver-signature',
+      owner: SIGNED_OUT_UPLOAD_OWNER,
+      stagingId: STAGING_ID,
+    });
+    expect(SIGNED_OUT_UPLOAD_OWNER).not.toMatch(/^[A-Za-z0-9]+$/);
   });
 
   it('refuses anything that is not exactly a staging path', () => {
@@ -539,5 +569,23 @@ describe('the upload tray callables', () => {
       AdminUpdatePendingMediaClearInputSchema.safeParse({ pendingMediaId: STAGING_ID, userId: UID })
         .success,
     ).toBe(false);
+  });
+});
+
+describe('the signature target', () => {
+  it("names the signing record a kept signature's upload belongs to", () => {
+    expect(
+      SignatureTargetSchema.parse({ kind: 'signedWaiver', leagueId: 'l1', userId: UID }),
+    ).toEqual({ kind: 'signedWaiver', leagueId: 'l1', userId: UID });
+    expect(SignatureTargetSchema.parse({ kind: 'hardwareLoanContract', contractId: 'c1' })).toEqual(
+      { kind: 'hardwareLoanContract', contractId: 'c1' },
+    );
+  });
+
+  it('refuses a record kind it does not know, or a record missing its ids', () => {
+    expect(SignatureTargetSchema.safeParse({ kind: 'agreement', id: 'a1' }).success).toBe(false);
+    expect(SignatureTargetSchema.safeParse({ kind: 'signedWaiver', leagueId: 'l1' }).success).toBe(
+      false,
+    );
   });
 });

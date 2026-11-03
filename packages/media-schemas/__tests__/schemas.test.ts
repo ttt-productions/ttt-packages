@@ -4,6 +4,7 @@ import {
   parseMediaProcessingSpec,
   parseMediaProcessingResult,
   ClientContextSchema,
+  MediaOriginSpecSchema,
 } from '../src/schemas.js';
 
 describe('MediaCropSpecSchema', () => {
@@ -159,5 +160,29 @@ describe('ClientContextSchema target ids', () => {
     expect(ClientContextSchema.safeParse({ surface: 'tray', targetIds: ['abc'] }).success).toBe(
       true,
     );
+  });
+});
+
+describe('MediaOriginSpecSchema settings', () => {
+  const base = { kind: 'generic', accept: { kinds: ['file'], mimes: ['image/png'] } } as const;
+
+  it('carries kept as given and signed out allowed as two settings', () => {
+    const spec = MediaOriginSpecSchema.parse({
+      ...base,
+      preserveOriginal: true,
+      allowSignedOut: true,
+    });
+    expect(spec.preserveOriginal).toBe(true);
+    expect(spec.allowSignedOut).toBe(true);
+  });
+
+  it('leaves both settings absent on a processed, signed-in origin', () => {
+    const spec = MediaOriginSpecSchema.parse(base);
+    expect(spec.preserveOriginal).toBeUndefined();
+    expect(spec.allowSignedOut).toBeUndefined();
+  });
+
+  it('refuses a setting that is not a boolean', () => {
+    expect(MediaOriginSpecSchema.safeParse({ ...base, allowSignedOut: 'yes' }).success).toBe(false);
   });
 });

@@ -6,7 +6,7 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 
 - Generic media data types such as upload phase/state, media kind/category, processing status, job status, and media error codes
 - Generic helpers such as `getSimplifiedMediaType` (`ensureFileWithContentType` lives in `file-input`, not here)
-- Neutral media-origin spec shape (`MediaOriginSpec`)
+- Neutral media-origin spec shape (`MediaOriginSpec`), with an origin's two upload settings: `preserveOriginal` (kept as given — stored byte for byte and never processed; absent is processed) and `allowSignedOut` (a signed-out person may upload it; absent is signed in only). Every origin rides the one upload path; these settings, never a path of their own, are what differ (`docs/design/upload-path-invariant.md`)
 - Generic media constraints and processing spec types
 - Publication/serving-readiness state (`MediaPublicationStateSchema`/`MediaPublicationState`: `notStarted`/`activating`/`publishing`/`live`/`publicationFailed`), baked into the pending-media factory's base shape
 - Crash-recovery lifecycle fields on the pending-media factory: `processingStartedAt` and `processingLeaseExpiresAt` (epoch ms) and `processingAttemptCount` (integer). A `processing` row requires all three, since every claim writes them together; on every other status they are optional, so a terminal or archived row keeps its history. The state machine that interprets them is below; the policy values (lease length, attempt ceiling) are the app's.

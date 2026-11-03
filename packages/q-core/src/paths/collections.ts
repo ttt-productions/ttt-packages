@@ -20,7 +20,6 @@ export const COLLECTIONS = {
   WAIVER_TEMPLATES: 'waiverTemplates',
   SIGNED_WAIVERS: 'signedWaivers',
   HARDWARE_LOAN_CONTRACTS: 'hardwareLoanContracts',
-  SIGNATURE_COPY_INTENTS: 'signatureCopyIntents',
 
   AWARD_DEFINITIONS: 'awardDefinitions',
   SPORT_HALL_OF_FAME: 'sportHallOfFame',

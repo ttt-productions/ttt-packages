@@ -142,6 +142,41 @@ describe('InFlightUploadsProvider', () => {
     expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
   });
 
+  it('ignores an origin the adapter does not track: never listed, never toasted', () => {
+    const adapter = makeAdapter({ tracksOrigin: (origin) => origin !== 'kept-origin' });
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useInFlightUploadsState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
+
+    const row = (id: string, fileOrigin: string): ParsedPendingMedia => ({
+      id,
+      userId: 'user1',
+      fileOrigin,
+      status: 'completed',
+      createdAt: Date.now(),
+      surface: '/uploads-demo',
+      completedAt: Date.now(),
+    });
+    act(() => {
+      drive(makeSnapshot([]));
+    });
+    act(() => {
+      drive(
+        makeSnapshot([
+          { type: 'added', id: 'kept', data: row('kept', 'kept-origin') },
+          { type: 'added', id: 'shown', data: row('shown', 'sample-origin') },
+        ]),
+      );
+    });
+
+    expect([...result.current.keys()]).toEqual(['shown']);
+    expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
+    expect(adapter.onUploadCompleted).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'shown' }),
+    );
+  });
+
   it('fires onUploadFailed and onUploadRejected on the matching transition', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();

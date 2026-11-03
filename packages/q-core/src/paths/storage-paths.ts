@@ -4,26 +4,18 @@ import { isStagingId } from '../ids/picture-ids.js';
 import type { PictureVariantKey } from '../types/unions.js';
 
 export const USER_FILES_PREFIX = 'users/';
-const SIGNED_WAIVERS_FOLDER = 'waiverSigs';
 const HARDWARE_SIGNATURES_FOLDER = 'hardwareSigs';
 const PICTURES_FOLDER = 'pictures';
 const STAGING_FOLDER = 'uploads';
 
 export const STAGING_UPLOAD_PREFIX = `${STAGING_FOLDER}/`;
 
-export function buildSignedWaiverPath(userId: string, leagueId: string, fileName: string): string {
-  return `${USER_FILES_PREFIX}${userId}/${SIGNED_WAIVERS_FOLDER}/${leagueId}/${fileName}`;
-}
+// The owner segment of a signed-out upload, in place of a uid. Its hyphen keeps it from ever
+// equalling a Firebase Auth uid, which is alphanumeric.
+export const SIGNED_OUT_UPLOAD_OWNER = 'signed-out';
 
-export function buildGhostSignedWaiverPath(
-  ghostUserId: string,
-  leagueId: string,
-  teamId: string,
-  fileName: string,
-): string {
-  return `${USER_FILES_PREFIX}${ghostUserId}/${SIGNED_WAIVERS_FOLDER}/${leagueId}/${teamId}/${fileName}`;
-}
-
+// Where V1 kept a hardware contract's signature; the migration console checks a carried contract's
+// file against it.
 export function buildHardwareSignaturePath(
   userId: string,
   contractId: string,
@@ -42,23 +34,23 @@ export function buildPictureObjectPath(pictureId: string, variantKey: PictureVar
 
 export function buildStagingUploadPath(
   fileOrigin: FileOrigin,
-  userId: string,
+  owner: string,
   stagingId: string,
 ): string {
-  return `${STAGING_UPLOAD_PREFIX}${fileOrigin}/${userId}/${stagingId}`;
+  return `${STAGING_UPLOAD_PREFIX}${fileOrigin}/${owner}/${stagingId}`;
 }
 
 export interface StagingUploadPathParts {
   fileOrigin: FileOrigin;
-  userId: string;
+  owner: string;
   stagingId: string;
 }
 
 export function parseStagingUploadPath(path: string): StagingUploadPathParts | null {
   const segments = path.split('/');
   if (segments.length !== 4) return null;
-  const [folder, fileOrigin, userId, stagingId] = segments as [string, string, string, string];
-  if (folder !== STAGING_FOLDER || !isFileOrigin(fileOrigin) || userId.length === 0) return null;
+  const [folder, fileOrigin, owner, stagingId] = segments as [string, string, string, string];
+  if (folder !== STAGING_FOLDER || !isFileOrigin(fileOrigin) || owner.length === 0) return null;
   if (!isStagingId(stagingId)) return null;
-  return { fileOrigin, userId, stagingId };
+  return { fileOrigin, owner, stagingId };
 }

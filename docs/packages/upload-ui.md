@@ -13,7 +13,7 @@ Guarded upload UI/mechanism package, and the app's one navigation and leave guar
 
 ## Boundary
 
-`upload-ui` owns mechanism and UI state, not app policy. The receive-side provider is adapter-driven: app code supplies the user id, Firestore/pending-media subscription details, parser/schema, domain-event notification callback, toast/rejection/error callbacks, success copy, and clear-activity mutation.
+`upload-ui` owns mechanism and UI state, not app policy. The receive-side provider is adapter-driven: app code supplies the user id, Firestore/pending-media subscription details, parser/schema, domain-event notification callback, toast/rejection/error callbacks, success copy, and clear-activity mutation. An optional `tracksOrigin(fileOrigin)` names the origins the tray follows: a row of an origin it does not track (a kept-as-given file, which has no processing to report) is never listed and fires no callback.
 
 The deferred form shell receives a neutral `MediaOriginSpec`. The consuming app chooses the concrete spec from its own registry at its boundary.
 

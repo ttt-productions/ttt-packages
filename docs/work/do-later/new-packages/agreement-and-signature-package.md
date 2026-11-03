@@ -22,7 +22,7 @@ public, so nothing here names an app's security internals (RULE-STD-ARCH-209).
   and a sign control that stays disabled until both are filled. A drawn signature counts as unsaved
   input for the leave guard (upload-ui).
 - **Server:** the signature file is a "kept as given" upload on the one upload path
-  (`docs/work/waiting-to-be-implemented/one-upload-path.md`), with no copy intent or reap of its own;
+  (`docs/design/upload-path-invariant.md`), with no copy intent or reap of its own;
   a server-side check that the signature file is the caller's own upload and that the name and
   signature are both present. The callable refuses an unsigned signing no matter what the client
   sent.

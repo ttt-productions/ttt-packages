@@ -18,7 +18,6 @@ export const COLLECTION_REFS = {
   waiverTemplates: (): [string] => [COLLECTIONS.WAIVER_TEMPLATES],
   signedWaivers: (): [string] => [COLLECTIONS.SIGNED_WAIVERS],
   hardwareLoanContracts: (): [string] => [COLLECTIONS.HARDWARE_LOAN_CONTRACTS],
-  signatureCopyIntents: (): [string] => [COLLECTIONS.SIGNATURE_COPY_INTENTS],
   awardDefinitions: (): [string] => [COLLECTIONS.AWARD_DEFINITIONS],
   statsValidationReports: (): [string] => [COLLECTIONS.STATS_VALIDATION_REPORTS],
   statsJobs: (): [string] => [COLLECTIONS.STATS_JOBS],

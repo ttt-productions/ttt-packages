@@ -20,7 +20,6 @@ export * from './stats-changes.js';
 export * from './stats-job.js';
 export * from './waiver-template.js';
 export * from './waivers-and-hardware.js';
-export * from './signature-copy-intent.js';
 export * from './game-location.js';
 export * from './catalogs.js';
 export * from './system.js';

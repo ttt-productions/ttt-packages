@@ -137,6 +137,8 @@ function pictureOriginSpec(kind: PictureKind): MediaOriginSpec {
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
+    preserveOriginal: false,
+    allowSignedOut: false,
     processing: {
       image: {
         kind: 'image',
@@ -170,6 +172,7 @@ function signatureOriginSpec(): MediaOriginSpec {
       allowRecordAudio: false,
     },
     preserveOriginal: true,
+    allowSignedOut: false,
   };
 }
 

@@ -131,6 +131,10 @@ export type InFlightUploadsAdapter<TFileOrigin extends string = string> = {
 
   parsePendingMedia: (raw: unknown) => ParsedPendingMedia<TFileOrigin>;
 
+  // An origin the tray does not follow (a kept-as-given file has no processing to report) is
+  // ignored: never listed, never toasted. Absent, every origin is followed.
+  tracksOrigin?: (fileOrigin: TFileOrigin) => boolean;
+
   onUploadCompleted: (parsed: ParsedPendingMedia<TFileOrigin>) => void;
 
   onUploadFailed: (parsed: ParsedPendingMedia<TFileOrigin>) => void;
@@ -335,6 +339,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
           });
           continue;
         }
+        if (adapterRef.current.tracksOrigin?.(parsed.fileOrigin) === false) continue;
 
         const upload = fromParsed(parsed);
         updates.push({ id: parsed.id, upload });

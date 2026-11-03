@@ -4,7 +4,13 @@ import { DomainEventSchema } from '../domain-events/domain-events.js';
 import { FILE_ORIGIN_KEYS, PICTURE_ORIGIN_KEYS } from '../media/file-origins.js';
 import { AWARD_DEFINITION_OWNER_KIND } from '../types/picture-owners.js';
 import { isPictureOwnerId } from '../paths/picture-owner-paths.js';
-import { countSchema, documentIdSegmentSchema } from './atoms.js';
+import {
+  countSchema,
+  documentIdSegmentSchema,
+  hardwareLoanContractIdSchema,
+  leagueIdSchema,
+  userIdSchema,
+} from './atoms.js';
 import { awardNameSchema } from './catalogs.js';
 import { pictureOwnerKindSchema } from './gallery.js';
 
@@ -45,6 +51,13 @@ export const PendingMediaTargetSchema = z
     path: ['sourceIndex'],
   });
 export type PendingMediaTarget = z.infer<typeof PendingMediaTargetSchema>;
+
+// A kept-as-given signature's upload record names the signing record that names the file.
+export const SignatureTargetSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('signedWaiver'), leagueId: leagueIdSchema, userId: userIdSchema }),
+  z.object({ kind: z.literal('hardwareLoanContract'), contractId: hardwareLoanContractIdSchema }),
+]);
+export type SignatureTarget = z.infer<typeof SignatureTargetSchema>;
 
 const schemas = createPendingMediaSchemas({
   fileOriginSchema,

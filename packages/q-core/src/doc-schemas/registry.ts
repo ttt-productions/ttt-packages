@@ -24,7 +24,6 @@ import { RegistrationStartSchema } from './registration-start.js';
 import { ReservedDisplayNameSchema } from './reserved-display-name.js';
 import { SportLeagueSchema } from './sport-league.js';
 import { SweepStateSchema } from './sweep-state.js';
-import { SignatureCopyIntentSchema } from './signature-copy-intent.js';
 import {
   AppConfigSchema,
   LandingPageConfigSchema,
@@ -74,7 +73,6 @@ export const COLLECTION_SCHEMAS = {
     WaiverTemplateVersionSchema,
   'signedWaivers/{signedWaiverId}': SignedWaiverSchema,
   'hardwareLoanContracts/{contractId}': HardwareLoanContractSchema,
-  'signatureCopyIntents/{stagingId}': SignatureCopyIntentSchema,
 
   'awardDefinitions/{awardId}': AwardDefinitionSchema,
   'sportHallOfFame/{sportKey}': SportHallOfFameSchema,
@@ -117,7 +115,6 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'notificationArchiveAllJobs/{jobId}': 'jobId',
   'statsJobs/{jobId}': 'jobId',
   'migrationActionRuns/{actionId}': 'actionId',
-  'signatureCopyIntents/{stagingId}': 'stagingId',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
 
 export const PENDING_COLLECTIONS: readonly string[] = [];

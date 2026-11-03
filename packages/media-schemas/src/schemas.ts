@@ -254,6 +254,7 @@ export const MediaOriginSpecSchema = MediaProcessingSpecSchema.omit({
 }).extend({
   processing: MediaProcessingByKindSchema.optional(),
   preserveOriginal: z.boolean().optional(),
+  allowSignedOut: z.boolean().optional(),
 });
 
 export const MediaProcessingErrorSchema = z
