@@ -10,7 +10,7 @@ import { blockActivationKey, blockEvent } from './pending-guard.js';
 
 // `ui-button` is the stable class an app's stylesheet keys every button rule on.
 const buttonVariants = cva(
-  'ui-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
+  'ui-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
   {
     variants: {
       variant: {
@@ -29,11 +29,14 @@ const buttonVariants = cva(
         inverted:
           'bg-[hsl(var(--inverted-background))] text-[hsl(var(--inverted-foreground))] hover:bg-[hsl(var(--inverted-background))]/90 border-2 border-[hsl(var(--inverted-border))]',
       },
+      // The action size carries theme-core's primary-action-button recipe class (full width, large
+      // type, tall padding) in place of a built-in height and type size it would lose to.
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
-        icon: 'h-9 w-9',
+        default: 'h-10 px-4 py-2 text-sm',
+        sm: 'h-9 rounded-md px-3 text-sm',
+        lg: 'h-11 rounded-md px-8 text-sm',
+        icon: 'h-9 w-9 text-sm',
+        action: 'px-4 primary-action-button',
       },
     },
     defaultVariants: {
@@ -80,7 +83,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled: (disabled && !pending) || undefined,
       className: cn(buttonVariants({ variant, size, className })),
     };
-    const spinner = <Spinner size={size === 'lg' ? 'sm' : 'xs'} />;
+    const spinner = <Spinner size={size === 'lg' || size === 'action' ? 'sm' : 'xs'} />;
     const leading = pending ? spinner : icon;
 
     if (asChild) {

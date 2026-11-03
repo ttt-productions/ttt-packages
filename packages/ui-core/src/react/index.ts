@@ -51,6 +51,21 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuRadioGroup,
 } from './components/dropdown-menu.js';
+export type {
+  ActionsMenuProps,
+  ActionsMenuContextValue,
+  ActionMenuItemProps,
+  AsyncActionMenuItemProps,
+  OverlayActionItemProps,
+  OverlayRender,
+} from './components/actions-menu.js';
+export {
+  ActionsMenu,
+  ActionMenuItem,
+  AsyncActionMenuItem,
+  OverlayActionItem,
+  useActionsMenu,
+} from './components/actions-menu.js';
 export {
   Menubar,
   MenubarMenu,

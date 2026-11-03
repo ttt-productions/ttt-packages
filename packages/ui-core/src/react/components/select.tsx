@@ -4,6 +4,8 @@ import * as React from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
+import { cva, type VariantProps } from 'class-variance-authority';
+
 import { cn } from '../../lib/utils.js';
 import { Spinner } from './spinner.js';
 import { blockActivationKey, blockEvent } from './pending-guard.js';
@@ -12,18 +14,31 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
+// The filter variant carries theme-core's filter-select-trigger recipe class in place of the
+// built-in size, shape and paint utilities it would otherwise lose to; sort selects use it too.
+const selectTriggerVariants = cva(
+  'flex items-center justify-between border-2 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&>span]:line-clamp-1',
+  {
+    variants: {
+      variant: {
+        default: 'h-10 w-full rounded-md border-input bg-background px-3',
+        filter: 'filter-select-trigger',
+      },
+    },
+    defaultVariants: { variant: 'default' },
+  },
+);
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
-    pending?: boolean;
-  }
->(({ className, children, pending = false, disabled, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> &
+    VariantProps<typeof selectTriggerVariants> & {
+      pending?: boolean;
+    }
+>(({ className, children, variant, pending = false, disabled, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    className={cn(
-      'flex h-10 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&>span]:line-clamp-1',
-      className,
-    )}
+    className={cn(selectTriggerVariants({ variant }), className)}
     {...props}
     {...(pending
       ? {

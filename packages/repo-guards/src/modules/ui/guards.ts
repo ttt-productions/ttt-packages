@@ -36,6 +36,7 @@ import {
 } from './interaction.js';
 import { selfHostedFontsGuard } from './fonts.js';
 import { motionGuard, type MotionFacts } from './motion.js';
+import { partRestylingGuard, type PartRestylingFacts } from './part-restyling.js';
 import {
   colorLiteralsGuard,
   scaleClassesGuard,
@@ -58,6 +59,7 @@ export type UiGuardFacts = {
   shadowOwnership: Record<string, never>;
   statusForegroundOnFill: Record<string, never>;
   semanticTextCollision: EntryStylesheetFacts;
+  partRestyling: PartRestylingFacts;
   stackOnRows: Record<string, never>;
   unavailableControlAffordance: Record<string, never>;
   navigationHelper: NavigationFacts;
@@ -84,6 +86,7 @@ export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.fr
   shadowOwnershipGuard,
   statusForegroundGuard,
   utilityCollisionGuard,
+  partRestylingGuard,
   stackRowsGuard,
   unavailableAffordanceGuard,
   navigationGuard,

@@ -9,6 +9,7 @@ Generic UI primitive package.
 - Generic app-agnostic components such as relative time, end-of-list indicator, and scroll-to-top button
 - The reload-recovery notice for failures only a reload repairs (below)
 - The list-pagination BUTTONS control and its page-state hooks (see below)
+- The item actions menu, `ActionsMenu` (below)
 - Generic formatting helpers such as `formatLargeNumber`
 
 ## Boundary
@@ -96,11 +97,49 @@ A search box with a results dropdown (`./react` → `SearchDropdown<T>`). Its in
 Every colour and shadow a ui-core component renders comes from a theme-core token (theme-core's `token-contract.test.ts` enforces it), so an app re-themes ui-core entirely from its token layer:
 
 - **No raw colour.** No Tailwind palette utility (`bg-green-500`, `bg-white`, …) and no colour literal. Semantic utilities (`bg-card`, `border-input`) and `var()` reads map to theme-core tokens.
-- **No shadow utility.** A Tailwind utility out-ranks every layered stylesheet, so shadows live on theme-core elevation hook classes the components carry, each reading a shadow token — the hook classes and what each covers are listed once, in [theme-core.md](theme-core.md#recipes-and-components-read-tokens-not-literals). `.page-card` and an app's own card rules therefore reach `<Card>`.
+- **No shadow utility.** A Tailwind utility out-ranks every layered stylesheet, so shadows live on theme-core elevation hook classes the components carry, each reading a shadow token — the hook classes and what each covers are listed once, in [theme-core.md](theme-core.md#recipes-and-components-read-tokens-not-literals). An app's own card rules therefore reach `<Card>`.
 - **One form-control edge.** `Input`, `Textarea`, and `Select` draw their edge from `--input` (`border-input`), and the unchecked `Switch` track fills with it (`bg-input`), so one token styles every form control in a form.
 - **`ui-button` is Button's hook class.** Every `Button` — every variant and size, a pending one, an `asChild` element — and the alert dialog's action and cancel carry `ui-button` (it is in `buttonVariants`' base string). ui-core gives it no styling: it is the one stable name an app keys its own rule for every button on (a press effect), so the app never matches Button's private utility string, which `TabsTrigger` shares. The `link` variant also carries `ui-button-link`, the one stable name an app keys a rule for link-styled buttons on — never a match on `underline` or another utility in the class list.
 - **Button edges follow their family.** `default` reads `--brand-primary-deep`, `destructive` reads `--destructive-border`, `success` reads `--status-success-border`, `inverted` reads the `--inverted-*` trio.
 - **A status fill carries its own status text.** Every variant that paints a solid status fill takes its text from that status's own foreground, never another family's: the `destructive` Button and Badge read `--destructive-foreground`, the `success` Button reads `--success-foreground` on `--button-success`, and each Toast status variant reads its `--toast-<status>-foreground`. An app that tunes a status foreground per theme for contrast therefore fixes every surface on that fill at once. theme-core's token-contract test enforces the pairing across every package.
+
+## Variants own a part's other looks
+
+A part's built-in look is Tailwind utilities, which outrank every layered stylesheet, so a stylesheet
+class put on a part that sets what the part already sets never applies (RULE-STD-FRONTEND-008; the
+repo-guards `partRestyling` guard reads the built-ins from this package and fails such a class). Each
+second look every app shares is a variant that carries theme-core's recipe class in place of the
+built-ins it would lose to, so the recipe's values stay in theme-core and each app's tokens and own
+rules on that class still reach it:
+
+- `Card variant="page"` (`.page-card`), `CardHeader variant="page"` / `"pageLeft"`
+  (`.page-card-header` / `-left`), `CardTitle variant="page"` and `DialogTitle variant="page"`
+  (`.page-card-title`), `CardContent variant="page"` (`.page-card-content`).
+- `Label variant="caption"` / `"small"` / `"label"` (`.text-caption` / `.text-small` / `.text-label`).
+- `SelectTrigger variant="filter"` (`.filter-select-trigger`), for filter and sort selects alike.
+- `Button size="action"` (`.primary-action-button`): full width, large type, tall padding.
+- `DropdownMenuContent variant="actions"` (`.app-dropdown-menu`), the item actions menu's surface.
+
+Each default keeps the part's built-in look.
+
+## Item actions — `ActionsMenu`
+
+The one "…" menu an item's destructive and secondary actions live in (RULE-STD-FRONTEND-006). Each
+app supplies the items and their labels; the menu holds no app copy beyond its default trigger name
+("More actions") and empty line. Durable contract:
+
+- **`ActionsMenu`** renders an icon `Button` trigger named by `label` and an `actions` dropdown. A
+  dialog an item opens renders in the menu's overlay slot, a sibling of the dropdown: the default-modal
+  Radix menu sets `pointer-events: none` on the page and unmounts its content when it closes, so a
+  dialog inside it could neither take a click nor outlive the close.
+- **`OverlayActionItem`** closes the menu and opens its `render({ open, onOpenChange })` in the slot —
+  a destructive action's `ConsequenceDialog`. The dialog unmounts after its close animation.
+  `pending` and `disabled` follow `DropdownMenuItem`.
+- **`ActionMenuItem`** closes the menu and runs `onSelect` once.
+- **`AsyncActionMenuItem`** runs its promise through `useAsyncAction`, holding the menu open with the
+  item pending until it settles, then closes it; a failure goes to the required `onError`.
+- **`useActionsMenu`** gives an app's own item kind the same `closeMenu`, `showOverlay` and `holdOpen`;
+  an item rendered outside `ActionsMenu` throws.
 
 ## In-progress feedback — `Spinner`, `pending`, `useAsyncAction`
 

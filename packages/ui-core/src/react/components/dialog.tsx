@@ -3,6 +3,7 @@
 import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '../../lib/utils.js';
 import { useOpenerFocus } from './opener-focus.js';
@@ -69,13 +70,26 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 );
 DialogFooter.displayName = 'DialogFooter';
 
+// The page variant carries theme-core's page-card-title recipe class in place of the built-in
+// size, weight and leading it would otherwise lose to.
+const dialogTitleVariants = cva('break-words', {
+  variants: {
+    variant: {
+      default: 'text-lg font-semibold leading-none tracking-tight',
+      page: 'page-card-title',
+    },
+  },
+  defaultVariants: { variant: 'default' },
+});
+
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> &
+    VariantProps<typeof dialogTitleVariants>
+>(({ className, variant, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight break-words', className)}
+    className={cn(dialogTitleVariants({ variant }), className)}
     {...props}
   />
 ));

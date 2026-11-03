@@ -113,7 +113,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-003 | All colors resolve through theme tokens; no hex or raw HSL in app code | codebase-hygiene 15; ux-audit 4 | `colorLiterals`, `themeTokens`, `statusForegroundOnFill` |
 | RULE-STD-FRONTEND-006 | State changes swap icons; destructive actions live in the one '…' menu; red lives only inside confirmation dialogs | codebase-hygiene 65, 68 | — |
 | RULE-STD-FRONTEND-007 | One page column, one card recipe, truncation everywhere | codebase-hygiene 68; testing-coverage 10; ux-audit 3, 12 | — |
-| RULE-STD-FRONTEND-008 | Semantic classes over repeated inline Tailwind; a ui-core part's look is restyled only through its variants | codebase-hygiene 15, 68 | `themeScaleClasses`, `shadowOwnership`, `stackOnRows` |
+| RULE-STD-FRONTEND-008 | Semantic classes over repeated inline Tailwind; a ui-core part's look is restyled only through its variants | codebase-hygiene 15, 68 | `themeScaleClasses`, `shadowOwnership`, `stackOnRows`, `partRestyling` |
 | RULE-STD-FRONTEND-010 | Browser storage holds device-local state only, through guarded access | codebase-hygiene 31 | `browserStorage` |
 | RULE-STD-FRONTEND-101 | React Query owns all server state | codebase-hygiene 1; performance-audit 4, 5 | `callableReads` |
 | RULE-STD-FRONTEND-102 | Query keys come from `<QUERY_KEYS_MODULE>`; freshness from `STALE_TIMES` | codebase-hygiene 1, 2, 13, 17; performance-audit 4 | `queryKeys`, `authScopedKeys` |

@@ -550,23 +550,6 @@ button .spinner-xl {
 }
 
 /* =========================================================
-    CUSTOM FORM ELEMENTS
-    ========================================================= */
-.form-select-trigger {
-  font-weight: 600;
-  border-radius: 0.75rem;
-  height: 2.75rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  --tw-shadow: var(--control-shadow);
-  box-shadow: var(--control-shadow);
-  border-width: 2px;
-  background-color: hsl(var(--background));
-  border-color: hsl(var(--border)) !important;
-  color: hsl(var(--foreground));
-}
-
-/* =========================================================
     APP HEADER
     ========================================================= */
 .app-header {
@@ -620,13 +603,13 @@ button .spinner-xl {
   align-items: center;
   cursor: pointer;
   font-weight: 700;
-  color: hsl(var(--foreground)) !important;
+  color: hsl(var(--foreground));
 }
 
 .app-dropdown-item:hover,
 .app-dropdown-item:focus {
   background-color: hsl(var(--accent));
-  color: hsl(var(--accent-foreground)) !important;
+  color: hsl(var(--accent-foreground));
 }
 
 /* =========================================================
@@ -646,17 +629,17 @@ button .spinner-xl {
     ========================================================= */
 .help-dialog-title {
   font-weight: 600;
-  color: hsl(var(--foreground)) !important;
+  color: hsl(var(--foreground));
 }
 
 .help-dialog-body {
-  font-weight: 700 !important;
-  color: hsl(var(--muted-foreground)) !important;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
 }
 
 @media (prefers-contrast: more) {
   .help-dialog-body {
-    color: hsl(var(--foreground)) !important;
+    color: hsl(var(--foreground));
   }
 }
 

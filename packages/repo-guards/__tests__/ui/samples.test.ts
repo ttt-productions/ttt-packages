@@ -22,6 +22,7 @@ const FACTS: UiGuardFacts = {
   shadowOwnership: {},
   statusForegroundOnFill: {},
   semanticTextCollision: { entryStylesheet },
+  partRestyling: { entryStylesheet, uiModule: '@kit/ui/react', exceptions: [] },
   stackOnRows: {},
   unavailableControlAffordance: {},
   navigationHelper: {

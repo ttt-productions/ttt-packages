@@ -24,3 +24,16 @@ export {
   type ImportKind,
   type ModuleImport,
 } from './support/imports.js';
+export {
+  partTokens,
+  partVariantChoices,
+  restylingConflicts,
+  sheetClassProperties,
+  themeValues,
+  uiPartsIn,
+  utilityProperties,
+  type ClassDeclaration,
+  type RestylingConflict,
+  type SetProperty,
+  type UiPart,
+} from './modules/ui/part-restyling.js';
