@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  CURLING_ROUND_COUNT,
-  MAX_CURLING_ROUND_POINTS,
-  MAX_STAT_EVENTS_PER_WRITE,
-} from '../constants/sports.js';
+import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../constants/sports.js';
 import type { CurlingTeamStats, GameStatEvent } from '../doc-schemas/game-stats.js';
 import type { CurlingGameStats, GameStats } from '../doc-schemas/sport-game.js';
 import {
@@ -14,7 +10,6 @@ import {
 import type { CurlingStatEventType, CurlingTeamStatKey } from '../types/sports.js';
 import { STAT_VOID_EVENT_TYPE } from '../types/stats.js';
 import {
-  BULK_ENTRY_TOO_LARGE_MESSAGE,
   bulkEntryCountField,
   type BulkEntryContext,
   type RoundsBulkEntry,
@@ -307,13 +302,6 @@ export const CURLING_BULK_ENTRY: RoundsBulkEntry = {
             });
           }
         });
-        if (roundDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
-          issues.addIssue({
-            code: 'custom',
-            path: ['rounds'],
-            message: BULK_ENTRY_TOO_LARGE_MESSAGE,
-          });
-        }
       });
   },
   toEvents: roundDrafts,

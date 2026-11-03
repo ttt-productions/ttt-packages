@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import type { NotificationDoc, PendingNotification } from './types.js';
 
+// The delivery ledger mints every activity generation as a random UUID.
+export const activityGenerationSchema = z.uuid();
+
 export const NotificationDocSchema = z.object({
   id: z.string(),
   type: z.string(),

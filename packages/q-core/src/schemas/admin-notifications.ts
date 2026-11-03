@@ -1,22 +1,22 @@
 import { z } from 'zod';
+import { activityGenerationSchema } from '@ttt-productions/notification-core';
 import { parseNotificationArchiveAllJobId } from '../ids/notification-ids.js';
 import {
   ADMIN_NOTIFICATION_CATEGORY,
   NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS,
 } from '../types/notifications.js';
-import { countSchema } from '../doc-schemas/atoms.js';
+import { countSchema, documentIdSegmentSchema } from '../doc-schemas/atoms.js';
 
 export const adminNotificationIdSchema = z
   .string()
   .regex(/^[A-Za-z0-9]{1,128}$/, 'Not a notification id.');
 
-export const activityGenerationSchema = z.string().min(1).max(128);
+const notificationRequestIdSchema = z.uuid();
 
-export const notificationRequestIdSchema = z.uuid();
-
-export const notificationArchiveAllJobIdSchema = z
-  .string()
-  .refine((id) => parseNotificationArchiveAllJobId(id) !== null, 'Not an archive-all job id.');
+const notificationArchiveAllJobIdSchema = documentIdSegmentSchema.refine(
+  (id) => parseNotificationArchiveAllJobId(id) !== null,
+  'Not an archive-all job id.',
+);
 
 export const AdminUpdateAdminNotificationArchiveInputSchema = z
   .object({

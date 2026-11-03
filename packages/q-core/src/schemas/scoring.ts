@@ -50,10 +50,7 @@ function callerShape<Shape extends z.ZodRawShape, Omitted extends keyof Shape = 
   >;
 }
 
-export const sportStatEventIdSchema = statEventIdSchema.refine(
-  isSportStatEventId,
-  'Not a stat event id.',
-);
+const sportStatEventIdSchema = statEventIdSchema.refine(isSportStatEventId, 'Not a stat event id.');
 
 const sportEventId = { eventId: sportStatEventIdSchema };
 

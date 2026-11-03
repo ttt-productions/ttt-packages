@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
+import { MAX_TEAMS_PER_GAME } from '../constants/business.js';
 import { GAME_MEMO_INPUT, SCHEDULE_WEEK_TITLE_INPUT } from '../constants/text-fields.js';
 import type { LeagueType } from '../types/sports.js';
 import { SPORT_LINE_SCHEMAS } from './aggregate-stats.js';
@@ -58,7 +59,7 @@ const sportGameBase = {
   subLocation: gameLocationSubLocationSchema.optional(),
   status: gameStatusSchema,
   teams: z.tuple([GameTeamSchema, GameTeamSchema]),
-  teamIds: z.array(teamIdSchema).min(1).max(2),
+  teamIds: z.array(teamIdSchema).min(1).max(MAX_TEAMS_PER_GAME),
   score: z.record(teamIdSchema, countSchema),
   statEventSequence: countSchema,
   memos: z.record(z.string(), textFieldSchema(GAME_MEMO_INPUT)).optional(),

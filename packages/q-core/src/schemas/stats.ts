@@ -3,6 +3,7 @@ import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../constants/spor
 import { parseStatsJobId } from '../ids/stats-ids.js';
 import {
   countSchema,
+  documentIdSegmentSchema,
   enteredStatCountSchema,
   epochMsSchema,
   gameIdSchema,
@@ -116,11 +117,12 @@ export const StatsRebuildResultSchema = z
   .strict();
 export type StatsRebuildResult = z.infer<typeof StatsRebuildResultSchema>;
 
-export const statsJobRequestIdSchema = z.uuid();
+const statsJobRequestIdSchema = z.uuid();
 
-export const statsJobIdSchema = z
-  .string()
-  .refine((id) => parseStatsJobId(id) !== null, 'Not a stats job id.');
+const statsJobIdSchema = documentIdSegmentSchema.refine(
+  (id) => parseStatsJobId(id) !== null,
+  'Not a stats job id.',
+);
 
 export const AdminCreateStatsJobInputSchema = z
   .object({ requestId: statsJobRequestIdSchema })

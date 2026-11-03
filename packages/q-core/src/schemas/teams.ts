@@ -121,7 +121,7 @@ export type AdminUpdateGhostPlayerLinkClosedLeagueInput = LinkGhostPlayerInput;
 export const AdminUpdateGhostPlayerLinkClosedLeagueResultSchema = LinkGhostPlayerResultSchema;
 export type AdminUpdateGhostPlayerLinkClosedLeagueResult = LinkGhostPlayerResult;
 
-export const ghostUserIdSchema = userIdSchema.refine(isGhostUserId, 'Not a ghost player.');
+const ghostUserIdSchema = userIdSchema.refine(isGhostUserId, 'Not a ghost player.');
 
 export const UpdateTeamMembershipRoleInputSchema = z
   .object({

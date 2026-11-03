@@ -17,6 +17,7 @@ import {
   MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM,
   MAX_SCHEDULE_WEEK_GAMES,
   MAX_STAT_EVENTS_PER_GAME,
+  MAX_TEAMS_PER_GAME,
   MAX_TEAMS_PER_LEAGUE,
   SCHEDULE_WEEK_FULL_MESSAGE,
   GAME_COMPLETED_DELETE_MESSAGE,
@@ -29,11 +30,11 @@ import {
   scheduledGameLabel,
   weekHasCompletedGamesDeleteMessage,
 } from '../src/constants/business.js';
+import { GameStatHistoryRecordSchema } from '../src/doc-schemas/game-stat-history.js';
 import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location.js';
+import { BasketballGameSchema } from '../src/doc-schemas/sport-game.js';
 import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
-
-const TRANSACTION_WRITES = 500;
 
 describe('a team holds at most 30 players, ghost players included', () => {
   it('declares the cap and seeds a game roster from every member a full team can hold', () => {
@@ -82,18 +83,24 @@ describe('a team holds at most 30 players, ghost players included', () => {
   });
 });
 
+describe('a game is played between at most two teams', () => {
+  it('declares the cap, and a game and its stats history hold no more teams than it', () => {
+    expect(MAX_TEAMS_PER_GAME).toBe(2);
+    const teams = (count: number) => Array.from({ length: count }, (_, index) => `team-${index}`);
+    for (const teamIds of [
+      BasketballGameSchema.shape.teamIds,
+      GameStatHistoryRecordSchema.shape.teamIds,
+    ]) {
+      expect(teamIds.safeParse(teams(MAX_TEAMS_PER_GAME)).success).toBe(true);
+      expect(teamIds.safeParse(teams(MAX_TEAMS_PER_GAME + 1)).success).toBe(false);
+    }
+  });
+});
+
 describe('a league holds at most 40 teams and 250 games', () => {
   it('declares both caps', () => {
     expect(MAX_TEAMS_PER_LEAGUE).toBe(40);
     expect(MAX_GAMES_PER_LEAGUE).toBe(250);
-  });
-
-  it("fits a full league's mode switch in one transaction: every team, the league, and its audit event", () => {
-    expect(MAX_TEAMS_PER_LEAGUE + 2).toBeLessThanOrEqual(TRANSACTION_WRITES);
-  });
-
-  it("fits a full league's stats rebuild in one transaction: every team, its audit event, the beacon, and the run's progress", () => {
-    expect(MAX_TEAMS_PER_LEAGUE + 3).toBeLessThanOrEqual(TRANSACTION_WRITES);
   });
 
   it('bounds the playoff cutoff by the teams a league can hold', () => {

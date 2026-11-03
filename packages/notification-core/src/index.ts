@@ -22,4 +22,8 @@ export type {
   NotificationUnreadBadgeProps,
 } from './types.js';
 
-export { NotificationDocSchema, PendingNotificationSchema } from './schemas.js';
+export {
+  activityGenerationSchema,
+  NotificationDocSchema,
+  PendingNotificationSchema,
+} from './schemas.js';

@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  FOOTBALL_POINTS_BY_EVENT_TYPE,
-  MAX_STAT_EVENTS_PER_WRITE,
-  TEAM_NOT_IN_GAME_MESSAGE,
-} from '../constants/sports.js';
+import { FOOTBALL_POINTS_BY_EVENT_TYPE, TEAM_NOT_IN_GAME_MESSAGE } from '../constants/sports.js';
 import type { FootballTeamStats, GameStatEvent } from '../doc-schemas/game-stats.js';
 import type { FootballGameStats, GameStats } from '../doc-schemas/sport-game.js';
 import {
@@ -17,7 +13,6 @@ import {
 } from '../types/sports.js';
 import type { FootballStatEventType, FootballTeamStatKey } from '../types/sports.js';
 import {
-  BULK_ENTRY_TOO_LARGE_MESSAGE,
   bulkEntryCountField,
   type BulkEntryContext,
   type StatEventDraft,
@@ -220,13 +215,6 @@ export const FOOTBALL_BULK_ENTRY: TeamScoresBulkEntry = {
               path: ['scores', teamId],
               message: TEAM_NOT_IN_GAME_MESSAGE,
             });
-        }
-        if (scoreDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
-          issues.addIssue({
-            code: 'custom',
-            path: ['scores'],
-            message: BULK_ENTRY_TOO_LARGE_MESSAGE,
-          });
         }
       });
   },

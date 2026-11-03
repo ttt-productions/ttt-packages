@@ -51,9 +51,6 @@ export type RoundsBulkEntry = BulkEntryForm<'rounds', RoundsValues>;
 
 export type BulkEntry = PlayerLinesBulkEntry | TeamScoresBulkEntry | RoundsBulkEntry;
 
-export const BULK_ENTRY_TOO_LARGE_MESSAGE =
-  'This entry changes more stats than one save can hold. Save part of it, then enter the rest.';
-
 export const BULK_ENTRY_COUNT_MESSAGE = 'Enter a whole number, zero or more.';
 
 export const bulkEntryCountField = z.custom<number>(

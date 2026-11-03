@@ -50,10 +50,15 @@ export const calendarDateSchema = z
     return !Number.isNaN(day.getTime()) && day.toISOString().startsWith(value);
   }, 'Not a real calendar date.');
 
-export const documentIdSegmentSchema = z
+export const unpaddedValueSchema = z
   .string()
   .min(1, { abort: true })
-  .refine(isDocumentIdSegment, 'Not a document id.');
+  .refine((value) => value === value.trim(), 'This value cannot begin or end with whitespace.');
+
+export const documentIdSegmentSchema = unpaddedValueSchema.refine(
+  isDocumentIdSegment,
+  'Not a document id.',
+);
 
 export const userIdSchema = documentIdSegmentSchema;
 export const leagueIdSchema = documentIdSegmentSchema;

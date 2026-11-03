@@ -3,9 +3,9 @@ import type { z } from 'zod';
 import {
   MAX_CURLING_ROUND_POINTS,
   MAX_STAT_COUNT,
-  MAX_STAT_EVENTS_PER_WRITE,
   CURLING_ROUND_COUNT,
 } from '../src/constants/sports.js';
+import { MAX_ROSTER_ENTRIES_PER_TEAM } from '../src/constants/business.js';
 import { enteredStatCountSchema } from '../src/doc-schemas/atoms.js';
 import { type GameStatEvent } from '../src/doc-schemas/game-stats.js';
 import { type GameStats } from '../src/doc-schemas/sport-game.js';
@@ -17,7 +17,6 @@ import {
 } from '../src/schemas/scoring.js';
 import {
   BULK_ENTRY_COUNT_MESSAGE,
-  BULK_ENTRY_TOO_LARGE_MESSAGE,
   bulkEntryCountField,
   type BulkEntryContext,
   type PlayerLinesBulkEntry,
@@ -274,33 +273,30 @@ describe('basketball bulk entry — one row per roster entry', () => {
     });
   });
 
-  it('refuses in the form a submission past the per-write event cap, which the write input refuses too', () => {
-    const many = Array.from({ length: MAX_STAT_EVENTS_PER_WRITE }, (_, index) =>
-      buildGameRosterPlayerId(HOME, `player${index}`),
+  it('saves in one write a full roster on both sides changing every stat', () => {
+    const fullRoster = [HOME, AWAY].flatMap((teamId) =>
+      Array.from({ length: MAX_ROSTER_ENTRIES_PER_TEAM }, (_, index) =>
+        buildGameRosterPlayerId(teamId, `player${index}`),
+      ),
     );
-    const context = { ...contextOf(adapter, []), rosterPlayerIds: many };
+    const context = { ...contextOf(adapter, []), rosterPlayerIds: fullRoster };
     const entered = {
       lines: Object.fromEntries(
-        many.map((entryId) => [entryId, { points: 1, rebounds: 1, assists: 0 }]),
+        fullRoster.map((entryId) => [entryId, { points: 1, rebounds: 1, assists: 1 }]),
       ),
     };
 
-    const parsed = bulkEntry.formSchema(context).safeParse(entered);
-    expect(parsed.success).toBe(false);
-    if (!parsed.success)
-      expect(parsed.error.issues.map((issue) => issue.message)).toContain(
-        BULK_ENTRY_TOO_LARGE_MESSAGE,
-      );
+    expect(bulkEntry.formSchema(context).safeParse(entered).success).toBe(true);
     const drafts = bulkEntry.toEvents(entered, context);
-    expect(drafts.length).toBeGreaterThan(MAX_STAT_EVENTS_PER_WRITE);
+    expect(drafts).toHaveLength(fullRoster.length * BASKETBALL_PLAYER_STAT_KEYS.length);
     expect(
       CreateGameStatEventInputSchema.safeParse({
         gameId: 'g1',
         events: drafts.map((draft, index) =>
-          submissionOf(draft, buildStatEventId(NOW, `cap${index}`)),
+          submissionOf(draft, buildStatEventId(NOW, `full${index}`)),
         ),
       }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('carries on each edit the number typed, and the write lands every box on it whatever was scored meanwhile', () => {

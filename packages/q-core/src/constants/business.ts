@@ -90,6 +90,7 @@ export const WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD =
 export const weekHasCompletedGamesDeleteMessage = (games: readonly string[]): string =>
   `${WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD} ${games.join('; ')}.`;
 
+export const MAX_TEAMS_PER_GAME = 2;
 export const MAX_TEAMS_PER_LEAGUE = 40;
 export const MAX_GAMES_PER_LEAGUE = 250;
 export const LEAGUE_TEAMS_FULL_MESSAGE = countCapReachedMessage(

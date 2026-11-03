@@ -16,8 +16,7 @@ consumers alike. Firebase client/admin runtime lives behind subpaths.
 - `./client` — the one Firebase **client** setup (`initFirebaseClient`): config
   validation, the persistent Firestore cache, App Check and its first-token wait,
   the Auth boot lookup guard, emulator wiring, and the consent-gated Analytics handle.
-- `./firestore-client` — Firestore **client** SDK helpers: batched writes
-  (`commitInBatches`, `batchSet`), cursor pagination (`fetchPage`,
+- `./firestore-client` — Firestore **client** SDK helpers: cursor pagination (`fetchPage`,
   `fetchOrderedPage`), and Timestamp helpers that touch the client SDK
   (`serverNow`, `dateToTs`, `msToTs`, `tsToDate`), and the names typed on
   `firebase/firestore` (`DocSnap`, `QueryDocSnap`, `withId`, `TimestampLike`,

@@ -1,3 +1,4 @@
+import { MAX_STAT_EVENTS_PER_GAME } from './business.js';
 import {
   BASKETBALL_ASSIST_EVENT_TYPE,
   BASKETBALL_BULK_EDIT_EVENT_TYPE,
@@ -42,9 +43,8 @@ export const MAX_CURLING_ROUND_POINTS = 4;
 
 export const MAX_STAT_COUNT = 999_999;
 
-// The most events one scoring write may carry: each event is a document created in the write's one
-// transaction, and a Firestore transaction commits at most 500 writes.
-export const MAX_STAT_EVENTS_PER_WRITE = 200;
+// One scoring write carries at most a whole game's stat log.
+export const MAX_STAT_EVENTS_PER_WRITE = MAX_STAT_EVENTS_PER_GAME;
 
 export const MAX_STATS_REPAIR_LISTED_CHANGES = 500;
 

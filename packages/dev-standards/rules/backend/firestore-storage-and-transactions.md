@@ -139,7 +139,7 @@ An audience change is a MOVE of the doc (packages-first — paths live in `<APP_
 - A compound (`where` + `where`/`orderBy`/range) query with no corresponding `firestore.indexes.json` entry.
 - A recurring sweep that rereads the same first page each run, or restarts an exhausted source from page one.
 - A capped or unordered page shown as a count, a total, or the "oldest"; a client-side filter applied after the server limit.
-- One batch or transaction over a set with no bound (Firestore caps a batch at 500 writes).
+- One batch or transaction over a set with no bound (Firestore bounds a commit by its 10 MiB request size, a transaction by 270 seconds, and one document by 500 field transforms — not by a write count).
 
 **References.** RULE-STD-FRONTEND-101 (client freshness), RULE-STD-FRONTEND-103 (infinite feeds); RULE-STD-BACKEND-309.
 

@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   BASKETBALL_FANTASY_POINT_WEIGHTS,
   BASKETBALL_POINTS_BY_EVENT_TYPE,
-  MAX_STAT_EVENTS_PER_WRITE,
   NOT_ON_GAME_ROSTER_MESSAGE,
 } from '../constants/sports.js';
 import type {
@@ -35,7 +34,6 @@ import type {
 import { PLAYER_STAT_LINE_KIND_KEYS } from '../types/stats.js';
 import type { StatLineKind } from '../types/stats.js';
 import {
-  BULK_ENTRY_TOO_LARGE_MESSAGE,
   bulkEntryCountField,
   type BulkEntryContext,
   type PlayerLinesBulkEntry,
@@ -489,13 +487,6 @@ export const BASKETBALL_BULK_ENTRY: PlayerLinesBulkEntry = {
               path: ['lines'],
               message: BASKETBALL_TEAM_SCORE_FLOOR_MESSAGE,
             });
-        }
-        if (bulkDrafts(values, context).length > MAX_STAT_EVENTS_PER_WRITE) {
-          issues.addIssue({
-            code: 'custom',
-            path: ['lines'],
-            message: BULK_ENTRY_TOO_LARGE_MESSAGE,
-          });
         }
       });
   },
