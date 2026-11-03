@@ -10,10 +10,8 @@ import { SportLeagueSchema, playoffCutoffSchema } from '../src/doc-schemas/sport
 import { MAX_STAT_COUNT } from '../src/constants/sports.js';
 import { MAX_PLAYOFF_CUTOFF } from '../src/constants/business.js';
 import { countSchema, enteredStatCountSchema, revisionSchema } from '../src/doc-schemas/atoms.js';
-import {
-  AdminUpdateHistoricalStatInputSchema,
-  GameStatsCorrectionTargetSchema,
-} from '../src/schemas/stats.js';
+import { AdminUpdateHistoricalStatInputSchema } from '../src/schemas/stats.js';
+import { StatEventSubmissionSchema } from '../src/schemas/scoring.js';
 import { AdminUpdateAdminListResultSchema } from '../src/schemas/users.js';
 import { SiteCountsSchema } from '../src/schemas/admin-stats.js';
 
@@ -194,7 +192,13 @@ describe('countSchema is the one count atom', () => {
   });
 
   it("a callable input's typed stat count takes the one entered-count schema, not a copy of its own", () => {
-    expect(GameStatsCorrectionTargetSchema.shape.value).toBe(enteredStatCountSchema);
+    let bulkEdits = 0;
+    for (const option of StatEventSubmissionSchema.options) {
+      if (!('target' in option.shape)) continue;
+      bulkEdits += 1;
+      expect(option.shape.target).toBe(enteredStatCountSchema);
+    }
+    expect(bulkEdits).toBe(2);
   });
 
   it('the dashboard counts, a gallery’s count, and a league’s playoff cutoffs are the atom', () => {
@@ -267,20 +271,11 @@ describe('a stat count a person types', () => {
     expect(enteredStatCountSchema.safeParse(2.5).success).toBe(false);
   });
 
-  it('bounds a correction target, so a box capped at the limit and the server accept the same values', () => {
-    const target = { teamId: 'team-1', stat: 'points', value: MAX_STAT_COUNT };
-    expect(GameStatsCorrectionTargetSchema.safeParse(target).success).toBe(true);
-    expect(
-      GameStatsCorrectionTargetSchema.safeParse({ ...target, value: MAX_STAT_COUNT + 1 }).success,
-    ).toBe(false);
-  });
-
   it('bounds every historical total an admin saves, and still refuses FP and a missing total', () => {
     const input = {
       userId: 'user-1',
       sportKey: 'basketball',
       stats: { gamesPlayed: 12, points: MAX_STAT_COUNT, rebounds: 60, assists: 25 },
-      reason: 'Restoring the totals from the league sheet.',
       operationId: 'operation-1',
       dryRun: true,
     };

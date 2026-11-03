@@ -35,7 +35,6 @@ import {
   countSchema,
   epochMsSchema,
   gameRosterPlayerIdSchema,
-  repairReasonSchema,
   statCounterKeySchema,
   statEventIdSchema,
   statsOperationIdSchema,
@@ -185,7 +184,6 @@ export const StatCorrectionEventSchema = z
     value: z.number().int(),
     correctionSource: z.enum(STAT_CORRECTION_SOURCE_KEYS),
     operationId: statsOperationIdSchema,
-    reason: repairReasonSchema,
     rekeyedFromGhostUserId: userIdSchema.optional(),
   })
   .refine(

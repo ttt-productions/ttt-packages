@@ -26,7 +26,7 @@ export const COLLECTIONS = {
   AWARD_GROUP_GRANTS: 'awardGroupGrants',
   SPORT_HALL_OF_FAME: 'sportHallOfFame',
   STATS_VALIDATION_REPORTS: 'statsValidationReports',
-  STATS_OPERATIONS: 'statsOperations',
+  STATS_JOBS: 'statsJobs',
 
   MIGRATION_ACTION_RUNS: 'migrationActionRuns',
 

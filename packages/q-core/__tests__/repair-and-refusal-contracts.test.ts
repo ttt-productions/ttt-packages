@@ -16,7 +16,6 @@ const RESULT = {
   operationId: 'op-1',
   dryRun: false,
   outcome: 'reconciled',
-  corrections: [],
   gameChanged: true,
   destinationChanges: [],
 };

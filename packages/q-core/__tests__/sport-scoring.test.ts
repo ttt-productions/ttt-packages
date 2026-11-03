@@ -257,7 +257,6 @@ describe('basketball — player-scored, with FP on every player line', () => {
         value: 2,
         correctionSource: 'admin',
         operationId: 'operation-1',
-        reason: 'A basket went unrecorded',
         ...fields,
       });
 
@@ -340,14 +339,6 @@ describe('basketball — player-scored, with FP on every player line', () => {
           previousValue: 0,
         }),
         'bulkValueInvalid',
-      ],
-      [
-        player(BASKETBALL_BULK_EDIT_EVENT_TYPE, PASSER, {
-          stat: REBOUNDS,
-          value: 2,
-          previousValue: 0,
-        }),
-        'bulkStale',
       ],
     ];
     for (const [body, code] of refusals) {
@@ -462,7 +453,6 @@ describe('curling — rounds recorded once, in order', () => {
           value: 1,
           correctionSource: 'admin',
           operationId: 'op',
-          reason: 'wrong end',
         }),
       ),
     ).toThrow();
@@ -489,7 +479,7 @@ describe('football — team-scored, finalized by hand', () => {
     ).toEqual({ ok: false, code: 'teamNotInGame' });
   });
 
-  it('refuses a zero, fractional, below-zero, or stale final-score edit', () => {
+  it('refuses a zero, fractional, or below-zero final-score edit', () => {
     const state = football.apply(football.emptyStats(GAME), event({ type: SIX, teamId: HOME }));
     const edit = (value: number, previousValue: number) =>
       event({ type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: HOME, value, previousValue });
@@ -507,7 +497,6 @@ describe('football — team-scored, finalized by hand', () => {
       ok: false,
       code: 'bulkValueInvalid',
     });
-    expect(football.validate(state, edit(8, 0), ROSTER)).toEqual({ ok: false, code: 'bulkStale' });
   });
 
   it('corrects its team score, keeps no player line, and is always ready to finalize', () => {
@@ -520,7 +509,6 @@ describe('football — team-scored, finalized by hand', () => {
         value: 3,
         correctionSource: 'admin',
         operationId: 'op',
-        reason: 'late field goal',
       }),
     );
     expect(gameScoreMirror(corrected)).toEqual({ [HOME]: 0, [AWAY]: 3 });
@@ -547,7 +535,6 @@ describe('the replay — one fold from the empty stats, in sequence order (RULE-
         value: 2,
         correctionSource: 'migration',
         operationId: 'migration',
-        reason: 'The recorded line holds rebounds its events do not explain',
       }),
       buildStatCorrectionId('migration', entry(HOME, SHOOTER), REBOUNDS),
     );
@@ -633,7 +620,6 @@ describe('display — every play has a line, and every refusal has copy', () => 
         value: 1,
         correctionSource: 'admin',
         operationId: 'op',
-        reason: 'missed pass',
       }),
     );
     expect(basketball.display.describeEvent(correction, resolve)).toBe(
@@ -767,7 +753,6 @@ describe('basketball corrections — each correctable field moves exactly itself
       value,
       correctionSource: 'admin',
       operationId: 'operation-1',
-      reason: 'The scorer missed a play',
     });
 
   for (const field of basketball.correctableFields.player) {

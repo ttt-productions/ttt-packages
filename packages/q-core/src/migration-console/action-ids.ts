@@ -93,9 +93,7 @@ export const MIGRATION_ACTION_IDS = {
   verifyV1HardwareContractIdsUnique: 'verify.v1HardwareContractIdsUnique',
   deleteV1Commerce: 'delete.v1Commerce',
 
-  rebuildLeagueStats: 'rebuild.leagueStats',
-  rebuildLifetimeStats: 'rebuild.lifetimeStats',
-  rebuildSportHallOfFame: 'rebuild.sportHallOfFame',
+  rebuildStats: 'rebuild.stats',
   validateStats: 'validate.stats',
   verifySportHallOfFame: 'verify.sportHallOfFame',
   deleteV1HallOfFame: 'delete.v1HallOfFame',

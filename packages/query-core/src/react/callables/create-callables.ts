@@ -55,10 +55,6 @@ export type CallableMutationOptions<TInput, TResult, TOnMutateResult = unknown> 
     'showErrorToast' | 'answeredRefusals' | 'isAnswerSurfacedByCaller' | 'captureFaults'
   >;
 
-export const MAX_RESUMABLE_CALLS = 12;
-
-export type ResumableOutcome<TResult> = TResult & { interruption: Error | null };
-
 export interface Callables {
   createCallableHook<TInput, TResult>(
     functionName: string,
@@ -66,13 +62,6 @@ export interface Callables {
   ): <TOnMutateResult = unknown>(
     options?: CallableMutationOptions<TInput, TResult, TOnMutateResult>,
   ) => SessionMutationResult<TResult, Error, TInput, TOnMutateResult>;
-  createResumableCallableHook<TInput, TResult extends { complete: boolean }>(
-    functionName: string,
-    merge: (earlier: TResult, later: TResult) => TResult,
-    declaration?: CallableDeclaration,
-  ): <TOnMutateResult = unknown>(
-    options?: CallableMutationOptions<TInput, ResumableOutcome<TResult>, TOnMutateResult>,
-  ) => SessionMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult>;
   createCallableReader<TInput, TResult>(
     functionName: string,
     declaration?: CallableDeclaration,
@@ -190,49 +179,6 @@ export function createCallables(policy: CallablePolicy): Callables {
           ...mutationOptions,
           retry: false,
           mutationFn: (input, { session }) => call<TInput, TResult>(input, session),
-        });
-      };
-    },
-
-    createResumableCallableHook<TInput, TResult extends { complete: boolean }>(
-      functionName: string,
-      merge: (earlier: TResult, later: TResult) => TResult,
-      declaration: CallableDeclaration = {},
-    ) {
-      return function useNamedResumableCallable<TOnMutateResult = unknown>(
-        options: CallableMutationOptions<TInput, ResumableOutcome<TResult>, TOnMutateResult> = {},
-      ): SessionMutationResult<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult> {
-        const {
-          showErrorToast,
-          answeredRefusals,
-          isAnswerSurfacedByCaller,
-          captureFaults,
-          ...mutationOptions
-        } = options;
-        const call = useCallableTransport(functionName, declaration, {
-          showErrorToast,
-          answeredRefusals,
-          isAnswerSurfacedByCaller,
-          captureFaults,
-        });
-        return useSessionMutation<ResumableOutcome<TResult>, Error, TInput, TOnMutateResult>({
-          ...mutationOptions,
-          retry: false,
-          mutationFn: async (input, { session }): Promise<ResumableOutcome<TResult>> => {
-            let progress = await call<TInput, TResult>(input, session);
-            for (let calls = 1; !progress.complete && calls < MAX_RESUMABLE_CALLS; calls += 1) {
-              session.assertCurrent();
-              let later: TResult;
-              try {
-                later = await call<TInput, TResult>(input, session);
-              } catch (error) {
-                const interruption = error instanceof Error ? error : new Error(String(error));
-                return { ...progress, complete: false, interruption };
-              }
-              progress = merge(progress, later);
-            }
-            return { ...progress, interruption: null };
-          },
         });
       };
     },

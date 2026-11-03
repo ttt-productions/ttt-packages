@@ -4,7 +4,6 @@ import { MAX_STAT_EVENTS_PER_GAME } from '../src/constants/business.js';
 import {
   BasketballPlayerStatsSchema,
   GameStatEventSchema,
-  StatCorrectionEventSchema,
   type GameStatEventType,
 } from '../src/doc-schemas/game-stats.js';
 import {
@@ -26,15 +25,14 @@ import { GameStatHistoryRecordSchema } from '../src/doc-schemas/game-stat-histor
 import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import type { BasketballLeagueTeam, CurlingLeagueTeam } from '../src/doc-schemas/league-team.js';
 import { SportGameSchema } from '../src/doc-schemas/sport-game.js';
-import { StatsOperationSchema } from '../src/doc-schemas/stats-operation.js';
+import { StatsJobSchema } from '../src/doc-schemas/stats-job.js';
+import { StatsValidationReportSchema } from '../src/doc-schemas/system.js';
 import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
-import { repairReasonSchema } from '../src/doc-schemas/atoms.js';
 import { BYE_TEAM_ID } from '../src/ids/minted-ids.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids.js';
-import { AdminUpdateSportGameReopenInputSchema } from '../src/schemas/stats.js';
+import { buildStatsValidationReportId } from '../src/ids/stats-ids.js';
 import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports.js';
-import type { StatsOperationKind } from '../src/types/stats.js';
 
 const NOW = 1712345678901;
 const [BASKETBALL, CURLING, FOOTBALL] = LEAGUE_TYPE_KEYS;
@@ -67,7 +65,6 @@ const correction = {
   value: -2,
   correctionSource: 'admin',
   operationId: 'op1',
-  reason: 'Scorer credited the wrong player.',
 };
 
 const VALID_EVENTS = {
@@ -252,13 +249,12 @@ describe('stat event documents', () => {
     expect(parses({ ...correction, teamId: 'T2' })).toBe(false);
   });
 
-  it('holds a correction to a counter, a known source, and a recorded reason', () => {
+  it('holds a correction to a counter and a known source, and reads one stored with a reason', () => {
     expect(parses({ ...correction, stat: 'fantasyPoints' })).toBe(false);
     expect(parses({ ...correction, correctionSource: 'client' })).toBe(false);
-    expect(parses({ ...correction, reason: '' })).toBe(false);
-    expect(parses({ ...correction, reason: '      ' })).toBe(false);
-    const { reason: _reason, ...unexplained } = correction;
-    expect(parses(unexplained)).toBe(false);
+    expect(
+      GameStatEventSchema.parse({ ...correction, reason: 'Scorer credited the wrong player.' }),
+    ).not.toHaveProperty('reason');
   });
 
   it('is bound in the registry to its path', () => {
@@ -510,111 +506,75 @@ describe('the finalized record', () => {
   });
 });
 
-describe('stats operations', () => {
-  const run = {
-    startedByUserId: 'admin1',
-    startedAt: NOW,
+describe('stats jobs', () => {
+  const job = {
+    jobId: 'admin-1_00000000-0000-4000-8000-000000000000',
+    kind: 'rebuild',
+    userId: 'admin-1',
+    state: 'in-progress',
+    stage: 'leagues',
+    cursor: null,
+    stageDone: 0,
+    changed: 0,
+    revision: 0,
+    error: null,
+    attemptCount: 0,
+    nextAttemptAt: NOW,
+    deadLettered: false,
+    createdAt: NOW,
     updatedAt: NOW,
-    status: 'running',
-    counts: { read: 0, changed: 0, skipped: 0 },
+    completedAt: null,
+    deadLetteredAt: null,
   };
-  const reason = 'Rebuild after the standings dispute.';
+  const parses = (doc: object) => StatsJobSchema.safeParse(doc).success;
 
-  const VALID_OPERATIONS = {
-    leagueStatsRebuild: {
-      ...run,
-      kind: 'leagueStatsRebuild',
-      scope: { leagueId: 'L' },
-      reason,
-    },
-    lifetimeStatsRebuild: {
-      ...run,
-      kind: 'lifetimeStatsRebuild',
+  it('holds a rebuild or a check, the stage it is in and its place in that stage', () => {
+    expect(parses(job)).toBe(true);
+    expect(parses({ ...job, kind: 'check', stage: 'games', reportId: 'everything' })).toBe(true);
+    expect(parses({ ...job, cursor: 'league-9', stageDone: 40 })).toBe(true);
+    expect(parses({ ...job, kind: 'archive' })).toBe(false);
+    expect(parses({ ...job, stage: 'teams' })).toBe(false);
+    expect(parses({ ...job, state: 'paused' })).toBe(false);
+    expect(parses({ ...job, stageDone: -1 })).toBe(false);
+  });
+
+  it('is bound in the registry to its path, and statsOperations is gone', () => {
+    expect(COLLECTION_SCHEMAS['statsJobs/{jobId}']).toBe(StatsJobSchema);
+    expect(Object.keys(COLLECTION_SCHEMAS)).not.toContain('statsOperations/{operationId}');
+  });
+});
+
+describe('a stats check report', () => {
+  it("is named by its scope's key, so a new check of a scope replaces its earlier report", () => {
+    expect(buildStatsValidationReportId({})).toBe('everything');
+    expect(buildStatsValidationReportId({ leagueId: 'L1' })).toBe('league_L1');
+    expect(buildStatsValidationReportId({ gameId: 'g1' })).toBe('game_g1');
+  });
+
+  it('scopes a check to one game, one league, or everything, never a game and a league', () => {
+    const report = {
+      reportId: 'everything',
+      ranAt: NOW,
+      ranByUserId: 'admin-1',
       scope: {},
-      reason,
-    },
-    hallOfFameRebuild: {
-      ...run,
-      kind: 'hallOfFameRebuild',
-      scope: { sportKey: 'basketball', userId: 'u1' },
-      reason,
-    },
-    statsValidation: {
-      ...run,
-      kind: 'statsValidation',
-      scope: { leagueId: 'L' },
-      phase: 'games',
-      resumeAfter: 'g3',
-    },
-    gameStatsCorrection: {
-      ...run,
-      kind: 'gameStatsCorrection',
-      scope: { gameId: 'g1' },
-      reason,
-      status: 'complete',
-    },
-    gameStatsRecalculation: {
-      ...run,
-      kind: 'gameStatsRecalculation',
-      scope: { gameId: 'g1' },
-      reason,
-    },
-    historicalStatsUpdate: {
-      ...run,
-      kind: 'historicalStatsUpdate',
-      scope: { userId: 'u1', sportKey: 'basketball' },
-      reason,
-    },
-  } satisfies Record<StatsOperationKind, object>;
-
-  const operation = (doc: object) => StatsOperationSchema.safeParse(doc).success;
-
-  it.each(Object.entries(VALID_OPERATIONS))('accepts a %s operation', (_kind, doc) => {
-    expect(operation(doc)).toBe(true);
-  });
-
-  it('takes a reason on every action that writes a stat, and none on a validation', () => {
-    const { reason: _reason, ...unexplained } = VALID_OPERATIONS.leagueStatsRebuild;
-    expect(operation(unexplained)).toBe(false);
-    expect(
-      StatsOperationSchema.parse({ ...VALID_OPERATIONS.statsValidation, reason }),
-    ).not.toHaveProperty('reason');
-    expect(operation({ ...VALID_OPERATIONS.gameStatsCorrection, reason: 'no' })).toBe(false);
-    expect(operation({ ...VALID_OPERATIONS.gameStatsCorrection, reason: '   no   ' })).toBe(false);
-  });
-
-  it("a repair callable's reason field takes the one reason atom the repair is stored with", () => {
-    expect(AdminUpdateSportGameReopenInputSchema.shape.reason).toBe(repairReasonSchema);
-    expect(StatCorrectionEventSchema.shape.reason).toBe(repairReasonSchema);
-    for (const option of StatsOperationSchema.options) {
-      if (!('reason' in option.shape)) continue;
-      expect(option.shape.reason).toBe(repairReasonSchema);
-    }
-  });
-
-  it('scopes a validation to one game, one league, or everything', () => {
-    expect(operation({ ...VALID_OPERATIONS.statsValidation, scope: {} })).toBe(true);
-    expect(operation({ ...VALID_OPERATIONS.statsValidation, scope: { gameId: 'g1' } })).toBe(true);
-    expect(
-      operation({ ...VALID_OPERATIONS.statsValidation, scope: { gameId: 'g1', leagueId: 'L' } }),
-    ).toBe(false);
-    expect(operation({ ...VALID_OPERATIONS.statsValidation, phase: 'aggregates' })).toBe(false);
-  });
-
-  it('refuses an unknown kind or status, and a count below zero', () => {
-    const rebuild = VALID_OPERATIONS.leagueStatsRebuild;
-    expect(operation({ ...rebuild, kind: 'gameArchive' })).toBe(false);
-    expect(operation({ ...rebuild, kind: 'ghostPlayerStats' })).toBe(false);
-    expect(operation({ ...rebuild, kind: 'gameDeletion' })).toBe(false);
-    expect(operation({ ...rebuild, status: 'paused' })).toBe(false);
-    expect(operation({ ...rebuild, counts: { read: -1, changed: 0, skipped: 0 } })).toBe(false);
-    expect(StatsOperationSchema.parse({ ...rebuild, stoppedOnGameIds: [] })).not.toHaveProperty(
-      'stoppedOnGameIds',
+      complete: true,
+      discrepancies: [],
+      discrepancyCounts: {},
+      summary: {
+        totalGamesChecked: 0,
+        totalUsersChecked: 0,
+        totalTeamsChecked: 0,
+        totalLeaguesChecked: 0,
+        discrepanciesFound: 0,
+      },
+    };
+    const parses = (doc: object) => StatsValidationReportSchema.safeParse(doc).success;
+    expect(parses(report)).toBe(true);
+    expect(parses({ ...report, scope: { gameId: 'g1' } })).toBe(true);
+    expect(parses({ ...report, scope: { gameId: 'g1', leagueId: 'L' } })).toBe(false);
+    expect(StatsValidationReportSchema.parse({ ...report, operationId: 'op' })).not.toHaveProperty(
+      'operationId',
     );
-  });
-
-  it('is bound in the registry to its path', () => {
-    expect(COLLECTION_SCHEMAS['statsOperations/{operationId}']).toBe(StatsOperationSchema);
   });
 });
 

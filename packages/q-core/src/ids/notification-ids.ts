@@ -1,8 +1,7 @@
-import { z } from 'zod';
 import type { AdminNotificationType } from '../types/notifications.js';
 import { COMPOUND_ID_SEPARATOR } from './compound-ids.js';
-
-const requestIdSchema = z.uuid();
+import { buildRequestJobId, parseRequestJobId } from './request-job-ids.js';
+import type { RequestJobIdParts } from './request-job-ids.js';
 
 export function buildNotificationDeliveryId(
   notificationType: AdminNotificationType,
@@ -30,24 +29,14 @@ export function buildAdminNotificationArchiveKey(
   return [notificationId, observedActivityGeneration].join(COMPOUND_ID_SEPARATOR);
 }
 
-export interface NotificationArchiveAllJobIdParts {
-  userId: string;
-  requestId: string;
-}
-
-const REQUEST_ID_LENGTH = 36;
+export type NotificationArchiveAllJobIdParts = RequestJobIdParts;
 
 export function buildNotificationArchiveAllJobId(userId: string, requestId: string): string {
-  return [userId, requestId].join(COMPOUND_ID_SEPARATOR);
+  return buildRequestJobId(userId, requestId);
 }
 
 export function parseNotificationArchiveAllJobId(
   id: string,
 ): NotificationArchiveAllJobIdParts | null {
-  const separatorAt = id.length - REQUEST_ID_LENGTH - COMPOUND_ID_SEPARATOR.length;
-  if (separatorAt < 1 || !id.startsWith(COMPOUND_ID_SEPARATOR, separatorAt)) return null;
-  const userId = id.slice(0, separatorAt);
-  const requestId = id.slice(separatorAt + COMPOUND_ID_SEPARATOR.length);
-  if (userId.includes('/') || !requestIdSchema.safeParse(requestId).success) return null;
-  return { userId, requestId };
+  return parseRequestJobId(id);
 }

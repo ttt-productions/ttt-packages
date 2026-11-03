@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { MIGRATION_EVIDENCE_INPUT } from '../constants/text-fields.js';
 import { MIGRATION_ACTION_ID_KEYS } from '../migration-console/action-ids.js';
 import {
   MAX_MIGRATION_FINDING_TEXT_LENGTH,
@@ -7,20 +6,11 @@ import {
   MIGRATION_DESTINATION_STATE_KEYS,
   MIGRATION_RUN_STATUS_KEYS,
 } from '../migration-console/run-state.js';
-import {
-  countSchema,
-  documentIdSegmentSchema,
-  epochMsSchema,
-  repairReasonSchema,
-  statsOperationIdSchema,
-  userIdSchema,
-} from './atoms.js';
-import { textFieldSchema } from '../schemas/text-field.js';
+import { countSchema, documentIdSegmentSchema, epochMsSchema, userIdSchema } from './atoms.js';
 
 export const migrationActionIdSchema = z.enum(MIGRATION_ACTION_ID_KEYS);
 export const migrationDestinationStateSchema = z.enum(MIGRATION_DESTINATION_STATE_KEYS);
 export const migrationOperationIdSchema = documentIdSegmentSchema;
-export const migrationEvidenceSchema = textFieldSchema(MIGRATION_EVIDENCE_INPUT);
 
 const findingText = z.string().max(MAX_MIGRATION_FINDING_TEXT_LENGTH);
 
@@ -45,7 +35,6 @@ export type MigrationRunCounts = z.infer<typeof MigrationRunCountsSchema>;
 export const MigrationRunRecordSchema = z.object({
   operationId: migrationOperationIdSchema,
   dryRun: z.boolean(),
-  reason: repairReasonSchema,
   startedByUserId: userIdSchema,
   startedAt: epochMsSchema,
   updatedAt: epochMsSchema,
@@ -66,8 +55,7 @@ export type MigrationRunRecord = z.infer<typeof MigrationRunRecordSchema>;
 export const MigrationStepRecordSchema = z.object({
   recordedAt: epochMsSchema,
   recordedByUserId: userIdSchema,
-  operationIds: z.array(statsOperationIdSchema).optional(),
-  evidence: migrationEvidenceSchema,
+  statsJobId: z.string().min(1).optional(),
 });
 export type MigrationStepRecord = z.infer<typeof MigrationStepRecordSchema>;
 

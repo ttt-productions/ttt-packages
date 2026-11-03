@@ -69,7 +69,7 @@ describe('path builders', () => {
       'sportGames/g1/gameRosterPlayers/T_u1',
     );
     expect(toPath(PATH_BUILDERS.gameStatEvent('g1', 'e1'))).toBe('sportGames/g1/gameStatEvents/e1');
-    expect(toPath(PATH_BUILDERS.statsOperation('op1'))).toBe('statsOperations/op1');
+    expect(toPath(PATH_BUILDERS.statsJob('job1'))).toBe('statsJobs/job1');
     expect(toPath(PATH_BUILDERS.historicalStat('u1', 'basketball'))).toBe(
       'userProfiles/u1/historicalStats/basketball',
     );

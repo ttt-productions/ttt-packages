@@ -109,7 +109,6 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
     if (!Number.isInteger(event.value) || event.value === 0)
       return refuseStatEvent('bulkValueInvalid');
     const score = teamScoreOf(ownStats(stateIn), event.teamId);
-    if (event.previousValue !== score) return refuseStatEvent('bulkStale');
     if (score + event.value < 0) return refuseStatEvent('bulkValueInvalid');
   }
   return STAT_EVENT_ACCEPTED;
@@ -122,8 +121,19 @@ const FOOTBALL_CONTRIBUTION: ContributionSpec = {
   deriveLine: (_kind, line) => line,
 };
 
+const resolveBulkEntry: NonNullable<SportScoring['resolveBulkEntry']> = (state, submission) => {
+  if (submission.type !== FOOTBALL_BULK_EDIT_EVENT_TYPE) return null;
+  const { target, ...event } = submission;
+  const previousValue = teamScoreOf(ownStats(state), event.teamId);
+  const value = target - previousValue;
+  return value === 0
+    ? { kind: 'unchanged' }
+    : { kind: 'change', event: { ...event, value, previousValue } };
+};
+
 export const FOOTBALL_SCORING: SportScoring = {
   validate,
+  resolveBulkEntry,
   apply: (state, event) => {
     if (isStatCorrection(event)) return addToScore(state, event.teamId, correctionAmount(event));
     if (!isFootballEvent(event))
@@ -185,14 +195,8 @@ function scoreDrafts(values: TeamScoresValues, context: BulkEntryContext): StatE
   const drafts: StatEventDraft[] = [];
   for (const teamId of context.game.teamIds) {
     const entered = values.scores[teamId];
-    const previousValue = teamScoreOf(state, teamId);
-    if (entered === undefined || entered === previousValue) continue;
-    drafts.push({
-      type: FOOTBALL_BULK_EDIT_EVENT_TYPE,
-      teamId,
-      value: entered - previousValue,
-      previousValue,
-    });
+    if (entered === undefined || entered === teamScoreOf(state, teamId)) continue;
+    drafts.push({ type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId, target: entered });
   }
   return drafts;
 }

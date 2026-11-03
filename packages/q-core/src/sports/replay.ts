@@ -29,6 +29,30 @@ export function withGameTeamLines(
   } as GameStats;
 }
 
+const floorLine = (line: object): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(line).map(([field, value]: [string, unknown]) => [
+      field,
+      typeof value === 'number'
+        ? Math.max(0, value)
+        : Array.isArray(value)
+          ? value.map((slot: unknown) => (typeof slot === 'number' ? Math.max(0, slot) : slot))
+          : value,
+    ]),
+  );
+
+const floorLines = (lines: object): Record<string, Record<string, unknown>> =>
+  Object.fromEntries(
+    Object.entries(lines).map(([key, line]: [string, object]) => [key, floorLine(line)]),
+  );
+
+function floorAtZero(state: GameStats): GameStats {
+  return {
+    teamStats: floorLines(state.teamStats),
+    playerStats: floorLines(state.playerStats),
+  } as GameStats;
+}
+
 export function foldStatEvent(
   adapter: AnySportAdapter,
   state: GameStats,
@@ -42,7 +66,7 @@ export function foldStatEvent(
         `the void's target ${event.targetEventId} is not a ${adapter.leagueType} event folded before it`,
       );
     }
-    return adapter.undo(state, target);
+    return floorAtZero(adapter.undo(state, target));
   }
   return adapter.apply(state, event);
 }

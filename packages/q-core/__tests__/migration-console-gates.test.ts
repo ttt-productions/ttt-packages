@@ -125,7 +125,6 @@ describe("each action's page ceiling", () => {
 const run = (dryRun: boolean): MigrationRunRecord => ({
   operationId: 'op-1',
   dryRun,
-  reason: 'Rehearse the cutover.',
   startedByUserId: 'admin-1',
   startedAt: NOW,
   updatedAt: NOW,

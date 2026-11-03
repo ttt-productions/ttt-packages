@@ -15,7 +15,7 @@ export type MigrationStepKind = (typeof MIGRATION_STEP_KIND_KEYS)[number];
 export const MIGRATION_RESULT_KIND_KEYS = ['write', 'verification'] as const;
 export type MigrationResultKind = (typeof MIGRATION_RESULT_KIND_KEYS)[number];
 
-export const MIGRATION_CONTROL_EVIDENCE_KEYS = ['statsOperation', 'statsValidationReport'] as const;
+export const MIGRATION_CONTROL_EVIDENCE_KEYS = ['statsJob', 'statsValidationReport'] as const;
 export type MigrationControlEvidence = (typeof MIGRATION_CONTROL_EVIDENCE_KEYS)[number];
 
 export const MIGRATION_OWNING_STEP_KEYS = [
@@ -66,7 +66,6 @@ export interface ProductControlMigrationStep extends MigrationStepBase {
 export interface OperatorCheckpointMigrationStep extends MigrationStepBase {
   readonly kind: 'operatorCheckpoint';
   readonly instructions: string;
-  readonly evidence: string;
   readonly noReturnBoundary: string | null;
 }
 
@@ -250,7 +249,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [],
     instructions:
       'In production, with V1 stopped, take a managed Firestore export of the whole database to a Cloud Storage bucket and keep it. In a rehearsal, name the production export the dev copy was imported from.',
-    evidence: 'The export operation name and the bucket path it wrote to.',
     noReturnBoundary: null,
   },
 
@@ -396,8 +394,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [],
     instructions:
       'Once the profile verification has passed, confirm every account that should keep its sign-in holds a copied profile, then record this step to let the scheduled sweep delete the sign-in accounts that hold none past their grace window.',
-    evidence:
-      'The passing profile verification this step follows, and the count of profiles it checked.',
     noReturnBoundary: 'The sweep’s first deletion of a sign-in account that holds no profile.',
   },
   copyStep(A.copyHistoricalStats, {
@@ -726,48 +722,17 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
 
   {
     kind: 'productControl',
-    id: A.rebuildLeagueStats,
-    title: 'Rebuild every league’s stats',
+    id: A.rebuildStats,
+    title: 'Rebuild every stat',
     summary:
-      'Every team’s season line and per-membership rows, closed leagues included, rebuilt from the copied games.',
+      'Every team’s season line and per-membership rows, closed leagues included, every account’s lifetime lines and the hall of fame of every sport that keeps one, rebuilt from the copied games and historical baselines.',
     owningStep: 'stat-data-model',
-    dependsOn: SOURCE_VERIFICATIONS_FOR_REBUILD,
+    dependsOn: [...SOURCE_VERIFICATIONS_FOR_REBUILD, A.verifyUserProfiles, A.verifyHistoricalStats],
     orderedAfter: [],
-    callable: 'recalculateAllLeagueStats',
-    destinations: ['leagueTeams/{teamId}'],
-    instructions:
-      'Run “Rebuild every league” from Stats › Fix stats as a real run, not a dry run, and let it reach the end.',
-    evidence: 'statsOperation',
-  },
-  {
-    kind: 'productControl',
-    id: A.rebuildLifetimeStats,
-    title: 'Rebuild every user’s lifetime stats',
-    summary:
-      'Every account’s lifetime lines rebuilt from the copied games and historical baselines.',
-    owningStep: 'stat-data-model',
-    dependsOn: [A.rebuildLeagueStats, A.verifyUserProfiles, A.verifyHistoricalStats],
-    orderedAfter: [],
-    callable: 'recalculateAllUserStats',
-    destinations: ['userProfiles/{userId}'],
-    instructions:
-      'Run “Rebuild every user” from Stats › Fix stats as a real run, and let it reach the end.',
-    evidence: 'statsOperation',
-  },
-  {
-    kind: 'productControl',
-    id: A.rebuildSportHallOfFame,
-    title: 'Rebuild the hall of fame',
-    summary:
-      'The hall of fame of every sport that keeps one, rebuilt from the copied games and baselines.',
-    owningStep: 'stat-data-model',
-    dependsOn: [A.rebuildLifetimeStats],
-    orderedAfter: [],
-    callable: 'recalculateHallOfFame',
-    destinations: ['sportHallOfFame/{sportKey}'],
-    instructions:
-      'Run the hall-of-fame rebuild from Stats › Fix stats once for each sport that keeps a hall of fame, as real runs, and record every run.',
-    evidence: 'statsOperation',
+    callable: 'adminCreateStatsJob',
+    destinations: ['leagueTeams/{teamId}', 'userProfiles/{userId}', 'sportHallOfFame/{sportKey}'],
+    instructions: 'Run “Rebuild › Everything” from Stats › Fix stats and let it finish.',
+    evidence: 'statsJob',
   },
   {
     kind: 'productControl',
@@ -775,7 +740,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     title: 'Validate the stats',
     summary: 'Check stats over everything; it must report no finding.',
     owningStep: 'stat-data-model',
-    dependsOn: [A.rebuildSportHallOfFame],
+    dependsOn: [A.rebuildStats],
     orderedAfter: [],
     callable: 'adminCreateStatsValidationReport',
     destinations: ['statsValidationReports/{reportId}'],
@@ -787,7 +752,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary:
       'Lists each player whose V1 league total differs from the sum of their rebuilt rows in that league. It informs the rehearsal and gates nothing.',
     owningStep: 'stat-data-model',
-    dependsOn: [A.rebuildLeagueStats],
+    dependsOn: [A.rebuildStats],
     informational: true,
   }),
   verifyStep(A.verifySportHallOfFame, {
@@ -795,7 +760,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     summary:
       'Every V1 hall of fame of a sport that keeps one has its rebuilt document, which satisfies its schema and holds an entry for every V1 player with a non-zero total.',
     owningStep: 'stat-data-model',
-    dependsOn: [A.rebuildSportHallOfFame],
+    dependsOn: [A.rebuildStats],
   }),
 
   {
@@ -1105,7 +1070,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [],
     instructions:
       'For each source the picture verification reported, re-upload the image through its control — Reupload badge for an award, the picture managers for a league, the landing page, or a venue. In a rehearsal, record that this is production-only.',
-    evidence: 'Each re-uploaded owner, or that the verification reported none.',
     noReturnBoundary: null,
   },
   {
@@ -1119,8 +1083,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [],
     instructions:
       'Production only, once V2 is live there: revoke the payment service’s secret key and disable its webhook endpoint in its dashboard, then destroy the three secrets V1 binds for it — its secret key, its webhook secret, and APP_URL — in Secret Manager in both Firebase projects. In a rehearsal, record that this is production-only.',
-    evidence:
-      'The payment dashboard showing the key revoked and the endpoint disabled, and `gcloud secrets list` in each project showing none of the three.',
     noReturnBoundary: 'The secret key revocation.',
   },
   {
@@ -1134,7 +1096,6 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     orderedAfter: [A.recordCutoverLive],
     instructions:
       'Run the export script on Application Default Credentials against the production project named explicitly, then revoke the q-sports-prod service-account key in the Google Cloud console and delete serviceAccount.json from the machine. No replacement key is minted. In a rehearsal, record that this is production-only.',
-    evidence: 'The export run on ADC, and the console showing the key revoked.',
     noReturnBoundary: 'The key revocation.',
   },
 ];

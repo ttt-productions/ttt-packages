@@ -124,7 +124,7 @@ an ended session never touches the next session's cache.
 
 ## Callable declarations contract
 
-`createCallables(policy)` (`./react`) binds an app's policy once and returns the four callable
+`createCallables(policy)` (`./react`) binds an app's policy once and returns the three callable
 kinds. Each named callable is declared once in the app — `createCallableHook<TInput, TResult>(functionName,
 { limitedUseAppCheck?: true })`, and likewise for the others — so the function name, its types, and
 its App Check posture live beside each other, and a call site sees only the named hook. Every kind
@@ -142,14 +142,6 @@ retry, surface, and capture:
 - **invoker** (`createCallableInvoker`) — a hook returning a function a package hook drives inside its
   own mutation: the failure is routed and its fault captured once, and the call rejects so that
   mutation settles on it.
-- **resumable** (`createResumableCallableHook(functionName, merge, declaration?)`) — a session action for
-  work the server does a budget at a time: one request calls again with the same input until the
-  answer is `complete` or `MAX_RESUMABLE_CALLS` calls were made, `merge` folding each later answer
-  into the earlier ones. It settles on a `ResumableOutcome` — the merged answer plus
-  `interruption`: a failure on the first call rejects the request; a failure on a later one settles
-  on the merged progress, never `complete`, with that failure as `interruption`, so earlier calls'
-  committed work is never lost. A `merge` that throws rejects the request. A request whose session
-  ended makes no further call.
 
 The policy (`CallablePolicy`) is everything app-specific; the package names no app copy and
 imports no toast or monitoring module (RULE-STD-QUALITY-102):
@@ -171,8 +163,8 @@ imports no toast or monitoring module (RULE-STD-QUALITY-102):
   routing (defaults `true` and `[]`), so the app owns which answers have their own surface and which
   failures toast. Every kind shares the mutation owner's session fence: a failure that lands after
   the session that made the call ended reaches no `onActionError` (so it raises no toast), while
-  `captureFault` still receives it — monitoring is never fenced. An action or resumable call takes
-  its session from its mutation; a reader or invoker takes the session current when its function
+  `captureFault` still receives it — monitoring is never fenced. An action takes its session from
+  its mutation; a reader or invoker takes the session current when its function
   is called.
 
 ## `useFirestorePaginated` — one cache entry per page
@@ -362,7 +354,7 @@ callbacks.
 
 - `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), the search config types, and the `STALE_TIMES` presets. No React, react-query, or Firebase in its runtime graph or its types.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` — React/TanStack runtime: provider, the app-config mechanism (`createAppConfig`), the session-aware mutation owner, the callable factories (`createCallables`, `MAX_RESUMABLE_CALLS`, and their types), Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
+- `./react` — React/TanStack runtime: provider, the app-config mechanism (`createAppConfig`), the session-aware mutation owner, the callable factories (`createCallables` and their types), Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, the `createQueryClient` factory, the cache helpers (including the paginated-entry updaters and `paginatedPageKey`), the infinite-data helpers, the domain-event invalidator mechanism, and every name typed on react-query or `firebase/firestore`: the Firestore hook option types, `PaginatedPage`, `InfinitePage`, `MutationOperation`, `FirestoreSearchOptions`, and `docWithId`.
 - `./react/testing` — the test builders every app's read and mutation doubles are built from (needs `@tanstack/react-query`; no test runner): each read state as a real `QueryObserver` result carrying the `retryState` the read retry state would derive — `answeredRead`, `idleRead` (a disabled read that never fetched), `loadingRead`, `failedRead`, `retryingRead` (a never-answered read retrying: `pending`, its error cleared, the failure held in `retryState`), `fetchingRead` (a background fetch over an answer), `answeredThenFailedRead`, `retryingAnsweredRead`; the infinite reads as real `InfiniteQueryObserver` results — `infiniteRead`, `idleInfiniteRead` (a disabled infinite read that never fetched), `loadingInfiniteRead`, `failedInfiniteRead`, `retryingInfiniteRead` (a never-answered list retrying), `fetchingInfiniteRead` (a refresh over the kept pages), `answeredThenFailedInfiniteRead`, `retryingAnsweredInfiniteRead`, `pausedRetryingAnsweredInfiniteRead` (that refresh retry waiting for the network: `paused`, the failure kept, counted as retrying as the read retry state counts it), `fetchingNextPageRead`, `nextPageFailedRead`, `retryingNextPageRead` (the case's own `select` applied, page params derived from its `getNextPageParam`, which receives TanStack's full arguments — the last page, every page, the previous page param, and every param so far — so a case passes its hook's own function); the paginated reads `useFirestorePaginated` returns — `answeredPaginatedRead`, `loadingPaginatedRead`, `failedPaginatedRead`, `retryingPaginatedRead`, `fetchingPaginatedRead` (a refresh of the page shown, its rows kept), `answeredThenFailedPaginatedRead`, `retryingAnsweredPaginatedRead` (the page's items as `data`, the page and next-page flags the case names, page moves through the case's own `setPage`); and real `MutationObserver` mutations — `idleMutation`, `pendingMutation`, `failedMutation` (awaited: it runs a real mutation that rejects with the case's error), and their session forms `idleSessionMutation`, `pendingSessionMutation`, `failedSessionMutation`, each typed `<TData, TVariables, TOnMutateResult, TError>` so it stands in for a hook whose `onMutate` returns a result or whose error is not an `Error`; `sessionMutationContext(uid)` is the context of a current session that a case's `mutate` handler hands the component's `onSuccess` / `onError` callbacks. The set is every state the real read hooks reach that a page renders apart (RULE-STD-QUALITY-012). Its tests drive a real query, a real infinite query, a real mutation and `useSessionMutation`, and a real paginated read over the in-memory client Firestore, through each state and hold every builder to it. Beside them, `firestoreTestWrapper(db, { queryClient? })` is the one wrapper a hook test renders under: a `QueryClientProvider` around a `FirestoreProvider` for `db`, returning `{ queryClient, Wrapper }`; its default client (`testQueryClient()`) never retries a read and never collects a cached one during a case.
 - `./types` — the Firestore types that carry no Firebase type (`WithId`, `FirestoreBaseOptions`, the mutation and batch option types, the source-state and batch-outcome types); the one entry that exports them.
 

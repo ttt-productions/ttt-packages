@@ -161,10 +161,7 @@ export const PATH_BUILDERS = {
     COLLECTIONS.STATS_VALIDATION_REPORTS,
     reportId,
   ],
-  statsOperation: (operationId: string): [string, string] => [
-    COLLECTIONS.STATS_OPERATIONS,
-    operationId,
-  ],
+  statsJob: (jobId: string): [string, string] => [COLLECTIONS.STATS_JOBS, jobId],
   migrationActionRun: (actionId: string): [string, string] => [
     COLLECTIONS.MIGRATION_ACTION_RUNS,
     actionId,

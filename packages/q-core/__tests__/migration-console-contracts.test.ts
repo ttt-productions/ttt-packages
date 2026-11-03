@@ -16,7 +16,6 @@ import {
   MIGRATION_STEP_BY_ID,
   migrationActionCallableName,
 } from '../src/migration-console/manifest.js';
-import { MAX_REPAIR_REASON_LENGTH } from '../src/constants/business.js';
 import { TELEMETRY_CONTENT_POLICY } from '../src/constants/telemetry.js';
 import { AuditEventSchema } from '../src/doc-schemas/audit-event.js';
 import {
@@ -32,10 +31,8 @@ import {
   RunMigrationActionInputSchema,
 } from '../src/schemas/migration-console.js';
 
-const REASON = 'Rehearse the cutover on a production copy.';
 const page = (overrides: Record<string, unknown> = {}) => ({
   operationId: 'op-1',
-  reason: REASON,
   dryRun: false,
   pageSize: 100,
   ...overrides,
@@ -102,10 +99,13 @@ describe('the steps that read another step’s copy', () => {
 });
 
 describe('RunMigrationActionInputSchema — one page of an action', () => {
-  it('takes an operation id, a reason, a preview switch, and a bounded page size', () => {
+  it('takes an operation id, a preview switch, and a bounded page size, and no reason', () => {
     expect(RunMigrationActionInputSchema.safeParse(page()).success).toBe(true);
     expect(RunMigrationActionInputSchema.safeParse(page({ expectEmptySource: true })).success).toBe(
       true,
+    );
+    expect(RunMigrationActionInputSchema.safeParse(page({ reason: 'Rehearse.' })).success).toBe(
+      false,
     );
   });
 
@@ -118,15 +118,6 @@ describe('RunMigrationActionInputSchema — one page of an action', () => {
   it('takes no destination state: the console resolves it from its own cutover marker', () => {
     expect(
       RunMigrationActionInputSchema.safeParse(page({ destinationState: 'preCutover' })).success,
-    ).toBe(false);
-  });
-
-  it('requires a reason with text in it, within the repair-reason bound', () => {
-    expect(RunMigrationActionInputSchema.safeParse(page({ reason: '   ' })).success).toBe(false);
-    expect(
-      RunMigrationActionInputSchema.safeParse(
-        page({ reason: 'x'.repeat(MAX_REPAIR_REASON_LENGTH + 1) }),
-      ).success,
     ).toBe(false);
   });
 
@@ -146,28 +137,30 @@ describe('RunMigrationActionInputSchema — one page of an action', () => {
 });
 
 describe('the record inputs', () => {
-  it('a control run names its action and its operations, with a reason', () => {
-    expect(
+  it('a control run names its action only: the console finds the run it records itself', () => {
+    const control = (input: object) =>
       UpdateMigrationActionRunControlInputSchema.safeParse({
-        actionId: MIGRATION_ACTION_IDS.rebuildLeagueStats,
-        operationIds: ['rebuild-1'],
-        reason: REASON,
-      }).success,
-    ).toBe(true);
+        actionId: MIGRATION_ACTION_IDS.rebuildStats,
+        ...input,
+      }).success;
+    expect(control({})).toBe(true);
+    expect(control({ statsJobId: 'admin-1_00000000-0000-4000-8000-000000000000' })).toBe(false);
+    expect(control({ operationIds: ['rebuild-1'] })).toBe(false);
+    expect(control({ reason: 'Rehearse.' })).toBe(false);
   });
 
-  it("a checkpoint carries the operator's evidence, never blank", () => {
-    const evidence = (value: string) =>
+  it('a checkpoint names its action and takes no typed evidence', () => {
+    const checkpoint = (input: object) =>
       UpdateMigrationActionRunCheckpointInputSchema.safeParse({
         actionId: MIGRATION_ACTION_IDS.checkpointV1FirestoreExport,
-        evidence: value,
-      });
-    expect(evidence('projects/q-sports-prod/operations/export-1').success).toBe(true);
-    expect(evidence('  ').success).toBe(false);
+        ...input,
+      }).success;
+    expect(checkpoint({})).toBe(true);
+    expect(checkpoint({ evidence: 'projects/q-sports-prod/operations/export-1' })).toBe(false);
   });
 
   it('the line resolution may be previewed', () => {
-    const line = { gameId: 'g1', userId: 'u1', teamId: 't1', reason: REASON };
+    const line = { gameId: 'g1', userId: 'u1', teamId: 't1' };
     expect(
       AdminCreateGameRosterPlayerInputSchema.safeParse({ ...line, dryRun: true }).success,
     ).toBe(true);
@@ -215,7 +208,6 @@ describe("the console's records", () => {
     const run = {
       operationId: 'op-1',
       dryRun: false,
-      reason: REASON,
       startedByUserId: 'uid-admin',
       startedAt: 1,
       updatedAt: 2,

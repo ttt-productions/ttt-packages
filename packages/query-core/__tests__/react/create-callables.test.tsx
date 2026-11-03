@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpsCallable, type Functions, type HttpsCallableResult } from 'firebase/functions';
 import {
   createCallables,
-  MAX_RESUMABLE_CALLS,
   type CallablePolicy,
   type CallableErrorRouting,
 } from '../../src/react/callables/create-callables.js';
@@ -493,117 +492,6 @@ describe('createCallables — invoker', () => {
   });
 });
 
-describe('createCallables — resumable', () => {
-  beforeEach(() => vi.mocked(httpsCallable).mockReset());
-
-  type Progress = { complete: boolean; removed: number };
-  const sumRemoved = (earlier: Progress, later: Progress): Progress => ({
-    complete: later.complete,
-    removed: earlier.removed + later.removed,
-  });
-
-  function renderResumable(policy = makePolicy()) {
-    const useResumable = createCallables(policy).createResumableCallableHook<
-      { id: string },
-      Progress
-    >('removeAll', sumRemoved);
-    return renderHook(() => useResumable(), { wrapper: wrapperFor(retryingClient()) });
-  }
-
-  it('calls again with the same input until the answer is complete, merging every answer', async () => {
-    const invoke = mockCallable(
-      { complete: false, removed: 2 },
-      { complete: false, removed: 3 },
-      { complete: true, removed: 1 },
-      { complete: true, removed: 100 },
-    );
-    const { result } = renderResumable();
-
-    let outcome: unknown;
-    await act(async () => {
-      outcome = await result.current.mutateAsync({ id: 'g' });
-    });
-
-    expect(invoke).toHaveBeenCalledTimes(3);
-    for (const call of invoke.mock.calls) expect(call[0]).toEqual({ id: 'g' });
-    expect(outcome).toEqual({ complete: true, removed: 6, interruption: null });
-  });
-
-  it('stops at the call cap and settles on the merged progress, not complete', async () => {
-    const invoke = mockCallable(
-      ...Array.from({ length: MAX_RESUMABLE_CALLS + 2 }, () => ({ complete: false, removed: 1 })),
-    );
-    const { result } = renderResumable();
-
-    let outcome: unknown;
-    await act(async () => {
-      outcome = await result.current.mutateAsync({ id: 'g' });
-    });
-
-    expect(invoke).toHaveBeenCalledTimes(MAX_RESUMABLE_CALLS);
-    expect(outcome).toEqual({ complete: false, removed: MAX_RESUMABLE_CALLS, interruption: null });
-  });
-
-  it('a later call failing keeps the earlier work and settles on it beside the failure', async () => {
-    const error = fault('functions/unavailable');
-    const invoke = mockCallable(
-      { complete: false, removed: 2 },
-      { complete: false, removed: 3 },
-      throwing(error),
-      { complete: true, removed: 100 },
-    );
-    const policy = makePolicy();
-    const { result } = renderResumable(policy);
-
-    let outcome: unknown;
-    await act(async () => {
-      outcome = await result.current.mutateAsync({ id: 'g' });
-    });
-
-    expect(invoke).toHaveBeenCalledTimes(3);
-    expect(outcome).toEqual({ complete: false, removed: 5, interruption: error });
-    expect(policy.onActionError).toHaveBeenCalledTimes(1);
-    expect(policy.captureFault).toHaveBeenCalledTimes(1);
-  });
-
-  it('a merge that throws rejects the request instead of settling as an interruption', async () => {
-    const mergeFault = new Error('merge broke');
-    const invoke = mockCallable({ complete: false, removed: 2 }, { complete: true, removed: 3 });
-    const policy = makePolicy();
-    const useResumable = createCallables(policy).createResumableCallableHook<
-      { id: string },
-      Progress
-    >('removeAll', () => {
-      throw mergeFault;
-    });
-    const { result } = renderHook(() => useResumable(), { wrapper: wrapperFor(retryingClient()) });
-
-    await act(async () => {
-      await expect(result.current.mutateAsync({ id: 'g' })).rejects.toBe(mergeFault);
-    });
-
-    expect(invoke).toHaveBeenCalledTimes(2);
-    expect(policy.onActionError).not.toHaveBeenCalled();
-    expect(policy.captureFault).not.toHaveBeenCalled();
-  });
-
-  it('a first call failing rejects the request and is not retried', async () => {
-    const error = fault();
-    const invoke = mockCallable(throwing(error), { complete: true, removed: 1 });
-    const policy = makePolicy();
-    const { result } = renderResumable(policy);
-
-    await act(async () => {
-      await expect(result.current.mutateAsync({ id: 'g' })).rejects.toBe(error);
-    });
-    await waitFor(() => expect(result.current.isError).toBe(true));
-
-    expect(invoke).toHaveBeenCalledTimes(1);
-    expect(policy.captureFault).toHaveBeenCalledTimes(1);
-    expect(policy.onActionError).toHaveBeenCalledTimes(1);
-  });
-});
-
 function deferredCallable() {
   let settle!: (outcome: { data?: unknown; error?: Error }) => void;
   const answer = new Promise<{ data?: unknown; error?: Error }>((resolve) => {
@@ -752,53 +640,16 @@ describe('createCallables — an answer that lands after the session ended', () 
     expect(policy.onActionError).not.toHaveBeenCalled();
     expect(policy.captureFault).toHaveBeenCalledTimes(1);
   });
-
-  it('a resumable request makes no further call once the session ended', async () => {
-    const answers: Array<(value: HttpsCallableResult) => void> = [];
-    const invoke = vi.fn(
-      () =>
-        new Promise<HttpsCallableResult>((resolve) => {
-          answers.push(resolve);
-        }),
-    );
-    vi.mocked(httpsCallable).mockReturnValue(Object.assign(invoke, { stream: vi.fn() }));
-    const useResumable = createCallables(makePolicy()).createResumableCallableHook<
-      void,
-      { complete: boolean; done: number }
-    >('sweep', (earlier, later) => ({ ...later, done: earlier.done + later.done }));
-    const session = { uid: 'member-a' as string | null };
-    const { result, rerender } = renderHook(() => useResumable(), {
-      wrapper: sessionWrapper(retryingClient(), session),
-    });
-
-    let request!: Promise<unknown>;
-    act(() => {
-      request = result.current.mutateAsync();
-    });
-    await waitFor(() => expect(answers).toHaveLength(1));
-    session.uid = null;
-    rerender();
-    await act(async () => {
-      answers[0]({ data: { complete: false, done: 1 } });
-      await expect(request).rejects.toBeInstanceOf(MutationSessionEndedError);
-    });
-
-    expect(invoke).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe('createCallables — callbacks receive the session that started the action', () => {
   beforeEach(() => vi.mocked(httpsCallable).mockReset());
 
-  it("hands an action's and a resumable's callbacks the session that started them", async () => {
-    mockCallable({ ok: true }, { complete: true });
+  it("hands an action's callbacks the session that started it", async () => {
+    mockCallable({ ok: true });
     const seen: string[] = [];
     const callables = createCallables(makePolicy());
     const useAction = callables.createCallableHook<void, { ok: boolean }>('doThing');
-    const useResumable = callables.createResumableCallableHook<void, { complete: boolean }>(
-      'doMany',
-      (_earlier, later) => later,
-    );
     const session = { uid: 'member-a' as string | null };
     const { result } = renderHook(
       () => ({
@@ -807,20 +658,14 @@ describe('createCallables — callbacks receive the session that started the act
             seen.push(`action:${context.session.uid}:${context.session.isCurrent()}`);
           },
         }),
-        resumable: useResumable({
-          onSettled: (_data, _error, _input, _result, context) => {
-            seen.push(`resumable:${context.session.uid}:${context.session.isCurrent()}`);
-          },
-        }),
       }),
       { wrapper: sessionWrapper(retryingClient(), session) },
     );
 
     await act(async () => {
       await result.current.action.mutateAsync();
-      await result.current.resumable.mutateAsync();
     });
 
-    expect(seen).toEqual(['action:member-a:true', 'resumable:member-a:true']);
+    expect(seen).toEqual(['action:member-a:true']);
   });
 });

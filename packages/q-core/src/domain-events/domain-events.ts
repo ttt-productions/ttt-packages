@@ -4,7 +4,6 @@ import {
   gameIdSchema,
   hardwareLoanContractIdSchema,
   leagueIdSchema,
-  sportKeySchema,
   statsValidationReportIdSchema,
   teamIdSchema,
   userIdSchema,
@@ -186,22 +185,22 @@ export const SportGameDeletedEventSchema = z.object({
 
 export const SportLeagueStatsRecalculatedEventSchema = z.object({
   type: z.literal('sportLeague.statsRecalculated'),
-  ids: z.object({ leagueId: leagueIdSchema.optional() }),
+  ids: z.object({ leagueId: leagueIdSchema }),
 });
 
 export const UserProfileStatsRecalculatedEventSchema = z.object({
   type: z.literal('userProfile.statsRecalculated'),
-  ids: z.object({ userId: userIdSchema.optional() }),
+  ids: z.object({ userId: userIdSchema }),
 });
 
-export const SportHallOfFameRecalculatedEventSchema = z.object({
-  type: z.literal('sportHallOfFame.recalculated'),
-  ids: z.object({ sportKey: sportKeySchema.optional() }),
-});
-
-export const SportGameStatsCorrectedEventSchema = z.object({
-  type: z.literal('sportGame.statsCorrected'),
+export const SportGameStatsRecalculatedEventSchema = z.object({
+  type: z.literal('sportGame.statsRecalculated'),
   ids: z.object({ leagueId: leagueIdSchema, gameId: gameIdSchema }),
+});
+
+export const StatsJobCreatedEventSchema = z.object({
+  type: z.literal('statsJob.created'),
+  ids: z.object({ jobId: z.string().min(1) }),
 });
 
 export const StatsValidationReportCreatedEventSchema = z.object({
@@ -436,8 +435,8 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   SportGameDeletedEventSchema,
   SportLeagueStatsRecalculatedEventSchema,
   UserProfileStatsRecalculatedEventSchema,
-  SportHallOfFameRecalculatedEventSchema,
-  SportGameStatsCorrectedEventSchema,
+  SportGameStatsRecalculatedEventSchema,
+  StatsJobCreatedEventSchema,
   StatsValidationReportCreatedEventSchema,
   StatsValidationReportDeletedEventSchema,
   HistoricalStatUpdatedEventSchema,

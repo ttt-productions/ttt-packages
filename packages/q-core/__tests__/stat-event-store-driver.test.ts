@@ -203,7 +203,6 @@ describe('decideStatEventBatch — each event id applies exactly once (RULE-QS-S
       value: 1,
       correctionSource: 'admin',
       operationId: 'op-1',
-      reason: 'a missed basket',
     });
 
     for (const target of [
@@ -228,7 +227,6 @@ describe('decideStatEventBatch — each event id applies exactly once (RULE-QS-S
       value: 1,
       correctionSource: 'admin',
       operationId: 'op-1',
-      reason: 'a missed basket',
     });
 
     expect(decideStatEventBatch(batchOf([correction]))).toMatchObject({
@@ -244,24 +242,38 @@ describe('decideStatEventBatch — each event id applies exactly once (RULE-QS-S
     expect(statEventIdsToRead([shot, undo(shotId)])).toEqual([shotId, buildStatVoidId(shotId)]);
   });
 
-  it('refuses a void that would leave a stat below zero because a later edit already lowered it', () => {
+  it('records a void that would take a stat below zero, which stays at 0, and a replay agrees', () => {
     const rebound = tap(BASKETBALL_REBOUND_EVENT_TYPE);
-    const lowered = tap(BASKETBALL_BULK_EDIT_EVENT_TYPE, {
-      stat: 'rebounds',
-      value: -1,
-      previousValue: 1,
-    });
+    const lowered = tap(BASKETBALL_BULK_EDIT_EVENT_TYPE, { stat: 'rebounds', target: 0 });
     const first = decideStatEventBatch(batchOf([rebound, lowered]));
     expectRollupIsReplay(first);
+    const stored = asStored(first);
 
-    expect(
-      decideStatEventBatch(
-        batchOf([undo((rebound as { eventId: string }).eventId)], asStored(first)),
-      ),
-    ).toMatchObject({
-      ok: false,
-      code: 'undoBelowZero',
+    const second = decideStatEventBatch(
+      batchOf([undo((rebound as { eventId: string }).eventId)], stored),
+    );
+    expect(second).toMatchObject({ ok: true });
+    if (!second.ok) return;
+    const shooter = buildGameRosterPlayerId(HOME, SHOOTER);
+    expect((second.stats.playerStats[shooter] as Record<string, number>).rebounds).toBe(0);
+    expectRollupIsReplay(second, stored);
+  });
+
+  it('answers a re-sent bulk save as already recorded, and its id with another number as a conflict', () => {
+    const edit = tap(BASKETBALL_BULK_EDIT_EVENT_TYPE, { stat: 'rebounds', target: 3 });
+    const first = decideStatEventBatch(batchOf([edit]));
+    const stored = asStored(first);
+    const scoredSince = tap(BASKETBALL_REBOUND_EVENT_TYPE);
+    const later = asStored(decideStatEventBatch(batchOf([scoredSince], stored)));
+
+    expect(decideStatEventBatch(batchOf([edit], [...stored, ...later]))).toMatchObject({
+      ok: true,
+      accepted: [],
+      results: [{ outcome: 'alreadyRecorded', sequence: 1 }],
     });
+    expect(
+      decideStatEventBatch(batchOf([{ ...edit, target: 4 } as StatEventSubmission], stored)),
+    ).toMatchObject({ ok: false, code: 'eventIdConflict' });
   });
 
   it("seeds a missing team line from the empty stats, so a team's first stat is never refused as not in the game", () => {
@@ -320,17 +332,18 @@ describe('the scoring write input', () => {
     }
   });
 
-  it('requires the value the form showed on a bulk edit', () => {
-    const edit = { ...event(), type: BASKETBALL_BULK_EDIT_EVENT_TYPE, stat: 'points', value: 2 };
-    expect(CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: [edit] }).success).toBe(
-      false,
-    );
+  it('takes the number typed on a bulk edit, never a change or the value the form showed', () => {
+    const edit = { ...event(), type: BASKETBALL_BULK_EDIT_EVENT_TYPE, stat: 'points' };
     expect(
-      CreateGameStatEventInputSchema.safeParse({
-        gameId: 'g1',
-        events: [{ ...edit, previousValue: 0 }],
-      }).success,
+      CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: [{ ...edit, target: 2 }] })
+        .success,
     ).toBe(true);
+    for (const wrong of [{ value: 2 }, { target: 2, previousValue: 0 }, { target: -1 }]) {
+      expect(
+        CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: [{ ...edit, ...wrong }] })
+          .success,
+      ).toBe(false);
+    }
   });
 
   it('takes only a sport event id from its caller — one that names a single event document', () => {

@@ -88,35 +88,47 @@ function sameFields(
   );
 }
 
+function isSameBulkEntry(
+  submission: Readonly<Record<string, unknown>>,
+  held: Readonly<Record<string, unknown>>,
+): boolean {
+  const { target, ...submitted } = submission;
+  const { value, previousValue, ...recorded } = held;
+  return (
+    typeof target === 'number' &&
+    typeof value === 'number' &&
+    typeof previousValue === 'number' &&
+    previousValue + value === target &&
+    sameFields(submitted, recorded)
+  );
+}
+
 function isSameEvent(
   submission: StatEventSubmission,
   held: Readonly<Record<string, unknown>>,
 ): boolean {
   if (isStatVoid(submission))
     return isStatVoid(held as StatEventBody) && held.targetEventId === submission.targetEventId;
-  return sameFields(submission as Readonly<Record<string, unknown>>, held);
-}
-
-function holdsNegativeValue(stats: GameStats): boolean {
-  const lines = [...Object.values(stats.teamStats), ...Object.values(stats.playerStats)] as Record<
-    string,
-    unknown
-  >[];
-  return lines.some((line) =>
-    Object.values(line).some((value) =>
-      Array.isArray(value)
-        ? value.some((slot) => typeof slot === 'number' && slot < 0)
-        : typeof value === 'number' && value < 0,
-    ),
-  );
+  const fields: Readonly<Record<string, unknown>> = submission;
+  return 'target' in fields ? isSameBulkEntry(fields, held) : sameFields(fields, held);
 }
 
 function acceptedFields(
-  submission: StatEventSubmission,
+  event: StatEventBody,
   eventId: string,
   sequence: number,
 ): Record<string, unknown> {
-  return { ...callerFields(submission as Readonly<Record<string, unknown>>), eventId, sequence };
+  return { ...callerFields(event), eventId, sequence };
+}
+
+export function resolveStatSubmission(
+  adapter: AnySportAdapter,
+  state: GameStats,
+  submission: StatEventSubmission,
+): StatEventBody | null {
+  const bulkEntry = adapter.resolveBulkEntry?.(state, submission) ?? null;
+  if (bulkEntry === null) return submission as StatEventBody;
+  return bulkEntry.kind === 'change' ? bulkEntry.event : null;
 }
 
 export function decideStatEventBatch(batch: StatEventBatch): StatEventBatchDecision {
@@ -155,23 +167,29 @@ export function decideStatEventBatch(batch: StatEventBatch): StatEventBatchDecis
       continue;
     }
 
+    let event: StatEventBody;
     if (isStatVoid(submission)) {
       const target =
         placed.get(submission.targetEventId)?.event ?? storedEvent(submission.targetEventId);
       if (!isSportStatEventIn(adapter.eventTypes, target as StatEventBody | undefined)) {
         return refuse('voidTargetNotSportEvent');
       }
-      const next = foldStatEvent(adapter, stats, submission, () => target as StatEventBody);
-      if (holdsNegativeValue(next)) return refuse('undoBelowZero');
-      stats = next;
+      stats = foldStatEvent(adapter, stats, submission, () => target as StatEventBody);
+      event = submission;
     } else {
-      const verdict = adapter.validate(stats, submission, roster);
+      const resolved = resolveStatSubmission(adapter, stats, submission);
+      if (resolved === null) {
+        results.push({ eventId, outcome: 'unchanged', sequence });
+        continue;
+      }
+      const verdict = adapter.validate(stats, resolved, roster);
       if (!verdict.ok) return refuse(verdict.code);
-      stats = foldStatEvent(adapter, stats, submission, () => undefined);
+      stats = foldStatEvent(adapter, stats, resolved, () => undefined);
+      event = resolved;
     }
 
     sequence += 1;
-    const fields = acceptedFields(submission, eventId, sequence);
+    const fields = acceptedFields(event, eventId, sequence);
     accepted.push({ eventId, sequence, fields });
     placed.set(eventId, { event: fields, sequence });
     results.push({ eventId, outcome: 'recorded', sequence });

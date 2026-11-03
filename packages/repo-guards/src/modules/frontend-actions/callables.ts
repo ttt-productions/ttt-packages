@@ -542,7 +542,7 @@ export const callableReadGuard: GenericGuardDefinition<CallableReadFacts> = {
         description:
           `A React Query read that reaches a callable lives in ${facts.hooksRoot} and calls a hook declared with ` +
           `\`${reader}\`: a reader shows no toast and captures nothing, because the read's failure renders through ` +
-          `${facts.readFailureSurface.component} and the query layer captures it once. An action, a resumable action, ` +
+          `${facts.readFailureSurface.component} and the query layer captures it once. An action ` +
           `or an invoker inside a read toasts and captures that failure a second time — declare the callable with ` +
           `\`${reader}\` instead. Every ${facts.readFailureSurface.component} that renders a callable-backed read's ` +
           `failure is handed that read's error through \`${facts.readFailureSurface.errorProp}\`, so an answer the ` +
@@ -690,7 +690,7 @@ export const doubleSurfaceGuard: GenericGuardDefinition<DoubleSurfaceFacts> = {
       {
         title: 'one callable rejection surfaces exactly once',
         description:
-          'A hook declared as an action, a resumable action, or an invoker shows the shared error toast for every ' +
+          'A hook declared as an action or an invoker shows the shared error toast for every ' +
           `rejection unless its call site passes \`{ ${TOAST_OPTION}: false }\`, and so does an app hook built over one. ` +
           `While that toast is on, nothing toasts the same rejection again — not an onError handed to the hook or to ` +
           'its mutate call, not a catch around it, and not the onError of a mutation that calls it. Fix one of: pass ' +
@@ -706,8 +706,7 @@ export const doubleSurfaceGuard: GenericGuardDefinition<DoubleSurfaceFacts> = {
           if (!toasting.size && !findings.length) {
             findings.push({
               file: '(declarations)',
-              detail:
-                'no action, resumable action, or invoker is declared, so the check sees no toasting hook',
+              detail: 'no action or invoker is declared, so the check sees no toasting hook',
             });
           }
           const modules = new Set(facts.declarations.modules);

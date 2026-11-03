@@ -90,7 +90,7 @@ names, and exceptions arrive as its facts.
 ### 5. A callable is declared through the shared callable factories
 **Rules:** RULE-STD-ENG-002, RULE-STD-ENG-003, RULE-STD-FRONTEND-105. **Scope:** `packages/*/src`.
 `query-core/react`'s `createCallables` is the one factory set for a callable hook (action, reader,
-invoker, resumable). It builds on query-core's session-aware mutation owner, `useSessionMutation`. The
+invoker). It builds on query-core's session-aware mutation owner, `useSessionMutation`. The
 SDK's callable primitives stay inside firebase-helpers, behind `callCallable`.
 ```bash
 rg -n "^[^/*]*\bhttpsCallable(FromURL)?\(" packages/*/src -g '*.ts' -g '*.tsx' | rg -v "packages/firebase-helpers/"

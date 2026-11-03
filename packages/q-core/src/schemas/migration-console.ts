@@ -5,7 +5,6 @@ import {
   MigrationFindingSchema,
   MigrationRunRecordSchema,
   migrationActionIdSchema,
-  migrationEvidenceSchema,
   migrationOperationIdSchema,
 } from '../doc-schemas/migration-console.js';
 import {
@@ -13,19 +12,11 @@ import {
   MIGRATION_RECORD_OUTCOME_KEYS,
 } from '../migration-console/run-state.js';
 import type { ExecutableMigrationStep } from '../migration-console/manifest.js';
-import {
-  countSchema,
-  epochMsSchema,
-  repairReasonSchema,
-  statsOperationIdSchema,
-} from '../doc-schemas/atoms.js';
-
-export const MAX_RECORDED_OPERATION_IDS = 10;
+import { countSchema, epochMsSchema } from '../doc-schemas/atoms.js';
 
 export const RunMigrationActionInputSchema = z
   .object({
     operationId: migrationOperationIdSchema,
-    reason: repairReasonSchema,
     dryRun: z.boolean(),
     pageSize: z.number().int().min(1).max(MAX_MIGRATION_PAGE_SIZE),
     expectEmptySource: z.boolean().optional(),
@@ -86,8 +77,6 @@ export type GetMigrationConsoleResult = z.infer<typeof GetMigrationConsoleResult
 export const UpdateMigrationActionRunControlInputSchema = z
   .object({
     actionId: migrationActionIdSchema,
-    operationIds: z.array(statsOperationIdSchema).max(MAX_RECORDED_OPERATION_IDS),
-    reason: repairReasonSchema,
   })
   .strict();
 export type UpdateMigrationActionRunControlInput = z.infer<
@@ -97,16 +86,13 @@ export type UpdateMigrationActionRunControlInput = z.infer<
 export const UpdateMigrationActionRunCheckpointInputSchema = z
   .object({
     actionId: migrationActionIdSchema,
-    evidence: migrationEvidenceSchema,
   })
   .strict();
 export type UpdateMigrationActionRunCheckpointInput = z.infer<
   typeof UpdateMigrationActionRunCheckpointInputSchema
 >;
 
-export const UpdateMigrationConsoleCutoverInputSchema = z
-  .object({ reason: repairReasonSchema })
-  .strict();
+export const UpdateMigrationConsoleCutoverInputSchema = z.object({}).strict();
 export type UpdateMigrationConsoleCutoverInput = z.infer<
   typeof UpdateMigrationConsoleCutoverInputSchema
 >;

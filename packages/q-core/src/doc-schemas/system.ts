@@ -16,7 +16,6 @@ import {
   leagueIdSchema,
   statsBeaconActionSchema,
   statsDiscrepancyKindSchema,
-  statsOperationIdSchema,
   teamIdSchema,
   userIdSchema,
 } from './atoms.js';
@@ -96,7 +95,7 @@ export type StatsValidationSummary = z.infer<typeof StatsValidationSummarySchema
 
 export const StatsValidationReportSchema = z.object({
   reportId: z.string().min(1),
-  operationId: statsOperationIdSchema,
+  jobId: z.string().min(1).optional(),
   ranAt: epochMsSchema,
   ranByUserId: userIdSchema,
   scope: StatsValidationScopeSchema,

@@ -37,12 +37,6 @@ export const REPAIR_REASON_INPUT = defineInputFormat({
   min: MIN_REPAIR_REASON_LENGTH,
   max: MAX_REPAIR_REASON_LENGTH,
 });
-export const MIGRATION_EVIDENCE_INPUT = defineInputFormat({
-  label: 'Evidence',
-  format: 'none',
-  min: MIN_REPAIR_REASON_LENGTH,
-  max: MAX_REPAIR_REASON_LENGTH,
-});
 export const TEAM_JOIN_REQUEST_MESSAGE_INPUT = defineInputFormat({
   label: 'Message to the captain',
   format: 'none',

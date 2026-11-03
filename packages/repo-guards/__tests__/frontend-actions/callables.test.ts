@@ -200,16 +200,15 @@ const declarations: CallableDeclarationFacts = {
     action: 'defineAction',
     reader: 'defineReader',
     invoker: 'defineInvoker',
-    resumable: 'defineResumable',
   },
 };
 const DECLARATIONS = lines(
-  'const { defineAction, defineReader, defineInvoker, defineResumable } = makeRemote(POLICY);',
+  'const { defineAction, defineReader, defineInvoker } = makeRemote(POLICY);',
   'export const useGetThing = defineReader<In, Out>("getThing");',
   'export const useSaveThing =',
   '  defineAction<In, Out>("saveThing", { limitedUseAppCheck: true });',
   "export const useArchiveThing = defineInvoker<In, Out>('archiveThing');",
-  'export const usePurgeThings = defineResumable<In, Out>("purgeThings", mergePages);',
+  'export const usePurgeThings = defineAction<In, Out>("purgeThings");',
 );
 
 describe("a callable's name is written only in its declaration", () => {
@@ -288,7 +287,7 @@ describe("a callable's name is written only in its declaration", () => {
     );
     expect(await run({ 'src/lib/remote.ts': module })).toEqual([
       'src/lib/remote.ts:7 a defineAction call that is not an exported named hook (`export const useX = defineAction(…)`)',
-      'src/lib/remote.ts:8 useOther is built by none of the declared factories (defineAction, defineReader, defineInvoker, defineResumable)',
+      'src/lib/remote.ts:8 useOther is built by none of the declared factories (defineAction, defineReader, defineInvoker)',
       'src/lib/remote.ts:9 useByConstant names its callable through an expression this check cannot read: write the name as a string literal',
       "src/lib/remote.ts:10 useOpaque's declaration options are not an object literal, so its App Check posture cannot be read",
       'src/lib/remote.ts:11 useSaveAgain declares saveThing a second time (first as useSaveThing)',
@@ -312,13 +311,13 @@ describe("a callable's name is written only in its declaration", () => {
       callableNameGuard.factProblems({
         declarations: {
           modules: [],
-          factories: { action: 'a', reader: 'a', invoker: 'i', resumable: '' },
+          factories: { action: 'a', reader: 'a', invoker: '' },
         },
         allowlist: [{ path: 'x.ts', why: ' ' }],
       }),
     ).toEqual([
       'declarations.modules is empty',
-      'declarations.factories.resumable is missing',
+      'declarations.factories.invoker is missing',
       'declarations.factories names one factory for two kinds',
       'allowlist entry x.ts carries no why',
     ]);
@@ -408,7 +407,7 @@ describe('callable-backed reads', () => {
     ]);
   });
 
-  it('flags a read through an invoker and through a resumable action, directly and through a helper', async () => {
+  it('flags a read through an invoker and through an action, directly and through a helper', async () => {
     expect(
       await hook(
         lines(
@@ -425,9 +424,9 @@ describe('callable-backed reads', () => {
       await hook(
         lines(
           'export function useThing() {',
-          '  const purge = usePurgeThings();',
+          '  const save = useSaveThing();',
           '  const load = async () => {',
-          '    const res = await purge.mutateAsync({});',
+          '    const res = await save.mutateAsync({});',
           '    return res.removed;',
           '  };',
           '  return useQuery({ queryKey: k(), queryFn: load });',
@@ -435,7 +434,7 @@ describe('callable-backed reads', () => {
         ),
       ),
     ).toEqual([
-      'src/hooks/use-thing.ts:7 useThing (purge) reads through usePurgeThings, a declared resumable: declare the callable as a reader',
+      'src/hooks/use-thing.ts:7 useThing (save) reads through useSaveThing, a declared action: declare the callable as a reader',
     ]);
   });
 

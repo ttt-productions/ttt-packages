@@ -16,7 +16,7 @@ import { GameRosterPlayerSchema, SportGameSchema } from './sport-game.js';
 import { SportHallOfFameSchema } from './aggregate-stats.js';
 import { GameStatHistoryRecordSchema } from './game-stat-history.js';
 import { GameStatEventSchema } from './game-stats.js';
-import { StatsOperationSchema } from './stats-operation.js';
+import { StatsJobSchema } from './stats-job.js';
 import { LeagueTeamContactSchema, LeagueTeamSchema } from './league-team.js';
 import { MigrationActionRunSchema, MigrationConsoleSchema } from './migration-console.js';
 import { AuditEventSchema } from './audit-event.js';
@@ -82,7 +82,7 @@ export const COLLECTION_SCHEMAS = {
   'awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}': AwardGroupGrantPersonSchema,
   'sportHallOfFame/{sportKey}': SportHallOfFameSchema,
   'statsValidationReports/{reportId}': StatsValidationReportSchema,
-  'statsOperations/{operationId}': StatsOperationSchema,
+  'statsJobs/{jobId}': StatsJobSchema,
 
   'galleryPictures/{pictureId}': GalleryPictureSchema,
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
@@ -118,6 +118,7 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'adminNotificationHistory/{historyId}': 'archiveOccurrenceId',
   'notificationDeliveries/{deliveryId}': 'deliveryId',
   'notificationArchiveAllJobs/{jobId}': 'jobId',
+  'statsJobs/{jobId}': 'jobId',
   'awardGroupGrants/{grantId}': 'grantId',
   'awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}': 'userId',
   'migrationActionRuns/{actionId}': 'actionId',

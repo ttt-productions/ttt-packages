@@ -24,6 +24,7 @@ import {
 import type { StatEventRecorderField, StatEventSnapshotField } from '../types/stats.js';
 import {
   countSchema,
+  enteredStatCountSchema,
   gameIdSchema,
   gameRosterPlayerIdSchema,
   statEventIdSchema,
@@ -62,14 +63,18 @@ export const StatEventSubmissionSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...callerShape(BasketballPlayerTallyEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(BasketballTimeoutEventSchema.shape), ...sportEventId }),
   z.strictObject({
-    ...callerShape(BasketballBulkEditEventSchema.shape),
+    ...callerShape(BasketballBulkEditEventSchema.shape, ['value', 'previousValue']),
     ...sportEventId,
-    previousValue: countSchema,
+    target: enteredStatCountSchema,
   }),
   z.strictObject({ ...callerShape(CurlingRoundScoreEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(CurlingBlankEndEventSchema.shape), ...sportEventId }),
   z.strictObject({ ...callerShape(FootballScoreEventSchema.shape), ...sportEventId }),
-  z.strictObject({ ...callerShape(FootballBulkEditEventSchema.shape), ...sportEventId }),
+  z.strictObject({
+    ...callerShape(FootballBulkEditEventSchema.shape, ['value', 'previousValue']),
+    ...sportEventId,
+    target: enteredStatCountSchema,
+  }),
   z.strictObject({
     ...callerShape(StatVoidEventSchema.shape, ['eventId']),
     targetEventId: sportStatEventIdSchema,
@@ -90,7 +95,7 @@ export const RecordedStatEventSchema = z
   .object({
     eventId: statEventIdSchema,
     outcome: z.enum(RECORDED_STAT_EVENT_OUTCOME_KEYS),
-    sequence: z.number().int().positive(),
+    sequence: countSchema,
   })
   .strict();
 export type RecordedStatEvent = z.infer<typeof RecordedStatEventSchema>;

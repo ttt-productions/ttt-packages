@@ -19,10 +19,15 @@ import { UserProfileSchema } from '../src/doc-schemas/user-profile.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
-  AdminCorrectGameStatsInputSchema,
+  AdminCreateStatsJobInputSchema,
+  AdminCreateStatsJobResultSchema,
+  AdminGetStatsJobInputSchema,
+  AdminGetStatsJobResultSchema,
   AdminDeleteStatsValidationReportInputSchema,
   AdminDeleteStatsValidationReportResultSchema,
+  AdminUpdateSportGameStatsRecalculateInputSchema,
   AdminUpdateSportLeagueStatsRecalculateInputSchema,
+  AdminUpdateUserProfileStatsRecalculateInputSchema,
   AdminCreateStatsValidationReportInputSchema,
 } from '../src/schemas/stats.js';
 import {
@@ -311,70 +316,66 @@ describe('hardware loan contracts', () => {
 });
 
 describe('Fix stats inputs', () => {
-  it('takes a reason and an operation id on every rebuild, and a cursor only on a dry run', () => {
-    const base = { leagueId: 'L', reason: 'Hand edit', operationId: 'op-1', dryRun: false };
+  it('rebuilds one league or one person in one call, with an operation id, no reason and no cursor', () => {
+    const base = { leagueId: 'L', operationId: 'op-1', dryRun: false };
     expect(AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse(base).success).toBe(true);
+    for (const extra of [{ reason: 'Hand edit' }, { resumeAfter: 'L' }]) {
+      expect(
+        AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({ ...base, ...extra }).success,
+      ).toBe(false);
+    }
     expect(
-      AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({ ...base, reason: undefined })
-        .success,
-    ).toBe(false);
-    expect(
-      AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({ ...base, resumeAfter: 'L' })
-        .success,
-    ).toBe(false);
-    expect(
-      AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({
-        ...base,
+      AdminUpdateUserProfileStatsRecalculateInputSchema.safeParse({
+        userId: 'ghost_1',
+        operationId: 'op-1',
         dryRun: true,
-        resumeAfter: 'L',
       }).success,
     ).toBe(true);
   });
 
-  it('corrects a game with values to set or by keeping the stored numbers — exactly one of the two', () => {
-    const base = { gameId: 'g1', reason: 'Hand edit', operationId: 'op-1', dryRun: false };
-    const target = { teamId: 't1', playerUserId: 'u1', stat: 'points', value: 4 };
-    expect(AdminCorrectGameStatsInputSchema.safeParse({ ...base, targets: [target] }).success).toBe(
-      true,
-    );
-    expect(AdminCorrectGameStatsInputSchema.safeParse({ ...base, keepStored: true }).success).toBe(
-      true,
-    );
-    expect(AdminCorrectGameStatsInputSchema.safeParse(base).success).toBe(false);
-    expect(
-      AdminCorrectGameStatsInputSchema.safeParse({ ...base, targets: [target], keepStored: true })
-        .success,
-    ).toBe(false);
-    expect(
-      AdminCorrectGameStatsInputSchema.safeParse({ ...base, targets: [{ ...target, value: -1 }] })
-        .success,
-    ).toBe(false);
+  it('fixes one game from its plays, with no choice of method and no reason', () => {
+    const base = { gameId: 'g1', operationId: 'op-1', dryRun: false };
+    expect(AdminUpdateSportGameStatsRecalculateInputSchema.safeParse(base).success).toBe(true);
+    for (const extra of [{ reason: 'Hand edit' }, { keepStored: true }, { targets: [] }]) {
+      expect(
+        AdminUpdateSportGameStatsRecalculateInputSchema.safeParse({ ...base, ...extra }).success,
+      ).toBe(false);
+    }
   });
 
-  it('checks one game, one league, or everything — never a game and a league together — and takes no reason', () => {
+  it('starts everything as one background job, named by a request id', () => {
     expect(
-      AdminCreateStatsValidationReportInputSchema.safeParse({ operationId: 'c1', scope: {} })
-        .success,
-    ).toBe(true);
-    expect(
-      AdminCreateStatsValidationReportInputSchema.safeParse({
-        operationId: 'c1',
-        scope: { gameId: 'g1' },
+      AdminCreateStatsJobInputSchema.safeParse({
+        requestId: '00000000-0000-4000-8000-000000000000',
       }).success,
     ).toBe(true);
+    expect(AdminCreateStatsJobInputSchema.safeParse({ requestId: 'x' }).success).toBe(false);
     expect(
-      AdminCreateStatsValidationReportInputSchema.safeParse({
-        operationId: 'c1',
-        scope: { gameId: 'g1', leagueId: 'L' },
+      AdminCreateStatsJobResultSchema.safeParse({
+        jobId: 'admin-1_00000000-0000-4000-8000-000000000000',
       }).success,
-    ).toBe(false);
+    ).toBe(true);
+    expect(AdminCreateStatsJobResultSchema.safeParse({ jobId: 'admin-1' }).success).toBe(false);
+  });
+
+  it("reads the latest job of a kind, any admin's, or none", () => {
+    expect(AdminGetStatsJobInputSchema.safeParse({ kind: 'rebuild' }).success).toBe(true);
+    expect(AdminGetStatsJobInputSchema.safeParse({ kind: 'archive' }).success).toBe(false);
+    expect(AdminGetStatsJobResultSchema.safeParse({ job: null }).success).toBe(true);
+  });
+
+  it('checks one game or one league in one call, and everything with a request id only', () => {
+    const check = (input: object) =>
+      AdminCreateStatsValidationReportInputSchema.safeParse(input).success;
+    expect(check({ scope: {}, requestId: '00000000-0000-4000-8000-000000000000' })).toBe(true);
+    expect(check({ scope: {} })).toBe(false);
+    expect(check({ scope: { gameId: 'g1' } })).toBe(true);
     expect(
-      AdminCreateStatsValidationReportInputSchema.safeParse({
-        operationId: 'c1',
-        scope: {},
-        reason: 'x',
-      }).success,
+      check({ scope: { leagueId: 'L' }, requestId: '00000000-0000-4000-8000-000000000000' }),
     ).toBe(false);
+    expect(check({ scope: { gameId: 'g1', leagueId: 'L' } })).toBe(false);
+    expect(check({ scope: { gameId: 'g1' }, operationId: 'c1' })).toBe(false);
+    expect(check({ scope: { gameId: 'g1' }, reason: 'x' })).toBe(false);
   });
 
   it('deletes one report named by one document id segment, takes no reason, and is audited and announced', () => {

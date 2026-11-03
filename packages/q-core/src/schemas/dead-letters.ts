@@ -6,12 +6,13 @@ import {
   repairReasonSchema,
 } from '../doc-schemas/atoms.js';
 
-export const DEAD_LETTER_COLLECTION_KEYS = ['notificationDeliveries'] as const;
+export const DEAD_LETTER_COLLECTION_KEYS = ['notificationDeliveries', 'statsJobs'] as const;
 export const DeadLetterCollectionSchema = z.enum(DEAD_LETTER_COLLECTION_KEYS);
 export type DeadLetterCollection = z.infer<typeof DeadLetterCollectionSchema>;
 
 export const DEAD_LETTER_COLLECTION_LABELS: { readonly [K in DeadLetterCollection]: string } = {
   notificationDeliveries: 'Admin notification delivery',
+  statsJobs: 'Stats rebuild or check',
 };
 
 export const MAX_DEAD_LETTERS_LISTED = 200;

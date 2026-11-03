@@ -1,27 +1,20 @@
 import { z } from 'zod';
-import {
-  CURLING_ROUND_COUNT,
-  MAX_CURLING_ROUND_POINTS,
-  MAX_GAME_STATS_CORRECTION_TARGETS,
-} from '../constants/sports.js';
+import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../constants/sports.js';
+import { parseStatsJobId } from '../ids/stats-ids.js';
 import {
   countSchema,
   enteredStatCountSchema,
+  epochMsSchema,
   gameIdSchema,
   gameRosterPlayerIdSchema,
   leagueIdSchema,
-  repairReasonSchema,
   sportKeySchema,
-  statCounterKeySchema,
   statsOperationIdSchema,
   statsValidationReportIdSchema,
   teamIdSchema,
   userIdSchema,
 } from '../doc-schemas/atoms.js';
-import {
-  StatsDestinationChangeSchema,
-  StatsOperationCountsSchema,
-} from '../doc-schemas/stats-operation.js';
+import { StatsDestinationChangeSchema } from '../doc-schemas/stats-changes.js';
 import {
   StatsValidationReportSchema,
   StatsValidationScopeSchema,
@@ -36,6 +29,9 @@ import {
   GAME_FINALIZE_OUTCOME_KEYS,
   GAME_REOPEN_OUTCOME_KEYS,
   GAME_STATS_REPAIR_OUTCOME_KEYS,
+  STATS_JOB_KIND_KEYS,
+  STATS_JOB_STAGE_KEYS,
+  STATS_JOB_STATE_KEYS,
   UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS,
 } from '../types/stats.js';
 
@@ -52,9 +48,7 @@ export const UpdateSportGameFinalizeResultSchema = z
   .strict();
 export type UpdateSportGameFinalizeResult = z.infer<typeof UpdateSportGameFinalizeResultSchema>;
 
-export const AdminUpdateSportGameReopenInputSchema = z
-  .object({ gameId: gameIdSchema, reason: repairReasonSchema })
-  .strict();
+export const AdminUpdateSportGameReopenInputSchema = z.object({ gameId: gameIdSchema }).strict();
 export type AdminUpdateSportGameReopenInput = z.infer<typeof AdminUpdateSportGameReopenInputSchema>;
 
 export const AdminUpdateSportGameReopenResultSchema = z
@@ -73,7 +67,6 @@ export const AdminCreateGameRosterPlayerInputSchema = z
     gameId: gameIdSchema,
     userId: userIdSchema,
     teamId: teamIdSchema,
-    reason: repairReasonSchema,
     dryRun: z.boolean().optional(),
   })
   .strict();
@@ -95,113 +88,76 @@ export type AdminCreateGameRosterPlayerResult = z.infer<
 >;
 
 const statsRepairFields = {
-  reason: repairReasonSchema,
   operationId: statsOperationIdSchema,
   dryRun: z.boolean(),
-  resumeAfter: z.string().min(1).optional(),
-};
-
-const cursorOnlyOnDryRun = (input: { dryRun: boolean; resumeAfter?: string }): boolean =>
-  input.dryRun || input.resumeAfter === undefined;
-const CURSOR_ONLY_ON_DRY_RUN = {
-  message: 'A real run resumes from its operation; only a dry run takes a cursor.',
-  path: ['resumeAfter'],
 };
 
 export const AdminUpdateSportLeagueStatsRecalculateInputSchema = z
   .object({ leagueId: leagueIdSchema, ...statsRepairFields })
-  .strict()
-  .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
+  .strict();
 export type AdminUpdateSportLeagueStatsRecalculateInput = z.infer<
   typeof AdminUpdateSportLeagueStatsRecalculateInputSchema
 >;
 
-export const RecalculateAllLeagueStatsInputSchema = z
-  .object({ ...statsRepairFields })
-  .strict()
-  .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
-export type RecalculateAllLeagueStatsInput = z.infer<typeof RecalculateAllLeagueStatsInputSchema>;
-
 export const AdminUpdateUserProfileStatsRecalculateInputSchema = z
   .object({ userId: userIdSchema, ...statsRepairFields })
-  .strict()
-  .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
+  .strict();
 export type AdminUpdateUserProfileStatsRecalculateInput = z.infer<
   typeof AdminUpdateUserProfileStatsRecalculateInputSchema
 >;
-
-export const RecalculateAllUserStatsInputSchema = z
-  .object({ ...statsRepairFields })
-  .strict()
-  .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
-export type RecalculateAllUserStatsInput = z.infer<typeof RecalculateAllUserStatsInputSchema>;
-
-export const RecalculateHallOfFameInputSchema = z
-  .object({ sportKey: sportKeySchema, userId: userIdSchema.optional(), ...statsRepairFields })
-  .strict()
-  .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
-export type RecalculateHallOfFameInput = z.infer<typeof RecalculateHallOfFameInputSchema>;
 
 export const StatsRebuildResultSchema = z
   .object({
     operationId: statsOperationIdSchema,
     dryRun: z.boolean(),
-    complete: z.boolean(),
-    nextResumeAfter: z.string().min(1).nullable(),
-    counts: StatsOperationCountsSchema,
     changes: z.array(StatsDestinationChangeSchema),
     changesTruncated: z.boolean(),
-    scopeChanged: z.boolean(),
   })
   .strict();
 export type StatsRebuildResult = z.infer<typeof StatsRebuildResultSchema>;
 
-export const GameStatsCorrectionTargetSchema = z
+export const statsJobRequestIdSchema = z.uuid();
+
+export const statsJobIdSchema = z
+  .string()
+  .refine((id) => parseStatsJobId(id) !== null, 'Not a stats job id.');
+
+export const AdminCreateStatsJobInputSchema = z
+  .object({ requestId: statsJobRequestIdSchema })
+  .strict();
+export type AdminCreateStatsJobInput = z.infer<typeof AdminCreateStatsJobInputSchema>;
+
+export const AdminCreateStatsJobResultSchema = z.object({ jobId: statsJobIdSchema }).strict();
+export type AdminCreateStatsJobResult = z.infer<typeof AdminCreateStatsJobResultSchema>;
+
+export const AdminGetStatsJobInputSchema = z.object({ kind: z.enum(STATS_JOB_KIND_KEYS) }).strict();
+export type AdminGetStatsJobInput = z.infer<typeof AdminGetStatsJobInputSchema>;
+
+export const StatsJobProgressSchema = z
   .object({
-    teamId: teamIdSchema,
-    playerUserId: userIdSchema.optional(),
-    stat: statCounterKeySchema,
-    value: enteredStatCountSchema,
+    jobId: statsJobIdSchema,
+    kind: z.enum(STATS_JOB_KIND_KEYS),
+    state: z.enum(STATS_JOB_STATE_KEYS),
+    stage: z.enum(STATS_JOB_STAGE_KEYS),
+    stageDone: countSchema,
+    changed: countSchema,
+    deadLettered: z.boolean(),
+    completedAt: epochMsSchema.nullable(),
   })
   .strict();
-export type GameStatsCorrectionTarget = z.infer<typeof GameStatsCorrectionTargetSchema>;
+export type StatsJobProgress = z.infer<typeof StatsJobProgressSchema>;
 
-export const AdminCorrectGameStatsInputSchema = z
-  .object({
-    gameId: gameIdSchema,
-    targets: z
-      .array(GameStatsCorrectionTargetSchema)
-      .min(1)
-      .max(MAX_GAME_STATS_CORRECTION_TARGETS)
-      .optional(),
-    keepStored: z.literal(true).optional(),
-    reason: repairReasonSchema,
-    operationId: statsOperationIdSchema,
-    dryRun: z.boolean(),
-  })
-  .strict()
-  .refine((input) => (input.targets === undefined) !== (input.keepStored === undefined), {
-    message: 'Give the values to set, or keep the stored numbers — one of the two.',
-    path: ['targets'],
-  });
-export type AdminCorrectGameStatsInput = z.infer<typeof AdminCorrectGameStatsInputSchema>;
+export const AdminGetStatsJobResultSchema = z
+  .object({ job: StatsJobProgressSchema.nullable() })
+  .strict();
+export type AdminGetStatsJobResult = z.infer<typeof AdminGetStatsJobResultSchema>;
 
 export const AdminUpdateSportGameStatsRecalculateInputSchema = z
-  .object({
-    gameId: gameIdSchema,
-    reason: repairReasonSchema,
-    operationId: statsOperationIdSchema,
-    dryRun: z.boolean(),
-  })
+  .object({ gameId: gameIdSchema, ...statsRepairFields })
   .strict();
 export type AdminUpdateSportGameStatsRecalculateInput = z.infer<
   typeof AdminUpdateSportGameStatsRecalculateInputSchema
 >;
-
-export const GameStatsCorrectionSchema = z
-  .object({ lineKey: z.string().min(1), field: statCounterKeySchema, value: z.number().int() })
-  .strict();
-export type GameStatsCorrection = z.infer<typeof GameStatsCorrectionSchema>;
 
 const roundSlotValueSchema = z.number().int().min(0).max(MAX_CURLING_ROUND_POINTS).nullable();
 
@@ -261,7 +217,6 @@ export const GameStatsRepairResultSchema = z
     operationId: statsOperationIdSchema,
     dryRun: z.boolean(),
     outcome: z.enum(GAME_STATS_REPAIR_OUTCOME_KEYS),
-    corrections: z.array(GameStatsCorrectionSchema),
     gameChanged: z.boolean(),
     gameChanges: GameRepairChangesSchema,
     destinationChanges: z.array(StatsDestinationChangeSchema),
@@ -283,7 +238,6 @@ export const AdminUpdateHistoricalStatInputSchema = z
     userId: userIdSchema,
     sportKey: sportKeySchema,
     stats: EnteredHistoricalStatsSchema,
-    reason: repairReasonSchema,
     operationId: statsOperationIdSchema,
     dryRun: z.boolean(),
   })
@@ -304,15 +258,25 @@ export const AdminUpdateHistoricalStatResultSchema = z
 export type AdminUpdateHistoricalStatResult = z.infer<typeof AdminUpdateHistoricalStatResultSchema>;
 
 export const AdminCreateStatsValidationReportInputSchema = z
-  .object({ operationId: statsOperationIdSchema, scope: StatsValidationScopeSchema.strict() })
-  .strict();
+  .object({
+    scope: StatsValidationScopeSchema.strict(),
+    requestId: statsJobRequestIdSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (input) =>
+      (input.requestId !== undefined) ===
+      (input.scope.gameId === undefined && input.scope.leagueId === undefined),
+    { message: 'A check of everything, and only that, carries a request id.', path: ['requestId'] },
+  );
 export type AdminCreateStatsValidationReportInput = z.infer<
   typeof AdminCreateStatsValidationReportInputSchema
 >;
 
 export const AdminCreateStatsValidationReportResultSchema = z
   .object({
-    reportId: z.string().min(1),
+    reportId: statsValidationReportIdSchema,
+    jobId: statsJobIdSchema.optional(),
     complete: z.boolean(),
     summary: StatsValidationSummarySchema,
     discrepancyCounts: StatsValidationReportSchema.shape.discrepancyCounts,

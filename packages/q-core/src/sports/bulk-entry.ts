@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { enteredStatCountSchema } from '../doc-schemas/atoms.js';
 import type { GameStats } from '../doc-schemas/sport-game.js';
 import type { BulkEntryKind } from '../types/stats.js';
-import type { SportStatEventBody, StatVoidBody } from './scoring.js';
+import type { StatEventSubmission } from '../schemas/scoring.js';
+import type { STAT_CORRECTION_EVENT_TYPE } from '../types/stats.js';
 import type { GameTeamIds } from './sport-adapter.js';
 
 export interface LiveRoundEvent {
@@ -18,7 +19,12 @@ export interface BulkEntryContext {
   readonly liveRoundEvents: readonly LiveRoundEvent[];
 }
 
-export type StatEventDraft = SportStatEventBody | StatVoidBody;
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+export type StatEventDraft = DistributiveOmit<
+  Exclude<StatEventSubmission, { type: typeof STAT_CORRECTION_EVENT_TYPE }>,
+  'eventId' | 'recordedAt'
+>;
 
 export interface BulkEntryForm<K extends BulkEntryKind, Values> {
   readonly kind: K;

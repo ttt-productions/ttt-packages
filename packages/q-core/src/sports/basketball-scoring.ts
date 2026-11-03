@@ -287,7 +287,6 @@ const validate: SportScoring['validate'] = (stateIn, event, roster) => {
       return refuseStatEvent('bulkValueInvalid');
     const state = ownStats(stateIn);
     const current = playerCountersOf(state.playerStats[scorer])[event.stat];
-    if (event.previousValue !== current) return refuseStatEvent('bulkStale');
     if (current + event.value < 0) return refuseStatEvent('bulkValueInvalid');
     const teamScore = (state.teamStats[event.teamId] ?? emptyBasketballTeamLine()).score;
     if (event.stat === 'points' && teamScore + event.value < 0)
@@ -303,8 +302,20 @@ const BASKETBALL_CONTRIBUTION: ContributionSpec = {
   deriveLine: deriveBasketballLine,
 };
 
+const resolveBulkEntry: NonNullable<SportScoring['resolveBulkEntry']> = (state, submission) => {
+  if (submission.type !== BASKETBALL_BULK_EDIT_EVENT_TYPE) return null;
+  const { target, ...event } = submission;
+  const scorer = buildGameRosterPlayerId(event.teamId, event.playerUserId);
+  const previousValue = playerCountersOf(ownStats(state).playerStats[scorer])[event.stat];
+  const value = target - previousValue;
+  return value === 0
+    ? { kind: 'unchanged' }
+    : { kind: 'change', event: { ...event, value, previousValue } };
+};
+
 export const BASKETBALL_SCORING: SportScoring = {
   validate,
+  resolveBulkEntry,
   apply: (state, event) => {
     if (isStatCorrection(event)) return applyEffects(ownStats(state), correctionEffects(event), 1);
     if (!isBasketballEvent(event))
@@ -427,17 +438,16 @@ function bulkDrafts(values: PlayerLinesValues, context: BulkEntryContext): StatE
     if (entered === undefined || entry === null) continue;
     const before = currentPlayerCounters(context, entryId);
     for (const stat of BASKETBALL_PLAYER_STAT_KEYS) {
-      const value = (entered[stat] ?? before[stat]) - before[stat];
-      if (value === 0) continue;
+      const target = entered[stat] ?? before[stat];
+      if (target === before[stat]) continue;
       const draft: StatEventDraft = {
         type: BASKETBALL_BULK_EDIT_EVENT_TYPE,
         teamId: entry.teamId,
         playerUserId: entry.userId,
         stat,
-        value,
-        previousValue: before[stat],
+        target,
       };
-      (value > 0 ? increases : decreases).push(draft);
+      (target > before[stat] ? increases : decreases).push(draft);
     }
   }
   // Every increase before any decrease, so a team's running score never dips below the floor its

@@ -36,6 +36,7 @@ import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_BULK_EDIT_EVENT_TYPE,
   BASKETBALL_PLAYER_STAT_KEYS,
+  BASKETBALL_REBOUND_EVENT_TYPE,
   CURLING_ROUND_BLANK_EVENT_TYPE,
   CURLING_ROUND_SCORE_EVENT_TYPE,
   FOOTBALL_BULK_EDIT_EVENT_TYPE,
@@ -92,15 +93,14 @@ function contextOf(
 
 function submissionOf(draft: StatEventDraft, eventId: string): StatEventSubmission {
   if (isStatVoid(draft)) return { ...draft, recordedAt: NOW };
-  if (
-    draft.type === BASKETBALL_BULK_EDIT_EVENT_TYPE ||
-    draft.type === FOOTBALL_BULK_EDIT_EVENT_TYPE
-  ) {
-    if (draft.previousValue === undefined)
-      throw new Error('a bulk edit draft names its previous value');
-    return { ...draft, previousValue: draft.previousValue, recordedAt: NOW, eventId };
-  }
   return { ...draft, recordedAt: NOW, eventId };
+}
+
+function writeAccepts(drafts: readonly StatEventDraft[]): boolean {
+  return CreateGameStatEventInputSchema.safeParse({
+    gameId: 'g1',
+    events: drafts.map((draft, index) => submissionOf(draft, buildStatEventId(NOW, `w${index}`))),
+  }).success;
 }
 
 function submit(
@@ -220,10 +220,9 @@ describe('basketball bulk entry — one row per roster entry', () => {
         teamId: HOME,
         playerUserId: 'passer',
         stat: ASSISTS,
-        value: bad - 1,
-        previousValue: 1,
+        target: bad,
       };
-      expect(submit(adapter, context, [edit])).toEqual({ refused: 'bulkValueInvalid' });
+      expect(writeAccepts([edit])).toBe(false);
     }
   });
 
@@ -243,8 +242,7 @@ describe('basketball bulk entry — one row per roster entry', () => {
       teamId: AWAY,
       playerUserId: 'stranger',
       stat: POINTS,
-      value: 1,
-      previousValue: 0,
+      target: 1,
     };
     expect(submit(adapter, context, [edit])).toEqual({ refused: 'playerNotRostered' });
   });
@@ -259,7 +257,6 @@ describe('basketball bulk entry — one row per roster entry', () => {
         value: -4,
         correctionSource: 'admin',
         operationId: 'op',
-        reason: 'double entry',
       },
     ];
     const context = contextOf(adapter, corrected);
@@ -299,16 +296,14 @@ describe('basketball bulk entry — one row per roster entry', () => {
     expect(
       CreateGameStatEventInputSchema.safeParse({
         gameId: 'g1',
-        events: drafts.map((draft, index) => ({
-          ...draft,
-          eventId: `${NOW}_${index}`,
-          recordedAt: NOW,
-        })),
+        events: drafts.map((draft, index) =>
+          submissionOf(draft, buildStatEventId(NOW, `cap${index}`)),
+        ),
       }).success,
     ).toBe(false);
   });
 
-  it('carries on each edit the value the form showed, so the write can refuse a form another write has since moved', () => {
+  it('carries on each edit the number typed, and the write lands every box on it whatever was scored meanwhile', () => {
     const context = contextOf(adapter, recorded);
     const values = bulkEntry.formDefaults(context) as {
       lines: Record<string, Record<string, number>>;
@@ -323,20 +318,10 @@ describe('basketball bulk entry — one row per roster entry', () => {
         teamId: HOME,
         playerUserId: 'passer',
         stat: REBOUNDS,
-        value: 2,
-        previousValue: 0,
+        target: 2,
       },
     ]);
 
-    const moved = {
-      ...context,
-      state: adapter.apply(context.state, {
-        type: TWO_POINTER,
-        teamId: HOME,
-        playerUserId: 'shooter',
-      }),
-    };
-    expect(submit(adapter, moved, drafts)).toHaveProperty('state');
     const reboundedSince = {
       ...context,
       state: adapter.apply(context.state, {
@@ -344,11 +329,67 @@ describe('basketball bulk entry — one row per roster entry', () => {
         teamId: HOME,
         playerUserId: 'passer',
         stat: REBOUNDS,
-        value: 1,
+        value: 3,
         previousValue: 0,
       }),
     };
-    expect(submit(adapter, reboundedSince, drafts)).toEqual({ refused: 'bulkStale' });
+    const result = submit(adapter, reboundedSince, drafts);
+    if (!('state' in result)) throw new Error(`refused: ${result.refused}`);
+    expect((result.state.playerStats[PASSER] as Record<string, number>).rebounds).toBe(2);
+  });
+
+  it('records the change worked out when the save lands, so a replay of the plays reaches the typed number', () => {
+    const context = contextOf(adapter, recorded);
+    const scoredSince = adapter.apply(context.state, {
+      type: BASKETBALL_REBOUND_EVENT_TYPE,
+      teamId: HOME,
+      playerUserId: 'passer',
+    });
+    const decision = decideStatEventBatch({
+      adapter,
+      game: { ...GAME, stats: scoredSince, statEventSequence: 3 },
+      roster: { teamIds: GAME.teamIds, rosterPlayerIds: new Set(context.rosterPlayerIds) },
+      submissions: [
+        submissionOf(
+          {
+            type: BASKETBALL_BULK_EDIT_EVENT_TYPE,
+            teamId: HOME,
+            playerUserId: 'passer',
+            stat: REBOUNDS,
+            target: 4,
+          },
+          buildStatEventId(NOW, 'bulk'),
+        ),
+      ],
+      storedEvent: () => undefined,
+    });
+    if (!decision.ok) throw new Error(decision.code);
+    expect(decision.accepted[0]?.fields).toMatchObject({ value: 3, previousValue: 1 });
+  });
+
+  it('records nothing for a box already at the number typed', () => {
+    const context = contextOf(adapter, recorded);
+    const decision = decideStatEventBatch({
+      adapter,
+      game: { ...GAME, stats: context.state, statEventSequence: 2 },
+      roster: { teamIds: GAME.teamIds, rosterPlayerIds: new Set(context.rosterPlayerIds) },
+      submissions: [
+        submissionOf(
+          {
+            type: BASKETBALL_BULK_EDIT_EVENT_TYPE,
+            teamId: HOME,
+            playerUserId: 'shooter',
+            stat: POINTS,
+            target: 5,
+          },
+          buildStatEventId(NOW, 'same'),
+        ),
+      ],
+      storedEvent: () => undefined,
+    });
+    if (!decision.ok) throw new Error(decision.code);
+    expect(decision.accepted).toEqual([]);
+    expect(decision.results[0]).toMatchObject({ outcome: 'unchanged', sequence: 2 });
   });
 });
 
@@ -502,8 +543,8 @@ describe("football bulk entry — each team's final score", () => {
 
     const drafts = bulkEntry.toEvents(entered, context);
     expect(drafts).toEqual([
-      { type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: HOME, value: 14, previousValue: 6 },
-      { type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: AWAY, value: 3, previousValue: 0 },
+      { type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: HOME, target: 20 },
+      { type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: AWAY, target: 3 },
     ]);
     const result = submit(adapter, context, drafts);
     if (!('state' in result)) throw new Error(`refused: ${result.refused}`);
@@ -517,15 +558,8 @@ describe("football bulk entry — each team's final score", () => {
         bulkEntry.formSchema(context).safeParse({ scores: { [HOME]: bad, [AWAY]: 0 } }).success,
       ).toBe(false);
       expect(
-        submit(adapter, context, [
-          {
-            type: FOOTBALL_BULK_EDIT_EVENT_TYPE,
-            teamId: HOME,
-            value: bad - 6,
-            previousValue: 6,
-          },
-        ]),
-      ).toEqual({ refused: 'bulkValueInvalid' });
+        writeAccepts([{ type: FOOTBALL_BULK_EDIT_EVENT_TYPE, teamId: HOME, target: bad }]),
+      ).toBe(false);
     }
   });
 
@@ -539,8 +573,7 @@ describe("football bulk entry — each team's final score", () => {
         {
           type: FOOTBALL_BULK_EDIT_EVENT_TYPE,
           teamId: 'team-elsewhere',
-          value: 3,
-          previousValue: 0,
+          target: 3,
         },
       ]),
     ).toEqual({ refused: 'teamNotInGame' });

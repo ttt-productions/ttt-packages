@@ -192,7 +192,6 @@ describe('every callable declares its App Check posture', () => {
         action: 'defineAction',
         reader: 'defineReader',
         invoker: 'defineInvoker',
-        resumable: 'defineResumable',
       },
     },
     noClientDeclaration: [
@@ -486,7 +485,7 @@ describe('every callable declares its App Check posture', () => {
           client(
             'export const usePay = defineAction("pay", { limitedUseAppCheck: true });',
             'export const useAdminTool = defineAction<In, Out>("adminTool", { limitedUseAppCheck: true });',
-            'export const useAdminCopyA = defineResumable("adminCopyA", mergeCopies, { limitedUseAppCheck: true });',
+            'export const useAdminCopyA = defineInvoker("adminCopyA", { limitedUseAppCheck: true });',
             'export const useAdminLiveScore = defineAction("adminLiveScore");',
             'export const useMember = defineReader("member");',
           ),
@@ -608,7 +607,6 @@ describe('admin actions outside the admin area go through the admin-actions affo
         action: 'defineAction',
         reader: 'defineReader',
         invoker: 'defineInvoker',
-        resumable: 'defineResumable',
       },
     },
     clientDeclarations: {
@@ -617,7 +615,6 @@ describe('admin actions outside the admin area go through the admin-actions affo
         action: 'defineAction',
         reader: 'defineReader',
         invoker: 'defineInvoker',
-        resumable: 'defineResumable',
       },
     },
     claimKeys: ['isAdmin'],

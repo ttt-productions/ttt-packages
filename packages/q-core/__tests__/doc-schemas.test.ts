@@ -215,8 +215,12 @@ describe('domain events', () => {
       }).success,
     ).toBe(true);
     expect(
-      DomainEventSchema.safeParse({ type: 'sportLeague.statsRecalculated', ids: {} }).success,
+      DomainEventSchema.safeParse({ type: 'sportLeague.statsRecalculated', ids: { leagueId: 'L' } })
+        .success,
     ).toBe(true);
+    expect(
+      DomainEventSchema.safeParse({ type: 'sportLeague.statsRecalculated', ids: {} }).success,
+    ).toBe(false);
     expect(DomainEventSchema.safeParse({ type: 'sportGame.exploded', ids: {} }).success).toBe(
       false,
     );

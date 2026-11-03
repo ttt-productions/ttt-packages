@@ -101,7 +101,7 @@ export type {
   UnknownOutcomePolicy,
 } from './session-mutation.js';
 
-export { createCallables, MAX_RESUMABLE_CALLS } from './callables/create-callables.js';
+export { createCallables } from './callables/create-callables.js';
 export type {
   CallableCaptureContext,
   CallableDeclaration,
@@ -109,7 +109,6 @@ export type {
   CallableMutationOptions,
   CallablePolicy,
   Callables,
-  ResumableOutcome,
   SlowCallNotice,
 } from './callables/create-callables.js';
 

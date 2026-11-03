@@ -66,7 +66,7 @@ export const gameRosterPlayerIdSchema = documentIdSegmentSchema.refine(
 );
 export const statEventIdSchema = documentIdSegmentSchema;
 export const statsOperationIdSchema = documentIdSegmentSchema;
-export const statsValidationReportIdSchema = statsOperationIdSchema;
+export const statsValidationReportIdSchema = documentIdSegmentSchema;
 export const hardwareLoanContractIdSchema = documentIdSegmentSchema;
 export const stagingIdSchema = z.string().refine(isStagingId, 'Not a staging id.');
 

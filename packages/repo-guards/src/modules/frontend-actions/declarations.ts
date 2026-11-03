@@ -4,9 +4,9 @@ import type { FileView } from '../../reader/view.js';
 import { namesProblem, objectProblem, textProblem } from '../../support/facts.js';
 import { isPlainString, lineOfNode } from '../../support/ast.js';
 
-export type CallableKind = 'action' | 'reader' | 'invoker' | 'resumable';
+export type CallableKind = 'action' | 'reader' | 'invoker';
 
-export const CALLABLE_KINDS: readonly CallableKind[] = ['action', 'reader', 'invoker', 'resumable'];
+export const CALLABLE_KINDS: readonly CallableKind[] = ['action', 'reader', 'invoker'];
 
 export interface CallableDeclarationFacts {
   modules: readonly string[];
@@ -82,7 +82,7 @@ function declarationsIn(
             detail: `${hook} names its callable through an expression this check cannot read: write the name as a string literal`,
           });
         }
-        const options = node.arguments[kind === 'resumable' ? 2 : 1];
+        const options = node.arguments[1];
         let limitedUse = false;
         if (options && !ts.isObjectLiteralExpression(options)) {
           findings.push({

@@ -43,29 +43,19 @@ export const STAT_LINE_KIND_KEYS = [
 export type StatLineKind = (typeof STAT_LINE_KIND_KEYS)[number];
 export type PlayerStatLineKind = (typeof PLAYER_STAT_LINE_KIND_KEYS)[number];
 
-export const STATS_OPERATION_KIND_KEYS = [
-  'leagueStatsRebuild',
-  'lifetimeStatsRebuild',
-  'hallOfFameRebuild',
-  'statsValidation',
-  'gameStatsCorrection',
-  'gameStatsRecalculation',
-  'historicalStatsUpdate',
-] as const;
-export type StatsOperationKind = (typeof STATS_OPERATION_KIND_KEYS)[number];
+export const STATS_JOB_KIND_KEYS = ['rebuild', 'check'] as const;
+export type StatsJobKind = (typeof STATS_JOB_KIND_KEYS)[number];
 
-export const STATS_REBUILD_OPERATION_KIND_KEYS = [
-  'leagueStatsRebuild',
-  'lifetimeStatsRebuild',
-  'hallOfFameRebuild',
-] as const satisfies readonly StatsOperationKind[];
-export type StatsRebuildOperationKind = (typeof STATS_REBUILD_OPERATION_KIND_KEYS)[number];
+export const STATS_JOB_STATE_KEYS = ['in-progress', 'complete', 'failed'] as const;
+export type StatsJobState = (typeof STATS_JOB_STATE_KEYS)[number];
 
-export const STATS_OPERATION_STATUS_KEYS = ['running', 'complete', 'stopped'] as const;
-export type StatsOperationStatus = (typeof STATS_OPERATION_STATUS_KEYS)[number];
+export const STATS_JOB_STAGE_KEYS = ['games', 'leagues', 'people', 'hallOfFame'] as const;
+export type StatsJobStage = (typeof STATS_JOB_STAGE_KEYS)[number];
 
-export const STATS_VALIDATION_PHASE_KEYS = ['games', 'destinations'] as const;
-export type StatsValidationPhase = (typeof STATS_VALIDATION_PHASE_KEYS)[number];
+export const STATS_JOB_STAGES = {
+  rebuild: ['leagues', 'people', 'hallOfFame'],
+  check: ['games', 'leagues', 'people', 'hallOfFame'],
+} as const satisfies Record<StatsJobKind, readonly StatsJobStage[]>;
 
 export const STAT_EVENT_REFUSAL_KEYS = [
   'eventTypeNotInSport',
@@ -77,11 +67,9 @@ export const STAT_EVENT_REFUSAL_KEYS = [
   'roundNotNext',
   'roundsComplete',
   'bulkValueInvalid',
-  'bulkStale',
   'eventIdConflict',
   'voidTargetNotSportEvent',
   'correctionNotAccepted',
-  'undoBelowZero',
 ] as const;
 export type StatEventRefusalCode = (typeof STAT_EVENT_REFUSAL_KEYS)[number];
 
@@ -94,7 +82,11 @@ export type ScoringPanelKind = (typeof SCORING_PANEL_KIND_KEYS)[number];
 export const BULK_ENTRY_KIND_KEYS = ['playerLines', 'teamScores', 'rounds'] as const;
 export type BulkEntryKind = (typeof BULK_ENTRY_KIND_KEYS)[number];
 
-export const RECORDED_STAT_EVENT_OUTCOME_KEYS = ['recorded', 'alreadyRecorded'] as const;
+export const RECORDED_STAT_EVENT_OUTCOME_KEYS = [
+  'recorded',
+  'alreadyRecorded',
+  'unchanged',
+] as const;
 export type RecordedStatEventOutcome = (typeof RECORDED_STAT_EVENT_OUTCOME_KEYS)[number];
 
 export const GAME_FINALIZE_OUTCOME_KEYS = ['finalized', 'alreadyFinalized'] as const;
@@ -103,23 +95,8 @@ export type GameFinalizeOutcome = (typeof GAME_FINALIZE_OUTCOME_KEYS)[number];
 export const GAME_REOPEN_OUTCOME_KEYS = ['reopened', 'alreadyOpen'] as const;
 export type GameReopenOutcome = (typeof GAME_REOPEN_OUTCOME_KEYS)[number];
 
-export const GAME_STATS_REPAIR_OUTCOME_KEYS = [
-  'reconciled',
-  'unchanged',
-  'alreadyApplied',
-] as const;
+export const GAME_STATS_REPAIR_OUTCOME_KEYS = ['reconciled', 'unchanged'] as const;
 export type GameStatsRepairOutcome = (typeof GAME_STATS_REPAIR_OUTCOME_KEYS)[number];
-
-export const GAME_REPAIR_REFUSAL_KEYS = [
-  'eventUnreadable',
-  'eventSequenceGap',
-  'sourcesDisagree',
-  'scoreAmbiguous',
-  'fieldNotCorrectable',
-  'lineNotRostered',
-  'teamNotInGame',
-] as const;
-export type GameRepairRefusal = (typeof GAME_REPAIR_REFUSAL_KEYS)[number];
 
 export const GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS = [
   'handedOver',

@@ -1,5 +1,6 @@
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
 import type { GameStats } from '../doc-schemas/sport-game.js';
+import type { StatEventSubmission } from '../schemas/scoring.js';
 import type { StatCounterKey } from '../types/sports.js';
 import { STAT_CORRECTION_EVENT_TYPE, STAT_VOID_EVENT_TYPE } from '../types/stats.js';
 import type {
@@ -25,11 +26,15 @@ export type StatCorrectionBody = Extract<
 >;
 export type SportStatEventBody = Exclude<StatEventBody, StatVoidBody | StatCorrectionBody>;
 
-export function isStatVoid(event: StatEventBody): event is StatVoidBody {
+export function isStatVoid<E extends { readonly type: string }>(
+  event: E,
+): event is Extract<E, { type: typeof STAT_VOID_EVENT_TYPE }> {
   return event.type === STAT_VOID_EVENT_TYPE;
 }
 
-export function isStatCorrection(event: StatEventBody): event is StatCorrectionBody {
+export function isStatCorrection<E extends { readonly type: string }>(
+  event: E,
+): event is Extract<E, { type: typeof STAT_CORRECTION_EVENT_TYPE }> {
   return event.type === STAT_CORRECTION_EVENT_TYPE;
 }
 
@@ -49,6 +54,9 @@ export interface StatEventRoster {
   readonly teamIds: readonly string[];
   readonly rosterPlayerIds: ReadonlySet<string>;
 }
+
+export type BulkEntryResolution =
+  { readonly kind: 'change'; readonly event: StatEventBody } | { readonly kind: 'unchanged' };
 
 export type StatEventVerdict =
   { readonly ok: true } | { readonly ok: false; readonly code: StatEventRefusalCode };
@@ -76,6 +84,10 @@ export interface SportScoring {
     roster: StatEventRoster,
   ) => StatEventVerdict;
   readonly apply: (state: GameStats, event: StatEventBody) => GameStats;
+  readonly resolveBulkEntry?: (
+    state: GameStats,
+    submission: StatEventSubmission,
+  ) => BulkEntryResolution | null;
   readonly undo: (state: GameStats, target: StatEventBody) => GameStats;
   readonly deriveLine: (kind: StatLineKind, line: StatLineValues) => StatLineValues;
   readonly correctableFields: CorrectableFields;
