@@ -358,6 +358,11 @@ export const LandingPageUpdatedEventSchema = z.object({
   ids: z.object({}),
 });
 
+export const AdminListUpdatedEventSchema = z.object({
+  type: z.literal('adminList.updated'),
+  ids: z.object({}),
+});
+
 export const GalleryPictureAddedEventSchema = z.object({
   type: z.literal('galleryPicture.added'),
   ids: z.object({
@@ -468,6 +473,7 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   GhostPlayerRemovedEventSchema,
   LeagueTeamContactUpdatedEventSchema,
   LandingPageUpdatedEventSchema,
+  AdminListUpdatedEventSchema,
   GalleryPictureAddedEventSchema,
   DeadLetterReplayedEventSchema,
   MigrationActionRunPageRunEventSchema,

@@ -614,6 +614,11 @@ describe('domain events', () => {
     expect(
       DomainEventSchema.safeParse({ type: 'adminList.changed', ids: { userId: 'u1' } }).success,
     ).toBe(false);
+    expect(DomainEventSchema.safeParse({ type: 'adminList.updated', ids: {} }).success).toBe(true);
+    expect(DomainEventSchema.parse({ type: 'adminList.updated', ids: { userId: 'u1' } })).toEqual({
+      type: 'adminList.updated',
+      ids: {},
+    });
     expect(
       DomainEventSchema.safeParse({ type: 'userProfile.displayNameChanged', ids: { userId: 'u1' } })
         .success,
