@@ -22,8 +22,7 @@ export type ScheduleWeekField = (typeof SCHEDULE_WEEK_FIELD_KEYS)[number];
 
 export const SCHEDULE_REFUSAL_REASON_KEYS = [
   'gameCompleted',
-  'weekHasRecordedStats',
+  'weekHasCompletedGames',
   'teamHasRecordedStats',
-  'gameHasRecordedPlay',
 ] as const;
 export type ScheduleRefusalReason = (typeof SCHEDULE_REFUSAL_REASON_KEYS)[number];

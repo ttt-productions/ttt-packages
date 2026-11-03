@@ -1,19 +1,12 @@
 import { z } from 'zod';
 import { MAX_AWARD_GRANT_TARGETS } from '../constants/business.js';
-import {
-  awardGroupGrantActionSchema,
-  awardGroupGrantDecisionSchema,
-  awardGroupGrantStatusSchema,
-  awardGroupTypeSchema,
-} from '../doc-schemas/award-group-grant.js';
-import {
-  countSchema,
-  documentIdSegmentSchema,
-  epochMsSchema,
-  userIdSchema,
-} from '../doc-schemas/atoms.js';
+import { countSchema, documentIdSegmentSchema, userIdSchema } from '../doc-schemas/atoms.js';
 import { awardIdSchema } from '../doc-schemas/catalogs.js';
-import { AWARD_GRANT_SKIP_REASON_KEYS, FEATURED_AWARD_SLOT_KEYS } from '../types/unions.js';
+import {
+  AWARD_GRANT_SKIP_REASON_KEYS,
+  AWARD_GROUP_TYPE_KEYS,
+  FEATURED_AWARD_SLOT_KEYS,
+} from '../types/unions.js';
 
 const targetList = <T extends z.ZodTypeAny>(atom: T) =>
   z.array(atom).max(MAX_AWARD_GRANT_TARGETS).optional();
@@ -64,53 +57,19 @@ export type AdminUpdateAwardDefinitionGrantsResult = z.infer<
 >;
 
 export const AwardGroupSchema = z
-  .object({ groupType: awardGroupTypeSchema, groupId: documentIdSegmentSchema })
+  .object({ groupType: z.enum(AWARD_GROUP_TYPE_KEYS), groupId: documentIdSegmentSchema })
   .strict();
 export type AwardGroup = z.infer<typeof AwardGroupSchema>;
 
-export const AdminUpdateAwardGroupGrantInputSchema = z
-  .object({ awardId: awardIdSchema, action: awardGroupGrantActionSchema, group: AwardGroupSchema })
-  .strict();
-export type AdminUpdateAwardGroupGrantInput = z.infer<typeof AdminUpdateAwardGroupGrantInputSchema>;
-
-export const AwardGroupGrantProgressSchema = z
-  .object({
-    grantId: z.string().min(1),
-    action: awardGroupGrantActionSchema,
-    decision: awardGroupGrantDecisionSchema,
-    status: awardGroupGrantStatusSchema,
-    peopleReached: countSchema,
-    attemptCount: countSchema,
-    lastError: z.string().nullable(),
-    createdAt: epochMsSchema,
-    completedAt: epochMsSchema.nullable(),
-  })
-  .strict();
-export type AwardGroupGrantProgress = z.infer<typeof AwardGroupGrantProgressSchema>;
-
-export const AdminUpdateAwardGroupGrantResultSchema = z
-  .object({
-    awardId: awardIdSchema,
-    opened: z.boolean(),
-    grant: AwardGroupGrantProgressSchema.nullable(),
-  })
-  .strict();
-export type AdminUpdateAwardGroupGrantResult = z.infer<
-  typeof AdminUpdateAwardGroupGrantResultSchema
->;
-
-export const AdminGetAwardGroupGrantStatusInputSchema = z
+export const AwardGroupTargetInputSchema = z
   .object({ awardId: awardIdSchema, group: AwardGroupSchema })
   .strict();
-export type AdminGetAwardGroupGrantStatusInput = z.infer<
-  typeof AdminGetAwardGroupGrantStatusInputSchema
->;
-export const AdminGetAwardGroupGrantStatusResultSchema = z
-  .object({ grant: AwardGroupGrantProgressSchema.nullable() })
+export type AwardGroupTargetInput = z.infer<typeof AwardGroupTargetInputSchema>;
+
+export const AwardGroupChangeResultSchema = z
+  .object({ awardId: awardIdSchema, changedCount: countSchema })
   .strict();
-export type AdminGetAwardGroupGrantStatusResult = z.infer<
-  typeof AdminGetAwardGroupGrantStatusResultSchema
->;
+export type AwardGroupChangeResult = z.infer<typeof AwardGroupChangeResultSchema>;
 
 export const AdminDeleteAwardDefinitionInputSchema = z.object({ awardId: awardIdSchema }).strict();
 export type AdminDeleteAwardDefinitionInput = z.infer<typeof AdminDeleteAwardDefinitionInputSchema>;

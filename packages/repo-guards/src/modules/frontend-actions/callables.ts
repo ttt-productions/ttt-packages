@@ -601,11 +601,30 @@ export interface DoubleSurfaceFacts {
 
 type ToastingHooks = ReadonlyMap<string, string>;
 
+export interface WrappingHook {
+  file: string;
+  answerCalls: readonly string[];
+}
+
+const ANSWER_VALUE = new RegExp(
+  `\\b${ANSWER_OPTION}\\s*:\\s*((?:\\([^)]*\\)|[\\w$]+)\\s*=>\\s*[^,}\\n]+|[\\w$]+)`,
+);
+
+// The functions an `isAnswerSurfacedByCaller` value calls: the named predicate itself, or each
+// call inside an arrow's body.
+export function answerPredicateCalls(args: string): string[] {
+  const value = ANSWER_VALUE.exec(args)?.[1];
+  if (!value) return [];
+  const arrow = value.indexOf('=>');
+  if (arrow < 0) return [value];
+  return [...value.slice(arrow + 2).matchAll(/([\w$]+)\s*\(/g)].map((m) => m[1]!);
+}
+
 export function wrappingHooks(
   files: ReadonlyArray<{ path: string; code: string }>,
   declared: ToastingHooks,
-): Map<string, string> {
-  const hooks = new Map<string, string>();
+): Map<string, WrappingHook> {
+  const hooks = new Map<string, WrappingHook>();
   const names = new Set(declared.keys());
   for (const file of files) {
     for (const block of exportBlocks(file.code)) {
@@ -613,8 +632,14 @@ export function wrappingHooks(
         block.text,
       )?.[1];
       if (!name || names.has(name)) continue;
-      if (hookBindings(block.text, names).some((b) => toastIsOn(b.args, file.code)))
-        hooks.set(name, file.path);
+      const toastingBindings = hookBindings(block.text, names).filter((b) =>
+        toastIsOn(b.args, file.code),
+      );
+      if (toastingBindings.length)
+        hooks.set(name, {
+          file: file.path,
+          answerCalls: [...new Set(toastingBindings.flatMap((b) => answerPredicateCalls(b.args)))],
+        });
     }
   }
   return hooks;
@@ -623,7 +648,7 @@ export function wrappingHooks(
 export function doubleSurfaces(
   file: FileView,
   toasting: ToastingHooks,
-  wrappers: ToastingHooks,
+  wrappers: ReadonlyMap<string, WrappingHook>,
   facts: Pick<DoubleSurfaceFacts, 'toastCall' | 'nonCallableLegGuards' | 'appImportPrefixes'>,
 ): Array<{ index: number; detail: string }> {
   const code = file.code;
@@ -634,8 +659,8 @@ export function doubleSurfaces(
     if (fromApp) for (const name of site.named) imported.add(name.local);
   }
   const visible = new Map<string, string>(toasting);
-  for (const [hook, origin] of wrappers)
-    if (origin !== file.path && imported.has(hook)) visible.set(hook, origin);
+  for (const [hook, wrapper] of wrappers)
+    if (wrapper.file !== file.path && imported.has(hook)) visible.set(hook, wrapper.file);
   const toast = new RegExp(`\\b${escapeRegExp(facts.toastCall)}\\s*\\(`);
   const out: Array<{ index: number; detail: string }> = [];
   const seen = new Set<string>();
@@ -646,10 +671,13 @@ export function doubleSurfaces(
   };
   for (const binding of hookBindings(code, new Set(visible.keys()))) {
     if (!wrappers.has(binding.hook) && !toastIsOn(binding.args, code)) continue;
-    const answer = new RegExp(`\\b${ANSWER_OPTION}\\s*:\\s*([\\w$]+)`).exec(binding.args)?.[1];
+    const answers = [
+      ...answerPredicateCalls(binding.args),
+      ...(wrappers.get(binding.hook)?.answerCalls ?? []),
+    ];
     const gated = (text: string) =>
       facts.nonCallableLegGuards.some((g) => new RegExp(`\\b${escapeRegExp(g)}\\b`).test(text)) ||
-      (!!answer && new RegExp(`\\b${escapeRegExp(answer)}\\s*\\(`).test(text));
+      answers.some((answer) => new RegExp(`\\b${escapeRegExp(answer)}\\s*\\(`).test(text));
     const surfaces = (handler: string) => toast.test(handler) && !gated(handler);
     const who = `${binding.name} (${binding.hook}, ${visible.get(binding.hook)})`;
     if (handlersFor(binding.args, 'onError').some(surfaces))
@@ -696,7 +724,7 @@ export const doubleSurfaceGuard: GenericGuardDefinition<DoubleSurfaceFacts> = {
           'its mutate call, not a catch around it, and not the onError of a mutation that calls it. Fix one of: pass ' +
           `\`{ ${TOAST_OPTION}: false }\` and own the only surface; drop the local toast (an empty catch keeps any ` +
           'finally reset); or gate the local toast on a predicate that sees only the leg the shared toast cannot ' +
-          `(${facts.nonCallableLegGuards.join(', ')}), or on the predicate the call site hands \`${ANSWER_OPTION}\`, ` +
+          `(${facts.nonCallableLegGuards.join(', ')}), or on the predicate the call site — or the app hook it calls — hands \`${ANSWER_OPTION}\`, ` +
           "which makes the caller that answer's only surface.",
         run(context) {
           const { declared, findings } = readDeclarations(context, facts.declarations);

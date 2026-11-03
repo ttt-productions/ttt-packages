@@ -121,15 +121,6 @@ export type FeaturedAwardSlot = (typeof FEATURED_AWARD_SLOT_KEYS)[number];
 export const AWARD_GROUP_TYPE_KEYS = ['team', 'league'] as const;
 export type AwardGroupType = (typeof AWARD_GROUP_TYPE_KEYS)[number];
 
-export const AWARD_GROUP_GRANT_ACTION_KEYS = ['grant', 'revoke'] as const;
-export type AwardGroupGrantAction = (typeof AWARD_GROUP_GRANT_ACTION_KEYS)[number];
-
-export const AWARD_GROUP_GRANT_STATUS_KEYS = ['pending', 'complete'] as const;
-export type AwardGroupGrantStatus = (typeof AWARD_GROUP_GRANT_STATUS_KEYS)[number];
-
-export const AWARD_GROUP_REVOKE_SKIP_KEYS = ['heldBefore', 'heldByAnotherGrant'] as const;
-export type AwardGroupRevokeSkip = (typeof AWARD_GROUP_REVOKE_SKIP_KEYS)[number];
-
 export const PENDING_HARDWARE_LOAN_CONTRACT_STATUS =
   'pending' as const satisfies HardwareLoanContractStatus;
 export const LOANED_HARDWARE_LOAN_CONTRACT_STATUS =

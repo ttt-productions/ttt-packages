@@ -23,7 +23,6 @@ export * from './waivers-and-hardware.js';
 export * from './signature-copy-intent.js';
 export * from './game-location.js';
 export * from './catalogs.js';
-export * from './award-group-grant.js';
 export * from './system.js';
 export * from './admin-notifications.js';
 export * from './migration-console.js';

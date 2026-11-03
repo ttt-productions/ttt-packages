@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS } from '../src/constants/sports.js';
 import { GameRepairChangesSchema } from '../src/schemas/stats.js';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 
 describe("a game repair's round-slot evidence", () => {
   const changes = (roundSlots?: unknown) => ({
@@ -51,11 +50,5 @@ describe("a game repair's round-slot evidence", () => {
     expect(
       GameRepairChangesSchema.safeParse(changes([...everySlotOfTwoLines, slot(0, 1, 2)])).success,
     ).toBe(false);
-  });
-});
-
-describe('the group award decision event', () => {
-  it('is an audit event type', () => {
-    expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain('award.groupDecisionOpened');
   });
 });

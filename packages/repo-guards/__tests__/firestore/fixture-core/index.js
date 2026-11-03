@@ -12,7 +12,6 @@ export const COLLECTIONS = Object.freeze({
   TEAM_INVITATIONS: 'teamInvitations',
   TEAM_JOIN_REQUESTS: 'teamJoinRequests',
   LEAGUE_FREE_AGENTS: 'leagueFreeAgents',
-  MEMBERSHIP_ROSTER_SYNCS: 'membershipRosterSyncs',
   SPORT_GAMES: 'sportGames',
   GAME_LOCATIONS: 'gameLocations',
   WAIVER_TEMPLATES: 'waiverTemplates',
@@ -121,11 +120,6 @@ export const PATH_BUILDERS = Object.freeze({
     /** @type {string} */ a1,
     /** @type {string} */ a2,
   ) => ['teamMemberships', `${a0}_${a1}_${a2}`],
-  membershipRosterSync: (
-    /** @type {string} */ a0,
-    /** @type {string} */ a1,
-    /** @type {string} */ a2,
-  ) => ['membershipRosterSyncs', `${a0}_${a1}_${a2}`],
   teamInvitation: (/** @type {string} */ a0) => ['teamInvitations', a0],
   teamJoinRequest: (/** @type {string} */ a0) => ['teamJoinRequests', a0],
   leagueFreeAgent: (/** @type {string} */ a0, /** @type {string} */ a1) => [
@@ -202,7 +196,6 @@ export const COLLECTION_REFS = Object.freeze({
   teamInvitations: () => ['teamInvitations'],
   teamJoinRequests: () => ['teamJoinRequests'],
   leagueFreeAgents: () => ['leagueFreeAgents'],
-  membershipRosterSyncs: () => ['membershipRosterSyncs'],
   sportGames: () => ['sportGames'],
   gameLocations: () => ['gameLocations'],
   waiverTemplates: () => ['waiverTemplates'],

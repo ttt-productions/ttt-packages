@@ -642,6 +642,41 @@ describe('one surface per callable rejection', () => {
     ]);
   });
 
+  it("passes a catch gated on the answer predicate an app hook hands its declared hook, and flags one that isn't", async () => {
+    const hooks = lines(
+      "import { useSaveThing } from '@/lib/remote';",
+      'export function useRemoveFlow() {',
+      '  const remove = useSaveThing({ isAnswerSurfacedByCaller: (error) => removeRefusal(error) !== null });',
+      '  return remove;',
+      '}',
+      'export function useNamedFlow() {',
+      '  const named = useSaveThing({ isAnswerSurfacedByCaller: isBusy });',
+      '  return named;',
+      '}',
+    );
+    const card = lines(
+      "import { useNamedFlow, useRemoveFlow } from '@/hooks/use-remove';",
+      'function Card() {',
+      '  const remove = useRemoveFlow();',
+      '  const named = useNamedFlow();',
+      '  const run = async () => {',
+      "    try { await remove.mutateAsync({}); } catch (e) { if (removeRefusal(e) !== null) toast({ title: 'Played' }); throw e; }",
+      "    try { await named.mutateAsync({}); } catch (e) { if (isBusy(e)) toast({ title: 'Busy' }); }",
+      "    try { await remove.mutateAsync({}); } catch { toast({ title: 'Failed' }); }",
+      '  };',
+      '}',
+    );
+    expect(
+      await findingsOf(doubleSurfaceGuard, facts, {
+        ...base,
+        'src/hooks/use-remove.ts': hooks,
+        'src/components/card.tsx': card,
+      }),
+    ).toEqual([
+      'src/components/card.tsx:8 remove (useRemoveFlow, src/hooks/use-remove.ts) toasts again in a catch',
+    ]);
+  });
+
   it('treats call-site options it cannot see as keeping the toast on', async () => {
     expect(
       await view(

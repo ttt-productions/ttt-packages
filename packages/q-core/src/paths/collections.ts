@@ -23,7 +23,6 @@ export const COLLECTIONS = {
   SIGNATURE_COPY_INTENTS: 'signatureCopyIntents',
 
   AWARD_DEFINITIONS: 'awardDefinitions',
-  AWARD_GROUP_GRANTS: 'awardGroupGrants',
   SPORT_HALL_OF_FAME: 'sportHallOfFame',
   STATS_VALIDATION_REPORTS: 'statsValidationReports',
   STATS_JOBS: 'statsJobs',
@@ -61,10 +60,6 @@ export const SPORT_GAME_SUBCOLLECTIONS = {
 
 export const WAIVER_TEMPLATE_SUBCOLLECTIONS = {
   WAIVER_TEMPLATE_VERSIONS: 'waiverTemplateVersions',
-} as const;
-
-export const AWARD_GROUP_GRANT_SUBCOLLECTIONS = {
-  AWARD_GROUP_GRANT_PEOPLE: 'awardGroupGrantPeople',
 } as const;
 
 export const SPECIAL_DOCS = {

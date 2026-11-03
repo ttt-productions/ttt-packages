@@ -20,7 +20,6 @@ export const COLLECTION_REFS = {
   hardwareLoanContracts: (): [string] => [COLLECTIONS.HARDWARE_LOAN_CONTRACTS],
   signatureCopyIntents: (): [string] => [COLLECTIONS.SIGNATURE_COPY_INTENTS],
   awardDefinitions: (): [string] => [COLLECTIONS.AWARD_DEFINITIONS],
-  awardGroupGrants: (): [string] => [COLLECTIONS.AWARD_GROUP_GRANTS],
   statsValidationReports: (): [string] => [COLLECTIONS.STATS_VALIDATION_REPORTS],
   statsJobs: (): [string] => [COLLECTIONS.STATS_JOBS],
   migrationActionRuns: (): [string] => [COLLECTIONS.MIGRATION_ACTION_RUNS],

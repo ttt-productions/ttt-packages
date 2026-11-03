@@ -32,7 +32,6 @@ export const MIN_AWARD_NAME_LENGTH = 3;
 export const MAX_AWARD_NAME_LENGTH = 60;
 
 export const MAX_AWARD_GRANT_TARGETS = 20;
-export const AWARD_GROUP_GRANT_PAGE_SIZE = 100;
 
 export const MIN_REPAIR_REASON_LENGTH = 3;
 export const MAX_REPAIR_REASON_LENGTH = 500;
@@ -86,12 +85,11 @@ export const gameSideFullMessage = (gameLabel: string): string =>
   countCapReachedMessage(gameLabel, MAX_ROSTER_ENTRIES_PER_TEAM, "people on this team's side");
 export const gameSideDepartedFullMessage = (gameLabel: string): string =>
   `${gameLabel} already keeps the ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} players a side may hold after they leave the team with stats in it. Finalize that game, or take this player's stats off it, first.`;
-export const GAME_HAS_RECORDED_STATS_DELETE_MESSAGE =
-  'This game has recorded stats, so it cannot be deleted.';
-export const WEEK_HAS_RECORDED_STATS_DELETE_LEAD =
-  'This week has games with recorded stats, which cannot be deleted:';
-export const weekHasRecordedStatsDeleteMessage = (games: readonly string[]): string =>
-  `${WEEK_HAS_RECORDED_STATS_DELETE_LEAD} ${games.join('; ')}.`;
+export const GAME_COMPLETED_DELETE_MESSAGE = 'This game is completed, so it cannot be deleted.';
+export const WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD =
+  'This week has completed games, which cannot be deleted:';
+export const weekHasCompletedGamesDeleteMessage = (games: readonly string[]): string =>
+  `${WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD} ${games.join('; ')}.`;
 
 export const MAX_TEAMS_PER_LEAGUE = 40;
 export const MAX_GAMES_PER_LEAGUE = 250;

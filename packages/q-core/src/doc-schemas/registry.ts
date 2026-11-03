@@ -7,7 +7,6 @@ import {
   NotificationDeliverySchema,
 } from './admin-notifications.js';
 import { AwardDefinitionSchema } from './catalogs.js';
-import { AwardGroupGrantPersonSchema, AwardGroupGrantSchema } from './award-group-grant.js';
 import { GameLocationRegistrySchema, GameLocationSchema } from './game-location.js';
 import { GalleryPictureSchema } from './gallery.js';
 import { PendingMediaSchema } from './pending-media.js';
@@ -78,8 +77,6 @@ export const COLLECTION_SCHEMAS = {
   'signatureCopyIntents/{stagingId}': SignatureCopyIntentSchema,
 
   'awardDefinitions/{awardId}': AwardDefinitionSchema,
-  'awardGroupGrants/{grantId}': AwardGroupGrantSchema,
-  'awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}': AwardGroupGrantPersonSchema,
   'sportHallOfFame/{sportKey}': SportHallOfFameSchema,
   'statsValidationReports/{reportId}': StatsValidationReportSchema,
   'statsJobs/{jobId}': StatsJobSchema,
@@ -119,8 +116,6 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'notificationDeliveries/{deliveryId}': 'deliveryId',
   'notificationArchiveAllJobs/{jobId}': 'jobId',
   'statsJobs/{jobId}': 'jobId',
-  'awardGroupGrants/{grantId}': 'grantId',
-  'awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}': 'userId',
   'migrationActionRuns/{actionId}': 'actionId',
   'signatureCopyIntents/{stagingId}': 'stagingId',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;

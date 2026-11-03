@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  AWARD_GROUP_GRANT_PAGE_SIZE,
   CAPACITY_LIMITS,
   GAME_LOCATIONS_FULL_MESSAGE,
   MAX_OFFERED_WAIVER_TEMPLATES,
@@ -20,15 +19,15 @@ import {
   MAX_STAT_EVENTS_PER_GAME,
   MAX_TEAMS_PER_LEAGUE,
   SCHEDULE_WEEK_FULL_MESSAGE,
-  GAME_HAS_RECORDED_STATS_DELETE_MESSAGE,
+  GAME_COMPLETED_DELETE_MESSAGE,
   TEAM_FULL_MESSAGE,
-  WEEK_HAS_RECORDED_STATS_DELETE_LEAD,
+  WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD,
   countCapReachedMessage,
   gameRosterBound,
   gameSideDepartedFullMessage,
   gameSideFullMessage,
   scheduledGameLabel,
-  weekHasRecordedStatsDeleteMessage,
+  weekHasCompletedGamesDeleteMessage,
 } from '../src/constants/business.js';
 import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location.js';
 import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template.js';
@@ -63,17 +62,18 @@ describe('a team holds at most 30 players, ghost players included', () => {
     );
   });
 
-  it("refuses to delete a game, or a week, holding recorded stats, naming the week's games", () => {
-    expect(GAME_HAS_RECORDED_STATS_DELETE_MESSAGE).toBe(
-      'This game has recorded stats, so it cannot be deleted.',
-    );
+  it("refuses to delete a completed game, or a week holding one, naming the week's completed games", () => {
+    expect(GAME_COMPLETED_DELETE_MESSAGE).toBe('This game is completed, so it cannot be deleted.');
     expect(
-      weekHasRecordedStatsDeleteMessage(['Hoopers vs Dunkers (2026-03-04)', 'A vs B (2026-03-05)']),
+      weekHasCompletedGamesDeleteMessage([
+        'Hoopers vs Dunkers (2026-03-04)',
+        'A vs B (2026-03-05)',
+      ]),
     ).toBe(
-      'This week has games with recorded stats, which cannot be deleted: Hoopers vs Dunkers (2026-03-04); A vs B (2026-03-05).',
+      'This week has completed games, which cannot be deleted: Hoopers vs Dunkers (2026-03-04); A vs B (2026-03-05).',
     );
     expect(
-      weekHasRecordedStatsDeleteMessage(['x']).startsWith(WEEK_HAS_RECORDED_STATS_DELETE_LEAD),
+      weekHasCompletedGamesDeleteMessage(['x']).startsWith(WEEK_HAS_COMPLETED_GAMES_DELETE_LEAD),
     ).toBe(true);
   });
 
@@ -160,16 +160,6 @@ describe('Q-Sports offers leagues at most 30 waiver templates', () => {
     expect(WaiverTemplateRegistrySchema.parse({ templateRevision: 2, count: 2 })).toEqual({
       templateRevision: 2,
     });
-  });
-});
-
-describe('a group award grant page', () => {
-  it('commits within one transaction: four writes a person beside the grant record', () => {
-    expect(AWARD_GROUP_GRANT_PAGE_SIZE * 4 + 1).toBeLessThanOrEqual(TRANSACTION_WRITES);
-  });
-
-  it('reaches a whole team in one page', () => {
-    expect(AWARD_GROUP_GRANT_PAGE_SIZE).toBeGreaterThanOrEqual(MAX_ACTIVE_TEAM_MEMBERS);
   });
 });
 
