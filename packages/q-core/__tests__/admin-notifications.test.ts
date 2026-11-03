@@ -641,7 +641,7 @@ describe('the dead-letter repair contracts', () => {
     ).toBe(false);
   });
 
-  it('replays one dead-lettered delivery row, named by its lane and id, for a reason the admin gives (RULE-STD-BACKEND-212)', () => {
+  it('replays one dead-lettered delivery row, named by its lane and id, for a reason the admin gives', () => {
     const input = {
       collection: 'notificationDeliveries',
       docId: deliveryId,

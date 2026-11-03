@@ -206,12 +206,13 @@ shared copy, in `@ttt-productions/dev-standards`, that every repo reads.
   work or review — it proposes them to DJ — how many, each one's tier, its exact task, and its
   files — and launches them only on his yes. Launching agents, a predefined wave included, never makes it an orchestrator; it
   still runs its own Normal Test Flow.
-- **Orchestrator:** the session saves its context for managing agents and does not read or edit code
-  itself. It first launches read-only agents to understand the system, then gives each building
-  agent the high-level picture and the design: build this, this way. An agent that finds a better or
-  different way stops and comes back instead of building it. Agents run in waves of a few at a time,
-  each owning its files, no file owned twice. LOW agents never decide; they apply the examples the
-  HIGH session gives them.
+- **Orchestrator:** the session keeps its context for the whole project and never edits code itself;
+  it reads code only to check work against DJ's decisions. Its pieces are agents or conversations DJ
+  works in, and how it runs them, briefs them and checks what comes back is
+  `<DEV_STANDARDS>/workflows/claude/orchestrate-a-project.md`. Every piece gets the high-level picture
+  and the design: build this, this way. A piece that finds a better or different way stops and comes
+  back instead of building it. Agents run in waves of a few at a time, each owning its files, no file
+  owned twice. LOW agents never decide; they apply the examples the HIGH session gives them.
 - The main session owns edits unless DJ explicitly approves parallel implementers with disjoint file
   ownership. Nothing spawns without DJ's yes.
 - Every prompt that spawns an agent names that agent's mandatory reading as explicit
