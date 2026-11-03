@@ -78,13 +78,13 @@ export const StatEventSubmissionSchema = z.discriminatedUnion('type', [
 ]);
 export type StatEventSubmission = z.infer<typeof StatEventSubmissionSchema>;
 
-export const RecordGameStatEventsInputSchema = z
+export const CreateGameStatEventInputSchema = z
   .object({
     gameId: gameIdSchema,
     events: z.array(StatEventSubmissionSchema).min(1).max(MAX_STAT_EVENTS_PER_WRITE),
   })
   .strict();
-export type RecordGameStatEventsInput = z.infer<typeof RecordGameStatEventsInputSchema>;
+export type CreateGameStatEventInput = z.infer<typeof CreateGameStatEventInputSchema>;
 
 export const RecordedStatEventSchema = z
   .object({
@@ -95,13 +95,13 @@ export const RecordedStatEventSchema = z
   .strict();
 export type RecordedStatEvent = z.infer<typeof RecordedStatEventSchema>;
 
-export const RecordGameStatEventsResultSchema = z
+export const CreateGameStatEventResultSchema = z
   .object({
     gameId: gameIdSchema,
     events: z.array(RecordedStatEventSchema),
   })
   .strict();
-export type RecordGameStatEventsResult = z.infer<typeof RecordGameStatEventsResultSchema>;
+export type CreateGameStatEventResult = z.infer<typeof CreateGameStatEventResultSchema>;
 
 export const StatEventRefusalDetailsSchema = z
   .object({
@@ -111,16 +111,18 @@ export const StatEventRefusalDetailsSchema = z
   .strict();
 export type StatEventRefusalDetails = z.infer<typeof StatEventRefusalDetailsSchema>;
 
-export const UpdateGameAbsentPlayersInputSchema = z
+export const UpdateSportGameAbsentPlayersInputSchema = z
   .object({
     gameId: gameIdSchema,
     gameRosterPlayerId: gameRosterPlayerIdSchema,
     absent: z.boolean(),
   })
   .strict();
-export type UpdateGameAbsentPlayersInput = z.infer<typeof UpdateGameAbsentPlayersInputSchema>;
+export type UpdateSportGameAbsentPlayersInput = z.infer<
+  typeof UpdateSportGameAbsentPlayersInputSchema
+>;
 
-export const UpdateGameAbsentPlayersResultSchema = z
+export const UpdateSportGameAbsentPlayersResultSchema = z
   .object({
     gameId: gameIdSchema,
     gameRosterPlayerId: gameRosterPlayerIdSchema,
@@ -128,20 +130,22 @@ export const UpdateGameAbsentPlayersResultSchema = z
     changed: z.boolean(),
   })
   .strict();
-export type UpdateGameAbsentPlayersResult = z.infer<typeof UpdateGameAbsentPlayersResultSchema>;
+export type UpdateSportGameAbsentPlayersResult = z.infer<
+  typeof UpdateSportGameAbsentPlayersResultSchema
+>;
 
 export const gameMemoSchema = textFieldSchema(GAME_MEMO_INPUT);
 
-export const UpdateGameMemoInputSchema = z
+export const UpdateSportGameMemoInputSchema = z
   .object({
     gameId: gameIdSchema,
     userId: userIdSchema,
     memo: gameMemoSchema,
   })
   .strict();
-export type UpdateGameMemoInput = z.infer<typeof UpdateGameMemoInputSchema>;
+export type UpdateSportGameMemoInput = z.infer<typeof UpdateSportGameMemoInputSchema>;
 
-export const UpdateGameMemoResultSchema = z
+export const UpdateSportGameMemoResultSchema = z
   .object({
     gameId: gameIdSchema,
     userId: userIdSchema,
@@ -149,21 +153,21 @@ export const UpdateGameMemoResultSchema = z
     changed: z.boolean(),
   })
   .strict();
-export type UpdateGameMemoResult = z.infer<typeof UpdateGameMemoResultSchema>;
+export type UpdateSportGameMemoResult = z.infer<typeof UpdateSportGameMemoResultSchema>;
 
-export const UpdateGameJumpBallInputSchema = z
+export const UpdateSportGameJumpBallInputSchema = z
   .object({
     gameId: gameIdSchema,
     teamId: teamIdSchema,
   })
   .strict();
-export type UpdateGameJumpBallInput = z.infer<typeof UpdateGameJumpBallInputSchema>;
+export type UpdateSportGameJumpBallInput = z.infer<typeof UpdateSportGameJumpBallInputSchema>;
 
-export const UpdateGameJumpBallResultSchema = z
+export const UpdateSportGameJumpBallResultSchema = z
   .object({
     gameId: gameIdSchema,
     teamId: teamIdSchema,
     changed: z.boolean(),
   })
   .strict();
-export type UpdateGameJumpBallResult = z.infer<typeof UpdateGameJumpBallResultSchema>;
+export type UpdateSportGameJumpBallResult = z.infer<typeof UpdateSportGameJumpBallResultSchema>;

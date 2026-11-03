@@ -78,18 +78,20 @@ export const DeleteLeagueFreeAgentResultSchema = z
   .strict();
 export type DeleteLeagueFreeAgentResult = z.infer<typeof DeleteLeagueFreeAgentResultSchema>;
 
-export const AdminAssignLeagueFreeAgentInputSchema = z
+export const AdminDeleteLeagueFreeAgentAssignInputSchema = z
   .object({ leagueId: leagueIdSchema, userId: userIdSchema, teamId: teamIdSchema })
   .strict();
-export type AdminAssignLeagueFreeAgentInput = z.infer<typeof AdminAssignLeagueFreeAgentInputSchema>;
+export type AdminDeleteLeagueFreeAgentAssignInput = z.infer<
+  typeof AdminDeleteLeagueFreeAgentAssignInputSchema
+>;
 
-export const AdminAssignLeagueFreeAgentResultSchema = z
+export const AdminDeleteLeagueFreeAgentAssignResultSchema = z
   .object({
     leagueId: leagueIdSchema,
     teamId: teamIdSchema,
     userId: userIdSchema,
   })
   .strict();
-export type AdminAssignLeagueFreeAgentResult = z.infer<
-  typeof AdminAssignLeagueFreeAgentResultSchema
+export type AdminDeleteLeagueFreeAgentAssignResult = z.infer<
+  typeof AdminDeleteLeagueFreeAgentAssignResultSchema
 >;

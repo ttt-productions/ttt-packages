@@ -10,7 +10,7 @@ import {
 } from '../constants/text-fields.js';
 import { AppConfigSchema } from '../doc-schemas/system.js';
 
-export const UpdateAppConfigInputSchema = z
+export const AdminUpdateAppConfigInputSchema = z
   .object({
     appVersion: textFieldSchema(APP_VERSION_INPUT).optional(),
     maintenanceMode: z.boolean().optional(),
@@ -22,12 +22,12 @@ export const UpdateAppConfigInputSchema = z
   .refine((input) => Object.values(input).some((value) => value !== undefined), {
     message: 'Change at least one setting.',
   });
-export type UpdateAppConfigInput = z.infer<typeof UpdateAppConfigInputSchema>;
+export type AdminUpdateAppConfigInput = z.infer<typeof AdminUpdateAppConfigInputSchema>;
 
-export const UpdateAppConfigResultSchema = z
+export const AdminUpdateAppConfigResultSchema = z
   .object({ updatedFields: z.array(AppConfigSchema.keyof()) })
   .strict();
-export type UpdateAppConfigResult = z.infer<typeof UpdateAppConfigResultSchema>;
+export type AdminUpdateAppConfigResult = z.infer<typeof AdminUpdateAppConfigResultSchema>;
 
 export const AdminUpdateLandingPageInputSchema = z
   .object({

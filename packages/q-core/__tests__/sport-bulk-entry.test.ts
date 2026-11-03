@@ -12,7 +12,7 @@ import { type GameStats } from '../src/doc-schemas/sport-game.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import { buildStatEventId } from '../src/ids/stat-event-ids.js';
 import {
-  RecordGameStatEventsInputSchema,
+  CreateGameStatEventInputSchema,
   type StatEventSubmission,
 } from '../src/schemas/scoring.js';
 import {
@@ -297,7 +297,7 @@ describe('basketball bulk entry — one row per roster entry', () => {
     const drafts = bulkEntry.toEvents(entered, context);
     expect(drafts.length).toBeGreaterThan(MAX_STAT_EVENTS_PER_WRITE);
     expect(
-      RecordGameStatEventsInputSchema.safeParse({
+      CreateGameStatEventInputSchema.safeParse({
         gameId: 'g1',
         events: drafts.map((draft, index) => ({
           ...draft,
@@ -447,7 +447,7 @@ describe('curling bulk entry — one row per round', () => {
           .success,
       ).toBe(false);
       expect(
-        RecordGameStatEventsInputSchema.safeParse({
+        CreateGameStatEventInputSchema.safeParse({
           gameId: 'g1',
           events: [
             {

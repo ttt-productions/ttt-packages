@@ -25,10 +25,10 @@ import {
   MigrationConsoleSchema,
   migrationActionIdSchema,
 } from '../src/doc-schemas/migration-console.js';
-import { AdminResolveUnrosteredStatLineInputSchema } from '../src/schemas/stats.js';
+import { AdminCreateGameRosterPlayerInputSchema } from '../src/schemas/stats.js';
 import {
-  RecordMigrationCheckpointInputSchema,
-  RecordMigrationControlRunInputSchema,
+  UpdateMigrationActionRunCheckpointInputSchema,
+  UpdateMigrationActionRunControlInputSchema,
   RunMigrationActionInputSchema,
 } from '../src/schemas/migration-console.js';
 
@@ -56,16 +56,20 @@ describe('the action ids', () => {
     expect(migrationActionIdSchema.safeParse('copy.everything').success).toBe(false);
   });
 
-  it('name the callable of an executable step as admin, its verb, and its object', () => {
+  it('name the callable of a paged step after the run record it updates, then its verb and object', () => {
     expect(migrationActionCallableName(MIGRATION_ACTION_IDS.copyUserProfiles)).toBe(
-      'adminCopyUserProfiles',
+      'adminUpdateMigrationActionRunCopyUserProfiles',
     );
     expect(migrationActionCallableName(MIGRATION_ACTION_IDS.deleteV1LeagueGames)).toBe(
-      'adminDeleteV1LeagueGames',
+      'adminUpdateMigrationActionRunDeleteV1LeagueGames',
     );
-    expect(migrationActionCallableName(MIGRATION_ACTION_IDS.resolveUnrosteredStatLine)).toBe(
-      'adminResolveUnrosteredStatLine',
+  });
+
+  it('name the unrostered-line fix after the roster entry it creates', () => {
+    const step = MIGRATION_CUTOVER_MANIFEST.find(
+      (s) => s.id === MIGRATION_ACTION_IDS.resolveUnrosteredStatLine,
     );
+    expect(step?.kind === 'executable' ? step.callable : null).toBe('adminCreateGameRosterPlayer');
   });
 
   it('give every executable step a callable name no other step shares', () => {
@@ -144,7 +148,7 @@ describe('RunMigrationActionInputSchema — one page of an action', () => {
 describe('the record inputs', () => {
   it('a control run names its action and its operations, with a reason', () => {
     expect(
-      RecordMigrationControlRunInputSchema.safeParse({
+      UpdateMigrationActionRunControlInputSchema.safeParse({
         actionId: MIGRATION_ACTION_IDS.rebuildLeagueStats,
         operationIds: ['rebuild-1'],
         reason: REASON,
@@ -154,7 +158,7 @@ describe('the record inputs', () => {
 
   it("a checkpoint carries the operator's evidence, never blank", () => {
     const evidence = (value: string) =>
-      RecordMigrationCheckpointInputSchema.safeParse({
+      UpdateMigrationActionRunCheckpointInputSchema.safeParse({
         actionId: MIGRATION_ACTION_IDS.checkpointV1FirestoreExport,
         evidence: value,
       });
@@ -165,9 +169,9 @@ describe('the record inputs', () => {
   it('the line resolution may be previewed', () => {
     const line = { gameId: 'g1', userId: 'u1', teamId: 't1', reason: REASON };
     expect(
-      AdminResolveUnrosteredStatLineInputSchema.safeParse({ ...line, dryRun: true }).success,
+      AdminCreateGameRosterPlayerInputSchema.safeParse({ ...line, dryRun: true }).success,
     ).toBe(true);
-    expect(AdminResolveUnrosteredStatLineInputSchema.safeParse(line).success).toBe(true);
+    expect(AdminCreateGameRosterPlayerInputSchema.safeParse(line).success).toBe(true);
   });
 });
 
@@ -246,7 +250,7 @@ describe("the console's audit vocabulary", () => {
   it('an action core records the documents it wrote and removed as its own event, committed with them', () => {
     const event = {
       id: 'a1',
-      type: 'migrationAction.writesCommitted',
+      type: 'migrationActionRun.writesCommitted',
       schemaVersion: 1,
       actor: { uid: 'uid-admin', isAdmin: true, actorMode: 'adminReview', systemRole: 'admin' },
       target: null,
@@ -265,9 +269,9 @@ describe("the console's audit vocabulary", () => {
       correlationId: null,
     };
     expect(AuditEventSchema.safeParse(event).success).toBe(true);
-    expect(AuditEventSchema.safeParse({ ...event, type: 'migrationAction.pageRun' }).success).toBe(
-      true,
-    );
+    expect(
+      AuditEventSchema.safeParse({ ...event, type: 'migrationActionRun.pageRun' }).success,
+    ).toBe(true);
   });
 });
 

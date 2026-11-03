@@ -10,7 +10,7 @@ import {
   isSportStatEventId,
 } from '../src/ids/stat-event-ids.js';
 import {
-  RecordGameStatEventsInputSchema,
+  CreateGameStatEventInputSchema,
   StatEventRefusalDetailsSchema,
   StatEventSubmissionSchema,
   type StatEventSubmission,
@@ -292,13 +292,13 @@ describe('the scoring write input', () => {
   it('carries 1 to the most events one write may hold, and refuses one more', () => {
     const accepted = Array.from({ length: MAX_STAT_EVENTS_PER_WRITE }, event);
     expect(
-      RecordGameStatEventsInputSchema.safeParse({ gameId: 'g1', events: accepted }).success,
+      CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: accepted }).success,
     ).toBe(true);
     expect(
-      RecordGameStatEventsInputSchema.safeParse({ gameId: 'g1', events: [...accepted, event()] })
+      CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: [...accepted, event()] })
         .success,
     ).toBe(false);
-    expect(RecordGameStatEventsInputSchema.safeParse({ gameId: 'g1', events: [] }).success).toBe(
+    expect(CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: [] }).success).toBe(
       false,
     );
   });
@@ -312,7 +312,7 @@ describe('the scoring write input', () => {
       { displayNameSnapshot: 'Old Name' },
     ]) {
       expect(
-        RecordGameStatEventsInputSchema.safeParse({
+        CreateGameStatEventInputSchema.safeParse({
           gameId: 'g1',
           events: [{ ...event(), ...smuggled }],
         }).success,
@@ -322,11 +322,11 @@ describe('the scoring write input', () => {
 
   it('requires the value the form showed on a bulk edit', () => {
     const edit = { ...event(), type: BASKETBALL_BULK_EDIT_EVENT_TYPE, stat: 'points', value: 2 };
+    expect(CreateGameStatEventInputSchema.safeParse({ gameId: 'g1', events: [edit] }).success).toBe(
+      false,
+    );
     expect(
-      RecordGameStatEventsInputSchema.safeParse({ gameId: 'g1', events: [edit] }).success,
-    ).toBe(false);
-    expect(
-      RecordGameStatEventsInputSchema.safeParse({
+      CreateGameStatEventInputSchema.safeParse({
         gameId: 'g1',
         events: [{ ...edit, previousValue: 0 }],
       }).success,
@@ -344,13 +344,13 @@ describe('the scoring write input', () => {
     ]) {
       expect(isSportStatEventId(id), id).toBe(false);
       expect(
-        RecordGameStatEventsInputSchema.safeParse({
+        CreateGameStatEventInputSchema.safeParse({
           gameId: 'g1',
           events: [{ ...event(), eventId: id }],
         }).success,
       ).toBe(false);
       expect(
-        RecordGameStatEventsInputSchema.safeParse({
+        CreateGameStatEventInputSchema.safeParse({
           gameId: 'g1',
           events: [{ type: STAT_VOID_EVENT_TYPE, targetEventId: id, recordedAt: NOW }],
         }).success,

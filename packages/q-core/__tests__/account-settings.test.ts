@@ -3,8 +3,8 @@ import { THEME_NAMES } from '@ttt-productions/theme-core';
 import { EMAIL_MAX_LENGTH, MAX_CONTACT_PHONE_LENGTH } from '../src/constants/business.js';
 import { UserPrivateDataSchema, themeNameSchema } from '../src/doc-schemas/user-profile.js';
 import {
-  UpdateAccountSettingsInputSchema,
-  UpdateAccountSettingsResultSchema,
+  UpdateUserProfileSettingsInputSchema,
+  UpdateUserProfileSettingsResultSchema,
 } from '../src/schemas/account-settings.js';
 
 const PRIVATE_DATA = { email: 'player@example.test', updatedAt: 1_700_000_000_000 };
@@ -70,48 +70,53 @@ describe('the account settings on privateData', () => {
   });
 });
 
-describe('UpdateAccountSettingsInputSchema', () => {
+describe('UpdateUserProfileSettingsInputSchema', () => {
   it('takes any one setting, as the settings sync saves one change at a time', () => {
-    expect(UpdateAccountSettingsInputSchema.safeParse({ theme: 'dark' }).success).toBe(true);
-    expect(UpdateAccountSettingsInputSchema.safeParse({ reducedMotion: false }).success).toBe(true);
+    expect(UpdateUserProfileSettingsInputSchema.safeParse({ theme: 'dark' }).success).toBe(true);
+    expect(UpdateUserProfileSettingsInputSchema.safeParse({ reducedMotion: false }).success).toBe(
+      true,
+    );
     expect(
-      UpdateAccountSettingsInputSchema.safeParse({ defaultContactPhone: '555-0100' }).success,
+      UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone: '555-0100' }).success,
     ).toBe(true);
   });
 
   it('takes several at once, as the compare prompt saves every differing setting together', () => {
     expect(
-      UpdateAccountSettingsInputSchema.safeParse({ theme: 'high-contrast', reducedMotion: true })
-        .success,
+      UpdateUserProfileSettingsInputSchema.safeParse({
+        theme: 'high-contrast',
+        reducedMotion: true,
+      }).success,
     ).toBe(true);
   });
 
   it('clears the default contact phone with null', () => {
-    expect(UpdateAccountSettingsInputSchema.safeParse({ defaultContactPhone: null }).success).toBe(
-      true,
-    );
+    expect(
+      UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone: null }).success,
+    ).toBe(true);
   });
 
   it('refuses a request that changes nothing', () => {
-    expect(UpdateAccountSettingsInputSchema.safeParse({}).success).toBe(false);
+    expect(UpdateUserProfileSettingsInputSchema.safeParse({}).success).toBe(false);
   });
 
   it('refuses a user id, an email, or any other unknown field — the caller only ever changes their own', () => {
     expect(
-      UpdateAccountSettingsInputSchema.safeParse({ theme: 'dark', userId: 'someone-else' }).success,
+      UpdateUserProfileSettingsInputSchema.safeParse({ theme: 'dark', userId: 'someone-else' })
+        .success,
     ).toBe(false);
-    expect(UpdateAccountSettingsInputSchema.safeParse({ email: 'x@example.test' }).success).toBe(
-      false,
-    );
+    expect(
+      UpdateUserProfileSettingsInputSchema.safeParse({ email: 'x@example.test' }).success,
+    ).toBe(false);
   });
 
   it('refuses a theme outside the set, a blank phone, and a phone over its cap', () => {
-    expect(UpdateAccountSettingsInputSchema.safeParse({ theme: 'sepia' }).success).toBe(false);
-    expect(UpdateAccountSettingsInputSchema.safeParse({ defaultContactPhone: '   ' }).success).toBe(
-      false,
-    );
+    expect(UpdateUserProfileSettingsInputSchema.safeParse({ theme: 'sepia' }).success).toBe(false);
     expect(
-      UpdateAccountSettingsInputSchema.safeParse({
+      UpdateUserProfileSettingsInputSchema.safeParse({ defaultContactPhone: '   ' }).success,
+    ).toBe(false);
+    expect(
+      UpdateUserProfileSettingsInputSchema.safeParse({
         defaultContactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),
       }).success,
     ).toBe(false);
@@ -119,7 +124,7 @@ describe('UpdateAccountSettingsInputSchema', () => {
 
   it('answers with every setting as committed, null where nothing is saved', () => {
     expect(
-      UpdateAccountSettingsResultSchema.safeParse({
+      UpdateUserProfileSettingsResultSchema.safeParse({
         theme: 'dark',
         reducedMotion: null,
         defaultContactPhone: null,
@@ -127,10 +132,10 @@ describe('UpdateAccountSettingsInputSchema', () => {
       }).success,
     ).toBe(true);
     expect(
-      UpdateAccountSettingsResultSchema.safeParse({ theme: 'dark', updatedAt: 5 }).success,
+      UpdateUserProfileSettingsResultSchema.safeParse({ theme: 'dark', updatedAt: 5 }).success,
     ).toBe(false);
     expect(
-      UpdateAccountSettingsResultSchema.safeParse({
+      UpdateUserProfileSettingsResultSchema.safeParse({
         theme: null,
         reducedMotion: null,
         defaultContactPhone: '5'.repeat(MAX_CONTACT_PHONE_LENGTH + 1),

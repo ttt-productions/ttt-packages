@@ -32,7 +32,7 @@ import { repairReasonSchema } from '../src/doc-schemas/atoms.js';
 import { BYE_TEAM_ID } from '../src/ids/minted-ids.js';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids.js';
 import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids.js';
-import { ReopenGameInputSchema } from '../src/schemas/stats.js';
+import { AdminUpdateSportGameReopenInputSchema } from '../src/schemas/stats.js';
 import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports.js';
 import type { StatsOperationKind } from '../src/types/stats.js';
 
@@ -584,7 +584,7 @@ describe('stats operations', () => {
   });
 
   it("a repair callable's reason field takes the one reason atom the repair is stored with", () => {
-    expect(ReopenGameInputSchema.shape.reason).toBe(repairReasonSchema);
+    expect(AdminUpdateSportGameReopenInputSchema.shape.reason).toBe(repairReasonSchema);
     expect(StatCorrectionEventSchema.shape.reason).toBe(repairReasonSchema);
     for (const option of StatsOperationSchema.options) {
       if (!('reason' in option.shape)) continue;

@@ -16,14 +16,14 @@ export const DEAD_LETTER_COLLECTION_LABELS: { readonly [K in DeadLetterCollectio
 
 export const MAX_DEAD_LETTERS_LISTED = 200;
 
-export const GetDeadLettersInputSchema = z
+export const AdminGetDeadLetterListInputSchema = z
   .object({
     collection: DeadLetterCollectionSchema.optional(),
     limit: z.number().int().min(1).max(MAX_DEAD_LETTERS_LISTED).optional(),
   })
   .strict()
   .nullish();
-export type GetDeadLettersInput = z.infer<typeof GetDeadLettersInputSchema>;
+export type AdminGetDeadLetterListInput = z.infer<typeof AdminGetDeadLetterListInputSchema>;
 
 export const DeadLetterRowSchema = z
   .object({
@@ -36,16 +36,16 @@ export const DeadLetterRowSchema = z
   .strict();
 export type DeadLetterRow = z.infer<typeof DeadLetterRowSchema>;
 
-export const GetDeadLettersResultSchema = z
+export const AdminGetDeadLetterListResultSchema = z
   .object({
     generatedAt: epochMsSchema,
     rows: z.array(DeadLetterRowSchema),
     truncated: z.boolean(),
   })
   .strict();
-export type GetDeadLettersResult = z.infer<typeof GetDeadLettersResultSchema>;
+export type AdminGetDeadLetterListResult = z.infer<typeof AdminGetDeadLetterListResultSchema>;
 
-export const AdminReplayDeadLetterInputSchema = z
+export const AdminUpdateDeadLetterReplayInputSchema = z
   .object({
     collection: DeadLetterCollectionSchema,
     docId: documentIdSegmentSchema,
@@ -53,9 +53,11 @@ export const AdminReplayDeadLetterInputSchema = z
     dryRun: z.boolean().optional(),
   })
   .strict();
-export type AdminReplayDeadLetterInput = z.infer<typeof AdminReplayDeadLetterInputSchema>;
+export type AdminUpdateDeadLetterReplayInput = z.infer<
+  typeof AdminUpdateDeadLetterReplayInputSchema
+>;
 
-export const AdminReplayDeadLetterResultSchema = z
+export const AdminUpdateDeadLetterReplayResultSchema = z
   .object({
     collection: DeadLetterCollectionSchema,
     docId: z.string().min(1),
@@ -66,4 +68,6 @@ export const AdminReplayDeadLetterResultSchema = z
     wouldResetTo: z.string().optional(),
   })
   .strict();
-export type AdminReplayDeadLetterResult = z.infer<typeof AdminReplayDeadLetterResultSchema>;
+export type AdminUpdateDeadLetterReplayResult = z.infer<
+  typeof AdminUpdateDeadLetterReplayResultSchema
+>;

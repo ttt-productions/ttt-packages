@@ -75,12 +75,12 @@ import {
 } from '../src/utils/text-field.js';
 import {
   AdminUpdateLandingPageInputSchema,
-  UpdateAppConfigInputSchema,
+  AdminUpdateAppConfigInputSchema,
 } from '../src/schemas/app-config.js';
 import {
   AdminUpdateLeagueTeamContactInputSchema,
   AdminUpdateLeagueTeamNameInputSchema,
-  CreateTeamGhostPlayerInputSchema,
+  CreateGhostPlayerInputSchema,
 } from '../src/schemas/teams.js';
 import {
   contactPhoneSchema,
@@ -304,21 +304,21 @@ describe("a person's display name, a ghost's included", () => {
 
   it("is the ghost add's name: a name split over two lines, or two characters once trimmed, is refused", () => {
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerInputSchema.safeParse({
         teamId: 't1',
         requestId: 'r1',
         displayName: 'Ghost\nOne',
       }).success,
     ).toBe(false);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerInputSchema.safeParse({
         teamId: 't1',
         requestId: 'r1',
         displayName: '  Jo  ',
       }).success,
     ).toBe(false);
     expect(
-      CreateTeamGhostPlayerInputSchema.parse({
+      CreateGhostPlayerInputSchema.parse({
         teamId: 't1',
         requestId: 'r1',
         displayName: '  Ghost One  ',
@@ -545,7 +545,7 @@ describe("the admin forms' text fields", () => {
   };
   const lever =
     (key: 'maintenanceMessage' | 'announcementMessage' | 'appVersion') => (text: string) => {
-      const parsed = UpdateAppConfigInputSchema.safeParse({ [key]: text });
+      const parsed = AdminUpdateAppConfigInputSchema.safeParse({ [key]: text });
       return parsed.success
         ? { success: true as const, data: parsed.data[key] }
         : { success: false as const };

@@ -214,15 +214,17 @@ describe('domain events', () => {
         ids: { leagueId: 'L', gameId: 'g1' },
       }).success,
     ).toBe(true);
-    expect(DomainEventSchema.safeParse({ type: 'stats.recalculated', ids: {} }).success).toBe(true);
+    expect(
+      DomainEventSchema.safeParse({ type: 'sportLeague.statsRecalculated', ids: {} }).success,
+    ).toBe(true);
     expect(DomainEventSchema.safeParse({ type: 'sportGame.exploded', ids: {} }).success).toBe(
       false,
     );
     expect(
       DomainEventSchema.parse({
-        type: 'league.created',
+        type: 'sportLeague.created',
         ids: { leagueId: 'L', queryKey: 'leagues' },
       }),
-    ).toEqual({ type: 'league.created', ids: { leagueId: 'L' } });
+    ).toEqual({ type: 'sportLeague.created', ids: { leagueId: 'L' } });
   });
 });

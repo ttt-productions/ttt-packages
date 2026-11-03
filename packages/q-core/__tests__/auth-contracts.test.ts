@@ -24,16 +24,16 @@ import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import { StatusReconcileQueueEntrySchema } from '../src/doc-schemas/status-reconcile-queue.js';
 import {
   ADMIN_STANDING_BAN_REFUSAL_REASON,
-  AdminUpdateUserStatusInputSchema,
-  AdminUpdateUserStatusResultSchema,
-  CheckDisplayNameAvailableInputSchema,
-  CheckDisplayNameAvailableResultSchema,
+  AdminUpdateUserProfileStatusInputSchema,
+  AdminUpdateUserProfileStatusResultSchema,
+  GetDisplayNameAvailabilityInputSchema,
+  GetDisplayNameAvailabilityResultSchema,
   CreateRegistrationStartResultSchema,
   detectUserSearchKind,
-  RegisterUserInputSchema,
-  RegisterUserResultSchema,
-  UpdateAdminListInputSchema,
-  UpdateDisplayNameInputSchema,
+  CreateUserProfileInputSchema,
+  CreateUserProfileResultSchema,
+  AdminUpdateAdminListInputSchema,
+  AdminUpdateUserProfileDisplayNameInputSchema,
 } from '../src/schemas/users.js';
 
 const NOW = 1_760_000_000_000;
@@ -137,35 +137,37 @@ describe('user profile account status', () => {
 });
 
 describe('callable input schemas', () => {
-  it('registerUser takes a bounded name and a checked terms box, and nothing else', () => {
+  it('createUserProfile takes a bounded name and a checked terms box, and nothing else', () => {
     expect(
-      RegisterUserInputSchema.safeParse({ displayName: 'Jane Doe', acceptedTerms: true }).success,
+      CreateUserProfileInputSchema.safeParse({ displayName: 'Jane Doe', acceptedTerms: true })
+        .success,
     ).toBe(true);
     expect(
-      RegisterUserInputSchema.safeParse({ displayName: 'Jane Doe', acceptedTerms: false }).success,
+      CreateUserProfileInputSchema.safeParse({ displayName: 'Jane Doe', acceptedTerms: false })
+        .success,
     ).toBe(false);
-    expect(RegisterUserInputSchema.safeParse({ displayName: 'Jane Doe' }).success).toBe(false);
+    expect(CreateUserProfileInputSchema.safeParse({ displayName: 'Jane Doe' }).success).toBe(false);
     expect(
-      RegisterUserInputSchema.safeParse({
+      CreateUserProfileInputSchema.safeParse({
         displayName: 'x'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
         acceptedTerms: true,
       }).success,
     ).toBe(false);
     expect(
-      RegisterUserInputSchema.safeParse({
+      CreateUserProfileInputSchema.safeParse({
         displayName: 'x'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
         acceptedTerms: true,
       }).success,
     ).toBe(false);
     expect(
-      RegisterUserInputSchema.safeParse({
+      CreateUserProfileInputSchema.safeParse({
         displayName: 'Jane Doe',
         acceptedTerms: true,
         userId: 'someoneElse',
       }).success,
     ).toBe(false);
     expect(
-      RegisterUserInputSchema.safeParse({
+      CreateUserProfileInputSchema.safeParse({
         displayName: 'Jane Doe',
         acceptedTerms: true,
         email: 'a@b.c',
@@ -173,66 +175,72 @@ describe('callable input schemas', () => {
     ).toBe(false);
   });
 
-  it('registerUser trims the name before bounding it', () => {
-    const parsed = RegisterUserInputSchema.parse({
+  it('createUserProfile trims the name before bounding it', () => {
+    const parsed = CreateUserProfileInputSchema.parse({
       displayName: '  Jane Doe  ',
       acceptedTerms: true,
     });
     expect(parsed.displayName).toBe('Jane Doe');
     expect(
-      RegisterUserInputSchema.safeParse({ displayName: '  ab  ', acceptedTerms: true }).success,
+      CreateUserProfileInputSchema.safeParse({ displayName: '  ab  ', acceptedTerms: true })
+        .success,
     ).toBe(false);
   });
 
-  it('checkDisplayNameAvailable takes the same name rule registerUser takes, and nothing else', () => {
-    expect(CheckDisplayNameAvailableInputSchema.parse({ displayName: '  Jane Doe  ' })).toEqual({
+  it('getDisplayNameAvailability takes the same name rule createUserProfile takes, and nothing else', () => {
+    expect(GetDisplayNameAvailabilityInputSchema.parse({ displayName: '  Jane Doe  ' })).toEqual({
       displayName: 'Jane Doe',
     });
     for (const displayName of [
       'x'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
       'x'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
     ]) {
-      expect(CheckDisplayNameAvailableInputSchema.safeParse({ displayName }).success).toBe(false);
-      expect(RegisterUserInputSchema.safeParse({ displayName, acceptedTerms: true }).success).toBe(
-        false,
-      );
+      expect(GetDisplayNameAvailabilityInputSchema.safeParse({ displayName }).success).toBe(false);
+      expect(
+        CreateUserProfileInputSchema.safeParse({ displayName, acceptedTerms: true }).success,
+      ).toBe(false);
     }
     expect(
-      CheckDisplayNameAvailableInputSchema.safeParse({ displayName: 'Jane Doe', userId: 'u1' })
+      GetDisplayNameAvailabilityInputSchema.safeParse({ displayName: 'Jane Doe', userId: 'u1' })
         .success,
     ).toBe(false);
   });
 
-  it('checkDisplayNameAvailable answers available, or unavailable because the name is taken', () => {
-    expect(CheckDisplayNameAvailableResultSchema.safeParse({ available: true }).success).toBe(true);
+  it('getDisplayNameAvailability answers available, or unavailable because the name is taken', () => {
+    expect(GetDisplayNameAvailabilityResultSchema.safeParse({ available: true }).success).toBe(
+      true,
+    );
     expect(
-      CheckDisplayNameAvailableResultSchema.safeParse({ available: false, reason: 'taken' })
+      GetDisplayNameAvailabilityResultSchema.safeParse({ available: false, reason: 'taken' })
         .success,
     ).toBe(true);
     expect(
-      CheckDisplayNameAvailableResultSchema.safeParse({ available: false, reason: 'disallowed' })
+      GetDisplayNameAvailabilityResultSchema.safeParse({ available: false, reason: 'disallowed' })
         .success,
     ).toBe(false);
   });
 
-  it('updateAdminList takes four named uid lists, bounded, and rejects a discriminator payload', () => {
-    expect(UpdateAdminListInputSchema.safeParse({ addReferees: ['u1'] }).success).toBe(true);
-    expect(UpdateAdminListInputSchema.safeParse({}).success).toBe(true);
+  it('adminUpdateAdminList takes four named uid lists, bounded, and rejects a discriminator payload', () => {
+    expect(AdminUpdateAdminListInputSchema.safeParse({ addReferees: ['u1'] }).success).toBe(true);
+    expect(AdminUpdateAdminListInputSchema.safeParse({}).success).toBe(true);
     expect(
-      UpdateAdminListInputSchema.safeParse({ role: 'referee', action: 'add', userId: 'u1' })
+      AdminUpdateAdminListInputSchema.safeParse({ role: 'referee', action: 'add', userId: 'u1' })
         .success,
     ).toBe(false);
-    expect(UpdateAdminListInputSchema.safeParse({ addAdmins: [''] }).success).toBe(false);
+    expect(AdminUpdateAdminListInputSchema.safeParse({ addAdmins: [''] }).success).toBe(false);
     const tooMany = Array.from({ length: MAX_ADMIN_LIST_CHANGES + 1 }, (_, i) => `u${i}`);
-    expect(UpdateAdminListInputSchema.safeParse({ addAdmins: tooMany }).success).toBe(false);
+    expect(AdminUpdateAdminListInputSchema.safeParse({ addAdmins: tooMany }).success).toBe(false);
   });
 
-  it('updateDisplayName is strict', () => {
+  it('adminUpdateUserProfileDisplayName is strict', () => {
     expect(
-      UpdateDisplayNameInputSchema.safeParse({ userId: 'u1', newDisplayName: 'New Name' }).success,
+      AdminUpdateUserProfileDisplayNameInputSchema.safeParse({
+        userId: 'u1',
+        newDisplayName: 'New Name',
+      }).success,
     ).toBe(true);
     expect(
-      UpdateDisplayNameInputSchema.safeParse({
+      AdminUpdateUserProfileDisplayNameInputSchema.safeParse({
         userId: 'u1',
         newDisplayName: 'New Name',
         displayName_lowercase: 'x',
@@ -271,21 +279,22 @@ describe("the orphan cleanup's deletion claim", () => {
   });
 
   it('registering on a claimed login answers registrationExpired, carrying no account', () => {
-    expect(RegisterUserResultSchema.safeParse({ status: 'registrationExpired' }).success).toBe(
+    expect(CreateUserProfileResultSchema.safeParse({ status: 'registrationExpired' }).success).toBe(
       true,
     );
     expect(
-      RegisterUserResultSchema.safeParse({ status: 'registrationExpired', userId: 'u1' }).success,
+      CreateUserProfileResultSchema.safeParse({ status: 'registrationExpired', userId: 'u1' })
+        .success,
     ).toBe(false);
     expect(
-      RegisterUserResultSchema.safeParse({
+      CreateUserProfileResultSchema.safeParse({
         status: 'registered',
         userId: 'u1',
         displayName: 'Jane Doe',
       }).success,
     ).toBe(true);
     expect(
-      RegisterUserResultSchema.safeParse({ userId: 'u1', displayName: 'Jane Doe' }).success,
+      CreateUserProfileResultSchema.safeParse({ userId: 'u1', displayName: 'Jane Doe' }).success,
     ).toBe(false);
   });
 });
@@ -293,23 +302,31 @@ describe("the orphan cleanup's deletion claim", () => {
 describe('the rename refuses what the form refuses', () => {
   it('trims the new name and refuses a line break, a blank name, and one outside the length limits', () => {
     expect(
-      UpdateDisplayNameInputSchema.parse({ userId: 'u1', newDisplayName: '  New Name  ' })
-        .newDisplayName,
+      AdminUpdateUserProfileDisplayNameInputSchema.parse({
+        userId: 'u1',
+        newDisplayName: '  New Name  ',
+      }).newDisplayName,
     ).toBe('New Name');
     expect(
-      UpdateDisplayNameInputSchema.safeParse({ userId: 'u1', newDisplayName: 'New\nName' }).success,
+      AdminUpdateUserProfileDisplayNameInputSchema.safeParse({
+        userId: 'u1',
+        newDisplayName: 'New\nName',
+      }).success,
     ).toBe(false);
     expect(
-      UpdateDisplayNameInputSchema.safeParse({ userId: 'u1', newDisplayName: '   ' }).success,
+      AdminUpdateUserProfileDisplayNameInputSchema.safeParse({
+        userId: 'u1',
+        newDisplayName: '   ',
+      }).success,
     ).toBe(false);
     expect(
-      UpdateDisplayNameInputSchema.safeParse({
+      AdminUpdateUserProfileDisplayNameInputSchema.safeParse({
         userId: 'u1',
         newDisplayName: 'a'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
       }).success,
     ).toBe(false);
     expect(
-      UpdateDisplayNameInputSchema.safeParse({
+      AdminUpdateUserProfileDisplayNameInputSchema.safeParse({
         userId: 'u1',
         newDisplayName: 'a'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
       }).success,
@@ -320,31 +337,32 @@ describe('the rename refuses what the form refuses', () => {
 describe('the ban and unban contract', () => {
   it('takes the account, the status, and an internal reason — and nothing else', () => {
     expect(
-      AdminUpdateUserStatusInputSchema.safeParse({
+      AdminUpdateUserProfileStatusInputSchema.safeParse({
         userId: 'u1',
         userStatus: 'banned',
         reason: 'Repeated abuse',
       }).success,
     ).toBe(true);
     expect(
-      AdminUpdateUserStatusInputSchema.safeParse({ userId: 'u1', userStatus: 'banned' }).success,
+      AdminUpdateUserProfileStatusInputSchema.safeParse({ userId: 'u1', userStatus: 'banned' })
+        .success,
     ).toBe(false);
     expect(
-      AdminUpdateUserStatusInputSchema.safeParse({
+      AdminUpdateUserProfileStatusInputSchema.safeParse({
         userId: 'u1',
         userStatus: 'banned',
         reason: '  ',
       }).success,
     ).toBe(false);
     expect(
-      AdminUpdateUserStatusInputSchema.safeParse({
+      AdminUpdateUserProfileStatusInputSchema.safeParse({
         userId: 'u1',
         userStatus: 'suspended',
         reason: 'Repeated abuse',
       }).success,
     ).toBe(false);
     expect(
-      AdminUpdateUserStatusInputSchema.safeParse({
+      AdminUpdateUserProfileStatusInputSchema.safeParse({
         userId: 'u1',
         userStatus: 'banned',
         reason: 'Repeated abuse',
@@ -355,9 +373,10 @@ describe('the ban and unban contract', () => {
 
   it('answers whether the status moved, and nothing about the sign-in half', () => {
     const answer = { userId: 'u1', userStatus: 'banned', previousStatus: 'active', changed: true };
-    expect(AdminUpdateUserStatusResultSchema.safeParse(answer).success).toBe(true);
+    expect(AdminUpdateUserProfileStatusResultSchema.safeParse(answer).success).toBe(true);
     expect(
-      AdminUpdateUserStatusResultSchema.safeParse({ ...answer, accessSync: 'pending' }).success,
+      AdminUpdateUserProfileStatusResultSchema.safeParse({ ...answer, accessSync: 'pending' })
+        .success,
     ).toBe(false);
   });
 
@@ -457,7 +476,7 @@ describe('the status reconcile queue entry', () => {
 describe('audit event document', () => {
   const event = {
     id: 'a1',
-    type: 'admin.systemRoleGranted',
+    type: 'adminList.roleGranted',
     schemaVersion: 1,
     actor: { uid: 'admin1', isAdmin: true, actorMode: 'adminReview', systemRole: 'admin' },
     target: { uid: 'u1', ref: '_systemData/adminList' },
@@ -555,20 +574,18 @@ describe('audit event document', () => {
     ).toBe(true);
   });
 
-  const AUDIT_EVENT_TYPE_NAME = /^[a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)+$/;
+  const AUDIT_EVENT_TYPE_NAME = /^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$/;
 
-  it('names every event type in dot-separated lower-camelCase segments, domain first and action last', () => {
+  it('names every event type in two lower-camelCase parts, the thing first and the past-tense action last', () => {
     for (const type of AUDIT_EVENT_TYPE_KEYS) expect(type).toMatch(AUDIT_EVENT_TYPE_NAME);
     expect(new Set(AUDIT_EVENT_TYPE_KEYS).size).toBe(AUDIT_EVENT_TYPE_KEYS.length);
   });
 
-  it('the naming check accepts every shape ttt-core names an event in and refuses every other spelling', () => {
+  it('the naming check accepts a thing and its action and refuses every other spelling', () => {
     for (const name of [
       'landingPage.updated',
-      'league.statusChanged',
-      'admin.systemRoleGranted',
-      'leagueTeam.roster.synced',
-      'user.accountClosedUnder13',
+      'sportLeague.statusChanged',
+      'adminList.roleGranted',
     ]) {
       expect(name).toMatch(AUDIT_EVENT_TYPE_NAME);
     }
@@ -581,6 +598,7 @@ describe('audit event document', () => {
       'landingPage',
       'landingPage.',
       'landingPage..updated',
+      'leagueTeam.roster.synced',
     ]) {
       expect(name).not.toMatch(AUDIT_EVENT_TYPE_NAME);
     }
@@ -590,17 +608,19 @@ describe('audit event document', () => {
 describe('domain events', () => {
   it('carries the account events, each with exactly its own ids', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'user.registered', ids: { userId: 'u1' } }).success,
+      DomainEventSchema.safeParse({ type: 'userProfile.registered', ids: { userId: 'u1' } })
+        .success,
     ).toBe(true);
     expect(
       DomainEventSchema.safeParse({ type: 'adminList.changed', ids: { userId: 'u1' } }).success,
     ).toBe(false);
     expect(
-      DomainEventSchema.safeParse({ type: 'displayName.changed', ids: { userId: 'u1' } }).success,
+      DomainEventSchema.safeParse({ type: 'userProfile.displayNameChanged', ids: { userId: 'u1' } })
+        .success,
     ).toBe(true);
     expect(
-      DomainEventSchema.parse({ type: 'user.registered', ids: { userId: 'u1', extra: 1 } }),
-    ).toEqual({ type: 'user.registered', ids: { userId: 'u1' } });
+      DomainEventSchema.parse({ type: 'userProfile.registered', ids: { userId: 'u1', extra: 1 } }),
+    ).toEqual({ type: 'userProfile.registered', ids: { userId: 'u1' } });
   });
 });
 

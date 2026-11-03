@@ -80,3 +80,34 @@ export const SPECIAL_DOCS = {
 
   GAME_STAT_HISTORY_RECORD: 'record',
 } as const;
+
+// The nouns a name may use for a thing with no collection of its own (RULE-STD-ARCH-104), each
+// with the collections it lives in or reads. Every other name's thing is a collection, singular.
+export const DECLARED_NOUNS = {
+  ghostPlayer: [
+    COLLECTIONS.PUBLIC_USERS,
+    COLLECTIONS.TEAM_MEMBERSHIPS,
+    SPORT_GAME_SUBCOLLECTIONS.GAME_ROSTER_PLAYERS,
+  ],
+  scheduleWeek: [COLLECTIONS.SPORT_LEAGUES],
+  displayName: [COLLECTIONS.RESERVED_DISPLAY_NAMES, COLLECTIONS.USER_PROFILES],
+  deadLetter: [COLLECTIONS.NOTIFICATION_DELIVERIES],
+  adminNotification: [
+    COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS,
+    COLLECTIONS.ADMIN_NOTIFICATION_HISTORY,
+  ],
+  siteCounts: [
+    COLLECTIONS.USER_PROFILES,
+    COLLECTIONS.LEAGUE_TEAMS,
+    COLLECTIONS.SPORT_LEAGUES,
+    COLLECTIONS.SPORT_GAMES,
+    COLLECTIONS.LEAGUE_FREE_AGENTS,
+  ],
+  appConfig: [COLLECTIONS.APP_CONFIG],
+  landingPage: [COLLECTIONS.APP_CONFIG],
+  statsBeacon: [COLLECTIONS.APP_CONFIG],
+  adminList: [COLLECTIONS.SYSTEM_DATA],
+  migrationConsole: [COLLECTIONS.SERVER_DATA],
+} as const satisfies Record<string, readonly string[]>;
+
+export type DeclaredNoun = keyof typeof DECLARED_NOUNS;

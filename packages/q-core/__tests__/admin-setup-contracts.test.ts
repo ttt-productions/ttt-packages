@@ -36,9 +36,9 @@ import {
   AdminUpdateWaiverTemplateInputSchema,
 } from '../src/schemas/waiver-templates.js';
 import {
-  AdminStatsSchema,
-  GetAdminStatsInputSchema,
-  GetAdminStatsResultSchema,
+  SiteCountsSchema,
+  AdminGetSiteCountsInputSchema,
+  AdminGetSiteCountsResultSchema,
 } from '../src/schemas/admin-stats.js';
 import { COLLECTIONS } from '../src/paths/collections.js';
 
@@ -96,19 +96,19 @@ describe('game status', () => {
 
 describe('the admin dashboard counts', () => {
   it('accept the counts with the teams-per-year breakdown', () => {
-    expect(AdminStatsSchema.safeParse(COUNTS).success).toBe(true);
+    expect(SiteCountsSchema.safeParse(COUNTS).success).toBe(true);
   });
 
   it('key the breakdown by a four-digit year only', () => {
-    expect(AdminStatsSchema.safeParse({ ...COUNTS, teamsByYear: { '25': 3 } }).success).toBe(false);
+    expect(SiteCountsSchema.safeParse({ ...COUNTS, teamsByYear: { '25': 3 } }).success).toBe(false);
     expect(
-      AdminStatsSchema.safeParse({ ...COUNTS, teamsByYear: { '2025-09-01': 3 } }).success,
+      SiteCountsSchema.safeParse({ ...COUNTS, teamsByYear: { '2025-09-01': 3 } }).success,
     ).toBe(false);
   });
 
   it('refuse a count that is not a whole, non-negative number', () => {
-    expect(AdminStatsSchema.safeParse({ ...COUNTS, totalUsers: -1 }).success).toBe(false);
-    expect(AdminStatsSchema.safeParse({ ...COUNTS, activeFreeAgents: 1.5 }).success).toBe(false);
+    expect(SiteCountsSchema.safeParse({ ...COUNTS, totalUsers: -1 }).success).toBe(false);
+    expect(SiteCountsSchema.safeParse({ ...COUNTS, activeFreeAgents: 1.5 }).success).toBe(false);
   });
 
   it('are counted on every read, so no document stores them and no admin-read bucket exists', () => {
@@ -120,14 +120,14 @@ describe('the admin dashboard counts', () => {
 
   it('take no read input', () => {
     for (const input of [{}, undefined, null]) {
-      expect(GetAdminStatsInputSchema.safeParse(input).success).toBe(true);
+      expect(AdminGetSiteCountsInputSchema.safeParse(input).success).toBe(true);
     }
-    expect(GetAdminStatsInputSchema.safeParse({ force: true }).success).toBe(false);
+    expect(AdminGetSiteCountsInputSchema.safeParse({ force: true }).success).toBe(false);
   });
 
   it('answer the counts as they were taken, never an absent set', () => {
-    expect(GetAdminStatsResultSchema.safeParse({ stats: COUNTS }).success).toBe(true);
-    expect(GetAdminStatsResultSchema.safeParse({ stats: null }).success).toBe(false);
+    expect(AdminGetSiteCountsResultSchema.safeParse({ stats: COUNTS }).success).toBe(true);
+    expect(AdminGetSiteCountsResultSchema.safeParse({ stats: null }).success).toBe(false);
   });
 });
 
@@ -320,7 +320,7 @@ describe('the vocabulary these actions record and announce', () => {
   it('declares their domain events', () => {
     expect(
       DomainEventSchema.safeParse({
-        type: 'waiverTemplate.updated',
+        type: 'waiverTemplate.versionPublished',
         ids: { waiverTemplateId: 'w1' },
       }).success,
     ).toBe(true);

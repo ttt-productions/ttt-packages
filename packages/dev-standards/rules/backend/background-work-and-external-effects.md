@@ -82,16 +82,18 @@ Instance counts move only with a measured reason: a `maxInstances` is raised, an
 ### RULE-STD-BACKEND-305 — Callable names reveal their Firestore effect
 **Scope.** apps
 
-**Rule.** Every callable that performs a write uses a verb prefix matching its effect: `create*` (new doc / new ID), `update*` (modifies an existing doc in place), `delete*` (removes a doc or well-defined state), `submit*` (sends to a reviewed surface — a submission, an appeal), `admin*` (the `adminOverride` twin of a normal callable, sharing one `runX` core — RULE-STD-BACKEND-004); the app's addition lists any further sanctioned verbs. One callable per action: never combine distinct actions behind a `kind`/`type` discriminator. Once `<HOLDS_LIVE_DATA>` is yes, deployed callable names are frozen.
+**Rule.** Every callable is named `[admin]` + verb + thing + the action when there is one — `updateSportGameFinalize`, `adminUpdateSportGameReopen`, `createStatsRebuildJob`, `getDisplayNameAvailability`, `deleteTeamInvitationAccept`. The verb is one of `create` (a new document), `update` (an existing one changed in place), `delete` (one removed), and `get` (every read); it is the effect on the thing the name names, and side writes (totals, the audit event, a beacon) do not change it. An answer that removes the thing it answers is a `delete` with the answer as its action; a sender's withdrawal is plain `delete`. The thing is its collection's singular or a declared noun (RULE-STD-ARCH-104). That set is the whole set: no app adds a verb — a submission is `create…Submission`, a seed `update…Seed`. `admin` starts every callable only an admin can call, and only those; a twin pair is `updateX` / `adminUpdateX` over one core (RULE-STD-BACKEND-004). Every name built from a callable follows it: its core is `run` + its name without `admin`, its file carries its name, its client declaration is `use` + its name + `Callable`, and the mutation hook that calls it is `use` + its name (RULE-STD-FRONTEND-105). One callable per action: never combine distinct actions behind a `kind`/`type` discriminator. A name freezes once it is live on production: once `<HOLDS_LIVE_DATA>` is yes, deployed callable names are frozen.
 
-**Why.** The name tells a reader the blast radius before they open the file; a discriminator-multiplexed callable hides it and bypasses the one-owner model.
+**Why.** The name tells a reader the blast radius and who may call it before they open the file; an open verb list cannot be checked and drifts into business verbs that name the event instead of the effect, and a discriminator-multiplexed callable hides its effect and bypasses the one-owner model.
 
 **Prohibits.**
+- A verb outside `create` / `update` / `delete` / `get`, or one that doesn't match the effect on the thing named; an app-added verb.
+- An admin-only callable without the `admin` prefix, or `admin` on a callable a non-admin can call; a normal callable becoming an override on a claim.
+- A core, file, declaration, or hook whose name does not follow its callable's.
 - A new multi-operation callable; a new callable multiplexing distinct actions on a `kind`/`type` field.
-- A verb prefix that doesn't match the Firestore effect; a normal callable becoming an override on a claim.
 - Renaming a deployed callable once `<HOLDS_LIVE_DATA>` is yes.
 
-**References.** RULE-STD-BACKEND-004; RULE-STD-ENG-011.
+**References.** RULE-STD-ARCH-104; RULE-STD-BACKEND-004; RULE-STD-FRONTEND-105; RULE-STD-ENG-011.
 
 ### RULE-STD-BACKEND-306 — Notifications: sanctioned lanes, one ledger and materializer
 **Scope.** apps

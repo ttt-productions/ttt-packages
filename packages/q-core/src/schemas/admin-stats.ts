@@ -3,7 +3,7 @@ import { countSchema, epochMsSchema } from '../doc-schemas/atoms.js';
 
 export const leagueStartYearSchema = z.string().regex(/^\d{4}$/);
 
-export const AdminStatsSchema = z
+export const SiteCountsSchema = z
   .object({
     totalUsers: countSchema,
     totalTeams: countSchema,
@@ -16,9 +16,9 @@ export const AdminStatsSchema = z
     updatedAt: epochMsSchema,
   })
   .strict();
-export type AdminStats = z.infer<typeof AdminStatsSchema>;
+export type SiteCounts = z.infer<typeof SiteCountsSchema>;
 
-export const GetAdminStatsInputSchema = z.object({}).strict().nullish();
-export type GetAdminStatsInput = z.infer<typeof GetAdminStatsInputSchema>;
-export const GetAdminStatsResultSchema = z.object({ stats: AdminStatsSchema }).strict();
-export type GetAdminStatsResult = z.infer<typeof GetAdminStatsResultSchema>;
+export const AdminGetSiteCountsInputSchema = z.object({}).strict().nullish();
+export type AdminGetSiteCountsInput = z.infer<typeof AdminGetSiteCountsInputSchema>;
+export const AdminGetSiteCountsResultSchema = z.object({ stats: SiteCountsSchema }).strict();
+export type AdminGetSiteCountsResult = z.infer<typeof AdminGetSiteCountsResultSchema>;

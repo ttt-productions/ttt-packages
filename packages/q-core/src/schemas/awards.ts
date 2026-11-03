@@ -18,7 +18,7 @@ import { AWARD_GRANT_SKIP_REASON_KEYS, FEATURED_AWARD_SLOT_KEYS } from '../types
 const targetList = <T extends z.ZodTypeAny>(atom: T) =>
   z.array(atom).max(MAX_AWARD_GRANT_TARGETS).optional();
 
-export const AdminUpdateAwardGrantsInputSchema = z
+export const AdminUpdateAwardDefinitionGrantsInputSchema = z
   .object({
     awardId: awardIdSchema,
     grantUserIds: targetList(userIdSchema),
@@ -40,14 +40,16 @@ export const AdminUpdateAwardGrantsInputSchema = z
       path: ['revokeUserIds'],
     },
   );
-export type AdminUpdateAwardGrantsInput = z.infer<typeof AdminUpdateAwardGrantsInputSchema>;
+export type AdminUpdateAwardDefinitionGrantsInput = z.infer<
+  typeof AdminUpdateAwardDefinitionGrantsInputSchema
+>;
 
 export const AwardGrantSkipSchema = z
   .object({ userId: userIdSchema, reason: z.enum(AWARD_GRANT_SKIP_REASON_KEYS) })
   .strict();
 export type AwardGrantSkip = z.infer<typeof AwardGrantSkipSchema>;
 
-export const AdminUpdateAwardGrantsResultSchema = z
+export const AdminUpdateAwardDefinitionGrantsResultSchema = z
   .object({
     awardId: awardIdSchema,
     granted: z.array(userIdSchema),
@@ -57,7 +59,9 @@ export const AdminUpdateAwardGrantsResultSchema = z
     skipped: z.array(AwardGrantSkipSchema),
   })
   .strict();
-export type AdminUpdateAwardGrantsResult = z.infer<typeof AdminUpdateAwardGrantsResultSchema>;
+export type AdminUpdateAwardDefinitionGrantsResult = z.infer<
+  typeof AdminUpdateAwardDefinitionGrantsResultSchema
+>;
 
 export const AwardGroupSchema = z
   .object({ groupType: awardGroupTypeSchema, groupId: documentIdSegmentSchema })
@@ -119,16 +123,18 @@ export type AdminDeleteAwardDefinitionResult = z.infer<
 >;
 
 const featuredAwardSlotSchema = z.enum(FEATURED_AWARD_SLOT_KEYS);
-export const UpdateFeaturedAwardsInputSchema = z.discriminatedUnion('action', [
+export const UpdateUserProfileFeaturedAwardsInputSchema = z.discriminatedUnion('action', [
   z
     .object({ action: z.literal('set'), slot: featuredAwardSlotSchema, awardId: awardIdSchema })
     .strict(),
   z.object({ action: z.literal('clear'), slot: featuredAwardSlotSchema }).strict(),
   z.object({ action: z.literal('swap') }).strict(),
 ]);
-export type UpdateFeaturedAwardsInput = z.infer<typeof UpdateFeaturedAwardsInputSchema>;
+export type UpdateUserProfileFeaturedAwardsInput = z.infer<
+  typeof UpdateUserProfileFeaturedAwardsInputSchema
+>;
 
-export const UpdateFeaturedAwardsResultSchema = z
+export const UpdateUserProfileFeaturedAwardsResultSchema = z
   .object({
     userId: userIdSchema,
     primaryAwardId: awardIdSchema.nullable(),
@@ -136,4 +142,6 @@ export const UpdateFeaturedAwardsResultSchema = z
     changed: z.boolean(),
   })
   .strict();
-export type UpdateFeaturedAwardsResult = z.infer<typeof UpdateFeaturedAwardsResultSchema>;
+export type UpdateUserProfileFeaturedAwardsResult = z.infer<
+  typeof UpdateUserProfileFeaturedAwardsResultSchema
+>;

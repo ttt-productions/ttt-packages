@@ -8,37 +8,43 @@ export const GalleryPictureEntrySchema = GalleryPictureSchema.extend({
 }).strict();
 export type GalleryPictureEntry = z.infer<typeof GalleryPictureEntrySchema>;
 
-export const AdminMovePictureInputSchema = z
+export const AdminUpdateGalleryPictureMoveInputSchema = z
   .object({
     pictureId: pictureIdSchema,
     afterPictureId: pictureIdSchema.nullable(),
   })
   .strict();
-export type AdminMovePictureInput = z.infer<typeof AdminMovePictureInputSchema>;
-export const AdminMovePictureResultSchema = z
+export type AdminUpdateGalleryPictureMoveInput = z.infer<
+  typeof AdminUpdateGalleryPictureMoveInputSchema
+>;
+export const AdminUpdateGalleryPictureMoveResultSchema = z
   .object({ picture: GalleryPictureEntrySchema, event: DomainEventSchema })
   .strict();
-export type AdminMovePictureResult = z.infer<typeof AdminMovePictureResultSchema>;
-
-export const AdminUpdateFeaturedPictureInputSchema = z
-  .object({ pictureId: pictureIdSchema })
-  .strict();
-export type AdminUpdateFeaturedPictureInput = z.infer<typeof AdminUpdateFeaturedPictureInputSchema>;
-export const AdminUpdateFeaturedPictureResultSchema = z
-  .object({ picture: GalleryPictureEntrySchema, event: DomainEventSchema })
-  .strict();
-export type AdminUpdateFeaturedPictureResult = z.infer<
-  typeof AdminUpdateFeaturedPictureResultSchema
+export type AdminUpdateGalleryPictureMoveResult = z.infer<
+  typeof AdminUpdateGalleryPictureMoveResultSchema
 >;
 
-export const AdminDeletePictureInputSchema = z
+export const AdminUpdateGalleryPictureFeaturedInputSchema = z
+  .object({ pictureId: pictureIdSchema })
+  .strict();
+export type AdminUpdateGalleryPictureFeaturedInput = z.infer<
+  typeof AdminUpdateGalleryPictureFeaturedInputSchema
+>;
+export const AdminUpdateGalleryPictureFeaturedResultSchema = z
+  .object({ picture: GalleryPictureEntrySchema, event: DomainEventSchema })
+  .strict();
+export type AdminUpdateGalleryPictureFeaturedResult = z.infer<
+  typeof AdminUpdateGalleryPictureFeaturedResultSchema
+>;
+
+export const AdminDeleteGalleryPictureInputSchema = z
   .object({
     owner: PictureOwnerRefSchema.strict(),
     pictureId: pictureIdSchema,
   })
   .strict();
-export type AdminDeletePictureInput = z.infer<typeof AdminDeletePictureInputSchema>;
-export const AdminDeletePictureResultSchema = z
+export type AdminDeleteGalleryPictureInput = z.infer<typeof AdminDeleteGalleryPictureInputSchema>;
+export const AdminDeleteGalleryPictureResultSchema = z
   .object({ owner: PictureOwnerRefSchema, pictureId: pictureIdSchema, event: DomainEventSchema })
   .strict();
-export type AdminDeletePictureResult = z.infer<typeof AdminDeletePictureResultSchema>;
+export type AdminDeleteGalleryPictureResult = z.infer<typeof AdminDeleteGalleryPictureResultSchema>;

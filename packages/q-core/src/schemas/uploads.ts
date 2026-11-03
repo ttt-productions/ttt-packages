@@ -100,7 +100,7 @@ export function newAwardNameOf(fileOrigin: PictureOrigin, targetInfo: unknown): 
   return 'newAwardName' in target ? target.newAwardName : undefined;
 }
 
-export const AdminStartUploadInputSchema = z
+export const AdminCreatePendingMediaInputSchema = z
   .object({
     fileOrigin: pictureOriginSchema,
     storagePath: stagingUploadPathSchema,
@@ -119,28 +119,38 @@ export const AdminStartUploadInputSchema = z
       });
     }
   });
-export type AdminStartUploadInput = z.infer<typeof AdminStartUploadInputSchema>;
+export type AdminCreatePendingMediaInput = z.infer<typeof AdminCreatePendingMediaInputSchema>;
 
-export const AdminStartUploadResultSchema = z
+export const AdminCreatePendingMediaResultSchema = z
   .object({
     pendingMediaId: stagingIdSchema,
     awardId: awardIdSchema.optional(),
   })
   .strict();
-export type AdminStartUploadResult = z.infer<typeof AdminStartUploadResultSchema>;
+export type AdminCreatePendingMediaResult = z.infer<typeof AdminCreatePendingMediaResultSchema>;
 
-export const AdminMarkUploadsSeenInputSchema = z
+export const AdminUpdatePendingMediaSeenInputSchema = z
   .object({
     pendingMediaIds: z.array(stagingIdSchema).min(1).max(MAX_UPLOADS_MARKED_SEEN_PER_CALL),
   })
   .strict();
-export type AdminMarkUploadsSeenInput = z.infer<typeof AdminMarkUploadsSeenInputSchema>;
-export const AdminMarkUploadsSeenResultSchema = z.object({ marked: countSchema }).strict();
-export type AdminMarkUploadsSeenResult = z.infer<typeof AdminMarkUploadsSeenResultSchema>;
+export type AdminUpdatePendingMediaSeenInput = z.infer<
+  typeof AdminUpdatePendingMediaSeenInputSchema
+>;
+export const AdminUpdatePendingMediaSeenResultSchema = z.object({ marked: countSchema }).strict();
+export type AdminUpdatePendingMediaSeenResult = z.infer<
+  typeof AdminUpdatePendingMediaSeenResultSchema
+>;
 
-export const AdminClearUploadActivityInputSchema = z
+export const AdminUpdatePendingMediaClearInputSchema = z
   .object({ pendingMediaId: stagingIdSchema })
   .strict();
-export type AdminClearUploadActivityInput = z.infer<typeof AdminClearUploadActivityInputSchema>;
-export const AdminClearUploadActivityResultSchema = z.object({ cleared: z.literal(true) }).strict();
-export type AdminClearUploadActivityResult = z.infer<typeof AdminClearUploadActivityResultSchema>;
+export type AdminUpdatePendingMediaClearInput = z.infer<
+  typeof AdminUpdatePendingMediaClearInputSchema
+>;
+export const AdminUpdatePendingMediaClearResultSchema = z
+  .object({ cleared: z.literal(true) })
+  .strict();
+export type AdminUpdatePendingMediaClearResult = z.infer<
+  typeof AdminUpdatePendingMediaClearResultSchema
+>;

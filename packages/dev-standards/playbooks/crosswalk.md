@@ -38,7 +38,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-ARCH-101 | `<APP_DATA_PACKAGE>` owns cross-boundary contracts | codebase-hygiene 16, 18, 31, 51, 56, 80; client-write-security-audit 8; data-integrity 2, 7, 8; dependency-audit 1, 4, 5; field-lineage 5; migration 1 | `isolatedRoots`, `tsconfigAliasesInRoot` |
 | RULE-STD-ARCH-102 | One named declaration; enforcement points derive | codebase-hygiene 31, 51, 61, 99; callable-functions 3; client-write-security-audit 8; data-integrity 7; dependency-audit 5; migration 8 | `definitionRedeclaration`, `schemaLengthLiterals`, `textFieldDeclarations`, `schemaBounds`, `enumLabels`, `appRouteOwner` |
 | RULE-STD-ARCH-103 | Persist identity references, not snapshots | codebase-hygiene 35; data-integrity 2, 13; field-lineage 1, 2, 3, 5 | — |
-| RULE-STD-ARCH-104 | Canonical Firestore paths and compound-camelCase naming | codebase-hygiene 10, 12, 56, 80, 117; data-integrity 8; field-lineage 3; firestore-storage-rules 1 | `firestorePathAssembly`, `firestoreLiteralSegments`, `firestoreRetiredSegments`, `firestoreTestPaths`, `rulesMirrorCore` |
+| RULE-STD-ARCH-104 | Canonical Firestore paths and compound-camelCase naming | codebase-hygiene 10, 12, 13, 56, 80, 117; data-integrity 8; field-lineage 3; firestore-storage-rules 1 | `firestorePathAssembly`, `firestoreLiteralSegments`, `firestoreRetiredSegments`, `firestoreTestPaths`, `rulesMirrorCore` |
 | RULE-STD-ARCH-105 | Timestamps are epoch milliseconds via firebase-helpers | codebase-hygiene 9 | `firestoreTimestampNow` |
 | RULE-STD-ARCH-106 | Client-supplied identity, paths, and targets are never authoritative | codebase-hygiene 77, 99; auth-boundary 12; client-write-security-audit 5, 11; firestore-storage-rules 6; media-pipeline 3 | `documentIdSegments` |
 | RULE-STD-ARCH-109 | Compound document IDs have one builder and one parser | **No audit step yet.** Hygiene step 10 catches hand-assembled paths, not a compound id built or split inline; an app's own data-integrity step is the candidate to promote here. | — |
@@ -84,7 +84,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-BACKEND-119 | A counter decrement reads the counter in its transaction and never writes it below zero | codebase-hygiene 111 | `firestoreCounterDecrements` |
 | RULE-STD-BACKEND-120 | A rules change ships positive and negative access assertions | codebase-hygiene 46; auth-boundary 10; client-write-security-audit 9; firestore-storage-rules 10, 12; media-pipeline 10; migration 10; testing-coverage 5 | — |
 | RULE-STD-BACKEND-201 | Sensitive state is backend-owned | codebase-hygiene 21; async-workflow 2; auth-boundary 5; client-write-security-audit 4, 6; data-integrity 1, 4; firestore-storage-rules 2, 7, 8; media-pipeline 5, 6 | — |
-| RULE-STD-BACKEND-202 | The audit event commits atomically with the action | codebase-hygiene 20; callable-functions 10; observability 4 | — |
+| RULE-STD-BACKEND-202 | The audit event commits atomically with the action | codebase-hygiene 13, 20; callable-functions 10; observability 4 | — |
 | RULE-STD-BACKEND-203 | Audit events are append-only | codebase-hygiene 20; firestore-storage-rules 8; migration 9 | `auditPayload` |
 | RULE-STD-BACKEND-204 | Log failed sensitive attempts | codebase-hygiene 20, 108; callable-functions 10; observability 4 | `failureAuditChain`, `refusalAudit` |
 | RULE-STD-BACKEND-205 | Every audited action declares its actor mode explicitly | codebase-hygiene 20, 49; auth-boundary 4 | `auditWriter` |
@@ -116,10 +116,10 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-008 | Semantic classes over repeated inline Tailwind; a ui-core part's look is restyled only through its variants | codebase-hygiene 15, 68 | `themeScaleClasses`, `shadowOwnership`, `stackOnRows` |
 | RULE-STD-FRONTEND-010 | Browser storage holds device-local state only, through guarded access | codebase-hygiene 31 | `browserStorage` |
 | RULE-STD-FRONTEND-101 | React Query owns all server state | codebase-hygiene 1; performance-audit 4, 5 | `callableReads` |
-| RULE-STD-FRONTEND-102 | Query keys come from `<QUERY_KEYS_MODULE>`; freshness from `STALE_TIMES` | codebase-hygiene 1, 2, 17; performance-audit 4 | `queryKeys`, `authScopedKeys` |
-| RULE-STD-FRONTEND-103 | Invalidation is registry-owned; infinite feeds are patched, never invalidated | codebase-hygiene 1, 2, 3, 114; performance-audit 4; ux-audit 6 | `domainEventRegistry`, `queryCache` |
+| RULE-STD-FRONTEND-102 | Query keys come from `<QUERY_KEYS_MODULE>`; freshness from `STALE_TIMES` | codebase-hygiene 1, 2, 13, 17; performance-audit 4 | `queryKeys`, `authScopedKeys` |
+| RULE-STD-FRONTEND-103 | Invalidation is registry-owned; infinite feeds are patched, never invalidated | codebase-hygiene 1, 2, 3, 13, 114; performance-audit 4; ux-audit 6 | `domainEventRegistry`, `queryCache` |
 | RULE-STD-FRONTEND-104 | Components never import `firebase/firestore` directly | codebase-hygiene 7, 91; client-write-security-audit 1; performance-audit 5 | `firestoreRuntimeInUi`, `firestoreLiveSubscriptions`, `firestoreClientWrites` |
-| RULE-STD-FRONTEND-105 | One callable invocation path; never raw `httpsCallable` | codebase-hygiene 31, 60; observability 6; ux-audit 8, 11; package-boundaries 5 | `callableTransport`, `callableNames`, `callableDoubleSurface` |
+| RULE-STD-FRONTEND-105 | One callable invocation path; never raw `httpsCallable` | codebase-hygiene 13, 31, 60; observability 6; ux-audit 8, 11; package-boundaries 5 | `callableTransport`, `callableNames`, `callableDoubleSurface` |
 | RULE-STD-FRONTEND-106 | Gated actions go through the canonical auth gate | codebase-hygiene 36, 101; auth-boundary 9 | `clientAuthBoundary`, `bannedAuthCalls` |
 | RULE-STD-FRONTEND-107 | The client never writes sensitive state | codebase-hygiene 21; client-write-security-audit 1, 2, 4; data-integrity 4; firestore-storage-rules 7 | `firestoreClientWrites` |
 | RULE-STD-FRONTEND-108 | Auth-scoped subscribers reset on identity change | codebase-hygiene 35, 114; auth-boundary 14 | `authScopedKeys`, `signOutLiveness` |

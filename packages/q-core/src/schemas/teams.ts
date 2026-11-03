@@ -46,16 +46,16 @@ export const ghostCreateRequestIdSchema = documentIdSegmentSchema.refine(
   'Not a ghost add request id.',
 );
 
-export const CreateTeamGhostPlayerInputSchema = z
+export const CreateGhostPlayerInputSchema = z
   .object({
     teamId: teamIdSchema,
     displayName: displayNameSchema,
     requestId: ghostCreateRequestIdSchema,
   })
   .strict();
-export type CreateTeamGhostPlayerInput = z.infer<typeof CreateTeamGhostPlayerInputSchema>;
+export type CreateGhostPlayerInput = z.infer<typeof CreateGhostPlayerInputSchema>;
 
-export const CreateGameGhostPlayerInputSchema = z
+export const CreateGhostPlayerGameRosterInputSchema = z
   .object({
     gameId: gameIdSchema,
     teamId: teamIdSchema,
@@ -63,7 +63,9 @@ export const CreateGameGhostPlayerInputSchema = z
     requestId: ghostCreateRequestIdSchema,
   })
   .strict();
-export type CreateGameGhostPlayerInput = z.infer<typeof CreateGameGhostPlayerInputSchema>;
+export type CreateGhostPlayerGameRosterInput = z.infer<
+  typeof CreateGhostPlayerGameRosterInputSchema
+>;
 
 export const CreateGhostPlayerResultSchema = z
   .object({
@@ -74,7 +76,7 @@ export const CreateGhostPlayerResultSchema = z
   .strict();
 export type CreateGhostPlayerResult = z.infer<typeof CreateGhostPlayerResultSchema>;
 
-export const GetLeagueJoinWarningInputSchema = z
+export const GetSportLeagueJoinWarningInputSchema = z
   .object({
     leagueId: leagueIdSchema,
     userId: userIdSchema,
@@ -82,16 +84,16 @@ export const GetLeagueJoinWarningInputSchema = z
     actedOn: leagueJoinWarningActedOnSchema.optional(),
   })
   .strict();
-export type GetLeagueJoinWarningInput = z.infer<typeof GetLeagueJoinWarningInputSchema>;
+export type GetSportLeagueJoinWarningInput = z.infer<typeof GetSportLeagueJoinWarningInputSchema>;
 
-export const GetLeagueJoinWarningResultSchema = z
+export const GetSportLeagueJoinWarningResultSchema = z
   .object({
     leagueId: leagueIdSchema,
     userId: userIdSchema,
     findings: z.array(leagueJoinWarningFindingSchema),
   })
   .strict();
-export type GetLeagueJoinWarningResult = z.infer<typeof GetLeagueJoinWarningResultSchema>;
+export type GetSportLeagueJoinWarningResult = z.infer<typeof GetSportLeagueJoinWarningResultSchema>;
 
 export const LinkGhostPlayerInputSchema = z
   .object({
@@ -114,10 +116,10 @@ export const LinkGhostPlayerResultSchema = z
   .strict();
 export type LinkGhostPlayerResult = z.infer<typeof LinkGhostPlayerResultSchema>;
 
-export const AdminLinkClosedLeagueGhostPlayerInputSchema = LinkGhostPlayerInputSchema;
-export type AdminLinkClosedLeagueGhostPlayerInput = LinkGhostPlayerInput;
-export const AdminLinkClosedLeagueGhostPlayerResultSchema = LinkGhostPlayerResultSchema;
-export type AdminLinkClosedLeagueGhostPlayerResult = LinkGhostPlayerResult;
+export const AdminUpdateGhostPlayerLinkClosedLeagueInputSchema = LinkGhostPlayerInputSchema;
+export type AdminUpdateGhostPlayerLinkClosedLeagueInput = LinkGhostPlayerInput;
+export const AdminUpdateGhostPlayerLinkClosedLeagueResultSchema = LinkGhostPlayerResultSchema;
+export type AdminUpdateGhostPlayerLinkClosedLeagueResult = LinkGhostPlayerResult;
 
 export const ghostUserIdSchema = userIdSchema.refine(isGhostUserId, 'Not a ghost player.');
 
@@ -162,12 +164,12 @@ export const DeleteTeamMembershipResultSchema = z
   .strict();
 export type DeleteTeamMembershipResult = z.infer<typeof DeleteTeamMembershipResultSchema>;
 
-export const DeleteTeamGhostPlayerInputSchema = z
+export const DeleteGhostPlayerInputSchema = z
   .object({ teamId: teamIdSchema, ghostUserId: ghostUserIdSchema })
   .strict();
-export type DeleteTeamGhostPlayerInput = z.infer<typeof DeleteTeamGhostPlayerInputSchema>;
+export type DeleteGhostPlayerInput = z.infer<typeof DeleteGhostPlayerInputSchema>;
 
-export const DeleteTeamGhostPlayerResultSchema = z
+export const DeleteGhostPlayerResultSchema = z
   .object({
     leagueId: leagueIdSchema,
     teamId: teamIdSchema,
@@ -176,7 +178,7 @@ export const DeleteTeamGhostPlayerResultSchema = z
     publicUserDeleted: z.boolean(),
   })
   .strict();
-export type DeleteTeamGhostPlayerResult = z.infer<typeof DeleteTeamGhostPlayerResultSchema>;
+export type DeleteGhostPlayerResult = z.infer<typeof DeleteGhostPlayerResultSchema>;
 
 export const GhostRemovalRefusalDetailsSchema = z
   .object({ reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS) })

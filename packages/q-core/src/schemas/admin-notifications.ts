@@ -18,37 +18,43 @@ export const notificationArchiveAllJobIdSchema = z
   .string()
   .refine((id) => parseNotificationArchiveAllJobId(id) !== null, 'Not an archive-all job id.');
 
-export const AdminArchiveNotificationInputSchema = z
+export const AdminUpdateAdminNotificationArchiveInputSchema = z
   .object({
     requestId: notificationRequestIdSchema,
     notificationId: adminNotificationIdSchema,
     observedActivityGeneration: activityGenerationSchema,
   })
   .strict();
-export type AdminArchiveNotificationInput = z.infer<typeof AdminArchiveNotificationInputSchema>;
-export const AdminArchiveNotificationResultSchema = z.object({ archived: z.boolean() }).strict();
-export type AdminArchiveNotificationResult = z.infer<typeof AdminArchiveNotificationResultSchema>;
+export type AdminUpdateAdminNotificationArchiveInput = z.infer<
+  typeof AdminUpdateAdminNotificationArchiveInputSchema
+>;
+export const AdminUpdateAdminNotificationArchiveResultSchema = z
+  .object({ archived: z.boolean() })
+  .strict();
+export type AdminUpdateAdminNotificationArchiveResult = z.infer<
+  typeof AdminUpdateAdminNotificationArchiveResultSchema
+>;
 
-export const AdminArchiveAllNotificationsInputSchema = z
+export const AdminCreateNotificationArchiveAllJobInputSchema = z
   .object({ requestId: notificationRequestIdSchema })
   .strict();
-export type AdminArchiveAllNotificationsInput = z.infer<
-  typeof AdminArchiveAllNotificationsInputSchema
+export type AdminCreateNotificationArchiveAllJobInput = z.infer<
+  typeof AdminCreateNotificationArchiveAllJobInputSchema
 >;
-export const AdminArchiveAllNotificationsResultSchema = z
+export const AdminCreateNotificationArchiveAllJobResultSchema = z
   .object({ jobId: notificationArchiveAllJobIdSchema })
   .strict();
-export type AdminArchiveAllNotificationsResult = z.infer<
-  typeof AdminArchiveAllNotificationsResultSchema
+export type AdminCreateNotificationArchiveAllJobResult = z.infer<
+  typeof AdminCreateNotificationArchiveAllJobResultSchema
 >;
 
-export const AdminGetNotificationArchiveAllStatusInputSchema = z
+export const AdminGetNotificationArchiveAllJobInputSchema = z
   .object({ jobId: notificationArchiveAllJobIdSchema })
   .strict();
-export type AdminGetNotificationArchiveAllStatusInput = z.infer<
-  typeof AdminGetNotificationArchiveAllStatusInputSchema
+export type AdminGetNotificationArchiveAllJobInput = z.infer<
+  typeof AdminGetNotificationArchiveAllJobInputSchema
 >;
-export const AdminGetNotificationArchiveAllStatusResultSchema = z
+export const AdminGetNotificationArchiveAllJobResultSchema = z
   .object({
     state: z.enum(NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS),
     category: z.literal(ADMIN_NOTIFICATION_CATEGORY),
@@ -57,6 +63,6 @@ export const AdminGetNotificationArchiveAllStatusResultSchema = z
     error: z.string().optional(),
   })
   .strict();
-export type AdminGetNotificationArchiveAllStatusResult = z.infer<
-  typeof AdminGetNotificationArchiveAllStatusResultSchema
+export type AdminGetNotificationArchiveAllJobResult = z.infer<
+  typeof AdminGetNotificationArchiveAllJobResultSchema
 >;

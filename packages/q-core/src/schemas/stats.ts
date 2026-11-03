@@ -39,10 +39,10 @@ import {
   UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS,
 } from '../types/stats.js';
 
-export const FinalizeGameInputSchema = z.object({ gameId: gameIdSchema }).strict();
-export type FinalizeGameInput = z.infer<typeof FinalizeGameInputSchema>;
+export const UpdateSportGameFinalizeInputSchema = z.object({ gameId: gameIdSchema }).strict();
+export type UpdateSportGameFinalizeInput = z.infer<typeof UpdateSportGameFinalizeInputSchema>;
 
-export const FinalizeGameResultSchema = z
+export const UpdateSportGameFinalizeResultSchema = z
   .object({
     gameId: gameIdSchema,
     leagueId: leagueIdSchema,
@@ -50,23 +50,25 @@ export const FinalizeGameResultSchema = z
     nonScoringRosterPlayerIds: z.array(gameRosterPlayerIdSchema),
   })
   .strict();
-export type FinalizeGameResult = z.infer<typeof FinalizeGameResultSchema>;
+export type UpdateSportGameFinalizeResult = z.infer<typeof UpdateSportGameFinalizeResultSchema>;
 
-export const ReopenGameInputSchema = z
+export const AdminUpdateSportGameReopenInputSchema = z
   .object({ gameId: gameIdSchema, reason: repairReasonSchema })
   .strict();
-export type ReopenGameInput = z.infer<typeof ReopenGameInputSchema>;
+export type AdminUpdateSportGameReopenInput = z.infer<typeof AdminUpdateSportGameReopenInputSchema>;
 
-export const ReopenGameResultSchema = z
+export const AdminUpdateSportGameReopenResultSchema = z
   .object({
     gameId: gameIdSchema,
     leagueId: leagueIdSchema,
     outcome: z.enum(GAME_REOPEN_OUTCOME_KEYS),
   })
   .strict();
-export type ReopenGameResult = z.infer<typeof ReopenGameResultSchema>;
+export type AdminUpdateSportGameReopenResult = z.infer<
+  typeof AdminUpdateSportGameReopenResultSchema
+>;
 
-export const AdminResolveUnrosteredStatLineInputSchema = z
+export const AdminCreateGameRosterPlayerInputSchema = z
   .object({
     gameId: gameIdSchema,
     userId: userIdSchema,
@@ -75,11 +77,11 @@ export const AdminResolveUnrosteredStatLineInputSchema = z
     dryRun: z.boolean().optional(),
   })
   .strict();
-export type AdminResolveUnrosteredStatLineInput = z.infer<
-  typeof AdminResolveUnrosteredStatLineInputSchema
+export type AdminCreateGameRosterPlayerInput = z.infer<
+  typeof AdminCreateGameRosterPlayerInputSchema
 >;
 
-export const AdminResolveUnrosteredStatLineResultSchema = z
+export const AdminCreateGameRosterPlayerResultSchema = z
   .object({
     gameId: gameIdSchema,
     userId: userIdSchema,
@@ -88,8 +90,8 @@ export const AdminResolveUnrosteredStatLineResultSchema = z
     gameConverts: z.boolean(),
   })
   .strict();
-export type AdminResolveUnrosteredStatLineResult = z.infer<
-  typeof AdminResolveUnrosteredStatLineResultSchema
+export type AdminCreateGameRosterPlayerResult = z.infer<
+  typeof AdminCreateGameRosterPlayerResultSchema
 >;
 
 const statsRepairFields = {
@@ -106,11 +108,13 @@ const CURSOR_ONLY_ON_DRY_RUN = {
   path: ['resumeAfter'],
 };
 
-export const RecalculateLeagueStatsInputSchema = z
+export const AdminUpdateSportLeagueStatsRecalculateInputSchema = z
   .object({ leagueId: leagueIdSchema, ...statsRepairFields })
   .strict()
   .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
-export type RecalculateLeagueStatsInput = z.infer<typeof RecalculateLeagueStatsInputSchema>;
+export type AdminUpdateSportLeagueStatsRecalculateInput = z.infer<
+  typeof AdminUpdateSportLeagueStatsRecalculateInputSchema
+>;
 
 export const RecalculateAllLeagueStatsInputSchema = z
   .object({ ...statsRepairFields })
@@ -118,11 +122,13 @@ export const RecalculateAllLeagueStatsInputSchema = z
   .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
 export type RecalculateAllLeagueStatsInput = z.infer<typeof RecalculateAllLeagueStatsInputSchema>;
 
-export const RecalculateUserStatsInputSchema = z
+export const AdminUpdateUserProfileStatsRecalculateInputSchema = z
   .object({ userId: userIdSchema, ...statsRepairFields })
   .strict()
   .refine(cursorOnlyOnDryRun, CURSOR_ONLY_ON_DRY_RUN);
-export type RecalculateUserStatsInput = z.infer<typeof RecalculateUserStatsInputSchema>;
+export type AdminUpdateUserProfileStatsRecalculateInput = z.infer<
+  typeof AdminUpdateUserProfileStatsRecalculateInputSchema
+>;
 
 export const RecalculateAllUserStatsInputSchema = z
   .object({ ...statsRepairFields })
@@ -180,7 +186,7 @@ export const AdminCorrectGameStatsInputSchema = z
   });
 export type AdminCorrectGameStatsInput = z.infer<typeof AdminCorrectGameStatsInputSchema>;
 
-export const RecalculateGameStatsInputSchema = z
+export const AdminUpdateSportGameStatsRecalculateInputSchema = z
   .object({
     gameId: gameIdSchema,
     reason: repairReasonSchema,
@@ -188,7 +194,9 @@ export const RecalculateGameStatsInputSchema = z
     dryRun: z.boolean(),
   })
   .strict();
-export type RecalculateGameStatsInput = z.infer<typeof RecalculateGameStatsInputSchema>;
+export type AdminUpdateSportGameStatsRecalculateInput = z.infer<
+  typeof AdminUpdateSportGameStatsRecalculateInputSchema
+>;
 
 export const GameStatsCorrectionSchema = z
   .object({ lineKey: z.string().min(1), field: statCounterKeySchema, value: z.number().int() })
@@ -270,7 +278,7 @@ const EnteredHistoricalStatsSchema = z
   )
   .strict();
 
-export const AdminUpdateHistoricalStatsInputSchema = z
+export const AdminUpdateHistoricalStatInputSchema = z
   .object({
     userId: userIdSchema,
     sportKey: sportKeySchema,
@@ -280,9 +288,9 @@ export const AdminUpdateHistoricalStatsInputSchema = z
     dryRun: z.boolean(),
   })
   .strict();
-export type AdminUpdateHistoricalStatsInput = z.infer<typeof AdminUpdateHistoricalStatsInputSchema>;
+export type AdminUpdateHistoricalStatInput = z.infer<typeof AdminUpdateHistoricalStatInputSchema>;
 
-export const AdminUpdateHistoricalStatsResultSchema = z
+export const AdminUpdateHistoricalStatResultSchema = z
   .object({
     userId: userIdSchema,
     sportKey: sportKeySchema,
@@ -293,16 +301,16 @@ export const AdminUpdateHistoricalStatsResultSchema = z
     changes: z.array(StatsDestinationChangeSchema),
   })
   .strict();
-export type AdminUpdateHistoricalStatsResult = z.infer<
-  typeof AdminUpdateHistoricalStatsResultSchema
->;
+export type AdminUpdateHistoricalStatResult = z.infer<typeof AdminUpdateHistoricalStatResultSchema>;
 
-export const RunStatsValidationInputSchema = z
+export const AdminCreateStatsValidationReportInputSchema = z
   .object({ operationId: statsOperationIdSchema, scope: StatsValidationScopeSchema.strict() })
   .strict();
-export type RunStatsValidationInput = z.infer<typeof RunStatsValidationInputSchema>;
+export type AdminCreateStatsValidationReportInput = z.infer<
+  typeof AdminCreateStatsValidationReportInputSchema
+>;
 
-export const RunStatsValidationResultSchema = z
+export const AdminCreateStatsValidationReportResultSchema = z
   .object({
     reportId: z.string().min(1),
     complete: z.boolean(),
@@ -310,7 +318,9 @@ export const RunStatsValidationResultSchema = z
     discrepancyCounts: StatsValidationReportSchema.shape.discrepancyCounts,
   })
   .strict();
-export type RunStatsValidationResult = z.infer<typeof RunStatsValidationResultSchema>;
+export type AdminCreateStatsValidationReportResult = z.infer<
+  typeof AdminCreateStatsValidationReportResultSchema
+>;
 
 export const AdminDeleteStatsValidationReportInputSchema = z
   .object({ reportId: statsValidationReportIdSchema })

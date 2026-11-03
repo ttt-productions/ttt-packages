@@ -16,8 +16,8 @@ import {
   AdminUpdateSportLeagueStatusInputSchema,
   AdminUpdateSportLeagueStatusResultSchema,
   LEAGUE_SETTINGS_FIELD_KEYS,
-  SwitchLeagueModeInputSchema,
-  SwitchLeagueModeResultSchema,
+  AdminUpdateSportLeagueModeInputSchema,
+  AdminUpdateSportLeagueModeResultSchema,
 } from '../src/schemas/leagues.js';
 import { SPORT_ADAPTER_LIST } from '../src/sports/registry.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
@@ -320,14 +320,16 @@ describe('the status move and the mode switch', () => {
         .success,
     ).toBe(false);
     expect(
-      SwitchLeagueModeInputSchema.safeParse({ leagueId: 'L1', newMode: TEAM_TYPED_LEAGUE_MODE })
-        .success,
+      AdminUpdateSportLeagueModeInputSchema.safeParse({
+        leagueId: 'L1',
+        newMode: TEAM_TYPED_LEAGUE_MODE,
+      }).success,
     ).toBe(true);
     expect(
-      SwitchLeagueModeInputSchema.safeParse({ leagueId: 'L1', newMode: 'Mixed' }).success,
+      AdminUpdateSportLeagueModeInputSchema.safeParse({ leagueId: 'L1', newMode: 'Mixed' }).success,
     ).toBe(false);
     expect(
-      SwitchLeagueModeInputSchema.safeParse({
+      AdminUpdateSportLeagueModeInputSchema.safeParse({
         leagueId: 'L1',
         newMode: TEAM_TYPED_LEAGUE_MODE,
         teamType: 'Competitive',
@@ -365,30 +367,30 @@ describe('the league callable results', () => {
 
   it('answers a status move and a mode switch with the league updatedAt before and after', () => {
     expect(AdminUpdateSportLeagueStatusResultSchema.safeParse(statusResult).success).toBe(true);
-    expect(SwitchLeagueModeResultSchema.safeParse(modeResult).success).toBe(true);
+    expect(AdminUpdateSportLeagueModeResultSchema.safeParse(modeResult).success).toBe(true);
     for (const field of ['previousUpdatedAt', 'updatedAt'] as const) {
       const { [field]: _statusOmitted, ...statusMissing } = statusResult;
       const { [field]: _modeOmitted, ...modeMissing } = modeResult;
       expect(AdminUpdateSportLeagueStatusResultSchema.safeParse(statusMissing).success).toBe(false);
-      expect(SwitchLeagueModeResultSchema.safeParse(modeMissing).success).toBe(false);
+      expect(AdminUpdateSportLeagueModeResultSchema.safeParse(modeMissing).success).toBe(false);
       expect(
         AdminUpdateSportLeagueStatusResultSchema.safeParse({ ...statusResult, [field]: 1.5 })
           .success,
       ).toBe(false);
-      expect(SwitchLeagueModeResultSchema.safeParse({ ...modeResult, [field]: -1 }).success).toBe(
-        false,
-      );
+      expect(
+        AdminUpdateSportLeagueModeResultSchema.safeParse({ ...modeResult, [field]: -1 }).success,
+      ).toBe(false);
     }
   });
 
   it('counts the teams a mode switch retyped as a whole number from zero', () => {
-    expect(SwitchLeagueModeResultSchema.safeParse({ ...modeResult, teamsUpdated: 0 }).success).toBe(
-      true,
-    );
+    expect(
+      AdminUpdateSportLeagueModeResultSchema.safeParse({ ...modeResult, teamsUpdated: 0 }).success,
+    ).toBe(true);
     for (const teamsUpdated of [-1, 2.5, '3']) {
-      expect(SwitchLeagueModeResultSchema.safeParse({ ...modeResult, teamsUpdated }).success).toBe(
-        false,
-      );
+      expect(
+        AdminUpdateSportLeagueModeResultSchema.safeParse({ ...modeResult, teamsUpdated }).success,
+      ).toBe(false);
     }
   });
 });
@@ -467,10 +469,10 @@ describe('the one team-type union', () => {
 describe('league audit and domain events', () => {
   it('declares an audit event type for every league transition', () => {
     for (const type of [
-      'league.created',
-      'league.updated',
-      'league.statusChanged',
-      'league.modeSwitched',
+      'sportLeague.created',
+      'sportLeague.updated',
+      'sportLeague.statusChanged',
+      'sportLeague.modeSwitched',
     ]) {
       expect(AUDIT_EVENT_TYPE_KEYS).toContain(type);
     }
@@ -478,13 +480,14 @@ describe('league audit and domain events', () => {
 
   it('names a mode switch by its league alone', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'league.modeSwitched', ids: { leagueId: 'L1' } }).success,
+      DomainEventSchema.safeParse({ type: 'sportLeague.modeSwitched', ids: { leagueId: 'L1' } })
+        .success,
     ).toBe(true);
     expect(
       DomainEventSchema.parse({
-        type: 'league.modeSwitched',
+        type: 'sportLeague.modeSwitched',
         ids: { leagueId: 'L1', teamId: 'T1' },
       }),
-    ).toEqual({ type: 'league.modeSwitched', ids: { leagueId: 'L1' } });
+    ).toEqual({ type: 'sportLeague.modeSwitched', ids: { leagueId: 'L1' } });
   });
 });

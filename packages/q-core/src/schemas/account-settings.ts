@@ -3,7 +3,7 @@ import { epochMsSchema } from '../doc-schemas/atoms.js';
 import { themeNameSchema } from '../doc-schemas/user-profile.js';
 import { contactPhoneSchema } from './atoms.js';
 
-export const UpdateAccountSettingsInputSchema = z
+export const UpdateUserProfileSettingsInputSchema = z
   .object({
     theme: themeNameSchema.optional(),
     reducedMotion: z.boolean().optional(),
@@ -13,9 +13,9 @@ export const UpdateAccountSettingsInputSchema = z
   .refine((input) => Object.values(input).some((value) => value !== undefined), {
     message: 'Change at least one setting.',
   });
-export type UpdateAccountSettingsInput = z.infer<typeof UpdateAccountSettingsInputSchema>;
+export type UpdateUserProfileSettingsInput = z.infer<typeof UpdateUserProfileSettingsInputSchema>;
 
-export const UpdateAccountSettingsResultSchema = z
+export const UpdateUserProfileSettingsResultSchema = z
   .object({
     theme: themeNameSchema.nullable(),
     reducedMotion: z.boolean().nullable(),
@@ -23,4 +23,4 @@ export const UpdateAccountSettingsResultSchema = z
     updatedAt: epochMsSchema,
   })
   .strict();
-export type UpdateAccountSettingsResult = z.infer<typeof UpdateAccountSettingsResultSchema>;
+export type UpdateUserProfileSettingsResult = z.infer<typeof UpdateUserProfileSettingsResultSchema>;

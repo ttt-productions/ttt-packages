@@ -26,40 +26,40 @@ export type AdminCreateHardwareLoanContractResult = z.infer<
   typeof AdminCreateHardwareLoanContractResultSchema
 >;
 
-export const SubmitHardwareLoanContractSignatureInputSchema = z
+export const UpdateHardwareLoanContractSignInputSchema = z
   .object({ contractId: hardwareLoanContractIdSchema, storagePath: stagingUploadPathSchema })
   .strict();
-export type SubmitHardwareLoanContractSignatureInput = z.infer<
-  typeof SubmitHardwareLoanContractSignatureInputSchema
+export type UpdateHardwareLoanContractSignInput = z.infer<
+  typeof UpdateHardwareLoanContractSignInputSchema
 >;
 
-export const SubmitHardwareLoanContractSignatureResultSchema = z
+export const UpdateHardwareLoanContractSignResultSchema = z
   .object({
     contractId: hardwareLoanContractIdSchema,
     loanedAt: epochMsSchema,
     alreadySigned: z.boolean(),
   })
   .strict();
-export type SubmitHardwareLoanContractSignatureResult = z.infer<
-  typeof SubmitHardwareLoanContractSignatureResultSchema
+export type UpdateHardwareLoanContractSignResult = z.infer<
+  typeof UpdateHardwareLoanContractSignResultSchema
 >;
 
-export const AdminReturnHardwareLoanContractInputSchema = z
+export const AdminUpdateHardwareLoanContractReturnInputSchema = z
   .object({ contractId: hardwareLoanContractIdSchema })
   .strict();
-export type AdminReturnHardwareLoanContractInput = z.infer<
-  typeof AdminReturnHardwareLoanContractInputSchema
+export type AdminUpdateHardwareLoanContractReturnInput = z.infer<
+  typeof AdminUpdateHardwareLoanContractReturnInputSchema
 >;
 
-export const AdminReturnHardwareLoanContractResultSchema = z
+export const AdminUpdateHardwareLoanContractReturnResultSchema = z
   .object({
     contractId: hardwareLoanContractIdSchema,
     returnedAt: epochMsSchema,
     changed: z.boolean(),
   })
   .strict();
-export type AdminReturnHardwareLoanContractResult = z.infer<
-  typeof AdminReturnHardwareLoanContractResultSchema
+export type AdminUpdateHardwareLoanContractReturnResult = z.infer<
+  typeof AdminUpdateHardwareLoanContractReturnResultSchema
 >;
 
 export const AdminDeleteHardwareLoanContractInputSchema = z

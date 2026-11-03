@@ -552,12 +552,13 @@ describe('the schedule vocabulary', () => {
     }
   });
 
-  it('names what changed for the client: the league’s schedule, or one game', () => {
+  it('names what changed for the client: a week of the schedule, or one game', () => {
     expect(
-      DomainEventSchema.safeParse({ type: 'leagueSchedule.changed', ids: { leagueId: 'league-1' } })
-        .success,
+      ['scheduleWeek.created', 'scheduleWeek.updated', 'scheduleWeek.deleted'].every(
+        (type) => DomainEventSchema.safeParse({ type, ids: { leagueId: 'league-1' } }).success,
+      ),
     ).toBe(true);
-    for (const type of ['sportGame.updated', 'sportGame.deleted']) {
+    for (const type of ['sportGame.created', 'sportGame.updated', 'sportGame.deleted']) {
       expect(
         DomainEventSchema.safeParse({ type, ids: { leagueId: 'league-1', gameId: 'game-1' } })
           .success,

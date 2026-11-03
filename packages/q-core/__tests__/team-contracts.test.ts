@@ -21,19 +21,19 @@ import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { toPath } from '../src/paths/utils.js';
 import {
   AdminCreateLeagueTeamInputSchema,
-  CreateGameGhostPlayerInputSchema,
+  CreateGhostPlayerGameRosterInputSchema,
   CreateGhostPlayerResultSchema,
   CreateLeagueTeamInputSchema,
-  CreateTeamGhostPlayerInputSchema,
-  GetLeagueJoinWarningInputSchema,
-  GetLeagueJoinWarningResultSchema,
+  CreateGhostPlayerInputSchema,
+  GetSportLeagueJoinWarningInputSchema,
+  GetSportLeagueJoinWarningResultSchema,
 } from '../src/schemas/teams.js';
 import {
   AdminCreateSignedWaiverInputSchema,
   CreateSignedWaiverInputSchema,
   GetSignedWaiverFileInputSchema,
 } from '../src/schemas/signed-waivers.js';
-import { AdminStartUploadInputSchema } from '../src/schemas/uploads.js';
+import { AdminCreatePendingMediaInputSchema } from '../src/schemas/uploads.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
   ACTIVE_TEAM_MEMBERSHIP_STATUS,
@@ -313,21 +313,21 @@ describe('team creation input', () => {
 describe('ghost add input', () => {
   it('validates the ghost name on the server and takes no ghost id or creator', () => {
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerInputSchema.safeParse({
         teamId: 't',
         requestId: 'r1',
         displayName: 'Red Shirt',
       }).success,
     ).toBe(true);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerInputSchema.safeParse({
         teamId: 't',
         requestId: 'r1',
         displayName: 'a'.repeat(MIN_DISPLAY_NAME_LENGTH - 1),
       }).success,
     ).toBe(false);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerInputSchema.safeParse({
         teamId: 't',
         requestId: 'r1',
         displayName: 'a'.repeat(MAX_DISPLAY_NAME_LENGTH + 1),
@@ -339,7 +339,7 @@ describe('ghost add input', () => {
       { leagueId: 'l1' },
     ]) {
       expect(
-        CreateTeamGhostPlayerInputSchema.safeParse({
+        CreateGhostPlayerInputSchema.safeParse({
           teamId: 't',
           requestId: 'r1',
           displayName: 'Red Shirt',
@@ -351,7 +351,7 @@ describe('ghost add input', () => {
 
   it('names the game and one of its teams at the game door', () => {
     expect(
-      CreateGameGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerGameRosterInputSchema.safeParse({
         gameId: 'g',
         teamId: 't',
         displayName: 'Red Shirt',
@@ -359,7 +359,7 @@ describe('ghost add input', () => {
       }).success,
     ).toBe(true);
     expect(
-      CreateGameGhostPlayerInputSchema.safeParse({
+      CreateGhostPlayerGameRosterInputSchema.safeParse({
         gameId: 'g',
         displayName: 'Red Shirt',
         requestId: 'r1',
@@ -369,14 +369,17 @@ describe('ghost add input', () => {
 
   it('carries the request id the client minted for this add, one document-id segment, at both doors', () => {
     const add = { teamId: 't', displayName: 'Red Shirt' };
-    expect(CreateTeamGhostPlayerInputSchema.safeParse(add).success).toBe(false);
+    expect(CreateGhostPlayerInputSchema.safeParse(add).success).toBe(false);
     for (const requestId of ['', 'a/b', '..', 'x'.repeat(1500)]) {
-      expect(CreateTeamGhostPlayerInputSchema.safeParse({ ...add, requestId }).success).toBe(false);
+      expect(CreateGhostPlayerInputSchema.safeParse({ ...add, requestId }).success).toBe(false);
       expect(
-        CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g', requestId }).success,
+        CreateGhostPlayerGameRosterInputSchema.safeParse({ ...add, gameId: 'g', requestId })
+          .success,
       ).toBe(false);
     }
-    expect(CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g' }).success).toBe(false);
+    expect(CreateGhostPlayerGameRosterInputSchema.safeParse({ ...add, gameId: 'g' }).success).toBe(
+      false,
+    );
   });
 
   it('answers with the ghost alone', () => {
@@ -410,10 +413,10 @@ describe('ghost identity', () => {
 
 describe('the join warning callables', () => {
   it('take the acted-on item and return the findings in the one shape the warning computes over', () => {
-    expect(GetLeagueJoinWarningInputSchema.shape.actedOn.unwrap()).toBe(
+    expect(GetSportLeagueJoinWarningInputSchema.shape.actedOn.unwrap()).toBe(
       leagueJoinWarningActedOnSchema,
     );
-    expect(GetLeagueJoinWarningResultSchema.shape.findings.element).toBe(
+    expect(GetSportLeagueJoinWarningResultSchema.shape.findings.element).toBe(
       leagueJoinWarningFindingSchema,
     );
     for (const finding of computeLeagueJoinWarning(
@@ -430,11 +433,11 @@ describe('the join warning callables', () => {
   });
 
   it('reads about one person in one league, optionally for a target team and an acted-on item', () => {
-    expect(GetLeagueJoinWarningInputSchema.safeParse({ leagueId: 'l', userId: 'u' }).success).toBe(
-      true,
-    );
     expect(
-      GetLeagueJoinWarningInputSchema.safeParse({
+      GetSportLeagueJoinWarningInputSchema.safeParse({ leagueId: 'l', userId: 'u' }).success,
+    ).toBe(true);
+    expect(
+      GetSportLeagueJoinWarningInputSchema.safeParse({
         leagueId: 'l',
         userId: 'u',
         targetTeamId: 't',
@@ -442,7 +445,7 @@ describe('the join warning callables', () => {
       }).success,
     ).toBe(true);
     expect(
-      GetLeagueJoinWarningInputSchema.safeParse({
+      GetSportLeagueJoinWarningInputSchema.safeParse({
         leagueId: 'l',
         userId: 'u',
         actedOn: { kind: 'teamInvitation' },
@@ -452,14 +455,14 @@ describe('the join warning callables', () => {
 
   it('returns nothing beyond the four states, each with its team', () => {
     expect(
-      GetLeagueJoinWarningResultSchema.safeParse({
+      GetSportLeagueJoinWarningResultSchema.safeParse({
         leagueId: 'l',
         userId: 'u',
         findings: [{ state: 'onTeam', teamId: 't' }],
       }).success,
     ).toBe(true);
     expect(
-      GetLeagueJoinWarningResultSchema.safeParse({
+      GetSportLeagueJoinWarningResultSchema.safeParse({
         leagueId: 'l',
         userId: 'u',
         findings: [{ state: 'onTeam', teamId: 't', message: 'pending request text' }],
@@ -715,7 +718,7 @@ describe('signed waivers', () => {
     ).toBe(false);
     expect(Object.keys(CreateSignedWaiverInputSchema.shape)).toContain('storagePath');
     expect(Object.keys(AdminCreateSignedWaiverInputSchema.shape)).toContain('storagePath');
-    expect(Object.keys(AdminStartUploadInputSchema.shape)).toContain('storagePath');
+    expect(Object.keys(AdminCreatePendingMediaInputSchema.shape)).toContain('storagePath');
   });
 
   it("requires the ghost at the admin entry, which signs only a ghost's waiver", () => {
@@ -750,13 +753,13 @@ describe('the audit and domain vocabulary', () => {
     expect(
       DomainEventSchema.safeParse({
         type: 'leagueTeam.created',
-        ids: { leagueId: 'L', teamId: 'T' },
+        ids: { leagueId: 'L', teamId: 'T', userId: 'u1' },
       }).success,
     ).toBe(true);
     expect(
       DomainEventSchema.safeParse({
-        type: 'teamRoster.changed',
-        ids: { leagueId: 'L', teamId: 'T', userId: buildGhostUserId(NOW, 'a') },
+        type: 'ghostPlayer.created',
+        ids: { leagueId: 'L', teamId: 'T', ghostUserId: buildGhostUserId(NOW, 'a') },
       }).success,
     ).toBe(true);
     expect(

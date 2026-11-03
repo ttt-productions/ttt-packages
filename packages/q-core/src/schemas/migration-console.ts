@@ -83,25 +83,33 @@ export const GetMigrationConsoleResultSchema = z
   .strict();
 export type GetMigrationConsoleResult = z.infer<typeof GetMigrationConsoleResultSchema>;
 
-export const RecordMigrationControlRunInputSchema = z
+export const UpdateMigrationActionRunControlInputSchema = z
   .object({
     actionId: migrationActionIdSchema,
     operationIds: z.array(statsOperationIdSchema).max(MAX_RECORDED_OPERATION_IDS),
     reason: repairReasonSchema,
   })
   .strict();
-export type RecordMigrationControlRunInput = z.infer<typeof RecordMigrationControlRunInputSchema>;
+export type UpdateMigrationActionRunControlInput = z.infer<
+  typeof UpdateMigrationActionRunControlInputSchema
+>;
 
-export const RecordMigrationCheckpointInputSchema = z
+export const UpdateMigrationActionRunCheckpointInputSchema = z
   .object({
     actionId: migrationActionIdSchema,
     evidence: migrationEvidenceSchema,
   })
   .strict();
-export type RecordMigrationCheckpointInput = z.infer<typeof RecordMigrationCheckpointInputSchema>;
+export type UpdateMigrationActionRunCheckpointInput = z.infer<
+  typeof UpdateMigrationActionRunCheckpointInputSchema
+>;
 
-export const RecordMigrationCutoverInputSchema = z.object({ reason: repairReasonSchema }).strict();
-export type RecordMigrationCutoverInput = z.infer<typeof RecordMigrationCutoverInputSchema>;
+export const UpdateMigrationConsoleCutoverInputSchema = z
+  .object({ reason: repairReasonSchema })
+  .strict();
+export type UpdateMigrationConsoleCutoverInput = z.infer<
+  typeof UpdateMigrationConsoleCutoverInputSchema
+>;
 
 export const RecordMigrationStepResultSchema = z
   .object({

@@ -201,17 +201,35 @@ grades only names it can see; the step-10 guards force every segment name back i
 where this step sees it.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
-### 13. Callable naming reveals effect
-**Rules:** RULE-STD-BACKEND-305. **Scope:** `functions/src`.
+### 13. One naming grammar
+**Rules:** RULE-STD-BACKEND-305, RULE-STD-ARCH-104, RULE-STD-BACKEND-202, RULE-STD-FRONTEND-102,
+RULE-STD-FRONTEND-103, RULE-STD-FRONTEND-105. **Scope:** `functions/src` + `src` + the installed
+`<APP_DATA_PACKAGE>`.
 ```bash
-rg -n "export const .* = onCall" functions/src -g '*.ts' -g '!*.test.ts'
+# a. Callables whose name does not start with the closed verb set (`|| true`: none is the clean case).
+rg -n "export const \w+ = (onCall|\w+Callable)\(" functions/src -g '*.ts' -g '!*.test.ts' \
+  | rg -v "export const (admin)?(create|update|delete|get)[A-Z]" || true
+# b. Every callable and the guard each one passes, for the admin-prefix check.
+rg -n -A40 "export const \w+ = onCall\(" functions/src -g '*.ts' -g '!*.test.ts' \
+  | rg "export const|assertAuth\("
+# c. Audit event types and domain events that are not exactly two parts.
+rg -nP "^\s*'[a-z]\w*(\.\w+){2,}'|^\s*'[a-z]\w*',|^\s*'[a-z]\w*(\.\w+){2,}':" \
+  <APP_SCHEMA_DIR>/../types/audit.ts <DOMAIN_EVENT_REGISTRY>
+# d. Every declared hook beside the callable it declares.
+rg -n -B3 ">\('\w+'" <CALLABLE_DECLARATIONS>
 ```
-**Expected:** the verb prefix matches the effect — `create*` / `update*` / `delete*` / `submit*` /
-`admin*` and the app's own sanctioned prefixes (its additions name them and any frozen legacy prefix).
-Once `<HOLDS_LIVE_DATA>` is yes, deployed names are frozen. **Classifying a discriminant:** it is
-sanctioned when its branches are one task's decision set sharing one actor-context and audit spine AND
-the callable's own name names the effect; it is the violation when it multiplexes unrelated effects
-behind one neutral name.
+**Expected:** (a) prints nothing. (b) every callable whose guard demands an admin starts with
+`admin`, and no other does. (c) is zero. (d) each `export const useX` is `use` + the string it
+declares + `Callable`. **Manual clauses:** each callable's verb is its effect on the thing it names, side writes
+aside, and an answer that removes its thing is a `delete`; each name's thing — callable, event,
+query-key scope, hook — is a collection's singular or on `<APP_DATA_PACKAGE>`'s declared-noun list,
+never an alias or a category, and each declared noun's entry names its collections; each core is
+`run` + the callable's name without `admin` and each file carries the callable's name; each
+happening has one name in the audit and domain events; each single-callable mutation hook in the
+hook layer is `use` + its callable's name. Once `<HOLDS_LIVE_DATA>` is yes, deployed names are
+frozen. **Classifying a discriminant:** it is sanctioned when its branches are one task's decision
+set sharing one actor-context and audit spine AND the callable's own name names the effect; it is the
+violation when it multiplexes unrelated effects behind one neutral name.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ### 14. One media renderer

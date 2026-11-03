@@ -34,17 +34,17 @@ import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import { PendingMediaSchema, PendingMediaTargetSchema } from '../src/doc-schemas/pending-media.js';
 import { PictureRetirementSchema } from '../src/doc-schemas/picture-retirement.js';
 import {
-  AdminClearUploadActivityInputSchema,
-  AdminClearUploadActivityResultSchema,
-  AdminMarkUploadsSeenInputSchema,
-  AdminMarkUploadsSeenResultSchema,
-  AdminStartUploadInputSchema,
+  AdminUpdatePendingMediaClearInputSchema,
+  AdminUpdatePendingMediaClearResultSchema,
+  AdminUpdatePendingMediaSeenInputSchema,
+  AdminUpdatePendingMediaSeenResultSchema,
+  AdminCreatePendingMediaInputSchema,
   parseTargetInfo,
 } from '../src/schemas/uploads.js';
 import {
-  AdminDeletePictureInputSchema,
-  AdminMovePictureInputSchema,
-  AdminUpdateFeaturedPictureInputSchema,
+  AdminDeleteGalleryPictureInputSchema,
+  AdminUpdateGalleryPictureMoveInputSchema,
+  AdminUpdateGalleryPictureFeaturedInputSchema,
 } from '../src/schemas/pictures.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 
@@ -301,26 +301,26 @@ describe('gallery owner kinds', () => {
   });
 });
 
-describe('adminStartUpload input', () => {
+describe('adminCreatePendingMedia input', () => {
   const storagePath = buildStagingUploadPath('league-picture', UID, STAGING_ID);
 
   it('accepts each origin with its own target', () => {
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'league-picture',
         storagePath,
         targetInfo: { leagueId: 'l1' },
       }).success,
     ).toBe(true);
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'landing-picture',
         storagePath,
         targetInfo: {},
       }).success,
     ).toBe(true);
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'location-picture',
         storagePath,
         targetInfo: { gameLocationId: 'loc-1' },
@@ -330,38 +330,42 @@ describe('adminStartUpload input', () => {
 
   it('refuses a target that does not fit its origin', () => {
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'league-picture',
         storagePath,
         targetInfo: {},
       }).success,
     ).toBe(false);
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'landing-picture',
         storagePath,
         targetInfo: { leagueId: 'l1' },
       }).success,
     ).toBe(false);
     expect(
-      AdminStartUploadInputSchema.safeParse({ fileOrigin: 'league-picture', storagePath }).success,
+      AdminCreatePendingMediaInputSchema.safeParse({ fileOrigin: 'league-picture', storagePath })
+        .success,
     ).toBe(false);
   });
 
   it('refuses an unknown origin, a missing path, and any extra field — a file name or a subject included', () => {
     expect(
-      AdminStartUploadInputSchema.safeParse({ fileOrigin: 'products', storagePath, targetInfo: {} })
-        .success,
+      AdminCreatePendingMediaInputSchema.safeParse({
+        fileOrigin: 'products',
+        storagePath,
+        targetInfo: {},
+      }).success,
     ).toBe(false);
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'landing-picture',
         storagePath: '',
         targetInfo: {},
       }).success,
     ).toBe(false);
     expect(
-      AdminStartUploadInputSchema.safeParse({
+      AdminCreatePendingMediaInputSchema.safeParse({
         fileOrigin: 'landing-picture',
         storagePath,
         targetInfo: {},
@@ -398,46 +402,62 @@ describe('the gallery callables', () => {
 
   it('take a picture id and a neighbour, or null to go first', () => {
     expect(
-      AdminMovePictureInputSchema.safeParse({ pictureId: P1, afterPictureId: null }).success,
-    ).toBe(true);
-    expect(
-      AdminMovePictureInputSchema.safeParse({ pictureId: P1, afterPictureId: P2 }).success,
-    ).toBe(true);
-    expect(AdminMovePictureInputSchema.safeParse({ pictureId: P1 }).success).toBe(false);
-    expect(
-      AdminMovePictureInputSchema.safeParse({ pictureId: P1, afterPictureId: null, position: 'a0' })
+      AdminUpdateGalleryPictureMoveInputSchema.safeParse({ pictureId: P1, afterPictureId: null })
         .success,
+    ).toBe(true);
+    expect(
+      AdminUpdateGalleryPictureMoveInputSchema.safeParse({ pictureId: P1, afterPictureId: P2 })
+        .success,
+    ).toBe(true);
+    expect(AdminUpdateGalleryPictureMoveInputSchema.safeParse({ pictureId: P1 }).success).toBe(
+      false,
+    );
+    expect(
+      AdminUpdateGalleryPictureMoveInputSchema.safeParse({
+        pictureId: P1,
+        afterPictureId: null,
+        position: 'a0',
+      }).success,
     ).toBe(false);
   });
 
   it('feature by id alone and delete by owner and id', () => {
-    expect(AdminUpdateFeaturedPictureInputSchema.safeParse({ pictureId: P1 }).success).toBe(true);
+    expect(AdminUpdateGalleryPictureFeaturedInputSchema.safeParse({ pictureId: P1 }).success).toBe(
+      true,
+    );
     expect(
-      AdminDeletePictureInputSchema.safeParse({
+      AdminDeleteGalleryPictureInputSchema.safeParse({
         owner: { kind: 'gameLocation', id: 'loc-1' },
         pictureId: P1,
       }).success,
     ).toBe(true);
     expect(
-      AdminDeletePictureInputSchema.safeParse({ owner: { kind: 'x', id: 'loc-1' }, pictureId: P1 })
-        .success,
+      AdminDeleteGalleryPictureInputSchema.safeParse({
+        owner: { kind: 'x', id: 'loc-1' },
+        pictureId: P1,
+      }).success,
     ).toBe(false);
   });
 
   it('refuse a picture id that is not a staging id, so a malformed id never reaches a document path', () => {
     for (const malformed of ['a/b', 'p1', STAGING_ID.toUpperCase(), '']) {
       expect(
-        AdminMovePictureInputSchema.safeParse({ pictureId: malformed, afterPictureId: null })
-          .success,
+        AdminUpdateGalleryPictureMoveInputSchema.safeParse({
+          pictureId: malformed,
+          afterPictureId: null,
+        }).success,
       ).toBe(false);
       expect(
-        AdminMovePictureInputSchema.safeParse({ pictureId: P1, afterPictureId: malformed }).success,
+        AdminUpdateGalleryPictureMoveInputSchema.safeParse({
+          pictureId: P1,
+          afterPictureId: malformed,
+        }).success,
       ).toBe(false);
       expect(
-        AdminUpdateFeaturedPictureInputSchema.safeParse({ pictureId: malformed }).success,
+        AdminUpdateGalleryPictureFeaturedInputSchema.safeParse({ pictureId: malformed }).success,
       ).toBe(false);
       expect(
-        AdminDeletePictureInputSchema.safeParse({
+        AdminDeleteGalleryPictureInputSchema.safeParse({
           owner: { kind: 'sportLeague', id: 'l1' },
           pictureId: malformed,
         }).success,
@@ -475,42 +495,48 @@ describe('the upload tray callables', () => {
 
   it('mark between one and the per-call bound of uploads seen, each by its staging id', () => {
     expect(
-      AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [STAGING_ID] }).success,
+      AdminUpdatePendingMediaSeenInputSchema.safeParse({ pendingMediaIds: [STAGING_ID] }).success,
     ).toBe(true);
-    expect(AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [] }).success).toBe(false);
+    expect(AdminUpdatePendingMediaSeenInputSchema.safeParse({ pendingMediaIds: [] }).success).toBe(
+      false,
+    );
     expect(
-      AdminMarkUploadsSeenInputSchema.safeParse({
+      AdminUpdatePendingMediaSeenInputSchema.safeParse({
         pendingMediaIds: Array.from(
           { length: MAX_UPLOADS_MARKED_SEEN_PER_CALL + 1 },
           () => STAGING_ID,
         ),
       }).success,
     ).toBe(false);
-    expect(AdminMarkUploadsSeenResultSchema.safeParse({ marked: 0 }).success).toBe(true);
+    expect(AdminUpdatePendingMediaSeenResultSchema.safeParse({ marked: 0 }).success).toBe(true);
   });
 
   it('clear one upload by its staging id', () => {
     expect(
-      AdminClearUploadActivityInputSchema.safeParse({ pendingMediaId: STAGING_ID }).success,
+      AdminUpdatePendingMediaClearInputSchema.safeParse({ pendingMediaId: STAGING_ID }).success,
     ).toBe(true);
-    expect(AdminClearUploadActivityResultSchema.safeParse({ cleared: true }).success).toBe(true);
+    expect(AdminUpdatePendingMediaClearResultSchema.safeParse({ cleared: true }).success).toBe(
+      true,
+    );
   });
 
   it('refuse a malformed id and any field beyond the ids, so the caller names nothing else', () => {
     for (const malformed of ['a/b', STAGING_ID.toUpperCase(), '']) {
       expect(
-        AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [malformed] }).success,
+        AdminUpdatePendingMediaSeenInputSchema.safeParse({ pendingMediaIds: [malformed] }).success,
       ).toBe(false);
       expect(
-        AdminClearUploadActivityInputSchema.safeParse({ pendingMediaId: malformed }).success,
+        AdminUpdatePendingMediaClearInputSchema.safeParse({ pendingMediaId: malformed }).success,
       ).toBe(false);
     }
     expect(
-      AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [STAGING_ID], userId: UID })
-        .success,
+      AdminUpdatePendingMediaSeenInputSchema.safeParse({
+        pendingMediaIds: [STAGING_ID],
+        userId: UID,
+      }).success,
     ).toBe(false);
     expect(
-      AdminClearUploadActivityInputSchema.safeParse({ pendingMediaId: STAGING_ID, userId: UID })
+      AdminUpdatePendingMediaClearInputSchema.safeParse({ pendingMediaId: STAGING_ID, userId: UID })
         .success,
     ).toBe(false);
   });

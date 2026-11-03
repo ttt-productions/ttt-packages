@@ -3,12 +3,12 @@ import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
   AdminDeleteLeagueTeamInputSchema,
-  AdminLinkClosedLeagueGhostPlayerInputSchema,
+  AdminUpdateGhostPlayerLinkClosedLeagueInputSchema,
   AdminUpdateLeagueTeamCaptainInputSchema,
   AdminUpdateLeagueTeamContactInputSchema,
   AdminUpdateLeagueTeamNameInputSchema,
   AdminUpdateLeagueTeamTypeInputSchema,
-  DeleteTeamGhostPlayerInputSchema,
+  DeleteGhostPlayerInputSchema,
   DeleteTeamMembershipInputSchema,
   LinkGhostPlayerInputSchema,
   UpdateTeamMembershipRoleInputSchema,
@@ -64,19 +64,19 @@ describe('the team-management inputs', () => {
       false,
     );
     expect(
-      DeleteTeamGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: GHOST }).success,
+      DeleteGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: GHOST }).success,
     ).toBe(true);
-    expect(
-      DeleteTeamGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: 'u' }).success,
-    ).toBe(false);
+    expect(DeleteGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: 'u' }).success).toBe(
+      false,
+    );
   });
 
   it('a ghost removal and a team deletion take no reason, and refuse one', () => {
     expect(
-      DeleteTeamGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: GHOST }).success,
+      DeleteGhostPlayerInputSchema.safeParse({ teamId: 't', ghostUserId: GHOST }).success,
     ).toBe(true);
     expect(
-      DeleteTeamGhostPlayerInputSchema.safeParse({
+      DeleteGhostPlayerInputSchema.safeParse({
         teamId: 't',
         ghostUserId: GHOST,
         reason: REASON,
@@ -135,7 +135,8 @@ describe('a ghost link', () => {
     expect(LinkGhostPlayerInputSchema.safeParse(input).success).toBe(true);
     expect(LinkGhostPlayerInputSchema.safeParse({ ...input, reason: REASON }).success).toBe(false);
     expect(
-      AdminLinkClosedLeagueGhostPlayerInputSchema.safeParse({ ...input, reason: REASON }).success,
+      AdminUpdateGhostPlayerLinkClosedLeagueInputSchema.safeParse({ ...input, reason: REASON })
+        .success,
     ).toBe(false);
   });
 });
@@ -192,12 +193,10 @@ describe('the events team management names', () => {
     );
     expect(
       DomainEventSchema.safeParse({
-        type: 'ghostPlayer.finishedEntriesRemoved',
+        type: 'ghostPlayer.removed',
         ids: { ...ids, ghostUserId: 'ghost_1_ben' },
       }).success,
     ).toBe(true);
-    expect(
-      DomainEventSchema.safeParse({ type: 'ghostPlayer.finishedEntriesRemoved', ids }).success,
-    ).toBe(false);
+    expect(DomainEventSchema.safeParse({ type: 'ghostPlayer.removed', ids }).success).toBe(false);
   });
 });

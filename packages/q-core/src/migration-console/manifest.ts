@@ -82,15 +82,16 @@ export type MigrationStep =
   | OperatorCheckpointMigrationStep
   | CutoverMarkerMigrationStep;
 
-export const RECORD_MIGRATION_CONTROL_RUN_CALLABLE = 'adminRecordMigrationControlRun';
-export const RECORD_MIGRATION_CHECKPOINT_CALLABLE = 'adminRecordMigrationCheckpoint';
-export const RECORD_MIGRATION_CUTOVER_CALLABLE = 'adminRecordMigrationCutover';
+export const RECORD_MIGRATION_CONTROL_RUN_CALLABLE = 'adminUpdateMigrationActionRunControl';
+export const RECORD_MIGRATION_CHECKPOINT_CALLABLE = 'adminUpdateMigrationActionRunCheckpoint';
+export const RECORD_MIGRATION_CUTOVER_CALLABLE = 'adminUpdateMigrationConsoleCutover';
 export const GET_MIGRATION_CONSOLE_CALLABLE = 'adminGetMigrationConsole';
+export const RESOLVE_UNROSTERED_STAT_LINE_CALLABLE = 'adminCreateGameRosterPlayer';
 
 export function migrationActionCallableName(id: MigrationActionId): string {
   const [verb = '', object = ''] = id.split('.');
   const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
-  return `admin${capitalize(verb)}${capitalize(object)}`;
+  return `adminUpdateMigrationActionRun${capitalize(verb)}${capitalize(object)}`;
 }
 
 const COPY_IDEMPOTENCY =
@@ -597,7 +598,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
   {
     kind: 'executable',
     id: A.resolveUnrosteredStatLine,
-    callable: migrationActionCallableName(A.resolveUnrosteredStatLine),
+    callable: RESOLVE_UNROSTERED_STAT_LINE_CALLABLE,
     resultKind: 'write',
     destructive: false,
     paged: false,
@@ -776,7 +777,7 @@ export const MIGRATION_CUTOVER_MANIFEST: readonly MigrationStep[] = [
     owningStep: 'stat-data-model',
     dependsOn: [A.rebuildSportHallOfFame],
     orderedAfter: [],
-    callable: 'runStatsValidation',
+    callable: 'adminCreateStatsValidationReport',
     destinations: ['statsValidationReports/{reportId}'],
     instructions: 'Run “Check stats” over everything from Stats › Fix stats and let it finish.',
     evidence: 'statsValidationReport',

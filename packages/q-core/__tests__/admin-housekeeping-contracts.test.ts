@@ -22,16 +22,16 @@ import {
   AdminCorrectGameStatsInputSchema,
   AdminDeleteStatsValidationReportInputSchema,
   AdminDeleteStatsValidationReportResultSchema,
-  RecalculateLeagueStatsInputSchema,
-  RunStatsValidationInputSchema,
+  AdminUpdateSportLeagueStatsRecalculateInputSchema,
+  AdminCreateStatsValidationReportInputSchema,
 } from '../src/schemas/stats.js';
 import {
   AdminCreateHardwareLoanContractInputSchema,
-  SubmitHardwareLoanContractSignatureInputSchema,
+  UpdateHardwareLoanContractSignInputSchema,
 } from '../src/schemas/hardware-loan-contracts.js';
 import {
-  AdminUpdateAwardGrantsInputSchema,
-  UpdateFeaturedAwardsInputSchema,
+  AdminUpdateAwardDefinitionGrantsInputSchema,
+  UpdateUserProfileFeaturedAwardsInputSchema,
 } from '../src/schemas/awards.js';
 import { newAwardNameOf, parseTargetInfo } from '../src/schemas/uploads.js';
 
@@ -59,24 +59,34 @@ describe('the award catalog', () => {
 
   it('takes a grant change that names someone, never one account both granted and revoked, and bounded lists', () => {
     expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: ['u1'] }).success,
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: ['u1'] })
+        .success,
     ).toBe(true);
     expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', revokeUserIds: ['u1'] }).success,
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({
+        awardId: 'a1',
+        revokeUserIds: ['u1'],
+      }).success,
     ).toBe(true);
     expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantTeamIds: ['t1'] }).success,
-    ).toBe(false);
-    expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantLeagueIds: ['l1'] })
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({ awardId: 'a1', grantTeamIds: ['t1'] })
         .success,
     ).toBe(false);
-    expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1' }).success).toBe(false);
     expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: [] }).success,
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({
+        awardId: 'a1',
+        grantLeagueIds: ['l1'],
+      }).success,
+    ).toBe(false);
+    expect(AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({ awardId: 'a1' }).success).toBe(
+      false,
+    );
+    expect(
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: [] })
+        .success,
     ).toBe(false);
     expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({
         awardId: 'a1',
         grantUserIds: ['u1'],
         revokeUserIds: ['u1'],
@@ -84,7 +94,10 @@ describe('the award catalog', () => {
     ).toBe(false);
     const tooMany = Array.from({ length: MAX_AWARD_GRANT_TARGETS + 1 }, (_, index) => `u${index}`);
     expect(
-      AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: tooMany }).success,
+      AdminUpdateAwardDefinitionGrantsInputSchema.safeParse({
+        awardId: 'a1',
+        grantUserIds: tooMany,
+      }).success,
     ).toBe(false);
   });
 
@@ -96,50 +109,70 @@ describe('the award catalog', () => {
 
   it('takes the one change the person made to a featured slot: set, clear, or swap', () => {
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'primary', awardId: 'a1' })
-        .success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
+        action: 'set',
+        slot: 'primary',
+        awardId: 'a1',
+      }).success,
     ).toBe(true);
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'secondary', awardId: 'a2' })
-        .success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
+        action: 'set',
+        slot: 'secondary',
+        awardId: 'a2',
+      }).success,
     ).toBe(true);
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'clear', slot: 'secondary' }).success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'clear', slot: 'secondary' })
+        .success,
     ).toBe(true);
-    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'swap' }).success).toBe(true);
+    expect(UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap' }).success).toBe(
+      true,
+    );
   });
 
   it('never takes the whole pair, an unknown slot or intent, or a field another intent carries', () => {
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ primaryAwardId: 'a1', secondaryAwardId: 'a2' })
-        .success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
+        primaryAwardId: 'a1',
+        secondaryAwardId: 'a2',
+      }).success,
     ).toBe(false);
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'tertiary', awardId: 'a1' })
-        .success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
+        action: 'set',
+        slot: 'tertiary',
+        awardId: 'a1',
+      }).success,
     ).toBe(false);
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
         action: 'replace',
         slot: 'primary',
         awardId: 'a1',
       }).success,
     ).toBe(false);
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'primary' }).success,
-    ).toBe(false);
-    expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'clear', slot: 'primary', awardId: 'a1' })
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'primary' })
         .success,
     ).toBe(false);
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'swap', slot: 'primary' }).success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({
+        action: 'clear',
+        slot: 'primary',
+        awardId: 'a1',
+      }).success,
+    ).toBe(false);
+    expect(
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap', slot: 'primary' })
+        .success,
     ).toBe(false);
   });
 
   it('never names the account', () => {
     expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ action: 'swap', userId: 'u2' }).success,
+      UpdateUserProfileFeaturedAwardsInputSchema.safeParse({ action: 'swap', userId: 'u2' })
+        .success,
     ).toBe(false);
   });
 });
@@ -260,7 +293,7 @@ describe('hardware loan contracts', () => {
       }).success,
     ).toBe(false);
     expect(
-      SubmitHardwareLoanContractSignatureInputSchema.safeParse({
+      UpdateHardwareLoanContractSignInputSchema.safeParse({
         contractId: 'c1',
         storagePath: 'staging/u1/x',
         userId: 'u1',
@@ -280,16 +313,21 @@ describe('hardware loan contracts', () => {
 describe('Fix stats inputs', () => {
   it('takes a reason and an operation id on every rebuild, and a cursor only on a dry run', () => {
     const base = { leagueId: 'L', reason: 'Hand edit', operationId: 'op-1', dryRun: false };
-    expect(RecalculateLeagueStatsInputSchema.safeParse(base).success).toBe(true);
+    expect(AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse(base).success).toBe(true);
     expect(
-      RecalculateLeagueStatsInputSchema.safeParse({ ...base, reason: undefined }).success,
-    ).toBe(false);
-    expect(RecalculateLeagueStatsInputSchema.safeParse({ ...base, resumeAfter: 'L' }).success).toBe(
-      false,
-    );
-    expect(
-      RecalculateLeagueStatsInputSchema.safeParse({ ...base, dryRun: true, resumeAfter: 'L' })
+      AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({ ...base, reason: undefined })
         .success,
+    ).toBe(false);
+    expect(
+      AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({ ...base, resumeAfter: 'L' })
+        .success,
+    ).toBe(false);
+    expect(
+      AdminUpdateSportLeagueStatsRecalculateInputSchema.safeParse({
+        ...base,
+        dryRun: true,
+        resumeAfter: 'L',
+      }).success,
     ).toBe(true);
   });
 
@@ -314,22 +352,28 @@ describe('Fix stats inputs', () => {
   });
 
   it('checks one game, one league, or everything — never a game and a league together — and takes no reason', () => {
-    expect(RunStatsValidationInputSchema.safeParse({ operationId: 'c1', scope: {} }).success).toBe(
-      true,
-    );
     expect(
-      RunStatsValidationInputSchema.safeParse({ operationId: 'c1', scope: { gameId: 'g1' } })
+      AdminCreateStatsValidationReportInputSchema.safeParse({ operationId: 'c1', scope: {} })
         .success,
     ).toBe(true);
     expect(
-      RunStatsValidationInputSchema.safeParse({
+      AdminCreateStatsValidationReportInputSchema.safeParse({
+        operationId: 'c1',
+        scope: { gameId: 'g1' },
+      }).success,
+    ).toBe(true);
+    expect(
+      AdminCreateStatsValidationReportInputSchema.safeParse({
         operationId: 'c1',
         scope: { gameId: 'g1', leagueId: 'L' },
       }).success,
     ).toBe(false);
     expect(
-      RunStatsValidationInputSchema.safeParse({ operationId: 'c1', scope: {}, reason: 'x' })
-        .success,
+      AdminCreateStatsValidationReportInputSchema.safeParse({
+        operationId: 'c1',
+        scope: {},
+        reason: 'x',
+      }).success,
     ).toBe(false);
   });
 
@@ -353,16 +397,16 @@ describe('Fix stats inputs', () => {
       AdminDeleteStatsValidationReportResultSchema.safeParse({ reportId: 'c1', deleted: true })
         .success,
     ).toBe(false);
-    expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain('stats.validationReportDeleted');
+    expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain('statsValidationReport.deleted');
     expect(
       DomainEventSchema.safeParse({
-        type: 'statsValidation.reportDeleted',
+        type: 'statsValidationReport.deleted',
         ids: { reportId: 'c1' },
       }).success,
     ).toBe(true);
     expect(
       DomainEventSchema.safeParse({
-        type: 'statsValidation.reportDeleted',
+        type: 'statsValidationReport.deleted',
         ids: { reportId: 'a/b' },
       }).success,
     ).toBe(false);

@@ -12,31 +12,33 @@ import {
 } from '../doc-schemas/atoms.js';
 import { displayNameSchema } from './atoms.js';
 
-export const RegisterUserInputSchema = z
+export const CreateUserProfileInputSchema = z
   .object({
     displayName: displayNameSchema,
     acceptedTerms: z.literal(true),
   })
   .strict();
-export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
-export const RegisterUserResultSchema = z.discriminatedUnion('status', [
+export type CreateUserProfileInput = z.infer<typeof CreateUserProfileInputSchema>;
+export const CreateUserProfileResultSchema = z.discriminatedUnion('status', [
   z
     .object({ status: z.literal('registered'), userId: userIdSchema, displayName: z.string() })
     .strict(),
   z.object({ status: z.literal('registrationExpired') }).strict(),
 ]);
-export type RegisterUserResult = z.infer<typeof RegisterUserResultSchema>;
+export type CreateUserProfileResult = z.infer<typeof CreateUserProfileResultSchema>;
 
-export const CheckDisplayNameAvailableInputSchema = z
+export const GetDisplayNameAvailabilityInputSchema = z
   .object({ displayName: displayNameSchema })
   .strict();
-export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvailableInputSchema>;
+export type GetDisplayNameAvailabilityInput = z.infer<typeof GetDisplayNameAvailabilityInputSchema>;
 export const DISPLAY_NAME_UNAVAILABLE_REASONS = ['taken'] as const;
 export type DisplayNameUnavailableReason = (typeof DISPLAY_NAME_UNAVAILABLE_REASONS)[number];
-export const CheckDisplayNameAvailableResultSchema = z
+export const GetDisplayNameAvailabilityResultSchema = z
   .object({ available: z.boolean(), reason: z.enum(DISPLAY_NAME_UNAVAILABLE_REASONS).optional() })
   .strict();
-export type CheckDisplayNameAvailableResult = z.infer<typeof CheckDisplayNameAvailableResultSchema>;
+export type GetDisplayNameAvailabilityResult = z.infer<
+  typeof GetDisplayNameAvailabilityResultSchema
+>;
 
 export const MAX_USER_SEARCH_QUERY_LENGTH = MAX_SEARCH_QUERY_LENGTH;
 
@@ -50,10 +52,12 @@ export function detectUserSearchKind(query: string): UserSearchKind {
   return 'name';
 }
 
-export const LookupUserByEmailOrUidInputSchema = z
+export const AdminGetUserProfileByEmailOrUidInputSchema = z
   .object({ query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH) })
   .strict();
-export type LookupUserByEmailOrUidInput = z.infer<typeof LookupUserByEmailOrUidInputSchema>;
+export type AdminGetUserProfileByEmailOrUidInput = z.infer<
+  typeof AdminGetUserProfileByEmailOrUidInputSchema
+>;
 export const LookedUpUserSchema = z
   .object({
     uid: userIdSchema,
@@ -64,35 +68,41 @@ export const LookedUpUserSchema = z
   })
   .strict();
 export type LookedUpUser = z.infer<typeof LookedUpUserSchema>;
-export const LookupUserByEmailOrUidResultSchema = z
+export const AdminGetUserProfileByEmailOrUidResultSchema = z
   .object({ user: LookedUpUserSchema.nullable() })
   .strict();
-export type LookupUserByEmailOrUidResult = z.infer<typeof LookupUserByEmailOrUidResultSchema>;
+export type AdminGetUserProfileByEmailOrUidResult = z.infer<
+  typeof AdminGetUserProfileByEmailOrUidResultSchema
+>;
 
-export const SearchPublicUsersInputSchema = z
+export const AdminGetPublicUserSearchInputSchema = z
   .object({ query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH) })
   .strict();
-export type SearchPublicUsersInput = z.infer<typeof SearchPublicUsersInputSchema>;
+export type AdminGetPublicUserSearchInput = z.infer<typeof AdminGetPublicUserSearchInputSchema>;
 export const PublicUserSearchResultSchema = z
   .object({ uid: userIdSchema, displayName: z.string(), userStatus: userStatusSchema })
   .strict();
 export type PublicUserSearchResult = z.infer<typeof PublicUserSearchResultSchema>;
-export const SearchPublicUsersResultSchema = z
+export const AdminGetPublicUserSearchResultSchema = z
   .object({ users: z.array(PublicUserSearchResultSchema) })
   .strict();
-export type SearchPublicUsersResult = z.infer<typeof SearchPublicUsersResultSchema>;
+export type AdminGetPublicUserSearchResult = z.infer<typeof AdminGetPublicUserSearchResultSchema>;
 
-export const UpdateDisplayNameInputSchema = z
+export const AdminUpdateUserProfileDisplayNameInputSchema = z
   .object({ userId: userIdSchema, newDisplayName: displayNameSchema })
   .strict();
-export type UpdateDisplayNameInput = z.infer<typeof UpdateDisplayNameInputSchema>;
-export const UpdateDisplayNameResultSchema = z
+export type AdminUpdateUserProfileDisplayNameInput = z.infer<
+  typeof AdminUpdateUserProfileDisplayNameInputSchema
+>;
+export const AdminUpdateUserProfileDisplayNameResultSchema = z
   .object({ userId: userIdSchema, displayName: z.string() })
   .strict();
-export type UpdateDisplayNameResult = z.infer<typeof UpdateDisplayNameResultSchema>;
+export type AdminUpdateUserProfileDisplayNameResult = z.infer<
+  typeof AdminUpdateUserProfileDisplayNameResultSchema
+>;
 
 const adminListChangeSchema = z.array(userIdSchema).max(MAX_ADMIN_LIST_CHANGES).optional();
-export const UpdateAdminListInputSchema = z
+export const AdminUpdateAdminListInputSchema = z
   .object({
     addAdmins: adminListChangeSchema,
     removeAdmins: adminListChangeSchema,
@@ -100,8 +110,8 @@ export const UpdateAdminListInputSchema = z
     removeReferees: adminListChangeSchema,
   })
   .strict();
-export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
-export const UpdateAdminListResultSchema = z
+export type AdminUpdateAdminListInput = z.infer<typeof AdminUpdateAdminListInputSchema>;
+export const AdminUpdateAdminListResultSchema = z
   .object({
     adminsGranted: countSchema,
     adminsRevoked: countSchema,
@@ -109,17 +119,19 @@ export const UpdateAdminListResultSchema = z
     refereesRevoked: countSchema,
   })
   .strict();
-export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
+export type AdminUpdateAdminListResult = z.infer<typeof AdminUpdateAdminListResultSchema>;
 
 export const ADMIN_SELF_REVOKE_REFUSAL =
   "You can't revoke your own admin standing. Ask another admin to do it.";
 
-export const AdminUpdateUserStatusInputSchema = z
+export const AdminUpdateUserProfileStatusInputSchema = z
   .object({ userId: userIdSchema, userStatus: userStatusSchema, reason: repairReasonSchema })
   .strict();
-export type AdminUpdateUserStatusInput = z.infer<typeof AdminUpdateUserStatusInputSchema>;
+export type AdminUpdateUserProfileStatusInput = z.infer<
+  typeof AdminUpdateUserProfileStatusInputSchema
+>;
 
-export const AdminUpdateUserStatusResultSchema = z
+export const AdminUpdateUserProfileStatusResultSchema = z
   .object({
     userId: userIdSchema,
     userStatus: userStatusSchema,
@@ -127,7 +139,9 @@ export const AdminUpdateUserStatusResultSchema = z
     changed: z.boolean(),
   })
   .strict();
-export type AdminUpdateUserStatusResult = z.infer<typeof AdminUpdateUserStatusResultSchema>;
+export type AdminUpdateUserProfileStatusResult = z.infer<
+  typeof AdminUpdateUserProfileStatusResultSchema
+>;
 
 export const ADMIN_STANDING_BAN_REFUSAL_REASON = 'adminStandingTarget';
 

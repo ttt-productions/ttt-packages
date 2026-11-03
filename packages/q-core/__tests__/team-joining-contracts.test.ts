@@ -15,8 +15,8 @@ import { LeagueTeamSchema } from '../src/doc-schemas/league-team.js';
 import { TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas/team-membership.js';
 import { DomainEventSchema } from '../src/domain-events/domain-events.js';
 import {
-  AdminAssignLeagueFreeAgentInputSchema,
-  AdminAssignLeagueFreeAgentResultSchema,
+  AdminDeleteLeagueFreeAgentAssignInputSchema,
+  AdminDeleteLeagueFreeAgentAssignResultSchema,
   CreateLeagueFreeAgentResultSchema,
   CreateTeamInvitationInputSchema,
   CreateTeamJoinRequestInputSchema,
@@ -208,14 +208,16 @@ describe('the free-agent wire contracts', () => {
 
   it("the admin's assignment names the league, the player, and the team, and answers with them alone", () => {
     const input = { leagueId: 'L1', userId: 'u1', teamId: 'T1' };
-    expect(AdminAssignLeagueFreeAgentInputSchema.parse(input)).toEqual(input);
+    expect(AdminDeleteLeagueFreeAgentAssignInputSchema.parse(input)).toEqual(input);
     expect(
-      AdminAssignLeagueFreeAgentInputSchema.safeParse({ ...input, role: 'captain' }).success,
+      AdminDeleteLeagueFreeAgentAssignInputSchema.safeParse({ ...input, role: 'captain' }).success,
     ).toBe(false);
-    expect(AdminAssignLeagueFreeAgentResultSchema.parse(input)).toEqual(input);
+    expect(AdminDeleteLeagueFreeAgentAssignResultSchema.parse(input)).toEqual(input);
     expect(
-      AdminAssignLeagueFreeAgentResultSchema.safeParse({ ...input, rosterSyncStatus: 'pending' })
-        .success,
+      AdminDeleteLeagueFreeAgentAssignResultSchema.safeParse({
+        ...input,
+        rosterSyncStatus: 'pending',
+      }).success,
     ).toBe(false);
   });
 });
@@ -223,12 +225,14 @@ describe('the free-agent wire contracts', () => {
 describe('the events a client names after each door', () => {
   it('declares an event for every change to the pending invitation, join-request, and free-agent lists', () => {
     for (const type of [
-      'teamInvitation.sent',
+      'teamInvitation.created',
       'teamInvitation.cancelled',
-      'teamInvitation.answered',
-      'teamJoinRequest.submitted',
+      'teamInvitation.accepted',
+      'teamInvitation.rejected',
+      'teamJoinRequest.created',
       'teamJoinRequest.cancelled',
-      'teamJoinRequest.answered',
+      'teamJoinRequest.accepted',
+      'teamJoinRequest.rejected',
     ]) {
       expect(
         DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', teamId: 'T1', userId: 'u1' } })
@@ -238,7 +242,7 @@ describe('the events a client names after each door', () => {
         DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', teamId: 'T1' } }).success,
       ).toBe(false);
     }
-    for (const type of ['leagueFreeAgent.signedUp', 'leagueFreeAgent.removed']) {
+    for (const type of ['leagueFreeAgent.created', 'leagueFreeAgent.deleted']) {
       expect(
         DomainEventSchema.safeParse({ type, ids: { leagueId: 'L1', userId: 'u1' } }).success,
       ).toBe(true);

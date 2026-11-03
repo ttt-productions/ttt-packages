@@ -29,8 +29,8 @@ import {
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry.js';
 import {
   AdminUpdateLandingPageInputSchema,
-  UpdateAppConfigInputSchema,
-  UpdateAppConfigResultSchema,
+  AdminUpdateAppConfigInputSchema,
+  AdminUpdateAppConfigResultSchema,
 } from '../src/schemas/app-config.js';
 
 const COMPLETE = {
@@ -237,11 +237,11 @@ describe('the maintenance refusal', () => {
   });
 });
 
-describe('UpdateAppConfigInputSchema', () => {
+describe('AdminUpdateAppConfigInputSchema', () => {
   it('accepts one lever or several, as named fields', () => {
-    expect(UpdateAppConfigInputSchema.safeParse({ appVersion: '2.1.0' }).success).toBe(true);
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ appVersion: '2.1.0' }).success).toBe(true);
     expect(
-      UpdateAppConfigInputSchema.safeParse({
+      AdminUpdateAppConfigInputSchema.safeParse({
         maintenanceMode: true,
         maintenanceMessage: 'Back at nine.',
       }).success,
@@ -249,35 +249,39 @@ describe('UpdateAppConfigInputSchema', () => {
   });
 
   it('accepts an empty announcement, which is how the banner is turned off', () => {
-    expect(UpdateAppConfigInputSchema.safeParse({ announcementMessage: '' }).success).toBe(true);
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ announcementMessage: '' }).success).toBe(
+      true,
+    );
   });
 
   it('refuses a request that changes nothing', () => {
-    expect(UpdateAppConfigInputSchema.safeParse({}).success).toBe(false);
+    expect(AdminUpdateAppConfigInputSchema.safeParse({}).success).toBe(false);
   });
 
   it('refuses an unknown key, a document id, and a data blob (RULE-STD-BACKEND-209)', () => {
     expect(
-      UpdateAppConfigInputSchema.safeParse({ appVersion: '2', statsUpdatedAt: 1 }).success,
+      AdminUpdateAppConfigInputSchema.safeParse({ appVersion: '2', statsUpdatedAt: 1 }).success,
     ).toBe(false);
     expect(
-      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: '2' } }).success,
+      AdminUpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: '2' } })
+        .success,
     ).toBe(false);
   });
 
   it('refuses a blank version and every text over its cap', () => {
-    expect(UpdateAppConfigInputSchema.safeParse({ appVersion: '   ' }).success).toBe(false);
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ appVersion: '   ' }).success).toBe(false);
     expect(
-      UpdateAppConfigInputSchema.safeParse({ appVersion: 'v'.repeat(MAX_APP_VERSION_LENGTH + 1) })
-        .success,
+      AdminUpdateAppConfigInputSchema.safeParse({
+        appVersion: 'v'.repeat(MAX_APP_VERSION_LENGTH + 1),
+      }).success,
     ).toBe(false);
     expect(
-      UpdateAppConfigInputSchema.safeParse({
+      AdminUpdateAppConfigInputSchema.safeParse({
         announcementMessage: 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH + 1),
       }).success,
     ).toBe(false);
     expect(
-      UpdateAppConfigInputSchema.safeParse({
+      AdminUpdateAppConfigInputSchema.safeParse({
         maintenanceMessage: 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1),
       }).success,
     ).toBe(false);
@@ -285,7 +289,7 @@ describe('UpdateAppConfigInputSchema', () => {
 
   it('trims the version and the messages before keeping them', () => {
     expect(
-      UpdateAppConfigInputSchema.parse({
+      AdminUpdateAppConfigInputSchema.parse({
         appVersion: ' 2.1.0 ',
         maintenanceMessage: ' Back at nine. ',
       }),
@@ -296,17 +300,20 @@ describe('UpdateAppConfigInputSchema', () => {
   });
 
   it('refuses a lever of the wrong type', () => {
-    expect(UpdateAppConfigInputSchema.safeParse({ maintenanceMode: 'true' }).success).toBe(false);
+    expect(AdminUpdateAppConfigInputSchema.safeParse({ maintenanceMode: 'true' }).success).toBe(
+      false,
+    );
   });
 
   it('answers with the names of the levers it changed', () => {
     expect(
-      UpdateAppConfigResultSchema.safeParse({ updatedFields: ['appVersion', 'maintenanceMode'] })
-        .success,
+      AdminUpdateAppConfigResultSchema.safeParse({
+        updatedFields: ['appVersion', 'maintenanceMode'],
+      }).success,
     ).toBe(true);
-    expect(UpdateAppConfigResultSchema.safeParse({ updatedFields: ['notALever'] }).success).toBe(
-      false,
-    );
+    expect(
+      AdminUpdateAppConfigResultSchema.safeParse({ updatedFields: ['notALever'] }).success,
+    ).toBe(false);
   });
 });
 

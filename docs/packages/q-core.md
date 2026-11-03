@@ -7,7 +7,8 @@ system model lives in Q-Sports' `docs/design/`.
 ## Owns
 
 - Q-Sports' Firestore paths (`COLLECTIONS`, the subcollection maps, `PATH_BUILDERS`,
-  `COLLECTION_REFS`, `toPath`) and compound and minted document ids
+  `COLLECTION_REFS`, `toPath`) and compound and minted document ids, and `DECLARED_NOUNS`: the
+  nouns a name may use for a thing with no collection of its own, each with its collections
 - Every app page address, built through `APP_ROUTES` (`./paths`), and the custom-claim contract both
   roots parse the ID token against (`./types`)
 - Q-Sports' types, unions, constants, and business copy

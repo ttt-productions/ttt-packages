@@ -61,17 +61,18 @@ Every enforcement point of one field enforces the SAME constraint set — the fo
 ### RULE-STD-ARCH-104 — Canonical Firestore paths and compound-camelCase naming
 **Scope.** apps
 
-**Rule.** All Firestore collection names, path constants, and shared path shapes live in `<APP_DATA_PACKAGE>`. Use `COLLECTIONS.X` for collection names and `PATH_BUILDERS.x()` for full paths — never a hardcoded collection or path string. `PATH_BUILDERS` returns path-segment tuples; the backend wraps them with `toPath()` for Admin SDK slash paths, never by hand-assembly. Collection names are compound camelCase, never single words (`userProfiles`); a subcollection name carries its parent's context as a prefix; document-ID fields use camelCase with an id suffix (`userId`).
+**Rule.** All Firestore collection names, path constants, and shared path shapes live in `<APP_DATA_PACKAGE>`. Use `COLLECTIONS.X` for collection names and `PATH_BUILDERS.x()` for full paths — never a hardcoded collection or path string. `PATH_BUILDERS` returns path-segment tuples; the backend wraps them with `toPath()` for Admin SDK slash paths, never by hand-assembly. Collection names are compound camelCase, never single words (`userProfiles`); a subcollection name carries its parent's context as a prefix; document-ID fields use camelCase with an id suffix (`userId`). **One noun per thing:** the thing in every callable, audit event type, domain event, query-key scope, and hook name is its collection's name in the singular (`sportGames` → `sportGame`), or, for a thing with no collection of its own — stored inside another collection's document, spread over several, or computed and never stored — a noun from `<APP_DATA_PACKAGE>`'s declared-noun list, beside `COLLECTIONS`, whose entry names the collections the thing lives in or reads. The data package's special documents are declared nouns. A noun is declared only where no collection fits; a thing with a collection never gets a second noun, and a declared noun is never a category (`stats`, `admin`, `system`).
 
-**Why.** A hardcoded or hand-assembled path string is an un-refactorable copy of a schema fact only `<APP_DATA_PACKAGE>` should own; single-word collection names collide and read ambiguously.
+**Why.** A hardcoded or hand-assembled path string is an un-refactorable copy of a schema fact only `<APP_DATA_PACKAGE>` should own; single-word collection names collide and read ambiguously. One thing under two names (a collection's noun in events, a shorter one in callables) hides that two names touch the same data; with every allowed noun written down, a name can be checked by a machine.
 
 **Prohibits.**
 - Hardcoded collection or path strings anywhere in `src/` or `functions/src`, in source or test code.
 - A path builder or collection constant defined app-locally instead of in `<APP_DATA_PACKAGE>`.
 - Joining path segments by hand instead of `toPath()` over a `PATH_BUILDERS` tuple.
 - Single-word collection names; a subcollection without its context prefix.
+- A name whose thing is neither a collection's singular nor a declared noun; a shorter alias for a collection's thing (`game` for `sportGames`); a category in a noun's place; a declared noun whose entry names no collection.
 
-**References.** RULE-STD-ARCH-101; the repo-guards hand-typed collection-path guard.
+**References.** RULE-STD-ARCH-101; RULE-STD-BACKEND-305 (callable names); RULE-STD-BACKEND-202 (audit event types); RULE-STD-FRONTEND-102, RULE-STD-FRONTEND-103, RULE-STD-FRONTEND-105 (key scopes, domain events, hooks); the repo-guards hand-typed collection-path guard.
 
 ### RULE-STD-ARCH-105 — Timestamps are epoch milliseconds via firebase-helpers
 **Scope.** apps

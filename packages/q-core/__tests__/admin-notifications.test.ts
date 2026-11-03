@@ -32,16 +32,16 @@ import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
 import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { toPath } from '../src/paths/utils.js';
 import {
-  AdminArchiveAllNotificationsInputSchema,
-  AdminArchiveNotificationInputSchema,
-  AdminGetNotificationArchiveAllStatusInputSchema,
-  AdminGetNotificationArchiveAllStatusResultSchema,
+  AdminCreateNotificationArchiveAllJobInputSchema,
+  AdminUpdateAdminNotificationArchiveInputSchema,
+  AdminGetNotificationArchiveAllJobInputSchema,
+  AdminGetNotificationArchiveAllJobResultSchema,
 } from '../src/schemas/admin-notifications.js';
 import {
-  GetDeadLettersInputSchema,
-  GetDeadLettersResultSchema,
-  AdminReplayDeadLetterInputSchema,
-  AdminReplayDeadLetterResultSchema,
+  AdminGetDeadLetterListInputSchema,
+  AdminGetDeadLetterListResultSchema,
+  AdminUpdateDeadLetterReplayInputSchema,
+  AdminUpdateDeadLetterReplayResultSchema,
 } from '../src/schemas/dead-letters.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
@@ -528,7 +528,8 @@ describe('the callable contracts', () => {
     const input = { requestId: REQUEST_ID, observedActivityGeneration: GENERATION };
     for (const notificationId of ['', 'a/b', '..', 'a'.repeat(129)]) {
       expect(
-        AdminArchiveNotificationInputSchema.safeParse({ ...input, notificationId }).success,
+        AdminUpdateAdminNotificationArchiveInputSchema.safeParse({ ...input, notificationId })
+          .success,
         notificationId,
       ).toBe(false);
     }
@@ -540,15 +541,19 @@ describe('the callable contracts', () => {
       notificationId: CARD_ID,
       observedActivityGeneration: GENERATION,
     };
-    expect(AdminArchiveNotificationInputSchema.safeParse(input).success).toBe(true);
+    expect(AdminUpdateAdminNotificationArchiveInputSchema.safeParse(input).success).toBe(true);
     expect(
-      AdminArchiveNotificationInputSchema.safeParse({ ...input, requestId: 'not-a-uuid' }).success,
+      AdminUpdateAdminNotificationArchiveInputSchema.safeParse({
+        ...input,
+        requestId: 'not-a-uuid',
+      }).success,
     ).toBe(false);
     expect(
-      AdminArchiveNotificationInputSchema.safeParse({ ...input, category: 'admin' }).success,
+      AdminUpdateAdminNotificationArchiveInputSchema.safeParse({ ...input, category: 'admin' })
+        .success,
     ).toBe(false);
     expect(
-      AdminArchiveNotificationInputSchema.safeParse({
+      AdminUpdateAdminNotificationArchiveInputSchema.safeParse({
         requestId: REQUEST_ID,
         notificationId: CARD_ID,
       }).success,
@@ -557,19 +562,21 @@ describe('the callable contracts', () => {
 
   it('asks for archive-all with a request id alone, and reads its status by the job id', () => {
     expect(
-      AdminArchiveAllNotificationsInputSchema.safeParse({ requestId: REQUEST_ID }).success,
+      AdminCreateNotificationArchiveAllJobInputSchema.safeParse({ requestId: REQUEST_ID }).success,
     ).toBe(true);
     expect(
-      AdminArchiveAllNotificationsInputSchema.safeParse({ requestId: REQUEST_ID, scope: 'all' })
-        .success,
+      AdminCreateNotificationArchiveAllJobInputSchema.safeParse({
+        requestId: REQUEST_ID,
+        scope: 'all',
+      }).success,
     ).toBe(false);
     const jobId = buildNotificationArchiveAllJobId('admin-1', REQUEST_ID);
-    expect(AdminGetNotificationArchiveAllStatusInputSchema.safeParse({ jobId }).success).toBe(true);
+    expect(AdminGetNotificationArchiveAllJobInputSchema.safeParse({ jobId }).success).toBe(true);
     expect(
-      AdminGetNotificationArchiveAllStatusInputSchema.safeParse({ jobId: 'admin-1' }).success,
+      AdminGetNotificationArchiveAllJobInputSchema.safeParse({ jobId: 'admin-1' }).success,
     ).toBe(false);
     expect(
-      AdminGetNotificationArchiveAllStatusResultSchema.safeParse({
+      AdminGetNotificationArchiveAllJobResultSchema.safeParse({
         state: 'complete',
         category: 'admin',
         archived: 4,
@@ -580,11 +587,11 @@ describe('the callable contracts', () => {
   it('reports with a completed job the cards it could not archive', () => {
     const status = { state: 'complete', category: 'admin', archived: 4 };
     expect(
-      AdminGetNotificationArchiveAllStatusResultSchema.safeParse({ ...status, notArchived: 1 })
+      AdminGetNotificationArchiveAllJobResultSchema.safeParse({ ...status, notArchived: 1 })
         .success,
     ).toBe(true);
     expect(
-      AdminGetNotificationArchiveAllStatusResultSchema.safeParse({ ...status, notArchived: -1 })
+      AdminGetNotificationArchiveAllJobResultSchema.safeParse({ ...status, notArchived: -1 })
         .success,
     ).toBe(false);
   });
@@ -610,10 +617,15 @@ describe('the dead-letter repair contracts', () => {
       { collection: 'notificationDeliveries' },
       { limit: 200 },
     ]) {
-      expect(GetDeadLettersInputSchema.safeParse(input).success, JSON.stringify(input)).toBe(true);
+      expect(
+        AdminGetDeadLetterListInputSchema.safeParse(input).success,
+        JSON.stringify(input),
+      ).toBe(true);
     }
-    expect(GetDeadLettersInputSchema.safeParse({ limit: 201 }).success).toBe(false);
-    expect(GetDeadLettersInputSchema.safeParse({ collection: 'auditEvents' }).success).toBe(false);
+    expect(AdminGetDeadLetterListInputSchema.safeParse({ limit: 201 }).success).toBe(false);
+    expect(AdminGetDeadLetterListInputSchema.safeParse({ collection: 'auditEvents' }).success).toBe(
+      false,
+    );
     const row = {
       collection: 'notificationDeliveries',
       docId: deliveryId,
@@ -622,18 +634,21 @@ describe('the dead-letter repair contracts', () => {
       attemptCount: 8,
     };
     expect(
-      GetDeadLettersResultSchema.safeParse({ generatedAt: NOW, rows: [row], truncated: false })
-        .success,
+      AdminGetDeadLetterListResultSchema.safeParse({
+        generatedAt: NOW,
+        rows: [row],
+        truncated: false,
+      }).success,
     ).toBe(true);
     expect(
-      GetDeadLettersResultSchema.safeParse({
+      AdminGetDeadLetterListResultSchema.safeParse({
         generatedAt: NOW,
         rows: [{ ...row, deadLetteredAt: null, lastError: null, attemptCount: null }],
         truncated: true,
       }).success,
     ).toBe(true);
     expect(
-      GetDeadLettersResultSchema.safeParse({
+      AdminGetDeadLetterListResultSchema.safeParse({
         generatedAt: NOW,
         rows: [{ ...row, path: 'a/b' }],
         truncated: false,
@@ -647,39 +662,45 @@ describe('the dead-letter repair contracts', () => {
       docId: deliveryId,
       reason: 'The league was restored.',
     };
-    expect(AdminReplayDeadLetterInputSchema.safeParse(input).success).toBe(true);
-    expect(AdminReplayDeadLetterInputSchema.safeParse({ ...input, dryRun: true }).success).toBe(
-      true,
-    );
+    expect(AdminUpdateDeadLetterReplayInputSchema.safeParse(input).success).toBe(true);
     expect(
-      AdminReplayDeadLetterInputSchema.safeParse({
+      AdminUpdateDeadLetterReplayInputSchema.safeParse({ ...input, dryRun: true }).success,
+    ).toBe(true);
+    expect(
+      AdminUpdateDeadLetterReplayInputSchema.safeParse({
         collection: 'notificationDeliveries',
         docId: deliveryId,
       }).success,
     ).toBe(false);
-    expect(AdminReplayDeadLetterInputSchema.safeParse({ ...input, reason: '   ' }).success).toBe(
-      false,
-    );
+    expect(
+      AdminUpdateDeadLetterReplayInputSchema.safeParse({ ...input, reason: '   ' }).success,
+    ).toBe(false);
     for (const badId of ['', 'notificationDeliveries/x', `${deliveryId}/sub`]) {
       expect(
-        AdminReplayDeadLetterInputSchema.safeParse({ ...input, docId: badId }).success,
+        AdminUpdateDeadLetterReplayInputSchema.safeParse({ ...input, docId: badId }).success,
         badId,
       ).toBe(false);
     }
     expect(
-      AdminReplayDeadLetterInputSchema.safeParse({ ...input, collection: 'auditEvents' }).success,
+      AdminUpdateDeadLetterReplayInputSchema.safeParse({ ...input, collection: 'auditEvents' })
+        .success,
     ).toBe(false);
-    expect(AdminReplayDeadLetterInputSchema.safeParse({ ...input, all: true }).success).toBe(false);
+    expect(AdminUpdateDeadLetterReplayInputSchema.safeParse({ ...input, all: true }).success).toBe(
+      false,
+    );
   });
 
   it('answers a performed replay or a dry run, and nothing else', () => {
     const target = { collection: 'notificationDeliveries', docId: deliveryId };
     expect(
-      AdminReplayDeadLetterResultSchema.safeParse({ ...target, replayed: true, resetTo: 'queued' })
-        .success,
+      AdminUpdateDeadLetterReplayResultSchema.safeParse({
+        ...target,
+        replayed: true,
+        resetTo: 'queued',
+      }).success,
     ).toBe(true);
     expect(
-      AdminReplayDeadLetterResultSchema.safeParse({
+      AdminUpdateDeadLetterReplayResultSchema.safeParse({
         ...target,
         dryRun: true,
         currentStatus: 'deadLetter',
@@ -687,7 +708,7 @@ describe('the dead-letter repair contracts', () => {
       }).success,
     ).toBe(true);
     expect(
-      AdminReplayDeadLetterResultSchema.safeParse({ ...target, replayed: false }).success,
+      AdminUpdateDeadLetterReplayResultSchema.safeParse({ ...target, replayed: false }).success,
     ).toBe(false);
   });
 });
@@ -696,9 +717,9 @@ describe('the shared vocabulary', () => {
   it('declares the audit events an archive, an archive-all decision, and a dead-letter replay record', () => {
     expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain('adminNotification.archived');
     expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain(
-      'adminNotification.archiveAllRequested',
+      'notificationArchiveAllJob.created',
     );
-    expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain('system.manualIntervention');
+    expect(AUDIT_EVENT_TYPE_KEYS as readonly string[]).toContain('deadLetter.replayed');
   });
 
   it('declares the domain event the client refreshes the cards on, naming no card', () => {

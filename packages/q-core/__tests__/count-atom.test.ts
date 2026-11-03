@@ -11,11 +11,11 @@ import { MAX_STAT_COUNT } from '../src/constants/sports.js';
 import { MAX_PLAYOFF_CUTOFF } from '../src/constants/business.js';
 import { countSchema, enteredStatCountSchema, revisionSchema } from '../src/doc-schemas/atoms.js';
 import {
-  AdminUpdateHistoricalStatsInputSchema,
+  AdminUpdateHistoricalStatInputSchema,
   GameStatsCorrectionTargetSchema,
 } from '../src/schemas/stats.js';
-import { UpdateAdminListResultSchema } from '../src/schemas/users.js';
-import { AdminStatsSchema } from '../src/schemas/admin-stats.js';
+import { AdminUpdateAdminListResultSchema } from '../src/schemas/users.js';
+import { SiteCountsSchema } from '../src/schemas/admin-stats.js';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
 
@@ -205,10 +205,10 @@ describe('countSchema is the one count atom', () => {
       'activeLeagues',
       'upcomingLeagues',
     ] as const) {
-      expect(AdminStatsSchema.shape[field]).toBe(countSchema);
+      expect(SiteCountsSchema.shape[field]).toBe(countSchema);
     }
-    expect(AdminStatsSchema.shape.totalGamesPlayed).toBe(countSchema);
-    expect(AdminStatsSchema.shape.activeFreeAgents).toBe(countSchema);
+    expect(SiteCountsSchema.shape.totalGamesPlayed).toBe(countSchema);
+    expect(SiteCountsSchema.shape.activeFreeAgents).toBe(countSchema);
     expect(GallerySummarySchema.shape.count).toBe(countSchema);
     for (const field of ['playoffCutoff', 'playoffCutoffComp', 'playoffCutoffRec'] as const) {
       expect(SportLeagueSchema.shape[field]).toBe(playoffCutoffSchema);
@@ -219,7 +219,7 @@ describe('countSchema is the one count atom', () => {
   });
 
   it('the counts callables return are the atom', () => {
-    const results = UpdateAdminListResultSchema.shape;
+    const results = AdminUpdateAdminListResultSchema.shape;
     expect(results.adminsGranted).toBe(countSchema);
     expect(results.adminsRevoked).toBe(countSchema);
     expect(results.refereesGranted).toBe(countSchema);
@@ -284,24 +284,24 @@ describe('a stat count a person types', () => {
       operationId: 'operation-1',
       dryRun: true,
     };
-    expect(AdminUpdateHistoricalStatsInputSchema.safeParse(input).success).toBe(true);
+    expect(AdminUpdateHistoricalStatInputSchema.safeParse(input).success).toBe(true);
     for (const key of Object.keys(input.stats) as (keyof typeof input.stats)[]) {
       expect(
-        AdminUpdateHistoricalStatsInputSchema.safeParse({
+        AdminUpdateHistoricalStatInputSchema.safeParse({
           ...input,
           stats: { ...input.stats, [key]: MAX_STAT_COUNT + 1 },
         }).success,
       ).toBe(false);
     }
     expect(
-      AdminUpdateHistoricalStatsInputSchema.safeParse({
+      AdminUpdateHistoricalStatInputSchema.safeParse({
         ...input,
         stats: { ...input.stats, fantasyPoints: 1 },
       }).success,
     ).toBe(false);
     const { assists: _assists, ...withoutAssists } = input.stats;
     expect(
-      AdminUpdateHistoricalStatsInputSchema.safeParse({ ...input, stats: withoutAssists }).success,
+      AdminUpdateHistoricalStatInputSchema.safeParse({ ...input, stats: withoutAssists }).success,
     ).toBe(false);
   });
 });

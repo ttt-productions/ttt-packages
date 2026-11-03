@@ -89,11 +89,11 @@ export type AdminUpdateSportLeagueStatusResult = z.infer<
   typeof AdminUpdateSportLeagueStatusResultSchema
 >;
 
-export const SwitchLeagueModeInputSchema = z
+export const AdminUpdateSportLeagueModeInputSchema = z
   .object({ leagueId: leagueIdSchema, newMode: leagueModeSchema })
   .strict();
-export type SwitchLeagueModeInput = z.infer<typeof SwitchLeagueModeInputSchema>;
-export const SwitchLeagueModeResultSchema = z
+export type AdminUpdateSportLeagueModeInput = z.infer<typeof AdminUpdateSportLeagueModeInputSchema>;
+export const AdminUpdateSportLeagueModeResultSchema = z
   .object({
     leagueId: leagueIdSchema,
     leagueMode: leagueModeSchema,
@@ -101,4 +101,6 @@ export const SwitchLeagueModeResultSchema = z
     ...leagueUpdatedAtMoveShape,
   })
   .strict();
-export type SwitchLeagueModeResult = z.infer<typeof SwitchLeagueModeResultSchema>;
+export type AdminUpdateSportLeagueModeResult = z.infer<
+  typeof AdminUpdateSportLeagueModeResultSchema
+>;
