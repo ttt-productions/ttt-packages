@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   MAX_TEAM_INVITATION_MESSAGE_LENGTH,
   MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
-  MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
 } from '../src/constants/business.js';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit.js';
 import {
@@ -142,19 +141,13 @@ describe('the invitation wire contracts', () => {
 });
 
 describe('the join-request wire contracts', () => {
-  it('bound the message by the one declared limit, trimmed, at every length edge', () => {
-    const at = (length: number) =>
-      CreateTeamJoinRequestInputSchema.safeParse({ teamId: 'T1', message: 'x'.repeat(length) });
-    expect(at(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH).success).toBe(true);
-    expect(at(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH).success).toBe(true);
-    expect(at(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH - 1).success).toBe(false);
-    expect(at(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH + 1).success).toBe(false);
-    expect(
-      CreateTeamJoinRequestInputSchema.safeParse({
-        teamId: 'T1',
-        message: ` ${'x'.repeat(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH - 1)}         `,
-      }).success,
-    ).toBe(false);
+  it('take an optional message, bounded by the one declared cap, trimmed', () => {
+    const parse = (message: string) =>
+      CreateTeamJoinRequestInputSchema.safeParse({ teamId: 'T1', message });
+    expect(parse('').success).toBe(true);
+    expect(parse('   ').data?.message).toBe('');
+    expect(parse('x'.repeat(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH)).success).toBe(true);
+    expect(parse('x'.repeat(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH + 1)).success).toBe(false);
   });
 
   it('never take the requester from the payload', () => {

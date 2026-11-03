@@ -27,7 +27,6 @@ import {
   MIN_LEAGUE_DESCRIPTION_LENGTH,
   MIN_LEAGUE_TITLE_LENGTH,
   MIN_REPAIR_REASON_LENGTH,
-  MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
   MIN_TEAM_NAME_LENGTH,
 } from './business.js';
 
@@ -40,7 +39,7 @@ export const REPAIR_REASON_INPUT = defineInputFormat({
 export const TEAM_JOIN_REQUEST_MESSAGE_INPUT = defineInputFormat({
   label: 'Message to the captain',
   format: 'none',
-  min: MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
+  min: 0,
   max: MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
 });
 export const TEAM_INVITATION_MESSAGE_INPUT = defineInputFormat({

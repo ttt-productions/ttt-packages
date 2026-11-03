@@ -28,7 +28,6 @@ import {
   MIN_LEAGUE_DESCRIPTION_LENGTH,
   MIN_LEAGUE_TITLE_LENGTH,
   MIN_REPAIR_REASON_LENGTH,
-  MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
   MIN_TEAM_NAME_LENGTH,
 } from '../src/constants/business.js';
 import {
@@ -182,16 +181,13 @@ function boundarySamples(min: number, max: number): string[] {
 }
 
 describe("a join request's message", () => {
-  it('is declared from the join-request message limits', () => {
-    expect(TEAM_JOIN_REQUEST_MESSAGE_INPUT.min).toBe(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH);
+  it('is optional and declared from the join-request message cap', () => {
+    expect(TEAM_JOIN_REQUEST_MESSAGE_INPUT.min).toBe(0);
     expect(TEAM_JOIN_REQUEST_MESSAGE_INPUT.max).toBe(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH);
   });
 
   it('accepts exactly the text the callable schema accepts, and keeps the same trimmed value', () => {
-    for (const sample of boundarySamples(
-      MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
-      MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
-    )) {
+    for (const sample of boundarySamples(0, MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH)) {
       const field = checkInputFormat(sample, TEAM_JOIN_REQUEST_MESSAGE_INPUT);
       const wire = teamJoinRequestMessageSchema.safeParse(sample);
       expect(field.ok, JSON.stringify(sample.slice(0, 20))).toBe(wire.success);
@@ -199,23 +195,22 @@ describe("a join request's message", () => {
     }
   });
 
-  it('is the wire schema built from that one declaration: a refusal names the declared bounds', () => {
-    const refused = teamJoinRequestMessageSchema.safeParse('too short');
+  it('is the wire schema built from that one declaration: a refusal names the declared cap', () => {
+    const refused = teamJoinRequestMessageSchema.safeParse(
+      'x'.repeat(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH + 1),
+    );
     expect(refused.success).toBe(false);
     expect(refused.error?.issues[0]?.message).toBe(
-      `Message to the captain must be at least ${TEAM_JOIN_REQUEST_MESSAGE_INPUT.min} characters.`,
+      `Message to the captain can be at most ${TEAM_JOIN_REQUEST_MESSAGE_INPUT.max} characters.`,
     );
   });
 
-  it('refuses nine characters padded to ten, and one past the cap', () => {
-    const nine = 'x'.repeat(MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH - 1);
-    expect(checkInputFormat(` ${nine} `, TEAM_JOIN_REQUEST_MESSAGE_INPUT).ok).toBe(false);
-    expect(
-      checkInputFormat(
-        'x'.repeat(MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH + 1),
-        TEAM_JOIN_REQUEST_MESSAGE_INPUT,
-      ).ok,
-    ).toBe(false);
+  it('accepts an empty message, kept as the empty string', () => {
+    expect(checkInputFormat('   ', TEAM_JOIN_REQUEST_MESSAGE_INPUT)).toEqual({
+      ok: true,
+      value: '',
+      reformatted: false,
+    });
   });
 });
 
@@ -507,12 +502,6 @@ describe("a text field's refusal", () => {
   it('tells the person a spaced-out name is saved with one space between words', () => {
     expect(textFieldReformatNotice(TEAM_NAME_INPUT)).toBe(
       'Team name will be saved with one space between words.',
-    );
-  });
-
-  it("is the join request's own: a message under its minimum names that minimum", () => {
-    expect(teamJoinRequestMessageSchema.safeParse('Hi there').error?.issues[0]?.message).toBe(
-      `Message to the captain must be at least ${MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH} characters.`,
     );
   });
 });
