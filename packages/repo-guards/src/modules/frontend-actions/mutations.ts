@@ -11,6 +11,7 @@ import {
   textProblem,
 } from '../../support/facts.js';
 import { moduleImports } from '../../support/imports.js';
+import { mutateCalls } from './mutate-calls.js';
 import { rawMutations } from './raw-mutations.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
@@ -107,6 +108,53 @@ export const mutationOwnerGuard: GenericGuardDefinition<MutationOwnerFacts> = {
           return findings;
         },
       },
+    ];
+  },
+};
+
+export type MutationCallStyleFacts = Record<string, never>;
+
+export const mutationCallStyleGuard: GenericGuardDefinition<MutationCallStyleFacts> = {
+  id: 'mutationCallStyle',
+  absentWhen: false,
+  factProblems(facts) {
+    if (!facts || typeof facts !== 'object') return ['the facts are missing (declare {})'];
+    return Object.keys(facts).length ? [`unknown facts: ${Object.keys(facts).join(', ')}`] : [];
+  },
+  build() {
+    return [
+      reviewedAllowlist({
+        title: 'a control runs a mutation only through await mutateAsync',
+        description:
+          "App code never touches a mutation's `mutate` — called, passed as a value, read by bracket, or " +
+          'destructured. A callback handed to one press belongs to the observer that pressed, and React Query ' +
+          'drops it when a live read redraws the control, a dialog closes, or the page changes while the call is ' +
+          'out: the server action succeeds and its toast or close never happens. Run it with ' +
+          '`await mutation.mutateAsync(…)` and do the after-steps on the next lines.',
+        scope: APP_CODE,
+        match: mutateCalls,
+        allowlist: [],
+        samples: {
+          flags: [
+            'save.mutate(values);',
+            'save.mutate(values, { onSuccess: () => toast(saved) });',
+            'const { mutate } = useSave();',
+            'const { mutate: saveNow } = useSave();',
+            "save['mutate'](values);",
+            {
+              path: 'src/save-button.tsx',
+              text: 'export const B = () => <Button onClick={() => save.mutate(values)} />;',
+            },
+          ],
+          passes: [
+            'await save.mutateAsync(values);\ntoast(saved);',
+            'const { mutateAsync } = useSave();',
+            'const mock = { mutate: vi.fn() };',
+            'type Run = UseMutationResult["mutate"];',
+            "const note = 'save.mutate(values)';",
+          ],
+        },
+      }),
     ];
   },
 };

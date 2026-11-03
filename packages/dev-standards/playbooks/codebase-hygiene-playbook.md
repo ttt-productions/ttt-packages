@@ -889,7 +889,7 @@ module-level lazy loader (step 88), never by loosening the tripwire.
 rg -n "AlertDialog" src -g '*.tsx' -g '*.ts' -g '!**/__tests__/**' | rg -v ":[0-9]+:\s*(//|\*)"
 rg -n "window\.confirm\(" src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**'
 # Mutations fired straight from a click — each classified as consequential or not.
-rg -n "onClick=\{\(\)\s*=>\s*(void\s+)?\w+\.(mutate|mutateAsync)\(" src -g '*.tsx' -g '!**/__tests__/**' -g '!*.test.tsx'
+rg -n "onClick=\{\(\)\s*=>\s*(void\s+)?\w+\.mutateAsync\(" src -g '*.tsx' -g '!**/__tests__/**' -g '!*.test.tsx'
 ```
 **Expected:** the first two are zero — every consequential confirm renders ui-core's
 `ConsequenceDialog`, which owns the pending spinner and stays open on a rejected promise; the raw
@@ -1538,6 +1538,18 @@ rejection is right (a constraint, or an exception naming its rule). Read each co
 a discard of a failure a person or monitoring needs to see is the finding, whatever the comment says —
 it gets real handling. Each reviewed entry is a file whose discards genuinely cannot carry a comment;
 one whose file no longer discards is stale.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 123. A control runs a mutation only through await mutateAsync
+**Rules:** RULE-STD-FRONTEND-112. **Scope:** `src`.
+```bash
+<GUARD_SUITE> -t "a control runs a mutation only through await mutateAsync"
+```
+**Expected:** the guard is green: no app code touches a mutation's `mutate`. Read each control that
+awaits `mutateAsync` against the rule: its after-steps follow the `await`; outside a
+`ConsequenceDialog` confirm an empty `catch` says the hook has reported the failure, and a `catch`
+that shows the call site's own surface skips an abort; an `onConfirm` lets the rejection reach the
+dialog.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
 ## Pass / Fail

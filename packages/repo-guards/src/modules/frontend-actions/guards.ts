@@ -43,7 +43,12 @@ import {
   type PartialMockFacts,
   type UploadListenerFacts,
 } from './client.js';
-import { mutationOwnerGuard, type MutationOwnerFacts } from './mutations.js';
+import {
+  mutationCallStyleGuard,
+  mutationOwnerGuard,
+  type MutationCallStyleFacts,
+  type MutationOwnerFacts,
+} from './mutations.js';
 
 export type FrontendActionsGuardFacts = {
   callableErrorCopy: CallableErrorCopyFacts;
@@ -66,6 +71,7 @@ export type FrontendActionsGuardFacts = {
   effectiveMotion: EffectiveMotionFacts;
   dateOfBirthDerivation: DateOfBirthFacts | Absent;
   mutationOwner: MutationOwnerFacts;
+  mutationCallStyle: MutationCallStyleFacts;
 };
 
 export const FRONTEND_ACTIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -89,4 +95,5 @@ export const FRONTEND_ACTIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never
   effectiveMotionGuard,
   dateOfBirthGuard,
   mutationOwnerGuard,
+  mutationCallStyleGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { ConfiguredGuardDefinition } from '../../src/node/suite/config.js';
+import { mutateCalls } from '../../src/modules/frontend-actions/mutate-calls.js';
 import {
+  mutationCallStyleGuard,
   mutationOwnerGuard,
   type MutationOwnerFacts,
 } from '../../src/modules/frontend-actions/mutations.js';
@@ -141,5 +144,88 @@ describe('every mutation goes through the mutation owner', () => {
         exceptions: [],
       }),
     ).toEqual(['ownerImport.module is missing', 'ownerImport.name must be an identifier']);
+  });
+});
+
+describe('the mutate detector', () => {
+  const sites = (text: string) => mutateCalls(viewOfText('src/control.tsx', text));
+
+  it('finds mutate called, passed as a value, read by bracket, optional-chained, or destructured', () => {
+    for (const text of [
+      'save.mutate(values);',
+      'save.mutate(values, { onSuccess: () => toast(saved) });',
+      'useSave().mutate(values);',
+      'save?.mutate(values);',
+      "save['mutate'](values);",
+      'export const C = () => <Button onClick={save.mutate} />;',
+      'const { mutate } = useSave();',
+      'const { mutate: saveNow, mutateAsync } = useSave();',
+      'export const run = ({ mutate }: { mutate: () => void }) => mutate;',
+    ])
+      expect(sites(text), text).not.toEqual([]);
+  });
+
+  it('passes mutateAsync, an object key named mutate, a type position, a string, and a comment', () => {
+    for (const text of [
+      'await save.mutateAsync(values);',
+      'const { mutateAsync } = useSave();',
+      'const mock = { mutate: vi.fn() };',
+      "type Run = UseMutationResult['mutate'];",
+      "const note = 'save.mutate(values)';",
+      '// save.mutate(values) was the old shape',
+      'const { mutated } = result;',
+    ])
+      expect(sites(text), text).toEqual([]);
+  });
+});
+
+describe('a control runs a mutation only through await mutateAsync', () => {
+  const base = {
+    'src/components/save-button.tsx': lines(
+      'export const SaveButton = () => {',
+      '  const save = useSave();',
+      '  const press = async () => {',
+      '    try {',
+      '      await save.mutateAsync(values);',
+      '      toast(saved);',
+      '    } catch {',
+      '      // The hook has said why.',
+      '    }',
+      '  };',
+      '  return <Button onClick={press} />;',
+      '};',
+    ),
+    'src/components/save-button.test.tsx': lines(
+      'const save = { mutate: vi.fn() };',
+      'save.mutate(values);',
+    ),
+    'src/__tests__/helpers/mutations.ts': 'export const idle = (m: Run) => m.mutate;',
+  };
+
+  it('passes awaited mutateAsync calls, and leaves tests and test helpers alone', async () => {
+    expect(await findingsOf(mutationCallStyleGuard, {}, base)).toEqual([]);
+    samplesProve(mutationCallStyleGuard, {});
+  });
+
+  it('flags a fire-and-forget press, a passed or bracket-read mutate, and a destructured one', async () => {
+    const files = {
+      ...base,
+      'src/a.tsx': 'save.mutate(values, { onSuccess: close });',
+      'src/b.tsx': 'export const B = () => <Button onClick={save.mutate} />;',
+      'src/c.ts': "save['mutate'](values);",
+      'src/d.ts': 'const { mutate: markSeen } = useMarkSeen();',
+    };
+    expect(await findingsOf(mutationCallStyleGuard, {}, files)).toEqual([
+      'src/a.tsx:1 not on the reviewed list: save.mutate',
+      'src/b.tsx:1 not on the reviewed list: save.mutate',
+      "src/c.ts:1 not on the reviewed list: save['mutate']",
+      'src/d.ts:1 not on the reviewed list: mutate destructured as markSeen',
+    ]);
+  });
+
+  it('takes no facts', () => {
+    const configured: ConfiguredGuardDefinition = mutationCallStyleGuard;
+    expect(configured.factProblems({})).toEqual([]);
+    expect(configured.factProblems({ exceptions: [] })).toEqual(['unknown facts: exceptions']);
   });
 });

@@ -126,6 +126,7 @@ rule's coverage in its additions; they are not listed here.
 | RULE-STD-FRONTEND-109 | One owner per data-layer failure's user-facing copy; never a raw SDK string | codebase-hygiene 60; ux-audit 8 | `callableErrorCopy`, `readFailureCopy`, `errorInternalsRender` |
 | RULE-STD-FRONTEND-110 | An offered action mirrors the backend's predicate | codebase-hygiene 101, 108; auth-boundary 9 | — |
 | RULE-STD-FRONTEND-111 | Admin actions outside the admin area go through the one admin-actions affordance | codebase-hygiene 121 | `adminActionSurface` |
+| RULE-STD-FRONTEND-112 | A control runs a mutation with `await mutateAsync`, never `.mutate` | codebase-hygiene 123 | `mutationCallStyle` |
 | RULE-STD-FRONTEND-201 | Every async control shows its own pending state through the shared primitives | codebase-hygiene 57, 65, 68; ux-audit 2, 5, 6, 11, 12 | `loadingFeedback` |
 | RULE-STD-FRONTEND-202 | ConsequenceDialog for consequential confirmations | codebase-hygiene 57, 65, 68, 104 | — |
 | RULE-STD-FRONTEND-203 | Accessibility baseline: landmarks, labels, focus, Escape | codebase-hygiene 68, 103; ux-audit 4, 5, 12 | `accessibleControls`; guard-enforced: the `@ttt-productions/dev-standards/node/a11y` axe run (default, high-contrast, reduced-motion) in the app's e2e stage, and the shared ESLint base's `jsx-a11y` recommended rules |

@@ -169,3 +169,17 @@ Classification predicates are generic and come from `@ttt-productions/firebase-h
 - A React package component, prop, or config field that shows, hides, or enables a control on admin standing.
 
 **References.** RULE-STD-ENG-002, RULE-STD-ENG-006; RULE-STD-ARCH-201; RULE-STD-BACKEND-004, RULE-STD-BACKEND-011; RULE-STD-FRONTEND-001, RULE-STD-FRONTEND-110.
+
+### RULE-STD-FRONTEND-112 — A control runs a mutation with `await mutateAsync`, never `.mutate`
+**Scope.** apps
+
+**Rule.** A control runs its server action with `await mutation.mutateAsync(…)` and does its after-steps — a toast, a close, a navigation, a focus move — on the lines after the `await`. App code never touches a mutation's `mutate`: not called, not passed as a value, not destructured, and no `onSuccess` / `onError` / `onSettled` is handed to a press. The hook's own `onSuccess` / `onError` (its domain event, its shared failure toast) stay in the hook. Outside a `ConsequenceDialog` confirm, the call sits in a `try`: a failure the hook reports leaves the `catch` empty with a comment saying the hook has said why; a surface of the call site's own (an inline notice, a form error) runs in the `catch`, skipping an abort; work that must run either way goes in `finally`. Inside an `onConfirm` the rejection is left to propagate, so the dialog stays open on it (RULE-STD-FRONTEND-202).
+
+**Why.** A callback handed to one press belongs to the observer that pressed: when a live read redraws or swaps the control, a dialog closes, or the page changes what it shows while the call is out, React Query drops it, and the server action succeeds while its toast or close never happens, with nothing reported. An awaited `mutateAsync` cannot lose its after-steps, and the mutation owner ends it for a session that changed (RULE-STD-FRONTEND-108).
+
+**Prohibits.**
+- `x.mutate(…)`, with or without per-press callbacks; `onClick={x.mutate}`; `x['mutate']`; `const { mutate } = useX()`.
+- An after-step in a per-press callback instead of after the `await`; an un-awaited `mutateAsync` whose rejection nobody handles.
+- A `catch` around an `onConfirm`'s action that swallows the rejection the dialog needs to stay open.
+
+**References.** RULE-STD-FRONTEND-103, RULE-STD-FRONTEND-105, RULE-STD-FRONTEND-108; RULE-STD-FRONTEND-201, RULE-STD-FRONTEND-202; repo-guards `mutationCallStyle`; ttt-packages `docs/packages/query-core.md`.
