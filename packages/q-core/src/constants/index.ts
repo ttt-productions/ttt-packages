@@ -8,3 +8,4 @@ export * from './deployment.js';
 export * from './admin-views.js';
 export * from './pagination.js';
 export * from './text-fields.js';
+export * from './analytics.js';
