@@ -1,11 +1,23 @@
 import { MAX_STAT_EVENTS_PER_GAME } from '../constants/business.js';
 import type { GameStatEvent } from '../doc-schemas/game-stats.js';
-import type { GameStatHistoryRecord } from '../doc-schemas/game-stat-history.js';
+import {
+  GameStatHistoryRecordSchema,
+  type GameStatHistoryRecord,
+} from '../doc-schemas/game-stat-history.js';
 import type { FinalizedGame } from './contribution.js';
 import { replayGameStats } from './replay.js';
 import type { AnySportAdapter } from './sport-adapter.js';
 
 export type FinalizedRecordSnapshot = Omit<GameStatHistoryRecord, 'events'>;
+
+// A stored record read back: none stored is 'missing', and one its schema refuses is 'damaged'.
+export type FinalizedRecordFound = GameStatHistoryRecord | 'missing' | 'damaged';
+
+export function parseFinalizedRecord(stored: unknown): FinalizedRecordFound {
+  if (stored === null || stored === undefined) return 'missing';
+  const parsed = GameStatHistoryRecordSchema.safeParse(stored);
+  return parsed.success ? parsed.data : 'damaged';
+}
 
 export function buildFinalizedRecord(
   events: readonly GameStatEvent[],

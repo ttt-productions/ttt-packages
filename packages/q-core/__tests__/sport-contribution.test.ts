@@ -10,7 +10,11 @@ import {
   sumGameContributions,
   type FinalizedGame,
 } from '../src/sports/contribution.js';
-import { buildFinalizedRecord, finalizedGameFromRecord } from '../src/sports/finalized-record.js';
+import {
+  buildFinalizedRecord,
+  finalizedGameFromRecord,
+  parseFinalizedRecord,
+} from '../src/sports/finalized-record.js';
 import { gameScoreMirror } from '../src/sports/score-mirror.js';
 import { getSportAdapter } from '../src/sports/registry.js';
 import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings.js';
@@ -324,6 +328,14 @@ describe('the finalized record', () => {
     const game = finalizedGameFromRecord(basketball, buildFinalizedRecord(largest, snapshot));
     expect(game.stats.teamStats[A]).toEqual({ score: 0, timeouts: largest.length });
     expect(game.nonScoringRosterPlayerIds).toEqual(snapshot.nonScoringRosterPlayerIds);
+  });
+
+  it('reads a stored record back as the record, missing when none is stored, damaged when its schema refuses it', () => {
+    const record = buildFinalizedRecord(largest, snapshot);
+    expect(parseFinalizedRecord(record)).toEqual(record);
+    expect(parseFinalizedRecord(null)).toBe('missing');
+    expect(parseFinalizedRecord(undefined)).toBe('missing');
+    expect(parseFinalizedRecord({ ...record, teamIds: 'not a list' })).toBe('damaged');
   });
 
   it('keeps a record for a game with no events', () => {

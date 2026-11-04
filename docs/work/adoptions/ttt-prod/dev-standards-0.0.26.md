@@ -58,8 +58,8 @@
 - RULE-STD-BACKEND-010: ttt-prod's `appCheck` guard config consumes in its admin, payments and safety
   folders with no exemption; confirm it satisfies the rule as written.
 - RULE-STD-FRONTEND-006: moving ttt-prod's inline destructive triggers into the menu is its own item
-  (`docs/work/waiting-to-be-implemented/destructive-actions-into-the-shared-menu.md`), after
-  ttt-packages' `shared-item-actions-menu.md` ships the shared menu.
+  (`docs/work/waiting-to-be-implemented/destructive-actions-into-the-shared-menu.md`), on ui-core
+  0.11.41's `ActionsMenu` (`ui-core-0.11.41.md`).
 
 **Done when:** the lockfiles name `@ttt-productions/dev-standards` 0.0.26 or later, the `CLAUDE.md`
 value and the media additions say the above, and the two checks are confirmed.

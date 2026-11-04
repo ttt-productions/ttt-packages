@@ -18,8 +18,9 @@
     call site may add a layout class that sets only what the part does not set and a single-instance
     Tailwind override, never a stylesheet class that restyles what the part already styles.
   - `playbooks/crosswalk.md` carries the new title.
-- **What the app must change:** Install. The variants do not exist yet: they, the guard and the
-  theme-core cleanup are ttt-packages' `ui-core-variants-replace-restyling-classes.md`, and ttt-prod's
-  move onto them is its own item in ttt-prod's `docs/work/waiting-to-be-implemented/`. Until then
-  ttt-prod's page cards and restyled parts are the known gap that item closes.
+- **What the app must change:** Install. The variants, the `partRestyling` guard and the theme-core
+  cleanup shipped in ui-core 0.11.41, theme-core 0.12.17 and repo-guards 0.1.48 (their adoption files
+  here); ttt-prod's move onto them is its own item,
+  `docs/work/waiting-to-be-implemented/ui-core-parts-onto-variants.md`. Until it lands, ttt-prod's
+  page cards and restyled parts are the known gap that item closes.
 - **Done when:** The lockfiles name `@ttt-productions/dev-standards` 0.0.25 or later.
