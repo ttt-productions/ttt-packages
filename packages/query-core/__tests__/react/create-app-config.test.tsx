@@ -29,33 +29,35 @@ const PATH = 'config/app';
 const DEFAULTS: Levers = { appVersion: '', maintenanceMode: false };
 const VALID: Levers = { appVersion: '3.1.0', maintenanceMode: true };
 
-const accepts: Record<keyof Levers, (value: unknown) => boolean> = {
-  appVersion: (value) => typeof value === 'string',
-  maintenanceMode: (value) => typeof value === 'boolean',
+const reports = {
+  unavailable: vi.fn<(error: unknown, attempts: number) => void>(),
+  unreadable: vi.fn<(error: unknown) => void>(),
 };
 
-const reports = {
-  refused: vi.fn<(lever: keyof Levers, value: unknown) => void>(),
-  unavailable: vi.fn<(error: unknown, attempts: number) => void>(),
-};
+function readLever<K extends keyof Levers>(
+  stored: StoredAppConfig,
+  lever: K,
+  kind: 'string' | 'boolean',
+): Levers[K] {
+  const value = stored[lever];
+  if (value === undefined) return DEFAULTS[lever];
+  if (typeof value !== kind) throw new Error(`${lever} does not match its schema`);
+  return value as Levers[K];
+}
 
 const config = createAppConfig<Levers, Extra>({
   path: PATH,
   defaults: DEFAULTS,
   readLevers: (stored) => ({
-    appVersion: typeof stored.appVersion === 'string' ? stored.appVersion : DEFAULTS.appVersion,
-    maintenanceMode:
-      typeof stored.maintenanceMode === 'boolean'
-        ? stored.maintenanceMode
-        : DEFAULTS.maintenanceMode,
+    appVersion: readLever(stored, 'appVersion', 'string'),
+    maintenanceMode: readLever(stored, 'maintenanceMode', 'boolean'),
   }),
-  isLeverRefused: (stored, lever) => stored[lever] !== undefined && !accepts[lever](stored[lever]),
   extra: {
     read: (stored) => ({ noticeRead: typeof stored?.notice === 'string' ? stored.notice : 'none' }),
     whileUnknown: { noticeRead: null },
   },
-  onLeverRefused: reports.refused,
   onUnavailable: reports.unavailable,
+  onUnreadable: reports.unreadable,
 });
 
 function Wrapper({ children }: { children: ReactNode }) {
@@ -80,8 +82,8 @@ const unavailable = () => firestoreError('unavailable', 'gone');
 
 beforeEach(() => {
   store.reset();
-  reports.refused.mockReset();
   reports.unavailable.mockReset();
+  reports.unreadable.mockReset();
 });
 
 describe('createAppConfig — what the listener says', () => {
@@ -90,7 +92,6 @@ describe('createAppConfig — what the listener says', () => {
     expect(result.current).toMatchObject({
       status: 'loading',
       levers: DEFAULTS,
-      refusedLevers: [],
       noticeRead: null,
       retrying: false,
     });
@@ -102,7 +103,6 @@ describe('createAppConfig — what the listener says', () => {
     expect(result.current).toMatchObject({
       status: 'ready',
       levers: VALID,
-      refusedLevers: [],
       noticeRead: 'hello',
     });
   });
@@ -121,7 +121,6 @@ describe('createAppConfig — what the listener says', () => {
     expect(config.readAppConfigSnapshot(null)).toEqual({
       status: 'missing',
       levers: DEFAULTS,
-      refusedLevers: [],
       noticeRead: 'none',
     });
     expect(config.LOADING_APP_CONFIG.status).toBe('loading');
@@ -230,38 +229,35 @@ describe('createAppConfig — a listener that keeps failing', () => {
   });
 });
 
-describe('createAppConfig — every snapshot is read lever by lever', () => {
-  it('a refused lever reads as its default and is named, and the valid lever survives', async () => {
-    const { result } = renderConfig();
-    await emit({ ...VALID, maintenanceMode: 'true' });
-    expect(result.current.levers).toEqual({ ...VALID, maintenanceMode: false });
-    expect(result.current.refusedLevers).toEqual(['maintenanceMode']);
-  });
-
-  it('an absent lever is not refused; it reads as its default', async () => {
+describe('createAppConfig — a stored document is read as it is', () => {
+  it('a lever that is absent reads as its default', async () => {
     const { result } = renderConfig();
     await emit({ appVersion: '1.0.0' });
     expect(result.current.levers).toEqual({ appVersion: '1.0.0', maintenanceMode: false });
-    expect(result.current.refusedLevers).toEqual([]);
   });
 
-  it('reports a refused lever once per distinct field and value', async () => {
-    renderConfig();
+  it('a lever its reader refuses makes the config unavailable and is reported, never read as a default', async () => {
+    const { result } = renderConfig();
+    await emit({ ...VALID, maintenanceMode: 'true' });
+    expect(result.current.status).toBe('unavailable');
+    expect(reports.unreadable).toHaveBeenCalledTimes(1);
+    expect(reports.unreadable).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'maintenanceMode does not match its schema' }),
+    );
+  });
+
+  it('reads again once the document is corrected', async () => {
+    const { result } = renderConfig();
     await emit({ ...VALID, appVersion: 42 });
-    await emit({ ...VALID, appVersion: 42 });
-    expect(reports.refused).toHaveBeenCalledTimes(1);
-    expect(reports.refused).toHaveBeenCalledWith('appVersion', 42);
-    await emit({ ...VALID, appVersion: 43 });
-    expect(reports.refused).toHaveBeenCalledTimes(2);
-    await emit({ ...VALID, appVersion: 43, maintenanceMode: 'true' });
-    expect(reports.refused).toHaveBeenCalledTimes(3);
-    expect(reports.refused).toHaveBeenLastCalledWith('maintenanceMode', 'true');
+    expect(result.current.status).toBe('unavailable');
+    await emit(VALID);
+    expect(result.current).toMatchObject({ status: 'ready', levers: VALID });
   });
 
   it('a valid document reports nothing', async () => {
     renderConfig();
     await emit(VALID);
     await emit(null);
-    expect(reports.refused).not.toHaveBeenCalled();
+    expect(reports.unreadable).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -22,7 +21,6 @@ export type AppConfigLeverOf<TLevers extends object> = keyof TLevers & string;
 export type AppConfigSnapshotState<TLevers extends object, TExtra extends object> = {
   status: AppConfigStatus;
   levers: TLevers;
-  refusedLevers: readonly AppConfigLeverOf<TLevers>[];
 } & TExtra;
 
 export type AppConfigState<TLevers extends object, TExtra extends object> = AppConfigSnapshotState<
@@ -37,13 +35,12 @@ export interface AppConfigDefinition<TLevers extends object, TExtra extends obje
   path: string;
   defaults: TLevers;
   readLevers: (stored: StoredAppConfig) => TLevers;
-  isLeverRefused: (stored: StoredAppConfig, lever: AppConfigLeverOf<TLevers>) => boolean;
   extra: {
     read: (stored: StoredAppConfig | null) => TExtra;
     whileUnknown: TExtra;
   };
-  onLeverRefused?: (lever: AppConfigLeverOf<TLevers>, value: unknown) => void;
   onUnavailable?: (error: unknown, attempts: number) => void;
+  onUnreadable?: (error: unknown) => void;
 }
 
 export interface AppConfig<TLevers extends object, TExtra extends object> {
@@ -69,13 +66,10 @@ function quickRetryDelayMs(attempt: number): number {
 export function createAppConfig<TLevers extends object, TExtra extends object>(
   definition: AppConfigDefinition<TLevers, TExtra>,
 ): AppConfig<TLevers, TExtra> {
-  const leverKeys = Object.keys(definition.defaults) as AppConfigLeverOf<TLevers>[];
-
   const LOADING_APP_CONFIG: AppConfigSnapshotState<TLevers, TExtra> = {
     ...definition.extra.whileUnknown,
     status: 'loading',
     levers: definition.defaults,
-    refusedLevers: [],
   };
   const UNAVAILABLE_APP_CONFIG: AppConfigSnapshotState<TLevers, TExtra> = {
     ...LOADING_APP_CONFIG,
@@ -87,14 +81,9 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
   ): AppConfigSnapshotState<TLevers, TExtra> {
     const extra = definition.extra.read(stored);
     if (stored === null) {
-      return { ...extra, status: 'missing', levers: definition.defaults, refusedLevers: [] };
+      return { ...extra, status: 'missing', levers: definition.defaults };
     }
-    return {
-      ...extra,
-      status: 'ready',
-      levers: definition.readLevers(stored),
-      refusedLevers: leverKeys.filter((lever) => definition.isLeverRefused(stored, lever)),
-    };
+    return { ...extra, status: 'ready', levers: definition.readLevers(stored) };
   }
 
   const AppConfigContext = createContext<AppConfigState<TLevers, TExtra>>({
@@ -109,7 +98,6 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
       useState<AppConfigSnapshotState<TLevers, TExtra>>(LOADING_APP_CONFIG);
     const [subscription, setSubscription] = useState(0);
     const [retrying, setRetrying] = useState(false);
-    const reportedRefusals = useRef(new Set<string>());
 
     useEffect(() => {
       const ref = doc(db, definition.path);
@@ -125,13 +113,12 @@ export function createAppConfig<TLevers extends object, TExtra extends object>(
           (snap) => {
             attempt = 0;
             const stored: StoredAppConfig | null = snap.exists() ? snap.data() : null;
-            const next = readAppConfigSnapshot(stored);
-            for (const lever of next.refusedLevers) {
-              const value: unknown = stored?.[lever];
-              const key = `${lever}:${typeof value}:${JSON.stringify(value)}`;
-              if (reportedRefusals.current.has(key)) continue;
-              reportedRefusals.current.add(key);
-              definition.onLeverRefused?.(lever, value);
+            let next: AppConfigSnapshotState<TLevers, TExtra>;
+            try {
+              next = readAppConfigSnapshot(stored);
+            } catch (unreadable) {
+              definition.onUnreadable?.(unreadable);
+              next = UNAVAILABLE_APP_CONFIG;
             }
             setSnapshot(next);
             setRetrying(false);

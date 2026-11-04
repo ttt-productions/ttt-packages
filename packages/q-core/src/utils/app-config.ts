@@ -54,31 +54,13 @@ function definedFields(fields: Readonly<Record<string, unknown>>): Record<string
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
-export interface AppConfigLeverRepair {
-  readonly lever: AppConfigLeverKey;
-  readonly storedValue: unknown;
-}
-
-export interface AppConfigMerge {
-  readonly next: AppConfig;
-  readonly repairs: readonly AppConfigLeverRepair[];
-}
-
 export function mergeAppConfigUpdate(
   existing: Readonly<Record<string, unknown>> | null | undefined,
   update: Readonly<Partial<AppConfig>>,
-): AppConfigMerge {
-  const stored = definedFields(existing ?? {});
-  const repairs: AppConfigLeverRepair[] = [];
-  for (const lever of APP_CONFIG_LEVER_KEYS) {
-    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success)
-      continue;
-    repairs.push({ lever, storedValue: stored[lever] });
-    delete stored[lever];
-  }
+): AppConfig {
   const parsed = AppConfigSchema.safeParse({
     ...DEFAULT_APP_CONFIG,
-    ...stored,
+    ...definedFields(existing ?? {}),
     ...definedFields(update),
   });
   if (!parsed.success) {
@@ -88,25 +70,22 @@ export function mergeAppConfigUpdate(
       `_appConfig/app would not match its schema after this update (${field}: ${issue?.message ?? 'invalid'}). Nothing should be written.`,
     );
   }
-  return { next: parsed.data, repairs };
+  return parsed.data;
 }
 
 export function readAppConfigLever<L extends AppConfigLeverKey>(
   snapshot: Readonly<Record<string, unknown>> | null | undefined,
   lever: L,
 ): AppConfigLevers[L] {
-  const parsed = AppConfigSchema.shape[lever].safeParse(snapshot?.[lever]);
-  return parsed.success && parsed.data !== undefined
-    ? (parsed.data as AppConfigLevers[L])
-    : DEFAULT_APP_CONFIG[lever];
-}
-
-export function isAppConfigLeverRefused(
-  snapshot: Readonly<Record<string, unknown>> | null | undefined,
-  lever: AppConfigLeverKey,
-): boolean {
   const stored = snapshot?.[lever];
-  return stored !== undefined && !AppConfigSchema.shape[lever].safeParse(stored).success;
+  if (stored === undefined) return DEFAULT_APP_CONFIG[lever];
+  const parsed = AppConfigSchema.shape[lever].safeParse(stored);
+  if (!parsed.success) {
+    throw new Error(
+      `_appConfig/app.${lever} does not match its schema (${parsed.error.issues[0]?.message ?? 'invalid'}).`,
+    );
+  }
+  return parsed.data as AppConfigLevers[L];
 }
 
 export function readAppConfigLevers(

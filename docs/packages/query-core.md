@@ -330,17 +330,17 @@ one Firestore document every visitor's shell reads. `createAppConfig(definition)
 `AppConfigProvider` (mounted inside the `FirestoreProvider`, it holds the app's one live
 subscription to the document), `useAppConfig()`, the pure `readAppConfigSnapshot(stored)`, and the
 `LOADING_APP_CONFIG` / `UNAVAILABLE_APP_CONFIG` states. The app supplies everything it owns: the
-document `path`, the lever `defaults`, `readLevers(stored)` (each lever at a value its schema
-accepts, its default otherwise), `isLeverRefused(stored, lever)`, its `extra` reading (`read(stored
-| null)` and the value `whileUnknown`, spread into the state beside the levers), and the reporting
-callbacks.
+document `path`, the lever `defaults`, `readLevers(stored)` (each lever as stored, its default only
+when the field is absent, and a throw when a stored value does not match the app's schema), its
+`extra` reading (`read(stored | null)` and the value `whileUnknown`, spread into the state beside
+the levers), and the reporting callbacks.
 
-- **The stored document is untrusted.** Consumers only ever see `levers` the app's reader accepted;
-  a refused lever reads as its default, is named in `refusedLevers`, and goes to
-  `onLeverRefused(lever, value)` once per distinct field and value for the life of the page.
+- **The stored document is read as it is.** A stored value is never replaced by a default: when
+  `readLevers` throws, the config is `unavailable` and the error goes to `onUnreadable(error)`; the
+  next snapshot that reads cleanly is `ready` again.
 - **Status.** `loading` (no snapshot yet, the defaults), `ready`, `missing` (the document does not
-  exist, the defaults), `unavailable` (no snapshot could be read). A config read never closes the
-  product by itself.
+  exist, the defaults), `unavailable` (no snapshot could be read, or the stored document does not
+  match the app's schema). A config read never closes the product by itself.
 - **The listener heals itself.** A permission-denied error ends a Firestore listener for good, and
   the first listen can lose a race with the first App Check token, so a failed listener
   re-subscribes on a short backoff (`APP_CONFIG_MAX_QUICK_ATTEMPTS`); when that ladder fails it
