@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/short-link-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Generic short links: the link document, its id, the create and lookup cores, and the redirect page",
   "repository": {
     "type": "git",
